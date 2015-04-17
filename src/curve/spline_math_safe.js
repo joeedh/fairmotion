@@ -155,40 +155,7 @@ function solve_intern(spline, order, goal_order, steps, gk) {
       seg.flag &= ~SplineFlags.TEMP_TAG;
     }
  }
-  
-  /*
-  if (g_app_state != undefined && g_app_state.screen != undefined) {
-  //  window.redraw_viewport();
-  }
-  
-  solve(spline, order, steps, gk, true, edge_segs);
-  var start_time = time_ms();
-
-  var do_inc = INCREMENTAL;
-  if (goal_order != undefined) {
-    for (var i=0; i<spline.segments.length; i++) {
-      var seg = spline.segments[i];
-      if (do_inc && (!(seg.v1.flag & SplineFlags.UPDATE) || !(seg.v2.flag & SplineFlags.UPDATE)))
-        continue;
-      
-#ifdef USE_BETTER_CURVE
-      change_knot_vector(seg.ks, order, goal_order);
-      seg.eval(0.5);
-#endif
-    }
-  } else {
-    for (var i=0; i<spline.segments.length; i++) {
-      var seg = spline.segments[i];
-      seg.eval(0.5);
-    }
-  }
-  
-  var end_time = time_ms() - start_time;
-  if (end_time > 50)
-    console.log("solve time", end_time.toFixed(2), "ms");
-  return
-  //*/
-  
+    
   var start_time = time_ms();
   
   window._SOLVING = true;

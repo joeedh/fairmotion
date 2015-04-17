@@ -1,12 +1,12 @@
 #Intro
 
-FairMotion is an advanced vector graphics/animation editor.  It is written in HTML5 and ES6.
+Fairmotion is an advanced vector graphics/animation editor, written in HTML5 and ES6.
 
 <div style="float: right">
 <img align="right" src="https://github.com/joeedh/fairmotion/blob/master/examples/example2.png"></img>
 </div>
 
-Fairmotion is based on the principle of never, ever (ever!) using polynomials for
+It is based on the principle of never, ever (ever!) using polynomials for
 visual curves. Instead, it integrates a transendental polynomial
 spiral, kindof like Raph Levien's Spiro curves:
 

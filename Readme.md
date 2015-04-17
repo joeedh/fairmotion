@@ -17,6 +17,8 @@ curve's *curvature function.*  This is then reverse integrated
 to get a much nicer looking curve than you would get from stuff like
 Bezier curves or B-Splines.
 
+![Example Image](https://github.com/joeedh/fairmotion/blob/master/examples/example1.png)
+
 ##To set up build system##
   cd tools/utils/libs
   tar -xzvf ply-3.4.tar.gz (or use favorite archive tool, e.g. 7zip)

@@ -14,7 +14,7 @@ serv_unit_tests = True
 server_root = "c:/dev/fairmotion/pyserver"
 doc_root = "c:/dev/fairmotion"
 sp = "/" #os.path.sep
-files_root = "c:/dev/fairmotion_user_files_2"
+files_root = "c:/dev/fairmotion_user_files"
 
 ipaddr = "127.0.0.1"
 

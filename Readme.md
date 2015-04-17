@@ -1,12 +1,11 @@
 #Intro
 
+FairMotion is an advanced vector graphics/animation editor.
+
 ![Example Image](https://github.com/joeedh/fairmotion/blob/master/examples/example2.png)
 
-FairMotion is an advanced vector graphics/animation editor.
 It is based on the principle of never, ever (ever!) using polynomials for
-visual curves.
-
-Instead, it integrates a transendental polynomial
+visual curves. Instead, it integrates a transendental polynomial
 spiral, kindof like Raph Levien's Spiro curves:
 
 http://www.levien.com/phd/phd.html

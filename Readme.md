@@ -1,6 +1,6 @@
 #Intro
 
-FairMotion is an advanced vector graphics/animation editor.
+FairMotion is an advanced vector graphics/animation editor.  It is written in HTML5 and ES6.
 
 <div style="float: right">
 <img align="right" src="https://github.com/joeedh/fairmotion/blob/master/examples/example2.png"></img>

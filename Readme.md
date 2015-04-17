@@ -2,7 +2,9 @@
 
 FairMotion is an advanced vector graphics/animation editor.
 
-![Example Image](https://github.com/joeedh/fairmotion/blob/master/examples/example2.png)
+<div style="float: right">
+<img align="right" src="https://github.com/joeedh/fairmotion/blob/master/examples/example2.png"></img>
+</div>
 
 It is based on the principle of never, ever (ever!) using polynomials for
 visual curves. Instead, it integrates a transendental polynomial
@@ -16,7 +18,7 @@ curve's *curvature function.*  This is then reverse integrated
 to get a much nicer looking curve than you would get from stuff like
 Bezier curves or B-Splines.
 
-![Example Image](https://github.com/joeedh/fairmotion/blob/master/examples/example1.png)
+![Another Example](https://github.com/joeedh/fairmotion/blob/master/examples/example1.png)
 
 ##To set up build system##
   cd tools/utils/libs

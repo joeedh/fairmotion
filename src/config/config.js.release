@@ -1,0 +1,7 @@
+"use strict";
+
+global RELEASE=true;
+
+global DEBUG = {
+  //tesselator : true
+}

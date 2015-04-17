@@ -1,0 +1,41 @@
+"use strict";
+
+var Icons = {
+  SUBDIVIDE      : 0,
+  SCALE          : 1,
+  TRANSLATE      : 2,
+  FLIP_NORMALS   : 3,
+  EXTRUDE        : 4,
+  TRIANGULATE    : 5,
+  ROTATE         : 6,
+  TRI2QUAD       : 7,
+  VERT_SEL       : 8,
+  EDGE_SEL       : 9,
+  FACE_SEL       : 10,
+  OBJECT_SEL     : 11,
+  HELP_PICKER    : 12,
+  DUPLICATE      : 13,
+  BRIDGE         : 14,
+  VERTEX_SMOOTH  : 15,
+  LOOP_CUT       : 16,
+  UNDO           : 17,
+  REDO           : 18,
+  SELECT_ALL     : 19,
+  EDGE_LOOP_SEL  : 20,
+  FACE_LOOP_SEL  : 21,
+  CIRCLE_SEL     : 22,
+  BACKSPACE      : 23,
+  LEFT_ARROW     : 24,
+  RIGHT_ARROW    : 25,
+  UI_EXPAND      : 26, //triangle
+  UI_COLLAPSE    : 27, //triangle
+  FILTER_SEL_OPS : 28,
+  SCROLL_DOWN    : 29,
+  SCROLL_UP      : 30,
+  INSET_REGIONS  : 31,
+  SPLIT_EDGES    : 32,
+  DISSOLVE_FACES : 33,
+  NOTE_EXCL      : 34,
+  TINY_X         : 35,
+  FOLDER         : 36
+};

@@ -1,5 +1,7 @@
 #Intro
 
+![Example Image](https://github.com/joeedh/fairmotion/blob/master/examples/example2.png)
+
 FairMotion is an advanced vector graphics/animation editor.
 It is based on the principle of never, ever (ever!) using polynomials for
 visual curves.

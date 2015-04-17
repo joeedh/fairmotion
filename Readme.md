@@ -23,29 +23,24 @@ Fairmotion is very much a work in progress, and should be considered pre-alpha.
 ![Another Example](https://github.com/joeedh/fairmotion/blob/master/examples/example1.png)
 
 ##To set up build system##
-  cd tools/utils/libs
-  
-  tar -xzvf ply-3.4.tar.gz (or use favorite archive tool, e.g. 7zip)
-  
-  cd py-3.4
-  
-  python setup.py install
+    cd tools/utils/libs
+    tar -xzvf ply-3.4.tar.gz (or use favorite archive tool, e.g. 7zip)
+    cd py-3.4
+    python setup.py install
 
 ###Build parse tables###
 From root folder:
-
-  cd tools/extjs_cc
-  
-  python js_cc.py
+    cd tools/extjs_cc
+    python js_cc.py
 
 You should see something like:
 
-  js_cc.py: error: too few arguments
+    js_cc.py: error: too few arguments
 
 ###Build source files###
 From root folder:
 
-  python js_build.py
+    python js_build.py
   
 Note that if inkscaped is installed, the build process
 will attempt to render an SVG iconsheet (see src/datafiles/iconsheet.svg).
@@ -58,9 +53,9 @@ though, so I'm not sure if it still works there.
   2. Edit contents and set server root, host, doc path, files path (where user files will go), etc.
   
 ##To run python/sqlite stand-alone server:##
-  cd pyserver
+    cd pyserver
 
-  python serv_simple.py
+    python serv_simple.py
 
 serv_simple.py will create an SQLite database on its first run (it will print the tables
 as it makes them).

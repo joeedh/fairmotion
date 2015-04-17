@@ -23,6 +23,7 @@ Fairmotion is very much a work in progress, and should be considered pre-alpha.
 ![Another Example](https://github.com/joeedh/fairmotion/blob/master/examples/example1.png)
 
 ##To set up build system##
+
     cd tools/utils/libs
     tar -xzvf ply-3.4.tar.gz (or use favorite archive tool, e.g. 7zip)
     cd py-3.4
@@ -30,6 +31,7 @@ Fairmotion is very much a work in progress, and should be considered pre-alpha.
 
 ###Build parse tables###
 From root folder:
+
     cd tools/extjs_cc
     python js_cc.py
 
@@ -53,8 +55,8 @@ though, so I'm not sure if it still works there.
   2. Edit contents and set server root, host, doc path, files path (where user files will go), etc.
   
 ##To run python/sqlite stand-alone server:##
-    cd pyserver
 
+    cd pyserver
     python serv_simple.py
 
 serv_simple.py will create an SQLite database on its first run (it will print the tables

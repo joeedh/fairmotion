@@ -2,7 +2,10 @@ import os, sys, os.path, math, random, time
 import shelve, imp, struct, ply
 import mimetypes
 
+#turn filenames into gibberish
 mangle_file_paths = False 
+
+#serv_simple.py sets this to true
 use_sqlite = False
 
 try:

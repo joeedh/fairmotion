@@ -18,6 +18,8 @@ curve's *curvature function.*  This is then reverse integrated
 to get a much nicer looking curve than you would get from stuff like
 Bezier curves or B-Splines.
 
+Fairmotion is very much a work in progress, and should be considered pre-alpha.
+
 ![Another Example](https://github.com/joeedh/fairmotion/blob/master/examples/example1.png)
 
 ##To set up build system##

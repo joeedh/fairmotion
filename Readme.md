@@ -6,7 +6,7 @@ FairMotion is an advanced vector graphics/animation editor.  It is written in HT
 <img align="right" src="https://github.com/joeedh/fairmotion/blob/master/examples/example2.png"></img>
 </div>
 
-It is based on the principle of never, ever (ever!) using polynomials for
+Fairmotion is based on the principle of never, ever (ever!) using polynomials for
 visual curves. Instead, it integrates a transendental polynomial
 spiral, kindof like Raph Levien's Spiro curves:
 

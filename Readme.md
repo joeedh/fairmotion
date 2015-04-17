@@ -1,12 +1,13 @@
 #Intro
 
-![Example Image](https://github.com/joeedh/fairmotion/blob/master/examples/example2.png)
-
 FairMotion is an advanced vector graphics/animation editor.
-It is based on the principle of never, ever (ever!) using polynomials for
-visual curves.
 
-Instead, it integrates a transendental polynomial
+<div style="float: right">
+<img align="right" src="https://github.com/joeedh/fairmotion/blob/master/examples/example2.png"></img>
+</div>
+
+It is based on the principle of never, ever (ever!) using polynomials for
+visual curves. Instead, it integrates a transendental polynomial
 spiral, kindof like Raph Levien's Spiro curves:
 
 http://www.levien.com/phd/phd.html
@@ -16,6 +17,8 @@ Intead of interpolating x and y separately with two polynomials,
 curve's *curvature function.*  This is then reverse integrated
 to get a much nicer looking curve than you would get from stuff like
 Bezier curves or B-Splines.
+
+![Another Example](https://github.com/joeedh/fairmotion/blob/master/examples/example1.png)
 
 ##To set up build system##
   cd tools/utils/libs

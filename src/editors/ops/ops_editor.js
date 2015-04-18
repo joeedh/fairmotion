@@ -217,7 +217,6 @@ class OpStackEditor extends Area {
     
     this.subframe = new OpStackFrame(new Context(), this.size);
     this.subframe.pos = [0, 0]; //XXX this should work: [0, Area.get_barhgt()];
-    this.subframe.canvas = new UICanvas([this.pos, this.size]);
     this.subframe.state |= UIFlags.HAS_PAN|UIFlags.IS_CANVAS_ROOT|UIFlags.PAN_CANVAS_MAT;
     this.subframe.velpan = new VelocityPan();
     
@@ -313,17 +312,6 @@ class OpStackEditor extends Area {
   }
   
   build_draw(UICanvas canvas, Boolean isVertical) {
-    prior(OpStackEditor, this).build_draw.call(this, canvas, isVertical);
-  }
-  
-  set_canvasbox() {
-    this.asp = this.size[0] / this.size[1];
-    
-    //Set the viewport and projection matrix for the scene
-    //gl.viewport(this.parent.pos[0], this.parent.pos[1], this.size[0], this.size[1]);
-  }
-  
-  on_draw(WebGLRenderingContext gl, test) {
     this.subframe.set_pan();
     
     this.gl = gl;
@@ -333,22 +321,17 @@ class OpStackEditor extends Area {
     this.subframe.size[0] = this.size[0];
     this.subframe.size[1] = this.size[1]-this.subframe.pos[1]-Area.get_barhgt();
     this.subframe.canvas.viewport = this.canvas.viewport; //set_viewport([this.parent.pos, this.parent.size]);
-    
-    //gl.getExtension("OES_TEXTURE_FLOAT");
-    //this.draw_lines(gl)data;
-    
-    //scissor subframe seperately
-    var p = [this.parent.pos[0] + this.subframe.pos[0], this.parent.pos[1] + this.subframe.pos[1]];
-    var s = [this.parent.size[0] - this.subframe.pos[0], this.parent.size[1] - this.subframe.pos[1]];
-    g_app_state.raster.push_scissor(p, s);
-    this.subframe.on_draw(gl);
-    g_app_state.raster.pop_scissor();
-    
-    g_app_state.raster.push_scissor(this.parent.pos, this.parent.size);
-    Area.prototype.on_draw.call(this, gl);
-    g_app_state.raster.pop_scissor();
+
+    prior(OpStackEditor, this).build_draw.call(this, canvas, isVertical);
   }
   
+  set_canvasbox() {
+    this.asp = this.size[0] / this.size[1];
+    
+    //Set the viewport and projection matrix for the scene
+    //gl.viewport(this.parent.pos[0], this.parent.pos[1], this.size[0], this.size[1]);
+  }
+    
   static fromSTRUCT(reader) {
     var obj = new OpStackEditor(0, 0, 1, 1);
     reader(obj);

@@ -1,4 +1,6 @@
-import {Dialog, PackedDialog, DialogFlags} from 'dialog';
+import {Dialog, PackedDialog, DialogFlags, OkayDialog, ErrorDialog} 
+       from 'dialog';
+       
 import {urlencode, b64decode, b64encode} from 'strutils';
 
 import {ToolFlags, UndoFlags} from 'toolops_api';

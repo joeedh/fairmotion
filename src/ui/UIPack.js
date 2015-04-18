@@ -1,8 +1,6 @@
 import {PropTypes, TPropFlags} from 'toolprops';
 
-import {
-  MinMax
-} from 'mathlib';
+import {MinMax, inrect_2d, aabb_isect_2d} from 'mathlib';
 
 var UIElement, UIFrame;
 

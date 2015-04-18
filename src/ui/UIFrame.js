@@ -1,5 +1,7 @@
 import {aabb_isect_2d, inrect_2d} from 'mathlib';
 
+import 'J3DIMath';
+
 //import * as UIFileData from 'UIFileData';
 import {PackFlags, UIElement, UIFlags, CanvasFlags} from 'UIElement';
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
@@ -680,53 +682,6 @@ export class UIFrame extends UIElement {
     this.update_depth();
   }
 
-  on_draw(gl) {
-    function descend(n, canvas) {
-      for (var c in n.children) {
-        if (c.canvas != undefined) continue;
-        
-        c.canvas = canvas;
-        if (c instanceof UIFrame)
-          descend(c, canvas);
-      }
-    }
-    
-    if (this.recalc && this.is_canvas_root() && this.get_canvas() != undefined) {
-      if (this._did_recalc_prop == undefined) {
-        this._recalc = 0;
-        this._did_recalc_prop = true;
-        if (this._index == undefined) this._index  = 0;
-        
-        Object.defineProperty(this, "recalc", {
-          get : function() { return this._recalc;},
-          set : function(val) {
-            //if (this._index ++ < 100)
-            //  console.trace();
-              
-            this._recalc = val;
-          }
-        });
-      }
-      
-      if (this.canvas == undefined)
-        this.canvas = this.get_canvas();
-      if (this.canvas != undefined)
-        descend(this, this.canvas);
-      
-      this.canvas.reset();
-      if (DEBUG.ui_canvas)
-        console.log("------------->Build draw call in " + this.constructor.name + ".on_draw()");
-      
-      //if (this instanceof UIPackFrame)
-      //  this.pack(this.canvas, false);
-      this.build_draw(this.canvas, false);
-    }
-    
-    if (this.canvas != undefined) {
-      this.canvas.on_draw(gl);
-    }
-  }
-
   set_context(ctx)
   {
     this.ctx = ctx;
@@ -848,67 +803,8 @@ export class UIFrame extends UIElement {
     if (this._limit == undefined)
       this._limit = 0;
     
-    var canvas = this.canvas;
-    var this2 = this;
-    function clear_recalc(e, d) {
-      for (var c in e.children) {
-        //c.recalc = 0;
-        //if (canvas != undefined && c.canvas == undefined)
-        //  c.canvas = canvas;
-        
-        c.abspos[0] = 0; c.abspos[1] = 0;
-        c.abs_transform(c.abspos);
-          
-        var t = c.dirty;
-        //c.dirty = c.last_dirty;
-        //c.last_dirty = t;
-        
-        if (!(c instanceof UIFrame)) {
-          /*c.dirty[0][0] = c.abspos[0];
-          c.dirty[0][1] = c.abspos[1];
-          c.dirty[1][0] = c.size[0];
-          c.dirty[1][1] = c.size[1];*/
-        }
-        
-        c.abspos[0] = 0; c.abspos[1] = 0;
-        c.abs_transform(c.abspos);
-        
-        if (aabb_isect_2d(c.abspos, c.size, d[0], d[1])) {
-          c.do_recalc();
-        }
-        
-        if (c instanceof UIFrame) {
-          clear_recalc(c, d);
-        } else {
-          if (c.recalc) {
-          //  canvas.clip(c.dirty);
-          }
-        }
-      }
-    }
-    
-    if (this.is_canvas_root()) {
-      window.block_redraw_ui();
-      
-      this.pack(canvas, false);
-      this.pack(canvas, false);
-      
-      var d = this.calc_dirty();
-      this.dirty_rects.reset();
-      
-      this.canvas.root_start();
-      
-      this.canvas.clip(d);
-      this.canvas.clear(d[0], d[1]);
-      
-      clear_recalc(this, d);
-      
-      this.canvas.push_transform();
-      this.canvas.translate(this.pos);
-    } else {
-      var d = this.calc_dirty();
-      this.dirty_rects.reset();
-    }
+    var d = this.calc_dirty();
+    this.dirty_rects.reset();
     
     if (this.canvas == undefined) {
       var p = this;
@@ -923,9 +819,6 @@ export class UIFrame extends UIElement {
     }
     
     if (this.canvas == undefined) {
-      if (this.is_canvas_root())
-        window.unblock_redraw_ui();
-        
       return;
     }
     
@@ -989,13 +882,6 @@ export class UIFrame extends UIElement {
     
     if (pushed_pan_transform) {
       this.canvas.pop_transform();
-    }
-    
-    if (this.is_canvas_root()) {
-      this.canvas.pop_transform();
-      this.canvas.root_end();
-      
-      window.unblock_redraw_ui();
     }
   }
 

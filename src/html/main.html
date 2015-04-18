@@ -995,7 +995,7 @@ function toJSON_intern (ob, tlevel) {
             animreq_ui = window.requestAnimationFrame(function() {
               animreq_ui = undefined;
               
-              //console.log("ui frame");
+              console.log("ui frame");
               
               if (g_app_state != undefined)
                 g_app_state.eventhandler.on_draw();
@@ -1003,25 +1003,33 @@ function toJSON_intern (ob, tlevel) {
           }
         }
         
-        var force_viewport_draw = false;
         window.force_viewport_redraw = function() {
           redraw_whole_screen = true;
           window.redraw_whole_screen = true;
         }
         
         window.redraw_viewport = function(min, max) {
-          //console.log("viewport draw!");
-          
-          if (force_viewport_draw)
+          if (redraw_whole_screen)
             min = max = undefined;
           
           if (window._trace) {
             console.trace();
           }
+          
           if (animreq == undefined) {
             animreq = window.requestAnimationFrame(function() {
-              force_viewport_draw = false;
+              redraw_whole_screen = false;
               animreq = undefined;
+              
+              for (var i=0; i<g_app_state.screen.children.length; i++) {
+                var c = g_app_state.screen.children[i];
+                
+                if (c.constructor.name == "ScreenArea" && 
+                    c.area.constructor.name == "View2DHandler") 
+                {
+                  c.area.do_recalc();
+                }
+              }
               
               if (g_app_state != undefined)
                 g_app_state.eventhandler.on_draw();
@@ -1034,7 +1042,7 @@ function toJSON_intern (ob, tlevel) {
           if (min == undefined) {
             window.redraw_whole_screen = true;
             
-            if (!redraw_rect_defined || force_viewport_draw) {
+            if (!redraw_rect_defined || redraw_whole_screen) {
               window.redraw_rect[0].zero(); window.redraw_rect[1].zero();
               window.redraw_rect[0][0] = window.redraw_rect[0][1] = 0;
               window.redraw_rect[1][0] = window.innerWidth;

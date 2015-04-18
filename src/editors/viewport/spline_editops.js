@@ -1031,7 +1031,7 @@ export class AnimPlaybackOp extends ToolOp {
   }
   
   on_mousemove(event) {
-    console.log("mousemove!");
+    //console.log("mousemove!");
   }
   
   on_keydown(event) {

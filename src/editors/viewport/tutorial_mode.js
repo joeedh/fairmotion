@@ -290,14 +290,13 @@ class TutorialHandler extends EventHandler {
   
   on_draw(WebGLRenderingContext gl) {
     this.child.on_draw(gl);
-    this.canvas.on_draw(gl);
   }
 
   start() {
     this.child = g_app_state.eventhandler;
 
     var v3d = g_app_state.active_view2d;
-    this.canvas = new UICanvas([g_app_state.screen.pos, g_app_state.screen.size]);
+    this.canvas = g_app_state.screen.canvas; //new UICanvas([g_app_state.screen.pos, g_app_state.screen.size]);
     this.canvas.text([200, 200], this.pages[this.curp].pritext, [0,0,0,1]);
     
     this.do_passpart();

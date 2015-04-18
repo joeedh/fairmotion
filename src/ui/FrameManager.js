@@ -469,17 +469,21 @@ export class ScreenArea extends UIFrame {
     
     return scr;
   }
-
-  build_draw(canvas, isVertical)
-  {
+  
+  build_draw(canvas, isVertical) {
     this.active = this.area;
-    //var mat = new Matrix4();
-    //mat.translate(this.pos[0], this.pos[1], 0.0);
+
+    g_app_state.size = new Vector2(this.size);
     
-    //canvas.push_transform(mat);
-    canvas.push_scissor([2, 2], [this.size[0]-4, this.size[1]-4]);
+    this.area.pos[0] = this.area.pos[1] = 0;
+    this.area.size[0] = this.size[0];
+    this.area.size[1] = this.size[1];
+      
+    //console.log("Area:", this.area.constructor.name);
+    
+    this.canvas.push_scissor([2, 2], [this.size[0]-4, this.size[1]-4]);
     prior(ScreenArea, this).build_draw.call(this, canvas, isVertical);
-    canvas.pop_scissor();
+    this.canvas.pop_scissor();
     
     var border = [0, 0, 0, 1];
     var border2 = [0.8, 0.8, 0.8, 1];
@@ -491,26 +495,28 @@ export class ScreenArea extends UIFrame {
 
     canvas.line([1, 0], [1, this.size[1]], border, border);
     canvas.line([1, 0], [1, this.size[1]], border2, border2);
-    
-    //canvas.pop_transform();
   }
   
   on_draw(WebGLRenderingContext g)
   {
-    //reset internal 2d canvas object cache state
-    //not finished yet -->> _reset_trilist_frame_counter();
-    
+    return;
+    /*
     g_app_state.size = new Vector2(this.size);
     
     this.area.pos[0] = 0; this.area.pos[1] = 0;
     this.area.size[0] = this.size[0];
     this.area.size[1] = this.size[1];
     
-    g_app_state.raster.push_viewport(this.pos, this.size);
+    this.canvas.push_scissor([2, 2], [this.size[0]-4, this.size[1]-4]);
+    g_app_state.raster.push_viewport(this.abspos, this.size);
+    
     this.area.on_draw(g);
+    
     g_app_state.raster.pop_viewport();
+    this.canvas.pop_scissor();
     
     //prior(ScreenArea, this).on_draw.call(this, gl);
+    */
   }
 
   add(child, packflag) {
@@ -724,11 +730,6 @@ export class SplitAreasTool extends ToolOp {
     if (event.keyCode == charmap["Enter"])
       this.finish();   
   }
-
-  on_draw(g)
-  {
-    this.canvas.on_draw(g);
-  }
 }
 
 export class CollapseAreasTool extends EventHandler {
@@ -859,11 +860,6 @@ export class CollapseAreasTool extends EventHandler {
       this.cancel();  
     if (event.keyCode == charmap["Enter"])
       this.finish();   
-  }
-
-  on_draw(g)
-  {
-    this.canvas.on_draw(g);
   }
 }
 
@@ -1616,7 +1612,19 @@ export class Screen extends UIFrame {
     }
   }
   
+  on_draw() {
+    if (this.recalc) {
+      this.build_draw(this.canvas, false);
+      this.recalc = false;
+    }
+  }
+  
   _on_tick() {
+    if (this.recalc) {
+      this.build_draw(this.canvas, false);
+      this.recalc = false;
+    }
+    
     this.last_tick = time_ms();
     this.on_tick();
     
@@ -1635,17 +1643,15 @@ export class Screen extends UIFrame {
     }
   }
   
-  on_draw() {
-    g_app_state.raster.reset_scissor_stack();
-    g_app_state.raster.push_scissor([0, 0], this.size);
-
+  disabledon_draw() {
+    return;
+    /*
    //draw editors
     for (var c in this.children) {
       //only call draw for screenarea children
       if (!(c instanceof ScreenArea)) continue;
      
       this.draw_active = c;
-      g_app_state.raster.push_scissor(c.pos, c.size);
       
       this.recalc_child_borders(c);
       
@@ -1653,7 +1659,7 @@ export class Screen extends UIFrame {
       c.on_draw(undefined);
       c.area.pop_ctx_active();
       
-      g_app_state.raster.pop_scissor();
+      //g_app_state.raster.pop_scissor();
     }
     this.draw_active = undefined;
   
@@ -1678,7 +1684,8 @@ export class Screen extends UIFrame {
       this.modalhandler.on_draw(undefined);
     }
     
-    g_app_state.raster.pop_scissor();
+    //g_app_state.raster.pop_scissor();
+    */
   }
   
   clear_textinput() {
@@ -1845,7 +1852,7 @@ export class Screen extends UIFrame {
           if (found2) {
             found = true;
             c2.on_resize(c2.size, oldsize);
-            console.log("snapped", found2);
+            //console.log("snapped", found2);
           }
           
           if (found2)
@@ -1938,13 +1945,13 @@ export class Screen extends UIFrame {
     }
     
     if (child instanceof ScreenArea) {
-      var canvas = new UICanvas([child.pos, child.size]);
+      //var canvas = new UICanvas([child.pos, child.size]);
       
-      child.canvas = canvas;
+      child.canvas = this.canvas; //canvas;
       for (var k in child.editors) {
-        child.editors[k].canvas  = canvas;
+        child.editors[k].canvas  = this.canvas;
       }
-    } else if (child.canvas != undefined) {
+    } else {
       child.canvas = this.canvas;
     }
     
@@ -1978,8 +1985,94 @@ export class Screen extends UIFrame {
     return ret;
   }
 
+  do_partial_clip() {
+    var canvas = this.canvas;
+    var this2 = this;
+    
+    function clear_recalc(e, d) {
+      for (var c in e.children) {
+        //c.recalc = 0;
+        //if (canvas != undefined && c.canvas == undefined)
+        //  c.canvas = canvas;
+        
+        c.abspos[0] = 0; c.abspos[1] = 0;
+        c.abs_transform(c.abspos);
+          
+        var t = c.dirty;
+        //c.dirty = c.last_dirty;
+        //c.last_dirty = t;
+        
+        if (!(c instanceof UIFrame)) {
+          /*c.dirty[0][0] = c.abspos[0];
+          c.dirty[0][1] = c.abspos[1];
+          c.dirty[1][0] = c.size[0];
+          c.dirty[1][1] = c.size[1];*/
+        }
+        
+        c.abspos[0] = 0; c.abspos[1] = 0;
+        c.abs_transform(c.abspos);
+        
+        if (aabb_isect_2d(c.abspos, c.size, d[0], d[1])) {
+          c.do_recalc();
+        }
+        
+        if (c instanceof UIFrame) {
+          clear_recalc(c, d);
+        } else {
+          if (c.recalc) {
+          //  canvas.clip(c.dirty);
+          }
+        }
+      }
+    }
+    
+    this.pack(canvas, false);
+    this.pack(canvas, false);
+    
+    var d = this.calc_dirty();
+    this.dirty_rects.reset();
+    
+    this.canvas.root_start();
+    
+    this.canvas.clip(d);
+    this.canvas.clear(d[0], d[1]);
+    
+    clear_recalc(this, d);
+  }
+
   build_draw(canvas, isVertical) {
+    window.block_redraw_ui();
+    
+    //calls this.canvas.root_start()
+    this.do_partial_clip();
+    
+    function descend(n, canvas, ctx) {
+      for (var c in n.children) {
+        c.canvas = canvas;
+        c.ctx = ctx;
+        
+        if (c instanceof UIFrame)
+          descend(c, canvas, ctx);
+      }
+    }
+
+    if (this.ctx == undefined)
+      this.ctx = new Context();
+    
+    if (this.canvas == undefined)
+      this.canvas = this.get_canvas();
+      
+    descend(this, this.canvas, this.ctx);
+    this.canvas.reset();
+      
+    if (DEBUG.ui_canvas)
+      console.log("------------->Build draw call " + this.constructor.name + ".on_draw()");
+
+    this.snap_areas();
     prior(Screen, this).build_draw.call(this, canvas, isVertical);
+    
+    window.unblock_redraw_ui();
+    this.canvas.root_end();
   }
 
   data_link(block, getblock, getblock_us)
@@ -2042,7 +2135,7 @@ function load_screen(Screen scr, json_obj)
   scr.snap_areas();
 }
 
-function gen_screen(WebGLRenderingContext gl, View2DHandler view2d, int width, int height)
+export function gen_screen(WebGLRenderingContext gl, View2DHandler view2d, int width, int height)
 {
   var scr = new Screen(view2d, width, height);
   view2d.screen = scr;
@@ -2209,10 +2302,6 @@ export class HintPickerOp extends ToolOp {
       var pos = this.active.get_abs_pos();
       //this.canvas.passpart(pos, this.active.size, clr);
     }
-  }
-  
-  on_draw() {
-    this.canvas.on_draw(undefined);
   }
 }
 

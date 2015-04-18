@@ -366,7 +366,7 @@ export class PanOp extends ToolOp {
   on_mousemove(event) {
     var mpos = new Vector3([event.x, event.y, 0]);
     
-    console.log("mousemove!");
+    //console.log("mousemove!");
     
     if (this.first) {
       this.first = false;

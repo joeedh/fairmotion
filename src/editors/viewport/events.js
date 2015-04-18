@@ -666,7 +666,7 @@ export class VelocityPan extends EventHandler {
   clamp_pan() {
     var bs = this.owner.pan_bounds;
     if (this.owner.state & 8192*4) return;
-    console.log("clamping", this.owner);
+    //console.log("clamping", this.owner);
     
     var p = this.pan;
     static was_clamped = [0, 0];

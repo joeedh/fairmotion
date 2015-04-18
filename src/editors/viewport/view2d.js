@@ -66,7 +66,7 @@ class PanOp extends ToolOp {
   on_mousemove(event) {
     var mpos = new Vector3([event.x, event.y, 0]);
     
-    console.log("mousemove!");
+    //console.log("mousemove!");
     
     if (this.first) {
       this.first = false;
@@ -81,6 +81,8 @@ class PanOp extends ToolOp {
     this.cameramat.load(this.start_cameramat).translate(mpos[0], mpos[1], 0.0);
     ctx.view2d.set_cameramat(this.cameramat);
     
+    //console.log("panning");
+    window.force_viewport_redraw();
     window.redraw_viewport();
   }
   
@@ -703,7 +705,9 @@ export class View2DHandler extends Area {
     g.restore();
   }
   
-  on_draw(WebGLRenderingContext gl, test) {
+  build_draw(canvas, isvertical) {
+    Area.prototype.build_draw.call(this, canvas, isvertical);
+    
     this.editor.view2d = this;
     
     this.ctx = this.editor.ctx = new Context();
@@ -723,9 +727,6 @@ export class View2DHandler extends Area {
       this.draw_viewport = false;
       this.do_draw_viewport(g);
     }
-    
-    //draw UI
-    Area.prototype.on_draw.call(this, gl);
   }
   
   undo_redo(RowFrame row) {

@@ -244,7 +244,7 @@ export class PackedDialog extends Dialog {
   }
 }
 
-class OkayDialog extends PackedDialog {
+export class OkayDialog extends PackedDialog {
   constructor(String text, Function callback) {
     var ctx = new Context();
     var screen = g_app_state.screen;
@@ -266,7 +266,7 @@ class OkayDialog extends PackedDialog {
   }
 }
 
-class ErrorDialog extends PackedDialog {
+export class ErrorDialog extends PackedDialog {
   constructor(String text, Function callback) {
     var ctx = new Context();
     var screen = g_app_state.screen;

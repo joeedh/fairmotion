@@ -623,7 +623,7 @@ SplineFrame.STRUCT = """
   }
 """;
 
-function obj_values_to_array(obj) {
+window.obj_values_to_array = function obj_values_to_array(obj) {
   var ret = [];
   for (var k in obj) {
     ret.push(obj[k]);

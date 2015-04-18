@@ -570,7 +570,7 @@ export class TriList {
     
     if (this.ssize != undefined) {
       gl.enable(gl.SCISSOR_TEST);
-      g_app_state.raster.push_scissor(this.spos, this.ssize);
+//      g_app_state.raster.push_scissor(this.spos, this.ssize);
     }
     
     gl.disable(gl.DEPTH_TEST);
@@ -621,7 +621,7 @@ export class TriList {
     gl.enable(gl.DEPTH_TEST);
     
     if (this.ssize != undefined) {
-      g_app_state.raster.pop_scissor();
+      //g_app_state.raster.pop_scissor();
     }
   }
 }
@@ -715,7 +715,7 @@ export class TextDraw {
       spos = CACHEARR3(this.spos[0], this.spos[1], 0);
       ssize = CACHEARR3(this.ssize[0], this.ssize[1], 0);
       
-      g_app_state.raster.push_scissor(spos, ssize);
+//      g_app_state.raster.push_scissor(spos, ssize);
     }
     
     static mat = new Matrix4();
@@ -725,7 +725,7 @@ export class TextDraw {
     this.tdrawbuf.on_draw(gl, mat);
     
     if (this.ssize != undefined) {
-      g_app_state.raster.pop_scissor();
+      //g_app_state.raster.pop_scissor();
     }
   }
 }

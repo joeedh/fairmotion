@@ -3,6 +3,7 @@
 import {UIFrame} from 'UIFrame';
 import {Unit} from 'units';
 import {PropTypes} from 'toolprops';
+import {MinMax, inrect_2d, aabb_isect_2d} from 'mathlib';
 
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
         charmap, TouchEventManager, EventHandler} from 'events';

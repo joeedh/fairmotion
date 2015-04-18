@@ -86,6 +86,9 @@ export class UICanvas2_ {
   }
   
   _css_color(c) {
+    if (isNaN(c[0]))
+      return "black";
+    
     var s = "rgba("
     
     for (var i=0; i<3; i++) {
@@ -133,7 +136,11 @@ export class UICanvas2_ {
     var ctx = get_2d_canvas().ctx;
     var canvas = get_2d_canvas().canvas;
     
+    rect[0] = new Vector2(rect[0]);
+    rect[1] = new Vector2(rect[1]);
+    
     var v = this.viewport;
+    this._clip_to_viewport(rect[0], rect[1], v);
     
     ctx.fillStyle = Math.random() > 0.5 ? "rgba(255,0,0,0.7)" : "rgba(0,255,0,0.7)";
     ctx.beginPath();
@@ -298,7 +305,34 @@ export class UICanvas2_ {
     this.quad(v1, v2, v3, v4, c1, c2, c3, c4);
   }
  
+  _clip_to_viewport(pos, size, v) {
+    if (pos[0] < 0) {
+      size[0] += pos[0];
+      pos[0] = 0;
+    }
+    
+    if (pos[0]+size[0] > v[1][0]) {
+      size[0] = v[1][0]-pos[0];
+    }
+    
+    if (pos[1] < 0) {
+      size[1] += pos[1];
+      pos[1] = 0;
+    }
+    
+    if (pos[1]+size[1] > v[1][1]) {
+      size[1] = v[1][1]-pos[1];
+    }
+  }
+  
   push_scissor(pos, size) {
+    //return
+    var t = "";
+    for (var i=0; i<this.scissor_stack.length; i++) {
+      t += "  ";
+    }
+    //console.trace(t + this.scissor_stack.length + ":  push");
+    
     var oldpos = pos;
     
     pos = new Vector3([pos[0], pos[1], 0]);
@@ -309,10 +343,11 @@ export class UICanvas2_ {
     size[0] -= pos[0]; size[1] -= pos[1];
     
     var v = g_app_state.raster.viewport;
+   
+    this._clip_to_viewport(pos, size, v);
     
     pos[0] += v[0][0];
     pos[1] += v[0][1];
-    
     
     for (var i=0; i<3; i++) {
       pos[i] = Math.floor(pos[i]);
@@ -324,24 +359,37 @@ export class UICanvas2_ {
     var canvas = get_2d_canvas().canvas;
     
     try {
-    g.save();
-    if (window._cd == undefined) window._cd = 0;
-    
-    g.fillStyle = (window._cd++%2) ? "rgba(255, 0, 0, 0.5)" : "rgba(0, 255, 0, 0.5)";
+      g.save();
+      if (window._cd == undefined) window._cd = 0;
+      
+      g.fillStyle = (window._cd++%2) ? "rgba(255, 0, 0, 0.5)" : "rgba(0, 255, 0, 0.5)";
+      
+      g.beginPath();
 
-    g.beginPath();
-    g.rect(pos[0], canvas.height-(pos[1]+size[1]), size[0], size[1]);
-    g.closePath();
+      //console.log(pos[0], canvas.height-(pos[1]+size[1]), size[0], size[1]);
+      
+      g.rect(pos[0], canvas.height-(pos[1]+size[1]), size[0], size[1]);
+      g.closePath();
+      
+      g.clip();
     
-    g.clip();
     } catch (err) {
       print_stack(err);
     }
+    
     //g.fill();
   }
   
   pop_scissor() {
+    //return;
     this.scissor_stack.pop();
+    
+    var t = "";
+    for (var i=0; i<this.scissor_stack.length; i++) {
+      t += "  ";
+    }
+    
+    //console.trace(t + this.scissor_stack.length + ":  pop");
     
     var g = get_2d_canvas().ctx;
     g.restore();
@@ -353,45 +401,7 @@ export class UICanvas2_ {
            c1[1][0] == c2[1][0] && 
            c1[1][1] == c2[1][1];
   }
-  
-  _set_scissor() {
-    return;
     
-    var canvas = get_2d_canvas().canvas;
-    var ctx = get_2d_canvas().ctx;
-    static empty_clip = [[0, 0], [0, 0]];
-    
-    if (!this._clipeq(empty_clip, this._lastclip) && this.scissor_stack.length == 0) {
-      this._lastclip[0][0] = 0;
-      this._lastclip[0][1] = 0;
-      this._lastclip[1][0] = 0;
-      this._lastclip[1][1] = 0;
-      
-      ctx.rect(0, 0, window.innerWidth, window.innerHeight);
-      ctx.clip();
-      
-      return;
-    } else if (this.scissor_stack.length == 0) {
-      return;
-    }
-    
-    //return
-    
-    var v = g_app_state.raster.viewport;
-    var sc = this.scissor_stack[this.scissor_stack.length-1];
-    
-    //if (sc == undefined) return;
-    //if (this._clipeq(sc, this._lastclip)) return;
-    
-    this._lastclip[0][0] = sc[0][0];
-    this._lastclip[0][1] = sc[0][1];
-    this._lastclip[1][0] = sc[1][0];
-    this._lastclip[1][1] = sc[1][1];
-    
-    ctx.rect(sc[0][0], (v[0][1]+sc[0][1]), sc[1][0], sc[1][1]);
-    //ctx.clip();
-  }
-  
   arc_points(pos, start, arc, r, steps) {//steps is optional
     if (steps == undefined) {
       steps = Math.floor(6*arc/Math.PI);
@@ -595,7 +605,6 @@ export class UICanvas2_ {
       pos[2] = 0;
       
       ctx.setTransform(1, 0, 0, 1, 0, 0);
-      this._set_scissor();
       
       ctx.rotate(rot);
       
@@ -635,8 +644,6 @@ export class UICanvas2_ {
     var ctx = get_2d_canvas().ctx;
     var v = g_app_state.raster.viewport;
     
-    this._set_scissor();
-    
     var m = this.transmat.$matrix;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     //ctx.translate(Math.floor(m.m41), Math.floor(canvas.height - m.m42));
@@ -656,8 +663,6 @@ export class UICanvas2_ {
     var canvas = get_2d_canvas().canvas;
     var ctx = get_2d_canvas().ctx;
     var v = g_app_state.raster.viewport;
-    
-    this._set_scissor();
     
     var m = this.transmat.$matrix;
     ctx.setTransform(1, 0, 0, 1, 0, 0);

@@ -1,7 +1,8 @@
 import "events";
+
+import {MinMax, inrect_2d, aabb_isect_2d} from 'mathlib';
 import {EventHandler} from 'events';
 import {charmap} from 'events';
-import {inrect_2d} from 'mathlib';
 import {TPropFlags} from 'toolprops';
 
 export var UIFlags = {
@@ -344,12 +345,8 @@ export class UIElement extends EventHandler {
     this.recalc = 1;
     this.recalc_minsize = 1;
     
-    if (this.parent != undefined && !this.is_canvas_root()) {
-      if (this.parent.state & UIFlags.BLOCK_REPAINT)
-        return;
-        
+    if (this.parent != undefined)
       this.parent.do_recalc();
-    }
   }
   
   //calculates absolute position of pos,

@@ -1,6 +1,6 @@
 #include "src/core/utildefine.js"
 
-import {inrect_2d} from 'mathlib';
+import {MinMax, inrect_2d, aabb_isect_2d} from 'mathlib';
 
 import {
   UIElement, UIFlags, CanvasFlags,

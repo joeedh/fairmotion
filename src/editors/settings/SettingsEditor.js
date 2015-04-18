@@ -141,7 +141,6 @@ class SettingsEditor extends Area {
     this.subframe.size[0] = this.size[0];
     this.subframe.size[1] = this.size[1];
     this.subframe.pos = [0, Area.get_barhgt()];
-    this.subframe.canvas = new UICanvas([this.pos, this.size]);
     this.subframe.state |= UIFlags.HAS_PAN|UIFlags.IS_CANVAS_ROOT|UIFlags.PAN_CANVAS_MAT;
     this.subframe.velpan = new VelocityPan();
     
@@ -225,6 +224,24 @@ class SettingsEditor extends Area {
   }
   
   build_draw(UICanvas canvas, Boolean isVertical) {
+    this.subframe.set_pan();
+    this.gl = gl;
+    var ctx = this.ctx = new Context();
+    
+    //paranoid check
+    var sx = this.size[0];
+    var sy = this.size[1]-this.subframe.pos[1]-Area.get_barhgt();
+    var s1 = this.size, s2=this.subframe.size;
+    
+    if (s2[0] != sx || s2[1] != sy) {
+      //console.log("resizing subframe");
+      this.subframe.size[0] = this.size[0];
+      this.subframe.size[1] = sy;
+      this.subframe.on_resize(this.size, this.subframe.size);
+    }
+    
+    this.subframe.canvas.viewport = this.canvas.viewport;
+    
     prior(SettingsEditor, this).build_draw.call(this, canvas, isVertical);
     
     this.mm.reset();
@@ -246,36 +263,6 @@ class SettingsEditor extends Area {
     
     //Set the viewport and projection matrix for the scene
     //gl.viewport(this.parent.pos[0], this.parent.pos[1], this.size[0], this.size[1]);
-  }
-  
-  on_draw(WebGLRenderingContext gl, test) {
-    this.subframe.set_pan();
-    this.gl = gl;
-    var ctx = this.ctx = new Context();
-    
-    //paranoid check
-    var sx = this.size[0];
-    var sy = this.size[1]-this.subframe.pos[1]-Area.get_barhgt();
-    var s1 = this.size, s2=this.subframe.size;
-    
-    if (s2[0] != sx || s2[1] != sy) {
-      //console.log("resizing subframe");
-      this.subframe.size[0] = this.size[0];
-      this.subframe.size[1] = sy;
-      this.subframe.on_resize(this.size, this.subframe.size);
-    }
-    
-    this.subframe.canvas.viewport = this.canvas.viewport;
-    //scissor subframe seperately
-    var p = [this.parent.pos[0] + this.subframe.pos[0], this.parent.pos[1] + this.subframe.pos[1]];
-    var s = [this.parent.size[0] - this.subframe.pos[0], this.parent.size[1] - this.subframe.pos[1]];
-    g_app_state.raster.push_scissor(p, s);
-    this.subframe.on_draw(gl);
-    g_app_state.raster.pop_scissor();
-    
-    g_app_state.raster.push_scissor(this.parent.pos, this.parent.size);
-    Area.prototype.on_draw.call(this, gl);
-    g_app_state.raster.pop_scissor();
   }
   
   static fromSTRUCT(reader) {

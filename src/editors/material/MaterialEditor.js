@@ -261,15 +261,16 @@ class MaterialEditor extends Area {
     this.pan_bounds = [[0, 0], [0, 0]];
     
     this._filter_sel = false;
-    this.gl = undefined;
     this.ctx = new Context();
+    
+    if (size == undefined)
+      size = [1, 1];
     
     this.subframe = new UITabPanel(new Context(), [size[0], size[1]]);
     this.subframe.packflag |= PackFlags.NO_AUTO_SPACE|PackFlags.INHERIT_WIDTH;
     this.subframe.size[0] = this.size[0];
     this.subframe.size[1] = this.size[1];
     this.subframe.pos = [0, Area.get_barhgt()];
-    //this.subframe.canvas = new UICanvas([this.pos, this.size]);
     this.subframe.state |= 0; //UIFlags.HAS_PAN|UIFlags.IS_CANVAS_ROOT|UIFlags.PAN_CANVAS_MAT;
     this.subframe.velpan = new VelocityPan();
     
@@ -364,6 +365,24 @@ class MaterialEditor extends Area {
   }
   
   build_draw(UICanvas canvas, Boolean isVertical) {
+    this.subframe.set_pan();
+    var ctx = this.ctx = new Context();
+    
+    //paranoid check
+    var sx = this.size[0];
+    var sy = this.size[1]-this.subframe.pos[1]-Area.get_barhgt();
+    var s1 = this.size, s2=this.subframe.size;
+    
+    if (s2[0] != sx || s2[1] != sy) {
+      console.log("resizing subframe");
+      
+      this.subframe.size[0] = this.size[0];
+      this.subframe.size[1] = sy;
+      this.subframe.on_resize(this.size, this.subframe.size);
+    }
+    
+    this.subframe.canvas.viewport = this.canvas.viewport;
+  
     prior(MaterialEditor, this).build_draw.call(this, canvas, isVertical);
     
     this.mm.reset();
@@ -382,62 +401,16 @@ class MaterialEditor extends Area {
   
   set_canvasbox() {
     this.asp = this.size[0] / this.size[1];
-    
-    //Set the viewport and projection matrix for the scene
-    //gl.viewport(this.parent.pos[0], this.parent.pos[1], this.size[0], this.size[1]);
   }
-  
-  on_draw(WebGLRenderingContext gl, test) {
-    this.subframe.set_pan();
-    this.gl = gl;
-    var ctx = this.ctx = new Context();
+   
+  data_link(DataBlock block, Function getblock, Function getblock_us) {
     
-    //paranoid check
-    var sx = this.size[0];
-    var sy = this.size[1]-this.subframe.pos[1]-Area.get_barhgt();
-    var s1 = this.size, s2=this.subframe.size;
-    
-    if (s2[0] != sx || s2[1] != sy) {
-      console.log("resizing subframe");
-      
-      this.subframe.size[0] = this.size[0];
-      this.subframe.size[1] = sy;
-      this.subframe.on_resize(this.size, this.subframe.size);
-    }
-    
-    this.subframe.canvas.viewport = this.canvas.viewport;
-    
-    
-    //scissor subframe seperately
-    /*
-    var p = [this.parent.pos[0] + this.subframe.pos[0], this.parent.pos[1] + this.subframe.pos[1]];
-    var s = [this.parent.size[0] - this.subframe.pos[0], this.parent.size[1] - this.subframe.pos[1]];
-    g_app_state.raster.push_scissor(p, s);
-    */
-    
-    //this.subframe.on_draw(gl);
-    
-    //g_app_state.raster.pop_scissor();
-    
-    //g_app_state.raster.push_scissor(this.parent.pos, this.parent.size);
-    Area.prototype.on_draw.call(this, gl);
-    //g_app_state.raster.pop_scissor();
   }
   
   static fromSTRUCT(reader) {
-    var obj = new MaterialEditor(new Context(), [0,0], [1,1]);
-    reader(obj);
-    
-    /*if (obj.pan != undefined) {
-      obj.subframe.velpan = new VelocityPan();
-      obj.subframe.velpan.pan = new Vector2(obj.pan);
-    }*/
-    
-    return obj;
-  }
-  
-  data_link(DataBlock block, Function getblock, Function getblock_us) {
-    
+    var ret = new MaterialEditor();
+    reader(ret);
+    return ret;
   }
 }
 

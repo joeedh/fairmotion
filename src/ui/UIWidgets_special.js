@@ -1,4 +1,4 @@
-import {inrect_2d} from 'mathlib';
+import {MinMax, inrect_2d, aabb_isect_2d} from 'mathlib';
 import {UIElement, UIFlags, CanvasFlags, PackFlags} from 'UIElement';
 import {UIFrame} from 'UIFrame';
 import {rgba_to_hsva, hsva_to_rgba} from 'colorutils';
@@ -595,6 +595,7 @@ export class UIColorPicker extends RowFrame {
     
     for (var i=0; i<this._color.length; i++) {
       if (isNaN(this._color[i])) {
+        this._color[i] = i == 3 ? 1.0 : 0.0;
         console.log("eek, NaN");
         this._color[i] = 0.0;
       }

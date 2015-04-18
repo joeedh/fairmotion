@@ -1,5 +1,6 @@
 "use strict";
 
+import {gen_screen} from 'FrameManager';
 import {DataPath, DataStruct, DataPathTypes, DataFlags} from 'data_api';
 import {wrap_getblock, wrap_getblock_us} from 'lib_utils';
 import {UICanvas} from 'UICanvas2D';

@@ -1,5 +1,6 @@
 "use strict";
 
+import {PropTypes} from 'toolprops';
 import {STRUCT} from 'struct';
 
 import {CustomDataLayer, SplineTypes, SplineFlags} from 'spline_types';

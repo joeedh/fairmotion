@@ -520,7 +520,7 @@ export class CircleSelectOp extends SelectOpBase {
     this.mpos[1] = event.y;
     
     this._draw_circle();
-    console.log("mousemove!");
+    //console.log("mousemove!");
     
     if (this.mdown) {
       this.do_sel(this.sel_or_unsel);

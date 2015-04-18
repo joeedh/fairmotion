@@ -1,14 +1,18 @@
 import {DataTypes} from 'lib_api';
+import {EditModes} from 'view2d';
 
 import {EnumProperty, FlagProperty, 
         FloatProperty, StringProperty,
         BoolProperty, Vec3Property,
-        Vec4Property, IntProperty} from 'toolprops';
+        Vec4Property, IntProperty,
+        TPropFlags, PropTypes} from 'toolprops';
 
 import {SplineFlags, MaterialFlags, SplineTypes} from 'spline_types';
 import {SelMask} from 'selectmode';
+import {Unit} from 'units';
 
 import {ExtrudeModes} from 'spline_createops';
+import {DataFlags, DataPathTypes} from 'data_api';
 
 var SelModes = {};
 
@@ -768,7 +772,7 @@ export function get_tool_struct(tool) {
 var OpStackArray = new DataStructArray(get_tool_struct);
 global ContextStruct = undefined;
 
-function api_define_context() {
+window.api_define_context = function() {
   ContextStruct = new DataStruct([
     new DataPath(api_define_view2d(), "view2d", "ctx.view2d", true),
     new DataPath(api_define_dopesheet(), "dopesheet", "ctx.dopesheet", true),

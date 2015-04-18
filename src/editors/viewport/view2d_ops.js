@@ -2,6 +2,11 @@
 
 //multitouch
 import {ToolOp, UndoFlags, ToolFlags} from 'toolops_api';
+import {STRUCT} from 'struct';
+import {unpack_ctx} from 'ajax';
+
+import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
+        charmap, TouchEventManager, EventHandler} from 'events';
 
 class ViewRotateZoomPanOp extends ToolOp {
   constructor() {
@@ -633,7 +638,7 @@ class ToggleSubSurfOp extends ToolOp {
   }
 }
 
-class BasicFileDataOp extends ToolOp {
+export class BasicFileDataOp extends ToolOp {
   constructor(String data) {
     ToolOp.call(this, "basic_file_with_data", "internal op (with data)", "Root operator; creates a scene with a simple cube");
     
@@ -663,7 +668,7 @@ import {Spline} from "spline";
 import {SplineFrameSet} from "frameset";
 import {Scene} from 'scene';
 
-class BasicFileOp extends ToolOp {
+export class BasicFileOp extends ToolOp {
   constructor() {
     ToolOp.call(this, "basic_file", "internal op", "Root operator; creates a scene with a simple cube");
     
@@ -691,7 +696,7 @@ class BasicFileOp extends ToolOp {
 
 import {FloatProperty} from 'toolprops';
 
-class FrameChangeOp extends ToolOp {
+export class FrameChangeOp extends ToolOp {
   constructor(frame) {
     ToolOp.call(this);
     

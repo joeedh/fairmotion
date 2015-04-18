@@ -1,14 +1,20 @@
 "use strict";
 
+/*
+NOTE: this was originally a WebGL UI library I wrote.
+it's gone through several transitions since then, and
+is now a canvas2d UI library (bleh).  the code is quite
+horrible.
+*/
 #include "src/core/utildefine.js"
 
 //we keep track of any canvases with non-GC managed data, 
 //(gl objects, TriListAlloc, TA_Alloc, etc) to avoid reference leaks
 //g_app_state.reset calls .destroy() on all canvases inside this list.
 //(then resets it back to {}).
-var active_canvases = {};
+window.active_canvases = {};
 
-var _canvas_draw_id = 1;
+window._canvas_draw_id = 1;
 
 //disable use of theoretically faster typed array allocator,
 //for now.
@@ -43,7 +49,7 @@ var _trilist_v9 = new Vector3();
 /*I hate garbage collected languages.  Bleh!  This class
   is necessary to avoid object allocations within draw frames.
   evil!*/
-class TriListAlloc {
+export class TriListAlloc {
   constructor() {
     this.freelist = [];
     this.freecount = 0;
@@ -112,7 +118,7 @@ var _talloc = new TriListAlloc();
   at vertex generation time.
 */
 
-class TriListRef {
+export class TriListRef {
   constructor(gl, TriList trilist, Matrix4 mat, UICanvas canvas) {
     this.trilist = trilist;
     this.mat = mat;
@@ -133,7 +139,7 @@ class TriListRef {
   }
 }
 
-class TriListCache {
+export class TriListCache {
   constructor(limit=100) {
     this.cache = {};
     this.length = 0;
@@ -181,7 +187,7 @@ class TriListCache {
   }
 }
 
-class TriList {
+export class TriList {
   cache_destroy() {
     this._free_typed();
     
@@ -645,7 +651,7 @@ function _save_trilist(TriList trilist) {
 }
 */
 
-class TextDraw {
+export class TextDraw {
   constructor(pos, text, color, spos, ssize, viewport, size, scale, global_matrix, rot=0) {
     this._id = _canvas_draw_id++;
     
@@ -726,7 +732,7 @@ class TextDraw {
 
 var _ls_static_colors = {reallength: 0, length: 0};
 
-function _box_process_clr(default_cs, clr) {
+window._box_process_clr = function _box_process_clr(default_cs, clr) {
   var cs = default_cs;
   static arr4 = [0, 0, 0, 0];
   
@@ -754,7 +760,7 @@ function _box_process_clr(default_cs, clr) {
 }
 
 //XXX XXX!
-class UICanvas_ {
+export class UICanvas_ {
   constructor(viewport) { 
     static _id = 1;
     

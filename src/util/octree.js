@@ -1,11 +1,15 @@
 "use strict";
 
+import {
+  MinMax
+} from 'mathlib';
+
 class OcNodeCache {
 }
 
 #define LEAF_LIMIT  8
 
-class OcNode {
+export class OcNode {
   constructor(Array<float> min, Array<float> max) {
     this.children = new GArray();
     this.data = undefined;

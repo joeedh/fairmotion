@@ -1,5 +1,11 @@
 "use strict";
 
+import {STRUCT} from 'struct';
+
+//bitmask
+//VERT/EDGE/FACE is compatible with MeshTypes, thus why we skip 4
+export var EditModes = {VERT : 1, EDGE : 2, FACE : 8, OBJECT : 16, GEOMETRY : 1|2|8};
+
 export var SessionFlags = {
   PROP_TRANSFORM : 1
 }

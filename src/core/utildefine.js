@@ -1,5 +1,10 @@
 var $_mh;
 
+#define DECLARE_MATH_FUNCTIONS\
+var PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,\
+    ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos,\
+    asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
+
 
 #ifdef NOCACHE
 #define CACHEARR2(a, b) [a, b]

@@ -6,7 +6,7 @@ var default_job_interval = 1; //at least two miliseconds between runs
 //function JobStartFunc(Joblet job);
 //function JobFinishFunc(Joblet job);
 
-class ThreadIterator {  
+export class ThreadIterator {  
   constructor(worker) {
     this.queue = [];
     this.worker = worker;
@@ -75,7 +75,7 @@ function worker_joblet(url, method, data) {
   var iter = new ThreadIterator(worker);  
 }
 
-class Joblet {
+export class Joblet {
   constructor(Object owner, Iterator iter, 
                JobDestroyFunc destroyer, int ival, 
                JobStartFunc start, JobFinishFunc finish)
@@ -115,7 +115,7 @@ class Joblet {
   }
 }
 
-class JobManager {
+export class JobManager {
   constructor() {
     this.jobs = new GArray<Joblet>();
     this.jobmap_owners = new hashtable<Object,Joblet>();

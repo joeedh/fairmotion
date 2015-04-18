@@ -1,6 +1,6 @@
 "use strict";
 
-var Icons = {
+window.Icons = {
   SUBDIVIDE      : 0,
   SCALE          : 1,
   TRANSLATE      : 2,

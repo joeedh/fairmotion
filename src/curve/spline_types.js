@@ -1,5 +1,18 @@
 "use strict";
 
+var PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,
+    ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos,
+    asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
+
+import {
+  MinMax
+} from 'mathlib';
+
+import {
+  TPropFlags, PropTypes
+} from 'toolprops';
+
+import {STRUCT} from 'struct';
 import 'mathlib';
 import {DataPathNode} from 'eventdag';
 
@@ -1103,9 +1116,6 @@ SplineFace.STRUCT = STRUCT.inherit(SplineFace, SplineElement) + """
     z     : float;
   }
 """;
-
-var spline_draw_cache_vs = cachering.fromConstructor(Vector3, 64);
-var spline_draw_trans_vs = cachering.fromConstructor(Vector3, 32);
 
 export class Material {
   constructor() {

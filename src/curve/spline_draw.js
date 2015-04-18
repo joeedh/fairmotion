@@ -1,7 +1,12 @@
+import {aabb_isect_minmax2d} from 'mathlib';
+
 import {SessionFlags} from 'view2d_editor';
 import {SelMask} from 'selectmode';
 import {ORDER, KSCALE, KANGLE, KSTARTX, KSTARTY, KSTARTZ, KTOTKS, INT_STEPS} from 'spline_math';
 import {get_vtime} from 'animdata';
+
+var spline_draw_cache_vs = cachering.fromConstructor(Vector3, 64);
+var spline_draw_trans_vs = cachering.fromConstructor(Vector3, 32);
 
 var PI = Math.PI;
 var pow = Math.pow, cos = Math.cos, sin = Math.sin, abs = Math.abs, floor = Math.floor,

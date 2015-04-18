@@ -2,25 +2,27 @@
 
 #include "src/core/utildefine.js"
 
-var feps = 2.22e-16;
+import {STRUCT} from 'struct';
 
-var COLINEAR = 1;
-var LINECROSS = 2;
+export var feps = 2.22e-16;
+
+export var COLINEAR = 1;
+export var LINECROSS = 2;
 
 var _cross_vec1 = new Vector3();
 var _cross_vec2 = new Vector3();
 
-var FLOAT_MIN = -1e21;
-var FLOAT_MAX = 1e22
+export var FLOAT_MIN = -1e21;
+export var FLOAT_MAX = 1e22
 
 /*a UI-friendly Matrix4 wrapper, that 
   likes to pretend it's a simple collection
   of [location, rotation-euler, size] 
   parameters*/
 
-var Matrix4UI = Matrix4
+import 'J3DIMath';
 
-class Matrix4UI extends Matrix4 {
+export class Matrix4UI extends Matrix4 {
   constructor(loc, rot=undefined, size=undefined) {
     if (loc instanceof Matrix4) {
       this.load(loc);
@@ -97,7 +99,7 @@ if (FLOAT_MIN != FLOAT_MIN || FLOAT_MAX != FLOAT_MAX) {
 
 var _static_grp_points4 = new Array(4);
 var _static_grp_points8 = new Array(8);
-function get_rect_points(p, size)
+export function get_rect_points(p, size)
 {
   var cs;
   
@@ -127,7 +129,7 @@ function get_rect_points(p, size)
   return cs;
 }
 
-function get_rect_lines(p, size)
+export function get_rect_lines(p, size)
 {
   var ps = get_rect_points(p, size);
   
@@ -150,7 +152,7 @@ function get_rect_lines(p, size)
   }
 }
 
-function simple_tri_aabb_isect(v1, v2, v3, min, max) {
+export function simple_tri_aabb_isect(v1, v2, v3, min, max) {
   static vs = [0, 0, 0];
   
   vs[0] = v1; vs[1] = v2; vs[2] = v3;
@@ -169,7 +171,7 @@ function simple_tri_aabb_isect(v1, v2, v3, min, max) {
   return false;
 }
 
-class MinMax {
+export class MinMax {
   constructor(int totaxis=1) {
     this.totaxis = totaxis;
     
@@ -304,7 +306,7 @@ function winding(a, b, c) {
 
 //this specifically returns true in the case where two rectangles
 //share common borders
-function inrect_2d(p, pos, size) {
+export function inrect_2d(p, pos, size) {
   if (p == undefined || pos == undefined || size == undefined) {
     console.trace();
     console.log("Bad paramters to inrect_2d()")
@@ -314,7 +316,7 @@ function inrect_2d(p, pos, size) {
   return p[0] >= pos[0] && p[0] <= pos[0]+size[0] && p[1] >= pos[1] && p[1] <= pos[1]+size[1];
 }
 
-function aabb_isect_line_2d(v1, v2, min, max) {
+export function aabb_isect_line_2d(v1, v2, min, max) {
   static smin = new Vector2(), smax = new Vector2();
   static ssize = new Vector2();
   
@@ -359,7 +361,7 @@ function aabb_isect_line_2d(v1, v2, min, max) {
   return false;
 }
 
-function aabb_isect_minmax2d(min1, max1, min2, max2, margin=0) {
+export function aabb_isect_minmax2d(min1, max1, min2, max2, margin=0) {
   var ret = 0;
   
   for (var i=0; i<2; i++) {
@@ -371,7 +373,7 @@ function aabb_isect_minmax2d(min1, max1, min2, max2, margin=0) {
   return ret == 2;
 }
 
-function aabb_isect_2d(pos1, size1, pos2, size2) {
+export function aabb_isect_2d(pos1, size1, pos2, size2) {
   var ret = 0;
   
   for (var i=0; i<2; i++) {
@@ -762,7 +764,7 @@ function makeCircleMesh(gl, radius, stfeps) {
   return mesh;
 }
 
-function minmax_verts(verts) {
+export function minmax_verts(verts) {
   var min = new Vector3([1e12, 1e12, 1e12]);
   var max = new Vector3([-1e12, -1e12, -1e12]);
   
@@ -1342,7 +1344,7 @@ class WVector3 extends Vector3 {
 var cos = Math.cos;
 var sin = Math.sin;
 
-function rot2d(vec, A, axis=0) {
+export function rot2d(vec, A, axis=0) {
   var x = vec[0];
   var y = vec[1];
   

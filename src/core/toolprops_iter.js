@@ -1,6 +1,6 @@
 "use strict";
 
-import * as istruct from 'struct';
+import {STRUCT} from 'struct';
 
 /*
   Iterator Tool property design:

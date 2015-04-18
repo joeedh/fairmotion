@@ -4,7 +4,7 @@
 this entire module needs to be rewritten.
 */
 
-class MyKeyboardEvent {
+export class MyKeyboardEvent {
   constructor(int code, shift=false, ctrl=false, alt=false) {
     this.keyCode = code;
     this.shiftKey = shift;
@@ -12,8 +12,9 @@ class MyKeyboardEvent {
     this.altKey = alt;
   }
 }
+window.MyKeyboardEvent = MyKeyboardEvent;
 
-class MyMouseEvent {
+export class MyMouseEvent {
   constructor(int x, int y, short button, short type) {
     this.x = x; this.y = y;
     this.button = button;
@@ -40,6 +41,8 @@ class MyMouseEvent {
     return ret;
   }
 }
+
+window.MyMouseEvent = MyMouseEvent;
 
 /*enumeration values for MyMouseEvent.type*/
 MyMouseEvent.MOUSEMOVE = 0
@@ -77,7 +80,7 @@ function ignore_next_mouseup_event(button) {
   _ignore_next_mouseup_button = button;
 }
 
-class EventHandler {
+export class EventHandler {
   constructor() {
     this.modalstack = new Array<EventHandler>();
     this.modalhandler = null;
@@ -321,7 +324,7 @@ class EventHandler {
 
 var valid_modifiers = {"SHIFT": 1, "CTRL": 2, "ALT": 4}
 
-var charmap_latin_1 = {
+export var charmap_latin_1 = {
   "Space": 32,
   "Escape" : 27,
   "Enter": 13,
@@ -374,10 +377,13 @@ for (var k in charmap_latin_1) {
   charmap_latin_1_rev[charmap_latin_1[k]] = k
 }
 
-var charmap = charmap_latin_1;
-var charmap_rev = charmap_latin_1_rev;
+export var charmap = charmap_latin_1;
+export var charmap_rev = charmap_latin_1_rev;
 
-class KeyHandler {
+window.charmap = charmap;
+window.charmap_rev = charmap_rev;
+
+export class KeyHandler {
   constructor(key, modifiers, uiname, menunum, ignore_charmap_error) { //menunum is optional, defaults to undefined
     if (!charmap.hasOwnProperty(key)) {
       if (ignore_charmap_error != undefined && ignore_charmap_error != true) {
@@ -435,7 +441,7 @@ class KeyHandler {
   }
 }
 
-class KeyMap extends hashtable {
+export class KeyMap extends hashtable {
   constructor() {
     hashtable.call(this);
     
@@ -486,12 +492,12 @@ class KeyMap extends hashtable {
   }
 }
 
-class KeyHandlerCls {
+export class KeyHandlerCls {
   handle(Context ctx) {
   }
 }
 
-class ToolKeyHandler extends KeyHandlerCls {
+export class ToolKeyHandler extends KeyHandlerCls {
   constructor(ToolOp tool) {
     this.tool = tool;
   }
@@ -502,14 +508,14 @@ class ToolKeyHandler extends KeyHandlerCls {
   }
 }
 
-class FuncKeyHandler extends KeyHandlerCls {
+export class FuncKeyHandler extends KeyHandlerCls {
   constructor(func) {
     this.handle = func;
   }
 }
 
 //helper class for implementing velocity pan
-class VelocityPan extends EventHandler {
+export class VelocityPan extends EventHandler {
   constructor() {
     this.start_mpos = new Vector2();
     this.last_mpos = new Vector2();
@@ -701,7 +707,7 @@ class VelocityPan extends EventHandler {
   }
 }
 
-class TouchEventManager {
+export class TouchEventManager {
   constructor(EventHandler owner, int delay=100) {
     this.queue = new GArray();
     this.queue_ms = new GArray();
@@ -845,4 +851,5 @@ class TouchEventManager {
   }
 }
 
-var touch_manager = new TouchEventManager(undefined, 20);
+window.TouchEventManager = TouchEventManager;
+var touch_manager = window.touch_manager = new TouchEventManager(undefined, 20);

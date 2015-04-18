@@ -1,5 +1,7 @@
 "use strict";
 
+import {STRUCT} from 'struct';
+
 import {CustomDataLayer, SplineTypes, SplineFlags} from 'spline_types';
 import {DataPathNode} from 'eventdag';
 

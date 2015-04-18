@@ -1,10 +1,16 @@
 #include "src/core/utildefine.js"
 
+import {inrect_2d} from 'mathlib';
+
 import {
   UIElement, UIFlags, CanvasFlags,
-  open_mobile_keyboard, close_mobile_keyboard
+  open_mobile_keyboard, close_mobile_keyboard,
+  PackFlags
 } from 'UIElement';
        
+import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
+        charmap, TouchEventManager, EventHandler} from 'events';
+
 import {UIFrame} from 'UIFrame';
 import {
   UIButtonAbstract, UIButton, UIButtonIcon,

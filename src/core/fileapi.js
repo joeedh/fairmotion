@@ -86,6 +86,14 @@ function fileid_to_publicid(fileid, userid) {
     return h;
   }
   
+  if (typeof fileid == "string") {
+    fileid = parseInt(fileid);
+  }
+  
+  if (typeof userid == "string") {
+    userid = parseInt(userid);
+  }
+  
   return key_rotate(gen_id(8, userid) + "." + gen_id(8, fileid));
 }
 

@@ -1,4 +1,7 @@
-class AppSettings {
+import {download_file} from 'dialogs';
+import {STRUCT} from 'struct';
+
+export class AppSettings {
   constructor() {
     this.unit_scheme = "imperial";
     this.unit = "in";
@@ -123,7 +126,7 @@ AppSettings.STRUCT = """
   }
 """;
 
-class SettUploadManager {
+export class SettUploadManager {
   constructor() {
     this.next = undefined;
     this.active = undefined;
@@ -150,9 +153,9 @@ class SettUploadManager {
   }
 }
 
-var _settings_manager = new SettUploadManager();
+window._settings_manager = new SettUploadManager();
 
-class UploadJob {
+export class UploadJob {
   constructor(data, AppSettings settings=undefined) {
     this.cancel = false;
     this.data = data;

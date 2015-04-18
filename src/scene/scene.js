@@ -1,3 +1,4 @@
+import {STRUCT} from 'struct';
 import {DataBlock, DataTypes} from 'lib_api';
 
 export class Scene extends DataBlock {

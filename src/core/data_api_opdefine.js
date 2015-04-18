@@ -1,4 +1,16 @@
+import {
+  FileDialog, FileOpenOp, FileSaveAsOp, FileNewOp,
+  FileSaveOp, ProgressDialog, LoginDialog, FileSaveSTLOp,
+  FileSaveB64Op, FileDialog, error_dialog, import_json,
+  download_file
+} from 'dialogs';
+
+import {DeleteVertOp, DeleteSegmentOp, DeleteFaceOp,
+       ChangeFaceZ, SplitEdgeOp, DuplicateOp,
+       DisconnectHandlesOp} from 'spline_editops';
+
 import {ToolOp, ToolMacro, ToolFlags, UndoFlags} from 'toolops_api';
+import {EditModes} from 'view2d';
 
 import 'transform';
 import 'spline_selectops';
@@ -23,7 +35,7 @@ import {SessionFlags} from "view2d_editor";
 
 global data_ops_list = undefined;
 
-function api_define_ops() {
+window.api_define_ops = function() {
   data_ops_list = {
     "mesh.subdivide": function(ctx, args) {
       if (!("faces" in args))

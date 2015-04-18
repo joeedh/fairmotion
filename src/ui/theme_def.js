@@ -1,7 +1,9 @@
 "use strict";
-/*auto-generated file*/
-var UITheme = new ColorTheme({
 
+import {ColorTheme, ui_weight_clr} from 'theme';
+
+/*auto-generated file*/
+window.UITheme = new ColorTheme({
   "ErrorText" : [1,0.20000000298023224,0.20000000298023224,1],
   "ListBoxText" : [0.20000000298023224,0.20000000298023224,0.20000000298023224,1],
   "Highlight" : [1,0.75,0.20999999344348907,1],

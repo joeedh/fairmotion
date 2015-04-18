@@ -1,11 +1,23 @@
 "use strict";
 
-import {ToolOp, UndoFlags, ToolFlags} from 'toolops_api';
+import {login_dialog} from 'dialogs';
 
+import {
+  MinMax, get_rect_lines, get_rect_points, aabb_isect_2d,
+  inrect_2d
+} from 'mathlib';
+
+import {ToolOp, UndoFlags, ToolFlags} from 'toolops_api';
+import {STRUCT} from 'struct';
+
+import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
+        charmap, TouchEventManager, EventHandler} from 'events';
+
+import {UICanvas} from 'UICanvas2D';
 import {UIFrame} from 'UIFrame';
 import {RowFrame} from 'UIPack';
 import {
-  UIElement, UIFlags, UIHoverHint, UIHoverBox
+  PackFlags, UIElement, UIFlags, UIHoverHint, UIHoverBox
 } from 'UIElement';
 
 var Area_Types = new set(["View2DHandler"]);

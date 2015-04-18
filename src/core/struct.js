@@ -2,8 +2,18 @@
 
 #include "src/core/utildefine.js"
 
+import {
+  pack_byte, pack_short, pack_int, pack_float,
+  pack_double, pack_vec2, pack_vec3, pack_vec4,
+  pack_mat4,  pack_quat, pack_dataref, pack_string,
+  pack_static_string, unpack_byte, unpack_short,
+  unpack_int, unpack_float, unpack_double, unpack_vec2,
+  unpack_vec3, unpack_vec4, unpack_mat4, unpack_quat,
+  unpack_dataref, unpack_string, unpack_static_string,
+  unpack_bytes, unpack_ctx
+} from 'ajax';
 
-import 'parseutil';
+import * as PUTL from 'parseutil';
 
 /*
 
@@ -939,7 +949,7 @@ function _st_pack_type(data, val, obj, thestruct, field, type) {
   profile_end(name);
 }
 
-class STRUCT {
+export class STRUCT {
   constructor()
   {
     this.idgen = new EIDGen();
@@ -1477,7 +1487,7 @@ class STRUCT {
   }
 }
 
-global istruct = new STRUCT();
+export var istruct = new STRUCT();
 
 var test_vertex_struct = """
   Vertex {
@@ -1570,14 +1580,14 @@ function test_struct() {
 }
 create_test(test_struct);
 
-function init_struct_packer() {
+window.init_struct_packer = function() {
   global defined_classes, istruct;
   
   init_toolop_structs();
   
   console.log("parsing serialization scripts...");
   
-  istruct = new STRUCT();
+  window.istruct = new STRUCT();
   var errs = [];
   
   for (var cls in defined_classes) {
@@ -1605,7 +1615,7 @@ function init_struct_packer() {
   }
 }
 
-function gen_struct_str() {
+export function gen_struct_str() {
   var buf = ""
   for (var k in istruct.structs) {
     buf += STRUCT.fmt_struct(istruct.structs[k], false, true) + "\n";

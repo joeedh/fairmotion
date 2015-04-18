@@ -1,6 +1,9 @@
 "use strict";
 
-var PropTypes = {
+import {STRUCT} from 'struct';
+import {pack_int, pack_float, pack_static_string} from 'ajax';
+
+export var PropTypes = {
   INT: 0,
   FLOAT: 1,
   STRING: 4,
@@ -18,7 +21,7 @@ var PropTypes = {
   COLLECTION : 20
 };
 
-var TPropFlags = {
+export var TPropFlags = {
   PRIVATE     : 1, 
   LABEL       : 2, 
   COLL_LOOSE_TYPE : 4,

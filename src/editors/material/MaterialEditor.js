@@ -1,3 +1,17 @@
+import {gen_editor_switcher} from 'UIWidgets_special';
+
+import {
+  MinMax
+} from 'mathlib';
+
+import {UICanvas} from 'UICanvas2D';
+import {STRUCT} from 'struct';
+import {PackFlags} from 'UIElement';
+
+import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
+        charmap, TouchEventManager, EventHandler, VelocityPan
+       } from 'events';
+
 eval(es6_import_all(_es6_module, 'UIElement'));
 eval(es6_import_all(_es6_module, 'UIFrame'));
 eval(es6_import_all(_es6_module, 'UIPack'));

@@ -34,7 +34,7 @@ var number_regexpr = /(0x[0-9a-fA-F]+)|((\d|(\d\.\d+))+(e|e\-|e\+)\d+)|(\d*\.\d+
    further divided into eights), we store two levels.
 */
 
-class UnitAttr {
+export class UnitAttr {
   constructor(attrs) {
     function getval(defval, key, required=false) {
       if (key in attrs) return attrs[key];
@@ -53,7 +53,7 @@ class UnitAttr {
   }
 }
 
-class Unit {
+export class Unit {
   constructor(Array<String> suffices, float cfactor, 
               int grid_subd_1, int grid_subd_2=grid_subd_1, ObjectMap attrs={}) 
   {

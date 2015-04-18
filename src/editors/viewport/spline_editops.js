@@ -1,11 +1,11 @@
 import {IntProperty, FloatProperty, CollectionProperty,
-        BoolProperty} from 'toolprops';
+        BoolProperty, TPropFlags} from 'toolprops';
 import {ToolOp, UndoFlags, ToolFlags, ModalStates} from 'toolops_api';
 import {SplineFlags, SplineTypes, RecalcFlags} from 'spline_types';
 import {RestrictFlags, Spline} from 'spline';
 import {VDAnimFlags} from 'frameset';
-//import {TPropFlags} from 'toolprops';
-//import {istruct} from 'struct';
+import {TPropFlags} from 'toolprops';
+import {istruct} from 'struct';
 import {redo_draw_sort} from 'spline_draw';
 
 export class KeyCurrentFrame extends ToolOp {
@@ -408,15 +408,23 @@ export class InterpStepModeOp extends ToolOp {
   }
   
   exec(ctx) {
+    var kcache = ctx.frameset.kcache;
+    
     for (var vd in this.get_animverts(ctx)) {
       vd.animflag ^= VDAnimFlags.STEP_FUNC;
+      
+      for (var v in vd.verts) {
+        var time = get_vtime(v);
+        
+        kcache.invalidate(v.eid, time);
+      }
     }
   }
 }
 InterpStepModeOp.prototype.uiname = "Toggle Step Mode"
 InterpStepModeOp.prototype.apiname = "spline.toggle_step_mode"
 
-class DeleteVertOp extends SplineLocalToolOp {
+export class DeleteVertOp extends SplineLocalToolOp {
   constructor() {
     SplineLocalToolOp.call(this, false);
   }
@@ -461,7 +469,7 @@ class DeleteVertOp extends SplineLocalToolOp {
   }
 }
 
-class DeleteSegmentOp extends ToolOp {
+export class DeleteSegmentOp extends ToolOp {
   constructor() {
     ToolOp.call(this, false);
   }
@@ -502,7 +510,7 @@ class DeleteSegmentOp extends ToolOp {
 }
 
 
-class DeleteFaceOp extends SplineLocalToolOp {
+export class DeleteFaceOp extends SplineLocalToolOp {
   constructor() {
     SplineLocalToolOp.call(this, false);
   }
@@ -580,7 +588,7 @@ class DeleteFaceOp extends SplineLocalToolOp {
 }
 
 
-class ChangeFaceZ extends SplineLocalToolOp {
+export class ChangeFaceZ extends SplineLocalToolOp {
   constructor(offset, selmode) {
     SplineLocalToolOp.call(this, false);
     
@@ -677,7 +685,7 @@ DissolveVertOp.inputs = {
   use_verts : new BoolProperty(false, "use_verts")
 }
 
-class SplitEdgeOp extends SplineGlobalToolOp {
+export class SplitEdgeOp extends SplineGlobalToolOp {
   constructor() {
     SplineGlobalToolOp.call(this, false);
   }
@@ -722,7 +730,7 @@ class SplitEdgeOp extends SplineGlobalToolOp {
   }
 }
 
-class SplitEdgeOp1 extends SplineLocalToolOp {
+export class SplitEdgeOp1 extends SplineLocalToolOp {
   constructor() {
     SplineLocalToolOp.call(this, false);
   }
@@ -889,7 +897,7 @@ class ConnectHandlesOp extends ToolOp {
 }
 ConnectHandlesOp.prototype.uiname = "Connect Handles";
 
-class DisconnectHandlesOp extends ToolOp {
+export class DisconnectHandlesOp extends ToolOp {
   constructor() {
     ToolOp.call(this);
   }
@@ -968,7 +976,7 @@ export class CurveRootFinderTest extends ToolOp {
   }
 }
 
-class DelVertFrame extends ToolOp {
+export class DelVertFrame extends ToolOp {
   constructor() {
     ToolOp.call(this);
   }
@@ -1184,8 +1192,12 @@ export class ShiftTimeOp extends ToolOp {
     
     //console.log("time shift", off);
     
+    var kcache = ctx.frameset.kcache;
     for (var v in vset) {
+      kcache.invalidate(v.eid, get_vtime(v));
       set_vtime(v, starts[v.eid]+off);
+
+      kcache.invalidate(v.eid, get_vtime(v));
       v.dag_update("depend");
     }
     
@@ -1230,7 +1242,7 @@ ShiftTimeOp.inputs = {
   factor       : new FloatProperty(-1, "factor", "factor", "factor")
 }
 
-class DuplicateOp extends SplineLocalToolOp {
+export class DuplicateOp extends SplineLocalToolOp {
   constructor() {
     SplineLocalToolOp.call(this);
   }

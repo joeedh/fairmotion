@@ -128,7 +128,7 @@ SelectOneOp.inputs = ToolOp.inherit_inputs(SelectOpBase, {
   unique     : new BoolProperty(true)
 });
 
-class ToggleSelectAllOp extends SelectOpBase {
+export class ToggleSelectAllOp extends SelectOpBase {
   constructor() {
     SelectOpBase.call(this);
   }
@@ -260,7 +260,7 @@ SelectLinkedOp.inputs = ToolOp.inherit_inputs(SelectOpBase, {
   //selmode : selmode_enum
 });
 
-class HideOp extends SelectOpBase {
+export class HideOp extends SelectOpBase {
   constructor(mode, ghost) {
     SelectOpBase.call(this);
     
@@ -323,7 +323,7 @@ HideOp.inputs = {
   ghost   : new BoolProperty(false)
 }
 
-class UnhideOp extends ToolOp {
+export class UnhideOp extends ToolOp {
   constructor(mode, ghost) {
     ToolOp.call(this);
     
@@ -408,7 +408,7 @@ import {CollectionProperty} from 'toolprops';
 import {ElementRefSet} from 'spline_types';
 
 var _last_radius = 45;
-class CircleSelectOp extends SelectOpBase {
+export class CircleSelectOp extends SelectOpBase {
   constructor(datamode, do_flush=true) {
     SelectOpBase.call(this, datamode, do_flush);
     

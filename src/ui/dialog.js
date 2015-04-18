@@ -2,7 +2,7 @@ export var DialogFlags = {MODAL : 1, END_ON_ESCAPE : 2, DEFAULT: 2};
 
 import {ToolFlags, UndoFlags} from 'toolops_api';
 
-import {UIElement, UIFlags, CanvasFlags} from 'UIElement';
+import {UIElement, PackFlags, UIFlags, CanvasFlags} from 'UIElement';
 import {UIFrame} from 'UIFrame';
 import {
   UIButtonAbstract, UIButton, UIButtonIcon,

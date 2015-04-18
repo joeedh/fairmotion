@@ -995,7 +995,7 @@ function toJSON_intern (ob, tlevel) {
             animreq_ui = window.requestAnimationFrame(function() {
               animreq_ui = undefined;
               
-              console.log("ui frame");
+              //console.log("ui frame");
               
               if (g_app_state != undefined)
                 g_app_state.eventhandler.on_draw();
@@ -1010,7 +1010,7 @@ function toJSON_intern (ob, tlevel) {
         }
         
         window.redraw_viewport = function(min, max) {
-          console.log("viewport draw!");
+          //console.log("viewport draw!");
           
           if (force_viewport_draw)
             min = max = undefined;

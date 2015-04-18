@@ -1,6 +1,11 @@
 "use strict";
 
-import "events";
+import {PropTypes, TPropFlags}  from 'toolprops';
+  
+import {STRUCT} from 'struct';
+import {EventHandler} from 'events';
+import {charmap} from 'events';
+import {pack_int, pack_float, pack_static_string, unpack_ctx} from 'ajax';
 
 /*
   basic design of tool ops:
@@ -852,7 +857,7 @@ class MassSetPathOp extends ToolOp {
 //generates default toolop STRUCTs/fromSTRUCTS, as needed
 //genereated STRUCT/fromSTRUCT should be identical with 
 //ToolOp.STRUCT/fromSTRUCT, except for the change in class name.
-function init_toolop_structs() {
+window.init_toolop_structs = function() {
   global defined_classes;
   
   function gen_fromSTRUCT(cls1) {

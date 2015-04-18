@@ -1,8 +1,12 @@
 "use strict";
 
+import {rot2d, inrect_2d} from 'mathlib';
+import {PackFlags} from 'UIElement';
+import {UICanvas_} from 'UICanvas';
+
 #include "src/core/utildefine.js"
 
-function get_2d_canvas() {
+export function get_2d_canvas() {
   static ret = {}
   
   if (ret.canvas == undefined) {
@@ -12,8 +16,9 @@ function get_2d_canvas() {
   
   return ret;
 }
+window.get_2d_canvas = get_2d_canvas;
 
-function get_2d_canvas_2() {
+export function get_2d_canvas_2() {
   static ret = {}
   
   if (ret.canvas == undefined) {
@@ -23,8 +28,9 @@ function get_2d_canvas_2() {
   
   return ret;
 }
+window.get_2d_canvas_2 = get_2d_canvas_2;
 
-class UICanvas2_ {
+export class UICanvas2_ {
   constructor(viewport) {
     var c = get_2d_canvas();
     
@@ -750,7 +756,7 @@ class UICanvas2_ {
   //box(
 }
 
-var UICanvas = DEBUG.use_2d_uicanvas ? UICanvas2_ : UICanvas_;
+export var UICanvas = DEBUG.use_2d_uicanvas ? UICanvas2_ : UICanvas_;
 
 function test_canvas2d() {
   var u = new UICanvas2D();

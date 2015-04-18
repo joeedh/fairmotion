@@ -4,7 +4,7 @@
 // h = [0,360], s = [0,1], v = [0,1]
 //		if s == 0, then h = -1 (undefined)
 //takes four float arrays for clr and hsv
-function rgba_to_hsva(Array<float> clr, Array<float>ret=undefined)
+export function rgba_to_hsva(Array<float> clr, Array<float>ret=undefined)
 {
   var r =clr[0], g = clr[1], b = clr[2], a = clr[3];
 	var min, max, delta;
@@ -53,7 +53,7 @@ function rgba_to_hsva(Array<float> clr, Array<float>ret=undefined)
   return ret;
 }
 
-function hsva_to_rgba(Array<float> hsva, Array<float> ret) {
+export function hsva_to_rgba(Array<float> hsva, Array<float> ret) {
   var r, g, b, h=hsva[0]*360.0, s=hsva[1], v=hsva[2];
 	var i, f, p, q, t;
   static static_ret = new Vector4();

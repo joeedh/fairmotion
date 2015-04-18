@@ -1,4 +1,8 @@
 import "events";
+import {EventHandler} from 'events';
+import {charmap} from 'events';
+import {inrect_2d} from 'mathlib';
+import {TPropFlags} from 'toolprops';
 
 export var UIFlags = {
   ENABLED        :  1,   HIGHLIGHT :   2, 
@@ -17,6 +21,21 @@ export var UIFlags = {
   NO_FRAME_CACHE       : 8192, INVISIBLE       : 8192*2,
   IGNORE_PAN_BOUNDS    : 8192*4, BLOCK_REPAINT : 8192*8
 };
+
+export var PackFlags = {
+  INHERIT_HEIGHT :       1, INHERIT_WIDTH :     2, 
+  ALIGN_RIGHT :          4, ALIGN_LEFT :        8, 
+  ALIGN_CENTER :        16, ALIGN_BOTTOM :     32, 
+  IGNORE_LIMIT :        64, NO_REPACK :       128,
+  UI_DATAPATH_IGNORE : 256, USE_ICON :  1024|2048,
+  USE_SMALL_ICON :    1024, USE_LARGE_ICON : 2048,
+  ENUM_STRIP :        4096, NO_AUTO_SPACING : 8192,
+  //for colframe, center  y, for rowframe, center x
+  ALIGN_CENTER_Y :    16384, ALIGN_CENTER_X : 32768,
+  FLIP_TABSTRIP : 65536, NO_LEAD_SPACING : (1<<17),
+  NO_TRAIL_SPACING : (1<<18), KEEP_SIZE : (1<<19),
+  _KEEPSIZE : ((1<<19)|128), ALIGN_TOP : (1<<20)
+}
 
 export var CanvasFlags = {NOT_ROOT : 1, NO_PROPEGATE : 2}
 window.CanvasFlags = CanvasFlags;
@@ -510,6 +529,7 @@ export class UIHoverBox extends UIElement {
     
     this.is_modal = is_modal;
     this.text = text;
+    
     this.packflag |= PackFlags.NO_REPACK;
   }
   

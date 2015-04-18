@@ -1,5 +1,10 @@
-import {UIElement, UIFlags, CanvasFlags} from 'UIElement';
+import {UIElement, PackFlags, UIFlags, CanvasFlags} from 'UIElement';
 import {UIFrame} from 'UIFrame';
+
+import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
+        charmap, TouchEventManager, EventHandler} from 'events';
+import {inrect_2d} from 'mathlib';
+
 import {
   UIButtonAbstract, UIButton, UIButtonIcon,
   UIMenuButton, UICheckBox, UINumBox, UILabel,
@@ -276,7 +281,7 @@ export class UIMenu extends UIFrame {
 
 //is_menu_open is defined in RadialMenu.js
 
-function ui_call_menu(menu, frame, pos, center=true, min_width=20)//center is optional, defaults to true
+export function ui_call_menu(menu, frame, pos, center=true, min_width=20)//center is optional, defaults to true
 {
   console.log("menu call");
   
@@ -332,7 +337,7 @@ function ui_call_menu(menu, frame, pos, center=true, min_width=20)//center is op
 
 import {ToolFlags, UndoFlags} from 'toolops_api';
 
-function toolop_menu(ctx, name, oplist) {
+export function toolop_menu(ctx, name, oplist) {
   var oplist_instance = []
   
   function op_callback(entry, id) {
@@ -383,3 +388,4 @@ function toolop_menu(ctx, name, oplist) {
 
 //evil global!
 window.UIMenu = UIMenu;
+window.ui_call_menu = ui_call_menu;

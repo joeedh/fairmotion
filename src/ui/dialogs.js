@@ -1,9 +1,11 @@
 import {Dialog, PackedDialog, DialogFlags} from 'dialog';
+import {urlencode, b64decode, b64encode} from 'strutils';
 
 import {ToolFlags, UndoFlags} from 'toolops_api';
 
-import {UIElement, UIFlags, CanvasFlags} from 'UIElement';
+import {UIElement, PackFlags, UIFlags, CanvasFlags} from 'UIElement';
 import {UIFrame} from 'UIFrame';
+
 import {
   UIButtonAbstract, UIButton, UIButtonIcon,
   UIMenuButton, UICheckBox, UINumBox, UILabel,
@@ -28,7 +30,7 @@ var fdialog_exclude_chars = new set([
   "^"
 ]);
 
-class FileDialog extends PackedDialog {
+export class FileDialog extends PackedDialog {
   constructor(mode, ctx, callback, check_overwrite=false) {
     PackedDialog.call(this, FileDialogModes[mode], ctx, ctx.screen);
     
@@ -297,7 +299,7 @@ function file_dialog(mode, ctx, callback, check_overwrite)
   fd.call(ctx.screen.mpos);  
 }
 
-function download_file(path, on_finish, path_label=path, use_note=false, 
+export function download_file(path, on_finish, path_label=path, use_note=false, 
                        suppress_errors=false, on_error=undefined) 
 {
   var ctx = new Context();
@@ -346,7 +348,7 @@ function download_file(path, on_finish, path_label=path, use_note=false,
   call_api(get_file_data, {path:path}, finish, error, status);
 }
 
-class FileOpenOp extends ToolOp {  
+export class FileOpenOp extends ToolOp {  
   constructor() {
     ToolOp.call(this, "open_file", "Open");
     
@@ -402,7 +404,7 @@ class FileOpenOp extends ToolOp {
   }
 }
 
-class FileSaveAsOp extends ToolOp {
+export class FileSaveAsOp extends ToolOp {
   constructor() {
     ToolOp.call(this, "save_file_as", "Save As");
     
@@ -461,7 +463,7 @@ class FileSaveAsOp extends ToolOp {
   }
 }
 
-class FileNewOp extends ToolOp {
+export class FileNewOp extends ToolOp {
   constructor() {
     ToolOp.call(this, "new_file", "New");
 
@@ -486,7 +488,7 @@ class FileNewOp extends ToolOp {
   }
 }
 
-class FileSaveOp extends ToolOp {
+export class FileSaveOp extends ToolOp {
   constructor(Boolean do_progress=true) {
     ToolOp.call(this, "save_file", "Save");
 
@@ -568,7 +570,7 @@ function test_progress_dialog() {
   test_pd = pd;
 }
 
-class ProgressDialog extends PackedDialog {
+export class ProgressDialog extends PackedDialog {
   constructor(Context ctx, String label, float val=0.0, float min=0.0, float max=1.0) {
     PackedDialog.call(this, label, ctx, ctx.screen);
     
@@ -617,7 +619,7 @@ class ProgressDialog extends PackedDialog {
   }
 }
 
-class LoginDialog extends PackedDialog {
+export class LoginDialog extends PackedDialog {
   constructor(ctx) {
     PackedDialog.call(this, "User Login", ctx, ctx.screen);
     
@@ -707,7 +709,7 @@ class LoginDialog extends PackedDialog {
   }
 }
 
-function error_dialog(Context ctx, String msg, Function callback=undefined, Boolean center=false) {
+export function error_dialog(Context ctx, String msg, Function callback=undefined, Boolean center=false) {
   var pd = new ErrorDialog(msg, callback);
   
   var s = ctx.screen.size;
@@ -718,14 +720,14 @@ function error_dialog(Context ctx, String msg, Function callback=undefined, Bool
   return pd;
 }
 
-function login_dialog(ctx)
+export function login_dialog(ctx)
 {
   var ld = new LoginDialog(ctx);
   
   ld.call(new Vector2(ctx.screen.size).mulScalar(0.5).floor());  
 }
 
-class FileSaveSTLOp extends ToolOp {
+export class FileSaveSTLOp extends ToolOp {
   constructor() {
     ToolOp.call(this, "export_stl", "Export STL");
     
@@ -800,7 +802,7 @@ class FileSaveSTLOp extends ToolOp {
 
 import {StringProperty} from 'toolprops';
 
-class FileSaveB64Op extends ToolOp {
+export class FileSaveB64Op extends ToolOp {
   constructor() {
     ToolOp.call(this, "export_al3_b64", "Export AL3-B64");
     
@@ -892,7 +894,7 @@ class FileSaveB64Op extends ToolOp {
 import {ImportJSONOp} from 'spline_createops';
 
 var _dom_input_node = undefined;
-var import_json = window.import_json = function import_json() {
+export var import_json = window.import_json = function import_json() {
   global _dom_input_node;
   console.log("import json!");
   

@@ -1,8 +1,16 @@
+import {
+  MinMax
+} from 'mathlib';
+
+import {TPropFlags} from 'toolprops';
 import {SplineFlags, SplineTypes} from 'spline_types';
 import {ModalStates} from 'toolops_api';
 
 import {TransDataItem, TransDataType} from 'transdata';
 import {TransDopeSheetType} from 'dopesheet_transdata';
+
+import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
+        charmap, TouchEventManager, EventHandler} from 'events';
 
 export class TransSplineVert {
   static apply(ToolContext ctx, TransData td, TransDataItem item, Matrix4 mat, float w) {
@@ -97,7 +105,7 @@ export class TransSplineVert {
       }
     }
     
-    //spline.resolve = 1;
+    spline.resolve = 1;
   }
   
   static update(ToolContext ctx, TransData td) {

@@ -1,331 +1,332 @@
 "use strict";
 
-var t;
-function PUTL() {
+export class token {
+  constructor(type, val, lexpos, lexlen, lineno, lexer, parser) {
+    this.type = type;
+    this.value = val;
+    this.lexpos = lexpos;
+    this.lexlen = lexlen;
+    this.lineno = lineno;
+    this.lexer = lexer;
+    this.parser = parser;
+  }
+  
+  toString() {
+    if (this.value != undefined)
+      return "token(type=" + this.type + ", value='" + this.value + "')"
+    else
+      return "token(type=" + this.type + ")"
+  }
 }
-
-PUTL.token = function(type, val, lexpos, lexlen, lineno, lexer, parser) {
-  this.type = type;
-  this.value = val;
-  this.lexpos = lexpos;
-  this.lexlen = lexlen;
-  this.lineno = lineno;
-  this.lexer = lexer;
-  this.parser = parser;
-}
-create_prototype(PUTL.token);
-PUTL.token.prototype.toString = function() {
-  if (this.value != undefined)
-    return "token(type=" + this.type + ", value='" + this.value + "')"
-  else
-    return "token(type=" + this.type + ")"
-}
-
+  
 //func is optional. it takes a function
 //with one parameter, token, and either
 //a) returns the token, or b) returns
 //undefined, in which case the token
 //should be ignored by the lexer
-PUTL.tokdef = function(name, regexpr, func) {
-  this.name = name;
-  this.re = regexpr
-  this.func = func
+export class tokdef {
+  constructor(name, regexpr, func) {
+    this.name = name;
+    this.re = regexpr
+    this.func = func
+  }
 }
-create_prototype(PUTL.tokdef);
 
-function PUTLParseError(msg) {
-  Error.call(this);
+export class PUTLParseError extends Error {
+  constructor(msg) {
+    Error.call(this);
+  }
 }
-inherit(PUTLParseError, Error);
 
 //errfunc is optional.  it requires
 //a function that takes one param, lexer,
 //and returns whether or not the lexer
 //should propegate an error when an error
 //has happened
-PUTL.lexer = function(tokdef, errfunc) {
-  this.tokdef = tokdef;
-  this.tokens = new GArray();
-  this.lexpos = 0;
-  this.lexdata = "";
-  this.lineno = 0;
-  this.errfunc = errfunc;
-  this.tokints = {}
-  
-  for (var i=0; i<tokdef.length; i++) {
-    this.tokints[tokdef[i].name] = i;
+export class lexer {
+  constructor(tokdef, errfunc) {
+    this.tokdef = tokdef;
+    this.tokens = new GArray();
+    this.lexpos = 0;
+    this.lexdata = "";
+    this.lineno = 0;
+    this.errfunc = errfunc;
+    this.tokints = {}
+    
+    for (var i=0; i<tokdef.length; i++) {
+      this.tokints[tokdef[i].name] = i;
+    }
+    
+    this.statestack = [["__main__", 0]];
+    this.states = {"__main__" : [tokdef, errfunc]};
+    this.statedata = 0; //public variable
   }
-  
-  this.statestack = [["__main__", 0]];
-  this.states = {"__main__" : [tokdef, errfunc]};
-  this.statedata = 0; //public variable
-}
-
-create_prototype(PUTL.lexer);
 
 //errfunc is optional, defines state-specific error function
-PUTL.lexer.prototype.add_state = function(name, tokdef, errfunc) {
-  if (errfunc == undefined) {
-    errfunc = function(lexer) { return true; };
-  }
-  
-  this.states[name] = [tokdef, errfunc];
-}
-
-PUTL.lexer.prototype.tok_int = function(name) {
-  
-}
-
-//statedata is optional.
-//it stores state-specific data in lexer.statedata.
-PUTL.lexer.prototype.push_state = function(state, statedata) {
-  this.statestack.push([state, statedata])
-  
-  state = this.states[state];
-  this.statedata = statedata;
-  
-  this.tokdef = state[0];
-  this.errfunc = state[1];
-}
-
-PUTL.lexer.prototype.pop_state = function() {
-  var item = this.statestack[this.statestack.length-1];
-  var state = this.states[item[0]];
-  
-  this.tokdef = state[0];
-  this.errfunc = state[1];
-  this.statedata = item[1];
-}
-
-PUTL.lexer.prototype.input = function(str) {
-  //go back to main state
-  while (this.statestack.length > 1) {
-    this.pop_state();
-  }
-  
-  this.lexdata = str;
-  this.lexpos = 0;
-  this.lineno = 0;
-  this.tokens = new GArray();
-  
-  this.peeked_tokens = [];
-}
-
-PUTL.lexer.prototype.error = function() {
-  if (this.errfunc != undefined && !this.errfunc(this))
-    return;
+  add_state(name, tokdef, errfunc) {
+    if (errfunc == undefined) {
+      errfunc = function(lexer) { return true; };
+    }
     
-  console.log("Syntax error near line " + this.lineno);
-  var next = Math.min(this.lexpos+8, this.lexdata.length);
-  console.log("  " + this.lexdata.slice(this.lexpos, next));
-  
-  throw new PUTLParseError("Parse error");
-}
-
-PUTL.lexer.prototype.peek = function() {
-  var tok = this.next(true);
-  
-  if (tok == undefined) 
-    return undefined;
-  
-  this.peeked_tokens.push(tok);
-  return tok;
-}
-
-PUTL.lexer.prototype.peek_i = function(int i) {
-  while (this.peeked_tokens.length <= i) {
-    var t = this.peek();
-    if (t == undefined)
-      return undefined;
+    this.states[name] = [tokdef, errfunc];
   }
-  
-  return this.peeked_tokens[i];
-}
 
-PUTL.lexer.prototype.at_end = function() {
-  return this.lexpos >= this.lexdata.length && this.peeked_tokens.length == 0;
-}
+  tok_int(name) {
+    
+  }
 
-PUTL.lexer.prototype.next = function(ignore_peek) {
-  if (ignore_peek != true && this.peeked_tokens.length > 0) {
-    var tok = this.peeked_tokens[0];
-    this.peeked_tokens.shift();
+  //statedata is optional.
+  //it stores state-specific data in lexer.statedata.
+  push_state(state, statedata) {
+    this.statestack.push([state, statedata])
+    
+    state = this.states[state];
+    this.statedata = statedata;
+    
+    this.tokdef = state[0];
+    this.errfunc = state[1];
+  }
+
+  pop_state() {
+    var item = this.statestack[this.statestack.length-1];
+    var state = this.states[item[0]];
+    
+    this.tokdef = state[0];
+    this.errfunc = state[1];
+    this.statedata = item[1];
+  }
+
+  input(str) {
+    //go back to main state
+    while (this.statestack.length > 1) {
+      this.pop_state();
+    }
+    
+    this.lexdata = str;
+    this.lexpos = 0;
+    this.lineno = 0;
+    this.tokens = new GArray();
+    
+    this.peeked_tokens = [];
+  }
+
+  error() {
+    if (this.errfunc != undefined && !this.errfunc(this))
+      return;
+      
+    console.log("Syntax error near line " + this.lineno);
+    var next = Math.min(this.lexpos+8, this.lexdata.length);
+    console.log("  " + this.lexdata.slice(this.lexpos, next));
+    
+    throw new PUTLParseError("Parse error");
+  }
+
+  peek() {
+    var tok = this.next(true);
+    
+    if (tok == undefined) 
+      return undefined;
+    
+    this.peeked_tokens.push(tok);
+    return tok;
+  }
+
+  peek_i(int i) {
+    while (this.peeked_tokens.length <= i) {
+      var t = this.peek();
+      if (t == undefined)
+        return undefined;
+    }
+    
+    return this.peeked_tokens[i];
+  }
+
+  at_end() {
+    return this.lexpos >= this.lexdata.length && this.peeked_tokens.length == 0;
+  }
+
+  next(ignore_peek) {
+    if (ignore_peek != true && this.peeked_tokens.length > 0) {
+      var tok = this.peeked_tokens[0];
+      this.peeked_tokens.shift();
+      
+      return tok;
+    }
+    
+    if (this.lexpos >= this.lexdata.length)
+      return undefined;
+    
+    var ts = this.tokdef;
+    var tlen = ts.length;
+    
+    var lexdata = this.lexdata.slice(this.lexpos, this.lexdata.length);
+    
+    var results = []
+    
+    for (var i=0; i<tlen; i++) {
+      var t = ts[i];
+      
+      if (t.re == undefined)
+        continue;
+      
+      var res = t.re.exec(lexdata);
+      
+      if (res != null && res != undefined && res.index == 0) {
+        results.push([t, res]);
+      }
+    }
+    
+    var max_res = 0;
+    var theres = undefined;
+    for (var i=0; i<results.length; i++) {
+      var res = results[i];
+      
+      if (res[1][0].length > max_res) {
+        theres = res;
+        max_res = res[1][0].length;
+      }
+    }
+    
+    if (theres == undefined) {
+      this.error();
+      return;
+    }
+    
+    var def = theres[0];
+    
+    var lexlen = max_res;
+    var tok = new token(def.name, theres[1][0], this.lexpos, lexlen, this.lineno, this, undefined);
+    this.lexpos += max_res;
+    
+    if (def.func) {
+      tok = def.func(tok)
+      if (tok == undefined) {
+        return this.next();
+      }
+    }
     
     return tok;
   }
-  
-  if (this.lexpos >= this.lexdata.length)
-    return undefined;
-  
-  var ts = this.tokdef;
-  var tlen = ts.length;
-  
-  var lexdata = this.lexdata.slice(this.lexpos, this.lexdata.length);
-  
-  var results = []
-  
-  for (var i=0; i<tlen; i++) {
-    var t = ts[i];
-    
-    if (t.re == undefined)
-      continue;
-    
-    var res = t.re.exec(lexdata);
-    
-    if (res != null && res != undefined && res.index == 0) {
-      results.push([t, res]);
-    }
-  }
-  
-  var max_res = 0;
-  var theres = undefined;
-  for (var i=0; i<results.length; i++) {
-    var res = results[i];
-    
-    if (res[1][0].length > max_res) {
-      theres = res;
-      max_res = res[1][0].length;
-    }
-  }
-  
-  if (theres == undefined) {
-    this.error();
-    return;
-  }
-  
-  var def = theres[0];
-  
-  var lexlen = max_res;
-  var token = new PUTL.token(def.name, theres[1][0], this.lexpos, lexlen, this.lineno, this, undefined);
-  this.lexpos += max_res;
-  
-  if (def.func) {
-    token = def.func(token)
-    if (token == undefined) {
-      return this.next();
-    }
-  }
-  
-  return token;
 }
 
-PUTL.parser = function(lexer, errfunc) {
-  this.lexer = lexer;
-  this.errfunc = errfunc;
-  this.start = undefined;
-}
-create_prototype(PUTL.parser);
+export class parser {
+  constructor(lexer, errfunc) {
+    this.lexer = lexer;
+    this.errfunc = errfunc;
+    this.start = undefined;
+  }
 
-PUTL.parser.prototype.parse = function(data, err_on_unconsumed) {
-  if (err_on_unconsumed == undefined)
-    err_on_unconsumed = true;
+  parse(data, err_on_unconsumed) {
+    if (err_on_unconsumed == undefined)
+      err_on_unconsumed = true;
+      
+    if (data != undefined)
+      this.lexer.input(data);
     
-  if (data != undefined)
+    var ret = this.start(this);
+    if (err_on_unconsumed && !this.lexer.at_end() && this.lexer.next() != undefined) {
+      //console.log(this.lexer.lexdata.slice(this.lexer.lexpos-1, this.lexer.lexdata.length));
+      this.error(undefined, "parser did not consume entire input");
+    }
+    
+    return ret;
+  }
+
+  input(data) {
     this.lexer.input(data);
-  
-  var ret = this.start(this);
-  if (err_on_unconsumed && !this.lexer.at_end() && this.lexer.next() != undefined) {
-    //console.log(this.lexer.lexdata.slice(this.lexer.lexpos-1, this.lexer.lexdata.length));
-    this.error(undefined, "parser did not consume entire input");
   }
-  
-  return ret;
-}
 
-PUTL.parser.prototype.input = function(data) {
-  this.lexer.input(data);
-}
-
-PUTL.parser.prototype.error = function(token, msg) {
-  if (msg == undefined)
-    msg = ""
-  
-  if (token == undefined)
-    var estr = "Parse error at end of input: " + msg
-  else
-    estr = "Parse error at line " + (token.lineno+1) + ": " + msg;
-  
-  var buf = "1| "
-  var ld = this.lexer.lexdata;
-  var l = 1;
-  for (var i=0; i<ld.length; i++) {
-    var c = ld[i];
-    if (c == '\n') {
-      l++;
-      buf += "\n" + l + "| "
-    } else {
-      buf += c;
+  error(tok, msg) {
+    if (msg == undefined)
+      msg = ""
+    
+    if (tok == undefined)
+      var estr = "Parse error at end of input: " + msg
+    else
+      estr = "Parse error at line " + (tok.lineno+1) + ": " + msg;
+    
+    var buf = "1| "
+    var ld = this.lexer.lexdata;
+    var l = 1;
+    for (var i=0; i<ld.length; i++) {
+      var c = ld[i];
+      if (c == '\n') {
+        l++;
+        buf += "\n" + l + "| "
+      } else {
+        buf += c;
+      }
     }
-  }
-  
-  console.log("------------------")
-  console.log(buf);
-  console.log("==================")
-  console.log(estr);
-  
-  if (this.errfunc && !this.errfunc(token)) {
-    return;
-  }
-  
-  throw new PUTLParseError(estr);
-}
-
-PUTL.parser.prototype.peek = function() {
-  var tok = this.lexer.peek();
-  if (tok != undefined)
-    tok.parser = this;
     
-  return tok;
-}
-
-PUTL.parser.prototype.peek_i = function(int i) {
-  var tok = this.lexer.peek_i(i);
-  if (tok != undefined)
-    tok.parser = this;
+    console.log("------------------")
+    console.log(buf);
+    console.log("==================")
+    console.log(estr);
     
-  return tok;
-}
-
-PUTL.parser.prototype.peeknext = function() {
-  return this.peek_i(0);
-}
-
-PUTL.parser.prototype.next = function() {
-  var tok = this.lexer.next();
-  if (tok != undefined)
-    tok.parser = this;
-  
-  return tok;
-}
-
-PUTL.parser.prototype.optional = function(type) {
-  var tok = this.peek();
-  
-  if (tok == undefined) return false;
-  
-  if (tok.type == type) {
-    this.next();
-    return true;
+    if (this.errfunc && !this.errfunc(tok)) {
+      return;
+    }
+    
+    throw new PUTLParseError(estr);
   }
-  
-  return false;
-} 
 
-PUTL.parser.prototype.at_end = function() {
-  return this.lexer.at_end();
-}
-
-PUTL.parser.prototype.expect = function(type, msg) {
-  var tok = this.next();
-  
-  if (msg == undefined)
-    msg = type
-  
-  if (tok == undefined || tok.type != type) {
-    this.error(tok, "Expected " + msg);
+  peek() {
+    var tok = this.lexer.peek();
+    if (tok != undefined)
+      tok.parser = this;
+      
+    return tok;
   }
-  
-  return tok.value;
+
+  peek_i(int i) {
+    var tok = this.lexer.peek_i(i);
+    if (tok != undefined)
+      tok.parser = this;
+      
+    return tok;
+  }
+
+  peeknext() {
+    return this.peek_i(0);
+  }
+
+  next() {
+    var tok = this.lexer.next();
+    if (tok != undefined)
+      tok.parser = this;
+    
+    return tok;
+  }
+
+  optional(type) {
+    var tok = this.peek();
+    
+    if (tok == undefined) return false;
+    
+    if (tok.type == type) {
+      this.next();
+      return true;
+    }
+    
+    return false;
+  } 
+
+  at_end() {
+    return this.lexer.at_end();
+  }
+
+  expect(type, msg) {
+    var tok = this.next();
+    
+    if (msg == undefined)
+      msg = type
+    
+    if (tok == undefined || tok.type != type) {
+      this.error(tok, "Expected " + msg);
+    }
+    
+    return tok.value;
+  }
 }
 
 function test_parser() {
@@ -352,7 +353,7 @@ function test_parser() {
     "array"]);
 
   function tk(name, re, func) {
-    return new PUTL.tokdef(name, re, func);
+    return new tokdef(name, re, func);
   }
   var tokens = [
     tk("ID", /[a-zA-Z]+[a-zA-Z0-9_]*/, function(t) {
@@ -423,17 +424,17 @@ function test_parser() {
     return true; //throw error
   }
   
-  var lex = new PUTL.lexer(tokens, errfunc)
+  var lex = new lexer(tokens, errfunc)
   console.log("Testing lexical scanner...")
   
   lex.input(a);
   
-  var token;
-  while (token = lex.next()) {
-    console.log(token.toString())
+  var tok;
+  while (tok = lex.next()) {
+    console.log(tok.toString())
   }
   
-  var parser = new PUTL.parser(lex);
+  var parser = new parser(lex);
   parser.input(a);
   
   function p_Array(p) {

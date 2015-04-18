@@ -9,7 +9,7 @@ for (var i=0; i<64; i++) {
 _b64_map["="] = 65;
 
 var _b64_arr = [0, 1, 2, 3];
-function b64encode(arr, add_newlines=false, collimit=76) {
+export function b64encode(arr, add_newlines=false, collimit=76) {
   global _b64str;
   var s = "";
   var is_str = btypeof(arr) == "string";
@@ -77,7 +77,7 @@ function b64encode(arr, add_newlines=false, collimit=76) {
   return s;
 }
 
-function b64decode(s, gen_str=false, gen_uint8arr=true) {
+export function b64decode(s, gen_str=false, gen_uint8arr=true) {
   var s2 = ""
   for (var i=0; i<s.length; i++) {
     if (s[i] != "\n" && s[i] != "\r" && s[i] != " " && s[i] != "\t")
@@ -131,7 +131,8 @@ function b64decode(s, gen_str=false, gen_uint8arr=true) {
   
   return s2;
 }
-function limit_line(s, limit=80) {
+
+export function limit_line(s, limit=80) {
   var s2 = "";
   var ci = 0;
   
@@ -169,7 +170,7 @@ for (var i=0; i<perc_res.length; i++) {
 }
 perc_res = a;
 
-function urlencode(s) {
+export function urlencode(s) {
   var s2 = "";
   
   var arr = [];

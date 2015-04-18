@@ -166,6 +166,8 @@ def fileid_to_publicid(fileid, userid):
     for i in range(slen):
       h = "0" + h
     
+    h = h.replace("L", "")
+    
     return h
     
   return key_rot(gen_id(8, userid) + "." + gen_id(8, fileid));
@@ -179,7 +181,10 @@ def publicid_to_fileid(publicid):
     elog(key_unrot(fileid_to_publicid(1, 1)));
     
     return None
-    
+  
+  elog("publicid: " + str(publicid))
+  print("\n\nPUBLICID!!\n\n", publicid);
+  
   userid, fileid = k.split(".")
   userid = int(userid, 16)
   fileid = int(fileid, 16)

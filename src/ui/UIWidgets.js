@@ -1,11 +1,17 @@
 #include "src/core/utildefine.js"
 
+import {UIFrame} from 'UIFrame';
+import {Unit} from 'units';
+import {PropTypes} from 'toolprops';
+
+import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
+        charmap, TouchEventManager, EventHandler} from 'events';
+
 import {
   UIElement, UIFlags, CanvasFlags,
-  UIHoverHint, inrect_2d_button
+  UIHoverHint, inrect_2d_button,
+  PackFlags
 } from 'UIElement';
-
-import {UIFrame} from 'UIFrame';
 
 export class UIButtonAbstract extends UIHoverHint {
   Boolean clicked, click_on_down, can_pan, modal_click, was_touch;

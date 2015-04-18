@@ -1,27 +1,50 @@
 "use strict";
 
+import {DataPath, DataStruct, DataPathTypes, DataFlags} from 'data_api';
+import {wrap_getblock, wrap_getblock_us} from 'lib_utils';
+import {UICanvas} from 'UICanvas2D';
+import {urlencode, b64decode, b64encode} from 'strutils';
+import {BasicFileOp} from 'view2d_ops'; 
+import {AppSettings} from 'UserSettings';
+import {JobManager} from 'jobs';
+import {RasterState} from 'raster';
+import {DataAPI} from 'data_api';
+import {NotificationManager, Notification} from 'notifications';
+import {STRUCT} from 'struct';
 import {get_data_typemap} from 'lib_api_typedefine';
 import {ScreenArea, Screen, Area} from 'FrameManager';
 import {DataLib, DataBlock, DataTypes} from 'lib_api';
 import {ToolMacro, ToolOp, UndoFlags, ToolFlags} from 'toolops_api';
-import {StringProperty, CollectionProperty} from 'toolprops';
+import {PropTypes, TPropFlags, StringProperty, CollectionProperty} from 'toolprops';
 import {View2DHandler} from 'view2d';
 import {Scene} from 'scene';
 import {SplineTypes} from 'spline_types';
 import {DopeSheetEditor} from 'DopeSheetEditor';
 
+import {
+  pack_byte, pack_short, pack_int, pack_float,
+  pack_double, pack_vec2, pack_vec3, pack_vec4,
+  pack_mat4,  pack_quat, pack_dataref, pack_string,
+  pack_static_string, unpack_byte, unpack_short,
+  unpack_int, unpack_float, unpack_double, unpack_vec2,
+  unpack_vec3, unpack_vec4, unpack_mat4, unpack_quat,
+  unpack_dataref, unpack_string, unpack_static_string,
+  unpack_bytes, unpack_ctx
+} from 'ajax';
+
 //include "src/config/config_defines.js"
 
 //#ifdef PACK_PROFILE
-import {profile_reset, profile_report} from 'struct';
+import {profile_reset, profile_report, gen_struct_str, 
+        istruct, STRUCT} from 'struct';
 //#endif
 
-var FileFlags = {COMPRESSED_LZSTRING : 1};
+export var FileFlags = {COMPRESSED_LZSTRING : 1};
 
 /*Globals*/
 global AppState g_app_state = undefined, g, t=2;
 
-class FileData {
+export class FileData {
   constructor(blocks, fstructs, version) {
     this.blocks = blocks;
     this.fstructs = fstructs;
@@ -135,7 +158,7 @@ class UserSession {
 }
 
 //size is screen size
-function gen_default_file(size) {
+window.gen_default_file = function gen_default_file(size) {
   var g = g_app_state;
   global startup_file_str;
   
@@ -195,7 +218,7 @@ function output_startup_file() : String {
   return out;
 }
 
-class AppState {
+export class AppState {
   constructor(FrameManager screen, Mesh mesh, WebGLRenderingContext gl) {
     this.screen = screen;
     this.eventhandler = screen : EventHandler;
@@ -1019,12 +1042,6 @@ class AppState {
         patch_tools1.push(tool);
         patch_tools2.push(tool.saved_context);
         
-        //meshops, which do inherit from ToolOpAbstract
-        if (tool instanceof MeshToolOp) {
-          patch_tools1.push(tool.meshop);
-          patch_tools2.push(tool.saved_context);
-        }
-        
         //tools within macros
         if (tool instanceof ToolMacro) {
           add_macro(patch_tools1, patch_tools2, tool);
@@ -1259,6 +1276,8 @@ class AppState {
   }
 }
 
+window.AppState = AppState;
+
 /*
   The Context classes represent a set of common arguments that
   are passed to various parts of the API (especially the tool
@@ -1266,7 +1285,7 @@ class AppState {
   it's inspired by what Blender does.
 */
 //restricted context for tools
-class ToolContext {
+export class ToolContext {
   constructor(frameset, spline, scene, splinepath) {
     var ctx = new Context();
     
@@ -1292,6 +1311,7 @@ class ToolContext {
     this.api = g_app_state.api;
   }
 }
+window.ToolContext = ToolContext;
 
 class SavedContext {
   constructor(ctx=undefined) {
@@ -1388,6 +1408,8 @@ class SavedContext {
   }
 }
 
+window.SavedContext = SavedContext;
+
 SavedContext.STRUCT = """
   SavedContext {
     _scene               : DataRef | obj._scene == undefined ? new DataRef(-1) : obj._scene;
@@ -1400,7 +1422,7 @@ SavedContext.STRUCT = """
 
 import {SplineFrameSet} from 'frameset';
 
-class Context {
+export class Context {
   constructor() {
     this.font = g_app_state.raster.font;
     this.appstate = g_app_state;
@@ -1486,6 +1508,8 @@ class Context {
     return g_app_state.toolstack;
   }
 }
+
+window.Context = Context;
 
 /*
 function Context() {

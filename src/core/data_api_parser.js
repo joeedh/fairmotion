@@ -1,6 +1,8 @@
 "use strict";
 
-function apiparser() {
+import * as PUTL from 'parseutil';
+
+export function apiparser() {
   function tk(name, re, func) {
     return new PUTL.tokdef(name, re, func);
   }

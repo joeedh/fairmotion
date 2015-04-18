@@ -1,5 +1,7 @@
 "use struct";
 
+import {STRUCT} from 'struct';
+
 //this approach serializes into *bigger* data than raw JS,
 //even when the two are compressed
 export class UIInt {

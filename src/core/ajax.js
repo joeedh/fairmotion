@@ -8,6 +8,8 @@
 
 #define profile_end(name) ;
 
+import {urlencode, b64decode, b64encode} from 'strutils';
+
 //#endif
 
 var DEFL_NAMELEN = 64
@@ -91,7 +93,7 @@ function str_to_uint8(String str) : Uint8Array
 var _static_byte = new Uint8Array([0, 0, 0, 0, 0, 0, 0, 0]);
 var _static_view = new DataView(_static_byte.buffer);
 
-function pack_int(Array<byte> data, int i, lendian=false)
+export function pack_int(Array<byte> data, int i, lendian=false)
 {
   profile_start("pack_int");
   
@@ -111,7 +113,7 @@ function pack_int(Array<byte> data, int i, lendian=false)
 }
 
 
-function pack_short(Array<byte> data, short i, lendian=false)
+export function pack_short(Array<byte> data, short i, lendian=false)
 {
   profile_start("pack_short");
   _static_view.setInt16(0, i);
@@ -129,12 +131,12 @@ function pack_short(Array<byte> data, short i, lendian=false)
   profile_end("pack_short");
 }
 
-function pack_byte(Array<byte> data, byte i)
+export function pack_byte(Array<byte> data, byte i)
 {
   data.push(i);
 }
 
-function pack_float(Array<byte> data, float f, Boolean lendian=false)
+export function pack_float(Array<byte> data, float f, Boolean lendian=false)
 {
   profile_start("pack_float");
   _static_view.setFloat32(0, f);
@@ -151,7 +153,7 @@ function pack_float(Array<byte> data, float f, Boolean lendian=false)
   profile_end("pack_float");
 }
 
-function pack_double(Array<byte> data, float f, Boolean lendian)
+export function pack_double(Array<byte> data, float f, Boolean lendian)
 {
   profile_start("pack_double");
   
@@ -170,7 +172,7 @@ function pack_double(Array<byte> data, float f, Boolean lendian)
   profile_end("pack_double");
 }
 
-function pack_vec2(Array<byte> data, Vector2 vec, Boolean lendian=false)
+export function pack_vec2(Array<byte> data, Vector2 vec, Boolean lendian=false)
 {
   profile_start("pack_vec2");
   
@@ -181,7 +183,7 @@ function pack_vec2(Array<byte> data, Vector2 vec, Boolean lendian=false)
   profile_end("pack_vec2");
 }
 
-function pack_vec3(Array<byte> data, Vector3 vec, lendian=false)
+export function pack_vec3(Array<byte> data, Vector3 vec, lendian=false)
 {
   profile_start("pack_vec3");
   
@@ -193,7 +195,7 @@ function pack_vec3(Array<byte> data, Vector3 vec, lendian=false)
   profile_end("pack_vec3");
 }
 
-function pack_vec4(Array<byte> data, Vector4 vec, lendian=false)
+export function pack_vec4(Array<byte> data, Vector4 vec, lendian=false)
 {
   pack_float(data, vec[0], lendian);
   pack_float(data, vec[1], lendian);
@@ -204,7 +206,7 @@ function pack_vec4(Array<byte> data, Vector4 vec, lendian=false)
 }
 
 
-function pack_quat(Array<byte> data, Quat vec, lendian=false)
+export function pack_quat(Array<byte> data, Quat vec, lendian=false)
 {
   pack_float(data, vec[0], lendian);
   pack_float(data, vec[1], lendian);
@@ -214,7 +216,7 @@ function pack_quat(Array<byte> data, Quat vec, lendian=false)
   //discard pack records from composite pack
 }
 
-function pack_mat4(Array<byte> data, Matrix4 mat, lendian=false)
+export function pack_mat4(Array<byte> data, Matrix4 mat, lendian=false)
 {
   profile_start("pack_mat4");
   var m = mat.getAsArray();
@@ -226,7 +228,7 @@ function pack_mat4(Array<byte> data, Matrix4 mat, lendian=false)
   profile_end("pack_mat4");
 }
 
-function pack_dataref(Array<byte> data, DataBlock b, lendian=false)
+export function pack_dataref(Array<byte> data, DataBlock b, lendian=false)
 {
   if (b != undefined) {
     pack_int(data, b.lib_id, lendian);
@@ -243,7 +245,7 @@ function pack_dataref(Array<byte> data, DataBlock b, lendian=false)
   //discard pack records from composite pack
 }
 
-function truncate_utf8(Array<byte>arr, int maxlen)
+export function truncate_utf8(Array<byte>arr, int maxlen)
 {
   var len = Math.min(arr.length, maxlen);
   
@@ -273,7 +275,7 @@ function truncate_utf8(Array<byte>arr, int maxlen)
 }
 
 var _static_sbuf_ss = new Array(32);
-function pack_static_string(Array<byte> data, String str, int length)
+export function pack_static_string(Array<byte> data, String str, int length)
 {
   profile_start("pack_static_string");
   
@@ -298,7 +300,7 @@ function pack_static_string(Array<byte> data, String str, int length)
   profile_end("pack_static_string");
 }
 
-function test_str_packers() {
+export function test_str_packers() {
   function static_string_test() {
     var arr = []
     //pack_string(arr, "yay");
@@ -336,7 +338,7 @@ create_test(test_str_packers);
 
 var _static_sbuf = new Array(32);
 /*strings are packed as 32-bit unicode codepoints*/
-function pack_string(Array<byte> data, String str)
+export function pack_string(Array<byte> data, String str)
 {
   profile_start("pack_string");
   
@@ -353,7 +355,7 @@ function pack_string(Array<byte> data, String str)
   profile_end("pack_string");
 }
 
-function unpack_bytes(DataView data, unpack_ctx uctx, int len)
+export function unpack_bytes(DataView data, unpack_ctx uctx, int len)
 {
   var ret = new DataView(data.buffer.slice(uctx.i, uctx.i+len));
   uctx.i += len;
@@ -361,7 +363,7 @@ function unpack_bytes(DataView data, unpack_ctx uctx, int len)
   return ret;
 }
 
-function unpack_array(DataView data, unpack_ctx uctx, Function unpacker)
+export function unpack_array(DataView data, unpack_ctx uctx, Function unpacker)
 {
   var len = unpack_int(data, uctx);
   var list = new Array(len);
@@ -373,7 +375,7 @@ function unpack_array(DataView data, unpack_ctx uctx, Function unpacker)
   return list;
 }
 
-function unpack_garray(DataView data, unpack_ctx uctx, Function unpacker)
+export function unpack_garray(DataView data, unpack_ctx uctx, Function unpacker)
 {
   var len = unpack_int(data, uctx);
   var list = new GArray();
@@ -385,7 +387,7 @@ function unpack_garray(DataView data, unpack_ctx uctx, Function unpacker)
   return list;
 }
 
-function unpack_dataref(DataView data, unpack_ctx uctx) : int
+export function unpack_dataref(DataView data, unpack_ctx uctx) : int
 {
   var block_id = unpack_int(data, uctx);
   var lib_id = unpack_int(data, uctx);
@@ -393,7 +395,7 @@ function unpack_dataref(DataView data, unpack_ctx uctx) : int
   return new DataRef(block_id, lib_id);
 }
 
-function unpack_byte(DataView data, unpack_ctx uctx) : byte
+export function unpack_byte(DataView data, unpack_ctx uctx) : byte
 {
   var ret = data.getUint8(uctx.i);
   uctx.i += 1;
@@ -401,7 +403,7 @@ function unpack_byte(DataView data, unpack_ctx uctx) : byte
   return ret;  
 }
 
-function unpack_int(DataView data, unpack_ctx uctx) : int
+export function unpack_int(DataView data, unpack_ctx uctx) : int
 {
   var ret = data.getInt32(uctx.i);
 
@@ -409,7 +411,7 @@ function unpack_int(DataView data, unpack_ctx uctx) : int
   return ret;
 }
 
-function unpack_short(DataView data, unpack_ctx uctx) : int
+export function unpack_short(DataView data, unpack_ctx uctx) : int
 {
   var ret = data.getInt16(uctx.i);
 
@@ -417,14 +419,23 @@ function unpack_short(DataView data, unpack_ctx uctx) : int
   return ret;
 }
 
-function unpack_float(DataView data, unpack_ctx uctx) : float
+export function unpack_float(DataView data, unpack_ctx uctx) : float
 {
   var ret = data.getFloat32(uctx.i);
   
   uctx.i += 4;
   return ret;
 }
-function unpack_vec2(Array<byte> data, unpack_ctx uctx)
+
+export function unpack_double(DataView data, unpack_ctx uctx) : float
+{
+  var ret = data.getFloat64(uctx.i);
+  
+  uctx.i += 8;
+  return ret;
+}
+
+export function unpack_vec2(Array<byte> data, unpack_ctx uctx)
 {
   var x = unpack_float(data, uctx);
   var y = unpack_float(data, uctx);
@@ -432,7 +443,7 @@ function unpack_vec2(Array<byte> data, unpack_ctx uctx)
   return new Vector2([x, y]);
 }
 
-function unpack_vec3(DataView data, unpack_ctx uctx) : Vector3
+export function unpack_vec3(DataView data, unpack_ctx uctx) : Vector3
 {
   var vec = new Vector3();
   
@@ -446,7 +457,7 @@ function unpack_vec3(DataView data, unpack_ctx uctx) : Vector3
 }
 
 
-function unpack_vec4(Array<byte> data, unpack_ctx uctx)
+export function unpack_vec4(Array<byte> data, unpack_ctx uctx)
 {
   var x = unpack_float(data, uctx);
   var y = unpack_float(data, uctx);
@@ -457,7 +468,7 @@ function unpack_vec4(Array<byte> data, unpack_ctx uctx)
 }
 
 
-function unpack_quat(Array<byte> data, unpack_ctx uctx)
+export function unpack_quat(Array<byte> data, unpack_ctx uctx)
 {
   var x = unpack_float(data, uctx);
   var y = unpack_float(data, uctx);
@@ -467,7 +478,7 @@ function unpack_quat(Array<byte> data, unpack_ctx uctx)
   return new Quat([x, y, z, w]);
 }
 
-function unpack_mat4(Array<byte> data, unpack_ctx uctx)
+export function unpack_mat4(Array<byte> data, unpack_ctx uctx)
 {
   var m = new Array(16);
   
@@ -478,7 +489,7 @@ function unpack_mat4(Array<byte> data, unpack_ctx uctx)
   return new Matrix4(m);
 }
 
-function encode_utf8(arr, str) {
+export function encode_utf8(arr, str) {
   for (var i=0; i<str.length; i++) {
     var c = str.charCodeAt(i);
     
@@ -494,7 +505,7 @@ function encode_utf8(arr, str) {
   }
 }
 
-function decode_utf8(arr) {
+export function decode_utf8(arr) {
   var str = ""
   var i = 0;
   
@@ -522,7 +533,7 @@ function decode_utf8(arr) {
   return str;
 }
 
-function test_utf8()
+export function test_utf8()
 {
   var s = "a" + String.fromCharCode(8800) + "b";
   var arr = [];
@@ -537,7 +548,7 @@ function test_utf8()
   return true;
 }
 
-function debug_unpack_bytes(DataView data, unpack_ctx uctx, int length) : String
+export function debug_unpack_bytes(DataView data, unpack_ctx uctx, int length) : String
 {
   var s = "";
 
@@ -560,7 +571,7 @@ function debug_unpack_bytes(DataView data, unpack_ctx uctx, int length) : String
 }
 
 var _static_arr_uss = new Array(32);
-function unpack_static_string(DataView data, unpack_ctx uctx, int length) : String
+export function unpack_static_string(DataView data, unpack_ctx uctx, int length) : String
 {
   var str = "";
   
@@ -589,7 +600,7 @@ function unpack_static_string(DataView data, unpack_ctx uctx, int length) : Stri
 }
 
 var _static_arr_us = new Array(32);
-function unpack_string(DataView data, unpack_ctx uctx) : String
+export function unpack_string(DataView data, unpack_ctx uctx) : String
 {
   var str = ""
   
@@ -605,13 +616,13 @@ function unpack_string(DataView data, unpack_ctx uctx) : String
 }
 
 //container to pass an int by reference
-class unpack_ctx {
+export class unpack_ctx {
   constructor() {
     this.i = 0;
   }
 }
 
-function send_mesh(Mesh mesh)
+export function send_mesh(Mesh mesh)
 {
   var buf = new ArrayBuffer(2);
   var uint = new Uint8Array(buf);
@@ -629,14 +640,14 @@ function send_mesh(Mesh mesh)
 //function NetJobError(job, owner, error);
 //function NetJobStatus(job, owner, status) : NetStatus;
 
-function NetStatus() {
+window.NetStatus = function NetStatus() {
   this.progress = 0 : float;
   this.status_msg = "";
   this.cancel = false;
   this._client_control = false; //client api code is controlling this NetStatus, not XMLHttpRequest callbacks
 }
 
-class NetJob {
+export class NetJob {
   constructor(owner, iter, finish, error, status) {
     this.iter = iter;
     this.finish = finish;
@@ -648,6 +659,7 @@ class NetJob {
     this.req = undefined;
   }
 }
+window.NetJob = NetJob;
 
 function parse_headers(headers) {
   var ret = {};
@@ -692,7 +704,7 @@ function parse_headers(headers) {
   return ret;
 }
 
-function create_folder(job, args) {
+window.create_folder = function create_folder(job, args) {
   var token = g_app_state.session.tokens.access;
   var url = "/api/files/dir/new?accessToken="+token+"&id="+args.folderid;
   url += "&name=" + urlencode(args.name);
@@ -702,7 +714,7 @@ function create_folder(job, args) {
   yield;
 }
 
-function api_exec(path, netjob, mode, 
+window.api_exec = function api_exec(path, netjob, mode, 
     data, mime, extra_headers, 
     responseType) //mode, data are optional
 {
@@ -812,7 +824,7 @@ function api_exec(path, netjob, mode,
   var ret = req.send(data);
 }
 
-function AuthSessionGen(job, user, password, refresh_token) {
+window.AuthSessionGen = function AuthSessionGen(job, user, password, refresh_token) {
   if (refresh_token == undefined) {
     var sha1pwd = "{SHA}" + CryptoJS.enc.Base64.stringify(CryptoJS.SHA1(password))
     api_exec("/api/auth?user="+user+"&password="+sha1pwd, job);
@@ -833,7 +845,7 @@ function AuthSessionGen(job, user, password, refresh_token) {
     job.finish(job, job.owner);
 }
 
-function auth_session(user, password, finish, error, status) {
+window.auth_session = function auth_session(user, password, finish, error, status) {
   var obj = {};
   
   obj.job = new NetJob(obj, undefined, finish, error, status);
@@ -846,7 +858,7 @@ function auth_session(user, password, finish, error, status) {
   return obj;
 }
 
-function call_api(iternew, args, finish, error, status) {
+window.call_api = function call_api(iternew, args, finish, error, status) {
   var obj = {};
   
   obj.job = new NetJob(obj, undefined, finish, error, status);
@@ -861,7 +873,7 @@ function call_api(iternew, args, finish, error, status) {
   return obj;
 }
 
-function get_user_info(job, args) {
+window.get_user_info = function get_user_info(job, args) {
   if (g_app_state.session.tokens == undefined) {
     job.finish = undefined;
     job.error(job, job.owner);
@@ -873,7 +885,7 @@ function get_user_info(job, args) {
   yield;
 }
 
-function get_dir_files(job, args) {
+window.get_dir_files = function get_dir_files(job, args) {
   var token = g_app_state.session.tokens.access;
   var path = args.path;
   
@@ -886,7 +898,7 @@ function get_dir_files(job, args) {
   yield;
 }
 
-function upload_file(job, args) {
+window.upload_file = function upload_file(job, args) {
   var suffix;
   
   job.status_data._client_control = true;
@@ -952,7 +964,7 @@ function upload_file(job, args) {
   }
 }
 
-function get_file_data(job, args) {
+window.get_file_data = function get_file_data(job, args) {
   var token = g_app_state.session.tokens.access;
   var path = args.path;
   
@@ -966,182 +978,3 @@ function get_file_data(job, args) {
   api_exec(url, job, undefined, undefined, undefined, undefined, "arraybuffer");
   yield;
 }
-
-function BJSON() {
-}
-
-BJSON.UNDEFINED = 0
-BJSON.NULL = 1
-BJSON.STRING = 2
-BJSON.INT32 = 3
-BJSON.FLOAT32 = 4
-BJSON.BOOLEAN = 5
-BJSON.OBJECT = 6
-BJSON.ARRAY = 7
-
-BJSON.stringify = function(obj) {
-  function clean(ob) {
-    if (ob == undefined)
-      return undefined;
-    
-    if (ob.hasOwnProperty("toJSON")) {// || (ob.prototype != undefined && ob.prototype.hasOwnProperty("toJSON"))) {
-      return clean(ob.toJSON());
-    }
-    
-    if (ob instanceof String || typeof ob == "string") {
-      return new String(ob);
-    } else if (ob instanceof Array) {
-      var a2 = [];
-      for (var i=0; i<ob.length; i++) {
-        a2.push(clean(ob[i]));
-      }
-      
-      return a2;
-    } else if (ob == undefined) {
-      return undefined;
-    } else if (ob == null) {
-      return null
-    } else if (ob instanceof Number 
-            || ob instanceof Boolean
-            || typeof ob == "number" 
-            || typeof ob == "boolean") 
-    {
-      if (ob instanceof Boolean || typeof(ob) == "boolean")
-        return new Boolean(ob);
-      else
-        return new Number(ob);    
-    } else {
-      var keys = obj_get_keys(ob);
-      var ob2 = {};
-      
-      for (var i=0; i<keys.length; i++) {
-        var k = keys[i];
-        var val = clean(ob[k]);
-        
-        if (val != undefined || ob[k] == undefined) {
-          ob2[k] = val;
-        }
-      }
-      
-      return ob2;
-    }
-  }
-  
-  function serialize(data, ob) {
-    if (ob == undefined) {
-      pack_byte(data, BJSON.UNDEFINED);
-    } else if (ob instanceof String || typeof ob == "string") 
-    {
-      pack_byte(data, BJSON.STRING);
-      pack_string(data, ob);      
-    } else if (ob instanceof Array) {
-      pack_byte(data, BJSON.ARRAY);
-      pack_int(data, ob.length);
-      
-      for (var i=0; i<ob.length; i++) {
-        serialize(data, ob[i]);
-      }
-    } else if (ob == null) {
-      pack_byte(data, BJSON.NULL);
-    } else if (ob instanceof Number 
-            || ob instanceof Boolean
-            || typeof ob == "number" 
-            || typeof ob == "boolean") 
-    {
-      if (ob instanceof Boolean || typeof ob == "boolean") {
-        pack_byte(data, BJSON.BOOLEAN);
-        pack_byte(data, !!ob);
-      } else if (Math.floor(ob) == ob) {
-        pack_byte(data, BJSON.INT32);
-        pack_int(data, ob);
-      } else {
-        pack_byte(data, BJSON.FLOAT32);
-        pack_float(data, ob);
-      }
-    } else {
-      var keys = obj_get_keys(ob);
-         
-      pack_byte(data, BJSON.OBJECT);
-      pack_int(data, keys.length);
-      
-      for (var i=0; i<keys.length; i++) {
-        var k = keys[i];
-        var val = ob[k];
-        
-        pack_string(data, k);
-        serialize(data, val);
-      }
-    }
-  }
-  
-  var obj = clean(obj);
-  
-  var data = []
-  serialize(data, obj);
-  
-  data = new DataView(new Uint8Array(data).buffer);
-  
-  return data;
-}
-
-BJSON.parse = function(data, uc) {//uc is private
-  if (!(data instanceof DataView)) {
-    if (data instanceof ArrayView)
-      data = DataView(data.buffer);
-    else if (data instanceof ArrayBuffer) {
-      data = DataView(data);
-    } else {
-      throw new Error("Binary JSON parse error");
-    }
-  }
-  
-  if (uc == undefined)
-    uc = new unpack_ctx();
-  
-  var type = unpack_byte(data, uc);
-  switch (type) {
-    case BJSON.UNDEFINED:
-       return undefined;
-    case BJSON.NULL:
-      return null;
-    case BJSON.STRING:
-      return unpack_string(data, uc);
-    case BJSON.INT32:
-      return unpack_int(data, uc);
-    case BJSON.FLOAT32:
-      return unpack_float(data, uc);
-    case BJSON.BOOLEAN:
-      return Boolean(unpack_byte(data, uc));
-    case BJSON.OBJECT:
-      var obj = {};
-      var totkeys = unpack_int(data, uc);
-      for (var i=0; i<totkeys; i++) {
-        var k = unpack_string(data, uc);
-        var v = BJSON.parse(data, uc)
-        obj[k] = v;
-      }
-      
-      return obj;
-    case BJSON.ARRAY:
-      var arr = [];
-      var len = unpack_int(data, uc);
-      for (var i=0; i<len; i++) {
-        arr.push(BJSON.parse(data, uc));
-      }
-      
-      return arr;
-    default:
-      throw new Error("corrupted binary JSON data");
-  }
-}
-
-
-BJSON.UNDEFINED = 0;
-BJSON.NULL = 1;
-BJSON.STRING = 2;
-BJSON.INT32 = 3;
-BJSON.FLOAT32 = 4;
-BJSON.BOOLEAN = 5;
-BJSON.OBJECT = 6;
-BJSON.ARRAY = 7;
-

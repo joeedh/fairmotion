@@ -1,5 +1,9 @@
 "use strict";
 
+import {
+  MinMax
+} from 'mathlib';
+
 import {TransDataItem, TransDataType} from 'transdata';
 import {get_vtime, set_vtime} from 'animdata';
 //import {ScreenArea, Area} from 'FrameManager';

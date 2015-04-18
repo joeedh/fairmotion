@@ -1,11 +1,25 @@
 "use strict";
 
+import {ExtrudeVertOp} from 'spline_createops';
+import {toolop_menu} from 'UIMenu';
+import {DeleteVertOp, DeleteSegmentOp} from 'spline_editops';
+
 var ScreenArea, Area;
 
+import {get_2d_canvas, get_2d_canvas_2} from 'UICanvas2D';
+import {gen_editor_switcher} from 'UIWidgets_special';
+
+import {gen_editor_switcher} from 'UIWidgets_special';
 import {DataTypes} from 'lib_api';
+import {STRUCT} from 'struct';
+import {EditModes} from 'view2d_editor';
+
+import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
+        charmap, TouchEventManager, EventHandler} from 'events';
 
 import {SelectLinkedOp, SelectOneOp} from 'spline_selectops';
 import {TranslateOp} from 'transform';
+
 import {SelMask} from 'selectmode';
 import {SplineTypes, SplineFlags, SplineVertex, 
         SplineSegment, SplineFace} from 'spline_types';
@@ -18,6 +32,7 @@ import {View2DEditor, SessionFlags} from 'view2d_editor';
 import {DataBlock, DataTypes} from 'lib_api';
 import {redraw_element} from 'spline_draw';
 import {UndoFlags, ToolFlags, ModalStates, ToolOp} from 'toolops_api';
+import {PackFlags, UIFlags} from 'UIElement';
 
 import {get_vtime} from 'animdata';
 

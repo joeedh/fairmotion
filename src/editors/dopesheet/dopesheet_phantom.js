@@ -167,6 +167,18 @@ export function delete_key(ctx, id) {
     
     var pathspline = ctx.frameset.pathspline;
     var v = pathspline.eidmap[id];
+    var time = get_vtime(v);
+    var kcache = ctx.frameset.kcache;
+    
+    for (var i=0; i<v.segments.length; i++) {
+      var s = v.segments[i], v2 = s.other_vert(v),
+              time2 = get_vtime(v2);
+      var ts = Math.min(time, time2), te = Math.max(time, time2);
+      
+      for (var j=ts; j<=te; j++) {
+        kcache.invalidate(v2.eid, j);
+      }
+    }
     
     v.dag_update("depend");
     pathspline.dissolve_vertex(v);

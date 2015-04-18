@@ -1,6 +1,13 @@
 "use strict";
 
+import {inrect_2d} from 'mathlib';
+import {UICanvas} from 'UICanvas2D';
+
+//NOTE: I've not tested this code for a very long time
+
 var ScreenArea, Area;
+import {EventHandler} from 'events';
+import {charmap} from 'events';
 
 /*
 okay.  tutorial mode is based off of simple scripts:

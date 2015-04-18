@@ -1,11 +1,17 @@
-var DataPathTypes = {PROP: 0, STRUCT: 1, STRUCT_ARRAY : 2};
-var DataFlags = {NO_CACHE : 1, RECALC_CACHE : 2};
+import {UIFrame} from 'UIFrame';
+import {UIElement, PackFlags, UIFlags, CanvasFlags}
+       from 'UIElement';
+       
+export var DataPathTypes = {PROP: 0, STRUCT: 1, STRUCT_ARRAY : 2};
+export var DataFlags = {NO_CACHE : 1, RECALC_CACHE : 2};
 
-var TinyParserError = {"TinyParserError":0};
+export var TinyParserError = {"TinyParserError":0};
 
-import {ToolProperty, IntProperty, FloatProperty, Vec3Property, StringProperty} from 'toolprops';
+import {PropTypes, TPropFlags, ToolProperty, IntProperty, FloatProperty, 
+        Vec3Property, StringProperty} from 'toolprops';
 import {ToolFlags, UndoFlags} from 'toolops_api';
 import {DataBlock} from 'lib_api';
+import {apiparser} from 'data_api_parser';
 
 export class DataPath {
   constructor(prop, name, path, dest_is_prop=false, use_path=true, flag=0) { 
@@ -60,7 +66,7 @@ export class DataPath {
   }
 }
 
-class DataStructIter {
+export class DataStructIter {
   constructor(s) {
     this.ret = {done : false, value : undefined}; //cached_iret();
     this.cur = 0;
@@ -361,7 +367,7 @@ TinyParser.ctemplates = {
 TinyParser.split_chars = new set([",", "=", "(", ")", ".", "$", "[", "]"]);
 TinyParser.ws = new set([" ", "\n", "\t", "\r"]);
 
-class DataAPI { 
+export class DataAPI { 
   constructor(appstate) {
     this.appstate = appstate;
     

@@ -1,5 +1,9 @@
 "use strict";
 
+import {
+  MinMax
+} from 'mathlib';
+
 export class TransDataItem {
   constructor(Object data, TransDataType type, Object start_data) {
     this.data = data;

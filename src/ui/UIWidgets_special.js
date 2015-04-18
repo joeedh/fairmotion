@@ -1,10 +1,17 @@
-import {UIElement, UIFlags, CanvasFlags} from 'UIElement';
+import {inrect_2d} from 'mathlib';
+import {UIElement, UIFlags, CanvasFlags, PackFlags} from 'UIElement';
 import {UIFrame} from 'UIFrame';
+import {rgba_to_hsva, hsva_to_rgba} from 'colorutils';
+
+import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
+        charmap, TouchEventManager, EventHandler} from 'events';
+
 import {
   UIButtonAbstract, UIButton, UIButtonIcon,
   UIMenuButton, UICheckBox, UINumBox, UILabel,
   UIMenuLabel, ScrollButton, UIVScroll, UIIconCheck
 } from 'UIWidgets';
+
 import {RowFrame, ColumnFrame, UIPackFrame} from 'UIPack';
 import {UITextBox} from 'UITextBox';
 import {UIMenu} from 'UIMenu';
@@ -223,7 +230,7 @@ function get_editor_list() : GArray<Function> {
   return ret;
 }
 
-function gen_editor_switcher(Context ctx, Area parent) {
+export function gen_editor_switcher(Context ctx, Area parent) {
   var editors = get_editor_list();
   
   var menu = new UIMenu("", undefined);

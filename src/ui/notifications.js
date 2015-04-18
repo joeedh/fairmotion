@@ -1,4 +1,4 @@
-import {UIElement, UIFlags, CanvasFlags} from 'UIElement';
+import {UIElement, UIFlags, PackFlags, CanvasFlags} from 'UIElement';
 import {UIFrame} from 'UIFrame';
 import {
   UIButtonAbstract, UIButton, UIButtonIcon,
@@ -17,7 +17,7 @@ import {UICollapseIcon, UIPanel, UIColorField, UIColorBox,
 var ScreenArea, Area;
 
 var _id_note_gen = 1;
-class Notification {
+export class Notification {
   constructor(String apiname, String uiname, 
               String description) 
   {
@@ -39,7 +39,7 @@ class Notification {
   }
 }
 
-class LabelNote extends Notification {
+export class LabelNote extends Notification {
   constructor(String label, String description="", float life_ms=3000) {
     Notification.call(this, "label", "Label", description);
     
@@ -57,7 +57,7 @@ class LabelNote extends Notification {
   }
 }
 
-class ProgressNote extends Notification {
+export class ProgressNote extends Notification {
   constructor(String label, String id, String description="", Function callback=undefined, float progress=0.0) {
     Notification.call(this, "progress", "Progress Bar", description);
     
@@ -118,7 +118,7 @@ class ProgressNote extends Notification {
   }
 }
 
-class NotificationManager {
+export class NotificationManager {
   constructor() {
     this.notes = new GArray();
     this.progbars = {};
@@ -225,7 +225,7 @@ class NotificationManager {
   }
 }
 
-class NoteContainer extends UIFrame {
+export class NoteContainer extends UIFrame {
   constructor(Context ctx, UIElement child, Notification note) {
     UIFrame.call(this, ctx);
     
@@ -281,7 +281,7 @@ class NoteContainer extends UIFrame {
   }
 }
 
-class NoteFrame extends ColumnFrame {
+export class NoteFrame extends ColumnFrame {
   constructor(Context ctx, NotificationManager notes) {
     ColumnFrame.call(this, ctx);
     this.notes = notes; //note manager

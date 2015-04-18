@@ -1,5 +1,19 @@
-import {UIElement, UIFlags, CanvasFlags} from 'UIElement';
+"use strict";
+
+import {gen_editor_switcher} from 'UIWidgets_special';
+
+import {
+  MinMax
+} from 'mathlib';
+
+import {UICanvas} from 'UICanvas2D';
+import {STRUCT} from 'struct';
+import {PackFlags, UIElement, UIFlags, CanvasFlags} from 'UIElement';
 import {UIFrame} from 'UIFrame';
+
+import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
+        charmap, TouchEventManager, EventHandler} from 'events';
+
 import {
   UIButtonAbstract, UIButton, UIButtonIcon,
   UIMenuButton, UICheckBox, UINumBox, UILabel,

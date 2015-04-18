@@ -1,5 +1,10 @@
 "use strict";
 
+var PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,
+    ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos,
+    asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
+
+import {STRUCT} from 'struct';
 import {DataBlock, DataTypes} from 'lib_api';
 import {SessionFlags} from 'view2d_editor';
 import {SelMask} from 'selectmode';
@@ -974,6 +979,14 @@ export class Spline extends DataBlock {
     seg.v1.segments.push(seg);
     seg.v2.segments.push(seg);
     
+    seg.v1.flag |= SplineFlags.UPDATE;
+    seg.v2.flag |= SplineFlags.UPDATE;
+    
+    seg.h1.flag |= SplineFlags.UPDATE;
+    seg.h2.flag |= SplineFlags.UPDATE;
+    
+    seg.flag |= SplineFlags.UPDATE;
+    
     this.segments.push(seg, eid);
     return seg;
   }
@@ -1294,8 +1307,9 @@ export class Spline extends DataBlock {
       }
       
       
-      if (!has_tan)
+      if (!has_tan) {
         continue;
+      }
       
       //don't propegate as far after tangent breaks
       if (v2.flag & SplineFlags.BREAK_TANGENTS) {
@@ -1305,6 +1319,13 @@ export class Spline extends DataBlock {
       if (!(v2.flag & SplineFlags.TEMP_TAG)) {
         this._vert_flag_update(v2, depth+1, limit);
       }
+    }
+    
+    for (var j=0; j<v.segments.length; j++) {
+      var s = v.segments[j], v2 = s.other_vert(v);
+      
+      if (v2.segments.length > 2 || (v2.flag & SplineFlags.BREAK_TANGENTS))
+        v2.flag |= SplineFlags.TEMP_TAG;
     }
   }
   

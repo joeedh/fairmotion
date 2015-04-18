@@ -1,3 +1,4 @@
+import {STRUCT} from 'struct';
 import {SplineFlags, SplineTypes, CustomDataLayer,
         CustomData, CustomDataSet} from 'spline_types';
 

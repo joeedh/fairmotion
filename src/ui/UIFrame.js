@@ -1,6 +1,11 @@
-//import * as UIFileData from 'UIFileData';
-import {UIElement, UIFlags, CanvasFlags} from 'UIElement';
+import {aabb_isect_2d, inrect_2d} from 'mathlib';
 
+//import * as UIFileData from 'UIFileData';
+import {PackFlags, UIElement, UIFlags, CanvasFlags} from 'UIElement';
+import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
+        charmap, TouchEventManager, VelocityPan, 
+        EventHandler} from 'events';
+        
 /************** ui frame **************/
 var _static_mat = new Matrix4();
 var _ufbd_v1 = new Vector3();

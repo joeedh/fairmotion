@@ -1,3 +1,8 @@
+import {PackFlags} from 'UIElement';
+
+import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
+        charmap, TouchEventManager, EventHandler} from 'events';
+
 eval(es6_import_all(_es6_module, 'UIElement'));
 eval(es6_import_all(_es6_module, 'UIFrame'));
 eval(es6_import_all(_es6_module, 'UIPack'));

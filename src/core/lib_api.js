@@ -1,5 +1,7 @@
 "use strict";
 
+import {STRUCT} from 'struct';
+
 /* 
   NOTE: be careful when you assume a given datablock reference is not undefined.
 */
@@ -50,13 +52,13 @@ for (var k in DataTypes) {
 //other than SELECT, the first two bytes
 //of block.flag are reserved for exclusive
 //use by subclasses.  
-var BlockFlags = {
+export var BlockFlags = {
   SELECT : 1,
   FAKE_USER : (1<<16),
   DELETED : (1<<17)
 };
 
-class DataRef extends Array {
+export class DataRef extends Array {
   constructor(block_or_id, lib=undefined) {
     Array.call(this, 2);
     this.length = 2;
@@ -119,6 +121,8 @@ class DataRef extends Array {
     return ret;
   }
 }
+
+window.DataRef = DataRef;
 
 //sometimes we need to serialize DataRef
 //structures themselves, as opposed to auto-generating
@@ -358,7 +362,7 @@ export class DataLib {
   }
 }
 
-class UserRef {
+export class UserRef {
   String user, srcname;
   Function rem_func;
   
@@ -525,7 +529,7 @@ DataBlock.STRUCT = """
 
 import {ToolIter} from 'toolprops_iter';
 
-class DataRefListIter<T> extends ToolIter {
+export class DataRefListIter<T> extends ToolIter {
   Array lst;
   
   DataLib datalib;

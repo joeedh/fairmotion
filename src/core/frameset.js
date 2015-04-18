@@ -1,5 +1,6 @@
 "use strict";
 
+import {STRUCT} from 'struct';
 import {DataBlock, DataTypes} from 'lib_api';
 import {Spline, RestrictFlags} from 'spline';
 import {CustomDataLayer, SplineTypes, SplineFlags, SplineSegment} from 'spline_types';
@@ -723,13 +724,73 @@ class AllSplineIter {
   }
 }
 
+class EidTimePair {
+  constructor(eid, time) {
+    this.eid = eid;
+    this.time = time;
+  }
+  
+  load(eid, time) {
+    this.eid = eid;
+    this.time = time;
+  }
+  
+  static fromSTRUCT(reader) {
+    var ret = new EidTimePair();
+    reader(ret);
+    return ret;
+  }
+  
+  __hash__() {
+    return ""+this.eid+"_"+this.time;
+  }
+}
+
+EidTimePair.STRUCT = """
+  EidTimePair {
+    eid  : int;
+    time : int;
+  }
+""";
+
+function combine_eid_time(eid, time) {
+  return new EidTimePair(eid, time);
+}
+
+var split_eid_time_rets = new cachering(function() {
+  return [0, 0];
+}, 64);
+
+function split_eid_time(t) {
+  var ret = split_eid_time_rets.next();
+  
+  ret[0] = t.eid;
+  ret[1] = t.time;
+  
+  return ret;
+}
+
 export class SplineKCache {
   constructor() {
     this.cache = {};
+    this.invalid_eids = new set();
   }
   
   set(frame, spline) {
+    for (var eid in spline.eidmap) {
+      this.revalidate(eid, frame);
+    }
+    
     this.cache[frame] = spline.export_ks();
+  }
+  
+  invalidate(eid, time) {
+    this.invalid_eids.add(combine_eid_time(eid, time));
+  }
+  
+  revalidate(eid, time) {
+    var t = combine_eid_time(time);
+    this.invalid_eids.remove(t);
   }
   
   load(frame, spline) {
@@ -739,6 +800,21 @@ export class SplineKCache {
     }
     
     spline.import_ks(this.cache[frame]);
+    
+    for (var eid in spline.eidmap) {
+      var t = combine_eid_time(eid, frame);
+      
+      //console.log(this.invalid_eids.has(t));
+      
+      if (!this.invalid_eids.has(t))
+        continue;
+      
+      this.invalid_eids.remove(t);
+      var e = spline.eidmap[eid];
+      
+      e.flag |= SplineFlags.UPDATE;
+      spline.resolve = 1;
+    }
   }
   
   _as_array() {
@@ -767,6 +843,17 @@ export class SplineKCache {
     reader(ret);
     var cache = {};
     
+    var inv = new set();
+
+    if (ret.invalid_eids != undefined && 
+       ret.invalid_eids instanceof Array)
+    {
+      for (var i=0; i<ret.invalid_eids.length; i++) {
+        inv.add(ret.invalid_eids[i]);
+      }
+    }
+    
+    ret.invalid_eids = inv;
     for (var i=0; i<ret.cache.length; i++) {
       cache[ret.times[i]] = new Uint8Array(ret.cache[i]);
     }
@@ -781,6 +868,7 @@ SplineKCache.STRUCT = """
   SplineKCache {
     cache : array(array(byte))  | obj._as_array();
     times : array(array(float)) | obj._get_times();
+    invalid_eids : iter(EidTimePair);
   }
 """;
 
@@ -1252,13 +1340,12 @@ export class SplineFrameSet extends DataBlock {
     var spline = f.spline; //.copy();
     
     if (!window.inFromStruct && _update_animation) { //time != f.time) {
-      //spline = spline.copy();
       var set_update = true;
       
       if (time in this.kcache.cache) {
         console.log("found cached k data!");
         
-        spline.import_ks(this.kcache.cache[time]);
+        this.kcache.load(time, spline);
         set_update = false;
       }
       

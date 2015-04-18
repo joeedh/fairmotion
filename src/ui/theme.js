@@ -1,6 +1,8 @@
 "use strict";
 
-function darken(c, m) {
+import {STRUCT} from 'struct';
+
+export function darken(c, m) {
   for (var i=0; i<3; i++) {
     c[i] *= m;
   }
@@ -8,7 +10,7 @@ function darken(c, m) {
   return c;
 }
 
-class BoxColor {
+export class BoxColor {
   constructor() {
     this.colors = undefined; //[clr1, clr2, clr3, clr4, can be a getter
   }
@@ -22,7 +24,7 @@ BoxColor.STRUCT = """
   }
 """
 
-class BoxColor4 extends BoxColor {
+export class BoxColor4 extends BoxColor {
   constructor(Array<Array<float>> colors) {
     var clrs = this.colors = [[], [], [], []];
     
@@ -49,7 +51,7 @@ BoxColor4.STRUCT = """
 
 //box colors are colors applied to boxes, i.e. four colors
 //weighted box color
-class BoxWColor extends BoxColor {
+export class BoxWColor extends BoxColor {
   constructor(Array<float> color, Array<float> weights) {
     if (color == undefined || weights == undefined)
       return;
@@ -89,14 +91,14 @@ BoxWColor.STRUCT = """
   }
 """;
 
-class ThemePair {
+export class ThemePair {
   constructor(String key, GArray value) {
     this.key = key;
     this.val = value;
   }
 }
 
-class ColorTheme {
+export class ColorTheme {
   constructor(defobj) {
     this.colors = new hashtable();
     this.boxcolors = new hashtable();
@@ -221,12 +223,12 @@ ColorTheme.STRUCT = """
   }
 """
 
-var menu_text_size = IsMobile ? 14 : 10;
-var default_ui_font_size = 16;
-var ui_hover_time = 800;
+window.menu_text_size = IsMobile ? 14 : 10;
+window.default_ui_font_size = 16;
+window.ui_hover_time = 800;
 //var view2d_bg = [0.6, 0.6, 0.9, 1.0];
 
-var View2DTheme = new ColorTheme({
+export var View2DTheme = new ColorTheme({
   Background   : [1, 1, 1, 1],
   ActiveObject : [0.8, 0.6, 0.3, 1.0],
   "Selection"    : [0.699999988079071,0.4000000059604645,0.10000000149011612,1],
@@ -237,12 +239,12 @@ var View2DTheme = new ColorTheme({
   "AxisZ" : [0.0, 0.0, 0.9, 1.0]
 });
 
-function ui_weight_clr(clr, weights) {
+export function ui_weight_clr(clr, weights) {
   return new BoxWColor(clr, weights);
 }
 
 var lighten = darken
-var UITheme = new ColorTheme({
+window.UITheme = new ColorTheme({
   "Box"       : ui_weight_clr([1.0, 0.765, 0.6, 0.9], [0.85, 0.9, 1.0, 1.0]),
   "HoverHint" : ui_weight_clr([0.85, 0.85, 0.85, 0.9], [0.9, 0.9, 1.0, 1.0]),
   "ErrorBox"  : ui_weight_clr([1.0, 0.3, 0.2, 0.9], [0.7, 0.8, 1.05, 1.05]),
@@ -303,10 +305,10 @@ var UITheme = new ColorTheme({
 });
 
 //globals
-global uicolors = {};
-global colors3d = {};
+window.uicolors = {};
+window.colors3d = {};
 
-class Theme {
+export class Theme {
   constructor(ui, view2d) {
     this.ui = ui;
     this.view2d = view2d;
@@ -351,7 +353,7 @@ Theme.STRUCT = """
 
 //globals
 global g_theme;
-function init_theme() {
-  g_theme = new Theme(UITheme, View2DTheme);
-  g_theme.gen_globals();
+window.init_theme = function() {
+  window.g_theme = new Theme(window.UITheme, View2DTheme);
+  window.g_theme.gen_globals();
 }

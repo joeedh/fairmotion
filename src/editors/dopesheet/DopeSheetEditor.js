@@ -1,10 +1,17 @@
 "use strict";
 
+import {aabb_isect_2d} from 'mathlib';
+import {gen_editor_switcher} from 'UIWidgets_special';
+
+import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
+        charmap, TouchEventManager, EventHandler} from 'events';
+
+import {STRUCT} from 'struct';
 import {phantom, KeyTypes, FilterModes,
         get_select, get_time, set_select, set_time
        } from 'dopesheet_phantom';
   
-import {UIElement, UIFlags, CanvasFlags} from 'UIElement';
+import {PackFlags, UIElement, UIFlags, CanvasFlags} from 'UIElement';
 import {UIFrame} from 'UIFrame';
 import {
   UIButtonAbstract, UIButton, UIButtonIcon,
@@ -155,7 +162,7 @@ export class TreeItem extends RowFrame {
   }
   
   set_collapsed(state) {
-    console.log("set collapsed", state);
+    //console.log("set collapsed", state);
     
     this.collapsed = state;
     

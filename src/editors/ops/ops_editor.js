@@ -1,4 +1,8 @@
-eval(es6_import_all(_es6_module, 'UIPack'));
+import {gen_editor_switcher} from 'UIWidgets_special';
+
+import {UICanvas} from 'UICanvas2D';
+import {STRUCT} from 'struct';
+import {RowFrame, ColumnFrame} from 'UIPack';
 
 class OpStackFrame extends RowFrame {
   constructor(Context ctx, Array<float> size) {

@@ -1,3 +1,7 @@
+import {
+  MinMax, aabb_isect_2d, inrect_2d
+} from 'mathlib';
+
 import {UIElement, UIFlags, CanvasFlags} from 'UIElement';
 import {UIFrame} from 'UIFrame';
 import {
@@ -9,6 +13,11 @@ import {
 import {RowFrame, ColumnFrame, UIPackFrame} from 'UIPack';
 import {UITextBox} from 'UITextBox';
 import {ToolOp, UndoFlags, ToolFlags} from 'toolops_api';
+
+import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
+        charmap, TouchEventManager, EventHandler} from 'events';
+
+import {PackFlags} from 'UIElement';
 
 class UIRadialMenuEntry extends UIElement {
   constructor(label, hotkey, pos, size) {

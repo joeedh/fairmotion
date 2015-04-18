@@ -1,6 +1,6 @@
 "use strict";
 
-class IconManager {
+export class IconManager {
   constructor(WebGLRenderingContext gl, String sheet_path, 
               Array<float> imgsize, Array<float> iconsize) 
   {

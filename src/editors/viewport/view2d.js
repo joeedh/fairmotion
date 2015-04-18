@@ -1,13 +1,26 @@
 "use strict";
 
+import {toolop_menu} from 'UIMenu';
+
+var PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,
+    ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos,
+    asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
+
+import {get_2d_canvas, get_2d_canvas_2} from 'UICanvas2D';
+import {NoteFrame} from 'notifications';
+import {STRUCT} from 'struct';
 import {Area} from 'FrameManager';
 import {SelMask} from 'selectmode';
 import {UIRadialMenu} from 'RadialMenu';
 import * as video from 'video';
 
-//bitmask
-//VERT/EDGE/FACE is compatible with MeshTypes, thus why we skip 4
-var EditModes = {VERT : 1, EDGE : 2, FACE : 8, OBJECT : 16, GEOMETRY : 1|2|8};
+import {PackFlags, UIFlags} from 'UIElement';
+
+import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
+        charmap, TouchEventManager, EventHandler} from 'events';
+
+import * as view2d_editor from 'view2d_editor';
+export var EditModes = view2d_editor.EditModes;
 
 var ibuf_idgen = new EIDGen();
 ibuf_idgen.gen_id();

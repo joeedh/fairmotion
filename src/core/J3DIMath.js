@@ -1,5 +1,9 @@
 "use strict";
 
+var PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,
+    ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos,
+    asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
+    
 /*
  * Copyright (C) 2009 Apple Inc. All Rights Reserved.
  *
@@ -2282,3 +2286,9 @@ class Quat extends Vector4 {
     this[3] = sc1 * quat[3] + sc2 * quat2[3];
   }
 }
+
+window.Vector2 = Vector2;
+window.Vector3 = Vector3;
+window.Vector4 = Vector4;
+window.Quat = Quat;
+window.Matrix4 = Matrix4;

@@ -1,3 +1,7 @@
+import {
+  MinMax, inrect_2d
+} from 'mathlib';
+
 import {UIElement, UIFlags, CanvasFlags} from 'UIElement';
 import {UIFrame} from 'UIFrame';
 import {
@@ -6,6 +10,7 @@ import {
   UIMenuLabel, ScrollButton, UIVScroll, UIIconCheck
 } from 'UIWidgets';
 import {RowFrame, ColumnFrame, UIPackFrame} from 'UIPack';
+import {PackFlags} from 'UIElement';
 
 export class _UITab {
   constructor(text, description, id, tbound) {

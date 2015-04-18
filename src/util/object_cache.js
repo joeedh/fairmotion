@@ -228,7 +228,7 @@ class ObjectCache {
   }
 }
 
-var objcache = new ObjectCache()
+var objcache = window.objcache = new ObjectCache();
 
 var _itempl = {done : false, value : undefined};
 function cached_iret() {

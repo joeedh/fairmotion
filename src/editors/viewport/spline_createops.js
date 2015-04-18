@@ -10,7 +10,7 @@ export var ExtrudeModes = {
   BROKEN      : 2
 };
 
-class ExtrudeVertOp extends SplineLocalToolOp {
+export class ExtrudeVertOp extends SplineLocalToolOp {
   constructor(co, ExtrudeModes mode) {
     SplineLocalToolOp.call(this, false);
     
@@ -161,7 +161,7 @@ ExtrudeVertOp.outputs = {
 };
 
 
-class CreateEdgeOp extends ToolOp {
+export class CreateEdgeOp extends ToolOp {
   constructor(linewidth) {
     ToolOp.call(this, false);
     
@@ -215,7 +215,7 @@ CreateEdgeOp.inputs = {
   linewidth : new FloatProperty(2.0, "line width", "line width")
 };
 
-class CreateEdgeFaceOp extends SplineLocalToolOp {
+export class CreateEdgeFaceOp extends SplineLocalToolOp {
   constructor(linewidth) {
     SplineLocalToolOp.call(this, false);
     

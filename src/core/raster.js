@@ -1,5 +1,7 @@
 "use strict";
 
+import {IconManager} from 'icon';
+
 class CacheStack extends Array {
   constructor(itemlen) {
     Array.call(this);
@@ -38,7 +40,7 @@ class CacheStack extends Array {
 /*this function stores 2d render state *only*.  
   3d transformation stacks and the like should
   be handled where they are needed.*/
-class RasterState {
+export class RasterState {
   constructor(gl, size) {
     this.size = size;
     

@@ -1,3 +1,5 @@
+"not_a_module";
+
 /**
 $Id: Iuppiter.js 3026 2010-06-23 10:03:13Z Bear $
 

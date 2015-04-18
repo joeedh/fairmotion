@@ -38,7 +38,8 @@ class GArray extends Array {
   }
   
   pack(Array<byte> data) {
-    pack_int(data, this.length);
+    _ajax.pack_int(data, this.length);
+    
     for (var i=0; i<this.length; i++) {
       this[i].pack(data);
     }
@@ -386,7 +387,7 @@ class set {
   }
 
   pack(Array<byte> data) {
-    pack_int(data, this.length);
+    _ajax.pack_int(data, this.length);
     
     for (var item in this) {
       item.pack(data);

@@ -128,11 +128,37 @@ export class ShiftTimeOp2 extends ToolOp {
       starts[v.eid] = get_vtime(v);
     }
     
+    var frameset = ctx.frameset;
+    var vdmap = {};
+    
+    for (var k in frameset.vertex_animdata) {
+      var vd = frameset.vertex_animdata[k];
+      
+      for (var v in vd.verts) {
+        vdmap[v.eid] = k;
+      }
+    }
+    
     //console.log("time shift", off);
     
+    var kcache = ctx.frameset.kcache;
     for (var v in vset) {
-      set_vtime(v, starts[v.eid]+off);
+      var eid = vdmap[v.eid];
+      var time1 = get_vtime(v);
       
+      for (var i=0; i<v.segments.length; i++) {
+        var s = v.segments[i], v2=s.other_vert(v),
+            time2 = get_vtime(v2);
+        var t1 = Math.min(time1, time2), t2 = Math.max(time1, time2);
+        
+        for (var j=t1; j<=t2; j++) {
+          kcache.invalidate(eid, j);
+        }
+      }
+      
+      set_vtime(v, starts[v.eid]+off);
+      kcache.invalidate(eid, starts[v.eid]+off);
+
       v.dag_update("depend");
     }
     
@@ -271,8 +297,20 @@ export class ShiftTimeOp3 extends ToolOp {
       starts[id] = get_time(ctx, id);
     }
     
+    var frameset = ctx.frameset;
+    var vdmap = {};
+    
+    for (var k in frameset.vertex_animdata) {
+      var vd = frameset.vertex_animdata[k];
+      
+      for (var v in vd.verts) {
+        vdmap[v.eid] = k;
+      }
+    }
+    
     //console.log("time shift", off);
     
+    var kcache = ctx.frameset.kcache;
     for (var id in ids) {
       set_time(ctx, id, starts[id]+off);
     }
@@ -304,6 +342,11 @@ export class ShiftTimeOp3 extends ToolOp {
         } else {
           min = 0;
           max = 100000;
+        }
+        
+        var eid = vdmap[v.eid];
+        for (var j=min; j<max; j++) {
+          kcache.invalidate(eid, j);
         }
         
         var newtime = get_vtime(v);

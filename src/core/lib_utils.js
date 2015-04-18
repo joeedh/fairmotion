@@ -3,6 +3,10 @@
 import "events";
 import "toolprops_iter";
 
+import {STRUCT} from 'struct';
+import {EventHandler} from 'events';
+import {charmap} from 'events';
+
 /*
   Some notes on undo:
   
@@ -277,7 +281,7 @@ function DataRem(dst, field) {
   fieldname, DataRem(block, fieldname), respectively.
 */
 
-function wrap_getblock_us(datalib) {
+export function wrap_getblock_us(datalib) {
   return function(dataref, block, fieldname, add_user, refname, rem_func) {
     if (dataref == undefined) return;
     
@@ -309,7 +313,7 @@ function wrap_getblock_us(datalib) {
   };
 }
 
-function wrap_getblock(datalib) {
+export function wrap_getblock(datalib) {
   return function(dataref) {
     if (dataref == undefined) return;
     

@@ -1,4 +1,4 @@
-
+/*//*
 //class Class {
 //  methodA() {
     function a() {
@@ -32,14 +32,27 @@
 //  }
 //}
 
-class Class extends Array {
+class Class1 extends Array, Node.Ned {
   constructor() {
     this.a = 1;
     
     super();
   }
   
-  pop() {
-    console.log(this.a = 1);
+  get a() {
   }
+  
+  set b(val) {
+  }
+  
+  static c(d) {
+  }
+  
+  pop() {
+    //console.log(this.a = 1);
+  }
+}
+//*/
+
+function func(int a, int b) : int {
 }

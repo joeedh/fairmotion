@@ -626,7 +626,10 @@ acorn.plugins.argument_types = function (instance) {
       
         //console.log(Object.keys(this.__proto__), Object.keys(this));
       if (this.type != tt.comma && this.value != undefined) {
-        param.typeAnnotation = param.name;
+        //THENODE
+        var n = this.startNode();
+        
+        param.typeAnnotation = this.finishNode(n, "TypeAnnotation"); //{type : "identifier", name : param.name};
         param.name = this.value;
         this.next();
       }
@@ -659,7 +662,7 @@ acorn.plugins.argument_types = function (instance) {
     return function (decl, topLevel) {
       if (this.type==tt.name && this.value == "static") {
         var starttype = this.type, node = this.startNode();
-        console.log("--------", this.type);
+        //console.log("--------", this.type);
         
         starttype.keyword = "var";
         

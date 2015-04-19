@@ -1,9 +1,23 @@
 var acorn = require("./acorn_modified/src/index");
 var fs = require("fs");
 var extjs_transforms = require("./extjs_transforms");
+var classes = require('./modified_classes');
+var ast_util = require('./ast_util');
 
-var babel = require("babel");
+var traverse = ast_util.traverse,
+    traverse_one = ast_util.traverse_one,
+    remove=ast_util.remove,
+    insert=ast_util.insert;
+    
+var babel = require("babel-core");
+var transformers = require("babel-core/lib/babel/transformation/transformer");
+//console.log(transformers)
 
+var tpass = new transformers("es6.classes", classes);
+//console.log(Object.keys(babel.transform.transformers))
+babel.transform.transformers["es6.classes"] = tpass;
+
+//exit();
 /*
 function a(x) {
   //this is a c-style static local variable.
@@ -67,197 +81,16 @@ function main() {
     }
   }
   
-  /*
-  for (var k in babel.transform.transformers) {
-    if (k.startsWith("es6")) {
-      var transform = babel.transform.transformers[k];
-      
-    }
-  }
-  */
-  
-  function remove(array, item) {
-    var idx = array.indexOf(item);
-    
-    for (var i=idx; i<array.length-1; i++) {
-      array[i] = array[i+1];
-    }
-    
-    array.pop();
-  }
-  
-  function insert(array, before, item) {
-    array.push(undefined);
-    
-    for (var i=array.length-1; i>before; i--) {
-      array[i] = array[i-1];
-    }
-    
-    array[before] = item;
-  }
-  
-  function traverse_one(node, callback, depth, stack, liststack, depth2) {
-    if (stack == undefined) stack = [];
-    if (depth == undefined) depth = 0;
-    if (depth2 == undefined) depth2 = 0;
-    if (liststack == undefined) liststack = [];
-    
-    stack.push(node);
-    
-    if (depth2 > 0) {
-      callback(node, stack, liststack, depth);
-      return;
-    }
-    
-    var ts = "";
-    for (var i=0; i<depth; i++) {
-      ts += "  ";
-    }
-    
-    console.log(ts, "Entering node", node.type);
-    //console.log(ts, Object.keys(node), node.type)
-    
-    switch (node.type) {
-      case "FunctionExpression":
-      case "FunctionDeclaration":
-        node = node.body;
-      case "Program":
-        liststack.push(node.body);
-        for (var i=0; i<node.body.length; i++) {
-          if (node.body[i]._doskip)
-            continue;
-          
-          traverse_one(node.body[i], callback, depth+1, stack, liststack, depth2+1);
-        }
-        liststack.pop();
-        break;
-      case "VariableDeclaration":
-        for (var i=0; i<node.declarations.length; i++) {
-          traverse_one(node.declarations[i], callback, depth+1, stack, liststack, depth2+1);
-        }
-        break;
-      case "VariableDeclarator":
-        //console.log(ts+"======----==", node);
-        traverse_one(node.init, callback, depth+1, stack, liststack, depth2+1);
-        break;
-      default:
-        for (var k in node) {
-          if (k[0] == "_" || k[0] == "$") continue;
-          var v = node[k];
-          if (v == null) continue;
-          
-          if (typeof v == "function" || v instanceof Function) continue;
-          if (typeof v == "number" || typeof v == "string" || typeof(v) == "boolean" 
-              || typeof(v) == "undefined") continue;
-          
-          if (v instanceof Array) {
-            liststack.push(v);
-            
-            for (var i=0; i<v.length; i++) {
-              var v2 = v[i];
-              if (v2.type != undefined || v2.start != undefined || v2.loc != undefined) {
-                traverse_one(v2, callback, depth+1, stack, liststack, depth2+1);
-              }
-            }
-            
-            liststack.pop();
-          }
-          if (v.type != undefined || v.start != undefined || v.loc != undefined) {
-            traverse_one(v, callback, depth+1, stack, liststack, depth2+1);
-          }
-        }
-        break;
-    }
-    
-    stack.pop();
-  }
-  
-  function traverse(node, callback, depth, stack, liststack) {
-    if (node == undefined)
-      return;
-      
-    if (stack == undefined) stack = [];
-    if (depth == undefined) depth = 0;
-    if (liststack == undefined) liststack = [];
-    
-    if (node._doskip) return;
-    
-    stack.push(node);
-    callback(node, stack, liststack, depth);
-    
-    var ts = "";
-    for (var i=0; i<depth; i++) {
-      ts += "  ";
-    }
-    
-    console.log(ts, "Entering node", node.type);
-    //console.log(ts, Object.keys(node), node.type)
-    
-    switch (node.type) {
-      case "FunctionExpression":
-      case "FunctionDeclaration":
-        node = node.body;
-      case "Program":
-        liststack.push(node.body);
-        for (var i=0; i<node.body.length; i++) {
-          if (node.body[i]._doskip)
-            continue;
-          
-          traverse(node.body[i], callback, depth+1, stack, liststack);
-        }
-        liststack.pop();
-        break;
-      case "VariableDeclaration":
-        for (var i=0; i<node.declarations.length; i++) {
-          traverse(node.declarations[i], callback, depth+1, stack, liststack);
-        }
-        break;
-      case "VariableDeclarator":
-        //console.log(ts+"======----==", node);
-        traverse(node.init, callback, depth+1, stack, liststack);
-        break;
-      default:
-        for (var k in node) {
-          if (k[0] == "_" || k[0] == "$") continue;
-          var v = node[k];
-          if (v == null) continue;
-          
-          if (typeof v == "function" || v instanceof Function) continue;
-          if (typeof v == "number" || typeof v == "string" || typeof(v) == "boolean" 
-              || typeof(v) == "undefined") continue;
-          
-          if (v instanceof Array) {
-            liststack.push(v);
-            
-            for (var i=0; i<v.length; i++) {
-              var v2 = v[i];
-              if (v2.type != undefined || v2.start != undefined || v2.loc != undefined) {
-                traverse(v2, callback, depth+1, stack, liststack);
-              }
-            }
-            
-            liststack.pop();
-          }
-          if (v.type != undefined || v.start != undefined || v.loc != undefined) {
-            traverse(v, callback, depth+1, stack, liststack);
-          }
-        }
-        break;
-    }
-    
-    stack.pop();
-  }
-  
   function hoistStaticVar(node, chain) {
     var orig_name = node.id.name;
     var name = node.id.name;
     
-    console.log("CHAIN.LENGTH", chain.length);
+    //console.log("CHAIN.LENGTH", chain.length);
     for (var _i=0; _i<chain.length; _i++) {
       var i = chain.length-_i-1;
       var n = chain[i];
       
-      console.log("III", i);
+      //console.log("III", i);
       var nstr = undefined;
       
       switch (n.type) {
@@ -277,9 +110,9 @@ function main() {
       }
       
       if (n.type == "c") {
-        console.log("found function");
-        console.log(Object.keys(n));
-        console.log(n.id);
+        //console.log("found function");
+        //console.log(Object.keys(n));
+        //console.log(n.id);
       }
     }
     
@@ -291,9 +124,10 @@ function main() {
     }
     
     name = "$static_" + name;
-    console.log("NAME:", name);
+    //console.log("NAME:", name);
     
     node.id.name = name;
+    node.loc = {}
     //if (node.loc == undefined)
     //  node.loc = {start : -1, end : -1};
       
@@ -304,8 +138,13 @@ function main() {
       id : {
         name : name,
         type : "Identifier",
+        loc : {}
         //loc : node.loc
       },
+      loc : {
+        start : 0,
+        end : 0
+      }
       //loc : node.loc
     };
     
@@ -321,7 +160,7 @@ function main() {
   
   function rescope(name, newname, thenode, depth) {
     if (depth == undefined) depth = 0;
-    console.log("RESCOPE");
+    //console.log("RESCOPE");
     var scopestack = [], scope = {};
     
     scope[name] = newname;
@@ -363,7 +202,7 @@ function main() {
             traverse_one(node.body, visit, depth+1, stack, liststack);
             
             scope = scopestack.pop();
-            console.log("Function!", node, "Function|");
+            //console.log("Function!", node, "Function|");
             return;
          case "AssignmentExpression":
 //            console.log("AssignmentExpression", node, "||", scope, "||");
@@ -410,11 +249,13 @@ function main() {
   }
 
   traverse(ast, function(node, stack, liststack, depth) {
+    return;
+    
     if (node.type != "VariableDeclaration") return;
     if (!node.isStaticLocalVar) return;
 
     var vars = [];
-    console.log("Found static!");
+    //console.log("Found static!");
     
     for (var i=0; i<node.declarations.length; i++) {
       vars.push(hoistStaticVar(node.declarations[i], stack));
@@ -432,12 +273,12 @@ function main() {
   //extjs_transforms
   
   console.log("\nSending ast to babel. . .\n");
-  
+  console.log(ast.body[0].params);
   var ret = babel.transform.fromAst(ast, buf, {
   });
   
   //console.log(ast);
-  console.log(ret.code);
+  //console.log(ret.code);
   
   return 0;
 }

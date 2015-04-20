@@ -6,6 +6,7 @@ import subprocess, shlex, signal
 from ctypes import *
 import imp, runpy
 from math import floor
+import zipfile
 
 from dbcache import CachedDB
 
@@ -799,6 +800,63 @@ def do_copy_targets():
     traceback.print_stack()
     traceback.print_last()
 
+def build_package():
+  zf = zipfile.ZipFile("fairmotion_alpha.zip", "w")
+  
+  def zwrite(path):
+    zf.write(path, "fairmotion_alpha/"+path)
+    
+  zwrite("build/app.js")
+  
+  target = None
+  for t in targets:
+    if t.target == "app.js":
+      target = t
+      break
+  
+  for f in target:
+    if not os.path.exists(f.target): continue
+    
+    if not f.target.lower().endswith(".js"):
+      zwrite(f.target)
+   
+  for f in os.listdir("pyserver"):
+    if f != "config_local.py" and (f.endswith(".py") or f.endswith(".sql")):
+      zwrite("pyserver/"+f)
+  run_simple = """#!/usr/bin/env python
+#!/usr/bin/env python
+import os, os.path, sys
+
+path = os.path.abspath(os.path.normpath(os.getcwd()))
+
+os.chdir("pyserver")
+sys.path.append(os.getcwd())
+
+if not os.path.exists("config_local.py"):
+  print("generating config_local.py...")
+  buf = \"""
+serverhost = "127.0.0.1"
+serverport = 80
+base_path = "/"
+server_root = r"ROOT/pyserver"
+doc_root = r"ROOT"
+
+#this isn't used unless you turn off serv_all_local
+files_root = r"ROOT/userfiles"
+
+ipaddr = "127.0.0.1"
+  \""".replace("ROOT", path)
+  f = open("config_local.py", "w")
+  f.write(buf)
+  f.close()
+  
+import serv_simple
+"""
+  
+  zf.writestr("fairmotion_alpha/run.py", run_simple)
+  
+  zf.close()
+  
 _timestart = []
 def time_start():
   global _timestart
@@ -819,7 +877,7 @@ def buildall():
   except KeyboardInterrupt:
     pass
     signal_handler(None, None)
-  
+
 def buildall_intern():
   for t in targets:
     for s in t:
@@ -832,6 +890,7 @@ def buildall_intern():
     build_target(t)
   
   do_copy_targets()
+  build_package()
   
 def themain():  
   #print("         themain!", build_cmd)

@@ -1,3 +1,14 @@
+#Installing and running the alpha version
+## Requirements:
+  1. Python [www.python.org](www.python.org)
+
+Download and extract fairmotion_alpha.zip.  Go into the fairmotion_alpha folder,
+and (if on windows and python is installed) click run.py, or (if unix) run:
+
+    python run.py
+    
+Next, open a web browser (preferably Google Chrome), and navigate to http://localhost
+
 #Intro
 
 Fairmotion is an advanced vector graphics/animation editor, written in HTML5 and ES6.

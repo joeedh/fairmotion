@@ -37,12 +37,13 @@ if WITH_PY2:
 unit_path = "/unit_test.html"
 serv_unit_tests = False
 
+content_path = "/content"
+json_mimetype = "application/x-javascript"
+
 #example config_local.py file parameters
 #serverhost = "127.0.0.1:8081"
 #serverport = 8081
 #base_path = "/" #base URL path
-
-content_path = "/content"
 
 #server_root = "/home/joeedh/dev/fairmotion/pyserver"
 #doc_root = "/home/joeedh/dev/fairmotion"
@@ -54,8 +55,6 @@ content_path = "/content"
 #db_user = "root"
 #db_passwd = ""
 #db_db = "fairmotion"
-
-#json_mimetype = "application/x-javascript"
 
 #import local config file
 

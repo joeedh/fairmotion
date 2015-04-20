@@ -855,7 +855,7 @@ class ToggleBreakCurvOp extends VertPropertyBaseOp {
   }
 }
 
-class ConnectHandlesOp extends ToolOp {
+export class ConnectHandlesOp extends ToolOp {
   constructor() {
     ToolOp.call(this);
   }

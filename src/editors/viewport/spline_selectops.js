@@ -1,5 +1,11 @@
 "use strict";
 
+#include "src/core/utildefine.js"
+
+var PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,
+    ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos,
+    asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
+
 import {ToolOp} from 'toolops_api';
 import {IntProperty, BoolProperty} from 'toolprops';
 import {SplineFlags, SplineTypes, SplineVertex,

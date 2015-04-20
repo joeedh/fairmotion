@@ -2,6 +2,14 @@ import os, sys, os.path, math, random, time
 import shelve, imp, struct, ply
 import mimetypes
 
+#don't store file tree in database, serv file system directly
+#serv_simple.py sets this to true
+serv_local = False 
+
+#if serv_local is true, will allow access to full filesystem
+#serv_simple also sets this to true
+serv_all_local = False
+
 #turn filenames into gibberish
 mangle_file_paths = False 
 

@@ -33,8 +33,14 @@ var fdialog_exclude_chars = new set([
 ]);
 
 export class FileDialog extends PackedDialog {
-  constructor(mode, ctx, callback, check_overwrite=false) {
+  constructor(mode, ctx, callback, check_overwrite=false, pattern=undefined) {
     PackedDialog.call(this, FileDialogModes[mode], ctx, ctx.screen);
+    
+    if (pattern == undefined) {
+      pattern = new RegExp(/.+\.fmo/);
+    }
+    
+    this.pattern = pattern;
     
     this.check_overwrite = check_overwrite;
     this.subframe.default_packflag |= PackFlags.INHERIT_WIDTH;
@@ -163,23 +169,36 @@ export class FileDialog extends PackedDialog {
       if (files == undefined)
         return;
         
+      files.sort(function(a, b) {
+        if (!!a.is_dir == !!b.is_dir)
+          return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+        else if (a.is_dir)
+          return 1;
+        else
+          return -1;
+      });
+      
       if (DEBUG.netio)
         console.log(files);
+        
       for (var i=0; i<files.length; i++) {
         var fname = files[i].name;
         var ftype;
+        
         if (files[i].is_dir) {
           ftype = "folder";
           fname = fname
         } else {
           ftype = "file";
+          
+          //console.log("MATCH", fname.match(this2.pattern), this2.pattern, fname);
+          
+          if (!fname.match(this2.pattern))
+            continue;
         }
         
         var entry = this2.listbox.add_item(fname, files[i]);
-        
-        if (files[i].is_dir) {
-          entry.icon = Icons.FOLDER;
-        }
+        entry.icon = ftype == "file" ? Icons.FILE : Icons.FOLDER;
       }
       
       this2.do_full_recalc();

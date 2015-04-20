@@ -37,5 +37,6 @@ window.Icons = {
   DISSOLVE_FACES : 33,
   NOTE_EXCL      : 34,
   TINY_X         : 35,
-  FOLDER         : 36
+  FOLDER         : 36,
+  FILE           : 37
 };

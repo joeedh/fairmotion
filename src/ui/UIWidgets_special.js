@@ -819,7 +819,7 @@ export class UIListEntry extends ColumnFrame {
     ColumnFrame.prototype.build_draw.call(this, canvas, isVertical);
     
     if (this.icon >= 0) {
-      canvas.icon(Icons.FOLDER, [1, 1], undefined, true);
+      canvas.icon(this.icon, [1, 1], undefined, true);
     }
     
     if (!this.text_edit_mode) {

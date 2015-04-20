@@ -1,6 +1,8 @@
 import config, sys
 
 config.use_sqlite = True
+config.serv_local = True
+config.serv_all_local = True #allow full access to local filesystem
 
 from config import *
 import mimetypes

@@ -1,5 +1,93 @@
 "use strict";
 
+export function encode_utf8(arr, str) {
+  for (var i=0; i<str.length; i++) {
+    var c = str.charCodeAt(i);
+    
+    while (c != 0) {
+      var uc = c & 127;
+      c = c>>7;
+      
+      if (c != 0)
+        uc |= 128;
+      
+      arr.push(uc);
+    }
+  }
+}
+
+export function decode_utf8(arr) {
+  var str = ""
+  var i = 0;
+  
+  while (i < arr.length) {
+    var c = arr[i];
+    var sum = c & 127;
+    var j = 0;
+    var lasti = i;
+    
+    while (i < arr.length && (c & 128)) {
+      j += 7;
+      i++;
+      c = arr[i];
+      
+      c = (c&127)<<j;
+      sum |= c;
+    }
+    
+    if (sum == 0) break;
+    
+    str += String.fromCharCode(sum);
+    i++;
+  }
+  
+  return str;
+}
+
+export function test_utf8()
+{
+  var s = "a" + String.fromCharCode(8800) + "b";
+  var arr = [];
+  
+  encode_utf8(arr, s);
+  var s2 = decode_utf8(arr);
+  
+  if (s != s2) {
+    throw new Error("UTF-8 encoding/decoding test failed");
+  }
+  
+  return true;
+}
+
+export function truncate_utf8(Array<byte>arr, int maxlen)
+{
+  var len = Math.min(arr.length, maxlen);
+  
+  var last_codepoint = 0;
+  var last2 = 0;
+  
+  var incode = false;
+  var i = 0;
+  var code = 0;
+  while (i < len) {
+    incode = arr[i] & 128;
+    
+    if (!incode) {
+      last2 = last_codepoint+1;
+      last_codepoint = i+1;
+    }
+    
+    i++;
+  }
+  
+  if (last_codepoint < maxlen)
+    arr.length = last_codepoint;
+  else
+    arr.length = last2;
+    
+  return arr;
+}
+
 var _b64str='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/='
 var _b64_map = {}
 

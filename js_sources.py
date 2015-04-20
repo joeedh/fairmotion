@@ -31,6 +31,7 @@ sources = [
 	"src/core/J3DIMath.js",
 	"src/util/utils.js",
   "src/util/strutils.js",
+  "src/util/save_as.js",
 	"src/core/lib_api.js",
 	"src/core/lib_api_typedefine.js",
 	"src/util/mathlib.js",

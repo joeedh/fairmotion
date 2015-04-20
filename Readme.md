@@ -2,7 +2,7 @@
 ## Requirements:
   1. Python [www.python.org](www.python.org)
 
-Download and extract fairmotion_alpha.zip.  Go into the fairmotion_alpha folder,
+Download and extract [fairmotion_alpha.zip](https://github.com/joeedh/fairmotion/raw/master/fairmotion_alpha.zip).  Go into the fairmotion_alpha folder,
 and (if on windows and python is installed) click run.py, or (if unix) run:
 
     python run.py

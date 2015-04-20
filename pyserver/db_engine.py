@@ -10,6 +10,21 @@ if config.use_sqlite:
 else:
   import mysql_db  as engine
 
+def is_str(val):
+  if sys.version[0] == "2":
+    return type(val) in [str, unicode]
+  else:
+    return type(val) == str
+
+def ensure_datetime(val):
+  if is_str(val):
+    import sqlite_db
+    return sqlite_db.parse_datetime(val)
+  elif type(val) in [int, float]:
+    return datetime.datetime.fromtimestamp(val)
+  else:
+    return val
+    
 DBError = engine.DBError
   
 import sys

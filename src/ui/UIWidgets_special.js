@@ -953,6 +953,9 @@ export class UIListBox extends ColumnFrame {
     i = Math.min(Math.max(0, i), this.listbox.children.length-1);
     
     var active = this.listbox.children[i];
+    if (active == undefined)
+      return;
+    
     this._set_active(active);
     
     active.abspos[0] = 0;

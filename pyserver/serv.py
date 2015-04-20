@@ -9,7 +9,7 @@ else:
   
 from logger import elog, mlog, alog
 import os, sys, os.path, math, random, time, io, gc
-import shelve, imp, struct, ctypes, ply
+import shelve, imp, struct, ctypes
 import mimetypes
 from auth import AuthAPI_RefreshToken_WPHack, AuthAPI_OAuthStart, AuthAPI_GetUserInfo, AuthAPI_RefreshToken, AuthAPI_SessionToken
 from fileapi import FileAPI_DirList, FileAPI_GetMeta, FileAPI_UploadStart, FileAPI_UploadChunk, FileAPI_GetFile

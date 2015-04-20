@@ -270,8 +270,10 @@ class AuthAPI_SessionToken:
     if ret == None:
       serv.send_error(401)
       return
-      
-    if ret["expiration"] < datetime.datetime.now():
+    
+    exprtime1 = ensure_datetime(ret["expiration"])
+    
+    if exprtime1 < datetime.datetime.now():
       alog("Expired token %s" % (token))
       serv.send_error(408)
       return
@@ -359,7 +361,8 @@ def do_auth(tok):
     elog("invalid access token " + str(tok))
     return None
     
-  if ret["expiration"] < datetime.datetime.now():
+  exprtime1 = ensure_datetime(ret["expiration"])
+  if exprtime1 < datetime.datetime.now():
     elog("expired access token " + str(tok))
     return None
       

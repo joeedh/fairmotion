@@ -6,6 +6,12 @@ from config import WITH_PY2
 #an important note: the keyrot/unrot functions are not
 #for security purposes, they're just for obfuscation.
 
+def _to_ascii(val):
+  if sys.version[0] == "2":
+    return str(val)
+  else:
+    return str(val, "latin-1")
+
 def bstr_py3(s):
   if type(s) == bytes: return s
   else: return bytes(str(s), "ascii")

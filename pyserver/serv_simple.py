@@ -1,8 +1,13 @@
 import config, sys
 
-config.use_sqlite = True
-config.serv_local = True
-config.serv_all_local = True #allow full access to local filesystem
+if not config.is_set("use_sqlite"):
+  config.use_sqlite = True
+  
+if not config.is_set("serv_local"):
+  config.serv_local = True
+  
+if not config.is_set("serv_all_local"):
+  config.serv_all_local = True #allow full access to local filesystem
 
 from config import *
 import mimetypes
@@ -23,7 +28,7 @@ else:
 
 from logger import elog, mlog, alog
 import os, sys, os.path, math, random, time, io, gc
-import shelve, imp, struct, ctypes, ply
+import shelve, imp, struct, ctypes
 import mimetypes
 
 from auth import AuthAPI_RefreshToken_WPHack, AuthAPI_OAuthStart, AuthAPI_GetUserInfo, AuthAPI_RefreshToken, AuthAPI_SessionToken
@@ -35,7 +40,73 @@ from api import api_handlers
 
 import db_engine
 
+proxy_cls = """
+class ObjProxy (object):
+  def __init__(self, obj, methodmap):
+    self.methodmap = methodmap
+    self.proxy = obj
+    
+  def __getattribute__(self, attr):
+    if attr.endswith("_override"):
+      attr = attr[:len(attr)-len("_override")]
+      proxy = object.__getattribute__(self, "proxy")
+      return object.__getattribute__(proxy, attr)
+      
+    #print("GETATTR")
+    proxy = object.__getattribute__(self, "proxy")
+    methodmap = object.__getattribute__(self, "methodmap")
+    
+    #print(methodmap)
+    if attr in methodmap:
+      methodmap[attr](attr)
+    
+    return object.__getattribute__(proxy, attr)
+"""
+
+specials = [
+  "__str__", "__repr__", "__len__", ["__getitem__", "item"], 
+  ["__setitem__", "item, val"], ["__hasitem__", "item"],
+  ["__eq__", "b"], "__hash__", "__iter__", ["__neq__", "b"],
+  ["__contains__", "item"], ["__delitem__", "item"],
+  ["__lt__", "b"], ["__gt__", "b"], ["__le__", "b"], ["__ge__", "b"]
+]
+
+for k in specials:
+  args1 = args2 = ""
+  if type(k) in [list, tuple]:
+    k, args = k
+    args1 = ", " + args
+    args2 = args
+    
+  proxy_cls += """
+  def K(selfARGS1):
+    attr = "K"
+    proxy = object.__getattribute__(self, "proxy")
+    methodmap = object.__getattribute__(self, "methodmap")
+    
+    if attr in methodmap:
+      methodmap[attr](attr)
+    
+    return object.__getattribute__(proxy, attr)(ARGS2)
+  """.replace("K", k).replace("ARGS1", args1).replace("ARGS2", args2)
+
+exec(proxy_cls)
+
 class ReqHandler (BaseHTTPRequestHandler):
+  def __init__(self, *args):
+    BaseHTTPRequestHandler.__init__(self, *args)
+
+  def _on_write(self, attr):
+    #print("on_write!", self._sent_headers)
+    
+    if not self._sent_headers:
+      self._sent_headers = True
+      self.end_headers()
+    
+  def end_headers(self, *args):
+    self._sent_headers = True
+    BaseHTTPRequestHandler.end_headers(self, *args)
+    
   def format_err(self, buf):
     if type(buf) == bytes: buf = str(buf, "latin-1")
     
@@ -65,9 +136,16 @@ class ReqHandler (BaseHTTPRequestHandler):
       adr = str(adr)
 		
     config.client_ip = adr
-      
-  def do_GET(self):
+
+  def start_Req(self):
+    self.orig_wfile = self.wfile
+    
+    self._sent_headers = False
+    self.wfile = ObjProxy(self.wfile, {"write" : self._on_write})
     self.set_ipaddr()
+  
+  def do_GET(self):
+    self.start_Req()
     
     alog("GET " + self.path)
     
@@ -126,6 +204,7 @@ class ReqHandler (BaseHTTPRequestHandler):
       mm = "application/javascript"
     else:
       mm = mime(path)[0]
+      
     self.gen_headers("GET", bodysize, mm);
     
     b = b""
@@ -185,12 +264,22 @@ class ReqHandler (BaseHTTPRequestHandler):
       self.exec_handler(path, "PUT")
     else:
       self.send_error(404)
-      
+  
+  def send_header(self, *args):
+    wf = self.wfile
+    
+    self.wfile = self.orig_wfile
+    ret = BaseHTTPRequestHandler.send_header(self, *args)
+    self.wfile = wf
+    
+    return ret
+    
   def gen_headers(self, method, length, type, extra_headers={}):
     #if type == "text/html":
     #  type = "application/xhtml"
       
-    self.wfile.write(bstr(method) + b" http/1.1\r\n")
+    self.wfile.write_override(bstr(method) + b" http/1.1\r\n")
+    
     self.send_header("Content-Type", type)
     self.send_header("Content-Length", length)
 
@@ -212,16 +301,7 @@ class ReqHandler (BaseHTTPRequestHandler):
     #self.send_header("Connection", "close")
     #self.send_header("Host", serverhost)
     self.send_header("Server-Host", serverhost)
-    self.end_headers()
-    
-  def handle_mesh_post():
-    body = "ok"
-    
-    def bstr(s):
-      return bytes(str(s), "ascii")
-    
-    
-    wf.write(body);
+    #self.end_headers()
   
   def send_error(self, code, obj=None):
     if obj != None:

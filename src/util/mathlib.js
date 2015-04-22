@@ -588,7 +588,7 @@ function line_isect(v1, v2, v3, v4, calc_t) {  //calc_t is optional, defaults to
 var dtl_v3 = new Vector3()
 var dtl_v4 = new Vector3()
 var dtl_v5 = new Vector3()
-function dist_to_line_v2(p, v1, v2)
+export function dist_to_line_v2(p, v1, v2)
 {
   var v3 = dtl_v3, v4 = dtl_v4;
   var v5 = dtl_v5;
@@ -627,7 +627,7 @@ function dist_to_line_v2(p, v1, v2)
   }
 }
 
-function closest_point_on_line(p, v1, v2)
+export function closest_point_on_line(p, v1, v2)
 {
   var v3 = dtl_v3, v4 = dtl_v4;
   var v5 = dtl_v5;

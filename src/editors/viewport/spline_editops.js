@@ -762,7 +762,7 @@ export class SplitEdgeOp1 extends SplineLocalToolOp {
   }
 }
 
-class VertPropertyBaseOp extends ToolOp {
+export class VertPropertyBaseOp extends ToolOp {
   undo_pre(ctx) {
     var spline = ctx.spline;
     var vdata = {};
@@ -795,7 +795,7 @@ class VertPropertyBaseOp extends ToolOp {
   }
 }
 
-class ToggleBreakTanOp extends VertPropertyBaseOp {
+export class ToggleBreakTanOp extends VertPropertyBaseOp {
   constructor() {
     VertPropertyBaseOp.call(this);
   }
@@ -833,7 +833,7 @@ class ToggleBreakTanOp extends VertPropertyBaseOp {
   }
 }
 
-class ToggleBreakCurvOp extends VertPropertyBaseOp {
+export class ToggleBreakCurvOp extends VertPropertyBaseOp {
   constructor() {
     VertPropertyBaseOp.call(this);
   }

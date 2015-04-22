@@ -4,7 +4,7 @@ import {login_dialog} from 'dialogs';
 
 import {
   MinMax, get_rect_lines, get_rect_points, aabb_isect_2d,
-  inrect_2d
+  inrect_2d, closest_point_on_line, dist_to_line_v2
 } from 'mathlib';
 
 import {ToolOp, UndoFlags, ToolFlags} from 'toolops_api';

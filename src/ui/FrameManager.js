@@ -1871,7 +1871,7 @@ export class Screen extends UIFrame {
           if (found2) {
             found = true;
             c2.on_resize(c2.size, oldsize);
-            console.log("snapped", found2);
+            //console.log("snapped", found2);
           }
           
           if (found2)

@@ -243,9 +243,9 @@ export class ShiftTimeOp3 extends ToolOp {
     var mpos = new Vector3([event.x, event.y, 0]);
     var dx = -Math.floor(1.5*(this.start_mpos[0] - mpos[0])/20+0.5);
     
-    //console.log("time offset", dx);
+    console.log("time offset", dx);
     
-    this.undo(this.modal_ctx);
+    this.do_undo(this.modal_ctx, true);
     this.inputs.factor.set_data(dx);
     
     this.exec(this.modal_ctx);
@@ -279,12 +279,17 @@ export class ShiftTimeOp3 extends ToolOp {
     }
   }
   
-  undo(ctx) {
+  do_undo(ctx, no_download=false) {
     for (var k in this._undo) {
       set_time(ctx, k, this._undo[k]);
     }
     
-    ctx.frameset.download();
+    if (!no_download)
+      ctx.frameset.download();
+  }
+  
+  undo(ctx) {
+    this.do_undo(ctx);
   }
   
   exec(ctx) {
@@ -308,7 +313,7 @@ export class ShiftTimeOp3 extends ToolOp {
       }
     }
     
-    //console.log("time shift", off);
+    console.log("time shift", off);
     
     var kcache = ctx.frameset.kcache;
     for (var id in ids) {
@@ -346,7 +351,7 @@ export class ShiftTimeOp3 extends ToolOp {
         
         var eid = vdmap[v.eid];
         for (var j=min; j<max; j++) {
-          kcache.invalidate(eid, j);
+      //    kcache.invalidate(eid, j);
         }
         
         var newtime = get_vtime(v);
@@ -359,6 +364,7 @@ export class ShiftTimeOp3 extends ToolOp {
     }
     
     if (!this.modal_running) {
+      console.log("download");
       ctx.frameset.download();
     }
   }

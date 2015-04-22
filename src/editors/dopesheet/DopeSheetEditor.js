@@ -784,7 +784,7 @@ export class DopeSheetEditor extends Area {
   
   //bind feeds vd
   _on_sel_1(vd, nothing, veid) {
-      console.log(vd);
+      //console.log(vd);
       var v = this.ctx.frameset.pathspline.eidmap[veid];
       if (v == undefined) {;
         var id = veid | KeyTypes.PATHSPLINE;
@@ -1030,13 +1030,13 @@ export class DopeSheetEditor extends Area {
     if (Area.prototype.on_mousedown.call(this, event))
       return;
     
-    console.log("mousedown!", event.button, this.highlight);
+    //console.log("mousedown!", event.button, this.highlight);
     
     if (event.button == 0) {
       var nearest = this.findnearest([event.x, event.y]);
       
       if (nearest != undefined) {
-        console.log("nearest type:", nearest.keybox.type);
+        //console.log("nearest type:", nearest.keybox.type);
       }
       
       if (nearest != undefined) {
@@ -1085,7 +1085,7 @@ export class DopeSheetEditor extends Area {
         
         //change time
         var time = Math.floor(this.unscaletime((event.x - this.velpan.pan[0] - this.time_zero_x)));
-        console.log("chanve time!", time);
+        //console.log("chanve time!", time);
         
 
         this.ctx.scene.change_time(this.ctx, time);
@@ -1129,7 +1129,7 @@ export class DopeSheetEditor extends Area {
           g_app_state.toolstack.exec_tool(op);
         } else { //change time
           var time = Math.floor(this.unscaletime((event.x - this.velpan.pan[0] - this.time_zero_x)));
-          console.log("chanve time!", time);
+          //console.log("chanve time!", time);
           
           this.ctx.scene.change_time(this.ctx, time);
           window.redraw_viewport();
@@ -1171,7 +1171,7 @@ export class DopeSheetEditor extends Area {
   }
   
   on_mouseup(event) {
-    console.log("mouseup!");
+    //console.log("mouseup!");
     this.mdown = false;
   }
   
@@ -1358,7 +1358,7 @@ export class DopeSheetEditor extends Area {
       this.channels.load_collapsed(collapsed);
       this.channels.pack(this.get_canvas());
       
-      console.log("    after reset", keys.length, this.channels.totpath);
+      //console.log("    after reset", keys.length, this.channels.totpath);
     }
     
     if (!this.first_draw)
@@ -1498,9 +1498,14 @@ export class DopeSheetEditor extends Area {
   }
   
   on_area_inactive() {
+    Area.prototype.on_area_inactive.call(this);
+    console.log("dopesheet active!");
+  }
+  
+  on_area_inactive() {
     this.first_draw = true;
     
-    console.log("area inactive!");
+    console.log("dopesheet inactive!");
     this.dag_unlink_all();
     
     this.vdmap = {};

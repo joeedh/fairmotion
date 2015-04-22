@@ -1156,7 +1156,7 @@ export class SplineFrameSet extends DataBlock {
   }
   
   download() {
- //   console.log("uploading. . .");
+    console.trace("downloading. . .");
     var resolve = 0;
     
     for (var v in this.spline.points) {

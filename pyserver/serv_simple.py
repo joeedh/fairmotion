@@ -245,6 +245,8 @@ class ReqHandler (BaseHTTPRequestHandler):
         
     
   def do_POST(self):
+    self.start_Req()
+    
     self.set_ipaddr()
     path = self.path
     
@@ -256,6 +258,8 @@ class ReqHandler (BaseHTTPRequestHandler):
       self.send_error(404)
   
   def do_PUT(self):
+    self.start_Req()
+    
     alog("PUT " + self.path)
     self.set_ipaddr()
     path = self.path

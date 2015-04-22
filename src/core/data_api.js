@@ -904,13 +904,13 @@ export class DataAPI {
     return sret;
   }
   
-  eval(ctx, str) {
+  eval(ctx, str, scope) {
     if (str in this.evalcache) {
-      return this.evalcache[str](ctx);
+      return this.evalcache[str](ctx, scope);
     }
     
     var script = """
-      var func = function(ctx) {
+      var func = function(ctx, scope) {
         return $s
       }
     """.replace("$s", str);
@@ -918,7 +918,7 @@ export class DataAPI {
     eval(script);
         
     this.evalcache[str] = func;
-    return func(ctx);
+    return func(ctx, scope);
   }
   
   get_object(ctx, str) {
@@ -1047,6 +1047,8 @@ export class DataAPI {
   
   set_prop(ctx, str, value) {
     var ret = this.resolve_path_intern(ctx, str);
+    static scope = [0, 0];
+    
     if (ret == undefined) return ret;
     
     if (ret[0] == undefined && ret[3] != undefined && ret[3].do_mass_set) {
@@ -1094,8 +1096,10 @@ export class DataAPI {
           
           prop.set_data(val);
           
-          path2 += " = val;";
-          this.eval(ctx, path2);
+          path2 += " = scope[0];";
+          
+          scope[0] = val;
+          this.eval(ctx, path2, scope);
         } else {
           //handle "struct.flag = integer bitmask" form
           path += " = " + value;

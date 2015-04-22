@@ -14,7 +14,7 @@ import {RowFrame, ColumnFrame, UIPackFrame} from 'UIPack';
 import {UITextBox} from 'UITextBox';
 import {ToolOp, UndoFlags, ToolFlags} from 'toolops_api';
 
-import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
+import {ignore_next_mouseup_event, KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
         charmap, TouchEventManager, EventHandler} from 'events';
 
 import {PackFlags} from 'UIElement';

@@ -2,7 +2,8 @@ import {UIElement, PackFlags, UIFlags, CanvasFlags} from 'UIElement';
 import {UIFrame} from 'UIFrame';
 
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
-        charmap, TouchEventManager, EventHandler} from 'events';
+        charmap, TouchEventManager, EventHandler,
+        ignore_next_mouseup_event} from 'events';
 import {inrect_2d} from 'mathlib';
 
 import {

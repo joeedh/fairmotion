@@ -702,6 +702,7 @@ export class SplitAreasTool extends ToolOp {
     area2.on_resize(area2.size, oldsize);
     this.cleanup();
     
+    this.screen.recalc_all_borders();
     this.screen.snap_areas();
   }
 
@@ -832,6 +833,7 @@ export class CollapseAreasTool extends EventHandler {
     keep.on_resize(keep.size, oldsize);
     keep.do_recalc();
     
+    this.screen.recalc_all_borders();
     this.screen.snap_areas();
     this.canvas.reset();
   }
@@ -1028,9 +1030,8 @@ export class ScreenBorder extends UIElement {
   }
 
   start(event) {
-
     this.parent.push_modal(this);
-    this.start_mpos = [event.x, event.y]
+    this.start_mpos = new Vector2([event.x, event.y])
     this.moving = true;
     
     this.areas = new set();
@@ -1130,6 +1131,8 @@ export class ScreenBorder extends UIElement {
         continue;
       }
       
+      console.log("B", b);
+      
       switch (b) {
         case 0:
           a.pos[1] += delta;
@@ -1149,8 +1152,12 @@ export class ScreenBorder extends UIElement {
       
       a.on_resize(a.size, oldsize);
       
+      //this.parent.recalc_all_borders();
       this.parent.snap_areas();
     }
+    
+    window.redraw_viewport();
+    this.start_mpos.load(mpos);
   }
 
   finish() {
@@ -1158,6 +1165,8 @@ export class ScreenBorder extends UIElement {
       this.parent.pop_modal();
     }
     
+    this.parent.recalc_all_borders();
+    this.parent.do_full_recalc();
     this.moving = false;
   }
 
@@ -1198,7 +1207,15 @@ export class ScreenBorder extends UIElement {
   {
     //XXX!!
     var black = [0, 0, 0, 1];
-    //canvas.line(this.pos, new Vector2(this.pos).add([400, 400]), black, black);
+    var sx = this.size[0], sy = this.size[1];
+    var x=0, y=0;
+    
+    if (sx > sy)
+      sy = y = sy*0.5;
+    else
+      sx = x = sx*0.5;
+      
+    //canvas.line([x, y], [sx, sy], black, black);
   }
 }
 
@@ -1816,9 +1833,11 @@ export class Screen extends UIFrame {
       for (var c1 in this.children) {
         if (!(c1 instanceof ScreenArea))
           continue;
+          
         for (var c2 in this.children) {
           if (!(c2 instanceof ScreenArea))
             continue;
+            
           if (c1 == c2)
             continue;
           
@@ -1852,7 +1871,7 @@ export class Screen extends UIFrame {
           if (found2) {
             found = true;
             c2.on_resize(c2.size, oldsize);
-            //console.log("snapped", found2);
+            console.log("snapped", found2);
           }
           
           if (found2)
@@ -1875,7 +1894,16 @@ export class Screen extends UIFrame {
       //this._on_mousemove(e);
     }
   }
-
+  
+  recalc_all_borders() 
+  {
+    for (var c in this.children) { 
+      if (c instanceof ScreenArea) {
+        this.recalc_child_borders(c);
+      }
+    }
+  }
+  
   recalc_child_borders(ScreenArea child)
   {
     var ls = get_rect_lines(new Vector2(child.pos), child.size);

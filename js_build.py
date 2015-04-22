@@ -698,7 +698,9 @@ def build_target(files):
     
   if build_cmd != "loop":
     print("build finished")
-
+    
+  return build_final
+  
 def aggregate(files, outpath=target_path+"app.js"):
   outfile = open(outpath, "w")
   
@@ -801,6 +803,7 @@ def do_copy_targets():
     traceback.print_last()
 
 def build_package():
+  print("Building fairmotion_alpha.zip. . .")
   zf = zipfile.ZipFile("fairmotion_alpha.zip", "w")
   
   def zwrite(path):
@@ -856,6 +859,7 @@ import serv_simple
   zf.writestr("fairmotion_alpha/run.py", run_simple)
   
   zf.close()
+  print("done.")
   
 _timestart = []
 def time_start():
@@ -886,11 +890,14 @@ def buildall_intern():
   for t in targets:
     filter_srcs(t)
   
+  build_final = False
   for t in targets:
-    build_target(t)
+    build_final |= build_target(t)
   
   do_copy_targets()
-  build_package()
+  
+  if build_final:
+    build_package()
   
 def themain():  
   #print("         themain!", build_cmd)

@@ -68,14 +68,14 @@ MyMouseEvent.RIGHT = 1
 //used to keep right click menus from cancelling certain tools
 var _swap_next_mouseup = false;
 var _swap_next_mouseup_button = 2;
-function swap_next_mouseup_event(button) {
+export function swap_next_mouseup_event(button) {
   _swap_next_mouseup = true;
   _swap_next_mouseup_button = button;
 }
 
 var _ignore_next_mouseup = false;
 var _ignore_next_mouseup_button = 2;
-function ignore_next_mouseup_event(button) {
+export function ignore_next_mouseup_event(button) {
   _ignore_next_mouseup = true;
   _ignore_next_mouseup_button = button;
 }

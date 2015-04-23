@@ -794,6 +794,10 @@ export class SplineKCache {
   }
   
   load(frame, spline) {
+    if (typeof frame == "string") {
+      throw new Error("Got bad frame! " + frame);
+    }
+    
     if (!(frame in this.cache)) {
       console.log("warning, bad call to SplineKCache");
       return;
@@ -831,7 +835,7 @@ export class SplineKCache {
     var ret = [];
     
     for (var k in this.cache) {
-      ret.push(k);
+      ret.push(parseFloat(""+k));
     }
     
     return ret;
@@ -858,16 +862,17 @@ export class SplineKCache {
       cache[ret.times[i]] = new Uint8Array(ret.cache[i]);
     }
     
-    delete ret.times;
+    //delete ret.times;
     ret.cache = cache;
     
     return ret;
   }
 }
+
 SplineKCache.STRUCT = """
   SplineKCache {
     cache : array(array(byte))  | obj._as_array();
-    times : array(array(float)) | obj._get_times();
+    times : array(float)        | obj._get_times();
     invalid_eids : iter(EidTimePair);
   }
 """;

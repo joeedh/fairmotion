@@ -562,8 +562,8 @@ export class AppState {
     }
     
     var data2 = [];
-    for (var lib in this.datalib.datalists.values()) {
-      for (var block in lib) {
+    for (var lib of this.datalib.datalists.values()) {
+      for (var block of lib) {
         data2 = [];
         
         var t1 = time_ms();
@@ -960,7 +960,7 @@ export class AppState {
       this2.size = size;
       
       //stupid. . .
-      for (var sa in screen.areas) {
+      for (var sa of screen.areas) {
         //need to get rid of appstate.active_view2d
         if (sa.area instanceof View2DHandler) {
           this2.active_view2d = sa.area;

@@ -124,7 +124,7 @@ export class SplineQuery {
     mpos = _mpos.load(mpos), mpos[2] = 0.0;
     
     var list = do_handles ? spline.handles : spline.verts;
-    for (var v in list) {
+    for (var v of list) {
         if (v.hidden) continue;
         if (!v.in_layer(actlayer)) continue;
         

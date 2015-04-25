@@ -95,7 +95,7 @@ export class TreeItem extends RowFrame {
     
     var max_width = Math.min(100, this.size[0]);
     var size = [0, 0];
-    for (var c in this.children) {
+    for (var c of this.children) {
       var s = c.get_min_size(canvas, isvertical);
       if (c === this.panel) {
         s[1] = h;
@@ -140,7 +140,7 @@ export class TreeItem extends RowFrame {
     var w = this.size[0];
     var side_margin = 5;
     
-    for (var c in this.children) {
+    for (var c of this.children) {
       var size = c.get_min_size(canvas);
       if (c === this.panel) {
         size[1] = h;
@@ -171,7 +171,7 @@ export class TreeItem extends RowFrame {
     
     if (state && this.stored_children == undefined) {
       this.stored_children = [];
-      for (var c in this._children) {
+      for (var c of this._children) {
         this.stored_children.push(c);
       }
       
@@ -497,7 +497,7 @@ export class DopeSheetEditor extends Area {
           vset.add(vd);
       }
     } else if (this.selected_only) {
-      for (var v in spline.verts.selected.editable) {
+      for (var v of spline.verts.selected.editable) {
         var vd = frameset.get_vdata(v.eid, false);
         
         if (vd != undefined)
@@ -848,7 +848,7 @@ export class DopeSheetEditor extends Area {
     var spline = this.ctx.frameset.spline;
     var actlayer = spline.layerset.active;
     
-    for (var ch in this.get_datapaths()) {
+    for (var ch of this.get_datapaths()) {
       for (var i=0; i<ch.keys.length; i++) {
         var ret = this._get_key_ret_cache.next();
         
@@ -884,11 +884,11 @@ export class DopeSheetEditor extends Area {
   }
 
   get_keyboth() {
-    for (var ret in this.get_keyverts()) {
+    for (var ret of this.get_keyverts()) {
       yield ret;
     }
     
-    for (var ret in this.get_keypaths()) {
+    for (var ret of this.get_keypaths()) {
       yield ret;
     }
   }
@@ -897,8 +897,8 @@ export class DopeSheetEditor extends Area {
     var channels = this.get_vdatas();
     var y = Area.get_barhgt()+2, chgt = this.CHGT;
     
-    for (var vd in channels) {
-      for (var v in vd.verts) {
+    for (var vd of channels) {
+      for (var v of vd.verts) {
         if (!(v.eid in this.vmap)) {
           var this2 = this;
           
@@ -958,7 +958,7 @@ export class DopeSheetEditor extends Area {
     var rety = 0, retx=0;
     var rethigh = undefined;
     
-    for (var kret in this.get_keyboth()) {
+    for (var kret of this.get_keyboth()) {
         var v = kret[0], vd = kret[1], keybox = kret[2];
         
         if (keybox.type == KeyTypes.PATHSPLINE) {
@@ -989,7 +989,7 @@ export class DopeSheetEditor extends Area {
     }
     
     if (retv != undefined) {
-      for (var kret in this.get_keyverts()) {
+      for (var kret of this.get_keyverts()) {
         var v = kret[0], vd = kret[1], keybox = kret[2];
         
         if (keybox.pos[0] == retx && keybox.pos[1] == rety) {
@@ -997,7 +997,7 @@ export class DopeSheetEditor extends Area {
         }
       }
       
-      for (var kret in this.get_keypaths()) {
+      for (var kret of this.get_keypaths()) {
         var v = kret[0], vd = kret[1], keybox = kret[2];
         
         if (keybox.pos[0] == retx && keybox.pos[1] == rety) {
@@ -1046,7 +1046,7 @@ export class DopeSheetEditor extends Area {
         sels.push(nearest.keybox.id);
         var has_sel = get_select(this.ctx, nearest.keybox.id);
         
-        for (var kret in this.get_keyboth()) {
+        for (var kret of this.get_keyboth()) {
           var keybox = kret[2];
           
           ids.push(keybox.id);
@@ -1115,7 +1115,7 @@ export class DopeSheetEditor extends Area {
         var op = new ShiftTimeOp3();
         var ids = [];
         
-        for (var kret in this.get_keyboth()) {
+        for (var kret of this.get_keyboth()) {
           var keybox = kret[2];
           
           if (!keybox.select) continue;
@@ -1325,7 +1325,7 @@ export class DopeSheetEditor extends Area {
     var totpath = 0;
     var visit = {};
     
-    for (var kret in this.get_keyboth()) {
+    for (var kret of this.get_keyboth()) {
       var v = kret[0], vd = kret[1], keybox = kret[2];
       
       var id = keybox.type == KeyTypes.PATHSPLINE ? kret[1].eid : kret[1].path;
@@ -1406,7 +1406,7 @@ export class DopeSheetEditor extends Area {
     var borderclr = [0.3, 0.3, 0.3, 1.0];
     
     //for (var i=0; i<keys.length; i++) {
-    for (var kret in this.get_keyboth()) {
+    for (var kret of this.get_keyboth()) {
         var v = kret[0], vd = kret[1], keybox = kret[2];
         //var key = keys[i], v = key[0], vd = key[1], keybox = key[2]; 
         
@@ -1705,7 +1705,7 @@ export class DopeSheetEditor extends Area {
       var cache = ret.collapsed_cache;
       
       ret.collapsed_cache = {};
-      for (var path in ret.collapsed_map) {
+      for (var path of ret.collapsed_map) {
         ret.collapsed_cache[path] = true;
       }
       

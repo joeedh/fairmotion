@@ -79,14 +79,14 @@ export class ExtrudeVertOp extends SplineLocalToolOp {
     
     //find max z for later user
     var max_z = 1;
-    for (var f in spline.faces) {
+    for (var f of spline.faces) {
       if (!(layer.id in f.layers)) continue;
       
       max_z = Math.max(f.z, max_z);
     }
     
     var max_z_seg = max_z+1;
-    for (var s in spline.segments) {
+    for (var s of spline.segments) {
       if (!(layer.id in s.layers)) continue;
       
       max_z_seg = Math.max(max_z_seg, s.z);

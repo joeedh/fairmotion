@@ -419,7 +419,7 @@ class set {
     var arr = new Array(this.length);
     
     var i = 0;
-    for (var item in this.items) {
+    for (var item of this.items) {
       arr[i] = this.items[item];
       i += 1
     }

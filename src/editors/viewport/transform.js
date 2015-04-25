@@ -164,7 +164,7 @@ export class TransSplineVert {
     var layer = td.layer;
     
     for (var i=0; i<2; i++) {
-      for (var v in i ? spline.handles.selected.editable : spline.verts.selected.editable) {
+      for (var v of i ? spline.handles.selected.editable : spline.verts.selected.editable) {
         var co = new Vector3(v);
         
         if (i) {
@@ -351,14 +351,14 @@ export class TransData {
     
     this.minmax = new MinMax(3);
     
-    for (var t in this.types) {
+    for (var t of this.types) {
       t.gen_data(ctx, this, this.data);
     }
     
     if (this.doprop)
       this.calc_propweights();
     
-    for (var d in this.data) {
+    for (var d of this.data) {
       d.type.aabb(ctx, this, d, this.minmax, true);
     }
     
@@ -611,7 +611,7 @@ export class TransformOp extends ToolOp {
   }
   
   update(ctx) {
-    for (var t in this.transdata.types) {
+    for (var t of this.transdata.types) {
       t.update(ctx, this.transdata);
     }
   }
@@ -667,7 +667,7 @@ export class TranslateOp extends TransformOp {
     mat.makeIdentity();
     mat.translate(off[0], off[1], 0);
     
-    for (var d in td.data) {
+    for (var d of td.data) {
       d.type.apply(ctx, td, d, mat, d.w);
     }
     

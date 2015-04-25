@@ -228,7 +228,7 @@ export class ToolOp extends EventHandler, ToolOpAbstract {
   reset_drawlines(ctx=this.modal_ctx) {
     var view2d = ctx.view2d;
     
-    for (var dl in this.drawlines) {
+    for (var dl of this.drawlines) {
       view2d.kill_drawline(dl);
     }
     

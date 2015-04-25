@@ -1075,8 +1075,8 @@ export class SplineFace extends SplineElement {
     static minmax = new MinMax(3);
     
     minmax.reset();
-    for (var path in this.paths) {
-      for (var l in path) {
+    for (var path of this.paths) {
+      for (var l of path) {
         minmax.minmax(l.v.aabb[0]);
         minmax.minmax(l.v.aabb[1]);
         minmax.minmax(l.s.aabb[0]);

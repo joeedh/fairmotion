@@ -217,7 +217,7 @@ function get_editor_list() : GArray<Function> {
     ret = new GArray();
     console.log("Fix dependency here too");
     
-    for (var cls in defined_classes) {
+    for (var cls of defined_classes) {
       for (var i=0; i<cls.__parents__.length; i++) {
         if (cls.__parents__[i].name == "Area") {
           ret.push(cls);
@@ -236,7 +236,7 @@ export function gen_editor_switcher(Context ctx, Area parent) {
   var menu = new UIMenu("", undefined);
   
   var i = 0;
-  for (var e in editors) {
+  for (var e of editors) {
     if (!e.debug_only || !RELEASE)
       menu.add_item(e.uiname, "", e);
     i++;

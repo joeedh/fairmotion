@@ -128,7 +128,7 @@ export class DataStruct {
     
     this._flag = 0;
     
-    for (var p in this.paths) {
+    for (var p of this.paths) {
       p.parent = this;
       this.pathmap[p.name] = p
       if (p.type == DataPathTypes.PROP) {
@@ -211,7 +211,7 @@ export class DataStruct {
       }
     }
     if (val &  DataFlags.RECALC_CACHE) {
-      for (var p in this.paths) {
+      for (var p of this.paths) {
         recurse(p, DataFlags.RECALC_CACHE);
       }
     }
@@ -227,7 +227,7 @@ export class DataStruct {
   }
 
   replace(p, p2) {
-    for (var p2 in this.paths) {
+    for (var p2 of this.paths) {
       if (p2.name == p.name) {
         this.flag |= DataFlags.RECALC_CACHE;
         this.paths.remove(p2);
@@ -1000,7 +1000,7 @@ export class DataAPI {
     var sta = ret[0].data;
     
     var ret = [];
-    for (var key in sta.getkeyiter.call(list)) {
+    for (var key of sta.getkeyiter.call(list)) {
       var item = sta.getitem.call(list, key);
       if (!filter(item)) continue;
       

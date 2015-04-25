@@ -183,7 +183,7 @@ export class UIPackFrame extends UIFrame {
           return;
         }
         
-        for (var k in checkmap) {
+        for (var k of checkmap) {
           var check = checkmap[k];
           if (check == chk) {
             prop.ctx = this2.ctx;

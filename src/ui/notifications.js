@@ -143,7 +143,7 @@ export class NotificationManager {
       delete this.progbars[note.id];
     }
     
-    for (var e in this.emap[note._id]) {
+    for (var e of this.emap[note._id]) {
       if (e.parent instanceof NoteContainer) {
         e.parent.parent.do_full_recalc();
         e.parent.parent.remove(e);
@@ -165,13 +165,13 @@ export class NotificationManager {
       references we maintain in the UI code
      */
      
-    for (var e in list(this.emap[note._id])) {
+    for (var e of list(this.emap[note._id])) {
       if (e.defunct)
         this.emap[note._id].remove(e);
     }
     
     if (this.emap[note._id].length == 0) {
-      for (var c in g_app_state.screen.children) {
+      for (var c of g_app_state.screen.children) {
         if (!(c instanceof ScreenArea)) continue;
         if (c.area.note_area == undefined) continue;
         
@@ -197,7 +197,7 @@ export class NotificationManager {
     function callback(ProgressNote note) {
       if (!(note._id in this2.emap)) return;
       
-      for (var e in this2.emap[note._id]) {
+      for (var e of this2.emap[note._id]) {
         note.update_uielement(e);
       }
     }
@@ -214,7 +214,7 @@ export class NotificationManager {
     var dellist = this.cached_dellist;
     
     dellist.length = 0;
-    for (var n in this.notes) {
+    for (var n of this.notes) {
       if (n.defunct)
         dellist.push(n);
     }
@@ -301,7 +301,7 @@ export class NoteFrame extends ColumnFrame {
   }
   
   remove(UIElement e) {
-    for (var c in this.children) {
+    for (var c of this.children) {
       if (c.child == e) {
         prior(NoteFrame, this).remove.call(this, c);
         return;

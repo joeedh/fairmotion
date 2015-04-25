@@ -124,13 +124,13 @@ export class ColorTheme {
     
     var ks = new set(newtheme.colors.keys()).union(newtheme.boxcolors.keys());
     
-    for (var k in this.colors) {
+    for (var k of this.colors) {
       if (!ks.has(k)) {
         newtheme.colors.set(k, this.colors.get(k));
       }
     }
     
-    for (var k in this.boxcolors) {
+    for (var k of this.boxcolors) {
       if (!ks.has(k)) {
         newtheme.boxcolors.set(k, this.boxcolors.get(k));
       }
@@ -174,7 +174,7 @@ export class ColorTheme {
     //used to communicate with the data api
     this.flat_colors = new GArray();
     
-    for (var k in this.colors) {
+    for (var k of this.colors) {
       var c1 = this.colors.get(k), c2 = [0, 0, 0, 0];
       
       for (var i=0; i<4; i++) {
@@ -184,7 +184,7 @@ export class ColorTheme {
       this.flat_colors.push([k, c1]);
     }
     
-    for (var k in this.boxcolors) {
+    for (var k of this.boxcolors) {
       ret[k] = this.boxcolors.get(k).colors;
       this.flat_colors.push([k, this.boxcolors.get(k)]);
     }

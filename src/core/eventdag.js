@@ -552,7 +552,7 @@ export class EventDag {
   prune_dead_nodes() {
     var dellist = [];
     
-    for (var n in this.nodes) {
+    for (var n of this.nodes) {
       var tot = 0;
       
       for (var k in n.inputs) {
@@ -567,7 +567,7 @@ export class EventDag {
       }
     }
     
-    for (var n in dellist) {
+    for (var n of dellist) {
       this.remove(n);
     }
   }
@@ -578,7 +578,7 @@ export class EventDag {
     var sortlist = [];
     var visit = {};
     
-    for (var n in this.nodes) {
+    for (var n of this.nodes) {
       n.flag &= ~DagFlags.TEMP;
     }
     

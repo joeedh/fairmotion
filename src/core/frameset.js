@@ -964,11 +964,11 @@ export class SplineFrameSet extends DataBlock {
     var av3 = this.get_vdata(v.eid, true);
     
     var keyframes = new set();
-    for (var v in av1.verts) {
+    for (var v of av1.verts) {
       keyframes.add(get_vtime(v));
     }
     
-    for (var v in av2.verts) {
+    for (var v of av2.verts) {
       keyframes.add(get_vtime(v));
     }
     
@@ -980,7 +980,7 @@ export class SplineFrameSet extends DataBlock {
     av1.animflag &= VDAnimFlags.STEP_FUNC;
     av2.animflag &= VDAnimFlags.STEP_FUNC;
     
-    for (var time in keyframes) {
+    for (var time of keyframes) {
       var  co1 = av1.eval(time), co2 = av2.eval(time);
       
       co.load(co1).add(co2).mulScalar(0.5);
@@ -1057,7 +1057,7 @@ export class SplineFrameSet extends DataBlock {
     var drawlayer = this.pathspline.layerset.idmap[this.templayerid];
     vd.visible = !hide;
     
-    for (var v in vd.verts) {
+    for (var v of vd.verts) {
       v.sethide(hide);
       
       for (var i=0; i<v.segments.length; i++) {
@@ -1164,7 +1164,7 @@ export class SplineFrameSet extends DataBlock {
     console.trace("downloading. . .");
     var resolve = 0;
     
-    for (var v in this.spline.points) {
+    for (var v of this.spline.points) {
       if (v.eid in this.vertex_animdata) {// && (v.flag & SplineFlags.FRAME_DIRTY)) {
         var vdata = this.get_vdata(v.eid, false);
         
@@ -1193,7 +1193,7 @@ export class SplineFrameSet extends DataBlock {
     var is_first = time <= 1; //this.framelist.length == 0 || time == this.framelist[0];
     var found = false;
     
-    for (var v in spline.points) {
+    for (var v of spline.points) {
       if (!(v.eid in spline.eidmap)) {
         found = true;
       }
@@ -1414,7 +1414,7 @@ export class SplineFrameSet extends DataBlock {
       
       list.layerset = spline.layerset;
       
-      for (var e in list) {
+      for (var e of list) {
         e.layers = {};
       }
     }
@@ -1425,7 +1425,7 @@ export class SplineFrameSet extends DataBlock {
       vlayer.flag |= SplineLayerFlags.HIDE;
       
       vd.layerid = vlayer.id;
-      for (var v in vd.verts) {
+      for (var v of vd.verts) {
         for (var i=0; i<v.segments.length; i++) {
           vlayer.add(v.segments[i]);
         }
@@ -1456,14 +1456,14 @@ export class SplineFrameSet extends DataBlock {
       ret.pathspline = ret.make_pathspline();
     }
     
-    for (v in ret.pathspline.verts) {
+    for (v of ret.pathspline.verts) {
      // v.flag |= SplineFlags.UPDATE;
     }
-    for (var h in ret.pathspline.handles) {
+    for (var h of ret.pathspline.handles) {
      // h.flag |= SplineFlags.UPDATE;
     }
     
-    for (var vd in ret.vertex_animdata) {
+    for (var vd of ret.vertex_animdata) {
       vd.spline = ret.pathspline;
       
       if (vd.layerid == undefined) {

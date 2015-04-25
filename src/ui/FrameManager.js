@@ -208,10 +208,10 @@ export class Area extends UIFrame {
   
   on_add(parent)
   {
-    for (var c in this.rows) {
+    for (var c of this.rows) {
       this.remove(c);
     }
-    for (var c in this.cols) {
+    for (var c of this.cols) {
       this.remove(c);
     }
     
@@ -245,18 +245,18 @@ export class Area extends UIFrame {
     oldsize = this.size;
     this.size = newsize;
     
-    for (var c in this.rows) {
+    for (var c of this.rows) {
       if (c.pos[1] > 70)
         c.pos[1] = this.size[1] - Area.get_barhgt();
         
       c.size[0] = this.size[0];
     }
     
-    for (var c in this.cols) {
+    for (var c of this.cols) {
       c.size[1] = this.size[1]-Area.get_barhgt()*2;
     }
     
-    for (var c in this.children) {
+    for (var c of this.children) {
       if (this.canvas != undefined && c.canvas == undefined) 
         c.canvas = this.canvas;
       
@@ -409,7 +409,7 @@ export class ScreenArea extends UIFrame {
     var editarr = new GArray(ob.editors);
     
     var screens2 = {}
-    for (var scr in editarr) {
+    for (var scr of editarr) {
       if (scr.constructor.name == ob.area) {
         ob.area = scr;
       }
@@ -445,7 +445,7 @@ export class ScreenArea extends UIFrame {
   {
     this.active = this.area;
     
-    for (var c in this.children) {
+    for (var c of this.children) {
       c.on_add(this);
     }
   }
@@ -552,7 +552,7 @@ export class ScreenArea extends UIFrame {
     
     this.area.on_resize(this.area.size, oldsize);
     
-    for (var c in this.children) {
+    for (var c of this.children) {
       if (c != this.area)
         c.on_resize(newsize, oldsize);
     }
@@ -893,7 +893,7 @@ export class ScreenBorder extends UIElement {
 
   movable_border() : Boolean {
     var count = 0;
-    for (var c in this.parent.children) {
+    for (var c of this.parent.children) {
       if (!(c instanceof ScreenArea))
         continue;
       
@@ -939,7 +939,7 @@ export class ScreenBorder extends UIElement {
   build_mesh() {
     this.borders = new GArray();
     var i = 0;
-    for (var c in this.parent.children) {
+    for (var c of this.parent.children) {
       if (c instanceof ScreenBorder) {
         c.ci = i++;
         this.borders.push(c);
@@ -949,7 +949,7 @@ export class ScreenBorder extends UIElement {
     var edges = {};
     var verts = {};
     var vert_edges = {};
-    for (var b in this.borders) {
+    for (var b of this.borders) {
       var ret = b.get_edge();
       var v1 = ret[0];
       var v2 = ret[1];
@@ -1052,7 +1052,7 @@ export class ScreenBorder extends UIElement {
       var j=0;
       while (1) {
         var nv = null;
-        for (var eh in vert_edges[this.hash_vert(v)]) {
+        for (var eh of vert_edges[this.hash_vert(v)]) {
           if (eh == he) continue;
           var b = edges[eh][0];
           if ((b.size[0] > b.size[1]) == (this.size[0] > this.size[1])) {
@@ -1082,8 +1082,8 @@ export class ScreenBorder extends UIElement {
       }
     }
     
-    for (var e in es) {
-      for (var b in e) {
+    for (var e of es) {
+      for (var b of e) {
         this.areas.add([b.area, b.bindex]);
       }
     }
@@ -1121,7 +1121,7 @@ export class ScreenBorder extends UIElement {
     
     var delta = mpos[axis] - start[axis];
     
-    for (var p in areas) {
+    for (var p of areas) {
       var a = p[0];
       var oldsize = new Vector2(a.size);
       
@@ -1303,7 +1303,7 @@ export class Screen extends UIFrame {
     
     ob.areas = new GArray(ob.areas);
     
-    for (var c in ob.areas) {
+    for (var c of ob.areas) {
       c.parent = ob;
     }
     
@@ -1392,7 +1392,7 @@ export class Screen extends UIFrame {
       console.log("mmove", [e.x, e.y])
     
     this.mpos = [e.x, e.y];
-    for (var c in this.children) {
+    for (var c of this.children) {
       c.mpos = new Vector2([e.x-c.pos[0], e.y-c.pos[1]])
     }
     
@@ -1437,7 +1437,7 @@ export class Screen extends UIFrame {
       console.log("mdown", [e.x, e.y], e.button)
     
     this.mpos = [e.x, e.y];  
-    for (var c in this.children) {
+    for (var c of this.children) {
       c.mpos = new Vector2([e.x-c.pos[0], e.y-c.pos[1]])
     }
     
@@ -1462,7 +1462,7 @@ export class Screen extends UIFrame {
     if (DEBUG.mouse)
       console.log("mouseup", [e.x, e.y], e.button)
     this.mpos = [e.x, e.y];
-    for (var c in this.children) {
+    for (var c of this.children) {
       c.mpos = new Vector2([e.x-c.pos[0], e.y-c.pos[1]])
     }
     
@@ -1514,7 +1514,7 @@ export class Screen extends UIFrame {
     
     event = event2;
     
-    for (var item in this.modup_time_ms) {
+    for (var item of this.modup_time_ms) {
       if (item[2] == charmap["Shift"])
         event.shiftKey = true;
       if (item[2] == charmap["Alt"])
@@ -1588,7 +1588,7 @@ export class Screen extends UIFrame {
     //deal with delayed modifier key events
     var mod_delay = 60;
     
-    for (var s in list(this.modup_time_ms)) {
+    for (var s of list(this.modup_time_ms)) {
       if (time_ms() - s[0] > mod_delay) {
         if (s[1].keyCode == charmap["Shift"]) {
           s[1].altKey = this.alt;
@@ -1646,7 +1646,7 @@ export class Screen extends UIFrame {
     this.on_tick();
     
     var ready = this.tick_timer.ready();
-    for (var c in this.children) {
+    for (var c of this.children) {
       if (c instanceof ScreenArea) {
         var area = this.area_event_push();
         
@@ -1751,7 +1751,7 @@ export class Screen extends UIFrame {
       g_app_state.session.validate_session();
     }
     
-    for (var c in this.children) {
+    for (var c of this.children) {
       this.draw_active = c;
       
       if (c instanceof ScreenArea) {
@@ -1785,7 +1785,7 @@ export class Screen extends UIFrame {
     if (oldsize[0] == 0.0 || oldsize[1] == 0.0)
       return;
     
-    for (var c in this.children) {
+    for (var c of this.children) {
       c.pos[0] *= ratio[0];
       c.pos[1] *= ratio[1];
       c.pos[0] = Math.ceil(c.pos[0])
@@ -1803,7 +1803,7 @@ export class Screen extends UIFrame {
    
     this.snap_areas();
     
-    for (var c in this.children) {
+    for (var c of this.children) {
       //if (c instanceof ScreenArea && c.area instanceof View2DHandler)
       //  g_app_state.active_view2d = c.area;
       
@@ -1815,7 +1815,7 @@ export class Screen extends UIFrame {
     //first ensure all areas are within the screen bounds
     //return;
     
-    for (var sa in this.children) {
+    for (var sa of this.children) {
       if (!(sa instanceof ScreenArea))
         continue;
       
@@ -1830,11 +1830,11 @@ export class Screen extends UIFrame {
     for (var i=0; !found && i<128; i++) {
       var found = false;
       
-      for (var c1 in this.children) {
+      for (var c1 of this.children) {
         if (!(c1 instanceof ScreenArea))
           continue;
           
-        for (var c2 in this.children) {
+        for (var c2 of this.children) {
           if (!(c2 instanceof ScreenArea))
             continue;
             
@@ -1897,7 +1897,7 @@ export class Screen extends UIFrame {
   
   recalc_all_borders() 
   {
-    for (var c in this.children) { 
+    for (var c of this.children) { 
       if (c instanceof ScreenArea) {
         this.recalc_child_borders(c);
       }
@@ -1961,7 +1961,7 @@ export class Screen extends UIFrame {
     }
     
     if (view2d == undefined) {
-      for (var c in this.children) {
+      for (var c of this.children) {
         if (!(c instanceof ScreenArea))
           continue;
         
@@ -2018,7 +2018,7 @@ export class Screen extends UIFrame {
     var this2 = this;
     
     function clear_recalc(e, d) {
-      for (var c in e.children) {
+      for (var c of e.children) {
         //c.recalc = 0;
         //if (canvas != undefined && c.canvas == undefined)
         //  c.canvas = canvas;
@@ -2075,7 +2075,7 @@ export class Screen extends UIFrame {
     this.do_partial_clip();
     
     function descend(n, canvas, ctx) {
-      for (var c in n.children) {
+      for (var c of n.children) {
         c.canvas = canvas;
         c.ctx = ctx;
         
@@ -2108,14 +2108,14 @@ export class Screen extends UIFrame {
     //have got to decouple context from View2DHandler
     this.ctx = new Context();
     
-    for (var c in this.areas) {
+    for (var c of this.areas) {
       c.data_link(block, getblock, getblock_us);
     }
     
     var areas = this.areas;
     this.areas = new GArray()
     
-    for (var a in areas) {
+    for (var a of areas) {
       this.add(a);
     }
   }

@@ -73,11 +73,11 @@ export class UIFrame extends UIElement {
   //avoid GC leaks in edge cases
   set children(GArray<UIElement> cs) {
     var cset = new set();
-    for (var c in cs) {
+    for (var c of cs) {
       cset.add(c);
     }
     
-    for (var c in list(this._children)) {
+    for (var c of list(this._children)) {
       if (!cset.has(c)) {
         c.on_remove(this);
         c.parent = undefined;
@@ -86,7 +86,7 @@ export class UIFrame extends UIElement {
     }
     
     this._children.reset();
-    for (var c in cs) {
+    for (var c of cs) {
       if (!cset.has(c)) {
         this.add(c);
       } else {
@@ -99,13 +99,13 @@ export class UIFrame extends UIElement {
     in hidden elements, e.g. collapsed panels,
     inactive tabs*/
   on_saved_uidata(Function visit_func) {
-    for (var c in this.children) {
+    for (var c of this.children) {
       visit_func(c);
     }
   }
   
   on_load_uidata(Function visit) {
-    for (var c in this.children) {
+    for (var c of this.children) {
       visit(c);
     }
   }
@@ -207,7 +207,7 @@ export class UIFrame extends UIElement {
     
     this.do_recalc();
     
-    for (var c in this.children) {
+    for (var c of this.children) {
       if (c instanceof UIFrame) 
         c.do_full_recalc();
       else
@@ -223,7 +223,7 @@ export class UIFrame extends UIElement {
     
     this.do_full_recalc();
     
-    for (var c in this.children) {
+    for (var c of this.children) {
       c.do_recalc();
       c.on_resize(newsize, oldsize);
     }
@@ -565,7 +565,7 @@ export class UIFrame extends UIElement {
   _set_pan(UIElement e) {
     e.state |= UIFlags.USE_PAN;
     if (e instanceof UIFrame) {
-      for (var c in e.children) {
+      for (var c of e.children) {
         this._set_pan(c);
       }
     }
@@ -685,7 +685,7 @@ export class UIFrame extends UIElement {
   set_context(ctx)
   {
     this.ctx = ctx;
-    for (var c in this.children) {
+    for (var c of this.children) {
       c.set_context(ctx);
     }
   }
@@ -735,7 +735,7 @@ export class UIFrame extends UIElement {
     var first = true;
     
     var margin = 1;
-    for (var r in this.dirty_rects) {
+    for (var r of this.dirty_rects) {
       if (first) {
         first = false;
         ret[0][0] = r[0][0]-margin;
@@ -751,7 +751,7 @@ export class UIFrame extends UIElement {
       }
     }
     
-    for (var c in this.children) {
+    for (var c of this.children) {
       //XXX
       if (c.constructor.name == "ScreenBorder") 
         continue;
@@ -842,7 +842,7 @@ export class UIFrame extends UIElement {
       //canvas.simple_box([d[0][0], d[0][1]], [d[1][0], d[1][1]], this.bgcolor, this.rcorner);
     }
     
-    for (var c in this.children) {
+    for (var c of this.children) {
       c.canvas = this.canvas;
       //if (c.canvas == undefined) c.canvas = this.canvas;
       
@@ -1078,7 +1078,7 @@ export class UIFrame extends UIElement {
      
       this.state |= UIFlags.USE_PAN;
       function recurse(f) {
-        for (var c in f.children) {
+        for (var c of f.children) {
           c.state |= UIFlags.USE_PAN;
           if (c instanceof UIFrame)
             recurse(c);
@@ -1092,7 +1092,7 @@ export class UIFrame extends UIElement {
       this.velpan.on_tick();
     }
     
-    for (var c in this.children) {
+    for (var c of this.children) {
       try {
         if (pre_func != undefined)
           pre_func(c);
@@ -1115,7 +1115,7 @@ export class UIFrame extends UIElement {
   }
 
   pack(UICanvas canvas, Boolean isVertical) {
-    for (var c in this.children) {
+    for (var c of this.children) {
       if (c.recalc && !(c.packflag & PackFlags.NO_REPACK))
         c.pack(canvas, isVertical);
     }  

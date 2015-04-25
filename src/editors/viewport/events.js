@@ -814,7 +814,7 @@ export class TouchEventManager {
     }
     
     //pop events from queue before firing them
-    for (var e in dl) {
+    for (var e of dl) {
       var i = q.indexOf(e);
       
       q.remove(e);
@@ -822,7 +822,7 @@ export class TouchEventManager {
     }
     
     //now, fire events
-    for (var e in dl) {
+    for (var e of dl) {
       e._good = true;
       g_app_state.was_touch = true;
       

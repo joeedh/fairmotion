@@ -61,7 +61,7 @@ export function sort_layer_segments(layer, spline) {
     list.push(seg);
   }
   
-  for (var s in spline.segments) {
+  for (var s of spline.segments) {
     if (!(layerid in s.layers))
       continue;
     
@@ -73,7 +73,7 @@ export function sort_layer_segments(layer, spline) {
   }
   
   //we should be  finished, but just in case. . .
-  for (var s in spline.segments) {
+  for (var s of spline.segments) {
     if (!(layerid in s.layers))
       continue;
     
@@ -89,7 +89,7 @@ export function redo_draw_sort(spline) {
   var max_z = -1e14;
   var layerset = spline.layerset;
   
-  for (var f in spline.faces) {
+  for (var f of spline.faces) {
     if (isNaN(f.z))
       f.z = 0;
       
@@ -97,7 +97,7 @@ export function redo_draw_sort(spline) {
     min_z = Math.min(min_z, f.z+1);
   }
   
-  for (var s in spline.segments) {
+  for (var s of spline.segments) {
     if (isNaN(s.z))
       s.z = 0;
       
@@ -137,7 +137,7 @@ export function redo_draw_sort(spline) {
   var ll = spline.draw_layerlist = []; //layer id of which layer each draw element lives in
   spline._layer_maxz = max_z;
   
-  for (var f in spline.faces) {
+  for (var f of spline.faces) {
     dl.push(f);
   }
   //okay, build segment list by laters
@@ -158,7 +158,7 @@ export function redo_draw_sort(spline) {
   }
   
   //handle orphaned segments
-  for (var s in spline.segments) {
+  for (var s of spline.segments) {
     if (!(s.eid in visit)) {
       console.log("WARNING: orphaned segment", s.eid, "is not in any layer", s);
       dl.push(s);
@@ -263,15 +263,15 @@ export function draw_spline(spline, g, editor, selectmode, only_render, draw_nor
   var black = "black";
   var r = window.redraw_rect_combined;
   
-  for (var s in spline.segments) {
+  for (var s of spline.segments) {
     s.flag &= ~SplineFlags.DRAW_TEMP;
   }
-  for (var f in spline.faces) {
+  for (var f of spline.faces) {
     f.flag &= ~SplineFlags.DRAW_TEMP;
   }
 
   var ghostflag = SplineFlags.GHOST;
-  for (var seg in spline.segments) {
+  for (var seg of spline.segments) {
     smin.zero().load(seg.aabb[0]);
     smax.zero().load(seg.aabb[1]);
     
@@ -434,11 +434,11 @@ export function draw_spline(spline, g, editor, selectmode, only_render, draw_nor
     //if (!(f.flag & SplineFlags.DRAW_TEMP))
     //  return;
     var lastco = new Vector3();
-    for (var path in f.paths) {
+    for (var path of f.paths) {
       var first = true;
       var lastco, lastdv;
       
-      for (var l in path) {
+      for (var l of path) {
         var seg = l.s;
         var length = seg.length;
         

@@ -274,7 +274,7 @@ export class ShiftTimeOp3 extends ToolOp {
   undo_pre(ctx) {
     var ud = this._undo = {};
     
-    for (var id in this.inputs.phantom_ids.data) {
+    for (var id of this.inputs.phantom_ids.data) {
       ud[id] = get_time(ctx, id);
     }
   }
@@ -298,7 +298,7 @@ export class ShiftTimeOp3 extends ToolOp {
     var off = this.inputs.factor.data;
     
     var ids = this.inputs.phantom_ids.data;
-    for (var id in ids) {
+    for (var id of ids) {
       starts[id] = get_time(ctx, id);
     }
     
@@ -308,7 +308,7 @@ export class ShiftTimeOp3 extends ToolOp {
     for (var k in frameset.vertex_animdata) {
       var vd = frameset.vertex_animdata[k];
       
-      for (var v in vd.verts) {
+      for (var v of vd.verts) {
         vdmap[v.eid] = k;
       }
     }
@@ -316,11 +316,11 @@ export class ShiftTimeOp3 extends ToolOp {
     console.log("time shift", off);
     
     var kcache = ctx.frameset.kcache;
-    for (var id in ids) {
+    for (var id of ids) {
       set_time(ctx, id, starts[id]+off);
     }
     
-    for (var id in ids) {
+    for (var id of ids) {
       var min=undefined, max=undefined;
       
       if (id & KeyTypes.PATHSPLINE) {
@@ -383,7 +383,7 @@ export class SelectOpBase extends ToolOp {
   undo_pre(ctx) {
     var undo = this._undo = {};
     
-    for (var id in this.inputs.phantom_ids.data) {
+    for (var id of this.inputs.phantom_ids.data) {
       undo[id] = get_select(ctx, id);
     }
   }
@@ -411,12 +411,12 @@ export class SelectOp extends SelectOpBase {
     var state = this.inputs.state.data;
     
     if (this.inputs.unique.data) {
-      for (var id in this.inputs.phantom_ids.data) {
+      for (var id of this.inputs.phantom_ids.data) {
         set_select(ctx, id, false);
       }
     }
     
-    for (var id in this.inputs.select_ids.data) {
+    for (var id of this.inputs.select_ids.data) {
       set_select(ctx, id, state);
     }
   }

@@ -35,7 +35,7 @@ export class SplineLayer extends set {
   _to_EIDs() {
     var ret = [];
     
-    for (var e in this) {
+    for (var e of this) {
       ret.push(e.eid);
     }
     
@@ -53,7 +53,7 @@ export class SplineLayer extends set {
   afterSTRUCT(spline) {
     if (this.eids == undefined) return;
     
-    for (var eid in this.eids) {
+    for (var eid of this.eids) {
       this.add(spline.eidmap[eid]);
     }
     
@@ -262,7 +262,7 @@ export class SplineLayerSet extends Array {
   }
   
   afterSTRUCT(spline) {
-    for (var layer in this) {
+    for (var layer of this) {
       layer.afterSTRUCT(spline);
     }
   }
@@ -508,7 +508,7 @@ export class ElementArray extends GArray, DataPathNode {
   
   //this is a customdata layer callbacks, not layer layer callbacks
   on_layer_add(layer, i) {
-    for (var e in this) {
+    for (var e of this) {
       e.cdata.on_add(layercls, i);
     }
   }
@@ -667,7 +667,7 @@ export class ElementArray extends GArray, DataPathNode {
     //patch old files
     //console.log(this.cdata);
     
-    for (var e in this) {
+    for (var e of this) {
       this.local_idmap[e.eid] = e;
       
       if (e.cdata == undefined) {

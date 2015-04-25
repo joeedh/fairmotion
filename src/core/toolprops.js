@@ -101,7 +101,7 @@ export class ToolProperty {
   }
   
   _exec_listeners() {
-    for (var l in this.listeners) {
+    for (var l of this.listeners) {
       if (RELEASE) {
         try {
           l[1](l[0], this);

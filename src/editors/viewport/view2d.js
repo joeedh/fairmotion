@@ -690,7 +690,7 @@ export class View2DHandler extends Area {
     this.editor.ctx = this.ctx;
     
     var fl = Math.floor;
-    for (var dl in this.drawlines) {
+    for (var dl of this.drawlines) {
       var a = dl.clr[3] != undefined ? dl.clr[3] : 1.0;
       
       g.strokeStyle = "rgba("+fl(dl.clr[0]*255)+","+fl(dl.clr[1]*255)+","+fl(dl.clr[2]*255)+","+a+")";
@@ -849,11 +849,11 @@ export class View2DHandler extends Area {
       c.size[0] = this.size[0];
     }*/
     
-    for (var c in this.cols) {
+    for (var c of this.cols) {
       c.size[1] = this.size[1]-Area.get_barhgt()*2;
     }
     
-    for (var c in this.children) {
+    for (var c of this.children) {
       if (this.canvas != undefined) 
         c.canvas = this.canvas;
       

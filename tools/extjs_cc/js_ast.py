@@ -1638,6 +1638,8 @@ class ForCNode(Node):
   
 class ForInNode(Node):
   def __init__(self, var, list):
+    self.of_keyword = "in"
+    
     super(ForInNode, self).__init__()
     self.add(var)
     self.add(list)

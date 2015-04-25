@@ -1990,15 +1990,33 @@ def p_for_var_decl(p):
     p[0].local = True
     p[0].add(p[0].type)
     
+#is 'of' a reserved keyword?
+#it must be, because otherwise the grammar is ambiguous
+#unless I'm doing something wrong, that is
+def p_in_or_of(p):
+  '''in_or_of : IN
+              | OF
+  '''
+  #if p[1] not in ["in", "of"]:
+  #  raise SyntaxError()
   
+  p[0] = p[1]
+
+
 def p_for_decl(p):
   '''
     for_decl : for_var_decl SEMI expr_opt SEMI expr_opt
-             | for_var_decl IN expr
+             | for_var_decl in_or_of expr
   '''
+  
   set_parse_globals(p)
   if len(p) == 4:
+    of_keyword = p[2]
+    #if of_keyword not in ["in", "of"]:
+    #  raise SyntaxError()
+    
     p[0] = ForInNode(p[1], p[3])
+    p[0].of_keyword = of_keyword
   else:
     p[0] = ForCNode(p[1], p[3], p[5])
   

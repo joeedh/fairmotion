@@ -8,7 +8,8 @@ glob_cmd_help_override = {
   "g_line" : "Most recently parsed line",
   "g_lexpos" : "Most recently parsed lexical position",
   "g_gen_log_code" : "Generate type logging code",
-  "g_harmony_iterators" : "expansion of es6 harmony for-loops; Python's StopIteration style will be used instead."
+  "g_harmony_iterators" : "expansion of es6 harmony for-loops; Python's StopIteration style will be used instead.",
+  "g_log_forloops" : "add extra data for logging for loops"
 }
 glob_cmd_short_override = {}
 
@@ -41,6 +42,7 @@ gcs["g_gen_es6"] = "es6"
 gcs["g_validate_classes"] = "vc"
 gcs["g_require_js"] = "rj"
 gcs["g_es6_modules"] = "nm"
+gcs["g_log_forloops"] = "lf"
 
 def argv_to_argline():
   s = ""
@@ -261,5 +263,6 @@ class Glob(AbstractGlob):
     g_validate_classes = False
     g_require_js = False
     g_es6_modules = True
+    g_log_forloops = True
     
 glob = Glob()

@@ -678,7 +678,7 @@ def build_target(files):
     if build_cmd != "loop":
       sys.exit(-1)
     else:
-      return
+      return 0
         
   for pathtime in built_files:
     if pathtime[0] in db:

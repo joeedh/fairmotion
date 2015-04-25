@@ -31,6 +31,59 @@ var hclr_h = "#eeff66"
 
 var clr = "#444444";
 
+export function sort_layer_segments(layer, spline) {
+  var list = [];
+  var visit = {};
+  var layerid = layer.id;
+  
+  function recurse(seg) {
+    if (seg.eid in visit) {
+      return;
+    }
+    
+    visit[seg.eid] = 1;
+    
+    for (var i=0; i<2; i++) { 
+      var v = i ? seg.v2 : seg.v1;
+      if (v.segments.length != 2)
+        continue;
+          
+      for (var j=0; j<v.segments.length; j++) {
+        var s2 = v.segments[j];
+        
+          
+        if (!(s2.eid in visit)) {
+          recurse(s2);
+        }
+      }
+    }
+    
+    list.push(seg);
+  }
+  
+  for (var s in spline.segments) {
+    if (!(layerid in s.layers))
+      continue;
+    
+    //start at one-valence verts first
+    if (s.v1.segments.length == 2 && s.v2.segments.length == 2)
+      continue;
+      
+    recurse(s);
+  }
+  
+  //we should be  finished, but just in case. . .
+  for (var s in spline.segments) {
+    if (!(layerid in s.layers))
+      continue;
+    
+    if (!(s.eid in visit))
+      recurse(s);
+  }
+  
+  return list;
+}
+
 export function redo_draw_sort(spline) {
   var min_z = 1e14;
   var max_z = -1e14;
@@ -87,8 +140,29 @@ export function redo_draw_sort(spline) {
   for (var f in spline.faces) {
     dl.push(f);
   }
+  //okay, build segment list by laters
+  
+  var visit = {};
+  for (var i=0; i<spline.layerset.length; i++) {
+    var layer = spline.layerset[i];
+    
+    var elist = sort_layer_segments(layer, spline);
+    for (var j=0; j<elist.length; j++) {
+      var s = elist[j];
+      
+      if (!(s.eid in visit))
+        dl.push(elist[j]);
+        
+      visit[s.eid] = 1;
+    }
+  }
+  
+  //handle orphaned segments
   for (var s in spline.segments) {
-    dl.push(s);
+    if (!(s.eid in visit)) {
+      console.log("WARNING: orphaned segment", s.eid, "is not in any layer", s);
+      dl.push(s);
+    }
   }
   
   dl.sort(function(a, b) {
@@ -130,6 +204,7 @@ export function draw_spline(spline, g, editor, selectmode, only_render, draw_nor
   var b1 = spline_draw_cache_vs.next(), b2 = spline_draw_cache_vs.next();
   var b3 = spline_draw_cache_vs.next();
   var co = spline_draw_cache_vs.next();
+  var dostroke = false;
   
   var lastdv = spline_draw_cache_vs.next();
   
@@ -224,12 +299,11 @@ export function draw_spline(spline, g, editor, selectmode, only_render, draw_nor
     }
   }
   
-  function draw_segment(seg, alpha2, line_width_scale, pixel_off) {
+  function draw_segment(seg, alpha2, line_width_scale, reset, reverse) {
     if (line_width_scale == undefined)
       line_width_scale = 1.0;
-    if (pixel_off == undefined)
-      pixel_off = 0.0;
-    
+    var pixel_off = 0.0;
+
     var is_ghost = (seg.v1.flag & ghostflag) || (seg.v2.flag & ghostflag) || (seg.flag & ghostflag);
     is_ghost = !only_render && is_ghost;
     
@@ -251,8 +325,8 @@ export function draw_spline(spline, g, editor, selectmode, only_render, draw_nor
     
     var color;
     if (seg.in_layer(actlayer) && !only_render && (selectmode & SelMask.SEGMENT)) {
-      
       color = "rgba(0,0,0,"+alpha2+")";
+      
       if (seg == spline.segments.highlight)
         color = hclr;
       else if (seg == spline.segments.active)
@@ -273,21 +347,34 @@ export function draw_spline(spline, g, editor, selectmode, only_render, draw_nor
     }
     
     g.strokeStyle = color;
-    g.beginPath();
     
     g.lineWidth = seg.mat.linewidth*zoom*line_width_scale;
     var is_line = false; //seg.is_line;
     
     var df = 0.001;
     var s1 = seg.v1.segments.length < 2 ? pixel_off : 0.0;
-    
     var finals = seg.v2.segments.length < 2 ? Math.min((length - pixel_off) / length, 1.0) : 1.0;
+    var ds = stepsize;
     
-    for (var j=0; s1 < length+stepsize; s1 += stepsize, j++) {
+    if (reverse) {
+      s1 = seg.length - s1;
+      finals = 1.0 - finals;
+      ds = -ds;
+      stepsize = -stepsize;
+    }
+    
+    if (isNaN(length))
+      return;
+      
+    var stop = false;
+    var __c = 0;
+    for (var j=0; !stop; s1 += ds, j++) {
       var s = s1/(length);
       
-      if (s > 1.0) {
-        s1 = length+stepsize;
+      if (__c++ > 100) break;
+      
+      if ((!reverse && s > 1.0) || (reverse && s <= 0)) {
+        stop = true;
         s = finals;
       }
       
@@ -303,8 +390,10 @@ export function draw_spline(spline, g, editor, selectmode, only_render, draw_nor
       
       dv2.mulScalar(1/(3*(length/stepsize)));
       
-      if (lastco == undefined) {
+      if (lastco == undefined && reset) {
         g.moveTo(co[0], co[1]);
+      } else if (lastco == undefined) {
+        g.lineTo(co[0], co[1]);
       } else {
         var dv = lastdv;
         // /*
@@ -442,6 +531,8 @@ export function draw_spline(spline, g, editor, selectmode, only_render, draw_nor
   var clip_stack = 0;
   var do_blur = only_render || editor.enable_blur;
   var draw_faces = only_render || editor.draw_faces;
+  var last_segment = undefined;
+  var reverse = 0;
   
   for (var i=0; i<drawlist.length; i++) {
     var layer = layerset.idmap[layerlist[i]];
@@ -519,20 +610,54 @@ export function draw_spline(spline, g, editor, selectmode, only_render, draw_nor
           g.clip();
           
           if (c > 1000) break;
+          
           l = l.radial_next;
         } while (l != e.l);
       }
 
+      var reset = 1;
+      
+      if (last_segment != undefined) {
+        var v1 = e.v1, v2 = e.v2, v3 = last_segment.v1, v4 = last_segment.v2, v;
+        
+        reset = v1 != v3 && v1 != v4 && v2 != v3 && v2 != v4;
+        
+        if (!reset) {
+          var v = v1 == v3 || v1 == v4 ? v1 : v2;
+          
+          if ((v == last_segment.v2) ^ reverse) {
+            reset = 1;
+          } else if ((v == last_segment.v1) == (v == e.v1)) {
+            reverse ^= 1;
+          }
+        }
+      }
+      
+      if (reset) {
+        if (dostroke)
+          g.stroke();
+        
+        dostroke = true;
+        g.beginPath();
+        reverse = (e.v1.segments.length == 2)
+      }
+      
       if (do_blur && e.mat.blur != 0.0) {
         draw_blur(e, e.mat.strokecolor, draw_segment, e.mat.blur);
       } else {
-        draw_segment(e);
+        draw_segment(e, undefined, undefined, reset, !reverse);
       }
       
+      last_segment = e;
       if (e.l != undefined && (e.mat.flag & MaterialFlags.MASK_TO_FACE)) {
         g.restore();
       }
     } else if (draw_faces && e.type == SplineTypes.FACE) {
+      g.beginPath();
+      last_segment = undefined;
+      reverse = 0;
+      dostroke = false;
+      
       if (do_blur && e.mat.blur != 0.0) {
         draw_blur(e, e.mat.fillcolor, draw_face, e.mat.blur);
       } else {
@@ -546,6 +671,7 @@ export function draw_spline(spline, g, editor, selectmode, only_render, draw_nor
     g.restore();
   }
   
+  g.beginPath();
   if (!only_render && (selectmode & SelMask.SEGMENT)) {
     for (var s in spline.segments.selected) {
       draw_segment(s, 0.1);

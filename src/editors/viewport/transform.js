@@ -505,11 +505,19 @@ export class TransformOp extends ToolOp {
     //return;
     var td = this.transdata;
     var md = this.modaldata;
- 
-    if (md.draw_minmax == undefined)
+    var do_last = true;
+    
+    static min1 = new Vector3(), max1 = new Vector3();
+    
+    if (md.draw_minmax == undefined) {
       md.draw_minmax = new MinMax(3);
-
+      do_last = false;
+    }
+    
     var minmax = md.draw_minmax;
+    
+    min1.load(minmax.min);
+    max1.load(minmax.max);
     //static calc_draw_aabb(Context, TransData td, MinMax minmax) {
 
     minmax.reset();
@@ -524,6 +532,12 @@ export class TransformOp extends ToolOp {
       minmax.max[i] += 10;
     }
     
+    for (var i=0; do_last && i<3; i++) {
+      min1[i] = Math.min(min1[i], minmax.min[i]);
+      max1[i] = Math.max(max1[i], minmax.max[i]);
+    }
+    
+    //redraw max of current and last min/max
     redraw_viewport(minmax.min, minmax.max);
   }
   

@@ -817,6 +817,7 @@ function delattr(obj, attr) {
   compiling code like "for (var a in c)" to
   ECMAScript5.1; rather, it calls __get_iter(c).
 */
+/*
 function __get_iter(obj)
 {
   if (obj == undefined) {
@@ -835,6 +836,7 @@ function __get_iter(obj)
     return new arr_iter(keys);
   }
 }
+*/
 
 function _KeyValIterator(obj)
 {

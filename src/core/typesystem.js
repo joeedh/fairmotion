@@ -725,12 +725,29 @@ function arr_iter(keys)
   }
 }
 
+var _forin_data = {};
+
+function save_forin_conv() {
+    s = ""
+    lst = Object.keys(_forin_data)
+    lst.sort();
+    
+    var buf = lst.join("\n")
+    
+    var blob = new Blob([buf], {type: "text/plain"});
+    
+    var obj_url = window.URL.createObjectURL(blob);
+    window.open(obj_url);
+}
+
 /*the grand __get_iter function.
-  extjs_cc does not use c.__it erator__ when
+  extjs_cc does not use c.__iterator__ when
   compiling code like "for (var a in c)" to
   harmony ECMAScript; rather, it calls __get_iter(c).
+  
+  keyword is either "in" or "of"
 */
-function __get_iter(obj)
+function __get_iter(obj, file, line, keyword)
 {
   if (obj == undefined) {
     console.trace();
@@ -739,6 +756,14 @@ function __get_iter(obj)
   }
   
   if ("__iterator__" in obj) {
+    if (keyword == "in") {
+      var hash = file + ":"+line +":" + keyword
+      
+      if (!(hash in _forin_data)) {
+        _forin_data[hash] = [file, line]
+      }
+    }
+    
     return obj.__iterator__();
   } else {
     var keys = []

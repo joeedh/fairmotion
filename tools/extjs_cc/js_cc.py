@@ -780,18 +780,32 @@ def expand_mozilla_forloops_new(node, scope):
   
   itername = node[0].val
   objname = node[1].gen_js(0)
-  n2 = js_parse("""
-    var __iter_$s1 = __get_iter($s2);
-    var $s1;
-    while (1) {
-      var __ival_$s1 = __iter_$s1.next();
-      if (__ival_$s1.done) {
-        break;
+  if glob.g_log_forloops:
+    n2 = js_parse("""
+      var __iter_$s1 = __get_iter($s2, $s3, $s4, $s5);
+      var $s1;
+      while (1) {
+        var __ival_$s1 = __iter_$s1.next();
+        if (__ival_$s1.done) {
+          break;
+        }
+        
+        $s1 = __ival_$s1.value;
       }
-      
-      $s1 = __ival_$s1.value;
-    }
-  """, (itername, objname));
+    """, (itername, objname, "'"+node[0].file+"'", node[0].line, "'"+node.of_keyword+"'"));
+  else:
+    n2 = js_parse("""
+      var __iter_$s1 = __get_iter($s2);
+      var $s1;
+      while (1) {
+        var __ival_$s1 = __iter_$s1.next();
+        if (__ival_$s1.done) {
+          break;
+        }
+        
+        $s1 = __ival_$s1.value;
+      }
+    """, (itername, objname));
   
   def set_line(n, slist, line, lexpos):
     n.line = line

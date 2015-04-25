@@ -385,7 +385,16 @@ class set {
       }
     }
   }
-
+  
+  forEach(cb, thisvar) {
+    if (thisvar == undefined) 
+      thisvar = self;
+    
+    for (var item in this) {
+      cb.call(thisvar, item);
+    }
+  }
+  
   pack(Array<byte> data) {
     _ajax.pack_int(data, this.length);
     

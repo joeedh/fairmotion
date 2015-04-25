@@ -1,4677 +1,2339 @@
 "use strict";
 
-
-
 import {login_dialog} from 'dialogs';
 
-
-
 import {
-
   MinMax, get_rect_lines, get_rect_points, aabb_isect_2d,
-
   inrect_2d, closest_point_on_line, dist_to_line_v2
-
 } from 'mathlib';
 
-
-
 import {ToolOp, UndoFlags, ToolFlags} from 'toolops_api';
-
 import {STRUCT} from 'struct';
 
-
-
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
-
         charmap, TouchEventManager, EventHandler} from 'events';
 
-
-
 import {UICanvas} from 'UICanvas2D';
-
 import {UIFrame} from 'UIFrame';
-
 import {RowFrame} from 'UIPack';
-
 import {
-
   PackFlags, UIElement, UIFlags, UIHoverHint, UIHoverBox
-
 } from 'UIElement';
-
-
 
 var Area_Types = new set(["View2DHandler"]);
 
-
-
 var _area_active_stacks = {}
-
 var _area_active_lasts = {};
-
 function _get_area_stack(cls) {
-
   var h = cls.name;
-
   
-
   if (!(h in _area_active_stacks)) {
-
     _area_active_stacks[h] = new GArray();
-
   }
-
   
-
   return _area_active_stacks[h];
-
 }
-
 //this should have been named ScreenEditor, ger
-
 export class Area extends UIFrame {
-
   constructor(String type, String uiname, Context ctx, Array<float> pos, Array<float> size) {
-
     UIFrame.call(this, ctx, undefined, undefined, pos, size);
-
     
-
     this.keymap = new KeyMap();
-
     
-
     this.auto_load_uidata = true;
-
     this.uiname = uiname;
-
     this.type = type;
-
     
-
     this.rows = new GArray();
-
     this.cols = new GArray();
-
     
-
     this.note_area = undefined;
-
     this._saved_uidata = undefined;
-
   }
-
   
-
   on_tick() {
-
     if (this.auto_load_uidata && this._saved_uidata != undefined) {
-
       this.load_saved_uidata();
-
       delete this._saved_uidata;
-
     }
-
     
-
     prior(Area, this).on_tick.call(this);
-
   }
-
   
-
   get saved_uidata() : String {
-
     var paths = new GArray();
-
     
-
     function descend(e) {
-
       var data = e.get_filedata();
-
       if (data != undefined) {
-
         if (typeof(data) != "string" && !(data instanceof String)) {
-
           data = JSON.stringify(data);
-
         }
-
         
-
         paths.push([e.get_uhash(), data]);
-
       }
-
       
-
       if (e instanceof UIFrame) {
-
         e.on_saved_uidata(descend);
-
       }
-
     }
-
     
-
     descend(this);
-
     
-
     return JSON.stringify(paths);
-
   }
-
   
-
   //not going to use STRUCT.chain_fromSTRUCT for something
-
   //as important as Area structs, since that function is a 
-
   //possible source of bugs and type corruption
-
   load_saved_uidata() {
-
     var str = this._saved_uidata;
-
     
-
     if (str == undefined || str == "") return;
-
     delete this._saved_uidata; //prevent recurring exceptions
-
     
-
     var paths;
-
     try {
-
       var paths = JSON.parse(str);
-
     } catch (_err) {
-
       print_stack(_err);
-
       console.log("Error parsing saved uidata");
-
       console.log("Data: ", str);
-
     }
-
     
-
     var ids = {};
-
     
-
     for (var i=0; i<paths.length; i++) {
-
       try {
-
         ids[paths[i][0]] = JSON.parse(paths[i][1]);
-
       } catch (_err) {
-
         print_stack(_err);
-
         console.log("Could not parse ui filedata '"+paths[i][1]+"'");
-
         if (paths[i][0] in ids)
-
           delete ids[paths[i][0]];
-
       }
-
     }
-
     
-
     function recurse(e) {
-
       var id = e.get_uhash();
-
       if (id in ids) {
-
         try {
-
           //console.log("found element", id, ids[id]);
-
           e.load_filedata(ids[id])
-
         } catch (_err) {
-
           print_stack(_err);
-
           console.log("Warning, could not load filedata for element", e);
-
           console.log("  data: ", ids[id]);
-
         }
-
       }
-
       
-
       if (e instanceof UIFrame) {
-
         e.on_load_uidata(recurse);
-
       }
-
     }
-
     
-
     recurse(this);
-
   }
-
   
-
   set saved_uidata(String str) : String {
-
     this._saved_uidata = str;
-
   }
-
   
-
   /*stupidly, we store the "active" area (of each type)
-
     globally (or rather, they're accessible through the Context
-
     struct).  this is done to simplify the datapath api code.
-
     it's a bit stupid.*/
-
   static context_area(cls) {
-
     var stack = _get_area_stack(cls.name);
-
     
-
     if (stack.length == 0) 
-
       return _area_active_lasts[cls.name];
-
     else 
-
       return stack[stack.length-1];
-
   }
-
   push_ctx_active() {
-
     var stack = _get_area_stack(this.constructor);
-
     stack.push(this);
-
     _area_active_lasts[this.constructor.name] = this;
-
   }
-
   pop_ctx_active() {
-
     var stack = _get_area_stack(this.constructor);
-
     if (stack.length == 0 || stack[stack.length-1] != this) {
-
       console.trace();
-
       console.log("Warning: invalid Area.pop_active() call");
-
       return;
-
     }
-
     
-
     stack.pop(stack.length-1);
-
   }
-
   
-
   static default_new(Context ctx, ScreenArea scr, WebGLRenderingContext gl, 
-
                      Array<float> pos, Array<float> size) {}
-
   
-
  
-
   get_keymaps() {
-
     return [this.keymap];
-
   }
-
   
-
  //destroy GL data
-
   destroy() {
-
     for (var c in this.children) {
-
       if ("destroy" in c)
-
         c.destroy(g_app_state.gl);
-
     }
-
     
-
     this.canvas.destroy(g_app_state.gl);
-
   }
-
   
-
   static fromSTRUCT(reader) {
-
     var ob = {};
-
     reader(ob);
-
     
-
     return ob;
-
   }
-
-
 
   define_keymap() {
-
   }
-
   
-
   on_gl_lost(WebGLRenderingContext new_gl) {
-
     for (var c in this.cols) {
-
       c.on_gl_lost();
-
     }
-
     for (var c in this.rows) {
-
       c.on_gl_lost();
-
     }
-
     
-
     prior(Area, this).on_gl_lost.call(this, new_gl);
-
   }
-
   
-
   on_add(parent)
-
   {
-
-    for (var c of this.rows) {
-
+    for (var c in this.rows) {
       this.remove(c);
-
     }
-
-    for (var c of this.cols) {
-
+    for (var c in this.cols) {
       this.remove(c);
-
     }
-
     
-
     this.rows = new GArray();
-
     this.cols = new GArray();
-
     
-
     this.build_topbar();
-
     this.build_sidebar1();
-
     this.build_bottombar();
-
   }
-
-
 
   toJSON() 
-
   {
-
     if (this.pos == undefined) {
-
       this.pos = [0,0];
-
     }
-
     if (this.size == undefined) {
-
       this.size = [0,0];
-
     }
-
     
-
     return {size : [this.size[0], this.size[1]], pos : [this.pos[0], this.pos[1]], type : this.constructor.name};  
-
   }
-
-
 
   area_duplicate()
-
   {
-
     throw new Error("Error: unimplemented area_duplicate() in editor");
-
   }
-
   
-
   on_resize(Array<int> newsize, Array<int> oldsize)
-
   {
-
     oldsize = this.size;
-
     this.size = newsize;
-
     
-
-    for (var c of this.rows) {
-
+    for (var c in this.rows) {
       if (c.pos[1] > 70)
-
         c.pos[1] = this.size[1] - Area.get_barhgt();
-
         
-
       c.size[0] = this.size[0];
-
     }
-
     
-
-    for (var c of this.cols) {
-
+    for (var c in this.cols) {
       c.size[1] = this.size[1]-Area.get_barhgt()*2;
-
     }
-
     
-
-    for (var c of this.children) {
-
+    for (var c in this.children) {
       if (this.canvas != undefined && c.canvas == undefined) 
-
         c.canvas = this.canvas;
-
       
-
       c.on_resize(newsize, oldsize);
-
     }
-
   }
-
-
 
   static get_barwid() {
-
     if (IsMobile) {
-
       return 152;
-
     } else {
-
       return 148;
-
     }
-
   }
-
   
-
   static get_barhgt() {
-
     if (IsMobile) {
-
       return 45;
-
     } else {
-
       return 35;
-
     }
-
   }
-
   
-
   on_keyup(KeyboardEvent event) {
-
     var ctx = new Context();
-
     var maps = this.get_keymaps();
-
     
-
     for (var i=0; i<maps.length; i++) {
-
       var ret = maps[i].process_event(ctx, event);
-
       
-
       if (ret != undefined) {
-
         ret.handle(ctx);
-
         break;
-
       }
-
     }
-
     
-
     prior(Area, this).on_keyup.call(this, event);
-
   }
-
   
-
   on_keydown(Keyboard event) {
-
     this.shift = event.shiftKey;
-
     this.alt = event.altKey;
-
     this.ctrl = event.ctrlKey;
-
     
-
     prior(Area, this).on_keydown.call(this, event);
-
   }
-
-
 
   build_bottombar()
-
   {
-
   }
-
-
 
   build_topbar()
-
   {
-
   }
-
-
 
   build_sidebar1()
-
   {
-
   }
-
-
 
   on_area_inactive()
-
   {
-
   }
-
-
 
   on_area_active()
-
   {
-
   }
-
 }
-
 Area.STRUCT = """
-
   Area { 
-
     pos  : vec2;
-
     size : vec2;
-
     type : string;
-
     saved_uidata : string;
-
   }
-
 """
 
-
-
 export class ScreenArea extends UIFrame {
-
   constructor(area, ctx, pos, size, add_area) {
-
     UIFrame.call(this, ctx, undefined, undefined, pos, size);
-
     
-
     if (add_area == undefined)
-
       add_area = true;
-
     
-
     this.editors = {}
-
     this.editors[area.constructor.name] = area;
-
     
-
     this.area = area;
-
     area.pos[0] = 0; area.pos[1] = 0;
-
     
-
     this.type = undefined;
-
     
-
     if (add_area)
-
       this.add(area);
-
   }
-
   
-
   destroy() {
-
     for (var c in this.editors) {
-
       c.destroy();
-
     }
-
   }
-
   
-
   switch_editor(cls) {
-
     if (!(cls.name in this.editors)) {
-
       console.log("creating new editor ", cls.name);
-
       
-
       var area = cls.default_new(new Context(), this, g_app_state.gl, this.pos, this.size);
-
       this.editors[cls.name] = area;
-
       this.editors[cls.name].do_recalc();
-
     }
-
     
-
     var area = this.editors[cls.name];
-
     
-
     try {
-
       this.area.push_ctx_active(); //push
-
       this.area.on_area_inactive();
-
       this.area.pop_ctx_active(); //pop
-
     } catch (_err) {
-
       print_stack(_err);
-
       console.log("Error switching editor", this.area);
-
     }
-
     
-
     this.remove(this.area);
-
     
-
     area.push_ctx_active(); //push
-
     
-
     area.size[0] = this.size[0];
-
     area.size[1] = this.size[1];
-
     area.pos[0] = this.pos[0];
-
     area.pos[1] = this.pos[1];
-
     
-
     this.add(area);
-
     this.area = this.active = area;
-
     this.area.canvas = this.canvas;
-
     this.canvas.reset();
-
     
-
     this.area.do_full_recalc();
-
     this.type = cls.name;
-
     
-
     area.on_area_active();
-
     area.on_resize(this.size, new Vector2(area.size));
-
     area.pop_ctx_active(); //pop 
-
   }
-
   
-
   static fromSTRUCT(reader) {
-
     var ob = Object.create(ScreenArea.prototype);
-
     
-
     reader(ob);
-
     
-
     var act = ob.area;
-
     var editarr = new GArray(ob.editors);
-
     
-
     var screens2 = {}
-
-    for (var scr of editarr) {
-
+    for (var scr in editarr) {
       if (scr.constructor.name == ob.area) {
-
         ob.area = scr;
-
       }
-
       
-
       screens2[scr.constructor.name] = scr;
-
     }
-
     
-
     if (!(ob.area instanceof Area))
-
       ob.area = editarr[0];
-
     
-
     ScreenArea.call(ob, ob.area, new Context(), ob.pos, ob.size, false);
-
     ob.editors = screens2;
-
     
-
     return ob;
-
   }
-
-
 
   data_link(block, getblock, getblock_us) {
-
     this.ctx = new Context();
-
     this.area.ctx = new Context();
-
     this.active = this.area;
-
     
-
     for (var k in this.editors) {
-
       var area = this.editors[k];
-
       
-
       area.data_link(block, getblock, getblock_us);
-
       area.set_context(this.ctx);
-
     }
-
     
-
     this.add(this.area);
-
   }
-
-
 
   on_add(parent)
-
   {
-
     this.active = this.area;
-
     
-
-    for (var c of this.children) {
-
+    for (var c in this.children) {
       c.on_add(this);
-
     }
-
   }
-
-
 
   on_close()
-
   {
-
     this.area.on_area_inactive();
-
   }
-
-
 
   area_duplicate()
-
   {
-
     var screens = {}
-
     
-
     for (var k in this.editors) {
-
       var area = this.editors[k];
-
       screens[k] = area.area_duplicate();
-
     }
-
     
-
     var scr = new ScreenArea(screens[this.area.constructor.name], this.ctx, new Vector2(this.pos), new Vector2(this.size));
-
     scr.editors = screens;
-
     
-
     return scr;
-
   }
-
   
-
   build_draw(canvas, isVertical) {
-
     this.active = this.area;
 
-
-
     g_app_state.size = new Vector2(this.size);
-
     
-
     this.area.pos[0] = this.area.pos[1] = 0;
-
     this.area.size[0] = this.size[0];
-
     this.area.size[1] = this.size[1];
-
       
-
     //console.log("Area:", this.area.constructor.name);
-
     
-
     this.canvas.push_scissor([2, 2], [this.size[0]-4, this.size[1]-4]);
-
     prior(ScreenArea, this).build_draw.call(this, canvas, isVertical);
-
     this.canvas.pop_scissor();
-
     
-
     var border = [0, 0, 0, 1];
-
     var border2 = [0.8, 0.8, 0.8, 1];
-
     var border3 = [0.0, 0.0, 0.0, 1];
-
     
-
     canvas.line([0, 1], [this.size[0], 1], border, border);
-
     canvas.line([0, 1], [this.size[0], 1], border2, border2);
-
     canvas.line([0, 2], [this.size[0], 2], border3, border3);
 
-
-
     canvas.line([1, 0], [1, this.size[1]], border, border);
-
     canvas.line([1, 0], [1, this.size[1]], border2, border2);
-
   }
-
   
-
   on_draw(WebGLRenderingContext g)
-
   {
-
     return;
-
     /*
-
     g_app_state.size = new Vector2(this.size);
-
     
-
     this.area.pos[0] = 0; this.area.pos[1] = 0;
-
     this.area.size[0] = this.size[0];
-
     this.area.size[1] = this.size[1];
-
     
-
     this.canvas.push_scissor([2, 2], [this.size[0]-4, this.size[1]-4]);
-
     g_app_state.raster.push_viewport(this.abspos, this.size);
-
     
-
     this.area.on_draw(g);
-
     
-
     g_app_state.raster.pop_viewport();
-
     this.canvas.pop_scissor();
-
     
-
     //prior(ScreenArea, this).on_draw.call(this, gl);
-
     */
-
   }
-
-
 
   add(child, packflag) {
-
     if (child instanceof Area) {
-
       if (this.type == undefined) {
-
         //XXX probably need more boilerplate code than this
-
         this.type = child.constructor.name;
-
       }
-
     }
-
     
-
     prior(ScreenArea, this).add.call(this, child, packflag);
-
   }
-
   
-
   /*on_mousedown(MouseEvent event) {
-
     this.area._on_mousedown(event);
-
   }
-
   
-
   on_mousemove(MouseEvent event) {
-
     this.area._on_mousemove(event);
-
   }
-
   
-
   on_mouseup(MouseEvent event) {
-
     this.area._on_mouseup(event);
-
   }*/
-
   
-
   on_resize(Array<int> newsize, Array<int> oldsize)
-
   {
-
     var oldsize = new Vector2(this.area.size);
-
     
-
     this.area.pos[0] = 0; this.area.pos[1] = 0;
-
     this.area.size[0] = this.size[0];
-
     this.area.size[1] = this.size[1];
-
     
-
     this.area.on_resize(this.area.size, oldsize);
-
     
-
-    for (var c of this.children) {
-
+    for (var c in this.children) {
       if (c != this.area)
-
         c.on_resize(newsize, oldsize);
-
     }
-
   }
-
 }
-
-
-
 
 
 ScreenArea.STRUCT = """
-
   ScreenArea {
-
     pos     : vec2;
-
     size    : vec2;
-
     type    : string;
-
     editors : iter(k, abstract(Area)) | obj.editors[k];
-
     area    : string | obj.area.constructor.name;
-
   }
-
 """
 
-
-
 export class SplitAreasTool extends ToolOp {
-
   constructor(screen) {
-
     ToolOp.call(this, "area_split_tool", "Split Screen", "Split a screen editor");
 
-
-
     this.screen = screen;
-
     this.canvas = screen.canvas;
-
     
-
     this.is_modal = true;
-
     this.undoflag = UndoFlags.IGNORE_UNDO;
-
     
-
     this.mpos = [0, 0];
-
     this.split = undefined : Array<Object>;
-
     this.lines = undefined : Array1<Array2<float>>;
-
     
-
     this.inputs = {};
-
     this.outputs = {};
-
   }
-
     
-
   on_mousemove(event)
-
   {
-
     this.mpos = new Vector2([event.x, event.y])
-
     this.canvas.reset()
-
     
-
     var p = this.modal_ctx.view2d;
-
     while (p != undefined) {
-
       this.mpos.add(p.pos);
-
       p = p.parent;
-
     }
-
     
-
     var mpos = this.mpos;
-
     var active = undefined;
-
     for (var c in this.screen.children) {
-
       if (!(c instanceof ScreenArea))
-
         continue;
-
       
-
       if (inrect_2d(mpos, c.pos, c.size)) {
-
         active = c;
-
         break;
-
       }
-
     }
-
     
-
     if (active == undefined)
-
       return;
-
     
-
     var canvas = this.canvas;
-
     var clr = [0.1, 0.1, 0.1, 1.0];
-
     var rad = 15;
-
-
 
     var lines = [
-
       [c.pos, [c.pos[0], c.pos[1]+c.size[1]]],
-
       [c.pos, [c.pos[0]+c.size[0], c.pos[1]]],
-
       [[c.pos[0]+c.size[0], c.pos[1]], 
-
        [c.pos[0]+c.size[0], c.pos[1]+c.size[1]]],
-
       [[c.pos[0], c.pos[1]+c.size[1]], 
-
        [c.pos[0]+c.size[0], c.pos[1]+c.size[1]]]
-
     ];
-
     
-
     var line = undefined;
-
     var ldis = 0.0;
-
     
-
     for (var i=0; i<4; i++) {
-
       lines[i][0] = new Vector2(lines[i][0])
-
       lines[i][1] = new Vector2(lines[i][1])
-
       
-
       canvas.line(lines[i][0], lines[i][1], clr, clr, rad)
-
       
-
       var dis = dist_to_line_v2(mpos, lines[i][0], lines[i][1]);
-
       if (line == undefined || dis < ldis) {
-
         ldis = dis;
-
         line = i;
-
       }
-
     }
-
     
-
     if (line == undefined)
-
       return;
-
       
-
     var v1 = lines[line][0]
-
     var v2 = lines[line][1]
-
     var v3 = lines[(line+2)%4][0]
-
     var v4 = lines[(line+2)%4][1]
-
     
-
     var ret = closest_point_on_line(mpos, v1, v2);
-
     var p1 = ret[0]
-
     var t = ret[1]/v2.vectorDistance(v1);
-
     
-
     var p2 = new Vector2(v4).sub(v3).mulScalar(t).add(v3)
-
     
-
     canvas.line(p1, p2, clr, clr, 4.0);
-
     
-
     this.lines = lines;
-
     this.split = [active, line, (line+2)%4, t]
-
   }
-
-
 
   finish(event)
-
   {
-
     if (this.split == undefined) {
-
       this.cleanup();
-
       return;
-
     }
-
     
-
     var area = this.split[0];
-
     var i = this.split[1]
-
     var t = this.split[3]
-
     
-
     var oldsize = [area.size[0], area.size[1]];
-
     
-
     var area2 = area.area_duplicate();
-
     if (i == 0 || i == 2) {
-
       //horizontal
-
       area2.size[0] = area.size[0];
-
       
-
       area2.size[1] = area.size[1]*(1.0 - t);
-
       area.size[1] *= t;
-
       
-
       area2.pos[0] = area.pos[0];
-
       area2.pos[1] = area.pos[1]+area.size[1];
-
     } else {
-
       area2.size[1] = area.size[1];
-
       
-
       area2.size[0] = area.size[0]*(1.0 - t);
-
       area.size[0] *= t;
-
       
-
       area2.pos[1] = area.pos[1];
-
       area2.pos[0] = area.pos[0]+area.size[0];
-
     }
-
     
-
     this.screen.add(area2);
-
     
-
     area.on_resize(area.size, oldsize);
-
     area2.on_resize(area2.size, oldsize);
-
     this.cleanup();
-
     
-
     this.screen.recalc_all_borders();
-
     this.screen.snap_areas();
-
   }
-
-
 
   cancel(event)
-
   {
-
     this.cleanup();
-
   }
-
-
 
   cleanup(event)
-
   {
-
     this.end_modal();
-
     this.canvas.reset();
-
   }
-
-
 
   on_mouseup(event)
-
   {
-
     if (event.button == 0)
-
       this.finish(); 
-
     else if (event.button == 2)
-
       this.cancel();
-
   }
-
   on_keydown(event)
-
   {
-
     if (event.keyCode == charmap["Escape"])
-
       this.cancel();  
-
     if (event.keyCode == charmap["Enter"])
-
       this.finish();   
-
   }
-
 }
-
-
 
 export class CollapseAreasTool extends EventHandler {
-
   constructor(screen, border) {
-
     EventHandler.call(this);
-
     this.border = border;
-
     this.screen = screen;
-
     this.canvas = screen.canvas;
-
     
-
     this.mpos = [0, 0];
-
     this.active = undefined : ScreenArea;
-
     
-
     this.mesh = border.build_mesh();
-
     this.areas = this.mesh[1][border.hash_edge(border.v1, border.v2)];
-
     
-
     for (var i=0; i<this.areas.length; i++) {
-
       this.areas[i] = this.areas[i].area;
-
     }
-
   }
-
-
 
   on_mousemove(event)
-
   {
-
     this.mpos = new Vector2([event.x, event.y])
-
     this.canvas.reset()
-
     
-
     var mpos = this.mpos;
-
     var active = undefined;
-
     for (var c in this.areas) {
-
       if (inrect_2d(mpos, c.pos, c.size)) {
-
         active = c;
-
         break;
-
       }
-
     }
-
     
-
     if (active == undefined)
-
       return;
-
     
-
     this.active = active;
-
     
-
     var canvas = this.canvas;
-
     var clr1 = [0.1, 0.1, 0.1, 0.1];
-
     var clr2 = [0.1, 0.1, 0.1, 1.0];
-
     var rad = 15;
 
-
-
     var ps = get_rect_points(new Vector2(active.pos), active.size);
-
     
-
     canvas.quad(ps[0], ps[1], ps[2], ps[3], clr1, clr1, clr1, clr1);
-
     canvas.line(ps[0], ps[2], clr2, undefined, 6.0);
-
     canvas.line(ps[1], ps[3], clr2, undefined, 6.0);
-
   }
-
-
 
   finish(event)
-
   {
-
     this.screen.pop_modal();
-
     
-
     if (this.active == undefined)
-
       return;
-
     
-
     var keep = undefined;
-
     for (var area in this.areas) {
-
       if (area != this.active) {
-
         keep = area;
-
         break;
-
       }
-
     }
-
     
-
     if (keep == undefined) {
-
       console.log("eek! error in CollapseAreasTool.finish!")
-
       return;
-
     }
-
     
-
     var mm = new MinMax(2);
-
     
-
     var ps1 = get_rect_points(this.active.pos, this.active.size);
-
     for (var i=0; i<4; i++) {
-
       mm.minmax(ps1[i]);
-
     }
-
     
-
     var ps2 = get_rect_points(keep.pos, keep.size);
-
     for (var i=0; i<4; i++) {
-
       mm.minmax(ps2[i]);
-
     }
-
     
-
     mm.minmax(this.active.pos);  
-
     
-
     this.active.on_close();
-
     this.screen.remove(this.active);
-
     var oldsize = new Vector2(keep.size);
-
     
-
     keep.pos[0] = mm.min[0];
-
     keep.pos[1] = mm.min[1];
-
     keep.size[0] = mm.max[0] - mm.min[0];
-
     keep.size[1] = mm.max[1] - mm.min[1];
-
     
-
     for (var i=0; i<2; i++) {
-
       keep.size[i] = Math.ceil(keep.size[i]);
-
       keep.pos[i] = Math.floor(keep.pos[i]);
-
     }
-
     
-
     keep.on_resize(keep.size, oldsize);
-
     keep.do_recalc();
-
     
-
     this.screen.recalc_all_borders();
-
     this.screen.snap_areas();
-
     this.canvas.reset();
-
   }
-
-
 
   cancel(event)
-
   {
-
     this.cleanup();
-
   }
-
-
 
   cleanup(event)
-
   {
-
     this.canvas.reset();
-
     this.screen.pop_modal();
-
   }
-
-
 
   on_mouseup(event)
-
   {
-
     if (event.button == 0)
-
       this.finish(); 
-
     else if (event.button == 2)
-
       this.cancel();
-
   }
-
   on_keydown(event)
-
   {
-
     if (event.keyCode == charmap["Escape"])
-
       this.cancel();  
-
     if (event.keyCode == charmap["Enter"])
-
       this.finish();   
-
   }
-
 }
-
-
 
 var BORDER_WIDTH=8
-
 var _screenborder_id_gen = 1;
-
 export class ScreenBorder extends UIElement {
-
   constructor(area, borderindex) {
-
     UIElement.call(this);
-
     this.area = area;
-
     this.start_mpos = [0, 0];
-
     this.moving = false;
-
     this.bindex = borderindex;
-
     
-
     this.state |= UIFlags.INVISIBLE;
-
     
-
     this.areas = undefined : GArray;
-
     this.borders = undefined : GArray;
-
     this.ci = 0;
-
     this._id = _screenborder_id_gen++;
-
     
-
     this.v1 = undefined : Array<float>;
-
     this.v2 = undefined : Array<float>;
-
     this.mesh = undefined : Array<Object>;
-
   }
-
-
 
   __hash__() {
-
     return this.constructor.name + "|" + this._id;
-
   }
-
-
 
   movable_border() : Boolean {
-
     var count = 0;
-
-    for (var c of this.parent.children) {
-
+    for (var c in this.parent.children) {
       if (!(c instanceof ScreenArea))
-
         continue;
-
       
-
       if (aabb_isect_2d(this.pos, this.size, c.pos, c.size))
-
         count++;
-
     }
-
     
-
     return count > 1;
-
   }
-
-
 
   get_edge() {
-
     var v1 = new Vector2(this.pos);
-
     var v2 = new Vector2(this.pos);
-
     
-
     if (this.size[0] > this.size[1]) {
-
       v2[0] += this.size[0];
-
       
-
       //v1[1] += Math.floor(BORDER_WIDTH/2.0);
-
       //v2[1] += Math.floor(BORDER_WIDTH/2.0);
-
     } else {
-
       v2[1] += this.size[1];
-
       
-
       //v1[0] += Math.floor(BORDER_WIDTH/2.0);
-
       //v2[0] += Math.floor(BORDER_WIDTH/2.0);
-
     }
-
     
-
     return [v1, v2];
-
   }
-
-
 
   hash_edge(v1, v2) {
-
     var a1 = [Math.floor(v1[0]), Math.floor(v2[0])]
-
     var a2 = [Math.floor(v1[1]), Math.floor(v2[1])]
-
     a1.sort()
-
     a2.sort();
-
     
-
     return ""+a1[0]+"|"+a1[1]+"|"+a2[0]+"|"+a2[1];
-
   }
-
-
 
   hash_vert(v1) {
-
     return ""+Math.floor(v1[0])+"|"+Math.floor(v1[1])
-
   }
-
-
 
   build_mesh() {
-
     this.borders = new GArray();
-
     var i = 0;
-
-    for (var c of this.parent.children) {
-
+    for (var c in this.parent.children) {
       if (c instanceof ScreenBorder) {
-
         c.ci = i++;
-
         this.borders.push(c);
-
       }
-
     }
-
     
-
     var edges = {};
-
     var verts = {};
-
     var vert_edges = {};
-
-    for (var b of this.borders) {
-
+    for (var b in this.borders) {
       var ret = b.get_edge();
-
       var v1 = ret[0];
-
       var v2 = ret[1];
-
       
-
       var h = this.hash_edge(v1, v2);
-
       
-
       if (!(h in edges)) {
-
         edges[h] = new GArray();
-
       }
-
       
-
       var hv1 = this.hash_vert(v1);
-
       var hv2 = this.hash_vert(v2);
-
       
-
       if (!(hv1 in verts))
-
         verts[hv1] = new set();
-
       if (!(hv2 in verts))
-
         verts[hv2] = new set();
-
       if (!(hv1 in vert_edges))
-
         vert_edges[hv1] = new set();
-
       if (!(hv2 in vert_edges))
-
         vert_edges[hv2] = new set();
-
       
-
       edges[h].push(b);
-
       
-
       verts[hv1].add(b);
-
       verts[hv2].add(b);
-
       
-
       vert_edges[hv1].add(h);
-
       vert_edges[hv2].add(h);
-
       
-
       b.v1 = v1;
-
       b.v2 = v2;
-
     }
-
     
-
     return [verts, edges, vert_edges];
-
   }
-
-
 
   at_screen_border(event) {
-
     var ret = true;
-
     
-
     //move members into local variables, to save on column space
-
     var size = this.size, pos=this.pos, parent=this.parent;
-
     
-
     for (var i=0; i<2; i++) {
-
       var ret2 = Math.abs(pos[i]) < BORDER_WIDTH*3.0;
-
       ret2 = ret2 || Math.abs(pos[i]+size[i] - parent.size[i]) < BORDER_WIDTH*3.0;
-
       
-
       ret = ret2 & ret;
-
     }
-
     
-
     return ret;
-
   }
-
     
-
   on_mousedown(event) {
-
     if (event.button == 0 
-
       && !this.moving 
-
       && !this.at_screen_border(event)) 
-
     {
-
       this.start(event);
-
     }
-
   }
-
-
 
   border_menu(event) {
-
     console.log("border menu")
-
     
-
     var this2 = this;
-
     function menucb(entry, id) {
-
       if (id == "collapse") {
-
         this.parent.push_modal(new CollapseAreasTool(this2.parent, this2));
-
       }
-
     }
-
     
-
     var menu = new UIMenu("", menucb);
-
     menu.add_item("Collapse", "", "collapse");
-
     menu.ignore_next_mouseup_event = 0;
-
     
-
     ui_call_menu(menu, this.parent, [event.x+this.pos[0], event.y+this.pos[1]]);
-
   }
-
-
 
   start(event) {
-
     this.parent.push_modal(this);
-
     this.start_mpos = new Vector2([event.x, event.y])
-
     this.moving = true;
-
     
-
     this.areas = new set();
-
     this.mesh = this.build_mesh()
-
     
-
     var verts = this.mesh[0]
-
     var edges = this.mesh[1]
-
     var vert_edges = this.mesh[2]
-
     
-
     var v1 = this.v1
-
     var v2 = this.v2
-
     var he = this.hash_edge(v1, v2);
-
     
-
     var es = new GArray([edges[he]]);
-
     for (var i=0; i<2; i++) {
-
       var v = i==0 ? v1 : v2;
-
       
-
       var j=0;
-
       while (1) {
-
         var nv = null;
-
-        for (var eh of vert_edges[this.hash_vert(v)]) {
-
+        for (var eh in vert_edges[this.hash_vert(v)]) {
           if (eh == he) continue;
-
           var b = edges[eh][0];
-
           if ((b.size[0] > b.size[1]) == (this.size[0] > this.size[1])) {
-
             es.push(edges[eh]);
-
             if (this.hash_vert(b.v1) == this.hash_vert(v)) {
-
               nv = b.v2;
-
             } else {
-
               nv = b.v1;
-
             }
-
             
-
             he = eh;
-
             break;
-
           }
-
         }
-
         
-
         if (nv != null) {
-
           v = nv;
-
         } else {
-
           break;
-
         }
-
         
-
         j++;
-
         if (j > 100) {
-
           console.log("Infinite loop")
-
           break;
-
         }
-
       }
-
     }
-
     
-
-    for (var e of es) {
-
-      for (var b of e) {
-
+    for (var e in es) {
+      for (var b in e) {
         this.areas.add([b.area, b.bindex]);
-
       }
-
     }
-
   }
-
-
 
   on_mouseup(event) {
-
     if (this.moving) {
-
       this.finish();
-
     } else {
-
       if (event.button == 2) {
-
         this.border_menu(event);
-
       }
-
     }
-
   }
-
-
 
   find_bindex(pair) {
-
     var area = pair[0];
-
     var bs = this.parent.child_borders.get(area);
-
     
-
     if (area != this.area)
-
       return pair[1];
-
     else
-
       return this.bindex;
-
   }
-
-
 
   on_mousemove(event) {
-
     if (!this.moving)
-
       return;
-
     
-
     var mpos = new Vector2([event.x, event.y]);
-
     var start = new Vector2(this.start_mpos);
-
     
-
     var axis = this.size[0]>this.size[1] ? 1 : 0;
-
     var areas = this.areas;
-
     
-
     var delta = mpos[axis] - start[axis];
-
     
-
-    for (var p of areas) {
-
+    for (var p in areas) {
       var a = p[0];
-
       var oldsize = new Vector2(a.size);
-
       
-
       var b = this.find_bindex(p);
-
       if (b == undefined) {
-
         console.log("yeek, undefined b");
-
         continue;
-
       }
-
       
-
       console.log("B", b);
-
       
-
       switch (b) {
-
         case 0:
-
           a.pos[1] += delta;
-
           a.size[1] -= delta;
-
           break;
-
         case 1:
-
           a.size[0] += delta;
-
           break;
-
         case 2:
-
           a.size[1] += delta;
-
           break;
-
         case 3:
-
           a.pos[0] += delta;
-
           a.size[0] -= delta;
-
           break;
-
       }
-
       
-
       a.on_resize(a.size, oldsize);
-
       
-
       //this.parent.recalc_all_borders();
-
       this.parent.snap_areas();
-
     }
-
     
-
     window.redraw_viewport();
-
     this.start_mpos.load(mpos);
-
   }
-
-
 
   finish() {
-
     if (this.moving) {
-
       this.parent.pop_modal();
-
     }
-
     
-
     this.parent.recalc_all_borders();
-
     this.parent.do_full_recalc();
-
     this.moving = false;
-
   }
-
-
 
   on_keydown(event) {
-
     if (this.moving) {
-
       if (event.keyCode == charmap["Escape"])
-
         this.finish();
-
       
-
       if (event.keyCode == charmap["Enter"])
-
         this.finish();
-
     }
-
   }
-
-
 
   on_active() {
-
     //console.log("border active")
-
     
-
     if (!this.movable_border())
-
       return;
-
       
-
     var cursor;
-
     if (this.size[0] > this.size[1]) {
-
       cursor = "n-resize"
-
     } else {
-
       cursor = "w-resize"
-
     }
-
     
-
     document.getElementById("canvas2d").style.cursor = cursor;
-
     document.getElementById("canvas2d_work").style.cursor = cursor;
-
   }
-
-
 
   on_inactive() {
-
     //console.log("border inactive")
-
     document.getElementById("canvas2d").style.cursor = "default";
-
     document.getElementById("canvas2d_work").style.cursor = "default";
-
   }
-
-
 
   build_draw(UICanvas canvas, Boolean isVertical)
-
   {
-
     //XXX!!
-
     var black = [0, 0, 0, 1];
-
     var sx = this.size[0], sy = this.size[1];
-
     var x=0, y=0;
-
     
-
     if (sx > sy)
-
       sy = y = sy*0.5;
-
     else
-
       sx = x = sx*0.5;
-
       
-
     //canvas.line([x, y], [sx, sy], black, black);
-
   }
-
 }
 
-
-
 /*
-
 this module cyclically refers to these two modules
-
 at runtime (not during module loading, though).
-
-
 
 patched by elevating UIMenu and Dialog to globals.
 
-
-
 import {Dialog} from 'dialog';
-
 import {UIMenu} from 'UIMenu';
-
 */
 
-
-
 export class Screen extends UIFrame {
-
   constructor(unused, int width, 
-
                 int height)
-
   {
-
     UIFrame.call(this, undefined);
-
     
-
     this.size = [width, height];
-
     this.pos = [0, 0];
-
     this.use_old_size = false; //use old size on next on_resize call, but only that call
-
     this.draw_active = undefined; //currently being drawn screenarea
-
     
-
     this.touchstate = {};
-
     this.touch_ms = {};
-
     this.tottouch = 0;
-
     
-
     this.session_timer = new Timer(60000);
-
     
-
     //this is used to delay keyup events for modifiers
-
     //it stores events in a queue, and delays them
-
     this.modup_time_ms = new GArray();
-
     
-
     var this2 = this;
-
     this.event_tick_ival = window.setInterval(function() {
-
       this2.event_tick();
-
       
-
       if (this2 !== g_app_state.screen) {
-
         window.clearInterval(this2.event_tick_ival);
-
         this2.event_tick_ival = undefined;
-
       }
-
     }, 30);
-
     
-
     this.rows = new GArray();
-
     this.cols = new GArray();
-
     
-
     this.last_tick = time_ms();
-
     this.child_borders = new hashtable();
-
     
-
     this.shift = false;
-
     this.alt = false;
-
     this.ctrl = false;
-
     
-
     this.keymap = new KeyMap();
-
     this.last_sync = time_ms();
-
     
-
     this.areas = new GArray();
-
     
-
     var this2 = this;
-
     function handle_split_areas() {
-
       this2.split_areas();
-
     }
-
     
-
     var k = this.keymap;
-
     k.add_tool(new KeyHandler("O", ["CTRL"], "Save File"),
-
                "appstate.open()");
-
     k.add_tool(new KeyHandler("S", ["CTRL", "ALT"], "Save File"),
-
                "appstate.save_as()");
-
     k.add_tool(new KeyHandler("S", ["CTRL"], "Save File"),
-
                "appstate.save()");
-
     k.add_func(new KeyHandler("V", [], "Split Areas"), handle_split_areas)
-
     k.add_func(new KeyHandler("U", ["CTRL", "SHIFT"]), function() {
-
       console.log("saving new startup file.");
-
       g_app_state.set_startup_file();
-
     });
-
     
-
     this.canvas = new UICanvas([[0, 0], this.size]);
-
   }
-
-
 
   static fromSTRUCT(reader) {
-
     var ob = new Screen(0, 512, 512);
-
     
-
     reader(ob);
-
     
-
     ob.areas = new GArray(ob.areas);
-
     
-
-    for (var c of ob.areas) {
-
+    for (var c in ob.areas) {
       c.parent = ob;
-
     }
-
     
-
     return ob;
-
   }
-
-
 
   destroy() {
-
     this.canvas.destroy();
-
     
-
     for (var c in this.children) {
-
       if (c instanceof ScreenArea) {
-
         c.destroy();
-
       }
-
     }
-
   }
-
   
-
   split_areas() {
-
     console.log("split areas", this);
-
     
-
     g_app_state.toolstack.exec_tool(new SplitAreasTool(this));
-
     
-
     /*
-
     var c = this.children[0]
-
     
-
     var oldsize = [c.size[0], c.size[1]]
-
     var newsize = [c.size[0]*0.5, c.size[1]]
-
     
-
     c.size[0] = c.size[0]*0.5;
-
     c.on_resize(oldsize, newsize);
-
     
-
     var c2 = c.area_duplicate()
-
     c2.size = new Vector2(c.size)
-
     c2.pos = [c.size[0], 0]
-
     this.add(c2);
-
     
-
     //c.size[0] = c.size[0]*0.5;
-
     //c.set_canvasbox()
-
     // */
-
   }
-
-
 
   set_touchstate(MouseEvent event, String type) {
-
     for (var k in event.touches) {
-
       this.touch_ms[k] = time_ms();
-
       
-
       if (type == "down" || type == "move") {
-
         this.touchstate[k] = event.touches[k];
-
       } else if (type == "up") {
-
         delete this.touchstate[k];
-
       }
-
     }
-
     
-
     var threshold = 4000;
-
     this.tottouch = 0;
-
     for (var k in this.touchstate) {
-
       if (time_ms() - this.touch_ms[k] > threshold) {
-
         console.log("Destroying stale touch state");
-
         
-
         var event = new MyMouseEvent(event.x, event.y, 0, MyMouseEvent.MOUSEUP);
-
         event.touches = {k : this.touchstate[k]};
-
         
-
         //prevent infinite recursion
-
         this.touch_ms[k] = time_ms();
-
         this.on_mouseup(event);
-
         delete this.touchstate[k];
-
       }
-
       this.tottouch++;
-
     }
-
   }
-
   
-
   area_event_push() {
-
     if (this.active instanceof ScreenArea) {
-
       this.active.area.push_ctx_active();
-
       return this.active.area;
-
     }
-
   }
-
   
-
   area_event_pop(Area area) {
-
     if (area != undefined) {
-
       area.pop_ctx_active();
-
     }
-
   }
-
   
-
   _on_mousemove(MouseEvent e)
-
   {
-
     if (DEBUG.mousemove)
-
       console.log("mmove", [e.x, e.y])
-
     
-
     this.mpos = [e.x, e.y];
-
-    for (var c of this.children) {
-
+    for (var c in this.children) {
       c.mpos = new Vector2([e.x-c.pos[0], e.y-c.pos[1]])
-
     }
-
     
-
     e = this.handle_event_modifiers(e);
-
     this.set_touchstate(e, "move");
-
     
-
     //console.log("t", e.touches, this.tottouch);
-
     var area = this.area_event_push();
-
     UIFrame.prototype._on_mousemove.call(this, e);
-
     this.area_event_pop(area);
-
   }
-
   
-
   get_active_view2d() {
-
     var view2d = undefined;
-
     
-
     if (this.active != undefined && this.active instanceof ScreenArea) {
-
       if (this.active.area.constructor.name == "View2DHandler") {
-
         view2d = this.active.area;
-
       }
-
     }
-
     
-
     //console.log("active view2d:", view2d._id, view2d);
-
     return view2d;
-
   }
-
-
 
   handle_active_view2d() {
-
     var view2d = this.get_active_view2d();
-
     if (view2d != undefined)
-
       g_app_state.active_view2d = view2d;
-
   }
-
-
 
   _on_mousedown(MouseEvent e)
-
   {
-
     this.handle_active_view2d();
-
     
-
     //console.log("alt", event.altKey);
-
     console.log(e.altKey);
-
     console.log(e.ctrlKey);
-
     console.log(e.shiftKey);
-
     
-
     if (DEBUG.mouse)
-
       console.log("mdown", [e.x, e.y], e.button)
-
     
-
     this.mpos = [e.x, e.y];  
-
-    for (var c of this.children) {
-
+    for (var c in this.children) {
       c.mpos = new Vector2([e.x-c.pos[0], e.y-c.pos[1]])
-
     }
-
     
-
     this.shift = e.shiftKey;
-
     this.ctrl = e.ctrlKey;
-
     this.alt = e.altKey;
 
-
-
     //e = this.handle_event_modifiers(e);
-
     this.set_touchstate(e, "down");
-
     
-
     var area = this.area_event_push();
-
     UIFrame.prototype._on_mousedown.call(this, e);
-
     this.area_event_pop(area);
-
     
-
     //console.log("t", e.touches, this.tottouch);
-
   }
-
-
 
   _on_mouseup(MouseEvent e)
-
   {
-
     this.handle_active_view2d();
-
     
-
     if (DEBUG.mouse)
-
       console.log("mouseup", [e.x, e.y], e.button)
-
     this.mpos = [e.x, e.y];
-
-    for (var c of this.children) {
-
+    for (var c in this.children) {
       c.mpos = new Vector2([e.x-c.pos[0], e.y-c.pos[1]])
-
     }
-
     
-
     e = this.handle_event_modifiers(e);
-
     this.set_touchstate(e, "up");
-
     
-
     var area = this.area_event_push();
-
     UIFrame.prototype._on_mouseup.call(this, e);
-
     this.area_event_pop(area);
-
     
-
     //console.log("t", e.touches, this.tottouch);
-
   }
-
-
 
   _on_mousewheel(MouseEvent e, float delta)
-
   {
-
     this.handle_active_view2d();
-
     
-
     this.mpos = [e.x, e.y];
-
     for (var c in this.children) {
-
       c.mpos = new Vector2([e.x-c.pos[0], e.y-c.pos[1]])
-
     }
-
     
-
     var area = this.area_event_push();
-
     UIFrame.prototype._on_mousewheel.call(this, e, delta);
-
     this.area_event_pop(area);
-
   }
-
-
 
   handle_event_modifiers(KeyboardEvent event) {
-
     var copy = false;
-
     var event2;
-
     
-
     if (event instanceof MyMouseEvent) {
-
         event2 = event.copy();
-
         event2.keyCode = event.keyCode;
-
         event2.shiftKey = event.shiftKey;
-
         event2.ctrlKey = event.ctrlKey;
-
         event2.altKey = event.altKey;
-
     } else {
-
       event2 = {
-
           x : event.x,
-
           y : event.y,
-
           button : event.button,
-
           keyCode : event.keyCode,
-
           shiftKey : event.shiftKey,
-
           ctrlKey : event.ctrlKey,
-
           altKey : event.altKey
-
        };
-
     }
-
     
-
     event = event2;
-
     
-
-    for (var item of this.modup_time_ms) {
-
+    for (var item in this.modup_time_ms) {
       if (item[2] == charmap["Shift"])
-
         event.shiftKey = true;
-
       if (item[2] == charmap["Alt"])
-
         event.altKey = true;
-
       if (item[2] == charmap["Ctrl"]) {
-
         event.ctrlKey = true;
-
       }
-
     }
-
     
-
     return event;
-
   }
-
-
 
   _on_keyup(KeyboardEvent event) {
-
     this.handle_active_view2d();
-
     
-
     switch (event.keyCode) {
-
       case charmap["Shift"]:
-
       case charmap["Alt"]:
-
       case charmap["Ctrl"]:
-
         event = {
-
           keyCode : event.keyCode,
-
           shiftKey : event.shiftKey,
-
           altKey : event.altKey,
-
           ctrlKey : event.ctrlKey
-
         };
-
         this.modup_time_ms.push([time_ms(), event, event.keyCode]);
-
         return;
-
         break;
-
     }
-
     
-
     event = this.handle_event_modifiers(event)
-
     
-
     prior(Screen, this)._on_keyup.call(this, event);
-
   }
-
-
-
 
 
   _on_keydown(KeyboardEvent event) {
-
     this.handle_active_view2d();
-
     
-
     var a = event.altKey, c = event.ctrlKey, s = event.shiftKey;
-
     event = this.handle_event_modifiers(event);
-
     
-
     this.shift = event.shiftKey;
-
     this.ctrl = event.ctrlKey;
-
     this.alt = event.altKey;
-
     
-
     var area = this.area_event_push();
-
     UIFrame.prototype._on_keydown.call(this, event);
-
     this.area_event_pop(area);
-
   }
-
   
-
   on_keyup(KeyboardEvent event) {
-
     this.handle_active_view2d();
-
     
-
     var ctx = new Context();
-
     var ret = this.keymap.process_event(ctx, event);
-
     
-
     if (ret != undefined) {
-
       ret.handle(ctx);
-
     } else {
-
       prior(Screen, this).on_keyup.call(this, event);
-
     }
-
   }
-
   
-
   event_tick() {
-
     //handle delayed touch events
-
     touch_manager.process();
-
     
-
     g_app_state.raster.begin_draw(undefined, this.pos, this.size);
-
     
-
     //deal with delayed modifier key events
-
     var mod_delay = 60;
-
     
-
-    for (var s of list(this.modup_time_ms)) {
-
+    for (var s in list(this.modup_time_ms)) {
       if (time_ms() - s[0] > mod_delay) {
-
         if (s[1].keyCode == charmap["Shift"]) {
-
           s[1].altKey = this.alt;
-
           s[1].ctrlKey = this.ctrl;
-
           this.shift = false;
-
         }
-
         
-
         if (s[1].keyCode == charmap["Alt"]) {
-
           s[1].shiftKey = this.shift;
-
           s[1].ctrlKey = this.ctrl;
-
           this.alt = false;
-
         }
-
         
-
         if (s[1].keyCode == charmap["Ctrl"]) {
-
           s[1].shiftKey = this.shift;
-
           s[1].altKey = this.alt;
-
           this.ctrl = false;
-
         }
-
         
-
         if (DEBUG.modifier_keys)
-
           console.log("delayed event");
-
         
-
         this.modup_time_ms.remove(s);
-
         prior(Screen, this)._on_keyup.call(this, s[1]);
-
       }
-
     }
-
     
-
     
-
     /*if ((this.active instanceof ScreenArea) && this.active.area instanceof
-
         View2DHandler) 
-
     {
-
       g_app_state.active_view2d = this.active.area;
-
     }*/
-
     
-
     if (time_ms() - g_app_state.jobs.last_ms > g_app_state.jobs.ival) {
-
       g_app_state.jobs.run();
-
       g_app_state.jobs.last_ms = time_ms();
-
     }
-
   }
-
   
-
   on_draw() {
-
     if (this.recalc) {
-
       this.build_draw(this.canvas, false);
-
       this.recalc = false;
-
     }
-
   }
-
   
-
   _on_tick() {
-
     if (this.recalc) {
-
       this.build_draw(this.canvas, false);
-
       this.recalc = false;
-
     }
-
     
-
     this.last_tick = time_ms();
-
     this.on_tick();
-
     
-
     var ready = this.tick_timer.ready();
-
-    for (var c of this.children) {
-
-      if (c instanceof ScreenArea) {
-
-        var area = this.area_event_push();
-
-        
-
-        if (ready) c.on_tick();
-
-        else c.area.on_tick()
-
-        
-
-        this.area_event_pop(area);
-
-      } else if (ready) {
-
-        c.on_tick();
-
-      }
-
-    }
-
-  }
-
-  
-
-  disabledon_draw() {
-
-    return;
-
-    /*
-
-   //draw editors
-
     for (var c in this.children) {
-
-      //only call draw for screenarea children
-
-      if (!(c instanceof ScreenArea)) continue;
-
-     
-
-      this.draw_active = c;
-
-      
-
-      this.recalc_child_borders(c);
-
-      
-
-      c.area.push_ctx_active();
-
-      c.on_draw(undefined);
-
-      c.area.pop_ctx_active();
-
-      
-
-      //g_app_state.raster.pop_scissor();
-
-    }
-
-    this.draw_active = undefined;
-
-  
-
-    prior(Screen, this).on_draw.call(this, undefined);
-
-    
-
-    if (!DEBUG.disable_on_tick && time_ms() - this.last_tick > 32) { //(IsMobile ? 500 : 150)) {
-
-      this.last_tick = time_ms();
-
-      this.on_tick();
-
-      
-
-      var ready = this.tick_timer.ready();
-
-      for (var c in this.children) {
-
-        if (c instanceof ScreenArea) {
-
-          if (ready) c.on_tick();
-
-          else c.area.on_tick()
-
-        } else if (ready) {
-
-          c.on_tick();
-
-        }
-
-      }
-
-    }
-
-    
-
-    if (this.modalhandler != null && !(this.modalhandler instanceof ScreenArea)) {
-
-      this.modalhandler.on_draw(undefined);
-
-    }
-
-    
-
-    //g_app_state.raster.pop_scissor();
-
-    */
-
-  }
-
-  
-
-  clear_textinput() {
-
-    var canvas  = document.getElementById("canvas2d_work");
-
-    
-
-    canvas.textContent = "&nbsp";
-
-  }
-
-  
-
-  on_tick()
-
-  {
-
-    if (window.the_global_dag != undefined) {
-
-      if (this.ctx == undefined)
-
-        this.ctx = new Context();
-
-      
-
-      the_global_dag.exec(this.ctx);
-
-    }
-
-    
-
-    this.handle_active_view2d();
-
-    
-
-    try {
-
-      g_app_state.session.settings.on_tick();
-
-    } catch (_err) {
-
-      print_stack(_err);
-
-      console.log("settings on_tick error");
-
-    }
-
-    
-
-    try {
-
-      g_app_state.notes.on_tick();
-
-    } catch (_err) {
-
-      print_stack(_err);
-
-      console.log("notes on_tick error");
-
-    }
-
-    
-
-    if (time_ms() - this.last_sync > 700) {
-
-      this.last_sync = time_ms();
-
-    }
-
-    
-
-    if (this.modalhandler == null && 
-
-        !g_app_state.session.is_logged_in) 
-
-    {
-
-      login_dialog(new Context());
-
-    }
-
-    
-
-    if (this.session_timer.ready() && g_app_state.session.is_logged_in) 
-
-    {
-
-      g_app_state.session.validate_session();
-
-    }
-
-    
-
-    for (var c of this.children) {
-
-      this.draw_active = c;
-
-      
-
       if (c instanceof ScreenArea) {
-
         var area = this.area_event_push();
-
-        c.on_tick();
-
+        
+        if (ready) c.on_tick();
+        else c.area.on_tick()
+        
         this.area_event_pop(area);
-
+      } else if (ready) {
+        c.on_tick();
       }
-
     }
-
-    
-
-    this.draw_active = undefined;
-
   }
-
-
+  
+  disabledon_draw() {
+    return;
+    /*
+   //draw editors
+    for (var c in this.children) {
+      //only call draw for screenarea children
+      if (!(c instanceof ScreenArea)) continue;
+     
+      this.draw_active = c;
+      
+      this.recalc_child_borders(c);
+      
+      c.area.push_ctx_active();
+      c.on_draw(undefined);
+      c.area.pop_ctx_active();
+      
+      //g_app_state.raster.pop_scissor();
+    }
+    this.draw_active = undefined;
+  
+    prior(Screen, this).on_draw.call(this, undefined);
+    
+    if (!DEBUG.disable_on_tick && time_ms() - this.last_tick > 32) { //(IsMobile ? 500 : 150)) {
+      this.last_tick = time_ms();
+      this.on_tick();
+      
+      var ready = this.tick_timer.ready();
+      for (var c in this.children) {
+        if (c instanceof ScreenArea) {
+          if (ready) c.on_tick();
+          else c.area.on_tick()
+        } else if (ready) {
+          c.on_tick();
+        }
+      }
+    }
+    
+    if (this.modalhandler != null && !(this.modalhandler instanceof ScreenArea)) {
+      this.modalhandler.on_draw(undefined);
+    }
+    
+    //g_app_state.raster.pop_scissor();
+    */
+  }
+  
+  clear_textinput() {
+    var canvas  = document.getElementById("canvas2d_work");
+    
+    canvas.textContent = "&nbsp";
+  }
+  
+  on_tick()
+  {
+    if (window.the_global_dag != undefined) {
+      if (this.ctx == undefined)
+        this.ctx = new Context();
+      
+      the_global_dag.exec(this.ctx);
+    }
+    
+    this.handle_active_view2d();
+    
+    try {
+      g_app_state.session.settings.on_tick();
+    } catch (_err) {
+      print_stack(_err);
+      console.log("settings on_tick error");
+    }
+    
+    try {
+      g_app_state.notes.on_tick();
+    } catch (_err) {
+      print_stack(_err);
+      console.log("notes on_tick error");
+    }
+    
+    if (time_ms() - this.last_sync > 700) {
+      this.last_sync = time_ms();
+    }
+    
+    if (this.modalhandler == null && 
+        !g_app_state.session.is_logged_in) 
+    {
+      login_dialog(new Context());
+    }
+    
+    if (this.session_timer.ready() && g_app_state.session.is_logged_in) 
+    {
+      g_app_state.session.validate_session();
+    }
+    
+    for (var c in this.children) {
+      this.draw_active = c;
+      
+      if (c instanceof ScreenArea) {
+        var area = this.area_event_push();
+        c.on_tick();
+        this.area_event_pop(area);
+      }
+    }
+    
+    this.draw_active = undefined;
+  }
 
   on_resize(Array<int> newsize, Array<int> oldsize) 
-
   {
-
     g_app_state.size = new Vector2(newsize);
-
     
-
     if (oldsize == undefined || this.use_old_size)
-
       oldsize = [this.size[0], this.size[1]];
-
     
-
     if (newsize[0] < 100 || newsize[1] < 100) {
-
       this.use_old_size = true;
-
       newsize[0] = 100;
-
       newsize[1] = 100;
-
     }
-
     
-
     var ratio = (new Vector2(newsize)).divide(oldsize);
-
     
-
     this.size = [newsize[0], newsize[1]];
-
     this.canvas.viewport = [[0,0], newsize]
-
     
-
     if (oldsize[0] == 0.0 || oldsize[1] == 0.0)
-
       return;
-
     
-
-    for (var c of this.children) {
-
+    for (var c in this.children) {
       c.pos[0] *= ratio[0];
-
       c.pos[1] *= ratio[1];
-
       c.pos[0] = Math.ceil(c.pos[0])
-
       c.pos[1] = Math.ceil(c.pos[1])
-
       
-
       //don't resize dialogs and menus
-
       console.log("Fix dependency here as well");
-
       
-
       if (c instanceof Dialog || c instanceof UIMenu || c instanceof window.UIRadialMenu) continue;
-
       c.size[0] *= ratio[0];
-
       c.size[1] *= ratio[1];
-
       c.size[0] = Math.ceil(c.size[0])
-
       c.size[1] = Math.ceil(c.size[1])
-
     }
-
    
-
     this.snap_areas();
-
     
-
-    for (var c of this.children) {
-
+    for (var c in this.children) {
       //if (c instanceof ScreenArea && c.area instanceof View2DHandler)
-
       //  g_app_state.active_view2d = c.area;
-
       
-
       c.on_resize(newsize, oldsize);
-
     }
-
   }
-
-
 
   snap_areas() {
-
     //first ensure all areas are within the screen bounds
-
     //return;
-
     
-
-    for (var sa of this.children) {
-
+    for (var sa in this.children) {
       if (!(sa instanceof ScreenArea))
-
         continue;
-
       
-
       sa.pos[0] = Math.max(sa.pos[0], 0.0);
-
       sa.pos[1] = Math.max(sa.pos[1], 0.0);
-
       sa.size[0] = Math.min(sa.size[0]+sa.pos[0], this.size[0]) - sa.pos[0];
-
       sa.size[1] = Math.min(sa.size[1]+sa.pos[1], this.size[1]) - sa.pos[1];
-
     }
-
     
-
     //snapping code
-
     var dis = 16.0;
-
     for (var i=0; !found && i<128; i++) {
-
       var found = false;
-
       
-
-      for (var c1 of this.children) {
-
+      for (var c1 in this.children) {
         if (!(c1 instanceof ScreenArea))
-
           continue;
-
           
-
-        for (var c2 of this.children) {
-
+        for (var c2 in this.children) {
           if (!(c2 instanceof ScreenArea))
-
             continue;
-
             
-
           if (c1 == c2)
-
             continue;
-
           
-
           var oldsize = new Vector2(c2.size);
 
-
-
           var found2 = false;
-
           
-
           var abs = Math.abs;
-
           //    top
-
           //left   right 
-
           //   bottom 
-
           
-
           
-
           //top
-
           if (abs(c1.pos[0]-c2.pos[0]) < dis
-
               && abs((c1.pos[1]+c1.size[1])-c2.pos[1]) < dis)
-
           {
-
             found2 = 1;
-
             c1.size[1] = c2.pos[1] - c1.pos[1];
-
             c1.size[1] = Math.max(c1.size[1], 4);
-
           }
-
           
-
           if (abs(c1.pos[1]-c2.pos[1]) < dis 
-
               && abs((c1.pos[0]+c1.size[0])-c2.pos[0]) < dis) 
-
           {
-
             found2 = 2;
-
             c1.size[0] = c2.pos[0] - c1.pos[0];
-
             c1.size[0] = Math.max(c1.size[0], 4);
-
           }
-
           
-
           if (found2) {
-
             found = true;
-
             c2.on_resize(c2.size, oldsize);
-
             //console.log("snapped", found2);
-
           }
-
           
-
           if (found2)
-
             break;
-
         }
-
       }
-
     }
-
   }
-
-
 
   pop_modal()
-
   {
-
     UIFrame.prototype.pop_modal.call(this);
-
     
-
     if (this.modalhandler == null) {
-
       var e = new MyMouseEvent(this.mpos[0], this.mpos[1], 0, 0);
-
       e.shiftKey = this.shiftKey;
-
       e.altKey = this.altKey;
-
       e.ctrlKey = this.ctrlKey;
-
       
-
       //this._on_mousemove(e);
-
     }
-
   }
-
   
-
   recalc_all_borders() 
-
   {
-
-    for (var c of this.children) { 
-
+    for (var c in this.children) { 
       if (c instanceof ScreenArea) {
-
         this.recalc_child_borders(c);
-
       }
-
     }
-
   }
-
   
-
   recalc_child_borders(ScreenArea child)
-
   {
-
     var ls = get_rect_lines(new Vector2(child.pos), child.size);
-
     var bs = this.child_borders.get(child);
-
     
-
     for (var i=0; i<4; i++) {
-
       var border = bs[i];
-
       var len = new Vector2(ls[i][1]).sub(ls[i][0]).vectorLength();
-
       
-
       border.pos = ls[i][0];
-
       for (var j=0; j<2; j++) {
-
         border.pos[j] = Math.min(ls[i][1][j], border.pos[j])
-
       }
-
       
-
       if ((i%2)==0) {
-
         border.size[0] = len;
-
         border.size[1] = BORDER_WIDTH;
-
         
-
         //border.pos[1] -= Math.floor(BORDER_WIDTH/2.0);
-
       } else {
-
         border.size[1] = len;
-
         border.size[0] = BORDER_WIDTH;
-
         
-
         //border.pos[0] -= Math.floor(BORDER_WIDTH/2.0);
-
       }
-
     }
-
   }
-
-
 
   remove(UIElement child) {
-
     UIFrame.prototype.remove.call(this, child);
-
     
-
     if (child instanceof ScreenArea) {
-
       this.areas.remove(child);
-
       
-
       var bs = this.child_borders.get(child);
-
       for (var i=0; i<4; i++) {
-
         this.remove(bs[i]);
-
       }
-
       
-
       this.child_borders.remove(child);
-
     }
-
   }
-
-
 
   add(UIElement child, packflag) { //packflag is optional
-
     var view2d;
-
     
-
     if (child instanceof ScreenArea) {
-
       this.areas.push(child);
-
       
-
       for (var k in child.editors) {
-
         var area = child.editors[k];
-
         if (area.constructor.name == "View2DHandler")
-
           view2d = area;
-
       }
-
     }
-
     
-
     if (view2d == undefined) {
-
-      for (var c of this.children) {
-
+      for (var c in this.children) {
         if (!(c instanceof ScreenArea))
-
           continue;
-
         
-
         if ("View2DHandler" in c.editors) {
-
           view2d = c.editors["View2DHandler"];
-
           break;
-
         }
-
       }
-
     }
-
     
-
     if (child instanceof ScreenArea) {
-
       //var canvas = new UICanvas([child.pos, child.size]);
-
       
-
       child.canvas = this.canvas; //canvas;
-
       for (var k in child.editors) {
-
         child.editors[k].canvas  = this.canvas;
-
       }
-
     } else {
-
       child.canvas = this.canvas;
-
     }
-
     
-
     UIFrame.prototype.add.call(this, child, packflag);
-
     
-
     if (child instanceof ScreenArea) {
-
       var bs = []
-
       for (var i=0; i<4; i++) {
-
         bs.push(new ScreenBorder(child, i));
-
         this.add(bs[bs.length-1]);
-
       }
-
       
-
       this.child_borders.set(child, bs);
-
       this.recalc_child_borders(child);
-
     }
-
   }
-
-
 
   toJSON() {
-
     var scrareas = new GArray();
-
     
-
     for (var c in this.children) {
-
       if (c instanceof ScreenArea)
-
         scrareas.push(c);
-
     }
-
     
-
     var ret = {scrareas : [], size : [this.size[0], this.size[1]]}
-
     for (var a in scrareas) {
-
       ret.scrareas.push(a.toJSON());
-
     }
-
     
-
     return ret;
-
   }
-
-
 
   do_partial_clip() {
-
     var canvas = this.canvas;
-
     var this2 = this;
-
     
-
     function clear_recalc(e, d) {
-
-      for (var c of e.children) {
-
+      for (var c in e.children) {
         //c.recalc = 0;
-
         //if (canvas != undefined && c.canvas == undefined)
-
         //  c.canvas = canvas;
-
         
-
         c.abspos[0] = 0; c.abspos[1] = 0;
-
         c.abs_transform(c.abspos);
-
           
-
         var t = c.dirty;
-
         //c.dirty = c.last_dirty;
-
         //c.last_dirty = t;
-
         
-
         if (!(c instanceof UIFrame)) {
-
           /*c.dirty[0][0] = c.abspos[0];
-
           c.dirty[0][1] = c.abspos[1];
-
           c.dirty[1][0] = c.size[0];
-
           c.dirty[1][1] = c.size[1];*/
-
         }
-
         
-
         c.abspos[0] = 0; c.abspos[1] = 0;
-
         c.abs_transform(c.abspos);
-
         
-
         if (aabb_isect_2d(c.abspos, c.size, d[0], d[1])) {
-
           c.do_recalc();
-
         }
-
         
-
         if (c instanceof UIFrame) {
-
           clear_recalc(c, d);
-
         } else {
-
           if (c.recalc) {
-
           //  canvas.clip(c.dirty);
-
           }
-
         }
-
       }
-
     }
-
     
-
     this.pack(canvas, false);
-
     this.pack(canvas, false);
-
     
-
     var d = this.calc_dirty();
-
     this.dirty_rects.reset();
-
     
-
     this.canvas.root_start();
-
     
-
     this.canvas.clip(d);
-
     this.canvas.clear(d[0], d[1]);
-
     
-
     clear_recalc(this, d);
-
   }
-
-
 
   build_draw(canvas, isVertical) {
-
     window.block_redraw_ui();
-
     
-
     //calls this.canvas.root_start()
-
     this.do_partial_clip();
-
     
-
     function descend(n, canvas, ctx) {
-
-      for (var c of n.children) {
-
+      for (var c in n.children) {
         c.canvas = canvas;
-
         c.ctx = ctx;
-
         
-
         if (c instanceof UIFrame)
-
           descend(c, canvas, ctx);
-
       }
-
     }
-
-
 
     if (this.ctx == undefined)
-
       this.ctx = new Context();
-
     
-
     if (this.canvas == undefined)
-
       this.canvas = this.get_canvas();
-
       
-
     descend(this, this.canvas, this.ctx);
-
     this.canvas.reset();
-
       
-
     if (DEBUG.ui_canvas)
-
       console.log("------------->Build draw call " + this.constructor.name + ".on_draw()");
 
-
-
     this.snap_areas();
-
     prior(Screen, this).build_draw.call(this, canvas, isVertical);
-
     
-
     window.unblock_redraw_ui();
-
     this.canvas.root_end();
-
   }
-
-
 
   data_link(block, getblock, getblock_us)
-
   {
-
     //have got to decouple context from View2DHandler
-
     this.ctx = new Context();
-
     
-
-    for (var c of this.areas) {
-
+    for (var c in this.areas) {
       c.data_link(block, getblock, getblock_us);
-
     }
-
     
-
     var areas = this.areas;
-
     this.areas = new GArray()
-
     
-
-    for (var a of areas) {
-
+    for (var a in areas) {
       this.add(a);
-
     }
-
   }
-
 }
-
-
 
 Screen.STRUCT = """
-
   Screen { 
-
     pos   : vec2;
-
     size  : vec2;
-
     areas : array(abstract(ScreenArea));
-
   }
-
 """
 
-
-
 function load_screen(Screen scr, json_obj)
-
 {
-
   var newsize = [scr.size[0], scr.size[1]]
-
   
-
   var obj = json_obj
-
   
-
   for (var c in list(scr.children)) {
-
     if (!(c instanceof ScreenBorder)) {
-
       console.log(c);
-
       scr.remove(c);
-
     }
-
   }
-
   scr.children = new GArray();
-
   
-
   var scrareas = obj.scrareas;
-
   for (var i=0; i<scrareas.length; i++) {
-
     var area = ScreenArea.fromJSON(scrareas[i]);
-
     scr.add(area);
-
     
-
     if (area.area.constructor.name == "View2DHandler") {
-
       scr.view2d = area.area;
-
       //scr.ctx.view2d = area.area;
-
       //g_app_state.active_view2d = area.area;
-
     }
-
   }
-
   
-
   //scale to current window size
-
   scr.size[0] = obj.size[0]; scr.size[1] = obj.size[1];
-
   scr.on_resize(newsize, obj.size);
-
   
-
   scr.size[0] = newsize[0]; scr.size[1] = newsize[1];
-
   scr.snap_areas();
-
 }
-
-
 
 export function gen_screen(WebGLRenderingContext gl, View2DHandler view2d, int width, int height)
-
 {
-
   var scr = new Screen(view2d, width, height);
-
   view2d.screen = scr;
-
   
-
   g_app_state.screen = scr;
-
   g_app_state.eventhandler = scr;
-
   
-
   g_app_state.active_view2d = view2d;
-
   
-
   view2d.size = [width, height]
-
   view2d.pos = [0, 0];
-
   
-
   scr.ctx = new Context();
-
   scr.canvas = new UICanvas([[0, 0], [width, height]]);
-
   
-
   scr.add(new ScreenArea(view2d, scr.ctx, view2d.pos, view2d.size));
 
-
-
   return scr;
-
 }
-
-
 
 export class HintPickerOpElement extends UIElement {
-
   constructor(ctx, HintPickerOp op) {
-
     UIElement.call(this, ctx);
-
     this.op = op;
-
   }
-
   
-
   build_draw(UICanvas canvas, Boolean isVertical) {
-
     this.op.canvas = canvas;
-
     
-
     this.op.build_draw();
-
   }
-
 }
-
-
 
 export class HintPickerOp extends ToolOp {
-
   constructor() {
-
     ToolOp.call(this, "hint_picker", "Hint Picker", 
-
                 "Helper tool to display tooltips on tablets", 
-
                 Icons.HELP_PICKER);
-
     
-
     this.canvas = g_app_state.screen.canvas;
-
     this.undoflag = UndoFlags.IGNORE_UNDO;
-
     this.is_modal = true;
-
     
-
     this.mup_count = 0; //we count the number of mouseups to implement touch tablet mode
-
     this.inputs = {};
-
     this.outputs = {};
-
     this.active = undefined;
-
     this.hintbox = undefined;
-
     this.last_mpos = new Vector2([0, 0]);
-
   }
-
   
-
   can_call(Context ctx) {
-
     return true; //g_app_state.modalhandler == undefined;
-
   }
-
   
-
   find_element(MouseEvent event, Array<float> mpos) {
-
     function descend(e, mpos) {
-
       if (e instanceof UIHoverHint) {
-
         return e;
-
       } else if (!(e instanceof UIFrame)) {
-
         return undefined;
-
       }
-
       
-
       mpos = [mpos[0]-e.pos[0], mpos[1]-e.pos[1]];
-
       for (var c in e.children) {
-
         if (inrect_2d(mpos, c.pos, c.size))
-
           return descend(c, mpos);
-
       }
-
     }
-
     
-
     var ret;
-
     for (var c in g_app_state.screen.children) {
-
       if (!(c instanceof ScreenArea)) continue;
-
       if (!inrect_2d(mpos, c.pos, c.size)) continue;
-
       
-
       ret = descend(c, mpos);
-
       if (ret != undefined)
-
         break;
-
     }
-
     
-
     this.active = ret;
-
     
-
     return ret;
-
   }
-
   
-
   on_mousemove(MouseEvent event) {
-
     this.canvas = g_app_state.screen.canvas;
-
     
-
     var ctx = this.modal_ctx;
-
     var mpos = [event.x, event.y];
-
     
-
     var old = this.active;
-
     this.find_element(event, mpos);
-
     
-
     if (old != this.active && this.active != undefined) {
-
       if (this.hintbox != undefined) {
-
         this.hintbox.parent.remove(this.hintbox);
-
         this.hintbox.parent.do_recalc();
-
       }
-
       
-
       this.helper.do_recalc();
-
       this.hintbox = this.active.on_hint(false);
-
       
-
       console.log("active change");
-
     } else if (old != this.active && this.active == undefined) {
-
       this.helper.do_recalc();
-
     }
-
-
 
     //console.log("active: ", this.active);
-
     //g_app_state.build_draw(this.canvas, false);
-
   }
-
   
-
   start_modal(Context ctx) {
-
     console.log("helper tool");
-
     var helper = new HintPickerOpElement(ctx, this);
-
     
-
     g_app_state.screen.add(helper);
-
     this.helper = helper;
-
   }
-
   
-
   finish() {
-
     this.canvas.reset();
-
     this.end_modal();
-
     
-
     g_app_state.screen.remove(this.helper);
-
     
-
     if (this.hintbox != undefined) {
-
       this.hintbox.parent.remove(this.hintbox);
-
       this.hintbox.parent.do_recalc();
-
     }
-
   }
-
   
-
   on_mousedown(MouseEvent event) {
-
     this.on_mousemove(event);
-
   }
-
   
-
   on_mouseup(MouseEvent event) {
-
     console.log("was_touch", this.active, (this.active && g_app_state.was_touch && this.mup_count < 1));
-
     
-
     if (g_app_state.was_touch && this.active != undefined) {
-
       return;
-
     }
-
     
-
     this.finish();
-
   }
-
   
-
   on_keyup(KeyboardEvent event) {
-
     if (event.keyCode == 27) { //escape key
-
       this.canvas.reset();
-
       this.finish();
-
     }
-
   }
-
   
-
   build_draw() {
-
     
-
     //console.log("rebuilding draw...");
-
     
-
     //this.canvas.reset();
-
     var clr = [0, 0, 0, 0.35];
-
     
-
     if (this.active == undefined) {
-
       //this.canvas.simple_box([0, 0], g_app_state.screen.size, clr);
-
     } else {
-
       var pos = this.active.get_abs_pos();
-
       //this.canvas.passpart(pos, this.active.size, clr);
-
     }
-
   }
-
 }
 
-
-
 //argh! evil globals!
-
 window.Screen = Screen;
-
 window.ScreenArea = ScreenArea;
-
 window.Area = Area;

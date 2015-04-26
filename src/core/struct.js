@@ -200,7 +200,7 @@ function SchemaParser() {
     })
   ];
 
-  for (var rt in reserved_tokens) {
+  for (var rt of reserved_tokens) {
     tokens.push(tk(rt.toUpperCase()));
   }
   
@@ -671,7 +671,7 @@ var _st_packers = [
     }
     
     var len = 0;
-    for (var val2 in val) {
+    for (var val2 of val) {
       len++;
     }
     
@@ -684,7 +684,7 @@ var _st_packers = [
     var env = _ws_env;
     
     var i=0;
-    for (var val2 in val) {
+    for (var val2 of val) {
       if (i >= len) {
         console.log("malformed iteration value for serialization", field, val);
         break;
@@ -887,7 +887,7 @@ function _st_pack_type2(data, val, obj, thestruct, field, type) {
     }
     
     var len = 0;
-    for (var val2 in val) {
+    for (var val2 of val) {
       len++;
     }
     
@@ -900,7 +900,7 @@ function _st_pack_type2(data, val, obj, thestruct, field, type) {
     var env = _ws_env;
     
     var i=0;
-    for (var val2 in val) {
+    for (var val2 of val) {
       if (i >= len) {
         console.log("malformed iteration value for serialization", field, val);
         break;
@@ -1590,7 +1590,7 @@ window.init_struct_packer = function() {
   window.istruct = new STRUCT();
   var errs = [];
   
-  for (var cls in defined_classes) {
+  for (var cls of defined_classes) {
     try {
       if (cls.STRUCT != undefined && cls.fromSTRUCT != undefined) {
         istruct.add_struct(cls);

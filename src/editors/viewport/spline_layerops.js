@@ -57,7 +57,7 @@ export class ChangeLayerOp extends ToolOp {
     var spline = ctx.spline;
     
     var actives = [];
-    for (var list in spline.elists) {
+    for (var list of spline.elists) {
       actives.push(list.active != undefined ? list.active.eid : -1);
     }
     
@@ -94,7 +94,7 @@ export class ChangeLayerOp extends ToolOp {
     }
     
     //clear actives
-    for (var list in spline.elists) {
+    for (var list of spline.elists) {
       list.active = undefined;
     }
     
@@ -125,7 +125,7 @@ export class ChangeElementLayerOp extends SplineLocalToolOp {
     var newl = this.inputs.new_layer.data;
     
     var eset = new set();
-    for (var e in spline.selected) {
+    for (var e of spline.selected) {
       if (e.hidden) continue;
       if (!(oldl in e.layers)) continue;
       
@@ -142,7 +142,7 @@ export class ChangeElementLayerOp extends SplineLocalToolOp {
       return;
     }
     
-    for (var e in eset) {
+    for (var e of eset) {
       oldl.remove(e);
       newl.add(e);
     }

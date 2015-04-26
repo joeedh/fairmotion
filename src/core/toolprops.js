@@ -77,7 +77,7 @@ export class ToolProperty {
   //only one callback per owner allowed
   //any existing callback will be overwritten
   add_listener(owner, callback) {
-    for (var l in this.listeners) {
+    for (var l of this.listeners) {
       if (l[0] == owner) {
         l[1] = callback;
         return;
@@ -88,7 +88,7 @@ export class ToolProperty {
   }
   
   remove_listener(owner, silent_fail=false) {
-    for (var l in this.listeners) {
+    for (var l of this.listeners) {
       if (l[0] == owner) {
         console.log("removing listener");
         this.listeners.remove(l);

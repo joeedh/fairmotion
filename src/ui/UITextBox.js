@@ -300,7 +300,7 @@ export class UITextBox extends UIElement {
         return e;
       
       if (e instanceof UIFrame) {
-        for (var c in e.children) {
+        for (var c of e.children) {
           var ret = find_textbox(c, exclude);
           if (ret != undefined)
             return ret;

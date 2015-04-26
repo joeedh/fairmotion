@@ -361,13 +361,14 @@ export function aabb_isect_line_2d(v1, v2, min, max) {
   return false;
 }
 
-export function aabb_isect_minmax2d(min1, max1, min2, max2, margin=0) {
+export function aabb_isect_minmax2d(_min1, _max1, _min2, _max2, margin=0) {
   var ret = 0;
   
   for (var i=0; i<2; i++) {
-    var a = min1[i]-margin, b = max1[i]+margin, c = min2[i]-margin, d = max2[i]+margin;
+    var min1 = _min1[i]-margin, max1 = _max1[i]+margin, min2 = _min2[i]-margin, max2 = _max2[i]+margin;
     
-    if (b >= c && a <= d) ret += 1;
+    if (max1 >= min2 && min1 <= max2)
+      ret += 1;
   }
   
   return ret == 2;

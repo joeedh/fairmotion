@@ -1545,6 +1545,11 @@ function toJSON_intern (ob, tlevel) {
            }
          }
         
+        var last_mouse_down = time_ms();
+        var last_mouse_pos  = [0, 0];
+        var last_mouse_button = 0;
+        var DBCLK_THRESH = 200
+        
         function handleMouseDown(e) {
           if (gl_ctx_lost) return;
           
@@ -1559,6 +1564,26 @@ function toJSON_intern (ob, tlevel) {
 
             //console.log("md1", e.x, e.y);
             g_app_state.eventhandler._on_mousedown(e2);
+            
+            var is_dclick = last_mouse_button == event.button && time_ms() - last_mouse_down < DBCLK_THRESH;
+            var dx = last_mouse_pos[0]-event.pageX, dy = last_mouse_pos[1]-event.pageY;
+            is_dclick = is_dclick && Math.sqrt(dx*dx + dy*dy) < 10; //mouse hasn't moved more than ten pixels
+            
+            last_mouse_down = time_ms();
+            last_mouse_button = event.button;
+            last_mouse_pos[0] = event.pageX; last_mouse_pos[1] = event.pageY;
+            
+            if (is_dclick) {
+              e2 = new MyMouseEvent(e.pageX, g_app_state.screen.size[1] - e.pageY, 
+                                    e.button, MyMouseEvent.MOUSEDOWN);
+              
+              e2.shiftKey = e.shiftKey;
+              e2.altKey = e.altKey;
+              e2.ctrlKey = e.ctrlKey;
+              
+              g_app_state.eventhandler._on_doubleclick(e2);
+            }
+            
             //console.log("md2", e.x, e.y);
           }
           

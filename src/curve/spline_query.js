@@ -66,7 +66,7 @@ export class SplineQuery {
     
     editor.unproject(mpos);
     
-    for (var seg in spline.segments) {
+    for (var seg of spline.segments) {
       var ret = seg.closest_point(mpos, undefined, true);
       if (ret == undefined) continue;
       ret = ret[0];

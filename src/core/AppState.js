@@ -291,12 +291,6 @@ export class AppState {
   }
   
   destroy() { //destroy GL object references
-    var gl = this.gl;
-    
-    for (var m in this.datalib.meshes) {
-      m.render.destroy();
-    }
-    
     this.screen.destroy();
   }
   
@@ -364,7 +358,7 @@ export class AppState {
     
     this.mesh = m2;
     
-    for (var c in this.screen.children) {
+    for (var c of this.screen.children) {
       if (c instanceof ScreenArea) {
         if (View2DHandler.name in c.editors)
           c.editors[View2DHandler.name].mesh = m2;
@@ -737,11 +731,11 @@ export class AppState {
   //version patching happens *before* block linking
   do_versions(datalib, blocks, version) {
     if (version < 0.046) {
-      for (var frameset in datalib.framesets) {
-        for (var spline in frameset._allsplines) {
+      for (var frameset of datalib.framesets) {
+        for (var spline of frameset._allsplines) {
           console.log("========>", spline);
           
-          for (var h in spline.handles) {
+          for (var h of spline.handles) {
             //if (!h.use) continue;
             
             console.log("  -", h.segments[0], h.segments);
@@ -766,9 +760,9 @@ export class AppState {
     }
     
     if (version < 0.048) {
-      for (var frameset in datalib.framesets) {
-        for (var spline in frameset._allsplines) {
-          for (var eid in spline.eidmap) {
+      for (var frameset of datalib.framesets) {
+        for (var spline of frameset._allsplines) {
+          for (var eid of spline.eidmap) {
             var e = spline.eidmap[eid];
             var layer = spline.layerset.active; //should exist by this point
             
@@ -1002,7 +996,7 @@ export class AppState {
       p1.push(tool);
       p2.push(tool.saved_context);
       
-      for (var t in tool.tools) {
+      for (var t of tool.tools) {
         if (t instanceof ToolMacro)
           add_macro(p1, p2, t);
         
@@ -1219,7 +1213,7 @@ export class AppState {
     if (screen != undefined) {
       this.active_view2d = undefined;
       
-      for (var sa in screen.areas) {
+      for (var sa of screen.areas) {
         //need to get rid of appstate.active_view2d
         if (sa.area instanceof View2DHandler) {
           this.active_view2d = sa.area;
@@ -1979,7 +1973,7 @@ class ToolStack {
     }
     
     if (tool instanceof ToolMacro) {
-      for (var t2 in tool.tools) {
+      for (var t2 of tool.tools) {
         this.set_tool_coll_flag(t2);
       }
     }
@@ -2032,7 +2026,7 @@ class ToolStack {
     }
     
     if (this.appstate.screen && this.appstate.active_view2d == undefined) {
-      for (var s in this.appstate.screen.children) {
+      for (var s of this.appstate.screen.children) {
         if (s instanceof ScreenArea && s.area instanceof View2DHandler) {
           this.appstate.active_view2d = s.area;
           break;

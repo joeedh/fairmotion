@@ -121,7 +121,7 @@ class UIPath extends HotSpot {
         return e;
       
       if (e instanceof UIFrame) {
-        for (var e2 in e.children) {
+        for (var e2 of e.children) {
           var ret = descend(e2, path);
           if (ret)
             return ret;
@@ -132,7 +132,7 @@ class UIPath extends HotSpot {
     }
     
     var e = undefined;
-    for (var a in g_app_state.screen.children) {
+    for (var a of g_app_state.screen.children) {
       if (!(a instanceof ScreenArea)) continue;
       
       e = descend(a.area, this.path);
@@ -345,8 +345,8 @@ function test_tutorial_mode() {
   ]);
   
   console.log("hotspot test", handler.pages);
-  for (var p in handler.pages) {
-    for (var e in p.events) {
+  for (var p of handler.pages) {
+    for (var e of p.events) {
       if (!(e instanceof TutMouseDown)) continue;
       if (!(e.hotspot instanceof UIPath)) continue;
       

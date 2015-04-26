@@ -123,7 +123,7 @@ export class UIPackFrame extends UIFrame {
     
     if (this.state & UIFlags.HAS_PAN) {
       mm.reset();
-      for (var c in this.children) { 
+      for (var c of this.children) { 
         arr[0] = c.pos[0]+c.size[0];
         arr[1] = c.pos[1]+c.size[1];
         mm.minmax(c.pos);
@@ -533,7 +533,7 @@ export class UIPackFrame extends UIFrame {
       this.parent.do_full_recalc();
       this.do_recalc();
       
-      for (var c in this.children) {
+      for (var c of this.children) {
         if (!(c instanceof UIFrame)) {
           c.recalc = 1;
         }
@@ -563,7 +563,7 @@ export class RowFrame extends UIPackFrame {
     var maxwidth = 0;
     var tothgt = 0;
     
-    for (var c in this.children) {
+    for (var c of this.children) {
       var size;
       
       if (!(c.packflag & PackFlags.KEEP_SIZE))
@@ -681,7 +681,7 @@ export class ColumnFrame extends UIPackFrame {
     var maxheight = 0;
     var totwid = 0;
     
-    for (var c in this.children) {
+    for (var c of this.children) {
       var size;
       if (!(c.packflag & PackFlags.KEEP_SIZE))
         size = c.cached_min_size(canvas, isvertical);
@@ -726,7 +726,7 @@ export class ColumnFrame extends UIPackFrame {
     var sum=0;
     var max_wid = 0;
     var max_hgt = 0;
-    for (var c in this.children) {
+    for (var c of this.children) {
       var s;
       
       if (!(c.packflag & PackFlags.KEEP_SIZE))
@@ -769,7 +769,7 @@ export class ColumnFrame extends UIPackFrame {
     
     var pad = this.pad[0];
     var finalwid = 0;
-    for (var c in this.children) {
+    for (var c of this.children) {
       var size;
       
       if (!(c.packflag & PackFlags.KEEP_SIZE))
@@ -809,7 +809,7 @@ export class ColumnFrame extends UIPackFrame {
     }
     
     if ((this.packflag & PackFlags.ALIGN_CENTER) && finalwid < this.size[0]) {
-      for (var c in this.children) {
+      for (var c of this.children) {
         if (this.packflag & PackFlags.ALIGN_RIGHT)
           c.pos[0] -= Math.floor((this.size[0]-finalwid)*0.5);
         else
@@ -839,7 +839,7 @@ export class ToolOpFrame extends RowFrame {
     if (strct == undefined) return;
     
     this.strct = strct;
-    for (var p in strct) {
+    for (var p of strct) {
       if (!(p.flag & PackFlags.UI_DATAPATH_IGNORE))
         this.prop(p.name, PackFlags.INHERIT_WIDTH);
     }

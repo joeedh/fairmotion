@@ -994,6 +994,8 @@ export class SplineFrameSet extends DataBlock {
   }
   
   set_visibility(vd_eid, state) {
+    console.log("set called", vd_eid, state);
+    
     var vd = this.vertex_animdata[vd_eid];
     if (vd == undefined) return;
     
@@ -1035,7 +1037,7 @@ export class SplineFrameSet extends DataBlock {
   on_spline_select(element, state) {
     if (!this.switch_on_select) return;
     
-    //console.trace("on select!", element.eid, state);
+    //console.trace("frameset on select!", element.eid, state);
     
     var vd = this.get_vdata(element.eid, false);
     if (vd == undefined) return;
@@ -1047,11 +1049,11 @@ export class SplineFrameSet extends DataBlock {
       hide = hide || !element.use;
     }
     
-    if (state) { // !!(vd.flag & SplineFlags.HIDE) != !!hide) {
+    //if (state) { // !!(vd.flag & SplineFlags.HIDE) != !!hide) {
       //window.redraw_viewport();
-    }
+    //}
     
-    console.log("anim path status", hide);
+    //console.log("anim path status", hide);
 
     var layer = this.pathspline.layerset.idmap[vd.layerid];
     var drawlayer = this.pathspline.layerset.idmap[this.templayerid];
@@ -1064,7 +1066,7 @@ export class SplineFrameSet extends DataBlock {
         var s = v.segments[i];
         
         s.sethide(hide);
-        s.flag &= ~SplineFlags.GHOST;
+        s.flag &= ~(SplineFlags.GHOST|SplineFlags.HIDE);
         
         if (!hide && !(drawlayer.id in s.layers)) {
           layer.remove(s);
@@ -1104,15 +1106,27 @@ export class SplineFrameSet extends DataBlock {
   }
   
   update_visibility() {
+    console.log("update_visibility called");
+    
     if (!this.switch_on_select)
       return;
     
     var selectmode = this.selectmode, show_paths = this.draw_anim_paths;
+    var drawlayer = this.pathspline.layerset.idmap[this.templayerid];
     
     for (var v in this.pathspline.verts) {
+      if (!v.has_layer()) {
+        drawlayer.add(v);
+      }
+      
       v.sethide(true);
     }
+    
     for (var h in this.pathspline.handles) {
+      if (!h.has_layer()) {
+        drawlayer.add(h);
+      }
+      
       h.sethide(true);
     }
     
@@ -1140,7 +1154,8 @@ export class SplineFrameSet extends DataBlock {
     console.trace("on_ctx_update");
     
     if (ctx.spline === this.spline) {
-      this.update_frame();
+      //XXX leave update for frame change?
+      //this.update_frame();
     } else if (ctx.spline === this.pathspline) {
       var resolve = 0;
       
@@ -1380,6 +1395,18 @@ export class SplineFrameSet extends DataBlock {
       spline.resolve = 1;
       if (!window.inFromStruct)
         spline.solve();
+    }
+    
+    for (var s in spline.segments) {
+      if (s.hidden) continue;
+      
+      s.flag |= SplineFlags.UPDATE_AABB;
+    }
+    
+    for (var f in spline.segments) {
+      if (f.hidden) continue;
+      
+      f.flag |= SplineFlags.UPDATE_AABB;
     }
     
     this.spline = spline;

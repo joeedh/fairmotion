@@ -122,14 +122,14 @@ export class TransSplineVert {
     var tdmap = {};
     var layer = td.layer;
     
-    for (var tv in data) {
+    for (var tv of data) {
       if (tv.type !== TransSplineVert) 
         continue;
       
       tdmap[tv.data.eid] = tv;
     }
     
-    for (var v in spline.verts.selected.editable) {
+    for (var v of spline.verts.selected.editable) {
       shash.forEachPoint(v, proprad, function(v2, dis) {
         if (v2.flag & SplineFlags.SELECT) return;
         if (v2.hidden) return;
@@ -194,7 +194,7 @@ export class TransSplineVert {
     for (var si=0; si<2; si++) {
       var list = si ? spline.handles : spline.verts;
       
-      for (var v in list) {
+      for (var v of list) {
         //only do active layer
         if (!v.in_layer(layer))
           continue;
@@ -220,7 +220,7 @@ export class TransSplineVert {
     
     console.log("proprad", proprad);
     
-    for (var v in spline.verts.selected.editable) {
+    for (var v of spline.verts.selected.editable) {
       shash.forEachPoint(v, proprad, function(v2, dis) {
         if (v2.flag & SplineFlags.SELECT) return;
         
@@ -377,12 +377,12 @@ export class TransData {
   calc_propweights(radius=this.propradius) {
     this.propradius = radius;
     
-    for (var t in this.types) {
+    for (var t of this.types) {
       t.calc_prop_distances(this.ctx, this, this.data);
     }
     
     var r = radius;
-    for (var tv in this.data) {
+    for (var tv of this.data) {
       if (tv.dis == -1)
         continue;
       
@@ -724,7 +724,7 @@ export class ScaleOp extends TransformOp {
     mat.scale(scale[0], scale[1], scale[2]);
     mat.translate(-cent[0], -cent[1], 0);
     
-    for (var d in td.data) {
+    for (var d of td.data) {
       d.type.apply(ctx, td, d, mat, d.w);
     }
     
@@ -791,7 +791,7 @@ export class RotateOp extends TransformOp {
     mat.rotate(this.inputs.angle.data, 0, 0, 1);
     mat.translate(-cent[0], -cent[1], 0);
     
-    for (var d in td.data) {
+    for (var d of td.data) {
       d.type.apply(ctx, td, d, mat, d.w);
     }
     

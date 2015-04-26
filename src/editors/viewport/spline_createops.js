@@ -35,7 +35,7 @@ export class ExtrudeVertOp extends SplineLocalToolOp {
     }
     
     ud.active_vert = spline.verts.active != undefined ? spline.verts.active.eid : -1;
-    for (var v in spline.verts.selected) {
+    for (var v of spline.verts.selected) {
       ud.selstate.push(v.eid);
     }
   }
@@ -181,12 +181,12 @@ export class CreateEdgeOp extends ToolOp {
     
     //find max z for later user
     var max_z = 1;
-    for (var f in spline.faces) {
+    for (var f of spline.faces) {
       max_z = Math.max(f.z, max_z);
     }
     
     var max_z_seg = max_z+1;
-    for (var s in spline.segments) {
+    for (var s of spline.segments) {
       max_z_seg = Math.max(max_z_seg, s.z);
     }
     
@@ -237,14 +237,14 @@ export class CreateEdgeFaceOp extends SplineLocalToolOp {
     
     //find max z for later user
     var max_z = 1;
-    for (var f in spline.faces) {
+    for (var f of spline.faces) {
       if (!(layer.id in f.layers)) continue;
       
       max_z = Math.max(f.z, max_z);
     }
     
     var max_z_seg = max_z+1;
-    for (var s in spline.segments) {
+    for (var s of spline.segments) {
       if (!(layer.id in s.layers)) continue;
       
       max_z_seg = Math.max(max_z_seg, s.z);
@@ -283,7 +283,7 @@ export class CreateEdgeFaceOp extends SplineLocalToolOp {
       return path;
     }
     
-    for (var v in spline.verts.selected) {
+    for (var v of spline.verts.selected) {
       if (v.hidden) continue;
       
       v.flag |= SplineFlags.UPDATE;
@@ -292,7 +292,7 @@ export class CreateEdgeFaceOp extends SplineLocalToolOp {
       vset.add(v);
     }
     
-    for (var v in vset) {
+    for (var v of vset) {
       var valence = 0;
       
       console.log("============", v);
@@ -340,7 +340,7 @@ export class CreateEdgeFaceOp extends SplineLocalToolOp {
     }
     
     //do 1-valence verts first
-    for (var v in vset) {
+    for (var v of vset) {
       if (valmap[v.eid] != 1) continue;
       var path = walk(v);
       
@@ -350,7 +350,7 @@ export class CreateEdgeFaceOp extends SplineLocalToolOp {
     }
     
     //now do 2-valence verts, which should only belong to closed loops now
-    for (var v in vset) {
+    for (var v of vset) {
       var path = walk(v);
       
       if (path.length > 2) {

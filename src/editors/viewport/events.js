@@ -163,6 +163,7 @@ export class EventHandler {
   on_keyup(KeyboardEvent event) { }
   on_mousemove(MouseEvent event) { }
   on_mousedown(MouseEvent event) { }
+  on_doubleclick(MouseEvent event) { }
   on_pan(Array<float> pan, Array<float> last_pan) { }
   
   on_gl_lost(WebGLRenderingContext new_gl) { }
@@ -280,6 +281,16 @@ export class EventHandler {
       this.on_mousemove(event);
   }
 
+  _on_doubleclick(MouseEvent event)
+  {
+    if (this.bad_event(event)) return;
+    
+    if (this.modalhandler != null && this.modalhandler !== this)
+      this.modalhandler._on_doubleclick(event);
+    else
+      this.on_doubleclick(event);
+  }
+  
   _on_mousedown(MouseEvent event)
   { 
     if (this.bad_event(event)) return;

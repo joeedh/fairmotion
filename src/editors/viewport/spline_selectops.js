@@ -28,15 +28,15 @@ export class SelectOpBase extends ToolOp {
     var spline = ctx.spline;
     var ud = this._undo = []
     
-    for (var v in spline.verts.selected) {
+    for (var v of spline.verts.selected) {
       ud.push(v.eid);
     }
     
-    for (var h in spline.handles.selected) {
+    for (var h of spline.handles.selected) {
       ud.push(h.eid);
     }
     
-    for (var s in spline.segments.selected) {
+    for (var s of spline.segments.selected) {
       ud.push(s.eid);
     }
     
@@ -150,19 +150,28 @@ export class ToggleSelectAllOp extends SelectOpBase {
     
     var spline = ctx.spline;
     var mode = this.inputs.mode.data;
+    var layerid = ctx.spline.layerset.active.id;
     
     if (mode == "auto") {
       var totsel = 0;
       
       spline.forEachPoint(function(v) {
-        if (v.hidden) return;
+        if (v.hidden)
+          return;
+        if (!(layerid in v.layers))
+          return;
         
         totsel += v.flag & SplineFlags.SELECT;
       });
       
-      spline.faces.forEach(function(f) {
+      for (var f in spline.faces) {
+        if (!(layerid in f.layers))
+          continue;
+        if (f.hidden)
+          continue;
+          
         totsel += f.flag & SplineFlags.SELECT;
-      }, this);
+      }
       
       mode = totsel ? "sub" : "add";
     }
@@ -170,7 +179,10 @@ export class ToggleSelectAllOp extends SelectOpBase {
     if (mode == "sub") spline.verts.active = undefined;
     
     spline.forEachPoint(function(v) {
-      if (v.hidden) return;
+        if (mode != "sub" && !(layerid in v.layers))
+          return;
+        if (v.hidden)
+          return;
       
       if (mode == "sub") {
         spline.setselect(v, false);
@@ -179,7 +191,12 @@ export class ToggleSelectAllOp extends SelectOpBase {
       }
     });
     
-    for (var s in spline.segments) {
+    for (var s of spline.segments) {
+      if (mode != "sub" && !(layerid in s.layers))
+        continue;
+      if (s.hidden)
+        continue;
+          
       if (mode == "sub") {
         spline.setselect(s, false);
       } else {
@@ -187,15 +204,18 @@ export class ToggleSelectAllOp extends SelectOpBase {
       }
     }
     
-    spline.faces.forEach(function(f) {
-      if (f.hidden) return;
+    for (var f in spline.faces) {
+        if (mode != "sub" && !(layerid in f.layers))
+          continue;
+        if (f.hidden)
+          continue;
       
       if (mode == "sub") {
         spline.setselect(f, false);
       } else {
         spline.setselect(f, true);
       }
-    }, this);
+    }
   }
 }
 
@@ -302,10 +322,10 @@ export class HideOp extends SelectOpBase {
     var ghost = this.inputs.ghost.data;
     var layer = spline.layerset.active;
     
-    for (var elist in spline.elists) {
+    for (var elist of spline.elists) {
       if (!(elist.type & mode)) continue;
       
-      for (var e in elist.selected) {
+      for (var e of elist.selected) {
         if (!(layer.id in e.layers))
           continue;
           
@@ -345,12 +365,12 @@ export class UnhideOp extends ToolOp {
     var ud = this._undo = [];
     var spline = ctx.spline;
      
-    for (var elist in spline.elists) {
-      for (var e in elist) {
+    for (var elist of spline.elists) {
+      for (var e of elist) {
         //don't use .hidden here, SplineVertex overrides it
         if (e.flag & SplineFlags.HIDE) {
           ud.push(e.eid);
-          ud.push(e.flag & SplineFlags.SELECT);
+          ud.push(e.flag & (SplineFlags.SELECT|SplineFlags.HIDE|SplineFlags.GHOST));
         }
       }
     }
@@ -364,10 +384,12 @@ export class UnhideOp extends ToolOp {
     var i = 0;
     while (i < ud.length) {
       var e = spline.eidmap[ud[i++]];
-      var selstate = ud[i++];
+      var flag = ud[i++];
       
-      e.flag |= SplineFlags.HIDE;
-      spline.setselect(e, selstate);
+      e.flag |= flag;
+      
+      if (flag & SplineFlags.SELECT) 
+        spline.setselect(e, selstate);
     }
     
     window.redraw_viewport();
@@ -381,11 +403,11 @@ export class UnhideOp extends ToolOp {
     var ghost = this.inputs.ghost.data;
     
     console.log("mode!", mode);
-    for (var elist in spline.elists) {
+    for (var elist of spline.elists) {
       if (!(mode & elist.type))
         continue;
         
-      for (var e in elist) {
+      for (var e of elist) {
           if (!(layer.id in e.layers))
             continue;
         //if (e.hidden) { //flag & SplineFlags.HIDE) {
@@ -473,11 +495,11 @@ export class CircleSelectOp extends SelectOpBase {
     
     console.log("exec!");
     
-    for (var e in eset_add) {
+    for (var e of eset_add) {
       spline.setselect(e, true);
     }
     
-    for (var e in eset_sub) {
+    for (var e of eset_sub) {
       spline.setselect(e, false);
     }
     
@@ -496,7 +518,7 @@ export class CircleSelectOp extends SelectOpBase {
     var eset_sub = this.inputs.sub_elements.data;
     
     if (datamode & SplineTypes.VERTEX) {
-      for (var v in spline.verts) {
+      for (var v of spline.verts) {
         if (v.hidden) continue;
         
         co.load(v);
@@ -603,7 +625,7 @@ export class UISelectBase extends ToolOp {
     
     var ud = this._undo = {};
     
-    for (var v in spline.verts) { 
+    for (var v of spline.verts) { 
       ud[v.eid] = v.flag & SplineFlags.UI_SELECT;
     }
     
@@ -651,7 +673,7 @@ export class UISelectOneOp extends UISelectBase {
     }
     
     if (this.inputs.unique.data) {
-      for (var v2 in spline.verts) {
+      for (var v2 of spline.verts) {
         if (v2.flag & SplineFlags.UI_SELECT) {
           v2.dag_update("depend");
         }
@@ -687,15 +709,16 @@ export class UIColumnSelect extends UISelectBase {
     var cols = {};
     var state = this.inputs.state.data;
     
-    for (var eid in this.inputs.vertex_eids.data) {
+    for (var eid of this.inputs.vertex_eids.data) {
       var v = spline.eidmap[eid];
       
       if (v.flag & SplineFlags.UI_SELECT)
         cols[get_vtime(v)] = 1;
     }
     
-    for (var eid in this.inputs.vertex_eids.data) {
+    for (var eid of this.inputs.vertex_eids.data) {
       var v = spline.eidmap[eid];
+      
       if (!(get_vtime(v) in cols))
         continue;
       
@@ -725,7 +748,7 @@ export class UISelect extends UISelectBase {
     var state = this.inputs.state.data;
     
     if (this.inputs.unique.data) {
-      for (var eid in this.inputs.vertex_eids.data) {
+      for (var eid of this.inputs.vertex_eids.data) {
         var v = spline.eidmap[eid];
         
         if (v.flag & SplineFlags.UI_SELECT)
@@ -735,7 +758,7 @@ export class UISelect extends UISelectBase {
       }
     }
     
-    for (var eid in this.inputs.select_eids.data) {
+    for (var eid of this.inputs.select_eids.data) {
       var v = spline.eidmap[eid];
 
       if (!!state != !!(v.flag & SplineFlags.UI_SELECT))
@@ -769,21 +792,21 @@ export class UIToggleSelectOp extends UISelectBase {
     var mode = this.inputs.mode.data;
     var vset = new set();
     
-    for (var eid in this.inputs.vertex_eids.data) {
+    for (var eid of this.inputs.vertex_eids.data) {
       vset.add(pathspline.eidmap[eid]);
     }    
     
     if (mode == "auto") {
       mode = "select";
       
-      for (var v in vset) {
+      for (var v of vset) {
         if (v.flag & SplineFlags.UI_SELECT)
           mode = "deselect";
       }
     }
     
     mode = mode == "select" ? true : false;
-    for (var v in vset) {
+    for (var v of vset) {
       if (!!(v.flag & SplineFlags.UI_SELECT) != mode) {
         v.dag_update("depend");
       }
@@ -814,7 +837,7 @@ export class UISelectKeysToSide extends UISelectBase {
     
     console.log("Select Side");
     
-    for (var eid in this.inputs.vertex_eids.data) {
+    for (var eid of this.inputs.vertex_eids.data) {
       var v = spline.eidmap[eid];
       
       if (!(v.flag & SplineFlags.UI_SELECT))
@@ -830,7 +853,7 @@ export class UISelectKeysToSide extends UISelectBase {
     if (mintime == 1e17) return;
     var side = this.inputs.side.data;
     
-    for (var eid in this.inputs.vertex_eids.data) {
+    for (var eid of this.inputs.vertex_eids.data) {
       var v = spline.eidmap[eid];
       var time = get_vtime(v);
       

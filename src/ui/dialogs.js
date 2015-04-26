@@ -87,18 +87,23 @@ export class FileDialog extends PackedDialog {
     this.listbox = new UIListBox(ctx, [0,0], [400, 300])
     var this2 = this;
     
-    //argh, I should have supported this natively in the event system
-    var last_click = time_ms();
+    //this is what I get for chaining event functions in a stupid way
+    this.listbox._on_doubleclick = function(e) {
+      this.prototype._on_doubleclick.apply(this, arguments);
+
+      console.log("this.listbox.on_doubleclick called");
+      
+      if (e.button != 0 || this.active_entry == undefined) 
+        return;
+      
+      var text = this.active_entry.text, id = this.active_entry.id;
+      this2.entry_double_clicked(text, id);
+    }
+    
     this.listbox.callback = function(listbox, text, id) {
       console.trace("this.listbox.callback called");
       
-      if (time_ms() - last_click < 250) {
-        this2.entry_double_clicked(text, id);
-      } else {
-        this2.entry_clicked(text, id);
-      }
-      
-      last_click = time_ms();
+      this2.entry_clicked(text, id);
     }
     
     this.listbox.go_callback = function(listbox, text, id) {
@@ -117,8 +122,8 @@ export class FileDialog extends PackedDialog {
     newf.callback = function() {
       var entry = this2.listbox.add_item("New Folder", {is_dir : true, is_temp : true});
       
-      this2.listbox._set_active(entry);
-      this2.listbox.jump(0); //scroll to item entry
+      this2.listbox._set_active(entry, true);
+      this2.listbox.jump(-1, true); //scroll to last item
       
       entry.begin_text_edit();
       entry.textbox.select_all();

@@ -478,13 +478,14 @@ export class DopeSheetEditor extends Area {
         if (!(id & KeyTypes.PATHSPLINE))
           continue;
           
+        var id1=id;
         id = this.vdmap[id & KeyTypes.CLEARMASK];
         
         if (id == undefined) {
           if (this.ctx != undefined) {
             this.rebuild_vdmap();
             
-            console.log("Warning, had to rebuild vdmap!");
+            console.log("Warning, had to rebuild vdmap!", id1. id1 & KeyTypes.CLEARMASK, id1 & ~KeyTypes.CLEARMASK);
             id = this.vdmap[id & KeyTypes.CLEARMASK];
           } else {
             continue;

@@ -118,7 +118,7 @@ export class UIFrame extends UIElement {
     if (this.children == undefined)
       return;
     
-    for (var c in this.children) {
+    for (var c of this.children) {
       c.on_gl_lost(new_gl);
     }
     
@@ -390,6 +390,18 @@ export class UIFrame extends UIElement {
     return this.active != undefined;
   }
 
+  _on_doubleclick(MouseEvent event) {
+    if (this.bad_event(event)) return;
+    
+    if (this.modalhandler != null) {
+      this._offset_mpos(event);
+      
+      this.modalhandler._on_doubleclick(event);
+    } else {
+      this.on_doubleclick(event);
+    }
+  }
+  
   _on_mousedown(MouseEvent event) {
     if (this.bad_event(event)) return;
     
@@ -402,6 +414,23 @@ export class UIFrame extends UIElement {
     }
   }
 
+  on_doubleclick(MouseEvent e) {
+    if (this.bad_event(e)) return;
+    
+    var mpos = this.mpos = [e.x, e.y];
+    this._find_active(e);
+    
+    if (this.active != undefined) {
+      e.x -= this.active.pos[0];
+      e.y -= this.active.pos[1];
+      
+      this.active._on_doubleclick(e);
+    }
+    
+    this._unoffset_mpos(e);
+    return this.active != undefined;
+  }
+  
   on_mousedown(MouseEvent e, Boolean feed_mousemove=false) {
     if (this.bad_event(e)) return;
     
@@ -584,7 +613,7 @@ export class UIFrame extends UIElement {
     
     function rec(f, depth=0) {
       f.depth = depth;
-      for (var c in f.children) {
+      for (var c of f.children) {
         if (c instanceof UIFrame) {
           rec(c, depth+1);
         }
@@ -711,7 +740,7 @@ export class UIFrame extends UIElement {
     var i = 0;
     var viewport = g_app_state.raster.viewport;
     
-    for (var c in this.children) {
+    for (var c of this.children) {
       c.abspos[0] = 0; c.abspos[1] = 0;
       c.abs_transform(c.abspos);
       
@@ -894,7 +923,7 @@ export class UIFrame extends UIElement {
     
     if (this.is_canvas_root()) {
       if (DEBUG.use_2d_uicanvas) {
-        for (var c in this.children) {
+        for (var c of this.children) {
           if (aabb_isect_2d(c.pos, c.size, d[0], d[1])) {
             c.do_recalc();
           }
@@ -945,7 +974,7 @@ export class UIFrame extends UIElement {
     var viewport = g_app_state.raster.viewport;
     static zero = [0, 0];
     
-    for (var c in this.children) {
+    for (var c of this.children) {
       c.abspos[0] = 0; c.abspos[1] = 0;
       c.abs_transform(c.abspos);
       

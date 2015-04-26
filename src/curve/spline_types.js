@@ -266,6 +266,14 @@ export class SplineElement extends DataPathNode {
     this.layers = {}; //stack layers this element belongs to
   }
   
+  has_layer() {
+    for (var k in this.layers) {
+      return true;
+    }
+    
+    return false;
+  }
+  
   dag_get_datapath() {
     //wells, it should end in. . .
     var suffix = ".verts[" + this.eid + "]";
@@ -294,6 +302,13 @@ export class SplineElement extends DataPathNode {
   }
   
   sethide(state) {
+    if (state)
+      this.flag |= SplineFlags.HIDE;
+    else
+      this.flag &= ~SplineFlags.HIDE;
+  }
+  
+  set hidden(state) {
     if (state)
       this.flag |= SplineFlags.HIDE;
     else
@@ -997,14 +1012,14 @@ export class SplineLoopPath {
     static cent = new Vector3();
     
     cent.zero();
-    for (var l in this) {
+    for (var l of this) {
       cent.add(l.v);
     }
     
     cent.mulScalar(1.0/this.totvert);
     
     var wsum = 0;
-    for (var l in this) {
+    for (var l of this) {
       wsum += winding(l.v, l.next.v, cent) ? 1 : -1; 
     }
     
@@ -1291,7 +1306,7 @@ export class ElementRefSet extends set, TPropIterable {
   copy() {
     var ret = new ElementRefSet(this.mask);
     
-    for (var eid in set.prototype.__iterator__.call(this)) {
+    for (var eid of set.prototype.__iterator__.call(this)) {
       ret.add(eid);
     }
     

@@ -15,7 +15,7 @@ export class KeyCurrentFrame extends ToolOp {
   }
   
   exec(ctx) {
-    for (var v in ctx.frameset.spline.verts.selected.editable) {
+    for (var v of ctx.frameset.spline.verts.selected.editable) {
       v.flag |= SplineFlags.FRAME_DIRTY;
     }
     
@@ -216,7 +216,7 @@ export class KeyEdgesOp extends SplineLocalToolOp {
       z : 1,
     }
     
-    for (var s in spline.segments) {
+    for (var s of spline.segments) {
       var path = prefix + s.eid + "]";
       
       for (var k in edge_path_keys) {
@@ -250,7 +250,7 @@ export class CopyPoseOp extends SplineLocalToolOp {
     pose_clipboards[ctx.splinepath] = pose_clipboard;
     
     for (var i=0; i<2; i++) {
-      for (var v in lists[i]) {
+      for (var v of lists[i]) {
         pose_clipboard[v.eid] = new Vector3(v);
       }
     }
@@ -285,6 +285,7 @@ export class PastePoseOp extends SplineLocalToolOp {
     var array = [];
     for (var k in pose_clipboard) {
       var v = spline.eidmap[k];
+      
       if (v == undefined) {
         console.trace("Bad vertex");
         continue;
@@ -370,7 +371,7 @@ export class InterpStepModeOp extends ToolOp {
     var spline = ctx.frameset.spline, pathspline = ctx.frameset.pathspline;
     var frameset = ctx.frameset;
     
-    for (var v in spline.verts.selected.editable) {
+    for (var v of spline.verts.selected.editable) {
       var vd = frameset.vertex_animdata[v.eid];
       if (vd == undefined) continue;
       
@@ -386,7 +387,7 @@ export class InterpStepModeOp extends ToolOp {
     var undo = {};
     var pathspline = ctx.frameset.pathspline;
     
-    for (var vd in this.get_animverts(ctx)) {
+    for (var vd of this.get_animverts(ctx)) {
       undo[vd.eid] = vd.animflag;
     }
     
@@ -397,7 +398,7 @@ export class InterpStepModeOp extends ToolOp {
     var undo = this._undo;
     var pathspline = ctx.frameset.pathspline;
     
-    for (var vd in this.get_animverts(ctx)) {
+    for (var vd of this.get_animverts(ctx)) {
       if (!(vd.eid in undo)) {
         console.log("ERROR in step function tool undo!!");
         continue;
@@ -410,10 +411,10 @@ export class InterpStepModeOp extends ToolOp {
   exec(ctx) {
     var kcache = ctx.frameset.kcache;
     
-    for (var vd in this.get_animverts(ctx)) {
+    for (var vd of this.get_animverts(ctx)) {
       vd.animflag ^= VDAnimFlags.STEP_FUNC;
       
-      for (var v in vd.verts) {
+      for (var v of vd.verts) {
         var time = get_vtime(v);
         
         kcache.invalidate(v.eid, time);
@@ -526,13 +527,13 @@ export class DeleteFaceOp extends SplineLocalToolOp {
     var vset = new set(), sset = new set(), fset = new set();
     var dellist = [];
     
-    for (var f in spline.faces.selected.editable) {
+    for (var f of spline.faces.selected.editable) {
       fset.add(f);
     }
     
-    for (var f in fset) {
-      for (var path in f.paths) {
-        for (var l in path) {
+    for (var f of fset) {
+      for (var path of f.paths) {
+        for (var l of path) {
           var l2 = l.s.l;
           var _c=0, del=true;
           
@@ -553,7 +554,7 @@ export class DeleteFaceOp extends SplineLocalToolOp {
       }
     }
     
-    for (var s in sset) {
+    for (var s of sset) {
       for (var si=0; si<2; si++) {
         var del = true;
         var v = si ? s.v2 : s.v1;
@@ -570,15 +571,15 @@ export class DeleteFaceOp extends SplineLocalToolOp {
       }
     }
     
-    for (var f in fset) {
+    for (var f of fset) {
       spline.kill_face(f);
     }
     
-    for (var s in sset) {
+    for (var s of sset) {
       spline.kill_segment(s);
     }
     
-    for (var v in vset) {
+    for (var v of vset) {
       spline.kill_vertex(v);
     }
     
@@ -613,7 +614,7 @@ export class ChangeFaceZ extends SplineLocalToolOp {
     if (isNaN(off)) off = 0.0;
     
     if (selmode & SplineTypes.FACE) {
-      for (var f in spline.faces.selected.editable) {
+      for (var f of spline.faces.selected.editable) {
         if (isNaN(f.z)) f.z = 0.0;
         
         if (f.hidden) continue;
@@ -623,7 +624,7 @@ export class ChangeFaceZ extends SplineLocalToolOp {
     }
     
     if (selmode & SplineTypes.SEGMENT) {
-      for (var s in spline.segments.selected.editable) {
+      for (var s of spline.segments.selected.editable) {
         if (isNaN(s.z)) s.z = 0.0;
         
         if (s.hidden) continue;
@@ -661,12 +662,12 @@ export class DissolveVertOp extends SplineLocalToolOp {
     if (this.inputs.use_verts.data) {
       verts = new set();
       
-      for (var eid in this.inputs.verts.data) {
+      for (var eid of this.inputs.verts.data) {
         verts.add(spline.eidmap[eid]);
       }
     }
     
-    for (var v in verts) {
+    for (var v of verts) {
       if (v.segments.length != 2) continue;
       
       dellist.push(v);
@@ -865,7 +866,7 @@ export class ConnectHandlesOp extends ToolOp {
     
     var h1 = undefined, h2 = undefined;
     
-    for (var h in spline.handles.selected.editable) {
+    for (var h of spline.handles.selected.editable) {
       if (h1 == undefined)
         h1 = h;
       else if (h2 == undefined)
@@ -906,7 +907,7 @@ export class DisconnectHandlesOp extends ToolOp {
     var spline = ctx.spline;
     console.log("Disconnect handles");
     
-    for (var h in spline.handles.selected.editable) {
+    for (var h of spline.handles.selected.editable) {
       var v = h.owning_segment.handle_vertex(h);
       if (h.hpair == undefined)
         continue;
@@ -942,7 +943,7 @@ export class CurveRootFinderTest extends ToolOp {
     
     this.reset_drawlines();
 
-    for (var seg in spline.segments) {
+    for (var seg of spline.segments) {
       var ret = seg.closest_point(mpos, 0);
       if (ret == undefined) continue;
       
@@ -951,7 +952,7 @@ export class CurveRootFinderTest extends ToolOp {
       
       continue;
       var ret = seg.closest_point(mpos, 3);
-      for (var p in ret) {
+      for (var p of ret) {
         this.new_drawline(p[0], mpos);
       }
     }
@@ -1087,16 +1088,16 @@ export class ShiftTimeOp extends ToolOp {
     var spline = ctx.frameset.spline, pathspline = ctx.frameset.pathspline;
     var frameset = ctx.frameset;
     
-    for (var v in pathspline.verts.selected.editable) {
+    for (var v of pathspline.verts.selected.editable) {
       vset.add(v);
     }
     
     if (vset.length == 0) {
-      for (var v in spline.verts.selected.editable) {
+      for (var v of spline.verts.selected.editable) {
         var vd = frameset.vertex_animdata[v.eid];
         if (vd == undefined) continue;
         
-        for (var v2 in vd.verts) {
+        for (var v2 of vd.verts) {
           var vtime = get_vtime(v2);
           
           if (vtime == ctx.scene.time) {
@@ -1162,7 +1163,7 @@ export class ShiftTimeOp extends ToolOp {
   
   undo_pre(ctx) {
     var ud = this._undo = {};
-    for (var v in this.get_curframe_animverts(ctx)) {
+    for (var v of this.get_curframe_animverts(ctx)) {
       ud[v.eid] = get_vtime(v);
     }
   }
@@ -1186,14 +1187,14 @@ export class ShiftTimeOp extends ToolOp {
     var off = this.inputs.factor.data;
     
     var vset = this.get_curframe_animverts(ctx);
-    for (var v in vset) {
+    for (var v of vset) {
       starts[v.eid] = get_vtime(v);
     }
     
     //console.log("time shift", off);
     
     var kcache = ctx.frameset.kcache;
-    for (var v in vset) {
+    for (var v of vset) {
       kcache.invalidate(v.eid, get_vtime(v));
       set_vtime(v, starts[v.eid]+off);
 
@@ -1201,7 +1202,7 @@ export class ShiftTimeOp extends ToolOp {
       v.dag_update("depend");
     }
     
-    for (var v in vset) {
+    for (var v of vset) {
       var min=undefined, max=undefined;
       
       if (v.segments.length == 1) {
@@ -1260,22 +1261,22 @@ export class DuplicateOp extends SplineLocalToolOp {
     var spline = ctx.spline;
     
     var eidmap = {};
-    for (var v in spline.verts.selected.editable) {
+    for (var v of spline.verts.selected.editable) {
       vset.add(v);
     }
     
-    for (var s in spline.segments.selected.editable) {
+    for (var s of spline.segments.selected.editable) {
       sset.add(s);
       
       vset.add(s.v1);
       vset.add(s.v2);
     }
     
-    for (var f in spline.faces.selected.editable) {
+    for (var f of spline.faces.selected.editable) {
       fset.add(f);
       
-      for (var path in f.paths) {
-        for (var l in path) {
+      for (var path of f.paths) {
+        for (var l of path) {
           sset.add(l.s);
           vset.add(l.s.v1);
           vset.add(l.s.v2);
@@ -1283,7 +1284,7 @@ export class DuplicateOp extends SplineLocalToolOp {
       }
     }
     
-    for (var v in vset) {
+    for (var v of vset) {
       var nv = spline.make_vertex(v);
       spline.copy_vert_data(nv, v);
       
@@ -1292,7 +1293,7 @@ export class DuplicateOp extends SplineLocalToolOp {
       spline.verts.setselect(nv, true);
     }
     
-    for (var s in sset) {
+    for (var s of sset) {
       var v1 = eidmap[s.v1.eid], v2 = eidmap[s.v2.eid];
       var ns = spline.make_segment(v1, v2);
       
@@ -1322,20 +1323,20 @@ export class DuplicateOp extends SplineLocalToolOp {
       spline.handles.setselect(ns.h2, true);
     }
     
-    for (var h in hset) {
+    for (var h of hset) {
       var nh = eidmap[h.eid];
       if (h.pair != undefined && h.pair.eid in eidmap) {
         spline.connect_handles(nh, eidmap[h.pair.eid]);
       }
     }
     
-    for (var f in fset) {
+    for (var f of fset) {
       var vlists = [];
-      for (var path in f.paths) {
+      for (var path of f.paths) {
         var verts = []
         vlists.push(verts);
         
-        for (var l in path) {
+        for (var l of path) {
           verts.push(eidmap[l.v.eid]);
         }
       }
@@ -1372,7 +1373,7 @@ export class SplineMirrorOp extends SplineLocalToolOp {
       for (var i=0; i<2; i++) {
         var list = i ? spline.handles : spline.verts;
         
-        for (var v in list.selected.editable) {
+        for (var v of list.selected.editable) {
           if (i==1 && v.owning_vertex != undefined && v.owning_vertex.hidden)
             continue;
           if (i == 0 && v.hidden)
@@ -1387,7 +1388,7 @@ export class SplineMirrorOp extends SplineLocalToolOp {
       
       cent.mulScalar(1.0 / points.length);
       
-      for (var v in points) {
+      for (var v of points) {
         v.sub(cent);
         v[0] = -v[0];
         v.add(cent);

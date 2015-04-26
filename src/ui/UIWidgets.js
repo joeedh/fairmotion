@@ -454,7 +454,7 @@ export class UIMenuButton extends UIButtonAbstract {
       
       var size = CACHEARR2(canvas.textsize(this.text+"     ")[0], 26);
       
-      for (var c in this.menu.children) {
+      for (var c of this.menu.children) {
         var size2 = c.get_min_size(canvas, isvertical);
         size[0] = Math.max(size[0], size2[0])
         size[1] = Math.max(size[1], size2[1])
@@ -1081,7 +1081,7 @@ export class UIMenuLabel extends UIElement {
     to that one.*/
   add_hidden_elements(menu) {
     var es = new GArray();
-    for (var c in this.parent.children) {
+    for (var c of this.parent.children) {
       if (c == this || c.constructor.name != UIMenuLabel.name) continue;
       
       var e = new _HiddenMenuElement(this.ctx, this, c);
@@ -1094,16 +1094,16 @@ export class UIMenuLabel extends UIElement {
     
     /*remove any existing hidden elements*/
     var del = new GArray();
-    for (var c in menu.children) {
+    for (var c of menu.children) {
       if (c.constructor.name == _HiddenMenuElement.name)
         del.push(c);
     }
     
-    for (var c in del) {
+    for (var c of del) {
       menu.children.remove(c);
     }
     
-    for (var c in es) {
+    for (var c of es) {
       menu.add(c);
     }
   }
@@ -1339,6 +1339,7 @@ export class UIVScroll extends UIFrame {
       mpos = [0, mpos[1]+button.pos[1]]; //+button.pos[1]+button.parent.pos[1]];
       this2.do_drag(mpos);
     }
+    
     this.bar.callback = bar_callback;
     /*function(button, mpos) {
       mpos = [0, mpos[1]+this2.pos[1]+button.pos[1]+this2.bar.pos[1]];
@@ -1464,7 +1465,7 @@ export class UIVScroll extends UIFrame {
 
   on_mousemove(MouseEvent event) {
     if (this.dragging) {
-      var mpos = [event.x-this.parent.pos[0], event.y-this.parent.pos[1]];
+      var mpos = [event.y, event.y];
       
       var y = mpos[1]-this.last_mpos[1];
       

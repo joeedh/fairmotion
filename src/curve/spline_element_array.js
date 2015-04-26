@@ -515,7 +515,7 @@ export class ElementArray extends GArray, DataPathNode {
   
   //this is a customdata layer callbacks, not layer layer callbacks
   on_layer_del(layer, i) {
-    for (var e in this) {
+    for (var e of this) {
       e.cdata.on_del(layercls, i);
     }
   }
@@ -579,6 +579,7 @@ export class ElementArray extends GArray, DataPathNode {
   setselect(SplineElement e, Boolean state) {
     if (state && !(e.flag & SplineFlags.SELECT)) {
       this.dag_update("on_select_add", this.type);
+      
     } else if (!state && (e.flag & SplineFlags.SELECT)) {
       this.dag_update("on_select_sub", this.type);
     }
@@ -591,6 +592,9 @@ export class ElementArray extends GArray, DataPathNode {
     var changed = !!(e.flag & SplineFlags.SELECT) != !!state;
     
     if (state) {
+      if (this.active == undefined)
+        this.active = e;
+      
       this.global_sel.add(e);
       this.selected.add(e);
       

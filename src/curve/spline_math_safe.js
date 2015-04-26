@@ -27,12 +27,19 @@ export var KSTARTZ = ORDER+5;
 
 export var KTOTKS  = ORDER+6;
 
-export var INT_STEPS = 15;
+export var INT_STEPS = 8;
 
 var _approx_cache_vs = cachering.fromConstructor(Vector3, 32);
 
 var mmax = Math.max, mmin = Math.min;
 var mfloor = Math.floor, mceil = Math.ceil, abs = Math.abs, sqrt = Math.sqrt, sin = Math.sin, cos = Math.cos;
+
+#define POLYTHETA_BEZ(s) (-(((3*(s)-4)*k3-k4*(s))*(s)*(s)+((s)*(s)-2*(s)+2)*((s)-2)*k1-(3*(s)*(s)-8*(s)+6)*k2*(s))*(s))/4.0
+
+                            
+#define POLYCURVATURE_BEZ(s) (-(((3*((s)-1)*k3-k4*(s))*(s)-3*((s)-1)*((s)-1)*k2)*(s)+((s)-1)*((s)-1)*((s)-1)*k1))
+
+#define POLYCURVATURE_BEZ_DV(s) (-3*(k1*(s)*(s)-2*k1*(s)+k1-3*k2*(s)*(s)+4*k2*(s)-k2+3*k3*(s)*(s)-2*k3*(s)-k4*(s)*(s)))
 
 var polytheta_bez = function(s, ks, order) {
   var k1 = ks[0], k2 = ks[1], k3 = ks[2], k4= ks[3];
@@ -89,6 +96,8 @@ var abs = Math.abs;
 var mmax = Math.max, mmin = Math.min;
 
 export function approx(s1, ks, order, dis, steps) {
+  s1 *= 1.0-0.0000001;
+  
   if (steps == undefined)
     steps = INT_STEPS;
   var s=0, ds=s1/steps, mul=s1/steps;
@@ -100,21 +109,26 @@ export function approx(s1, ks, order, dis, steps) {
   var x = 0, y = 0;
   
   var one24 = 1.0/24, one6 = 1.0/6.0, one120 = 1.0/120.0;
+  var k1 = ks[0], k2 = ks[1], k3 = ks[2], k4 = ks[3];
   
   for (var i=0; i<steps; i++, s += ds) {
-    var th = polytheta_bez(s+0.5, ks, order);
-    
+    //var th = polytheta_bez(s+0.5, ks, order);
+    var th = POLYTHETA_BEZ(s+0.5);
+
     var r1 = sin(th), r2 = cos(th);
     var dx = r1, dy = r2;
     
-    var k = polycurvature_bez(s+0.5, ks, order);
-    var dk = polycurvature_bez_dv(s+0.5, ks, order);
+    //var kt = polycurvature_bez(s+0.5, ks, order);
+    //var dkt = polycurvature_bez_dv(s+0.5, ks, order); 
     
-    var k2=k*k, k3 = k2*k, k4=k3*k, dk2=dk*dk, dk3=dk2*dk;
-    var k5=k4*k, k6=k5*k, dk22=dk*dk;
+    var kt = POLYCURVATURE_BEZ(s+0.5); //polycurvature_bez(s+0.5, ks, order);
+    var dkt = POLYCURVATURE_BEZ_DV(s+0.5); //polycurvature_bez_dv(s+0.5, ks, order);
+    
+    var kt2=kt*kt, kt3 = kt2*kt, kt4=kt3*kt, dkt2=dkt*dkt, dkt3=dkt2*dkt;
+    var kt5=kt4*kt, kt6=kt5*kt, dkt22=dkt*dkt;
       
-    x += dx + (r2*k)*mul*0.5 + (r2*dk - k2*r1)*mul2*one6;
-    y += dy + (-r1*k)*mul*0.5 + (-(r2*k2 + r1*dk))*mul2*one6; 
+    x += dx + (r2*kt)*mul*0.5 + (r2*dkt - kt2*r1)*mul2*one6;
+    y += dy + (-r1*kt)*mul*0.5 + (-(r2*kt2 + r1*dkt))*mul2*one6; 
   }
   
   ret[0] = x*mul;
@@ -127,7 +141,6 @@ export var spiraltheta = polytheta_bez;
 export var spiralcurvature = polycurvature_bez;
 export var spiralcurvature_dv = polycurvature_bez_dv;
 export var ORDER = 4;
-
 
 function solve_intern(spline, order, goal_order, steps, gk) {
   if (order == undefined)
@@ -470,20 +483,9 @@ function solve_intern(spline, order, goal_order, steps, gk) {
   
   window._SOLVING = false;
   
-  if (goal_order != undefined) {
-    for (var i=0; i<spline.segments.length; i++) {
-      var seg = spline.segments[i];
-      if (INCREMENTAL && (!(seg.v1.flag & SplineFlags.UPDATE) || !(seg.v2.flag & SplineFlags.UPDATE)))
-        continue;
-
-      change_knot_vector(seg.ks, order, goal_order);
-      seg.eval(0.5);
-    }
-  } else {
-    for (var i=0; i<spline.segments.length; i++) {
-      var seg = spline.segments[i];
-      seg.eval(0.5);
-    }
+  for (var i=0; i<spline.segments.length; i++) {
+    var seg = spline.segments[i];
+    seg.eval(0.5);
   }
   
   var end_time = time_ms() - start_time;
@@ -505,7 +507,7 @@ export function do_solve(sflags, spline, steps, gk) {
       continue;
     
     for (var j=0; j<seg.ks.length; j++) {
-      seg.ks[j] = 0.00; //(j-ORDER/2)*4;
+      seg.ks[j] = 0.000001; //(j-ORDER/2)*4;
     }
     
     seg.eval(0.5);
@@ -532,14 +534,25 @@ export function do_solve(sflags, spline, steps, gk) {
     }
   }
   
-  for (var i=0; i<spline.handles.length; i++) {
-    var h = spline.handles[i];
-    h.flag &= ~(SplineFlags.UPDATE|SplineFlags.TEMP_TAG);
+  for (var f in spline.faces) {
+    for (var path in f.paths) {
+      for (var l in path) {
+        if (l.v.flag & SplineFlags.UPDATE)
+          f.flag |= SplineFlags.UPDATE_AABB;
+      }
+    }
   }
   
-  for (var i=0; i<spline.verts.length; i++) {
-    var v = spline.verts[i];
-    v.flag &= ~(SplineFlags.UPDATE|SplineFlags.TEMP_TAG);
+  if (!spline.is_anim_path) {
+    for (var i=0; i<spline.handles.length; i++) {
+      var h = spline.handles[i];
+      h.flag &= ~(SplineFlags.UPDATE|SplineFlags.TEMP_TAG);
+    }
+    
+    for (var i=0; i<spline.verts.length; i++) {
+      var v = spline.verts[i];
+      v.flag &= ~(SplineFlags.UPDATE|SplineFlags.TEMP_TAG);
+    }
   }
 }
 

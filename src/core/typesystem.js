@@ -747,7 +747,7 @@ function save_forin_conv() {
   
   keyword is either "in" or "of"
 */
-function __get_iter(obj, file, line, keyword)
+function __get_iter(obj) //, file, line, keyword)
 {
   if (obj == undefined) {
     console.trace();
@@ -756,6 +756,7 @@ function __get_iter(obj, file, line, keyword)
   }
   
   if ("__iterator__" in obj) {
+    /*
     if (keyword == "in") {
       var hash = file + ":"+line +":" + keyword
       
@@ -763,6 +764,7 @@ function __get_iter(obj, file, line, keyword)
         _forin_data[hash] = [file, line]
       }
     }
+    //*/
     
     return obj.__iterator__();
   } else {

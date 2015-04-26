@@ -18,6 +18,44 @@ class CanIter {
 }
 
 var int debug_int_1 = 0;
+
+class cachering extends Array {
+  constructor (Function createcallback, int count=32) {
+    Array.call(this, count);
+    
+    this._cur = 0;
+    this.length = count;
+    for (var i=0; i<count; i++) {
+      this[i] = createcallback();
+    }
+  }
+  
+  next() {
+    var ret = this[this._cur];
+    
+    this._cur = (this._cur+1) % this.length;
+    
+    return ret;
+  }
+  
+  static fromConstructor(cls, int count=32) {
+    static args = [];
+    args.length = 0;
+    
+    for (var i=1; i<arguments.length; i++) {
+      args.push(arguments[i]);
+    }
+    
+    function callback() {
+      var ret = new cls();
+      cls.apply(ret, arguments);
+      return ret;
+    }
+    
+    return new cachering(callback, count);
+  }
+};
+
 class GArray extends Array {
   constructor(Object input) {
     Array<T>.call(this)
@@ -213,7 +251,7 @@ function list<T>(Iterator<T> iter) : GArray<T> {
   var lst = new GArray<T>();
 
   var i = 0;
-  for (var item in iter) {
+  for (var item of iter) {
     lst.push(item);
     i++;
   }
@@ -244,7 +282,7 @@ function cached_list<T>(Iterator<T> iter) : GArray<T> {
   lst.reset();
   
   var i = 0;
-  for (var item in iter) {
+  for (var item of iter) {
     lst.push(item);
     i++;
   }
@@ -261,7 +299,7 @@ class eid_list extends GArray {
   constructor(GeoArrayIter<Element> iter) {
     GArray.call(this);
 
-    for (var item in iter) {
+    for (var item of iter) {
       this.push([item.type, item.eid]);
     }
 
@@ -286,92 +324,67 @@ Array.prototype.__hash__ = function() : String {
   return s
 }
 
-//an iterator that allows removing elements from
-//a set during iteration
-class SafeSetIter {
-  constructor(set set1) {
-    this.ret = {done : false, value : undefined};
-    this.set = set1
-    this.iter = new SetIter(set1)
-    this.nextitem = undefined;
-  }
-  
-  __iterator__() : SafeSetIter<T> {
-    return this;    
-  }
-  
-  next() : T {
-    throw new Error("Fix this before using");
-    
-    var reti = this.ret;
-    var iter = this.iter
-    
-    if (this.nextitem == undefined) {
-      this.nextitem = iter.next();
-    }
-    
-    var ret = this.nextitem;
-    this.nextitem = iter.next();
-    
-    return ret;
-  }
-}
-EXPORT_FUNC(SafeSetIter)
 
-/* an even safer version, if the above one doesn't work
-function SafeSetIter<T>(set) {
-  this.set = set
-  this.arr = list(set);
-  this.cur = 0;
-  
-  this.__iterator__ = function() : SafeSetIter<T> {
-    return this;    
-  }
-  
-  this.next = function() : T {
-    if (this.cur >= this.arr.length)
-      throw StopIteration;
-    
-    return this.arr[this.cur++];
-  }
-} */
+var _set_null = {set_null : true};
 
 class SetIter {
-  constructor(set set1) {
+  constructor(set) {
+    this.set = set;
+    this.i = 0;
     this.ret = {done : false, value : undefined};
-    this.set = set1
-    this.iter = Iterator(set1.items)
+    this.list = set.list;
   }
-
+  
   __iterator__() {
     return this;
   }
   
-  next() : T {
-    var reti = this.ret;
-    var iter = this.iter
-    var items = this.set.items
+  cache_init() {
+    this.i = 0;
+    this.ret.done = false;
+    this.ret.value = undefined;
+    this.list = this.set.list;
     
-    var item = iter.next();
-    if (item.done)
-      return item;
-      
-    /*skip over any built-in properties*/
-    while (!items.hasOwnProperty(item.value[0])) {
-      item = iter.next()
-      if (item.done) return item;
+    return this;
+  }
+  
+  next() {
+    var list = this.list;
+    var len = list.length;
+    
+    while (this.i < len && list[this.i] === _set_null) {
+      this.i++;
     }
     
-    reti.value = item.value[1];
-    return reti;
+    if (this.i >= len) {
+      this.ret.done = true;
+      this.ret.value = undefined;
+      return this.ret;
+    }
+    
+    this.ret.value = list[this.i];
+    this.i++;
+    
+    return this.ret;
+  }
+  
+  reset() {
+    this.cache_init();
   }
 }
-EXPORT_FUNC(SetIter)
 
 class set {
   constructor(Object input) {
-    this.items = {}
+    this.items = {};
+    this.list = [];
+    this.freelist = [];
     this.length = 0;
+    
+    var this2 = this;
+    
+    this._itercache = new cachering(function() {
+      return new SetIter(this2);
+    }, 64);
     
     if (input != undefined) {
       if (input instanceof Array || input instanceof String) {
@@ -379,7 +392,7 @@ class set {
           this.add(input[i]);
         }
       } else {
-        for (var item in input) {
+        for (var item of input) {
           this.add(item);
         }
       }
@@ -390,95 +403,86 @@ class set {
     if (thisvar == undefined) 
       thisvar = self;
     
-    for (var item in this) {
+    for (var item of this) {
       cb.call(thisvar, item);
     }
   }
   
-  pack(Array<byte> data) {
-    _ajax.pack_int(data, this.length);
-    
-    for (var item in this) {
-      item.pack(data);
+  add(item) {
+    var hash = item.__hash__();
+    if (hash in this.items)
+      return;
+      
+    var i;
+    if (this.freelist.length > 0) {
+      i = this.freelist.pop();
+      this.list[i] = item;
+    } else {
+      i = this.list.length;
+      this.list.push(item);
     }
+    
+    this.items[hash] = i;
+    this.length++;
   }
   
+  remove(item) {
+    var hash = item.__hash__();
+    if (!(hash in this.items))
+      return;
+      
+    var i = this.items[hash];
+    this.list[i] = _set_null;
+    this.freelist.push(i);
+
+    delete this.items[hash];
+    this.length--;
+    
+    return item;
+  }
+  
+  has(item) {
+    var hash = item.__hash__();
+    
+    return hash in this.items;
+  }
+  
+  union(set2) {
+    var ret = new set();
+    
+    for (var item of this) {
+      ret.add(item);
+    }
+    
+    for (var item of set2) {
+      ret.add(item);
+    }
+    
+    return ret;
+  }
+  
+  __iterator__() {
+    return this._itercache.next().cache_init(this);
+  }
+
   asArray() : Array<Object> {
     var arr = new Array(this.length);
     
-    var i = 0;
-    for (var item in this.items) {
-      arr[i] = this.items[item];
-      i += 1
+    for (var item of this) {
+      arr[i++] = item;
     }
     
     return arr;
   }
 
   toJSON() : Array<Object> {
-    var arr = new Array(this.length);
-    
-    var i = 0;
-    for (var item of this.items) {
-      arr[i] = this.items[item];
-      i += 1
-    }
-    
-    return arr;
+    return this.asArray();
   }
 
   toSource() : String {
     return "new set(" + list(this).toSource() + ")";
   }
-
-  toString() : String {
-    return "new set(" + list(this).toString() + ")";
-  }
-
-  add(T item) {
-    /*if (item == undefined || item == null) {
-      console.trace(item);
-    }*/
-    
-    if (!(item.__hash__() in this.items)) {
-      this.length += 1;
-      this.items[item.__hash__()] = item;
-    }
-  }
-
-  remove(T item) {
-    if (item.__hash__() in this.items) {
-      delete this.items[item.__hash__()];
-      this.length -= 1;
-    }
-  }
-
-  safe_iter() : SafeSetIter {
-    return new SafeSetIter<T>(this);
-  }
-
-  __iterator__() : SetIter {
-    return new SetIter<T>(this);
-  }
-
-  union(set<T> b) : set {
-    var newset = new set<T>(this);
-    
-    for (var T item in b) {
-      newset.add(item);
-    }
-    
-    return newset;
-  }
-
-  has(T item) : Boolean {
-    if (item == undefined) {
-      console.trace();
-    }
-    return this.items.hasOwnProperty(item.__hash__());
-  }
 }
-EXPORT_FUNC(set)
 
 class GArrayIter<T> {
   constructor(GArray<T> arr) {
@@ -649,7 +653,7 @@ class hashtable {
   union(hashtable b) : hashtable {
     var newhash = new hashtable(this)
     
-    for (var item in b) {
+    for (var item of b) {
       newhash.add(item, b.get[item])
     }
     
@@ -666,13 +670,13 @@ class hashtable {
 function validate_mesh_intern(m) {
   var eidmap = {};
   
-  for (var f in m.faces) {
+  for (var f of m.faces) {
     var lset = new set();
     var eset = new set();
     var vset = new set();
     
     
-    for (var v in f.verts) {
+    for (var v of f.verts) {
       if (vset.has(v)) {
         console.trace();
         console.log("Warning: found same vert multiple times in a face");
@@ -680,7 +684,7 @@ function validate_mesh_intern(m) {
       vset.add(v);
     }
     
-    for (var e in f.edges) {
+    for (var e of f.edges) {
       if (eset.has(e)) {
         console.trace();
         console.log("Warning: found same edge multiple times in a face");
@@ -689,8 +693,8 @@ function validate_mesh_intern(m) {
       eset.add(e);
     }
     
-    for (var loops in f.looplists) {
-      for (var l in loops) {
+    for (var loops of f.looplists) {
+      for (var l of loops) {
         var e = l.e;
         var v1 = l.v, v2 = l.next.v;
         if (!(v1 == e.v1 && v2 == e.v2) && !(v1 == e.v2 && v2 == e.v1)) {
@@ -709,7 +713,7 @@ function validate_mesh_intern(m) {
     }
   }
   
-  for (var v in m.verts) {
+  for (var v of m.verts) {
     if (v._gindex == -1) {
       console.trace();
       return false;
@@ -720,7 +724,7 @@ function validate_mesh_intern(m) {
       return false;
     }
     
-    for (var e in v.edges) {
+    for (var e of v.edges) {
       if (e._gindex == -1) {
         console.trace();
         return false;
@@ -732,7 +736,7 @@ function validate_mesh_intern(m) {
     }
   }
   
-  for (var e in m.edges) {
+  for (var e of m.edges) {
     if (e._gindex == -1) {
       console.trace();
       return false;
@@ -783,13 +787,13 @@ function validate_mesh_intern(m) {
     } while (l != e.loop);
   }
   
-  for (var v in m.verts) {
+  for (var v of m.verts) {
     eidmap[v.eid] = v;
   }
-  for (var e in m.edges) {
+  for (var e of m.edges) {
     eidmap[e.eid] = v;
   }
-  for (var f in m.faces) {
+  for (var f of m.faces) {
     eidmap[f.eid] = v;    
   }
   
@@ -821,7 +825,7 @@ function fix_object_mesh(Object ob) {
   var eidmap = {};
   var verts = [];
   var vset = new set();
-  for (var v in mesh.verts) {
+  for (var v of mesh.verts) {
     var v2 = mesh2.make_vert(v.co, v.no);
     mesh2.copy_vert_data(v2, v, true);
     verts.push(v2);
@@ -829,7 +833,7 @@ function fix_object_mesh(Object ob) {
   }
   
   var edges = [];
-  for (var e in mesh.edges) {
+  for (var e of mesh.edges) {
     var v1 = verts[e.v1.index], v2 = verts[e.v2.index];
     var e2 = mesh2.make_edge(v1, v2, false);
     
@@ -837,14 +841,14 @@ function fix_object_mesh(Object ob) {
     edges.push(e2);
   }
   
-  for (var f in mesh.faces) {
+  for (var f of mesh.faces) {
     var vlists = new GArray();
     var vset2 = new set();
     
-    for (var list in f.looplists) {
+    for (var list of f.looplists) {
       var vs = new GArray();
       
-      for (var l in list) {
+      for (var l of list) {
         
         if (vset.has(l.v) && !vset2.has(l.v)) {
           vs.push(verts[l.v.index]);
@@ -1051,7 +1055,7 @@ class Timer {
 }
 
 function other_tri_vert(e, f) {
-    for (var v in f.verts) {
+    for (var v of f.verts) {
         if (v != e.v1 && v != e.v2)
             return v;
     }
@@ -1362,43 +1366,6 @@ function get_spiral(size)
   
   return __v3d_g_s;
 }
-
-class cachering extends Array {
-  constructor (Function createcallback, int count=32) {
-    Array.call(this, count);
-    
-    this._cur = 0;
-    this.length = count;
-    for (var i=0; i<count; i++) {
-      this[i] = createcallback();
-    }
-  }
-  
-  next() {
-    var ret = this[this._cur];
-    
-    this._cur = (this._cur+1) % this.length;
-    
-    return ret;
-  }
-  
-  static fromConstructor(cls, int count=32) {
-    static args = [];
-    args.length = 0;
-    
-    for (var i=1; i<arguments.length; i++) {
-      args.push(arguments[i]);
-    }
-    
-    function callback() {
-      var ret = new cls();
-      cls.apply(ret, arguments);
-      return ret;
-    }
-    
-    return new cachering(callback, count);
-  }
-};
   
 //ltypeof function, that handles object instances of basic types
 var ObjMap<String> _bt_h = {
@@ -1540,7 +1507,7 @@ class SDIDLayerList {
   copy() {
     var ret = new SDIDLayerList();
       
-    for (var k in this) {
+    for (var k of this) {
       var layer = this[k];
       var layer2 = new SDIDLayer(layer.int_id);
       

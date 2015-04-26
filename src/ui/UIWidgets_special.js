@@ -115,7 +115,7 @@ export class UIPanel extends RowFrame {
   on_saved_uidata(Function descend) {
     prior(UIPanel, this).on_saved_uidata.call(this, descend);
     
-    for (var c in this.stored_children) {
+    for (var c of this.stored_children) {
       descend(c);
     }
   }
@@ -123,7 +123,7 @@ export class UIPanel extends RowFrame {
   on_load_uidata(Function visit) {
     prior(UIPanel, this).on_load_uidata.call(this, visit);
     
-    for (var c in this.stored_children) {
+    for (var c of this.stored_children) {
       visit(c);
     }
   }
@@ -178,7 +178,7 @@ export class UIPanel extends RowFrame {
     
     if (!is_collapsed) {
       if (this.stored_children.length > 0) {
-        for (var c in this.stored_children) {
+        for (var c of this.stored_children) {
           this.add(c);
         }
       
@@ -654,7 +654,7 @@ export class UIBoxWColor extends ColumnFrame {
       
       row.packflag |= PackFlags.NO_AUTO_SPACING|PackFlags.ALIGN_BOTTOM;
       var i = 1;
-      for (var c in row.children) {
+      for (var c of row.children) {
         if (c instanceof UINumBox) {
           c.slide_power = 2.0;
           c.slide_mul = 4.0;
@@ -823,7 +823,13 @@ export class UIListEntry extends ColumnFrame {
     }
     
     if (!this.text_edit_mode) {
-      var tsize = canvas.textsize(this.text);
+      var tsize;
+      
+      if (this.text != undefined)
+        tsize = canvas.textsize(this.text);
+      else
+        tsize = 50;
+        
       canvas.text([22, (this.size[1]-tsize[1])*0.25], this.text, uicolors["ListBoxText"]);
     }
   }
@@ -890,7 +896,7 @@ export class UIListBox extends ColumnFrame {
       var act = map["active_entry"];
       var i = 0;
       
-      for (var c in this.listbox.children) {
+      for (var c of this.listbox.children) {
         if (c.text == act) {
           this._set_active(c);
           break;
@@ -919,18 +925,16 @@ export class UIListBox extends ColumnFrame {
     this.do_full_recalc();
   }
   
+  on_doubleclick(event) {
+    console.log("LISTBOX double click!");
+    
+    if (event.button == 0 && this.go_callback != undefined) {
+        this.go_callback(this, this.active_entry.text, this.active_entry.id);
+    }
+  }
+  
   on_mousedown(event) {
     prior(UIListBox, this).on_mousedown.call(this, event);
-    
-    //XXX
-    if (0 && this.mtime != undefined && time_ms() - this.mtime < 500) {
-      var dx = this.mstart[0]-event.x, dy = this.mstart[1]-event.y;
-      
-      if (this.active_entry != undefined && Math.sqrt(dx*dx + dy*dy) < 10 && this.go_callback != undefined) {
-        console.log("double click!");
-        this.go_callback(this, this.active_entry.text, this.active_entry.id);
-      }
-    }
     
     this.mstart = [event.x, event.y];
     this.mtime = time_ms();
@@ -946,10 +950,16 @@ export class UIListBox extends ColumnFrame {
     }
   }
   
-  jump(int off) {
-    if (this.active_entry == undefined) return;
+  jump(int off, boolean absolute=false) {
+    var i;
     
-    var i = this.listbox.children.indexOf(this.active_entry) + off;
+    if (absolute) {
+      i = off < 0 ? this.listbox.children.length + off : off;
+    } else {
+      if (this.active_entry == undefined) return;
+      i = this.listbox.children.indexOf(this.active_entry) + off;
+    }
+    
     i = Math.min(Math.max(0, i), this.listbox.children.length-1);
     
     var active = this.listbox.children[i];
@@ -1004,9 +1014,8 @@ export class UIListBox extends ColumnFrame {
     this._set_active(entry);
   }
   
-  _set_active(entry) {
+  _set_active(entry, suppress_callback=false) {
     if (this.active_entry != entry && this.active_entry != undefined) {
-      this.active_entry.do_recalc();
       this.active_entry.do_recalc();
     }
     
@@ -1015,23 +1024,29 @@ export class UIListBox extends ColumnFrame {
     
     if (entry != undefined) {
       entry.do_recalc();
-      if (this.callback != undefined) {
+      
+      if (this.callback != undefined && !suppress_callback) {
         this.callback(this, this.active_entry.text, this.active_entry.id);
       }
     }
   }
   
   on_keydown(event) {
-    if (event.keyCode == charmap["Enter"]) {
-      if (this.go_callback != undefined) {
-        this.go_callback(this, this.active_entry.text, this.active_entry.id);
-      }
-    } else if (event.keyCode == charmap["Up"]) {
-      this.jump(-1);
-      this.do_full_recalc();
-    } else if (event.keyCode == charmap["Down"]) {
-      this.jump(1);
-      this.do_full_recalc();
+    switch (event.keyCode) {
+      case charmap["Enter"]:
+        console.log("Enter go_callback");
+        if (this.go_callback != undefined) {
+          this.go_callback(this, this.active_entry.text, this.active_entry.id);
+        }
+        break;
+      case charmap["Up"]:
+        this.jump(-1);
+        this.do_full_recalc();
+        break;
+      case charmap["Down"]:
+        this.jump(1);
+        this.do_full_recalc();
+        break;
     }
   }
   
@@ -1048,6 +1063,15 @@ export class UIListBox extends ColumnFrame {
     this.listbox.add(entry, PackFlags.ALIGN_LEFT);
     this.do_recalc();
     
+    var hgt = entry.get_min_size(this.get_canvas())[1];
+
+    //temporarily listbox height, since we may need it before next repaint, when repack happens
+    this.listbox.size[1] += hgt;
+    this.listbox.pan_bounds[1][1] += hgt;
+    this.vscroll.set_range([0, this.listbox.pan_bounds[1][1]]);
+    
+    this.pack(this.get_canvas());
+    
     return entry;
   }
 
@@ -1063,6 +1087,10 @@ export class UIListBox extends ColumnFrame {
   reset()
   {
     this.listbox.children = new GArray();
+    this.listbox.velpan.pan[0] = this.listbox.velpan.pan[1] = 0.0;
+    
+    this.vscroll.set_value(0.0);
+    
     this.do_recalc();
   }
 

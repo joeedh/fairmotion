@@ -582,10 +582,12 @@ export class Spline extends DataBlock {
   export_ks() {
     var mmlen = MMLEN;
     var size = 8/UMUL + this.segments.length*ORDER;
+    
     size += this.segments.length*(4/UMUL);
     size += (8*Math.floor(this.segments.length/mmlen))/UMUL;
     
-    var ret = new UARR(size)
+    var ret = new UARR(size);
+    var view = new DataView(ret.buffer);
     
     var c = 0, d = 0
     for (var i=0; i<this.segments.length; i++) {
@@ -606,7 +608,6 @@ export class Spline extends DataBlock {
           
           //console.log("mink, maxk", mink, maxk);
           
-          var view = new DataView(ret.buffer)
           view.setFloat32(c*UMUL, mink);
           view.setFloat32(c*UMUL+4, maxk);
           
@@ -617,15 +618,12 @@ export class Spline extends DataBlock {
       c += 4/UMUL;
       
       for (var j=0; j<ORDER; j++) {
-        var v = s.ks[j];
+        var k = s.ks[j];
         
-        v = (v-mink)/(maxk-mink);
-        //console.log("v", v);
+        k = (k-mink)/(maxk-mink);
+        k = Math.abs(Math.floor(k*UMAX));
         
-        //v = Math.pow(v, 0.1);
-        v = Math.abs(Math.floor(v*UMAX));
-        
-        ret[c++] = v;
+        ret[c++] = k;
       }
       
       d = (d + 1) % mmlen;
@@ -683,7 +681,12 @@ export class Spline extends DataBlock {
       }
       
       d = (d + 1) % mmlen;
-
+      
+      if (i/UMUL >= data.length) {
+        console.log("SPLINE CACHE ERROR", i/UMUL, data.length);
+        break;
+      }
+      
       var eid = view.getInt32(i*UMUL);
       i += 4/UMUL;
       
@@ -698,12 +701,7 @@ export class Spline extends DataBlock {
       for (var j=0; j<ORDER; j++) {
         var k = data[i++]/UMAX;
         
-        //k = Math.pow(k, 1.0/0.1);
-        
         k = k*(maxk-mink) + mink;
-        
-        //console.log("k", k.toFixed(3), s.ks[j]);
-        
         s.ks[j] = k;
       }
     }

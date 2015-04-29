@@ -35,11 +35,8 @@ function _cache_copy_object(obj) {
   //not sure if non-prototypical methods are going to work
   //. . .
   if (obj.constructor && obj.constructor.prototype) {
-    function F() {};
-    F.prototype = obj.constructor.prototype;
-    F.constructor = obj.constructor;
-    
-    ob2 = new F();
+    ob2 = Object.create(obj.constructor.prototype);
+    ob2.constructor = obj.constructor;
   }
   
   //we don't handle subtypes of arrays, since they often use 

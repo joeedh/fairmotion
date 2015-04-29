@@ -22,6 +22,10 @@ window.SELECT = 1;
 //var RELEASE = false;
 //now defined in src/config/config.js
 
+//need to design new unit tester, never even implemented this one.
+//it will probably work by saving tool stacks of some real-world
+//user doing stuff.
+
 window.UNIT_TESTER = false;
 window.FEATURES = {
   save_toolstack : false //(RELEASE ? false : true)

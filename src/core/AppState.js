@@ -1902,6 +1902,13 @@ class ToolStack {
       this2.reexec_tool(stacktool);
     }
     
+    var this2 = this;
+    function gen_subtool_struct(tool) {
+      if (tool.apistruct == undefined)
+        tool.apistruct = this2.gen_tool_datastruct(tool);
+      return tool.apistruct;
+    }
+    
     var prop = new StringProperty(tool.uiname, tool.uiname, tool.uiname, "Tool Name");
     var dataprop = new DataPath(prop, "tool", "tool_name", true, false);
     dataprop.update = function() { }
@@ -1924,13 +1931,6 @@ class ToolStack {
     }
     
     if (tool instanceof ToolMacro) {
-      var this2 = this;
-      function gen_subtool_struct(tool) {
-        if (tool.apistruct == undefined)
-          tool.apistruct = this2.gen_tool_datastruct(tool);
-        return tool.apistruct;
-      }
-      
       var tarr = new DataStructArray(gen_subtool_struct);
       var toolsprop = new DataPath(tarr, "tools", "tools", false);
       datastruct.add(toolsprop);

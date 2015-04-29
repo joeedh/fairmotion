@@ -114,7 +114,7 @@ export class ExtrudeVertOp extends SplineLocalToolOp {
     
     spline.verts.setselect(v, true);
     
-    if (spline.verts.active != undefined && !spline.verts.active.hidden && 
+    if (spline.verts.active !== v && spline.verts.active != undefined && !spline.verts.active.hidden && 
         !((spline.restrict & RestrictFlags.VALENCE2) && spline.verts.active.segments.length >= 2))
     {
       if (spline.verts.active.segments.length == 2) {
@@ -131,6 +131,8 @@ export class ExtrudeVertOp extends SplineLocalToolOp {
       
       var seg = spline.make_segment(spline.verts.active, v);
       seg.z = max_z_seg;
+      
+      console.log("creating segment");
       
       if (spline.verts.active.segments.length > 1) {
         var seg2 = spline.verts.active.segments[0];

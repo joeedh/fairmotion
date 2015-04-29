@@ -665,6 +665,12 @@ export class DopeSheetEditor extends Area {
       }
     }
     
+    var this2 = this;
+    function on_sel() {
+      console.log("------------------on sel!----------------");
+      return this2.on_vert_select.apply(this2, arguments);
+    }
+    
     if (this.first) {
       if (this.ctx == undefined) {
         this.ctx = new Context();
@@ -672,12 +678,6 @@ export class DopeSheetEditor extends Area {
       
       var ctx = this.ctx;
       this.first = false;
-      var this2 = this;
-      
-      function on_sel() {
-        console.log("------------------on sel!----------------");
-        return this2.on_vert_select.apply(this2, arguments);
-      }
       
       this.nodes.push(on_sel);
       

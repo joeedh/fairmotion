@@ -503,7 +503,15 @@ export class View2DHandler extends Area {
   on_mousemove(MyMouseEvent event) {
     var mpos = new Vector3([event.x, event.y, 0])
     this.mpos = mpos;
-    
+      
+    var this2 = this;
+    function switch_on_multitouch(TranslateOp op, MouseEvent event, cancel_func) {
+      if (g_app_state.screen.tottouch > 1) {
+        this2._mstart = null;
+        cancel_func();
+        //XXX g_app_state.toolstack.exec_tool(new ViewRotateZoomPanOp());
+      }
+  
     if (this._mstart != null) {
       var vec = new Vector2(this.mpos);
       vec.sub(this._mstart);
@@ -518,14 +526,6 @@ export class View2DHandler extends Area {
         /*callback to cancel drag translate if 
           multiple touch hotspots show up.
          */
-         
-        var this2 = this;
-        function switch_on_multitouch(TranslateOp op, MouseEvent event, cancel_func) {
-          if (g_app_state.screen.tottouch > 1) {
-            this2._mstart = null;
-            cancel_func();
-            //XXX g_app_state.toolstack.exec_tool(new ViewRotateZoomPanOp());
-          }
         }
         
         top.cancel_callback = switch_on_multitouch;

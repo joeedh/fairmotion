@@ -9,7 +9,8 @@ glob_cmd_help_override = {
   "g_lexpos" : "Most recently parsed lexical position",
   "g_gen_log_code" : "Generate type logging code",
   "g_harmony_iterators" : "expansion of es6 harmony for-loops; Python's StopIteration style will be used instead.",
-  "g_log_forloops" : "add extra data for logging for loops"
+  "g_log_forloops" : "add extra data for logging for loops",
+  "g_es6_modules" : "generate ES6 modules"
 }
 glob_cmd_short_override = {}
 
@@ -51,7 +52,7 @@ def argv_to_argline():
   return s
 
 glob_defaults = {}
-dont_set = set(["expand", "destroy", "add", "force", 
+dont_set = set(["expand", "generate", "destroy", "add", "force", 
                 "print", "process", "pre", "do", "exit"])
 
 class AbstractGlob:

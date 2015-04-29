@@ -1565,13 +1565,13 @@ function toJSON_intern (ob, tlevel) {
             //console.log("md1", e.x, e.y);
             g_app_state.eventhandler._on_mousedown(e2);
             
-            var is_dclick = last_mouse_button == event.button && time_ms() - last_mouse_down < DBCLK_THRESH;
-            var dx = last_mouse_pos[0]-event.pageX, dy = last_mouse_pos[1]-event.pageY;
+            var is_dclick = last_mouse_button == e.button && time_ms() - last_mouse_down < DBCLK_THRESH;
+            var dx = last_mouse_pos[0]-e.pageX, dy = last_mouse_pos[1]-e.pageY;
             is_dclick = is_dclick && Math.sqrt(dx*dx + dy*dy) < 10; //mouse hasn't moved more than ten pixels
             
             last_mouse_down = time_ms();
-            last_mouse_button = event.button;
-            last_mouse_pos[0] = event.pageX; last_mouse_pos[1] = event.pageY;
+            last_mouse_button = e.button;
+            last_mouse_pos[0] = e.pageX; last_mouse_pos[1] = e.pageY;
             
             if (is_dclick) {
               e2 = new MyMouseEvent(e.pageX, g_app_state.screen.size[1] - e.pageY, 

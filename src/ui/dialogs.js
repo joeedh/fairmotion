@@ -449,6 +449,7 @@ export class FileSaveAsOp extends ToolOp {
     //they create ui elements
     ctx = new Context();
     var pd = new ProgressDialog(ctx, "Uploading");
+    var thepath = undefined;
     
     var mesh_data = g_app_state.create_user_file_new().buffer;
     function error(job, owner, msg) {
@@ -460,6 +461,8 @@ export class FileSaveAsOp extends ToolOp {
       if (DEBUG.netio)
         console.log("finished uploading");
       pd.end()
+      
+      G.filepath = thepath;
     }
     
     function status(job, owner, status) {
@@ -477,6 +480,8 @@ export class FileSaveAsOp extends ToolOp {
       if (!path.endsWith(allshape_file_ext)) {
         path = path + allshape_file_ext;
       }
+      
+      thepath = path;
       
       var token = g_app_state.session.tokens.access;
       var url = "/api/files/upload/start?accessToken="+token+"&path="+path

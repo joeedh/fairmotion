@@ -5,7 +5,14 @@ if not os.path.exists("src/config/config_defines.js"):
   
   f = open("src/config/config_defines.js", "w")
   f.close()
+
+if not os.path.exists("src/config/config_local.js"):
+  print("Auto-generating src/config/config_local.js. . .")
   
+  f = open("src/config/config_local.js", "w")
+  f.write("'use strict';\n");
+  f.close()
+
 try:
   import build_local
 except:
@@ -18,6 +25,7 @@ sources = [
   "src/core/module.js",
   "src/core/typesystem.js",
   "src/config/config.js",
+  "src/config/config_local.js",
   "src/core/const.js",
   "src/util/object_cache.js",
  	"tools/utils/crypto/sha1.js",
@@ -74,7 +82,9 @@ sources = [
   "src/core/eventdag.js",
   
 	"src/core/lib_utils.js",
-  
+  "src/nacl/nacl_api.js",
+  "src/nacl/nacl_common.js",
+
   "src/editors/viewport/transdata.js",
   "src/editors/viewport/transform.js",
   "src/editors/viewport/spline_selectops.js",
@@ -135,6 +145,11 @@ copy_targets = {
    "jasmine-html.js" : "tools/utils/libs/jasmine/lib/jasmine-html.js",
    "jasmine-console.js"      : "tools/utils/libs/jasmine/lib/console.js",
    "jasmine_boot.js"         : "src/unit_tests/jasmine_boot.js",
+}
+
+optional_copy_targets = {
+   "graphics_3d.nmf" : "src/nacl/pnacl/Release/graphics_3d.nmf",
+   "graphics_3d.pexe" : "src/nacl/pnacl/Release/graphics_3d.pexe"
 }
 
 js_targets = {"app.js"        : sources,

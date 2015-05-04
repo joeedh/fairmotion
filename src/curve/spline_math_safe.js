@@ -27,14 +27,22 @@ export var KSTARTZ = ORDER+5;
 
 export var KTOTKS  = ORDER+6;
 
-export var INT_STEPS = 8;
+export var INT_STEPS = 3;
+
+export function set_int_steps(steps) {
+  INT_STEPS = steps;
+}
+
+export function get_int_steps(steps) {
+  return INT_STEPS;
+}
 
 var _approx_cache_vs = cachering.fromConstructor(Vector3, 32);
 
 var mmax = Math.max, mmin = Math.min;
 var mfloor = Math.floor, mceil = Math.ceil, abs = Math.abs, sqrt = Math.sqrt, sin = Math.sin, cos = Math.cos;
 
-#define POLYTHETA_BEZ(s) (-(((3*(s)-4)*k3-k4*(s))*(s)*(s)+((s)*(s)-2*(s)+2)*((s)-2)*k1-(3*(s)*(s)-8*(s)+6)*k2*(s))*(s))/4.0
+#define POLYTHETA_BEZ(s) (-(((3*(s)-4)*k3-k4*(s))*(s)*(s)+((s)*(s)-2*(s)+2)*((s)-2)*k1-(3*(s)*(s)-8*(s)+6)*k2*(s))*(s))*0.25
 
                             
 #define POLYCURVATURE_BEZ(s) (-(((3*((s)-1)*k3-k4*(s))*(s)-3*((s)-1)*((s)-1)*k2)*(s)+((s)-1)*((s)-1)*((s)-1)*k1))
@@ -94,6 +102,110 @@ function polycurvature_bez_dv(s, ks, order) {
 var approx_ret_cache = cachering.fromConstructor(Vector3, 42);
 var abs = Math.abs;
 var mmax = Math.max, mmin = Math.min;
+//var ONE_INT_STEPS = 1.0/INT_STEPS;
+
+#define FAST_INT_STEPS 3
+#define ONE_INT_STEPS 0.333333333
+
+import 'J3DIMath';
+
+var acache = [new Vector3(), new Vector3(), new Vector3(), 
+              new Vector3(), new Vector3(), new Vector3(), 
+              new Vector3()]
+var acur = 0;
+
+#define approx_fast(ss, ks, order)\
+  var s1 = ss*(1.0-0.0000001);\
+  var s=0, ds=s1*ONE_INT_STEPS, mul=s1*ONE_INT_STEPS;\
+  var mul2=mul*mul, mul3=mul2*mul, mul4=mul3*mul, mul5=mul4*mul, mul6=mul5*mul;\
+  var ret = acache[acur]; acur = (acur+1) % 7;\
+  ret[2] = 0.0;\
+  var x = 0, y = 0, th, r1, dx, ky, dkt, kt2;\
+  var k1 = ks[0], k2 = ks[1], k3 = ks[2], k4 = ks[3];\
+    var th = POLYTHETA_BEZ(s+0.5);\
+    var r1 = th - 0.1666666*th*th*th + 0.00833333*th*th*th*th*th;\
+    var r2 = 1 - 0.5*th*th + 0.04166666*th*th*th*th;\
+    var dx = r1, dy = r2;\
+    var kt = POLYCURVATURE_BEZ(s+0.5);\
+    var dkt = POLYCURVATURE_BEZ_DV(s+0.5);\
+    var kt2=kt*kt;\
+    x += dx + (r2*kt)*mul*0.5 + (r2*dkt - kt2*r1)*mul2*0.16666666666666;\
+    y += dy + (-r1*kt)*mul*0.5 + (-(r2*kt2 + r1*dkt))*mul2*0.1666666666666;\
+    s += ds;\
+    var th = POLYTHETA_BEZ(s+0.5);\
+    var r1 = sin(th), r2 = cos(th);\
+    var dx = r1, dy = r2;\
+    var kt = POLYCURVATURE_BEZ(s+0.5);\
+    var dkt = POLYCURVATURE_BEZ_DV(s+0.5);\
+    var kt2=kt*kt;\
+    x += dx + (r2*kt)*mul*0.5 + (r2*dkt - kt2*r1)*mul2*0.16666666666666;\
+    y += dy + (-r1*kt)*mul*0.5 + (-(r2*kt2 + r1*dkt))*mul2*0.1666666666666;\
+    s += ds;\
+    var th = POLYTHETA_BEZ(s+0.5);\
+    var r1 = sin(th), r2 = cos(th);\
+    var dx = r1, dy = r2;\
+    var kt = POLYCURVATURE_BEZ(s+0.5);\
+    var dkt = POLYCURVATURE_BEZ_DV(s+0.5);\
+    var kt2=kt*kt;\
+    x += dx + (r2*kt)*mul*0.5 + (r2*dkt - kt2*r1)*mul2*0.16666666666666;\
+    y += dy + (-r1*kt)*mul*0.5 + (-(r2*kt2 + r1*dkt))*mul2*0.1666666666666;\
+    s += ds;\
+  ret[0] = x*mul;\
+  ret[1] = y*mul;
+
+var eval_curve_vs = cachering.fromConstructor(Vector3, 64);
+
+var _eval_start = new Vector3();
+export function eval_curve_fast(s11, v1, v2, ks, order, angle_only, no_update) {
+  var start = _eval_start;
+  if (order == undefined) order = ORDER;
+  
+  s11 *= 0.99999999;
+  
+  var eps = 0.000000001;
+  
+  var ang, scale, start;
+  if (!no_update) {
+    approx_fast(-0.5+eps, ks, order);
+    var start = ret;
+    
+    approx_fast(0.5-eps, ks, order);
+    var end = ret;
+    
+    end.sub(start);
+    var a1 = atan2(end[0], end[1]);
+    
+    var vec = eval_curve_vs.next();
+    vec.load(v2).sub(v1);
+    
+    var a2 = atan2(vec[0], vec[1]);
+    
+    ang = a2-a1;
+    scale = vec.vectorLength() / end.vectorLength();
+    
+    ks[KSCALE] = scale;
+    ks[KANGLE] = ang;
+    ks[KSTARTX] = start[0];
+    ks[KSTARTY] = start[1];
+    ks[KSTARTZ] = start[2];
+  } else {
+    ang = ks[KANGLE];
+    scale = ks[KSCALE];
+    
+    start[0] = ks[KSTARTX];
+    start[1] = ks[KSTARTY];
+    start[2] = ks[KSTARTZ];
+  }
+  
+  if (!angle_only) {
+    approx_fast(s11, ks, order);
+    var co = ret;
+    
+    co.sub(start).rot2d(-ang).mulScalar(scale).add(v1);
+    
+    return co;
+  }
+};
 
 export function approx(s1, ks, order, dis, steps) {
   s1 *= 1.0-0.0000001;
@@ -102,20 +214,22 @@ export function approx(s1, ks, order, dis, steps) {
     steps = INT_STEPS;
   var s=0, ds=s1/steps, mul=s1/steps;
   
-  var mul2=mul*mul, mul3=mul2*mul, mul4=mul3*mul, mul5=mul4*mul, mul6=mul5*mul, mul7=mul6*mul, mul8=mul7*mul;
+  var mul2=mul*mul, mul3=mul2*mul, mul4=mul3*mul, mul5=mul4*mul, mul6=mul5*mul; //, mul7=mul6*mul, mul8=mul7*mul;
   
   var ret = approx_ret_cache.next();
   ret[0] = ret[1] = ret[2] = 0.0;
   var x = 0, y = 0;
   
-  var one24 = 1.0/24, one6 = 1.0/6.0, one120 = 1.0/120.0;
   var k1 = ks[0], k2 = ks[1], k3 = ks[2], k4 = ks[3];
   
-  for (var i=0; i<steps; i++, s += ds) {
+  for (var i=0; i<steps; i++) {
     //var th = polytheta_bez(s+0.5, ks, order);
     var th = POLYTHETA_BEZ(s+0.5);
 
     var r1 = sin(th), r2 = cos(th);
+    //var r1 = th - 0.1666666*th*th*th + 0.00833333*th*th*th*th*th;
+    //var r2 = 1 - 0.5*th*th + 0.04166666*th*th*th*th;
+    
     var dx = r1, dy = r2;
     
     //var kt = polycurvature_bez(s+0.5, ks, order);
@@ -124,11 +238,13 @@ export function approx(s1, ks, order, dis, steps) {
     var kt = POLYCURVATURE_BEZ(s+0.5); //polycurvature_bez(s+0.5, ks, order);
     var dkt = POLYCURVATURE_BEZ_DV(s+0.5); //polycurvature_bez_dv(s+0.5, ks, order);
     
-    var kt2=kt*kt, kt3 = kt2*kt, kt4=kt3*kt, dkt2=dkt*dkt, dkt3=dkt2*dkt;
-    var kt5=kt4*kt, kt6=kt5*kt, dkt22=dkt*dkt;
-      
-    x += dx + (r2*kt)*mul*0.5 + (r2*dkt - kt2*r1)*mul2*one6;
-    y += dy + (-r1*kt)*mul*0.5 + (-(r2*kt2 + r1*dkt))*mul2*one6; 
+    var kt2=kt*kt;
+    
+    x += dx + (r2*kt)*mul*0.5 + (r2*dkt - kt2*r1)*mul2*0.16666666666666;
+    y += dy + (-r1*kt)*mul*0.5 + (-(r2*kt2 + r1*dkt))*mul2*0.1666666666666; 
+    
+    s += ds;
+    
   }
   
   ret[0] = x*mul;
@@ -143,12 +259,30 @@ export var spiralcurvature_dv = polycurvature_bez_dv;
 export var ORDER = 4;
 
 function solve_intern(spline, order, goal_order, steps, gk) {
+  static con_cache = {
+    list : [],
+    used : 0
+  };
+  
+  con_cache.used = 0;
+  
+  function con(w, ks, order, func, params) {
+    if (con_cache.used < con_cache.list.length) {
+      return con_cache.list[con_cache.used++].cache_init(w, ks, order, func, params);
+    } else {
+      var ret = new constraint(w, ks, order, func, params);
+      con_cache.list.push(ret);
+      con_cache.used++;
+      return ret;
+    }
+  }
+  
   if (order == undefined)
     order = ORDER;
   if (steps == undefined)
     steps = 35;
   if (gk == undefined)
-    gk = 4.0;
+    gk = 1.0;
     
   var edge_segs = [];
   var UPDATE = SplineFlags.UPDATE;
@@ -258,7 +392,7 @@ function solve_intern(spline, order, goal_order, steps, gk) {
     var seg1 = params[0], seg2 = params[1];
     var v, s1=0, s2=0;
     
-    /*
+    //*
     seg1.eval(0.5);
     seg2.eval(0.5);
     //*/
@@ -291,8 +425,6 @@ function solve_intern(spline, order, goal_order, steps, gk) {
     
     return 0;
   }
-
-  var ws = [1, 1, 1, 1, 1, 1, 1];
    
   //handle manual tangents
   for (var i=0; i<spline.handles.length; i++) {
@@ -306,7 +438,6 @@ function solve_intern(spline, order, goal_order, steps, gk) {
       continue;
     
     var v = seg.handle_vertex(h);
-    
     if (INCREMENTAL && !((v.flag) & SplineFlags.UPDATE))
       continue;
     
@@ -318,29 +449,7 @@ function solve_intern(spline, order, goal_order, steps, gk) {
     if (isNaN(tan1.dot(tan1)) || tan1.dot(tan1) == 0.0) continue;
     
     var s = h == seg.h1 ? 0 : 1;
-    
-    //console.log("tan1", tan1);
-    
-    //var tc = new constraint(tw1, [ss1.ks, ss2.ks], order, tan_c, ws, params);
     var do_curv = (v.flag & SplineFlags.BREAK_CURVATURES);
-    
-    var htw = 1.0;
-    var ws2 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-
-    if (h == seg.h1) {
-      ws2[0] = do_curv ? 0.1 : 1.0;
-      if (order > 2)
-        ws2[1] = 1;
-      if (order > 3)
-        ws2[2] = 0.1;
-    } else {
-      ws2[order-1] = do_curv ? 0.1 : 1.0;
-      
-      if (order > 2)
-        ws2[order-2] = 1;
-      if (order > 3)
-        ws2[order-3] = 0.1;
-    }
     
     if (h.owning_vertex == undefined) continue;
     
@@ -348,7 +457,8 @@ function solve_intern(spline, order, goal_order, steps, gk) {
     do_tan = do_tan && !(h.flag & SplineFlags.AUTO_PAIRED_HANDLE);
     
     if (do_tan) {
-      var tc = new constraint(htw, [seg.ks], order, hard_tan_c, ws2, [seg, tan1, s]);
+      var tc = new constraint(0.25, [seg.ks], order, hard_tan_c, [seg, tan1, s]);
+      tc.k2 = 1.0;
       slv.add(tc);
     }
     
@@ -359,26 +469,23 @@ function solve_intern(spline, order, goal_order, steps, gk) {
     if ((h.flag & SplineFlags.AUTO_PAIRED_HANDLE) && 
       !((seg.handle_vertex(h).flag & SplineFlags.BREAK_TANGENTS))) 
     {
-      var tc = new constraint(1.0, [ss1.ks, ss2.ks], order, tan_c, ws, [ss1, ss2]);
+      var tc = new constraint(0.3, [ss1.ks, ss2.ks], order, tan_c, [ss1, ss2]);
+      tc.k2 = 0.8
       slv.add(tc);
     }
     
     /*
     var cw1 = 0.5, cw2=cw1;
     
-    var cws = [0, 0, 0, 0, 0, 0, 0, 0];
-    cws[0] = cws[order-1] = 1;
-    if (order == 3) cws[1] = 1;
-    
-    var cc = new constraint(cw1, [ss1.ks], order, handle_curv_c, cws, [ss1, ss2, h, h2]);
+    var cc = new constraint(cw1, [ss1.ks], order, handle_curv_c, [ss1, ss2, h, h2]);
     slv.add(cc);
-    var cc = new constraint(cw2, [ss2.ks], order, handle_curv_c, cws, [ss1, ss2, h, h2]);
+    var cc = new constraint(cw2, [ss2.ks], order, handle_curv_c, [ss1, ss2, h, h2]);
     slv.add(cc);
     */
     
-    var cc = new constraint(cw1, [ss1.ks], order, curv_c, cws, [ss1, ss2, h, h2]);
+    var cc = new constraint(1, [ss1.ks], order, curv_c, [ss1, ss2, h, h2]);
     slv.add(cc);
-    var cc = new constraint(cw2, [ss2.ks], order, curv_c, cws, [ss1, ss2, h, h2]);
+    var cc = new constraint(1, [ss2.ks], order, curv_c, [ss1, ss2, h, h2]);
     slv.add(cc);
   }
   
@@ -421,29 +528,14 @@ function solve_intern(spline, order, goal_order, steps, gk) {
     
     if (bad) continue;
     
-    var do_ss1=1, do_ss2=1;
-    
-    var params = [
-      ss1,
-      ss2
-    ]
-    
-    var l1 = ss1.length, l2 = ss2.length;
-    var l3 = (l1+l2)*0.5;
-    var tw1 = Math.min(l1/l2, l2/l1), tw2 = tw1
-    tw1 = tw2 = 1.0;
-    
     if (!(v.flag & SplineFlags.BREAK_TANGENTS)) {
-      var tc = new constraint(tw1, [ss1.ks, ss2.ks], order, tan_c, ws, params);
+      var tc = new constraint(0.2, [ss2.ks], order, tan_c, [ss1, ss2]);
+      tc.k2 = 0.8
       slv.add(tc);
       
-      /*
-      if (do_ss1)
-        slv.add(tc);
-      var tc = new constraint(tw2, [ss2.ks], order, tan_c, ws, params);
-      if (do_ss2)
-        slv.add(tc);
-      */
+      var tc = new constraint(0.2, [ss1.ks], order, tan_c, [ss2, ss1]);
+      tc.k2 = 0.8
+      slv.add(tc);
     } else {
       continue;
     }
@@ -462,21 +554,12 @@ function solve_intern(spline, order, goal_order, steps, gk) {
       
     //if (mindis < limits.v_curve_limit)
     //  continue;
-      
-    //if (order <= 3) continue;
-    var cw1 = 0.5, cw2=cw1;
     
-    var cws = [0, 0, 0, 0, 0, 0, 0, 0];
-    cws[0] = cws[order-1] = 1;
-    if (order == 3) cws[1] = 1;
-    
-    var cc = new constraint(cw1, [ss1.ks], order, curv_c, cws, params);
-    if (do_ss1)
-      slv.add(cc);
+    var cc = new constraint(1, [ss1.ks], order, curv_c, [ss1, ss2]);
+    slv.add(cc);
       
-    var cc = new constraint(cw2, [ss2.ks], order, curv_c, cws, params);
-    if (do_ss2)
-      slv.add(cc);
+    var cc = new constraint(1, [ss2.ks], order, curv_c, [ss2, ss1]);
+    slv.add(cc);
   }
   
   var totsteps = slv.solve(steps, gk, order==ORDER, edge_segs);
@@ -489,7 +572,7 @@ function solve_intern(spline, order, goal_order, steps, gk) {
   }
   
   var end_time = time_ms() - start_time;
-  if (end_time > 50)
+  if (end_time > 50 || 1)
     console.log("solve time", end_time.toFixed(2), "ms", "steps", totsteps);
 }
 
@@ -553,6 +636,11 @@ export function do_solve(sflags, spline, steps, gk) {
       var v = spline.verts[i];
       v.flag &= ~(SplineFlags.UPDATE|SplineFlags.TEMP_TAG);
     }
+  }
+  
+  if (spline.on_resolve != undefined) {
+    spline.on_resolve();
+    spline.on_resolve = undefined;
   }
 }
 

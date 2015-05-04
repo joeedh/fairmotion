@@ -1513,25 +1513,32 @@ def p_func_type_opt(p):
   else:
     p[0] = None
  
+def p_star_opt(p):
+  ''' star_opt : TIMES
+               |
+  '''
+  if len(p) == 2:
+    p[0] = p[1]
+  
 def p_funcref(p):
-  ''' funcref : FUNCTION id template_opt push_scope LPAREN funcdeflist RPAREN func_type_opt
+  ''' funcref : FUNCTION star_opt id template_opt push_scope LPAREN funcdeflist RPAREN func_type_opt
   '''
   
   set_parse_globals(p)
   
-  name = p[2]
+  name = p[3]
   
   p[0] = FuncRefNode(name)
-  p[0].add(p[6])
-  p[6].flatten()
+  p[0].add(p[7])
+  p[7].flatten()
   
-  if p[8] != None:
-    p[0].type = p[8]
+  if p[9] != None:
+    p[0].type = p[9]
     if type(p[0].type) == str:
       p[0].type = TyperefNode(p[0].type)
       
-  if p[3] != None:
-    p[0].template = p[3]
+  if p[4] != None:
+    p[0].template = p[4]
   pop_scope()
   
 def p_func_native(p):
@@ -1558,34 +1565,30 @@ def p_func_native(p):
   pop_scope()
     
 def p_function(p):
-  ''' function : FUNCTION id template_opt push_scope LPAREN funcdeflist RPAREN func_type_opt LBRACKET statementlist_opt RBRACKET
+  ''' function : FUNCTION star_opt id template_opt push_scope LPAREN funcdeflist RPAREN func_type_opt LBRACKET statementlist_opt RBRACKET
   '''
   
   set_parse_globals(p)
-  lc = list(range(0, 11))
   
-  def insert_before(i):
-    for j in range(i, len(lc)):
-      lc[j] = j+1
-  
-  insert_before(4)  
-  
-  name = p[lc[2]]
-  
+  name = p[3]
+  exprlist = p[11]
+  params = p[7]
+  params.flatten()
+    
   p[0] = FunctionNode(name, p.lineno)
-  p[0].add(p[lc[5]])
-  p[lc[5]].flatten()
+  p[0].add(params)
+  for c in exprlist:
+    p[0].add(c)
   
-  for c in p[lc[9]].children:
-    p[lc[0]].add(c)
+  p[0].is_generator = p[2] == "*"
   
-  if p[lc[7]] != None:
-    p[lc[0]].type = p[lc[7]]
-    if type(p[lc[0]].type) == str:
-      p[lc[0]].type = TyperefNode(p[lc[0]].type)
+  if p[9] != None:
+    p[0].type = p[9]
+    if type(p[0].type) == str:
+      p[0].type = TyperefNode(p[0].type)
       
-  if p[lc[3]] != None:
-    p[lc[0]].template = p[lc[3]]
+  if p[4] != None:
+    p[0].template = p[4]
   
   pop_scope()
   
@@ -1626,8 +1629,8 @@ def p_func_name_opt(p):
     p[0] = p[1]
     
 def p_exprfunction(p):
-  ''' exprfunction : FUNCTION func_name_opt template_opt push_scope LPAREN funcdeflist RPAREN colon_opt var_type_opt lbracket_restrict statementlist_opt rbracket_restrict
-                   | FUNCTION func_name_opt template_opt push_scope LPAREN RPAREN colon_opt var_type_opt lbracket_restrict statementlist_opt rbracket_restrict
+  ''' exprfunction : FUNCTION star_opt func_name_opt template_opt push_scope LPAREN funcdeflist RPAREN colon_opt var_type_opt lbracket_restrict statementlist_opt rbracket_restrict
+                   | FUNCTION star_opt func_name_opt template_opt push_scope LPAREN RPAREN colon_opt var_type_opt lbracket_restrict statementlist_opt rbracket_restrict
   '''
   
   set_parse_globals(p)
@@ -1635,29 +1638,31 @@ def p_exprfunction(p):
   colon = None
   type1 = None
   template = None
-  if len(p) == 13:
-    p[0] = FunctionNode(p[2], p.lineno)
+  
+  if len(p) == 14:
+    p[0] = FunctionNode(p[3], p.lineno)
     p[0].is_anonymous = True
-    p[0].add(p[6])
-    
-    p[6].flatten()
+    p[0].add(p[7])
+    p[0].is_generator = p[2] == "*"
+    p[7].flatten()
 
-    colon = p[8]
-    type1 = p[9]
-    template = p[3]
+    colon = p[9]
+    type1 = p[10]
+    template = p[4]
     
-    for c in p[11].children:
+    for c in p[12].children:
       p[0].add(c)
   else:
-    p[0] = FunctionNode(p[2], p.lineno)
+    p[0] = FunctionNode(p[3], p.lineno)
     p[0].is_anonymous = True
     p[0].add(ExprNode([]))
+    p[0].is_generator = p[2] == "*"
     
-    colon = p[7]
-    type1 = p[8]
-    template = p[3]
+    colon = p[8]
+    type1 = p[9]
+    template = p[4]
     
-    for c in p[10].children:
+    for c in p[11].children:
       p[0].add(c)
     
   if type(p[0].type) == str:

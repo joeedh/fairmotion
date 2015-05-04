@@ -427,7 +427,7 @@ InterpStepModeOp.prototype.apiname = "spline.toggle_step_mode"
 
 export class DeleteVertOp extends SplineLocalToolOp {
   constructor() {
-    SplineLocalToolOp.call(this, false);
+    super(false);
   }
   
   can_call(ctx) {
@@ -472,7 +472,7 @@ export class DeleteVertOp extends SplineLocalToolOp {
 
 export class DeleteSegmentOp extends ToolOp {
   constructor() {
-    ToolOp.call(this, false);
+    super(false);
   }
   
   can_call(ctx) {
@@ -513,7 +513,7 @@ export class DeleteSegmentOp extends ToolOp {
 
 export class DeleteFaceOp extends SplineLocalToolOp {
   constructor() {
-    SplineLocalToolOp.call(this, false);
+    super(false);
   }
   
   can_call(ctx) {
@@ -591,7 +591,7 @@ export class DeleteFaceOp extends SplineLocalToolOp {
 
 export class ChangeFaceZ extends SplineLocalToolOp {
   constructor(offset, selmode) {
-    SplineLocalToolOp.call(this, false);
+    super(false);
     
     if (offset != undefined)
       this.inputs.offset.set_data(offset); 
@@ -645,7 +645,7 @@ ChangeFaceZ.inputs = {
 
 export class DissolveVertOp extends SplineLocalToolOp {
   constructor() {
-    SplineLocalToolOp.call(this, false);
+    super(false);
   }
   
   can_call(ctx) {
@@ -688,7 +688,7 @@ DissolveVertOp.inputs = {
 
 export class SplitEdgeOp extends SplineGlobalToolOp {
   constructor() {
-    SplineGlobalToolOp.call(this, false);
+    super(false);
   }
   
   can_call(ctx) {
@@ -733,7 +733,7 @@ export class SplitEdgeOp extends SplineGlobalToolOp {
 
 export class SplitEdgeOp1 extends SplineLocalToolOp {
   constructor() {
-    SplineLocalToolOp.call(this, false);
+    super(false);
   }
   
   can_call(ctx) {
@@ -929,7 +929,7 @@ DisconnectHandlesOp.prototype.uiname = "Disconnect Handles";
 
 export class CurveRootFinderTest extends ToolOp {
   constructor() {
-    ToolOp.call(this, "curverootfinder", "curverootfinder", "curverootfinder");
+    super("curverootfinder", "curverootfinder", "curverootfinder");
     
     this.is_modal = true;
     this.undoflag |= UndoFlags.IGNORE_UNDO;
@@ -995,7 +995,7 @@ DelVertFrame.inputs = {
 
 export class AnimPlaybackOp extends ToolOp {
   constructor() {
-    ToolOp.call(this, "playback", "playback", "playback");
+    super("playback", "playback", "playback");
     
     this.is_modal = true;
     
@@ -1076,7 +1076,7 @@ import {TimeDataLayer, get_vtime, set_vtime} from 'animdata';
 
 export class ShiftTimeOp extends ToolOp {
   constructor() {
-    ToolOp.call(this, "shift_time", "shift time", "shift time");
+    super("shift_time", "shift time", "shift time");
     
     this.is_modal = true;
     var first = true;

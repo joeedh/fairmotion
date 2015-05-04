@@ -23,7 +23,7 @@ export class _UITab {
 
 export class UITabBar extends UIElement {
   constructor(Context ctx, char mode="v", Function callback=undefined) {
-    UIElement.call(this, ctx);
+    super(ctx);
     
     this.highlight = undefined;
     this.active = undefined;
@@ -181,7 +181,7 @@ export class UITabBar extends UIElement {
 //strips
 export class UITabPanel extends UIFrame {
   constructor(Context ctx, Array<float> size=undefined, char mode="v", Boolean flip=false) {
-    UIFrame.call(this, ctx);
+    super(ctx);
     
     this.flip = flip;
     if (flip)
@@ -229,7 +229,7 @@ export class UITabPanel extends UIFrame {
   }
   
   on_saved_uidata(Function visit) {
-    prior(UITabPanel, this).on_saved_uidata.call(this, visit);
+    super.on_saved_uidata(visit);
     
     for (var t of this.tabstrip.tabs) {
       visit(t.id);
@@ -237,7 +237,7 @@ export class UITabPanel extends UIFrame {
   }
   
   on_load_uidata(Function visit) {
-    prior(UITabPanel, this).on_load_uidata.call(this, visit);
+    super.on_load_uidata(visit);
     
     for (var t of this.tabstrip.tabs) {
       visit(t.id);
@@ -279,7 +279,7 @@ export class UITabPanel extends UIFrame {
     
     //canvas.simple_box(this.pos, this.size);
     this.draw_background = true;
-    prior(UITabPanel, this).build_draw.call(this, canvas, isVertical);
+    super.build_draw(canvas, isVertical);
     
     var lineclr = uicolors["TabPanelOutline"];
     var t = this.tabstrip.thickness; //header width
@@ -318,7 +318,7 @@ export class UITabPanel extends UIFrame {
     this.subframe.size[0] = this.size[0];
     this.subframe.size[1] = this.size[1];
     
-    prior(UITabPanel, this).pack.call(this, canvas, isVertical);
+    super.pack(canvas, isVertical);
   }
   
   panel(String label, int align=0, int default_packflag=0) {

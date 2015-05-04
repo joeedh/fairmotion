@@ -67,14 +67,14 @@ Array.prototype.pack = function(data) {
   }
 }
 
-function get_endian() {
+export function get_endian() {
   var d = [1, 0, 0, 0]
   d = new Int32Array((new Uint8Array(d)).buffer)[0]
   
   return d == 1;
 }
 
-var little_endian = get_endian()
+export var little_endian = get_endian();
 
 //this seems suspect
 function str_to_uint8(String str) : Uint8Array

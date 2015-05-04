@@ -1429,9 +1429,9 @@ export class Screen extends UIFrame {
     this.handle_active_view2d();
     
     //console.log("alt", event.altKey);
-    console.log(e.altKey);
-    console.log(e.ctrlKey);
-    console.log(e.shiftKey);
+   //console.log(e.altKey);
+    //console.log(e.ctrlKey);
+   // console.log(e.shiftKey);
     
     if (DEBUG.mouse)
       console.log("mdown", [e.x, e.y], e.button)

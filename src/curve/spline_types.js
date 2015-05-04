@@ -194,7 +194,7 @@ CustomData.STRUCT = """
 
 export class CustomDataSet extends Array {
   constructor() {
-    Array.call(this);
+    super();
   }
   
   on_add(cls, i) {
@@ -260,6 +260,8 @@ CustomDataSet.STRUCT = """
 
 export class SplineElement extends DataPathNode {
   constructor(type) {
+    super();
+    
     this.type = type;
     this.cdata = new CustomDataSet();
     this.masklayer = 1; //blender-style bitmask layers
@@ -481,7 +483,7 @@ var closest_point_cache_vs = cachering.fromConstructor(Vector3, 64);
 
 export class SplineSegment extends SplineElement {
   constructor(SplineVertex v1, SplineVertex v2) {
-    SplineElement.call(this, SplineTypes.SEGMENT);
+    super(SplineTypes.SEGMENT);
     
     this.l = undefined;
     
@@ -894,6 +896,11 @@ export class SplineSegment extends SplineElement {
     } while (l != undefined && l != this.l);
   }
   
+  shared_vert(s) {
+    if (this.v1 === s.v1 || this.v1 == s.v2) return this.v1;
+    if (this.v2 === s.v1 || this.v2 == s.v2) return this.v2;
+  }
+  
   other_vert(v) {
     if (v == this.v1) return this.v2;
     if (v == this.v2) return this.v1;
@@ -926,7 +933,7 @@ SplineSegment.STRUCT = STRUCT.inherit(SplineSegment, SplineElement) + """
 
 export class SplineLoop extends SplineElement {
   constructor(f, s, v) {
-    SplineElement.call(this, SplineTypes.LOOP);
+    super(SplineTypes.LOOP);
     
     this.f = f, this.s = s, this.v = v;
     
@@ -1070,7 +1077,7 @@ SplineLoopPath.STRUCT = """
 
 export class SplineFace extends SplineElement {
   constructor() {
-    SplineElement.call(this, SplineTypes.FACE);
+    super(SplineTypes.FACE);
    
     this.z = 0;
     this.mat = new Material();

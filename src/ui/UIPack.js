@@ -18,7 +18,7 @@ import {
 export class UIPackFrame extends UIFrame {
   constructor(ctx, path_prefix)
   {
-    UIFrame.call(this, ctx);
+    super(ctx);
     
     this.mm = new MinMax(2);
     this._last_pack_recalc = 0;
@@ -39,12 +39,12 @@ export class UIPackFrame extends UIFrame {
     if (this.is_canvas_root())
       this.pack(canvas, isVertical);
       
-    UIFrame.prototype.build_draw.call(this, canvas, isVertical);
+    super.build_draw(canvas, isVertical);
   }
  
   on_resize(Array<int> newsize, Array<int> oldsize)
   {
-    prior(UIPackFrame, this).on_resize.call(this, newsize, oldsize);
+    super.on_resize(newsize, oldsize);
     
     //var canvas = this.get_canvas();
     //if (canvas != undefined)
@@ -53,12 +53,12 @@ export class UIPackFrame extends UIFrame {
   
   add(UIElement child) {
     child.packflag |= this.default_packflag;
-    UIFrame.prototype.add.call(this, child);
+    super.add(child);
   }
   
   prepend(UIElement child) {
     child.packflag |= this.default_packflag;
-    UIFrame.prototype.prepend.call(this, child);
+    super.prepend(child);
   }
   
   toolwidget(path, inherit_flag=0, label=undefined) {
@@ -548,7 +548,8 @@ export class UIPackFrame extends UIFrame {
 export class RowFrame extends UIPackFrame {
   constructor(ctx, path_prefix, align)
   {
-    UIPackFrame.call(this, ctx, path_prefix);
+    super(ctx, path_prefix);
+    
     this.packflag |= PackFlags.INHERIT_HEIGHT|align;
     this.pad = [4, 4];
   }
@@ -658,7 +659,7 @@ export class RowFrame extends UIPackFrame {
     }
     
     //this._pack_recalc();
-    UIPackFrame.prototype.pack.call(this, canvas, is_vertical);
+    super.pack(canvas, is_vertical);
     //this.size[1] = Math.max(this.size[1], minsize[1]);
   }
 }
@@ -666,7 +667,7 @@ export class RowFrame extends UIPackFrame {
 export class ColumnFrame extends UIPackFrame {
   constructor(ctx, path_prefix, align)
   {
-    UIPackFrame.call(this, ctx, path_prefix);
+    super(ctx, path_prefix);
     this.packflag |= PackFlags.INHERIT_WIDTH|align
     this.pad = [2, 2];
   }
@@ -818,14 +819,15 @@ export class ColumnFrame extends UIPackFrame {
     }
     
     //this._pack_recalc();
-    UIPackFrame.prototype.pack.call(this, canvas, is_vertical);
+    super.pack(canvas, is_vertical);
   }
 }
 
 var _te = 0;
 export class ToolOpFrame extends RowFrame {
   constructor(ctx, path) {
-    RowFrame.call(this, ctx, path);
+    super(ctx, path);
+    
     this.rebuild = true;
     this.strct = undefined;
     this.ctx = ctx;
@@ -864,6 +866,6 @@ export class ToolOpFrame extends RowFrame {
     }
     
     canvas.simple_box([0,0], this.size, [0.2, 0.2, 0.2, 0.1]);
-    RowFrame.prototype.build_draw.call(this, canvas, isVertical);
+    super.build_draw(canvas, isVertical);
   }
 }

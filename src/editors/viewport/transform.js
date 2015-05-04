@@ -2,6 +2,8 @@ import {
   MinMax
 } from 'mathlib';
 
+import {USE_NACL} from 'config';
+
 import {TPropFlags} from 'toolprops';
 import {SplineFlags, SplineTypes} from 'spline_types';
 import {ModalStates} from 'toolops_api';
@@ -11,6 +13,9 @@ import {TransDopeSheetType} from 'dopesheet_transdata';
 
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
         charmap, TouchEventManager, EventHandler} from 'events';
+
+import {clear_jobs, clear_jobs_except_latest, clear_jobs_except_first, 
+        JobTypes} from 'nacl_api';
 
 export class TransSplineVert {
   static apply(ToolContext ctx, TransData td, TransDataItem item, Matrix4 mat, float w) {
@@ -537,8 +542,37 @@ export class TransformOp extends ToolOp {
       max1[i] = Math.max(max1[i], minmax.max[i]);
     }
     
+    
+    if (!USE_NACL) {
+      redraw_viewport(minmax.min, minmax.max);
+      return;
+    }
+    
+    //only allow two running jobs at one time
+    clear_jobs_except_first(JobTypes.SOLVE);
+    
     //redraw max of current and last min/max
-    redraw_viewport(minmax.min, minmax.max);
+    var promise = ctx.spline.solve_p();
+    var spline = ctx.spline;
+    
+    //it might not be such a bad idea to use the event DAG 
+    //for this.
+
+    //redraw on rejections too
+    promise.then(function () {
+      //if (spline.resolve == 0)
+      redraw_viewport(minmax.min, minmax.max);
+    }, function() {
+      //if (spline.resolve == 0)
+      //redraw_viewport(minmax.min, minmax.max);
+    });
+    
+    /*
+    promise["catch"](function () {
+      redraw_viewport(minmax.min, minmax.max);
+      return 1;
+    });
+    */
   }
   
   draw_helper_lines(ObjLit md, Context ctx) {

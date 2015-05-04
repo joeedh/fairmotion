@@ -475,12 +475,16 @@ def visit_generators(node):
   
   def f_next(f, ignore_loops=False):
     if f.parent == None: 
+      if debug_gen:
+        print("no f.parent! make frame");
+      
       f = Frame()
       f.label = len(flatframes)
       return f
       
     while f.parent != None:
       i = f.parent.index(f)+1
+      
       while i < len(f.parent):
         if type(f.parent[i]) == Frame:
           if type(f.parent[i].node) not in [CatchNode, ElseNode]:
@@ -490,10 +494,15 @@ def visit_generators(node):
       if not ignore_loops and f.parent != None and \
          type(f.parent.node) in \
          [WhileNode, DoWhileNode, ForLoopNode]:
+        if debug_gen:
+          print("looper!", f.label, f.parent.label)
         return f.parent
       
       f = f.parent
-    
+      
+    if debug_gen:
+      print("made frame!", len(flatframes))
+      
     f = Frame()
     f.label = len(flatframes)
     return f
@@ -502,7 +511,8 @@ def visit_generators(node):
     for f2 in f:
       if type(f2) == Frame:
         return f2
-  
+    #return f
+    
   def f_last(f):
     return f[-1]
   
@@ -833,6 +843,10 @@ def visit_generators(node):
     if type(n) == IfNode:
       f2 = f_first(f)
       
+      if f2 == None: #empty if node
+        f2 = Frame()
+        f2.label = len(flatframes)
+        
       if len(n) > 2:
         f3 = n[2].frame
       else:
@@ -848,6 +862,11 @@ def visit_generators(node):
       sl.add(n2)
     elif type(n) == ElseNode:
       f2 = f_first(f)
+      
+      if f2 == None: #empty else node
+        f2 = Frame()
+        f2.label = len(flatframes)
+        
       f.paths += [f2]
       
       n2 = js_parse(";$s = $s;", ("$__state", str(f2.label)))
@@ -855,32 +874,33 @@ def visit_generators(node):
       set_linepos(n2, n.line, n.lexpos);
       sl.add(n2)
     elif type(n) == WhileNode:
-      f.paths += [f_first(f), f_next(f, True)]
+      f.paths += [f_first(f), f_next(f, False)]
       
       n2 = js_parse("""
         $s = ($n) ? $s : $s;
-      """, ("$__state", n[0], f_first(f).label, f_next(f, True).label));
+      """, ("$__state", n[0], f_first(f).label, f_next(f, False).label));
       
       set_linepos(n2, n.line, n.lexpos);
       sl.add(n2)
     elif type(n) == ForLoopNode:
-      f.paths += [f_first(f), f_next(f, True)]
+      #okay, why did I say to ignore loops here?
+      f.paths += [f_first(f), f_next(f, False)]
       
       if type(n[0]) == ForCNode:
         n2 = js_parse("""
           $s = ($n) ? $s : $s;
-        """, ("$__state", n[0][1], f_first(f).label, f_next(f, True).label));
+        """, ("$__state", n[0][1], f_first(f).label, f_next(f, False).label));
         
         set_linepos(n2, n.line, n.lexpos);
         sl.add(n2)
       else:
         typespace.error("process_generators expects unpacked iterator for loops")
     elif type(n) == DoWhileNode:
-      f.paths += [f_first(f), f_next(f, True)]
+      f.paths += [f_first(f), f_next(f, False)]
       
       n2 = js_parse("""
         $s = ($n) ? $s : $s;
-      """, ("$__state", n[0], f_first(f).label, f_next(f, True).label), start_node=AssignNode)
+      """, ("$__state", n[0], f_first(f).label, f_next(f, False).label), start_node=AssignNode)
       
       set_linepos(n2, n.line, n.lexpos)
       sl.add(n2)

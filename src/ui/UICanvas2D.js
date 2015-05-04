@@ -208,7 +208,7 @@ export class UICanvas2_ {
     this.box(pos, size, clr, rfac, true);
   }
 
-  quad(v1, v2, v3, v4, c1, c2, c3, c4) {
+  quad(v1, v2, v3, v4, c1, c2, c3, c4, horiz_gradient=false) {
     static black = [0, 0, 0, 1];
 
     var canvas = get_2d_canvas().canvas;
@@ -248,8 +248,8 @@ export class UICanvas2_ {
     //XXX eek!
     var grad;
     
-    if (!(hash in grads)) {
-      console.log("implement me better! [gradient code]");
+    if (1 || !(hash in grads)) {
+      //XXX console.log("implement me better! [gradient code]");
       
       var min=[v1[0], v1[1]], max = [v1[0], v1[1]];
       for (var i=0; i<2; i++) {
@@ -259,11 +259,20 @@ export class UICanvas2_ {
         min[i] = Math.min(min[i], v4[i]); max[i] = Math.max(max[i], v4[i]);
       }
       
-      grad = ctx.createLinearGradient(min[0], min[1], max[0], max[1]);
+      min[0] += x+v[0][0]; max[0] += x+v[0][0];
+      min[1] = canvas.height-(min[1]+y+v[0][1]);
+      max[1] = canvas.height-(max[1]+y+v[0][1]);
+      
+      var grad;
+      if (horiz_gradient)
+        grad = ctx.createLinearGradient(min[0], min[1]*0.5+max[1]*0.5, max[0], min[1]*0.5+max[1]*0.5);
+      else
+        grad = ctx.createLinearGradient(min[0]*0.5+max[0]*0.5, min[1], min[0]*0.5+max[0]*0.5, max[1]);
+        
       grads[hash] = grad;
       
-      grad.addColorStop(0, this._css_color(c1));
-      grad.addColorStop(1, this._css_color(c3));
+      grad.addColorStop(0.0, this._css_color(c1));
+      grad.addColorStop(1.0, this._css_color(c3));
     } else {
       grad = grads[hash];
     }
@@ -277,6 +286,86 @@ export class UICanvas2_ {
     ctx.lineTo(v3[0]+x+v[0][0], canvas.height-(v3[1]+y+v[0][1]));
     ctx.lineTo(v4[0]+x+v[0][0], canvas.height-(v4[1]+y+v[0][1]));
     ctx.fill();
+  }
+
+  colorfield(pos, size, color) {
+    static mid = [0, 0, 0, 0.5];
+    
+    mid[3] = 1.0;
+    for (var i=0; i<3; i++) {
+      if (color[i] == 0.0)
+        mid[i] = 0.0;
+      else
+        mid[i] = color[i]; //Math.abs((color[i]*2.0 - 1.0) / color[i]);
+    }
+    var color2 = this._css_color(mid);
+    
+    mid[3] = 1.0;
+    for (var i=0; i<3; i++) {
+      mid[i] = (color[i]*3.0 - 1.0) / 4.0;
+    }
+    
+    var midclr = this._css_color(mid);
+
+    mid[3] = 1.0;
+    for (var i=0; i<3; i++) {
+      mid[i] = 0.5 + color[i]*0.5;
+    }
+    
+    var smidclr = this._css_color(mid);
+
+    mid[3] = 0.0;
+    for (var i=0; i<3; i++) {
+      mid[i] = color[i];
+    }
+    
+    var zerocolor = this._css_color(mid);
+    color = this._css_color(color);
+    
+    var canvas = get_2d_canvas().canvas;
+    var ctx = get_2d_canvas().ctx;
+    var v = g_app_state.raster.viewport;
+    
+    var m = this.transmat.$matrix;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    var x = m.m41, y = m.m42;
+    
+    var bx = pos[0]+x+v[0][0], by = canvas.height - (pos[1]+y+v[0][1]) - size[1];
+    
+    //draw black background first
+    ctx.fillStyle = color; //"black"; //color;
+    ctx.beginPath();
+    ctx.rect(bx, by, size[0], size[1]);
+    ctx.closePath();
+    ctx.fill();
+    
+    function draw_grad(a, b, c, is_horiz) {
+      var grad; 
+     
+      var dp = 0.0, dp2=0.0, dp3=35;
+      
+      if (is_horiz == 1)
+        grad = ctx.createLinearGradient(bx+1, by, bx+size[0]-2, by);
+      else if (is_horiz == 2)
+        grad = ctx.createLinearGradient(bx+dp+size[0]-dp*2, by+dp, bx+dp, by+size[1]-dp*2.0);
+      else if (is_horiz == 3)
+        grad = ctx.createLinearGradient(bx+dp2+dp3, by+dp2+dp3, bx+dp2+size[0]-dp2*2, by+size[1]-dp2*2.0);
+      else
+        grad = ctx.createLinearGradient(bx, by+size[1], bx, by);
+
+      grad.addColorStop(0.0, a);
+      grad.addColorStop(1.0, c);
+      
+      ctx.fillStyle = grad;
+      
+      ctx.beginPath();
+      ctx.rect(bx, by, size[0], size[1]);
+      ctx.closePath();
+      ctx.fill();
+    }
+    
+      draw_grad("rgba(255,255,255,1.0)", "rgba(255,255,255, 0.5)", "rgba(255,255,255,0.0)", 0);
+      draw_grad("rgba(0,0,0,1.0)", "rgba(0,0,0,0.5)", "rgba(0,0,0,0.0)", 1);
   }
   
   icon(int icon, Array<float> pos, float alpha=1.0, Boolean small=false, 

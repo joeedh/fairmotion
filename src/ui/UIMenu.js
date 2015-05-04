@@ -220,12 +220,12 @@ export class UIMenu extends UIFrame {
     if (!inrect_2d([event.x, event.y], [0, 0], this.size)) {
       this.end_menu();
     } else {
-      UIFrame.prototype.on_mousedown.call(this, event);
+      super.on_mousedown(event);
     }
   }
 
   on_mousemove(event) {
-    UIFrame.prototype.on_mousemove.call(this, event);
+    super.on_mousemove(event);
     
     /*the menu code is designed so that client users can insert
       hidden elements for, as an example, switching between menus on
@@ -270,7 +270,7 @@ export class UIMenu extends UIFrame {
       y += ehgt;
     }
     
-    UIFrame.prototype.build_draw.call(this, canvas, true);
+    super.build_draw(canvas, true);
      
     y += 10;
     

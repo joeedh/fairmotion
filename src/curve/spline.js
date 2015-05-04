@@ -12,6 +12,7 @@ import {SplineQuery} from 'spline_query';
 import {draw_spline, patch_canvas2d, set_rendermat} from 'spline_draw';
 import {solve} from 'solver_new';
 import {ModalStates} from 'toolops_api';
+import {USE_NACL} from 'config';
 
 var atan2 = Math.atan2;
 
@@ -132,7 +133,7 @@ import {RecalcFlags} from 'spline_types';
 
 export class Spline extends DataBlock {
   constructor(name=undefined) {
-    DataBlock.call(this, DataTypes.SPLINE, name);
+    super(DataTypes.SPLINE, name);
     
     static debug_id_gen=0;
     this._debug_id = debug_id_gen++;
@@ -1353,6 +1354,34 @@ export class Spline extends DataBlock {
   
   solve(steps, gk) {
     do_solve(SplineFlags, this, steps, gk);
+  }
+  
+  solve_p(steps, gk) {
+    if (USE_NACL && window.common != undefined && window.common.naclModule != undefined) {
+      return do_solve(SplineFlags, this, steps, gk, true);
+    } else {
+      this.resolve = 1;
+      
+      var this2 = this;
+      var promise = new Promise(function(resolve, reject) {
+        this2.on_resolve = function() {
+          console.log("Finished!");
+          resolve();
+        }
+      });
+      
+      if (this._update_timer_p == undefined) {
+        this._update_timer_p = window.setInterval(function() {
+          window.clearInterval(this2._update_timer_p);
+          this2._update_timer_p = undefined;
+          
+          if (this2.resolve)
+            do_solve(SplineFlags, this2, steps, gk, false)
+        });
+      }
+      
+      return promise;
+    }
   }
     
   trace_face(g, f) {

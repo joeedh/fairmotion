@@ -49,7 +49,22 @@ def module_transform(node, typespace):
       
     n.parent.insert(pi, n2)
     
+  def exportfromvisit(n):
+    n2 = js_parse("""
+      import * as _$s1 from '$s1';
+      
+      for (var k in _$s1) {
+        _es6_module.add_export(k, _$s1[k], true);
+      }
+    """, [n.name.val])
+    
+    n.parent.replace(n, n2)
   #print(node)
+
+  #ahem.  if I do this one first, I can use  import statements in it :)
+  #. . .also, how cool, it captures the dependencies, too
+
+  traverse(node, ExportFromNode, exportfromvisit, copy_children=True);
   traverse(node, ExportNode, exportvisit, copy_children=True);
   
   #fetch explicit global variables

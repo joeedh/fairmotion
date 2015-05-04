@@ -767,11 +767,78 @@ def gen_manifest_file(result, typespace):
   #traverse(result, ClassNode, visit_cls)
   return s
 def expand_harmony_classes(result, typespace):
+    expand_harmony_super(result, typespace)
+    
     def visit(n):
       n.parent.replace(n, expand_harmony_class(typespace, n))
     traverse(result, ClassNode, visit)
     flatten_statementlists(result, typespace)
 
+def expand_harmony_super(result, typespace):
+  flatten_statementlists(result, typespace)
+      
+  def repl_super(cls, method, base, gets, sets, methods):
+    def visit(n):
+      if n.val != "super":
+        return
+      #print("found super!", base.val)
+      
+      if isinstance(n.parent, FuncCallNode):
+        n.parent[1].prepend("this")
+        n.parent.replace(n, BinOpNode(base.copy(), "call", "."))
+      elif isinstance(n.parent, BinOpNode) and n.parent.op == "." and isinstance(n.parent[1], FuncCallNode):
+        n3 = n.parent[1].copy()
+        n3[1].prepend("this")
+        n4 = BinOpNode(n3[0], "call", ".")
+        n3.replace(n3[0], n4)
+        
+        n2 = js_parse("$s.prototype", [base.val, n3], start_node=BinOpNode)
+        n.parent.replace(n, n2)
+        n.parent.replace(n.parent[1], n3)
+      elif isinstance(n.parent, BinOpNode) and n.parent.op == "." and isinstance(n.parent[1], IdentNode):
+        print("super property access!")
+        n2 = js_parse("__bind_super_prop(this, $s, $s, '$s')", [cls.name, base.val, n.parent[1].val], start_node=FuncCallNode)
+        
+        n.parent.parent.replace(n.parent, n2)
+      
+    traverse(method, IdentNode, visit);
+
+  def visit(node):
+    def has_super(node):
+      if type(node) == IdentNode and node.val == "super": 
+        return True
+        
+      ret = False
+      for c in node:
+        ret = ret or has_super(c)
+      return ret
+  
+    if not has_super(node):
+      return
+      
+    gets = {}
+    sets = {}
+    methods = {}
+    
+    for c in node:
+      if isinstance(c, MethodGetter):
+        gets[c.name] = c
+      elif isinstance(c, MethodSetter):
+        sets[c.name] = c
+      elif isinstance(c, MethodNode):
+        methods[c.name] = c 
+        
+    if len(node.parents) > 1:
+      typespace.error("Super not allowed in classes with multiple inheritance", node)
+    elif len(node.parents) == 0:
+      typespace.error("Class " + str(node.name) + " has no parent", node)
+    
+    for c in node:
+      repl_super(node, c, node.parents[0], gets, sets, methods)
+  
+  traverse(result, ClassNode, visit)
+  flatten_statementlists(result, typespace)
+  
 def expand_requirejs_class(typespace, cls):
   node = FunctionNode(cls.name, 0)  
   

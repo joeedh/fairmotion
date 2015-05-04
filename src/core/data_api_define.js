@@ -1,6 +1,10 @@
 import {DataTypes} from 'lib_api';
 import {EditModes} from 'view2d';
 
+import {BoxColor4, BoxWColor, ColorTheme, 
+        ThemePair, View2DTheme, BoxColor, 
+        darken} from 'theme';
+
 import {EnumProperty, FlagProperty, 
         FloatProperty, StringProperty,
         BoolProperty, Vec3Property,

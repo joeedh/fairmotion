@@ -239,7 +239,8 @@ class Target (list):
   def __init__(self, target):
     list.__init__(self)
     self.target = target
-  
+    self.optional = False 
+    
   def replace(self, a, b):
     self[self.index(a)] = b
 
@@ -255,6 +256,20 @@ if hasattr(srcmod, "copy_targets"):
     s = Source(np(f2))
     s.target = tpath
     target.append(s)
+    target.optional = False 
+    
+    copy_targets.append(target)
+
+if hasattr(srcmod, "optional_copy_targets"):
+  for f1 in srcmod.optional_copy_targets:
+    tpath = "build"+sep+f1
+    f2 = srcmod.optional_copy_targets[f1]
+    target = Target(tpath)
+    
+    s = Source(np(f2))
+    s.target = tpath
+    target.append(s)
+    target.optional = True
     
     copy_targets.append(target)
 
@@ -774,11 +789,23 @@ def do_copy_targets():
       abspath = np(f.target)
       src = f[0].source
       
+      if f.optional and not os.path.exists(f[0].source):
+        continue
+      
+      fname = f[0].source
+      if (os.path.sep in fname):
+        fname = os.path.split(fname)[1]
+        
       stat = safe_stat(f[0].source)
-      if not (abspath not in db or db[abspath] < stat): continue
+      skip = not (abspath not in db or db[abspath] < stat)
+      skip = skip and not build_cmd == "clean";
+      skip = skip and not (build_cmd == "single" and  filter.lower() in abspath.lower())
+      skip = skip and not (build_cmd == "single" and  filter.lower() in f[0].source.lower())
+      
+      if skip:
+        continue
 
       #db[abspath] = stat
-      print(abspath, src)
       cmd = cp_handler(src, abspath)
       print(cmd)
       ret = os.system(cmd)
@@ -857,6 +884,9 @@ import serv_simple
 """
   
   zf.writestr("fairmotion_alpha/run.py", run_simple)
+  zf.writestr("fairmotion_alpha/src/core/config_local.js", """'use strict';
+  //local config file
+  """);
   
   zf.close()
   print("done.")

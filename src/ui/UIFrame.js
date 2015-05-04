@@ -34,7 +34,7 @@ export class UIFrame extends UIElement {
   float rcorner;
   
   constructor(ctx, canvas, path, pos, size) { //path, pos, size are optional
-    UIElement.call(this, ctx, path, pos, size);
+    super(ctx, path, pos, size);
     
     this.dirty_rects = new GArray();
     
@@ -240,11 +240,11 @@ export class UIFrame extends UIElement {
   }
 
   push_modal(e) {
-    UIElement.prototype.push_modal.call(this, e);
+    super.push_modal(e);
   }
   
   pop_modal() {
-    UIElement.prototype.pop_modal.call(this);
+    super.pop_modal();
   }
  
   _offset_mpos(MouseEvent event) {

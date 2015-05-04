@@ -22,7 +22,7 @@ import {RowFrame, ColumnFrame, UIPackFrame} from 'UIPack';
 
 export class UITextBox extends UIElement {
   constructor(ctx, text="", pos=undefined, size=undefined, path=undefined) {
-    UIElement.call(this, ctx, path);
+    super(ctx, path);
     
     this.on_end_edit = undefined;
     

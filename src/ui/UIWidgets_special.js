@@ -18,7 +18,7 @@ import {UIMenu} from 'UIMenu';
 
 export class UICollapseIcon extends UIButtonIcon {
   constructor(ctx, is_collapsed=false, user_callback = undefined) {
-    UIButtonIcon.call(this, ctx, "+", Icons.UI_COLLAPSE);
+    super(ctx, "+", Icons.UI_COLLAPSE);
     
     this._collapsed = 0;
     this.collapsed = is_collapsed;
@@ -62,7 +62,7 @@ export class UICollapseIcon extends UIButtonIcon {
 
 export class UIPanel extends RowFrame {
   constructor(Context ctx, String name="", String id=name, is_collapsed=false) {
-    RowFrame.call(this, ctx);
+    super(ctx);
     
     this.permid = id;
     this.stored_children = new GArray();
@@ -113,7 +113,7 @@ export class UIPanel extends RowFrame {
   }
   
   on_saved_uidata(Function descend) {
-    prior(UIPanel, this).on_saved_uidata.call(this, descend);
+    super.on_saved_uidata(descend);
     
     for (var c of this.stored_children) {
       descend(c);
@@ -121,7 +121,7 @@ export class UIPanel extends RowFrame {
   }
   
   on_load_uidata(Function visit) {
-    prior(UIPanel, this).on_load_uidata.call(this, visit);
+    super.on_load_uidata(visit);
     
     for (var c of this.stored_children) {
       visit(c);
@@ -129,7 +129,7 @@ export class UIPanel extends RowFrame {
   }
   
   get_uhash() : String {
-    return prior(UIPanel, this).get_uhash.call(this) + this.permid;
+    return super.get_uhash() + this.permid;
   }
   
   get_filedata() : ObjectMap {
@@ -197,7 +197,7 @@ export class UIPanel extends RowFrame {
       child.packflag |= packflag|this.default_packflag;
       this.stored_children.push(child);
     } else {
-      prior(UIPanel, this).add.call(this, child);
+      super.add(child);
     }
   }
   
@@ -206,7 +206,7 @@ export class UIPanel extends RowFrame {
     
     canvas.simple_box([0, 0], this.size, this.color);
     
-    prior(UIPanel, this).build_draw.call(this, canvas, isVertical);
+    super.build_draw(canvas, isVertical);
   }
 }
 
@@ -273,7 +273,7 @@ var _hue_field = [
 
 export class UIColorField extends UIElement {
   constructor(ctx, callback=undefined) {
-    UIElement.call(this, ctx);
+    super(ctx);
     this.h = 0.0;
     this.s = 0.0;
     this.v = 1.0;
@@ -305,6 +305,8 @@ export class UIColorField extends UIElement {
       }
     } else if (this.mode == "sv") {
       var v = mpos[0]/this.size[0];
+      v = Math.sqrt(v);
+      
       var s = (mpos[1]-this.huehgt+2)/(this.size[1]-this.huehgt);
       
       this.v = Math.min(Math.max(v, 0), 1.0); //clamp
@@ -367,7 +369,8 @@ export class UIColorField extends UIElement {
     var y = this.huehgt;
     var c1, c2, c3, c4;
     
-    //canvas.box1([1, 1], [halfx, y], cs[0]);
+    canvas.box1([1, 1], [halfx, y], cs[0]);
+    
     //we "shrink in" the range a little, so the user doesn't wander
     //outside the element bounds (it shouldn't matter in production
     //situations, but it is annoying otherwise when testing with a console sidebar
@@ -382,7 +385,7 @@ export class UIColorField extends UIElement {
       v3[0] = i*wid+wid+1+halfx; v3[1] = y;
       v4[0] = i*wid+wid+1+halfx, v4[1] = 1;
       
-      canvas.quad(v2, v3, v4, v1, c1, c2, c3, c4);
+      canvas.quad(v2, v3, v4, v1, c1, c2, c3, c4, true);
     }
     canvas.quad(v4, v3, [this.size[0]-1, y], [this.size[0]-1, 1], cs[0]);
     
@@ -411,7 +414,8 @@ export class UIColorField extends UIElement {
     c1 = [0, 0, 0, 1]; c2 = [0, 0, 0, 1];
     c3 = clr; c4 = [1, 1, 1, 1];
     
-    canvas.quad(v1, v2, v3, v4, c1, c2, c3, c4);
+    canvas.colorfield([0, this.huehgt], [this.size[0], this.size[1]-this.huehgt], clr);
+    //canvas.quad(v1, v2, v3, v4, c1, c2, c3, c4);
     
     //hue cursor
     static pos1 = [0, 0];
@@ -423,7 +427,7 @@ export class UIColorField extends UIElement {
     canvas.box(pos1, sz);
     
     //s/v cursor
-    pos1[0] = Math.floor((this.size[0]-sz[0])*v);
+    pos1[0] = Math.floor((this.size[0]-sz[0])*v*v);
     pos1[1] = Math.floor((this.size[1]-y-4)*s + y+2 - sz[1]*0.5);
     
     canvas.box(pos1, sz);
@@ -432,7 +436,7 @@ export class UIColorField extends UIElement {
 
 export class UIColorBox extends UIElement {
   constructor(ctx, color=undefined) {
-    UIElement.call(this, ctx);
+    super(ctx);
     
     if (color == undefined)
       this.color = [0, 0, 0, 1];
@@ -470,7 +474,10 @@ export class UIColorBox extends UIElement {
 
 export class UIColorPicker extends RowFrame {
   constructor(Context ctx, Array<float> color=undefined) {
-    RowFrame.call(this, ctx);
+    super(ctx);
+    
+    this.last_valid_hue = 0;
+    this.last_valid_sat = 0;
     
     if (color == undefined) {
       this._color = [1, 0, 0, 1];
@@ -601,18 +608,15 @@ export class UIColorPicker extends RowFrame {
       }
     }
     
-    if (c[0] == 0.0 && c[1] == 0.0 && c[2] == 0.0) {
-      rgba_to_hsva(this.last_valid, hsva);
-      var lasthue = hsva[0];
-    } else {
-      for (var i=0; i<4; i++) {
-        this.last_valid[i] = this._color[i];
-      }
+    for (var i=0; i<4; i++) {
+      this.last_valid[i] = this._color[i];
     }
     
-    rgba_to_hsva(this._color, hsva);
-    if (lasthue != undefined) {
-      hsva[0] = lasthue;
+    this.last_valid_hue = rgba_to_hsva(this._color, hsva, this.last_valid_hue);
+    if (hsva[1] < 0) {
+      hsva[1] = this.last_valid_sat;
+    } else {
+      this.last_valid_sat = hsva[1];
     }
     
     this.field.h = hsva[0]*0.9999; this.field.s = hsva[1]; this.field.v = hsva[2];
@@ -636,7 +640,11 @@ export class UIColorPicker extends RowFrame {
     static hsva = [0, 0, 0, 0];
     
     hsva[0] = h*0.9999; hsva[1] = s; hsva[2] = v; hsva[3] = this._color[3];
-    hsva_to_rgba(hsva, this._color);
+    
+    this.last_valid_hue = h;
+    this.last_valid_sat = s;
+    
+    this.last_valid_hue = hsva_to_rgba(hsva, this._color, h*0.9999);
     
     this.update_widgets();
   }
@@ -644,7 +652,7 @@ export class UIColorPicker extends RowFrame {
 
 export class UIBoxWColor extends ColumnFrame {
   constructor(ctx, path) {
-    ColumnFrame.call(this, ctx, path);
+    super(ctx, path);
     //this.data_path = path;
     //this.state |= UIFlags.USE_PATH;
     
@@ -683,7 +691,7 @@ export class UIBoxColor extends RowFrame {
 
 export class UIProgressBar extends UIElement {
   constructor(Context ctx, float value=0.0, float min=0.0, float max=1.0, int min_wid=200, int min_hgt=25) {
-    UIElement.call(this, ctx);
+    super(ctx);
     
     this.value = value;
     this.min = min;
@@ -701,7 +709,7 @@ export class UIProgressBar extends UIElement {
   
   //we recalc draw buffers in on_tick, to avoid excessive updates per second
   on_tick() {
-    prior(UIProgressBar, this).on_tick.call(this);
+    super.on_tick();
     
     if (this.last_value != this.value) {
       this.do_recalc();
@@ -740,7 +748,7 @@ export class UIListEntry extends ColumnFrame {
   //id can be any arbitrary object,
   //including non-stringable types.
   constructor(ctx, text, Object id) {
-    ColumnFrame.call(this, ctx);
+    super(ctx);
     
     this.state &= ~UIFlags.USE_PAN;
     this.packflag |= PackFlags.INHERIT_WIDTH;
@@ -794,7 +802,7 @@ export class UIListEntry extends ColumnFrame {
   
   get_min_size(UICanvas canvas, Boolean isvertical) {
     if (this.children.length > 0) {
-      return ColumnFrame.prototype.get_min_size.call(this, canvas, isvertical);
+      return super.get_min_size(canvas, isvertical);
     } else {
       var pad = 4;
       return [canvas.textsize(this.text)[0]+pad, 26];
@@ -803,7 +811,7 @@ export class UIListEntry extends ColumnFrame {
   
   //XXX
   on_mouseup(event) {
-    UIFrame.prototype.on_mouseup.call(this, event);
+    super.on_mouseup(event);
   }
   
   build_draw(UICanvas canvas, Boolean isVertical) {
@@ -816,7 +824,7 @@ export class UIListEntry extends ColumnFrame {
       canvas.simple_box([0,0], this.size);
     }
     
-    ColumnFrame.prototype.build_draw.call(this, canvas, isVertical);
+    super.build_draw(canvas, isVertical);
     
     if (this.icon >= 0) {
       canvas.icon(this.icon, [1, 1], undefined, true);
@@ -837,7 +845,7 @@ export class UIListEntry extends ColumnFrame {
 
 export class UIListBox extends ColumnFrame {
   constructor(ctx, pos, size, callback) {
-    ColumnFrame.call(this, ctx);
+    super(ctx);
     
     if (size != undefined && size[0]+size[1] != 0.0)
       this.size = size;
@@ -891,7 +899,8 @@ export class UIListBox extends ColumnFrame {
   }
   
   load_filedata(ObjectMap map) {
-    prior(UIListBox, this).load_filedata.call(this, map);
+    super.load_filedata(map);
+    
     if ("active_entry" in map) {
       var act = map["active_entry"];
       var i = 0;
@@ -934,14 +943,14 @@ export class UIListBox extends ColumnFrame {
   }
   
   on_mousedown(event) {
-    prior(UIListBox, this).on_mousedown.call(this, event);
+    super.on_mousedown(event);
     
     this.mstart = [event.x, event.y];
     this.mtime = time_ms();
   }
   
   on_mouseup(event) {
-    prior(UIListBox, this).on_mouseup.call(this, event);
+    super.on_mouseup(event);
     
     if (this.listbox.active != undefined && 
         this.listbox.active instanceof UIListEntry)
@@ -1063,14 +1072,16 @@ export class UIListBox extends ColumnFrame {
     this.listbox.add(entry, PackFlags.ALIGN_LEFT);
     this.do_recalc();
     
-    var hgt = entry.get_min_size(this.get_canvas())[1];
+    var canvas = this.get_canvas();
+    var hgt = canvas != undefined ? entry.get_min_size(canvas) : 18;
 
     //temporarily listbox height, since we may need it before next repaint, when repack happens
     this.listbox.size[1] += hgt;
     this.listbox.pan_bounds[1][1] += hgt;
     this.vscroll.set_range([0, this.listbox.pan_bounds[1][1]]);
     
-    this.pack(this.get_canvas());
+    if (canvas != undefined)
+      this.pack(this.get_canvas());
     
     return entry;
   }
@@ -1079,7 +1090,7 @@ export class UIListBox extends ColumnFrame {
     canvas.push_scissor([0,0], this.size);
     
     canvas.simple_box([0,0], this.size, uicolors["ListBoxBG"]);
-    prior(UIListBox, this).build_draw.call(this, canvas, isVertical);
+    super.build_draw(canvas, isVertical);
     
     canvas.pop_scissor();
   }
@@ -1100,7 +1111,7 @@ export class UIListBox extends ColumnFrame {
     this.listbox.size[1] = this.size[1];
     this.listbox.packflag |= PackFlags.KEEP_SIZE;
     
-    prior(UIListBox, this).pack.call(this, canvas, is_vertical);
+    super.pack(canvas, is_vertical);
     
     //paranoid check. . .this should not be necassary, but it is.
     //ger!

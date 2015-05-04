@@ -20,7 +20,7 @@ export class UIButtonAbstract extends UIHoverHint {
   int text_size;
   
   constructor(ctx, path=undefined, pos=undefined, size=undefined) {
-    UIHoverHint.call(this, ctx, path, pos, size);
+    super(ctx, path, pos, size);
     
     this.text_size = undefined; //use default
     this.can_pan = true;
@@ -107,7 +107,7 @@ export class UIButton extends UIButtonAbstract {
               Array<float> size, String path=undefined, 
               Function callback=undefined, String hint=undefined) 
   {
-    UIButtonAbstract.call(this, ctx, path, pos, size);
+    super(ctx, path, pos, size);
     
     this.clicked = false;
     this.text = text;
@@ -197,7 +197,8 @@ export class UIButtonIcon extends UIButton {
               Function callback=undefined, String hint=undefined,
               Boolean use_small_icon=false) 
   {
-    UIButton.call(this, ctx, text, pos, size, path, callback, hint);
+    super(ctx, text, pos, size, path, callback, hint);
+    
     this.icon = icon;
     this.small_icon = use_small_icon;
     this.bgmode = "button";
@@ -300,7 +301,7 @@ export class UIButtonIcon extends UIButton {
 
 export class UIMenuButton extends UIButtonAbstract {
   constructor(ctx, menu, pos, size, path, description="") {//menu can be undefined, if path is defined
-    UIButtonAbstract.call(this, ctx, path);
+    super(ctx, path);
     
     this.menu = menu : UIMenu;
     
@@ -469,7 +470,7 @@ export class UIMenuButton extends UIButtonAbstract {
 
 export class UICheckBox extends UIHoverHint {
   constructor(ctx, text, pos, size, path, use_check=true) {
-    UIHoverHint.call(this, ctx, path);
+    super(ctx, path);
     
     this.draw_check = use_check;
     this.ctx = ctx;
@@ -606,7 +607,7 @@ export class UICheckBox extends UIHoverHint {
 
 export class UINumBox extends UIHoverHint {
   constructor(ctx, text, range=[0, 100], val=range[0], pos=[0,0], size=[1,1], path=undefined) {
-    UIHoverHint.call(this, ctx, path);
+    super(ctx, path);
     
     this.unit = undefined;
     this.clicked = false;
@@ -850,7 +851,7 @@ export class UINumBox extends UIHoverHint {
 
 export class UILabel extends UIElement {
   constructor(ctx, text, pos, size, path) {
-    UIElement.call(this, ctx, path);
+    super(ctx, path);
     
     this.start_mpos = new Vector2();
     this.prop = undefined;
@@ -934,7 +935,7 @@ export class UILabel extends UIElement {
       //console.log("dis", dis, event.x, event.y, this.start_mpos[0], this.start_mpos[1]);
     }
     
-    prior(UILabel, this).on_mousemove.call(this, event);
+    super.on_mousemove(event);
   }
   
   on_mousedown(MouseEvent event) {
@@ -1012,7 +1013,7 @@ export class UILabel extends UIElement {
   to that one.*/
 export class _HiddenMenuElement extends UIElement {
   constructor(Context ctx, UIMenuLabel src_menu_label, UIMenuLabel dst_menu_label) {
-    UIElement.call(this, ctx);
+    super(ctx);
     
     this.src_menu_label = src_menu_label;
     this.dst_menu_label = dst_menu_label
@@ -1040,7 +1041,7 @@ export class _HiddenMenuElement extends UIElement {
 
 export class UIMenuLabel extends UIElement {
   constructor(ctx, text, menu, gen_menu_func, pos, size) {
-    UIElement.call(this, ctx);
+    super(ctx);
     
     if (pos == undefined) pos = [0, 0];
     if (size == undefined) size = [0, 0];
@@ -1200,7 +1201,7 @@ export class UIMenuLabel extends UIElement {
 
 export class ScrollButton extends UIElement {
   constructor(ctx, pos, size, icon, callback, do_repeat=true) {
-    UIElement.call(this, ctx);
+    super(ctx);
     
     this.repeat = do_repeat;
     
@@ -1283,7 +1284,7 @@ export class ScrollButton extends UIElement {
 
 export class UIVScroll extends UIFrame {
   constructor(ctx, range, pos=[0,0], size=[0,0], callback=undefined) {
-    UIFrame.call(this, ctx);
+    super(ctx);
     
     this.state |= UIFlags.NO_FRAME_CACHE;
     this.packflag |= PackFlags.INHERIT_HEIGHT;
@@ -1433,7 +1434,7 @@ export class UIVScroll extends UIFrame {
   
   on_mousedown(MouseEvent event) {    
     if (!this.dragging) {
-      prior(UIVScroll, this).on_mousedown.call(this, event, false);
+      super.on_mousedown(event, false);
     }
     
     if (this.modalhandler == undefined && this.active == undefined) {
@@ -1459,7 +1460,7 @@ export class UIVScroll extends UIFrame {
       this.bar.clicked = false;
       this.bar.do_recalc();
     } else {
-      prior(UIVScroll, this).on_mouseup.call(this, event);
+      super.on_mouseup(event);
     }
   }
 
@@ -1486,7 +1487,7 @@ export class UIVScroll extends UIFrame {
       this.bar.do_recalc();
       this.do_recalc();
     } else {
-      prior(UIVScroll, this).on_mousemove.call(this, event);
+      super.on_mousemove(event);
     }
   }
 
@@ -1518,7 +1519,7 @@ export class UIVScroll extends UIFrame {
     canvas.box2([1,0], this.size, uicolors["ScrollBG"]);
     
     this.draw_background = false;
-    prior(UIVScroll, this).build_draw.call(this, canvas, isVertical, false);
+    super.build_draw(canvas, isVertical, false);
 
     canvas.frame_end(this);
   }
@@ -1535,7 +1536,7 @@ export class UIVScroll extends UIFrame {
 /*draws 16x16 "small" icons*/
 export class UIIconCheck extends UIHoverHint {
   constructor(ctx, text, int icon, pos, size, path, use_check=true) {
-    UIHoverHint.call(this, ctx, path);
+    super(ctx, path);
     
     this.ctx = ctx;
     this.set = false;

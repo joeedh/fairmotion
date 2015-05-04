@@ -13,7 +13,7 @@ export var SplineLayerFlags = {
 
 export class SplineLayer extends set {
   constructor(elements=undefined) {
-    set.call(this, elements);
+    super(elements);
     
     this.id = -1;
     this.order = 0;
@@ -23,12 +23,17 @@ export class SplineLayer extends set {
   }
   
   add(e) {
-    set.prototype.add.call(this, e);
+    if (e == undefined) {
+      console.trace("WARNING: e was undefined in SplineLayer.add");
+      return;
+    }
+    
+    super.add(e);
     e.layers[this.id] = 1;
   }
   
   remove(e) {
-    set.prototype.remove.call(this, e);
+    super.remove(e);
     delete e.layers[this.id];
   }
   
@@ -73,7 +78,7 @@ SplineLayer {
 
 export class SplineLayerSet extends Array {
   constructor() {
-    Array.call(this);
+    super();
     
     this.active = undefined;
     this.namemap = {};
@@ -135,7 +140,7 @@ export class SplineLayerSet extends Array {
     this.namemap[layer.name] = layer;
     this.idmap[layer.id] = layer;
     
-    Array.prototype.push.call(this, layer);
+    super.push(layer);
 
     this.update_orders();
     
@@ -149,7 +154,7 @@ export class SplineLayerSet extends Array {
     this.namemap[layer.name] = layer;
     this.idmap[layer.id] = layer;
     
-    Array.prototype.insert.call(this, i, layer);
+    super.insert(i, layer);
 
     this.update_orders();
   }
@@ -213,7 +218,8 @@ export class SplineLayerSet extends Array {
   remove(layer) {
     var i = this.indexOf(layer);
     
-    Array.prototype.remove.call(this, layer);
+    super.remove(layer);
+
     delete this.namemap[layer.name];
     delete this.idmap[layer.id];
     
@@ -225,7 +231,8 @@ export class SplineLayerSet extends Array {
   
   pop_i(i) {
     var layer = this[i];
-    Array.prototype.pop_i.call(this, i);
+
+    super.pop_i(i);
     
     delete this.namemap[layer.name];
     delete this.idmap[layer.id];
@@ -237,7 +244,7 @@ export class SplineLayerSet extends Array {
   }
   
   pop() {
-    var layer = Array.prototype.pop.call(this);
+    var layer = super.pop();
     
     delete this.namemap[layer.name];
     delete this.idmap[layer.id];

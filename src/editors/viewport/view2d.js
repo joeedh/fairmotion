@@ -958,7 +958,7 @@ export class View2DHandler extends Area {
 
   build_sidebar1() {
     this.ctx = new Context();
-    console.log(this.editor);
+    
     this.editor.build_sidebar1(this);
   }
   
@@ -1078,4 +1078,4 @@ View2DHandler.STRUCT = STRUCT.inherit(View2DHandler, Area) + """
   }
 """
 
-View2DHandler.uiname = "3D Viewport";
+View2DHandler.uiname = "Work Canvas";

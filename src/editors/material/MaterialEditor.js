@@ -31,7 +31,7 @@ import {Area} from 'FrameManager';
 
 class LayerPanel extends RowFrame {
   constructor(ctx) {
-    RowFrame.call(this, ctx);
+    super(ctx);
     
     this.last_spline_path = "";
     this.last_total_layers = this.last_active_id = 0;
@@ -41,7 +41,7 @@ class LayerPanel extends RowFrame {
   }
   
   build_draw(UICanvas canvas, bool is_vertical) {
-    RowFrame.prototype.build_draw.call(this, canvas, is_vertical);
+    super.build_draw(canvas, is_vertical);
   }
   
   on_tick() {
@@ -49,8 +49,9 @@ class LayerPanel extends RowFrame {
       this.rebuild();
       return;
     }
-    
-    RowFrame.prototype.on_tick.apply(this, arguments);
+
+    super.on_tick();
+
     if (this.ctx == undefined) return;
 
     var spline = this.ctx.spline;
@@ -251,7 +252,7 @@ class MaterialEditor extends Area {
   }
   
   constructor(Context ctx, Array<float> pos, Array<float> size) {
-    Area.call(this, MaterialEditor.name, MaterialEditor.uiname, new Context(), pos, size);
+    super(MaterialEditor.name, MaterialEditor.uiname, new Context(), pos, size);
     
     this.mm = new MinMax(2);
     this.keymap = new KeyMap();
@@ -306,7 +307,7 @@ class MaterialEditor extends Area {
     if (event.button == 1 && !g_app_state.was_touch) {
       this.subframe.start_pan([event.x, event.y], 1);
     } else {
-      prior(MaterialEditor, this).on_mousedown.call(this, event);
+      super.on_mousedown(event);
     }
   }
 
@@ -383,7 +384,7 @@ class MaterialEditor extends Area {
     
     this.subframe.canvas.viewport = this.canvas.viewport;
   
-    prior(MaterialEditor, this).build_draw.call(this, canvas, isVertical);
+    super.build_draw(canvas, isVertical);
     
     this.mm.reset();
     var arr = [0, 0];

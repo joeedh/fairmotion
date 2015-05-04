@@ -7,7 +7,7 @@ var sqrt = Math.sqrt, pow = Math.pow, log = Math.log, abs=Math.abs;
 var SPI2 = Math.sqrt(PI/2);
 
 export class constraint {
-  constructor(k, klst, klen, ceval, ws, params, limit) {
+  constructor(k, klst, klen, ceval, params, limit) {
     if (limit == undefined) limit = 0.001;
     
     this.klst = klst;
@@ -33,6 +33,73 @@ export class constraint {
         gs.push(0);
       }
     }
+    
+    this.k = k;
+  }
+
+  exec(do_gs) {
+    if (do_gs == undefined)
+      do_gs = true;
+      
+    var r1 = this.ceval(this.params);
+    if (abs(r1) <= this.limit) return 0.0;
+    
+    if (!do_gs) return r1;
+
+    var df = 0.000003;
+    for (var ki=0; ki<this.klst.length; ki++) {
+      var ks = this.klst[ki];
+      var gs = this.glst[ki];
+      
+      //var origscale = ks.length > 5 ? ks[KSCALE] : -1;
+      
+      for (var i=0; i<this.klen[ki]; i++) {
+        var orig = ks[i];
+        
+        ks[i] += df;
+        
+        var r2 = this.ceval(this.params);
+        gs[i] = (r2-r1)/df;
+        
+        ks[i] = orig;
+        if (ks.length > 5) {
+          //ks[KSCALE] = origscale;
+        }
+      }
+    }
+    
+    return r1;
+  }
+}
+
+/*
+export class simple_constraint {
+  constructor(k, ks, order, ceval, ws, params, limit) {
+    if (limit == undefined) limit = 0.001;
+    
+    if (ws == undefined) {
+      this.ws = []
+      for (var i=0; i<order; i++) {
+        this.ws.push(0)
+      }
+    } else {
+      this.ws = ws;
+    }
+    
+    this.gs = new Array(order);
+    for (var i=0; i<order; i++) {
+      this.gs[i] = 0;
+    }
+    
+    this.order = order;
+    this.ks = ks
+    
+    this.klst = [ks]
+    this.glst = [this.gs]
+    this.klen = 1
+    
+    this.ceval = ceval;
+    this.params = params;
     
     this.k = k;
     this.ws = ws;
@@ -72,6 +139,7 @@ export class constraint {
     return r1;
   }
 }
+*/
 
 export class solver {
   constructor() {
@@ -124,6 +192,8 @@ export class solver {
         var r = c.exec(true);
         err += abs(r); //Math.max(err, abs(r));
         
+        if (r == 0.0) continue;
+        
         /*if (0) {
           var s = "["
           for (var i=0; i<c.gs.length; i++) {
@@ -139,42 +209,34 @@ export class solver {
         var klst = c.klst, glst = c.glst;
         
         var totgs = 0.0;
+        //var kg = 1.0;
         
         for (var ki=0; ki<klst.length; ki++) {
+          //r = c.exec(true);
+          
           var klen = c.klen[ki];
           var gs = glst[ki];
           
+          totgs = 0.0;
           for (var k=0; k<klen; k++) {
             totgs += gs[k]*gs[k];
           }
-        }
-        
-        if (totgs == 0.0) continue;
-        
-        totgs = (totgs);
-        r /= totgs;
-        
-        for (var ki=0; ki<klst.length; ki++) {
-          var gs = glst[ki], ks=klst[ki];
           
-          for (var k=0; k<c.klen[ki]; k++) {
-            ks[k] += -r*gs[k]*c.k*gk;
-          }
-        }
-        
-        //c.seg.eval(0.5);
-        /*
-        if (0) {
-          var s = "["
-          for (var i=0; i<c.gs.length; i++) {
-            if (i > 0) s += ", ";
-            
-            s += (c.ks[i]).toFixed(3);
-          }
-          s += "]"
+          if (totgs == 0.0) continue;
+          var rmul = r/totgs;
           
-          console.log(s);
-        }*/
+          ks=klst[ki];
+          gs=glst[ki];
+          
+          var ck = i > 8 && c.k2 != undefined? c.k2 : c.k;
+          //ck = c.k2 != undefined ? 0.8 : c.k;
+          
+          for (var k=0; k<klen; k++) {
+            ks[k] += -rmul*gs[k]*ck*gk;
+          }
+          
+          //kg *= 0.5;
+        }
       }
     }
     

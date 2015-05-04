@@ -12,7 +12,7 @@ export var ExtrudeModes = {
 
 export class ExtrudeVertOp extends SplineLocalToolOp {
   constructor(co, ExtrudeModes mode) {
-    SplineLocalToolOp.call(this, false);
+    super(false);
     
     if (co != undefined)
       this.inputs.location.set_data(co);
@@ -165,7 +165,7 @@ ExtrudeVertOp.outputs = {
 
 export class CreateEdgeOp extends ToolOp {
   constructor(linewidth) {
-    ToolOp.call(this, false);
+    super(false);
     
     if (linewidth != undefined)
       this.inputs.linewidth.set_data(linewidth);
@@ -219,7 +219,7 @@ CreateEdgeOp.inputs = {
 
 export class CreateEdgeFaceOp extends SplineLocalToolOp {
   constructor(linewidth) {
-    SplineLocalToolOp.call(this, false);
+    super(false);
     
     if (linewidth != undefined)
       this.inputs.linewidth.set_data(linewidth);
@@ -377,7 +377,7 @@ CreateEdgeFaceOp.inputs = {
 
 export class ImportJSONOp extends ToolOp {
   constructor(str) {
-    ToolOp.call(this, false);
+    super(false);
     
     if (str != undefined) {
       this.inputs.strdata.set_data(str);

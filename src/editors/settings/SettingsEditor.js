@@ -12,7 +12,7 @@ import {PackFlags, UIElement, UIFlags, CanvasFlags} from 'UIElement';
 import {UIFrame} from 'UIFrame';
 
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
-        charmap, TouchEventManager, EventHandler} from 'events';
+        charmap, TouchEventManager, EventHandler, VelocityPan} from 'events';
 
 import {
   UIButtonAbstract, UIButton, UIButtonIcon,
@@ -25,7 +25,8 @@ import {UITextBox} from 'UITextBox';
 import {ToolOp, UndoFlags, ToolFlags} from 'toolops_api';
 import {UITabBar} from 'UITabPanel';
 import {UICollapseIcon, UIPanel, UIColorField, UIColorBox,
-        UIColorPicker, UIProgressBar, UIListBox, UIListEntry
+        UIColorPicker, UIProgressBar, UIListBox, UIListEntry,
+        UIBoxWColor
        } from 'UIWidgets_special';
 import {UITabPanel} from 'UITabPanel';
 
@@ -133,7 +134,6 @@ class SettingsEditor extends Area {
     this.pan_bounds = [[0, 0], [0, 0]];
 
     this._filter_sel = false;
-    this.gl = undefined;
     this.ctx = new Context();
     
     this.subframe = new UITabPanel(new Context(), [size[0], size[1]]);
@@ -181,7 +181,7 @@ class SettingsEditor extends Area {
   } 
   
   destroy() {
-    this.subframe.canvas.destroy(g_app_state.gl);
+    this.subframe.canvas.destroy();
     Area.prototype.destroy.call(this);
   }
   
@@ -225,7 +225,6 @@ class SettingsEditor extends Area {
   
   build_draw(UICanvas canvas, Boolean isVertical) {
     this.subframe.set_pan();
-    this.gl = gl;
     var ctx = this.ctx = new Context();
     
     //paranoid check
@@ -260,9 +259,6 @@ class SettingsEditor extends Area {
   
   set_canvasbox() {
     this.asp = this.size[0] / this.size[1];
-    
-    //Set the viewport and projection matrix for the scene
-    //gl.viewport(this.parent.pos[0], this.parent.pos[1], this.size[0], this.size[1]);
   }
   
   static fromSTRUCT(reader) {

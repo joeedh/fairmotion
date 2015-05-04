@@ -2,6 +2,8 @@
 
 #include "src/config/config_defines.js"
 
+import {USE_NACL} from 'config';
+
 //math globals
 var FEPS = 1e-18;
 var PI = Math.PI;
@@ -22,14 +24,25 @@ export var do_solve = math.do_solve;
 #else
 import * as math from 'spline_math_safe';
 
-console.log(math);
 export var spiraltheta = math.spiraltheta;
 export var spiralcurvature = math.spiralcurvature;
 export var spiralcurvature_dv = math.spiralcurvature_dv;
 export var approx = math.approx;
 export var INT_STEPS = math.INT_STEPS;
 export var ORDER = math.ORDER;
-export var do_solve = math.do_solve;
+
+//import {do_solve} from 'nacl_api';
+
+function do_solve_nacl() {
+  if (window.common != undefined && window.common.naclModule != undefined) {
+    return window.nacl_do_solve.apply(this, arguments);
+  } else {
+    return math.do_solve.apply(this, arguments);
+  }
+}
+
+export var do_solve = USE_NACL ? do_solve_nacl : math.do_solve;
+
 #endif
 
 export var KSCALE  = ORDER+1;
@@ -41,6 +54,9 @@ export var KSTARTZ = ORDER+5;
 export var KTOTKS  = ORDER+6;
 
 var eval_curve_vs = cachering.fromConstructor(Vector3, 64);
+
+//XXX
+//export var eval_curve = math.eval_curve_fast;
 
 var _eval_start = eval_curve_vs.next();
 export function eval_curve(s, v1, v2, ks, order, angle_only, no_update) {

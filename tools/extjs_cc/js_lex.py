@@ -14,7 +14,7 @@ class StringLit (str):
   pass
 
 res = [
-'if', 'then', 'else', 'while', 'do', 'function', 
+'if', 'else', 'while', 'do', 'function', 
 'var', 'in', 'of', 'for', 'new', "return", "continue", "break",
 'throw', 'try', 'catch', 'delete', 'typeof', 'instanceof',
 'with', 'switch', 'case', 'default', 'yield',

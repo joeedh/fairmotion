@@ -268,7 +268,7 @@ export function draw_spline(spline, g, editor, selectmode, only_render, draw_nor
       if (seg.v1.hidden || seg.v2.hidden) continue;
       //if (seg.hidden) continue;
       
-      var ls = 0.0, dls = 10;
+      var ls = 0.0, dls = 80/zoom;
       var length = seg.ks[KSCALE];
       
       if (length <= 0 || isNaN(length)) continue;
@@ -419,6 +419,29 @@ export function draw_spline(spline, g, editor, selectmode, only_render, draw_nor
       return;
       
     var stop = false;
+    
+    if (seg._draw_bzs != undefined) {
+      stop = true;
+      
+      var bzs = seg._draw_bzs;
+      for (var i=0; i<bzs.length; i++) {
+        var p1 = bzs[i][0];
+        var p2 = bzs[i][1];
+        var p3 = bzs[i][2];
+        var p4 = bzs[i][3];
+        
+        if (i == 0) {
+          g.moveTo(p1[0], p1[1]);
+          g.bezierCurveTo(p2[0], p2[1], p3[0], p3[1], p4[0], p4[1]);
+        } else {
+          g.moveTo(p1[0], p1[1]);
+          g.bezierCurveTo(p2[0], p2[1], p3[0], p3[1], p4[0], p4[1]);
+        }
+      }
+      
+      g.stroke();
+    }
+    
     var __c = 0;
     for (var j=0; !stop; s1 += ds, j++) {
       var s = s1/(length);
@@ -450,9 +473,24 @@ export function draw_spline(spline, g, editor, selectmode, only_render, draw_nor
         g.lineTo(co[0], co[1]);
       } else {
         var dv = lastdv;
+        
         // /*
         if (is_line || !USE_BEZIER) {
           g.lineTo(co[0], co[1]);
+          /*
+          g.beginPath();
+          
+          lastdv.normalize();
+          var dsc = 1.0;
+          g.moveTo(lastco[0]-dv[1]*dsc, lastco[1]+dv[0]*dsc);
+          g.lineTo(co[0]-dv[1]*dsc, co[1]+dv[0]*dsc);
+          g.lineTo(co[0]+dv[1]*dsc, co[1]-dv[0]*dsc);
+          g.lineTo(lastco[0]+dv[1]*dsc, lastco[1]-dv[0]*dsc);
+          g.closePath()
+          
+          g.fill()
+          g.beginPath();
+          //*/
         } else {
           if (0) { //lastco.vectorDistance(co) < 5) {
             g.lineTo(co[0], co[1]);
@@ -694,20 +732,22 @@ export function draw_spline(spline, g, editor, selectmode, only_render, draw_nor
       reverse = 0;
       //g.lineJoin = "round"
       //g.lineCap = "square"
-      
+      /*
       if (reset) {
-        if (dostroke)
-          g.stroke();
+        //if (dostroke)
+        //  g.stroke();
         
-        dostroke = true;
-        g.beginPath();
+        //dostroke = true;
         reverse = (e.v1.segments.length == 2)
-      }
+      }*/
       
       if (do_blur && e.mat.blur != 0.0) {
+        g.beginPath();
         draw_blur(e, e.mat.strokecolor, draw_segment, e.mat.blur);
       } else {
-        draw_segment(e, undefined, undefined, reset, !reverse);
+        g.beginPath();
+        draw_segment(e, undefined, undefined, 0, 0);
+        g.stroke();
       }
       
       last_segment = e;

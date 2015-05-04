@@ -9,8 +9,8 @@ var allow_cycles = false;
 var _is_cyclic = false;
 var _post_primary_load = false;
 var _es6_module_resort = false;
-var _es6_module_verbose = true;
-var _debug_modules = 1;
+var _es6_module_verbose = false;
+var _debug_modules = 0;
 
 function debug() {
   if (!_debug_modules)
@@ -39,15 +39,17 @@ function ES6Module(name) {
 };
 
 ES6Module.prototype = {
-  add_export : function(name, object) {
+  add_export : function(name, object, allow_override=false) {
     if (object != undefined)
       this.already_processed[name] = object;
     
-    if (name in this.exports && this.exports[name] != undefined) {
+    if (!allow_override && name in this.exports && this.exports[name] != undefined) {
       return this.exports[name];
     }
     
     this.exports[name] = object;
+    
+    /* outdated
     
     //stupid.  during refactoring, anything without an export tag
     //is auto-inserted into the global namespace.
@@ -55,7 +57,7 @@ ES6Module.prototype = {
     if (name in this.global_exports) {
       //debug("  ignoring auto-global for ", name);
       delete this.global_exports[name];
-    }
+    }*/
     
     return object;
   },

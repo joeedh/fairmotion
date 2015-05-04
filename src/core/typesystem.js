@@ -844,3 +844,24 @@ function define_docstring(func, docstr) {
   
   return func;
 }
+
+function __bind_super_prop(obj, cls, parent, prop) {
+  var descr = Object.getPropertyDescriptor(parent.prototype, prop);
+  
+  if (descr == undefined) 
+    return parent.prototype[prop];
+  
+  if (descr.get != undefined) {
+    return descr.get.call(obj);
+  } else if (descr.value != undefined) {
+    return descr.value;
+  } else {
+    var p = parent.prototype[prop];
+    
+    if (typeof p == "function") {
+      return p.bind(obj);
+    } else {
+      return p;
+    }
+  }
+}

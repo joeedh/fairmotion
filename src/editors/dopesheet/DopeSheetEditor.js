@@ -647,7 +647,7 @@ export class DopeSheetEditor extends Area {
       var scene = this.ctx.scene;
       
       if (scene.time != this.last_time) {
-        console.log("detected frame update!");
+        //console.log("detected frame update!");
         
         var time_x1 = this.time_zero_x + this.scaletime(this.last_time) + this.velpan.pan[0];
         var time_x = this.time_zero_x + this.scaletime(scene.time) + this.velpan.pan[0];

@@ -1,8 +1,25 @@
 import {gen_editor_switcher} from 'UIWidgets_special';
 
+import {PackFlags, UIElement, UIFlags, CanvasFlags} from 'UIElement';
+import {UIFrame} from 'UIFrame';
+import {
+    UIButtonAbstract, UIButton, UIButtonIcon,
+    UIMenuButton, UICheckBox, UINumBox, UILabel,
+    UIMenuLabel, ScrollButton, UIVScroll, UIIconCheck
+    } from 'UIWidgets';
+
+import {RowFrame, ColumnFrame, UIPackFrame, ToolOpFrame} from 'UIPack';
+import {UITextBox} from 'UITextBox';
+import {ToolOp, UndoFlags, ToolFlags, ToolMacro} from 'toolops_api';
+import {UITabBar} from 'UITabPanel';
+
+import {UICollapseIcon, UIPanel} from 'UIWidgets_special';
+
 import {UICanvas} from 'UICanvas2D';
 import {STRUCT} from 'struct';
 import {RowFrame, ColumnFrame} from 'UIPack';
+
+import {KeyMap, VelocityPan, KeyHandler, FuncKeyHandler} from 'events';
 
 class OpStackFrame extends RowFrame {
   constructor(Context ctx, Array<float> size) {
@@ -269,7 +286,7 @@ class OpStackEditor extends Area {
   } 
   
   destroy() {
-    this.subframe.canvas.destroy(g_app_state.gl);
+    this.subframe.canvas.destroy();
     Area.prototype.destroy.call(this);
   }
   
@@ -314,7 +331,6 @@ class OpStackEditor extends Area {
   build_draw(UICanvas canvas, Boolean isVertical) {
     this.subframe.set_pan();
     
-    this.gl = gl;
     var ctx = this.ctx = new Context();
     
     //paranoid check
@@ -327,9 +343,6 @@ class OpStackEditor extends Area {
   
   set_canvasbox() {
     this.asp = this.size[0] / this.size[1];
-    
-    //Set the viewport and projection matrix for the scene
-    //gl.viewport(this.parent.pos[0], this.parent.pos[1], this.size[0], this.size[1]);
   }
     
   static fromSTRUCT(reader) {

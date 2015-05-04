@@ -1,7 +1,8 @@
 "use strict";
 
 import {gen_screen} from 'FrameManager';
-import {DataPath, DataStruct, DataPathTypes, DataFlags} from 'data_api';
+import {DataPath, DataStruct, DataPathTypes, DataFlags,
+        DataAPI, DataStructArray} from 'data_api';
 import {wrap_getblock, wrap_getblock_us} from 'lib_utils';
 import {UICanvas} from 'UICanvas2D';
 import {urlencode, b64decode, b64encode} from 'strutils';
@@ -9,7 +10,6 @@ import {BasicFileOp} from 'view2d_ops';
 import {AppSettings} from 'UserSettings';
 import {JobManager} from 'jobs';
 import {RasterState} from 'raster';
-import {DataAPI} from 'data_api';
 import {NotificationManager, Notification} from 'notifications';
 import {STRUCT} from 'struct';
 import {get_data_typemap} from 'lib_api_typedefine';

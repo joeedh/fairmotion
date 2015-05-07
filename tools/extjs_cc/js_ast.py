@@ -76,9 +76,16 @@ class SourceMap:
   def out(self, node, str1):
     self.add_segment(node, str1)
     return str1
-    
+
+idgen = [1]
+
 class Node:
   def __init__(self):
+    global idgen 
+    
+    self._id = idgen[0]
+    idgen[0] += 1
+    
     self.children = []
     self.parent = None
     self.type = None #node type, don't touch this while parsing

@@ -22,6 +22,8 @@ import {UICollapseIcon, UIPanel, UIColorField, UIColorBox,
        } from 'UIWidgets_special';
 import {get_root_folderid} from 'fileapi';
 
+import * as ajax from 'ajax';
+
 var FileDialogModes = {OPEN: "Open", SAVE: "Save"}
 var fdialog_exclude_chars = new set([
   "*",
@@ -865,7 +867,7 @@ export class FileSaveB64Op extends ToolOp {
     buf = buf2;
     
     var byte_data = [];
-    pack_static_string(byte_data, buf, buf.length);
+    ajax.pack_static_string(byte_data, buf, buf.length);
     byte_data = new Uint8Array(byte_data).buffer;
     
     /*I should really make these file operations modal, since

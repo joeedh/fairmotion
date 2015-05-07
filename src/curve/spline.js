@@ -575,14 +575,16 @@ export class Spline extends DataBlock {
     h2.hpair = h1;
   }
 
+//note: INT_MAX is ((1<<30)*4-1)
+
 #define MMLEN 8
-#define UARR Uint8Array
-#define UMAX ((1<<8)-1)
-#define UMUL 1
+#define UARR Uint16Array
+#define UMAX ((1<<16)-1)
+#define UMUL  2
 
   export_ks() {
     var mmlen = MMLEN;
-    var size = 8/UMUL + this.segments.length*ORDER;
+    var size = 4/UMUL + 8/UMUL + this.segments.length*ORDER;
     
     size += this.segments.length*(4/UMUL);
     size += (8*Math.floor(this.segments.length/mmlen))/UMUL;
@@ -591,11 +593,17 @@ export class Spline extends DataBlock {
     var view = new DataView(ret.buffer);
     
     var c = 0, d = 0
+    
+    //write number of bytes per integer
+    view.setInt32(c*UMUL, UMUL);
+    c += 4/UMUL;
+    var mink, maxk;
+    
     for (var i=0; i<this.segments.length; i++) {
       var s = this.segments[i];
       
       if (d == 0) {
-          var mink = 10000, maxk=-10000;
+          mink = 10000, maxk=-10000;
           
           for (var si=i; si<i+mmlen+1; si++) {
             if (si >= this.segments.length) break;
@@ -622,6 +630,9 @@ export class Spline extends DataBlock {
         var k = s.ks[j];
         
         k = (k-mink)/(maxk-mink);
+        if (k < 0.0) {
+          console.log("EVIL!", k, mink, maxk);
+        }
         k = Math.abs(Math.floor(k*UMAX));
         
         ret[c++] = k;
@@ -666,11 +677,17 @@ export class Spline extends DataBlock {
     
     var view = new DataView(data.buffer);
     var mmlen = MMLEN;
-    var d = 0;
+    var d = 0, i = 0;
+    
+    var datasize = view.getInt32(0);
+    if (datasize != UMUL) {
+      return undefined; //invalid
+    }
+    
+    i += 4/UMUL;
     
     //console.log("mink, maxk", mink, maxk);
     
-    var i = 0;
     while (i < data.length) {
       if (d == 0) {
         var mink = view.getFloat32(i*UMUL);

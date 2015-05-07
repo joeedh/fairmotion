@@ -126,9 +126,11 @@ tokens = (
    "EQUAL_STRICT",
    "TLTHAN",
    "TGTHAN",
+   "ARROW"
 ) + tuple(reserved_lst)
 
 # Regular expression rules for simple tokens
+t_ARROW = r'\=\>'
 t_ASSIGNPLUS = r'\+='
 t_ASSIGNMINUS = r'-='
 t_ASSIGNDIVIDE = r'/='

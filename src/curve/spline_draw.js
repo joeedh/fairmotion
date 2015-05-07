@@ -367,7 +367,7 @@ export function draw_spline(spline, g, editor, selectmode, only_render, draw_nor
     var USE_BEZIER = true;
       
     var s = 0, length = mathmin(seg.ks[KSCALE], MAXCURVELEN);
-    var totseg = USE_BEZIER ? 5 : 64;
+    var totseg = USE_BEZIER ? 7 : 64;
     var stepsize = Math.max(length/totseg, 4);
     if (stepsize <= 0.0 || isNaN(stepsize)) stepsize == 1.0;
     

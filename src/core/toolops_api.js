@@ -12,7 +12,7 @@ import {pack_int, pack_float, pack_static_string, unpack_ctx} from 'ajax';
   
   a carbon copy (sort of) of Blender's tool system.  each tool has
   a list of parameters, and are also passed a Context struct (a sort of
-  bundle of common tool paramters).
+  bundle of common tool parameters).
   
   The main difference is that undo is implemented on top of this system.
   Tools that do not implement undo callbacks will trigger a complete copy

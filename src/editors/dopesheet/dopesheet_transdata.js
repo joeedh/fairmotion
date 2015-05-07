@@ -6,7 +6,7 @@ import {
 
 import {TransDataItem, TransDataType} from 'transdata';
 import {get_vtime, set_vtime} from 'animdata';
-//import {ScreenArea, Area} from 'FrameManager';
+//import {ScreenArea, Area} from 'ScreenArea';
 
 class TransKey {
   constructor(v) {

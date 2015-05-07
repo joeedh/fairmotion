@@ -75,7 +75,7 @@
         function moduleDidLoad() {
             console.log("-------Loaded NACL module!----------");
             common.hideModule();
-            common.naclModule.postMessage('hello');
+            //common.naclModule.postMessage('hello');
         }
         // This function is called by common.js when a message is received from the
         // NaCl module.  it's overriden by src/nacl/nacl_api.js, which is an es6 module(
@@ -1787,9 +1787,10 @@
 <canvas id="canvas2d"></canvas>
 <!--<div id="framerate">Framerate:51fps</div>-->
 
-<form>
+<!--<form>
     <input type="file" id="fileinput"></input>
 </form>
+-->
 
 <!--for nacl-->
 <div id="listener"></div>

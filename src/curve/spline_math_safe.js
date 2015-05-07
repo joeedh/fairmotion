@@ -314,6 +314,15 @@ function solve_intern(spline, order, goal_order, steps, gk) {
     var dv = seg.derivative(s, order);
     dv.normalize();
     
+    var a1 = Math.atan2(tan[0], tan[1]);
+    var a2 = Math.atan2(dv[0], dv[1]);
+    var diff = Math.abs(a1-a2);
+    
+    //if (diff > Math.PI)
+    //  diff -= Math.PI;
+      
+    //return diff;
+    
     return abs(dv.vectorDistance(tan));
   }
   
@@ -493,6 +502,31 @@ function solve_intern(spline, order, goal_order, steps, gk) {
     v_curve_limit : 12,
     v_tan_limit   : 1
   };
+
+  var manual_w = 0.08;
+  var manual_w_2 = 0.6;
+  
+  for (var i=0; i<spline.verts.length; i++) {
+    var v = spline.verts[i];
+    if (v.segments.length != 1)
+      continue;
+    if (!(v.flag & SplineFlags.USE_HANDLES))
+      continue;
+    
+    var ss1 = v.segments[0];
+    var h = ss1.handle(v);
+    var tan = new Vector3(h).sub(v).normalize();
+    
+    var s = v === ss1.v1 ? 0.0 : 1.0;
+    if (v === ss1.v2) {
+      tan.negate();
+    }
+    
+    var tc = new constraint(manual_w, [ss1.ks], order, hard_tan_c, [ss1, tan, s]);
+    tc.k2 = manual_w_2;
+    
+    slv.add(tc);
+  }
   
   for (var i=0; i<spline.verts.length; i++) {
     var v = spline.verts[i];
@@ -528,13 +562,39 @@ function solve_intern(spline, order, goal_order, steps, gk) {
     
     if (bad) continue;
     
-    if (!(v.flag & SplineFlags.BREAK_TANGENTS)) {
+    if (!(v.flag & (SplineFlags.BREAK_TANGENTS|SplineFlags.USE_HANDLES))) {
       var tc = new constraint(0.2, [ss2.ks], order, tan_c, [ss1, ss2]);
       tc.k2 = 0.8
       slv.add(tc);
       
       var tc = new constraint(0.2, [ss1.ks], order, tan_c, [ss2, ss1]);
       tc.k2 = 0.8
+      slv.add(tc);
+    } else if (!(v.flag & SplineFlags.BREAK_TANGENTS)) { //manual handles
+      var h = ss1.handle(v);
+      var tan = new Vector3(h).sub(v).normalize();
+      
+      var s = v === ss1.v1 ? 0.0 : 1.0;
+      if (v === ss1.v2) {
+        tan.negate();
+      }
+      
+      var tc = new constraint(manual_w, [ss1.ks], order, hard_tan_c, [ss1, tan, s]);
+      tc.k2 = manual_w_2;
+      
+      slv.add(tc);
+      
+      var h = ss2.handle(v);
+      var tan = new Vector3(h).sub(v).normalize();
+      
+      var s = v === ss2.v1 ? 0.0 : 1.0;
+      if (v === ss2.v2) {
+        tan.negate();
+      }
+      
+      var tc = new constraint(manual_w, [ss2.ks], order, hard_tan_c, [ss2, tan, s]);
+      tc.k2 = manual_w_2;
+      
       slv.add(tc);
     } else {
       continue;
@@ -597,7 +657,7 @@ export function do_solve(sflags, spline, steps, gk) {
   }
   
   spline.resolve = 0;
-  solve_intern(spline, ORDER, undefined, 30, 1);
+  solve_intern(spline, ORDER, undefined, 70, 1);
   
   for (var i=0; i<spline.segments.length; i++) {
     var seg = spline.segments[i];

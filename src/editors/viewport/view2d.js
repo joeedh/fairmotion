@@ -9,7 +9,7 @@ var PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,
 import {get_2d_canvas, get_2d_canvas_2} from 'UICanvas2D';
 import {NoteFrame} from 'notifications';
 import {STRUCT} from 'struct';
-import {Area} from 'FrameManager';
+import {Area} from 'ScreenArea';
 import {SelMask} from 'selectmode';
 import {UIRadialMenu} from 'RadialMenu';
 import * as video from 'video';

@@ -361,4 +361,4 @@ function test_tutorial_mode() {
   handler.start();
 }
 
-import {ScreenArea, Area} from 'FrameManager';
+import {ScreenArea, Area} from 'ScreenArea';

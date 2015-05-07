@@ -475,16 +475,31 @@ def expand_harmony_class(typespace, cls):
   gets = {}
   sets = {}
   props = set()
+  visit = set()
   
   for m in methods:
     if m.name == "constructor": continue
     if type(m) == MethodGetter:
-      gets[m.name] = m
-      props.add(m.name)
+      if type(m.name) not in [int, str, float]:
+        m._id = m.name.gen_js(0)
+      else:
+        m._id = m.name
+        
+      gets[m._id] = m
+      if m._id not in visit:
+        visit.add(m._id)
+        props.add(m)
       
     if type(m) == MethodSetter:
-      sets[m.name] = m
-      props.add(m.name)
+      if type(m.name) not in [int, str, float]:
+        m._id = m.name.gen_js(0)
+      else:
+        m._id = m.name
+        
+      sets[m._id] = m
+      if m._id not in visit:
+        visit.add(m._id)
+        props.add(m)
   
   def to_exprfunc(method):
     f = FunctionNode("(anonymous)", 0)
@@ -501,9 +516,11 @@ def expand_harmony_class(typespace, cls):
     
     return f
     
-  def gen_prop_define(prop, gets, sets, flags=[]):
+  def gen_prop_define(method, gets, sets, flags=[]):
+    prop = method.name
+    
     #since this is called from *within* the parser, we
-    #can't use js_parse().  bleh!
+    #can't use js_parse().
     name_expr = BinOpNode(IdentNode("Object"), IdentNode("defineProperty"), ".");
     fcall = FuncCallNode(name_expr)
     
@@ -511,11 +528,12 @@ def expand_harmony_class(typespace, cls):
     fcall.add(exprlist)
     
     params = ObjLitNode()
-    if p in gets:
-      an = AssignNode(IdentNode("get"), to_exprfunc(gets[p]))
+    if method._id in gets:
+      an = AssignNode(IdentNode("get"), to_exprfunc(gets[method._id]))
       params.add(an)
-    if p in sets:
-      an = AssignNode(IdentNode("set"), to_exprfunc(sets[p]))
+      
+    if method._id in sets:
+      an = AssignNode(IdentNode("set"), to_exprfunc(sets[method._id]))
       params.add(an)
     
     an = AssignNode(IdentNode("configurable"), IdentNode("true"));
@@ -524,7 +542,11 @@ def expand_harmony_class(typespace, cls):
     bn = BinOpNode(IdentNode(cls.name), IdentNode("prototype"), ".")
       
     exprlist.add(bn)
-    exprlist.add(StrLitNode('"%s"'%prop))
+    if type(prop) in [str, int, float]:
+      exprlist.add(StrLitNode('"%s"'%prop))
+    else:
+      exprlist.add(prop)
+    
     exprlist.add(params)
     
     return fcall;
@@ -540,7 +562,14 @@ def expand_harmony_class(typespace, cls):
     
     if not m.is_static:
       bn = BinOpNode(IdentNode(cls.name), IdentNode("prototype"), ".")
-      bn = BinOpNode(bn, IdentNode(m.name), ".")
+      nname = m.name
+      
+      if type(nname) != str:
+        nname = nname.gen_js(0)
+        bn = ArrayRefNode(bn, nname)
+      else:
+        bn = BinOpNode(bn, nname, ".")
+        
       an = AssignNode(bn, f)
       f = an
     else:
@@ -940,7 +969,7 @@ def expand_requirejs_class(typespace, cls):
     
   def gen_prop_define(prop, gets, sets, flags=[]):
     #since this is called from *within* the parser, we
-    #can't use js_parse().  bleh!
+    #can't use js_parse().
     name_expr = BinOpNode(IdentNode("Object"), IdentNode("defineProperty"), ".");
     fcall = FuncCallNode(name_expr)
     
@@ -948,10 +977,10 @@ def expand_requirejs_class(typespace, cls):
     fcall.add(exprlist)
     
     params = ObjLitNode()
-    if p in gets:
+    if prop in gets:
       an = AssignNode(IdentNode("get"), to_exprfunc(gets[p]))
       params.add(an)
-    if p in sets:
+    if prop in sets:
       an = AssignNode(IdentNode("set"), to_exprfunc(sets[p]))
       params.add(an)
       

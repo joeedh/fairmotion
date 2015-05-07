@@ -26,10 +26,15 @@ typedef struct SplineVertex {
   int32_t pad0; //pad to 8-byte boundary
 } SplineVertex;
 
+enum SplineFlags {
+  FIXED_KS = 1<<21
+};
+
 typedef struct SplineSegment {
   int32_t eid, flag; //8 bytes
 
   double ks[16]; //lots of space here since it's actual size on the client end can change
+  //double orig_ks[16];
   float h1[3], h2[3];
 
   int32_t v1, v2;

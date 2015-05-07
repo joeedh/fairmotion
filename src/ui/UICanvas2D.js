@@ -6,6 +6,11 @@ import {UICanvas_} from 'UICanvas';
 
 #include "src/core/utildefine.js"
 
+/*
+  TODO: write a generic multilayer canvas system,
+        since we clearly need more than two
+*/
+
 export function get_2d_canvas() {
   static ret = {}
   
@@ -34,6 +39,9 @@ export class UICanvas2_ {
   constructor(viewport) {
     var c = get_2d_canvas();
     
+    this.canvas = c.canvas;
+    this.ctx = c.ctx;
+    
     var ctx = c.ctx;
     var fl = Math.floor;
     
@@ -49,6 +57,8 @@ export class UICanvas2_ {
         this.strokeStyle = "rgba("+fl(r*255)+","+fl(g*255)+","+fl(b*255)+","+a+")";
       }
     }
+    
+    this.layerstack = [];
     
     this.scissor_stack = [];
     this.canvas = c.canvas;
@@ -101,6 +111,41 @@ export class UICanvas2_ {
     return s;
   }
   
+  //push a new html5 2d canvas onto the layer stack
+  //e.g. for temporary overlays, etc
+  push_layer() {
+    this.layerstack.push([this.canvas, this.ctx]);
+    
+    var canvas = document.createElement("canvas");
+    document.body.appendChild(canvas);
+    
+    canvas.style["position"] = "absolute";
+    canvas.style["left"] = "0px";
+    canvas.style["right"] = "0px";
+    canvas.style["z-index"] = ""+(4+this.layerstack.length);
+    canvas.style["pointer-events"] = "none";
+    
+    canvas.width = this.canvas.width;
+    canvas.height = this.canvas.height;
+    
+    this.canvas = canvas;
+    this.ctx = canvas.getContext("2d");
+  }
+  
+  pop_layer() {
+    if (this.layerstack.length == 0) {
+      console.trace("%cTHE SHEER EVIL OF IT!", "color:red");
+      return;
+    }
+    
+    var item = this.layerstack.pop();
+    
+    document.body.removeChild(this.canvas);
+    
+    this.canvas = item[0];
+    this.ctx = item[1];
+  }
+  
   on_draw(gl) {
   }
   
@@ -110,22 +155,28 @@ export class UICanvas2_ {
   
   clear(p, size) {
     var v = this.viewport;
-    var canvas = get_2d_canvas().canvas;
-    var ctx = get_2d_canvas().ctx;
+    var canvas = this.canvas;
+    var ctx = this.ctx;
     
-    ctx.clearRect(p[0]+v[0][0], canvas.height-(v[0][1]+p[1]+size[1]), size[0], size[1]);
-    
-    ctx.beginPath();
-    ctx.rect(p[0]+v[0][0], canvas.height-(v[0][1]+p[1]+size[1]), size[0], size[1]);
-    
-    //ctx.fillStyle = Math.random() > 0.5 ? "rgba(255,0,0,0.7)" : "rgba(0,255,0,0.7)";
-    //ctx.fill();
+    if (p == undefined) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.beginPath();
+      ctx.rect(0, 0, canvas.width, canvas.height);
+    } else {
+      ctx.clearRect(p[0]+v[0][0], canvas.height-(v[0][1]+p[1]+size[1]), size[0], size[1]);
+      
+      ctx.beginPath();
+      ctx.rect(p[0]+v[0][0], canvas.height-(v[0][1]+p[1]+size[1]), size[0], size[1]);
+     
+      //ctx.fillStyle = Math.random() > 0.5 ? "rgba(255,0,0,0.7)" : "rgba(0,255,0,0.7)";
+      //ctx.fill();
+    }
   }
   
   reset() {
     var v = this.viewport;
-    var canvas = get_2d_canvas().canvas;
-    var ctx = get_2d_canvas().ctx;
+    var canvas = this.canvas;
+    var ctx = this.ctx;
     
     //this.clear([0, 0], [v[1][0], v[1][1]])
     //ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -133,8 +184,8 @@ export class UICanvas2_ {
   }
   
   clip(rect, vis_only=false) {
-    var ctx = get_2d_canvas().ctx;
-    var canvas = get_2d_canvas().canvas;
+    var canvas = this.canvas;
+    var ctx = this.ctx;
     
     rect[0] = new Vector2(rect[0]);
     rect[1] = new Vector2(rect[1]);
@@ -156,13 +207,11 @@ export class UICanvas2_ {
   }
   
   root_start() {
-    var ctx = get_2d_canvas().ctx;
-    ctx.save();
+    this.ctx.save();
   }
   
   root_end() {
-    var ctx = get_2d_canvas().ctx;
-    ctx.restore();
+    this.ctx.restore();
   }
   
   has_cache(item) {
@@ -211,8 +260,8 @@ export class UICanvas2_ {
   quad(v1, v2, v3, v4, c1, c2, c3, c4, horiz_gradient=false) {
     static black = [0, 0, 0, 1];
 
-    var canvas = get_2d_canvas().canvas;
-    var ctx = get_2d_canvas().ctx;
+    var canvas = this.canvas;
+    var ctx = this.ctx;
     var v = g_app_state.raster.viewport;
     
     if (c1 == undefined) {
@@ -264,20 +313,30 @@ export class UICanvas2_ {
       max[1] = canvas.height-(max[1]+y+v[0][1]);
       
       var grad;
-      if (horiz_gradient)
-        grad = ctx.createLinearGradient(min[0], min[1]*0.5+max[1]*0.5, max[0], min[1]*0.5+max[1]*0.5);
-      else
-        grad = ctx.createLinearGradient(min[0]*0.5+max[0]*0.5, min[1], min[0]*0.5+max[0]*0.5, max[1]);
-        
-      grads[hash] = grad;
-      
-      grad.addColorStop(0.0, this._css_color(c1));
-      grad.addColorStop(1.0, this._css_color(c3));
+      if (isNaN(min[0]) || isNaN(max[0]) || isNaN(min[1]) || isNaN(max[1]) || isNaN(c1[0]) || isNaN(c3[0])) {
+        grad = "black";
+      } else {
+        try {
+          if (horiz_gradient)
+            grad = ctx.createLinearGradient(min[0], min[1]*0.5+max[1]*0.5, max[0], min[1]*0.5+max[1]*0.5);
+          else
+            grad = ctx.createLinearGradient(min[0]*0.5+max[0]*0.5, min[1], min[0]*0.5+max[0]*0.5, max[1]);
+            
+          grads[hash] = grad;
+          
+          grad.addColorStop(0.0, this._css_color(c1));
+          grad.addColorStop(1.0, this._css_color(c3));
+        } catch (error) {
+          print_stack(error);
+          console.log("GRADIENT ERROR", min[0], min[1], max[0], max[1]);
+        }
+      }
     } else {
       grad = grads[hash];
     }
     
-    ctx.fillStyle = grad;
+    if (grad != undefined)
+      ctx.fillStyle = grad;
     //ctx.setFillColor(c1[0], c1[1], c1[2], c1[3]);
     
     ctx.beginPath();
@@ -322,8 +381,8 @@ export class UICanvas2_ {
     var zerocolor = this._css_color(mid);
     color = this._css_color(color);
     
-    var canvas = get_2d_canvas().canvas;
-    var ctx = get_2d_canvas().ctx;
+    var canvas = this.canvas;
+    var ctx = this.ctx;
     var v = g_app_state.raster.viewport;
     
     var m = this.transmat.$matrix;
@@ -364,8 +423,13 @@ export class UICanvas2_ {
       ctx.fill();
     }
     
+    try {
       draw_grad("rgba(255,255,255,1.0)", "rgba(255,255,255, 0.5)", "rgba(255,255,255,0.0)", 0);
       draw_grad("rgba(0,0,0,1.0)", "rgba(0,0,0,0.5)", "rgba(0,0,0,0.0)", 1);
+    } catch (error) {
+      print_stack(error);
+      console.log("GRADIENT ERROR", min[0], min[1], max[0], max[1]);
+    }
   }
   
   icon(int icon, Array<float> pos, float alpha=1.0, Boolean small=false, 
@@ -377,8 +441,8 @@ export class UICanvas2_ {
     var img = sheet.tex.image;
     var csize = sheet.cellsize;
     
-    var canvas = get_2d_canvas().canvas;
-    var ctx = get_2d_canvas().ctx;
+    var canvas = this.canvas;
+    var ctx = this.ctx;
     var v = g_app_state.raster.viewport;
     
     var m = this.transmat.$matrix;
@@ -444,8 +508,8 @@ export class UICanvas2_ {
     }
     
     this.scissor_stack.push([pos, size]);
-    var g = get_2d_canvas().ctx;
-    var canvas = get_2d_canvas().canvas;
+    var canvas = this.canvas;
+    var g = this.ctx;
     
     try {
       g.save();
@@ -480,8 +544,7 @@ export class UICanvas2_ {
     
     //console.trace(t + this.scissor_stack.length + ":  pop");
     
-    var g = get_2d_canvas().ctx;
-    g.restore();
+    this.ctx.restore();
   }
 
   _clipeq(c1, c2) {
@@ -671,8 +734,8 @@ export class UICanvas2_ {
   text(Array<float> pos1, String text, Array<float> color, float fontsize, 
        float scale, float rot, Array<float> scissor_pos, Array<float> scissor_size)
   {
-    var canvas = get_2d_canvas().canvas;
-    var ctx = get_2d_canvas().ctx;
+    var canvas = this.canvas;
+    var ctx = this.ctx;
     var v = g_app_state.raster.viewport;
     static pos = [0, 0, 0];
     var lines = text.split("\n");
@@ -729,8 +792,8 @@ export class UICanvas2_ {
   }
   
   line(v1, v2, c1, c2) {
-    var canvas = get_2d_canvas().canvas;
-    var ctx = get_2d_canvas().ctx;
+    var canvas = this.canvas;
+    var ctx = this.ctx;
     var v = g_app_state.raster.viewport;
     
     var m = this.transmat.$matrix;
@@ -749,8 +812,8 @@ export class UICanvas2_ {
   }
   
   tri(v1, v2, v3, c1, c2, c3) {
-    var canvas = get_2d_canvas().canvas;
-    var ctx = get_2d_canvas().ctx;
+    var canvas = this.canvas;
+    var ctx = this.ctx;
     var v = g_app_state.raster.viewport;
     
     var m = this.transmat.$matrix;
@@ -811,8 +874,8 @@ export class UICanvas2_ {
   }
   
   textsize(text, size=default_ui_font_size) {
-    var canvas = get_2d_canvas().canvas;
-    var ctx = get_2d_canvas().ctx;
+    var canvas = this.canvas;
+    var ctx = this.ctx;
     
     var v = this.viewport;
     

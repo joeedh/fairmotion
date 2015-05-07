@@ -486,6 +486,7 @@ export class SplineEditor extends View2DEditor {
       "spline.connect_handles()",
       "spline.disconnect_handles()",
       "spline.toggle_step_mode()",
+      "spline.toggle_manual_handles()",
       "editor.paste_pose()",
       "editor.copy_pose()"
     ];
@@ -799,4 +800,4 @@ SplineEditor.STRUCT = """
   }
 """
 
-import {ScreenArea, Area} from 'FrameManager';
+import {ScreenArea, Area} from 'ScreenArea';

@@ -740,6 +740,12 @@ function save_forin_conv() {
     window.open(obj_url);
 }
 
+if (window.Symbol == undefined) {
+  //define a very basic Symbol polyfill
+  window.Symbol = {
+    Iterator : "__iterator__"
+  }
+}
 /*the grand __get_iter function.
   extjs_cc does not use c.__iterator__ when
   compiling code like "for (var a in c)" to

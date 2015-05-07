@@ -257,7 +257,7 @@ class Glob(AbstractGlob):
     g_do_docstrings = False
     g_docstring_propname = "__doc__"
     g_enable_static_vars = True
-    g_write_manifest = True
+    g_write_manifest = False
     g_warn_types = False
     g_debug_print_calls = False
     g_gen_es6 = False

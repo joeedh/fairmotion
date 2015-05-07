@@ -96,8 +96,11 @@ double Graphics3DInstance::eval_constraint(
         
         double k = (k1+k2)*0.5;
         
-        seg1->ks[s1] = k*seg1->ks[KSCALE]*(s1 == s2 ? -1.0 : 1.0);
-        seg2->ks[s2] = k*seg2->ks[KSCALE];
+        if (!(seg1->flag & FIXED_KS))
+          seg1->ks[s1] = k*seg1->ks[KSCALE]*(s1 == s2 ? -1.0 : 1.0);
+          
+        if (!(seg2->flag & FIXED_KS))
+          seg2->ks[s2] = k*seg2->ks[KSCALE];
         
         //*/
         //this is a hard constraint
@@ -105,6 +108,27 @@ double Graphics3DInstance::eval_constraint(
       }
       
       break;
+    case HARD_TAN_CONSTRAINT:
+    {
+      SplineSegment *seg = ss + con->seg1;
+      SplineVertex *v1 = vs + seg->v1;
+      SplineVertex *v2 = vs + seg->v2;
+      
+      double th = con->param1f, s = (con->param2f-0.5)*(1.0-0.0000001);
+      double tan[3];
+      
+      eval_curve_dv(tan, s, v1->co, v2->co, seg->ks, ORDER, false, true);
+      
+      double th2 = atan2(tan[0], tan[1]);
+      
+      th2 = fabs(th-th2);
+      if (th2 > M_PI) {
+        th2 -= M_PI;
+      }
+      
+      return th2;
+    }
+    break;
   }
   
   return 0.0;
@@ -170,6 +194,11 @@ int Graphics3DInstance::solve_intern(
         
         SplineSegment *s = ss + segi;
         
+        if (s->flag & FIXED_KS) {
+          //logf("fixed ks! %d", s->eid);
+          continue;
+        }
+        
         //calculate gradients. . .
         for (int j=0; j<ORDER; j++) {
           double orig = s->ks[j];
@@ -206,6 +235,9 @@ int Graphics3DInstance::solve_intern(
           continue;
         
         SplineSegment *s = ss + segi;
+        
+        if (s->flag & FIXED_KS)
+          continue;
         
         double rmul = r / totg;
         

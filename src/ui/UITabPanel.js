@@ -73,7 +73,7 @@ export class UITabBar extends UIElement {
     var tri = this.triwid;
     var pos = [0, this.size[1]];
     var size = [w, 0];
-    var pos2 = [Math.floor(w/1.5), 0];
+    var pos2 = [Math.floor(w/1.5)-7, 0];
     var pos3 = [0, 0];
     var size2 = [0, 0];
     
@@ -116,6 +116,7 @@ export class UITabBar extends UIElement {
         size2[0] = w+1; size2[1] = y2-y1;
         canvas.box2(pos3, size2, uicolors["SimpleBox"]);
       }
+      
       canvas.text(pos2, t.text, uicolors["TabText"], undefined, undefined, Math.PI/2.0);
     }
       

@@ -317,4 +317,4 @@ function test_notes() {
   console.log("Notification test");
 }
 
-import {ScreenArea, Area} from 'FrameManager';
+import {ScreenArea, Area} from 'ScreenArea';

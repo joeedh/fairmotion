@@ -107,9 +107,9 @@ export function get_rect_points(p, size)
     cs = _static_grp_points4;
     
     cs[0] = p;
-    cs[1] = [p[0]+size[0], p[1]]
+    cs[1] = [p[0], p[1]+size[1]]
     cs[2] = [p[0]+size[0], p[1]+size[1]]
-    cs[3] = [p[0], p[1]+size[1]]
+    cs[3] = [p[0]+size[0], p[1]]
   } else if (p.length == 3) {
     cs = _static_grp_points8;
     

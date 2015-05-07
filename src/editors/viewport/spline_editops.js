@@ -10,8 +10,7 @@ import {redo_draw_sort} from 'spline_draw';
 
 export class KeyCurrentFrame extends ToolOp {
   constructor() {
-    ToolOp.apply(this, arguments);
-    this.uiname = "Key Selected"
+    super(undefined, "Key Selected");
   }
   
   exec(ctx) {
@@ -62,8 +61,8 @@ ShiftLayerOrderOp.inputs = {
 
 //for tools that modify both the draw spline and the path spline
 export class SplineGlobalToolOp extends ToolOp {
-  constructor() {
-    ToolOp.apply(this, arguments);
+  constructor(apiname, uiname, description, icon) {
+    super(apiname, uiname, description, icon)
   }
   
   //okay, this is silly.  just rely on default undo handlers,
@@ -154,9 +153,16 @@ export class SplineGlobalToolOp extends ToolOp {
 //for tools that modify the active spline only, not both splines
 //(drawspline and pathspline) at once
 export class SplineLocalToolOp extends ToolOp {
-  constructor() {
-    ToolOp.apply(this, arguments);
+  constructor(apiname, uiname, description, icon) {
+    super(apiname, uiname, description, icon)
   }
+  
+  /*
+  static inputs() { return {
+    datamode : new Float32Property(-1, "datamode"),
+    
+  }}
+  */
   
   undo_pre(ctx) {
     var spline = ctx.spline;
@@ -363,7 +369,7 @@ PastePoseOp.inputs.pose.flag |= TPropFlags.COLL_LOOSE_TYPE;
 
 export class InterpStepModeOp extends ToolOp {
   constructor() {
-    ToolOp.call(this);
+    super(undefined, "Toggle Step Mode", "Disable/enable smooth interpolation for animation paths");
   }
   
   get_animverts(ctx) {
@@ -427,7 +433,7 @@ InterpStepModeOp.prototype.apiname = "spline.toggle_step_mode"
 
 export class DeleteVertOp extends SplineLocalToolOp {
   constructor() {
-    super(false);
+    super(undefined, "Delete Verts");
   }
   
   can_call(ctx) {
@@ -472,7 +478,7 @@ export class DeleteVertOp extends SplineLocalToolOp {
 
 export class DeleteSegmentOp extends ToolOp {
   constructor() {
-    super(false);
+    super(undefined, "Delete Segments");
   }
   
   can_call(ctx) {
@@ -513,7 +519,7 @@ export class DeleteSegmentOp extends ToolOp {
 
 export class DeleteFaceOp extends SplineLocalToolOp {
   constructor() {
-    super(false);
+    super(undefined, "Delete Faces");
   }
   
   can_call(ctx) {
@@ -591,7 +597,7 @@ export class DeleteFaceOp extends SplineLocalToolOp {
 
 export class ChangeFaceZ extends SplineLocalToolOp {
   constructor(offset, selmode) {
-    super(false);
+    super(undefined, "Change Z");
     
     if (offset != undefined)
       this.inputs.offset.set_data(offset); 
@@ -645,7 +651,7 @@ ChangeFaceZ.inputs = {
 
 export class DissolveVertOp extends SplineLocalToolOp {
   constructor() {
-    super(false);
+    super(undefined, "Dissolve Verts");
   }
   
   can_call(ctx) {
@@ -688,7 +694,7 @@ DissolveVertOp.inputs = {
 
 export class SplitEdgeOp extends SplineGlobalToolOp {
   constructor() {
-    super(false);
+    super(undefined, "Split Edges");
   }
   
   can_call(ctx) {
@@ -733,7 +739,7 @@ export class SplitEdgeOp extends SplineGlobalToolOp {
 
 export class SplitEdgeOp1 extends SplineLocalToolOp {
   constructor() {
-    super(false);
+    super(undefined, "Split Edges 2");
   }
   
   can_call(ctx) {
@@ -858,7 +864,7 @@ export class ToggleBreakCurvOp extends VertPropertyBaseOp {
 
 export class ConnectHandlesOp extends ToolOp {
   constructor() {
-    ToolOp.call(this);
+    super(undefined, "Connect Handles");
   }
   
   exec(ctx) {
@@ -900,7 +906,7 @@ ConnectHandlesOp.prototype.uiname = "Connect Handles";
 
 export class DisconnectHandlesOp extends ToolOp {
   constructor() {
-    ToolOp.call(this);
+    super(undefined, "Disconnect Handles");
   }
   
   exec(ctx) {
@@ -979,7 +985,7 @@ export class CurveRootFinderTest extends ToolOp {
 
 export class DelVertFrame extends ToolOp {
   constructor() {
-    ToolOp.call(this);
+    super();
   }
   
   exec(ctx) {
@@ -1016,7 +1022,8 @@ export class AnimPlaybackOp extends ToolOp {
   
   end_modal(ctx) {
     g_app_state.set_modalstate(0);
-    ToolOp.prototype.end_modal.call(this);
+    
+    super.end_modal();
     
     if (this.timer != undefined) {
       window.clearInterval(this.timer);
@@ -1071,6 +1078,51 @@ export class AnimPlaybackOp extends ToolOp {
     }, 1);
   }
 }
+
+export class ToggleManualHandlesOp extends ToolOp {
+  constructor() {
+    super("toggle manual handles", "Toggle Manual Handles", "toggle manual handles");
+  }
+  
+  undo_pre(ctx) {
+    var spline = ctx.spline;
+    var ud = this._undo = {};
+    
+    for (var v in spline.verts.selected.editable) {
+      ud[v.eid] = v.flag & SplineFlags.USE_HANDLES;
+    }
+  }
+  
+  undo(ctx) {
+    var spline = ctx.spline;
+    var ud = this._undo;
+    
+    for (var k in ud) {
+      var v = spline.eidmap[k];
+      
+      if (v == undefined || v.type != SplineTypes.VERTEX) {
+        console.log("WARNING: bad v in toggle manual handles op's undo handler!", v);
+        continue;
+      }
+      
+      v.flag = (v.flag&~SplineFlags.USE_HANDLES) | ud[k] | SplineFlags.UPDATE;
+    }
+    
+    spline.resolve = 1;
+  }
+  
+  exec(ctx) {
+    var spline = ctx.spline;
+    
+    for (var v in spline.verts.selected.editable) {
+      v.flag ^= SplineFlags.USE_HANDLES;
+      v.flag |= SplineFlags.UPDATE;
+    }
+    
+    spline.resolve = 1;
+  }
+}
+
 
 import {TimeDataLayer, get_vtime, set_vtime} from 'animdata';
 
@@ -1245,7 +1297,7 @@ ShiftTimeOp.inputs = {
 
 export class DuplicateOp extends SplineLocalToolOp {
   constructor() {
-    SplineLocalToolOp.call(this);
+    super(undefined, "Duplicate");
   }
   
   can_call(ctx) {
@@ -1361,7 +1413,7 @@ export class DuplicateOp extends SplineLocalToolOp {
 
 export class SplineMirrorOp extends SplineLocalToolOp {
     constructor() {
-      SplineLocalToolOp.call(this);
+      super(undefined, "Mirror")
     }
     
     exec(ctx) {

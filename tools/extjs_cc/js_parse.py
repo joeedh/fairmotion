@@ -16,6 +16,7 @@ from js_process_ast_parser_only import *
 
 precedence = (
   ("left", "COMMA"),
+  ("left", "ARROW"),
   ("left", "ASSIGN", "ASSIGNLSHIFT", "ASSIGNRSHIFT", "ASSIGNPLUS",
            "ASSIGNMINUS", "ASSIGNDIVIDE", "ASSIGNTIMES", "ASSIGNBOR",
            "ASSIGNBAND", "ASSIGNBXOR"),
@@ -319,7 +320,7 @@ def p_opt_colon_type(p):
   
 def p_assign_statement(p):
   '''assign_statement : assign COLON var_type
-                  |
+                      |
   '''
   if len(p) > 1:
     p[0] = p[1]
@@ -1286,9 +1287,25 @@ def p_id_right(p):
   '''id_right : id %prec UMINUS
   '''
   p[0] = p[1]
-  
+
+def p_property_id(p):
+  ''' property_id : ID
+                  | GET  
+                  | SET
+                  | LSBRACKET expr RSBRACKET
+  '''
+  if len(p) == 4:
+    p[0] = p[2]
+  else:
+    p[0] = p[1]
+
+def p_property_id_right(p):
+  '''property_id_right : property_id %prec UMINUS
+  '''
+  p[0] = p[1]
+
 def p_method(p):
-  '''method : id_right LPAREN funcdeflist RPAREN func_type_opt LBRACKET statementlist_opt RBRACKET'''
+  '''method : property_id_right LPAREN funcdeflist RPAREN func_type_opt LBRACKET statementlist_opt RBRACKET'''
   set_parse_globals(p)
   
   name = p[1]
@@ -1301,15 +1318,16 @@ def p_method(p):
   p[0] = MethodNode(name)
   p[0].add(params)  
   p[0].add(statementlist)
+  
   if p[5] != None:
     p[0].type = p[5]
 
 def p_getset_id(p):
-  '''getset_id : id
+  '''getset_id : property_id
                | NUMBER
   '''
   
-  p[0] = str(p[1])
+  p[0] = p[1]
   
 def p_method_def(p):
   #I don't want to make get/set exclusive parse tokens,
@@ -1627,7 +1645,7 @@ def p_func_name_opt(p):
     p[0] = "(anonymous)"
   else:
     p[0] = p[1]
-    
+ 
 def p_exprfunction(p):
   ''' exprfunction : FUNCTION star_opt func_name_opt template_opt push_scope LPAREN funcdeflist RPAREN colon_opt var_type_opt lbracket_restrict statementlist_opt rbracket_restrict
                    | FUNCTION star_opt func_name_opt template_opt push_scope LPAREN RPAREN colon_opt var_type_opt lbracket_restrict statementlist_opt rbracket_restrict
@@ -1820,6 +1838,7 @@ def p_rsbracket_restrict(p):
   
   pop_restrict()
 
+
 def p_expr(p):
     '''expr : NUMBER
             | strlit
@@ -1828,6 +1847,7 @@ def p_expr(p):
             | template_ref
             | array_literal
             | exprfunction
+            | arrow_function
             | obj_literal
             | expr cmplx_assign expr
             | expr cmplx_assign expr COLON var_type SEMI
@@ -1940,6 +1960,86 @@ def p_paren_expr(p):
     p[0] = p[2]
   else:
     p[0] = ExprNode([])
+
+
+def p_arrow_param_list(p):
+  '''
+     arrow_param_list : ID
+                      | arrow_param_list COMMA ID
+                      |
+  '''
+  set_parse_globals(p)
+  
+  if len(p) == 1:
+    p[0] = ExprListNode([])
+  elif len(p) == 2:
+    p[0] = ExprListNode([IdentNode(p[1])])
+  elif len(p) == 4:
+    p[0] = p[1]
+    p[1].add(IdentNode(p[3]))
+  
+def p_arrow_params(p):
+  '''
+     arrow_params : ID
+                  | LPAREN arrow_param_list RPAREN
+  '''
+  set_parse_globals(p)
+  
+  if len(p) == 2:
+    p[0] = ExprListNode([p[1]])
+  elif len(p) == 4:
+    p[0] = p[2]
+  else:
+    p[0] = ExprListNode([])
+
+def p_concise_body(p):
+  '''concise_body : expr
+                  | LBRACKET statementlist_opt RBRACKET
+                    
+  '''
+  set_parse_globals(p)
+  
+  if len(p) == 2:
+    p[0] = p[1]
+  else:
+    p[0] = p[2]
+
+#stupidly hackish. . .
+def p_arrow_binding(p):
+  '''
+    arrow_binding : LPAREN RPAREN
+                  | expr
+  '''
+  if len(p) == 2:
+    p[0] = p[1]
+  else:
+    p[0] = ExprNode(ExprListNode([]))
+    
+def p_arrow_function(p):
+  '''
+    arrow_function : expr ARROW concise_body
+  '''
+  
+  print(p[1])
+  
+  if type(p[1]) == str:
+    p[1] = ExprListNode([IdentNode(p[1])])
+  elif type(p[1]) == ExprNode and type(p[1][0]) == ExprListNode:
+    p[1] = p[1][0]
+  elif type(p[1]) == ExprNode and type(p[1][0]) == IdentNode:
+    p[1] = ExprListNode([p[1][0]])
+  else:
+    raise SyntaxError
+    
+  set_parse_globals(p)
+  
+  f = FunctionNode("(anonymous)", p.lineno)
+  f.is_anonymous = True
+  f.add(p[1])
+  f.add(p[3])
+  
+  p[0] = f
+  
 
 def p_assign_opt(p):
   '''assign_opt : assign

@@ -803,7 +803,24 @@ export class SplineKCache {
       return;
     }
     
-    spline.import_ks(this.cache[frame]);
+    var ret = spline.import_ks(this.cache[frame]);
+    
+    if (ret == undefined) { //bad data
+      delete this.cache[frame];
+      
+      console.log("bad kcache data for frame", frame);
+      
+      for (var s in spline.segments) {
+        s.v1.flag |= SplineFlags.UPDATE;
+        s.v2.flag |= SplineFlags.UPDATE;
+        s.h1.flag |= SplineFlags.UPDATE;
+        s.h2.flag |= SplineFlags.UPDATE;
+        s.flag |= SplineFlags.UPDATE;
+      }
+      
+      spline.resolve = 1;
+      return;
+    }
     
     for (var eid in spline.eidmap) {
       var t = combine_eid_time(eid, frame);

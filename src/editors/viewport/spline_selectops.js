@@ -15,8 +15,8 @@ import {redraw_element} from 'spline_draw';
 import {get_vtime} from 'animdata';
 
 export class SelectOpBase extends ToolOp {
-  constructor(datamode, do_flush) {
-    ToolOp.call(this);
+  constructor(datamode, do_flush, uiname) {
+    super(undefined, uiname);
     
     if (datamode != undefined)
       this.inputs.datamode.set_data(datamode);
@@ -77,7 +77,7 @@ SelectOpBase.inputs = {
 
 export class SelectOneOp extends SelectOpBase {
   constructor(SplineElement e=undefined, unique=true, mode=true, datamode=0, do_flush=false) {
-    SelectOpBase.call(this, datamode, do_flush);
+    super(datamode, do_flush, "Select Element");
     
     this.inputs.unique.set_data(unique);
     this.inputs.state.set_data(mode);
@@ -136,11 +136,11 @@ SelectOneOp.inputs = ToolOp.inherit_inputs(SelectOpBase, {
 
 export class ToggleSelectAllOp extends SelectOpBase {
   constructor() {
-    SelectOpBase.call(this);
+    super(undefined, undefined, "Toggle Select All");
   }
   
   undo_pre(ctx) {
-    SelectOpBase.prototype.undo_pre.call(this, ctx);
+    super.undo_pre(ctx);
     
     redraw_viewport();
   }
@@ -232,14 +232,15 @@ ToggleSelectAllOp.inputs = {
 
 export class SelectLinkedOp extends SelectOpBase {
   constructor(mode, datamode) {
-    SelectOpBase.call(this, datamode);
+    super(datamode, undefined, "Select Linked");
     
     if (mode != undefined)
       this.inputs.mode.set_data(mode);
   }
   
   undo_pre(ctx) {
-    SelectOpBase.prototype.undo_pre.call(this, ctx);
+    super.undo_pre(ctx);
+    
     window.redraw_viewport();
   }
   
@@ -288,7 +289,7 @@ SelectLinkedOp.inputs = ToolOp.inherit_inputs(SelectOpBase, {
 
 export class HideOp extends SelectOpBase {
   constructor(mode, ghost) {
-    SelectOpBase.call(this);
+    super(undefined, undefined, "Hide");
     
     if (mode != undefined)
       this.inputs.selmode.set_data(mode);
@@ -297,7 +298,7 @@ export class HideOp extends SelectOpBase {
   }
   
   undo_pre(ctx) {
-    SelectOpBase.prototype.undo_pre.call(this, ctx);
+    super.undo_pre(ctx);
     window.redraw_viewport();
   }
   
@@ -311,7 +312,7 @@ export class HideOp extends SelectOpBase {
       e.flag &= ~(SplineFlags.HIDE|SplineFlags.GHOST);
     }
     
-    SelectOpBase.prototype.undo.call(this, ctx);
+    super.undo(ctx);
     window.redraw_viewport();
   }
   
@@ -351,7 +352,7 @@ HideOp.inputs = {
 
 export class UnhideOp extends ToolOp {
   constructor(mode, ghost) {
-    ToolOp.call(this);
+    super(undefined, "Unhide");
     
     if (mode != undefined)
       this.inputs.selmode.set_data(mode);
@@ -438,7 +439,7 @@ import {ElementRefSet} from 'spline_types';
 var _last_radius = 45;
 export class CircleSelectOp extends SelectOpBase {
   constructor(datamode, do_flush=true) {
-    SelectOpBase.call(this, datamode, do_flush);
+    super(datamode, do_flush, "Circle Select");
     
     if (isNaN(_last_radius) || _last_radius <= 0)
       _last_radius = 45;
@@ -557,8 +558,9 @@ export class CircleSelectOp extends SelectOpBase {
     this.exec(ctx);
   }
   
-  end_modal() {
-    SelectOpBase.prototype.end_modal.apply(this, arguments);
+  end_modal(ctx) {
+    super.end_modal(ctx);
+    
     _last_radius = this.radius;
   }
   
@@ -616,8 +618,8 @@ CircleSelectOp.inputs = ToolOp.inherit_inputs(SelectOpBase, {
 
 //verts only?
 export class UISelectBase extends ToolOp {
-  constructor() {
-    ToolOp.call(this);
+  constructor(uiname, description, icon) {
+    ToolOp.call(this, uiname, description, icon);
   }
   
   undo_pre(ctx) {

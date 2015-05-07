@@ -214,9 +214,9 @@ class OpStackFrame extends RowFrame {
 
 
 /******************* main area struct ********************************/
-import {Area} from 'FrameManager';
+import {Area} from 'ScreenArea';
 
-class OpStackEditor extends Area {
+export class OpStackEditor extends Area {
   constructor(x, y, width, height) {
     Area.call(this, OpStackEditor.name, OpStackEditor.uiname, new Context(), [x, y], [width, height]);
     
@@ -309,6 +309,7 @@ class OpStackEditor extends Area {
     this.rows.push(col);
     this.add(col);
   }
+  
   build_bottombar() {
     var ctx = new Context();
     var col = new ColumnFrame(ctx);

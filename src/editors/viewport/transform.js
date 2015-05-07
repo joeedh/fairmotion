@@ -39,7 +39,11 @@ export class TransSplineVert {
       seg.v1.flag |= SplineFlags.UPDATE;
       seg.v2.flag |= SplineFlags.UPDATE;
       
-      seg.update_handle(v);
+      var hpair = seg.update_handle(v);
+
+      if (hpair != undefined) {
+        hpair.flag |= SplineFlags.FRAME_DIRTY;
+      }
     } else {
       for (var j=0; j<v.segments.length; j++) {
         v.segments[j].flag |= SplineFlags.FRAME_DIRTY;
@@ -47,13 +51,44 @@ export class TransSplineVert {
         v.segments[j].h2.flag |= SplineFlags.FRAME_DIRTY;
         
         v.segments[j].update();
-        v.segments[j].update_handle(v.segments[j].handle(v));
+        var hpair = v.segments[j].update_handle(v.segments[j].handle(v));
+
+        if (hpair != undefined) {
+          hpair.flag |= SplineFlags.FRAME_DIRTY;
+        }
       }
     }
+    
+    /*
+    if (v.type == SplineTypes.HANDLE) { // && v.owning_vertex.segments.length == 2
+    //          && v.use && !(v.flag & SplineFlags.BREAK_TANGENTS)) 
+    //{
+      var h2 = v.owning_vertex.other_segment(v.owning_segment).handle(v.owning_vertex);
+      var hv = h2.owning_segment.handle_vertex(h2);
+      
+//      if (!(h2.flag & SplineFlags.SELECT)) {
+        var len = h2.vectorDistance(hv);
+        h2.load(v).sub(hv).negate().normalize().mulScalar(len).add(hv);
+        h2.flag |= SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
+  //    }
+    }*/
   }
   
   static undo_pre(ToolContext ctx, TransData td, ObjLit undo_obj) {
+    var doneset = new set();
     var undo = [];
+    
+    function push_vert(v) {
+      if (doneset.has(v))
+        return;
+        
+      doneset.add(v);
+      
+      undo.push(v.eid);
+      undo.push(v[0]);
+      undo.push(v[1]);
+      undo.push(v[2]);
+    }
     
     for (var i=0; i<td.data.length; i++) {
       var d = td.data[i];
@@ -62,10 +97,24 @@ export class TransSplineVert {
       
       var v = d.data;
       
-      undo.push(v.eid);
-      undo.push(v[0]);
-      undo.push(v[1]);
-      undo.push(v[2]);
+      //make sure we get all handles that might be affected by this one
+      if (v.type == SplineTypes.HANDLE) {
+        if (v.hpair != undefined) {
+          push_vert(v.hpair);
+        }
+        
+        if (v.owning_vertex.segments.length == 2) {
+          var ov = v.owning_vertex;
+          for (var j=0; j<ov.segments.length; j++) {
+            var s = ov.segments[j];
+            
+            push_vert(s.h1);
+            push_vert(s.h2);
+          }
+        }
+      }
+      
+      push_vert(v);
     }
     
     undo_obj['svert'] = undo;
@@ -265,7 +314,16 @@ export class TransSplineVert {
   static calc_draw_aabb(Context, TransData td, MinMax minmax) {
     var vset = {};
     var sset = {};
+    var hset = {};
 
+    for (var i=0; i<td.data.length; i++) {
+      var d = td.data[i];
+      if (d.type != TransSplineVert)
+        continue;
+      if (d.data.type == SplineTypes.HANDLE)
+        hset[d.data.eid] = 1;
+    }
+    
     function rec_walk(v, depth) {
       if (depth > 2) return;
       if (v == undefined) return;
@@ -291,7 +349,7 @@ export class TransSplineVert {
         if (v2 != undefined && (v2.flag & SplineFlags.SELECT))
           continue;
           
-        if (v.type == SplineTypes.HANDLE) {
+        if (v.type == SplineTypes.HANDLE && !(v.eid in hset)) {
           vset[v.eid] = 1;
         } else {
           rec_walk(seg.other_vert(v), depth+1);
@@ -308,6 +366,9 @@ export class TransSplineVert {
       
       var v = d.data;
       if (v.eid in vset) continue;
+      
+      if (v.type == SplineTypes.HANDLE)
+        v = v.owning_vertex;
       
       rec_walk(v, 0);
     }
@@ -399,8 +460,8 @@ export class TransData {
 import {ToolOp} from 'toolops_api';
 
 export class TransformOp extends ToolOp {
-  constructor(start_mpos, datamode) {
-    ToolOp.call(this);
+  constructor(start_mpos, datamode, apiname, uiname) {
+    ToolOp.call(this, apiname, uiname);
     
     this.types = new GArray([TransSplineVert]);
     
@@ -660,17 +721,17 @@ TransformOp.inputs = {
   data         : new CollectionProperty([], [], "data", "data", "data", TPropFlags.COLL_LOOSE_TYPE),
     
   proportional : new BoolProperty(false, "proportional", "proportional mode"),
-  propradius   : new FloatProperty(80, "prop radius", "prop radius"),
+  propradius   : new FloatProperty(80, "propradius", "prop radius"),
   datamode     : new IntProperty(0, "datamode", "datamode")
 }
 
 export class TranslateOp extends TransformOp {
   constructor(Array<float> user_start_mpos, datamode) {
-    TransformOp.call(this, user_start_mpos, datamode);
+    super(user_start_mpos, datamode, "translate", "Translate");
   }
   
   on_mousemove(event) {
-    TransformOp.prototype.on_mousemove.call(this, event);
+    super.on_mousemove(event);
 
     var md = this.modaldata;
     var ctx = this.modal_ctx;
@@ -720,11 +781,11 @@ TranslateOp.inputs = ToolOp.inherit_inputs(TransformOp, {
 
 export class ScaleOp extends TransformOp {
   constructor(Array<float> user_start_mpos, datamode) {
-    TransformOp.call(this, user_start_mpos, datamode);
+    super(user_start_mpos, datamode, "scale", "Scale");
   }
   
   on_mousemove(event) {
-    TransformOp.prototype.on_mousemove.call(this, event);
+    super.on_mousemove(event);
 
     var md = this.modaldata;
     var ctx = this.modal_ctx;
@@ -780,11 +841,11 @@ export class RotateOp extends TransformOp {
   constructor(Array<float> user_start_mpos, datamode) {
     this.angle_sum = 0.0;
     
-    TransformOp.call(this, user_start_mpos, datamode);
+    super(user_start_mpos, datamode, "rotate", "Rotate");
   }
   
   on_mousemove(event) {
-    TransformOp.prototype.on_mousemove.call(this, event);
+    super.on_mousemove(event);
 
     var md = this.modaldata;
     var ctx = this.modal_ctx;

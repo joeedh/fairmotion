@@ -386,7 +386,7 @@ export class ScreenBorder extends UIElement {
     var stop = false;
     var c = 0;
     while (!stop) {
-      console.log("iteration", c++);
+      //console.log("iteration", c++);
       stop = true;
       
       for (var area of this.parent.children) {
@@ -461,7 +461,7 @@ export class ScreenBorder extends UIElement {
     if (!this.moving)
       return;
 
-    console.log("BORDERINDEX", this.bindex);
+    //console.log("BORDERINDEX", this.bindex);
     
     var mpos = new Vector2([event.x, event.y]);
     var start = new Vector2(this.start_mpos);

@@ -1,5 +1,6 @@
 "use strict";
 
+import 'startup_file';
 import {gen_screen} from 'FrameManager';
 import {DataPath, DataStruct, DataPathTypes, DataFlags,
         DataAPI, DataStructArray} from 'data_api';
@@ -13,14 +14,16 @@ import {RasterState} from 'raster';
 import {NotificationManager, Notification} from 'notifications';
 import {STRUCT} from 'struct';
 import {get_data_typemap} from 'lib_api_typedefine';
-import {ScreenArea, Screen, Area} from 'FrameManager';
+import {Screen} from 'FrameManager';
+import {ScreenArea, Area} from 'ScreenArea';
 import {DataLib, DataBlock, DataTypes} from 'lib_api';
 import {ToolMacro, ToolOp, UndoFlags, ToolFlags} from 'toolops_api';
 import {PropTypes, TPropFlags, StringProperty, CollectionProperty} from 'toolprops';
 import {View2DHandler} from 'view2d';
 import {Scene} from 'scene';
-import {SplineTypes} from 'spline_types';
+import {SplineTypes, SplineFlags} from 'spline_types';
 import {DopeSheetEditor} from 'DopeSheetEditor';
+import {OpStackEditor} from 'ops_editor';
 
 import {
   pack_byte, pack_short, pack_int, pack_float,
@@ -163,20 +166,28 @@ window.gen_default_file = function gen_default_file(size) {
   var g = g_app_state;
   global startup_file_str;
   
+  if (localStorage.startup_file == undefined || localStorage.startup_file == "undefined" || localStorage.startup_file == 0 || localStorage.startup_file == "0") {
+    localStorage.startup_file = startup_file_str;
+  }
   //if (RELEASE && (!("startup_file" in localStorage) || localStorage.startup_file == undefined || localStorage.startup_file == "undefined")) {
   //  localStorage.startup_file = startup_file_str;
   //}
   
-  if (localStorage.startup_file) {
-    try {
-      var buf = localStorage.startup_file
-      buf = new DataView(b64decode(buf).buffer);
-      
-      g.load_user_file_new(buf, new unpack_ctx());
-      return;
-    } catch (err) {
-      print_stack(err);
-      console.log("ERROR: Could not load user-defined startup file.");
+  //try loading twice, load embedded startup_file on second attempt
+  for (var i=0; i<2; i++) {
+    var file = i==0 ? localStorage.startup_file : startup_file_str;
+    
+    if (file) {
+      try {
+        var buf = localStorage.startup_file
+        buf = new DataView(b64decode(buf).buffer);
+        
+        g.load_user_file_new(buf, new unpack_ctx());
+        return;
+      } catch (err) {
+        print_stack(err);
+        console.log("ERROR: Could not load user-defined startup file.");
+      }
     }
   }
   
@@ -770,6 +781,24 @@ export class AppState {
             layer.add(e);
           }
         }
+      }
+    }
+    
+    if (version < 0.049) {
+      for (var frameset of datalib.framesets) {
+        if (frameset.kcache != undefined) {
+          frameset.kcache.cache = {};
+        }
+        
+        for (var s in frameset.spline.segments) {
+          s.v1.flag |= SplineFlags.UPDATE;
+          s.v2.flag |= SplineFlags.UPDATE;
+          s.h1.flag |= SplineFlags.UPDATE;
+          s.h2.flag |= SplineFlags.UPDATE;
+          s.flag |= SplineFlags.UPDATE;
+        }
+        
+        frameset.spline.resolve = 1;
       }
     }
   }

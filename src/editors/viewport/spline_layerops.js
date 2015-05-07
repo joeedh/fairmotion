@@ -7,7 +7,7 @@ import {StringProperty, IntProperty, FloatProperty,
 
 export class AddLayerOp extends ToolOp {
   constructor(name) {
-    ToolOp.call(this);
+    super(undefined, "Add Layer");
     
     if (name != undefined)
       this.inputs.name.set_data(name);
@@ -47,7 +47,7 @@ AddLayerOp.outputs = {
 
 export class ChangeLayerOp extends ToolOp {
   constructor(id) {
-    ToolOp.call(this);
+    super(undefined, "Change Layer");
     
     if (id != undefined)
       this.inputs.layerid.set_data(id);
@@ -109,7 +109,7 @@ ChangeLayerOp.inputs = {
 
 export class ChangeElementLayerOp extends SplineLocalToolOp {
   constructor(old_layer, new_layer) {
-    SplineLocalToolOp.call(this);
+    super(undefined, "Move to Layer");
     
     if (old_layer != undefined)
       this.inputs.old_layer.set_data(old_layer);

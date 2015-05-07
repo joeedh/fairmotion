@@ -31,7 +31,7 @@ import {UICollapseIcon, UIPanel, UIColorField, UIColorBox,
 import {UITabPanel} from 'UITabPanel';
 
 /******************* main area struct ********************************/
-import {Area} from 'FrameManager';
+import {Area} from 'ScreenArea';
 
 class SettingsEditor extends Area {
   do_theme_color(int i, String prefix) : UIFrame {

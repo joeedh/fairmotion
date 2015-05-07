@@ -47,7 +47,7 @@ import {ShiftTimeOp2, ShiftTimeOp3, SelectOp, DeleteKeyOp,
        } from 'dopesheet_ops';
 
 /******************* main area struct ********************************/
-import {Area} from 'FrameManager';
+import {Area} from 'ScreenArea';
 
 var tree_packflag = PackFlags.INHERIT_WIDTH|PackFlags.ALIGN_LEFT
                    |PackFlags.ALIGN_TOP|PackFlags.NO_AUTO_SPACING
@@ -455,6 +455,23 @@ export class DopeSheetEditor extends Area {
     this.channels.size[1] = 600;
     
     this.add(this.channels);
+  }
+  
+  area_duplicate() {
+    var ret = new DopeSheetEditor();
+    
+    ret.velpan.pan[0] = this.velpan.pan[0];
+    ret.velpan.pan[1] = this.velpan.pan[1];
+    
+    ret.pinned_ids = this.pinned_ids;
+    ret.selected_only = this.selected_only;
+    
+    ret.time_zero_x = this.time_zero_x;
+    ret.timescale = this.timescale;
+    
+    ret.zoom = this.zoom;
+    
+    return ret;
   }
   
   rebuild_vdmap() {

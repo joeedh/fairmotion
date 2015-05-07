@@ -618,7 +618,7 @@ function parse_headers(headers) {
   return ret;
 }
 
-window.create_folder = function create_folder(job, args) {
+window.create_folder = function* create_folder(job, args) {
   var token = g_app_state.session.tokens.access;
   var url = "/api/files/dir/new?accessToken="+token+"&id="+args.folderid;
   url += "&name=" + urlencode(args.name);
@@ -738,7 +738,7 @@ window.api_exec = function api_exec(path, netjob, mode,
   var ret = req.send(data);
 }
 
-window.AuthSessionGen = function AuthSessionGen(job, user, password, refresh_token) {
+window.AuthSessionGen = function* AuthSessionGen(job, user, password, refresh_token) {
   if (refresh_token == undefined) {
     var sha1pwd = "{SHA}" + CryptoJS.enc.Base64.stringify(CryptoJS.SHA1(password))
     api_exec("/api/auth?user="+user+"&password="+sha1pwd, job);
@@ -787,7 +787,7 @@ window.call_api = function call_api(iternew, args, finish, error, status) {
   return obj;
 }
 
-window.get_user_info = function get_user_info(job, args) {
+window.get_user_info = function* get_user_info(job, args) {
   if (g_app_state.session.tokens == undefined) {
     job.finish = undefined;
     job.error(job, job.owner);
@@ -799,7 +799,7 @@ window.get_user_info = function get_user_info(job, args) {
   yield;
 }
 
-window.get_dir_files = function get_dir_files(job, args) {
+window.get_dir_files = function* get_dir_files(job, args) {
   var token = g_app_state.session.tokens.access;
   var path = args.path;
   
@@ -812,7 +812,7 @@ window.get_dir_files = function get_dir_files(job, args) {
   yield;
 }
 
-window.upload_file = function upload_file(job, args) {
+window.upload_file = function* upload_file(job, args) {
   var suffix;
   
   job.status_data._client_control = true;
@@ -878,7 +878,7 @@ window.upload_file = function upload_file(job, args) {
   }
 }
 
-window.get_file_data = function get_file_data(job, args) {
+window.get_file_data = function* get_file_data(job, args) {
   var token = g_app_state.session.tokens.access;
   var path = args.path;
   

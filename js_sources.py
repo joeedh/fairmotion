@@ -112,7 +112,10 @@ sources = [
   "src/core/utildefine.js",
 	"src/ui/dialog.js",
 	"src/ui/dialogs.js",
-	"src/ui/FrameManager.js",
+	"src/windowmanager/FrameManager.js",
+	"src/windowmanager/FrameManager_ops.js",
+	"src/windowmanager/ScreenArea.js",
+  "src/windowmanager/ScreenBorder.js",
   
   "src/editors/viewport/view2d_editor.js",
   "src/editors/material/MaterialEditor.js",

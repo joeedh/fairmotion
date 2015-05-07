@@ -43,11 +43,12 @@ export var SplineFlags = {
   PINNED         : 256,
   
   NO_RENDER      : 512, //used by segments
-  AUTO_PAIRED_HANDLE : 1024,
-  UPDATE_AABB    : 2048,
-  DRAW_TEMP      : 2048*2,
-  GHOST          : 2048*4,
-  UI_SELECT      : 2048*8
+  AUTO_PAIRED_HANDLE : 1<<10,
+  UPDATE_AABB    : 1<<11,
+  DRAW_TEMP      : 1<<12,
+  GHOST          : 1<<13,
+  UI_SELECT      : 1<<14,
+  FIXED_KS       : 1<<21, //internal to solver code
 }
 
 export var SplineTypes= {
@@ -745,6 +746,8 @@ export class SplineSegment extends SplineElement {
   }
   
   update_handle(h) {
+    var ov = this.handle_vertex(h);
+    
     if (h.hpair != undefined) {
       var seg = h.hpair.owning_segment;
       var v = this.handle_vertex(h);
@@ -753,6 +756,17 @@ export class SplineSegment extends SplineElement {
       
       h.hpair.load(h).sub(v).negate().normalize().mulScalar(len).add(v);
       seg.update();
+      
+      return h.hpair;
+    } else if (ov.segments.length == 2 && h.use && !(ov.flag & SplineFlags.BREAK_TANGENTS)) {
+      var h2 = h.owning_vertex.other_segment(h.owning_segment).handle(h.owning_vertex);
+      var hv = h2.owning_segment.handle_vertex(h2), len = h2.vectorDistance(hv);
+      
+      h2.load(h).sub(hv).negate().normalize().mulScalar(len).add(hv);
+      
+      h2.owning_segment.update();
+      
+      return h2;
     }
   }
   

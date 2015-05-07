@@ -13,6 +13,8 @@ import {constraint, solver} from "solver";
 import {ModalStates} from 'toolops_api';
 import {SplineTypes, SplineFlags} from 'spline_types';
 
+var FIXED_KS_FLAG = SplineFlags.FIXED_KS;
+
 export function has_nacl() {
   return common.naclModule != undefined;
 }
@@ -353,11 +355,11 @@ function solve_intern(spline, update_verts, order, goal_order, steps, gk) {
          slv.add(cc);
          */
 
-        var cc = new constraint(cw1, [ss1.ks], order, curv_c, [ss1, ss2, h, h2]);
+        var cc = new constraint(1, [ss1.ks], order, curv_c, [ss1, ss2, h, h2]);
         cc.type = "curv_c";
         cs.push(cc);
         
-        var cc = new constraint(cw2, [ss2.ks], order, curv_c, [ss1, ss2, h, h2]);
+        var cc = new constraint(1, [ss2.ks], order, curv_c, [ss1, ss2, h, h2]);
         cs.push(cc);
         cc.type = "curv_c";
         
@@ -663,6 +665,25 @@ export function start_message(type, msgid, endian) {
     return data;
 }
 
+function _unpacker(dview) {
+  var b = 0;
+  
+  return {
+    getint : function getint() {
+      b += 4;
+      return dview.getInt32(b-4, endian);
+    },
+  
+    getfloat : function getfloat() {
+      b += 4;
+      return dview.getFloat32(b-4, endian);
+    },
+    getdouble : function getdouble() {
+      b += 8;
+      return dview.getFloat64(b-8, endian);
+    }
+  };
+}
 export function* gen_draw_cache(postMessage, status, spline) {
     var data = [];
     var msgid = status.msgid;
@@ -707,24 +728,13 @@ export function* gen_draw_cache(postMessage, status, spline) {
 
     //console.log("got reply!", status.data);
     var dview = new DataView(status.data);
+    var upack = _unpacker(dview);
     
-    var tot = dview.getInt32(0, endian);
-    var b = 0;
+    var getint = upack.getint;
+    var getfloat = upack.getfloat;
+    var getdouble = upack.getdouble;
     
-    function getint() {
-      b += 4;
-      return dview.getInt32(b-4, endian);
-    }
-    
-    function getfloat() {
-      b += 4;
-      return dview.getFloat32(b-4, endian);
-    }
-    
-    function getdouble() {
-      b += 8;
-      return dview.getFloat64(b-8, endian);
-    }
+    var tot = getint();
     
     var ret = [];
     var eidmap = spline.eidmap;
@@ -767,7 +777,7 @@ export function* gen_draw_cache(postMessage, status, spline) {
 }
 
 export function do_solve(sflags, Spline spline, int steps, float gk=0.95, return_promise=false) {
-    if (1||!INCREMENTAL) {
+    if (!INCREMENTAL) {
       for (var v in spline.verts) {
         v.flag |= sflags.UPDATE;
       }
@@ -912,6 +922,8 @@ export function do_solve(sflags, Spline spline, int steps, float gk=0.95, return
     var ret = solve_intern(spline, update_verts, ORDER, undefined, 30, 1);
     var cs=ret[0], edge_segs=ret[1];
     
+    edge_segs = new set(edge_segs);
+    
     /*
       edge_segs = [];
       var slv = new solver()
@@ -935,14 +947,14 @@ export function do_solve(sflags, Spline spline, int steps, float gk=0.95, return
       },
       typeid        : spline.is_anim_path ? JobTypes.PATHSOLVE : JobTypes.DRAWSOLVE,
       only_latest   : true
-    }, spline, cs, update_verts, gk);
+    }, spline, cs, update_verts, gk, edge_segs);
     
     return promise;
 }
 
 window.nacl_do_solve = do_solve;
 
-function write_nacl_solve(data, spline, cons, update_verts, update_segs, gk) {
+function write_nacl_solve(data, spline, cons, update_verts, update_segs, gk, edge_segs) {
     var endian = ajax.little_endian;
     var idxmap = {}
     
@@ -965,22 +977,27 @@ function write_nacl_solve(data, spline, cons, update_verts, update_segs, gk) {
     
     var i = 0;
     for (var s in update_segs) {
+      var flag = s.flag;
+      
+      if (edge_segs.has(s)) {
+        flag |= FIXED_KS_FLAG;
+        //console.log("edge segment!");
+      }
+      
       ajax.pack_int(data, s.eid, endian);
-      ajax.pack_int(data, s.flag, endian);
+      ajax.pack_int(data, flag, endian);
       
-      for (var j=0; j<16; j++) {
-        ajax.pack_double(data, 0.000001, endian);
-        
-      }
+      var klen = s.ks.length;
+      var is_eseg = edge_segs.has(s);
       
-      /*
-      for (var j=0; j<s.ks.length; j++) {
-        ajax.pack_double(data, s.ks[j], endian);
+      for (var ji=0; ji<1; ji++) {
+        for (var j=0; j<klen; j++) {
+          ajax.pack_double(data, is_eseg ? s.ks[j] : 0.0, endian);
+        }
+        for (var j=0; j<16-klen; j++) {
+          ajax.pack_double(data, 0.0, endian);
+        }
       }
-      for (var j=0; j<16-s.ks.length; j++) {
-        ajax.pack_double(data, 0, endian);
-      }
-      //*/
       
       ajax.pack_vec3(data, s.h1, endian);
       ajax.pack_vec3(data, s.h2, endian);
@@ -1020,6 +1037,14 @@ function write_nacl_solve(data, spline, cons, update_verts, update_segs, gk) {
           }
      } else if (c.type == "hard_tan_c") {
           type = ConstraintTypes.HARD_TAN_CONSTRAINT;
+          
+          var seg = c.params[0], tan = c.params[1], s = c.params[2];
+          
+          seg1 = idxmap[seg.eid];
+          seg2 = -1;
+          
+          fparam1 = Math.atan2(tan[0], tan[1]);
+          fparam2 = s;
      } else if (c.type == "curv_c") {
           type = ConstraintTypes.CURVATURE_CONSTRAINT;
           //console.log("curvature constraint!")
@@ -1140,7 +1165,7 @@ function wrap_unload(spline, data) {
 
 export function* nacl_solve(Function postMessage, ObjLit status, Spline spline, 
                             Array<constraint> cons, set<SplineVertex> update_verts,
-                            float gk) 
+                            float gk, set<SplineSegment> edge_segs) 
 {
   var msgid = status.msgid;
   var endian = ajax.little_endian;
@@ -1167,7 +1192,7 @@ export function* nacl_solve(Function postMessage, ObjLit status, Spline spline,
   ajax.pack_int(data, update_verts.length, endian);
   ajax.pack_int(data, 0, endian); //pad to 8 byte boundary
   
-  var idxmap = write_nacl_solve(data, spline, cons, update_verts, update_segs, gk);
+  var idxmap = write_nacl_solve(data, spline, cons, update_verts, update_segs, gk, edge_segs);
   
   data = new Uint8Array(data).buffer;
   postMessage(data);

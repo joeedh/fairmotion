@@ -27,7 +27,7 @@ import {ShiftLayerOrderOp} from 'spline_editops';
 import {AddLayerOp, ChangeLayerOp, ChangeElementLayerOp} from 'spline_layerops';
 
 /******************* main area struct ********************************/
-import {Area} from 'FrameManager';
+import {Area} from 'ScreenArea';
 
 class LayerPanel extends RowFrame {
   constructor(ctx) {

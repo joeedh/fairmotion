@@ -19,6 +19,7 @@ import 'spline_editops';
 import 'spline_animops';
 import 'spline_layerops';
 import 'FrameManager';
+import 'FrameManager_ops';
 
 eval(es6_import_all(_es6_module, 'transform') + "\n");
 eval(es6_import_all(_es6_module, 'spline_selectops'));
@@ -26,7 +27,7 @@ eval(es6_import_all(_es6_module, 'spline_createops'));
 eval(es6_import_all(_es6_module, 'spline_editops'));
 eval(es6_import_all(_es6_module, 'spline_animops'));
 eval(es6_import_all(_es6_module, 'spline_layerops'));
-eval(es6_import_all(_es6_module, 'FrameManager'));
+eval(es6_import_all(_es6_module, 'FrameManager_ops'));
 
 import {RenderAnimOp, PlayAnimOp} from 'view2d_spline_ops';
 import {SessionFlags} from "view2d_editor";
@@ -153,6 +154,10 @@ window.api_define_ops = function() {
     
     "spline.delete_faces": function(ctx, args) {
       return new DeleteFaceOp();
+    },
+    
+    "spline.toggle_manual_handles" : function(ctx, args) {
+      return new ToggleManualHandlesOp();
     },
     
     "spline.delete_segments": function(ctx, args) {

@@ -17,6 +17,7 @@ import {Unit} from 'units';
 
 import {ExtrudeModes} from 'spline_createops';
 import {DataFlags, DataPathTypes} from 'data_api';
+import {OpStackEditor} from 'ops_editor';
 
 var SelModes = {};
 
@@ -139,6 +140,7 @@ csg_mode_enum.ui_value_names = {
     INTERSECT : "Intersect",
     UNION : "Union"
 }
+*/
 
 var OpsEditorStruct = undefined;
 function api_define_opseditor() {
@@ -152,7 +154,7 @@ function api_define_opseditor() {
   return OpsEditorStruct;
 }
 
-*/
+//*/
 
 import {ExtrudeModes} from 'spline_createops';
 
@@ -773,8 +775,38 @@ export function get_tool_struct(tool) {
   return tool.apistruct;
 }
 
-var OpStackArray = new DataStructArray(get_tool_struct);
+//ctx.appstate.toolstack.undostack
+var OpStackArray = new DataStructArray(
+  get_tool_struct,
+  function getitempath(key) {
+    return "["+key+"]";
+  },
+  function getitem(key) {
+    return g_app_state.toolstack.undostack[key];
+  },
+  function getiter() {
+    return g_app_state.toolstack.undostack.__iterator__();
+  },
+  function getkeyiter() {
+    function* range(len) {
+      for (var i=0; i<len; i++) {
+        yield i;
+      }
+    }
+    
+    return range(g_app_state.toolstack.undostack.length).__iterator__();
+  },
+  function getlength() {
+    return g_app_state.toolstack.undostack.length;
+  }
+  );
 global ContextStruct = undefined;
+
+window.test_range = function* range(len) {
+  for (var i=0; i<len; i++) {
+    yield i;
+  }
+}
 
 window.api_define_context = function() {
   ContextStruct = new DataStruct([
@@ -791,7 +823,8 @@ window.api_define_context = function() {
                  "ctx.appstate.toolstack.undostack", false, true, DataFlags.RECALC_CACHE),
     new DataPath(api_define_theme(), "theme", "g_theme", false),
     new DataPath(api_define_spline(), "spline", "ctx.spline", false),
-    new DataPath(api_define_datalib(), "datalib", "ctx.datalib", false)
+    new DataPath(api_define_datalib(), "datalib", "ctx.datalib", false),
+    new DataPath(api_define_opseditor(), "opseditor", "ctx.opseditor", false)
   ]);
 }
 

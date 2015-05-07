@@ -13,7 +13,7 @@ class Iter {
 }
 
 class CanIter {
-  __iterator__() : Iter {
+  [Symbol.Iterator]() : Iter {
   }
 }
 
@@ -87,7 +87,7 @@ class GArray extends Array {
     return this.indexOf(item) >= 0;
   }
   
-  __iterator__() : GArrayIter<T> {
+  [Symbol.Iterator]() : GArrayIter<T> {
     if (this.itercache == undefined) {
       this.itercache = cachering.fromConstructor(GArrayIter, 8);
     }
@@ -240,7 +240,7 @@ function obj_value_iter(Object obj) {
     return reti;
   }
   
-  this.__iterator__ = function() {
+  this[Symbol.Iterator] = function() {
     return this;
   }
 }
@@ -335,7 +335,7 @@ class SetIter {
     this.list = set.list;
   }
   
-  __iterator__() {
+  [Symbol.Iterator]() {
     return this;
   }
   
@@ -461,7 +461,7 @@ class set {
     return ret;
   }
   
-  __iterator__() {
+  [Symbol.Iterator]() {
     return this._itercache.next().cache_init(this);
   }
 
@@ -556,7 +556,7 @@ class ArrayIter {
   }
 }
 
-Array.prototype.__iterator__ = function() {
+Array.prototype[Symbol.Iterator] = function() {
   if (this.itercache == undefined) {
     this.itercache = cachering.fromConstructor(ArrayIter, 8);
   }
@@ -620,7 +620,7 @@ class hashtable {
     this.length -= 1;
   }
 
-  __iterator__() : HashKeyIter {
+  [Symbol.Iterator]() : HashKeyIter {
     return new HashKeyIter(this)
   }
 
@@ -1493,7 +1493,7 @@ class SDIDLayerList {
   constructor() {
   }
   
-  __iterator__() {
+  [Symbol.Iterator]() {
     return new SDIDLayerListIter(this);
   }
   

@@ -3,7 +3,7 @@
 if (self.Symbol == undefined) {
   //bare, bare, bare-boned polyfill
   self.Symbol = new (function() {
-    this.iterator = "__iterator__";
+    this.iterator = [Symbol.Iterator];
     this.hasInstance = "__hasInstance__";
   })();
 }

@@ -342,7 +342,7 @@ export function wrap_getblock(datalib) {
   DataRefList.  A simple container for block references.
   Most of the API will accept either a block or a DataRef.
   
-  __iterator__ will use the ids to fetch and return blocks,
+  [Symbol.Iterator] will use the ids to fetch and return blocks,
   though.
 */
 class DataRefList extends GArray, TPropIterable {
@@ -360,14 +360,14 @@ class DataRefList extends GArray, TPropIterable {
         
         this.push(lst[i]);
       }
-    } else if ("__iterator__" in lst) {
+    } else if (Symbol.Iterator in lst) {
       for (var b in lst) {
         this.push(b);
       }
     }
   }
   
-  __iterator__() : DataRefListIter {
+  [Symbol.Iterator]() : DataRefListIter {
     return new DataRefListIter(this, new Context());
   }
   

@@ -774,7 +774,7 @@
             this.keys = keys;
             this.cur = 0;
 
-            this.__iterator__ = function () {
+            this[Symbol.Iterator] = function () {
                 return this;
             }
 
@@ -846,8 +846,8 @@
          throw new Error("Invalid iteration over undefined value")
          }
 
-         if (obj.__proto__.hasOwnProperty("__iterator__") || obj.hasOwnProperty("__iterator__")) {
-         return obj.__iterator__();
+         if (obj.__proto__.hasOwnProperty([Symbol.Iterator]) || obj.hasOwnProperty([Symbol.Iterator])) {
+         return obj[Symbol.Iterator]();
          } else {
          keys = []
          for (var k in obj) {
@@ -859,8 +859,8 @@
          */
 
         function _KeyValIterator(obj) {
-            if (obj.__proto__.hasOwnProperty("__iterator__") || obj.hasOwnProperty("__iterator__")) {
-                return obj.__iterator__();
+            if (obj.__proto__.hasOwnProperty([Symbol.Iterator]) || obj.hasOwnProperty([Symbol.Iterator])) {
+                return obj[Symbol.Iterator]();
             } else {
                 var keys = []
                 for (var k in obj) {

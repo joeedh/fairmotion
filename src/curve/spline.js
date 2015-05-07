@@ -103,12 +103,12 @@ export class AllPointsIter {
   constructor(spline) {
     this.spline = spline;
     this.stage = 0;
-    this.iter = spline.verts.__iterator__();
+    this.iter = spline.verts[Symbol.Iterator]();
     
     this.ret = {done : false, value : undefined};
   }
   
-  __iterator__() {  
+  [Symbol.Iterator]() {  
     return this;
   }
   
@@ -120,7 +120,7 @@ export class AllPointsIter {
     
     if (ret.done && this.stage == 0) {
       this.stage = 1;
-      this.iter = this.spline.handles.__iterator__();
+      this.iter = this.spline.handles[Symbol.Iterator]();
       
       return this.next();
     }

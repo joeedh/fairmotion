@@ -40,7 +40,7 @@ export class VertexAnimIter {
     return this;
   }
 
-  __iterator__(self) {
+  [Symbol.Iterator](self) {
     return this;
   }
   
@@ -107,7 +107,7 @@ export class SegmentAnimIter {
     return this;
   }
 
-  __iterator__(self) {
+  [Symbol.Iterator](self) {
     return this;
   }
   
@@ -655,7 +655,7 @@ class AllSplineIter {
         arr.push(fr.spline);
       }
       
-      this.iter = arr.__iterator__();
+      this.iter = arr[Symbol.Iterator]();
     } else if (this.stage == 1) {
       //handle animation curves
       var arr = [];
@@ -676,7 +676,7 @@ class AllSplineIter {
         arr.push(this.f.vertex_animdata[k].spline);
       }
       
-      this.iter = arr.__iterator__();
+      this.iter = arr[Symbol.Iterator]();
     }
   }
   
@@ -686,7 +686,7 @@ class AllSplineIter {
     this.iter = undefined;
   }
   
-  __iterator__() {
+  [Symbol.Iterator]() {
     return this;
   }
   

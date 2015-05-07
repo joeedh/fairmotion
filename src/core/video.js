@@ -12,7 +12,7 @@ class FrameIterator {
     this.i = 0;
   }
   
-  __iterator__() {
+  [Symbol.Iterator]() {
     return this;
   }
   
@@ -160,7 +160,7 @@ export class Video {
    //return this.blank;
  }
  
- __iterator__() {
+ [Symbol.Iterator]() {
   return new FrameIterator(this);
  }
 }

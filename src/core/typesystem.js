@@ -712,7 +712,7 @@ function arr_iter(keys)
   this.keys = keys;
   this.cur = 0;
   
-  this.__iterator__ = function() {
+  this[Symbol.Iterator] = function() {
     return this;
   }
   
@@ -747,7 +747,7 @@ if (window.Symbol == undefined) {
   }
 }
 /*the grand __get_iter function.
-  extjs_cc does not use c.__iterator__ when
+  extjs_cc does not use c[Symbol.Iterator] when
   compiling code like "for (var a in c)" to
   harmony ECMAScript; rather, it calls __get_iter(c).
   
@@ -761,7 +761,7 @@ function __get_iter(obj) //, file, line, keyword)
     throw new Error("Invalid iteration over undefined value")
   }
   
-  if ("__iterator__" in obj) {
+  if (Symbol.Iterator in obj) {
     /*
     if (keyword == "in") {
       var hash = file + ":"+line +":" + keyword
@@ -772,7 +772,7 @@ function __get_iter(obj) //, file, line, keyword)
     }
     //*/
     
-    return obj.__iterator__();
+    return obj[Symbol.Iterator]();
   } else {
     var keys = []
     for (var k in obj) {
@@ -789,7 +789,7 @@ var arr_iter = function(keys)
   this.keys = keys;
   this.cur = 0;
   
-  this.__iterator__ = function() {
+  this[Symbol.Iterator] = function() {
     return this;
   }
   
@@ -814,7 +814,7 @@ class _KeyValIterator {
     this.keys = Object.keys(obj);
   }
   
-  __iterator__() {
+  [Symbol.Iterator]() {
     return this;
   }
   
@@ -838,8 +838,8 @@ class _KeyValIterator {
 }
 
 var Iterator = function(obj) {
-  if ("__iterator__" in obj) {
-    return obj.__iterator__();
+  if (Symbol.Iterator in obj) {
+    return obj[Symbol.Iterator]();
   } else {
     return new _KeyValIterator(obj);
   }

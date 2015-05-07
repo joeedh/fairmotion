@@ -337,7 +337,7 @@ export class SelectedEditableIter {
     }
   }
   
-  __iterator__() {
+  [Symbol.Iterator]() {
     return this;
   }
   
@@ -361,7 +361,7 @@ export class SelectedEditableIter {
   
   next() {
     if (this.iter == undefined) {
-      this.iter = this.set.__iterator__();
+      this.iter = this.set[Symbol.Iterator]();
       this.ret.done = false;
     }
     

@@ -399,7 +399,7 @@ function api_define_spline() {
       return this.idmap[key];
     }, 
     function getiter() {
-      return this.__iterator__()
+      return this[Symbol.Iterator]()
     }, 
     function getkeyiter() {
       var keys = Object.keys(this.idmap);
@@ -427,7 +427,7 @@ function api_define_spline() {
         return this.local_idmap[key];
       }, 
       function getiter() {
-        return this.__iterator__()
+        return this[Symbol.Iterator]()
       }, 
       function getkeyiter() {
         var keys = Object.keys(this.local_idmap);
@@ -612,7 +612,7 @@ function api_define_colortheme() {
     }, 
     
     function getiter() {
-      return this.__iterator__();
+      return this[Symbol.Iterator]();
     }, 
     
     function getkeyiter() {
@@ -621,7 +621,7 @@ function api_define_colortheme() {
         arr.push(i);
       }
       
-      return arr.__iterator__();
+      return arr[Symbol.Iterator]();
     }, 
     
     function getlength () {
@@ -710,10 +710,10 @@ function api_define_datalist(name, typeid) {
       for (var k in this) {
         ret.push(this[k]);
       }
-      return ret.__iterator__();
+      return ret[Symbol.Iterator]();
     }, 
     function getkeyiter() {
-      return list(this).__iterator__();
+      return list(this)[Symbol.Iterator]();
     }, 
     function getlength() {
       return list(this).length;
@@ -785,7 +785,7 @@ var OpStackArray = new DataStructArray(
     return g_app_state.toolstack.undostack[key];
   },
   function getiter() {
-    return g_app_state.toolstack.undostack.__iterator__();
+    return g_app_state.toolstack.undostack[Symbol.Iterator]();
   },
   function getkeyiter() {
     function* range(len) {
@@ -794,7 +794,7 @@ var OpStackArray = new DataStructArray(
       }
     }
     
-    return range(g_app_state.toolstack.undostack.length).__iterator__();
+    return range(g_app_state.toolstack.undostack.length)[Symbol.Iterator]();
   },
   function getlength() {
     return g_app_state.toolstack.undostack.length;

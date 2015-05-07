@@ -22,7 +22,7 @@ import {STRUCT} from 'struct';
   lookup values like eid's, dataref's, etc.
   
   To make things even more complicated, we are not going to have
-  separate iterator factory objects (e.g. with their own [Symbol.Iterator] methods).
+  separate iterator factory objects (e.g. with their own [Symbol.iterator] methods).
   Instead, each iter class will iterate on it own, as well as be able to 
   spawn copies of itself for nested iteration.
   
@@ -38,7 +38,7 @@ export class TPropIterable {
   constructor() {
   }
   
-  [Symbol.Iterator]() : ToolIter { }
+  [Symbol.iterator]() : ToolIter { }
 }
 window.TPropIterable = TPropIterable;
 
@@ -84,7 +84,7 @@ export class ToolIter extends TPropIterable {
     }
   }
   
-  [Symbol.Iterator]() {
+  [Symbol.iterator]() {
     return this;
   }
   
@@ -113,7 +113,7 @@ class MSelectIter extends ToolIter {
     this.iter = undefined;
   }
   
-  [Symbol.Iterator]() {
+  [Symbol.iterator]() {
     if (this.init) {
       return this;
     } else { //detect nested iterator cases
@@ -169,7 +169,7 @@ class element_iter_convert extends ToolIter {
     }
     
     this.vset = new set();
-    this.iter = iter[Symbol.Iterator]();
+    this.iter = iter[Symbol.iterator]();
     this.subiter = undefined;
     
     if (type == MeshTypes.VERT)
@@ -190,7 +190,7 @@ class element_iter_convert extends ToolIter {
     this.iter.ctx = this.ctx;
   }
   
-  [Symbol.Iterator]() {
+  [Symbol.iterator]() {
     return this;
   }
   
@@ -225,7 +225,7 @@ class element_iter_convert extends ToolIter {
       if (next.value.constructor.name == this.type.name)
         return next;
       
-      this.subiter = next.value.verts[Symbol.Iterator]();
+      this.subiter = next.value.verts[Symbol.iterator]();
     }
     
     var vset = this.vset;

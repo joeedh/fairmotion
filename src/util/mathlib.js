@@ -904,7 +904,7 @@ function spatialhash(init, cellsize) { //=new GArray(), cellsize=0.25)
       this.length--;
   }
   
-  this[Symbol.Iterator] = function() {
+  this[Symbol.iterator] = function() {
     return new obj_value_iter(this.items);
   }
   

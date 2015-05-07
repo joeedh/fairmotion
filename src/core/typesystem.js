@@ -161,9 +161,13 @@ var _im_max = {
 
 function _get_obj_keys(ob) {
   var ks = Object.getOwnPropertyNames(ob);
+  var syms = Object.getOwnPropertySymbols != undefined ? Object.getOwnPropertySymbols(ob) : []
   
-  if (ob.toString != undefined)
+  ks = ks.concat(syms)
+  
+  if (ob.toString != undefined && ks.indexOf("toString") < 0)
     ks.push("toString");
+  
   return ks;
 }
 
@@ -583,7 +587,9 @@ function inherit_multiple_intern(obj, parents) {
     }
   }
   
-  for (var k in obj.__statics__) {
+  var keys = _get_obj_keys(obj.__statics__)
+  for (var i=0; i<keys.length; i++) {
+    var k = keys[i];
     obj.__flatstatics__[k] = obj.__statics__[k];
   }
   
@@ -712,7 +718,7 @@ function arr_iter(keys)
   this.keys = keys;
   this.cur = 0;
   
-  this[Symbol.Iterator] = function() {
+  this[Symbol.iterator] = function() {
     return this;
   }
   
@@ -747,7 +753,7 @@ if (window.Symbol == undefined) {
   }
 }
 /*the grand __get_iter function.
-  extjs_cc does not use c[Symbol.Iterator] when
+  extjs_cc does not use c[Symbol.iterator] when
   compiling code like "for (var a in c)" to
   harmony ECMAScript; rather, it calls __get_iter(c).
   
@@ -761,7 +767,7 @@ function __get_iter(obj) //, file, line, keyword)
     throw new Error("Invalid iteration over undefined value")
   }
   
-  if (Symbol.Iterator in obj) {
+  if (Symbol.iterator in obj) {
     /*
     if (keyword == "in") {
       var hash = file + ":"+line +":" + keyword
@@ -772,7 +778,7 @@ function __get_iter(obj) //, file, line, keyword)
     }
     //*/
     
-    return obj[Symbol.Iterator]();
+    return obj[Symbol.iterator]();
   } else {
     var keys = []
     for (var k in obj) {
@@ -789,7 +795,7 @@ var arr_iter = function(keys)
   this.keys = keys;
   this.cur = 0;
   
-  this[Symbol.Iterator] = function() {
+  this[Symbol.iterator] = function() {
     return this;
   }
   
@@ -814,7 +820,7 @@ class _KeyValIterator {
     this.keys = Object.keys(obj);
   }
   
-  [Symbol.Iterator]() {
+  [Symbol.iterator]() {
     return this;
   }
   
@@ -838,8 +844,8 @@ class _KeyValIterator {
 }
 
 var Iterator = function(obj) {
-  if (Symbol.Iterator in obj) {
-    return obj[Symbol.Iterator]();
+  if (Symbol.iterator in obj) {
+    return obj[Symbol.iterator]();
   } else {
     return new _KeyValIterator(obj);
   }

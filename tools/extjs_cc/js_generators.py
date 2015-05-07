@@ -977,9 +977,9 @@ def visit_generators(node):
     }
   """, start_node=FunctionNode);
   
-  #add a self-referencing __iterator__ method
+  #add a self-referencing [Symbol.iterator] method
   n = js_parse("""
-    this.__iterator__ = function() {
+    this[Symbol.iterator] = function() {
       return this;
     }
   """);
@@ -1189,7 +1189,7 @@ def bleh():
       
       
   node2.insert(1, js_parse("""
-    this.__iterator__ = function() {
+    this[Symbol.iterator] = function() {
       return this;
     }
   """)[0])

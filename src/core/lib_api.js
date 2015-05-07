@@ -156,8 +156,8 @@ export class DataList<T> {
     this.active = undefined;
   }
 
-  [Symbol.Iterator]() : GArrayIter {
-    return this.list[Symbol.Iterator]();
+  [Symbol.iterator]() : GArrayIter {
+    return this.list[Symbol.iterator]();
   }
   
   remove(block) {

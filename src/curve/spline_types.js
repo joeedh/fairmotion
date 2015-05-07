@@ -1021,7 +1021,7 @@ export class SplineLoopPath {
     this.winding = 0;
   }
   
-  [Symbol.Iterator]() {
+  [Symbol.iterator]() {
     if (this.itercache == undefined) {
       this.itercache = cachering.fromConstructor(SplineLoopPathIter, 4);
     }
@@ -1247,7 +1247,7 @@ export class ElementRefIter extends ToolIter, TPropIterable {
     if (this.spline == undefined)
       this.spline = this.ctx.spline;
     if (this.iter == undefined)
-      this.iter = set.prototype[Symbol.Iterator].call(this.eset);
+      this.iter = set.prototype[Symbol.iterator].call(this.eset);
     
     var spline = this.spline;
     var next, e = undefined;
@@ -1281,7 +1281,7 @@ export class ElementRefIter extends ToolIter, TPropIterable {
     this.iter = undefined;
   }
   
-  [Symbol.Iterator]() {
+  [Symbol.iterator]() {
     return this;
   }
   
@@ -1327,14 +1327,14 @@ export class ElementRefSet extends set, TPropIterable {
   copy() {
     var ret = new ElementRefSet(this.mask);
     
-    for (var eid of set.prototype[Symbol.Iterator].call(this)) {
+    for (var eid of set.prototype[Symbol.iterator].call(this)) {
       ret.add(eid);
     }
     
     return ret;
   }
   
-  [Symbol.Iterator]() {
+  [Symbol.iterator]() {
     if (this.itercaches == undefined) {
       this.itercaches = cachering.fromConstructor(ElementRefIter, 8);
     }

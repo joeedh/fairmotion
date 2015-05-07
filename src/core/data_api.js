@@ -75,7 +75,7 @@ export class DataStructIter {
     this.value = undefined;
   }
   
-  [Symbol.Iterator]() { return this; }
+  [Symbol.iterator]() { return this; }
   
   reset() {
     this.cur = 0;
@@ -166,7 +166,7 @@ export class DataStruct {
     return ret;
   }
 
-  [Symbol.Iterator]() {
+  [Symbol.iterator]() {
     return new DataStructIter(this);
   }
   

@@ -103,12 +103,12 @@ export class AllPointsIter {
   constructor(spline) {
     this.spline = spline;
     this.stage = 0;
-    this.iter = spline.verts[Symbol.Iterator]();
+    this.iter = spline.verts[Symbol.iterator]();
     
     this.ret = {done : false, value : undefined};
   }
   
-  [Symbol.Iterator]() {  
+  [Symbol.iterator]() {  
     return this;
   }
   
@@ -120,7 +120,7 @@ export class AllPointsIter {
     
     if (ret.done && this.stage == 0) {
       this.stage = 1;
-      this.iter = this.spline.handles[Symbol.Iterator]();
+      this.iter = this.spline.handles[Symbol.iterator]();
       
       return this.next();
     }
@@ -697,11 +697,11 @@ export class Spline extends DataBlock {
         
         i += 8/UMUL;
       }
-      
+        
       d = (d + 1) % mmlen;
       
-      if (i/UMUL >= data.length) {
-        console.log("SPLINE CACHE ERROR", i/UMUL, data.length);
+      if (i >= data.length) {
+        console.log("SPLINE CACHE ERROR", i, data.length);
         break;
       }
       

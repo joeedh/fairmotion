@@ -1044,16 +1044,16 @@ export class CollectionProperty extends ToolProperty {
     return this._data;
   }
   
-  [Symbol.Iterator]() {
+  [Symbol.iterator]() {
     if (this._data == undefined) //return empty iterator if no data
       return {next : function() { return {done : true, value : undefined};}};
     
     this._data.ctx = this._ctx;
     
     if (this.types != undefined && this.types.length > 0)
-      return new type_filter_iter(this.data[Symbol.Iterator](), this.types, this._ctx);
+      return new type_filter_iter(this.data[Symbol.iterator](), this.types, this._ctx);
     else
-      return this.data[Symbol.Iterator]();
+      return this.data[Symbol.iterator]();
   }
   
   static fromSTRUCT(reader) {

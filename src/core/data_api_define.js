@@ -399,7 +399,7 @@ function api_define_spline() {
       return this.idmap[key];
     }, 
     function getiter() {
-      return this[Symbol.Iterator]()
+      return this[Symbol.iterator]()
     }, 
     function getkeyiter() {
       var keys = Object.keys(this.idmap);
@@ -427,7 +427,7 @@ function api_define_spline() {
         return this.local_idmap[key];
       }, 
       function getiter() {
-        return this[Symbol.Iterator]()
+        return this[Symbol.iterator]()
       }, 
       function getkeyiter() {
         var keys = Object.keys(this.local_idmap);
@@ -612,7 +612,7 @@ function api_define_colortheme() {
     }, 
     
     function getiter() {
-      return this[Symbol.Iterator]();
+      return this[Symbol.iterator]();
     }, 
     
     function getkeyiter() {
@@ -621,7 +621,7 @@ function api_define_colortheme() {
         arr.push(i);
       }
       
-      return arr[Symbol.Iterator]();
+      return arr[Symbol.iterator]();
     }, 
     
     function getlength () {
@@ -710,10 +710,10 @@ function api_define_datalist(name, typeid) {
       for (var k in this) {
         ret.push(this[k]);
       }
-      return ret[Symbol.Iterator]();
+      return ret[Symbol.iterator]();
     }, 
     function getkeyiter() {
-      return list(this)[Symbol.Iterator]();
+      return list(this)[Symbol.iterator]();
     }, 
     function getlength() {
       return list(this).length;
@@ -785,7 +785,7 @@ var OpStackArray = new DataStructArray(
     return g_app_state.toolstack.undostack[key];
   },
   function getiter() {
-    return g_app_state.toolstack.undostack[Symbol.Iterator]();
+    return g_app_state.toolstack.undostack[Symbol.iterator]();
   },
   function getkeyiter() {
     function* range(len) {
@@ -794,7 +794,7 @@ var OpStackArray = new DataStructArray(
       }
     }
     
-    return range(g_app_state.toolstack.undostack.length)[Symbol.Iterator]();
+    return range(g_app_state.toolstack.undostack.length)[Symbol.iterator]();
   },
   function getlength() {
     return g_app_state.toolstack.undostack.length;

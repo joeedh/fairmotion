@@ -1,7 +1,3 @@
-import {UIFrame} from 'UIFrame';
-import {UIElement, PackFlags, UIFlags, CanvasFlags}
-       from 'UIElement';
-       
 export var DataPathTypes = {PROP: 0, STRUCT: 1, STRUCT_ARRAY : 2};
 export var DataFlags = {NO_CACHE : 1, RECALC_CACHE : 2};
 
@@ -12,6 +8,12 @@ import {PropTypes, TPropFlags, ToolProperty, IntProperty, FloatProperty,
 import {ToolFlags, UndoFlags} from 'toolops_api';
 import {DataBlock} from 'lib_api';
 import {apiparser} from 'data_api_parser';
+
+export class DataAPIError extends Error {
+  constructor(msg) {
+    super(msg);
+  }
+}
 
 export class DataPath {
   constructor(prop, name, path, dest_is_prop=false, use_path=true, flag=0) { 
@@ -553,7 +555,7 @@ export class DataAPI {
           return handler;
       }
       
-      if (element instanceof UIFrame && element.active != undefined) 
+      if (element.constructor.name == "UIFrame" && element.active != undefined) 
       {
         return find_hotkey_recurse(element.active);
       }
@@ -754,7 +756,7 @@ export class DataAPI {
     static cache = {};
     
     if (str == undefined) {
-      console.trace("warning, undefined path in resolve_path_intern (forgot to pass ctx?)");
+      warntrace("Warning, undefined path in resolve_path_intern (forgot to pass ctx?)");
       return undefined;
     }
     
@@ -905,20 +907,27 @@ export class DataAPI {
   }
   
   eval(ctx, str, scope) {
-    if (str in this.evalcache) {
-      return this.evalcache[str](ctx, scope);
-    }
-    
-    var script = """
-      var func = function(ctx, scope) {
-        return $s
+    try {
+      if (str in this.evalcache) {
+        return this.evalcache[str](ctx, scope);
       }
-    """.replace("$s", str);
-    
-    eval(script);
-        
-    this.evalcache[str] = func;
-    return func(ctx, scope);
+      
+      var script = """
+        var func = function(ctx, scope) {
+          return $s
+        }
+      """.replace("$s", str);
+      
+      eval(script);
+          
+      this.evalcache[str] = func;
+      return func(ctx, scope);
+    } catch (error) {
+      if (window.DEBUG != undefined && window.DEBUG.ui_datapaths)
+        print_stack(error);
+      
+      throw new DataAPIError(error.message);
+    }
   }
   
   get_object(ctx, str) {
@@ -941,6 +950,19 @@ export class DataAPI {
   }
   
   get_prop(ctx, str) {
+    try {
+      return this.get_prop_intern(ctx, str);
+    } catch (error) {
+      if (!(error instanceof DataAPIError)) {
+        print_stack(error);
+        console.log("Data API error! path:", str);
+      }
+      
+      throw error;
+    }
+  }
+  
+  get_prop_intern(ctx, str) {
     if (str == undefined) {
       str = ctx;
       ctx = new Context();

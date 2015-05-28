@@ -129,7 +129,6 @@ class UserSession {
       if (DEBUG.netio)
         console.log("downloading current user settings. . .");
       
-      console.log("job-->", job);
       session.userid = job.value.userid;
       
       if (!session.loaded_settings) {
@@ -345,11 +344,20 @@ export class AppState {
     
     for (var k in active_canvases) {
       var canvas = active_canvases[k];
-      canvas.destroy();
+      
+      canvas[1].kill_canvas(k);
     }
     active_canvases = {};
     
     AppState.call(this, screen, mesh, this.gl);
+    
+    try {
+      if (this.screen != undefined)
+        this.screen.destroy()
+    } catch (error) {
+      print_stack(error);
+      console.log("ERROR: failed to fully destroy screen context");
+    }
   }
 
   //shallow copy
@@ -396,7 +404,7 @@ export class AppState {
     buf = b64encode(buf);
     
     ////XXX
-    //console.log("WARNING: not saving startup file, debugging file writing code");
+    //warn("WARNING: not saving startup file, debugging file writing code");
     
     localStorage.startup_file = buf;
   }
@@ -1381,12 +1389,12 @@ class SavedContext {
       var layer = spline.layerset.idmap[this._active_spline_layer];
       
       if (layer == undefined) {
-        console.log("Warning: layer was undefined in SavedContext!");
+        warn("Warning: layer was undefined in SavedContext!");
       } else {
         spline.layerset.active = layer;
       }
     } else {
-      console.log("Warning: spline was undefined in SavedContext!");
+      warn("Warning: spline was undefined in SavedContext!");
     }
   }
   
@@ -1394,7 +1402,7 @@ class SavedContext {
     var ret = g_app_state.api.get_object(this._spline_path); 
     
     if (ret == undefined) {
-      console.trace("Warning: bad spline path", this._spline_path);
+      warntrace("Warning: bad spline path", this._spline_path);
       ret = g_app_state.api.get_object("frameset.drawspline");
       
       if (ret == undefined) {
@@ -1465,11 +1473,11 @@ export class Context {
     var ret = this.api.get_object(g_app_state.active_splinepath); 
     
     if (ret == undefined) {
-      console.trace("Warning: bad spline path", g_app_state.active_splinepath);
+      warntrace("Warning: bad spline path", g_app_state.active_splinepath);
       g_app_state.switch_active_spline("frameset.drawspline");
       
       if (ret == undefined) {
-        console.trace("Even Worse: base spline path failed!", g_app_state.active_splinepath);
+        warntrace("Even Worse: base spline path failed!", g_app_state.active_splinepath);
       }
     }
     
@@ -1552,9 +1560,9 @@ function Context() {
   if (sce != undefined) {
     if (sce.active == undefined && sce.objects.length > 0) {
       if (DEBUG.datalib) {
-        console.log("WARNING: sce.objects (a DBList) had an undefined .active");
-        console.log("in the prescence of objects.  This should be impossible.");
-        console.log("Correcting.");
+        warn(["WARNING: sce.objects (a DBList) had an undefined .active",
+              "in the prescence of objects.  This should be impossible.",
+              "Correcting."].join("\n"));
       }
       
       sce.active = sce.objects[0];

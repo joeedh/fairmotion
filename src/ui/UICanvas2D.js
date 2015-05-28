@@ -35,16 +35,19 @@ export function get_2d_canvas_2() {
 }
 window.get_2d_canvas_2 = get_2d_canvas_2;
 
+window._ui_canvas_2d_idgen = 1;
+
 export class UICanvas2_ {
   constructor(viewport) {
     var c = get_2d_canvas();
     
     this.canvas = c.canvas;
+    this.id = _ui_canvas_2d_idgen++;
+    
     this.ctx = c.ctx;
+    this.canvases = {}
     
-    var ctx = c.ctx;
-    var fl = Math.floor;
-    
+    var ctx = c.ctx, fl = Math.floor;;
     if (ctx.setFillColor == undefined) {
       ctx.setFillColor = function(r, g, b, a) {
         if (a == undefined) a = 1.0;
@@ -61,20 +64,13 @@ export class UICanvas2_ {
     this.layerstack = [];
     
     this.scissor_stack = [];
-    this.canvas = c.canvas;
-    this.ctx = c.ctx;
     this._lastclip = [[0, 0], [0, 0]];
     
     this.transmat = new Matrix4();
     this.trans_stack = [];
     
-    this.line_cos = [];
-    this.line_clrs = [];
-    this.tri_cos = [];
-    this.tri_cos = [];
     this.raster = g_app_state.raster;
     
-    this.trilist = this;
     this.global_matrix = new Matrix4();
     
     this.iconsheet = g_app_state.raster.iconsheet;
@@ -111,6 +107,85 @@ export class UICanvas2_ {
     return s;
   }
   
+  reset_canvases() {
+    for (var k in this.canvases) {
+      document.body.removeChild(this.canvases[k]);
+    }
+    
+    this.canvases = {};
+  }
+  
+  kill_canvas(obj_or_id) {
+    var id = obj_or_id;
+    
+    if (typeof id == "object")
+      id = id.__hash__();
+      
+    var canvas = this.canvases[id];
+    delete this.canvases[id];
+    
+    global active_canvases;
+    delete active_canvases[id];
+    
+    if (canvas != undefined) {
+      document.body.removeChild(canvas);
+    }
+  }
+  
+  get_canvas(obj_or_id, pos, size, zindex=4) {
+    var id = obj_or_id;
+    
+    if (typeof id == "object")
+      id = id.__hash__();
+    
+    var canvas;
+    if (id in this.canvases) {
+      canvas = this.canvases[id];
+      canvas.is_blank = false;
+    } else {
+      var canvas = document.createElement("canvas");
+      document.body.appendChild(canvas);
+      
+      canvas.style["position"] = "absolute";
+      canvas.style["left"] = "0px";
+      canvas.style["top"] = "0px";
+      canvas.style["z-index"] = ""+zindex;
+      canvas.style["pointer-events"] = "none";
+      
+      canvas.width = this.canvas.width;
+      canvas.height = this.canvas.height;
+      
+      canvas.ctx = canvas.getContext("2d");
+      canvas.is_blank = true;
+      
+      this.canvases[id] = canvas;
+      
+      global active_canvases;
+      active_canvases[id] = [canvas, this];
+    }
+    
+    if (canvas.width != size[0]) {
+      canvas.width = size[0];
+    }
+    if (canvas.height != size[1]) {
+      canvas.height = size[1];
+    }
+    
+    if (canvas.style["left"] != ""+Math.floor(pos[0])+"px") {
+      canvas.style["left"] = Math.floor(pos[0])+"px";
+      canvas.is_blank = true;
+    }
+    
+    var y = Math.floor(window.innerHeight - pos[1] - size[1]);
+    if (canvas.style["top"] != ""+y+"px") {
+      canvas.style["top"] = ""+y+"px";
+      canvas.is_blank = true;
+    }
+    
+    canvas.ctx.is_blank = canvas.is_blank;
+    return canvas.ctx;
+  }
+  
   //push a new html5 2d canvas onto the layer stack
   //e.g. for temporary overlays, etc
   push_layer() {
@@ -121,7 +196,7 @@ export class UICanvas2_ {
     
     canvas.style["position"] = "absolute";
     canvas.style["left"] = "0px";
-    canvas.style["right"] = "0px";
+    canvas.style["top"] = "0px";
     canvas.style["z-index"] = ""+(4+this.layerstack.length);
     canvas.style["pointer-events"] = "none";
     
@@ -173,6 +248,7 @@ export class UICanvas2_ {
     }
   }
   
+  //DEFUNCT
   reset() {
     var v = this.viewport;
     var canvas = this.canvas;
@@ -427,8 +503,8 @@ export class UICanvas2_ {
       draw_grad("rgba(255,255,255,1.0)", "rgba(255,255,255, 0.5)", "rgba(255,255,255,0.0)", 0);
       draw_grad("rgba(0,0,0,1.0)", "rgba(0,0,0,0.5)", "rgba(0,0,0,0.0)", 1);
     } catch (error) {
-      print_stack(error);
-      console.log("GRADIENT ERROR", min[0], min[1], max[0], max[1]);
+      //print_stack(error);
+      //console.log("GRADIENT ERROR", min[0], min[1], max[0], max[1]);
     }
   }
   
@@ -914,6 +990,7 @@ export class UICanvas2_ {
 }
 
 export var UICanvas = DEBUG.use_2d_uicanvas ? UICanvas2_ : UICanvas_;
+window.active_canvases = {};
 
 function test_canvas2d() {
   var u = new UICanvas2D();

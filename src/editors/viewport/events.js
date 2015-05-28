@@ -610,18 +610,24 @@ export class VelocityPan extends EventHandler {
     this.last_ms = time_ms();
   }
   
-  start(Array<float> start_mpos, Array<float> last_mpos, UIElement owner) {
-    this.vel.zero();
-    this.coasting = false;
-    this.first = false; //true;
+  start(Array<float> start_mpos, Array<float> last_mpos, UIElement owner, 
+        Function push_modal_func, Function pop_modal_func) {
     
     if (this.panning) {
-      console.log("warning, duplicate call to VelocityPan.start()");
-      this.end();
+      console.trace("warning, duplicate call to VelocityPan.start()");
+      //this.end();
+      return;
     }
     
-    this.panning = true;
+    this.vel.zero();
+    
+    this.pop_modal_func = pop_modal_func;
+    this.coasting = false;
+    this.first = false; //true;
     this.owner = owner;
+    
+    this.panning = true;
+    push_modal_func(this);
     
     this.start_pan.load(this.pan);
     
@@ -637,9 +643,13 @@ export class VelocityPan extends EventHandler {
   }
   
   end() {
+    console.log("in end");
+    
     if (this.panning) {
-      this.owner.pop_modal();
+      console.log("  pop modal");
+      this.pop_modal_func();
     }
+    
     this.panning = false;
   }
   
@@ -650,9 +660,9 @@ export class VelocityPan extends EventHandler {
     //give coordinates in same space as on_mousemove,
     //which is why init of these vars is down here,
     //not in .start().
-    if (DEBUG.touch)
+    if (DEBUG.touch) {
       console.log("py", mpos[1]);
-    
+    }
     /*if (this.first) {
       this.mpos.load(mpos);
       this.last_mpos.load(mpos);
@@ -697,6 +707,8 @@ export class VelocityPan extends EventHandler {
   }
   
   on_mouseup(MouseEvent event) {
+    console.log("pan mouse up!", this.panning, this.owner);
+    
     if (this.panning) {
       this.mpos.load([event.y, event.y]);
       this.calc_vel();

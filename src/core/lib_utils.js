@@ -120,8 +120,7 @@ class DBList extends GArray {
   
   select(block, do_select=true) {
     if (!(block instanceof DataBlock)) {
-      console.trace();
-      console.log("WARNING: bad value ", block, " passed to DBList.select()");
+      warntrace("WARNING: bad value ", block, " passed to DBList.select()");
       return;
     }
     
@@ -164,8 +163,7 @@ class DBList extends GArray {
 
   push(block) {
     if (!(block instanceof DataBlock)) {
-      console.trace();
-      console.log("WARNING: bad value ", block, " passed to DBList.select()");
+      warntrace("WARNING: bad value ", block, " passed to DBList.select()");
       return;
     }
     
@@ -182,7 +180,7 @@ class DBList extends GArray {
     var i = this.indexOf(block);
     
     if (i < 0 || i == undefined) {
-      console.log("WARNING: Could not remove block " + block.name + " from a DBList");
+      warn("WARNING: Could not remove block " + block.name + " from a DBList");
       return;
     }
     
@@ -191,7 +189,7 @@ class DBList extends GArray {
 
   pop(i) {
     if (i < 0 || i >= this.length) {
-      console.log("WARNING: Invalid argument ", i, " to static pop()");
+      warn("WARNING: Invalid argument ", i, " to static pop()");
       print_stack();
       return;
     }
@@ -303,9 +301,9 @@ export function wrap_getblock_us(datalib) {
         if (add_user)
           b.lib_adduser(block, refname, rem_func);
       } else {
-        console.log("WARNING WARNING WARNING saved block reference isn't in database!!!");
-        console.log("  dataref: ", dataref);
-        console.trace();
+        warntrace(["WARNING WARNING WARNING saved block reference isn't in database!!!",
+                  "  dataref: "].join("\n"), dataref);
+        
       }
       
       return b;
@@ -327,9 +325,8 @@ export function wrap_getblock(datalib) {
       
       if (b != undefined) {
       } else {
-        console.log("WARNING WARNING WARNING saved block reference isn't in database!!!");
-        console.log("  dataref: ", dataref);
-        console.trace();
+        warntrace(["WARNING WARNING WARNING saved block reference isn't in database!!!",
+                  "  dataref: "].join("\n"), dataref);
       }
       
       return b;
@@ -405,8 +402,7 @@ class DataRefList extends GArray, TPropIterable {
   
   _b(b) {
     if (b == undefined) {
-      console.log("WARNING: undefined passed to DataRefList.push()");
-      console.trace();
+      warntrace("WARNING: undefined passed to DataRefList.push()");
       return;
     }
     
@@ -415,8 +411,7 @@ class DataRefList extends GArray, TPropIterable {
     } else if (b instanceof DataRef) {
       return b;
     } else {
-      console.trace();
-      console.log("WARNING: bad value ", b, " passed to DataRefList._b()");
+      warntrace("WARNING: bad value ", b, " passed to DataRefList._b()");
     }
   }
   
@@ -425,8 +420,7 @@ class DataRefList extends GArray, TPropIterable {
     var i = this.indexOf(b);
     
     if (i < 0) {
-      console.trace();
-      console.log("WARNING: ", b, " not found in this DataRefList");
+      warntrace("WARNING: ", b, " not found in this DataRefList");
       return;
     }
     
@@ -447,8 +441,7 @@ class DataRefList extends GArray, TPropIterable {
     
     var i = this.indexOf(a);
     if (i < 0) {
-      console.trace();
-      console.log("WARNING: ", b, " not found in this DataRefList");
+      warntrace("WARNING: ", b, " not found in this DataRefList");
       return;
     }
     

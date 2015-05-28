@@ -2671,7 +2671,7 @@ def p_error(p):
   #print("Possible error at line " + str(line) + "\n" + str(sline))
   #print_err(p)
 
-mod = sys.modules["js_parse"]
+mod = sys.modules[__name__]
 for k in list(mod.__dict__.keys()):
   if k.startswith("p_"):
     mod.__dict__[k].name = k.replace("p_", "")
@@ -2705,4 +2705,50 @@ class Parser:
 _parser = yacc.yacc(tabmodule="perfstatic_parsetab")
 parser = Parser(_parser);
 
-
+def gen_grammar():
+  def format(s):
+    s = s.strip()
+    lines = s.split("\n")
+    col = lines[0].find(":")
+    if col < 0:
+      sys.stderr.write("Error! " + s + "\n")
+      return s 
+    
+    indent = ""
+    for i in range(col):
+      indent += " "
+      
+    s2 = ""
+    for i, l in enumerate(lines):
+      l = l.strip()
+      if i > 0:
+        s2 += indent
+      s2 += l + "\n"
+    return s2
+    
+  buf = "===Tokens===\n"
+  import js_lex
+  for k in list(js_lex.__dict__.keys()):
+    if not k.startswith("t_"): continue
+    t = js_lex.__dict__[k]
+    if type(t) != str:
+      t = t.__doc__
+      
+    rule = k[2:] + " : " + str(t)
+      
+    buf += format(rule)
+  
+  buf += "\n\n===Productions==="
+  mod = sys.modules[__name__]
+  for k in list(mod.__dict__.keys()):
+    if not k.startswith("p_"): continue
+    
+    p = mod.__dict__[k]
+    buf += format(p.__doc__) + "\n\n"
+  
+  return buf
+  
+if __name__ == "__main__":
+  #spit out grammar
+  print(gen_grammar())
+  

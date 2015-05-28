@@ -367,7 +367,8 @@ function reload_modules() {
 }
 
 function load_modules() {
-  console.log("Loading modules. . .");
+  startup_report("Loading modules. . .");
+  
   var start_time = time_ms();
   
   for (var k in _defined_modules) {
@@ -385,7 +386,7 @@ function load_modules() {
   var totcycle = load_cyclic_modules(sortlist);
   
   _post_primary_load = true;
-  console.log("...Finished.  " + (time_ms()-start_time).toFixed(1) + "ms", totcycle, "cycle iterations");
+  startup_report("...Finished.  " + (time_ms()-start_time).toFixed(1) + "ms", totcycle, "cycle iterations");
 }
 
 function test_modules() {

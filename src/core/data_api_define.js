@@ -297,7 +297,7 @@ function api_define_material() {
 
 var SplineFaceStruct;
 function api_define_spline_face() {
-  var flagprop = new FlagProperty(1, SplineFlags, undefined, "Flags", "Flags");
+  var flagprop = new FlagProperty(2, SplineFlags, undefined, "Flags", "Flags");
   
   SplineFaceStruct = new DataStruct([
     new DataPath(new IntProperty(0, "eid", "eid", "eid"), "eid", "eid", true),
@@ -347,7 +347,7 @@ function api_define_spline_segment() {
     var spline = g_app_state.api.get_object(path);
     
     if (spline == undefined) {
-      console.log("Warning, could not get spline to call regen_sort() on!", path, s);
+      warn("Warning, could not get spline to call regen_sort() on!", path, s);
       return;
     }
     
@@ -370,7 +370,7 @@ import {SplineLayerFlags} from 'spline_element_array';
 
 var SplineLayerStruct;
 function api_define_spline_layer_struct() {
-  var flag = new FlagProperty(1, SplineLayerFlags);
+  var flag = new FlagProperty(2, SplineLayerFlags);
   
   flag.update = function() {
     window.redraw_viewport();

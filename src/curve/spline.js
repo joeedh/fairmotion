@@ -138,6 +138,9 @@ export class Spline extends DataBlock {
     static debug_id_gen=0;
     this._debug_id = debug_id_gen++;
     
+    static _internal_idgen=0;
+    this._internal_id = _internal_idgen++;
+    
     this.draw_sortlist = []; //has lines and faces mixed together
     
     this.recalc = RecalcFlags.DRAWSORT;

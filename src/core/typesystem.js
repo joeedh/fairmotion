@@ -746,10 +746,43 @@ function save_forin_conv() {
     window.open(obj_url);
 }
 
+var __sp_ws = {
+  "\n" : 0,
+  "\r" : 0,
+  "\t" : 0,
+  "\v" : 0,
+  " " : 0,
+  "\0" : 0
+}
+
+if (String.prototype.trimRight == undefined) {
+  String.prototype.trimRight = function() {
+    var i = this.length-1;
+    
+    while (i >= 0 && this[i] in __sp_ws) {
+      i--;
+    }
+    
+    return this.slice(0, i+1);
+  }
+}
+
+if (String.prototype.trimLeft == undefined) {
+  String.prototype.trimLeft = function() {
+    var i = 0;
+    
+    while (i < this.length && this[i] in __sp_ws) {
+      i++;
+    }
+    
+    return this.slice(i, this.length);
+  }
+}
+
 if (window.Symbol == undefined) {
   //define a very basic Symbol polyfill
   window.Symbol = {
-    Iterator : "__iterator__"
+    iterator : "__iterator__"
   }
 }
 /*the grand __get_iter function.
@@ -858,7 +891,7 @@ function define_docstring(func, docstr) {
 }
 
 function __bind_super_prop(obj, cls, parent, prop) {
-  var descr = Object.getPropertyDescriptor(parent.prototype, prop);
+  var descr = Object.getOwnPropertyDescriptor(parent.prototype, prop);
   
   if (descr == undefined) 
     return parent.prototype[prop];

@@ -1,32 +1,5 @@
 <!DOCTYPE html>
 
-<!--
-/*
- * Copyright (C) 2009 Apple Inc. All Rights Reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY APPLE INC. ``AS IS'' AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL APPLE INC. OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
- * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
- -->
-<html>
 <head>
     <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0"/>
     <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -590,11 +563,6 @@
         }
 
         IsMobile = window.mobilecheck();
-
-        //mobile-specific settings
-        if (IsMobile) {
-            use_octree_select = true; //use ray tracing, not the framebuffer, for cull selection mode
-        }
         /*
          window.mobilecheck = function() {
          var check = false;
@@ -938,8 +906,46 @@
     <script type="text/javascript" src="fcontent/app.js"></script>
 
     <script>
+        function startup_report(message) {
+          //args = new Array(arguments.length+2);
+          
+          console.log("%c " + message + "\n\n", "color:green");
+          /*
+          for (var i=0; i<arguments.length; i++) {
+            args[i+2] = arguments[i];
+          }
+          
+          args[0] = "%c"
+          args[1] = "color:green"
+          
+          console.log.apply(console, args);
+          */
+        }
+        
+        function warn(message) {
+          //args = new Array(arguments.length+2);
+          
+          var args = ["%c " + message + "\n", "color:orange"]
+          for (var i=1; i<arguments.length; i++) {
+            args.push(arguments[i]);
+          }
+          
+          console.log.apply(console, args); //("%c " + message + "\n", "color:orange");
+        }
+        
+        function warntrace(message) {
+          //args = new Array(arguments.length+2);
+          
+          var args = ["%c " + message + "\n", "color:orange"]
+          for (var i=1; i<arguments.length; i++) {
+            args.push(arguments[i]);
+          }
+          
+          console.trace.apply(console, args);
+        }
+        
         load_modules();
-
+        
         //put modules into global namespace for debugging purposes
         //prepend "_" to their names so, e.g. spline becomes _spline
         for (var k in _defined_modules) {
@@ -1014,7 +1020,7 @@
                     animreq_ui = window.requestAnimationFrame(function () {
                         animreq_ui = undefined;
 
-                        //console.log("ui frame");
+                        console.log("ui frame");
 
                         if (g_app_state != undefined)
                             g_app_state.eventhandler.on_draw();
@@ -1033,52 +1039,82 @@
                 window.redraw_whole_screen = true;
             }
 
-            window.redraw_viewport = function (min, max) {
-                if (redraw_whole_screen)
-                    min = max = undefined;
+            window._solve_idgen = 1;
+            window.redraw_queue = {};
+            window.redraw_smap = {};
+            window.redraw_start_times = {};
+            window.cur_redraw_queue = undefined;
+            window.pending_redraws = 0;
+            
+            window.push_solve = function(spline) {
+              var id = _solve_idgen++;
 
+              console.log("push solve", id);
+              var sid = spline._internal_id;
+              
+              redraw_queue[id] = [];
+              redraw_smap[id] = sid;
+              redraw_start_times[id] = time_ms();
+              
+              cur_redraw_queue = redraw_queue[id];
+              pending_redraws++;
+              
+              return id;
+            }
+            
+            window.pop_solve = function(id) {
+              console.log("pop solve", id);
+              
+              if (!(id in this.redraw_queue)) {
+                console.trace("Warning: either pop_solve was called switch, or the system automatically called due to timeout");
+                return;
+              }
+              
+              var queue = redraw_queue[id];
+              delete redraw_start_times[id];
+              delete redraw_smap[id];
+              delete redraw_queue[id];
+              pending_redraws--;
+              
+              for (var i=0; i<queue.length; i++) {
+                redraw_viewport(queue[i][0], queue[i][1], true);
+              }
+            }
+            
+            window.redraw_viewport = function (min, max, ignore_queuing) {
+                if (ignore_queuing == undefined)
+                  ignore_queuing = false;
+                if (!ignore_queuing && pending_redraws > 0) {
+                  cur_redraw_queue.push([min, max]);
+                  return;
+                }
+                
+                if (DEBUG != undefined && DEBUG.viewport_partial_update) {
+                  console.trace("\n\n\n==Viewport Redraw==:", redraw_whole_screen, 
+                                min, max, "||", redraw_rect[0], redraw_rect[1], "\n\n\n");
+                }
+                if (window.redraw_whole_screen)
+                    min = max = undefined;
+                  
                 if (window._trace) {
                     console.trace();
-                }
-
-                if (animreq == undefined) {
-                    animreq = window.requestAnimationFrame(function () {
-                        redraw_whole_screen = false;
-                        animreq = undefined;
-
-                        for (var i = 0; i < g_app_state.screen.children.length; i++) {
-                            var c = g_app_state.screen.children[i];
-
-                            if (c.constructor.name == "ScreenArea" &&
-                                    c.area.constructor.name == "View2DHandler") {
-                                c.area.do_recalc();
-                            }
-                        }
-
-                        if (g_app_state != undefined)
-                            g_app_state.eventhandler.on_draw();
-
-                        window.redraw_rect[0].zero();
-                        window.redraw_rect[1].zero();
-                    });
                 }
 
                 if (min == undefined) {
                     window.redraw_whole_screen = true;
 
-                    if (!redraw_rect_defined || redraw_whole_screen) {
+                    if (!window.redraw_rect_defined) {
                         window.redraw_rect[0].zero();
                         window.redraw_rect[1].zero();
-                        window.redraw_rect[0][0] = window.redraw_rect[0][1] = 0;
-                        window.redraw_rect[1][0] = window.innerWidth;
-                        window.redraw_rect[1][1] = window.innerHeight;
-
-                        if (_canvas2d_ctx_2._irender_mat != undefined) {
-                            window.redraw_rect[0].multVecMatrix(_canvas2d_ctx_2._irender_mat);
-                            window.redraw_rect[1].multVecMatrix(_canvas2d_ctx_2._irender_mat);
-                        }
+                        
+                        //XXX hackish! need to pass min/max properly
+                        //to individual work canvases, so they can 
+                        //multiply with their inverse matrices
+                        window.redraw_rect[0][0] = window.redraw_rect[0][1] = -15000;
+                        window.redraw_rect[1][0] = 15000;
+                        window.redraw_rect[1][1] = 15000;
                     }
-                } else if (redraw_rect_defined) {
+                } else if (!window.redraw_whole_screen && window.redraw_rect_defined) {
                     var h = window.innerHeight;
 
                     window.redraw_rect[0][0] = Math.min(min[0], window.redraw_rect[0][0]);
@@ -1086,7 +1122,7 @@
 
                     window.redraw_rect[1][0] = Math.max(max[0], window.redraw_rect[1][0]);
                     window.redraw_rect[1][1] = Math.max(max[1], window.redraw_rect[1][1]);
-                } else {
+                } else if (!redraw_whole_screen) {
                     window.redraw_rect[0][0] = min[0];
                     window.redraw_rect[0][1] = min[1];
                     window.redraw_rect[1][0] = max[0];
@@ -1106,6 +1142,38 @@
                         c.area.draw_viewport = 1; //flag update for view2d
                     }
                 }
+
+                if (animreq == undefined) {
+                    animreq = window.requestAnimationFrame(function () {
+                        animreq = undefined;
+
+                        for (var i = 0; i < g_app_state.screen.children.length; i++) {
+                            var c = g_app_state.screen.children[i];
+
+                            var is_viewport = c.constructor.name == "ScreenArea" &&
+                                              c.area.constructor.name == "View2DHandler";
+                            if (is_viewport) {
+                                var old = g_app_state.active_view2d;
+                                g_app_state.active_view2d = c.area;
+                                
+                                c.area.do_draw_viewport();
+                                
+                                g_app_state.active_view2d = old;
+                            }
+                        }
+    
+                       for (var i=0; i<2; i++) {
+                          for (var j=0; j<3; j++) {
+                            window.last_redraw_rect[i][j] = window.redraw_rect[i][j];
+                          }
+                        }
+
+                        window.redraw_rect[0].zero();
+                        window.redraw_rect[1].zero();
+                        window.redraw_whole_screen = false;
+                        window.redraw_rect_defined = false;
+                    });
+                }
             }
             //init_ctxloss_ext();
             init_theme();
@@ -1122,18 +1190,21 @@
             //context loss, which also calls init()
             if (g_app_state == undefined) {
                 //initialize struct pack system
+                startup_report("parsing serialization scripts...");
                 init_struct_packer();
 
-                console.log("initializing data api...");
+                startup_report("initializing data api...");
+                
                 api_define_ops();
                 api_define_context();
-
+                
+                startup_report("create event dag...")
                 init_event_graph();
 
                 g_app_state = new AppState(undefined, undefined, undefined);
                 g_app_state.size = [canvas.clientWidth, canvas.clientHeight];
 
-                console.log("generating start file...");
+                startup_report("loading new scene file...");
                 gen_default_file([canvas.clientWidth, canvas.clientHeight]);
 
                 g_app_state.session.validate_session();
@@ -1201,17 +1272,25 @@
             var g = window.g_app_state;
             if (g == undefined) return;
 
-            //Make sure the canvas is sized correctly.
+            //Make sure the canvas[es] are sized correctly.
             reshape();
-
-            //var canvas = g.canvas = document.getElementById('canvas2d_work');
-            //g.eventhandler.on_draw(undefined);
-
-            window.redraw_rect_defined = false;
-            window.redraw_whole_screen = false;
         }, 200);
 
         window.setInterval(function () {
+            //deal with timeouts 
+            //window.pop_solve(draw_id);
+            if (window.redraw_start_times == undefined)
+              return;
+              
+            for (var k in redraw_start_times) {
+              var t = redraw_start_times[k];
+              //don't let delayed redraw linger
+              //for more than one and a half seconds
+              if (time_ms() - t > 1500) {
+                pop_solve(k);
+              }
+            }
+            
             if (g_app_state != undefined && g_app_state.screen != undefined) {
                 g_app_state.screen._on_tick();
             }
@@ -1757,7 +1836,7 @@
             position: absolute;
             left: 0px;
             right: 0px;
-            z-index: 0;
+            z-index: -10;
         }
 
         body {

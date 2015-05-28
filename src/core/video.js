@@ -39,8 +39,9 @@ export class Video {
     this.video.appendChild(this.source);
     var this2 = this;
     
-    this.video.oncanplaythrough = (function() {
+    this.video.oncanplaythrough = (function oncanplaythrough() {
       this2.record_video();
+      this2.video.oncanplaythrough = null;
     }).bind(this);
     
     this.video.load();
@@ -52,7 +53,7 @@ export class Video {
  
  record_video() {
   if (this.recording) {
-    console.log("Already started recording!");
+    console.trace("Already started recording!");
     return;
   }
   
@@ -104,6 +105,7 @@ export class Video {
       
       this2.video.oncanplaythrough = (function() {
         this2.record_video();
+        this2.video.oncanplaythrough = null;
       }).bind(this2);
       
       this2.video.load();
@@ -114,21 +116,20 @@ export class Video {
   this.blank = g.getImageData(0, 0, size[0], size[1]);
   var canvas = this.canvas;
   
-  var timer2 = window.setInterval((function() {
-    var frame = current_frame(video);
+  var cur_i = 0;
+  var on_frame = (function() {
+    var frame = cur_i++; //current_frame(video);
     
     if (video.paused) {
       console.log("Done!");
-      
-      window.clearInterval(timer2);
-      finish();
+      //finish();
     }
     
     if (frame in frames) return;
     
     this2.totframe = Math.max(this2.totframe, frame+1);
     
-    console.log("got frame", frame);
+    //console.log("got frame", frame);
     
     g.drawImage(video, 0, 0);
     //var imagedata = g.getImageData(0, 0, size[0], size[1]);
@@ -147,9 +148,75 @@ export class Video {
     img.height = size[1];
     img.src = canvas.toDataURL(); //URL.createObjectURL(blob);
     
+    //console.log("on frame!");
     frames[frame] = img;
-  }).bind(this), 10);
+    
+    /*
+    video.pause();
+    var timer2 = window.setInterval(function() {
+      console.log(video.webkitDecodedFrameCount, video.currentTime*29.97);
+      window.clearInterval(timer2);
+    }, 100);
+    //*/
+  }).bind(this);
   
+  console.log("start video");
+  
+  //video.ontimeupdate = on_frame;
+
+  video.onloadeddata  = function() {
+    console.log("meta", arguments);
+  }
+  
+  /*
+  var timer3 = window.setInterval(function() {
+    if (video.webkitDecodedFrameCount > 40) {
+      video.pause();
+      video.ontimeupdate = video.onseeked = video.onplaying = function() {
+        console.log("have frame 2", video.currentTime, 4.0/29.97+0.0001);
+        video.ontimechange = null;
+      }
+      
+      video.currentTime=4.0/29.97+0.0001
+      window.clearInterval(timer3);
+      console.log("have frame", video.currentTime, 4.0/29.97+0.0001);
+    }
+  }, 10);
+  //*/
+  
+  video.addEventListener("loadeddata", function() {
+    console.log("meta2", arguments);
+  });
+  
+  /*
+  video.ontimechange = function() {
+    console.log("have frame", video.currentTime, 4.0/29.97+0.0001);
+    video.ontimechange = null;
+  }
+  
+  video.currentTime=4.0/29.97+0.0001
+  */
+  var last_frame = -1;
+  
+  video.playbackRate = 0.5;
+  video.ontimeupdate = video.onseeked = video.onplaying = function() {
+    var frame = Math.floor(video.currentTime*29.97);
+    if (last_frame != frame) {
+      console.clear();
+      console.log("frame: ", frame-last_frame);
+      on_frame();
+    }
+    
+    last_frame = frame;
+    video.onpause = function() {
+      //console.log("pause!");
+      video.onpause = null;
+      video.play();
+    }
+    
+    video.pause();
+    //video.play();
+  }
   video.play();
  }
  
@@ -166,8 +233,10 @@ export class Video {
 }
 
 function current_frame(v) {
+  return Math.floor(v.currentTime*15.0);
+  
   if (v.webkitDecodedFrameCount != undefined)
-    return v.webkitDecodedFrameCount;
+    return v.currentTime;
 }
 
 export class VideoManager {

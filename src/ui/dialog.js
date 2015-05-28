@@ -17,10 +17,13 @@ import {UICollapseIcon, UIPanel, UIColorField, UIColorBox,
         UIColorPicker, UIProgressBar, UIListBox, UIListEntry
        } from 'UIWidgets_special';
 
+import {UICanvas} from 'UICanvas2D';
+
 class _TitleBar extends UIElement {
   constructor(Context ctx)
   {
-    UIElement.call(this, ctx);
+    super(ctx);
+    
     this.text = ""
     this.moving = false;
     this.start_mpos = [0, 0];
@@ -55,11 +58,11 @@ class _TitleBar extends UIElement {
 
 export class Dialog extends UIFrame {
   constructor(title, ctx, screen, flag) {
-    UIFrame.call(this, ctx, screen.canvas);
+    super(ctx, screen.canvas);
     
     this.title = title;
     this.screen = screen;
-    this.canvas = screen.canvas;
+
     this.headersize = 33
     this.callback = undefined;
     
@@ -121,6 +124,16 @@ export class Dialog extends UIFrame {
   }
 
   build_draw(canvas, isVertical) {
+    canvas = this.canvas;
+    
+    if (this.state & UIFlags.IS_CANVAS_ROOT) {
+      canvas.clear();
+      this.do_full_recalc();
+      
+      canvas.push_transform();
+      canvas.translate(this.pos)
+    }
+    
     canvas.push_scissor([0, 0], this.size);
     
     /*
@@ -155,17 +168,20 @@ export class Dialog extends UIFrame {
     
     canvas.shadow_box([5,-1], this.size);
     canvas.simple_box([0,0], this.size, uicolors["DialogBox"]);
-    
-    UIFrame.prototype.build_draw.call(this, canvas, isVertical);
+
+    super.build_draw(canvas, isVertical);
     
     //outline
     canvas.box_outline([0,0], this.size, uicolors["DialogBorder"]);
     
     canvas.pop_scissor();
+    if (this.state & UIFlags.IS_CANVAS_ROOT) {
+      canvas.pop_transform();
+    }
   }
 
   on_keydown(event) {
-    prior(Dialog, this).on_keydown.call(this, event);
+    super.on_keydown(event);
     
     if (this.flag & DialogFlags.END_ON_ESCAPE) {
       if (event.keyCode == charmap["Escape"])
@@ -174,6 +190,27 @@ export class Dialog extends UIFrame {
   }
   
   call(Array<int> pos=undefined, Boolean center=false) {
+    // /*
+    //give dialog it's own canvas to draw on
+    //this.state |= UIFlags.IS_CANVAS_ROOT;
+    this.canvas = g_app_state.screen.canvas;
+    
+    //this.canvas = new UICanvas([new Vector2(g_app_state.screen.pos),
+    //                            new Vector2(g_app_state.screen.size)])
+    
+    function visit(c, canvas) {
+      c.canvas = canvas;
+      if (c instanceof UIFrame) {
+        for (var c2 in c.children) {
+          visit(c2, canvas);
+        }
+      }
+    }
+    visit(this, this.canvas);
+    
+    //this.canvas.push_layer();
+    //*/
+
     this.pack(this.screen.canvas, false);
     
     if (pos == undefined) {
@@ -201,6 +238,9 @@ export class Dialog extends UIFrame {
       this.screen.push_modal(this);
     }
     
+    //hrm, let's give the dialog it's own canvas
+    
+    
     this.titlebar.pos = [0, this.size[1]-this.headersize];
     this.titlebar.size = [this.size[0], this.headersize];
     
@@ -212,13 +252,14 @@ export class Dialog extends UIFrame {
   }
 
   end(do_cancel) {
+    //this.canvas.pop_layer();
+    
     if (this.flag & DialogFlags.MODAL) {
       this.screen.pop_modal();
     }
     
     if (this.screen.children.has(this)) {
       this.screen.remove(this);
-      this.screen.canvas.reset();
     }
   }
 }
@@ -227,7 +268,8 @@ window.Dialog = Dialog;
 
 export class PackedDialog extends Dialog {
   constructor(title, ctx, screen, flag) {
-    Dialog.call(this, title, ctx, screen, flag);
+    super(title, ctx, screen, flag);
+    
     this.remove(this.subframe);
     
     this.subframe = new RowFrame(ctx, undefined, PackFlags.ALIGN_BOTTOM|PackFlags.ALIGN_CENTER);
@@ -239,7 +281,7 @@ export class PackedDialog extends Dialog {
     this.size[1] += this.headersize
     this.size[0] += 15
     
-    Dialog.prototype.call.call(this, pos);
+    super.call(pos);
     this.subframe.pack(this.canvas);
   }
 }
@@ -249,7 +291,7 @@ export class OkayDialog extends PackedDialog {
     var ctx = new Context();
     var screen = g_app_state.screen;
     var flag = 0;
-    PackedDialog.call(this, "Okay?", ctx, screen, flag);
+    super("Okay?", ctx, screen, flag);
     
     this.callback = callback;
     
@@ -261,7 +303,7 @@ export class OkayDialog extends PackedDialog {
   }
   
   end(Boolean do_cancel) {
-    prior(OkayDialog, this).end.call(this, do_cancel);
+    super.end(do_cancel);
     this.callback(this, do_cancel);
   }
 }
@@ -271,7 +313,8 @@ export class ErrorDialog extends PackedDialog {
     var ctx = new Context();
     var screen = g_app_state.screen;
     var flag = 0;
-    PackedDialog.call(this, "Error: ", ctx, screen, flag);
+
+    super("Error: ", ctx, screen, flag);
     
     this.callback = callback;
     
@@ -286,7 +329,7 @@ export class ErrorDialog extends PackedDialog {
   }
   
   end(Boolean do_cancel) {
-    prior(ErrorDialog, this).end.call(this, do_cancel);
+    super.end(do_cancel);
     
     if (this.callback != undefined)
       this.callback(this, do_cancel);

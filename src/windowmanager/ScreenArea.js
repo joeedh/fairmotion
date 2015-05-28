@@ -14,6 +14,8 @@ import {STRUCT} from 'struct';
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
         charmap, TouchEventManager, EventHandler} from 'events';
 
+import {UIButton, UIButtonIcon} from 'UIWidgets';
+
 import {UICanvas} from 'UICanvas2D';
 import {UIFrame} from 'UIFrame';
 import {RowFrame} from 'UIPack';
@@ -39,7 +41,7 @@ function _get_area_stack(cls) {
 //this should have been named ScreenEditor, ger
 export class Area extends UIFrame {
   constructor(String type, String uiname, Context ctx, Array<float> pos, Array<float> size) {
-    UIFrame.call(this, ctx, undefined, undefined, pos, size);
+    super(ctx, undefined, undefined, pos, size);
     
     this.keymap = new KeyMap();
     
@@ -52,15 +54,100 @@ export class Area extends UIFrame {
     
     this.note_area = undefined;
     this._saved_uidata = undefined;
+    
+    var plus = this.plus = new UIButtonIcon(ctx, "Split Screen", Icons.SMALL_PLUS);
+    this.plus.callback = function() {
+      g_app_state.screen.split_areas();
+    }
+    
+    plus.description = "Split the screen";
+    this.add(plus);
+    
+    /*
+    var minus = this.minus = new UIButtonIcon(ctx, "Collapse Screen", Icons.SMALL_MINUS);
+    var this2 = this;
+    this.minus.callback = function() {
+      g_app_state.screen.push_modal(new CollapseAreasTool(this2.parent, this2));
+    }
+    
+    this.add(minus);
+    */
   }
+  
+  pack(canvas, is_vertical) {
+    this.plus.size = this.plus.get_min_size(canvas, is_vertical);
+    this.plus.small_icon = true;
+    this.plus.pos[0] = this.size[0]-this.plus.size[0]-2;
+    this.plus.pos[1] = 2;
+
+    //ensure plus sign is at right z stack order
+    this.children.remove(this.plus)
+    this.children.push(this.plus)
+
+    /*
+    this.minus.size = this.minus.get_min_size(canvas, is_vertical);
+    this.minus.small_icon = true;
+    this.minus.pos[0] = this.size[0]-this.minus.size[0]-2;
+    this.minus.pos[1] = this.size[1]-this.minus.size[1]-2;
+    
+    //ensure minus sign is at right z stack order
+    this.children.remove(this.minus)
+    this.children.push(this.minus)
+    */
+    
+    //make sure side/top/bottom bars have correct size
+
+    super.pack(canvas, is_vertical);
+    
+    function bind_size(obj) {
+      return; //XXX 
+      
+      obj._size = obj.size;
+      Object.defineProperty(obj, 'size', {
+        enumerable   : true,
+        configurable : true,
+        get : function() {
+          console.trace(".size access!", this._size[0], this._size[1]);
+          return this._size;
+        },
+        set : function (val) {
+          this._size = val;
+        }
+      });
+    }
+    
+    var panx = this.velpan != undefined ? this.velpan.pan[0] : 0;
+    var pany = this.velpan != undefined ? this.velpan.pan[1] : 0;
+    
+    var i=0;
+    for (var frame in this.rows) {
+      frame.state    |= UIFlags.HAS_PAN|UIFlags.USE_PAN|UIFlags.NO_VELOCITY_PAN;
+      frame.packflag |= PackFlags.INHERIT_WIDTH|PackFlags.CALC_NEGATIVE_PAN|PackFlags.PAN_X_ONLY;
+      if (i == 0)
+        frame.pos[1] = this.size[1] - Area.get_barhgt() - pany;
+
+      frame.size[0] = frame.get_min_size(this.get_canvas())[0];
+        
+      i++;
+    }
+    
+    for (var frame in this.cols) {
+      frame.state    |= UIFlags.HAS_PAN|UIFlags.USE_PAN|UIFlags.NO_VELOCITY_PAN;
+      frame.packflag |= PackFlags.INHERIT_HEIGHT|PackFlags.CALC_NEGATIVE_PAN|PackFlags.PAN_X_ONLY;
+      
+      frame.size[1] = frame.get_min_size(this.get_canvas())[1];
+    }
+    
+    super.pack(canvas, is_vertical);
+  } 
   
   on_tick() {
     if (this.auto_load_uidata && this._saved_uidata != undefined) {
       this.load_saved_uidata();
       delete this._saved_uidata;
     }
-    
-    prior(Area, this).on_tick.call(this);
+
+    super.on_tick();
   }
   
   get saved_uidata() : String {
@@ -159,6 +246,7 @@ export class Area extends UIFrame {
     stack.push(this);
     _area_active_lasts[this.constructor.name] = this;
   }
+  
   pop_ctx_active() {
     var stack = _get_area_stack(this.constructor);
     if (stack.length == 0 || stack[stack.length-1] != this) {
@@ -205,8 +293,8 @@ export class Area extends UIFrame {
     for (var c of this.rows) {
       c.on_gl_lost();
     }
-    
-    prior(Area, this).on_gl_lost.call(this, new_gl);
+
+    super.on_gl_lost(new_gl);
   }
   
   on_add(parent)
@@ -221,12 +309,23 @@ export class Area extends UIFrame {
     this.rows = new GArray();
     this.cols = new GArray();
     
-    this.build_topbar();
     this.build_sidebar1();
+    this.build_topbar();
     this.build_bottombar();
+    
+    
+    /*
+    for (var c of this.rows) {
+      if (c.pos[1] > 70)
+        c.pos[1] = this.size[1] - Area.get_barhgt();
+    }
+    
+    for (var c of this.cols) {
+       c.size[1] = c.get_min_size(this.get_canvas())[1]; //this.size[1]-Area.get_barhgt()*2;
+    }*/
   }
 
-  toJSON() 
+  toJSON()
   {
     if (this.pos == undefined) {
       this.pos = [0,0];
@@ -249,17 +348,6 @@ export class Area extends UIFrame {
       oldsize = this.size;
     
     this.size = newsize;
-    
-    for (var c of this.rows) {
-      if (c.pos[1] > 70)
-        c.pos[1] = this.size[1] - Area.get_barhgt();
-        
-      c.size[0] = this.size[0];
-    }
-    
-    for (var c of this.cols) {
-      c.size[1] = this.size[1]-Area.get_barhgt()*2;
-    }
     
     for (var c of this.children) {
       if (this.canvas != undefined && c.canvas == undefined) 
@@ -298,15 +386,15 @@ export class Area extends UIFrame {
       }
     }
     
-    prior(Area, this).on_keyup.call(this, event);
+    super.on_keyup(event);
   }
   
   on_keydown(Keyboard event) {
     this.shift = event.shiftKey;
     this.alt = event.altKey;
     this.ctrl = event.ctrlKey;
-    
-    prior(Area, this).on_keydown.call(this, event);
+
+    super.on_keydown(event);
   }
 
   build_bottombar()
@@ -340,7 +428,7 @@ Area.STRUCT = """
 
 export class ScreenArea extends UIFrame {
   constructor(area, ctx, pos, size, add_area) {
-    UIFrame.call(this, ctx, undefined, undefined, pos, size);
+    super(ctx, undefined, undefined, pos, size);
     
     if (add_area == undefined)
       add_area = true;
@@ -475,9 +563,15 @@ export class ScreenArea extends UIFrame {
     return scr;
   }
   
+  on_tick() {
+    this.area.push_ctx_active();
+    super.on_tick();
+    this.area.pop_ctx_active();
+  }
+  
   build_draw(canvas, isVertical) {
     this.active = this.area;
-
+    
     g_app_state.size = new Vector2(this.size);
     
     this.area.pos[0] = this.area.pos[1] = 0;
@@ -486,9 +580,13 @@ export class ScreenArea extends UIFrame {
       
     //console.log("Area:", this.area.constructor.name);
     
+    this.area.push_ctx_active();
     this.canvas.push_scissor([2, 2], [this.size[0]-4, this.size[1]-4]);
-    prior(ScreenArea, this).build_draw.call(this, canvas, isVertical);
+    
+    super.build_draw(canvas, isVertical);
+    
     this.canvas.pop_scissor();
+    this.area.pop_ctx_active();
     
     var border = [0, 0, 0, 1];
     var border2 = [0.8, 0.8, 0.8, 1];
@@ -520,7 +618,7 @@ export class ScreenArea extends UIFrame {
     g_app_state.raster.pop_viewport();
     this.canvas.pop_scissor();
     
-    //prior(ScreenArea, this).on_draw.call(this, gl);
+    //super.on_draw(gl);
     */
   }
 
@@ -532,7 +630,7 @@ export class ScreenArea extends UIFrame {
       }
     }
     
-    prior(ScreenArea, this).add.call(this, child, packflag);
+    super.add(child, packflag);
   }
   
   /*on_mousedown(MouseEvent event) {

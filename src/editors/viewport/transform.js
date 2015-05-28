@@ -607,7 +607,16 @@ export class TransformOp extends ToolOp {
     if (!USE_NACL) {
       redraw_viewport(minmax.min, minmax.max);
       return;
+    } else if (this._last_solve==undefined || time_ms()-this._last_solve > 60) {
+      var spline = ctx.spline;
+      
+      spline.solve();
+      
+      redraw_viewport(minmax.min, minmax.max);
+      this._last_solve = time_ms();
+      return;
     }
+    return;
     
     //only allow two running jobs at one time
     clear_jobs_except_first(JobTypes.SOLVE);

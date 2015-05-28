@@ -602,6 +602,27 @@ def expand_harmony_class(typespace, cls):
   slist.add(node)
   node = slist
   
+  slist.add(CommentNode("test for IE bug"));
+  ifn = js_parse("""
+    if ($s.name == undefined) {
+      try {
+        $s1.name = '$s1';
+      } catch (_cerror1) {
+        print_stack(_cerror1);
+        console.trace("WARNING: failed to fix class constructor name! Evil!");
+      }
+    }
+  """, [cls.name], start_node=IfNode)
+  
+  cn = CommentNode("not sure if we can set .name\nin all recent versions of IE")
+  tryblock = ifn[1]
+
+  ifn.replace(tryblock, StatementList())
+  ifn[1].add(cn)
+  ifn[1].add(tryblock)
+  
+  slist.add(ifn);
+  
   if len(cls.parents) != 0:
     ps = cls.parents
     ps2 = []

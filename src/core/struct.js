@@ -477,7 +477,7 @@ if (_do_packdebug) {
       var t = gen_tabstr(_packdebug_tlvl);
       console.log(t + msg);
     } else {
-      console.log("Warning: undefined msg");
+      warn("Warning: undefined msg");
     }
   };
 
@@ -1000,7 +1000,7 @@ export class STRUCT {
       //if struct does not exist anymore, load it into a dummy object
       if (!(stt.name in clsmap)) {
         if (!(stt.name in this.null_natives))
-          console.log("WARNING: struct " + stt.name + " no longer exists.  will try to convert.");
+          warntrace("WARNING: struct " + stt.name + " no longer exists.  will try to convert.");
         
         var dummy = Object.create(Object.prototype);
         dummy.prototype = Object.create(Object.prototype);
@@ -1584,8 +1584,6 @@ window.init_struct_packer = function() {
   global defined_classes, istruct;
   
   init_toolop_structs();
-  
-  console.log("parsing serialization scripts...");
   
   window.istruct = new STRUCT();
   var errs = [];

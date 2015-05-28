@@ -131,10 +131,23 @@ export class UIPackFrame extends UIFrame {
       }
       
       //this.pan_bounds[0] = new Vector2(mm.min);
-      this.pan_bounds[1] = new Vector2(mm.max).sub(mm.min);
-      this.pan_bounds[1][0] -= this.size[0];
-      this.pan_bounds[1][1] -= this.size[1];
-      //console.trace();
+      if (this.packflag & PackFlags.CALC_NEGATIVE_PAN) {
+        this.pan_bounds[0] = new Vector2(mm.min).sub(mm.max).mulScalar(0.5);
+        this.pan_bounds[1] = new Vector2(mm.max).sub(mm.min);
+        
+        //this.pan_bounds[1][0] -= this.size[0];
+        //this.pan_bounds[1][1] -= this.size[1];
+      } else {
+        this.pan_bounds[1] = new Vector2(mm.max).sub(mm.min);
+        this.pan_bounds[1][0] -= this.size[0];
+        this.pan_bounds[1][1] -= this.size[1];
+      }
+      
+      if (this.packflag & PackFlags.PAN_X_ONLY) {
+        this.pan_bounds[0][1] = this.pan_bounds[1][1] = 0.0;
+      } else if (this.packflag & PackFlags.PAN_Y_ONLY) {
+        this.pan_bounds[0][0] = this.pan_bounds[1][0] = 0.0;
+      }
     }
     
     //this.last_pos.load(this.pos);
@@ -388,8 +401,8 @@ export class UIPackFrame extends UIFrame {
           var key = s.slice(i, s.length-1).trim();
           var uiname = prop.ui_key_names[key];
           
-          console.log("        UINAME KEY   '" + key + "'");
-          console.log(prop.ui_key_names, prop);
+          //console.log("        UINAME KEY   '" + key + "'");
+          //console.log(prop.ui_key_names, prop);
           
           if (uiname == undefined) {
             console.log("WARNING: possibly bad flag mask (will try interpreting it as integer)", path);
@@ -597,6 +610,8 @@ export class RowFrame extends UIPackFrame {
     }
     
     var minsize = this.get_min_size(canvas, is_vertical);
+    //console.log("Minsize!", minsize[0], minsize[1], this.size[0], this.size[1]);
+    
     var spacing;
     
     if (this.packflag & PackFlags.NO_AUTO_SPACING) {
@@ -707,7 +722,7 @@ export class ColumnFrame extends UIPackFrame {
       console.log("Warning: undefined canvas in pack");
       return;
     }
-
+    
     if (!(this.packflag & PackFlags.ALIGN_LEFT) && !(this.packflag & PackFlags.ALIGN_RIGHT))
       this.packflag |= PackFlags.ALIGN_CENTER;
       
@@ -717,6 +732,8 @@ export class ColumnFrame extends UIPackFrame {
     }
     
     var minsize = this.get_min_size(canvas, is_vertical);
+    //console.log("Minsize!", minsize[0], minsize[1], this.size[0], this.size[1]);
+    
     if (this.packflag & PackFlags.NO_AUTO_SPACING) {
       spacing = this.pad[0];
     } else {

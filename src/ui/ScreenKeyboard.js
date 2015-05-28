@@ -256,7 +256,7 @@ class ScreenKeyboard extends RowFrame {
 }
 
 var _ui_keyboard = undefined;
-function call_keyboard(UIElement e, Function on_close) {
+window.call_keyboard = function call_keyboard(UIElement e, Function on_close) {
   var ctx = new Context();
   var screen = ctx.screen;
   var board = new ScreenKeyboard(ctx, e, on_close);
@@ -275,7 +275,7 @@ function call_keyboard(UIElement e, Function on_close) {
   _ui_keyboard = board;
 }
 
-function end_keyboard(UIElement e)
+window.end_keyboard = function end_keyboard(UIElement e)
 {
   if (_ui_keyboard != undefined) {
     _ui_keyboard.end();

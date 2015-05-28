@@ -33,9 +33,10 @@ export var ORDER = math.ORDER;
 
 //import {do_solve} from 'nacl_api';
 
-function do_solve_nacl() {
+function do_solve_nacl(sflags, spline, steps, gk, return_promise) {
   if (window.common != undefined && window.common.naclModule != undefined) {
-    return window.nacl_do_solve.apply(this, arguments);
+    var draw_id = window.push_solve(spline);
+    return window.nacl_do_solve(sflags, spline, steps, gk, return_promise, draw_id);
   } else {
     return math.do_solve.apply(this, arguments);
   }

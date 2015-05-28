@@ -228,7 +228,7 @@ export class EventSocket {
   
   disconnect(other_socket) {
     if (other_socket == undefined) {
-      console.trace("Warning, got other to disconnect!");
+      warntrace("Warning, no other_socket in disconnect!");
       return;
     }
     
@@ -326,7 +326,7 @@ export class EventDag {
         for (var i=0; i<v.length; i++) {
           //allow undefined and null?
           if (typeof(v[i]) != "number" && typeof(v[i]) != undefined) {
-            console.trace("WARNING: bad array being passed around!!", v);
+            warntrace("WARNING: bad array being passed around!!", v);
           }
           type = DataTypes.ARRAY;
         }

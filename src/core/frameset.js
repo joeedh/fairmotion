@@ -799,7 +799,7 @@ export class SplineKCache {
     }
     
     if (!(frame in this.cache)) {
-      console.log("warning, bad call to SplineKCache");
+      warn("Warning, bad call to SplineKCache");
       return;
     }
     
@@ -1567,7 +1567,6 @@ export class SplineFrameSet extends DataBlock {
     var max_cur = ret.idgen.cur_id;
     var firstframe = undefined;
     for (var i=0; i<ret.frames.length; i++) {
-      console.log(ret, ret.frames);
       //if (ret.frames[i].spline.idgen == undefined)
       //  ret.frames[i].spline.idgen = ret.idgen;
         

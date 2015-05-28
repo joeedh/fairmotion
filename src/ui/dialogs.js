@@ -36,7 +36,7 @@ var fdialog_exclude_chars = new set([
 
 export class FileDialog extends PackedDialog {
   constructor(mode, ctx, callback, check_overwrite=false, pattern=undefined) {
-    PackedDialog.call(this, FileDialogModes[mode], ctx, ctx.screen);
+    super(FileDialogModes[mode], ctx, ctx.screen);
     
     if (pattern == undefined) {
       pattern = new RegExp(/.+\.fmo/);
@@ -313,7 +313,7 @@ export class FileDialog extends PackedDialog {
       }
     }
     
-    prior(FileDialog, this).end.call(this, do_cancel);
+    super.end(do_cancel);
     
     if (this.callback != undefined && !do_cancel) {
        this.callback(this, text);
@@ -378,7 +378,7 @@ export function download_file(path, on_finish, path_label=path, use_note=false,
 
 export class FileOpenOp extends ToolOp {  
   constructor() {
-    ToolOp.call(this, "open_file", "Open");
+    super("open_file", "Open");
     
     this.is_modal = false;
     
@@ -434,7 +434,7 @@ export class FileOpenOp extends ToolOp {
 
 export class FileSaveAsOp extends ToolOp {
   constructor() {
-    ToolOp.call(this, "save_file_as", "Save As");
+    super("save_file_as", "Save As");
     
     this.is_modal = false;
     
@@ -475,6 +475,7 @@ export class FileSaveAsOp extends ToolOp {
     
     function save_callback(dialog, path) {
       pd.call(ctx.screen.mpos);
+      
       if (DEBUG.netio)
         console.log("saving...", path);
       global allshape_file_ext;
@@ -498,7 +499,7 @@ export class FileSaveAsOp extends ToolOp {
 
 export class FileNewOp extends ToolOp {
   constructor() {
-    ToolOp.call(this, "new_file", "New");
+    super("new_file", "New");
 
     this.is_modal = false;
     
@@ -517,13 +518,14 @@ export class FileNewOp extends ToolOp {
     
     var okay = new OkayDialog("Create blank scene?\nAny unsaved changes\nwill be lost", new_callback)
     okay.call();
+    
     console.log("File new");
   }
 }
 
 export class FileSaveOp extends ToolOp {
   constructor(Boolean do_progress=true) {
-    ToolOp.call(this, "save_file", "Save");
+    super("save_file", "Save");
 
     this.do_progress = true;
     this.is_modal = false;
@@ -568,6 +570,7 @@ export class FileSaveOp extends ToolOp {
       g_app_state.filepath = path;
       
       pd.call(ctx.screen.mpos);
+      
       if (DEBUG.netio)
         console.log("saving...", path);
       global allshape_file_ext;
@@ -605,7 +608,7 @@ function test_progress_dialog() {
 
 export class ProgressDialog extends PackedDialog {
   constructor(Context ctx, String label, float val=0.0, float min=0.0, float max=1.0) {
-    PackedDialog.call(this, label, ctx, ctx.screen);
+    super(label, ctx, ctx.screen);
     
     this.pos = [0,0];
     this.closed = false;
@@ -626,7 +629,7 @@ export class ProgressDialog extends PackedDialog {
   
   on_tick() {
     if (this._do_end && time_ms() - this._full_ms > this._end_flash) {
-      prior(ProgressDialog, this).end.call(this, false);
+      super.end(false);
     }
   }
   
@@ -637,7 +640,7 @@ export class ProgressDialog extends PackedDialog {
       this.bar.value = this.bar.max;
       this.bar.do_recalc();
     } else {
-      prior(ProgressDialog, this).end.call(this, false);
+      super.end(false);
     }
   }
   
@@ -654,7 +657,7 @@ export class ProgressDialog extends PackedDialog {
 
 export class LoginDialog extends PackedDialog {
   constructor(ctx) {
-    PackedDialog.call(this, "User Login", ctx, ctx.screen);
+    super("User Login", ctx, ctx.screen);
     
     this.pos = [0,0];
     this.closed = false;
@@ -689,7 +692,7 @@ export class LoginDialog extends PackedDialog {
       console.log(session.tokens);
     
     if (do_cancel) {
-      prior(LoginDialog, this).end.call(this, do_cancel);
+      super.end(do_cancel);
       return;
     }
     
@@ -708,6 +711,7 @@ export class LoginDialog extends PackedDialog {
       
       if (DEBUG.netio)
         console.log(job.value, "2");
+        
       dialog.closed = true;
       prior(LoginDialog, dialog).end.call(dialog, false);
       

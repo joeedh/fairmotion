@@ -1,5 +1,8 @@
 "use strict";
 
+//make sure config is loaded first, so we don't override anything
+import 'config';
+
 /* various constant (except for DEBUG) globals */
 
 //my own, personal source tree uses a patent-pending
@@ -38,57 +41,7 @@ window.fuzzy_ui_press_hotspot = 25;
 window.new_api_parser = true;
 
 if (localStorage.use_canvas2d == undefined)
-  localStorage.use_canvas2d = false;
-
-//debug flags
-window._DEBUG = {
-  alias_g_app_state : true, //make a G alias to g_app_state at runtime
-  gl_objects : false,
-  Struct : false,
-  ui_except_handling : false,
-  modal : false, 
-  datalib : false, 
-  glext : false, //prints gl extensions to console on startup
-  selbuf : false,
-  toolstack : false,
-  transform : false,
-  mesh_api : false,
-  keyboard : false,
-  modifier_keys : false,
-  mouse : false,
-  touch : 1,
-  mousemove : false,
-  ui_datapaths : false,
-  ui_menus : false,
-  ui_canvas : false,
-  dag : false,
-  icons : false,
-  complex_ui_recalc : false,
-  screen_keyboard : false, // !RELEASE
-  data_api_timing : false,
-  canvas_sep_text : true,
-  disable_on_tick : false,
-  octree : false,
-  netio : false,
-  compression : false,
-  force_mobile : true,
-  tesselator : false,
-  use_2d_uicanvas : 1
-};
-
-//_DEBUG["use_2d_uicanvas"] = !!parseInt(""+localStorage.use_canvas2d);
-
-//make sure debug global is declared;
-//if it is, it'll be in config.js
-if (window.DEBUG == undefined || DEBUG == undefined)
-  var DEBUG = window.DEBUG = {};
-  
-//set default debug flags
-for (var k in _DEBUG) {
-  if (!(k in DEBUG)) {
-    DEBUG[k] = _DEBUG[k];
-  }
-}
+  localStorage.use_canvas2d = true;
 
 //private macro helper global for utildefine.js
 var $_mh = undefined;

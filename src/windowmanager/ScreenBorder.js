@@ -1,6 +1,9 @@
 "use strict";
 
-export var BORDER_WIDTH=12
+//make sure IsMobile is correct, like if DEBUG.force_is_mobile = true
+import 'config';
+
+export var BORDER_WIDTH=IsMobile ? 24 : 12;
 
 import {login_dialog} from 'dialogs';
 
@@ -334,8 +337,8 @@ export class ScreenBorder extends UIElement {
     var size = this.size, pos=this.pos, parent=this.parent;
     
     for (var i=0; i<2; i++) {
-      var ret2 = Math.abs(pos[i]) < BORDER_WIDTH*3.0;
-      ret2 = ret2 || Math.abs(pos[i]+size[i] - parent.size[i]) < BORDER_WIDTH*3.0;
+      var ret2 = Math.abs(pos[i]) < BORDER_WIDTH*1.1;
+      ret2 = ret2 || Math.abs(pos[i]+size[i] - parent.size[i]) < BORDER_WIDTH*1.1;
       
       ret = ret2 & ret;
     }
@@ -482,17 +485,9 @@ export class ScreenBorder extends UIElement {
     var sx = this.moving_line[1][0], sy = this.moving_line[1][1];
     
     if (sx-x > sy-y) {
-      y = sy = (y+sy)*0.5+20.0;
-      
-      //eek, evil offset needed! debug me! XXX
-      //sy += 4;
-      //y  += 4;
+      y = sy = (y+sy)*0.5
     } else {
       x = sx = (x+sx)*0.5;
-      
-      //eek, evil offset needed! debug me! XXX
-      //sy += 24;
-      //y  += 24;
     }
     
     this.canvas.clear();

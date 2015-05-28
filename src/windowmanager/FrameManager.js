@@ -779,7 +779,7 @@ export class Screen extends UIFrame {
       for (var k in child.editors) {
         child.editors[k].canvas  = this.canvas;
       }
-    } else {
+    } else if (child.canvas == undefined) {
       child.canvas = this.canvas;
     }
     
@@ -840,7 +840,7 @@ export class Screen extends UIFrame {
         c.abspos[0] = 0; c.abspos[1] = 0;
         c.abs_transform(c.abspos);
         
-        if (aabb_isect_2d(c.abspos, c.size, d[0], d[1])) {
+        if (aabb_isect_2d(c.abspos, c.size, d[0], d[1]) || c.is_canvas_root()) {
           c.do_recalc();
         }
         
@@ -876,7 +876,9 @@ export class Screen extends UIFrame {
     
     function descend(n, canvas, ctx) {
       for (var c of n.children) {
-        c.canvas = canvas;
+        if (c.canvas == undefined)
+          c.canvas = n.get_canvas();
+        
         c.ctx = ctx;
         
         if (c instanceof UIFrame)
@@ -891,13 +893,13 @@ export class Screen extends UIFrame {
       this.canvas = this.get_canvas();
       
     descend(this, this.canvas, this.ctx);
-    this.canvas.reset();
       
     if (DEBUG.ui_canvas)
       console.log("------------->Build draw call " + this.constructor.name + ".on_draw()");
 
     this.snap_areas();
-    prior(Screen, this).build_draw.call(this, canvas, isVertical);
+    
+    super.build_draw(canvas, isVertical);
     
     window.unblock_redraw_ui();
     this.canvas.root_end();

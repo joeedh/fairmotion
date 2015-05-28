@@ -215,7 +215,7 @@ function get_editor_list() : GArray<Function> {
   
   if (ret == undefined) {
     ret = new GArray();
-    console.log("Fix dependency here too");
+    //why? -> console.log("Fix dependency here too");
     
     for (var cls of defined_classes) {
       for (var i=0; i<cls.__parents__.length; i++) {
@@ -322,6 +322,7 @@ export class UIColorField extends UIElement {
   on_mousedown(MouseEvent event) {
     if (this.clicked == false) {
       this.clicked = true;
+      this.mdown = true;
       this.push_modal();
       
       var pos = [1, 1];
@@ -541,6 +542,9 @@ export class UIColorPicker extends RowFrame {
     if (this.state & UIFlags.USE_PATH) {
       var color = this.get_prop_data();
       
+      if (!(this.state & UIFlags.ENABLED))
+        return;
+      
       var same = true;
       for (var i=0; i<4; i++) {
         if (color[i] != this._color[i]) {
@@ -603,7 +607,7 @@ export class UIColorPicker extends RowFrame {
     for (var i=0; i<this._color.length; i++) {
       if (isNaN(this._color[i])) {
         this._color[i] = i == 3 ? 1.0 : 0.0;
-        console.log("eek, NaN");
+        //console.log("eek, NaN");
         this._color[i] = 0.0;
       }
     }
@@ -711,6 +715,9 @@ export class UIProgressBar extends UIElement {
   on_tick() {
     super.on_tick();
     
+    if (!(this.state & UIFlags.ENABLED))
+      return;
+    
     if (this.last_value != this.value) {
       this.do_recalc();
       this.last_value = this.value;
@@ -755,6 +762,9 @@ export class UIListEntry extends ColumnFrame {
     this.text = text;
     this.id = id;
     this.icon = -1;
+    
+    this.start_mpos = new Vector2();
+    this.touchdown = false;
     
     this.text_edit_mode = false;
   }
@@ -817,11 +827,13 @@ export class UIListEntry extends ColumnFrame {
   build_draw(UICanvas canvas, Boolean isVertical) {
     this.state &= ~UIFlags.USE_PAN;
     
-    if (this == this.parent.parent.active_entry) {
+    if (!(this.state & UIFlags.ENABLED))
+        canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
+    else if (this == this.parent.parent.active_entry) {
       canvas.simple_box([0,0], this.size);
       canvas.simple_box([0,0], this.size);
     } else if (this.state & UIFlags.HIGHLIGHT) {
-      canvas.simple_box([0,0], this.size);
+      canvas.simple_box([0,0], this.size, uicolors["MenuHighlight"]); //[0.8, 0.8, 0.8, 0.7]);
     }
     
     super.build_draw(canvas, isVertical);
@@ -883,7 +895,8 @@ export class UIListBox extends ColumnFrame {
     
     var this2=this;
     this.vscroll.callback = function(vscroll, value) {
-      this2._vscroll_callback(vscroll, value);
+      if (!this2.listbox.velpan.panning)
+        this2._vscroll_callback(vscroll, value);
     }
     this.vscroll.step = 26;
     this.add(this.vscroll);
@@ -896,6 +909,7 @@ export class UIListBox extends ColumnFrame {
     prior(UIListBox, this).on_tick.call(this);
     
     this.vscroll.set_value(this.listbox.velpan.pan[1]);
+    this.vscroll.do_recalc();
   }
   
   load_filedata(ObjectMap map) {
@@ -945,12 +959,33 @@ export class UIListBox extends ColumnFrame {
   on_mousedown(event) {
     super.on_mousedown(event);
     
-    this.mstart = [event.x, event.y];
+    this.mstart = new Vector2([event.x, event.y]);
+    this.mdown = true;
     this.mtime = time_ms();
   }
   
+  handle_clicked(MouseEvent event) {
+  }
+  
+  on_mousemove(MouseEvent event) {
+    super.on_mousemove(event);
+    
+    if (!this.listbox.velpan.panning && this.mdown && this.mstart.vectorDistance([event.x, event.y]) > 25) {
+      //console.log("PAN!");
+      //this.listbox.start_pan([this.mstart[0]-this.listbox.pos[0], this.mstart[1]-this.listbox.pos[1]], 0,
+      //                       [event.x-this.listbox.pos[0], event.y-this.listbox.pos[1]]);
+    }
+    
+  }
   on_mouseup(event) {
     super.on_mouseup(event);
+    this.mdown = false;
+    
+    this.listbox.velpan.can_coast = true;
+    console.log("  PANNING: ", this.listbox.velpan.panning);
+    
+    if (this.listbox.velpan.panning)
+      return;
     
     if (this.listbox.active != undefined && 
         this.listbox.active instanceof UIListEntry)

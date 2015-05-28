@@ -105,7 +105,7 @@ export function key_rotate(Object key) {
     var c = key[key.length-1]
     
     if (!(c in limit_code)) {
-      console.log("WARNING: unknown limit code", c);
+      warn("WARNING: unknown limit code", c);
       c = ".";
     }
     

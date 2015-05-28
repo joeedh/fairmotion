@@ -124,6 +124,8 @@ export class View2DHandler extends Area {
    
     this.pinned_paths = undefined;
     
+    this.work_canvas = undefined;
+    
     this.default_linewidth = 2.0;
     this.cameramat = new Matrix4();
     
@@ -564,7 +566,7 @@ export class View2DHandler extends Area {
     prior(View2DHandler, this).on_tick.call(this);
     
     //wait 3 seconds before loading video
-    if (this.draw_video && (time_ms() - this.startup_time) > 3000) {
+    if (this.draw_video && (time_ms() - this.startup_time) > 300) {
       this.video = video.manager.get("/video.mp4");
       
       if (this.video_time != this.ctx.scene.time) {
@@ -578,15 +580,22 @@ export class View2DHandler extends Area {
   }
 
   do_draw_viewport(g) {
+    if (g == undefined) {
+      g = this.canvas.get_canvas(this, this.abspos, this.size, 0);
+      //g = get_2d_canvas_2().ctx;
+    }
+    
     g._render_mat = this.rendermat;
     g._irender_mat = this.irendermat;
     
     var lr = window.last_redraw_rect;
     var r = window.redraw_rect;
-    var h = window.innerHeight;
-    var w = window.innerWidth;
+
+    var w = this.parent.size[0];
+    var h = this.parent.size[1];
     
     static r2 = [new Vector3(), new Vector3()];
+    
     for (var i=0; i<3; i++) {
       if (lr[0][0] != 0.0 || lr[1][0] != w) {
         r2[0][i] = Math.min(lr[0][i], r[0][i]);
@@ -603,35 +612,46 @@ export class View2DHandler extends Area {
     g.clearRect(r2[0][0], r2[0][1], r2[1][0]-r2[0][0], r2[1][1]-r2[0][1]);
     */
     //g.fill();
-      
-    if (0) { //window.redraw_whole_screen) {
+    
+    //if (window.redraw_rect != undefined)
+    //  console.log(window.redraw_rect[0], window.redraw_rect[1]);
+    
+    if (window.redraw_whole_screen) {
       g.beginPath();
       if (g._clearRect != undefined) {
-        g._clearRect(0, 0, window.innerWidth, window.innerHeight);
+        g._clearRect(0, 0, this.size[0], this.size[1]);
       }
-    } else if (1) {
+    } else {
       var m = -2;
       
       g.beginPath();
       g.clearRect(r2[0][0]-m, r2[0][1]-m, r2[1][0]-r2[0][0]+m*2, r2[1][1]-r2[0][1]+m*2);
-
+      
+      if (DEBUG != undefined && DEBUG.viewport_partial_update) {
+        g.beginPath();
+        g.lineWidth = 2*this.zoom;
+        g.rect(r2[0][0]-m, r2[0][1]-m, r2[1][0]-r2[0][0]+m*2, r2[1][1]-r2[0][1]+m*2);
+        g.closePath();
+        g.strokeStyle = "black";
+        g.stroke();
+        //*/
+      }
+      
       g.save();
 
       //make a passpart
       //this check here is evilly hackish! 
-      if (r[0][0] != 0.0) { //diffx < window.innerWidth-2 || diffy < window.innerHeight-2) { // || r[0][1] != 0 || r[1][0] != w || r[1][1] != h) {
+      if (r[0][0] != 0.0) { 
         g.beginPath();
         var m = 0;
-        g.rect(r2[0][0]-m, r2[0][1]-m, r2[1][0]-r2[0][0]+m*2, r2[1][1]-r2[0][1]+m*2);// 0, 0, r[0][0], h);
+        g.rect(r2[0][0]-m, r2[0][1]-m, r2[1][0]-r2[0][0]+m*2, r2[1][1]-r2[0][1]+m*2);
         g.closePath();
-        //g.fill();
         g.clip();
       }
     }    
     
     for (var i=0; i<2; i++) {
       for (var j=0; j<3; j++) {
-        window.last_redraw_rect[i][j] = window.redraw_rect[i][j];
         window.redraw_rect_combined[i][j] = r2[i][j];
       }
     }
@@ -711,9 +731,18 @@ export class View2DHandler extends Area {
     this.editor.view2d = this;
     
     this.ctx = this.editor.ctx = new Context();
-    var g = get_2d_canvas_2().ctx;
+    
+    //var g = get_2d_canvas_2().ctx;
+    this.abspos[0] = this.abspos[1] = 0.0;
+    this.abs_transform(this.abspos);
+    
+    var g = this.canvas.get_canvas(this, this.abspos, this.size, 0);
+    this.draw_canvas_ctx = g;
+    
+    //var g = get_2d_canvas_2().ctx;
     
     //ensure we have sane dimensions
+    //*
     if (g.width != this.size[0] || g.height != this.size[1])
       this.draw_viewport = true;
     
@@ -721,6 +750,7 @@ export class View2DHandler extends Area {
       g.width = this.size[0];
     if (g.height != this.size[1]) 
       g.height = this.size[1];
+    //*/
     
     //draw viewport
     if (this.draw_viewport) {
@@ -834,33 +864,6 @@ export class View2DHandler extends Area {
     prior(View2DHandler, this)._on_keyup.call(this, event);
   }
 
-  on_resize(Array<int> newsize, Array<int> oldsize)
-  {
-    this.rows[0].pos[1] = newsize[1] - Area.get_barhgt();
-    
-    this.rows[0].size[0] = newsize[0];
-    this.rows[1].size[0] = newsize[0];
-    
-    /*
-    for (var c in this.rows) {
-      if (c.pos[1] > 70)
-        c.pos[1] = this.size[1] - Area.get_barhgt();
-        
-      c.size[0] = this.size[0];
-    }*/
-    
-    for (var c of this.cols) {
-      c.size[1] = this.size[1]-Area.get_barhgt()*2;
-    }
-    
-    for (var c of this.children) {
-      if (this.canvas != undefined) 
-        c.canvas = this.canvas;
-      
-      c.on_resize(newsize, oldsize);
-    }
-  }
-
   static default_new(Context ctx, ScreenArea scr, WebGLRenderingContext gl, 
                      Array<float> pos, Array<float> size) {
     var ret = new View2DHandler(undefined, ctx.mesh, undefined, undefined, 
@@ -932,6 +935,14 @@ export class View2DHandler extends Area {
     return toolop_menu(ctx, "", []);
   }
 
+  destroy() 
+  {
+    super.destroy();
+    
+    if (this.canvas != undefined)
+      this.canvas.kill_canvas(this);
+  }
+  
   on_area_inactive()
   {
     this.destroy();

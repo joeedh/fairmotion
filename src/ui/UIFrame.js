@@ -176,8 +176,8 @@ export class UIFrame extends UIElement {
       f = f.parent;
     }
     
-    this.velpan.start(mpos, last_mpos, this);
-    f.push_modal(this.velpan);
+    this.velpan.can_coast = !(this.state & UIFlags.NO_VELOCITY_PAN);
+    this.velpan.start(mpos, last_mpos, this, f.push_modal.bind(f), f.pop_modal.bind(f));
   }
   
   /*forcibly exit pan mode*/
@@ -389,7 +389,14 @@ export class UIFrame extends UIElement {
     this._unoffset_mpos(e);
     return this.active != undefined;
   }
-
+  
+  bad_event(event) {
+    if (!(this.state & UIFlags.ENABLED))
+      return false;
+      
+    return super.bad_event(event);
+  }
+  
   _on_doubleclick(MouseEvent event) {
     if (this.bad_event(event)) return;
     
@@ -442,16 +449,17 @@ export class UIFrame extends UIElement {
     var mpos = this.mpos = [e.x, e.y];
     this._find_active(e);
     
+    if ((this.state & UIFlags.USE_PAN) && (e.button != 0 || this.active == undefined)) {
+      console.log("panning");
+      this.start_pan([e.x, e.y]);
+      return;
+    }
+    
     if (this.active != undefined) {
       e.x -= this.active.pos[0];
       e.y -= this.active.pos[1];
       
       this.active._on_mousedown(e);
-    }
-    
-    if ((this.state & UIFlags.USE_PAN) && this.active == undefined) {
-      console.log("panning");
-      this.start_pan([e.x, e.y]);
     }
     
     this._unoffset_mpos(e);
@@ -726,6 +734,42 @@ export class UIFrame extends UIElement {
     }
   }
   
+  disable() {
+    super.disable();
+    for (var c in this.children) {
+      c.disable();
+    }
+    
+    /*
+    super.disable();
+    this._disabled_children = []
+    
+    for (var c in this.children) {
+      if (!(c.state & UIFlags.ENABLED)) {
+        this._disabled_children.push(c);
+      }
+      
+      c.disable();
+    }*/
+  }
+  
+  enable() {
+    super.disable();
+    for (var c in this.children) {
+      c.enable();
+    }
+    
+    /*
+    super.enable();
+    
+    for (var c in this._disabled_children) {
+      c.enable();
+    }
+    
+    this._disabled_children = [];
+    */
+  }
+  
   get_filedata() : String {
     if (this.state & UIFlags.HAS_PAN && this.velpan != undefined) {
       return {pan : this.velpan.pan};
@@ -784,6 +828,9 @@ export class UIFrame extends UIElement {
       //XXX
       if (c.constructor.name == "ScreenBorder") 
         continue;
+      
+      //if (c.is_canvas_root())
+      //  continue;
         
       if (c.state & UIFlags.INVISIBLE)
         continue;
@@ -872,7 +919,9 @@ export class UIFrame extends UIElement {
     }
     
     for (var c of this.children) {
-      c.canvas = this.canvas;
+      if (c.canvas == undefined)
+        c.canvas = this.canvas;
+      
       //if (c.canvas == undefined) c.canvas = this.canvas;
       
       if (!c.recalc) continue;

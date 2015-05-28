@@ -776,7 +776,8 @@ export function* gen_draw_cache(postMessage, status, spline) {
     //final value will be in this.value
 }
 
-export function do_solve(sflags, Spline spline, int steps, float gk=0.95, return_promise=false) {
+export function do_solve(sflags, Spline spline, int steps, float gk=0.95, return_promise=false, draw_id=0) {
+
     if (!INCREMENTAL) {
       for (var v in spline.verts) {
         v.flag |= sflags.UPDATE;
@@ -838,6 +839,8 @@ export function do_solve(sflags, Spline spline, int steps, float gk=0.95, return
     
     function finish(unload) {
         var start_time = solve_starttimes[job_id];
+        
+        window.pop_solve(draw_id);
         
         var skip = solve_endtimes[spline._solve_id] > start_time;
         skip = skip && solve_starttimes2[spline._solve_id] > start_time;
@@ -944,6 +947,7 @@ export function do_solve(sflags, Spline spline, int steps, float gk=0.95, return
         finish(value);
       }, error : function(error) {
         console.log("Nacl solve error!");
+        window.pop_solve(draw_id);
       },
       typeid        : spline.is_anim_path ? JobTypes.PATHSOLVE : JobTypes.DRAWSOLVE,
       only_latest   : true

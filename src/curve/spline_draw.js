@@ -1009,8 +1009,12 @@ export function set_rendermat(g, mat) {
   g._irender_mat.invert();
 }
 
-export function redraw_element(e) {
+export function redraw_element(e, view2d) {
   static margin = new Vector3([15, 15, 15]);
+  if (view2d != undefined) {
+    margin[0] = margin[1] = margin[2] = 15.0;
+    margin.mulScalar(1.0/view2d.zoom);
+  }
   static aabb = [new Vector3(), new Vector3()];
   
   var e_aabb = e.aabb;
@@ -1022,4 +1026,8 @@ export function redraw_element(e) {
   aabb[0][2] = aabb[1][2] = 0.0;
   
   window.redraw_viewport(aabb[0], aabb[1]);
+  
+  if (view2d != undefined) {
+    margin[0] = margin[1] = margin[2] = 15.0;
+  }
 }

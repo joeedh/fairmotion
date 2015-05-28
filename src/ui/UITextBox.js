@@ -74,6 +74,10 @@ export class UITextBox extends UIElement {
   on_tick() {
     if (!this.editing && (this.state & UIFlags.USE_PATH)) {
       var val = this.get_prop_data();
+      
+      if (!(this.state & UIFlags.ENABLED))
+        return;
+        
       if (val != this.text) {
         this.text = val == undefined ? val : "";
         this.do_recalc();
@@ -512,7 +516,9 @@ export class UITextBox extends UIElement {
     
     canvas.begin(this);
 
-    if (this.editing) 
+    if (!(this.state & UIFlags.ENABLED))
+        canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
+    else if (this.editing) 
       canvas.invbox([0, 0], this.size, uicolors["TextBoxInv"], 16);
     else if (this.state & UIFlags.HIGHLIGHT)
       canvas.box([0, 0], this.size, uicolors["TextBoxHighlight"], 16)

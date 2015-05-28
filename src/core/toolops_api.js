@@ -251,10 +251,16 @@ export class ToolOp extends EventHandler, ToolOpAbstract {
   }
   
   static inherit_inputs(cls, newslots) {
+    if (cls.inputs == undefined)
+      return newslots;
+      
     return ToolOp.inherit_slots(cls.inputs, newslots);
   }
   
   static inherit_outputs(cls, newslots) {
+    if (cls.outputs == undefined)
+      return newslots;
+      
     return ToolOp.inherit_slots(cls.outputs, newslots);
   }
   

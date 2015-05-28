@@ -311,6 +311,31 @@ class NumLitNode (ValueNode):
     self.copy_basic(n2)
     self.copy_children(n2)
     return n2
+
+class CommentNode (Node):
+  def __init__(self, comment=""):
+    super(CommentNode, self).__init__()
+    self.comment = comment
+  
+  def copy(self):
+    return CommentNode(self.comment)
+  
+  def gen_js(self, tlevel=0):
+    t1 = tab(tlevel)
+    t2 = tab(tlevel+1)
+    
+    if not "\n" in self.comment:
+      return "/*" + self.comment + "*/"
+    else:
+      ls = [l.replace("\r" ,"") for l in self.comment.split("\n")]
+      
+      s = "/*\n"
+      
+      for l in ls:
+        s += t2 + l + "\n"
+      s += t1 + "*/\n"
+      
+      return s
     
 class IdentNode (ValueNode):
   def __init__(self, ident, local=False):
@@ -2132,11 +2157,18 @@ class ExportNode(Node):
     self.name = name
     self.bindname = name
     self.is_default = is_default
-    
+  
   def extra_str(self):
     if self.bindname != self.name:
       return self.name + " as " + self.bindname
     return self.name 
+  
+  #just pass through
+  def gen_js(self, tlevel=0):
+    ret = ""
+    for c in self.children:
+      ret += c.gen_js(tlevel)
+    return ret
     
 class ExportNameNode(Node):
   def __init__(self): #children is list of ExportIdents

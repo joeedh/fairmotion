@@ -109,7 +109,7 @@ export class RenderAnimOp extends ToolOp {
     var canvas = document.createElement("canvas");
     canvas.width = vd.size[0], canvas.height = vd.size[1];
     
-    var g1 = get_2d_canvas_2().ctx;
+    var g1 = ctx.view2d.draw_canvas_ctx;
     var idata = g1.getImageData(vd.pos[0], vd.pos[1], vd.size[0], vd.size[1]);
     
     var g2 = canvas.getContext("2d");
@@ -186,8 +186,7 @@ export class PlayAnimOp extends ToolOp {
     }
     
     var vd = window.anim_to_playback.viewport;
-    
-    var g1 = get_2d_canvas_2().ctx;
+    var g1 = ctx.view2d.draw_canvas_ctx;
     
     var time = time_ms() - this.start_time;
     
@@ -219,8 +218,12 @@ export class PlayAnimOp extends ToolOp {
       //g1.fill();
       //g1.stroke();
       
-      if (frame != undefined)
-        g1._putImageData(frame.data, pos[0], window.innerHeight-(pos[1]+vd.size[1]));
+      if (frame != undefined) {
+        if (g1._putImageData != undefined)
+          g1._putImageData(frame.data, pos[0], window.innerHeight-(pos[1]+vd.size[1]));
+        else
+          g1.putImageData(frame.data, pos[0], window.innerHeight-(pos[1]+vd.size[1]));
+      }
     }
     
     requestAnimationFrame(draw);
@@ -324,6 +327,7 @@ export class SplineEditor extends View2DEditor {
     col.prop("view2d.pin_paths");
     col.toolop("view2d.render_anim()");
     col.toolop("view2d.play_anim()");
+    col.prop("view2d.draw_video");
     
     view2d.rows.push(the_row);
     view2d.add(the_row);
@@ -706,7 +710,7 @@ export class SplineEditor extends View2DEditor {
         for (i=0; i<ret.highlight_spline.elists.length; i++) {
           var list = ret.highlight_spline.elists[i];
           if (list.highlight != undefined) {
-            redraw_element(list.highlight);
+            redraw_element(list.highlight, this.view2d);
           }
         }
       }
@@ -743,7 +747,7 @@ export class SplineEditor extends View2DEditor {
       //console.log("SPLINE", ret[0]._debug_id, "PARENTV", ret[0].parent_veid);
       
       list.highlight = ret[1];
-      redraw_element(list.highlight);
+      redraw_element(list.highlight, this.view2d);
       //redraw_viewport();
       //console.log(list === ret[0].verts);
     } else {
@@ -751,7 +755,7 @@ export class SplineEditor extends View2DEditor {
         for (var i=0; i<this.highlight_spline.elists.length; i++) {
           var list = this.highlight_spline.elists[i];
           if (list.highlight != undefined) {
-            redraw_element(list.highlight);
+            redraw_element(list.highlight, this.view2d);
           }
         }
         

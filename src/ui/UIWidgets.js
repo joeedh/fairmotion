@@ -37,7 +37,7 @@ export class UIButtonAbstract extends UIHoverHint {
   on_mousedown(MouseEvent event) {
     //console.log("button down");
     if (!this.clicked) {
-      this.was_touch = 0; //g_app_state.was_touch;
+      this.was_touch = g_app_state.was_touch;
       this.modal_click = !this.click_on_down || this.was_touch;
       
       this.start_mpos.load([event.x, event.y]);
@@ -168,7 +168,9 @@ export class UIButton extends UIButtonAbstract {
       throw new Error("test exception");
     }
     
-    if (this.clicked) 
+    if (!(this.state & UIFlags.ENABLED))
+        canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
+    else if (this.clicked) 
       canvas.invbox([0, 0], this.size);
     else if (this.state & UIFlags.HIGHLIGHT)
       canvas.hlightbox([0, 0], this.size)
@@ -243,7 +245,9 @@ export class UIButtonIcon extends UIButton {
       unfortunately, so just return
      */
     if (this.icon == -1) {
-      if (this.clicked) 
+      if (!(this.state & UIFlags.ENABLED))
+        canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
+      else if (this.clicked) 
         canvas.box(pos, size, uicolors["IconInv"]);
       else if (this.state & UIFlags.HIGHLIGHT)
         canvas.box(pos, size, uicolors["HighlightIcon"])
@@ -267,7 +271,9 @@ export class UIButtonIcon extends UIButton {
     //size[1] = isize[1]+pad*2.0;
     
     if (this.bgmode == "button") {
-      if (this.clicked) 
+      if (!(this.state & UIFlags.ENABLED))
+        canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
+      else if (this.clicked) 
         canvas.box(pos, size, uicolors["IconInv"]);
       else if (this.state & UIFlags.HIGHLIGHT)
         canvas.box(pos, size, uicolors["HighlightIcon"])
@@ -278,7 +284,9 @@ export class UIButtonIcon extends UIButton {
       static high_clr = [0.9, 0.9, 0.9, 0.2];
       static inset_clr = [0.3, 0.3, 0.3, 0.2];
       
-      if (this.clicked) 
+      if (!(this.state & UIFlags.ENABLED))
+        canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
+      else if (this.clicked) 
         canvas.box(pos, size, inset_clr);
       else if (this.state & UIFlags.HIGHLIGHT)
         canvas.box(pos, size, high_clr);
@@ -347,6 +355,9 @@ export class UIMenuButton extends UIButtonAbstract {
     if (this.state & UIFlags.USE_PATH) {
       var val = this.get_prop_data();
       
+      if (!(this.state & UIFlags.ENABLED))
+        return;
+        
       if (val == undefined)
         val = "(undefined)"
       
@@ -421,7 +432,9 @@ export class UIMenuButton extends UIButtonAbstract {
   build_draw(UICanvas canvas) {
     canvas.begin(this);
     
-    if (this.clicked) 
+    if (!(this.state & UIFlags.ENABLED))
+        canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
+    else if (this.clicked) 
       canvas.invbox([0, 0], this.size);
     else if (this.state & UIFlags.HIGHLIGHT)
       canvas.hlightbox([0, 0], this.size)
@@ -506,6 +519,9 @@ export class UICheckBox extends UIHoverHint {
       this.update_callback(this);
     } else if (!this.mdown && (this.state & UIFlags.USE_PATH)) {
       var val = this.get_prop_data();
+
+      if (!(this.state & UIFlags.ENABLED))
+        return;
       
       if (val != this.set) {
         this.set = !!val;
@@ -557,6 +573,7 @@ export class UICheckBox extends UIHoverHint {
     canvas.begin(this);
     
     var csize = [20, 20]
+    var this2 = this;
     function draw_check() {
       var h1 = 7;
       var h2 = -3
@@ -568,17 +585,23 @@ export class UICheckBox extends UIHoverHint {
       var v3 = [10+ox, 10+h2, 0]
       var v4 = [0+ox, h1+5, 0]
       
-      canvas.quad_aa(v1, v2, v3, v4, uicolors["Check"])
+      var clr = this2.state & UIFlags.ENABLED ? uicolors["Check"] : uicolors["DisabledBox"];
+      canvas.quad_aa(v1, v2, v3, v4, clr)
       
       var v1 = [5+ox, h1+2, 0]
       var v2 = [10+ox, h1, 0]
       var v3 = [15+ox, h1+15, 0]
       var v4 = [10+ox, h1+15, 0]
       
-      canvas.quad_aa(v1, v2, v3, v4, uicolors["Check"])
+      canvas.quad_aa(v1, v2, v3, v4, clr)
     }
     
-    if ((this.state & UIFlags.HIGHLIGHT) && this.draw_check) {
+    if (!(this.state & UIFlags.ENABLED)) {
+      canvas.box([2, 0], [csize[0], csize[1]], this.do_flash_color(uicolors["DisabledBox"]));
+      
+      if (this.draw_check)
+        draw_check();
+    } else if ((this.state & UIFlags.HIGHLIGHT) && this.draw_check) {
       canvas.simple_box([2, 0], [this.size[0], csize[1]])
       
       var mul = this.set ? 1.0 : 0.3;
@@ -750,6 +773,9 @@ export class UINumBox extends UIHoverHint {
     
     if (this.state & UIFlags.USE_PATH) {
       var val = this.get_prop_data();
+
+      if (!(this.state & UIFlags.ENABLED))
+        return;
       
       if (isNaN(val) || val == "NaN") {
         return;
@@ -810,7 +836,9 @@ export class UINumBox extends UIHoverHint {
     
     var clr = uicolors["Box"];
     
-    if (this.clicked) 
+    if (!(this.state & UIFlags.ENABLED))
+      canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"])); //this.do_flash_color(uicolors["DisabledBox"]));
+    else if (this.clicked) 
       canvas.invbox([0, 0], this.size);
     else if (!(this.state & UIFlags.FLASH) && (this.state & UIFlags.HIGHLIGHT))
       canvas.hlightbox([0, 0], this.size, this.do_flash_color())
@@ -902,6 +930,10 @@ export class UILabel extends UIElement {
     
     if (this.state & UIFlags.USE_PATH) {
       var val = this.get_prop_data();
+
+      if (!(this.state & UIFlags.ENABLED))
+        return;
+        
       if (val != this.val) {
         this.val = val;
         this.text = this.prop.uiname + ": " + val.toString();
@@ -991,7 +1023,9 @@ export class UILabel extends UIElement {
     canvas.begin(this);
     
     if (this.bgcolor) {
-      canvas.box([0, 0], this.size, this.bgcolor);
+      if (!(this.state & UIFlags.ENABLED))
+        canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
+      else canvas.box([0, 0], this.size, this.bgcolor);
     }
     
     var tsize = canvas.textsize(this.text);
@@ -1179,7 +1213,9 @@ export class UIMenuLabel extends UIElement {
     canvas.begin(this);
     //canvas.push_scissor([0,0], this.size);
     
-    if (this.clicked)
+    if (!(this.state & UIFlags.ENABLED))
+        canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
+    else if (this.clicked)
       canvas.box([0,-2], [this.size[0], this.size[1]+4], uicolors["MenuLabelInv"], 10);
     else if (this.state & UIFlags.HIGHLIGHT)
       canvas.box([0,-2], [this.size[0], this.size[1]+4], uicolors["MenuLabel"], 10);
@@ -1259,7 +1295,9 @@ export class ScrollButton extends UIElement {
   }
 
   build_draw(UICanvas canvas, Boolean isVertical) {
-    if (this.clicked) 
+    if (!(this.state & UIFlags.ENABLED))
+        canvas.box([1, 1], this.size, this.do_flash_color(uicolors["DisabledBox"]));
+    else if (this.clicked) 
       canvas.box2([1, 1], this.size, this.invclr);
     else if (this.state & UIFlags.HIGHLIGHT)
       canvas.box2([1, 1], this.size, this.highclr); 
@@ -1568,6 +1606,9 @@ export class UIIconCheck extends UIHoverHint {
       this.update_callback(this);
     } else if (!this.mdown && (this.state & UIFlags.USE_PATH)) {
       var val = this.get_prop_data();
+
+      if (!(this.state & UIFlags.ENABLED))
+        return;
       
       if (val != this.set) {
         this.set = val;
@@ -1615,7 +1656,9 @@ export class UIIconCheck extends UIHoverHint {
     
     var csize = [24, 24];
     
-    if (this.state & UIFlags.HIGHLIGHT) {
+    if (!(this.state & UIFlags.ENABLED)) {
+        canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
+    } else if (this.state & UIFlags.HIGHLIGHT) {
       canvas.simple_box([0, 0], [this.size[0], csize[1]])
       
       if (this.set) {

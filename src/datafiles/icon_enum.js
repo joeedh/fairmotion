@@ -38,5 +38,7 @@ window.Icons = {
   NOTE_EXCL      : 34,
   TINY_X         : 35,
   FOLDER         : 36,
-  FILE           : 37
+  FILE           : 37,
+  SMALL_PLUS     : 38,
+  SMALL_MINUS    : 39
 };

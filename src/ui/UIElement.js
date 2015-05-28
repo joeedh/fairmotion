@@ -1,5 +1,6 @@
 import "events";
 
+import {DataAPIError} from 'data_api';
 import {MinMax, inrect_2d, aabb_isect_2d} from 'mathlib';
 import {EventHandler} from 'events';
 import {charmap} from 'events';
@@ -19,23 +20,31 @@ export var UIFlags = {
   //- pan_canvas_mat : change canvas global matrix, not frame position
   HAS_PAN              :  512, USE_PAN         : 1024, 
   PAN_CANVAS_MAT       : 2048, IS_CANVAS_ROOT  : 4096, 
-  NO_FRAME_CACHE       : 8192, INVISIBLE       : 8192*2,
-  IGNORE_PAN_BOUNDS    : 8192*4, BLOCK_REPAINT : 8192*8
+  NO_FRAME_CACHE       : (1<<14), INVISIBLE       : (1<<15),
+  IGNORE_PAN_BOUNDS    : (1<<16), BLOCK_REPAINT : (1<<17),
+  NO_VELOCITY_PAN      : (1<<18)
 };
 
 export var PackFlags = {
-  INHERIT_HEIGHT :       1, INHERIT_WIDTH :     2, 
-  ALIGN_RIGHT :          4, ALIGN_LEFT :        8, 
-  ALIGN_CENTER :        16, ALIGN_BOTTOM :     32, 
-  IGNORE_LIMIT :        64, NO_REPACK :       128,
-  UI_DATAPATH_IGNORE : 256, USE_ICON :  1024|2048,
-  USE_SMALL_ICON :    1024, USE_LARGE_ICON : 2048,
-  ENUM_STRIP :        4096, NO_AUTO_SPACING : 8192,
-  //for colframe, center  y, for rowframe, center x
-  ALIGN_CENTER_Y :    16384, ALIGN_CENTER_X : 32768,
-  FLIP_TABSTRIP : 65536, NO_LEAD_SPACING : (1<<17),
-  NO_TRAIL_SPACING : (1<<18), KEEP_SIZE : (1<<19),
-  _KEEPSIZE : ((1<<19)|128), ALIGN_TOP : (1<<20)
+  INHERIT_HEIGHT :       1,   INHERIT_WIDTH  :     2, 
+  ALIGN_RIGHT :          4,   ALIGN_LEFT     :        8, 
+  ALIGN_CENTER :        16,   ALIGN_BOTTOM   :     32, 
+  IGNORE_LIMIT :        64,   NO_REPACK      :       128,
+  UI_DATAPATH_IGNORE : 256,   USE_ICON       :  1024|2048,
+  USE_SMALL_ICON   :  1024,   USE_LARGE_ICON : 2048,
+  ENUM_STRIP       :  4096,   NO_AUTO_SPACING: 8192,
+  //for colframe, center  y,  for rowframe, center x
+  ALIGN_CENTER_Y   : 16384,   ALIGN_CENTER_X : 32768,
+  FLIP_TABSTRIP    : 65536,   NO_LEAD_SPACING: (1<<17),
+  NO_TRAIL_SPACING : (1<<18), KEEP_SIZE      : (1<<19),
+  _KEEPSIZE : ((1<<19)|128),  ALIGN_TOP      : (1<<20),
+  
+  //these next flags are here because they affect how row/column frame
+  //autogenerate .panbounds.
+
+  //allow negative pans, needed for the header/footer bars (area.build_topbar())
+  CALC_NEGATIVE_PAN: (1<<21), PAN_X_ONLY : (1<<22),
+  PAN_Y_ONLY       : (1<<23)
 }
 
 export var CanvasFlags = {NOT_ROOT : 1, NO_PROPEGATE : 2}
@@ -147,6 +156,20 @@ export class UIElement extends EventHandler {
     }  
   }
   
+  disable() {
+    if ((this.state & UIFlags.ENABLED))
+      this.do_recalc();
+      
+    this.state &= ~UIFlags.ENABLED;
+  }
+  
+  enable() {
+    if (!(this.state & UIFlags.ENABLED))
+      this.do_recalc();
+      
+    this.state |= UIFlags.ENABLED;
+  }
+  
   get_keymaps() {
     static empty_arr = [];
     
@@ -156,6 +179,10 @@ export class UIElement extends EventHandler {
   __hash__() : String {
     if (this._h12 == undefined) {
       var n = this.constructor.name;
+      //XXX IE bug!
+      if (n == undefined) 
+        n = "evil_ie_bug";
+        
       this._h12 = n[2] + n[3] + n[n.length-2] + n[n.length-1] + this._uiel_id.toString();
     }
     
@@ -183,7 +210,7 @@ export class UIElement extends EventHandler {
 
   do_flash_color(color) : Array<Array<float>> {
     this.inc_flash_timer();
-    if (!(this.state & UIFlags.FLASH)) return undefined;
+    if (!(this.state & UIFlags.FLASH)) return color;
     
     var color2;
     
@@ -322,10 +349,17 @@ export class UIElement extends EventHandler {
     try {
       var ret = ctx.api.get_prop(ctx, this.data_path);
       this.path_is_bad = false;
+      this.enable();
+      
       return ret;
     } catch (err) {
+      if (!this.path_is_bad)
+        this.do_recalc();
+      
       this.path_is_bad = true;
-      //XXX
+      this.disable();
+      
+      //XXX?
       return 0;
     }
   }
@@ -460,6 +494,10 @@ export class UIElement extends EventHandler {
   get_uhash() : String {
     var s = this.constructor.name;
     
+    //XXX IE bug!
+    if (s == undefined) 
+      s = "";
+      
     if (this.data_path != undefined) {
       s += this.data_path;
     }
@@ -560,6 +598,31 @@ export class UIHoverBox extends UIElement {
       event.x = mpos[0]; event.y = mpos[1];
       lastp._on_mousedown(event);
     }
+  }
+  
+  _on_mousedown(event) {
+    if (this.state & UIFlags.ENABLED)
+      this.on_mousedown(event);
+  }
+
+  _on_mousemove(event) {
+    if (this.state & UIFlags.ENABLED)
+      this.on_mousemove(event);
+  }
+
+  _on_mouseup(event) {
+    if (this.state & UIFlags.ENABLED)
+      this.on_mouseup(event);
+  }
+  
+  _on_keydown(event) {
+    if (this.state & UIFlags.ENABLED)
+      this.on_keydown(event);
+  }
+  
+  _on_keyup(event) {
+    if (this.state & UIFlags.ENABLED)
+      this.on_keyup(event);
   }
   
   on_mousemove(event) {

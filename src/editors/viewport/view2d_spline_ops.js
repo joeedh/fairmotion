@@ -327,7 +327,7 @@ export class SplineEditor extends View2DEditor {
     col.prop("view2d.pin_paths");
     col.toolop("view2d.render_anim()");
     col.toolop("view2d.play_anim()");
-    col.prop("view2d.draw_video");
+    //col.prop("view2d.draw_video");
     
     view2d.rows.push(the_row);
     view2d.add(the_row);

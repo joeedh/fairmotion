@@ -131,11 +131,17 @@ export class Area extends UIFrame {
       i++;
     }
     
+    i = 0;
     for (var frame in this.cols) {
       frame.state    |= UIFlags.HAS_PAN|UIFlags.USE_PAN|UIFlags.NO_VELOCITY_PAN;
-      frame.packflag |= PackFlags.INHERIT_HEIGHT|PackFlags.CALC_NEGATIVE_PAN|PackFlags.PAN_X_ONLY;
+      frame.packflag |= PackFlags.INHERIT_WIDTH|PackFlags.CALC_NEGATIVE_PAN|PackFlags.PAN_X_ONLY;
       
+      if (i != 0)
+        frame.pos[0] = this.size[0] - frame.size[0] - panx;
+
       frame.size[1] = frame.get_min_size(this.get_canvas())[1];
+      frame.pos[1] = this.size[1] - frame.size[1] - Area.get_barhgt();
+      i++;
     }
     
     super.pack(canvas, is_vertical);

@@ -163,9 +163,9 @@ ExtrudeVertOp.outputs = {
 };
 
 
-export class CreateEdgeOp extends ToolOp {
+export class CreateEdgeOp extends SplineLocalToolOp {
   constructor(linewidth) {
-    super(false);
+    super(undefined, "Make Segment", "Create a segment", Icons.MAKE_SEGMENT);
     
     if (linewidth != undefined)
       this.inputs.linewidth.set_data(linewidth);
@@ -219,7 +219,7 @@ CreateEdgeOp.inputs = {
 
 export class CreateEdgeFaceOp extends SplineLocalToolOp {
   constructor(linewidth) {
-    super(false);
+    super(undefined, "Make Polygon", "Create polygon from selected vertices", Icons.MAKE_POLYGON);
     
     if (linewidth != undefined)
       this.inputs.linewidth.set_data(linewidth);

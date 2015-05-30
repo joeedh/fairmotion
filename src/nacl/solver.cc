@@ -121,10 +121,7 @@ double Graphics3DInstance::eval_constraint(
       
       double th2 = atan2(tan[0], tan[1]);
       
-      th2 = fabs(th-th2);
-      if (th2 > M_PI) {
-        th2 -= M_PI;
-      }
+      th2 = acos(sin(th2)*sin(th) + cos(th2)*cos(th));
       
       return th2;
     }

@@ -226,7 +226,7 @@ export class UIButtonIcon extends UIButton {
     var ret = prior(UIButtonIcon, this).get_hint.call(this);
     
     if (this.text)
-      ret = this.text + "\n\n" + ret
+      ret = "%b"+this.text + "%/b \n\n" + ret
     
     return ret;
   }

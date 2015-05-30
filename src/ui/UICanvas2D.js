@@ -807,6 +807,88 @@ export class UICanvas2_ {
     this.tri(v1, v2, v3, c1, c2, c3);
   }
   
+  _split_text(line) {
+    var i = 0;
+    var segments = [{line : "", format : "", color : undefined}];
+    
+    while (i < line.length) {
+        var c = line[i];
+        if (c == "%") {
+            var n = line[i+1];
+            var color = undefined;
+            var format = "";
+            
+            color = undefined;
+            switch (n) {
+                case "b":
+                    format = "bold"
+                    break;
+                case "i":
+                    format = "italic";
+                    break;
+                case "/": //resets formatting, no stack yet
+                    format = "";
+                    color = undefined;
+                    i++;
+                    break;
+                case "c": //%c{0044ff}
+                    i++;
+                    var end = line.slice(i, line.length).search("}");
+                    color = line.slice(i+2, i+end).trim();
+                    
+                    console.log("COLOR!!!", end, color, "|", line.slice(i, line.length));
+                    
+                    i += end;
+                    break;
+            }
+            
+            segments.push({line : "", format : format, color : color});
+            i += 2;
+            
+            continue;
+        }
+        
+        segments[segments.length-1].line += c;
+        i++;
+    }
+    
+    return segments;
+  }
+  
+  _measure_line(String line, float fontsize) {
+    var segs = this._split_text(line);
+    var x = 0.0;
+    var g = this.ctx;
+    
+    for (var i=0; i<segs.length; i++) {
+        x += g.measureText(segs[i].line).width;
+    }
+    
+    return {width : x};
+  }
+  
+  _text_line(String line, float x, float y, float fontsize) {
+    var segs = this._split_text(line);
+    
+    var g = this.ctx;
+    var startclr = g.fillStyle;
+    
+    for (var i=0; i<segs.length; i++) {
+        this._set_font(g, fontsize, segs[i].format);
+        
+        if (segs[i].color != undefined) {
+            g.fillStyle = segs[i].color;
+        } else {
+            g.fillStyle = startclr;
+        }
+        
+        g.fillText(segs[i].line, x, y);
+        x += g.measureText(segs[i].line).width;
+    }
+    
+    g.fillStyle = startclr;
+  }
+  
   text(Array<float> pos1, String text, Array<float> color, float fontsize, 
        float scale, float rot, Array<float> scissor_pos, Array<float> scissor_size)
   {
@@ -820,12 +902,14 @@ export class UICanvas2_ {
       lines = lines.splice(1, lines.length);
     }
     
+    lines.reverse();
+    
     if (rot == undefined)
       rot = 0;
     
     var ly = 0;
     for (var i=0; i<lines.length; i++, ly += 12) {
-      var w = ctx.measureText(lines[i]).width;
+      var w = this._measure_line(lines[i]).width;
       
       var m = this.transmat.$matrix;
       pos[0] = m.m41+v[0][0]+pos1[0];
@@ -857,14 +941,19 @@ export class UICanvas2_ {
       ctx.font = fontsize+"px " + "Arial";
       
       var x = pos[0], y = canvas.height - (pos[1]);
-      ctx.fillText(lines[i], x, y);
+      this._text_line(lines[i], x, y, fontsize);
+      
+      //ctx.fillText(lines[i], x, y);
     }
   }
   
-  _set_font(ctx, fontsize) {
+  _set_font(ctx, fontsize, addition_options="") {
+        
+      addition_options = addition_options.trim() + " "
+      
       if (fontsize == undefined)
         fontsize = default_ui_font_size;
-      ctx.font = fontsize+"px " + "Arial";
+      ctx.font = addition_options + fontsize+"px " + "Arial";
   }
   
   line(v1, v2, c1, c2) {
@@ -950,22 +1039,26 @@ export class UICanvas2_ {
   }
   
   textsize(text, size=default_ui_font_size) {
+    var lines = text.split("\n");
+    if (text[0] != "\n" && text[1] != "\r" && lines[0].trim() == "") {
+      lines = lines.splice(1, lines.length);
+    }
+    lines.reverse();
+    
     var canvas = this.canvas;
     var ctx = this.ctx;
     
     var v = this.viewport;
     
     this._set_font(ctx, size);
-
-    var wid = 0, hgt = 0;
-    var lines = text.split("\n");
     
+    var wid = 0, hgt = 0;
     for (var i=0; i<lines.length; i++) {
-      wid = Math.max(wid, ctx.measureText(lines[i]).width);
+      wid = Math.max(wid, this._measure_line(lines[i]).width);
       hgt += size + 2;
     }
     
-    return [wid, size];
+    return [wid, hgt];
     
     //var box = this.raster.get_font(size).calcsize(text);
     //return [box[0], box[1]];

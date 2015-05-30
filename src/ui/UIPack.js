@@ -68,11 +68,24 @@ export class UIPackFrame extends UIFrame {
     return ret;
   }
   
+  _inherit_packflag(inherit_flag) {
+    var icon_size = inherit_flag&(PackFlags.USE_LARGE_ICON|PackFlags.USE_SMALL_ICON);
+
+    if (icon_size == 0) {
+        icon_size = this.default_packflag & (PackFlags.USE_LARGE_ICON|PackFlags.USE_SMALL_ICON);
+    }
+    
+    inherit_flag = this.default_packflag & ~(PackFlags.USE_SMALL_ICON|PackFlags.USE_SMALL_ICON);;
+    inherit_flag |= icon_size;
+    
+    return inherit_flag;
+  }
+  
   toolop(path, inherit_flag=0, label=undefined) {
     var ctx = this.ctx;
     var opname = ctx.api.get_op_uiname(ctx, path);
-    
-    inherit_flag |= this.default_packflag;
+
+    inherit_flag = this._inherit_packflag(inherit_flag);
     
     if (opname == undefined) {
       console.trace();
@@ -155,7 +168,7 @@ export class UIPackFrame extends UIFrame {
   }
 
   prop(path, packflag=0, setter_path=undefined) { //setter_path is used for mass set paths
-    packflag |= this.default_packflag;
+    packflag = this._inherit_packflag(packflag);
       
     if (this.path_prefix.length > 0)
       path = this.path_prefix + "." + path
@@ -448,7 +461,7 @@ export class UIPackFrame extends UIFrame {
   }
     
   label(text, use_path=false, align=0) {
-    align |= this.default_packflag;
+    align = this._inherit_packflag(align);
     
     if (use_path != undefined && use_path) {
       var c = new UILabel(this.ctx, "", [0,0], [0,0], text);
@@ -475,7 +488,7 @@ export class UIPackFrame extends UIFrame {
       
     var ret = new UITabPanel(this.ctx, undefined, undefined, flip);
     ret.packflag |= align|PackFlags.INHERIT_WIDTH;
-    ret.default_packflag = this.default_packflag|default_packflag;
+    ret.default_packflag = this._inherit_packflag(default_packflag);
     
     this.add(ret);
     return ret;

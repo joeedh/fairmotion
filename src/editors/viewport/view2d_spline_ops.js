@@ -7,7 +7,6 @@ import {DeleteVertOp, DeleteSegmentOp} from 'spline_editops';
 var ScreenArea, Area;
 
 import {get_2d_canvas, get_2d_canvas_2} from 'UICanvas2D';
-import {gen_editor_switcher} from 'UIWidgets_special';
 
 import {gen_editor_switcher} from 'UIWidgets_special';
 import {DataTypes} from 'lib_api';
@@ -26,7 +25,7 @@ import {SplineTypes, SplineFlags, SplineVertex,
 import {Spline} from 'spline';
 
 import {ColumnFrame, RowFrame} from 'UIPack';
-import {UIMenuLabel} from 'UIWidgets';
+import {UIMenuLabel, UIButtonIcon} from 'UIWidgets';
 import {UIMenu} from 'UIMenu';
 import {View2DEditor, SessionFlags} from 'view2d_editor';
 import {DataBlock, DataTypes} from 'lib_api';
@@ -293,8 +292,8 @@ export class SplineEditor extends View2DEditor {
   
   on_tick(ctx) {
   }
-  
-  build_bottombar(view2d) {
+ 
+  build_sidebar1(view2d) {
     var ctx = new Context();
     
     var the_row = new RowFrame(ctx);
@@ -304,7 +303,62 @@ export class SplineEditor extends View2DEditor {
     the_row.draw_background = true;
     the_row.rcorner = 100.0
     the_row.pos = [0, 2]
+    the_row.size = [Area.get_barhgt()*2.0+16, view2d.size[1]];
+    
+    the_row.default_packflag |= PackFlags.USE_LARGE_ICON;
+    the_row.default_packflag &= ~PackFlags.USE_SMALL_ICON;
+    
+    var col = the_row.col();
+    col.toolop("spline.make_edge()");
+    col.toolop("spline.make_edge_face()");
+    
+    var col = the_row.col();
+    
+    function delay_redraw(ms) {
+        var start_time = time_ms();
+        var timer = window.setInterval(function() {
+            if (time_ms() - start_time < ms)
+                return;
+             
+            window.clearInterval(timer);
+            window.redraw_viewport();
+        }, 20);
+    }
+    
+    var undo = new UIButtonIcon(ctx, "Undo", Icons.UNDO);
+    undo.hint = "  Hotkey : CTRL-Z"
+    undo.callback = function() {
+      g_app_state.toolstack.undo();
+      delay_redraw(50); //stupid hack to deal with async nacl spline solve
+    }
+    col.add(undo);
+
+    var redo = new UIButtonIcon(ctx, "Redo", Icons.REDO);
+    redo.hint = "  Hotkey : CTRL-SHIFT-Z"
+    redo.callback = function() {
+      g_app_state.toolstack.redo();
+      delay_redraw(50); //stupid hack to deal with async nacl spline solve
+    }
+    
+    col.add(redo);
+    
+    console.log("  BUILT: sidebar1");
+    
+    view2d.cols.push(the_row);
+    view2d.add(the_row);
+  }  
+  
+  build_bottombar(view2d) {
+    var ctx = new Context();
+
+    var the_row = new RowFrame(ctx);
+
+    the_row.packflag |= PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING|PackFlags.IGNORE_LIMIT;
+    the_row.default_packflag = PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING;
+    the_row.draw_background = true;
+    the_row.rcorner = 100.0
     the_row.size = [view2d.size[0], Area.get_barhgt()*2+4];
+    the_row.pos = [0, 0]; //view2d.size[0]-the_row.size[0]-Area.get_barhgt()-2]
     
     var col = the_row.col();
     

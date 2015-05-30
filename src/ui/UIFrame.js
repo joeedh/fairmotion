@@ -1212,17 +1212,19 @@ export class UIFrame extends UIElement {
     if (e.canvas == undefined)
       e.canvas = frame.get_canvas();
     
-    e.do_recalc();
-    
     if (center) {
-      off[0] -= e.size[0]/3
-      off[1] -= e.size[1]/3
+      //off[0] -= e.size[0]/3
+      //off[1] -= e.size[1]/3
     }
     
     e.pos[0] = off[0];
     e.pos[1] = off[1];
     
     frame.add(e);
+    e.do_recalc();
+    
+    frame.do_full_recalc();
+    
     if (modal) {
       frame.push_modal(e);
       //frame._on_mousemove({"x": e.pos[0]-frame.pos[0], "y":e.pos[1]-frame.pos[1]})

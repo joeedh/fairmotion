@@ -1,5 +1,6 @@
 "use strict";
 
+import * as config from 'config';
 import {login_dialog} from 'dialogs';
 
 import {
@@ -546,7 +547,7 @@ export class Screen extends UIFrame {
       this.last_sync = time_ms();
     }
     
-    if (this.modalhandler == null && 
+    if (!config.NO_SERVER && this.modalhandler == null && 
         !g_app_state.session.is_logged_in) 
     {
       login_dialog(new Context());

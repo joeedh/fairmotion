@@ -664,6 +664,7 @@ export class UIHoverHint extends UIElement {
   start_hover() {
     this.start_time = time_ms();
     this.hovering = true;
+    console.log("start hover");
   }
   
   stop_hover() {
@@ -673,7 +674,7 @@ export class UIHoverHint extends UIElement {
   on_hint(Boolean is_modal=true) : UIElement {
     var hint = this.get_hint();
     
-    //console.log("hint: ", hint);
+    console.log("hint: ", hint);
     if (!hint) return;
     
     if (this.ctx == undefined)
@@ -707,6 +708,8 @@ export class UIHoverHint extends UIElement {
     hintbox.pos[0] += abspos[0] - abspos2[0];
     hintbox.pos[1] += abspos[1] - abspos2[1];
     
+    //hintbox.pos[0] = hintbox.pos[1] = 10.0;
+    
     //don't interfere with other modal stuff
     is_modal = is_modal && (g_app_state.screen.modalhandler == undefined);
     this.parent.add_floating(hintbox, is_modal);
@@ -725,11 +728,13 @@ export class UIHoverHint extends UIElement {
   }
   
   on_tick() {
+    if (this.hovering) {
+        console.log("hovering");
+    }
     if (this.hovering && time_ms()-this.start_time >= this.hover_time) {
       this.hovering = false;
+      console.log("hint!");
       this.on_hint();
     }
-    
-    UIElement.prototype.on_tick.call(this);
   }
 }

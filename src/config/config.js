@@ -1,9 +1,18 @@
 "use strict";
 
+export var USE_NACL=false;
+export var USE_HTML5_FILEAPI=false;
+export var NO_SERVER=false;
+
 window.RELEASE=false;
 
 //load local configuration overrides
 import * as config_local from 'config_local';
+
+if (config_local.NO_SERVER) {
+    config_local.USE_HTML5_FILEAPI = true;
+}
+
 export * from 'config_local';
 
 //debug flags
@@ -56,7 +65,5 @@ for (var k in _DEBUG) {
   }
 }
 
-export var USE_NACL=false;
-        
 if (DEBUG != undefined && DEBUG.force_mobile)
   window.IsMobile = true;

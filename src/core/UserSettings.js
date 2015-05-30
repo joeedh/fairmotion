@@ -1,3 +1,6 @@
+import * as config from 'config';
+
+import {b64encode, b64decode} from 'strutils';
 import {download_file} from 'dialogs';
 import {STRUCT} from 'struct';
 
@@ -114,7 +117,18 @@ export class AppSettings {
       }
     }
     
-    download_file("/" + allshape_settings_filename, finish, "Settings", true);
+    if (config.NO_SERVER) {
+        console.log("getting settings from localStorage. . .");
+        
+        if (localStorage._settings != undefined) {
+            var settings = b64decode(localStorage._settings);
+            settings = new DataView(settings.buffer);
+            
+            finish(settings);
+        }
+    } else {
+        download_file("/" + allshape_settings_filename, finish, "Settings", true);
+    }
   }
 }
 
@@ -133,6 +147,16 @@ export class SettUploadManager {
   }
   
   server_push(AppSettings settings) {
+    console.log("write settings");
+    if (config.NO_SERVER) { //save to localStorage
+        console.log("write settings2");
+        var data = settings.gen_file().buffer;
+        data = b64encode(new Uint8Array(data));
+        
+        localStorage._settings = data;
+        return;
+    }
+    
     var job = new UploadJob(undefined, settings);
     
     if (this.active != undefined && !this.active.done) {

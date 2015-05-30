@@ -1,6 +1,7 @@
 import {Dialog, PackedDialog, DialogFlags, OkayDialog, ErrorDialog} 
        from 'dialog';
-       
+import * as config from 'config';
+
 import {urlencode, b64decode, b64encode} from 'strutils';
 
 import {ToolFlags, UndoFlags} from 'toolops_api';
@@ -376,6 +377,8 @@ export function download_file(path, on_finish, path_label=path, use_note=false,
   call_api(get_file_data, {path:path}, finish, error, status);
 }
 
+import {open_file, save_file} from 'html5_fileapi';
+
 export class FileOpenOp extends ToolOp {  
   constructor() {
     super("open_file", "Open");
@@ -390,6 +393,18 @@ export class FileOpenOp extends ToolOp {
 
   exec(ctx) {
     console.log("File open");
+    
+    if (config.USE_HTML5_FILEAPI) {
+        console.log("html5 file api!");
+        
+        open_file(function(buf) {
+            console.log("got file!", buf);
+            
+            g_app_state.load_user_file_new(new DataView(buf));
+        }, this);
+        
+        return;
+    }
     
     /*I should really make these file operations modal, since
         they create ui elements
@@ -432,6 +447,12 @@ export class FileOpenOp extends ToolOp {
   }
 }
 
+export function html5_save(data) {
+    console.log("html5 file api!");
+    
+    save_file(data);
+}
+
 export class FileSaveAsOp extends ToolOp {
   constructor() {
     super("save_file_as", "Save As");
@@ -454,6 +475,12 @@ export class FileSaveAsOp extends ToolOp {
     var thepath = undefined;
     
     var mesh_data = g_app_state.create_user_file_new().buffer;
+    
+    if (config.USE_HTML5_FILEAPI) {
+        html5_save(mesh_data);
+        return;
+    }
+
     function error(job, owner, msg) {
       pd.end()
       error_dialog(ctx, "Network Error", undefined, true);
@@ -540,6 +567,11 @@ export class FileSaveOp extends ToolOp {
     console.log("File save");
     
     var mesh_data = g_app_state.create_user_file_new().buffer;
+
+    if (config.USE_HTML5_FILEAPI) {
+        html5_save(mesh_data);
+        return;
+    }
     
     /*I should really make these file operations modal, since
         they create ui elements

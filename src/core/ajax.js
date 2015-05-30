@@ -2,6 +2,8 @@
 
 //#include "src/config/config_defines.js"
 
+import * as config from 'config';
+
 //#ifndef PACK_PROFILE
 
 #define profile_start(name) ;

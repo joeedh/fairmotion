@@ -1,5 +1,7 @@
 "use strict";
 
+import * as config from 'config';
+
 import 'startup_file';
 import {gen_screen} from 'FrameManager';
 import {DataPath, DataStruct, DataPathTypes, DataFlags,
@@ -104,6 +106,18 @@ class UserSession {
   validate_session() {
     var session = this;
     
+    if (config.NO_SERVER) {
+        this.is_logged_in = true;
+        
+        if (!session.loaded_settings) {
+            session.settings.download(function() {
+              session.loaded_settings = true;
+              session.store(true);
+            });
+        }
+        return;
+    }
+    
     function finish2(job, owner) {
       session.tokens = job.value;
       session.is_logged_in = true;
@@ -111,7 +125,7 @@ class UserSession {
       
       if (DEBUG.netio)
         console.log("downloading current user settings. . .");
-      session.settings.download(function() {
+        session.settings.download(function() {
         session.store(true);
       });
     }

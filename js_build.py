@@ -866,7 +866,8 @@ if not os.path.exists("config_local.py"):
   print("generating config_local.py...")
   buf = \"""
 serverhost = "127.0.0.1"
-serverport = 80
+serverport = 8080
+
 base_path = "/"
 server_root = r"ROOT/pyserver"
 doc_root = r"ROOT"

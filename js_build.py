@@ -64,6 +64,11 @@ def modimport(name):
   
   return mod
 
+try:
+  a = FileNotFoundError
+except:
+  FileNotFoundError = IOError
+
 def config_tryimp(name):
   try:
     mod = modimport(name)

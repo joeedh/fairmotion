@@ -37,7 +37,7 @@ if not WIN32: #unix functions; need to test these!
     
   def local_to_real(path):
     path = unixnorm(path)
-    if not config.serv_all_files:
+    if not serv_all_local:
       path = files_root + os.path.sep + path
     
     return os.path.abspath(os.path.normpath(path))

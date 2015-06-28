@@ -7,7 +7,7 @@ and (if on windows and python is installed) click run.py, or (if on unix) open a
 
     python run.py
     
-Next, open a web browser (preferably Google Chrome), and navigate to http://localhost
+Next, open a web browser (preferably Google Chrome), and navigate to http://localhost:8080
 
 #Intro
 

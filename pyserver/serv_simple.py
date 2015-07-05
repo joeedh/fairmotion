@@ -1,5 +1,17 @@
+import os.path, os
+
+if not os.path.exists("./config_local.py"):
+  f = open("config_local.py", "w")
+  f.close()
+  
 import config, sys
 
+if not hasattr(config, "doc_root"):
+  config.doc_root = os.path.abspath(os.path.normpath(os.getcwd()+"/..".replace("/", os.path.sep)))
+
+if not os.path.exists(config.doc_root):
+  os.makedirs(config.doc_root)
+  
 if not config.is_set("use_sqlite"):
   config.use_sqlite = True
   

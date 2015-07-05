@@ -2711,14 +2711,17 @@ class Parser:
     
     glob.g_tried_semi = False
     
+    import traceback
     ret = None
-    try:
-      if lexer != None:
-        ret = self._parser.parse(data, lexer=lexer, tracking=True)
-      else:
-        ret = self._parser.parse(data, tracking=True)
-    except:
-      raise sys.exc_info()[1]
+    #try:
+    if lexer != None:
+      ret = self._parser.parse(data, lexer=lexer, tracking=True)
+    else:
+      ret = self._parser.parse(data, tracking=True)
+    #except:
+    #  traceback.print_last()
+      #print(sys.exc_info(), dir(sys.exc_info()))
+      #raise sys.exc_info()[1]
       
     return ret
 

@@ -3,6 +3,12 @@ from js_global import glob
 from js_util_types import odict
 import sys, traceback, os, os.path
 
+def print2(*args):
+  s = ""
+  for a in args:
+    s += str(a) + " "
+  sys.stdout.write(s+"\n")
+  
 if 0: #glob.g_debug_print_calls:
   def theprint(arg, **args):
     args = [arg] + list(args)
@@ -46,7 +52,7 @@ if 0: #glob.g_debug_print_calls:
         
     sys.stdout.write(out2)
 else:
-  theprint = print
+  theprint = print2
 
 #def print(arg, **args):
 #  theprint(arg, **args)
@@ -79,7 +85,7 @@ class SourceMap:
 
 idgen = [1]
 
-class Node:
+class Node (object):
   def __init__(self):
     global idgen 
     

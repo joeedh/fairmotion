@@ -37,7 +37,7 @@ if not WIN32: #unix functions; need to test these!
     
   def local_to_real(path):
     path = unixnorm(path)
-    if not config.serv_all_files:
+    if not serv_all_local:
       path = files_root + os.path.sep + path
     
     return os.path.abspath(os.path.normpath(path))
@@ -72,6 +72,11 @@ def is_folder(file):
 def is_valid_file(file):
   return file["realpath"] != EMPTY_TAG
 
+try:
+  a = FileNotFoundError
+except:
+  FileNotFoundError = OSError
+
 class FileClass (dict):
   #metadata is added automatically from DB keys
   def __init__(self, path, userid):
@@ -81,13 +86,17 @@ class FileClass (dict):
       
       diskpath = local_to_real(path)
       froot = local_to_real("/")
-
-      try:
-        nstat = dostat(diskpath)
-      except FileNotFoundError:
+      
+      if not os.path.exists(diskpath):
         self.bad = True
         return
-          
+      else:
+        try:
+          nstat = dostat(diskpath)
+        except:
+          self.bad = True
+          return
+            
       rootid = fileapi_db.fileid_to_publicid(userid, ROOT_PARENT_ID)
       
       if stat.S_ISDIR(nstat.st_mode):

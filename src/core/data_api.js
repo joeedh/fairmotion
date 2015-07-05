@@ -9,6 +9,10 @@ import {ToolFlags, UndoFlags} from 'toolops_api';
 import {DataBlock} from 'lib_api';
 import {apiparser} from 'data_api_parser';
 
+import {MultiResLayer, MultiResEffector, MResFlags, has_multires, 
+        ensure_multires, iterpoints, compose_id, decompose_id
+       } from 'spline_multires';
+
 export class DataAPIError extends Error {
   constructor(msg) {
     super(msg);
@@ -1024,6 +1028,8 @@ export class DataAPI {
     var ret = [];
     for (var key of sta.getkeyiter.call(list)) {
       var item = sta.getitem.call(list, key);
+      console.log("  key:", key, filter(item), item, item.level, ctx.spline.actlevel);
+      
       if (!filter(item)) continue;
       
       var path = (listpath + "[" + key + "]" + "." + subpath).trim();

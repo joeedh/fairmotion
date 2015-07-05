@@ -407,6 +407,13 @@ def transform_exisential_operators_old(node, typespace):
 def expand_harmony_class(typespace, cls):
   node = FunctionNode(cls.name, 0)  
   
+  put_props_in_constructor = False
+  pi = cls.parent.index(cls)
+  if pi > 0 and type(cls.parent[pi-1]) == StrLitNode:
+    pn = cls.parent[pi-1]
+    put_props_in_constructor = "dont_put_props_in_prototype" in pn.val
+    print("===========================", pn.val, put_props_in_constructor)
+  
   params = ExprListNode([])
   slist = StatementList()
   vars = [];
@@ -539,7 +546,10 @@ def expand_harmony_class(typespace, cls):
     an = AssignNode(IdentNode("configurable"), IdentNode("true"));
     params.add(an);
     
-    bn = BinOpNode(IdentNode(cls.name), IdentNode("prototype"), ".")
+    if put_props_in_constructor:
+      bn = IdentNode("this");
+    else:
+      bn = BinOpNode(IdentNode(cls.name), IdentNode("prototype"), ".")
       
     exprlist.add(bn)
     if type(prop) in [str, int, float]:
@@ -597,6 +607,8 @@ def expand_harmony_class(typespace, cls):
   node.add(slist)
   constructor = node
   
+  inner_slist = slist
+  
   #add stuff outside of the constructor function
   slist = StatementList()
   slist.add(node)
@@ -653,7 +665,10 @@ def expand_harmony_class(typespace, cls):
     
   for p in props:
     n = gen_prop_define(p, gets, sets)
-    slist.add(n)
+    if put_props_in_constructor:
+      inner_slist.prepend(n)
+    else:
+      slist.add(n)
   
   #generate methods
   for m in cls:
@@ -891,7 +906,7 @@ def expand_harmony_super(result, typespace):
   
 def expand_requirejs_class(typespace, cls):
   node = FunctionNode(cls.name, 0)  
-  
+    
   params = ExprListNode([])
   slist = StatementList()
   vars = [];
@@ -987,7 +1002,7 @@ def expand_requirejs_class(typespace, cls):
     f.lexpos = method.lexpos
     
     return f
-    
+  
   def gen_prop_define(prop, gets, sets, flags=[]):
     #since this is called from *within* the parser, we
     #can't use js_parse().

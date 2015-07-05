@@ -65,7 +65,8 @@ double Graphics3DInstance::eval_constraint(
       }
       
       break;
-      
+
+#ifndef SPOWER_K
     //note that this is a hard constraint
     case CURVATURE_CONSTRAINT:
     { //*
@@ -108,6 +109,88 @@ double Graphics3DInstance::eval_constraint(
       }
       
       break;
+#else //SPOWER_K
+    //note that this is not a newton-raphson constraint 
+    case CURVATURE_CONSTRAINT:
+    { //*
+        int s1 = (ORDER-1)*con->param1f;
+        int s2 = (ORDER-1)*con->param2f;  
+        //double tan1[3], tan2[3];
+        
+        SplineSegment *seg1 = ss + con->param1;
+        SplineSegment *seg2 = ss + con->param2;
+        
+        /*
+        SplineVertex  *v1   = vs + seg1->v1;
+        SplineVertex  *v2   = vs + seg1->v2;
+        SplineVertex  *v3   = vs + seg2->v1;
+        SplineVertex  *v4   = vs + seg2->v2;
+        
+        //ensure segments are updated?
+        eval_curve_dv(tan1, s1, v1->co, v2->co, seg1->ks, ORDER, false, true);
+        eval_curve_dv(tan2, s2, v3->co, v4->co, seg2->ks, ORDER, false, true);
+       //*/
+        
+        double ksign = s1 == s2 ? -1.0 : 1.0;
+        double ratio=0.0;
+        if (seg1->ks[KSCALE] == 0.0 || seg2->ks[KSCALE] == 0.0) {
+          ratio = 0.5;
+        } else {
+          ratio = seg1->ks[KSCALE] / seg2->ks[KSCALE];
+        }
+        
+        if (ratio > 1.0)
+          ratio = 1.0 / ratio;
+        
+        double mulfac = ratio*0.5;
+        double ret = 0.0;
+        
+        for (int i=0; i<ORDER/2; i++) {
+          s1 = !con->param1f ? i : ORDER-1-i;
+          s2 = !con->param2f ? i : ORDER-1-i;
+          
+          double k1 = seg1->ks[s1] / seg1->ks[KSCALE];
+          double k2 = ksign*seg2->ks[s2] / seg2->ks[KSCALE];
+          
+          double k = (k1+k2)*0.5;
+          
+          ret += fabs(k1-k)*0.5 + fabs(k2-k)*0.5;
+          
+          if (!(seg1->flag & FIXED_KS))
+            k1 = k*seg1->ks[KSCALE];
+          else
+            k1 *= seg1->ks[KSCALE];
+            
+          if (!(seg2->flag & FIXED_KS))
+            k2 = k*ksign*seg2->ks[KSCALE];
+          else
+            k2 *= seg2->ks[KSCALE]*ksign;
+            
+          seg1->ks[s1] += (k1 - seg1->ks[s1])*mulfac;
+          seg2->ks[s2] += (k2 - seg2->ks[s2])*mulfac;
+        }
+        
+        return ret;
+      }
+      
+      break;
+#endif
+    case COPY_C_CONSTRAINT: //non-newton-raphson constraint
+    {
+      SplineSegment *seg = ss + con->seg1;
+      
+      int vi = con->param1;
+      double fac = 0.0;
+      
+      if (!vi) {
+        seg->ks[0] += (seg->ks[ORDER-1] - seg->ks[0])*fac;
+      } else {
+        seg->ks[ORDER-1] += (seg->ks[0] - seg->ks[ORDER-1])*fac;
+      }
+      
+      return 0.0;
+    }
+    
     case HARD_TAN_CONSTRAINT:
     {
       SplineSegment *seg = ss + con->seg1;
@@ -152,7 +235,7 @@ int Graphics3DInstance::solve_intern(
   
   int si;
   for (si=0; si<STEPS; si++) {
-    if (si > 0 && error/(double)totcons < 0.001) 
+    if (si > 0 && error/(double)totcons < 0.0001) 
       break;
     
     error = 0.0;
@@ -238,6 +321,10 @@ int Graphics3DInstance::solve_intern(
         
         double rmul = r / totg;
         
+        if (con->type == CURVATURE_CONSTRAINT || 
+            con->type == COPY_C_CONSTRAINT)
+          continue;
+          
         //ignore ws weights for now
         for (int j=0; j<ORDER; j++) {
           s->ks[j] += -rmul*gs[16*sj+j]*ck;

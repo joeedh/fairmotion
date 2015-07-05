@@ -664,7 +664,7 @@ export class UIHoverHint extends UIElement {
   start_hover() {
     this.start_time = time_ms();
     this.hovering = true;
-    console.log("start hover");
+//    console.log("start hover");
   }
   
   stop_hover() {

@@ -8,10 +8,6 @@ import {DataPathNode} from 'eventdag';
 
 import 'struct';
 
-/*okay.  spline frame define geometry per-frame,
-  but not *animation*
- */
-
 export class TimeDataLayer extends CustomDataLayer {
   constructor() {
     CustomDataLayer.call(this);

@@ -386,13 +386,18 @@ var common = (function() {
    *     updateStatus.
    */
   function updateStatus(opt_message) {
+    if (opt_message != undefined) {
+      console.log(opt_message);
+    }
+    
     if (opt_message) {
       statusText = opt_message;
     }
+    /*
     var statusField = document.getElementById('statusField');
     if (statusField) {
       statusField.innerHTML = statusText;
-    }
+    }*/
   }
 
   // The symbols to export.
@@ -411,9 +416,7 @@ var common = (function() {
 
 }());
 
-// Listen for the DOM content to be loaded. This event is fired when parsing of
-// the page's document has finished.
-document.addEventListener('DOMContentLoaded', function() {
+window._nacl_domContentLoaded = function _nacl_domContentLoaded() {
   var body = document.body;
 
   // The data-* attributes on the body can be referenced via body.dataset.
@@ -469,9 +472,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
       isTest = searchVars.test === 'true';
       isRelease = path.toLowerCase().indexOf('release') != -1;
-
+      
+      console.log("NACL LOAD");
       loadFunction(body.dataset.name, tc, path, body.dataset.width,
                    body.dataset.height, attrs);
     }
   }
-});
+}
+// Listen for the DOM content to be loaded. This event is fired when parsing of
+// the page's document has finished.
+
+//XXX splitting/dynamic loading of app.js seems to have broken
+//    the handling of thihs event, so we call it manually now
+//document.addEventListener('DOMContentLoaded', _nacl_domContentLoaded);

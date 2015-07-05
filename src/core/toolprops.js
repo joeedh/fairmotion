@@ -17,8 +17,9 @@ export var PropTypes = {
   FLAG: 16,
   DATAREF: 17,
   DATAREFLIST: 18,
-  TRANSFORM : 19, //ui-friendly matrix property
-  COLLECTION : 20
+  TRANSFORM  : 19, //ui-friendly matrix property
+  COLLECTION : 20,
+  VEC2       : 21
 };
 
 export var TPropFlags = {
@@ -808,6 +809,50 @@ export class EnumProperty extends ToolProperty {
 
 EnumProperty.STRUCT = STRUCT.inherit(EnumProperty, ToolProperty) + """
   data : string | obj.data.toString();
+}
+""";
+
+
+export class Vec2Property extends ToolProperty {
+  constructor(vec2, apiname, uiname, description, flag) {
+    ToolProperty.call(this, PropTypes.VEC2, apiname, uiname, description, flag);
+    
+    this.unit = "default";
+    this.range = [undefined, undefined]
+    this.real_range = [undefined, undefined]
+    this.data = new Vector3(vec2);  
+  }
+  
+  copyTo(Vec2Property dst) : Vec2Property {
+    ToolProperty.prototype.copyTo.call(this, dst, false);
+    
+    dst.data = new Vector3(this.data);
+    dst.real_range = this.real_range;
+    dst.range = this.range;
+    
+    return dst;
+  }
+  
+  set_data(data) {
+    this.data.load(data);
+    ToolProperty.prototype.set_data.call(this, undefined, false);
+  }
+  
+  copy() : Vec2Property {
+    return this.copyTo(new Vec2Property());
+  }
+ 
+  static fromSTRUCT(reader) {
+    var t = new Vec2Property();
+    
+    reader(t);
+    
+    return t;
+  }
+}
+
+Vec2Property.STRUCT = STRUCT.inherit(Vec2Property, ToolProperty) + """
+  data : array(float);
 }
 """;
 

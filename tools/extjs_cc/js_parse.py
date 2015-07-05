@@ -2323,6 +2323,26 @@ def p_export_decl(p):
     p[0] = StatementList()
     for n in p[2]:
       p[0].add(ExportNode(n.val))      
+  elif len(p) == 4 and type(p[2]) == VarDeclNode:
+    n = p[2]
+    p[0] = StatementList()
+    
+    def visit(n):
+      if n.parent != None:
+        n.parent.remove(n)
+      
+      name = get_name(n)
+      en = ExportNode(name)
+      en.add(n)
+      
+      p[0].add(en)
+      
+      if len(n) < 3: return
+      for c in n[2:]:
+        visit(c)
+    
+    visit(n)
+    
   elif len(p) == 4:
     n = p[2]
     

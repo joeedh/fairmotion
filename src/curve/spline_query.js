@@ -1,4 +1,8 @@
 import {SelMask} from 'selectmode';
+import {
+        has_multires, compose_id, decompose_id,
+        MResFlags, MultiResLayer
+       } from 'spline_multires';
 
 var PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,
     ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos,
@@ -19,6 +23,15 @@ export class SplineQuery {
     //[data, distance, type]
     if (selectmask & SelMask.VERTEX) {
       var ret = this.findnearest_vert(editor, mpos, limit);
+      if (ret != undefined && ret[1] < dis) {
+        data = ret;
+        dis = ret[1];
+      }
+    }
+    
+    //[data, distance, type]
+    if (selectmask & SelMask.MULTIRES) {
+      var ret = this.findnearest_mres(editor, mpos, limit);
       if (ret != undefined && ret[1] < dis) {
         data = ret;
         dis = ret[1];
@@ -110,6 +123,47 @@ export class SplineQuery {
       return [closest, dis, SelMask.FACE];
   }
   
+  findnearest_mres(editor, mpos, limit, do_handles) {
+    var spline = this.spline;
+    var actlayer = spline.layerset.active;
+    
+    static _mpos = new Vector3();
+    static _v = new Vector3();
+    mpos = _mpos.load(mpos), mpos[2] = 0.0;
+    
+    if (!has_multires(spline))
+      return undefined;
+      
+    if (limit == undefined) limit = 15;
+    var min = 1e17, ret = undefined;
+    
+    for (var seg in spline.segments) {
+      if (seg.hidden || seg.v1.hidden || seg.v2.hidden) continue;
+      if (!seg.in_layer(actlayer)) continue;
+      
+      var mr = seg.cdata.get_layer(MultiResLayer);
+      for (var p in mr.points(spline.actlevel)) {
+        if (p.flag & MResFlags.HIDE)
+          continue;
+        
+        var seg = spline.eidmap[p.seg];
+        var mapco = seg.eval(p.s);
+  
+        _v.load(mapco); _v[2] = 0.0;
+        editor.project(_v);
+        
+        var dis = _v.vectorDistance(mpos);
+        if (dis < limit && dis < min) {
+          min = dis;
+          ret = compose_id(p.seg, p.id);
+        }
+      }
+    }
+    
+    if (ret != undefined)
+      return [ret, min, SelMask.MULTIRES];
+  }
+  
   findnearest_vert(editor, mpos, limit, do_handles) {
     var spline = this.spline;
     var actlayer = spline.layerset.active;
@@ -123,12 +177,18 @@ export class SplineQuery {
     static _v = new Vector3();
     mpos = _mpos.load(mpos), mpos[2] = 0.0;
     
+    var hasmres = has_multires(spline);
     var list = do_handles ? spline.handles : spline.verts;
     for (var v of list) {
         if (v.hidden) continue;
         if (!v.in_layer(actlayer)) continue;
         
-        _v.load(v); _v[2] = 0.0;
+        var co = v;
+        if (hasmres && v.segments.length > 0) {
+          co = v.segments[0].eval(v.segments[0].ends(v));
+        }
+        
+        _v.load(co); _v[2] = 0.0;
         editor.project(_v);
         
         var dis = _v.vectorDistance(mpos);

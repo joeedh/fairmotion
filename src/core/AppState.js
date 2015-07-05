@@ -823,6 +823,16 @@ export class AppState {
         frameset.spline.resolve = 1;
       }
     }
+    
+    //spline equation changed, force resolves
+    if (version < 0.050) {
+      for (var frameset of datalib.framesets) {
+        console.log("Spline equation changed; forcing resolve. . .", version);
+        
+        frameset.spline.force_full_resolve();
+        frameset.pathspline.force_full_resolve();
+      }
+    }
   }
 
   do_versions_post(float version) {

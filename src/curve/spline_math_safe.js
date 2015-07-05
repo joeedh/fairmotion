@@ -44,60 +44,116 @@ var mfloor = Math.floor, mceil = Math.ceil, abs = Math.abs, sqrt = Math.sqrt, si
 
 #define POLYTHETA_BEZ(s) (-(((3*(s)-4)*k3-k4*(s))*(s)*(s)+((s)*(s)-2*(s)+2)*((s)-2)*k1-(3*(s)*(s)-8*(s)+6)*k2*(s))*(s))*0.25
 
-                            
 #define POLYCURVATURE_BEZ(s) (-(((3*((s)-1)*k3-k4*(s))*(s)-3*((s)-1)*((s)-1)*k2)*(s)+((s)-1)*((s)-1)*((s)-1)*k1))
 
 #define POLYCURVATURE_BEZ_DV(s) (-3*(k1*(s)*(s)-2*k1*(s)+k1-3*k2*(s)*(s)+4*k2*(s)-k2+3*k3*(s)*(s)-2*k3*(s)-k4*(s)*(s)))
 
-var polytheta_bez = function(s, ks, order) {
-  var k1 = ks[0], k2 = ks[1], k3 = ks[2], k4= ks[3];
+#define POLYTHETA_SBEZ(s) (((((3*s-4)*dv1_k2-6*(s-2)*k2)*s+(3*s2-8*s+6)*dv1_k1)*s+6\
+              *(s3-2*s2+2)*k1)*s)/12
+
+#define POLYCURVATURE_SBEZ(s) (((s-1)*dv1_k1+dv1_k2*s)*(s-1)-(2*s-3)*k2*s)*s+(2*s+1)*(s-1)*(s-1)*k1
+
+#define POLYCURVATURE_SBEZ_DV(s) (6*(k1-k2)*(s-1)+(3*s-2)*dv1_k2)*s+(3*s-1)*(s-1)*dv1_k1
+                               
+var polytheta_spower = function polytheta_spower(s, ks, order) {
+  var s2 = s*s, s3=s2*s, s4=s3*s, s5=s4*s, s6=s5*s, s7=s6*s, s8=s7*s, s9=s8*s;
   
-  if (order == 2) {
-    return (s*(-k1*s + 2*k1 + k2*s))/2.0;
-  } else if (order == 3) {
-    return (-(((2*s-3)*k2-k3*s)*s-(s*s-3*s+3)*k1)*s)/3.0;
-  } else {
-    return (-(((3*s-4)*k3-k4*s)*s*s+(s*s-2*s+2)*(s-2)*k1-(3*s*s-8*s+6)*k2*s)*s)/4.0;
+  switch (order) {
+    case 2:
+      var k1 = ks[0], k2 = ks[1];
+      
+      return (-((s-2)*k1-k2*s)*s)/2.0;
+    case 4:
+      var k1 = ks[0], dv1_k1 = ks[1], dv1_k2 = ks[2], k2 = ks[3];
+      
+      return (((((3*s-4)*dv1_k2-6*(s-2)*k2)*s+(3*s2-8*s+6)*dv1_k1)*s+6
+              *(s3-2*s2+2)*k1)*s)/12;
+    case 6:
+      var k1 = ks[0], dv1_k1 = ks[1], dv2_k1 = ks[2], dv2_k2 = ks[3], dv1_k2 = ks[4], k2 = ks[5];
+      
+      return (-((((60*dv1_k2*s2-168*dv1_k2*s+120*dv1_k2-10*dv2_k2*s2
+        +24*dv2_k2*s-15*dv2_k2-120*k2*s2+360*k2*s-300*k2)*s+(10*s3
+        -36*s2+45*s-20)*dv2_k1)*s+12*(5*s4-16*s3+15*s2-5)*
+        dv1_k1)*s+60*(2*s5-6*s4+5*s3-2)*k1)*s)/120;
   }
 }
 
-function polycurvature_bez(s, ks, order) {
-  /*
-  on factor;
-  off period;
-  procedure bez(a, b);
-    a + (b - a)*s;
+var polycurvature_spower = function polycurvature_spower(s, ks, order) {
+  var k1 = ks[0], 
+           dv1_k1 = ks[1], dv2_k1 = ks[2], 
+           dv2_k2 = ks[3], dv1_k2 = ks[4],
+      k2 = ks[5];
   
-  quad := bez(bez(k1, k2), bez(k2, k3));
-  cubic := bez(quad, sub(k3=k4, k2=k3, k1=k2, quad));
-  
-  k := cubic;
-  th := int(k, s);
-  dk := df(k, s);
-*/
-  var k1 = ks[0], k2 = ks[1], k3 = ks[2], k4= ks[3];
-  
-  if (order == 2) {
-    return k1 + (k2 - k1)*s;
-  } else if (order == 3) {
-    return -((k1-k2+(k2-k3)*s-(k1-k2)*s)*s+(k1-k2)*s-k1);
-  } else {
-    return -(((3*(s-1)*k3-k4*s)*s-3*(s-1)*(s-1)*k2)*s+(s-1)*(s-1)*(s-1)*k1);
+  var s2 = s*s, s3=s2*s, s4=s3*s, s5=s4*s, s6=s5*s, s7=s6*s, s8=s7*s, s9=s8*s;
+
+  switch (order) {
+    case 2:
+      var k1 = ks[0], k2 = ks[1];
+      
+      return -((s-1)*k1-k2*s);
+    case 4:
+      var k1 = ks[0], dv1_k1 = ks[1], dv1_k2 = ks[2], k2 = ks[3];
+      
+      return (((s-1)*dv1_k1+dv1_k2*s)*(s-1)-(2*s-3)*k2*s)*s+(2*s+1)*(s-1)*(s-1)*k1;
+    case 6:
+      return (-((((((s-1)*dv2_k1-dv2_k2*s)*(s-1)+2*(3*s-4)*dv1_k2*s)*s+2
+            *(3*s+1)*(s-1)*(s-1)*dv1_k1)*(s-1)-2*(6*s2-15*s+10)*k2*s2)*s+
+            2*(6*s2+3*s+1)*(s-1)*(s-1)*(s-1)*k1))/2.0;
   }
 }
 
-function polycurvature_bez_dv(s, ks, order) {
-  var k1 = ks[0], k2 = ks[1], k3 = ks[2], k4= ks[3];
+var polycurvature_dv_spower = function polycurvature_spower(s, ks, order) {
+  var s2 = s*s, s3=s2*s, s4=s3*s, s5=s4*s, s6=s5*s, s7=s6*s, s8=s7*s, s9=s8*s;
   
-  if (order == 2) {
-    return -(k1-k2);
-  } else if (order == 3) {
-    return 2*(k1*s-k1-2*k2*s+k2+k3*s);
-  } else {
-    return -3*(k1*s*s-2*k1*s+k1-3*k2*s*s+4*k2*s-k2+3*k3*s*s-2*k3*s-k4*s*s);
+  switch (order) {
+    case 2:
+      var k1 = ks[0], k2 = ks[1];
+      
+      return -(k1-k2);
+    case 4:
+      var k1 = ks[0], dv1_k1 = ks[1], dv1_k2 = ks[2], k2 = ks[3];
+      
+      return (6*(k1-k2)*(s-1)+(3*s-2)*dv1_k2)*s+(3*s-1)*(s-1)*dv1_k1;
+    case 6:
+      var k1 = ks[0], 
+               dv1_k1 = ks[1], dv2_k1 = ks[2], 
+               dv2_k2 = ks[3], dv1_k2 = ks[4],
+          k2 = ks[5];
+          
+      return (-(((2*(30*(k1-k2)*(s-1)*(s-1)+(5*s-6)*(3*s-2)*dv1_k2)-(5*s-3)*
+               (s-1)*dv2_k2)*s+(5*s-2)*(s-1)*(s-1)*dv2_k1)*s+2*(5*s+1)*(3*s-1)*
+               (s-1)*(s-1)*dv1_k1))/2.0;
   }
 }
 
+/*
+var polycurvature_dv2_spower = function polycurvature_dv2_spower(s, ks, order) {
+  var s2 = s*s, s3=s2*s, s4=s3*s, s5=s4*s, s6=s5*s, s7=s6*s, s8=s7*s, s9=s8*s;
+  
+  switch (order) {
+    case 2:
+      var k1 = ks[0], k2 = ks[1];
+      
+      return 0;
+    case 4:
+      var k1 = ks[0], dv1_k1 = ks[1], dv1_k2 = ks[2], k2 = ks[3];
+      
+      return 0;
+    case 6:
+      var k1 = ks[0], 
+               dv1_k1 = ks[1], dv2_k1 = ks[2], 
+               dv2_k2 = ks[3], dv1_k2 = ks[4],
+          k2 = ks[5];
+          
+      return 0;
+  }
+}*/
+  
+export var spower_funcs = [
+  polytheta_spower,
+  polycurvature_spower,
+  polycurvature_dv_spower
+];
 
 var approx_ret_cache = cachering.fromConstructor(Vector3, 42);
 var abs = Math.abs;
@@ -114,151 +170,65 @@ var acache = [new Vector3(), new Vector3(), new Vector3(),
               new Vector3()]
 var acur = 0;
 
-#define approx_fast(ss, ks, order)\
-  var s1 = ss*(1.0-0.0000001);\
-  var s=0, ds=s1*ONE_INT_STEPS, mul=s1*ONE_INT_STEPS;\
-  var mul2=mul*mul, mul3=mul2*mul, mul4=mul3*mul, mul5=mul4*mul, mul6=mul5*mul;\
-  var ret = acache[acur]; acur = (acur+1) % 7;\
-  ret[2] = 0.0;\
-  var x = 0, y = 0, th, r1, dx, ky, dkt, kt2;\
-  var k1 = ks[0], k2 = ks[1], k3 = ks[2], k4 = ks[3];\
-    var th = POLYTHETA_BEZ(s+0.5);\
-    var r1 = th - 0.1666666*th*th*th + 0.00833333*th*th*th*th*th;\
-    var r2 = 1 - 0.5*th*th + 0.04166666*th*th*th*th;\
-    var dx = r1, dy = r2;\
-    var kt = POLYCURVATURE_BEZ(s+0.5);\
-    var dkt = POLYCURVATURE_BEZ_DV(s+0.5);\
-    var kt2=kt*kt;\
-    x += dx + (r2*kt)*mul*0.5 + (r2*dkt - kt2*r1)*mul2*0.16666666666666;\
-    y += dy + (-r1*kt)*mul*0.5 + (-(r2*kt2 + r1*dkt))*mul2*0.1666666666666;\
-    s += ds;\
-    var th = POLYTHETA_BEZ(s+0.5);\
-    var r1 = sin(th), r2 = cos(th);\
-    var dx = r1, dy = r2;\
-    var kt = POLYCURVATURE_BEZ(s+0.5);\
-    var dkt = POLYCURVATURE_BEZ_DV(s+0.5);\
-    var kt2=kt*kt;\
-    x += dx + (r2*kt)*mul*0.5 + (r2*dkt - kt2*r1)*mul2*0.16666666666666;\
-    y += dy + (-r1*kt)*mul*0.5 + (-(r2*kt2 + r1*dkt))*mul2*0.1666666666666;\
-    s += ds;\
-    var th = POLYTHETA_BEZ(s+0.5);\
-    var r1 = sin(th), r2 = cos(th);\
-    var dx = r1, dy = r2;\
-    var kt = POLYCURVATURE_BEZ(s+0.5);\
-    var dkt = POLYCURVATURE_BEZ_DV(s+0.5);\
-    var kt2=kt*kt;\
-    x += dx + (r2*kt)*mul*0.5 + (r2*dkt - kt2*r1)*mul2*0.16666666666666;\
-    y += dy + (-r1*kt)*mul*0.5 + (-(r2*kt2 + r1*dkt))*mul2*0.1666666666666;\
-    s += ds;\
-  ret[0] = x*mul;\
-  ret[1] = y*mul;
-
 var eval_curve_vs = cachering.fromConstructor(Vector3, 64);
 
 var _eval_start = new Vector3();
-export function eval_curve_fast(s11, v1, v2, ks, order, angle_only, no_update) {
-  var start = _eval_start;
-  if (order == undefined) order = ORDER;
-  
-  s11 *= 0.99999999;
-  
-  var eps = 0.000000001;
-  
-  var ang, scale, start;
-  if (!no_update) {
-    approx_fast(-0.5+eps, ks, order);
-    var start = ret;
-    
-    approx_fast(0.5-eps, ks, order);
-    var end = ret;
-    
-    end.sub(start);
-    var a1 = atan2(end[0], end[1]);
-    
-    var vec = eval_curve_vs.next();
-    vec.load(v2).sub(v1);
-    
-    var a2 = atan2(vec[0], vec[1]);
-    
-    ang = a2-a1;
-    scale = vec.vectorLength() / end.vectorLength();
-    
-    ks[KSCALE] = scale;
-    ks[KANGLE] = ang;
-    ks[KSTARTX] = start[0];
-    ks[KSTARTY] = start[1];
-    ks[KSTARTZ] = start[2];
-  } else {
-    ang = ks[KANGLE];
-    scale = ks[KSCALE];
-    
-    start[0] = ks[KSTARTX];
-    start[1] = ks[KSTARTY];
-    start[2] = ks[KSTARTZ];
-  }
-  
-  if (!angle_only) {
-    approx_fast(s11, ks, order);
-    var co = ret;
-    
-    co.sub(start).rot2d(-ang).mulScalar(scale).add(v1);
-    
-    return co;
-  }
-};
 
 export function approx(s1, ks, order, dis, steps) {
   s1 *= 1.0-0.0000001;
   
   if (steps == undefined)
     steps = INT_STEPS;
-  var s=0, ds=s1/steps, mul=s1/steps;
+  var s=0, ds=s1/steps;
   
-  var mul2=mul*mul, mul3=mul2*mul, mul4=mul3*mul, mul5=mul4*mul, mul6=mul5*mul; //, mul7=mul6*mul, mul8=mul7*mul;
+  var ds2=ds*ds, ds3=ds2*ds, ds4=ds3*ds;
   
   var ret = approx_ret_cache.next();
   ret[0] = ret[1] = ret[2] = 0.0;
   var x = 0, y = 0;
-  
-  var k1 = ks[0], k2 = ks[1], k3 = ks[2], k4 = ks[3];
+
+  var k1 = ks[0], dv1_k1 = ks[1], dv1_k2 = ks[2], k2 = ks[3];
   
   for (var i=0; i<steps; i++) {
-    //var th = polytheta_bez(s+0.5, ks, order);
-    var th = POLYTHETA_BEZ(s+0.5);
-
-    var r1 = sin(th), r2 = cos(th);
-    //var r1 = th - 0.1666666*th*th*th + 0.00833333*th*th*th*th*th;
-    //var r2 = 1 - 0.5*th*th + 0.04166666*th*th*th*th;
+    var st = s+0.5;
+    var s2=st*st, s3=st*st*st, s4=s2*s2, s5=s4*st, s6=s5*st, s7=s6*st, s8=s7*st, s9=s8*st, s10=s9*st;
     
-    var dx = r1, dy = r2;
+    var th = POLYTHETA_SBEZ(st);
+    var dx = sin(th), dy = cos(th);
     
-    //var kt = polycurvature_bez(s+0.5, ks, order);
-    //var dkt = polycurvature_bez_dv(s+0.5, ks, order); 
+    var kt = POLYCURVATURE_SBEZ(st);
+    var dkt = POLYCURVATURE_SBEZ_DV(st);
+    var dk2t = POLYCURVATURE_SBEZ_DV((st+0.0001)); 
     
-    var kt = POLYCURVATURE_BEZ(s+0.5); //polycurvature_bez(s+0.5, ks, order);
-    var dkt = POLYCURVATURE_BEZ_DV(s+0.5); //polycurvature_bez_dv(s+0.5, ks, order);
+    dk2t = (dk2t-dkt)/(0.0001);
     
-    var kt2=kt*kt;
+    var kt2=kt*kt, kt3 = kt*kt*kt;
     
-    x += dx + (r2*kt)*mul*0.5 + (r2*dkt - kt2*r1)*mul2*0.16666666666666;
-    y += dy + (-r1*kt)*mul*0.5 + (-(r2*kt2 + r1*dkt))*mul2*0.1666666666666; 
+    x += ((5*(4*((dy*dkt-kt2*dx)*ds2+3*(
+          dy*kt*ds+2*dx))+((dk2t-kt3)*dy-3*
+          dkt*kt*dx)*ds3)-(((4*dk2t-kt3)*kt+3*dkt*dkt)
+          *dx+6*dy*dkt*kt2)*ds4)*ds)/120;
+                        
+    y += (-(5*(4*((dy*kt2+dkt*dx)*ds2-3*(2*
+          dy-kt*dx*ds))+((dk2t-kt3)*dx+3
+          *dy*dkt*kt)*ds3)+(((4*dk2t-kt3)*kt+3*dkt*dkt)
+          *dy-6*dkt*kt2*dx)*ds4)*ds)/120;
     
     s += ds;
-    
   }
   
-  ret[0] = x*mul;
-  ret[1] = y*mul;
+  ret[0] = x;
+  ret[1] = y;
   
   return ret;
 }
 
-export var spiraltheta = polytheta_bez;
-export var spiralcurvature = polycurvature_bez;
-export var spiralcurvature_dv = polycurvature_bez_dv;
+export var spiraltheta = polytheta_spower;
+export var spiralcurvature = polycurvature_spower;
+export var spiralcurvature_dv = polycurvature_dv_spower;
 export var ORDER = 4;
 
-function solve_intern(spline, order, goal_order, steps, gk) {
+function solve_intern(spline, order, goal_order, steps, gk, do_basic) {
   static con_cache = {
     list : [],
     used : 0
@@ -311,7 +281,7 @@ function solve_intern(spline, order, goal_order, steps, gk) {
   function hard_tan_c(params) {
     var seg = params[0], tan = params[1], s = params[2];
     
-    var dv = seg.derivative(s, order);
+    var dv = seg.derivative(s, order, undefined, true);
     dv.normalize();
     
     var a1 = Math.atan2(tan[0], tan[1]);
@@ -341,8 +311,8 @@ function solve_intern(spline, order, goal_order, steps, gk) {
     s1 = v == seg1.v1 ? eps : 1.0-eps;
     s2 = v == seg2.v1 ? eps : 1.0-eps;
      
-    var t1 = seg1.derivative(s1, order);
-    var t2 = seg2.derivative(s2, order);
+    var t1 = seg1.derivative(s1, order, undefined, true);
+    var t2 = seg2.derivative(s2, order, undefined, true);
     
     t1.normalize(); t2.normalize();
     
@@ -396,12 +366,35 @@ function solve_intern(spline, order, goal_order, steps, gk) {
     return 0;
   }
 
-  function curv_c(params) {
+  function copy_c(params) {
+    var v = params[1], seg = params[0];
+    
+    var s1 = v === seg.v1 ? 0 : order-1;
+    var s2 = v === seg.v1 ? order-1 : 0;
+    
+    seg.ks[s1] += (seg.ks[s2]-seg.ks[s1])*gk*0.5;
+    
+    return 0.0;
+  }
+ 
+  function get_ratio(seg1, seg2) {
+    var ratio = seg1.ks[KSCALE]/seg2.ks[KSCALE];
+    
+    if (ratio > 1.0)
+      ratio = 1.0 / ratio;
+      
+    if (isNaN(ratio))
+      ratio = 0.5;
+    
+    return Math.pow(ratio, 2.0);
+  }
+
+  function curv_c_spower(params) {
     //HARD CLAMP
     var seg1 = params[0], seg2 = params[1];
-    var v, s1=0, s2=0;
+    var v, s1, s2;
     
-    //*
+    // /*
     seg1.eval(0.5);
     seg2.eval(0.5);
     //*/
@@ -413,28 +406,96 @@ function solve_intern(spline, order, goal_order, steps, gk) {
     else
       console.trace("EVIL INCARNATE!");
     
-    var s1 = v == seg1.v1 ? 0 : order-1;
-    var s2 = v == seg2.v1 ? 0 : order-1;
-    
-    var k1 = seg1.ks[s1]/seg1.ks[KSCALE];
-    var k2 = seg2.ks[s2]/seg2.ks[KSCALE];
+    var ratio = get_ratio(seg1, seg2);
+    var mfac = ratio*gk*0.7;
 
-    if (seg1.v1.eid == seg2.v1.eid || seg1.v2.eid == seg2.v2.eid) {
-      k1 = -k1;
+    var s1 = v === seg1.v1 ? 0 : order-1;
+    var s2 = v === seg2.v1 ? 0 : order-1;
+    
+    var sz1 = seg1.ks[KSCALE];
+    var sz2 = seg2.ks[KSCALE];
+    var k2sign = s1 == s2 ? -1.0 : 1.0
+    
+    //deg2 dk: -(k1-k2);
+    
+    //constrain all derivatives
+    var ret = 0.0;
+    for (var i=0; i<order/2; i++) {
+      var s1 = v === seg1.v1 ? i : order-1-i;
+      var s2 = v === seg2.v1 ? i : order-1-i;
+      
+      var k1 = seg1.ks[s1]/sz1;
+      var k2 = k2sign*seg2.ks[s2]/sz2;
+      
+      var goalk = (k1+k2)*0.5;
+      ret += abs(k1-goalk) + abs(k2-goalk);
+      
+      seg1.ks[s1] += (goalk*sz1 - seg1.ks[s1])*mfac;
+      seg2.ks[s2] += (k2sign*goalk*sz2 - seg2.ks[s2])*mfac;
     }
     
-    var k3 = (k1+k2)*0.5;
+    return ret*5.0;
+  }
+  
+  function curv_c_spower_basic(params) {
+    //HARD CLAMP
+    var seg1 = params[0], seg2 = params[1];
+    var v, s1=0, s2=0;
     
-    seg2.ks[s2] = (k3*seg2.ks[KSCALE]);//2+seg2.ks[s2]/2;
+    // /*
+    seg1.eval(0.5);
+    seg2.eval(0.5);
+    //*/
     
-    if (seg1.v1.eid == seg2.v1.eid || seg1.v2.eid == seg2.v2.eid) {
-      k3 = -k3;
+    if (seg1.v1 == seg2.v1 || seg1.v1 == seg2.v2)
+      v = seg1.v1;
+    else if (seg1.v2 == seg2.v1 || seg1.v2 == seg2.v2)
+      v = seg1.v2;
+    else
+      console.trace("EVIL INCARNATE!");
+    
+    var ratio = get_ratio(seg1, seg2);
+    var mfac = ratio*gk*0.7;
+
+    var s1 = v === seg1.v1 ? 0 : order-1;
+    var s2 = v === seg2.v1 ? 0 : order-1;
+    
+    var sz1 = seg1.ks[KSCALE]
+    var sz2 = seg2.ks[KSCALE]
+    var k2sign = s1 == s2 ? -1.0 : 1.0
+    
+    //deg2 dk: -(k1-k2);
+    
+    var ret = 0.0;
+    
+    //constrain all derivatives
+    var len = Math.floor(order/2);
+    for (var i=0; i<len; i++) {
+      var s1 = v === seg1.v1 ? i : order-1-i;
+      var s2 = v === seg2.v1 ? i : order-1-i;
+      
+      var k1 = seg1.ks[s1]/sz1;
+      var k2 = k2sign*seg2.ks[s2]/sz2;
+      
+      var goalk = (k1+k2)*0.5;
+      ret += abs(k1-goalk) + abs(k2-goalk);
+      
+      if (i == 0) {
+        seg1.ks[s1] += (goalk*sz1 - seg1.ks[s1])*mfac;
+        seg2.ks[s2] += (k2sign*goalk*sz2 - seg2.ks[s2])*mfac;
+      } else if (i == 1) {
+        seg1.ks[s1] = seg1.ks[order-1] - seg1.ks[0];
+        seg2.ks[s2] = seg2.ks[order-1] - seg2.ks[0];
+      } else {
+        seg1.ks[s1] = seg2.ks[s2] = 0.0;
+      }
     }
-    seg1.ks[s1] = (k3*seg1.ks[KSCALE]);//2+seg1.ks[s1]/2;
     
-    return 0;
+    return ret;
   }
    
+  var curv_c = do_basic ? curv_c_spower_basic : curv_c_spower;
+
   //handle manual tangents
   for (var i=0; i<spline.handles.length; i++) {
     var h = spline.handles[i];
@@ -532,6 +593,14 @@ function solve_intern(spline, order, goal_order, steps, gk) {
     var v = spline.verts[i];
     
     if (INCREMENTAL && !(v.flag & SplineFlags.UPDATE)) continue;
+    if (v.segments.length == 1 && !(v.flag & SplineFlags.BREAK_CURVATURES)) {
+      var seg = v.segments[0];
+      
+      var cc = new constraint(1.0, [seg.ks], order, copy_c, [seg, v]);
+      cc.k2 = 0.8
+      slv.add(cc);
+    }
+    
     if (v.segments.length != 2) continue;
     
     var ss1 = v.segments[0], ss2 = v.segments[1];
@@ -563,11 +632,11 @@ function solve_intern(spline, order, goal_order, steps, gk) {
     if (bad) continue;
     
     if (!(v.flag & (SplineFlags.BREAK_TANGENTS|SplineFlags.USE_HANDLES))) {
-      var tc = new constraint(0.2, [ss2.ks], order, tan_c, [ss1, ss2]);
+      var tc = new constraint(0.5, [ss2.ks], order, tan_c, [ss1, ss2]);
       tc.k2 = 0.8
       slv.add(tc);
       
-      var tc = new constraint(0.2, [ss1.ks], order, tan_c, [ss2, ss1]);
+      var tc = new constraint(0.5, [ss1.ks], order, tan_c, [ss2, ss1]);
       tc.k2 = 0.8
       slv.add(tc);
     } else if (!(v.flag & SplineFlags.BREAK_TANGENTS)) { //manual handles
@@ -628,7 +697,7 @@ function solve_intern(spline, order, goal_order, steps, gk) {
   
   for (var i=0; i<spline.segments.length; i++) {
     var seg = spline.segments[i];
-    seg.eval(0.5);
+    seg.eval(0.5, undefined, undefined, undefined, true);
   }
   
   var end_time = time_ms() - start_time;
@@ -653,15 +722,16 @@ export function do_solve(sflags, spline, steps, gk) {
       seg.ks[j] = 0.000001; //(j-ORDER/2)*4;
     }
     
-    seg.eval(0.5);
+    seg.eval(0.5, undefined, undefined, undefined, true);
   }
   
   spline.resolve = 0;
-  solve_intern(spline, ORDER, undefined, 70, 1);
+  solve_intern(spline, ORDER, undefined, 10, 1, 1);
+  solve_intern(spline, ORDER, undefined, 70, 1, 0);
   
   for (var i=0; i<spline.segments.length; i++) {
     var seg = spline.segments[i];
-    seg.eval(0.5);
+    seg.eval(0.5, undefined, undefined, undefined, true);
     
     for (var j=0; j<seg.ks.length; j++) {
       if (isNaN(seg.ks[j])) {

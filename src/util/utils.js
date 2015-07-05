@@ -1,10 +1,41 @@
-"not_a_module";
+"not_a_module"; //todo: need to make this a module
 "use strict";
 
 #ifndef EXPORT
 #define EXPORT
 #define EXPORT_FUNC(func)
 #endif
+
+if (Math.sign == undefined) {
+  Math.sign = function(f) {
+    return 1.0 - (f < 0.0)*2.0;
+  }
+}
+
+if (Math.fract == undefined) {
+  Math.fract = function(f) {
+    f = Math.abs(f);
+    
+    return f - Math.floor(f);
+  }
+}
+
+if (Array.prototype.insert == undefined) {
+  Array.prototype.insert = function(before, item) {
+    if (before < 0 || before > this.length) {
+      throw new Error("Bad index " + before + ", should be between 0-" + this.length + ".");
+    }
+    
+    this.push(0);
+    
+    for (var i=this.length-1; i > before; i--) {
+      this[i] = this[i-1];
+    }
+    
+    this[before] = item;
+    return this;
+  }
+}
 
 //need to figure out which name to use for this
 class Iter {

@@ -123,6 +123,7 @@ export class Area extends UIFrame {
     for (var frame in this.rows) {
       frame.state    |= UIFlags.HAS_PAN|UIFlags.USE_PAN|UIFlags.NO_VELOCITY_PAN;
       frame.packflag |= PackFlags.INHERIT_WIDTH|PackFlags.CALC_NEGATIVE_PAN|PackFlags.PAN_X_ONLY;
+      
       if (i == 0)
         frame.pos[1] = this.size[1] - Area.get_barhgt() - pany;
 

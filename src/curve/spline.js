@@ -4,6 +4,7 @@ var PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,
     ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos,
     asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
 
+import * as spline_multires from 'spline_multires';
 import {STRUCT} from 'struct';
 import {DataBlock, DataTypes} from 'lib_api';
 import {SessionFlags} from 'view2d_editor';
@@ -138,6 +139,14 @@ export class Spline extends DataBlock {
     static debug_id_gen=0;
     this._debug_id = debug_id_gen++;
     
+    this.actlevel = 0; //active multires level for editing
+    var mformat = spline_multires._format;
+    this.mres_format = new Array(mformat.length);
+    
+    for (var i=0; i<mformat.length; i++) {
+      this.mres_format[i] = mformat[i];
+    }
+    
     static _internal_idgen=0;
     this._internal_id = _internal_idgen++;
     
@@ -199,6 +208,20 @@ export class Spline extends DataBlock {
       return "frameset.drawspline";
   }
   
+  force_full_resolve() {
+    this.resolve = 1;
+    
+    for (var seg in this.segments) {
+      seg.flag |= SplineFlags.UPDATE;
+    }
+    for (var v in this.verts) {
+      v.flag |= SplineFlags.UPDATE;
+    }
+    for (var h in this.handles) {
+      h.flag |= SplineFlags.UPDATE;
+    }
+  }
+  
   regen_sort() {
     this.recalc |= RecalcFlags.DRAWSORT;
   }
@@ -215,7 +238,8 @@ export class Spline extends DataBlock {
     for (var k in _elist_map) {
       var type = _elist_map[k];
       
-      var list = new ElementArray(type, this.idgen, this.eidmap, this.selected, this.layerset);
+      var list = new ElementArray(type, this.idgen, this.eidmap, this.selected, 
+                                  this.layerset, this);
       this[k] = list;
       this.elist_map[type] = list;
       
@@ -1373,12 +1397,33 @@ export class Spline extends DataBlock {
   }
   
   solve(steps, gk) {
-    do_solve(SplineFlags, this, steps, gk);
+    if (USE_NACL && window.common != undefined && window.common.naclModule != undefined) {
+      var ret = do_solve(SplineFlags, this, steps, gk, true);
+      var this2 = this;
+    
+      ret.then(function() {
+        this2._do_post_solve();
+      });
+    } else {
+      do_solve(SplineFlags, this, steps, gk);
+      this._do_post_solve();
+    }
+  }
+  
+  //only segments get this, for now
+  _do_post_solve() {
+    for (var seg of this.segments) {
+      seg.post_solve();
+    }
   }
   
   solve_p(steps, gk) {
+    var this2 = this;
+    
     if (USE_NACL && window.common != undefined && window.common.naclModule != undefined) {
-      return do_solve(SplineFlags, this, steps, gk, true);
+      return do_solve(SplineFlags, this, steps, gk, true).then(function() {
+          this2._do_post_solve();
+      });
     } else {
       this.resolve = 1;
       
@@ -1386,6 +1431,7 @@ export class Spline extends DataBlock {
       var promise = new Promise(function(resolve, reject) {
         this2.on_resolve = function() {
           console.log("Finished!");
+          this2._do_post_solve();
           resolve();
         }
       });
@@ -1395,8 +1441,10 @@ export class Spline extends DataBlock {
           window.clearInterval(this2._update_timer_p);
           this2._update_timer_p = undefined;
           
-          if (this2.resolve)
+          if (this2.resolve) {
             do_solve(SplineFlags, this2, steps, gk, false)
+            this2._do_post_solve();
+          }
         });
       }
       
@@ -1968,10 +2016,14 @@ export class Spline extends DataBlock {
     
     ret.selected = selected;
     
-    ret.verts.afterSTRUCT(SplineTypes.VERTEX, ret.idgen, ret.eidmap, ret.selected, ret.layerset);
-    ret.handles.afterSTRUCT(SplineTypes.HANDLE, ret.idgen, ret.eidmap, ret.selected, ret.layerset);
-    ret.segments.afterSTRUCT(SplineTypes.SEGMENT, ret.idgen, ret.eidmap, ret.selected, ret.layerset);
-    ret.faces.afterSTRUCT(SplineTypes.FACE, ret.idgen, ret.eidmap, ret.selected, ret.layerset);
+    ret.verts.afterSTRUCT(SplineTypes.VERTEX, ret.idgen, ret.eidmap, 
+                          ret.selected, ret.layerset, ret);
+    ret.handles.afterSTRUCT(SplineTypes.HANDLE, ret.idgen, ret.eidmap, 
+                          ret.selected, ret.layerset, ret);
+    ret.segments.afterSTRUCT(SplineTypes.SEGMENT, ret.idgen, ret.eidmap, 
+                          ret.selected, ret.layerset, ret);
+    ret.faces.afterSTRUCT(SplineTypes.FACE, ret.idgen, ret.eidmap, ret.selected, 
+                          ret.layerset, ret);
     
     if (ret.layerset == undefined) {
       ret.layerset = new SplineLayerSet();
@@ -1981,6 +2033,22 @@ export class Spline extends DataBlock {
     }
     
     ret.regen_sort();
+    
+    if (spline_multires.has_multires(ret) && ret.mres_format != undefined) {
+      console.log("Converting old multires layout. . .");
+      
+      for (var seg in ret.segments) {
+        var mr = seg.cdata.get_layer(spline_multires.MultiResLayer);
+        
+        mr._convert(ret.mres_format, spline_multires._format);
+      }
+    }
+    
+    var arr = [];
+    for (var i=0; i<spline_multires._format.length; i++) {
+      arr.push(spline_multires._format[i]);
+    }
+    ret.mres_format = arr;
     
     return ret;
   }
@@ -1998,5 +2066,8 @@ Spline.STRUCT = STRUCT.inherit(Spline, DataBlock) + """
     layerset : SplineLayerSet;
     
     restrict : int;
+    actlevel : int;
+    
+    mres_format : array(string);
 }
 """

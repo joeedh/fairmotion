@@ -3,6 +3,8 @@
 export var USE_NACL=false;
 export var USE_HTML5_FILEAPI=false;
 export var NO_SERVER=false;
+export var DISABLE_SOLVE=false;
+export var ENABLE_MULTIRES=false;
 
 window.RELEASE=false;
 

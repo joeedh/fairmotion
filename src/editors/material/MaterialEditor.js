@@ -1,4 +1,5 @@
 import {gen_editor_switcher} from 'UIWidgets_special';
+import {ENABLE_MULTIRES} from 'config';
 
 import {
   MinMax
@@ -221,6 +222,30 @@ class MaterialEditor extends Area {
     return panel
   }
   
+  multires_panel() {
+    var ctx = this.ctx;
+    var panel = new RowFrame(ctx);
+    
+    //mass set rule
+    set_prefix =  "spline.mres_points{$.level == ctx.spline.actlevel &&" //in active mres level
+    set_prefix += " ctx.spline.layerset.active.id in ctx.spline.eidmap[$.seg].layers &&" //in visible layer
+    set_prefix += " ($.flag & 1) &&" //selected
+    set_prefix += " !($.flag & 64)}" //not hidden
+    
+    panel.packflag |= PackFlags.INHERIT_WIDTH;
+    panel.packflag |= PackFlags.NO_AUTO_SPACING;
+    panel.packflag |= PackFlags.IGNORE_LIMIT;
+    
+    panel.prop("spline.active_mres_point.support", undefined,
+               set_prefix + ".support");
+               
+    panel.prop("spline.active_mres_point.degree", undefined,
+               set_prefix + ".degree");
+    
+    //var set_prefix = "spline.segments{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}.mat";
+    return panel;
+  }
+  
   stroke_panel() {
     var ctx = this.ctx;
     
@@ -278,6 +303,10 @@ class MaterialEditor extends Area {
     this.subframe.add_tab("Fill", this.fill_panel());
     this.subframe.add_tab("Stroke", this.stroke_panel());
     this.subframe.add_tab("Layers", this.layers_panel());
+    
+    if (ENABLE_MULTIRES) {
+      this.subframe.add_tab("Multires", this.multires_panel());
+    }
     
     this.add(this.subframe);
   }

@@ -3,6 +3,8 @@ import {
 } from 'mathlib';
 
 import {USE_NACL} from 'config';
+import {SelMask} from 'selectmode';
+import {MResTransData} from 'multires_transdata';
 
 import {TPropFlags} from 'toolprops';
 import {SplineFlags, SplineTypes} from 'spline_types';
@@ -58,20 +60,6 @@ export class TransSplineVert {
         }
       }
     }
-    
-    /*
-    if (v.type == SplineTypes.HANDLE) { // && v.owning_vertex.segments.length == 2
-    //          && v.use && !(v.flag & SplineFlags.BREAK_TANGENTS)) 
-    //{
-      var h2 = v.owning_vertex.other_segment(v.owning_segment).handle(v.owning_vertex);
-      var hv = h2.owning_segment.handle_vertex(h2);
-      
-//      if (!(h2.flag & SplineFlags.SELECT)) {
-        var len = h2.vectorDistance(hv);
-        h2.load(v).sub(hv).negate().normalize().mulScalar(len).add(hv);
-        h2.flag |= SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
-  //    }
-    }*/
   }
   
   static undo_pre(ToolContext ctx, TransData td, ObjLit undo_obj) {
@@ -398,11 +386,13 @@ export class TransSplineVert {
     }
   }
 }
+TransSplineVert.selectmode = SelMask.TOPOLOGY;
 
 export class TransData {
-  constructor(ctx, top) {
+  constructor(ctx, TransformOp top, int datamode) {
     this.ctx = ctx;
     this.top = top;
+    this.datamode = datamode;
     
     this.layer = ctx.spline.layerset.active;
     this.types = top.types;
@@ -418,7 +408,9 @@ export class TransData {
     this.minmax = new MinMax(3);
     
     for (var t of this.types) {
-      t.gen_data(ctx, this, this.data);
+      if (datamode & t.selectmode) {
+        t.gen_data(ctx, this, this.data);
+      }
     }
     
     if (this.doprop)
@@ -444,7 +436,8 @@ export class TransData {
     this.propradius = radius;
     
     for (var t of this.types) {
-      t.calc_prop_distances(this.ctx, this, this.data);
+      if (t.selectmode & this.datamode)
+        t.calc_prop_distances(this.ctx, this, this.data);
     }
     
     var r = radius;
@@ -463,7 +456,7 @@ export class TransformOp extends ToolOp {
   constructor(start_mpos, datamode, apiname, uiname) {
     ToolOp.call(this, apiname, uiname);
     
-    this.types = new GArray([TransSplineVert]);
+    this.types = new GArray([MResTransData, TransSplineVert]);
     
     if (start_mpos != undefined && typeof start_mpos != "number" && start_mpos instanceof Array) {
       this.user_start_mpos = start_mpos;
@@ -477,8 +470,19 @@ export class TransformOp extends ToolOp {
   }
   
   ensure_transdata(ctx) {
+    var selmode = this.inputs.datamode.data;
+    
+    console.log("SELMODE", selmode);
+    
     if (this.transdata == undefined) {
-      this.transdata = new TransData(ctx, this);
+      this.types = [];
+      
+      if (selmode & SelMask.MULTIRES)
+        this.types.push(MResTransData);
+      if (selmode & SelMask.TOPOLOGY)
+        this.types.push(TransSplineVert);
+        
+      this.transdata = new TransData(ctx, this, this.inputs.datamode.data);
     }
     
     return this.transdata;
@@ -497,7 +501,9 @@ export class TransformOp extends ToolOp {
     
     this.undo(ctx);
   }
-
+  
+  //XXX initializing this.types in ensure_transdata
+  //may have broken undo invariance
   undo_pre(ctx) {
     var td = this.ensure_transdata(ctx);
     
@@ -603,18 +609,25 @@ export class TransformOp extends ToolOp {
       max1[i] = Math.max(max1[i], minmax.max[i]);
     }
     
+    var found=false;
+    for (var i=0; i<this.types; i++) {
+      if (this.types[i] == TransSplineVert) {
+        found = true;
+        break;
+      }
+    }
     
     if (!USE_NACL) {
       redraw_viewport(minmax.min, minmax.max);
-      return;
     } else if (this._last_solve==undefined || time_ms()-this._last_solve > 60) {
       var spline = ctx.spline;
       
-      spline.solve();
+      if (found) {
+        spline.solve();
+      }
       
       redraw_viewport(minmax.min, minmax.max);
       this._last_solve = time_ms();
-      return;
     }
     return;
     

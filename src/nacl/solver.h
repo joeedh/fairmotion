@@ -43,7 +43,8 @@ typedef struct SplineSegment {
 enum {
   TAN_CONSTRAINT,
   HARD_TAN_CONSTRAINT,
-  CURVATURE_CONSTRAINT
+  CURVATURE_CONSTRAINT,
+  COPY_C_CONSTRAINT
 };
 
 typedef struct Constraint {

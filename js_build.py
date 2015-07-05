@@ -715,8 +715,117 @@ def build_target(files):
     print("build finished")
     
   return build_final
+
+def aggregate_multi(files, outpath=target_path+"app.js", maxsize=350*1024):
+  files2 = []
+  
+  bootstrap_modules = {
+    'module.js',
+    'typesystem.js',
+    'util.js',
+    'const.js',
+    'config.js',
+    'config_local.js',
+  }
+  
+  bootstrap = ""
+  
+  totsize = 0
+  for f in files:
+    if not f.source.endswith(".js") and not f.source.endswith(".js_"): continue
+    
+    fname = os.path.split(f.source)[1]
+    if fname in bootstrap_modules:
+      file = open(f.target, "r")
+      buf = file.read()
+      bootstrap += buf + "\n"
+      file.close()
+      
+      continue;
+      
+    #st = os.stat(f.target)
+    #totsize += st.st_size
+    file = open(f.target, "r")
+    buf = file.read()
+    file.close()
+    files2.append(f)
+    totsize += len(buf)
+  
+  totchunk = max(floor(totsize/maxsize), 1);
+  
+  fname = os.path.split(outpath)[1];
+  if fname.endswith(".js"):
+    fname = fname[:-3]
+    
+  c = 0;
+  fi = 0;
+  
+  outbuf = ""
+  for f in files2:
+    file = open(f.target, "r")
+    buf = file.read()
+    file.close()
+    
+    c += len(buf)
+    if c > maxsize:
+      path  = target_path+fname+str(fi)+".js"
+      do_write = True 
+      
+      if os.path.exists(path):
+        out = open(path, "r")
+        buf2 = out.read()
+        out.close()
+        
+        do_write = buf2 != outbuf
+      
+      c = 0
+      fi += 1
+      
+      if do_write:
+        out = open(path, "w")
+        out.write(outbuf)
+        out.close()
+        
+      outbuf = ""
+    
+    outbuf += buf
+  
+  path  = target_path+fname+str(fi)+".js"
+  do_write = True
+  if os.path.exists(path):
+    out = open(path, "r")
+    buf2 = out.read()
+    out.close()
+    
+    do_write = buf2 != outbuf 
+  
+  if do_write:
+    out = open(path, "w")
+    out.write(outbuf)
+    out.close()
+  
+  fi += 1
+  
+  print(totchunk)
+  file = open(outpath, "w")
+  file.write(bootstrap + """
+    var totfile=TOTFILE, fname="FNAME";
+    for (var i=0; i<totfile; i++) {
+      var path = "/fcontent/"+fname+i+".js";
+      var node = document.createElement("script")
+      node.src = path
+      node.async = false
+      
+      document.head.appendChild(node);
+    }
+  """.replace("TOTFILE", str(fi)).replace("FNAME", fname))
+  
+  file.close()
   
 def aggregate(files, outpath=target_path+"app.js"):
+  aggregate_multi(files, outpath)
+  return;
+  
   outfile = open(outpath, "w")
   
   if aggregate_smaps:

@@ -183,7 +183,10 @@ void do_segment_split(SplineDrawSegment *seg, SplineBezSegments *bz) {
   bz->totseg = BEZ_SEGMENTS;
   
   for (int i=0; i<BEZ_SEGMENTS+1; i++, s += ds) {
-    double k1 = seg->ks[0], k2 = seg->ks[1], k3 = seg->ks[2], k4 = seg->ks[3];
+    double st=s+0.5, s2=st*st, s3=s2*st;
+    
+    //double k1 = seg->ks[0], k2 = seg->ks[1], k3 = seg->ks[2], k4 = seg->ks[3];
+    double k1 = seg->ks[0], dv1_k1 = seg->ks[1], dv1_k2 = seg->ks[2], k2 = seg->ks[3];
     double th = POLYTHETA_BEZ((s+0.5));
     
     eval_curve(co, s, seg->v1, seg->v2, seg->ks, ORDER, false, false);

@@ -17,11 +17,12 @@ def module_transform(node, typespace):
     return True
  
   def varvisit(n, startn):
+      return
       n2 = js_parse("""
         _es6_module.add_global('$s', $s);
       """, [n.val, n.val]);
       
-      startn.parent.insert(startn.parent.index(startn)+1, n2)
+      startn.parent.insert(startn.parent.index(startn)+1, n2);
       
       for n2 in n[2:]:
         varvisit(n2, startn);
@@ -29,7 +30,7 @@ def module_transform(node, typespace):
   def exportvisit(n):
     if not at_root(n):
       typespace.error("Export statements cannot be within functions or classes", n)
-      
+    
     pi = n.parent.index(n)
     n.parent.remove(n)
     
@@ -37,7 +38,7 @@ def module_transform(node, typespace):
       n.remove(n2)
       n.parent.insert(pi, n2)
       pi += 1
-    
+     
     if not n.is_default:
       n2 = js_parse("""
         $s = _es6_module.add_export('$s', $s);
@@ -147,6 +148,15 @@ def module_transform(node, typespace):
           slist.add(n3)
   
   traverse(node, ImportNode, visit)
+  flatten_statementlists(node, typespace)
+  
+  def class_visit(n):
+    n2 = js_parse("""
+      _es6_module.add_class($s);
+    """, [n.name])
+    n.parent.insert(n.parent.index(n)+1, n2);
+    
+  traverse(node, ClassNode, class_visit)
   flatten_statementlists(node, typespace)
   
   deps = "["

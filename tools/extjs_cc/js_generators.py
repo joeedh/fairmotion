@@ -986,6 +986,33 @@ def visit_generators(node):
   
   for c in n:
     node.add(c);
+  
+  #and, a es5.1-style forEach method
+  n = js_parse("""
+    this.forEach = function(callback, thisvar) {
+      if (thisvar == undefined)
+        thisvar = self;
+      
+      var _i = 0;
+      
+      while (1) {
+        var ret = this.next();
+        
+        if (ret == undefined || ret.done || (ret._ret != undefined && ret._ret.done))
+          break;
+        
+        callback.call(thisvar, ret.value);
+        
+        if (_i++ > 100) {
+          console.log("inf loop", ret);
+          break;
+        }
+      }
+    }
+  """);
+  
+  for c in n:
+    node.add(c);
     
   outernode.name = node.name;
   if node.is_anonymous:

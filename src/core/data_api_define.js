@@ -1,5 +1,6 @@
 import {DataTypes} from 'lib_api';
 import {EditModes} from 'view2d';
+import {ENABLE_MULTIRES} from 'config';
 
 import {BoxColor4, BoxWColor, ColorTheme, 
         ThemePair, View2DTheme, BoxColor, 
@@ -7,8 +8,8 @@ import {BoxColor4, BoxWColor, ColorTheme,
 
 import {EnumProperty, FlagProperty, 
         FloatProperty, StringProperty,
-        BoolProperty, Vec3Property,
-        Vec4Property, IntProperty,
+        BoolProperty, Vec2Property,
+        Vec3Property, Vec4Property, IntProperty,
         TPropFlags, PropTypes} from 'toolprops';
 
 import {SplineFlags, MaterialFlags, SplineTypes} from 'spline_types';
@@ -19,9 +20,16 @@ import {ExtrudeModes} from 'spline_createops';
 import {DataFlags, DataPathTypes} from 'data_api';
 import {OpStackEditor} from 'ops_editor';
 
+import {MultiResLayer, MultiResEffector, MResFlags, has_multires, 
+        ensure_multires, iterpoints, compose_id, decompose_id
+       } from 'spline_multires';
+
 var SelModes = {};
 
 for (var k in SelMask) {
+  if (k == "MULTIRES" && !ENABLE_MULTIRES)
+    continue;
+    
   SelModes[k] = SelMask[k];
 }
 SelModes.VERTEX_AND_HANDLES = SelMask.VERTEX | SelMask.HANDLE;
@@ -385,6 +393,74 @@ function api_define_spline_layer_struct() {
   window.SplineLayerStruct = SplineLayerStruct;
 }
 
+function api_define_multires_struct() {
+  //mres points is a customdata layer stored within segments
+  
+  var co = new Vec2Property(undefined, "co", "co");
+  var flag = new FlagProperty(1, MResFlags, undefined, "multires flags", "multires flags");
+  flag.update = function() {
+    window.redraw_viewport();
+  }
+  
+  var support = new FloatProperty(0, "support", "support");
+  
+  support.range = [0.0001, 2.0];
+  support.update = function() {
+    window.redraw_viewport();
+  }
+
+  var degree = new FloatProperty(0, "degree", "degree");
+  
+  degree.range = [0.1, 65.0];
+  degree.update = function() {
+    window.redraw_viewport();
+  }
+  
+  var MResPointStruct = new DataStruct([
+    new DataPath(co, "co", "", true),
+    new DataPath(flag, "flag", "flag", true),
+    new DataPath(support, "support", "support", true),
+    new DataPath(degree, "degree", "degree", true)
+  ]);
+ 
+  return MResPointStruct;
+}
+
+function api_define_multires_array() {
+  //array is bound to spline.segments
+  //mres points is a customdata layer stored within segments
+  
+  var MResPointStruct = api_define_multires_struct();
+  
+  var mpoints = new DataStructArray(
+    function getstruct(item) {
+      return MResPointStruct;
+    },
+    function itempath(key) {
+      return ".idmap[decompose_id("+key+")[0]].cdata.get_layer(MultiResLayer).get(decompose_id("+key+")[1])"
+    },
+    function getitem(key) {
+      var seg = decompose_id(key)[0];
+      seg = this.local_idmap[seg];
+      var mr = seg.cdata.get_layer(MultiResLayer);
+      
+      var p = decompose_id(key)[1];
+      return mr.get(p);
+    }, 
+    function getiter() {
+      return iterpoints(this.spline, this.spline.actlevel);
+    }, 
+    function getkeyiter() {
+      return iterpoints(this.spline, this.spline.actlevel, true);
+    }, 
+    function getlength() {
+      //return bogus value for now
+      return 1;
+  });
+  
+  return mpoints;
+}
+
 function api_define_spline() {
   api_define_spline_layer_struct();
   
@@ -444,6 +520,13 @@ function api_define_spline() {
     });
   }
   
+  var mres_points = api_define_multires_array();
+  var mres_act_id = "ctx.spline.segments.cdata.get_shared('MultiResLayer').active";
+  
+  var mres_act_path = "eidmap[decompose_id(ID)[0]].cdata"
+  mres_act_path += ".get_layer(MultiResLayer).get(decompose_id(ID)[1])"
+  mres_act_path = mres_act_path.replace(/ID/g, mres_act_id);
+  
   var SplineStruct = new DataStruct(api_define_DataBlock().concat([
     new DataPath(api_define_spline_face(), "active_face", "faces.active", true),
     new DataPath(api_define_spline_segment(), "active_segment", "segments.active", true),
@@ -452,6 +535,8 @@ function api_define_spline() {
     new DataPath(define_element_array(SplineSegmentStruct), "segments", "segments", true),
     new DataPath(define_element_array(SplineVertexStruct), "verts", "verts", true),
     new DataPath(layerset, "layerset", "layerset", true),
+    new DataPath(mres_points, "mres_points", "segments", true),
+    new DataPath(api_define_multires_struct(), "active_mres_point", mres_act_path, true),
     new DataPath(SplineLayerStruct, "active_layer", "layerset.active", true)
   ]));
   

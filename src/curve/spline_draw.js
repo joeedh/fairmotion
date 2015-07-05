@@ -1,9 +1,12 @@
 import {aabb_isect_minmax2d} from 'mathlib';
+import {ENABLE_MULTIRES} from 'config';
 
 import {SessionFlags} from 'view2d_editor';
 import {SelMask} from 'selectmode';
 import {ORDER, KSCALE, KANGLE, KSTARTX, KSTARTY, KSTARTZ, KTOTKS, INT_STEPS} from 'spline_math';
 import {get_vtime} from 'animdata';
+
+import {iterpoints, MultiResLayer, MResFlags, has_multires} from 'spline_multires';
 
 var spline_draw_cache_vs = cachering.fromConstructor(Vector3, 64);
 var spline_draw_trans_vs = cachering.fromConstructor(Vector3, 32);
@@ -228,6 +231,60 @@ export function redo_draw_sort(spline) {
   console.log("time taken:" + (time_ms()-time).toFixed(2)+"ms");
 }
 
+function draw_mres_points(spline, g, editor, outside_selmode=false) {
+  if (spline.segments.cdata.num_layers("MultiResLayer") == 0)
+    return;
+  
+  var w = 5.5/editor.zoom;
+  
+  var lw = g.lineWidth;
+
+  g.lineWidth = 1;
+  g.fillStyle = "black";
+  
+  //console.log("draw points");
+  
+  var shared = spline.segments.cdata.get_shared("MultiResLayer");
+  var active = shared.active;
+  
+  //note: we are operating on cached "dummy" variables here, these aren't real objects
+  for (var p of iterpoints(spline, 0)) {
+    //console.log(p[0], p[1], p.id, p.s, p.seg);
+    if (p.flag & MResFlags.HIDE) continue;
+    
+    var seg = spline.eidmap[p.seg];
+    var mapco = seg.eval(p.s);
+    
+    var clr = uclr;
+    
+    if (p.composed_id == active)
+      clr = aclr;
+    else if (p.flag & MResFlags.HIGHLIGHT)
+      clr = hclr;
+    else if (p.flag & MResFlags.ACTIVE)
+      clr = aclr;
+    else if (p.flag & MResFlags.SELECT)
+      clr = sclr;
+    
+    g.fillStyle = clr;
+    
+    if (!outside_selmode) {
+      g.beginPath();
+      g.rect(mapco[0]-w/2, mapco[1]-w/2, w, w);
+      g.fill();
+    }
+    
+    /*
+    g.beginPath();
+    g.moveTo(p[0], p[1]);
+    g.lineTo(p[0]-p.offset[0], p[1]-p.offset[1]);
+    g.stroke();
+    */
+  }
+  
+  g.lineWidth = lw;
+}
+
 export function draw_spline(spline, g, editor, selectmode, only_render, draw_normals, alpha, draw_time_helpers, curtime) {
   spline.canvas = g;
 
@@ -364,11 +421,11 @@ export function draw_spline(spline, g, editor, selectmode, only_render, draw_nor
     if (!(seg.flag & SplineFlags.DRAW_TEMP))
       return;
     
-    var USE_BEZIER = true;
+    var USE_BEZIER = !ENABLE_MULTIRES;
       
     var s = 0, length = mathmin(seg.ks[KSCALE], MAXCURVELEN);
-    var totseg = USE_BEZIER ? 7 : 64;
-    var stepsize = Math.max(length/totseg, 4);
+    var totseg = USE_BEZIER ? 7 : 172;
+    var stepsize = Math.max(length/totseg, 1.0/zoom);
     if (stepsize <= 0.0 || isNaN(stepsize)) stepsize == 1.0;
     
     var lasts = 0, lasts1 = 0;
@@ -446,7 +503,7 @@ export function draw_spline(spline, g, editor, selectmode, only_render, draw_nor
     for (var j=0; !stop; s1 += ds, j++) {
       var s = s1/(length);
       
-      if (__c++ > 100) break;
+      if (__c++ > 2500) break;
       
       if ((!reverse && s > 1.0) || (reverse && s <= 0)) {
         stop = true;
@@ -474,33 +531,12 @@ export function draw_spline(spline, g, editor, selectmode, only_render, draw_nor
       } else {
         var dv = lastdv;
         
-        // /*
         if (is_line || !USE_BEZIER) {
           g.lineTo(co[0], co[1]);
-          /*
-          g.beginPath();
-          
-          lastdv.normalize();
-          var dsc = 1.0;
-          g.moveTo(lastco[0]-dv[1]*dsc, lastco[1]+dv[0]*dsc);
-          g.lineTo(co[0]-dv[1]*dsc, co[1]+dv[0]*dsc);
-          g.lineTo(co[0]+dv[1]*dsc, co[1]-dv[0]*dsc);
-          g.lineTo(lastco[0]+dv[1]*dsc, lastco[1]-dv[0]*dsc);
-          g.closePath()
-          
-          g.fill()
-          g.beginPath();
-          //*/
         } else {
-          if (0) { //lastco.vectorDistance(co) < 5) {
-            g.lineTo(co[0], co[1]);
-          } else {
-          // /*
-            g.bezierCurveTo( lastco[0]+dv[0], lastco[1]+dv[1], 
-                          co[0]-dv2[0], co[1]-dv2[1], 
-                          co[0], co[1]);
-          }
-          //*/
+          g.bezierCurveTo( lastco[0]+dv[0], lastco[1]+dv[1], 
+                        co[0]-dv2[0], co[1]-dv2[1], 
+                        co[0], co[1]);
         }
       }
       
@@ -835,6 +871,14 @@ export function draw_spline(spline, g, editor, selectmode, only_render, draw_nor
     }
   }
   
+  if (!only_render && (selectmode & SelMask.MULTIRES)) {
+    draw_mres_points(spline, g, editor);
+  } else if (!only_render) {
+    draw_mres_points(spline, g, editor, true);
+  }
+  
+  var hasmres = has_multires(spline);
+  
   var last_clr = undefined;
   if (selectmode & SelMask.VERTEX) {
     var w = 1.5/editor.zoom;
@@ -852,13 +896,18 @@ export function draw_spline(spline, g, editor, selectmode, only_render, draw_nor
       else if (v.flag & SplineFlags.SELECT)
         clr = sclr;
       
+      var co = v;
+      if (hasmres && v.segments.length > 0) {
+        co = v.segments[0].eval(v.segments[0].ends(v));
+      }
+      
       if (draw_time_helpers) {
         var time = get_vtime(v);
         
         if (curtime == time) {
           g.beginPath(  );
           g.fillStyle = "#33ffaa";
-          g.rect(v[0]-w*2, v[1]-w*2, w*4, w*4);
+          g.rect(co[0]-w*2, co[1]-w*2, w*4, w*4);
           g.fill()
           g.fillStyle = clr;
         }
@@ -868,7 +917,7 @@ export function draw_spline(spline, g, editor, selectmode, only_render, draw_nor
       if (clr !== last_clr)
         g.fillStyle = clr;
       last_clr = clr;
-      g.rect(v[0]-w, v[1]-w, w*2, w*2);
+      g.rect(co[0]-w, co[1]-w, w*2, w*2);
       g.fill()
     }
   }

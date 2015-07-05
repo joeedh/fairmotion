@@ -331,11 +331,21 @@ export class UIFrame extends UIElement {
   _find_active(MouseEvent e) {
     var mpos = [e.x, e.y];
     
+    static pos = [0, 0];
+    
     var found = false;
     for (var i=this.children.length-1; i >= 0; i--) {
       var c = this.children[i];
       
-      if (inrect_2d(mpos, c.pos, c.size)) {
+      pos[0] = c.pos[0], pos[1] = c.pos[1];
+      if (c.state & UIFlags.HAS_PAN) {
+  //      console.log((this.state & UIFlags.HAS_PAN), (c.state & UIFlags.HAS_PAN));
+        //console.trace();
+  //      pos[0] += c.velpan.pan[0];
+//        pos[1] += c.velpan.pan[1];
+      }
+      
+      if (inrect_2d(mpos, pos, c.size)) {
         found = true;
         if (this.active != c && this.active != undefined) {
           this.active.state &= ~UIFlags.HIGHLIGHT;

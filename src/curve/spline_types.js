@@ -1,5 +1,7 @@
 "use strict";
 
+import {ENABLE_MULTIRES} from 'config';
+
 var PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,
     ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos,
     asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
@@ -20,53 +22,15 @@ var abs=Math.abs, acos=Math.acos, asin=Math.asin,
     atan2=Math.atan2,PI=Math.PI, sqrt=Math.sqrt,pow=Math.pow,
     log=Math.log;
 
-export var MaterialFlags = {
-  SELECT       : 1,
-  MASK_TO_FACE : 2
-}
+export * from 'spline_base';
 
-export var RecalcFlags = {
-  DRAWSORT : 1,
-  SOLVE    : 2,
-  ALL      : 1|2
-}
-
-export var SplineFlags = {
-  SELECT         : 1,
-  BREAK_TANGENTS : 2,
-  USE_HANDLES    : 4,
-  UPDATE         : 8,
-  TEMP_TAG       : 16,
-  BREAK_CURVATURES:32,
-  HIDE           : 64,
-  FRAME_DIRTY    : 128,
-  PINNED         : 256,
-  
-  NO_RENDER      : 512, //used by segments
-  AUTO_PAIRED_HANDLE : 1<<10,
-  UPDATE_AABB    : 1<<11,
-  DRAW_TEMP      : 1<<12,
-  GHOST          : 1<<13,
-  UI_SELECT      : 1<<14,
-  FIXED_KS       : 1<<21, //internal to solver code
-}
-
-export var SplineTypes= {
-  VERTEX  : 1,
-  HANDLE  : 2,
-  SEGMENT : 4,
-  LOOP    : 8,
-  FACE    : 16,
-  ALL     : 31
-};
-
-export var ClosestModes = {
-  CLOSEST : 0,
-  START   : 1,
-  END     : 2,
-  ALL     : 3
-};
-
+import {MultiResLayer, has_multires, ensure_multires, decompose_id, compose_id}
+        from 'spline_multires';
+        
+import {SplineTypes, SplineFlags, ClosestModes, RecalcFlags,
+        MaterialFlags, CustomDataLayer, CustomData, CustomDataSet,
+        SplineElement, CurveEffect} from 'spline_base';
+        
 import {SelMask} from 'selectmode';
 import {ORDER, KSCALE, KANGLE, KSTARTX, KSTARTY, KSTARTZ, KTOTKS, INT_STEPS} from 'spline_math';
 
@@ -74,281 +38,6 @@ import {
   eval_curve, spiraltheta, spiralcurvature,
   spiralcurvature_dv
 } from 'spline_math';
-
-export class CustomDataLayer {
-  constructor() {
-  }
-  
-  interp(srcs, ws) {
-  }
-  
-  copy(src) {
-  }
-  
-  static fromSTRUCT(reader) {
-    var obj = new CustomDataLayer();
-    
-    reader(obj);
-    
-    return obj;
-  }
-}
-
-CustomDataLayer.layerinfo = {
-  type_name : "(bad type name)"
-};
-
-CustomDataLayer.STRUCT = """
-  CustomDataLayer {
-  }
-"""
-
-export class CustomData {
-  constructor(layer_add_callback, layer_del_callback) {
-    this.callbacks = {
-      on_add : layer_add_callback,
-      on_del : layer_del_callback
-    }
-    this.layers = [];
-    this.startmap = {};
-  }
-  
-  load_layout(CustomData src) {
-    for (var i=0; i<src.layers.length; i++) {
-      this.layers.push(src.layers[i]);
-    }
-    
-    for (var k in src.startmap) {
-      this.startmap[k] = src.startmap[k];
-    }
-  }
-  
-  add_layer(LayerTypeClass cls, String name) {
-    var templ = cls
-    
-    var i = this.get_layer(templ.layerinfo.type_name);
-    if (i != undefined) {
-      var n = this.num_layers(templ.layerinfo.type_name);
-      i += n;
-      
-      this.layers.insert(i, templ);
-    } else {
-      i = this.layers.length;
-      
-      this.startmap[templ.layerinfo.type_name] = i;
-      this.layers.push(templ);
-    }
-    
-    this.callbacks.on_add(templ, i);
-  }
-  
-  gen_edata() {
-    var ret = new CustomDataSet();
-    
-    for (var i=0; i<this.layers.length; i++) {
-      ret.push(new this.layers[i]());
-    }
-    
-    return ret;
-  }
-  
-  get_layer(String type, i) {
-    if (i == undefined) i = 0;
-    
-    return this.layers[this.startmap[type]+i];
-  }
-  
-  num_layers(type) {
-    var i = this.get_layer(type, 0);
-    if (i == undefined) return 0;
-    
-    while (i < this.layers.length && this.layers[i++].type == type);
-    
-    return i;
-  }
-  
-  static fromSTRUCT(reader) {
-    var ret = new CustomData();
-    
-    reader(ret);
-    
-    //we saved instances; turn back to class constructors
-    for (var i=0; i<ret.layers.length; i++) {
-      ret.layers[i] = ret.layers[i].constructor;
-      var l = ret.layers[i];
-      
-      var typename = l.layerinfo.type_name;
-      if (!(typename in ret.startmap)) {
-        ret.startmap[typename] = i;
-      }
-    }
-    
-    return ret;
-  }
-}
-
-CustomData.STRUCT = """
-  CustomData {
-    layers : array(e, abstract(CustomDataLayer)) | new e();
-  }
-"""
-
-export class CustomDataSet extends Array {
-  constructor() {
-    super();
-  }
-  
-  on_add(cls, i) {
-    this.insert(i, new cls());
-  }
-  
-  get_layer(cls) {
-    for (var i=0; i<this.length; i++) {
-      if (this[i].constructor === cls) //.layerinfo.type_name == type_name)
-        return this[i];
-    }
-  }
-  
-  on_del(cls, i) {
-    this.pop_u(i);
-  }
-  
-  get_data(layout, layer_name) {
-  }
-  
-  interp(srcs, ws) {
-    static srcs2 = [];
-    while (srcs2.length < srcs.length) {
-      srcs2.push(0);
-    }
-    
-    srcs2.length = srcs.length;
-    
-    for (var i=0; i<this.length; i++) {
-      for (var j=0; j<srcs.length; j++) {
-        srcs2[j] = srcs[j][i];
-      }
-   
-      this[i].interp(srcs2, ws);
-    }
-  }
-  
-  copy(src) {
-    for (var i=0; i<this.length; i++) {
-      this[i].copy(src[i]);
-    }
-  }
-  
-  static fromSTRUCT(reader) {
-    var ret = new CustomDataSet();
-    
-    reader(ret);
-    
-    for (var i=0; i<ret.arr.length; i++) {
-      ret.push(ret.arr[i]);
-    }
-    delete ret.arr;
-    
-    return ret;
-  }
-}
-
-CustomDataSet.STRUCT = """
-  CustomDataSet {
-    arr : iter(abstract(CustomDataLayer)) | obj;
-  }
-"""
-
-export class SplineElement extends DataPathNode {
-  constructor(type) {
-    super();
-    
-    this.type = type;
-    this.cdata = new CustomDataSet();
-    this.masklayer = 1; //blender-style bitmask layers
-    this.layers = {}; //stack layers this element belongs to
-  }
-  
-  has_layer() {
-    for (var k in this.layers) {
-      return true;
-    }
-    
-    return false;
-  }
-  
-  dag_get_datapath() {
-    //wells, it should end in. . .
-    var suffix = ".verts[" + this.eid + "]";
-    
-    //hrm, prefix should be either spline.ctx.frameset.drawspline, 
-    //or spline.ctx.frameset.pathspline
-    
-    //test for presence of customdata time layer, I guess;
-    
-    var name = "drawspline";
-    
-    for (var i=0; i<this.cdata.length; i++) {
-      if (this.cdata[i].constructor.name == "TimeDataLayer")
-        name = "pathspline";
-    }
-    
-    return "frameset." + name + suffix;
-  }
-  
-  in_layer(layer) {
-    return layer != undefined && layer.id in this.layers;
-  }
-  
-  get aabb() {
-    console.trace("Implement Me!");
-  }
-  
-  sethide(state) {
-    if (state)
-      this.flag |= SplineFlags.HIDE;
-    else
-      this.flag &= ~SplineFlags.HIDE;
-  }
-  
-  set hidden(state) {
-    if (state)
-      this.flag |= SplineFlags.HIDE;
-    else
-      this.flag &= ~SplineFlags.HIDE;
-  }
-  
-  get hidden() {
-    return !!(this.flag & SplineFlags.HIDE);
-  }
-  
-  __hash__() {
-    return ""+this.eid;
-  }
-  
-  static fromSTRUCT(reader) {
-    var ret = new SplineElement();
-    
-    reader(ret);
-    
-    return ret;
-  }
-}
-
-define_static(SplineElement, "dag_outputs", {
-  depend    : undefined,
-  on_select : 0.0,
-  eid       : 0.0
-});
-
-SplineElement.STRUCT = """
-  SplineElement {
-    eid        : int;
-    flag       : int;
-    type       : int;
-    cdata      : CustomDataSet;
-  }
-""";
 
 export class SplineVertex extends SplineElement, Vector3 {
   constructor() {
@@ -482,15 +171,65 @@ var closest_point_ret_cache = new cachering(function() {
 
 var closest_point_cache_vs = cachering.fromConstructor(Vector3, 64);
 
+export class EffectWrapper extends CurveEffect {
+  constructor(SplineSegment owner) {
+    this.seg = owner;
+    
+  }
+  
+  rescale(ceff, width) {
+    //find owning segment by ascending to root curve effect
+    while (ceff.prior != undefined) {
+      ceff = ceff.prior;
+    }
+    
+    var seg1 = this.seg;
+    var seg2 = ceff.seg;
+    
+    var l1 = seg1.length, l2 = seg2.length;
+    
+    //console.log("l1", l1, "l2", l2, "width", width);
+    
+    width = (width*l2)/l1;
+    
+    return width;
+  }
+  
+  _get_nextprev(donext, flip_out) {
+    var seg1 = this.seg;
+    
+    var v = donext ? seg1.v2 : seg1.v1;
+    if (v.segments.length != 2)
+      return undefined;
+    
+    var seg2 = v.other_segment(seg1);
+    
+    flip_out[0] = (donext && seg2.v1 == v) || (!donext && seg2.v2 == v);
+    
+    return seg2._evalwrap;
+  }
+
+  eval(float s) : Vector3 {
+    return this.seg.eval(s, undefined, undefined, undefined, true);
+  }
+  
+  derivative(float s) : Vector3 {
+    return this.seg.derivative(s, undefined, undefined, true);
+  }
+}
+
 export class SplineSegment extends SplineElement {
   constructor(SplineVertex v1, SplineVertex v2) {
     super(SplineTypes.SEGMENT);
+    
+    this._evalwrap = new EffectWrapper(this);
     
     this.l = undefined;
     
     this.v1 = v1;
     this.v2 = v2;
     
+    this.has_multires = false;
     this.mat = new Material();
     
     this.z = 5;
@@ -524,7 +263,20 @@ export class SplineSegment extends SplineElement {
     this._aabb = val;
   }
   
+  _update_has_multires() {  
+    this.has_multires = false;
+    
+    for (var i=0; i<this.cdata.length; i++) {
+      if (this.cdata[i] instanceof MultiResLayer) {
+        this.has_multires = true;
+        break;
+      }
+    }
+  }
+  
   update_aabb(steps=4) {
+    this._update_has_multires();
+    
     this.flag &= ~SplineFlags.UPDATE_AABB;
     
     var min = this._aabb[0], max = this._aabb[1];
@@ -581,13 +333,13 @@ export class SplineSegment extends SplineElement {
       for (var j=0; j<steps; j++) {
         mid = (start+end)*0.5;
         
-        var co = this.eval(mid);
-        var sco = this.eval(start);
-        var eco = this.eval(end);
+        var co = this.eval(mid, undefined, undefined, undefined, true);
+        var sco = this.eval(start, undefined, undefined, undefined, true);
+        var eco = this.eval(end, undefined, undefined, undefined, true);
         
-        var d1 = this.normal(start).normalize();
-        var d2 = this.normal(end).normalize();
-        var dm = this.normal(mid).normalize();
+        var d1 = this.normal(start, true).normalize();
+        var d2 = this.normal(end, true).normalize();
+        var dm = this.normal(mid, true).normalize();
         
         n1.load(sco).sub(p).normalize();
         n2.load(eco).sub(p).normalize();
@@ -644,8 +396,8 @@ export class SplineSegment extends SplineElement {
         continue;
         
       //make sure angle is close enough to 90 degrees for our purposes. . .
-      var co = this.eval(mid);
-      n1.load(this.normal(mid)).normalize();
+      var co = this.eval(mid, undefined, undefined, undefined, true);
+      n1.load(this.normal(mid, true)).normalize();
       n2.load(co).sub(p).normalize();
       
       if (n2.dot(n1) < 0) {
@@ -709,17 +461,22 @@ export class SplineSegment extends SplineElement {
     return minret;
   }
   
-  normal(s) {
-    var ret = this.derivative(s);
+  normal(s, no_effects=!ENABLE_MULTIRES) {
+    var ret = this.derivative(s, undefined, undefined, no_effects);
     var t = ret[0]; ret[0] = -ret[1]; ret[1] = t;
     
     ret.normalize();
     return ret;
   }
   
+  ends(v) {
+    if (v === this.v1) return 0.0;
+    if (v === this.v2) return 1.0;
+  }
+  
   handle(v) {
     if (v === this.v1) return this.h1;
-    if (v == this.v2) return this.h2;
+    if (v === this.v2) return this.h2;
   }
   
   handle_vertex(h) {
@@ -828,7 +585,7 @@ export class SplineSegment extends SplineElement {
     return k/this.ks[KSCALE];
   }
   
-  derivative(s, order, no_update_curve) {
+  derivative(s, order, no_update_curve, no_effects) {
     if (order == undefined) order = ORDER;
 
     var ret = derivative_cache_vs.next().zero();
@@ -852,7 +609,7 @@ export class SplineSegment extends SplineElement {
     return ret;
   }
   
-  theta(s, order) {
+  theta(s, order, no_effects) {
     if (order == undefined) order = ORDER;
     return spiraltheta(s, this.ks, order)*this.ks[KSCALE];
   }
@@ -873,27 +630,51 @@ export class SplineSegment extends SplineElement {
     return ret;
   }
   
-  eval(s, order, override_scale, no_update) {
-    if (order == undefined) order = ORDER;
-    
-    //check if scale is invalid
-    //if (this.ks[KSCALE] == undefined || this.ks[KSCALE] == 0)
-    //  eval_curve(1, this.v1, this.v2, this.ks, order, undefined, no_update);
-    //s /= this.ks[KSCALE];
-    
-    s = (s + 0.00000001) * (1.0 - 0.00000002);
-    s -= 0.5;
-    
-    var co = eval_curve(s, this.v1, this.v2, this.ks, order, undefined, no_update);
-    //var co = new Vector3(this.v2).sub(this.v1).mulScalar(t).add(this.v1);
-    
-    return co;
+  eval(s, order, override_scale, no_update, no_effects=!ENABLE_MULTIRES) {
+    if (no_effects) {
+      if (order == undefined) order = ORDER;
+      
+      //check if scale is invalid
+      //if (this.ks[KSCALE] == undefined || this.ks[KSCALE] == 0)
+      //  eval_curve(1, this.v1, this.v2, this.ks, order, undefined, no_update);
+      //s /= this.ks[KSCALE];
+      
+      s = (s + 0.00000001) * (1.0 - 0.00000002);
+      s -= 0.5;
+      
+      var co = eval_curve(s, this.v1, this.v2, this.ks, order, undefined, no_update);
+      //var co = new Vector3(this.v2).sub(this.v1).mulScalar(t).add(this.v1);
+      
+      return co;
+    } else {
+      var wrap = this._evalwrap;
+      var last = wrap;
+      
+      for (var i=0; i<this.cdata.length; i++) {
+        if (this.cdata[i].constructor.layerinfo.has_curve_effect) {
+          var eff = this.cdata[i].curve_effect(this);
+          eff.set_parent(last);
+          
+          last = eff;
+        }
+      }
+      
+      return last.eval(s);
+    }
   }
   
   update() {
+    this._update_has_multires();
+    
     this.flag |= SplineFlags.UPDATE|SplineFlags.UPDATE_AABB;
     this.h1.flag |= SplineFlags.UPDATE;
     this.h2.flag |= SplineFlags.UPDATE;
+    
+    //need to code a post_solve_update type method
+    //update cdata
+    for (var i=0; i<this.cdata.length; i++) {
+      this.cdata[i].update(this);
+    }
     
     var l = this.l;
     if (l == undefined) return;
@@ -908,6 +689,14 @@ export class SplineSegment extends SplineElement {
       l.f.update();
       l = l.radial_next;
     } while (l != undefined && l != this.l);
+  }
+  
+  global_to_local(s, fixed_s=undefined) {
+    return this._evalwrap.global_to_local(s, fixed_s);
+  }
+  
+  local_to_global(p) {
+    return this._evalwrap.local_to_global(p);
   }
   
   shared_vert(s) {
@@ -942,6 +731,7 @@ SplineSegment.STRUCT = STRUCT.inherit(SplineSegment, SplineElement) + """
 
   aabb : array(vec3);
   z    : float;
+  has_multires : int;
 }
 """;
 

@@ -36,6 +36,11 @@ import {pack_int, pack_float, pack_static_string, unpack_ctx} from 'ajax';
         * integers for Mesh element subtypes (Vertex/Edge/Loops/Face).
 */
 /*
+  toolop refactor 2:
+  1. Move uiname/description/icon of tools into prototype or
+     constructor object.
+  2. Get rid of apiname.
+  
   toolop refactor:
   
   1. DROPPED, Constructor should take a single, SavedContext parameter.

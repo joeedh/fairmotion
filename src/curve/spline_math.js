@@ -33,7 +33,12 @@ export var ORDER = math.ORDER;
 
 //import {do_solve} from 'nacl_api';
 
+import {DISABLE_SOLVE} from 'config';
+
 function do_solve_nacl(sflags, spline, steps, gk, return_promise) {
+  if (DISABLE_SOLVE)
+    return;
+    
   if (window.common != undefined && window.common.naclModule != undefined) {
     var draw_id = window.push_solve(spline);
     return window.nacl_do_solve(sflags, spline, steps, gk, return_promise, draw_id);
@@ -42,7 +47,11 @@ function do_solve_nacl(sflags, spline, steps, gk, return_promise) {
   }
 }
 
-export var do_solve = USE_NACL ? do_solve_nacl : math.do_solve;
+export var do_solve = USE_NACL ? do_solve_nacl : function() {
+  if (DISABLE_SOLVE) return;
+  
+  return math.do_solve.apply(this, arguments);
+};
 
 #endif
 

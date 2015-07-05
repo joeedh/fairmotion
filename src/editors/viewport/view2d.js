@@ -6,6 +6,8 @@ var PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,
     ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos,
     asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
 
+import {aabb_isect_2d, inrect_2d} from 'mathlib';
+
 import {get_2d_canvas, get_2d_canvas_2} from 'UICanvas2D';
 import {NoteFrame} from 'notifications';
 import {STRUCT} from 'struct';
@@ -92,9 +94,11 @@ class PanOp extends ToolOp {
 }
 
 class drawline {
-  constructor(Vector3 co1, Vector3 co2) {
+  constructor(Vector3 co1, Vector3 co2, String group) {
     this.v1 = new Vector3(co1);
     this.v2 = new Vector3(co2);
+    this.group = group;
+    
     this.clr = [0.4, 0.4, 0.4, 1.0];
     this.width = 1;
   }
@@ -167,6 +171,7 @@ export class View2DHandler extends Area {
     this.topbar = undefined;
     
     this.drawlines = new GArray();
+    this.drawline_groups = {};
     
     this._can_select = true;
     this.flagprop = 1;
@@ -291,15 +296,46 @@ export class View2DHandler extends Area {
     prior(View2DHandler, this).pop_modal.call(this, e);
   }
   
-  make_drawline(v1, v2) {
-    var dl = new drawline(v1, v2);
-    this.drawlines.push(dl);
+  _get_dl_group(group) {
+    if (group == undefined)
+      group = "main";
+      
+    if (!(group in this.drawline_groups)) {
+      this.drawline_groups[group] = new GArray();
+    }
+    
+    return this.drawline_groups[group];
+  }
+  
+  make_drawline(v1, v2, group="main") {
+    var drawlines = this._get_dl_group(group);
+    
+    var dl = new drawline(v1, v2, group);
+    drawlines.push(dl);
+    
+    static min = [0, 0], max = [0, 0];
+    
+    var pad = 5;
+    
+    min[0] = Math.min(v1[0], v2[0])-pad;
+    min[1] = Math.min(v1[1], v2[1])-pad;
+    max[0] = Math.max(v1[0], v2[0])+pad;
+    max[1] = Math.max(v1[1], v2[1])+pad;
+    
+    redraw_viewport(min, max);
     
     return dl;
   }
   
   kill_drawline(dl) {
-    this.drawlines.remove(dl);
+    var drawlines = this._get_dl_group(dl.group);
+    drawlines.remove(dl);
+  }
+  
+  reset_drawlines(group="main") {
+    var drawlines = this._get_dl_group(group);
+    
+    drawlines.reset();
   }
   
   get_keymaps() {
@@ -538,11 +574,62 @@ export class View2DHandler extends Area {
       }
     }
     
-    if (prior(View2DHandler, this).on_mousemove.call(this, event))
-      return;
-    
+    if (super.on_mousemove(event)) {
+        return;
+    }
     this.editor.on_mousemove(event);
   }
+  
+  //assumes event has had this._offset_mpos called on it
+  /*
+  _find_active(MouseEvent e) {
+    var mpos = [e.x, e.y];
+    
+    static pos = [0, 0];
+    
+    var found = false;
+    for (var i=this.children.length-1; i >= 0; i--) {
+      var c = this.children[i];
+      
+      pos[0] = c.pos[0], pos[1] = c.pos[1];
+      
+      console.log((this.state & UIFlags.HAS_PAN), (c.state & UIFlags.HAS_PAN));
+      
+      if (c.state & UIFlags.HAS_PAN) {
+        //console.trace();
+  //      pos[0] += c.velpan.pan[0];
+//        pos[1] += c.velpan.pan[1];
+      }
+      
+      if (inrect_2d(mpos, pos, c.size)) {
+        found = true;
+        if (this.active != c && this.active != undefined) {
+          this.active.state &= ~UIFlags.HIGHLIGHT;
+          this.active.on_inactive();
+          this.active.do_recalc();
+        }
+        
+        if (this.active != c) {
+          //console.log("active", c.constructor.name);
+          
+          c.state |= UIFlags.HIGHLIGHT;
+          c.on_active();
+          c.do_recalc();
+          this.active = c;      
+        }
+        
+        break;
+      }
+    }
+    
+    if (!found && this.active != undefined) {
+      //console.log("inactive", get_type_name(this))
+      this.active.state &= ~UIFlags.HIGHLIGHT;
+      this.active.on_inactive();
+      this.active.do_recalc();
+      this.active = undefined;
+    }
+  }//*/
   
   set_zoom(zoom) {
      "zoom set!";
@@ -616,10 +703,11 @@ export class View2DHandler extends Area {
     //if (window.redraw_rect != undefined)
     //  console.log(window.redraw_rect[0], window.redraw_rect[1]);
     
-    if (window.redraw_whole_screen) {
+    //XXX clause doesn't work
+    if (0 && window.redraw_whole_screen) {
       g.beginPath();
       if (g._clearRect != undefined) {
-        g._clearRect(0, 0, this.size[0], this.size[1]);
+        //g._clearRect(0, 0, this.size[0], this.size[1]);
       }
     } else {
       var m = -2;
@@ -710,16 +798,18 @@ export class View2DHandler extends Area {
     this.editor.ctx = this.ctx;
     
     var fl = Math.floor;
-    for (var dl of this.drawlines) {
-      var a = dl.clr[3] != undefined ? dl.clr[3] : 1.0;
-      
-      g.strokeStyle = "rgba("+fl(dl.clr[0]*255)+","+fl(dl.clr[1]*255)+","+fl(dl.clr[2]*255)+","+a+")";
-      g.lineWidth = dl.width;
-      
-      g.beginPath()
-      g.moveTo(dl.v1[0], dl.v1[1]);
-      g.lineTo(dl.v2[0], dl.v2[1]);
-      g.stroke();
+    for (var k in this.drawline_groups) {
+      for (var dl of this.drawline_groups[k]) {
+        var a = dl.clr[3] != undefined ? dl.clr[3] : 1.0;
+        
+        g.strokeStyle = "rgba("+fl(dl.clr[0]*255)+","+fl(dl.clr[1]*255)+","+fl(dl.clr[2]*255)+","+a+")";
+        g.lineWidth = dl.width;
+        
+        g.beginPath()
+        g.moveTo(dl.v1[0], dl.v1[1]);
+        g.lineTo(dl.v2[0], dl.v2[1]);
+        g.stroke();
+      }
     }
     
     g.restore();

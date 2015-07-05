@@ -43,3 +43,4 @@ export class TransDataType {
   static aabb(ToolContext ctx, TransData td, TransDataItem item, MinMax minmax, selected_only) {
   }
 }
+TransDataType.selectmode = -1;

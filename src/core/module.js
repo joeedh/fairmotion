@@ -17,9 +17,6 @@ function debug() {
     return;
   
   var s = "console.log";
-  for (var i=0; i<arguments.length; i++) {
-    
-  }
   console.log.apply(console, arguments);
 }
 
@@ -36,9 +33,14 @@ function ES6Module(name) {
   this.global_exports = {};
   
   this.already_processed = {};
+  this.classes = [];
 };
 
 ES6Module.prototype = {
+  add_class  : function(cls) {
+    this.classes.push(cls);
+  },
+  
   add_export : function(name, object, allow_override=false) {
     if (object != undefined)
       this.already_processed[name] = object;
@@ -54,6 +56,7 @@ ES6Module.prototype = {
     //stupid.  during refactoring, anything without an export tag
     //is auto-inserted into the global namespace.
     //we have to double-check this here.
+    
     if (name in this.global_exports) {
       //debug("  ignoring auto-global for ", name);
       delete this.global_exports[name];

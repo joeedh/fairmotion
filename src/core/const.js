@@ -15,7 +15,7 @@ window.allshape_file_ext = ".fmo";
 window.allshape_settings_filename = ".settings.bin";
 
 //application version
-window.g_app_version = 0.049;
+window.g_app_version = 0.050;
 
 /*all selection bitflags flags must use this value, even if they define
   their own enumeration member, e.g. MeshFlags.SELECT*/

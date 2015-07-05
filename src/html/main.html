@@ -944,15 +944,6 @@
           console.trace.apply(console, args);
         }
         
-        load_modules();
-        
-        //put modules into global namespace for debugging purposes
-        //prepend "_" to their names so, e.g. spline becomes _spline
-        for (var k in _defined_modules) {
-            var mod = _defined_modules[k];
-            window["_" + k] = mod.exports;
-        }
-
         var g = {};
         var _skip_draw = false;
 
@@ -1209,6 +1200,9 @@
 
                 g_app_state.session.validate_session();
             }
+            
+            startup_report("loading native client plugin, if possible...");
+            _nacl_domContentLoaded();
         }
 
         var requestId;
@@ -1262,40 +1256,6 @@
             }
         }
 
-        var g = g_app_state;
-
-        window._stime = 10;
-
-        window.setInterval(function () {
-            if (window.skip_draw) return;
-
-            var g = window.g_app_state;
-            if (g == undefined) return;
-
-            //Make sure the canvas[es] are sized correctly.
-            reshape();
-        }, 200);
-
-        window.setInterval(function () {
-            //deal with timeouts 
-            //window.pop_solve(draw_id);
-            if (window.redraw_start_times == undefined)
-              return;
-              
-            for (var k in redraw_start_times) {
-              var t = redraw_start_times[k];
-              //don't let delayed redraw linger
-              //for more than one and a half seconds
-              if (time_ms() - t > 1500) {
-                pop_solve(k);
-              }
-            }
-            
-            if (g_app_state != undefined && g_app_state.screen != undefined) {
-                g_app_state.screen._on_tick();
-            }
-        }, 32);
-
         function drawPicture(gl) {
             var g = g_app_state;
 
@@ -1333,6 +1293,51 @@
         _draw_gl = undefined;
 
         function start() {
+            load_modules();
+
+            var g = g_app_state;
+
+            window._stime = 10;
+
+            window.setInterval(function () {
+                if (window.skip_draw) return;
+
+                var g = window.g_app_state;
+                if (g == undefined) return;
+
+                //Make sure the canvas[es] are sized correctly.
+                reshape();
+            }, 200);
+
+            window.setInterval(function () {
+                //deal with timeouts 
+                //window.pop_solve(draw_id);
+                if (window.redraw_start_times == undefined)
+                  return;
+                  
+                for (var k in redraw_start_times) {
+                  var t = redraw_start_times[k];
+                  //don't let delayed redraw linger
+                  //for more than one and a half seconds
+                  if (time_ms() - t > 1500) {
+                    pop_solve(k);
+                  }
+                }
+                
+                if (g_app_state != undefined && g_app_state.screen != undefined) {
+                    g_app_state.screen._on_tick();
+                }
+            }, 32);
+
+            
+            //put modules into global namespace for debugging purposes
+            //prepend "_" to their names so, e.g. spline becomes _spline
+            for (var k in _defined_modules) {
+                var mod = _defined_modules[k];
+                window["_" + k] = mod.exports;
+            }
+
+
             var canvas;
             var c = canvas = document.getElementById("canvas2d_work");
 

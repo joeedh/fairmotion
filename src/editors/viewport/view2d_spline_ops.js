@@ -3,7 +3,13 @@
 import {ExtrudeVertOp} from 'spline_createops';
 import {toolop_menu} from 'UIMenu';
 import {DeleteVertOp, DeleteSegmentOp} from 'spline_editops';
+import {CreateMResPoint} from 'multires_ops';
+import * as mr_selectops from 'multires_selectops';
+import * as spline_selectops from 'spline_selectops';
 
+import {compose_id, decompose_id, MResFlags, MultiResLayer}
+        from 'spline_multires';
+        
 var ScreenArea, Area;
 
 import {get_2d_canvas, get_2d_canvas_2} from 'UICanvas2D';
@@ -396,7 +402,6 @@ export class SplineEditor extends View2DEditor {
                "spline.change_face_z(offset=-1, selmode=selectmode)");
 
     k.add_tool(new KeyHandler("G", [], "Translate"), 
-    
                "spline.translate(datamode=selectmode)");
     k.add_tool(new KeyHandler("S", [], "Scale"), 
                "spline.scale(datamode=selectmode)");
@@ -405,8 +410,25 @@ export class SplineEditor extends View2DEditor {
                
     k.add_tool(new KeyHandler("R", [], "Rotate"), 
                "spline.rotate(datamode=selectmode)");
-    k.add_tool(new KeyHandler("A", [], "Toggle Selection"), 
-               "spline.toggle_select_all()");
+    
+    k.add(new KeyHandler("A", [], "Toggle Select"), new FuncKeyHandler(function(ctx) {
+      var view2d = ctx.view2d;
+      var selectmode = view2d.selectmode;
+      
+      if (selectmode == SelMask.MULTIRES) {
+        var tool = new mr_selectops.ToggleSelectAll();
+        g_app_state.toolstack.exec_tool(tool);
+      } else if (selectmode & SelMask.MULTIRES) {
+        var tool = new mr_selectops.ToggleSelectAll();
+        g_app_state.toolstack.exec_tool(tool);
+
+        var tool = new spline_selectops.ToggleSelectAllOp();
+        g_app_state.toolstack.exec_tool(tool);
+      } else {
+        var tool = new spline_selectops.ToggleSelectAllOp();
+        g_app_state.toolstack.exec_tool(tool);
+      }
+    }));
 
     k.add_tool(new KeyHandler("A", ["ALT"], "Animation Playback"), 
                "editor.playback()");
@@ -617,28 +639,52 @@ export class SplineEditor extends View2DEditor {
         
         g_app_state.toolstack.exec_tool(op);
         redraw_viewport();
-      } 
+      }  else if (!tweak_mode && (this.selectmode & SelMask.MULTIRES)) {
+        var ret = this.findnearest([event.x, event.y, 0], SelMask.MULTIRES);
         
+        console.log(ret);
+        
+        if (ret != undefined) {
+          var seg = decompose_id(ret[1])[0];
+          var p = decompose_id(ret[1])[1];
+          
+          var spline = ret[0];
+          seg = spline.eidmap[seg];
+          
+          var mr = seg.cdata.get_layer(MultiResLayer);
+          p = mr.get(p);
+          
+          var tool = new mr_selectops.SelectOneOp(ret[1], !event.shiftKey, 
+                            !event.shiftKey || !(p.flag & MResFlags.SELECT), 
+                            spline.actlevel);
+          
+          g_app_state.toolstack.exec_tool(tool);
+        } else {
+          this.mres_make_point(event, 75);
+          redraw_viewport([-1000, -1000], [1000, 1000]);
+        }
+      } else {
+        for (var i=0; i<spline.elists.length; i++) {
+          var list = spline.elists[i];
+          
+          //console.log("  -", list.highlight == undefined);
+          
+          if (list.highlight == undefined)
+            continue;
+            
+          var op = new SelectOneOp(list.highlight, !event.shiftKey, 
+                                  !(list.highlight.flag & SplineFlags.SELECT),
+                                  this.selectmode, true);
+          //console.log("exec selectoneop op");
+          
+          g_app_state.toolstack.exec_tool(op);
+          break;
+          //redraw_viewport();
+        }
+      }
+      
       this.start_mpos[0] = event.x; this.start_mpos[1] = event.y; this.start_mpos[2] = 0.0;
       this.mdown = true;
-            
-      for (var i=0; i<spline.elists.length; i++) {
-        var list = spline.elists[i];
-        
-        //console.log("  -", list.highlight == undefined);
-        
-        if (list.highlight == undefined)
-          continue;
-          
-        var op = new SelectOneOp(list.highlight, !event.shiftKey, 
-                                !(list.highlight.flag & SplineFlags.SELECT),
-                                this.selectmode, true);
-        //console.log("exec selectoneop op");
-        
-        g_app_state.toolstack.exec_tool(op);
-        break;
-        //redraw_viewport();
-      }
     }
   }
 
@@ -720,18 +766,115 @@ export class SplineEditor extends View2DEditor {
     return closest;
   }
   
+  mres_make_point(event, limit) {
+    console.log("make point");
+     
+    var view2d = this.ctx.view2d;
+    var co = new Vector3([event.x, event.y, 0]);
+    
+    view2d.reset_drawlines("mres")
+    view2d.unproject(co);
+    
+    var ret = this.findnearest([event.x, event.y, 0], SelMask.SEGMENT, limit);
+    if (ret == undefined) return;
+    
+    var spline = ret[0];
+    var seg = ret[1];
+    
+    var p = seg.closest_point(co);
+    
+    if (p == undefined) 
+      return;
+      
+    console.log(p);
+    
+    var tool = new CreateMResPoint(seg, co);
+    g_app_state.toolstack.exec_tool(tool);
+  }
+  
+  handle_mres_mousemove(event, limit) {
+    var view2d = this.ctx.view2d;
+    var co = new Vector3([event.x, event.y, 0]);
+    
+    view2d.reset_drawlines("mres")
+    view2d.unproject(co);
+    
+    var pid = this.findnearest([event.x, event.y, 0], SelMask.MULTIRES, limit);
+    
+    static rect = [new Vector3(), new Vector3()];
+    
+    if (pid != undefined) {
+      var spline = pid[0];
+      var seg = decompose_id(pid[1]), p;
+      p = seg[1], seg = seg[0];
+      
+      seg = spline.eidmap[seg];
+      
+      if (seg == undefined) {
+        console.log("ERROR: CORRUPTED MRES DATA!");
+      }
+      
+      var mr = seg.cdata.get_layer(MultiResLayer);
+      
+      for (var seg2 in spline.segments) {
+        var mr2 = seg2.cdata.get_layer(MultiResLayer);
+        
+        for (var p2 in mr2.points(spline.actlevel)) {
+          p2.flag &= ~MResFlags.HIGHLIGHT;
+        }
+      }
+      
+      p = mr.get(p);
+      p.flag |= MResFlags.HIGHLIGHT;
+      
+      rect[0].load(p).subScalar(10);
+      rect[1].load(p).addScalar(10);
+      rect[0][2] = rect[1][2] = 0.0;
+      
+      window.redraw_viewport(rect[0], rect[1]);
+    }
+    
+    var ret = this.findnearest([event.x, event.y, 0], SelMask.SEGMENT, limit);
+
+    if (ret != undefined) {
+      var spline = ret[0];
+      var seg = ret[1];
+      
+      var p = seg.closest_point(co);
+      if (p == undefined) 
+        return;
+        
+      var dl = view2d.make_drawline(co, p[0], "mres");
+    }
+    
+   // window.redraw_viewport();
+  }
+  
   on_mousemove(event) {
     if (this.ctx == undefined) return;
+
     var tweak_mode = this.ctx.view2d.tweak_mode;
+    var selectmode = this.selectmode;
+    var limit = selectmode & SelMask.SEGMENT ? 55 : 12;
+
+    if (tweak_mode) limit *= 3;
     
     var spline = this.ctx.spline;
     spline.size = [window.innerWidth, window.innerHeight];
     
     this.mpos[0] = event.x, this.mpos[1] = event.y, this.mpos[2] = 0.0;
     
+    var selectmode = this.selectmode;
+    
+    //find closest
+    if (selectmode & SelMask.MULTIRES) {
+       this.handle_mres_mousemove(event, 75);
+    }
+    
     if (this.mdown) { // && this.mpos.vectorDistance(this.start_mpos) > 2) {
       this.mdown = false;
       var op = new TranslateOp(this.start_mpos);
+      op.inputs.datamode.set_data(this.ctx.view2d.selectmode);
       
       var ctx = new Context();
       
@@ -744,20 +887,14 @@ export class SplineEditor extends View2DEditor {
       return;
     }
     
-    var selectmode = this.selectmode;
-    
     if (this.mdown)
       return;
-    
-    var limit = selectmode & SelMask.SEGMENT ? 55 : 12;
-    
-    if (tweak_mode) limit *= 3;
     
     var ret = this.findnearest([event.x, event.y], this.ctx.view2d.selectmode, limit);
     //console.log(ret);
     
     
-    if (ret != undefined) {
+    if (ret != undefined && typeof(ret[1]) != "number" && ret[2] != SelMask.MULTIRES) {
       //console.log(ret[1].type);
       
       if (ret.highlight_spline != undefined) {

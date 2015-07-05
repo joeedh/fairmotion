@@ -46,7 +46,8 @@ import {SplineTypes} from 'spline_types';
 export var ConstraintTypes = {
   TAN_CONSTRAINT       : 0,
   HARD_TAN_CONSTRAINT  : 1,
-  CURVATURE_CONSTRAINT : 2
+  CURVATURE_CONSTRAINT : 2,
+  COPY_C_CONSTRAINT    : 3
 };
 
 export var JobTypes = {
@@ -276,6 +277,17 @@ function solve_intern(spline, update_verts, order, goal_order, steps, gk) {
     }
 
     var cs = [];
+    
+    function copy_c(params) {
+      var v = params[1], seg = params[0];
+      
+      var s1 = v === seg.v1 ? 0 : order-1;
+      var s2 = v === seg.v1 ? order-1 : 0;
+      
+      seg.ks[s1] += (seg.ks[s2]-seg.ks[s1])*gk*0.5;
+      
+      return 0.0;
+    }
 
     //handle manual tangents
     for (var i=0; i<spline.handles.length; i++) {
@@ -375,6 +387,16 @@ function solve_intern(spline, update_verts, order, goal_order, steps, gk) {
         var v = spline.verts[i];
 
         if (INCREMENTAL && !(v.flag & SplineFlags.UPDATE)) continue;
+        
+        if (v.segments.length == 1 && !(v.flag & SplineFlags.BREAK_CURVATURES)) {
+          var seg = v.segments[0];
+          
+          var cc = new constraint(1.0, [seg.ks], order, copy_c, [seg, v]);
+          cc.type = "copy_c";
+          cc.k2 = 0.8
+          cs.push(cc);
+        }
+
         if (v.segments.length != 2) continue;
 
         var ss1 = v.segments[0], ss2 = v.segments[1];
@@ -1071,6 +1093,12 @@ function write_nacl_solve(data, spline, cons, update_verts, update_segs, gk, edg
           
           seg1 = param1;
           seg2 = -1; //param2
+     } else if (c.type == "copy_c") {
+          type = ConstraintTypes.COPY_C_CONSTRAINT;
+          //console.log("curvature constraint!")
+          
+          seg1 = c.params[0];
+          param1 = seg1.v1.segments.length == 1; //c.params[1] === seg1.v1;
      }
    
     //console.log("c.type, c.k, gk:", c.type, c.k, gk);

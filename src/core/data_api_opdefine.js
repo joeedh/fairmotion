@@ -80,8 +80,13 @@ window.api_define_ops = function() {
     
     "spline.translate": function(ctx, args) {
       var op = new TranslateOp(EditModes.GEOMETRY, ctx.object);
+
+      if ("datamode" in args) {
+        op.inputs.datamode.set_data(args["datamode"]);
+      }
       
-      console.log("=====", ctx.view2d.session_flag, ctx.view2d.propradius);
+      console.log("=====", args, ctx.view2d.session_flag, ctx.view2d.propradius);
+      //op.inputs.datamode.set_data(ctx.view2d.selectmode);
       
       if (ctx.view2d.session_flag & SessionFlags.PROP_TRANSFORM) {
         op.inputs.proportional.set_data(true);
@@ -93,6 +98,12 @@ window.api_define_ops = function() {
     
     "spline.rotate": function(ctx, args) {
       var op = new RotateOp(EditModes.GEOMETRY, ctx.object);
+
+      if ("datamode" in args) {
+        op.inputs.datamode.set_data(args["datamode"]);
+      }
+      
+      //op.inputs.datamode.set_data(ctx.view2d.selectmode);
       
       if (ctx.view2d.session_flag & SessionFlags.PROP_TRANSFORM) {
         op.inputs.proportional.set_data(true);
@@ -104,6 +115,12 @@ window.api_define_ops = function() {
     
     "spline.scale": function(ctx, args) {
       var op = new ScaleOp(EditModes.GEOMETRY, ctx.object);
+
+      if ("datamode" in args) {
+        op.inputs.datamode.set_data(args["datamode"]);
+      }
+      
+      //op.inputs.datamode.set_data(ctx.view2d.selectmode);
       
       if (ctx.view2d.session_flag & SessionFlags.PROP_TRANSFORM) {
         op.inputs.proportional.set_data(true);
@@ -111,17 +128,6 @@ window.api_define_ops = function() {
       }
         
       return op;
-    },
-    
-    "mesh.inset_loops": function(ctx, args) {
-      return new InsetOp();
-    },
-    
-    "mesh.flip_normals": function(ctx, args) {
-      if (!("faces" in args))
-        throw TinyParserError;
-      
-      return new MeshToolOp(new FlipNormalsOp(args["faces"]));      
     },
     
     /*"editor.import_json": function(ctx, args) {

@@ -429,12 +429,14 @@ export class ElementArraySet extends set {
 }
 
 export class ElementArray extends GArray, DataPathNode {
-  constructor(type, idgen, idmap, global_sel, layerset) {
+  constructor(type, idgen, idmap, global_sel, layerset, spline) {
     GArray.call(this);
     
     this.layerset = layerset;
-    this.cdata = new CustomData(this.on_layer_add.bind(this), this.on_layer_del.bind(this));
+    this.cdata = new CustomData(this); //this.on_layer_add.bind(this), this.on_layer_del.bind(this));
+    
     this.type = type;
+    this.spline = spline;
     this.idgen = idgen;
     this.idmap = idmap;
     this.local_idmap = {};
@@ -636,6 +638,8 @@ export class ElementArray extends GArray, DataPathNode {
     
     reader(ret);
     
+    ret.cdata.owner = ret;
+    
     var active = ret.active;
     ret.active = undefined;
     
@@ -658,6 +662,7 @@ export class ElementArray extends GArray, DataPathNode {
     this.global_sel = global_sel;
     this.local_idmap = {};
     this.layerset = layerset;
+    this.spline = spline;
     
     var selected = new ElementArraySet();
     selected.layerset = layerset;
@@ -686,6 +691,7 @@ export class ElementArray extends GArray, DataPathNode {
       }
     }
     
+    this.cdata.afterSTRUCT(this, this.cdata);
   }
 }
 

@@ -951,7 +951,13 @@ def build_package():
     zf.write(path, "fairmotion_alpha/"+path)
     
   zwrite("build/app.js")
-  
+  apath = "build/app0.js"
+  i = 1
+  while os.path.exists(apath):
+    zwrite(apath)
+    apath = "build/app%i.js" % i
+    i += 1
+    
   target = None
   for t in targets:
     if t.target == "app.js":

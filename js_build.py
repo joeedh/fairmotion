@@ -957,7 +957,11 @@ def build_package():
     zwrite(apath)
     apath = "build/app%i.js" % i
     i += 1
-    
+  
+  zwrite("examples/male character.fmo")
+  zwrite("examples/scene.fmo")
+  zwrite("examples/wip_animation.fmo")
+  
   target = None
   for t in targets:
     if t.target == "app.js":

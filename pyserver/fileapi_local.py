@@ -224,6 +224,9 @@ class FileAPI_DirList:
       file = File(path2, userid)
       f = {}
       
+      if file == None:
+        continue
+        print("error!", dirpath)
       #if file == None: continue
       
       f["name"] = file.name

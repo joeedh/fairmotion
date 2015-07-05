@@ -589,7 +589,7 @@ export function draw_spline(spline, g, editor, selectmode, only_render, draw_nor
             g.moveTo(co[0], co[1]);
           } else {
             //*
-            if (i==0 || abs(k) < 0.001/zoom) {
+            if (i==0 || abs(k) < 0.00001/zoom) {
               g.lineTo(co[0], co[1]);
             } else {
             //*

@@ -237,7 +237,7 @@ export class View2DHandler extends Area {
       var spline = this.ctx.frameset.spline;
       
       var eids = [];
-      for (var v in spline.verts.selected.editable) {
+      for (var v of spline.verts.selected.editable) {
         eids.push(v.eid);
       }
       
@@ -394,7 +394,7 @@ export class View2DHandler extends Area {
     this.ctx = new Context();
   }
 
-  __hash__() : String {
+  [Symbol.keystr]() : String {
     return this.constructor.name + this._id;
   }
 
@@ -774,7 +774,7 @@ export class View2DHandler extends Area {
       if (this.only_render && pathspline.resolve) {
         pathspline.solve();
       } else if (!this.only_render) {
-        for (var v in spline.verts.selected) {
+        for (var v of spline.verts.selected) {
           if (!(v.eid in frameset.vertex_animdata)) continue;
           
           var vdata = frameset.vertex_animdata[v.eid];
@@ -970,7 +970,7 @@ export class View2DHandler extends Area {
     
     cpy.editors = new GArray();
     cpy.editor = undefined;
-    for (var e in this.editors) {
+    for (var e of this.editors) {
       var e2 = e.editor_duplicate(cpy);
       
       cpy.editors.push(e2);
@@ -1046,7 +1046,7 @@ export class View2DHandler extends Area {
     if (this.canvas != undefined)
       this.canvas.reset();
     
-    for (var e in this.editors) {
+    for (var e of this.editors) {
       e.canvas = this.canvas;
     }
     
@@ -1110,7 +1110,7 @@ export class View2DHandler extends Area {
     }
     
     var editor = undefined;
-    for (var e in this.editors) {
+    for (var e of this.editors) {
       if (e instanceof editortype) {
         editor = e;
         break;
@@ -1127,10 +1127,10 @@ export class View2DHandler extends Area {
     editor.on_active(this);
     editor.gl = this.gl;
     
-    for (var c in list(this.cols)) {
+    for (var c of list(this.cols)) {
       this.remove(c);
     }
-    for (var c in list(this.rows)) {
+    for (var c of list(this.rows)) {
       this.remove(c);
     }
     

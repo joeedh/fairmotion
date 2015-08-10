@@ -347,7 +347,7 @@ class ViewPanOp extends ToolOp {
     this.center = new Vector3();
     
     var i = 0;
-    for (var v in ctx.mesh.verts) {
+    for (var v of ctx.mesh.verts) {
       if (isNaN(v.co[0]) || isNaN(v.co[1]) || isNaN(v.co[2]))
         continue;
       
@@ -434,7 +434,7 @@ function mprop_to_tprop(props, props2) {
     props2 = {}
   }
   
-  for (var k1 in Iterator(props)) {
+  for (var k1 of Iterator(props)) {
     var k = k1[0]
     var p = props[k];
     var p2;
@@ -488,7 +488,7 @@ function mprop_to_tprop(props, props2) {
 }
 
 function tprop_to_mprop(mprop, tprop) {
-  for (var k1 in Iterator(tprop)) {
+  for (var k1 of Iterator(tprop)) {
     var k = k1[0]
     var p = tprop[k];
     var p2 = mprop[k];

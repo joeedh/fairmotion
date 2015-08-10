@@ -119,7 +119,7 @@ export class UICanvas2_ {
     var id = obj_or_id;
     
     if (typeof id == "object")
-      id = id.__hash__();
+      id = id[Symbol.keystr]();
       
     var canvas = this.canvases[id];
     delete this.canvases[id];
@@ -136,7 +136,7 @@ export class UICanvas2_ {
     var id = obj_or_id;
     
     if (typeof id == "object")
-      id = id.__hash__();
+      id = id[Symbol.keystr]();
     
     var canvas;
     if (id in this.canvases) {

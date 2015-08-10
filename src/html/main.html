@@ -642,7 +642,16 @@
 
             return -1;
         }
-
+         
+        window._my_object_keys = function(obj) {
+          var arr = [];
+          for (var k in obj) {
+            arr.push(k);
+          }
+          
+          return arr;
+        }
+        
         //more consistent is_str function
         function is_str(str) {
             return typeof str == "string" || typeof str == "String";

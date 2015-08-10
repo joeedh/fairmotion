@@ -746,7 +746,7 @@ export class UIFrame extends UIElement {
   
   disable() {
     super.disable();
-    for (var c in this.children) {
+    for (var c of this.children) {
       c.disable();
     }
     
@@ -754,7 +754,7 @@ export class UIFrame extends UIElement {
     super.disable();
     this._disabled_children = []
     
-    for (var c in this.children) {
+    for (var c of this.children) {
       if (!(c.state & UIFlags.ENABLED)) {
         this._disabled_children.push(c);
       }
@@ -765,14 +765,14 @@ export class UIFrame extends UIElement {
   
   enable() {
     super.disable();
-    for (var c in this.children) {
+    for (var c of this.children) {
       c.enable();
     }
     
     /*
     super.enable();
     
-    for (var c in this._disabled_children) {
+    for (var c of this._disabled_children) {
       c.enable();
     }
     

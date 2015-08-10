@@ -211,13 +211,13 @@ export class Spline extends DataBlock {
   force_full_resolve() {
     this.resolve = 1;
     
-    for (var seg in this.segments) {
+    for (var seg of this.segments) {
       seg.flag |= SplineFlags.UPDATE;
     }
-    for (var v in this.verts) {
+    for (var v of this.verts) {
       v.flag |= SplineFlags.UPDATE;
     }
-    for (var h in this.handles) {
+    for (var h of this.handles) {
       h.flag |= SplineFlags.UPDATE;
     }
   }
@@ -359,7 +359,7 @@ export class Spline extends DataBlock {
       var f = this.faces[i];
       
       var vlists = [];
-      for (var list in f.paths) {
+      for (var list of f.paths) {
         var verts = [];
         vlists.push(verts);
         
@@ -763,7 +763,7 @@ export class Spline extends DataBlock {
     for (var i=0; i<2; i++) {
       var list = i ? this.handles : this.verts;
       
-      for (var v in list) {
+      for (var v of list) {
         for (var j=0; j<v.segments.length; j++) {
           if (v.segments[j] == undefined) {
             v.pop_i(j);
@@ -775,7 +775,7 @@ export class Spline extends DataBlock {
     
     var delsegments = new set();
     
-    for (var v in this.verts) {
+    for (var v of this.verts) {
       for (var i=0; i<v.segments.length; i++) {
         var s = v.segments[i];
         
@@ -790,7 +790,7 @@ export class Spline extends DataBlock {
       }
     }
     
-    for (var s in delsegments) {
+    for (var s of delsegments) {
       this.kill_segment(s, true, true);
       continue;
       
@@ -830,7 +830,7 @@ export class Spline extends DataBlock {
       }
     }
     
-    for (var s in this.segments) {
+    for (var s of this.segments) {
       //console.log(s);
       
       if (s.v1.segments == undefined || s.v2.segments == undefined) {
@@ -872,7 +872,7 @@ export class Spline extends DataBlock {
     for (var i=0; i<this.elists.length; i++) {
       var elist = this.elists[i];
       
-      for (var e in elist) {
+      for (var e of elist) {
         max_eid = Math.max(e.eid, max_eid);
       }
     }
@@ -890,8 +890,8 @@ export class Spline extends DataBlock {
       this.segments.clear_selection();
       this.faces.clear_selection();
       
-      for (var v in this.verts.selected) {
-        for (var s in v.segments) {
+      for (var v of this.verts.selected) {
+        for (var s of v.segments) {
           if (s.other_vert(v).flag & SplineFlags.SELECT) {
             if (this.segments.active == undefined || !(this.segments.active.flag & SplineFlags.SELECT))
               this.segments.active = s;
@@ -918,8 +918,8 @@ export class Spline extends DataBlock {
             
             var good = true;
             
-            for (var path in f.paths) {
-              for (var l2 in path) {
+            for (var path of f.paths) {
+              for (var l2 of path) {
                 if (!(l2.v.flag & SplineFlags.SELECT)) {
                   good = false;
                   break;
@@ -942,7 +942,7 @@ export class Spline extends DataBlock {
       this.verts.clear_selection();
       this.faces.clear_selection();
       
-      for (var s in this.segments.selected) {
+      for (var s of this.segments.selected) {
         this.verts.setselect(s.v1, true);
         this.verts.setselect(s.v2, true);
         
@@ -965,8 +965,8 @@ export class Spline extends DataBlock {
           
           var good = true;
           
-          for (var path in f.paths) {
-            for (var l2 in path) {
+          for (var path of f.paths) {
+            for (var l2 of path) {
               if (!(l2.s.flag & SplineFlags.SELECT)) {
                 good = false;
                 break;
@@ -988,9 +988,9 @@ export class Spline extends DataBlock {
       this.verts.clear_selection();
       this.segments.clear_selection();
       
-      for (var f in this.faces.selected) {
-        for (var path in f.paths) {
-          for (var l in path) {
+      for (var f of this.faces.selected) {
+        for (var path of f.paths) {
+          for (var l of path) {
             this.verts.setselect(l.v, true);
             this.segments.setselect(l.s, true);
           }
@@ -1147,7 +1147,7 @@ export class Spline extends DataBlock {
     for (var i=0; i<f.paths.length; i++) {
       var path = f.paths[i];
       
-      for (var l in path) {
+      for (var l of path) {
         this._radial_loop_remove(l);
         this.kill_loop(l);
       }
@@ -1458,10 +1458,10 @@ export class Spline extends DataBlock {
     static lastco = new Vector3();
     lastco.zero();
     
-    for (var path in f.paths) {
+    for (var path of f.paths) {
       var first = true;
       
-      for (var l in path) {
+      for (var l of path) {
         var seg = l.s;
         
         var flip = seg.v1 !== l.v;
@@ -1514,7 +1514,7 @@ export class Spline extends DataBlock {
     for (var si=0; si<2; si++) {
       var list = si ? this.handles : this.verts;
       
-      for (var v in list) {
+      for (var v of list) {
         var h = hash(v[0], v[1], cellsize);
         
         if (!(h in sh)) {
@@ -1921,7 +1921,7 @@ export class Spline extends DataBlock {
       }
     }
     
-    for (var h in ret.handles) {
+    for (var h of ret.handles) {
       h.hpair = eidmap[h.hpair];
     }
     
@@ -1955,7 +1955,7 @@ export class Spline extends DataBlock {
       f.flag |= SplineFlags.UPDATE_AABB;
       
       eidmap[f.eid] = f;
-      for (var path in f.paths) {
+      for (var path of f.paths) {
         path.f = f;
         
         var l = path.l;
@@ -1975,7 +1975,7 @@ export class Spline extends DataBlock {
     for (var i=0; i<ret.faces.length; i++) {
       var f = ret.faces[i];
       
-      for (var path in f.paths) {
+      for (var path of f.paths) {
         var l = path.l;
         do {
           //console.log("doing loop ", l.eid, l.f.eid);
@@ -2037,7 +2037,7 @@ export class Spline extends DataBlock {
     if (spline_multires.has_multires(ret) && ret.mres_format != undefined) {
       console.log("Converting old multires layout. . .");
       
-      for (var seg in ret.segments) {
+      for (var seg of ret.segments) {
         var mr = seg.cdata.get_layer(spline_multires.MultiResLayer);
         
         mr._convert(ret.mres_format, spline_multires._format);

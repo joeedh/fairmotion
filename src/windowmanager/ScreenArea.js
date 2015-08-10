@@ -120,7 +120,7 @@ export class Area extends UIFrame {
     var pany = this.velpan != undefined ? this.velpan.pan[1] : 0;
     
     var i=0;
-    for (var frame in this.rows) {
+    for (var frame of this.rows) {
       frame.state    |= UIFlags.HAS_PAN|UIFlags.USE_PAN|UIFlags.NO_VELOCITY_PAN;
       frame.packflag |= PackFlags.INHERIT_WIDTH|PackFlags.CALC_NEGATIVE_PAN|PackFlags.PAN_X_ONLY;
       
@@ -133,7 +133,7 @@ export class Area extends UIFrame {
     }
     
     i = 0;
-    for (var frame in this.cols) {
+    for (var frame of this.cols) {
       frame.state    |= UIFlags.HAS_PAN|UIFlags.USE_PAN|UIFlags.NO_VELOCITY_PAN;
       frame.packflag |= PackFlags.INHERIT_WIDTH|PackFlags.CALC_NEGATIVE_PAN|PackFlags.PAN_X_ONLY;
       
@@ -453,8 +453,8 @@ export class ScreenArea extends UIFrame {
   }
   
   destroy() {
-    for (var c of this.editors) {
-      c.destroy();
+    for (var k in this.editors) {
+      this.editors[k].destroy();
     }
   }
   

@@ -28,7 +28,7 @@ export class Notification {
     //this.defunct = false; //expected to be a getter
   }
   
-  __hash__() : String {
+  [Symbol.keystr]() : String {
     return ""+this._id;
   }
   

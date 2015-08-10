@@ -164,7 +164,7 @@ export class CustomData {
 
     this.shared_data.push(shared);
     
-    for (var e in this.owner) {
+    for (var e of this.owner) {
       e.cdata.on_add(templ, i, shared);
     }
     
@@ -246,10 +246,10 @@ export class CustomData {
   }
    
   afterSTRUCT(element_array, cdata) {
-    for (var e in element_array) {
+    for (var e of element_array) {
       var i = 0;
       
-      for (var layer in e.cdata) {
+      for (var layer of e.cdata) {
         layer.shared = cdata.shared_data[i];
         i++;
       }
@@ -401,7 +401,7 @@ export class SplineElement extends DataPathNode {
     return !!(this.flag & SplineFlags.HIDE);
   }
   
-  __hash__() {
+  [Symbol.keystr]() {
     return ""+this.eid;
   }
   

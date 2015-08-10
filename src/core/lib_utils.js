@@ -71,11 +71,11 @@ class DBList extends GArray {
     var list = [];
     var sellist = [];
     
-    for (var block in this) {
+    for (var block of this) {
       list.push(block.lib_id);
     }
     
-    for (var block in this.selected) {
+    for (var block of this.selected) {
       sellist.push(block.lib_id);
     }
     
@@ -100,7 +100,7 @@ class DBList extends GArray {
   }
   
   clear_select() {
-    for (var block in this.selected) {
+    for (var block of this.selected) {
       block.flag &= ~SELECT;
     }
     
@@ -238,7 +238,7 @@ function DataArrayRem(dst, field, obj) {
 function SceneObjRem(scene, obj) {
   function rem() {
     /*unparent*/
-    for (var e in obj.dag_node.inmap["parent"]) {
+    for (var e of obj.dag_node.inmap["parent"]) {
       var node = e.opposite(obj).node;
       
       if (node instanceof ASObject)
@@ -358,7 +358,7 @@ class DataRefList extends GArray, TPropIterable {
         this.push(lst[i]);
       }
     } else if (Symbol.iterator in lst) {
-      for (var b in lst) {
+      for (var b of lst) {
         this.push(b);
       }
     }

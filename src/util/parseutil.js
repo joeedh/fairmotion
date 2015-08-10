@@ -400,7 +400,7 @@ function test_parser() {
     })
   ];
 
-  for (var rt in reserved_tokens) {
+  for (var rt of reserved_tokens) {
     tokens.push(tk(rt.toUpperCase()));
   }
 

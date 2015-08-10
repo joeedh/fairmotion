@@ -44,6 +44,7 @@ gcs["g_validate_classes"] = "vc"
 gcs["g_require_js"] = "rj"
 gcs["g_es6_modules"] = "nm"
 gcs["g_log_forloops"] = "lf"
+gcs["g_enable_let"] = "lt"
 
 def argv_to_argline():
   s = ""
@@ -265,5 +266,6 @@ class Glob(AbstractGlob):
     g_require_js = False
     g_es6_modules = True
     g_log_forloops = False
+    g_enable_let = True
     
 glob = Glob()

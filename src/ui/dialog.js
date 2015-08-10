@@ -201,7 +201,7 @@ export class Dialog extends UIFrame {
     function visit(c, canvas) {
       c.canvas = canvas;
       if (c instanceof UIFrame) {
-        for (var c2 in c.children) {
+        for (var c2 of c.children) {
           visit(c2, canvas);
         }
       }

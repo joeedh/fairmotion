@@ -176,7 +176,7 @@ export class UIElement extends EventHandler {
     return empty_arr;
   }
   
-  __hash__() : String {
+  [Symbol.keystr]() : String {
     if (this._h12 == undefined) {
       var n = this.constructor.name;
       //XXX IE bug!

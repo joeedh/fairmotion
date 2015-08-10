@@ -769,7 +769,7 @@ export function minmax_verts(verts) {
   var min = new Vector3([1e12, 1e12, 1e12]);
   var max = new Vector3([-1e12, -1e12, -1e12]);
   
-  for (var v in verts) {
+  for (var v of verts) {
     for (var i=0; i<3; i++) {
       min[i] = Math.min(min[i], v.co[i]);
       max[i] = Math.max(max[i], v.co[i]);
@@ -879,9 +879,9 @@ function spatialhash(init, cellsize) { //=new GArray(), cellsize=0.25)
           var bset = this.hashlookup(x, y, z, true);
           
           if (mode == "a") {
-            bset[item.__hash__()] = item;
+            bset[item[Symbol.keystr]()] = item;
           } else if (mode == "r"){ 
-            delete bset[item.__hash__()];
+            delete bset[item[Symbol.keystr]()];
           }
         }
       }
@@ -891,8 +891,8 @@ function spatialhash(init, cellsize) { //=new GArray(), cellsize=0.25)
   this.add = function(item) {
       this._op(item, "a")
       
-      if (this.items[item.__hash__()] == undefined) {
-        this.items[item.__hash__()] = item;
+      if (this.items[item[Symbol.keystr]()] == undefined) {
+        this.items[item[Symbol.keystr]()] = item;
         this.length++;
       }
   }
@@ -900,7 +900,7 @@ function spatialhash(init, cellsize) { //=new GArray(), cellsize=0.25)
   this.remove = function(item) {
       this._op(item, "r")
       
-      delete this.items[item.__hash__()];
+      delete this.items[item[Symbol.keystr]()];
       this.length--;
   }
   
@@ -941,7 +941,7 @@ function spatialhash(init, cellsize) { //=new GArray(), cellsize=0.25)
             var bset = this.hashlookup(x, y, z, false);
 
             if (bset != null) {
-              for (var r in new obj_value_iter(bset)) {
+              for (var r of new obj_value_iter(bset)) {
                  ret.add(r);
               }
             }
@@ -956,11 +956,11 @@ function spatialhash(init, cellsize) { //=new GArray(), cellsize=0.25)
       var newh = new spatialhash();
       newh.cellsize = Math.min(this.cellsize, b.cellsize);
       
-      for (var item in this) {
+      for (var item of this) {
           newh.add(item)
       }
       
-      for (var item in b) {
+      for (var item of b) {
           newh.add(item)
       }
       
@@ -968,11 +968,11 @@ function spatialhash(init, cellsize) { //=new GArray(), cellsize=0.25)
   }
   
   this.has = function(b) {
-    return this.items[b.__hash__()] != undefined;
+    return this.items[b[Symbol.keystr]()] != undefined;
   }
 
   if (init != undefined) {
-    for (var item in init) {
+    for (var item of init) {
       this.add(item);
     }
   }
@@ -1172,12 +1172,12 @@ function mesh_find_tangent(mesh, viewvec, offvec, projmat, verts) //verts is opt
   var vset = new set();
   var eset = new set();
   
-  for (var v in verts) {
+  for (var v of verts) {
     vset.add(v);
   }
   
-  for (var v in vset) {
-    for (var e in v.edges) {
+  for (var v of vset) {
+    for (var e of v.edges) {
       if (vset.has(e.other_vert(v))) {
         eset.add(e);
       }
@@ -1193,7 +1193,7 @@ function mesh_find_tangent(mesh, viewvec, offvec, projmat, verts) //verts is opt
   var tan = new Vector3();
   var co2 = new Vector3();
   
-  for (var e in eset) {
+  for (var e of eset) {
     evec.load(e.v1.co).multVecMatrix(projmat);
     co2.load(e.v2.co).multVecMatrix(projmat);
     evec.sub(co2);

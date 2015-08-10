@@ -142,7 +142,7 @@ export class DataList<T> {
   int type;
   T active;
   
-  __hash__() : String {
+  [Symbol.keystr]() : String {
     return this.type;
   }
   
@@ -197,7 +197,7 @@ export class DataLib {
     for (var k in this.datalists) {
       var l = this.datalists.get(k);
       
-      for (var block in l) {
+      for (var block of l) {
         block.on_gl_lost(new_gl);
       }
     }
@@ -439,7 +439,7 @@ export class DataBlock {
   data_link(block, getblock, getblock_us) { 
   }
   
-  __hash__() : String {
+  [Symbol.keystr]() : String {
     return "DB" + this._hash_id;
   }
 

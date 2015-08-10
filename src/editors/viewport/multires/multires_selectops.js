@@ -42,12 +42,12 @@ class SelectOpBase extends ToolOp {
       return;
       
     //only consider visible segments inside the active layer
-    for (var seg in spline.segments) {
+    for (var seg of spline.segments) {
       if (seg.hidden) continue;
       if (!(actlayer.id in seg.layers)) continue;
       
       var mr = seg.cdata.get_layer(MultiResLayer);
-      for (var p in mr.points(level)) {
+      for (var p of mr.points(level)) {
         if (p.flag & MResFlags.SELECT)
           ud.push(compose_id(seg.eid, p.id));
       }
@@ -65,12 +65,12 @@ class SelectOpBase extends ToolOp {
       return;
     
     //only consider visible segments inside the active layer
-    for (var seg in spline.segments) {
+    for (var seg of spline.segments) {
       if (seg.hidden) continue;
       if (!(actlayer.id in seg.layers)) continue;
       
       var mr = seg.cdata.get_layer(MultiResLayer);
-      for (var p in mr.points(level)) {
+      for (var p of mr.points(level)) {
         p.flag &= ~MResFlags.SELECT;
         p.flag &= ~MResFlags.HIGHLIGHT;
       }
@@ -122,12 +122,12 @@ export class ToggleSelectAll extends SelectOpBase {
     var totsel = 0;
     
     //only consider visible segments inside the active layer
-    for (var seg in spline.segments) {
+    for (var seg of spline.segments) {
       if (seg.hidden) continue;
       if (!(actlayer.id in seg.layers)) continue;
       
       var mr = seg.cdata.get_layer(MultiResLayer);
-      for (var p in mr.points(level)) {
+      for (var p of mr.points(level)) {
         if (p.flag & MResFlags.HIDE)
           continue;
           
@@ -135,12 +135,12 @@ export class ToggleSelectAll extends SelectOpBase {
       }
     }
     
-    for (var seg in spline.segments) {
+    for (var seg of spline.segments) {
       if (seg.hidden) continue;
       if (!(actlayer.id in seg.layers)) continue;
       
       var mr = seg.cdata.get_layer(MultiResLayer);
-      for (var p in mr.points(level)) {
+      for (var p of mr.points(level)) {
         if (p.flag & MResFlags.HIDE)
           continue;
           
@@ -182,12 +182,12 @@ export class SelectOneOp extends SelectOpBase {
     
     if (this.inputs.unique.data) {
       //only consider visible segments inside the active layer
-      for (var seg2 in spline.segments) {
+      for (var seg2 of spline.segments) {
         if (seg2.hidden) continue;
         if (!(actlayer.id in seg2.layers)) continue;
         
         var mr2 = seg2.cdata.get_layer(MultiResLayer);
-        for (var p2 in mr2.points(level)) {
+        for (var p2 of mr2.points(level)) {
           p2.flag &= ~SplineFlags.SELECT;
         }
       }

@@ -105,7 +105,7 @@ export class SelectOneOp extends SelectOpBase {
       state = true;
       
       //XXX evil
-      for (var e in spline.selected) {
+      for (var e of spline.selected) {
         redraw_element(e);
       }
       spline.clear_selection();
@@ -164,7 +164,7 @@ export class ToggleSelectAllOp extends SelectOpBase {
         totsel += v.flag & SplineFlags.SELECT;
       });
       
-      for (var f in spline.faces) {
+      for (var f of spline.faces) {
         if (!(layerid in f.layers))
           continue;
         if (f.hidden)
@@ -204,7 +204,7 @@ export class ToggleSelectAllOp extends SelectOpBase {
       }
     }
     
-    for (var f in spline.faces) {
+    for (var f of spline.faces) {
         if (mode != "sub" && !(layerid in f.layers))
           continue;
         if (f.hidden)

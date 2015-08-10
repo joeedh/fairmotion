@@ -38,7 +38,7 @@ export class TransDopeSheetType {
     
     var vs = new set();
     
-    for (var eid in td.top.inputs.data) {
+    for (var eid of td.top.inputs.data) {
       var v = ctx.frameset.pathspline.eidmap[eid];
       
       if (v == undefined) {
@@ -49,7 +49,7 @@ export class TransDopeSheetType {
       vs.add(v);
     }
     
-    for (var v in vs) {
+    for (var v of vs) {
       var titem = new TransDataItem(v, TransDopeSheetType, get_vtime(v));
       data.push(titem);
     }
@@ -62,7 +62,7 @@ export class TransDopeSheetType {
       return active;
     }
     
-    for (var c in ctx.screen.children) {
+    for (var c of ctx.screen.children) {
       if (c instanceof ScreenArea && c.editor instanceof DopeSheetEditor)
         return c;
     }

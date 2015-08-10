@@ -73,7 +73,7 @@ export class RenderAnimOp extends ToolOp {
     
     var min_time = 1e17, max_time = 0;
     
-    for (var v in pathspline.verts) {
+    for (var v of pathspline.verts) {
       var time = get_vtime(v);
       min_time = Math.min(min_time, time);
       max_time = Math.max(max_time, time);
@@ -816,10 +816,10 @@ export class SplineEditor extends View2DEditor {
       
       var mr = seg.cdata.get_layer(MultiResLayer);
       
-      for (var seg2 in spline.segments) {
+      for (var seg2 of spline.segments) {
         var mr2 = seg2.cdata.get_layer(MultiResLayer);
         
-        for (var p2 in mr2.points(spline.actlevel)) {
+        for (var p2 of mr2.points(spline.actlevel)) {
           p2.flag &= ~MResFlags.HIGHLIGHT;
         }
       }

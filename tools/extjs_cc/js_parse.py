@@ -578,6 +578,7 @@ def p_type_modifiers(p):
                     | type_modifiers CONST
                     | GLOBAL
                     | VAR
+                    | LET
                     | STATIC
   '''
   set_parse_globals(p)
@@ -586,7 +587,6 @@ def p_type_modifiers(p):
     p[0] = p[1]
     if p[2] == "var":
       p[2] = "local"
-        
     p[0].add(p[2])   
   elif len(p) == 2:
     if p[1] == "var":
@@ -998,6 +998,7 @@ def p_simple_templatedeflist(p):
     
 def p_simple_var_decl(p):
   '''simple_var_decl : VAR id
+                     | LET id
                      | id
   '''
   
@@ -1012,6 +1013,9 @@ def p_simple_var_decl(p):
   else:
     p[0] = VarDeclNode(ExprNode([]), local=True)
     p[0].val = p[2]
+    if p[1] == "let":
+      p[0].modifiers.add("let");
+    
     p[0].add(UnknownTypeNode())
     p[0].type = p[0][1]
     p[0].add(p[0].type)

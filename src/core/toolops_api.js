@@ -123,7 +123,7 @@ export class ToolOpAbstract {
     return this.saved_context;
   }
   
-  __hash__() : String {
+  [Symbol.keystr]() : String {
     return "TO" + this.op_id;
   }
   
@@ -632,7 +632,7 @@ export class ToolMacro extends ToolOp {
     var ret = STRUCT.chain_fromSTRUCT(ToolMacro, reader);
     ret.tools = new GArray(ret.tools);
     
-    for (var t in ret.tools) {  
+    for (var t of ret.tools) {  
       t.parent = this;
     }
     
@@ -979,7 +979,7 @@ class WidgetToolOp extends ToolOp {
       var len = 0;
       var v1 = new Vector3();
       
-      for (var v in mesh.verts.selected) {
+      for (var v of mesh.verts.selected) {
         cent.add(v.co);
         
         v1.load(v.edges[0].v1.co).sub(v.edges[0].v2.co);
@@ -1000,7 +1000,7 @@ class WidgetToolOp extends ToolOp {
         
         len = 0;
         var v1 = new Vector3();
-        for (var f in mesh.faces.selected) {
+        for (var f of mesh.faces.selected) {
           var e = f.looplists[0].loop.e;
           //v1.load(e.v2.co).sub(e.v1.co).normalize();
           //tan.add(v1);
@@ -1069,7 +1069,7 @@ class WidgetToolOp extends ToolOp {
       toolop.widgets.push(widget);
       
       toolop.on_modal_end = function(toolop) {
-        for (var w in toolop.widgets) {
+        for (var w of toolop.widgets) {
         
           //destory all listeners belonging to w
           for (var k in toolop.inputs) {

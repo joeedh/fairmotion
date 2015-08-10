@@ -72,7 +72,7 @@ export function sort_layer_segments(layer, spline) {
   }
   
   if (spline.is_anim_path) { //don't bother forming chains on animation path splines
-    for (var s in layer) {
+    for (var s of layer) {
       if (s.type != SplineTypes.SEGMENT)
         continue;
       if (!(layerid in s.layers))
@@ -82,7 +82,7 @@ export function sort_layer_segments(layer, spline) {
         list.push(s);
     }
   } else {
-    for (var s in layer) {
+    for (var s of layer) {
       if (s.type != SplineTypes.SEGMENT)
         continue;
       if (!(layerid in s.layers))
@@ -96,7 +96,7 @@ export function sort_layer_segments(layer, spline) {
     }
   
     //we should be  finished, but just in case. . .
-    for (var s in layer) {
+    for (var s of layer) {
       if (s.type != SplineTypes.SEGMENT)
         continue;
       if (!(layerid in s.layers))

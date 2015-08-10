@@ -43,10 +43,10 @@ export class CreateMResPoint extends SplineLocalToolOp {
     var mr = seg.cdata.get_layer(MultiResLayer);
     
     //deselect existing points
-    for (var seg2 in spline.segments) {
+    for (var seg2 of spline.segments) {
       var mr2 = seg2.cdata.get_layer(MultiResLayer);
     
-      for (var p2 in mr2.points(level)) {
+      for (var p2 of mr2.points(level)) {
         p2.flag &= ~MResFlags.SELECT;
       }
     }

@@ -15,7 +15,7 @@ class StringLit (str):
 
 res = [
 'if', 'else', 'while', 'do', 'function', 
-'var', 'in', 'of', 'for', 'new', "return", "continue", "break",
+'var', 'let', 'in', 'of', 'for', 'new', "return", "continue", "break",
 'throw', 'try', 'catch', 'delete', 'typeof', 'instanceof',
 'with', 'switch', 'case', 'default', 'yield',
 'float', 'int', 'const', 'short', 'double', 'char',

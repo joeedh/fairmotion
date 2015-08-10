@@ -394,7 +394,7 @@ def iter_files(files):
 #dest depends on src
 def add_depend(dest, src):
   if not os.path.exists(src):
-    sys.stderr.write("Could not find include file %s!"%src)
+    sys.stderr.write("%s: Could not find include file %s!"%(dest, src))
     sys.exit(-1)
     
   src = os.path.abspath(os.path.normpath(src))

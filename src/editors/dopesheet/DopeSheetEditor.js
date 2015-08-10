@@ -229,14 +229,14 @@ export class TreePanel extends RowFrame {
       if (c.collapsed) {
         ret.push(c.build_path());
       }
-      for (var c2 in c) {
+      for (var c2 of c) {
         if (c2 instanceof TreeItem) {
           recurse(c2);
         }
       }
     }
     
-    for (var c in this.children) {
+    for (var c of this.children) {
       if (c instanceof TreeItem) {
         recurse(c);
       }
@@ -480,7 +480,7 @@ export class DopeSheetEditor extends Area {
     this.vdmap = {};
     
     for (var vd_eid in frameset.vertex_animdata) {
-      for (var v in frameset.vertex_animdata[vd_eid].verts) {
+      for (var v of frameset.vertex_animdata[vd_eid].verts) {
         this.vdmap[v.eid] = vd_eid;
       }
     }
@@ -491,7 +491,7 @@ export class DopeSheetEditor extends Area {
     var vset = new set();
     
     if (this.pinned_ids != undefined) {
-      for (var id in this.pinned_ids) {
+      for (var id of this.pinned_ids) {
         if (!(id & KeyTypes.PATHSPLINE))
           continue;
           
@@ -522,7 +522,7 @@ export class DopeSheetEditor extends Area {
           vset.add(vd);
       }
     } else {
-      for (var v in spline.verts) {
+      for (var v of spline.verts) {
         var vd = frameset.get_vdata(v.eid, false);
         
         if (vd != undefined)
@@ -752,7 +752,7 @@ export class DopeSheetEditor extends Area {
     
     if (this.pinned_ids != undefined) {
       var visit = {};
-      for (var id in this.pinned_ids) {
+      for (var id of this.pinned_ids) {
         if (!(id & KeyTypes.DATAPATH))
           continue;
         
@@ -955,7 +955,7 @@ export class DopeSheetEditor extends Area {
   }
  
   clear_selection() {
-    for (var v in this.ctx.pathspline.verts) {
+    for (var v of this.ctx.pathspline.verts) {
       v.flag &= ~SplineFlags.UI_SELECT;
     }
   }
@@ -1087,7 +1087,7 @@ export class DopeSheetEditor extends Area {
       } else {
         var ids = [];
         
-        for (var kret in this.get_keyboth()) {
+        for (var kret of this.get_keyboth()) {
           var keybox = kret[2];
           ids.push(keybox.id);
         }
@@ -1508,7 +1508,7 @@ export class DopeSheetEditor extends Area {
   }
   
   dag_unlink_all() {
-    for (var node in this.nodes) {
+    for (var node of this.nodes) {
       node.dag_unlink();
     }
     
@@ -1543,7 +1543,7 @@ export class DopeSheetEditor extends Area {
   get_everts() {
     var verts = [];
     
-    for (var kret in this.get_keyverts()) {
+    for (var kret of this.get_keyverts()) {
       var v = kret[0], vd = kret[1], keybox = kret[2];
       
       if (!(v.flag & SplineFlags.UI_SELECT))
@@ -1557,7 +1557,7 @@ export class DopeSheetEditor extends Area {
   
   get_all_ids() {
     var ids = [];
-    for (var kret in this.get_keyboth()) {
+    for (var kret of this.get_keyboth()) {
       ids.push(kret[2].id);
     }
     
@@ -1567,7 +1567,7 @@ export class DopeSheetEditor extends Area {
   get_all_everts() {
     var verts = [];
     
-    for (var kret in this.get_keyverts()) {
+    for (var kret of this.get_keyverts()) {
       var v = kret[0], vd = kret[1], keybox = kret[2];
       
       verts.push(v.eid);
@@ -1638,7 +1638,7 @@ export class DopeSheetEditor extends Area {
       var op = new ShiftTimeOp3();
       var ids = [];
       
-      for (var kret in this2.get_keyboth()) {
+      for (var kret of this2.get_keyboth()) {
         var keybox = kret[2];
         
         if (!keybox.select) continue;
@@ -1662,7 +1662,7 @@ export class DopeSheetEditor extends Area {
       var tool = new ColumnSelect();
       
       var ids = [];
-      for (var kret in this2.get_keyboth()) {
+      for (var kret of this2.get_keyboth()) {
         var keybox = kret[2];
         
         ids.push(keybox.id);
@@ -1678,7 +1678,7 @@ export class DopeSheetEditor extends Area {
       var tool = new ColumnSelect();
       
       var ids = [];
-      for (var kret in this2.get_keyboth()) {
+      for (var kret of this2.get_keyboth()) {
         var keybox = kret[2];
         
         ids.push(keybox.id);

@@ -209,7 +209,7 @@ export class ScreenBorder extends UIElement {
     this.edge = new AreaEdge(area, borderindex);
   }
 
-  __hash__() {
+  [Symbol.keystr]() {
     return this.constructor.name + "|" + this._id;
   }
 
@@ -225,7 +225,8 @@ export class ScreenBorder extends UIElement {
     
     return count > 1;
   }
-  __hash__() {
+  
+  [Symbol.keystr]() {
     return this.constructor.name + "|" + this._id;
   }
 

@@ -1,6 +1,14 @@
 "not_a_module";
 
-
+if (window.Symbol == undefined) {
+  //define a very basic Symbol polyfill
+  window.Symbol = {
+    iterator : "__iterator__",
+    keystr   : "__keystr__"
+  }
+} else {
+  Symbol.keystr = Symbol("keystr");
+}
 
 #ifndef EXPORT
 #define EXPORT
@@ -208,7 +216,7 @@ function simple_inherit_multiple(obj, parents) {
   obj.__subclass_map__[obj.__prototypeid__] = obj
   
   var name = obj.name;
-  obj.__hash__ = function() { return name };
+  obj[Symbol.keystr] = function() { return name };
   
   //add to instanceof helper map
   if (!("__subclass_map__" in parent)) {
@@ -267,7 +275,7 @@ function inherit_multiple(obj, parents, mod, name) {
     obj.__class__ = newcls.__class__;
     obj.__parents__ = newcls.__parents__;
     obj.__subclass_map__ = newcls.__subclass_map__;
-    obj.__hash__ = newcls.__hash__;
+    obj[Symbol.keystr] = newcls[Symbol.keystr];
     obj.__statics__ = newcls.__statics__;
     obj.__flatstatics__ = newcls.__flatstatics__;
     
@@ -553,7 +561,7 @@ function inherit_multiple_intern(obj, parents) {
   obj.__subclass_map__ = {};
   obj.__subclass_map__[obj.__prototypeid__] = obj
   var name = obj.name;
-  obj.__hash__ = function() { return name };
+  obj[Symbol.keystr] = function() { return name };
   
   //add to instanceof helper map
   for (var i=0; i<cs2.length; i++) {
@@ -690,7 +698,7 @@ function create_prototype(obj) {
   obj.__subclass_map__ = {};
   obj.__subclass_map__[obj.__prototypeid__] = obj;
   var name = obj.name;
-  obj.__hash__ = function() { return name };
+  obj[Symbol.keystr] = function() { return name };
   
   return obj;
 }
@@ -713,8 +721,10 @@ function prior(thisproto, obj) {
 }
 EXPORT_FUNC(prior)
 
-function arr_iter(keys)
+//a basic array iterator utility function
+var arr_iter = function arr_iter(keys)
 {
+  this.ret = {done : false, value : undefined};
   this.keys = keys;
   this.cur = 0;
   
@@ -724,10 +734,14 @@ function arr_iter(keys)
   
   this.next = function() {
     if (this.cur >= this.keys.length) {
-      return {value : undefined, done : true};
+      this.ret.done = true;
+      this.ret.value = undefined;
+      
+      return this.ret;
     }
     
-    return {value : this.keys[this.cur++], done : false};
+    this.ret.value = this.keys[this.cur++];
+    return this.ret;
   }
 }
 
@@ -779,12 +793,20 @@ if (String.prototype.trimLeft == undefined) {
   }
 }
 
-if (window.Symbol == undefined) {
-  //define a very basic Symbol polyfill
-  window.Symbol = {
-    iterator : "__iterator__"
+//for in loops were always a pain
+//unfortunately, we still have to expand
+//them for generator code to work
+function __get_in_iter(obj) {
+  if (obj == undefined) {
+    console.trace();
+    print_stack();
+    throw new Error("Invalid iteration over undefined value")
   }
+  
+  var keys = _my_object_keys(obj);
+  return new arr_iter(keys);
 }
+
 /*the grand __get_iter function.
   extjs_cc does not use c[Symbol.iterator] when
   compiling code like "for (var a in c)" to
@@ -800,7 +822,7 @@ function __get_iter(obj) //, file, line, keyword)
     throw new Error("Invalid iteration over undefined value")
   }
   
-  if (Symbol.iterator in obj) {
+  if (obj[Symbol.iterator] != undefined) {
     /*
     if (keyword == "in") {
       var hash = file + ":"+line +":" + keyword
@@ -812,35 +834,6 @@ function __get_iter(obj) //, file, line, keyword)
     //*/
     
     return obj[Symbol.iterator]();
-  } else {
-    var keys = []
-    for (var k in obj) {
-      keys.push(k)
-    }
-    return new arr_iter(keys);
-  }
-}
-
-//a basic array iterator utility function
-var arr_iter = function(keys)
-{
-  this.ret = {done : false, value : undefined};
-  this.keys = keys;
-  this.cur = 0;
-  
-  this[Symbol.iterator] = function() {
-    return this;
-  }
-  
-  this.next = function() {
-    if (this.cur >= this.keys.length) {
-      this.ret.done = true;
-      
-      return this.ret;
-    }
-    
-    this.ret.value = this.keys[this.cur++];
-    return this.ret;
   }
 }
 

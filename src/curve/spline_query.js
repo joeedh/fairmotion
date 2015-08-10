@@ -137,12 +137,12 @@ export class SplineQuery {
     if (limit == undefined) limit = 15;
     var min = 1e17, ret = undefined;
     
-    for (var seg in spline.segments) {
+    for (var seg of spline.segments) {
       if (seg.hidden || seg.v1.hidden || seg.v2.hidden) continue;
       if (!seg.in_layer(actlayer)) continue;
       
       var mr = seg.cdata.get_layer(MultiResLayer);
-      for (var p in mr.points(spline.actlevel)) {
+      for (var p of mr.points(spline.actlevel)) {
         if (p.flag & MResFlags.HIDE)
           continue;
         

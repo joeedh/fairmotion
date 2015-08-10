@@ -670,6 +670,14 @@ var _st_packers = [
       return;
     }
     
+    /*struct module does not differentiate
+      between for-in and for-of.  check if we're
+      saving an object map
+     */
+    if (val[Symbol.iterator] == undefined) {
+      val = Object.keys(val);
+    }
+    
     var len = 0;
     for (var val2 of val) {
       len++;

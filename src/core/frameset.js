@@ -198,7 +198,7 @@ export class VertexAnimData {
     this.spline.layerset.active = this.spline.layerset.idmap[this.layerid]
   }
   
-  __hash__() {
+  [Symbol.keystr]() {
     return this.eid;
   }
   
@@ -741,7 +741,7 @@ class EidTimePair {
     return ret;
   }
   
-  __hash__() {
+  [Symbol.keystr]() {
     return ""+this.eid+"_"+this.time;
   }
 }
@@ -810,7 +810,7 @@ export class SplineKCache {
       
       console.log("bad kcache data for frame", frame);
       
-      for (var s in spline.segments) {
+      for (var s of spline.segments) {
         s.v1.flag |= SplineFlags.UPDATE;
         s.v2.flag |= SplineFlags.UPDATE;
         s.h1.flag |= SplineFlags.UPDATE;
@@ -938,7 +938,7 @@ export class SplineFrameSet extends DataBlock {
       
       var lastv = undefined;
       var lasttime = undefined;
-      for (var v in vd.verts) {
+      for (var v of vd.verts) {
         var time = get_vtime(v);
         
         if (lastv != undefined && lastv.vectorDistance(v) < threshold && Math.abs(time-lasttime) <= time_threshold) {
@@ -1021,7 +1021,7 @@ export class SplineFrameSet extends DataBlock {
 
     vd.visible = !!state;
     
-    for (var v in vd.verts) {
+    for (var v of vd.verts) {
       if (state) {
         layer.remove(v);
         drawlayer.add(v);
@@ -1131,7 +1131,7 @@ export class SplineFrameSet extends DataBlock {
     var selectmode = this.selectmode, show_paths = this.draw_anim_paths;
     var drawlayer = this.pathspline.layerset.idmap[this.templayerid];
     
-    for (var v in this.pathspline.verts) {
+    for (var v of this.pathspline.verts) {
       if (!v.has_layer()) {
         drawlayer.add(v);
       }
@@ -1139,7 +1139,7 @@ export class SplineFrameSet extends DataBlock {
       v.sethide(true);
     }
     
-    for (var h in this.pathspline.handles) {
+    for (var h of this.pathspline.handles) {
       if (!h.has_layer()) {
         drawlayer.add(h);
       }
@@ -1159,7 +1159,7 @@ export class SplineFrameSet extends DataBlock {
         window.redraw_viewport();
       }
 
-      for (var v in vd.verts) {
+      for (var v of vd.verts) {
         v.sethide(hide);
       }
     }
@@ -1176,7 +1176,7 @@ export class SplineFrameSet extends DataBlock {
     } else if (ctx.spline === this.pathspline) {
       var resolve = 0;
       
-      for (var v in this.spline.points) {
+      for (var v of this.spline.points) {
         if (v.eid in this.vertex_animdata) { //&& (v.flag & SplineFlags.FRAME_DIRTY)) {
           var vdata = this.get_vdata(v.eid, false);
           
@@ -1355,7 +1355,7 @@ export class SplineFrameSet extends DataBlock {
     }
     //*/
     
-    for (var v in this.spline.points) {
+    for (var v of this.spline.points) {
       var vd = this.get_vdata(v.eid, false);
       if (vd == undefined) continue;
       
@@ -1386,7 +1386,7 @@ export class SplineFrameSet extends DataBlock {
         set_update = false;
       }
       
-      for (var v in spline.points) {
+      for (var v of spline.points) {
         var set_flag = v.eid in this.vertex_animdata;
         
         var vdata = this.get_vdata(v.eid, false);
@@ -1414,13 +1414,13 @@ export class SplineFrameSet extends DataBlock {
         spline.solve();
     }
     
-    for (var s in spline.segments) {
+    for (var s of spline.segments) {
       if (s.hidden) continue;
       
       s.flag |= SplineFlags.UPDATE_AABB;
     }
     
-    for (var f in spline.segments) {
+    for (var f of spline.segments) {
       if (f.hidden) continue;
       
       f.flag |= SplineFlags.UPDATE_AABB;

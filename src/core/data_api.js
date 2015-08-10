@@ -199,7 +199,7 @@ export class DataStruct {
       p.flag |= flag;
       
       if (p instanceof DataStruct) {
-        for (var p2 in p.paths) {
+        for (var p2 of p.paths) {
           if (p2 instanceof DataStruct) {
             //hand off to substruct;
             //we don't want to double recurse
@@ -212,7 +212,7 @@ export class DataStruct {
     }
     
     if (val &  DataFlags.NO_CACHE) {
-      for (var p in this.paths) {
+      for (var p of this.paths) {
         recurse(p, DataFlags.NO_CACHE);
       }
     }
@@ -674,7 +674,7 @@ export class DataAPI {
     for (var id in ctx.datalib.idmap) {
       var block = ctx.datalib.idmap[id];
       
-      for (var ch in block.lib_anim_channels) {
+      for (var ch of block.lib_anim_channels) {
         //console.log("setting path", ch.path, ch.eval(time));
         this.set_prop(ctx, ch.path, ch.eval(time));
       }
@@ -1061,7 +1061,7 @@ export class DataAPI {
     
     var sta = ret[0].data;
     
-    for (var key in sta.getkeyiter.call(list)) {
+    for (var key of sta.getkeyiter.call(list)) {
       var item = sta.getitem.call(list, key);
       if (!filterfunc(item)) continue;
       

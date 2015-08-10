@@ -894,7 +894,7 @@ def visit_generators(node):
         set_linepos(n2, n.line, n.lexpos);
         sl.add(n2)
       else:
-        typespace.error("process_generators expects unpacked iterator for loops")
+        typespace.error("process_generators expects unpacked iterator for loops", n)
     elif type(n) == DoWhileNode:
       f.paths += [f_first(f), f_next(f, False)]
       

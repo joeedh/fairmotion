@@ -801,7 +801,7 @@ export function* gen_draw_cache(postMessage, status, spline) {
 export function do_solve(sflags, Spline spline, int steps, float gk=0.95, return_promise=false, draw_id=0) {
 
     if (!INCREMENTAL) {
-      for (var v in spline.verts) {
+      for (var v of spline.verts) {
         v.flag |= sflags.UPDATE;
       }
     }
@@ -908,9 +908,9 @@ export function do_solve(sflags, Spline spline, int steps, float gk=0.95, return
             }
         }
 
-        for (var f in spline.faces) {
-            for (var path in f.paths) {
-                for (var l in path) {
+        for (var f of spline.faces) {
+            for (var path of f.paths) {
+                for (var l of path) {
                     if (l.v.flag & SplineFlags.UPDATE)
                         f.flag |= SplineFlags.UPDATE_AABB;
                 }
@@ -994,7 +994,7 @@ function write_nacl_solve(data, spline, cons, update_verts, update_segs, gk, edg
       idxmap[v.eid] = i++;
     }
     
-    for (var v in update_verts) {
+    for (var v of update_verts) {
       add_vert(v, true);
     }
     
@@ -1002,7 +1002,7 @@ function write_nacl_solve(data, spline, cons, update_verts, update_segs, gk, edg
     ajax.pack_int(data, 0, endian); //pad to 8 byte boundary
     
     var i = 0;
-    for (var s in update_segs) {
+    for (var s of update_segs) {
       var flag = s.flag;
       
       if (edge_segs.has(s)) {
@@ -1156,7 +1156,7 @@ function _unload(spline, data) {
   getint(); //skip pad int 
     
   /*
-  for (var s in spline.segments) {
+  for (var s of spline.segments) {
     for (var i=0; i<s.ks.length; i++) {
       s.ks[i] = 0;
     }
@@ -1207,7 +1207,7 @@ export function* nacl_solve(Function postMessage, ObjLit status, Spline spline,
   
   //build list of update segments
   var update_segs = new set();
-  for (var v in update_verts) {
+  for (var v of update_verts) {
     for (var i=0; i<v.segments.length; i++) {
       var s = v.segments[i];
       
@@ -1216,7 +1216,7 @@ export function* nacl_solve(Function postMessage, ObjLit status, Spline spline,
   }
   
   //add any stray vertices brought in by update segments
-  for (var s in update_segs) {
+  for (var s of update_segs) {
     update_verts.add(s.v1);
     update_verts.add(s.v2);
   }

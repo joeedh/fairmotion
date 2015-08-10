@@ -1,6 +1,12 @@
 "not_a_module"; //todo: need to make this a module
 "use strict";
 
+function* testr(obj) {
+  for (var k in obj) {
+    yield k;
+  }
+}
+
 #ifndef EXPORT
 #define EXPORT
 #define EXPORT_FUNC(func)
@@ -338,18 +344,18 @@ class eid_list extends GArray {
   }
 }
 
-Number.prototype.__hash__ = function() : String {
+Number.prototype[Symbol.keystr] = function() : String {
   return this;
 }
 
-String.prototype.__hash__ = function() : String {
+String.prototype[Symbol.keystr] = function() : String {
   return this;
 }
 
-Array.prototype.__hash__ = function() : String {
+Array.prototype[Symbol.keystr] = function() : String {
   var s = ""
   for (var i=0; i<this.length; i++) {
-    s += this[i].__hash__()+"|"
+    s += this[i][Symbol.keystr]()+"|"
   }
   
   return s
@@ -440,7 +446,7 @@ class set {
   }
   
   add(item) {
-    var hash = item.__hash__();
+    var hash = item[Symbol.keystr]();
     if (hash in this.items)
       return;
       
@@ -458,7 +464,7 @@ class set {
   }
   
   remove(item) {
-    var hash = item.__hash__();
+    var hash = item[Symbol.keystr]();
     if (!(hash in this.items))
       return;
       
@@ -473,7 +479,7 @@ class set {
   }
   
   has(item) {
-    var hash = item.__hash__();
+    var hash = item[Symbol.keystr]();
     
     return hash in this.items;
   }
@@ -638,16 +644,16 @@ class hashtable {
   }
   
   add(Object key, Object item) {
-    if (!this.items.hasOwnProperty(key.__hash__())) 
+    if (!this.items.hasOwnProperty(key[Symbol.keystr]())) 
       this.length++;
     
-    this.items[key.__hash__()] = item;
-    this.keymap[key.__hash__()] = key;
+    this.items[key[Symbol.keystr]()] = item;
+    this.keymap[key[Symbol.keystr]()] = key;
   }
 
   remove(Object key) {
-    delete this.items[key.__hash__()]
-    delete this.keymap[key.__hash__()]
+    delete this.items[key[Symbol.keystr]()]
+    delete this.keymap[key[Symbol.keystr]()]
     this.length -= 1;
   }
 
@@ -657,7 +663,7 @@ class hashtable {
 
   values() : GArray<Object> {
     var ret = new GArray();
-    for (var k in this) {
+    for (var k of this) {
       ret.push(this.items[k]);
     }
     
@@ -669,7 +675,7 @@ class hashtable {
   }
 
   get(Object key) : Object {
-    return this.items[key.__hash__()];
+    return this.items[key[Symbol.keystr]()];
   }
 
   set(Object key, Object item) {
@@ -677,8 +683,8 @@ class hashtable {
       this.length++;
     }
     
-    this.items[key.__hash__()] = item;
-    this.keymap[key.__hash__()] = key;
+    this.items[key[Symbol.keystr]()] = item;
+    this.keymap[key[Symbol.keystr]()] = key;
   }
 
   union(hashtable b) : hashtable {
@@ -694,7 +700,7 @@ class hashtable {
   has(Object item) : Boolean {
     if (item == undefined)
       console.trace();
-    return this.items.hasOwnProperty(item.__hash__())
+    return this.items.hasOwnProperty(item[Symbol.keystr]())
   }
 }
 

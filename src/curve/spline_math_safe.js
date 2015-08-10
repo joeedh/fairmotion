@@ -747,9 +747,9 @@ export function do_solve(sflags, spline, steps, gk) {
     }
   }
   
-  for (var f in spline.faces) {
-    for (var path in f.paths) {
-      for (var l in path) {
+  for (var f of spline.faces) {
+    for (var path of f.paths) {
+      for (var l of path) {
         if (l.v.flag & SplineFlags.UPDATE)
           f.flag |= SplineFlags.UPDATE_AABB;
       }

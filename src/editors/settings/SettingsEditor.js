@@ -245,7 +245,7 @@ class SettingsEditor extends Area {
     
     this.mm.reset();
     var arr = [0, 0];
-    for (var c in this.children) {
+    for (var c of this.children) {
       this.mm.minmax(c.pos);
       arr[0] = c.pos[0]+c.size[0];
       arr[1] = c.pos[1]+c.size[1];

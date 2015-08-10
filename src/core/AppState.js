@@ -795,7 +795,7 @@ export class AppState {
     if (version < 0.048) {
       for (var frameset of datalib.framesets) {
         for (var spline of frameset._allsplines) {
-          for (var eid of spline.eidmap) {
+          for (var eid in spline.eidmap) {
             var e = spline.eidmap[eid];
             var layer = spline.layerset.active; //should exist by this point
             
@@ -812,7 +812,7 @@ export class AppState {
           frameset.kcache.cache = {};
         }
         
-        for (var s in frameset.spline.segments) {
+        for (var s of frameset.spline.segments) {
           s.v1.flag |= SplineFlags.UPDATE;
           s.v2.flag |= SplineFlags.UPDATE;
           s.h1.flag |= SplineFlags.UPDATE;

@@ -447,7 +447,7 @@ export class KeyHandler {
     return s;
   }
   
-  __hash__() : String {
+  [Symbol.keystr]() : String {
     return this.build_str(false)
   }
 }

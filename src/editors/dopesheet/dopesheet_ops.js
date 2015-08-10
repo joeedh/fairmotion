@@ -30,7 +30,7 @@ export class ShiftTimeOp2 extends ToolOp {
     
     var spline = ctx.frameset.pathspline;
     
-    for (var eid in this.inputs.vertex_eids) {
+    for (var eid of this.inputs.vertex_eids) {
       var v = spline.eidmap[eid];
       
       if (v == undefined) {
@@ -100,7 +100,7 @@ export class ShiftTimeOp2 extends ToolOp {
   
   undo_pre(ctx) {
     var ud = this._undo = {};
-    for (var v in this.get_curframe_animverts(ctx)) {
+    for (var v of this.get_curframe_animverts(ctx)) {
       ud[v.eid] = get_vtime(v);
     }
   }
@@ -124,7 +124,7 @@ export class ShiftTimeOp2 extends ToolOp {
     var off = this.inputs.factor.data;
     
     var vset = this.get_curframe_animverts(ctx);
-    for (var v in vset) {
+    for (var v of vset) {
       starts[v.eid] = get_vtime(v);
     }
     
@@ -134,7 +134,7 @@ export class ShiftTimeOp2 extends ToolOp {
     for (var k in frameset.vertex_animdata) {
       var vd = frameset.vertex_animdata[k];
       
-      for (var v in vd.verts) {
+      for (var v of vd.verts) {
         vdmap[v.eid] = k;
       }
     }
@@ -142,7 +142,7 @@ export class ShiftTimeOp2 extends ToolOp {
     //console.log("time shift", off);
     
     var kcache = ctx.frameset.kcache;
-    for (var v in vset) {
+    for (var v of vset) {
       var eid = vdmap[v.eid];
       var time1 = get_vtime(v);
       
@@ -162,7 +162,7 @@ export class ShiftTimeOp2 extends ToolOp {
       v.dag_update("depend");
     }
     
-    for (var v in vset) {
+    for (var v of vset) {
       var min=undefined, max=undefined;
       
       if (v.segments.length == 1) {
@@ -437,12 +437,12 @@ export class ColumnSelect extends SelectOpBase {
     var cols = {};
     var state = this.inputs.state.data;
     
-      for (var id in this.inputs.phantom_ids.data) {
+      for (var id of this.inputs.phantom_ids.data) {
       if (get_select(ctx, id))
         cols[get_time(ctx, id)] = 1;
     }
     
-    for (var id in this.inputs.phantom_ids.data) {
+    for (var id of this.inputs.phantom_ids.data) {
       if (!(get_time(ctx, id) in cols))
         continue;
       
@@ -465,7 +465,7 @@ export class SelectKeysToSide extends SelectOpBase {
     var state = this.inputs.state.data;
     var mintime = 1e17, maxtime = -1e17;
     
-    for (var id in this.inputs.phantom_ids.data) {
+    for (var id of this.inputs.phantom_ids.data) {
       if (!get_select(ctx, id))
         continue;
       
@@ -481,7 +481,7 @@ export class SelectKeysToSide extends SelectOpBase {
     
     var side = this.inputs.side.data;
     
-    for (var id in this.inputs.phantom_ids.data) {
+    for (var id of this.inputs.phantom_ids.data) {
       var time = get_time(ctx, id);
       
       if ((side && time < maxtime) || (!side && time > mintime))
@@ -511,14 +511,14 @@ export class ToggleSelectOp extends SelectOpBase {
     if (mode == "auto") {
       mode = "select";
       
-      for (var id in this.inputs.phantom_ids.data) {
+      for (var id of this.inputs.phantom_ids.data) {
         if (get_select(ctx, id))
           mode = "deselect";
       }
     }
     
     mode = mode == "select" ? true : false;
-    for (var id in this.inputs.phantom_ids.data) {
+    for (var id of this.inputs.phantom_ids.data) {
       set_select(ctx, id, mode);
     }
   }
@@ -537,7 +537,7 @@ export class DeleteKeyOp extends ToolOp {
   }
   
   exec(ctx) {
-    for (var id in this.inputs.phantom_ids.data) {
+    for (var id of this.inputs.phantom_ids.data) {
       if (get_select(ctx, id)) {
         console.log("deleting!", id & 65535);
         delete_key(ctx, id);

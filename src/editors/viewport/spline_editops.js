@@ -1088,7 +1088,7 @@ export class ToggleManualHandlesOp extends ToolOp {
     var spline = ctx.spline;
     var ud = this._undo = {};
     
-    for (var v in spline.verts.selected.editable) {
+    for (var v of spline.verts.selected.editable) {
       ud[v.eid] = v.flag & SplineFlags.USE_HANDLES;
     }
   }
@@ -1114,7 +1114,7 @@ export class ToggleManualHandlesOp extends ToolOp {
   exec(ctx) {
     var spline = ctx.spline;
     
-    for (var v in spline.verts.selected.editable) {
+    for (var v of spline.verts.selected.editable) {
       v.flag ^= SplineFlags.USE_HANDLES;
       v.flag |= SplineFlags.UPDATE;
     }

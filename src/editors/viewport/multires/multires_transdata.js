@@ -25,14 +25,14 @@ export class MResTransData extends TransDataType {
       
     var actlevel = spline.actlevel;
     
-    for (var seg in spline.segments) {
+    for (var seg of spline.segments) {
       if (!(actlayer.id in seg.layers))
         continue;
       if (seg.hidden)
         continue;
       
       var mr = seg.cdata.get_layer(MultiResLayer);
-      for (var p in mr.points(actlevel)) {
+      for (var p of mr.points(actlevel)) {
         if (!(p.flag & MResFlags.SELECT))
           continue;
         
@@ -78,12 +78,12 @@ export class MResTransData extends TransDataType {
     if (!has_multires(spline))
       return;
     
-    for (var seg in spline.segments) {
+    for (var seg of spline.segments) {
       if (seg.hidden) continue;
       if (!(actlayer.id in seg.layers)) continue;
       
       var mr = seg.cdata.get_layer(MultiResLayer);
-      for (var p in mr.points) {
+      for (var p of mr.points) {
         if (!doprop && !(p.flag & MResFlags.SELECT)) continue;
         
         ud.push(compose_id(seg.eid, p.id));

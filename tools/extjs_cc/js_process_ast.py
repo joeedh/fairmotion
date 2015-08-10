@@ -2531,7 +2531,7 @@ def process_static_vars(result, typespace):
     
     #we need to extract a useful name for the static
     p = node.parent
-    while p != None and type(p) != FunctionNode:
+    while p != None and not isinstance(p, FunctionNode):
       p = p.parent
     
     if p == None:
@@ -2545,7 +2545,7 @@ def process_static_vars(result, typespace):
       suffix = p.name
       p2 = p.parent
       while p2 != None:
-        if type(p2) == FunctionNode:
+        if isinstance(p2, FunctionNode):
           suffix = gen_useful_funcname(p2) + "_" + suffix
         p2 = p2.parent
 
@@ -2589,7 +2589,7 @@ def process_static_vars(result, typespace):
     
     #find parent scope
     p = node.parent
-    while p != None and type(p) != FunctionNode:
+    while p != None and not isinstance(p, FunctionNode):
       p = p.parent
     
     replace_var(p, scope)
@@ -2601,7 +2601,7 @@ def process_static_vars(result, typespace):
     
     #find parent function first, then find surrounding closure or global scope
     for si in range(2):
-      while p.parent != None and type(p) != FunctionNode:
+      while p.parent != None and not isinstance(p, FunctionNode):
         lastp = p
         p = p.parent
         

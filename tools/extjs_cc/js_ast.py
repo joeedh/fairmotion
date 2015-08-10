@@ -2030,7 +2030,7 @@ class MethodGetter(MethodNode):
     self.add(ExprListNode([]))
     
   def gen_js(self, tlevel):
-    s = self.s("get " + self.name + "(")
+    s = self.s("get " + str(self.name) + "(")
     
     for i, c in enumerate(self[0]):
       if i > 0: s += c.s(", ")
@@ -2047,7 +2047,7 @@ class MethodSetter(MethodNode):
     MethodNode.__init__(self, name, is_static)
   
   def gen_js(self, tlevel):
-    s = self.s("set " + self.name + "(")
+    s = self.s("set " + str(self.name) + "(")
     
     for i, c in enumerate(self[0]):
       if i > 0: s += c.s(", ")
@@ -2204,6 +2204,12 @@ class ImportNode(Node):
   def __init__(self):
     Node.__init__(self)
     self.add(StrLitNode(""))
+  
+  def gen_js(self, tlevel):
+    s = self.s("import ")
+    for c in self:
+      s += c.gen_js(tlevel)
+    return s
     
 class ImportDeclNode(Node):
   def __init__(self, name, bindname=None):
@@ -2222,7 +2228,7 @@ class ImportDeclNode(Node):
     return str(self.name) + " as " + str(self.bindname)
     
   def gen_js(self, tlevel):
-    return ""
+    return self.s("* as " + self.bindname + " from '" + self.name + "'")
     
   def copy(self):
     n2 = PreDec(self[0])

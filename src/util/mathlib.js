@@ -97,21 +97,22 @@ if (FLOAT_MIN != FLOAT_MIN || FLOAT_MAX != FLOAT_MAX) {
   console.log("Floating-point 16-bit system detected!");
 }
 
-var _static_grp_points4 = new Array(4);
-var _static_grp_points8 = new Array(8);
 export function get_rect_points(p, size)
 {
   var cs;
   
+  static _cs4 = new Array(4);
+  static _cs8 = new Array(8);
+  
   if (p.length == 2) {
-    cs = _static_grp_points4;
+    cs = _cs4;
     
     cs[0] = p;
     cs[1] = [p[0], p[1]+size[1]]
     cs[2] = [p[0]+size[0], p[1]+size[1]]
     cs[3] = [p[0]+size[0], p[1]]
   } else if (p.length == 3) {
-    cs = _static_grp_points8;
+    cs = _cs8;
     
     cs[0] = p;
     cs[1] = [p[0]+size[0], p[1], p[2] ];
@@ -978,9 +979,10 @@ function spatialhash(init, cellsize) { //=new GArray(), cellsize=0.25)
   }
 }
 
-var static_cent_gbw = new Vector3();
 function get_boundary_winding(points) {
-  var cent = static_cent_gbw.zero();
+  static _cent = new Vector3();
+  
+  var cent = _cent.zero();
   
   if (points.length == 0)
     return false; /*if no points, just return an arbitrary winding*/

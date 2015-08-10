@@ -45,6 +45,7 @@ gcs["g_require_js"] = "rj"
 gcs["g_es6_modules"] = "nm"
 gcs["g_log_forloops"] = "lf"
 gcs["g_enable_let"] = "lt"
+gcs["g_compile_statics_only"] = "sn"
 
 def argv_to_argline():
   s = ""
@@ -267,5 +268,6 @@ class Glob(AbstractGlob):
     g_es6_modules = True
     g_log_forloops = False
     g_enable_let = True
+    g_compile_statics_only = False
     
 glob = Glob()

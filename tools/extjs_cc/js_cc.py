@@ -890,6 +890,10 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
     elif len(result) > 0 and type(result[0]) == StrLitNode and result[0].val == '"not_a_module"':
       glob.g_es6_modules = False
       
+  if glob.g_compile_statics_only:
+    process_static_vars(result, typespace)
+    return result.gen_js(0), result
+    
   if glob.g_enable_let:
     process_let(result, typespace)
     

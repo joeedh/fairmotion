@@ -19,8 +19,6 @@ var $n2_normalizedDot3=new Vector3();
 
 class Vector3 extends Array {
   constructor(vec) {
-    if ($init_constructor==undefined)
-      $init_constructor = [0, 0, 0];
     if (vec==undefined)
       vec = $init_constructor;
     if (vec[0]==undefined)

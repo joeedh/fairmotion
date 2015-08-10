@@ -1094,8 +1094,6 @@ class Vector3 extends Array {
   constructor(Array<float> vec) {
     static init = [0, 0, 0];
     
-    if (init == undefined)
-      init = [0, 0, 0];
     if (vec == undefined)
       vec = init;
       

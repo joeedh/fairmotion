@@ -887,16 +887,17 @@ export class Spline extends DataBlock {
   select_flush(int datamode) {
     if (datamode & (SplineTypes.VERTEX|SplineTypes.HANDLE)) {
       //flush upwards
-      this.segments.clear_selection();
-      this.faces.clear_selection();
+      var fset = new set();
+      var sset = new set();
+      var fact = this.faces.active, sact = this.segments.active;
       
       for (var v of this.verts.selected) {
         for (var s of v.segments) {
+          if (sset.has(s))
+            continue;
+          
           if (s.other_vert(v).flag & SplineFlags.SELECT) {
-            if (this.segments.active == undefined || !(this.segments.active.flag & SplineFlags.SELECT))
-              this.segments.active = s;
-            
-            this.segments.setselect(s, true);
+            sset.add(s);
             console.log("selecting segment");
           }
           
@@ -931,13 +932,47 @@ export class Spline extends DataBlock {
             
             if (good) {
               console.log("selecting face");
-              this.faces.setselect(f, true);
+              fset.add(f);
             }
             
             l = l.next;
           } while (l != s.l);
         }
       }
+      
+      this.segments.clear_selection();
+      this.faces.clear_selection();
+
+      console.log("sact:", sact);
+      console.log("fact:", fact);
+      
+      //select first if necassary
+      if (sact == undefined || !sset.has(sact)) {
+        for (var s of sset) {
+          sact = s;
+          break;
+        }
+      }
+      
+      //select first if necassary
+      if (fact == undefined || !fset.has(fact)) {
+        for (var f of fset) {
+          fact = f;
+          break;
+        }
+      }
+      
+      this.segments.active = sact;
+      this.faces.active = fact;
+
+      for (var s of sset) {
+        this.segments.setselect(s, true);
+      }
+
+      for (var f of fset) {
+        this.faces.setselect(f, true);
+      }
+      
     } else if (datamode == SplineTypes.SEGMENT) {
       this.verts.clear_selection();
       this.faces.clear_selection();

@@ -36,20 +36,18 @@ import {pack_int, pack_float, pack_static_string, unpack_ctx} from 'ajax';
         * integers for Mesh element subtypes (Vertex/Edge/Loops/Face).
 */
 /*
-  toolop refactor 2:
-  1. Move uiname/description/icon of tools into prototype or
-     constructor object.
-     NEW: transition to a 'tooldef' static method.  like so:
-     
-     class Tool extends ToolOp {
-      static tooldef() { return {
-        apiname  : "load_image",
-        uiname   : "Load Image",
-        inputs   : {},
-        outputs  : {},
-        icon     : -1,
-        is_modal : false
-      }}
+  TOOLOP REFACTOR 2
+  1. Transition to a 'tooldef' static method:
+     class SomeTool extends ToolOp {
+        static tooldef() { return {
+          apiname  : "load_image",
+          uiname   : "Load Image",
+          inputs   : ToolOp.inherit({}), //will inherit inputs from parent
+          outputs  : ToolOp.inherit({}),
+          icon     : -1,
+          is_modal : false,
+          description : "some tooltip"
+        }}
      }
      
   2. Get rid of apiname.
@@ -95,6 +93,12 @@ export var ModalStates = {
 //an idgen that is saved in each file
 var _tool_op_idgen = 1; 
 
+class InheritFlag {
+  constructor(val) {
+    this.val = val;
+  }
+};
+
 export class ToolOpAbstract {
   /*
   if presense, defines defaults:
@@ -102,60 +106,136 @@ export class ToolOpAbstract {
   static tooldef() { return {
     apiname  : "load_image",
     uiname   : "Load Image",
-    inputs   : {},
+    inputs   : ToolOp.inherit({}), //will inherit inputs from parent class
     outputs  : {},
     icon     : -1,
     is_modal : false
   }}
   */
   
-  constructor(apiname, uiname, description=undefined, icon=-1) {
-    if (this.constructor.tooldef != undefined && 
-        this.constructor.tooldef != this.constructor.prototype.prototype.constructor.tooldef) {
-      var ret = this.constructor.tooldef();
-      
-      for (var k in ret) {
-        this[k] = ret[k];
-        
-        //copy input/output slots
-        if (k == "inputs" || k == "outputs") {
-          var v = this[k];
-          
-          for (var k2 in v) {
-            v[k2] = v[k2].copy();
-          }
+  static inherit(inputs_or_outputs) {
+    return new InheritFlag(inputs_or_outputs);
+  }
+  
+  static _get_slots() {
+    var ret = [{}, {}];
+    var parent = this.__parents__.length > 0 ? this.__parents__[0] : undefined;
+    
+    if (this.tooldef != undefined 
+        && (parent == undefined || this.tooldef !== parent.tooldef) )
+    {
+      var tooldef = this.tooldef();
+      for (var k in tooldef) {
+        if (k != "inputs" && k != "outputs") {
+          continue;
         }
+        
+        var v = tooldef[k];
+        if (v instanceof InheritFlag) {
+          v = v.val;
+          
+          var slots = parent._get_slots();
+          slots = k == "inputs" ? slots[0] : slots[1];
+          
+          v = this._inherit_slots(slots, v);
+        }
+        
+        ret[k == "inputs" ? 0 : 1] = v;
+      }
+    } else if (this.inputs != undefined || this.outputs != undefined) {
+      console.trace("Deprecation warning: (second) old form\
+                     of toolprop definition detected for", this);
+                     
+      if (this.inputs != undefined) {
+        ret[0] = this.inputs;
+      }
+      
+      if (this.outputs != undefined) {
+        ret[1] = this.outputs;
       }
     } else {
-      var ins = {};
-      if (this.constructor.inputs != undefined) {
-        for (var k in this.constructor.inputs) {
-          ins[k] = this.constructor.inputs[k].copy();
-        }
-      }
-      this.inputs = ins;
-
-      var outs = {};
-      if (this.constructor.outputs != undefined) {
-        for (var k in this.constructor.outputs) {
-          outs[k] = this.constructor.outputs[k].copy();
-        }
-      }
-      this.outputs = outs;
+      console.trace("Deprecation warning: oldest (and evilest) form\
+                     of toolprop detected for", this.uiname);
     }
     
-    if (this.name == undefined)
-      this.name = apiname;
-    if (this.uiname == undefined)
-      this.uiname = uiname;
-    if (this.description == undefined)
-      this.description = description == undefined ? "" : description;
-    if (this.icon == undefined)
-      this.icon = icon;
+    return ret;
+  }
+  
+  constructor(apiname, uiname, description=undefined, icon=-1) {
+    var parent = this.constructor.__parents__.length > 0 ? this.constructor.__parents__[0] : undefined;
+
+    //instantiate slots
+    var slots = this.constructor._get_slots();
+    
+    for (var i=0; i<2; i++) {
+      var slots2 = {};
+      
+      if (i == 0)
+        this.inputs = slots2;
+      else
+        this.outputs = slots2;
+      
+      for (var k in slots[i]) {
+        slots2[k] = slots[i][k].copy();
+        slots2[k].apiname = k;
+      }
+    }
+    
+    if (this.constructor.tooldef != undefined && (parent == undefined 
+        || this.constructor.tooldef !== parent.tooldef)) 
+    {
+      var tooldef = this.constructor.tooldef();
+      
+      for (var k in tooldef) {
+        //we handled input/outputs above
+        if (k == "inputs" || k == "outputs")
+          continue;
+          
+        this[k] = tooldef[k];
+      }
+    } else {
+      if (this.name == undefined)
+        this.name = apiname;
+      if (this.uiname == undefined)
+        this.uiname = uiname;
+      if (this.description == undefined)
+        this.description = description == undefined ? "" : description;
+      if (this.icon == undefined)
+        this.icon = icon;
+    }
     
     this.apistruct = undefined : DataStruct; //may or may not be set
     this.op_id = _tool_op_idgen++;
     this.stack_index = -1;
+  }
+  
+  static _inherit_slots(old, newslots) {
+    if (old == undefined) {
+      console.trace("Warning: old was undefined in _inherit_slots()!");
+      
+      return newslots;
+    }
+    
+    for (var k in old) {
+      if (!(k in newslots))
+        newslots[k] = old[k];
+    }
+    
+    return newslots;
+  }
+  
+  static inherit_inputs(cls, newslots) {
+    if (cls.inputs == undefined)
+      return newslots;
+      
+    return ToolOpAbstract._inherit_slots(cls.inputs, newslots);
+  }
+  
+  static inherit_outputs(cls, newslots) {
+    if (cls.outputs == undefined)
+      return newslots;
+      
+    return ToolOpAbstract._inherit_slots(cls.outputs, newslots);
   }
   
   get_saved_context() {
@@ -250,6 +330,7 @@ export class ToolOp extends EventHandler, ToolOpAbstract {
     
     this.drawlines = new GArray();
     
+    //XXX
     if (this.is_modal == undefined)
       this.is_modal = false;
     
@@ -284,35 +365,6 @@ export class ToolOp extends EventHandler, ToolOpAbstract {
     }
     
     this.drawlines.reset();
-  }
-  
-  static inherit_slots(old, newslots) {
-    if (old == undefined) {
-      console.trace("Warning: old was undefined in inherit_slots()!");
-      
-      return newslots;
-    }
-    
-    for (var k in old) {
-      if (!(k in newslots))
-        newslots[k] = old[k];
-    }
-    
-    return newslots;
-  }
-  
-  static inherit_inputs(cls, newslots) {
-    if (cls.inputs == undefined)
-      return newslots;
-      
-    return ToolOp.inherit_slots(cls.inputs, newslots);
-  }
-  
-  static inherit_outputs(cls, newslots) {
-    if (cls.outputs == undefined)
-      return newslots;
-      
-    return ToolOp.inherit_slots(cls.outputs, newslots);
   }
   
   /*creates 3d widgets, that either

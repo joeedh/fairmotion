@@ -39,6 +39,17 @@ import {CurveRootFinderTest} from 'spline_editops';
 import {ToolOp, UndoFlags, ToolFlags, ModalStates} from 'toolops_api';
 import {ExtrudeModes} from 'spline_createops';
 
+function delay_redraw(ms) {
+    var start_time = time_ms();
+    var timer = window.setInterval(function() {
+        if (time_ms() - start_time < ms)
+            return;
+         
+        window.clearInterval(timer);
+        window.redraw_viewport();
+    }, 20);
+}
+  
 class PanOp extends ToolOp {
   constructor(start_mpos) {
     ToolOp.call(this);
@@ -116,7 +127,7 @@ class IndexBufItem {
 
 import {SplineEditor} from 'view2d_spline_ops';
 import {ColumnFrame, RowFrame} from 'UIPack';
-import {UIMenuLabel} from 'UIWidgets';
+import {UIMenuLabel, UIButtonIcon} from 'UIWidgets';
 import {UIMenu} from 'UIMenu';
 import {UITabPanel} from 'UITabPanel';
 
@@ -129,6 +140,8 @@ export class View2DHandler extends Area {
   {
     static int v3d_id = 0;
    
+    this.toolmode = 1;
+    
     this.pinned_paths = undefined;
     
     this.background_image = new ImageUser();
@@ -1084,18 +1097,41 @@ export class View2DHandler extends Area {
                    | PackFlags.ALIGN_LEFT | PackFlags.INHERIT_WIDTH;
     panel.pad = [1, 1];
     
-    panel.size = [Area.get_barhgt()*4, this.size[1]];
+    panel.size = [Area.get_barhgt()*3, this.size[1]];
     panel.draw_background = true;
     panel.rcorner = 100.0;
     panel.pos = [0, Area.get_barhgt()*3];
     
     var tabs = new UITabPanel(this.ctx);
+    tabs.packflag |= PackFlags.INHERIT_WIDTH;
+    
     panel.add(tabs);
     tabs.pad = [1, 1];
     
     var tools = tabs.panel("Tools");
-    tools.prop("view2d.tweak_mode", PackFlags.USE_LARGE_ICON);
+    tools.prop("view2d.toolmode", 
+               PackFlags.USE_LARGE_ICON | PackFlags.ENUM_STRIP |
+               PackFlags.VERTICAL_ENUM_STRIP
+               );
     
+    var undo = new UIButtonIcon(this.ctx, "Undo", Icons.UNDO);
+    undo.hint = "  Hotkey : CTRL-Z"
+    undo.callback = function() {
+      g_app_state.toolstack.undo();
+      delay_redraw(50); //stupid hack to deal with async nacl spline solve
+    }
+    tools.add(undo);
+
+    var redo = new UIButtonIcon(this.ctx, "Redo", Icons.REDO);
+    redo.hint = "  Hotkey : CTRL-SHIFT-Z"
+    redo.callback = function() {
+      g_app_state.toolstack.redo();
+      delay_redraw(50); //stupid hack to deal with async nacl spline solve
+    }
+    
+    tools.add(redo);
+    tools.toolop("view2d.circle_select()", PackFlags.USE_LARGE_ICON);
+
     var display = tabs.panel("Display");
     display.prop("view2d.only_render");
     display.prop("view2d.draw_normals");
@@ -1115,7 +1151,7 @@ export class View2DHandler extends Area {
     this.add(panel);
     this.cols.push(panel);
     
-    this.editor.build_sidebar1(this);
+    this.editor.build_sidebar1(this, panel);
   }
   
   build_topbar()
@@ -1233,6 +1269,7 @@ View2DHandler.STRUCT = STRUCT.inherit(View2DHandler, Area) + """
     pinned_paths      : array(int) | obj.pinned_paths != undefined ? obj.pinned_paths : [];
     background_image  : ImageUser;
     draw_bg_image     : int;
+    toolmode          : int;
   }
 """
 

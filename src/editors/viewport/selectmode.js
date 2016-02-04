@@ -6,3 +6,8 @@ export var SelMask = {
   MULTIRES : 32,
   TOPOLOGY : 1|2|4|16
 };
+
+export var ToolModes = {
+  SELECT : 1,
+  APPEND : 2
+};

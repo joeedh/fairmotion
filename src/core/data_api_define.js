@@ -15,7 +15,7 @@ import {EnumProperty, FlagProperty,
         TPropFlags, PropTypes} from 'toolprops';
 
 import {SplineFlags, MaterialFlags, SplineTypes} from 'spline_types';
-import {SelMask} from 'selectmode';
+import {SelMask, ToolModes} from 'selectmode';
 import {Unit} from 'units';
 
 import {ExtrudeModes} from 'spline_createops';
@@ -273,10 +273,18 @@ function api_define_view2d() {
     window.redraw_viewport();
   }
   
+  var tool_mode = new EnumProperty("SELECT", ToolModes, "select", "Active Tool", "Active Tool");
+  
+  tool_mode.add_icons({
+    SELECT : Icons.CURSOR_ARROW,
+    APPEND : Icons.MAKE_SEGMENT
+  });
+  
   var tweak_mode = new BoolProperty(0, "tweak_mode", "Tweak Mode");
   tweak_mode.icon = Icons.CURSOR_ARROW;
   
   View2DStruct = new DataStruct([
+    new DataPath(tool_mode, "toolmode", "toolmode", true),
     new DataPath(selmask_enum.copy(), "selectmode", "selectmode",  true),
     new DataPath(only_render, "only_render", "only_render", true),
     new DataPath(draw_bg_image, "draw_bg_image", "draw_bg_image", true),

@@ -245,7 +245,9 @@ export class UIPackFrame extends UIFrame {
       subframe.packflag |= packflag|PackFlags.NO_AUTO_SPACING
                         | PackFlags.NO_LEAD_SPACING
                         | PackFlags.NO_TRAIL_SPACING;
+
       subframe.pad[0] = -2;
+      subframe.pad[1] = -2;
       
       function update_callback(chk) {
         var val = undefined;
@@ -276,6 +278,8 @@ export class UIPackFrame extends UIFrame {
           if (label == undefined) label = "(error)";
           
           var c = new UIIconCheck(ctx, "", prop.iconmap[prop.values[k]]);
+          
+          c.packflag |= packflag;
           
           c.setter_path = setter_path;
           c.callback = update_enum

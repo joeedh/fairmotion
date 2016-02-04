@@ -25,7 +25,7 @@ import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler,
 import {SelectLinkedOp, SelectOneOp} from 'spline_selectops';
 import {TranslateOp} from 'transform';
 
-import {SelMask} from 'selectmode';
+import {SelMask, ToolModes} from 'selectmode';
 import {SplineTypes, SplineFlags, SplineVertex, 
         SplineSegment, SplineFace} from 'spline_types';
 import {Spline} from 'spline';
@@ -299,7 +299,7 @@ export class SplineEditor extends View2DEditor {
   on_tick(ctx) {
   }
  
-  build_sidebar1(view2d) {
+  build_sidebar1(View2DHandler view2d, RowFrame panel) {
     var ctx = new Context();
     
     var the_row = new RowFrame(ctx);
@@ -319,34 +319,6 @@ export class SplineEditor extends View2DEditor {
     col.toolop("spline.make_edge_face()");
     
     var col = the_row.col();
-    
-    function delay_redraw(ms) {
-        var start_time = time_ms();
-        var timer = window.setInterval(function() {
-            if (time_ms() - start_time < ms)
-                return;
-             
-            window.clearInterval(timer);
-            window.redraw_viewport();
-        }, 20);
-    }
-    
-    var undo = new UIButtonIcon(ctx, "Undo", Icons.UNDO);
-    undo.hint = "  Hotkey : CTRL-Z"
-    undo.callback = function() {
-      g_app_state.toolstack.undo();
-      delay_redraw(50); //stupid hack to deal with async nacl spline solve
-    }
-    col.add(undo);
-
-    var redo = new UIButtonIcon(ctx, "Redo", Icons.REDO);
-    redo.hint = "  Hotkey : CTRL-SHIFT-Z"
-    redo.callback = function() {
-      g_app_state.toolstack.redo();
-      delay_redraw(50); //stupid hack to deal with async nacl spline solve
-    }
-    
-    col.add(redo);
     
     console.log("  BUILT: sidebar1");
     
@@ -375,7 +347,7 @@ export class SplineEditor extends View2DEditor {
     
     col.add(gen_editor_switcher(this.ctx, view2d));
     var prop = col.prop("view2d.selectmode", 
-                        PackFlags.USE_ICON|PackFlags.ENUM_STRIP);
+                        PackFlags.USE_SMALL_ICON|PackFlags.ENUM_STRIP);
                         
     prop.packflag |= PackFlags.USE_ICON|PackFlags.ENUM_STRIP;
     
@@ -583,7 +555,7 @@ export class SplineEditor extends View2DEditor {
   
   on_mousedown(event) {
     var spline = this.ctx.spline;
-    var tweak_mode = this.ctx.view2d.tweak_mode;
+    var toolmode = this.ctx.view2d.toolmode;
     
     if (this.highlight_spline != undefined) {
       //console.log(this.highlight_spline, this.highlight_spline._debug_id, spline._debug_id);
@@ -620,9 +592,12 @@ export class SplineEditor extends View2DEditor {
     //console.log("DDD", spline.verts.highlight, G.active_splinepath);
     
     if (event.button == 0) {
-      if (!tweak_mode && (this.selectmode & (SelMask.VERTEX|SelMask.HANDLE)) && 
-           spline.verts.highlight == undefined && spline.handles.highlight == undefined)
-      {
+      var can_append = toolmode == ToolModes.APPEND;
+      
+      can_append = can_append && (this.selectmode & (SelMask.VERTEX|SelMask.HANDLE));
+      can_append = can_append && spline.verts.highlight == undefined && spline.handles.highlight == undefined;
+      
+      if (can_append) {
         var co = new Vector3([event.x, event.y, 0]);
         this.view2d.unproject(co);
         
@@ -631,7 +606,7 @@ export class SplineEditor extends View2DEditor {
         
         g_app_state.toolstack.exec_tool(op);
         redraw_viewport();
-      }  else if (!tweak_mode && (this.selectmode & SelMask.MULTIRES)) {
+      }  else if (can_append && (this.selectmode & SelMask.MULTIRES)) {
         var ret = this.findnearest([event.x, event.y, 0], SelMask.MULTIRES);
         
         console.log(ret);
@@ -845,11 +820,12 @@ export class SplineEditor extends View2DEditor {
   on_mousemove(event) {
     if (this.ctx == undefined) return;
 
-    var tweak_mode = this.ctx.view2d.tweak_mode;
+    var toolmode = this.ctx.view2d.toolmode;
+    
     var selectmode = this.selectmode;
     var limit = selectmode & SelMask.SEGMENT ? 55 : 12;
 
-    if (tweak_mode) limit *= 3;
+    if (toolmode == ToolModes.SELECT) limit *= 3;
     
     var spline = this.ctx.spline;
     spline.size = [window.innerWidth, window.innerHeight];

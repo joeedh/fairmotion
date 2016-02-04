@@ -54,7 +54,7 @@ export class View2DEditor {
   add_menu(View2DHandler view2d, Array<float> mpos) {}
   draw_object(WebGLRenderingContext gl, View2DHandler view2d, ASObject object, Boolean is_active) {}
   
-  build_sidebar1(View2DHandler view2d) {}
+  build_sidebar1(View2DHandler view2d, RowFrame panel) {}
   build_bottombar(View2DHandler view2d) {}
   
   set_selectmode(int mode) {}

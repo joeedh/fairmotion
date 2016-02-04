@@ -24,6 +24,14 @@ export class SelectOpBase extends ToolOp {
       this.inputs.flush.set_data(do_flush);
   }
   
+  static tooldef() { return {
+    inputs : {
+      mode     : new IntProperty(0),
+      datamode : new IntProperty(0), //datamode
+      flush    : new BoolProperty(false)
+    }
+  }}
+  
   undo_pre(ctx) {
     var spline = ctx.spline;
     var ud = this._undo = []
@@ -69,11 +77,6 @@ export class SelectOpBase extends ToolOp {
     spline.segments.active = eidmap[ud.active_vert];
   }
 }
-SelectOpBase.inputs = {
-  mode : new IntProperty(0),
-  datamode : new IntProperty(0), //datamode
-  flush    : new BoolProperty(false)
-};
 
 export class SelectOneOp extends SelectOpBase {
   constructor(SplineElement e=undefined, unique=true, mode=true, datamode=0, do_flush=false) {
@@ -119,6 +122,7 @@ export class SelectOneOp extends SelectOpBase {
     }
     
     if (this.inputs.flush.data) { 
+      console.log("flushing data!", this.inputs.datamode.data);
       spline.select_flush(this.inputs.datamode.data);
     }
     
@@ -443,13 +447,29 @@ export class CircleSelectOp extends SelectOpBase {
     
     if (isNaN(_last_radius) || _last_radius <= 0)
       _last_radius = 45;
-      
+    
     this.mpos = new Vector3();
-    this.is_modal = true;
     this.mdown = false;
     this.sel_or_unsel = true;
     this.radius = _last_radius;
   }
+  
+  static tooldef() { return {
+    apiname  : "circle_select",
+    uiname   : "Circle Select",
+      
+    inputs : ToolOp.inherit({
+      add_elements : new CollectionProperty(new ElementRefSet(SplineTypes.ALL), [               SplineVertex, SplineSegment, SplineFace],
+                     "elements", "Elements", "Elements"),
+      sub_elements : new CollectionProperty(new ElementRefSet(SplineTypes.ALL), [               SplineVertex, SplineSegment, SplineFace],
+                     "elements", "Elements", "Elements")
+    }),
+  
+    outputs  : ToolOp.inherit({}),
+    icon     : Icons.CIRCLE_SEL,
+    is_modal : true,
+    description : "Select in a circle.\nRight click to deselect."
+  }}
   
   start_modal(ctx) {
     this.radius = _last_radius;
@@ -602,13 +622,4 @@ export class CircleSelectOp extends SelectOpBase {
     this.end_modal();
   }
 }
-
-CircleSelectOp.prototype.is_modal = true;
-
-CircleSelectOp.inputs = ToolOp.inherit_inputs(SelectOpBase, {
-  add_elements : new CollectionProperty(new ElementRefSet(SplineTypes.ALL), [SplineVertex, SplineSegment, SplineFace],
-                                  "elements", "Elements", "Elements"),
-  sub_elements : new CollectionProperty(new ElementRefSet(SplineTypes.ALL), [SplineVertex, SplineSegment, SplineFace],
-                                  "elements", "Elements", "Elements")
-});
 

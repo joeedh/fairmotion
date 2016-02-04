@@ -44,7 +44,7 @@ export var PackFlags = {
 
   //allow negative pans, needed for the header/footer bars (area.build_topbar())
   CALC_NEGATIVE_PAN: (1<<21), PAN_X_ONLY : (1<<22),
-  PAN_Y_ONLY       : (1<<23)
+  PAN_Y_ONLY       : (1<<23), VERTICAL_ENUM_STRIP : (1<<24)
 }
 
 export var CanvasFlags = {NOT_ROOT : 1, NO_PROPEGATE : 2}
@@ -164,10 +164,10 @@ export class UIElement extends EventHandler {
   }
   
   enable() {
-    this.state |= UIFlags.ENABLED;
-
     if (!(this.state & UIFlags.ENABLED))
       this.do_recalc();
+    
+    this.state |= UIFlags.ENABLED;
   }
   
   get_keymaps() {
@@ -345,21 +345,27 @@ export class UIElement extends EventHandler {
 
   get_prop_data() {
     var ctx = this.ctx;
-    var bad = true;
-    var ret = undefined;
+    var bad = true, ret = undefined;
     
     try {
       ret = ctx.api.get_prop(ctx, this.data_path);
       bad = false;
     } catch (err) {
-      if (!this.path_is_bad)
-        this.do_recalc();
-      
       //XXX?
-      ret = 0
+      if (DEBUG.ui_datapaths) {
+        console.trace("Got error");
+        print_stack(err);
+      }
+      
+      ret = 0;
+    }
+    
+    if (this.path_is_bad != bad) {
+      this.do_recalc();
     }
     
     this.path_is_bad = bad;
+    
     if (bad)
       this.disable();
     else

@@ -6,9 +6,11 @@ import {USE_NACL} from 'config';
 import {SelMask} from 'selectmode';
 import {MResTransData} from 'multires_transdata';
 
-import {TPropFlags} from 'toolprops';
-import {SplineFlags, SplineTypes} from 'spline_types';
-import {ModalStates} from 'toolops_api';
+import {Vec3Property, BoolProperty, FloatProperty, IntProperty,
+        CollectionProperty, TPropFlags} from 'toolprops';
+
+        import {SplineFlags, SplineTypes} from 'spline_types';
+import {ToolOp, ModalStates} from 'toolops_api';
 
 import {TransDataItem, TransDataType} from 'transdata';
 import {TransDopeSheetType} from 'dopesheet_transdata';
@@ -450,11 +452,9 @@ export class TransData {
   }
 }
 
-import {ToolOp} from 'toolops_api';
-
 export class TransformOp extends ToolOp {
-  constructor(start_mpos, datamode, apiname, uiname) {
-    ToolOp.call(this, apiname, uiname);
+  constructor(start_mpos, datamode) {
+    ToolOp.call(this);
     
     this.types = new GArray([MResTransData, TransSplineVert]);
     
@@ -465,10 +465,22 @@ export class TransformOp extends ToolOp {
     if (datamode != undefined)
       this.inputs.datamode.set_data(datamode);
     
-    this.is_modal = true;
     this.modaldata = {};
   }
   
+  static tooldef() { return {
+    inputs : {
+      /* some TransData backends may use this, e.g. to store arrays of
+         integer ids for visible path spline vertices in dopesheet editor */
+      data         : new CollectionProperty([], [], "data", "data", "data",
+                     TPropFlags.COLL_LOOSE_TYPE),
+        
+      proportional : new BoolProperty(false, "proportional", "proportional mode"),
+      propradius   : new FloatProperty(80, "propradius", "prop radius"),
+      datamode     : new IntProperty(0, "datamode", "datamode")
+    }
+  }}
+
   ensure_transdata(ctx) {
     var selmode = this.inputs.datamode.data;
     
@@ -733,24 +745,23 @@ export class TransformOp extends ToolOp {
     }
   }
 }
-import {Vec3Property, BoolProperty, FloatProperty, IntProperty,
-        CollectionProperty} from 'toolprops';
 //import {TPropFlags} from 'toolprops';
-
-TransformOp.inputs = {
-  //some TransData backends may use this, e.g. to store integer arrays of
-  //visible pathspline vertices in dopesheet editor
-  data         : new CollectionProperty([], [], "data", "data", "data", TPropFlags.COLL_LOOSE_TYPE),
-    
-  proportional : new BoolProperty(false, "proportional", "proportional mode"),
-  propradius   : new FloatProperty(80, "propradius", "prop radius"),
-  datamode     : new IntProperty(0, "datamode", "datamode")
-}
 
 export class TranslateOp extends TransformOp {
   constructor(Array<float> user_start_mpos, datamode) {
-    super(user_start_mpos, datamode, "translate", "Translate");
+    super(user_start_mpos, datamode);
   }
+  
+  static tooldef() { return {
+    uiname   : "Translate",
+    apiname  : "spline.translate",
+    description : "Move geometry around",
+    is_modal : true,
+    
+    inputs   : ToolOp.inherit({
+      translation : new Vec3Property(undefined, "translation", "translation", "translation")
+    })
+  }}
   
   on_mousemove(event) {
     super.on_mousemove(event);
@@ -797,14 +808,21 @@ export class TranslateOp extends TransformOp {
   }
 }
 
-TranslateOp.inputs = ToolOp.inherit_inputs(TransformOp, {
-  translation : new Vec3Property(undefined, "translation", "translation", "translation")
-});
-
 export class ScaleOp extends TransformOp {
   constructor(Array<float> user_start_mpos, datamode) {
-    super(user_start_mpos, datamode, "scale", "Scale");
+    super(user_start_mpos, datamode);
   }
+  
+  static tooldef() { return {
+    uiname   : "Scale",
+    apiname  : "spline.scale",
+    description : "Resize geometry",
+    is_modal : true,
+    
+    inputs   : ToolOp.inherit({
+      scale : new Vec3Property(undefined, "scale", "scale", "scale")
+    })
+  }}
   
   on_mousemove(event) {
     super.on_mousemove(event);
@@ -854,11 +872,6 @@ export class ScaleOp extends TransformOp {
   }
 }
 
-ScaleOp.inputs = ToolOp.inherit_inputs(TransformOp, {
-  scale : new Vec3Property(undefined, "scale", "scale", "scale")
-});
-
-
 export class RotateOp extends TransformOp {
   constructor(Array<float> user_start_mpos, datamode) {
     this.angle_sum = 0.0;
@@ -866,6 +879,17 @@ export class RotateOp extends TransformOp {
     super(user_start_mpos, datamode, "rotate", "Rotate");
   }
   
+  static tooldef() { return {
+    uiname   : "Rotate",
+    apiname  : "spline.rotate",
+    description : "Rotate geometry",
+    is_modal : true,
+    
+    inputs  : ToolOp.inherit({
+      angle : new FloatProperty(undefined, "angle", "angle", "angle")
+    })
+  }}
+
   on_mousemove(event) {
     super.on_mousemove(event);
 
@@ -920,7 +944,3 @@ export class RotateOp extends TransformOp {
     }
   }
 }
-
-RotateOp.inputs = ToolOp.inherit_inputs(TransformOp, {
-  angle : new FloatProperty(undefined, "angle", "angle", "angle")
-});

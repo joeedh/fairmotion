@@ -132,7 +132,7 @@ export class ToolOpAbstract {
         
         var v = tooldef[k];
         if (v instanceof InheritFlag) {
-          v = v.val;
+          v = v.val == undefined ? {} : v.val;
           
           var slots = parent._get_slots();
           slots = k == "inputs" ? slots[0] : slots[1];

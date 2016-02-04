@@ -7,7 +7,10 @@ var PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,
     asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
 
 import {ToolOp} from 'toolops_api';
-import {IntProperty, BoolProperty} from 'toolprops';
+import {IntProperty, BoolProperty, EnumProperty,
+        StringProperty, FlagProperty, CollectionProperty
+       } from 'toolprops';
+       
 import {SplineFlags, SplineTypes, SplineVertex,
         SplineSegment, SplineFace
        } from 'spline_types';
@@ -89,6 +92,17 @@ export class SelectOneOp extends SelectOpBase {
       this.inputs.eid.set_data(e.eid);
   }
   
+  static tooldef() { return {
+    uiname  : "Select Element",
+    inputs  : ToolOp.inherit({
+      eid        : new IntProperty(-1),
+      state      : new BoolProperty(true),
+      set_active : new BoolProperty(true),
+      unique     : new BoolProperty(true)
+    }),
+    description : "Select Element"
+  }}
+  
   exec(Context ctx) {
     var spline = ctx.spline;
     var e = spline.eidmap[this.inputs.eid.data];
@@ -131,17 +145,21 @@ export class SelectOneOp extends SelectOpBase {
   }
 }
 
-SelectOneOp.inputs = ToolOp.inherit_inputs(SelectOpBase, {
-  eid        : new IntProperty(-1),
-  state      : new BoolProperty(true),
-  set_active : new BoolProperty(true),
-  unique     : new BoolProperty(true)
-});
-
 export class ToggleSelectAllOp extends SelectOpBase {
   constructor() {
     super(undefined, undefined, "Toggle Select All");
   }
+  
+  static tooldef() { return {
+    uiname  : "Toggle Select All",
+    apiname : "spline.toggle_select_all",
+    
+    inputs  : {
+      mode: new EnumProperty("auto", 
+        ["select", "deselect", "auto"], 
+        "mode", "Mode", "mode")
+    }
+  }}
   
   undo_pre(ctx) {
     super.undo_pre(ctx);
@@ -222,17 +240,6 @@ export class ToggleSelectAllOp extends SelectOpBase {
     }
   }
 }
-
-//var selmode_enum = selectmode_enum.copy();
-//selmode_enum.flag |= PackFlags.UI_DATAPATH_IGNORE;
-
-import {EnumProperty} from 'toolprops';
-
-var mode_vals = ["select", "deselect", "auto"];
-ToggleSelectAllOp.inputs = {
-  mode: new EnumProperty("auto", mode_vals, "mode", "Mode", "mode")
-  //selmode : selmode_enum
-};
 
 export class SelectLinkedOp extends SelectOpBase {
   constructor(mode, datamode) {

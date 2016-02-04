@@ -112,6 +112,9 @@ export class SplitAreasTool extends ToolOp {
     var p1 = ret[0]
     var t = ret[1]/v2.vectorDistance(v1);
     
+    if (isNaN(t))
+      t = 0;
+    
     var p2 = new Vector2(v4).sub(v3).mulScalar(t).add(v3)
     
     canvas.line(p1, p2, clr, clr, 4.0);
@@ -459,7 +462,6 @@ export class HintPickerOp extends ToolOp {
   }
   
   build_draw() {
-    
     //console.log("rebuilding draw...");
     
     //this.canvas.reset();

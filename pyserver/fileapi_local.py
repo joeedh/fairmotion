@@ -13,6 +13,36 @@ import db_engine
 import base64
 import os, os.path, sys, stat
 
+from fileapi import file_restricted_fields, FOLDER_MIME, EMPTY_TAG, ROOT_PARENT_ID
+import urllib
+
+
+#stupid unicode!
+def jsondumps(obj):
+  if type(obj) in [int, float, long]:
+    return str(obj);
+  elif type(obj) in [list, tuple, set]:
+    s = "["
+    for i, item in enumerate(obj):
+      if i > 0: s += ", "
+      s += jsondumps(item)
+    s += "]"
+    
+    return s
+  elif type(obj) == dict:
+    s = "{"
+    for i, k in enumerate(obj):
+      if i > 0: s += ", "
+      
+      s += '"' + k + '" : '
+      s += jsondumps(obj[k])
+    s += "}"
+    return s;
+  else: #XXX type(obj) == str:
+    return '"' + str(obj) + '"'
+  #else:
+  #  raise RuntimeError("unknown object " + str(type(obj)));
+    
 WIN32 = sys.platform.startswith("win")
 
 if not WIN32: #unix functions; need to test these!
@@ -37,6 +67,31 @@ if not WIN32: #unix functions; need to test these!
     
   def local_to_real(path):
     path = unixnorm(path)
+    
+    if path == "/.settings.bin":
+      print("APPDATA", get_appdata()) #os.environ["APPDATA"])
+      
+      dir = get_appdata() + os.path.sep + ".fairmotion" #os.path.join(get_appdata(), "/.fairmotion")
+      if not os.path.exists(dir):
+        print("make dirs", dir) 
+        os.makedirs(dir)
+        
+      path = os.path.join(dir, ".settings.bin")
+      print("DIRPATH", dir)
+      print("PATH", path)
+      
+      if not os.path.exists(path):
+        templ = config.server_root + "/default_settings_bin"
+        f = open(templ, "rb")
+        buf = f.read()
+        f.close()
+        
+        f = open(path, "wb")
+        f.write(buf)
+        f.close()
+      
+      return os.path.abspath(os.path.normpath(path))
+      
     if not serv_all_local:
       path = files_root + os.path.sep + path
     
@@ -44,7 +99,10 @@ if not WIN32: #unix functions; need to test these!
   
   def real_to_local(path):
     path = unixnorm(path)
-
+      
+    if os.path.abspath(os.path.normpath(path)) == unixnorm(local_to_real("/.settings.bin")):
+      return "/.settings.bin"
+      
     path = os.path.abspath(os.path.normpath(path))
     froot = os.path.abspath(os.path.normpath(files_root))
     path = path[len(froot):].replace(os.path.sep, "/")
@@ -59,6 +117,10 @@ if WIN32:
   listdir = win_util.listdir
   dostat = win_util.dostat
   exists = win_util.exists
+  get_appdata = win_util.get_appdata
+else:
+  def get_appdata():
+    return os.environ["HOME"]
     
 FOLDER_MIME = "application/vnd.google-apps.folder"
 
@@ -78,7 +140,6 @@ except:
   FileNotFoundError = OSError
 
 class FileClass (dict):
-  #metadata is added automatically from DB keys
   def __init__(self, path, userid):
       print("  FCLS PATH", path, userid)
       
@@ -120,7 +181,7 @@ class FileClass (dict):
       self.mimeType = mime
       self.id = fileid_to_publicid(path, userid)
       
-      print("Final relative path:", path, len(froot));
+      #print("Final relative path:", path, len(froot));
       
       oname = path
       while len(oname) > 0 and oname[0] in ["\\", "/"]:
@@ -133,13 +194,13 @@ class FileClass (dict):
         name = oname
       
       self.name = name
-      print("Final name:", self.name)
+      #print("Final name:", self.name)
       
       parentpath = path[:path.rfind("/")].strip()
       if "/" not in path:
         parentpath = "/"
         
-      print("PARENT PATH", "'"+parentpath+"'", fileid_to_publicid(parentpath, userid))
+      #print("PARENT PATH", "'"+parentpath+"'", fileid_to_publicid(parentpath, userid))
       
       if name == "/" or parentpath == "/" or parentpath == "":
         self.parentid = rootid 
@@ -168,7 +229,7 @@ def publicid_to_fileid(publicid):
   if publicid == "/":
     return publicid
   
-  print(":::", publicid)
+  #print(":::", publicid)
   path = base64.b64decode(bytes(publicid, "latin-1"));
   path = str(path, "latin-1")
   
@@ -199,9 +260,10 @@ class FileAPI_DirList:
     if "id" in qs:
       path = publicid_to_fileid(qs["id"][0])
     else:
-      path = qs["path"]
+      path = qs["path"][0]
+      path = urllib.unquote(path).strip();
     
-    print(path);
+    print("PATHPATH", path);
     
     dir = File(path, userid)
     
@@ -230,14 +292,14 @@ class FileAPI_DirList:
       #if file == None: continue
       
       f["name"] = file.name
-      f["id"] = file.id
+      f["id"] =  file.id
       f["mimeType"] = file.mimeType
-      f["is_dir"] = file.is_dir
-      f["parentid"] = file.parentid;
+      f["is_dir"] =  1 if file.is_dir else 0
+      f["parentid"] = file.parentid
       
       files.append(f)
     
-    body = json.dumps({"items": files})
+    body = jsondumps({"items": files})
     body = bstr(body)
     
     serv.gen_headers("GET", len(body), json_mimetype)
@@ -320,45 +382,54 @@ class FileAPI_GetMeta:
       return
     
     if "path" in qs:
-      fileid = resolve_path(qs["path"][0])
+      fileid = qs["path"][0]
+      fileid = urllib.unquote(fileid);
     else:
-      fileid = publicid_to_fileid(qs["id"][0])[1]
+      fileid = qs["id"][0]
     
-    if fileid == None:
-      serv.send_error(400)
-    
-    if fileid == None:
-      serv.send_error(400)
-    
-    f = fetch_file(fileid)
-    if f == None:
-      serv.send_error(400)
+    path = local_to_real(fileid);
+    if not os.path.exists(path):
+      serv.send_error(404);
       return
     
-    if f["userid"] != userid:
-      serv.send_error(401)
-      return
+    st = os.stat(path)
+    fname = fileid.replace("\\", "/").strip()
+    dir = ""
+    
+    if "/" in fname and fname[-1] != "/":
+      dir = fname[:fname.rfind("/")].strip()
+      fname = fname[len(dir):]
+    
+    while fname[0] == "/":
+      fname = fname[1:]
+      
+    #ROOT_PARENT_ID      
+    
+    mime = "unknown"
+    if stat.S_ISDIR(st.st_mode):
+      mime = FOLDER_MIME
+    else:
+      pass #deal with later
+    
+    #stupid quoting
+    #id = urllib.quote(fileid, "").strip()
+    id = fileid_to_publicid(fileid, userid).strip()
+    
+    #if id[0] == "'" or id[0] == "\"" and id[0] == id[-1]:
+    
+    f = {
+      'name'     : fname,
+      'id'       : id,
+      'parentid' : dir,
+      'mimeType' : mime,
+      'modified' : st.st_mtime,
+      'is_dir'   : stat.S_ISDIR(st.st_mode)
+    };
     
     f2 = {}
     for k in f:
       if k in file_restricted_fields: continue
-      
-      if k == "fileid":
-        f2["id"] = fileid_to_publicid(fileid, userid)
-        continue
-      if k == "other_meta" and f[k] != "" and f[k] != None:
-        try:
-          meta = json.loads(f[k])
-        except ValueError:
-          meta = {}
-        
-        for k2 in meta:
-          f2[k2] = estr(meta[k2])
-        continue
-      
-      f2[k] = estr(f[k])
-        
-    f2["is_dir"] = f2["mimeType"] == FOLDER_MIME
+      f2[k] = f[k]
     
     body = json.dumps(f2)
     body = bstr(body)
@@ -436,24 +507,8 @@ class UploadStatus:
     except SQLParamError:
       #do_param_error(json.dumps(self));
       raise SQLParamError("upload token error; see error.log for details")
-      
-    """
-    qstr = "INSERT INTO uploadtokens (tokenid,path,time,fileid,"
-    qstr += "name,realpath,userid,permissions,expiration,size,cur) VALUES"
-    qstr += "(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)" % (
-      estr(self.token),
-      estr(self.path),
-      estr(datetime.datetime.now()),
-      estr(self.fileid),
-      estr(self.name),
-      estr(self.realpath),
-      estr(self.userid),
-      estr(0),
-      estr(datetime.datetime.now()+datetime.timedelta(days=1)),
-      estr(self.size),
-      estr(self.cur),
-    )
-    #"""
+    
+    print("QSTR", qstr)
     
     cur.execute(qstr)
     con.commit()
@@ -521,9 +576,13 @@ class FileAPI_UploadStart:
     if "id" in qs:
       fileid = publicid_to_fileid(qs["id"][0])
     else:
-      fileid = path
+      fileid = urllib.unquote(path)
     
     meta = File(fileid, userid)
+    
+    if meta != None:
+      print("DISKPATH", meta.diskpath)
+
     if meta == None or not os.path.exists(meta.diskpath):
       elog("creating new file")
       
@@ -567,8 +626,14 @@ class FileAPI_UploadStart:
     
     #ignore fileid/parentid in upload status token
     ustatus.create(utoken, path, userid, fileid, -1)
-    ustatus.commit()
-    
+    try:
+      ustatus.commit()
+    except:
+      import traceback
+      elog("USTATUS.COMMIT failed!")
+      
+      traceback.print_exc()
+      
     f = open(ustatus.realpath, "w");
     f.close();
     
@@ -665,6 +730,11 @@ class FileAPI_UploadChunk:
       status.size = max_size
     
     buflen = r[1]-r[0]+1
+    if serv.rfile == None:
+      elog("serv.rfile was None! eek! " + str(buflen));
+      serv.send_error(500)
+      return;
+
     buf = serv.rfile.read(buflen)
     
     if len(buf) != buflen:

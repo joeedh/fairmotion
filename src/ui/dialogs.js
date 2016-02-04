@@ -21,11 +21,11 @@ import {ToolOp, UndoFlags, ToolFlags} from 'toolops_api';
 import {UICollapseIcon, UIPanel, UIColorField, UIColorBox,
         UIColorPicker, UIProgressBar, UIListBox, UIListEntry
        } from 'UIWidgets_special';
-import {get_root_folderid} from 'fileapi';
+import {get_root_folderid, get_current_dir, path_to_id} from 'fileapi';
 
 import * as ajax from 'ajax';
 
-var FileDialogModes = {OPEN: "Open", SAVE: "Save"}
+export var FileDialogModes = {OPEN: "Open", SAVE: "Save"}
 var fdialog_exclude_chars = new set([
   "*",
   "\\",
@@ -54,29 +54,47 @@ export class FileDialog extends PackedDialog {
     
     this.flag = DialogFlags.MODAL;
     this.callback = callback;
-    this.folderid = get_root_folderid(); //root folder id
     
-    if (this.folderid == undefined) { //can happen if userid isn't available yet
-      //*sigh* make a timer to regularly check if user validation has happened
+    var cwd = get_current_dir();
+    
+    if (cwd != undefined) {
+      this.rebuild_parent_stack(cwd);
+      window._pstack = this.parent_stack;
+      
       var this2 = this;
-      var start_time = time_ms();
+      path_to_id(cwd).then(function(job) {
+        console.log("==>", arguments, job.value);
+        
+        this2.dirpath = cwd;
+        this2.folderid = job.value;
+        this2.populate();
+      });
+    } else {//use root folder id
+      this.folderid = get_root_folderid(); //root folder id
+      this.dirpath = "/";
       
-      g_app_state.session.validate_session();
-      
-      var timer = window.setInterval(function() {
-        var root_id = get_root_folderid();
+      if (this.folderid == undefined) { //can happen if userid isn't available yet
+        //*sigh* make a timer to regularly check if user validation has happened
+        var this2 = this;
+        var start_time = time_ms();
         
-        console.log("waiting for root folder id. . .");
+        g_app_state.session.validate_session();
         
-        if (root_id != undefined && this2.folderid == undefined) {
-          this2.folderid = root_id;
-        }
-        
-        if (this2.closed || root_id != undefined || time_ms() - start_time > 90000) {
-          console.log("clearing file dialog interval");
-          window.clearInterval(timer);
-        }
-      }, 500);
+        var timer = window.setInterval(function() {
+          var root_id = get_root_folderid();
+          
+          console.log("waiting for root folder id. . .");
+          
+          if (root_id != undefined && this2.folderid == undefined) {
+            this2.folderid = root_id;
+          }
+          
+          if (this2.closed || root_id != undefined || time_ms() - start_time > 90000) {
+            console.log("clearing file dialog interval");
+            window.clearInterval(timer);
+          }
+        }, 500);
+      }
     }
     
     var col = this.subframe.col();
@@ -158,10 +176,32 @@ export class FileDialog extends PackedDialog {
       }
     }
     
-    this.dirpath = "/"
-    this.populate();
+    if (this.folderid != undefined) {
+      this.populate();
+    }
   }
 
+  rebuild_parent_stack(cwd) {
+    cwd = cwd == undefined ? this.dirpath : cwd;
+    
+    this.parent_stack = [];
+    var path = "";
+    var dirs = cwd.trim().replace(/\/+/g, "/").split("/");
+    
+    if (dirs[dirs.length-1].trim() == "") {
+      dirs = dirs.slice(0, dirs.length-1);
+    }
+
+    console.log("dirs: ", dirs);
+    
+    for (var i=0; i<dirs.length-1; i++) {
+      path += dirs[i];
+      path += "/";
+      
+      this.parent_stack.push(path);
+    }
+  }
+  
   populate() {
     var this2 = this;
     
@@ -239,16 +279,24 @@ export class FileDialog extends PackedDialog {
     if (!id.is_dir) {
       this.end(false);
     } else if (text == "..") {
-      var item = this.parent_stack.pop();
+      var path = this.parent_stack.pop();
+      if (path == undefined) {
+        console.log("WARNING: tried to go to parent of root directory");
+        return;
+      }
       
-      this.folderid = item[0];
-      this.dirpath = item[1];
-      
-      this.listbox.reset();
-      this.populate();
+      var this2 = this;
+      path_to_id(path).then(function(job) {
+        console.log("Navigated to parent", path);
+        console.log("==>", arguments, job.value);
+        
+        this2.dirpath = path;
+        this2.folderid = job.value;
+        this2.listbox.reset();
+        this2.populate();
+      });
     } else {
-      console.log("clicked a directory! party!", id);
-      this.parent_stack.push([this.folderid, this.dirpath]);
+      this.parent_stack.push(this.dirpath);
       
       this.folderid = id.id;
       this.dirpath += id.name + "/";
@@ -322,9 +370,9 @@ export class FileDialog extends PackedDialog {
   }
 }
 
-function file_dialog(mode, ctx, callback, check_overwrite)
+export function file_dialog(mode, ctx, callback, check_overwrite, pattern)
 {
-  var fd = new FileDialog(mode, ctx, callback, check_overwrite);
+  var fd = new FileDialog(mode, ctx, callback, check_overwrite, pattern);
   fd.call(ctx.screen.mpos);  
 }
 
@@ -378,6 +426,48 @@ export function download_file(path, on_finish, path_label=path, use_note=false,
 }
 
 import {open_file, save_file} from 'html5_fileapi';
+
+export class FileOpenRecentOp extends ToolOp {
+  static tooldef() { return {
+    apiname  : "open_recent",
+    uiname   : "Open Recent",
+    inputs   : {},
+    outputs  : {},
+    icon     : -1,
+    is_modal : false,
+    undoflag : UndoFlags.IGNORE_UNDO
+  }}
+  
+  constructor() {
+    super();
+    this.path = undefined;
+  }
+  
+  exec(ctx) {
+    var dialog = new PackedDialog("Open recent...", ctx, g_app_state.screen);
+    var row = dialog.subframe;
+    
+    var listbox = new UIListBox();
+    row.add(listbox);
+    
+    var paths = g_app_state.session.settings.recent_files;
+    for (var i=paths.length-1; i>=0; i--) {
+      listbox.add_item(paths[i], paths[i]);
+    }
+    
+    listbox.go_callback = function(text, id) {
+      console.log("go calllback!", id);
+      
+      var loadop = new FileOpenOp()
+      loadop.inputs.path.set_data(id);
+      
+      dialog.end();
+      g_app_state.toolstack.exec_tool(loadop);
+    }
+    
+    dialog.call(g_app_state.screen.mpos);
+  }
+}
 
 export class FileOpenOp extends ToolOp {  
   constructor() {
@@ -437,12 +527,22 @@ export class FileOpenOp extends ToolOp {
         g_app_state.filepath = path;
         if (DEBUG.netio)
           console.log("finished downloading");
+        
+        g_app_state.session.settings.download(function() {
+          g_app_state.session.settings.add_recent_file(path);
+          g_app_state.session.settings.server_update(true);
+        });
       }
       
       call_api(get_file_data, {path:path}, finish, error, status);
     }
     
     console.log("File open");
+    if (this.inputs.path.data != "") {
+      open_callback(undefined, this.inputs.path.data);
+      return;
+    }
+    
     file_dialog("OPEN", new Context(), open_callback);
   }
 }
@@ -502,6 +602,10 @@ export class FileSaveAsOp extends ToolOp {
     
     function save_callback(dialog, path) {
       pd.call(ctx.screen.mpos);
+      
+      g_app_state.session.settings.add_recent_file(path);
+      g_app_state.session.settings.server_update(true);
+      g_app_state.filepath = path;
       
       if (DEBUG.netio)
         console.log("saving...", path);
@@ -600,6 +704,9 @@ export class FileSaveOp extends ToolOp {
     function save_callback(dialog, path) {
       console.log("setting g_app_state.filepath", path);
       g_app_state.filepath = path;
+
+      g_app_state.session.settings.add_recent_file(path);
+      g_app_state.session.settings.server_update(true);
       
       pd.call(ctx.screen.mpos);
       

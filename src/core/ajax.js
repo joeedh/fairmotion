@@ -6,6 +6,16 @@ import * as config from 'config';
 
 //#ifndef PACK_PROFILE
 
+/*
+net api refator
+
+  1. Split out binary serialization routines into separate file
+  2. Have call_api return a promise.
+  3. Have all other api functions return promises.
+  4. Remove calllback arguments from function prototypes
+     and use returned promises instead.
+*/
+
 #define profile_start(name) ;
 
 #define profile_end(name) ;
@@ -538,20 +548,6 @@ export class unpack_ctx {
   }
 }
 
-export function send_mesh(Mesh mesh)
-{
-  var buf = new ArrayBuffer(2);
-  var uint = new Uint8Array(buf);
-  uint[0] = 35;
-  uint[1] = 36;
-  
-  var data = []
-  mesh.pack(data);
-  console.log(data);
-  
-  //localStorage.mesh_bytes = data;
-}
-
 //function NetJobFinish(job, owner);
 //function NetJobError(job, owner, error);
 //function NetJobStatus(job, owner, status) : NetStatus;
@@ -774,19 +770,36 @@ window.auth_session = function auth_session(user, password, finish, error, statu
   return obj;
 }
 
-window.call_api = function call_api(iternew, args, finish, error, status) {
-  var obj = {};
+window.call_api = function call_api(iternew, args, finishcb, errorcb, status) {
+  var promise = new Promise(function(accept, reject) {
+    var obj = {};
+    
+    //XXX todo: get rid of finishcb and errorcb
+    function finish() {
+      if (finishcb != undefined)
+        finishcb.apply(this, arguments);
+      
+      accept.apply(this, arguments);
+    }
+    
+    function error() {
+      if (errorcb != undefined)
+        errorcb.apply(this, arguments);
+      
+      reject.apply(this, arguments);
+    }
+    
+    obj.job = new NetJob(obj, undefined, finish, error, status);
+    
+    var iter = iternew(obj.job, args);
+    
+    iter.job = obj.job;
+    obj.iter = obj.job.iter = iter;
+    
+    obj.iter.next();
+  });
   
-  obj.job = new NetJob(obj, undefined, finish, error, status);
-  
-  var iter = iternew(obj.job, args);
-  
-  iter.job = obj.job;
-  obj.iter = obj.job.iter = iter;
-  
-  obj.iter.next();
-  
-  return obj;
+  return promise;
 }
 
 window.get_user_info = function* get_user_info(job, args) {

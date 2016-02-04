@@ -1493,6 +1493,10 @@ export class Context {
     return g_app_state.active_splinepath == undefined ? "frameset.drawspline" : g_app_state.active_splinepath;
   }
   
+  get filepath() : String {
+    return g_app_state.filepath;
+  }
+  
   get spline() : FrameSet {
     var ret = this.api.get_object(g_app_state.active_splinepath); 
     

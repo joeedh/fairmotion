@@ -118,6 +118,9 @@ import {SplineEditor} from 'view2d_spline_ops';
 import {ColumnFrame, RowFrame} from 'UIPack';
 import {UIMenuLabel} from 'UIWidgets';
 import {UIMenu} from 'UIMenu';
+import {UITabPanel} from 'UITabPanel';
+
+import {ImageUser} from 'imageblock';
 
 export class View2DHandler extends Area {
    constructor(WebGLRenderingContext gl, Mesh mesh, ShaderProgram vprogram, ShaderProgram fprogram, 
@@ -127,6 +130,9 @@ export class View2DHandler extends Area {
     static int v3d_id = 0;
    
     this.pinned_paths = undefined;
+    
+    this.background_image = new ImageUser();
+    this.draw_bg_image = true;
     
     this.work_canvas = undefined;
     
@@ -392,6 +398,8 @@ export class View2DHandler extends Area {
   
   data_link(DataBlock block, Function getblock, Function getblock_us) {
     this.ctx = new Context();
+    
+    this.background_image.data_link(block, getblock, getblock_us);
   }
 
   [Symbol.keystr]() : String {
@@ -762,6 +770,14 @@ export class View2DHandler extends Area {
       }
     }
     
+    //get_dom_image
+    if (this.draw_bg_image && this.background_image.image != undefined) {
+      var img = this.background_image.image.get_dom_image();
+      var iuser = this.background_image;
+      
+      g.drawImage(img, iuser.off[0], iuser.off[1], img.width*iuser.scale[0], img.height*iuser.scale[1]);
+    }
+    
     this.ctx.frameset.draw(this.ctx, g, this);
     
     var frameset = this.ctx.frameset;
@@ -994,6 +1010,7 @@ export class View2DHandler extends Area {
       "sep",
       "appstate.save_as()", 
       "appstate.save()", 
+      "appstate.open_recent()",
       "appstate.open()",
       "sep",
       "appstate.new()"
@@ -1059,6 +1076,33 @@ export class View2DHandler extends Area {
 
   build_sidebar1() {
     this.ctx = new Context();
+    
+    var panel = new RowFrame(this.ctx);
+    
+    this.sidebar1 = panel;
+    panel.packflag |= PackFlags.IGNORE_LIMIT|PackFlags.NO_AUTO_SPACING
+                   | PackFlags.ALIGN_LEFT | PackFlags.INHERIT_WIDTH;
+    panel.pad = [1, 1];
+    
+    panel.size = [Area.get_barhgt()*4, this.size[1]];
+    panel.draw_background = true;
+    panel.rcorner = 100.0;
+    panel.pos = [0, Area.get_barhgt()*3];
+    
+    var tabs = new UITabPanel(this.ctx);
+    panel.add(tabs);
+    tabs.pad = [1, 1];
+    
+    var img = tabs.panel("Image");
+    
+    img.prop('view2d.draw_bg_image');
+    img.prop('view2d.background_image.image');
+    img.toolop("image.load_image(datapath='view2d.background_image.image')")
+    img.prop('view2d.background_image.off');
+    img.prop('view2d.background_image.scale');
+    
+    this.add(panel);
+    this.cols.push(panel);
     
     this.editor.build_sidebar1(this);
   }
@@ -1176,6 +1220,8 @@ View2DHandler.STRUCT = STRUCT.inherit(View2DHandler, Area) + """
     draw_faces        : int;
     draw_video        : int;
     pinned_paths      : array(int) | obj.pinned_paths != undefined ? obj.pinned_paths : [];
+    background_image  : ImageUser;
+    draw_bg_image     : int;
   }
 """
 

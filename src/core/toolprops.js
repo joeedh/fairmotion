@@ -12,14 +12,16 @@ export var PropTypes = {
   BOOL:  8,
   MATRIX3: 12,
   MATRIX4: 13,
-  ENUM: 14,
-  STRUCT: 15, //internal type to data api
-  FLAG: 16,
-  DATAREF: 17,
-  DATAREFLIST: 18,
-  TRANSFORM  : 19, //ui-friendly matrix property
-  COLLECTION : 20,
-  VEC2       : 21
+  ENUM   : 14,
+  STRUCT      : 15, //internal type to data api
+  FLAG        : 16,
+  DATAREF     : 17,
+  DATAREFLIST : 18,
+  TRANSFORM   : 19, //ui-friendly matrix property
+  COLLECTION  : 20,
+  VEC2        : 21,
+  IMAGE       : 22, //this is only a subtype, used with DataRefProperty
+  ARRAYBUFFER : 23
 };
 
 export var TPropFlags = {
@@ -192,6 +194,33 @@ ToolProperty.STRUCT = """
   }
 """;
 
+export class ArrayBufferProperty extends ToolProperty {
+  constructor(data, apiname="", uiname=apiname, description="", flag=0) {
+    super(PropTypes.ARRAYBUFFER, apiname, uiname, description, flag);
+    
+    if (data != undefined) {
+      this.set_data(data);
+    }
+  }
+  
+  copyTo(ArrayBufferProperty dst) {
+    ToolProperty.prototype.copyTo.call(this, dst, false);
+
+    if (this.data != undefined)
+      dst.set_data(this.data);
+    
+    return dst;
+  }
+  
+  copy() : ArrayBufferProperty {
+    return this.copyTo(new ArrayBufferProperty());
+  }
+}
+ArrayBufferProperty.STRUCT = STRUCT.inherit(ArrayBufferProperty, ToolProperty) + """
+  data : arraybuffer;
+}
+""";
+
 export class DataRefProperty extends ToolProperty {
   //allowed_types can be either a datablock type,
   //or a set of allowed datablock types.
@@ -208,7 +237,16 @@ export class DataRefProperty extends ToolProperty {
         allowed_types = new set([allowed_types]);
     }
     
-    this.types = allowed_types;
+    this.types = new set();
+    
+    //ensure this.types stores integer type ids, not type classes
+    for (var val of allowed_types) {
+      if (typeof val == "object") {
+        val = new val().lib_type;
+      }
+      
+      this.types.add(val);
+    }
     
     if (value != undefined)
       this.set_data(value);
@@ -224,12 +262,15 @@ export class DataRefProperty extends ToolProperty {
   copyTo(DataRefProperty dst) {
     ToolProperty.prototype.copyTo.call(this, dst, false);
 
-    if (this.data != undefined)
-      this.data = this.data.copy();
+    var data = this.data;
+    
+    if (data != undefined)
+      data = data.copy();
     
     dst.types = new set(this.types);
-    if (this.data != undefined)
-      dst.set_data(this.data);
+    
+    if (data != undefined)
+      dst.set_data(data);
     
     return dst;
   }
@@ -243,8 +284,7 @@ export class DataRefProperty extends ToolProperty {
       ToolProperty.prototype.set_data.call(this, undefined);
     } else if (!(value instanceof DataRef)) {
       if (!this.types.has(value.lib_type)) {
-        console.trace();
-        console.log("Invalid datablock type " + value.lib_type + " passed to DataRefProperty.set_value()");
+        console.trace("Invalid datablock type " + value.lib_type + " passed to DataRefProperty.set_value()");
         return;
       }
       
@@ -817,7 +857,7 @@ export class Vec2Property extends ToolProperty {
   constructor(vec2, apiname, uiname, description, flag) {
     ToolProperty.call(this, PropTypes.VEC2, apiname, uiname, description, flag);
     
-    this.unit = "default";
+    this.unit = undefined; //"default";
     this.range = [undefined, undefined]
     this.real_range = [undefined, undefined]
     this.data = new Vector3(vec2);  

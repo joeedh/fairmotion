@@ -2,8 +2,10 @@ import {
   FileDialog, FileOpenOp, FileSaveAsOp, FileNewOp,
   FileSaveOp, ProgressDialog, LoginDialog, FileSaveSTLOp,
   FileSaveB64Op, FileDialog, error_dialog, import_json,
-  download_file
+  download_file, FileOpenRecentOp
 } from 'dialogs';
+
+import {LoadImageOp} from 'image_ops';
 
 import {DeleteVertOp, DeleteSegmentOp, DeleteFaceOp,
        ChangeFaceZ, SplitEdgeOp, DuplicateOp,
@@ -233,6 +235,10 @@ window.api_define_ops = function() {
       return new UnhideOp(args.selmode, args.ghost);
     },
     
+    "image.load_image" : function(ctx, args) {
+      return new LoadImageOp(args.datapath, args.name);
+    },
+    
     "spline.select_linked" : function(ctx, args) {
       var op = new SelectLinkedOp();
       return op;
@@ -313,6 +319,10 @@ window.api_define_ops = function() {
     "appstate.open" : function(ctx, args) {
       return new FileOpenOp();
     },
+    "appstate.open_recent" : function(ctx, args) {
+      return new FileOpenRecentOp();
+    },
+    
     "appstate.export_stl" : function(ctx, args) {
       return new FileSaveSTLOp();
     },

@@ -68,6 +68,11 @@ export class _WrapVec {
   }
   
   set 0(val) {
+    if (isNaN(val)) {
+      console.trace("NaN!");
+      return;
+    }
+    
     switch (this.edge) {
       case 0: //v1
         this.area.size[0] = (this.area.pos[0]+this.area.size[0]) - val;
@@ -87,6 +92,11 @@ export class _WrapVec {
   }
   
   set 1(val) {
+    if (isNaN(val)) {
+      console.trace("NaN!");
+      return;
+    }
+    
     switch (this.edge) {
       case 0: //v1
         this.area.size[1] = (this.area.pos[1]+this.area.size[1]) - val;
@@ -448,6 +458,11 @@ export class ScreenBorder extends UIElement {
   }
 
   do_resize(delta) {
+    if (isNaN(delta)) {
+      console.trace("EEK! NaN in frame resize!\n", delta);
+      return;
+    }
+    
     var axis = (this.bindex+1) % 2;
     
     for (var ed of this.areas) {

@@ -88,8 +88,10 @@ export class Screen extends UIFrame {
     }
     
     var k = this.keymap;
-    k.add_tool(new KeyHandler("O", ["CTRL"], "Save File"),
+    k.add_tool(new KeyHandler("O", ["CTRL"], "Open File"),
                "appstate.open()");
+    k.add_tool(new KeyHandler("O", ["CTRL", "SHIFT"], "Open Recent"),
+               "appstate.open_recent()");
     k.add_tool(new KeyHandler("S", ["CTRL", "ALT"], "Save File"),
                "appstate.save_as()");
     k.add_tool(new KeyHandler("S", ["CTRL"], "Save File"),
@@ -675,10 +677,11 @@ export class Screen extends UIFrame {
             c1.size[0] = Math.max(c1.size[0], 4);
           }
           
-          if (found2) {
+          if (found2 && c2.size[0] != oldsize[0] && c2.size[1] != oldsize[1]) {
             found = true;
             c2.on_resize(c2.size, oldsize);
-            //console.log("snapped", found2);
+            
+            console.log("SNAPPED", found2, c2.size, oldsize);
           }
           
           if (found2)

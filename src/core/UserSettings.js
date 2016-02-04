@@ -10,6 +10,19 @@ export class AppSettings {
     this.unit = "in";
     this.last_server_update = 0;
     this.update_waiting = false;
+    this.recent_files = [];
+  }
+  
+  add_recent_file(path) {
+    if (this.recent_files.indexOf(path) >= 0) {
+      this.recent_files.remove(path);
+      this.recent_files.push(path);
+    } else if (this.recent_files.length >= config.MAX_RECENT_FILES) {
+      this.recent_files.shift();
+      this.recent_files.push(path);
+    } else {
+      this.recent_files.push(path);
+    }
   }
 
   toJSON() {
@@ -38,10 +51,10 @@ export class AppSettings {
     }
   }
   
-  server_update() {
+  server_update(force=False) {
     //console.trace("server settings push");
     
-    if (time_ms() - this.last_server_update > 3000) {
+    if (force || time_ms() - this.last_server_update > 3000) {
       //console.log("pushing settings to server. . .");
       _settings_manager.server_push(this);
       
@@ -134,9 +147,10 @@ export class AppSettings {
 
 AppSettings.STRUCT = """
   AppSettings {
-    unit_scheme : string;
-    unit        : string;
-    theme       : Theme | g_theme;
+    unit_scheme  : string;
+    unit         : string;
+    theme        : Theme | g_theme;
+    recent_files : array(string);
   }
 """;
 

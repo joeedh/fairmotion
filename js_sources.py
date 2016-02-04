@@ -49,6 +49,8 @@ sources = [
 	"src/core/jobs.js",
 	"src/core/ajax.js",
   "src/core/raster.js",
+  "src/core/imageblock.js",
+  "src/image/image_ops.js",
   "src/core/UserSettings.js",
 	"src/core/AppState.js",
 	"src/core/units.js",

@@ -6,7 +6,9 @@ export var NO_SERVER=false;
 export var DISABLE_SOLVE=false;
 export var ENABLE_MULTIRES=false;
 
-window.RELEASE=false;
+export var MAX_RECENT_FILES = 12
+
+window.RELEASE = false;
 
 //load local configuration overrides
 import * as config_local from 'config_local';

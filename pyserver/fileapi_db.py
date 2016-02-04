@@ -11,12 +11,7 @@ from config import *
 from db_engine import *
 import db_engine
 
-ROOT_PARENT_ID = 1
-EMPTY_TAG = "__(empty)__"
-
-#might as well use google's mime type for folders
-FOLDER_MIME = "application/vnd.google-apps.folder"
-file_restricted_fields = set(["diskpath", "cached_path", "flag"])
+from fileapi import file_restricted_fields, FOLDER_MIME, EMPTY_TAG, ROOT_PARENT_ID
 
 def is_folder(file):
   return file["mimeType"] == FOLDER_MIME or ("fileid" in file and file["fileid"] == ROOT_PARENT_ID)

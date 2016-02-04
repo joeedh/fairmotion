@@ -267,6 +267,7 @@ export class Dialog extends UIFrame {
 window.Dialog = Dialog;
 
 export class PackedDialog extends Dialog {
+  //screen can be g_app_state.screen
   constructor(title, ctx, screen, flag) {
     super(title, ctx, screen, flag);
     

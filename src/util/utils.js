@@ -658,11 +658,12 @@ class hashtable {
   }
 
   [Symbol.iterator]() : HashKeyIter {
-    return new HashKeyIter(this)
+    return Object.keys(this.items)[Symbol.iterator]();
   }
 
-  values() : GArray<Object> {
-    var ret = new GArray();
+  values() : Array<Object> {
+    var ret = new Array();
+
     for (var k of this) {
       ret.push(this.items[k]);
     }

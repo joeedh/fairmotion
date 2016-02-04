@@ -150,6 +150,8 @@ def restrict_prev(type1="noline"):
     return None
   
 def handle_semi_error(p):
+  global parser 
+  
   if glob.g_production_debug:
     print("in handle_semi_error")
     
@@ -201,7 +203,7 @@ def handle_semi_error(p):
     p.lexer.push(p.lexer.cur)
     p.lexer.push(t)
     
-    yacc.errok()
+    parser._parser.errok()
     glob.g_error = False
     glob.g_tried_semi = True
   else:
@@ -2622,6 +2624,8 @@ def print_err(p, do_exit=True, msg="syntax error"):
 tried_semi = False
   
 def p_error(p):
+  global parser
+      
   """
   print(p.lexer.prev.lineno, p.lineno)
   if p.lexer.prev.lineno < p.lineno or p.type == "RBRACKET":
@@ -2643,12 +2647,14 @@ def p_error(p):
       t.lineno = -1
       glob.g_lexer.push(t)
       glob.g_tried_semi = True
-      yacc.errok()
+      
+      parser._parser.errok()
     else:
       sys.stderr.write(glob.g_file + ": error: unexpected end of file\n")
     return
   else:
     glob.g_error_pre = p
+    
     if handle_semi_error(p):
       t = LexToken()
       t.type = "SEMI"
@@ -2657,8 +2663,10 @@ def p_error(p):
       t.lineno = p.lineno
       #glob.g_lexer.push(t)
       #glob.g_tried_semi = True
+
+      parser._parser.errok()
+      #yacc.errok()
       
-      yacc.errok()
       glob.g_error = False
       if glob.g_production_debug or glob.g_semi_debug:
         linestr, colstr = err_find_line(p.lexer, p.lexpos);

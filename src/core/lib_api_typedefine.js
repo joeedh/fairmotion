@@ -1,6 +1,8 @@
 import {SplineFrameSet} from 'frameset';
 import {Scene} from 'scene';
 import {DataTypes} from 'lib_api';
+import {Image} from 'imageblock';
+import {Spline} from 'spline';
 
 //low-level stuff
 
@@ -10,6 +12,8 @@ export var get_data_typemap = function() {
   
   obj[DataTypes.FRAMESET] = SplineFrameSet;
   obj[DataTypes.SCENE] = Scene;
+  obj[DataTypes.IMAGE] = Image;
+  obj[DataTypes.SPLINE] = Spline;
   
   return obj;
 }

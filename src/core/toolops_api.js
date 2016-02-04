@@ -39,6 +39,19 @@ import {pack_int, pack_float, pack_static_string, unpack_ctx} from 'ajax';
   toolop refactor 2:
   1. Move uiname/description/icon of tools into prototype or
      constructor object.
+     NEW: transition to a 'tooldef' static method.  like so:
+     
+     class Tool extends ToolOp {
+      static tooldef() { return {
+        apiname  : "load_image",
+        uiname   : "Load Image",
+        inputs   : {},
+        outputs  : {},
+        icon     : -1,
+        is_modal : false
+      }}
+     }
+     
   2. Get rid of apiname.
   
   toolop refactor:
@@ -50,7 +63,7 @@ import {pack_int, pack_float, pack_static_string, unpack_ctx} from 'ajax';
      with .modal_ctx.
   5. DONE: A RuntimeSavedContext class?  ToolExecContext?
   6. Think about Context's class hierarchy.
-  7. Default undo implementation should copy whole program state (other than the toolstack),
+  7. DONE Default undo implementation should copy whole program state (other than the toolstack),
      not just the current mesh data.
   8. DONE (for now): Implement an iterator property type.  Perhaps something based on
      a SavedContext-restricted subset of the datapath api?  Note to self:
@@ -83,7 +96,54 @@ export var ModalStates = {
 var _tool_op_idgen = 1; 
 
 export class ToolOpAbstract {
+  /*
+  if presense, defines defaults:
+  
+  static tooldef() { return {
+    apiname  : "load_image",
+    uiname   : "Load Image",
+    inputs   : {},
+    outputs  : {},
+    icon     : -1,
+    is_modal : false
+  }}
+  */
+  
   constructor(apiname, uiname, description=undefined, icon=-1) {
+    if (this.constructor.tooldef != undefined && 
+        this.constructor.tooldef != this.constructor.prototype.prototype.constructor.tooldef) {
+      var ret = this.constructor.tooldef();
+      
+      for (var k in ret) {
+        this[k] = ret[k];
+        
+        //copy input/output slots
+        if (k == "inputs" || k == "outputs") {
+          var v = this[k];
+          
+          for (var k2 in v) {
+            v[k2] = v[k2].copy();
+          }
+        }
+      }
+    } else {
+      var ins = {};
+      if (this.constructor.inputs != undefined) {
+        for (var k in this.constructor.inputs) {
+          ins[k] = this.constructor.inputs[k].copy();
+        }
+      }
+      this.inputs = ins;
+
+      var outs = {};
+      if (this.constructor.outputs != undefined) {
+        for (var k in this.constructor.outputs) {
+          outs[k] = this.constructor.outputs[k].copy();
+        }
+      }
+      this.outputs = outs;
+    }
+    
     if (this.name == undefined)
       this.name = apiname;
     if (this.uiname == undefined)
@@ -96,22 +156,6 @@ export class ToolOpAbstract {
     this.apistruct = undefined : DataStruct; //may or may not be set
     this.op_id = _tool_op_idgen++;
     this.stack_index = -1;
-    
-    var ins = {};
-    if (this.constructor.inputs != undefined) {
-      for (var k in this.constructor.inputs) {
-        ins[k] = this.constructor.inputs[k].copy();
-      }
-    }
-    this.inputs = ins;
-
-    var outs = {};
-    if (this.constructor.outputs != undefined) {
-      for (var k in this.constructor.outputs) {
-        outs[k] = this.constructor.outputs[k].copy();
-      }
-    }
-    this.outputs = outs;
   }
   
   get_saved_context() {
@@ -206,7 +250,9 @@ export class ToolOp extends EventHandler, ToolOpAbstract {
     
     this.drawlines = new GArray();
     
-    this.is_modal = false;
+    if (this.is_modal == undefined)
+      this.is_modal = false;
+    
     this.undoflag = 0;
     this.on_modal_end = undefined; //modal end callback
     
@@ -351,7 +397,7 @@ export class ToolOp extends EventHandler, ToolOpAbstract {
   }
 
   end_modal() 
-  {/*call by inheriting tools*/
+  {/*called by inheriting tools*/
       this._end_modal();
   }
 

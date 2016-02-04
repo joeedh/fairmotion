@@ -180,9 +180,73 @@ export function key_unrotate(Object key) {
 export function get_root_folderid() {
   if (g_app_state.session.userid == undefined) 
     return undefined;
-    
+  
   var userid = key_unrotate(g_app_state.session.userid);
   return fileid_to_publicid(1, userid);
+}
+
+export function get_current_dir() {
+  if (g_app_state.session.userid == undefined) 
+    return undefined;
+  
+  recent_files = g_app_state.session.settings.recent_files;
+  
+  if (recent_files.length > 0) {
+    var path = recent_files[recent_files.length-1].trim().replace(/\\/g, "/");
+    while (path.length > 0 && path[path.length-1] != "/") {
+      path = path.slice(0, path.length-1);
+    }
+    
+    if (path.length > 0 && path[path.length-1] != "/")
+      path = path.slice(0, path.length-1);
+    
+    return path == "" ? undefined : path;
+  }
+  
+  return undefined;
+}
+
+import {encode_utf8, decode_utf8, truncate_utf8, 
+        urlencode, b64decode, b64encode} from 'strutils';
+
+export function path_to_id(path) {
+  if (path.trim() == "/") {
+    return new Promise(function(accept, reject) {
+      accept({
+        value : get_root_folderid()
+      });
+    });
+  }
+  
+  //if not logged in, return. . . ah a promise in error state?
+  if (g_app_state.session.userid == undefined) { 
+    return new Promise(function(accept, reject) {
+      reject();
+    });
+  }
+  
+  function joblet(job, args) {
+    if (g_app_state.session.tokens == undefined) {
+      job.error(job, job.owner);
+      return;
+    }
+    
+    var token = g_app_state.session.tokens.access;
+    var path2 = urlencode(path);
+    
+    api_exec("/api/files/get/meta?accessToken="+token+"&path="+path2, job);
+    yield;
+    
+    job.value = job.value.id;
+  }
+  
+  return call_api(joblet);
+}
+
+window.test_get_file_id = function() {
+  path_to_id("/C/dev").then(function(job) {
+    console.log("==>", arguments, job.value);
+  });
 }
 
 window.key_rot = key_rotate;

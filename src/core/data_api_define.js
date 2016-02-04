@@ -1,6 +1,7 @@
 import {DataTypes} from 'lib_api';
 import {EditModes} from 'view2d';
 import {ENABLE_MULTIRES} from 'config';
+import {ImageFlags, Image} from 'imageblock';
 
 import {BoxColor4, BoxWColor, ColorTheme, 
         ThemePair, View2DTheme, BoxColor, 
@@ -9,6 +10,7 @@ import {BoxColor4, BoxWColor, ColorTheme,
 import {EnumProperty, FlagProperty, 
         FloatProperty, StringProperty,
         BoolProperty, Vec2Property,
+        DataRefProperty,
         Vec3Property, Vec4Property, IntProperty,
         TPropFlags, PropTypes} from 'toolprops';
 
@@ -220,6 +222,29 @@ function api_define_DataBlock() {
   ];
 }
 
+var ImageUserStruct = undefined;
+
+function api_define_imageuser() {
+  var image = new DataRefProperty(undefined, [DataTypes.IMAGE], "image", "Image");
+  
+  var off = new Vec2Property(undefined, "offset", "Offset");
+  var scale = new Vec2Property(undefined, "scale", "Scale");
+  
+  scale.range = [0.0001, 90.0];
+  
+  off.api_update = scale.api_update = function api_update(ctx, path) {
+    window.redraw_viewport();
+  }
+  
+  ImageUserStruct = new DataStruct([
+    new DataPath(image, "image", "image", true),
+    new DataPath(off, "off", "off", true),
+    new DataPath(scale, "scale", "scale", true)
+  ]);
+  
+  return ImageUserStruct;
+}
+
 function api_define_view2d() {
   var only_render = new BoolProperty(0, "only_render", "Only Render");
   
@@ -240,14 +265,17 @@ function api_define_view2d() {
   }
   zoomprop.range = zoomprop.real_range = zoomprop.ui_range = [0.1, 100];
   
+  var draw_bg_image = new BoolProperty(0, "draw_bg_image", "Draw Image");
+  
   var draw_video = new BoolProperty(0, "draw_video", "Draw Video");
-  draw_video.update = function() {
+  draw_video.update = draw_bg_image.update = function() {
     window.redraw_viewport();
   }
   
   View2DStruct = new DataStruct([
     new DataPath(selmask_enum.copy(), "selectmode", "selectmode",  true),
     new DataPath(only_render, "only_render", "only_render", true),
+    new DataPath(draw_bg_image, "draw_bg_image", "draw_bg_image", true),
     new DataPath(new BoolProperty(0, "tweak_mode", "Tweak Mode"), "tweak_mode", "tweak_mode", true),
     new DataPath(new BoolProperty(0, "enable_blur", "Blur"), "enable_blur", "enable_blur", true),
     new DataPath(new BoolProperty(0, "draw_faces", "Draw Faces"), "draw_faces", "draw_faces", true),
@@ -258,7 +286,8 @@ function api_define_view2d() {
     new DataPath(api_define_material(), "active_material", "active_material", true),
     new DataPath(linewidth, "default_linewidth", "default_linewidth", true),
     new DataPath(extrude_mode, "extrude_mode", "extrude_mode", true),
-    new DataPath(new BoolProperty(0, "pin_paths", "Pin Paths"), "pin_paths", "pin_paths", true)
+    new DataPath(new BoolProperty(0, "pin_paths", "Pin Paths"), "pin_paths", "pin_paths", true),
+    new DataPath(api_define_imageuser(), "background_image", "background_image", true)
   ])
   
   return View2DStruct;
@@ -777,6 +806,25 @@ function api_define_object() {
   ]);
   
   return ObjectStruct;
+}
+
+var ImageStruct = undefined;
+function api_define_image() {
+  var name = new StringProperty("");
+  var lib_id = new IntProperty(0)
+  var path = new StringProperty("")
+  var flag = new FlagProperty(1, ImageFlags, undefined, "image flags", "image flags");
+  
+  ImageStruct = new DataStruct([
+    new DataPath(name, "name", "name", true),
+    new DataPath(lib_id, "lib_id", "lib_id", true),
+    new DataPath(path, 'path', 'path', true),
+    new DataPath(flag, 'flag', 'flag', true)
+  ]);
+
+  datablock_structs[DataTypes.IMAGE] = ImageStruct;
+  
+  return ImageStruct;
 }
 
 function api_define_datalist(name, typeid) {

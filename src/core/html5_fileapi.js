@@ -52,8 +52,21 @@ export function open_file(callback, thisvar) {
 
 export function save_file(data) {
     data = new Blob([data], {type : "application/octet-binary"});
-    
     var url = URL.createObjectURL(data);
+    
+    var link = document.createElement("a");
+    link.href = url;
+    
+    //XXX evil usage of global
+    var name = g_app_state.filepath.trim();
+    name = name == "" ? "untitled.fmo" : name;
+    
+    link.download = name; 
+    console.log(link, link.__proto__);
+    window._link = link;
+    
+    link.click();
+    return;
     window.open(url);
     console.log("url:", url);
 }

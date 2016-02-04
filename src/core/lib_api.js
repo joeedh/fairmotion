@@ -28,6 +28,7 @@ import {STRUCT} from 'struct';
 //each item is [type, int_id]; DO NOT CHANGE INT_ID
 var _DataTypeDef = [
 //[enum name, type id (integer)]
+  ["IMAGE", 8],
   ["SCENE", 5],
   ["SCRIPT", 4],
   ["SPLINE", 6],
@@ -216,6 +217,9 @@ export class DataLib {
     return dl;
   }
   
+  get images() : DataList<Scene> {
+    return this.get_datalist(DataTypes.IMAGE);
+  }
   
   get scenes() : DataList<Scene> {
     return this.get_datalist(DataTypes.SCENE);

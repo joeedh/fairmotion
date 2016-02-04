@@ -2,10 +2,17 @@ import os, sys, os.path, codecs
 from ctypes import windll
 import ctypes
 import stat, time
+import config
 
 uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 S_ISDIR = 0x4000
+
+def unixnorm(path):
+  #strip out '.', so ./path works
+  while path[0] == ".":
+    path = path[1:]
+  return path 
 
 def normlocal(path):
   path = path.strip()
@@ -46,6 +53,9 @@ def widearray_to_string(pbuf, maxlen=260):
     path += chr(pbuf[i])
   return path
 
+def get_appdata():
+  return os.environ["APPDATA"]
+  
 def get_documents():
   FolderID_DOCUMENTS = ctypes.create_string_buffer(128)
 
@@ -146,11 +156,38 @@ def local_to_real(path):
   if path == "" or path == "/":
     return path
     
+  if path == "/.settings.bin":
+    print("APPDATA", get_appdata()) #os.environ["APPDATA"])
+    
+    dir = get_appdata() + os.path.sep + ".fairmotion" #os.path.join(get_appdata(), "/.fairmotion")
+    
+    if not os.path.exists(dir):
+      print("make dirs", dir) 
+      os.makedirs(dir)
+      
+    path = os.path.join(dir, ".settings.bin")
+    print("DIRPATH", dir)
+    print("PATH", path)
+    
+    if not os.path.exists(path):
+      templ = config.server_root + "/default_settings_bin"
+      f = open(templ, "rb")
+      buf = f.read()
+      f.close()
+      
+      f = open(path, "wb")
+      f.write(buf)
+      f.close()
+    
+    return os.path.abspath(os.path.normpath(path))
+    
   drive, dir, fname = split(path)
   dir = dir.strip()
   
   if dir != "" and dir[0] not in ["/", "\\"]:
     dir = "/" + dir
+  
+  print("DRIVE", "|" + str(drive) + "|", drive);
   
   hl = root_handlers()[drive]
   path = hl(drive) + dir + "/" + fname
@@ -162,6 +199,9 @@ def local_to_real(path):
 def real_to_local(path):
   if path == "" or path == "/" or path == "\\":
     return path
+    
+  if os.path.abspath(os.path.normpath(path)) == unixnorm(local_to_real("/.settings.bin")):
+    return "/.settings.bin"
     
   path = os.path.abspath(os.path.normpath(path))
   path = "/" + path.replace(":", "").replace("\\", "/")

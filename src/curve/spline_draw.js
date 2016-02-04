@@ -231,11 +231,14 @@ export function redo_draw_sort(spline) {
   console.log("time taken:" + (time_ms()-time).toFixed(2)+"ms");
 }
 
+var VERT_SIZE=3.0
+var MRES_SIZE=5.5
+
 function draw_mres_points(spline, g, editor, outside_selmode=false) {
   if (spline.segments.cdata.num_layers("MultiResLayer") == 0)
     return;
   
-  var w = 5.5/editor.zoom;
+  var w = MRES_SIZE/editor.zoom;
   
   var lw = g.lineWidth;
 
@@ -827,7 +830,7 @@ export function draw_spline(spline, g, editor, selectmode, only_render, draw_nor
     return;
     
   if (selectmode & SelMask.HANDLE) {
-    var w = 3.5/editor.zoom;
+    var w = VERT_SIZE/editor.zoom;
     
     for (var i=0; i<spline.handles.length; i++) {
       var v = spline.handles[i];
@@ -881,7 +884,7 @@ export function draw_spline(spline, g, editor, selectmode, only_render, draw_nor
   
   var last_clr = undefined;
   if (selectmode & SelMask.VERTEX) {
-    var w = 1.5/editor.zoom;
+    var w = VERT_SIZE/editor.zoom;
     
     for (var i=0; i<spline.verts.length; i++) {
       var v = spline.verts[i];
@@ -978,9 +981,22 @@ export function patch_canvas2d(g) {
         co.zero(); co[0] = w; co[1] = h;
         transform(this, co);
         
-        console.log(x, y, "w, h", co[0]-x, co[1]-y, w, h);
+        console.log(x, y, "w, h", Math.abs(co[0]-x), Math.abs(co[1]-y), w, h);
         this._drawImage(image, x, y, Math.abs(co[0]-x), Math.abs(co[1]-y));
       } else if (arguments.length == 5) {
+        var x = arguments[1], y = arguments[2];
+        var w = x+arguments[3], h = y+arguments[4];
+        
+        co.zero(); co[0] = x; co[1] = y;
+        transform(this, co);
+        
+        x = co[0], y = co[1];
+        
+        co.zero(); co[0] = w; co[1] = h;
+        transform(this, co);
+        
+        console.log(x, y, "w, h", Math.abs(co[0]-x), Math.abs(co[1]-y), w, h);
+        this._drawImage(image, x, y, Math.abs(co[0]-x), Math.abs(co[1]-y));
       } else {
         throw new Error("Invalid call to drawImage")
       }

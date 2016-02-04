@@ -2,8 +2,10 @@
 
 import {UIFrame} from 'UIFrame';
 import {Unit} from 'units';
-import {PropTypes} from 'toolprops';
+import {PropTypes, DataRefProperty} from 'toolprops';
 import {MinMax, inrect_2d, aabb_isect_2d} from 'mathlib';
+
+//import {UITextBox} from 'UITextBox';
 
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
         charmap, TouchEventManager, EventHandler} from 'events';
@@ -358,13 +360,15 @@ export class UIMenuButton extends UIButtonAbstract {
       if (!(this.state & UIFlags.ENABLED))
         return;
         
-      if (val == undefined)
+      if (val == undefined && this.prop.type != PropTypes.DATAREF)
         val = "(undefined)"
       
       if (val != this.val) {
         this.val = val;
         
-        if (this.prop.ui_value_names[val] != undefined)
+        if (this.prop.type == PropTypes.DATAREF)
+          this.text = val != undefined ? val.name : "(undefined)";
+        else if (this.prop.ui_value_names != undefined && this.prop.ui_value_names[val] != undefined)
           this.text = this.prop.ui_value_names[val];
         else
           this.text = val.toString();
@@ -381,36 +385,85 @@ export class UIMenuButton extends UIButtonAbstract {
       this.clicked = false;
     }
   }
-
+  
+  _build_menu_dataref(ctx, prop, menu) {
+      //examine valid types
+      var lists = [];
+      for (var type of prop.types) {
+        lists.push(ctx.datalib.get_datalist(type));
+      }
+      
+      //build list of datablocks
+      var blocks = [];
+      for (var list of lists) {
+        for (var block of list) {
+          blocks.push(block);
+        }
+      }
+      
+      console.log("blocks", blocks);
+      
+      blocks.sort(function(a, b) {
+        return a.name.localeCompare(b.name);
+      });
+    
+      for (var b of blocks) {
+        menu.add_item(b.name, "", b.lib_id);
+      }
+  }
+  
   build_menu() {
     var this2 = this;
     
     function callback(entry, id) {
       this2.val = id;
-      this2.text = this2.prop.ui_value_names[this2.val];
+      
+      if (this2.prop == undefined) 
+        return;
+      
+      if (this2.prop.type == PropTypes.DATAREF) {
+        var image = this2.ctx.datalib.images.get(id);
+        
+        this2.text = image.name;
+        this2.set_prop_data(image);
+      } else {
+        this2.text = this2.prop.ui_value_names[this2.val];
+        this2.set_prop_data(this2.val);
+      }
+      
       this2.clicked = false;
       this2.do_recalc();
-      this2.set_prop_data(this2.val);
     }
     
     var menu = new UIMenu("", callback);
     this.prop = this.ctx.api.get_prop_meta(this.ctx, this.data_path);
     
-    for (var k in this.prop.ui_value_names) {
-      var hotkey;
-      if (this.prop.hotkey_ref != undefined) {
-        hotkey = this.prop.hotkey_ref.build_str();
-      } else {
-        hotkey = "";
+    if (this.prop.type == PropTypes.DATAREF) {
+      this._build_menu_dataref(this.ctx, this.prop, menu);
+    } else if (this.prop.type == PropTypes.ENUM) { //enum
+      for (var k in this.prop.ui_value_names) {
+        var hotkey;
+        if (this.prop.hotkey_ref != undefined) {
+          hotkey = this.prop.hotkey_ref.build_str();
+        } else {
+          hotkey = "";
+        }
+        
+        menu.add_item(this.prop.ui_value_names[k], hotkey, k);
       }
-      
-      menu.add_item(this.prop.ui_value_names[k], hotkey, k);
     }
     
     this.menu = menu;
   }
 
   on_click(MouseEvent event) {
+    if (this.state & UIFlags.USE_PATH) { 
+      var prop = this.ctx.api.get_prop_meta(this.ctx, this.data_path);
+      if (prop != undefined && prop.type == PropTypes.DATAREF) {
+        this.build_menu();
+      }
+    }
+    
     var canvas = this.get_canvas();
     var viewport = canvas.viewport;
     var menu = this.menu;
@@ -1341,6 +1394,9 @@ export class UIVScroll extends UIFrame {
       this.size[0] = size[0];
       this.size[1] = size[1];
     }
+    
+    this._last_val = undefined;
+    
     this.val = 0;
     this.callback = callback;
     
@@ -1428,10 +1484,21 @@ export class UIVScroll extends UIFrame {
   }
 
   set_value(val) {
-    val = Math.min(Math.max(val, this.range[0]), this.range[1]);
+    //try to prevent recalc loop caused by range clamping,
+    //which can invalidate "value already set?" tests in
+    //parent containers.  kindof horrible, but still. . .
     
-    if (this.val != val)
+    if (val != this._last_val && val != this.val) {
       this.do_recalc();
+    }
+    this._last_val = val;
+    
+    if (this.range[0] > this.range[1]) {
+      val = Math.min(Math.max(val, this.range[1]), this.range[0]);
+    } else {
+      val = Math.min(Math.max(val, this.range[0]), this.range[1]);
+    }
+    
     this.val = val;
   }
 

@@ -70,24 +70,27 @@ var _tote=0, _cace=0, _compe=0;
 
 #define MAX_CLSNAME 24
 
-#define T_INT 0
-#define T_FLOAT 1
-#define T_DOUBLE 2
-#define T_VEC2 3
-#define T_VEC3 4
-#define T_VEC4 5
-#define T_MAT4 6
-#define T_STRING 7
+#define T_INT         0
+#define T_FLOAT       1 
+#define T_DOUBLE      2
+#define T_VEC2        3
+#define T_VEC3        4
+#define T_VEC4        5
+#define T_MAT4        6
+#define T_STRING      7
 #define T_STATIC_STRING 8
-#define T_STRUCT 9
+#define T_STRUCT      9
+
 
 //like struct, but also writes a ref to the type of struct
 
-#define T_TSTRUCT 10
-#define T_ARRAY 11
-#define T_ITER 12
-#define T_DATAREF 13
-#define T_BYTE    14
+#define T_TSTRUCT     10
+
+#define T_ARRAY       11
+#define T_ITER        12
+#define T_DATAREF     13
+#define T_BYTE        14
+#define T_ARRAYBUFFER 15
 
 var SchemaTypes = Object.create({
     "int" : T_INT,
@@ -104,7 +107,8 @@ var SchemaTypes = Object.create({
     "array" : T_ARRAY,
     "iter" : T_ITER,
     "dataref" : T_DATAREF,
-    "byte" : T_BYTE
+    "byte" : T_BYTE,
+    "arraybuffer" : T_ARRAYBUFFER
 });
 
 var SchemaTypeMap = {}
@@ -131,7 +135,8 @@ function SchemaParser() {
     "vec4",
     "byte",
     "mat4",
-    "string"]);
+    "string",
+    "arraybuffer"]);
   
   var reserved_tokens = new set([
     "int", 
@@ -147,6 +152,7 @@ function SchemaParser() {
     "iter",
     "dataref",
     "byte",
+    "arraybuffer",
     "abstract"]);
 
   function tk(name, re, func) {
@@ -724,6 +730,31 @@ var _st_packers = [
     
     packer_debug("byte " + val);
     data.push(val);
+  },
+  function(data, val) { //arraybuffer
+    packer_debug("arraybuffer");
+    
+    if (val == undefined) {
+      pack_int(data, 0);
+    } else {
+      if (val.buffer != undefined) {
+        val = val.buffer;
+      }
+      
+      if (val.byteLength == undefined) {
+        console.trace("struct error", val, data);
+        throw new Error("eek! " + val);
+      }
+      
+      pack_int(data, val.byteLength);
+      
+      var view = new Uint8Array(val);
+      var len = val.byteLength;
+      
+      for (var i=0; i<len; i++) {
+        data.push(view[i]);
+      }
+    }
   }
 ];
 
@@ -1449,6 +1480,14 @@ export class STRUCT {
         packer_debug("-byte " + ret);
         
         return ret;
+      },
+      T_ARRAYBUFFER : function(type) {
+        var length = unpack_int(data, uctx);
+        var ret = unpack_bytes(data, uctx, length);
+        
+        packer_debug("-arraybuffer " + ret);
+        
+        return ret.buffer;
       }
     };
     

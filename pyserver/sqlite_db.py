@@ -8,6 +8,9 @@ datetime_fields = {
   "last_login", "expiration", "expiration", "time"
 }
 
+def sql_close_connections():
+  return;
+  
 def parse_dt(str):
   i = [0]
   

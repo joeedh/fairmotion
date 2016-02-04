@@ -578,3 +578,6 @@ export class UITextBox extends UIElement {
     return [this.min_width, 26];
   }
 }
+
+//XXX avoid module cycle
+window.UITextBox = UITextBox;

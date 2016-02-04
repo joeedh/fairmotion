@@ -1,7 +1,8 @@
 export var DataPathTypes = {PROP: 0, STRUCT: 1, STRUCT_ARRAY : 2};
 export var DataFlags = {NO_CACHE : 1, RECALC_CACHE : 2};
 
-export var TinyParserError = {"TinyParserError":0};
+export class TinyParserError extends Error {
+}
 
 import {PropTypes, TPropFlags, ToolProperty, IntProperty, FloatProperty, 
         Vec3Property, StringProperty} from 'toolprops';
@@ -255,6 +256,8 @@ export class DataStruct {
   
 _TOKEN = 0
 _WORD = 1
+_STRLIT = 2 //string literals always use single quotations, e.g. "'". (not backticks, which are "`")
+
 _LP = "("
 _RP = ")"
 _LS = "["
@@ -305,10 +308,25 @@ class TinyParser {
     var toks = this.toks
     tok = undefined
     
+    var in_str = false;
+    var lastc = 0;
+    
     var i = 0;
     while (i < data.length) {
       c = data[i];
-      if (this.ws.has(c)) {
+      
+      if (c == "'" && lastc != "\\") {
+        in_str ^= 1;
+        
+        if (in_str) {
+          tok = gt("", _STRLIT)
+          toks.push(tok)
+        } else {
+          tok = undefined;
+        }
+      } else if (in_str) {
+        tok[0] += c;
+      } else if (this.ws.has(c)) {
         if (tok != undefined && tok[1] == _WORD) {
           tok = undefined;
         }
@@ -323,6 +341,7 @@ class TinyParser {
         tok[0] += c
       }
       
+      lastc = c;
       i += 1;
     }
   }
@@ -390,7 +409,14 @@ export class DataAPI {
     p = this.parser;
     
     function parse_argval(p) {
-      var val = p.expect(_WORD)
+      var val;
+      
+      if (p.peek()[1] == _STRLIT) {
+       val = p.next()[0];
+      } else {
+        val = p.expect(_WORD)
+      }
+      
       var args;
       
       if (p.peek()[0] == _LP) {
@@ -432,7 +458,7 @@ export class DataAPI {
     }
     
     if (line.contains(_LP)==0)
-      throw TinyParserError;
+      throw new TinyParserError();
     
     var li = line.find(_LP);
     
@@ -451,11 +477,16 @@ export class DataAPI {
   }
   
   parse_call_line(ctx, line) {
+    if (line == undefined) {
+      line = ctx;
+      ctx = new Context();
+    }
+    
     try {
       var ret = this.parse_call_line_intern(ctx, line);
       return ret;
     } catch (error) {
-      if (error != TinyParserError) {
+      if (!(error instanceof TinyParserError)) {
         throw error;
       } else {
         console.log("Could not parse tool call line " + line + "!");
@@ -465,6 +496,16 @@ export class DataAPI {
   
   do_selectmode(ctx, args) {
     return ctx.view2d.selectmode;
+  }
+  
+  do_datapath(ctx, args) {
+    if (args == undefined || args.length == 0 || args[0].length != 1) 
+    {
+      console.log("Invalid arguments to do_datapath()")
+      throw TinyParserError();
+    }
+    
+    return args[0];
   }
   
   do_mesh_selected(ctx, args) {
@@ -511,14 +552,16 @@ export class DataAPI {
       if (a[1] != undefined) {
         if ("do_" + a[1][0] in this) {
           args[a[0]] = this["do_" + a[1][0]](ctx, a[1][1], a[1], a);
+        } else if (typeof a[1][0] == "string") {
+          args[a[0]] = a[1][0];
         } else if (typeof a[1][0] == "number" || parseFloat(a[1][0]) != NaN) {
           args[a[0]] = parseFloat(a[1][0]);
         } else {
-          console.log("Invalid initializer" + a[1][1], a[1]);
+          console.log("Invalid initializer" + a[1][1], a[1], a);
         }
       } else {
         console.log("Error: No parameter for undefined argument " + a[0]);
-        throw TinyParserError;
+        throw TinyParserError();
       }
     }
 
@@ -616,7 +659,7 @@ export class DataAPI {
       var op = this.get_op_intern(ctx, str);
       return op.uiname;
     } catch (error) {
-      if (error != TinyParserError) {
+      if (!(error instanceof TinyParserError)) {
         throw error;
       } else {
         console.log("Error calling " + str);
@@ -635,7 +678,7 @@ export class DataAPI {
       var op = this.get_op_intern(ctx, str);
       return op;
     } catch (error) {
-      if (error != TinyParserError) {
+      if ((error instanceof TinyParserError)) {
         throw error;
       } else {
         console.log("Error calling " + str);
@@ -1136,7 +1179,9 @@ export class DataAPI {
           prop.set_data(value);
         }
       } else {
-        if (prop.type == PropTypes.ENUM) {
+        if (prop.type == PropTypes.DATAREF) {
+          
+        } else if (prop.type == PropTypes.ENUM) {
           value = prop.values[value];
           if (value instanceof String || typeof value == "string") {
             value = '"'+value+'"';
@@ -1167,7 +1212,7 @@ export class DataAPI {
         //need a better way to detect array assignments 
         //  (some.array = [0, 0, 0] instead of some.array[0] = 0).
         if (typeof value != "number" &&
-           (prop.type == PropTypes.VEC3 || prop.type == PropTypes.VEC4))
+           (prop.type == PropTypes.VEC2 || prop.type == PropTypes.VEC3 || prop.type == PropTypes.VEC4))
         {
           var arr = this.eval(ctx, path);
           
@@ -1175,8 +1220,16 @@ export class DataAPI {
             arr[i] = value[i];
           }
         } else {
-          path += " = " + value;
-          this.eval(ctx, path);
+          if (typeof value == "object" ) {
+            scope[0] = value;
+            path += " = scope[0]"
+            
+            this.eval(ctx, path, scope);
+          } else {
+            path += " = " + value;
+            
+            this.eval(ctx, path);
+          }
         }
         
         prop.set_data(this.eval(ctx, valpath));

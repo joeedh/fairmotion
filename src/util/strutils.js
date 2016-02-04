@@ -280,3 +280,23 @@ export function urlencode(s) {
   
   return s2;
 }
+
+export function encode_dataurl(mimetype, buffer) {
+  var uview = new Uint8Array(buffer);
+  
+  var ret = "data:"+mimetype+";base64,"
+  
+  //stupid differing base64 encodings, bleh. . .
+  //ret += b64encode(uview, false);
+  
+  //use native JS version (which is for strings).
+  var b64 = "";
+  for (var i=0; i<uview.length; i++) {
+    b64 += String.fromCharCode(uview[i]);
+  }
+  
+  b64 = btoa(b64);
+  ret += b64;
+  
+  return ret;
+}

@@ -908,8 +908,10 @@ export class UIListBox extends ColumnFrame {
   on_tick() {
     prior(UIListBox, this).on_tick.call(this);
     
-    this.vscroll.set_value(this.listbox.velpan.pan[1]);
-    this.vscroll.do_recalc();
+    if (this.vscroll.val != this.listbox.velpan.pan[1]) {
+      console.log("=>", this.vscroll.val, this.listbox.velpan.pan[1]);
+      this.vscroll.set_value(this.listbox.velpan.pan[1]);
+    }
   }
   
   load_filedata(ObjectMap map) {

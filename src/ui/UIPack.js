@@ -1,4 +1,4 @@
-import {PropTypes, TPropFlags} from 'toolprops';
+import {PropTypes, TPropFlags, DataRefProperty} from 'toolprops';
 
 import {MinMax, inrect_2d, aabb_isect_2d} from 'mathlib';
 
@@ -117,6 +117,7 @@ export class UIPackFrame extends UIFrame {
         var c = new UIButtonIcon(ctx, opname, op.icon, [0,0], [0,0], path, undefined, undefined, use_small);
         c.packflag |= inherit_flag;
         this.add(c);
+        
         return c; //NON-PRECONDITION EXIT POINT
       }
     }
@@ -307,6 +308,28 @@ export class UIPackFrame extends UIFrame {
       
       this.add(c);
       return c;
+    } else if (prop.type == PropTypes.VEC2) {
+        range = (prop.range != undefined && prop.range[0] != undefined) ? prop.range : [-2000, 2000];
+        
+        var row = this.row();
+        row.packflag = packflag;
+        
+        row.label(prop.uiname);
+        var c = new UINumBox(ctx, "X", range, prop.data, [0,0], [0,0], path + "[0]");
+        
+        c.unit = prop.unit;
+        c.setter_path = setter_path+"[0]";
+        c.packflag |= packflag;
+        row.add(c);
+        
+        var c = new UINumBox(ctx, "Y", range, prop.data, [0,0], [0,0], path + "[1]");
+        
+        c.unit = prop.unit;
+        c.setter_path = setter_path+"[1]";
+        c.packflag |= packflag;
+        row.add(c);
+        
+        return row;
     } else if (prop.type == PropTypes.VEC3) {
         range = (prop.range != undefined && prop.range[0] != undefined) ? prop.range : [-2000, 2000];
         
@@ -454,8 +477,15 @@ export class UIPackFrame extends UIFrame {
         
         return check;
       }
+    } else if (prop.type == PropTypes.DATAREF) {
+      var c = new UIMenuButton(ctx, undefined, [0,0], [0,0], path);
+      
+      c.setter_path = setter_path;
+      c.packflag |= packflag;
+      
+      this.add(c);
     } else {
-      if (DEBUG.ui_datapaths)
+      if (1||DEBUG.ui_datapaths)
         console.log("warning: unimplemented property type for path " + path + " in user interface code");
     }
   }

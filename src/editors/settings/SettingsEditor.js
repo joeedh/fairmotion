@@ -36,14 +36,17 @@ import {Area} from 'ScreenArea';
 class SettingsEditor extends Area {
   do_theme_color(int i, String prefix) : UIFrame {
     var ctx=this.ctx;
-    var path = prefix+i+"]";
+    var path = prefix + i + "]";
     
-    var type = this.ctx.api.get_prop(ctx, path+".type");
+    var type = this.ctx.api.get_prop(ctx, path + ".type");
     
     if (type == "Simple") {
       var ret = new UIColorPicker(ctx);
+      
       ret.state |= UIFlags.USE_PATH;
       ret.data_path = path + ".color";
+      ret.on_tick(); //XXX should not need this!
+      //ret.update_widgets();
       
       return ret;
     } else if (type == "Weighted") {
@@ -79,13 +82,38 @@ class SettingsEditor extends Area {
     var listbox = new UIListBox(ctx, undefined, [200, 200]);
     var theme = g_theme;
     
+    g_theme.ui.gen_colors();
+    
     for (var j=0; j<flat_colors.length; j++) {
       listbox.add_item(flat_colors[j][0], j);
+    }
+    
+    //XXX check if order of theme list changed for some reason
+    var on_tick = listbox.on_tick;
+    listbox.on_tick = function() {
+      on_tick.apply(this, arguments);
+      
+      var update = g_theme.ui.flat_colors.length != flat_colors.length;
+      for (var j=0; !update && j<g_theme.ui.flat_colors.length; j++) {
+        if (g_theme.ui.flat_colors[j][0] != flat_colors[j][0]) {
+          update = true;
+        }
+      }
+      
+      if (update) {
+        flat_colors = g_theme.ui.flat_colors;
+        
+        this.reset();
+        for (var j=0; j<g_theme.ui.flat_colors.length; j++) {
+          this.add_item(g_theme.ui.flat_colors[j][0], j);
+        }
+      }
     }
     
     var this2 = this;
     function callback(listbox, text, id) {
       var e = this2.do_theme_color(id, prefix);
+      console.log("ID!", id);
       
       if (panel.themebox != undefined) {
         panel.replace(panel.themebox, e);

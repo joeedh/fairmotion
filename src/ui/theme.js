@@ -135,6 +135,8 @@ export class ColorTheme {
         newtheme.boxcolors.set(k, this.boxcolors.get(k));
       }
     }
+    
+    newtheme.gen_colors();
   }
   
   gen_code() : String {
@@ -180,6 +182,7 @@ export class ColorTheme {
       for (var i=0; i<4; i++) {
         c2[i] = c1[i];
       }
+      
       ret[k] = c2;
       this.flat_colors.push([k, c1]);
     }
@@ -228,82 +231,9 @@ window.default_ui_font_size = 16;
 window.ui_hover_time = 800;
 //var view2d_bg = [0.6, 0.6, 0.9, 1.0];
 
-export var View2DTheme = new ColorTheme({
-  Background   : [1, 1, 1, 1],
-  ActiveObject : [0.8, 0.6, 0.3, 1.0],
-  "Selection"    : [0.699999988079071,0.4000000059604645,0.10000000149011612,1],
-  "GridLineBold" : [0.38, 0.38, 0.38, 1.0],
-  "GridLine"     : [0.5, 0.5, 0.5, 1.0],
-  "AxisX" : [0.9, 0.0, 0.0, 1.0],
-  "AxisY" : [0.0, 0.9, 0.0, 1.0],
-  "AxisZ" : [0.0, 0.0, 0.9, 1.0]
-});
-
 export function ui_weight_clr(clr, weights) {
   return new BoxWColor(clr, weights);
 }
-
-var lighten = darken
-window.UITheme = new ColorTheme({
-  "Box"         : ui_weight_clr([1.0, 0.765, 0.6, 0.9], [0.85, 0.9, 1.0, 1.0]),
-  "DisabledBox" : [0.2, 0.2, 0.2, 1.0],
-  "HoverHint"   : ui_weight_clr([0.85, 0.85, 0.85, 0.9], [0.9, 0.9, 1.0, 1.0]),
-  "ErrorBox"    : ui_weight_clr([1.0, 0.3, 0.2, 0.9], [0.7, 0.8, 1.05, 1.05]),
-  "ErrorText"   : [1.0, 0.2, 0.2, 1.0],
-  "ErrorTextBG" : ui_weight_clr([1.0, 1.0, 1.0, 1.0], [0.9, 0.9, 1.0, 1.0]),
-  "ShadowBox"   : ui_weight_clr([0.0, 0.0, 0.0, 0.1], [1.0, 1.0, 1.0, 1.0]),
-  "ProgressBar" : ui_weight_clr([0.4, 0.73, 0.9, 0.9], [0.75, 0.75, 1.0, 1.0]),
-  "ProgressBarBG" : ui_weight_clr([0.7, 0.7, 0.7, 0.7], [1.0, 1.0, 1.0, 1.0]),
-  "WarningBox": ui_weight_clr([1.0, 0.8, 0.1, 0.9], [0.7, 0.8, 1.05, 1.05]),
-  "ListBoxBG": ui_weight_clr([0.9, 0.9, 0.9, 0.9], [1.0, 1.0, 1.0, 1.0]),
-  "ListBoxText": [0.2, 0.2, 0.2, 1.0], //[1.0, 0.75, 0.21, 0.875]
-  "InvBox": ui_weight_clr([1.0, 0.6, 0.4, 0.9], [0.7, 0.7, 0.7, 0.7]),
-  "HLightBox": ui_weight_clr([1.0, 0.865, 0.67, 0.9], [0.85, 0.85, 1.0, 1.0]),
-  "Highlight": [1.0, 0.75, 0.21, 1],
-  "MenuBorder" : [0.65,0.65,0.65,1],
-  "MenuHighlight": [1.0, 1, 1, 1],
-  "ActivePanel" : ui_weight_clr([0.8, 0.4, 0.3, 0.9], [1.0, 1.0, 1.0, 1.0]),
-  "CollapsingPanel" : ui_weight_clr([0.7, 0.7, 0.7, 0.5], [1.0, 1.0, 1.0, 1.0]),
-  "SimpleBox": ui_weight_clr([0.5, 0.5, 0.5, 0.4], [1.0, 1.0, 1.0, 1.0]),
-  "DialogBox": ui_weight_clr([0.9, 0.9, 0.9, 0.9], [1.0, 1.0, 1.0, 1.0]),
-  "DialogTitle": ui_weight_clr([0.7, 0.7, 0.7, 0.9], [1.0, 1.0, 1.0, 1.0]),
-  "MenuBox": ui_weight_clr([1, 1, 1, 1], [1, 1, 1, 1]),
-  "RadialMenu": [0.85, 0.65, 0.35, 0.8],
-  "RadialMenuHighlight" : [0.85, 0.85, 0.85, 0.5],
-  "DefaultLine" : [0.2, 0.2, 0.2, 1.0],
-  "SelectLine" : [0.7, 0.7, 0.7, 1.0],
-  "Check" : [0.9, 0.7, 0.4, 1],
-  "Arrow" : [0.4, 0.4, 0.4, 1],
-  "DefaultText" : [0.2, 0.2, 0.2, 1.0],
-  "BoxText" : [0.2, 0.2, 0.2, 1.0],
-  "DialogText" : [0.2, 0.2, 0.2, 1.0],
-  "PanelText" : [0.2, 0.2, 0.2, 1.0],
-  "HotkeyText" : [0.4, 0.4, 0.4, 0.9],
-  "HighlightCursor" : [0.9, 0.9, 0.9, 0.875],
-  "TextSelect" : [0.4, 0.4, 0.4, 0.75],
-  "TextEditCursor" : [0.1, 0.1, 0.1, 1.0],
-  "TextBox": ui_weight_clr([0.8, 0.8, 0.8, 0.9], [1, 1, 1, 1]),
-  "TextBoxHighlight": [0.9, 0.9, 0.9, 1.0],
-  "TextBoxInv": ui_weight_clr([0.7, 0.7, 0.7, 1.0], [0.7, 0.7, 0.7, 1.0]),
-  "MenuSep" : [0.1, 0.2, 0.2, 1.0],
-  "RadialMenuSep" : [0.1, 0.2, 0.2, 1.0],
-  "MenuLabel" : ui_weight_clr([0.6, 0.6, 0.6, 0.9], [0.6, 0.6, 0.6, 0.9]),
-  "MenuLabelInv" : ui_weight_clr([0.75, 0.75, 0.75, 0.9], [1, 1, 0.9, 0.9]),
-  "TabPanelOutline" : [0.225, 0.225, 0.225, 0.8],
-  "ScrollBG" : ui_weight_clr([0.8, 0.8, 0.8, 1.0], [1, 1, 1, 1]),
-  "ScrollBar" : ui_weight_clr([0.6, 0.6, 0.6, 1.0], [1, 1, 1, 1]),
-  "ScrollBarHigh" : ui_weight_clr([0.4, 0.4, 0.4, 1.0], [1, 1, 1, 1]),
-  "ScrollButton" : ui_weight_clr([0.8, 0.8, 0.8, 1.0], [1, 1, 1, 1]),
-  "ScrollButtonHigh" : ui_weight_clr([0.75, 0.75, 0.75, 1.0], [1, 1, 1, 1]),
-  "ScrollInv" : ui_weight_clr([0.4, 0.4, 0.4, 1.0], [1, 1, 1, 1]),
-  "TabText" : [0.77, 0.77, 0.77, 1.0],
-  "MenuText" : [0.1, 0.1, 0.1, 1.0],
-  "MenuTextHigh" : [0.9, 0.9, 0.9, 1.0],
-  "IconBox" : [0.8, 0.8, 0.8, 0.0],
-  "HighlightTab" : [1.0, 0.865, 0.67, 0.9],
-  "HighlightIcon" : [1.0, 0.85, 0.3, 0.5],
-  "IconInv" : ui_weight_clr([0.4, 0.4, 0.4, 0.4], [1, 1, 1, 1])
-});
 
 //globals
 window.uicolors = {};
@@ -355,6 +285,6 @@ Theme.STRUCT = """
 //globals
 global g_theme;
 window.init_theme = function() {
-  window.g_theme = new Theme(window.UITheme, View2DTheme);
+  window.g_theme = new Theme(window.UITheme, window.View2DTheme);
   window.g_theme.gen_globals();
 }

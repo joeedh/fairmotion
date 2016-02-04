@@ -540,12 +540,15 @@ export class UIColorPicker extends RowFrame {
   
   on_tick() {
     if (this.state & UIFlags.USE_PATH) {
+      window._cw = this;
+      
       var color = this.get_prop_data();
       
       if (!(this.state & UIFlags.ENABLED))
         return;
       
       var same = true;
+      
       for (var i=0; i<4; i++) {
         if (color[i] != this._color[i]) {
           same = false;
@@ -569,7 +572,7 @@ export class UIColorPicker extends RowFrame {
     var do_update = false;
     
     for (var i=0; i<4; i++) {
-      if (color[i] != undefined && this._color[i] != color[i]) {
+      if (this._color[i] != color[i]) {
         this._color[i] = color[i];
         do_update = true;
       }
@@ -577,6 +580,7 @@ export class UIColorPicker extends RowFrame {
     
     if (do_update)
       this.update_widgets();
+    
     this.do_path();
   }
   
@@ -600,14 +604,15 @@ export class UIColorPicker extends RowFrame {
     var c = this._color, lasthue=undefined;
     
     for (var i=0; i<hsva.length; i++) {
-      if (isNaN(hsva[i]))
+      if (isNaN(hsva[i])) {
+        console.log("Eek, NaN!");
         hsva[i] = 0.0;
+      }
     }
     
     for (var i=0; i<this._color.length; i++) {
       if (isNaN(this._color[i])) {
-        this._color[i] = i == 3 ? 1.0 : 0.0;
-        //console.log("eek, NaN");
+        console.log("eek, NaN");
         this._color[i] = 0.0;
       }
     }
@@ -632,9 +637,11 @@ export class UIColorPicker extends RowFrame {
     this.r.set_val(this._color[0]);
     this.g.set_val(this._color[1]);
     this.b.set_val(this._color[2]);
+    
     if (isNaN(this.color[2])) {
-      console.log(this._color, hsva);
+      console.log("NaN!", this._color, hsva);
     }
+    
     this.a.set_val(this._color[3]);
     
     this.do_path();

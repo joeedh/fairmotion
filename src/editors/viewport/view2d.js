@@ -1093,8 +1093,19 @@ export class View2DHandler extends Area {
     panel.add(tabs);
     tabs.pad = [1, 1];
     
-    var img = tabs.panel("Image");
+    var tools = tabs.panel("Tools");
+    tools.prop("view2d.tweak_mode", PackFlags.USE_LARGE_ICON);
     
+    var display = tabs.panel("Display");
+    display.prop("view2d.only_render");
+    display.prop("view2d.draw_normals");
+    display.prop("view2d.draw_anim_paths");
+    display.prop("view2d.extrude_mode");
+    display.prop("view2d.enable_blur");
+    display.prop("view2d.draw_faces");
+    display.prop("view2d.pin_paths");
+
+    var img = tabs.panel("Image");
     img.prop('view2d.draw_bg_image');
     img.prop('view2d.background_image.image');
     img.toolop("image.load_image(datapath='view2d.background_image.image')")

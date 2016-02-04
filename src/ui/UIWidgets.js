@@ -1721,35 +1721,40 @@ export class UIIconCheck extends UIHoverHint {
   build_draw(UICanvas canvas) {
     canvas.begin(this);
     
-    var csize = [24, 24];
+    var base = this.packflag & PackFlags.USE_LARGE_ICON ? 24+16 : 24;
+    var csize = [base, base];
     
     if (!(this.state & UIFlags.ENABLED)) {
         canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
     } else if (this.state & UIFlags.HIGHLIGHT) {
-      canvas.simple_box([0, 0], [this.size[0], csize[1]])
+      var clr = this.set ? uicolors["IconCheckSet"] : uicolors["IconCheckUnset"];
+      clr = clr.slice(0, clr.length);
       
-      if (this.set) {
-        canvas.invbox([0, 0], this.size, 0.9, 2);
-      } else {
-        canvas.hlightbox([0, 0], this.size);
+      for (var i=0; i<3; i++) {
+        clr[i] *= 1.1;
       }
+      
+      canvas.box([0, 0], this.size, clr, 2);
     } else if(this.set) {
-      canvas.invbox([0, 0], this.size, undefined, 2);
+      canvas.box([0, 0], this.size, uicolors["IconCheckSet"], 2);
     } else {
-      canvas.box([0, 0], this.size, undefined, 2);
+      canvas.box([0, 0], this.size, uicolors["IconCheckUnset"], 2);
     }
     
     var tsize = canvas.textsize(this.text);
     canvas.text([csize[0]+5, (this.size[1]-tsize[1])*0.25], this.text);
     
     var pos = [4, 4];
-    canvas.icon(this.icon, pos, 0.75, true);
+    var draw_small = !(this.packflag & PackFlags.USE_LARGE_ICON);
     
+    canvas.icon(this.icon, pos, 0.75, draw_small);
     canvas.end(this);
   }
 
   get_min_size(UICanvas canvas, Boolean isvertical)
   {
-    return CACHEARR2(canvas.textsize(this.text)[0]+24, 24)
+    var base = this.packflag & PackFlags.USE_LARGE_ICON ? 24+16 : 24;
+    
+    return CACHEARR2(canvas.textsize(this.text)[0]+base, base)
   }
 }

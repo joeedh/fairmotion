@@ -4,7 +4,7 @@ import {ENABLE_MULTIRES} from 'config';
 import {ImageFlags, Image} from 'imageblock';
 
 import {BoxColor4, BoxWColor, ColorTheme, 
-        ThemePair, View2DTheme, BoxColor, 
+        ThemePair, BoxColor, 
         darken} from 'theme';
 
 import {EnumProperty, FlagProperty, 
@@ -26,15 +26,11 @@ import {MultiResLayer, MultiResEffector, MResFlags, has_multires,
         ensure_multires, iterpoints, compose_id, decompose_id
        } from 'spline_multires';
 
-var SelModes = {};
-
-for (var k in SelMask) {
-  if (k == "MULTIRES" && !ENABLE_MULTIRES)
-    continue;
-    
-  SelModes[k] = SelMask[k];
-}
-SelModes.VERTEX_AND_HANDLES = SelMask.VERTEX | SelMask.HANDLE;
+var SelModes = {
+  VERTEX  : SelMask.VERTEX,
+  SEGMENT : SelMask.SEGMENT,
+  FACE    : SelMask.FACE
+};
 
 export var selmask_enum = new EnumProperty(undefined, SelModes, "selmask_enum", "Selection Mode");
 var selmask_ui_vals = {};
@@ -52,6 +48,11 @@ for (var k in SelModes) {
   selmask_ui_vals[k] = s;
 }
 selmask_enum.ui_value_names = selmask_ui_vals;
+selmask_enum.add_icons({
+  VERTEX  : Icons.VERT_MODE,
+  SEGMENT : Icons.EDGE_MODE,
+  FACE    : Icons.FACE_MODE
+});
 
 import * as data_api from 'data_api';
 
@@ -272,11 +273,14 @@ function api_define_view2d() {
     window.redraw_viewport();
   }
   
+  var tweak_mode = new BoolProperty(0, "tweak_mode", "Tweak Mode");
+  tweak_mode.icon = Icons.CURSOR_ARROW;
+  
   View2DStruct = new DataStruct([
     new DataPath(selmask_enum.copy(), "selectmode", "selectmode",  true),
     new DataPath(only_render, "only_render", "only_render", true),
     new DataPath(draw_bg_image, "draw_bg_image", "draw_bg_image", true),
-    new DataPath(new BoolProperty(0, "tweak_mode", "Tweak Mode"), "tweak_mode", "tweak_mode", true),
+    new DataPath(tweak_mode, "tweak_mode", "tweak_mode", true),
     new DataPath(new BoolProperty(0, "enable_blur", "Blur"), "enable_blur", "enable_blur", true),
     new DataPath(new BoolProperty(0, "draw_faces", "Draw Faces"), "draw_faces", "draw_faces", true),
     new DataPath(draw_video, "draw_video", "draw_video", true),

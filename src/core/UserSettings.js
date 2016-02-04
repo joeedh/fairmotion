@@ -51,7 +51,7 @@ export class AppSettings {
     }
   }
   
-  server_update(force=False) {
+  server_update(force=false) {
     //console.trace("server settings push");
     
     if (force || time_ms() - this.last_server_update > 3000) {

@@ -164,10 +164,10 @@ export class UIElement extends EventHandler {
   }
   
   enable() {
+    this.state |= UIFlags.ENABLED;
+
     if (!(this.state & UIFlags.ENABLED))
       this.do_recalc();
-      
-    this.state |= UIFlags.ENABLED;
   }
   
   get_keymaps() {
@@ -345,23 +345,27 @@ export class UIElement extends EventHandler {
 
   get_prop_data() {
     var ctx = this.ctx;
+    var bad = true;
+    var ret = undefined;
     
     try {
-      var ret = ctx.api.get_prop(ctx, this.data_path);
-      this.path_is_bad = false;
-      this.enable();
-      
-      return ret;
+      ret = ctx.api.get_prop(ctx, this.data_path);
+      bad = false;
     } catch (err) {
       if (!this.path_is_bad)
         this.do_recalc();
       
-      this.path_is_bad = true;
-      this.disable();
-      
       //XXX?
-      return 0;
+      ret = 0
     }
+    
+    this.path_is_bad = bad;
+    if (bad)
+      this.disable();
+    else
+      this.enable();
+    
+    return ret;
   }
 
   get_prop_meta() {

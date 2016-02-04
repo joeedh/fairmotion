@@ -764,7 +764,8 @@ export class UIFrame extends UIElement {
   }
   
   enable() {
-    super.disable();
+    super.enable();
+    
     for (var c of this.children) {
       c.enable();
     }

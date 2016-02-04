@@ -69,13 +69,13 @@ export class UIPackFrame extends UIFrame {
   }
   
   _inherit_packflag(inherit_flag) {
-    var icon_size = inherit_flag&(PackFlags.USE_LARGE_ICON|PackFlags.USE_SMALL_ICON);
+    var icon_size = inherit_flag & (PackFlags.USE_LARGE_ICON|PackFlags.USE_SMALL_ICON);
 
     if (icon_size == 0) {
         icon_size = this.default_packflag & (PackFlags.USE_LARGE_ICON|PackFlags.USE_SMALL_ICON);
     }
     
-    inherit_flag = this.default_packflag & ~(PackFlags.USE_SMALL_ICON|PackFlags.USE_SMALL_ICON);;
+    inherit_flag |= this.default_packflag & ~(PackFlags.USE_SMALL_ICON|PackFlags.USE_SMALL_ICON);
     inherit_flag |= icon_size;
     
     return inherit_flag;
@@ -163,12 +163,10 @@ export class UIPackFrame extends UIFrame {
         this.pan_bounds[0][0] = this.pan_bounds[1][0] = 0.0;
       }
     }
-    
-    //this.last_pos.load(this.pos);
-    //this.last_size.load(this.size);
   }
 
-  prop(path, packflag=0, setter_path=undefined) { //setter_path is used for mass set paths
+  //setter_path is used for mass set paths
+  prop(path, packflag=0, setter_path=undefined) { 
     packflag = this._inherit_packflag(packflag);
       
     if (this.path_prefix.length > 0)
@@ -184,6 +182,10 @@ export class UIPackFrame extends UIFrame {
       console.trace();
       console.log("couldn't find property: " + path + ".", this.path_prefix);
       return;
+    }
+    
+    if (prop.type == PropTypes.ENUM) {
+      console.log("   ==>", prop.type, packflag, path, prop, packflag & 4096);
     }
     
     if (prop.type == PropTypes.INT || prop.type == PropTypes.FLOAT) {
@@ -204,18 +206,25 @@ export class UIPackFrame extends UIFrame {
       prop.ctx = ctx;
       
       function update_enum(chk, val) {
+        console.log("check update", chk, val);
+        
         //only allow check sets
         if (!val) {
           chk.set = true;
           return;
         }
         
-        for (var k of checkmap) {
+        for (var k in checkmap) {
           var check = checkmap[k];
-          if (check == chk) {
-            prop.ctx = this2.ctx;
-            prop.set_value(k);
-            prop.set_data(prop.data);
+          
+          if (check === chk) {
+            //prop.ctx = this2.ctx;
+            //prop.set_value(k);
+            //prop.set_data(prop.data);
+            
+            this2.ctx.api.set_prop(this2.ctx, path, prop.keys[k]);
+            
+            console.log("FOUND", prop.data, prop, k, "||");
             continue;
           }
           
@@ -233,14 +242,17 @@ export class UIPackFrame extends UIFrame {
         subframe = this.row();
       }
       
-      subframe.packflag |= packflag;
+      subframe.packflag |= packflag|PackFlags.NO_AUTO_SPACING
+                        | PackFlags.NO_LEAD_SPACING
+                        | PackFlags.NO_TRAIL_SPACING;
+      subframe.pad[0] = -2;
       
       function update_callback(chk) {
         var val = undefined;
         
         for (var k in checkmap) {
           var check = checkmap[k];
-          if (check == chk) {
+          if (check === chk) {
             val = k;
             break;
           }

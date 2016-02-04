@@ -23,5 +23,9 @@ window.Icons = {
   SMALL_PLUS     : 19,
   SMALL_MINUS    : 20,
   MAKE_SEGMENT   : 21,
-  MAKE_POLYGON   : 22
+  MAKE_POLYGON   : 22,
+  FACE_MODE      : 23,
+  EDGE_MODE      : 24,
+  VERT_MODE      : 25,
+  CURSOR_ARROW   : 26
 };

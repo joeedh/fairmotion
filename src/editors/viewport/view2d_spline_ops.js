@@ -363,7 +363,7 @@ export class SplineEditor extends View2DEditor {
     the_row.default_packflag = PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING;
     the_row.draw_background = true;
     the_row.rcorner = 100.0
-    the_row.size = [view2d.size[0], Area.get_barhgt()*2+4];
+    the_row.size = [view2d.size[0], Area.get_barhgt() + 4];
     the_row.pos = [0, 0]; //view2d.size[0]-the_row.size[0]-Area.get_barhgt()-2]
     
     var col = the_row.col();
@@ -374,17 +374,11 @@ export class SplineEditor extends View2DEditor {
     //IsMobile ? 12 : 12
     
     col.add(gen_editor_switcher(this.ctx, view2d));
-    col.prop("view2d.selectmode");
-    col.prop("view2d.only_render");
-    col.prop("view2d.tweak_mode");
-    col.prop("view2d.draw_normals");
+    var prop = col.prop("view2d.selectmode", 
+                        PackFlags.USE_ICON|PackFlags.ENUM_STRIP);
+                        
+    prop.packflag |= PackFlags.USE_ICON|PackFlags.ENUM_STRIP;
     
-    col = the_row.col();
-    col.prop("view2d.draw_anim_paths");
-    col.prop("view2d.extrude_mode");
-    col.prop("view2d.enable_blur");
-    col.prop("view2d.draw_faces");
-    col.prop("view2d.pin_paths");
     col.toolop("view2d.render_anim()");
     col.toolop("view2d.play_anim()");
     //col.prop("view2d.draw_video");
@@ -471,8 +465,6 @@ export class SplineEditor extends View2DEditor {
       var s = ctx.view2d.selectmode, s2;
       
       if (s == SelMask.VERTEX)
-        s2 = SelMask.VERTEX|SelMask.HANDLE;
-      else if (s == (SelMask.VERTEX|SelMask.HANDLE))
         s2 = SelMask.SEGMENT;
       else if (s == SelMask.SEGMENT)
         s2 = SelMask.FACE;

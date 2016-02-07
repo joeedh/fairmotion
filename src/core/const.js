@@ -40,8 +40,8 @@ window.fuzzy_ui_press_hotspot = 25;
 
 window.new_api_parser = true;
 
-if (localStorage.use_canvas2d == undefined)
-  localStorage.use_canvas2d = true;
+if (myLocalStorage.use_canvas2d == undefined)
+  myLocalStorage.use_canvas2d = true;
 
 //private macro helper global for utildefine.js
 var $_mh = undefined;

@@ -131,10 +131,10 @@ export class AppSettings {
     }
     
     if (config.NO_SERVER) {
-        console.log("getting settings from localStorage. . .");
+        console.log("getting settings from myLocalStorage. . .");
         
-        if (localStorage._settings != undefined) {
-            var settings = b64decode(localStorage._settings);
+        if (myLocalStorage._settings != undefined) {
+            var settings = b64decode(myLocalStorage._settings);
             settings = new DataView(settings.buffer);
             
             finish(settings);
@@ -162,12 +162,12 @@ export class SettUploadManager {
   
   server_push(AppSettings settings) {
     console.log("write settings");
-    if (config.NO_SERVER) { //save to localStorage
+    if (config.NO_SERVER) { //save to myLocalStorage
         console.log("write settings2");
         var data = settings.gen_file().buffer;
         data = b64encode(new Uint8Array(data));
         
-        localStorage._settings = data;
+        myLocalStorage._settings = data;
         return;
     }
     

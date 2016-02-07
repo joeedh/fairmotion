@@ -19,7 +19,7 @@ precedence = (
   ("left", "ARROW"),
   ("left", "ASSIGN", "ASSIGNLSHIFT", "ASSIGNRSHIFT", "ASSIGNPLUS",
            "ASSIGNMINUS", "ASSIGNDIVIDE", "ASSIGNTIMES", "ASSIGNBOR",
-           "ASSIGNBAND", "ASSIGNBXOR"),
+           "ASSIGNBAND", "ASSIGNBXOR", "ASSIGNMOD"),
   ("left", "QEST", "COLON"),
   ("left", "BNEGATE"),
   ("left", "LAND", "LOR"),
@@ -1010,7 +1010,6 @@ def p_simple_var_decl(p):
     p[0].val = p[1]
     p[0].add(UnknownTypeNode())
     p[0].type = p[0][1]
-    p[0].add(p[0].type)
     scope_add(p[0].val, p[0])
   else:
     p[0] = VarDeclNode(ExprNode([]), local=True)
@@ -1020,14 +1019,14 @@ def p_simple_var_decl(p):
     
     p[0].add(UnknownTypeNode())
     p[0].type = p[0][1]
-    p[0].add(p[0].type)
     scope_add(p[0].val, p[0])
     
 def p_cmplx_assign(p):
   '''cmplx_assign : ASSIGNPLUS 
                   | ASSIGNMINUS 
                   | ASSIGNDIVIDE 
-                  | ASSIGNTIMES 
+                  | ASSIGNTIMES
+                  | ASSIGNMOD
                   | ASSIGNBOR 
                   | ASSIGNBAND 
                   | ASSIGNBXOR 
@@ -2073,16 +2072,44 @@ def p_re_lit(p):
   set_parse_globals(p);
   p[0] = RegExprNode(p[1])
 
-def p_for_var_decl(p):
-  '''for_var_decl : id
-                  | id ASSIGN expr
-                  | var_decl
+def p_simple_var_decl_strict(p):
   '''
-  global parsescope
-  
+    simple_var_decl_strict : VAR id
+                           | LET id
+  '''
   set_parse_globals(p)
   
-  p[0] = p[1]
+  p[0] = VarDeclNode(ExprNode([]), local=True)
+  p[0].val = p[2]
+  
+  if p[1] == "let":
+    p[0].modifiers.add("let");
+  
+  p[0].add(UnknownTypeNode())
+  p[0].type = p[0][1]
+  #p[0].add(p[0].type)
+  
+  scope_add(p[0].val, p[0])
+  
+def p_for_var_decl(p):
+  '''for_var_decl : expr_opt
+                  | simple_var_decl_strict
+                  | simple_var_decl_strict ASSIGN expr
+  '''
+
+  global parsescope
+
+  set_parse_globals(p)
+  
+  if len(p) == 4:
+    if isinstance(p[3], str):
+      p[3] = IdentNode(p[3])
+    
+    p[1].replace(p[1][0], p[3])
+    p[0] = p[1];
+  else:
+    p[0] = p[1]
+    
   
   if type(p[1]) == str:
     if p[1] not in parsescope:
@@ -2113,11 +2140,20 @@ def p_in_or_of(p):
   
   p[0] = p[1]
 
+"""
+def p_var_id(p):
+  '''
+    var_id : VAR id
+           | LET id
+  '''
+  p[0] = p[2]
+#"""
 
 def p_for_decl(p):
   '''
     for_decl : for_var_decl SEMI expr_opt SEMI expr_opt
-             | for_var_decl in_or_of expr
+             | id in_or_of expr
+             | simple_var_decl in_or_of expr
   '''
   
   set_parse_globals(p)

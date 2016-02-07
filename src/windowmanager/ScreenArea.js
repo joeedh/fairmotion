@@ -127,7 +127,7 @@ export class Area extends UIFrame {
       if (i == 0)
         frame.pos[1] = this.size[1] - Area.get_barhgt() - pany;
 
-      frame.size[0] = frame.get_min_size(this.get_canvas())[0];
+      frame.size[0] = Math.max(frame.get_min_size(this.get_canvas())[0] + 10, this.size[0]);
         
       i++;
     }
@@ -141,6 +141,8 @@ export class Area extends UIFrame {
         frame.pos[0] = this.size[0] - frame.size[0] - panx;
 
       frame.size[1] = frame.get_min_size(this.get_canvas())[1];
+      frame.size[0] = frame.get_min_size(this.get_canvas())[0];
+      
       frame.pos[1] = this.size[1] - frame.size[1] - Area.get_barhgt();
       i++;
     }

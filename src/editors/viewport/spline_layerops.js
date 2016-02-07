@@ -5,7 +5,7 @@ import {SplineLocalToolOp} from 'spline_editops';
 import {StringProperty, IntProperty, FloatProperty, 
         BoolProperty, CollectionProperty} from 'toolprops';
 
-export class AddLayerOp extends ToolOp {
+export class AddLayerOp extends SplineLocalToolOp {
   constructor(name) {
     super(undefined, "Add Layer");
     
@@ -13,6 +13,7 @@ export class AddLayerOp extends ToolOp {
       this.inputs.name.set_data(name);
   }
   
+  /*
   undo_pre(ctx) {
   }
   
@@ -27,18 +28,28 @@ export class AddLayerOp extends ToolOp {
     
     ctx.spline.layerset.remove(layer);
     ctx.spline.regen_sort();
-  }
+  }//*/
   
   exec(ctx) {
     var layer = ctx.spline.layerset.new_layer(this.inputs.name.data);
     this.outputs.layerid.set_data(layer.id);
-
+    
+    if (this.inputs.make_active.data) {
+      ctx.spline.layerset.active = layer;
+      
+      //clear actives
+      for (var list of ctx.spline.elists) {
+        list.active = undefined;
+      }
+    }
+    
     ctx.spline.regen_sort();
   }
 }
 
 AddLayerOp.inputs = {
-  name : new StringProperty("Layer", "name", "Name", "Layer Name")
+  name        : new StringProperty("Layer", "name", "Name", "Layer Name"),
+  make_active : new BoolProperty(true, "Make Active")
 };
 
 AddLayerOp.outputs = {
@@ -154,4 +165,62 @@ export class ChangeElementLayerOp extends SplineLocalToolOp {
 ChangeElementLayerOp.inputs = {
   old_layer : new IntProperty(0),
   new_layer : new IntProperty(0)
+}
+
+export class DeleteLayerOp extends SplineLocalToolOp {
+  constructor() {
+    super(undefined);
+  }
+  
+  static tooldef() {return {
+    uiname   : "Delete Layer",
+    apiname  : "spline.layers.remove",
+    
+    inputs   : {
+      layer_id : new IntProperty(-1)
+    },
+    is_modal : false
+  }}
+  
+  exec(ctx) {
+    var spline = ctx.spline;
+    var layer = spline.layerset.idmap[this.inputs.layer_id.data];
+    
+    if (layer == undefined) {
+      console.trace("Warning, bad data passed to DeleteLayerOp()");
+      return;
+    }
+    
+    if (spline.layerset.length < 2) {
+      console.trace("DeleteLayerOp(): Must have at least one layer at all times");
+      return;
+    }
+    
+    var orphaned = new set();
+    
+    for (var k in spline.eidmap) {
+      var e = spline.eidmap[k];
+      
+      if (layer.id in e.layers) {
+        delete e.layers[layer.id];
+      }
+      
+      var exist = false;
+      for (var id in e.layers) {
+        exist = true;
+        break;
+      }
+      
+      if (!exist) {
+        orphaned.add(e);
+      }
+    }
+    
+    spline.layerset.remove(layer);
+    var layer = spline.layerset.active;
+    
+    for (var e of orphaned) {
+      e.layers[layer.id] = 1;
+    }
+  }
 }

@@ -71,7 +71,7 @@ export class View2DEditor {
   
   do_alt_select(MouseEvent event, Array<float> mpos, View2DHandler view2d) {}
   delete_menu(MouseEvent event) {}
-  gen_delete_menu() : UIMenu {}
+  gen_edit_menu() : UIMenu {}
 }
 
 View2DEditor.STRUCT = """

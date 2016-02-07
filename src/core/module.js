@@ -390,6 +390,11 @@ function load_modules() {
   
   _post_primary_load = true;
   startup_report("...Finished.  " + (time_ms()-start_time).toFixed(1) + "ms", totcycle, "cycle iterations");
+  
+  //add modules to global namespace, but only for debugging purposes
+  for (var k in _defined_modules) {
+    window["_"+k] = _defined_modules[k].exports;
+  }
 }
 
 function test_modules() {
@@ -412,6 +417,21 @@ function test_modules() {
   
   load_modules();
   debug(MathGlobal);
+}
+
+function es6_import_all_fancy(_es6_module, name) {
+  var ret = "import {";
+  var mod = _defined_modules[name];
+  var i = 0;
+  for (var k in mod.exports) {
+    if (i > 0)
+      ret += ", ";
+    ret += k;
+    i++;
+  }
+  ret += "} from '"+name+"';\n";
+  
+  return ret;
 }
 
 function es6_import_all(_es6_module, name) {

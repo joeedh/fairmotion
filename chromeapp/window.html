@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script type="text/javascript" src="fcontent/chromeapp.js"></script>
+    <style>
+      body, html {
+          margin: 0px;
+          width: 100%;
+          height: 100%;
+          overflow: hidden;
+      }
+
+      #framerate {
+          position: absolute;
+          z-index: 3;
+          top: 10px;
+          left: 300px;
+          background-color: rgba(0, 0, 0, 0.3);
+          padding: 1em;
+          color: white;
+      }
+  </style>
+  </head>
+  <body onload="startup()" data-width="0" data-height="480" data-name="graphics_3d"
+        data-tools="pnacl newlib glibc clang-newlib win" data-configs="Debug Release"
+        data-path="fcontent">
+
+  <canvas id="canvas2d_work"></canvas>
+  <canvas id="canvas2d"></canvas>
+  <!--<div id="framerate">Framerate:51fps</div>-->
+
+  <!--<form>
+      <input type="file" id="fileinput"></input>
+  </form>
+  -->
+
+  <!--for nacl-->
+  <input type="hidden" id="GoogleChromeAppMode">
+  </input>
+  <div id="listener"></div>
+  </body>
+</html>

@@ -27,12 +27,18 @@ sources = [
   "src/config/config.js",
   "src/config/config_local.js",
   "src/core/const.js",
+  "src/util/polyfill.js",
   "src/util/object_cache.js",
  	"tools/utils/crypto/sha1.js",
   "tools/utils/libs/lz-string/libs/base64-string-v1.1.0.js",
   "tools/utils/libs/lz-string/libs/lz-string-1.3.3.js",
 	"src/util/jslzjb.js",
   "src/core/startup_file.js",
+  "src/core/redraw_globals.js",
+  "src/core/startup.js",
+  "src/core/safe_eval.js",
+  "tools/utils/libs/node_modules/esprima/esprima.js",
+  
   "src/util/base_vector.js",
   "src/datafiles/icon_enum.js",
   "src/util/vector.js",
@@ -167,6 +173,7 @@ optional_copy_targets = {
 }
 
 js_targets = {"app.js"        : sources,
+              "chromeapp.js"  : sources + ["chromeapp/start_startup.js"],
               "unit_tests.js" : [
                ] + sources + [
                  "src/unit_tests/tests.js"

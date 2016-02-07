@@ -261,7 +261,6 @@ function api_define_view2d() {
   var zoomprop = new FloatProperty(1, "zoom", "Zoom");
 
   zoomprop.update = function(ctx, path) {
-    console.log("zoom update!");
     this.ctx.view2d.set_zoom(this.data); 
   }
   zoomprop.range = zoomprop.real_range = zoomprop.ui_range = [0.1, 100];

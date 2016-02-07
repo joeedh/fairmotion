@@ -176,6 +176,7 @@ export class SplineLocalToolOp extends ToolOp {
       data : data
     };
     
+    //XXX flag redraw here?
     window.redraw_viewport();
   }
   
@@ -446,12 +447,7 @@ export class DeleteVertOp extends SplineLocalToolOp {
     
     var dellist = [];
     
-    for (var i=0; i<spline.verts.length; i++) {
-      var v = spline.verts[i];
-
-      if (v.hidden) continue;
-      if (!(v.flag & SplineFlags.SELECT)) continue;
-      
+    for (var v of spline.verts.selected.editable) {
       v.flag |= SplineFlags.UPDATE;
       
       dellist.push(v);
@@ -464,13 +460,15 @@ export class DeleteVertOp extends SplineLocalToolOp {
       spline.kill_vertex(dellist[i]);
     }
     
-    if (0 && dellist.length > 0) {
+    /*
+    if (dellist.length > 0) {
       for (var i=0; i<spline.verts.length; i++) {
         var v = spline.verts[i];
         
         v.flag |= SplineFlags.UPDATE;
       }
     }
+    */
     
     spline.regen_render();
   }
@@ -491,12 +489,7 @@ export class DeleteSegmentOp extends ToolOp {
     
     var dellist = [];
     
-    for (var i=0; i<spline.segments.length; i++) {
-      var s = spline.segments[i];
-
-      if (s.hidden) continue;
-      if (!(s.flag & SplineFlags.SELECT)) continue;
-      
+    for (var s of spline.segments.selected.editable) {
       dellist.push(s);
     }
     
@@ -717,12 +710,11 @@ export class SplitEdgeOp extends SplineGlobalToolOp {
       console.log("interpolating animation data from adjacent vertices!");
     }
     
-    for (var i=0; i<spline.segments.length; i++) {
-      var s = spline.segments[i];
+    for (var s of spline.segments.selected.editable) {
       if (s.v1.hidden || s.v2.hidden) continue;
       
       if ((s.v1.flag & SplineFlags.SELECT && s.v2.flag & SplineFlags.SELECT))
-        segs.push(spline.segments[i]);
+        segs.push(s);
     }
     
     for (var i=0; i<segs.length; i++) {
@@ -752,12 +744,11 @@ export class SplitEdgeOp1 extends SplineLocalToolOp {
     var spline = ctx.spline;
     var segs = [];
     
-    for (var i=0; i<spline.segments.length; i++) {
-      var s = spline.segments[i];
+    for (var s of spline.segments.selected.editable) {
       if (s.v1.hidden || s.v2.hidden) continue;
       
       if ((s.v1.flag & SplineFlags.SELECT && s.v2.flag & SplineFlags.SELECT))
-        segs.push(spline.segments[i]);
+        segs.push(s);
     }
     
     for (var i=0; i<segs.length; i++) {
@@ -774,12 +765,7 @@ export class VertPropertyBaseOp extends ToolOp {
     var spline = ctx.spline;
     var vdata = {};
     
-    for (var i=0; i<spline.verts.length; i++) {
-      var v = spline.verts[i];
-      
-      if (!(v.flag & SplineFlags.SELECT)) continue;
-      if (v.hidden) continue;
-      
+    for (var v of spline.verts.selected.editable) {
       vdata[v.eid] = v.flag;
     }
     
@@ -809,12 +795,13 @@ export class ToggleBreakTanOp extends VertPropertyBaseOp {
   
   exec(ctx) {
     var spline = ctx.spline;
+    var actlayer = spline.layerset.active.id;
     
     for (var si=0; si<2; si++) {
       var list = si ? spline.handles : spline.verts;
       
-      for (var i=0; i<list.length; i++) {
-        var v = list[i];
+      for (var v of list.selected.editable) {
+        if (v.type == SplineTypes.HANDLE && !v.use) continue;
         
         //don't let owning vertex cancel out toggling of handle, if
         //both are selected
@@ -826,10 +813,6 @@ export class ToggleBreakTanOp extends VertPropertyBaseOp {
           else
             v.flag &= ~SplineFlags.BREAK_TANGENTS;
         }
-        
-        if (v.hidden) continue;
-        if (v.type == SplineTypes.HANDLE && !v.use) continue;
-        if (!(v.flag & SplineFlags.SELECT)) continue;
         
         v.flag ^=  SplineFlags.BREAK_TANGENTS; //event.shiftKey ? SplineFlags.BREAK_CURVATURES : SplineFlags.BREAK_TANGENTS;
         v.flag |= SplineFlags.UPDATE;
@@ -848,12 +831,7 @@ export class ToggleBreakCurvOp extends VertPropertyBaseOp {
   exec(ctx) {
     var spline = ctx.spline;
     
-    for (var i=0; i<spline.verts.length; i++) {
-      var v = spline.verts[i];
-
-      if (v.hidden) continue;
-      if (!(v.flag & SplineFlags.SELECT)) continue;
-      
+    for (var v of spline.verts.selected.editable) {
       v.flag ^=  SplineFlags.BREAK_CURVATURES;
       v.flag |= SplineFlags.UPDATE;
     }

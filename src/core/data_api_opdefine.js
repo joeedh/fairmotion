@@ -14,22 +14,23 @@ import {DeleteVertOp, DeleteSegmentOp, DeleteFaceOp,
 import {ToolOp, ToolMacro, ToolFlags, UndoFlags} from 'toolops_api';
 import {EditModes} from 'view2d';
 
-import 'transform';
-import 'spline_selectops';
-import 'spline_createops';
-import 'spline_editops';
-import 'spline_animops';
-import 'spline_layerops';
-import 'FrameManager';
-import 'FrameManager_ops';
+import * as transform from 'transform';
+import * as spline_selectops from 'spline_selectops';
+import * as spline_createops from 'spline_createops';
+import * as spline_editops  from 'spline_editops';
+import * as spline_animops from 'spline_animops';
+import * as spline_layerops from 'spline_layerops';
+import * as FrameManager from 'FrameManager';
+import * as FrameManager_ops from 'FrameManager_ops';
+import * as safe_eval from 'safe_eval';
 
-eval(es6_import_all(_es6_module, 'transform') + "\n");
-eval(es6_import_all(_es6_module, 'spline_selectops'));
-eval(es6_import_all(_es6_module, 'spline_createops'));
-eval(es6_import_all(_es6_module, 'spline_editops'));
-eval(es6_import_all(_es6_module, 'spline_animops'));
-eval(es6_import_all(_es6_module, 'spline_layerops'));
-eval(es6_import_all(_es6_module, 'FrameManager_ops'));
+import {TransSplineVert, TransData, TransformOp, TranslateOp, ScaleOp, RotateOp} from 'transform';
+
+import {SelectOpBase, SelectOneOp, ToggleSelectAllOp, SelectLinkedOp, HideOp, UnhideOp, CircleSelectOp} from 'spline_selectops';
+import {ExtrudeModes, ExtrudeVertOp, CreateEdgeOp, CreateEdgeFaceOp, ImportJSONOp} from 'spline_createops';
+import {KeyCurrentFrame, ShiftLayerOrderOp, SplineGlobalToolOp, SplineLocalToolOp, KeyEdgesOp, CopyPoseOp, PastePoseOp, InterpStepModeOp, DeleteVertOp, DeleteSegmentOp, DeleteFaceOp, ChangeFaceZ, DissolveVertOp, SplitEdgeOp, SplitEdgeOp1, VertPropertyBaseOp, ToggleBreakTanOp, ToggleBreakCurvOp, ConnectHandlesOp, DisconnectHandlesOp, CurveRootFinderTest, DelVertFrame, AnimPlaybackOp, ToggleManualHandlesOp, ShiftTimeOp, DuplicateOp, SplineMirrorOp} from 'spline_editops';
+import {AddLayerOp, ChangeLayerOp, ChangeElementLayerOp} from 'spline_layerops';
+import {SplitAreasTool, CollapseAreasTool, HintPickerOpElement, HintPickerOp} from 'FrameManager_ops';
 
 import {RenderAnimOp, PlayAnimOp} from 'view2d_spline_ops';
 import {SessionFlags} from "view2d_editor";
@@ -240,70 +241,16 @@ window.api_define_ops = function() {
     },
     
     "spline.select_linked" : function(ctx, args) {
+      if (!("vertex_eid" in args)) {
+        throw new Error("need a vertex_eid argument");
+      }
+      
       var op = new SelectLinkedOp();
+      op.inputs.vertex_eid.set_data(args.vertex_eid);
+      
       return op;
     },
     
-    "mesh.triangulate" : function(ctx, args) {
-      if (!("faces" in args))
-        throw TinyParserError;
-        
-      return new MeshToolOp(new TriangulateOp(args["faces"]));
-    },
-    "mesh.tri2quad" : function(ctx, args) {
-      if (!("faces" in args))
-        throw TinyParserError;
-        
-      return new MeshToolOp(new Tri2QuadOp(args["faces"]));
-    }, 
-    "mesh.add_cube" : function(ctx, args) {
-      return new MeshToolOp(new AddCubeOp());
-    }, 
-    "mesh.add_circle" : function(ctx, args) {
-      return new MeshToolOp(new AddCircleOp());
-    },
-    "mesh.dissolve_faces" : function(ctx, args) {
-      if (!("faces" in args))
-          throw TinyParserError;
-          
-      return new MeshToolOp(new DissolveFacesOp(args["faces"]));
-    },
-    "mesh.edgeloop_select" : function(ctx, args) {
-      return new EdgeLoopOp();
-    },
-    "mesh.edgeloop_select_modal" : function(ctx, args) {
-      return new EdgeLoopOpModal();
-    },
-    "mesh.faceloop_select" : function(ctx, args) {
-      return new FaceLoopOp();
-    },
-    "mesh.faceloop_select_modal" : function(ctx, args) {
-      return new FaceLoopOpModal();
-    },    
-    "mesh.loopcut" : function(ctx, args) {
-      return new LoopCutOp();
-    },
-    "mesh.context_create" : function(ctx, args) {
-      if (!("verts" in args))
-        throw TinyParserError;
-        
-      return new MeshToolOp(new ContextCreateOp(args["verts"]));
-    },
-    "mesh.toggle_subsurf" : function(ctx, args) {
-      return new ToggleSubSurfOp();
-    },
-    "mesh.bridge_edges" : function(ctx, args) {
-      if (!("edges" in args))
-        throw TinyParserError;
-      
-      return new MeshToolOp(new BridgeOp(args["edges"], args["faces"]));
-    },
-    "mesh.normals_outside" : function(ctx, args) {
-      if (!("faces" in args))
-        throw TinyParserError;
-      
-      return new MeshToolOp(new OutsideNormalsOp(args["faces"]));
-    },
     "view2d.circle_select" : function(ctx, args) {
       return new CircleSelectOp(ctx.view2d.selectmode);
     },

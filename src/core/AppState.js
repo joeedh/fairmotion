@@ -89,12 +89,12 @@ class UserSession {
   store(override_settings=false) {
     var saveobj = this.copy();
     
-    if (!override_settings && "session" in localStorage) {
-      var old = JSON.parse(localStorage.session);
+    if (!override_settings && "session" in myLocalStorage) {
+      var old = JSON.parse(myLocalStorage.session);
       saveobj.settings = old;
     }
     
-    localStorage.session = JSON.stringify(saveobj);
+    myLocalStorage.session = JSON.stringify(saveobj);
   }
   
   logout_simple() {
@@ -179,28 +179,28 @@ window.gen_default_file = function gen_default_file(size) {
   var g = g_app_state;
   global startup_file_str;
   
-  if (localStorage.startup_file == undefined || localStorage.startup_file == "undefined" || localStorage.startup_file == 0 || localStorage.startup_file == "0") {
-    localStorage.startup_file = startup_file_str;
+  if (myLocalStorage.startup_file == undefined || myLocalStorage.startup_file == "undefined" || myLocalStorage.startup_file == 0 || myLocalStorage.startup_file == "0") {
+    myLocalStorage.startup_file = startup_file_str;
   }
-  //if (RELEASE && (!("startup_file" in localStorage) || localStorage.startup_file == undefined || localStorage.startup_file == "undefined")) {
-  //  localStorage.startup_file = startup_file_str;
+  //if (RELEASE && (!("startup_file" in myLocalStorage) || myLocalStorage.startup_file == undefined || myLocalStorage.startup_file == "undefined")) {
+  //  myLocalStorage.startup_file = startup_file_str;
   //}
   
   //try loading twice, load embedded startup_file on second attempt
   for (var i=0; i<2; i++) {
-    var file = i==0 ? localStorage.startup_file : startup_file_str;
+    var file = i==0 ? myLocalStorage.startup_file : startup_file_str;
     
     if (file) {
-      try {
-        var buf = localStorage.startup_file
+      //try {
+        var buf = myLocalStorage.startup_file
         buf = new DataView(b64decode(buf).buffer);
         
         g.load_user_file_new(buf, new unpack_ctx());
         return;
-      } catch (err) {
-        print_stack(err);
-        console.log("ERROR: Could not load user-defined startup file.");
-      }
+      //} catch (err) {
+      //  print_stack(err);
+      //  console.log("ERROR: Could not load user-defined startup file.");
+      //}
     }
   }
   
@@ -230,7 +230,7 @@ window.gen_default_file = function gen_default_file(size) {
 }
 
 function output_startup_file() : String {
-  var str = localStorage.startup_file;
+  var str = myLocalStorage.startup_file;
   var out = ""
   
   for (var i=0; i<str.length; i++) {
@@ -280,8 +280,8 @@ export class AppState {
     this.modalstate = 0; //see toolops_api.js
     this.jobs = new JobManager();
     
-    if (localStorage.session != undefined) {
-      this.session = UserSession.fromJSON(JSON.parse(localStorage.session));  
+    if (myLocalStorage.session != undefined) {
+      this.session = UserSession.fromJSON(JSON.parse(myLocalStorage.session));  
     } else {
       this.session = new UserSession();
     }
@@ -420,7 +420,7 @@ export class AppState {
     ////XXX
     //warn("WARNING: not saving startup file, debugging file writing code");
     
-    localStorage.startup_file = buf;
+    myLocalStorage.startup_file = buf;
   }
 
   //file minus ui data, used by BasicFileDataOp

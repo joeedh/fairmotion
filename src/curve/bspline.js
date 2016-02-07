@@ -1504,7 +1504,7 @@ export function optimize(tree) {
 export function get_cache(k, v) {
     var ret;
     try {
-        ret =  JSON.parse(localStorage["_store_"+k]);
+        ret =  JSON.parse(myLocalStorage["_store_"+k]);
     } catch (error) {
         print_stack(error);
         return undefined;
@@ -1517,7 +1517,7 @@ export function get_cache(k, v) {
 window.get_cache = get_cache;
 
 export function store_cache(k, v) {
-    localStorage["_store_"+k] = JSON.stringify(v);
+    myLocalStorage["_store_"+k] = JSON.stringify(v);
 }
 
 window.store_cache = store_cache;
@@ -1681,7 +1681,7 @@ window.load_seven = function() {
         if (k[1] == "7") {
             console.log("found!", k);
             var hash = ""+0+"|"+7+"|"+2+"|"+k[3];
-            localStorage[hash] = basis_json[k1];
+            myLocalStorage[hash] = basis_json[k1];
             
             var ret;
             console.log(hash, eval(basis_json[k1]))
@@ -1690,7 +1690,7 @@ window.load_seven = function() {
 }
 
 window.save_local_storage = function() {
-    var ret = JSON.stringify(localStorage);
+    var ret = JSON.stringify(myLocalStorage);
     var blob = new Blob([ret], {type : "application/binary"});
     var url = URL.createObjectURL(blob);
     console.log(url);
@@ -1701,7 +1701,7 @@ window.save_local_storage = function() {
 
 function add_to_table_dv(j, n, klen, dvn, table) {
     var hash = ""+0+"|"+n+"|"+2+"|"+dvn;
-    var s = localStorage[hash]; //get_cache(hash);
+    var s = myLocalStorage[hash]; //get_cache(hash);
     
     if (s == undefined || s == "undefined") {
         //throw new Error("Eek!");
@@ -1711,7 +1711,7 @@ function add_to_table_dv(j, n, klen, dvn, table) {
         console.log("storing basis function. . .");
         //s = "ret = function(s, j, n, ks, dvn) { return " + splitline(""+tree) + "; }";
         
-        localStorage[hash] = s; //store_cache(hash, s);
+        myLocalStorage[hash] = s; //store_cache(hash, s);
     }
     
     //console.log("GENERATED");
@@ -1771,7 +1771,7 @@ export function get_basis_func(j, n, klen) {
 
     if (ret == undefined) {
         var hash = "bs:"+n; //+"|"+klen;
-        var s = localStorage[hash]; //get_cache(hash);
+        var s = myLocalStorage[hash]; //get_cache(hash);
         
         if (s == undefined || s == "undefined") {
             console.log("storing basis function. . .");
@@ -1780,7 +1780,7 @@ export function get_basis_func(j, n, klen) {
             
             //s = "ret = function(s, j, n, ks) { return " + splitline(""+tree) + "; }";
             
-            localStorage[hash] = s; //store_cache(hash, s);
+            myLocalStorage[hash] = s; //store_cache(hash, s);
         }
         
         //console.log("GENERATED");

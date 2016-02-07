@@ -1,9 +1,13 @@
 export var DataPathTypes = {PROP: 0, STRUCT: 1, STRUCT_ARRAY : 2};
 export var DataFlags = {NO_CACHE : 1, RECALC_CACHE : 2};
 
+import * as config from 'config';
+import * as safe_eval from 'safe_eval';
+
 export class TinyParserError extends Error {
 }
 
+import {UIFrame} from 'UIFrame';
 import {PropTypes, TPropFlags, ToolProperty, IntProperty, FloatProperty, 
         Vec3Property, StringProperty} from 'toolprops';
 import {ToolFlags, UndoFlags} from 'toolops_api';
@@ -13,12 +17,14 @@ import {apiparser} from 'data_api_parser';
 import {MultiResLayer, MultiResEffector, MResFlags, has_multires, 
         ensure_multires, iterpoints, compose_id, decompose_id
        } from 'spline_multires';
+import * as safe_eval from 'safe_eval';
 
 export class DataAPIError extends Error {
   constructor(msg) {
     super(msg);
   }
 }
+window.DataAPIError = DataAPIError;
 
 export class DataPath {
   constructor(prop, name, path, dest_is_prop=false, use_path=true, flag=0) { 
@@ -254,17 +260,17 @@ export class DataStruct {
 
   always use parseutils.js for general-purpose parsing tasks.*/
   
-_TOKEN = 0
-_WORD = 1
-_STRLIT = 2 //string literals always use single quotations, e.g. "'". (not backticks, which are "`")
+var _TOKEN = 0
+var _WORD = 1
+var _STRLIT = 2 //string literals always use single quotations, e.g. "'". (not backticks, which are "`")
 
-_LP = "("
-_RP = ")"
-_LS = "["
-_RS = "]"
-_CM = ","
-_EQ = "="
-_DT = "."
+var _LP = "("
+var _RP = ")"
+var _LS = "["
+var _RS = "]"
+var _CM = ","
+var _EQ = "="
+var _DT = "."
 
 class TinyParser {
   constructor(data) {
@@ -306,14 +312,14 @@ class TinyParser {
       data = this.data;
     
     var toks = this.toks
-    tok = undefined
+    var tok = undefined
     
     var in_str = false;
     var lastc = 0;
     
     var i = 0;
     while (i < data.length) {
-      c = data[i];
+      var c = data[i];
       
       if (c == "'" && lastc != "\\") {
         in_str ^= 1;
@@ -365,14 +371,12 @@ class TinyParser {
   
   expect(type, val) {
     if (this.peek()[1] != type) {
-      console.log("Unexpected token " + this.peek[0] + ", expected " + (type==_WORD?"WORD":val));
-      console.trace();
+      console.trace("Unexpected token " + this.peek[0] + ", expected " + (type==_WORD?"WORD":val));
       throw new TinyParserError();
     }
     
     if (type == _TOKEN && this.peek()[0] != val) {
-      console.log("Unexpected token " + this.peek[0]);
-      console.trace();
+      console.trace("Unexpected token " + this.peek[0]);
       throw new TinyParserError();
     }
     
@@ -403,10 +407,11 @@ export class DataAPI {
     this.root_struct = ContextStruct;
     this.cache = {};
     this.evalcache = {};
+    this.evalcache2 = {};
   }
   
   parse_call_line_intern(ctx, line) {
-    p = this.parser;
+    var p = this.parser;
     
     function parse_argval(p) {
       var val;
@@ -460,13 +465,13 @@ export class DataAPI {
     if (line.contains(_LP)==0)
       throw new TinyParserError();
     
-    var li = line.find(_LP);
+    var li = line.search(/\(/);
     
     path = line.slice(0, li);
     line = line.slice(li, line.length);
     
     p.reset(line);
-    call = parse_call(p)
+    var call = parse_call(p)
     
     path = path.trimRight().trimLeft();
     
@@ -506,6 +511,14 @@ export class DataAPI {
     }
     
     return args[0];
+  }
+  
+  //get active spline vertex eid
+  do_active_vertex(ctx, args) {
+    var spline = ctx.spline;
+    var v = spline.verts.active;
+    
+    return v == undefined ? -1 : v.eid;
   }
   
   do_mesh_selected(ctx, args) {
@@ -593,6 +606,8 @@ export class DataAPI {
       if (element == undefined)
         return undefined;
       
+      console.log("element: ", element, element.active);
+      
       var maps = element.get_keymaps();
       for (var i=0; i<maps.length; i++) {
         var km = maps[i];
@@ -602,7 +617,7 @@ export class DataAPI {
           return handler;
       }
       
-      if (element.constructor.name == "UIFrame" && element.active != undefined) 
+      if (element instanceof UIFrame && element.active != undefined)
       {
         return find_hotkey_recurse(element.active);
       }
@@ -756,7 +771,7 @@ export class DataAPI {
         DataBlock from an arbitrary datapath.
         
       //find owning datablock
-      var si = path.find("[");
+      var si = path.search("[") >= 0;
       var path2 = path;
       if (si >= 0) {//cut out array references
         path2 = path2.slice(0, si);
@@ -959,19 +974,42 @@ export class DataAPI {
         return this.evalcache[str](ctx, scope);
       }
       
-      var script = """
-        var func = function(ctx, scope) {
-          return $s
-        }
-      """.replace("$s", str);
+      var func;
       
-      eval(script);
+      if (config.HAVE_EVAL) {
+        var script = """
+          var func = function(ctx, scope) {
+            return $s
+          }
+        """.replace("$s", str);
+        
+        eval(script);
+      } else {
+        var ast = safe_eval.compile(str);
+        var _scope = {
+          ctx   : undefined,
+          scope : undefined,
+          ContextStruct : ContextStruct,
+          g_theme : g_theme
+        };
+        
+        func = function(ctx, scope) {
+          _scope.scope = scope;
+          _scope.ctx = ctx;
+          _scope.g_theme = window.g_theme;
           
+          return safe_eval.exec(ast, _scope);
+        }
+      }
+      
       this.evalcache[str] = func;
       return func(ctx, scope);
     } catch (error) {
       if (window.DEBUG != undefined && window.DEBUG.ui_datapaths)
         print_stack(error);
+      
+      print_stack(error);
+      console.log(str);
       
       throw new DataAPIError(error.message);
     }
@@ -997,16 +1035,16 @@ export class DataAPI {
   }
   
   get_prop(ctx, str) {
-    try {
+    //try {
       return this.get_prop_intern(ctx, str);
-    } catch (error) {
+    /*} catch (error) {
       if (!(error instanceof DataAPIError)) {
         print_stack(error);
         console.log("Data API error! path:", str);
       }
       
       throw error;
-    }
+    }*/
   }
   
   get_prop_intern(ctx, str) {
@@ -1048,20 +1086,32 @@ export class DataAPI {
   
   build_mass_set_paths(ctx, listpath, subpath, value, filterstr) {
     if (ctx == undefined) {
-      filterfunc = value;
+      filterstr = value;
       value = subpath;
       subpath = listpath;
       listpath = ctx;
       ctx = new Context();
     }
-
-    //"(item.fag & 1) && !item.hidden"
-    var filtercode = """
-      function filter($) {\n
-        return """+filterstr+"""\n;
-      }""";
     
-    eval(filtercode);
+    var filter;
+    
+    if (config.HAVE_EVAL) {
+      //"(item.fag & 1) && !item.hidden"
+      var filtercode = """
+        function filter($) {\n
+          return """+filterstr+"""\n;
+        }""";
+      
+      eval(filtercode);
+    } else {
+      var ast = safe_eval.compile(filterstr);
+      var scope = {ctx : ctx, $ : undefined};
+      
+      function filter($) {
+        scope.$ = $;
+        return safe_eval.exec(ast, scope);
+      }
+    }
     
     var list = this.get_object(listpath);
     var ret = this.resolve_path_intern(ctx, listpath);
@@ -1071,12 +1121,12 @@ export class DataAPI {
     var ret = [];
     for (var key of sta.getkeyiter.call(list)) {
       var item = sta.getitem.call(list, key);
-      console.log("  key:", key, filter(item), item, item.level, ctx.spline.actlevel);
+      //console.log("  key:", key, filter(item), filterstr);
       
       if (!filter(item)) continue;
-      
       var path = (listpath + "[" + key + "]" + "." + subpath).trim();
       
+      //console.log("\n", path, "\n\n");
       ret.push(path);
     }
     
@@ -1086,7 +1136,7 @@ export class DataAPI {
   //set properties on an entire collection, filter is filter function
   mass_set_prop(ctx, listpath, subpath, value, filterstr) {
     if (ctx == undefined) {
-      filterfunc = value;
+      filterstr = value;
       value = subpath;
       subpath = listpath;
       listpath = ctx;
@@ -1153,8 +1203,8 @@ export class DataAPI {
         
         if (path.contains("&")) {
           //handle "struct.flag[bit] = boolean" form.
-          var mask = Number.parseInt(path.slice(path.find("&")+1, path.length).trim());
-          var path2 = path.slice(0, path.find("&"));
+          var mask = Number.parseInt(path.slice(path.search("&")+1, path.length).trim());
+          var path2 = path.slice(0, path.search("&"));
           
           console.log(path2, "");
           

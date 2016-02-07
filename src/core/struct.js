@@ -1,5 +1,8 @@
 "use strict";
 
+import * as config from 'config';
+import * as safe_eval from 'safe_eval';
+
 #include "src/core/utildefine.js"
 
 import {
@@ -576,6 +579,7 @@ var _st_packers = [
     var stt = thestruct.get_struct(type.data);
     
     if (val == undefined) {
+      console.trace(stt, field);
       console.log(field.name, obj);
       throw new Error("Undefined passed to tstruct, for field " + JSON.stringify(field));
     }
@@ -1246,6 +1250,8 @@ export class STRUCT {
   }
 
   _env_call(code, obj, env) {
+    //console.log("exec ", code, obj, env);
+    
     var envcode = _static_envcode_null;
     
     var profname = code.replace("\r", "").replace("\n", ";").trim();
@@ -1270,15 +1276,42 @@ export class STRUCT {
     var func;
     
     if (!(fullcode in this.compiled_code)) {
-        var code2 = "func = function(obj, env) { " + envcode + "return " + code + "}";
-        
-        try {
+        if (config.HAVE_EVAL) {
+          try {
+          var code2 = "func = function(obj, env) { " + envcode + "return " + code + "}";
           eval(code2);
-        } catch (err) {
-          console.log(code2);
-          console.log(" ");
-          print_stack(err);
-          throw err;
+          } catch (err) {
+            console.log(code2);
+            console.log(" ");
+            print_stack(err);
+            throw err;
+          }
+        } else {
+          var scope = {
+            obj : undefined,
+            env : undefined
+          }
+          
+          //copy global env (could conceivably become outdated later?)
+          for (var k in safe_global) {
+            scope[k] = safe_global[k];
+          }
+          
+          var ast = safe_eval.compile(code);
+          //var envast = safe_eval.compile(envcode);//.replace(/var/g, ""));
+          
+          func = function(obj, env) {
+            scope.obj = obj;
+            
+            if (env != undefined) {
+              for (var i=0; i<env.length; i++) {
+                scope[env[i][0]] = env[i][1];
+              }
+            }
+            
+            //safe_eval.exec(envast, scope);
+            return safe_eval.exec(ast, scope);
+          }
         }
         
         this.compiled_code[fullcode] = func;
@@ -1657,6 +1690,18 @@ window.init_struct_packer = function() {
     //throw last error
     if (i == errs.length-1)
       throw err;
+  }
+  
+  //copy global env (could conceivably become outdated later?)
+  window.safe_global = {};
+  
+  for (var k in window) {
+    //try to avoid banned globals
+    if (k.search("bar") >= 0 || k == "localStorage" || (k.startsWith("on") && k[2] != "l")) {
+      continue;
+    }
+    
+    safe_global[k] = window[k];
   }
 }
 

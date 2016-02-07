@@ -153,6 +153,7 @@ export class ToggleSelectAllOp extends SelectOpBase {
   static tooldef() { return {
     uiname  : "Toggle Select All",
     apiname : "spline.toggle_select_all",
+    icon    : Icons.TOGGLE_SEL_ALL,
     
     inputs  : {
       mode: new EnumProperty("auto", 
@@ -243,11 +244,21 @@ export class ToggleSelectAllOp extends SelectOpBase {
 
 export class SelectLinkedOp extends SelectOpBase {
   constructor(mode, datamode) {
-    super(datamode, undefined, "Select Linked");
+    super(datamode);
     
     if (mode != undefined)
       this.inputs.mode.set_data(mode);
   }
+  
+  static tooldef() { return {
+    uiname  : "Select Linked",
+    apiname : "spline.select_linked",
+    
+    inputs : ToolOp.inherit({
+      vertex_eid : new IntProperty(-1),
+      mode: new EnumProperty("select", ["select", "deselect"], "mode", "Mode", "mode")
+    })
+  }}
   
   undo_pre(ctx) {
     super.undo_pre(ctx);
@@ -288,15 +299,6 @@ export class SelectLinkedOp extends SelectOpBase {
 
 //var selmode_enum = selectmode_enum.copy();
 //selmode_enum.flag |= PackFlags.UI_DATAPATH_IGNORE;
-
-import {EnumProperty} from 'toolprops';
-
-var mode_vals = ["select", "deselect"];
-SelectLinkedOp.inputs = ToolOp.inherit_inputs(SelectOpBase, {
-  vertex_eid : new IntProperty(-1),
-  mode: new EnumProperty("select", mode_vals, "mode", "Mode", "mode")
-  //selmode : selmode_enum
-});
 
 export class HideOp extends SelectOpBase {
   constructor(mode, ghost) {

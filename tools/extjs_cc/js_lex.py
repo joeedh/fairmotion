@@ -113,6 +113,7 @@ tokens = (
    "ASSIGNDIVIDE", 
    "ASSIGNTIMES",
    "ASSIGNBOR",
+   "ASSIGNMOD",
    "ASSIGNBAND",
    "ASSIGNBXOR",
    "VAR_TYPE_PREC",
@@ -135,6 +136,7 @@ t_ASSIGNPLUS = r'\+='
 t_ASSIGNMINUS = r'-='
 t_ASSIGNDIVIDE = r'/='
 t_ASSIGNTIMES = r'\*='
+t_ASSIGNMOD = r'\%\='
 t_ASSIGNBOR = r'\|='
 t_ASSIGNBAND = r'\&='
 t_ASSIGNBXOR = r'\^='
@@ -414,20 +416,36 @@ def gen_re():
       s += ")"
       return s
     
-    pats = (
-      g(" ", 0),
-      g(" ", 1),
-      g(" ", 2),
-      g(" ", 3),
-      g(" ", 4),
-      g(" ", 5),
-      g(" ", 6),
-      g(r"\t", 1),
-      g(r"\t", 2),
-      g(r"\t", 3),
-      g(r"\t", 4),
-      g(r"\t", 5),
-    )
+    """
+      g("   ", 3),
+      g(" ", 7),
+      g("    ", 2),
+      g("   ", 3),
+      g("     ", 2),
+      g(" ", 11),
+      g("    ", 3),
+      g(" ", 13),
+      g("       ", 2),
+      g("     ", 3),
+      g("    ", 4),
+      g(" ", 17),
+      g("   ", 6),
+      g(" ", 19),
+      g("     ", 4),    #20
+      g("       ", 3),  #21
+      g("           ", 2), #22
+      g(" ", 23),
+      g("    ", 6),
+      g("     ", 5),
+      g("             ", 2), #26
+
+    #"""
+    
+    pats = [];
+    for i in range(31):
+      pats.append(g(" \t\n\r", i))
+      
+    pats = tuple(pats)
     
     pat = ""
     for i, p in enumerate(pats):

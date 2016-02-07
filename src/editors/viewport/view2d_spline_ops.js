@@ -333,7 +333,9 @@ export class SplineEditor extends View2DEditor {
 
     the_row.packflag |= PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING|PackFlags.IGNORE_LIMIT;
     the_row.default_packflag = PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING;
+    
     the_row.draw_background = true;
+    
     the_row.rcorner = 100.0
     the_row.size = [view2d.size[0], Area.get_barhgt() + 4];
     the_row.pos = [0, 0]; //view2d.size[0]-the_row.size[0]-Area.get_barhgt()-2]
@@ -342,8 +344,6 @@ export class SplineEditor extends View2DEditor {
     
     //col.packflag |= PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING|PackFlags.IGNORE_LIMIT;
     //col.default_packflag = PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING;
-    
-    //IsMobile ? 12 : 12
     
     col.add(gen_editor_switcher(this.ctx, view2d));
     var prop = col.prop("view2d.selectmode", 
@@ -377,6 +377,8 @@ export class SplineEditor extends View2DEditor {
     k.add_tool(new KeyHandler("R", [], "Rotate"), 
                "spline.rotate(datamode=selectmode)");
     
+    k.add_tool(new KeyHandler("A", [], "Select Linked"), "spline.toggle_select_all()");
+    /*
     k.add(new KeyHandler("A", [], "Toggle Select"), new FuncKeyHandler(function(ctx) {
       var view2d = ctx.view2d;
       var selectmode = view2d.selectmode;
@@ -394,7 +396,7 @@ export class SplineEditor extends View2DEditor {
         var tool = new spline_selectops.ToggleSelectAllOp();
         g_app_state.toolstack.exec_tool(tool);
       }
-    }));
+    }));*/
 
     k.add_tool(new KeyHandler("A", ["ALT"], "Animation Playback"), 
                "editor.playback()");
@@ -933,14 +935,31 @@ export class SplineEditor extends View2DEditor {
   do_alt_select(event, mpos, view2d) {
   }
 
-  gen_delete_menu(Boolean add_title=false) {
+  gen_edit_menu(Boolean add_title=false) {
     var view2d = this.view2d;
     var ctx = new Context();
     
     var ops = [
-    ]
+      "spline.select_linked(vertex_eid=active_vertex())",
+      "view2d.circle_select()",
+      "spline.toggle_select_all()",
+      "spline.hide()",
+      "spline.unhide()",
+      "spline.connect_handles()",
+      "spline.disconnect_handles()",
+      "spline.duplicate_transform()",
+      "spline.mirror_verts()",
+      "spline.split_edges()",
+      "spline.make_edge_face()",
+      "spline.dissolve_verts()",
+      "spline.delete_verts()",
+      "spline.delete_segments()",
+      "spline.delete_faces()",
+      "spline.toggle_manual_handles()"
+    ];
+    ops.reverse();
     
-    var menu = view2d.toolop_menu(ctx, add_title ? "Delete" : "", ops);
+    var menu = view2d.toolop_menu(ctx, add_title ? "Edit" : "", ops);
     return menu;
   }
   

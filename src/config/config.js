@@ -1,10 +1,13 @@
 "use strict";
 
+export var CHROME_APP_MODE = document.getElementById("GoogleChromeAppMode") !== null;
+
 export var USE_NACL=false;
-export var USE_HTML5_FILEAPI=false;
-export var NO_SERVER=false;
+export var NO_SERVER = CHROME_APP_MODE;
+export var USE_HTML5_FILEAPI=NO_SERVER;
 export var DISABLE_SOLVE=false;
 export var ENABLE_MULTIRES=false;
+export var HAVE_EVAL = false;
 
 export var MAX_RECENT_FILES = 12
 
@@ -12,11 +15,6 @@ window.RELEASE = false;
 
 //load local configuration overrides
 import * as config_local from 'config_local';
-
-if (config_local.NO_SERVER) {
-    config_local.USE_HTML5_FILEAPI = true;
-}
-
 export * from 'config_local';
 
 //debug flags
@@ -56,7 +54,7 @@ window._DEBUG = {
   use_2d_uicanvas : 1
 };
 
-//_DEBUG["use_2d_uicanvas"] = !!parseInt(""+localStorage.use_canvas2d);
+//_DEBUG["use_2d_uicanvas"] = !!parseInt(""+myLocalStorage.use_canvas2d);
 
 //make sure debug global is declared;
 if (window.DEBUG == undefined || DEBUG == undefined)

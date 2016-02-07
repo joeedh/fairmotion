@@ -943,6 +943,26 @@ def do_copy_targets():
     traceback.print_stack()
     traceback.print_last()
 
+def build_chrome_package():
+  print("Building chrome app. . .")
+  
+  if not os.path.exists("./chromeapp/fcontent/"):
+    os.makedirs("./chromeapp/fcontent/")
+  
+  print("  copying files")
+  for f in os.listdir("./build"):
+    path = "build/" + f
+    file = open(path, "rb")
+    buf = file.read()
+    file.close()
+    
+    path = "chromeapp/fcontent/" + f
+    file = open(path, "wb")
+    file.write(buf)
+    file.close()
+  
+  print("done")
+  
 def build_package():
   print("Building fairmotion_alpha.zip. . .")
   zf = zipfile.ZipFile("fairmotion_alpha.zip", "w")
@@ -1053,6 +1073,7 @@ def buildall_intern():
   
   if build_final:
     build_package()
+    build_chrome_package()
   
 def themain():  
   #print("         themain!", build_cmd)

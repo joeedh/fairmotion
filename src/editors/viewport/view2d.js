@@ -12,7 +12,7 @@ import {get_2d_canvas, get_2d_canvas_2} from 'UICanvas2D';
 import {NoteFrame} from 'notifications';
 import {STRUCT} from 'struct';
 import {Area} from 'ScreenArea';
-import {SelMask} from 'selectmode';
+import {SelMask, ToolModes} from 'selectmode';
 import {UIRadialMenu} from 'RadialMenu';
 import * as video from 'video';
 
@@ -140,7 +140,7 @@ export class View2DHandler extends Area {
   {
     static int v3d_id = 0;
    
-    this.toolmode = 1;
+    this.toolmode = ToolModes.APPEND;
     
     this.pinned_paths = undefined;
     
@@ -1131,7 +1131,8 @@ export class View2DHandler extends Area {
     
     tools.add(redo);
     tools.toolop("view2d.circle_select()", PackFlags.USE_LARGE_ICON);
-
+    tools.toolop("spline.toggle_select_all()", PackFlags.USE_LARGE_ICON);
+    
     var display = tabs.panel("Display");
     display.prop("view2d.only_render");
     display.prop("view2d.draw_normals");
@@ -1175,14 +1176,13 @@ export class View2DHandler extends Area {
     col.prop("scene.frame");
     
     var this2 = this;
-    function gen_del_menu() {
-      return this2.editor.gen_delete_menu();
+    function gen_edit_menu() {
+      return this2.editor.gen_edit_menu();
     }
     
     col.add(new UIMenuLabel(this.ctx, "File", undefined, this.gen_file_menu));
     col.add(new UIMenuLabel(this.ctx, "Session", undefined, this.gen_session_menu));
-    col.add(new UIMenuLabel(this.ctx, "Add", undefined, this.gen_add_menu));
-    col.add(new UIMenuLabel(this.ctx, "Delete", undefined, gen_del_menu));
+    col.add(new UIMenuLabel(this.ctx, "Edit", undefined, gen_edit_menu));
     
     this.note_area = new NoteFrame(this.ctx, g_app_state.notes);
     col.add(this.note_area);

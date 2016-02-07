@@ -916,7 +916,7 @@ export class UIListBox extends ColumnFrame {
     prior(UIListBox, this).on_tick.call(this);
     
     if (this.vscroll.val != this.listbox.velpan.pan[1]) {
-      console.log("=>", this.vscroll.val, this.listbox.velpan.pan[1]);
+      //console.log("=>", this.vscroll.val, this.listbox.velpan.pan[1]);
       this.vscroll.set_value(this.listbox.velpan.pan[1]);
     }
   }

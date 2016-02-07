@@ -420,7 +420,7 @@ function solve_intern(spline, order, goal_order, steps, gk, do_basic) {
     
     //constrain all derivatives
     var ret = 0.0;
-    for (var i=0; i<order/2; i++) {
+    for (var i=0; i<1; i++) {
       var s1 = v === seg1.v1 ? i : order-1-i;
       var s2 = v === seg2.v1 ? i : order-1-i;
       
@@ -470,7 +470,7 @@ function solve_intern(spline, order, goal_order, steps, gk, do_basic) {
     
     //constrain all derivatives
     var len = Math.floor(order/2);
-    for (var i=0; i<len; i++) {
+    for (var i=0; i<1; i++) {
       var s1 = v === seg1.v1 ? i : order-1-i;
       var s2 = v === seg2.v1 ? i : order-1-i;
       
@@ -596,9 +596,9 @@ function solve_intern(spline, order, goal_order, steps, gk, do_basic) {
     if (v.segments.length == 1 && !(v.flag & SplineFlags.BREAK_CURVATURES)) {
       var seg = v.segments[0];
       
-      var cc = new constraint(1.0, [seg.ks], order, copy_c, [seg, v]);
-      cc.k2 = 0.8
-      slv.add(cc);
+      //var cc = new constraint(1.0, [seg.ks], order, copy_c, [seg, v]);
+      //cc.k2 = 0.8
+      //slv.add(cc);
     }
     
     if (v.segments.length != 2) continue;
@@ -701,7 +701,7 @@ function solve_intern(spline, order, goal_order, steps, gk, do_basic) {
   }
   
   var end_time = time_ms() - start_time;
-  if (end_time > 50 || 1)
+  if (end_time > 50)
     console.log("solve time", end_time.toFixed(2), "ms", "steps", totsteps);
 }
 

@@ -785,8 +785,8 @@ window.call_api = function call_api(iternew, args, finishcb, errorcb, status) {
     function error() {
       if (errorcb != undefined)
         errorcb.apply(this, arguments);
-      
-      reject.apply(this, arguments);
+      if (reject != undefined)
+        reject.apply(this, arguments);
     }
     
     obj.job = new NetJob(obj, undefined, finish, error, status);

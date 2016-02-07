@@ -1,5 +1,7 @@
 "use strict";
 
+import * as config from 'config';
+
 export function open_file(callback, thisvar) {
     if (thisvar == undefined)
         thisvar = this; //should point to global object
@@ -50,7 +52,29 @@ export function open_file(callback, thisvar) {
     form.appendChild(input);
 }
 
+export function chrome_app_save(data) {
+  function errorHandler() {
+    console.log("Error writing file!", arguments);
+  }
+  
+  chrome.fileSystem.chooseEntry({type: 'saveFile'}, function(writableFileEntry) {
+      writableFileEntry.createWriter(function(writer) {
+        writer.onerror = errorHandler;
+        writer.onwriteend = function(e) {
+          console.log('write complete');
+        };
+        
+        data = new Blob([data], {type : "application/octet-binary"});
+        writer.write(data);
+      }, errorHandler);
+  });
+}
+
 export function save_file(data) {
+    if (config.CHROME_APP_MODE) {
+      return chrome_app_save(data);
+    }
+    
     data = new Blob([data], {type : "application/octet-binary"});
     var url = URL.createObjectURL(data);
     

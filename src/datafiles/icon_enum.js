@@ -27,5 +27,7 @@ window.Icons = {
   FACE_MODE      : 23,
   EDGE_MODE      : 24,
   VERT_MODE      : 25,
-  CURSOR_ARROW   : 26
+  CURSOR_ARROW   : 26,
+  TOGGLE_SEL_ALL : 27,
+  DELETE         : 28
 };

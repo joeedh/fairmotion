@@ -1,5 +1,42 @@
 "not_a_module"; //todo: need to make this a module
-"use strict";
+
+function startup_report(message) {
+  //args = new Array(arguments.length+2);
+  
+  console.log("%c " + message + "\n\n", "color:green");
+  /*
+  for (var i=0; i<arguments.length; i++) {
+    args[i+2] = arguments[i];
+  }
+  
+  args[0] = "%c"
+  args[1] = "color:green"
+  
+  console.log.apply(console, args);
+  */
+}
+
+function warn(message) {
+  //args = new Array(arguments.length+2);
+  
+  var args = ["%c " + message + "\n", "color:orange"]
+  for (var i=1; i<arguments.length; i++) {
+    args.push(arguments[i]);
+  }
+  
+  console.log.apply(console, args); //("%c " + message + "\n", "color:orange");
+}
+
+function warntrace(message) {
+  //args = new Array(arguments.length+2);
+  
+  var args = ["%c " + message + "\n", "color:orange"]
+  for (var i=1; i<arguments.length; i++) {
+    args.push(arguments[i]);
+  }
+  
+  console.trace.apply(console, args);
+}
 
 function* testr(obj) {
   for (var k in obj) {
@@ -167,7 +204,7 @@ class GArray extends Array {
    
     var ret = this[i];
     
-    for (var int i=idx; i<this.length-1; i++) {
+    for (var i=idx; i<this.length-1; i++) {
       this[i] = this[i+1];
     }
     
@@ -194,7 +231,7 @@ class GArray extends Array {
       return;
     }
     
-    for (var int i=idx; i<this.length-1; i++) {
+    for (var i=idx; i<this.length-1; i++) {
       this[i] = this[i+1];
     }
     

@@ -245,9 +245,11 @@ export class UIPackFrame extends UIFrame {
       subframe.packflag |= packflag|PackFlags.NO_AUTO_SPACING
                         | PackFlags.NO_LEAD_SPACING
                         | PackFlags.NO_TRAIL_SPACING;
-
-      subframe.pad[0] = -2;
-      subframe.pad[1] = -2;
+      
+      var large_icon = packflag & PackFlags.USE_LARGE_ICON;
+      
+      subframe.pad[0] = large_icon ? -4 : -2;
+      subframe.pad[1] = large_icon ? -4 : -3;
       
       function update_callback(chk) {
         var val = undefined;

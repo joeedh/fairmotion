@@ -212,7 +212,14 @@ var saveAs = saveAs
 	FS_proto.onerror =
 	FS_proto.onwriteend =
 		null;
-	
-	view.addEventListener("unload", process_deletion_queue, false);
+    
+	try {
+    view.addEventListener("unload", process_deletion_queue, false);
+  } catch(error) {
+    console.log("failed to add unload event listener");
+    print_stack(error);
+    console.log("failed to add unload event listener");
+  }
+  
 	return saveAs;
 }(self));

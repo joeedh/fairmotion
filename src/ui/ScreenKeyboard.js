@@ -3,10 +3,12 @@ import {PackFlags} from 'UIElement';
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
         charmap, TouchEventManager, EventHandler} from 'events';
 
-eval(es6_import_all(_es6_module, 'UIElement'));
-eval(es6_import_all(_es6_module, 'UIFrame'));
-eval(es6_import_all(_es6_module, 'UIPack'));
-eval(es6_import_all(_es6_module, 'UIWidgets'));
+import {UIFlags, PackFlags, CanvasFlags, open_mobile_keyboard, close_mobile_keyboard, inrect_2d_button, 
+        UIElement, UIHoverBox, UIHoverHint} from 'UIElement';
+import {UIFrame} from 'UIFrame';
+import {UIPackFrame, RowFrame, ColumnFrame, ToolOpFrame} from 'UIPack';
+import {UIButtonAbstract, UIButton, UIButtonIcon, UIMenuButton, UICheckBox, UINumBox, UILabel, 
+       _HiddenMenuElement, UIMenuLabel, ScrollButton, UIVScroll, UIIconCheck} from 'UIWidgets';
 
 class ScreenKeyboard extends RowFrame {
   constructor(Context ctx, EventHandler client, Function on_close) {

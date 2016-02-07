@@ -226,7 +226,8 @@ export class parser {
     var ret = this.start(this);
     if (err_on_unconsumed && !this.lexer.at_end() && this.lexer.next() != undefined) {
       //console.log(this.lexer.lexdata.slice(this.lexer.lexpos-1, this.lexer.lexdata.length));
-      this.error(undefined, "parser did not consume entire input");
+      var left = this.lexer.lexdata.slice(this.lexer.lexpos-1, this.lexer.lexdata.length);
+      this.error(undefined, "parser did not consume entire input; left: " + left);
     }
     
     return ret;
@@ -322,7 +323,7 @@ export class parser {
       msg = type
     
     if (tok == undefined || tok.type != type) {
-      this.error(tok, "Expected " + msg);
+      this.error(tok, "Expected " + msg + ", not " + tok.type);
     }
     
     return tok.value;

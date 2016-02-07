@@ -1,6 +1,5 @@
 import "events";
 
-import {DataAPIError} from 'data_api';
 import {MinMax, inrect_2d, aabb_isect_2d} from 'mathlib';
 import {EventHandler} from 'events';
 import {charmap} from 'events';
@@ -740,9 +739,6 @@ export class UIHoverHint extends UIElement {
   }
   
   on_tick() {
-    if (this.hovering) {
-        console.log("hovering");
-    }
     if (this.hovering && time_ms()-this.start_time >= this.hover_time) {
       this.hovering = false;
       console.log("hint!");

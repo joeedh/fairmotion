@@ -13,19 +13,22 @@ import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler,
         charmap, TouchEventManager, EventHandler, VelocityPan
        } from 'events';
 
-eval(es6_import_all(_es6_module, 'UIElement'));
-eval(es6_import_all(_es6_module, 'UIFrame'));
-eval(es6_import_all(_es6_module, 'UIPack'));
-eval(es6_import_all(_es6_module, 'UIWidgets'));
-eval(es6_import_all(_es6_module, 'UIWidgets_special'));
-eval(es6_import_all(_es6_module, 'UITabPanel'));
-eval(es6_import_all(_es6_module, 'UITextBox'));
+import {UIFlags, PackFlags, CanvasFlags, open_mobile_keyboard, close_mobile_keyboard, inrect_2d_button, 
+       UIElement, UIHoverBox, UIHoverHint} from 'UIElement';
+import {UIFrame} from 'UIFrame';
+import {UIPackFrame, RowFrame, ColumnFrame, ToolOpFrame} from 'UIPack';
+import {UIButtonAbstract, UIButton, UIButtonIcon, UIMenuButton, UICheckBox, UINumBox, UILabel, 
+        _HiddenMenuElement, UIMenuLabel, ScrollButton, UIVScroll, UIIconCheck} from 'UIWidgets';
+import {UICollapseIcon, UIPanel, gen_editor_switcher, UIColorField, UIColorBox, UIColorPicker, UIBoxWColor,
+        UIBoxColor, UIProgressBar, UIListEntry, UIListBox} from 'UIWidgets_special';
+import {_UITab, UITabBar, UITabPanel} from 'UITabPanel';
+import {UITextBox} from 'UITextBox';
 
 import {ModalStates} from 'toolops_api';
 
 import {SplineFlags} from 'spline_types';
 import {ShiftLayerOrderOp} from 'spline_editops';
-import {AddLayerOp, ChangeLayerOp, ChangeElementLayerOp} from 'spline_layerops';
+import {AddLayerOp, DeleteLayerOp, ChangeLayerOp, ChangeElementLayerOp} from 'spline_layerops';
 
 /******************* main area struct ********************************/
 import {Area} from 'ScreenArea';
@@ -96,17 +99,32 @@ class LayerPanel extends RowFrame {
     
     var controls = this.col();
     
-    var add = new UIButton(this.ctx, "+");
+    var add = new UIButtonIcon(this.ctx, "Add");
+    var del = new UIButtonIcon(this.ctx, "Delete");
+    add.icon = Icons.SMALL_PLUS;
+    del.icon = Icons.SMALL_MINUS;
+    
     var this2 = this;
     add.callback = function() {
       g_app_state.toolstack.exec_tool(new AddLayerOp());
-      //this2.do_rebuild = true;
-      //this2.do_recalc();
     }
     
-    var del = new UIButton(this.ctx, "-");
+    del.callback = function() {
+      var tool = new DeleteLayerOp();
+      var layer = this.ctx.spline.layerset.active;
+      
+      if (layer == undefined)
+        return;
+      
+      tool.inputs.layer_id.set_data(layer.id);
+      g_app_state.toolstack.exec_tool(tool);
+    }
+    
     var up = new UIButtonIcon(this.ctx, "Up", 30);
     var down = new UIButtonIcon(this.ctx, "Down", 29);
+    
+    up.icon = Icons.SCROLL_UP;
+    down.icon = Icons.SCROLL_DOWN;
     
     var this2 = this;
     down.callback = function() {

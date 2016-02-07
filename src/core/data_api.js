@@ -1008,9 +1008,6 @@ export class DataAPI {
       if (window.DEBUG != undefined && window.DEBUG.ui_datapaths)
         print_stack(error);
       
-      print_stack(error);
-      console.log(str);
-      
       throw new DataAPIError(error.message);
     }
   }
@@ -1035,16 +1032,16 @@ export class DataAPI {
   }
   
   get_prop(ctx, str) {
-    //try {
+    try {
       return this.get_prop_intern(ctx, str);
-    /*} catch (error) {
+    } catch (error) {
       if (!(error instanceof DataAPIError)) {
         print_stack(error);
         console.log("Data API error! path:", str);
       }
       
       throw error;
-    }*/
+    }
   }
   
   get_prop_intern(ctx, str) {

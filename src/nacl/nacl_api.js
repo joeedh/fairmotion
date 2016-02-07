@@ -391,10 +391,11 @@ function solve_intern(spline, update_verts, order, goal_order, steps, gk) {
         if (v.segments.length == 1 && !(v.flag & SplineFlags.BREAK_CURVATURES)) {
           var seg = v.segments[0];
           
-          var cc = new constraint(1.0, [seg.ks], order, copy_c, [seg, v]);
-          cc.type = "copy_c";
-          cc.k2 = 0.8
-          cs.push(cc);
+          //evil!
+          //var cc = new constraint(1.0, [seg.ks], order, copy_c, [seg, v]);
+          //cc.type = "copy_c";
+          //cc.k2 = 0.8
+          //cs.push(cc);
         }
 
         if (v.segments.length != 2) continue;

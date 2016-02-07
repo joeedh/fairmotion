@@ -596,6 +596,7 @@ function solve_intern(spline, order, goal_order, steps, gk, do_basic) {
     if (v.segments.length == 1 && !(v.flag & SplineFlags.BREAK_CURVATURES)) {
       var seg = v.segments[0];
       
+      //evil!
       //var cc = new constraint(1.0, [seg.ks], order, copy_c, [seg, v]);
       //cc.k2 = 0.8
       //slv.add(cc);

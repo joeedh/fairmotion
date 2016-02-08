@@ -15,7 +15,7 @@ import {
 } from 'toolprops';
 
 import {STRUCT} from 'struct';
-import 'mathlib';
+import * as math from 'mathlib';
 import {DataPathNode} from 'eventdag';
 
 var abs=Math.abs, acos=Math.acos, asin=Math.asin, 
@@ -831,7 +831,7 @@ export class SplineLoopPath {
     
     var wsum = 0;
     for (var l of this) {
-      wsum += winding(l.v, l.next.v, cent) ? 1 : -1; 
+      wsum += math.winding(l.v, l.next.v, cent) ? 1 : -1; 
     }
     
     this.winding = wsum >= 0;

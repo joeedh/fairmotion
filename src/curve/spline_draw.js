@@ -179,7 +179,8 @@ export function redo_draw_sort(spline) {
       
     dl.push(f);
   }
-  //okay, build segment list by laters
+  
+  //okay, build segment list by layers
   
   var visit = {};
   for (var i=0; i<spline.layerset.length; i++) {

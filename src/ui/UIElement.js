@@ -390,7 +390,7 @@ export class UIElement extends EventHandler {
     
     if (this.parent != undefined)
       this.parent.do_recalc();
-    else if (Math.random() > 0.99)
+    else if (DEBUG.complex_ui_recalc && Math.random() > 0.99)
       console.trace("leaf ui call");
   }
   

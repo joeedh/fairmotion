@@ -1018,8 +1018,7 @@ export class View2DHandler extends Area {
   {
     return toolop_menu(ctx, "",    
       [
-      "appstate.export_al3_b64()",
-      "appstate.export_stl()",
+      "appstate.export_svg()",
       "sep",
       "appstate.save_as()", 
       "appstate.save()", 

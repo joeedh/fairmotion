@@ -19,6 +19,39 @@
           padding: 1em;
           color: white;
       }
+      #framerate {
+          position: absolute;
+          z-index: 3;
+          top: 10px;
+          left: 300px;
+          background-color: rgba(0, 0, 0, 0.3);
+          padding: 1em;
+          color: white;
+      }
+      #canvas2d {
+          background: "rgba(255,255,255,0.0)";
+          position: absolute;
+          left: 0px;
+          right: 0px;
+          z-index: 1;
+      }
+
+      #canvas2d_work {
+          background: "rgba(255,255,255,1.0)";
+          position: absolute;
+          left: 0px;
+          right: 0px;
+          z-index: 10;
+      }
+
+      #fileinput {
+          visibility: visible;
+          position: absolute;
+          left: 700px;
+          right: 400px;
+          z-index: 2;
+      }
+
   </style>
   </head>
   <body onload="startup()" data-width="0" data-height="480" data-name="graphics_3d"

@@ -5,9 +5,12 @@ import * as config from 'config';
 import {urlencode, b64decode, b64encode} from 'strutils';
 
 import {ToolFlags, UndoFlags} from 'toolops_api';
+import {StringProperty} from 'toolprops';
 
 import {UIElement, PackFlags, UIFlags, CanvasFlags} from 'UIElement';
 import {UIFrame} from 'UIFrame';
+
+import {export_svg} from 'svg_export';
 
 import {
   UIButtonAbstract, UIButton, UIButtonIcon,
@@ -903,9 +906,9 @@ export function login_dialog(ctx)
   ld.call(new Vector2(ctx.screen.size).mulScalar(0.5).floor());  
 }
 
-export class FileSaveSTLOp extends ToolOp {
+export class FileSaveSVGOp extends ToolOp {
   constructor() {
-    ToolOp.call(this, "export_stl", "Export STL");
+    ToolOp.call(this, "export_svg", "Export SVG");
     
     this.is_modal = false;
     
@@ -916,67 +919,32 @@ export class FileSaveSTLOp extends ToolOp {
   }
     
   exec(ctx) {
-    console.log("Export STL");
-    
-    var mesh_data = export_stl_str(ctx.mesh).buffer;
+    console.log("Export SVG");
     
     /*I should really make these file operations modal, since
         they create ui elements
      */
     ctx = new Context();
-    var pd = new ProgressDialog(ctx, "Uploading");
     
-    function error(job, owner, msg) {
-      pd.end()
-      error_dialog(ctx, "Network Error", undefined, true);
+    var buf = export_svg(ctx.spline);
+    var a = document.createElement("a");
+    
+    if (g_app_state.filepath != "") {
+      var name = g_app_state.filepath;
+      if (name.endsWith(".fmo"))
+        name = name.slice(0, name.length-4);
+    } else {
+      name = "document";
     }
     
-    function status(job, owner, status) {
-      pd.value = status.progress;
-      pd.bar.do_recalc();
-      
-      if (DEBUG.netio)
-        console.log("status: ", status.progress);
-    }
+    var blob = new Blob([buf], {type : "text/svg+xml"});
+    var url = URL.createObjectURL(blob);
     
-    var this2 = this;
-    function finish(job, owner) {
-      if (DEBUG.netio)
-        console.log("finished uploading");
-      var url = "/api/files/get?path=/"+this2._path + "&";
-      url += "accessToken="+g_app_state.session.tokens.access;
-      
-      if (DEBUG.netio)
-        console.log(url)
-      window.open(url);
-      
-      pd.end();
-    }
-    
-    function save_callback(dialog, path) {
-      pd.call(ctx.screen.mpos);
-      
-      if (DEBUG.netio)
-        console.log("saving...", path);
-      global allshape_file_ext;
-      
-      if (!path.endsWith(".stl")) {
-        path = path + ".stl";
-      }
-      this2._path = path;
-      
-      var token = g_app_state.session.tokens.access;
-      var url = "/api/files/upload/start?accessToken="+token+"&path="+path
-      var url2 = "/api/files/upload?accessToken="+token;
-      
-      call_api(upload_file, {data:mesh_data, url:url, chunk_url:url2}, finish, error, status);
-    }
-    
-    file_dialog("SAVE", new Context(), save_callback, true);
+    a.download = name + ".svg";
+    a.href = url;
+    a.click();
   }
 }
-
-import {StringProperty} from 'toolprops';
 
 export class FileSaveB64Op extends ToolOp {
   constructor() {

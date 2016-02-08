@@ -68,6 +68,7 @@ sources = [
   "src/core/animdata.js",
   "src/config/config_defines.js",
   "src/core/html5_fileapi.js",
+  "src/core/svg_export.js",
   
   "src/curve/curve.js",
   "src/curve/curvebase.js",

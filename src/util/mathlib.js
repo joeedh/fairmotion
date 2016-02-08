@@ -289,7 +289,7 @@ MinMax.STRUCT = """
   }
 """;
 
-function winding(a, b, c) {
+export function winding(a, b, c) {
     for (var i=0; i<a.length; i++) {
       _cross_vec1[i] = b[i] - a[i];
       _cross_vec2[i] = c[i] - a[i];
@@ -502,7 +502,7 @@ function line_line_cross(l1, l2) {
     return (w1 == w2) && (w3 == w4) && (w1 != w3);
 }
 
-function point_in_tri(p, v1, v2, v3) {
+export function point_in_tri(p, v1, v2, v3) {
     var w1 = winding(p, v1, v2);
     var w2 = winding(p, v2, v3);
     var w3 = winding(p, v3, v1);
@@ -510,11 +510,11 @@ function point_in_tri(p, v1, v2, v3) {
     return w1 == w2 && w2 == w3;
 }
 
-function convex_quad(v1, v2, v3, v4) {
+export function convex_quad(v1, v2, v3, v4) {
     return line_line_cross([v1, v3], [v2, v4]);
 }
 
-function normal_tri(v1, v2, v3) {
+export function normal_tri(v1, v2, v3) {
   static e1 = new Vector3(), e2 = new Vector3(), e3 = new Vector3();
   
    /*
@@ -538,7 +538,7 @@ function normal_tri(v1, v2, v3) {
   // */
 }
 
-function normal_quad(v1, v2, v3, v4) {
+export function normal_quad(v1, v2, v3, v4) {
   var n = normal_tri(v1, v2, v3)
   static n2 = new Vector3();
   
@@ -551,7 +551,7 @@ function normal_quad(v1, v2, v3, v4) {
 }
 
 var _li_vi = new Vector3()
-function line_isect(v1, v2, v3, v4, calc_t) {  //calc_t is optional, defaults to false
+export function line_isect(v1, v2, v3, v4, calc_t) {  //calc_t is optional, defaults to false
   if (calc_t == undefined) {
     calc_t = false;
   }
@@ -678,7 +678,7 @@ var _gtc_v2 = new Vector3();
 var _gtc_p12 = new Vector3()
 var _gtc_p22 = new Vector3()
 
-function get_tri_circ(a, b, c) {
+export function get_tri_circ(a, b, c) {
     var e1 = _gtc_e1;
     var e2 = _gtc_e2;
     var e3 = _gtc_e3;
@@ -729,7 +729,7 @@ function get_tri_circ(a, b, c) {
     return [cent, r];
 }
 
-function gen_circle(m, origin, r, stfeps) {
+export function gen_circle(m, origin, r, stfeps) {
   var pi = Math.PI;
   
   var f = -pi/2;
@@ -1029,7 +1029,7 @@ function get_boundary_winding(points) {
 /*2 dimensional operation class; note that this is too slow
   for use on large, real-time operations like tesselation of
   complex polygons*/
-class PlaneOps {
+export class PlaneOps {
   constructor(normal) {
     var no = normal;
     this.axis = [0, 0, 0];

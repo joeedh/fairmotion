@@ -38,9 +38,102 @@ window.handleMessage = function handleMessage(message) {
     console.log("NACL message!", message, message.data);
 }
 
+//localstorage variant
+class MyLocalStorage_LS {
+  static set(key, val) {
+    localStorage[key] = val;
+  }
+  
+  static getCached(key) {
+    return localStorage[key];
+  }
+  
+  static getAsync(key) {
+    return new Promise(function(accept, reject) {
+      accept(localStorage[key]);
+    });
+  }
+  
+  static hasCached(key) {
+    return key in localStorage; 
+  }
+}
+
+class MyLocalStorage_ChromeApp {
+  constructor() {
+    this.cache = {};
+  }
+  
+  set(key, val) {
+    var obj = {};
+    obj[key] = val;
+    
+    chrome.storage.local.set(obj);
+    this.cache[key] = val;
+  }
+  
+  getCached(key) {
+    return this.cache[key];
+  }
+  
+  getAsync(key) {
+    var this2 = this;
+    
+    return new Promise(function(accept, reject) {
+      chrome.storage.local.get(key, function(value) {
+        if (chrome.runtime.lastError != undefined) {
+          reject(chrome.runtime.lastError.string);
+        } else {
+          if (value != {} && value != undefined && key in value) {
+            value = value[key];
+          }
+          
+          if (typeof value == "object")
+            value = JSON.stringify(value);
+          
+          this2.cache[key] = value;
+          accept(value);
+        }
+      });
+    });
+  }
+  
+  hasCached(key) {
+    return key in this.cache;
+  }
+}
+
 window.startup = function startup() {
+  //set up myLocalStorage
+  if (window.CHROME_APP_MODE) {
+    window.myLocalStorage = new MyLocalStorage_ChromeApp();
+    window.myLocalStorage.getAsync("session"); //preload session data
+    window.myLocalStorage.getAsync("startup_file"); //startup_file too
+    
+    //create small delay to make time for chrome.storage.local to load
+    var timer = window.setInterval(function() {
+      window.clearInterval(timer);
+      
+      startup_intern();
+      
+      //feed an on_resize event
+      var timer2 = window.setInterval(function() {
+        window.clearInterval(timer2);
+        var canvas = document.getElementById("canvas2d");
+        
+        g_app_state.screen.on_resize([window.innerWidth, window.innerHeight]);
+      }, 200);
+    }, 150);
+  } else {
+    window.myLocalStorage = MyLocalStorage_LS;
+    startup_intern();
+  }
+}
+
+window.startup_intern = function startup() {
   window.IsMobile = mobilecheck();
   
+  /*
   try {
     if (window.localStorage == undefined) {
       window.myLocalStorage = {};
@@ -51,9 +144,18 @@ window.startup = function startup() {
     //print_stack(error);
     console.log("failed to find localstorage");
     window.myLocalStorage = {};
-  }
+  }//*/
   
   load_modules();
+    
+  if (window.CHROME_APP_MODE) {
+    //set up some chrome app settings
+    var config = _es6_get_module("config");
+    config.exports.HAVE_EVAL = false;
+    
+    //for now, disable pnacl 
+    config.exports.USE_NACL = false;
+  } 
   
   init_theme();
   init_redraw_globals();
@@ -508,3 +610,4 @@ function init_event_system() {
   document.addEventListener("textinput", handleTextInput);
   document.addEventListener("input", handleTextInput);
 }
+

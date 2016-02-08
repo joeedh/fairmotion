@@ -1,6 +1,6 @@
 import {
   FileDialog, FileOpenOp, FileSaveAsOp, FileNewOp,
-  FileSaveOp, ProgressDialog, LoginDialog, FileSaveSTLOp,
+  FileSaveOp, ProgressDialog, LoginDialog, FileSaveSVGOp,
   FileSaveB64Op, FileDialog, error_dialog, import_json,
   download_file, FileOpenRecentOp
 } from 'dialogs';
@@ -270,8 +270,8 @@ window.api_define_ops = function() {
       return new FileOpenRecentOp();
     },
     
-    "appstate.export_stl" : function(ctx, args) {
-      return new FileSaveSTLOp();
+    "appstate.export_svg" : function(ctx, args) {
+      return new FileSaveSVGOp();
     },
     "appstate.export_al3_b64" : function(ctx, args) {
       return new FileSaveB64Op();

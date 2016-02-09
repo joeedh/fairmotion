@@ -318,10 +318,14 @@ export class Area extends UIFrame {
     this.rows = new GArray();
     this.cols = new GArray();
     
-    this.build_sidebar1();
-    this.build_topbar();
-    this.build_bottombar();
-    
+    try {
+      this.build_sidebar1();
+      this.build_topbar();
+      this.build_bottombar();
+    } catch (error) {
+      print_stack(error);
+      console.log("Failed to build UI properly");
+    }
     
     /*
     for (var c of this.rows) {

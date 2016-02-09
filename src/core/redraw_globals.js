@@ -26,7 +26,9 @@ window.init_redraw_globals = function init_redraw_globals() {
   window.redraw_ui = function () {
       if (block_ui_draw) return;
 
-      //console.trace("ui redraw", animreq_ui);
+      if (DEBUG.ui_redraw && Math.random() > 0.99)
+        console.trace("ui redraw", animreq_ui);
+      
       if (animreq_ui == undefined) {
           animreq_ui = window.requestAnimationFrame(function () {
               animreq_ui = undefined;

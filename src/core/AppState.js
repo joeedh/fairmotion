@@ -929,7 +929,8 @@ export class AppState {
       } else {
         console.log(subtype, type, uctx.i, data.byteLength);
         console.trace();
-        throw new Error("Unknown block type '" + subtype + "', " + JSON.stringify({subtype: subtype, type : type}));
+        //throw new Error("Unknown block type '" + subtype + "', " + JSON.stringify({subtype: subtype, type : type}));
+        break;
       }
       
       blocks.push({type : type, subtype : subtype, len : len, data : bdata});

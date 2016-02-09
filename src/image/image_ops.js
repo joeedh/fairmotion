@@ -14,6 +14,8 @@ import {redo_draw_sort} from 'spline_draw';
 
 import {FileDialog, FileDialogModes, file_dialog, download_file} from 'dialogs';
 
+import * as config from 'config';
+import * as html5_fileapi from 'html5_fileapi';
 
 export class LoadImageOp extends ToolOp {
   static tooldef() { return {
@@ -47,10 +49,23 @@ export class LoadImageOp extends ToolOp {
   
   start_modal(ctx) {
     super.start_modal(ctx);
+    
     console.log("modal start!", ctx);
     this.end_modal();
     
     var this2 = this;
+    
+    if (config.USE_HTML5_FILEAPI) {
+      html5_fileapi.open_file(function(buffer, name) {
+        console.log("loaded image!", buffer, buffer.byteLength);
+        
+        this2.inputs.imagedata.set_data(buffer);
+        this2.inputs.imagepath.set_data(name);
+        this2.exec(ctx);
+      }, this, false, "Images", ["png", "jpg", "bmp", "tiff", "gif", "tga", "targa", "ico", "exr"]);
+      
+      return;
+    }
     
     file_dialog(FileDialogModes.OPEN, ctx, function(dialog, path) {
       console.log("path!:", path);

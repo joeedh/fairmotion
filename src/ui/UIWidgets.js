@@ -576,8 +576,9 @@ export class UICheckBox extends UIHoverHint {
       if (!(this.state & UIFlags.ENABLED))
         return;
       
-      if (val != this.set) {
+      if (!!val != !!this.set) {
         this.set = !!val;
+        
         if (!DEBUG.data_api_timing)
           this.do_recalc();
       }

@@ -141,6 +141,7 @@ export class View2DHandler extends Area {
     static int v3d_id = 0;
    
     this.toolmode = ToolModes.APPEND;
+    this.draw_small_verts = false;
     
     this.pinned_paths = undefined;
     
@@ -1134,11 +1135,19 @@ export class View2DHandler extends Area {
     
     var display = tabs.panel("Display");
     display.prop("view2d.only_render");
+    display.prop("view2d.draw_small_verts");
     display.prop("view2d.draw_normals");
     display.prop("view2d.draw_anim_paths");
     display.prop("view2d.extrude_mode");
     display.prop("view2d.enable_blur");
     display.prop("view2d.draw_faces");
+    
+//    try {
+    display.prop("view2d.selectmask[HANDLE]");
+  //  } catch (error) {
+     // print_stack(error);
+   // }
+    
     display.prop("view2d.pin_paths");
 
     var img = tabs.panel("Image");
@@ -1269,6 +1278,7 @@ View2DHandler.STRUCT = STRUCT.inherit(View2DHandler, Area) + """
     background_image  : ImageUser;
     draw_bg_image     : int;
     toolmode          : int;
+    draw_small_verts  : int;
   }
 """
 

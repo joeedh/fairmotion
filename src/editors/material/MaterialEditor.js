@@ -294,6 +294,16 @@ class MaterialEditor extends Area {
     return new LayerPanel(new Context());
   }
   
+  vertex_panel() {
+    var ctx = this.ctx;
+    
+    var panel = new RowFrame(ctx);
+    panel.prop("spline.active_vertex.flag[BREAK_TANGENTS]");
+    panel.prop("spline.active_vertex.flag[BREAK_CURVATURES]");
+    
+    return panel;
+  }
+  
   constructor(Context ctx, Array<float> pos, Array<float> size) {
     super(MaterialEditor.name, MaterialEditor.uiname, new Context(), pos, size);
     
@@ -321,6 +331,7 @@ class MaterialEditor extends Area {
     this.subframe.add_tab("Fill", this.fill_panel());
     this.subframe.add_tab("Stroke", this.stroke_panel());
     this.subframe.add_tab("Layers", this.layers_panel());
+    this.subframe.add_tab("Point", this.vertex_panel());
     
     if (ENABLE_MULTIRES) {
       this.subframe.add_tab("Multires", this.multires_panel());

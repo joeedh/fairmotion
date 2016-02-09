@@ -276,7 +276,7 @@ export class TransSplineVert {
         if (v2.type == SplineTypes.VERTEX && v2.hidden) 
           return;
 
-        console.log("v2!", v2.eid, dis);
+        //console.log("v2!", v2.eid, dis);
         
         if (!(v2.eid in propfacs)) {
           propfacs[v2.eid] = dis;

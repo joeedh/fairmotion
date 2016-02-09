@@ -232,8 +232,9 @@ export function redo_draw_sort(spline) {
   console.log("time taken:" + (time_ms()-time).toFixed(2)+"ms");
 }
 
-var VERT_SIZE=3.0
-var MRES_SIZE=5.5
+var VERT_SIZE=3.0;
+var SMALL_VERT_SIZE=1.0;
+var MRES_SIZE=5.5;
 
 function draw_mres_points(spline, g, editor, outside_selmode=false) {
   if (spline.segments.cdata.num_layers("MultiResLayer") == 0)
@@ -665,6 +666,7 @@ export function draw_spline(spline, g, editor, selectmode, only_render, draw_nor
   var draw_faces = only_render || editor.draw_faces;
   var last_segment = undefined;
   var reverse = 0;
+  var vert_size = editor.draw_small_verts ? SMALL_VERT_SIZE : VERT_SIZE;
   
   g.beginPath();
   
@@ -831,7 +833,7 @@ export function draw_spline(spline, g, editor, selectmode, only_render, draw_nor
     return;
     
   if (selectmode & SelMask.HANDLE) {
-    var w = VERT_SIZE/editor.zoom;
+    var w = vert_size/editor.zoom;
     
     for (var i=0; i<spline.handles.length; i++) {
       var v = spline.handles[i];
@@ -885,7 +887,7 @@ export function draw_spline(spline, g, editor, selectmode, only_render, draw_nor
   
   var last_clr = undefined;
   if (selectmode & SelMask.VERTEX) {
-    var w = VERT_SIZE/editor.zoom;
+    var w = vert_size/editor.zoom;
     
     for (var i=0; i<spline.verts.length; i++) {
       var v = spline.verts[i];

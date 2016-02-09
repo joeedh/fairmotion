@@ -14,7 +14,7 @@ export function reset() {
   }
 }
 
-export function chrome_app_open(callback, thisvar, set_current_file, exts) {
+export function chrome_app_open(callback, thisvar, set_current_file, extslabel, exts) {
   console.log("Chrome open");
 
   function errorHandler() {
@@ -23,7 +23,7 @@ export function chrome_app_open(callback, thisvar, set_current_file, exts) {
   
   var params = {type: 'openFile'};
   params.accepts = [{
-      description : "Fairmotion Files",
+      description : extslabel,
       extensions  : exts
   }];
   
@@ -39,7 +39,7 @@ export function chrome_app_open(callback, thisvar, set_current_file, exts) {
       reader.onerror = errorHandler;
       reader.onload = function(e) {
         console.log(e.target.result);
-        callback.call(thisvar, e.target.result);
+        callback.call(thisvar, e.target.result, file.name);
       };
 
       reader.readAsArrayBuffer(file);
@@ -47,9 +47,9 @@ export function chrome_app_open(callback, thisvar, set_current_file, exts) {
   });
 }
 
-export function open_file(callback, thisvar, set_current_file, exts) {
+export function open_file(callback, thisvar, set_current_file, extslabel, exts) {
     if (config.CHROME_APP_MODE) {
-      return chrome_app_open(callback, thisvar, set_current_file, exts);
+      return chrome_app_open(callback, thisvar, set_current_file, extslabel, exts);
     }
     
     if (thisvar == undefined)
@@ -88,7 +88,7 @@ export function open_file(callback, thisvar, set_current_file, exts) {
         var reader = new FileReader();
         reader.onload = function(e) {
             console.log(e.target.result);
-            callback.call(thisvar, e.target.result);
+            callback.call(thisvar, e.target.result, file.name);
         }
         reader.readAsArrayBuffer(file);
     }
@@ -147,7 +147,10 @@ export function chrome_app_save(data, save_as_mode, set_current_file, exts) {
   } else if (current_chromeapp_file != undefined) {
     current_chromeapp_file.createWriter(function(writer) {
       writer.onerror = error;
-      //writer.onwriteend = callback;
+      writer.onwriteend = function() {
+        console.log('write complete');
+      }
+      
       data = new Blob([data], {type : "application/octet-binary"});
       writer.write(data);
     }, errorHandler);

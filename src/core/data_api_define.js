@@ -253,6 +253,11 @@ function api_define_view2d() {
     window.redraw_viewport();
   }
   
+  var draw_small_verts = new BoolProperty(0, "draw_small_verts", "Small Points", "Draw Pointers Smaller");
+  draw_small_verts.api_update = function(ctx, path) {
+    window.redraw_viewport();
+  }
+  
   var extrude_mode = new EnumProperty(0, ExtrudeModes, "extrude_mode", "Extrude Mode");
   
   var linewidth = new FloatProperty(2.0, "default_linewidth", "Line Wid");
@@ -282,9 +287,26 @@ function api_define_view2d() {
   var tweak_mode = new BoolProperty(0, "tweak_mode", "Tweak Mode");
   tweak_mode.icon = Icons.CURSOR_ARROW;
   
+  var uinames = {};
+  for (var key in SelMask) {
+    var k2 = key[0].toUpperCase() + key.slice(1, key.length).toLowerCase();
+    k2 = k2.replace(/\_/g, " ");
+    
+    uinames[key] = "Show " + k2 + "s";
+  }
+  
+  var selmask_mask = new FlagProperty(1, SelMask, uinames, undefined, "Sel Mask");
+  selmask_mask.ui_key_names = uinames;
+  
+  selmask_mask.update = function() {
+    window.redraw_viewport();
+  }
+  
   View2DStruct = new DataStruct([
     new DataPath(tool_mode, "toolmode", "toolmode", true),
+    new DataPath(draw_small_verts, "draw_small_verts", "draw_small_verts", true),
     new DataPath(selmask_enum.copy(), "selectmode", "selectmode",  true),
+    new DataPath(selmask_mask.copy(), "selectmask", "selectmode", true),
     new DataPath(only_render, "only_render", "only_render", true),
     new DataPath(draw_bg_image, "draw_bg_image", "draw_bg_image", true),
     new DataPath(tweak_mode, "tweak_mode", "tweak_mode", true),
@@ -359,15 +381,28 @@ function api_define_spline_face() {
 var SplineVertexStruct;
 function api_define_spline_vertex() {
   var flagprop = new FlagProperty(2, SplineFlags, undefined, "Flags", "Flags");
+  flagprop.ui_key_names["BREAK_CURVATURES"] = "Less Smooth";
+  flagprop.ui_key_names["BREAK_TANGENTS"] = "Sharp Corner";
   
-  flagprop.update = function() {
-    new Context().spline.regen_sort();
+  var coprop = new Vec3Property(undefined, "co", "Co", "Coordinates");
+  
+  flagprop.update = function(owner) {
+    this.ctx.spline.regen_sort();
+    console.log("vertex update", owner);
+    
+    if (owner != undefined) {
+      owner.flag |= SplineFlags.UPDATE;
+    }
+    this.ctx.spline.propagate_update_flags();
+    this.ctx.spline.resolve = 1;
+    
     window.redraw_viewport();
   }
   
   SplineVertexStruct = new DataStruct([
     new DataPath(new IntProperty(0, "eid", "eid", "eid"), "eid", "eid", true),
-    new DataPath(flagprop, "flag", "flag", true)
+    new DataPath(flagprop, "flag", "flag", true),
+    new DataPath(coprop, "co", "", true)
   ]);
   
   return SplineVertexStruct;

@@ -1,3 +1,13 @@
+/*
+it looks like this implementation doesn't
+pass referred objects to property.update 
+callbacks.  eek.
+
+okay, I shall make it do so.  hopefully this doesn't
+push the code over its entropy limit and force a refactor,
+I was planning on doing that later.
+*/
+
 export var DataPathTypes = {PROP: 0, STRUCT: 1, STRUCT_ARRAY : 2};
 export var DataFlags = {NO_CACHE : 1, RECALC_CACHE : 2};
 
@@ -856,8 +866,11 @@ export class DataAPI {
     
     var arr_index = undefined;
     var build_path = this._build_path;
+    
+    //not sure if still need to use arrays as containers like this
     var pathout = [""];
     var spathout = ["ContextStruct"];
+    var ownerpathout = [""];
     var mass_set = undefined;
     
     function do_eval(node, scope, pathout, spathout) {
@@ -875,7 +888,9 @@ export class DataAPI {
           return undefined;
          
         if (ret.use_path) {
-          if (ret.path[0] != "[" && ret.path[0] != "(")
+          ownerpathout[0] = pathout[0];
+          
+          if (ret.path != "" && ret.path[0] != "[" && ret.path[0] != "(")
             pathout[0] = pathout[0] + "." + ret.path;
           else
             pathout[0] += ret.path
@@ -918,9 +933,12 @@ export class DataAPI {
         
         arr_index = index;
         
+        var is_flag = false;
+        
         if (array.type == DataPathTypes.PROP && array.data.type == PropTypes.FLAG) {
           index = array.data.keys[index];
           spathout[0] += ".data.data & "+index;
+          is_flag = true;
         } else if (array.type == DataPathTypes.PROP) {
           spathout[0] += ".data.data["+index+"]";
         }
@@ -928,6 +946,10 @@ export class DataAPI {
         if (!array.use_path) {
           return array;
         } else {
+          if (!is_flag) {
+            ownerpathout[0] = pathout[0];
+          }
+          
           var path = pathout[0];
           
           path = path.slice(1, path.length);
@@ -941,7 +963,9 @@ export class DataAPI {
           }
           
           if (array.type == DataPathTypes.STRUCT_ARRAY) {
-            var stt = array.data.getter(eval(path)[index]);
+            var arr = this.eval(ctx, path, undefined);
+            
+            var stt = array.data.getter(arr[index]); 
             stt.parent = array;
             
             spathout[0] += ".getter(" + path + "[" + index + "]" + ")";
@@ -956,7 +980,7 @@ export class DataAPI {
     }
     
     var ast = parser.parse(str);
-    static sret = [0, 0, 0, 0];
+    static sret = [0, 0, 0, 0, 0];
     
     sret[0] = do_eval(ast, ContextStruct, pathout, spathout);
     pathout[0] = pathout[0].slice(1, pathout[0].length);
@@ -964,6 +988,7 @@ export class DataAPI {
     sret[1] = pathout[0];
     sret[2] = spathout[0];
     sret[3] = mass_set;
+    sret[4] = ownerpathout[0].slice(1, ownerpathout[0].length);
     
     return sret;
   }
@@ -1166,6 +1191,17 @@ export class DataAPI {
   set_prop(ctx, str, value) {
     var ret = this.resolve_path_intern(ctx, str);
     static scope = [0, 0];
+    var owner = ret[4];
+    
+    console.log("owner:", owner);
+    owner = this.eval(ctx, owner);
+    console.log("      ", owner);
+    
+    /*okaaay, why do I have to do this again?
+      somehow this.eval is corrupting it.  gah!
+      problem path was: spline.active_vertex.flag[BREAK_TANGENTS]
+     */
+    var ret = this.resolve_path_intern(ctx, str);
     
     if (ret == undefined) return ret;
     
@@ -1178,8 +1214,7 @@ export class DataAPI {
     }
     
     if (ret[0].type != DataPathTypes.PROP) {
-      console.trace();
-      console.log("Error: non-property in set_prop()", ret[0], ret[1], ret[2]);
+      console.trace("Error: non-property in set_prop()", str, ret.slice(0, ret.length));
       return;
     }
     
@@ -1194,6 +1229,7 @@ export class DataAPI {
       
       var prop = ret[0].data;
       prop.ctx = ctx;
+      
       if (prop.type == PropTypes.FLAG) {
         console.log("FLAG prop set!");
         console.log(path, "value", value);
@@ -1212,7 +1248,7 @@ export class DataAPI {
           else
             val &= ~mask;
           
-          prop.set_data(val);
+          prop.set_data(val, owner);
           
           path2 += " = scope[0];";
           
@@ -1223,7 +1259,7 @@ export class DataAPI {
           path += " = " + value;
           this.eval(ctx, path);
           
-          prop.set_data(value);
+          prop.set_data(value, owner);
         }
       } else {
         if (prop.type == PropTypes.DATAREF) {
@@ -1279,12 +1315,12 @@ export class DataAPI {
           }
         }
         
-        prop.set_data(this.eval(ctx, valpath));
+        prop.set_data(this.eval(ctx, valpath), owner);
       }
       
       ret[0].ctx = ctx;
       if (ret[0].update != undefined)
-        ret[0].update.call(ret[0]);
+        ret[0].update.call(ret[0], owner);
     }
   }
   

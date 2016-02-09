@@ -453,6 +453,8 @@ export class UIPackFrame extends UIFrame {
           }
           
           var key = s.slice(i, s.length-1).trim();
+          console.log("PROP", prop);
+          
           var uiname = prop.ui_key_names[key];
           
           //console.log("        UINAME KEY   '" + key + "'");

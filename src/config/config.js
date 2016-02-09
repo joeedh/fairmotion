@@ -2,7 +2,7 @@
 
 export var CHROME_APP_MODE = document.getElementById("GoogleChromeAppMode") !== null;
 
-export var USE_NACL=false;
+export var USE_NACL=true;
 export var NO_SERVER = CHROME_APP_MODE;
 export var USE_HTML5_FILEAPI=NO_SERVER;
 export var DISABLE_SOLVE=false;
@@ -39,6 +39,7 @@ window._DEBUG = {
   ui_datapaths : false,
   ui_menus : false,
   ui_canvas : false,
+  ui_redraw : false,
   dag : false,
   icons : false,
   complex_ui_recalc : false,

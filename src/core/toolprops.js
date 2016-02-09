@@ -103,17 +103,17 @@ export class ToolProperty {
       console.trace("warning: remove_listener called for unknown owner:", owner);
   }
   
-  _exec_listeners() {
+  _exec_listeners(data_api_owner) {
     for (var l of this.listeners) {
       if (RELEASE) {
         try {
-          l[1](l[0], this);
+          l[1](l[0], this, data_api_owner);
         } catch (_err) {
           print_stack(_err);
           console.log("Warning: a property event listener failed", "property:", this, "callback:", l[1], "owner:", l[0])
         }
       } else {
-        l[1](l[0], this);
+        l[1](l[0], this, data_api_owner);
       }
     }
   }
@@ -143,13 +143,16 @@ export class ToolProperty {
       this.unit = undefined;
   }
 
-  set_data(data, set_data=true) {
+  //owner is used by data_api, is passed to .update
+  //and listener functions
+  set_data(data, owner, set_data=true) {
     if (set_data)
       this.data = data;
     
-    this.api_update(this.ctx, this.path);
-    this.update.call(this);
-    this._exec_listeners();
+    this.api_update(this.ctx, this.path, owner);
+    this.update.call(this, owner);
+    
+    this._exec_listeners(owner);
   }
 
   toJSON() {
@@ -279,9 +282,9 @@ export class DataRefProperty extends ToolProperty {
     return this.copyTo(new DataRefProperty());
   }
   
-  set_data(DataBlock value) {
+  set_data(DataBlock value, Object owner) {
     if (value == undefined) {
-      ToolProperty.prototype.set_data.call(this, undefined);
+      ToolProperty.prototype.set_data.call(this, undefined, owner);
     } else if (!(value instanceof DataRef)) {
       if (!this.types.has(value.lib_type)) {
         console.trace("Invalid datablock type " + value.lib_type + " passed to DataRefProperty.set_value()");
@@ -289,9 +292,9 @@ export class DataRefProperty extends ToolProperty {
       }
       
       value = new DataRef(value);
-      ToolProperty.prototype.set_data.call(this, value);
+      ToolProperty.prototype.set_data.call(this, value, owner);
     } else {
-      ToolProperty.prototype.set_data.call(this, value);
+      ToolProperty.prototype.set_data.call(this, value, owner);
     }
   }
   
@@ -346,12 +349,12 @@ export class RefListProperty extends ToolProperty {
     return this.copyTo(new RefListProperty());
   }
   
-  set_data(DataBlock value) {
+  set_data(DataBlock value, Object owner) {
     if (value != undefined && value.constructor.name == "Array")
       value = new GArray(value);
     
     if (value == undefined) {
-      ToolProperty.prototype.set_data.call(this, undefined);
+      ToolProperty.prototype.set_data.call(this, undefined, owner);
     } else {
       var lst = new DataRefList();
       for (var i=0; i<value.length; i++) {
@@ -369,7 +372,7 @@ export class RefListProperty extends ToolProperty {
       }
       
       value = lst;
-      ToolProperty.prototype.set_data.call(this, value);
+      ToolProperty.prototype.set_data.call(this, value, owner);
     }
   }
   
@@ -404,6 +407,7 @@ export class FlagProperty extends ToolProperty {
     //detect if we were called by fromSTRUCT
     if (value == undefined && maskmap == undefined) {
       this.ui_value_names = {};
+      this.ui_key_names = {};
       this.keys = {};
       this.values = {};
       return;
@@ -452,6 +456,11 @@ export class FlagProperty extends ToolProperty {
     }
     for (var k in this.ui_value_names) {
       dst.ui_value_names[k] = this.ui_value_names[k];
+    }
+    
+    dst.ui_key_names = {};
+    for (var k in this.ui_key_names) {
+      dst.ui_key_names[k] = this.ui_key_names[k];
     }
     
     return dst;
@@ -693,9 +702,9 @@ export class TransformProperty extends ToolProperty {
       ToolProperty.prototype.set_data.call(this, new Matrix4UI(value));
   }
   
-  set_data(data) {
+  set_data(Matrix4 data, Object owner) {
     this.data.load(data);
-    ToolProperty.prototype.set_data.call(this, undefined, false);
+    ToolProperty.prototype.set_data.call(this, undefined, owner, false);
   }
   
   copyTo(TransformProperty dst) {
@@ -873,9 +882,9 @@ export class Vec2Property extends ToolProperty {
     return dst;
   }
   
-  set_data(data) {
+  set_data(Vector2 data, Object owner) {
     this.data.load(data);
-    ToolProperty.prototype.set_data.call(this, undefined, false);
+    ToolProperty.prototype.set_data.call(this, undefined, owner, false);
   }
   
   copy() : Vec2Property {
@@ -916,9 +925,9 @@ export class Vec3Property extends ToolProperty {
     return dst;
   }
   
-  set_data(data) {
+  set_data(Vector3 data, Object owner) {
     this.data.load(data);
-    ToolProperty.prototype.set_data.call(this, undefined, false);
+    ToolProperty.prototype.set_data.call(this, undefined, owner, false);
   }
   
   copy() : Vec3Property {
@@ -962,9 +971,9 @@ export class Vec4Property extends ToolProperty {
     return dst;
   }
   
-  set_data(data) {
+  set_data(Vector4 data, Object owner) {
     this.data.load(data);
-    ToolProperty.prototype.set_data.call(this, undefined, false);
+    ToolProperty.prototype.set_data.call(this, undefined, owner, false);
   }
   
   copy() : Vec4Property {
@@ -1092,14 +1101,14 @@ export class CollectionProperty extends ToolProperty {
       this._data.ctx = data;
   }
   
-  set_data(data) {
+  set_data(data, Object owner) {
     if (data == undefined) {
       this._data = undefined;
       return;
     }
     
     if ("__tooliter__" in data && typeof  data.__tooliter__ == "function") {
-      this.set_data(data.__tooliter__());
+      this.set_data(data.__tooliter__(), owner);
       return;
     } else if (!(this.flag & TPropFlags.COLL_LOOSE_TYPE) && !(data instanceof TPropIterable)) {
       console.trace();
@@ -1112,7 +1121,7 @@ export class CollectionProperty extends ToolProperty {
     this._data = data;
     this._data.ctx = this.ctx;
     
-    ToolProperty.prototype.set_data.call(this, undefined, false);
+    ToolProperty.prototype.set_data.call(this, undefined, owner, false);
   }
   
   //tool props are not supposed to use setters
@@ -1120,6 +1129,8 @@ export class CollectionProperty extends ToolProperty {
   //(and since that meant renaming an inherited
   //member), we add a setter here for the sake of
   //robustness.
+  
+  //XXX: except. . .now you can't pass owner into it
   
   set data(data) {
     this.set_data(data);

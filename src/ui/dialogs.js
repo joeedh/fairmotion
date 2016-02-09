@@ -494,7 +494,7 @@ export class FileOpenOp extends ToolOp {
             console.log("got file!", buf);
             
             g_app_state.load_user_file_new(new DataView(buf));
-        }, this, true, ["fmo"]);
+        }, this, true, "Fairmotion Files", ["fmo"]);
         
         return;
     }

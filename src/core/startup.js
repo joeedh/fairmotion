@@ -153,9 +153,6 @@ window.startup_intern = function startup() {
     //set up some chrome app settings
     var config = _es6_get_module("config");
     config.exports.HAVE_EVAL = false;
-    
-    //for now, disable pnacl 
-    config.exports.USE_NACL = false;
   } 
   
   init_theme();

@@ -2,6 +2,8 @@
 
 import * as config from 'config';
 
+import * as html5_fileapi from 'html5_fileapi';
+
 import 'startup_file';
 import {gen_screen} from 'FrameManager';
 import {DataPath, DataStruct, DataPathTypes, DataFlags,
@@ -181,6 +183,9 @@ class UserSession {
 
 //size is screen size
 window.gen_default_file = function gen_default_file(size) {
+  //needed for chrome app file system api
+  html5_fileapi.reset();
+  
   var g = g_app_state;
   global startup_file_str;
   
@@ -1313,8 +1318,10 @@ export class AppState {
   }
 
   load_user_file_old(data) : ArrayBuffer {
-    //we save a json part and a binary part
+    //how old is this.  wow.  even in all-shape it's old.
+    //it never loaded a fairmotion file at all.
     
+    //we save a json part and a binary part
     var uctx = new unpack_ctx();
     var json = unpack_string(data, uctx);
     

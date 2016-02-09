@@ -494,7 +494,7 @@ export class FileOpenOp extends ToolOp {
             console.log("got file!", buf);
             
             g_app_state.load_user_file_new(new DataView(buf));
-        }, this);
+        }, this, true, ["fmo"]);
         
         return;
     }
@@ -550,10 +550,10 @@ export class FileOpenOp extends ToolOp {
   }
 }
 
-export function html5_save(data) {
+export function html5_save(data, save_as_mode, set_current_file, exts) {
     console.log("html5 file api!");
     
-    save_file(data);
+    save_file(data, save_as_mode, set_current_file, exts);
 }
 
 export class FileSaveAsOp extends ToolOp {
@@ -580,7 +580,7 @@ export class FileSaveAsOp extends ToolOp {
     var mesh_data = g_app_state.create_user_file_new().buffer;
     
     if (config.USE_HTML5_FILEAPI) {
-        html5_save(mesh_data);
+        html5_save(mesh_data, true, true, ["fmo"]);
         return;
     }
 
@@ -676,7 +676,7 @@ export class FileSaveOp extends ToolOp {
     var mesh_data = g_app_state.create_user_file_new().buffer;
 
     if (config.USE_HTML5_FILEAPI) {
-        html5_save(mesh_data);
+        html5_save(mesh_data, false, true, ["fmo"]);
         return;
     }
     

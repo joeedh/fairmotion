@@ -119,8 +119,8 @@ window.startup = function startup() {
       //feed an on_resize event
       var timer2 = window.setInterval(function() {
         window.clearInterval(timer2);
-        var canvas = document.getElementById("canvas2d");
         
+        var canvas = document.getElementById("canvas2d");
         g_app_state.screen.on_resize([window.innerWidth, window.innerHeight]);
       }, 200);
     }, 150);
@@ -132,6 +132,7 @@ window.startup = function startup() {
 
 window.startup_intern = function startup() {
   window.IsMobile = mobilecheck();
+  console.log(":::::", window.innerWidth, window.innerHeight);
   
   /*
   try {
@@ -169,8 +170,9 @@ window.startup_intern = function startup() {
   document.onselectstart = function() { return false; };
   document.oncontextmenu = function() { return false; };
             
-  //don't mangle current app state on
-  //context loss, which also calls init()
+  //hrm, should probably remove this if check
+  //it was added for allshape, which had to deal
+  //with webgl context loss/regain cycles.
   if (g_app_state == undefined) {
       //initialize struct pack system
       startup_report("parsing serialization scripts...");
@@ -196,7 +198,7 @@ window.startup_intern = function startup() {
   
   startup_report("loading native client plugin, if possible...");
   _nacl_domContentLoaded();
-//init_redraw_globals
+  //init_redraw_globals
 }
 
 function init_event_system() {

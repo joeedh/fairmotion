@@ -281,7 +281,8 @@ function api_define_view2d() {
   
   tool_mode.add_icons({
     SELECT : Icons.CURSOR_ARROW,
-    APPEND : Icons.MAKE_SEGMENT
+    APPEND : Icons.MAKE_SEGMENT,
+    RESIZE : Icons.RESIZE
   });
   
   var tweak_mode = new BoolProperty(0, "tweak_mode", "Tweak Mode");
@@ -302,7 +303,21 @@ function api_define_view2d() {
     window.redraw_viewport();
   }
   
+  var background_color = new Vec3Property(undefined, "background_color", "Background");
+  background_color.subtype = PropTypes.COLOR3;
+
+  var default_stroke = new Vec4Property(undefined, "default_stroke", "Stroke");
+  var default_fill = new Vec4Property(undefined, "default_fill", "Fill");
+  default_stroke.subtype = default_fill.subtype = PropTypes.COLOR4;
+  
+  background_color.update = function() {
+    window.redraw_viewport();
+  }
+  
   View2DStruct = new DataStruct([
+    new DataPath(background_color, "background_color", "background_color", true),
+    new DataPath(default_stroke, "default_stroke", "default_stroke", true),
+    new DataPath(default_fill, "default_fill", "default_fill", true),
     new DataPath(tool_mode, "toolmode", "toolmode", true),
     new DataPath(draw_small_verts, "draw_small_verts", "draw_small_verts", true),
     new DataPath(selmask_enum.copy(), "selectmode", "selectmode",  true),

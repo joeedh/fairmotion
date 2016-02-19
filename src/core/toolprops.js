@@ -4,12 +4,12 @@ import {STRUCT} from 'struct';
 import {pack_int, pack_float, pack_static_string} from 'ajax';
 
 export var PropTypes = {
-  INT: 0,
-  FLOAT: 1,
-  STRING: 4,
-  VEC3: 6,
-  VEC4: 7,
-  BOOL:  8,
+  INT    : 0,
+  FLOAT  : 1,
+  STRING : 4,
+  VEC3   : 6,
+  VEC4   : 7,
+  BOOL   : 8,
   MATRIX3: 12,
   MATRIX4: 13,
   ENUM   : 14,
@@ -21,15 +21,17 @@ export var PropTypes = {
   COLLECTION  : 20,
   VEC2        : 21,
   IMAGE       : 22, //this is only a subtype, used with DataRefProperty
-  ARRAYBUFFER : 23
+  ARRAYBUFFER : 23,
+  COLOR3      : 24,
+  COLOR4      : 25
 };
 
 export var TPropFlags = {
-  PRIVATE     : 1, 
-  LABEL       : 2, 
+  PRIVATE         : 1, 
+  LABEL           : 2, 
   COLL_LOOSE_TYPE : 4,
-  USE_UNDO    : 8, //use toolstack.exec_datapath instead of api.set_prop
-  UNDO_SIMPLE : 16 //use simple undo implementation
+  USE_UNDO        : 8, //use toolstack.exec_datapath instead of api.set_prop
+  UNDO_SIMPLE     : 16 //use simple undo implementation
 };
 
 export class ToolProperty {

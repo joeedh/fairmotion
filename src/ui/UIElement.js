@@ -26,9 +26,9 @@ export var UIFlags = {
 
 export var PackFlags = {
   INHERIT_HEIGHT :       1,   INHERIT_WIDTH  :     2, 
-  ALIGN_RIGHT :          4,   ALIGN_LEFT     :        8, 
-  ALIGN_CENTER :        16,   ALIGN_BOTTOM   :     32, 
-  IGNORE_LIMIT :        64,   NO_REPACK      :       128,
+  ALIGN_RIGHT    :       4,   ALIGN_LEFT     :        8, 
+  ALIGN_CENTER   :      16,   ALIGN_BOTTOM   :     32, 
+  IGNORE_LIMIT   :      64,   NO_REPACK      :       128,
   UI_DATAPATH_IGNORE : 256,   USE_ICON       :  1024|2048,
   USE_SMALL_ICON   :  1024,   USE_LARGE_ICON : 2048,
   ENUM_STRIP       :  4096,   NO_AUTO_SPACING: 8192,
@@ -42,8 +42,9 @@ export var PackFlags = {
   //autogenerate .panbounds.
 
   //allow negative pans, needed for the header/footer bars (area.build_topbar())
-  CALC_NEGATIVE_PAN: (1<<21), PAN_X_ONLY : (1<<22),
-  PAN_Y_ONLY       : (1<<23), VERTICAL_ENUM_STRIP : (1<<24)
+  CALC_NEGATIVE_PAN : (1<<21), PAN_X_ONLY : (1<<22),
+  PAN_Y_ONLY        : (1<<23), VERTICAL   : (1<<24),
+  COLOR_BUTTON_ONLY : (1<<25)
 }
 
 export var CanvasFlags = {NOT_ROOT : 1, NO_PROPEGATE : 2}

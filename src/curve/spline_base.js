@@ -23,23 +23,23 @@ export var RecalcFlags = {
 }
 
 export var SplineFlags = {
-  SELECT         : 1,
-  BREAK_TANGENTS : 2,
-  USE_HANDLES    : 4,
-  UPDATE         : 8,
-  TEMP_TAG       : 16,
+  SELECT          : 1,
+  BREAK_TANGENTS  : 2,
+  USE_HANDLES     : 4,
+  UPDATE          : 8,
+  TEMP_TAG        : 16,
   BREAK_CURVATURES:32,
-  HIDE           : 64,
-  FRAME_DIRTY    : 128,
-  PINNED         : 256,
+  HIDE            : 64,
+  FRAME_DIRTY     : 128,
+  PINNED          : 256,
   
-  NO_RENDER      : 512, //used by segments
+  NO_RENDER       : 512, //used by segments
   AUTO_PAIRED_HANDLE : 1<<10,
-  UPDATE_AABB    : 1<<11,
-  DRAW_TEMP      : 1<<12,
-  GHOST          : 1<<13,
-  UI_SELECT      : 1<<14,
-  FIXED_KS       : 1<<21, //internal to solver code
+  UPDATE_AABB     : 1<<11,
+  DRAW_TEMP       : 1<<12,
+  GHOST           : 1<<13,
+  UI_SELECT       : 1<<14,
+  FIXED_KS        : 1<<21, //internal to solver code
 }
 
 export var SplineTypes= {

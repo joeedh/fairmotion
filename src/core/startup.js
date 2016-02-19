@@ -213,6 +213,7 @@ function init_event_system() {
 
   window.setInterval(function () {
       //deal with timeouts 
+      
       //window.pop_solve(draw_id);
       if (window.redraw_start_times == undefined)
         return;

@@ -333,7 +333,7 @@ export function ui_call_menu(menu, frame, pos, center=true, min_width=20)//cente
   ]);
   
   //frame.do_full_recalc();
-  //frame._on_mousemove({"x": pos[0]-frame.pos[0], "y":pos[1]-frame.pos[1]})
+  frame._on_mousemove({"x": pos[0]-frame.pos[0], "y":pos[1]-frame.pos[1]})
 }
 
 import {ToolFlags, UndoFlags} from 'toolops_api';

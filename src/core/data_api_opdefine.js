@@ -28,7 +28,7 @@ import {TransSplineVert, TransData, TransformOp, TranslateOp, ScaleOp, RotateOp}
 
 import {SelectOpBase, SelectOneOp, ToggleSelectAllOp, SelectLinkedOp, HideOp, UnhideOp, CircleSelectOp} from 'spline_selectops';
 import {ExtrudeModes, ExtrudeVertOp, CreateEdgeOp, CreateEdgeFaceOp, ImportJSONOp} from 'spline_createops';
-import {KeyCurrentFrame, ShiftLayerOrderOp, SplineGlobalToolOp, SplineLocalToolOp, KeyEdgesOp, CopyPoseOp, PastePoseOp, InterpStepModeOp, DeleteVertOp, DeleteSegmentOp, DeleteFaceOp, ChangeFaceZ, DissolveVertOp, SplitEdgeOp, SplitEdgeOp1, VertPropertyBaseOp, ToggleBreakTanOp, ToggleBreakCurvOp, ConnectHandlesOp, DisconnectHandlesOp, CurveRootFinderTest, DelVertFrame, AnimPlaybackOp, ToggleManualHandlesOp, ShiftTimeOp, DuplicateOp, SplineMirrorOp} from 'spline_editops';
+import {KeyCurrentFrame, ShiftLayerOrderOp, SplineGlobalToolOp, SplineLocalToolOp, KeyEdgesOp, CopyPoseOp, PastePoseOp, InterpStepModeOp, DeleteVertOp, DeleteSegmentOp, DeleteFaceOp, ChangeFaceZ, DissolveVertOp, SplitEdgeOp, VertPropertyBaseOp, ToggleBreakTanOp, ToggleBreakCurvOp, ConnectHandlesOp, DisconnectHandlesOp, AnimPlaybackOp, ToggleManualHandlesOp, ShiftTimeOp, DuplicateOp, SplineMirrorOp} from 'spline_editops';
 import {AddLayerOp, ChangeLayerOp, ChangeElementLayerOp} from 'spline_layerops';
 import {SplitAreasTool, CollapseAreasTool, HintPickerOpElement, HintPickerOp} from 'FrameManager_ops';
 

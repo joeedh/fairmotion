@@ -550,12 +550,6 @@ export class FileOpenOp extends ToolOp {
   }
 }
 
-export function html5_save(data, save_as_mode, set_current_file, exts) {
-    console.log("html5 file api!");
-    
-    save_file(data, save_as_mode, set_current_file, exts);
-}
-
 export class FileSaveAsOp extends ToolOp {
   constructor() {
     super("save_file_as", "Save As");
@@ -580,7 +574,9 @@ export class FileSaveAsOp extends ToolOp {
     var mesh_data = g_app_state.create_user_file_new().buffer;
     
     if (config.USE_HTML5_FILEAPI) {
-        html5_save(mesh_data, true, true, ["fmo"]);
+        save_file(mesh_data, true, true, "Fairmotion Files", ["fmo"], function() {
+          error_dialog(ctx, "Could not write file", undefined, true);
+        });
         return;
     }
 
@@ -676,7 +672,9 @@ export class FileSaveOp extends ToolOp {
     var mesh_data = g_app_state.create_user_file_new().buffer;
 
     if (config.USE_HTML5_FILEAPI) {
-        html5_save(mesh_data, false, true, ["fmo"]);
+        save_file(mesh_data, false, true, "Fairmotion Files", ["fmo"], function() {
+          error_dialog(ctx, "Could not write file", undefined, true);
+        });
         return;
     }
     
@@ -927,7 +925,6 @@ export class FileSaveSVGOp extends ToolOp {
     ctx = new Context();
     
     var buf = export_svg(ctx.spline);
-    var a = document.createElement("a");
     
     if (g_app_state.filepath != "") {
       var name = g_app_state.filepath;
@@ -938,11 +935,18 @@ export class FileSaveSVGOp extends ToolOp {
     }
     
     var blob = new Blob([buf], {type : "text/svg+xml"});
-    var url = URL.createObjectURL(blob);
     
-    a.download = name + ".svg";
-    a.href = url;
-    a.click();
+    if (config.CHROME_APP_MODE) {
+      save_file(blob, true, false, "SVG", ["svg"], function() {
+        error_dialog(ctx, "Could not write file", undefined, true);
+      });
+    } else {
+      var a = document.createElement("a");
+      
+      a.download = name + ".svg";
+      a.href = URL.createObjectURL(blob);
+      a.click();
+    }
   }
 }
 

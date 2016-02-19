@@ -365,8 +365,8 @@
      borderopacity="1.0"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:zoom="2.8551764"
-     inkscape:cx="408.65014"
+     inkscape:zoom="4.0378292"
+     inkscape:cx="392.29539"
      inkscape:cy="454.81295"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
@@ -884,5 +884,57 @@
            x="385.85089"
            y="35.754002"
            style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-family:Comic Sans MS;-inkscape-font-specification:Comic Sans MS;fill:#ff1e1e;fill-opacity:1" /></flowRegion><flowPara
-         id="flowPara4298">x</flowPara></flowRoot>  </g>
+         id="flowPara4298">x</flowPara></flowRoot>    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:none"
+       d="m 442.49395,587.43108 -0.29656,-2.25415 -6.81951,4.54332 7.69715,3.09998 z"
+       id="path5370-5-0-6-1"
+       inkscape:connector-curvature="0" />
+    <rect
+       style="opacity:0.94690265;fill:#ffffff;fill-opacity:1;stroke:none"
+       id="rect5558-7"
+       width="5.2865582"
+       height="2.7940788"
+       x="393.5369"
+       y="594.20032"
+       transform="matrix(0.99992585,-0.01217742,0.08094555,0.99671852,0,0)" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:none"
+       d="m 422.11769,590.56979 0.13126,2.26976 7.1329,-4.0335 -7.45037,-3.65347 z"
+       id="path5370-5-0-6-1-4"
+       inkscape:connector-curvature="0" />
+    <rect
+       style="opacity:0.94690265;fill:#ffffff;fill-opacity:1;stroke:none"
+       id="rect5558-7-0"
+       width="5.2865582"
+       height="2.7940788"
+       x="-358.67709"
+       y="-607.39221"
+       transform="matrix(-0.99928143,0.03790277,-0.1065656,-0.99430567,0,0)" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:none"
+       d="m 433.84461,599.57758 2.2734,-0.0276 -3.70418,-7.30934 -3.98928,7.27611 z"
+       id="path5370-5-0-6-1-4-9"
+       inkscape:connector-curvature="0" />
+    <rect
+       style="opacity:0.94690265;fill:#ffffff;fill-opacity:1;stroke:none"
+       id="rect5558-7-0-4"
+       width="5.2865582"
+       height="2.7940788"
+       x="625.41217"
+       y="-439.28983"
+       transform="matrix(-0.00768715,0.99997045,-0.99812974,0.06113113,0,0)" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:none"
+       d="m 429.80808,578.27916 -2.27209,-0.082 3.34751,7.47943 4.33539,-7.07534 z"
+       id="path5370-5-0-6-1-4-8"
+       inkscape:connector-curvature="0" />
+    <rect
+       style="opacity:0.94690265;fill:#ffffff;fill-opacity:1;stroke:none"
+       id="rect5558-7-0-8"
+       width="5.2865582"
+       height="2.7940788"
+       x="-586.23065"
+       y="462.74109"
+       transform="matrix(0.05588343,-0.9984373,0.99991623,-0.01294358,0,0)" />
+  </g>
 </svg>

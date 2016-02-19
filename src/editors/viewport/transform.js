@@ -310,6 +310,7 @@ export class TransSplineVert {
       var d = td.data[i];
       if (d.type != TransSplineVert)
         continue;
+      
       if (d.data.type == SplineTypes.HANDLE)
         hset[d.data.eid] = 1;
     }
@@ -329,8 +330,8 @@ export class TransSplineVert {
           sset[seg.eid] = 1;
           seg.update_aabb();
           
-          minmax.minmax(seg.aabb[0]);
-          minmax.minmax(seg.aabb[1]);
+          minmax.minmax(seg._aabb[0]);
+          minmax.minmax(seg._aabb[1]);
         }
         
         var v2 = seg.other_vert(v);
@@ -359,6 +360,27 @@ export class TransSplineVert {
       
       if (v.type == SplineTypes.HANDLE)
         v = v.owning_vertex;
+
+      for (var j=0; j<v.segments.length; j++) {
+        var seg = v.segments[j];
+        if (!seg.l)
+          continue;
+        
+        var _i1=0, l = seg.l;
+        
+        do {
+          var faabb = l.f._aabb;
+          
+          minmax.minmax(faabb[0]);
+          minmax.minmax(faabb[1]);
+
+          if (_i1++ > 100) {
+            console.log("infinite loop!");
+            break;
+          }
+          l = l.radial_next;
+        } while (l != seg.l);
+      }
       
       rec_walk(v, 0);
     }
@@ -457,6 +479,7 @@ export class TransformOp extends ToolOp {
     ToolOp.call(this);
     
     this.types = new GArray([MResTransData, TransSplineVert]);
+    this.first_viewport_redraw = true;
     
     if (start_mpos != undefined && typeof start_mpos != "number" && start_mpos instanceof Array) {
       this.user_start_mpos = start_mpos;
@@ -484,7 +507,7 @@ export class TransformOp extends ToolOp {
   ensure_transdata(ctx) {
     var selmode = this.inputs.datamode.data;
     
-    console.log("SELMODE", selmode);
+    //console.log("SELMODE", selmode);
     
     if (this.transdata == undefined) {
       this.types = [];
@@ -548,6 +571,7 @@ export class TransformOp extends ToolOp {
   start_modal(ctx) {
     ToolOp.prototype.start_modal.call(this);
     
+    this.first_viewport_redraw = true;
     ctx.appstate.set_modalstate(ModalStates.TRANSFORMING);
     
     this.ensure_transdata(ctx);
@@ -562,7 +586,6 @@ export class TransformOp extends ToolOp {
     var mpos = new Vector3([event.x, event.y, 0]);
 
     var md = this.modaldata;
-    md.draw_minmax = new MinMax(3);
     
     if (md.start_mpos == undefined && this.user_start_mpos != undefined) {
       md.start_mpos = new Vector3(this.user_start_mpos);
@@ -587,38 +610,44 @@ export class TransformOp extends ToolOp {
   post_mousemove(event) {
     //window.redraw_viewport();
     //return;
-    var td = this.transdata;
-    var md = this.modaldata;
-    var do_last = true;
+    var td = this.transdata, view2d = this.modal_ctx.view2d;
+    var md = this.modaldata, do_last = true;
     
     static min1 = new Vector3(), max1 = new Vector3();
+    static min2 = new Vector3(), max2 = new Vector3();
     
-    if (md.draw_minmax == undefined) {
+    if (this.first_viewport_redraw) {
       md.draw_minmax = new MinMax(3);
       do_last = false;
     }
     
+    var ctx = this.modal_ctx;
     var minmax = md.draw_minmax;
     
     min1.load(minmax.min);
     max1.load(minmax.max);
+    //console.log("d", min1[0], min1[1], max1[0], max1[1]);
     //static calc_draw_aabb(Context, TransData td, MinMax minmax) {
 
     minmax.reset();
-    
-    var ctx = this.modal_ctx;
     for (var i=0; i<td.types.length; i++) {
       td.types[i].calc_draw_aabb(ctx, td, minmax);
     }
     
-    for (var i=0; i<3; i++) {
-      minmax.min[i] -= 10;
-      minmax.max[i] += 10;
+    for (var i=0; i<2; i++) {
+      minmax.min[i] -= 20/view2d.zoom;
+      minmax.max[i] += 20/view2d.zoom;
     }
     
-    for (var i=0; do_last && i<3; i++) {
-      min1[i] = Math.min(min1[i], minmax.min[i]);
-      max1[i] = Math.max(max1[i], minmax.max[i]);
+    if (do_last) {
+      //console.log("do last!", min1[0], min1[1], max1[0], max1[1]);
+      
+      for (var i=0; i<2; i++) {
+        min2[i] = Math.min(min1[i], minmax.min[i]);
+        max2[i] = Math.max(max1[i], minmax.max[i]);
+      }
+    } else {
+      min2.load(minmax.min), max2.load(minmax.max);
     }
     
     var found=false;
@@ -630,17 +659,21 @@ export class TransformOp extends ToolOp {
     }
     
     if (!USE_NACL) {
-      redraw_viewport(minmax.min, minmax.max);
+      //last argument means combine with previous draw rectangles
+      redraw_viewport(min2, max2, undefined, !this.first_viewport_redraw);
     } else if (this._last_solve==undefined || time_ms()-this._last_solve > 60) {
-      var spline = ctx.spline;
-      
       if (found) {
-        spline.solve();
+        ctx.spline.solve();
       }
       
-      redraw_viewport(minmax.min, minmax.max);
+      //last argument means combine with previous draw rectangles
+      redraw_viewport(min2, max2, undefined, !this.first_viewport_redraw);
+      
       this._last_solve = time_ms();
     }
+    
+    this.first_viewport_redraw = false;
+    
     return;
     
     //only allow two running jobs at one time
@@ -656,15 +689,17 @@ export class TransformOp extends ToolOp {
     //redraw on rejections too
     promise.then(function () {
       //if (spline.resolve == 0)
-      redraw_viewport(minmax.min, minmax.max);
+        
+      //last argument means combine with previous draw rectangles
+      redraw_viewport(minmax.min, minmax.max, undefined, true);
     }, function() {
       //if (spline.resolve == 0)
-      //redraw_viewport(minmax.min, minmax.max);
+      //redraw_viewport(minmax.min, minmax.max, undefined, true);
     });
     
     /*
     promise["catch"](function () {
-      redraw_viewport(minmax.min, minmax.max);
+      redraw_viewport(minmax.min, minmax.max, undefined, true);
       return 1;
     });
     */
@@ -748,7 +783,7 @@ export class TransformOp extends ToolOp {
 //import {TPropFlags} from 'toolprops';
 
 export class TranslateOp extends TransformOp {
-  constructor(Array<float> user_start_mpos, datamode) {
+  constructor(Array<float> user_start_mpos, int datamode) {
     super(user_start_mpos, datamode);
   }
   

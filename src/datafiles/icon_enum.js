@@ -1,7 +1,7 @@
 "use strict";
 
 window.Icons = {
-  SCALE          : 0,
+  HFLIP          : 0,
   TRANSLATE      : 1,
   ROTATE         : 2,
   HELP_PICKER    : 3,
@@ -29,5 +29,6 @@ window.Icons = {
   VERT_MODE      : 25,
   CURSOR_ARROW   : 26,
   TOGGLE_SEL_ALL : 27,
-  DELETE         : 28
+  DELETE         : 28,
+  RESIZE         : 29
 };

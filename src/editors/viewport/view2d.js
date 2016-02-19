@@ -6,7 +6,7 @@ var PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,
     ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos,
     asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
 
-import {aabb_isect_2d, inrect_2d} from 'mathlib';
+import {aabb_isect_2d, inrect_2d, aabb_isect_minmax2d} from 'mathlib';
 
 import {get_2d_canvas, get_2d_canvas_2} from 'UICanvas2D';
 import {NoteFrame} from 'notifications';
@@ -17,6 +17,10 @@ import {UIRadialMenu} from 'RadialMenu';
 import * as video from 'video';
 
 import {PackFlags, UIFlags} from 'UIElement';
+import {UIPanel} from 'UIWidgets_special';
+import {UIColorButton} from 'UIWidgets_special2';
+import {ManipulatorManager, Manipulator, 
+        HandleShapes, ManipFlags, ManipHandle} from 'manipulator';
 
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
         charmap, TouchEventManager, EventHandler} from 'events';
@@ -72,6 +76,18 @@ class PanOp extends ToolOp {
     this.cameramat = new Matrix4();
   }
   
+  static tooldef() { return {
+    uiname     : "Pan",
+    apiname    : "view2d.pan",
+    
+    undoflag   : UndoFlags.IGNORE_UNDO,
+    
+    inputs     : {},
+    outputs    : {},
+    
+    is_modal   : true
+  }}
+  
   start_modal(ctx) {
     this.start_cameramat = new Matrix4(ctx.view2d.cameramat);
   }
@@ -125,8 +141,9 @@ class IndexBufItem {
   }
 }
 
+import {patch_canvas2d} from 'spline_draw';
 import {SplineEditor} from 'view2d_spline_ops';
-import {ColumnFrame, RowFrame} from 'UIPack';
+import {ColumnFrame, RowFrame, ToolOpFrame} from 'UIPack';
 import {UIMenuLabel, UIButtonIcon} from 'UIWidgets';
 import {UIMenu} from 'UIMenu';
 import {UITabPanel} from 'UITabPanel';
@@ -139,7 +156,14 @@ export class View2DHandler extends Area {
                int height, int znear=0.75, int zfar = 200.0) 
   {
     static int v3d_id = 0;
-   
+    
+    //on-canvas manipulator tools
+    this.widgets = new ManipulatorManager(this);
+    
+    this.background_color = new Vector3([1.0, 1.0, 1.0]);
+    this.default_stroke = new Vector4([0, 0, 0, 1]);
+    this.default_fill = new Vector4([0, 0, 0, 1]);
+    
     this.toolmode = ToolModes.APPEND;
     this.draw_small_verts = false;
     
@@ -506,6 +530,10 @@ export class View2DHandler extends Area {
     if (prior(View2DHandler, this).on_mousedown.call(this, event))
       return;
     
+    if (this.widgets.do_click(event, this)) {
+      return;
+    }
+    
     if (event.button == 0) {
       var selfound = false;
       var is_middle = event.button == 1 || (event.button == 2 && g_app_state.screen.ctrl);
@@ -671,6 +699,8 @@ export class View2DHandler extends Area {
   }
 
   on_tick() {
+    this.widgets.on_tick(this.ctx);
+    
     this.editor.on_tick(this.ctx);
     prior(View2DHandler, this).on_tick.call(this);
     
@@ -688,32 +718,19 @@ export class View2DHandler extends Area {
   on_view_change() {
   }
 
-  do_draw_viewport(g) {
-    if (g == undefined) {
-      g = this.canvas.get_canvas(this, this.abspos, this.size, 0);
-      //g = get_2d_canvas_2().ctx;
+  do_draw_viewport(redraw_rects) {
+    var canvas = this.canvas.get_canvas(this, this.abspos, this.size, 0);
+    var g = canvas.ctx;
+    
+    if (canvas != undefined && canvas.style != undefined) {
+      canvas.style.background = this.background_color.toCSS();
     }
     
     g._render_mat = this.rendermat;
     g._irender_mat = this.irendermat;
     
-    var lr = window.last_redraw_rect;
-    var r = window.redraw_rect;
-
     var w = this.parent.size[0];
     var h = this.parent.size[1];
-    
-    static r2 = [new Vector3(), new Vector3()];
-    
-    for (var i=0; i<3; i++) {
-      if (lr[0][0] != 0.0 || lr[1][0] != w) {
-        r2[0][i] = Math.min(lr[0][i], r[0][i]);
-        r2[1][i] = Math.max(lr[1][i], r[1][i]);
-      } else {
-        r2[0][i] = r[0][i];
-        r2[1][i] = r[1][i];
-      }
-    }
     
     /*
     g.fillStyle = "rgba(25, 25, 25, 0.1)";
@@ -726,7 +743,7 @@ export class View2DHandler extends Area {
     //  console.log(window.redraw_rect[0], window.redraw_rect[1]);
     
     //XXX clause doesn't work
-    if (0 && window.redraw_whole_screen) {
+    /*if (0 && window.redraw_whole_screen) {
       g.beginPath();
       if (g._clearRect != undefined) {
         //g._clearRect(0, 0, this.size[0], this.size[1]);
@@ -744,7 +761,7 @@ export class View2DHandler extends Area {
         g.closePath();
         g.strokeStyle = "black";
         g.stroke();
-        //*/
+        
       }
       
       g.save();
@@ -758,13 +775,53 @@ export class View2DHandler extends Area {
         g.closePath();
         g.clip();
       }
-    }    
-    
+    }*/
+    /*
     for (var i=0; i<2; i++) {
       for (var j=0; j<3; j++) {
         window.redraw_rect_combined[i][j] = r2[i][j];
       }
+    }*/
+
+    if (g._is_patched == undefined) {
+      patch_canvas2d(g);
+      g._is_patched = this.ctx.spline;
     }
+    
+    g.save();
+    
+    //console.log("viewport draw", redraw_rects.length);
+    
+    var p1 = new Vector2([this.pos[0], this.pos[1]]);
+    var p2 = new Vector2([this.pos[0]+this.size[0], this.pos[1]+this.size[1]])
+    this.unproject(p1), this.unproject(p2);
+    
+    //this.ctx.frameset.draw(this.ctx, g, this, redraw_rects);
+    
+    //g.restore(); return;
+    
+    g.beginPath();
+    //g.rect(p1[0], p1[1], Math.abs(p2[0]-p1[0]), Math.abs(p2[1]-p1[1]));
+    //g.fillStyle = "rgba(255,0,0,0.2)";
+    //g.closePath();
+    
+    var r = redraw_rects;
+    
+    for (var i=0; i<r.length; i += 4) {
+      g.moveTo(r[i], r[i+1]);
+      g.lineTo(r[i], r[i+3]);
+      g.lineTo(r[i+2], r[i+3]);
+      g.lineTo(r[i+2], r[i+1]);
+      
+      g.closePath();
+    }
+    g.clip();
+    
+    g.beginPath();
+    g._clearRect(0, 0, g.width, g.height);
+    
+    //this.ctx.frameset.draw(this.ctx, g, this, redraw_rects);
+    //g.restore(); return;
     
     this.ctx = new Context();
     
@@ -792,7 +849,7 @@ export class View2DHandler extends Area {
       g.drawImage(img, iuser.off[0], iuser.off[1], img.width*iuser.scale[0], img.height*iuser.scale[1]);
     }
     
-    this.ctx.frameset.draw(this.ctx, g, this);
+    this.ctx.frameset.draw(this.ctx, g, this, redraw_rects);
     
     var frameset = this.ctx.frameset;
     var spline = frameset.spline;
@@ -842,6 +899,24 @@ export class View2DHandler extends Area {
       }
     }
     
+    //r2[1][0] += r2[0][0];
+    //r2[1][1] += r2[0][1];
+    var draw_widget = false;
+    /*
+    for (var rect of this.widgets.get_render_rects(this.ctx, canvas, g)) {
+      if (aabb_isect_2d(r2[0], r2[1], rect[0], rect[1])) {
+        draw_widget = true;
+        break;
+      }
+    }
+    console.log("draw widget:", draw_widget);
+    //*/
+    
+    if (1||draw_widget) {
+      //g.translate(
+      this.widgets.render(canvas, g);
+    }
+    
     g.restore();
   }
   
@@ -856,10 +931,11 @@ export class View2DHandler extends Area {
     this.abspos[0] = this.abspos[1] = 0.0;
     this.abs_transform(this.abspos);
     
-    var g = this.canvas.get_canvas(this, this.abspos, this.size, 0);
-    this.draw_canvas_ctx = g;
+    var canvas = this.canvas.get_canvas(this, this.abspos, this.size, 0);
+    this.draw_canvas = canvas;
+    this.draw_canvas_ctx = canvas.ctx;
     
-    //var g = get_2d_canvas_2().ctx;
+    var g = canvas.ctx;
     
     //ensure we have sane dimensions
     //*
@@ -1111,7 +1187,7 @@ export class View2DHandler extends Area {
     var tools = tabs.panel("Tools");
     tools.prop("view2d.toolmode", 
                PackFlags.USE_LARGE_ICON | PackFlags.ENUM_STRIP |
-               PackFlags.VERTICAL_ENUM_STRIP
+               PackFlags.VERTICAL
                );
     
     var undo = new UIButtonIcon(this.ctx, "Undo", Icons.UNDO);
@@ -1141,6 +1217,8 @@ export class View2DHandler extends Area {
     display.prop("view2d.extrude_mode");
     display.prop("view2d.enable_blur");
     display.prop("view2d.draw_faces");
+    display.toolop("view2d.render_anim()");
+    display.toolop("view2d.play_anim()");
     
 //    try {
     display.prop("view2d.selectmask[HANDLE]");
@@ -1150,12 +1228,32 @@ export class View2DHandler extends Area {
     
     display.prop("view2d.pin_paths");
 
-    var img = tabs.panel("Image");
-    img.prop('view2d.draw_bg_image');
-    img.prop('view2d.background_image.image');
-    img.toolop("image.load_image(datapath='view2d.background_image.image')")
-    img.prop('view2d.background_image.off');
-    img.prop('view2d.background_image.scale');
+    var img = tabs.panel("Background");
+    img.packflag |= PackFlags.NO_AUTO_SPACING;
+    
+    //background_color
+    var panel2 = new UIPanel(this.ctx, "Background Image", undefined, true);
+    img.add(panel2);
+    
+    panel2.prop('view2d.draw_bg_image');
+    panel2.prop('view2d.background_image.image');
+    panel2.toolop("image.load_image(datapath='view2d.background_image.image')")
+    panel2.prop('view2d.background_image.off');
+    panel2.prop('view2d.background_image.scale');
+    
+    panel2 = new UIPanel(this.ctx, "Background Color", undefined, true);
+    img.add(panel2);
+    
+    panel2.prop('view2d.background_color');
+    
+    //var colorb = new UIColorButton(this.ctx, PackFlags.VERTICAL);
+    //colorb.state |= UIFlags.USE_PATH;
+    //colorb.data_path = 'view2d.background_color';
+    
+    //img.add(colorb);
+    
+    var lasttool = tabs.panel("Tool Options");
+    lasttool.add(new ToolOpFrame(this.ctx, "last_tool"));
     
     this.add(panel);
     this.cols.push(panel);
@@ -1270,12 +1368,15 @@ View2DHandler.STRUCT = STRUCT.inherit(View2DHandler, Area) + """
     zoom            : float;
     tweak_mode        : int;
     default_linewidth : float;
+    default_stroke    : vec4;
+    default_fill      : vec4;
     extrude_mode      : int;
     enable_blur       : int;
     draw_faces        : int;
     draw_video        : int;
     pinned_paths      : array(int) | obj.pinned_paths != undefined ? obj.pinned_paths : [];
     background_image  : ImageUser;
+    background_color  : vec3;
     draw_bg_image     : int;
     toolmode          : int;
     draw_small_verts  : int;

@@ -6,6 +6,7 @@ import {DeleteVertOp, DeleteSegmentOp} from 'spline_editops';
 import {CreateMResPoint} from 'multires_ops';
 import * as mr_selectops from 'multires_selectops';
 import * as spline_selectops from 'spline_selectops';
+import {WidgetResizeOp} from 'transform_ops';
 
 import {compose_id, decompose_id, MResFlags, MultiResLayer}
         from 'spline_multires';
@@ -46,13 +47,16 @@ window.anim_to_playback = [];
 export class RenderAnimOp extends ToolOp {
   constructor() {
     ToolOp.call(this);
-    
-    this.uiname = "Render";
-    this.name = "Render";
-    
-    this.is_modal = true;
-    this.undoflag |= UndoFlags.IGNORE_UNDO;
   }
+  
+  static tooldef() {return {
+    uiname   : "Render",
+    apiname  : "view2d.render_anim",
+    is_modal : true,
+    inputs   : {},
+    outputs  : {},
+    undoflag : UndoFlags.IGNORE_UNDO
+  }}
   
   start_modal(ctx) {
     ToolOp.prototype.start_modal.call(this, ctx);
@@ -152,13 +156,16 @@ export class RenderAnimOp extends ToolOp {
 export class PlayAnimOp extends ToolOp {
   constructor() {
     ToolOp.call(this);
-    
-    this.uiname = "Play";
-    this.name = "Play";
-    
-    this.is_modal = true;
-    this.undoflag |= UndoFlags.IGNORE_UNDO;
   }
+  
+  static tooldef() {return {
+    uiname   : "Play",
+    apiname  : "view2d.play_anim",
+    is_modal : true,
+    inputs   : {},
+    outputs  : {},
+    undoflag : UndoFlags.IGNORE_UNDO
+  }}
   
   start_modal(ctx) {
     ToolOp.prototype.start_modal.call(this, ctx);
@@ -297,6 +304,11 @@ export class SplineEditor extends View2DEditor {
   }
   
   on_tick(ctx) {
+    if (ctx.view2d.toolmode == ToolModes.RESIZE) {
+      ctx.view2d.widgets.ensure_toolop(ctx, WidgetResizeOp);
+    } else {
+      ctx.view2d.widgets.ensure_not_toolop(ctx, WidgetResizeOp);
+    }
   }
  
   build_sidebar1(View2DHandler view2d, RowFrame panel) {
@@ -351,9 +363,10 @@ export class SplineEditor extends View2DEditor {
                         
     prop.packflag |= PackFlags.USE_ICON|PackFlags.ENUM_STRIP;
     
-    col.toolop("view2d.render_anim()");
-    col.toolop("view2d.play_anim()");
     //col.prop("view2d.draw_video");
+    
+    col.prop('view2d.default_stroke', PackFlags.COLOR_BUTTON_ONLY);
+    //col.prop('view2d.default_fill', PackFlags.COLOR_BUTTON_ONLY);
     
     view2d.rows.push(the_row);
     view2d.add(the_row);
@@ -604,7 +617,8 @@ export class SplineEditor extends View2DEditor {
         this.view2d.unproject(co);
         
         var op = new ExtrudeVertOp(co, this.ctx.view2d.extrude_mode);
-        op.inputs.line_width.set_data(this.ctx.view2d.default_linewidth);
+        op.inputs.linewidth.set_data(this.ctx.view2d.default_linewidth);
+        op.inputs.stroke.set_data(this.ctx.view2d.default_stroke);
         
         g_app_state.toolstack.exec_tool(op);
         redraw_viewport();
@@ -867,14 +881,14 @@ export class SplineEditor extends View2DEditor {
     if (ret != undefined && typeof(ret[1]) != "number" && ret[2] != SelMask.MULTIRES) {
       //console.log(ret[1].type);
       
-      if (ret.highlight_spline != undefined) {
-        for (i=0; i<ret.highlight_spline.elists.length; i++) {
-          var list = ret.highlight_spline.elists[i];
+      if (this.highlight_spline != undefined) {
+        for (var list of this.highlight_spline.elists) {
           if (list.highlight != undefined) {
             redraw_element(list.highlight, this.view2d);
           }
         }
       }
+      
       if (ret[0] !== this.highlight_spline && this.highlight_spline != undefined) {
         this.highlight_spline.clear_highlight();
       }
@@ -909,6 +923,7 @@ export class SplineEditor extends View2DEditor {
       
       list.highlight = ret[1];
       redraw_element(list.highlight, this.view2d);
+      
       //redraw_viewport();
       //console.log(list === ret[0].verts);
     } else {
@@ -955,6 +970,7 @@ export class SplineEditor extends View2DEditor {
       "spline.delete_verts()",
       "spline.delete_segments()",
       "spline.delete_faces()",
+      "spline.split_edges()",
       "spline.toggle_manual_handles()"
     ];
     ops.reverse();

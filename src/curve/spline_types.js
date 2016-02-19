@@ -274,13 +274,13 @@ export class SplineSegment extends SplineElement {
     }
   }
   
-  update_aabb(steps=4) {
+  update_aabb(steps=6) {
     this._update_has_multires();
     
     this.flag &= ~SplineFlags.UPDATE_AABB;
     
     var min = this._aabb[0], max = this._aabb[1];
-    static minmax = new MinMax(3);
+    static minmax = new MinMax(2);
     
     minmax.reset();
     min.zero(); max.zero();
@@ -291,12 +291,14 @@ export class SplineSegment extends SplineElement {
     var ds = 1.0/(steps-1);
     for (var i=0, s=0; i<steps; i++, s += ds) {
       
-      var co = this.eval(s);
+      var co = this.eval(s*0.999999999);
       minmax.minmax(co);
     }
     
     min.load(minmax.min);
     max.load(minmax.max);
+    
+    min[2] = max[2] = 0.0; //XXX need to get rid of z
   }
   
   closest_point(p, mode, fast=false) {
@@ -912,6 +914,7 @@ export class SplineFace extends SplineElement {
     
     this._aabb[0].load(minmax.min);
     this._aabb[1].load(minmax.max);
+    this._aabb[0][2] = this._aabb[1][2] = 0.0; //XXX need to get rid of z
   }
   
   get aabb() {

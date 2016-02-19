@@ -1478,13 +1478,13 @@ export class SplineFrameSet extends DataBlock {
     }
   }
   
-  draw(Context ctx, Canvas2DRenderer g, editor) {
+  draw(Context ctx, Canvas2DRenderer g, editor, redraw_rects) {
     var size = editor.size, pos = editor.pos;
     
     this.draw_anim_paths = editor.draw_anim_paths;
     this.selectmode = editor.selectmode;
     
-    this.spline.draw(g, editor, editor.selectmode, editor.only_render, editor.draw_normals, this.spline===ctx.spline ? 1.0 : 0.3);
+    this.spline.draw(redraw_rects, g, editor, editor.selectmode, editor.only_render, editor.draw_normals, this.spline===ctx.spline ? 1.0 : 0.3);
   }
   
   static fromSTRUCT(reader) {

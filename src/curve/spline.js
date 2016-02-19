@@ -942,9 +942,6 @@ export class Spline extends DataBlock {
       
       this.segments.clear_selection();
       this.faces.clear_selection();
-
-      console.log("sact:", sact);
-      console.log("fact:", fact);
       
       //select first if necassary
       if (sact == undefined || !sset.has(sact)) {
@@ -1900,7 +1897,9 @@ export class Spline extends DataBlock {
     }
   }
   
-  draw(g, editor, selectmode, only_render, draw_normals, alpha, draw_time_helpers, curtime) {
+  draw(redraw_rects, g, editor, selectmode, only_render, draw_normals, alpha,
+       draw_time_helpers, curtime) 
+  {
     this.canvas = g;
     this.selectmode = selectmode;
     
@@ -1915,7 +1914,8 @@ export class Spline extends DataBlock {
       this.solve();
     }
     
-     draw_spline(this, g, editor, selectmode, only_render, draw_normals, alpha, draw_time_helpers, curtime);
+     draw_spline(this, redraw_rects, g, editor, selectmode, only_render, 
+                 draw_normals, alpha, draw_time_helpers, curtime);
   }
   
   static fromSTRUCT(reader) {

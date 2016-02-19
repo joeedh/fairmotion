@@ -1,6 +1,7 @@
 import {ToolOp} from 'toolops_api';
 import {SplineFlags} from 'spline_types';
-import {EnumProperty, IntProperty, Vec3Property, StringProperty, FloatProperty} from 'toolprops';
+import {EnumProperty, IntProperty, Vec3Property, 
+        Vec4Property, StringProperty, FloatProperty} from 'toolprops';
 import {RestrictFlags} from 'spline';
 import {SplineLocalToolOp} from 'spline_editops';
 
@@ -12,7 +13,7 @@ export var ExtrudeModes = {
 
 export class ExtrudeVertOp extends SplineLocalToolOp {
   constructor(co, ExtrudeModes mode) {
-    super(false);
+    super();
     
     if (co != undefined)
       this.inputs.location.set_data(co);
@@ -21,6 +22,25 @@ export class ExtrudeVertOp extends SplineLocalToolOp {
     }
   }
   
+  static tooldef() { return {
+    uiname   : "Extrude Path",
+    apiname  : "spline.extrude_verts",
+    
+    inputs   : {
+      location  : new Vec3Property(undefined, "location", "location"),
+      linewidth : new FloatProperty(2.0, "line width", "line width", "line width", [0.01, 500]),
+      mode      : new EnumProperty(ExtrudeModes.SMOOTH, ExtrudeModes, "extrude_mode", "Smooth Mode"),
+      stroke    : new Vec4Property([0, 0, 0, 1])
+    },
+    outputs  : {
+      vertex : new IntProperty(-1, "vertex", "vertex", "new vertex")
+    },
+    
+    icon     : -1,
+    is_modal : false,
+    description : "Add points to path"
+  }}
+
   can_call(ctx) {
     return !(ctx.spline.restrict & RestrictFlags.NO_EXTRUDE);
   }
@@ -139,7 +159,12 @@ export class ExtrudeVertOp extends SplineLocalToolOp {
         seg.mat.load(seg2.mat);
         //seg.mat.linewidth = spline.verts.active.segments[0].mat.linewidth;
       } else {
-        seg.mat.linewidth = this.inputs.line_width.data;
+        seg.mat.linewidth = this.inputs.linewidth.data;
+        
+        var color = this.inputs.stroke.data;
+        for (var i=0; i<4; i++) {
+          seg.mat.strokecolor[i] = color[i];
+        }
       }
       
       v.flag |= SplineFlags.UPDATE;
@@ -151,25 +176,27 @@ export class ExtrudeVertOp extends SplineLocalToolOp {
   }
 }
 
-ExtrudeVertOp.inputs = {
-  location   : new Vec3Property(undefined, "location", "location"),
-  line_width : new FloatProperty(2.0, "line width", "line width"),
-  mode       : new EnumProperty(ExtrudeModes.SMOOTH, ExtrudeModes, "extrude_mode", "Smooth Mode")
-};
-ExtrudeVertOp.inputs.line_width.range = [0.01, 500];
-
-ExtrudeVertOp.outputs = {
-  vertex : new IntProperty(-1, "vertex", "vertex", "new vertex")
-};
-
-
 export class CreateEdgeOp extends SplineLocalToolOp {
   constructor(linewidth) {
-    super(undefined, "Make Segment", "Create a segment", Icons.MAKE_SEGMENT);
+    super();
     
     if (linewidth != undefined)
       this.inputs.linewidth.set_data(linewidth);
   }
+  
+  static tooldef() { return {
+    uiname   : "Make Segment",
+    apiname  : "spline.make_edge",
+    
+    inputs   : {
+      linewidth : new FloatProperty(2.0, "line width", "line width", "line width", [0.01, 500]),
+    },
+    outputs  : {},
+    
+    icon     : Icons.MAKE_SEGMENT,
+    is_modal : false,
+    description : "Create segment between two selected points"
+  }}
   
   can_call(ctx) {
     return !(ctx.spline.restrict & RestrictFlags.NO_CONNECT);
@@ -213,17 +240,28 @@ export class CreateEdgeOp extends SplineLocalToolOp {
     spline.regen_render();
   }
 }
-CreateEdgeOp.inputs = {
-  linewidth : new FloatProperty(2.0, "line width", "line width")
-};
 
 export class CreateEdgeFaceOp extends SplineLocalToolOp {
   constructor(linewidth) {
-    super(undefined, "Make Polygon", "Create polygon from selected vertices", Icons.MAKE_POLYGON);
+    super();
     
     if (linewidth != undefined)
       this.inputs.linewidth.set_data(linewidth);
   }
+  
+  static tooldef() { return {
+    uiname   : "Make Polygon",
+    apiname  : "spline.make_edge_face",
+    
+    inputs   : {
+      linewidth : new FloatProperty(2.0, "line width", "line width", "line width", [0.01, 500]),
+    },
+    outputs  : {},
+    
+    icon     : Icons.MAKE_POLYGON,
+    is_modal : false,
+    description : "Create polygon from selected points"
+  }}
   
   can_call(ctx) {
     return !(ctx.spline.restrict & RestrictFlags.NO_CONNECT);
@@ -348,6 +386,14 @@ export class CreateEdgeFaceOp extends SplineLocalToolOp {
       
       if (path.length > 2) {
         var f = spline.make_face([path]);
+        
+        f.z = max_z+1;
+        max_z++;
+        spline.regen_sort();
+        
+        spline.faces.setselect(f, true);
+        spline.set_active(f);
+        spline.regen_render();
       }
     }
     
@@ -371,18 +417,29 @@ export class CreateEdgeFaceOp extends SplineLocalToolOp {
     spline.regen_render();
   }
 }
-CreateEdgeFaceOp.inputs = {
-  linewidth : new FloatProperty(2.0, "line width", "line width")
-};
 
 export class ImportJSONOp extends ToolOp {
   constructor(str) {
-    super(false);
+    super();
     
     if (str != undefined) {
       this.inputs.strdata.set_data(str);
     }
   }
+  
+  static tooldef() { return {
+    uiname   : "Import Old JSON",
+    apiname  : "editor.import_old_json",
+    
+    inputs   : {
+      strdata : new StringProperty("", "JSON", "JSON", "JSON string data")
+    },
+    outputs  : {},
+    
+    icon     : -1,
+    is_modal : false,
+    description : "Import old json files"
+  }}
   
   can_call(ctx) {
     return !(ctx.spline.restrict & RestrictFlags.NO_CONNECT);
@@ -398,8 +455,4 @@ export class ImportJSONOp extends ToolOp {
     spline.import_json(obj);
     spline.regen_render();
   }
-}
-
-ImportJSONOp.inputs = {
-  strdata : new StringProperty("", "JSON", "JSON", "JSON string data")
 }

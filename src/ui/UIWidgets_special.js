@@ -454,13 +454,13 @@ export class UIColorBox extends UIElement {
     static white = [1.0, 1.0, 1.0, 1.0];
     static grey  = [0.3, 0.3, 0.3, 1.0];
     
-    var tot = 3;
-    var wid = [this.size[0]/tot, this.size[1]/tot];
+    var tot = 3, tot2=6;
+    var wid = [this.size[0]/tot, this.size[1]/tot2];
     var pos = [0, 0];
     
     for (var i=0; i<tot; i++) {
       pos[1] = 0;
-      for (var j=0; j<tot; j++) {
+      for (var j=0; j<tot2; j++) {
         var k = (i+j)%2;
         
         canvas.box2(pos, wid, k ? white : grey);
@@ -474,20 +474,24 @@ export class UIColorBox extends UIElement {
 }
 
 export class UIColorPicker extends RowFrame {
-  constructor(Context ctx, Array<float> color=undefined) {
+  constructor(Context ctx, Array<float> color=undefined, int color_length=4) {
     super(ctx);
     
     this.last_valid_hue = 0;
     this.last_valid_sat = 0;
+    this.color_length = color_length;
     
     if (color == undefined) {
-      this._color = [1, 0, 0, 1];
+      this._color = color_length == 4 ? [1, 0, 0, 1] : [1, 0, 0];
     } else {
-      this._color = [color[0], color[1], color[2], color[3]];
+      this._color = [color[0], color[1], color[2]]
+      
+      if (color_length == 4)
+        this._color.push(color[3]);
     }
     
     this.last_valid = [];
-    for (var i=0; i<4; i++) {
+    for (var i=0; i<color_length; i++) {
       this.last_valid.push(this._color[i]);
     }
     
@@ -509,22 +513,32 @@ export class UIColorPicker extends RowFrame {
     var r = new UINumBox(ctx, "R", [0, 1]);
     var g = new UINumBox(ctx, "G", [0, 1]);
     var b = new UINumBox(ctx, "B", [0, 1]);
-    var a = new UINumBox(ctx, "A", [0, 1]);
     
-    r.slide_power = g.slide_power = b.slide_power = a.slide_power = 2.0;
-    r.slide_mul = g.slide_mul = b.slide_mul = a.slide_mul = 4.0;
+    if (color_length == 4) {
+      var a = new UINumBox(ctx, "A", [0, 1]);
+    }
+    
+    r.slide_power = g.slide_power = b.slide_power = 2.0;
+    if (color_length == 4)
+      a.slide_power = 2.0;
+    
+    r.slide_mul = g.slide_mul = b.slide_mul = 4.0;
+    if (color_length == 4)
+      a.slide_mul = 4.0
     
     var row = this.row(undefined, PackFlags.INHERIT_WIDTH, PackFlags.INHERIT_WIDTH);
-    row.add(r);
-    row.add(g);
-    row.add(b);
-    row.add(a);
+    row.add(r), row.add(g), row.add(b);
+    
+    if (color_length == 4) {
+      row.add(a);
+    }
     
     var this2 = this;
     function slider_callback(axis) {
       function callback(slider, val) {
         this2._color[axis] = val;
         this2.update_widgets();
+        this2.on_colorchange();
       }
       
       return callback;
@@ -532,10 +546,21 @@ export class UIColorPicker extends RowFrame {
     r.callback = slider_callback(0);
     g.callback = slider_callback(1);
     b.callback = slider_callback(2);
-    a.callback = slider_callback(3);
-
-    this.r = r; this.g = g; this.b = b; this.a = a;
+    
+    if (color_length == 4) {
+      a.callback = slider_callback(3);
+    }
+    
+    this.r = r; this.g = g; this.b = b; 
+    if (color_length == 4) {
+      this.a = a;
+    }
+    
     this.update_widgets();
+  }
+  
+  //user-overridable callback
+  on_colorchange() {
   }
   
   on_tick() {
@@ -549,7 +574,7 @@ export class UIColorPicker extends RowFrame {
       
       var same = true;
       
-      for (var i=0; i<4; i++) {
+      for (var i=0; i<this.color_length; i++) {
         if (color[i] != this._color[i]) {
           same = false;
         }
@@ -560,6 +585,7 @@ export class UIColorPicker extends RowFrame {
       //avoid conflicts with widgets being manipulated
       if (!same && this.modalhandler == undefined) {
         this.update_widgets();
+        this.on_colorchange();
       }
     }
   }
@@ -571,7 +597,7 @@ export class UIColorPicker extends RowFrame {
   set color(Array<float> color) {
     var do_update = false;
     
-    for (var i=0; i<4; i++) {
+    for (var i=0; i<this.color_length; i++) {
       if (this._color[i] != color[i]) {
         this._color[i] = color[i];
         do_update = true;
@@ -582,6 +608,7 @@ export class UIColorPicker extends RowFrame {
       this.update_widgets();
     
     this.do_path();
+    this.on_colorchange();
   }
   
   do_path() {
@@ -589,7 +616,7 @@ export class UIColorPicker extends RowFrame {
       var clr = this.get_prop_data();
       if (clr == undefined) return;
         
-      for (var i=0; i<4; i++) {
+      for (var i=0; i<this.color_length; i++) {
         if (clr[i] != this._color[i]) {
           this.set_prop_data(this._color);
           break;
@@ -617,11 +644,12 @@ export class UIColorPicker extends RowFrame {
       }
     }
     
-    for (var i=0; i<4; i++) {
+    for (var i=0; i<this.color_length; i++) {
       this.last_valid[i] = this._color[i];
     }
     
     this.last_valid_hue = rgba_to_hsva(this._color, hsva, this.last_valid_hue);
+    
     if (hsva[1] < 0) {
       hsva[1] = this.last_valid_sat;
     } else {
@@ -642,7 +670,9 @@ export class UIColorPicker extends RowFrame {
       console.log("NaN!", this._color, hsva);
     }
     
-    this.a.set_val(this._color[3]);
+    if (this.color_length == 4) {
+      this.a.set_val(this._color[3]);
+    }
     
     this.do_path();
   }
@@ -650,7 +680,12 @@ export class UIColorPicker extends RowFrame {
   hsv_callback(field, h, s, v) {
     static hsva = [0, 0, 0, 0];
     
-    hsva[0] = h*0.9999; hsva[1] = s; hsva[2] = v; hsva[3] = this._color[3];
+    hsva[0] = h*0.9999; hsva[1] = s; hsva[2] = v; 
+    
+    if (this.color_length == 4)
+      hsva[3] = this._color[3];
+    else
+      hsva[3] = 1.0;
     
     this.last_valid_hue = h;
     this.last_valid_sat = s;
@@ -658,6 +693,7 @@ export class UIColorPicker extends RowFrame {
     this.last_valid_hue = hsva_to_rgba(hsva, this._color, h*0.9999);
     
     this.update_widgets();
+    this.on_colorchange();
   }
 }
 

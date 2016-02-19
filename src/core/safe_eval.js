@@ -747,6 +747,9 @@ var scopes = new cachering(function() {
   };
 }, 512);
 
+//var NODE_LOGNOT = 0, NODE_NEGATE=1, NODE_CONDITIONAL=2,
+//    NODE_CALL   = 2, NODE_BINOP =3;
+
 export function exec2(ast, scope1) {
   var scope = scopes.next();
   scope.scope = scope1;

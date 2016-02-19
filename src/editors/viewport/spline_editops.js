@@ -10,8 +10,17 @@ import {redo_draw_sort} from 'spline_draw';
 
 export class KeyCurrentFrame extends ToolOp {
   constructor() {
-    super(undefined, "Key Selected");
+    super();
   }
+  
+  static tooldef() { return {
+    apiname  : "spline.key_current_frame",
+    uiname   : "Key Selected",
+    inputs   : {},
+    outputs  : {},
+    icon     : -1,
+    is_modal : false
+  }}
   
   exec(ctx) {
     for (var v of ctx.frameset.spline.verts.selected.editable) {
@@ -39,6 +48,19 @@ export class ShiftLayerOrderOp extends ToolOp {
     }
   }
   
+  static tooldef() { return {
+    uiname   : "Shift Layer Order",
+    apiname  : "spline.shift_layer_order",
+    
+    inputs   : {
+      layer_id : new IntProperty(0),
+      off      : new IntProperty(1)
+    },
+    outputs  : {},
+    icon     : -1,
+    is_modal : false
+  }}
+  
   exec(ctx) {
     var spline = ctx.spline;
     
@@ -52,11 +74,6 @@ export class ShiftLayerOrderOp extends ToolOp {
     spline.layerset.change_layer_order(layer, layer.order+off);
     spline.regen_sort();
   }
-}
-
-ShiftLayerOrderOp.inputs = {
-  layer_id : new IntProperty(0),
-  off      : new IntProperty(1)
 }
 
 //for tools that modify both the draw spline and the path spline
@@ -204,10 +221,19 @@ export class SplineLocalToolOp extends ToolOp {
 
 export class KeyEdgesOp extends SplineLocalToolOp {
   constructor() {
-    SplineLocalToolOp.call(this); 
-    
+    super();
     this.uiname = "Key Edges";
   }
+  
+  static tooldef() { return {
+    uiname   : "Key Edges",
+    apiname  : "spline.key_edges",
+    
+    inputs   : {},
+    outputs  : {},
+    icon     : -1,
+    is_modal : false
+  }}
   
   can_call(ctx) {
     //don't call if drawspline isn't active
@@ -239,14 +265,22 @@ var pose_clipboards = {};
 
 export class CopyPoseOp extends SplineLocalToolOp {
   constructor() {
-    SplineLocalToolOp.call(this);
+    super();
     
     this.undoflag |= UndoFlags.IGNORE_UNDO;
-    
-    this.uiname = "Copy Pose";
-    this.name = "copy_pose";
   }
   
+  static tooldef() { return {
+    uiname   : "Copy Pose",
+    apiname  : "editor.copy_pose",
+    undoflag : UndoFlags.IGNORE_UNDO,
+    
+    inputs   : {},
+    outputs  : {},
+    icon     : -1,
+    is_modal : false
+  }}
+
   exec(ctx) {
     var lists = [
       ctx.spline.verts.selected.editable,
@@ -266,18 +300,28 @@ export class CopyPoseOp extends SplineLocalToolOp {
 
 export class PastePoseOp extends SplineLocalToolOp {
   constructor() {
-    SplineLocalToolOp.call(this);
+    super();
+  }
+  
+  static tooldef() { return {
+    uiname   : "Paste Pose",
+    apiname  : "editor.paste_pose",
     
-    this.uiname = "Paste Pose";
-    this.name = "paste_pose";
+    inputs   : {
+      //float array of 'eid; x, y, z; eid; x, y, z....
+      pose : new CollectionProperty([], undefined, "pose", "pose", "pose data", TPropFlags.COLL_LOOSE_TYPE)
+    },
+    
+    outputs  : {},
+    icon     : -1,
     
     //technically, according to our architectural
     //rules anything that reads data from outside of
     //toolop slots or the data model (and thus is 
     //not determinable for undo) has to be modal.
     
-    this.is_modal = true;
-  }
+    is_modal : true
+  }}
   
   start_modal(ctx) {
     var spline = ctx.spline;
@@ -362,16 +406,23 @@ export class PastePoseOp extends SplineLocalToolOp {
     spline.regen_sort();
   }
 }
-PastePoseOp.inputs = {
-  //float array of 'eid; x, y, z; eid; x, y, z....
-  pose : new CollectionProperty([], undefined, "pose", "pose")
-}
-PastePoseOp.inputs.pose.flag |= TPropFlags.COLL_LOOSE_TYPE;
 
 export class InterpStepModeOp extends ToolOp {
   constructor() {
     super(undefined, "Toggle Step Mode", "Disable/enable smooth interpolation for animation paths");
   }
+  
+  static tooldef() { return {
+    uiname   : "Toggle Step Mode",
+    apiname  : "spline.toggle_step_mode",
+    
+    inputs   : {},
+    
+    outputs  : {},
+    icon     : -1,
+    is_modal : false,
+    description : "Disable/enable smooth interpolation for animation paths"
+  }}
   
   get_animverts(ctx) {
     var vds = new set();
@@ -429,17 +480,27 @@ export class InterpStepModeOp extends ToolOp {
     }
   }
 }
-InterpStepModeOp.prototype.uiname = "Toggle Step Mode"
-InterpStepModeOp.prototype.apiname = "spline.toggle_step_mode"
 
 export class DeleteVertOp extends SplineLocalToolOp {
   constructor() {
-    super(undefined, "Delete Verts");
+    super();
   }
   
   can_call(ctx) {
     return !(ctx.spline.restrict & RestrictFlags.NO_DELETE);
   }
+  
+  static tooldef() { return {
+    uiname   : "Delete Points/Segments",
+    apiname  : "spline.delete_verts",
+    
+    inputs   : {},
+    
+    outputs  : {},
+    icon     : -1,
+    is_modal : false,
+    description : "Remove points and segments"
+  }}
   
   exec(ctx) {
     console.log("delete op!");
@@ -476,9 +537,21 @@ export class DeleteVertOp extends SplineLocalToolOp {
 
 export class DeleteSegmentOp extends ToolOp {
   constructor() {
-    super(undefined, "Delete Segments");
+    super(undefined);
   }
   
+  static tooldef() { return {
+    uiname   : "Delete Segments",
+    apiname  : "spline.delete_segments",
+    
+    inputs   : {},
+    
+    outputs  : {},
+    icon     : -1,
+    is_modal : false,
+    description : "Remove segments"
+  }}
+
   can_call(ctx) {
     return !(ctx.spline.restrict & RestrictFlags.NO_DELETE);
   }
@@ -514,6 +587,18 @@ export class DeleteFaceOp extends SplineLocalToolOp {
   constructor() {
     super(undefined, "Delete Faces");
   }
+  
+  static tooldef() { return {
+    uiname   : "Delete Faces",
+    apiname  : "spline.delete_faces",
+    
+    inputs   : {},
+    
+    outputs  : {},
+    icon     : -1,
+    is_modal : false,
+    description : "Remove faces"
+  }}
   
   can_call(ctx) {
     return !(ctx.spline.restrict & RestrictFlags.NO_DELETE);
@@ -590,13 +675,29 @@ export class DeleteFaceOp extends SplineLocalToolOp {
 
 export class ChangeFaceZ extends SplineLocalToolOp {
   constructor(offset, selmode) {
-    super(undefined, "Change Z");
+    super(undefined);
     
     if (offset != undefined)
       this.inputs.offset.set_data(offset); 
     if (selmode != undefined)
       this.inputs.selmode.set_data(selmode);
   }
+  
+  static tooldef() { return {
+    uiname   : "Set Order",
+    apiname  : "spline.change_face_z",
+    
+    inputs   : {
+      offset   : new IntProperty(1),
+      selmode : new IntProperty(SplineTypes.FACE)
+    },
+    
+    outputs  : {},
+    icon     : -1,
+    is_modal : false,
+    description : "Change draw order of selected faces"
+  }}
+
   
   can_call(ctx) {
     return 1;// !(ctx.spline.restrict & RestrictFlags.NO_DELETE);
@@ -637,23 +738,31 @@ export class ChangeFaceZ extends SplineLocalToolOp {
   }
 }
 
-ChangeFaceZ.inputs = {
-  offset   : new IntProperty(1),
-  selmode : new IntProperty(SplineTypes.FACE)
-};
-
 export class DissolveVertOp extends SplineLocalToolOp {
   constructor() {
-    super(undefined, "Dissolve Verts");
+    super();
   }
+  
+  static tooldef() { return {
+    uiname   : "Collapse Points",
+    apiname  : "spline.dissolve_verts",
+    
+    inputs   : {
+      verts     : new CollectionProperty([], undefined, "verts", "verts"),
+      use_verts : new BoolProperty(false, "use_verts")
+    },
+    
+    outputs  : {},
+    icon     : -1,
+    is_modal : false,
+    description : "Change draw order of selected faces"
+  }}
   
   can_call(ctx) {
     return !(ctx.spline.restrict & RestrictFlags.NO_DISSOLVE);
   }
   
   exec(ctx) {
-    console.log("dissolve op!");
-
     var spline = ctx.spline;
     var dellist = [];
     
@@ -680,15 +789,22 @@ export class DissolveVertOp extends SplineLocalToolOp {
   }
 }
 
-DissolveVertOp.inputs = {
-  verts     : new CollectionProperty([], undefined, "verts", "verts"),
-  use_verts : new BoolProperty(false, "use_verts")
-}
-
 export class SplitEdgeOp extends SplineGlobalToolOp {
   constructor() {
-    super(undefined, "Split Edges");
+    super();
   }
+  
+  static tooldef() { return {
+    uiname   : "Split Segments",
+    apiname  : "spline.split_edges",
+    
+    inputs   : {},
+    outputs  : {},
+    
+    icon     : -1,
+    is_modal : false,
+    description : "Split selected segments"
+  }}
   
   can_call(ctx) {
     return !(ctx.spline.restrict & RestrictFlags.NO_SPLIT_EDGE);
@@ -729,37 +845,6 @@ export class SplitEdgeOp extends SplineGlobalToolOp {
   }
 }
 
-export class SplitEdgeOp1 extends SplineLocalToolOp {
-  constructor() {
-    super(undefined, "Split Edges 2");
-  }
-  
-  can_call(ctx) {
-    return !(ctx.spline.restrict & RestrictFlags.NO_SPLIT_EDGE);
-  }
-  
-  exec(ctx) {
-    console.log("split edge op!");
-
-    var spline = ctx.spline;
-    var segs = [];
-    
-    for (var s of spline.segments.selected.editable) {
-      if (s.v1.hidden || s.v2.hidden) continue;
-      
-      if ((s.v1.flag & SplineFlags.SELECT && s.v2.flag & SplineFlags.SELECT))
-        segs.push(s);
-    }
-    
-    for (var i=0; i<segs.length; i++) {
-      var e_v = spline.split_edge(segs[i]);
-      
-      spline.verts.setselect(e_v[1], true);
-    }
-    spline.regen_render();
-  }
-}
-
 export class VertPropertyBaseOp extends ToolOp {
   undo_pre(ctx) {
     var spline = ctx.spline;
@@ -790,8 +875,20 @@ export class VertPropertyBaseOp extends ToolOp {
 
 export class ToggleBreakTanOp extends VertPropertyBaseOp {
   constructor() {
-    VertPropertyBaseOp.call(this);
+    super();
   }
+  
+  static tooldef() { return {
+    uiname   : "Toggle Sharp Corners",
+    apiname  : "spline.toggle_break_tangents",
+    
+    inputs   : {},
+    outputs  : {},
+    
+    icon     : -1,
+    is_modal : false,
+    description : "Toggle Sharp Corners"
+  }}
   
   exec(ctx) {
     var spline = ctx.spline;
@@ -825,8 +922,20 @@ export class ToggleBreakTanOp extends VertPropertyBaseOp {
 
 export class ToggleBreakCurvOp extends VertPropertyBaseOp {
   constructor() {
-    VertPropertyBaseOp.call(this);
+    super();
   }
+  
+  static tooldef() { return {
+    uiname   : "Toggle Broken Curvatures",
+    apiname  : "spline.toggle_break_curvature",
+    
+    inputs   : {},
+    outputs  : {},
+    
+    icon     : -1,
+    is_modal : false,
+    description : "Toggle Break Curvatures, enable 'draw normals'\n in display panel to\n see what this does"
+  }}
   
   exec(ctx) {
     var spline = ctx.spline;
@@ -842,8 +951,20 @@ export class ToggleBreakCurvOp extends VertPropertyBaseOp {
 
 export class ConnectHandlesOp extends ToolOp {
   constructor() {
-    super(undefined, "Connect Handles");
+    super();
   }
+  
+  static tooldef() { return {
+    uiname   : "Connect Handles",
+    apiname  : "spline.connect_handles",
+    
+    inputs   : {},
+    outputs  : {},
+    
+    icon     : -1,
+    is_modal : false,
+    description : "Pairs adjacent handles together to make a smooth curve"
+  }}
   
   exec(ctx) {
     var spline = ctx.spline;
@@ -880,12 +1001,23 @@ export class ConnectHandlesOp extends ToolOp {
     spline.resolve = 1;
   }
 }
-ConnectHandlesOp.prototype.uiname = "Connect Handles";
 
 export class DisconnectHandlesOp extends ToolOp {
   constructor() {
-    super(undefined, "Disconnect Handles");
+    super();
   }
+  
+  static tooldef() { return {
+    uiname   : "Disconnect Handles",
+    apiname  : "spline.disconnect_handles",
+    
+    inputs   : {},
+    outputs  : {},
+    
+    icon     : -1,
+    is_modal : false,
+    description : "Disconnects all handles around a point.\n  Point must have more than two segments"
+  }}
   
   exec(ctx) {
     var spline = ctx.spline;
@@ -909,15 +1041,24 @@ export class DisconnectHandlesOp extends ToolOp {
     }
   }
 }
-DisconnectHandlesOp.prototype.uiname = "Disconnect Handles";
 
 export class CurveRootFinderTest extends ToolOp {
   constructor() {
     super("curverootfinder", "curverootfinder", "curverootfinder");
-    
-    this.is_modal = true;
-    this.undoflag |= UndoFlags.IGNORE_UNDO;
   }
+  
+  static tooldef() { return {
+    uiname   : "Test Closest Point Finder",
+    apiname  : "spline._test_closest_points",
+    
+    inputs   : {},
+    outputs  : {},
+    undoflag : UndoFlags.IGNORE_UNDO,
+    
+    icon     : -1,
+    is_modal : true,
+    description : "Test closest-point-to-curve functionality"
+  }}
   
   on_mousemove(event) {
     var mpos = [event.x, event.y];
@@ -961,10 +1102,24 @@ export class CurveRootFinderTest extends ToolOp {
   }
 }
 
+/*
 export class DelVertFrame extends ToolOp {
   constructor() {
     super();
   }
+  
+  static tooldef() { return {
+    uiname   : "Test Closest Point Finder",
+    apiname  : "spline._test_closest_points",
+    
+    inputs   : {},
+    outputs  : {},
+    undoflag : UndoFlags.IGNORE_UNDO,
+    
+    icon     : -1,
+    is_modal : true,
+    description : "Test closest-point-to-curve functionality"
+  }}
   
   exec(ctx) {
     
@@ -976,18 +1131,30 @@ DelVertFrame.inputs = {
   vertex_eid : new IntProperty(-1, "vertex_eid", "vertex_eid", "vertex_eid"),
   time       : new FloatProperty(-1, "time", "time", "time")
 }
+*/
 
 export class AnimPlaybackOp extends ToolOp {
   constructor() {
-    super("playback", "playback", "playback");
-    
-    this.is_modal = true;
+    super();
     
     this.undoflag |= UndoFlags.IGNORE_UNDO;
     this.timer = undefined;
     this.time = 0;
     this.start_time = 0;
   }
+  
+  static tooldef() { return {
+    uiname   : "Playback",
+    apiname  : "editor.playback",
+    
+    inputs   : {},
+    outputs  : {},
+    undoflag : UndoFlags.IGNORE_UNDO,
+    
+    icon     : -1,
+    is_modal : true,
+    description : "Play back animation"
+  }}
   
   on_frame(ctx) {
     //console.log("frame!");
@@ -1059,8 +1226,20 @@ export class AnimPlaybackOp extends ToolOp {
 
 export class ToggleManualHandlesOp extends ToolOp {
   constructor() {
-    super("toggle manual handles", "Toggle Manual Handles", "toggle manual handles");
+    super();
   }
+  
+  static tooldef() { return {
+    uiname   : "Toggle Manual Handles",
+    apiname  : "spline.toggle_manual_handles",
+    
+    inputs   : {},
+    outputs  : {},
+    
+    icon     : -1,
+    is_modal : false,
+    description : "Toggle Manual Handles"
+  }}
   
   undo_pre(ctx) {
     var spline = ctx.spline;
@@ -1106,13 +1285,25 @@ import {TimeDataLayer, get_vtime, set_vtime} from 'animdata';
 
 export class ShiftTimeOp extends ToolOp {
   constructor() {
-    super("shift_time", "shift time", "shift time");
+    super();
     
-    this.is_modal = true;
-    var first = true;
     this.start_mpos = new Vector3();
   }
   
+  static tooldef() { return {
+    uiname   : "Move Keyframes",
+    apiname  : "spline.shift_time",
+    
+    inputs   : {
+      factor : new FloatProperty(-1, "factor", "factor", "factor")
+    },
+    outputs  : {},
+    
+    icon     : -1,
+    is_modal : true,
+    description : "Move keyframes"
+  }}
+
   get_curframe_animverts(ctx) {
     var vset = new set();
     var spline = ctx.frameset.spline, pathspline = ctx.frameset.pathspline;
@@ -1269,14 +1460,23 @@ export class ShiftTimeOp extends ToolOp {
     ctx.frameset.download();
   }
 }
-ShiftTimeOp.inputs = {
-  factor       : new FloatProperty(-1, "factor", "factor", "factor")
-}
 
 export class DuplicateOp extends SplineLocalToolOp {
   constructor() {
     super(undefined, "Duplicate");
   }
+  
+  static tooldef() { return {
+    uiname   : "Duplicate Geometry",
+    apiname  : "spline.duplicate",
+    
+    inputs   : {},
+    outputs  : {},
+    
+    icon     : -1,
+    is_modal : false,
+    description : "Make a duplicate of selected geometry."
+  }}
   
   can_call(ctx) {
     return !(ctx.spline.restrict & RestrictFlags.NO_CREATE);
@@ -1391,8 +1591,20 @@ export class DuplicateOp extends SplineLocalToolOp {
 
 export class SplineMirrorOp extends SplineLocalToolOp {
     constructor() {
-      super(undefined, "Mirror")
+      super()
     }
+    
+    static tooldef() { return {
+      uiname   : "Flip Horizontally",
+      apiname  : "spline.mirror_verts",
+      
+      inputs   : {},
+      outputs  : {},
+      
+      icon     : -1,
+      is_modal : false,
+      description : "Flip selected points horizontally"
+    }}
     
     exec(ctx) {
       var spline = ctx.spline;
@@ -1429,4 +1641,3 @@ export class SplineMirrorOp extends SplineLocalToolOp {
       spline.resolve = 1;
     }
 }
-SplineMirrorOp.prototype.uiname = "Mirror Vertices";

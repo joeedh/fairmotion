@@ -1,5 +1,7 @@
 "use strict";
 
+//XXX refactor me!
+
 import * as config from 'config';
 
 var current_chromeapp_file = undefined;
@@ -101,7 +103,7 @@ export function open_file(callback, thisvar, set_current_file, extslabel, exts) 
     form.appendChild(input);
 }
 
-export function chrome_app_save(data, save_as_mode, set_current_file, exts) {
+export function chrome_app_save(data, save_as_mode, set_current_file, extslabel, exts, error_cb) {
   function errorHandler() {
     console.log("Error writing file!", arguments);
   }
@@ -113,7 +115,7 @@ export function chrome_app_save(data, save_as_mode, set_current_file, exts) {
       params.suggestedName = g_app_state.filepath;
     }
     params.accepts = [{
-      description : "Fairmotion Files",
+      description : extslabel,
       extensions  : exts
     }];
     
@@ -123,15 +125,19 @@ export function chrome_app_save(data, save_as_mode, set_current_file, exts) {
           return;
         }
         
-        current_chromeapp_file = writableFileEntry;
+        if (set_current_file)
+          current_chromeapp_file = writableFileEntry;
         
         writableFileEntry.createWriter(function(writer) {
           writer.onerror = errorHandler;
           writer.onwriteend = function(e) {
             console.log('write complete');
+            g_app_state.notes.label("File saved");
           };
           
-          data = new Blob([data], {type : "application/octet-binary"});
+          if (!(data instanceof Blob))
+            data = new Blob([data], {type : "application/octet-binary"});
+          
           writer.write(data);
         }, errorHandler);
     });
@@ -140,6 +146,9 @@ export function chrome_app_save(data, save_as_mode, set_current_file, exts) {
   function error() {
     console.log("Error writing file", arguments);
     current_chromeapp_file = undefined;
+    
+    if (error_cb != undefined)
+      error_cb.apply(this, arguments); //pass on any arguments
   }
   
   if (save_as_mode || current_chromeapp_file == undefined) {
@@ -149,6 +158,7 @@ export function chrome_app_save(data, save_as_mode, set_current_file, exts) {
       writer.onerror = error;
       writer.onwriteend = function() {
         console.log('write complete');
+        g_app_state.notes.label("File saved");
       }
       
       data = new Blob([data], {type : "application/octet-binary"});
@@ -157,12 +167,15 @@ export function chrome_app_save(data, save_as_mode, set_current_file, exts) {
   }
 }
 
-export function save_file(data, save_as_mode, set_current_file, exts) {
+//XXX refactor me!
+export function save_file(data, save_as_mode, set_current_file, extslabel, exts, error_cb) {
     if (config.CHROME_APP_MODE) {
-      return chrome_app_save(data, save_as_mode, set_current_file, exts);
+      return chrome_app_save(data, save_as_mode, set_current_file, extslabel, exts, error_cb);
     }
     
-    data = new Blob([data], {type : "application/octet-binary"});
+    if (!(data instanceof Blob))
+      data = new Blob([data], {type : "application/octet-binary"});
+    
     var url = URL.createObjectURL(data);
     
     var link = document.createElement("a");
@@ -178,6 +191,7 @@ export function save_file(data, save_as_mode, set_current_file, exts) {
     
     link.click();
     return;
+    
     window.open(url);
     console.log("url:", url);
 }

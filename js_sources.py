@@ -101,6 +101,7 @@ sources = [
 
   "src/editors/viewport/transdata.js",
   "src/editors/viewport/transform.js",
+  "src/editors/viewport/transform_ops.js",
   "src/editors/viewport/spline_selectops.js",
   "src/editors/viewport/spline_createops.js",
   "src/editors/viewport/spline_editops.js",
@@ -126,6 +127,7 @@ sources = [
 	"src/ui/UIMenu.js",
 	"src/ui/RadialMenu.js",
   "src/ui/UIWidgets_special.js",
+  "src/ui/UIWidgets_special2.js",
   "src/ui/UITabPanel.js",
   "src/core/utildefine.js",
 	"src/ui/dialog.js",
@@ -144,6 +146,7 @@ sources = [
   
   "src/ui/notifications.js",
 
+	"src/editors/viewport/manipulator.js",
 	"src/editors/viewport/view2d.js",
 	"src/editors/viewport/view2d_ops.js",
 	"src/editors/viewport/view2d_spline_ops.js",

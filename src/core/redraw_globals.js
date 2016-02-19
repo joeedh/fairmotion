@@ -6,6 +6,7 @@ window.init_redraw_globals = function init_redraw_globals() {
   window.last_redraw_rect = [new Vector3(), new Vector3()];
   window.redraw_rect_defined = false;
   window.redraw_whole_screen = false;
+  
   var animreq = undefined;
 
   var animreq_ui = undefined;
@@ -26,14 +27,15 @@ window.init_redraw_globals = function init_redraw_globals() {
   window.redraw_ui = function () {
       if (block_ui_draw) return;
 
-      if (DEBUG.ui_redraw && Math.random() > 0.99)
-        console.trace("ui redraw", animreq_ui);
+      //if (DEBUG.ui_redraw && Math.random() > 0.99)
+      //  console.trace("ui redraw", animreq_ui);
       
       if (animreq_ui == undefined) {
           animreq_ui = window.requestAnimationFrame(function () {
               animreq_ui = undefined;
 
-              console.log("ui frame");
+              if (DEBUG.ui_redraw)
+                console.log("ui frame");
 
               if (g_app_state != undefined)
                   g_app_state.eventhandler.on_draw();
@@ -75,6 +77,9 @@ window.init_redraw_globals = function init_redraw_globals() {
     return id;
   }
 
+  var _popsolve_min = [0, 0];
+  var _popsolve_max = [0, 0];
+  
   window.pop_solve = function(id) {
     console.log("pop solve", id);
     
@@ -89,16 +94,122 @@ window.init_redraw_globals = function init_redraw_globals() {
     delete redraw_queue[id];
     pending_redraws--;
     
-    for (var i=0; i<queue.length; i++) {
-      redraw_viewport(queue[i][0], queue[i][1], true);
+    var min = _popsolve_min, max = _popsolve_max;
+    for (var i=0; i<queue.length; i += 5) {
+      min[0] = queue[i], min[1] = queue[i+1];
+      max[0] = queue[i+2], max[1] = queue[i+3];
+      
+      redraw_viewport(min, max, true, queue[i+4]);
     }
   }
 
-  window.redraw_viewport = function (min, max, ignore_queuing) {
+  //redraw rects in workcanvas space
+  window.workcanvas_redraw_rects = [];
+  window.workcanvas_redraw_rects2 = [];
+  
+  //combine_mode is optional, false.  used by e.g. transform code.
+  window.redraw_viewport = function(min, max, ignore_queuing, combine_mode) {
+    if (ignore_queuing == undefined)
+      ignore_queuing = false;
+    
+    if (!ignore_queuing && pending_redraws > 0) {
+      var q = cur_redraw_queue;
+      
+      if (min != undefined && max != undefined) {
+        /*if (combine_mode && q.length > 0) {
+          var i = q.length - 4;
+          
+          q[i]   = Math.min(q[i]  , min[0]);
+          q[i+1] = Math.min(q[i+1], min[1]);
+          
+          q[i+2] = Math.max(q[i+2], max[0]);
+          q[i+3] = Math.max(q[i+3], max[1]);
+        } else {*/
+          q.push(min[0]);
+          q.push(min[1]);
+          q.push(max[0]);
+          q.push(max[1]);
+          q.push(combine_mode);
+        //}
+      } else { //whole screen
+        var w = 50000;
+        q.length = 0;
+        q.push(-w), q.push(-w), q.push(w), q.push(w);
+      }
+      return;
+    }
+    
+    //console.log("redraw viewport", animreq);
+    
+    var r = workcanvas_redraw_rects;
+    
+    if (min != undefined && max != undefined) {
+      if (combine_mode && r.length > 0) {
+          var i = r.length - 4;
+
+          r[i]   = Math.min(r[i]  , min[0]);
+          r[i+1] = Math.min(r[i+1], min[1]);
+          
+          r[i+2] = Math.max(r[i+2], max[0]);
+          r[i+3] = Math.max(r[i+3], max[1]);
+      } else {
+        r.push(min[0]);
+        r.push(min[1]);
+        r.push(max[0]);
+        r.push(max[1]);
+      }
+    } else {
+      //do whole screen
+      var w = 50000;
+
+      r.length = 0;
+      r.push(-w), r.push(-w), r.push(w), r.push(w);
+    }
+    
+    if (animreq == undefined) {
+        animreq = window.requestAnimationFrame(function () {
+          animreq = undefined;
+
+          var rects = workcanvas_redraw_rects;
+
+          workcanvas_redraw_rects = workcanvas_redraw_rects2;
+          workcanvas_redraw_rects.length = 0;
+          workcanvas_redraw_rects2 = rects;
+
+          for (var i = 0; i < g_app_state.screen.children.length; i++) {
+              var c = g_app_state.screen.children[i];
+
+              var is_viewport = c.constructor.name == "ScreenArea" &&
+                                c.area.constructor.name == "View2DHandler";
+              if (is_viewport) {
+                  var old = g_app_state.active_view2d;
+                  g_app_state.active_view2d = c.area;
+                  
+                  c.area.do_draw_viewport(rects);
+                  
+                  g_app_state.active_view2d = old;
+              }
+          }
+      });
+    }
+  }
+  
+  
+  /*
+  min/max are optional, whole screen
+  ignore_queuing is optional, false
+  */
+  window.rffedraw_viewport = function (min, max, ignore_queuing) {
       if (ignore_queuing == undefined)
         ignore_queuing = false;
+      
       if (!ignore_queuing && pending_redraws > 0) {
-        cur_redraw_queue.push([min, max]);
+        var q = cur_redraw_queue;
+        
+        q.push(min[0]);
+        q.push(min[1]);
+        q.push(max[0]);
+        q.push(max[1]);
         return;
       }
       

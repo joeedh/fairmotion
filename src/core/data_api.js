@@ -415,9 +415,11 @@ export class DataAPI {
     this.parser2 = apiparser();
     
     this.root_struct = ContextStruct;
+    
     this.cache = {};
     this.evalcache = {};
     this.evalcache2 = {};
+    this.op_keyhandler_cache = {};
   }
   
   parse_call_line_intern(ctx, line) {
@@ -612,6 +614,15 @@ export class DataAPI {
   }
   
   get_op_keyhandler(ctx, str) {
+    //build hash key from active screen area and str;
+    var hash = str;
+    if (ctx.screen.active.type != undefined)
+        hash += ctx.screen.active.type;
+      
+    if (hash in this.op_keyhandler_cache) {
+      return this.op_keyhandler_cache[hash];
+    }
+    
     function find_hotkey_recurse(element) {
       if (element == undefined)
         return undefined;
@@ -633,7 +644,9 @@ export class DataAPI {
       }
     }
     
-    return find_hotkey_recurse(ctx.screen);
+    //cache final result
+    this.op_keyhandler_cache[hash] = find_hotkey_recurse(ctx.screen);
+    return this.op_keyhandler_cache[hash] ;
   }
   
   call_op(ctx, str) {

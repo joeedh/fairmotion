@@ -446,6 +446,11 @@ export class Screen extends UIFrame {
   }
   
   _on_tick() {
+    var ready = this.tick_timer.ready();
+    if (!ready) {
+      return;
+    }
+    
     if (this.recalc) {
       this.build_draw(this.canvas, false);
       this.recalc = false;

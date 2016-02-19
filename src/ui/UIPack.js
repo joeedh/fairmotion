@@ -51,9 +51,10 @@ export class UIPackFrame extends UIFrame {
     //  this.pack(canvas, false);
   }
   
-  add(UIElement child) {
-    child.packflag |= this.default_packflag;
-    super.add(child);
+  add(UIElement child, packflag=0) {
+    packflag |= this.default_packflag;
+    
+    super.add(child, packflag);
   }
   
   prepend(UIElement child) {
@@ -326,6 +327,28 @@ export class UIPackFrame extends UIFrame {
       
       this.add(c);
       return c;
+    } else if ((prop.type == PropTypes.VEC3 && prop.subtype == PropTypes.COLOR3) || 
+               (prop.type == PropTypes.VEC4 && prop.subtype == PropTypes.COLOR4))
+    {
+      if (packflag & PackFlags.COLOR_BUTTON_ONLY) {
+        var colorb = new UIColorButton(ctx, packflag|this.default_packflag);
+        
+        colorb.state |= UIFlags.USE_PATH;
+        colorb.data_path = path;
+        colorb.setter_path = setter_path;
+        
+        this.add(colorb, packflag);
+        return colorb;
+      } else {
+        var field = new UIColorPicker(ctx, undefined, prop.subtype == PropTypes.COLOR3 ? 3 : 4);
+        
+        field.state |= UIFlags.USE_PATH;
+        field.data_path = path;
+        field.setter_path = setter_path;
+        
+        this.add(field, packflag);
+        return field;
+      }
     } else if (prop.type == PropTypes.VEC2) {
         range = (prop.range != undefined && prop.range[0] != undefined) ? prop.range : [-2000, 2000];
         
@@ -377,15 +400,6 @@ export class UIPackFrame extends UIFrame {
         row.add(c); //
         
         return row;
-    } else if (prop.type == PropTypes.VEC4 && prop.subtype == PropTypes.COLOR4) {
-      var field = new UIColorPicker(ctx);
-      
-      field.state |= UIFlags.USE_PATH;
-      field.data_path = path;
-      field.setter_path = setter_path;
-      
-      this.add(field, packflag);
-      return field;
     } else if (prop.type == PropTypes.VEC4) {
         range = (prop.range != undefined && prop.range[0] != undefined) ? prop.range : [-2000, 2000];
         
@@ -762,13 +776,14 @@ export class ColumnFrame extends UIPackFrame {
     
     for (var c of this.children) {
       var size;
+      
       if (!(c.packflag & PackFlags.KEEP_SIZE))
         size = c.cached_min_size(canvas, isvertical);
       else
         size = [c.size[0], c.size[1]];
         
-      totwid += size[0]+this.pad[0];
-      maxheight = Math.max(maxheight, size[1]+this.pad[1]);
+      totwid += size[0] + this.pad[0];
+      maxheight = Math.max(maxheight, size[1] + this.pad[1]);
     }
     
     if (this.min_size != undefined) {

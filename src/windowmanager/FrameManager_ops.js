@@ -343,21 +343,26 @@ export class HintPickerOpElement extends UIElement {
 
 export class HintPickerOp extends ToolOp {
   constructor() {
-    ToolOp.call(this, "hint_picker", "Hint Picker", 
-                "Helper tool to display tooltips on tablets", 
-                Icons.HELP_PICKER);
+    ToolOp.call(this);
     
     this.canvas = g_app_state.screen.canvas;
-    this.undoflag = UndoFlags.IGNORE_UNDO;
-    this.is_modal = true;
     
     this.mup_count = 0; //we count the number of mouseups to implement touch tablet mode
-    this.inputs = {};
-    this.outputs = {};
     this.active = undefined;
     this.hintbox = undefined;
     this.last_mpos = new Vector2([0, 0]);
   }
+  
+  static tooldef() {return {
+    uiname   : "Hint Picker",
+    apiname  : "screen.hint_picker",
+    undoflag : UndoFlags.IGNORE_UNDO,
+    is_modal : true,
+    inputs   : {},
+    outputs  : {},
+    description : "Helper to show tooltips on tablets",
+    icon     : Icons.HELP_PICKER
+  }}
   
   can_call(Context ctx) {
     return true; //g_app_state.modalhandler == undefined;

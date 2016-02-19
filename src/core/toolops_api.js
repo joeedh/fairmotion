@@ -5,12 +5,11 @@ import {PropTypes, TPropFlags}  from 'toolprops';
 import {STRUCT} from 'struct';
 import {EventHandler} from 'events';
 import {charmap} from 'events';
-import {pack_int, pack_float, pack_static_string, unpack_ctx} from 'ajax';
 
 /*
   basic design of tool ops:
   
-  a carbon copy (sort of) of Blender's tool system.  each tool has
+  inspired by Blender's tool system.  each tool has
   a list of parameters, and are also passed a Context struct (a sort of
   bundle of common tool parameters).
   
@@ -20,7 +19,7 @@ import {pack_int, pack_float, pack_static_string, unpack_ctx} from 'ajax';
   all tools should eventually get their own, faster callbacks (or at least
   inherit from super-classes with faster defaults, like SelectOpAbstract).
   
-  Note that for some tools, serialization the app state prior to undo is
+  Note that for some tools, serializing the app state prior to undo is
   unavoidable.
   
   RULES:
@@ -36,7 +35,7 @@ import {pack_int, pack_float, pack_static_string, unpack_ctx} from 'ajax';
         * integers for Mesh element subtypes (Vertex/Edge/Loops/Face).
 */
 /*
-  TOOLOP REFACTOR 2
+  TOOLOP REFACTOR 2:
   1. Transition to a 'tooldef' static method:
      class SomeTool extends ToolOp {
         static tooldef() { return {
@@ -50,9 +49,9 @@ import {pack_int, pack_float, pack_static_string, unpack_ctx} from 'ajax';
         }}
      }
      
-  2. Get rid of apiname.
+  2. Data_api_opdefine should auto-generate tool paths from .apiname.
   
-  toolop refactor:
+  TOOLOP REFACTOR 1:
   
   1. DROPPED, Constructor should take a single, SavedContext parameter.
   2. XXX, decided against this for now -> Combine inputs and outputs into slots.
@@ -155,7 +154,7 @@ export class ToolOpAbstract {
       }
     } else {
       console.trace("Deprecation warning: oldest (and evilest) form\
-                     of toolprop detected for", this.uiname);
+                     of toolprop detected for", this);
     }
     
     return ret;
@@ -313,8 +312,8 @@ export class ToolOp extends EventHandler, ToolOpAbstract {
   ToolContext modal_tctx;
   ObjectMap<String, ToolProperty> inputs;
   ObjectMap<String, ToolProperty> outputs;
-  GArray drawlines; //for modal tools
-  GArray widgets;
+  Array drawlines; //for modal tools
+  Array widgets;
   KeyHandler keyhandler;
   Boolean is_modal, modal_running;
   Function on_modal_end, _widget_on_tick;
@@ -343,7 +342,7 @@ export class ToolOp extends EventHandler, ToolOpAbstract {
     this.keyhandler = undefined;
     this.parent = undefined; //parent macro
     
-    this.widgets = new GArray();
+    this.widgets = [];
     this.modal_running = false;
     
     this._widget_on_tick = undefined;
@@ -367,7 +366,7 @@ export class ToolOp extends EventHandler, ToolOpAbstract {
     this.drawlines.reset();
   }
   
-  /*creates 3d widgets, that either
+  /*creates workspace widgets, that either
      a), create a new toolop of this type
           whenever they are clicked, or
      b), creates a toolop of this type if
@@ -382,27 +381,6 @@ export class ToolOp extends EventHandler, ToolOpAbstract {
   static reset_widgets(ToolOp op, Context ctx) {
   }
   
-  pack(data) {
-    pack_static_string(data, this.constructor.name, 32);
-    pack_static_string(data, this.name, 32);
-    pack_static_string(data, this.uiname, 32);
-    
-    var ilen=0, olen=0;
-    for (var k in this.inputs) ilen++;
-    for (var k in this.outputs) olen++;
-    
-    pack_int(data, ilen);
-    pack_int(data, olen);
-    
-    for (var k in this.inputs) {
-      this.inputs[k].pack(data);
-    }
-    
-    for (var k in this.outputs) {
-      this.outputs[k].pack(data);
-    }
-  }
-
   undo_ignore() {
     this.undoflag |= UndoFlags.IGNORE_UNDO;
   }
@@ -473,17 +451,6 @@ export class ToolOp extends EventHandler, ToolOpAbstract {
 
   undo(Context ctx) {
     g_app_state.load_undo_file(this._undocpy);
-    
-    /*
-    ctx.kill_mesh_ctx(ctx.mesh);
-    
-    var m2 = new Mesh()
-    m2.unpack(this._undocpy, new unpack_ctx())
-    m2.render = ctx.mesh.render
-    m2.regen_render();
-    
-    ctx.set_mesh(m2);
-    */
   }
     
   static fromSTRUCT(reader) : ToolOp {

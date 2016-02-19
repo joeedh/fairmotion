@@ -59,7 +59,9 @@ export function hsva_to_rgba(Array<float> hsva, Array<float> ret, float last_hue
 	if( s == 0 ) {
 		// achromatic (grey)
     ret[0] = ret[1] = ret[2] = v;
-    ret[3] = hsva[3];
+    
+    if (ret.length > 3)
+      ret[3] = hsva[3];
     
 		return last_hue;
 	}
@@ -103,7 +105,10 @@ export function hsva_to_rgba(Array<float> hsva, Array<float> ret, float last_hue
 			break;
 	}
   
-  ret[0] = r; ret[1] = g; ret[2] = b; ret[3] = hsva[3];
+  ret[0] = r; ret[1] = g; ret[2] = b; 
+
+  if (ret.length > 3)
+    ret[3] = hsva[3];
   
   return hsva[0];
 }

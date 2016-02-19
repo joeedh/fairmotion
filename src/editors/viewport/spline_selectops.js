@@ -523,6 +523,11 @@ export class CircleSelectOp extends SelectOpBase {
     var eset_add = this.inputs.add_elements;
     var eset_sub = this.inputs.sub_elements;
     
+    eset_add.ctx = ctx;
+    eset_sub.ctx = ctx;
+    eset_add.data.ctx = ctx;
+    eset_sub.data.ctx = ctx;
+    
     console.log("exec!");
     
     for (var e of eset_add) {
@@ -546,10 +551,14 @@ export class CircleSelectOp extends SelectOpBase {
     var co = new Vector3();
     var eset_add = this.inputs.add_elements.data;
     var eset_sub = this.inputs.sub_elements.data;
+    var actlayer = spline.layerset.active.id;
     
     if (datamode & SplineTypes.VERTEX) {
       for (var v of spline.verts) {
-        if (v.hidden) continue;
+        if (v.hidden) 
+          continue;
+        if (!(actlayer in v.layers))
+          continue;
         
         co.load(v);
         editor.project(co);

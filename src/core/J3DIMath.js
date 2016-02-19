@@ -49,6 +49,7 @@ if ("WebKitCSSMatrix" in window && ("media" in window && window.media.matchMediu
 
 var M_SQRT2 = Math.sqrt(2.0);
 var FLT_EPSILON = 2.22e-16;
+var premul_temp = undefined;
 
 function internal_matrix() {
   this.m11 = 0.0; this.m12 = 0.0; this.m13 = 0.0; this.m14 = 0.0;
@@ -455,6 +456,36 @@ class Matrix4 {
 
       this.multiply(matrix);
   }
+  
+  preTranslate(float x, float y, float z)
+  {
+      if (typeof x == 'object' && "length" in x) {
+          var t = x;
+          x = t[0];
+          y = t[1];
+          z = t[2];
+      }
+      else {
+          if (x == undefined)
+              x = 0;
+          if (y == undefined)
+              y = 0;
+          if (z == undefined)
+              z = 0;
+      }
+
+      if (HasCSSMatrix) {
+          this.$matrix = this.$matrix.translate(x, y, z);
+          return;
+      }
+
+      var matrix = new Matrix4();
+      matrix.$matrix.m41 = x;
+      matrix.$matrix.m42 = y;
+      matrix.$matrix.m43 = z;
+
+      this.preMultiply(matrix);
+  }
 
   scale(float x, float y, float z)
   {
@@ -601,6 +632,15 @@ class Matrix4 {
       this.multiply(mat);
   }
 
+  preMultiply(Matrix4 mat) {
+    var mat = premul_temp;
+    
+    mat.load(this);
+    this.load(mat);
+    
+    return this.multiply(mat);
+  }
+  
   multiply(Matrix4 mat)
   {
       if (HasCSSMatrix) {
@@ -1061,6 +1101,8 @@ class Matrix4 {
   }
 }
 
+premul_temp = new Matrix4();
+
 #define USE_OLD_VECLIB
 #ifdef USE_OLD_VECLIB
 var M_SQRT2 = Math.sqrt(2.0);
@@ -1111,6 +1153,13 @@ class Vector3 extends Array {
     this[2] = vec[2];
   }
 
+  toCSS() {
+    var r = ~~(this[0]*255);
+    var g = ~~(this[1]*255);
+    var b = ~~(this[2]*255);
+    return "rgb(" + r + "," + g + "," + b + ")";
+  }
+  
   toJSON() {
     var arr = new Array(this.length);
     
@@ -1804,6 +1853,15 @@ class Vector4 extends Array {
     Array.call(this, 4);
     this.length = 4;
     this.load(x,y,z,w);
+  }
+  
+  toCSS() {
+    var r = ~~(this[0]*255);
+    var g = ~~(this[1]*255);
+    var b = ~~(this[2]*255);
+    var a = this[3];
+    
+    return "rgba(" + r + "," + g + "," + b + "," + a + ")";
   }
   
   toJSON() {

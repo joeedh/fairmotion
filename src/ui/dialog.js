@@ -13,9 +13,8 @@ import {
 import {RowFrame, ColumnFrame, UIPackFrame} from 'UIPack';
 import {UITextBox} from 'UITextBox';
 import {ToolOp, UndoFlags, ToolFlags} from 'toolops_api';
-import {UICollapseIcon, UIPanel, UIColorField, UIColorBox,
-        UIColorPicker, UIProgressBar, UIListBox, UIListEntry
-       } from 'UIWidgets_special';
+import {UICollapseIcon, UIPanel, UIProgressBar, UIListBox, 
+        UIListEntry} from 'UIWidgets_special';
 
 import {UICanvas} from 'UICanvas2D';
 
@@ -62,7 +61,8 @@ export class Dialog extends UIFrame {
     
     this.title = title;
     this.screen = screen;
-
+    this.closed = false;
+    
     this.headersize = 33
     this.callback = undefined;
     
@@ -240,12 +240,12 @@ export class Dialog extends UIFrame {
     
     //hrm, let's give the dialog it's own canvas
     
-    
     this.titlebar.pos = [0, this.size[1]-this.headersize];
     this.titlebar.size = [this.size[0], this.headersize];
     
     this.subframe.pos = [0, 0];
     this.subframe.size = [this.size[0], this.size[1]-this.headersize]
+    
     this.titlebar.do_recalc();
     this.subframe.do_recalc();
     this.do_recalc();
@@ -253,6 +253,7 @@ export class Dialog extends UIFrame {
 
   end(do_cancel) {
     //this.canvas.pop_layer();
+    this.closed = true;
     
     if (this.flag & DialogFlags.MODAL) {
       this.screen.pop_modal();

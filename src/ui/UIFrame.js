@@ -47,7 +47,7 @@ export class UIFrame extends UIElement {
     this._children = new GArray([])
     this.active = undefined;
     this.velpan = new VelocityPan();
-    this.tick_timer = new Timer(90);
+    this.tick_timer = new Timer(490);
     
     //current mouse position relative to this.pos
     this.mpos = [0, 0];

@@ -183,7 +183,7 @@ export class UICanvas2_ {
     }
     
     canvas.ctx.is_blank = canvas.is_blank;
-    return canvas.ctx;
+    return canvas;
   }
   
   //push a new html5 2d canvas onto the layer stack

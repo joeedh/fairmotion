@@ -109,12 +109,24 @@ export function clear_jobs(typeid) {
   }
 }
 
+//evil copy pasted code here
+var last_call = undefined;
+
 function solve_intern(spline, update_verts, order, goal_order, steps, gk) {
     static con_cache = {
         list : [],
         used : 0
     };
-
+    
+    if (last_call == undefined) {
+      last_call = time_ms();
+    }
+    
+    var clear_broken_tangents = time_ms() - last_call > 500;
+    
+    if (clear_broken_tangents) {
+      last_call = time_ms();
+    }
     con_cache.used = 0;
 
     function con(w, ks, order, func, params) {
@@ -446,8 +458,20 @@ function solve_intern(spline, update_verts, order, goal_order, steps, gk) {
             cs.push(tc);
 
             update_verts.add(v);
-        } else {
+        } else if (clear_broken_tangents) {
+            /*
+            for (var k=0; k<ORDER; k++) {
+              ss1.ks[k] = 0;
+            }
+            
+            for (var k=0; k<ORDER; k++) {
+              ss2.ks[k] = 0;
+            }*/
+            
+            update_verts.add(v);
             continue;
+        } else {
+          continue;
         }
 
         if (v.flag & SplineFlags.BREAK_CURVATURES)
@@ -731,9 +755,14 @@ export function* gen_draw_cache(postMessage, status, spline) {
         ajax.pack_vec3(data, s.v1, endian); //16  bytes
         ajax.pack_vec3(data, s.v2, endian); //28 bytes
         ajax.pack_int(data, s.ks.length, endian); //32 bytes
-
+        
+        var zero_ks = ((s.v1.flag & SplineFlags.BREAK_TANGENTS) || (s.v2.flag & SplineFlags.BREAK_TANGENTS));
+        
         for (var i=0; i<s.ks.length; i++) {
-            ajax.pack_double(data, s.ks[i], endian);
+            if (zero_ks && i < ORDER)
+              ajax.pack_double(data, 0.0, endian);
+            else
+              ajax.pack_double(data, s.ks[i], endian);
         }
 
         //nacl expects 16 doubles for ks, pad remaining with zeros. . .
@@ -906,6 +935,9 @@ export function do_solve(sflags, Spline spline, int steps, float gk=0.95, return
             if (g_app_state.modalstate != ModalStates.TRANSFROMING) {
                 if ((seg.v1.flag & SplineFlags.UPDATE) || (seg.v2.flag & SplineFlags.UPDATE))
                     seg.update_aabb();
+            } else {
+            //    if ((seg.v1.flag & SplineFlags.UPDATE) || (seg.v2.flag & SplineFlags.UPDATE))
+            //      seg.flag |= SplineFlags.UPDATE_AABB;
             }
         }
 
@@ -1017,9 +1049,14 @@ function write_nacl_solve(data, spline, cons, update_verts, update_segs, gk, edg
       var klen = s.ks.length;
       var is_eseg = edge_segs.has(s);
       
+      var zero_ks = ((s.v1.flag & SplineFlags.BREAK_TANGENTS) || (s.v2.flag & SplineFlags.BREAK_TANGENTS));
+      
       for (var ji=0; ji<1; ji++) {
         for (var j=0; j<klen; j++) {
-          ajax.pack_double(data, is_eseg ? s.ks[j] : 0.0, endian);
+          if (zero_ks && j < ORDER)
+            ajax.pack_double(data, 0.0, endian);
+          else
+            ajax.pack_double(data, is_eseg ? s.ks[j] : 0.0, endian);
         }
         for (var j=0; j<16-klen; j++) {
           ajax.pack_double(data, 0.0, endian);

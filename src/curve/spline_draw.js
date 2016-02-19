@@ -136,13 +136,38 @@ export function redo_draw_sort(spline) {
     if (isNaN(s.z))
       s.z = 0;
       
-    max_z = Math.max(max_z, s.z+1);
-    min_z = Math.min(min_z, s.z+1);
+    max_z = Math.max(max_z, s.z+2);
+    min_z = Math.min(min_z, s.z);
   }
   
   function calc_z(e) {
-    if (isNaN(e.z))
+    if (isNaN(e.z)) {
       e.z = 0;
+    }
+    
+    //XXX make segments always draw above their owning faces
+    //giving edges their own order in this case gets too confusing
+    if (e.type == SplineTypes.SEGMENT && e.l != undefined) {
+      var l = e.l;
+      var _i = 0;
+      var f_max_z = undefined;
+      
+      do {
+        if (_i++ > 1000) {
+          console.trace("infinite loop!");
+          break;
+        }
+        
+        var fz = calc_z(l.f);
+        f_max_z = f_max_z == undefined ? fz : Math.max(f_max_z, fz)
+        
+        l = l.radial_next;
+      } while (l != e.l);
+      
+      console.log("eid:", e.eid, "f_max_z:", f_max_z);
+      
+      return f_max_z;
+    }
     
     var layer = 0;
     for (var k in e.layers) {
@@ -210,10 +235,15 @@ export function redo_draw_sort(spline) {
     }
   }
   
+  var zs = {};
+  for (var e of dl) {
+    zs[e.eid] = calc_z(e);
+  }
+  
   //no need to actually sort animation paths, which have no faces anyway
   if (!spline.is_anim_path) {
     dl.sort(function(a, b) {
-      return calc_z(a) - calc_z(b);
+      return zs[a.eid] - zs[b.eid];
     });
   }
   
@@ -290,7 +320,9 @@ function draw_mres_points(spline, g, editor, outside_selmode=false) {
   g.lineWidth = lw;
 }
 
-export function draw_spline(spline, g, editor, selectmode, only_render, draw_normals, alpha, draw_time_helpers, curtime) {
+export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_render,
+                            draw_normals, alpha, draw_time_helpers, curtime)
+{
   spline.canvas = g;
 
   if (spline.recalc & RecalcFlags.DRAWSORT) {
@@ -375,7 +407,7 @@ export function draw_spline(spline, g, editor, selectmode, only_render, draw_nor
   }
   
   var black = "black";
-  var r = window.redraw_rect_combined;
+  static r = [[0, 0], [0, 0]];
   
   for (var s of spline.segments) {
     s.flag &= ~SplineFlags.DRAW_TEMP;
@@ -390,7 +422,19 @@ export function draw_spline(spline, g, editor, selectmode, only_render, draw_nor
     smin.zero().load(seg.aabb[0]);
     smax.zero().load(seg.aabb[1]);
     
-    if (!aabb_isect_minmax2d(smin, smax, r[0], r[1], 2))
+    var skipdraw = true;
+    
+    for (var i=0; i<redraw_rects.length; i += 4) {
+      r[0][0] = redraw_rects[i  ], r[0][1] = redraw_rects[i+1];
+      r[1][0] = redraw_rects[i+2], r[1][1] = redraw_rects[i+3];
+      
+      if (aabb_isect_minmax2d(smin, smax, r[0], r[1], 2)) {
+        skipdraw = false;
+        break;
+      }
+    }
+    
+    if (skipdraw)
       continue;
     
     var is_ghost = (seg.v1.flag & ghostflag) || (seg.v2.flag & ghostflag) || (seg.flag & ghostflag);
@@ -738,7 +782,9 @@ export function draw_spline(spline, g, editor, selectmode, only_render, draw_nor
         var l = e.l;
         var _c = 0;
         
+        clip_stack++;
         g.save();
+        
         do {
           g.beginPath();
           draw_face(l.f, 1);
@@ -794,6 +840,7 @@ export function draw_spline(spline, g, editor, selectmode, only_render, draw_nor
       
       last_segment = e;
       if (e.l != undefined && (e.mat.flag & MaterialFlags.MASK_TO_FACE)) {
+        clip_stack--;
         g.restore();
       }
     } else if (draw_faces && e.type == SplineTypes.FACE) {
@@ -950,6 +997,9 @@ export function patch_canvas2d(g) {
       g._rect = g.rect;
       g._bezierCurveTo = g.bezierCurveTo;
       g._clearRect = g.clearRect;
+      g._translate = g.translate;
+      g._scale = g.scale;
+      g._rotate = g.rotate;
     }
 
     var a = new Vector3(), b = new Vector3(), c = new Vector3(), d = new Vector3();
@@ -962,6 +1012,24 @@ export function patch_canvas2d(g) {
       }
       co[1] = g.height - co[1];
     }
+    
+    function untransform(g, co) {
+      var rendermat = g._irender_mat;
+      
+      co[1] = g.height - co[1];
+      
+      if (rendermat != undefined) {
+        co.multVecMatrix(rendermat);
+      }
+    }
+    
+    /*g.translate = function(x, y) {
+      this._render_mat.translate(x, y, 0.0);
+    }
+    
+    g.scale = function(x, y) {
+      this._render_mat.scale(x, y, 1.0);
+    }*/
     
     var co = new Vector3();
     g.moveTo = function(x, y) {
@@ -1047,22 +1115,27 @@ export function patch_canvas2d(g) {
     }
     
     g.rect = function(x, y, wid, hgt) {
-      a.loadXYZ(x, y, 0);      //,b.loadXYZ(x, y+hgt, 0);
-      d.loadXYZ(x+wid, y+hgt, 0);//, c.loadXYZ(x+wid, y+hgt);
+      a.loadXYZ(x, y, 0); 
+      b.loadXYZ(x+wid, y+hgt, 0);
       
-      transform(this, a); /*transform(this, b); transform(this, c);*/ transform(this, d);
+      transform(this, a); transform(this, b);
       
-      this._rect(a[0], a[1], d[0]-a[0], d[1]-a[1]);
-
+      var xmin = Math.min(a[0], b[0]), xmax = Math.max(a[0], b[0]);
+      var ymin = Math.min(a[1], b[1]), ymax = Math.max(a[1], b[1]);
+      
+      this._rect(xmin, ymin, Math.abs(xmax-xmin), Math.abs(ymax-ymin));
     }
     
     g.clearRect = function(x, y, wid, hgt) {
-      a.loadXYZ(x, y, 0);      //,b.loadXYZ(x, y+hgt, 0);
-      d.loadXYZ(x+wid, y+hgt, 0);//, c.loadXYZ(x+wid, y+hgt);
+      a.loadXYZ(x, y, 0); 
+      b.loadXYZ(x+wid, y+hgt, 0);
       
-      transform(this, a); /*transform(this, b); transform(this, c);*/ transform(this, d);
+      transform(this, a); transform(this, b);
       
-      this._clearRect(a[0], a[1], d[0]-a[0], d[1]-a[1]);
+      var xmin = Math.min(a[0], b[0]), xmax = Math.max(a[0], b[0]);
+      var ymin = Math.min(a[1], b[1]), ymax = Math.max(a[1], b[1]);
+      
+      this._clearRect(xmin, ymin, Math.abs(xmax-xmin), Math.abs(ymax-ymin));
     }
 }
 
@@ -1079,23 +1152,18 @@ export function set_rendermat(g, mat) {
 
 export function redraw_element(e, view2d) {
   static margin = new Vector3([15, 15, 15]);
-  if (view2d != undefined) {
-    margin[0] = margin[1] = margin[2] = 15.0;
+
+  margin[0] = margin[1] = margin[2] = 15.0;
+
+  if (view2d != undefined)
     margin.mulScalar(1.0/view2d.zoom);
-  }
+  
   static aabb = [new Vector3(), new Vector3()];
   
   var e_aabb = e.aabb;
   
   aabb[0].load(e_aabb[0]), aabb[1].load(e_aabb[1]);
-  aabb[0].sub(margin);
-  aabb[1].add(margin);
-  
-  aabb[0][2] = aabb[1][2] = 0.0;
+  aabb[0].sub(margin), aabb[1].add(margin);
   
   window.redraw_viewport(aabb[0], aabb[1]);
-  
-  if (view2d != undefined) {
-    margin[0] = margin[1] = margin[2] = 15.0;
-  }
 }

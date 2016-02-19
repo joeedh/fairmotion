@@ -936,8 +936,8 @@ export function do_solve(sflags, Spline spline, int steps, float gk=0.95, return
                 if ((seg.v1.flag & SplineFlags.UPDATE) || (seg.v2.flag & SplineFlags.UPDATE))
                     seg.update_aabb();
             } else {
-            //    if ((seg.v1.flag & SplineFlags.UPDATE) || (seg.v2.flag & SplineFlags.UPDATE))
-            //      seg.flag |= SplineFlags.UPDATE_AABB;
+                if ((seg.v1.flag & SplineFlags.UPDATE) || (seg.v2.flag & SplineFlags.UPDATE))
+                  seg.flag |= SplineFlags.UPDATE_AABB;
             }
         }
 

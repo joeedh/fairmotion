@@ -796,14 +796,7 @@ export class View2DHandler extends Area {
     var p2 = new Vector2([this.pos[0]+this.size[0], this.pos[1]+this.size[1]])
     this.unproject(p1), this.unproject(p2);
     
-    //this.ctx.frameset.draw(this.ctx, g, this, redraw_rects);
-    
-    //g.restore(); return;
-    
     g.beginPath();
-    //g.rect(p1[0], p1[1], Math.abs(p2[0]-p1[0]), Math.abs(p2[1]-p1[1]));
-    //g.fillStyle = "rgba(255,0,0,0.2)";
-    //g.closePath();
     
     var r = redraw_rects;
     

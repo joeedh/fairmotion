@@ -733,7 +733,8 @@ export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_re
   g.beginPath();
   
   for (var i=0; i<drawlist.length; i++) {
-    break;
+    break; //destroy this loop
+    
     var layer = layerset.idmap[layerlist[i]];
     
     if (layer != undefined && layer != last_layer) {

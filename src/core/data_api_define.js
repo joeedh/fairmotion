@@ -326,15 +326,15 @@ function api_define_view2d() {
     new DataPath(draw_bg_image, "draw_bg_image", "draw_bg_image", true),
     new DataPath(tweak_mode, "tweak_mode", "tweak_mode", true),
     new DataPath(new BoolProperty(0, "enable_blur", "Blur"), "enable_blur", "enable_blur", true),
-    new DataPath(new BoolProperty(0, "draw_faces", "Draw Faces"), "draw_faces", "draw_faces", true),
+    new DataPath(new BoolProperty(0, "draw_faces", "Show Faces"), "draw_faces", "draw_faces", true),
     new DataPath(draw_video, "draw_video", "draw_video", true),
-    new DataPath(new BoolProperty(0, "draw_normals", "Draw Normals"), "draw_normals", "draw_normals", true),
+    new DataPath(new BoolProperty(0, "draw_normals", "Show Normals", "Show Normal Comb"), "draw_normals", "draw_normals", true),
     new DataPath(new BoolProperty(0, "draw_anim_paths", "Show Animation Paths"), "draw_anim_paths", "draw_anim_paths", true),
     new DataPath(zoomprop, "zoom", "zoom", true),
     new DataPath(api_define_material(), "active_material", "active_material", true),
     new DataPath(linewidth, "default_linewidth", "default_linewidth", true),
     new DataPath(extrude_mode, "extrude_mode", "extrude_mode", true),
-    new DataPath(new BoolProperty(0, "pin_paths", "Pin Paths"), "pin_paths", "pin_paths", true),
+    new DataPath(new BoolProperty(0, "pin_paths", "Pin Paths", "Remember visible animation paths"), "pin_paths", "pin_paths", true),
     new DataPath(api_define_imageuser(), "background_image", "background_image", true)
   ])
   

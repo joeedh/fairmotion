@@ -125,7 +125,7 @@ export class SplineDrawer extends Canvas {
     
     for (var i=0; i<drawlist.length; i++) {
       var e = drawlist[i];
-      e.finalz = i;
+      //e.finalz = i;
       
       var layerid = this.drawlist_layerids[i];
       

@@ -1,7 +1,7 @@
 {
   "name": "FairMotion",
   "description": "",
-  "version": "0.0.0.5",
+  "version": "0.0.0.5a",
   "manifest_version": 2,
   "permissions": [
     "fileSystem",

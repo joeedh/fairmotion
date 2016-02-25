@@ -1366,13 +1366,14 @@ export class Spline extends DataBlock {
       
       
       if (!has_tan) {
-        continue;
+        //continue;
       }
       
       //don't propegate as far after tangent breaks
-      if (v2.flag & SplineFlags.BREAK_TANGENTS) {
-        limit = Math.min(limit, depth+2);
-      }
+      //XXX causes bugs
+      //if (v2.flag & SplineFlags.BREAK_TANGENTS) {
+      //  limit = Math.min(limit-1, depth+2);
+      //}
       
       if (!(v2.flag & SplineFlags.TEMP_TAG)) {
         this._vert_flag_update(v2, depth+1, limit);
@@ -1440,7 +1441,7 @@ export class Spline extends DataBlock {
       v.flag &= ~SplineFlags.TEMP_TAG;
     }
     
-    var limit = 5;
+    var limit = 6;
     
     for (var i=0; i<verts.length; i++) {
       var v = verts[i];

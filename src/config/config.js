@@ -9,6 +9,8 @@ export var DISABLE_SOLVE=false;
 export var ENABLE_MULTIRES=false;
 export var HAVE_EVAL = false;
 
+export var MAX_CANVAS2D_VECTOR_CACHE_SIZE = 700;
+
 export var MAX_RECENT_FILES = 12
 
 window.RELEASE = false;

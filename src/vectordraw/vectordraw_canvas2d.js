@@ -1,5 +1,7 @@
 "use strict";
 
+import * as config from 'config';
+
 import {
   MinMax
 } from 'mathlib';
@@ -121,6 +123,21 @@ export class CanvasPath extends QuadBezPath {
     this.update_aabb(draw);
     var w = this.size[0] = Math.ceil(this.aabb[1][0]-this.aabb[0][0]);
     var h = this.size[1] = Math.ceil(this.aabb[1][1]-this.aabb[0][1]);
+    
+    if (w > config.MAX_CANVAS2D_VECTOR_CACHE_SIZE || h > config.MAX_CANVAS2D_VECTOR_CACHE_SIZE) {
+      var w2 = Math.min(w, config.MAX_CANVAS2D_VECTOR_CACHE_SIZE);
+      var h2 = Math.min(h, config.MAX_CANVAS2D_VECTOR_CACHE_SIZE);
+      var dw = w - w2, dh = h - h2;
+      
+      this.aabb[0][0] += dw*0.5;
+      this.aabb[0][1] += dh*0.5;
+      this.aabb[1][0] -= dw*0.5;
+      this.aabb[1][1] -= dh*0.5;
+      
+      this.size[0] = w2;
+      this.size[1] = h2;
+      w = w2, h = h2;
+    }
     
     if (this.canvas == undefined) {
       this.canvas = document.createElement("canvas");

@@ -21,6 +21,7 @@ export * from 'config_local';
 
 //debug flags
 window._DEBUG = {
+  degenerate_geometry : false,
   viewport_partial_update : false, //debug partial redraw rects of work canvas
   alias_g_app_state : true, //make a G alias to g_app_state at runtime
   gl_objects : false,

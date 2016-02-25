@@ -42,8 +42,8 @@ var _ESClass = (function() {
         
         //only inherit static methods added to parent with this module
         if (v == undefined || ((typeof v == "object" || typeof v == "function") && "_is_static_method" in v)
-            && !(k in cls))
-        {
+            && !(k in cls)) {
+        //if (!(k in cls)) {
           cls[k] = v;
         }
       }
@@ -248,6 +248,10 @@ function mixin(child, parent) {
 function define_static(obj, name, val) {
   obj[name] = val;
   obj.__statics__[name] = name;
+  
+  if (val != undefined && (typeof val == "object" || typeof val == "function" || typeof val == "string")) {
+    val._is_static_method = true;
+  }
 }
 
 function __instance_of(child, parent) {

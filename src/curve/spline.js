@@ -1441,7 +1441,7 @@ export class Spline extends DataBlock {
       v.flag &= ~SplineFlags.TEMP_TAG;
     }
     
-    var limit = 6;
+    var limit = 5;
     
     for (var i=0; i<verts.length; i++) {
       var v = verts[i];

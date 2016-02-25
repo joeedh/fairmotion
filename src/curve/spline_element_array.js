@@ -443,7 +443,7 @@ export class ElementArraySet extends set {
 
 export class ElementArray extends GArray {
   constructor(type, idgen, idmap, global_sel, layerset, spline) {
-    GArray.call(this);
+    super();
     
     this.layerset = layerset;
     this.cdata = new CustomData(this); //this.on_layer_add.bind(this), this.on_layer_del.bind(this));
@@ -510,7 +510,7 @@ export class ElementArray extends GArray {
     normally you wouldn't have a method like this
     however, in the future ElementArray will not be
     a simple array, and swapping elements by index
-    will  become a bit more complicated
+    will become a bit more complicated
   */
   swap(a, b) {
     if (a == undefined || b == undefined) {
@@ -587,7 +587,11 @@ export class ElementArray extends GArray {
     
     //this.idgen.free_id(e.eid);
     
-    Array.prototype.remove.call(this, e, soft_error);
+    //use swap removal method
+    this[idx] = this[this.length-1];
+    this.length--;
+    
+    //Array.prototype.remove.call(this, e, soft_error);
     
     //remove from all layer lists
     for (var k in e.layers) {

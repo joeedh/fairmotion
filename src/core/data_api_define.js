@@ -14,6 +14,8 @@ import {EnumProperty, FlagProperty,
         Vec3Property, Vec4Property, IntProperty,
         TPropFlags, PropTypes} from 'toolprops';
 
+import {ModalStates} from 'toolops_api';
+
 import {SplineFlags, MaterialFlags, SplineTypes} from 'spline_types';
 import {SelMask, ToolModes} from 'selectmode';
 import {Unit} from 'units';
@@ -437,11 +439,27 @@ function api_define_spline_segment() {
   }
   
   var zprop = new FloatProperty(0, "z", "z", "z");
-  zprop.update = function(segment) {
-    this.ctx.frameset.spline.regen_sort();
-    this.ctx.frameset.pathspline.regen_sort();
+
+  zpath = new DataPath(zprop, "z", "z", true);
+  zpath.update = function(segment, old_value, changed) {
+    //XXX
+    if (segment != undefined && old_value != undefined) {
+      changed = segment.z != old_value;
+    }
+    
+    if (!changed) {
+      return;
+    }
+    
+    //in theory, draw system shouldn't need explicit sort here.
+    //still, let's only disable it during animation playback
+    if (!(g_app_state.modalstate & ModalStates.PLAYING)) {
+      this.ctx.frameset.spline.regen_sort();
+      this.ctx.frameset.pathspline.regen_sort();
+    }
+    
     segment.flag |= SplineFlags.REDRAW;
-    console.log(segment);
+    //console.log(segment);
     
     /*
     var s = this.boundobj;
@@ -464,7 +482,7 @@ function api_define_spline_segment() {
     new DataPath(flagprop, "flag", "flag", true),
     new DataPath(new BoolProperty(0, "renderable", "renderable"), "renderable", "renderable", true),
     new DataPath(api_define_material(), "mat", "mat", true),
-    new DataPath(zprop, "z", "z", true)
+    zpath
   ]);
   
   return SplineSegmentStruct;

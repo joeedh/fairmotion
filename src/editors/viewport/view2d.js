@@ -860,11 +860,11 @@ export class View2DHandler extends Area {
           var vdata = frameset.vertex_animdata[v.eid];
           var alpha = vdata.spline === actspline ? 1.0 : 0.2;
         
-          vdata.draw(g, alpha, this.ctx.frameset.time);
+          vdata.draw(g, alpha, this.ctx.frameset.time, redraw_rects);
         } 
         
         pathspline.layerset.active = pathspline.layerset.idmap[this.ctx.frameset.templayerid];
-        pathspline.draw(g, this, this.selectmode, this.only_render, this.draw_normals, alpha, true, this.ctx.frameset.time);
+        pathspline.draw(redraw_rects, g, this, this.selectmode, this.only_render, this.draw_normals, alpha, true, this.ctx.frameset.time);
       }
     } else {
       if (pathspline.resolve) {

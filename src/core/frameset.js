@@ -930,6 +930,39 @@ export class SplineFrameSet extends DataBlock {
     this.switch_on_select = true;
   }
   
+  find_orphan_pathverts() {
+    var vset = new set();
+    var vset2 = new set();
+    
+    for (var v of this.spline.verts) {
+      vset2.add(""+v.eid);
+    }
+    
+    for (var k in this.vertex_animdata) {
+      var vd = this.vertex_animdata[k];
+      
+      if (!vset2.has(""+k)) {
+        delete this.vertex_animdata[k];
+        continue;
+      }
+      
+      for (var v of vd.verts) {
+        vset.add(v.eid);
+      }
+    }
+    
+    var totorphaned = 0;
+    
+    for (var v of this.pathspline.verts) {
+      if (!vset.has(v.eid)) {
+        this.pathspline.kill_vertex(v);
+        totorphaned++;
+      }
+    }
+    
+    console.log("totorphaned: ", totorphaned);
+  }
+  
   has_coincident_verts(threshold=2, time_threshold=0) {
     var ret = new set();
     
@@ -1386,6 +1419,20 @@ export class SplineFrameSet extends DataBlock {
         set_update = false;
       }
       
+      if (!set_update) {
+        for (var seg of spline.segments) {
+          if (seg.hidden) continue;
+          
+          seg.flag |= SplineFlags.REDRAW;
+        }
+        
+        for (var face of spline.faces) {
+          if (face.hidden) continue;
+          
+          face.flag |= SplineFlags.REDRAW;
+        }
+      }
+      
       for (var v of spline.points) {
         var set_flag = v.eid in this.vertex_animdata;
         
@@ -1404,8 +1451,33 @@ export class SplineFrameSet extends DataBlock {
         
         v.load(vdata.evaluate(time));
         
-        if (set_update)
+        if (set_update) {
           v.flag |= SplineFlags.UPDATE;
+        } else { //manually flag geometry for drawing
+          /*
+          for (var i=0; i<v.segments.length; i++) {
+            var ss = v.segments[i];
+            
+            ss.flag |= SplineFlags.REDRAW; //redraw immediately; no need to wait for solve with REDRAW_PRE
+            var l = ss.l, _i = 0;
+            
+            if (l == undefined)
+              continue;
+            
+            do {
+              if (_i++ > 1000) {
+                console.trace("infinite loop detected");
+                break;
+              }
+              
+              l.f.flag |= SplineFlags.REDRAW;
+              
+              l = l.radial_next;
+            } while (l != ss.l);
+          }
+          //*/
+        }
+        
         //console.log("--", vdata);
       }
       

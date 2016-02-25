@@ -353,7 +353,11 @@ function solve_intern(spline, order, goal_order, steps, gk, do_basic) {
     var s1 = seg1.ks[k1i] < 0.0 ? -1 : 1;
     var s2 = seg2.ks[k2i] < 0.0 ? -1 : 1;
     
-    if (isNaN(k1) || isNaN(k2)) return 0;
+    if (isNaN(k1) || isNaN(k2)) {
+      console.log("NaN 2!");
+      return 0;
+    }
+    
     console.log(k1, k2);
    
     if (abs(seg1.ks[k1i]) < k1) seg1.ks[k1i] = k1*s1;
@@ -376,11 +380,17 @@ function solve_intern(spline, order, goal_order, steps, gk, do_basic) {
   function get_ratio(seg1, seg2) {
     var ratio = seg1.ks[KSCALE]/seg2.ks[KSCALE];
     
+    if (seg2.ks[KSCALE] == 0.0) {
+      return 100000.0;
+    }
+    
     if (ratio > 1.0)
       ratio = 1.0 / ratio;
       
-    if (isNaN(ratio))
+    if (isNaN(ratio)) {
+      console.log("NaN 3!");
       ratio = 0.5;
+    }
     
     return Math.pow(ratio, 2.0);
   }
@@ -512,7 +522,10 @@ function solve_intern(spline, order, goal_order, steps, gk, do_basic) {
     if (h == seg.h2)
       tan1.negate();
     
-    if (isNaN(tan1.dot(tan1)) || tan1.dot(tan1) == 0.0) continue;
+    if (isNaN(tan1.dot(tan1)) || tan1.dot(tan1) == 0.0) {
+      console.log("NaN 4!");
+      continue;
+    }
     
     var s = h == seg.h1 ? 0 : 1;
     var do_curv = (v.flag & SplineFlags.BREAK_CURVATURES);
@@ -622,7 +635,7 @@ function solve_intern(spline, order, goal_order, steps, gk, do_basic) {
     }
     //bad = bad || (mindis < limits.v_tan_limit);
     
-    if (bad) {
+    if (bad && DEBUG.degenerate_geometry) {
       console.log("Ignoring!");
     }
     
@@ -732,6 +745,7 @@ export function do_solve(sflags, spline, steps, gk) {
     
     for (var j=0; j<seg.ks.length; j++) {
       if (isNaN(seg.ks[j])) {
+        console.log("NaN 1!");
         seg.ks[j] = 0;
       }
     }

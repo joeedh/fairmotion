@@ -1244,6 +1244,9 @@ export class DataAPI {
       return;
     }
     
+    var old_value = this.get_prop(ctx, str);
+    var changed = true; 
+    
     if (ret[0].type == DataPathTypes.PROP) {
       var path;
       
@@ -1269,27 +1272,30 @@ export class DataAPI {
           
           var val = this.evaluate(ctx, path2);
           
+          changed = !!(val & mask) != !!(old_value & mask);
+          
           if (value)
             val |= mask;
           else
             val &= ~mask;
           
-          prop.set_data(val, owner);
-          
-          path2 += " = scope[0];";
+          prop.set_data(val, owner, changed);
           
           scope[0] = val;
+          path2 += " = scope[0];";
+          
           this.evaluate(ctx, path2, scope);
         } else {
           //handle "struct.flag = integer bitmask" form
           path += " = " + value;
           this.evaluate(ctx, path);
           
-          prop.set_data(value, owner);
+          changed = value != old_value;
+          prop.set_data(value, owner, changed);
         }
       } else {
         if (prop.type == PropTypes.DATAREF) {
-          
+          console.trace("IMPLEMENT ME!");
         } else if (prop.type == PropTypes.ENUM) {
           value = prop.values[value];
           if (value instanceof String || typeof value == "string") {
@@ -1325,28 +1331,35 @@ export class DataAPI {
         {
           var arr = this.evaluate(ctx, path);
           
+          changed = false;
           for (var i=0; i<arr.length; i++) {
+            changed = changed || arr[i] != value[i];
+            
             arr[i] = value[i];
           }
         } else {
+          changed = value == old_value;
+          
           if (typeof value == "object" ) {
             scope[0] = value;
             path += " = scope[0]"
             
             this.evaluate(ctx, path, scope);
           } else {
+            changed = value == old_value;
+            
             path += " = " + value;
             
             this.evaluate(ctx, path);
           }
         }
         
-        prop.set_data(this.evaluate(ctx, valpath), owner);
+        prop.set_data(this.evaluate(ctx, valpath), owner, changed);
       }
       
       ret[0].ctx = ctx;
       if (ret[0].update != undefined)
-        ret[0].update.call(ret[0], owner);
+        ret[0].update.call(ret[0], owner, old_value, changed);
     }
   }
   

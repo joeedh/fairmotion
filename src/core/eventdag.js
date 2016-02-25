@@ -508,6 +508,8 @@ export class EventDag {
           //console.log("field", field, srcnode.inputs, srcnode);
           
           if (!(field in srcnode.outputs)) {
+            console.trace(field, Object.keys(srcnode.outputs), srcnode);
+            
             throw new Error("Field not in outputs", field);
           }
           

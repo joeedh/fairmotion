@@ -436,7 +436,7 @@ function solve_intern(spline, update_verts, order, goal_order, steps, gk) {
         }
         //bad = bad || (mindis < limits.v_tan_limit);
 
-        if (bad) {
+        if (bad && DEBUG.degenerate_geometry) {
             console.log("Ignoring!");
         }
 

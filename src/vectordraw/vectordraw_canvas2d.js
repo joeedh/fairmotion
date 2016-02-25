@@ -145,6 +145,11 @@ export class CanvasPath extends QuadBezPath {
       this.g = this.canvas.getContext("2d");
     }
     
+    if (this.g == undefined) { //presumably a degenerate path
+      console.log("render error!", this.id, this.size[0], this.size[1], this.canvas, this);
+      return;
+    }
+    
     if (this.canvas.width != w || this.canvas.height != h) {
       //console.log("resetting canvas:", this.canvas.width, this.canvas.height, w, h);
       

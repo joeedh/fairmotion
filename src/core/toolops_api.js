@@ -86,7 +86,7 @@ export var ToolFlags = {
 export var ModalStates = {
   TRANSFORMING : 1,
   PLAYING      : 2
-}
+};
 
 //XXX need to do this properly at some point; toolops should
 //an idgen that is saved in each file

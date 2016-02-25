@@ -1160,7 +1160,7 @@ export class UIFrame extends UIElement {
     if (!this.tick_timer.ready())
       return;
     
-    prior(UIFrame, this).on_tick.call(this);
+    super.on_tick();
     
     if (this.state & UIFlags.HAS_PAN && this.valpan == undefined) {
       this.valpan = new VelocityPan();

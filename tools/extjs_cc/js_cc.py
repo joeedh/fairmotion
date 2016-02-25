@@ -931,7 +931,17 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
   f_id = [0]
   flatten_statementlists(result, typespace)
   
-  if expand_loops:
+  has_generators = [False]
+  def has_generator(n):
+    if type(n) == YieldNode:
+      has_generators[0] = True
+    
+    for c in n:
+      has_generator(c)
+  
+  has_generator(result)
+  
+  if expand_loops or has_generators[0]:
     expand_of_loops(result, typespace)
   
   #combine_try_nodes may have nested statementlists again, so better reflatten

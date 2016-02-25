@@ -218,12 +218,17 @@ function get_editor_list() : GArray<Function> {
     //why? -> console.log("Fix dependency here too");
     
     for (var cls of defined_classes) {
+      if (cls.__parent__ != undefined && cls.__parent__.name == "Area") {
+          ret.push(cls);
+      }
+      /*
       for (var i=0; i<cls.__parents__.length; i++) {
         if (cls.__parents__[i].name == "Area") {
           ret.push(cls);
           break;
         }
       }
+      //*/
     }
   }
   
@@ -258,6 +263,8 @@ export function gen_editor_switcher(Context ctx, Area parent) {
   var e = new UIMenuButton(ctx, menu, [0,0], [1,1], undefined, "Switch editors");
   obj.e = e;
   e.text = parent.constructor.uiname;
+  
+  e.description = "Choose another editor pane";
   
   return e;
 }
@@ -949,7 +956,7 @@ export class UIListBox extends ColumnFrame {
   }
   
   on_tick() {
-    prior(UIListBox, this).on_tick.call(this);
+    super.on_tick();
     
     if (this.vscroll.val != this.listbox.velpan.pan[1]) {
       //console.log("=>", this.vscroll.val, this.listbox.velpan.pan[1]);
@@ -974,7 +981,8 @@ export class UIListBox extends ColumnFrame {
   }
   
   get_filedata() : ObjectMap {
-    var ret = prior(UIListBox, this).get_filedata.call(this);
+    var ret = super.get_filedata();
+    
     if (ret == undefined) ret = {};
     
     if (this.active_entry != undefined)

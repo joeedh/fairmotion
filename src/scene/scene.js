@@ -55,9 +55,6 @@ export class Scene extends DataBlock {
     if (ret.active_splinepath == "frameset.active_spline")
       ret.active_splinepath = "frameset.drawspline";
       
-    //if (this.active_splinepath != undefined)
-    //  g_app_state.switch_active_spline(this.active_splinepath);
-    console.log("LOAD SCENE", ret.active_splinepath);
     return ret;
   }
   

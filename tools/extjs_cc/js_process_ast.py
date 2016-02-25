@@ -404,7 +404,7 @@ def transform_exisential_operators_old(node, typespace):
   print("--starting")
   visit(node)
 
-def expand_harmony_class(typespace, cls):
+def expand_harmony_class_old(typespace, cls):
   node = FunctionNode(cls.name, 0)  
   
   put_props_in_constructor = False
@@ -831,15 +831,154 @@ def gen_manifest_file(result, typespace):
   s += "\n"
   #traverse(result, ClassNode, visit_cls)
   return s
-def expand_harmony_classes(result, typespace):
+  
+def expand_harmony_classes_old(result, typespace):
     expand_harmony_super(result, typespace)
     
     def visit(n):
-      n.parent.replace(n, expand_harmony_class(typespace, n))
+      n.parent.replace(n, expand_harmony_class_old(typespace, n))
+      
     traverse(result, ClassNode, visit)
     flatten_statementlists(result, typespace)
+  
+_the_typespace = None
 
+def expand_harmony_class(result, cls):
+  global _the_typespace
+  
+  arglist = ExprListNode([])
+  
+  methodlist = ArrayLitNode(ExprListNode([]))
+  
+  arglist.add(StrLitNode('"'+cls.name+'"'))
+  if len(cls.parents) > 0:
+    arglist.add(cls.parents[0])
+  arglist.add(methodlist)
+      
+  #find constructor method
+  found_con = False
+  methods = []
+  
+  con = None
+  for m in cls:
+    if type(m) not in [MethodNode, MethodGetter, MethodSetter]:
+      continue
+      
+    if m.name == "constructor":
+      found_con = True
+      con = m
+      
+    methods.append(m)
+  
+  if not found_con:
+    #create a default constructor
+    if len(cls.parents) > 0:
+      slist = js_parse("""
+        $s.apply(this, arguments);
+      """, [cls.parents[0].gen_js(0)])
+    else:
+      slist = StatementList()
+    
+    con = MethodNode("constructor", False);
+    con.add(ExprListNode([]))
+    con.add(slist)
+    methods.append(con)
+    
+  cls_scope = {}
+  for m in methods:
+    if type(m) in [MethodNode, MethodGetter, MethodSetter]:
+      if m.name != "constructor":
+        cls_scope[m.name] = m
+      
+      if m.name == "eval":
+        _the_typespace.error("Class methods can't be named eval", m);
+        
+      callnode = None
+      
+      if type(m.name) != str:
+        if type(m.name) == BinOpNode:
+          name = m.name[1]
+          
+          if type(name) == IdentNode:
+            name = name.val
+            
+          if type(name) == str:
+            fnode = FunctionNode(name)
+          else:
+            fnode = FunctionNode("(anonymous)")
+            fnode.is_anonymous = True
+        else:
+          fnode = FunctionNode("(anonymous)")
+          fnode.is_anonymous = True
+          
+        callnode = FuncCallNode(BinOpNode("_ESClass", "symbol", "."))
+        
+        name = m.name
+        if type(name) in (int, float):
+          name = NumLitNode(name)
+        
+        callnode.add(ExprListNode([name, fnode]))
+      else:
+        fnode = FunctionNode(m.name if m.name != "constructor" else cls.name)
+        fnode[:] = []
+        
+      for c in m:
+        fnode.add(c.copy())
+      
+      if callnode != None:
+        fnode = callnode
+        
+      if type(m) == MethodGetter:
+        callnode = FuncCallNode(BinOpNode("_ESClass", "get", "."))
+        callnode.add(fnode)
+        fnode = callnode
+      if type(m) == MethodSetter:
+        callnode = FuncCallNode(BinOpNode("_ESClass", "set", "."))
+        callnode.add(fnode)
+        fnode = callnode
+      if m.is_static:
+        callnode = FuncCallNode(BinOpNode("_ESClass", "static", "."))
+        callnode.add(fnode)
+        fnode = callnode
+      
+      methodlist[0].add(fnode)
+
+  con = None
+  found_con = False
+  
+  for m in methods:
+    if m.name == "constructor":
+      if found_con: raise SyntaxError("Cannot have multiple constructor methods")
+      if type(m) != MethodNode: raise SyntaxError("Constructors cannot be get/setters")
+      
+      found_con = True
+      con = m
+      
+  parent = cls.parents[0] if len(cls.parents) != 0 else None
+  
+  n = FuncCallNode("_ESClass")
+  n.add(arglist)
+  n2 = VarDeclNode(n, local=True, name=cls.name);
+  
+  return n2
+
+def expand_harmony_classes(result, typespace):
+  global _the_typespace
+  _the_typespace = typespace
+
+  expand_harmony_super(result, typespace)
+
+  def visit(n):
+    n.parent.replace(n, expand_harmony_class(typespace, n))
+    
+  traverse(result, ClassNode, visit)
+  flatten_statementlists(result, typespace)
+  
 def expand_harmony_super(result, typespace):
+  global _the_typespace
+  
+  _the_typespace = typespace
+  
   flatten_statementlists(result, typespace)
       
   def repl_super(cls, method, base, gets, sets, methods):
@@ -861,7 +1000,8 @@ def expand_harmony_super(result, typespace):
         n.parent.replace(n, n2)
         n.parent.replace(n.parent[1], n3)
       elif isinstance(n.parent, BinOpNode) and n.parent.op == "." and isinstance(n.parent[1], IdentNode):
-        print("super property access!")
+        typespace.warning("Super property access!", n);
+        
         n2 = js_parse("__bind_super_prop(this, $s, $s, '$s')", [cls.name, base.val, n.parent[1].val], start_node=FuncCallNode)
         
         n.parent.parent.replace(n.parent, n2)
@@ -2512,8 +2652,19 @@ def gen_useful_funcname(p2):
   return suffix
   
 def process_static_vars(result, typespace):
+
+  #if inside a class, returns class node
+  def inside_class(n):
+    if type(n) == ClassNode or (type(n) == FuncCallNode and n[0].gen_js(0) == "_ESClass"):
+      return n
+    
+    if n.parent != None:
+      return inside_class(n.parent)
+    return False
+    
   def visit(node):
     if "static" not in node.modifiers: return
+    inclass = inside_class(node)
     
     #make sure we aren't carrying any child vardecl nodes
     #(e.g var a, b, c, d) with us.
@@ -2610,14 +2761,29 @@ def process_static_vars(result, typespace):
         p = p.parent
       
     pindex = p.index(lastp)
-    
     node.parent.remove(node)
     
+    if inclass:
+      #add declaration
+      decl = VarDeclNode(ExprNode([]), local=True, name=node.val)
+      p.insert(pindex, decl)
+      
+      while inclass.parent != None and inclass.parent != p:
+        inclass = inclass.parent
+        
+      if inclass.parent == None:
+        pindex += 2
+      else:
+        pindex = p.index(inclass) + 1
+      
+      while pindex < len(p) and hasattr(p[pindex], "_was_static") and getattr(p[pindex], "_was_static"):
+        pindex += 1
+      
+    node._was_static = True
     p.insert(pindex, node)
     
     node.modifiers.remove("static")
     node.modifiers.add("local")
-    
          
   traverse(result, VarDeclNode, visit);
 

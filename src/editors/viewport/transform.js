@@ -228,8 +228,6 @@ export class TransSplineVert {
       }
     }
     
-    console.log("doprop", doprop);
-    
     if (!doprop) return;
     
     var propfacs = {};
@@ -532,9 +530,9 @@ export class TransformOp extends ToolOp {
   
   cancel() {
     var ctx = this.modal_ctx;
-    this.modal_end();
+    this.end_modal();
     
-    this.undo(ctx);
+    this.undo(ctx, true);
   }
   
   //XXX initializing this.types in ensure_transdata
@@ -548,19 +546,25 @@ export class TransformOp extends ToolOp {
     }
   }
   
-  undo(ctx) {
+  undo(ctx, suppress_ctx_update=false) {
     var undo = this._undo;
     
     for (var i=0; i<this.types.length; i++) {
       this.types[i].undo(ctx, undo);
     }
     
-    ctx.frameset.on_ctx_update(ctx);
+    if (!suppress_ctx_update) {
+      ctx.frameset.on_ctx_update(ctx);
+    }
+    
     window.redraw_viewport();
   }
   
   end_modal() {
     var ctx = this.modal_ctx;
+    
+    //force spline solve + redraw
+    this.post_mousemove(event, true);
     
     ctx.appstate.set_modalstate(0);
     ToolOp.prototype.end_modal.call(this);
@@ -607,7 +611,7 @@ export class TransformOp extends ToolOp {
     this.draw_helper_lines(md, ctx);
   }
   
-  post_mousemove(event) {
+  post_mousemove(event, force_solve=false) {
     //window.redraw_viewport();
     //return;
     var td = this.transdata, view2d = this.modal_ctx.view2d;
@@ -658,51 +662,25 @@ export class TransformOp extends ToolOp {
       }
     }
     
-    if (!USE_NACL) {
-      //last argument means combine with previous draw rectangles
-      redraw_viewport(min2, max2, undefined, !this.first_viewport_redraw);
-    } else if (this._last_solve==undefined || time_ms()-this._last_solve > 60) {
-      if (found) {
-        ctx.spline.solve();
+    var this2 = this;
+    
+    //return;
+    if (ctx.spline.resolve == 0) {
+      if (force_solve && !ctx.spline.solving) { //ha!
+        redraw_viewport(min2, max2, undefined, !this2.first_viewport_redraw);
+      } else if (force_solve) {
+        ctx.spline._pending_solve.then(function() {
+          redraw_viewport(min2, max2, undefined, !this2.first_viewport_redraw);
+        });
       }
-      
-      //last argument means combine with previous draw rectangles
-      redraw_viewport(min2, max2, undefined, !this.first_viewport_redraw);
-      
-      this._last_solve = time_ms();
+      return;
     }
     
-    this.first_viewport_redraw = false;
-    
-    return;
-    
-    //only allow two running jobs at one time
-    clear_jobs_except_first(JobTypes.SOLVE);
-    
-    //redraw max of current and last min/max
-    var promise = ctx.spline.solve_p();
-    var spline = ctx.spline;
-    
-    //it might not be such a bad idea to use the event DAG 
-    //for this.
-
-    //redraw on rejections too
-    promise.then(function () {
-      //if (spline.resolve == 0)
-        
-      //last argument means combine with previous draw rectangles
-      redraw_viewport(minmax.min, minmax.max, undefined, true);
-    }, function() {
-      //if (spline.resolve == 0)
-      //redraw_viewport(minmax.min, minmax.max, undefined, true);
-    });
-    
-    /*
-    promise["catch"](function () {
-      redraw_viewport(minmax.min, minmax.max, undefined, true);
-      return 1;
-    });
-    */
+    if (force_solve || !ctx.spline.solving) {
+      ctx.spline.solve(undefined, undefined, force_solve).then(function() {
+        redraw_viewport(min2, max2, undefined, !this2.first_viewport_redraw);
+      });
+    }
   }
   
   draw_helper_lines(ObjLit md, Context ctx) {

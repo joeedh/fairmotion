@@ -1237,6 +1237,8 @@ def p_class_heritage(p):
   set_parse_globals(p)
   
   p[0] = p[2]
+  if len(p[0]) > 1:
+    raise SyntaxError("Multiple inheritance was removed from final ES6 spec")
 
 def p_class_heritage_opt(p):
   '''class_heritage_opt : class_heritage
@@ -1335,13 +1337,12 @@ def p_getset_id(p):
   p[0] = p[1]
   
 def p_method_def(p):
-  #I don't want to make get/set exclusive parse tokens,
-  #so I'm going to enforce that here in the production function.
-  
   '''method_def : method
                 | GET getset_id LPAREN RPAREN func_type_opt LBRACKET statementlist_opt RBRACKET
                 | SET getset_id LPAREN setter_param_list RPAREN func_type_opt LBRACKET statementlist_opt RBRACKET
   '''
+
+  set_parse_globals(p)
   
   if len(p) == 2:
     p[0] = p[1]
@@ -2505,6 +2506,7 @@ def p_id(p):
   ''' id : ID
          | GET
          | SET
+         | STATIC
   '''
   p[0] = p[1]
     

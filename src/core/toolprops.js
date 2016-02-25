@@ -410,14 +410,17 @@ export class FlagProperty extends ToolProperty {
     if (value == undefined && maskmap == undefined) {
       this.ui_value_names = {};
       this.ui_key_names = {};
+      this.flag_descriptions = {};
       this.keys = {};
       this.values = {};
+      
       return;
     }
     
     this.data = 0 : int;
     
     this.ui_key_names = {};
+    this.flag_descriptions = {};
     
     if (uinames == undefined) {
       this.ui_value_names = {}
@@ -449,6 +452,10 @@ export class FlagProperty extends ToolProperty {
   
   copyTo(FlagProperty dst) {
     ToolProperty.prototype.copyTo.call(this, dst, true);
+    
+    for (var k in this.flag_descriptions) {
+      dst.flag_descriptions[k] = this.flag_descriptions[k];
+    }
     
     for (var k in this.keys) {
       dst.keys[k] = this.keys[k];
@@ -1112,7 +1119,7 @@ export class CollectionProperty extends ToolProperty {
     if ("__tooliter__" in data && typeof  data.__tooliter__ == "function") {
       this.set_data(data.__tooliter__(), owner);
       return;
-    } else if (!(this.flag & TPropFlags.COLL_LOOSE_TYPE) && !(data instanceof TPropIterable)) {
+    } else if (!(this.flag & TPropFlags.COLL_LOOSE_TYPE) && !(TPropIterable.isTPropIterable(data))) {
       console.trace();
       console.log("ERROR: bad data '", data, "' was passed to CollectionProperty.set_data!");
       

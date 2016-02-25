@@ -318,7 +318,7 @@ export function test_str_packers() {
   static_string_test();
   return true;
 }
-create_test(test_str_packers);
+register_test(test_str_packers);
 
 var _static_sbuf = new Array(32);
 /*strings are packed as 32-bit unicode codepoints*/

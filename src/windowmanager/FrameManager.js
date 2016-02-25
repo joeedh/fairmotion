@@ -40,7 +40,7 @@ export class Screen extends UIFrame {
   constructor(unused, int width, 
                 int height)
   {
-    UIFrame.call(this, undefined);
+    super();
     
     this.size = [width, height];
     this.pos = [0, 0];
@@ -210,7 +210,8 @@ export class Screen extends UIFrame {
     
     //console.log("t", e.touches, this.tottouch);
     var area = this.area_event_push();
-    UIFrame.prototype._on_mousemove.call(this, e);
+    
+    super._on_mousemove(e);
     this.area_event_pop(area);
   }
   
@@ -258,7 +259,7 @@ export class Screen extends UIFrame {
     this.set_touchstate(e, "down");
     
     var area = this.area_event_push();
-    UIFrame.prototype._on_mousedown.call(this, e);
+    super._on_mousedown(e);
     this.area_event_pop(area);
     
     //console.log("t", e.touches, this.tottouch);
@@ -279,7 +280,7 @@ export class Screen extends UIFrame {
     this.set_touchstate(e, "up");
     
     var area = this.area_event_push();
-    UIFrame.prototype._on_mouseup.call(this, e);
+    super._on_mouseup(e);
     this.area_event_pop(area);
     
     //console.log("t", e.touches, this.tottouch);
@@ -295,7 +296,7 @@ export class Screen extends UIFrame {
     }
     
     var area = this.area_event_push();
-    UIFrame.prototype._on_mousewheel.call(this, e, delta);
+    super._on_mousewheel(e, delta);
     this.area_event_pop(area);
   }
 
@@ -356,7 +357,7 @@ export class Screen extends UIFrame {
     
     event = this.handle_event_modifiers(event)
     
-    prior(Screen, this)._on_keyup.call(this, event);
+    super._on_keyup(event);
   }
 
 
@@ -371,7 +372,7 @@ export class Screen extends UIFrame {
     this.alt = event.altKey;
     
     var area = this.area_event_push();
-    UIFrame.prototype._on_keydown.call(this, event);
+    super._on_keydown(event);
     this.area_event_pop(area);
   }
   
@@ -384,7 +385,7 @@ export class Screen extends UIFrame {
     if (ret != undefined) {
       ret.handle(ctx);
     } else {
-      prior(Screen, this).on_keyup.call(this, event);
+      super.on_keyup(event);
     }
   }
   
@@ -421,7 +422,7 @@ export class Screen extends UIFrame {
           console.log("delayed event");
         
         this.modup_time_ms.remove(s);
-        prior(Screen, this)._on_keyup.call(this, s[1]);
+        super._on_keyup(s[1]);
       }
     }
     
@@ -494,7 +495,7 @@ export class Screen extends UIFrame {
     }
     this.draw_active = undefined;
   
-    prior(Screen, this).on_draw.call(this, undefined);
+    super.on_draw(undefined);
     
     if (!DEBUG.disable_on_tick && time_ms() - this.last_tick > 32) { //(IsMobile ? 500 : 150)) {
       this.last_tick = time_ms();
@@ -605,8 +606,8 @@ export class Screen extends UIFrame {
       c.pos[0] = Math.ceil(c.pos[0])
       c.pos[1] = Math.ceil(c.pos[1])
       
-      //don't resize dialogs and menus
-      console.log("Fix dependency here as well");
+      /*don't resize dialogs and menus*/
+      //console.log("Fix dependency here as well");
       
       if (c instanceof Dialog || c instanceof UIMenu || c instanceof window.UIRadialMenu) continue;
       c.size[0] *= ratio[0];
@@ -698,7 +699,7 @@ export class Screen extends UIFrame {
 
   pop_modal()
   {
-    UIFrame.prototype.pop_modal.call(this);
+    super.pop_modal();
     
     if (this.modalhandler == null) {
       var e = new MyMouseEvent(this.mpos[0], this.mpos[1], 0, 0);
@@ -742,7 +743,7 @@ export class Screen extends UIFrame {
   }
 
   remove(UIElement child) {
-    UIFrame.prototype.remove.call(this, child);
+    super.remove(child);
     
     if (child instanceof ScreenArea) {
       this.areas.remove(child);
@@ -791,8 +792,8 @@ export class Screen extends UIFrame {
     } else if (child.canvas == undefined) {
       child.canvas = this.canvas;
     }
-    
-    UIFrame.prototype.add.call(this, child, packflag);
+
+    super.add(child, packflag);
     
     if (child instanceof ScreenArea) {
       var bs = []

@@ -332,8 +332,6 @@ export class SplineEditor extends View2DEditor {
     
     var col = the_row.col();
     
-    console.log("  BUILT: sidebar1");
-    
     view2d.cols.push(the_row);
     view2d.add(the_row);
   }  

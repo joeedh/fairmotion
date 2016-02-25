@@ -295,8 +295,11 @@ var common = (function() {
     if (logMessageArray.length > kMaxLogMessageLength)
       logMessageArray.shift();
 
-    document.getElementById('log').textContent = logMessageArray.join('\n');
-    console.log(message);
+    if (document.getElementById('log') != undefined) {
+      document.getElementById('log').textContent = logMessageArray.join('\n');
+    }
+    
+    console.log("%c NACL: " + message, "color:blue");
   }
 
   /**
@@ -387,7 +390,7 @@ var common = (function() {
    */
   function updateStatus(opt_message) {
     if (opt_message != undefined) {
-      console.log(opt_message);
+      console.log("%c " + opt_message, "color:teal");
     }
     
     if (opt_message) {
@@ -473,7 +476,7 @@ window._nacl_domContentLoaded = function _nacl_domContentLoaded() {
       isTest = searchVars.test === 'true';
       isRelease = path.toLowerCase().indexOf('release') != -1;
       
-      console.log("NACL LOAD");
+      console.log("%c NACL LOAD", "color:teal");
       loadFunction(body.dataset.name, tc, path, body.dataset.width,
                    body.dataset.height, attrs);
     }

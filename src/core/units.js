@@ -1,5 +1,7 @@
 "use strict";
 
+import {safe_eval} from 'safe_eval';
+
 /*
 --Unit system design--
 
@@ -131,7 +133,7 @@ export class Unit {
     
     var val = -1;
     try {
-      val = eval(string);
+      val = safe_eval(string);
     } catch (err) {
       if (errfunc != undefined) {
         errfunc(funcparam);

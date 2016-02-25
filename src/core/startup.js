@@ -132,7 +132,6 @@ window.startup = function startup() {
 
 window.startup_intern = function startup() {
   window.IsMobile = mobilecheck();
-  console.log(":::::", window.innerWidth, window.innerHeight);
   
   /*
   try {

@@ -265,7 +265,7 @@ export class UITabPanel extends UIFrame {
   }
   
   get_uhash() {
-    var s = prior(UITabPanel, this).get_uhash.call(this);
+    var s = super.get_uhash();
     
     for (var t of this.tabstrip.tabs) {
       s += t.text;

@@ -118,9 +118,11 @@ export class UICanvas2_ {
   kill_canvas(obj_or_id) {
     var id = obj_or_id;
     
-    if (typeof id == "object")
+    if (typeof id == "object") {
+      console.log(id);
       id = id[Symbol.keystr]();
-      
+    }
+    
     var canvas = this.canvases[id];
     delete this.canvases[id];
     

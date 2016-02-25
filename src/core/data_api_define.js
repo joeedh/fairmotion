@@ -346,10 +346,13 @@ function api_define_material() {
   var fillclr = new Vec4Property(new Vector4(), "fill", "fill", "Fill Color");
   var strokeclr = new Vec4Property(new Vector4(), "stroke", "stroke", "Stroke Color");
   
-  var flag = new FlagProperty(1, MaterialFlags, undefined, "material flags", "material flags");
-  flag.update = function() {
+  var update_base = function(material) {
+    material.update();
     window.redraw_viewport();
   }
+  
+  var flag = new FlagProperty(1, MaterialFlags, undefined, "material flags", "material flags");
+  flag.update = update_base;
   
   var fillpath = new DataPath(new BoolProperty(false, "fill_over_stroke", "fill_over_stroke", 
                              "fill_over_stroke"), "fill_over_stroke", "fill_over_stroke", true);
@@ -361,9 +364,7 @@ function api_define_material() {
   var blur = new FloatProperty(1, "blur", "blur", "Blur");
   blur.range = [0.0, 800];
   
-  fillclr.update = strokeclr.update = linewidth.update = blur.update = function() {
-    window.redraw_viewport();
-  }
+  fillclr.update = strokeclr.update = linewidth.update = blur.update = update_base;
   
   //fillclr.flag |= TPropFlags.USE_UNDO;
   //strokeclr.flag |= TPropFlags.USE_UNDO;
@@ -427,15 +428,20 @@ var SplineSegmentStruct;
 function api_define_spline_segment() {
   var flagprop = new FlagProperty(2, SplineFlags, undefined, "Flags", "Flags");
   
-  flagprop.update = function() {
+  flagprop.update = function(segment) {
     new Context().spline.regen_sort();
+    segment.flag |= SplineFlags.REDRAW;
+    console.log(segment);
+    
     window.redraw_viewport();
   }
   
   var zprop = new FloatProperty(0, "z", "z", "z");
-  zprop.update = function() {
+  zprop.update = function(segment) {
     this.ctx.frameset.spline.regen_sort();
     this.ctx.frameset.pathspline.regen_sort();
+    segment.flag |= SplineFlags.REDRAW;
+    console.log(segment);
     
     /*
     var s = this.boundobj;
@@ -469,6 +475,12 @@ import {SplineLayerFlags} from 'spline_element_array';
 var SplineLayerStruct;
 function api_define_spline_layer_struct() {
   var flag = new FlagProperty(2, SplineLayerFlags);
+  
+  flag.flag_descriptions = {
+    MASK : "Use previous layer as a mask"
+  };
+  
+  flag.ui_key_names.MASK = flag.ui_value_names[SplineLayerFlags.MASK] = "Mask To Prev";
   
   flag.update = function() {
     window.redraw_viewport();

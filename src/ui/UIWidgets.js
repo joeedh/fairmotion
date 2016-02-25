@@ -225,7 +225,7 @@ export class UIButtonIcon extends UIButton {
   }
   
   get_hint() {
-    var ret = prior(UIButtonIcon, this).get_hint.call(this);
+    var ret = super.get_hint();
     
     if (this.text)
       ret = "%b"+this.text + "%/b \n\n" + ret
@@ -401,7 +401,7 @@ export class UIMenuButton extends UIButtonAbstract {
         }
       }
       
-      console.log("blocks", blocks);
+      //console.log("blocks", blocks);
       
       blocks.sort(function(a, b) {
         return a.name.localeCompare(b.name);
@@ -766,8 +766,10 @@ export class UINumBox extends UIHoverHint {
 
   swap_textbox() {
     var numbox = this;
+    
     function unit_error(numbox) {
       console.log(["numbox error", numbox]);
+      
       numbox.flash(UIFlags.REDERROR);
       numbox.do_recalc();
     }
@@ -980,7 +982,7 @@ export class UILabel extends UIElement {
   }
 
   on_tick() {
-    prior(UILabel, this).on_tick.call(this);
+    super.on_tick();
     
     if (this.state & UIFlags.USE_PATH) {
       var val = this.get_prop_data();
@@ -1155,7 +1157,7 @@ export class UIMenuLabel extends UIElement {
   }
 
   on_tick() {
-    prior(UIMenuLabel, this).on_tick.call(this);
+    super.on_tick();
     
     if (this.clicked && this.menu != undefined && this.menu.closed) {
       this.clicked = false;
@@ -1520,11 +1522,12 @@ export class UIVScroll extends UIFrame {
   
   on_inactive() {
     this.clicked = false;
-    prior(UIVScroll, this).on_inactive.call(this);
+    
+    super.on_inactive();
   }
   
   on_tick() {
-    prior(UIVScroll, this).on_tick.call(this);
+    super.on_tick();
     
     //ensure pan doesn't steal mouseup event
     this.state &= ~UIFlags.USE_PAN;

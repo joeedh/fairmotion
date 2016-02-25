@@ -17,27 +17,6 @@ import {USE_NACL} from 'config';
 
 var atan2 = Math.atan2;
 
-if (Array.prototype.remove == undefined) {
-  Array.prototype.remove = function(item, hide_error) {
-    var i = this.indexOf(item);
-    
-    if (i < 0) {
-      if (hide_error) console.trace("Error: item", item, "not in array", this);
-      else throw new Error("Item " + item + " not in array");
-      
-      return;
-    }
-    
-    var len = this.length;
-    while (i < len) {
-      this[i] = this[i+1];
-      i++;
-    }
-    
-    this.length--;
-  }
-}
-
 //math globals
 var FEPS = 1e-18;
 var PI = Math.PI;
@@ -138,6 +117,10 @@ export class Spline extends DataBlock {
     
     static debug_id_gen=0;
     this._debug_id = debug_id_gen++;
+    
+    this._pending_solve = undefined;
+    this._resolve_after = undefined;
+    this.solving = undefined;
     
     this.actlevel = 0; //active multires level for editing
     var mformat = spline_multires._format;
@@ -448,7 +431,7 @@ export class Spline extends DataBlock {
   }
   
   split_edge(seg) {
-    var co = seg.eval(0.5);
+    var co = seg.evaluate(0.5);
     
     static ws = [0.5, 0.5];
     static srcs = [0, 0];
@@ -1404,6 +1387,52 @@ export class Spline extends DataBlock {
     }
   }
   
+  propagate_draw_flags(repeat=2) {
+    for (var seg of this.segments) {
+      seg.flag &= ~SplineFlags.TEMP_TAG;
+    }
+    
+    for (var seg of this.segments) {
+      if (!(seg.flag & SplineFlags.REDRAW_PRE))
+        continue;
+      
+      for (var i=0; i<2; i++) {
+        var v = i ? seg.v2 : seg.v1;
+        
+        for (var j=0; j<v.segments.length; j++) {
+          var seg2 = v.segments[j];
+          
+          seg2.flag |= SplineFlags.TEMP_TAG;
+          var l = seg2.l;
+          
+          if (l == undefined)
+            continue;
+          
+          var _i = 0;
+          do {
+            if (_i++ > 1000) {
+              console.log("infinite loop!");
+              break;
+            }
+            
+            l.f.flag |= SplineFlags.REDRAW_PRE;
+            l = l.radial_next;
+          } while (l != seg2.l);
+        }
+      }
+    }
+    
+    for (var seg of this.segments) {
+      if (seg.flag & SplineFlags.TEMP_TAG) {
+        seg.flag |= SplineFlags.REDRAW_PRE;
+      }
+    }
+    
+    if (repeat != undefined && repeat > 0) {
+      this.propagate_draw_flags(repeat-1);
+    }
+  }
+  
   propagate_update_flags() {
     var verts = this.verts;
     for (var i=0; i<verts.length; i++) {
@@ -1428,60 +1457,152 @@ export class Spline extends DataBlock {
     }
   }
   
-  solve(steps, gk) {
-    if (USE_NACL && window.common != undefined && window.common.naclModule != undefined) {
-      var ret = do_solve(SplineFlags, this, steps, gk, true);
+  /*NOTE: we override any pre-existing this._resolve_after callback.
+          this is to avoid excessive queueing*/
+  solve(steps, gk, force_queue=false) {
+    if (this._pending_solve != undefined && force_queue) {
       var this2 = this;
-    
-      ret.then(function() {
-        this2._do_post_solve();
+      
+      this._pending_solve = this._pending_solve.then(function() {
+        this2.solve();
       });
+      this.solving = true;
+      
+      return this._pending_solve;
+    } else if (this._pending_solve != undefined) {
+      var do_accept;
+      
+      var promise = new Promise(function(accept, reject) {
+        do_accept = function() {
+          accept();
+        }
+      });
+      
+      this._resolve_after = function() {
+        do_accept();
+      }
+      
+      return promise;
     } else {
-      do_solve(SplineFlags, this, steps, gk);
-      this._do_post_solve();
+      this._pending_solve = this.solve_intern(steps, gk);
+      this.solving = true;
+      
+      return this._pending_solve;
     }
   }
   
-  //only segments get this, for now
+  //XXX: get rid of steps, gk
+  solve_intern(steps, gk) {
+    //propagate update flags to draw flags
+    for (var v of this.verts) {
+      if (v.flag & SplineFlags.UPDATE) {
+        for (var i=0; i<v.segments.length; i++) {
+          var seg = v.segments[i];
+          
+          seg.flag |= SplineFlags.REDRAW_PRE;
+          
+          var l = seg.l;
+          if (!l)
+            continue;
+          
+          var _i = 0;
+          do {
+            if (_i++ > 5000) {
+              console.log("infinite loop!");
+              break;
+            }
+            
+            l.f.flag |= SplineFlags.REDRAW_PRE;
+            l = l.radial_next;
+          } while (l != seg.l);
+        }
+      }
+    }
+    
+    this.propagate_draw_flags();
+    
+    var this2 = this;
+    if (USE_NACL && window.common != undefined && window.common.naclModule != undefined) {
+      var ret = do_solve(SplineFlags, this, steps, gk, true);
+    
+      ret.then(function() {
+        this2._pending_solve = undefined;
+        this2.solving = false;
+        this2._do_post_solve();
+        
+        if (this2._resolve_after) {
+          var cb = this2._resolve_after;
+          this2._resolve_after = undefined;
+          
+          this2._pending_solve = this2.solve_intern().then(function() {
+            cb.call(this2);
+          });
+          this2.solving = true;
+        }
+      });
+      
+      return ret;
+    } else {
+      var do_accept;
+      
+      var promise = new Promise(function(accept, reject) {
+        do_accept = function() {
+          accept();
+        }
+      });
+      
+      var this2 = this;
+      var timer = window.setInterval(function() {
+        window.clearInterval(timer);
+        
+        do_solve(SplineFlags, this2, steps, gk);
+        this2._pending_solve = undefined;
+        this2.solving = false;
+        
+        do_accept();
+        this2._do_post_solve();
+        
+        if (this2._resolve_after) {
+          var cb = this2._resolve_after;
+          this2._resolve_after = undefined;
+          
+          this2._pending_solve = this2.solve_intern().then(function() {
+            cb.call(this2);
+          });
+          this2.solving = true;
+        }
+      }, 10);
+      
+      return promise;
+    }
+  }
+  
   _do_post_solve() {
+    for (var seg of this.segments) {
+      if (seg.flag & SplineFlags.REDRAW_PRE) {
+        seg.flag &= ~SplineFlags.REDRAW_PRE;
+        seg.flag |= SplineFlags.REDRAW;
+      }
+    }
+    
+    for (var f of this.faces) {
+      if (f.flag & SplineFlags.REDRAW_PRE) {
+        f.flag &= ~SplineFlags.REDRAW_PRE;
+        f.flag |= SplineFlags.REDRAW;
+      }
+    }
+    
+    //call post_solve for segments.
+    //other types are ignored, for now.
     for (var seg of this.segments) {
       seg.post_solve();
     }
   }
   
   solve_p(steps, gk) {
-    var this2 = this;
+    console.trace("solve_p: DEPRECATED");
     
-    if (USE_NACL && window.common != undefined && window.common.naclModule != undefined) {
-      return do_solve(SplineFlags, this, steps, gk, true).then(function() {
-          this2._do_post_solve();
-      });
-    } else {
-      this.resolve = 1;
-      
-      var this2 = this;
-      var promise = new Promise(function(resolve, reject) {
-        this2.on_resolve = function() {
-          console.log("Finished!");
-          this2._do_post_solve();
-          resolve();
-        }
-      });
-      
-      if (this._update_timer_p == undefined) {
-        this._update_timer_p = window.setInterval(function() {
-          window.clearInterval(this2._update_timer_p);
-          this2._update_timer_p = undefined;
-          
-          if (this2.resolve) {
-            do_solve(SplineFlags, this2, steps, gk, false)
-            this2._do_post_solve();
-          }
-        });
-      }
-      
-      return promise;
-    }
+    return this.solve(steps, gk);
   }
     
   trace_face(g, f) {
@@ -1500,7 +1621,7 @@ export class Spline extends DataBlock {
         var s = flip ? seg.ks[KSCALE] : 0, ds = flip ? -2 : 2;
         
         while ((!flip && s < seg.ks[KSCALE]) || (flip && s >= 0)) {
-          var co = seg.eval(s/seg.length);
+          var co = seg.evaluate(s/seg.length);
           
           if (first) {
             first = false;

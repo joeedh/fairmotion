@@ -154,6 +154,7 @@ export class DataStruct {
     for (var p of this.paths) {
       p.parent = this;
       this.pathmap[p.name] = p
+      
       if (p.type == DataPathTypes.PROP) {
         p.data.path = p.path;
       }
@@ -756,8 +757,8 @@ export class DataAPI {
       var block = ctx.datalib.idmap[id];
       
       for (var ch of block.lib_anim_channels) {
-        //console.log("setting path", ch.path, ch.eval(time));
-        this.set_prop(ctx, ch.path, ch.eval(time));
+        //console.log("setting path", ch.path, ch.evaluate(time));
+        this.set_prop(ctx, ch.path, ch.evaluate(time));
       }
     }
   }
@@ -885,12 +886,19 @@ export class DataAPI {
     var spathout = ["ContextStruct"];
     var ownerpathout = [""];
     var mass_set = undefined;
+    var this2 = this;
     
     function do_eval(node, scope, pathout, spathout) {
       if (node.type == "ID") {
         if (scope == undefined) {
           console.log("data api error: ", str + ", " + pathout[0] + ", " + spathout[0]);
         }
+        
+        /*
+        if (node != undefined && scope.pathmap != undefined) {
+          console.log(node.val in scope.pathmap, scope.pathmap[node.val]);
+        }
+        //*/
         
         if (scope.pathmap == undefined || !(node.val in scope.pathmap))
           return undefined;
@@ -976,7 +984,7 @@ export class DataAPI {
           }
           
           if (array.type == DataPathTypes.STRUCT_ARRAY) {
-            var arr = this.eval(ctx, path, undefined);
+            var arr = this2.evaluate(ctx, path, undefined);
             
             var stt = array.data.getter(arr[index]); 
             stt.parent = array;
@@ -993,6 +1001,7 @@ export class DataAPI {
     }
     
     var ast = parser.parse(str);
+    
     static sret = [0, 0, 0, 0, 0];
     
     sret[0] = do_eval(ast, ContextStruct, pathout, spathout);
@@ -1006,7 +1015,7 @@ export class DataAPI {
     return sret;
   }
   
-  eval(ctx, str, scope) {
+  evaluate(ctx, str, scope) {
     try {
       if (str in this.evalcache) {
         return this.evalcache[str](ctx, scope);
@@ -1063,7 +1072,7 @@ export class DataAPI {
       return undefined;
     } else { //return actual object
         var path = ret[1];
-        var val = this.eval(ctx, path);
+        var val = this.evaluate(ctx, path);
         
         return val;
     }
@@ -1076,6 +1085,10 @@ export class DataAPI {
       if (!(error instanceof DataAPIError)) {
         print_stack(error);
         console.log("Data API error! path:", str);
+      }
+      
+      if (DEBUG.ui_datapaths) {
+        print_stack(error);
       }
       
       throw error;
@@ -1096,9 +1109,9 @@ export class DataAPI {
     if (ret[0].type == DataPathTypes.PROP) {
       if (ret[0].use_path) {
         var path = ret[1];
-        val = this.eval(ctx, path);
+        val = this.evaluate(ctx, path);
       } else {
-        val = this.eval(ctx, ret[2]);
+        val = this.evaluate(ctx, ret[2]);
         
         if (val instanceof DataPath)
           val = val.data;
@@ -1111,7 +1124,7 @@ export class DataAPI {
         val = prop.keys[val];
     } else { //return actual object
         var path = ret[1];
-        val = this.eval(ctx, path);
+        val = this.evaluate(ctx, path);
         
         return val;
     }
@@ -1206,9 +1219,9 @@ export class DataAPI {
     static scope = [0, 0];
     var owner = ret[4];
     
-    console.log("owner:", owner);
-    owner = this.eval(ctx, owner);
-    console.log("      ", owner);
+    //console.log("owner:", owner);
+    owner = this.evaluate(ctx, owner);
+    //console.log("      ", owner);
     
     /*okaaay, why do I have to do this again?
       somehow this.eval is corrupting it.  gah!
@@ -1244,17 +1257,17 @@ export class DataAPI {
       prop.ctx = ctx;
       
       if (prop.type == PropTypes.FLAG) {
-        console.log("FLAG prop set!");
-        console.log(path, "value", value);
+        //console.log("FLAG prop set!");
+        //console.log(path, "value", value);
         
         if (path.contains("&")) {
           //handle "struct.flag[bit] = boolean" form.
           var mask = Number.parseInt(path.slice(path.search("&")+1, path.length).trim());
           var path2 = path.slice(0, path.search("&"));
           
-          console.log(path2, "");
+          //console.log(path2, "");
           
-          var val = this.eval(ctx, path2);
+          var val = this.evaluate(ctx, path2);
           
           if (value)
             val |= mask;
@@ -1266,11 +1279,11 @@ export class DataAPI {
           path2 += " = scope[0];";
           
           scope[0] = val;
-          this.eval(ctx, path2, scope);
+          this.evaluate(ctx, path2, scope);
         } else {
           //handle "struct.flag = integer bitmask" form
           path += " = " + value;
-          this.eval(ctx, path);
+          this.evaluate(ctx, path);
           
           prop.set_data(value, owner);
         }
@@ -1298,7 +1311,7 @@ export class DataAPI {
           path += ".data.data";
         }
         
-        var oval = this.eval(ctx, path);
+        var oval = this.evaluate(ctx, path);
         
         /*don't override array references
           e.g. struct.some_array = [0, 1, 2, 3]
@@ -1310,7 +1323,7 @@ export class DataAPI {
         if (typeof value != "number" &&
            (prop.type == PropTypes.VEC2 || prop.type == PropTypes.VEC3 || prop.type == PropTypes.VEC4))
         {
-          var arr = this.eval(ctx, path);
+          var arr = this.evaluate(ctx, path);
           
           for (var i=0; i<arr.length; i++) {
             arr[i] = value[i];
@@ -1320,15 +1333,15 @@ export class DataAPI {
             scope[0] = value;
             path += " = scope[0]"
             
-            this.eval(ctx, path, scope);
+            this.evaluate(ctx, path, scope);
           } else {
             path += " = " + value;
             
-            this.eval(ctx, path);
+            this.evaluate(ctx, path);
           }
         }
         
-        prop.set_data(this.eval(ctx, valpath), owner);
+        prop.set_data(this.evaluate(ctx, valpath), owner);
       }
       
       ret[0].ctx = ctx;

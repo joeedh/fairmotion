@@ -195,9 +195,7 @@ class DBList extends GArray {
     }
     
     var block = this[i];
-
-    prior(DataBlock, this).pop.call(this, i);
-    
+    super.pop(i);
     delete this.idmap[block.lib_id];
     
     if (this.active == block) {
@@ -342,9 +340,9 @@ export function wrap_getblock(datalib) {
   [Symbol.iterator] will use the ids to fetch and return blocks,
   though.
 */
-class DataRefList extends GArray, TPropIterable {
+class DataRefList extends GArray {
   constructor(lst=undefined) {
-    GArray.call(this);
+    super();
     
     this.datalib = undefined;
     
@@ -481,6 +479,8 @@ class DataRefList extends GArray, TPropIterable {
     return new DataRefList(ret.list);
   }
 }
+
+mixin(DataRefList, TPropIterable);
 
 DataRefList.STRUCT = """
   DataRefList {

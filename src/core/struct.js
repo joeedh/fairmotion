@@ -478,7 +478,6 @@ window.profile_end = profile_end;
 //#endif
 
 if (_do_packdebug) {
-  console.log("PACK DEBUG", DEBUG.Struct);
   var packer_debug = function(msg) {
     if (!DEBUG.Struct) return;
    
@@ -1126,9 +1125,9 @@ export class STRUCT {
       or not.  thus, we can chain fromSTRUCTs, it's just
       a bit of boilerplate*/
     
-    //XXX new version
     var proto = cls.prototype;
-    var parent = cls.__clsorder__[cls.__clsorder__.length-1];
+    var parent = cls.__parent__;
+    //var parent = cls.__clsorder__[cls.__clsorder__.length-1];
     
     var obj = new cls(); //Object.create(cls.prototype);
     var p = parent.fromSTRUCT(reader);
@@ -1658,7 +1657,7 @@ function test_struct() {
   data = new DataView(new Uint8Array(data).buffer);
   m = istruct.read_object(data, Mesh);
 }
-create_test(test_struct);
+register_test(test_struct);
 
 window.init_struct_packer = function() {
   global defined_classes, istruct;
@@ -1698,6 +1697,9 @@ window.init_struct_packer = function() {
   for (var k in window) {
     //try to avoid banned globals
     if (k.search("bar") >= 0 || k == "localStorage" || (k.startsWith("on") && k[2] != "l")) {
+      continue;
+    }
+    if (k.startsWith("webkit")) {
       continue;
     }
     

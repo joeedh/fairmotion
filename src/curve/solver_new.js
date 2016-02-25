@@ -96,7 +96,7 @@ export function solve(spline, order, steps, gk, do_inc, edge_segs) {
     var seg1 = v.segments[0], seg2 = v.segments[1];
     var s1 = v === seg1.v1 ? 0 : 1, s2 = v == seg2.v1 ? 0 : 1;
     
-    seg1.eval(0.5, order); seg2.eval(0.5, order);
+    seg1.evaluate(0.5, order); seg2.evaluate(0.5, order);
     
     var thresh = 5;
     if (seg1.v1.vectorDistance(seg1.v2) < thresh || seg2.v1.vectorDistance(seg2.v2) < thresh)

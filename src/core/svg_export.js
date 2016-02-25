@@ -59,7 +59,7 @@ export function export_svg(spline, visible_only=false) {
     for (var i=0; i<steps+1; i++) {
       var segs = s1 + (s2 - s1)*(i/steps);
       
-      var co = transform(seg.eval(segs));
+      var co = transform(seg.evaluate(segs));
       var dis = co.vectorDistance(p);
       
       if (dis < mindis) {
@@ -124,7 +124,7 @@ export function export_svg(spline, visible_only=false) {
     var df2 = seg.derivative(s2).mulScalar(-ds/3.0);
     df2[1] = -df2[1];
     
-    var co1 = transform(seg.eval(s1)), co2 = transform(seg.eval(s2));
+    var co1 = transform(seg.evaluate(s1)), co2 = transform(seg.evaluate(s2));
     df1.add(co1), df2.add(co2);
     
     buf += " C" + df1[0] + " " + df1[1] + " " + df2[0] + " " + df2[1] + " " + co2[0] + " " + co2[1];
@@ -212,14 +212,14 @@ export function export_svg(spline, visible_only=false) {
         var seg = loop.s, v = loop.v;
         var dir = seg.v1 === v ? 1 : -1;
         
-        var co = transform(seg.eval(dir < 0 ? 1 : 0));
+        var co = transform(seg.evaluate(dir < 0 ? 1 : 0));
         
         if (first)
           buf += (first ? " M" : " L") + co[0] + " " + co[1];
         first = false;
         
         save(seg, dir<0?1:0, dir<0?0:1, 0);
-        var co = transform(seg.eval(dir < 0 ? 0 : 1));
+        var co = transform(seg.evaluate(dir < 0 ? 0 : 1));
         //buf += " L" + co[0] + " " + co[1];
         
         continue;
@@ -232,7 +232,7 @@ export function export_svg(spline, visible_only=false) {
         }
         
         for (var k=0; k<steps; k++, s += ds) {
-          var co = seg.eval(s);
+          var co = seg.evaluate(s);
           var df2 = seg.derivative(s).mulScalar(ds/3.0);
           df2[1] = -df2[1];
           
@@ -300,7 +300,7 @@ export function export_svg(spline, visible_only=false) {
     
     buf += "<path fill=\"none\" " + style + " d=\"";
 
-    var co = transform(seg.eval(0));
+    var co = transform(seg.evaluate(0));
     buf += "M" + co[0] + " " + co[1];
     save(seg, 0, 1);
 

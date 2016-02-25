@@ -40,6 +40,8 @@ export var SplineFlags = {
   GHOST           : 1<<13,
   UI_SELECT       : 1<<14,
   FIXED_KS        : 1<<21, //internal to solver code
+  REDRAW_PRE      : 1<<22,
+  REDRAW          : 1<<23
 }
 
 export var SplineTypes= {
@@ -155,8 +157,6 @@ export class CustomData {
       this.startmap[templ.layerinfo.type_name] = i;
       this.layers.push(templ);
     }
-    
-    console.log(templ.layerinfo.shared_class);
     
     var scls = templ.layerinfo.shared_class;
     scls = scls == undefined ? empty_class : scls;
@@ -344,6 +344,8 @@ export class SplineElement extends DataPathNode {
     
     this.type = type;
     this.cdata = new CustomDataSet();
+    
+    //eek.  this .masklayer shouldn't be here.
     this.masklayer = 1; //blender-style bitmask layers
     this.layers = {}; //stack layers this element belongs to
   }
@@ -518,9 +520,9 @@ export class CurveEffect {
     return this._get_nextprev(0);
   }
   
-  eval(s) {
+  evaluate(s) {
     if (this.prior != undefined) {
-      return this.prior.eval(s);
+      return this.prior.evaluate(s);
     }
   }
   
@@ -529,11 +531,11 @@ export class CurveEffect {
     var a, b;
     
     if (s < 0.5) {
-      a = this.eval(s);
-      b = this.eval(s+df);
+      a = this.evaluate(s);
+      b = this.evaluate(s+df);
     } else {
-      a = this.eval(s-df);
-      b = this.eval(s);
+      a = this.evaluate(s-df);
+      b = this.evaluate(s);
     }
     
     b.sub(a).mulScalar(1.0/df);
@@ -597,9 +599,9 @@ export class CurveEffect {
       for (var j=0; j<steps; j++) {
         mid = (start+end)*0.5;
         
-        var co = this.eval(mid);
-        var sco = this.eval(start);
-        var eco = this.eval(end);
+        var co = this.evaluate(mid);
+        var sco = this.evaluate(start);
+        var eco = this.evaluate(end);
         
         var d1 = this.normal(start).normalize();
         var d2 = this.normal(end).normalize();
@@ -660,7 +662,7 @@ export class CurveEffect {
         continue;
         
       //make sure angle is close enough to 90 degrees for our purposes. . .
-      var co = this.eval(mid);
+      var co = this.evaluate(mid);
       n1.load(this.normal(mid)).normalize();
       n2.load(co).sub(p).normalize();
       
@@ -707,7 +709,7 @@ export class CurveEffect {
     }
     
     if (minret == undefined && mode == ClosestModes.CLOSEST) {
-      var v1 = this.eval(0), v2 = this.eval(1);
+      var v1 = this.evaluate(0), v2 = this.evaluate(1);
       
       var dis1 = v1.vectorDistance(p), dis2 = v2.vectorDistance(p);
       
@@ -742,7 +744,7 @@ export class CurveEffect {
     var co;
     
     if (fixed_s != undefined) {
-      arr[0] = this.eval(fixed_s);
+      arr[0] = this.evaluate(fixed_s);
       arr[1] = fixed_s;
       
       co = arr;
@@ -803,7 +805,7 @@ export class CurveEffect {
   local_to_global(p) {
     var s = p[0], t = p[1], a = p[2];
     
-    var co = this.eval(s);
+    var co = this.evaluate(s);
     var no = this.normal(s).normalize();
     
     no.mulScalar(t);
@@ -858,9 +860,9 @@ export class FlipWrapper extends CurveEffect {
     return value;
   }
   
-  eval(float s) : Vector3 {
+  evaluate(float s) : Vector3 {
     s = this.push(s);
-    return this.pop(this.eff.eval(s));
+    return this.pop(this.eff.evaluate(s));
   }
   
   derivative(float s) : Vector3 {

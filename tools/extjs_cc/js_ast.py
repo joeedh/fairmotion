@@ -197,7 +197,7 @@ class Node (object):
     n2.final_type = self.final_type
     if hasattr(self, "template"):
       if self.template != None:
-        n2.template = n2.template.copy()
+        n2.template = self.template.copy()
       
   def copy(self):
     raise RuntimeError("Unimplemented copy function in type %s!"%str(type(self)))
@@ -894,6 +894,8 @@ class ExprNode (Node):
     n2 = ExprNode(self)
     self.copy_basic(n2)
     self.copy_children(n2)
+    
+    n2.add_parens = self.add_parens
     
     return n2
       
@@ -1690,11 +1692,15 @@ class ForInNode(Node):
     n2 = ForInNode(self[0], self[1])
     self.copy_basic(n2)
     self.copy_children(n2)
+    n2.of_keyword = self.of_keyword
     
     return n2
     
   def gen_js(self, tlevel):
-    return self.children[0].gen_js(tlevel) + self.s(" in ") + self.children[1].gen_js(tlevel)\
+    s = self.children[0].gen_js(tlevel) + self.s(" "+self.of_keyword+" ") 
+    s += self.children[1].gen_js(tlevel)
+    
+    return s
     
   def extra_str(self):
     return ""
@@ -2008,7 +2014,12 @@ class MethodNode(FunctionNode):
     s = ""
     if self.is_static:
       s += "static "
-    s += self.s(self.name + "(")
+    
+    name = self.name
+    if type(name) != str:
+      name = name.gen_js(tlevel)
+      
+    s += self.s(name + "(")
     
     for i, c in enumerate(self[0]):
       if i > 0: s += c.s(", ")

@@ -39,7 +39,7 @@ import {
   spiralcurvature_dv
 } from 'spline_math';
 
-export class SplineVertex extends SplineElement, Vector3 {
+export class SplineVertex extends SplineElement {
   constructor() {
     SplineElement.call(this, SplineTypes.VERTEX);
     Vector3.apply(this, arguments);
@@ -163,6 +163,8 @@ SplineVertex.STRUCT = STRUCT.inherit(SplineVertex, SplineElement) + """
 }
 """;
 
+mixin(SplineVertex, Vector3);
+
 var derivative_cache_vs = cachering.fromConstructor(Vector3, 64);
 var closest_point_ret_cache_vs = cachering.fromConstructor(Vector3, 256);
 var closest_point_ret_cache = new cachering(function() {
@@ -209,8 +211,8 @@ export class EffectWrapper extends CurveEffect {
     return seg2._evalwrap;
   }
 
-  eval(float s) : Vector3 {
-    return this.seg.eval(s, undefined, undefined, undefined, true);
+  evaluate(float s) : Vector3 {
+    return this.seg.evaluate(s, undefined, undefined, undefined, true);
   }
   
   derivative(float s) : Vector3 {
@@ -232,7 +234,12 @@ export class SplineSegment extends SplineElement {
     this.has_multires = false;
     this.mat = new Material();
     
-    this.z = 5;
+    var this2 = this;
+    this.mat.update = function() {
+      this2.flag |= SplineFlags.REDRAW;
+    }
+    
+    this.z = this.finalz = 5;
     
     this._aabb = [new Vector3(), new Vector3()];
     
@@ -285,13 +292,13 @@ export class SplineSegment extends SplineElement {
     minmax.reset();
     min.zero(); max.zero();
     
-    var co = this.eval(0);
+    var co = this.evaluate(0);
     minmax.minmax(co);
     
     var ds = 1.0/(steps-1);
     for (var i=0, s=0; i<steps; i++, s += ds) {
       
-      var co = this.eval(s*0.999999999);
+      var co = this.evaluate(s*0.999999999);
       minmax.minmax(co);
     }
     
@@ -335,9 +342,9 @@ export class SplineSegment extends SplineElement {
       for (var j=0; j<steps; j++) {
         mid = (start+end)*0.5;
         
-        var co = this.eval(mid, undefined, undefined, undefined, true);
-        var sco = this.eval(start, undefined, undefined, undefined, true);
-        var eco = this.eval(end, undefined, undefined, undefined, true);
+        var co = this.evaluate(mid, undefined, undefined, undefined, true);
+        var sco = this.evaluate(start, undefined, undefined, undefined, true);
+        var eco = this.evaluate(end, undefined, undefined, undefined, true);
         
         var d1 = this.normal(start, true).normalize();
         var d2 = this.normal(end, true).normalize();
@@ -398,7 +405,7 @@ export class SplineSegment extends SplineElement {
         continue;
         
       //make sure angle is close enough to 90 degrees for our purposes. . .
-      var co = this.eval(mid, undefined, undefined, undefined, true);
+      var co = this.evaluate(mid, undefined, undefined, undefined, true);
       n1.load(this.normal(mid, true)).normalize();
       n2.load(co).sub(p).normalize();
       
@@ -619,7 +626,7 @@ export class SplineSegment extends SplineElement {
   offset_eval(s, offset, order, no_update) {
     if (order == undefined) order = ORDER;
     
-    var ret = this.eval(s, order, undefined, no_update);
+    var ret = this.evaluate(s, order, undefined, no_update);
     if (offset == 0.0) return ret;
     
     var tan = this.derivative(s, order, no_update);
@@ -632,7 +639,7 @@ export class SplineSegment extends SplineElement {
     return ret;
   }
   
-  eval(s, order, override_scale, no_update, no_effects=!ENABLE_MULTIRES) {
+  evaluate(s, order, override_scale, no_update, no_effects=!ENABLE_MULTIRES) {
     if (no_effects) {
       if (order == undefined) order = ORDER;
       
@@ -661,8 +668,12 @@ export class SplineSegment extends SplineElement {
         }
       }
       
-      return last.eval(s);
+      return last.evaluate(s);
     }
+  }
+  
+  post_solve() {
+    super.post_solve();
   }
   
   update() {
@@ -714,6 +725,11 @@ export class SplineSegment extends SplineElement {
   static fromSTRUCT(reader) {
     var ret = new SplineSegment();
     reader(ret);
+    
+    ret.mat.update = function() {
+      ret.flag |= SplineFlags.REDRAW;
+    }
+    
     return ret;
   }
 }
@@ -731,8 +747,9 @@ SplineSegment.STRUCT = STRUCT.inherit(SplineSegment, SplineElement) + """
   
   mat  : Material;
 
-  aabb : array(vec3);
-  z    : float;
+  aabb   : array(vec3);
+  z      : float;
+  finalz : float;
   has_multires : int;
 }
 """;
@@ -885,12 +902,16 @@ export class SplineFace extends SplineElement {
   constructor() {
     super(SplineTypes.FACE);
    
-    this.z = 0;
+    this.z = this.finalz = 0;
     this.mat = new Material();
     this.paths = new GArray();
     this.flag |= SplineFlags.UPDATE_AABB;
     
     this._aabb = [new Vector3(), new Vector3()];
+    
+    this.mat.update = function() {
+      this.flag |= SplineFlags.REDRAW;
+    }
   }
   
   update() {
@@ -933,16 +954,20 @@ export class SplineFace extends SplineElement {
     ret.flag |= SplineFlags.UPDATE_AABB;
     
     reader(ret);
+    ret.mat.update = function() {
+      ret.flag |= SplineFlags.REDRAW;
+    }
      
     return ret;
   }
 }
 
 SplineFace.STRUCT = STRUCT.inherit(SplineFace, SplineElement) + """
-    paths : array(SplineLoopPath);
-    mat   : Material;
-    aabb  : array(vec3);
-    z     : float;
+    paths  : array(SplineLoopPath);
+    mat    : Material;
+    aabb   : array(vec3);
+    z      : float;
+    finalz : float;
   }
 """;
 
@@ -958,6 +983,34 @@ export class Material {
     this.fill_over_stroke = false;
     
     this.blur = 0.0;
+  }
+  
+  update() {
+    throw new Error("override me! should have happened in splinesegment or splineface constructors!");
+  }
+  
+  equals(is_stroke, mat) {
+    var color1 = is_stroke ? this.strokecolor : this.fillcolor;
+    var color2 = is_stroke ? mat.strokecolor : mat.fillcolor;
+    
+    for (var i=0; i<4; i++) {
+      if (color1[i] != color2[i])
+        return false;
+    }
+    
+    if (this.flag != mat.flag) 
+      return false;
+    
+    if (this.opacity != mat.opacity)
+      return false;
+    
+    if (this.blur != mat.blur)
+      return false;
+    
+    if (is_stroke && this.linewidth != mat.linewidth)
+      return false;
+    
+    return true;
   }
   
   load(mat) {
@@ -1008,10 +1061,9 @@ Material.STRUCT = """
 import {ToolIter, TPropIterable} from 'toolprops_iter';
 
 //stores elements as eid's, for tool operators
-export class ElementRefIter extends ToolIter, TPropIterable {
+export class ElementRefIter extends ToolIter {
   constructor() {
-    ToolIter.call(this);
-    TPropIterable.call(this);
+    super();
     
     this.ret = {done : false, value : undefined};
     this.spline = this.ctx = this.iter = undefined;
@@ -1097,7 +1149,7 @@ ElementRefIter.STRUCT = """
   }
 """
 
-export class ElementRefSet extends set, TPropIterable {
+export class ElementRefSet extends set {
   constructor(mask) {
     set.call(this);
     
@@ -1135,3 +1187,5 @@ export class ElementRefSet extends set, TPropIterable {
     return this.itercaches.next().init(this);
   }
 };
+
+mixin(ElementRefSet, TPropIterable);

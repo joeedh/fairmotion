@@ -276,7 +276,7 @@ export class NoteContainer extends UIFrame {
     canvas.box([0, 0], this.size, uicolors["NoteBox"], 0.5);
     canvas.icon(Icons.NOTE_EXCL, [this.margin+2, this.margin+y], undefined, true);
     
-    prior(NoteContainer, this).build_draw.call(this, canvas, isVertical);
+    super.build_draw(canvas, isVertical);
     //canvas.frame_end(this);
   }
 }
@@ -292,18 +292,18 @@ export class NoteFrame extends ColumnFrame {
   
   add(UIElement e, int packflag, Notification note) {
     var c = new NoteContainer(this.ctx, e, note);
-    prior(NoteFrame, this).add.call(this, c, packflag);
+    super.add(c, packflag);
   }
   
   prepend(UIElement e, int packflag, Notification note) {
     var c = new NoteContainer(this.ctx, e, note);
-    prior(NoteFrame, this).prepend.call(this, c, packflag);
+    super.prepend(c, packflag);
   }
   
   remove(UIElement e) {
     for (var c of this.children) {
       if (c.child == e) {
-        prior(NoteFrame, this).remove.call(this, c);
+        super.remove(c);
         return;
       }
     }

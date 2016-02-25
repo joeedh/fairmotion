@@ -282,7 +282,7 @@ export class UITextBox extends UIElement {
   find_next_textbox() {
     var p = this.parent;
     
-    console.log("Fix dependency here");
+    //console.log("Fix dependency here");
     
     while (p != undefined && p.parent != undefined) {
       //break at appropriate window boundary

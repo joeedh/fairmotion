@@ -216,7 +216,7 @@ double Graphics3DInstance::eval_constraint(
 
 #define CLAMP_R(r) (r < 0.001 ? 0.0 : r)
 
-#define STEPS 70
+#define STEPS 35
 #define DF 0.000003
 
 int Graphics3DInstance::solve_intern(

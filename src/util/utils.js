@@ -3,7 +3,24 @@
 function startup_report(message) {
   //args = new Array(arguments.length+2);
   
-  console.log("%c " + message + "\n\n", "color:green");
+  console.log("%c " + message + "", "color:green");
+  /*
+  for (var i=0; i<arguments.length; i++) {
+    args[i+2] = arguments[i];
+  }
+  
+  args[0] = "%c"
+  args[1] = "color:green"
+  
+  console.log.apply(console, args);
+  */
+}
+
+function startup_warning(message) {
+  //args = new Array(arguments.length+2);
+  
+  console.trace("%c " + message + "\n\n", "color:red");
+  
   /*
   for (var i=0; i<arguments.length; i++) {
     args[i+2] = arguments[i];
@@ -405,6 +422,7 @@ class SetIter {
   constructor(set) {
     this.set = set;
     this.i = 0;
+    this.done = false;
     this.ret = {done : false, value : undefined};
     this.list = set.list;
   }
@@ -416,10 +434,16 @@ class SetIter {
   cache_init() {
     this.i = 0;
     this.ret.done = false;
+    this.done = false;
     this.ret.value = undefined;
     this.list = this.set.list;
     
     return this;
+  }
+  
+  ["return"]() {
+    this.done = true;
+    this.ret.done = true;
   }
   
   next() {
@@ -431,7 +455,7 @@ class SetIter {
     }
     
     if (this.i >= len) {
-      this.ret.done = true;
+      this.ret.done = this.done = true;
       this.ret.value = undefined;
       return this.ret;
     }
@@ -471,6 +495,33 @@ class set {
         }
       }
     }
+  }
+  
+  reset() {
+    this.list.length = 0;
+    this.freelist.length = 0;
+    //this.items = {};
+    
+    for (var k in this.items) {
+      delete this.items[k];
+    }
+    
+    this.length = 0;
+    
+    /*
+    var list = this.list;
+    
+    for (var i=0; i<list.length; i++) {
+      if (list[i] !== _set_null) {
+        this.freelist.push(i);
+      }
+    }
+    
+    this.items = {};
+    this.length = 0;
+    //*/
+    
+    return this;
   }
   
   forEach(cb, thisvar) {

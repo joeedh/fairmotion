@@ -164,9 +164,9 @@ export function redo_draw_sort(spline) {
         l = l.radial_next;
       } while (l != e.l);
       
-      console.log("eid:", e.eid, "f_max_z:", f_max_z);
+      //console.log("eid:", e.eid, "f_max_z:", f_max_z);
       
-      return f_max_z;
+      return f_max_z + 1;
     }
     
     var layer = 0;
@@ -199,6 +199,8 @@ export function redo_draw_sort(spline) {
   spline._layer_maxz = max_z;
   
   for (var f of spline.faces) {
+    f.finalz = -1;
+    
     if (f.hidden && !(f.flag & SplineFlags.GHOST))
       continue;
       
@@ -224,6 +226,8 @@ export function redo_draw_sort(spline) {
   
   //handle orphaned segments
   for (var s of spline.segments) {
+    s.finalz = -1;
+    
     if (s.hidden && !(s.flag & SplineFlags.GHOST))
       continue;
       
@@ -257,6 +261,10 @@ export function redo_draw_sort(spline) {
     ll.push(lk);
   }
   
+  for (var i=0; i<spline.drawlist.length; i++) {
+    spline.drawlist[i].finalz = i;
+  }
+  
   spline.recalc &= ~RecalcFlags.DRAWSORT;
   
   console.log("time taken:" + (time_ms()-time).toFixed(2)+"ms");
@@ -288,7 +296,7 @@ function draw_mres_points(spline, g, editor, outside_selmode=false) {
     if (p.flag & MResFlags.HIDE) continue;
     
     var seg = spline.eidmap[p.seg];
-    var mapco = seg.eval(p.s);
+    var mapco = seg.evaluate(p.s);
     
     var clr = uclr;
     
@@ -320,15 +328,23 @@ function draw_mres_points(spline, g, editor, outside_selmode=false) {
   g.lineWidth = lw;
 }
 
+import {SplineDrawer} from 'spline_draw_new';
+
 export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_render,
                             draw_normals, alpha, draw_time_helpers, curtime)
 {
   spline.canvas = g;
-
-  if (spline.recalc & RecalcFlags.DRAWSORT) {
+  
+  if (spline.drawlist == undefined || (spline.recalc & RecalcFlags.DRAWSORT)) {
     redo_draw_sort(spline);
-    console.log("do sort!");
   }
+
+  if (spline.drawer == undefined) {
+    spline.drawer = new SplineDrawer(spline);
+  }
+  
+  spline.drawer.update(spline, spline.drawlist, spline.draw_layerlist, editor.rendermat, redraw_rects, only_render, selectmode, g, editor.zoom, editor);
+  spline.drawer.draw(editor.drawcanvas, editor.drawg);
   
   var layerset = spline.layerset;
   var actlayer = spline.layerset.active;
@@ -372,7 +388,7 @@ export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_re
         var s = ls / length;
         if (s > 1.0) continue;
         
-        var co = seg.eval(s);
+        var co = seg.evaluate(s);
         var n = seg.normal(s).normalize();
         var k = seg.curvature(s);
         
@@ -459,6 +475,8 @@ export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_re
   }
   
   function draw_segment(seg, alpha2, line_width_scale, reset, reverse) {
+    return; //XXX
+    
     if (line_width_scale == undefined)
       line_width_scale = 1.0;
     
@@ -561,7 +579,7 @@ export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_re
       
       s = Math.max(Math.min(s, 1.0), 0.0);
       
-      var co = seg.eval(s);
+      var co = seg.evaluate(s);
       var df = 0.0001;
       var dv2 = seg.derivative(s, undefined, true);
       var dv3 = seg.derivative(s+df, undefined, true);
@@ -627,7 +645,7 @@ export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_re
         var ds = (1.0 / (steps-1))*flip;
         
         for (var i=0; i<steps; i++, s += ds) {
-          var co = seg.eval(s*0.9998 + 0.00001);
+          var co = seg.evaluate(s*0.9998 + 0.00001);
           var dv = seg.derivative(s*0.9998 + 0.00001);
           var k = seg.curvature(s*0.9998 + 0.00001);
           
@@ -715,6 +733,7 @@ export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_re
   g.beginPath();
   
   for (var i=0; i<drawlist.length; i++) {
+    break;
     var layer = layerset.idmap[layerlist[i]];
     
     if (layer != undefined && layer != last_layer) {
@@ -866,6 +885,7 @@ export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_re
   }
   
   g.beginPath();
+  
   if (!only_render && (selectmode & SelMask.SEGMENT)) {
     for (var s of spline.segments.selected) {
       draw_segment(s, 0.1);
@@ -951,7 +971,7 @@ export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_re
       
       var co = v;
       if (hasmres && v.segments.length > 0) {
-        co = v.segments[0].eval(v.segments[0].ends(v));
+        co = v.segments[0].evaluate(v.segments[0].ends(v));
       }
       
       if (draw_time_helpers) {

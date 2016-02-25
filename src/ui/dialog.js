@@ -82,15 +82,14 @@ export class Dialog extends UIFrame {
   static cancel_button(ctx) {
     var e = new UIButton(ctx, "Cancel");
     
-    e.callback = function(element) {
-      var p = element.parent;
+    e.callback = function() {
+      var p = this.parent;
       while (p != undefined && !(p instanceof Dialog)) {
         p = p.parent;
       }
       
       if (p == undefined) {
-        console.log("Yeek, couldn't find parent dialog in Dialog.cancel_button");
-        console.trace();
+        console.trace("Yeek, couldn't find parent dialog in Dialog.cancel_button", this);
         return;
       }
       
@@ -102,15 +101,14 @@ export class Dialog extends UIFrame {
   static okay_button(ctx) {
     var e = new UIButton(ctx, "Okay");
     
-    e.callback = function(element) {
-      var p = element.parent;
+    e.callback = function() {
+      var p = this.parent;
       while (p != undefined && !(p instanceof Dialog)) {
         p = p.parent;
       }
       
       if (p == undefined) {
-        console.log("Yeek, couldn't find parent dialog in Dialog.cancel_button");
-        console.trace();
+        console.trace("Yeek, couldn't find parent dialog in Dialog.okay_button", this);
         return;
       }
       
@@ -252,6 +250,11 @@ export class Dialog extends UIFrame {
   }
 
   end(do_cancel) {
+    if (this.screen == undefined) {
+      //XXX
+      this.screen = g_app_state.screen; 
+    }
+    
     //this.canvas.pop_layer();
     this.closed = true;
     

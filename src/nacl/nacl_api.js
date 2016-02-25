@@ -1,5 +1,7 @@
 "use strict";
 
+import {TypedWriter} from 'typedwriter';
+
 var INCREMENTAL = true;
 
 var mmax = Math.max, mmin = Math.min, mfloor = Math.floor;
@@ -39,7 +41,7 @@ import {
   ORDER, KSCALE, KANGLE,
   KSTARTX, KSTARTY, KSTARTZ,
   KTOTKS, INT_STEPS
-} from 'spline_math_safe';
+} from 'spline_math_hermite';
 
 import {SplineTypes} from 'spline_types';
 
@@ -255,8 +257,8 @@ function solve_intern(spline, update_verts, order, goal_order, steps, gk) {
         var v, s1=0, s2=0;
 
         /*
-         seg1.eval(0.5);
-         seg2.eval(0.5);
+         seg1.evaluate(0.5);
+         seg2.evaluate(0.5);
          //*/
 
         if (seg1.v1 == seg2.v1 || seg1.v1 == seg2.v2)
@@ -712,6 +714,11 @@ export function start_message(type, msgid, endian) {
     return data;
 }
 
+export function start_message_new(writer, type, msgid, endian) {
+    writer.int32(type);
+    writer.int32(msgid);
+}
+
 function _unpacker(dview) {
   var b = 0;
   
@@ -872,7 +879,7 @@ export function do_solve(sflags, Spline spline, int steps, float gk=0.95, return
         }
         */
 
-        seg.eval(0.5);
+        seg.evaluate(0.5);
     }
     
     var on_finish, on_reject, promise;
@@ -918,11 +925,13 @@ export function do_solve(sflags, Spline spline, int steps, float gk=0.95, return
         solve_endtimes[spline._solve_id] = time_ms();
         solve_starttimes2[spline._solve_id] = start_time;
         
-        console.log((solve_endtimes[spline._solve_id]-start_time).toFixed(2)+"ms");
+        //if (Math.random() > 0.95) {
+          console.log((solve_endtimes[spline._solve_id]-start_time).toFixed(2)+"ms");
+        //}
         
         for (var i = 0; i < spline.segments.length; i++) {
             var seg = spline.segments[i];
-            seg.eval(0.5);
+            seg.evaluate(0.5);
 
             for (var j = 0; j < seg.ks.length; j++) {
                 if (isNaN(seg.ks[j])) {
@@ -1012,6 +1021,157 @@ export function do_solve(sflags, Spline spline, int steps, float gk=0.95, return
 }
 
 window.nacl_do_solve = do_solve;
+
+function write_nacl_solve_new(writer, spline, cons, update_verts, update_segs, gk, edge_segs) {
+    var idxmap = {}
+    
+    var i = 0;
+    function add_vert(v) {
+      writer.int32(v.eid);
+      writer.int32(v.flag);
+      writer.vec3(v);
+      writer.int32(0); //pad int
+      
+      idxmap[v.eid] = i++;
+    }
+    
+    for (var v of update_verts) {
+      add_vert(v, true);
+    }
+    
+    writer.int32(update_segs.length);
+    writer.int32(0); //pad to 8 byte boundary
+    
+    var i = 0;
+    for (var s of update_segs) {
+      var flag = s.flag;
+      
+      if (edge_segs.has(s)) {
+        flag |= FIXED_KS_FLAG;
+        //console.log("edge segment!");
+      }
+      
+      writer.int32(s.eid);
+      writer.int32(flag);
+      
+      var klen = s.ks.length;
+      var is_eseg = edge_segs.has(s);
+      
+      var zero_ks = ((s.v1.flag & SplineFlags.BREAK_TANGENTS) || (s.v2.flag & SplineFlags.BREAK_TANGENTS));
+      
+      for (var ji=0; ji<1; ji++) {
+        for (var j=0; j<klen; j++) {
+          if (zero_ks && j < ORDER)
+            writer.float64(0.0);
+          else
+            writer.float64(is_eseg ? s.ks[j] : 0.0);
+        }
+        
+        for (var j=0; j<16-klen; j++) {
+          writer.float64(0.0);
+        }
+      }
+      
+      writer.vec3(s.h1);
+      writer.vec3(s.h2);
+      writer.int32(idxmap[s.v1.eid]);
+      writer.int32(idxmap[s.v2.eid]);
+      
+      idxmap[s.eid] = i++;
+    }
+    
+    writer.int32(cons.length);
+    writer.int32(0.0); //pad to 8 byte boundary
+    
+    for (var i=0; i<cons.length; i++) {
+      var c = cons[i];
+      
+      var type=0, seg1=-1, seg2=-1, param1=0, param2=0, fparam1=0, fparam2=0;
+      
+      if (c.type == "tan_c") {
+          type = ConstraintTypes.TAN_CONSTRAINT;
+          seg1 = c.params[0];
+          seg2 = c.params[1];
+          
+          var v = seg1.shared_vert(seg2);
+          
+          param1 = idxmap[seg1.eid];
+          param2 = idxmap[seg2.eid];
+          
+          fparam1 = seg1.v2 === v;
+          fparam2 = seg2.v2 === v;
+
+          if (c.klst.length == 1) {
+            seg1 = c.klst[0] !== seg1.ks ? param2 : param1;
+            seg2 = -1;
+          } else {
+            seg1 = param1;
+            seg2 = param2;
+          }
+     } else if (c.type == "hard_tan_c") {
+          type = ConstraintTypes.HARD_TAN_CONSTRAINT;
+          
+          var seg = c.params[0], tan = c.params[1], s = c.params[2];
+          
+          seg1 = idxmap[seg.eid];
+          seg2 = -1;
+          
+          fparam1 = Math.atan2(tan[0], tan[1]);
+          fparam2 = s;
+     } else if (c.type == "curv_c") {
+          type = ConstraintTypes.CURVATURE_CONSTRAINT;
+          //console.log("curvature constraint!")
+          seg1 = c.params[0];
+          seg2 = c.params[1];
+          
+          //console.log("c.klst[0]:", c.klst[0], c.klst[0]===seg1.ks, c.klst[0]===seg2.ks);
+          if (seg1.ks !== c.klst[0]) {
+            //var tmp = seg1; seg1 = seg2; seg2 = tmp;
+          }
+          
+          var v = seg1.shared_vert(seg2);
+          
+          //is v at seg1/seg2's endpoint or startpoint?
+          fparam1 = seg1.v2 === v;
+          fparam2 = seg2.v2 === v;
+          
+          param1 = idxmap[seg1.eid];
+          param2 = idxmap[seg2.eid];
+          
+          seg1 = param1;
+          seg2 = -1; //param2
+     } else if (c.type == "copy_c") {
+          type = ConstraintTypes.COPY_C_CONSTRAINT;
+          //console.log("curvature constraint!")
+          
+          seg1 = c.params[0];
+          param1 = seg1.v1.segments.length == 1; //c.params[1] === seg1.v1;
+     }
+   
+    //console.log("c.type, c.k, gk:", c.type, c.k, gk);
+    
+    writer.int32(type);
+    writer.float32(c.k*gk);
+    writer.float32(c.k2 == undefined ? c.k*gk : c.k2*gk);
+    
+    writer.int32(0); //pad int
+    
+    writer.int32(seg1);
+    writer.int32(seg2);
+    
+    writer.int32(param1);
+    writer.int32(param2);
+    
+    writer.float32(fparam1);
+    writer.float32(fparam2);
+
+    for (var j=0; j<33; j++) {
+      writer.float64(0);
+    }
+  }
+  
+  return idxmap;
+}
 
 function write_nacl_solve(data, spline, cons, update_verts, update_segs, gk, edge_segs) {
     var endian = ajax.little_endian;
@@ -1233,46 +1393,114 @@ function wrap_unload(spline, data) {
   }
 }
 
-export function* nacl_solve(Function postMessage, ObjLit status, Spline spline, 
+//generator is manually unpacked for easier analysis
+
+export function nacl_solve(Function postMessage, ObjLit status, Spline spline, 
                             Array<constraint> cons, set<SplineVertex> update_verts,
                             float gk, set<SplineSegment> edge_segs) 
 {
-  var msgid = status.msgid;
-  var endian = ajax.little_endian;
+  var ret = {};
   
-  //write vertices and their associated segments first
-  var data = start_message(MessageTypes.SOLVE, msgid, endian);
+  ret.ret = {done : false, value : undefined};
+  ret.stage = 0;
+  ret[Symbol.iterator] = function() {
+    return this;
+  }
   
-  //build list of update segments
-  var update_segs = new set();
-  for (var v of update_verts) {
-    for (var i=0; i<v.segments.length; i++) {
-      var s = v.segments[i];
+  ret.next = function() {
+    if (ret.stage == 0) {
+      this.stage++;
+      this.stage0();
       
-      update_segs.add(s)
+      return this.ret;
+    } else if (ret.stage == 1) {
+      this.stage++;
+      this.stage1();
+      
+      this.ret.done = true;
+      return this.ret;
+    } else {
+      this.ret.done = true;
+      this.ret.value = undefined;
+      
+      return this.ret;
     }
   }
   
-  //add any stray vertices brought in by update segments
-  for (var s of update_segs) {
-    update_verts.add(s.v1);
-    update_verts.add(s.v2);
+  var data;
+  
+  ret.stage0 = function() {
+    //measured test had average bytes per constraint at 355.
+    //but to be safe. . .
+    
+    var maxsize = (cons.length+1)*650 + 128;
+    var writer = new TypedWriter(maxsize);
+    
+    var msgid = status.msgid;
+    var endian = ajax.little_endian;
+    
+    var prof = false;
+    
+    //write vertices and their associated segments first
+    start_message_new(writer, MessageTypes.SOLVE, msgid, endian);
+    
+    //build list of update segments
+    var timestart = time_ms();
+    
+    var update_segs = new set();
+    for (var v of update_verts) {
+      for (var i=0; i<v.segments.length; i++) {
+        var s = v.segments[i];
+        
+        update_segs.add(s);
+      }
+    }
+    
+    //add any stray vertices brought in by update segments
+    for (var s of update_segs) {
+      update_verts.add(s.v1);
+      update_verts.add(s.v2);
+    }
+    
+    if (prof) 
+      console.log("time a:", time_ms() - timestart);
+    
+    writer.int32(update_verts.length);
+    writer.int32(0); //pad to 8 byte boundary
+    
+    if (prof) 
+      console.log("time b:", time_ms() - timestart);
+    
+    var idxmap = write_nacl_solve_new(writer, spline, cons, update_verts, update_segs, gk, edge_segs);
+    var data = writer.final();
+    
+    /*
+    console.log("datalen", data.byteLength, update_verts.length, update_segs.length, edge_segs.length, cons.length);
+    console.log((data.byteLength/cons.length).toFixed(3));
+    console.log(writer.buf);
+    //*/
+    
+    if (prof) 
+      console.log("time c:", time_ms() - timestart);
+    
+    if (prof) 
+      console.log("time d:", time_ms() - timestart, data.byteLength);
+    
+    postMessage(data);
+    
+    if (prof) 
+      console.log("time e:", time_ms() - timestart, "\n\n\n");
+  }
+
+  ret.stage1 = function() {  
+    //console.log("Got reply!", status.data.byteLength, data.byteLength);
+    
+    //okay, now read back data (from status.data)
+    data = new DataView(status.data);
+    status.value = wrap_unload(spline, data);
   }
   
-  ajax.pack_int(data, update_verts.length, endian);
-  ajax.pack_int(data, 0, endian); //pad to 8 byte boundary
-  
-  var idxmap = write_nacl_solve(data, spline, cons, update_verts, update_segs, gk, edge_segs);
-  
-  data = new Uint8Array(data).buffer;
-  postMessage(data);
-  yield; //wait for reply from nacl
-  
-  //console.log("Got reply!", status.data.byteLength, data.byteLength);
-  
-  //okay, now read back data (from status.data)
-  data = new DataView(status.data);
-  status.value = wrap_unload(spline, data);
+  return ret;
 }
 
 /*

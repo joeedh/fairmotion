@@ -125,6 +125,36 @@ class Matrix3 {
     return this;
   }
   
+  euler_rotate(x, y, z) {
+    var xmat = new Matrix4();
+    var m = xmat.$matrix;
+    
+    var c = Math.cos(x), s = Math.sin(x);
+    
+    m.m22 = c; m.m23 = s;
+    m.m32 = -s; m.m33 = c;
+    
+    var ymat = new Matrix4();
+    c = Math.cos(y); s = Math.sin(y);
+    var m = ymat.$matrix;
+    
+    m.m11 = c;  m.m13 = s;
+    m.m31 = -s; m.m33 = c;
+    
+    ymat.multiply(xmat);
+
+    var zmat = new Matrix4();
+    c = Math.cos(z); s = Math.sin(z);
+    var m = zmat.$matrix;
+    
+    m.m11 = c;  m.m12 = -s;
+    m.m21 = s;  m.m22 = c;
+    
+    zmat.multiply(ymat);
+    
+    this.preMultiply(zmat);
+  }
+  
   multVecMatrix(v, z_is_one=true) {
     //ik = jk
     var x = v[0], y = v[1], z = z_is_one ? 1.0 : v[2];
@@ -633,12 +663,12 @@ class Matrix4 {
   }
 
   preMultiply(Matrix4 mat) {
-    var mat = premul_temp;
+    var mat2 = premul_temp;
     
-    mat.load(this);
+    mat2.load(this);
     this.load(mat);
     
-    return this.multiply(mat);
+    return this.multiply(mat2);
   }
   
   multiply(Matrix4 mat)
@@ -1655,181 +1685,184 @@ class Vector3 extends Array {
 
 var _vec2_init = [0, 0];
 var _v2_static_mvm_co = new Vector3();
-function Vector2(Array<float> vec) {
-  Array<float>.call(this, 2);
-  
-  if (vec == undefined)
-    vec = _vec2_init;
-  
-  if (vec[0] == undefined) vec[0] = 0;
-  if (vec[1] == undefined) vec[1] = 0;
-  
-  if (typeof(vec) == "number" || typeof(vec[0]) != "number")
-    throw new Error("Invalid argument to new Vector2(vec): " + JSON.stringify(vec))
-  
-  this[0] = vec[0];
-  this[1] = vec[1];
-  
-  this.length = 2;
-}
-inherit(Vector2, Array);
 
-Vector2.prototype.toJSON = function() {
-  var arr = new Array(this.length);
-  
-  var i = 0;
-  for (var i=0; i<this.length; i++) {
-    arr[i] = this[i];
+class Vector2 extends Array {
+  constructor(Array<float> vec) {
+    super(2);
+    
+    if (vec == undefined)
+      vec = _vec2_init;
+    
+    if (vec[0] == undefined) vec[0] = 0;
+    if (vec[1] == undefined) vec[1] = 0;
+    
+    if (typeof(vec) == "number" || typeof(vec[0]) != "number")
+      throw new Error("Invalid argument to new Vector2(vec): " + JSON.stringify(vec))
+    
+    this[0] = vec[0];
+    this[1] = vec[1];
+    
+    this.length = 2;
   }
-  
-  return arr;
-}
 
-Vector2.prototype.dot = function(b) {
-  return this[0]*b[0] + this[1]*b[1]
-}
+  toJSON() {
+    var arr = new Array(this.length);
+    
+    var i = 0;
+    for (var i=0; i<this.length; i++) {
+      arr[i] = this[i];
+    }
+    
+    return arr;
+  }
 
-Vector2.prototype.load = function(b) {
-  this[0] = b[0];
-  this[1] = b[1];
-  
-  return this;
-}
+  dot(b) {
+    return this[0]*b[0] + this[1]*b[1]
+  }
 
-Vector2.prototype.zero = function() {
-  this[0] = this[1] = 0.0;
-  
-  return this;
-}
+  load(b) {
+    this[0] = b[0];
+    this[1] = b[1];
+    
+    return this;
+  }
 
-Vector2.prototype.floor = function() {
-  this[0] = Math.floor(this[0]);
-  this[1] = Math.floor(this[1]);
-  
-  return this;
-}
-
-Vector2.prototype.ceil = function() {
-  this[0] = Math.ceil(this[0]);
-  this[1] = Math.ceil(this[1]);
-  
-  return this;
-}
-
-Vector2.prototype.vectorDistance = function(b) {
-  var x, y;
-  
-  x = this[0]-b[0]
-  y = this[1]-b[1];
-  return Math.sqrt(x*x + y*y);
-}
-
-
-Vector2.prototype.vectorLength = function() {
-  return Math.sqrt(this[0]*this[0] + this[1]*this[1]);
-}
-
-Vector2.prototype.sub = function(b) {
-  this[0] -= b[0];
-  this[1] -= b[1];
-  
-  return this;
-}
-
-Vector2.prototype.add = function(b) {
-  this[0] += b[0];
-  this[1] += b[1];
-  
-  return this;
-}
-
-Vector2.prototype.mul = function(b) {
-  this[0] *= b[0];
-  this[1] *= b[1];
-  
-  return this;
-}
-
-Vector2.prototype.divide = function(b) {
-  this[0] /= b[0];
-  this[1] /= b[1];
-  
-  return this;
-}
-
-Vector2.prototype.divideScalar = function(b) {
-  this[0] /= b;
-  this[1] /= b;
-  
-  return this;
-}
-
-Vector2.prototype.negate = function()
-{
-  this[0] = -this[0];
-  this[1] = -this[1];
-  
-  return this;
-}
-
-Vector2.prototype.mulScalar = function(b) {
-  this[0] *= b;
-  this[1] *= b;
-  
-  return this;
-}
-
-Vector2.prototype.addScalar = function(b) {
-  this[0] += b;
-  this[1] += b;
-  
-  return this;
-}
-
-Vector2.prototype.subScalar = function(b) {
-  this[0] -= b;
-  this[1] -= b;
-  
-  return this;
-}
-
-Vector2.prototype.multVecMatrix = function(mat) {
-  var v3 = _v2_static_mvm_co;
-  
-  v3.load(self)
-  v3[2] = 0.0;
-  v3.multVecMatrix(mat);
-  
-  this[0] = v3[0];
-  this[1] = v3[1];
-  
-  return this;
-}
-
-Vector2.prototype.normalize = function() {
-  var vlen = this.vectorLength();
-  if (vlen < FLT_EPSILON) {
+  zero() {
     this[0] = this[1] = 0.0;
-    return;
+    
+    return this;
   }
-  
-  this[0] /= vlen;
-  this[1] /= vlen;
-  
-  return this;
-}
 
-Vector2.prototype.toSource = function() {
-  return "new Vector2([" + this[0] + ", " + this[1] + "])";
-}
+  floor() {
+    this[0] = Math.floor(this[0]);
+    this[1] = Math.floor(this[1]);
+    
+    return this;
+  }
 
-Vector2.prototype.toString = function() {
-  return "[" + this[0] + ", " + this[1] + "]";
-}
+  ceil() {
+    this[0] = Math.ceil(this[0]);
+    this[1] = Math.ceil(this[1]);
+    
+    return this;
+  }
 
-Vector2.prototype.interp = function(Vector2 b, Number t) {
-  this[0] += (b[0]-this[0])*t;
-  this[1] += (b[1]-this[1])*t;
+  vectorDistance(b) {
+    var x, y;
+    
+    x = this[0]-b[0]
+    y = this[1]-b[1];
+    return Math.sqrt(x*x + y*y);
+  }
+
+
+  vectorLength() {
+    return Math.sqrt(this[0]*this[0] + this[1]*this[1]);
+  }
+
+  sub(b) {
+    this[0] -= b[0];
+    this[1] -= b[1];
+    
+    return this;
+  }
+
+  add(b) {
+    this[0] += b[0];
+    this[1] += b[1];
+    
+    return this;
+  }
+
+  mul(b) {
+    this[0] *= b[0];
+    this[1] *= b[1];
+    
+    return this;
+  }
+
+  divide(b) {
+    this[0] /= b[0];
+    this[1] /= b[1];
+    
+    return this;
+  }
+
+  divideScalar(b) {
+    this[0] /= b;
+    this[1] /= b;
+    
+    return this;
+  }
+
+  negate()
+  {
+    this[0] = -this[0];
+    this[1] = -this[1];
+    
+    return this;
+  }
+
+  mulScalar(b) {
+    this[0] *= b;
+    this[1] *= b;
+    
+    return this;
+  }
+
+  addScalar(b) {
+    this[0] += b;
+    this[1] += b;
+    
+    return this;
+  }
+
+  subScalar(b) {
+    this[0] -= b;
+    this[1] -= b;
+    
+    return this;
+  }
+
+  multVecMatrix(mat) {
+    var v3 = _v2_static_mvm_co;
+    
+    v3[0] = this[0];
+    v3[1] = this[1];
+    v3[2] = 0.0;
+    v3.multVecMatrix(mat);
+    
+    this[0] = v3[0];
+    this[1] = v3[1];
+    
+    return this;
+  }
+
+  normalize() {
+    var vlen = this.vectorLength();
+    if (vlen < FLT_EPSILON) {
+      this[0] = this[1] = 0.0;
+      return;
+    }
+    
+    this[0] /= vlen;
+    this[1] /= vlen;
+    
+    return this;
+  }
+
+  toSource() {
+    return "new Vector2([" + this[0] + ", " + this[1] + "])";
+  }
+
+  toString() {
+    return "[" + this[0] + ", " + this[1] + "]";
+  }
+
+  interp(Vector2 b, Number t) {
+    this[0] += (b[0]-this[0])*t;
+    this[1] += (b[1]-this[1])*t;
+  }
 }
 
 //XX Kill this function!

@@ -193,13 +193,13 @@ class SettingsEditor extends Area {
     if (event.button == 1 && !g_app_state.was_touch) {
       this.subframe.start_pan([event.x, event.y], 1);
     } else {
-      prior(SettingsEditor, this).on_mousedown.call(this, event);
+      super.on_mousedown(event);
     }
   }
 
   on_area_inactive() {
     this.destroy();
-    prior(SettingsEditor, this).on_area_inactive.call(this);
+    super.on_area_inactive();
   }
     
   area_duplicate() : SettingsEditor {
@@ -269,7 +269,7 @@ class SettingsEditor extends Area {
     
     this.subframe.canvas.viewport = this.canvas.viewport;
     
-    prior(SettingsEditor, this).build_draw.call(this, canvas, isVertical);
+    super.build_draw(canvas, isVertical);
     
     this.mm.reset();
     var arr = [0, 0];

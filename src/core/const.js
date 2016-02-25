@@ -5,21 +5,16 @@ import 'config';
 
 /* various constant (except for DEBUG) globals */
 
-//my own, personal source tree uses a patent-pending
-//curve that's much faster.  I'll try and convince my
-//company to let me use it here.
-window.USE_BETTER_CURVE = true;
-
 //file extension
-window.allshape_file_ext = ".fmo";
-window.allshape_settings_filename = ".settings.bin";
+window.fairmotion_file_ext = ".fmo";
+window.fairmotion_settings_filename = ".settings.bin";
 
 //application version
-window.g_app_version = 0.050;
+window.g_app_version = 0.051;
 
-/*all selection bitflags flags must use this value, even if they define
-  their own enumeration member, e.g. MeshFlags.SELECT*/
-window.SELECT = 1;
+/*all selection bitflags flags must use this value, 
+  e.g. SplineFlags.SELECT*/
+//SELECT = 1;
 
 //release mode
 //var RELEASE = false;
@@ -48,19 +43,10 @@ var $_mh = undefined;
 
 //debug globals
 if (!RELEASE && !("M" in this) && !("O" in this)) {
-  Object.defineProperty(this, "M", {get : function() {
-    return new Context().mesh;
-  }});
-  Object.defineProperty(this, "O", {get : function() {
-    return new Context().object;
-  }});
-  Object.defineProperty(this, "S", {get : function() {
-    return new Context().scene;
-  }});
   Object.defineProperty(this, "G", {get : function() {
     return g_app_state;
   }});
-  Object.defineProperty(this, "V3D", {get : function() {
+  Object.defineProperty(this, "V2D", {get : function() {
     return g_app_state.active_view2d;
   }});
   Object.defineProperty(this, "API", {get : function() {

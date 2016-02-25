@@ -90,6 +90,19 @@ export class SplineLayerSet extends Array {
     this.flag = 0;
   }
   
+  get(id) {
+    if (id == undefined) {
+      throw new Error("id cannot be undefined");
+    }
+    
+    if (!(id in this.idmap)) {
+      console.log("WARNING: layer ", id, "not in spline layerset!", this);
+      return undefined;
+    }
+    
+    return this.idmap[id];
+  }
+  
   get active() {
     if (this._active == undefined) {
       this._active = this[0];
@@ -428,7 +441,7 @@ export class ElementArraySet extends set {
   }
 }
 
-export class ElementArray extends GArray, DataPathNode {
+export class ElementArray extends GArray {
   constructor(type, idgen, idmap, global_sel, layerset, spline) {
     GArray.call(this);
     
@@ -694,6 +707,8 @@ export class ElementArray extends GArray, DataPathNode {
     this.cdata.afterSTRUCT(this, this.cdata);
   }
 }
+
+mixin(ElementArray, DataPathNode);
 
 ElementArray.STRUCT = """
   ElementArray {

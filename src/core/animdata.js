@@ -205,7 +205,7 @@ export class AnimChannel {
       this._do_resort();
     }
     
-    eval(time) {
+    evaluate(time) {
       if (this.resort) {
         this._do_resort();
       }

@@ -341,7 +341,7 @@ TCC = getcfg("TCC", np("tools/extjs_cc/js_cc.py"), "path")
 print("using python executable \"" + PYBIN.strip() + "\"")
 
 #minified, concatenated build
-JFLAGS = "-dpr "
+JFLAGS = " -dpr " # --no-expand-iterators "
 
 if aggregate_smaps:
   JFLAGS += " -nref"
@@ -457,13 +457,17 @@ def safe_stat(path):
   #except IOError:
   #  return random()*(1<<22)
     
-def do_rebuild(abspath):
+def do_rebuild(abspath, targetpath):
   prof_start("do_rebuild")
   
   global db, db_depend
   
   fname = os.path.split(abspath)[1]
   
+  if not os.path.exists(targetpath) and not targetpath.endswith(".svg"):
+    print("Missing: ", targetpath)
+    return True
+    
   if "[Conflict]" in abspath: 
       prof_end("do_rebuild")
       return False
@@ -560,7 +564,7 @@ def filter_srcs(files):
   for f, target, abspath, rebuild in iter_files(files):
     fname = os.path.split(abspath)[1]
     
-    if not do_rebuild(abspath):
+    if not do_rebuild(abspath, np(target)):
       i += 1
       continue
       
@@ -590,6 +594,7 @@ def build_target(files):
   
   filtered = list(iter_files(files))
   build_final = False
+  
   for f, target, abspath, rebuild in filtered:
     fname = os.path.split(abspath)[1]
     sf = files[fi]
@@ -725,6 +730,7 @@ def aggregate_multi(files, outpath=target_path+"app.js", maxsize=350*1024):
   files2 = []
   
   bootstrap_modules = {
+    'polyfill.js',
     'module.js',
     'typesystem.js',
     'util.js',

@@ -608,10 +608,10 @@ export class FileSaveAsOp extends ToolOp {
       
       if (DEBUG.netio)
         console.log("saving...", path);
-      global allshape_file_ext;
+      global fairmotion_file_ext;
       
-      if (!path.endsWith(allshape_file_ext)) {
-        path = path + allshape_file_ext;
+      if (!path.endsWith(fairmotion_file_ext)) {
+        path = path + fairmotion_file_ext;
       }
       
       thepath = path;
@@ -713,10 +713,10 @@ export class FileSaveOp extends ToolOp {
       
       if (DEBUG.netio)
         console.log("saving...", path);
-      global allshape_file_ext;
+      global fairmotion_file_ext;
       
-      if (!path.endsWith(allshape_file_ext)) {
-        path = path + allshape_file_ext;
+      if (!path.endsWith(fairmotion_file_ext)) {
+        path = path + fairmotion_file_ext;
       }
       
       var token = g_app_state.session.tokens.access;
@@ -853,7 +853,7 @@ export class LoginDialog extends PackedDialog {
         console.log(job.value, "2");
         
       dialog.closed = true;
-      prior(LoginDialog, dialog).end.call(dialog, false);
+      super.end(false);
       
       g_app_state.session.validate_session();
     }
@@ -882,7 +882,7 @@ export class LoginDialog extends PackedDialog {
     
     auth_session(user, password, finish, error);
 
-    //prior(LoginDialog, this).end.call(this, do_cancel);
+    //super.end(do_cancel);
   }
 }
 

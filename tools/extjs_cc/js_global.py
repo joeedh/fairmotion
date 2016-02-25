@@ -29,7 +29,7 @@ gcs["g_gen_smap_orig"] = "gsr"
 gcs["g_minify"] = "mn"
 gcs["g_add_srcmap_ref"] = "nref"
 gcs["g_expand_iterators"] = "nei"
-gcs["g_harmony_iterators"] = "nhi"
+#gcs["g_harmony_iterators"] = "nhi"
 gcs["g_refactor_mode"] = "rm"
 gcs["g_refactor_classes"] = "rc"
 gcs["g_add_opt_initializers"] = "nao"
@@ -250,7 +250,7 @@ class Glob(AbstractGlob):
     g_add_newlines = False
     g_force_global_strict = False
     g_expand_iterators = True
-    g_harmony_iterators = True
+    #g_harmony_iterators = True
     g_refactor_mode = False
     g_refactor_classes = False
     g_add_opt_initializers = True

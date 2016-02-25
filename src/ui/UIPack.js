@@ -185,9 +185,9 @@ export class UIPackFrame extends UIFrame {
       return;
     }
     
-    if (prop.type == PropTypes.ENUM) {
-      console.log("   ==>", prop.type, packflag, path, prop, packflag & 4096);
-    }
+    //if (prop.type == PropTypes.ENUM) {
+    //  console.log("   ==>", prop.type, packflag, path, prop, packflag & 4096);
+    //}
     
     if (prop.type == PropTypes.INT || prop.type == PropTypes.FLOAT) {
       var range = prop.range;
@@ -207,8 +207,6 @@ export class UIPackFrame extends UIFrame {
       prop.ctx = ctx;
       
       function update_enum(chk, val) {
-        console.log("check update", chk, val);
-        
         //only allow check sets
         if (!val) {
           chk.set = true;
@@ -224,8 +222,6 @@ export class UIPackFrame extends UIFrame {
             //prop.set_data(prop.data);
             
             this2.ctx.api.set_prop(this2.ctx, path, prop.keys[k]);
-            
-            console.log("FOUND", prop.data, prop, k, "||");
             continue;
           }
           
@@ -467,13 +463,8 @@ export class UIPackFrame extends UIFrame {
           }
           
           var key = s.slice(i, s.length-1).trim();
-          console.log("PROP", prop);
           
           var uiname = prop.ui_key_names[key];
-          
-          //console.log("        UINAME KEY   '" + key + "'");
-          //console.log(prop.ui_key_names, prop);
-          
           if (uiname == undefined) {
             console.log("WARNING: possibly bad flag mask (will try interpreting it as integer)", path);
             
@@ -490,6 +481,10 @@ export class UIPackFrame extends UIFrame {
             
           var check = new UICheckBox(ctx, uiname, undefined, undefined, path);
           this.add(check);
+      
+          if (key in prop.flag_descriptions) {
+            check.description = prop.flag_descriptions[key];
+          }
           
           check.packflag |= PackFlags.INHERIT_WIDTH;
           check.setter_path = setter_path;
@@ -505,6 +500,10 @@ export class UIPackFrame extends UIFrame {
           
           check.packflag |= PackFlags.INHERIT_WIDTH;
           check.setter_path = setter_path + "["+k+"]";
+          
+          if (k in prop.flag_descriptions) {
+            check.description = prop.flag_descriptions[k];
+          }
           
           row.add(check);
         }

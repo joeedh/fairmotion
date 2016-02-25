@@ -37,6 +37,10 @@ export class DataPathNode extends NodeBase {
   //returns datapath to get object
   dag_get_datapath(ctx) {
   }
+  
+  static isDataPathNode(obj) {
+    return "dag_get_datapath" in obj;
+  }
 }
 
 Node.dag_inputs = {
@@ -442,7 +446,7 @@ export class EventDag {
     
     var node;
     
-    if (object instanceof DataPathNode || ("dag_get_datapath" in object)) {
+    if (DataPathNode.isDataPathNode(object)) {
       node = this.indirect_node(this.ctx, object.dag_get_datapath(), object, auto_create);
       //console.log(node != undefined ? node.id : "", object.__prototypeid__, "getting path node", object.dag_get_datapath());
     } else {

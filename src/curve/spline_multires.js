@@ -127,7 +127,7 @@ export class BoundPoint {
     recalc_offset(spline) {
       var seg = spline.eidmap[this.seg];
       
-      var co = seg._evalwrap.eval(this.s);
+      var co = seg._evalwrap.evaluate(this.s);
       
       this.offset[0] = this[0]-co[0];
       this.offset[1] = this[1]-co[1];
@@ -406,13 +406,13 @@ export class MultiResEffector extends CurveEffect {
     this.mr = owner;
   }
   
-  eval(s) {
+  evaluate(s) {
     var n = this.prior.derivative(s);
     var t = n[0]; n[0] = n[1]; n[1] = t;
     n.normalize();
     n.mulScalar(10.0);
     
-    var co = this.prior.eval(s);
+    var co = this.prior.evaluate(s);
     static sum = new Vector3();
     sum.zero();
     
@@ -682,7 +682,7 @@ export class MultiResLayer extends CustomDataLayer {
     for (var p in this.points(level)) {
       sta[0] = p.s; sta[1] = p.t; sta[2] = p.a;
       var co = seg._evalwrap.local_to_global(sta);
-      var co2 = seg._evalwrap.eval(sta[0]);
+      var co2 = seg._evalwrap.evaluate(sta[0]);
       
       p[0] = co[0];
       p[1] = co[1];

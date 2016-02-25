@@ -11,18 +11,7 @@ var sin = Math.sin, acos=Math.acos, asin=Math.asin, atan2=Math.atan2, sqrt=Math.
 var cos = Math.cos, pow=Math.pow, abs=Math.abs;
 var SPI2 = Math.sqrt(PI/2);
 
-#ifdef USE_BETTER_CURVE
-import * as math from 'spline_math_patpend';
-
-export var spiraltheta = math.spiraltheta;
-export var spiralcurvature = math.spiralcurvature;
-export var spiralcurvature_dv = math.spiralcurvature_dv;
-export var approx = math.approx;
-export var INT_STEPS = math.INT_STEPS;
-export var ORDER = math.ORDER;
-export var do_solve = math.do_solve;
-#else
-import * as math from 'spline_math_safe';
+import * as math from 'spline_math_hermite';
 
 export var spiraltheta = math.spiraltheta;
 export var spiralcurvature = math.spiralcurvature;
@@ -52,8 +41,6 @@ export var do_solve = USE_NACL ? do_solve_nacl : function() {
   
   return math.do_solve.apply(this, arguments);
 };
-
-#endif
 
 export var KSCALE  = ORDER+1;
 export var KANGLE  = ORDER+2;

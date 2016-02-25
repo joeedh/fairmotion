@@ -49,7 +49,7 @@ class OpStackFrame extends RowFrame {
     if (event.button == 1 && !g_app_state.was_touch) {
       this.start_pan([event.x, event.y], 1);
     } else {
-      prior(OpStackFrame, this).on_mousedown.call(this, event);
+      super.on_mousedown(event);
     }
   }
   
@@ -58,7 +58,7 @@ class OpStackFrame extends RowFrame {
     
     //this.pan_bounds[1][0] = minsize[0];
     this.pan_bounds[1][1] = Math.max(minsize[1]-this.size[1], 0);
-    prior(OpStackFrame, this).pack.call(this, canvas, isVertical);
+    super.pack(canvas, isVertical);
   }
   
   gen_panel(ToolOp tool, String path) {
@@ -111,7 +111,7 @@ class OpStackFrame extends RowFrame {
       this.build_ms = time_ms();
     }
     
-    prior(OpStackFrame, this).on_tick.call(this);
+    super.on_tick();
   }
   
   is_selop(ToolOp op) : Boolean {
@@ -208,7 +208,7 @@ class OpStackFrame extends RowFrame {
       canvas.text([10, this.size[1]/2], 
                    "Too many operators to list", undefined, 16);
     
-    prior(OpStackFrame, this).build_draw.call(this, canvas, isVertical);
+    super.build_draw(canvas, isVertical);
   }
 }
 
@@ -276,7 +276,7 @@ export class OpStackEditor extends Area {
   on_area_inactive() {
     this.first_build = true;
     this.destroy();
-    prior(OpStackEditor, this).on_area_inactive.call(this);
+    super.on_area_inactive();
   }
     
   area_duplicate() : OpStackEditor {
@@ -339,7 +339,7 @@ export class OpStackEditor extends Area {
     this.subframe.size[1] = this.size[1]-this.subframe.pos[1]-Area.get_barhgt();
     this.subframe.canvas.viewport = this.canvas.viewport; //set_viewport([this.parent.pos, this.parent.size]);
 
-    prior(OpStackEditor, this).build_draw.call(this, canvas, isVertical);
+    super.build_draw(canvas, isVertical);
   }
   
   set_canvasbox() {
@@ -354,7 +354,7 @@ export class OpStackEditor extends Area {
   }
   
   on_tick() {
-    prior(OpStackEditor, this).on_tick.call(this);
+    super.on_tick();
     
     if (this._saved_uidata != undefined && !this.first_build) {
       this.load_saved_uidata();

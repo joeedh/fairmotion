@@ -371,7 +371,7 @@ class MaterialEditor extends Area {
 
   on_area_inactive() {
     this.destroy();
-    prior(MaterialEditor, this).on_area_inactive.call(this);
+    super.on_area_inactive();
   }
     
   area_duplicate() : MaterialEditor {

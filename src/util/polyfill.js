@@ -1,6 +1,32 @@
 "not_a_module";
 
+if (Symbol.keystr === undefined) {
+  Symbol.keystr = Symbol("keystr");
+}
+
 /*check for various api calls that aren't implemented by all browsers*/
+
+if (Array.prototype.remove === undefined) {
+  Array.prototype.remove = function(item, hide_error) {
+    var i = this.indexOf(item);
+    
+    if (i < 0) {
+      if (hide_error) console.trace("Error: item", item, "not in array", this);
+      else throw new Error("Item " + item + " not in array");
+      
+      return;
+    }
+    
+    var len = this.length;
+    while (i < len) {
+      this[i] = this[i+1];
+      i++;
+    }
+    
+    this.length--;
+  }
+}
+
 if (String.startsWith == undefined) {
     String.prototype.startsWith = function (str) {
         if (str.length > this.length)

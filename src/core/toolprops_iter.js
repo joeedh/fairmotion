@@ -39,6 +39,12 @@ export class TPropIterable {
   }
   
   [Symbol.iterator]() : ToolIter { }
+  _is_tprop_iterable() {
+  }
+  
+  static isTPropIterable(obj) {
+    return obj != undefined && "_is_tprop_iterable" in obj;
+  }
 }
 window.TPropIterable = TPropIterable;
 
@@ -48,11 +54,12 @@ export class TCanSafeIter {
   
   __tooliter__() : TPropIterable {}
 }
+
 window.TCanSafeIter = TCanSafeIter;
 
 export class ToolIter extends TPropIterable {
   constructor(Array<Function> itemtypes=[]) {
-    TPropIterable.call(this);
+    super();
      
     this.itemtypes = itemtypes;
     this.ctx = undefined; //is set by IterProperty, which gets it from calling code

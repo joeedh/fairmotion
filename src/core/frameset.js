@@ -337,7 +337,7 @@ export class VertexAnimData {
     var lastco = undefined;
     
     for (var t = start; t<end; t += dt) {
-      var co = this.eval(t);
+      var co = this.evaluate(t);
       var dv = this.derivative(t);
       
       var tmp = dv[0]; dv[0] = -dv[1]; dv[1] = tmp;
@@ -374,14 +374,14 @@ export class VertexAnimData {
   
   derivative(time) {
     var df = 0.01;
-    var a = this.eval(time);
-    var b = this.eval(time+df);
+    var a = this.evaluate(time);
+    var b = this.evaluate(time+df);
     
     b.sub(a).mulScalar(1.0/df);
     return b;
   }
   
-  eval(time) {
+  evaluate(time) {
     var v = this.startv;
     var step_func = this.animflag & VDAnimFlags.STEP_FUNC;
     
@@ -555,7 +555,7 @@ export class VertexAnimData {
       }
       //t = 1.0;
       
-      co.load(s.eval(lastv == s.v1 ? t : 1-t));
+      co.load(s.evaluate(lastv == s.v1 ? t : 1-t));
      }
     
     return co;
@@ -998,7 +998,7 @@ export class SplineFrameSet extends DataBlock {
     av2.animflag &= VDAnimFlags.STEP_FUNC;
     
     for (var time of keyframes) {
-      var  co1 = av1.eval(time), co2 = av2.eval(time);
+      var  co1 = av1.evaluate(time), co2 = av2.evaluate(time);
       
       co.load(co1).add(co2).mulScalar(0.5);
       av3.update(co, time);
@@ -1180,7 +1180,7 @@ export class SplineFrameSet extends DataBlock {
         if (v.eid in this.vertex_animdata) { //&& (v.flag & SplineFlags.FRAME_DIRTY)) {
           var vdata = this.get_vdata(v.eid, false);
           
-          v.load(vdata.eval(this.time));
+          v.load(vdata.evaluate(this.time));
           v.flag &= ~SplineFlags.FRAME_DIRTY;
           v.flag |= SplineFlags.UPDATE;
           
@@ -1200,7 +1200,7 @@ export class SplineFrameSet extends DataBlock {
       if (v.eid in this.vertex_animdata) {// && (v.flag & SplineFlags.FRAME_DIRTY)) {
         var vdata = this.get_vdata(v.eid, false);
         
-        v.load(vdata.eval(this.time));
+        v.load(vdata.evaluate(this.time));
         v.flag &= ~SplineFlags.FRAME_DIRTY;
         v.flag |= SplineFlags.UPDATE;
         
@@ -1392,7 +1392,7 @@ export class SplineFrameSet extends DataBlock {
         var vdata = this.get_vdata(v.eid, false);
         if (vdata == undefined) continue;
         
-        //console.log("yay, vdata", vdata.eval(time));
+        //console.log("yay, vdata", vdata.evaluate(time));
         if (set_flag) {
           spline.setselect(v, vdata.flag & SplineFlags.SELECT);
           
@@ -1402,7 +1402,7 @@ export class SplineFrameSet extends DataBlock {
             v.flag &= ~SplineFlags.HIDE;
         }
         
-        v.load(vdata.eval(time));
+        v.load(vdata.evaluate(time));
         
         if (set_update)
           v.flag |= SplineFlags.UPDATE;

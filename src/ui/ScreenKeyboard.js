@@ -118,7 +118,7 @@ class ScreenKeyboard extends RowFrame {
   
 /*  
   on_mousemove(event) {
-    prior(ScreenKeyboard, this).on_mousemove.call(this, event);
+    super.on_mousemove(event);
     
     if (this.active == undefined) {
       this.handle_client_mevt(event);
@@ -127,7 +127,7 @@ class ScreenKeyboard extends RowFrame {
   }
   
   on_mousedown(event) {
-    prior(ScreenKeyboard, this).on_mousemove.call(this, event);
+    super.on_mousemove(event);
     
     if (this.active == undefined) {
       this.handle_client_mevt(event);
@@ -136,7 +136,7 @@ class ScreenKeyboard extends RowFrame {
   }
   
   on_mouseup(event) {
-    prior(ScreenKeyboard, this).on_mousemove.call(this, event);
+    super.on_mousemove(event);
     
     if (this.active == undefined) {
       this.handle_client_mevt(event);
@@ -239,7 +239,7 @@ class ScreenKeyboard extends RowFrame {
     var clr = [0.4, 0.4, 0.5, 0.6];
     canvas.simple_box([0, 0], this.size, clr);
     
-    prior(ScreenKeyboard, this).build_draw.call(this, canvas, isVertical);
+    super.build_draw(canvas, isVertical);
   }
   
   end() {

@@ -131,7 +131,7 @@ export class AppSettings {
     }
     
     if (config.NO_SERVER) {
-        console.log("getting settings from myLocalStorage. . .");
+        startup_report("getting settings from myLocalStorage. . .");
         
         if (myLocalStorage._settings != undefined) {
             var settings = b64decode(myLocalStorage._settings);
@@ -140,7 +140,7 @@ export class AppSettings {
             finish(settings);
         }
     } else {
-        download_file("/" + allshape_settings_filename, finish, "Settings", true);
+        download_file("/" + fairmotion_settings_filename, finish, "Settings", true);
     }
   }
 }
@@ -203,7 +203,7 @@ export class UploadJob {
 }
 
 function upload_settings(AppSettings settings, SettUploadManager uman) {
-  var path = "/"+allshape_settings_filename;
+  var path = "/"+fairmotion_settings_filename;
   
   var data = settings.gen_file().buffer;
   var pnote = g_app_state.notes.progbar("upload settings", 0.0, "uset");

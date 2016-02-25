@@ -147,7 +147,7 @@ export class SplineQuery {
           continue;
         
         var seg = spline.eidmap[p.seg];
-        var mapco = seg.eval(p.s);
+        var mapco = seg.evaluate(p.s);
   
         _v.load(mapco); _v[2] = 0.0;
         editor.project(_v);
@@ -185,7 +185,7 @@ export class SplineQuery {
         
         var co = v;
         if (hasmres && v.segments.length > 0) {
-          co = v.segments[0].eval(v.segments[0].ends(v));
+          co = v.segments[0].evaluate(v.segments[0].ends(v));
         }
         
         _v.load(co); _v[2] = 0.0;

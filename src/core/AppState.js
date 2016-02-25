@@ -690,7 +690,8 @@ export class AppState {
   //STRUCT-compatible objects.
   write_blocks(args={}) {
     var gen_dataview=true, compress=false;
-    var save_screen=true, save_toolstack=true;
+    var save_screen=args.save_screen != undefined ? args.save_screen : true;
+    var save_toolstack=args.save_toolstack != undefined ? args.save_toolstack : false;
     var save_theme=false;
     var blocks = args["blocks"];
     
@@ -843,7 +844,7 @@ export class AppState {
     //spline equation changed, force resolves
     if (version < 0.050) {
       for (var frameset of datalib.framesets) {
-        console.log("Spline equation changed; forcing resolve. . .", version);
+        startup_warning("Spline equation changed; forcing resolve. . .", version);
         
         frameset.spline.force_full_resolve();
         frameset.pathspline.force_full_resolve();
@@ -1421,7 +1422,7 @@ class SavedContext {
     if (scene != undefined && scene.time != this.time)
       scene.change_time(this, this.time, false);
       
-    console.log(this._spline_path);
+    //console.log(this._spline_path);
     
     if (fset != undefined)
       fset.editmode = this._frameset_editmode;
@@ -1677,7 +1678,7 @@ class ToolStack {
       ctx.set_context(mctx);
       last_time = ctx.time;
       
-      console.log("- " + i + ": executing " + tool.constructor.name + ". . .");
+      //console.log("- " + i + ": executing " + tool.constructor.name + ". . .");
       
       tool.is_modal = false;
       tool.exec_pre(ctx);
@@ -1765,7 +1766,7 @@ class ToolStack {
       var ctx = tool.saved_context;
       ctx.set_context(mctx);
       
-      console.log("- " + i + ": executing " + tool.uiname + ". . .");
+      //console.log("- " + i + ": executing " + tool.uiname + ". . .");
       
       tool.is_modal = false;
       tool.exec_pre(ctx);
@@ -1784,14 +1785,6 @@ class ToolStack {
       if (mctx.frameset != undefined && mctx.frameset.pathspline.resolve)
         mctx.frameset.pathspline.solve();
       */
-      
-      if (first && ctx.mesh != undefined && !validate_mesh_intern(ctx.mesh)) {
-        console.log("  " + tool.uiname + " failed mesh validation test");
-        if (first) {
-          console.log(tool);
-          first = false;
-        }
-      }
     }
   }
   
@@ -2088,7 +2081,8 @@ class ToolStack {
       exists = true;
     }
    
-    console.log("exists", exists, "undo_push", undo_push, "path, prop", path, prop);
+    //console.log("exists", exists, "undo_push", undo_push, "path, prop", path, prop);
+    
     var input = op.get_prop_input(path, prop);
     input.set_data(val);
     
@@ -2123,7 +2117,7 @@ class ToolStack {
     if (tool.can_call(ctx) == false) {
       if (DEBUG.toolstack) {
         console.trace()
-        console.log(typeof tool);
+        console.log(tool);
       }
       
       console.log("Can not call tool '" + tool.constructor.name + "'");

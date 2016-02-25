@@ -64,7 +64,7 @@ window.init_redraw_globals = function init_redraw_globals() {
   window.push_solve = function(spline) {
     var id = _solve_idgen++;
 
-    console.log("push solve", id);
+    //console.log("push solve", id);
     var sid = spline._internal_id;
     
     redraw_queue[id] = [];
@@ -81,10 +81,10 @@ window.init_redraw_globals = function init_redraw_globals() {
   var _popsolve_max = [0, 0];
   
   window.pop_solve = function(id) {
-    console.log("pop solve", id);
+    //console.log("pop solve", id);
     
     if (!(id in this.redraw_queue)) {
-      console.trace("Warning: either pop_solve was called switch, or the system automatically called due to timeout");
+      console.trace("Warning: either pop_solve call was switched, or the system automatically called due to timeout");
       return;
     }
     
@@ -109,6 +109,8 @@ window.init_redraw_globals = function init_redraw_globals() {
   
   //combine_mode is optional, false.  used by e.g. transform code.
   window.redraw_viewport = function(min, max, ignore_queuing, combine_mode) {
+    //console.trace("redraw_viewport");
+    
     if (ignore_queuing == undefined)
       ignore_queuing = false;
     

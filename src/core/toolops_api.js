@@ -118,7 +118,7 @@ export class ToolOpAbstract {
   
   static _get_slots() {
     var ret = [{}, {}];
-    var parent = this.__parents__.length > 0 ? this.__parents__[0] : undefined;
+    var parent = this.__parent__; //this.__parents__.length > 0 ? this.__parents__[0] : undefined;
     
     if (this.tooldef != undefined 
         && (parent == undefined || this.tooldef !== parent.tooldef) )
@@ -161,7 +161,7 @@ export class ToolOpAbstract {
   }
   
   constructor(apiname, uiname, description=undefined, icon=-1) {
-    var parent = this.constructor.__parents__.length > 0 ? this.constructor.__parents__[0] : undefined;
+    var parent = this.constructor.__parent__; //__parents__.length > 0 ? this.constructor.__parents__[0] : undefined;
 
     //instantiate slots
     var slots = this.constructor._get_slots();
@@ -305,7 +305,7 @@ PropPair.STRUCT = """
   }
 """;
 
-export class ToolOp extends EventHandler, ToolOpAbstract {
+export class ToolOp extends ToolOpAbstract {
   String name, uiname, description;
   ToolOp parent;
   Context modal_ctx;
@@ -655,7 +655,7 @@ export class ToolMacro extends ToolOp {
       this.cur_modal++;
       
     if (this.cur_modal >= this.tools.length) {
-      prior(ToolMacro, this)._end_modal();
+      super._end_modal();
     } else {
       this.tools[this.cur_modal].undo_pre(ctx);
       this.tools[this.cur_modal].undoflag |= UndoFlags.HAS_UNDO_DATA;
@@ -807,6 +807,7 @@ class DataPathOp extends ToolOp {
   }
 }
 
+mixin(ToolOp, EventHandler);
 
 /*note: datapathops can only access data paths
   in ToolContext, u.e. object, scene, and mesh.*/
@@ -986,15 +987,19 @@ window.init_toolop_structs = function() {
     var ok=false;
     var is_toolop = false;
     
-    for (var j=0; j<cls.__clsorder__.length; j++) {
-      if (cls.__clsorder__[j] == ToolOpAbstract) {
+    var parent = cls.__parent__;
+    while (parent !== undefined) {
+      if (parent === ToolOpAbstract) {
         ok = true;
-      } else if (cls.__clsorder__[j] == ToolOp) {
+      } else if (parent === ToolOp) {
         ok = true;
         is_toolop = true;
         break;
       }
+      
+      parent = parent.__parent__;
     }
+    
     if (!ok) continue;
     
     //console.log("-->", cls.name);

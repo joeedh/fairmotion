@@ -325,7 +325,7 @@ export class View2DHandler extends Area {
   push_modal(EventHandler e) {
     this.push_touch_delay(1);
     
-    prior(View2DHandler, this).push_modal.call(this, e);
+    super.push_modal(e);
   }
   
   pop_modal(EventHandler e) {
@@ -337,7 +337,7 @@ export class View2DHandler extends Area {
       this.touch_delay_stack = [];
     }
     
-    prior(View2DHandler, this).pop_modal.call(this, e);
+    super.pop_modal(e);
   }
   
   _get_dl_group(group) {
@@ -527,7 +527,7 @@ export class View2DHandler extends Area {
     if (this.bad_event(event))
       return;
     
-    if (prior(View2DHandler, this).on_mousedown.call(this, event))
+    if (super.on_mousedown(event))
       return;
     
     if (this.widgets.do_click(event, this)) {
@@ -582,7 +582,7 @@ export class View2DHandler extends Area {
       
     this._mstart = null;
     
-    if (prior(View2DHandler, this).on_mouseup.call(this, event))
+    if (super.on_mouseup(event))
       return;
       
     if (this.editor.on_mouseup(event)) return;
@@ -702,7 +702,7 @@ export class View2DHandler extends Area {
     this.widgets.on_tick(this.ctx);
     
     this.editor.on_tick(this.ctx);
-    prior(View2DHandler, this).on_tick.call(this);
+    super.on_tick();
     
     //wait 3 seconds before loading video
     if (this.draw_video && (time_ms() - this.startup_time) > 300) {
@@ -719,8 +719,8 @@ export class View2DHandler extends Area {
   }
 
   do_draw_viewport(redraw_rects) {
-    var canvas = this.canvas.get_canvas(this, this.abspos, this.size, 0);
-    var g = canvas.ctx;
+    var canvas = this.drawcanvas = this.canvas.get_canvas(this, this.abspos, this.size, 0);
+    var g = this.drawg = canvas.ctx;
     
     if (canvas != undefined && canvas.style != undefined) {
       canvas.style.background = this.background_color.toCSS();
@@ -808,7 +808,7 @@ export class View2DHandler extends Area {
       
       g.closePath();
     }
-    g.clip();
+    //g.clip();
     
     g.beginPath();
     g._clearRect(0, 0, g.width, g.height);
@@ -1050,7 +1050,7 @@ export class View2DHandler extends Area {
     this.alt = this.editor.alt = event.altKey;
     this.ctrl = this.editor.ctrl = event.ctrlKey;
     
-    prior(View2DHandler, this)._on_keyup.call(this, event);
+    super._on_keyup(event);
   }
 
   static default_new(Context ctx, ScreenArea scr, WebGLRenderingContext gl, 

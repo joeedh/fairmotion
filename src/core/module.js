@@ -235,7 +235,7 @@ function _load_module(mod) {
   var end = time_ms();
   
   if (end - start > 4) {
-    debug("  ", Math.floor(end-start).toFixed(1) + "ms");
+    //console.log("  ", Math.floor(end-start).toFixed(1) + "ms", mod.name);
   }
 }
 

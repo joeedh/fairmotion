@@ -399,6 +399,7 @@ function api_define_spline_face() {
 var SplineVertexStruct;
 function api_define_spline_vertex() {
   var flagprop = new FlagProperty(2, SplineFlags, undefined, "Flags", "Flags");
+  
   flagprop.ui_key_names["BREAK_CURVATURES"] = "Less Smooth";
   flagprop.ui_key_names["BREAK_TANGENTS"] = "Sharp Corner";
   

@@ -53,6 +53,18 @@ export class QuadBezPath {
     this.clip_paths = new set();
   }
   
+  update_aabb(draw, fast_mode=false) {
+    throw new Error("implement me!");
+  }
+  
+  beginPath() {
+    throw new Error("implement me");
+  }
+  
+  undo() { //remove last added path
+    throw new Error("implement me");
+  }
+  
   moveTo(x, y) {
     this.lastx = x;
     this.lasty = y;
@@ -142,15 +154,17 @@ export class VectorDraw {
   }
   
   //creates new path if necessary.  z is required
-  get_path(id, z) {
+  get_path(id, z, check_z=true) {
     if (z === undefined) {
       throw new Error("z cannot be undefined");
     }
+    
+    throw new Error("implement me");
   }
   
   //returns false if path with id does not exist,
   //and also false if it does, but has a different z value.
-  has_path(id, z) {
+  has_path(id, z, check_z=true) {
     if (z === undefined) {
       throw new Error("z cannot be undefined");
     }

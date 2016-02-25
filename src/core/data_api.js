@@ -1050,6 +1050,7 @@ export class DataAPI {
       }
       
       this.evalcache[str] = func;
+      
       return func(ctx, scope);
     } catch (error) {
       if (window.DEBUG != undefined && window.DEBUG.ui_datapaths)
@@ -1216,27 +1217,48 @@ export class DataAPI {
   
   set_prop(ctx, str, value) {
     var ret = this.resolve_path_intern(ctx, str);
+    static retcpy = new Array(16);
     static scope = [0, 0];
-    var owner = ret[4];
+    
+    if (ret == undefined) {
+      if (DEBUG.ui_datapaths) {
+        console.log("Failed to resolve path:", str, "with context", ctx);
+      }
+      
+      return ret;
+    }
+    
+    retcpy.length = ret.length;
+    for (var i=0; i<5; i++) {
+      /*okaaay, why do I have to do this again?
+        somehow this.eval is corrupting it.  gah!
+        problem path was: spline.active_vertex.flag[BREAK_TANGENTS]
+       */
+      retcpy[i] = ret[i];
+    }
+    ret = retcpy;
     
     //console.log("owner:", owner);
-    owner = this.evaluate(ctx, owner);
+    var owner = this.evaluate(ctx, ret[4]);
     //console.log("      ", owner);
     
-    /*okaaay, why do I have to do this again?
-      somehow this.eval is corrupting it.  gah!
-      problem path was: spline.active_vertex.flag[BREAK_TANGENTS]
-     */
-    var ret = this.resolve_path_intern(ctx, str);
-    
-    if (ret == undefined) return ret;
-    
     if (ret[0] == undefined && ret[3] != undefined && ret[3].do_mass_set) {
+      if (DEBUG.ui_datapaths) {
+        console.log("Mass set prop", str, value);
+      }
+      
       this.mass_set_prop(ctx, ret[3].path, ret[3].subpath, value, ret[3].filter)
       return;
     } else if (ret[0] == undefined) {
       console.trace("Error! Unknown path", str, "!");
       return;
+    }
+    
+    if (DEBUG.ui_datapaths && ret[0] == undefined) {
+      console.log("error setting", str, "to", value, "ret[0] was undefined", ret.slice(0, ret.length));
+    }
+    if (DEBUG.ui_datapaths) {
+      console.log("set", str, "to", value, "type", ret[0].type, "use_path", ret[0].use_path, "rdata", ret.slice(0, ret.length));
     }
     
     if (ret[0].type != DataPathTypes.PROP) {
@@ -1248,6 +1270,10 @@ export class DataAPI {
     var changed = true; 
     
     if (ret[0].type == DataPathTypes.PROP) {
+      if (DEBUG.ui_datapaths) {
+        console.log("prop set; use_path: ", ret[0].use_path, "type", ret[0].type, ret[0].data);
+      }
+      
       var path;
       
       if (ret[0].use_path) {
@@ -1338,8 +1364,6 @@ export class DataAPI {
             arr[i] = value[i];
           }
         } else {
-          changed = value == old_value;
-          
           if (typeof value == "object" ) {
             scope[0] = value;
             path += " = scope[0]"
@@ -1354,7 +1378,14 @@ export class DataAPI {
           }
         }
         
-        prop.set_data(this.evaluate(ctx, valpath), owner, changed);
+        changed = value == old_value;
+        
+        if (DEBUG.ui_datapaths) {
+          console.log("prop set:", valpath, value);
+        }
+        
+        value = this.evaluate(ctx, valpath);
+        prop.set_data(value, owner, changed);
       }
       
       ret[0].ctx = ctx;

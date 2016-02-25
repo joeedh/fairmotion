@@ -24,7 +24,7 @@ var canvaspath_draw_vs = new cachering(function() {
 
 var CCMD=0, CARGLEN=1;
 
-var MOVETO = 0, BEZIERTO=1, LINETO=2;
+var MOVETO = 0, BEZIERTO=1, LINETO=2, BEGINPATH=3;
 
 export class CanvasPath extends QuadBezPath {
   constructor() {
@@ -39,21 +39,33 @@ export class CanvasPath extends QuadBezPath {
     this.canvas = undefined;
     this.g = undefined;
     
+    this.path_start_i = 0;
     this.first = true;
     this._mm = new MinMax(2);
   }
   
-  update_aabb(draw) {
+  update_aabb(draw, fast_mode=false) {
     var tmp = new Vector2();
     var mm = this._mm;
     var pad = this.pad = this.blur > 0 ? this.blur + 15 : 0;
     
     mm.reset();
     
+    if (fast_mode) {
+      console.trace("FAST MODE!");
+    }
+    
+    var prev = -1;
     var cs = this.commands, i = 0;
     while (i < cs.length) {
       var cmd = cs[i++];
       var arglen = cs[i++];
+      
+      if (fast_mode && prev != BEGINPATH) {
+        prev = cmd;
+        i += arglen;
+        continue;
+      }
       
       for (var j=0; j<arglen; j += 2) {
         tmp[0] = cs[i++], tmp[1] = cs[i++];
@@ -61,12 +73,24 @@ export class CanvasPath extends QuadBezPath {
         
         mm.minmax(tmp);
       }
+      
+      prev = cmd;
     }
     
     this.aabb[0].load(mm.min).subScalar(pad);
     this.aabb[1].load(mm.max).addScalar(pad);
   }
   
+  beginPath() {
+    this.path_start_i = this.commands.length;
+    this._pushCmd(BEGINPATH);
+  }
+  
+  undo() { //remove last added path
+    //hrm, wonder if I should update the aabb.  I'm thinking not.
+    this.commands.length = this.path_start_i;
+  }
+
   _pushCmd() {
     this.commands.push(arguments[0]);
     var arglen = arguments.length - 1;
@@ -121,6 +145,7 @@ export class CanvasPath extends QuadBezPath {
     //var zoom = draw.matrix.$matrix.m11; //scale should always be uniform, I think
     
     this.update_aabb(draw);
+    
     var w = this.size[0] = Math.ceil(this.aabb[1][0]-this.aabb[0][0]);
     var h = this.size[1] = Math.ceil(this.aabb[1][1]-this.aabb[0][1]);
     
@@ -231,6 +256,9 @@ export class CanvasPath extends QuadBezPath {
         case BEZIERTO:
           this.g.quadraticCurveTo(tmp[0], tmp[1], tmp[2], tmp[3]);
           break;
+        case BEGINPATH:
+          this.g.beginPath();
+          break;
       }
     }
     
@@ -245,6 +273,7 @@ export class CanvasPath extends QuadBezPath {
   
   reset(draw) {
     this.commands.length = 0;
+    this.path_start_i = 0;
     this.off.zero();
     this.first = true;
   }
@@ -292,7 +321,7 @@ export class CanvasDraw2D extends VectorDraw {
     this.g = undefined;
   }
   
-  has_path(id, z) {
+  has_path(id, z, check_z=true) {
     if (z === undefined) {
       throw new Error("z cannot be undefined");
     }
@@ -302,11 +331,11 @@ export class CanvasDraw2D extends VectorDraw {
     }
     
     var path = this.path_idmap[id];
-    return path.z == z;
+    return check_z ? path.z == z : true;
   }
   
   //creates new path if necessary.  z is required
-  get_path(id, z) {
+  get_path(id, z, check_z=true) {
     if (z === undefined) {
       throw new Error("z cannot be undefined");
     }
@@ -321,7 +350,7 @@ export class CanvasDraw2D extends VectorDraw {
     
     var ret = this.path_idmap[id];
     
-    if (ret.z != z) {
+    if (check_z && ret.z != z) {
       this.dosort = 1;
       ret.z = z;
     }

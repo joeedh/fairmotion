@@ -34,6 +34,118 @@ var hclr_h = "#eeff66"
 
 var clr = "#444444";
 
+export function calc_string_ids(spline, startid=0) {
+  var string_idgen = startid;
+  
+  var tmp = new Array();
+  var visit = new set();
+  
+  for (var seg of spline.segments) {
+    seg.stringid = -1;
+  }
+  
+  for (var v of spline.verts) {
+    if (v.segments.length != 2) {
+      continue;
+    }
+    
+    var v2 = v, startv = v2, seg =  undefined;
+    var _i = 0;
+    
+    for (var j=0; j<v.segments.length; j++) {
+      if (!visit.has(v.segments[j].eid)) {
+        seg = v.segments[j];
+        break;
+      }
+    }
+    
+    if (seg == undefined) {
+      continue;
+    }
+    
+    do {
+      v2 = seg.other_vert(v2);
+      if (v2.segments.length != 2) {
+        break;
+      }
+      
+      seg = v2.other_segment(seg);
+      if (visit.has(seg.eid)) {
+        break;
+      }
+      
+      if (_i++ > 1000) {
+        console.trace("infinite loop detected!");
+        break;
+      }
+    } while (v2 != startv);
+    
+    //we've found one end of string, now go through whole string
+    var lastseg = undefined;
+    startv = v2;
+    
+    _i = 0;
+    do {
+      if (lastseg != undefined) {
+        var bad = true;
+        
+        //don't check z, it's implicitly set by owning
+        //faces
+        
+        //are we in the same layer?
+        for (var k1 in seg.layers) {
+          for (var k2 in lastseg.layers) {
+            if (k1 == k2) {
+              bad = false;
+              break;
+            }
+          }
+          
+          if (bad) {
+            break;
+          }
+        }
+        
+        //do we have the same stroke material?
+        bad = bad || !seg.mat.equals(true, lastseg.mat);
+        
+        if (bad) {
+          string_idgen++;
+        }
+      }
+      
+      if (visit.has(seg.eid)) {
+        break;
+      }
+      
+      seg.stringid = string_idgen;
+      visit.add(seg.eid);
+      
+      v2 = seg.other_vert(v2);
+      if (v2.segments.length != 2) {
+        break;
+      }
+      
+      lastseg = seg;
+      seg = v2.other_segment(seg);
+      
+      if (_i++ > 1000) {
+        console.trace("infinite loop detected!");
+        break;
+      }
+    } while (v2 != startv);      
+  }
+  
+  //deal with orphaned segments
+  for (var seg of spline.segments) {
+    if (seg.stringid == -1) {
+      seg.stringid = string_idgen++;
+    }
+  }
+  
+  return string_idgen;
+}
+
 export function sort_layer_segments(layer, spline) {
   static lists = new cachering(function() {
     return [];
@@ -44,6 +156,7 @@ export function sort_layer_segments(layer, spline) {
   
   var visit = {};
   var layerid = layer.id;
+  var topogroup_idgen = 0;
   
   function recurse(seg) {
     if (seg.eid in visit) {
@@ -51,6 +164,8 @@ export function sort_layer_segments(layer, spline) {
     }
     
     visit[seg.eid] = 1;
+    
+    seg.topoid = topogroup_idgen;
     
     for (var i=0; i<2; i++) { 
       var v = i ? seg.v2 : seg.v1;
@@ -71,7 +186,7 @@ export function sort_layer_segments(layer, spline) {
       list.push(seg);
   }
   
-  if (spline.is_anim_path) { //don't bother forming chains on animation path splines
+  /*if (spline.is_anim_path) { //don't bother forming chains on animation path splines
     for (var s of layer) {
       if (s.type != SplineTypes.SEGMENT)
         continue;
@@ -81,7 +196,8 @@ export function sort_layer_segments(layer, spline) {
       if (!s.hidden || (s.flag & SplineFlags.GHOST))
         list.push(s);
     }
-  } else {
+  } else*/
+  if (1) {
     for (var s of layer) {
       if (s.type != SplineTypes.SEGMENT)
         continue;
@@ -91,8 +207,11 @@ export function sort_layer_segments(layer, spline) {
       //start at one-valence verts first
       if (s.v1.segments.length == 2 && s.v2.segments.length == 2)
         continue;
-        
-      recurse(s);
+      
+      if (!(s.eid in visit)) {
+        topogroup_idgen++;
+        recurse(s);
+      }
     }
   
     //we should be  finished, but just in case. . .
@@ -102,8 +221,10 @@ export function sort_layer_segments(layer, spline) {
       if (!(layerid in s.layers))
         continue;
       
-      if (!(s.eid in visit))
+      if (!(s.eid in visit)) {
+        topogroup_idgen++;
         recurse(s);
+      }
     }
   }
   
@@ -264,6 +385,9 @@ export function redo_draw_sort(spline) {
   for (var i=0; i<spline.drawlist.length; i++) {
     spline.drawlist[i].finalz = i;
   }
+  
+  //assign string ids, continuous string of segments connected with 2-valence vertices
+  calc_string_ids(spline, spline.segments.length);
   
   spline.recalc &= ~RecalcFlags.DRAWSORT;
   

@@ -437,6 +437,8 @@ export class AppState {
     //warn("WARNING: not saving startup file, debugging file writing code");
     
     myLocalStorage.set("startup_file", buf);
+    
+    g_app_state.notes.label("New file template saved");
   }
 
   //file minus ui data, used by BasicFileDataOp

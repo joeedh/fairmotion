@@ -231,6 +231,17 @@ export class SplineSegment extends SplineElement {
     this.v1 = v1;
     this.v2 = v2;
     
+     //set by draw code.  represents id of
+     //all segments that are topologically connected
+    this.topoid = -1;
+    
+    /*same as this.topogroup, but only includes
+      segments connected with 2-valence vertices,
+      that exists in the same layer, and have the
+      same stroke settings.
+      */
+    this.stringid = -1;
+    
     this.has_multires = false;
     this.mat = new Material();
     
@@ -751,6 +762,9 @@ SplineSegment.STRUCT = STRUCT.inherit(SplineSegment, SplineElement) + """
   z      : float;
   finalz : float;
   has_multires : int;
+  
+  topoid   : int;
+  stringid : int;
 }
 """;
 

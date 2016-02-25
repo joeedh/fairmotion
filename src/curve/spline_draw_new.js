@@ -1,6 +1,9 @@
 "use strict";
-import {aabb_isect_minmax2d} from 'mathlib';
+
+import {aabb_isect_minmax2d, MinMax} from 'mathlib';
 import {ENABLE_MULTIRES} from 'config';
+
+import * as config from 'config';
 
 import {SessionFlags} from 'view2d_editor';
 import {SelMask} from 'selectmode';
@@ -43,6 +46,26 @@ var draw_face_vs = new cachering(function() {
 
 var MAXCURVELEN = 10000;
 
+export class DrawParams {
+  constructor() {
+    this.init.apply(this, arguments);
+  }
+  
+  init(redraw_rects, actlayer, only_render, selectmode, zoom, z, off, spline) {
+    this.redraw_rects = redraw_rects, this.actlayer = actlayer, 
+    this.only_render = only_render, this.selectmode = selectmode, this.zoom = zoom, this.z = z, 
+    this.off = off, this.spline = spline;
+    
+    this.combine_paths = true;
+    
+    return this;
+  }
+}
+
+var drawparam_cachering = new cachering(function() {
+  return new DrawParams();
+}, 16);
+
 export class SplineDrawer extends Canvas {
   constructor(spline) {
     super();
@@ -50,11 +73,13 @@ export class SplineDrawer extends Canvas {
     this.spline = spline;
     this.used_paths = {};
     this.recalc_all = false;
+    //this.path_minmaxes = {};
     
     this.last_stroke_mat = undefined;
     this.last_stroke_z   = undefined;
     this.last_stroke_eid = undefined;
     this.last_layer_id = undefined;
+    this.last_stroke_stringid = undefined;
   }
   
   update(spline, drawlist, drawlist_layerids, matrix, redraw_rects, only_render, 
@@ -75,7 +100,10 @@ export class SplineDrawer extends Canvas {
     this.do_blur = do_blur;
     
     this.last_stroke_mat = undefined;
-    this.last_stroke_z = undefined;
+    this.last_stroke_z   = undefined;
+    this.last_stroke_eid = undefined;
+    this.last_layer_id = undefined;
+    this.last_stroke_stringid = undefined;
     
     var mat = update_tmps_mats.next();
     mat.load(matrix), matrix = mat;
@@ -115,6 +143,7 @@ export class SplineDrawer extends Canvas {
     this.set_matrix(matrix);
     
     for (var path of this.paths) {
+      path.was_updated = false;
       path.off.add(off);
       path.frame_first = true;
     }
@@ -123,6 +152,9 @@ export class SplineDrawer extends Canvas {
       console.trace("%c RECALC_ALL!  ", "color:orange");
     }
     
+    var drawparams = drawparam_cachering.next().init(redraw_rects, actlayer, only_render,
+                                                 selectmode, zoom, undefined, off, spline);
+                                                 
     for (var i=0; i<drawlist.length; i++) {
       var e = drawlist[i];
       //e.finalz = i;
@@ -146,11 +178,14 @@ export class SplineDrawer extends Canvas {
       if (recalc_all) {
         e.flag |= SplineFlags.REDRAW;
       }
+    
+      drawparams.z = i;
+      drawparams.combine_paths = true;
       
       if (e.type == SplineTypes.FACE) {
         this.update_polygon(e, redraw_rects, actlayer, only_render, selectmode, zoom, i, off, spline);
       } else if (e.type == SplineTypes.SEGMENT) {
-        this.update_stroke(e, redraw_rects, actlayer, only_render, selectmode, zoom, i, off, spline);
+        this.update_stroke(e, drawparams);
       }
       
       this.last_layer_id = this.drawlist_layerids[i];
@@ -166,49 +201,57 @@ export class SplineDrawer extends Canvas {
     }
   }
   
-  get_path(id, z) {
+  get_path(id, z, check_z=true) {
     this.used_paths[id] = 1;
     var path;
     
-    if (!this.has_path(id, z)) {
-      path = super.get_path(id, z);
+    if (!this.has_path(id, z, check_z)) {
+      //if (!(id in this.path_minmaxes)) {
+      //  this.path_minmaxes[id] = new MinMax(2);
+      //}
+      
+      path = super.get_path(id, z, check_z);
       path.frame_first = true;
     } else {
-      path = super.get_path(id, z);
+      path = super.get_path(id, z, check_z);
     }
     
     return path;
   }
   
-  has_path(id, z) {
+  has_path(id, z, check_z=true) {
     this.used_paths[id] = 1;
     
-    return super.has_path(id, z);
+    return super.has_path(id, z, check_z);
   }
   
-  update_stroke(seg, redraw_rects, actlayer, only_render, selectmode, zoom, z, off, spline) {
+  update_stroke(seg, drawparams) {
+    var redraw_rects = drawparams.redraw_rects, actlayer = drawparams.actlayer;
+    var only_render = drawparams.only_render, selectmode = drawparams.selectmode;
+    var zoom = drawparams.zooom, z = drawparams.z, off = drawparams.off, spline = drawparams.spline;
+    
     var eid = seg.eid; 
     
-    //*
-    if (this.last_stroke_mat != undefined) {
-      var keep = this.last_stroke_mat.equals(true, seg.mat);
+    /*
+    if (drawparams.combine_paths && this.last_stroke_mat != undefined) {
+      var keep = this.last_stroke_stringid == seg.stringid;
+      keep = keep && this.last_stroke_mat.equals(true, seg.mat);
+      keep = keep && this.has_path(this.last_stroke_eid, z, false) && this.get_path(this.last_stroke_eid, z, false).was_updated;
       
       if (keep) {
         eid = this.last_stroke_eid;
-      } else {
-        this.last_stroke_mat = seg.mat;
-        this.last_stroke_eid = seg.eid;
-        eid = seg.eid;
       }
-    } else {
-      this.last_stroke_mat = seg.mat;
-      this.last_stroke_eid = seg.eid;
-      eid = seg.eid;
     }
     //*/
     
-    if (this.has_path(eid, z) && !(seg.flag & SplineFlags.REDRAW)) {
+    if (this.has_path(eid, z, eid==seg.eid) && !(seg.flag & SplineFlags.REDRAW)) {
       return;
+    }
+    
+    if (seg.eid == eid) {
+      this.last_stroke_mat = seg.mat;
+      this.last_stroke_eid = seg.eid;
+      this.last_stroke_stringid = seg.stringid;
     }
     
     seg.flag &= ~SplineFlags.REDRAW;
@@ -229,15 +272,17 @@ export class SplineDrawer extends Canvas {
     
     df(offx, s);
     df(offy, s);
-    
     */
     
-    var path = this.get_path(eid, z);
-      
+    var path = this.get_path(eid, z, eid == seg.eid);
+    path.was_updated = true;
+    
     if (path.frame_first && path.clip_paths.length > 0) {
       path.clip_paths.reset();
       path.frame_first = false;
     }
+    
+    //path.beginPath();
     
     if (seg.l !== undefined && (seg.mat.flag & MaterialFlags.MASK_TO_FACE)) {
       var l = seg.l, _i = 0;
@@ -326,7 +371,18 @@ export class SplineDrawer extends Canvas {
       lastco = co;
     }
     
-    //path.lineTo(fx, fy);
+    /*
+    if (eid != seg.eid) {
+      path.update_aabb(this);
+      var max = config.MAX_CANVAS2D_VECTOR_CACHE_SIZE;
+      
+      if (path.aabb[1][0]-path.aabb[0][0] > max || path.aabb[1][1]-path.aabb[0][1] > max) {
+        path.undo();
+        drawparams.combine_paths = false;
+        
+        this.update_stroke(seg, drawparams);
+      }
+    }//*/
   }
   
   update_polygon(f, redraw_rects, actlayer, only_render, selectmode, zoom, z, off, spline) {
@@ -336,6 +392,7 @@ export class SplineDrawer extends Canvas {
     
     f.flag &= ~SplineFlags.REDRAW;
     var path = this.get_path(f.eid, z);
+    path.was_updated = true;
     
     path.hidden = !this.draw_faces;
     

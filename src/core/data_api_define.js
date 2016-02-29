@@ -16,7 +16,7 @@ import {EnumProperty, FlagProperty,
 
 import {ModalStates} from 'toolops_api';
 
-import {SplineFlags, MaterialFlags, SplineTypes} from 'spline_types';
+import {SplineFlags, MaterialFlags, SplineTypes} from 'spline_base';
 import {SelMask, ToolModes} from 'selectmode';
 import {Unit} from 'units';
 

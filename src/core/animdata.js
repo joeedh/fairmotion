@@ -3,7 +3,7 @@
 import {PropTypes} from 'toolprops';
 import {STRUCT} from 'struct';
 
-import {CustomDataLayer, SplineTypes, SplineFlags} from 'spline_types';
+import {CustomDataLayer, SplineTypes, SplineFlags} from 'spline_base';
 import {DataPathNode} from 'eventdag';
 
 import 'struct';

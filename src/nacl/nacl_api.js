@@ -2,8 +2,6 @@
 
 import {TypedWriter} from 'typedwriter';
 
-var INCREMENTAL = true;
-
 var mmax = Math.max, mmin = Math.min, mfloor = Math.floor;
 var abs = Math.abs, sqrt=Math.sqrt, sin=Math.sin, cos=Math.cos,
     pow = Math.pow, log=Math.log, acos=Math.acos, asin=Math.asin,
@@ -13,7 +11,7 @@ var DEBUG = false;
 
 import {constraint, solver} from "solver";
 import {ModalStates} from 'toolops_api';
-import {SplineTypes, SplineFlags} from 'spline_types';
+import {SplineTypes, SplineFlags} from 'spline_base';
 
 var FIXED_KS_FLAG = SplineFlags.FIXED_KS;
 
@@ -114,396 +112,7 @@ export function clear_jobs(typeid) {
 //evil copy pasted code here
 var last_call = undefined;
 
-function solve_intern(spline, update_verts, order, goal_order, steps, gk) {
-    static con_cache = {
-        list : [],
-        used : 0
-    };
-    
-    if (last_call == undefined) {
-      last_call = time_ms();
-    }
-    
-    var clear_broken_tangents = time_ms() - last_call > 500;
-    
-    if (clear_broken_tangents) {
-      last_call = time_ms();
-    }
-    con_cache.used = 0;
-
-    function con(w, ks, order, func, params) {
-        if (con_cache.used < con_cache.list.length) {
-            return con_cache.list[con_cache.used++].cache_init(w, ks, order, func, params);
-        } else {
-            var ret = new constraint(w, ks, order, func, params);
-            con_cache.list.push(ret);
-            con_cache.used++;
-            return ret;
-        }
-    }
-
-    if (order == undefined)
-        order = ORDER;
-    if (steps == undefined)
-        steps = 35;
-    if (gk == undefined)
-        gk = 4.0;
-    
-    var edge_segs = [];
-    
-    var UPDATE = SplineFlags.UPDATE;
-    for (var i=0; INCREMENTAL && i<spline.segments.length; i++) {
-        var seg = spline.segments[i];
-        if ((seg.v1.flag & UPDATE) != (seg.v2.flag & UPDATE)) {
-            for (var j=0; j<KTOTKS; j++) {
-                seg._last_ks[j] = seg.ks[j];
-            }
-            seg.flag |= SplineFlags.TEMP_TAG;
-            edge_segs.push(seg);
-
-            var s2=undefined, s3=undefined;
-            if (seg.v1.segments.length == 2) s2 = seg.v1.other_segment(seg);
-            if (seg.v2.segments.length == 2) s3 = seg.v2.other_segment(seg);
-        } else {
-            seg.flag &= ~SplineFlags.TEMP_TAG;
-        }
-    }
-
-    var start_time = time_ms();
-
-    window._SOLVING = true;
-    
-    function hard_tan_c(params) {
-        var seg = params[0], tan = params[1], s = params[2];
-
-        var dv = seg.derivative(s, order);
-        dv.normalize();
-
-        return abs(dv.vectorDistance(tan));
-    }
-
-    function tan_c(params) {
-        var seg1 = params[0], seg2 = params[1];
-        var v, s1=0, s2=0;
-
-        if (seg1.v1 == seg2.v1 || seg1.v1 == seg2.v2)
-            v = seg1.v1;
-        else if (seg1.v2 == seg2.v1 || seg1.v2 == seg2.v2)
-            v = seg1.v2;
-        else
-            console.trace("EVIL INCARNATE!");
-
-        var eps = 0.0001;
-        s1 = v == seg1.v1 ? eps : 1.0-eps;
-        s2 = v == seg2.v1 ? eps : 1.0-eps;
-
-        var t1 = seg1.derivative(s1, order);
-        var t2 = seg2.derivative(s2, order);
-
-        t1.normalize(); t2.normalize();
-
-        if (seg1.v1.eid == seg2.v1.eid || seg1.v2.eid == seg2.v2.eid) {
-            t1.negate();
-        }
-
-        /*
-         if (t1[1] == 0.0)
-         return t2[1];
-         if (t2[1] == 0.0)
-         return t1[1];
-
-         return abs(t1[0]/t1[1] - t2[0]/t2[1]);
-         //return abs(atan2(t1[0], t1[1]) - atan2(t2[0], t2[1])); //abs(t1[0]/t1[1] - t2[0]/t2[1]);
-         //*/
-
-        var d = t1.dot(t2);
-        d = mmax(mmin(d, 1.0), -1.0);
-        return acos(d);
-
-        var ret = abs(t1.vectorDistance(t2));
-        return ret;
-    }
-
-    function handle_curv_c(params) {
-        if (order < 4) return 0;
-
-        //HARD CLAMP
-        var seg1 = params[0], seg2 = params[1];
-        var h1 = params[2], h2 = params[3];
-
-        var len1 = seg1.ks[KSCALE] - h1.vectorDistance(seg1.handle_vertex(h1));
-        var len2 = seg2.ks[KSCALE] - h2.vectorDistance(seg2.handle_vertex(h2));
-
-        var k1i = h1 == seg1.h1 ? 1 : order-2;
-        var k2i = h2 == seg2.h1 ? 1 : order-2;
-
-        var k1 = (len1 != 0.0 ? 1.0 / len1 : 0.0) * seg1.ks[KSCALE];
-        var k2 = (len2 != 0.0 ? 1.0 / len2 : 0.0) * seg2.ks[KSCALE];
-
-        var s1 = seg1.ks[k1i] < 0.0 ? -1 : 1;
-        var s2 = seg2.ks[k2i] < 0.0 ? -1 : 1;
-
-        if (isNaN(k1) || isNaN(k2)) return 0;
-
-        if (abs(seg1.ks[k1i]) < k1) seg1.ks[k1i] = k1*s1;
-        if (abs(seg2.ks[k2i]) < k2) seg2.ks[k2i] = k2*s2;
-
-        return 0;
-    }
-
-    function curv_c(params) {
-        //HARD CLAMP
-        var seg1 = params[0], seg2 = params[1];
-        var v, s1=0, s2=0;
-
-        /*
-         seg1.evaluate(0.5);
-         seg2.evaluate(0.5);
-         //*/
-
-        if (seg1.v1 == seg2.v1 || seg1.v1 == seg2.v2)
-            v = seg1.v1;
-        else if (seg1.v2 == seg2.v1 || seg1.v2 == seg2.v2)
-            v = seg1.v2;
-        else
-            console.trace("EVIL INCARNATE!");
-
-        var s1 = v == seg1.v1 ? 0 : order-1;
-        var s2 = v == seg2.v1 ? 0 : order-1;
-
-        var k1 = seg1.ks[s1]/seg1.ks[KSCALE];
-        var k2 = seg2.ks[s2]/seg2.ks[KSCALE];
-
-        if (seg1.v1.eid == seg2.v1.eid || seg1.v2.eid == seg2.v2.eid) {
-            k1 = -k1;
-        }
-
-        var k3 = (k1+k2)*0.5;
-
-        seg2.ks[s2] = (k3*seg2.ks[KSCALE]);//2+seg2.ks[s2]/2;
-
-        if (seg1.v1.eid == seg2.v1.eid || seg1.v2.eid == seg2.v2.eid) {
-            k3 = -k3;
-        }
-        seg1.ks[s1] = (k3*seg1.ks[KSCALE]);//2+seg1.ks[s1]/2;
-
-        return 0;
-    }
-
-    var cs = [];
-    
-    function copy_c(params) {
-      var v = params[1], seg = params[0];
-      
-      var s1 = v === seg.v1 ? 0 : order-1;
-      var s2 = v === seg.v1 ? order-1 : 0;
-      
-      seg.ks[s1] += (seg.ks[s2]-seg.ks[s1])*gk*0.5;
-      
-      return 0.0;
-    }
-
-    //handle manual tangents
-    for (var i=0; i<spline.handles.length; i++) {
-        var h = spline.handles[i];
-
-        if (!h.use) continue;
-
-        var seg = h.segments[0];
-
-        if (seg.v1.vectorDistance(seg.v2) < 2)
-            continue;
-
-        var v = seg.handle_vertex(h);
-
-        if (INCREMENTAL && !((v.flag) & SplineFlags.UPDATE))
-            continue;
-
-        var tan1 = new Vector3(h).sub(seg.handle_vertex(h)).normalize();
-
-        if (h == seg.h2)
-            tan1.negate();
-
-        if (isNaN(tan1.dot(tan1)) || tan1.dot(tan1) == 0.0) continue;
-
-        var s = h == seg.h1 ? 0 : 1;
-
-        //console.log("tan1", tan1);
-
-        //var tc = new constraint(tw1, [ss1.ks, ss2.ks], order, tan_c, params);
-        var do_curv = (v.flag & SplineFlags.BREAK_CURVATURES);
-
-        var htw = 1.0;
-
-        if (h.owning_vertex == undefined) continue;
-
-        var do_tan = !((h.flag) & SplineFlags.BREAK_TANGENTS);
-        do_tan = do_tan && !(h.flag & SplineFlags.AUTO_PAIRED_HANDLE);
-
-        if (do_tan) {
-            var tc = new constraint(htw, [seg.ks], order, hard_tan_c, [seg, tan1, s]);
-            tc.type = "hard_tan_c";
-            cs.push(tc);
-            
-            update_verts.add(h);
-        }
-
-        if (h.hpair == undefined) continue;
-
-        var ss1 = seg, h2 = h.hpair, ss2=h2.owning_segment;
-
-        if ((h.flag & SplineFlags.AUTO_PAIRED_HANDLE) &&
-            !((seg.handle_vertex(h).flag & SplineFlags.BREAK_TANGENTS)))
-        {
-            var tc = new constraint(0.2, [ss1.ks], order, tan_c, [ss1, ss2]);
-            tc.type = "tan_c";
-            tc.k2 = 0.8
-            cs.push(tc);
-            
-            var tc = new constraint(0.2, [ss2.ks], order, tan_c, [ss2, ss1]);
-            tc.type = "tan_c";
-            tc.k2 = 0.8
-            cs.push(tc);
-            
-            update_verts.add(h);
-        }
-
-        /*
-         var cw1 = 0.5, cw2=cw1;
-
-         var cws = [0, 0, 0, 0, 0, 0, 0, 0];
-         cws[0] = cws[order-1] = 1;
-         if (order == 3) cws[1] = 1;
-
-         var cc = new constraint(cw1, [ss1.ks], order, handle_curv_c, [ss1, ss2, h, h2]);
-         slv.add(cc);
-         var cc = new constraint(cw2, [ss2.ks], order, handle_curv_c, [ss1, ss2, h, h2]);
-         slv.add(cc);
-         */
-
-        var cc = new constraint(1, [ss1.ks], order, curv_c, [ss1, ss2, h, h2]);
-        cc.type = "curv_c";
-        cs.push(cc);
-        
-        var cc = new constraint(1, [ss2.ks], order, curv_c, [ss1, ss2, h, h2]);
-        cs.push(cc);
-        cc.type = "curv_c";
-        
-        update_verts.add(h);
-    }
-
-    var limits = {
-        v_curve_limit : 12,
-        v_tan_limit   : 1
-    };
-
-    for (var i=0; i<spline.verts.length; i++) {
-        var v = spline.verts[i];
-
-        if (INCREMENTAL && !(v.flag & SplineFlags.UPDATE)) continue;
-        
-        if (v.segments.length == 1 && !(v.flag & SplineFlags.BREAK_CURVATURES)) {
-          var seg = v.segments[0];
-          
-          //evil!
-          //var cc = new constraint(1.0, [seg.ks], order, copy_c, [seg, v]);
-          //cc.type = "copy_c";
-          //cc.k2 = 0.8
-          //cs.push(cc);
-        }
-
-        if (v.segments.length != 2) continue;
-
-        var ss1 = v.segments[0], ss2 = v.segments[1];
-
-        var bad = false;
-
-        //ignore anything connected to a zero-length segment
-        for (var j=0; j<v.segments.length; j++) {
-            var seg = v.segments[j];
-            if (seg.v1.vectorDistance(seg.v2) < 2) {
-                bad = true;
-            }
-        }
-
-        var mindis = Math.min(ss1.other_vert(v).vectorDistance(v), ss2.other_vert(v).vectorDistance(v));
-        var maxdis = Math.max(ss1.other_vert(v).vectorDistance(v), ss2.other_vert(v).vectorDistance(v));
-
-        if (mindis == 0.0) {
-            //bad = true;
-        } else {
-            //bad = bad || maxdis/mindis > 20.0;
-        }
-        //bad = bad || (mindis < limits.v_tan_limit);
-
-        if (bad && DEBUG.degenerate_geometry) {
-            console.log("Ignoring!");
-        }
-
-        if (bad) continue;
-
-        var l1 = ss1.length, l2 = ss2.length;
-        var l3 = (l1+l2)*0.5;
-        var tw1 = Math.min(l1/l2, l2/l1), tw2 = tw1
-        tw1 = tw2 = 1.0;
-
-        if (!(v.flag & SplineFlags.BREAK_TANGENTS)) {
-            var tc = new constraint(0.2, [ss2.ks], order, tan_c, [ss1, ss2]);
-            
-            tc.k2 = 0.8;
-            tc.type = "tan_c";
-            cs.push(tc);
-            
-            var tc = new constraint(0.2, [ss1.ks], order, tan_c, [ss2, ss1]);
-            tc.k2 = 0.8
-            tc.type = "tan_c";
-            cs.push(tc);
-
-            update_verts.add(v);
-        } else if (clear_broken_tangents) {
-            /*
-            for (var k=0; k<ORDER; k++) {
-              ss1.ks[k] = 0;
-            }
-            
-            for (var k=0; k<ORDER; k++) {
-              ss2.ks[k] = 0;
-            }*/
-            
-            update_verts.add(v);
-            continue;
-        } else {
-          continue;
-        }
-
-        if (v.flag & SplineFlags.BREAK_CURVATURES)
-            continue;
-
-        if (mindis == 0.0) {
-            bad = true;
-        } else {
-            bad = bad || maxdis/mindis > 9.0;
-        }
-
-        if (bad)
-            continue;
-
-        //if (mindis < limits.v_curve_limit)
-        //  continue;
-
-        var cc = new constraint(1, [ss1.ks], order, curv_c, [ss1, ss2]);
-        cc.type = "curv_c";
-        cs.push(cc);
-        
-        var cc = new constraint(1, [ss2.ks], order, curv_c, [ss2, ss1]);
-        cc.type = "curv_c";
-        cs.push(cc);
-
-        update_verts.add(v);
-    }
-    
-    return [cs, edge_segs];
-}
+import {build_solver} from 'spline_math_hermite';
 
 export function _get_job(message) {
   if (message.data instanceof ArrayBuffer) {
@@ -836,13 +445,6 @@ export function* gen_draw_cache(postMessage, status, spline) {
 }
 
 export function do_solve(sflags, Spline spline, int steps, float gk=0.95, return_promise=false, draw_id=0) {
-
-    if (!INCREMENTAL) {
-      for (var v of spline.verts) {
-        v.flag |= sflags.UPDATE;
-      }
-    }
-    
     if (spline._solve_id == undefined) {
         spline._solve_id = solve_idgen++;
     }
@@ -863,22 +465,19 @@ export function do_solve(sflags, Spline spline, int steps, float gk=0.95, return
     spline.resolve = 1;
     spline.propagate_update_flags();
     
-    for (var i=0; i<spline.verts.length; i++) {
-      var v = spline.verts[i];
-    }
-    
     for (var i=0; i<spline.segments.length; i++) {
         var seg = spline.segments[i];
 
-        if (INCREMENTAL && (!(seg.v1.flag & SplineFlags.UPDATE) || !(seg.v2.flag & SplineFlags.UPDATE)))
+        if ((!(seg.v1.flag & SplineFlags.UPDATE) && !(seg.v2.flag & SplineFlags.UPDATE)))
             continue;
         
-        /* do this when writing seg.ks
+        //check for NaN
         for (var j=0; j<seg.ks.length; j++) {
-            seg.ks[j] = 0.000001; //(j-ORDER/2)*4;
+            if (isNaN(seg.ks[j])) {
+              seg.ks[j] = 0.000001;
+            }
         }
-        */
-
+        
         seg.evaluate(0.5);
     }
     
@@ -935,11 +534,12 @@ export function do_solve(sflags, Spline spline, int steps, float gk=0.95, return
 
             for (var j = 0; j < seg.ks.length; j++) {
                 if (isNaN(seg.ks[j])) {
+                    console.log("NaN!", seg.ks, seg);
                     seg.ks[j] = 0;
                 }
             }
 
-            //don't need to do spline here
+            //don't need to do spline sort here
             //want to avoid per-frame updates of spline sort
             if (g_app_state.modalstate != ModalStates.TRANSFROMING) {
                 if ((seg.v1.flag & SplineFlags.UPDATE) || (seg.v2.flag & SplineFlags.UPDATE))
@@ -985,9 +585,10 @@ export function do_solve(sflags, Spline spline, int steps, float gk=0.95, return
     //console.log("finished nacl solve");
   
     spline.resolve = 0;
+    
     var update_verts = new set();
-    var ret = solve_intern(spline, update_verts, ORDER, undefined, 30, 1);
-    var cs=ret[0], edge_segs=ret[1];
+    var slv = build_solver(spline, ORDER, undefined, 1, undefined, update_verts);
+    var cs = slv.cs, edge_segs = slv.edge_segs;
     
     edge_segs = new set(edge_segs);
     
@@ -1108,7 +709,7 @@ function write_nacl_solve_new(writer, spline, cons, update_verts, update_segs, g
             seg1 = param1;
             seg2 = param2;
           }
-     } else if (c.type == "hard_tan_c") {
+      } else if (c.type == "hard_tan_c") {
           type = ConstraintTypes.HARD_TAN_CONSTRAINT;
           
           var seg = c.params[0], tan = c.params[1], s = c.params[2];
@@ -1118,7 +719,7 @@ function write_nacl_solve_new(writer, spline, cons, update_verts, update_segs, g
           
           fparam1 = Math.atan2(tan[0], tan[1]);
           fparam2 = s;
-     } else if (c.type == "curv_c") {
+      } else if (c.type == "curv_c") {
           type = ConstraintTypes.CURVATURE_CONSTRAINT;
           //console.log("curvature constraint!")
           seg1 = c.params[0];
@@ -1140,13 +741,16 @@ function write_nacl_solve_new(writer, spline, cons, update_verts, update_segs, g
           
           seg1 = param1;
           seg2 = -1; //param2
-     } else if (c.type == "copy_c") {
+      } else if (c.type == "copy_c") {
           type = ConstraintTypes.COPY_C_CONSTRAINT;
           //console.log("curvature constraint!")
           
           seg1 = c.params[0];
           param1 = seg1.v1.segments.length == 1; //c.params[1] === seg1.v1;
-     }
+      } else {
+       console.trace(c, seg1, seg2);
+       throw new Error("unknown constraint type " + c.type);
+      }
    
     //console.log("c.type, c.k, gk:", c.type, c.k, gk);
     

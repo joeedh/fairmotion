@@ -13,7 +13,7 @@ import {SplineQuery} from 'spline_query';
 import {draw_spline, patch_canvas2d, set_rendermat} from 'spline_draw';
 import {solve} from 'solver_new';
 import {ModalStates} from 'toolops_api';
-import {USE_NACL} from 'config';
+import * as config from 'config';
 
 var atan2 = Math.atan2;
 
@@ -39,6 +39,10 @@ import {ElementArraySet, ElementArray,
         SplineLayer, SplineLayerSet} from 'spline_element_array';
 
 #include "src/config/config_defines.js"
+
+var rect_tmp = [
+  new Vector2(), new Vector2()
+];
 
 import {
   eval_curve,
@@ -1523,7 +1527,7 @@ export class Spline extends DataBlock {
     this.propagate_draw_flags();
     
     var this2 = this;
-    if (USE_NACL && window.common != undefined && window.common.naclModule != undefined) {
+    if (config.USE_NACL && window.common != undefined && window.common.naclModule != undefined) {
       var ret = do_solve(SplineFlags, this, steps, gk, true);
     
       ret.then(function() {
@@ -2030,10 +2034,16 @@ export class Spline extends DataBlock {
     }
     
     g._is_patched = this;
-    
     g.lineWidth = 1;
+    
     if (this.resolve) {
-      this.solve();
+      this.solve().then(function() {
+        for (var i=0; i<redraw_rects.length; i++) {
+          var rr = redraw_rects[i];
+          
+          window.redraw_viewport(rr[0], rr[1]);
+        }
+      });
     }
     
      draw_spline(this, redraw_rects, g, editor, selectmode, only_render, 

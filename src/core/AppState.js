@@ -25,7 +25,7 @@ import {ToolMacro, ToolOp, UndoFlags, ToolFlags} from 'toolops_api';
 import {PropTypes, TPropFlags, StringProperty, CollectionProperty} from 'toolprops';
 import {View2DHandler} from 'view2d';
 import {Scene} from 'scene';
-import {SplineTypes, SplineFlags} from 'spline_types';
+import {SplineTypes, SplineFlags} from 'spline_base';
 import {DopeSheetEditor} from 'DopeSheetEditor';
 import {OpStackEditor} from 'ops_editor';
 

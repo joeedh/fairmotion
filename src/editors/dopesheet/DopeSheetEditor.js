@@ -38,7 +38,7 @@ import {TimeDataLayer, get_vtime, set_vtime,
        
 import {SplineLayerFlags, SplineLayerSet} from 'spline_element_array';
 
-import {SplineFlags} from 'spline_types';
+import {SplineFlags} from 'spline_base';
 import {AddLayerOp, ChangeLayerOp, ChangeElementLayerOp} from 'spline_layerops';
 import {DissolveVertOp} from 'spline_editops';
 

@@ -923,13 +923,15 @@ export class SplineFace extends SplineElement {
     
     this._aabb = [new Vector3(), new Vector3()];
     
+    var this2 = this;
+    
     this.mat.update = function() {
-      this.flag |= SplineFlags.REDRAW;
+      this2.flag |= SplineFlags.REDRAW;
     }
   }
   
   update() {
-    this.flag |= SplineFlags.UPDATE_AABB;
+    this.flag |= SplineFlags.UPDATE_AABB|SplineFlags.REDRAW;
   }
   
   update_aabb() {

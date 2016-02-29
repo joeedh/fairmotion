@@ -7,9 +7,10 @@ var sqrt = Math.sqrt, pow = Math.pow, log = Math.log, abs=Math.abs;
 var SPI2 = Math.sqrt(PI/2);
 
 export class constraint {
-  constructor(k, klst, klen, ceval, params, limit) {
+  constructor(typename, k, klst, klen, ceval, params, limit) {
     if (limit == undefined) limit = 0.001;
     
+    this.type = typename;
     this.klst = klst;
     
     this.ceval = ceval;
@@ -145,6 +146,12 @@ export class solver {
   constructor() {
     this.cs = [];
     this.threshold = 0.001;
+    
+    /*list of edges with a one-valence vertex.
+      note that update flags are taken into account,
+      so a vertex with two adjacent edges, but only one of which
+      will be updated, is treated as a one-valence vert.*/
+    this.edge_segs = []; 
   }
 
   add (c) {

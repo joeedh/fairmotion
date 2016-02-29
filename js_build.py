@@ -904,6 +904,8 @@ def do_copy_targets():
   db = open_db("jbuild.db")
   db_depend = open_db("jbuild_dependencies.db")
   
+  build_final = False
+  
   try:
     for f in copy_targets:
       abspath = np(f.target)
@@ -925,6 +927,8 @@ def do_copy_targets():
       if skip:
         continue
 
+      build_final = True
+      
       #db[abspath] = stat
       cmd = cp_handler(src, abspath)
       print(cmd)
@@ -948,7 +952,9 @@ def do_copy_targets():
     
     traceback.print_stack()
     traceback.print_last()
-
+  
+  return build_final
+  
 def build_chrome_package():
   print("Building chrome app. . .")
   
@@ -1095,7 +1101,7 @@ def buildall_intern():
   for t in targets:
     build_final |= build_target(t)
   
-  do_copy_targets()
+  build_final |= do_copy_targets()
   
   if build_final:
     build_package()

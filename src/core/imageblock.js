@@ -1,7 +1,6 @@
 import {DataBlock, DataTypes, BlockFlags} from 'lib_api';
 import {STRUCT} from 'struct';
 import {ModalStates} from 'toolops_api';
-import {USE_NACL} from 'config';
 import {SelMask} from 'selectmode';
 import {SessionFlags} from 'view2d_editor';
 import * as strutils from 'strutils';

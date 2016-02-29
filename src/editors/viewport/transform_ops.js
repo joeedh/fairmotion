@@ -4,7 +4,6 @@ import {
 
 import {TransformOp} from 'transform';
 
-import {USE_NACL} from 'config';
 import {SelMask} from 'selectmode';
 import {MResTransData} from 'multires_transdata';
 

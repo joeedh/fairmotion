@@ -2,7 +2,7 @@
 
 #include "src/config/config_defines.js"
 
-import {USE_NACL} from 'config';
+import * as config from 'config';
 
 //math globals
 var FEPS = 1e-18;
@@ -36,11 +36,13 @@ function do_solve_nacl(sflags, spline, steps, gk, return_promise) {
   }
 }
 
-export var do_solve = USE_NACL ? do_solve_nacl : function() {
-  if (DISABLE_SOLVE) return;
-  
-  return math.do_solve.apply(this, arguments);
-};
+export function do_solve() {
+  if (config.USE_NACL) {
+    return do_solve_nacl.apply(this, arguments);
+  } else {
+    return math.do_solve.apply(this, arguments);
+  }
+}
 
 export var KSCALE  = ORDER+1;
 export var KANGLE  = ORDER+2;

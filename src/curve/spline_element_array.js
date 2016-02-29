@@ -56,10 +56,23 @@ export class SplineLayer extends set {
   }
   
   afterSTRUCT(spline) {
-    if (this.eids == undefined) return;
+    if (this.eids === undefined)
+      return;
+    
+    var corrupted = false;
     
     for (var eid of this.eids) {
-      this.add(spline.eidmap[eid]);
+      var e = spline.eidmap[eid];
+      if (e === undefined) {
+        corrupted = true;
+        continue;
+      }
+      
+      this.add(e);
+    }
+    
+    if (corrupted) {
+      console.trace("Warning: corrupted layerset!", this, spline, "<==");
     }
     
     delete this.eids;
@@ -569,6 +582,7 @@ export class ElementArray extends GArray {
   
   remove(SplineElement e, soft_error=false) {
     var idx = this.indexOf(e);
+    
     if (idx < 0) {
       throw new Error("Element not in list");
     }
@@ -597,8 +611,11 @@ export class ElementArray extends GArray {
     for (var k in e.layers) {
       var layer = this.layerset.idmap[k];
       
-      if (layer != undefined)
+      if (layer != undefined) {
         layer.remove(e);
+      } else {
+        console.trace("Failed to find layer " + k + "!", e, this, this.layerset);
+      }
     }
   }
   

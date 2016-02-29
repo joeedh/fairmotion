@@ -58,6 +58,10 @@ double Graphics3DInstance::eval_constraint(
         //logf("tan2: %.4lf %.4lf %.4lf", tan2[0], tan2[1], tan2[2]);
         //logf("dot:  %.4lf\n", dot);
         
+        if (isnan(dot)) {
+          return 0.0;
+        }
+        
         if (dot < -1.0) dot = -1.0;
         if (dot > 1.0) dot = 1.0;
         
@@ -88,8 +92,10 @@ double Graphics3DInstance::eval_constraint(
         eval_curve_dv(tan2, s2, v3->co, v4->co, seg2->ks, ORDER, false, true);
        //*/
         
-        double k1 = seg1->ks[s1] / seg1->ks[KSCALE];
-        double k2 = seg2->ks[s2] / seg2->ks[KSCALE];
+        double scale1 = seg1->ks[KSCALE], scale2 = seg2->ks[KSCALE];
+        
+        double k1 = seg1->ks[s1] / (scale1 != 0.0 ? scale1 : 10000.0);
+        double k2 = seg2->ks[s2] / (scale2 != 0.0 ? scale2 : 10000.0);
         
         if (s1 == s2) {
           k1 *= -1.0;
@@ -136,7 +142,7 @@ double Graphics3DInstance::eval_constraint(
         if (seg1->ks[KSCALE] == 0.0 || seg2->ks[KSCALE] == 0.0) {
           ratio = 0.5;
         } else {
-          ratio = seg1->ks[KSCALE] / seg2->ks[KSCALE];
+          ratio = seg1->ks[KSCALE] / (seg2->ks[KSCALE] != 0.0 ? seg2->ks[KSCALE] : 10000.0);
         }
         
         if (ratio > 1.0)
@@ -144,13 +150,15 @@ double Graphics3DInstance::eval_constraint(
         
         double mulfac = ratio*0.5;
         double ret = 0.0;
+        double scale1 = seg1->ks[KSCALE];
+        double scale2 = seg2->ks[KSCALE];
         
         for (int i=0; i<ORDER/2; i++) {
           s1 = !con->param1f ? i : ORDER-1-i;
           s2 = !con->param2f ? i : ORDER-1-i;
           
-          double k1 = seg1->ks[s1] / seg1->ks[KSCALE];
-          double k2 = ksign*seg2->ks[s2] / seg2->ks[KSCALE];
+          double k1 = seg1->ks[s1] / (scale1 != 0.0 ? scale1 : 1.0);
+          double k2 = ksign*seg2->ks[s2] / (scale2 != 0.0 ? scale2 : 1.0);
           
           double k = (k1+k2)*0.5;
           

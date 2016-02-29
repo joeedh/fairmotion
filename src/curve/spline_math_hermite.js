@@ -2,6 +2,7 @@
 
 //hermite clothoid
 
+import {SplineFlags, SplineTypes} from 'spline_base';
 import {solver, constraint} from "solver";
 import {ModalStates} from 'toolops_api';
 
@@ -224,42 +225,46 @@ export var spiralcurvature = polycurvature_spower;
 export var spiralcurvature_dv = polycurvature_dv_spower;
 export var ORDER = 4;
 
-function solve_intern(spline, order, goal_order, steps, gk, do_basic) {
+export function build_solver(spline, order, goal_order, gk, do_basic, update_verts) {
   static con_cache = {
     list : [],
     used : 0
   };
   
+  var slv = new solver();
   con_cache.used = 0;
-  
-  function con(w, ks, order, func, params) {
-    if (con_cache.used < con_cache.list.length) {
-      return con_cache.list[con_cache.used++].cache_init(w, ks, order, func, params);
-    } else {
-      var ret = new constraint(w, ks, order, func, params);
-      con_cache.list.push(ret);
-      con_cache.used++;
-      return ret;
-    }
-  }
   
   if (order == undefined)
     order = ORDER;
-  if (steps == undefined)
-    steps = 35;
   if (gk == undefined)
     gk = 1.0;
-    
-  var edge_segs = [];
+  
   var UPDATE = SplineFlags.UPDATE;
+  
   for (var i=0; INCREMENTAL && i<spline.segments.length; i++) {
     var seg = spline.segments[i];
-    if ((seg.v1.flag & UPDATE) != (seg.v2.flag & UPDATE)) {
+    var edge_seg = (seg.v1.flag & UPDATE) != (seg.v2.flag & UPDATE);
+    
+    //ensure at least one fully-updated segment surrounds seg.v1 or seg.v2.
+    var ok = false;
+    
+    for (var j=0; j<2; j++) {
+      var v = j ? seg.v2 : seg.v1;
+      for (var k=0; !ok && k<v.segments.length; k++) {
+        var seg2 = v.segments[k];
+        
+        ok = ok || ((seg2.v1.flag & UPDATE) && (seg2.v2.flag & UPDATE));
+      }
+    }
+    
+    edge_seg = edge_seg && ok;
+    
+    if (edge_seg) {
       for (var j=0; j<KTOTKS; j++) {
         seg._last_ks[j] = seg.ks[j];
       }
       seg.flag |= SplineFlags.TEMP_TAG;
-      edge_segs.push(seg);
+      slv.edge_segs.push(seg);
       
       var s2=undefined, s3=undefined;
       if (seg.v1.segments.length == 2) s2 = seg.v1.other_segment(seg);
@@ -267,12 +272,7 @@ function solve_intern(spline, order, goal_order, steps, gk, do_basic) {
     } else {
       seg.flag &= ~SplineFlags.TEMP_TAG;
     }
- }
-    
-  var start_time = time_ms();
-  
-  window._SOLVING = true;
-  var slv = new solver();
+  }
   
   function hard_tan_c(params) {
     var seg = params[0], tan = params[1], s = params[2];
@@ -536,8 +536,11 @@ function solve_intern(spline, order, goal_order, steps, gk, do_basic) {
     do_tan = do_tan && !(h.flag & SplineFlags.AUTO_PAIRED_HANDLE);
     
     if (do_tan) {
-      var tc = new constraint(0.25, [seg.ks], order, hard_tan_c, [seg, tan1, s]);
+      var tc = new constraint("hard_tan_c", 0.25, [seg.ks], order, hard_tan_c, [seg, tan1, s]);
       tc.k2 = 1.0;
+      
+      if (update_verts)
+        update_verts.add(h);
       slv.add(tc);
     }
     
@@ -548,24 +551,30 @@ function solve_intern(spline, order, goal_order, steps, gk, do_basic) {
     if ((h.flag & SplineFlags.AUTO_PAIRED_HANDLE) && 
       !((seg.handle_vertex(h).flag & SplineFlags.BREAK_TANGENTS))) 
     {
-      var tc = new constraint(0.3, [ss1.ks, ss2.ks], order, tan_c, [ss1, ss2]);
+      var tc = new constraint("tan_c", 0.3, [ss1.ks, ss2.ks], order, tan_c, [ss1, ss2]);
       tc.k2 = 0.8
+      
+      if (update_verts)
+        update_verts.add(h);
       slv.add(tc);
     }
     
     /*
     var cw1 = 0.5, cw2=cw1;
     
-    var cc = new constraint(cw1, [ss1.ks], order, handle_curv_c, [ss1, ss2, h, h2]);
+    var cc = new constraint("handle_curv_c", cw1, [ss1.ks], order, handle_curv_c, [ss1, ss2, h, h2]);
     slv.add(cc);
-    var cc = new constraint(cw2, [ss2.ks], order, handle_curv_c, [ss1, ss2, h, h2]);
+    var cc = new constraint("handle_curv_c", cw2, [ss2.ks], order, handle_curv_c, [ss1, ss2, h, h2]);
     slv.add(cc);
     */
     
-    var cc = new constraint(1, [ss1.ks], order, curv_c, [ss1, ss2, h, h2]);
+    var cc = new constraint("curv_c", 1, [ss1.ks], order, curv_c, [ss1, ss2, h, h2]);
     slv.add(cc);
-    var cc = new constraint(1, [ss2.ks], order, curv_c, [ss1, ss2, h, h2]);
+    var cc = new constraint("curv_c", 1, [ss2.ks], order, curv_c, [ss1, ss2, h, h2]);
     slv.add(cc);
+    
+    if (update_verts)
+      update_verts.add(h);
   }
   
   var limits = {
@@ -592,10 +601,12 @@ function solve_intern(spline, order, goal_order, steps, gk, do_basic) {
       tan.negate();
     }
     
-    var tc = new constraint(manual_w, [ss1.ks], order, hard_tan_c, [ss1, tan, s]);
+    var tc = new constraint("hard_tan_c", manual_w, [ss1.ks], order, hard_tan_c, [ss1, tan, s]);
     tc.k2 = manual_w_2;
     
     slv.add(tc);
+    if (update_verts)
+      update_verts.add(v);
   }
   
   for (var i=0; i<spline.verts.length; i++) {
@@ -606,7 +617,7 @@ function solve_intern(spline, order, goal_order, steps, gk, do_basic) {
       var seg = v.segments[0];
       
       //evil!
-      //var cc = new constraint(1.0, [seg.ks], order, copy_c, [seg, v]);
+      //var cc = new constraint("copy_c", 1.0, [seg.ks], order, copy_c, [seg, v]);
       //cc.k2 = 0.8
       //slv.add(cc);
     }
@@ -642,13 +653,16 @@ function solve_intern(spline, order, goal_order, steps, gk, do_basic) {
     if (bad) continue;
     
     if (!(v.flag & (SplineFlags.BREAK_TANGENTS|SplineFlags.USE_HANDLES))) {
-      var tc = new constraint(0.5, [ss2.ks], order, tan_c, [ss1, ss2]);
+      var tc = new constraint("tan_c", 0.5, [ss2.ks], order, tan_c, [ss1, ss2]);
       tc.k2 = 0.8
       slv.add(tc);
       
-      var tc = new constraint(0.5, [ss1.ks], order, tan_c, [ss2, ss1]);
+      var tc = new constraint("tan_c", 0.5, [ss1.ks], order, tan_c, [ss2, ss1]);
       tc.k2 = 0.8
       slv.add(tc);
+      
+      if (update_verts)
+        update_verts.add(v);
     } else if (!(v.flag & SplineFlags.BREAK_TANGENTS)) { //manual handles
       var h = ss1.handle(v);
       var tan = new Vector3(h).sub(v).normalize();
@@ -658,7 +672,7 @@ function solve_intern(spline, order, goal_order, steps, gk, do_basic) {
         tan.negate();
       }
       
-      var tc = new constraint(manual_w, [ss1.ks], order, hard_tan_c, [ss1, tan, s]);
+      var tc = new constraint("hard_tan_c", manual_w, [ss1.ks], order, hard_tan_c, [ss1, tan, s]);
       tc.k2 = manual_w_2;
       
       slv.add(tc);
@@ -671,10 +685,13 @@ function solve_intern(spline, order, goal_order, steps, gk, do_basic) {
         tan.negate();
       }
       
-      var tc = new constraint(manual_w, [ss2.ks], order, hard_tan_c, [ss2, tan, s]);
+      var tc = new constraint("hard_tan_c", manual_w, [ss2.ks], order, hard_tan_c, [ss2, tan, s]);
       tc.k2 = manual_w_2;
       
       slv.add(tc);
+      
+      if (update_verts)
+        update_verts.add(v);
     } else {
       continue;
     }
@@ -694,14 +711,25 @@ function solve_intern(spline, order, goal_order, steps, gk, do_basic) {
     //if (mindis < limits.v_curve_limit)
     //  continue;
     
-    var cc = new constraint(1, [ss1.ks], order, curv_c, [ss1, ss2]);
+    var cc = new constraint("curv_c", 1, [ss1.ks], order, curv_c, [ss1, ss2]);
     slv.add(cc);
       
-    var cc = new constraint(1, [ss2.ks], order, curv_c, [ss2, ss1]);
+    var cc = new constraint("curv_c", 1, [ss2.ks], order, curv_c, [ss2, ss1]);
     slv.add(cc);
+    
+    if (update_verts)
+      update_verts.add(v);
   }
   
-  var totsteps = slv.solve(steps, gk, order==ORDER, edge_segs);
+  return slv;
+}
+
+function solve_intern(spline, order=ORDER, goal_order=ORDER, steps=35, gk=1.0, do_basic=false) {
+  var start_time = time_ms();
+  window._SOLVING = true;
+  
+  var slv = build_solver(spline, order, goal_order, gk, do_basic);
+  var totsteps = slv.solve(steps, gk, order==ORDER, slv.edge_segs);
   
   window._SOLVING = false;
   
@@ -715,11 +743,9 @@ function solve_intern(spline, order, goal_order, steps, gk, do_basic) {
     console.log("solve time", end_time.toFixed(2), "ms", "steps", totsteps);
 }
 
-var SplineFlags = undefined;
-export function do_solve(sflags, spline, steps, gk) {
+export function do_solve(splineflags, spline, steps, gk) {
   //if (spline === new Context().frameset.pathspline)
   //  return;
-  SplineFlags = sflags;
   spline.propagate_update_flags();
   
   for (var i=0; i<spline.segments.length; i++) {
@@ -736,8 +762,8 @@ export function do_solve(sflags, spline, steps, gk) {
   }
   
   spline.resolve = 0;
-  solve_intern(spline, ORDER, undefined, 10, 1, 1);
-  solve_intern(spline, ORDER, undefined, 70, 1, 0);
+  //solve_intern(spline, ORDER, undefined, 10, 1, 1);
+  solve_intern(spline, ORDER, undefined, 35, 1, 0);
   
   for (var i=0; i<spline.segments.length; i++) {
     var seg = spline.segments[i];

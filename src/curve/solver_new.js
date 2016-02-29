@@ -1,5 +1,5 @@
 import {KSCALE, KANGLE} from 'spline_math';
-import {SplineTypes, SplineFlags} from 'spline_types'
+import {SplineTypes, SplineFlags} from 'spline_base'
 var acos = Math.acos, asin = Math.asin, cos = Math.cos, sin=Math.sin, 
     PI=Math.PI, pow = Math.pow, sqrt=Math.sqrt, log=Math.log, abs=Math.abs;
 

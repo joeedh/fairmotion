@@ -835,12 +835,14 @@ export class SplitEdgeOp extends SplineGlobalToolOp {
     
     for (var i=0; i<segs.length; i++) {
       var e_v = spline.split_edge(segs[i]);
+      
       if (interp_animdata) {
         frameset.create_path_from_adjacent(e_v[1], e_v[0]);
       }
       
       spline.verts.setselect(e_v[1], true);
     }
+    
     spline.regen_render();
   }
 }

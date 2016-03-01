@@ -31,6 +31,10 @@ import {
   Canvas, Path, VectorFlags
 } from 'vectordraw';
 
+//XXX
+//import * as vectordraw from 'vectordraw';
+//var VectorDraw = vectordraw.Canvas;
+
 var update_tmps_vs = new cachering(function() {
   return new Vector2();
 }, 64);
@@ -51,10 +55,11 @@ export class DrawParams {
     this.init.apply(this, arguments);
   }
   
-  init(redraw_rects, actlayer, only_render, selectmode, zoom, z, off, spline) {
+  init(redraw_rects, actlayer, only_render, selectmode, zoom, z, off, spline, drawlist) {
     this.redraw_rects = redraw_rects, this.actlayer = actlayer, 
     this.only_render = only_render, this.selectmode = selectmode, this.zoom = zoom, this.z = z, 
     this.off = off, this.spline = spline;
+    this.drawlist = drawlist;
     
     this.combine_paths = true;
     
@@ -85,16 +90,18 @@ export class SplineDrawer extends Canvas {
   update(spline, drawlist, drawlist_layerids, matrix, redraw_rects, only_render, 
          selectmode, master_g, zoom, editor) 
   {
+    //console.log("SPLINEDRAW_NEW UPDATE!", drawlist.length);
+    
     this.used_paths = {};
     this.drawlist = drawlist;
     this.drawlist_layerids = drawlist_layerids;
     
     var actlayer = spline.layerset.active;
     
-    var do_blur = only_render || editor.enable_blur;
-    var draw_faces = only_render || editor.draw_faces;
+    var do_blur = !!(only_render || editor.enable_blur);
+    var draw_faces = !!(only_render || editor.draw_faces);
     
-    var recalc_all = this.recalc_all || this.draw_faces != draw_faces || this.do_blur != do_blur;
+    var recalc_all = this.recalc_all || this.draw_faces !== draw_faces || this.do_blur !== do_blur;
     
     this.draw_faces = draw_faces;
     this.do_blur = do_blur;
@@ -140,20 +147,21 @@ export class SplineDrawer extends Canvas {
       off.zero();
     }
     
+    
+    //update pan.  clear matrice's translation
+    var m = matrix.$matrix;
+    this.pan[0] = m.m41;
+    this.pan[1] = m.m42;
+    m.m41 = m.m42 = m.m43 = 0;
+    
     this.set_matrix(matrix);
-    
-    for (var path of this.paths) {
-      path.was_updated = false;
-      path.off.add(off);
-      path.frame_first = true;
-    }
-    
+
     if (recalc_all) {
       console.trace("%c RECALC_ALL!  ", "color:orange");
     }
     
     var drawparams = drawparam_cachering.next().init(redraw_rects, actlayer, only_render,
-                                                 selectmode, zoom, undefined, off, spline);
+                                                 selectmode, zoom, undefined, off, spline, drawlist);
                                                  
     for (var i=0; i<drawlist.length; i++) {
       var e = drawlist[i];
@@ -195,7 +203,6 @@ export class SplineDrawer extends Canvas {
       if (!(k in this.used_paths)) {
         var path = this.path_idmap[k];
         
-        path.destroy(this);
         this.remove(path);
       }
     }
@@ -229,6 +236,7 @@ export class SplineDrawer extends Canvas {
     var redraw_rects = drawparams.redraw_rects, actlayer = drawparams.actlayer;
     var only_render = drawparams.only_render, selectmode = drawparams.selectmode;
     var zoom = drawparams.zooom, z = drawparams.z, off = drawparams.off, spline = drawparams.spline;
+    var drawlist = drawparams.drawlist;
     
     var eid = seg.eid; 
     
@@ -275,10 +283,12 @@ export class SplineDrawer extends Canvas {
     */
     
     var path = this.get_path(eid, z, eid == seg.eid);
+    path.update();
+    
     path.was_updated = true;
     
     if (path.frame_first && path.clip_paths.length > 0) {
-      path.clip_paths.reset();
+      path.reset_clip_paths();
       path.frame_first = false;
     }
     
@@ -297,7 +307,7 @@ export class SplineDrawer extends Canvas {
         }
         
         var path2 = this.get_path(l.f.eid, fz);
-        path.clip_paths.add(path2);
+        path.add_clip_path(path2);
         
         if (_i++ > 1000) {
           console.trace("Warning: infinite loop!");
@@ -311,7 +321,7 @@ export class SplineDrawer extends Canvas {
       path.reset();
     }
     
-    path.blur = seg.mat.blur;
+    path.blur = seg.mat.blur * (this.do_blur ? 1 : 0);
     path.color.load(seg.mat.strokecolor);
     var lw = seg.mat.linewidth*0.5;
     
@@ -383,6 +393,62 @@ export class SplineDrawer extends Canvas {
         this.update_stroke(seg, drawparams);
       }
     }//*/
+    
+    //deal with layerflags.mask, mask to previous layer
+    var layer = undefined;
+    for (var k in seg.layers) {
+      layer = spline.layerset.get(k);
+    }
+    
+    if (layer != undefined && (layer.flag & SplineLayerFlags.MASK)) {
+      //find previous layer;
+      var li = spline.layerset.indexOf(layer);
+      if (li <= 0) {
+        console.trace("Error in update_seg", layer, spline);
+        return path;
+      }
+      
+      var prev = spline.layerset[li-1];
+      
+      //drawparams.z is position within drawlist, not seg.z
+      //find elements in previous layer, that are drawn (are inside the drawlist)
+      var i = drawparams.z;
+      var layerid = layer.id;
+      
+      while (i > 0 && layerid != prev.id) {
+        i--;
+        for (var k in drawlist[i].layers) {
+          layerid = k;
+          
+          if (layerid == prev.id)
+            break;
+        }
+      }
+      
+      while (i >= 0 && layerid == prev.id) {
+        var item = drawlist[i];
+        
+        //console.log("TYPE:", item.type, item);
+        
+        if (item.type == SplineTypes.FACE) {
+          var path2 = this.get_path(item.eid, i);
+          path.add_clip_path(path2);
+        }
+        
+        i--;
+        if (i < 0)
+          break;
+        
+        for (var k in drawlist[i].layers) {
+          layerid = k;
+          
+          if (layerid == prev.id)
+            break;
+        }
+      }
+    }
+    
+    return path;
   }
   
   update_polygon(f, redraw_rects, actlayer, only_render, selectmode, zoom, z, off, spline) {
@@ -397,7 +463,7 @@ export class SplineDrawer extends Canvas {
     path.hidden = !this.draw_faces;
     
     path.reset();
-    path.blur = f.mat.blur;
+    path.blur = f.mat.blur * (this.do_blur ? 1 : 0);
     path.color.load(f.mat.fillcolor);
     
     //g.lineWidth = 8;//*zoom;
@@ -469,9 +535,16 @@ export class SplineDrawer extends Canvas {
       path.color[0] = 250/255, path.color[1] = 140/255, path.color[2] = 50/255, path.color[3] = 0.8;
       //g.strokeStyle = "rgba(250, 140, 50, 0.8)";
     }
+    
+    return path;
   }
   
   draw(canvas, g) {
+    //console.log("DRAWDRAW!", canvas, g, this, Canvas, Canvas.prototype.draw);
+    
+    super.draw(canvas, g);
+    return; //XXX
+/*    
     this.canvas = canvas;
     this.g = g;
     
@@ -488,6 +561,6 @@ export class SplineDrawer extends Canvas {
         continue; //XXX eek!
       }
       path.draw(this);
-    }
+    }*/
   }
 }

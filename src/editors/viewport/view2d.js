@@ -1,6 +1,7 @@
 "use strict";
 
 import {toolop_menu} from 'UIMenu';
+import * as uimenu from 'UIMenu';
 
 var PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,
     ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos,
@@ -505,9 +506,9 @@ export class View2DHandler extends Area {
 
   toolop_menu(Context ctx, String name, Array<String> ops) {
     if (ops.length > 1 && this.use_radial_menus) {
-      return toolop_radial_menu(ctx, name, ops);
+      return uimenu.toolop_radial_menu(ctx, name, ops);
     } else {
-      return toolop_menu(ctx, name, ops);
+      return uimenu.toolop_menu(ctx, name, ops);
     }
   }
 
@@ -1106,14 +1107,17 @@ export class View2DHandler extends Area {
       if (entry.i == 0) {
         console.log("logging out");
         g_app_state.session.logout_simple();
-      } else if (entry.i == 1) {
+      } else if (entry.i == 2) {
         g_app_state.set_startup_file();
+      } else if (entry.i == 1) {
+        myLocalStorage.set("startup_file", startup_file_str);
       }
     }
     
     var menu = new UIMenu("", callback);
     
     menu.add_item("Log out", "");
+    menu.add_item("Clear Default File");
     menu.add_item("Save Default File", "CTRL-ALT-U");
     
     return menu;

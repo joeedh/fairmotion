@@ -108,7 +108,7 @@ export class UIMenu extends UIFrame {
     this.ignore_next_mouseup = undefined : int;
   }
 
-  add_item(text, hotkey, id) {
+  add_item(text, hotkey="", id=undefined) {
     var en = new UIMenuEntry(text, hotkey, [0,0], [0,0]);
     
     en.close_on_right = this.close_on_right;

@@ -628,7 +628,7 @@ export class DataAPI {
       if (element == undefined)
         return undefined;
       
-      console.log("element: ", element, element.active);
+      //console.log("element: ", element, element.active);
       
       var maps = element.get_keymaps();
       for (var i=0; i<maps.length; i++) {

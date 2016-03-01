@@ -51,6 +51,28 @@ export class QuadBezPath {
     
     //clip_paths is list of paths used to generate stencil buffer
     this.clip_paths = new set();
+    this.clip_users = new set();
+  }
+  
+  
+  add_clip_path(path) {
+    if (!this.clip_paths.has(path)) {
+      this.update();
+    }
+    
+    path.clip_users.add(this);
+    this.clip_paths.add(path);
+  }
+  
+  reset_clip_paths() {
+    if (this.clip_paths.length > 0) {
+      //this.update();
+    }
+    
+    for (var path of this.clip_paths) {
+      path.clip_users.remove(this);
+    }
+    this.clip_paths.reset();
   }
   
   update_aabb(draw, fast_mode=false) {
@@ -125,12 +147,14 @@ export class QuadBezPath {
   }
   
   reset(draw) {
+    this.pan.zero();
   }
   
   draw(draw, offx=0, offy=0) {
   }
   
   update() {
+    throw new Error("implement me!");
   }
   
   [Symbol.keystr]() {
@@ -144,6 +168,9 @@ var pop_transform_rets = new cachering(function() {
 
 export class VectorDraw {
   constructor() {
+    this.pan = new Vector2();
+    this.do_blur = true;
+    
     this.matstack = new Array(256);
     for (var i=0; i<this.matstack.length; i++) {
       this.matstack[i] = new Matrix4();
@@ -172,8 +199,15 @@ export class VectorDraw {
   }
   
   remove(path) {
+    for (var path2 of path.clip_users) {
+      path2.clip_paths.remove(path);
+      path2.update();
+    }
+    
     delete this.path_idmap[path.id];
     this.paths.remove(path);
+    
+    path.destroy(this);
   }
   
   update() {

@@ -297,9 +297,11 @@ class MaterialEditor extends Area {
   vertex_panel() {
     var ctx = this.ctx;
     
+    var set_prefix = "spline.verts{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}";
+    
     var panel = new RowFrame(ctx);
-    panel.prop("spline.active_vertex.flag[BREAK_TANGENTS]");
-    panel.prop("spline.active_vertex.flag[BREAK_CURVATURES]");
+    panel.prop("spline.active_vertex.flag[BREAK_TANGENTS]", undefined, set_prefix + ".flag[BREAK_TANGENTS]");
+    panel.prop("spline.active_vertex.flag[BREAK_CURVATURES]", undefined, set_prefix + ".flag[BREAK_CURVATURES]");
     
     return panel;
   }
@@ -476,5 +478,5 @@ class MaterialEditor extends Area {
 MaterialEditor.STRUCT = STRUCT.inherit(MaterialEditor, Area) + """
   }
 """
-MaterialEditor.uiname = "Materials";
+MaterialEditor.uiname = "Properties";
 MaterialEditor.debug_only = false;

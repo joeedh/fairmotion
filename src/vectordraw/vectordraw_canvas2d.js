@@ -70,6 +70,7 @@ export class CanvasPath extends QuadBezPath {
       for (var j=0; j<arglen; j += 2) {
         tmp[0] = cs[i++], tmp[1] = cs[i++];
         tmp.multVecMatrix(draw.matrix);
+        tmp.add(draw.pan);
         
         mm.minmax(tmp);
       }
@@ -243,6 +244,7 @@ export class CanvasPath extends QuadBezPath {
       for (var j=0; j<arglen; j += 2) {
         co[0] = cs[i++], co[1] = cs[i++];
         co.multVecMatrix(mat);
+        co.add(draw.pan);
         tmp[j] = co[0], tmp[j+1] = co[1];
       }
 
@@ -305,13 +307,16 @@ export class CanvasPath extends QuadBezPath {
 
 export class CanvasDraw2D extends VectorDraw {
   constructor() {
+    super();
+    
     this.paths = [];
     this.path_idmap = {};
     this.dosort = true;
     
     this.matstack = new Array(256);
     this.matrix = new Matrix4();
-
+    this._last_pan = new Vector2();
+    
     for (var i=0; i<this.matstack.length; i++) {
       this.matstack[i] = new Matrix4();
     }
@@ -371,10 +376,34 @@ export class CanvasDraw2D extends VectorDraw {
   }
   
   draw(canvas, g) {
+    var off = canvaspath_draw_vs.next();
+    
+    off.load(this.pan).sub(this._last_pan);
+    this._last_pan.load(this.pan);
+    
+    //propagate clip users (once)
+    for (var path of this.paths) {
+      if (!path.recalc) {
+        continue;
+      }
+      
+      for (var path2 of path.clip_users) {
+        path2.recalc = 1;
+      }
+    }
+    
+    for (var path of this.paths) {
+      if (!path.recalc) {
+        path.off.add(off);
+      }
+    }
+    
     this.canvas = canvas;
     this.g = g;
     
     if (this.dosort) {
+      console.log("SORT");
+      
       this.dosort = 0;
       this.paths.sort(function(a, b) {
         return a.z - b.z;
@@ -382,6 +411,10 @@ export class CanvasDraw2D extends VectorDraw {
     }
     
     for (var path of this.paths) {
+      if (path.hidden) {
+        continue;
+      }
+      
       path.draw(this);
     }
   }

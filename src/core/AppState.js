@@ -219,7 +219,7 @@ window.gen_default_file = function gen_default_file(size) {
     var size = [512, 512];
   
   //reset app state, calling without args
-  //will leave .screen and .mesh undefined
+  //will leave .screen undefined
   g.reset_state();
   
   var op = new BasicFileOp();
@@ -236,7 +236,6 @@ window.gen_default_file = function gen_default_file(size) {
   //now create screen
   gen_screen(undefined, view2d, size[0], size[1]);
     
-  g.set_mesh(new Context().mesh);
   view2d.ctx = new Context();
 }
 
@@ -286,6 +285,9 @@ export class AppState {
     static toolop_input_cache = {};
     this.toolop_input_cache = toolop_input_cache;
     
+    if (this.datalib != undefined) {
+      this.datalib.on_destroy();
+    }
     this.datalib = new DataLib();
     
     this.modalstate = 0; //see toolops_api.js
@@ -344,13 +346,6 @@ export class AppState {
   update_context() {
     var scene = this.datalib.get_active(DataTypes.SCENE);
     if (scene == undefined) return;
-    
-    var obj = scene.active;
-    if (obj == undefined) return;
-    
-    this.scene = scene;
-    this.object = obj;
-    this.mesh = obj.data;
   }
 
   switch_active_spline(newpath) {
@@ -366,7 +361,7 @@ export class AppState {
       this.switch_active_spline(this.spline_pathstack.pop());
   }
   
-  reset_state(screen, mesh) {
+  reset_state(screen) {
     global active_canvases;
     
     this.spline_pathstack = [];
@@ -379,7 +374,7 @@ export class AppState {
     }
     active_canvases = {};
     
-    AppState.call(this, screen, mesh, this.gl);
+    AppState.call(this, screen, undefined, this.gl);
     
     try {
       if (this.screen != undefined)
@@ -392,27 +387,13 @@ export class AppState {
 
   //shallow copy
   copy() {
-    var as = new AppState(this.screen, this.mesh, this.gl);
+    var as = new AppState(this.screen, undefined, this.gl);
     as.datalib = this.datalib;
     as.session = this.session;
     as.toolstack = this.toolstack;
     as.filepath = this.filepath;
     
     return as;
-  }
-
-  set_mesh(Mesh m2) {
-    if (this.mesh != m2)
-      this.kill_mesh(this.mesh);
-    
-    this.mesh = m2;
-    
-    for (var c of this.screen.children) {
-      if (c instanceof ScreenArea) {
-        if (View2DHandler.name in c.editors)
-          c.editors[View2DHandler.name].mesh = m2;
-      }
-    }
   }
 
   set_startup_file() {
@@ -473,6 +454,10 @@ export class AppState {
     
     console.log(scenefile);
     
+    if (this.datalib != undefined) {
+      this.datalib.on_destroy();
+    }
+    
     var datalib = new DataLib();
     this.datalib = datalib;
     var filedata = this.load_blocks(scenefile);
@@ -497,6 +482,10 @@ export class AppState {
     var toolstack = this.toolstack;
     
     console.log(undofile);
+    
+    if (this.datalib != undefined) {
+      this.datalib.on_destroy();
+    }
     
     var datalib = new DataLib();
     this.datalib = datalib;
@@ -555,8 +544,6 @@ export class AppState {
       
     if (args.save_theme != undefined)
       save_theme = args.save_theme;
-    
-    var mesh = this.mesh;
     
     function bheader(data, type, subtype) {
       pack_static_string(data, type, 4);
@@ -701,8 +688,6 @@ export class AppState {
       gen_dataview = args.gen_dataview;
     if (args.compress != undefined)
       compress = args.compress;
-    
-    var mesh = this.mesh;
     
     function bheader(data, type, subtype) {
       pack_static_string(data, type, 4);
@@ -980,8 +965,11 @@ export class AppState {
         }
     }
     
-    var ascopy = this.copy();
+    //var ascopy = this.copy();
     
+    if (this.datalib != undefined) {
+      this.datalib.on_destroy();
+    }
     this.datalib = datalib;
     
     //ensure we get an error if the unpacking code/
@@ -991,10 +979,6 @@ export class AppState {
     var getblock = wrap_getblock(datalib);
     var getblock_us = wrap_getblock_us(datalib);  
     var screen = undefined;
-    
-    this.mesh = undefined;
-    this.object = undefined;
-    this.scene = undefined;
     
     var toolstack = undefined;
     var this2 = this;
@@ -1022,6 +1006,10 @@ export class AppState {
       if (screen == undefined) {
         //generate default UI layout
         gen_default_file(this2.size);
+        
+        if (this2.datalib != undefined) {
+          this2.datalib.on_destroy();
+        }
         this2.datalib = datalib;
         screen = this2.screen;
       } else {
@@ -1029,6 +1017,10 @@ export class AppState {
         //because of stupid active_splinepath accessors
         
         this2.datalib = new DataLib();
+        
+        if (this2.datalib != undefined) {
+          this2.datalib.on_destroy();
+        }
         this2.reset_state(screen, undefined);
         this2.datalib = datalib;
       }
@@ -1044,7 +1036,6 @@ export class AppState {
       }
       
       var ctx = new Context();
-      this2.mesh = ctx.mesh;
       
       if (screen != undefined) {
         screen.view2d = this2.active_view2d;
@@ -1052,6 +1043,9 @@ export class AppState {
       }
       
       //load data into appstate
+      if (this2.datalib != undefined) {
+        this2.datalib.on_destroy();
+      }
       this2.datalib = datalib;
       if (this2.screen.canvas == undefined) {
         this2.screen.canvas = new UICanvas([new Vector2(this2.screen.pos), new Vector2(this2.screen.size)])
@@ -1263,8 +1257,6 @@ export class AppState {
     var getblock_us = wrap_getblock_us(datalib);  
     var screen = undefined;
     
-    this.mesh = undefined;
-    this.object = undefined;
     this.scene = undefined;
     
     //handle version changes
@@ -1304,7 +1296,6 @@ export class AppState {
     }
     
     var ctx = new Context();
-    this.mesh = ctx.mesh;
     
     if (screen != undefined) {
       screen.view2d = this.active_view2d;
@@ -1319,38 +1310,6 @@ export class AppState {
       screen.on_resize(this.size);
       screen.size = this.size;
     }
-  }
-
-  load_user_file_old(data) : ArrayBuffer {
-    //how old is this.  wow.  even in all-shape it's old.
-    //it never loaded a fairmotion file at all.
-    
-    //we save a json part and a binary part
-    var uctx = new unpack_ctx();
-    var json = unpack_string(data, uctx);
-    
-    var mesh = new Mesh()
-    mesh.unpack(data, uctx);
-    
-    try {
-      var file_version = unpack_float(data, uctx);
-    } catch (_error) {
-    }
-    
-    this.set_mesh(mesh);
-    
-    var obj = JSON.parse(json);
-    var backup = JSON.stringify(this.screen);
-    
-    //try {
-      load_screen(this.screen, obj.screen);
-    /*} catch (_error) {
-      console.log("YEEK! Error loading screen UI data!");
-      this.screen.children = new GArray();
-      this.screen.active = null;
-      this.screen.modalhandler = null;
-      load_screen(this.screen, JSON.parse(backup));
-    }*/
   }
 }
 
@@ -1605,7 +1564,6 @@ function Context() {
   var sce = g_app_state.datalib.get_active(DataTypes.SCENE);
   this.scene = sce;
   this.object = undefined;
-  this.mesh = undefined;
   
   if (sce != undefined) {
     if (sce.active == undefined && sce.objects.length > 0) {
@@ -1647,23 +1605,6 @@ class ToolStack {
     var stack = this.undostack;
     
     g_app_state.datalib = new DataLib();
-    
-   /*
-    var sce = new Scene();
-    var ob = new ASObject();
-    var mesh = new Mesh();
-    mesh.gen_render_struct();
-    mesh.regen_render();
-    
-    g_app_state.datalib.add(mesh);
-    g_app_state.datalib.add(ob);
-    g_app_state.datalib.add(sce);
-    
-    ob.data = mesh;
-    sce.add(ob);
-    
-    return;
-    // */
     
     var mctx = new Context();
     var first=true;
@@ -1740,24 +1681,7 @@ class ToolStack {
     var stack = this.undostack;
     
     g_app_state.datalib = new DataLib();
-    
-   /*
-    var sce = new Scene();
-    var ob = new ASObject();
-    var mesh = new Mesh();
-    mesh.gen_render_struct();
-    mesh.regen_render();
-    
-    g_app_state.datalib.add(mesh);
-    g_app_state.datalib.add(ob);
-    g_app_state.datalib.add(sce);
-    
-    ob.data = mesh;
-    sce.add(ob);
-    
-    return;
-    // */
-    
+        
     var mctx = new Context();
     var first=true;
     

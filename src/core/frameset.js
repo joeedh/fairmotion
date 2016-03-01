@@ -1084,6 +1084,11 @@ export class SplineFrameSet extends DataBlock {
     this.pathspline.regen_sort();
   }
   
+  on_destroy() {
+    this.spline.on_destroy();
+    this.pathspline.on_destroy();
+  }
+  
   on_spline_select(element, state) {
     if (!this.switch_on_select) return;
     

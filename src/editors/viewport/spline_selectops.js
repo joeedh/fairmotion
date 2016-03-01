@@ -54,6 +54,7 @@ export class SelectOpBase extends ToolOp {
     ud.active_vert = spline.verts.active != undefined ? spline.verts.active.eid : -1;
     ud.active_handle = spline.handles.active != undefined ? spline.handles.active.eid : -1;
     ud.active_segment = spline.segments.active != undefined ? spline.segments.active.eid : -1;
+    ud.active_face = spline.faces.active != undefined ? spline.faces.active.eid : -1;
   }
   
   undo(ctx) {
@@ -76,8 +77,9 @@ export class SelectOpBase extends ToolOp {
     }
     
     spline.verts.active = eidmap[ud.active_vert];
-    spline.handles.active = eidmap[ud.active_vert];
-    spline.segments.active = eidmap[ud.active_vert];
+    spline.handles.active = eidmap[ud.active_handle];
+    spline.segments.active = eidmap[ud.active_segment];
+    spline.faces.active = eidmap[ud.active_face];
   }
 }
 

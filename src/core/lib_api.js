@@ -169,6 +169,7 @@ export class DataList<T> {
       
     delete this.idmap[block];
     
+    block.on_destroy();
     block.on_remove();
   }
   
@@ -192,17 +193,30 @@ export class DataLib {
     this.datalists = new hashtable();
     this.idmap = {};
     this.idgen = new EIDGen();
+    this._destroyed = undefined;
   }
     
-  on_gl_lost(WebGLRenderingContext new_gl) {
-    for (var k in this.datalists) {
+  on_destroy() {
+    if (this._destroyed) {
+      console.log("warning, datalib.on_destroyed called twice");
+      return;
+    }
+    
+    this._destroyed = true;
+    
+    for (var k of this.datalists) {
       var l = this.datalists.get(k);
       
       for (var block of l) {
-        block.on_gl_lost(new_gl);
+        try {
+          block.on_destroy();
+        } catch(err) {
+          print_stack(err);
+          console.trace("WARNING: failed to execute on_destroy handler for block", block.name, block);
+        }
       }
     }
-  }  
+  }
   
   get_datalist(int typeid) : DataList {
     var dl;
@@ -358,12 +372,6 @@ export class DataLib {
     
     return this.idmap[id];
   }
-
-  pack() {
-  }
-
-  static unpack(DataView data, unpack_ctx uctx) {
-  }
 }
 
 export class UserRef {
@@ -419,6 +427,7 @@ export class DataBlock {
   on_gl_lost(WebGLRenderingContext new_gl) { }
   on_add(DataLib lib) { }
   on_remove() { }
+  on_destroy() { }
   
   copy() { }
 

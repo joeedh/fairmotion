@@ -37,8 +37,8 @@ window.init_redraw_globals = function init_redraw_globals() {
               if (DEBUG.ui_redraw)
                 console.log("ui frame");
 
-              if (g_app_state != undefined)
-                  g_app_state.eventhandler.on_draw();
+              if (window.g_app_state != undefined)
+                  window.g_app_state.eventhandler.on_draw();
           });
       }
   }
@@ -178,18 +178,18 @@ window.init_redraw_globals = function init_redraw_globals() {
           workcanvas_redraw_rects.length = 0;
           workcanvas_redraw_rects2 = rects;
 
-          for (var i = 0; i < g_app_state.screen.children.length; i++) {
-              var c = g_app_state.screen.children[i];
+          for (var i = 0; i < window.g_app_state.screen.children.length; i++) {
+              var c = window.g_app_state.screen.children[i];
 
               var is_viewport = c.constructor.name == "ScreenArea" &&
                                 c.area.constructor.name == "View2DHandler";
               if (is_viewport) {
-                  var old = g_app_state.active_view2d;
-                  g_app_state.active_view2d = c.area;
+                  var old = window.g_app_state.active_view2d;
+                  window.g_app_state.active_view2d = c.area;
                   
                   c.area.do_draw_viewport(rects);
                   
-                  g_app_state.active_view2d = old;
+                  window.g_app_state.active_view2d = old;
               }
           }
       });
@@ -256,11 +256,12 @@ window.init_redraw_globals = function init_redraw_globals() {
           window.redraw_rect_defined = true;
       }
 
-      if (g_app_state == undefined || g_app_state.screen == undefined)
+      if (window.g_app_state == undefined || window.g_app_state.screen == undefined)
           return;
 
-      var g = g_app_state;
-      var cs = g.screen.children;
+      var g = window.g_app_state;
+      var cs = window.g_app_state.screen.children;
+      
       for (var i = 0; i < cs.length; i++) {
           var c = cs[i];
 
@@ -273,18 +274,18 @@ window.init_redraw_globals = function init_redraw_globals() {
           animreq = window.requestAnimationFrame(function () {
               animreq = undefined;
 
-              for (var i = 0; i < g_app_state.screen.children.length; i++) {
-                  var c = g_app_state.screen.children[i];
+              for (var i = 0; i < window.g_app_state.screen.children.length; i++) {
+                  var c = window.g_app_state.screen.children[i];
 
                   var is_viewport = c.constructor.name == "ScreenArea" &&
                                     c.area.constructor.name == "View2DHandler";
                   if (is_viewport) {
-                      var old = g_app_state.active_view2d;
-                      g_app_state.active_view2d = c.area;
+                      var old = window.g_app_state.active_view2d;
+                      window.g_app_state.active_view2d = c.area;
                       
                       c.area.do_draw_viewport();
                       
-                      g_app_state.active_view2d = old;
+                      window.g_app_state.active_view2d = old;
                   }
               }
 

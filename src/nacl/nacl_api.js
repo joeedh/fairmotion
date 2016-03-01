@@ -471,6 +471,13 @@ export function do_solve(sflags, Spline spline, int steps, float gk=0.95, return
         if ((!(seg.v1.flag & SplineFlags.UPDATE) && !(seg.v2.flag & SplineFlags.UPDATE)))
             continue;
         
+        //need to clear seg.ks in this case
+        if ((seg.v1.flag & SplineFlags.BREAK_TANGENTS) && (seg.v2.flag & SplineFlags.BREAK_TANGENTS)) {
+          for (var j=0; j<seg.ks.length; j++) {
+            seg.ks[j] = 0.0000001;
+          }
+        }
+        
         //check for NaN
         for (var j=0; j<seg.ks.length; j++) {
             if (isNaN(seg.ks[j])) {

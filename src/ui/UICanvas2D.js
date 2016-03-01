@@ -156,6 +156,8 @@ export class UICanvas2_ {
       
       canvas.width = this.canvas.width;
       canvas.height = this.canvas.height;
+
+      canvas.id = "_canvas2d_" + id;
       
       canvas.ctx = canvas.getContext("2d");
       canvas.is_blank = true;

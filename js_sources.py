@@ -87,6 +87,7 @@ sources = [
   "src/curve/solver_new.js",
   "src/vectordraw/vectordraw_base.js",
   "src/vectordraw/vectordraw_canvas2d.js",
+  "src/vectordraw/vectordraw_svg.js",
   "src/vectordraw/vectordraw.js",
   "src/vectordraw/strokedraw.js",
   "src/curve/spline_draw_new.js",

@@ -1262,6 +1262,13 @@ class TypedClassRef (Node):
     self.type = cls
     
 class FunctionNode (StatementList):
+  """
+  children:
+  
+  0   : parameters
+  1-X : function statements
+  
+  """
   def copy(self):
     n2 = FunctionNode(self.name, self.lineno)
     self.copy_basic(n2)
@@ -1283,11 +1290,14 @@ class FunctionNode (StatementList):
   #(and member; both have been replaced by node.line/node.lexpos)
   def __init__(self, name, lineno=0):
     super(FunctionNode, self).__init__()
+    
     self.name = name
     self.origname = name
-    self.is_anonymous = False
     
+    self.is_anonymous = False
+    self.is_arrow = False
     self.is_native = False
+    
     self.members = odict()
     self.functions = odict() #this is local nested functions, not class members
     self.ret = None

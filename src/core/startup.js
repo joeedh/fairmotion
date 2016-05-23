@@ -82,6 +82,7 @@ class MyLocalStorage_ChromeApp {
     return new Promise(function(accept, reject) {
       chrome.storage.local.get(key, function(value) {
         if (chrome.runtime.lastError != undefined) {
+          this2.cache[key] = null;
           reject(chrome.runtime.lastError.string);
         } else {
           if (value != {} && value != undefined && key in value) {
@@ -109,6 +110,7 @@ window.startup = function startup() {
     window.myLocalStorage = new MyLocalStorage_ChromeApp();
     window.myLocalStorage.getAsync("session"); //preload session data
     window.myLocalStorage.getAsync("startup_file"); //startup_file too
+    window.myLocalStorage.getAsync("_settings"); //user settings
     
     //create small delay to make time for chrome.storage.local to load
     var timer = window.setInterval(function() {
@@ -123,7 +125,7 @@ window.startup = function startup() {
         var canvas = document.getElementById("canvas2d");
         g_app_state.screen.on_resize([window.innerWidth, window.innerHeight]);
       }, 200);
-    }, 150);
+    }, 450);
   } else {
     window.myLocalStorage = MyLocalStorage_LS;
     startup_intern();

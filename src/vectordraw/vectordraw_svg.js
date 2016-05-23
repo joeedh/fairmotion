@@ -11,9 +11,8 @@ import {
   VectorDraw
 } from 'vectordraw_base';
 
-var canvaspath_draw_mat_tmps = new cachering(function() {
-  return new Matrix4();
-}, 16);
+var canvaspath_draw_mat_tmps = new cachering(_ => new Matrix4(), 16);
+
 var canvaspath_draw_args_tmps = new Array(8);
 for (var i=1; i<canvaspath_draw_args_tmps.length; i++) {
   canvaspath_draw_args_tmps[i] = new Array(i);
@@ -257,7 +256,7 @@ export class SVGPath extends QuadBezPath {
       }
       
       var w2 = w - this.pad*2, h2 = h - this.pad*2;
-      var wratio = 1.5*(w / w2)*100.0, hratio = 1.5*(h / h2)*100.0;
+      var wratio = 2.0*(w / w2)*100.0, hratio = 2.0*(h / h2)*100.0;
       
       var fx = ""+(-wratio/4)+"%", fy=""+(-hratio/4)+"%",
           fwidth=""+wratio+"%", fheight=""+hratio+"%";
@@ -405,6 +404,15 @@ export class SVGPath extends QuadBezPath {
       for (var j=0; j<arglen; j += 2) {
         co[0] = cs[i++], co[1] = cs[i++];
         co.multVecMatrix(mat);
+        
+        //nan check
+        if (isNaN(co[0])) {
+          co[0] = 0;
+        }
+        if (isNaN(co[1])) {
+          co[1] = 0;
+        }
+        
         tmp[j] = co[0], tmp[j+1] = co[1];
       }
 
@@ -492,6 +500,8 @@ export class SVGDraw2D extends VectorDraw {
       ret.style["position"] = "absolute";
       ret.style["z-index"] = zindex;
       
+      console.trace("\tZINDEX: ", zindex)
+      
       document.body.appendChild(ret);
     }
     
@@ -548,6 +558,12 @@ export class SVGDraw2D extends VectorDraw {
     }
   }
   
+  static kill_canvas(svg) {
+    if (svg != undefined) {
+      svg.remove();
+    }
+  }
+  
   destroy() {
     return;
     console.log("DESTROY!");
@@ -570,7 +586,18 @@ export class SVGDraw2D extends VectorDraw {
       canvas.style["background"] = "rgba(0,0,0,0)";
     }
     
-    this.svg = SVGDraw2D.get_canvas(canvas.id + "_svg", canvas.width, canvas.height, -1);
+    this.svg = SVGDraw2D.get_canvas(canvas.id + "_svg", canvas.width, canvas.height, 1);
+    
+    var this2 = this;
+    function onkillscreen() {
+      window.removeEventListener(onkillscreen);
+      
+      SVGDraw2D.kill_canvas(this2.svg);
+      this2.svg = undefined;
+    }
+    
+    //custom event
+    window.addEventListener("killscreen", onkillscreen);
     
     var defsid = this.svg.id + "_defs";
     var defs = document.getElementById(defsid);

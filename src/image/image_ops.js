@@ -9,7 +9,7 @@ import {ToolOp, UndoFlags, ToolFlags, ModalStates} from 'toolops_api';
 import {RestrictFlags, Spline} from 'spline';
 import {VDAnimFlags} from 'frameset';
 import {TPropFlags} from 'toolprops';
-import {istruct} from 'struct';
+import 'struct'; //get istruct
 import {redo_draw_sort} from 'spline_draw';
 
 import {FileDialog, FileDialogModes, file_dialog, download_file} from 'dialogs';

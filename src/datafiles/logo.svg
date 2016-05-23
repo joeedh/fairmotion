@@ -1,0 +1,477 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   version="1.1"
+   id="svg6718"
+   inkscape:version="0.48.4 r9939"
+   width="100%"
+   height="100%"
+   sodipodi:docname="logo.svg"
+   inkscape:export-filename="C:\dev\fairmotion\large_logo.png"
+   inkscape:export-xdpi="249.02"
+   inkscape:export-ydpi="249.02">
+  <metadata
+     id="metadata6820">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <defs
+     id="defs6818" />
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="708"
+     inkscape:window-height="480"
+     id="namedview6816"
+     showgrid="false"
+     inkscape:zoom="0.31714785"
+     inkscape:cx="126.10516"
+     inkscape:cy="621.35127"
+     inkscape:window-x="422"
+     inkscape:window-y="162"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg6718" />
+  <g
+     transform="translate(402.94174,35.759694)"
+     id="g6862-9"
+     inkscape:export-filename="C:\dev\fairmotion\chromeapp\icons\fairmotion16.png"
+     inkscape:export-xdpi="3.6364262"
+     inkscape:export-ydpi="3.6364262"
+     style="stroke:#ffcfa8;stroke-opacity:1;stroke-width:80;stroke-miterlimit:4;stroke-dasharray:none">
+    <g
+       id="g7406"
+       transform="matrix(1.0193351,0,0,1.0067356,-486.93307,16.213267)"
+       style="stroke:#ffcfa8;stroke-width:78.97211773;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none">
+      <path
+         d="m 446.06863,312.54346 c -28.23826,48.02911 -20.71806,109.8925 -45.252,159.9153"
+         id="path6724-5"
+         inkscape:connector-curvature="0"
+         style="fill:none;stroke:#ffcfa8;stroke-width:78.97211773;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+      <path
+         d="m 328.7429,544.1337 c -21.75279,10.21549 -45.76278,14.67964 -69.66354,17.18847"
+         id="path6720-4"
+         inkscape:connector-curvature="0"
+         style="fill:none;stroke:#ffcfa8;stroke-width:78.97211773;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
+      <path
+         d="m 403.96973,464.576 c -15.21504,31.00671 -51.84752,68.02764 -83.10959,82.7108"
+         id="path6722-3"
+         inkscape:connector-curvature="0"
+         style="fill:none;stroke:#ffcfa8;stroke-width:78.97211773;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+         sodipodi:nodetypes="cc" />
+      <path
+         d="m 533.39812,241.9868 c -35.34545,14.25854 -71.16662,42.43055 -90.48259,75.28632"
+         id="path6726-1"
+         inkscape:connector-curvature="0"
+         style="fill:none;stroke:#ffcfa8;stroke-width:78.97211773;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+         sodipodi:nodetypes="cc" />
+    </g>
+  </g>
+  <g
+     id="g6862"
+     transform="translate(-75.805751,54.624732)"
+     inkscape:export-filename="C:\dev\fairmotion\chromeapp\icons\fairmotion16.png"
+     inkscape:export-xdpi="3.6364262"
+     inkscape:export-ydpi="3.6364262">
+    <path
+       style="fill:none;stroke:#ff8300;stroke-width:70.28444672;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6724"
+       d="m 446.06863,314.12001 c -28.23826,48.02911 -20.71806,109.8925 -45.252,159.9153" />
+    <path
+       style="fill:none;stroke:#ff8300;stroke-width:70.28444672;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6720"
+       d="m 328.7429,545.71025 c -21.75279,10.21549 -45.76278,14.67964 -69.66354,17.18847" />
+    <path
+       sodipodi:nodetypes="cc"
+       style="fill:none;stroke:#ff8300;stroke-width:70.28444672;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6722"
+       d="m 403.96973,466.15255 c -15.21504,31.00671 -51.84752,68.02764 -83.10959,82.7108" />
+    <path
+       sodipodi:nodetypes="cc"
+       style="fill:none;stroke:#ff8300;stroke-width:70.28444672;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6726"
+       d="m 533.39812,243.56335 c -35.34545,14.25854 -71.16662,42.43055 -90.48259,75.28632" />
+  </g>
+  <path
+     d="m 388.93417,411.79853 c -14.67773,6.06165 -29.54297,11.74956 -44.85735,15.95063 -10.40038,2.85243 -20.97775,5.02206 -31.60285,6.86901 -2.94922,17.47232 -5.89846,34.94465 -8.84769,52.41697 -8.45792,17.64885 -18.49239,32.14458 -26.95031,49.79342 11.57354,-0.84475 24.72259,1.43832 36.30895,0.7926 10.94717,-0.61048 21.92967,-1.12903 32.86804,-0.37695 4.45176,0.30686 8.88752,0.81908 13.30662,1.43873 6.91511,-21.11325 13.35823,-42.40069 18.39423,-64.03923 4.82719,-20.74151 8.35551,-41.7653 11.38036,-62.84518"
+     id="path6728"
+     inkscape:connector-curvature="0"
+     style="fill:#8a4700;fill-opacity:1;stroke:#000000;stroke-width:0;stroke-opacity:1"
+     inkscape:export-filename="C:\dev\fairmotion\chromeapp\icons\fairmotion16.png"
+     inkscape:export-xdpi="3.6364262"
+     inkscape:export-ydpi="3.6364262"
+     sodipodi:nodetypes="ccccccccsc" />
+  <g
+     id="g7412"
+     transform="matrix(0.9495259,0.31368866,-0.31368866,0.9495259,161.54683,-77.677296)"
+     inkscape:export-filename="C:\dev\fairmotion\chromeapp\icons\fairmotion16.png"
+     inkscape:export-xdpi="3.6364262"
+     inkscape:export-ydpi="3.6364262">
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:#804402;fill-opacity:1;stroke:#000000;stroke-width:0;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6730"
+       d="m 422.91748,469.6913 c 4.55943,2.30427 8.98622,4.97031 12.71078,8.46682 3.55006,3.33274 6.39206,7.35125 8.8859,11.53346 -1.79544,1.96428 -2.87142,4.64624 -2.63649,7.29705 0.11742,1.32542 0.56448,2.62539 1.32132,3.71979 0.75683,1.09441 1.82326,1.97396 3.04671,2.49711 1.14766,0.49138 2.42322,0.67299 3.66356,0.53098 1.24032,-0.142 2.43911,-0.60094 3.47451,-1.29846 2.07082,-1.39499 3.4231,-3.70111 3.98445,-6.13405 1.1227,-4.86588 -0.46815,-9.94548 -2.39867,-14.55095 -2.0681,-5.0766 -5.05932,-9.77786 -8.79632,-13.78832 -4.85897,-5.21397 -10.96309,-9.11037 -17.26686,-12.43565 -2.15352,4.14456 -4.30706,8.28912 -6.46059,12.43368 0.15723,0.57618 0.31447,1.15236 0.4717,1.72854" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:none;stroke:#4d4d4d;stroke-width:3.90171123;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6732"
+       d="m 501.47636,451.21732 c -3.74427,2.62479 -7.89477,4.81608 -12.3995,5.60124" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:#ff8b0a;fill-opacity:1;stroke:#000000;stroke-width:0;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6734"
+       d="m 437.03117,393.43629 c 10.56562,-4.10755 23.01094,-6.67787 32.82379,-1.00228 5.93902,3.43449 10.11377,9.48706 12.0213,16.07713 1.90754,6.59006 1.84561,13.63373 0.72353,20.40194 7.24919,6.99863 14.49837,13.99725 21.74756,20.99589 -7.05071,1.76265 -14.10141,3.5253 -21.15212,5.28795 -3.47539,-1.34831 -6.95076,-2.69661 -10.42614,-4.04492 -5.76421,-1.28213 -11.52843,-2.56425 -17.29264,-3.84637 -4.13797,4.94616 -8.27593,9.89231 -12.41389,14.83846 -12.69432,8.77459 -25.38864,17.5492 -38.08296,26.32379 -4.76543,5.26879 -11.8895,7.5954 -18.7044,9.60199 -16.80194,5.02881 -34.18435,8.00325 -51.66066,9.47732 -18.01382,1.514 -36.32416,0.77763 -53.94843,4.79939 -9.02924,2.06077 -17.99671,5.17777 -25.3898,10.75596 -6.84232,5.16267 -12.0386,12.21019 -16.39743,19.59067 0.45875,2.61473 0.9175,5.22946 1.37624,7.8442 0.0904,2.6134 0.18078,5.2268 0.27118,7.84021 -2.71382,0.935 -5.8106,1.1407 -8.38182,-0.13514 -1.95107,-0.9681 -3.45263,-2.71482 -4.35085,-4.69901 -0.89823,-1.98418 -1.27974,-4.16943 -1.41372,-6.34333 -0.50938,-10.16009 1.68168,-20.83713 8.17557,-28.6676 6.78753,-8.18432 17.89387,-11.84104 24.56031,-20.1243 4.04179,-5.02221 6.36859,-11.28502 7.26533,-17.66895 -1.38444,-1.0945 -2.93599,-1.99897 -4.6234,-2.51595 -4.79366,-1.46577 -9.86312,0.47154 -14.74625,1.60412 -10.07804,2.33669 -20.51332,2.67269 -30.85675,2.47118 -18.51476,-0.34587 -37.06129,-3.0768 -54.57392,-9.09545 -15.07717,-5.3131 -30.15727,-12.8065 -39.60601,-25.70113 -1.72888,-2.30591 -2.28519,-5.29653 -2.30326,-8.17853 24.18239,9.38737 50.29167,15.20768 76.0655,12.27162 23.75589,-2.70622 47.78263,-14.78321 70.4565,-7.19628 10.16017,3.39972 18.83595,10.31324 25.97864,18.2988 9.83777,-4.09436 20.8135,-4.05678 31.34527,-5.67773 15.20245,-2.33997 30.0601,-7.31542 43.2581,-15.21497 13.0571,-7.81536 24.04425,-18.58471 36.08542,-27.88943 10.5443,-8.14793 21.7503,-15.6505 34.17021,-20.47925" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:none;stroke:#000000;stroke-width:2.6327672;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6736"
+       d="m 466.10417,392.39497 c 1.10628,-2.16993 2.39071,-4.25597 3.93012,-6.14347" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:none;stroke:#000000;stroke-width:1.34335637;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6738"
+       d="m 402.86096,413.91554 c 10.5443,-8.14793 21.7503,-15.6505 34.17021,-20.47925" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:none;stroke:#000000;stroke-width:1.34335637;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6740"
+       d="m 366.77554,441.80497 c 13.0571,-7.81536 24.04425,-18.58471 36.08542,-27.88943" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:none;stroke:#000000;stroke-width:1.71760702;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6742"
+       d="m 323.51744,457.01994 c 15.20245,-2.33997 30.0601,-7.31542 43.2581,-15.21497" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:none;stroke:#000000;stroke-width:1.71760702;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6744"
+       d="m 292.17217,462.69767 c 9.83777,-4.09436 20.8135,-4.05678 31.34527,-5.67773" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:none;stroke:#000000;stroke-width:2.6327672;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6746"
+       d="m 485.30543,375.04252 c -3.67607,6.22992 -7.1539,12.84831 -7.79,20.05392" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:none;stroke:#000000;stroke-width:2.6327672;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6748"
+       d="m 477.51543,395.09644 c -0.19782,2.24088 -0.12085,4.50048 0.12716,6.73635" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:none;stroke:#000000;stroke-width:2.6327672;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6750"
+       d="m 477.64254,401.83279 c -1.14403,-1.02484 -2.28675,-2.05118 -3.42369,-3.08389" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:none;stroke:#000000;stroke-width:2.6327672;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6752"
+       d="m 472.26123,397.78261 c 0.65186,0.32348 1.30423,0.64591 1.95762,0.96629" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:none;stroke:#000000;stroke-width:2.6327672;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6754"
+       d="m 453.73279,371.55571 c 0.0873,7.89902 0.24704,15.84698 1.78455,23.59542" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:none;stroke:#000000;stroke-width:2.6327672;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6756"
+       d="m 455.51734,395.15113 c 0.32391,1.63233 0.70682,3.25264 1.12942,4.86226" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:none;stroke:#000000;stroke-width:2.6327672;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6758"
+       d="m 456.64676,400.01339 c -0.77873,1.45183 -1.55747,2.90367 -2.3362,4.35551" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:none;stroke:#000000;stroke-width:2.6327672;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6760"
+       d="m 449.04679,405.91396 c 1.75458,-0.51502 3.50918,-1.03004 5.26377,-1.54506" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:none;stroke:#000000;stroke-width:2.6327672;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6762"
+       d="m 449.04679,405.91396 c -2.31079,-4.67212 -4.62159,-9.34424 -6.93239,-14.01637" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:none;stroke:#000000;stroke-width:2.6327672;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6764"
+       d="m 442.1144,391.89759 c 3.8728,-6.78063 7.7456,-13.56126 11.61839,-20.34188" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:#9a5100;fill-opacity:1;stroke:#484848;stroke-width:0;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6766"
+       d="m 262.82245,545.93778 c -3.60921,0.34868 -7.21841,0.69738 -10.82762,1.04606 -1.803,-1.7166 -3.55987,-3.53464 -4.75831,-5.7167 -1.29361,-2.35574 -1.95594,-5.12449 -1.46679,-7.76716 0.89987,-4.86263 5.39849,-8.09989 9.58202,-10.73674 3.04935,-1.83479 6.21637,-3.46437 9.35578,-5.1404 -1.50826,3.48546 -2.93892,7.00823 -4.12752,10.61523 -0.95212,3.29063 -1.7011,6.63691 -2.36859,9.99685 1.28465,0.48483 2.5693,0.96966 3.85394,1.45449 0.25237,2.08278 0.50473,4.16557 0.75709,6.24837" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:none;stroke:#000000;stroke-width:2.6327672;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6768"
+       d="m 472.26123,397.78261 c -1.65982,0.16513 -3.43345,-0.0449 -4.79721,-1.00536 -0.68188,-0.4802 -1.23667,-1.15769 -1.50254,-1.94818 -0.26586,-0.79049 -0.22474,-1.68539 0.14269,-2.4341" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:none;stroke:#000000;stroke-width:2.6327672;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6770"
+       d="m 470.03429,386.2515 c 4.01972,-4.92863 9.6288,-8.27405 15.27114,-11.20898" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:#e1e1e1;fill-opacity:1;stroke:#414141;stroke-width:1.69421637;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6772"
+       d="m 454.49945,448.1579 c -5.89432,7.02916 -12.00438,13.90647 -18.8074,20.06039 -4.49499,4.06609 -9.27565,7.80662 -14.1717,11.37967 -6.0914,4.42251 -13.94404,6.79624 -21.28854,5.14633 4.96131,-14.13538 13.55838,-26.78366 23.68028,-37.8277 4.40055,-4.79151 8.99602,-9.54595 14.60514,-12.84157 5.60911,-3.29562 12.63713,-4.66899 18.69581,-2.29921 8.00688,3.05091 11.9574,12.13176 19.13183,16.81638 7.27838,4.75065 16.77886,5.02871 25.13149,2.62513 -3.74427,2.62479 -7.89477,4.81608 -12.3995,5.60124 -5.40739,0.94246 -10.95342,-0.22002 -16.22814,-1.73834 -6.28633,-1.80949 -12.33294,-4.3541 -18.34927,-6.92232" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:#d4710d;fill-opacity:1;stroke:#414141;stroke-width:1.69421637;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6774"
+       d="m 402.0015,444.23984 c 2.3408,-5.73409 2.82121,-12.06019 4.83336,-17.91772 3.11061,-9.05491 9.32807,-16.78574 16.56992,-23.04858 4.24114,-3.66778 8.90396,-6.81426 13.62639,-9.83725 10.56562,-4.10755 23.01094,-6.67787 32.82379,-1.00228 5.93902,3.43449 10.11377,9.48706 12.0213,16.07713 1.90754,6.59006 1.84561,13.63373 0.72353,20.40194 7.24919,6.99863 14.49837,13.99725 21.74756,20.99589 -7.96235,3.45858 -17.56107,4.34929 -25.10337,0.0511 -6.40013,-3.64734 -10.14546,-10.80825 -16.46676,-14.59058 -4.01638,-2.39272 -8.77468,-3.4504 -13.4435,-3.20873 -4.66883,0.24169 -9.24054,1.70014 -13.3243,3.97594 -11.40652,6.29937 -17.87689,18.81004 -22.14584,31.12128 -2.34395,7.37352 -3.71033,15.45702 -8.88398,21.20993 -4.76543,5.26879 -11.8895,7.5954 -18.7044,9.60199 -9.19294,1.51679 -18.64255,-0.0262 -27.58757,-2.63341 3.18801,-6.48576 7.19792,-12.58141 12.04485,-17.94198 10.30043,-11.39177 25.46426,-19.03577 31.26902,-33.25463" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:#db7200;fill-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6776"
+       d="m 453.73279,371.55571 c 0.0873,7.89902 0.24704,15.84698 1.78455,23.59542 0.32391,1.63233 0.70682,3.25264 1.12942,4.86226 -0.77873,1.45183 -1.55747,2.90367 -2.3362,4.35551 -1.75459,0.51502 -3.50919,1.03004 -5.26377,1.54506 -2.31079,-4.67212 -4.62159,-9.34424 -6.93239,-14.01637 3.8728,-6.78063 7.7456,-13.56126 11.61839,-20.34188" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:#db7200;fill-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6778"
+       d="m 485.30543,375.04252 c -3.67607,6.22992 -7.1539,12.84831 -7.79,20.05392 -0.19782,2.24088 -0.12085,4.50048 0.12716,6.73635 -1.14403,-1.02484 -2.28674,-2.05118 -3.42369,-3.08389 -0.65339,-0.32038 -1.30576,-0.64281 -1.95762,-0.96629 -1.65982,0.16513 -3.43344,-0.0449 -4.7972,-1.00536 -0.68189,-0.4802 -1.23668,-1.15769 -1.50255,-1.94818 -0.26586,-0.79049 -0.22473,-1.68539 0.14269,-2.4341 1.10628,-2.16993 2.39072,-4.25597 3.93012,-6.14347 4.01972,-4.92863 9.62881,-8.27405 15.27114,-11.20898" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:#d4710d;fill-opacity:1;stroke:#000000;stroke-width:2;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+       inkscape:connector-curvature="0"
+       id="path6780"
+       d="m 266.19353,444.39887 c 10.16017,3.39972 18.83595,10.31324 25.97864,18.2988 -2.37128,0.98692 -4.65106,2.18426 -6.85959,3.49553 -6.85271,4.06869 -12.91604,9.31839 -18.93146,14.54609 -1.38444,-1.0945 -2.93599,-1.99897 -4.6234,-2.51595 -4.79366,-1.46577 -9.86312,0.47154 -14.74625,1.60412 -10.07804,2.33669 -20.51332,2.67269 -30.85675,2.47118 -18.51476,-0.34587 -37.06129,-3.0768 -54.57392,-9.09545 -15.07717,-5.3131 -30.15727,-12.8065 -39.60601,-25.70113 -1.72888,-2.30591 -2.28519,-5.29653 -2.30326,-8.17853 24.18239,9.38737 50.29167,15.20768 76.0655,12.27162 23.75589,-2.70622 47.78263,-14.78321 70.4565,-7.19628" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:#ffffff;fill-opacity:0.41222223;stroke:#000000;stroke-width:0;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6782"
+       d="m 275.20766,492.94825 c -6.65354,6.77137 -14.95863,11.68404 -23.46551,15.8976 4.74787,-4.86917 9.20862,-10.19997 11.7896,-16.49199 1.51744,-3.69933 2.36291,-7.64582 2.84937,-11.61457 6.01542,-5.2277 12.07875,-10.4774 18.93146,-14.54609 2.20853,-1.31127 4.48831,-2.50861 6.85959,-3.49553 0.83156,2.79782 0.90683,5.85757 -0.0421,8.61777 -0.94898,2.7602 -3.00236,5.1578 -5.66648,6.35017 -3.18025,5.48903 -6.80969,10.75769 -11.25587,15.28264" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:none;stroke:#000000;stroke-width:2.6327672;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6784"
+       d="m 241.6386,480.14528 c -7.37276,1.33417 -14.84936,2.0312 -22.33264,2.40234" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:none;stroke:#000000;stroke-width:2.6327672;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6786"
+       d="m 253.16908,478.2491 c -3.88804,0.2741 -7.69509,1.20205 -11.53048,1.89618" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:none;stroke:#000000;stroke-width:2.6327672;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6788"
+       d="m 267.38031,479.4375 c -4.67674,-0.92819 -9.455,-1.52283 -14.21123,-1.1884" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:#ffdcb7;fill-opacity:1;stroke:#000000;stroke-width:1.08605886;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6790"
+       d="m 455.51734,395.15113 c 0.32391,1.63233 0.70682,3.25264 1.12942,4.86226 -0.77873,1.45183 -1.55747,2.90367 -2.3362,4.35551 -1.75459,0.51502 -3.50919,1.03004 -5.26377,1.54506 -0.88497,-4.13849 -1.53938,-8.3594 -1.3662,-12.5879 0.147,-3.58911 0.88338,-7.13365 1.887,-10.58271 1.11248,-3.82316 2.60922,-7.52253 4.1652,-11.18764 0.0873,7.89902 0.24704,15.84698 1.78455,23.59542" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:#7b4107;fill-opacity:1;stroke:#000000;stroke-width:0;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6792"
+       d="m 243.10507,471.84916 c 6.35479,-2.19742 13.94034,-4.00797 19.33945,-2.7e-4 2.46707,1.83091 4.0837,4.63689 4.93579,7.58861 -4.67674,-0.92819 -9.455,-1.52283 -14.21123,-1.1884 -3.88804,0.2741 -7.69509,1.20205 -11.53048,1.89618 -7.37276,1.33417 -14.84936,2.0312 -22.33264,2.40234 7.83083,-3.79884 15.57332,-7.85426 23.79911,-10.69846" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:#ffdcb7;fill-opacity:1;stroke:#000000;stroke-width:1.08605886;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6794"
+       d="m 477.51543,395.09644 c -0.19782,2.24088 -0.12085,4.50048 0.12716,6.73635 -1.14403,-1.02484 -2.28674,-2.05118 -3.42369,-3.08389 -0.65339,-0.32038 -1.30576,-0.64281 -1.95762,-0.96629 -0.42997,-2.11684 -0.58654,-4.31724 -0.1582,-6.4344 0.74015,-3.65825 3.16375,-6.73265 5.71908,-9.4531 2.31691,-2.46691 4.89396,-4.67337 7.48332,-6.85259 -3.67606,6.22992 -7.1539,12.84831 -7.79,20.05392" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:#93500a;fill-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6796"
+       d="m 431.92617,489.12739 c 4.53177,4.71185 8.65113,9.93064 11.32575,15.89594 2.67463,5.96529 3.63434,12.81794 1.9006,19.12132 -0.38145,1.38724 -1.49079,2.51861 -2.82346,3.06077 -1.33267,0.54214 -2.84102,0.56294 -4.24327,0.24104 -7.44722,-1.70659 -7.63575,-11.92434 -10.41353,-19.04174 -4.62884,-11.86626 -17.10962,-18.87853 -29.47971,-21.91418 2.02704,-2.13945 4.09235,-4.24411 6.24616,-6.2559 2.64594,-2.47146 5.42245,-4.79935 8.23672,-7.0773 6.77074,4.88544 13.46501,9.95042 19.25074,15.97005" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6798"
+       d="m 469.02329,428.11215 c -1.53555,-0.59338 -2.70163,-1.9603 -3.24425,-3.51452 -0.54263,-1.55421 -0.54498,-3.26055 -0.23559,-4.87742 2.6073,-0.51759 5.45619,-0.59427 7.77127,0.712 1.65083,0.93154 2.87806,2.48168 3.76612,4.1563 -0.88809,1.31258 -2.04015,2.4785 -3.45488,3.19271 -1.41474,0.71421 -3.12447,0.90236 -4.60267,0.33093" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:2.6327672;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6800"
+       d="m 494.34271,449.9163 c 1.59132,1.20803 3.18266,2.41605 4.77398,3.62407 1.86613,-1.00546 3.73226,-2.01092 5.59841,-3.01639 -2.97807,-2.2987 -5.95614,-4.59739 -8.93421,-6.89609 -0.4794,2.09613 -0.95878,4.19228 -1.43818,6.28841" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:none;stroke:#414141;stroke-width:1.69421637;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6802"
+       d="m 386.2752,498.06987 c -16.80194,5.02881 -34.18435,8.00325 -51.66066,9.47732" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:none;stroke:#414141;stroke-width:1.69421637;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6804"
+       d="m 280.66611,512.34658 c -9.02924,2.06077 -17.99671,5.17777 -25.3898,10.75596" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:none;stroke:#414141;stroke-width:1.69421637;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6806"
+       d="m 255.27631,523.10254 c -6.84232,5.16267 -12.0386,12.21019 -16.39743,19.59067" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:none;stroke:#414141;stroke-width:1.69421637;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6808"
+       d="m 238.87888,542.69321 c 0.45875,2.61473 0.9175,5.22946 1.37624,7.8442" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:none;stroke:#414141;stroke-width:1.69421637;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6810"
+       d="m 404.9796,488.46788 c -4.76543,5.26879 -11.8895,7.5954 -18.7044,9.60199" />
+    <path
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       style="fill:none;stroke:#414141;stroke-width:1.71760702;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6812"
+       d="m 334.61454,507.54719 c -18.01382,1.514 -36.32416,0.77763 -53.94843,4.79939" />
+    <path
+       inkscape:export-filename="F:\Google Drive\logos\refs\fairmotion\fairmotion128.png"
+       inkscape:export-ydpi="29.02"
+       inkscape:export-xdpi="29.02"
+       style="fill:none;stroke:#414141;stroke-width:1.69421637;stroke-opacity:1"
+       inkscape:connector-curvature="0"
+       id="path6814"
+       d="m 240.25512,550.53741 c 0.0904,2.6134 0.18078,5.2268 0.27118,7.84021" />
+  </g>
+</svg>

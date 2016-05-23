@@ -453,9 +453,9 @@ export class FileOpenRecentOp extends ToolOp {
     var listbox = new UIListBox();
     row.add(listbox);
     
-    var paths = g_app_state.session.settings.recent_files;
+    var paths = g_app_state.session.settings.recent_paths;
     for (var i=paths.length-1; i>=0; i--) {
-      listbox.add_item(paths[i], paths[i]);
+      listbox.add_item(paths[i].displayname, paths[i].path);
     }
     
     listbox.go_callback = function(text, id) {
@@ -490,10 +490,15 @@ export class FileOpenOp extends ToolOp {
     if (config.USE_HTML5_FILEAPI) {
         console.log("html5 file api!");
         
-        open_file(function(buf) {
-            console.log("got file!", buf);
+        open_file(function(buf, fname, fileid) {
+            console.log("\n\ngot file!", buf, fname, fileid, "\n\n");
             
             g_app_state.load_user_file_new(new DataView(buf));
+            
+            if (fileid != undefined) {
+              g_app_state.session.settings.add_recent_file("entry://"+fileid);
+              g_app_state.session.settings.server_update(true);
+            }
         }, this, true, "Fairmotion Files", ["fmo"]);
         
         return;

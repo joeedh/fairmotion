@@ -16,11 +16,11 @@ from js_process_ast_parser_only import *
 
 precedence = (
   ("left", "COMMA"),
-  ("left", "ARROW"),
   ("left", "ASSIGN", "ASSIGNLSHIFT", "ASSIGNRSHIFT", "ASSIGNPLUS",
            "ASSIGNMINUS", "ASSIGNDIVIDE", "ASSIGNTIMES", "ASSIGNBOR",
            "ASSIGNBAND", "ASSIGNBXOR", "ASSIGNMOD"),
   ("left", "QEST", "COLON"),
+  ("left", "ARROW"), #note this is a "fictitious" token
   ("left", "BNEGATE"),
   ("left", "LAND", "LOR"),
   ("left", "BAND", "BOR", "BXOR"),
@@ -1064,9 +1064,21 @@ def p_assign(p):
     p[0] = p[1]
 
 def p_exprlist(p):
+  r'''exprlist : expr
+  '''
+  p[0] = p[1]
+  if type(p[0]) != ExprListNode:
+    if type(p[0]) == ExprNode:
+      p[0] = ExprListNode(p[0])
+    else:
+      p[0] = ExprListNode([p[0]])
+  
+  return
+  
   r'''
-    exprlist : expr
-             | exprlist COMMA expr
+  
+    exprlist : expr_no_list
+             | exprlist COMMA expr_no_list
   '''
   
   #'''
@@ -1733,6 +1745,11 @@ def p_typeof(p):
   r'''typeof : TYPEOF expr
   '''
   p[0] = TypeofNode(p[2])
+  
+def p_typeof_no_list(p):
+  r'''typeof_no_list : TYPEOF expr_no_list
+  '''
+  p[0] = TypeofNode(p[2])
 
 def p_obj_lit_list(p):
   r'''
@@ -1775,10 +1792,16 @@ def p_new(p):
   '''
   set_parse_globals(p)
   p[0] = KeywordNew(p[2])
+  
+def p_new_no_list(p):
+  '''new_no_list : NEW expr_no_list
+  '''
+  set_parse_globals(p)
+  p[0] = KeywordNew(p[2])
 
-def p_inc(p):
-  '''inc : expr INC
-         | INC expr
+def p_inc_no_list(p):
+  '''inc_no_list : expr_no_list INC
+                 | INC expr_no_list
   '''
   set_parse_globals(p)
   if p[1] == "++":
@@ -1801,6 +1824,37 @@ def p_not(p):
   '''not : NOT expr'''
   set_parse_globals(p)
   p[0] = LogicalNotNode(p[2])
+
+def p_inc(p):
+  '''inc : expr INC
+         | INC expr
+  '''
+  set_parse_globals(p)
+  if p[1] == "++":
+    p[0] = PreInc(p[2]);
+  else:
+    p[0] = PostInc(p[1])
+    
+def p_dec_no_list(p):
+  '''dec_no_list : expr_no_list DEC
+                 | DEC expr_no_list
+  '''
+
+  set_parse_globals(p)
+  if p[1] == "--":
+    p[0] = PreDec(p[2]);
+  else:
+    p[0] = PostDec(p[1])
+
+def p_not_no_list(p):
+  '''not_no_list : NOT expr_no_list'''
+  set_parse_globals(p)
+  p[0] = LogicalNotNode(p[2])
+  
+def p_bitinv_no_list(p):
+  '''bitinv_no_list : BITINV expr_no_list'''
+  set_parse_globals(p)
+  p[0] = BitInvNode(p[2])
 
 def p_bitinv(p):
   '''bitinv : BITINV expr'''
@@ -1844,7 +1898,114 @@ def p_rsbracket_restrict(p):
   
   pop_restrict()
 
+def p_concise_body(p):
+  '''concise_body : expr_no_list
+                  | LBRACKET statementlist_opt RBRACKET
+                    
+  '''
+  set_parse_globals(p)
+  
+  if len(p) == 2:
+    p[0] = ReturnNode(p[1])
+  else:
+    p[0] = p[2]
 
+def p_arrowparamlist_opt(p):
+  '''arrowparamlist_opt : ID
+                        | arrowparamlist_opt COMMA ID
+                        |
+  '''
+#todo: support rest parameters
+#                       | arrowparamlist_opt TRIPLEDOT
+#                       | TRIPLEDOT arrowparamlist_opt
+
+  set_parse_globals(p)
+  
+  if len(p) == 1:
+    p[0] = ExprListNode([])
+  elif len(p) == 2:
+    p[0] = ExprListNode([])
+    p[0].add(p[1])
+  elif len(p) == 4:
+    p[0] = p[1]
+    if p[0] == None:
+      p[0] = ExprListNode([])
+    p[0].add(p[3])
+  else:
+    raise RuntimeError("eek!")
+    
+def p_arrow_paramlist(p):
+  '''
+    arrow_paramlist : RPAREN expr LPAREN
+  '''
+  
+  set_parse_globals(p)
+  #there we differentiate between this case
+  #and case three in p_arrow_function by
+  #making this one a formal IdentNode,
+  #so we can test for the other with type(p[1]) == type(str)
+  
+  if len(p) == 2:
+    if type(p[1]) == ExprListNode or (type(p[1]) == ExprNode and len(p[1]) > 1):
+      p[0] = p[1]
+    elif isinstance(p[1], IdentNode) or isinstance(p[1], VarDeclNode):
+      p[0] = p[1]
+    elif type(p[1]) == str:
+      p[0] = IdentNode(p[1])
+    else:
+      raise SyntaxError("bad arrow parameter block")
+
+
+def p_arrow_function(p):
+  '''
+    arrow_function : ARROW_PRE arrowparamlist_opt RPAREN ARROW concise_body
+                   | ID ARROW concise_body
+  '''
+  
+  func = FunctionNode("(anonymous)")
+  func.is_anonymous = func.is_arrow = True
+  
+  if len(p) == 4:
+    func.add(ExprListNode([p[1]]))
+    func.add(p[3])
+  else:
+    if p[2] is None:
+      p[2] = ExprListNode([])
+      
+    func.add(p[2])
+    func.add(p[5])
+    
+  p[0] = func
+  return
+  
+  '''arrow_function : expr ARROW expr_no_list
+                    | LPAREN arrowparamlist_opt RP_ARROW expr_no_list
+                    | expr ARROW_LB statementlist_opt RBRACKET
+                    | LPAREN expr RP_ARROW_LB statementlist_opt RBRACKET
+  '''
+  
+  set_parse_globals(p)
+
+  #arrowparamlist_opt
+  
+  p[0] = FunctionNode("(anonymous)")
+  p[0].is_anonymous = p[0].is_arrow = True
+  
+  if len(p) == 4:
+    p[0].add(p[1])
+    p[0].add(p[3])
+  elif len(p) == 5 and p[1] == '(':
+    p[0].add(p[2])
+    p[0].add(p[4])
+    #pop_restrict(')')
+  elif len(p) == 5:
+    p[0].add(p[1])
+    p[0].add(p[3])
+  elif len(p) == 6:
+    p[0].add(p[2])
+    p[0].add(p[4])
+    #pop_restrict(')')
+  
 def p_expr(p):
     '''expr : NUMBER
             | strlit
@@ -1852,8 +2013,8 @@ def p_expr(p):
             | id template_ref
             | template_ref
             | array_literal
-            | exprfunction
             | arrow_function
+            | exprfunction
             | obj_literal
             | expr cmplx_assign expr
             | expr cmplx_assign expr COLON var_type SEMI
@@ -1883,10 +2044,11 @@ def p_expr(p):
             | expr DIVIDE expr
             | expr TIMES expr
             | expr IN expr
-            | lparen_restrict expr rparen_restrict
             | expr func_call
             | expr lsbracket_restrict expr rsbracket_restrict
             | expr QEST expr COLON expr
+            | expr COMMA expr
+            | lparen_restrict expr rparen_restrict
             | expr_uminus
             | not
             | bitinv
@@ -1895,8 +2057,105 @@ def p_expr(p):
             | dec
             | typeof
             | re_lit
-            | expr COMMA expr
-            '''
+    '''
+    set_parse_globals(p)
+    if len(p) == 7:
+      if p[2] != "[": #assignment
+        p[0] = AssignNode(p[1], p[3], p[2])
+        p[0].type = p[5]
+    elif len(p) == 6: #trinary conditional expressions or assignment with type
+      if p[2] != "?": #assignment
+        p[0] = AssignNode(p[1], p[3], p[2])
+        p[0].type = p[5]
+      else:
+        p[0] = TrinaryCondNode(p[1], p[3], p[5]);
+    if len(p) == 5: #assignment ops and array lookups
+      p[0] = ArrayRefNode(p[1], p[3])
+    elif len(p) == 4:
+      if p[1] == '(' and p[3] == ')':
+        p[0] = ExprNode([p[2]], add_parens=True)
+      elif type(p[2]) == str and p[2].startswith("=") \
+           and not (len(p[2]) >= 2 and p[2][1] == "="):
+        p[0] = AssignNode(p[1], p[3], p[2])
+      elif p[2] == ",":
+        if type(p[1]) != ExprListNode:
+          p[0] = ExprListNode([p[1]])
+        else:
+          p[0] = p[1]
+        p[0].add(p[3])
+      else:
+        p[0] = BinOpNode(p[1], p[3], p[2])
+
+    elif len(p) == 3:
+      if type(p[2]) == FuncCallNode:
+        p[0] = p[2];
+        p[0].prepend(p[1]);
+      elif type(p[2]) == TemplateNode:
+        p[0] = TypeRefNode(p[1])
+        p[0].template = p[2]
+    elif len(p) == 2:
+      if type(p[1]) in [RegExprNode, StrLitNode, TypeofNode, 
+                        BitInvNode, LogicalNotNode, NegateNode, 
+                        ArrayLitNode, ObjLitNode, FunctionNode, 
+                        KeywordNew, PreInc, PostInc, PreDec, PostDec,
+                        TemplateNode, ExprListNode]:
+        p[0] = p[1]
+      elif type(p[1]) in [float, int, HexInt]:
+        p[0] = NumLitNode(p[1])
+      elif p[1].startswith('"'):
+        p[0] = StrLitNode(p[1])
+      else:
+        p[0] = IdentNode(p[1])
+
+#no object literals either
+#or type stuff.  or arrow 
+#functions
+def p_expr_no_list(p):
+    '''expr_no_list : NUMBER
+            | strlit
+            | id
+            | array_literal
+            | exprfunction
+            | expr_no_list cmplx_assign expr_no_list
+            | expr_no_list RSHIFT expr_no_list
+            | expr_no_list LSHIFT expr_no_list
+            | expr_no_list LLSHIFT expr_no_list
+            | expr_no_list RRSHIFT expr_no_list
+            | expr_no_list COND_DOT expr_no_list
+            | expr_no_list DOT expr_no_list
+            | expr_no_list LAND expr_no_list
+            | expr_no_list LOR expr_no_list
+            | expr_no_list BOR expr_no_list
+            | expr_no_list INSTANCEOF expr_no_list
+            | expr_no_list BXOR expr_no_list
+            | expr_no_list BAND expr_no_list
+            | expr_no_list EQUAL expr_no_list
+            | expr_no_list EQUAL_STRICT expr_no_list
+            | expr_no_list NOTEQUAL_STRICT expr_no_list
+            | expr_no_list GTHAN expr_no_list
+            | expr_no_list GTHANEQ expr_no_list
+            | expr_no_list LTHAN expr_no_list
+            | expr_no_list MOD expr_no_list
+            | expr_no_list LTHANEQ expr_no_list
+            | expr_no_list NOTEQUAL expr_no_list
+            | expr_no_list PLUS expr_no_list
+            | expr_no_list MINUS expr_no_list
+            | expr_no_list DIVIDE expr_no_list
+            | expr_no_list TIMES expr_no_list
+            | expr_no_list IN expr_no_list
+            | expr_no_list func_call
+            | expr_no_list lsbracket_restrict expr rsbracket_restrict
+            | expr_no_list QEST expr_no_list COLON expr_no_list
+            | lparen_restrict expr rparen_restrict
+            | expr_no_list_uminus
+            | not_no_list
+            | bitinv_no_list
+            | new_no_list
+            | inc_no_list
+            | dec_no_list
+            | typeof_no_list
+            | re_lit
+    '''
     set_parse_globals(p)
     if len(p) == 7:
       if p[2] != "[": #assignment
@@ -1956,6 +2215,12 @@ def p_expr_uminus(p):
     set_parse_globals(p);
     p[0] = NegateNode(p[2]);
     
+def p_expr_no_list_uminus(p):
+    '''expr_no_list_uminus : MINUS expr_no_list %prec UMINUS
+    '''
+    set_parse_globals(p);
+    p[0] = NegateNode(p[2]);
+    
 
 def p_paren_expr(p):
   '''paren_expr : LPAREN expr RPAREN
@@ -1966,87 +2231,7 @@ def p_paren_expr(p):
     p[0] = p[2]
   else:
     p[0] = ExprNode([])
-
-
-def p_arrow_param_list(p):
-  '''
-     arrow_param_list : ID
-                      | arrow_param_list COMMA ID
-                      |
-  '''
-  set_parse_globals(p)
   
-  if len(p) == 1:
-    p[0] = ExprListNode([])
-  elif len(p) == 2:
-    p[0] = ExprListNode([IdentNode(p[1])])
-  elif len(p) == 4:
-    p[0] = p[1]
-    p[1].add(IdentNode(p[3]))
-  
-def p_arrow_params(p):
-  '''
-     arrow_params : ID
-                  | LPAREN arrow_param_list RPAREN
-  '''
-  set_parse_globals(p)
-  
-  if len(p) == 2:
-    p[0] = ExprListNode([p[1]])
-  elif len(p) == 4:
-    p[0] = p[2]
-  else:
-    p[0] = ExprListNode([])
-
-def p_concise_body(p):
-  '''concise_body : expr
-                  | LBRACKET statementlist_opt RBRACKET
-                    
-  '''
-  set_parse_globals(p)
-  
-  if len(p) == 2:
-    p[0] = p[1]
-  else:
-    p[0] = p[2]
-
-#stupidly hackish. . .
-def p_arrow_binding(p):
-  '''
-    arrow_binding : LPAREN RPAREN
-                  | expr
-  '''
-  if len(p) == 2:
-    p[0] = p[1]
-  else:
-    p[0] = ExprNode(ExprListNode([]))
-    
-def p_arrow_function(p):
-  '''
-    arrow_function : expr ARROW concise_body
-  '''
-  
-  print(p[1])
-  
-  if type(p[1]) == str:
-    p[1] = ExprListNode([IdentNode(p[1])])
-  elif type(p[1]) == ExprNode and type(p[1][0]) == ExprListNode:
-    p[1] = p[1][0]
-  elif type(p[1]) == ExprNode and type(p[1][0]) == IdentNode:
-    p[1] = ExprListNode([p[1][0]])
-  else:
-    raise SyntaxError
-    
-  set_parse_globals(p)
-  
-  f = FunctionNode("(anonymous)", p.lineno)
-  f.is_anonymous = True
-  f.add(p[1])
-  f.add(p[3])
-  
-  p[0] = f
-  
-
 def p_assign_opt(p):
   '''assign_opt : assign
                  |
@@ -2655,6 +2840,8 @@ def print_err(p, do_exit=True, msg="syntax error"):
   
   if not glob.g_msvc_errors:
     sys.stderr.write("%s\n%s\n"%(linestr, colstr))
+  
+  sys.stderr.write("P: %s\n" % p)
     
   if do_exit and glob.g_exit_on_err:
     sys.exit(-1)

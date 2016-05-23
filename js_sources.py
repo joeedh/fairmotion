@@ -168,9 +168,6 @@ sources = [
   "src/datafiles/iconsheet16.png",
 ]
 
-if hasattr(build_local, "USE_BETTER_CURVE") and build_local.USE_BETTER_CURVE:
-  sources.append("src/curve/spline_math_patpend.js")
-
 copy_targets = {
    "jasmine.js"      : "tools/utils/libs/jasmine/lib/jasmine.js",
    "jasmine-html.js" : "tools/utils/libs/jasmine/lib/jasmine-html.js",

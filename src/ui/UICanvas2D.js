@@ -108,6 +108,8 @@ export class UICanvas2_ {
   }
   
   reset_canvases() {
+    console.trace("reset_canvases called");
+    
     for (var k in this.canvases) {
       document.body.removeChild(this.canvases[k]);
     }
@@ -116,6 +118,8 @@ export class UICanvas2_ {
   }
   
   kill_canvas(obj_or_id) {
+    console.trace("kill called");
+    
     var id = obj_or_id;
     
     if (typeof id == "object") {
@@ -145,7 +149,11 @@ export class UICanvas2_ {
       canvas = this.canvases[id];
       canvas.is_blank = false;
     } else {
+      console.trace("creating new canvas. . .");
+    
       var canvas = document.createElement("canvas");
+      canvas.id = "_canvas2d_" + id;
+
       document.body.appendChild(canvas);
       
       canvas.style["position"] = "absolute";
@@ -156,16 +164,22 @@ export class UICanvas2_ {
       
       canvas.width = this.canvas.width;
       canvas.height = this.canvas.height;
-
-      canvas.id = "_canvas2d_" + id;
       
       canvas.ctx = canvas.getContext("2d");
+      if (canvas.ctx.canvas == undefined) {
+        canvas.ctx.canvas = canvas;
+      }
+      
       canvas.is_blank = true;
       
       this.canvases[id] = canvas;
       
       global active_canvases;
       active_canvases[id] = [canvas, this];
+    }
+    
+    if (parseInt(canvas.style["z-index"]) != zindex) {
+      canvas.style["z-index"] = zindex;
     }
     
     if (canvas.width != size[0]) {
@@ -181,6 +195,7 @@ export class UICanvas2_ {
     }
     
     var y = Math.floor(window.innerHeight - pos[1] - size[1]);
+    
     if (canvas.style["top"] != ""+y+"px") {
       canvas.style["top"] = ""+y+"px";
       canvas.is_blank = true;
@@ -195,7 +210,10 @@ export class UICanvas2_ {
   push_layer() {
     this.layerstack.push([this.canvas, this.ctx]);
     
+    static temp_layer_idgen = 0;
+    
     var canvas = document.createElement("canvas");
+    canvas.id = "_temp_canvas2d_" + (temp_layer_idgen++);
     document.body.appendChild(canvas);
     
     canvas.style["position"] = "absolute";

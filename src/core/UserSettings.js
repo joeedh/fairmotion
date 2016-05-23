@@ -10,18 +10,31 @@ export class AppSettings {
     this.unit = "in";
     this.last_server_update = 0;
     this.update_waiting = false;
-    this.recent_files = [];
+    this.recent_paths = [];
   }
   
-  add_recent_file(path) {
-    if (this.recent_files.indexOf(path) >= 0) {
-      this.recent_files.remove(path);
-      this.recent_files.push(path);
-    } else if (this.recent_files.length >= config.MAX_RECENT_FILES) {
-      this.recent_files.shift();
-      this.recent_files.push(path);
+  find_recent_path(path) {
+    for (var i=0; i<this.recent_paths.length; i++) {
+      if (this.recent_paths[i].path == path) {
+        return i;
+      }
+    }
+    
+    return -1;
+  }
+  
+  add_recent_file(path, displayname=path) {
+    var rp = this.find_recent_path(path);
+    path = new RecentPath(path, displayname);
+    
+    if (rp >= 0) {
+      this.recent_paths.remove(this.recent_paths[path]);
+      this.recent_paths.push(path);
+    } else if (this.recent_paths.length >= config.MAX_RECENT_FILES) {
+      this.recent_paths.shift();
+      this.recent_paths.push(path);
     } else {
-      this.recent_files.push(path);
+      this.recent_paths.push(path);
     }
   }
 
@@ -78,6 +91,7 @@ export class AppSettings {
         console.log("loading settings data...");
         
         var ret = g_app_state.load_blocks(data);
+        
         if (ret == undefined) {
           console.trace("could not load settings : load_blocks returned undefined");
           return;
@@ -133,12 +147,12 @@ export class AppSettings {
     if (config.NO_SERVER) {
         startup_report("getting settings from myLocalStorage. . .");
         
-        if (myLocalStorage._settings != undefined) {
-            var settings = b64decode(myLocalStorage._settings);
-            settings = new DataView(settings.buffer);
-            
-            finish(settings);
-        }
+        myLocalStorage.getAsync("_settings").then(function(settings) {
+          var settings = b64decode(settings);
+          settings = new DataView(settings.buffer);
+        
+          finish(settings);
+        });
     } else {
         download_file("/" + fairmotion_settings_filename, finish, "Settings", true);
     }
@@ -150,7 +164,26 @@ AppSettings.STRUCT = """
     unit_scheme  : string;
     unit         : string;
     theme        : Theme | g_theme;
-    recent_files : array(string);
+    recent_paths : array(RecentPath);
+  }
+""";
+
+export class RecentPath {
+  constructor(path, displayname) {
+    this.path = path;
+    this.displayname = displayname;
+  }
+  
+  static fromSTRUCT(reader) {
+    var ret = new RecentPath();
+    reader(ret);
+    return ret;
+  }
+}
+RecentPath.STRUCT = """
+  RecentPath {
+    path        : string;
+    displayname : string;
   }
 """;
 
@@ -161,13 +194,13 @@ export class SettUploadManager {
   }
   
   server_push(AppSettings settings) {
-    console.log("write settings");
+    startup_report("writing settings");
+    
     if (config.NO_SERVER) { //save to myLocalStorage
-        console.log("write settings2");
         var data = settings.gen_file().buffer;
         data = b64encode(new Uint8Array(data));
         
-        myLocalStorage._settings = data;
+        myLocalStorage.set("_settings", data);
         return;
     }
     

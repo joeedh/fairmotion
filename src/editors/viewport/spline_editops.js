@@ -5,7 +5,7 @@ import {SplineFlags, SplineTypes, RecalcFlags} from 'spline_types';
 import {RestrictFlags, Spline} from 'spline';
 import {VDAnimFlags} from 'frameset';
 import {TPropFlags} from 'toolprops';
-import {istruct} from 'struct';
+import 'struct'; //get istruct
 import {redo_draw_sort} from 'spline_draw';
 
 export class KeyCurrentFrame extends ToolOp {

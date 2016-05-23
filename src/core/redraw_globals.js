@@ -7,6 +7,41 @@ window.init_redraw_globals = function init_redraw_globals() {
   window.redraw_rect_defined = false;
   window.redraw_whole_screen = false;
   
+  window._addEventListener = window.addEventListener;
+  window._removeEventListener = window.removeEventListener;
+  window._killscreen_handlers = [];
+  
+  window._send_killscreen = function() {
+    var evt = {type : 'killscreen'};
+    
+    for (var h of this._killscreen_handlers) {
+      try {
+        h(evt);
+      } catch (error) {
+        print_stack(error);
+        console.log("Error while executing a killscreen callback");
+      }
+    }
+  }
+  
+  window.removeEventListener = function(e) {
+    if (e._is_killscreen) {
+      this._killscreen_handlers.remove(e, false);
+    } else {
+      return window._removeEventListener.apply(this, arguments);
+    }
+  }
+  
+  window.addEventListener = function(name, cb) {
+    cb._is_killscreen = 1;
+    
+    if (name != "killscreen") {
+      return this._addEventListener.apply(this, arguments);
+    } else {
+      this._killscreen_handlers.push(cb);
+    }
+  }
+  
   var animreq = undefined;
 
   var animreq_ui = undefined;

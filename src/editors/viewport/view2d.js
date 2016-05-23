@@ -142,7 +142,7 @@ class IndexBufItem {
   }
 }
 
-import {patch_canvas2d} from 'spline_draw';
+import {patch_canvas2d, set_rendermat} from 'spline_draw';
 import {SplineEditor} from 'view2d_spline_ops';
 import {ColumnFrame, RowFrame, ToolOpFrame} from 'UIPack';
 import {UIMenuLabel, UIButtonIcon} from 'UIWidgets';
@@ -150,6 +150,8 @@ import {UIMenu} from 'UIMenu';
 import {UITabPanel} from 'UITabPanel';
 
 import {ImageUser} from 'imageblock';
+
+var canvas_owners = 0;
 
 export class View2DHandler extends Area {
    constructor(WebGLRenderingContext gl, Mesh mesh, ShaderProgram vprogram, ShaderProgram fprogram, 
@@ -160,6 +162,9 @@ export class View2DHandler extends Area {
     
     //on-canvas manipulator tools
     this.widgets = new ManipulatorManager(this);
+    
+    this.bgcanvas_owner = "View3D_" + (canvas_owners++);
+    this.fgcanvas_owner = "View3D_" + (canvas_owners++);
     
     this.background_color = new Vector3([1.0, 1.0, 1.0]);
     this.default_stroke = new Vector4([0, 0, 0, 1]);
@@ -719,16 +724,36 @@ export class View2DHandler extends Area {
   on_view_change() {
   }
 
+  get drawcanvas() {
+    console.trace("get drawcanvas!");
+    return this._drawcanvas;
+  }
+  
+  set drawcanvas(val) {
+    this._drawcanvas = val;
+    console.trace("set drawcanvas!");
+  }
+  
+  get_fg_canvas() { //XXX todo: get rid of this.drawcanvas.
+    this.drawcanvas = this.canvas.get_canvas(this, this.abspos, this.size, 2);
+    return this.drawcanvas;
+  }
+  
+  get_bg_canvas() {
+    return this.canvas.get_canvas(this.bgcanvas_owner, this.abspos, this.size, -1);
+  }
+  
+  
   do_draw_viewport(redraw_rects) {
-    var canvas = this.drawcanvas = this.canvas.get_canvas(this, this.abspos, this.size, 0);
+    var canvas = this.get_fg_canvas();
+    var bgcanvas = this.get_bg_canvas();
+    
     var g = this.drawg = canvas.ctx;
+    var bg_g = bgcanvas.ctx;
     
-    if (canvas != undefined && canvas.style != undefined) {
-      canvas.style.background = this.background_color.toCSS();
+    if (bgcanvas !== undefined && bgcanvas.style !== undefined) {
+      bgcanvas.style["backgroundColor"] = this.background_color.toCSS();
     }
-    
-    g._render_mat = this.rendermat;
-    g._irender_mat = this.irendermat;
     
     var w = this.parent.size[0];
     var h = this.parent.size[1];
@@ -784,23 +809,23 @@ export class View2DHandler extends Area {
       }
     }*/
 
-    if (g._is_patched == undefined) {
-      patch_canvas2d(g);
-      g._is_patched = this.ctx.spline;
-    }
+    g._irender_mat = this.irendermat;
+    bg_g._irender_mat = this.irendermat;
+
+    set_rendermat(g, this.rendermat);
+    set_rendermat(bg_g, this.rendermat);
     
     g.save();
-    
-    //console.log("viewport draw", redraw_rects.length);
+    bg_g.save();
     
     var p1 = new Vector2([this.pos[0], this.pos[1]]);
     var p2 = new Vector2([this.pos[0]+this.size[0], this.pos[1]+this.size[1]])
     this.unproject(p1), this.unproject(p2);
     
-    g.beginPath();
-    
     var r = redraw_rects;
     
+    //*
+    g.beginPath();
     for (var i=0; i<r.length; i += 4) {
       g.moveTo(r[i], r[i+1]);
       g.lineTo(r[i], r[i+3]);
@@ -810,17 +835,21 @@ export class View2DHandler extends Area {
       g.closePath();
     }
     //g.clip();
+    //*/
     
     g.beginPath();
-    g._clearRect(0, 0, g.width, g.height);
+    bg_g.beginPath();
     
+    g._clearRect(0, 0, g.canvas.width, g.canvas.height);
+    bg_g._clearRect(0, 0, bg_g.canvas.width, bg_g.canvas.height);
+    
+    this.ctx = new Context();
     //this.ctx.frameset.draw(this.ctx, g, this, redraw_rects);
     //g.restore(); return;
     
-    this.ctx = new Context();
-    
     if (this.ctx.frameset == undefined) {
       g.restore();
+      bg_g.restore();
       return;
     }
     
@@ -830,8 +859,7 @@ export class View2DHandler extends Area {
       if (image != undefined) {
         //console.log("image", image);
         
-        g.drawImage(image, 0, 0);
-        //g.putImageData(imagedata, 0, -imagedata.height);
+        bg_g.drawImage(image, 0, 0);
       }
     }
     
@@ -840,7 +868,7 @@ export class View2DHandler extends Area {
       var img = this.background_image.image.get_dom_image();
       var iuser = this.background_image;
       
-      g.drawImage(img, iuser.off[0], iuser.off[1], img.width*iuser.scale[0], img.height*iuser.scale[1]);
+      bg_g.drawImage(img, iuser.off[0], iuser.off[1], img.width*iuser.scale[0], img.height*iuser.scale[1]);
     }
     
     this.ctx.frameset.draw(this.ctx, g, this, redraw_rects);
@@ -911,6 +939,7 @@ export class View2DHandler extends Area {
       this.widgets.render(canvas, g);
     }
     
+    bg_g.restore();
     g.restore();
   }
   
@@ -925,7 +954,7 @@ export class View2DHandler extends Area {
     this.abspos[0] = this.abspos[1] = 0.0;
     this.abs_transform(this.abspos);
     
-    var canvas = this.canvas.get_canvas(this, this.abspos, this.size, 0);
+    var canvas = this.get_fg_canvas();
     this.draw_canvas = canvas;
     this.draw_canvas_ctx = canvas.ctx;
     
@@ -1132,6 +1161,8 @@ export class View2DHandler extends Area {
   {
     super.destroy();
     
+    if (this.bgcanvas_owner != undefined)
+      this.canvas.kill_canvas(this.bgcanvas_owner);
     if (this.canvas != undefined)
       this.canvas.kill_canvas(this);
   }

@@ -189,10 +189,10 @@ export function get_current_dir() {
   if (g_app_state.session.userid == undefined) 
     return undefined;
   
-  recent_files = g_app_state.session.settings.recent_files;
+  recent_paths = g_app_state.session.settings.recent_paths;
   
-  if (recent_files.length > 0) {
-    var path = recent_files[recent_files.length-1].trim().replace(/\\/g, "/");
+  if (recent_paths.length > 0) {
+    var path = recent_paths[recent_paths.length-1].path.trim().replace(/\\/g, "/");
     while (path.length > 0 && path[path.length-1] != "/") {
       path = path.slice(0, path.length-1);
     }

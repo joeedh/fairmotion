@@ -30,6 +30,9 @@ export function chrome_app_open(callback, thisvar, set_current_file, extslabel, 
   }];
   
   chrome.fileSystem.chooseEntry(params, function(readOnlyEntry) {
+    if (readOnlyEntry == undefined) //canceled?
+      return;
+    
     if (set_current_file)
       current_chromeapp_file = readOnlyEntry;
     
@@ -40,8 +43,10 @@ export function chrome_app_open(callback, thisvar, set_current_file, extslabel, 
       
       reader.onerror = errorHandler;
       reader.onload = function(e) {
-        console.log(e.target.result);
-        callback.call(thisvar, e.target.result, file.name);
+        var id = chrome.fileSystem.retainEntry(readOnlyEntry);
+        console.log("\n\n           ->", e.target.result, readOnlyEntry, id, "<-\n\n");
+        
+        callback.call(thisvar, e.target.result, file.name, id);
       };
 
       reader.readAsArrayBuffer(file);

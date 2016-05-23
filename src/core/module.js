@@ -10,7 +10,7 @@ var _is_cyclic = false;
 var _post_primary_load = false;
 var _es6_module_resort = false;
 var _es6_module_verbose = false;
-var _debug_modules = 0;
+var _debug_modules = 1;
 
 function debug() {
   if (!_debug_modules)

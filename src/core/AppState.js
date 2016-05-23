@@ -44,7 +44,7 @@ import {
 
 //#ifdef PACK_PROFILE
 import {profile_reset, profile_report, gen_struct_str, 
-        istruct, STRUCT} from 'struct';
+        STRUCT} from 'struct';
 //#endif
 
 export var FileFlags = {COMPRESSED_LZSTRING : 1};
@@ -894,6 +894,8 @@ export class AppState {
     var datalib = new DataLib();
     
     var tmap = get_data_typemap();
+    
+    window._send_killscreen();
     
     while (uctx.i < data.byteLength) {
       var type = unpack_static_string(data, uctx, 4);

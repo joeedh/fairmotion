@@ -1078,7 +1078,51 @@ export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_re
   var hasmres = has_multires(spline);
   
   var last_clr = undefined;
+  function draw_verts() {
+    var w = vert_size/editor.zoom;
+    
+    for (var i=0; i<spline.verts.length; i++) {
+      var v = spline.verts[i];
+      var clr = uclr;
+      
+      if (!v.in_layer(actlayer))
+        continue;
+      if (v.flag & SplineFlags.HIDE) continue;
+      
+      if (v == spline.verts.highlight)
+        clr = hclr;
+      else if (v.flag & SplineFlags.SELECT)
+        clr = sclr;
+      
+      var co = v;
+      if (hasmres && v.segments.length > 0) {
+        co = v.segments[0].evaluate(v.segments[0].ends(v));
+      }
+      
+      if (draw_time_helpers) {
+        var time = get_vtime(v);
+        
+        if (curtime == time) {
+          g.beginPath(  );
+          g.fillStyle = "#33ffaa";
+          g.rect(co[0]-w*2, co[1]-w*2, w*4, w*4);
+          g.fill()
+          g.fillStyle = clr;
+        }
+      }
+      
+      g.beginPath();
+      if (clr !== last_clr)
+        g.fillStyle = clr;
+      last_clr = clr;
+      g.rect(co[0]-w, co[1]-w, w*2, w*2);
+      g.fill()
+    }
+  }
+  
   if (selectmode & SelMask.VERTEX) {
+    //draw_verts();
+
     var w = vert_size/editor.zoom;
     
     for (var i=0; i<spline.verts.length; i++) {
@@ -1155,13 +1199,13 @@ export function patch_canvas2d(g) {
       if (rendermat != undefined) {
         co.multVecMatrix(rendermat);
       }
-      co[1] = g.height - co[1];
+      co[1] = g.canvas.height - co[1];
     }
     
     function untransform(g, co) {
       var rendermat = g._irender_mat;
       
-      co[1] = g.height - co[1];
+      co[1] = g.canvas.height - co[1];
       
       if (rendermat != undefined) {
         co.multVecMatrix(rendermat);
@@ -1286,12 +1330,16 @@ export function patch_canvas2d(g) {
 
 export function set_rendermat(g, mat) {
   if (g._is_patched == undefined) {
-    patch_cancas2d(g);
+    patch_canvas2d(g);
   }
   
   g._render_mat = mat;
-  g._irender_mat = new Matrix4(mat);
   
+  if (g._irender_mat === undefined) {
+    g._irender_mat = new Matrix4(mat);
+  }
+  
+  g._irender_mat.load(mat);
   g._irender_mat.invert();
 }
 

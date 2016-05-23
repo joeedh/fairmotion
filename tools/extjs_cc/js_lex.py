@@ -6,6 +6,7 @@ import ply.yacc as yacc
 import ply.lex as lex
 from ply.lex import TOKEN
 # List of token names.   This is always required
+from js_parse_arrowfuncs import lex_arrow
 
 from js_regexpr_parse import parser as rparser
 from types import BuiltinMethodType as PyMethodType, BuiltinFunctionType as PyFunctionType
@@ -127,11 +128,23 @@ tokens = (
    "EQUAL_STRICT",
    "TLTHAN",
    "TGTHAN",
-   "ARROW"
+   "ARROW",
+#   "ARROW_LB",
+#   "RP_ARROW",
+#   "RP_ARROW_LB",
+   "ARROW_PRE",
+   
+   "TRIPLEDOT",
+   "ARROWPARENS"
 ) + tuple(reserved_lst)
 
 # Regular expression rules for simple tokens
+t_TRIPLEDOT = r'\.\.\.'
 t_ARROW = r'\=\>'
+#t_ARROW_LB = r'\=\>[ \r\n\t]*\{'
+#t_RP_ARROW = r'\)[ \r\n\t]*\=\>'
+#t_RP_ARROW_LB = r'\)[ \r\n\t]*\=\>[ \r\n\t]*\{'
+
 t_ASSIGNPLUS = r'\+='
 t_ASSIGNMINUS = r'-='
 t_ASSIGNDIVIDE = r'/='
@@ -169,7 +182,25 @@ t_MINUS   = r'-'
 t_TIMES   = r'\*'
 t_DIVIDE  = r'/'
 t_MOD     = r'%'
-t_LPAREN  = r'\('
+
+#lex_arrow(lexdata, lexpos, lookahead_limit=256):
+def t_LPAREN(t):
+  r'\('
+  
+  #detect presence of LexWithPrev
+  if hasattr(t.lexer, "lexer"):
+    lexdata = t.lexer.lexer.lexdata
+  else:
+    lexdata = t.lexer.lexdata
+    
+  lexpos = t.lexpos
+  arrowi = lex_arrow(lexdata, lexpos)
+  if arrowi >= 0:
+    print("found an arrow func!")
+    t.type = "ARROW_PRE"
+    
+  return t
+  
 t_RPAREN  = r'\)'
 t_LBRACKET = r'\{'
 t_RBRACKET = r'\}'

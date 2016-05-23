@@ -107,12 +107,17 @@ def module_transform(node, typespace):
   #to maintain backward compatibility, add everything in module to
   #global namespace (for now).
   
-  if 0:
+  if glob.g_autoglobalize:
     for n in node[:]:
-      if type(n) in [ClassNode, FunctionNode]:
+      if type(n) in [ClassNode, FunctionNode, VarDeclNode]:
+        if type(n) == VarDeclNode:
+          nname = n.val
+        else:
+          nname = n.name
+          
         n2 = js_parse("""
           $s = _es6_module.add_global('$s', $s);
-        """, [n.name, n.name, n.name]);
+        """, [nname, nname, nname]);
         n.parent.insert(n.parent.index(n)+1, n2)
       elif type(n) == VarDeclNode:
         varvisit(n, n);

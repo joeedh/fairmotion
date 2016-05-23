@@ -1566,7 +1566,7 @@ export class STRUCT {
   }
 }
 
-export var istruct = new STRUCT();
+window.istruct = new STRUCT();
 
 var test_vertex_struct = """
   Vertex {

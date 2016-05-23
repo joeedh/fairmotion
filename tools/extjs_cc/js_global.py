@@ -10,7 +10,8 @@ glob_cmd_help_override = {
   "g_gen_log_code" : "Generate type logging code",
   "g_harmony_iterators" : "expansion of es6 harmony for-loops; Python's StopIteration style will be used instead.",
   "g_log_forloops" : "add extra data for logging for loops",
-  "g_es6_modules" : "generate ES6 modules"
+  "g_es6_modules" : "generate ES6 modules",
+  "g_autoglobalize" : "Make module locals (but not exports) global.  Useful during refactoring."
 }
 glob_cmd_short_override = {}
 
@@ -31,6 +32,7 @@ gcs["g_add_srcmap_ref"] = "nref"
 gcs["g_expand_iterators"] = "nei"
 #gcs["g_harmony_iterators"] = "nhi"
 gcs["g_refactor_mode"] = "rm"
+gcs["g_autoglobalize"] = "ag"
 gcs["g_refactor_classes"] = "rc"
 gcs["g_add_opt_initializers"] = "nao"
 gcs["g_do_docstrings"] = "ds"
@@ -249,6 +251,7 @@ class Glob(AbstractGlob):
     g_combine_ifelse_nodes = False
     g_add_newlines = False
     g_force_global_strict = False
+    g_autoglobalize = False
     g_expand_iterators = True
     #g_harmony_iterators = True
     g_refactor_mode = False

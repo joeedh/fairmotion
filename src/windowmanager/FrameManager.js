@@ -15,7 +15,7 @@ import {STRUCT} from 'struct';
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
         charmap, TouchEventManager, EventHandler} from 'events';
 
-import {UICanvas} from 'UICanvas2D';
+import {UICanvas} from 'UICanvas';
 import {UIFrame} from 'UIFrame';
 import {RowFrame} from 'UIPack';
 import {

@@ -510,7 +510,7 @@ function init_event_system() {
       return s
   }
 
-  var key_exclude_list = ke = {};
+  var key_exclude_list = {}, ke = key_exclude_list;
 
   ke[gen_keystr("O", {shift: false, alt: false, ctrl: true})] = 0;
   ke[gen_keystr("R", {shift: false, alt: false, ctrl: true})] = 0;

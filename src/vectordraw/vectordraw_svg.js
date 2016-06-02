@@ -581,7 +581,9 @@ export class SVGDraw2D extends VectorDraw {
     }
   }
   
-  draw(canvas, g) {
+  draw(g) {
+    var canvas = g.canvas;
+    
     if (canvas.style["background"] != "rgba(0,0,0,0)") {
       canvas.style["background"] = "rgba(0,0,0,0)";
     }

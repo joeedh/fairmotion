@@ -2536,4 +2536,47 @@ def process_arrow_function_this(result, typespace):
     
   traverse(result, FunctionNode, visit)
   
+def coverage_profile(result, typespace):
+  typeset = set([VarDeclNode, ExportNode, TryNode, CatchNode, 
+                 ClassNode, FunctionNode, IfNode, ElseNode,
+                 ForInNode, ForLoopNode, DoWhileNode, WhileNode,
+                 SwitchNode, CaseNode, DefaultCaseNode, FinallyNode])
   
+  proflines = []
+  
+  for c in result:
+    if type(c) != StrLitNode: break
+    if c.val[1:-1] == "not_covered_prof":
+      return
+    
+  def visit(node):
+    if type(node) == StatementList:
+      cs = node[:]
+    else:
+      cs = node[1:]
+    
+    #go through statements
+    for st in cs:
+      if type(st) in typeset:
+        continue;
+        
+      node.insert(node.index(st), js_parse("""
+        $$cov_prof("$s", $s);
+      """, [glob.g_file, st.line], start_node=FuncCallNode))
+      
+      proflines.append([glob.g_file, st.line])
+      
+  traverse(result, StatementList, visit)
+  traverse(result, FunctionNode, visit)
+  traverse(result, MethodNode, visit)
+  traverse(result, MethodGetter, visit)
+  traverse(result, MethodSetter, visit)
+  
+  #for t in typeset:
+  #  traverse(result, t, visit)
+  
+  for pl in proflines:
+    result.add(js_parse("""
+        $$cov_reg("$s", $s);
+      """, pl, start_node=FuncCallNode))
+      

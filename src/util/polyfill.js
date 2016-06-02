@@ -1,5 +1,60 @@
 "not_a_module";
 
+function startup_report(message) {
+  //args = new Array(arguments.length+2);
+  
+  console.log("%c " + message + "", "color:green");
+  /*
+  for (var i=0; i<arguments.length; i++) {
+    args[i+2] = arguments[i];
+  }
+  
+  args[0] = "%c"
+  args[1] = "color:green"
+  
+  console.log.apply(console, args);
+  */
+}
+
+function startup_warning(message) {
+  //args = new Array(arguments.length+2);
+  
+  console.trace("%c " + message + "\n\n", "color:red");
+  
+  /*
+  for (var i=0; i<arguments.length; i++) {
+    args[i+2] = arguments[i];
+  }
+  
+  args[0] = "%c"
+  args[1] = "color:green"
+  
+  console.log.apply(console, args);
+  */
+}
+
+function warn(message) {
+  //args = new Array(arguments.length+2);
+  
+  var args = ["%c " + message + "\n", "color:orange"]
+  for (var i=1; i<arguments.length; i++) {
+    args.push(arguments[i]);
+  }
+  
+  console.log.apply(console, args); //("%c " + message + "\n", "color:orange");
+}
+
+function warntrace(message) {
+  //args = new Array(arguments.length+2);
+  
+  var args = ["%c " + message + "\n", "color:orange"]
+  for (var i=1; i<arguments.length; i++) {
+    args.push(arguments[i]);
+  }
+  
+  console.trace.apply(console, args);
+}
+
 if (Symbol.keystr === undefined) {
   Symbol.keystr = Symbol("keystr");
 }
@@ -144,12 +199,12 @@ function obj_get_keys(obj) {
     return ret;
 }
 
-_do_frame_debug = false;
-_do_iter_err_stacktrace = true;
+window._do_frame_debug = false;
+window._do_iter_err_stacktrace = true;
 
 //special values for compiled generator code
-FrameContinue = {"FC": 1}
-FrameBreak = {"FB": 1}
+window.FrameContinue = {"FC": 1}
+window.FrameBreak = {"FB": 1}
 
 /*not sure if I need these...*/
 function getattr(obj, attr) {

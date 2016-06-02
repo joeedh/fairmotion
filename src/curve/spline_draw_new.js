@@ -71,14 +71,14 @@ var drawparam_cachering = new cachering(function() {
   return new DrawParams();
 }, 16);
 
-export class SplineDrawer extends Canvas {
-  constructor(spline) {
-    super();
-    
+export class SplineDrawer {
+  constructor(spline, drawer=new Canvas()) {
     this.spline = spline;
     this.used_paths = {};
     this.recalc_all = false;
     //this.path_minmaxes = {};
+    
+    this.drawer = drawer;
     
     this.last_stroke_mat = undefined;
     this.last_stroke_z   = undefined;
@@ -127,7 +127,7 @@ export class SplineDrawer extends Canvas {
     matrix.preMultiply(mat2);
     
     //check if matrix scale or rotation have changed
-    var m1 = matrix.$matrix, m2 = this.matrix.$matrix;
+    var m1 = matrix.$matrix, m2 = this.drawer.matrix.$matrix;
     var off = update_tmps_vs.next().zero();
     
     this.recalc_all = false;
@@ -139,7 +139,7 @@ export class SplineDrawer extends Canvas {
     if (!recalc_all) {
       //calculate translation offset
       var a = update_tmps_vs.next().zero(), b = update_tmps_vs.next().zero();
-      a.multVecMatrix(this.matrix);
+      a.multVecMatrix(this.drawer.matrix);
       b.multVecMatrix(matrix);
       
       off.load(b).sub(a);
@@ -150,11 +150,11 @@ export class SplineDrawer extends Canvas {
     
     //update pan.  clear matrice's translation
     var m = matrix.$matrix;
-    this.pan[0] = m.m41;
-    this.pan[1] = m.m42;
+    this.drawer.pan[0] = m.m41;
+    this.drawer.pan[1] = m.m42;
     m.m41 = m.m42 = m.m43 = 0;
     
-    this.set_matrix(matrix);
+    this.drawer.set_matrix(matrix);
 
     if (recalc_all) {
       console.trace("%c RECALC_ALL!  ", "color:orange");
@@ -199,11 +199,11 @@ export class SplineDrawer extends Canvas {
       this.last_layer_id = this.drawlist_layerids[i];
     }
     
-    for (var k in this.path_idmap) {
+    for (var k in this.drawer.path_idmap) {
       if (!(k in this.used_paths)) {
-        var path = this.path_idmap[k];
+        var path = this.drawer.path_idmap[k];
         
-        this.remove(path);
+        this.drawer.remove(path);
       }
     }
   }
@@ -213,14 +213,10 @@ export class SplineDrawer extends Canvas {
     var path;
     
     if (!this.has_path(id, z, check_z)) {
-      //if (!(id in this.path_minmaxes)) {
-      //  this.path_minmaxes[id] = new MinMax(2);
-      //}
-      
-      path = super.get_path(id, z, check_z);
+      path = this.drawer.get_path(id, z, check_z);
       path.frame_first = true;
     } else {
-      path = super.get_path(id, z, check_z);
+      path = this.drawer.get_path(id, z, check_z);
     }
     
     return path;
@@ -229,7 +225,7 @@ export class SplineDrawer extends Canvas {
   has_path(id, z, check_z=true) {
     this.used_paths[id] = 1;
     
-    return super.has_path(id, z, check_z);
+    return this.drawer.has_path(id, z, check_z);
   }
   
   update_stroke(seg, drawparams) {
@@ -539,10 +535,10 @@ export class SplineDrawer extends Canvas {
     return path;
   }
   
-  draw(canvas, g) {
+  draw(g) {
     //console.log("DRAWDRAW!", canvas, g, this, Canvas, Canvas.prototype.draw);
     
-    super.draw(canvas, g);
+    this.drawer.draw(g);
     return; //XXX
 /*    
     this.canvas = canvas;

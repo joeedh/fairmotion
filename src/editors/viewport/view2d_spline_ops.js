@@ -13,7 +13,7 @@ import {compose_id, decompose_id, MResFlags, MultiResLayer}
         
 var ScreenArea, Area;
 
-import {get_2d_canvas, get_2d_canvas_2} from 'UICanvas2D';
+import {get_2d_canvas, get_2d_canvas_2} from 'UICanvas';
 
 import {gen_editor_switcher} from 'UIWidgets_special';
 import {DataTypes} from 'lib_api';

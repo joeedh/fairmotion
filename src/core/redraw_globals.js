@@ -355,8 +355,6 @@ window.init_redraw_globals = function init_redraw_globals() {
 
       //ensure canvas2d'd dimensions are correct
       if (canvas2d.width != canvas.clientWidth || canvas2d.height != canvas.clientHeight) {
-          canvas2d.clientWidth = canvas.clientWidth;
-          canvas2d.clientHeight = canvas.clientHeight;
           canvas2d.width = canvas.clientWidth;
           canvas2d.height = canvas.clientHeight;
 

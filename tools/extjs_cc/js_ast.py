@@ -195,6 +195,7 @@ class Node (object):
     n2.file = self.file
     n2.lexpos = self.lexpos
     n2.final_type = self.final_type
+    
     if hasattr(self, "template"):
       if self.template != None:
         n2.template = self.template.copy()

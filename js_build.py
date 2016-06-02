@@ -122,6 +122,7 @@ def addslash(path):
 num_cores = getcfg("num_cores", 5, "int")
 do_minify = getcfg("do_minify", False, "bool")
 do_smaps = getcfg("do_smaps", False, "bool")
+do_coverage_profile = getcfg("do_coverage_profile", False, "bool")
 do_smap_roots = getcfg("do_smap_roots", False, "bool")
 aggregate_smaps = getcfg("aggregate_smaps", do_smaps, "bool")
 
@@ -348,6 +349,9 @@ if aggregate_smaps:
 
 if do_minify:
   JFLAGS += " -mn"
+
+if do_coverage_profile:
+  JFLAGS += " -pc"
 
 if do_smaps:
   JFLAGS += " -gm"
@@ -730,6 +734,7 @@ def aggregate_multi(files, outpath=target_path+"app.js", maxsize=350*1024):
   files2 = []
   
   bootstrap_modules = {
+    'coverage.js',
     'polyfill.js',
     'module.js',
     'typesystem.js',

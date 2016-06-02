@@ -133,7 +133,8 @@ export class UIColorButtonField extends UIHoverHint {
     var clra = [0.8, 0.8, 0.8, 1.0], clrb = [0.34, 0.34, 0.34, 1];
     
     for (var i=0; i<totcheck*totcheck;  i++) {
-      var x = i % totcheck, y = ~~(i / totcheck);
+      var x = i % totcheck; 
+      var y = ~~(i / totcheck);
       
       var x2 = (x+1)*chksize, y2 = (y+1)*chksize;
       var checkbool = (x+y) % 2 == 0;

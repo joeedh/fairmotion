@@ -1,7 +1,7 @@
 "use strict";
 
 import {inrect_2d} from 'mathlib';
-import {UICanvas} from 'UICanvas2D';
+import {UICanvas} from 'UICanvas';
 
 //NOTE: I've not tested this code for a very long time
 

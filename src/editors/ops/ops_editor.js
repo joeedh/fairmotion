@@ -15,7 +15,7 @@ import {UITabBar} from 'UITabPanel';
 
 import {UICollapseIcon, UIPanel} from 'UIWidgets_special';
 
-import {UICanvas} from 'UICanvas2D';
+import {UICanvas} from 'UICanvas';
 import {STRUCT} from 'struct';
 import {RowFrame, ColumnFrame} from 'UIPack';
 

@@ -16,7 +16,7 @@ import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler,
 
 import {UIButton, UIButtonIcon} from 'UIWidgets';
 
-import {UICanvas} from 'UICanvas2D';
+import {UICanvas} from 'UICanvas';
 import {UIFrame} from 'UIFrame';
 import {RowFrame} from 'UIPack';
 import {

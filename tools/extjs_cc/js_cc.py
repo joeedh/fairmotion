@@ -176,7 +176,12 @@ def js_parse(data, args=None, file="", flatten=True,
     i = 0
     ai = 0
     while i < len(data)-2:
-      if data[i] == "$" and safe_get(data, i-1) != "$":
+      if data[i] == "$":
+        if safe_get(data, i+1) == "$": #handle '$$'
+          data = data[:i] + data[i+1:]
+          i += 1
+          continue
+          
         i1 = i
         t = data[i+1]
         i += 2
@@ -711,10 +716,14 @@ def parse_intern_es6(data):
    
   typespace = JSTypeSpace()
   
-  if len(result) > 0 and type(result[0]) == StrLitNode and result[0].val == '"use strict"':
-    glob.g_force_global_strict = True
-  elif len(result) > 0 and type(result[0]) == StrLitNode and result[0].val == '"not_a_module"':
-    glob.g_es6_modules = False
+  #handle some directives
+  for c in result:
+    if type(c) != StrLitNode: break
+    
+    if c.val[1:-1] == "use strict":
+      glob.g_force_global_strict = True
+    elif c.val[1:-1] == "not_a_module":
+      glob.g_es6_modules = False
     
   if glob.g_force_global_strict:
     kill_bad_globals(result, typespace)
@@ -884,12 +893,19 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
     
   typespace = JSTypeSpace()
   
-  if result != None:
-    if len(result) > 0 and type(result[0]) == StrLitNode and result[0].val == '"use strict"':
+  #handle some directives
+  for c in result:
+    if type(c) != StrLitNode: break
+    
+    if c.val[1:-1] == "use strict":
       glob.g_force_global_strict = True
-    elif len(result) > 0 and type(result[0]) == StrLitNode and result[0].val == '"not_a_module"':
+    elif c.val[1:-1] == "not_a_module":
       glob.g_es6_modules = False
       
+  if glob.g_profile_coverage:
+    from js_process_ast import coverage_profile
+    coverage_profile(result, typespace)
+    
   if glob.g_compile_statics_only:
     process_static_vars(result, typespace)
     return result.gen_js(0), result

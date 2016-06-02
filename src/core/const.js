@@ -42,14 +42,14 @@ if (myLocalStorage.use_canvas2d == undefined)
 var $_mh = undefined;
 
 //debug globals
-if (!RELEASE && !("M" in this) && !("O" in this)) {
-  Object.defineProperty(this, "G", {get : function() {
+if (!RELEASE && !("M" in window) && !("O" in window)) {
+  Object.defineProperty(window, "G", {get : function() {
     return g_app_state;
   }});
-  Object.defineProperty(this, "V2D", {get : function() {
+  Object.defineProperty(window, "V2D", {get : function() {
     return g_app_state.active_view2d;
   }});
-  Object.defineProperty(this, "API", {get : function() {
+  Object.defineProperty(window, "API", {get : function() {
     return g_app_state.api;
   }});
 }

@@ -375,7 +375,8 @@ export class CanvasDraw2D extends VectorDraw {
     }
   }
   
-  draw(canvas, g) {
+  draw(g) {
+    var canvas = g.canvas;
     var off = canvaspath_draw_vs.next();
     
     off.load(this.pan).sub(this._last_pan);

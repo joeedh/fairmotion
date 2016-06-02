@@ -722,3 +722,81 @@ export class FrameChangeOp extends ToolOp {
 FrameChangeOp.inputs = {
   frame : new FloatProperty(0, "frame", "frame", "frame")
 };
+
+import {SimpleCanvasDraw2D} from 'vectordraw_canvas2d_simple';
+import {draw_spline} from 'spline_draw';
+import {save_file} from 'html5_fileapi';
+import {patch_canvas2d, set_rendermat} from 'spline_draw';
+import {SplineDrawer} from 'spline_draw_new';
+
+export class ExportCanvasImage extends ToolOp {
+  static tooldef() {return {
+    apiname     : "view2d.export_image",
+    uiname      : "Save Canvas Image",
+    description : "Export visible canvas",
+    undoflag    : UndoFlags.IGNORE_UNDO
+  }}
+  
+  exec(ctx) {
+    var view2d = g_app_state.active_view2d;
+    var spline = ctx.frameset.spline;
+    
+    var canvas = document.createElement("canvas");
+    canvas.width = view2d.size[0];
+    canvas.height = view2d.size[1];
+    
+    //add in custom matrix code
+    var g = canvas.getContext("2d");
+    patch_canvas2d(g);
+    set_rendermat(g, view2d.rendermat);
+    
+    var vecdrawer = new SimpleCanvasDraw2D();
+    vecdrawer.canvas = canvas;
+    vecdrawer.g = g;
+    
+    var drawer = new SplineDrawer(spline, vecdrawer);
+    
+    //temporarily override spline.drawer
+    var old = spline.drawer;
+    spline.drawer = drawer;
+    
+    console.log("saving image. . .");
+    
+    //force full update
+    drawer.recalc_all = true;
+    drawer.update(spline, spline.drawlist, spline.draw_layerlist, view2d.rendermat, 
+                  [], view2d.only_render, view2d.selectmode, g, view2d.zoom, view2d);
+    
+    try {
+      draw_spline(spline, [], g, view2d, view2d.selectmode, 
+                  view2d.only_render, view2d.draw_normals, 1.0, 
+                  true, ctx.frameset.time);
+    } catch (error) {
+      print_stack(error);
+      console.trace("Draw error");
+      
+      g_app_state.notes.label("Error drawing canvas");
+      return;
+    }
+    
+    //restore old spline.drawer
+    spline.drawer = old;
+    
+    //make data url
+    var url = canvas.toDataURL();
+
+    //turn data url into binary
+    url = atob(url.slice(url.search("base64,")+7, url.length));
+    
+    var data = new Uint8Array(url.length);
+    for (var i=0; i<data.length; i++) {
+      data[i] = url.charCodeAt(i);
+    }
+    
+    save_file(data, true, false, "PNG", ["png"], function() {
+      console.trace("ERROR ERROR!!\n");
+      g_app_state.notes.label("Error drawing canvas");
+      return;
+    });
+  }
+};

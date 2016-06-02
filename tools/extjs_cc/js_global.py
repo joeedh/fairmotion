@@ -48,6 +48,7 @@ gcs["g_es6_modules"] = "nm"
 gcs["g_log_forloops"] = "lf"
 gcs["g_enable_let"] = "lt"
 gcs["g_compile_statics_only"] = "sn"
+gcs["g_profile_coverage"] = "pc"
 
 def argv_to_argline():
   s = ""
@@ -264,6 +265,7 @@ class Glob(AbstractGlob):
     g_enable_static_vars = True
     g_write_manifest = False
     g_warn_types = False
+    g_profile_coverage = False
     g_debug_print_calls = False
     g_gen_es6 = False
     g_validate_classes = False

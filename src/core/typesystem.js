@@ -298,15 +298,15 @@ var arr_iter = function arr_iter(keys)
 var _forin_data = {};
 
 function save_forin_conv() {
-    s = ""
-    lst = Object.keys(_forin_data)
+    var s = ""
+    var lst = Object.keys(_forin_data)
+    
     lst.sort();
     
     var buf = lst.join("\n")
-    
     var blob = new Blob([buf], {type: "text/plain"});
-    
     var obj_url = window.URL.createObjectURL(blob);
+    
     window.open(obj_url);
 }
 

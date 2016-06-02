@@ -9,7 +9,7 @@ var PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,
 
 import {aabb_isect_2d, inrect_2d, aabb_isect_minmax2d} from 'mathlib';
 
-import {get_2d_canvas, get_2d_canvas_2} from 'UICanvas2D';
+import {get_2d_canvas, get_2d_canvas_2} from 'UICanvas';
 import {NoteFrame} from 'notifications';
 import {STRUCT} from 'struct';
 import {Area} from 'ScreenArea';
@@ -724,6 +724,7 @@ export class View2DHandler extends Area {
   on_view_change() {
   }
 
+  /*
   get drawcanvas() {
     console.trace("get drawcanvas!");
     return this._drawcanvas;
@@ -732,7 +733,7 @@ export class View2DHandler extends Area {
   set drawcanvas(val) {
     this._drawcanvas = val;
     console.trace("set drawcanvas!");
-  }
+  }//*/
   
   get_fg_canvas() { //XXX todo: get rid of this.drawcanvas.
     this.drawcanvas = this.canvas.get_canvas(this, this.abspos, this.size, 2);
@@ -1118,6 +1119,7 @@ export class View2DHandler extends Area {
   {
     return toolop_menu(ctx, "",    
       [
+      "view2d.export_image()",
       "appstate.export_svg()",
       "sep",
       "appstate.save_as()", 

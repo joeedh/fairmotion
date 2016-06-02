@@ -9,7 +9,7 @@ import {gen_screen} from 'FrameManager';
 import {DataPath, DataStruct, DataPathTypes, DataFlags,
         DataAPI, DataStructArray} from 'data_api';
 import {wrap_getblock, wrap_getblock_us} from 'lib_utils';
-import {UICanvas} from 'UICanvas2D';
+import {UICanvas} from 'UICanvas';
 import {urlencode, b64decode, b64encode} from 'strutils';
 import {BasicFileOp} from 'view2d_ops'; 
 import {AppSettings} from 'UserSettings';

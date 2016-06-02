@@ -5,7 +5,7 @@ import {
   MinMax
 } from 'mathlib';
 
-import {UICanvas} from 'UICanvas2D';
+import {UICanvas} from 'UICanvas';
 import {STRUCT} from 'struct';
 import {PackFlags} from 'UIElement';
 

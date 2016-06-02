@@ -34,6 +34,7 @@ import {SplitAreasTool, CollapseAreasTool, HintPickerOpElement, HintPickerOp} fr
 
 import {RenderAnimOp, PlayAnimOp} from 'view2d_spline_ops';
 import {SessionFlags} from "view2d_editor";
+import {ExportCanvasImage} from 'view2d_ops';
 
 //import {TranslateOp} from 'transform';
 
@@ -140,6 +141,10 @@ window.api_define_ops = function() {
     "spline.key_edges": function(ctx, args) {
       return new KeyEdgesOp();
     },
+    
+    "view2d.export_image" : function(ctx, args) {
+      return new ExportCanvasImage();
+    }, 
     
     "editor.copy_pose": function(ctx, args) {
       return new CopyPoseOp();

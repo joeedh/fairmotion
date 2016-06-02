@@ -467,8 +467,9 @@ export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_re
     spline.drawer = new SplineDrawer(spline);
   }
   
-  spline.drawer.update(spline, spline.drawlist, spline.draw_layerlist, editor.rendermat, redraw_rects, only_render, selectmode, g, editor.zoom, editor);
-  spline.drawer.draw(editor.drawcanvas, editor.drawg);
+  spline.drawer.update(spline, spline.drawlist, spline.draw_layerlist, editor.rendermat, 
+                       redraw_rects, only_render, selectmode, g, editor.zoom, editor);
+  spline.drawer.draw(editor.drawg);
   
   var layerset = spline.layerset;
   var actlayer = spline.layerset.active;

@@ -745,6 +745,17 @@ export class SplineSegment extends SplineElement {
   }
 }
 
+
+
+SplineElement.STRUCT = """
+  SplineElement {
+    eid        : int;
+    flag       : int;
+    type       : int;
+    cdata      : CustomDataSet;
+  }
+""";
+
 SplineSegment.STRUCT = STRUCT.inherit(SplineSegment, SplineElement) + """
   ks   : array(float);
   

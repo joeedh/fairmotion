@@ -212,7 +212,12 @@ export class Spline extends DataBlock {
   regen_sort() {
     this.recalc |= RecalcFlags.DRAWSORT;
   }
-  
+
+  regen_solve() {
+    this.resolve = 1;
+    this.recalc |= RecalcFlags.SOLVE;
+  }
+
   regen_render() {
     this.resolve = 1;
     this.recalc |= RecalcFlags.ALL;

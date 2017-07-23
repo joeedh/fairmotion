@@ -249,7 +249,7 @@ function api_define_imageuser() {
 }
 
 function api_define_view2d() {
-  var only_render = new BoolProperty(0, "only_render", "Only Render");
+  var only_render = new BoolProperty(0, "only_render", "Hide Controls");
   
   only_render.api_update = function(ctx, path) {
     window.redraw_viewport();

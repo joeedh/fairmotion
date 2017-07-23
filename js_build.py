@@ -965,7 +965,6 @@ def build_chrome_package():
   
   zf = zipfile.ZipFile("chromeapp.zip", "w")
 
-  
   if not os.path.exists("./chromeapp/fcontent/"):
     os.makedirs("./chromeapp/fcontent/")
     

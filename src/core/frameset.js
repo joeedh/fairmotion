@@ -4,7 +4,7 @@ import {STRUCT} from 'struct';
 import {DataBlock, DataTypes} from 'lib_api';
 import {Spline, RestrictFlags} from 'spline';
 import {CustomDataLayer, SplineTypes, SplineFlags, SplineSegment} from 'spline_types';
-import {TimeDataLayer, get_vtime, AnimChannel, AnimKey, 
+import {TimeDataLayer, get_vtime, set_vtime, AnimChannel, AnimKey,
         AnimInterpModes, AnimKeyFlags} from 'animdata';
 import {SplineLayerFlags, SplineLayerSet} from 'spline_element_array';
 
@@ -140,7 +140,7 @@ export var VDAnimFlags = {
 };
 
 export class VertexAnimData {
-  constructor(int eid, Spline pathspline) {
+  constructor(eid, pathspline) {
     this.eid = eid;
     
     this.vitercache = cachering.fromConstructor(VertexAnimIter, 4);
@@ -577,7 +577,118 @@ export class VertexAnimData {
     
     return v;
   }
-  
+
+  check_time_integrity() {
+    var lasttime = -100000;
+
+    for (var v of this.verts) {
+      var t = get_vtime(v);
+
+      if (t <= lasttime) {
+        console.log("Found timing integrity error for vertex", this.eid, "path vertex:", v.eid);
+        //set_vtime(v, lasttime);
+        this.regen_topology();
+        return true;
+      }
+
+      lasttime = t;
+    }
+
+    return false;
+  }
+
+  regen_topology() {
+    var spline = this.spline;
+    var verts = [];
+    var segs = new set();
+    var visit = new set();
+
+    var handles = [];
+    var lastv = undefined;
+    var hi = 0;
+
+    //get flat list of verts, along with handles
+    for (var v of this.verts) {
+      //check for duplicates
+      if (visit.has(v)) {
+        continue;
+      }
+
+      visit.add(v);
+      verts.push(v);
+
+      handles.push(undefined);
+      handles.push(undefined);
+      hi += 2;
+
+      v.flag |= SplineFlags.UPDATE;
+
+      for (var s of v.segments) {
+        segs.add(s);
+
+        var v2 = s.other_vert(v);
+        var h2 = s.other_handle(s.handle(v));
+
+        //keep track of handles
+        if (v2 === lastv) {
+          handles[hi-2] = h2;
+        } else {
+          handles[hi-1] = h2;
+        }
+      }
+
+      lastv = v;
+    }
+
+    if (verts.length == 0) {
+      return;
+    }
+
+    //sort by time
+    verts.sort(function(a, b) {
+      return get_vtime(a) - get_vtime(b);
+    });
+
+    //kill old segments
+    for (var s of segs) {
+      spline.kill_segment(s);
+    }
+
+    //set new start vertex
+    this.startv_eid = verts[0].eid;
+
+    //create new segments
+    for (var i=1; i<verts.length; i++) {
+      var s = spline.make_segment(verts[i-1], verts[i]);
+
+      s.flag |= SplineFlags.UPDATE;
+      s.h1.flag |= SplineFlags.UPDATE;
+      s.h2.flag |= SplineFlags.UPDATE;
+    }
+
+    //migrate old handle data
+
+    var hi = 0;
+    var lastv = undefined;
+
+    for (var v of verts) {
+      for (var s of v.segments) {
+        var v2 = s.other_vert(v);
+        var h2 = s.other_handle(s.handle(v));
+
+        //XXX note: technically we are accessing dead data here
+        if (v2 === lastv && handles[hi] !== undefined) {
+          h2.load(handles[hi]);
+        } else if (v2 !== lastv && handles[hi+1] !== undefined) {
+          h2.load(handles[hi+1]);
+        }
+      }
+
+      lastv = v;
+      hi += 2;
+    }
+  }
+
   static fromSTRUCT(reader) {
     var ret = new VertexAnimData();
 
@@ -962,8 +1073,13 @@ export class SplineFrameSet extends DataBlock {
     
     console.log("totorphaned: ", totorphaned);
   }
-  
-  has_coincident_verts(threshold=2, time_threshold=0) {
+
+  //threshold defaults to 2
+  //time_threshold defaults to 0
+  has_coincident_verts(threshold, time_threshold) {
+    threshold = threshold === undefined ? 2 : threshold;
+    time_threshold = time_threshold === undefined ? 0 : time_threshold;
+
     var ret = new set();
     
     for (var k in this.vertex_animdata) {
@@ -1284,7 +1400,7 @@ export class SplineFrameSet extends DataBlock {
     this.insert_frame(this.time);
   }
   
-  insert_frame(int time) {
+  insert_frame(time) {
     //for now, let's not allow multiple topologies
     if (this.frame != undefined) 
       return this.frame;
@@ -1341,8 +1457,11 @@ export class SplineFrameSet extends DataBlock {
     
     return frame;*/
   }
-  
-  find_frame(float time, int off=0) {
+
+  //off defaults to 0
+  find_frame(time, off) {
+    off = off === undefined ? 0 : off;
+
     var flist = this.framelist;
     for (var i=0; i<flist.length-1; i++) {
       if (flist[i] <= time && flist[i+1] > time) {
@@ -1354,7 +1473,7 @@ export class SplineFrameSet extends DataBlock {
     return frames[i];
   }
   
-  change_time(float time, _update_animation=true) {
+  change_time(time, _update_animation=true) {
     if (!window.inFromStruct && _update_animation) {
       this.update_frame();
     }
@@ -1519,7 +1638,25 @@ export class SplineFrameSet extends DataBlock {
     
     return this.vertex_animdata[eid];
   }
-  
+
+  check_vdata_integrity() {
+    var spline = this.pathspline;
+    var found = false;
+
+    for (var k in this.vertex_animdata) {
+      var vd = this.vertex_animdata[k];
+
+      found |= vd.check_time_integrity();
+    }
+
+    if (found) {
+      this.pathspline.regen_solve();
+      this.rationalize_vdata_layers();
+    }
+
+    return found;
+  }
+
   rationalize_vdata_layers() {
     var spline = this.pathspline;
     
@@ -1555,7 +1692,7 @@ export class SplineFrameSet extends DataBlock {
     }
   }
   
-  draw(Context ctx, Canvas2DRenderer g, editor, redraw_rects) {
+  draw(ctx, g, editor, redraw_rects) {
     var size = editor.size, pos = editor.pos;
     
     this.draw_anim_paths = editor.draw_anim_paths;
@@ -1567,7 +1704,10 @@ export class SplineFrameSet extends DataBlock {
   static fromSTRUCT(reader) {
     window.inFromStruct = true;
     var ret = STRUCT.chain_fromSTRUCT(SplineFrameSet, reader);
-    
+
+    //XXX kcache is being buggy, for now, don't load from disk
+    ret.kcache = new SplineKCache();
+
     if (ret.kcache == undefined) {
       ret.kcache = new SplineKCache();
     }
@@ -1735,7 +1875,6 @@ SplineFrameSet.STRUCT = STRUCT.inherit(SplineFrameSet, DataBlock) + """
     selectmode        : int;
     draw_anim_paths   : int;
     templayerid       : int;
-    
-    kcache            : SplineKCache;
 }
 """;
+//XXX kcache            : SplineKCache;

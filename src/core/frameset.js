@@ -664,6 +664,10 @@ export class VertexAnimData {
       s.flag |= SplineFlags.UPDATE;
       s.h1.flag |= SplineFlags.UPDATE;
       s.h2.flag |= SplineFlags.UPDATE;
+
+      for (var k in s.v1.layers) {
+        spline.layerset.idmap[k].add(s);
+      }
     }
 
     //migrate old handle data
@@ -1249,6 +1253,7 @@ export class SplineFrameSet extends DataBlock {
       }
       
       v.flag &= ~SplineFlags.GHOST;
+
       if (hide) {
         drawlayer.remove(v);
         layer.add(v);
@@ -1284,7 +1289,14 @@ export class SplineFrameSet extends DataBlock {
     
     var selectmode = this.selectmode, show_paths = this.draw_anim_paths;
     var drawlayer = this.pathspline.layerset.idmap[this.templayerid];
-    
+
+    if (drawlayer === undefined) {
+      console.log("this.templayerid corruption", this.templayerid);
+
+      this.templayerid = this.pathspline.layerset.new_layer().id;
+      drawlayer = this.pathspline.layerset.idmap[this.templayerid];
+    }
+
     for (var v of this.pathspline.verts) {
       if (!v.has_layer()) {
         drawlayer.add(v);
@@ -1303,20 +1315,53 @@ export class SplineFrameSet extends DataBlock {
     
     for (var k in this.vertex_animdata) {
       var vd = this.vertex_animdata[k];
-      
+      var v = this.spline.eidmap[k];
+
+      if (v === undefined) {
+        console.log("error in update_visibility:", k);
+        continue;
+      }
+
       var hide = !(vd.eid in this.spline.eidmap) || !(v.flag & SplineFlags.SELECT);
       hide = hide || !(v.type & selectmode) || !show_paths;
 
       vd.visible = !hide;
       
       if (!hide) {
-        window.redraw_viewport();
+        //XXX
+        //window.redraw_viewport();
       }
 
-      for (var v of vd.verts) {
-        v.sethide(hide);
+      for (var v2 of vd.verts) {
+        if (!hide) {
+          v2.flag &= ~(SplineFlags.GHOST|SplineFlags.HIDE);
+        } else {
+          v2.flag |= SplineFlags.GHOST|SplineFlags.HIDE;
+        }
+
+        v2.sethide(hide);
+
+        if (!hide) {
+          drawlayer.add(v2);
+        } else {
+          drawlayer.remove(v2);
+        }
+
+        for (var s of v2.segments) {
+          s.sethide(hide);
+
+          if (!hide) {
+            s.flag &= ~(SplineFlags.GHOST|SplineFlags.HIDE);
+            drawlayer.add(s);
+          } else {
+            s.flag |= SplineFlags.GHOST|SplineFlags.HIDE;
+            drawlayer.remove(s);
+          }
+        }
       }
     }
+
+    this.pathspline.regen_sort();
   }
   
   //upload or download vertex animation data, depending on 
@@ -1366,6 +1411,8 @@ export class SplineFrameSet extends DataBlock {
   }
   
   update_frame(force_update) {
+    this.check_vdata_integrity();
+
     var time = this.time;
     var spline = this.spline;
     
@@ -1396,11 +1443,14 @@ export class SplineFrameSet extends DataBlock {
     }
     
     if (!found) return;
-    
+
     this.insert_frame(this.time);
+    this.update_visibility();
   }
   
   insert_frame(time) {
+    this.check_vdata_integrity();
+
     //for now, let's not allow multiple topologies
     if (this.frame != undefined) 
       return this.frame;
@@ -1535,13 +1585,15 @@ export class SplineFrameSet extends DataBlock {
     
     if (!window.inFromStruct && _update_animation) { //time != f.time) {
       var set_update = true;
-      
+
+      /* XXX fixme, load cached curve k parameters
       if (time in this.kcache.cache) {
         console.log("found cached k data!");
         
         this.kcache.load(time, spline);
         set_update = false;
       }
+      //*/
       
       if (!set_update) {
         for (var seg of spline.segments) {
@@ -1625,6 +1677,8 @@ export class SplineFrameSet extends DataBlock {
     this.spline = spline;
     this.time = time;
     this.frame = f;
+
+    this.update_visibility();
   }
   
   delete_vdata() {
@@ -1639,19 +1693,33 @@ export class SplineFrameSet extends DataBlock {
     return this.vertex_animdata[eid];
   }
 
-  check_vdata_integrity() {
+  //checks keyframe spline data for topology errors vis-a-vis time
+  //veid is optional, defaults to undefined
+  check_vdata_integrity(veid) {
     var spline = this.pathspline;
     var found = false;
 
-    for (var k in this.vertex_animdata) {
-      var vd = this.vertex_animdata[k];
+    if (veid === undefined) { //do all
+      for (var k in this.vertex_animdata) {
+        var vd = this.vertex_animdata[k];
 
-      found |= vd.check_time_integrity();
+        found |= vd.check_time_integrity();
+      }
+    } else {
+      var vd = this.vertex_animdata[veid];
+
+      if (vd === undefined) {
+        console.log("Error: vertex ", veid, "not in frameset");
+        return false;
+      }
+
+      found = vd.check_time_integrity();
     }
 
     if (found) {
-      this.pathspline.regen_solve();
       this.rationalize_vdata_layers();
+      this.update_visibility();
+      this.pathspline.regen_solve();
     }
 
     return found;
@@ -1676,9 +1744,11 @@ export class SplineFrameSet extends DataBlock {
         e.layers = {};
       }
     }
-    
+
+    //*
     for (var k in this.vertex_animdata) {
       var vd = this.vertex_animdata[k];
+
       var vlayer = spline.layerset.new_layer();
       vlayer.flag |= SplineLayerFlags.HIDE;
       
@@ -1690,6 +1760,7 @@ export class SplineFrameSet extends DataBlock {
         vlayer.add(v);
       }
     }
+    //*/
   }
   
   draw(ctx, g, editor, redraw_rects) {
@@ -1816,8 +1887,7 @@ export class SplineFrameSet extends DataBlock {
     }
     
     ret.vertex_animdata = vert_animdata;
-    ret.rationalize_vdata_layers();
-    
+
     if (ret.framelist.length == 0) {
       for (var k in ret.frames) {
         ret.framelist.push(parseFloat(k));
@@ -1830,7 +1900,10 @@ export class SplineFrameSet extends DataBlock {
     }
     
     ret.spline.fix_spline(); //XXX
-    
+
+    ret.rationalize_vdata_layers();
+    ret.update_visibility();
+
     //try {
       //ret.change_time(ret.time);
     /*} catch(error) {
@@ -1839,7 +1912,6 @@ export class SplineFrameSet extends DataBlock {
       console.log("  Error restoring frame data while loading frameset==\n");
     }*/
     
-    //ret.update_visibility();
     window.inFromStruct = false;
     
     return ret;

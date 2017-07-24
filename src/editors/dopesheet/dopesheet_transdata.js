@@ -26,6 +26,9 @@ export class TransDopeSheetType {
   }
   
   static update(ToolContext ctx, TransData td) {
+    var fs = ctx.frameset;
+
+    fs.check_vdata_integrity();
     window.redraw_ui();
   }
   

@@ -365,7 +365,9 @@ export class SplineEditor extends View2DEditor {
     
     col.prop('view2d.default_stroke', PackFlags.COLOR_BUTTON_ONLY);
     //col.prop('view2d.default_fill', PackFlags.COLOR_BUTTON_ONLY);
-    
+
+    col.prop('view2d.edit_all_layers');
+
     view2d.rows.push(the_row);
     view2d.add(the_row);
   }
@@ -431,7 +433,7 @@ export class SplineEditor extends View2DEditor {
     
     k.add(new KeyHandler("L", [], "Select Linked"), new FuncKeyHandler(function(ctx) {
       var mpos = ctx.keymap_mpos;
-      var ret = ctx.spline.q.findnearest_vert(ctx.view2d, mpos, 55);
+      var ret = ctx.spline.q.findnearest_vert(ctx.view2d, mpos, 55, undefined, ctx.view2d.edit_all_layers);
       
       console.log("select linked", ret);
 
@@ -463,7 +465,7 @@ export class SplineEditor extends View2DEditor {
     
     k.add(new KeyHandler("L", ["SHIFT"], "Select Linked"), new FuncKeyHandler(function(ctx) {
       var mpos = ctx.keymap_mpos;
-      var ret = ctx.spline.q.findnearest_vert(ctx.view2d, mpos, 55);
+      var ret = ctx.spline.q.findnearest_vert(ctx.view2d, mpos, 55, undefined, ctx.view2d.edit_all_layers);
       
       if (ret != undefined) {
         var tool = new SelectLinkedOp(true);
@@ -621,7 +623,7 @@ export class SplineEditor extends View2DEditor {
         g_app_state.toolstack.exec_tool(op);
         redraw_viewport();
       }  else if (can_append && (this.selectmode & SelMask.MULTIRES)) {
-        var ret = this.findnearest([event.x, event.y, 0], SelMask.MULTIRES);
+        var ret = this.findnearest([event.x, event.y, 0], SelMask.MULTIRES, this.ctx.view2d.edit_all_layers);
         
         console.log(ret);
         
@@ -687,7 +689,7 @@ export class SplineEditor extends View2DEditor {
   }
   
   //returns [spline, element, mindis]
-  findnearest(mpos, selectmask, limit) {
+  findnearest(mpos, selectmask, limit, ignore_layers) {
     var frameset = this.ctx.frameset;
     var editor = this.ctx.view2d;
     
@@ -702,7 +704,7 @@ export class SplineEditor extends View2DEditor {
     if (!this.draw_anim_paths) {
       this.ensure_paths_off();
       
-      var ret = this.ctx.spline.q.findnearest(editor, mpos, selectmask, limit);
+      var ret = this.ctx.spline.q.findnearest(editor, mpos, selectmask, limit, ignore_layers);
       if (ret != undefined) {
         return [this.ctx.spline, ret[0], ret[1]];
       } else {
@@ -716,7 +718,7 @@ export class SplineEditor extends View2DEditor {
     var pathspline = this.ctx.frameset.pathspline;
     var drawspline = this.ctx.frameset.spline;
     
-    var ret = drawspline.q.findnearest(editor, mpos, selectmask, limit);
+    var ret = drawspline.q.findnearest(editor, mpos, selectmask, limit, ignore_layers);
     if (ret != undefined && ret[1] < limit) {
       mindis = ret[1] - (drawspline === actspline ? 3 : 0);
       found = true;
@@ -727,7 +729,7 @@ export class SplineEditor extends View2DEditor {
     }
     
     //for (var spline in frameset._selected_splines) {
-    var ret = frameset.pathspline.q.findnearest(editor, mpos, selectmask, limit);
+    var ret = frameset.pathspline.q.findnearest(editor, mpos, selectmask, limit, false);
     if (ret != undefined) {
       ret[1] -= pathspline === actspline ? 2 : 0;
       
@@ -756,7 +758,7 @@ export class SplineEditor extends View2DEditor {
     view2d.reset_drawlines("mres")
     view2d.unproject(co);
     
-    var ret = this.findnearest([event.x, event.y, 0], SelMask.SEGMENT, limit);
+    var ret = this.findnearest([event.x, event.y, 0], SelMask.SEGMENT, limit, this.ctx.view2d.edit_all_layers);
     if (ret == undefined) return;
     
     var spline = ret[0];
@@ -855,9 +857,11 @@ export class SplineEditor extends View2DEditor {
     
     if (this.mdown) { // && this.mpos.vectorDistance(this.start_mpos) > 2) {
       this.mdown = false;
+
       var op = new TranslateOp(this.start_mpos);
       op.inputs.datamode.set_data(this.ctx.view2d.selectmode);
-      
+      op.inputs.edit_all_layers.set_data(this.ctx.view2d.edit_all_layers);
+
       var ctx = new Context();
       
       if (ctx.view2d.session_flag & SessionFlags.PROP_TRANSFORM) {
@@ -872,7 +876,7 @@ export class SplineEditor extends View2DEditor {
     if (this.mdown)
       return;
     
-    var ret = this.findnearest([event.x, event.y], this.ctx.view2d.selectmode, limit);
+    var ret = this.findnearest([event.x, event.y], this.ctx.view2d.selectmode, limit, this.ctx.view2d.edit_all_layers);
     //console.log(ret);
     
     

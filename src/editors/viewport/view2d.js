@@ -159,7 +159,9 @@ export class View2DHandler extends Area {
                int height, int znear=0.75, int zfar = 200.0) 
   {
     static int v3d_id = 0;
-    
+
+    this.edit_all_layers = false;
+
     //on-canvas manipulator tools
     this.widgets = new ManipulatorManager(this);
     
@@ -287,7 +289,7 @@ export class View2DHandler extends Area {
       var spline = this.ctx.frameset.spline;
       
       var eids = [];
-      for (var v of spline.verts.selected.editable) {
+      for (var v of spline.verts.selected.editable()) {
         eids.push(v.eid);
       }
       
@@ -872,7 +874,7 @@ export class View2DHandler extends Area {
       bg_g.drawImage(img, iuser.off[0], iuser.off[1], img.width*iuser.scale[0], img.height*iuser.scale[1]);
     }
     
-    this.ctx.frameset.draw(this.ctx, g, this, redraw_rects);
+    this.ctx.frameset.draw(this.ctx, g, this, redraw_rects, this.edit_all_layers);
     
     var frameset = this.ctx.frameset;
     var spline = frameset.spline;
@@ -894,7 +896,7 @@ export class View2DHandler extends Area {
         } 
         
         pathspline.layerset.active = pathspline.layerset.idmap[this.ctx.frameset.templayerid];
-        pathspline.draw(redraw_rects, g, this, this.selectmode, this.only_render, this.draw_normals, alpha, true, this.ctx.frameset.time);
+        pathspline.draw(redraw_rects, g, this, this.selectmode, this.only_render, this.draw_normals, alpha, true, this.ctx.frameset.time, false);
       }
     } else {
       if (pathspline.resolve) {
@@ -1275,7 +1277,7 @@ export class View2DHandler extends Area {
     img.add(panel2);
     
     panel2.prop('view2d.background_color');
-    
+
     //var colorb = new UIColorButton(this.ctx, PackFlags.VERTICAL);
     //colorb.state |= UIFlags.USE_PATH;
     //colorb.data_path = 'view2d.background_color';
@@ -1410,6 +1412,7 @@ View2DHandler.STRUCT = STRUCT.inherit(View2DHandler, Area) + """
     draw_bg_image     : int;
     toolmode          : int;
     draw_small_verts  : int;
+    edit_all_layers   : int;
   }
 """
 

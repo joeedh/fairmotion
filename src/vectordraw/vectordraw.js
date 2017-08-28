@@ -14,12 +14,12 @@ import {
 
 export var VectorFlags = VectorFlags;
 
-//* canvas2d
+/* canvas2d
 export var Canvas = CanvasDraw2D;
 export var Path = CanvasPath;
 //*/
 
-/* svg
+//* svg
 export var Canvas = SVGDraw2D;
 export var Path = SVGPath;
 //*/

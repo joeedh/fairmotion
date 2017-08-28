@@ -315,8 +315,11 @@ function api_define_view2d() {
   background_color.update = function() {
     window.redraw_viewport();
   }
-  
+
+  var edit_all_layers = new BoolProperty(0, "edit_all_layers", "Edit All Layers");
+
   View2DStruct = new DataStruct([
+    new DataPath(edit_all_layers, "edit_all_layers", "edit_all_layers", true),
     new DataPath(background_color, "background_color", "background_color", true),
     new DataPath(default_stroke, "default_stroke", "default_stroke", true),
     new DataPath(default_fill, "default_fill", "default_fill", true),

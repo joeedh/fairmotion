@@ -15,14 +15,14 @@ export class SplineQuery {
     this.spline = spline;
   }
   
-  findnearest(editor, mpos, selectmask, limit) {
+  findnearest(editor, mpos, selectmask, limit, ignore_layers) {
     if (limit == undefined) limit = 15;
     var dis = 1e18;
     var data = undefined;
     
     //[data, distance, type]
     if (selectmask & SelMask.VERTEX) {
-      var ret = this.findnearest_vert(editor, mpos, limit);
+      var ret = this.findnearest_vert(editor, mpos, limit, undefined, ignore_layers);
       if (ret != undefined && ret[1] < dis) {
         data = ret;
         dis = ret[1];
@@ -31,7 +31,7 @@ export class SplineQuery {
     
     //[data, distance, type]
     if (selectmask & SelMask.MULTIRES) {
-      var ret = this.findnearest_mres(editor, mpos, limit);
+      var ret = this.findnearest_mres(editor, mpos, limit, ignore_layers);
       if (ret != undefined && ret[1] < dis) {
         data = ret;
         dis = ret[1];
@@ -39,7 +39,7 @@ export class SplineQuery {
     }
     
     if (selectmask & SelMask.HANDLE) {
-      var ret = this.findnearest_vert(editor, mpos, limit, true);
+      var ret = this.findnearest_vert(editor, mpos, limit, true, ignore_layers);
       if (ret != undefined && ret[1] < dis) {
         data = ret;
         dis = ret[1];
@@ -47,7 +47,7 @@ export class SplineQuery {
     }    
       
     if (selectmask & SelMask.SEGMENT) {
-      var ret = this.findnearest_segment(editor, mpos, limit);
+      var ret = this.findnearest_segment(editor, mpos, limit, ignore_layers);
       
       if (ret != undefined && ret[1] < dis) {
         data = ret;
@@ -61,7 +61,7 @@ export class SplineQuery {
       mpos[0] += editor.abspos[0];
       mpos[1] += editor.abspos[1];
       
-      var ret = this.findnearest_face(editor, mpos, limit);
+      var ret = this.findnearest_face(editor, mpos, limit, ignore_layers);
       
       if (ret != undefined && ret[1] < dis) {
         data = ret;
@@ -72,7 +72,7 @@ export class SplineQuery {
     return data;
   }
   
-  findnearest_segment(editor, mpos, limit) {
+  findnearest_segment(editor, mpos, limit, ignore_layers) {
     var spline = this.spline;
     var actlayer = spline.layerset.active;
     var sret = undefined, mindis=limit;
@@ -85,7 +85,7 @@ export class SplineQuery {
       ret = ret[0];
 
       if (seg.hidden || seg.v1.hidden || seg.v2.hidden) continue;
-      if (!seg.in_layer(actlayer)) continue;
+      if (!ignore_layers && !seg.in_layer(actlayer)) continue;
       
       var dis = sqrt((ret[0]-mpos[0])*(ret[0]-mpos[0]) + (ret[1]-mpos[1])*(ret[1]-mpos[1]));
       if (dis < mindis) {
@@ -98,7 +98,7 @@ export class SplineQuery {
       return [sret, mindis, SelMask.SEGMENT];
   }
   
-  findnearest_face(editor, mpos, limit) {
+  findnearest_face(editor, mpos, limit, ignore_layers) {
     var spline = this.spline;
     var actlayer = spline.layerset.active;
     
@@ -109,7 +109,7 @@ export class SplineQuery {
     
     for (var i=0; i<spline.faces.length; i++) {
       var f = spline.faces[i];
-      if (!f.in_layer(actlayer) || f.hidden) continue;
+      if ((!ignore_layers && !f.in_layer(actlayer)) || f.hidden) continue;
       
       spline.trace_face(g, f);
       
@@ -123,7 +123,7 @@ export class SplineQuery {
       return [closest, dis, SelMask.FACE];
   }
   
-  findnearest_mres(editor, mpos, limit, do_handles) {
+  findnearest_mres(editor, mpos, limit, do_handles, ignore_layers) {
     var spline = this.spline;
     var actlayer = spline.layerset.active;
     
@@ -139,7 +139,7 @@ export class SplineQuery {
     
     for (var seg of spline.segments) {
       if (seg.hidden || seg.v1.hidden || seg.v2.hidden) continue;
-      if (!seg.in_layer(actlayer)) continue;
+      if (!ignore_layers && !seg.in_layer(actlayer)) continue;
       
       var mr = seg.cdata.get_layer(MultiResLayer);
       for (var p of mr.points(spline.actlevel)) {
@@ -164,7 +164,7 @@ export class SplineQuery {
       return [ret, min, SelMask.MULTIRES];
   }
   
-  findnearest_vert(editor, mpos, limit, do_handles) {
+  findnearest_vert(editor, mpos, limit, do_handles, ignore_layers) {
     var spline = this.spline;
     var actlayer = spline.layerset.active;
     
@@ -181,7 +181,7 @@ export class SplineQuery {
     var list = do_handles ? spline.handles : spline.verts;
     for (var v of list) {
         if (v.hidden) continue;
-        if (!v.in_layer(actlayer)) continue;
+        if (!ignore_layers && !v.in_layer(actlayer)) continue;
         
         var co = v;
         if (hasmres && v.segments.length > 0) {

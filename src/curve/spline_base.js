@@ -42,7 +42,7 @@ export var SplineFlags = {
   FIXED_KS        : 1<<21, //internal to solver code
   REDRAW_PRE      : 1<<22,
   REDRAW          : 1<<23
-}
+};
 
 export var SplineTypes= {
   VERTEX  : 1,

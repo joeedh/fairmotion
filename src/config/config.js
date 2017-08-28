@@ -55,7 +55,8 @@ window._DEBUG = {
   compression : false,
   force_mobile : false,
   tesselator : false,
-  use_2d_uicanvas : 1
+  use_2d_uicanvas : 1,
+  trace_recalc_all : false
 };
 
 //_DEBUG["use_2d_uicanvas"] = !!parseInt(""+myLocalStorage.use_canvas2d);

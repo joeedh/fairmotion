@@ -88,7 +88,7 @@ export class SplineDrawer {
   }
   
   update(spline, drawlist, drawlist_layerids, matrix, redraw_rects, only_render, 
-         selectmode, master_g, zoom, editor) 
+         selectmode, master_g, zoom, editor, ignore_layers)
   {
     //console.log("SPLINEDRAW_NEW UPDATE!", drawlist.length);
     
@@ -157,7 +157,9 @@ export class SplineDrawer {
     this.drawer.set_matrix(matrix);
 
     if (recalc_all) {
-      console.trace("%c RECALC_ALL!  ", "color:orange");
+      if (DEBUG.trace_recalc_all) {
+        console.trace("%c RECALC_ALL!  ", "color:orange");
+      }
     }
     
     var drawparams = drawparam_cachering.next().init(redraw_rects, actlayer, only_render,
@@ -191,7 +193,7 @@ export class SplineDrawer {
       drawparams.combine_paths = true;
       
       if (e.type == SplineTypes.FACE) {
-        this.update_polygon(e, redraw_rects, actlayer, only_render, selectmode, zoom, i, off, spline);
+        this.update_polygon(e, redraw_rects, actlayer, only_render, selectmode, zoom, i, off, spline, ignore_layers);
       } else if (e.type == SplineTypes.SEGMENT) {
         this.update_stroke(e, drawparams);
       }
@@ -447,7 +449,7 @@ export class SplineDrawer {
     return path;
   }
   
-  update_polygon(f, redraw_rects, actlayer, only_render, selectmode, zoom, z, off, spline) {
+  update_polygon(f, redraw_rects, actlayer, only_render, selectmode, zoom, z, off, spline, ignore_layers) {
     if (this.has_path(f.eid, z) && !(f.flag & SplineFlags.REDRAW)) {
       return;
     }
@@ -518,7 +520,7 @@ export class SplineDrawer {
       }
     }
     
-    if (/*do_mask ||*/ !f.in_layer(actlayer) || only_render)
+    if (/*do_mask ||*/ (!ignore_layers && !f.in_layer(actlayer)) || only_render)
       return;
     
     if ((selectmode & SelMask.FACE) && f === spline.faces.highlight) {

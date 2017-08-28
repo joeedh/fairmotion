@@ -181,12 +181,13 @@ export class CanvasPath extends QuadBezPath {
       
       this.canvas.width = w;
       this.canvas.height = h;
-    } else {
-      this.g.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
+
+    this.g.clearRect(0, 0, this.canvas.width, this.canvas.height);
     
     this.g.globalCompositeOperation = "source-over";
-    
+
+    //*
     for (var path of this.clip_paths) {
       //console.log("CLIPPING!", path);
       
@@ -197,8 +198,11 @@ export class CanvasPath extends QuadBezPath {
       
       path.draw(draw, -this.aabb[0][0], -this.aabb[0][1], this.canvas, this.g);
     }
-    
+    //*/
+
+    //can't use normal this.g.clip() here.  use source-atop instead.
     if (do_clip) {
+      this.g.oldGlobalCompositeOperation = this.g.globalCompositeOperation;
       this.g.globalCompositeOperation = "source-atop";
     }
     
@@ -270,6 +274,10 @@ export class CanvasPath extends QuadBezPath {
       this.g.translate(doff, doff);
       this.g.shadowOffsetX = this.g.shadowOffsetY = 0.0;
       this.g.shadowBlur = 0.0;
+    }
+
+    if (do_clip) {
+      this.g.globalCompositeOperation = this.g.oldGlobalCompositeOperation;
     }
   }
   

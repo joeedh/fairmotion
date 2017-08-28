@@ -260,18 +260,19 @@ export function redo_draw_sort(spline) {
     max_z = Math.max(max_z, s.z+2);
     min_z = Math.min(min_z, s.z);
   }
-  
-  function calc_z(e) {
+
+  //check_face is optional, defaults to false
+  function calc_z(e, check_face) {
     if (isNaN(e.z)) {
       e.z = 0;
     }
     
     //XXX make segments always draw above their owning faces
     //giving edges their own order in this case gets too confusing
-    if (e.type == SplineTypes.SEGMENT && e.l != undefined) {
+    if (check_face && e.type == SplineTypes.SEGMENT && e.l !== undefined) {
       var l = e.l;
       var _i = 0;
-      var f_max_z = undefined;
+      var f_max_z = calc_z(e, true);
       
       do {
         if (_i++ > 1000) {
@@ -280,7 +281,7 @@ export function redo_draw_sort(spline) {
         }
         
         var fz = calc_z(l.f);
-        f_max_z = f_max_z == undefined ? fz : Math.max(f_max_z, fz)
+        f_max_z = f_max_z === undefined ? fz : Math.max(f_max_z, fz)
         
         l = l.radial_next;
       } while (l != e.l);
@@ -455,7 +456,7 @@ function draw_mres_points(spline, g, editor, outside_selmode=false) {
 import {SplineDrawer} from 'spline_draw_new';
 
 export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_render,
-                            draw_normals, alpha, draw_time_helpers, curtime)
+                            draw_normals, alpha, draw_time_helpers, curtime, ignore_layers)
 {
   spline.canvas = g;
   
@@ -468,7 +469,7 @@ export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_re
   }
   
   spline.drawer.update(spline, spline.drawlist, spline.draw_layerlist, editor.rendermat, 
-                       redraw_rects, only_render, selectmode, g, editor.zoom, editor);
+                       redraw_rects, only_render, selectmode, g, editor.zoom, editor, ignore_layers);
   spline.drawer.draw(editor.drawg);
   
   var layerset = spline.layerset;
@@ -625,7 +626,7 @@ export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_re
     var lastdv = undefined;
     
     var color;
-    if (seg.in_layer(actlayer) && !only_render && (selectmode & SelMask.SEGMENT)) {
+    if ((ignore_layers || seg.in_layer(actlayer)) && !only_render && (selectmode & SelMask.SEGMENT)) {
       color = "rgba(0,0,0,"+alpha2+")";
       
       if (seg == spline.segments.highlight)
@@ -805,7 +806,7 @@ export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_re
       g.fill();
     }
     
-    if (do_mask || !f.in_layer(actlayer) || only_render)
+    if (do_mask || (!ignore_layers && !f.in_layer(actlayer)) || only_render)
       return;
     
     if ((selectmode & SelMask.FACE) && f === spline.faces.highlight) {
@@ -1024,7 +1025,7 @@ export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_re
   
   if (only_render)
     return;
-    
+    ;
   if (selectmode & SelMask.HANDLE) {
     var w = vert_size/editor.zoom;
     
@@ -1032,7 +1033,7 @@ export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_re
       var v = spline.handles[i];
       var clr = uclr_h;
       
-      if (!v.owning_segment.in_layer(actlayer))
+      if (!ignore_layers && !v.owning_segment.in_layer(actlayer))
         continue;
       if (v.owning_segment != undefined && v.owning_segment.flag & SplineFlags.HIDE)
         continue;
@@ -1040,7 +1041,8 @@ export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_re
         continue;
       if (!v.use) 
         continue;
-      if ((v.flag & SplineFlags.AUTO_PAIRED_HANDLE) && v.hpair != undefined) {
+
+      if ((v.flag & SplineFlags.AUTO_PAIRED_HANDLE) && v.hpair !== undefined && (v.segments.length > 2)) {
         continue;
       }
       
@@ -1086,7 +1088,7 @@ export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_re
       var v = spline.verts[i];
       var clr = uclr;
       
-      if (!v.in_layer(actlayer))
+      if (!ignore_layers && !v.in_layer(actlayer))
         continue;
       if (v.flag & SplineFlags.HIDE) continue;
       
@@ -1130,7 +1132,7 @@ export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_re
       var v = spline.verts[i];
       var clr = uclr;
       
-      if (!v.in_layer(actlayer))
+      if (!ignore_layers && !v.in_layer(actlayer))
         continue;
       if (v.flag & SplineFlags.HIDE) continue;
       

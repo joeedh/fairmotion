@@ -111,9 +111,11 @@ export class TransSplineVert {
   
   static undo(ToolContext ctx, ObjLit undo_obj) {
     var spline = ctx.spline;
-    
+
     var i = 0;
     var undo = undo_obj['svert'];
+    var edit_all_layers = undo.edit_all_layers;
+
     while (i < undo.length) {
       var eid = undo[i++];
       var v = spline.eidmap[eid];
@@ -164,7 +166,8 @@ export class TransSplineVert {
     var shash = spline.build_shash();
     var tdmap = {};
     var layer = td.layer;
-    
+    var edit_all_layers = td.edit_all_layers;
+
     for (var tv of data) {
       if (tv.type !== TransSplineVert) 
         continue;
@@ -172,7 +175,7 @@ export class TransSplineVert {
       tdmap[tv.data.eid] = tv;
     }
     
-    for (var v of spline.verts.selected.editable) {
+    for (var v of spline.verts.selected.editable(edit_all_layers)) {
       shash.forEachPoint(v, proprad, function(v2, dis) {
         if (v2.flag & SplineFlags.SELECT) return;
         if (v2.hidden) return;
@@ -205,9 +208,10 @@ export class TransSplineVert {
     var spline = ctx.spline;
     var tdmap = {};
     var layer = td.layer;
-    
+    var edit_all_layers = td.edit_all_layers;
+
     for (var i=0; i<2; i++) {
-      for (var v of i ? spline.handles.selected.editable : spline.verts.selected.editable) {
+      for (var v of i ? spline.handles.selected.editable(edit_all_layers) : spline.verts.selected.editable(edit_all_layers)) {
         var co = new Vector3(v);
         
         if (i) {
@@ -237,7 +241,7 @@ export class TransSplineVert {
       
       for (var v of list) {
         //only do active layer
-        if (!v.in_layer(layer))
+        if (!edit_all_layers && !v.in_layer(layer))
           continue;
           
         if (si) {
@@ -261,11 +265,11 @@ export class TransSplineVert {
     
     console.log("proprad", proprad);
     
-    for (var v of spline.verts.selected.editable) {
+    for (var v of spline.verts.selected.editable(edit_all_layers)) {
       shash.forEachPoint(v, proprad, function(v2, dis) {
         if (v2.flag & SplineFlags.SELECT) return;
         
-        if (!v2.in_layer(layer))
+        if (!edit_all_layers && !v2.in_layer(layer))
           return;
         
         if (v2.type == SplineTypes.HANDLE && v2.hidden && (v2.owning_vertex == undefined || v2.owning_vertex.hidden))
@@ -414,7 +418,9 @@ export class TransData {
     this.ctx = ctx;
     this.top = top;
     this.datamode = datamode;
-    
+
+    this.edit_all_layers = top.inputs.edit_all_layers.data;
+
     this.layer = ctx.spline.layerset.active;
     this.types = top.types;
     this.data = new GArray();
@@ -497,7 +503,8 @@ export class TransformOp extends ToolOp {
         
       proportional : new BoolProperty(false, "proportional", "proportional mode"),
       propradius   : new FloatProperty(80, "propradius", "prop radius"),
-      datamode     : new IntProperty(0, "datamode", "datamode")
+      datamode     : new IntProperty(0, "datamode", "datamode"),
+      edit_all_layers : new BoolProperty(false, "Edit all layers", "Edit all layers")
     }
   }}
 
@@ -540,6 +547,8 @@ export class TransformOp extends ToolOp {
     var td = this.ensure_transdata(ctx);
     
     var undo = this._undo = {};
+    undo.edit_all_layers = this.inputs.edit_all_layers.data;
+
     for (var i=0; i<this.types.length; i++) {
       this.types[i].undo_pre(ctx, td, undo);
     }

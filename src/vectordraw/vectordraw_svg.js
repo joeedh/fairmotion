@@ -274,7 +274,7 @@ export class SVGPath extends QuadBezPath {
         });
         
         var blur = makeElement("feGaussianBlur", {
-          stdDeviation : ~~(this.blur*draw.zoom),
+          stdDeviation : ~~(this.blur*draw.zoom*0.5),
           "in" : "SourceGraphic"
         });
         
@@ -295,9 +295,9 @@ export class SVGPath extends QuadBezPath {
         blur = filter.childNodes[0];
         
         if (!blur.hasAttributeNS(null, "stdDeviation") || 
-            parseFloat(blur.getAttributeNS(null, "stdDeviation")) != ~~(this.blur*draw.zoom))
+            parseFloat(blur.getAttributeNS(null, "stdDeviation")) != ~~(this.blur*draw.zoom*0.5))
         {
-          blur.setAttributeNS(null, "stdDeviation", ~~(this.blur*draw.zoom));
+          blur.setAttributeNS(null, "stdDeviation", ~~(this.blur*draw.zoom*0.5));
         }
       }
     } else if (this.filternode != undefined) {

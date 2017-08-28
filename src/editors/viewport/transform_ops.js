@@ -47,10 +47,10 @@ export class WidgetResizeOp extends TransformOp {
     var spline = ctx.spline;
     var minmax = new MinMax(2);
     
-    for (var v of spline.verts.selected.editable) {
+    for (var v of spline.verts.selected.editable()) {
       minmax.minmax(v);
     }
-    for (var h of spline.handles.selected.editable) {
+    for (var h of spline.handles.selected.editable()) {
       minmax.minmax(h);
     }
     
@@ -69,13 +69,13 @@ export class WidgetResizeOp extends TransformOp {
       minmax.reset();
       var totsel=0;
       
-      for (var v of spline.verts.selected.editable) {
+      for (var v of spline.verts.selected.editable()) {
         minmax.minmax(v);
         totsel++;
       }
       
       if (ctx.view2d.selectmode & SelMask.HANDLE) {
-        for (var h of spline.handles.selected.editable) {
+        for (var h of spline.handles.selected.editable()) {
           minmax.minmax(h);
           totsel++;
         }

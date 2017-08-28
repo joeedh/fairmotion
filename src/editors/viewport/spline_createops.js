@@ -139,6 +139,7 @@ export class ExtrudeVertOp extends SplineLocalToolOp {
     {
       if (spline.verts.active.segments.length == 2) {
         var v2 = spline.verts.active;
+
         //auto-pair handles on original line
         var h1 = v2.segments[0].handle(v2), h2 = v2.segments[1].handle(v2);
         spline.connect_handles(h1, h2);

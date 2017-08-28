@@ -441,6 +441,94 @@ export class SelectedEditableIter {
   }
 }
 
+export class SelectedEditableAllLayersIter {
+  constructor(selset, layerset) {
+    this.ret = {done : false, value : undefined};
+    this._c = 0;
+
+    if (selset != undefined) {
+      this.init(selset, layerset);
+    }
+  }
+
+  [Symbol.iterator]() {
+    return this;
+  }
+
+  reset() {
+    return this.init(this.set, this.layerset);
+  }
+
+  init(selset, layerset) {
+    this.set = selset;
+    this.iter = undefined;
+    this.ret.done = false;
+    this.layerset = layerset;
+    this._c = 0;
+
+    return this;
+  }
+
+  is_done() {
+    return this.iter == undefined;
+  }
+
+  next() {
+    if (this.iter == undefined) {
+      this.iter = this.set[Symbol.iterator]();
+      this.ret.done = false;
+    }
+
+    if (this._c++ > 100000) {
+      console.log("infinite loop detected 2!");
+      this.ret.done = true;
+      this.ret.value = undefined;
+      return this.ret;
+    }
+
+    var actlayer = this.layerset.active.id;
+
+    function visible(e) {
+      return !e.hidden;
+    }
+
+    ret = undefined;
+    var good = false;
+    var c = 0;
+    var iter = this.iter;
+    do {
+      ret = iter.next();
+      if (ret.done) break;
+
+      var e = ret.value;
+
+      good = visible(e);
+      if (e.type == SplineTypes.HANDLE) {
+        good = good || visible(e.owning_segment);
+      }
+
+      if (good) {
+        this.ret.value = e;
+        break;
+      }
+
+      ret = iter.next();
+      if (c++ > 100000) {
+        console.log("Infinite loop detected!!", ret, iter);
+        break;
+      }
+    } while (!good);
+
+    if (good == false) {
+      this.ret.done = true;
+      this.ret.value = undefined;
+      this.iter = undefined;
+    }
+
+    return this.ret;
+  }
+}
+
 //note: the global sline.selected list uses this too
 export class ElementArraySet extends set {
   constructor() {
@@ -448,10 +536,16 @@ export class ElementArraySet extends set {
     
     this.layerset = undefined;
   }
-  
-  get editable() {
-    return new SelectedEditableIter(this, this.layerset);
+
+  editable(ignore_layers) {
+    return ignore_layers ? new SelectedEditableAllLayersIter(this, this.layerset) : new SelectedEditableIter(this, this.layerset);
   }
+
+  //get editable() {
+  //  return new SelectedEditableIter(this, this.layerset);
+  //}
+
+  //SelectedEditableAllLayersIter
 }
 
 export class ElementArray extends GArray {

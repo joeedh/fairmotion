@@ -13,6 +13,8 @@ import {SplineQuery} from 'spline_query';
 import {draw_spline, patch_canvas2d, set_rendermat} from 'spline_draw';
 import {solve} from 'solver_new';
 import {ModalStates} from 'toolops_api';
+import {DataPathNode} from 'eventdag';
+
 import * as config from 'config';
 
 var atan2 = Math.atan2;
@@ -258,7 +260,7 @@ export class Spline extends DataBlock {
     return this._idgen;
   }
   
-  set idgen(SDIDGen idgen) {
+  set idgen(idgen) {
     this._idgen = idgen;
 
     //this can happen due to fromSTRUCT chaining
@@ -1470,7 +1472,13 @@ export class Spline extends DataBlock {
   /*NOTE: we override any pre-existing this._resolve_after callback.
           this is to avoid excessive queueing*/
   solve(steps, gk, force_queue=false) {
-    if (this._pending_solve != undefined && force_queue) {
+    var this2 = this;
+
+    var dag_trigger = function() {
+      this2.dag_update("on_solve", true);
+    }
+
+    if (this._pending_solve !== undefined && force_queue) {
       var this2 = this;
       
       this._pending_solve = this._pending_solve.then(function() {
@@ -1479,7 +1487,7 @@ export class Spline extends DataBlock {
       this.solving = true;
       
       return this._pending_solve;
-    } else if (this._pending_solve != undefined) {
+    } else if (this._pending_solve !== undefined) {
       var do_accept;
       
       var promise = new Promise(function(accept, reject) {
@@ -1496,13 +1504,22 @@ export class Spline extends DataBlock {
     } else {
       this._pending_solve = this.solve_intern(steps, gk);
       this.solving = true;
-      
+
       return this._pending_solve;
     }
   }
   
   //XXX: get rid of steps, gk
   solve_intern(steps, gk) {
+    var this2 = this;
+
+    var dag_trigger = function() {
+      this2.dag_update("on_solve", true);
+
+      //XXX hack, need to fix windowmanager.js to call this more often
+      the_global_dag.exec(g_app_state.screen.ctx);
+    }
+
     //propagate update flags to draw flags
     for (var v of this.verts) {
       if (v.flag & SplineFlags.UPDATE) {
@@ -1539,7 +1556,9 @@ export class Spline extends DataBlock {
         this2._pending_solve = undefined;
         this2.solving = false;
         this2._do_post_solve();
-        
+
+        dag_trigger();
+
         if (this2._resolve_after) {
           var cb = this2._resolve_after;
           this2._resolve_after = undefined;
@@ -1571,7 +1590,9 @@ export class Spline extends DataBlock {
         
         do_accept();
         this2._do_post_solve();
-        
+
+        dag_trigger();
+
         if (this2._resolve_after) {
           var cb = this2._resolve_after;
           this2._resolve_after = undefined;
@@ -2029,7 +2050,7 @@ export class Spline extends DataBlock {
   }
   
   draw(redraw_rects, g, editor, selectmode, only_render, draw_normals, alpha,
-       draw_time_helpers, curtime) 
+       draw_time_helpers, curtime, ignore_layers)
   {
     this.canvas = g;
     this.selectmode = selectmode;
@@ -2052,7 +2073,7 @@ export class Spline extends DataBlock {
     }
     
      draw_spline(this, redraw_rects, g, editor, selectmode, only_render, 
-                 draw_normals, alpha, draw_time_helpers, curtime);
+                 draw_normals, alpha, draw_time_helpers, curtime, ignore_layers);
   }
   
   static fromSTRUCT(reader) {
@@ -2226,6 +2247,8 @@ export class Spline extends DataBlock {
   }
 };
 
+mixin(Spline, DataPathNode);
+
 Spline.STRUCT = STRUCT.inherit(Spline, DataBlock) + """
     idgen    : SDIDGen;
     
@@ -2243,3 +2266,7 @@ Spline.STRUCT = STRUCT.inherit(Spline, DataBlock) + """
     mres_format : array(string);
 }
 """
+
+Spline.dag_outputs = {
+  on_solve : 0
+};

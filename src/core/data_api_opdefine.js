@@ -88,7 +88,9 @@ window.api_define_ops = function() {
       if ("datamode" in args) {
         op.inputs.datamode.set_data(args["datamode"]);
       }
-      
+
+      op.inputs.edit_all_layers.set_data(ctx.view2d.edit_all_layers);
+
       console.log("=====", args, ctx.view2d.session_flag, ctx.view2d.propradius);
       //op.inputs.datamode.set_data(ctx.view2d.selectmode);
       
@@ -106,7 +108,9 @@ window.api_define_ops = function() {
       if ("datamode" in args) {
         op.inputs.datamode.set_data(args["datamode"]);
       }
-      
+
+      op.inputs.edit_all_layers.set_data(ctx.view2d.edit_all_layers);
+
       //op.inputs.datamode.set_data(ctx.view2d.selectmode);
       
       if (ctx.view2d.session_flag & SessionFlags.PROP_TRANSFORM) {
@@ -123,7 +127,9 @@ window.api_define_ops = function() {
       if ("datamode" in args) {
         op.inputs.datamode.set_data(args["datamode"]);
       }
-      
+
+      op.inputs.edit_all_layers.set_data(ctx.view2d.edit_all_layers);
+
       //op.inputs.datamode.set_data(ctx.view2d.selectmode);
       
       if (ctx.view2d.session_flag & SessionFlags.PROP_TRANSFORM) {

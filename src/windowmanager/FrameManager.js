@@ -529,7 +529,7 @@ export class Screen extends UIFrame {
   on_tick()
   {
     if (window.the_global_dag != undefined) {
-      if (this.ctx == undefined)
+      if (this.ctx === undefined)
         this.ctx = new Context();
       
       the_global_dag.exec(this.ctx);

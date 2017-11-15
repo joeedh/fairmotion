@@ -1,0 +1,18 @@
+on factor;
+off period;
+
+procedure bez(a, b);
+  a + (b-a)*s;
+  
+lin  := bez(k1, k2);
+quad := bez(lin, sub(k2=k3, k1=k2, lin));
+cubic := bez(quad, sub(k3=k4, k2=k3, k1=k2, quad));
+quintic := bez(cubic, sub(k4=k5, k3=k4, k2=k3, k1=k2, cubic));
+quartic := bez(cubic, sub(k5=k6, k4=k5, k3=k4, k2=k3, k1=k2, quintic));
+degsix := bez(cubic, sub(k6=k7, k5=k6, k4=k5, k3=k4, k2=k3, k1=k2, quartic));
+
+sub(k1=0, k2=1, k3=0, quad);
+sub(k1=0, k2=0, k3=1, k4=0, cubic);
+sub(k1=0, k2=0, k3=1, k4=0, k5=0, quintic);
+sub(k1=0, k2=0, k3=0.0, k4=1, k5=0, k6=0.0, quartic);
+sub(k1=0, k2=0, k3=0.0, k4=1, k5=0, k6=0.0, k7=0.0, degsix);

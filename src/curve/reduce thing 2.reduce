@@ -1,0 +1,15 @@
+on factor;
+off period;
+
+operator isin, icos;
+
+b := (exp(-t)*t**j)/factorial(j);
+
+k  := s**2;
+th := int(k, s);
+px := isin(th);
+let isin(0) = 0;
+forall s let df(isin(s), s) = sin(th);
+
+poisson := px*exp(s);
+taylor(poisson, s, 0, 14);

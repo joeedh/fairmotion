@@ -1,0 +1,35 @@
+on factor;
+off period;
+
+array ks(15);
+ks[0] := k1; ks[1] := k2; ks[2] := k3; ks[3] := k4; ks[4] := k5;
+ks[5] := k6; ks[6] := k7; ks[7] := k8; ks[8] := k9; ks[9] := k10;
+ks[10] := k11; ks[12] := k13; ks[13] := k14; ks[14] := k15; ks[15] := k16;
+
+klen := part(length(ks), 1);
+
+operator step;
+procedure step(s, a, b);
+    (0.5*(s-a)/abs(s-a)+0.5)*(0.5*(b-s)/abs(b-s)+0.5);
+
+forall s, a, b let df(step(s, a, b), s) = 0;
+
+procedure basis(s, j, n, ks);
+    begin scalar j1, j2, jn, jn1;
+        if n = 0 then
+            return step(s, ks[j], ks[j+1])
+        else
+            return ((s-ks[j])/(ks[j+n]-ks[j]))          *basis(s, j, n-1, ks) + 
+                   ((ks[j+n+1]-s) / (ks[j+n+1]-ks[j+1]))*basis(s, j+1, n-1, ks);
+    end;
+    
+f := basis(s, 0, 3, ks);
+
+tst := sub(k1=0, k1=1, k2=2, k3=3, k4=4, k5=5, k6=6, k7=7, k8=8, k9=9, f);
+
+steps := 64;
+imul  := 5/steps;
+on rounded;
+ps := for i:= 1:steps collect {i*imul, sub(s=i*imul, tst)};
+plot(ps);
+off rounded;

@@ -32,7 +32,8 @@ var _DataTypeDef = [
   ["SCENE", 5],
   ["SCRIPT", 4],
   ["SPLINE", 6],
-  ["FRAMESET", 7]
+  ["FRAMESET", 7],
+  ["ADDON", 8]
 ];
 
 //generate globals DataTypes and LinkOrder
@@ -387,18 +388,12 @@ export class UserRef {
 
 var _db_hash_id = 1;
 export class DataBlock {
-  String name;
-  DataLib lib_lib;
-  GArray lib_users;
-  GArray lib_anim_channels;
-  
-  int flag, lib_type;
-  int lib_refs, lib_id;
-  int _hash_id;
-  
-  constructor(int type, String name) {
+  //type is an integer, name is a string
+  constructor(type, name) {
     this.constructor.datablock_type = type;
-    
+
+    this.addon_data = {};
+
     //name is optional
     if (name == undefined)
       name = "unnnamed";
@@ -469,7 +464,7 @@ export class DataBlock {
     this.lib_refs++;
   }
 
-  lib_remuser(Object user, String refname) {
+  lib_remuser(user, refname) {
     var newusers = new GArray();
     
     for (var i=0; i<this.lib_users.length; i++) {
@@ -500,6 +495,18 @@ export class DataBlock {
   }
 
   afterSTRUCT() {
+    var map = {};
+
+    if (this.addon_data === undefined || !(this.addon_data instanceof Array)) {
+      this.addon_data = [];
+    }
+
+    for (var dk of this.addon_data) {
+      map[dk.key] = dk.val;
+    }
+
+    this.addon_data = map;
+
     for (var i=0; i<this.lib_anim_channels.length; i++) {
       var ch = this.lib_anim_channels[i];
       ch.idgen = this.lib_anim_idgen;
@@ -521,19 +528,48 @@ export class DataBlock {
     
     return ret;
   }
+
+  _addon_data_save() {
+    var ret = [];
+
+    if (this.addon_data === undefined) {
+      return ret;
+    }
+
+    for (var k in this.addon_data) {
+      ret.push(new _DictKey(k, this.addon_data[k]));
+    }
+
+    return ret;
+  }
 }
+
+export class _DictKey {
+  constructor(key, val) {
+    this.key = key;
+    this.val = val;
+  }
+}
+_DictKey.STRUCT = """
+  _DictKey {
+    key : string;
+    val : abstract(Object);
+  }
+""";
 
 //'name' and 'flag' are deliberately not
 //prefixed with 'lib_'
 DataBlock.STRUCT = """
   DataBlock {
-    name     : string;
-    lib_type : int;
-    lib_id   : int;
-    lib_lib  : int | obj.lib_lib != undefined ? obj.lib_lib.id : -1;
+    name              : string;
+    lib_type          : int;
+    lib_id            : int;
+    lib_lib           : int | obj.lib_lib != undefined ? obj.lib_lib.id : -1;
 
-    lib_refs : int;
-    flag     : int;
+    addon_data        : array(_DictKey) | obj._addon_data_save();
+
+    lib_refs          : int;
+    flag              : int;
     
     lib_anim_channels : array(AnimChannel);
     lib_anim_idgen    : EIDGen;

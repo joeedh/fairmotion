@@ -1,6 +1,7 @@
 "use strict";
 
 import {IconManager} from 'icon';
+import * as config from 'config';
 
 class CacheStack extends Array {
   constructor(itemlen) {
@@ -46,8 +47,8 @@ export class RasterState {
     
     this.pos = [0, 0];
     
-    this.iconsheet = new IconManager(gl, "fcontent/iconsheet.png", [512, 512], [32, 32]);
-    this.iconsheet16 = new IconManager(gl, "fcontent/iconsheet16.png", [256, 256], [16, 16]);
+    this.iconsheet = new IconManager(gl, config.ICONPATH + "iconsheet.png", [512, 512], [32, 32]);
+    this.iconsheet16 = new IconManager(gl, config.ICONPATH + "iconsheet16.png", [256, 256], [16, 16]);
     
     this.viewport_stack = new CacheStack(2)
     this.scissor_stack = new CacheStack(4)
@@ -56,8 +57,8 @@ export class RasterState {
   on_gl_lost(WebGLRenderingContext gl) {
     this.pos = [0, 0];
     
-    this.iconsheet = new IconManager(gl, "fcontent/iconsheet.png", [512, 512], [32, 32]);
-    this.iconsheet16 = new IconManager(gl, "fcontent/iconsheet16.png", [256, 256], [16, 16]);
+    this.iconsheet = new IconManager(gl, config.ICONPATH + "iconsheet.png", [512, 512], [32, 32]);
+    this.iconsheet16 = new IconManager(gl, config.ICONPATH + "iconsheet16.png", [256, 256], [16, 16]);
   }
   
   begin_draw(gl, pos, size) {

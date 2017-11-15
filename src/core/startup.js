@@ -1,21 +1,23 @@
-"not_a_module";
+"not_a_module"
 
-function mobilecheck() {
-  var str = navigator.userAgent + navigator.vendor;
+if (window.mobilecheck === undefined) {
+  window.mobilecheck = function mobilecheck() {
+    var str = navigator.userAgent + navigator.vendor;
 
-  function test(s) {
+    function test(s) {
       var ret = str.match(s)
       if (ret == null || ret == undefined) return false;
       if (ret.length == 0 || ret.length == undefined)
-          return false;
+        return false;
 
       return true;
+    }
+
+    str = str.toLowerCase();
+    var ret = test("android") || test("mobile") || test("blackberry") || test("iphone")
+
+    return ret;
   }
-
-  str = str.toLowerCase();
-  var ret = test("android") || test("mobile") || test("blackberry") || test("iphone")
-
-  return ret;
 }
 
 // Copyright (c) 2013 The Chromium Authors. All rights reserved.

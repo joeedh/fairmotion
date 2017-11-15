@@ -959,7 +959,12 @@ def do_copy_targets():
     traceback.print_last()
   
   return build_final
-  
+
+def build_platforms():
+    from platforms import build
+    
+    build.build()
+
 def build_chrome_package():
   print("Building chrome app. . .")
   
@@ -1108,8 +1113,7 @@ def buildall_intern():
   build_final |= do_copy_targets()
   
   if build_final:
-    build_package()
-    build_chrome_package()
+    build_platforms()
   
 def themain():  
   #print("         themain!", build_cmd)

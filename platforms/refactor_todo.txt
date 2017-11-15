@@ -1,0 +1,12 @@
+=Platform Refactor=
+
+All platform calls should go through the api in
+this folder.
+
+TODO:
+  1. Design abstract api.
+  2. Make minimum HTML5 platform.
+  3. Refactor code to use new platform api:
+     3a. File system code
+     3b. Drawing?
+  4. Move native code to web assembly.

@@ -1,10 +1,15 @@
 "use strict";
 
+export var ELECTRON_APP_MODE = document.getElementById("ElectronAppMode") !== null;
 export var CHROME_APP_MODE = document.getElementById("GoogleChromeAppMode") !== null;
+export var PHONE_APP_MODE = document.getElementById("PhoneAppMode") !== null;
 
-export var USE_NACL=true;
-export var NO_SERVER = CHROME_APP_MODE;
-export var USE_HTML5_FILEAPI=NO_SERVER;
+export var ICONPATH = PHONE_APP_MODE ? "img/" : (ELECTRON_APP_MODE ? "./fcontent/" : "fcontent/");
+
+export var USE_NACL = CHROME_APP_MODE;
+export var NO_SERVER = CHROME_APP_MODE || PHONE_APP_MODE || ELECTRON_APP_MODE;
+
+export var USE_HTML5_FILEAPI = NO_SERVER;
 export var DISABLE_SOLVE=false;
 export var ENABLE_MULTIRES=false;
 export var HAVE_EVAL = false;

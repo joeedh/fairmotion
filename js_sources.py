@@ -93,7 +93,8 @@ sources = [
   "src/vectordraw/vectordraw.js",
   "src/vectordraw/strokedraw.js",
   "src/curve/spline_draw_new.js",
-  
+
+  "src/addon_api/addon_api.js",
   "src/scene/scene.js",
   
   "src/editors/viewport/events.js",

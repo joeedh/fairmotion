@@ -42,21 +42,21 @@ window.handleMessage = function handleMessage(message) {
 
 //localstorage variant
 class MyLocalStorage_LS {
-  static set(key, val) {
+  set(key, val) {
     localStorage[key] = val;
   }
   
-  static getCached(key) {
+  getCached(key) {
     return localStorage[key];
   }
   
-  static getAsync(key) {
+  getAsync(key) {
     return new Promise(function(accept, reject) {
       accept(localStorage[key]);
     });
   }
   
-  static hasCached(key) {
+  hasCached(key) {
     return key in localStorage; 
   }
 }
@@ -117,7 +117,7 @@ window.startup = function startup() {
     //create small delay to make time for chrome.storage.local to load
     var timer = window.setInterval(function() {
       window.clearInterval(timer);
-      
+      ;
       startup_intern();
       
       //feed an on_resize event
@@ -129,7 +129,7 @@ window.startup = function startup() {
       }, 200);
     }, 450);
   } else {
-    window.myLocalStorage = MyLocalStorage_LS;
+    window.myLocalStorage = new MyLocalStorage_LS();
     startup_intern();
   }
 }

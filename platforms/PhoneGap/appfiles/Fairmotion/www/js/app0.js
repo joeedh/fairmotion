@@ -1597,17 +1597,17 @@ window.moduleDidLoad = function moduleDidLoad() {
 window.handleMessage = function handleMessage(message) {
   console.log("NACL message!", message, message.data);
 };
-var MyLocalStorage_LS=_ESClass("MyLocalStorage_LS", [_ESClass.static(function set(key, val) {
+var MyLocalStorage_LS=_ESClass("MyLocalStorage_LS", [function set(key, val) {
   localStorage[key] = val;
-}), _ESClass.static(function getCached(key) {
+}, function getCached(key) {
   return localStorage[key];
-}), _ESClass.static(function getAsync(key) {
+}, function getAsync(key) {
   return new Promise(function(accept, reject) {
     accept(localStorage[key]);
   });
-}), _ESClass.static(function hasCached(key) {
+}, function hasCached(key) {
   return key in localStorage;
-}), function MyLocalStorage_LS() {
+}, function MyLocalStorage_LS() {
 }]);
 var MyLocalStorage_ChromeApp=_ESClass("MyLocalStorage_ChromeApp", [function MyLocalStorage_ChromeApp() {
   this.cache = {}
@@ -1648,6 +1648,7 @@ window.startup = function startup() {
       window.myLocalStorage.getAsync("_settings");
       var timer=window.setInterval(function() {
         window.clearInterval(timer);
+        
         startup_intern();
         var timer2=window.setInterval(function() {
           window.clearInterval(timer2);
@@ -1657,7 +1658,7 @@ window.startup = function startup() {
       }, 450);
   }
   else {
-    window.myLocalStorage = MyLocalStorage_LS;
+    window.myLocalStorage = new MyLocalStorage_LS();
     startup_intern();
   }
 };

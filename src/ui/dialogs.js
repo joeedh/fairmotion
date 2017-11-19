@@ -428,7 +428,7 @@ export function download_file(path, on_finish, path_label=path, use_note=false,
   call_api(get_file_data, {path:path}, finish, error, status);
 }
 
-import {open_file, save_file} from 'html5_fileapi';
+import {open_file, save_file} from 'fileapi';
 
 export class FileOpenRecentOp extends ToolOp {
   static tooldef() { return {

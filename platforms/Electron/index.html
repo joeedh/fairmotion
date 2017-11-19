@@ -6,6 +6,10 @@
     <title>Fairmotion</title>
     <script type="text/javascript" src="fcontent/app.js"></script>
     <style>
+        body {
+            overflow: hidden;
+        }
+
         #framerate {
             position: absolute;
             z-index: 3;
@@ -54,11 +58,7 @@
 <body onload="start_app()">
 	<script type="text/javascript">
 	window.start_app = function start_app() {
-		//global.window = global;
-		window.ELECTRONAPP_MODE = true;
-		
-		window.IsMobile = true;
-		window.myLocalStorage = new MyLocalStorage_LS();
+        startup();
 	}
 	
 	</script>

@@ -4235,7 +4235,7 @@ es6_module_define('imageblock', ["selectmode", "strutils", "toolops_api", "lib_a
   ImageUser = _es6_module.add_export('ImageUser', ImageUser);
   ImageUser.STRUCT = "\nImageUser {\n  off   : vec2;\n  scale : vec2;\n  image : dataref(Image);\n  flag  : int;\n}\n";
 });
-es6_module_define('image_ops', ["toolops_api", "frameset", "spline_draw", "struct", "config", "toolprops", "spline", "imageblock", "html5_fileapi", "lib_api", "dialogs"], function _image_ops_module(_es6_module) {
+es6_module_define('image_ops', ["toolprops", "spline", "fileapi", "lib_api", "spline_draw", "imageblock", "dialogs", "struct", "frameset", "config", "toolops_api"], function _image_ops_module(_es6_module) {
   var Image=es6_import_item(_es6_module, 'imageblock', 'Image');
   var DataTypes=es6_import_item(_es6_module, 'lib_api', 'DataTypes');
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
@@ -4262,7 +4262,7 @@ es6_module_define('image_ops', ["toolops_api", "frameset", "spline_draw", "struc
   var file_dialog=es6_import_item(_es6_module, 'dialogs', 'file_dialog');
   var download_file=es6_import_item(_es6_module, 'dialogs', 'download_file');
   var config=es6_import(_es6_module, 'config');
-  var html5_fileapi=es6_import(_es6_module, 'html5_fileapi');
+  var html5_fileapi=es6_import(_es6_module, 'fileapi');
   var LoadImageOp=_ESClass("LoadImageOp", ToolOp, [_ESClass.static(function tooldef() {
     return {apiname: "image.load_image", uiname: "Load Image", inputs: {name: new StringProperty("Image"), dest_datapath: new StringProperty(""), imagedata: new ArrayBufferProperty(), imagepath: new StringProperty("")}, outputs: {block: new DataRefProperty(undefined, [DataTypes.IMAGE])}, icon: -1, is_modal: true}
   }), function LoadImageOp(datapath, name) {
@@ -4530,10 +4530,10 @@ es6_module_define('UserSettings', ["struct", "config", "dialogs", "strutils"], f
   }
 });
 var g_app_state, g, t;
-es6_module_define('AppState', ["html5_fileapi", "view2d_ops", "ajax", "lib_utils", "view2d", "UICanvas", "struct", "toolops_api", "raster", "FrameManager", "spline_base", "strutils", "UserSettings", "data_api", "notifications", "startup_file", "ops_editor", "scene", "jobs", "ScreenArea", "frameset", "lib_api", "DopeSheetEditor", "lib_api_typedefine", "config", "toolprops"], function _AppState_module(_es6_module) {
+es6_module_define('AppState', ["fileapi", "toolprops", "struct", "lib_api", "toolops_api", "data_api", "frameset", "spline_base", "FrameManager", "config", "view2d", "raster", "lib_utils", "view2d_ops", "scene", "ops_editor", "strutils", "UserSettings", "lib_api_typedefine", "ScreenArea", "jobs", "notifications", "startup_file", "ajax", "DopeSheetEditor", "UICanvas"], function _AppState_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, 'config');
-  var html5_fileapi=es6_import(_es6_module, 'html5_fileapi');
+  var html5_fileapi=es6_import(_es6_module, 'fileapi');
   es6_import(_es6_module, 'startup_file');
   var gen_screen=es6_import_item(_es6_module, 'FrameManager', 'gen_screen');
   var DataPath=es6_import_item(_es6_module, 'data_api', 'DataPath');
@@ -4756,7 +4756,7 @@ es6_module_define('AppState', ["html5_fileapi", "view2d_ops", "ajax", "lib_utils
     }
     return out;
   }
-  var $toolop_input_cache_GsY0_AppState;
+  var $toolop_input_cache_lSMN_AppState;
   var AppState=_ESClass("AppState", [function AppState(screen, mesh, gl) {
     this.screen = screen;
     this.eventhandler = screen;
@@ -4777,7 +4777,7 @@ es6_module_define('AppState', ["html5_fileapi", "view2d_ops", "ajax", "lib_utils
     this.gl = gl;
     this.size = screen!=undefined ? screen.size : [512, 512];
     this.raster = new RasterState(undefined, screen!=undefined ? screen.size : [512, 512]);
-    this.toolop_input_cache = $toolop_input_cache_GsY0_AppState;
+    this.toolop_input_cache = $toolop_input_cache_lSMN_AppState;
     if (this.datalib!=undefined) {
         this.datalib.on_destroy();
     }
@@ -5583,7 +5583,7 @@ es6_module_define('AppState', ["html5_fileapi", "view2d_ops", "ajax", "lib_utils
         screen.size = this.size;
     }
   }]);
-  var $toolop_input_cache_GsY0_AppState={}
+  var $toolop_input_cache_lSMN_AppState={}
   _es6_module.add_class(AppState);
   AppState = _es6_module.add_export('AppState', AppState);
   window.AppState = AppState;
@@ -8866,7 +8866,334 @@ es6_module_define('video', [], function _video_module(_es6_module) {
   var manager=new VideoManager();
   manager = _es6_module.add_export('manager', manager);
 });
-es6_module_define('fileapi', ["strutils"], function _fileapi_module(_es6_module) {
+es6_module_define('fileapi', ["fileapi_electron", "fileapi_chrome", "config", "fileapi_html5"], function _fileapi_module(_es6_module) {
+  var config=es6_import(_es6_module, 'config');
+  function get_root_folderid() {
+    return '/';
+  }
+  get_root_folderid = _es6_module.add_export('get_root_folderid', get_root_folderid);
+  function get_current_dir() {
+    return '';
+  }
+  get_current_dir = _es6_module.add_export('get_current_dir', get_current_dir);
+  function path_to_id() {
+    return '';
+  }
+  path_to_id = _es6_module.add_export('path_to_id', path_to_id);
+  function id_to_path() {
+    return '';
+  }
+  id_to_path = _es6_module.add_export('id_to_path', id_to_path);
+  if (config.CHROME_APP_MODE) {
+      var _fileapi_chrome=es6_import(_es6_module, 'fileapi_chrome');
+      for (var k in _fileapi_chrome) {
+          _es6_module.add_export(k, _fileapi_chrome[k], true);
+      }
+  }
+  else 
+    if (config.ELECTRON_APP_MODE) {
+      var _fileapi_electron=es6_import(_es6_module, 'fileapi_electron');
+      for (var k in _fileapi_electron) {
+          _es6_module.add_export(k, _fileapi_electron[k], true);
+      }
+  }
+  else {
+    var _fileapi_html5=es6_import(_es6_module, 'fileapi_html5');
+    for (var k in _fileapi_html5) {
+        _es6_module.add_export(k, _fileapi_html5[k], true);
+    }
+  }
+});
+es6_module_define('fileapi_html5', ["config"], function _fileapi_html5_module(_es6_module) {
+  "use strict";
+  var config=es6_import(_es6_module, 'config');
+  function clearRecentList() {
+  }
+  clearRecentList = _es6_module.add_export('clearRecentList', clearRecentList);
+  function getRecentList() {
+    return [];
+  }
+  getRecentList = _es6_module.add_export('getRecentList', getRecentList);
+  function setRecent(name, id) {
+  }
+  setRecent = _es6_module.add_export('setRecent', setRecent);
+  function openRecent(thisvar, id) {
+    throw new Error("not supported for html5");
+  }
+  openRecent = _es6_module.add_export('openRecent', openRecent);
+  function reset() {
+  }
+  reset = _es6_module.add_export('reset', reset);
+  function open_file(callback, thisvar, set_current_file, extslabel, exts) {
+    if (thisvar==undefined)
+      thisvar = this;
+    var form=document.createElement("form");
+    document.body.appendChild(form);
+    var input=document.createElement("input");
+    input.type = "file";
+    input.id = "file";
+    input.style.position = "absolute";
+    input.style["z-index"] = 10;
+    input.style.visible = "hidden";
+    input.style.visibility = "hidden";
+    var finished=false;
+    input.oncancel = input.onabort = input.close = function() {
+      console.log("aborted");
+      if (!finished) {
+          document.body.removeChild(form);
+          finished = true;
+      }
+    }
+    input.onchange = function(e) {
+      var files=this.files;
+      if (!finished) {
+          document.body.removeChild(form);
+          finished = true;
+      }
+      if (files.length==0)
+        return ;
+      var file=files[0];
+      var reader=new FileReader();
+      reader.onload = function(e) {
+        console.log(e.target.result);
+        callback.call(thisvar, e.target.result, file.name, file.name);
+      }
+      reader.readAsArrayBuffer(file);
+    }
+    input.focus();
+    input.select();
+    input.click();
+    window.finput = input;
+    form.appendChild(input);
+  }
+  open_file = _es6_module.add_export('open_file', open_file);
+  function save_file(data, save_as_mode, set_current_file, extslabel, exts, error_cb) {
+    if (config.CHROME_APP_MODE) {
+        return chrome_app_save(data, save_as_mode, set_current_file, extslabel, exts, error_cb);
+    }
+    if (!(__instance_of(data, Blob)))
+      data = new Blob([data], {type: "application/octet-binary"});
+    var url=URL.createObjectURL(data);
+    var link=document.createElement("a");
+    link.href = url;
+    var name=g_app_state.filepath.trim();
+    name = name=="" ? "untitled.fmo" : name;
+    link.download = name;
+    console.log(link, link.__proto__);
+    window._link = link;
+    link.click();
+    return ;
+    window.open(url);
+    console.log("url:", url);
+  }
+  save_file = _es6_module.add_export('save_file', save_file);
+});
+es6_module_define('fileapi_chrome', [], function _fileapi_chrome_module(_es6_module) {
+  "use strict";
+  var current_chromeapp_file=undefined;
+  function chrome_get_current_file() {
+    return current_chromeapp_file;
+  }
+  chrome_get_current_file = _es6_module.add_export('chrome_get_current_file', chrome_get_current_file);
+  function reset() {
+    current_chromeapp_file = undefined;
+  }
+  reset = _es6_module.add_export('reset', reset);
+  function open_file(callback, thisvar, set_current_file, extslabel, exts) {
+    console.log("Chrome open");
+    function errorHandler() {
+      console.log("Error reading file!", arguments);
+    }
+    var params={type: 'openFile'}
+    params.accepts = [{description: extslabel, extensions: exts}];
+    chrome.fileSystem.chooseEntry(params, function(readOnlyEntry) {
+      if (readOnlyEntry==undefined)
+        return ;
+      if (set_current_file)
+        current_chromeapp_file = readOnlyEntry;
+      readOnlyEntry.file(function(file) {
+        var reader=new FileReader();
+        console.log("got file", arguments, reader);
+        reader.onerror = errorHandler;
+        reader.onload = function(e) {
+          var id=chrome.fileSystem.retainEntry(readOnlyEntry);
+          console.log("\n\n           ->", e.target.result, readOnlyEntry, id, "<-\n\n");
+          callback.call(thisvar, e.target.result, file.name, id);
+        }
+        reader.readAsArrayBuffer(file);
+      });
+    });
+  }
+  open_file = _es6_module.add_export('open_file', open_file);
+  function save_file(data, save_as_mode, set_current_file, extslabel, exts, error_cb) {
+    function errorHandler() {
+      console.log("Error writing file!", arguments);
+    }
+    function chooseFile() {
+      var params={type: 'saveFile'}
+      if (g_app_state.filepath!=""&g_app_state.filepath!=undefined) {
+          params.suggestedName = g_app_state.filepath;
+      }
+      params.accepts = [{description: extslabel, extensions: exts}];
+      chrome.fileSystem.chooseEntry(params, function(writableFileEntry) {
+        if (writableFileEntry==undefined) {
+            console.log("user cancel?");
+            return ;
+        }
+        if (set_current_file)
+          current_chromeapp_file = writableFileEntry;
+        writableFileEntry.createWriter(function(writer) {
+          writer.onerror = errorHandler;
+          writer.onwriteend = function(e) {
+            console.log('write complete');
+            g_app_state.notes.label("File saved");
+          }
+          if (!(__instance_of(data, Blob)))
+            data = new Blob([data], {type: "application/octet-binary"});
+          writer.write(data);
+        }, errorHandler);
+      });
+    }
+    function error() {
+      console.log("Error writing file", arguments);
+      current_chromeapp_file = undefined;
+      if (error_cb!=undefined)
+        error_cb.apply(this, arguments);
+    }
+    if (save_as_mode||current_chromeapp_file==undefined) {
+        chooseFile();
+    }
+    else 
+      if (current_chromeapp_file!=undefined) {
+        current_chromeapp_file.createWriter(function(writer) {
+          writer.onerror = error;
+          writer.onwriteend = function() {
+            console.log('write complete');
+            g_app_state.notes.label("File saved");
+          }
+          data = new Blob([data], {type: "application/octet-binary"});
+          writer.write(data);
+        }, errorHandler);
+    }
+  }
+  save_file = _es6_module.add_export('save_file', save_file);
+});
+es6_module_define('fileapi_electron', ["config", "fileapi_html5"], function _fileapi_electron_module(_es6_module) {
+  "use strict";
+  var config=es6_import(_es6_module, 'config');
+  var fileapi_html5=es6_import(_es6_module, 'fileapi_html5');
+  function reset() {
+  }
+  reset = _es6_module.add_export('reset', reset);
+  function getRecentList() {
+    if (!myLocalStorage.hasCached("recent_files")) {
+        var list=[];
+        myLocalStorage.set("recent_files", list);
+        return list;
+    }
+    return myLocalStorage.getCached("recent_files");
+  }
+  getRecentList = _es6_module.add_export('getRecentList', getRecentList);
+  function setRecent(name, id) {
+    var list=myLocalStorage.getCached("recent_files");
+    var item;
+    list.reverse();
+    var __iter_item_0=__get_iter(list);
+    var item_0;
+    while (1) {
+      var __ival_item_0=__iter_item_0.next();
+      if (__ival_item_0.done) {
+          break;
+      }
+      item_0 = __ival_item_0.value;
+      if (item_0.id===id) {
+          break;
+      }
+    }
+    if (item===undefined) {
+        item = {name: name, id: id};
+        list.shift();
+    }
+    else {
+      item.name = name;
+      item.id = id;
+      list.remove(item);
+    }
+    list.push(item);
+    list.reverse();
+    myLocalStorage.set("recent_files", list);
+    electron_app.addRecentDocument(id);
+  }
+  setRecent = _es6_module.add_export('setRecent', setRecent);
+  function clearRecentList() {
+    myLocalStorage.set("recent_files", {});
+  }
+  clearRecentList = _es6_module.add_export('clearRecentList', clearRecentList);
+  function open_file(callback, thisvar, set_current_file, extslabel, exts) {
+    if (thisvar==undefined)
+      thisvar = this;
+    var form=document.createElement("form");
+    document.body.appendChild(form);
+    var input=document.createElement("input");
+    input.type = "file";
+    input.id = "file";
+    input.style.position = "absolute";
+    input.style["z-index"] = 10;
+    input.style.visible = "hidden";
+    input.style.visibility = "hidden";
+    var finished=false;
+    input.oncancel = input.onabort = input.close = function() {
+      console.log("aborted");
+      if (!finished) {
+          document.body.removeChild(form);
+          finished = true;
+      }
+    }
+    input.onchange = function(e) {
+      var files=this.files;
+      if (!finished) {
+          document.body.removeChild(form);
+          finished = true;
+      }
+      if (files.length==0)
+        return ;
+      var file=files[0];
+      var reader=new FileReader();
+      reader.onload = function(e) {
+        console.log(e.target.result);
+        callback.call(thisvar, e.target.result, file.name, file.path);
+      }
+      reader.readAsArrayBuffer(file);
+    }
+    input.focus();
+    input.select();
+    input.click();
+    window.finput = input;
+    form.appendChild(input);
+  }
+  open_file = _es6_module.add_export('open_file', open_file);
+  function save_file(data, save_as_mode, set_current_file, extslabel, exts, error_cb) {
+    if (config.CHROME_APP_MODE) {
+        return chrome_app_save(data, save_as_mode, set_current_file, extslabel, exts, error_cb);
+    }
+    if (!(__instance_of(data, Blob)))
+      data = new Blob([data], {type: "application/octet-binary"});
+    var url=URL.createObjectURL(data);
+    var link=document.createElement("a");
+    link.href = url;
+    var name=g_app_state.filepath.trim();
+    name = name=="" ? "untitled.fmo" : name;
+    link.download = name;
+    console.log(link, link.__proto__);
+    window._link = link;
+    link.click();
+    return ;
+    window.open(url);
+    console.log("url:", url);
+  }
+  save_file = _es6_module.add_export('save_file', save_file);
+});
+es6_module_define('stupidsecurity', ["strutils"], function _stupidsecurity_module(_es6_module) {
   var limit_code={"0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9}
   limit_code = _es6_module.add_export('limit_code', limit_code);
   var limit_code_rev={}
@@ -9033,7 +9360,7 @@ es6_module_define('fileapi', ["strutils"], function _fileapi_module(_es6_module)
     function joblet(job, args) {
       var __gen_this2=this;
       function _generator_iter() {
-        this.scope = {job_0: job, token_3: undefined, path2_3: undefined, args_0: args}
+        this.scope = {args_0: args, token_3: undefined, job_0: job, path2_3: undefined}
         this.ret = {done: false, value: undefined}
         this.state = 1;
         this.trystack = [];
@@ -9320,165 +9647,6 @@ es6_module_define('animdata', ["lib_api", "struct", "spline_base", "eventdag", "
   AnimChannel.STRUCT = "\n  AnimChannel {\n    name     : string;\n    keys     : array(AnimKey);\n    proptype : int;\n    path     : string;\n  }\n";
 });
 es6_module_define('config_defines', [], function _config_defines_module(_es6_module) {
-});
-es6_module_define('html5_fileapi', ["config"], function _html5_fileapi_module(_es6_module) {
-  "use strict";
-  var config=es6_import(_es6_module, 'config');
-  var current_chromeapp_file=undefined;
-  function chrome_get_current_file() {
-    return current_chromeapp_file;
-  }
-  chrome_get_current_file = _es6_module.add_export('chrome_get_current_file', chrome_get_current_file);
-  function reset() {
-    if (config.CHROME_APP_MODE) {
-        current_chromeapp_file = undefined;
-    }
-  }
-  reset = _es6_module.add_export('reset', reset);
-  function chrome_app_open(callback, thisvar, set_current_file, extslabel, exts) {
-    console.log("Chrome open");
-    function errorHandler() {
-      console.log("Error reading file!", arguments);
-    }
-    var params={type: 'openFile'}
-    params.accepts = [{description: extslabel, extensions: exts}];
-    chrome.fileSystem.chooseEntry(params, function(readOnlyEntry) {
-      if (readOnlyEntry==undefined)
-        return ;
-      if (set_current_file)
-        current_chromeapp_file = readOnlyEntry;
-      readOnlyEntry.file(function(file) {
-        var reader=new FileReader();
-        console.log("got file", arguments, reader);
-        reader.onerror = errorHandler;
-        reader.onload = function(e) {
-          var id=chrome.fileSystem.retainEntry(readOnlyEntry);
-          console.log("\n\n           ->", e.target.result, readOnlyEntry, id, "<-\n\n");
-          callback.call(thisvar, e.target.result, file.name, id);
-        }
-        reader.readAsArrayBuffer(file);
-      });
-    });
-  }
-  chrome_app_open = _es6_module.add_export('chrome_app_open', chrome_app_open);
-  function open_file(callback, thisvar, set_current_file, extslabel, exts) {
-    if (config.CHROME_APP_MODE) {
-        return chrome_app_open(callback, thisvar, set_current_file, extslabel, exts);
-    }
-    if (thisvar==undefined)
-      thisvar = this;
-    var form=document.createElement("form");
-    document.body.appendChild(form);
-    var input=document.createElement("input");
-    input.type = "file";
-    input.id = "file";
-    input.style.position = "absolute";
-    input.style["z-index"] = 10;
-    input.style.visible = "hidden";
-    input.style.visibility = "hidden";
-    var finished=false;
-    input.oncancel = input.onabort = input.close = function() {
-      console.log("aborted");
-      if (!finished) {
-          document.body.removeChild(form);
-          finished = true;
-      }
-    }
-    input.onchange = function(e) {
-      var files=this.files;
-      if (!finished) {
-          document.body.removeChild(form);
-          finished = true;
-      }
-      if (files.length==0)
-        return ;
-      var file=files[0];
-      var reader=new FileReader();
-      reader.onload = function(e) {
-        console.log(e.target.result);
-        callback.call(thisvar, e.target.result, file.name);
-      }
-      reader.readAsArrayBuffer(file);
-    }
-    input.focus();
-    input.select();
-    input.click();
-    window.finput = input;
-    form.appendChild(input);
-  }
-  open_file = _es6_module.add_export('open_file', open_file);
-  function chrome_app_save(data, save_as_mode, set_current_file, extslabel, exts, error_cb) {
-    function errorHandler() {
-      console.log("Error writing file!", arguments);
-    }
-    function chooseFile() {
-      var params={type: 'saveFile'}
-      if (g_app_state.filepath!=""&g_app_state.filepath!=undefined) {
-          params.suggestedName = g_app_state.filepath;
-      }
-      params.accepts = [{description: extslabel, extensions: exts}];
-      chrome.fileSystem.chooseEntry(params, function(writableFileEntry) {
-        if (writableFileEntry==undefined) {
-            console.log("user cancel?");
-            return ;
-        }
-        if (set_current_file)
-          current_chromeapp_file = writableFileEntry;
-        writableFileEntry.createWriter(function(writer) {
-          writer.onerror = errorHandler;
-          writer.onwriteend = function(e) {
-            console.log('write complete');
-            g_app_state.notes.label("File saved");
-          }
-          if (!(__instance_of(data, Blob)))
-            data = new Blob([data], {type: "application/octet-binary"});
-          writer.write(data);
-        }, errorHandler);
-      });
-    }
-    function error() {
-      console.log("Error writing file", arguments);
-      current_chromeapp_file = undefined;
-      if (error_cb!=undefined)
-        error_cb.apply(this, arguments);
-    }
-    if (save_as_mode||current_chromeapp_file==undefined) {
-        chooseFile();
-    }
-    else 
-      if (current_chromeapp_file!=undefined) {
-        current_chromeapp_file.createWriter(function(writer) {
-          writer.onerror = error;
-          writer.onwriteend = function() {
-            console.log('write complete');
-            g_app_state.notes.label("File saved");
-          }
-          data = new Blob([data], {type: "application/octet-binary"});
-          writer.write(data);
-        }, errorHandler);
-    }
-  }
-  chrome_app_save = _es6_module.add_export('chrome_app_save', chrome_app_save);
-  function save_file(data, save_as_mode, set_current_file, extslabel, exts, error_cb) {
-    if (config.CHROME_APP_MODE) {
-        return chrome_app_save(data, save_as_mode, set_current_file, extslabel, exts, error_cb);
-    }
-    if (!(__instance_of(data, Blob)))
-      data = new Blob([data], {type: "application/octet-binary"});
-    var url=URL.createObjectURL(data);
-    var link=document.createElement("a");
-    link.href = url;
-    var name=g_app_state.filepath.trim();
-    name = name=="" ? "untitled.fmo" : name;
-    link.download = name;
-    console.log(link, link.__proto__);
-    window._link = link;
-    link.click();
-    return ;
-    window.open(url);
-    console.log("url:", url);
-  }
-  save_file = _es6_module.add_export('save_file', save_file);
 });
 es6_module_define('svg_export', ["mathlib", "spline_base"], function _svg_export_module(_es6_module) {
   "use strict";

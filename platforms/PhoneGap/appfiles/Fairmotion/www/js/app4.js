@@ -3676,7 +3676,7 @@ es6_module_define('dialog', ["UITextBox", "UIPack", "toolops_api", "UIFrame", "U
   ErrorDialog = _es6_module.add_export('ErrorDialog', ErrorDialog);
   window.Dialog = Dialog;
 });
-es6_module_define('dialogs', ["dialog", "svg_export", "html5_fileapi", "config", "UIWidgets", "UIPack", "UIElement", "strutils", "UIWidgets_special", "fileapi", "toolprops", "UITextBox", "ajax", "toolops_api", "spline_createops", "UIFrame"], function _dialogs_module(_es6_module) {
+es6_module_define('dialogs', ["spline_createops", "strutils", "UITextBox", "UIWidgets_special", "fileapi", "svg_export", "toolprops", "UIFrame", "UIPack", "UIElement", "toolops_api", "UIWidgets", "config", "ajax", "dialog"], function _dialogs_module(_es6_module) {
   var Dialog=es6_import_item(_es6_module, 'dialog', 'Dialog');
   var PackedDialog=es6_import_item(_es6_module, 'dialog', 'PackedDialog');
   var DialogFlags=es6_import_item(_es6_module, 'dialog', 'DialogFlags');
@@ -4046,8 +4046,8 @@ es6_module_define('dialogs', ["dialog", "svg_export", "html5_fileapi", "config",
     call_api(get_file_data, {path: path}, finish, error, status);
   }
   download_file = _es6_module.add_export('download_file', download_file);
-  var open_file=es6_import_item(_es6_module, 'html5_fileapi', 'open_file');
-  var save_file=es6_import_item(_es6_module, 'html5_fileapi', 'save_file');
+  var open_file=es6_import_item(_es6_module, 'fileapi', 'open_file');
+  var save_file=es6_import_item(_es6_module, 'fileapi', 'save_file');
   var FileOpenRecentOp=_ESClass("FileOpenRecentOp", ToolOp, [_ESClass.static(function tooldef() {
     return {apiname: "open_recent", uiname: "Open Recent", inputs: {}, outputs: {}, icon: -1, is_modal: false, undoflag: UndoFlags.IGNORE_UNDO}
   }), function FileOpenRecentOp() {

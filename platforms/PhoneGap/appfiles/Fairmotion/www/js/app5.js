@@ -920,7 +920,7 @@ es6_module_define('view2d', ["view2d_spline_ops", "spline_createops", "UIWidgets
   View2DHandler.STRUCT = STRUCT.inherit(View2DHandler, Area)+"\n    _id             : int;\n    _selectmode     : int;\n    rendermat       : mat4;\n    irendermat      : mat4;\n    cameramat       : mat4;\n    only_render     : int;\n    draw_anim_paths : int;\n    draw_normals    : int;\n    editors         : array(abstract(View2DEditor));\n    editor          : int | obj.editors.indexOf(obj.editor);\n    zoom            : float;\n    tweak_mode        : int;\n    default_linewidth : float;\n    default_stroke    : vec4;\n    default_fill      : vec4;\n    extrude_mode      : int;\n    enable_blur       : int;\n    draw_faces        : int;\n    draw_video        : int;\n    pinned_paths      : array(int) | obj.pinned_paths != undefined ? obj.pinned_paths : [];\n    background_image  : ImageUser;\n    background_color  : vec3;\n    draw_bg_image     : int;\n    toolmode          : int;\n    draw_small_verts  : int;\n    edit_all_layers   : int;\n  }\n";
   View2DHandler.uiname = "Work Canvas";
 });
-es6_module_define('view2d_ops', ["ajax", "html5_fileapi", "spline_draw_new", "spline_draw", "frameset", "scene", "toolops_api", "vectordraw_canvas2d_simple", "struct", "spline", "toolprops", "events"], function _view2d_ops_module(_es6_module) {
+es6_module_define('view2d_ops', ["toolprops", "toolops_api", "struct", "spline", "frameset", "scene", "ajax", "spline_draw", "fileapi", "spline_draw_new", "vectordraw_canvas2d_simple", "events"], function _view2d_ops_module(_es6_module) {
   "use strict";
   var ToolOp=es6_import_item(_es6_module, 'toolops_api', 'ToolOp');
   var UndoFlags=es6_import_item(_es6_module, 'toolops_api', 'UndoFlags');
@@ -934,8 +934,8 @@ es6_module_define('view2d_ops', ["ajax", "html5_fileapi", "spline_draw_new", "sp
   var charmap=es6_import_item(_es6_module, 'events', 'charmap');
   var TouchEventManager=es6_import_item(_es6_module, 'events', 'TouchEventManager');
   var EventHandler=es6_import_item(_es6_module, 'events', 'EventHandler');
-  var $v1_Aiqq_exec_pan;
-  var $v2_QZP1_exec_pan;
+  var $v1_J9up_exec_pan;
+  var $v2_Dtmy_exec_pan;
   var ViewRotateZoomPanOp=_ESClass("ViewRotateZoomPanOp", ToolOp, [function ViewRotateZoomPanOp() {
     ToolOp.call(this, "view2d_orbit", "Orbit");
     this.undoflag = UndoFlags.IGNORE_UNDO;
@@ -1053,22 +1053,22 @@ es6_module_define('view2d_ops', ["ajax", "html5_fileapi", "spline_draw_new", "sp
       this.exec_pan(ctx);
   }, function exec_pan(ctx) {
     var view2d=ctx.view2d;
-    $v1_Aiqq_exec_pan.load(this.mv5);
-    $v2_QZP1_exec_pan.load(this.mv6);
-    $v1_Aiqq_exec_pan[2] = 0.9;
-    $v2_QZP1_exec_pan[2] = 0.9;
+    $v1_J9up_exec_pan.load(this.mv5);
+    $v2_Dtmy_exec_pan.load(this.mv6);
+    $v1_J9up_exec_pan[2] = 0.9;
+    $v2_Dtmy_exec_pan[2] = 0.9;
     var iprojmat=new Matrix4(ctx.view2d.drawmats.rendermat);
     iprojmat.invert();
     var scenter=new Vector3(this.center);
     scenter.multVecMatrix(ctx.view2d.drawmats.rendermat);
     if (isNaN(scenter[2]))
       scenter[2] = 0.0;
-    $v1_Aiqq_exec_pan[2] = scenter[2];
-    $v2_QZP1_exec_pan[2] = scenter[2];
-    $v1_Aiqq_exec_pan.multVecMatrix(iprojmat);
-    $v2_QZP1_exec_pan.multVecMatrix(iprojmat);
-    var vec=new Vector3($v2_QZP1_exec_pan);
-    vec.sub($v1_Aiqq_exec_pan);
+    $v1_J9up_exec_pan[2] = scenter[2];
+    $v2_Dtmy_exec_pan[2] = scenter[2];
+    $v1_J9up_exec_pan.multVecMatrix(iprojmat);
+    $v2_Dtmy_exec_pan.multVecMatrix(iprojmat);
+    var vec=new Vector3($v2_Dtmy_exec_pan);
+    vec.sub($v1_J9up_exec_pan);
     newmat = new Matrix4(this.start_mat);
     if (isNaN(vec[0])||isNaN(vec[1])||isNaN(vec[2]))
       return ;
@@ -1092,8 +1092,8 @@ es6_module_define('view2d_ops', ["ajax", "html5_fileapi", "spline_draw_new", "sp
     if (g_app_state.screen.tottouch==0)
       this.end_modal();
   }]);
-  var $v1_Aiqq_exec_pan=new Vector3();
-  var $v2_QZP1_exec_pan=new Vector3();
+  var $v1_J9up_exec_pan=new Vector3();
+  var $v2_Dtmy_exec_pan=new Vector3();
   _es6_module.add_class(ViewRotateZoomPanOp);
   var ViewRotateOp=_ESClass("ViewRotateOp", ToolOp, [function ViewRotateOp() {
     ToolOp.call(this, "view2d_orbit", "Orbit");
@@ -1474,7 +1474,7 @@ es6_module_define('view2d_ops', ["ajax", "html5_fileapi", "spline_draw_new", "sp
   FrameChangeOp.inputs = {frame: new FloatProperty(0, "frame", "frame", "frame")}
   var SimpleCanvasDraw2D=es6_import_item(_es6_module, 'vectordraw_canvas2d_simple', 'SimpleCanvasDraw2D');
   var draw_spline=es6_import_item(_es6_module, 'spline_draw', 'draw_spline');
-  var save_file=es6_import_item(_es6_module, 'html5_fileapi', 'save_file');
+  var save_file=es6_import_item(_es6_module, 'fileapi', 'save_file');
   var patch_canvas2d=es6_import_item(_es6_module, 'spline_draw', 'patch_canvas2d');
   var set_rendermat=es6_import_item(_es6_module, 'spline_draw', 'set_rendermat');
   var SplineDrawer=es6_import_item(_es6_module, 'spline_draw_new', 'SplineDrawer');

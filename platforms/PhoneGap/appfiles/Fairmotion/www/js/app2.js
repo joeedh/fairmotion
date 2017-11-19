@@ -8904,6 +8904,7 @@ es6_module_define('touchevents', [], function _touchevents_module(_es6_module) {
 });
 es6_module_define('toolprops', ["struct", "ajax", "toolprops_iter"], function _toolprops_module(_es6_module) {
   "use strict";
+  
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
   var pack_int=es6_import_item(_es6_module, 'ajax', 'pack_int');
   var pack_float=es6_import_item(_es6_module, 'ajax', 'pack_float');

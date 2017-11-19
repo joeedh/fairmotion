@@ -1,5 +1,5 @@
 "use strict";
-
+;
 import {STRUCT} from 'struct';
 import {pack_int, pack_float, pack_static_string} from 'ajax';
 

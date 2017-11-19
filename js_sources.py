@@ -67,9 +67,12 @@ sources = [
 	"src/core/struct.js",
   "src/core/video.js",
 	"src/core/fileapi.js",
+	"src/core/fileapi_html5.js",
+	"src/core/fileapi_chrome.js",
+	"src/core/fileapi_electron.js",
+	"src/core/stupidsecurity.js",
   "src/core/animdata.js",
   "src/config/config_defines.js",
-  "src/core/html5_fileapi.js",
   "src/core/svg_export.js",
   
   "src/curve/curve.js",

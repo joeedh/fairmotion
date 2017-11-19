@@ -725,7 +725,7 @@ FrameChangeOp.inputs = {
 
 import {SimpleCanvasDraw2D} from 'vectordraw_canvas2d_simple';
 import {draw_spline} from 'spline_draw';
-import {save_file} from 'html5_fileapi';
+import {save_file} from 'fileapi';
 import {patch_canvas2d, set_rendermat} from 'spline_draw';
 import {SplineDrawer} from 'spline_draw_new';
 

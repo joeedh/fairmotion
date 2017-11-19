@@ -15,7 +15,7 @@ import {redo_draw_sort} from 'spline_draw';
 import {FileDialog, FileDialogModes, file_dialog, download_file} from 'dialogs';
 
 import * as config from 'config';
-import * as html5_fileapi from 'html5_fileapi';
+import * as html5_fileapi from 'fileapi';
 
 export class LoadImageOp extends ToolOp {
   static tooldef() { return {

@@ -2,7 +2,7 @@
 
 import * as config from 'config';
 
-import * as html5_fileapi from 'html5_fileapi';
+import * as html5_fileapi from 'fileapi';
 
 import 'startup_file';
 import {gen_screen} from 'FrameManager';

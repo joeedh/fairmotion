@@ -1,3 +1,1453 @@
+es6_module_define('UIWidgets', ["UIElement", "units", "events", "UIFrame", "toolprops", "mathlib"], function _UIWidgets_module(_es6_module) {
+  var $_mh;
+  var $_swapt;
+  var UIFrame=es6_import_item(_es6_module, 'UIFrame', 'UIFrame');
+  var Unit=es6_import_item(_es6_module, 'units', 'Unit');
+  var PropTypes=es6_import_item(_es6_module, 'toolprops', 'PropTypes');
+  var DataRefProperty=es6_import_item(_es6_module, 'toolprops', 'DataRefProperty');
+  var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
+  var inrect_2d=es6_import_item(_es6_module, 'mathlib', 'inrect_2d');
+  var aabb_isect_2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_2d');
+  var KeyMap=es6_import_item(_es6_module, 'events', 'KeyMap');
+  var ToolKeyHandler=es6_import_item(_es6_module, 'events', 'ToolKeyHandler');
+  var FuncKeyHandler=es6_import_item(_es6_module, 'events', 'FuncKeyHandler');
+  var KeyHandler=es6_import_item(_es6_module, 'events', 'KeyHandler');
+  var charmap=es6_import_item(_es6_module, 'events', 'charmap');
+  var TouchEventManager=es6_import_item(_es6_module, 'events', 'TouchEventManager');
+  var EventHandler=es6_import_item(_es6_module, 'events', 'EventHandler');
+  var UIElement=es6_import_item(_es6_module, 'UIElement', 'UIElement');
+  var UIFlags=es6_import_item(_es6_module, 'UIElement', 'UIFlags');
+  var CanvasFlags=es6_import_item(_es6_module, 'UIElement', 'CanvasFlags');
+  var UIHoverHint=es6_import_item(_es6_module, 'UIElement', 'UIHoverHint');
+  var inrect_2d_button=es6_import_item(_es6_module, 'UIElement', 'inrect_2d_button');
+  var PackFlags=es6_import_item(_es6_module, 'UIElement', 'PackFlags');
+  var UIButtonAbstract=_ESClass("UIButtonAbstract", UIHoverHint, [function UIButtonAbstract(ctx, path, pos, size) {
+    if (path==undefined) {
+        path = undefined;
+    }
+    if (pos==undefined) {
+        pos = undefined;
+    }
+    if (size==undefined) {
+        size = undefined;
+    }
+    UIHoverHint.call(this, ctx, path, pos, size);
+    this.text_size = undefined;
+    this.can_pan = true;
+    this.clicked = false;
+    this.click_on_down = false;
+    this.modal_click = undefined;
+    this.was_touch = false;
+    this.start_mpos = new Vector2();
+  }, function on_click(event) {
+  }, function on_mousedown(event) {
+    if (!this.clicked) {
+        this.was_touch = g_app_state.was_touch;
+        this.modal_click = !this.click_on_down||this.was_touch;
+        this.start_mpos.load([event.x, event.y]);
+        if (event.button==0&&!this.clicked) {
+            if (this.modal_click)
+              this.parent.push_modal(this);
+            this.stop_hover();
+            this.clicked = true;
+            this.do_recalc();
+            if (!this.was_touch&&this.click_on_down) {
+                this.on_click(event);
+            }
+        }
+    }
+    else {
+      if (this.parent.modalhandler==this) {
+          this.parent.pop_modal();
+      }
+    }
+  }, function on_mouseup(event) {
+    if (event.button==0&&this.clicked) {
+        if (this.modal_click)
+          this.parent.pop_modal();
+        this.modal_click = false;
+        this.clicked = false;
+        this.do_recalc();
+        var click=this.was_touch||!this.click_on_down;
+        if (click) {
+            this.on_click(event);
+        }
+    }
+  }, function on_mousemove(event) {
+    if (!this.clicked) {
+        this.start_hover();
+    }
+    if (this.can_pan&&this.was_touch) {
+        var mpos=[event.x, event.y];
+        var dis=this.start_mpos.vectorDistance(mpos);
+        if (dis>60) {
+            if (this.clicked&&this.modal_click)
+              this.parent.pop_modal();
+            this.modal_click = false;
+            this.stop_hover();
+            this.clicked = false;
+            this.do_recalc();
+            this.start_pan([event.x, event.y]);
+        }
+    }
+  }]);
+  _es6_module.add_class(UIButtonAbstract);
+  UIButtonAbstract = _es6_module.add_export('UIButtonAbstract', UIButtonAbstract);
+  var UIButton=_ESClass("UIButton", UIButtonAbstract, [function UIButton(ctx, text, pos, size, path, callback, hint) {
+    if (path==undefined) {
+        path = undefined;
+    }
+    if (callback==undefined) {
+        callback = undefined;
+    }
+    if (hint==undefined) {
+        hint = undefined;
+    }
+    UIButtonAbstract.call(this, ctx, path, pos, size);
+    this.clicked = false;
+    this.text = text;
+    this.hint = hint;
+    this.path_exec_widget = false;
+    this.callback = callback;
+    this._do_err_on_draw = false;
+  }, function get_hint() {
+    var ctx=this.ctx;
+    if (this.hint!=undefined) {
+        return this.hint;
+    }
+    else 
+      if (this.state&UIFlags.USE_PATH) {
+        var op=this.ctx.api.get_op(this.ctx, this.data_path);
+        if (op==undefined)
+          return undefined;
+        var hotkey=ctx.api.get_op_keyhandler(ctx, this.data_path);
+        var ret=op.description==undefined ? "" : op.description;
+        if (hotkey!=undefined) {
+            if (ret!="")
+              ret+="\n";
+            ret+="      Hotkey: "+hotkey.build_str(true)+"  ";
+        }
+        return ret=="" ? undefined : ret;
+    }
+  }, function on_click(event) {
+    if (this.callback!=undefined) {
+        this.callback(this);
+    }
+    if (this.state&UIFlags.USE_PATH) {
+        if (this.path_exec_widget) {
+            var ctx=this.ctx;
+            if (ctx.view2d.manipulators.active)
+              ctx.view2d.manipulators.active.end();
+            var op=this.ctx.api.get_op(ctx, this.data_path);
+            if (op!=undefined) {
+                op.constructor.create_widgets(ctx.view2d.manipulators, ctx);
+            }
+        }
+        else {
+          this.ctx.api.call_op(this.ctx, this.data_path);
+        }
+    }
+  }, function build_draw(canvas) {
+    canvas.begin(this);
+    if (this._do_err_on_draw) {
+        throw new Error("test exception");
+    }
+    if (!(this.state&UIFlags.ENABLED))
+      canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
+    else 
+      if (this.clicked)
+      canvas.invbox([0, 0], this.size);
+    else 
+      if (this.state&UIFlags.HIGHLIGHT)
+      canvas.hlightbox([0, 0], this.size);
+    else 
+      canvas.box([0, 0], this.size);
+    var tsize=canvas.textsize(this.text, this.text_size);
+    if (tsize[0]<this.size[0])
+      canvas.text([(this.size[0]-tsize[0])*0.5, (this.size[1]-tsize[1])*0.5], this.text, uicolors["BoxText"], this.text_size);
+    else 
+      canvas.text([5, (this.size[1]-tsize[1])*0.5], this.text, uicolors["BoxText"], this.text_size);
+    canvas.end(this);
+  }, function get_min_size(canvas, isvertical) {
+    return (($_mh = objcache.array(2)), ($_mh[0] = (canvas.textsize(this.text, this.text_size)[0]+12)), ($_mh[1] = (26)), $_mh);
+  }]);
+  _es6_module.add_class(UIButton);
+  UIButton = _es6_module.add_export('UIButton', UIButton);
+  var $pos_y48w_build_draw;
+  var $high_clr_ho4q_build_draw;
+  var $size_qrXO_build_draw;
+  var $inset_clr_Wq4q_build_draw;
+  var UIButtonIcon=_ESClass("UIButtonIcon", UIButton, [function UIButtonIcon(ctx, text, icon, pos, size, path, callback, hint, use_small_icon) {
+    if (path==undefined) {
+        path = undefined;
+    }
+    if (callback==undefined) {
+        callback = undefined;
+    }
+    if (hint==undefined) {
+        hint = undefined;
+    }
+    if (use_small_icon==undefined) {
+        use_small_icon = false;
+    }
+    UIButton.call(this, ctx, text, pos, size, path, callback, hint);
+    this.icon = icon;
+    this.small_icon = use_small_icon;
+    this.bgmode = "button";
+    this.pad = 2;
+    this._min_size = [0, 0];
+  }, function get_min_size(canvas, isvertical) {
+    var ret=this._min_size;
+    var pad=this.pad;
+    if (this.small_icon)
+      pad+=4;
+    var iconsheet=this.small_icon ? canvas.iconsheet16 : canvas.iconsheet;
+    ret[0] = iconsheet.cellsize[0]+pad*2.0;
+    ret[1] = iconsheet.cellsize[1]+pad*2.0;
+    return ret;
+  }, function get_hint() {
+    var ret=UIButton.prototype.get_hint.call(this);
+    if (this.text)
+      ret = "%b"+this.text+"%/b \n\n"+ret;
+    return ret;
+  }, function build_draw(canvas) {
+    if (this._do_err_on_draw) {
+        throw new Error("test exception");
+    }
+    canvas.begin(this);
+    if (this.icon==-1) {
+        if (!(this.state&UIFlags.ENABLED))
+          canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
+        else 
+          if (this.clicked)
+          canvas.box($pos_y48w_build_draw, $size_qrXO_build_draw, uicolors["IconInv"]);
+        else 
+          if (this.state&UIFlags.HIGHLIGHT)
+          canvas.box($pos_y48w_build_draw, $size_qrXO_build_draw, uicolors["HighlightIcon"]);
+        else 
+          canvas.box($pos_y48w_build_draw, this.size, uicolors["IconBox"]);
+        return ;
+    }
+    var pad=this.pad;
+    var isize=this.small_icon ? canvas.iconsheet16.cellsize : canvas.iconsheet.cellsize;
+    if (isize[0]>this.size[0])
+      $pos_y48w_build_draw[0] = 1;
+    else 
+      $pos_y48w_build_draw[0] = 1;
+    $pos_y48w_build_draw[1] = 0;
+    var $size_qrXO_build_draw=this.size;
+    if (this.bgmode=="button") {
+        if (!(this.state&UIFlags.ENABLED))
+          canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
+        else 
+          if (this.clicked)
+          canvas.box($pos_y48w_build_draw, $size_qrXO_build_draw, uicolors["IconInv"]);
+        else 
+          if (this.state&UIFlags.HIGHLIGHT)
+          canvas.box($pos_y48w_build_draw, $size_qrXO_build_draw, uicolors["HighlightIcon"]);
+        else 
+          canvas.box($pos_y48w_build_draw, this.size, uicolors["IconBox"]);
+    }
+    else 
+      if (this.bgmode=="flat") {
+        if (!(this.state&UIFlags.ENABLED))
+          canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
+        else 
+          if (this.clicked)
+          canvas.box($pos_y48w_build_draw, $size_qrXO_build_draw, $inset_clr_Wq4q_build_draw);
+        else 
+          if (this.state&UIFlags.HIGHLIGHT)
+          canvas.box($pos_y48w_build_draw, $size_qrXO_build_draw, $high_clr_ho4q_build_draw);
+    }
+    if ($size_qrXO_build_draw[0]>isize[0])
+      $pos_y48w_build_draw[0]+=($size_qrXO_build_draw[0]-isize[0])*0.5;
+    if ($size_qrXO_build_draw[1]>isize[1])
+      $pos_y48w_build_draw[1]+=($size_qrXO_build_draw[1]-isize[1])*0.5;
+    if (this.small_icon)
+      canvas.icon(this.icon, $pos_y48w_build_draw, 0.75, true);
+    else 
+      canvas.icon(this.icon, $pos_y48w_build_draw, 0.75, false);
+    canvas.end(this);
+  }]);
+  var $pos_y48w_build_draw=[0, 0];
+  var $high_clr_ho4q_build_draw=[0.9, 0.9, 0.9, 0.2];
+  var $size_qrXO_build_draw=[0, 0];
+  var $inset_clr_Wq4q_build_draw=[0.3, 0.3, 0.3, 0.2];
+  _es6_module.add_class(UIButtonIcon);
+  UIButtonIcon = _es6_module.add_export('UIButtonIcon', UIButtonIcon);
+  var UIMenuButton=_ESClass("UIMenuButton", UIButtonAbstract, [function UIMenuButton(ctx, menu, pos, size, path, description) {
+    if (description==undefined) {
+        description = "";
+    }
+    UIButtonAbstract.call(this, ctx, path);
+    this.menu = menu;
+    this.click_on_down = true;
+    this.description = "";
+    this.ctx = ctx;
+    this.text = "";
+    this.val = 0;
+    if (pos!=undefined) {
+        this.pos[0] = pos[0];
+        this.pos[1] = pos[1];
+    }
+    if (size!=undefined) {
+        this.size[0] = size[0];
+        this.size[1] = size[1];
+    }
+    this.callback = undefined;
+    this.prop = undefined;
+    if (this.state&UIFlags.USE_PATH) {
+        this.build_menu();
+    }
+    else {
+      var subcallback=menu.callback;
+      var this2=this;
+      function callback(entry, id) {
+        this2.text = entry.label;
+        this2.do_recalc();
+        subcallback(entry, id);
+      }
+      menu.callback = callback;
+    }
+  }, function on_tick() {
+    UIHoverHint.prototype.on_tick.call(this);
+    if (this.state&UIFlags.USE_PATH) {
+        var val=this.get_prop_data();
+        if (!(this.state&UIFlags.ENABLED))
+          return ;
+        if (val==undefined&&this.prop.type!=PropTypes.DATAREF)
+          val = "(undefined)";
+        if (val!=this.val) {
+            this.val = val;
+            if (this.prop.type==PropTypes.DATAREF)
+              this.text = val!=undefined ? val.name : "(undefined)";
+            else 
+              if (this.prop.ui_value_names!=undefined&&this.prop.ui_value_names[val]!=undefined)
+              this.text = this.prop.ui_value_names[val];
+            else 
+              this.text = val.toString();
+            if (!DEBUG.data_api_timing)
+              this.do_recalc();
+        }
+    }
+    if (this.menu!=undefined&&this.menu.closed) {
+        if (this.clicked) {
+            this.do_recalc();
+        }
+        this.clicked = false;
+    }
+  }, function _build_menu_dataref(ctx, prop, menu) {
+    var lists=[];
+    var __iter_type=__get_iter(prop.types);
+    var type;
+    while (1) {
+      var __ival_type=__iter_type.next();
+      if (__ival_type.done) {
+          break;
+      }
+      type = __ival_type.value;
+      lists.push(ctx.datalib.get_datalist(type));
+    }
+    var blocks=[];
+    var __iter_list=__get_iter(lists);
+    var list;
+    while (1) {
+      var __ival_list=__iter_list.next();
+      if (__ival_list.done) {
+          break;
+      }
+      list = __ival_list.value;
+      var __iter_block=__get_iter(list);
+      var block;
+      while (1) {
+        var __ival_block=__iter_block.next();
+        if (__ival_block.done) {
+            break;
+        }
+        block = __ival_block.value;
+        blocks.push(block);
+      }
+    }
+    blocks.sort(function(a, b) {
+      return a.name.localeCompare(b.name);
+    });
+    var __iter_b=__get_iter(blocks);
+    var b;
+    while (1) {
+      var __ival_b=__iter_b.next();
+      if (__ival_b.done) {
+          break;
+      }
+      b = __ival_b.value;
+      menu.add_item(b.name, "", b.lib_id);
+    }
+  }, function build_menu() {
+    var this2=this;
+    function callback(entry, id) {
+      this2.val = id;
+      if (this2.prop==undefined)
+        return ;
+      if (this2.prop.type==PropTypes.DATAREF) {
+          var image=this2.ctx.datalib.images.get(id);
+          this2.text = image.name;
+          this2.set_prop_data(image);
+      }
+      else {
+        this2.text = this2.prop.ui_value_names[this2.val];
+        this2.set_prop_data(this2.val);
+      }
+      this2.clicked = false;
+      this2.do_recalc();
+    }
+    var menu=new UIMenu("", callback);
+    this.prop = this.ctx.api.get_prop_meta(this.ctx, this.data_path);
+    if (this.prop.type==PropTypes.DATAREF) {
+        this._build_menu_dataref(this.ctx, this.prop, menu);
+    }
+    else 
+      if (this.prop.type==PropTypes.ENUM) {
+        for (var k in this.prop.ui_value_names) {
+            var hotkey;
+            if (this.prop.hotkey_ref!=undefined) {
+                hotkey = this.prop.hotkey_ref.build_str();
+            }
+            else {
+              hotkey = "";
+            }
+            menu.add_item(this.prop.ui_value_names[k], hotkey, k);
+        }
+    }
+    this.menu = menu;
+  }, function on_click(event) {
+    if (this.state&UIFlags.USE_PATH) {
+        var prop=this.ctx.api.get_prop_meta(this.ctx, this.data_path);
+        if (prop!=undefined&&prop.type==PropTypes.DATAREF) {
+            this.build_menu();
+        }
+    }
+    var canvas=this.get_canvas();
+    var viewport=canvas.viewport;
+    var menu=this.menu;
+    var vx=g_app_state.screen.size[0];
+    var vy=g_app_state.screen.size[1];
+    menu.minwidth = this.size[0];
+    menu.packmenu(canvas);
+    var off=[0, Math.floor(this.size[1]-3)];
+    if (this.abspos[1]+off[1]+menu.size[1]>vy) {
+        off = [0, -menu.size[1]];
+    }
+    this.call_menu(menu, off, this.size[0]);
+  }, function build_draw(canvas) {
+    canvas.begin(this);
+    if (!(this.state&UIFlags.ENABLED))
+      canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
+    else 
+      if (this.clicked)
+      canvas.invbox([0, 0], this.size);
+    else 
+      if (this.state&UIFlags.HIGHLIGHT)
+      canvas.hlightbox([0, 0], this.size);
+    else 
+      canvas.box([0, 0], this.size);
+    var siz=this.size[1]/2.5;
+    var p=3;
+    var tsize=canvas.textsize(this.text, this.text_size);
+    var x=Math.floor((this.size[0]-tsize[0]-siz-p*3)/2);
+    var y=Math.floor((this.size[1]-tsize[1])/4);
+    if (!this.clicked)
+      canvas.text([x, y], this.text, uicolors["BoxText"], this.text_size);
+    var clr=uicolors["Arrow"];
+    var x=this.size[0]-siz-p*3, y=this.size[1]-siz*1.5-p;
+    canvas.line([x-p*2, 2, 0], [x-p*2, this.size[1]-1, 0], clr, clr, 2.0);
+    canvas.tri([x, y, 0], [x+siz, y, 0], [x+siz/2, y+siz, 0], clr);
+    canvas.end(this);
+  }, function get_min_size(canvas, isvertical) {
+    if (this.menu!=undefined) {
+        this.menu.packmenu(canvas);
+        var size=(($_mh = objcache.array(2)), ($_mh[0] = (canvas.textsize(this.text+"     ")[0])), ($_mh[1] = (26)), $_mh);
+        var __iter_c=__get_iter(this.menu.children);
+        var c;
+        while (1) {
+          var __ival_c=__iter_c.next();
+          if (__ival_c.done) {
+              break;
+          }
+          c = __ival_c.value;
+          var size2=c.get_min_size(canvas, isvertical);
+          size[0] = Math.max(size[0], size2[0]);
+          size[1] = Math.max(size[1], size2[1]);
+        }
+        return (($_mh = objcache.array(2)), ($_mh[0] = (size[0]+canvas.textsize("     ")[0]+20)), ($_mh[1] = (26)), $_mh);
+    }
+    else {
+      return (($_mh = objcache.array(2)), ($_mh[0] = (canvas.textsize(this.text+"     ")[0]+20)), ($_mh[1] = (26)), $_mh);
+    }
+  }]);
+  _es6_module.add_class(UIMenuButton);
+  UIMenuButton = _es6_module.add_export('UIMenuButton', UIMenuButton);
+  var UICheckBox=_ESClass("UICheckBox", UIHoverHint, [function UICheckBox(ctx, text, pos, size, path, use_check) {
+    if (use_check==undefined) {
+        use_check = true;
+    }
+    UIHoverHint.call(this, ctx, path);
+    this.draw_check = use_check;
+    this.ctx = ctx;
+    this.set = false;
+    this.mdown = false;
+    this.text = text;
+    this.update_callback = undefined;
+    if (pos!=undefined) {
+        this.pos[0] = pos[0];
+        this.pos[1] = pos[1];
+    }
+    if (size!=undefined) {
+        this.size[0] = size[0];
+        this.size[1] = size[1];
+    }
+    this.callback = undefined;
+    this.update_callback = undefined;
+    this.prop = undefined;
+    if (this.state&UIFlags.USE_PATH) {
+        this.prop = this.get_prop_meta();
+    }
+  }, function on_tick() {
+    UIHoverHint.prototype.on_tick.call(this);
+    if (!this.mdown&&this.update_callback!=undefined) {
+        this.update_callback(this);
+    }
+    else 
+      if (!this.mdown&&(this.state&UIFlags.USE_PATH)) {
+        var val=this.get_prop_data();
+        if (!(this.state&UIFlags.ENABLED))
+          return ;
+        if (!!val!=!!this.set) {
+            this.set = !!val;
+            if (!DEBUG.data_api_timing)
+              this.do_recalc();
+        }
+    }
+  }, function on_mousemove(event) {
+    if (!this.mdown) {
+        this.start_hover();
+    }
+  }, function on_mousedown(event) {
+    if (event.button==0&&!this.mdown) {
+        this.push_modal();
+        this.stop_hover();
+        this.mdown = true;
+        this.set^=true;
+        if (this.callback!=undefined)
+          this.callback(this, this.set);
+        if (this.state&UIFlags.USE_PATH) {
+            console.log("prop set!", this.setter_path, this.set, "|");
+            this.set_prop_data(this.set);
+        }
+        this.do_recalc();
+    }
+  }, function on_mouseup(event) {
+    if (this.mdown) {
+        this.pop_modal();
+        this.mdown = false;
+        if (this.callback!=undefined) {
+            this.callback(this, this.set);
+        }
+    }
+  }, function build_draw(canvas) {
+    canvas.begin(this);
+    var csize=[20, 20];
+    var this2=this;
+    function draw_check() {
+      var h1=7;
+      var h2=-3;
+      var ox=5;
+      var r=20;
+      var v1=[0+ox, h1, 0];
+      var v2=[10+ox, 5+h2, 0];
+      var v3=[10+ox, 10+h2, 0];
+      var v4=[0+ox, h1+5, 0];
+      var clr=this2.state&UIFlags.ENABLED ? uicolors["Check"] : uicolors["DisabledBox"];
+      canvas.quad_aa(v1, v2, v3, v4, clr);
+      var v1=[5+ox, h1+2, 0];
+      var v2=[10+ox, h1, 0];
+      var v3=[15+ox, h1+15, 0];
+      var v4=[10+ox, h1+15, 0];
+      canvas.quad_aa(v1, v2, v3, v4, clr);
+    }
+    if (!(this.state&UIFlags.ENABLED)) {
+        canvas.box([2, 0], [csize[0], csize[1]], this.do_flash_color(uicolors["DisabledBox"]));
+        if (this.draw_check)
+          draw_check();
+    }
+    else 
+      if ((this.state&UIFlags.HIGHLIGHT)&&this.draw_check) {
+        canvas.simple_box([2, 0], [this.size[0], csize[1]]);
+        var mul=this.set ? 1.0 : 0.3;
+        canvas.hlightbox([0, 0], csize, mul, 2);
+        if (this.set)
+          draw_check();
+    }
+    else 
+      if (this.set) {
+        canvas.invbox([2, 0], csize, undefined, 2);
+        if (this.draw_check)
+          draw_check();
+    }
+    else {
+      canvas.box([2, 0], csize, undefined, 2);
+    }
+    var tsize=canvas.textsize(this.text);
+    canvas.text([csize[0]+5, (this.size[1]-tsize[1])*0.25], this.text);
+    canvas.end(this);
+  }, function get_min_size(canvas, isvertical) {
+    return (($_mh = objcache.array(2)), ($_mh[0] = (canvas.textsize(this.text)[0]+22)), ($_mh[1] = (22)), $_mh);
+  }]);
+  _es6_module.add_class(UICheckBox);
+  UICheckBox = _es6_module.add_export('UICheckBox', UICheckBox);
+  var UINumBox=_ESClass("UINumBox", UIHoverHint, [function UINumBox(ctx, text, range, val, pos, size, path) {
+    if (range==undefined) {
+        range = [0, 100];
+    }
+    if (val==undefined) {
+        val = range[0];
+    }
+    if (pos==undefined) {
+        pos = [0, 0];
+    }
+    if (size==undefined) {
+        size = [1, 1];
+    }
+    if (path==undefined) {
+        path = undefined;
+    }
+    UIHoverHint.call(this, ctx, path);
+    this.unit = undefined;
+    this.clicked = false;
+    this.range = range;
+    this.val = val;
+    this.start_val;
+    this.ctx = ctx;
+    this.set = true;
+    this.text = text;
+    this.is_int = false;
+    this.slide_power = 2.0;
+    this.slide_mul = 1.0;
+    if (pos!=undefined) {
+        this.pos[0] = pos[0];
+        this.pos[1] = pos[1];
+    }
+    if (size!=undefined) {
+        this.size[0] = size[0];
+        this.size[1] = size[1];
+    }
+    this.callback = undefined;
+    this.start_mpos = [0, 0];
+    if (this.state&UIFlags.USE_PATH) {
+        var prop=this.get_prop_meta(ctx);
+        if (prop.type==PropTypes.INT) {
+            this.is_int = true;
+        }
+    }
+  }, function set_val(val) {
+    this.val = val;
+    this.val = Math.min(Math.max(this.val, this.range[0]), this.range[1]);
+    if (this.state&UIFlags.USE_PATH) {
+        this.set_prop_data(this.val);
+    }
+    this.do_recalc();
+  }, function on_mousedown(event) {
+    var numbox=this;
+    if (event.button==0&&!this.clicked&&!event.shiftKey) {
+        if (this.state&UIFlags.USE_PATH) {
+            this.set_prop_data(this.val, true);
+        }
+        this.push_modal();
+        this.start_mpos = [event.x, event.y];
+        this.start_val = this.val;
+        this.stop_hover();
+        this.clicked = true;
+        this.do_recalc();
+    }
+    else 
+      if (event.button==2&&!this.clicked) {
+        var this2=this;
+        function callback(entry, id) {
+          if (id==0) {
+              this2.swap_textbox();
+          }
+        }
+        var menu=new UIMenu("", callback);
+        menu.add_item("Manual input", "", 0);
+        this.call_menu(menu);
+    }
+    else 
+      if (event.shiftKey) {
+        this.swap_textbox();
+    }
+  }, function swap_textbox() {
+    var numbox=this;
+    function unit_error(numbox) {
+      console.log(["numbox error", numbox]);
+      numbox.flash(UIFlags.REDERROR);
+      numbox.do_recalc();
+    }
+    function on_end_edit(tbox, cancelled) {
+      tbox.parent.replace(tbox, numbox);
+      numbox.set_val(Unit.parse(tbox.text, numbox.val, unit_error, numbox, numbox.unit));
+    }
+    var unit=this.unit;
+    var valstr=Unit.gen_string(this.val, unit);
+    var textbox=new UITextBox(this.ctx, valstr, this.pos, this.size);
+    textbox.packflag|=PackFlags.NO_REPACK;
+    this.parent.do_full_recalc();
+    this.parent.replace(this, textbox);
+    textbox.begin_edit(event);
+    textbox.set_cursor();
+    textbox.on_end_edit = on_end_edit;
+  }, function on_mouseup(event) {
+    if (this.clicked&&event.button==0) {
+        this.pop_modal();
+        this.clicked = false;
+        var limit=g_app_state.was_touch ? 5 : 1;
+        if (Math.abs(this.start_mpos[0]-event.x)<=limit&&Math.abs(this.start_mpos[1]-event.y)<=limit) {
+            var df=Math.min((this.range[1]-this.range[0])*0.1, 1.0);
+            if (event.x<this.size[0]/2.0) {
+                df = -df;
+            }
+            this.val+=df;
+            this.val = Math.min(Math.max(this.val, this.range[0]), this.range[1]);
+        }
+        if (this.callback!=undefined) {
+            this.callback(this, this.val);
+        }
+        if (this.state&UIFlags.USE_PATH) {
+            this.set_prop_data(this.val, false);
+        }
+        this.do_recalc();
+    }
+  }, function on_tick() {
+    UIHoverHint.prototype.on_tick.call(this);
+    if (this.state&UIFlags.USE_PATH) {
+        var val=this.get_prop_data();
+        if (!(this.state&UIFlags.ENABLED))
+          return ;
+        if (isNaN(val)||val=="NaN") {
+            return ;
+        }
+        if (val!=this.val) {
+            this.val = val;
+            if (this.callback!=undefined) {
+                this.callback(this, this.val);
+            }
+            if (!DEBUG.data_api_timing)
+              this.do_recalc();
+        }
+    }
+  }, function on_mousemove(event) {
+    var mpos=(($_mh = objcache.array(2)), ($_mh[0] = (event.x)), ($_mh[1] = (event.y)), $_mh);
+    if (this.clicked) {
+        var df=(mpos[0]-this.start_mpos[0])/300.0;
+        var sign=df<0.0 ? -1.0 : 1.0;
+        if (!this.is_int) {
+            var odf=df;
+            df = Math.pow(df, this.slide_power)*this.slide_mul;
+            if (df==NaN)
+              df = odf*odf;
+            df*=sign;
+        }
+        df*=this.range[1]-this.range[0];
+        this.val = this.start_val+df;
+        this.val = Math.min(Math.max(this.val, this.range[0]), this.range[1]);
+        if (this.is_int)
+          this.val = Math.floor(this.val);
+        this.do_recalc();
+        if (this.state&UIFlags.USE_PATH) {
+            this.set_prop_data(this.val, false);
+        }
+        if (this.callback!=undefined) {
+            this.callback(this, this.val);
+        }
+    }
+    else {
+      this.start_hover();
+    }
+  }, function build_draw(canvas) {
+    canvas.begin(this);
+    var clr=uicolors["Box"];
+    if (!(this.state&UIFlags.ENABLED))
+      canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
+    else 
+      if (this.clicked)
+      canvas.invbox([0, 0], this.size);
+    else 
+      if (!(this.state&UIFlags.FLASH)&&(this.state&UIFlags.HIGHLIGHT))
+      canvas.hlightbox([0, 0], this.size, this.do_flash_color());
+    else 
+      canvas.box([0, 0], this.size, this.do_flash_color(clr));
+    var unit=this.unit;
+    var valstr=this.is_int ? this.val.toString() : Unit.gen_string(this.val, unit);
+    var str=this.text+" "+valstr;
+    var pad=15;
+    while (str.length>1&&canvas.textsize(str)[0]>this.size[0]-pad*2) {
+      str = str.slice(0, str.length-1);
+    }
+    var tsize=canvas.textsize(str);
+    pad = (this.size[0]-tsize[0])*0.5;
+    canvas.text([pad, 0.25*(this.size[1]-tsize[1])+1], str, uicolors["BoxText"]);
+    var siz=this.size[1]/2.0;
+    var x=4, y=(this.size[1]-siz)/2;
+    var clr=uicolors["Arrow"];
+    canvas.tri([x+siz/2, y, 0], [x+siz/2, y+siz, 0], [x, y+siz/2, 0], clr);
+    x = this.size[0]-siz*0.5-3;
+    y = (this.size[1]-siz)/2;
+    canvas.tri([x-siz/2, y, 0], [x-siz/2, y+siz, 0], [x, y+siz/2, 0], clr);
+    canvas.end(this);
+  }, function get_min_size(canvas, isvertical) {
+    return (($_mh = objcache.array(2)), ($_mh[0] = (canvas.textsize(this.text)[0]+70)), ($_mh[1] = (26)), $_mh);
+  }]);
+  _es6_module.add_class(UINumBox);
+  UINumBox = _es6_module.add_export('UINumBox', UINumBox);
+  var UILabel=_ESClass("UILabel", UIElement, [function UILabel(ctx, text, pos, size, path) {
+    UIElement.call(this, ctx, path);
+    this.start_mpos = new Vector2();
+    this.prop = undefined;
+    this.val = text;
+    this.text = text;
+    this.bgcolor = undefined;
+    this.color = undefined;
+    this.did_modal = false;
+    this.clicked = false;
+    this.was_touch = false;
+    if (this.state&UIFlags.USE_PATH) {
+        this.prop = ctx.api.get_prop_meta(ctx, this.data_path);
+        this.val = this.prop.data;
+        this.text = this.prop.uiname+": ";
+    }
+    if (pos!=undefined) {
+        this.pos[0] = pos[0];
+        this.pos[1] = pos[1];
+    }
+    if (size!=undefined) {
+        this.size[0] = size[0];
+        this.size[1] = size[1];
+    }
+    this.callback = undefined;
+  }, function set_background(color) {
+    this.bgcolor = new Vector4(color);
+    this.do_recalc();
+  }, function set_color(color) {
+    this.color = new Vector4(color);
+    this.do_recalc();
+  }, function set_text(text) {
+    if (this.text!=text)
+      this.do_recalc();
+    this.text = text;
+  }, function on_tick() {
+    UIElement.prototype.on_tick.call(this);
+    if (this.state&UIFlags.USE_PATH) {
+        var val=this.get_prop_data();
+        if (!(this.state&UIFlags.ENABLED))
+          return ;
+        if (val!=this.val) {
+            this.val = val;
+            this.text = this.prop.uiname+": "+val.toString();
+            if (!DEBUG.data_api_timing)
+              this.do_recalc();
+        }
+    }
+  }, function on_mousemove(event) {
+    var dis=this.start_mpos.vectorDistance([event.x, event.y]);
+    if (this.clicked) {
+        var dis=this.start_mpos.vectorDistance([event.x, event.y]);
+        console.log("-dis", dis, event.x, event.y, this.start_mpos[0], this.start_mpos[1]);
+        if (dis>4) {
+            if (this.did_modal) {
+                this.pop_modal();
+                this.did_modal = false;
+            }
+            this.clicked = false;
+            this.start_pan(this.start_mpos, 0, [event.x, event.y]);
+        }
+    }
+    else {
+    }
+    UIElement.prototype.on_mousemove.call(this, event);
+  }, function on_mousedown(event) {
+    this.start_mpos.load([event.x, event.y]);
+    this.was_touch = g_app_state.was_touch;
+    if (this.clicked) {
+        if (this.do_modal)
+          this.push_modal();
+        this.clicked = false;
+        this.do_recalc();
+    }
+    if (!this.clicked&&event.button==0) {
+        this.clicked = true;
+        if (!this.was_touch&&this.callback!=undefined) {
+            this.callback(this);
+        }
+        if (!this.did_modal) {
+            this.push_modal();
+            this.did_modal = true;
+        }
+    }
+  }, function on_mouseup(event) {
+    if (this.did_modal) {
+        this.pop_modal();
+        this.did_modal = false;
+    }
+    if (this.clicked) {
+        this.clicked = false;
+        if (this.was_touch&&inrect_2d_button([event.x, event.y], [0, 0], this.size)) {
+            if (this.callback!=undefined) {
+                this.callback(this);
+            }
+        }
+    }
+  }, function build_draw(canvas, isVertical) {
+    canvas.begin(this);
+    if (this.bgcolor) {
+        if (!(this.state&UIFlags.ENABLED))
+          canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
+        else 
+          canvas.box([0, 0], this.size, this.bgcolor);
+    }
+    var tsize=canvas.textsize(this.text);
+    canvas.text([(this.size[0]-tsize[0])*0.5, (this.size[1]-tsize[1])*0.25], this.text, this.color);
+    canvas.end(this);
+  }, function get_min_size(canvas, isvertical) {
+    var pad=this.bgcolor!=undefined ? 2 : 4;
+    return (($_mh = objcache.array(2)), ($_mh[0] = (canvas.textsize(this.text)[0]+pad)), ($_mh[1] = (26)), $_mh);
+  }]);
+  _es6_module.add_class(UILabel);
+  UILabel = _es6_module.add_export('UILabel', UILabel);
+  var _HiddenMenuElement=_ESClass("_HiddenMenuElement", UIElement, [function _HiddenMenuElement(ctx, src_menu_label, dst_menu_label) {
+    UIElement.call(this, ctx);
+    this.src_menu_label = src_menu_label;
+    this.dst_menu_label = dst_menu_label;
+  }, function on_mousemove(event) {
+    if (DEBUG.ui_menus)
+      console.log("In _HiddenMenuElement.on_mousemove()");
+    this.src_menu_label.menu.end_menu();
+    this.src_menu_label.clicked = false;
+    this.src_menu_label.state&=~UIFlags.HIGHLIGHT;
+    this.src_menu_label.do_recalc();
+    this.dst_menu_label.clicked = true;
+    this.dst_menu_label.spawn_menu();
+  }, function build_draw(canvas, isvertical) {
+  }]);
+  _es6_module.add_class(_HiddenMenuElement);
+  _HiddenMenuElement = _es6_module.add_export('_HiddenMenuElement', _HiddenMenuElement);
+  var UIMenuLabel=_ESClass("UIMenuLabel", UIElement, [function UIMenuLabel(ctx, text, menu, gen_menu_func, pos, size) {
+    UIElement.call(this, ctx);
+    if (pos==undefined)
+      pos = [0, 0];
+    if (size==undefined)
+      size = [0, 0];
+    this.prop = undefined;
+    this.val = text;
+    this.text = text;
+    this.clicked = false;
+    if (pos!=undefined) {
+        this.pos[0] = pos[0];
+        this.pos[1] = pos[1];
+    }
+    if (size!=undefined) {
+        this.size[0] = size[0];
+        this.size[1] = size[1];
+    }
+    this.callback = undefined;
+    this.gen_menu = gen_menu_func;
+    this.menu_callback = undefined;
+    this.callback_override = undefined;
+    this.off = [0, 0];
+  }, function on_tick() {
+    UIElement.prototype.on_tick.call(this);
+    if (this.clicked&&this.menu!=undefined&&this.menu.closed) {
+        this.clicked = false;
+        if (!DEBUG.data_api_timing)
+          this.do_recalc();
+    }
+  }, function add_hidden_elements(menu) {
+    var es=new GArray();
+    var __iter_c=__get_iter(this.parent.children);
+    var c;
+    while (1) {
+      var __ival_c=__iter_c.next();
+      if (__ival_c.done) {
+          break;
+      }
+      c = __ival_c.value;
+      if (c==this||c.constructor.name!=UIMenuLabel.name)
+        continue;
+      var e=new _HiddenMenuElement(this.ctx, this, c);
+      e.size = c.size;
+      e.pos = [c.pos[0]-this.pos[0]-this.off[0], c.pos[1]-this.pos[1]-this.off[1]];
+      es.push(e);
+    }
+    var del=new GArray();
+    var __iter_c=__get_iter(menu.children);
+    var c;
+    while (1) {
+      var __ival_c=__iter_c.next();
+      if (__ival_c.done) {
+          break;
+      }
+      c = __ival_c.value;
+      if (c.constructor.name==_HiddenMenuElement.name)
+        del.push(c);
+    }
+    var __iter_c=__get_iter(del);
+    var c;
+    while (1) {
+      var __ival_c=__iter_c.next();
+      if (__ival_c.done) {
+          break;
+      }
+      c = __ival_c.value;
+      menu.children.remove(c);
+    }
+    var __iter_c=__get_iter(es);
+    var c;
+    while (1) {
+      var __ival_c=__iter_c.next();
+      if (__ival_c.done) {
+          break;
+      }
+      c = __ival_c.value;
+      menu.add(c);
+    }
+  }, function spawn_menu(mpos) {
+    this.clicked = true;
+    this.do_recalc();
+    if (this.gen_menu!=undefined) {
+        this.menu = this.gen_menu(this.ctx, this);
+    }
+    var menu=this.menu;
+    if (menu==undefined)
+      return ;
+    var off=[0, 0];
+    menu.packmenu(this.canvas);
+    var absco=this.get_abs_pos();
+    var scrsize=this.ctx.screen.size;
+    if (scrsize[1]-absco[1]-this.size[1]<menu.size[1]) {
+        off = this.off = [0, -menu.size[1]];
+    }
+    else {
+      off = this.off = [0, this.size[1]];
+    }
+    var this2=this;
+    if (this.menu.callback!=this.callback_override) {
+        this.menu_callback = menu.callback;
+        this.callback_override = menu.callback = function(entry, id) {
+          this2.clicked = false;
+          if (this2.menu_callback!=undefined) {
+              this2.menu_callback(entry, id);
+          }
+          this2.do_recalc();
+          this2.state&=~UIFlags.HIGHLIGHT;
+        };
+    }
+    this.add_hidden_elements(menu);
+    this.call_menu(menu, off);
+  }, function on_mousedown(event) {
+    if (event.button==0&&this.clicked==false) {
+        this.spawn_menu([event.x, event.y]);
+    }
+  }, function on_mouseup(event) {
+    if (event.button==0&&this.clicked==false) {
+        this.clicked = false;
+        if (inrect_2d_button([event.x, event.y], [0, 0], this.size)) {
+            if (this.callback!=undefined) {
+                this.callback(this);
+            }
+        }
+    }
+  }, function build_draw(canvas) {
+    if (this.canvas==undefined)
+      this.canvas = canvas;
+    canvas.begin(this);
+    if (!(this.state&UIFlags.ENABLED))
+      canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
+    else 
+      if (this.clicked)
+      canvas.box([0, -2], [this.size[0], this.size[1]+4], uicolors["MenuLabelInv"], 10);
+    else 
+      if (this.state&UIFlags.HIGHLIGHT)
+      canvas.box([0, -2], [this.size[0], this.size[1]+4], uicolors["MenuLabel"], 10);
+    var tsize=canvas.textsize(this.text, menu_text_size);
+    canvas.text([(this.size[0]-tsize[0])*0.5, (this.size[1]-tsize[1])*0.25], this.text, undefined, menu_text_size);
+    canvas.end(this);
+  }, function get_min_size(canvas, isvertical) {
+    return (($_mh = objcache.array(2)), ($_mh[0] = (canvas.textsize(this.text, menu_text_size)[0]+4)), ($_mh[1] = (26)), $_mh);
+  }]);
+  _es6_module.add_class(UIMenuLabel);
+  UIMenuLabel = _es6_module.add_export('UIMenuLabel', UIMenuLabel);
+  var ScrollButton=_ESClass("ScrollButton", UIElement, [function ScrollButton(ctx, pos, size, icon, callback, do_repeat) {
+    if (do_repeat==undefined) {
+        do_repeat = true;
+    }
+    UIElement.call(this, ctx);
+    this.repeat = do_repeat;
+    this.boxclr = undefined;
+    this.highclr = undefined;
+    this.invclr = undefined;
+    this.icon = icon;
+    this.clicked = false;
+    this.do_modal = true;
+    if (pos!=undefined) {
+        this.pos[0] = pos[0];
+        this.pos[1] = pos[1];
+    }
+    if (size!=undefined) {
+        this.size[0] = size[0];
+        this.size[1] = size[1];
+    }
+    this.callback = callback;
+    this.repeat_ival = 100;
+    this.last_ms = 0;
+  }, function on_tick() {
+    if (this.clicked&&this.repeat&&time_ms()-this.last_ms>this.repeat_ival) {
+        this.last_ms = time_ms();
+        this.callback(this, [-1, -1]);
+    }
+  }, function on_mousedown(event) {
+    if (event.button==0&&!this.clicked) {
+        if (this.do_modal)
+          this.push_modal();
+        this.clicked = true;
+        this.do_recalc();
+        if (inrect_2d([event.x, event.y], [0, 0], this.size)) {
+            if (this.callback!=undefined) {
+                this.callback(this, [event.x, event.y]);
+            }
+        }
+    }
+  }, function on_mouseup(event) {
+    if (event.button==0) {
+        if (this.do_modal)
+          this.pop_modal();
+        this.clicked = false;
+        this.do_recalc();
+    }
+  }, function build_draw(canvas, isVertical) {
+    if (!(this.state&UIFlags.ENABLED))
+      canvas.box([1, 1], this.size, this.do_flash_color(uicolors["DisabledBox"]));
+    else 
+      if (this.clicked)
+      canvas.box2([1, 1], this.size, this.invclr);
+    else 
+      if (this.state&UIFlags.HIGHLIGHT)
+      canvas.box2([1, 1], this.size, this.highclr);
+    else 
+      canvas.box2([1, 1], this.size, this.boxclr);
+    if (this.icon!=undefined) {
+        var clr=this.clicked ? undefined : [0.5, 0.5, 0.5, 1.0];
+        canvas.icon(this.icon, IsMobile ? [3, 7] : [0, 0], undefined, true, clr);
+    }
+  }, function get_min_size(canvas, isvertical) {
+    if (IsMobile) {
+        return (($_mh = objcache.array(2)), ($_mh[0] = (26)), ($_mh[1] = (26)), $_mh);
+    }
+    else {
+      return (($_mh = objcache.array(2)), ($_mh[0] = (18)), ($_mh[1] = (18)), $_mh);
+    }
+  }]);
+  _es6_module.add_class(ScrollButton);
+  ScrollButton = _es6_module.add_export('ScrollButton', ScrollButton);
+  var UIVScroll=_ESClass("UIVScroll", UIFrame, [function UIVScroll(ctx, range, pos, size, callback) {
+    if (pos==undefined) {
+        pos = [0, 0];
+    }
+    if (size==undefined) {
+        size = [0, 0];
+    }
+    if (callback==undefined) {
+        callback = undefined;
+    }
+    UIFrame.call(this, ctx);
+    this.state|=UIFlags.NO_FRAME_CACHE;
+    this.packflag|=PackFlags.INHERIT_HEIGHT;
+    this.packflag|=PackFlags.ALIGN_RIGHT;
+    this.step = undefined;
+    this.clicked = false;
+    this.click_sign = 1;
+    this.range = range;
+    if (pos!=undefined) {
+        this.pos[0] = pos[0];
+        this.pos[1] = pos[1];
+    }
+    if (size!=undefined) {
+        this.size[0] = size[0];
+        this.size[1] = size[1];
+    }
+    this._last_val = undefined;
+    this.val = 0;
+    this.callback = callback;
+    this.but1 = new ScrollButton(ctx, [0, 0], [0, 0], Icons.SCROLL_DOWN);
+    this.but1.repeat = true;
+    this.add(this.but1);
+    this.but2 = new ScrollButton(ctx, [0, 0], [0, 0], Icons.SCROLL_UP);
+    this.but2.repeat = true;
+    this.add(this.but2);
+    this.bar = new ScrollButton(ctx, [0, 0], [0, 0], undefined);
+    this.bar.repeat = false;
+    this.bar.do_modal = false;
+    this.barsize = 32;
+    this.add(this.bar);
+    this.bar.boxclr = uicolors["ScrollBar"];
+    this.bar.highclr = uicolors["ScrollBarHigh"];
+    this.bar.invclr = uicolors["ScrollInv"];
+    this.but1.boxclr = uicolors["ScrollButton"];
+    this.but1.highclr = uicolors["ScrollButtonHigh"];
+    this.but1.invclr = uicolors["ScrollInv"];
+    this.but2.boxclr = uicolors["ScrollButton"];
+    this.but2.highclr = uicolors["ScrollButtonHigh"];
+    this.but2.invclr = uicolors["ScrollInv"];
+    this.last_ms = 0;
+    this.dragging = false;
+    this.last_mpos = [0, 0];
+    this.did_modal = false;
+    var this2=this;
+    function bar_callback(button, mpos) {
+      mpos = [0, mpos[1]+button.pos[1]];
+      this2.do_drag(mpos);
+    }
+    this.bar.callback = bar_callback;
+    this.but1.callback = function(button, mpos) {
+      this2.increment(1);
+    }
+    this.but2.callback = function(button, mpos) {
+      this2.increment(-1);
+    }
+  }, function set_range(range) {
+    if (this.range==undefined||this.range[0]!=range[0]||this.range[1]!=range[1])
+      this.do_recalc();
+    this.range = range;
+    this.val = Math.min(Math.max(this.val, this.range[0]), this.range[1]);
+    this.pack_bar();
+  }, function do_drag(mpos) {
+    this.last_mpos = mpos;
+    this.dragging = true;
+    this.parent.push_modal(this);
+  }, function increment(sign) {
+    var step=this.step;
+    if (step==undefined)
+      step = (this.range[1]-this.range[0])/10.0;
+    this.val+=step*sign;
+    this.val = Math.min(Math.max(this.val, this.range[0]), this.range[1]);
+    if (this.callback!=undefined) {
+        this.callback(this, this.val);
+    }
+  }, function set_value(val) {
+    if (val!=this._last_val&&val!=this.val) {
+        this.do_recalc();
+    }
+    this._last_val = val;
+    if (this.range[0]>this.range[1]) {
+        val = Math.min(Math.max(val, this.range[1]), this.range[0]);
+    }
+    else {
+      val = Math.min(Math.max(val, this.range[0]), this.range[1]);
+    }
+    this.val = val;
+  }, function pack_bar() {
+    var bar=this.bar;
+    var range=this.range;
+    var size1=this.barsize;
+    size1 = this.size[1]-this.but1.size[1]-this.but2.size[1]-size1;
+    bar.size[0] = this.size[0];
+    bar.size[1] = this.barsize;
+    var fac=size1/(this.range[1]-this.range[0]);
+    bar.pos[1] = this.but1.size[1]+(this.range[1]-this.val-this.range[0]*2)*fac;
+  }, function on_inactive() {
+    this.clicked = false;
+    UIFrame.prototype.on_inactive.call(this);
+  }, function on_tick() {
+    UIFrame.prototype.on_tick.call(this);
+    this.state&=~UIFlags.USE_PAN;
+    if (this.clicked&&this.modalhandler!=undefined) {
+        this.clicked = false;
+    }
+    if (this.clicked&&time_ms()-this.last_ms>200) {
+        this.increment(this.click_sign*4);
+    }
+  }, function on_mousedown(event) {
+    if (!this.dragging) {
+        UIFrame.prototype.on_mousedown.call(this, event, false);
+    }
+    if (this.modalhandler==undefined&&this.active==undefined) {
+        this.clicked = true;
+        this.last_ms = time_ms()+200;
+        if (event.y>this.bar.pos[1]+this.bar.size[1]) {
+            this.click_sign = -1;
+            this.increment(-4);
+        }
+        else {
+          this.click_sign = 1;
+          this.increment(4);
+        }
+    }
+  }, function on_mouseup(event) {
+    this.clicked = false;
+    if (this.dragging) {
+        this.dragging = false;
+        this.parent.pop_modal();
+        this.bar.clicked = false;
+        this.bar.do_recalc();
+    }
+    else {
+      UIFrame.prototype.on_mouseup.call(this, event);
+    }
+  }, function on_mousemove(event) {
+    if (this.dragging) {
+        var mpos=[event.y, event.y];
+        var y=mpos[1]-this.last_mpos[1];
+        if (Math.abs(y)<4)
+          return ;
+        var fac=(this.range[1]-this.range[0]);
+        fac = fac/(this.size[1]-this.but1.size[1]-this.but2.size[1]-this.barsize);
+        this.val-=fac*y+this.range[0];
+        this.val = Math.min(Math.max(this.val, this.range[0]), this.range[1]);
+        if (this.callback!=undefined) {
+            this.callback(this, this.val);
+        }
+        this.last_mpos = mpos;
+        this.bar.do_recalc();
+        this.do_recalc();
+    }
+    else {
+      UIFrame.prototype.on_mousemove.call(this, event);
+    }
+  }, function pack(canvas, isVertical) {
+    var sizey=Math.floor(this.size[0]*1.25);
+    this.but1.size = [this.size[0], sizey];
+    this.but2.pos = [0, this.size[1]-sizey-1];
+    this.but2.size = [this.size[0], sizey];
+    this.pack_bar();
+  }, function build_draw(canvas, isVertical) {
+    canvas.frame_begin(this);
+    this.pack(canvas, isVertical);
+    if (this.range[1]-this.range[0]==0.0) {
+        canvas.box2([1, 0], this.size, uicolors["ScrollBG"]);
+        return ;
+    }
+    this.canvas = canvas;
+    canvas.box2([1, 0], this.size, uicolors["ScrollBG"]);
+    this.draw_background = false;
+    UIFrame.prototype.build_draw.call(this, canvas, isVertical, false);
+    canvas.frame_end(this);
+  }, function get_min_size(canvas, isvertical) {
+    if (IsMobile)
+      return (($_mh = objcache.array(2)), ($_mh[0] = (28)), ($_mh[1] = (28*3)), $_mh);
+    else 
+      return (($_mh = objcache.array(2)), ($_mh[0] = (15)), ($_mh[1] = (18*3)), $_mh);
+  }]);
+  _es6_module.add_class(UIVScroll);
+  UIVScroll = _es6_module.add_export('UIVScroll', UIVScroll);
+  var UIIconCheck=_ESClass("UIIconCheck", UIHoverHint, [function UIIconCheck(ctx, text, icon, pos, size, path, use_check) {
+    if (use_check==undefined) {
+        use_check = true;
+    }
+    UIHoverHint.call(this, ctx, path);
+    this.ctx = ctx;
+    this.set = false;
+    this.mdown = false;
+    this.text = text;
+    if (pos!=undefined) {
+        this.pos[0] = pos[0];
+        this.pos[1] = pos[1];
+    }
+    if (size!=undefined) {
+        this.size[0] = size[0];
+        this.size[1] = size[1];
+    }
+    this.callback = undefined;
+    this.update_callback = undefined;
+    this.icon = icon;
+    this.prop = undefined;
+    if (this.state&UIFlags.USE_PATH) {
+        this.prop = this.get_prop_meta();
+    }
+  }, function on_tick() {
+    UIHoverHint.prototype.on_tick.call(this);
+    if (!this.mdown&&this.update_callback!=undefined) {
+        this.update_callback(this);
+    }
+    else 
+      if (!this.mdown&&(this.state&UIFlags.USE_PATH)) {
+        var val=this.get_prop_data();
+        if (!(this.state&UIFlags.ENABLED))
+          return ;
+        if (val!=this.set) {
+            this.set = val;
+            if (!DEBUG.data_api_timing)
+              this.do_recalc();
+        }
+    }
+  }, function on_mousemove(event) {
+    if (!this.mdown) {
+        this.start_hover();
+    }
+  }, function on_mousedown(event) {
+    if (event.button==0&&!this.mdown) {
+        this.push_modal();
+        this.stop_hover();
+        this.mdown = true;
+        this.set^=true;
+        this.do_recalc();
+    }
+  }, function on_mouseup(event) {
+    if (this.mdown) {
+        this.pop_modal();
+        this.mdown = false;
+        if (this.callback!=undefined)
+          this.callback(this, this.set);
+        if (this.state&UIFlags.USE_PATH) {
+            this.set_prop_data(this.set);
+        }
+    }
+  }, function build_draw(canvas) {
+    canvas.begin(this);
+    var base=this.packflag&PackFlags.USE_LARGE_ICON ? 24+16 : 24;
+    var csize=[base, base];
+    if (!(this.state&UIFlags.ENABLED)) {
+        canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
+    }
+    else 
+      if (this.state&UIFlags.HIGHLIGHT) {
+        var clr=this.set ? uicolors["IconCheckSet"] : uicolors["IconCheckUnset"];
+        clr = clr.slice(0, clr.length);
+        for (var i=0; i<3; i++) {
+            clr[i]*=1.1;
+        }
+        canvas.box([0, 0], this.size, clr, 2);
+    }
+    else 
+      if (this.set) {
+        canvas.box([0, 0], this.size, uicolors["IconCheckSet"], 2);
+    }
+    else {
+      canvas.box([0, 0], this.size, uicolors["IconCheckUnset"], 2);
+    }
+    var tsize=canvas.textsize(this.text);
+    canvas.text([csize[0]+5, (this.size[1]-tsize[1])*0.25], this.text);
+    var pos=[4, 4];
+    var draw_small=!(this.packflag&PackFlags.USE_LARGE_ICON);
+    canvas.icon(this.icon, pos, 0.75, draw_small);
+    canvas.end(this);
+  }, function get_min_size(canvas, isvertical) {
+    var base=this.packflag&PackFlags.USE_LARGE_ICON ? 24+16 : 24;
+    return (($_mh = objcache.array(2)), ($_mh[0] = (canvas.textsize(this.text)[0]+base)), ($_mh[1] = (base)), $_mh);
+  }]);
+  _es6_module.add_class(UIIconCheck);
+  UIIconCheck = _es6_module.add_export('UIIconCheck', UIIconCheck);
+});
+es6_module_define('selectmode', [], function _selectmode_module(_es6_module) {
+  var SelMask={VERTEX: 1, HANDLE: 2, SEGMENT: 4, FACE: 16, MULTIRES: 32, TOPOLOGY: 1|2|4|16}
+  SelMask = _es6_module.add_export('SelMask', SelMask);
+  var ToolModes={SELECT: 1, APPEND: 2, RESIZE: 3}
+  ToolModes = _es6_module.add_export('ToolModes', ToolModes);
+});
 es6_module_define('UITextBox', ["mathlib", "UIElement", "UIWidgets", "events", "UIFrame", "UIPack"], function _UITextBox_module(_es6_module) {
   var $_mh;
   var $_swapt;
@@ -10135,242 +11585,4 @@ es6_module_define('notifications', ["UIWidgets", "UITextBox", "toolops_api", "UI
   }
   var ScreenArea=es6_import_item(_es6_module, 'ScreenArea', 'ScreenArea');
   var Area=es6_import_item(_es6_module, 'ScreenArea', 'Area');
-});
-es6_module_define('manipulator', [], function _manipulator_module(_es6_module) {
-  "use strict";
-  var ManipFlags={}
-  ManipFlags = _es6_module.add_export('ManipFlags', ManipFlags);
-  var HandleShapes={ARROW: 0, HAMMER: 1, ROTCIRCLE: 2, SIMEPL_CIRCLE: 3}
-  HandleShapes = _es6_module.add_export('HandleShapes', HandleShapes);
-  var _mh_idgen=1;
-  var ManipHandle=_ESClass("ManipHandle", [function ManipHandle(v1, v2, id, shape, view2d, clr) {
-    this.id = id;
-    this._hid = _mh_idgen++;
-    this.shape = shape;
-    this.v1 = v1;
-    this.v2 = v2;
-    this.color = clr;
-    this.parent = undefined;
-    this.linewidth = 15;
-    this._min = new Vector2(v1);
-    this._max = new Vector2(v2);
-    this._redraw_pad = this.linewidth;
-  }, function update() {
-    this._min[0] = this.v1[0]+this.parent.co[0];
-    this._min[1] = this.v1[1]+this.parent.co[1];
-    this._max[0] = this.v2[0]+this.parent.co[0];
-    this._max[1] = this.v2[1]+this.parent.co[1];
-    var minx=Math.min(this._min[0], this._max[0]);
-    var miny=Math.min(this._min[1], this._max[1]);
-    var maxx=Math.max(this._min[0], this._max[0]);
-    var maxy=Math.max(this._min[1], this._max[1]);
-    var p=this._redraw_pad;
-    window.redraw_viewport(this._min, this._max);
-    this._min[0] = minx-p, this._min[1] = miny-p;
-    this._max[0] = maxx+p, this._max[1] = maxy+p;
-    console.log("update", this._min[0], this._min[1], this._max[0], this._max[1]);
-    window.redraw_viewport(this._min, this._max);
-  }, _ESClass.symbol(Symbol.keystr, function keystr() {
-    return "MH"+this._hid.toString;
-  }), function get_render_rects(ctx, canvas, g) {
-    var p=this._redraw_pad;
-    var xmin=Math.min(this.v1[0], this.v2[0])-p;
-    var xmax=Math.max(this.v1[0], this.v2[0])+p;
-    var ymin=Math.min(this.v1[1], this.v2[1])-p;
-    var ymax=Math.max(this.v1[1], this.v2[1])+p;
-    return [[xmin, ymin, xmax-xmin, ymax-ymin]];
-  }, function render(canvas, g) {
-    g.lineWidth = this.linewidth;
-    g.strokeStyle = "teal";
-    g.beginPath();
-    g.moveTo(this.v1[0], this.v1[1]);
-    g.lineTo(this.v2[0], this.v2[1]);
-    g.stroke();
-  }]);
-  _es6_module.add_class(ManipHandle);
-  ManipHandle = _es6_module.add_export('ManipHandle', ManipHandle);
-  var _mh_idgen_2=1;
-  var _mp_first=true;
-  var Manipulator=_ESClass("Manipulator", [function Manipulator(handles) {
-    this._hid = _mh_idgen_2++;
-    this.handles = handles.slice(0, handles.length);
-    this.recalc = 1;
-    this.parent = undefined;
-    this.user_data = undefined;
-    var __iter_h=__get_iter(this.handles);
-    var h;
-    while (1) {
-      var __ival_h=__iter_h.next();
-      if (__ival_h.done) {
-          break;
-      }
-      h = __ival_h.value;
-      h.parent = this;
-    }
-    this.handle_size = 65;
-    this.co = new Vector3();
-    this.hidden = false;
-  }, function hide() {
-    if (!this.hidden) {
-        this.update();
-    }
-    this.hidden = true;
-  }, function unhide() {
-    if (this.hidden) {
-        this.hidden = false;
-        this.update();
-    }
-    else {
-      this.hidden = false;
-    }
-  }, function update() {
-    if (this.hidden)
-      return ;
-    var __iter_h=__get_iter(this.handles);
-    var h;
-    while (1) {
-      var __ival_h=__iter_h.next();
-      if (__ival_h.done) {
-          break;
-      }
-      h = __ival_h.value;
-      h.update();
-    }
-  }, function on_tick(ctx) {
-  }, function on_click() {
-  }, _ESClass.symbol(Symbol.keystr, function keystr() {
-    return "MP"+this._hid.toString;
-  }), function end() {
-    this.parent.remove(this);
-  }, function get_render_rects(ctx, canvas, g) {
-    var rects=[];
-    if (this.hidden) {
-        return rects;
-    }
-    var __iter_h=__get_iter(this.handles);
-    var h;
-    while (1) {
-      var __ival_h=__iter_h.next();
-      if (__ival_h.done) {
-          break;
-      }
-      h = __ival_h.value;
-      var rs=h.get_render_rects(ctx, canvas, g);
-      for (var i=0; i<rs.length; i++) {
-          rs[i] = rs[i].slice(0, rs[i].length);
-          rs[i][0]+=this.co[0];
-          rs[i][1]+=this.co[1];
-      }
-      rects = rects.concat(rs);
-    }
-    return rects;
-  }, function render(canvas, g) {
-    if (this.hidden) {
-        return ;
-    }
-    var __iter_h=__get_iter(this.handles);
-    var h;
-    while (1) {
-      var __ival_h=__iter_h.next();
-      if (__ival_h.done) {
-          break;
-      }
-      h = __ival_h.value;
-      var x=this.co[0], y=this.co[1];
-      g._render_mat.translate(x, y);
-      h.render(canvas, g);
-      g._render_mat.translate(-x, -y);
-    }
-  }, function arrow(normal, id, clr) {
-    if (clr==undefined) {
-        clr = [1, 1, 1, 0.5];
-    }
-    normal = new Vector2(normal);
-    normal.normalize().mulScalar(25.0);
-    var h=new ManipHandle(new Vector2(), normal, id, HandleShapes.ARROW, this.view3d, clr);
-    h.parent = this;
-    this.handles.push(h);
-  }, function do_click(e, view2d) {
-    return false;
-  }]);
-  _es6_module.add_class(Manipulator);
-  Manipulator = _es6_module.add_export('Manipulator', Manipulator);
-  var $nil_rGHj_get_render_rects;
-  var ManipulatorManager=_ESClass("ManipulatorManager", [function ManipulatorManager(view2d) {
-    this.view2d = view2d;
-    this.stack = [];
-    this.active = undefined;
-  }, function render(canvas, g) {
-    if (this.active!=undefined) {
-        this.active.render(canvas, g);
-    }
-  }, function get_render_rects(ctx, canvas, g) {
-    if (this.active!=undefined) {
-        return this.active.get_render_rects(ctx, canvas, g);
-    }
-    else {
-      return $nil_rGHj_get_render_rects;
-    }
-  }, function remove(mn) {
-    if (mn==this.active) {
-        this.pop();
-    }
-    else {
-      this.stack.remove(mn);
-    }
-  }, function push(mn) {
-    mn.parent = this;
-    this.stack.push(this.active);
-    this.active = mn;
-  }, function ensure_not_toolop(ctx, cls) {
-    if (this.active!=undefined&&this.active.toolop_class===cls) {
-        this.remove(this.active);
-    }
-  }, function ensure_toolop(ctx, cls) {
-    if (this.active!=undefined&&this.active.toolop_class===cls) {
-        return this.active;
-    }
-    if (this.active!=undefined) {
-        this.remove(this.active);
-    }
-    this.active = cls.create_widgets(this, ctx);
-    this.active.toolop_class = cls;
-  }, function pop() {
-    var ret=this.active;
-    this.active = this.stack.pop(-1);
-  }, function do_click(event, view2d) {
-    return this.active!=undefined ? this.active.do_click(event, view2d) : undefined;
-  }, function active_toolop() {
-    if (this.active==undefined)
-      return undefined;
-    return this.active.toolop_class;
-  }, function create(cls, do_push) {
-    if (do_push==undefined) {
-        do_push = true;
-    }
-    var mn=new Manipulator([]);
-    mn.parent = this;
-    mn.toolop_class = cls;
-    if (do_push)
-      this.push(mn);
-    return mn;
-  }, function on_tick(ctx) {
-    if (this.active!=undefined&&this.active.on_tick!=undefined)
-      this.active.on_tick(ctx);
-  }, function arrow(normal, id, clr, do_push) {
-    if (do_push==undefined) {
-        do_push = true;
-    }
-    normal = new Vector3(normal);
-    normal.normalize().mulScalar(25.0);
-    var h=new ManipHandle(new Vector3(), normal, id, HandleShapes.ARROW, this.view3d, clr);
-    var mn=new Manipulator([h]);
-    mn.parent = this;
-    if (do_push)
-      this.push(mn);
-    return mn;
-  }]);
-  var $nil_rGHj_get_render_rects=[];
-  _es6_module.add_class(ManipulatorManager);
-  ManipulatorManager = _es6_module.add_export('ManipulatorManager', ManipulatorManager);
 });

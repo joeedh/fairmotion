@@ -2306,7 +2306,7 @@ es6_module_define('spline_query', ["spline_multires", "selectmode"], function _s
   _es6_module.add_class(SplineQuery);
   SplineQuery = _es6_module.add_export('SplineQuery', SplineQuery);
 });
-es6_module_define('spline_draw', ["spline_multires", "spline_element_array", "spline_math", "animdata", "spline_draw_new", "selectmode", "view2d_editor", "mathlib", "spline_types", "config"], function _spline_draw_module(_es6_module) {
+es6_module_define('spline_draw', ["config", "spline_multires", "spline_types", "mathlib", "view2d_editor", "selectmode", "spline_element_array", "spline_draw_new", "animdata", "spline_math"], function _spline_draw_module(_es6_module) {
   var aabb_isect_minmax2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_minmax2d');
   var ENABLE_MULTIRES=es6_import_item(_es6_module, 'config', 'ENABLE_MULTIRES');
   var SessionFlags=es6_import_item(_es6_module, 'view2d_editor', 'SessionFlags');
@@ -2340,14 +2340,40 @@ es6_module_define('spline_draw', ["spline_multires", "spline_element_array", "sp
   var MaterialFlags=es6_import_item(_es6_module, 'spline_types', 'MaterialFlags');
   var ElementArray=es6_import_item(_es6_module, 'spline_element_array', 'ElementArray');
   var SplineLayerFlags=es6_import_item(_es6_module, 'spline_element_array', 'SplineLayerFlags');
-  var uclr="#ff2211";
-  var sclr="#ffaa44";
-  var hclr="#ffee66";
-  var aclr="#ff9912";
-  var uclr_h="#22ff11";
-  var sclr_h="#aaffaa";
-  var hclr_h="#eeff66";
-  var clr="#444444";
+  var ColorFlags={SELECT: 1, ACTIVE: 2, HIGHLIGHT: 4}
+  ColorFlags = _es6_module.add_export('ColorFlags', ColorFlags);
+  var FlagMap={UNSELECT: 0, SELECT: ColorFlags.SELECT, ACTIVE: ColorFlags.ACTIVE, HIGHLIGHT: ColorFlags.HIGHLIGHT, SELECT_ACTIVE: ColorFlags.SELECT|ColorFlags.ACTIVE, SELECT_HIGHLIGHT: ColorFlags.SELECT|ColorFlags.HIGHLIGHT, HIGHLIGHT_ACTIVE: ColorFlags.HIGHLIGHT|ColorFlags.ACTIVE, SELECT_HIGHLIGHT_ACTIVE: ColorFlags.SELECT|ColorFlags.ACTIVE|ColorFlags.HIGHLIGHT}
+  FlagMap = _es6_module.add_export('FlagMap', FlagMap);
+  function mix(a, b, t) {
+    var ret=[0, 0, 0];
+    for (var i=0; i<3; i++) {
+        ret[i] = a[i]+(b[i]-a[i])*t;
+    }
+    return ret;
+  }
+  var ElementColor={UNSELECT: [1, 0.133, 0.07], SELECT: [1, 0.6, 0.26], HIGHLIGHT: [1, 0.93, 0.4], ACTIVE: [0.3, 0.4, 1.0], SELECT_ACTIVE: mix([1, 0.6, 0.26], [0.1, 0.2, 1.0], 0.7), SELECT_HIGHLIGHT: [1, 1, 0.8], HIGHLIGHT_ACTIVE: mix([1, 0.93, 0.4], [0.3, 0.4, 1.0], 0.5), SELECT_HIGHLIGHT_ACTIVE: [0.85, 0.85, 1.0]}
+  ElementColor = _es6_module.add_export('ElementColor', ElementColor);
+  function rgb2css(color) {
+    var r=color[0], g=color[1], b=color[2];
+    return "rgb("+(~~(r*255))+","+(~~(g*255))+","+(~~(b*255))+")";
+  }
+  var element_colormap=new Array(8);
+  element_colormap = _es6_module.add_export('element_colormap', element_colormap);
+  for (var k in ElementColor) {
+      var f=FlagMap[k];
+      element_colormap[f] = rgb2css(ElementColor[k]);
+  }
+  function get_element_flag(e, list) {
+    var f=0;
+    f|=e.flag&SplineFlags.SELECT ? ColorFlags.SELECT : 0;
+    f|=e===list.highlight ? ColorFlags.HIGHLIGHT : 0;
+    f|=e===list.active ? ColorFlags.ACTIVE : 0;
+    return f;
+  }
+  function get_element_color(e, list) {
+    return element_colormap[get_element_flag(e, list)];
+  }
+  get_element_color = _es6_module.add_export('get_element_color', get_element_color);
   function calc_string_ids(spline, startid) {
     if (startid==undefined) {
         startid = 0;
@@ -2457,11 +2483,11 @@ es6_module_define('spline_draw', ["spline_multires", "spline_element_array", "sp
     return string_idgen;
   }
   calc_string_ids = _es6_module.add_export('calc_string_ids', calc_string_ids);
-  var $lists_fOlj_sort_layer_segments=new cachering(function() {
+  var $lists_OgCN_sort_layer_segments=new cachering(function() {
     return [];
   }, 2);
   function sort_layer_segments(layer, spline) {
-    var list=$lists_fOlj_sort_layer_segments.next();
+    var list=$lists_OgCN_sort_layer_segments.next();
     list.length = 0;
     var visit={}
     var layerid=layer.id;
@@ -2724,9 +2750,9 @@ es6_module_define('spline_draw', ["spline_multires", "spline_element_array", "sp
     g.lineWidth = lw;
   }
   var SplineDrawer=es6_import_item(_es6_module, 'spline_draw_new', 'SplineDrawer');
-  var $smin_t7cd_draw_spline=new Vector3();
-  var $r_GOGM_draw_spline=[[0, 0], [0, 0]];
-  var $smax_UHSv_draw_spline=new Vector3();
+  var $smin_eIvc_draw_spline=new Vector3();
+  var $r_jtaN_draw_spline=[[0, 0], [0, 0]];
+  var $smax_35HY_draw_spline=new Vector3();
   function draw_spline(spline, redraw_rects, g, editor, selectmode, only_render, draw_normals, alpha, draw_time_helpers, curtime, ignore_layers) {
     spline.canvas = g;
     if (spline.drawlist==undefined||(spline.recalc&RecalcFlags.DRAWSORT)) {
@@ -2832,13 +2858,13 @@ es6_module_define('spline_draw', ["spline_multires", "spline_element_array", "sp
           break;
       }
       seg = __ival_seg.value;
-      $smin_t7cd_draw_spline.zero().load(seg.aabb[0]);
-      $smax_UHSv_draw_spline.zero().load(seg.aabb[1]);
+      $smin_eIvc_draw_spline.zero().load(seg.aabb[0]);
+      $smax_35HY_draw_spline.zero().load(seg.aabb[1]);
       var skipdraw=true;
       for (var i=0; i<redraw_rects.length; i+=4) {
-          $r_GOGM_draw_spline[0][0] = redraw_rects[i], $r_GOGM_draw_spline[0][1] = redraw_rects[i+1];
-          $r_GOGM_draw_spline[1][0] = redraw_rects[i+2], $r_GOGM_draw_spline[1][1] = redraw_rects[i+3];
-          if (aabb_isect_minmax2d($smin_t7cd_draw_spline, $smax_UHSv_draw_spline, $r_GOGM_draw_spline[0], $r_GOGM_draw_spline[1], 2)) {
+          $r_jtaN_draw_spline[0][0] = redraw_rects[i], $r_jtaN_draw_spline[0][1] = redraw_rects[i+1];
+          $r_jtaN_draw_spline[1][0] = redraw_rects[i+2], $r_jtaN_draw_spline[1][1] = redraw_rects[i+3];
+          if (aabb_isect_minmax2d($smin_eIvc_draw_spline, $smax_35HY_draw_spline, $r_jtaN_draw_spline[0], $r_jtaN_draw_spline[1], 2)) {
               skipdraw = false;
               break;
           }
@@ -2886,18 +2912,13 @@ es6_module_define('spline_draw', ["spline_multires", "spline_element_array", "sp
       var lastdv=undefined;
       var color;
       if ((ignore_layers||seg.in_layer(actlayer))&&!only_render&&(selectmode&SelMask.SEGMENT)) {
-          color = "rgba(0,0,0,"+alpha2+")";
-          if (seg==spline.segments.highlight)
-            color = hclr;
-          else 
-            if (seg==spline.segments.active)
-            color = aclr;
-          else 
-            if (seg.flag&SplineFlags.SELECT)
-            color = sclr;
+          if (get_element_flag(seg, spline.segments))
+            color = get_element_color(seg, spline.segments);
           else 
             if (seg.flag&SplineFlags.NO_RENDER)
             color = "rgba(0, 0, 0, 0)";
+          else 
+            color = "rgba(0,0,0,"+alpha2+")";
       }
       else 
         if (seg.flag&SplineFlags.NO_RENDER) {
@@ -3232,7 +3253,7 @@ es6_module_define('spline_draw', ["spline_multires", "spline_element_array", "sp
         var w=vert_size/editor.zoom;
         for (var i=0; i<spline.handles.length; i++) {
             var v=spline.handles[i];
-            var clr=uclr_h;
+            var clr=get_element_color(v, spline.handles);
             if (!ignore_layers&&!v.owning_segment.in_layer(actlayer))
               continue;
             if (v.owning_segment!=undefined&&v.owning_segment.flag&SplineFlags.HIDE)
@@ -3246,11 +3267,6 @@ es6_module_define('spline_draw', ["spline_multires", "spline_element_array", "sp
             }
             if (v.flag&SplineFlags.HIDE)
               continue;
-            if (v==spline.handles.highlight)
-              clr = hclr_h;
-            else 
-              if (v.flag&SplineFlags.SELECT)
-              clr = sclr_h;
             g.beginPath();
             if (clr!==last_clr)
               g.fillStyle = clr;
@@ -3278,16 +3294,11 @@ es6_module_define('spline_draw', ["spline_multires", "spline_element_array", "sp
       var w=vert_size/editor.zoom;
       for (var i=0; i<spline.verts.length; i++) {
           var v=spline.verts[i];
-          var clr=uclr;
+          var clr=get_element_color(v, spline.verts);
           if (!ignore_layers&&!v.in_layer(actlayer))
             continue;
           if (v.flag&SplineFlags.HIDE)
             continue;
-          if (v==spline.verts.highlight)
-            clr = hclr;
-          else 
-            if (v.flag&SplineFlags.SELECT)
-            clr = sclr;
           var co=v;
           if (hasmres&&v.segments.length>0) {
               co = v.segments[0].evaluate(v.segments[0].ends(v));
@@ -3314,16 +3325,11 @@ es6_module_define('spline_draw', ["spline_multires", "spline_element_array", "sp
         var w=vert_size/editor.zoom;
         for (var i=0; i<spline.verts.length; i++) {
             var v=spline.verts[i];
-            var clr=uclr;
+            var clr=get_element_color(v, spline.verts);
             if (!ignore_layers&&!v.in_layer(actlayer))
               continue;
             if (v.flag&SplineFlags.HIDE)
               continue;
-            if (v==spline.verts.highlight)
-              clr = hclr;
-            else 
-              if (v.flag&SplineFlags.SELECT)
-              clr = sclr;
             var co=v;
             if (hasmres&&v.segments.length>0) {
                 co = v.segments[0].evaluate(v.segments[0].ends(v));
@@ -3503,16 +3509,16 @@ es6_module_define('spline_draw', ["spline_multires", "spline_element_array", "sp
     g._irender_mat.invert();
   }
   set_rendermat = _es6_module.add_export('set_rendermat', set_rendermat);
-  var $margin_x5iG_redraw_element=new Vector3([15, 15, 15]);
-  var $aabb_Sw9C_redraw_element=[new Vector3(), new Vector3()];
+  var $margin_YAuZ_redraw_element=new Vector3([15, 15, 15]);
+  var $aabb_6zh3_redraw_element=[new Vector3(), new Vector3()];
   function redraw_element(e, view2d) {
-    $margin_x5iG_redraw_element[0] = $margin_x5iG_redraw_element[1] = $margin_x5iG_redraw_element[2] = 15.0;
+    $margin_YAuZ_redraw_element[0] = $margin_YAuZ_redraw_element[1] = $margin_YAuZ_redraw_element[2] = 15.0;
     if (view2d!=undefined)
-      $margin_x5iG_redraw_element.mulScalar(1.0/view2d.zoom);
+      $margin_YAuZ_redraw_element.mulScalar(1.0/view2d.zoom);
     var e_aabb=e.aabb;
-    $aabb_Sw9C_redraw_element[0].load(e_aabb[0]), $aabb_Sw9C_redraw_element[1].load(e_aabb[1]);
-    $aabb_Sw9C_redraw_element[0].sub($margin_x5iG_redraw_element), $aabb_Sw9C_redraw_element[1].add($margin_x5iG_redraw_element);
-    window.redraw_viewport($aabb_Sw9C_redraw_element[0], $aabb_Sw9C_redraw_element[1]);
+    $aabb_6zh3_redraw_element[0].load(e_aabb[0]), $aabb_6zh3_redraw_element[1].load(e_aabb[1]);
+    $aabb_6zh3_redraw_element[0].sub($margin_YAuZ_redraw_element), $aabb_6zh3_redraw_element[1].add($margin_YAuZ_redraw_element);
+    window.redraw_viewport($aabb_6zh3_redraw_element[0], $aabb_6zh3_redraw_element[1]);
   }
   redraw_element = _es6_module.add_export('redraw_element', redraw_element);
 });
@@ -8157,6 +8163,51 @@ es6_module_define('spline_draw_new', ["mathlib", "config", "spline_types", "sele
   _es6_module.add_class(SplineDrawer);
   SplineDrawer = _es6_module.add_export('SplineDrawer', SplineDrawer);
 });
+es6_module_define('license_api', ["config", "license_electron"], function _license_api_module(_es6_module) {
+  "use strict";
+  var config=es6_import(_es6_module, 'config');
+  var License=_ESClass("License", [function License(owner, email, issued, expiration, max_devices, used_devices, key) {
+    this.owner = owner;
+    this.email = email;
+    this.issued = issued;
+    this.expiration = expiration;
+    this.max_devices = max_devices;
+    this.used_devices = used_devices;
+  }]);
+  _es6_module.add_class(License);
+  License = _es6_module.add_export('License', License);
+  var MAX_EXPIRATION_TIME=355;
+  MAX_EXPIRATION_TIME = _es6_module.add_export('MAX_EXPIRATION_TIME', MAX_EXPIRATION_TIME);
+  var HardwareKey=_ESClass("HardwareKey", [function HardwareKey(deviceName, deviceKey) {
+    this.deviceName = deviceName;
+    this.deviceKey = deviceKey;
+  }]);
+  _es6_module.add_class(HardwareKey);
+  HardwareKey = _es6_module.add_export('HardwareKey', HardwareKey);
+  
+  var license_electron=es6_import(_es6_module, 'license_electron');
+  function getHardwareKey() {
+    if (config.ELECTRON_APP_MODE) {
+        return license_electron.getHardwareKey(HardwareKey);
+    }
+    else {
+      return new Error("can't get hardware key");
+    }
+  }
+  getHardwareKey = _es6_module.add_export('getHardwareKey', getHardwareKey);
+});
+es6_module_define('license_electron', [], function _license_electron_module(_es6_module) {
+  "use strict";
+  function getHardwareKey(HardwareKeyCls) {
+    var os=require('OS');
+    var hostname=os.hostname();
+    var platform=os.platform();
+    var name=hostname;
+    var key="electron_"+hostname+"_"+platform;
+    return new HardwareKeyCls(name, key);
+  }
+  getHardwareKey = _es6_module.add_export('getHardwareKey', getHardwareKey);
+});
 es6_module_define('addon_api', [], function _addon_api_module(_es6_module) {
   "use strict";
   var modules={}
@@ -10656,576 +10707,4 @@ es6_module_define('toolops_api', ["toolprops", "events", "struct"], function _to
     ToolOp.apply(this, arguments);
   }]);
   _es6_module.add_class(WidgetToolOp);
-});
-es6_module_define('eventdag', ["J3DIMath"], function _eventdag_module(_es6_module) {
-  "use strict";
-  var _event_dag_idgen=undefined;
-  es6_import(_es6_module, 'J3DIMath');
-  window.the_global_dag = undefined;
-  var NodeBase=_ESClass("NodeBase", [function dag_update(field, data) {
-    var graph=window.the_global_dag;
-    var node=graph.get_node(this, false);
-    if (node!=undefined)
-      node.dag_update(field, data);
-  }, function dag_unlink() {
-    var graph=window.the_global_dag;
-    var node=graph.get_node(this, false);
-    if (node!=undefined)
-      window.the_global_dag.remove(node);
-  }, function NodeBase() {
-  }]);
-  _es6_module.add_class(NodeBase);
-  NodeBase = _es6_module.add_export('NodeBase', NodeBase);
-  var UIOnlyNode=_ESClass("UIOnlyNode", NodeBase, [function UIOnlyNode() {
-    NodeBase.apply(this, arguments);
-  }]);
-  _es6_module.add_class(UIOnlyNode);
-  UIOnlyNode = _es6_module.add_export('UIOnlyNode', UIOnlyNode);
-  var DataPathNode=_ESClass("DataPathNode", NodeBase, [function dag_get_datapath(ctx) {
-  }, _ESClass.static(function isDataPathNode(obj) {
-    return "dag_get_datapath" in obj;
-  }), function DataPathNode() {
-    NodeBase.apply(this, arguments);
-  }]);
-  _es6_module.add_class(DataPathNode);
-  DataPathNode = _es6_module.add_export('DataPathNode', DataPathNode);
-  Node.dag_inputs = {}
-  Node.dag_outputs = {}
-  var DagFlags={UPDATE: 1, TEMP: 2, DEAD: 4}
-  DagFlags = _es6_module.add_export('DagFlags', DagFlags);
-  var EventNode=_ESClass("EventNode", [function EventNode() {
-    this.flag = 0;
-    this.id = -1;
-    this.graph = undefined;
-  }, function get_owner(ctx) {
-  }, function on_remove(ctx) {
-  }, function dag_update(field, data) {
-    if (field==undefined) {
-        for (var k in this.outputs) {
-            this.dag_update(k);
-        }
-        return ;
-    }
-    var sock=this.outputs[field];
-    if (arguments.length>1) {
-        sock.data = data;
-    }
-    sock.flag|=DagFlags.UPDATE;
-    this.flag|=DagFlags.UPDATE;
-    for (var i=0; i<sock.edges.length; i++) {
-        var e=sock.edges[i], n2=e.opposite(sock).owner;
-    }
-    this.graph.on_update(this, field);
-  }, function unlink() {
-    for (var k in this.inputs) {
-        this.inputs[k].disconnect_all();
-    }
-    for (var k in this.outputs) {
-        this.outputs[k].disconnect_all();
-    }
-  }]);
-  _es6_module.add_class(EventNode);
-  EventNode = _es6_module.add_export('EventNode', EventNode);
-  EventNode.inputs = {}
-  EventNode.outputs = {}
-  var IndirectNode=_ESClass("IndirectNode", EventNode, [function IndirectNode(path) {
-    EventNode.call(this);
-    this.datapath = path;
-  }, function get_owner(ctx) {
-    if (this._owner!=undefined)
-      return this._owner;
-    this._owner = ctx.api.get_object(ctx, this.datapath);
-    return this._owner;
-  }]);
-  _es6_module.add_class(IndirectNode);
-  IndirectNode = _es6_module.add_export('IndirectNode', IndirectNode);
-  var DirectNode=_ESClass("DirectNode", EventNode, [function DirectNode(id) {
-    EventNode.call(this);
-    this.objid = id;
-  }, function get_owner(ctx) {
-    return this.graph.object_idmap[this.objid];
-  }]);
-  _es6_module.add_class(DirectNode);
-  DirectNode = _es6_module.add_export('DirectNode', DirectNode);
-  var DataTypes={DEPEND: 1, NUMBER: 2, BOOL: 4, STRING: 8, VEC2: 16, VEC3: 32, VEC4: 64, MATRIX4: 128, ARRAY: 256}
-  DataTypes = _es6_module.add_export('DataTypes', DataTypes);
-  var TypeDefaults=t = {}
-  t[DataTypes.DEPEND] = undefined;
-  t[DataTypes.NUMBER] = 0;
-  t[DataTypes.STRING] = "";
-  t[DataTypes.VEC2] = new Vector2();
-  t[DataTypes.MATRIX4] = new Vector3();
-  t[DataTypes.ARRAY] = [];
-  t[DataTypes.BOOL] = true;
-  var EventEdge=_ESClass("EventEdge", [function EventEdge(dst, src) {
-    this.dst = dst;
-    this.src = src;
-  }, function opposite(socket) {
-    return socket==this.dst ? this.src : this.dst;
-  }]);
-  _es6_module.add_class(EventEdge);
-  EventEdge = _es6_module.add_export('EventEdge', EventEdge);
-  var EventSocket=_ESClass("EventSocket", [function EventSocket(name, owner, type, datatype) {
-    this.type = type;
-    this.name = name;
-    this.owner = owner;
-    this.datatype = datatype;
-    this.data = undefined;
-    this.flag = DagFlags.UPDATE;
-    this.edges = [];
-  }, function copy() {
-    var s=new EventSocket(this.name, undefined, this.type, this.datatype);
-    return s;
-  }, function connect(b) {
-    if (b.type==this.type) {
-        throw new Error("Cannot put two inputs or outputs together");
-    }
-    var src, dst;
-    if (this.type=="i") {
-        src = b, dst = this;
-    }
-    else 
-      if (this.type=="o") {
-        src = this, dst = b;
-    }
-    else {
-      throw new Error("Malformed socket type.  this.type, b.type, this, b:", this.type, b.type, this, b);
-    }
-    var edge=new EventEdge(dst, src);
-    this.edges.push(edge);
-    b.edges.push(edge);
-  }, function _find_edge(b) {
-    for (var i=0; i<this.edges.length; i++) {
-        if (this.edges[i].opposite(this)===b)
-          return this.edges[i];
-    }
-    return undefined;
-  }, function disconnect(other_socket) {
-    if (other_socket==undefined) {
-        warntrace("Warning, no other_socket in disconnect!");
-        return ;
-    }
-    var e=this._find_edge(other_socket);
-    if (e!=undefined) {
-        other_socket.edges.remove(e);
-        this.edges.remove(e);
-    }
-  }, function disconnect_all() {
-    while (this.edges.length>0) {
-      var e=this.edges[0];
-      e.opposite(this).edges.remove(e);
-      this.edges.remove(e);
-    }
-  }]);
-  _es6_module.add_class(EventSocket);
-  EventSocket = _es6_module.add_export('EventSocket', EventSocket);
-  function gen_callback_exec(func, thisvar) {
-    for (var k in UIOnlyNode.prototype) {
-        if (k=="toString")
-          continue;
-        func[k] = UIOnlyNode.prototype[k];
-    }
-    func.constructor = {}
-    func.constructor.name = func.name;
-    func.constructor.prototype = UIOnlyNode.prototype;
-    func.dag_exec = function(ctx, graph) {
-      var args=[];
-      for (var k in this.constructor.dag_inputs) {
-          args.push(this[k]);
-      }
-      this.apply(thisvar!=undefined ? thisvar : self, args);
-    }
-  }
-  var $sarr_bwu3_link;
-  var $darr_bWm9_link;
-  var EventDag=_ESClass("EventDag", [function EventDag() {
-    this.nodes = [];
-    this.sortlist = [];
-    this.doexec = false;
-    this.node_pathmap = {}
-    this.node_idmap = {}
-    this.object_idmap = {}
-    this.idmap = {}
-    this.ctx = undefined;
-    if (_event_dag_idgen==undefined)
-      _event_dag_idgen = new EIDGen();
-    this.object_idgen = _event_dag_idgen;
-    this.idgen = new EIDGen();
-    this.resort = true;
-  }, function reset_cache() {
-    var __iter_n=__get_iter(this.nodes);
-    var n;
-    while (1) {
-      var __ival_n=__iter_n.next();
-      if (__ival_n.done) {
-          break;
-      }
-      n = __ival_n.value;
-      if (__instance_of(n, IndirectNode)) {
-          n._owner = undefined;
-      }
-    }
-  }, function init_slots(node, object) {
-    function make_slot(stype, k, v) {
-      var type;
-      if (v===undefined||v===null)
-        type = DataTypes.DEPEND;
-      else 
-        if (v===true||k===false)
-        type = DataTypes.BOOL;
-      else 
-        if (typeof v=="number")
-        type = DataTypes.NUMBER;
-      else 
-        if (typeof v=="string"||__instance_of(v, String))
-        type = DataTypes.STRING;
-      else 
-        if (__instance_of(v, Vector2))
-        type = DataTypes.VEC2;
-      else 
-        if (__instance_of(v, Vector3))
-        type = DataTypes.VEC3;
-      else 
-        if (__instance_of(v, Vector4))
-        type = DataTypes.VEC4;
-      else 
-        if (__instance_of(v, Matrix4))
-        type = DataTypes.MATRIX4;
-      else 
-        if (__instance_of(v, Array)) {
-          for (var i=0; i<v.length; i++) {
-              if (typeof (v[i])!="number"&&typeof (v[i])!=undefined) {
-                  warntrace("WARNING: bad array being passed around!!", v);
-              }
-              type = DataTypes.ARRAY;
-          }
-      }
-      return new EventSocket(k, node, stype, type);
-    }
-    node.inputs = {}
-    node.outputs = {}
-    if (object.constructor.dag_inputs!=undefined) {
-        for (var k in object.constructor.dag_inputs) {
-            var v=object.constructor.dag_inputs[k];
-            node.inputs[k] = make_slot('i', k, v);
-        }
-    }
-    if (object.constructor.dag_outputs!=undefined) {
-        for (var k in object.constructor.dag_outputs) {
-            var v=object.constructor.dag_outputs[k];
-            node.outputs[k] = make_slot('o', k, v);
-        }
-    }
-  }, function indirect_node(ctx, path, object, auto_create) {
-    if (object==undefined) {
-        object = undefined;
-    }
-    if (auto_create==undefined) {
-        auto_create = true;
-    }
-    if (path in this.node_pathmap)
-      return this.node_pathmap[path];
-    if (!auto_create)
-      return undefined;
-    var node=new IndirectNode(path);
-    this.node_pathmap[path] = node;
-    if (object==undefined) {
-        object = ctx.api.get_object(path);
-    }
-    this.init_slots(node, object);
-    this.add(node);
-    return node;
-  }, function direct_node(ctx, object, auto_create) {
-    if (auto_create==undefined) {
-        auto_create = true;
-    }
-    if ("__dag_id" in object&&object.__dag_id in this.node_idmap) {
-        this.object_idmap[object.__dag_id] = object;
-        return this.node_idmap[object.__dag_id];
-    }
-    if (!auto_create)
-      return undefined;
-    if (object.__dag_id==undefined)
-      object.__dag_id = this.object_idgen.gen_id();
-    var node=new DirectNode(object.__dag_id);
-    node.id = object.__dag_id;
-    this.object_idmap[object.__dag_id] = object;
-    this.node_idmap[object.__dag_id] = node;
-    this.init_slots(node, object);
-    this.add(node);
-    return node;
-  }, function add(node) {
-    node.graph = this;
-    this.nodes.push(node);
-    this.resort = true;
-    node.id = this.idgen.gen_id();
-    this.idmap[node.id] = node;
-  }, function remove(node) {
-    if (!(__instance_of(node, EventNode)))
-      node = this.get_node(node, false);
-    if (node==undefined) {
-        console.log("node already removed");
-        return ;
-    }
-    node.unlink();
-    if (__instance_of(node, DirectNode)) {
-        delete this.object_idmap[node.objid];
-        delete this.node_idmap[node.objid];
-    }
-    else 
-      if (__instance_of(node, IndirectNode)) {
-        delete this.node_pathmap[node.datapath];
-    }
-    delete this.idmap[node.id];
-    this.nodes.remove(node);
-    this.sortlist.remove(node);
-    this.resort = true;
-  }, function get_node(object, auto_create) {
-    if (auto_create==undefined) {
-        auto_create = true;
-    }
-    if (this.ctx==undefined)
-      this.ctx = new Context();
-    var node;
-    if (DataPathNode.isDataPathNode(object)) {
-        node = this.indirect_node(this.ctx, object.dag_get_datapath(), object, auto_create);
-    }
-    else {
-      node = this.direct_node(this.ctx, object, auto_create);
-    }
-    if (node!=undefined&&object.dag_exec!=undefined&&node.dag_exec==undefined) {
-        object = undefined;
-        node.dag_exec = function(ctx) {
-          var owner=this.get_owner(ctx);
-          if (owner!=undefined) {
-              return owner.dag_exec.apply(owner, arguments);
-          }
-        };
-    }
-    return node;
-  }, function link(src, srcfield, dst, dstfield, dstthis) {
-    var obja=src, objb=dst;
-    var srcnode=this.get_node(src);
-    if (!(__instance_of(srcfield, Array))) {
-        $sarr_bwu3_link[0] = srcfield;
-        srcfield = $sarr_bwu3_link;
-    }
-    if (!(__instance_of(dstfield, Array))) {
-        $darr_bWm9_link[0] = dstfield;
-        dstfield = $darr_bWm9_link;
-    }
-    if ((typeof dst=="function"||__instance_of(dst, Function))&&!dst._dag_callback_init) {
-        gen_callback_exec(dst, dstthis);
-        dst._dag_callback_init = true;
-        delete dst.__prototypeid__;
-        dst.constructor.dag_inputs = {};
-        if (__instance_of(srcfield, Array)) {
-            for (var i=0; i<srcfield.length; i++) {
-                var field=srcfield[i];
-                var field2=dstfield[i];
-                if (!(field in srcnode.outputs)) {
-                    console.trace(field, Object.keys(srcnode.outputs), srcnode);
-                    throw new Error("Field not in outputs", field);
-                }
-                var type=srcnode.outputs[field].datatype;
-                dst.constructor.dag_inputs[field2] = TypeDefaults[type];
-            }
-        }
-    }
-    var dstnode=this.get_node(dst);
-    if (__instance_of(srcfield, Array)) {
-        if (srcfield.length!=dstfield.length) {
-            throw new Error("Error, both arguments must be arrays of equal length!", srcfield, dstfield);
-        }
-        for (var i=0; i<dstfield.length; i++) {
-            if (!(dstfield[i] in dstnode.inputs))
-              throw new Error("Event inputs does not exist: "+dstfield[i]);
-            if (!(srcfield[i] in srcnode.outputs))
-              throw new Error("Event output does not exist: "+srcfield[i]);
-            dstnode.inputs[dstfield[i]].connect(srcnode.outputs[srcfield[i]]);
-        }
-    }
-    else {
-      console.log(dstnode, dstfield);
-      if (!(dstfield in dstnode.inputs))
-        throw new Error("Event input does not exist: "+dstfield);
-      if (!(srcfield in srcnode.outputs))
-        throw new Error("Event output does not exist: "+srcfield);
-      dstnode.inputs[dstfield].connect(srcnode.outputs[srcfield]);
-    }
-    this.resort = true;
-  }, function prune_dead_nodes() {
-    var dellist=[];
-    var __iter_n=__get_iter(this.nodes);
-    var n;
-    while (1) {
-      var __ival_n=__iter_n.next();
-      if (__ival_n.done) {
-          break;
-      }
-      n = __ival_n.value;
-      var tot=0;
-      for (var k in n.inputs) {
-          tot+=n.inputs[k].edges.length;
-      }
-      for (var k in n.outputs) {
-          tot+=n.outputs[k].edges.length;
-      }
-      if (tot==0) {
-          dellist.push(n);
-      }
-    }
-    var __iter_n=__get_iter(dellist);
-    var n;
-    while (1) {
-      var __ival_n=__iter_n.next();
-      if (__ival_n.done) {
-          break;
-      }
-      n = __ival_n.value;
-      this.remove(n);
-    }
-  }, function sort() {
-    this.prune_dead_nodes();
-    var sortlist=[];
-    var visit={}
-    var __iter_n=__get_iter(this.nodes);
-    var n;
-    while (1) {
-      var __ival_n=__iter_n.next();
-      if (__ival_n.done) {
-          break;
-      }
-      n = __ival_n.value;
-      n.flag&=~DagFlags.TEMP;
-    }
-    function sort(n) {
-      n.flag|=DagFlags.TEMP;
-      for (var k in n.inputs) {
-          var sock=n.inputs[k];
-          for (var i=0; i<sock.length; i++) {
-              var n2=sock.edges[i].opposite(sock).owner;
-              if (!(n2.flag&DagFlags.TEMP)) {
-                  sort(n2);
-              }
-          }
-      }
-      sortlist.push(n);
-      for (var k in n.outputs) {
-          var sock=n.outputs[k];
-          for (var i=0; i<sock.length; i++) {
-              var n2=sock.edges[i].opposite(sock).owner;
-              if (!(n2.flag&DagFlags.TEMP)) {
-                  sort(n2);
-              }
-          }
-      }
-    }
-    var nlen=this.nodes.length, nodes=this.nodes;
-    for (var i=0; i<nlen; i++) {
-        var n=nodes[i];
-        if (n.flag&DagFlags.TEMP)
-          continue;
-        sort(n);
-    }
-    this.sortlist = sortlist;
-    this.resort = false;
-  }, function on_update(node) {
-    this.doexec = true;
-  }, function exec(ctx) {
-    if (this.resort) {
-        this.sort();
-    }
-    var sortlist=this.sortlist;
-    var slen=sortlist.length;
-    for (var i=0; i<slen; i++) {
-        var n=sortlist[i];
-        if (!(n.flag&DagFlags.UPDATE))
-          continue;
-        n.flag&=~DagFlags.UPDATE;
-        var owner=n.get_owner(ctx);
-        if (owner==undefined) {
-            n.flag|=DagFlags.DEAD;
-        }
-        for (var k in n.outputs) {
-            var s=n.outputs[k];
-            if (!(s.flag&DagFlags.UPDATE))
-              continue;
-            for (var j=0; j<s.edges.length; j++) {
-                s.edges[j].opposite(s).owner.flag|=DagFlags.UPDATE;
-            }
-        }
-        if (owner==undefined||owner.dag_exec==undefined)
-          continue;
-        for (var k in n.inputs) {
-            var sock=n.inputs[k];
-            for (var j=0; j<sock.edges.length; j++) {
-                var e=sock.edges[j], s2=e.opposite(sock);
-                var n2=s2.owner, owner2=n2.get_owner(ctx);
-                if (n2==undefined) {
-                    n2.flag|=DagFlags.DEAD;
-                    continue;
-                }
-                if ((sock.flag&DagFlags.UPDATE)||sock.datatype==DataTypes.DEPEND) {
-                }
-                var data=s2.data!=undefined||owner2==undefined ? s2.data : owner2[s2.name];
-                if (data!=undefined)
-                  s2.data = data;
-                switch (sock.datatype) {
-                  case DataTypes.DEPEND:
-                    break;
-                  case DataTypes.NUMBER:
-                  case DataTypes.STRING:
-                  case DataTypes.BOOL:
-                    owner[sock.name] = data;
-                    break;
-                  case DataTypes.VEC2:
-                    if (!(sock.name in owner)) {
-                        owner[sock.name] = new Vector2(data);
-                    }
-                    else {
-                      owner[sock.name].load(data);
-                    }
-                    break;
-                  case DataTypes.VEC3:
-                    if (!(sock.name in owner)) {
-                        owner[sock.name] = new Vector3(data);
-                    }
-                    else {
-                      owner[sock.name].load(data);
-                    }
-                    break;
-                  case DataTypes.VEC4:
-                    if (!(sock.name in owner)) {
-                        owner[sock.name] = new Vector4(data);
-                    }
-                    else {
-                      owner[sock.name].load(data);
-                    }
-                    break;
-                  case DataTypes.MATRIX4:
-                    if (!(sock.name in owner)) {
-                        owner[sock.name] = new Matrix4(data);
-                    }
-                    else {
-                      owner[sock.name].load(data);
-                    }
-                    break;
-                  case DataTypes.ARRAY:
-                    owner[sock.name] = data;
-                    break;
-                }
-            }
-        }
-        owner.dag_exec(ctx, this);
-    }
-  }]);
-  var $sarr_bwu3_link=[0];
-  var $darr_bWm9_link=[0];
-  _es6_module.add_class(EventDag);
-  EventDag = _es6_module.add_export('EventDag', EventDag);
-  window.init_event_graph = function init_event_graph() {
-    window.the_global_dag = new EventDag();
-    _event_dag_idgen = new EIDGen();
-  }
 });

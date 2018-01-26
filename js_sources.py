@@ -74,7 +74,7 @@ sources = [
   "src/core/animdata.js",
   "src/config/config_defines.js",
   "src/core/svg_export.js",
-  
+
   "src/curve/curve.js",
   "src/curve/curvebase.js",
   #"src/curve/bspline.js",
@@ -96,6 +96,8 @@ sources = [
   "src/vectordraw/vectordraw.js",
   "src/vectordraw/strokedraw.js",
   "src/curve/spline_draw_new.js",
+  "src/license/license_api.js",
+  "src/license/license_electron.js",
 
   "src/addon_api/addon_api.js",
   "src/scene/scene.js",

@@ -3,8 +3,6 @@
 import * as config from 'config';
 import * as fileapi_html5 from 'fileapi_html5';
 
-
-
 export function reset() {
   //do nothing
 }

@@ -1,0 +1,3 @@
+
+- Make active element color different from highlight color.
+- Refactor element color system

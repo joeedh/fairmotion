@@ -1,3 +1,241 @@
+es6_module_define('manipulator', [], function _manipulator_module(_es6_module) {
+  "use strict";
+  var ManipFlags={}
+  ManipFlags = _es6_module.add_export('ManipFlags', ManipFlags);
+  var HandleShapes={ARROW: 0, HAMMER: 1, ROTCIRCLE: 2, SIMEPL_CIRCLE: 3}
+  HandleShapes = _es6_module.add_export('HandleShapes', HandleShapes);
+  var _mh_idgen=1;
+  var ManipHandle=_ESClass("ManipHandle", [function ManipHandle(v1, v2, id, shape, view2d, clr) {
+    this.id = id;
+    this._hid = _mh_idgen++;
+    this.shape = shape;
+    this.v1 = v1;
+    this.v2 = v2;
+    this.color = clr;
+    this.parent = undefined;
+    this.linewidth = 15;
+    this._min = new Vector2(v1);
+    this._max = new Vector2(v2);
+    this._redraw_pad = this.linewidth;
+  }, function update() {
+    this._min[0] = this.v1[0]+this.parent.co[0];
+    this._min[1] = this.v1[1]+this.parent.co[1];
+    this._max[0] = this.v2[0]+this.parent.co[0];
+    this._max[1] = this.v2[1]+this.parent.co[1];
+    var minx=Math.min(this._min[0], this._max[0]);
+    var miny=Math.min(this._min[1], this._max[1]);
+    var maxx=Math.max(this._min[0], this._max[0]);
+    var maxy=Math.max(this._min[1], this._max[1]);
+    var p=this._redraw_pad;
+    window.redraw_viewport(this._min, this._max);
+    this._min[0] = minx-p, this._min[1] = miny-p;
+    this._max[0] = maxx+p, this._max[1] = maxy+p;
+    console.log("update", this._min[0], this._min[1], this._max[0], this._max[1]);
+    window.redraw_viewport(this._min, this._max);
+  }, _ESClass.symbol(Symbol.keystr, function keystr() {
+    return "MH"+this._hid.toString;
+  }), function get_render_rects(ctx, canvas, g) {
+    var p=this._redraw_pad;
+    var xmin=Math.min(this.v1[0], this.v2[0])-p;
+    var xmax=Math.max(this.v1[0], this.v2[0])+p;
+    var ymin=Math.min(this.v1[1], this.v2[1])-p;
+    var ymax=Math.max(this.v1[1], this.v2[1])+p;
+    return [[xmin, ymin, xmax-xmin, ymax-ymin]];
+  }, function render(canvas, g) {
+    g.lineWidth = this.linewidth;
+    g.strokeStyle = "teal";
+    g.beginPath();
+    g.moveTo(this.v1[0], this.v1[1]);
+    g.lineTo(this.v2[0], this.v2[1]);
+    g.stroke();
+  }]);
+  _es6_module.add_class(ManipHandle);
+  ManipHandle = _es6_module.add_export('ManipHandle', ManipHandle);
+  var _mh_idgen_2=1;
+  var _mp_first=true;
+  var Manipulator=_ESClass("Manipulator", [function Manipulator(handles) {
+    this._hid = _mh_idgen_2++;
+    this.handles = handles.slice(0, handles.length);
+    this.recalc = 1;
+    this.parent = undefined;
+    this.user_data = undefined;
+    var __iter_h=__get_iter(this.handles);
+    var h;
+    while (1) {
+      var __ival_h=__iter_h.next();
+      if (__ival_h.done) {
+          break;
+      }
+      h = __ival_h.value;
+      h.parent = this;
+    }
+    this.handle_size = 65;
+    this.co = new Vector3();
+    this.hidden = false;
+  }, function hide() {
+    if (!this.hidden) {
+        this.update();
+    }
+    this.hidden = true;
+  }, function unhide() {
+    if (this.hidden) {
+        this.hidden = false;
+        this.update();
+    }
+    else {
+      this.hidden = false;
+    }
+  }, function update() {
+    if (this.hidden)
+      return ;
+    var __iter_h=__get_iter(this.handles);
+    var h;
+    while (1) {
+      var __ival_h=__iter_h.next();
+      if (__ival_h.done) {
+          break;
+      }
+      h = __ival_h.value;
+      h.update();
+    }
+  }, function on_tick(ctx) {
+  }, function on_click() {
+  }, _ESClass.symbol(Symbol.keystr, function keystr() {
+    return "MP"+this._hid.toString;
+  }), function end() {
+    this.parent.remove(this);
+  }, function get_render_rects(ctx, canvas, g) {
+    var rects=[];
+    if (this.hidden) {
+        return rects;
+    }
+    var __iter_h=__get_iter(this.handles);
+    var h;
+    while (1) {
+      var __ival_h=__iter_h.next();
+      if (__ival_h.done) {
+          break;
+      }
+      h = __ival_h.value;
+      var rs=h.get_render_rects(ctx, canvas, g);
+      for (var i=0; i<rs.length; i++) {
+          rs[i] = rs[i].slice(0, rs[i].length);
+          rs[i][0]+=this.co[0];
+          rs[i][1]+=this.co[1];
+      }
+      rects = rects.concat(rs);
+    }
+    return rects;
+  }, function render(canvas, g) {
+    if (this.hidden) {
+        return ;
+    }
+    var __iter_h=__get_iter(this.handles);
+    var h;
+    while (1) {
+      var __ival_h=__iter_h.next();
+      if (__ival_h.done) {
+          break;
+      }
+      h = __ival_h.value;
+      var x=this.co[0], y=this.co[1];
+      g._render_mat.translate(x, y);
+      h.render(canvas, g);
+      g._render_mat.translate(-x, -y);
+    }
+  }, function arrow(normal, id, clr) {
+    if (clr==undefined) {
+        clr = [1, 1, 1, 0.5];
+    }
+    normal = new Vector2(normal);
+    normal.normalize().mulScalar(25.0);
+    var h=new ManipHandle(new Vector2(), normal, id, HandleShapes.ARROW, this.view3d, clr);
+    h.parent = this;
+    this.handles.push(h);
+  }, function do_click(e, view2d) {
+    return false;
+  }]);
+  _es6_module.add_class(Manipulator);
+  Manipulator = _es6_module.add_export('Manipulator', Manipulator);
+  var $nil_rGHj_get_render_rects;
+  var ManipulatorManager=_ESClass("ManipulatorManager", [function ManipulatorManager(view2d) {
+    this.view2d = view2d;
+    this.stack = [];
+    this.active = undefined;
+  }, function render(canvas, g) {
+    if (this.active!=undefined) {
+        this.active.render(canvas, g);
+    }
+  }, function get_render_rects(ctx, canvas, g) {
+    if (this.active!=undefined) {
+        return this.active.get_render_rects(ctx, canvas, g);
+    }
+    else {
+      return $nil_rGHj_get_render_rects;
+    }
+  }, function remove(mn) {
+    if (mn==this.active) {
+        this.pop();
+    }
+    else {
+      this.stack.remove(mn);
+    }
+  }, function push(mn) {
+    mn.parent = this;
+    this.stack.push(this.active);
+    this.active = mn;
+  }, function ensure_not_toolop(ctx, cls) {
+    if (this.active!=undefined&&this.active.toolop_class===cls) {
+        this.remove(this.active);
+    }
+  }, function ensure_toolop(ctx, cls) {
+    if (this.active!=undefined&&this.active.toolop_class===cls) {
+        return this.active;
+    }
+    if (this.active!=undefined) {
+        this.remove(this.active);
+    }
+    this.active = cls.create_widgets(this, ctx);
+    this.active.toolop_class = cls;
+  }, function pop() {
+    var ret=this.active;
+    this.active = this.stack.pop(-1);
+  }, function do_click(event, view2d) {
+    return this.active!=undefined ? this.active.do_click(event, view2d) : undefined;
+  }, function active_toolop() {
+    if (this.active==undefined)
+      return undefined;
+    return this.active.toolop_class;
+  }, function create(cls, do_push) {
+    if (do_push==undefined) {
+        do_push = true;
+    }
+    var mn=new Manipulator([]);
+    mn.parent = this;
+    mn.toolop_class = cls;
+    if (do_push)
+      this.push(mn);
+    return mn;
+  }, function on_tick(ctx) {
+    if (this.active!=undefined&&this.active.on_tick!=undefined)
+      this.active.on_tick(ctx);
+  }, function arrow(normal, id, clr, do_push) {
+    if (do_push==undefined) {
+        do_push = true;
+    }
+    normal = new Vector3(normal);
+    normal.normalize().mulScalar(25.0);
+    var h=new ManipHandle(new Vector3(), normal, id, HandleShapes.ARROW, this.view3d, clr);
+    var mn=new Manipulator([h]);
+    mn.parent = this;
+    if (do_push)
+      this.push(mn);
+    return mn;
+  }]);
+  var $nil_rGHj_get_render_rects=[];
+  _es6_module.add_class(ManipulatorManager);
+  ManipulatorManager = _es6_module.add_export('ManipulatorManager', ManipulatorManager);
+});
 es6_module_define('view2d', ["view2d_spline_ops", "spline_createops", "UIWidgets", "UIMenu", "mathlib", "events", "spline_draw", "UICanvas", "UIElement", "UIWidgets_special2", "UITabPanel", "UIPack", "imageblock", "notifications", "manipulator", "view2d_editor", "struct", "ScreenArea", "selectmode", "RadialMenu", "video", "spline_editops", "toolops_api", "UIWidgets_special"], function _view2d_module(_es6_module) {
   "use strict";
   var toolop_menu=es6_import_item(_es6_module, 'UIMenu', 'toolop_menu');

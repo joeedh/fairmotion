@@ -2,3 +2,5 @@
 build
 build_local.py
 __pycache__
+platforms/Electron/native/node_modules
+platforms/Electron/native/build

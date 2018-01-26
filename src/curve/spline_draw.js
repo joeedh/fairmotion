@@ -23,16 +23,79 @@ import {
 
 import {ElementArray, SplineLayerFlags} from 'spline_element_array';
 
-var uclr = "#ff2211"
-var sclr = "#ffaa44"
-var hclr = "#ffee66"
-var aclr = "#ff9912";
+//obsolete:
+//var uclr_h = "#22ff11"
+//var sclr_h = "#aaffaa"
+//var hclr_h = "#eeff66"
 
-var uclr_h = "#22ff11"
-var sclr_h = "#aaffaa"
-var hclr_h = "#eeff66"
+/*logical element "states" that
+  are or'd together, color is looked up
+  in a table*/
+export var ColorFlags = {
+  SELECT : 1,
+  ACTIVE : 2,
+  HIGHLIGHT : 4
+};
 
-var clr = "#444444";
+export var FlagMap = {
+  UNSELECT : 0,
+  SELECT : ColorFlags.SELECT,
+  ACTIVE : ColorFlags.ACTIVE,
+  HIGHLIGHT : ColorFlags.HIGHLIGHT,
+  SELECT_ACTIVE : ColorFlags.SELECT | ColorFlags.ACTIVE,
+  SELECT_HIGHLIGHT : ColorFlags.SELECT | ColorFlags.HIGHLIGHT,
+  HIGHLIGHT_ACTIVE : ColorFlags.HIGHLIGHT | ColorFlags.ACTIVE,
+  SELECT_HIGHLIGHT_ACTIVE : ColorFlags.SELECT | ColorFlags.ACTIVE | ColorFlags.HIGHLIGHT
+};
+
+function mix(a, b, t) {
+  var ret = [0, 0, 0];
+
+  for (var i=0; i<3; i++) {
+    ret[i] = a[i] + (b[i] - a[i])*t;
+  }
+
+  return ret;
+}
+
+//unnest table
+export var ElementColor = {
+  UNSELECT   : [1, 0.133, 0.07],
+  SELECT     : [1, 0.6, 0.26],
+  HIGHLIGHT  : [1, 0.93, 0.4],
+  ACTIVE     : [0.3, 0.4, 1.0],
+  SELECT_ACTIVE : mix([1, 0.6, 0.26], [0.1, 0.2, 1.0], 0.7),
+  SELECT_HIGHLIGHT : [1, 1, 0.8],
+  HIGHLIGHT_ACTIVE : mix([1, 0.93, 0.4], [0.3, 0.4, 1.0], 0.5),
+  SELECT_HIGHLIGHT_ACTIVE : [0.85, 0.85, 1.0]
+};
+
+function rgb2css(color) {
+  var r = color[0], g = color[1], b = color[2];
+  return "rgb(" + (~~(r*255)) + "," + (~~(g*255)) + "," + (~~(b*255)) + ")";
+}
+
+//create final lookup table
+export var element_colormap = new Array(8);
+
+for (var k in ElementColor) {
+  var f = FlagMap[k];
+  element_colormap[f] = rgb2css(ElementColor[k]);
+}
+
+function get_element_flag(e, list) {
+  var f = 0;
+
+  f |= e.flag & SplineFlags.SELECT ? ColorFlags.SELECT : 0;
+  f |= e === list.highlight ? ColorFlags.HIGHLIGHT : 0;
+  f |= e === list.active ? ColorFlags.ACTIVE : 0;
+
+  return f;
+}
+
+export function get_element_color(e, list) {
+  return element_colormap[get_element_flag(e, list)];
+}
 
 export function calc_string_ids(spline, startid=0) {
   var string_idgen = startid;
@@ -399,6 +462,7 @@ var VERT_SIZE=3.0;
 var SMALL_VERT_SIZE=1.0;
 var MRES_SIZE=5.5;
 
+//XXX obsolete, mres was cut
 function draw_mres_points(spline, g, editor, outside_selmode=false) {
   if (spline.segments.cdata.num_layers("MultiResLayer") == 0)
     return;
@@ -627,16 +691,12 @@ export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_re
     
     var color;
     if ((ignore_layers || seg.in_layer(actlayer)) && !only_render && (selectmode & SelMask.SEGMENT)) {
-      color = "rgba(0,0,0,"+alpha2+")";
-      
-      if (seg == spline.segments.highlight)
-        color = hclr;
-      else if (seg == spline.segments.active)
-        color = aclr;
-      else if (seg.flag & SplineFlags.SELECT)
-        color = sclr;
+      if (get_element_flag(seg, spline.segments))
+        color = get_element_color(seg, spline.segments);
       else if (seg.flag & SplineFlags.NO_RENDER)
         color = "rgba(0, 0, 0, 0)";
+      else
+        color = "rgba(0,0,0,"+alpha2+")";
     } else if (seg.flag & SplineFlags.NO_RENDER) {
       return;
     } else {
@@ -1031,7 +1091,7 @@ export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_re
     
     for (var i=0; i<spline.handles.length; i++) {
       var v = spline.handles[i];
-      var clr = uclr_h;
+      var clr = get_element_color(v, spline.handles);
       
       if (!ignore_layers && !v.owning_segment.in_layer(actlayer))
         continue;
@@ -1048,12 +1108,7 @@ export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_re
       
       if (v.flag & SplineFlags.HIDE) 
         continue;
-      
-      if (v == spline.handles.highlight)
-        clr = hclr_h;
-      else if (v.flag & SplineFlags.SELECT)
-        clr = sclr_h;
-      
+
       g.beginPath();
       if (clr !== last_clr)
         g.fillStyle = clr;
@@ -1086,17 +1141,12 @@ export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_re
     
     for (var i=0; i<spline.verts.length; i++) {
       var v = spline.verts[i];
-      var clr = uclr;
+      var clr = get_element_color(v, spline.verts);
       
       if (!ignore_layers && !v.in_layer(actlayer))
         continue;
       if (v.flag & SplineFlags.HIDE) continue;
-      
-      if (v == spline.verts.highlight)
-        clr = hclr;
-      else if (v.flag & SplineFlags.SELECT)
-        clr = sclr;
-      
+
       var co = v;
       if (hasmres && v.segments.length > 0) {
         co = v.segments[0].evaluate(v.segments[0].ends(v));
@@ -1104,7 +1154,7 @@ export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_re
       
       if (draw_time_helpers) {
         var time = get_vtime(v);
-        
+
         if (curtime == time) {
           g.beginPath(  );
           g.fillStyle = "#33ffaa";
@@ -1130,16 +1180,12 @@ export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_re
     
     for (var i=0; i<spline.verts.length; i++) {
       var v = spline.verts[i];
-      var clr = uclr;
+      var clr = get_element_color(v, spline.verts);
       
       if (!ignore_layers && !v.in_layer(actlayer))
         continue;
       if (v.flag & SplineFlags.HIDE) continue;
-      
-      if (v == spline.verts.highlight)
-        clr = hclr;
-      else if (v.flag & SplineFlags.SELECT)
-        clr = sclr;
+
       
       var co = v;
       if (hasmres && v.segments.length > 0) {

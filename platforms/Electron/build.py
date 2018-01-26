@@ -20,7 +20,8 @@ def build():
   
   for f in os.listdir("./platforms/electron"):
     if f == "__pycache__": continue
-    
+    if f == "native": continue
+
     path = "./platforms/electron/" + f
     
     file = open(path, "rb")

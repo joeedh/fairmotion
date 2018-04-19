@@ -12,7 +12,7 @@ export var ExtrudeModes = {
 };
 
 export class ExtrudeVertOp extends SplineLocalToolOp {
-  constructor(co, ExtrudeModes mode) {
+  constructor(co, /*ExtrudeModes*/ mode) {
     super();
     
     if (co != undefined)

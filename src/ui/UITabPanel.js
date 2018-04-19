@@ -30,11 +30,11 @@ export class UITabBar extends UIElement {
     this.tabs = new GArray();
     this.mm = new MinMax(2);
     
-    this.callback = callback;
-    
+    this.callback = callback;;
+
     this.triwid = 4;
     this.mode = mode;
-    this.thickness = this.min_thickness = IsMobile ? 28 : 25;
+    this.thickness = this.min_thickness = IsMobile ? 28 : 35;
   }
   
   add_tab(String text, String tooltip="", Object id=undefined) {
@@ -83,6 +83,7 @@ export class UITabBar extends UIElement {
     //y bounds of active tab
     var y1 = this.active.pos[1]-tri;
     var y2 = this.active.pos[1]+this.active.size[1]+tri;
+  
     if (y1 < 5) y1 = 0;
     if (y2 >= this.size[1]-5) y2 = this.size[1]-1;
     

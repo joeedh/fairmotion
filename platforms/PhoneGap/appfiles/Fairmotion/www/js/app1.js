@@ -4530,7 +4530,7 @@ es6_module_define('UserSettings', ["struct", "config", "dialogs", "strutils"], f
   }
 });
 var g_app_state, g, t;
-es6_module_define('AppState', ["fileapi", "toolprops", "struct", "lib_api", "toolops_api", "data_api", "frameset", "spline_base", "FrameManager", "config", "view2d", "raster", "lib_utils", "view2d_ops", "scene", "ops_editor", "strutils", "UserSettings", "lib_api_typedefine", "ScreenArea", "jobs", "notifications", "startup_file", "ajax", "DopeSheetEditor", "UICanvas"], function _AppState_module(_es6_module) {
+es6_module_define('AppState', ["UICanvas", "config", "ScreenArea", "FrameManager", "DopeSheetEditor", "notifications", "UserSettings", "lib_api_typedefine", "struct", "toolprops", "spline_base", "ajax", "lib_api", "frameset", "scene", "view2d", "ops_editor", "lib_utils", "fileapi", "startup_file", "raster", "toolops_api", "data_api", "jobs", "view2d_ops", "strutils"], function _AppState_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, 'config');
   var html5_fileapi=es6_import(_es6_module, 'fileapi');
@@ -4756,7 +4756,7 @@ es6_module_define('AppState', ["fileapi", "toolprops", "struct", "lib_api", "too
     }
     return out;
   }
-  var $toolop_input_cache_lSMN_AppState;
+  var $toolop_input_cache_LPZZ_AppState;
   var AppState=_ESClass("AppState", [function AppState(screen, mesh, gl) {
     this.screen = screen;
     this.eventhandler = screen;
@@ -4777,7 +4777,7 @@ es6_module_define('AppState', ["fileapi", "toolprops", "struct", "lib_api", "too
     this.gl = gl;
     this.size = screen!=undefined ? screen.size : [512, 512];
     this.raster = new RasterState(undefined, screen!=undefined ? screen.size : [512, 512]);
-    this.toolop_input_cache = $toolop_input_cache_lSMN_AppState;
+    this.toolop_input_cache = $toolop_input_cache_LPZZ_AppState;
     if (this.datalib!=undefined) {
         this.datalib.on_destroy();
     }
@@ -5583,7 +5583,7 @@ es6_module_define('AppState', ["fileapi", "toolprops", "struct", "lib_api", "too
         screen.size = this.size;
     }
   }]);
-  var $toolop_input_cache_lSMN_AppState={}
+  var $toolop_input_cache_LPZZ_AppState={}
   _es6_module.add_class(AppState);
   AppState = _es6_module.add_export('AppState', AppState);
   window.AppState = AppState;
@@ -5602,6 +5602,7 @@ es6_module_define('AppState', ["fileapi", "toolprops", "struct", "lib_api", "too
     this.frameset = frameset;
     this.spline = spline;
     this.scene = scene;
+    this.edit_all_layers = ctx.edit_all_layers;
     this.api = g_app_state.api;
   }]);
   _es6_module.add_class(ToolContext);
@@ -5613,6 +5614,7 @@ es6_module_define('AppState', ["fileapi", "toolprops", "struct", "lib_api", "too
     }
     if (ctx!=undefined) {
         this.time = ctx.scene!=undefined ? ctx.scene.time : undefined;
+        this.edit_all_layers = ctx.edit_all_layers;
         this._scene = ctx.scene ? new DataRef(ctx.scene) : new DataRef(-1);
         this._frameset = ctx.frameset ? new DataRef(ctx.frameset) : new DataRef(-1);
         this._frameset_editmode = "MAIN";
@@ -5678,7 +5680,7 @@ es6_module_define('AppState', ["fileapi", "toolprops", "struct", "lib_api", "too
   })]);
   _es6_module.add_class(SavedContext);
   window.SavedContext = SavedContext;
-  SavedContext.STRUCT = "\n  SavedContext {\n    _scene               : DataRef | obj._scene == undefined ? new DataRef(-1) : obj._scene;\n    _frameset            : DataRef | obj._frameset == undefined ? new DataRef(-1) : obj._frameset;\n    _frameset_editmode   : static_string[12];\n    _spline_path         : string;\n    time                 : float;\n  }\n";
+  SavedContext.STRUCT = "\n  SavedContext {\n    _scene               : DataRef | obj._scene == undefined ? new DataRef(-1) : obj._scene;\n    _frameset            : DataRef | obj._frameset == undefined ? new DataRef(-1) : obj._frameset;\n    _frameset_editmode   : static_string[12];\n    _spline_path         : string;\n    time                 : float;\n    edit_all_layers      : int;\n  }\n";
   var SplineFrameSet=es6_import_item(_es6_module, 'frameset', 'SplineFrameSet');
   var Context=_ESClass("Context", [function Context() {
     this.font = g_app_state.raster.font;
@@ -5691,6 +5693,9 @@ es6_module_define('AppState', ["fileapi", "toolprops", "struct", "lib_api", "too
     return g_app_state.active_splinepath==undefined ? "frameset.drawspline" : g_app_state.active_splinepath;
   }), _ESClass.get(function filepath() {
     return g_app_state.filepath;
+  }), _ESClass.get(function edit_all_layers() {
+    var $_let_view2d39=this.view2d;
+    return $_let_view2d39!==undefined ? $_let_view2d39.edit_all_layers : false;
   }), _ESClass.get(function spline() {
     var ret=this.api.get_object(g_app_state.active_splinepath);
     if (ret==undefined) {
@@ -6244,7 +6249,7 @@ es6_module_define('units', ["safe_eval"], function _units_module(_es6_module) {
   Unit.imperial_units = ["in", "ft", "mile"];
   Unit.internal_unit = "cm";
 });
-es6_module_define('data_api', ["toolprops", "data_api_parser", "safe_eval", "UIFrame", "toolops_api", "spline_multires", "animdata", "lib_api", "config"], function _data_api_module(_es6_module) {
+es6_module_define('data_api', ["spline_multires", "animdata", "UIFrame", "safe_eval", "config", "toolops_api", "data_api_parser", "lib_api", "toolprops"], function _data_api_module(_es6_module) {
   var DataPathTypes={PROP: 0, STRUCT: 1, STRUCT_ARRAY: 2}
   DataPathTypes = _es6_module.add_export('DataPathTypes', DataPathTypes);
   var DataFlags={NO_CACHE: 1, RECALC_CACHE: 2}
@@ -6263,6 +6268,7 @@ es6_module_define('data_api', ["toolprops", "data_api_parser", "safe_eval", "UIF
   var IntProperty=es6_import_item(_es6_module, 'toolprops', 'IntProperty');
   var FloatProperty=es6_import_item(_es6_module, 'toolprops', 'FloatProperty');
   var Vec3Property=es6_import_item(_es6_module, 'toolprops', 'Vec3Property');
+  var Vec4Property=es6_import_item(_es6_module, 'toolprops', 'Vec4Property');
   var StringProperty=es6_import_item(_es6_module, 'toolprops', 'StringProperty');
   var ToolFlags=es6_import_item(_es6_module, 'toolops_api', 'ToolFlags');
   var UndoFlags=es6_import_item(_es6_module, 'toolops_api', 'UndoFlags');
@@ -6318,6 +6324,23 @@ es6_module_define('data_api', ["toolprops", "data_api_parser", "safe_eval", "UIF
     this.update = undefined;
     this.use_path = use_path;
     this.parent = undefined;
+  }, function OnUpdate(func) {
+    this.update = func;
+    if (this.data!==undefined) {
+        this.data.update = func;
+    }
+    return this;
+  }, function Default(val) {
+    this.data.value = val;
+  }, function Range(min, max) {
+    this.data.range = [min, max];
+    return this;
+  }, function SetFlag(flag) {
+    this.data.flag|=flag;
+  }, function ClearFlag() {
+    this.data.flag = 0;
+  }, function FlagsUINames(uinames) {
+    this.data.setUINames(uinames);
   }, function cache_good() {
     var p=this;
     while (p!=undefined) {
@@ -6386,9 +6409,41 @@ es6_module_define('data_api', ["toolprops", "data_api_parser", "safe_eval", "UIF
       }
     }
     this.type = DataPathTypes.STRUCT;
+  }, function Color3(apiname, path, uiname, description) {
+    var ret=new Vec3Property(0, apiname, uiname, description);
+    ret.subtype = PropTypes.COLOR3;
+    ret = new DataPath(ret, apiname, path, path!=undefined);
+    this.add(ret);
+    return ret;
+  }, function Color4(apiname, path, uiname, description) {
+    var ret=new Vec4Property(0, apiname, uiname, description);
+    ret.subtype = PropTypes.COLOR4;
+    ret = new DataPath(ret, apiname, path, path!=undefined);
+    this.add(ret);
+    return ret;
+  }, function Vector2(apiname, path, uiname, description) {
+    var ret=new Vec2Property(0, apiname, uiname, description);
+    ret = new DataPath(ret, apiname, path, path!=undefined);
+    this.add(ret);
+    return ret;
+  }, function Vector3(apiname, path, uiname, description) {
+    var ret=new Vec3Property(0, apiname, uiname, description);
+    ret = new DataPath(ret, apiname, path, path!=undefined);
+    this.add(ret);
+    return ret;
+  }, function Bool(apiname, path, uiname, description) {
+    var ret=new BoolProperty(0, apiname, uiname, description);
+    ret = new DataPath(ret, apiname, path, path!==undefined);
+    this.add(ret);
+    return ret;
+  }, function Flags(flags, apiname, path, uiname, description) {
+    var ret=new FlagProperty(0, flags, undefined, apiname, uiname, description);
+    ret = new DataPath(ret, apiname, path, path!==undefined);
+    this.add(ret);
+    return ret;
   }, function Float(apiname, path, uiname, description) {
     var ret=new FloatProperty(0, apiname, uiname, description);
-    ret = new DataPath(ret, apiname, path, path!=undefined);
+    ret = new DataPath(ret, apiname, path, path!==undefined);
     this.add(ret);
     return ret;
   }, function Struct(apiname, path, uiname, description) {
@@ -6594,10 +6649,10 @@ es6_module_define('data_api', ["toolprops", "data_api_parser", "safe_eval", "UIF
   }}, token: {obj: ["", ""], cachesize: 512}}
   TinyParser.split_chars = new set([",", "=", "(", ")", ".", "$", "[", "]"]);
   TinyParser.ws = new set([" ", "\n", "\t", "\r"]);
-  var $cache_A8Na_resolve_path_intern;
-  var $sret_zaOm_resolve_path_intern2;
-  var $retcpy__iT6_set_prop;
-  var $scope_wtnQ_set_prop;
+  var $cache_LMlQ_resolve_path_intern;
+  var $sret_eCfg_resolve_path_intern2;
+  var $retcpy_4A1F_set_prop;
+  var $scope_1f10_set_prop;
   var DataAPI=_ESClass("DataAPI", [function DataAPI(appstate) {
     this.appstate = appstate;
     this.ops = data_ops_list;
@@ -6918,18 +6973,18 @@ es6_module_define('data_api', ["toolprops", "data_api_parser", "safe_eval", "UIF
         return undefined;
     }
     try {
-      if (!(str in $cache_A8Na_resolve_path_intern)) {
+      if (!(str in $cache_LMlQ_resolve_path_intern)) {
           var ret=this.resolve_path_intern2(ctx, str);
           var ret2=[];
           for (var i=0; i<ret.length; i++) {
               ret2.push(ret[i]);
           }
-          $cache_A8Na_resolve_path_intern[str] = ret2;
+          $cache_LMlQ_resolve_path_intern[str] = ret2;
       }
       else {
-        var ret=$cache_A8Na_resolve_path_intern[str];
+        var ret=$cache_LMlQ_resolve_path_intern[str];
         if (ret[0]!=undefined&&!ret[0].cache_good()) {
-            delete $cache_A8Na_resolve_path_intern[str];
+            delete $cache_LMlQ_resolve_path_intern[str];
             return this.resolve_path_intern(ctx, str);
         }
       }
@@ -7041,13 +7096,13 @@ es6_module_define('data_api', ["toolprops", "data_api_parser", "safe_eval", "UIF
       }
     }
     var ast=parser.parse(str);
-    $sret_zaOm_resolve_path_intern2[0] = do_eval(ast, ContextStruct, pathout, spathout);
+    $sret_eCfg_resolve_path_intern2[0] = do_eval(ast, ContextStruct, pathout, spathout);
     pathout[0] = pathout[0].slice(1, pathout[0].length);
-    $sret_zaOm_resolve_path_intern2[1] = pathout[0];
-    $sret_zaOm_resolve_path_intern2[2] = spathout[0];
-    $sret_zaOm_resolve_path_intern2[3] = mass_set;
-    $sret_zaOm_resolve_path_intern2[4] = ownerpathout[0].slice(1, ownerpathout[0].length);
-    return $sret_zaOm_resolve_path_intern2;
+    $sret_eCfg_resolve_path_intern2[1] = pathout[0];
+    $sret_eCfg_resolve_path_intern2[2] = spathout[0];
+    $sret_eCfg_resolve_path_intern2[3] = mass_set;
+    $sret_eCfg_resolve_path_intern2[4] = ownerpathout[0].slice(1, ownerpathout[0].length);
+    return $sret_eCfg_resolve_path_intern2;
   }, function evaluate(ctx, str, scope) {
     try {
       if (str in this.evalcache) {
@@ -7196,11 +7251,11 @@ es6_module_define('data_api', ["toolprops", "data_api_parser", "safe_eval", "UIF
         }
         return ret;
     }
-    $retcpy__iT6_set_prop.length = ret.length;
+    $retcpy_4A1F_set_prop.length = ret.length;
     for (var i=0; i<5; i++) {
-        $retcpy__iT6_set_prop[i] = ret[i];
+        $retcpy_4A1F_set_prop[i] = ret[i];
     }
-    ret = $retcpy__iT6_set_prop;
+    ret = $retcpy_4A1F_set_prop;
     var owner=this.evaluate(ctx, ret[4]);
     if (ret[0]==undefined&&ret[3]!=undefined&&ret[3].do_mass_set) {
         if (DEBUG.ui_datapaths) {
@@ -7250,9 +7305,9 @@ es6_module_define('data_api', ["toolprops", "data_api_parser", "safe_eval", "UIF
                 else 
                   val&=~mask;
                 prop.set_data(val, owner, changed);
-                $scope_wtnQ_set_prop[0] = val;
+                $scope_1f10_set_prop[0] = val;
                 path2+=" = scope[0];";
-                this.evaluate(ctx, path2, $scope_wtnQ_set_prop);
+                this.evaluate(ctx, path2, $scope_1f10_set_prop);
             }
             else {
               path+=" = "+value;
@@ -7299,9 +7354,9 @@ es6_module_define('data_api', ["toolprops", "data_api_parser", "safe_eval", "UIF
           }
           else {
             if (typeof value=="object") {
-                $scope_wtnQ_set_prop[0] = value;
+                $scope_1f10_set_prop[0] = value;
                 path+=" = scope[0]";
-                this.evaluate(ctx, path, $scope_wtnQ_set_prop);
+                this.evaluate(ctx, path, $scope_1f10_set_prop);
             }
             else {
               changed = value==old_value;
@@ -7342,10 +7397,10 @@ es6_module_define('data_api', ["toolprops", "data_api_parser", "safe_eval", "UIF
       return undefined;
     return ret[0].data;
   }]);
-  var $cache_A8Na_resolve_path_intern={}
-  var $sret_zaOm_resolve_path_intern2=[0, 0, 0, 0, 0];
-  var $retcpy__iT6_set_prop=new Array(16);
-  var $scope_wtnQ_set_prop=[0, 0];
+  var $cache_LMlQ_resolve_path_intern={}
+  var $sret_eCfg_resolve_path_intern2=[0, 0, 0, 0, 0];
+  var $retcpy_4A1F_set_prop=new Array(16);
+  var $scope_1f10_set_prop=[0, 0];
   _es6_module.add_class(DataAPI);
   DataAPI = _es6_module.add_export('DataAPI', DataAPI);
 });

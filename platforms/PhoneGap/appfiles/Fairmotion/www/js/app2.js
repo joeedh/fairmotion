@@ -1,4 +1,4 @@
-es6_module_define('spline_element_array', ["spline_types", "eventdag", "struct"], function _spline_element_array_module(_es6_module) {
+es6_module_define('spline_element_array', ["struct", "eventdag", "spline_types"], function _spline_element_array_module(_es6_module) {
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
   var SplineFlags=es6_import_item(_es6_module, 'spline_types', 'SplineFlags');
   var SplineTypes=es6_import_item(_es6_module, 'spline_types', 'SplineTypes');
@@ -257,6 +257,44 @@ es6_module_define('spline_element_array', ["spline_types", "eventdag", "struct"]
   })]);
   _es6_module.add_class(IterCache);
   IterCache = _es6_module.add_export('IterCache', IterCache);
+  var EditableIter=_ESClass("EditableIter", [function EditableIter(list, layerset, all_layers) {
+    this.init(list, layerset, all_layers);
+  }, function init(list, layerset, all_layers) {
+    this.list = list;
+    this.layerset = layerset;
+    this.all_layers = all_layers;
+    this.i = 0;
+    this.ret = {done: false, value: undefined}
+    return this;
+  }, _ESClass.symbol(Symbol.iterator, function iterator() {
+    return this;
+  }), function reset() {
+    this.ret.done = false;
+    this.ret.value = undefined;
+    this.i = 0;
+    return this;
+  }, function next() {
+    var $_let_actlayer1=this.layerset.active.id;
+    while (this.i<this.list.length) {
+      var $_let_e3=this.list[this.i];
+      var $_let_ok4=!$_let_e3.hidden;
+      $_let_ok4 = $_let_ok4&&(this.all_layers||$_let_actlayer1 in $_let_e3.layers);
+      if ($_let_ok4)
+        break;
+      this.i++;
+    }
+    if (this.i>=this.list.length) {
+        this.ret.done = true;
+        this.ret.value = undefined;
+        return this.ret;
+    }
+    this.i++;
+    this.ret.done = false;
+    this.ret.value = this.list[this.i-1];
+    return this.ret;
+  }]);
+  _es6_module.add_class(EditableIter);
+  EditableIter = _es6_module.add_export('EditableIter', EditableIter);
   var SelectedEditableIter=_ESClass("SelectedEditableIter", [function SelectedEditableIter(selset, layerset) {
     this.ret = {done: false, value: undefined}
     this._c = 0;
@@ -413,6 +451,11 @@ es6_module_define('spline_element_array', ["spline_types", "eventdag", "struct"]
     this.select_listeners = new EventDispatcher("select");
     this.selected = new ElementArraySet();
     this.selected.layerset = layerset;
+  }, function editable(ctx) {
+    if (ctx===undefined) {
+        throw new Error("Missing ctx argument");
+    }
+    return new EditableIter(this, this.layerset, ctx.edit_all_layers);
   }, function dag_get_datapath() {
     var tname;
     switch (this.type) {
@@ -2306,7 +2349,7 @@ es6_module_define('spline_query', ["spline_multires", "selectmode"], function _s
   _es6_module.add_class(SplineQuery);
   SplineQuery = _es6_module.add_export('SplineQuery', SplineQuery);
 });
-es6_module_define('spline_draw', ["config", "spline_multires", "spline_types", "mathlib", "view2d_editor", "selectmode", "spline_element_array", "spline_draw_new", "animdata", "spline_math"], function _spline_draw_module(_es6_module) {
+es6_module_define('spline_draw', ["mathlib", "spline_types", "spline_element_array", "spline_draw_new", "spline_math", "selectmode", "animdata", "view2d_editor", "config", "spline_multires"], function _spline_draw_module(_es6_module) {
   var aabb_isect_minmax2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_minmax2d');
   var ENABLE_MULTIRES=es6_import_item(_es6_module, 'config', 'ENABLE_MULTIRES');
   var SessionFlags=es6_import_item(_es6_module, 'view2d_editor', 'SessionFlags');
@@ -2483,11 +2526,11 @@ es6_module_define('spline_draw', ["config", "spline_multires", "spline_types", "
     return string_idgen;
   }
   calc_string_ids = _es6_module.add_export('calc_string_ids', calc_string_ids);
-  var $lists_OgCN_sort_layer_segments=new cachering(function() {
+  var $lists_QeAa_sort_layer_segments=new cachering(function() {
     return [];
   }, 2);
   function sort_layer_segments(layer, spline) {
-    var list=$lists_OgCN_sort_layer_segments.next();
+    var list=$lists_QeAa_sort_layer_segments.next();
     list.length = 0;
     var visit={}
     var layerid=layer.id;
@@ -2750,9 +2793,9 @@ es6_module_define('spline_draw', ["config", "spline_multires", "spline_types", "
     g.lineWidth = lw;
   }
   var SplineDrawer=es6_import_item(_es6_module, 'spline_draw_new', 'SplineDrawer');
-  var $smin_eIvc_draw_spline=new Vector3();
-  var $r_jtaN_draw_spline=[[0, 0], [0, 0]];
-  var $smax_35HY_draw_spline=new Vector3();
+  var $smin_8L0X_draw_spline=new Vector3();
+  var $r_1zWe_draw_spline=[[0, 0], [0, 0]];
+  var $smax_YQhS_draw_spline=new Vector3();
   function draw_spline(spline, redraw_rects, g, editor, selectmode, only_render, draw_normals, alpha, draw_time_helpers, curtime, ignore_layers) {
     spline.canvas = g;
     if (spline.drawlist==undefined||(spline.recalc&RecalcFlags.DRAWSORT)) {
@@ -2858,13 +2901,13 @@ es6_module_define('spline_draw', ["config", "spline_multires", "spline_types", "
           break;
       }
       seg = __ival_seg.value;
-      $smin_eIvc_draw_spline.zero().load(seg.aabb[0]);
-      $smax_35HY_draw_spline.zero().load(seg.aabb[1]);
+      $smin_8L0X_draw_spline.zero().load(seg.aabb[0]);
+      $smax_YQhS_draw_spline.zero().load(seg.aabb[1]);
       var skipdraw=true;
       for (var i=0; i<redraw_rects.length; i+=4) {
-          $r_jtaN_draw_spline[0][0] = redraw_rects[i], $r_jtaN_draw_spline[0][1] = redraw_rects[i+1];
-          $r_jtaN_draw_spline[1][0] = redraw_rects[i+2], $r_jtaN_draw_spline[1][1] = redraw_rects[i+3];
-          if (aabb_isect_minmax2d($smin_eIvc_draw_spline, $smax_35HY_draw_spline, $r_jtaN_draw_spline[0], $r_jtaN_draw_spline[1], 2)) {
+          $r_1zWe_draw_spline[0][0] = redraw_rects[i], $r_1zWe_draw_spline[0][1] = redraw_rects[i+1];
+          $r_1zWe_draw_spline[1][0] = redraw_rects[i+2], $r_1zWe_draw_spline[1][1] = redraw_rects[i+3];
+          if (aabb_isect_minmax2d($smin_8L0X_draw_spline, $smax_YQhS_draw_spline, $r_1zWe_draw_spline[0], $r_1zWe_draw_spline[1], 2)) {
               skipdraw = false;
               break;
           }
@@ -3509,16 +3552,17 @@ es6_module_define('spline_draw', ["config", "spline_multires", "spline_types", "
     g._irender_mat.invert();
   }
   set_rendermat = _es6_module.add_export('set_rendermat', set_rendermat);
-  var $margin_YAuZ_redraw_element=new Vector3([15, 15, 15]);
-  var $aabb_6zh3_redraw_element=[new Vector3(), new Vector3()];
+  var $margin_7HFl_redraw_element=new Vector3([15, 15, 15]);
+  var $aabb_Rtfz_redraw_element=[new Vector3(), new Vector3()];
   function redraw_element(e, view2d) {
-    $margin_YAuZ_redraw_element[0] = $margin_YAuZ_redraw_element[1] = $margin_YAuZ_redraw_element[2] = 15.0;
+    e.flag|=SplineFlags.REDRAW;
+    $margin_7HFl_redraw_element[0] = $margin_7HFl_redraw_element[1] = $margin_7HFl_redraw_element[2] = 15.0;
     if (view2d!=undefined)
-      $margin_YAuZ_redraw_element.mulScalar(1.0/view2d.zoom);
+      $margin_7HFl_redraw_element.mulScalar(1.0/view2d.zoom);
     var e_aabb=e.aabb;
-    $aabb_6zh3_redraw_element[0].load(e_aabb[0]), $aabb_6zh3_redraw_element[1].load(e_aabb[1]);
-    $aabb_6zh3_redraw_element[0].sub($margin_YAuZ_redraw_element), $aabb_6zh3_redraw_element[1].add($margin_YAuZ_redraw_element);
-    window.redraw_viewport($aabb_6zh3_redraw_element[0], $aabb_6zh3_redraw_element[1]);
+    $aabb_Rtfz_redraw_element[0].load(e_aabb[0]), $aabb_Rtfz_redraw_element[1].load(e_aabb[1]);
+    $aabb_Rtfz_redraw_element[0].sub($margin_7HFl_redraw_element), $aabb_Rtfz_redraw_element[1].add($margin_7HFl_redraw_element);
+    window.redraw_viewport($aabb_Rtfz_redraw_element[0], $aabb_Rtfz_redraw_element[1]);
   }
   redraw_element = _es6_module.add_export('redraw_element', redraw_element);
 });
@@ -7766,15 +7810,15 @@ es6_module_define('vectordraw', ["vectordraw_svg", "vectordraw_base", "vectordra
   var VectorFlags=es6_import_item(_es6_module, 'vectordraw_base', 'VectorFlags');
   var VectorFlags=VectorFlags;
   VectorFlags = _es6_module.add_export('VectorFlags', VectorFlags);
-  var Canvas=SVGDraw2D;
+  var Canvas=CanvasDraw2D;
   Canvas = _es6_module.add_export('Canvas', Canvas);
-  var Path=SVGPath;
+  var Path=CanvasPath;
   Path = _es6_module.add_export('Path', Path);
 });
 es6_module_define('strokedraw', [], function _strokedraw_module(_es6_module) {
   "use strict";
 });
-es6_module_define('spline_draw_new', ["mathlib", "config", "spline_types", "selectmode", "vectordraw", "spline_multires", "animdata", "view2d_editor", "spline_element_array", "spline_math"], function _spline_draw_new_module(_es6_module) {
+es6_module_define('spline_draw_new', ["mathlib", "spline_math", "selectmode", "config", "spline_element_array", "vectordraw", "spline_types", "spline_multires", "animdata", "view2d_editor"], function _spline_draw_new_module(_es6_module) {
   "use strict";
   var aabb_isect_minmax2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_minmax2d');
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
@@ -7998,7 +8042,25 @@ es6_module_define('spline_draw_new', ["mathlib", "config", "spline_types", "sele
         path.reset();
     }
     path.blur = seg.mat.blur*(this.do_blur ? 1 : 0);
-    path.color.load(seg.mat.strokecolor);
+    if (only_render) {
+        path.color.load(seg.mat.strokecolor);
+    }
+    else {
+      if ((selectmode&SelMask.SEGMENT)&&seg===spline.segments.highlight) {
+          path.color[0] = 200/255, path.color[1] = 200/255, path.color[2] = 50/255, path.color[3] = 0.8;
+      }
+      else 
+        if ((selectmode&SelMask.SEGMENT)&&seg===spline.segments.active) {
+          path.color[0] = 200/255, path.color[1] = 80/255, path.color[2] = 50/255, path.color[3] = 0.8;
+      }
+      else 
+        if ((selectmode&SelMask.SEGMENT)&&(seg.flag&SplineFlags.SELECT)) {
+          path.color[0] = 250/255, path.color[1] = 140/255, path.color[2] = 50/255, path.color[3] = 0.8;
+      }
+      else {
+        path.color.load(seg.mat.strokecolor);
+      }
+    }
     var lw=seg.mat.linewidth*0.5;
     var no=seg.normal(0).normalize().mulScalar(lw);
     var co=seg.evaluate(0).add(no);
@@ -8953,7 +9015,7 @@ es6_module_define('touchevents', [], function _touchevents_module(_es6_module) {
   }]);
   _es6_module.add_class(TouchManager);
 });
-es6_module_define('toolprops', ["struct", "ajax", "toolprops_iter"], function _toolprops_module(_es6_module) {
+es6_module_define('toolprops', ["ajax", "toolprops_iter", "struct"], function _toolprops_module(_es6_module) {
   "use strict";
   
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
@@ -9286,13 +9348,7 @@ es6_module_define('toolprops', ["struct", "ajax", "toolprops_iter"], function _t
     this.ui_key_names = {}
     this.flag_descriptions = {}
     if (uinames==undefined) {
-        this.ui_value_names = {};
-        for (var k in maskmap) {
-            var key=k[0].toUpperCase()+k.slice(1, k.length).toLowerCase();
-            key = key.replace(/\_/g, " ").replace(/\-/g, " ");
-            this.ui_value_names[key] = k;
-            this.ui_key_names[k] = key;
-        }
+        this.setUINames(uinames);
     }
     else {
       this.ui_value_names = uinames;
@@ -9307,6 +9363,15 @@ es6_module_define('toolprops', ["struct", "ajax", "toolprops_iter"], function _t
         this.keys[k] = maskmap[k];
     }
     this.set_flag(value);
+  }, function setUINames(uinames) {
+    this.ui_value_names = {}
+    this.ui_key_names = {}
+    for (var k in this.keys) {
+        var key=k[0].toUpperCase()+k.slice(1, k.length).toLowerCase();
+        key = key.replace(/\_/g, " ").replace(/\-/g, " ");
+        this.ui_value_names[key] = k;
+        this.ui_key_names[k] = key;
+    }
   }, function copyTo(dst) {
     ToolProperty.prototype.copyTo.call(this, dst, true);
     for (var k in this.flag_descriptions) {

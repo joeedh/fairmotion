@@ -170,58 +170,46 @@ export class ToggleSelectAllOp extends SelectOpBase {
     redraw_viewport();
   }
   
-  exec(ToolContext ctx) {
+  exec(ctx) {
     console.log("toggle select!");
     
     var spline = ctx.spline;
     var mode = this.inputs.mode.data;
     var layerid = ctx.spline.layerset.active.id;
-    
+    var totsel = 0.0;
+    let iterctx = mode == "sub" ? {edit_all_layers : false} : ctx;
+
     if (mode == "auto") {
-      var totsel = 0;
-      
-      spline.forEachPoint(function(v) {
-        if (v.hidden)
-          return;
-        if (!(layerid in v.layers))
-          return;
-        
+      for (var v of spline.verts.editable(iterctx)) {
         totsel += v.flag & SplineFlags.SELECT;
-      });
-      
-      for (var f of spline.faces) {
-        if (!(layerid in f.layers))
-          continue;
-        if (f.hidden)
-          continue;
-          
+      }
+
+      for (var s of spline.segments.editable(iterctx)) {
+        totsel += s.flag & SplineFlags.SELECT;
+      }
+
+      for (var f of spline.faces.editable(iterctx)) {
         totsel += f.flag & SplineFlags.SELECT;
       }
-      
+
       mode = totsel ? "sub" : "add";
     }
     
     if (mode == "sub") spline.verts.active = undefined;
-    
-    spline.forEachPoint(function(v) {
-        if (mode != "sub" && !(layerid in v.layers))
-          return;
-        if (v.hidden)
-          return;
-      
+
+    for (var v of spline.verts.editable(iterctx)) {
+      v.flag |= SplineFlags.REDRAW;
+
       if (mode == "sub") {
         spline.setselect(v, false);
       } else {
         spline.setselect(v, true);
       }
-    });
+    }
     
-    for (var s of spline.segments) {
-      if (mode != "sub" && !(layerid in s.layers))
-        continue;
-      if (s.hidden)
-        continue;
-          
+    for (var s of spline.segments.editable(iterctx)) {
+      s.flag |= SplineFlags.REDRAW;
+
       if (mode == "sub") {
         spline.setselect(s, false);
       } else {
@@ -229,12 +217,9 @@ export class ToggleSelectAllOp extends SelectOpBase {
       }
     }
     
-    for (var f of spline.faces) {
-        if (mode != "sub" && !(layerid in f.layers))
-          continue;
-        if (f.hidden)
-          continue;
-      
+    for (var f of spline.faces.editable(iterctx)) {
+      f.flag |= SplineFlags.REDRAW;
+
       if (mode == "sub") {
         spline.setselect(f, false);
       } else {

@@ -4507,7 +4507,7 @@ es6_module_define('UIWidgets_special2', ["UIWidgets_special", "dialog", "UIPack"
   UIColorButtonField = _es6_module.add_export('UIColorButtonField', UIColorButtonField);
   window.UIColorButton = UIColorButton;
 });
-es6_module_define('UITabPanel', ["UIPack", "mathlib", "UIWidgets", "UIElement", "UIFrame"], function _UITabPanel_module(_es6_module) {
+es6_module_define('UITabPanel', ["mathlib", "UIFrame", "UIWidgets", "UIElement", "UIPack"], function _UITabPanel_module(_es6_module) {
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
   var inrect_2d=es6_import_item(_es6_module, 'mathlib', 'inrect_2d');
   var aabb_isect_2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_2d');
@@ -4553,9 +4553,10 @@ es6_module_define('UITabPanel', ["UIPack", "mathlib", "UIWidgets", "UIElement", 
     this.tabs = new GArray();
     this.mm = new MinMax(2);
     this.callback = callback;
+    
     this.triwid = 4;
     this.mode = mode;
-    this.thickness = this.min_thickness = IsMobile ? 28 : 25;
+    this.thickness = this.min_thickness = IsMobile ? 28 : 35;
   }, function add_tab(text, tooltip, id) {
     if (tooltip==undefined) {
         tooltip = "";

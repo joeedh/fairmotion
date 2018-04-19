@@ -320,7 +320,25 @@ export class SplineDrawer {
     }
     
     path.blur = seg.mat.blur * (this.do_blur ? 1 : 0);
-    path.color.load(seg.mat.strokecolor);
+
+    //XXX evil hard-coded colors, see update_polygon too
+    if (only_render) {
+      path.color.load(seg.mat.strokecolor);
+    } else {
+      if ((selectmode & SelMask.SEGMENT) && seg === spline.segments.highlight) {
+        path.color[0] = 200 / 255, path.color[1] = 200 / 255, path.color[2] = 50 / 255, path.color[3] = 0.8;
+        //g.strokeStyle = "rgba(200, 200, 50, 0.8)";
+      } else if ((selectmode & SelMask.SEGMENT) && seg === spline.segments.active) {
+        path.color[0] = 200 / 255, path.color[1] = 80 / 255, path.color[2] = 50 / 255, path.color[3] = 0.8;
+        //g.strokeStyle = "rgba(200, 80, 50, 0.8)";
+      } else if ((selectmode & SelMask.SEGMENT) && (seg.flag & SplineFlags.SELECT)) {
+        path.color[0] = 250 / 255, path.color[1] = 140 / 255, path.color[2] = 50 / 255, path.color[3] = 0.8;
+        //g.strokeStyle = "rgba(250, 140, 50, 0.8)";
+      } else {
+        path.color.load(seg.mat.strokecolor);
+      }
+    }
+
     var lw = seg.mat.linewidth*0.5;
     
     

@@ -649,20 +649,18 @@ export class SplineEditor extends View2DEditor {
       } else {
         for (var i=0; i<spline.elists.length; i++) {
           var list = spline.elists[i];
-          
-          //console.log("  -", list.highlight == undefined);
-          
+
+          if (!(this.selectmode & list.type))
+              continue;;
           if (list.highlight == undefined)
             continue;
-            
+
           var op = new SelectOneOp(list.highlight, !event.shiftKey, 
                                   !(list.highlight.flag & SplineFlags.SELECT),
                                   this.selectmode, true);
           //console.log("exec selectoneop op");
           
           g_app_state.toolstack.exec_tool(op);
-          break;
-          //redraw_viewport();
         }
       }
       
@@ -877,7 +875,8 @@ export class SplineEditor extends View2DEditor {
       return;
     
     var ret = this.findnearest([event.x, event.y], this.ctx.view2d.selectmode, limit, this.ctx.view2d.edit_all_layers);
-    //console.log(ret);
+
+    console.log(ret, this.ctx.view2d.selectmode);
     
     
     if (ret != undefined && typeof(ret[1]) != "number" && ret[2] != SelMask.MULTIRES) {
@@ -899,8 +898,8 @@ export class SplineEditor extends View2DEditor {
       this.highlight_spline.clear_highlight();
       
       var list = this.highlight_spline.get_elist(ret[1].type);
+      /*
       if (!list._has_d) {
-        /*
         Object.defineProperty(list, "highlight", {
           enumerable : true,
           get : function() {
@@ -918,11 +917,11 @@ export class SplineEditor extends View2DEditor {
           }
         });
         list._has_d = true;
-        */
       }
-      
+       */
+
       //console.log("SPLINE", ret[0]._debug_id, "PARENTV", ret[0].parent_veid);
-      
+
       list.highlight = ret[1];
       redraw_element(list.highlight, this.view2d);
       

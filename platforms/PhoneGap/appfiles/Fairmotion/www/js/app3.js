@@ -3128,7 +3128,7 @@ es6_module_define('transform_ops', ["transdata", "transform", "mathlib", "multir
   _es6_module.add_class(WidgetResizeOp);
   WidgetResizeOp = _es6_module.add_export('WidgetResizeOp', WidgetResizeOp);
 });
-es6_module_define('spline_selectops', ["animdata", "toolprops", "spline_draw", "toolops_api", "spline_types"], function _spline_selectops_module(_es6_module) {
+es6_module_define('spline_selectops', ["spline_types", "animdata", "spline_draw", "toolprops", "toolops_api"], function _spline_selectops_module(_es6_module) {
   "use strict";
   var $_mh;
   var $_swapt;
@@ -3282,16 +3282,30 @@ es6_module_define('spline_selectops', ["animdata", "toolprops", "spline_draw", "
     var spline=ctx.spline;
     var mode=this.inputs.mode.data;
     var layerid=ctx.spline.layerset.active.id;
+    var totsel=0.0;
+    var $_let_iterctx1=mode=="sub" ? {edit_all_layers: false} : ctx;
     if (mode=="auto") {
-        var totsel=0;
-        spline.forEachPoint(function(v) {
-          if (v.hidden)
-            return ;
-          if (!(layerid in v.layers))
-            return ;
+        var __iter_v=__get_iter(spline.verts.editable($_let_iterctx1));
+        var v;
+        while (1) {
+          var __ival_v=__iter_v.next();
+          if (__ival_v.done) {
+              break;
+          }
+          v = __ival_v.value;
           totsel+=v.flag&SplineFlags.SELECT;
-        });
-        var __iter_f=__get_iter(spline.faces);
+        }
+        var __iter_s=__get_iter(spline.segments.editable($_let_iterctx1));
+        var s;
+        while (1) {
+          var __ival_s=__iter_s.next();
+          if (__ival_s.done) {
+              break;
+          }
+          s = __ival_s.value;
+          totsel+=s.flag&SplineFlags.SELECT;
+        }
+        var __iter_f=__get_iter(spline.faces.editable($_let_iterctx1));
         var f;
         while (1) {
           var __ival_f=__iter_f.next();
@@ -3299,29 +3313,29 @@ es6_module_define('spline_selectops', ["animdata", "toolprops", "spline_draw", "
               break;
           }
           f = __ival_f.value;
-          if (!(layerid in f.layers))
-            continue;
-          if (f.hidden)
-            continue;
           totsel+=f.flag&SplineFlags.SELECT;
         }
         mode = totsel ? "sub" : "add";
     }
     if (mode=="sub")
       spline.verts.active = undefined;
-    spline.forEachPoint(function(v) {
-      if (mode!="sub"&&!(layerid in v.layers))
-        return ;
-      if (v.hidden)
-        return ;
+    var __iter_v=__get_iter(spline.verts.editable($_let_iterctx1));
+    var v;
+    while (1) {
+      var __ival_v=__iter_v.next();
+      if (__ival_v.done) {
+          break;
+      }
+      v = __ival_v.value;
+      v.flag|=SplineFlags.REDRAW;
       if (mode=="sub") {
           spline.setselect(v, false);
       }
       else {
         spline.setselect(v, true);
       }
-    });
-    var __iter_s=__get_iter(spline.segments);
+    }
+    var __iter_s=__get_iter(spline.segments.editable($_let_iterctx1));
     var s;
     while (1) {
       var __ival_s=__iter_s.next();
@@ -3329,10 +3343,7 @@ es6_module_define('spline_selectops', ["animdata", "toolprops", "spline_draw", "
           break;
       }
       s = __ival_s.value;
-      if (mode!="sub"&&!(layerid in s.layers))
-        continue;
-      if (s.hidden)
-        continue;
+      s.flag|=SplineFlags.REDRAW;
       if (mode=="sub") {
           spline.setselect(s, false);
       }
@@ -3340,7 +3351,7 @@ es6_module_define('spline_selectops', ["animdata", "toolprops", "spline_draw", "
         spline.setselect(s, true);
       }
     }
-    var __iter_f=__get_iter(spline.faces);
+    var __iter_f=__get_iter(spline.faces.editable($_let_iterctx1));
     var f;
     while (1) {
       var __ival_f=__iter_f.next();
@@ -3348,10 +3359,7 @@ es6_module_define('spline_selectops', ["animdata", "toolprops", "spline_draw", "
           break;
       }
       f = __ival_f.value;
-      if (mode!="sub"&&!(layerid in f.layers))
-        continue;
-      if (f.hidden)
-        continue;
+      f.flag|=SplineFlags.REDRAW;
       if (mode=="sub") {
           spline.setselect(f, false);
       }
@@ -3699,7 +3707,7 @@ es6_module_define('spline_selectops', ["animdata", "toolprops", "spline_draw", "
   _es6_module.add_class(CircleSelectOp);
   CircleSelectOp = _es6_module.add_export('CircleSelectOp', CircleSelectOp);
 });
-es6_module_define('spline_createops', ["spline_editops", "spline_types", "spline", "toolprops", "toolops_api"], function _spline_createops_module(_es6_module) {
+es6_module_define('spline_createops', ["toolprops", "spline_editops", "toolops_api", "spline_types", "spline"], function _spline_createops_module(_es6_module) {
   var ToolOp=es6_import_item(_es6_module, 'toolops_api', 'ToolOp');
   var SplineFlags=es6_import_item(_es6_module, 'spline_types', 'SplineFlags');
   var EnumProperty=es6_import_item(_es6_module, 'toolprops', 'EnumProperty');

@@ -1346,7 +1346,8 @@ export class ToolContext {
     this.frameset = frameset;
     this.spline = spline;
     this.scene = scene;
-    
+    this.edit_all_layers = ctx.edit_all_layers;
+
     this.api = g_app_state.api;
   }
 }
@@ -1356,7 +1357,8 @@ class SavedContext {
   constructor(ctx=undefined) {
     if (ctx != undefined) {
       this.time = ctx.scene != undefined ? ctx.scene.time : undefined;
-      
+      this.edit_all_layers = ctx.edit_all_layers;
+
       this._scene = ctx.scene ? new DataRef(ctx.scene) : new DataRef(-1);
       this._frameset = ctx.frameset ? new DataRef(ctx.frameset) : new DataRef(-1);
       
@@ -1456,8 +1458,9 @@ SavedContext.STRUCT = """
     _frameset_editmode   : static_string[12];
     _spline_path         : string;
     time                 : float;
+    edit_all_layers      : int;
   }
-"""
+""";
 
 import {SplineFrameSet} from 'frameset';
 
@@ -1479,7 +1482,13 @@ export class Context {
   get filepath() : String {
     return g_app_state.filepath;
   }
-  
+
+  get edit_all_layers() {
+    let view2d = this.view2d;
+
+    return view2d !== undefined ? view2d.edit_all_layers : false;
+  }
+
   get spline() : FrameSet {
     var ret = this.api.get_object(g_app_state.active_splinepath); 
     

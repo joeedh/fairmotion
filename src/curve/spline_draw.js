@@ -1395,6 +1395,8 @@ export function set_rendermat(g, mat) {
 export function redraw_element(e, view2d) {
   static margin = new Vector3([15, 15, 15]);
 
+  e.flag |= SplineFlags.REDRAW;
+  
   margin[0] = margin[1] = margin[2] = 15.0;
 
   if (view2d != undefined)

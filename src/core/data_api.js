@@ -8,6 +8,15 @@ push the code over its entropy limit and force a refactor,
 I was planning on doing that later.
 */
 
+/*
+  Refactor notes:
+
+  Helper methods to build APIs are CamelCased, so e.g.
+
+    Struct.Float(..).Range(0, 100).OnUpdate(bleh);
+
+*/
+
 export var DataPathTypes = {PROP: 0, STRUCT: 1, STRUCT_ARRAY : 2};
 export var DataFlags = {NO_CACHE : 1, RECALC_CACHE : 2};
 
@@ -19,7 +28,7 @@ export class TinyParserError extends Error {
 
 import {UIFrame} from 'UIFrame';
 import {PropTypes, TPropFlags, ToolProperty, IntProperty, FloatProperty, 
-        Vec3Property, StringProperty} from 'toolprops';
+        Vec3Property, Vec4Property, StringProperty} from 'toolprops';
 import {ToolFlags, UndoFlags} from 'toolops_api';
 import {DataBlock} from 'lib_api';
 import {apiparser} from 'data_api_parser';
@@ -75,7 +84,38 @@ export class DataPath {
     this.use_path = use_path;
     this.parent = undefined;
   }
-  
+
+  OnUpdate(func) {
+    this.update = func;
+
+    if (this.data !== undefined) {
+      this.data.update = func;
+    }
+
+    return this;
+  }
+
+  Default(val) {
+    this.data.value =  val;
+  }
+
+  Range(min, max) {
+    this.data.range = [min, max];
+    return this;
+  }
+
+  SetFlag(flag) {
+    this.data.flag |= flag;
+  }
+
+  ClearFlag() {
+    this.data.flag = 0;
+  }
+
+  FlagsUINames(uinames) {
+    this.data.setUINames(uinames);
+  }
+
   cache_good() {
     var p = this;
     
@@ -162,11 +202,66 @@ export class DataStruct {
     
     this.type = DataPathTypes.STRUCT;
   }
-  
+
+  Color3(apiname, path, uiname, description) {
+    var ret = new Vec3Property(0, apiname, uiname, description);
+    ret.subtype = PropTypes.COLOR3;
+
+    ret = new DataPath(ret, apiname, path, path!=undefined);
+    this.add(ret);
+
+    return ret;
+  }
+
+  Color4(apiname, path, uiname, description) {
+    var ret = new Vec4Property(0, apiname, uiname, description);
+    ret.subtype = PropTypes.COLOR4;
+
+    ret = new DataPath(ret, apiname, path, path!=undefined);
+    this.add(ret);
+
+    return ret;
+  }
+
+  Vector2(apiname, path, uiname, description) {
+    var ret = new Vec2Property(0, apiname, uiname, description);
+
+    ret = new DataPath(ret, apiname, path, path!=undefined);
+    this.add(ret);
+
+    return ret;
+  }
+
+  Vector3(apiname, path, uiname, description) {
+    var ret = new Vec3Property(0, apiname, uiname, description);
+
+    ret = new DataPath(ret, apiname, path, path!=undefined);
+    this.add(ret);
+
+    return ret;
+  }
+
+  Bool(apiname, path, uiname, description) {
+    var ret = new BoolProperty(0, apiname, uiname, description);
+
+    ret = new DataPath(ret, apiname, path, path!==undefined);
+    this.add(ret);
+
+    return ret;
+  }
+
+  Flags(flags, apiname, path, uiname, description) {
+    var ret = new FlagProperty(0, flags, undefined, apiname, uiname, description);
+    
+    ret = new  DataPath(ret, apiname, path, path!==undefined);
+    this.add(ret);
+    return ret;
+  }
+
   Float(apiname, path, uiname, description) {
     var ret = new FloatProperty(0, apiname, uiname, description);
     
-    ret = new DataPath(ret, apiname, path, path!=undefined);
+    ret = new DataPath(ret, apiname, path, path!==undefined);
     this.add(ret);
     
     return ret;
@@ -183,10 +278,10 @@ export class DataStruct {
   
   Int(apiname, path, uiname, description) {
     var ret = new IntProperty(0, apiname, uiname, description);
-    
-    ret = new DataPath(ret, apiname, path, path!=undefined);
+
+    ret = new DataPath(ret, apiname, path, path != undefined);
     this.add(ret);
-    
+
     return ret;
   }
 

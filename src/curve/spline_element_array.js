@@ -353,6 +353,64 @@ export class IterCache {
   }
 }
 
+export class EditableIter {
+  constructor(list, layerset, all_layers) {
+    this.init(list, layerset, all_layers);
+  }
+
+  init(list, layerset, all_layers) {
+    this.list = list;
+    this.layerset = layerset;
+    this.all_layers = all_layers;
+    this.i = 0;
+    this.ret = {done : false, value : undefined};
+
+    return this;
+  }
+
+  [Symbol.iterator]() {
+    return this;
+  }
+
+  reset() {
+    this.ret.done = false;
+    this.ret.value = undefined;
+    this.i = 0;
+
+    return this;
+  }
+
+  next() {
+    let actlayer = this.layerset.active.id;
+
+    while (this.i < this.list.length) {
+      let e = this.list[this.i];
+
+      let ok = !e.hidden;
+      ok = ok && (this.all_layers || actlayer in e.layers);
+
+      if (ok)
+          break;
+
+      this.i++;
+    }
+
+    if (this.i >= this.list.length) {
+      this.ret.done = true;
+      this.ret.value = undefined;
+
+      return this.ret;
+    }
+
+    this.i++;
+
+    this.ret.done = false;
+    this.ret.value = this.list[this.i - 1];
+
+    return this.ret;
+  }
+}
+
 export class SelectedEditableIter {
   constructor(selset, layerset) {
     this.ret = {done : false, value : undefined};
@@ -568,7 +626,15 @@ export class ElementArray extends GArray {
     this.selected = new ElementArraySet();
     this.selected.layerset = layerset;
   }
-  
+
+  editable(ctx) {
+    if (ctx === undefined) {
+      throw new Error("Missing ctx argument");
+    }
+
+    return new EditableIter(this, this.layerset, ctx.edit_all_layers);
+  }
+
   dag_get_datapath() {
     var tname;
     switch (this.type) {

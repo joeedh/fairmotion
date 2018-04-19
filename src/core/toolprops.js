@@ -404,7 +404,7 @@ export class FlagProperty extends ToolProperty {
   constructor(value, maskmap, uinames, apiname, uiname, 
               description, range, uirange, flag) 
   {
-    ToolProperty.call(this, PropTypes.FLAG, apiname, uiname, description, flag);
+    super(PropTypes.FLAG, apiname, uiname, description, flag);
     
     //detect if we were called by fromSTRUCT
     if (value == undefined && maskmap == undefined) {
@@ -423,15 +423,7 @@ export class FlagProperty extends ToolProperty {
     this.flag_descriptions = {};
     
     if (uinames == undefined) {
-      this.ui_value_names = {}
-      
-      for (var k in maskmap) {
-        var key = k[0].toUpperCase() + k.slice(1, k.length).toLowerCase();
-        key = key.replace(/\_/g, " ").replace(/\-/g, " ");
-        
-        this.ui_value_names[key] = k;
-        this.ui_key_names[k] = key;
-      }
+      this.setUINames(uinames);
     } else {
       this.ui_value_names = uinames;
       for (var k in uinames) {
@@ -449,7 +441,20 @@ export class FlagProperty extends ToolProperty {
     
     this.set_flag(value);  
   }
-  
+
+  setUINames(uinames) {
+    this.ui_value_names = {}
+    this.ui_key_names = {};
+    
+    for (var k in this.keys) {
+      var key = k[0].toUpperCase() + k.slice(1, k.length).toLowerCase();
+      key = key.replace(/\_/g, " ").replace(/\-/g, " ");
+
+      this.ui_value_names[key] = k;
+      this.ui_key_names[k] = key;
+    }
+  }
+
   copyTo(FlagProperty dst) {
     ToolProperty.prototype.copyTo.call(this, dst, true);
     

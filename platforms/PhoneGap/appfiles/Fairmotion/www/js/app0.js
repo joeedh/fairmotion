@@ -8659,6 +8659,36 @@ es6_module_define('J3DIMath', [], function _J3DIMath_module(_es6_module) {
   window.Matrix4 = Matrix4;
 });
 "not_a_module";
+if (Array.prototype.set===undefined) {
+    Array.prototype.set = function set1(array, src, dst, count) {
+      src = src===undefined ? 0 : src;
+      dst = dst===undefined ? 0 : dst;
+      count = count===undefined ? array.length : count;
+      if (count<0) {
+          throw new RangeError("Count must be >= zero");
+      }
+      var $_let_len9=Math.min(this.length-dst, array.length-src);
+      $_let_len9 = Math.min($_let_len9, count);
+      for (var $_let_i15=0; $_let_i15<$_let_len9; $_let_i15++) {
+          this[dst+$_let_i15] = array[src+$_let_i15];
+      }
+      return this;
+    };
+    Float64Array.prototype.set = Array.prototype.set;
+    Float32Array.prototype.set = Array.prototype.set;
+    Uint8Array.prototype.set = Array.prototype.set;
+    Uint8ClampedArray.prototype.set = Array.prototype.set;
+    Int32Array.prototype.set = Array.prototype.set;
+    Int16Array.prototype.set = Array.prototype.set;
+    Int8Array.prototype.set = Array.prototype.set;
+}
+if (Array.prototype.reject===undefined) {
+    Array.prototype.reject = function reject(func) {
+      return this.filter(function(item) {
+        return !func(item);
+      });
+    };
+}
 function testr(obj) {
   var __gen_this2=this;
   function _generator_iter() {
@@ -8986,9 +9016,9 @@ function time_func(func, steps) {
   console.log(times);
   return times;
 }
-var $lst_A5CR=new GArray();
+var $lst_gGCU=new GArray();
 function cached_list(iter) {
-  $lst_A5CR.reset();
+  $lst_gGCU.reset();
   var i=0;
   var __iter_item=__get_iter(iter);
   var item;
@@ -8998,11 +9028,11 @@ function cached_list(iter) {
         break;
     }
     item = __ival_item.value;
-    $lst_A5CR.push(item);
+    $lst_gGCU.push(item);
     i++;
   }
-  $lst_A5CR.length = i;
-  return $lst_A5CR;
+  $lst_gGCU.length = i;
+  return $lst_gGCU;
 }
 var g_list=list;
 var eid_list=_ESClass("eid_list", GArray, [function eid_list(iter) {

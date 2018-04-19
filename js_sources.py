@@ -190,21 +190,5 @@ optional_copy_targets = {
 
 js_targets = {"app.js"        : sources,
               "chromeapp.js"  : sources + ["chromeapp/start_startup.js"],
-              "unit_tests.js" : [
-               ] + sources + [
-                 "src/unit_tests/tests.js"
-               ],
-               "test_module.js" : [
-                "src/util/polyfill.js",
-                "src/core/module.js",
-                "src/core/typesystem.js",
-                "src/core/module_test.js"
-               ],
-               "alloc_test.js" : [
-                "src/util/polyfill.js",
-                "src/core/typesystem.js",
-                "src/util/utils.js",
-                "src/core/tarray_alloc.js"
-               ]
              }
 

@@ -36,7 +36,7 @@ export class TransSplineVert {
     
     if (v.type == SplineTypes.HANDLE) {
       var seg = v.owning_segment;
-      
+
       seg.update();
       seg.flag |= SplineFlags.FRAME_DIRTY;
       seg.v1.flag |= SplineFlags.UPDATE;
@@ -91,8 +91,8 @@ export class TransSplineVert {
         if (v.hpair != undefined) {
           push_vert(v.hpair);
         }
-        
-        if (v.owning_vertex.segments.length == 2) {
+
+        if (v.owning_vertex !== undefined && v.owning_vertex.segments.length == 2) {
           var ov = v.owning_vertex;
           for (var j=0; j<ov.segments.length; j++) {
             var s = ov.segments[j];
@@ -100,6 +100,8 @@ export class TransSplineVert {
             push_vert(s.h1);
             push_vert(s.h2);
           }
+        } else if (v.owning_vertex === undefined) {
+          console.warn("Orphaned handle!", v.eid, v);
         }
       }
       

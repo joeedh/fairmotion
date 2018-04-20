@@ -219,7 +219,7 @@ export class UIElement extends EventHandler {
     else if (this.state & UIFlags.WARNING)
       color2 = uicolors["WarningBox"];
     
-    //way too clever
+    //way to clever
     if (color == undefined)
       color = color2;
     if (color2 == undefined)

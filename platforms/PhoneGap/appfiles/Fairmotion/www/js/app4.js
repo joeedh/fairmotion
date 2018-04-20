@@ -1,4 +1,4 @@
-es6_module_define('UIWidgets', ["UIElement", "units", "events", "UIFrame", "toolprops", "mathlib"], function _UIWidgets_module(_es6_module) {
+es6_module_define('UIWidgets', ["UIFrame", "mathlib", "toolprops", "UIElement", "events", "units"], function _UIWidgets_module(_es6_module) {
   var $_mh;
   var $_swapt;
   var UIFrame=es6_import_item(_es6_module, 'UIFrame', 'UIFrame');
@@ -173,10 +173,10 @@ es6_module_define('UIWidgets', ["UIElement", "units", "events", "UIFrame", "tool
   }]);
   _es6_module.add_class(UIButton);
   UIButton = _es6_module.add_export('UIButton', UIButton);
-  var $pos_y48w_build_draw;
-  var $high_clr_ho4q_build_draw;
-  var $size_qrXO_build_draw;
-  var $inset_clr_Wq4q_build_draw;
+  var $pos_FuQV_build_draw;
+  var $high_clr_hO5I_build_draw;
+  var $size_gF1h_build_draw;
+  var $inset_clr_jYCQ_build_draw;
   var UIButtonIcon=_ESClass("UIButtonIcon", UIButton, [function UIButtonIcon(ctx, text, icon, pos, size, path, callback, hint, use_small_icon) {
     if (path==undefined) {
         path = undefined;
@@ -220,33 +220,33 @@ es6_module_define('UIWidgets', ["UIElement", "units", "events", "UIFrame", "tool
           canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
         else 
           if (this.clicked)
-          canvas.box($pos_y48w_build_draw, $size_qrXO_build_draw, uicolors["IconInv"]);
+          canvas.box($pos_FuQV_build_draw, $size_gF1h_build_draw, uicolors["IconInv"]);
         else 
           if (this.state&UIFlags.HIGHLIGHT)
-          canvas.box($pos_y48w_build_draw, $size_qrXO_build_draw, uicolors["HighlightIcon"]);
+          canvas.box($pos_FuQV_build_draw, $size_gF1h_build_draw, uicolors["HighlightIcon"]);
         else 
-          canvas.box($pos_y48w_build_draw, this.size, uicolors["IconBox"]);
+          canvas.box($pos_FuQV_build_draw, this.size, uicolors["IconBox"]);
         return ;
     }
     var pad=this.pad;
     var isize=this.small_icon ? canvas.iconsheet16.cellsize : canvas.iconsheet.cellsize;
     if (isize[0]>this.size[0])
-      $pos_y48w_build_draw[0] = 1;
+      $pos_FuQV_build_draw[0] = 1;
     else 
-      $pos_y48w_build_draw[0] = 1;
-    $pos_y48w_build_draw[1] = 0;
-    var $size_qrXO_build_draw=this.size;
+      $pos_FuQV_build_draw[0] = 1;
+    $pos_FuQV_build_draw[1] = 0;
+    var $size_gF1h_build_draw=this.size;
     if (this.bgmode=="button") {
         if (!(this.state&UIFlags.ENABLED))
           canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
         else 
           if (this.clicked)
-          canvas.box($pos_y48w_build_draw, $size_qrXO_build_draw, uicolors["IconInv"]);
+          canvas.box($pos_FuQV_build_draw, $size_gF1h_build_draw, uicolors["IconInv"]);
         else 
           if (this.state&UIFlags.HIGHLIGHT)
-          canvas.box($pos_y48w_build_draw, $size_qrXO_build_draw, uicolors["HighlightIcon"]);
+          canvas.box($pos_FuQV_build_draw, $size_gF1h_build_draw, uicolors["HighlightIcon"]);
         else 
-          canvas.box($pos_y48w_build_draw, this.size, uicolors["IconBox"]);
+          canvas.box($pos_FuQV_build_draw, this.size, uicolors["IconBox"]);
     }
     else 
       if (this.bgmode=="flat") {
@@ -254,25 +254,25 @@ es6_module_define('UIWidgets', ["UIElement", "units", "events", "UIFrame", "tool
           canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
         else 
           if (this.clicked)
-          canvas.box($pos_y48w_build_draw, $size_qrXO_build_draw, $inset_clr_Wq4q_build_draw);
+          canvas.box($pos_FuQV_build_draw, $size_gF1h_build_draw, $inset_clr_jYCQ_build_draw);
         else 
           if (this.state&UIFlags.HIGHLIGHT)
-          canvas.box($pos_y48w_build_draw, $size_qrXO_build_draw, $high_clr_ho4q_build_draw);
+          canvas.box($pos_FuQV_build_draw, $size_gF1h_build_draw, $high_clr_hO5I_build_draw);
     }
-    if ($size_qrXO_build_draw[0]>isize[0])
-      $pos_y48w_build_draw[0]+=($size_qrXO_build_draw[0]-isize[0])*0.5;
-    if ($size_qrXO_build_draw[1]>isize[1])
-      $pos_y48w_build_draw[1]+=($size_qrXO_build_draw[1]-isize[1])*0.5;
+    if ($size_gF1h_build_draw[0]>isize[0])
+      $pos_FuQV_build_draw[0]+=($size_gF1h_build_draw[0]-isize[0])*0.5;
+    if ($size_gF1h_build_draw[1]>isize[1])
+      $pos_FuQV_build_draw[1]+=($size_gF1h_build_draw[1]-isize[1])*0.5;
     if (this.small_icon)
-      canvas.icon(this.icon, $pos_y48w_build_draw, 0.75, true);
+      canvas.icon(this.icon, $pos_FuQV_build_draw, 0.75, true);
     else 
-      canvas.icon(this.icon, $pos_y48w_build_draw, 0.75, false);
+      canvas.icon(this.icon, $pos_FuQV_build_draw, 0.75, false);
     canvas.end(this);
   }]);
-  var $pos_y48w_build_draw=[0, 0];
-  var $high_clr_ho4q_build_draw=[0.9, 0.9, 0.9, 0.2];
-  var $size_qrXO_build_draw=[0, 0];
-  var $inset_clr_Wq4q_build_draw=[0.3, 0.3, 0.3, 0.2];
+  var $pos_FuQV_build_draw=[0, 0];
+  var $high_clr_hO5I_build_draw=[0.9, 0.9, 0.9, 0.2];
+  var $size_gF1h_build_draw=[0, 0];
+  var $inset_clr_jYCQ_build_draw=[0.3, 0.3, 0.3, 0.2];
   _es6_module.add_class(UIButtonIcon);
   UIButtonIcon = _es6_module.add_export('UIButtonIcon', UIButtonIcon);
   var UIMenuButton=_ESClass("UIMenuButton", UIButtonAbstract, [function UIMenuButton(ctx, menu, pos, size, path, description) {
@@ -595,11 +595,13 @@ es6_module_define('UIWidgets', ["UIElement", "units", "events", "UIFrame", "tool
     else {
       canvas.box([2, 0], csize, undefined, 2);
     }
-    var tsize=canvas.textsize(this.text);
-    canvas.text([csize[0]+5, (this.size[1]-tsize[1])*0.25], this.text);
+    var $_let_text111=this.text!==undefined ? this.text : "(error)";
+    var tsize=canvas.textsize($_let_text111);
+    canvas.text([csize[0]+5, (this.size[1]-tsize[1])*0.25], $_let_text111);
     canvas.end(this);
   }, function get_min_size(canvas, isvertical) {
-    return (($_mh = objcache.array(2)), ($_mh[0] = (canvas.textsize(this.text)[0]+22)), ($_mh[1] = (22)), $_mh);
+    var $_let_text12=this.text!==undefined ? this.text : "(error)";
+    return (($_mh = objcache.array(2)), ($_mh[0] = (canvas.textsize($_let_text12)[0]+22)), ($_mh[1] = (22)), $_mh);
   }]);
   _es6_module.add_class(UICheckBox);
   UICheckBox = _es6_module.add_export('UICheckBox', UICheckBox);
@@ -4507,7 +4509,7 @@ es6_module_define('UIWidgets_special2', ["UIWidgets_special", "dialog", "UIPack"
   UIColorButtonField = _es6_module.add_export('UIColorButtonField', UIColorButtonField);
   window.UIColorButton = UIColorButton;
 });
-es6_module_define('UITabPanel', ["mathlib", "UIFrame", "UIWidgets", "UIElement", "UIPack"], function _UITabPanel_module(_es6_module) {
+es6_module_define('UITabPanel', ["UIWidgets", "UIElement", "mathlib", "UIFrame", "UIPack"], function _UITabPanel_module(_es6_module) {
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
   var inrect_2d=es6_import_item(_es6_module, 'mathlib', 'inrect_2d');
   var aabb_isect_2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_2d');
@@ -4634,13 +4636,13 @@ es6_module_define('UITabPanel', ["mathlib", "UIFrame", "UIWidgets", "UIElement",
         canvas.simple_box(pos, size, uicolors["HighlightTab"]);
       else 
         if (t!=this.active)
-        canvas.simple_box(pos, size, 0.85);
+        canvas.simple_box(pos, size, uicolors["InactiveTab"]);
       else {
         pos3[0] = 0;
         pos3[1] = y1;
         size2[0] = w+1;
         size2[1] = y2-y1;
-        canvas.box2(pos3, size2, uicolors["SimpleBox"]);
+        canvas.box2(pos3, size2, uicolors["ActiveTab"]);
       }
       canvas.text(pos2, t.text, uicolors["TabText"], undefined, undefined, Math.PI/2.0);
     }
@@ -4737,6 +4739,7 @@ es6_module_define('UITabPanel', ["mathlib", "UIFrame", "UIWidgets", "UIElement",
     this.content.pad[1] = 4;
     this.content.rcorner = 0.0;
     this.content.draw_background = true;
+    this.content.bgcolor = uicolors["TabPanelBG"];
     this.subframe.add(this.tabstrip);
     if (flip) {
         this.tabstrip.packflag|=PackFlags.FLIP_TABSTRIP;
@@ -4800,6 +4803,7 @@ es6_module_define('UITabPanel', ["mathlib", "UIFrame", "UIWidgets", "UIElement",
     return s;
   }, function build_draw(canvas, isVertical) {
     this.draw_background = true;
+    this.bgcolor = uicolors["TabPanelBG"];
     UIFrame.prototype.build_draw.call(this, canvas, isVertical);
     var lineclr=uicolors["TabPanelOutline"];
     var t=this.tabstrip.thickness;

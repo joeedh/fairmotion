@@ -111,11 +111,11 @@ export class UITabBar extends UIElement {
       if (t == this.highlight && t != this.active)
         canvas.simple_box(pos, size, uicolors["HighlightTab"]);
       else if (t != this.active)
-        canvas.simple_box(pos, size, 0.85);
+        canvas.simple_box(pos, size, uicolors["InactiveTab"]);
       else {
         pos3[0] = 0; pos3[1] = y1;
         size2[0] = w+1; size2[1] = y2-y1;
-        canvas.box2(pos3, size2, uicolors["SimpleBox"]);
+        canvas.box2(pos3, size2, uicolors["ActiveTab"]);
       }
       
       canvas.text(pos2, t.text, uicolors["TabText"], undefined, undefined, Math.PI/2.0);
@@ -217,7 +217,8 @@ export class UITabPanel extends UIFrame {
     this.content.pad[1] = 4;
     this.content.rcorner = 0.0;
     this.content.draw_background = true;
-    
+    this.content.bgcolor = uicolors["TabPanelBG"];
+
     this.subframe.add(this.tabstrip);
     
     if (flip) {
@@ -281,6 +282,7 @@ export class UITabPanel extends UIFrame {
     
     //canvas.simple_box(this.pos, this.size);
     this.draw_background = true;
+    this.bgcolor = uicolors["TabPanelBG"];
     super.build_draw(canvas, isVertical);
     
     var lineclr = uicolors["TabPanelOutline"];

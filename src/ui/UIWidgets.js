@@ -669,16 +669,20 @@ export class UICheckBox extends UIHoverHint {
     } else {
       canvas.box([2, 0], csize, undefined, 2);
     }
-    
-    var tsize = canvas.textsize(this.text);
-    canvas.text([csize[0]+5, (this.size[1]-tsize[1])*0.25], this.text);
+
+    let text1 = this.text !== undefined ? this.text : "(error)";
+
+    var tsize = canvas.textsize(text1);
+    canvas.text([csize[0]+5, (this.size[1]-tsize[1])*0.25], text1);
 
     canvas.end(this);
   }
 
   get_min_size(UICanvas canvas, Boolean isvertical)
   {
-    return CACHEARR2(canvas.textsize(this.text)[0]+22, 22);
+    let text = this.text !== undefined ? this.text : "(error)";
+
+    return CACHEARR2(canvas.textsize(text)[0]+22, 22);
   }
 }
 

@@ -375,14 +375,22 @@ export class UICanvas {
       cs = [clr, clr, clr, clr]
     }*/
       
-    if (clr_mul != undefined) {
+    if (clr_mul !== undefined && typeof clr_mul == "number") {
       cs = [new Vector4(cs[0]), new Vector4(cs[1]), new Vector4(cs[2]), new Vector4(cs[3])]
+
       for (var i=0; i<4; i++) {
         for (var j=0; j<4; j++) {
           cs[i][j] *= clr_mul;
         }
       }
+    } else if (clr_mul !== undefined && clr_mul instanceof Array) {
+      if (typeof clr_mul[0] == "number") {
+        cs = [clr_mul, clr_mul, clr_mul, clr_mul];
+      } else {
+        cs = [new Vector4(clr_mul[0]), new Vector4(clr_mul[1]), new Vector4(clr_mul[2]), new Vector4(clr_mul[3])]
+      }
     }
+
     this.box(pos, size, cs, r);
   }
 

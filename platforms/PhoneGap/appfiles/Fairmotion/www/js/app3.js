@@ -2196,7 +2196,7 @@ es6_module_define('transdata', ["mathlib"], function _transdata_module(_es6_modu
   TransDataType = _es6_module.add_export('TransDataType', TransDataType);
   TransDataType.selectmode = -1;
 });
-es6_module_define('transform', ["dopesheet_transdata", "selectmode", "multires_transdata", "transdata", "toolprops", "spline_types", "nacl_api", "toolops_api", "events", "mathlib"], function _transform_module(_es6_module) {
+es6_module_define('transform', ["spline_types", "events", "transdata", "toolops_api", "multires_transdata", "dopesheet_transdata", "nacl_api", "mathlib", "toolprops", "selectmode"], function _transform_module(_es6_module) {
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
   var SelMask=es6_import_item(_es6_module, 'selectmode', 'SelMask');
   var MResTransData=es6_import_item(_es6_module, 'multires_transdata', 'MResTransData');
@@ -2224,16 +2224,16 @@ es6_module_define('transform', ["dopesheet_transdata", "selectmode", "multires_t
   var clear_jobs_except_latest=es6_import_item(_es6_module, 'nacl_api', 'clear_jobs_except_latest');
   var clear_jobs_except_first=es6_import_item(_es6_module, 'nacl_api', 'clear_jobs_except_first');
   var JobTypes=es6_import_item(_es6_module, 'nacl_api', 'JobTypes');
-  var $co_FbK0_apply;
-  var $co_pPF__aabb;
+  var $co_FbQN_apply;
+  var $co_F2uR_aabb;
   var TransSplineVert=_ESClass("TransSplineVert", [_ESClass.static(function apply(ctx, td, item, mat, w) {
     var v=item.data;
     if (w==0.0)
       return ;
-    $co_FbK0_apply.load(item.start_data);
-    $co_FbK0_apply[2] = 0.0;
-    $co_FbK0_apply.multVecMatrix(mat);
-    v.load($co_FbK0_apply).sub(item.start_data).mulScalar(w).add(item.start_data);
+    $co_FbQN_apply.load(item.start_data);
+    $co_FbQN_apply[2] = 0.0;
+    $co_FbQN_apply.multVecMatrix(mat);
+    v.load($co_FbQN_apply).sub(item.start_data).mulScalar(w).add(item.start_data);
     v.flag|=SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
     if (v.type==SplineTypes.HANDLE) {
         var seg=v.owning_segment;
@@ -2279,13 +2279,17 @@ es6_module_define('transform', ["dopesheet_transdata", "selectmode", "multires_t
             if (v.hpair!=undefined) {
                 push_vert(v.hpair);
             }
-            if (v.owning_vertex.segments.length==2) {
+            if (v.owning_vertex!==undefined&&v.owning_vertex.segments.length==2) {
                 var ov=v.owning_vertex;
                 for (var j=0; j<ov.segments.length; j++) {
                     var s=ov.segments[j];
                     push_vert(s.h1);
                     push_vert(s.h2);
                 }
+            }
+            else 
+              if (v.owning_vertex===undefined) {
+                console.warn("Orphaned handle!", v.eid, v);
             }
         }
         push_vert(v);
@@ -2553,9 +2557,9 @@ es6_module_define('transform', ["dopesheet_transdata", "selectmode", "multires_t
       return ;
     if (item.data.hidden)
       return ;
-    $co_pPF__aabb.load(item.data);
-    $co_pPF__aabb[2] = 0.0;
-    minmax.minmax($co_pPF__aabb);
+    $co_F2uR_aabb.load(item.data);
+    $co_F2uR_aabb[2] = 0.0;
+    minmax.minmax($co_F2uR_aabb);
     for (var i=0; i<item.data.segments.length; i++) {
         var seg=item.data.segments[i];
         if (selected_only&&!(item.data.flag&SplineFlags.SELECT))
@@ -2566,8 +2570,8 @@ es6_module_define('transform', ["dopesheet_transdata", "selectmode", "multires_t
     }
   }), function TransSplineVert() {
   }]);
-  var $co_FbK0_apply=new Vector3();
-  var $co_pPF__aabb=new Vector3();
+  var $co_FbQN_apply=new Vector3();
+  var $co_F2uR_aabb=new Vector3();
   _es6_module.add_class(TransSplineVert);
   TransSplineVert = _es6_module.add_export('TransSplineVert', TransSplineVert);
   TransSplineVert.selectmode = SelMask.TOPOLOGY;
@@ -2649,10 +2653,10 @@ es6_module_define('transform', ["dopesheet_transdata", "selectmode", "multires_t
   }]);
   _es6_module.add_class(TransData);
   TransData = _es6_module.add_export('TransData', TransData);
-  var $min1_xCjP_post_mousemove;
-  var $min2_V2fC_post_mousemove;
-  var $max1_HM63_post_mousemove;
-  var $max2_8Kaw_post_mousemove;
+  var $min1_Yktz_post_mousemove;
+  var $min2_0Zq5_post_mousemove;
+  var $max1_Y9Ht_post_mousemove;
+  var $max2_Xx44_post_mousemove;
   var TransformOp=_ESClass("TransformOp", ToolOp, [function TransformOp(start_mpos, datamode) {
     ToolOp.call(this);
     this.types = new GArray([MResTransData, TransSplineVert]);
@@ -2748,8 +2752,8 @@ es6_module_define('transform', ["dopesheet_transdata", "selectmode", "multires_t
     }
     var ctx=this.modal_ctx;
     var minmax=md.draw_minmax;
-    $min1_xCjP_post_mousemove.load(minmax.min);
-    $max1_HM63_post_mousemove.load(minmax.max);
+    $min1_Yktz_post_mousemove.load(minmax.min);
+    $max1_Y9Ht_post_mousemove.load(minmax.max);
     minmax.reset();
     for (var i=0; i<td.types.length; i++) {
         td.types[i].calc_draw_aabb(ctx, td, minmax);
@@ -2760,12 +2764,12 @@ es6_module_define('transform', ["dopesheet_transdata", "selectmode", "multires_t
     }
     if (do_last) {
         for (var i=0; i<2; i++) {
-            $min2_V2fC_post_mousemove[i] = Math.min($min1_xCjP_post_mousemove[i], minmax.min[i]);
-            $max2_8Kaw_post_mousemove[i] = Math.max($max1_HM63_post_mousemove[i], minmax.max[i]);
+            $min2_0Zq5_post_mousemove[i] = Math.min($min1_Yktz_post_mousemove[i], minmax.min[i]);
+            $max2_Xx44_post_mousemove[i] = Math.max($max1_Y9Ht_post_mousemove[i], minmax.max[i]);
         }
     }
     else {
-      $min2_V2fC_post_mousemove.load(minmax.min), $max2_8Kaw_post_mousemove.load(minmax.max);
+      $min2_0Zq5_post_mousemove.load(minmax.min), $max2_Xx44_post_mousemove.load(minmax.max);
     }
     var found=false;
     for (var i=0; i<this.types; i++) {
@@ -2777,19 +2781,19 @@ es6_module_define('transform', ["dopesheet_transdata", "selectmode", "multires_t
     var this2=this;
     if (ctx.spline.resolve==0) {
         if (force_solve&&!ctx.spline.solving) {
-            redraw_viewport($min2_V2fC_post_mousemove, $max2_8Kaw_post_mousemove, undefined, !this2.first_viewport_redraw);
+            redraw_viewport($min2_0Zq5_post_mousemove, $max2_Xx44_post_mousemove, undefined, !this2.first_viewport_redraw);
         }
         else 
           if (force_solve) {
             ctx.spline._pending_solve.then(function() {
-              redraw_viewport($min2_V2fC_post_mousemove, $max2_8Kaw_post_mousemove, undefined, !this2.first_viewport_redraw);
+              redraw_viewport($min2_0Zq5_post_mousemove, $max2_Xx44_post_mousemove, undefined, !this2.first_viewport_redraw);
             });
         }
         return ;
     }
     if (force_solve||!ctx.spline.solving) {
         ctx.spline.solve(undefined, undefined, force_solve).then(function() {
-          redraw_viewport($min2_V2fC_post_mousemove, $max2_8Kaw_post_mousemove, undefined, !this2.first_viewport_redraw);
+          redraw_viewport($min2_0Zq5_post_mousemove, $max2_Xx44_post_mousemove, undefined, !this2.first_viewport_redraw);
         });
     }
   }, function draw_helper_lines(md, ctx) {
@@ -2855,15 +2859,15 @@ es6_module_define('transform', ["dopesheet_transdata", "selectmode", "multires_t
       t.update(ctx, this.transdata);
     }
   }]);
-  var $min1_xCjP_post_mousemove=new Vector3();
-  var $min2_V2fC_post_mousemove=new Vector3();
-  var $max1_HM63_post_mousemove=new Vector3();
-  var $max2_8Kaw_post_mousemove=new Vector3();
+  var $min1_Yktz_post_mousemove=new Vector3();
+  var $min2_0Zq5_post_mousemove=new Vector3();
+  var $max1_Y9Ht_post_mousemove=new Vector3();
+  var $max2_Xx44_post_mousemove=new Vector3();
   _es6_module.add_class(TransformOp);
   TransformOp = _es6_module.add_export('TransformOp', TransformOp);
-  var $start_oM6S_on_mousemove;
-  var $mat_P28a_exec;
-  var $off_cCf3_on_mousemove;
+  var $start_32YO_on_mousemove;
+  var $mat_LTlA_exec;
+  var $off_Em3K_on_mousemove;
   var TranslateOp=_ESClass("TranslateOp", TransformOp, [function TranslateOp(user_start_mpos, datamode) {
     TransformOp.call(this, user_start_mpos, datamode);
   }, _ESClass.static(function tooldef() {
@@ -2873,19 +2877,19 @@ es6_module_define('transform', ["dopesheet_transdata", "selectmode", "multires_t
     var md=this.modaldata;
     var ctx=this.modal_ctx;
     var td=this.transdata;
-    $start_oM6S_on_mousemove.load(md.start_mpos);
-    $off_cCf3_on_mousemove.load(md.mpos);
-    ctx.view2d.unproject($start_oM6S_on_mousemove);
-    ctx.view2d.unproject($off_cCf3_on_mousemove);
-    $off_cCf3_on_mousemove.sub($start_oM6S_on_mousemove);
-    this.inputs.translation.set_data($off_cCf3_on_mousemove);
+    $start_32YO_on_mousemove.load(md.start_mpos);
+    $off_Em3K_on_mousemove.load(md.mpos);
+    ctx.view2d.unproject($start_32YO_on_mousemove);
+    ctx.view2d.unproject($off_Em3K_on_mousemove);
+    $off_Em3K_on_mousemove.sub($start_32YO_on_mousemove);
+    this.inputs.translation.set_data($off_Em3K_on_mousemove);
     this.exec(ctx);
     this.post_mousemove(event);
   }, function exec(ctx) {
     var td=this.modal_running ? this.transdata : this.ensure_transdata(ctx);
     var off=this.inputs.translation.data;
-    $mat_P28a_exec.makeIdentity();
-    $mat_P28a_exec.translate(off[0], off[1], 0);
+    $mat_LTlA_exec.makeIdentity();
+    $mat_LTlA_exec.translate(off[0], off[1], 0);
     var __iter_d=__get_iter(td.data);
     var d;
     while (1) {
@@ -2894,7 +2898,7 @@ es6_module_define('transform', ["dopesheet_transdata", "selectmode", "multires_t
           break;
       }
       d = __ival_d.value;
-      d.type.apply(ctx, td, d, $mat_P28a_exec, d.w);
+      d.type.apply(ctx, td, d, $mat_LTlA_exec, d.w);
     }
     this.update(ctx);
     if (!this.modal_running) {
@@ -2902,14 +2906,14 @@ es6_module_define('transform', ["dopesheet_transdata", "selectmode", "multires_t
         delete this.transdata;
     }
   }]);
-  var $start_oM6S_on_mousemove=new Vector3();
-  var $mat_P28a_exec=new Matrix4();
-  var $off_cCf3_on_mousemove=new Vector3();
+  var $start_32YO_on_mousemove=new Vector3();
+  var $mat_LTlA_exec=new Matrix4();
+  var $off_Em3K_on_mousemove=new Vector3();
   _es6_module.add_class(TranslateOp);
   TranslateOp = _es6_module.add_export('TranslateOp', TranslateOp);
-  var $scale_wAS__on_mousemove;
-  var $mat_1nwP_exec;
-  var $off_qGTC_on_mousemove;
+  var $scale_Xg9y_on_mousemove;
+  var $mat_qlQj_exec;
+  var $off_rR74_on_mousemove;
   var ScaleOp=_ESClass("ScaleOp", TransformOp, [function ScaleOp(user_start_mpos, datamode) {
     TransformOp.call(this, user_start_mpos, datamode);
   }, _ESClass.static(function tooldef() {
@@ -2919,21 +2923,21 @@ es6_module_define('transform', ["dopesheet_transdata", "selectmode", "multires_t
     var md=this.modaldata;
     var ctx=this.modal_ctx;
     var td=this.transdata;
-    var l1=$off_qGTC_on_mousemove.load(md.mpos).sub(td.scenter).vectorLength();
-    var l2=$off_qGTC_on_mousemove.load(md.start_mpos).sub(td.scenter).vectorLength();
-    $scale_wAS__on_mousemove[0] = $scale_wAS__on_mousemove[1] = l1/l2;
-    $scale_wAS__on_mousemove[2] = 1.0;
-    this.inputs.scale.set_data($scale_wAS__on_mousemove);
+    var l1=$off_rR74_on_mousemove.load(md.mpos).sub(td.scenter).vectorLength();
+    var l2=$off_rR74_on_mousemove.load(md.start_mpos).sub(td.scenter).vectorLength();
+    $scale_Xg9y_on_mousemove[0] = $scale_Xg9y_on_mousemove[1] = l1/l2;
+    $scale_Xg9y_on_mousemove[2] = 1.0;
+    this.inputs.scale.set_data($scale_Xg9y_on_mousemove);
     this.exec(ctx);
     this.post_mousemove(event);
   }, function exec(ctx) {
     var td=this.modal_running ? this.transdata : this.ensure_transdata(ctx);
     var scale=this.inputs.scale.data;
     var cent=td.center;
-    $mat_1nwP_exec.makeIdentity();
-    $mat_1nwP_exec.translate(cent[0], cent[1], 0);
-    $mat_1nwP_exec.scale(scale[0], scale[1], scale[2]);
-    $mat_1nwP_exec.translate(-cent[0], -cent[1], 0);
+    $mat_qlQj_exec.makeIdentity();
+    $mat_qlQj_exec.translate(cent[0], cent[1], 0);
+    $mat_qlQj_exec.scale(scale[0], scale[1], scale[2]);
+    $mat_qlQj_exec.translate(-cent[0], -cent[1], 0);
     var __iter_d=__get_iter(td.data);
     var d;
     while (1) {
@@ -2942,7 +2946,7 @@ es6_module_define('transform', ["dopesheet_transdata", "selectmode", "multires_t
           break;
       }
       d = __ival_d.value;
-      d.type.apply(ctx, td, d, $mat_1nwP_exec, d.w);
+      d.type.apply(ctx, td, d, $mat_qlQj_exec, d.w);
     }
     this.update(ctx);
     if (!this.modal_running) {
@@ -2950,13 +2954,13 @@ es6_module_define('transform', ["dopesheet_transdata", "selectmode", "multires_t
         delete this.transdata;
     }
   }]);
-  var $scale_wAS__on_mousemove=new Vector3();
-  var $mat_1nwP_exec=new Matrix4();
-  var $off_qGTC_on_mousemove=new Vector3();
+  var $scale_Xg9y_on_mousemove=new Vector3();
+  var $mat_qlQj_exec=new Matrix4();
+  var $off_rR74_on_mousemove=new Vector3();
   _es6_module.add_class(ScaleOp);
   ScaleOp = _es6_module.add_export('ScaleOp', ScaleOp);
-  var $off_fYJd_on_mousemove;
-  var $mat_aMgv_exec;
+  var $off_Lq_a_on_mousemove;
+  var $mat_yYSn_exec;
   var RotateOp=_ESClass("RotateOp", TransformOp, [function RotateOp(user_start_mpos, datamode) {
     this.angle_sum = 0.0;
     TransformOp.call(this, user_start_mpos, datamode, "rotate", "Rotate");
@@ -2968,8 +2972,8 @@ es6_module_define('transform', ["dopesheet_transdata", "selectmode", "multires_t
     var ctx=this.modal_ctx;
     var td=this.transdata;
     this.reset_drawlines();
-    var l1=$off_fYJd_on_mousemove.load(md.mpos).sub(td.scenter).vectorLength();
-    var l2=$off_fYJd_on_mousemove.load(md.start_mpos).sub(td.scenter).vectorLength();
+    var l1=$off_Lq_a_on_mousemove.load(md.mpos).sub(td.scenter).vectorLength();
+    var l2=$off_Lq_a_on_mousemove.load(md.start_mpos).sub(td.scenter).vectorLength();
     var dl=this.new_drawline(md.mpos, td.scenter);
     ctx.view2d.unproject(dl.v1), ctx.view2d.unproject(dl.v2);
     var angle=Math.atan2(md.start_mpos[0]-td.scenter[0], md.start_mpos[1]-td.scenter[1])-Math.atan2(md.mpos[0]-td.scenter[0], md.mpos[1]-td.scenter[1]);
@@ -2981,10 +2985,10 @@ es6_module_define('transform', ["dopesheet_transdata", "selectmode", "multires_t
   }, function exec(ctx) {
     var td=this.modal_running ? this.transdata : this.ensure_transdata(ctx);
     var cent=td.center;
-    $mat_aMgv_exec.makeIdentity();
-    $mat_aMgv_exec.translate(cent[0], cent[1], 0);
-    $mat_aMgv_exec.rotate(this.inputs.angle.data, 0, 0, 1);
-    $mat_aMgv_exec.translate(-cent[0], -cent[1], 0);
+    $mat_yYSn_exec.makeIdentity();
+    $mat_yYSn_exec.translate(cent[0], cent[1], 0);
+    $mat_yYSn_exec.rotate(this.inputs.angle.data, 0, 0, 1);
+    $mat_yYSn_exec.translate(-cent[0], -cent[1], 0);
     var __iter_d=__get_iter(td.data);
     var d;
     while (1) {
@@ -2993,7 +2997,7 @@ es6_module_define('transform', ["dopesheet_transdata", "selectmode", "multires_t
           break;
       }
       d = __ival_d.value;
-      d.type.apply(ctx, td, d, $mat_aMgv_exec, d.w);
+      d.type.apply(ctx, td, d, $mat_yYSn_exec, d.w);
     }
     this.update(ctx);
     if (!this.modal_running) {
@@ -3001,8 +3005,8 @@ es6_module_define('transform', ["dopesheet_transdata", "selectmode", "multires_t
         delete this.transdata;
     }
   }]);
-  var $off_fYJd_on_mousemove=new Vector3();
-  var $mat_aMgv_exec=new Matrix4();
+  var $off_Lq_a_on_mousemove=new Vector3();
+  var $mat_yYSn_exec=new Matrix4();
   _es6_module.add_class(RotateOp);
   RotateOp = _es6_module.add_export('RotateOp', RotateOp);
 });
@@ -6269,7 +6273,7 @@ es6_module_define('theme', ["struct"], function _theme_module(_es6_module) {
   _es6_module.add_class(ColorTheme);
   ColorTheme = _es6_module.add_export('ColorTheme', ColorTheme);
   ColorTheme.STRUCT = "\n  ColorTheme {\n    colorkeys : array(string) | obj.colors.keys();\n    colorvals : array(vec4) | obj.colors.values();\n    boxkeys : array(string) | obj.boxcolors.keys();\n    boxvals : array(abstract(BoxColor)) | obj.boxcolors.values();\n  }\n";
-  window.menu_text_size = IsMobile ? 14 : 10;
+  window.menu_text_size = IsMobile ? 14 : 14;
   window.default_ui_font_size = 16;
   window.ui_hover_time = 800;
   function ui_weight_clr(clr, weights) {
@@ -6296,7 +6300,7 @@ es6_module_define('theme', ["struct"], function _theme_module(_es6_module) {
   }]);
   _es6_module.add_class(Theme);
   Theme = _es6_module.add_export('Theme', Theme);
-  Theme.STRUCT = "\n  Theme {\n    ui : ColorTheme;\n  }\n";
+  Theme.STRUCT = "\n  Theme {\n    ui     : ColorTheme;\n    view2d : ColorTheme;\n  }\n";
   
   window.init_theme = function() {
     window.g_theme = new Theme(window.UITheme, window.View2DTheme);
@@ -6307,10 +6311,14 @@ es6_module_define('theme_def', ["theme"], function _theme_def_module(_es6_module
   "use strict";
   var ColorTheme=es6_import_item(_es6_module, 'theme', 'ColorTheme');
   var ui_weight_clr=es6_import_item(_es6_module, 'theme', 'ui_weight_clr');
-  window.UITheme = new ColorTheme({"ErrorText": [1, 0.20000000298023224, 0.20000000298023224, 0.8899999856948853], "ListBoxText": [0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1], "Highlight": [1, 0, 0, 1], "MenuHighlight": [0.6476190686225891, 0.7124781012535095, 0.9066666960716248, 1], "RadialMenu": [1, 0, 0, 1], "RadialMenuHighlight": [0.7831560373306274, 0.7664570808410645, 0.3468262255191803, 0.7717778086662292], "DefaultLine": [0.4163331985473633, 0.3746998906135559, 0.3746998906135559, 1], "SelectLine": [0.699999988079071, 0.699999988079071, 0.699999988079071, 1], "Check": [0.8999999761581421, 0.699999988079071, 0.4000000059604645, 1], "Arrow": [0.4000000059604645, 0.4000000059604645, 0.4000000059604645, 1], "DefaultText": [0, 0, 0, 1], "BoxText": [0, 0, 0, 1], "HotkeyText": [0.43986162543296814, 0.43986162543296814, 0.43986162543296814, 1], "HighlightCursor": [0.8999999761581421, 0.8999999761581421, 0.8999999761581421, 0.875], "TextSelect": [0.4000000059604645, 0.4000000059604645, 0.4000000059604645, 0.75], "TextEditCursor": [0.10000000149011612, 0.10000000149011612, 0.10000000149011612, 1], "TextBoxHighlight": [0.5270000100135803, 0.5270000100135803, 0.5270000100135803, 1], "MenuSep": [0.6901277303695679, 0.6901277303695679, 0.6901277303695679, 1], "MenuBorder": [0.6499999761581421, 0.6499999761581421, 0.6499999761581421, 1], "RadialMenuSep": [0.10000000149011612, 0.20000000298023224, 0.20000000298023224, 1], "TabPanelOutline": [0.07333333045244217, 0.07333333045244217, 0.07333333045244217, 0.800000011920929], "TabText": [0.7699999809265137, 0.7699999809265137, 0.7699999809265137, 1], "IconBox": [1, 1, 1, 0.17968888580799103], "HighlightTab": [1, 1, 1, 0.8999999761581421], "HighlightIcon": [0.30000001192092896, 0.8149344325065613, 1, 0.21444444358348846], "MenuText": [0.10000000149011612, 0.10000000149011612, 0.10000000149011612, 1], "MenuTextHigh": [0.9330000281333923, 0.9330000281333923, 0.9330000281333923, 1], "PanelText": [0, 0, 0, 1], "DialogText": [0.05000003054738045, 0.05000000447034836, 0.05000000447034836, 1], "DialogBorder": [0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1], "DisabledBox": [0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1], "IconCheckBG": [0.6879922747612, 0.6879922747612, 0.6879922747612, 1], "IconCheckSet": [0, 0, 0, 1], "IconCheckUnset": [0.34641016151377546, 0.34641016151377546, 0.34641016151377546, 1], "NoteBox": ui_weight_clr([0.6000000238418579, 0.6000000238418579, 0.6000000238418579, 1], [1, 1, 1, 1]), "Box": ui_weight_clr([0.8763743042945862, 0.8763743042945862, 0.8763743042945862, 0.8999999761581421], [0.8530666828155518, 0.9299111366271973, 1, 1]), "HoverHint": ui_weight_clr([1, 0.9769999980926514, 0.8930000066757202, 0.8999999761581421], [0.8999999761581421, 0.8999999761581421, 1, 1]), "ErrorBox": ui_weight_clr([1, 0.30000001192092896, 0.20000000298023224, 1], [1, 1, 1, 1]), "ErrorTextBG": ui_weight_clr([1, 1, 1, 1], [0.8999999761581421, 0.8999999761581421, 1, 1]), "ShadowBox": ui_weight_clr([0, 0, 0, 0.10000000149011612], [1, 1, 1, 1]), "ProgressBar": ui_weight_clr([0.4000000059604645, 0.7300000190734863, 0.8999999761581421, 0.8999999761581421], [0.75, 0.75, 1, 1]), "ProgressBarBG": ui_weight_clr([0.699999988079071, 0.699999988079071, 0.699999988079071, 0.699999988079071], [1, 1, 1, 1]), "WarningBox": ui_weight_clr([1, 0.800000011920929, 0.10000000149011612, 0.8999999761581421], [0.699999988079071, 0.800000011920929, 1.0499999523162842, 1]), "ListBoxBG": ui_weight_clr([0.8999999761581421, 0.8999999761581421, 0.8999999761581421, 0.8999999761581421], [1, 1, 1, 1]), "InvBox": ui_weight_clr([0.6690419912338257, 0.7471543550491333, 0.8144859075546265, 1], [0.8232888579368591, 0.699999988079071, 0.699999988079071, 0.699999988079071]), "HLightBox": ui_weight_clr([0.79569011926651, 0.8727325201034546, 0.8771386742591858, 0.8999999761581421], [0.8500000238418579, 0.8500000238418579, 1, 1]), "ActivePanel": ui_weight_clr([0.800000011920929, 0.4000000059604645, 0.30000001192092896, 0.8999999761581421], [1, 1, 1, 1]), "CollapsingPanel": ui_weight_clr([0.487468421459198, 0.487468421459198, 0.487468421459198, 1], [1, 1, 1, 1]), "SimpleBox": ui_weight_clr([0.5477339625358582, 0.5477339625358582, 0.5477339625358582, 1], [1, 1, 1, 1]), "DialogBox": ui_weight_clr([0.7269999980926514, 0.7269999980926514, 0.7269999980926514, 1], [1, 1, 1, 1]), "DialogTitle": ui_weight_clr([0.6299999952316284, 0.6299999952316284, 0.6299999952316284, 1], [1, 1, 1, 1]), "MenuBox": ui_weight_clr([0.9200000166893005, 0.9200000166893005, 0.9200000166893005, 1], [1, 1, 1, 1]), "TextBox": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 0.8999999761581421], [1, 1, 1, 1]), "TextBoxInv": ui_weight_clr([0.699999988079071, 0.699999988079071, 0.699999988079071, 1], [0.699999988079071, 0.699999988079071, 0.699999988079071, 1]), "MenuLabel": ui_weight_clr([0.9044828414916992, 0.8657192587852478, 0.8657192587852478, 0.24075555801391602], [0.6000000238418579, 0.6000000238418579, 0.6000000238418579, 0.8999999761581421]), "MenuLabelInv": ui_weight_clr([0.75, 0.75, 0.75, 0.47111111879348755], [1, 1, 0.9410666823387146, 1]), "ScrollBG": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 1], [1, 1, 1, 1]), "ScrollBar": ui_weight_clr([0.5919697284698486, 0.5919697284698486, 0.5919697284698486, 1], [1, 1, 1, 1]), "ScrollBarHigh": ui_weight_clr([0.6548083424568176, 0.6548083424568176, 0.6548083424568176, 1], [1, 1, 1, 1]), "ScrollButton": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 1], [1, 1, 1, 1]), "ScrollButtonHigh": ui_weight_clr([0.75, 0.75, 0.75, 1], [1, 1, 1, 1]), "ScrollInv": ui_weight_clr([0.4000000059604645, 0.4000000059604645, 0.4000000059604645, 1], [1, 1, 1, 1]), "IconInv": ui_weight_clr([0.48299384117126465, 0.5367956161499023, 0.8049896955490112, 0.4000000059604645], [1, 1, 1, 1])});
+  var BoxColor4=es6_import_item(_es6_module, 'theme', 'BoxColor4');
+  function uniformbox4(clr) {
+    return new BoxColor4([clr, clr, clr, clr]);
+  }
+  window.UITheme = new ColorTheme({"ErrorText": [1, 0.20000000298023224, 0.20000000298023224, 0.8899999856948853], "ListBoxText": [0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1], "Highlight": uniformbox4([0.56862, 0.7882, 0.9602, 1.0]), "MenuHighlight": [0.56862, 0.7882, 0.9602, 1.0], "RadialMenu": [1, 0, 0, 1], "RadialMenuHighlight": [0.7831560373306274, 0.7664570808410645, 0.3468262255191803, 0.7717778086662292], "DefaultLine": [0.4163331985473633, 0.3746998906135559, 0.3746998906135559, 1], "SelectLine": [0.699999988079071, 0.699999988079071, 0.699999988079071, 1], "Check": [0.8999999761581421, 0.699999988079071, 0.4000000059604645, 1], "Arrow": [0.4000000059604645, 0.4000000059604645, 0.4000000059604645, 1], "DefaultText": [0, 0, 0, 1], "BoxText": [0, 0, 0, 1], "HotkeyText": [0.43986162543296814, 0.43986162543296814, 0.43986162543296814, 1], "HighlightCursor": [0.8999999761581421, 0.8999999761581421, 0.8999999761581421, 0.875], "TextSelect": [0.4000000059604645, 0.4000000059604645, 0.4000000059604645, 0.75], "TextEditCursor": [0.10000000149011612, 0.10000000149011612, 0.10000000149011612, 1], "TextBoxHighlight": [0.5270000100135803, 0.5270000100135803, 0.5270000100135803, 1], "MenuSep": [0.6901277303695679, 0.6901277303695679, 0.6901277303695679, 1], "MenuBorder": [0.6499999761581421, 0.6499999761581421, 0.6499999761581421, 1], "RadialMenuSep": [0.10000000149011612, 0.20000000298023224, 0.20000000298023224, 1], "TabPanelOutline": [0.4, 0.4, 0.4, 1.0], "TabPanelBG": [0.78, 0.78, 0.78, 1.0], "ActiveTab": [0.78, 0.78, 0.78, 1.0], "HighlightTab": [0.56862, 0.7882, 0.9602, 0.9], "InactiveTab": [0.6, 0.6, 0.6, 1.0], "TabText": [0.0, 0.0, 0.0, 1.0], "IconBox": [1, 1, 1, 0.17968888580799103], "HighlightIcon": [0.30000001192092896, 0.8149344325065613, 1, 0.21444444358348846], "MenuText": [0.10000000149011612, 0.10000000149011612, 0.10000000149011612, 1], "MenuTextHigh": [0.9330000281333923, 0.9330000281333923, 0.9330000281333923, 1], "PanelText": [0, 0, 0, 1], "DialogText": [0.05000003054738045, 0.05000000447034836, 0.05000000447034836, 1], "DialogBorder": [0.40000000298023225, 0.4000000298023224, 0.40000000298023225, 1], "DisabledBox": [0.5000000029802323, 0.5000000029802323, 0.5000000029802323, 1], "IconCheckBG": [0.6879922747612, 0.6879922747612, 0.6879922747612, 1], "IconCheckSet": [0.6, 0.6, 0.6, 1], "IconCheckUnset": [0.44641016151377544, 0.44641016151377544, 0.44641016151377544, 1], "NoteBox": ui_weight_clr([0.8, 0.8, 0.8, 1.0], [0.8, 0.8, 0.8, 1.0]), "Box": ui_weight_clr([0.94, 0.94, 0.94, 1.0], [0.8, 0.8, 0.8, 1.0]), "HoverHint": ui_weight_clr([1, 0.9769999980926514, 0.8930000066757202, 0.8999999761581421], [0.8999999761581421, 0.8999999761581421, 1, 1]), "ErrorBox": ui_weight_clr([1, 0.30000001192092896, 0.20000000298023224, 1], [1, 1, 1, 1]), "ErrorTextBG": ui_weight_clr([1, 1, 1, 1], [0.8999999761581421, 0.8999999761581421, 1, 1]), "ShadowBox": ui_weight_clr([0, 0, 0, 0.10000000149011612], [1, 1, 1, 1]), "ProgressBar": ui_weight_clr([0.4000000059604645, 0.7300000190734863, 0.8999999761581421, 0.8999999761581421], [0.75, 0.75, 1, 1]), "ProgressBarBG": ui_weight_clr([0.699999988079071, 0.699999988079071, 0.699999988079071, 0.699999988079071], [1, 1, 1, 1]), "WarningBox": ui_weight_clr([1, 0.800000011920929, 0.10000000149011612, 0.8999999761581421], [0.699999988079071, 0.800000011920929, 1.0499999523162842, 1]), "ListBoxBG": ui_weight_clr([0.94, 0.94, 0.94, 1.0], [0.94, 0.94, 0.94, 1.0]), "InvBox": ui_weight_clr([0.6, 0.6, 0.6, 1.0], [0.6, 0.6, 0.6, 1.0]), "HLightBox": uniformbox4([0.56862, 0.7882, 0.9602, 1.0]), "ActivePanel": ui_weight_clr([0.800000011920929, 0.4000000059604645, 0.30000001192092896, 0.8999999761581421], [1, 1, 1, 1]), "CollapsingPanel": ui_weight_clr([0.687468421459198, 0.687468421459198, 0.687468421459198, 1], [1, 1, 1, 1]), "SimpleBox": ui_weight_clr([0.94, 0.94, 0.94, 1.0], [0.94, 0.94, 0.94, 1.0]), "DialogBox": ui_weight_clr([0.7269999980926514, 0.7269999980926514, 0.7269999980926514, 1], [1, 1, 1, 1]), "DialogTitle": ui_weight_clr([0.6299999952316284, 0.6299999952316284, 0.6299999952316284, 1], [1, 1, 1, 1]), "MenuBox": ui_weight_clr([0.9200000166893005, 0.9200000166893005, 0.9200000166893005, 1], [1, 1, 1, 1]), "TextBox": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 0.8999999761581421], [1, 1, 1, 1]), "TextBoxInv": ui_weight_clr([0.699999988079071, 0.699999988079071, 0.699999988079071, 1], [0.699999988079071, 0.699999988079071, 0.699999988079071, 1]), "MenuLabel": ui_weight_clr([0.9044828414916992, 0.8657192587852478, 0.8657192587852478, 0.24075555801391602], [0.6000000238418579, 0.6000000238418579, 0.6000000238418579, 0.8999999761581421]), "MenuLabelInv": ui_weight_clr([0.75, 0.75, 0.75, 0.47111111879348755], [1, 1, 0.9410666823387146, 1]), "ScrollBG": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 1], [1, 1, 1, 1]), "ScrollBar": ui_weight_clr([0.5919697284698486, 0.5919697284698486, 0.5919697284698486, 1], [1, 1, 1, 1]), "ScrollBarHigh": ui_weight_clr([0.6548083424568176, 0.6548083424568176, 0.6548083424568176, 1], [1, 1, 1, 1]), "ScrollButton": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 1], [1, 1, 1, 1]), "ScrollButtonHigh": ui_weight_clr([0.75, 0.75, 0.75, 1], [1, 1, 1, 1]), "ScrollInv": ui_weight_clr([0.4000000059604645, 0.4000000059604645, 0.4000000059604645, 1], [1, 1, 1, 1]), "IconInv": ui_weight_clr([0.48299384117126465, 0.5367956161499023, 0.8049896955490112, 0.4000000059604645], [1, 1, 1, 1])});
   window.View2DTheme = new ColorTheme({"Background": [1, 1, 1, 1], "ActiveObject": [0.800000011920929, 0.6000000238418579, 0.30000001192092896, 1], "Selection": [0.699999988079071, 0.4000000059604645, 0.10000000149011612, 1], "GridLineBold": [0.38, 0.38, 0.38, 1.0], "GridLine": [0.5, 0.5, 0.5, 1.0], "AxisX": [0.9, 0.0, 0.0, 1.0], "AxisY": [0.0, 0.9, 0.0, 1.0], "AxisZ": [0.0, 0.0, 0.9, 1.0]});
 });
-es6_module_define('UIElement', ["toolprops", "events", "mathlib"], function _UIElement_module(_es6_module) {
+es6_module_define('UIElement', ["toolprops", "mathlib", "events"], function _UIElement_module(_es6_module) {
   es6_import(_es6_module, 'events');
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
   var inrect_2d=es6_import_item(_es6_module, 'mathlib', 'inrect_2d');
@@ -6340,24 +6348,24 @@ es6_module_define('UIElement', ["toolprops", "events", "mathlib"], function _UIE
       end_keyboard(e);
   }
   close_mobile_keyboard = _es6_module.add_export('close_mobile_keyboard', close_mobile_keyboard);
-  var $pos2_SJnq_inrect_2d_button=new Vector2();
-  var $size2_M4UV_inrect_2d_button=new Vector2();
+  var $pos2_gOhq_inrect_2d_button=new Vector2();
+  var $size2_6STe_inrect_2d_button=new Vector2();
   function inrect_2d_button(p, pos, size) {
     if (g_app_state.was_touch) {
-        $pos2_SJnq_inrect_2d_button.load(pos);
-        $size2_M4UV_inrect_2d_button.load(size);
-        $pos2_SJnq_inrect_2d_button.subScalar(fuzzy_ui_press_hotspot);
-        $size2_M4UV_inrect_2d_button.addScalar(fuzzy_ui_press_hotspot*2.0);
-        return inrect_2d(p, $pos2_SJnq_inrect_2d_button, $size2_M4UV_inrect_2d_button);
+        $pos2_gOhq_inrect_2d_button.load(pos);
+        $size2_6STe_inrect_2d_button.load(size);
+        $pos2_gOhq_inrect_2d_button.subScalar(fuzzy_ui_press_hotspot);
+        $size2_6STe_inrect_2d_button.addScalar(fuzzy_ui_press_hotspot*2.0);
+        return inrect_2d(p, $pos2_gOhq_inrect_2d_button, $size2_6STe_inrect_2d_button);
     }
     else {
       return inrect_2d(p, pos, size);
     }
   }
   inrect_2d_button = _es6_module.add_export('inrect_2d_button', inrect_2d_button);
-  var $empty_arr_MM_q_get_keymaps;
-  var $pos_D1Q9_get_abs_pos;
-  var $ret_vxZh_get_min_size;
+  var $empty_arr_FLfR_get_keymaps;
+  var $pos_PFjJ_get_abs_pos;
+  var $ret_jada_get_min_size;
   var UIElement=_ESClass("UIElement", EventHandler, [function UIElement(ctx, path, pos, size) {
     if (path==undefined) {
         path = undefined;
@@ -6412,7 +6420,7 @@ es6_module_define('UIElement', ["toolprops", "events", "mathlib"], function _UIE
       this.do_recalc();
     this.state|=UIFlags.ENABLED;
   }, function get_keymaps() {
-    return $empty_arr_MM_q_get_keymaps;
+    return $empty_arr_FLfR_get_keymaps;
   }, _ESClass.symbol(Symbol.keystr, function keystr() {
     if (this._h12==undefined) {
         var n=this.constructor.name;
@@ -6502,15 +6510,15 @@ es6_module_define('UIElement', ["toolprops", "events", "mathlib"], function _UIE
     if (this.parent!=undefined)
       this.parent.focus(this);
   }, function get_abs_pos() {
-    $pos_D1Q9_get_abs_pos[0] = this.pos[0];
-    $pos_D1Q9_get_abs_pos[1] = this.pos[1];
+    $pos_PFjJ_get_abs_pos[0] = this.pos[0];
+    $pos_PFjJ_get_abs_pos[1] = this.pos[1];
     var p=this.parent;
     while (p!=undefined) {
-      $pos_D1Q9_get_abs_pos[0]+=p.pos[0];
-      $pos_D1Q9_get_abs_pos[1]+=p.pos[1];
+      $pos_PFjJ_get_abs_pos[0]+=p.pos[0];
+      $pos_PFjJ_get_abs_pos[1]+=p.pos[1];
       p = p.parent;
     }
-    return $pos_D1Q9_get_abs_pos;
+    return $pos_PFjJ_get_abs_pos;
   }, function call_menu(menu, off, min_width) {
     if (off==undefined) {
         off = undefined;
@@ -6698,7 +6706,7 @@ es6_module_define('UIElement', ["toolprops", "events", "mathlib"], function _UIE
     }
     return this._minsize;
   }, function get_min_size(canvas, isvertical) {
-    return $ret_vxZh_get_min_size;
+    return $ret_jada_get_min_size;
   }, function build_draw(canvas, isvertical) {
   }, function on_active() {
   }, function on_inactive() {
@@ -6707,9 +6715,9 @@ es6_module_define('UIElement', ["toolprops", "events", "mathlib"], function _UIE
   }, function on_add(parent) {
   }, function on_remove(parent) {
   }]);
-  var $empty_arr_MM_q_get_keymaps=[];
-  var $pos_D1Q9_get_abs_pos=[0, 0];
-  var $ret_vxZh_get_min_size=[1, 1];
+  var $empty_arr_FLfR_get_keymaps=[];
+  var $pos_PFjJ_get_abs_pos=[0, 0];
+  var $ret_jada_get_min_size=[1, 1];
   _es6_module.add_class(UIElement);
   UIElement = _es6_module.add_export('UIElement', UIElement);
   var UIHoverBox=_ESClass("UIHoverBox", UIElement, [function UIHoverBox(ctx, text, is_modal, pos, size) {
@@ -6950,7 +6958,7 @@ es6_module_define('UIFileData', ["struct"], function _UIFileData_module(_es6_mod
     console.log("-JSONlen", LZString.compress(JSON.stringify(a.obj)).length);
   }
 });
-es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_module(_es6_module) {
+es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_module(_es6_module) {
   "use strict";
   var rot2d=es6_import_item(_es6_module, 'mathlib', 'rot2d');
   var inrect_2d=es6_import_item(_es6_module, 'mathlib', 'inrect_2d');
@@ -6985,38 +6993,38 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
     }
     return cs;
   }
-  var $ret_I2Hk_get_2d_canvas={}
+  var $ret_RFnu_get_2d_canvas={}
   function get_2d_canvas() {
-    if ($ret_I2Hk_get_2d_canvas.canvas==undefined) {
-        $ret_I2Hk_get_2d_canvas.canvas = document.getElementById("canvas2d");
-        $ret_I2Hk_get_2d_canvas.ctx = _canvas2d_ctx;
+    if ($ret_RFnu_get_2d_canvas.canvas==undefined) {
+        $ret_RFnu_get_2d_canvas.canvas = document.getElementById("canvas2d");
+        $ret_RFnu_get_2d_canvas.ctx = _canvas2d_ctx;
     }
-    return $ret_I2Hk_get_2d_canvas;
+    return $ret_RFnu_get_2d_canvas;
   }
   get_2d_canvas = _es6_module.add_export('get_2d_canvas', get_2d_canvas);
   window.get_2d_canvas = get_2d_canvas;
-  var $ret_1wlv_get_2d_canvas_2={}
+  var $ret_ubtP_get_2d_canvas_2={}
   function get_2d_canvas_2() {
-    if ($ret_1wlv_get_2d_canvas_2.canvas==undefined) {
-        $ret_1wlv_get_2d_canvas_2.canvas = document.getElementById("canvas2d_work");
-        $ret_1wlv_get_2d_canvas_2.ctx = _canvas2d_ctx_2;
+    if ($ret_ubtP_get_2d_canvas_2.canvas==undefined) {
+        $ret_ubtP_get_2d_canvas_2.canvas = document.getElementById("canvas2d_work");
+        $ret_ubtP_get_2d_canvas_2.ctx = _canvas2d_ctx_2;
     }
-    return $ret_1wlv_get_2d_canvas_2;
+    return $ret_ubtP_get_2d_canvas_2;
   }
   get_2d_canvas_2 = _es6_module.add_export('get_2d_canvas_2', get_2d_canvas_2);
   window.get_2d_canvas_2 = get_2d_canvas_2;
   window._ui_canvas_2d_idgen = 1;
-  var $temp_layer_idgen_94EP_push_layer;
-  var $black_kg8g_quad;
-  var $grads_u8FZ_quad;
-  var $mid_Te_Q_colorfield;
-  var $cache_C3nt_box1;
-  var $v1_ULB0_box1;
-  var $v3_ejqB_box1;
-  var $pairs_BViR_box1;
-  var $pos_Mt5r_text;
-  var $v2_BIwF_box1;
-  var $v4_bqXW_box1;
+  var $temp_layer_idgen_Q0np_push_layer;
+  var $black_KuvY_quad;
+  var $grads_pVXQ_quad;
+  var $mid_IVRi_colorfield;
+  var $cache_lN9__box1;
+  var $v1_O1rr_box1;
+  var $v3_a8pc_box1;
+  var $pairs_MDx2_box1;
+  var $pos_JikP_text;
+  var $v2_bNP1_box1;
+  var $v4_I7Ys_box1;
   var UICanvas=_ESClass("UICanvas", [function UICanvas(viewport) {
     var c=get_2d_canvas();
     this.canvas = c.canvas;
@@ -7137,7 +7145,7 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
   }, function push_layer() {
     this.layerstack.push([this.canvas, this.ctx]);
     var canvas=document.createElement("canvas");
-    canvas.id = "_temp_canvas2d_"+($temp_layer_idgen_94EP_push_layer++);
+    canvas.id = "_temp_canvas2d_"+($temp_layer_idgen_Q0np_push_layer++);
     document.body.appendChild(canvas);
     canvas.style["position"] = "absolute";
     canvas.style["left"] = "0px";
@@ -7225,12 +7233,21 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
     this.box(pos, size, cs, r);
   }, function hlightbox(pos, size, clr_mul, r) {
     var cs=uicolors["HLightBox"];
-    if (clr_mul!=undefined) {
+    if (clr_mul!==undefined&&typeof clr_mul=="number") {
         cs = [new Vector4(cs[0]), new Vector4(cs[1]), new Vector4(cs[2]), new Vector4(cs[3])];
         for (var i=0; i<4; i++) {
             for (var j=0; j<4; j++) {
                 cs[i][j]*=clr_mul;
             }
+        }
+    }
+    else 
+      if (clr_mul!==undefined&&__instance_of(clr_mul, Array)) {
+        if (typeof clr_mul[0]=="number") {
+            cs = [clr_mul, clr_mul, clr_mul, clr_mul];
+        }
+        else {
+          cs = [new Vector4(clr_mul[0]), new Vector4(clr_mul[1]), new Vector4(clr_mul[2]), new Vector4(clr_mul[3])];
         }
     }
     this.box(pos, size, cs, r);
@@ -7244,7 +7261,7 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
     var ctx=this.ctx;
     var v=g_app_state.raster.viewport;
     if (c1==undefined) {
-        c1 = $black_kg8g_quad;
+        c1 = $black_KuvY_quad;
     }
     if (c2==undefined) {
         c2 = c1;
@@ -7263,7 +7280,7 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
         hash+=c1[i]+","+c2[i]+","+c3[i]+","+c4[i];
     }
     var grad;
-    if (1||!(hash in $grads_u8FZ_quad)) {
+    if (1||!(hash in $grads_pVXQ_quad)) {
         var min=[v1[0], v1[1]], max=[v1[0], v1[1]];
         for (var i=0; i<2; i++) {
             min[i] = Math.min(min[i], v1[i]);
@@ -7289,7 +7306,7 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
               grad = ctx.createLinearGradient(min[0], min[1]*0.5+max[1]*0.5, max[0], min[1]*0.5+max[1]*0.5);
             else 
               grad = ctx.createLinearGradient(min[0]*0.5+max[0]*0.5, min[1], min[0]*0.5+max[0]*0.5, max[1]);
-            $grads_u8FZ_quad[hash] = grad;
+            $grads_pVXQ_quad[hash] = grad;
             grad.addColorStop(0.0, this._css_color(c1));
             grad.addColorStop(1.0, this._css_color(c3));
           }
@@ -7300,7 +7317,7 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
         }
     }
     else {
-      grad = $grads_u8FZ_quad[hash];
+      grad = $grads_pVXQ_quad[hash];
     }
     if (grad!=undefined)
       ctx.fillStyle = grad;
@@ -7311,29 +7328,29 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
     ctx.lineTo(v4[0]+x+v[0][0], canvas.height-(v4[1]+y+v[0][1]));
     ctx.fill();
   }, function colorfield(pos, size, color) {
-    $mid_Te_Q_colorfield[3] = 1.0;
+    $mid_IVRi_colorfield[3] = 1.0;
     for (var i=0; i<3; i++) {
         if (color[i]==0.0)
-          $mid_Te_Q_colorfield[i] = 0.0;
+          $mid_IVRi_colorfield[i] = 0.0;
         else 
-          $mid_Te_Q_colorfield[i] = color[i];
+          $mid_IVRi_colorfield[i] = color[i];
     }
-    var color2=this._css_color($mid_Te_Q_colorfield);
-    $mid_Te_Q_colorfield[3] = 1.0;
+    var color2=this._css_color($mid_IVRi_colorfield);
+    $mid_IVRi_colorfield[3] = 1.0;
     for (var i=0; i<3; i++) {
-        $mid_Te_Q_colorfield[i] = (color[i]*3.0-1.0)/4.0;
+        $mid_IVRi_colorfield[i] = (color[i]*3.0-1.0)/4.0;
     }
-    var midclr=this._css_color($mid_Te_Q_colorfield);
-    $mid_Te_Q_colorfield[3] = 1.0;
+    var midclr=this._css_color($mid_IVRi_colorfield);
+    $mid_IVRi_colorfield[3] = 1.0;
     for (var i=0; i<3; i++) {
-        $mid_Te_Q_colorfield[i] = 0.5+color[i]*0.5;
+        $mid_IVRi_colorfield[i] = 0.5+color[i]*0.5;
     }
-    var smidclr=this._css_color($mid_Te_Q_colorfield);
-    $mid_Te_Q_colorfield[3] = 0.0;
+    var smidclr=this._css_color($mid_IVRi_colorfield);
+    $mid_IVRi_colorfield[3] = 0.0;
     for (var i=0; i<3; i++) {
-        $mid_Te_Q_colorfield[i] = color[i];
+        $mid_IVRi_colorfield[i] = color[i];
     }
-    var zerocolor=this._css_color($mid_Te_Q_colorfield);
+    var zerocolor=this._css_color($mid_IVRi_colorfield);
     color = this._css_color(color);
     var canvas=this.canvas;
     var ctx=this.ctx;
@@ -7520,7 +7537,7 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
     if (rfac==undefined)
       rfac = 1;
     var hash=size[0].toString()+" "+size[1]+" "+rfac;
-    if (!(hash in $cache_C3nt_box1)) {
+    if (!(hash in $cache_lN9__box1)) {
         r/=rfac;
         var p1=this.arc_points((($_mh = objcache.array(2)), ($_mh[0] = (0+r+2)), ($_mh[1] = (0+r+2)), ($_mh[2] = (0)), $_mh), Math.PI, ang, r);
         var p2=this.arc_points((($_mh = objcache.array(2)), ($_mh[0] = (0+w-r-2)), ($_mh[1] = (0+r+2)), ($_mh[2] = (0)), $_mh), Math.PI/2, ang, r);
@@ -7548,9 +7565,9 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
             points.push(p4[i]);
         }
         p2.reverse();
-        $cache_C3nt_box1[hash] = [p1, p2, points];
+        $cache_lN9__box1[hash] = [p1, p2, points];
     }
-    var cp=$cache_C3nt_box1[hash];
+    var cp=$cache_lN9__box1[hash];
     var p1=cp[0];
     var p2=cp[1];
     var points=cp[2];
@@ -7574,45 +7591,45 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
             var i2=i+plen*2;
             var i3=i+1+plen*2;
             var i4=i+1;
-            $v1_ULB0_box1[0] = p1[i][0]+x;
-            $v1_ULB0_box1[1] = p1[i][1]+y;
-            $v1_ULB0_box1[2] = p1[i][2];
+            $v1_O1rr_box1[0] = p1[i][0]+x;
+            $v1_O1rr_box1[1] = p1[i][1]+y;
+            $v1_O1rr_box1[2] = p1[i][2];
             
-            $v2_BIwF_box1[0] = p2[i][0]+x;
-            $v2_BIwF_box1[1] = p2[i][1]+y;
-            $v2_BIwF_box1[2] = p2[i][2];
+            $v2_bNP1_box1[0] = p2[i][0]+x;
+            $v2_bNP1_box1[1] = p2[i][1]+y;
+            $v2_bNP1_box1[2] = p2[i][2];
             
-            $v3_ejqB_box1[0] = p2[i+1][0]+x;
-            $v3_ejqB_box1[1] = p2[i+1][1]+y;
-            $v3_ejqB_box1[2] = p2[i+1][2];
+            $v3_a8pc_box1[0] = p2[i+1][0]+x;
+            $v3_a8pc_box1[1] = p2[i+1][1]+y;
+            $v3_a8pc_box1[2] = p2[i+1][2];
             
-            $v4_bqXW_box1[0] = p1[i+1][0]+x;
-            $v4_bqXW_box1[1] = p1[i+1][1]+y;
-            $v4_bqXW_box1[2] = p1[i+1][2];
+            $v4_I7Ys_box1[0] = p1[i+1][0]+x;
+            $v4_I7Ys_box1[1] = p1[i+1][1]+y;
+            $v4_I7Ys_box1[2] = p1[i+1][2];
             
-            this.quad($v1_ULB0_box1, $v2_BIwF_box1, $v3_ejqB_box1, $v4_bqXW_box1, color(i1), color(i2), color(i3), color(i4));
+            this.quad($v1_O1rr_box1, $v2_bNP1_box1, $v3_a8pc_box1, $v4_I7Ys_box1, color(i1), color(i2), color(i3), color(i4));
         }
     }
     var lines=[];
     var colors=[];
     for (var i=0; i<points.length; i++) {
-        $v1_ULB0_box1[0] = points[(i+1)%points.length][0]+x;
-        $v1_ULB0_box1[1] = points[(i+1)%points.length][1]+y;
-        $v1_ULB0_box1[2] = points[(i+1)%points.length][2];
+        $v1_O1rr_box1[0] = points[(i+1)%points.length][0]+x;
+        $v1_O1rr_box1[1] = points[(i+1)%points.length][1]+y;
+        $v1_O1rr_box1[2] = points[(i+1)%points.length][2];
         
-        $v2_BIwF_box1[0] = points[i][0]+x;
-        $v2_BIwF_box1[1] = points[i][1]+y;
-        $v2_BIwF_box1[2] = points[i][2];
+        $v2_bNP1_box1[0] = points[i][0]+x;
+        $v2_bNP1_box1[1] = points[i][1]+y;
+        $v2_bNP1_box1[2] = points[i][2];
         
-        if ($pairs_BViR_box1.length<=i) {
-            $pairs_BViR_box1.push([[0, 0], [0, 0]]);
+        if ($pairs_MDx2_box1.length<=i) {
+            $pairs_MDx2_box1.push([[0, 0], [0, 0]]);
         }
-        $pairs_BViR_box1[i][0][0] = (($_mh = objcache.array(2)), ($_mh[0] = ($v1_ULB0_box1[0])), ($_mh[1] = ($v1_ULB0_box1[1])), ($_mh[2] = (0)), $_mh);
-        $pairs_BViR_box1[i][0][1] = (($_mh = objcache.array(2)), ($_mh[0] = ($v2_BIwF_box1[0])), ($_mh[1] = ($v2_BIwF_box1[1])), ($_mh[2] = (0)), $_mh);
-        lines.push($pairs_BViR_box1[i][0]);
-        $pairs_BViR_box1[i][1][0] = color((i+1)%points.length);
-        $pairs_BViR_box1[i][1][1] = color(i);
-        colors.push($pairs_BViR_box1[i][1]);
+        $pairs_MDx2_box1[i][0][0] = (($_mh = objcache.array(2)), ($_mh[0] = ($v1_O1rr_box1[0])), ($_mh[1] = ($v1_O1rr_box1[1])), ($_mh[2] = (0)), $_mh);
+        $pairs_MDx2_box1[i][0][1] = (($_mh = objcache.array(2)), ($_mh[0] = ($v2_bNP1_box1[0])), ($_mh[1] = ($v2_bNP1_box1[1])), ($_mh[2] = (0)), $_mh);
+        lines.push($pairs_MDx2_box1[i][0]);
+        $pairs_MDx2_box1[i][1][0] = color((i+1)%points.length);
+        $pairs_MDx2_box1[i][1][1] = color(i);
+        colors.push($pairs_MDx2_box1[i][1]);
     }
   }, function tri_aa(v1, v2, v3, c1, c2, c3) {
     this.tri(v1, v2, v3, c1, c2, c3);
@@ -7693,23 +7710,23 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
     for (var i=0; i<lines.length; i++, ly+=12) {
         var w=this._measure_line(lines[i]).width;
         var m=this.transmat.$matrix;
-        $pos_Mt5r_text[0] = m.m41+v[0][0]+pos1[0];
-        $pos_Mt5r_text[1] = canvas.height-(m.m42+v[0][1]+pos1[1]+ly);
-        $pos_Mt5r_text[2] = 0;
+        $pos_JikP_text[0] = m.m41+v[0][0]+pos1[0];
+        $pos_JikP_text[1] = canvas.height-(m.m42+v[0][1]+pos1[1]+ly);
+        $pos_JikP_text[2] = 0;
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.rotate(rot);
         if (rot!=0) {
-            $pos_Mt5r_text[1]-=w;
+            $pos_JikP_text[1]-=w;
         }
-        rot2d($pos_Mt5r_text, -rot);
-        $pos_Mt5r_text[1] = canvas.height-$pos_Mt5r_text[1];
+        rot2d($pos_JikP_text, -rot);
+        $pos_JikP_text[1] = canvas.height-$pos_JikP_text[1];
         if (color==undefined)
           color = [0, 0, 0, 1];
         ctx.fillStyle = this._css_color(color);
         if (fontsize==undefined)
           fontsize = default_ui_font_size;
         ctx.font = fontsize+"px "+"Arial";
-        var x=$pos_Mt5r_text[0], y=canvas.height-($pos_Mt5r_text[1]);
+        var x=$pos_JikP_text[0], y=canvas.height-($pos_JikP_text[1]);
         this._text_line(lines[i], x, y, fontsize);
     }
   }, function _set_font(ctx, fontsize, addition_options) {
@@ -7824,17 +7841,17 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
   }, function pop_transform() {
     this.transmat.load(this.trans_stack.pop());
   }]);
-  var $temp_layer_idgen_94EP_push_layer=0;
-  var $black_kg8g_quad=[0, 0, 0, 1];
-  var $grads_u8FZ_quad={}
-  var $mid_Te_Q_colorfield=[0, 0, 0, 0.5];
-  var $cache_C3nt_box1={}
-  var $v1_ULB0_box1=new Vector3();
-  var $v3_ejqB_box1=new Vector3();
-  var $pairs_BViR_box1=[];
-  var $pos_Mt5r_text=[0, 0, 0];
-  var $v2_BIwF_box1=new Vector3();
-  var $v4_bqXW_box1=new Vector3();
+  var $temp_layer_idgen_Q0np_push_layer=0;
+  var $black_KuvY_quad=[0, 0, 0, 1];
+  var $grads_pVXQ_quad={}
+  var $mid_IVRi_colorfield=[0, 0, 0, 0.5];
+  var $cache_lN9__box1={}
+  var $v1_O1rr_box1=new Vector3();
+  var $v3_a8pc_box1=new Vector3();
+  var $pairs_MDx2_box1=[];
+  var $pos_JikP_text=[0, 0, 0];
+  var $v2_bNP1_box1=new Vector3();
+  var $v4_I7Ys_box1=new Vector3();
   _es6_module.add_class(UICanvas);
   UICanvas = _es6_module.add_export('UICanvas', UICanvas);
   window.active_canvases = {}

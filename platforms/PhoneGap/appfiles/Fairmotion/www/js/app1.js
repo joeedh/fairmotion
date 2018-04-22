@@ -664,7 +664,7 @@ es6_module_define('lib_api', ["toolprops_iter", "struct"], function _lib_api_mod
   _es6_module.add_class(DataRefListIter);
   DataRefListIter = _es6_module.add_export('DataRefListIter', DataRefListIter);
 });
-es6_module_define('lib_api_typedefine', ["scene", "spline", "lib_api", "frameset", "imageblock"], function _lib_api_typedefine_module(_es6_module) {
+es6_module_define('lib_api_typedefine', ["frameset", "scene", "spline", "imageblock", "lib_api"], function _lib_api_typedefine_module(_es6_module) {
   var SplineFrameSet=es6_import_item(_es6_module, 'frameset', 'SplineFrameSet');
   var Scene=es6_import_item(_es6_module, 'scene', 'Scene');
   var DataTypes=es6_import_item(_es6_module, 'lib_api', 'DataTypes');

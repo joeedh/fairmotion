@@ -660,8 +660,8 @@ def p_id1(p):
 
 def p_var_decl_no_list(p):
   '''var_decl_no_list : var_type
-              | type_modifiers var_decl_no_list
-              | var_decl_no_list ASSIGN expr
+                      | type_modifiers var_decl_no_list
+                      | var_decl_no_list ASSIGN expr
   '''
   set_parse_globals(p)
   
@@ -710,6 +710,24 @@ def p_var_decl_no_list(p):
     p[0] = p[1]    
     p[1].replace(p[1][0], p[3])
 
+def p_typescript_var_decl(p):
+  '''typescript_var_decl : ID
+                         | ID COLON var_type
+  '''
+  
+  set_parse_globals(p)
+  
+  if len(p) == 2:
+    p[0] = VarDeclNode(ExprNode([]), name=p[1]);
+  elif len(p) == 4:
+    p[0] = VarDeclNode(ExprNode([]), name=p[1])
+    
+    if len(p[0]) < 2:
+        p[0].add(p[3])
+    else:
+        p[0].replace(p[0][1], p[3])
+    p[0].type = p[3]
+    
 def p_var_decl(p):
   '''var_decl : type_modifiers var_type
               | var_decl ASSIGN expr
@@ -1514,6 +1532,8 @@ def p_funcdeflist(p):
   r'''
     funcdeflist : var_decl_no_list
                 | funcdeflist COMMA var_decl_no_list
+                | typescript_var_decl
+                | funcdeflist COMMA typescript_var_decl
                 |
   '''
   

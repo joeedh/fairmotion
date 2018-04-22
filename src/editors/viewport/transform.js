@@ -20,9 +20,14 @@ import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler,
 import {clear_jobs, clear_jobs_except_latest, clear_jobs_except_first, 
         JobTypes} from 'nacl_api';
 
+var _tsv_apply_tmp1 = new Vector3();
+var _tsv_apply_tmp2 = new Vector3();
+var post_mousemove_cachering = cachering.fromConstructor(Vector3, 64);
+var mousemove_cachering = cachering.fromConstructor(Vector3, 64);
+
 export class TransSplineVert {
-  static apply(ToolContext ctx, TransData td, TransDataItem item, Matrix4 mat, float w) {
-    static co = new Vector3();
+  static apply(ctx : ToolContext, td : TransData, item : TransDataItem, mat : Matrix4, w : float) {
+    var co = _tsv_apply_tmp1;
     var v = item.data;
 
     if (w == 0.0) return;
@@ -63,7 +68,7 @@ export class TransSplineVert {
     }
   }
   
-  static undo_pre(ToolContext ctx, TransData td, ObjLit undo_obj) {
+  static undo_pre(ctx : ToolContext, td : TransData, undo_obj : ObjLit) {
     var doneset = new set();
     var undo = [];
     
@@ -111,7 +116,7 @@ export class TransSplineVert {
     undo_obj['svert'] = undo;
   }
   
-  static undo(ToolContext ctx, ObjLit undo_obj) {
+  static undo(ctx : ToolContext, undo_obj : ObjLit) {
     var spline = ctx.spline;
 
     var i = 0;
@@ -155,12 +160,12 @@ export class TransSplineVert {
     spline.resolve = 1;
   }
   
-  static update(ToolContext ctx, TransData td) {
+  static update(ctx : ToolContext, td : TransData) {
     var spline = ctx.spline;
     spline.resolve = 1;
   }
   
-  static calc_prop_distances(ToolContext ctx, TransData td, Array<TransDataItem> data) {
+  static calc_prop_distances(ctx : ToolContext, td : TransData, data : Array<TransDataItem>) {
     var doprop = td.doprop;
     var proprad = td.propradius;
     var spline = ctx.spline;
@@ -202,7 +207,7 @@ export class TransSplineVert {
     }
   }
   
-  static gen_data(ToolContext ctx, TransData td, Array<TransDataItem> data) {
+  static gen_data(ctx : ToolContext, td : TransData, data : Array<TransDataItem> ) {
     var doprop = td.doprop;
     var proprad = td.propradius;
     
@@ -304,7 +309,7 @@ export class TransSplineVert {
   }
   
   //this one gets a modal context
-  static calc_draw_aabb(Context, TransData td, MinMax minmax) {
+  static calc_draw_aabb(ctx : Context, td : TransData, minmax : MinMax) {
     var vset = {};
     var sset = {};
     var hset = {};
@@ -389,9 +394,9 @@ export class TransSplineVert {
     }
   }
   
-  static aabb(ToolContext ctx, TransData td, TransDataItem item, MinMax minmax, selected_only) {
-    static co = new Vector3();
-    
+  static aabb(ctx : ToolContext, td : TransData, item : TransDataItem, minmax : MinMax, selected_only : bool) {
+      var co = _tsv_apply_tmp2;
+
     if (item.w <= 0.0) return;
     if (item.data.hidden) return;
     
@@ -416,7 +421,7 @@ export class TransSplineVert {
 TransSplineVert.selectmode = SelMask.TOPOLOGY;
 
 export class TransData {
-  constructor(ctx, TransformOp top, int datamode) {
+  constructor(ctx, top : TransformOp, datamode : int) {
     this.ctx = ctx;
     this.top = top;
     this.datamode = datamode;
@@ -481,7 +486,7 @@ export class TransData {
 
 export class TransformOp extends ToolOp {
   constructor(start_mpos, datamode) {
-    ToolOp.call(this);
+    super();
     
     this.types = new GArray([MResTransData, TransSplineVert]);
     this.first_viewport_redraw = true;
@@ -627,9 +632,9 @@ export class TransformOp extends ToolOp {
     var td = this.transdata, view2d = this.modal_ctx.view2d;
     var md = this.modaldata, do_last = true;
     
-    static min1 = new Vector3(), max1 = new Vector3();
-    static min2 = new Vector3(), max2 = new Vector3();
-    
+    var min1 = post_mousemove_cachering.next(), max1 = post_mousemove_cachering.next();
+    var min2 = post_mousemove_cachering.next(), max2 = post_mousemove_cachering.next();
+
     if (this.first_viewport_redraw) {
       md.draw_minmax = new MinMax(3);
       do_last = false;
@@ -693,7 +698,7 @@ export class TransformOp extends ToolOp {
     }
   }
   
-  draw_helper_lines(ObjLit md, Context ctx) {
+  draw_helper_lines(md : ObjLit, ctx : Context) {
     this.reset_drawlines();
     
     //var rad = this.inputs.propradius.data;
@@ -771,7 +776,7 @@ export class TransformOp extends ToolOp {
 //import {TPropFlags} from 'toolprops';
 
 export class TranslateOp extends TransformOp {
-  constructor(Array<float> user_start_mpos, int datamode) {
+  constructor(user_start_mpos : Array<float>, datamode : int) {
     super(user_start_mpos, datamode);
   }
   
@@ -792,10 +797,9 @@ export class TranslateOp extends TransformOp {
     var md = this.modaldata;
     var ctx = this.modal_ctx;
     var td = this.transdata;
-    
-    static start = new Vector3();
-    static off = new Vector3();
-    
+
+    var start = mousemove_cachering.next(), off = mousemove_cachering.next();
+
     start.load(md.start_mpos);
     off.load(md.mpos);
     
@@ -812,7 +816,7 @@ export class TranslateOp extends TransformOp {
   exec(ctx) {
     var td = this.modal_running ? this.transdata : this.ensure_transdata(ctx);
     
-    static mat = new Matrix4();
+    var mat = new Matrix4();
     var off = this.inputs.translation.data;
     
     mat.makeIdentity();
@@ -832,7 +836,7 @@ export class TranslateOp extends TransformOp {
 }
 
 export class ScaleOp extends TransformOp {
-  constructor(Array<float> user_start_mpos, datamode) {
+  constructor(user_start_mpos : Array<float>, datamode : int) {
     super(user_start_mpos, datamode);
   }
   
@@ -854,8 +858,8 @@ export class ScaleOp extends TransformOp {
     var ctx = this.modal_ctx;
     var td = this.transdata;
     
-    static scale = new Vector3();
-    static off = new Vector3();
+    var scale = mousemove_cachering.next();
+    var off = mousemove_cachering.next();
     
     var l1 = off.load(md.mpos).sub(td.scenter).vectorLength();
     var l2 = off.load(md.start_mpos).sub(td.scenter).vectorLength();
@@ -872,7 +876,7 @@ export class ScaleOp extends TransformOp {
   exec(ctx) {
     var td = this.modal_running ? this.transdata : this.ensure_transdata(ctx);
     
-    static mat = new Matrix4();
+    var mat = new Matrix4();
     var scale = this.inputs.scale.data;
     
     var cent = td.center;
@@ -896,7 +900,7 @@ export class ScaleOp extends TransformOp {
 }
 
 export class RotateOp extends TransformOp {
-  constructor(Array<float> user_start_mpos, datamode) {
+  constructor(user_start_mpos : Array<float>, datamode : int) {
     this.angle_sum = 0.0;
     
     super(user_start_mpos, datamode, "rotate", "Rotate");
@@ -920,7 +924,7 @@ export class RotateOp extends TransformOp {
     var ctx = this.modal_ctx;
     var td = this.transdata;
     
-    static off = new Vector3();
+    var off = mousemove_cachering.next();
     
     this.reset_drawlines();
     
@@ -945,7 +949,7 @@ export class RotateOp extends TransformOp {
   exec(ctx) {
     var td = this.modal_running ? this.transdata : this.ensure_transdata(ctx);
     
-    static mat = new Matrix4();
+    var mat = new Matrix4();
     
     var cent = td.center;
     mat.makeIdentity();

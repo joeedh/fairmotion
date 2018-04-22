@@ -2196,7 +2196,7 @@ es6_module_define('transdata', ["mathlib"], function _transdata_module(_es6_modu
   TransDataType = _es6_module.add_export('TransDataType', TransDataType);
   TransDataType.selectmode = -1;
 });
-es6_module_define('transform', ["spline_types", "events", "transdata", "toolops_api", "multires_transdata", "dopesheet_transdata", "nacl_api", "mathlib", "toolprops", "selectmode"], function _transform_module(_es6_module) {
+es6_module_define('transform', ["toolprops", "mathlib", "spline_types", "selectmode", "multires_transdata", "dopesheet_transdata", "events", "transdata", "toolops_api", "nacl_api"], function _transform_module(_es6_module) {
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
   var SelMask=es6_import_item(_es6_module, 'selectmode', 'SelMask');
   var MResTransData=es6_import_item(_es6_module, 'multires_transdata', 'MResTransData');
@@ -2224,16 +2224,19 @@ es6_module_define('transform', ["spline_types", "events", "transdata", "toolops_
   var clear_jobs_except_latest=es6_import_item(_es6_module, 'nacl_api', 'clear_jobs_except_latest');
   var clear_jobs_except_first=es6_import_item(_es6_module, 'nacl_api', 'clear_jobs_except_first');
   var JobTypes=es6_import_item(_es6_module, 'nacl_api', 'JobTypes');
-  var $co_FbQN_apply;
-  var $co_F2uR_aabb;
+  var _tsv_apply_tmp1=new Vector3();
+  var _tsv_apply_tmp2=new Vector3();
+  var post_mousemove_cachering=cachering.fromConstructor(Vector3, 64);
+  var mousemove_cachering=cachering.fromConstructor(Vector3, 64);
   var TransSplineVert=_ESClass("TransSplineVert", [_ESClass.static(function apply(ctx, td, item, mat, w) {
+    var co=_tsv_apply_tmp1;
     var v=item.data;
     if (w==0.0)
       return ;
-    $co_FbQN_apply.load(item.start_data);
-    $co_FbQN_apply[2] = 0.0;
-    $co_FbQN_apply.multVecMatrix(mat);
-    v.load($co_FbQN_apply).sub(item.start_data).mulScalar(w).add(item.start_data);
+    co.load(item.start_data);
+    co[2] = 0.0;
+    co.multVecMatrix(mat);
+    v.load(co).sub(item.start_data).mulScalar(w).add(item.start_data);
     v.flag|=SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
     if (v.type==SplineTypes.HANDLE) {
         var seg=v.owning_segment;
@@ -2483,7 +2486,7 @@ es6_module_define('transform', ["spline_types", "events", "transdata", "toolops_
         var tv=tdmap[k];
         tv.dis = d;
     }
-  }), _ESClass.static(function calc_draw_aabb(Context, td, minmax) {
+  }), _ESClass.static(function calc_draw_aabb(ctx, td, minmax) {
     var vset={}
     var sset={}
     var hset={}
@@ -2553,13 +2556,14 @@ es6_module_define('transform', ["spline_types", "events", "transdata", "toolops_
         rec_walk(v, 0);
     }
   }), _ESClass.static(function aabb(ctx, td, item, minmax, selected_only) {
+    var co=_tsv_apply_tmp2;
     if (item.w<=0.0)
       return ;
     if (item.data.hidden)
       return ;
-    $co_F2uR_aabb.load(item.data);
-    $co_F2uR_aabb[2] = 0.0;
-    minmax.minmax($co_F2uR_aabb);
+    co.load(item.data);
+    co[2] = 0.0;
+    minmax.minmax(co);
     for (var i=0; i<item.data.segments.length; i++) {
         var seg=item.data.segments[i];
         if (selected_only&&!(item.data.flag&SplineFlags.SELECT))
@@ -2570,8 +2574,6 @@ es6_module_define('transform', ["spline_types", "events", "transdata", "toolops_
     }
   }), function TransSplineVert() {
   }]);
-  var $co_FbQN_apply=new Vector3();
-  var $co_F2uR_aabb=new Vector3();
   _es6_module.add_class(TransSplineVert);
   TransSplineVert = _es6_module.add_export('TransSplineVert', TransSplineVert);
   TransSplineVert.selectmode = SelMask.TOPOLOGY;
@@ -2653,10 +2655,6 @@ es6_module_define('transform', ["spline_types", "events", "transdata", "toolops_
   }]);
   _es6_module.add_class(TransData);
   TransData = _es6_module.add_export('TransData', TransData);
-  var $min1_Yktz_post_mousemove;
-  var $min2_0Zq5_post_mousemove;
-  var $max1_Y9Ht_post_mousemove;
-  var $max2_Xx44_post_mousemove;
   var TransformOp=_ESClass("TransformOp", ToolOp, [function TransformOp(start_mpos, datamode) {
     ToolOp.call(this);
     this.types = new GArray([MResTransData, TransSplineVert]);
@@ -2746,14 +2744,16 @@ es6_module_define('transform', ["spline_types", "events", "transdata", "toolops_
     }
     var td=this.transdata, view2d=this.modal_ctx.view2d;
     var md=this.modaldata, do_last=true;
+    var min1=post_mousemove_cachering.next(), max1=post_mousemove_cachering.next();
+    var min2=post_mousemove_cachering.next(), max2=post_mousemove_cachering.next();
     if (this.first_viewport_redraw) {
         md.draw_minmax = new MinMax(3);
         do_last = false;
     }
     var ctx=this.modal_ctx;
     var minmax=md.draw_minmax;
-    $min1_Yktz_post_mousemove.load(minmax.min);
-    $max1_Y9Ht_post_mousemove.load(minmax.max);
+    min1.load(minmax.min);
+    max1.load(minmax.max);
     minmax.reset();
     for (var i=0; i<td.types.length; i++) {
         td.types[i].calc_draw_aabb(ctx, td, minmax);
@@ -2764,12 +2764,12 @@ es6_module_define('transform', ["spline_types", "events", "transdata", "toolops_
     }
     if (do_last) {
         for (var i=0; i<2; i++) {
-            $min2_0Zq5_post_mousemove[i] = Math.min($min1_Yktz_post_mousemove[i], minmax.min[i]);
-            $max2_Xx44_post_mousemove[i] = Math.max($max1_Y9Ht_post_mousemove[i], minmax.max[i]);
+            min2[i] = Math.min(min1[i], minmax.min[i]);
+            max2[i] = Math.max(max1[i], minmax.max[i]);
         }
     }
     else {
-      $min2_0Zq5_post_mousemove.load(minmax.min), $max2_Xx44_post_mousemove.load(minmax.max);
+      min2.load(minmax.min), max2.load(minmax.max);
     }
     var found=false;
     for (var i=0; i<this.types; i++) {
@@ -2781,19 +2781,19 @@ es6_module_define('transform', ["spline_types", "events", "transdata", "toolops_
     var this2=this;
     if (ctx.spline.resolve==0) {
         if (force_solve&&!ctx.spline.solving) {
-            redraw_viewport($min2_0Zq5_post_mousemove, $max2_Xx44_post_mousemove, undefined, !this2.first_viewport_redraw);
+            redraw_viewport(min2, max2, undefined, !this2.first_viewport_redraw);
         }
         else 
           if (force_solve) {
             ctx.spline._pending_solve.then(function() {
-              redraw_viewport($min2_0Zq5_post_mousemove, $max2_Xx44_post_mousemove, undefined, !this2.first_viewport_redraw);
+              redraw_viewport(min2, max2, undefined, !this2.first_viewport_redraw);
             });
         }
         return ;
     }
     if (force_solve||!ctx.spline.solving) {
         ctx.spline.solve(undefined, undefined, force_solve).then(function() {
-          redraw_viewport($min2_0Zq5_post_mousemove, $max2_Xx44_post_mousemove, undefined, !this2.first_viewport_redraw);
+          redraw_viewport(min2, max2, undefined, !this2.first_viewport_redraw);
         });
     }
   }, function draw_helper_lines(md, ctx) {
@@ -2859,15 +2859,8 @@ es6_module_define('transform', ["spline_types", "events", "transdata", "toolops_
       t.update(ctx, this.transdata);
     }
   }]);
-  var $min1_Yktz_post_mousemove=new Vector3();
-  var $min2_0Zq5_post_mousemove=new Vector3();
-  var $max1_Y9Ht_post_mousemove=new Vector3();
-  var $max2_Xx44_post_mousemove=new Vector3();
   _es6_module.add_class(TransformOp);
   TransformOp = _es6_module.add_export('TransformOp', TransformOp);
-  var $start_32YO_on_mousemove;
-  var $mat_LTlA_exec;
-  var $off_Em3K_on_mousemove;
   var TranslateOp=_ESClass("TranslateOp", TransformOp, [function TranslateOp(user_start_mpos, datamode) {
     TransformOp.call(this, user_start_mpos, datamode);
   }, _ESClass.static(function tooldef() {
@@ -2877,19 +2870,21 @@ es6_module_define('transform', ["spline_types", "events", "transdata", "toolops_
     var md=this.modaldata;
     var ctx=this.modal_ctx;
     var td=this.transdata;
-    $start_32YO_on_mousemove.load(md.start_mpos);
-    $off_Em3K_on_mousemove.load(md.mpos);
-    ctx.view2d.unproject($start_32YO_on_mousemove);
-    ctx.view2d.unproject($off_Em3K_on_mousemove);
-    $off_Em3K_on_mousemove.sub($start_32YO_on_mousemove);
-    this.inputs.translation.set_data($off_Em3K_on_mousemove);
+    var start=mousemove_cachering.next(), off=mousemove_cachering.next();
+    start.load(md.start_mpos);
+    off.load(md.mpos);
+    ctx.view2d.unproject(start);
+    ctx.view2d.unproject(off);
+    off.sub(start);
+    this.inputs.translation.set_data(off);
     this.exec(ctx);
     this.post_mousemove(event);
   }, function exec(ctx) {
     var td=this.modal_running ? this.transdata : this.ensure_transdata(ctx);
+    var mat=new Matrix4();
     var off=this.inputs.translation.data;
-    $mat_LTlA_exec.makeIdentity();
-    $mat_LTlA_exec.translate(off[0], off[1], 0);
+    mat.makeIdentity();
+    mat.translate(off[0], off[1], 0);
     var __iter_d=__get_iter(td.data);
     var d;
     while (1) {
@@ -2898,7 +2893,7 @@ es6_module_define('transform', ["spline_types", "events", "transdata", "toolops_
           break;
       }
       d = __ival_d.value;
-      d.type.apply(ctx, td, d, $mat_LTlA_exec, d.w);
+      d.type.apply(ctx, td, d, mat, d.w);
     }
     this.update(ctx);
     if (!this.modal_running) {
@@ -2906,14 +2901,8 @@ es6_module_define('transform', ["spline_types", "events", "transdata", "toolops_
         delete this.transdata;
     }
   }]);
-  var $start_32YO_on_mousemove=new Vector3();
-  var $mat_LTlA_exec=new Matrix4();
-  var $off_Em3K_on_mousemove=new Vector3();
   _es6_module.add_class(TranslateOp);
   TranslateOp = _es6_module.add_export('TranslateOp', TranslateOp);
-  var $scale_Xg9y_on_mousemove;
-  var $mat_qlQj_exec;
-  var $off_rR74_on_mousemove;
   var ScaleOp=_ESClass("ScaleOp", TransformOp, [function ScaleOp(user_start_mpos, datamode) {
     TransformOp.call(this, user_start_mpos, datamode);
   }, _ESClass.static(function tooldef() {
@@ -2923,21 +2912,24 @@ es6_module_define('transform', ["spline_types", "events", "transdata", "toolops_
     var md=this.modaldata;
     var ctx=this.modal_ctx;
     var td=this.transdata;
-    var l1=$off_rR74_on_mousemove.load(md.mpos).sub(td.scenter).vectorLength();
-    var l2=$off_rR74_on_mousemove.load(md.start_mpos).sub(td.scenter).vectorLength();
-    $scale_Xg9y_on_mousemove[0] = $scale_Xg9y_on_mousemove[1] = l1/l2;
-    $scale_Xg9y_on_mousemove[2] = 1.0;
-    this.inputs.scale.set_data($scale_Xg9y_on_mousemove);
+    var scale=mousemove_cachering.next();
+    var off=mousemove_cachering.next();
+    var l1=off.load(md.mpos).sub(td.scenter).vectorLength();
+    var l2=off.load(md.start_mpos).sub(td.scenter).vectorLength();
+    scale[0] = scale[1] = l1/l2;
+    scale[2] = 1.0;
+    this.inputs.scale.set_data(scale);
     this.exec(ctx);
     this.post_mousemove(event);
   }, function exec(ctx) {
     var td=this.modal_running ? this.transdata : this.ensure_transdata(ctx);
+    var mat=new Matrix4();
     var scale=this.inputs.scale.data;
     var cent=td.center;
-    $mat_qlQj_exec.makeIdentity();
-    $mat_qlQj_exec.translate(cent[0], cent[1], 0);
-    $mat_qlQj_exec.scale(scale[0], scale[1], scale[2]);
-    $mat_qlQj_exec.translate(-cent[0], -cent[1], 0);
+    mat.makeIdentity();
+    mat.translate(cent[0], cent[1], 0);
+    mat.scale(scale[0], scale[1], scale[2]);
+    mat.translate(-cent[0], -cent[1], 0);
     var __iter_d=__get_iter(td.data);
     var d;
     while (1) {
@@ -2946,7 +2938,7 @@ es6_module_define('transform', ["spline_types", "events", "transdata", "toolops_
           break;
       }
       d = __ival_d.value;
-      d.type.apply(ctx, td, d, $mat_qlQj_exec, d.w);
+      d.type.apply(ctx, td, d, mat, d.w);
     }
     this.update(ctx);
     if (!this.modal_running) {
@@ -2954,13 +2946,8 @@ es6_module_define('transform', ["spline_types", "events", "transdata", "toolops_
         delete this.transdata;
     }
   }]);
-  var $scale_Xg9y_on_mousemove=new Vector3();
-  var $mat_qlQj_exec=new Matrix4();
-  var $off_rR74_on_mousemove=new Vector3();
   _es6_module.add_class(ScaleOp);
   ScaleOp = _es6_module.add_export('ScaleOp', ScaleOp);
-  var $off_Lq_a_on_mousemove;
-  var $mat_yYSn_exec;
   var RotateOp=_ESClass("RotateOp", TransformOp, [function RotateOp(user_start_mpos, datamode) {
     this.angle_sum = 0.0;
     TransformOp.call(this, user_start_mpos, datamode, "rotate", "Rotate");
@@ -2971,9 +2958,10 @@ es6_module_define('transform', ["spline_types", "events", "transdata", "toolops_
     var md=this.modaldata;
     var ctx=this.modal_ctx;
     var td=this.transdata;
+    var off=mousemove_cachering.next();
     this.reset_drawlines();
-    var l1=$off_Lq_a_on_mousemove.load(md.mpos).sub(td.scenter).vectorLength();
-    var l2=$off_Lq_a_on_mousemove.load(md.start_mpos).sub(td.scenter).vectorLength();
+    var l1=off.load(md.mpos).sub(td.scenter).vectorLength();
+    var l2=off.load(md.start_mpos).sub(td.scenter).vectorLength();
     var dl=this.new_drawline(md.mpos, td.scenter);
     ctx.view2d.unproject(dl.v1), ctx.view2d.unproject(dl.v2);
     var angle=Math.atan2(md.start_mpos[0]-td.scenter[0], md.start_mpos[1]-td.scenter[1])-Math.atan2(md.mpos[0]-td.scenter[0], md.mpos[1]-td.scenter[1]);
@@ -2984,11 +2972,12 @@ es6_module_define('transform', ["spline_types", "events", "transdata", "toolops_
     this.post_mousemove(event);
   }, function exec(ctx) {
     var td=this.modal_running ? this.transdata : this.ensure_transdata(ctx);
+    var mat=new Matrix4();
     var cent=td.center;
-    $mat_yYSn_exec.makeIdentity();
-    $mat_yYSn_exec.translate(cent[0], cent[1], 0);
-    $mat_yYSn_exec.rotate(this.inputs.angle.data, 0, 0, 1);
-    $mat_yYSn_exec.translate(-cent[0], -cent[1], 0);
+    mat.makeIdentity();
+    mat.translate(cent[0], cent[1], 0);
+    mat.rotate(this.inputs.angle.data, 0, 0, 1);
+    mat.translate(-cent[0], -cent[1], 0);
     var __iter_d=__get_iter(td.data);
     var d;
     while (1) {
@@ -2997,7 +2986,7 @@ es6_module_define('transform', ["spline_types", "events", "transdata", "toolops_
           break;
       }
       d = __ival_d.value;
-      d.type.apply(ctx, td, d, $mat_yYSn_exec, d.w);
+      d.type.apply(ctx, td, d, mat, d.w);
     }
     this.update(ctx);
     if (!this.modal_running) {
@@ -3005,8 +2994,6 @@ es6_module_define('transform', ["spline_types", "events", "transdata", "toolops_
         delete this.transdata;
     }
   }]);
-  var $off_Lq_a_on_mousemove=new Vector3();
-  var $mat_yYSn_exec=new Matrix4();
   _es6_module.add_class(RotateOp);
   RotateOp = _es6_module.add_export('RotateOp', RotateOp);
 });

@@ -880,8 +880,8 @@ export class UIListEntry extends ColumnFrame {
     if (!(this.state & UIFlags.ENABLED))
         canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
     else if (this == this.parent.parent.active_entry) {
-      canvas.simple_box([0,0], this.size);
-      canvas.simple_box([0,0], this.size);
+      canvas.simple_box([0,0], this.size, uicolors["MenuHighlight"]);
+      //canvas.simple_box([0,0], this.size, uicolors["MenuHighlight"]);
     } else if (this.state & UIFlags.HIGHLIGHT) {
       canvas.simple_box([0,0], this.size, uicolors["MenuHighlight"]); //[0.8, 0.8, 0.8, 0.7]);
     }
@@ -948,6 +948,7 @@ export class UIListBox extends ColumnFrame {
       if (!this2.listbox.velpan.panning)
         this2._vscroll_callback(vscroll, value);
     }
+    
     this.vscroll.step = 26;
     this.add(this.vscroll);
     
@@ -1161,8 +1162,13 @@ export class UIListBox extends ColumnFrame {
     this.do_recalc();
     
     var canvas = this.get_canvas();
-    var hgt = canvas != undefined ? entry.get_min_size(canvas) : 18;
+    var hgt = canvas != undefined ? entry.get_min_size(canvas)[1] : 18;
 
+    if (isNaN(hgt)) {
+      console.warn("Nan in UIListBox.add_item!", entry);
+      hgt = 12;
+    }
+    
     //temporarily listbox height, since we may need it before next repaint, when repack happens
     this.listbox.size[1] += hgt;
     this.listbox.pan_bounds[1][1] += hgt;
@@ -1205,11 +1211,19 @@ export class UIListBox extends ColumnFrame {
     //ger!
     this.listbox.pan_bounds[0][0] = 0;
     this.listbox.pan_bounds[0][1] = 0;
+  
+    this.listbox.pan_bounds[1][1] = Math.max(this.listbox.pan_bounds[1][1], 0.0);
     
     this.vscroll.pos[1] = 0;
     this.vscroll.size[1] = this.size[1];
     
-    this.vscroll.set_range([0, this.listbox.pan_bounds[1][1]]);
+    //console.log("------->", this.size, this.listbox.pan_bounds[1]);
+    
+    if (this.listbox.pan_bounds[1][1] <= 0) {//} || (this.listbox.pan_bounds[1][1]) < this.size[1]) {
+      this.vscroll.set_range([0, 0]);
+    } else {
+      this.vscroll.set_range([0, this.listbox.pan_bounds[1][1]]);
+    }
   }
 
   get_min_size(UICanvas canvas, Boolean isVertical) {

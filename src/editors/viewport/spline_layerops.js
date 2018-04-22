@@ -57,8 +57,18 @@ AddLayerOp.outputs = {
 };
 
 export class ChangeLayerOp extends ToolOp {
+  static tooldef() {return {
+    uiname   : "Change Layer",
+    apiname  : "spline.layers.set",
+  
+    inputs   : {
+      layerid : new IntProperty(0, "layerid", "layerid", "Layer ID")
+    },
+    is_modal : false
+  };}
+  
   constructor(id) {
-    super(undefined, "Change Layer");
+    super(undefined);
     
     if (id != undefined)
       this.inputs.layerid.set_data(id);
@@ -112,10 +122,6 @@ export class ChangeLayerOp extends ToolOp {
     spline.layerset.active = layer;
     window.redraw_viewport();
   }
-};
-
-ChangeLayerOp.inputs = {
-  layerid : new IntProperty(0, "layerid", "layerid", "Layer ID")
 };
 
 export class ChangeElementLayerOp extends SplineLocalToolOp {

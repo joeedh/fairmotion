@@ -5339,7 +5339,7 @@ es6_module_define('spline_editops', ["frameset", "toolops_api", "struct", "toolp
   _es6_module.add_class(SplineMirrorOp);
   SplineMirrorOp = _es6_module.add_export('SplineMirrorOp', SplineMirrorOp);
 });
-es6_module_define('spline_layerops', ["spline_editops", "toolops_api", "spline_types", "spline", "toolprops"], function _spline_layerops_module(_es6_module) {
+es6_module_define('spline_layerops', ["spline", "spline_types", "spline_editops", "toolprops", "toolops_api"], function _spline_layerops_module(_es6_module) {
   var ToolOp=es6_import_item(_es6_module, 'toolops_api', 'ToolOp');
   var UndoFlags=es6_import_item(_es6_module, 'toolops_api', 'UndoFlags');
   var ToolFlags=es6_import_item(_es6_module, 'toolops_api', 'ToolFlags');
@@ -5380,8 +5380,10 @@ es6_module_define('spline_layerops', ["spline_editops", "toolops_api", "spline_t
   AddLayerOp = _es6_module.add_export('AddLayerOp', AddLayerOp);
   AddLayerOp.inputs = {name: new StringProperty("Layer", "name", "Name", "Layer Name"), make_active: new BoolProperty(true, "Make Active")}
   AddLayerOp.outputs = {layerid: new IntProperty(0, "layerid", "layerid", "New Layer ID")}
-  var ChangeLayerOp=_ESClass("ChangeLayerOp", ToolOp, [function ChangeLayerOp(id) {
-    ToolOp.call(this, undefined, "Change Layer");
+  var ChangeLayerOp=_ESClass("ChangeLayerOp", ToolOp, [_ESClass.static(function tooldef() {
+    return {uiname: "Change Layer", apiname: "spline.layers.set", inputs: {layerid: new IntProperty(0, "layerid", "layerid", "Layer ID")}, is_modal: false}
+  }), function ChangeLayerOp(id) {
+    ToolOp.call(this, undefined);
     if (id!=undefined)
       this.inputs.layerid.set_data(id);
   }, function undo_pre(ctx) {
@@ -5433,7 +5435,6 @@ es6_module_define('spline_layerops', ["spline_editops", "toolops_api", "spline_t
   _es6_module.add_class(ChangeLayerOp);
   ChangeLayerOp = _es6_module.add_export('ChangeLayerOp', ChangeLayerOp);
   
-  ChangeLayerOp.inputs = {layerid: new IntProperty(0, "layerid", "layerid", "Layer ID")}
   var ChangeElementLayerOp=_ESClass("ChangeElementLayerOp", SplineLocalToolOp, [function ChangeElementLayerOp(old_layer, new_layer) {
     SplineLocalToolOp.call(this, undefined, "Move to Layer");
     if (old_layer!=undefined)

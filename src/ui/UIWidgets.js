@@ -1464,6 +1464,10 @@ export class UIVScroll extends UIFrame {
       
     this.range = range;
     
+    if (isNaN(range[0]) || isNaN(range[1])) {
+      console.warn("NaN in UIVScroll.set_range()!");
+    }
+    
     this.val = Math.min(Math.max(this.val, this.range[0]), this.range[1]);
     this.pack_bar();
   }
@@ -1494,6 +1498,11 @@ export class UIVScroll extends UIFrame {
     //try to prevent recalc loop caused by range clamping,
     //which can invalidate "value already set?" tests in
     //parent containers.  kindof horrible, but still. . .
+    
+    if (isNaN(val)) {
+      console.warn("NaN in UIVScroll.set_value()!");
+      return;
+    }
     
     if (val != this._last_val && val != this.val) {
       this.do_recalc();
@@ -1532,6 +1541,11 @@ export class UIVScroll extends UIFrame {
   
   on_tick() {
     super.on_tick();
+    
+    if (isNaN(this.val)) {
+      this.val = this.range[0];
+      console.warn("Fixed NaN in UIVScroll!");
+    }
     
     //ensure pan doesn't steal mouseup event
     this.state &= ~UIFlags.USE_PAN;

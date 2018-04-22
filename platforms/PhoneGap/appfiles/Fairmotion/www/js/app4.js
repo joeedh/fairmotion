@@ -1,4 +1,4 @@
-es6_module_define('UIWidgets', ["UIFrame", "mathlib", "toolprops", "UIElement", "events", "units"], function _UIWidgets_module(_es6_module) {
+es6_module_define('UIWidgets', ["UIElement", "mathlib", "toolprops", "events", "units", "UIFrame"], function _UIWidgets_module(_es6_module) {
   var $_mh;
   var $_swapt;
   var UIFrame=es6_import_item(_es6_module, 'UIFrame', 'UIFrame');
@@ -173,10 +173,10 @@ es6_module_define('UIWidgets', ["UIFrame", "mathlib", "toolprops", "UIElement", 
   }]);
   _es6_module.add_class(UIButton);
   UIButton = _es6_module.add_export('UIButton', UIButton);
-  var $pos_FuQV_build_draw;
-  var $high_clr_hO5I_build_draw;
-  var $size_gF1h_build_draw;
-  var $inset_clr_jYCQ_build_draw;
+  var $pos_j_HO_build_draw;
+  var $high_clr_shTR_build_draw;
+  var $size_SuCU_build_draw;
+  var $inset_clr_AxxO_build_draw;
   var UIButtonIcon=_ESClass("UIButtonIcon", UIButton, [function UIButtonIcon(ctx, text, icon, pos, size, path, callback, hint, use_small_icon) {
     if (path==undefined) {
         path = undefined;
@@ -220,33 +220,33 @@ es6_module_define('UIWidgets', ["UIFrame", "mathlib", "toolprops", "UIElement", 
           canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
         else 
           if (this.clicked)
-          canvas.box($pos_FuQV_build_draw, $size_gF1h_build_draw, uicolors["IconInv"]);
+          canvas.box($pos_j_HO_build_draw, $size_SuCU_build_draw, uicolors["IconInv"]);
         else 
           if (this.state&UIFlags.HIGHLIGHT)
-          canvas.box($pos_FuQV_build_draw, $size_gF1h_build_draw, uicolors["HighlightIcon"]);
+          canvas.box($pos_j_HO_build_draw, $size_SuCU_build_draw, uicolors["HighlightIcon"]);
         else 
-          canvas.box($pos_FuQV_build_draw, this.size, uicolors["IconBox"]);
+          canvas.box($pos_j_HO_build_draw, this.size, uicolors["IconBox"]);
         return ;
     }
     var pad=this.pad;
     var isize=this.small_icon ? canvas.iconsheet16.cellsize : canvas.iconsheet.cellsize;
     if (isize[0]>this.size[0])
-      $pos_FuQV_build_draw[0] = 1;
+      $pos_j_HO_build_draw[0] = 1;
     else 
-      $pos_FuQV_build_draw[0] = 1;
-    $pos_FuQV_build_draw[1] = 0;
-    var $size_gF1h_build_draw=this.size;
+      $pos_j_HO_build_draw[0] = 1;
+    $pos_j_HO_build_draw[1] = 0;
+    var $size_SuCU_build_draw=this.size;
     if (this.bgmode=="button") {
         if (!(this.state&UIFlags.ENABLED))
           canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
         else 
           if (this.clicked)
-          canvas.box($pos_FuQV_build_draw, $size_gF1h_build_draw, uicolors["IconInv"]);
+          canvas.box($pos_j_HO_build_draw, $size_SuCU_build_draw, uicolors["IconInv"]);
         else 
           if (this.state&UIFlags.HIGHLIGHT)
-          canvas.box($pos_FuQV_build_draw, $size_gF1h_build_draw, uicolors["HighlightIcon"]);
+          canvas.box($pos_j_HO_build_draw, $size_SuCU_build_draw, uicolors["HighlightIcon"]);
         else 
-          canvas.box($pos_FuQV_build_draw, this.size, uicolors["IconBox"]);
+          canvas.box($pos_j_HO_build_draw, this.size, uicolors["IconBox"]);
     }
     else 
       if (this.bgmode=="flat") {
@@ -254,25 +254,25 @@ es6_module_define('UIWidgets', ["UIFrame", "mathlib", "toolprops", "UIElement", 
           canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
         else 
           if (this.clicked)
-          canvas.box($pos_FuQV_build_draw, $size_gF1h_build_draw, $inset_clr_jYCQ_build_draw);
+          canvas.box($pos_j_HO_build_draw, $size_SuCU_build_draw, $inset_clr_AxxO_build_draw);
         else 
           if (this.state&UIFlags.HIGHLIGHT)
-          canvas.box($pos_FuQV_build_draw, $size_gF1h_build_draw, $high_clr_hO5I_build_draw);
+          canvas.box($pos_j_HO_build_draw, $size_SuCU_build_draw, $high_clr_shTR_build_draw);
     }
-    if ($size_gF1h_build_draw[0]>isize[0])
-      $pos_FuQV_build_draw[0]+=($size_gF1h_build_draw[0]-isize[0])*0.5;
-    if ($size_gF1h_build_draw[1]>isize[1])
-      $pos_FuQV_build_draw[1]+=($size_gF1h_build_draw[1]-isize[1])*0.5;
+    if ($size_SuCU_build_draw[0]>isize[0])
+      $pos_j_HO_build_draw[0]+=($size_SuCU_build_draw[0]-isize[0])*0.5;
+    if ($size_SuCU_build_draw[1]>isize[1])
+      $pos_j_HO_build_draw[1]+=($size_SuCU_build_draw[1]-isize[1])*0.5;
     if (this.small_icon)
-      canvas.icon(this.icon, $pos_FuQV_build_draw, 0.75, true);
+      canvas.icon(this.icon, $pos_j_HO_build_draw, 0.75, true);
     else 
-      canvas.icon(this.icon, $pos_FuQV_build_draw, 0.75, false);
+      canvas.icon(this.icon, $pos_j_HO_build_draw, 0.75, false);
     canvas.end(this);
   }]);
-  var $pos_FuQV_build_draw=[0, 0];
-  var $high_clr_hO5I_build_draw=[0.9, 0.9, 0.9, 0.2];
-  var $size_gF1h_build_draw=[0, 0];
-  var $inset_clr_jYCQ_build_draw=[0.3, 0.3, 0.3, 0.2];
+  var $pos_j_HO_build_draw=[0, 0];
+  var $high_clr_shTR_build_draw=[0.9, 0.9, 0.9, 0.2];
+  var $size_SuCU_build_draw=[0, 0];
+  var $inset_clr_AxxO_build_draw=[0.3, 0.3, 0.3, 0.2];
   _es6_module.add_class(UIButtonIcon);
   UIButtonIcon = _es6_module.add_export('UIButtonIcon', UIButtonIcon);
   var UIMenuButton=_ESClass("UIMenuButton", UIButtonAbstract, [function UIMenuButton(ctx, menu, pos, size, path, description) {
@@ -1225,6 +1225,9 @@ es6_module_define('UIWidgets', ["UIFrame", "mathlib", "toolprops", "UIElement", 
     if (this.range==undefined||this.range[0]!=range[0]||this.range[1]!=range[1])
       this.do_recalc();
     this.range = range;
+    if (isNaN(range[0])||isNaN(range[1])) {
+        console.warn("NaN in UIVScroll.set_range()!");
+    }
     this.val = Math.min(Math.max(this.val, this.range[0]), this.range[1]);
     this.pack_bar();
   }, function do_drag(mpos) {
@@ -1241,6 +1244,10 @@ es6_module_define('UIWidgets', ["UIFrame", "mathlib", "toolprops", "UIElement", 
         this.callback(this, this.val);
     }
   }, function set_value(val) {
+    if (isNaN(val)) {
+        console.warn("NaN in UIVScroll.set_value()!");
+        return ;
+    }
     if (val!=this._last_val&&val!=this.val) {
         this.do_recalc();
     }
@@ -1266,6 +1273,10 @@ es6_module_define('UIWidgets', ["UIFrame", "mathlib", "toolprops", "UIElement", 
     UIFrame.prototype.on_inactive.call(this);
   }, function on_tick() {
     UIFrame.prototype.on_tick.call(this);
+    if (isNaN(this.val)) {
+        this.val = this.range[0];
+        console.warn("Fixed NaN in UIVScroll!");
+    }
     this.state&=~UIFlags.USE_PAN;
     if (this.clicked&&this.modalhandler!=undefined) {
         this.clicked = false;
@@ -3484,7 +3495,7 @@ es6_module_define('RadialMenu', ["UIWidgets", "UIElement", "toolops_api", "UIPac
   }
   window.UIRadialMenu = UIRadialMenu;
 });
-es6_module_define('UIWidgets_special', ["UIPack", "colorutils", "UIElement", "UIMenu", "mathlib", "UIWidgets", "events", "UIFrame", "UITextBox"], function _UIWidgets_special_module(_es6_module) {
+es6_module_define('UIWidgets_special', ["mathlib", "UITextBox", "UIPack", "UIElement", "events", "UIMenu", "colorutils", "UIWidgets", "UIFrame"], function _UIWidgets_special_module(_es6_module) {
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
   var inrect_2d=es6_import_item(_es6_module, 'mathlib', 'inrect_2d');
   var aabb_isect_2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_2d');
@@ -3682,10 +3693,10 @@ es6_module_define('UIWidgets_special', ["UIPack", "colorutils", "UIElement", "UI
   }]);
   _es6_module.add_class(UIPanel);
   UIPanel = _es6_module.add_export('UIPanel', UIPanel);
-  var $ret_AryM=undefined;
+  var $ret_ysUy=undefined;
   function get_editor_list() {
-    if ($ret_AryM==undefined) {
-        $ret_AryM = new GArray();
+    if ($ret_ysUy==undefined) {
+        $ret_ysUy = new GArray();
         var __iter_cls=__get_iter(defined_classes);
         var cls;
         while (1) {
@@ -3695,11 +3706,11 @@ es6_module_define('UIWidgets_special', ["UIPack", "colorutils", "UIElement", "UI
           }
           cls = __ival_cls.value;
           if (cls.__parent__!=undefined&&cls.__parent__.name=="Area") {
-              $ret_AryM.push(cls);
+              $ret_ysUy.push(cls);
           }
         }
     }
-    return $ret_AryM;
+    return $ret_ysUy;
   }
   function gen_editor_switcher(ctx, parent) {
     var editors=get_editor_list();
@@ -3732,16 +3743,16 @@ es6_module_define('UIWidgets_special', ["UIPack", "colorutils", "UIElement", "UI
   }
   gen_editor_switcher = _es6_module.add_export('gen_editor_switcher', gen_editor_switcher);
   var _hue_field=[[1, 0, 0, 1], [1, 1, 0, 1], [0, 1, 0, 1], [0, 1, 1, 1], [0, 0, 1, 1], [1, 0, 1, 1]];
-  var $pos_UTxz_do_mouse;
-  var $mpos_tAzi_do_mouse;
-  var $sz_USZX_build_draw;
-  var $v1_WsvK_build_draw;
-  var $v3_vXX1_build_draw;
-  var $clr_ZFKK_build_draw;
-  var $pos1_3z_W_build_draw;
-  var $size_uIak_do_mouse;
-  var $v2_qUIt_build_draw;
-  var $v4__9s__build_draw;
+  var $pos_mTow_do_mouse;
+  var $mpos_Eq9Z_do_mouse;
+  var $sz_mX8R_build_draw;
+  var $v1_qlLD_build_draw;
+  var $v3_JQ4z_build_draw;
+  var $clr__AQF_build_draw;
+  var $pos1_ZnD1_build_draw;
+  var $size_7HBR_do_mouse;
+  var $v2_9J2G_build_draw;
+  var $v4_cQzQ_build_draw;
   var UIColorField=_ESClass("UIColorField", UIElement, [function UIColorField(ctx, callback) {
     if (callback==undefined) {
         callback = undefined;
@@ -3757,10 +3768,10 @@ es6_module_define('UIWidgets_special', ["UIPack", "colorutils", "UIElement", "UI
   }, function get_min_size(canvas, isVertical) {
     return [150, 165];
   }, function do_mouse(event) {
-    $mpos_tAzi_do_mouse[0] = event.x;
-    $mpos_tAzi_do_mouse[1] = event.y;
+    $mpos_Eq9Z_do_mouse[0] = event.x;
+    $mpos_Eq9Z_do_mouse[1] = event.y;
     if (this.mode=="h") {
-        this.h = ($mpos_tAzi_do_mouse[0]-7)/(this.size[0]-12-2);
+        this.h = ($mpos_Eq9Z_do_mouse[0]-7)/(this.size[0]-12-2);
         this.h = Math.min(Math.max(this.h, 0), 1.0);
         this.do_recalc();
         if (this.callback!=undefined) {
@@ -3769,9 +3780,9 @@ es6_module_define('UIWidgets_special', ["UIPack", "colorutils", "UIElement", "UI
     }
     else 
       if (this.mode=="sv") {
-        var v=$mpos_tAzi_do_mouse[0]/this.size[0];
+        var v=$mpos_Eq9Z_do_mouse[0]/this.size[0];
         v = Math.sqrt(v);
-        var s=($mpos_tAzi_do_mouse[1]-this.huehgt+2)/(this.size[1]-this.huehgt);
+        var s=($mpos_Eq9Z_do_mouse[1]-this.huehgt+2)/(this.size[1]-this.huehgt);
         this.v = Math.min(Math.max(v, 0), 1.0);
         this.s = Math.min(Math.max(s, 0), 1.0);
         this.do_recalc();
@@ -3809,9 +3820,9 @@ es6_module_define('UIWidgets_special', ["UIPack", "colorutils", "UIElement", "UI
     canvas.simple_box([0, 0], this.size);
     var cs=_hue_field;
     var segs=cs.length;
-    var wid=Math.ceil((this.size[0]-2-$sz_USZX_build_draw[0])/cs.length);
+    var wid=Math.ceil((this.size[0]-2-$sz_mX8R_build_draw[0])/cs.length);
     var h=this.h, s=this.s, v=this.v;
-    var halfx=Math.floor($sz_USZX_build_draw[0]*0.5);
+    var halfx=Math.floor($sz_mX8R_build_draw[0]*0.5);
     canvas.box([0, 0], [this.size[0], 26], [0, 0, 0, 1], 0, true);
     var y=this.huehgt;
     var c1, c2, c3, c4;
@@ -3820,24 +3831,24 @@ es6_module_define('UIWidgets_special', ["UIPack", "colorutils", "UIElement", "UI
     for (var i=0; i<segs; i++) {
         var i2=(i+1)%cs.length;
         var c1=cs[i], c2=cs[i2], c3=cs[i2], c4=cs[i];
-        $v1_WsvK_build_draw[0] = i*wid+1+halfx;
-        $v1_WsvK_build_draw[1] = 1;
-        $v2_qUIt_build_draw[0] = i*wid+1+halfx;
-        $v2_qUIt_build_draw[1] = y;
-        $v3_vXX1_build_draw[0] = i*wid+wid+1+halfx;
-        $v3_vXX1_build_draw[1] = y;
-        $v4__9s__build_draw[0] = i*wid+wid+1+halfx, $v4__9s__build_draw[1] = 1;
-        canvas.quad($v2_qUIt_build_draw, $v3_vXX1_build_draw, $v4__9s__build_draw, $v1_WsvK_build_draw, c1, c2, c3, c4, true);
+        $v1_qlLD_build_draw[0] = i*wid+1+halfx;
+        $v1_qlLD_build_draw[1] = 1;
+        $v2_9J2G_build_draw[0] = i*wid+1+halfx;
+        $v2_9J2G_build_draw[1] = y;
+        $v3_JQ4z_build_draw[0] = i*wid+wid+1+halfx;
+        $v3_JQ4z_build_draw[1] = y;
+        $v4_cQzQ_build_draw[0] = i*wid+wid+1+halfx, $v4_cQzQ_build_draw[1] = 1;
+        canvas.quad($v2_9J2G_build_draw, $v3_JQ4z_build_draw, $v4_cQzQ_build_draw, $v1_qlLD_build_draw, c1, c2, c3, c4, true);
     }
-    canvas.quad($v4__9s__build_draw, $v3_vXX1_build_draw, [this.size[0]-1, y], [this.size[0]-1, 1], cs[0]);
-    $v1_WsvK_build_draw[0] = 0;
-    $v1_WsvK_build_draw[1] = y+2;
-    $v2_qUIt_build_draw[0] = 0;
-    $v2_qUIt_build_draw[1] = this.size[1];
-    $v3_vXX1_build_draw[0] = this.size[0];
-    $v3_vXX1_build_draw[1] = this.size[1];
-    $v4__9s__build_draw[0] = this.size[0];
-    $v4__9s__build_draw[1] = 27;
+    canvas.quad($v4_cQzQ_build_draw, $v3_JQ4z_build_draw, [this.size[0]-1, y], [this.size[0]-1, 1], cs[0]);
+    $v1_qlLD_build_draw[0] = 0;
+    $v1_qlLD_build_draw[1] = y+2;
+    $v2_9J2G_build_draw[0] = 0;
+    $v2_9J2G_build_draw[1] = this.size[1];
+    $v3_JQ4z_build_draw[0] = this.size[0];
+    $v3_JQ4z_build_draw[1] = this.size[1];
+    $v4_cQzQ_build_draw[0] = this.size[0];
+    $v4_cQzQ_build_draw[1] = 27;
     var h1=Math.floor(h*cs.length)%cs.length;
     var h2=(h1+1)%cs.length;
     var t=h*cs.length-h1;
@@ -3850,34 +3861,34 @@ es6_module_define('UIWidgets_special', ["UIPack", "colorutils", "UIElement", "UI
     if (t<0||t>1)
       t = 0;
     for (var i=0; i<3; i++) {
-        $clr_ZFKK_build_draw[i] = cs[h1][i]+(cs[h2][i]-cs[h1][i])*t;
+        $clr__AQF_build_draw[i] = cs[h1][i]+(cs[h2][i]-cs[h1][i])*t;
     }
     c1 = [0, 0, 0, 1];
     c2 = [0, 0, 0, 1];
-    c3 = $clr_ZFKK_build_draw;
+    c3 = $clr__AQF_build_draw;
     c4 = [1, 1, 1, 1];
-    canvas.colorfield([0, this.huehgt], [this.size[0], this.size[1]-this.huehgt], $clr_ZFKK_build_draw);
-    $pos1_3z_W_build_draw[0] = Math.floor(1+h*(this.size[0]-2-$sz_USZX_build_draw[0]));
-    $pos1_3z_W_build_draw[1] = Math.floor(y*0.5-$sz_USZX_build_draw[1]*0.5);
-    canvas.box($pos1_3z_W_build_draw, $sz_USZX_build_draw);
-    $pos1_3z_W_build_draw[0] = Math.floor((this.size[0]-$sz_USZX_build_draw[0])*v*v);
-    $pos1_3z_W_build_draw[1] = Math.floor((this.size[1]-y-4)*s+y+2-$sz_USZX_build_draw[1]*0.5);
-    canvas.box($pos1_3z_W_build_draw, $sz_USZX_build_draw);
+    canvas.colorfield([0, this.huehgt], [this.size[0], this.size[1]-this.huehgt], $clr__AQF_build_draw);
+    $pos1_ZnD1_build_draw[0] = Math.floor(1+h*(this.size[0]-2-$sz_mX8R_build_draw[0]));
+    $pos1_ZnD1_build_draw[1] = Math.floor(y*0.5-$sz_mX8R_build_draw[1]*0.5);
+    canvas.box($pos1_ZnD1_build_draw, $sz_mX8R_build_draw);
+    $pos1_ZnD1_build_draw[0] = Math.floor((this.size[0]-$sz_mX8R_build_draw[0])*v*v);
+    $pos1_ZnD1_build_draw[1] = Math.floor((this.size[1]-y-4)*s+y+2-$sz_mX8R_build_draw[1]*0.5);
+    canvas.box($pos1_ZnD1_build_draw, $sz_mX8R_build_draw);
   }]);
-  var $pos_UTxz_do_mouse=[0, 0];
-  var $mpos_tAzi_do_mouse=[0, 0];
-  var $sz_USZX_build_draw=[12, 12];
-  var $v1_WsvK_build_draw=new Vector2();
-  var $v3_vXX1_build_draw=new Vector2();
-  var $clr_ZFKK_build_draw=[0, 0, 0, 1];
-  var $pos1_3z_W_build_draw=[0, 0];
-  var $size_uIak_do_mouse=[0, 0];
-  var $v2_qUIt_build_draw=new Vector2();
-  var $v4__9s__build_draw=new Vector2();
+  var $pos_mTow_do_mouse=[0, 0];
+  var $mpos_Eq9Z_do_mouse=[0, 0];
+  var $sz_mX8R_build_draw=[12, 12];
+  var $v1_qlLD_build_draw=new Vector2();
+  var $v3_JQ4z_build_draw=new Vector2();
+  var $clr__AQF_build_draw=[0, 0, 0, 1];
+  var $pos1_ZnD1_build_draw=[0, 0];
+  var $size_7HBR_do_mouse=[0, 0];
+  var $v2_9J2G_build_draw=new Vector2();
+  var $v4_cQzQ_build_draw=new Vector2();
   _es6_module.add_class(UIColorField);
   UIColorField = _es6_module.add_export('UIColorField', UIColorField);
-  var $white_AQnv_build_draw;
-  var $grey_JzlR_build_draw;
+  var $white_DJ4A_build_draw;
+  var $grey_Uk9A_build_draw;
   var UIColorBox=_ESClass("UIColorBox", UIElement, [function UIColorBox(ctx, color) {
     if (color==undefined) {
         color = undefined;
@@ -3897,19 +3908,19 @@ es6_module_define('UIWidgets_special', ["UIPack", "colorutils", "UIElement", "UI
         pos[1] = 0;
         for (var j=0; j<tot2; j++) {
             var k=(i+j)%2;
-            canvas.box2(pos, wid, k ? $white_AQnv_build_draw : $grey_JzlR_build_draw);
+            canvas.box2(pos, wid, k ? $white_DJ4A_build_draw : $grey_Uk9A_build_draw);
             pos[1]+=wid[1];
         }
         pos[0]+=wid[0];
     }
     canvas.box2([0, 0], this.size, this.color);
   }]);
-  var $white_AQnv_build_draw=[1.0, 1.0, 1.0, 1.0];
-  var $grey_JzlR_build_draw=[0.3, 0.3, 0.3, 1.0];
+  var $white_DJ4A_build_draw=[1.0, 1.0, 1.0, 1.0];
+  var $grey_Uk9A_build_draw=[0.3, 0.3, 0.3, 1.0];
   _es6_module.add_class(UIColorBox);
   UIColorBox = _es6_module.add_export('UIColorBox', UIColorBox);
-  var $hsva_Lqs9_update_widgets;
-  var $hsva_1zoU_hsv_callback;
+  var $hsva_Q0kl_update_widgets;
+  var $hsva_ZBhW_hsv_callback;
   var UIColorPicker=_ESClass("UIColorPicker", RowFrame, [function UIColorPicker(ctx, color, color_length) {
     if (color==undefined) {
         color = undefined;
@@ -4030,10 +4041,10 @@ es6_module_define('UIWidgets_special', ["UIPack", "colorutils", "UIElement", "UI
     }
   }, function update_widgets() {
     var c=this._color, lasthue=undefined;
-    for (var i=0; i<$hsva_Lqs9_update_widgets.length; i++) {
-        if (isNaN($hsva_Lqs9_update_widgets[i])) {
+    for (var i=0; i<$hsva_Q0kl_update_widgets.length; i++) {
+        if (isNaN($hsva_Q0kl_update_widgets[i])) {
             console.log("Eek, NaN!");
-            $hsva_Lqs9_update_widgets[i] = 0.0;
+            $hsva_Q0kl_update_widgets[i] = 0.0;
         }
     }
     for (var i=0; i<this._color.length; i++) {
@@ -4045,16 +4056,16 @@ es6_module_define('UIWidgets_special', ["UIPack", "colorutils", "UIElement", "UI
     for (var i=0; i<this.color_length; i++) {
         this.last_valid[i] = this._color[i];
     }
-    this.last_valid_hue = rgba_to_hsva(this._color, $hsva_Lqs9_update_widgets, this.last_valid_hue);
-    if ($hsva_Lqs9_update_widgets[1]<0) {
-        $hsva_Lqs9_update_widgets[1] = this.last_valid_sat;
+    this.last_valid_hue = rgba_to_hsva(this._color, $hsva_Q0kl_update_widgets, this.last_valid_hue);
+    if ($hsva_Q0kl_update_widgets[1]<0) {
+        $hsva_Q0kl_update_widgets[1] = this.last_valid_sat;
     }
     else {
-      this.last_valid_sat = $hsva_Lqs9_update_widgets[1];
+      this.last_valid_sat = $hsva_Q0kl_update_widgets[1];
     }
-    this.field.h = $hsva_Lqs9_update_widgets[0]*0.9999;
-    this.field.s = $hsva_Lqs9_update_widgets[1];
-    this.field.v = $hsva_Lqs9_update_widgets[2];
+    this.field.h = $hsva_Q0kl_update_widgets[0]*0.9999;
+    this.field.s = $hsva_Q0kl_update_widgets[1];
+    this.field.v = $hsva_Q0kl_update_widgets[2];
     this.field.do_recalc();
     this.preview.color = this._color;
     this.preview.do_recalc();
@@ -4062,28 +4073,28 @@ es6_module_define('UIWidgets_special', ["UIPack", "colorutils", "UIElement", "UI
     this.g.set_val(this._color[1]);
     this.b.set_val(this._color[2]);
     if (isNaN(this.color[2])) {
-        console.log("NaN!", this._color, $hsva_Lqs9_update_widgets);
+        console.log("NaN!", this._color, $hsva_Q0kl_update_widgets);
     }
     if (this.color_length==4) {
         this.a.set_val(this._color[3]);
     }
     this.do_path();
   }, function hsv_callback(field, h, s, v) {
-    $hsva_1zoU_hsv_callback[0] = h*0.9999;
-    $hsva_1zoU_hsv_callback[1] = s;
-    $hsva_1zoU_hsv_callback[2] = v;
+    $hsva_ZBhW_hsv_callback[0] = h*0.9999;
+    $hsva_ZBhW_hsv_callback[1] = s;
+    $hsva_ZBhW_hsv_callback[2] = v;
     if (this.color_length==4)
-      $hsva_1zoU_hsv_callback[3] = this._color[3];
+      $hsva_ZBhW_hsv_callback[3] = this._color[3];
     else 
-      $hsva_1zoU_hsv_callback[3] = 1.0;
+      $hsva_ZBhW_hsv_callback[3] = 1.0;
     this.last_valid_hue = h;
     this.last_valid_sat = s;
-    this.last_valid_hue = hsva_to_rgba($hsva_1zoU_hsv_callback, this._color, h*0.9999);
+    this.last_valid_hue = hsva_to_rgba($hsva_ZBhW_hsv_callback, this._color, h*0.9999);
     this.update_widgets();
     this.on_colorchange();
   }]);
-  var $hsva_Lqs9_update_widgets=[0, 0, 0, 0];
-  var $hsva_1zoU_hsv_callback=[0, 0, 0, 0];
+  var $hsva_Q0kl_update_widgets=[0, 0, 0, 0];
+  var $hsva_ZBhW_hsv_callback=[0, 0, 0, 0];
   _es6_module.add_class(UIColorPicker);
   UIColorPicker = _es6_module.add_export('UIColorPicker', UIColorPicker);
   var UIBoxWColor=_ESClass("UIBoxWColor", ColumnFrame, [function UIBoxWColor(ctx, path) {
@@ -4130,9 +4141,9 @@ es6_module_define('UIWidgets_special', ["UIPack", "colorutils", "UIElement", "UI
   }]);
   _es6_module.add_class(UIBoxColor);
   UIBoxColor = _es6_module.add_export('UIBoxColor', UIBoxColor);
-  var $zero_jGlw_build_draw;
-  var $size2_RRMG_build_draw;
-  var $one_hsmH_build_draw;
+  var $zero_wD3c_build_draw;
+  var $size2_VkA4_build_draw;
+  var $one_S_7F_build_draw;
   var UIProgressBar=_ESClass("UIProgressBar", UIElement, [function UIProgressBar(ctx, value, min, max, min_wid, min_hgt) {
     if (value==undefined) {
         value = 0.0;
@@ -4174,18 +4185,18 @@ es6_module_define('UIWidgets_special', ["UIPack", "colorutils", "UIElement", "UI
   }, function build_draw(canvas, isVertical) {
     canvas.begin(this);
     var perc=(this.value/(this.max-this.min));
-    canvas.box($zero_jGlw_build_draw, this.size, uicolors["ProgressBarBG"]);
+    canvas.box($zero_wD3c_build_draw, this.size, uicolors["ProgressBarBG"]);
     if (perc>0.0) {
         perc = Math.min(Math.max(0.0, perc), 1.0);
-        $size2_RRMG_build_draw[1] = this.size[1]-2;
-        $size2_RRMG_build_draw[0] = Math.floor(this.size[0]*perc)-2;
-        canvas.box($one_hsmH_build_draw, $size2_RRMG_build_draw, uicolors["ProgressBar"]);
+        $size2_VkA4_build_draw[1] = this.size[1]-2;
+        $size2_VkA4_build_draw[0] = Math.floor(this.size[0]*perc)-2;
+        canvas.box($one_S_7F_build_draw, $size2_VkA4_build_draw, uicolors["ProgressBar"]);
     }
     canvas.end(this);
   }]);
-  var $zero_jGlw_build_draw=[0, 0];
-  var $size2_RRMG_build_draw=[0, 0];
-  var $one_hsmH_build_draw=[1, 1];
+  var $zero_wD3c_build_draw=[0, 0];
+  var $size2_VkA4_build_draw=[0, 0];
+  var $one_S_7F_build_draw=[1, 1];
   _es6_module.add_class(UIProgressBar);
   UIProgressBar = _es6_module.add_export('UIProgressBar', UIProgressBar);
   var UIListEntry=_ESClass("UIListEntry", ColumnFrame, [function UIListEntry(ctx, text, id) {
@@ -4243,8 +4254,7 @@ es6_module_define('UIWidgets_special', ["UIPack", "colorutils", "UIElement", "UI
       canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
     else 
       if (this==this.parent.parent.active_entry) {
-        canvas.simple_box([0, 0], this.size);
-        canvas.simple_box([0, 0], this.size);
+        canvas.simple_box([0, 0], this.size, uicolors["MenuHighlight"]);
     }
     else 
       if (this.state&UIFlags.HIGHLIGHT) {
@@ -4265,7 +4275,7 @@ es6_module_define('UIWidgets_special', ["UIPack", "colorutils", "UIElement", "UI
   }]);
   _es6_module.add_class(UIListEntry);
   UIListEntry = _es6_module.add_export('UIListEntry', UIListEntry);
-  var $pan_Pksg__vscroll_callback;
+  var $pan_rSD7__vscroll_callback;
   var UIListBox=_ESClass("UIListBox", ColumnFrame, [function UIListBox(ctx, pos, size, callback) {
     ColumnFrame.call(this, ctx);
     if (size!=undefined&&size[0]+size[1]!=0.0)
@@ -4332,8 +4342,8 @@ es6_module_define('UIWidgets_special', ["UIPack", "colorutils", "UIElement", "UI
       ret["active_entry"] = this.active_entry.text;
     return ret;
   }, function _vscroll_callback(vscroll, value) {
-    $pan_Pksg__vscroll_callback[1] = value;
-    this.listbox.velpan.set_pan($pan_Pksg__vscroll_callback);
+    $pan_rSD7__vscroll_callback[1] = value;
+    this.listbox.velpan.set_pan($pan_rSD7__vscroll_callback);
     this.listbox.do_full_recalc();
     this.do_full_recalc();
   }, function on_doubleclick(event) {
@@ -4455,7 +4465,11 @@ es6_module_define('UIWidgets_special', ["UIPack", "colorutils", "UIElement", "UI
     this.listbox.add(entry, PackFlags.ALIGN_LEFT);
     this.do_recalc();
     var canvas=this.get_canvas();
-    var hgt=canvas!=undefined ? entry.get_min_size(canvas) : 18;
+    var hgt=canvas!=undefined ? entry.get_min_size(canvas)[1] : 18;
+    if (isNaN(hgt)) {
+        console.warn("Nan in UIListBox.add_item!", entry);
+        hgt = 12;
+    }
     this.listbox.size[1]+=hgt;
     this.listbox.pan_bounds[1][1]+=hgt;
     this.vscroll.set_range([0, this.listbox.pan_bounds[1][1]]);
@@ -4479,9 +4493,15 @@ es6_module_define('UIWidgets_special', ["UIPack", "colorutils", "UIElement", "UI
     ColumnFrame.prototype.pack.call(this, canvas, is_vertical);
     this.listbox.pan_bounds[0][0] = 0;
     this.listbox.pan_bounds[0][1] = 0;
+    this.listbox.pan_bounds[1][1] = Math.max(this.listbox.pan_bounds[1][1], 0.0);
     this.vscroll.pos[1] = 0;
     this.vscroll.size[1] = this.size[1];
-    this.vscroll.set_range([0, this.listbox.pan_bounds[1][1]]);
+    if (this.listbox.pan_bounds[1][1]<=0) {
+        this.vscroll.set_range([0, 0]);
+    }
+    else {
+      this.vscroll.set_range([0, this.listbox.pan_bounds[1][1]]);
+    }
   }, function get_min_size(canvas, isVertical) {
     if (this.size!=undefined&&this.size[0]+this.size[1]!=0.0) {
         return this.size;
@@ -4490,7 +4510,7 @@ es6_module_define('UIWidgets_special', ["UIPack", "colorutils", "UIElement", "UI
       return CACHEARR2(500, 300);
     }
   }]);
-  var $pan_Pksg__vscroll_callback=[0, 0];
+  var $pan_rSD7__vscroll_callback=[0, 0];
   _es6_module.add_class(UIListBox);
   UIListBox = _es6_module.add_export('UIListBox', UIListBox);
   window.UIColorPicker = UIColorPicker;

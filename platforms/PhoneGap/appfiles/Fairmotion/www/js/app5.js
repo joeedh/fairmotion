@@ -1,3 +1,306 @@
+es6_module_define('notifications', ["UIWidgets", "UITextBox", "toolops_api", "UIFrame", "UIWidgets_special", "UIPack", "UIElement", "UITabPanel", "ScreenArea"], function _notifications_module(_es6_module) {
+  var UIElement=es6_import_item(_es6_module, 'UIElement', 'UIElement');
+  var UIFlags=es6_import_item(_es6_module, 'UIElement', 'UIFlags');
+  var PackFlags=es6_import_item(_es6_module, 'UIElement', 'PackFlags');
+  var CanvasFlags=es6_import_item(_es6_module, 'UIElement', 'CanvasFlags');
+  var UIFrame=es6_import_item(_es6_module, 'UIFrame', 'UIFrame');
+  var UIButtonAbstract=es6_import_item(_es6_module, 'UIWidgets', 'UIButtonAbstract');
+  var UIButton=es6_import_item(_es6_module, 'UIWidgets', 'UIButton');
+  var UIButtonIcon=es6_import_item(_es6_module, 'UIWidgets', 'UIButtonIcon');
+  var UIMenuButton=es6_import_item(_es6_module, 'UIWidgets', 'UIMenuButton');
+  var UICheckBox=es6_import_item(_es6_module, 'UIWidgets', 'UICheckBox');
+  var UINumBox=es6_import_item(_es6_module, 'UIWidgets', 'UINumBox');
+  var UILabel=es6_import_item(_es6_module, 'UIWidgets', 'UILabel');
+  var UIMenuLabel=es6_import_item(_es6_module, 'UIWidgets', 'UIMenuLabel');
+  var ScrollButton=es6_import_item(_es6_module, 'UIWidgets', 'ScrollButton');
+  var UIVScroll=es6_import_item(_es6_module, 'UIWidgets', 'UIVScroll');
+  var UIIconCheck=es6_import_item(_es6_module, 'UIWidgets', 'UIIconCheck');
+  var RowFrame=es6_import_item(_es6_module, 'UIPack', 'RowFrame');
+  var ColumnFrame=es6_import_item(_es6_module, 'UIPack', 'ColumnFrame');
+  var UIPackFrame=es6_import_item(_es6_module, 'UIPack', 'UIPackFrame');
+  var UITextBox=es6_import_item(_es6_module, 'UITextBox', 'UITextBox');
+  var ToolOp=es6_import_item(_es6_module, 'toolops_api', 'ToolOp');
+  var UndoFlags=es6_import_item(_es6_module, 'toolops_api', 'UndoFlags');
+  var ToolFlags=es6_import_item(_es6_module, 'toolops_api', 'ToolFlags');
+  var UITabBar=es6_import_item(_es6_module, 'UITabPanel', 'UITabBar');
+  var UICollapseIcon=es6_import_item(_es6_module, 'UIWidgets_special', 'UICollapseIcon');
+  var UIPanel=es6_import_item(_es6_module, 'UIWidgets_special', 'UIPanel');
+  var UIColorField=es6_import_item(_es6_module, 'UIWidgets_special', 'UIColorField');
+  var UIColorBox=es6_import_item(_es6_module, 'UIWidgets_special', 'UIColorBox');
+  var UIColorPicker=es6_import_item(_es6_module, 'UIWidgets_special', 'UIColorPicker');
+  var UIProgressBar=es6_import_item(_es6_module, 'UIWidgets_special', 'UIProgressBar');
+  var UIListBox=es6_import_item(_es6_module, 'UIWidgets_special', 'UIListBox');
+  var UIListEntry=es6_import_item(_es6_module, 'UIWidgets_special', 'UIListEntry');
+  var ScreenArea, Area;
+  var _id_note_gen=1;
+  var Notification=_ESClass("Notification", [function Notification(apiname, uiname, description) {
+    this._id = _id_note_gen++;
+    this.name = apiname;
+    this.uiname = uiname;
+    this.description = description;
+  }, _ESClass.symbol(Symbol.keystr, function keystr() {
+    return ""+this._id;
+  }), function gen_uielement(ctx) {
+  }, function on_remove() {
+  }]);
+  _es6_module.add_class(Notification);
+  Notification = _es6_module.add_export('Notification', Notification);
+  var LabelNote=_ESClass("LabelNote", Notification, [function LabelNote(label, description, life_ms) {
+    if (description==undefined) {
+        description = "";
+    }
+    if (life_ms==undefined) {
+        life_ms = 3000;
+    }
+    Notification.call(this, "label", "Label", description);
+    this.life_ms = life_ms;
+    this.last_ms = time_ms();
+    this.label = label;
+  }, _ESClass.get(function defunct() {
+    return time_ms()-this.last_ms>=this.life_ms;
+  }), function gen_uielement(ctx) {
+    return new UILabel(ctx, this.label);
+  }]);
+  _es6_module.add_class(LabelNote);
+  LabelNote = _es6_module.add_export('LabelNote', LabelNote);
+  var ProgressNote=_ESClass("ProgressNote", Notification, [function ProgressNote(label, id, description, callback, progress) {
+    if (description==undefined) {
+        description = "";
+    }
+    if (callback==undefined) {
+        callback = undefined;
+    }
+    if (progress==undefined) {
+        progress = 0.0;
+    }
+    Notification.call(this, "progress", "Progress Bar", description);
+    if (callback==undefined)
+      callback = function() {
+    }
+    this.do_end = false;
+    this.id = id;
+    this.label = label;
+    this.progress = progress;
+    this.callback = callback;
+  }, _ESClass.get(function defunct() {
+    return this.progress>=1.0||this.do_end;
+  }), function end() {
+    this.do_end = true;
+  }, function update_uielement(element) {
+    var bar=element.children[1];
+    bar.set_value(this.progress);
+  }, function gen_uielement(ctx) {
+    var c=new UIProgressBar(ctx);
+    c.min_wid = 100;
+    c.min_hgt = 15;
+    c.set_value(this.progress);
+    var r=new ColumnFrame(ctx);
+    r.pad[1] = 0;
+    r.packflag|=PackFlags.NO_AUTO_SPACING;
+    r.label(this.label);
+    r.add(c);
+    return r;
+  }, _ESClass.set(function value(value) {
+    if (value!=this.progress)
+      this.set_value(value);
+  }), _ESClass.get(function value() {
+    return this.progress;
+  }), function set_value(value) {
+    this.progress = value;
+    this.callback(this);
+  }]);
+  _es6_module.add_class(ProgressNote);
+  ProgressNote = _es6_module.add_export('ProgressNote', ProgressNote);
+  var NotificationManager=_ESClass("NotificationManager", [function NotificationManager() {
+    this.notes = new GArray();
+    this.progbars = {}
+    this.emap = {}
+    this.cached_dellist = new Array();
+  }, function add(note) {
+    this.notes.push(note);
+    if (__instance_of(note, ProgressNote)) {
+        this.progbars[note.id] = note;
+    }
+    this.emap[note._id] = new GArray;
+  }, function remove(note) {
+    this.notes.remove(note);
+    if (__instance_of(note, ProgressNote)) {
+        delete this.progbars[note.id];
+    }
+    var __iter_e=__get_iter(this.emap[note._id]);
+    var e;
+    while (1) {
+      var __ival_e=__iter_e.next();
+      if (__ival_e.done) {
+          break;
+      }
+      e = __ival_e.value;
+      if (__instance_of(e.parent, NoteContainer)) {
+          e.parent.parent.do_full_recalc();
+          e.parent.parent.remove(e);
+      }
+      else {
+        e.parent.do_full_recalc();
+        e.parent.remove(e);
+      }
+    }
+    delete this.emap[note._id];
+    note.on_remove();
+  }, function ensure_uielement(note) {
+    var __iter_e=__get_iter(list(this.emap[note._id]));
+    var e;
+    while (1) {
+      var __ival_e=__iter_e.next();
+      if (__ival_e.done) {
+          break;
+      }
+      e = __ival_e.value;
+      if (e.defunct)
+        this.emap[note._id].remove(e);
+    }
+    if (this.emap[note._id].length==0) {
+        var __iter_c=__get_iter(g_app_state.screen.children);
+        var c;
+        while (1) {
+          var __ival_c=__iter_c.next();
+          if (__ival_c.done) {
+              break;
+          }
+          c = __ival_c.value;
+          if (!(__instance_of(c, ScreenArea)))
+            continue;
+          if (c.area.note_area==undefined)
+            continue;
+          var area=c.area.note_area;
+          var c2=note.gen_uielement(c.ctx);
+          area.add(c2, undefined, note);
+          this.emap[note._id].push(c2);
+        }
+    }
+  }, function label(label, description) {
+    var n=new LabelNote(label, description);
+    this.add(n);
+    this.ensure_uielement(n);
+    return n;
+  }, function progbar(label, progress, id, description) {
+    if (id==undefined) {
+        id = label;
+    }
+    if (description==undefined) {
+        description = "";
+    }
+    var this2=this;
+    function callback(note) {
+      if (!(note._id in this2.emap))
+        return ;
+      var __iter_e=__get_iter(this2.emap[note._id]);
+      var e;
+      while (1) {
+        var __ival_e=__iter_e.next();
+        if (__ival_e.done) {
+            break;
+        }
+        e = __ival_e.value;
+        note.update_uielement(e);
+      }
+    }
+    var progbar=new ProgressNote(label, id, description, callback, progress);
+    this.add(progbar);
+    this.ensure_uielement(progbar);
+    return progbar;
+  }, function on_tick() {
+    var dellist=this.cached_dellist;
+    dellist.length = 0;
+    var __iter_n=__get_iter(this.notes);
+    var n;
+    while (1) {
+      var __ival_n=__iter_n.next();
+      if (__ival_n.done) {
+          break;
+      }
+      n = __ival_n.value;
+      if (n.defunct)
+        dellist.push(n);
+    }
+    for (var i=0; i<dellist.length; i++) {
+        this.remove(dellist[i]);
+    }
+  }]);
+  _es6_module.add_class(NotificationManager);
+  NotificationManager = _es6_module.add_export('NotificationManager', NotificationManager);
+  var NoteContainer=_ESClass("NoteContainer", UIFrame, [function NoteContainer(ctx, child, note) {
+    UIFrame.call(this, ctx);
+    this.note = note;
+    this.xbut = new UIButtonIcon(this.ctx, "", Icons.TINY_X);
+    this.xbut.bgmode = "flat";
+    var this2=this;
+    this.xbut.callback = function() {
+      g_app_state.notes.remove(this2.note);
+    }
+    this.add(child);
+    this.add(this.xbut);
+    this.margin = 2;
+    this.child = child;
+    this.iconwid = 10;
+    this.xwid = 13;
+  }, function pack(canvas, isVertical) {
+    var size=this.child.get_min_size(canvas, isVertical);
+    var margin=this.margin;
+    this.child.pos[0] = this.margin+this.iconwid;
+    this.child.pos[1] = Math.abs(this.size[1]-size[1])*0.5+this.margin;
+    this.child.size[0] = size[0];
+    this.child.size[1] = size[1];
+    this.xbut.pos[0] = this.child.pos[0]+this.child.size[0];
+    this.xbut.pos[1] = this.margin;
+    this.xbut.size[0] = this.xbut.size[1] = this.xwid;
+    this.state|=UIFlags.NO_FRAME_CACHE;
+  }, function get_min_size(canvas, isVertical) {
+    var s=this.child.get_min_size(canvas, isVertical);
+    return [s[0]+this.margin*2+this.iconwid+this.xwid, s[1]+this.margin*2];
+  }, function build_draw(canvas, isVertical) {
+    var y=Math.abs(this.child.size[1]-this.size[1])*0.5;
+    canvas.box([0, 0], this.size, uicolors["NoteBox"], 0.5);
+    canvas.icon(Icons.NOTE_EXCL, [this.margin+2, this.margin+y], undefined, true);
+    UIFrame.prototype.build_draw.call(this, canvas, isVertical);
+  }]);
+  _es6_module.add_class(NoteContainer);
+  NoteContainer = _es6_module.add_export('NoteContainer', NoteContainer);
+  var NoteFrame=_ESClass("NoteFrame", ColumnFrame, [function NoteFrame(ctx, notes) {
+    ColumnFrame.call(this, ctx);
+    this.notes = notes;
+    this.packflag|=PackFlags.NO_AUTO_SPACING|PackFlags.INHERIT_HEIGHT;
+    this.packflag|=PackFlags.IGNORE_LIMIT|PackFlags.ALIGN_LEFT;
+  }, function add(e, packflag, note) {
+    var c=new NoteContainer(this.ctx, e, note);
+    ColumnFrame.prototype.add.call(this, c, packflag);
+  }, function prepend(e, packflag, note) {
+    var c=new NoteContainer(this.ctx, e, note);
+    ColumnFrame.prototype.prepend.call(this, c, packflag);
+  }, function remove(e) {
+    var __iter_c=__get_iter(this.children);
+    var c;
+    while (1) {
+      var __ival_c=__iter_c.next();
+      if (__ival_c.done) {
+          break;
+      }
+      c = __ival_c.value;
+      if (c.child==e) {
+          ColumnFrame.prototype.remove.call(this, c);
+          return ;
+      }
+    }
+  }]);
+  _es6_module.add_class(NoteFrame);
+  NoteFrame = _es6_module.add_export('NoteFrame', NoteFrame);
+  function test_notes() {
+    g_app_state.notes.label("yay", "description!");
+    g_app_state.notes.progbar("tst", 0.3, "pbar");
+    console.log("Notification test");
+  }
+  var ScreenArea=es6_import_item(_es6_module, 'ScreenArea', 'ScreenArea');
+  var Area=es6_import_item(_es6_module, 'ScreenArea', 'Area');
+});
 es6_module_define('manipulator', [], function _manipulator_module(_es6_module) {
   "use strict";
   var ManipFlags={}
@@ -4424,7 +4727,7 @@ es6_module_define('SettingsEditor', ["UIPack", "UIWidgets", "struct", "UITabPane
   SettingsEditor.debug_only = false;
 });
 var ContextStruct;
-es6_module_define('data_api_define', ["toolops_api", "theme", "view2d", "imageblock", "toolprops", "spline_element_array", "lib_api", "data_api", "config", "spline_base", "units", "spline_multires", "selectmode", "spline_createops", "ops_editor"], function _data_api_define_module(_es6_module) {
+es6_module_define('data_api_define', ["toolops_api", "theme", "selectmode", "spline_base", "imageblock", "units", "spline_element_array", "ops_editor", "data_api", "toolprops", "lib_api", "spline_multires", "view2d", "spline_createops", "config"], function _data_api_define_module(_es6_module) {
   var DataTypes=es6_import_item(_es6_module, 'lib_api', 'DataTypes');
   var EditModes=es6_import_item(_es6_module, 'view2d', 'EditModes');
   var ENABLE_MULTIRES=es6_import_item(_es6_module, 'config', 'ENABLE_MULTIRES');

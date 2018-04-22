@@ -69,9 +69,11 @@ export function close_mobile_keyboard(e) {
   //canvas.focus()
 }
 
+var _inrect_2d_button_tmps = [new Vector2(), new Vector2()];
+
 /*utility function, expands tested rect when IsMobile is true*/
-export function inrect_2d_button(Array<float> p, Array<float> pos, Array<float> size) : Boolean {
-  static pos2=new Vector2(), size2=new Vector2();
+export function inrect_2d_button(p : Array<float>, pos : Array<float>, size : Array<float>) : Boolean {
+  let pos2 = _inrect_2d_button_tmps[0], size2 = _inrect_2d_button_tmps[1];
   
   if (g_app_state.was_touch) {
     pos2.load(pos);
@@ -87,24 +89,8 @@ export function inrect_2d_button(Array<float> p, Array<float> pos, Array<float> 
 }
 
 export class UIElement extends EventHandler {
-  Boolean defunt;
-  String description;
-  Array<float> abspos, _minsize, pos, size;
-  Array<float> dirty, last_dirty;
-  String _h12;
-  String data_path;
-  Context ctx;
-  UIElement parent;
-  Timer status_timer = undefined;
-  UICanvas canvas;
-  
-  int _uiel_id, flash_timer_len, flash_ival, last_flash;
-  int recalc, recalc_minsize;
-  int state;
-  int packflag;
-  
   constructor(ctx, path=undefined, pos=undefined, size=undefined) {
-    EventHandler.call(this)
+    super();
     
     this.defunct = false;
     
@@ -124,10 +110,10 @@ export class UIElement extends EventHandler {
     this._h12 = undefined : String;
     
     this.state = UIFlags.ENABLED;
-    this.packflag = 0
+    this.packflag = 0;
     this.data_path = path;
-    this.ctx = ctx
-    this.parent = undefined
+    this.ctx = ctx;
+    this.parent = undefined;
     
     //timer for error/warning flashes
     this.flash_timer_len = 650;

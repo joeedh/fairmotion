@@ -651,8 +651,8 @@ function api_define_spline() {
     var mres_points = api_define_multires_array();
     var mres_act_id = "ctx.spline.segments.cdata.get_shared('MultiResLayer').active";
 
-    var mres_act_path = "eidmap[decompose_id(ID)[0]].cdata"
-    mres_act_path += ".get_layer(MultiResLayer).get(decompose_id(ID)[1])"
+    var mres_act_path = "eidmap[decompose_id(ID)[0]].cdata";
+    mres_act_path += ".get_layer(MultiResLayer).get(decompose_id(ID)[1])";
     mres_act_path = mres_act_path.replace(/ID/g, mres_act_id);
 
     var SplineStruct = new DataStruct(api_define_DataBlock().concat([

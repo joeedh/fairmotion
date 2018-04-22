@@ -274,7 +274,7 @@ es6_module_define('strutils', [], function _strutils_module(_es6_module) {
   }
   encode_dataurl = _es6_module.add_export('encode_dataurl', encode_dataurl);
 });
-es6_module_define('lib_api', ["toolprops_iter", "struct"], function _lib_api_module(_es6_module) {
+es6_module_define('lib_api', ["struct", "toolprops_iter"], function _lib_api_module(_es6_module) {
   "use strict";
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
   var _DataTypeDef=[["IMAGE", 8], ["SCENE", 5], ["SCRIPT", 4], ["SPLINE", 6], ["FRAMESET", 7], ["ADDON", 8]];

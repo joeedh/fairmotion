@@ -20,7 +20,11 @@ import {
 
 import {RowFrame, ColumnFrame, UIPackFrame} from 'UIPack';
 
-export class UITextBox extends UIElement {
+import {UIHTMLTextbox} from "UIHTMLTextBox";
+
+export var UITextBox = UIHTMLTextbox;
+
+export class _UITextBox extends UIElement {
   constructor(ctx, text="", pos=undefined, size=undefined, path=undefined) {
     super(ctx, path);
     
@@ -73,13 +77,13 @@ export class UITextBox extends UIElement {
 
   on_tick() {
     if (!this.editing && (this.state & UIFlags.USE_PATH)) {
-      var val = this.get_prop_data();
-      
       if (!(this.state & UIFlags.ENABLED))
         return;
-        
+
+      var val = this.get_prop_data();
+      
       if (val != this.text) {
-        this.text = val == undefined ? val : "";
+        this.text = val !== undefined ? val : "";
         this.do_recalc();
       }
     }
@@ -471,6 +475,7 @@ export class UITextBox extends UIElement {
     this.selcursor = Math.min(Math.max(0, this.selcursor), this.text.length);
     this.do_recalc();
   }
+  
   has_sel() {
     return this.sel[1]-this.sel[0] > 0;
   }
@@ -511,20 +516,20 @@ export class UITextBox extends UIElement {
     }
   }
 
-  build_draw(UICanvas canvas) {
-    var tsize = canvas.textsize(this.text);
-    
-    canvas.begin(this);
-
-    if (!(this.state & UIFlags.ENABLED))
-        canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
-    else if (this.editing) 
-      canvas.invbox([0, 0], this.size, uicolors["TextBoxInv"], 16);
-    else if (this.state & UIFlags.HIGHLIGHT)
-      canvas.box([0, 0], this.size, uicolors["TextBoxHighlight"], 16)
-    else {
-      canvas.box([0, 0], this.size, uicolors["TextBoxInv"], 16);
-    }
+  build_draw(canvas : UICanvas) {
+  var tsize = canvas.textsize(this.text);
+  
+  canvas.begin(this);
+  
+  if (!(this.state & UIFlags.ENABLED)) {
+    canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
+  } else if (this.editing) {
+    canvas.invbox([0, 0], this.size, uicolors["TextBoxInv"], 16);
+  } else if (this.state & UIFlags.HIGHLIGHT) {
+    canvas.box([0, 0], this.size, uicolors["TextBoxHighlight"], 16);
+  } else {
+    canvas.box([0, 0], this.size, uicolors["TextBoxInv"], 16);
+  }
     
     canvas.push_scissor([0, 0], this.size);
     

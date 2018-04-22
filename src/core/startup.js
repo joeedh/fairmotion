@@ -548,6 +548,10 @@ function init_event_system() {
   }
 
   function handleKeyDown(e) {
+      //make sure focus isn't in an embedded html control
+      if (document.activeElement !== document.body && !(document.activeElement instanceof HTMLCanvasElement))
+        return;
+      
       handle_key_exclude(e);
 
       if (g_app_state.screen != undefined)
@@ -555,6 +559,10 @@ function init_event_system() {
   }
 
   function handleKeyUp(e) {
+      //make sure focus isn't in an embedded html control
+      if (document.activeElement !== document.body && !(document.activeElement instanceof HTMLCanvasElement))
+        return;
+
       handle_key_exclude(e);
 
       if (g_app_state.screen != undefined)
@@ -562,6 +570,10 @@ function init_event_system() {
   }
 
   function handleKeyPress(e) {
+      //make sure focus isn't in an embedded html control
+      if (document.activeElement !== document.body && !(document.activeElement instanceof HTMLCanvasElement))
+        return;
+      
       handle_key_exclude(e);
 
       if (g_app_state.screen != undefined) {

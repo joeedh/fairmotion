@@ -138,6 +138,7 @@ sources = [
 	"src/ui/UIWidgets.js",
   "src/editors/viewport/selectmode.js",
   "src/ui/UITextBox.js",
+  "src/ui/UIHTMLTextBox.js",
   "src/ui/ScreenKeyboard.js",
 	"src/ui/UIMenu.js",
 	"src/ui/RadialMenu.js",

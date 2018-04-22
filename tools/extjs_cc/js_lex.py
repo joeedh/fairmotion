@@ -135,7 +135,8 @@ tokens = (
    "ARROW_PRE",
    
    "TRIPLEDOT",
-   "ARROWPARENS"
+   "TEMPLATE_STR",
+   "ARROWPARENS",
 ) + tuple(reserved_lst)
 
 # Regular expression rules for simple tokens
@@ -513,6 +514,13 @@ t_REGEXPR = gen_re() #r'(((?<!\\)|(?<=\\\\))/)(([^\n\r\*\\/\[]|(((?<!\\)|(?<=\\\
 strlit_val = StringLit("")
 start_q = 0
 
+def t_TEMPLATE_STR(t):
+    r'`';
+    
+    global strlit_val;
+    t.lexer.push_state("mlstr");
+    strlit_val = StringLit("")
+
 t_mlstr_ignore = ''
 
 def t_MLSTRLIT(t):
@@ -556,7 +564,7 @@ def ml_escape(s):
   return s2
       
 def t_mlstr_MLSTRLIT(t):
-  r'"""' #(""")|(\\""")';
+  r'"""|\`' #(""")|(\\""")';
   
   global strlit_val;
   

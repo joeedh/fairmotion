@@ -130,12 +130,12 @@ window.DataRef = DataRef;
 //structures themselves, as opposed to auto-generating
 //them from library block references, which is what the.  
 //(lowercase) dataref STRUCT type does.
-DataRef.STRUCT = """
+DataRef.STRUCT = `
   DataRef {
     id  : int;
     lib : int;
   }
-"""
+`;
 
 export class DataList<T> {
   GArray<T> list;
@@ -550,16 +550,16 @@ export class _DictKey {
     this.val = val;
   }
 }
-_DictKey.STRUCT = """
+_DictKey.STRUCT = `
   _DictKey {
     key : string;
     val : abstract(Object);
   }
-""";
+`;
 
 //'name' and 'flag' are deliberately not
 //prefixed with 'lib_'
-DataBlock.STRUCT = """
+DataBlock.STRUCT = `
   DataBlock {
     name              : string;
     lib_type          : int;
@@ -574,7 +574,7 @@ DataBlock.STRUCT = """
     lib_anim_channels : array(AnimChannel);
     lib_anim_idgen    : EIDGen;
   }
-""";
+`;
 
 import {ToolIter} from 'toolprops_iter';
 

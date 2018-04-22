@@ -6305,7 +6305,7 @@ es6_module_define('theme_def', ["theme"], function _theme_def_module(_es6_module
   window.UITheme = new ColorTheme({"ErrorText": [1, 0.20000000298023224, 0.20000000298023224, 0.8899999856948853], "ListBoxText": [0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1], "Highlight": uniformbox4([0.56862, 0.7882, 0.9602, 1.0]), "MenuHighlight": [0.56862, 0.7882, 0.9602, 1.0], "RadialMenu": [1, 0, 0, 1], "RadialMenuHighlight": [0.7831560373306274, 0.7664570808410645, 0.3468262255191803, 0.7717778086662292], "DefaultLine": [0.4163331985473633, 0.3746998906135559, 0.3746998906135559, 1], "SelectLine": [0.699999988079071, 0.699999988079071, 0.699999988079071, 1], "Check": [0.8999999761581421, 0.699999988079071, 0.4000000059604645, 1], "Arrow": [0.4000000059604645, 0.4000000059604645, 0.4000000059604645, 1], "DefaultText": [0, 0, 0, 1], "BoxText": [0, 0, 0, 1], "HotkeyText": [0.43986162543296814, 0.43986162543296814, 0.43986162543296814, 1], "HighlightCursor": [0.8999999761581421, 0.8999999761581421, 0.8999999761581421, 0.875], "TextSelect": [0.4000000059604645, 0.4000000059604645, 0.4000000059604645, 0.75], "TextEditCursor": [0.10000000149011612, 0.10000000149011612, 0.10000000149011612, 1], "TextBoxHighlight": [0.5270000100135803, 0.5270000100135803, 0.5270000100135803, 1], "MenuSep": [0.6901277303695679, 0.6901277303695679, 0.6901277303695679, 1], "MenuBorder": [0.6499999761581421, 0.6499999761581421, 0.6499999761581421, 1], "RadialMenuSep": [0.10000000149011612, 0.20000000298023224, 0.20000000298023224, 1], "TabPanelOutline": [0.4, 0.4, 0.4, 1.0], "TabPanelBG": [0.78, 0.78, 0.78, 1.0], "ActiveTab": [0.78, 0.78, 0.78, 1.0], "HighlightTab": [0.56862, 0.7882, 0.9602, 0.9], "InactiveTab": [0.6, 0.6, 0.6, 1.0], "TabText": [0.0, 0.0, 0.0, 1.0], "IconBox": [1, 1, 1, 0.17968888580799103], "HighlightIcon": [0.30000001192092896, 0.8149344325065613, 1, 0.21444444358348846], "MenuText": [0.10000000149011612, 0.10000000149011612, 0.10000000149011612, 1], "MenuTextHigh": [0.9330000281333923, 0.9330000281333923, 0.9330000281333923, 1], "PanelText": [0, 0, 0, 1], "DialogText": [0.05000003054738045, 0.05000000447034836, 0.05000000447034836, 1], "DialogBorder": [0.40000000298023225, 0.4000000298023224, 0.40000000298023225, 1], "DisabledBox": [0.5000000029802323, 0.5000000029802323, 0.5000000029802323, 1], "IconCheckBG": [0.6879922747612, 0.6879922747612, 0.6879922747612, 1], "IconCheckSet": [0.6, 0.6, 0.6, 1], "IconCheckUnset": [0.44641016151377544, 0.44641016151377544, 0.44641016151377544, 1], "NoteBox": ui_weight_clr([0.8, 0.8, 0.8, 1.0], [0.8, 0.8, 0.8, 1.0]), "Box": ui_weight_clr([0.94, 0.94, 0.94, 1.0], [0.8, 0.8, 0.8, 1.0]), "HoverHint": ui_weight_clr([1, 0.9769999980926514, 0.8930000066757202, 0.8999999761581421], [0.8999999761581421, 0.8999999761581421, 1, 1]), "ErrorBox": ui_weight_clr([1, 0.30000001192092896, 0.20000000298023224, 1], [1, 1, 1, 1]), "ErrorTextBG": ui_weight_clr([1, 1, 1, 1], [0.8999999761581421, 0.8999999761581421, 1, 1]), "ShadowBox": ui_weight_clr([0, 0, 0, 0.10000000149011612], [1, 1, 1, 1]), "ProgressBar": ui_weight_clr([0.4000000059604645, 0.7300000190734863, 0.8999999761581421, 0.8999999761581421], [0.75, 0.75, 1, 1]), "ProgressBarBG": ui_weight_clr([0.699999988079071, 0.699999988079071, 0.699999988079071, 0.699999988079071], [1, 1, 1, 1]), "WarningBox": ui_weight_clr([1, 0.800000011920929, 0.10000000149011612, 0.8999999761581421], [0.699999988079071, 0.800000011920929, 1.0499999523162842, 1]), "ListBoxBG": ui_weight_clr([0.94, 0.94, 0.94, 1.0], [0.94, 0.94, 0.94, 1.0]), "InvBox": ui_weight_clr([0.6, 0.6, 0.6, 1.0], [0.6, 0.6, 0.6, 1.0]), "HLightBox": uniformbox4([0.56862, 0.7882, 0.9602, 1.0]), "ActivePanel": ui_weight_clr([0.800000011920929, 0.4000000059604645, 0.30000001192092896, 0.8999999761581421], [1, 1, 1, 1]), "CollapsingPanel": ui_weight_clr([0.687468421459198, 0.687468421459198, 0.687468421459198, 1], [1, 1, 1, 1]), "SimpleBox": ui_weight_clr([0.94, 0.94, 0.94, 1.0], [0.94, 0.94, 0.94, 1.0]), "DialogBox": ui_weight_clr([0.7269999980926514, 0.7269999980926514, 0.7269999980926514, 1], [1, 1, 1, 1]), "DialogTitle": ui_weight_clr([0.6299999952316284, 0.6299999952316284, 0.6299999952316284, 1], [1, 1, 1, 1]), "MenuBox": ui_weight_clr([0.9200000166893005, 0.9200000166893005, 0.9200000166893005, 1], [1, 1, 1, 1]), "TextBox": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 0.8999999761581421], [1, 1, 1, 1]), "TextBoxInv": ui_weight_clr([0.699999988079071, 0.699999988079071, 0.699999988079071, 1], [0.699999988079071, 0.699999988079071, 0.699999988079071, 1]), "MenuLabel": ui_weight_clr([0.9044828414916992, 0.8657192587852478, 0.8657192587852478, 0.24075555801391602], [0.6000000238418579, 0.6000000238418579, 0.6000000238418579, 0.8999999761581421]), "MenuLabelInv": ui_weight_clr([0.75, 0.75, 0.75, 0.47111111879348755], [1, 1, 0.9410666823387146, 1]), "ScrollBG": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 1], [1, 1, 1, 1]), "ScrollBar": ui_weight_clr([0.5919697284698486, 0.5919697284698486, 0.5919697284698486, 1], [1, 1, 1, 1]), "ScrollBarHigh": ui_weight_clr([0.6548083424568176, 0.6548083424568176, 0.6548083424568176, 1], [1, 1, 1, 1]), "ScrollButton": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 1], [1, 1, 1, 1]), "ScrollButtonHigh": ui_weight_clr([0.75, 0.75, 0.75, 1], [1, 1, 1, 1]), "ScrollInv": ui_weight_clr([0.4000000059604645, 0.4000000059604645, 0.4000000059604645, 1], [1, 1, 1, 1]), "IconInv": ui_weight_clr([0.48299384117126465, 0.5367956161499023, 0.8049896955490112, 0.4000000059604645], [1, 1, 1, 1])});
   window.View2DTheme = new ColorTheme({"Background": [1, 1, 1, 1], "ActiveObject": [0.800000011920929, 0.6000000238418579, 0.30000001192092896, 1], "Selection": [0.699999988079071, 0.4000000059604645, 0.10000000149011612, 1], "GridLineBold": [0.38, 0.38, 0.38, 1.0], "GridLine": [0.5, 0.5, 0.5, 1.0], "AxisX": [0.9, 0.0, 0.0, 1.0], "AxisY": [0.0, 0.9, 0.0, 1.0], "AxisZ": [0.0, 0.0, 0.9, 1.0]});
 });
-es6_module_define('UIElement', ["toolprops", "mathlib", "events"], function _UIElement_module(_es6_module) {
+es6_module_define('UIElement', ["events", "toolprops", "mathlib"], function _UIElement_module(_es6_module) {
   es6_import(_es6_module, 'events');
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
   var inrect_2d=es6_import_item(_es6_module, 'mathlib', 'inrect_2d');
@@ -6335,24 +6335,24 @@ es6_module_define('UIElement', ["toolprops", "mathlib", "events"], function _UIE
       end_keyboard(e);
   }
   close_mobile_keyboard = _es6_module.add_export('close_mobile_keyboard', close_mobile_keyboard);
-  var $pos2_gOhq_inrect_2d_button=new Vector2();
-  var $size2_6STe_inrect_2d_button=new Vector2();
+  var _inrect_2d_button_tmps=[new Vector2(), new Vector2()];
   function inrect_2d_button(p, pos, size) {
+    var $_let_pos27=_inrect_2d_button_tmps[0], $_let_size28=_inrect_2d_button_tmps[1];
     if (g_app_state.was_touch) {
-        $pos2_gOhq_inrect_2d_button.load(pos);
-        $size2_6STe_inrect_2d_button.load(size);
-        $pos2_gOhq_inrect_2d_button.subScalar(fuzzy_ui_press_hotspot);
-        $size2_6STe_inrect_2d_button.addScalar(fuzzy_ui_press_hotspot*2.0);
-        return inrect_2d(p, $pos2_gOhq_inrect_2d_button, $size2_6STe_inrect_2d_button);
+        $_let_pos27.load(pos);
+        $_let_size28.load(size);
+        $_let_pos27.subScalar(fuzzy_ui_press_hotspot);
+        $_let_size28.addScalar(fuzzy_ui_press_hotspot*2.0);
+        return inrect_2d(p, $_let_pos27, $_let_size28);
     }
     else {
       return inrect_2d(p, pos, size);
     }
   }
   inrect_2d_button = _es6_module.add_export('inrect_2d_button', inrect_2d_button);
-  var $empty_arr_FLfR_get_keymaps;
-  var $pos_PFjJ_get_abs_pos;
-  var $ret_jada_get_min_size;
+  var $empty_arr_FHgy_get_keymaps;
+  var $pos_8TrU_get_abs_pos;
+  var $ret_mHHb_get_min_size;
   var UIElement=_ESClass("UIElement", EventHandler, [function UIElement(ctx, path, pos, size) {
     if (path==undefined) {
         path = undefined;
@@ -6407,7 +6407,7 @@ es6_module_define('UIElement', ["toolprops", "mathlib", "events"], function _UIE
       this.do_recalc();
     this.state|=UIFlags.ENABLED;
   }, function get_keymaps() {
-    return $empty_arr_FLfR_get_keymaps;
+    return $empty_arr_FHgy_get_keymaps;
   }, _ESClass.symbol(Symbol.keystr, function keystr() {
     if (this._h12==undefined) {
         var n=this.constructor.name;
@@ -6497,15 +6497,15 @@ es6_module_define('UIElement', ["toolprops", "mathlib", "events"], function _UIE
     if (this.parent!=undefined)
       this.parent.focus(this);
   }, function get_abs_pos() {
-    $pos_PFjJ_get_abs_pos[0] = this.pos[0];
-    $pos_PFjJ_get_abs_pos[1] = this.pos[1];
+    $pos_8TrU_get_abs_pos[0] = this.pos[0];
+    $pos_8TrU_get_abs_pos[1] = this.pos[1];
     var p=this.parent;
     while (p!=undefined) {
-      $pos_PFjJ_get_abs_pos[0]+=p.pos[0];
-      $pos_PFjJ_get_abs_pos[1]+=p.pos[1];
+      $pos_8TrU_get_abs_pos[0]+=p.pos[0];
+      $pos_8TrU_get_abs_pos[1]+=p.pos[1];
       p = p.parent;
     }
-    return $pos_PFjJ_get_abs_pos;
+    return $pos_8TrU_get_abs_pos;
   }, function call_menu(menu, off, min_width) {
     if (off==undefined) {
         off = undefined;
@@ -6693,7 +6693,7 @@ es6_module_define('UIElement', ["toolprops", "mathlib", "events"], function _UIE
     }
     return this._minsize;
   }, function get_min_size(canvas, isvertical) {
-    return $ret_jada_get_min_size;
+    return $ret_mHHb_get_min_size;
   }, function build_draw(canvas, isvertical) {
   }, function on_active() {
   }, function on_inactive() {
@@ -6702,9 +6702,9 @@ es6_module_define('UIElement', ["toolprops", "mathlib", "events"], function _UIE
   }, function on_add(parent) {
   }, function on_remove(parent) {
   }]);
-  var $empty_arr_FLfR_get_keymaps=[];
-  var $pos_PFjJ_get_abs_pos=[0, 0];
-  var $ret_jada_get_min_size=[1, 1];
+  var $empty_arr_FHgy_get_keymaps=[];
+  var $pos_8TrU_get_abs_pos=[0, 0];
+  var $ret_mHHb_get_min_size=[1, 1];
   _es6_module.add_class(UIElement);
   UIElement = _es6_module.add_export('UIElement', UIElement);
   var UIHoverBox=_ESClass("UIHoverBox", UIElement, [function UIHoverBox(ctx, text, is_modal, pos, size) {

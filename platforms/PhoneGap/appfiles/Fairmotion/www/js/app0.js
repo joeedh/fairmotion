@@ -1953,16 +1953,22 @@ function init_event_system() {
     }
   }
   function handleKeyDown(e) {
+    if (document.activeElement!==document.body&&!(__instance_of(document.activeElement, HTMLCanvasElement)))
+      return ;
     handle_key_exclude(e);
     if (g_app_state.screen!=undefined)
       g_app_state.eventhandler._on_keydown(e);
   }
   function handleKeyUp(e) {
+    if (document.activeElement!==document.body&&!(__instance_of(document.activeElement, HTMLCanvasElement)))
+      return ;
     handle_key_exclude(e);
     if (g_app_state.screen!=undefined)
       g_app_state.eventhandler._on_keyup(e);
   }
   function handleKeyPress(e) {
+    if (document.activeElement!==document.body&&!(__instance_of(document.activeElement, HTMLCanvasElement)))
+      return ;
     handle_key_exclude(e);
     if (g_app_state.screen!=undefined) {
         if (e.charCode==0||e.charCode==13||e.charCode==undefined)

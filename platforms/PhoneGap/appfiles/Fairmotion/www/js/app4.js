@@ -2365,6 +2365,29 @@ es6_module_define('ScreenKeyboard', ["UIFrame", "UIWidgets", "UIPack", "UIElemen
     }
   }
 });
+es6_module_define('platform_api', [], function _platform_api_module(_es6_module) {
+  var PlatformAPIBase=_ESClass("PlatformAPIBase", [function PlatformAPIBase() {
+  }, function init() {
+  }, function save_file(path_handle, name, databuf, type) {
+  }, function save_dialog(name, databuf, type) {
+  }, function open_dialog(type) {
+  }, function open_last_file() {
+  }, function exit_catcher(handler) {
+  }, function quit_app() {
+  }]);
+  _es6_module.add_class(PlatformAPIBase);
+  PlatformAPIBase = _es6_module.add_export('PlatformAPIBase', PlatformAPIBase);
+  var NativeAPIBase=_ESClass("NativeAPIBase", [function NativeAPIBase() {
+  }]);
+  _es6_module.add_class(NativeAPIBase);
+  NativeAPIBase = _es6_module.add_export('NativeAPIBase', NativeAPIBase);
+});
+es6_module_define('platform_capabilies', [], function _platform_capabilies_module(_es6_module) {
+  var PlatCapab={NativeAPI: undefined, save_file: undefined, save_dialog: undefined, open_dialog: undefined, open_last_file: undefined, exit_catcher: undefined}
+  PlatCapab = _es6_module.add_export('PlatCapab', PlatCapab);
+});
+es6_module_define('platform_utils', [], function _platform_utils_module(_es6_module) {
+});
 es6_module_define('UIMenu', ["toolops_api", "UIElement", "mathlib", "UIFrame", "UIPack", "UITextBox", "events", "UIWidgets"], function _UIMenu_module(_es6_module) {
   var UIElement=es6_import_item(_es6_module, 'UIElement', 'UIElement');
   var PackFlags=es6_import_item(_es6_module, 'UIElement', 'PackFlags');

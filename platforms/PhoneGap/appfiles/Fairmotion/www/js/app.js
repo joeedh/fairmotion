@@ -59,6 +59,27 @@ window.coverage = (function coverage_module() {
 })();
 
 "not_a_module";
+if (Array.prototype.pop_i===undefined) {
+    Array.prototype.pop_i = function pop_i(idx, throw_on_error) {
+      if (idx<0||idx>=this.length||isNaN(idx)) {
+          if (throw_on_error) {
+              throw new Error(""+idx+" is out of bounds");
+          }
+          else {
+            console.log(""+idx+" is out of bounds", this);
+            return ;
+          }
+      }
+      var ret=this[idx];
+      while (idx<this.length-1) {
+        this[idx] = this[idx+1];
+        idx++;
+      }
+      this[this.length-1] = undefined;
+      this.length--;
+      return ret;
+    };
+}
 function startup_report(message) {
   console.log("%c "+message+"", "color:green");
 }

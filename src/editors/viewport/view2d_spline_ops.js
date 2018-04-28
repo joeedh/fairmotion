@@ -46,7 +46,7 @@ window.anim_to_playback = [];
 
 export class RenderAnimOp extends ToolOp {
   constructor() {
-    ToolOp.call(this);
+    super();
   }
   
   static tooldef() {return {
@@ -59,7 +59,7 @@ export class RenderAnimOp extends ToolOp {
   }}
   
   start_modal(ctx) {
-    ToolOp.prototype.start_modal.call(this, ctx);
+    super.start_modal(ctx);
     console.log("Anim render start!");
     
     window.anim_to_playback = [];

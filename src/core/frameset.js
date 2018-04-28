@@ -1318,7 +1318,7 @@ export class SplineFrameSet extends DataBlock {
       var v = this.spline.eidmap[k];
 
       if (v === undefined) {
-        console.log("error in update_visibility:", k);
+        //console.log("error in update_visibility:", k);
         continue;
       }
 

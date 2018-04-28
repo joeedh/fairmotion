@@ -103,6 +103,12 @@ export class SplineVertex extends SplineElement {
     if (this.type != SplineTypes.HANDLE) return true;
     
     var s = this.owning_segment;
+    
+    if (s === undefined) {
+      console.warn("Corrupted handle detected", this.eid);
+      return false;
+    }
+    
     var v = s.handle_vertex(this);
     
     var ret = v != undefined && (v.segments != undefined && v.segments.length > 2 || (v.flag & SplineFlags.USE_HANDLES));

@@ -98,6 +98,7 @@ sources = [
   "src/curve/spline_draw_new.js",
   "src/license/license_api.js",
   "src/license/license_electron.js",
+  "platforms/Electron/theplatform.js",
 
   "src/addon_api/addon_api.js",
   "src/scene/scene.js",
@@ -140,6 +141,9 @@ sources = [
   "src/ui/UITextBox.js",
   "src/ui/UIHTMLTextBox.js",
   "src/ui/ScreenKeyboard.js",
+  "platforms/common/platform_api.js",
+  "platforms/common/platform_capabilies.js",
+  "platforms/common/platform_utils.js",
 	"src/ui/UIMenu.js",
 	"src/ui/RadialMenu.js",
   "src/ui/UIWidgets_special.js",

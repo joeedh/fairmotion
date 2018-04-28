@@ -82,7 +82,7 @@ export class UIPackFrame extends UIFrame {
     return inherit_flag;
   }
   
-  toolop(path, inherit_flag=0, label=undefined) {
+  toolop(path, inherit_flag=0, label=undefined, icon=undefined, description=undefined) {
     var ctx = this.ctx;
     var opname = ctx.api.get_op_uiname(ctx, path);
 
@@ -112,10 +112,12 @@ export class UIPackFrame extends UIFrame {
       if (DEBUG.icons)
         console.log("icon toolop", op.icon);
       
-      if (op.icon >= 0) {
+      icon = icon === undefined ? op.icon : icon;
+      
+      if (icon >= 0) {
         var use_small = inherit_flag & PackFlags.USE_SMALL_ICON;
         
-        var c = new UIButtonIcon(ctx, opname, op.icon, [0,0], [0,0], path, undefined, undefined, use_small);
+        var c = new UIButtonIcon(ctx, opname, icon, [0,0], [0,0], path, undefined, undefined, use_small);
         c.packflag |= inherit_flag;
         this.add(c);
         

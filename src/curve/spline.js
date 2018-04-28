@@ -760,11 +760,42 @@ export class Spline extends DataBlock {
       for (var v of list) {
         for (var j=0; j<v.segments.length; j++) {
           if (v.segments[j] == undefined) {
-            v.pop_i(j);
+            console.warn("Corruption detected for element", v.eid);
+            v.segments.pop_i(j);
             j--;
           }
         }
       }
+    }
+    
+    //destroy orphaned handles
+    var hset = new set();
+    for (var s of this.segments) {
+      hset.add(s.h1);
+      hset.add(s.h2);
+      
+      for (let si=0; si<2; si++) {
+        let h = si ? s.h2 : s.h1;
+        
+        if (h.segments.indexOf(s) < 0) {
+          console.warn("fixing segment reference for handle", h.eid);
+          h.segments.length = 0;
+          h.segments.push(s);
+        }
+      }
+    }
+    
+    let delset = new set();
+    
+    for (var h of this.handles) {
+      if (!hset.has(h)) {
+        delset.add(h);
+      }
+    }
+    
+    for (let h of delset) {
+      console.log("Removing orphaned handle", h.eid, h);
+      this.handles.remove(h);
     }
     
     var delsegments = new set();

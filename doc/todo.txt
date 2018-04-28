@@ -1,6 +1,11 @@
+- Disable emulated ES6 features in extjs that need not be emulated anymore
+
+- Finish platform API refactor
+  * Consolidate file api stuff
+  * Make basic HTML5 platform
+  * Finish recent file list stuff
 
 - Move to TypeScript
 DONE - Make active element color different from highlight color.
 - Refactor element color system
 - Write new data_api system
-d

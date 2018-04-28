@@ -30,5 +30,7 @@ window.Icons = {
   CURSOR_ARROW   : 26,
   TOGGLE_SEL_ALL : 27,
   DELETE         : 28,
-  RESIZE         : 29
+  RESIZE         : 29,
+  Z_UP           : 30,
+  Z_DOWN         : 31
 };

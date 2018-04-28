@@ -1119,17 +1119,18 @@ export class View2DHandler extends Area {
 
   gen_file_menu(Context ctx, uimenulabel)
   {
-    return toolop_menu(ctx, "",    
+    return toolop_menu(ctx, "",
       [
-      "view2d.export_image()",
-      "appstate.export_svg()",
-      "sep",
-      "appstate.save_as()", 
-      "appstate.save()", 
-      "appstate.open_recent()",
-      "appstate.open()",
-      "sep",
-      "appstate.new()"
+        "appstate.quit()",
+        "view2d.export_image()",
+        "appstate.export_svg()",
+        "sep",
+        "appstate.save_as()",
+        "appstate.save()",
+        "appstate.open_recent()",
+        "appstate.open()",
+        "sep",
+        "appstate.new()"
       ]);
   }
   
@@ -1240,8 +1241,11 @@ export class View2DHandler extends Area {
     tools.add(redo);
     tools.toolop("view2d.circle_select()", PackFlags.USE_LARGE_ICON);
     tools.toolop("spline.toggle_select_all()", PackFlags.USE_LARGE_ICON);
-    
-    var display = tabs.panel("Display");
+  
+    tools.toolop("spline.change_face_z(offset=1, selmode=selectmode)", PackFlags.USE_LARGE_ICON, "Move Up", Icons.Z_UP);
+    tools.toolop("spline.change_face_z(offset=-1, selmode=selectmode)", PackFlags.USE_LARGE_ICON, "Move Down", Icons.Z_DOWN);
+  
+  var display = tabs.panel("Display");
     display.prop("view2d.only_render");
     display.prop("view2d.draw_small_verts");
     display.prop("view2d.draw_normals");

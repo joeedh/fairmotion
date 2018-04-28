@@ -1,4 +1,6 @@
-export class PlatformAPIBase {
+import {PlatformAPIBase} from 'platform_api';
+
+export class ElectronPlatformAPI {
   constructor() {
   }
   
@@ -26,11 +28,8 @@ export class PlatformAPIBase {
   }
   
   quit_app() {
-  
+    close();
   }
 }
 
-export class NativeAPIBase {
-  
-}
-
+export var app = new ElectronPlatformAPI();

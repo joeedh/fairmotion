@@ -7,8 +7,15 @@ const url = require('url')
 let win
 
 function createWindow () {
-    // Create the browser window.
-  win = new BrowserWindow({width: 1024, height: 768})
+  // Create the browser window.
+  win = new BrowserWindow({
+    width: 1024,
+    height: 768,
+    webPreferences : {
+      nodeIntegration: true,
+      preload : "preload.js"
+    }
+  });
 
   win.setMenu(null);
   
@@ -17,7 +24,11 @@ function createWindow () {
 
   //set window global
   global.window = global;
-
+  
+  global.quit_app = function() {
+    app.quit();
+  }
+  
   //we're not on mobile
   window.mobilecheck = function() {
     return false;
@@ -27,7 +38,7 @@ function createWindow () {
 
   //do main startup
   window.ELECTRON_APP = true;
-
+  
   // Emitted when the window is closed.
   win.on('closed', () => {
     // Dereference the window object, usually you would store windows
@@ -37,6 +48,7 @@ function createWindow () {
   });
 
   // and load the index.html of the app.
+  
   win.loadURL(url.format({
     pathname: path.join(__dirname, 'index.html'),
     protocol: 'file:',

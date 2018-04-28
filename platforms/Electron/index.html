@@ -56,19 +56,20 @@
 </head>
 
 <body onload="start_app()">
-	<script type="text/javascript">
-	window.start_app = function start_app() {
-        startup();
-	}
-	
-	</script>
-	
-    <div id="ElectronAppMode" style="display: hidden"></div>
+<script type="text/javascript">
+  window.start_app = function start_app() {
+    startup();
+  }
 
-    <div class="app">
-        <canvas id="canvas2d_work"></canvas>
-        <canvas id="canvas2d"></canvas>
-    </div>
+  window.ELECTRON_APP = true;
+</script>
+
+<div id="ElectronAppMode" style="display: hidden"></div>
+
+<div class="app">
+    <canvas id="canvas2d_work"></canvas>
+    <canvas id="canvas2d"></canvas>
+</div>
 </body>
 
 </html>

@@ -4530,7 +4530,7 @@ es6_module_define('UserSettings', ["struct", "config", "dialogs", "strutils"], f
   }
 });
 var g_app_state, g, t;
-es6_module_define('AppState', ["UICanvas", "config", "ScreenArea", "FrameManager", "DopeSheetEditor", "notifications", "UserSettings", "lib_api_typedefine", "struct", "toolprops", "spline_base", "ajax", "lib_api", "frameset", "scene", "view2d", "ops_editor", "lib_utils", "fileapi", "startup_file", "raster", "toolops_api", "data_api", "jobs", "view2d_ops", "strutils"], function _AppState_module(_es6_module) {
+es6_module_define('AppState', ["fileapi", "ScreenArea", "strutils", "jobs", "ajax", "struct", "ops_editor", "lib_utils", "startup_file", "spline_base", "toolops_api", "lib_api_typedefine", "DopeSheetEditor", "config", "data_api", "view2d", "FrameManager", "UserSettings", "UICanvas", "raster", "notifications", "scene", "view2d_ops", "frameset", "lib_api", "toolprops"], function _AppState_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, 'config');
   var html5_fileapi=es6_import(_es6_module, 'fileapi');
@@ -4756,7 +4756,7 @@ es6_module_define('AppState', ["UICanvas", "config", "ScreenArea", "FrameManager
     }
     return out;
   }
-  var $toolop_input_cache_LPZZ_AppState;
+  var $toolop_input_cache_wgWo_AppState;
   var AppState=_ESClass("AppState", [function AppState(screen, mesh, gl) {
     this.screen = screen;
     this.eventhandler = screen;
@@ -4777,7 +4777,7 @@ es6_module_define('AppState', ["UICanvas", "config", "ScreenArea", "FrameManager
     this.gl = gl;
     this.size = screen!=undefined ? screen.size : [512, 512];
     this.raster = new RasterState(undefined, screen!=undefined ? screen.size : [512, 512]);
-    this.toolop_input_cache = $toolop_input_cache_LPZZ_AppState;
+    this.toolop_input_cache = $toolop_input_cache_wgWo_AppState;
     if (this.datalib!=undefined) {
         this.datalib.on_destroy();
     }
@@ -5583,7 +5583,7 @@ es6_module_define('AppState', ["UICanvas", "config", "ScreenArea", "FrameManager
         screen.size = this.size;
     }
   }]);
-  var $toolop_input_cache_LPZZ_AppState={}
+  var $toolop_input_cache_wgWo_AppState={}
   _es6_module.add_class(AppState);
   AppState = _es6_module.add_export('AppState', AppState);
   window.AppState = AppState;
@@ -6249,7 +6249,7 @@ es6_module_define('units', ["safe_eval"], function _units_module(_es6_module) {
   Unit.imperial_units = ["in", "ft", "mile"];
   Unit.internal_unit = "cm";
 });
-es6_module_define('data_api', ["spline_multires", "animdata", "UIFrame", "safe_eval", "config", "toolops_api", "data_api_parser", "lib_api", "toolprops"], function _data_api_module(_es6_module) {
+es6_module_define('data_api', ["UIFrame", "config", "safe_eval", "lib_api", "toolprops", "toolops_api", "spline_multires", "data_api_parser", "animdata"], function _data_api_module(_es6_module) {
   var DataPathTypes={PROP: 0, STRUCT: 1, STRUCT_ARRAY: 2}
   DataPathTypes = _es6_module.add_export('DataPathTypes', DataPathTypes);
   var DataFlags={NO_CACHE: 1, RECALC_CACHE: 2}
@@ -6649,10 +6649,10 @@ es6_module_define('data_api', ["spline_multires", "animdata", "UIFrame", "safe_e
   }}, token: {obj: ["", ""], cachesize: 512}}
   TinyParser.split_chars = new set([",", "=", "(", ")", ".", "$", "[", "]"]);
   TinyParser.ws = new set([" ", "\n", "\t", "\r"]);
-  var $cache_LMlQ_resolve_path_intern;
-  var $sret_eCfg_resolve_path_intern2;
-  var $retcpy_4A1F_set_prop;
-  var $scope_1f10_set_prop;
+  var $cache_fneN_resolve_path_intern;
+  var $sret_IB5d_resolve_path_intern2;
+  var $retcpy_Bf2i_set_prop;
+  var $scope_UHqd_set_prop;
   var DataAPI=_ESClass("DataAPI", [function DataAPI(appstate) {
     this.appstate = appstate;
     this.ops = data_ops_list;
@@ -6973,18 +6973,18 @@ es6_module_define('data_api', ["spline_multires", "animdata", "UIFrame", "safe_e
         return undefined;
     }
     try {
-      if (!(str in $cache_LMlQ_resolve_path_intern)) {
+      if (!(str in $cache_fneN_resolve_path_intern)) {
           var ret=this.resolve_path_intern2(ctx, str);
           var ret2=[];
           for (var i=0; i<ret.length; i++) {
               ret2.push(ret[i]);
           }
-          $cache_LMlQ_resolve_path_intern[str] = ret2;
+          $cache_fneN_resolve_path_intern[str] = ret2;
       }
       else {
-        var ret=$cache_LMlQ_resolve_path_intern[str];
+        var ret=$cache_fneN_resolve_path_intern[str];
         if (ret[0]!=undefined&&!ret[0].cache_good()) {
-            delete $cache_LMlQ_resolve_path_intern[str];
+            delete $cache_fneN_resolve_path_intern[str];
             return this.resolve_path_intern(ctx, str);
         }
       }
@@ -7096,13 +7096,13 @@ es6_module_define('data_api', ["spline_multires", "animdata", "UIFrame", "safe_e
       }
     }
     var ast=parser.parse(str);
-    $sret_eCfg_resolve_path_intern2[0] = do_eval(ast, ContextStruct, pathout, spathout);
+    $sret_IB5d_resolve_path_intern2[0] = do_eval(ast, ContextStruct, pathout, spathout);
     pathout[0] = pathout[0].slice(1, pathout[0].length);
-    $sret_eCfg_resolve_path_intern2[1] = pathout[0];
-    $sret_eCfg_resolve_path_intern2[2] = spathout[0];
-    $sret_eCfg_resolve_path_intern2[3] = mass_set;
-    $sret_eCfg_resolve_path_intern2[4] = ownerpathout[0].slice(1, ownerpathout[0].length);
-    return $sret_eCfg_resolve_path_intern2;
+    $sret_IB5d_resolve_path_intern2[1] = pathout[0];
+    $sret_IB5d_resolve_path_intern2[2] = spathout[0];
+    $sret_IB5d_resolve_path_intern2[3] = mass_set;
+    $sret_IB5d_resolve_path_intern2[4] = ownerpathout[0].slice(1, ownerpathout[0].length);
+    return $sret_IB5d_resolve_path_intern2;
   }, function evaluate(ctx, str, scope) {
     try {
       if (str in this.evalcache) {
@@ -7216,7 +7216,7 @@ es6_module_define('data_api', ["spline_multires", "animdata", "UIFrame", "safe_e
     var ret=this.resolve_path_intern(ctx, listpath);
     var sta=ret[0].data;
     var ret=[];
-    var __iter_key=__get_iter(sta.getkeyiter.call(list));
+    var __iter_key=__get_iter(sta.getkeyiter.call(list, ctx));
     var key;
     while (1) {
       var __ival_key=__iter_key.next();
@@ -7251,11 +7251,11 @@ es6_module_define('data_api', ["spline_multires", "animdata", "UIFrame", "safe_e
         }
         return ret;
     }
-    $retcpy_4A1F_set_prop.length = ret.length;
+    $retcpy_Bf2i_set_prop.length = ret.length;
     for (var i=0; i<5; i++) {
-        $retcpy_4A1F_set_prop[i] = ret[i];
+        $retcpy_Bf2i_set_prop[i] = ret[i];
     }
-    ret = $retcpy_4A1F_set_prop;
+    ret = $retcpy_Bf2i_set_prop;
     var owner=this.evaluate(ctx, ret[4]);
     if (ret[0]==undefined&&ret[3]!=undefined&&ret[3].do_mass_set) {
         if (DEBUG.ui_datapaths) {
@@ -7305,9 +7305,9 @@ es6_module_define('data_api', ["spline_multires", "animdata", "UIFrame", "safe_e
                 else 
                   val&=~mask;
                 prop.set_data(val, owner, changed);
-                $scope_1f10_set_prop[0] = val;
+                $scope_UHqd_set_prop[0] = val;
                 path2+=" = scope[0];";
-                this.evaluate(ctx, path2, $scope_1f10_set_prop);
+                this.evaluate(ctx, path2, $scope_UHqd_set_prop);
             }
             else {
               path+=" = "+value;
@@ -7354,9 +7354,9 @@ es6_module_define('data_api', ["spline_multires", "animdata", "UIFrame", "safe_e
           }
           else {
             if (typeof value=="object") {
-                $scope_1f10_set_prop[0] = value;
+                $scope_UHqd_set_prop[0] = value;
                 path+=" = scope[0]";
-                this.evaluate(ctx, path, $scope_1f10_set_prop);
+                this.evaluate(ctx, path, $scope_UHqd_set_prop);
             }
             else {
               changed = value==old_value;
@@ -7397,10 +7397,10 @@ es6_module_define('data_api', ["spline_multires", "animdata", "UIFrame", "safe_e
       return undefined;
     return ret[0].data;
   }]);
-  var $cache_LMlQ_resolve_path_intern={}
-  var $sret_eCfg_resolve_path_intern2=[0, 0, 0, 0, 0];
-  var $retcpy_4A1F_set_prop=new Array(16);
-  var $scope_1f10_set_prop=[0, 0];
+  var $cache_fneN_resolve_path_intern={}
+  var $sret_IB5d_resolve_path_intern2=[0, 0, 0, 0, 0];
+  var $retcpy_Bf2i_set_prop=new Array(16);
+  var $scope_UHqd_set_prop=[0, 0];
   _es6_module.add_class(DataAPI);
   DataAPI = _es6_module.add_export('DataAPI', DataAPI);
 });

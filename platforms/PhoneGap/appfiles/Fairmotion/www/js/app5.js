@@ -539,7 +539,7 @@ es6_module_define('manipulator', [], function _manipulator_module(_es6_module) {
   _es6_module.add_class(ManipulatorManager);
   ManipulatorManager = _es6_module.add_export('ManipulatorManager', ManipulatorManager);
 });
-es6_module_define('view2d', ["view2d_spline_ops", "spline_createops", "UIWidgets", "UIMenu", "mathlib", "events", "spline_draw", "UICanvas", "UIElement", "UIWidgets_special2", "UITabPanel", "UIPack", "imageblock", "notifications", "manipulator", "view2d_editor", "struct", "ScreenArea", "selectmode", "RadialMenu", "video", "spline_editops", "toolops_api", "UIWidgets_special"], function _view2d_module(_es6_module) {
+es6_module_define('view2d', ["UIWidgets_special", "spline_createops", "view2d_spline_ops", "UICanvas", "video", "struct", "selectmode", "UITabPanel", "events", "imageblock", "toolops_api", "view2d_editor", "spline_editops", "notifications", "manipulator", "ScreenArea", "UIMenu", "mathlib", "UIElement", "spline_draw", "RadialMenu", "UIWidgets", "UIWidgets_special2", "UIPack"], function _view2d_module(_es6_module) {
   "use strict";
   var toolop_menu=es6_import_item(_es6_module, 'UIMenu', 'toolop_menu');
   var uimenu=es6_import(_es6_module, 'UIMenu');
@@ -659,11 +659,11 @@ es6_module_define('view2d', ["view2d_spline_ops", "spline_createops", "UIWidgets
   var UITabPanel=es6_import_item(_es6_module, 'UITabPanel', 'UITabPanel');
   var ImageUser=es6_import_item(_es6_module, 'imageblock', 'ImageUser');
   var canvas_owners=0;
-  var $v3d_id_avVC_View2DHandler;
-  var $min_5KBT_make_drawline;
-  var $_co_e4R9_project;
-  var $_co_EVth_unproject;
-  var $max_yoAB_make_drawline;
+  var $v3d_id_jIUx_View2DHandler;
+  var $min_qg62_make_drawline;
+  var $_co_Ttvv_project;
+  var $_co_vrnR_unproject;
+  var $max_55P__make_drawline;
   var View2DHandler=_ESClass("View2DHandler", Area, [function View2DHandler(gl, mesh, vprogram, fprogram, drawmats, x, y, width, height, znear, zfar) {
     if (znear==undefined) {
         znear = 0.75;
@@ -707,7 +707,7 @@ es6_module_define('view2d', ["view2d_spline_ops", "spline_createops", "UIWidgets
     this.tweak_mode = false;
     this.draw_viewport = true;
     this.draw_anim_paths = false;
-    this._id = $v3d_id_avVC_View2DHandler++;
+    this._id = $v3d_id_jIUx_View2DHandler++;
     this.topbar = undefined;
     this.drawlines = new GArray();
     this.drawline_groups = {}
@@ -814,11 +814,11 @@ es6_module_define('view2d', ["view2d_spline_ops", "spline_createops", "UIWidgets
     var dl=new drawline(v1, v2, group);
     drawlines.push(dl);
     var pad=5;
-    $min_5KBT_make_drawline[0] = Math.min(v1[0], v2[0])-pad;
-    $min_5KBT_make_drawline[1] = Math.min(v1[1], v2[1])-pad;
-    $max_yoAB_make_drawline[0] = Math.max(v1[0], v2[0])+pad;
-    $max_yoAB_make_drawline[1] = Math.max(v1[1], v2[1])+pad;
-    redraw_viewport($min_5KBT_make_drawline, $max_yoAB_make_drawline);
+    $min_qg62_make_drawline[0] = Math.min(v1[0], v2[0])-pad;
+    $min_qg62_make_drawline[1] = Math.min(v1[1], v2[1])-pad;
+    $max_55P__make_drawline[0] = Math.max(v1[0], v2[0])+pad;
+    $max_55P__make_drawline[1] = Math.max(v1[1], v2[1])+pad;
+    redraw_viewport($min_qg62_make_drawline, $max_55P__make_drawline);
     return dl;
   }, function kill_drawline(dl) {
     var drawlines=this._get_dl_group(dl.group);
@@ -883,16 +883,16 @@ es6_module_define('view2d', ["view2d_spline_ops", "spline_createops", "UIWidgets
     render.multiply(cam);
     this.irendermat.load(this.rendermat).invert();
   }, function project(co) {
-    $_co_e4R9_project.load(co);
-    $_co_e4R9_project[2] = 0.0;
-    $_co_e4R9_project.multVecMatrix(this.rendermat);
-    co[0] = $_co_e4R9_project[0], co[1] = $_co_e4R9_project[1];
+    $_co_Ttvv_project.load(co);
+    $_co_Ttvv_project[2] = 0.0;
+    $_co_Ttvv_project.multVecMatrix(this.rendermat);
+    co[0] = $_co_Ttvv_project[0], co[1] = $_co_Ttvv_project[1];
     return co;
   }, function unproject(co) {
-    $_co_EVth_unproject.load(co);
-    $_co_EVth_unproject[2] = 0.0;
-    $_co_EVth_unproject.multVecMatrix(this.irendermat);
-    co[0] = $_co_EVth_unproject[0], co[1] = $_co_EVth_unproject[1];
+    $_co_vrnR_unproject.load(co);
+    $_co_vrnR_unproject[2] = 0.0;
+    $_co_vrnR_unproject.multVecMatrix(this.irendermat);
+    co[0] = $_co_vrnR_unproject[0], co[1] = $_co_vrnR_unproject[1];
     return co;
   }, function do_select(event, mpos, view2d, do_multiple) {
     if (do_multiple==undefined) {
@@ -1252,7 +1252,7 @@ es6_module_define('view2d', ["view2d_spline_ops", "spline_createops", "UIWidgets
     }
     return cpy;
   }, function gen_file_menu(ctx, uimenulabel) {
-    return toolop_menu(ctx, "", ["view2d.export_image()", "appstate.export_svg()", "sep", "appstate.save_as()", "appstate.save()", "appstate.open_recent()", "appstate.open()", "sep", "appstate.new()"]);
+    return toolop_menu(ctx, "", ["appstate.quit()", "view2d.export_image()", "appstate.export_svg()", "sep", "appstate.save_as()", "appstate.save()", "appstate.open_recent()", "appstate.open()", "sep", "appstate.new()"]);
   }, function gen_session_menu(ctx, uimenulabel) {
     function callback(entry) {
       console.log(entry);
@@ -1334,6 +1334,8 @@ es6_module_define('view2d', ["view2d_spline_ops", "spline_createops", "UIWidgets
     tools.add(redo);
     tools.toolop("view2d.circle_select()", PackFlags.USE_LARGE_ICON);
     tools.toolop("spline.toggle_select_all()", PackFlags.USE_LARGE_ICON);
+    tools.toolop("spline.change_face_z(offset=1, selmode=selectmode)", PackFlags.USE_LARGE_ICON, "Move Up", Icons.Z_UP);
+    tools.toolop("spline.change_face_z(offset=-1, selmode=selectmode)", PackFlags.USE_LARGE_ICON, "Move Down", Icons.Z_DOWN);
     var display=tabs.panel("Display");
     display.prop("view2d.only_render");
     display.prop("view2d.draw_small_verts");
@@ -1451,11 +1453,11 @@ es6_module_define('view2d', ["view2d_spline_ops", "spline_createops", "UIWidgets
     this.editor.set_selectmode(mode);
     redraw_viewport();
   }]);
-  var $v3d_id_avVC_View2DHandler=0;
-  var $min_5KBT_make_drawline=[0, 0];
-  var $_co_e4R9_project=new Vector3();
-  var $_co_EVth_unproject=new Vector3();
-  var $max_yoAB_make_drawline=[0, 0];
+  var $v3d_id_jIUx_View2DHandler=0;
+  var $min_qg62_make_drawline=[0, 0];
+  var $_co_Ttvv_project=new Vector3();
+  var $_co_vrnR_unproject=new Vector3();
+  var $max_55P__make_drawline=[0, 0];
   _es6_module.add_class(View2DHandler);
   View2DHandler = _es6_module.add_export('View2DHandler', View2DHandler);
   View2DHandler.STRUCT = STRUCT.inherit(View2DHandler, Area)+"\n    _id             : int;\n    _selectmode     : int;\n    rendermat       : mat4;\n    irendermat      : mat4;\n    cameramat       : mat4;\n    only_render     : int;\n    draw_anim_paths : int;\n    draw_normals    : int;\n    editors         : array(abstract(View2DEditor));\n    editor          : int | obj.editors.indexOf(obj.editor);\n    zoom            : float;\n    tweak_mode        : int;\n    default_linewidth : float;\n    default_stroke    : vec4;\n    default_fill      : vec4;\n    extrude_mode      : int;\n    enable_blur       : int;\n    draw_faces        : int;\n    draw_video        : int;\n    pinned_paths      : array(int) | obj.pinned_paths != undefined ? obj.pinned_paths : [];\n    background_image  : ImageUser;\n    background_color  : vec3;\n    draw_bg_image     : int;\n    toolmode          : int;\n    draw_small_verts  : int;\n    edit_all_layers   : int;\n  }\n";
@@ -2067,7 +2069,7 @@ es6_module_define('view2d_ops', ["toolprops", "toolops_api", "struct", "spline",
   ExportCanvasImage = _es6_module.add_export('ExportCanvasImage', ExportCanvasImage);
   
 });
-es6_module_define('view2d_spline_ops', ["multires_ops", "selectmode", "UIWidgets_special", "spline_multires", "transform_ops", "UIElement", "ScreenArea", "UIWidgets", "multires_selectops", "struct", "spline_selectops", "spline_types", "transform", "spline_editops", "spline_createops", "toolops_api", "spline_draw", "UICanvas", "view2d_editor", "lib_api", "spline", "animdata", "UIMenu", "events", "UIPack"], function _view2d_spline_ops_module(_es6_module) {
+es6_module_define('view2d_spline_ops', ["UIMenu", "ScreenArea", "multires_ops", "spline_multires", "events", "multires_selectops", "spline_selectops", "UIPack", "UIWidgets", "struct", "lib_api", "UIWidgets_special", "toolops_api", "animdata", "UICanvas", "transform", "transform_ops", "view2d_editor", "selectmode", "spline_types", "UIElement", "spline_createops", "spline_editops", "spline_draw", "spline"], function _view2d_spline_ops_module(_es6_module) {
   "use strict";
   var ExtrudeVertOp=es6_import_item(_es6_module, 'spline_createops', 'ExtrudeVertOp');
   var toolop_menu=es6_import_item(_es6_module, 'UIMenu', 'toolop_menu');
@@ -2261,8 +2263,8 @@ es6_module_define('view2d_spline_ops', ["multires_ops", "selectmode", "UIWidgets
   }]);
   _es6_module.add_class(PlayAnimOp);
   PlayAnimOp = _es6_module.add_export('PlayAnimOp', PlayAnimOp);
-  var $ops_o3RC_tools_menu;
-  var $rect_MO_v_handle_mres_mousemove;
+  var $ops_CRMb_tools_menu;
+  var $rect_BGzz_handle_mres_mousemove;
   var SplineEditor=_ESClass("SplineEditor", View2DEditor, [function SplineEditor(view2d) {
     var keymap=new KeyMap();
     View2DEditor.call(this, "Geometry", EditModes.GEOMETRY, DataTypes.FRAMESET, keymap);
@@ -2429,7 +2431,7 @@ es6_module_define('view2d_spline_ops', ["multires_ops", "selectmode", "UIWidgets
     }
     return false;
   }, function tools_menu(ctx, mpos, view2d) {
-    var menu=view2d.toolop_menu(ctx, "Tools", $ops_o3RC_tools_menu);
+    var menu=view2d.toolop_menu(ctx, "Tools", $ops_CRMb_tools_menu);
     view2d.call_menu(menu, view2d, mpos);
   }, function on_inactive(view2d) {
   }, function on_active(view2d) {
@@ -2615,10 +2617,10 @@ es6_module_define('view2d_spline_ops', ["multires_ops", "selectmode", "UIWidgets
         }
         p = mr.get(p);
         p.flag|=MResFlags.HIGHLIGHT;
-        $rect_MO_v_handle_mres_mousemove[0].load(p).subScalar(10);
-        $rect_MO_v_handle_mres_mousemove[1].load(p).addScalar(10);
-        $rect_MO_v_handle_mres_mousemove[0][2] = $rect_MO_v_handle_mres_mousemove[1][2] = 0.0;
-        window.redraw_viewport($rect_MO_v_handle_mres_mousemove[0], $rect_MO_v_handle_mres_mousemove[1]);
+        $rect_BGzz_handle_mres_mousemove[0].load(p).subScalar(10);
+        $rect_BGzz_handle_mres_mousemove[1].load(p).addScalar(10);
+        $rect_BGzz_handle_mres_mousemove[0][2] = $rect_BGzz_handle_mres_mousemove[1][2] = 0.0;
+        window.redraw_viewport($rect_BGzz_handle_mres_mousemove[0], $rect_BGzz_handle_mres_mousemove[1]);
     }
     var ret=this.findnearest([event.x, event.y, 0], SelMask.SEGMENT, limit);
     if (ret!=undefined) {
@@ -2719,15 +2721,15 @@ es6_module_define('view2d_spline_ops', ["multires_ops", "selectmode", "UIWidgets
     menu.swap_mouse_button = 2;
     view2d.call_menu(menu, view2d, [event.x, event.y]);
   }]);
-  var $ops_o3RC_tools_menu=["spline.key_edges()", "spline.key_current_frame()", "spline.connect_handles()", "spline.disconnect_handles()", "spline.toggle_step_mode()", "spline.toggle_manual_handles()", "editor.paste_pose()", "editor.copy_pose()"];
-  var $rect_MO_v_handle_mres_mousemove=[new Vector3(), new Vector3()];
+  var $ops_CRMb_tools_menu=["spline.key_edges()", "spline.key_current_frame()", "spline.connect_handles()", "spline.disconnect_handles()", "spline.toggle_step_mode()", "spline.toggle_manual_handles()", "editor.paste_pose()", "editor.copy_pose()"];
+  var $rect_BGzz_handle_mres_mousemove=[new Vector3(), new Vector3()];
   _es6_module.add_class(SplineEditor);
   SplineEditor = _es6_module.add_export('SplineEditor', SplineEditor);
   SplineEditor.STRUCT = "\n  SplineEditor {\n    selectmode : int;\n  }\n";
   var ScreenArea=es6_import_item(_es6_module, 'ScreenArea', 'ScreenArea');
   var Area=es6_import_item(_es6_module, 'ScreenArea', 'Area');
 });
-es6_module_define('frameset', ["struct", "animdata", "lib_api", "spline_types", "spline", "spline_element_array"], function _frameset_module(_es6_module) {
+es6_module_define('frameset', ["animdata", "spline_element_array", "lib_api", "spline_types", "spline", "struct"], function _frameset_module(_es6_module) {
   "use strict";
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
   var DataBlock=es6_import_item(_es6_module, 'lib_api', 'DataBlock');
@@ -3704,7 +3706,6 @@ es6_module_define('frameset', ["struct", "animdata", "lib_api", "spline_types", 
         var vd=this.vertex_animdata[k];
         var v=this.spline.eidmap[k];
         if (v===undefined) {
-            console.log("error in update_visibility:", k);
             continue;
         }
         var hide=!(vd.eid in this.spline.eidmap)||!(v.flag&SplineFlags.SELECT);
@@ -4727,7 +4728,7 @@ es6_module_define('SettingsEditor', ["UIPack", "UIWidgets", "struct", "UITabPane
   SettingsEditor.debug_only = false;
 });
 var ContextStruct;
-es6_module_define('data_api_define', ["toolops_api", "theme", "selectmode", "spline_base", "imageblock", "units", "spline_element_array", "ops_editor", "data_api", "toolprops", "lib_api", "spline_multires", "view2d", "spline_createops", "config"], function _data_api_define_module(_es6_module) {
+es6_module_define('data_api_define', ["spline_element_array", "imageblock", "ops_editor", "data_api", "units", "selectmode", "spline_createops", "toolprops", "config", "spline_base", "spline_multires", "toolops_api", "theme", "lib_api", "view2d"], function _data_api_define_module(_es6_module) {
   var DataTypes=es6_import_item(_es6_module, 'lib_api', 'DataTypes');
   var EditModes=es6_import_item(_es6_module, 'view2d', 'EditModes');
   var ENABLE_MULTIRES=es6_import_item(_es6_module, 'config', 'ENABLE_MULTIRES');
@@ -5077,6 +5078,43 @@ es6_module_define('data_api_define', ["toolops_api", "theme", "selectmode", "spl
     }, function getlength() {
       return this.length;
     });
+    function define_editable_element_array(the_struct) {
+      return new DataStructArray(function getstruct(item) {
+        return the_struct;
+      }, function itempath(key) {
+        return ".local_idmap["+key+"]";
+      }, function getitem(key) {
+        return this.local_idmap[key];
+      }, function getiter() {
+        return this[Symbol.iterator]();
+      }, function getkeyiter(ctx) {
+        var keys=new GArray();
+        var __iter_$_let_e46=__get_iter(this.editable(ctx));
+        var $_let_e46;
+        while (1) {
+          var __ival_$_let_e46=__iter_$_let_e46.next();
+          if (__ival_$_let_e46.done) {
+              break;
+          }
+          $_let_e46 = __ival_$_let_e46.value;
+          keys.push($_let_e46.eid);
+        }
+        return keys;
+      }, function getlength() {
+        var $_let_len51=0;
+        var __iter_$_let_e54=__get_iter(this.editable(ctx));
+        var $_let_e54;
+        while (1) {
+          var __ival_$_let_e54=__iter_$_let_e54.next();
+          if (__ival_$_let_e54.done) {
+              break;
+          }
+          $_let_e54 = __ival_$_let_e54.value;
+          $_let_len51++;
+        }
+        return $_let_len51;
+      });
+    }
     function define_element_array(the_struct) {
       return new DataStructArray(function getstruct(item) {
         return the_struct;
@@ -5102,7 +5140,7 @@ es6_module_define('data_api_define', ["toolops_api", "theme", "selectmode", "spl
     var mres_act_path="eidmap[decompose_id(ID)[0]].cdata";
     mres_act_path+=".get_layer(MultiResLayer).get(decompose_id(ID)[1])";
     mres_act_path = mres_act_path.replace(/ID/g, mres_act_id);
-    var SplineStruct=new DataStruct(api_define_DataBlock().concat([new DataPath(api_define_spline_face(), "active_face", "faces.active", true), new DataPath(api_define_spline_segment(), "active_segment", "segments.active", true), new DataPath(api_define_spline_vertex(), "active_vertex", "verts.active", true), new DataPath(define_element_array(SplineFaceStruct), "faces", "faces", true), new DataPath(define_element_array(SplineSegmentStruct), "segments", "segments", true), new DataPath(define_element_array(SplineVertexStruct), "verts", "verts", true), new DataPath(layerset, "layerset", "layerset", true), new DataPath(mres_points, "mres_points", "segments", true), new DataPath(api_define_multires_struct(), "active_mres_point", mres_act_path, true), new DataPath(SplineLayerStruct, "active_layer", "layerset.active", true)]));
+    var SplineStruct=new DataStruct(api_define_DataBlock().concat([new DataPath(api_define_spline_face(), "active_face", "faces.active", true), new DataPath(api_define_spline_segment(), "active_segment", "segments.active", true), new DataPath(api_define_spline_vertex(), "active_vertex", "verts.active", true), new DataPath(define_element_array(SplineFaceStruct), "faces", "faces", true), new DataPath(define_element_array(SplineSegmentStruct), "segments", "segments", true), new DataPath(define_element_array(SplineVertexStruct), "verts", "verts", true), new DataPath(define_editable_element_array(SplineFaceStruct), "editable_faces", "faces", true), new DataPath(define_editable_element_array(SplineSegmentStruct), "editable_segments", "segments", true), new DataPath(define_editable_element_array(SplineVertexStruct), "editable_verts", "verts", true), new DataPath(layerset, "layerset", "layerset", true), new DataPath(mres_points, "mres_points", "segments", true), new DataPath(api_define_multires_struct(), "active_mres_point", mres_act_path, true), new DataPath(SplineLayerStruct, "active_layer", "layerset.active", true)]));
     datablock_structs[DataTypes.SPLINE] = SplineStruct;
     return SplineStruct;
   }
@@ -5549,7 +5587,7 @@ es6_module_define('data_api_define', ["toolops_api", "theme", "selectmode", "spl
   gen_path_maps = _es6_module.add_export('gen_path_maps', gen_path_maps);
 });
 var data_ops_list;
-es6_module_define('data_api_opdefine', ["toolops_api", "spline_animops", "transform", "view2d_spline_ops", "image_ops", "FrameManager", "view2d_ops", "safe_eval", "spline_selectops", "view2d_editor", "view2d", "spline_layerops", "spline_createops", "FrameManager_ops", "dialogs", "spline_editops"], function _data_api_opdefine_module(_es6_module) {
+es6_module_define('data_api_opdefine', ["spline_layerops", "spline_selectops", "theplatform", "view2d_ops", "image_ops", "view2d_editor", "spline_createops", "view2d", "spline_editops", "spline_animops", "FrameManager", "FrameManager_ops", "view2d_spline_ops", "transform", "dialogs", "toolops_api", "safe_eval"], function _data_api_opdefine_module(_es6_module) {
   var FileDialog=es6_import_item(_es6_module, 'dialogs', 'FileDialog');
   var FileOpenOp=es6_import_item(_es6_module, 'dialogs', 'FileOpenOp');
   var FileSaveAsOp=es6_import_item(_es6_module, 'dialogs', 'FileSaveAsOp');
@@ -5639,6 +5677,17 @@ es6_module_define('data_api_opdefine', ["toolops_api", "spline_animops", "transf
   var PlayAnimOp=es6_import_item(_es6_module, 'view2d_spline_ops', 'PlayAnimOp');
   var SessionFlags=es6_import_item(_es6_module, 'view2d_editor', 'SessionFlags');
   var ExportCanvasImage=es6_import_item(_es6_module, 'view2d_ops', 'ExportCanvasImage');
+  var theplatform=es6_import(_es6_module, 'theplatform');
+  var QuitFileOp=_ESClass("QuitFileOp", ToolOp, [_ESClass.static(function tooldef() {
+    return {uiname: "Quit", apiname: "appstate.quit", is_modal: true, inputs: {}, outputs: {}, undoflag: UndoFlags.IGNORE_UNDO}
+  }), function start_modal(ctx) {
+    ToolOp.prototype.start_modal.call(this, ctx);
+    this.end_modal(ctx);
+    theplatform.app.quit_app();
+  }, function QuitFileOp() {
+    ToolOp.apply(this, arguments);
+  }]);
+  _es6_module.add_class(QuitFileOp);
   data_ops_list = undefined;
   window.api_define_ops = function() {
     data_ops_list = {"mesh.subdivide": function(ctx, args) {
@@ -5780,6 +5829,8 @@ es6_module_define('data_api_opdefine', ["toolops_api", "spline_animops", "transf
       return new FileSaveAsOp();
     }, "appstate.new": function(ctx, args) {
       return new FileNewOp();
+    }, "appstate.quit": function(ctx, args) {
+      return new QuitFileOp();
     }, "screen.area_split_tool": function(ctx, args) {
       return new SplitAreasTool(g_app_state.screen);
     }, "screen.hint_picker": function(ctx, args) {

@@ -693,7 +693,7 @@ export class ChangeFaceZ extends SplineLocalToolOp {
     },
     
     outputs  : {},
-    icon     : -1,
+    icon     : Icons.Z_UP,
     is_modal : false,
     description : "Change draw order of selected faces"
   }}
@@ -704,15 +704,19 @@ export class ChangeFaceZ extends SplineLocalToolOp {
   }
   
   exec(ctx) {
-    console.log("change face z!");
-    
     var spline = ctx.spline;
     
     var off = this.inputs.offset.data;
     var selmode = this.inputs.selmode.data;
     
     if (isNaN(off)) off = 0.0;
+  
+    console.log("change face z! selmode:", selmode, "off", off);
     
+    if (selmode & SplineTypes.VERTEX) {
+      //vertex select mode implies we should consider both faces and segments
+      selmode |= SplineTypes.FACE | SplineTypes.SEGMENT;
+    }
     if (selmode & SplineTypes.FACE) {
       for (var f of spline.faces.selected.editable()) {
         if (isNaN(f.z)) f.z = 0.0;

@@ -36,6 +36,26 @@ import {RenderAnimOp, PlayAnimOp} from 'view2d_spline_ops';
 import {SessionFlags} from "view2d_editor";
 import {ExportCanvasImage} from 'view2d_ops';
 
+import * as theplatform from 'theplatform';
+
+class QuitFileOp extends ToolOp {
+  static tooldef() {return {
+    uiname   : "Quit",
+    apiname  : "appstate.quit",
+    is_modal : true,
+    inputs   : {},
+    outputs  : {},
+    undoflag : UndoFlags.IGNORE_UNDO
+  }}
+  
+  start_modal(ctx) {
+    super.start_modal(ctx);
+    this.end_modal(ctx);
+  
+    theplatform.app.quit_app();
+  }
+}
+
 //import {TranslateOp} from 'transform';
 
 global data_ops_list = undefined;
@@ -296,6 +316,11 @@ window.api_define_ops = function() {
     "appstate.new" : function(ctx, args) {
       return new FileNewOp();
     },
+    
+    "appstate.quit" : function(ctx, args) {
+      return new QuitFileOp();
+    },
+    
     "screen.area_split_tool" : function(ctx, args) {
       return new SplitAreasTool(g_app_state.screen);
     },

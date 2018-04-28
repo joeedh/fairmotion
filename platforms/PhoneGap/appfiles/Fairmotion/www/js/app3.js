@@ -4040,7 +4040,7 @@ es6_module_define('spline_createops', ["toolprops", "spline_editops", "toolops_a
   _es6_module.add_class(ImportJSONOp);
   ImportJSONOp = _es6_module.add_export('ImportJSONOp', ImportJSONOp);
 });
-es6_module_define('spline_editops', ["frameset", "toolops_api", "struct", "toolprops", "animdata", "spline", "spline_draw", "spline_types"], function _spline_editops_module(_es6_module) {
+es6_module_define('spline_editops', ["toolops_api", "spline", "toolprops", "frameset", "spline_draw", "struct", "animdata", "spline_types"], function _spline_editops_module(_es6_module) {
   var IntProperty=es6_import_item(_es6_module, 'toolprops', 'IntProperty');
   var FloatProperty=es6_import_item(_es6_module, 'toolprops', 'FloatProperty');
   var CollectionProperty=es6_import_item(_es6_module, 'toolprops', 'CollectionProperty');
@@ -4521,16 +4521,19 @@ es6_module_define('spline_editops', ["frameset", "toolops_api", "struct", "toolp
     if (selmode!=undefined)
       this.inputs.selmode.set_data(selmode);
   }, _ESClass.static(function tooldef() {
-    return {uiname: "Set Order", apiname: "spline.change_face_z", inputs: {offset: new IntProperty(1), selmode: new IntProperty(SplineTypes.FACE)}, outputs: {}, icon: -1, is_modal: false, description: "Change draw order of selected faces"}
+    return {uiname: "Set Order", apiname: "spline.change_face_z", inputs: {offset: new IntProperty(1), selmode: new IntProperty(SplineTypes.FACE)}, outputs: {}, icon: Icons.Z_UP, is_modal: false, description: "Change draw order of selected faces"}
   }), function can_call(ctx) {
     return 1;
   }, function exec(ctx) {
-    console.log("change face z!");
     var spline=ctx.spline;
     var off=this.inputs.offset.data;
     var selmode=this.inputs.selmode.data;
     if (isNaN(off))
       off = 0.0;
+    console.log("change face z! selmode:", selmode, "off", off);
+    if (selmode&SplineTypes.VERTEX) {
+        selmode|=SplineTypes.FACE|SplineTypes.SEGMENT;
+    }
     if (selmode&SplineTypes.FACE) {
         var __iter_f=__get_iter(spline.faces.selected.editable());
         var f;
@@ -8897,7 +8900,7 @@ es6_module_define('UIFrame', ["UIElement", "J3DIMath", "mathlib", "events"], fun
   _es6_module.add_class(UIFrame);
   UIFrame = _es6_module.add_export('UIFrame', UIFrame);
 });
-es6_module_define('UIPack', ["UIWidgets", "UIElement", "UIFrame", "mathlib", "toolprops"], function _UIPack_module(_es6_module) {
+es6_module_define('UIPack', ["UIFrame", "UIWidgets", "UIElement", "mathlib", "toolprops"], function _UIPack_module(_es6_module) {
   var PropTypes=es6_import_item(_es6_module, 'toolprops', 'PropTypes');
   var TPropFlags=es6_import_item(_es6_module, 'toolprops', 'TPropFlags');
   var DataRefProperty=es6_import_item(_es6_module, 'toolprops', 'DataRefProperty');
@@ -8968,12 +8971,18 @@ es6_module_define('UIPack', ["UIWidgets", "UIElement", "UIFrame", "mathlib", "to
     inherit_flag|=this.default_packflag&~(PackFlags.USE_SMALL_ICON|PackFlags.USE_SMALL_ICON);
     inherit_flag|=icon_size;
     return inherit_flag;
-  }, function toolop(path, inherit_flag, label) {
+  }, function toolop(path, inherit_flag, label, icon, description) {
     if (inherit_flag==undefined) {
         inherit_flag = 0;
     }
     if (label==undefined) {
         label = undefined;
+    }
+    if (icon==undefined) {
+        icon = undefined;
+    }
+    if (description==undefined) {
+        description = undefined;
     }
     var ctx=this.ctx;
     var opname=ctx.api.get_op_uiname(ctx, path);
@@ -8997,9 +9006,10 @@ es6_module_define('UIPack', ["UIWidgets", "UIElement", "UIFrame", "mathlib", "to
         }
         if (DEBUG.icons)
           console.log("icon toolop", op.icon);
-        if (op.icon>=0) {
+        icon = icon===undefined ? op.icon : icon;
+        if (icon>=0) {
             var use_small=inherit_flag&PackFlags.USE_SMALL_ICON;
-            var c=new UIButtonIcon(ctx, opname, op.icon, [0, 0], [0, 0], path, undefined, undefined, use_small);
+            var c=new UIButtonIcon(ctx, opname, icon, [0, 0], [0, 0], path, undefined, undefined, use_small);
             c.packflag|=inherit_flag;
             this.add(c);
             return c;

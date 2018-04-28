@@ -1263,7 +1263,7 @@ export class DataAPI {
     var sta = ret[0].data;
     
     var ret = [];
-    for (var key of sta.getkeyiter.call(list)) {
+    for (var key of sta.getkeyiter.call(list, ctx)) {
       var item = sta.getitem.call(list, key);
       //console.log("  key:", key, filter(item), filterstr);
       
@@ -1298,7 +1298,7 @@ export class DataAPI {
     
     var sta = ret[0].data;
     
-    for (var key of sta.getkeyiter.call(list)) {
+    for (var key of sta.getkeyiter.call(list, ctx)) {
       var item = sta.getitem.call(list, key);
       if (!filterfunc(item)) continue;
       

@@ -132,7 +132,24 @@ export class CanvasPath extends QuadBezPath {
     this.canvas = this.g = undefined;
   }
   
-  gen(draw, _check_tag=0) {
+  //renders into another path's canvas
+  genInto(draw, path, clip_mode=false) {
+    let oldc = this.canvas, oldg = this.g, oldaabb = this.aabb, oldsize = this.size;
+    
+    this.canvas = path.canvas;
+    this.g = path.g;
+    this.aabb = path.aabb;
+    this.size = path.size;
+    
+    this.gen(draw, undefined, clip_mode);
+    
+    this.canvas = oldc;
+    this.g = oldg;
+    this.aabb = oldaabb;
+    this.size = oldsize;
+  }
+  
+  gen(draw, _check_tag=0, clip_mode=false) {
     if (_check_tag && !this.recalc) {
       console.log("infinite loop in clip stack");
       return;
@@ -147,8 +164,8 @@ export class CanvasPath extends QuadBezPath {
     
     this.update_aabb(draw);
     
-    var w = this.size[0] = Math.ceil(this.aabb[1][0]-this.aabb[0][0]);
-    var h = this.size[1] = Math.ceil(this.aabb[1][1]-this.aabb[0][1]);
+    var w = this.size[0] = Math.ceil(this.aabb[1][0] - this.aabb[0][0]);
+    var h = this.size[1] = Math.ceil(this.aabb[1][1] - this.aabb[0][1]);
     
     if (w > config.MAX_CANVAS2D_VECTOR_CACHE_SIZE || h > config.MAX_CANVAS2D_VECTOR_CACHE_SIZE) {
       var w2 = Math.min(w, config.MAX_CANVAS2D_VECTOR_CACHE_SIZE);
@@ -166,6 +183,8 @@ export class CanvasPath extends QuadBezPath {
     }
     
     if (this.canvas == undefined) {
+      //console.warn("creating canvas. . .");
+      
       this.canvas = document.createElement("canvas");
       this.canvas.style.background = "rgba(0.0, 0.0, 0.0, 0.0)";
       this.g = this.canvas.getContext("2d");
@@ -187,23 +206,17 @@ export class CanvasPath extends QuadBezPath {
     
     this.g.globalCompositeOperation = "source-over";
 
-    //*
     for (var path of this.clip_paths) {
       //console.log("CLIPPING!", path);
       
       if (path.recalc) {
-        console.log("  clipping subgen!");
+        console.log("   clipping subgen!");
         path.gen(draw, 1);
       }
       
-      path.draw(draw, -this.aabb[0][0], -this.aabb[0][1], this.canvas, this.g);
-    }
-    //*/
-
-    //can't use normal this.g.clip() here.  use source-atop instead.
-    if (do_clip) {
-      this.g.oldGlobalCompositeOperation = this.g.globalCompositeOperation;
-      this.g.globalCompositeOperation = "source-atop";
+      let oldc = path.canvas, oldg = path.g, oldaabb = path.aabb, oldsize = path.size;
+      
+      path.genInto(draw, this, true);
     }
     
     var mat1 = canvaspath_draw_mat_tmps.next();
@@ -234,6 +247,7 @@ export class CanvasPath extends QuadBezPath {
       this.g.shadowColor = "rgba("+r+","+g+","+b+","+a+")";
       this.g.shadowBlur = this.blur;
     }
+    
     this.g.beginPath();
     
     var cs = this.commands, i = 0;
@@ -268,16 +282,16 @@ export class CanvasPath extends QuadBezPath {
       }
     }
     
-    this.g.fill();
+    if (!clip_mode) {
+      this.g.fill();
+    } else {
+      this.g.clip();
+    }
     
     if (do_blur) {
       this.g.translate(doff, doff);
       this.g.shadowOffsetX = this.g.shadowOffsetY = 0.0;
       this.g.shadowBlur = 0.0;
-    }
-
-    if (do_clip) {
-      this.g.globalCompositeOperation = this.g.oldGlobalCompositeOperation;
     }
   }
   

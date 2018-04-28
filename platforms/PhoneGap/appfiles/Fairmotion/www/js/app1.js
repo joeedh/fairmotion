@@ -10144,7 +10144,7 @@ es6_module_define('spline_math', ["config", "spline_math_hermite"], function _sp
   eval_curve = _es6_module.add_export('eval_curve', eval_curve);
   
 });
-es6_module_define('spline_math_hermite', ["solver", "toolops_api", "J3DIMath", "spline_base"], function _spline_math_hermite_module(_es6_module) {
+es6_module_define('spline_math_hermite', ["solver", "spline_base", "toolops_api", "J3DIMath"], function _spline_math_hermite_module(_es6_module) {
   "use strict";
   var SplineFlags=es6_import_item(_es6_module, 'spline_base', 'SplineFlags');
   var SplineTypes=es6_import_item(_es6_module, 'spline_base', 'SplineTypes');
@@ -10171,7 +10171,7 @@ es6_module_define('spline_math_hermite', ["solver", "toolops_api", "J3DIMath", "
   KSTARTZ = _es6_module.add_export('KSTARTZ', KSTARTZ);
   var KTOTKS=ORDER+6;
   KTOTKS = _es6_module.add_export('KTOTKS', KTOTKS);
-  var INT_STEPS=3;
+  var INT_STEPS=4;
   INT_STEPS = _es6_module.add_export('INT_STEPS', INT_STEPS);
   function set_int_steps(steps) {
     INT_STEPS = steps;
@@ -10273,10 +10273,10 @@ es6_module_define('spline_math_hermite', ["solver", "toolops_api", "J3DIMath", "
   spiralcurvature_dv = _es6_module.add_export('spiralcurvature_dv', spiralcurvature_dv);
   var ORDER=4;
   ORDER = _es6_module.add_export('ORDER', ORDER);
-  var $con_cache_3Ftx_build_solver={list: [], used: 0}
+  var $con_cache_MFgG_build_solver={list: [], used: 0}
   function build_solver(spline, order, goal_order, gk, do_basic, update_verts) {
     var slv=new solver();
-    $con_cache_3Ftx_build_solver.used = 0;
+    $con_cache_MFgG_build_solver.used = 0;
     if (order==undefined)
       order = ORDER;
     if (gk==undefined)
@@ -10626,7 +10626,7 @@ es6_module_define('spline_math_hermite', ["solver", "toolops_api", "J3DIMath", "
         goal_order = ORDER;
     }
     if (steps==undefined) {
-        steps = 35;
+        steps = 65;
     }
     if (gk==undefined) {
         gk = 1.0;
@@ -10659,7 +10659,7 @@ es6_module_define('spline_math_hermite', ["solver", "toolops_api", "J3DIMath", "
         seg.evaluate(0.5, undefined, undefined, undefined, true);
     }
     spline.resolve = 0;
-    solve_intern(spline, ORDER, undefined, 35, 1, 0);
+    solve_intern(spline, ORDER, undefined, 65, 1, 0);
     for (var i=0; i<spline.segments.length; i++) {
         var seg=spline.segments[i];
         seg.evaluate(0.5, undefined, undefined, undefined, true);

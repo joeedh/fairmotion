@@ -4040,7 +4040,7 @@ es6_module_define('spline_createops', ["toolprops", "spline_editops", "toolops_a
   _es6_module.add_class(ImportJSONOp);
   ImportJSONOp = _es6_module.add_export('ImportJSONOp', ImportJSONOp);
 });
-es6_module_define('spline_editops', ["toolops_api", "spline", "toolprops", "frameset", "spline_draw", "struct", "animdata", "spline_types"], function _spline_editops_module(_es6_module) {
+es6_module_define('spline_editops', ["spline_draw", "frameset", "spline_types", "toolprops", "spline", "struct", "toolops_api", "animdata"], function _spline_editops_module(_es6_module) {
   var IntProperty=es6_import_item(_es6_module, 'toolprops', 'IntProperty');
   var FloatProperty=es6_import_item(_es6_module, 'toolprops', 'FloatProperty');
   var CollectionProperty=es6_import_item(_es6_module, 'toolprops', 'CollectionProperty');

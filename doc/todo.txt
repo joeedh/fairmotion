@@ -1,6 +1,7 @@
 - Disable emulated ES6 features in extjs that need not be emulated anymore
 
 - Finish platform API refactor
+  * Write native menu API
   * Consolidate file api stuff
   * Make basic HTML5 platform
   * Finish recent file list stuff

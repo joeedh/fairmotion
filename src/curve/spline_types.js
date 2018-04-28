@@ -612,6 +612,20 @@ export class SplineSegment extends SplineElement {
   }
   
   derivative(s, order, no_update_curve, no_effects) {
+    /*
+    let df = 0.0001;
+    if (s < 1.0 - df) {
+      let a = this.evaluate(s);
+      let b = this.evaluate(s+df);
+      
+      return b.sub(a).mulScalar(1.0 / df);
+    } else {
+      let a = this.evaluate(s-df);
+      let b = this.evaluate(s);
+  
+      return b.sub(a).mulScalar(1.0 / df);
+    }
+    //*/
     if (order == undefined) order = ORDER;
 
     var ret = derivative_cache_vs.next().zero();

@@ -24,7 +24,7 @@ export var KSTARTZ = ORDER+5;
 
 export var KTOTKS  = ORDER+6;
 
-export var INT_STEPS = 3;
+export var INT_STEPS = 4;
 
 export function set_int_steps(steps) {
   INT_STEPS = steps;
@@ -176,6 +176,7 @@ export function approx(s1, ks, order, dis, steps) {
   
   if (steps == undefined)
     steps = INT_STEPS;
+  
   var s=0, ds=s1/steps;
   
   var ds2=ds*ds, ds3=ds2*ds, ds4=ds3*ds;
@@ -724,7 +725,7 @@ export function build_solver(spline, order, goal_order, gk, do_basic, update_ver
   return slv;
 }
 
-function solve_intern(spline, order=ORDER, goal_order=ORDER, steps=35, gk=1.0, do_basic=false) {
+function solve_intern(spline, order=ORDER, goal_order=ORDER, steps=65, gk=1.0, do_basic=false) {
   var start_time = time_ms();
   window._SOLVING = true;
   
@@ -763,7 +764,7 @@ export function do_solve(splineflags, spline, steps, gk) {
   
   spline.resolve = 0;
   //solve_intern(spline, ORDER, undefined, 10, 1, 1);
-  solve_intern(spline, ORDER, undefined, 35, 1, 0);
+  solve_intern(spline, ORDER, undefined, 65, 1, 0);
   
   for (var i=0; i<spline.segments.length; i++) {
     var seg = spline.segments[i];

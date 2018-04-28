@@ -80,7 +80,7 @@ export class SplineDrawer {
     
     this.drawer = drawer;
     
-    this.last_stroke_mat = undefined;
+    this.last_3_mat = undefined;
     this.last_stroke_z   = undefined;
     this.last_stroke_eid = undefined;
     this.last_layer_id = undefined;
@@ -262,7 +262,7 @@ export class SplineDrawer {
     
     seg.flag &= ~SplineFlags.REDRAW;
     
-    var steps = 6, ds = 1.0 / (steps-1), s = 0.0;
+    var steps = 7, ds = 1.0 / (steps - 1), s = 0.0;
     
     /*
     on factor;

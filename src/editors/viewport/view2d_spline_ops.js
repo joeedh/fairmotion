@@ -876,7 +876,7 @@ export class SplineEditor extends View2DEditor {
     
     var ret = this.findnearest([event.x, event.y], this.ctx.view2d.selectmode, limit, this.ctx.view2d.edit_all_layers);
 
-    console.log(ret, this.ctx.view2d.selectmode);
+    //console.log(ret, this.ctx.view2d.selectmode);
     
     
     if (ret != undefined && typeof(ret[1]) != "number" && ret[2] != SelMask.MULTIRES) {

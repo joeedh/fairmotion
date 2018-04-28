@@ -163,6 +163,7 @@ export class solver {
     
     var err = 0.0;
     var clen = this.cs.length;
+    
     for (var i=0; i<steps; i++) {
       //reset outer most segments to their original state
       for (var j=0; j<edge_segs.length; j++) {
@@ -257,7 +258,7 @@ export class solver {
     }
     
     if (final_solve || isNaN(err)) { // && err > this.threshold) {
-      //console.log("err", err, "steps", i, "\n");
+      console.log("err", err, "steps", i, "\n");
     }
     
     return i;

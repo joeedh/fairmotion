@@ -717,6 +717,7 @@ export class ChangeFaceZ extends SplineLocalToolOp {
       //vertex select mode implies we should consider both faces and segments
       selmode |= SplineTypes.FACE | SplineTypes.SEGMENT;
     }
+    
     if (selmode & SplineTypes.FACE) {
       for (var f of spline.faces.selected.editable()) {
         if (isNaN(f.z)) f.z = 0.0;

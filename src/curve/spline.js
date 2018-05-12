@@ -33,12 +33,15 @@ import {ORDER, KSCALE, KANGLE, KSTARTX, KSTARTY, KSTARTZ, KTOTKS, INT_STEPS} fro
 import {solver, constraint} from "solver";
 import "const";
 
+import * as native_api from 'native_api';
+
 import {
   SplineFlags, SplineTypes, SplineElement, SplineVertex, 
   SplineSegment, SplineLoop, SplineLoopPath, SplineFace} from 'spline_types';
 
 import {ElementArraySet, ElementArray, 
         SplineLayer, SplineLayerSet} from 'spline_element_array';
+
 
 #include "src/config/config_defines.js"
 
@@ -1580,27 +1583,49 @@ export class Spline extends DataBlock {
     this.propagate_draw_flags();
     
     var this2 = this;
-    if (config.USE_NACL && window.common != undefined && window.common.naclModule != undefined) {
-      var ret = do_solve(SplineFlags, this, steps, gk, true);
+    if (config.USE_WASM) {
+      var ret = native_api.do_solve(SplineFlags, this, steps, gk, true);
     
       ret.then(function() {
         this2._pending_solve = undefined;
         this2.solving = false;
         this2._do_post_solve();
-
+  
         dag_trigger();
-
+  
         if (this2._resolve_after) {
           var cb = this2._resolve_after;
           this2._resolve_after = undefined;
-          
+    
           this2._pending_solve = this2.solve_intern().then(function() {
             cb.call(this2);
           });
           this2.solving = true;
         }
       });
-      
+  
+      return ret;
+    } else if (config.USE_NACL && window.common != undefined && window.common.naclModule != undefined) {
+      var ret = do_solve(SplineFlags, this, steps, gk, true);
+    
+      ret.then(function() {
+        this2._pending_solve = undefined;
+        this2.solving = false;
+        this2._do_post_solve();
+  
+        dag_trigger();
+  
+        if (this2._resolve_after) {
+          var cb = this2._resolve_after;
+          this2._resolve_after = undefined;
+    
+          this2._pending_solve = this2.solve_intern().then(function() {
+            cb.call(this2);
+          });
+          this2.solving = true;
+        }
+      });
+  
       return ret;
     } else {
       var do_accept;

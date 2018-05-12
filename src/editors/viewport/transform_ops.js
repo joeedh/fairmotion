@@ -19,8 +19,8 @@ import {TransDopeSheetType} from 'dopesheet_transdata';
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
         charmap, TouchEventManager, EventHandler} from 'events';
 
-import {clear_jobs, clear_jobs_except_latest, clear_jobs_except_first, 
-        JobTypes} from 'nacl_api';
+import {clear_jobs, clear_jobs_except_latest, clear_jobs_except_first,
+        JobTypes} from 'native_api';
 
 export class WidgetResizeOp extends TransformOp {
   constructor(Array<float> user_start_mpos, int datamode) {

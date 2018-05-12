@@ -80,6 +80,9 @@ export class CanvasPath extends QuadBezPath {
     
     this.aabb[0].load(mm.min).subScalar(pad);
     this.aabb[1].load(mm.max).addScalar(pad);
+    
+    this.aabb[0].floor();
+    this.aabb[1].ceil();
   }
   
   beginPath() {

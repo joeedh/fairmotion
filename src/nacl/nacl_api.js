@@ -8,6 +8,7 @@ var abs = Math.abs, sqrt=Math.sqrt, sin=Math.sin, cos=Math.cos,
     PI=Math.PI;
     
 var DEBUG = false;
+var FIXED_KS_FLAG = SplineFlags.FIXED_KS;
 
 import {constraint, solver} from "solver";
 import {ModalStates} from 'toolops_api';

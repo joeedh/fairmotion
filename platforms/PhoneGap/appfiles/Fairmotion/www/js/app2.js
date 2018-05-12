@@ -1,4 +1,4 @@
-es6_module_define('spline_element_array', ["struct", "eventdag", "spline_types"], function _spline_element_array_module(_es6_module) {
+es6_module_define('spline_element_array', ["spline_types", "struct", "eventdag"], function _spline_element_array_module(_es6_module) {
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
   var SplineFlags=es6_import_item(_es6_module, 'spline_types', 'SplineFlags');
   var SplineTypes=es6_import_item(_es6_module, 'spline_types', 'SplineTypes');
@@ -656,7 +656,7 @@ es6_module_define('spline_element_array', ["struct", "eventdag", "spline_types"]
   ElementArray.STRUCT = "\n  ElementArray {\n    arr      : array(abstract(SplineElement)) | obj;\n    selected : iter(e, int) | e.eid;\n    active   : int | obj.active != undefined ? obj.active.eid : -1;\n    cdata    : CustomData;\n  }\n";
   ElementArray.dag_outputs = {on_select_add: 0, on_select_sub: 0}
 });
-es6_module_define('spline_base', ["toolprops", "struct", "mathlib", "eventdag"], function _spline_base_module(_es6_module) {
+es6_module_define('spline_base', ["eventdag", "mathlib", "toolprops", "struct"], function _spline_base_module(_es6_module) {
   var TPropFlags=es6_import_item(_es6_module, 'toolprops', 'TPropFlags');
   var PropTypes=es6_import_item(_es6_module, 'toolprops', 'PropTypes');
   var acos=Math.acos, asin=Math.asin, abs=Math.abs, log=Math.log, sqrt=Math.sqrt, pow=Math.pow, PI=Math.PI, floor=Math.floor, min=Math.min, max=Math.max, sin=Math.sin, cos=Math.cos, tan=Math.tan, atan=Math.atan, atan2=Math.atan2, exp=Math.exp;
@@ -819,7 +819,7 @@ es6_module_define('spline_base', ["toolprops", "struct", "mathlib", "eventdag"],
   _es6_module.add_class(CustomData);
   CustomData = _es6_module.add_export('CustomData', CustomData);
   CustomData.STRUCT = "\n  CustomData {\n    layers      : array(e, abstract(CustomDataLayer)) | new e();\n    shared_data : array(abstract(Object));\n  }\n";
-  var $srcs2_jZbz_interp;
+  var $srcs2_nA0V_interp;
   var CustomDataSet=_ESClass("CustomDataSet", Array, [function CustomDataSet() {
     Array.call(this);
   }, function on_add(cls, i, shared) {
@@ -836,15 +836,15 @@ es6_module_define('spline_base', ["toolprops", "struct", "mathlib", "eventdag"],
   }, function get_data(layout, layer_name) {
   }, function on_segment_split(old_segment, old_v1, old_v2, new_segments) {
   }, function interp(srcs, ws) {
-    while ($srcs2_jZbz_interp.length<srcs.length) {
-      $srcs2_jZbz_interp.push(0);
+    while ($srcs2_nA0V_interp.length<srcs.length) {
+      $srcs2_nA0V_interp.push(0);
     }
-    $srcs2_jZbz_interp.length = srcs.length;
+    $srcs2_nA0V_interp.length = srcs.length;
     for (var i=0; i<this.length; i++) {
         for (var j=0; j<srcs.length; j++) {
-            $srcs2_jZbz_interp[j] = srcs[j][i];
+            $srcs2_nA0V_interp[j] = srcs[j][i];
         }
-        this[i].interp($srcs2_jZbz_interp, ws);
+        this[i].interp($srcs2_nA0V_interp, ws);
     }
   }, function copy(src) {
     for (var i=0; i<this.length; i++) {
@@ -859,7 +859,7 @@ es6_module_define('spline_base', ["toolprops", "struct", "mathlib", "eventdag"],
     delete ret.arr;
     return ret;
   })]);
-  var $srcs2_jZbz_interp=[];
+  var $srcs2_nA0V_interp=[];
   _es6_module.add_class(CustomDataSet);
   CustomDataSet = _es6_module.add_export('CustomDataSet', CustomDataSet);
   CustomDataSet.STRUCT = "\n  CustomDataSet {\n    arr : iter(abstract(CustomDataLayer)) | obj;\n  }\n";
@@ -918,11 +918,11 @@ es6_module_define('spline_base', ["toolprops", "struct", "mathlib", "eventdag"],
   }, 256);
   var closest_point_cache_vs=cachering.fromConstructor(Vector3, 64);
   var flip_wrapper_cache;
-  var $flip_out_BU8T__get_nextprev;
-  var $ret_cache_LQzS_global_to_local;
-  var $_co_qLyK_global_to_local;
-  var $arr_Zve0_global_to_local;
-  var $_vec_hvbX_global_to_local;
+  var $flip_out_vA1W__get_nextprev;
+  var $ret_cache_OKJX_global_to_local;
+  var $_co_xYCC_global_to_local;
+  var $arr_T8C1_global_to_local;
+  var $_vec_bUgK_global_to_local;
   var CurveEffect=_ESClass("CurveEffect", [function CurveEffect() {
     this.child = undefined;
     this.prior = undefined;
@@ -941,8 +941,8 @@ es6_module_define('spline_base', ["toolprops", "struct", "mathlib", "eventdag"],
       p = p.prior;
       i++;
     }
-    p = p._get_nextprev(donext, $flip_out_BU8T__get_nextprev);
-    var flip=$flip_out_BU8T__get_nextprev[0];
+    p = p._get_nextprev(donext, $flip_out_vA1W__get_nextprev);
+    var flip=$flip_out_vA1W__get_nextprev[0];
     if (p==undefined) {
         return undefined;
     }
@@ -1160,16 +1160,16 @@ es6_module_define('spline_base', ["toolprops", "struct", "mathlib", "eventdag"],
     }
     var co;
     if (fixed_s!=undefined) {
-        $arr_Zve0_global_to_local[0] = this.evaluate(fixed_s);
-        $arr_Zve0_global_to_local[1] = fixed_s;
-        co = $arr_Zve0_global_to_local;
+        $arr_T8C1_global_to_local[0] = this.evaluate(fixed_s);
+        $arr_T8C1_global_to_local[1] = fixed_s;
+        co = $arr_T8C1_global_to_local;
     }
     else {
       co = this.closest_point(p);
     }
     var s, t, a=0.0;
     if (co==undefined) {
-        co = $_co_qLyK_global_to_local;
+        co = $_co_xYCC_global_to_local;
         if (p.vectorDistance(this.v1)<p.vectorDistance(this.v2)) {
             co.load(this.v1);
             s = 0;
@@ -1187,7 +1187,7 @@ es6_module_define('spline_base', ["toolprops", "struct", "mathlib", "eventdag"],
       t = p.vectorDistance(co)*0.15;
     }
     var n1=this.normal(s).normalize();
-    var n2=$_vec_hvbX_global_to_local.zero().load(p).sub(co).normalize();
+    var n2=$_vec_bUgK_global_to_local.zero().load(p).sub(co).normalize();
     n1[2] = n2[2] = 0.0;
     a = asin(n1[0]*n2[1]-n1[1]*n2[0]);
     var dot=n1.dot(n2);
@@ -1198,7 +1198,7 @@ es6_module_define('spline_base', ["toolprops", "struct", "mathlib", "eventdag"],
         t = -t;
         a = 2.0*Math.PI-a;
     }
-    var ret=$ret_cache_LQzS_global_to_local.next();
+    var ret=$ret_cache_OKJX_global_to_local.next();
     ret[0] = s;
     ret[1] = t;
     ret[2] = a;
@@ -1212,11 +1212,11 @@ es6_module_define('spline_base', ["toolprops", "struct", "mathlib", "eventdag"],
     co.add(no);
     return co;
   }]);
-  var $flip_out_BU8T__get_nextprev=[0];
-  var $ret_cache_LQzS_global_to_local=cachering.fromConstructor(Vector3, 64);
-  var $_co_qLyK_global_to_local=new Vector3();
-  var $arr_Zve0_global_to_local=[0, 0];
-  var $_vec_hvbX_global_to_local=new Vector3();
+  var $flip_out_vA1W__get_nextprev=[0];
+  var $ret_cache_OKJX_global_to_local=cachering.fromConstructor(Vector3, 64);
+  var $_co_xYCC_global_to_local=new Vector3();
+  var $arr_T8C1_global_to_local=[0, 0];
+  var $_vec_bUgK_global_to_local=new Vector3();
   _es6_module.add_class(CurveEffect);
   CurveEffect = _es6_module.add_export('CurveEffect', CurveEffect);
   var FlipWrapper=_ESClass("FlipWrapper", CurveEffect, [function FlipWrapper() {
@@ -1261,7 +1261,7 @@ es6_module_define('spline_base', ["toolprops", "struct", "mathlib", "eventdag"],
   define_static(SplineElement, "dag_outputs", {depend: undefined, on_select: 0.0, eid: 0.0});
   SplineElement.STRUCT = "\n  SplineElement {\n    eid        : int;\n    flag       : int;\n    type       : int;\n    cdata      : CustomDataSet;\n  }\n";
 });
-es6_module_define('spline_types', ["config", "toolprops_iter", "eventdag", "struct", "toolprops", "spline_multires", "spline_base", "mathlib", "spline_math", "selectmode"], function _spline_types_module(_es6_module) {
+es6_module_define('spline_types', ["toolprops", "spline_base", "spline_math", "eventdag", "toolprops_iter", "struct", "selectmode", "spline_multires", "mathlib", "config"], function _spline_types_module(_es6_module) {
   "use strict";
   var ENABLE_MULTIRES=es6_import_item(_es6_module, 'config', 'ENABLE_MULTIRES');
   var PI=Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor, ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos, asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
@@ -1304,7 +1304,7 @@ es6_module_define('spline_types', ["config", "toolprops_iter", "eventdag", "stru
   var spiraltheta=es6_import_item(_es6_module, 'spline_math', 'spiraltheta');
   var spiralcurvature=es6_import_item(_es6_module, 'spline_math', 'spiralcurvature');
   var spiralcurvature_dv=es6_import_item(_es6_module, 'spline_math', 'spiralcurvature_dv');
-  var $ret_Zcf3_aabb;
+  var $ret_2PCy_aabb;
   var SplineVertex=_ESClass("SplineVertex", SplineElement, [function SplineVertex() {
     SplineElement.call(this, SplineTypes.VERTEX);
     Vector3.apply(this, arguments);
@@ -1315,9 +1315,9 @@ es6_module_define('spline_types', ["config", "toolprops_iter", "eventdag", "stru
     this.frames = {}
     this.hpair = undefined;
   }, _ESClass.get(function aabb() {
-    $ret_Zcf3_aabb[0].load(this);
-    $ret_Zcf3_aabb[1].load(this);
-    return $ret_Zcf3_aabb;
+    $ret_2PCy_aabb[0].load(this);
+    $ret_2PCy_aabb[1].load(this);
+    return $ret_2PCy_aabb;
   }), function sethide(state) {
     if (state)
       this.flag|=SplineFlags.HIDE;
@@ -1392,7 +1392,7 @@ es6_module_define('spline_types', ["config", "toolprops_iter", "eventdag", "stru
     delete ret.co;
     return ret;
   })]);
-  var $ret_Zcf3_aabb=[new Vector3(), new Vector3()];
+  var $ret_2PCy_aabb=[new Vector3(), new Vector3()];
   _es6_module.add_class(SplineVertex);
   SplineVertex = _es6_module.add_export('SplineVertex', SplineVertex);
   
@@ -1430,7 +1430,7 @@ es6_module_define('spline_types', ["config", "toolprops_iter", "eventdag", "stru
   }]);
   _es6_module.add_class(EffectWrapper);
   EffectWrapper = _es6_module.add_export('EffectWrapper', EffectWrapper);
-  var $minmax_BoBz_update_aabb;
+  var $minmax_yMmX_update_aabb;
   var SplineSegment=_ESClass("SplineSegment", SplineElement, [function SplineSegment(v1, v2) {
     SplineElement.call(this, SplineTypes.SEGMENT);
     this._evalwrap = new EffectWrapper(this);
@@ -1478,18 +1478,18 @@ es6_module_define('spline_types', ["config", "toolprops_iter", "eventdag", "stru
     this._update_has_multires();
     this.flag&=~SplineFlags.UPDATE_AABB;
     var min=this._aabb[0], max=this._aabb[1];
-    $minmax_BoBz_update_aabb.reset();
+    $minmax_yMmX_update_aabb.reset();
     min.zero();
     max.zero();
     var co=this.evaluate(0);
-    $minmax_BoBz_update_aabb.minmax(co);
+    $minmax_yMmX_update_aabb.minmax(co);
     var ds=1.0/(steps-1);
     for (var i=0, s = 0; i<steps; i++, s+=ds) {
         var co=this.evaluate(s*0.999999999);
-        $minmax_BoBz_update_aabb.minmax(co);
+        $minmax_yMmX_update_aabb.minmax(co);
     }
-    min.load($minmax_BoBz_update_aabb.min);
-    max.load($minmax_BoBz_update_aabb.max);
+    min.load($minmax_yMmX_update_aabb.min);
+    max.load($minmax_yMmX_update_aabb.max);
     min[2] = max[2] = 0.0;
   }, function closest_point(p, mode, fast) {
     if (fast==undefined) {
@@ -1833,7 +1833,7 @@ es6_module_define('spline_types', ["config", "toolprops_iter", "eventdag", "stru
     }
     return ret;
   })]);
-  var $minmax_BoBz_update_aabb=new MinMax(2);
+  var $minmax_yMmX_update_aabb=new MinMax(2);
   _es6_module.add_class(SplineSegment);
   SplineSegment = _es6_module.add_export('SplineSegment', SplineSegment);
   SplineElement.STRUCT = "\n  SplineElement {\n    eid        : int;\n    flag       : int;\n    type       : int;\n    cdata      : CustomDataSet;\n  }\n";
@@ -1879,7 +1879,7 @@ es6_module_define('spline_types', ["config", "toolprops_iter", "eventdag", "stru
     this.ret.value = undefined;
   }]);
   _es6_module.add_class(SplineLoopPathIter);
-  var $cent_WFTK_update_winding;
+  var $cent_FXsx_update_winding;
   var SplineLoopPath=_ESClass("SplineLoopPath", [function SplineLoopPath(l, f) {
     this.l = l;
     this.f = f;
@@ -1891,7 +1891,7 @@ es6_module_define('spline_types', ["config", "toolprops_iter", "eventdag", "stru
     }
     return this.itercache.next().init(this);
   }), function update_winding() {
-    $cent_WFTK_update_winding.zero();
+    $cent_FXsx_update_winding.zero();
     var __iter_l=__get_iter(this);
     var l;
     while (1) {
@@ -1900,9 +1900,9 @@ es6_module_define('spline_types', ["config", "toolprops_iter", "eventdag", "stru
           break;
       }
       l = __ival_l.value;
-      $cent_WFTK_update_winding.add(l.v);
+      $cent_FXsx_update_winding.add(l.v);
     }
-    $cent_WFTK_update_winding.mulScalar(1.0/this.totvert);
+    $cent_FXsx_update_winding.mulScalar(1.0/this.totvert);
     var wsum=0;
     var __iter_l=__get_iter(this);
     var l;
@@ -1912,7 +1912,7 @@ es6_module_define('spline_types', ["config", "toolprops_iter", "eventdag", "stru
           break;
       }
       l = __ival_l.value;
-      wsum+=math.winding(l.v, l.next.v, $cent_WFTK_update_winding) ? 1 : -1;
+      wsum+=math.winding(l.v, l.next.v, $cent_FXsx_update_winding) ? 1 : -1;
     }
     this.winding = wsum>=0;
   }, function asArray() {
@@ -1940,11 +1940,11 @@ es6_module_define('spline_types', ["config", "toolprops_iter", "eventdag", "stru
     delete ret.loops;
     return ret;
   })]);
-  var $cent_WFTK_update_winding=new Vector3();
+  var $cent_FXsx_update_winding=new Vector3();
   _es6_module.add_class(SplineLoopPath);
   SplineLoopPath = _es6_module.add_export('SplineLoopPath', SplineLoopPath);
   SplineLoopPath.STRUCT = "\n  SplineLoopPath {\n    totvert : int;\n    loops   : array(SplineLoop) | obj.asArray();\n    winding : int;\n  }\n";
-  var $minmax_8nIq_update_aabb;
+  var $minmax_dfJb_update_aabb;
   var SplineFace=_ESClass("SplineFace", SplineElement, [function SplineFace() {
     SplineElement.call(this, SplineTypes.FACE);
     this.z = this.finalz = 0;
@@ -1960,7 +1960,7 @@ es6_module_define('spline_types', ["config", "toolprops_iter", "eventdag", "stru
     this.flag|=SplineFlags.UPDATE_AABB|SplineFlags.REDRAW;
   }, function update_aabb() {
     this.flag&=~SplineFlags.UPDATE_AABB;
-    $minmax_8nIq_update_aabb.reset();
+    $minmax_dfJb_update_aabb.reset();
     var __iter_path=__get_iter(this.paths);
     var path;
     while (1) {
@@ -1977,14 +1977,14 @@ es6_module_define('spline_types', ["config", "toolprops_iter", "eventdag", "stru
             break;
         }
         l = __ival_l.value;
-        $minmax_8nIq_update_aabb.minmax(l.v.aabb[0]);
-        $minmax_8nIq_update_aabb.minmax(l.v.aabb[1]);
-        $minmax_8nIq_update_aabb.minmax(l.s.aabb[0]);
-        $minmax_8nIq_update_aabb.minmax(l.s.aabb[1]);
+        $minmax_dfJb_update_aabb.minmax(l.v.aabb[0]);
+        $minmax_dfJb_update_aabb.minmax(l.v.aabb[1]);
+        $minmax_dfJb_update_aabb.minmax(l.s.aabb[0]);
+        $minmax_dfJb_update_aabb.minmax(l.s.aabb[1]);
       }
     }
-    this._aabb[0].load($minmax_8nIq_update_aabb.min);
-    this._aabb[1].load($minmax_8nIq_update_aabb.max);
+    this._aabb[0].load($minmax_dfJb_update_aabb.min);
+    this._aabb[1].load($minmax_dfJb_update_aabb.max);
     this._aabb[0][2] = this._aabb[1][2] = 0.0;
   }, _ESClass.get(function aabb() {
     if (this.flag&SplineFlags.UPDATE_AABB)
@@ -2001,7 +2001,7 @@ es6_module_define('spline_types', ["config", "toolprops_iter", "eventdag", "stru
     }
     return ret;
   })]);
-  var $minmax_8nIq_update_aabb=new MinMax(3);
+  var $minmax_dfJb_update_aabb=new MinMax(3);
   _es6_module.add_class(SplineFace);
   SplineFace = _es6_module.add_export('SplineFace', SplineFace);
   SplineFace.STRUCT = STRUCT.inherit(SplineFace, SplineElement)+"\n    paths  : array(SplineLoopPath);\n    mat    : Material;\n    aabb   : array(vec3);\n    z      : float;\n    finalz : float;\n  }\n";
@@ -2155,7 +2155,7 @@ es6_module_define('spline_types', ["config", "toolprops_iter", "eventdag", "stru
   
   mixin(ElementRefSet, TPropIterable);
 });
-es6_module_define('spline_query', ["spline_multires", "selectmode"], function _spline_query_module(_es6_module) {
+es6_module_define('spline_query', ["selectmode", "spline_multires"], function _spline_query_module(_es6_module) {
   var SelMask=es6_import_item(_es6_module, 'selectmode', 'SelMask');
   var has_multires=es6_import_item(_es6_module, 'spline_multires', 'has_multires');
   var compose_id=es6_import_item(_es6_module, 'spline_multires', 'compose_id');
@@ -2164,10 +2164,10 @@ es6_module_define('spline_query', ["spline_multires", "selectmode"], function _s
   var MultiResLayer=es6_import_item(_es6_module, 'spline_multires', 'MultiResLayer');
   var PI=Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor, ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos, asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
   var sqrt=Math.sqrt;
-  var $_mpos_pBfs_findnearest_mres;
-  var $_mpos_E9s1_findnearest_vert;
-  var $_v_E29t_findnearest_mres;
-  var $_v_r2pN_findnearest_vert;
+  var $_mpos_BeaL_findnearest_mres;
+  var $_mpos_KYpY_findnearest_vert;
+  var $_v_K6hG_findnearest_mres;
+  var $_v_6aVx_findnearest_vert;
   var SplineQuery=_ESClass("SplineQuery", [function SplineQuery(spline) {
     this.spline = spline;
   }, function findnearest(editor, mpos, selectmask, limit, ignore_layers) {
@@ -2265,7 +2265,7 @@ es6_module_define('spline_query', ["spline_multires", "selectmode"], function _s
   }, function findnearest_mres(editor, mpos, limit, do_handles, ignore_layers) {
     var spline=this.spline;
     var actlayer=spline.layerset.active;
-    mpos = $_mpos_pBfs_findnearest_mres.load(mpos), mpos[2] = 0.0;
+    mpos = $_mpos_BeaL_findnearest_mres.load(mpos), mpos[2] = 0.0;
     if (!has_multires(spline))
       return undefined;
     if (limit==undefined)
@@ -2296,10 +2296,10 @@ es6_module_define('spline_query', ["spline_multires", "selectmode"], function _s
           continue;
         var seg=spline.eidmap[p.seg];
         var mapco=seg.evaluate(p.s);
-        $_v_E29t_findnearest_mres.load(mapco);
-        $_v_E29t_findnearest_mres[2] = 0.0;
-        editor.project($_v_E29t_findnearest_mres);
-        var dis=$_v_E29t_findnearest_mres.vectorDistance(mpos);
+        $_v_K6hG_findnearest_mres.load(mapco);
+        $_v_K6hG_findnearest_mres[2] = 0.0;
+        editor.project($_v_K6hG_findnearest_mres);
+        var dis=$_v_K6hG_findnearest_mres.vectorDistance(mpos);
         if (dis<limit&&dis<min) {
             min = dis;
             ret = compose_id(p.seg, p.id);
@@ -2315,7 +2315,7 @@ es6_module_define('spline_query', ["spline_multires", "selectmode"], function _s
       limit = 15;
     var min=1e+17;
     var ret=undefined;
-    mpos = $_mpos_E9s1_findnearest_vert.load(mpos), mpos[2] = 0.0;
+    mpos = $_mpos_KYpY_findnearest_vert.load(mpos), mpos[2] = 0.0;
     var hasmres=has_multires(spline);
     var list=do_handles ? spline.handles : spline.verts;
     var __iter_v=__get_iter(list);
@@ -2334,10 +2334,10 @@ es6_module_define('spline_query', ["spline_multires", "selectmode"], function _s
       if (hasmres&&v.segments.length>0) {
           co = v.segments[0].evaluate(v.segments[0].ends(v));
       }
-      $_v_r2pN_findnearest_vert.load(co);
-      $_v_r2pN_findnearest_vert[2] = 0.0;
-      editor.project($_v_r2pN_findnearest_vert);
-      var dis=$_v_r2pN_findnearest_vert.vectorDistance(mpos);
+      $_v_6aVx_findnearest_vert.load(co);
+      $_v_6aVx_findnearest_vert[2] = 0.0;
+      editor.project($_v_6aVx_findnearest_vert);
+      var dis=$_v_6aVx_findnearest_vert.vectorDistance(mpos);
       if (dis<limit&&dis<min) {
           min = dis;
           ret = v;
@@ -2346,14 +2346,14 @@ es6_module_define('spline_query', ["spline_multires", "selectmode"], function _s
     if (ret!=undefined)
       return [ret, min, do_handles ? SelMask.HANDLE : SelMask.VERTEX];
   }]);
-  var $_mpos_pBfs_findnearest_mres=new Vector3();
-  var $_mpos_E9s1_findnearest_vert=new Vector3();
-  var $_v_E29t_findnearest_mres=new Vector3();
-  var $_v_r2pN_findnearest_vert=new Vector3();
+  var $_mpos_BeaL_findnearest_mres=new Vector3();
+  var $_mpos_KYpY_findnearest_vert=new Vector3();
+  var $_v_K6hG_findnearest_mres=new Vector3();
+  var $_v_6aVx_findnearest_vert=new Vector3();
   _es6_module.add_class(SplineQuery);
   SplineQuery = _es6_module.add_export('SplineQuery', SplineQuery);
 });
-es6_module_define('spline_draw', ["mathlib", "spline_types", "spline_element_array", "spline_draw_new", "spline_math", "selectmode", "animdata", "view2d_editor", "config", "spline_multires"], function _spline_draw_module(_es6_module) {
+es6_module_define('spline_draw', ["mathlib", "animdata", "spline_types", "view2d_editor", "spline_element_array", "spline_draw_new", "spline_multires", "selectmode", "config", "spline_math"], function _spline_draw_module(_es6_module) {
   var aabb_isect_minmax2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_minmax2d');
   var ENABLE_MULTIRES=es6_import_item(_es6_module, 'config', 'ENABLE_MULTIRES');
   var SessionFlags=es6_import_item(_es6_module, 'view2d_editor', 'SessionFlags');
@@ -2530,11 +2530,11 @@ es6_module_define('spline_draw', ["mathlib", "spline_types", "spline_element_arr
     return string_idgen;
   }
   calc_string_ids = _es6_module.add_export('calc_string_ids', calc_string_ids);
-  var $lists_QeAa_sort_layer_segments=new cachering(function() {
+  var $lists_TDKk_sort_layer_segments=new cachering(function() {
     return [];
   }, 2);
   function sort_layer_segments(layer, spline) {
-    var list=$lists_QeAa_sort_layer_segments.next();
+    var list=$lists_TDKk_sort_layer_segments.next();
     list.length = 0;
     var visit={}
     var layerid=layer.id;
@@ -2797,9 +2797,9 @@ es6_module_define('spline_draw', ["mathlib", "spline_types", "spline_element_arr
     g.lineWidth = lw;
   }
   var SplineDrawer=es6_import_item(_es6_module, 'spline_draw_new', 'SplineDrawer');
-  var $smin_8L0X_draw_spline=new Vector3();
-  var $r_1zWe_draw_spline=[[0, 0], [0, 0]];
-  var $smax_YQhS_draw_spline=new Vector3();
+  var $smin_DyFw_draw_spline=new Vector3();
+  var $r_pc4M_draw_spline=[[0, 0], [0, 0]];
+  var $smax_e_JX_draw_spline=new Vector3();
   function draw_spline(spline, redraw_rects, g, editor, selectmode, only_render, draw_normals, alpha, draw_time_helpers, curtime, ignore_layers) {
     spline.canvas = g;
     if (spline.drawlist==undefined||(spline.recalc&RecalcFlags.DRAWSORT)) {
@@ -2905,13 +2905,13 @@ es6_module_define('spline_draw', ["mathlib", "spline_types", "spline_element_arr
           break;
       }
       seg = __ival_seg.value;
-      $smin_8L0X_draw_spline.zero().load(seg.aabb[0]);
-      $smax_YQhS_draw_spline.zero().load(seg.aabb[1]);
+      $smin_DyFw_draw_spline.zero().load(seg.aabb[0]);
+      $smax_e_JX_draw_spline.zero().load(seg.aabb[1]);
       var skipdraw=true;
       for (var i=0; i<redraw_rects.length; i+=4) {
-          $r_1zWe_draw_spline[0][0] = redraw_rects[i], $r_1zWe_draw_spline[0][1] = redraw_rects[i+1];
-          $r_1zWe_draw_spline[1][0] = redraw_rects[i+2], $r_1zWe_draw_spline[1][1] = redraw_rects[i+3];
-          if (aabb_isect_minmax2d($smin_8L0X_draw_spline, $smax_YQhS_draw_spline, $r_1zWe_draw_spline[0], $r_1zWe_draw_spline[1], 2)) {
+          $r_pc4M_draw_spline[0][0] = redraw_rects[i], $r_pc4M_draw_spline[0][1] = redraw_rects[i+1];
+          $r_pc4M_draw_spline[1][0] = redraw_rects[i+2], $r_pc4M_draw_spline[1][1] = redraw_rects[i+3];
+          if (aabb_isect_minmax2d($smin_DyFw_draw_spline, $smax_e_JX_draw_spline, $r_pc4M_draw_spline[0], $r_pc4M_draw_spline[1], 2)) {
               skipdraw = false;
               break;
           }
@@ -3556,21 +3556,21 @@ es6_module_define('spline_draw', ["mathlib", "spline_types", "spline_element_arr
     g._irender_mat.invert();
   }
   set_rendermat = _es6_module.add_export('set_rendermat', set_rendermat);
-  var $margin_7HFl_redraw_element=new Vector3([15, 15, 15]);
-  var $aabb_Rtfz_redraw_element=[new Vector3(), new Vector3()];
+  var $margin_KZjj_redraw_element=new Vector3([15, 15, 15]);
+  var $aabb_STFI_redraw_element=[new Vector3(), new Vector3()];
   function redraw_element(e, view2d) {
     e.flag|=SplineFlags.REDRAW;
-    $margin_7HFl_redraw_element[0] = $margin_7HFl_redraw_element[1] = $margin_7HFl_redraw_element[2] = 15.0;
+    $margin_KZjj_redraw_element[0] = $margin_KZjj_redraw_element[1] = $margin_KZjj_redraw_element[2] = 15.0;
     if (view2d!=undefined)
-      $margin_7HFl_redraw_element.mulScalar(1.0/view2d.zoom);
+      $margin_KZjj_redraw_element.mulScalar(1.0/view2d.zoom);
     var e_aabb=e.aabb;
-    $aabb_Rtfz_redraw_element[0].load(e_aabb[0]), $aabb_Rtfz_redraw_element[1].load(e_aabb[1]);
-    $aabb_Rtfz_redraw_element[0].sub($margin_7HFl_redraw_element), $aabb_Rtfz_redraw_element[1].add($margin_7HFl_redraw_element);
-    window.redraw_viewport($aabb_Rtfz_redraw_element[0], $aabb_Rtfz_redraw_element[1]);
+    $aabb_STFI_redraw_element[0].load(e_aabb[0]), $aabb_STFI_redraw_element[1].load(e_aabb[1]);
+    $aabb_STFI_redraw_element[0].sub($margin_KZjj_redraw_element), $aabb_STFI_redraw_element[1].add($margin_KZjj_redraw_element);
+    window.redraw_viewport($aabb_STFI_redraw_element[0], $aabb_STFI_redraw_element[1]);
   }
   redraw_element = _es6_module.add_export('redraw_element', redraw_element);
 });
-es6_module_define('spline', ["solver", "view2d_editor", "config", "lib_api", "spline_query", "solver_new", "const", "spline_multires", "struct", "selectmode", "spline_element_array", "toolops_api", "spline_types", "spline_math", "spline_draw", "eventdag"], function _spline_module(_es6_module) {
+es6_module_define('spline', ["spline_element_array", "toolops_api", "const", "selectmode", "spline_draw", "struct", "spline_math", "solver", "view2d_editor", "solver_new", "native_api", "spline_types", "eventdag", "spline_multires", "spline_query", "lib_api", "config"], function _spline_module(_es6_module) {
   "use strict";
   var PI=Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor, ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos, asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
   var spline_multires=es6_import(_es6_module, 'spline_multires');
@@ -3608,6 +3608,7 @@ es6_module_define('spline', ["solver", "view2d_editor", "config", "lib_api", "sp
   var solver=es6_import_item(_es6_module, 'solver', 'solver');
   var constraint=es6_import_item(_es6_module, 'solver', 'constraint');
   es6_import(_es6_module, 'const');
+  var native_api=es6_import(_es6_module, 'native_api');
   var SplineFlags=es6_import_item(_es6_module, 'spline_types', 'SplineFlags');
   var SplineTypes=es6_import_item(_es6_module, 'spline_types', 'SplineTypes');
   var SplineElement=es6_import_item(_es6_module, 'spline_types', 'SplineElement');
@@ -3659,17 +3660,17 @@ es6_module_define('spline', ["solver", "view2d_editor", "config", "lib_api", "sp
   _es6_module.add_class(AllPointsIter);
   AllPointsIter = _es6_module.add_export('AllPointsIter', AllPointsIter);
   var RecalcFlags=es6_import_item(_es6_module, 'spline_types', 'RecalcFlags');
-  var $debug_id_gen_tBxu_Spline;
-  var $_internal_idgen_ee4f_Spline;
-  var $ws_UkiJ_split_edge;
-  var $lastco_G734_trace_face;
-  var $srcs_9GOy_split_edge;
+  var $debug_id_gen_Dms9_Spline;
+  var $_internal_idgen_x6fG_Spline;
+  var $ws_nXZG_split_edge;
+  var $lastco_Tn2u_trace_face;
+  var $srcs_qpXs_split_edge;
   var Spline=_ESClass("Spline", DataBlock, [function Spline(name) {
     if (name==undefined) {
         name = undefined;
     }
     DataBlock.call(this, DataTypes.SPLINE, name);
-    this._debug_id = $debug_id_gen_tBxu_Spline++;
+    this._debug_id = $debug_id_gen_Dms9_Spline++;
     this._pending_solve = undefined;
     this._resolve_after = undefined;
     this.solving = undefined;
@@ -3679,7 +3680,7 @@ es6_module_define('spline', ["solver", "view2d_editor", "config", "lib_api", "sp
     for (var i=0; i<mformat.length; i++) {
         this.mres_format[i] = mformat[i];
     }
-    this._internal_id = $_internal_idgen_ee4f_Spline++;
+    this._internal_id = $_internal_idgen_x6fG_Spline++;
     this.drawlist = [];
     this.recalc = RecalcFlags.DRAWSORT;
     this.size = [0, 0];
@@ -3979,9 +3980,9 @@ es6_module_define('spline', ["solver", "view2d_editor", "config", "lib_api", "sp
         this.connect_handles(nseg.h2, hpair);
     }
     this.copy_segment_data(nseg, seg);
-    $srcs_9GOy_split_edge[0] = v1.cdata, $srcs_9GOy_split_edge[1] = v2.cdata;
+    $srcs_qpXs_split_edge[0] = v1.cdata, $srcs_qpXs_split_edge[1] = v2.cdata;
     this.copy_vert_data(nv, v1);
-    nv.cdata.interp($srcs_9GOy_split_edge, $ws_UkiJ_split_edge);
+    nv.cdata.interp($srcs_qpXs_split_edge, $ws_nXZG_split_edge);
     this.resolve = 1;
     return ret;
   }, function find_segment(v1, v2) {
@@ -4929,7 +4930,26 @@ es6_module_define('spline', ["solver", "view2d_editor", "config", "lib_api", "sp
     }
     this.propagate_draw_flags();
     var this2=this;
-    if (config.USE_NACL&&window.common!=undefined&&window.common.naclModule!=undefined) {
+    if (config.USE_WASM) {
+        var ret=native_api.do_solve(SplineFlags, this, steps, gk, true);
+        ret.then(function() {
+          this2._pending_solve = undefined;
+          this2.solving = false;
+          this2._do_post_solve();
+          dag_trigger();
+          if (this2._resolve_after) {
+              var cb=this2._resolve_after;
+              this2._resolve_after = undefined;
+              this2._pending_solve = this2.solve_intern().then(function() {
+                cb.call(this2);
+              });
+              this2.solving = true;
+          }
+        });
+        return ret;
+    }
+    else 
+      if (config.USE_NACL&&window.common!=undefined&&window.common.naclModule!=undefined) {
         var ret=do_solve(SplineFlags, this, steps, gk, true);
         ret.then(function() {
           this2._pending_solve = undefined;
@@ -5016,7 +5036,7 @@ es6_module_define('spline', ["solver", "view2d_editor", "config", "lib_api", "sp
     return this.solve(steps, gk);
   }, function trace_face(g, f) {
     g.beginPath();
-    $lastco_G734_trace_face.zero();
+    $lastco_Tn2u_trace_face.zero();
     var __iter_path=__get_iter(f.paths);
     var path;
     while (1) {
@@ -5491,11 +5511,11 @@ es6_module_define('spline', ["solver", "view2d_editor", "config", "lib_api", "sp
     ret.mres_format = arr;
     return ret;
   })]);
-  var $debug_id_gen_tBxu_Spline=0;
-  var $_internal_idgen_ee4f_Spline=0;
-  var $ws_UkiJ_split_edge=[0.5, 0.5];
-  var $lastco_G734_trace_face=new Vector3();
-  var $srcs_9GOy_split_edge=[0, 0];
+  var $debug_id_gen_Dms9_Spline=0;
+  var $_internal_idgen_x6fG_Spline=0;
+  var $ws_nXZG_split_edge=[0.5, 0.5];
+  var $lastco_Tn2u_trace_face=new Vector3();
+  var $srcs_qpXs_split_edge=[0, 0];
   _es6_module.add_class(Spline);
   Spline = _es6_module.add_export('Spline', Spline);
   
@@ -5631,7 +5651,7 @@ es6_module_define('solver', [], function _solver_module(_es6_module) {
   _es6_module.add_class(solver);
   solver = _es6_module.add_export('solver', solver);
 });
-es6_module_define('spline_multires', ["struct", "spline_base", "binomial_table"], function _spline_multires_module(_es6_module) {
+es6_module_define('spline_multires', ["spline_base", "binomial_table", "struct"], function _spline_multires_module(_es6_module) {
   "use strict";
   var acos=Math.acos, asin=Math.asin, abs=Math.abs, log=Math.log, sqrt=Math.sqrt, pow=Math.pow, PI=Math.PI, floor=Math.floor, min=Math.min, max=Math.max, sin=Math.sin, cos=Math.cos, tan=Math.tan, atan=Math.atan, atan2=Math.atan2, exp=Math.exp, ceil=Math.ceil;
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
@@ -5677,7 +5697,7 @@ es6_module_define('spline_multires', ["struct", "spline_base", "binomial_table"]
   var _format=["TX", "TY", "TVX", "TVY", "TSEG", "TS", "TT", "TA", "TFLAG", "TID", "TLEVEL", "TSUPPORT", "TBASIS", "TDEGREE", "TNEXT"];
   _format = _es6_module.add_export('_format', _format);
   var IHEAD=0, ITAIL=1, IFREEHEAD=2, ITOTPOINT=3, ITOT=4;
-  var $p_Xkht_recalc_offset;
+  var $p_cqZH_recalc_offset;
   var BoundPoint=_ESClass("BoundPoint", [function BoundPoint() {
     this.mr = undefined;
     this.i = undefined;
@@ -5700,9 +5720,9 @@ es6_module_define('spline_multires', ["struct", "spline_base", "binomial_table"]
     var co=seg._evalwrap.evaluate(this.s);
     this.offset[0] = this[0]-co[0];
     this.offset[1] = this[1]-co[1];
-    $p_Xkht_recalc_offset[0] = this[0];
-    $p_Xkht_recalc_offset[1] = this[1];
-    var sta=seg._evalwrap.global_to_local($p_Xkht_recalc_offset, undefined, this.s);
+    $p_cqZH_recalc_offset[0] = this[0];
+    $p_cqZH_recalc_offset[1] = this[1];
+    var sta=seg._evalwrap.global_to_local($p_cqZH_recalc_offset, undefined, this.s);
     this.t = sta[1];
     this.a = sta[2];
   }, function toString() {
@@ -5765,7 +5785,7 @@ es6_module_define('spline_multires', ["struct", "spline_base", "binomial_table"]
   }), _ESClass.get(function next() {
     return this.data[this.i+TNEXT];
   })]);
-  var $p_Xkht_recalc_offset=new Vector3([0, 0, 0]);
+  var $p_cqZH_recalc_offset=new Vector3([0, 0, 0]);
   _es6_module.add_class(BoundPoint);
   BoundPoint = _es6_module.add_export('BoundPoint', BoundPoint);
   var pointiter_ret_cache=cachering.fromConstructor(BoundPoint, 12);
@@ -5856,8 +5876,8 @@ es6_module_define('spline_multires', ["struct", "spline_base", "binomial_table"]
       t = 0.0;
     return t;
   }
-  var $sum_sJTF_evaluate;
-  var $ks_VdNb_evaluate;
+  var $sum_BydV_evaluate;
+  var $ks_cCm6_evaluate;
   var MultiResEffector=_ESClass("MultiResEffector", CurveEffect, [function MultiResEffector(owner) {
     this.mr = owner;
   }, function evaluate(s) {
@@ -5868,18 +5888,18 @@ es6_module_define('spline_multires', ["struct", "spline_base", "binomial_table"]
     n.normalize();
     n.mulScalar(10.0);
     var co=this.prior.evaluate(s);
-    $sum_sJTF_evaluate.zero();
+    $sum_BydV_evaluate.zero();
     var i=0;
     for (var p in this.mr.points(0)) {
-        $ks_VdNb_evaluate[i] = p.s;
+        $ks_cCm6_evaluate[i] = p.s;
         i++;
     }
     for (var p in this.mr.points(0)) {
         var w=crappybasis(s, p.s, p.support, p.degree);
         if (isNaN(w))
           continue;
-        $sum_sJTF_evaluate[0]+=p.offset[0]*w;
-        $sum_sJTF_evaluate[1]+=p.offset[1]*w;
+        $sum_BydV_evaluate[0]+=p.offset[0]*w;
+        $sum_BydV_evaluate[1]+=p.offset[1]*w;
     }
     for (var i=0; i<2; i++) {
         var next=i ? this.next : this.prev;
@@ -5900,16 +5920,16 @@ es6_module_define('spline_multires', ["struct", "spline_base", "binomial_table"]
                   s2 = -next.rescale(this, 1.0-s);
                 }
                 var w=crappybasis(s2, ps, support, p.degree);
-                $sum_sJTF_evaluate[0]+=p.offset[0]*w;
-                $sum_sJTF_evaluate[1]+=p.offset[1]*w;
+                $sum_BydV_evaluate[0]+=p.offset[0]*w;
+                $sum_BydV_evaluate[1]+=p.offset[1]*w;
             }
         }
     }
-    co.add($sum_sJTF_evaluate);
+    co.add($sum_BydV_evaluate);
     return co;
   }]);
-  var $sum_sJTF_evaluate=new Vector3();
-  var $ks_VdNb_evaluate=new Array(2000);
+  var $sum_BydV_evaluate=new Vector3();
+  var $ks_cCm6_evaluate=new Array(2000);
   _es6_module.add_class(MultiResEffector);
   MultiResEffector = _es6_module.add_export('MultiResEffector', MultiResEffector);
   var MultiResGlobal=_ESClass("MultiResGlobal", [function MultiResGlobal() {
@@ -5922,8 +5942,8 @@ es6_module_define('spline_multires', ["struct", "spline_base", "binomial_table"]
   _es6_module.add_class(MultiResGlobal);
   MultiResGlobal = _es6_module.add_export('MultiResGlobal', MultiResGlobal);
   MultiResGlobal.STRUCT = "\n  MultiResGlobal {\n    active : double | obj.active == undefined ? -1 : obj.active;\n  }\n";
-  var $_co_BAPF_add_point;
-  var $sta_Tyv9_recalc_worldcos_level;
+  var $_co_Fhsx_add_point;
+  var $sta_od1w_recalc_worldcos_level;
   var MultiResLayer=_ESClass("MultiResLayer", CustomDataLayer, [function MultiResLayer(size) {
     if (size==undefined) {
         size = 16;
@@ -6015,7 +6035,7 @@ es6_module_define('spline_multires', ["struct", "spline_base", "binomial_table"]
     return this.points_iter_cache.next().cache_init(this, level);
   }, function add_point(level, co) {
     if (co==undefined) {
-        co = $_co_BAPF_add_point;
+        co = $_co_Fhsx_add_point;
     }
     this._freecur+=TTOT-(this._freecur%TTOT);
     var i=this._freecur;
@@ -6068,11 +6088,11 @@ es6_module_define('spline_multires', ["struct", "spline_base", "binomial_table"]
   }, function segment_split(old_segment, old_v1, old_v2, new_segments) {
   }, function recalc_worldcos_level(seg, level) {
     for (var p in this.points(level)) {
-        $sta_Tyv9_recalc_worldcos_level[0] = p.s;
-        $sta_Tyv9_recalc_worldcos_level[1] = p.t;
-        $sta_Tyv9_recalc_worldcos_level[2] = p.a;
-        var co=seg._evalwrap.local_to_global($sta_Tyv9_recalc_worldcos_level);
-        var co2=seg._evalwrap.evaluate($sta_Tyv9_recalc_worldcos_level[0]);
+        $sta_od1w_recalc_worldcos_level[0] = p.s;
+        $sta_od1w_recalc_worldcos_level[1] = p.t;
+        $sta_od1w_recalc_worldcos_level[2] = p.a;
+        var co=seg._evalwrap.local_to_global($sta_od1w_recalc_worldcos_level);
+        var co2=seg._evalwrap.evaluate($sta_od1w_recalc_worldcos_level[0]);
         p[0] = co[0];
         p[1] = co[1];
         p.offset[0] = co[0]-co2[0];
@@ -6094,8 +6114,8 @@ es6_module_define('spline_multires', ["struct", "spline_base", "binomial_table"]
     ret.max_layers = 8;
     return ret;
   })]);
-  var $_co_BAPF_add_point=[0, 0];
-  var $sta_Tyv9_recalc_worldcos_level=[0, 0, 0];
+  var $_co_Fhsx_add_point=[0, 0];
+  var $sta_od1w_recalc_worldcos_level=[0, 0, 0];
   _es6_module.add_class(MultiResLayer);
   MultiResLayer = _es6_module.add_export('MultiResLayer', MultiResLayer);
   MultiResLayer.STRUCT = STRUCT.inherit(MultiResLayer, CustomDataLayer)+"\n    data            : array(double);\n    index           : array(double);\n    max_layers      : int;\n    totpoint        : int;\n    _freecur        : int;\n    _size           : int;\n  }\n";
@@ -6160,14 +6180,14 @@ es6_module_define('spline_multires', ["struct", "spline_base", "binomial_table"]
     return index+eid*mul;
   }
   compose_id = _es6_module.add_export('compose_id', compose_id);
-  var $ret_1aUv_decompose_id=[0, 0];
+  var $ret_Idrg_decompose_id=[0, 0];
   function decompose_id(id) {
     var mul=(1<<24);
     var eid=Math.floor(id/mul);
     id-=eid*mul;
-    $ret_1aUv_decompose_id[0] = eid;
-    $ret_1aUv_decompose_id[1] = id;
-    return $ret_1aUv_decompose_id;
+    $ret_Idrg_decompose_id[0] = eid;
+    $ret_Idrg_decompose_id[1] = id;
+    return $ret_Idrg_decompose_id;
   }
   decompose_id = _es6_module.add_export('decompose_id', decompose_id);
   var _test_id_start=0;
@@ -6259,13 +6279,13 @@ es6_module_define('spline_multires', ["struct", "spline_base", "binomial_table"]
   iterpoints.selected = function(spline, level) {
   }
 });
-es6_module_define('solver_new', ["spline_base", "spline_math"], function _solver_new_module(_es6_module) {
+es6_module_define('solver_new', ["spline_math", "spline_base"], function _solver_new_module(_es6_module) {
   var KSCALE=es6_import_item(_es6_module, 'spline_math', 'KSCALE');
   var KANGLE=es6_import_item(_es6_module, 'spline_math', 'KANGLE');
   var SplineTypes=es6_import_item(_es6_module, 'spline_base', 'SplineTypes');
   var SplineFlags=es6_import_item(_es6_module, 'spline_base', 'SplineFlags');
   var acos=Math.acos, asin=Math.asin, cos=Math.cos, sin=Math.sin, PI=Math.PI, pow=Math.pow, sqrt=Math.sqrt, log=Math.log, abs=Math.abs;
-  var $tan_kYgY_solve=new Vector3();
+  var $tan_eVQS_solve=new Vector3();
   function solve(spline, order, steps, gk, do_inc, edge_segs) {
     var pairs=[];
     var CBREAK=SplineFlags.BREAK_CURVATURES;
@@ -6404,11 +6424,11 @@ es6_module_define('solver_new', ["spline_base", "spline_math"], function _solver
               }
               else {
                 var h=seg1.handle(v);
-                $tan_kYgY_solve.load(h).sub(v).normalize();
+                $tan_eVQS_solve.load(h).sub(v).normalize();
                 if (v==seg1.v2)
-                  $tan_kYgY_solve.negate();
+                  $tan_eVQS_solve.negate();
                 var ta=seg1.derivative(s1, order).normalize();
-                var _d=Math.min(Math.max(ta.dot($tan_kYgY_solve), -1.0), 1.0);
+                var _d=Math.min(Math.max(ta.dot($tan_eVQS_solve), -1.0), 1.0);
                 var r=acos(_d);
                 
               }
@@ -6435,7 +6455,7 @@ es6_module_define('solver_new', ["spline_base", "spline_math"], function _solver
                       }
                       else {
                         var ta=seg1.derivative(s1, order).normalize();
-                        var _d=Math.min(Math.max(ta.dot($tan_kYgY_solve), -1.0), 1.0);
+                        var _d=Math.min(Math.max(ta.dot($tan_eVQS_solve), -1.0), 1.0);
                         var r2=acos(_d);
                         
                       }
@@ -6667,7 +6687,7 @@ es6_module_define('vectordraw_base', [], function _vectordraw_base_module(_es6_m
   _es6_module.add_class(VectorDraw);
   VectorDraw = _es6_module.add_export('VectorDraw', VectorDraw);
 });
-es6_module_define('vectordraw_canvas2d', ["mathlib", "vectordraw_base", "config"], function _vectordraw_canvas2d_module(_es6_module) {
+es6_module_define('vectordraw_canvas2d', ["config", "mathlib", "vectordraw_base"], function _vectordraw_canvas2d_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, 'config');
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
@@ -6729,6 +6749,8 @@ es6_module_define('vectordraw_canvas2d', ["mathlib", "vectordraw_base", "config"
     }
     this.aabb[0].load(mm.min).subScalar(pad);
     this.aabb[1].load(mm.max).addScalar(pad);
+    this.aabb[0].floor();
+    this.aabb[1].ceil();
   }, function beginPath() {
     this.path_start_i = this.commands.length;
     this._pushCmd(BEGINPATH);
@@ -7059,7 +7081,7 @@ es6_module_define('vectordraw_canvas2d', ["mathlib", "vectordraw_base", "config"
   _es6_module.add_class(CanvasDraw2D);
   CanvasDraw2D = _es6_module.add_export('CanvasDraw2D', CanvasDraw2D);
 });
-es6_module_define('vectordraw_canvas2d_simple', ["vectordraw_base", "config", "mathlib"], function _vectordraw_canvas2d_simple_module(_es6_module) {
+es6_module_define('vectordraw_canvas2d_simple', ["mathlib", "vectordraw_base", "config"], function _vectordraw_canvas2d_simple_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, 'config');
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
@@ -7328,7 +7350,7 @@ es6_module_define('vectordraw_canvas2d_simple', ["vectordraw_base", "config", "m
   _es6_module.add_class(SimpleCanvasDraw2D);
   SimpleCanvasDraw2D = _es6_module.add_export('SimpleCanvasDraw2D', SimpleCanvasDraw2D);
 });
-es6_module_define('vectordraw_svg', ["vectordraw_base", "config", "mathlib"], function _vectordraw_svg_module(_es6_module) {
+es6_module_define('vectordraw_svg', ["config", "vectordraw_base", "mathlib"], function _vectordraw_svg_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, 'config');
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
@@ -7867,7 +7889,7 @@ es6_module_define('vectordraw_svg', ["vectordraw_base", "config", "mathlib"], fu
   _es6_module.add_class(SVGDraw2D);
   SVGDraw2D = _es6_module.add_export('SVGDraw2D', SVGDraw2D);
 });
-es6_module_define('vectordraw', ["vectordraw_svg", "vectordraw_base", "vectordraw_canvas2d"], function _vectordraw_module(_es6_module) {
+es6_module_define('vectordraw', ["vectordraw_base", "vectordraw_canvas2d", "vectordraw_svg"], function _vectordraw_module(_es6_module) {
   "use strict";
   var CanvasDraw2D=es6_import_item(_es6_module, 'vectordraw_canvas2d', 'CanvasDraw2D');
   var CanvasPath=es6_import_item(_es6_module, 'vectordraw_canvas2d', 'CanvasPath');
@@ -7884,7 +7906,7 @@ es6_module_define('vectordraw', ["vectordraw_svg", "vectordraw_base", "vectordra
 es6_module_define('strokedraw', [], function _strokedraw_module(_es6_module) {
   "use strict";
 });
-es6_module_define('spline_draw_new', ["spline_math", "view2d_editor", "spline_element_array", "vectordraw", "selectmode", "animdata", "spline_multires", "config", "spline_types", "mathlib"], function _spline_draw_new_module(_es6_module) {
+es6_module_define('spline_draw_new', ["vectordraw", "animdata", "spline_math", "mathlib", "config", "view2d_editor", "spline_types", "spline_multires", "spline_element_array", "selectmode"], function _spline_draw_new_module(_es6_module) {
   "use strict";
   var aabb_isect_minmax2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_minmax2d');
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
@@ -8133,11 +8155,12 @@ es6_module_define('spline_draw_new', ["spline_math", "view2d_editor", "spline_el
     var fx=co[0], fy=co[1];
     var lastdv, lastco;
     var len=seg.length;
+    var $_let_stretch1=1.015;
     s = 0;
     for (var i=0; i<steps; i++, s+=ds) {
-        var dv=seg.derivative(s).normalize();
-        var co=seg.evaluate(s);
-        var k=-seg.curvature(s);
+        var dv=seg.derivative(s*$_let_stretch1).normalize();
+        var co=seg.evaluate(s*$_let_stretch1);
+        var k=-seg.curvature(s*$_let_stretch1);
         co[0]+=-dv[1]*lw;
         co[1]+=dv[0]*lw;
         dv[0]*=(1.0-lw*k);
@@ -8155,9 +8178,9 @@ es6_module_define('spline_draw_new', ["spline_math", "view2d_editor", "spline_el
     s = 1.0;
     lw = -lw;
     for (var i=0; i<steps; i++, s-=ds) {
-        var dv=seg.derivative(s).normalize();
-        var co=seg.evaluate(s);
-        var k=-seg.curvature(s);
+        var dv=seg.derivative(s*$_let_stretch1).normalize();
+        var co=seg.evaluate(s*$_let_stretch1);
+        var k=-seg.curvature(s*$_let_stretch1);
         co[0]+=-dv[1]*lw;
         co[1]+=dv[0]*lw;
         dv[0]*=-(1.0-lw*k);
@@ -8353,2506 +8376,2333 @@ es6_module_define('theplatform', ["platform_api"], function _theplatform_module(
   var app=new ElectronPlatformAPI();
   app = _es6_module.add_export('app', app);
 });
-es6_module_define('addon_api', [], function _addon_api_module(_es6_module) {
-  "use strict";
-  var modules={}
-  var Addon=_ESClass("Addon", [_ESClass.static(function define() {
-    return {author: "", email: "", version: "", tooltip: "", description: "", struct_classes: []}
-  }), function Addon(manager) {
-    this.manager = manager;
-  }, function define_data_api(api) {
-  }, function init_addon() {
-  }, function destroy_addon() {
-  }, function handle_versioning(file, oldversion) {
-  }]);
-  _es6_module.add_class(Addon);
-  Addon = _es6_module.add_export('Addon', Addon);
-  var AddonManager=_ESClass("AddonManager", [function AddonManager() {
-    this.addons = [];
-    this.datablock_types = [];
-  }, function register_datablock_type(cls) {
-    this.datablock_types.push(cls);
-  }, function unregister_datablock_type(cls) {
-    this.datablock_types.remove(cls, false);
-  }, function getmodule(name) {
-    return modules[name];
-  }, function getmodules() {
-    return Object.getOwnPropertyNames(modules);
-  }]);
-  _es6_module.add_class(AddonManager);
-  AddonManager = _es6_module.add_export('AddonManager', AddonManager);
+es6_module_define('load_wasm', [], function _load_wasm_module(_es6_module) {
+  var $_let_fs1=require('fs');
+  var wasm_binary=$_let_fs1.readFileSync("electron_build/fcontent/built_wasm.wasm");
+  wasm_binary = _es6_module.add_export('wasm_binary', wasm_binary);
 });
-es6_module_define('scene', ["lib_api", "struct"], function _scene_module(_es6_module) {
-  var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
-  var DataBlock=es6_import_item(_es6_module, 'lib_api', 'DataBlock');
-  var DataTypes=es6_import_item(_es6_module, 'lib_api', 'DataTypes');
-  var Scene=_ESClass("Scene", DataBlock, [function Scene() {
-    DataBlock.call(this, DataTypes.SCENE);
-    this.active_splinepath = "frameset.drawspline";
-    this.time = 1;
-  }, function change_time(ctx, time, _update_animation) {
-    if (_update_animation==undefined) {
-        _update_animation = true;
-    }
-    if (isNaN(this.time)) {
-        console.log("EEK corruption!");
-        this.time = ctx.frameset.time;
-        if (isNaN(this.time))
-          this.time = 0;
-        if (isNaN(time))
-          time = 0;
-    }
-    if (isNaN(time))
-      return ;
-    if (time==this.time)
-      return ;
-    if (time<1) {
-        time = 1;
-    }
-    this.time = time;
-    ctx.frameset.change_time(time, _update_animation);
-    ctx.api.on_frame_change(ctx, time);
-  }, function copy() {
-    var ret=new Scene();
-    ret.time = this.time;
-    return ret;
-  }, _ESClass.static(function fromSTRUCT(reader) {
-    var ret=STRUCT.chain_fromSTRUCT(Scene, reader);
-    ret.afterSTRUCT();
-    if (ret.active_splinepath=="frameset.active_spline")
-      ret.active_splinepath = "frameset.drawspline";
-    return ret;
-  }), function data_link(block, getblock, getblock_us) {
-    DataBlock.prototype.data_link.apply(this, arguments);
-  }]);
-  _es6_module.add_class(Scene);
-  Scene = _es6_module.add_export('Scene', Scene);
-  Scene.STRUCT = STRUCT.inherit(Scene, DataBlock)+"\n    time              : float;\n    active_splinepath : string;\n  }\n";
-});
-es6_module_define('events', [], function _events_module(_es6_module) {
-  "use strict";
-  var MyKeyboardEvent=_ESClass("MyKeyboardEvent", [function MyKeyboardEvent(code, shift, ctrl, alt) {
-    if (shift==undefined) {
-        shift = false;
-    }
-    if (ctrl==undefined) {
-        ctrl = false;
-    }
-    if (alt==undefined) {
-        alt = false;
-    }
-    this.keyCode = code;
-    this.shiftKey = shift;
-    this.ctrlKey = ctrl;
-    this.altKey = alt;
-  }]);
-  _es6_module.add_class(MyKeyboardEvent);
-  MyKeyboardEvent = _es6_module.add_export('MyKeyboardEvent', MyKeyboardEvent);
-  window.MyKeyboardEvent = MyKeyboardEvent;
-  var MyMouseEvent=_ESClass("MyMouseEvent", [function MyMouseEvent(x, y, button, type) {
-    this.x = x;
-    this.y = y;
-    this.button = button;
-    this.type = type;
-    this.touches = {}
-  }, function copy(sub_offset) {
-    if (sub_offset==undefined) {
-        sub_offset = undefined;
-    }
-    var ret=new MyMouseEvent(this.x, this.y, this.button, this.type);
-    for (var k in this.touches) {
-        var t=this.touches[k];
-        var x=t[0], y=t[1];
-        if (sub_offset) {
-            x-=sub_offset[0];
-            y-=sub_offset[1];
-        }
-        ret.touches[k] = [x, y];
-    }
-    return ret;
-  }]);
-  _es6_module.add_class(MyMouseEvent);
-  MyMouseEvent = _es6_module.add_export('MyMouseEvent', MyMouseEvent);
-  window.MyMouseEvent = MyMouseEvent;
-  MyMouseEvent.MOUSEMOVE = 0;
-  MyMouseEvent.MOUSEDOWN = 1;
-  MyMouseEvent.MOUSEUP = 2;
-  MyMouseEvent.LEFT = 0;
-  MyMouseEvent.RIGHT = 1;
-  var _swap_next_mouseup=false;
-  var _swap_next_mouseup_button=2;
-  function swap_next_mouseup_event(button) {
-    _swap_next_mouseup = true;
-    _swap_next_mouseup_button = button;
-  }
-  swap_next_mouseup_event = _es6_module.add_export('swap_next_mouseup_event', swap_next_mouseup_event);
-  var _ignore_next_mouseup=false;
-  var _ignore_next_mouseup_button=2;
-  function ignore_next_mouseup_event(button) {
-    _ignore_next_mouseup = true;
-    _ignore_next_mouseup_button = button;
-  }
-  ignore_next_mouseup_event = _es6_module.add_export('ignore_next_mouseup_event', ignore_next_mouseup_event);
-  var EventHandler=_ESClass("EventHandler", [function EventHandler() {
-    this.modalstack = new Array();
-    this.modalhandler = null;
-    this.keymap = null;
-    this.touch_manager = undefined;
-    this.touch_delay_stack = [];
-  }, function push_touch_delay(delay_ms) {
-    this.touch_delay_stack.push(this.touch_delay);
-    this.touch_delay = delay_ms;
-  }, function pop_touch_delay() {
-    if (this.touch_delay_stack.length==0) {
-        console.log("Invalid call to EventHandler.pop_touch_delay!");
-        return ;
-    }
-    this.touch_delay = this.touch_delay_stack.pop();
-  }, _ESClass.set(function touch_delay(delay_ms) {
-    if (delay_ms==0) {
-        this.touch_manager = undefined;
-    }
-    else {
-      if (this.touch_manager==undefined)
-        this.touch_manager = new TouchEventManager(this, delay_ms);
-      else 
-        this.touch_manager.delay = delay_ms;
-    }
-  }), _ESClass.get(function touch_delay() {
-    if (this.touch_manager==undefined)
-      return 0;
-    return this.touch_manager.delay;
-  }), function on_tick() {
-    if (this.touch_manager!=undefined)
-      this.touch_manager.process();
-  }, function bad_event(event) {
-    var tm=this.touch_manager;
-    if (tm==undefined)
-      return false;
-    if (this.touch_manager!=undefined)
-      this.touch_manager.process();
-    if (tm!=undefined&&__instance_of(event, MyMouseEvent)) {
-        var i=0;
-        for (var k in event.touches) {
-            i++;
-        }
-        if (i==0)
-          return false;
-        if ("_good" in event)
-          return false;
-        this.touch_manager.queue_event(event);
-        return true;
-    }
-    return false;
-  }, function on_textinput(event) {
-  }, function on_keydown(event) {
-  }, function on_charcode(event) {
-  }, function on_keyinput(event) {
-  }, function on_keyup(event) {
-  }, function on_mousemove(event) {
-  }, function on_mousedown(event) {
-  }, function on_doubleclick(event) {
-  }, function on_pan(pan, last_pan) {
-  }, function on_gl_lost(new_gl) {
-  }, function on_mouseup2(event) {
-  }, function on_mouseup3(event) {
-  }, function on_mousedown2(event) {
-  }, function on_mousedown3(event) {
-  }, function on_mousemove2(event) {
-  }, function on_mousemove3(event) {
-  }, function on_mousewheel(event) {
-  }, function on_mouseup(event) {
-  }, function on_resize(newsize) {
-  }, function on_contextchange(event) {
-  }, function on_draw(gl) {
-  }, function has_modal() {
-    return this.modalhandler!=null;
-  }, function push_modal(handler) {
-    if (this.modalhandler!=null) {
-        this.modalstack.push(this.modalhandler);
-    }
-    this.modalhandler = handler;
-  }, function pop_modal() {
-    if (this.modalhandler!=null) {
-    }
-    if (this.modalstack.length>0) {
-        this.modalhandler = this.modalstack.pop();
-    }
-    else {
-      this.modalhandler = null;
-    }
-  }, function _on_resize(newsize) {
-    this.on_resize(event);
-  }, function _on_pan(pan, last_pan) {
-    if (this.modalhandler!=null&&this.modalhandler!==this)
-      this.modalhandler._on_pan(event);
-    else 
-      this.on_pan(event);
-  }, function _on_textinput(event) {
-    if (this.modalhandler!=null&&this.modalhandler!==this)
-      this.modalhandler._on_textinput(event);
-    else 
-      this.on_textinput(event);
-  }, function _on_keydown(event) {
-    if (this.bad_event(event))
-      return ;
-    if (this.modalhandler!=null&&this.modalhandler!==this)
-      this.modalhandler._on_keydown(event);
-    else 
-      this.on_keydown(event);
-  }, function _on_charcode(event) {
-    if (this.bad_event(event))
-      return ;
-    if (this.modalhandler!=null&&this.modalhandler!==this)
-      this.modalhandler._on_charcode(event);
-    else 
-      this.on_charcode(event);
-  }, function _on_keyinput(event) {
-    if (this.bad_event(event))
-      return ;
-    if (this.modalhandler!=null&&this.modalhandler!==this)
-      this.modalhandler._on_keyinput(event);
-    else 
-      this.on_keyinput(event);
-  }, function _on_keyup(event) {
-    if (this.bad_event(event))
-      return ;
-    if (this.modalhandler!=null&&this.modalhandler!==this)
-      this.modalhandler._on_keyup(event);
-    else 
-      this.on_keyup(event);
-  }, function _on_mousemove(event) {
-    if (this.bad_event(event))
-      return ;
-    if (this.modalhandler!=null&&this.modalhandler!==this)
-      this.modalhandler._on_mousemove(event);
-    else 
-      this.on_mousemove(event);
-  }, function _on_doubleclick(event) {
-    if (this.bad_event(event))
-      return ;
-    if (this.modalhandler!=null&&this.modalhandler!==this)
-      this.modalhandler._on_doubleclick(event);
-    else 
-      this.on_doubleclick(event);
-  }, function _on_mousedown(event) {
-    if (this.bad_event(event))
-      return ;
-    if (this.modalhandler!=null&&this.modalhandler!==this)
-      this.modalhandler._on_mousedown(event);
-    else 
-      this.on_mousedown(event);
-  }, function _on_mouseup(event) {
-    if (this.bad_event(event))
-      return ;
-    if (_swap_next_mouseup&&event.button==_swap_next_mouseup_button) {
-        event.button = _swap_next_mouseup_button==2 ? 0 : 2;
-        _swap_next_mouseup = false;
-    }
-    if (_ignore_next_mouseup&&event.button==_ignore_next_mouseup_button) {
-        _ignore_next_mouseup = false;
-        return ;
-    }
-    if (this.modalhandler!=null&&this.modalhandler!==this)
-      this.modalhandler._on_mouseup(event);
-    else 
-      this.on_mouseup(event);
-  }, function _on_mousewheel(event, delta) {
-    if (this.bad_event(event))
-      return ;
-    if (this.modalhandler!=null&&this.modalhandler!==this)
-      this.modalhandler._on_mousewheel(event, delta);
-    else 
-      this.on_mousewheel(event, delta);
-  }]);
-  _es6_module.add_class(EventHandler);
-  EventHandler = _es6_module.add_export('EventHandler', EventHandler);
-  var valid_modifiers={"SHIFT": 1, "CTRL": 2, "ALT": 4}
-  var charmap_latin_1={"Space": 32, "Escape": 27, "Enter": 13, "Up": 38, "Down": 40, "Left": 37, "Right": 39, "Num0": 96, "Num1": 97, "Num2": 98, "Num3": 99, "Num4": 100, "Num5": 101, "Num6": 102, "Num7": 103, "Num8": 104, "Num9": 105, "Home": 36, "End": 35, "Delete": 46, "Backspace": 8, "Insert": 45, "PageUp": 33, "PageDown": 34, "Tab": 9, "-": 189, "=": 187, "NumPlus": 107, "NumMinus": 109, "Shift": 16, "Ctrl": 17, "Control": 17, "Alt": 18}
-  charmap_latin_1 = _es6_module.add_export('charmap_latin_1', charmap_latin_1);
-  for (var i=0; i<26; i++) {
-      charmap_latin_1[String.fromCharCode(i+65)] = i+65;
-  }
-  for (var i=0; i<10; i++) {
-      charmap_latin_1[String.fromCharCode(i+48)] = i+48;
-  }
-  for (var k in charmap_latin_1) {
-      charmap_latin_1[charmap_latin_1[k]] = k;
-  }
-  var charmap_latin_1_rev={}
-  for (var k in charmap_latin_1) {
-      charmap_latin_1_rev[charmap_latin_1[k]] = k;
-  }
-  var charmap=charmap_latin_1;
-  charmap = _es6_module.add_export('charmap', charmap);
-  var charmap_rev=charmap_latin_1_rev;
-  charmap_rev = _es6_module.add_export('charmap_rev', charmap_rev);
-  window.charmap = charmap;
-  window.charmap_rev = charmap_rev;
-  var KeyHandler=_ESClass("KeyHandler", [function KeyHandler(key, modifiers, uiname, menunum, ignore_charmap_error) {
-    if (!charmap.hasOwnProperty(key)) {
-        if (ignore_charmap_error!=undefined&&ignore_charmap_error!=true) {
-            console.trace();
-            console.log("Invalid hotkey "+key+"!");
-        }
-        this.key = 0;
-        this.keyAscii = "[corrupted hotkey]";
-        this.shift = this.alt = this.ctrl = false;
-        return ;
-    }
-    if (typeof (key)=="string") {
-        if (key.length==1)
-          key = key.toUpperCase();
-        this.keyAscii = key;
-        this.key = charmap[key];
-    }
-    else {
-      this.key = key;
-      this.keyAscii = charmap[key];
-    }
-    this.shift = this.alt = this.ctrl = false;
-    this.menunum = menunum;
-    for (var i=0; i<modifiers.length; i++) {
-        if (modifiers[i]=="SHIFT") {
-            this.shift = true;
-        }
-        else 
-          if (modifiers[i]=="ALT") {
-            this.alt = true;
-        }
-        else 
-          if (modifiers[i]=="CTRL") {
-            this.ctrl = true;
-        }
-        else {
-          console.trace();
-          console.log("Warning: invalid modifier "+modifiers[i]+" in KeyHandler");
-        }
-    }
-  }, function build_str(add_menu_num) {
-    var s="";
-    if (this.ctrl)
-      s+="CTRL-";
-    if (this.alt)
-      s+="ALT-";
-    if (this.shift)
-      s+="SHIFT-";
-    s+=this.keyAscii;
-    return s;
-  }, _ESClass.symbol(Symbol.keystr, function keystr() {
-    return this.build_str(false);
-  })]);
-  _es6_module.add_class(KeyHandler);
-  KeyHandler = _es6_module.add_export('KeyHandler', KeyHandler);
-  var KeyMap=_ESClass("KeyMap", hashtable, [function KeyMap() {
-    hashtable.call(this);
-    this.op_map = new hashtable();
-  }, function get_tool_handler(toolstr) {
-    if (this.op_map.has(toolstr))
-      return this.op_map.get(toolstr);
-  }, function add_tool(keyhandler, toolstr) {
-    this.add(keyhandler, new ToolKeyHandler(toolstr));
-    this.op_map.add(toolstr, keyhandler);
-  }, function add_func(keyhandler, func) {
-    this.add(keyhandler, new FuncKeyHandler(func));
-  }, function add(keyhandler, value) {
-    if (this.has(keyhandler)) {
-        console.trace();
-        console.log("Duplicate hotkey definition!");
-    }
-    if (__instance_of(value, ToolKeyHandler)&&!(typeof value.tool=="string"||__instance_of(value.tool, String))) {
-        value.tool.keyhandler = keyhandler;
-    }
-    hashtable.prototype.add.call(this, keyhandler, value);
-  }, function process_event(ctx, event) {
-    var modlist=[];
-    if (event.ctrlKey)
-      modlist.push("CTRL");
-    if (event.shiftKey)
-      modlist.push("SHIFT");
-    if (event.altKey)
-      modlist.push("ALT");
-    var key=new KeyHandler(event.keyCode, modlist, 0, 0, true);
-    if (this.has(key)) {
-        ctx.keymap_mpos = ctx.view2d.mpos;
-        return this.get(key);
-    }
-    return undefined;
-  }]);
-  _es6_module.add_class(KeyMap);
-  KeyMap = _es6_module.add_export('KeyMap', KeyMap);
-  var KeyHandlerCls=_ESClass("KeyHandlerCls", [function handle(ctx) {
-  }, function KeyHandlerCls() {
-  }]);
-  _es6_module.add_class(KeyHandlerCls);
-  KeyHandlerCls = _es6_module.add_export('KeyHandlerCls', KeyHandlerCls);
-  var ToolKeyHandler=_ESClass("ToolKeyHandler", KeyHandlerCls, [function ToolKeyHandler(tool) {
-    this.tool = tool;
-  }, function handle(ctx) {
-    var tool=this.tool;
-    ctx.api.call_op(ctx, tool);
-  }]);
-  _es6_module.add_class(ToolKeyHandler);
-  ToolKeyHandler = _es6_module.add_export('ToolKeyHandler', ToolKeyHandler);
-  var FuncKeyHandler=_ESClass("FuncKeyHandler", KeyHandlerCls, [function FuncKeyHandler(func) {
-    this.handle = func;
-  }]);
-  _es6_module.add_class(FuncKeyHandler);
-  FuncKeyHandler = _es6_module.add_export('FuncKeyHandler', FuncKeyHandler);
-  var $vel_k3fK_on_tick;
-  var $vel_gLOA_calc_vel;
-  var $was_clamped_uWUP_clamp_pan;
-  var VelocityPan=_ESClass("VelocityPan", EventHandler, [function VelocityPan() {
-    this.start_mpos = new Vector2();
-    this.last_mpos = new Vector2();
-    this.mpos = new Vector2();
-    this.start_time = 0;
-    this.owner = undefined;
-    this.coasting = false;
-    this.panning = false;
-    this.was_touch = false;
-    this.enabled = true;
-    this.vel = new Vector2();
-    this.pan = new Vector2();
-    this.damp = 0.99;
-    this.can_coast = true;
-    this.start_pan = new Vector2();
-    this.first = false;
-    this.last_ms = 0;
-    this.vel = new Vector2();
-  }, function on_tick() {
-    if (!this.panning&&this.coasting) {
-        var damp=0.99;
-        $vel_k3fK_on_tick.load(this.vel);
-        $vel_k3fK_on_tick.mulScalar(time_ms()-this.last_ms);
-        this.vel.mulScalar(damp);
-        this.last_ms = time_ms();
-        this.pan.sub($vel_k3fK_on_tick);
-        var was_clamped=this.clamp_pan();
-        this.owner.on_pan(this.pan, this.start_pan);
-        var stop=was_clamped!=undefined&&(was_clamped[0]&&was_clamped[1]);
-        stop = stop||this.vel.vectorLength<1;
-        if (stop)
-          this.coasting = false;
-    }
-  }, function calc_vel() {
-    if (!this.can_coast) {
-        this.vel.zero();
-        this.coasting = false;
-        this.last_ms = time_ms();
-        return ;
-    }
-    var t=time_ms()-this.start_time;
-    if (t<10) {
-        console.log("small t!!!", t);
-        return ;
-    }
-    $vel_gLOA_calc_vel.load(this.last_mpos).sub(this.mpos).divideScalar(t);
-    this.vel.add($vel_gLOA_calc_vel);
-    this.coasting = (this.vel.vectorLength()>0.25);
-    this.last_ms = time_ms();
-  }, function start(start_mpos, last_mpos, owner, push_modal_func, pop_modal_func) {
-    if (this.panning) {
-        console.trace("warning, duplicate call to VelocityPan.start()");
-        return ;
-    }
-    this.vel.zero();
-    this.pop_modal_func = pop_modal_func;
-    this.coasting = false;
-    this.first = false;
-    this.owner = owner;
-    this.panning = true;
-    push_modal_func(this);
-    this.start_pan.load(this.pan);
-    this.last_ms = time_ms();
-    this.start_time = time_ms();
-    this.was_touch = g_app_state.was_touch;
-    this.start_mpos.load(start_mpos);
-    this.last_mpos.load(start_mpos);
-    this.mpos.load(start_mpos);
-    this.do_mousemove(last_mpos);
-  }, function end() {
-    console.log("in end");
-    if (this.panning) {
-        console.log("  pop modal");
-        this.pop_modal_func();
-    }
-    this.panning = false;
-  }, function do_mousemove(mpos) {
-    if (DEBUG.touch) {
-        console.log("py", mpos[1]);
-    }
-    this.last_mpos.load(this.mpos);
-    this.mpos.load(mpos);
-    this.pan[0] = this.start_pan[0]+mpos[0]-this.start_mpos[0];
-    this.pan[1] = this.start_pan[1]+mpos[1]-this.start_mpos[1];
-    this.vel.zero();
-    this.calc_vel();
-    this.clamp_pan();
-    this.owner.on_pan(this.pan, this.start_pan);
-  }, function clamp_pan() {
-    var bs=this.owner.pan_bounds;
-    if (this.owner.state&8192*4)
-      return ;
-    var p=this.pan;
-    $was_clamped_uWUP_clamp_pan[0] = false;
-    $was_clamped_uWUP_clamp_pan[1] = false;
-    for (var i=0; i<2; i++) {
-        var l=p[i];
-        p[i] = Math.min(Math.max(bs[0][i], p[i]), bs[0][i]+bs[1][i]);
-        if (p[i]!=l)
-          $was_clamped_uWUP_clamp_pan[i] = true;
-    }
-    return $was_clamped_uWUP_clamp_pan;
-  }, function on_mouseup(event) {
-    console.log("pan mouse up!", this.panning, this.owner);
-    if (this.panning) {
-        this.mpos.load([event.y, event.y]);
-        this.calc_vel();
-        this.end();
-    }
-  }, function on_mousemove(event) {
-    this.do_mousemove([event.x, event.y]);
-  }, function set_pan(pan) {
-    if (this.panning)
-      this.end();
-    this.pan.load(pan);
-    this.coasting = false;
-    this.vel.zero();
-  }]);
-  var $vel_k3fK_on_tick=new Vector2();
-  var $vel_gLOA_calc_vel=new Vector2();
-  var $was_clamped_uWUP_clamp_pan=[0, 0];
-  _es6_module.add_class(VelocityPan);
-  VelocityPan = _es6_module.add_export('VelocityPan', VelocityPan);
-  var TouchEventManager=_ESClass("TouchEventManager", [function TouchEventManager(owner, delay) {
-    if (delay==undefined) {
-        delay = 100;
-    }
-    this.queue = new GArray();
-    this.queue_ms = new GArray();
-    this.delay = delay;
-    this.owner = owner;
-  }, function get_last(type) {
-    var i=this.queue.length;
-    if (i==0)
-      return undefined;
-    i--;
-    var q=this.queue;
-    while (i>=0) {
-      var e=q[i];
-      if (e.type==type||e.type!=MyMouseEvent.MOUSEMOVE)
-        break;
-      i--;
-    }
-    if (i<0)
-      i = 0;
-    return q[i].type==type ? q[i] : undefined;
-  }, function queue_event(event) {
-    var last=this.get_last(event.type);
-    if (DEBUG.touch&&this==touch_manager)
-      console.log("touch event", event.type);
-    if (last!=undefined&&last.type!=MyMouseEvent.MOUSEMOVE) {
-        var dis, same=true;
-        for (var k in event.touches) {
-            if (!(k in last.touches)) {
-            }
-        }
-        dis = new Vector2([event.x, event.y]).vectorDistance(new Vector2([last.x, last.y]));
-        if (DEBUG.touch&&this==touch_manager)
-          console.log(dis);
-        if (same&&dis<50) {
-            if (DEBUG.touch&&this==touch_manager)
-              console.log("destroying duplicate event", last.type, event.x, event.y, event.touches);
-            for (var k in event.touches) {
-                last.touches[k] = event.touches[k];
-            }
-            return ;
-        }
-    }
-    this.queue.push(event);
-    this.queue_ms.push(time_ms());
-  }, function cancel(event) {
-    var ts=event.touches;
-    var dl=new GArray;
-    if (DEBUG.touch&&this==touch_manager)
-      console.log("touch cancel", event);
-    for (var e in this.queue) {
-        for (var k in ts) {
-            if (k in e.touches) {
-                delete e.touches;
-            }
-        }
-        if (list(e.touches).length==0) {
-            dl.push(e);
-        }
-    }
-    for (var e in dl) {
-        var i=this.queue.indexOf(e);
-        this.queue.remove(e);
-        this.queue_ms.pop_i(i);
-    }
-  }, function process() {
-    var owner=this.owner;
-    var dl=new GArray();
-    var q=this.queue;
-    var qm=this.queue_ms;
-    var delay=this.delay;
-    for (var i=0; i<q.length; i++) {
-        if (time_ms()-qm[i]>delay) {
-            dl.push(q[i]);
-        }
-    }
-    var __iter_e=__get_iter(dl);
-    var e;
-    while (1) {
-      var __ival_e=__iter_e.next();
-      if (__ival_e.done) {
-          break;
-      }
-      e = __ival_e.value;
-      var i=q.indexOf(e);
-      q.remove(e);
-      qm.pop_i(i);
-    }
-    var __iter_e=__get_iter(dl);
-    var e;
-    while (1) {
-      var __ival_e=__iter_e.next();
-      if (__ival_e.done) {
-          break;
-      }
-      e = __ival_e.value;
-      e._good = true;
-      g_app_state.was_touch = true;
-      try {
-        if (e.type==MyMouseEvent.MOUSEDOWN) {
-            if (DEBUG.touch)
-              console.log("td1", e.x, e.y);
-            owner._on_mousedown(e);
-            if (DEBUG.touch)
-              console.log("td2", e.x, e.y);
-        }
-        else 
-          if (e.type==MyMouseEvent.MOUSEMOVE) {
-            owner._on_mousemove(e);
-        }
-        else 
-          if (e.type==MyMouseEvent.MOUSEUP) {
-            owner._on_mouseup(e);
-        }
-      }
-      catch (_err) {
-          print_stack(_err);
-          console.log("Error executing delayed touch event");
-      }
-    }
-  }, function reset() {
-    this.queue = new GArray();
-    this.queue_ms = new GArray();
-  }]);
-  _es6_module.add_class(TouchEventManager);
-  TouchEventManager = _es6_module.add_export('TouchEventManager', TouchEventManager);
-  window.TouchEventManager = TouchEventManager;
-  var touch_manager=window.touch_manager = new TouchEventManager(undefined, 20);
-});
-es6_module_define('touchevents', [], function _touchevents_module(_es6_module) {
-  "use strict";
-  var TouchManager=_ESClass("TouchManager", [function TouchManager(event) {
-    this.pattern = new set(Object.keys(event.touches));
-    this.idxmap = {}
-    this.tot = event.touches.length;
-    this.event = event;
-    this.deltas = {}
-    var i=0;
-    for (var k in event.touches) {
-        this.idxmap[i++] = k;
-        this.deltas[k] = 0.0;
-    }
-  }, function update(event) {
-    if (this.valid(event)) {
-        for (var k in event.touches) {
-            var t2=event.touches[k];
-            var t1=this.event.touches[k];
-            var d=[t2[0]-t1[0], t2[1]-t1[1]];
-            this.deltas[k] = d;
-        }
-    }
-    this.event = event;
-  }, function delta(i) {
-    return this.deltas[this.idxmap[i]];
-  }, function get(i) {
-    return this.event.touches[this.idxmap[i]];
-  }, function valid(event) {
-    if (event==undefined) {
-        event = this.event;
-    }
-    var keys=Object.keys(event.touches);
-    if (keys.length!=this.pattern.length)
-      return false;
-    for (var i=0; i<keys.length; i++) {
-        if (!pattern.has(keys[i]))
-          return false;
-    }
-    return true;
-  }]);
-  _es6_module.add_class(TouchManager);
-});
-es6_module_define('toolprops', ["ajax", "toolprops_iter", "struct"], function _toolprops_module(_es6_module) {
-  "use strict";
+es6_module_define('built_wasm', ["load_wasm"], function _built_wasm_module(_es6_module) {
+  var Module={}
+  Module = _es6_module.set_default_export('Module', Module);
   
-  var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
-  var pack_int=es6_import_item(_es6_module, 'ajax', 'pack_int');
-  var pack_float=es6_import_item(_es6_module, 'ajax', 'pack_float');
-  var pack_static_string=es6_import_item(_es6_module, 'ajax', 'pack_static_string');
-  var PropTypes={INT: 0, FLOAT: 1, STRING: 4, VEC3: 6, VEC4: 7, BOOL: 8, MATRIX3: 12, MATRIX4: 13, ENUM: 14, STRUCT: 15, FLAG: 16, DATAREF: 17, DATAREFLIST: 18, TRANSFORM: 19, COLLECTION: 20, VEC2: 21, IMAGE: 22, ARRAYBUFFER: 23, COLOR3: 24, COLOR4: 25}
-  PropTypes = _es6_module.add_export('PropTypes', PropTypes);
-  var TPropFlags={PRIVATE: 1, LABEL: 2, COLL_LOOSE_TYPE: 4, USE_UNDO: 8, UNDO_SIMPLE: 16}
-  TPropFlags = _es6_module.add_export('TPropFlags', TPropFlags);
-  var ToolProperty=_ESClass("ToolProperty", [function ToolProperty(type, apiname, uiname, description, flag) {
-    if (apiname==undefined) {
-        apiname = "";
-    }
-    if (uiname==undefined) {
-        uiname = apiname;
-    }
-    if (description==undefined) {
-        description = "";
-    }
-    if (flag==undefined) {
-        flag = 0;
-    }
-    this.type = type;
-    this.data = null;
-    this.apiname = apiname;
-    if (uiname==undefined)
-      uiname = apiname;
-    this.listeners = new GArray();
-    this.uiname = uiname;
-    this.flag = flag;
-    this.description = description;
-    this.userdata = undefined;
-    this.ctx = undefined;
-    this.path = undefined;
-    this.hotkey_ref = undefined;
-    this.unit = undefined;
-    this.icon = -1;
-  }, function copyTo(dst, copy_data) {
-    if (copy_data==undefined) {
-        copy_data = false;
-    }
-    dst.flag = this.flag;
-    dst.icon = this.icon;
-    dst.unit = this.unit;
-    dst.hotkey_ref = this.hotkey_ref;
-    dst.uiname = this.uiname;
-    dst.apiname = this.apiname;
-    if (copy_data)
-      dst.data = this.data;
-    return dst;
-  }, function add_listener(owner, callback) {
-    var __iter_l=__get_iter(this.listeners);
-    var l;
-    while (1) {
-      var __ival_l=__iter_l.next();
-      if (__ival_l.done) {
-          break;
+  var wasm_binary=es6_import_item(_es6_module, 'load_wasm', 'wasm_binary');
+  Module.wasmBinary = wasm_binary;
+  var Module=typeof Module!=='undefined' ? Module : {}
+  var moduleOverrides={}
+  var key;
+  for (key in Module) {
+      if (Module.hasOwnProperty(key)) {
+          moduleOverrides[key] = Module[key];
       }
-      l = __ival_l.value;
-      if (l[0]==owner) {
-          l[1] = callback;
-          return ;
+  }
+  Module['arguments'] = [];
+  Module['thisProgram'] = './this.program';
+  Module['quit'] = function(status, toThrow) {
+    throw toThrow;
+  }
+  Module['preRun'] = [];
+  Module['postRun'] = [];
+  var ENVIRONMENT_IS_WEB=false;
+  var ENVIRONMENT_IS_WORKER=false;
+  var ENVIRONMENT_IS_NODE=false;
+  var ENVIRONMENT_IS_SHELL=false;
+  if (Module['ENVIRONMENT']) {
+      if (Module['ENVIRONMENT']==='WEB') {
+          ENVIRONMENT_IS_WEB = true;
       }
-    }
-    this.listeners.push([owner, callback]);
-  }, function remove_listener(owner, silent_fail) {
-    if (silent_fail==undefined) {
-        silent_fail = false;
-    }
-    var __iter_l=__get_iter(this.listeners);
-    var l;
-    while (1) {
-      var __ival_l=__iter_l.next();
-      if (__ival_l.done) {
-          break;
+      else 
+        if (Module['ENVIRONMENT']==='WORKER') {
+          ENVIRONMENT_IS_WORKER = true;
       }
-      l = __ival_l.value;
-      if (l[0]==owner) {
-          console.log("removing listener");
-          this.listeners.remove(l);
-          return ;
+      else 
+        if (Module['ENVIRONMENT']==='NODE') {
+          ENVIRONMENT_IS_NODE = true;
       }
-    }
-    if (!silent_fail)
-      console.trace("warning: remove_listener called for unknown owner:", owner);
-  }, function _exec_listeners(data_api_owner) {
-    var __iter_l=__get_iter(this.listeners);
-    var l;
-    while (1) {
-      var __ival_l=__iter_l.next();
-      if (__ival_l.done) {
-          break;
-      }
-      l = __ival_l.value;
-      if (RELEASE) {
-          try {
-            l[1](l[0], this, data_api_owner);
-          }
-          catch (_err) {
-              print_stack(_err);
-              console.log("Warning: a property event listener failed", "property:", this, "callback:", l[1], "owner:", l[0]);
-          }
+      else 
+        if (Module['ENVIRONMENT']==='SHELL') {
+          ENVIRONMENT_IS_SHELL = true;
       }
       else {
-        l[1](l[0], this, data_api_owner);
+        throw new Error('Module[\'ENVIRONMENT\'] value is not valid. must be one of: WEB|WORKER|NODE|SHELL.');
       }
-    }
-  }, function load_ui_data(prop) {
-    this.uiname = prop.uiname;
-    this.apiname = prop.apiname;
-    this.description = prop.description;
-    this.unit = prop.unit;
-    this.hotkey_ref = prop.hotkey_ref;
-  }, function user_set_data(this_input) {
-  }, function update(owner_obj, old_value, has_changed) {
-  }, function api_update(ctx, path) {
-  }, function pack(data) {
-    pack_int(data, this.type);
-    var unit=this.unit!=undefined ? "" : this.unit;
-    pack_static_string(data, unit, 16);
-  }, function unpack(data, uctx) {
-    this.unit = unpack_static_string(data, 16);
-    if (this.unit=="")
-      this.unit = undefined;
-  }, function set_data(data, owner, changed, set_data) {
-    if (changed==undefined) {
-        changed = true;
-    }
-    if (set_data==undefined) {
-        set_data = true;
-    }
-    if (set_data)
-      this.data = data;
-    this.api_update(this.ctx, this.path, owner);
-    this.update.call(this, owner, undefined, changed);
-    this._exec_listeners(owner);
-  }, function toJSON() {
-    return {type: this.type, data: this.data}
-  }, function loadJSON(prop, json) {
-    switch (json.type) {
-      case PropTypes.INT:
-      case PropTypes.FLOAT:
-      case PropTypes.STRING:
-      case PropTypes.BOOL:
-      case PropTypes.FLOAT_ARRAY:
-      case PropTypes.INT_ARRAY:
-      case PropTypes.ENUM:
-      case PropTypes.FLAG:
-        prop.set_data(json.data);
-        break;
-      case PropTypes.ELEMENTS:
-        prop.set_data(new GArray(json.data));
-        break;
-      case PropTypes.VEC3:
-        prop.set_data(new Vector3(json.data));
-        break;
-      case PropTypes.VEC4:
-        prop.set_data(new Vector4(json.data));
-        break;
-    }
-  }, _ESClass.static(function fromSTRUCT(reader) {
-    var ob=new ToolProperty();
-    reader(ob);
-    return ob;
-  })]);
-  _es6_module.add_class(ToolProperty);
-  ToolProperty = _es6_module.add_export('ToolProperty', ToolProperty);
-  ToolProperty.STRUCT = "\n  ToolProperty {\n    type : int;\n    flag : int;\n  }\n";
-  var ArrayBufferProperty=_ESClass("ArrayBufferProperty", ToolProperty, [function ArrayBufferProperty(data, apiname, uiname, description, flag) {
-    if (apiname==undefined) {
-        apiname = "";
-    }
-    if (uiname==undefined) {
-        uiname = apiname;
-    }
-    if (description==undefined) {
-        description = "";
-    }
-    if (flag==undefined) {
-        flag = 0;
-    }
-    ToolProperty.call(this, PropTypes.ARRAYBUFFER, apiname, uiname, description, flag);
-    if (data!=undefined) {
-        this.set_data(data);
-    }
-  }, function copyTo(dst) {
-    ToolProperty.prototype.copyTo.call(this, dst, false);
-    if (this.data!=undefined)
-      dst.set_data(this.data);
-    return dst;
-  }, function copy() {
-    return this.copyTo(new ArrayBufferProperty());
-  }]);
-  _es6_module.add_class(ArrayBufferProperty);
-  ArrayBufferProperty = _es6_module.add_export('ArrayBufferProperty', ArrayBufferProperty);
-  ArrayBufferProperty.STRUCT = STRUCT.inherit(ArrayBufferProperty, ToolProperty)+"\n  data : arraybuffer;\n}\n";
-  var DataRefProperty=_ESClass("DataRefProperty", ToolProperty, [function DataRefProperty(value, allowed_types, apiname, uiname, description, flag) {
-    ToolProperty.call(this, PropTypes.DATAREF, apiname, uiname, description, flag);
-    if (allowed_types==undefined)
-      allowed_types = new set();
-    if (!(__instance_of(allowed_types, set))) {
-        if (__instance_of(allowed_types, Array))
-          allowed_types = new set(allowed_types);
-        else 
-          allowed_types = new set([allowed_types]);
-    }
-    this.types = new set();
-    var __iter_val=__get_iter(allowed_types);
-    var val;
-    while (1) {
-      var __ival_val=__iter_val.next();
-      if (__ival_val.done) {
-          break;
-      }
-      val = __ival_val.value;
-      if (typeof val=="object") {
-          val = new val().lib_type;
-      }
-      this.types.add(val);
-    }
-    if (value!=undefined)
-      this.set_data(value);
-  }, function get_block(ctx) {
-    if (this.data==undefined)
-      return undefined;
-    else 
-      return ctx.datalib.get(this.data);
-  }, function copyTo(dst) {
-    ToolProperty.prototype.copyTo.call(this, dst, false);
-    var data=this.data;
-    if (data!=undefined)
-      data = data.copy();
-    dst.types = new set(this.types);
-    if (data!=undefined)
-      dst.set_data(data);
-    return dst;
-  }, function copy() {
-    return this.copyTo(new DataRefProperty());
-  }, function set_data(value, owner, changed, set_data) {
-    if (value==undefined) {
-        ToolProperty.prototype.set_data.call(this, undefined, owner, changed, set_data);
-    }
-    else 
-      if (!(__instance_of(value, DataRef))) {
-        if (!this.types.has(value.lib_type)) {
-            console.trace("Invalid datablock type "+value.lib_type+" passed to DataRefProperty.set_value()");
-            return ;
+  }
+  else {
+    ENVIRONMENT_IS_WEB = typeof window==='object';
+    ENVIRONMENT_IS_WORKER = typeof importScripts==='function';
+    ENVIRONMENT_IS_NODE = typeof process==='object'&&typeof require==='function'&&!ENVIRONMENT_IS_WEB&&!ENVIRONMENT_IS_WORKER;
+    ENVIRONMENT_IS_SHELL = !ENVIRONMENT_IS_WEB&&!ENVIRONMENT_IS_NODE&&!ENVIRONMENT_IS_WORKER;
+  }
+  if (ENVIRONMENT_IS_NODE) {
+      var nodeFS;
+      var nodePath;
+      Module['read'] = function shell_read(filename, binary) {
+        var ret;
+        if (!nodeFS)
+          nodeFS = require('fs');
+        if (!nodePath)
+          nodePath = require('path');
+        filename = nodePath['normalize'](filename);
+        ret = nodeFS['readFileSync'](filename);
+        return binary ? ret : ret.toString();
+      };
+      Module['readBinary'] = function readBinary(filename) {
+        var ret=Module['read'](filename, true);
+        if (!ret.buffer) {
+            ret = new Uint8Array(ret);
         }
-        value = new DataRef(value);
-        ToolProperty.prototype.set_data.call(this, value, owner, changed, set_data);
-    }
-    else {
-      ToolProperty.prototype.set_data.call(this, value, owner, changed, set_data);
-    }
-  }, _ESClass.static(function fromSTRUCT(reader) {
-    var l=new DataRefProperty();
-    
-    reader(l);
-    l.types = new set(l.types);
-    if (l.data!=undefined&&l.data.id<0)
-      l.data = undefined;
-    l.set_data(l.data);
-    return l;
-  })]);
-  _es6_module.add_class(DataRefProperty);
-  DataRefProperty = _es6_module.add_export('DataRefProperty', DataRefProperty);
-  DataRefProperty.STRUCT = STRUCT.inherit(DataRefProperty, ToolProperty)+"\n  data : DataRef | obj.data == undefined ? new DataRef(-1) : obj.data;\n  types : iter(int);\n}\n";
-  var RefListProperty=_ESClass("RefListProperty", ToolProperty, [function RefListProperty(value, allowed_types, apiname, uiname, description, flag) {
-    ToolProperty.call(this, PropTypes.DATAREFLIST, apiname, uiname, description, flag);
-    if (allowed_types==undefined)
-      allowed_types = [];
-    if (!(__instance_of(allowed_types, set))) {
-        allowed_types = new set([allowed_types]);
-    }
-    this.types = allowed_types;
-    this.set_data(value);
-  }, function copyTo(dst) {
-    ToolProperty.prototype.copyTo.call(this, dst, false);
-    dst.types = new set(this.types);
-    if (this.data!=undefined)
-      dst.set_data(this.data);
-    return dst;
-  }, function copy() {
-    return this.copyTo(new RefListProperty());
-  }, function set_data(value, owner, changed, set_data) {
-    if (value!=undefined&&value.constructor.name=="Array")
-      value = new GArray(value);
-    if (value==undefined) {
-        ToolProperty.prototype.set_data.call(this, undefined, owner, changed, set_data);
-    }
-    else {
-      var lst=new DataRefList();
-      for (var i=0; i<value.length; i++) {
-          var block=value[i];
-          if (block==undefined||!this.types.has(block.lib_type)) {
-              console.trace();
-              if (block==undefined)
-                console.log("Undefined datablock in list passed to RefListProperty.set_data");
-              else 
-                console.log("Invalid datablock type "+block.lib_type+" passed to RefListProperty.set_value()");
-              continue;
+        assert(ret.buffer);
+        return ret;
+      };
+      if (process['argv'].length>1) {
+          Module['thisProgram'] = process['argv'][1].replace(/\\/g, '/');
+      }
+      Module['arguments'] = process['argv'].slice(2);
+      if (typeof module!=='undefined') {
+          module['exports'] = Module;
+      }
+      process['on']('uncaughtException', function(ex) {
+        if (!(__instance_of(ex, ExitStatus))) {
+            throw ex;
+        }
+      });
+      process['on']('unhandledRejection', function(reason, p) {
+        Module['printErr']('node.js exiting due to unhandled promise rejection');
+        process['exit'](1);
+      });
+      Module['inspect'] = function() {
+        return '[Emscripten Module object]';
+      };
+  }
+  else 
+    if (ENVIRONMENT_IS_SHELL) {
+      if (typeof read!='undefined') {
+          Module['read'] = function shell_read(f) {
+            return read(f);
+          };
+      }
+      Module['readBinary'] = function readBinary(f) {
+        var data;
+        if (typeof readbuffer==='function') {
+            return new Uint8Array(readbuffer(f));
+        }
+        data = read(f, 'binary');
+        assert(typeof data==='object');
+        return data;
+      };
+      if (typeof scriptArgs!='undefined') {
+          Module['arguments'] = scriptArgs;
+      }
+      else 
+        if (typeof arguments!='undefined') {
+          Module['arguments'] = arguments;
+      }
+      if (typeof quit==='function') {
+          Module['quit'] = function(status, toThrow) {
+            quit(status);
+          };
+      }
+  }
+  else 
+    if (ENVIRONMENT_IS_WEB||ENVIRONMENT_IS_WORKER) {
+      Module['read'] = function shell_read(url) {
+        var xhr=new XMLHttpRequest();
+        xhr.open('GET', url, false);
+        xhr.send(null);
+        return xhr.responseText;
+      };
+      if (ENVIRONMENT_IS_WORKER) {
+          Module['readBinary'] = function readBinary(url) {
+            var xhr=new XMLHttpRequest();
+            xhr.open('GET', url, false);
+            xhr.responseType = 'arraybuffer';
+            xhr.send(null);
+            return new Uint8Array(xhr.response);
+          };
+      }
+      Module['readAsync'] = function readAsync(url, onload, onerror) {
+        var xhr=new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.responseType = 'arraybuffer';
+        xhr.onload = function xhr_onload() {
+          if (xhr.status==200||(xhr.status==0&&xhr.response)) {
+              onload(xhr.response);
+              return ;
           }
-          lst.push(block);
+          onerror();
+        }
+        xhr.onerror = onerror;
+        xhr.send(null);
+      };
+      Module['setWindowTitle'] = function(title) {
+        document.title = title;
+      };
+  }
+  else {
+    throw new Error('unknown runtime environment');
+  }
+  Module['print'] = typeof console!=='undefined' ? console.log.bind(console) : (typeof print!=='undefined' ? print : null);
+  Module['printErr'] = typeof printErr!=='undefined' ? printErr : ((typeof console!=='undefined'&&console.warn.bind(console))||Module['print']);
+  Module.print = Module['print'];
+  Module.printErr = Module['printErr'];
+  for (key in moduleOverrides) {
+      if (moduleOverrides.hasOwnProperty(key)) {
+          Module[key] = moduleOverrides[key];
       }
-      value = lst;
-      ToolProperty.prototype.set_data.call(this, this, value, owner, changed, set_data);
-    }
-  }, _ESClass.static(function fromSTRUCT(reader) {
-    var t=new RefListProperty();
-    reader(t);
-    t.types = new set(t.types);
-    t.set_data(t.data);
-    return t;
-  })]);
-  _es6_module.add_class(RefListProperty);
-  RefListProperty = _es6_module.add_export('RefListProperty', RefListProperty);
-  RefListProperty.STRUCT = STRUCT.inherit(RefListProperty, ToolProperty)+"\n  data : iter(dataref(DataBlock));\n  types : iter(int);\n}\n";
-  var FlagProperty=_ESClass("FlagProperty", ToolProperty, [function FlagProperty(value, maskmap, uinames, apiname, uiname, description, range, uirange, flag) {
-    ToolProperty.call(this, PropTypes.FLAG, apiname, uiname, description, flag);
-    if (value==undefined&&maskmap==undefined) {
-        this.ui_value_names = {};
-        this.ui_key_names = {};
-        this.flag_descriptions = {};
-        this.keys = {};
-        this.values = {};
-        return ;
-    }
-    this.data = 0;
-    this.ui_key_names = {}
-    this.flag_descriptions = {}
-    if (uinames==undefined) {
-        this.setUINames(uinames);
-    }
-    else {
-      this.ui_value_names = uinames;
-      for (var k in uinames) {
-          this.ui_key_names[uinames[k]] = k;
-      }
-    }
-    this.keys = {}
-    this.values = {}
-    for (var k in maskmap) {
-        this.values[maskmap[k]] = maskmap[k];
-        this.keys[k] = maskmap[k];
-    }
-    this.set_flag(value);
-  }, function setUINames(uinames) {
-    this.ui_value_names = {}
-    this.ui_key_names = {}
-    for (var k in this.keys) {
-        var key=k[0].toUpperCase()+k.slice(1, k.length).toLowerCase();
-        key = key.replace(/\_/g, " ").replace(/\-/g, " ");
-        this.ui_value_names[key] = k;
-        this.ui_key_names[k] = key;
-    }
-  }, function copyTo(dst) {
-    ToolProperty.prototype.copyTo.call(this, dst, true);
-    for (var k in this.flag_descriptions) {
-        dst.flag_descriptions[k] = this.flag_descriptions[k];
-    }
-    for (var k in this.keys) {
-        dst.keys[k] = this.keys[k];
-    }
-    for (var k in this.values) {
-        dst.values[k] = this.values[k];
-    }
-    for (var k in this.ui_value_names) {
-        dst.ui_value_names[k] = this.ui_value_names[k];
-    }
-    dst.ui_key_names = {}
-    for (var k in this.ui_key_names) {
-        dst.ui_key_names[k] = this.ui_key_names[k];
-    }
-    return dst;
-  }, function copy() {
-    return this.copyTo(new FlagProperty());
-  }, function pack(data) {
-    pack_int(this.data);
-  }, function set_flag(value) {
-    var flag;
-    if (this.values.hasOwnProperty(value)) {
-        flag = value;
-    }
-    else 
-      if (this.keys.hasOwnProperty(value)) {
-        flag = this.keys[value];
-    }
-    else {
-      console.trace("WARNING: bad flag value!", value, this.values);
-    }
-    this.data|=flag;
-  }, function unset_flag(value) {
-    var flag;
-    if (this.values.hasOwnProperty(value)) {
-        flag = value;
-    }
-    else 
-      if (this.keys.hasOwnProperty(value)) {
-        flag = this.keys[value];
-    }
-    else {
-      console.log(value, this.values);
-      console.trace();
-      throw new Error("Bad flag value");
-    }
-    this.data&=~flag;
-  }, _ESClass.static(function fromSTRUCT(reader) {
-    var t=new FlagProperty();
-    reader(t);
-    return t;
-  })]);
-  _es6_module.add_class(FlagProperty);
-  FlagProperty = _es6_module.add_export('FlagProperty', FlagProperty);
-  FlagProperty.STRUCT = STRUCT.inherit(FlagProperty, ToolProperty)+"\n  data : int;\n}\n";
-  var FloatProperty=_ESClass("FloatProperty", ToolProperty, [function FloatProperty(i, apiname, uiname, description, range, uirange, flag) {
-    ToolProperty.call(this, PropTypes.FLOAT, apiname, uiname, description, flag);
-    if (uirange==undefined) {
-        uirange = range;
-    }
-    this.ui_range = uirange;
-    this.range = range;
-    this.data = i;
-  }, function copyTo(dst) {
-    ToolProperty.prototype.copyTo.call(this, dst, true);
-    dst.ui_range = this.ui_range;
-    dst.range = this.range;
-    return dst;
-  }, function copy() {
-    return this.copyTo(new FloatProperty());
-  }, _ESClass.static(function fromSTRUCT(reader) {
-    var t=new FloatProperty();
-    reader(t);
-    return t;
-  })]);
-  _es6_module.add_class(FloatProperty);
-  FloatProperty = _es6_module.add_export('FloatProperty', FloatProperty);
-  FloatProperty.STRUCT = STRUCT.inherit(FloatProperty, ToolProperty)+"\n  data : float;\n}\n";
-  var IntProperty=_ESClass("IntProperty", ToolProperty, [function IntProperty(i, apiname, uiname, description, range, uirange, flag) {
-    ToolProperty.call(this, PropTypes.INT, apiname, uiname, description, flag);
-    if (uirange==undefined) {
-        uirange = range;
-    }
-    this.ui_range = uirange;
-    this.range = range;
-    this.data = i;
-  }, function copyTo(dst) {
-    ToolProperty.prototype.copyTo.call(this, dst, true);
-    dst.ui_range = this.ui_range;
-    dst.range = this.range;
-    return dst;
-  }, function copy() {
-    return this.copyTo(new IntProperty());
-  }, function pack(data) {
-    pack_int(this.data);
-  }, _ESClass.static(function fromSTRUCT(reader) {
-    var t=new IntProperty();
-    reader(t);
-    return t;
-  })]);
-  _es6_module.add_class(IntProperty);
-  IntProperty = _es6_module.add_export('IntProperty', IntProperty);
-  IntProperty.STRUCT = STRUCT.inherit(IntProperty, ToolProperty)+"\n  data : int;\n}\n";
-  var BoolProperty=_ESClass("BoolProperty", ToolProperty, [function BoolProperty(bool, apiname, uiname, description, flag) {
-    ToolProperty.call(this, PropTypes.BOOL, apiname, uiname, description, flag);
-    this.data = bool ? true : false;
-  }, function pack(data) {
-    pack_int(this.data);
-  }, function copyTo(dst) {
-    ToolProperty.prototype.copyTo.call(this, dst, true);
-    dst.ui_range = this.ui_range;
-    dst.range = this.range;
-    return dst;
-  }, function copy() {
-    return this.copyTo(new BoolProperty());
-  }, _ESClass.static(function fromSTRUCT(reader) {
-    var t=new BoolProperty();
-    reader(t);
-    t.data = !!t.data;
-    return t;
-  })]);
-  _es6_module.add_class(BoolProperty);
-  BoolProperty = _es6_module.add_export('BoolProperty', BoolProperty);
-  BoolProperty.STRUCT = STRUCT.inherit(BoolProperty, ToolProperty)+"\n  data : int;\n}\n";
-  var StringProperty=_ESClass("StringProperty", ToolProperty, [function StringProperty(string, apiname, uiname, description, flag) {
-    if (string==undefined)
-      string = "";
-    ToolProperty.call(this, PropTypes.STRING, apiname, uiname, description, flag);
-    this.data = string;
-  }, function copyTo(dst) {
-    ToolProperty.prototype.copyTo.call(this, dst, true);
-    dst.ui_range = this.ui_range;
-    dst.range = this.range;
-    return dst;
-  }, function copy() {
-    return this.copyTo(new StringProperty());
-  }, function pack(data) {
-    pack_string(this.data);
-  }, _ESClass.static(function fromSTRUCT(reader) {
-    var t=new StringProperty();
-    reader(t);
-    return t;
-  })]);
-  _es6_module.add_class(StringProperty);
-  StringProperty = _es6_module.add_export('StringProperty', StringProperty);
-  StringProperty.STRUCT = STRUCT.inherit(StringProperty, ToolProperty)+"\n  data : string;\n}\n";
-  var TransformProperty=_ESClass("TransformProperty", ToolProperty, [function TransformProperty(value, apiname, uiname, description, flag) {
-    ToolProperty.call(this, PropTypes.TRANSFORM, apiname, uiname, description, flag);
-    if (value!=undefined)
-      ToolProperty.prototype.set_data.call(this, new Matrix4UI(value));
-  }, function set_data(data, owner, changed, set_data) {
-    this.data.load(data);
-    ToolProperty.prototype.set_data.call(this, undefined, owner, changed, false);
-  }, function copyTo(dst) {
-    ToolProperty.prototype.copyTo.call(this, dst, false);
-    dst.data = new Matrix4UI(new Matrix4());
-    dst.data.load(this.data);
-    return dst;
-  }, function copy() {
-    return this.copyTo(new TransformProperty());
-  }, _ESClass.static(function fromSTRUCT(reader) {
-    var t=new TransformProperty();
-    reader(t);
-    t.data = new Matrix4UI(t.data);
-    return t;
-  })]);
-  _es6_module.add_class(TransformProperty);
-  TransformProperty = _es6_module.add_export('TransformProperty', TransformProperty);
-  TransformProperty.STRUCT = STRUCT.inherit(TransformProperty, ToolProperty)+"\n  data : mat4;\n}\n";
-  var EnumProperty=_ESClass("EnumProperty", ToolProperty, [function EnumProperty(string, valid_values, apiname, uiname, description, flag) {
-    ToolProperty.call(this, PropTypes.ENUM, apiname, uiname, description, flag);
-    this.values = {}
-    this.keys = {}
-    this.ui_value_names = {}
-    if (valid_values==undefined)
-      return ;
-    if (__instance_of(valid_values, Array)||__instance_of(valid_values, String)) {
-        for (var i=0; i<valid_values.length; i++) {
-            this.values[valid_values[i]] = valid_values[i];
-            this.keys[valid_values[i]] = valid_values[i];
+  }
+  moduleOverrides = undefined;
+  var STACK_ALIGN=16;
+  stackSave = stackRestore = stackAlloc = setTempRet0 = getTempRet0 = function() {
+    abort('cannot use the stack before compiled code is ready to run, and has provided stack access');
+  }
+  function staticAlloc(size) {
+    assert(!staticSealed);
+    var ret=STATICTOP;
+    STATICTOP = (STATICTOP+size+15)&-16;
+    return ret;
+  }
+  function dynamicAlloc(size) {
+    assert(DYNAMICTOP_PTR);
+    var ret=HEAP32[DYNAMICTOP_PTR>>2];
+    var end=(ret+size+15)&-16;
+    HEAP32[DYNAMICTOP_PTR>>2] = end;
+    if (end>=TOTAL_MEMORY) {
+        var success=enlargeMemory();
+        if (!success) {
+            HEAP32[DYNAMICTOP_PTR>>2] = ret;
+            return 0;
         }
     }
-    else {
-      for (var k in valid_values) {
-          this.values[k] = valid_values[k];
-          this.keys[valid_values[k]] = k;
-      }
-    }
-    if (string==undefined) {
-        this.data = Iterator(valid_values).next();
-    }
-    else {
-      this.set_value(string);
-    }
-    for (var k in this.values) {
-        var uin=k[0].toUpperCase()+k.slice(1, k.length);
-        uin = uin.replace(/\_/g, " ");
-        this.ui_value_names[k] = uin;
-    }
-    this.iconmap = {}
-  }, function load_ui_data(prop) {
-    ToolProperty.prototype.load_ui_data.call(this, prop);
-    this.ui_value_names = Object.create(prop.ui_value_names);
-    this.iconmap = Object.create(prop.iconmap);
-    this.values = Object.create(prop.values);
-    this.keys = Object.create(prop.keys);
-  }, function add_icons(iconmap) {
-    for (var k in iconmap) {
-        this.iconmap[k] = iconmap[k];
-    }
-  }, function copyTo(dst) {
-    ToolProperty.prototype.copyTo.call(this, dst, true);
-    p.keys = Object.create(this.keys);
-    p.values = Object.create(this.values);
-    p.data = this.data;
-    p.ui_value_names = this.ui_value_names;
-    p.update = this.update;
-    p.api_update = this.api_update;
-    for (var k in this.iconmap) {
-        p.iconmap[k] = this.iconmap[k];
-    }
-    return p;
-  }, function copy() {
-    var p=new EnumProperty("dummy", {"dummy": 0}, this.apiname, this.uiname, this.description, this.flag);
-    p.keys = Object.create(this.keys);
-    p.values = Object.create(this.values);
-    p.data = this.data;
-    p.ui_value_names = this.ui_value_names;
-    p.update = this.update;
-    p.api_update = this.api_update;
-    for (var k in this.iconmap) {
-        p.iconmap[k] = this.iconmap[k];
-    }
-    return p;
-  }, function pack(data) {
-    pack_string(this.data);
-  }, function get_value() {
-    if (this.data in this.values)
-      return this.values[this.data];
-    else 
-      return this.data;
-  }, function set_value(val) {
-    if (!(val in this.values)&&(val in this.keys))
-      val = this.keys[val];
-    if (!(val in this.values)) {
-        console.trace("Invalid value for enum!");
-        console.log("Invalid value for enum!", val, this.values);
-        return ;
-    }
-    this.data = new String(val);
-  }, _ESClass.static(function fromSTRUCT(reader) {
-    var t=new EnumProperty();
-    reader(t);
-    return t;
-  })]);
-  _es6_module.add_class(EnumProperty);
-  EnumProperty = _es6_module.add_export('EnumProperty', EnumProperty);
-  EnumProperty.STRUCT = STRUCT.inherit(EnumProperty, ToolProperty)+"\n  data : string | obj.data.toString();\n}\n";
-  var Vec2Property=_ESClass("Vec2Property", ToolProperty, [function Vec2Property(vec2, apiname, uiname, description, flag) {
-    ToolProperty.call(this, PropTypes.VEC2, apiname, uiname, description, flag);
-    this.unit = undefined;
-    this.range = [undefined, undefined];
-    this.real_range = [undefined, undefined];
-    this.data = new Vector3(vec2);
-  }, function copyTo(dst) {
-    ToolProperty.prototype.copyTo.call(this, dst, false);
-    dst.data = new Vector3(this.data);
-    dst.real_range = this.real_range;
-    dst.range = this.range;
-    return dst;
-  }, function set_data(data, owner, changed) {
-    this.data.load(data);
-    ToolProperty.prototype.set_data.call(this, undefined, owner, changed, false);
-  }, function copy() {
-    return this.copyTo(new Vec2Property());
-  }, _ESClass.static(function fromSTRUCT(reader) {
-    var t=new Vec2Property();
-    reader(t);
-    return t;
-  })]);
-  _es6_module.add_class(Vec2Property);
-  Vec2Property = _es6_module.add_export('Vec2Property', Vec2Property);
-  Vec2Property.STRUCT = STRUCT.inherit(Vec2Property, ToolProperty)+"\n  data : array(float);\n}\n";
-  var Vec3Property=_ESClass("Vec3Property", ToolProperty, [function Vec3Property(vec3, apiname, uiname, description, flag) {
-    ToolProperty.call(this, PropTypes.VEC3, apiname, uiname, description, flag);
-    this.unit = "default";
-    this.range = [undefined, undefined];
-    this.real_range = [undefined, undefined];
-    this.data = new Vector3(vec3);
-  }, function copyTo(dst) {
-    ToolProperty.prototype.copyTo.call(this, dst, false);
-    dst.data = new Vector3(this.data);
-    dst.real_range = this.real_range;
-    dst.range = this.range;
-    return dst;
-  }, function set_data(data, owner, changed) {
-    this.data.load(data);
-    ToolProperty.prototype.set_data.call(this, undefined, owner, changed, false);
-  }, function copy() {
-    return this.copyTo(new Vec3Property());
-  }, _ESClass.static(function fromSTRUCT(reader) {
-    var t=new Vec3Property();
-    reader(t);
-    return t;
-  })]);
-  _es6_module.add_class(Vec3Property);
-  Vec3Property = _es6_module.add_export('Vec3Property', Vec3Property);
-  Vec3Property.STRUCT = STRUCT.inherit(Vec3Property, ToolProperty)+"\n  data : vec3;\n}\n";
-  var Vec4Property=_ESClass("Vec4Property", ToolProperty, [function Vec4Property(vec4, apiname, uiname, description, flag) {
-    ToolProperty.call(this, PropTypes.VEC4, apiname, uiname, description, flag);
-    this.subtype==PropTypes.VEC4;
-    this.unit = "default";
-    this.range = [undefined, undefined];
-    this.real_range = [undefined, undefined];
-    this.data = new Vector4(vec4);
-  }, function copyTo(dst) {
-    ToolProperty.prototype.copyTo.call(this, dst, false);
-    dst.data = new Vector4();
-    dst.real_range = this.real_range;
-    dst.range = this.range;
-    dst.data.load(this.data);
-    return dst;
-  }, function set_data(data, owner, changed) {
-    this.data.load(data);
-    ToolProperty.prototype.set_data.call(this, undefined, owner, changed, false);
-  }, function copy() {
-    return this.copyTo(new Vec4Property());
-  }, _ESClass.static(function fromSTRUCT(reader) {
-    var t=new Vec4Property();
-    reader(t);
-    return t;
-  })]);
-  _es6_module.add_class(Vec4Property);
-  Vec4Property = _es6_module.add_export('Vec4Property', Vec4Property);
-  Vec4Property.STRUCT = STRUCT.inherit(Vec4Property, ToolProperty)+"\n  data : vec4;\n}\n";
-  var ToolIter=es6_import_item(_es6_module, 'toolprops_iter', 'ToolIter');
-  var type_filter_iter=_ESClass("type_filter_iter", ToolIter, [function type_filter_iter(iter, typefilter, ctx) {
-    this.types = typefilter;
-    this.ret = {done: false, value: undefined}
-    this.iter = iter;
-    this._ctx = ctx;
-  }, _ESClass.set(function ctx(ctx) {
-    this._ctx = ctx;
-    this.iter.ctx = ctx;
-  }), _ESClass.get(function ctx() {
-    return this._ctx;
-  }), function reset() {
-    this.iter.ctx = this.ctx;
-    this.iter.reset();
-  }, function next() {
-    var ret=this.iter.next();
-    var types=this.types;
-    var tlen=this.types.length;
-    var this2=this;
-    function has_type(obj) {
-      for (i = 0; i<tlen; i++) {
-          if (__instance_of(obj, types[i]))
-            return true;
-      }
-      return false;
-    }
-    while (!ret.done&&!has_type(ret.value)) {
-      ret = this.iter.next();
-    }
-    this.ret.done = ret.done;
-    this.ret.value = ret.value;
-    ret = this.ret;
-    if (ret.done&&this.iter.reset) {
-        this.iter.reset();
-    }
     return ret;
-  }]);
-  _es6_module.add_class(type_filter_iter);
-  type_filter_iter = _es6_module.add_export('type_filter_iter', type_filter_iter);
-  var CollectionProperty=_ESClass("CollectionProperty", ToolProperty, [function CollectionProperty(data, filter_types, apiname, uiname, description, flag) {
-    ToolProperty.call(this, PropTypes.COLLECTION, apiname, uiname, description, flag);
-    this.flag|=TPropFlags.COLL_LOOSE_TYPE;
-    this.types = filter_types;
-    this._data = undefined;
-    this._ctx = undefined;
-    this.set_data(data);
-  }, function copyTo(dst) {
-    ToolProperty.prototype.copyTo.call(this, dst, false);
-    dst.types = this.types;
-    this.set_data(this.data);
-    return dst;
-  }, function copy() {
-    var ret=this.copyTo(new CollectionProperty());
-    ret.types = this.types;
-    ret._ctx = this._ctx;
-    if (this._data!=undefined&&this._data.copy!=undefined)
-      ret.set_data(this._data.copy());
+  }
+  function alignMemory(size, factor) {
+    if (!factor)
+      factor = STACK_ALIGN;
+    var ret=size = Math.ceil(size/factor)*factor;
     return ret;
-  }, _ESClass.get(function ctx() {
-    return this._ctx;
-  }), _ESClass.set(function ctx(data) {
-    this._ctx = data;
-    if (this._data!=undefined)
-      this._data.ctx = data;
-  }), function set_data(data, owner, changed) {
-    if (data==undefined) {
-        this._data = undefined;
-        return ;
-    }
-    if ("__tooliter__" in data&&typeof data.__tooliter__=="function") {
-        this.set_data(data.__tooliter__(), owner, changed);
-        return ;
-    }
-    else 
-      if (!(this.flag&TPropFlags.COLL_LOOSE_TYPE)&&!(TPropIterable.isTPropIterable(data))) {
-        console.trace();
-        console.log("ERROR: bad data '", data, "' was passed to CollectionProperty.set_data!");
-        throw new Error("ERROR: bad data '", data, "' was passed to CollectionProperty.set_data!");
-    }
-    this._data = data;
-    this._data.ctx = this.ctx;
-    ToolProperty.prototype.set_data.call(this, undefined, owner, changed, false);
-  }, _ESClass.set(function data(data) {
-    this.set_data(data);
-  }), _ESClass.get(function data() {
-    return this._data;
-  }), _ESClass.symbol(Symbol.iterator, function iterator() {
-    if (this._data==undefined)
-      return {next: function() {
-      return {done: true, value: undefined}
-    }}
-    this._data.ctx = this._ctx;
-    if (this.types!=undefined&&this.types.length>0)
-      return new type_filter_iter(this.data[Symbol.iterator](), this.types, this._ctx);
-    else 
-      return this.data[Symbol.iterator]();
-  }), _ESClass.static(function fromSTRUCT(reader) {
-    var ret=new CollectionProperty();
-    reader(ret);
-    return ret;
-  })]);
-  _es6_module.add_class(CollectionProperty);
-  CollectionProperty = _es6_module.add_export('CollectionProperty', CollectionProperty);
-  CollectionProperty.STRUCT = STRUCT.inherit(CollectionProperty, ToolProperty)+"\n    data : abstract(Object) | obj.data == undefined ? new BlankArray() : obj.data;\n  }\n";
-  var BlankArray=_ESClass("BlankArray", [_ESClass.static(function fromSTRUCT(reader) {
-    return undefined;
-  }), function BlankArray() {
-  }]);
-  _es6_module.add_class(BlankArray);
-  BlankArray = _es6_module.add_export('BlankArray', BlankArray);
-  BlankArray.STRUCT = "\n  BlankArray {\n    length : int | 0;\n  }\n";
-  window.BlankArray = BlankArray;
-});
-es6_module_define('toolprops_iter', ["struct"], function _toolprops_iter_module(_es6_module) {
-  "use strict";
-  var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
-  var TPropIterable=_ESClass("TPropIterable", [function TPropIterable() {
-  }, _ESClass.symbol(Symbol.iterator, function iterator() {
-  }), function _is_tprop_iterable() {
-  }, _ESClass.static(function isTPropIterable(obj) {
-    return obj!=undefined&&"_is_tprop_iterable" in obj;
-  })]);
-  _es6_module.add_class(TPropIterable);
-  TPropIterable = _es6_module.add_export('TPropIterable', TPropIterable);
-  window.TPropIterable = TPropIterable;
-  var TCanSafeIter=_ESClass("TCanSafeIter", [function TCanSafeIter() {
-  }, function __tooliter__() {
-  }]);
-  _es6_module.add_class(TCanSafeIter);
-  TCanSafeIter = _es6_module.add_export('TCanSafeIter', TCanSafeIter);
-  window.TCanSafeIter = TCanSafeIter;
-  var ToolIter=_ESClass("ToolIter", TPropIterable, [function ToolIter(itemtypes) {
-    if (itemtypes==undefined) {
-        itemtypes = [];
-    }
-    TPropIterable.call(this);
-    this.itemtypes = itemtypes;
-    this.ctx = undefined;
-    this.ret = {done: true, value: undefined}
-  }, function next() {
-  }, function reset() {
-  }, function spawn() {
-  }, function _get_block(ref) {
-    if (this.ctx!=undefined) {
-        if (ref.lib_id==this.ctx.object.lib_id)
-          return this.ctx.object;
+  }
+  function getNativeTypeSize(type) {
+    switch (type) {
+      case 'i1':
+      case 'i8':
+        return 1;
+      case 'i16':
+        return 2;
+      case 'i32':
+        return 4;
+      case 'i64':
+        return 8;
+      case 'float':
+        return 4;
+      case 'double':
+        return 8;
+      default:
+        if (type[type.length-1]==='*') {
+            return 4;
+        }
         else 
-          return this.ctx.datalib.get(ref);
-    }
-  }, _ESClass.symbol(Symbol.iterator, function iterator() {
-    return this;
-  }), _ESClass.static(function fromSTRUCT(reader) {
-    var obj=new ToolIter();
-    reader(obj);
-    return obj;
-  })]);
-  _es6_module.add_class(ToolIter);
-  ToolIter = _es6_module.add_export('ToolIter', ToolIter);
-  ToolIter.STRUCT = "\n  ToolIter {\n  }\n";
-  var MSelectIter=_ESClass("MSelectIter", ToolIter, [function MSelectIter(typemask, mesh) {
-    ToolIter.call(this);
-    this.meshref = new DataRef(mesh);
-    this.mask = typemask;
-    this.mesh = undefined;
-    this.init = true;
-    this.iter = undefined;
-  }, _ESClass.symbol(Symbol.iterator, function iterator() {
-    if (this.init) {
-        return this;
-    }
-    else {
-      return new MSelectIter(this.mask, this.meshref);
-    }
-  }), function reset() {
-    this.init = true;
-    this.mesh = undefined;
-    this.iter = undefined;
-  }, function next() {
-    if (this.init) {
-        this.mesh = this._get_block(this.meshref);
-        this.init = false;
-        this.iter = new selectiter(this.mesh, this.mask);
-    }
-    var ret=this.iter.next();
-    if (ret.done) {
-        this.reset();
-    }
-    return ret;
-  }, _ESClass.static(function fromSTRUCT(reader) {
-    var ob={}
-    reader(ob);
-    var ret=new MSelectIter(ob.mask, ob.meshref);
-    return ret;
-  })]);
-  _es6_module.add_class(MSelectIter);
-  MSelectIter.STRUCT = STRUCT.inherit(MSelectIter, ToolIter)+"\n  meshref  : DataRef;\n  mask     : int;\n}\n";
-  var $map_UObt_fromSTRUCT;
-  var element_iter_convert=_ESClass("element_iter_convert", ToolIter, [function element_iter_convert(iter, type) {
-    ToolIter.call(this);
-    if (!(__instance_of(iter, TPropIterable))) {
-        throw new Error("element_iter_convert requires a 'safe' TPropIterable-derived iterator");
-    }
-    this.vset = new set();
-    this.iter = iter[Symbol.iterator]();
-    this.subiter = undefined;
-    if (type==MeshTypes.VERT)
-      this.type = Vertex;
-    else 
-      if (type==MeshTypes.EDGE)
-      this.type = Edge;
-    else 
-      if (type==MeshTypes.LOOP)
-      this.type = Loop;
-    else 
-      if (type==MeshTypes.FACE)
-      this.type = Face;
-  }, function reset() {
-    if (this.iter.reset!=undefined)
-      this.iter.reset();
-    this.vset = new set();
-    this.iter.ctx = this.ctx;
-  }, _ESClass.symbol(Symbol.iterator, function iterator() {
-    return this;
-  }), function next() {
-    if (this.mesh!=undefined)
-      this.iter.mesh = this.mesh;
-    var v=this._next();
-    if (v.done)
-      return v;
-    var vset=this.vset;
-    while ((!v.done)&&(v.value==undefined||vset.has(v.value))) {
-      v = this._next();
-    }
-    if (!v.done)
-      vset.add(v.value);
-    return v;
-  }, function _next() {
-    if (this.subiter==undefined) {
-        var next=this.iter.next();
-        if (next.done) {
-            this.reset();
-            return next;
-        }
-        if (next.value.constructor.name==this.type.name)
-          return next;
-        this.subiter = next.value.verts[Symbol.iterator]();
-    }
-    var vset=this.vset;
-    var v=this.subiter.next();
-    if (v.done) {
-        this.subiter = undefined;
-        return this._next();
-    }
-    return v;
-  }, _ESClass.static(function fromSTRUCT(reader) {
-    var ob={}
-    reader(ob);
-    var type=$map_UObt_fromSTRUCT[ob.type];
-    var ret=new element_iter_convert(ob._iter, type);
-  })]);
-  var $map_UObt_fromSTRUCT={Vertex: 1, Edge: 2, Loop: 4, Face: 8}
-  _es6_module.add_class(element_iter_convert);
-  element_iter_convert.STRUCT = STRUCT.inherit(element_iter_convert, ToolIter)+"\n  type  : string | this.type != undefined ? this.type.constructor.name : \"\";\n  _iter : abstract(ToolIter) | obj.iter;\n}\n";
-});
-es6_module_define('toolops_api', ["toolprops", "events", "struct"], function _toolops_api_module(_es6_module) {
-  "use strict";
-  var PropTypes=es6_import_item(_es6_module, 'toolprops', 'PropTypes');
-  var TPropFlags=es6_import_item(_es6_module, 'toolprops', 'TPropFlags');
-  var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
-  var EventHandler=es6_import_item(_es6_module, 'events', 'EventHandler');
-  var charmap=es6_import_item(_es6_module, 'events', 'charmap');
-  var UndoFlags={IGNORE_UNDO: 2, IS_ROOT_OPERATOR: 4, UNDO_BARRIER: 8, HAS_UNDO_DATA: 16}
-  UndoFlags = _es6_module.add_export('UndoFlags', UndoFlags);
-  var ToolFlags={HIDE_TITLE_IN_LAST_BUTTONS: 1, USE_PARTIAL_UNDO: 2, USE_DEFAULT_INPUT: 4}
-  ToolFlags = _es6_module.add_export('ToolFlags', ToolFlags);
-  var ModalStates={TRANSFORMING: 1, PLAYING: 2}
-  ModalStates = _es6_module.add_export('ModalStates', ModalStates);
-  var _tool_op_idgen=1;
-  var InheritFlag=_ESClass("InheritFlag", [function InheritFlag(val) {
-    this.val = val;
-  }]);
-  _es6_module.add_class(InheritFlag);
-  
-  var ToolOpAbstract=_ESClass("ToolOpAbstract", [_ESClass.static(function inherit(inputs_or_outputs) {
-    return new InheritFlag(inputs_or_outputs);
-  }), _ESClass.static(function _get_slots() {
-    var ret=[{}, {}];
-    var parent=this.__parent__;
-    if (this.tooldef!=undefined&&(parent==undefined||this.tooldef!==parent.tooldef)) {
-        var tooldef=this.tooldef();
-        for (var k in tooldef) {
-            if (k!="inputs"&&k!="outputs") {
-                continue;
-            }
-            var v=tooldef[k];
-            if (__instance_of(v, InheritFlag)) {
-                v = v.val==undefined ? {} : v.val;
-                var slots=parent._get_slots();
-                slots = k=="inputs" ? slots[0] : slots[1];
-                v = this._inherit_slots(slots, v);
-            }
-            ret[k=="inputs" ? 0 : 1] = v;
-        }
-    }
-    else 
-      if (this.inputs!=undefined||this.outputs!=undefined) {
-        console.trace("Deprecation warning: (second) old form                     of toolprop definition detected for", this);
-        if (this.inputs!=undefined) {
-            ret[0] = this.inputs;
-        }
-        if (this.outputs!=undefined) {
-            ret[1] = this.outputs;
-        }
-    }
-    else {
-      console.trace("Deprecation warning: oldest (and evilest) form                     of toolprop detected for", this);
-    }
-    return ret;
-  }), function ToolOpAbstract(apiname, uiname, description, icon) {
-    if (description==undefined) {
-        description = undefined;
-    }
-    if (icon==undefined) {
-        icon = -1;
-    }
-    var parent=this.constructor.__parent__;
-    var slots=this.constructor._get_slots();
-    for (var i=0; i<2; i++) {
-        var slots2={};
-        if (i==0)
-          this.inputs = slots2;
-        else 
-          this.outputs = slots2;
-        for (var k in slots[i]) {
-            slots2[k] = slots[i][k].copy();
-            slots2[k].apiname = k;
-        }
-    }
-    if (this.constructor.tooldef!=undefined&&(parent==undefined||this.constructor.tooldef!==parent.tooldef)) {
-        var tooldef=this.constructor.tooldef();
-        for (var k in tooldef) {
-            if (k=="inputs"||k=="outputs")
-              continue;
-            this[k] = tooldef[k];
-        }
-    }
-    else {
-      if (this.name==undefined)
-        this.name = apiname;
-      if (this.uiname==undefined)
-        this.uiname = uiname;
-      if (this.description==undefined)
-        this.description = description==undefined ? "" : description;
-      if (this.icon==undefined)
-        this.icon = icon;
-    }
-    this.apistruct = undefined;
-    this.op_id = _tool_op_idgen++;
-    this.stack_index = -1;
-  }, _ESClass.static(function _inherit_slots(old, newslots) {
-    if (old==undefined) {
-        console.trace("Warning: old was undefined in _inherit_slots()!");
-        return newslots;
-    }
-    for (var k in old) {
-        if (!(k in newslots))
-          newslots[k] = old[k];
-    }
-    return newslots;
-  }), _ESClass.static(function inherit_inputs(cls, newslots) {
-    if (cls.inputs==undefined)
-      return newslots;
-    return ToolOpAbstract._inherit_slots(cls.inputs, newslots);
-  }), _ESClass.static(function inherit_outputs(cls, newslots) {
-    if (cls.outputs==undefined)
-      return newslots;
-    return ToolOpAbstract._inherit_slots(cls.outputs, newslots);
-  }), function get_saved_context() {
-    if (this.saved_context==undefined) {
-        console.log("warning : invalid saved_context in "+this.constructor.name+".get_saved_context()");
-        this.saved_context = new SavedContext(new Context());
-    }
-    return this.saved_context;
-  }, _ESClass.symbol(Symbol.keystr, function keystr() {
-    return "TO"+this.op_id;
-  }), function exec(tctx) {
-  }, function default_inputs(ctx, get_default) {
-  }]);
-  _es6_module.add_class(ToolOpAbstract);
-  ToolOpAbstract = _es6_module.add_export('ToolOpAbstract', ToolOpAbstract);
-  ToolOpAbstract.STRUCT = "\n  ToolOpAbstract {\n      flag    : int;\n      saved_context  : SavedContext | obj.get_saved_context();\n      inputs  : iter(k, PropPair) | new PropPair(k, obj.inputs[k]);\n      outputs : iter(k, PropPair) | new PropPair(k, obj.outputs[k]);\n  }\n";
-  var PropPair=_ESClass("PropPair", [function PropPair(key, value) {
-    this.key = key;
-    this.value = value;
-  }, _ESClass.static(function fromSTRUCT(reader) {
-    var obj={}
-    reader(obj);
-    return obj;
-  })]);
-  _es6_module.add_class(PropPair);
-  PropPair.STRUCT = "\n  PropPair {\n    key   : string;\n    value : abstract(ToolProperty);\n  }\n";
-  var $toolops_6mJM_get_constructor;
-  var ToolOp=_ESClass("ToolOp", ToolOpAbstract, [function ToolOp(apiname, uiname, description, icon) {
-    if (apiname==undefined) {
-        apiname = "(undefined)";
-    }
-    if (uiname==undefined) {
-        uiname = "(undefined)";
-    }
-    if (description==undefined) {
-        description = undefined;
-    }
-    if (icon==undefined) {
-        icon = -1;
-    }
-    ToolOpAbstract.call(this, apiname, uiname, description, icon);
-    EventHandler.call(this);
-    this.drawlines = new GArray();
-    if (this.is_modal==undefined)
-      this.is_modal = false;
-    this.undoflag = 0;
-    this.on_modal_end = undefined;
-    this.modal_ctx = null;
-    this.flag = 0;
-    this.keyhandler = undefined;
-    this.parent = undefined;
-    this.widgets = [];
-    this.modal_running = false;
-    this._widget_on_tick = undefined;
-  }, function new_drawline(v1, v2) {
-    var dl=this.modal_ctx.view2d.make_drawline(v1, v2);
-    this.drawlines.push(dl);
-    return dl;
-  }, function reset_drawlines(ctx) {
-    if (ctx==undefined) {
-        ctx = this.modal_ctx;
-    }
-    var view2d=ctx.view2d;
-    var __iter_dl=__get_iter(this.drawlines);
-    var dl;
-    while (1) {
-      var __ival_dl=__iter_dl.next();
-      if (__ival_dl.done) {
-          break;
-      }
-      dl = __ival_dl.value;
-      view2d.kill_drawline(dl);
-    }
-    this.drawlines.reset();
-  }, _ESClass.static(function create_widgets(manager, ctx) {
-  }), _ESClass.static(function reset_widgets(op, ctx) {
-  }), function undo_ignore() {
-    this.undoflag|=UndoFlags.IGNORE_UNDO;
-  }, function on_mousemove() {
-    redraw_viewport();
-  }, function exec_pre(tctx) {
-    for (var k in this.inputs) {
-        if (this.inputs[k].type==PropTypes.COLLECTION) {
-            this.inputs[k].ctx = tctx;
-        }
-    }
-    for (var k in this.outputs) {
-        if (this.outputs[k].type==PropTypes.COLLECTION) {
-            this.outputs[k].ctx = tctx;
-        }
-    }
-  }, function start_modal(ctx) {
-  }, function _start_modal(ctx) {
-    this.modal_running = true;
-    ctx.view2d.push_modal(this);
-    this.modal_ctx = ctx;
-  }, function _end_modal() {
-    var ctx=this.modal_ctx;
-    this.modal_running = false;
-    this.saved_context = new SavedContext(this.modal_ctx);
-    this.modal_ctx.view2d.pop_modal();
-    if (this.on_modal_end!=undefined)
-      this.on_modal_end(this);
-    this.reset_drawlines(ctx);
-  }, function end_modal() {
-    this._end_modal();
-  }, function can_call(ctx) {
-    return true;
-  }, function exec(ctx) {
-  }, function start_modal(ctx) {
-  }, function redo_post(ctx) {
-    window.redraw_viewport();
-  }, function undo_pre(ctx) {
-    this._undocpy = g_app_state.create_undo_file();
-    window.redraw_viewport();
-  }, function undo(ctx) {
-    g_app_state.load_undo_file(this._undocpy);
-  }, _ESClass.static(function fromSTRUCT(reader) {
-    var op=new ToolOp();
-    reader(op);
-    var ins={}
-    for (var i=0; i<op.inputs.length; i++) {
-        ins[op.inputs[i].key] = op.inputs[i].value;
-    }
-    var outs={}
-    for (var i=0; i<op.outputs.length; i++) {
-        outs[op.outputs[i].key] = op.outputs[i].value;
-    }
-    op.inputs = ins;
-    op.outputs = outs;
-    return op;
-  }), _ESClass.static(function get_constructor(name) {
-    if ($toolops_6mJM_get_constructor==undefined) {
-        $toolops_6mJM_get_constructor = {};
-        for (var c in defined_classes) {
-            if (__instance_of(c, ToolOp))
-              $toolops_6mJM_get_constructor[c.name] = c;
-        }
-    }
-    return $toolops_6mJM_get_constructor[c];
-  })]);
-  var $toolops_6mJM_get_constructor=undefined;
-  _es6_module.add_class(ToolOp);
-  ToolOp = _es6_module.add_export('ToolOp', ToolOp);
-  ToolOp.STRUCT = "\n  ToolOp {\n      flag    : int;\n      saved_context  : SavedContext | obj.get_saved_context();\n      inputs  : iter(k, PropPair) | new PropPair(k, obj.inputs[k]);\n      outputs : iter(k, PropPair) | new PropPair(k, obj.outputs[k]);\n  }\n";
-  var ToolMacro=_ESClass("ToolMacro", ToolOp, [function ToolMacro(name, uiname, tools) {
-    if (tools==undefined) {
-        tools = undefined;
-    }
-    ToolOp.call(this, name, uiname);
-    this.cur_modal = 0;
-    this._chained_on_modal_end = false;
-    if (tools==undefined)
-      this.tools = new GArray();
-    else 
-      this.tools = new GArray(tools);
-  }, function add_tool(tool) {
-    tool.parent = this;
-    this.tools.push(tool);
-    if (tool.is_modal)
-      this.is_modal = true;
-  }, function connect_tools(output, input) {
-    var old_set=input.user_set_data;
-    input.user_set_data = function() {
-      this.data = output.data;
-      old_set.call(this);
-    }
-  }, function undo_pre(ctx) {
-  }, function undo(ctx) {
-    for (var i=this.tools.length-1; i>=0; i--) {
-        this.tools[i].undo(ctx);
-    }
-  }, function exec(ctx) {
-    for (var i=0; i<this.tools.length; i++) {
-        this.tools[i].saved_context = this.saved_context;
-    }
-    for (var op in this.tools) {
-        if (op.is_modal)
-          op.is_modal = this.is_modal;
-        for (var k in op.inputs) {
-            var p=op.inputs[k];
-            if (p.user_set_data!=undefined)
-              p.user_set_data.call(p);
-        }
-        op.saved_context = this.saved_context;
-        op.undo_pre(ctx);
-        op.undoflag|=UndoFlags.HAS_UNDO_DATA;
-        op.exec_pre(ctx);
-        op.exec(ctx);
-    }
-  }, function can_call(ctx) {
-    return this.tools[0].can_call(ctx);
-  }, function start_modal(ctx) {
-    if (!this._chained_on_modal_end) {
-        var last_modal=undefined;
-        for (var op in this.tools) {
-            if (op.is_modal)
-              last_modal = op;
-        }
-        console.log("last_modal", last_modal);
-        if (last_modal!=undefined) {
-            console.log("yay, found last modal");
-            var on_modal_end=last_modal.on_modal_end;
-            var this2=this;
-            last_modal.on_modal_end = function(toolop) {
-              if (on_modal_end!=undefined)
-                on_modal_end(toolop);
-              if (this2.on_modal_end)
-                this2.on_modal_end(this2);
-            };
-            this._chained_on_modal_end = true;
-        }
-    }
-    for (var i=0; i<this.tools.length; i++) {
-        this.tools[i].saved_context = this.saved_context;
-    }
-    for (var i=0; i<this.tools.length; i++) {
-        var op=this.tools[i];
-        if (op.is_modal) {
-            this.cur_modal = i;
-            for (var k in op.inputs) {
-                var p=op.inputs[k];
-                if (p.user_set_data!=undefined)
-                  p.user_set_data.call(p);
-            }
-            op.modal_ctx = this.modal_ctx;
-            op.modal_tctx = this.modal_tctx;
-            op.saved_context = this.saved_context;
-            op.undo_pre(ctx);
-            op.undoflag|=UndoFlags.HAS_UNDO_DATA;
-            op.modal_running = true;
-            return op.start_modal(ctx);
+          if (type[0]==='i') {
+            var bits=parseInt(type.substr(1));
+            assert(bits%8===0);
+            return bits/8;
         }
         else {
-          for (var k in op.inputs) {
-              var p=op.inputs[k];
-              if (p.user_set_data!=undefined)
-                p.user_set_data.call(p);
-          }
-          op.saved_context = this.saved_context;
-          op.exec_pre(ctx);
-          op.undo_pre(ctx);
-          op.undoflag|=UndoFlags.HAS_UNDO_DATA;
-          op.exec(ctx);
-        }
-    }
-  }, function _end_modal() {
-    var ctx=this.modal_ctx;
-    this.next_modal(ctx);
-  }, function next_modal(ctx) {
-    this.tools[this.cur_modal].end_modal(ctx);
-    this.cur_modal++;
-    while (this.cur_modal<this.tools.length&&!this.tools[this.cur_modal].is_modal) {
-      this.cur_modal++    }
-    if (this.cur_modal>=this.tools.length) {
-        ToolOp.prototype._end_modal.call(this);
-    }
-    else {
-      this.tools[this.cur_modal].undo_pre(ctx);
-      this.tools[this.cur_modal].undoflag|=UndoFlags.HAS_UNDO_DATA;
-      this.tools[this.cur_modal].start_modal(ctx);
-    }
-  }, function on_mousemove(event) {
-    this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
-    this.tools[this.cur_modal].on_mousemove(event);
-  }, function on_mousedown(event) {
-    this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
-    this.tools[this.cur_modal].on_mousedown(event);
-  }, function on_mouseup(event) {
-    this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
-    this.tools[this.cur_modal].on_mouseup(event);
-  }, function on_keydown(event) {
-    this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
-    this.tools[this.cur_modal].on_keydown(event);
-  }, function on_keyup(event) {
-    this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
-    this.tools[this.cur_modal].on_keyup(event);
-  }, function on_draw(event) {
-    this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
-    this.tools[this.cur_modal].on_draw(event);
-  }, _ESClass.static(function fromSTRUCT(reader) {
-    var ret=STRUCT.chain_fromSTRUCT(ToolMacro, reader);
-    ret.tools = new GArray(ret.tools);
-    var __iter_t=__get_iter(ret.tools);
-    var t;
-    while (1) {
-      var __ival_t=__iter_t.next();
-      if (__ival_t.done) {
-          break;
-      }
-      t = __ival_t.value;
-      t.parent = this;
-    }
-    return ret;
-  })]);
-  _es6_module.add_class(ToolMacro);
-  ToolMacro = _es6_module.add_export('ToolMacro', ToolMacro);
-  ToolMacro.STRUCT = STRUCT.inherit(ToolMacro, ToolOp)+"\n  tools   : array(abstract(ToolOp));\n  apiname : string;\n  uiname  : string;\n}\n";
-  var StringProperty=es6_import_item(_es6_module, 'toolprops', 'StringProperty');
-  var Vec3Property=es6_import_item(_es6_module, 'toolprops', 'Vec3Property');
-  var Vec4Property=es6_import_item(_es6_module, 'toolprops', 'Vec4Property');
-  var IntProperty=es6_import_item(_es6_module, 'toolprops', 'IntProperty');
-  var FloatProperty=es6_import_item(_es6_module, 'toolprops', 'FloatProperty');
-  var BoolProperty=es6_import_item(_es6_module, 'toolprops', 'BoolProperty');
-  var DataPathOp=_ESClass("DataPathOp", ToolOp, [function DataPathOp(path, use_simple_undo) {
-    if (path==undefined) {
-        path = "";
-    }
-    if (use_simple_undo==undefined) {
-        use_simple_undo = false;
-    }
-    ToolOpAbstract.call(this, "DataPathOp", "DataPath", "DataPath Value Set");
-    this.use_simple_undo = use_simple_undo;
-    this.is_modal = false;
-    this.path = path;
-    this.inputs = {path: new StringProperty(path, "path", "path", "path"), vec3: new Vec3Property(undefined, "vec3", "vec3", "vec3"), vec4: new Vec4Property(undefined, "vec4", "vec4", "vec4"), pint: new IntProperty(0, "pint", "pint", "pint"), pfloat: new FloatProperty(0, "pfloat", "pfloat", "pfloat"), str: new StringProperty("", "str", "str", "str"), bool: new BoolProperty(false, "bool", "bool", "bool"), val_input: new StringProperty("", "val_input", "val_input", "val_input")}
-    this.outputs = {}
-    for (var k in this.inputs) {
-        this.inputs[k].flag|=TPropFlags.PRIVATE;
-    }
-  }, function undo_pre(ctx) {
-    this._undocpy = g_app_state.create_undo_file();
-  }, function undo(ctx) {
-    g_app_state.load_undo_file(this._undocpy);
-  }, function get_prop_input(path, prop) {
-    if (prop==undefined) {
-        console.trace("Warning: DataPathOp failed!", path, prop);
-        return ;
-    }
-    var input;
-    if (prop.type==PropTypes.INT) {
-        input = this.inputs.pint;
-    }
-    else 
-      if (prop.type==PropTypes.FLOAT) {
-        input = this.inputs.pfloat;
-    }
-    else 
-      if (prop.type==PropTypes.VEC3) {
-        input = path.endsWith("]") ? this.inputs.pfloat : this.inputs.vec3;
-    }
-    else 
-      if (prop.type==PropTypes.VEC4) {
-        input = path.endsWith("]") ? this.inputs.pfloat : this.inputs.vec4;
-    }
-    else 
-      if (prop.type==PropTypes.BOOL) {
-        input = this.inputs.bool;
-    }
-    else 
-      if (prop.type==PropTypes.STR) {
-        input = this.inputs.str;
-    }
-    else 
-      if (prop.type==PropTypes.FLAG) {
-        input = this.inputs.str;
-    }
-    else 
-      if (prop.type==PropTypes.ENUM) {
-        input = this.inputs.pint;
-    }
-    else {
-      console.trace("ERROR: unimplemented prop type "+prop.type+"in DataPathOp", prop, this);
-      return undefined;
-    }
-    return input;
-  }, function exec(ctx) {
-    var api=g_app_state.api;
-    var path=this.inputs.path.data.trim();
-    var prop=api.get_prop_meta(ctx, path);
-    if (prop==undefined) {
-        console.trace("Warning: DataPathOp failed!");
-        return ;
-    }
-    var input=this.get_prop_input(path, prop);
-    api.set_prop(ctx, path, input.data);
-  }]);
-  _es6_module.add_class(DataPathOp);
-  mixin(ToolOp, EventHandler);
-  var MassSetPathOp=_ESClass("MassSetPathOp", ToolOp, [function MassSetPathOp(path, subpath, filterstr, use_simple_undo) {
-    if (path==undefined) {
-        path = "";
-    }
-    if (subpath==undefined) {
-        subpath = "";
-    }
-    if (filterstr==undefined) {
-        filterstr = "";
-    }
-    if (use_simple_undo==undefined) {
-        use_simple_undo = false;
-    }
-    ToolOpAbstract.call(this, "DataPathOp", "DataPath", "DataPath Value Set");
-    this.use_simple_undo = use_simple_undo;
-    this.is_modal = false;
-    this.path = path;
-    this.subpath = subpath;
-    this.filterstr = filterstr;
-    this.inputs = {path: new StringProperty(path, "path", "path", "path"), vec3: new Vec3Property(undefined, "vec3", "vec3", "vec3"), vec4: new Vec4Property(undefined, "vec4", "vec4", "vec4"), pint: new IntProperty(0, "pint", "pint", "pint"), pfloat: new FloatProperty(0, "pfloat", "pfloat", "pfloat"), str: new StringProperty("", "str", "str", "str"), bool: new BoolProperty(false, "bool", "bool", "bool"), val_input: new StringProperty("", "val_input", "val_input", "val_input")}
-    this.outputs = {}
-    for (var k in this.inputs) {
-        this.inputs[k].flag|=TPropFlags.PRIVATE;
-    }
-  }, function _get_value(ctx) {
-    var path=this.path.trim();
-    var prop=api.get_prop_meta(ctx, path);
-    if (prop==undefined) {
-        console.trace("Warning: DataPathOp failed!");
-        return ;
-    }
-    return this.get_prop_input(path, prop);
-  }, function undo_pre(ctx) {
-    var value=this._get_value(ctx);
-    var paths=ctx.api.build_mass_set_paths(ctx, this.path, this.subpath, value, this.filterstr);
-    var ud=this._undo = {}
-    for (var i=0; i<paths.length; i++) {
-        var value2=ctx.api.get_prop(paths[i]);
-        ud[paths[i]] = JSON.stringify(value2);
-    }
-  }, function undo(ctx) {
-    var value=this._get_value(ctx);
-    var paths=ctx.api.build_mass_set_paths(ctx, this.path, this.subpath, value, this.filterstr);
-    var ud=this._undo;
-    for (var k in ud) {
-        var data=JSON.parse(ud[k]);
-        if (data=="undefined")
-          data = undefined;
-        ctx.api.set_prop(ctx, k, data);
-    }
-  }, function get_prop_input(path, prop) {
-    if (prop==undefined) {
-        console.trace("Warning: DataPathOp failed!", path, prop);
-        return ;
-    }
-    var input;
-    if (prop.type==PropTypes.INT) {
-        input = this.inputs.pint;
-    }
-    else 
-      if (prop.type==PropTypes.FLOAT) {
-        input = this.inputs.pfloat;
-    }
-    else 
-      if (prop.type==PropTypes.VEC3) {
-        input = path.endsWith("]") ? this.inputs.pfloat : this.inputs.vec3;
-    }
-    else 
-      if (prop.type==PropTypes.VEC4) {
-        input = path.endsWith("]") ? this.inputs.pfloat : this.inputs.vec4;
-    }
-    else 
-      if (prop.type==PropTypes.BOOL) {
-        input = this.inputs.bool;
-    }
-    else 
-      if (prop.type==PropTypes.STR) {
-        input = this.inputs.str;
-    }
-    else 
-      if (prop.type==PropTypes.FLAG) {
-        input = this.inputs.str;
-    }
-    else 
-      if (prop.type==PropTypes.ENUM) {
-        input = this.inputs.pint;
-    }
-    else {
-      console.trace("ERROR: unimplemented prop type "+prop.type+"in DataPathOp", prop, this);
-      return undefined;
-    }
-    return input;
-  }, function exec(ctx) {
-    var api=g_app_state.api;
-    var path=this.inputs.path.data.trim();
-    var prop=api.get_prop_meta(ctx, path);
-    if (prop==undefined) {
-        console.trace("Warning: DataPathOp failed!");
-        return ;
-    }
-    var input=this.get_prop_input(path, prop);
-    api.mass_set_prop(ctx, path, this.subpath, input.data, this.filterstr);
-  }]);
-  _es6_module.add_class(MassSetPathOp);
-  window.init_toolop_structs = function() {
-    
-    function gen_fromSTRUCT(cls1) {
-      function fromSTRUCT(reader) {
-        var op=new cls1();
-        var inputs=op.inputs, outputs=op.outputs;
-        reader(op);
-        var ins=Object.create(inputs), outs=Object.create(outputs);
-        for (var i=0; i<op.inputs.length; i++) {
-            var k=op.inputs[i].key;
-            ins[k] = op.inputs[i].value;
-            if (k in inputs) {
-                ins[k].load_ui_data(inputs[k]);
-            }
-            else {
-              ins[k].uiname = ins[k].apiname = k;
-            }
-        }
-        for (var i=0; i<op.outputs.length; i++) {
-            var k=op.outputs[i].key;
-            outs[k] = op.outputs[i].value;
-            if (k in outputs) {
-                outs[k].load_ui_data(outputs[k]);
-            }
-            else {
-              outs[k].uiname = outs[k].apiname = k;
-            }
-        }
-        op.inputs = ins;
-        op.outputs = outs;
-        return op;
-      }
-      return fromSTRUCT;
-    }
-    for (var i=0; i<defined_classes.length; i++) {
-        var cls=defined_classes[i];
-        var ok=false;
-        var is_toolop=false;
-        var parent=cls.__parent__;
-        while (parent!==undefined) {
-          if (parent===ToolOpAbstract) {
-              ok = true;
-          }
-          else 
-            if (parent===ToolOp) {
-              ok = true;
-              is_toolop = true;
-              break;
-          }
-          parent = parent.__parent__;
-        }
-        if (!ok)
-          continue;
-        if (!("STRUCT" in cls)) {
-            cls.STRUCT = cls.name+" {"+"\n        flag    : int;\n        inputs  : iter(k, PropPair) | new PropPair(k, obj.inputs[k]);\n        outputs : iter(k, PropPair) | new PropPair(k, obj.outputs[k]);\n      ";
-            if (is_toolop)
-              cls.STRUCT+="    saved_context  : SavedContext | obj.get_saved_context();\n";
-            cls.STRUCT+="  }";
-        }
-        if (!("fromSTRUCT" in cls.__statics__)) {
-            cls.fromSTRUCT = gen_fromSTRUCT(cls);
-            define_static(cls, "fromSTRUCT", cls.fromSTRUCT);
+          return 0;
         }
     }
   }
-  var WidgetToolOp=_ESClass("WidgetToolOp", ToolOp, [_ESClass.static(function create_widgets(manager, ctx) {
-    var widget=manager.create();
-    var enabled_axes=this.widget_axes;
-    var do_widget_center=this.widget_center;
-    var gen_toolop=this.gen_toolop;
-    var do_x=enabled_axes[0], do_y=enabled_axes[1], do_z=enabled_axes[2];
-    if (do_x)
-      widget.arrow([1, 0, 0], 0, [1, 0, 0, 1]);
-    if (do_y)
-      widget.arrow([0, 1, 0], 1, [0, 1, 0, 1]);
-    if (do_z)
-      widget.arrow([0, 0, 1], 2, [0, 0, 1, 1]);
-    var this2=this;
-    var $zaxis_bThP;
-    function widget_on_tick(widget) {
-      var mat=widget.matrix;
-      var mesh=ctx.mesh;
-      var cent=new Vector3();
-      var len=0;
-      var v1=new Vector3();
-      var __iter_v=__get_iter(mesh.verts.selected);
-      var v;
-      while (1) {
-        var __ival_v=__iter_v.next();
-        if (__ival_v.done) {
-            break;
+  function warnOnce(text) {
+    if (!warnOnce.shown)
+      warnOnce.shown = {}
+    if (!warnOnce.shown[text]) {
+        warnOnce.shown[text] = 1;
+        Module.printErr(text);
+    }
+  }
+  var jsCallStartIndex=1;
+  var functionPointers=new Array(0);
+  function addFunction(func, sig) {
+    if (typeof sig==='undefined') {
+        Module.printErr('Warning: addFunction: Provide a wasm function signature '+'string as a second argument');
+    }
+    var base=0;
+    for (var i=base; i<base+0; i++) {
+        if (!functionPointers[i]) {
+            functionPointers[i] = func;
+            return jsCallStartIndex+i;
         }
-        v = __ival_v.value;
-        cent.add(v.co);
-        v1.load(v.edges[0].v1.co).sub(v.edges[0].v2.co);
-        v1.normalize();
-        len++;
-      }
-      if (len>0)
-        cent.mulScalar(1.0/len);
-      mat.makeIdentity();
-      mat.translate(cent[0], cent[1], cent[2]);
-      if (this2.widget_align_normal) {
-          var n=new Vector3();
-          var tan=new Vector3();
-          len = 0;
-          var v1=new Vector3();
-          var __iter_f=__get_iter(mesh.faces.selected);
-          var f;
-          while (1) {
-            var __ival_f=__iter_f.next();
-            if (__ival_f.done) {
-                break;
+    }
+    throw 'Finished up all reserved function pointers. Use a higher value for RESERVED_FUNCTION_POINTERS.';
+  }
+  function removeFunction(index) {
+    functionPointers[index-jsCallStartIndex] = null;
+  }
+  var funcWrappers={}
+  function getFuncWrapper(func, sig) {
+    if (!func)
+      return ;
+    assert(sig);
+    if (!funcWrappers[sig]) {
+        funcWrappers[sig] = {};
+    }
+    var sigCache=funcWrappers[sig];
+    if (!sigCache[func]) {
+        if (sig.length===1) {
+            sigCache[func] = function dynCall_wrapper() {
+              return dynCall(sig, func);
+            };
+        }
+        else 
+          if (sig.length===2) {
+            sigCache[func] = function dynCall_wrapper(arg) {
+              return dynCall(sig, func, [arg]);
+            };
+        }
+        else {
+          sigCache[func] = function dynCall_wrapper() {
+            return dynCall(sig, func, Array.prototype.slice.call(arguments));
+          };
+        }
+    }
+    return sigCache[func];
+  }
+  function makeBigInt(low, high, unsigned) {
+    return unsigned ? ((+((low>>>0)))+((+((high>>>0)))*4294967296.0)) : ((+((low>>>0)))+((+((high|0)))*4294967296.0));
+  }
+  function dynCall(sig, ptr, args) {
+    if (args&&args.length) {
+        assert(args.length==sig.length-1);
+        assert(('dynCall_'+sig) in Module, 'bad function pointer type - no table for sig \''+sig+'\'');
+        return Module['dynCall_'+sig].apply(null, [ptr].concat(args));
+    }
+    else {
+      assert(sig.length==1);
+      assert(('dynCall_'+sig) in Module, 'bad function pointer type - no table for sig \''+sig+'\'');
+      return Module['dynCall_'+sig].call(null, ptr);
+    }
+  }
+  function getCompilerSetting(name) {
+    throw 'You must build with -s RETAIN_COMPILER_SETTINGS=1 for getCompilerSetting or emscripten_get_compiler_setting to work';
+  }
+  var Runtime={dynCall: dynCall, getTempRet0: function() {
+    abort('getTempRet0() is now a top-level function, after removing the Runtime object. Remove "Runtime."');
+  }, staticAlloc: function() {
+    abort('staticAlloc() is now a top-level function, after removing the Runtime object. Remove "Runtime."');
+  }, stackAlloc: function() {
+    abort('stackAlloc() is now a top-level function, after removing the Runtime object. Remove "Runtime."');
+  }}
+  var GLOBAL_BASE=1024;
+  var ABORT=0;
+  var EXITSTATUS=0;
+  function assert(condition, text) {
+    if (!condition) {
+        abort('Assertion failed: '+text);
+    }
+  }
+  var globalScope=this;
+  function getCFunc(ident) {
+    var func=Module['_'+ident];
+    assert(func, 'Cannot call unknown function '+ident+', make sure it is exported');
+    return func;
+  }
+  var JSfuncs={'stackSave': function() {
+    stackSave();
+  }, 'stackRestore': function() {
+    stackRestore();
+  }, 'arrayToC': function(arr) {
+    var ret=stackAlloc(arr.length);
+    writeArrayToMemory(arr, ret);
+    return ret;
+  }, 'stringToC': function(str) {
+    var ret=0;
+    if (str!==null&&str!==undefined&&str!==0) {
+        var len=(str.length<<2)+1;
+        ret = stackAlloc(len);
+        stringToUTF8(str, ret, len);
+    }
+    return ret;
+  }}
+  var toC={'string': JSfuncs['stringToC'], 'array': JSfuncs['arrayToC']}
+  function ccall(ident, returnType, argTypes, args, opts) {
+    var func=getCFunc(ident);
+    var cArgs=[];
+    var stack=0;
+    assert(returnType!=='array', 'Return type should not be "array".');
+    if (args) {
+        for (var i=0; i<args.length; i++) {
+            var converter=toC[argTypes[i]];
+            if (converter) {
+                if (stack===0)
+                  stack = stackSave();
+                cArgs[i] = converter(args[i]);
             }
-            f = __ival_f.value;
-            var e=f.looplists[0].loop.e;
-            len++;
-            n.add(f.no);
-          }
-          n.mulScalar(1.0/len);
-          n.normalize();
-          if (tan.dot(tan)==0.0) {
-              tan.loadXYZ(0, 0, 1);
+            else {
+              cArgs[i] = args[i];
+            }
+        }
+    }
+    var ret=func.apply(null, cArgs);
+    if (returnType==='string')
+      ret = Pointer_stringify(ret);
+    else 
+      if (returnType==='boolean')
+      ret = Boolean(ret);
+    if (stack!==0) {
+        stackRestore(stack);
+    }
+    return ret;
+  }
+  function cwrap(ident, returnType, argTypes) {
+    argTypes = argTypes||[];
+    var cfunc=getCFunc(ident);
+    var numericArgs=argTypes.every(function(type) {
+      return type==='number';
+    });
+    var numericRet=returnType!=='string';
+    if (numericRet&&numericArgs) {
+        return cfunc;
+    }
+    return function() {
+      return ccall(ident, returnType, argTypes, arguments);
+    }
+  }
+  function setValue(ptr, value, type, noSafe) {
+    type = type||'i8';
+    if (type.charAt(type.length-1)==='*')
+      type = 'i32';
+    switch (type) {
+      case 'i1':
+        HEAP8[((ptr)>>0)] = value;
+        break;
+      case 'i8':
+        HEAP8[((ptr)>>0)] = value;
+        break;
+      case 'i16':
+        HEAP16[((ptr)>>1)] = value;
+        break;
+      case 'i32':
+        HEAP32[((ptr)>>2)] = value;
+        break;
+      case 'i64':
+        (tempI64 = [value>>>0, (tempDouble = value, (+(Math_abs(tempDouble)))>=1.0 ? (tempDouble>0.0 ? ((Math_min((+(Math_floor((tempDouble)/4294967296.0))), 4294967295.0))|0)>>>0 : (~~((+(Math_ceil((tempDouble-+(((~~(tempDouble)))>>>0))/4294967296.0)))))>>>0) : 0)], HEAP32[((ptr)>>2)] = tempI64[0], HEAP32[(((ptr)+(4))>>2)] = tempI64[1]);
+        break;
+      case 'float':
+        HEAPF32[((ptr)>>2)] = value;
+        break;
+      case 'double':
+        HEAPF64[((ptr)>>3)] = value;
+        break;
+      default:
+        abort('invalid type for setValue: '+type);
+    }
+  }
+  function getValue(ptr, type, noSafe) {
+    type = type||'i8';
+    if (type.charAt(type.length-1)==='*')
+      type = 'i32';
+    switch (type) {
+      case 'i1':
+        return HEAP8[((ptr)>>0)];
+      case 'i8':
+        return HEAP8[((ptr)>>0)];
+      case 'i16':
+        return HEAP16[((ptr)>>1)];
+      case 'i32':
+        return HEAP32[((ptr)>>2)];
+      case 'i64':
+        return HEAP32[((ptr)>>2)];
+      case 'float':
+        return HEAPF32[((ptr)>>2)];
+      case 'double':
+        return HEAPF64[((ptr)>>3)];
+      default:
+        abort('invalid type for getValue: '+type);
+    }
+    return null;
+  }
+  var ALLOC_NORMAL=0;
+  var ALLOC_STACK=1;
+  var ALLOC_STATIC=2;
+  var ALLOC_DYNAMIC=3;
+  var ALLOC_NONE=4;
+  function allocate(slab, types, allocator, ptr) {
+    var zeroinit, size;
+    if (typeof slab==='number') {
+        zeroinit = true;
+        size = slab;
+    }
+    else {
+      zeroinit = false;
+      size = slab.length;
+    }
+    var singleType=typeof types==='string' ? types : null;
+    var ret;
+    if (allocator==ALLOC_NONE) {
+        ret = ptr;
+    }
+    else {
+      ret = [typeof _malloc==='function' ? _malloc : staticAlloc, stackAlloc, staticAlloc, dynamicAlloc][allocator===undefined ? ALLOC_STATIC : allocator](Math.max(size, singleType ? 1 : types.length));
+    }
+    if (zeroinit) {
+        var stop;
+        ptr = ret;
+        assert((ret&3)==0);
+        stop = ret+(size&~3);
+        for (; ptr<stop; ptr+=4) {
+            HEAP32[((ptr)>>2)] = 0;
+        }
+        stop = ret+size;
+        while (ptr<stop) {
+          HEAP8[((ptr++)>>0)] = 0;
+        }
+        return ret;
+    }
+    if (singleType==='i8') {
+        if (slab.subarray||slab.slice) {
+            HEAPU8.set((slab), ret);
+        }
+        else {
+          HEAPU8.set(new Uint8Array(slab), ret);
+        }
+        return ret;
+    }
+    var i=0, type, typeSize, previousType;
+    while (i<size) {
+      var curr=slab[i];
+      type = singleType||types[i];
+      if (type===0) {
+          i++;
+          continue;
+      }
+      assert(type, 'Must know what type to store in allocate!');
+      if (type=='i64')
+        type = 'i32';
+      setValue(ret+i, curr, type);
+      if (previousType!==type) {
+          typeSize = getNativeTypeSize(type);
+          previousType = type;
+      }
+      i+=typeSize;
+    }
+    return ret;
+  }
+  function getMemory(size) {
+    if (!staticSealed)
+      return staticAlloc(size);
+    if (!runtimeInitialized)
+      return dynamicAlloc(size);
+    return _malloc(size);
+  }
+  function Pointer_stringify(ptr, length) {
+    if (length===0||!ptr)
+      return '';
+    var hasUtf=0;
+    var t;
+    var i=0;
+    while (1) {
+      assert(ptr+i<TOTAL_MEMORY);
+      t = HEAPU8[(((ptr)+(i))>>0)];
+      hasUtf|=t;
+      if (t==0&&!length)
+        break;
+      i++;
+      if (length&&i==length)
+        break;
+    }
+    if (!length)
+      length = i;
+    var ret='';
+    if (hasUtf<128) {
+        var MAX_CHUNK=1024;
+        var curr;
+        while (length>0) {
+          curr = String.fromCharCode.apply(String, HEAPU8.subarray(ptr, ptr+Math.min(length, MAX_CHUNK)));
+          ret = ret ? ret+curr : curr;
+          ptr+=MAX_CHUNK;
+          length-=MAX_CHUNK;
+        }
+        return ret;
+    }
+    return UTF8ToString(ptr);
+  }
+  function AsciiToString(ptr) {
+    var str='';
+    while (1) {
+      var ch=HEAP8[((ptr++)>>0)];
+      if (!ch)
+        return str;
+      str+=String.fromCharCode(ch);
+    }
+  }
+  function stringToAscii(str, outPtr) {
+    return writeAsciiToMemory(str, outPtr, false);
+  }
+  var UTF8Decoder=typeof TextDecoder!=='undefined' ? new TextDecoder('utf8') : undefined;
+  function UTF8ArrayToString(u8Array, idx) {
+    var endPtr=idx;
+    while (u8Array[endPtr]) {
+      ++endPtr    }
+    if (endPtr-idx>16&&u8Array.subarray&&UTF8Decoder) {
+        return UTF8Decoder.decode(u8Array.subarray(idx, endPtr));
+    }
+    else {
+      var u0, u1, u2, u3, u4, u5;
+      var str='';
+      while (1) {
+        u0 = u8Array[idx++];
+        if (!u0)
+          return str;
+        if (!(u0&0x80)) {
+            str+=String.fromCharCode(u0);
+            continue;
+        }
+        u1 = u8Array[idx++]&63;
+        if ((u0&0xe0)==0xc0) {
+            str+=String.fromCharCode(((u0&31)<<6)|u1);
+            continue;
+        }
+        u2 = u8Array[idx++]&63;
+        if ((u0&0xf0)==0xe0) {
+            u0 = ((u0&15)<<12)|(u1<<6)|u2;
+        }
+        else {
+          u3 = u8Array[idx++]&63;
+          if ((u0&0xf8)==0xf0) {
+              u0 = ((u0&7)<<18)|(u1<<12)|(u2<<6)|u3;
           }
           else {
-            tan.mulScalar(1.0/len);
-            tan.normalize();
-          }
-          var angle=Math.PI-Math.acos($zaxis_bThP.dot(n));
-          if (n.dot($zaxis_bThP)>0.9) {
-          }
-          if (1) {
-              if (Math.abs(angle)<0.001||Math.abs(angle)>Math.PI-0.001) {
-                  n.loadXYZ(1, 0, 0);
-              }
-              else {
-                n.cross($zaxis_bThP);
-                n.normalize();
-              }
-              var q=new Quat();
-              q.axisAngleToQuat(n, angle);
-              var rmat=q.toMatrix();
-              mat.multiply(rmat);
-          }
-      }
-      mat.multiply(ctx.object.matrix);
-    }
-    var $zaxis_bThP=new Vector3([0, 0, -1]);
-    widget.on_tick = widget_on_tick;
-    widget.on_click = function(widget, id) {
-      console.log("widget click: ", id);
-      ctx.view2d._mstart = null;
-      var toolop=undefined;
-      if (gen_toolop!=undefined) {
-          var toolop=gen_toolop(id, widget, ctx);
-      }
-      else {
-        console.trace("IMPLEMENT ME! missing widget gen_toolop callback!");
-        return ;
-      }
-      if (toolop==undefined) {
-          console.log("Evil! Undefined toolop in WidgetToolOp.create_widgets()!");
-          return ;
-      }
-      widget.user_data = toolop;
-      toolop._widget_on_tick = widget_on_tick;
-      toolop.widgets.push(widget);
-      toolop.on_modal_end = function(toolop) {
-        var __iter_w=__get_iter(toolop.widgets);
-        var w;
-        while (1) {
-          var __ival_w=__iter_w.next();
-          if (__ival_w.done) {
-              break;
-          }
-          w = __ival_w.value;
-          for (var k in toolop.inputs) {
-              var p=toolop.inputs[k];
-              p.remove_listener(w, true);
-          }
-          for (var k in toolop.outputs) {
-              var p=toolop.outputs[k];
-              p.remove_listener(w, true);
+            u4 = u8Array[idx++]&63;
+            if ((u0&0xfc)==0xf8) {
+                u0 = ((u0&3)<<24)|(u1<<18)|(u2<<12)|(u3<<6)|u4;
+            }
+            else {
+              u5 = u8Array[idx++]&63;
+              u0 = ((u0&1)<<30)|(u1<<24)|(u2<<18)|(u3<<12)|(u4<<6)|u5;
+            }
           }
         }
-        console.log("widget modal end");
-        toolop.widgets = new GArray();
-        widget.on_tick = widget_on_tick;
+        if (u0<0x10000) {
+            str+=String.fromCharCode(u0);
+        }
+        else {
+          var ch=u0-0x10000;
+          str+=String.fromCharCode(0xd800|(ch>>10), 0xdc00|(ch&0x3ff));
+        }
       }
-      if (toolop.widget_on_tick)
-        widget.widget_on_tick = toolop.widget_on_tick;
-      widget.on_tick = function(widget) {
-        toolop.widget_on_tick.call(toolop, widget);
-      }
-      g_app_state.toolstack.exec_tool(toolop);
     }
-  }), function widget_on_tick(widget) {
-    if (this._widget_on_tick!=undefined)
-      this._widget_on_tick(widget);
-  }, function WidgetToolOp() {
-    ToolOp.apply(this, arguments);
-  }]);
-  _es6_module.add_class(WidgetToolOp);
+  }
+  function UTF8ToString(ptr) {
+    return UTF8ArrayToString(HEAPU8, ptr);
+  }
+  function stringToUTF8Array(str, outU8Array, outIdx, maxBytesToWrite) {
+    if (!(maxBytesToWrite>0))
+      return 0;
+    var startIdx=outIdx;
+    var endIdx=outIdx+maxBytesToWrite-1;
+    for (var i=0; i<str.length; ++i) {
+        var u=str.charCodeAt(i);
+        if (u>=0xd800&&u<=0xdfff)
+          u = 0x10000+((u&0x3ff)<<10)|(str.charCodeAt(++i)&0x3ff);
+        if (u<=0x7f) {
+            if (outIdx>=endIdx)
+              break;
+            outU8Array[outIdx++] = u;
+        }
+        else 
+          if (u<=0x7ff) {
+            if (outIdx+1>=endIdx)
+              break;
+            outU8Array[outIdx++] = 0xc0|(u>>6);
+            outU8Array[outIdx++] = 0x80|(u&63);
+        }
+        else 
+          if (u<=0xffff) {
+            if (outIdx+2>=endIdx)
+              break;
+            outU8Array[outIdx++] = 0xe0|(u>>12);
+            outU8Array[outIdx++] = 0x80|((u>>6)&63);
+            outU8Array[outIdx++] = 0x80|(u&63);
+        }
+        else 
+          if (u<=0x1fffff) {
+            if (outIdx+3>=endIdx)
+              break;
+            outU8Array[outIdx++] = 0xf0|(u>>18);
+            outU8Array[outIdx++] = 0x80|((u>>12)&63);
+            outU8Array[outIdx++] = 0x80|((u>>6)&63);
+            outU8Array[outIdx++] = 0x80|(u&63);
+        }
+        else 
+          if (u<=0x3ffffff) {
+            if (outIdx+4>=endIdx)
+              break;
+            outU8Array[outIdx++] = 0xf8|(u>>24);
+            outU8Array[outIdx++] = 0x80|((u>>18)&63);
+            outU8Array[outIdx++] = 0x80|((u>>12)&63);
+            outU8Array[outIdx++] = 0x80|((u>>6)&63);
+            outU8Array[outIdx++] = 0x80|(u&63);
+        }
+        else {
+          if (outIdx+5>=endIdx)
+            break;
+          outU8Array[outIdx++] = 0xfc|(u>>30);
+          outU8Array[outIdx++] = 0x80|((u>>24)&63);
+          outU8Array[outIdx++] = 0x80|((u>>18)&63);
+          outU8Array[outIdx++] = 0x80|((u>>12)&63);
+          outU8Array[outIdx++] = 0x80|((u>>6)&63);
+          outU8Array[outIdx++] = 0x80|(u&63);
+        }
+    }
+    outU8Array[outIdx] = 0;
+    return outIdx-startIdx;
+  }
+  function stringToUTF8(str, outPtr, maxBytesToWrite) {
+    assert(typeof maxBytesToWrite=='number', 'stringToUTF8(str, outPtr, maxBytesToWrite) is missing the third parameter that specifies the length of the output buffer!');
+    return stringToUTF8Array(str, HEAPU8, outPtr, maxBytesToWrite);
+  }
+  function lengthBytesUTF8(str) {
+    var len=0;
+    for (var i=0; i<str.length; ++i) {
+        var u=str.charCodeAt(i);
+        if (u>=0xd800&&u<=0xdfff)
+          u = 0x10000+((u&0x3ff)<<10)|(str.charCodeAt(++i)&0x3ff);
+        if (u<=0x7f) {
+            ++len;
+        }
+        else 
+          if (u<=0x7ff) {
+            len+=2;
+        }
+        else 
+          if (u<=0xffff) {
+            len+=3;
+        }
+        else 
+          if (u<=0x1fffff) {
+            len+=4;
+        }
+        else 
+          if (u<=0x3ffffff) {
+            len+=5;
+        }
+        else {
+          len+=6;
+        }
+    }
+    return len;
+  }
+  var UTF16Decoder=typeof TextDecoder!=='undefined' ? new TextDecoder('utf-16le') : undefined;
+  function UTF16ToString(ptr) {
+    assert(ptr%2==0, 'Pointer passed to UTF16ToString must be aligned to two bytes!');
+    var endPtr=ptr;
+    var idx=endPtr>>1;
+    while (HEAP16[idx]) {
+      ++idx    }
+    endPtr = idx<<1;
+    if (endPtr-ptr>32&&UTF16Decoder) {
+        return UTF16Decoder.decode(HEAPU8.subarray(ptr, endPtr));
+    }
+    else {
+      var i=0;
+      var str='';
+      while (1) {
+        var codeUnit=HEAP16[(((ptr)+(i*2))>>1)];
+        if (codeUnit==0)
+          return str;
+        ++i;
+        str+=String.fromCharCode(codeUnit);
+      }
+    }
+  }
+  function stringToUTF16(str, outPtr, maxBytesToWrite) {
+    assert(outPtr%2==0, 'Pointer passed to stringToUTF16 must be aligned to two bytes!');
+    assert(typeof maxBytesToWrite=='number', 'stringToUTF16(str, outPtr, maxBytesToWrite) is missing the third parameter that specifies the length of the output buffer!');
+    if (maxBytesToWrite===undefined) {
+        maxBytesToWrite = 0x7fffffff;
+    }
+    if (maxBytesToWrite<2)
+      return 0;
+    maxBytesToWrite-=2;
+    var startPtr=outPtr;
+    var numCharsToWrite=(maxBytesToWrite<str.length*2) ? (maxBytesToWrite/2) : str.length;
+    for (var i=0; i<numCharsToWrite; ++i) {
+        var codeUnit=str.charCodeAt(i);
+        HEAP16[((outPtr)>>1)] = codeUnit;
+        outPtr+=2;
+    }
+    HEAP16[((outPtr)>>1)] = 0;
+    return outPtr-startPtr;
+  }
+  function lengthBytesUTF16(str) {
+    return str.length*2;
+  }
+  function UTF32ToString(ptr) {
+    assert(ptr%4==0, 'Pointer passed to UTF32ToString must be aligned to four bytes!');
+    var i=0;
+    var str='';
+    while (1) {
+      var utf32=HEAP32[(((ptr)+(i*4))>>2)];
+      if (utf32==0)
+        return str;
+      ++i;
+      if (utf32>=0x10000) {
+          var ch=utf32-0x10000;
+          str+=String.fromCharCode(0xd800|(ch>>10), 0xdc00|(ch&0x3ff));
+      }
+      else {
+        str+=String.fromCharCode(utf32);
+      }
+    }
+  }
+  function stringToUTF32(str, outPtr, maxBytesToWrite) {
+    assert(outPtr%4==0, 'Pointer passed to stringToUTF32 must be aligned to four bytes!');
+    assert(typeof maxBytesToWrite=='number', 'stringToUTF32(str, outPtr, maxBytesToWrite) is missing the third parameter that specifies the length of the output buffer!');
+    if (maxBytesToWrite===undefined) {
+        maxBytesToWrite = 0x7fffffff;
+    }
+    if (maxBytesToWrite<4)
+      return 0;
+    var startPtr=outPtr;
+    var endPtr=startPtr+maxBytesToWrite-4;
+    for (var i=0; i<str.length; ++i) {
+        var codeUnit=str.charCodeAt(i);
+        if (codeUnit>=0xd800&&codeUnit<=0xdfff) {
+            var trailSurrogate=str.charCodeAt(++i);
+            codeUnit = 0x10000+((codeUnit&0x3ff)<<10)|(trailSurrogate&0x3ff);
+        }
+        HEAP32[((outPtr)>>2)] = codeUnit;
+        outPtr+=4;
+        if (outPtr+4>endPtr)
+          break;
+    }
+    HEAP32[((outPtr)>>2)] = 0;
+    return outPtr-startPtr;
+  }
+  function lengthBytesUTF32(str) {
+    var len=0;
+    for (var i=0; i<str.length; ++i) {
+        var codeUnit=str.charCodeAt(i);
+        if (codeUnit>=0xd800&&codeUnit<=0xdfff)
+          ++i;
+        len+=4;
+    }
+    return len;
+  }
+  function allocateUTF8(str) {
+    var size=lengthBytesUTF8(str)+1;
+    var ret=_malloc(size);
+    if (ret)
+      stringToUTF8Array(str, HEAP8, ret, size);
+    return ret;
+  }
+  function allocateUTF8OnStack(str) {
+    var size=lengthBytesUTF8(str)+1;
+    var ret=stackAlloc(size);
+    stringToUTF8Array(str, HEAP8, ret, size);
+    return ret;
+  }
+  function demangle(func) {
+    warnOnce('warning: build with  -s DEMANGLE_SUPPORT=1  to link in libcxxabi demangling');
+    return func;
+  }
+  function demangleAll(text) {
+    var regex=/__Z[\w\d_]+/g;
+    return text.replace(regex, function(x) {
+      var y=demangle(x);
+      return x===y ? x : (x+' ['+y+']');
+    });
+  }
+  function jsStackTrace() {
+    var err=new Error();
+    if (!err.stack) {
+        try {
+          throw new Error(0);
+        }
+        catch (e) {
+            err = e;
+        }
+        if (!err.stack) {
+            return '(no stack trace available)';
+        }
+    }
+    return err.stack.toString();
+  }
+  function stackTrace() {
+    var js=jsStackTrace();
+    if (Module['extraStackTrace'])
+      js+='\n'+Module['extraStackTrace']();
+    return demangleAll(js);
+  }
+  var PAGE_SIZE=16384;
+  var WASM_PAGE_SIZE=65536;
+  var ASMJS_PAGE_SIZE=16777216;
+  var MIN_TOTAL_MEMORY=16777216;
+  function alignUp(x, multiple) {
+    if (x%multiple>0) {
+        x+=multiple-(x%multiple);
+    }
+    return x;
+  }
+  var HEAP, buffer, HEAP8, HEAPU8, HEAP16, HEAPU16, HEAP32, HEAPU32, HEAPF32, HEAPF64;
+  function updateGlobalBuffer(buf) {
+    Module['buffer'] = buffer = buf;
+  }
+  function updateGlobalBufferViews() {
+    Module['HEAP8'] = HEAP8 = new Int8Array(buffer);
+    Module['HEAP16'] = HEAP16 = new Int16Array(buffer);
+    Module['HEAP32'] = HEAP32 = new Int32Array(buffer);
+    Module['HEAPU8'] = HEAPU8 = new Uint8Array(buffer);
+    Module['HEAPU16'] = HEAPU16 = new Uint16Array(buffer);
+    Module['HEAPU32'] = HEAPU32 = new Uint32Array(buffer);
+    Module['HEAPF32'] = HEAPF32 = new Float32Array(buffer);
+    Module['HEAPF64'] = HEAPF64 = new Float64Array(buffer);
+  }
+  var STATIC_BASE, STATICTOP, staticSealed;
+  var STACK_BASE, STACKTOP, STACK_MAX;
+  var DYNAMIC_BASE, DYNAMICTOP_PTR;
+  STATIC_BASE = STATICTOP = STACK_BASE = STACKTOP = STACK_MAX = DYNAMIC_BASE = DYNAMICTOP_PTR = 0;
+  staticSealed = false;
+  function writeStackCookie() {
+    assert((STACK_MAX&3)==0);
+    HEAPU32[(STACK_MAX>>2)-1] = 0x2135467;
+    HEAPU32[(STACK_MAX>>2)-2] = 0x89bacdfe;
+  }
+  function checkStackCookie() {
+    if (HEAPU32[(STACK_MAX>>2)-1]!=0x2135467||HEAPU32[(STACK_MAX>>2)-2]!=0x89bacdfe) {
+        abort('Stack overflow! Stack cookie has been overwritten, expected hex dwords 0x89BACDFE and 0x02135467, but received 0x'+HEAPU32[(STACK_MAX>>2)-2].toString(16)+' '+HEAPU32[(STACK_MAX>>2)-1].toString(16));
+    }
+    if (HEAP32[0]!==0x63736d65)
+      throw 'Runtime error: The application has corrupted its heap memory area (address zero)!';
+  }
+  function abortStackOverflow(allocSize) {
+    abort('Stack overflow! Attempted to allocate '+allocSize+' bytes on the stack, but stack has only '+(STACK_MAX-stackSave()+allocSize)+' bytes available!');
+  }
+  function abortOnCannotGrowMemory() {
+    abort('Cannot enlarge memory arrays. Either (1) compile with  -s TOTAL_MEMORY=X  with X higher than the current value '+TOTAL_MEMORY+', (2) compile with  -s ALLOW_MEMORY_GROWTH=1  which allows increasing the size at runtime, or (3) if you want malloc to return NULL (0) instead of this abort, compile with  -s ABORTING_MALLOC=0 ');
+  }
+  function enlargeMemory() {
+    abortOnCannotGrowMemory();
+  }
+  var TOTAL_STACK=Module['TOTAL_STACK']||5242880;
+  var TOTAL_MEMORY=Module['TOTAL_MEMORY']||16777216;
+  if (TOTAL_MEMORY<TOTAL_STACK)
+    Module.printErr('TOTAL_MEMORY should be larger than TOTAL_STACK, was '+TOTAL_MEMORY+'! (TOTAL_STACK='+TOTAL_STACK+')');
+  assert(typeof Int32Array!=='undefined'&&typeof Float64Array!=='undefined'&&Int32Array.prototype.subarray!==undefined&&Int32Array.prototype.set!==undefined, 'JS engine does not provide full typed array support');
+  if (Module['buffer']) {
+      buffer = Module['buffer'];
+      assert(buffer.byteLength===TOTAL_MEMORY, 'provided buffer should be '+TOTAL_MEMORY+' bytes, but it is '+buffer.byteLength);
+  }
+  else {
+    if (typeof WebAssembly==='object'&&typeof WebAssembly.Memory==='function') {
+        assert(TOTAL_MEMORY%WASM_PAGE_SIZE===0);
+        Module['wasmMemory'] = new WebAssembly.Memory({'initial': TOTAL_MEMORY/WASM_PAGE_SIZE, 'maximum': TOTAL_MEMORY/WASM_PAGE_SIZE});
+        buffer = Module['wasmMemory'].buffer;
+    }
+    else {
+      buffer = new ArrayBuffer(TOTAL_MEMORY);
+    }
+    assert(buffer.byteLength===TOTAL_MEMORY);
+    Module['buffer'] = buffer;
+  }
+  updateGlobalBufferViews();
+  function getTotalMemory() {
+    return TOTAL_MEMORY;
+  }
+  HEAP32[0] = 0x63736d65;
+  HEAP16[1] = 0x6373;
+  if (HEAPU8[2]!==0x73||HEAPU8[3]!==0x63)
+    throw 'Runtime error: expected the system to be little-endian!';
+  function callRuntimeCallbacks(callbacks) {
+    while (callbacks.length>0) {
+      var callback=callbacks.shift();
+      if (typeof callback=='function') {
+          callback();
+          continue;
+      }
+      var func=callback.func;
+      if (typeof func==='number') {
+          if (callback.arg===undefined) {
+              Module['dynCall_v'](func);
+          }
+          else {
+            Module['dynCall_vi'](func, callback.arg);
+          }
+      }
+      else {
+        func(callback.arg===undefined ? null : callback.arg);
+      }
+    }
+  }
+  var __ATPRERUN__=[];
+  var __ATINIT__=[];
+  var __ATMAIN__=[];
+  var __ATEXIT__=[];
+  var __ATPOSTRUN__=[];
+  var runtimeInitialized=false;
+  var runtimeExited=false;
+  function preRun() {
+    if (Module['preRun']) {
+        if (typeof Module['preRun']=='function')
+          Module['preRun'] = [Module['preRun']];
+        while (Module['preRun'].length) {
+          addOnPreRun(Module['preRun'].shift());
+        }
+    }
+    callRuntimeCallbacks(__ATPRERUN__);
+  }
+  function ensureInitRuntime() {
+    checkStackCookie();
+    if (runtimeInitialized)
+      return ;
+    runtimeInitialized = true;
+    callRuntimeCallbacks(__ATINIT__);
+  }
+  function preMain() {
+    checkStackCookie();
+    callRuntimeCallbacks(__ATMAIN__);
+  }
+  function exitRuntime() {
+    checkStackCookie();
+    callRuntimeCallbacks(__ATEXIT__);
+    runtimeExited = true;
+  }
+  function postRun() {
+    checkStackCookie();
+    if (Module['postRun']) {
+        if (typeof Module['postRun']=='function')
+          Module['postRun'] = [Module['postRun']];
+        while (Module['postRun'].length) {
+          addOnPostRun(Module['postRun'].shift());
+        }
+    }
+    callRuntimeCallbacks(__ATPOSTRUN__);
+  }
+  function addOnPreRun(cb) {
+    __ATPRERUN__.unshift(cb);
+  }
+  function addOnInit(cb) {
+    __ATINIT__.unshift(cb);
+  }
+  function addOnPreMain(cb) {
+    __ATMAIN__.unshift(cb);
+  }
+  function addOnExit(cb) {
+    __ATEXIT__.unshift(cb);
+  }
+  function addOnPostRun(cb) {
+    __ATPOSTRUN__.unshift(cb);
+  }
+  function writeStringToMemory(string, buffer, dontAddNull) {
+    warnOnce('writeStringToMemory is deprecated and should not be called! Use stringToUTF8() instead!');
+    var lastChar, end;
+    if (dontAddNull) {
+        end = buffer+lengthBytesUTF8(string);
+        lastChar = HEAP8[end];
+    }
+    stringToUTF8(string, buffer, Infinity);
+    if (dontAddNull)
+      HEAP8[end] = lastChar;
+  }
+  function writeArrayToMemory(array, buffer) {
+    assert(array.length>=0, 'writeArrayToMemory array must have a length (should be an array or typed array)');
+    HEAP8.set(array, buffer);
+  }
+  function writeAsciiToMemory(str, buffer, dontAddNull) {
+    for (var i=0; i<str.length; ++i) {
+        assert(str.charCodeAt(i)===str.charCodeAt(i)&0xff);
+        HEAP8[((buffer++)>>0)] = str.charCodeAt(i);
+    }
+    if (!dontAddNull)
+      HEAP8[((buffer)>>0)] = 0;
+  }
+  function unSign(value, bits, ignore) {
+    if (value>=0) {
+        return value;
+    }
+    return bits<=32 ? 2*Math.abs(1<<(bits-1))+value : Math.pow(2, bits)+value;
+  }
+  function reSign(value, bits, ignore) {
+    if (value<=0) {
+        return value;
+    }
+    var half=bits<=32 ? Math.abs(1<<(bits-1)) : Math.pow(2, bits-1);
+    if (value>=half&&(bits<=32||value>half)) {
+        value = -2*half+value;
+    }
+    return value;
+  }
+  assert(Math['imul']&&Math['fround']&&Math['clz32']&&Math['trunc'], 'this is a legacy browser, build with LEGACY_VM_SUPPORT');
+  var Math_abs=Math.abs;
+  var Math_cos=Math.cos;
+  var Math_sin=Math.sin;
+  var Math_tan=Math.tan;
+  var Math_acos=Math.acos;
+  var Math_asin=Math.asin;
+  var Math_atan=Math.atan;
+  var Math_atan2=Math.atan2;
+  var Math_exp=Math.exp;
+  var Math_log=Math.log;
+  var Math_sqrt=Math.sqrt;
+  var Math_ceil=Math.ceil;
+  var Math_floor=Math.floor;
+  var Math_pow=Math.pow;
+  var Math_imul=Math.imul;
+  var Math_fround=Math.fround;
+  var Math_round=Math.round;
+  var Math_min=Math.min;
+  var Math_max=Math.max;
+  var Math_clz32=Math.clz32;
+  var Math_trunc=Math.trunc;
+  var runDependencies=0;
+  var runDependencyWatcher=null;
+  var dependenciesFulfilled=null;
+  var runDependencyTracking={}
+  function getUniqueRunDependency(id) {
+    var orig=id;
+    while (1) {
+      if (!runDependencyTracking[id])
+        return id;
+      id = orig+Math.random();
+    }
+    return id;
+  }
+  function addRunDependency(id) {
+    runDependencies++;
+    if (Module['monitorRunDependencies']) {
+        Module['monitorRunDependencies'](runDependencies);
+    }
+    if (id) {
+        assert(!runDependencyTracking[id]);
+        runDependencyTracking[id] = 1;
+        if (runDependencyWatcher===null&&typeof setInterval!=='undefined') {
+            runDependencyWatcher = setInterval(function() {
+              if (ABORT) {
+                  clearInterval(runDependencyWatcher);
+                  runDependencyWatcher = null;
+                  return ;
+              }
+              var shown=false;
+              for (var dep in runDependencyTracking) {
+                  if (!shown) {
+                      shown = true;
+                      Module.printErr('still waiting on run dependencies:');
+                  }
+                  Module.printErr('dependency: '+dep);
+              }
+              if (shown) {
+                  Module.printErr('(end of list)');
+              }
+            }, 10000);
+        }
+    }
+    else {
+      Module.printErr('warning: run dependency added without ID');
+    }
+  }
+  function removeRunDependency(id) {
+    runDependencies--;
+    if (Module['monitorRunDependencies']) {
+        Module['monitorRunDependencies'](runDependencies);
+    }
+    if (id) {
+        assert(runDependencyTracking[id]);
+        delete runDependencyTracking[id];
+    }
+    else {
+      Module.printErr('warning: run dependency removed without ID');
+    }
+    if (runDependencies==0) {
+        if (runDependencyWatcher!==null) {
+            clearInterval(runDependencyWatcher);
+            runDependencyWatcher = null;
+        }
+        if (dependenciesFulfilled) {
+            var callback=dependenciesFulfilled;
+            dependenciesFulfilled = null;
+            callback();
+        }
+    }
+  }
+  Module["preloadedImages"] = {}
+  Module["preloadedAudios"] = {}
+  var memoryInitializer=null;
+  var FS={error: function() {
+    abort('Filesystem support (FS) was not included. The problem is that you are using files from JS, but files were not used from C/C++, so filesystem support was not auto-included. You can force-include filesystem support with  -s FORCE_FILESYSTEM=1');
+  }, init: function() {
+    FS.error();
+  }, createDataFile: function() {
+    FS.error();
+  }, createPreloadedFile: function() {
+    FS.error();
+  }, createLazyFile: function() {
+    FS.error();
+  }, open: function() {
+    FS.error();
+  }, mkdev: function() {
+    FS.error();
+  }, registerDevice: function() {
+    FS.error();
+  }, analyzePath: function() {
+    FS.error();
+  }, loadFilesFromDB: function() {
+    FS.error();
+  }, ErrnoError: function ErrnoError() {
+    FS.error();
+  }}
+  Module['FS_createDataFile'] = FS.createDataFile;
+  Module['FS_createPreloadedFile'] = FS.createPreloadedFile;
+  var dataURIPrefix='data:application/octet-stream;base64,';
+  function isDataURI(filename) {
+    return String.prototype.startsWith ? filename.startsWith(dataURIPrefix) : filename.indexOf(dataURIPrefix)===0;
+  }
+  function integrateWasmJS() {
+    var method='native-wasm';
+    var wasmTextFile='_built_wasm.wast';
+    var wasmBinaryFile='_built_wasm.wasm';
+    var asmjsCodeFile='_built_wasm.temp.asm.js';
+    if (typeof Module['locateFile']==='function') {
+        if (!isDataURI(wasmTextFile)) {
+            wasmTextFile = Module['locateFile'](wasmTextFile);
+        }
+        if (!isDataURI(wasmBinaryFile)) {
+            wasmBinaryFile = Module['locateFile'](wasmBinaryFile);
+        }
+        if (!isDataURI(asmjsCodeFile)) {
+            asmjsCodeFile = Module['locateFile'](asmjsCodeFile);
+        }
+    }
+    var wasmPageSize=64*1024;
+    var info={'global': null, 'env': null, 'asm2wasm': {"f64-rem": function(x, y) {
+      return x%y;
+    }, "debugger": function() {
+      debugger;
+    }}, 'parent': Module}
+    var exports=null;
+    function mergeMemory(newBuffer) {
+      var oldBuffer=Module['buffer'];
+      if (newBuffer.byteLength<oldBuffer.byteLength) {
+          Module['printErr']('the new buffer in mergeMemory is smaller than the previous one. in native wasm, we should grow memory here');
+      }
+      var oldView=new Int8Array(oldBuffer);
+      var newView=new Int8Array(newBuffer);
+      newView.set(oldView);
+      updateGlobalBuffer(newBuffer);
+      updateGlobalBufferViews();
+    }
+    function fixImports(imports) {
+      return imports;
+    }
+    function getBinary() {
+      try {
+        if (Module['wasmBinary']) {
+            return new Uint8Array(Module['wasmBinary']);
+        }
+        if (Module['readBinary']) {
+            return Module['readBinary'](wasmBinaryFile);
+        }
+        else {
+          throw "on the web, we need the wasm binary to be preloaded and set on Module['wasmBinary']. emcc.py will do that for you when generating HTML (but not JS)";
+        }
+      }
+      catch (err) {
+          abort(err);
+      }
+    }
+    function getBinaryPromise() {
+      if (!Module['wasmBinary']&&(ENVIRONMENT_IS_WEB||ENVIRONMENT_IS_WORKER)&&typeof fetch==='function') {
+          return fetch(wasmBinaryFile, {credentials: 'same-origin'}).then(function(response) {
+            if (!response['ok']) {
+                throw "failed to load wasm binary file at '"+wasmBinaryFile+"'";
+            }
+            return response['arrayBuffer']();
+          }).catch(function() {
+            return getBinary();
+          });
+      }
+      return new Promise(function(resolve, reject) {
+        resolve(getBinary());
+      });
+    }
+    function doNativeWasm(global, env, providedBuffer) {
+      if (typeof WebAssembly!=='object') {
+          Module['printErr']('no native wasm support detected');
+          return false;
+      }
+      if (!(__instance_of(Module['wasmMemory'], WebAssembly.Memory))) {
+          Module['printErr']('no native wasm Memory in use');
+          return false;
+      }
+      env['memory'] = Module['wasmMemory'];
+      info['global'] = {'NaN': NaN, 'Infinity': Infinity}
+      info['global.Math'] = Math;
+      info['env'] = env;
+      function receiveInstance(instance, module) {
+        exports = instance.exports;
+        if (exports.memory)
+          mergeMemory(exports.memory);
+        Module['asm'] = exports;
+        Module["usingWasm"] = true;
+        removeRunDependency('wasm-instantiate');
+      }
+      addRunDependency('wasm-instantiate');
+      if (Module['instantiateWasm']) {
+          try {
+            return Module['instantiateWasm'](info, receiveInstance);
+          }
+          catch (e) {
+              Module['printErr']('Module.instantiateWasm callback failed with error: '+e);
+              return false;
+          }
+      }
+      var trueModule=Module;
+      function receiveInstantiatedSource(output) {
+        assert(Module===trueModule, 'the Module object should not be replaced during async compilation - perhaps the order of HTML elements is wrong?');
+        trueModule = null;
+        receiveInstance(output['instance'], output['module']);
+      }
+      function instantiateArrayBuffer(receiver) {
+        getBinaryPromise().then(function(binary) {
+          return WebAssembly.instantiate(binary, info);
+        }).then(receiver).catch(function(reason) {
+          Module['printErr']('failed to asynchronously prepare wasm: '+reason);
+          abort(reason);
+        });
+      }
+      if (!Module['wasmBinary']&&typeof WebAssembly.instantiateStreaming==='function'&&!isDataURI(wasmBinaryFile)&&typeof fetch==='function') {
+          WebAssembly.instantiateStreaming(fetch(wasmBinaryFile, {credentials: 'same-origin'}), info).then(receiveInstantiatedSource).catch(function(reason) {
+            Module['printErr']('wasm streaming compile failed: '+reason);
+            Module['printErr']('falling back to ArrayBuffer instantiation');
+            instantiateArrayBuffer(receiveInstantiatedSource);
+          });
+      }
+      else {
+        instantiateArrayBuffer(receiveInstantiatedSource);
+      }
+      return {}
+    }
+    Module['asmPreload'] = Module['asm'];
+    var asmjsReallocBuffer=Module['reallocBuffer'];
+    var wasmReallocBuffer=function(size) {
+      var PAGE_MULTIPLE=Module["usingWasm"] ? WASM_PAGE_SIZE : ASMJS_PAGE_SIZE;
+      size = alignUp(size, PAGE_MULTIPLE);
+      var old=Module['buffer'];
+      var oldSize=old.byteLength;
+      if (Module["usingWasm"]) {
+          try {
+            var result=Module['wasmMemory'].grow((size-oldSize)/wasmPageSize);
+            if (result!==(-1|0)) {
+                return Module['buffer'] = Module['wasmMemory'].buffer;
+            }
+            else {
+              return null;
+            }
+          }
+          catch (e) {
+              console.error('Module.reallocBuffer: Attempted to grow from '+oldSize+' bytes to '+size+' bytes, but got error: '+e);
+              return null;
+          }
+      }
+    }
+    Module['reallocBuffer'] = function(size) {
+      if (finalMethod==='asmjs') {
+          return asmjsReallocBuffer(size);
+      }
+      else {
+        return wasmReallocBuffer(size);
+      }
+    }
+    var finalMethod='';
+    Module['asm'] = function(global, env, providedBuffer) {
+      env = fixImports(env);
+      if (!env['table']) {
+          var TABLE_SIZE=Module['wasmTableSize'];
+          if (TABLE_SIZE===undefined)
+            TABLE_SIZE = 1024;
+          var MAX_TABLE_SIZE=Module['wasmMaxTableSize'];
+          if (typeof WebAssembly==='object'&&typeof WebAssembly.Table==='function') {
+              if (MAX_TABLE_SIZE!==undefined) {
+                  env['table'] = new WebAssembly.Table({'initial': TABLE_SIZE, 'maximum': MAX_TABLE_SIZE, 'element': 'anyfunc'});
+              }
+              else {
+                env['table'] = new WebAssembly.Table({'initial': TABLE_SIZE, element: 'anyfunc'});
+              }
+          }
+          else {
+            env['table'] = new Array(TABLE_SIZE);
+          }
+          Module['wasmTable'] = env['table'];
+      }
+      if (!env['memoryBase']) {
+          env['memoryBase'] = Module['STATIC_BASE'];
+      }
+      if (!env['tableBase']) {
+          env['tableBase'] = 0;
+      }
+      var exports;
+      exports = doNativeWasm(global, env, providedBuffer);
+      if (!exports)
+        abort('no binaryen method succeeded. consider enabling more options, like interpreting, if you want that: https://github.com/kripken/emscripten/wiki/WebAssembly#binaryen-methods');
+      return exports;
+    }
+    var methodHandler=Module['asm'];
+  }
+  integrateWasmJS();
+  var ASM_CONSTS=[];
+  function _sendMessage(x, buffer, len) {
+    _wasm_post_message(x, buffer, len);
+  }
+  STATIC_BASE = GLOBAL_BASE;
+  STATICTOP = STATIC_BASE+10400;
+  __ATINIT__.push();
+  var STATIC_BUMP=10400;
+  Module["STATIC_BASE"] = STATIC_BASE;
+  Module["STATIC_BUMP"] = STATIC_BUMP;
+  var tempDoublePtr=STATICTOP;
+  STATICTOP+=16;
+  assert(tempDoublePtr%8==0);
+  function copyTempFloat(ptr) {
+    HEAP8[tempDoublePtr] = HEAP8[ptr];
+    HEAP8[tempDoublePtr+1] = HEAP8[ptr+1];
+    HEAP8[tempDoublePtr+2] = HEAP8[ptr+2];
+    HEAP8[tempDoublePtr+3] = HEAP8[ptr+3];
+  }
+  function copyTempDouble(ptr) {
+    HEAP8[tempDoublePtr] = HEAP8[ptr];
+    HEAP8[tempDoublePtr+1] = HEAP8[ptr+1];
+    HEAP8[tempDoublePtr+2] = HEAP8[ptr+2];
+    HEAP8[tempDoublePtr+3] = HEAP8[ptr+3];
+    HEAP8[tempDoublePtr+4] = HEAP8[ptr+4];
+    HEAP8[tempDoublePtr+5] = HEAP8[ptr+5];
+    HEAP8[tempDoublePtr+6] = HEAP8[ptr+6];
+    HEAP8[tempDoublePtr+7] = HEAP8[ptr+7];
+  }
+  function __ZSt18uncaught_exceptionv() {
+    return !!__ZSt18uncaught_exceptionv.uncaught_exception;
+  }
+  var EXCEPTIONS={last: 0, caught: [], infos: {}, deAdjust: function(adjusted) {
+    if (!adjusted||EXCEPTIONS.infos[adjusted])
+      return adjusted;
+    for (var key in EXCEPTIONS.infos) {
+        var ptr=+key;
+        var info=EXCEPTIONS.infos[ptr];
+        if (info.adjusted===adjusted) {
+            return ptr;
+        }
+    }
+    return adjusted;
+  }, addRef: function(ptr) {
+    if (!ptr)
+      return ;
+    var info=EXCEPTIONS.infos[ptr];
+    info.refcount++;
+  }, decRef: function(ptr) {
+    if (!ptr)
+      return ;
+    var info=EXCEPTIONS.infos[ptr];
+    assert(info.refcount>0);
+    info.refcount--;
+    if (info.refcount===0&&!info.rethrown) {
+        if (info.destructor) {
+            Module['dynCall_vi'](info.destructor, ptr);
+        }
+        delete EXCEPTIONS.infos[ptr];
+        ___cxa_free_exception(ptr);
+    }
+  }, clearRef: function(ptr) {
+    if (!ptr)
+      return ;
+    var info=EXCEPTIONS.infos[ptr];
+    info.refcount = 0;
+  }}
+  function ___resumeException(ptr) {
+    if (!EXCEPTIONS.last) {
+        EXCEPTIONS.last = ptr;
+    }
+    throw ptr+" - Exception catching is disabled, this exception cannot be caught. Compile with -s DISABLE_EXCEPTION_CATCHING=0 or DISABLE_EXCEPTION_CATCHING=2 to catch.";
+  }
+  function ___cxa_find_matching_catch() {
+    var thrown=EXCEPTIONS.last;
+    if (!thrown) {
+        return ((setTempRet0(0), 0)|0);
+    }
+    var info=EXCEPTIONS.infos[thrown];
+    var throwntype=info.type;
+    if (!throwntype) {
+        return ((setTempRet0(0), thrown)|0);
+    }
+    var typeArray=Array.prototype.slice.call(arguments);
+    var pointer=Module['___cxa_is_pointer_type'](throwntype);
+    if (!___cxa_find_matching_catch.buffer)
+      ___cxa_find_matching_catch.buffer = _malloc(4);
+    HEAP32[((___cxa_find_matching_catch.buffer)>>2)] = thrown;
+    thrown = ___cxa_find_matching_catch.buffer;
+    for (var i=0; i<typeArray.length; i++) {
+        if (typeArray[i]&&Module['___cxa_can_catch'](typeArray[i], throwntype, thrown)) {
+            thrown = HEAP32[((thrown)>>2)];
+            info.adjusted = thrown;
+            return ((setTempRet0(typeArray[i]), thrown)|0);
+        }
+    }
+    thrown = HEAP32[((thrown)>>2)];
+    return ((setTempRet0(throwntype), thrown)|0);
+  }
+  function ___gxx_personality_v0() {
+  }
+  function ___lock() {
+  }
+  var SYSCALLS={varargs: 0, get: function(varargs) {
+    SYSCALLS.varargs+=4;
+    var ret=HEAP32[(((SYSCALLS.varargs)-(4))>>2)];
+    return ret;
+  }, getStr: function() {
+    var ret=Pointer_stringify(SYSCALLS.get());
+    return ret;
+  }, get64: function() {
+    var low=SYSCALLS.get(), high=SYSCALLS.get();
+    if (low>=0)
+      assert(high===0);
+    else 
+      assert(high===-1);
+    return low;
+  }, getZero: function() {
+    assert(SYSCALLS.get()===0);
+  }}
+  function ___syscall140(which, varargs) {
+    SYSCALLS.varargs = varargs;
+    try {
+      var stream=SYSCALLS.getStreamFromFD(), offset_high=SYSCALLS.get(), offset_low=SYSCALLS.get(), result=SYSCALLS.get(), whence=SYSCALLS.get();
+      var offset=offset_low;
+      FS.llseek(stream, offset, whence);
+      HEAP32[((result)>>2)] = stream.position;
+      if (stream.getdents&&offset===0&&whence===0)
+        stream.getdents = null;
+      return 0;
+    }
+    catch (e) {
+        if (typeof FS==='undefined'||!(__instance_of(e, FS.ErrnoError)))
+          abort(e);
+        return -e.errno;
+    }
+  }
+  function flush_NO_FILESYSTEM() {
+    var fflush=Module["_fflush"];
+    if (fflush)
+      fflush(0);
+    var printChar=___syscall146.printChar;
+    if (!printChar)
+      return ;
+    var buffers=___syscall146.buffers;
+    if (buffers[1].length)
+      printChar(1, 10);
+    if (buffers[2].length)
+      printChar(2, 10);
+  }
+  function ___syscall146(which, varargs) {
+    SYSCALLS.varargs = varargs;
+    try {
+      var stream=SYSCALLS.get(), iov=SYSCALLS.get(), iovcnt=SYSCALLS.get();
+      var ret=0;
+      if (!___syscall146.buffers) {
+          ___syscall146.buffers = [null, [], []];
+          ___syscall146.printChar = function(stream, curr) {
+            var buffer=___syscall146.buffers[stream];
+            assert(buffer);
+            if (curr===0||curr===10) {
+                (stream===1 ? Module['print'] : Module['printErr'])(UTF8ArrayToString(buffer, 0));
+                buffer.length = 0;
+            }
+            else {
+              buffer.push(curr);
+            }
+          };
+      }
+      for (var i=0; i<iovcnt; i++) {
+          var ptr=HEAP32[(((iov)+(i*8))>>2)];
+          var len=HEAP32[(((iov)+(i*8+4))>>2)];
+          for (var j=0; j<len; j++) {
+              ___syscall146.printChar(stream, HEAPU8[ptr+j]);
+          }
+          ret+=len;
+      }
+      return ret;
+    }
+    catch (e) {
+        if (typeof FS==='undefined'||!(__instance_of(e, FS.ErrnoError)))
+          abort(e);
+        return -e.errno;
+    }
+  }
+  function ___syscall54(which, varargs) {
+    SYSCALLS.varargs = varargs;
+    try {
+      return 0;
+    }
+    catch (e) {
+        if (typeof FS==='undefined'||!(__instance_of(e, FS.ErrnoError)))
+          abort(e);
+        return -e.errno;
+    }
+  }
+  function ___syscall6(which, varargs) {
+    SYSCALLS.varargs = varargs;
+    try {
+      var stream=SYSCALLS.getStreamFromFD();
+      FS.close(stream);
+      return 0;
+    }
+    catch (e) {
+        if (typeof FS==='undefined'||!(__instance_of(e, FS.ErrnoError)))
+          abort(e);
+        return -e.errno;
+    }
+  }
+  function ___unlock() {
+  }
+  function _clock() {
+    if (_clock.start===undefined)
+      _clock.start = Date.now();
+    return ((Date.now()-_clock.start)*(1000000/1000))|0;
+  }
+  function _emscripten_memcpy_big(dest, src, num) {
+    HEAPU8.set(HEAPU8.subarray(src, src+num), dest);
+    return dest;
+  }
+  function ___setErrNo(value) {
+    if (Module['___errno_location'])
+      HEAP32[((Module['___errno_location']())>>2)] = value;
+    else 
+      Module.printErr('failed to set errno from JS');
+    return value;
+  }
+  DYNAMICTOP_PTR = staticAlloc(4);
+  STACK_BASE = STACKTOP = alignMemory(STATICTOP);
+  STACK_MAX = STACK_BASE+TOTAL_STACK;
+  DYNAMIC_BASE = alignMemory(STACK_MAX);
+  HEAP32[DYNAMICTOP_PTR>>2] = DYNAMIC_BASE;
+  staticSealed = true;
+  assert(DYNAMIC_BASE<TOTAL_MEMORY, "TOTAL_MEMORY not big enough for stack");
+  var ASSERTIONS=true;
+  function intArrayFromString(stringy, dontAddNull, length) {
+    var len=length>0 ? length : lengthBytesUTF8(stringy)+1;
+    var u8array=new Array(len);
+    var numBytesWritten=stringToUTF8Array(stringy, u8array, 0, u8array.length);
+    if (dontAddNull)
+      u8array.length = numBytesWritten;
+    return u8array;
+  }
+  function intArrayToString(array) {
+    var ret=[];
+    for (var i=0; i<array.length; i++) {
+        var chr=array[i];
+        if (chr>0xff) {
+            if (ASSERTIONS) {
+                assert(false, 'Character code '+chr+' ('+String.fromCharCode(chr)+')  at offset '+i+' not in 0x00-0xFF.');
+            }
+            chr&=0xff;
+        }
+        ret.push(String.fromCharCode(chr));
+    }
+    return ret.join('');
+  }
+  function nullFunc_ii(x) {
+    Module["printErr"]("Invalid function pointer called with signature 'ii'. Perhaps this is an invalid value (e.g. caused by calling a virtual method on a NULL pointer)? Or calling a function with an incorrect type, which will fail? (it is worth building your source files with -Werror (warnings are errors), as warnings can indicate undefined behavior which can cause this)");
+    Module["printErr"]("Build with ASSERTIONS=2 for more info.");
+    abort(x);
+  }
+  function nullFunc_iiii(x) {
+    Module["printErr"]("Invalid function pointer called with signature 'iiii'. Perhaps this is an invalid value (e.g. caused by calling a virtual method on a NULL pointer)? Or calling a function with an incorrect type, which will fail? (it is worth building your source files with -Werror (warnings are errors), as warnings can indicate undefined behavior which can cause this)");
+    Module["printErr"]("Build with ASSERTIONS=2 for more info.");
+    abort(x);
+  }
+  Module['wasmTableSize'] = 10;
+  Module['wasmMaxTableSize'] = 10;
+  function invoke_ii(index, a1) {
+    try {
+      return Module["dynCall_ii"](index, a1);
+    }
+    catch (e) {
+        if (typeof e!=='number'&&e!=='longjmp')
+          throw e;
+        Module["setThrew"](1, 0);
+    }
+  }
+  function invoke_iiii(index, a1, a2, a3) {
+    try {
+      return Module["dynCall_iiii"](index, a1, a2, a3);
+    }
+    catch (e) {
+        if (typeof e!=='number'&&e!=='longjmp')
+          throw e;
+        Module["setThrew"](1, 0);
+    }
+  }
+  Module.asmGlobalArg = {}
+  Module.asmLibraryArg = {"abort": abort, "assert": assert, "enlargeMemory": enlargeMemory, "getTotalMemory": getTotalMemory, "abortOnCannotGrowMemory": abortOnCannotGrowMemory, "abortStackOverflow": abortStackOverflow, "nullFunc_ii": nullFunc_ii, "nullFunc_iiii": nullFunc_iiii, "invoke_ii": invoke_ii, "invoke_iiii": invoke_iiii, "__ZSt18uncaught_exceptionv": __ZSt18uncaught_exceptionv, "___cxa_find_matching_catch": ___cxa_find_matching_catch, "___gxx_personality_v0": ___gxx_personality_v0, "___lock": ___lock, "___resumeException": ___resumeException, "___setErrNo": ___setErrNo, "___syscall140": ___syscall140, "___syscall146": ___syscall146, "___syscall54": ___syscall54, "___syscall6": ___syscall6, "___unlock": ___unlock, "_clock": _clock, "_emscripten_memcpy_big": _emscripten_memcpy_big, "_sendMessage": _sendMessage, "flush_NO_FILESYSTEM": flush_NO_FILESYSTEM, "DYNAMICTOP_PTR": DYNAMICTOP_PTR, "tempDoublePtr": tempDoublePtr, "ABORT": ABORT, "STACKTOP": STACKTOP, "STACK_MAX": STACK_MAX}
+  var asm=Module["asm"](Module.asmGlobalArg, Module.asmLibraryArg, buffer);
+  var real__FM_free=asm["_FM_free"];
+  asm["_FM_free"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return real__FM_free.apply(null, arguments);
+  }
+  var real__FM_malloc=asm["_FM_malloc"];
+  asm["_FM_malloc"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return real__FM_malloc.apply(null, arguments);
+  }
+  var real____em_js__sendMessage=asm["___em_js__sendMessage"];
+  asm["___em_js__sendMessage"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return real____em_js__sendMessage.apply(null, arguments);
+  }
+  var real____errno_location=asm["___errno_location"];
+  asm["___errno_location"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return real____errno_location.apply(null, arguments);
+  }
+  var real__fflush=asm["_fflush"];
+  asm["_fflush"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return real__fflush.apply(null, arguments);
+  }
+  var real__free=asm["_free"];
+  asm["_free"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return real__free.apply(null, arguments);
+  }
+  var real__gotMessage=asm["_gotMessage"];
+  asm["_gotMessage"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return real__gotMessage.apply(null, arguments);
+  }
+  var real__llvm_bswap_i32=asm["_llvm_bswap_i32"];
+  asm["_llvm_bswap_i32"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return real__llvm_bswap_i32.apply(null, arguments);
+  }
+  var real__main=asm["_main"];
+  asm["_main"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return real__main.apply(null, arguments);
+  }
+  var real__malloc=asm["_malloc"];
+  asm["_malloc"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return real__malloc.apply(null, arguments);
+  }
+  var real__sbrk=asm["_sbrk"];
+  asm["_sbrk"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return real__sbrk.apply(null, arguments);
+  }
+  var real_establishStackSpace=asm["establishStackSpace"];
+  asm["establishStackSpace"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return real_establishStackSpace.apply(null, arguments);
+  }
+  var real_getTempRet0=asm["getTempRet0"];
+  asm["getTempRet0"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return real_getTempRet0.apply(null, arguments);
+  }
+  var real_setTempRet0=asm["setTempRet0"];
+  asm["setTempRet0"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return real_setTempRet0.apply(null, arguments);
+  }
+  var real_setThrew=asm["setThrew"];
+  asm["setThrew"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return real_setThrew.apply(null, arguments);
+  }
+  var real_stackAlloc=asm["stackAlloc"];
+  asm["stackAlloc"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return real_stackAlloc.apply(null, arguments);
+  }
+  var real_stackRestore=asm["stackRestore"];
+  asm["stackRestore"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return real_stackRestore.apply(null, arguments);
+  }
+  var real_stackSave=asm["stackSave"];
+  asm["stackSave"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return real_stackSave.apply(null, arguments);
+  }
+  Module["asm"] = asm;
+  var _FM_free=Module["_FM_free"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["_FM_free"].apply(null, arguments);
+  }
+  var _FM_malloc=Module["_FM_malloc"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["_FM_malloc"].apply(null, arguments);
+  }
+  var ___em_js__sendMessage=Module["___em_js__sendMessage"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["___em_js__sendMessage"].apply(null, arguments);
+  }
+  var ___errno_location=Module["___errno_location"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["___errno_location"].apply(null, arguments);
+  }
+  var _fflush=Module["_fflush"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["_fflush"].apply(null, arguments);
+  }
+  var _free=Module["_free"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["_free"].apply(null, arguments);
+  }
+  var _gotMessage=Module["_gotMessage"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["_gotMessage"].apply(null, arguments);
+  }
+  var _llvm_bswap_i32=Module["_llvm_bswap_i32"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["_llvm_bswap_i32"].apply(null, arguments);
+  }
+  var _main=Module["_main"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["_main"].apply(null, arguments);
+  }
+  var _malloc=Module["_malloc"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["_malloc"].apply(null, arguments);
+  }
+  var _memcpy=Module["_memcpy"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["_memcpy"].apply(null, arguments);
+  }
+  var _memset=Module["_memset"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["_memset"].apply(null, arguments);
+  }
+  var _sbrk=Module["_sbrk"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["_sbrk"].apply(null, arguments);
+  }
+  var establishStackSpace=Module["establishStackSpace"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["establishStackSpace"].apply(null, arguments);
+  }
+  var getTempRet0=Module["getTempRet0"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["getTempRet0"].apply(null, arguments);
+  }
+  var runPostSets=Module["runPostSets"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["runPostSets"].apply(null, arguments);
+  }
+  var setTempRet0=Module["setTempRet0"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["setTempRet0"].apply(null, arguments);
+  }
+  var setThrew=Module["setThrew"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["setThrew"].apply(null, arguments);
+  }
+  var stackAlloc=Module["stackAlloc"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["stackAlloc"].apply(null, arguments);
+  }
+  var stackRestore=Module["stackRestore"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["stackRestore"].apply(null, arguments);
+  }
+  var stackSave=Module["stackSave"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["stackSave"].apply(null, arguments);
+  }
+  var dynCall_ii=Module["dynCall_ii"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["dynCall_ii"].apply(null, arguments);
+  }
+  var dynCall_iiii=Module["dynCall_iiii"] = function() {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["dynCall_iiii"].apply(null, arguments);
+  }
+  
+  Module['asm'] = asm;
+  if (!Module["intArrayFromString"])
+    Module["intArrayFromString"] = function() {
+    abort("'intArrayFromString' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["intArrayToString"])
+    Module["intArrayToString"] = function() {
+    abort("'intArrayToString' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  Module["ccall"] = ccall;
+  if (!Module["cwrap"])
+    Module["cwrap"] = function() {
+    abort("'cwrap' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["setValue"])
+    Module["setValue"] = function() {
+    abort("'setValue' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["getValue"])
+    Module["getValue"] = function() {
+    abort("'getValue' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["allocate"])
+    Module["allocate"] = function() {
+    abort("'allocate' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  Module["getMemory"] = getMemory;
+  if (!Module["Pointer_stringify"])
+    Module["Pointer_stringify"] = function() {
+    abort("'Pointer_stringify' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["AsciiToString"])
+    Module["AsciiToString"] = function() {
+    abort("'AsciiToString' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["stringToAscii"])
+    Module["stringToAscii"] = function() {
+    abort("'stringToAscii' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["UTF8ArrayToString"])
+    Module["UTF8ArrayToString"] = function() {
+    abort("'UTF8ArrayToString' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["UTF8ToString"])
+    Module["UTF8ToString"] = function() {
+    abort("'UTF8ToString' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["stringToUTF8Array"])
+    Module["stringToUTF8Array"] = function() {
+    abort("'stringToUTF8Array' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["stringToUTF8"])
+    Module["stringToUTF8"] = function() {
+    abort("'stringToUTF8' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["lengthBytesUTF8"])
+    Module["lengthBytesUTF8"] = function() {
+    abort("'lengthBytesUTF8' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["UTF16ToString"])
+    Module["UTF16ToString"] = function() {
+    abort("'UTF16ToString' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["stringToUTF16"])
+    Module["stringToUTF16"] = function() {
+    abort("'stringToUTF16' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["lengthBytesUTF16"])
+    Module["lengthBytesUTF16"] = function() {
+    abort("'lengthBytesUTF16' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["UTF32ToString"])
+    Module["UTF32ToString"] = function() {
+    abort("'UTF32ToString' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["stringToUTF32"])
+    Module["stringToUTF32"] = function() {
+    abort("'stringToUTF32' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["lengthBytesUTF32"])
+    Module["lengthBytesUTF32"] = function() {
+    abort("'lengthBytesUTF32' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["allocateUTF8"])
+    Module["allocateUTF8"] = function() {
+    abort("'allocateUTF8' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["stackTrace"])
+    Module["stackTrace"] = function() {
+    abort("'stackTrace' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["addOnPreRun"])
+    Module["addOnPreRun"] = function() {
+    abort("'addOnPreRun' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["addOnInit"])
+    Module["addOnInit"] = function() {
+    abort("'addOnInit' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["addOnPreMain"])
+    Module["addOnPreMain"] = function() {
+    abort("'addOnPreMain' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["addOnExit"])
+    Module["addOnExit"] = function() {
+    abort("'addOnExit' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["addOnPostRun"])
+    Module["addOnPostRun"] = function() {
+    abort("'addOnPostRun' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["writeStringToMemory"])
+    Module["writeStringToMemory"] = function() {
+    abort("'writeStringToMemory' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["writeArrayToMemory"])
+    Module["writeArrayToMemory"] = function() {
+    abort("'writeArrayToMemory' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["writeAsciiToMemory"])
+    Module["writeAsciiToMemory"] = function() {
+    abort("'writeAsciiToMemory' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["addRunDependency"])
+    Module["addRunDependency"] = function() {
+    abort("'addRunDependency' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ). Alternatively, forcing filesystem support (-s FORCE_FILESYSTEM=1) can export this for you");
+  }
+  if (!Module["removeRunDependency"])
+    Module["removeRunDependency"] = function() {
+    abort("'removeRunDependency' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ). Alternatively, forcing filesystem support (-s FORCE_FILESYSTEM=1) can export this for you");
+  }
+  if (!Module["FS"])
+    Module["FS"] = function() {
+    abort("'FS' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["FS_createFolder"])
+    Module["FS_createFolder"] = function() {
+    abort("'FS_createFolder' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ). Alternatively, forcing filesystem support (-s FORCE_FILESYSTEM=1) can export this for you");
+  }
+  if (!Module["FS_createPath"])
+    Module["FS_createPath"] = function() {
+    abort("'FS_createPath' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ). Alternatively, forcing filesystem support (-s FORCE_FILESYSTEM=1) can export this for you");
+  }
+  if (!Module["FS_createDataFile"])
+    Module["FS_createDataFile"] = function() {
+    abort("'FS_createDataFile' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ). Alternatively, forcing filesystem support (-s FORCE_FILESYSTEM=1) can export this for you");
+  }
+  if (!Module["FS_createPreloadedFile"])
+    Module["FS_createPreloadedFile"] = function() {
+    abort("'FS_createPreloadedFile' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ). Alternatively, forcing filesystem support (-s FORCE_FILESYSTEM=1) can export this for you");
+  }
+  if (!Module["FS_createLazyFile"])
+    Module["FS_createLazyFile"] = function() {
+    abort("'FS_createLazyFile' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ). Alternatively, forcing filesystem support (-s FORCE_FILESYSTEM=1) can export this for you");
+  }
+  if (!Module["FS_createLink"])
+    Module["FS_createLink"] = function() {
+    abort("'FS_createLink' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ). Alternatively, forcing filesystem support (-s FORCE_FILESYSTEM=1) can export this for you");
+  }
+  if (!Module["FS_createDevice"])
+    Module["FS_createDevice"] = function() {
+    abort("'FS_createDevice' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ). Alternatively, forcing filesystem support (-s FORCE_FILESYSTEM=1) can export this for you");
+  }
+  if (!Module["FS_unlink"])
+    Module["FS_unlink"] = function() {
+    abort("'FS_unlink' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ). Alternatively, forcing filesystem support (-s FORCE_FILESYSTEM=1) can export this for you");
+  }
+  if (!Module["GL"])
+    Module["GL"] = function() {
+    abort("'GL' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["staticAlloc"])
+    Module["staticAlloc"] = function() {
+    abort("'staticAlloc' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["dynamicAlloc"])
+    Module["dynamicAlloc"] = function() {
+    abort("'dynamicAlloc' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["warnOnce"])
+    Module["warnOnce"] = function() {
+    abort("'warnOnce' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["loadDynamicLibrary"])
+    Module["loadDynamicLibrary"] = function() {
+    abort("'loadDynamicLibrary' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["loadWebAssemblyModule"])
+    Module["loadWebAssemblyModule"] = function() {
+    abort("'loadWebAssemblyModule' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["getLEB"])
+    Module["getLEB"] = function() {
+    abort("'getLEB' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["getFunctionTables"])
+    Module["getFunctionTables"] = function() {
+    abort("'getFunctionTables' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["alignFunctionTables"])
+    Module["alignFunctionTables"] = function() {
+    abort("'alignFunctionTables' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["registerFunctions"])
+    Module["registerFunctions"] = function() {
+    abort("'registerFunctions' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["addFunction"])
+    Module["addFunction"] = function() {
+    abort("'addFunction' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["removeFunction"])
+    Module["removeFunction"] = function() {
+    abort("'removeFunction' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["getFuncWrapper"])
+    Module["getFuncWrapper"] = function() {
+    abort("'getFuncWrapper' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["prettyPrint"])
+    Module["prettyPrint"] = function() {
+    abort("'prettyPrint' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["makeBigInt"])
+    Module["makeBigInt"] = function() {
+    abort("'makeBigInt' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["dynCall"])
+    Module["dynCall"] = function() {
+    abort("'dynCall' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["getCompilerSetting"])
+    Module["getCompilerSetting"] = function() {
+    abort("'getCompilerSetting' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["stackSave"])
+    Module["stackSave"] = function() {
+    abort("'stackSave' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["stackRestore"])
+    Module["stackRestore"] = function() {
+    abort("'stackRestore' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["stackAlloc"])
+    Module["stackAlloc"] = function() {
+    abort("'stackAlloc' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Module["ALLOC_NORMAL"])
+    Object.defineProperty(Module, "ALLOC_NORMAL", {get: function() {
+    abort("'ALLOC_NORMAL' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }});
+  if (!Module["ALLOC_STACK"])
+    Object.defineProperty(Module, "ALLOC_STACK", {get: function() {
+    abort("'ALLOC_STACK' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }});
+  if (!Module["ALLOC_STATIC"])
+    Object.defineProperty(Module, "ALLOC_STATIC", {get: function() {
+    abort("'ALLOC_STATIC' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }});
+  if (!Module["ALLOC_DYNAMIC"])
+    Object.defineProperty(Module, "ALLOC_DYNAMIC", {get: function() {
+    abort("'ALLOC_DYNAMIC' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }});
+  if (!Module["ALLOC_NONE"])
+    Object.defineProperty(Module, "ALLOC_NONE", {get: function() {
+    abort("'ALLOC_NONE' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }});
+  function ExitStatus(status) {
+    this.name = "ExitStatus";
+    this.message = "Program terminated with exit("+status+")";
+    this.status = status;
+  }
+  ExitStatus.prototype = new Error();
+  ExitStatus.prototype.constructor = ExitStatus;
+  var initialStackTop;
+  var calledMain=false;
+  dependenciesFulfilled = function runCaller() {
+    if (!Module['calledRun'])
+      run();
+    if (!Module['calledRun'])
+      dependenciesFulfilled = runCaller;
+  }
+  Module['callMain'] = function callMain(args) {
+    assert(runDependencies==0, 'cannot call main when async dependencies remain! (listen on __ATMAIN__)');
+    assert(__ATPRERUN__.length==0, 'cannot call main when preRun functions remain to be called');
+    args = args||[];
+    ensureInitRuntime();
+    var argc=args.length+1;
+    var argv=stackAlloc((argc+1)*4);
+    HEAP32[argv>>2] = allocateUTF8OnStack(Module['thisProgram']);
+    for (var i=1; i<argc; i++) {
+        HEAP32[(argv>>2)+i] = allocateUTF8OnStack(args[i-1]);
+    }
+    HEAP32[(argv>>2)+argc] = 0;
+    try {
+      var ret=Module['_main'](argc, argv, 0);
+      exit(ret, true);
+    }
+    catch (e) {
+        if (__instance_of(e, ExitStatus)) {
+            return ;
+        }
+        else 
+          if (e=='SimulateInfiniteLoop') {
+            Module['noExitRuntime'] = true;
+            return ;
+        }
+        else {
+          var toLog=e;
+          if (e&&typeof e==='object'&&e.stack) {
+              toLog = [e, e.stack];
+          }
+          Module.printErr('exception thrown: '+toLog);
+          Module['quit'](1, e);
+        }
+    }
+    finally {
+        calledMain = true;
+      }
+  }
+  function run(args) {
+    args = args||Module['arguments'];
+    if (runDependencies>0) {
+        return ;
+    }
+    writeStackCookie();
+    preRun();
+    if (runDependencies>0)
+      return ;
+    if (Module['calledRun'])
+      return ;
+    function doRun() {
+      if (Module['calledRun'])
+        return ;
+      Module['calledRun'] = true;
+      if (ABORT)
+        return ;
+      ensureInitRuntime();
+      preMain();
+      if (Module['onRuntimeInitialized'])
+        Module['onRuntimeInitialized']();
+      if (Module['_main']&&shouldRunNow)
+        Module['callMain'](args);
+      postRun();
+    }
+    if (Module['setStatus']) {
+        Module['setStatus']('Running...');
+        setTimeout(function() {
+          setTimeout(function() {
+            Module['setStatus']('');
+          }, 1);
+          doRun();
+        }, 1);
+    }
+    else {
+      doRun();
+    }
+    checkStackCookie();
+  }
+  Module['run'] = run;
+  function checkUnflushedContent() {
+    var print=Module['print'];
+    var printErr=Module['printErr'];
+    var has=false;
+    Module['print'] = Module['printErr'] = function(x) {
+      has = true;
+    }
+    try {
+      var flush=flush_NO_FILESYSTEM;
+      if (flush)
+        flush(0);
+    }
+    catch (e) {
+    }
+    Module['print'] = print;
+    Module['printErr'] = printErr;
+    if (has) {
+        warnOnce('stdio streams had content in them that was not flushed. you should set NO_EXIT_RUNTIME to 0 (see the FAQ), or make sure to emit a newline when you printf etc.');
+    }
+  }
+  function exit(status, implicit) {
+    checkUnflushedContent();
+    if (implicit&&Module['noExitRuntime']&&status===0) {
+        return ;
+    }
+    if (Module['noExitRuntime']) {
+        if (!implicit) {
+            Module.printErr('exit('+status+') called, but NO_EXIT_RUNTIME is set, so halting execution but not exiting the runtime or preventing further async execution (build with NO_EXIT_RUNTIME=0, if you want a true shutdown)');
+        }
+    }
+    else {
+      ABORT = true;
+      EXITSTATUS = status;
+      STACKTOP = initialStackTop;
+      exitRuntime();
+      if (Module['onExit'])
+        Module['onExit'](status);
+    }
+    if (ENVIRONMENT_IS_NODE) {
+        process['exit'](status);
+    }
+    Module['quit'](status, new ExitStatus(status));
+  }
+  Module['exit'] = exit;
+  var abortDecorators=[];
+  function abort(what) {
+    if (Module['onAbort']) {
+        Module['onAbort'](what);
+    }
+    if (what!==undefined) {
+        Module.print(what);
+        Module.printErr(what);
+        what = JSON.stringify(what);
+    }
+    else {
+      what = '';
+    }
+    ABORT = true;
+    EXITSTATUS = 1;
+    var extra='';
+    var output='abort('+what+') at '+stackTrace()+extra;
+    if (abortDecorators) {
+        abortDecorators.forEach(function(decorator) {
+          output = decorator(output, what);
+        });
+    }
+    throw output;
+  }
+  Module['abort'] = abort;
+  if (Module['preInit']) {
+      if (typeof Module['preInit']=='function')
+        Module['preInit'] = [Module['preInit']];
+      while (Module['preInit'].length>0) {
+        Module['preInit'].pop()();
+      }
+  }
+  var shouldRunNow=true;
+  if (Module['noInitialRun']) {
+      shouldRunNow = false;
+  }
+  Module["noExitRuntime"] = true;
+  run();
 });

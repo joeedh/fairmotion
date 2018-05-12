@@ -218,7 +218,7 @@ function _load_module(mod) {
   }
   
   if (mod.callback == undefined) {
-    console.log("WARNING: module", mod.name, "does not exist!");
+    console.warn("WARNING: module", mod.name, "does not exist!");
     return;
   }
   
@@ -274,7 +274,7 @@ function es6_import(_es6_module, name) {
     throw new ModuleLoadError();
   }
   
-  return mod.exports;
+  return mod.default_export !== undefined ? mod.default_export : mod.exports;
 }
 
 function es6_import_item(_es6_module, modname, name) {

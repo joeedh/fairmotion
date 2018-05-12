@@ -99,7 +99,9 @@ sources = [
   "src/license/license_api.js",
   "src/license/license_electron.js",
   "platforms/Electron/theplatform.js",
-
+  "src/wasm/load_wasm.js",
+  "src/wasm/built_wasm.js",
+  "src/wasm/native_api.js",
   "src/addon_api/addon_api.js",
   "src/scene/scene.js",
   
@@ -112,8 +114,6 @@ sources = [
   "src/core/eventdag.js",
   
 	"src/core/lib_utils.js",
-  "src/nacl/nacl_api.js",
-  "src/nacl/nacl_common.js",
 
   "src/editors/viewport/transdata.js",
   "src/editors/viewport/transform.js",
@@ -185,12 +185,11 @@ copy_targets = {
    "jasmine.js"      : "tools/utils/libs/jasmine/lib/jasmine.js",
    "jasmine-html.js" : "tools/utils/libs/jasmine/lib/jasmine-html.js",
    "jasmine-console.js"      : "tools/utils/libs/jasmine/lib/console.js",
-   "jasmine_boot.js"         : "src/unit_tests/jasmine_boot.js",
+   "jasmine_boot.js"         : "src/unit_tests/jasmine_boot.js"
 }
 
 optional_copy_targets = {
-   "graphics_3d.nmf" : "src/nacl/pnacl/Release/graphics_3d.nmf",
-   "graphics_3d.pexe" : "src/nacl/pnacl/Release/graphics_3d.pexe"
+   "built_wasm.wasm"  : "src/wasm/_built_wasm.wasm"
 }
 
 js_targets = {"app.js"        : sources,

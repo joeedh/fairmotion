@@ -36,9 +36,13 @@ function do_solve_nacl(sflags, spline, steps, gk, return_promise) {
   }
 }
 
+import * as native_api from 'native_api';
+
 export function do_solve() {
   if (config.USE_NACL) {
     return do_solve_nacl.apply(this, arguments);
+  } else if (config.USE_WASM) {
+    return native_api.do_solve.apply(this, arguments);
   } else {
     return math.do_solve.apply(this, arguments);
   }

@@ -1,944 +1,5 @@
-es6_module_define('eventdag', ["J3DIMath"], function _eventdag_module(_es6_module) {
-  "use strict";
-  var _event_dag_idgen=undefined;
-  es6_import(_es6_module, 'J3DIMath');
-  window.the_global_dag = undefined;
-  var NodeBase=_ESClass("NodeBase", [function dag_update(field, data) {
-    var graph=window.the_global_dag;
-    var node=graph.get_node(this, false);
-    if (node!=undefined)
-      node.dag_update(field, data);
-  }, function dag_unlink() {
-    var graph=window.the_global_dag;
-    var node=graph.get_node(this, false);
-    if (node!=undefined)
-      window.the_global_dag.remove(node);
-  }, function NodeBase() {
-  }]);
-  _es6_module.add_class(NodeBase);
-  NodeBase = _es6_module.add_export('NodeBase', NodeBase);
-  var UIOnlyNode=_ESClass("UIOnlyNode", NodeBase, [function UIOnlyNode() {
-    NodeBase.apply(this, arguments);
-  }]);
-  _es6_module.add_class(UIOnlyNode);
-  UIOnlyNode = _es6_module.add_export('UIOnlyNode', UIOnlyNode);
-  var DataPathNode=_ESClass("DataPathNode", NodeBase, [function dag_get_datapath(ctx) {
-  }, _ESClass.static(function isDataPathNode(obj) {
-    return "dag_get_datapath" in obj;
-  }), function DataPathNode() {
-    NodeBase.apply(this, arguments);
-  }]);
-  _es6_module.add_class(DataPathNode);
-  DataPathNode = _es6_module.add_export('DataPathNode', DataPathNode);
-  Node.dag_inputs = {}
-  Node.dag_outputs = {}
-  var DagFlags={UPDATE: 1, TEMP: 2, DEAD: 4}
-  DagFlags = _es6_module.add_export('DagFlags', DagFlags);
-  var EventNode=_ESClass("EventNode", [function EventNode() {
-    this.flag = 0;
-    this.id = -1;
-    this.graph = undefined;
-  }, function get_owner(ctx) {
-  }, function on_remove(ctx) {
-  }, function dag_update(field, data) {
-    if (field==undefined) {
-        for (var k in this.outputs) {
-            this.dag_update(k);
-        }
-        return ;
-    }
-    var sock=this.outputs[field];
-    if (arguments.length>1) {
-        sock.data = data;
-    }
-    sock.flag|=DagFlags.UPDATE;
-    this.flag|=DagFlags.UPDATE;
-    for (var i=0; i<sock.edges.length; i++) {
-        var e=sock.edges[i], n2=e.opposite(sock).owner;
-    }
-    this.graph.on_update(this, field);
-  }, function unlink() {
-    for (var k in this.inputs) {
-        this.inputs[k].disconnect_all();
-    }
-    for (var k in this.outputs) {
-        this.outputs[k].disconnect_all();
-    }
-  }]);
-  _es6_module.add_class(EventNode);
-  EventNode = _es6_module.add_export('EventNode', EventNode);
-  EventNode.inputs = {}
-  EventNode.outputs = {}
-  var IndirectNode=_ESClass("IndirectNode", EventNode, [function IndirectNode(path) {
-    EventNode.call(this);
-    this.datapath = path;
-  }, function get_owner(ctx) {
-    if (this._owner!=undefined)
-      return this._owner;
-    this._owner = ctx.api.get_object(ctx, this.datapath);
-    return this._owner;
-  }]);
-  _es6_module.add_class(IndirectNode);
-  IndirectNode = _es6_module.add_export('IndirectNode', IndirectNode);
-  var DirectNode=_ESClass("DirectNode", EventNode, [function DirectNode(id) {
-    EventNode.call(this);
-    this.objid = id;
-  }, function get_owner(ctx) {
-    return this.graph.object_idmap[this.objid];
-  }]);
-  _es6_module.add_class(DirectNode);
-  DirectNode = _es6_module.add_export('DirectNode', DirectNode);
-  var DataTypes={DEPEND: 1, NUMBER: 2, BOOL: 4, STRING: 8, VEC2: 16, VEC3: 32, VEC4: 64, MATRIX4: 128, ARRAY: 256}
-  DataTypes = _es6_module.add_export('DataTypes', DataTypes);
-  var TypeDefaults=t = {}
-  t[DataTypes.DEPEND] = undefined;
-  t[DataTypes.NUMBER] = 0;
-  t[DataTypes.STRING] = "";
-  t[DataTypes.VEC2] = new Vector2();
-  t[DataTypes.MATRIX4] = new Vector3();
-  t[DataTypes.ARRAY] = [];
-  t[DataTypes.BOOL] = true;
-  var EventEdge=_ESClass("EventEdge", [function EventEdge(dst, src) {
-    this.dst = dst;
-    this.src = src;
-  }, function opposite(socket) {
-    return socket==this.dst ? this.src : this.dst;
-  }]);
-  _es6_module.add_class(EventEdge);
-  EventEdge = _es6_module.add_export('EventEdge', EventEdge);
-  var EventSocket=_ESClass("EventSocket", [function EventSocket(name, owner, type, datatype) {
-    this.type = type;
-    this.name = name;
-    this.owner = owner;
-    this.datatype = datatype;
-    this.data = undefined;
-    this.flag = DagFlags.UPDATE;
-    this.edges = [];
-  }, function copy() {
-    var s=new EventSocket(this.name, undefined, this.type, this.datatype);
-    return s;
-  }, function connect(b) {
-    if (b.type==this.type) {
-        throw new Error("Cannot put two inputs or outputs together");
-    }
-    var src, dst;
-    if (this.type=="i") {
-        src = b, dst = this;
-    }
-    else 
-      if (this.type=="o") {
-        src = this, dst = b;
-    }
-    else {
-      throw new Error("Malformed socket type.  this.type, b.type, this, b:", this.type, b.type, this, b);
-    }
-    var edge=new EventEdge(dst, src);
-    this.edges.push(edge);
-    b.edges.push(edge);
-  }, function _find_edge(b) {
-    for (var i=0; i<this.edges.length; i++) {
-        if (this.edges[i].opposite(this)===b)
-          return this.edges[i];
-    }
-    return undefined;
-  }, function disconnect(other_socket) {
-    if (other_socket==undefined) {
-        warntrace("Warning, no other_socket in disconnect!");
-        return ;
-    }
-    var e=this._find_edge(other_socket);
-    if (e!=undefined) {
-        other_socket.edges.remove(e);
-        this.edges.remove(e);
-    }
-  }, function disconnect_all() {
-    while (this.edges.length>0) {
-      var e=this.edges[0];
-      e.opposite(this).edges.remove(e);
-      this.edges.remove(e);
-    }
-  }]);
-  _es6_module.add_class(EventSocket);
-  EventSocket = _es6_module.add_export('EventSocket', EventSocket);
-  function gen_callback_exec(func, thisvar) {
-    for (var k in UIOnlyNode.prototype) {
-        if (k=="toString")
-          continue;
-        func[k] = UIOnlyNode.prototype[k];
-    }
-    func.constructor = {}
-    func.constructor.name = func.name;
-    func.constructor.prototype = UIOnlyNode.prototype;
-    func.dag_exec = function(ctx, graph) {
-      var args=[];
-      for (var k in this.constructor.dag_inputs) {
-          args.push(this[k]);
-      }
-      this.apply(thisvar!=undefined ? thisvar : self, args);
-    }
-  }
-  var $sarr_bwu3_link;
-  var $darr_bWm9_link;
-  var EventDag=_ESClass("EventDag", [function EventDag() {
-    this.nodes = [];
-    this.sortlist = [];
-    this.doexec = false;
-    this.node_pathmap = {}
-    this.node_idmap = {}
-    this.object_idmap = {}
-    this.idmap = {}
-    this.ctx = undefined;
-    if (_event_dag_idgen==undefined)
-      _event_dag_idgen = new EIDGen();
-    this.object_idgen = _event_dag_idgen;
-    this.idgen = new EIDGen();
-    this.resort = true;
-  }, function reset_cache() {
-    var __iter_n=__get_iter(this.nodes);
-    var n;
-    while (1) {
-      var __ival_n=__iter_n.next();
-      if (__ival_n.done) {
-          break;
-      }
-      n = __ival_n.value;
-      if (__instance_of(n, IndirectNode)) {
-          n._owner = undefined;
-      }
-    }
-  }, function init_slots(node, object) {
-    function make_slot(stype, k, v) {
-      var type;
-      if (v===undefined||v===null)
-        type = DataTypes.DEPEND;
-      else 
-        if (v===true||k===false)
-        type = DataTypes.BOOL;
-      else 
-        if (typeof v=="number")
-        type = DataTypes.NUMBER;
-      else 
-        if (typeof v=="string"||__instance_of(v, String))
-        type = DataTypes.STRING;
-      else 
-        if (__instance_of(v, Vector2))
-        type = DataTypes.VEC2;
-      else 
-        if (__instance_of(v, Vector3))
-        type = DataTypes.VEC3;
-      else 
-        if (__instance_of(v, Vector4))
-        type = DataTypes.VEC4;
-      else 
-        if (__instance_of(v, Matrix4))
-        type = DataTypes.MATRIX4;
-      else 
-        if (__instance_of(v, Array)) {
-          for (var i=0; i<v.length; i++) {
-              if (typeof (v[i])!="number"&&typeof (v[i])!=undefined) {
-                  warntrace("WARNING: bad array being passed around!!", v);
-              }
-              type = DataTypes.ARRAY;
-          }
-      }
-      return new EventSocket(k, node, stype, type);
-    }
-    node.inputs = {}
-    node.outputs = {}
-    if (object.constructor.dag_inputs!=undefined) {
-        for (var k in object.constructor.dag_inputs) {
-            var v=object.constructor.dag_inputs[k];
-            node.inputs[k] = make_slot('i', k, v);
-        }
-    }
-    if (object.constructor.dag_outputs!=undefined) {
-        for (var k in object.constructor.dag_outputs) {
-            var v=object.constructor.dag_outputs[k];
-            node.outputs[k] = make_slot('o', k, v);
-        }
-    }
-  }, function indirect_node(ctx, path, object, auto_create) {
-    if (object==undefined) {
-        object = undefined;
-    }
-    if (auto_create==undefined) {
-        auto_create = true;
-    }
-    if (path in this.node_pathmap)
-      return this.node_pathmap[path];
-    if (!auto_create)
-      return undefined;
-    var node=new IndirectNode(path);
-    this.node_pathmap[path] = node;
-    if (object==undefined) {
-        object = ctx.api.get_object(path);
-    }
-    this.init_slots(node, object);
-    this.add(node);
-    return node;
-  }, function direct_node(ctx, object, auto_create) {
-    if (auto_create==undefined) {
-        auto_create = true;
-    }
-    if ("__dag_id" in object&&object.__dag_id in this.node_idmap) {
-        this.object_idmap[object.__dag_id] = object;
-        return this.node_idmap[object.__dag_id];
-    }
-    if (!auto_create)
-      return undefined;
-    if (object.__dag_id==undefined)
-      object.__dag_id = this.object_idgen.gen_id();
-    var node=new DirectNode(object.__dag_id);
-    node.id = object.__dag_id;
-    this.object_idmap[object.__dag_id] = object;
-    this.node_idmap[object.__dag_id] = node;
-    this.init_slots(node, object);
-    this.add(node);
-    return node;
-  }, function add(node) {
-    node.graph = this;
-    this.nodes.push(node);
-    this.resort = true;
-    node.id = this.idgen.gen_id();
-    this.idmap[node.id] = node;
-  }, function remove(node) {
-    if (!(__instance_of(node, EventNode)))
-      node = this.get_node(node, false);
-    if (node==undefined) {
-        console.log("node already removed");
-        return ;
-    }
-    node.unlink();
-    if (__instance_of(node, DirectNode)) {
-        delete this.object_idmap[node.objid];
-        delete this.node_idmap[node.objid];
-    }
-    else 
-      if (__instance_of(node, IndirectNode)) {
-        delete this.node_pathmap[node.datapath];
-    }
-    delete this.idmap[node.id];
-    this.nodes.remove(node);
-    this.sortlist.remove(node);
-    this.resort = true;
-  }, function get_node(object, auto_create) {
-    if (auto_create==undefined) {
-        auto_create = true;
-    }
-    if (this.ctx==undefined)
-      this.ctx = new Context();
-    var node;
-    if (DataPathNode.isDataPathNode(object)) {
-        node = this.indirect_node(this.ctx, object.dag_get_datapath(), object, auto_create);
-    }
-    else {
-      node = this.direct_node(this.ctx, object, auto_create);
-    }
-    if (node!=undefined&&object.dag_exec!=undefined&&node.dag_exec==undefined) {
-        object = undefined;
-        node.dag_exec = function(ctx) {
-          var owner=this.get_owner(ctx);
-          if (owner!=undefined) {
-              return owner.dag_exec.apply(owner, arguments);
-          }
-        };
-    }
-    return node;
-  }, function link(src, srcfield, dst, dstfield, dstthis) {
-    var obja=src, objb=dst;
-    var srcnode=this.get_node(src);
-    if (!(__instance_of(srcfield, Array))) {
-        $sarr_bwu3_link[0] = srcfield;
-        srcfield = $sarr_bwu3_link;
-    }
-    if (!(__instance_of(dstfield, Array))) {
-        $darr_bWm9_link[0] = dstfield;
-        dstfield = $darr_bWm9_link;
-    }
-    if ((typeof dst=="function"||__instance_of(dst, Function))&&!dst._dag_callback_init) {
-        gen_callback_exec(dst, dstthis);
-        dst._dag_callback_init = true;
-        delete dst.__prototypeid__;
-        dst.constructor.dag_inputs = {};
-        if (__instance_of(srcfield, Array)) {
-            for (var i=0; i<srcfield.length; i++) {
-                var field=srcfield[i];
-                var field2=dstfield[i];
-                if (!(field in srcnode.outputs)) {
-                    console.trace(field, Object.keys(srcnode.outputs), srcnode);
-                    throw new Error("Field not in outputs", field);
-                }
-                var type=srcnode.outputs[field].datatype;
-                dst.constructor.dag_inputs[field2] = TypeDefaults[type];
-            }
-        }
-    }
-    var dstnode=this.get_node(dst);
-    if (__instance_of(srcfield, Array)) {
-        if (srcfield.length!=dstfield.length) {
-            throw new Error("Error, both arguments must be arrays of equal length!", srcfield, dstfield);
-        }
-        for (var i=0; i<dstfield.length; i++) {
-            if (!(dstfield[i] in dstnode.inputs))
-              throw new Error("Event inputs does not exist: "+dstfield[i]);
-            if (!(srcfield[i] in srcnode.outputs))
-              throw new Error("Event output does not exist: "+srcfield[i]);
-            dstnode.inputs[dstfield[i]].connect(srcnode.outputs[srcfield[i]]);
-        }
-    }
-    else {
-      console.log(dstnode, dstfield);
-      if (!(dstfield in dstnode.inputs))
-        throw new Error("Event input does not exist: "+dstfield);
-      if (!(srcfield in srcnode.outputs))
-        throw new Error("Event output does not exist: "+srcfield);
-      dstnode.inputs[dstfield].connect(srcnode.outputs[srcfield]);
-    }
-    this.resort = true;
-  }, function prune_dead_nodes() {
-    var dellist=[];
-    var __iter_n=__get_iter(this.nodes);
-    var n;
-    while (1) {
-      var __ival_n=__iter_n.next();
-      if (__ival_n.done) {
-          break;
-      }
-      n = __ival_n.value;
-      var tot=0;
-      for (var k in n.inputs) {
-          tot+=n.inputs[k].edges.length;
-      }
-      for (var k in n.outputs) {
-          tot+=n.outputs[k].edges.length;
-      }
-      if (tot==0) {
-          dellist.push(n);
-      }
-    }
-    var __iter_n=__get_iter(dellist);
-    var n;
-    while (1) {
-      var __ival_n=__iter_n.next();
-      if (__ival_n.done) {
-          break;
-      }
-      n = __ival_n.value;
-      this.remove(n);
-    }
-  }, function sort() {
-    this.prune_dead_nodes();
-    var sortlist=[];
-    var visit={}
-    var __iter_n=__get_iter(this.nodes);
-    var n;
-    while (1) {
-      var __ival_n=__iter_n.next();
-      if (__ival_n.done) {
-          break;
-      }
-      n = __ival_n.value;
-      n.flag&=~DagFlags.TEMP;
-    }
-    function sort(n) {
-      n.flag|=DagFlags.TEMP;
-      for (var k in n.inputs) {
-          var sock=n.inputs[k];
-          for (var i=0; i<sock.length; i++) {
-              var n2=sock.edges[i].opposite(sock).owner;
-              if (!(n2.flag&DagFlags.TEMP)) {
-                  sort(n2);
-              }
-          }
-      }
-      sortlist.push(n);
-      for (var k in n.outputs) {
-          var sock=n.outputs[k];
-          for (var i=0; i<sock.length; i++) {
-              var n2=sock.edges[i].opposite(sock).owner;
-              if (!(n2.flag&DagFlags.TEMP)) {
-                  sort(n2);
-              }
-          }
-      }
-    }
-    var nlen=this.nodes.length, nodes=this.nodes;
-    for (var i=0; i<nlen; i++) {
-        var n=nodes[i];
-        if (n.flag&DagFlags.TEMP)
-          continue;
-        sort(n);
-    }
-    this.sortlist = sortlist;
-    this.resort = false;
-  }, function on_update(node) {
-    this.doexec = true;
-  }, function exec(ctx) {
-    if (this.resort) {
-        this.sort();
-    }
-    var sortlist=this.sortlist;
-    var slen=sortlist.length;
-    for (var i=0; i<slen; i++) {
-        var n=sortlist[i];
-        if (!(n.flag&DagFlags.UPDATE))
-          continue;
-        n.flag&=~DagFlags.UPDATE;
-        var owner=n.get_owner(ctx);
-        if (owner==undefined) {
-            n.flag|=DagFlags.DEAD;
-        }
-        for (var k in n.outputs) {
-            var s=n.outputs[k];
-            if (!(s.flag&DagFlags.UPDATE))
-              continue;
-            for (var j=0; j<s.edges.length; j++) {
-                s.edges[j].opposite(s).owner.flag|=DagFlags.UPDATE;
-            }
-        }
-        if (owner==undefined||owner.dag_exec==undefined)
-          continue;
-        for (var k in n.inputs) {
-            var sock=n.inputs[k];
-            for (var j=0; j<sock.edges.length; j++) {
-                var e=sock.edges[j], s2=e.opposite(sock);
-                var n2=s2.owner, owner2=n2.get_owner(ctx);
-                if (n2==undefined) {
-                    n2.flag|=DagFlags.DEAD;
-                    continue;
-                }
-                if ((sock.flag&DagFlags.UPDATE)||sock.datatype==DataTypes.DEPEND) {
-                }
-                var data=s2.data!=undefined||owner2==undefined ? s2.data : owner2[s2.name];
-                if (data!=undefined)
-                  s2.data = data;
-                switch (sock.datatype) {
-                  case DataTypes.DEPEND:
-                    break;
-                  case DataTypes.NUMBER:
-                  case DataTypes.STRING:
-                  case DataTypes.BOOL:
-                    owner[sock.name] = data;
-                    break;
-                  case DataTypes.VEC2:
-                    if (!(sock.name in owner)) {
-                        owner[sock.name] = new Vector2(data);
-                    }
-                    else {
-                      owner[sock.name].load(data);
-                    }
-                    break;
-                  case DataTypes.VEC3:
-                    if (!(sock.name in owner)) {
-                        owner[sock.name] = new Vector3(data);
-                    }
-                    else {
-                      owner[sock.name].load(data);
-                    }
-                    break;
-                  case DataTypes.VEC4:
-                    if (!(sock.name in owner)) {
-                        owner[sock.name] = new Vector4(data);
-                    }
-                    else {
-                      owner[sock.name].load(data);
-                    }
-                    break;
-                  case DataTypes.MATRIX4:
-                    if (!(sock.name in owner)) {
-                        owner[sock.name] = new Matrix4(data);
-                    }
-                    else {
-                      owner[sock.name].load(data);
-                    }
-                    break;
-                  case DataTypes.ARRAY:
-                    owner[sock.name] = data;
-                    break;
-                }
-            }
-        }
-        owner.dag_exec(ctx, this);
-    }
-  }]);
-  var $sarr_bwu3_link=[0];
-  var $darr_bWm9_link=[0];
-  _es6_module.add_class(EventDag);
-  EventDag = _es6_module.add_export('EventDag', EventDag);
-  window.init_event_graph = function init_event_graph() {
-    window.the_global_dag = new EventDag();
-    _event_dag_idgen = new EIDGen();
-  }
-});
-es6_module_define('lib_utils', ["events", "toolprops_iter", "struct"], function _lib_utils_module(_es6_module) {
-  "use strict";
-  es6_import(_es6_module, 'events');
-  es6_import(_es6_module, 'toolprops_iter');
-  var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
-  var EventHandler=es6_import_item(_es6_module, 'events', 'EventHandler');
-  var charmap=es6_import_item(_es6_module, 'events', 'charmap');
-  var DBList=_ESClass("DBList", GArray, [function DBList(type) {
-    GArray.call(this);
-    this.type = type;
-    this.idmap = {}
-    this.selected = new GArray();
-    this.active = undefined;
-    this.length = 0;
-    this.selset = new set();
-  }, _ESClass.static(function fromSTRUCT(unpacker) {
-    var dblist=new DBList(0);
-    unpacker(dblist);
-    var arr=dblist.arrdata;
-    dblist.length = 0;
-    for (var i=0; i<arr.length; i++) {
-        GArray.prototype.push.call(dblist, arr[i]);
-    }
-    dblist.selected = new GArray(dblist.selected);
-    delete dblist.arrdata;
-    return dblist;
-  }), function toJSON() {
-    var list=[];
-    var sellist=[];
-    var __iter_block=__get_iter(this);
-    var block;
-    while (1) {
-      var __ival_block=__iter_block.next();
-      if (__ival_block.done) {
-          break;
-      }
-      block = __ival_block.value;
-      list.push(block.lib_id);
-    }
-    var __iter_block=__get_iter(this.selected);
-    var block;
-    while (1) {
-      var __ival_block=__iter_block.next();
-      if (__ival_block.done) {
-          break;
-      }
-      block = __ival_block.value;
-      sellist.push(block.lib_id);
-    }
-    var obj={list: list, selected: sellist, active: this.active!=undefined ? this.active.lib_id : -1, length: this.length, type: this.type}
-    return obj;
-  }, _ESClass.static(function fromJSON(obj) {
-    var list=new DBList(obj.type);
-    list.list = new GArray(obj.list);
-    list.selected = new GArray(obj.selected);
-    list.active = obj.active;
-    list.length = obj.length;
-  }), function clear_select() {
-    var __iter_block=__get_iter(this.selected);
-    var block;
-    while (1) {
-      var __ival_block=__iter_block.next();
-      if (__ival_block.done) {
-          break;
-      }
-      block = __ival_block.value;
-      block.flag&=~SELECT;
-    }
-    this.selset = new set();
-    this.selected = new GArray();
-  }, function set_active(block) {
-    if (block==undefined&&this.length>0) {
-        console.trace();
-        console.log("Undefined actives are illegal for DBLists, unless the list length is zero.");
-        return ;
-    }
-    this.active = block;
-  }, function select(block, do_select) {
-    if (do_select==undefined) {
-        do_select = true;
-    }
-    if (!(__instance_of(block, DataBlock))) {
-        warntrace("WARNING: bad value ", block, " passed to DBList.select()");
-        return ;
-    }
-    if (do_select) {
-        block.flag|=SELECT;
-        if (this.selset.has(block)) {
-            return ;
-        }
-        this.selset.add(block);
-        this.selected.push(block);
-    }
-    else {
-      block.flag&=~SELECT;
-      if (!this.selset.has(block)) {
-          return ;
-      }
-      this.selset.remove(block);
-      this.selected.remove(block);
-    }
-  }, function data_link(block, getblock, getblock_us) {
-    for (var i=0; i<this.length; i++) {
-        this[i] = getblock(this[i]);
-        this.idmap[this[i].lib_id] = this[i];
-    }
-    var sel=this.selected;
-    for (var i=0; i<sel.length; i++) {
-        sel[i] = getblock(sel[i]);
-        this.selset.add(sel[i]);
-    }
-    this.active = getblock(this.active);
-  }, function push(block) {
-    if (!(__instance_of(block, DataBlock))) {
-        warntrace("WARNING: bad value ", block, " passed to DBList.select()");
-        return ;
-    }
-    GArray.prototype.push.call(this, block);
-    this.idmap[block.lib_id] = block;
-    if (this.active==undefined) {
-        this.active = block;
-        this.select(block, true);
-    }
-  }, function remove(block) {
-    var i=this.indexOf(block);
-    if (i<0||i==undefined) {
-        warn("WARNING: Could not remove block "+block.name+" from a DBList");
-        return ;
-    }
-    this.pop(i);
-  }, function pop(i) {
-    if (i<0||i>=this.length) {
-        warn("WARNING: Invalid argument ", i, " to static pop()");
-        print_stack();
-        return ;
-    }
-    var block=this[i];
-    GArray.prototype.pop.call(this, i);
-    delete this.idmap[block.lib_id];
-    if (this.active==block) {
-        this.select(block, false);
-        this.active = this.length>0 ? this[0] : undefined;
-    }
-    if (this.selset.has(block)) {
-        this.selected.remove(block);
-        this.selset.remove(block);
-    }
-  }, function idget(id) {
-    return this.idmap[id];
-  }]);
-  _es6_module.add_class(DBList);
-  DBList.STRUCT = "\n  DBList {\n    type : int;\n    selected : array(dataref(DataBlock));\n    arrdata : array(dataref(DataBlock)) | obj;\n    active : dataref(DataBlock);\n  }\n";
-  function DataArrayRem(dst, field, obj) {
-    var array=dst[field];
-    function rem() {
-      array.remove(obj);
-    }
-    return rem;
-  }
-  function SceneObjRem(scene, obj) {
-    function rem() {
-      var __iter_e=__get_iter(obj.dag_node.inmap["parent"]);
-      var e;
-      while (1) {
-        var __ival_e=__iter_e.next();
-        if (__ival_e.done) {
-            break;
-        }
-        e = __ival_e.value;
-        var node=e.opposite(obj).node;
-        if (__instance_of(node, ASObject))
-          node.unparent(scene);
-      }
-      scene.objects.remove(obj);
-      scene.graph.remove(obj);
-      if (scene.active==obj)
-        scene.active = scene.objects.length>0 ? scene.objects[0] : undefined;
-      if (scene.selection.has(obj))
-        scene.selection.remove(obj);
-    }
-    return rem;
-  }
-  function DataRem(dst, field) {
-    function rem() {
-      dst["field"] = undefined;
-    }
-    return rem;
-  }
-  function wrap_getblock_us(datalib) {
-    return function(dataref, block, fieldname, add_user, refname, rem_func) {
-      if (dataref==undefined)
-        return ;
-      if (rem_func==undefined)
-        rem_func = DataRem(block, fieldname);
-      if (refname==undefined)
-        refname = fieldname;
-      var id=dataref[0];
-      if (id==-1) {
-          return undefined;
-      }
-      else {
-        var b=datalib.get(id);
-        if (b!=undefined) {
-            if (add_user)
-              b.lib_adduser(block, refname, rem_func);
-        }
-        else {
-          warntrace(["WARNING WARNING WARNING saved block reference isn't in database!!!", "  dataref: "].join("\n"), dataref);
-        }
-        return b;
-      }
-    }
-  }
-  wrap_getblock_us = _es6_module.add_export('wrap_getblock_us', wrap_getblock_us);
-  function wrap_getblock(datalib) {
-    return function(dataref) {
-      if (dataref==undefined)
-        return ;
-      var id=dataref[0];
-      if (id==-1) {
-          return undefined;
-      }
-      else {
-        var b=datalib.get(id);
-        if (b!=undefined) {
-        }
-        else {
-          warntrace(["WARNING WARNING WARNING saved block reference isn't in database!!!", "  dataref: "].join("\n"), dataref);
-        }
-        return b;
-      }
-    }
-  }
-  wrap_getblock = _es6_module.add_export('wrap_getblock', wrap_getblock);
-  var DataRefList=_ESClass("DataRefList", GArray, [function DataRefList(lst) {
-    if (lst==undefined) {
-        lst = undefined;
-    }
-    GArray.call(this);
-    this.datalib = undefined;
-    if (lst==undefined)
-      return ;
-    if (__instance_of(lst, Array)) {
-        for (var i=0; i<lst.length; i++) {
-            if (lst[i]==undefined)
-              continue;
-            this.push(lst[i]);
-        }
-    }
-    else 
-      if (Symbol.iterator in lst) {
-        var __iter_b=__get_iter(lst);
-        var b;
-        while (1) {
-          var __ival_b=__iter_b.next();
-          if (__ival_b.done) {
-              break;
-          }
-          b = __ival_b.value;
-          this.push(b);
-        }
-    }
-  }, _ESClass.symbol(Symbol.iterator, function iterator() {
-    return new DataRefListIter(this, new Context());
-  }), _ESClass.set(function ctx(ctx) {
-    this.datalib = ctx.datalib;
-  }), _ESClass.get(function ctx() {
-    return undefined;
-  }), function get(i, return_block) {
-    if (return_block==undefined) {
-        return_block = true;
-    }
-    if (return_block) {
-        var dl=this.datalib!=undefined ? this.datalib : g_app_state.datalib;
-        return dl.get(this[i]);
-    }
-    else {
-      return this[i];
-    }
-  }, function push(b) {
-    if (!(b = this._b(b)))
-      return ;
-    if (__instance_of(b, DataBlock))
-      b = new DataRef(b);
-    GArray.prototype.push.call(this, new DataRef(b));
-  }, function _b(b) {
-    if (b==undefined) {
-        warntrace("WARNING: undefined passed to DataRefList.push()");
-        return ;
-    }
-    if (__instance_of(b, DataBlock)) {
-        return new DataRef(b);
-    }
-    else 
-      if (__instance_of(b, DataRef)) {
-        return b;
-    }
-    else {
-      warntrace("WARNING: bad value ", b, " passed to DataRefList._b()");
-    }
-  }, function remove(b) {
-    if (!(b = this._b(b)))
-      return ;
-    var i=this.indexOf(b);
-    if (i<0) {
-        warntrace("WARNING: ", b, " not found in this DataRefList");
-        return ;
-    }
-    this.pop(i);
-  }, function pop(i, return_block) {
-    if (return_block==undefined) {
-        return_block = true;
-    }
-    var ret=GArray.prototype.pop.call(this, i);
-    if (return_block)
-      ret = new Context().datalib.get(ret.id);
-    return ret;
-  }, function replace(a, b) {
-    if (!(b = this._b(b)))
-      return ;
-    var i=this.indexOf(a);
-    if (i<0) {
-        warntrace("WARNING: ", b, " not found in this DataRefList");
-        return ;
-    }
-    this[i] = b;
-  }, function indexOf(b) {
-    Array.indexOf.call(this, b);
-    if (!(b = this._b(b)))
-      return ;
-    for (var i=0; i<this.length; i++) {
-        if (this[i].id==b.id)
-          return i;
-    }
-    return -1;
-  }, function insert(index, b) {
-    if (!(b = this._b(b)))
-      return ;
-    GArray.prototype.insert.call(this, b);
-  }, function prepend(b) {
-    if (!(b = this._b(b)))
-      return ;
-    GArray.prototype.prepend.call(this, b);
-  }, _ESClass.static(function fromSTRUCT(reader) {
-    var ret={}
-    reader(ret);
-    return new DataRefList(ret.list);
-  })]);
-  _es6_module.add_class(DataRefList);
-  mixin(DataRefList, TPropIterable);
-  DataRefList.STRUCT = "\n  DataRefList {\n    list : array(i, dataref(DataBlock)) | this[i];\n  }\n";
-});
-es6_module_define('nacl_api', ["spline_types", "ajax", "solver", "toolops_api", "typedwriter", "spline_base", "spline_math_hermite"], function _nacl_api_module(_es6_module) {
-  "use strict";
-  var TypedWriter=es6_import_item(_es6_module, 'typedwriter', 'TypedWriter');
-  var mmax=Math.max, mmin=Math.min, mfloor=Math.floor;
-  var abs=Math.abs, sqrt=Math.sqrt, sin=Math.sin, cos=Math.cos, pow=Math.pow, log=Math.log, acos=Math.acos, asin=Math.asin, PI=Math.PI;
-  var DEBUG=false;
-  var constraint=es6_import_item(_es6_module, 'solver', 'constraint');
-  var solver=es6_import_item(_es6_module, 'solver', 'solver');
-  var ModalStates=es6_import_item(_es6_module, 'toolops_api', 'ModalStates');
-  var SplineTypes=es6_import_item(_es6_module, 'spline_base', 'SplineTypes');
-  var SplineFlags=es6_import_item(_es6_module, 'spline_base', 'SplineFlags');
-  var FIXED_KS_FLAG=SplineFlags.FIXED_KS;
-  function has_nacl() {
-    return common.naclModule!=undefined;
-  }
-  has_nacl = _es6_module.add_export('has_nacl', has_nacl);
-  var solve_idgen=0;
+es6_module_define('native_api', ["ajax", "spline_math_hermite", "solver", "typedwriter", "toolops_api", "built_wasm", "spline_base"], function _native_api_module(_es6_module) {
+  var wasm=es6_import(_es6_module, 'built_wasm');
   var active_solves={}
   active_solves = _es6_module.add_export('active_solves', active_solves);
   var solve_starttimes={}
@@ -949,11 +10,23 @@ es6_module_define('nacl_api', ["spline_types", "ajax", "solver", "toolops_api", 
   solve_endtimes = _es6_module.add_export('solve_endtimes', solve_endtimes);
   var active_jobs={}
   active_jobs = _es6_module.add_export('active_jobs', active_jobs);
-  var MessageTypes={GEN_DRAW_BEZIERS: 0, REPLY: 1, SOLVE: 2}
+  var constraint=es6_import_item(_es6_module, 'solver', 'constraint');
+  var solver=es6_import_item(_es6_module, 'solver', 'solver');
+  var ModalStates=es6_import_item(_es6_module, 'toolops_api', 'ModalStates');
+  var SplineTypes=es6_import_item(_es6_module, 'spline_base', 'SplineTypes');
+  var SplineFlags=es6_import_item(_es6_module, 'spline_base', 'SplineFlags');
+  var build_solver=es6_import_item(_es6_module, 'spline_math_hermite', 'build_solver');
+  var TypedWriter=es6_import_item(_es6_module, 'typedwriter', 'TypedWriter');
+  var ajax=es6_import(_es6_module, 'ajax');
+  var mmax=Math.max, mmin=Math.min, mfloor=Math.floor;
+  var abs=Math.abs, sqrt=Math.sqrt, sin=Math.sin, cos=Math.cos, pow=Math.pow, log=Math.log, acos=Math.acos, asin=Math.asin, PI=Math.PI;
+  var last_call=undefined;
+  var DEBUG=false;
+  var FIXED_KS_FLAG=SplineFlags.FIXED_KS;
   var callbacks={}
   callbacks = _es6_module.add_export('callbacks', callbacks);
   var msg_idgen=0;
-  msg_idgen = _es6_module.add_export('msg_idgen', msg_idgen);
+  var solve_idgen=0;
   var ORDER=es6_import_item(_es6_module, 'spline_math_hermite', 'ORDER');
   var KSCALE=es6_import_item(_es6_module, 'spline_math_hermite', 'KSCALE');
   var KANGLE=es6_import_item(_es6_module, 'spline_math_hermite', 'KANGLE');
@@ -962,12 +35,94 @@ es6_module_define('nacl_api', ["spline_types", "ajax", "solver", "toolops_api", 
   var KSTARTZ=es6_import_item(_es6_module, 'spline_math_hermite', 'KSTARTZ');
   var KTOTKS=es6_import_item(_es6_module, 'spline_math_hermite', 'KTOTKS');
   var INT_STEPS=es6_import_item(_es6_module, 'spline_math_hermite', 'INT_STEPS');
-  var SplineTypes=es6_import_item(_es6_module, 'spline_types', 'SplineTypes');
+  function onMessage(type, message, ptr) {
+    var iview=new Int32Array(message);
+    var id=iview[1];
+    if (DEBUG)
+      console.log("got array buffer!", message, "ID", id);
+    if (!(id in callbacks)) {
+        if (DEBUG)
+          console.log("Warning, dead communication callback", id);
+        return ;
+    }
+    var job=callbacks[id], iter=job.job;
+    if (DEBUG)
+      console.log("job:", job);
+    job.status.data = message.slice(8, message.byteLength);
+    if (DEBUG)
+      console.log("iter:", iter, iter.data);
+    var ret=iter.next();
+    if (ret.done) {
+        delete callbacks[id];
+        if (job.callback!=undefined)
+          job.callback.call(job.thisvar, job.status.value);
+    }
+    wasm._free(ptr);
+  }
+  onMessage = _es6_module.add_export('onMessage', onMessage);
+  var messageQueue=[];
+  messageQueue = _es6_module.add_export('messageQueue', messageQueue);
+  var queueMessages=false;
+  function queueUpMessages(state) {
+    queueMessages = state;
+  }
+  queueUpMessages = _es6_module.add_export('queueUpMessages', queueUpMessages);
+  function flushQueue() {
+    var $_let_queue11=messageQueue.slice(0, messageQueue.length);
+    messageQueue.length = 0;
+    var __iter_$_let_msg13=__get_iter($_let_queue11);
+    var $_let_msg13;
+    while (1) {
+      var __ival_$_let_msg13=__iter_$_let_msg13.next();
+      if (__ival_$_let_msg13.done) {
+          break;
+      }
+      $_let_msg13 = __ival_$_let_msg13.value;
+      onMessage($_let_msg13.type, $_let_msg13.msg, $_let_msg13.ptr);
+    }
+  }
+  flushQueue = _es6_module.add_export('flushQueue', flushQueue);
+  window._wasm_post_message = function(type, ptr, len) {
+    if (DEBUG)
+      console.log("got wasm message", type, ptr, len);
+    var $_let_message19=wasm.HEAPU8.slice(ptr, ptr+len).buffer;
+    if (DEBUG)
+      console.log($_let_message19);
+    if (!queueMessages) {
+        onMessage(type, $_let_message19, ptr);
+    }
+    else {
+      if (DEBUG)
+        console.log("Queuing a message!", type, $_let_message19, ptr, "=======");
+      messageQueue.push({type: type, msg: $_let_message19, ptr: ptr});
+    }
+  }
+  function postToWasm(type, msg) {
+    if (!(__instance_of(msg, ArrayBuffer))) {
+        throw new Error("msg must be array buffer");
+    }
+    var $_let_bytes32=new Uint8Array(msg);
+    var $_let_ptr33=wasm._malloc(msg.byteLength*2);
+    var $_let_mem34=wasm.HEAPU8;
+    for (var $_let_i40=$_let_ptr33; $_let_i40<$_let_ptr33+$_let_bytes32.length; $_let_i40++) {
+        $_let_mem34[$_let_i40] = $_let_bytes32[$_let_i40-$_let_ptr33];
+    }
+    wasm._gotMessage(type, $_let_ptr33, msg.byteLength);
+    wasm._free($_let_ptr33);
+  }
+  postToWasm = _es6_module.add_export('postToWasm', postToWasm);
+  function test_wasm() {
+    var $_let_msg47=new Int32Array([0, 1, 2, 3, 2, 1, -1]);
+    console.log($_let_msg47);
+    postToWasm(0, $_let_msg47.buffer);
+  }
+  test_wasm = _es6_module.add_export('test_wasm', test_wasm);
+  var MessageTypes={GEN_DRAW_BEZIERS: 0, REPLY: 1, SOLVE: 2}
+  MessageTypes = _es6_module.add_export('MessageTypes', MessageTypes);
   var ConstraintTypes={TAN_CONSTRAINT: 0, HARD_TAN_CONSTRAINT: 1, CURVATURE_CONSTRAINT: 2, COPY_C_CONSTRAINT: 3}
   ConstraintTypes = _es6_module.add_export('ConstraintTypes', ConstraintTypes);
   var JobTypes={DRAWSOLVE: 1, PATHSOLVE: 2, SOLVE: 1|2}
   JobTypes = _es6_module.add_export('JobTypes', JobTypes);
-  var ajax=es6_import(_es6_module, 'ajax');
   function clear_jobs_except_latest(typeid) {
     var last=undefined;
     var lastk=undefined;
@@ -1012,77 +167,6 @@ es6_module_define('nacl_api', ["spline_types", "ajax", "solver", "toolops_api", 
     }
   }
   clear_jobs = _es6_module.add_export('clear_jobs', clear_jobs);
-  var last_call=undefined;
-  var build_solver=es6_import_item(_es6_module, 'spline_math_hermite', 'build_solver');
-  function _get_job(message) {
-    if (__instance_of(message.data, ArrayBuffer)) {
-        var iview=new Int32Array(message.data);
-        if (DEBUG)
-          console.log("got array buffer!", message.data);
-        var id=iview[1];
-        if (!(id in callbacks)) {
-            return ;
-        }
-        var job=callbacks[id], iter=job.job;
-        if (DEBUG)
-          console.log("job:", job);
-        return job;
-    }
-  }
-  _get_job = _es6_module.add_export('_get_job', _get_job);
-  function destroy_job(job) {
-    delete callbacks[job.status.msgid];
-  }
-  var handleMessage_intern=function(message) {
-    if (typeof message.data=="string"||__instance_of(message.data, String)) {
-        if (message.data.startsWith("OK ")) {
-            console.log("%cNaCL: %s", "color:green", message.data.slice(3, message.data.length));
-        }
-        else 
-          if (message.data.startsWith("ER ")) {
-            console.log("%cNaCL: Error: %s", "color:red", message.data.slice(3, message.data.length));
-        }
-        else {
-          console.log("%cNaCL: %s", "color:rgb(255, 65, 10)", message.data);
-        }
-    }
-    else 
-      if (__instance_of(message.data, ArrayBuffer)) {
-        var iview=new Int32Array(message.data);
-        if (DEBUG)
-          console.log("got array buffer!", message.data);
-        var id=iview[1];
-        if (!(id in callbacks)) {
-            return ;
-        }
-        var job=callbacks[id], iter=job.job;
-        if (DEBUG)
-          console.log("job:", job);
-        job.status.data = message.data.slice(8, message.data.byteLength);
-        if (DEBUG)
-          console.log("iter:", iter, iter.data);
-        var ret=iter.next();
-        if (ret.done) {
-            delete callbacks[id];
-            if (job.callback!=undefined)
-              job.callback.call(job.thisvar, job.status.value);
-        }
-        return ;
-    }
-    else {
-      if (DEBUG)
-        console.log("Got message!", message);
-    }
-  }
-  var queue=[];
-  queue = _es6_module.add_export('queue', queue);
-  window.handleMessage = function(message) {
-    handleMessage_intern(message);
-  }
-  function _PostMessage(msg, id) {
-    common.naclModule.postMessage(data);
-  }
-  _PostMessage = _es6_module.add_export('_PostMessage', _PostMessage);
   function call_api(job, params) {
     if (params==undefined) {
         params = undefined;
@@ -1095,8 +179,8 @@ es6_module_define('nacl_api', ["spline_types", "ajax", "solver", "toolops_api", 
         only_latest = params.only_latest!=undefined ? params.only_latest : false;
         typeid = params.typeid;
     }
-    var postMessage=function(msg) {
-      common.naclModule.postMessage(msg);
+    var postMessage=function(type, msg) {
+      postToWasm(type, msg);
     }
     var id=msg_idgen++;
     var status={msgid: id, data: undefined}
@@ -1104,21 +188,20 @@ es6_module_define('nacl_api', ["spline_types", "ajax", "solver", "toolops_api", 
     for (var i=2; i<arguments.length; i++) {
         args.push(arguments[i]);
     }
+    queueUpMessages(true);
     var iter=job.apply(job, args);
     var ret=iter.next();
     if (ret.done) {
         callback.call(thisvar, iter.value);
         return ;
     }
+    if (DEBUG)
+      console.log("  SETTING CALLBACK WITH ID", id);
     callbacks[id] = {job: iter, typeid: typeid, only_latest: only_latest, callback: callback, thisvar: thisvar, error: error, status: status}
+    queueUpMessages(false);
+    flushQueue();
   }
   call_api = _es6_module.add_export('call_api', call_api);
-  function test_nacl() {
-    call_api(gen_draw_cache, {callback: function(value) {
-    }}, new Context().frameset.spline);
-    window.redraw_viewport();
-  }
-  test_nacl = _es6_module.add_export('test_nacl', test_nacl);
   function start_message(type, msgid, endian) {
     var data=[];
     ajax.pack_int(data, type, endian);
@@ -1147,7 +230,7 @@ es6_module_define('nacl_api', ["spline_types", "ajax", "solver", "toolops_api", 
   function gen_draw_cache(postMessage, status, spline) {
     var __gen_this2=this;
     function _generator_iter() {
-      this.scope = {dview_18: undefined, i_18: undefined, __iter_s_1: undefined, endian_1: undefined, getdouble_18: undefined, status_0: status, ret_18: undefined, data_1: undefined, postMessage_0: postMessage, getint_18: undefined, upack_18: undefined, tot_18: undefined, msgid_1: undefined, eidmap_18: undefined, s_1: undefined, getfloat_18: undefined, spline_0: spline}
+      this.scope = {postMessage_0: postMessage, status_0: status, spline_0: spline, data_1: undefined, msgid_1: undefined, endian_1: undefined, __iter_s_1: undefined, s_1: undefined, dview_18: undefined, upack_18: undefined, getint_18: undefined, getfloat_18: undefined, getdouble_18: undefined, tot_18: undefined, ret_18: undefined, eidmap_18: undefined, i_18: undefined}
       this.ret = {done: false, value: undefined}
       this.state = 1;
       this.trystack = [];
@@ -1266,7 +349,7 @@ es6_module_define('nacl_api', ["spline_types", "ajax", "solver", "toolops_api", 
               break;
             case 16:
               scope.data_1 = new Uint8Array(scope.data_1).buffer;
-              postMessage(scope.data_1);
+              postMessage(MessageTypes.GEN_DRAW_BEZIERS, scope.data_1);
               
               $__state = 17;
               break;
@@ -1825,6 +908,8 @@ es6_module_define('nacl_api', ["spline_types", "ajax", "solver", "toolops_api", 
     _i+=24*totvert;
     var totseg=getint();
     getint();
+    if (DEBUG)
+      console.log("totseg:", totseg);
     for (var i=0; i<totseg; i++) {
         var eid=getint(), flag=getint();
         var seg=spline.eidmap[eid];
@@ -1920,256 +1005,3447 @@ es6_module_define('nacl_api', ["spline_types", "ajax", "solver", "toolops_api", 
         console.log("time c:", time_ms()-timestart);
       if (prof)
         console.log("time d:", time_ms()-timestart, data.byteLength);
-      postMessage(data);
+      postMessage(MessageTypes.SOLVE, data);
       if (prof)
         console.log("time e:", time_ms()-timestart, "\n\n\n");
     }
     ret.stage1 = function() {
-      data = new DataView(status.data);
+      console.log(status, "<----");
+      var $_let_buf1870=status.data;
+      data = new DataView($_let_buf1870);
       status.value = wrap_unload(spline, data);
     }
     return ret;
   }
   nacl_solve = _es6_module.add_export('nacl_solve', nacl_solve);
 });
-"not_a_module";
-"use strict";
-var isTest=false;
-var isRelease=false;
-var common=(function() {
-  function isHostToolchain(tool) {
-    return tool=='win'||tool=='linux'||tool=='mac';
-  }
-  function mimeTypeForTool(tool) {
-    var mimetype='application/x-nacl';
-    if (isHostToolchain(tool)) {
-        if (isRelease)
-          mimetype = 'application/x-ppapi-release';
-        else 
-          mimetype = 'application/x-ppapi-debug';
+es6_module_define('addon_api', [], function _addon_api_module(_es6_module) {
+  "use strict";
+  var modules={}
+  var Addon=_ESClass("Addon", [_ESClass.static(function define() {
+    return {author: "", email: "", version: "", tooltip: "", description: "", struct_classes: []}
+  }), function Addon(manager) {
+    this.manager = manager;
+  }, function define_data_api(api) {
+  }, function init_addon() {
+  }, function destroy_addon() {
+  }, function handle_versioning(file, oldversion) {
+  }]);
+  _es6_module.add_class(Addon);
+  Addon = _es6_module.add_export('Addon', Addon);
+  var AddonManager=_ESClass("AddonManager", [function AddonManager() {
+    this.addons = [];
+    this.datablock_types = [];
+  }, function register_datablock_type(cls) {
+    this.datablock_types.push(cls);
+  }, function unregister_datablock_type(cls) {
+    this.datablock_types.remove(cls, false);
+  }, function getmodule(name) {
+    return modules[name];
+  }, function getmodules() {
+    return Object.getOwnPropertyNames(modules);
+  }]);
+  _es6_module.add_class(AddonManager);
+  AddonManager = _es6_module.add_export('AddonManager', AddonManager);
+});
+es6_module_define('scene', ["lib_api", "struct"], function _scene_module(_es6_module) {
+  var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
+  var DataBlock=es6_import_item(_es6_module, 'lib_api', 'DataBlock');
+  var DataTypes=es6_import_item(_es6_module, 'lib_api', 'DataTypes');
+  var Scene=_ESClass("Scene", DataBlock, [function Scene() {
+    DataBlock.call(this, DataTypes.SCENE);
+    this.active_splinepath = "frameset.drawspline";
+    this.time = 1;
+  }, function change_time(ctx, time, _update_animation) {
+    if (_update_animation==undefined) {
+        _update_animation = true;
     }
-    else 
-      if (tool=='pnacl') {
-        mimetype = 'application/x-pnacl';
+    if (isNaN(this.time)) {
+        console.log("EEK corruption!");
+        this.time = ctx.frameset.time;
+        if (isNaN(this.time))
+          this.time = 0;
+        if (isNaN(time))
+          time = 0;
     }
-    return mimetype;
-  }
-  function browserSupportsNaCl(tool) {
-    if (isHostToolchain(tool)) {
-        return true;
+    if (isNaN(time))
+      return ;
+    if (time==this.time)
+      return ;
+    if (time<1) {
+        time = 1;
     }
-    var mimetype=mimeTypeForTool(tool);
-    return navigator.mimeTypes[mimetype]!==undefined;
-  }
-  function injectScript(url, onload, onerror) {
-    var scriptEl=document.createElement('script');
-    scriptEl.type = 'text/javascript';
-    scriptEl.src = url;
-    scriptEl.onload = onload;
-    if (onerror) {
-        scriptEl.addEventListener('error', onerror, false);
+    this.time = time;
+    ctx.frameset.change_time(time, _update_animation);
+    ctx.api.on_frame_change(ctx, time);
+  }, function copy() {
+    var ret=new Scene();
+    ret.time = this.time;
+    return ret;
+  }, _ESClass.static(function fromSTRUCT(reader) {
+    var ret=STRUCT.chain_fromSTRUCT(Scene, reader);
+    ret.afterSTRUCT();
+    if (ret.active_splinepath=="frameset.active_spline")
+      ret.active_splinepath = "frameset.drawspline";
+    return ret;
+  }), function data_link(block, getblock, getblock_us) {
+    DataBlock.prototype.data_link.apply(this, arguments);
+  }]);
+  _es6_module.add_class(Scene);
+  Scene = _es6_module.add_export('Scene', Scene);
+  Scene.STRUCT = STRUCT.inherit(Scene, DataBlock)+"\n    time              : float;\n    active_splinepath : string;\n  }\n";
+});
+es6_module_define('events', [], function _events_module(_es6_module) {
+  "use strict";
+  var MyKeyboardEvent=_ESClass("MyKeyboardEvent", [function MyKeyboardEvent(code, shift, ctrl, alt) {
+    if (shift==undefined) {
+        shift = false;
     }
-    document.head.appendChild(scriptEl);
-  }
-  function runTests(moduleEl) {
-    console.log('runTests()');
-    common.tester = new Tester();
-    common.tester.exitCleanlyIsOK();
-    common.tester.addAsyncTest('loaded', function(test) {
-      test.pass();
-    });
-    if (typeof window.addTests!=='undefined') {
-        window.addTests();
+    if (ctrl==undefined) {
+        ctrl = false;
     }
-    common.tester.waitFor(moduleEl);
-    common.tester.run();
-  }
-  function createNaClModule(name, tool, path, width, height, attrs) {
-    var moduleEl=document.createElement('embed');
-    moduleEl.setAttribute('name', 'nacl_module');
-    moduleEl.setAttribute('id', 'nacl_module');
-    moduleEl.setAttribute('width', width);
-    moduleEl.setAttribute('height', height);
-    moduleEl.setAttribute('path', path);
-    moduleEl.setAttribute('src', path+'/'+name+'.nmf');
-    if (attrs) {
-        for (var key in attrs) {
-            moduleEl.setAttribute(key, attrs[key]);
+    if (alt==undefined) {
+        alt = false;
+    }
+    this.keyCode = code;
+    this.shiftKey = shift;
+    this.ctrlKey = ctrl;
+    this.altKey = alt;
+  }]);
+  _es6_module.add_class(MyKeyboardEvent);
+  MyKeyboardEvent = _es6_module.add_export('MyKeyboardEvent', MyKeyboardEvent);
+  window.MyKeyboardEvent = MyKeyboardEvent;
+  var MyMouseEvent=_ESClass("MyMouseEvent", [function MyMouseEvent(x, y, button, type) {
+    this.x = x;
+    this.y = y;
+    this.button = button;
+    this.type = type;
+    this.touches = {}
+  }, function copy(sub_offset) {
+    if (sub_offset==undefined) {
+        sub_offset = undefined;
+    }
+    var ret=new MyMouseEvent(this.x, this.y, this.button, this.type);
+    for (var k in this.touches) {
+        var t=this.touches[k];
+        var x=t[0], y=t[1];
+        if (sub_offset) {
+            x-=sub_offset[0];
+            y-=sub_offset[1];
         }
+        ret.touches[k] = [x, y];
     }
-    var mimetype=mimeTypeForTool(tool);
-    moduleEl.setAttribute('type', mimetype);
-    var listenerDiv=document.getElementById('listener');
-    listenerDiv.appendChild(moduleEl);
-    moduleEl.offsetTop;
-    var isHost=isHostToolchain(tool);
-    if (isHost) {
-        window.setTimeout(function() {
-          moduleEl.readyState = 1;
-          moduleEl.dispatchEvent(new CustomEvent('loadstart'));
-          moduleEl.readyState = 4;
-          moduleEl.dispatchEvent(new CustomEvent('load'));
-          moduleEl.dispatchEvent(new CustomEvent('loadend'));
-        }, 100);
-    }
-    if (isTest) {
-        var loadNaClTest=function() {
-          injectScript('nacltest.js', function() {
-            runTests(moduleEl);
-          });
-        };
-        injectScript('test.js', loadNaClTest, loadNaClTest);
-    }
+    return ret;
+  }]);
+  _es6_module.add_class(MyMouseEvent);
+  MyMouseEvent = _es6_module.add_export('MyMouseEvent', MyMouseEvent);
+  window.MyMouseEvent = MyMouseEvent;
+  MyMouseEvent.MOUSEMOVE = 0;
+  MyMouseEvent.MOUSEDOWN = 1;
+  MyMouseEvent.MOUSEUP = 2;
+  MyMouseEvent.LEFT = 0;
+  MyMouseEvent.RIGHT = 1;
+  var _swap_next_mouseup=false;
+  var _swap_next_mouseup_button=2;
+  function swap_next_mouseup_event(button) {
+    _swap_next_mouseup = true;
+    _swap_next_mouseup_button = button;
   }
-  function attachDefaultListeners() {
-    var listenerDiv=document.getElementById('listener');
-    listenerDiv.addEventListener('load', moduleDidLoad, true);
-    listenerDiv.addEventListener('message', handleMessage, true);
-    listenerDiv.addEventListener('error', handleError, true);
-    listenerDiv.addEventListener('crash', handleCrash, true);
-    if (typeof window.attachListeners!=='undefined') {
-        window.attachListeners();
+  swap_next_mouseup_event = _es6_module.add_export('swap_next_mouseup_event', swap_next_mouseup_event);
+  var _ignore_next_mouseup=false;
+  var _ignore_next_mouseup_button=2;
+  function ignore_next_mouseup_event(button) {
+    _ignore_next_mouseup = true;
+    _ignore_next_mouseup_button = button;
+  }
+  ignore_next_mouseup_event = _es6_module.add_export('ignore_next_mouseup_event', ignore_next_mouseup_event);
+  var EventHandler=_ESClass("EventHandler", [function EventHandler() {
+    this.modalstack = new Array();
+    this.modalhandler = null;
+    this.keymap = null;
+    this.touch_manager = undefined;
+    this.touch_delay_stack = [];
+  }, function push_touch_delay(delay_ms) {
+    this.touch_delay_stack.push(this.touch_delay);
+    this.touch_delay = delay_ms;
+  }, function pop_touch_delay() {
+    if (this.touch_delay_stack.length==0) {
+        console.log("Invalid call to EventHandler.pop_touch_delay!");
+        return ;
     }
-  }
-  function handleError(event) {
-    var moduleEl=document.getElementById('nacl_module');
-    updateStatus('ERROR ['+moduleEl.lastError+']');
-  }
-  function handleCrash(event) {
-    if (common.naclModule.exitStatus==-1) {
-        updateStatus('CRASHED');
+    this.touch_delay = this.touch_delay_stack.pop();
+  }, _ESClass.set(function touch_delay(delay_ms) {
+    if (delay_ms==0) {
+        this.touch_manager = undefined;
     }
     else {
-      updateStatus('EXITED ['+common.naclModule.exitStatus+']');
+      if (this.touch_manager==undefined)
+        this.touch_manager = new TouchEventManager(this, delay_ms);
+      else 
+        this.touch_manager.delay = delay_ms;
     }
-    if (typeof window.handleCrash!=='undefined') {
-        window.handleCrash(common.naclModule.lastError);
+  }), _ESClass.get(function touch_delay() {
+    if (this.touch_manager==undefined)
+      return 0;
+    return this.touch_manager.delay;
+  }), function on_tick() {
+    if (this.touch_manager!=undefined)
+      this.touch_manager.process();
+  }, function bad_event(event) {
+    var tm=this.touch_manager;
+    if (tm==undefined)
+      return false;
+    if (this.touch_manager!=undefined)
+      this.touch_manager.process();
+    if (tm!=undefined&&__instance_of(event, MyMouseEvent)) {
+        var i=0;
+        for (var k in event.touches) {
+            i++;
+        }
+        if (i==0)
+          return false;
+        if ("_good" in event)
+          return false;
+        this.touch_manager.queue_event(event);
+        return true;
+    }
+    return false;
+  }, function on_textinput(event) {
+  }, function on_keydown(event) {
+  }, function on_charcode(event) {
+  }, function on_keyinput(event) {
+  }, function on_keyup(event) {
+  }, function on_mousemove(event) {
+  }, function on_mousedown(event) {
+  }, function on_doubleclick(event) {
+  }, function on_pan(pan, last_pan) {
+  }, function on_gl_lost(new_gl) {
+  }, function on_mouseup2(event) {
+  }, function on_mouseup3(event) {
+  }, function on_mousedown2(event) {
+  }, function on_mousedown3(event) {
+  }, function on_mousemove2(event) {
+  }, function on_mousemove3(event) {
+  }, function on_mousewheel(event) {
+  }, function on_mouseup(event) {
+  }, function on_resize(newsize) {
+  }, function on_contextchange(event) {
+  }, function on_draw(gl) {
+  }, function has_modal() {
+    return this.modalhandler!=null;
+  }, function push_modal(handler) {
+    if (this.modalhandler!=null) {
+        this.modalstack.push(this.modalhandler);
+    }
+    this.modalhandler = handler;
+  }, function pop_modal() {
+    if (this.modalhandler!=null) {
+    }
+    if (this.modalstack.length>0) {
+        this.modalhandler = this.modalstack.pop();
+    }
+    else {
+      this.modalhandler = null;
+    }
+  }, function _on_resize(newsize) {
+    this.on_resize(event);
+  }, function _on_pan(pan, last_pan) {
+    if (this.modalhandler!=null&&this.modalhandler!==this)
+      this.modalhandler._on_pan(event);
+    else 
+      this.on_pan(event);
+  }, function _on_textinput(event) {
+    if (this.modalhandler!=null&&this.modalhandler!==this)
+      this.modalhandler._on_textinput(event);
+    else 
+      this.on_textinput(event);
+  }, function _on_keydown(event) {
+    if (this.bad_event(event))
+      return ;
+    if (this.modalhandler!=null&&this.modalhandler!==this)
+      this.modalhandler._on_keydown(event);
+    else 
+      this.on_keydown(event);
+  }, function _on_charcode(event) {
+    if (this.bad_event(event))
+      return ;
+    if (this.modalhandler!=null&&this.modalhandler!==this)
+      this.modalhandler._on_charcode(event);
+    else 
+      this.on_charcode(event);
+  }, function _on_keyinput(event) {
+    if (this.bad_event(event))
+      return ;
+    if (this.modalhandler!=null&&this.modalhandler!==this)
+      this.modalhandler._on_keyinput(event);
+    else 
+      this.on_keyinput(event);
+  }, function _on_keyup(event) {
+    if (this.bad_event(event))
+      return ;
+    if (this.modalhandler!=null&&this.modalhandler!==this)
+      this.modalhandler._on_keyup(event);
+    else 
+      this.on_keyup(event);
+  }, function _on_mousemove(event) {
+    if (this.bad_event(event))
+      return ;
+    if (this.modalhandler!=null&&this.modalhandler!==this)
+      this.modalhandler._on_mousemove(event);
+    else 
+      this.on_mousemove(event);
+  }, function _on_doubleclick(event) {
+    if (this.bad_event(event))
+      return ;
+    if (this.modalhandler!=null&&this.modalhandler!==this)
+      this.modalhandler._on_doubleclick(event);
+    else 
+      this.on_doubleclick(event);
+  }, function _on_mousedown(event) {
+    if (this.bad_event(event))
+      return ;
+    if (this.modalhandler!=null&&this.modalhandler!==this)
+      this.modalhandler._on_mousedown(event);
+    else 
+      this.on_mousedown(event);
+  }, function _on_mouseup(event) {
+    if (this.bad_event(event))
+      return ;
+    if (_swap_next_mouseup&&event.button==_swap_next_mouseup_button) {
+        event.button = _swap_next_mouseup_button==2 ? 0 : 2;
+        _swap_next_mouseup = false;
+    }
+    if (_ignore_next_mouseup&&event.button==_ignore_next_mouseup_button) {
+        _ignore_next_mouseup = false;
+        return ;
+    }
+    if (this.modalhandler!=null&&this.modalhandler!==this)
+      this.modalhandler._on_mouseup(event);
+    else 
+      this.on_mouseup(event);
+  }, function _on_mousewheel(event, delta) {
+    if (this.bad_event(event))
+      return ;
+    if (this.modalhandler!=null&&this.modalhandler!==this)
+      this.modalhandler._on_mousewheel(event, delta);
+    else 
+      this.on_mousewheel(event, delta);
+  }]);
+  _es6_module.add_class(EventHandler);
+  EventHandler = _es6_module.add_export('EventHandler', EventHandler);
+  var valid_modifiers={"SHIFT": 1, "CTRL": 2, "ALT": 4}
+  var charmap_latin_1={"Space": 32, "Escape": 27, "Enter": 13, "Up": 38, "Down": 40, "Left": 37, "Right": 39, "Num0": 96, "Num1": 97, "Num2": 98, "Num3": 99, "Num4": 100, "Num5": 101, "Num6": 102, "Num7": 103, "Num8": 104, "Num9": 105, "Home": 36, "End": 35, "Delete": 46, "Backspace": 8, "Insert": 45, "PageUp": 33, "PageDown": 34, "Tab": 9, "-": 189, "=": 187, "NumPlus": 107, "NumMinus": 109, "Shift": 16, "Ctrl": 17, "Control": 17, "Alt": 18}
+  charmap_latin_1 = _es6_module.add_export('charmap_latin_1', charmap_latin_1);
+  for (var i=0; i<26; i++) {
+      charmap_latin_1[String.fromCharCode(i+65)] = i+65;
+  }
+  for (var i=0; i<10; i++) {
+      charmap_latin_1[String.fromCharCode(i+48)] = i+48;
+  }
+  for (var k in charmap_latin_1) {
+      charmap_latin_1[charmap_latin_1[k]] = k;
+  }
+  var charmap_latin_1_rev={}
+  for (var k in charmap_latin_1) {
+      charmap_latin_1_rev[charmap_latin_1[k]] = k;
+  }
+  var charmap=charmap_latin_1;
+  charmap = _es6_module.add_export('charmap', charmap);
+  var charmap_rev=charmap_latin_1_rev;
+  charmap_rev = _es6_module.add_export('charmap_rev', charmap_rev);
+  window.charmap = charmap;
+  window.charmap_rev = charmap_rev;
+  var KeyHandler=_ESClass("KeyHandler", [function KeyHandler(key, modifiers, uiname, menunum, ignore_charmap_error) {
+    if (!charmap.hasOwnProperty(key)) {
+        if (ignore_charmap_error!=undefined&&ignore_charmap_error!=true) {
+            console.trace();
+            console.log("Invalid hotkey "+key+"!");
+        }
+        this.key = 0;
+        this.keyAscii = "[corrupted hotkey]";
+        this.shift = this.alt = this.ctrl = false;
+        return ;
+    }
+    if (typeof (key)=="string") {
+        if (key.length==1)
+          key = key.toUpperCase();
+        this.keyAscii = key;
+        this.key = charmap[key];
+    }
+    else {
+      this.key = key;
+      this.keyAscii = charmap[key];
+    }
+    this.shift = this.alt = this.ctrl = false;
+    this.menunum = menunum;
+    for (var i=0; i<modifiers.length; i++) {
+        if (modifiers[i]=="SHIFT") {
+            this.shift = true;
+        }
+        else 
+          if (modifiers[i]=="ALT") {
+            this.alt = true;
+        }
+        else 
+          if (modifiers[i]=="CTRL") {
+            this.ctrl = true;
+        }
+        else {
+          console.trace();
+          console.log("Warning: invalid modifier "+modifiers[i]+" in KeyHandler");
+        }
+    }
+  }, function build_str(add_menu_num) {
+    var s="";
+    if (this.ctrl)
+      s+="CTRL-";
+    if (this.alt)
+      s+="ALT-";
+    if (this.shift)
+      s+="SHIFT-";
+    s+=this.keyAscii;
+    return s;
+  }, _ESClass.symbol(Symbol.keystr, function keystr() {
+    return this.build_str(false);
+  })]);
+  _es6_module.add_class(KeyHandler);
+  KeyHandler = _es6_module.add_export('KeyHandler', KeyHandler);
+  var KeyMap=_ESClass("KeyMap", hashtable, [function KeyMap() {
+    hashtable.call(this);
+    this.op_map = new hashtable();
+  }, function get_tool_handler(toolstr) {
+    if (this.op_map.has(toolstr))
+      return this.op_map.get(toolstr);
+  }, function add_tool(keyhandler, toolstr) {
+    this.add(keyhandler, new ToolKeyHandler(toolstr));
+    this.op_map.add(toolstr, keyhandler);
+  }, function add_func(keyhandler, func) {
+    this.add(keyhandler, new FuncKeyHandler(func));
+  }, function add(keyhandler, value) {
+    if (this.has(keyhandler)) {
+        console.trace();
+        console.log("Duplicate hotkey definition!");
+    }
+    if (__instance_of(value, ToolKeyHandler)&&!(typeof value.tool=="string"||__instance_of(value.tool, String))) {
+        value.tool.keyhandler = keyhandler;
+    }
+    hashtable.prototype.add.call(this, keyhandler, value);
+  }, function process_event(ctx, event) {
+    var modlist=[];
+    if (event.ctrlKey)
+      modlist.push("CTRL");
+    if (event.shiftKey)
+      modlist.push("SHIFT");
+    if (event.altKey)
+      modlist.push("ALT");
+    var key=new KeyHandler(event.keyCode, modlist, 0, 0, true);
+    if (this.has(key)) {
+        ctx.keymap_mpos = ctx.view2d.mpos;
+        return this.get(key);
+    }
+    return undefined;
+  }]);
+  _es6_module.add_class(KeyMap);
+  KeyMap = _es6_module.add_export('KeyMap', KeyMap);
+  var KeyHandlerCls=_ESClass("KeyHandlerCls", [function handle(ctx) {
+  }, function KeyHandlerCls() {
+  }]);
+  _es6_module.add_class(KeyHandlerCls);
+  KeyHandlerCls = _es6_module.add_export('KeyHandlerCls', KeyHandlerCls);
+  var ToolKeyHandler=_ESClass("ToolKeyHandler", KeyHandlerCls, [function ToolKeyHandler(tool) {
+    this.tool = tool;
+  }, function handle(ctx) {
+    var tool=this.tool;
+    ctx.api.call_op(ctx, tool);
+  }]);
+  _es6_module.add_class(ToolKeyHandler);
+  ToolKeyHandler = _es6_module.add_export('ToolKeyHandler', ToolKeyHandler);
+  var FuncKeyHandler=_ESClass("FuncKeyHandler", KeyHandlerCls, [function FuncKeyHandler(func) {
+    this.handle = func;
+  }]);
+  _es6_module.add_class(FuncKeyHandler);
+  FuncKeyHandler = _es6_module.add_export('FuncKeyHandler', FuncKeyHandler);
+  var $vel_eAf0_on_tick;
+  var $vel_AIRB_calc_vel;
+  var $was_clamped_A2L9_clamp_pan;
+  var VelocityPan=_ESClass("VelocityPan", EventHandler, [function VelocityPan() {
+    this.start_mpos = new Vector2();
+    this.last_mpos = new Vector2();
+    this.mpos = new Vector2();
+    this.start_time = 0;
+    this.owner = undefined;
+    this.coasting = false;
+    this.panning = false;
+    this.was_touch = false;
+    this.enabled = true;
+    this.vel = new Vector2();
+    this.pan = new Vector2();
+    this.damp = 0.99;
+    this.can_coast = true;
+    this.start_pan = new Vector2();
+    this.first = false;
+    this.last_ms = 0;
+    this.vel = new Vector2();
+  }, function on_tick() {
+    if (!this.panning&&this.coasting) {
+        var damp=0.99;
+        $vel_eAf0_on_tick.load(this.vel);
+        $vel_eAf0_on_tick.mulScalar(time_ms()-this.last_ms);
+        this.vel.mulScalar(damp);
+        this.last_ms = time_ms();
+        this.pan.sub($vel_eAf0_on_tick);
+        var was_clamped=this.clamp_pan();
+        this.owner.on_pan(this.pan, this.start_pan);
+        var stop=was_clamped!=undefined&&(was_clamped[0]&&was_clamped[1]);
+        stop = stop||this.vel.vectorLength<1;
+        if (stop)
+          this.coasting = false;
+    }
+  }, function calc_vel() {
+    if (!this.can_coast) {
+        this.vel.zero();
+        this.coasting = false;
+        this.last_ms = time_ms();
+        return ;
+    }
+    var t=time_ms()-this.start_time;
+    if (t<10) {
+        console.log("small t!!!", t);
+        return ;
+    }
+    $vel_AIRB_calc_vel.load(this.last_mpos).sub(this.mpos).divideScalar(t);
+    this.vel.add($vel_AIRB_calc_vel);
+    this.coasting = (this.vel.vectorLength()>0.25);
+    this.last_ms = time_ms();
+  }, function start(start_mpos, last_mpos, owner, push_modal_func, pop_modal_func) {
+    if (this.panning) {
+        console.trace("warning, duplicate call to VelocityPan.start()");
+        return ;
+    }
+    this.vel.zero();
+    this.pop_modal_func = pop_modal_func;
+    this.coasting = false;
+    this.first = false;
+    this.owner = owner;
+    this.panning = true;
+    push_modal_func(this);
+    this.start_pan.load(this.pan);
+    this.last_ms = time_ms();
+    this.start_time = time_ms();
+    this.was_touch = g_app_state.was_touch;
+    this.start_mpos.load(start_mpos);
+    this.last_mpos.load(start_mpos);
+    this.mpos.load(start_mpos);
+    this.do_mousemove(last_mpos);
+  }, function end() {
+    console.log("in end");
+    if (this.panning) {
+        console.log("  pop modal");
+        this.pop_modal_func();
+    }
+    this.panning = false;
+  }, function do_mousemove(mpos) {
+    if (DEBUG.touch) {
+        console.log("py", mpos[1]);
+    }
+    this.last_mpos.load(this.mpos);
+    this.mpos.load(mpos);
+    this.pan[0] = this.start_pan[0]+mpos[0]-this.start_mpos[0];
+    this.pan[1] = this.start_pan[1]+mpos[1]-this.start_mpos[1];
+    this.vel.zero();
+    this.calc_vel();
+    this.clamp_pan();
+    this.owner.on_pan(this.pan, this.start_pan);
+  }, function clamp_pan() {
+    var bs=this.owner.pan_bounds;
+    if (this.owner.state&8192*4)
+      return ;
+    var p=this.pan;
+    $was_clamped_A2L9_clamp_pan[0] = false;
+    $was_clamped_A2L9_clamp_pan[1] = false;
+    for (var i=0; i<2; i++) {
+        var l=p[i];
+        p[i] = Math.min(Math.max(bs[0][i], p[i]), bs[0][i]+bs[1][i]);
+        if (p[i]!=l)
+          $was_clamped_A2L9_clamp_pan[i] = true;
+    }
+    return $was_clamped_A2L9_clamp_pan;
+  }, function on_mouseup(event) {
+    console.log("pan mouse up!", this.panning, this.owner);
+    if (this.panning) {
+        this.mpos.load([event.y, event.y]);
+        this.calc_vel();
+        this.end();
+    }
+  }, function on_mousemove(event) {
+    this.do_mousemove([event.x, event.y]);
+  }, function set_pan(pan) {
+    if (this.panning)
+      this.end();
+    this.pan.load(pan);
+    this.coasting = false;
+    this.vel.zero();
+  }]);
+  var $vel_eAf0_on_tick=new Vector2();
+  var $vel_AIRB_calc_vel=new Vector2();
+  var $was_clamped_A2L9_clamp_pan=[0, 0];
+  _es6_module.add_class(VelocityPan);
+  VelocityPan = _es6_module.add_export('VelocityPan', VelocityPan);
+  var TouchEventManager=_ESClass("TouchEventManager", [function TouchEventManager(owner, delay) {
+    if (delay==undefined) {
+        delay = 100;
+    }
+    this.queue = new GArray();
+    this.queue_ms = new GArray();
+    this.delay = delay;
+    this.owner = owner;
+  }, function get_last(type) {
+    var i=this.queue.length;
+    if (i==0)
+      return undefined;
+    i--;
+    var q=this.queue;
+    while (i>=0) {
+      var e=q[i];
+      if (e.type==type||e.type!=MyMouseEvent.MOUSEMOVE)
+        break;
+      i--;
+    }
+    if (i<0)
+      i = 0;
+    return q[i].type==type ? q[i] : undefined;
+  }, function queue_event(event) {
+    var last=this.get_last(event.type);
+    if (DEBUG.touch&&this==touch_manager)
+      console.log("touch event", event.type);
+    if (last!=undefined&&last.type!=MyMouseEvent.MOUSEMOVE) {
+        var dis, same=true;
+        for (var k in event.touches) {
+            if (!(k in last.touches)) {
+            }
+        }
+        dis = new Vector2([event.x, event.y]).vectorDistance(new Vector2([last.x, last.y]));
+        if (DEBUG.touch&&this==touch_manager)
+          console.log(dis);
+        if (same&&dis<50) {
+            if (DEBUG.touch&&this==touch_manager)
+              console.log("destroying duplicate event", last.type, event.x, event.y, event.touches);
+            for (var k in event.touches) {
+                last.touches[k] = event.touches[k];
+            }
+            return ;
+        }
+    }
+    this.queue.push(event);
+    this.queue_ms.push(time_ms());
+  }, function cancel(event) {
+    var ts=event.touches;
+    var dl=new GArray;
+    if (DEBUG.touch&&this==touch_manager)
+      console.log("touch cancel", event);
+    for (var e in this.queue) {
+        for (var k in ts) {
+            if (k in e.touches) {
+                delete e.touches;
+            }
+        }
+        if (list(e.touches).length==0) {
+            dl.push(e);
+        }
+    }
+    for (var e in dl) {
+        var i=this.queue.indexOf(e);
+        this.queue.remove(e);
+        this.queue_ms.pop_i(i);
+    }
+  }, function process() {
+    var owner=this.owner;
+    var dl=new GArray();
+    var q=this.queue;
+    var qm=this.queue_ms;
+    var delay=this.delay;
+    for (var i=0; i<q.length; i++) {
+        if (time_ms()-qm[i]>delay) {
+            dl.push(q[i]);
+        }
+    }
+    var __iter_e=__get_iter(dl);
+    var e;
+    while (1) {
+      var __ival_e=__iter_e.next();
+      if (__ival_e.done) {
+          break;
+      }
+      e = __ival_e.value;
+      var i=q.indexOf(e);
+      q.remove(e);
+      qm.pop_i(i);
+    }
+    var __iter_e=__get_iter(dl);
+    var e;
+    while (1) {
+      var __ival_e=__iter_e.next();
+      if (__ival_e.done) {
+          break;
+      }
+      e = __ival_e.value;
+      e._good = true;
+      g_app_state.was_touch = true;
+      try {
+        if (e.type==MyMouseEvent.MOUSEDOWN) {
+            if (DEBUG.touch)
+              console.log("td1", e.x, e.y);
+            owner._on_mousedown(e);
+            if (DEBUG.touch)
+              console.log("td2", e.x, e.y);
+        }
+        else 
+          if (e.type==MyMouseEvent.MOUSEMOVE) {
+            owner._on_mousemove(e);
+        }
+        else 
+          if (e.type==MyMouseEvent.MOUSEUP) {
+            owner._on_mouseup(e);
+        }
+      }
+      catch (_err) {
+          print_stack(_err);
+          console.log("Error executing delayed touch event");
+      }
+    }
+  }, function reset() {
+    this.queue = new GArray();
+    this.queue_ms = new GArray();
+  }]);
+  _es6_module.add_class(TouchEventManager);
+  TouchEventManager = _es6_module.add_export('TouchEventManager', TouchEventManager);
+  window.TouchEventManager = TouchEventManager;
+  var touch_manager=window.touch_manager = new TouchEventManager(undefined, 20);
+});
+es6_module_define('touchevents', [], function _touchevents_module(_es6_module) {
+  "use strict";
+  var TouchManager=_ESClass("TouchManager", [function TouchManager(event) {
+    this.pattern = new set(Object.keys(event.touches));
+    this.idxmap = {}
+    this.tot = event.touches.length;
+    this.event = event;
+    this.deltas = {}
+    var i=0;
+    for (var k in event.touches) {
+        this.idxmap[i++] = k;
+        this.deltas[k] = 0.0;
+    }
+  }, function update(event) {
+    if (this.valid(event)) {
+        for (var k in event.touches) {
+            var t2=event.touches[k];
+            var t1=this.event.touches[k];
+            var d=[t2[0]-t1[0], t2[1]-t1[1]];
+            this.deltas[k] = d;
+        }
+    }
+    this.event = event;
+  }, function delta(i) {
+    return this.deltas[this.idxmap[i]];
+  }, function get(i) {
+    return this.event.touches[this.idxmap[i]];
+  }, function valid(event) {
+    if (event==undefined) {
+        event = this.event;
+    }
+    var keys=Object.keys(event.touches);
+    if (keys.length!=this.pattern.length)
+      return false;
+    for (var i=0; i<keys.length; i++) {
+        if (!pattern.has(keys[i]))
+          return false;
+    }
+    return true;
+  }]);
+  _es6_module.add_class(TouchManager);
+});
+es6_module_define('toolprops', ["ajax", "toolprops_iter", "struct"], function _toolprops_module(_es6_module) {
+  "use strict";
+  
+  var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
+  var pack_int=es6_import_item(_es6_module, 'ajax', 'pack_int');
+  var pack_float=es6_import_item(_es6_module, 'ajax', 'pack_float');
+  var pack_static_string=es6_import_item(_es6_module, 'ajax', 'pack_static_string');
+  var PropTypes={INT: 0, FLOAT: 1, STRING: 4, VEC3: 6, VEC4: 7, BOOL: 8, MATRIX3: 12, MATRIX4: 13, ENUM: 14, STRUCT: 15, FLAG: 16, DATAREF: 17, DATAREFLIST: 18, TRANSFORM: 19, COLLECTION: 20, VEC2: 21, IMAGE: 22, ARRAYBUFFER: 23, COLOR3: 24, COLOR4: 25}
+  PropTypes = _es6_module.add_export('PropTypes', PropTypes);
+  var TPropFlags={PRIVATE: 1, LABEL: 2, COLL_LOOSE_TYPE: 4, USE_UNDO: 8, UNDO_SIMPLE: 16}
+  TPropFlags = _es6_module.add_export('TPropFlags', TPropFlags);
+  var ToolProperty=_ESClass("ToolProperty", [function ToolProperty(type, apiname, uiname, description, flag) {
+    if (apiname==undefined) {
+        apiname = "";
+    }
+    if (uiname==undefined) {
+        uiname = apiname;
+    }
+    if (description==undefined) {
+        description = "";
+    }
+    if (flag==undefined) {
+        flag = 0;
+    }
+    this.type = type;
+    this.data = null;
+    this.apiname = apiname;
+    if (uiname==undefined)
+      uiname = apiname;
+    this.listeners = new GArray();
+    this.uiname = uiname;
+    this.flag = flag;
+    this.description = description;
+    this.userdata = undefined;
+    this.ctx = undefined;
+    this.path = undefined;
+    this.hotkey_ref = undefined;
+    this.unit = undefined;
+    this.icon = -1;
+  }, function copyTo(dst, copy_data) {
+    if (copy_data==undefined) {
+        copy_data = false;
+    }
+    dst.flag = this.flag;
+    dst.icon = this.icon;
+    dst.unit = this.unit;
+    dst.hotkey_ref = this.hotkey_ref;
+    dst.uiname = this.uiname;
+    dst.apiname = this.apiname;
+    if (copy_data)
+      dst.data = this.data;
+    return dst;
+  }, function add_listener(owner, callback) {
+    var __iter_l=__get_iter(this.listeners);
+    var l;
+    while (1) {
+      var __ival_l=__iter_l.next();
+      if (__ival_l.done) {
+          break;
+      }
+      l = __ival_l.value;
+      if (l[0]==owner) {
+          l[1] = callback;
+          return ;
+      }
+    }
+    this.listeners.push([owner, callback]);
+  }, function remove_listener(owner, silent_fail) {
+    if (silent_fail==undefined) {
+        silent_fail = false;
+    }
+    var __iter_l=__get_iter(this.listeners);
+    var l;
+    while (1) {
+      var __ival_l=__iter_l.next();
+      if (__ival_l.done) {
+          break;
+      }
+      l = __ival_l.value;
+      if (l[0]==owner) {
+          console.log("removing listener");
+          this.listeners.remove(l);
+          return ;
+      }
+    }
+    if (!silent_fail)
+      console.trace("warning: remove_listener called for unknown owner:", owner);
+  }, function _exec_listeners(data_api_owner) {
+    var __iter_l=__get_iter(this.listeners);
+    var l;
+    while (1) {
+      var __ival_l=__iter_l.next();
+      if (__ival_l.done) {
+          break;
+      }
+      l = __ival_l.value;
+      if (RELEASE) {
+          try {
+            l[1](l[0], this, data_api_owner);
+          }
+          catch (_err) {
+              print_stack(_err);
+              console.log("Warning: a property event listener failed", "property:", this, "callback:", l[1], "owner:", l[0]);
+          }
+      }
+      else {
+        l[1](l[0], this, data_api_owner);
+      }
+    }
+  }, function load_ui_data(prop) {
+    this.uiname = prop.uiname;
+    this.apiname = prop.apiname;
+    this.description = prop.description;
+    this.unit = prop.unit;
+    this.hotkey_ref = prop.hotkey_ref;
+  }, function user_set_data(this_input) {
+  }, function update(owner_obj, old_value, has_changed) {
+  }, function api_update(ctx, path) {
+  }, function pack(data) {
+    pack_int(data, this.type);
+    var unit=this.unit!=undefined ? "" : this.unit;
+    pack_static_string(data, unit, 16);
+  }, function unpack(data, uctx) {
+    this.unit = unpack_static_string(data, 16);
+    if (this.unit=="")
+      this.unit = undefined;
+  }, function set_data(data, owner, changed, set_data) {
+    if (changed==undefined) {
+        changed = true;
+    }
+    if (set_data==undefined) {
+        set_data = true;
+    }
+    if (set_data)
+      this.data = data;
+    this.api_update(this.ctx, this.path, owner);
+    this.update.call(this, owner, undefined, changed);
+    this._exec_listeners(owner);
+  }, function toJSON() {
+    return {type: this.type, data: this.data}
+  }, function loadJSON(prop, json) {
+    switch (json.type) {
+      case PropTypes.INT:
+      case PropTypes.FLOAT:
+      case PropTypes.STRING:
+      case PropTypes.BOOL:
+      case PropTypes.FLOAT_ARRAY:
+      case PropTypes.INT_ARRAY:
+      case PropTypes.ENUM:
+      case PropTypes.FLAG:
+        prop.set_data(json.data);
+        break;
+      case PropTypes.ELEMENTS:
+        prop.set_data(new GArray(json.data));
+        break;
+      case PropTypes.VEC3:
+        prop.set_data(new Vector3(json.data));
+        break;
+      case PropTypes.VEC4:
+        prop.set_data(new Vector4(json.data));
+        break;
+    }
+  }, _ESClass.static(function fromSTRUCT(reader) {
+    var ob=new ToolProperty();
+    reader(ob);
+    return ob;
+  })]);
+  _es6_module.add_class(ToolProperty);
+  ToolProperty = _es6_module.add_export('ToolProperty', ToolProperty);
+  ToolProperty.STRUCT = "\n  ToolProperty {\n    type : int;\n    flag : int;\n  }\n";
+  var ArrayBufferProperty=_ESClass("ArrayBufferProperty", ToolProperty, [function ArrayBufferProperty(data, apiname, uiname, description, flag) {
+    if (apiname==undefined) {
+        apiname = "";
+    }
+    if (uiname==undefined) {
+        uiname = apiname;
+    }
+    if (description==undefined) {
+        description = "";
+    }
+    if (flag==undefined) {
+        flag = 0;
+    }
+    ToolProperty.call(this, PropTypes.ARRAYBUFFER, apiname, uiname, description, flag);
+    if (data!=undefined) {
+        this.set_data(data);
+    }
+  }, function copyTo(dst) {
+    ToolProperty.prototype.copyTo.call(this, dst, false);
+    if (this.data!=undefined)
+      dst.set_data(this.data);
+    return dst;
+  }, function copy() {
+    return this.copyTo(new ArrayBufferProperty());
+  }]);
+  _es6_module.add_class(ArrayBufferProperty);
+  ArrayBufferProperty = _es6_module.add_export('ArrayBufferProperty', ArrayBufferProperty);
+  ArrayBufferProperty.STRUCT = STRUCT.inherit(ArrayBufferProperty, ToolProperty)+"\n  data : arraybuffer;\n}\n";
+  var DataRefProperty=_ESClass("DataRefProperty", ToolProperty, [function DataRefProperty(value, allowed_types, apiname, uiname, description, flag) {
+    ToolProperty.call(this, PropTypes.DATAREF, apiname, uiname, description, flag);
+    if (allowed_types==undefined)
+      allowed_types = new set();
+    if (!(__instance_of(allowed_types, set))) {
+        if (__instance_of(allowed_types, Array))
+          allowed_types = new set(allowed_types);
+        else 
+          allowed_types = new set([allowed_types]);
+    }
+    this.types = new set();
+    var __iter_val=__get_iter(allowed_types);
+    var val;
+    while (1) {
+      var __ival_val=__iter_val.next();
+      if (__ival_val.done) {
+          break;
+      }
+      val = __ival_val.value;
+      if (typeof val=="object") {
+          val = new val().lib_type;
+      }
+      this.types.add(val);
+    }
+    if (value!=undefined)
+      this.set_data(value);
+  }, function get_block(ctx) {
+    if (this.data==undefined)
+      return undefined;
+    else 
+      return ctx.datalib.get(this.data);
+  }, function copyTo(dst) {
+    ToolProperty.prototype.copyTo.call(this, dst, false);
+    var data=this.data;
+    if (data!=undefined)
+      data = data.copy();
+    dst.types = new set(this.types);
+    if (data!=undefined)
+      dst.set_data(data);
+    return dst;
+  }, function copy() {
+    return this.copyTo(new DataRefProperty());
+  }, function set_data(value, owner, changed, set_data) {
+    if (value==undefined) {
+        ToolProperty.prototype.set_data.call(this, undefined, owner, changed, set_data);
+    }
+    else 
+      if (!(__instance_of(value, DataRef))) {
+        if (!this.types.has(value.lib_type)) {
+            console.trace("Invalid datablock type "+value.lib_type+" passed to DataRefProperty.set_value()");
+            return ;
+        }
+        value = new DataRef(value);
+        ToolProperty.prototype.set_data.call(this, value, owner, changed, set_data);
+    }
+    else {
+      ToolProperty.prototype.set_data.call(this, value, owner, changed, set_data);
+    }
+  }, _ESClass.static(function fromSTRUCT(reader) {
+    var l=new DataRefProperty();
+    
+    reader(l);
+    l.types = new set(l.types);
+    if (l.data!=undefined&&l.data.id<0)
+      l.data = undefined;
+    l.set_data(l.data);
+    return l;
+  })]);
+  _es6_module.add_class(DataRefProperty);
+  DataRefProperty = _es6_module.add_export('DataRefProperty', DataRefProperty);
+  DataRefProperty.STRUCT = STRUCT.inherit(DataRefProperty, ToolProperty)+"\n  data : DataRef | obj.data == undefined ? new DataRef(-1) : obj.data;\n  types : iter(int);\n}\n";
+  var RefListProperty=_ESClass("RefListProperty", ToolProperty, [function RefListProperty(value, allowed_types, apiname, uiname, description, flag) {
+    ToolProperty.call(this, PropTypes.DATAREFLIST, apiname, uiname, description, flag);
+    if (allowed_types==undefined)
+      allowed_types = [];
+    if (!(__instance_of(allowed_types, set))) {
+        allowed_types = new set([allowed_types]);
+    }
+    this.types = allowed_types;
+    this.set_data(value);
+  }, function copyTo(dst) {
+    ToolProperty.prototype.copyTo.call(this, dst, false);
+    dst.types = new set(this.types);
+    if (this.data!=undefined)
+      dst.set_data(this.data);
+    return dst;
+  }, function copy() {
+    return this.copyTo(new RefListProperty());
+  }, function set_data(value, owner, changed, set_data) {
+    if (value!=undefined&&value.constructor.name=="Array")
+      value = new GArray(value);
+    if (value==undefined) {
+        ToolProperty.prototype.set_data.call(this, undefined, owner, changed, set_data);
+    }
+    else {
+      var lst=new DataRefList();
+      for (var i=0; i<value.length; i++) {
+          var block=value[i];
+          if (block==undefined||!this.types.has(block.lib_type)) {
+              console.trace();
+              if (block==undefined)
+                console.log("Undefined datablock in list passed to RefListProperty.set_data");
+              else 
+                console.log("Invalid datablock type "+block.lib_type+" passed to RefListProperty.set_value()");
+              continue;
+          }
+          lst.push(block);
+      }
+      value = lst;
+      ToolProperty.prototype.set_data.call(this, this, value, owner, changed, set_data);
+    }
+  }, _ESClass.static(function fromSTRUCT(reader) {
+    var t=new RefListProperty();
+    reader(t);
+    t.types = new set(t.types);
+    t.set_data(t.data);
+    return t;
+  })]);
+  _es6_module.add_class(RefListProperty);
+  RefListProperty = _es6_module.add_export('RefListProperty', RefListProperty);
+  RefListProperty.STRUCT = STRUCT.inherit(RefListProperty, ToolProperty)+"\n  data : iter(dataref(DataBlock));\n  types : iter(int);\n}\n";
+  var FlagProperty=_ESClass("FlagProperty", ToolProperty, [function FlagProperty(value, maskmap, uinames, apiname, uiname, description, range, uirange, flag) {
+    ToolProperty.call(this, PropTypes.FLAG, apiname, uiname, description, flag);
+    if (value==undefined&&maskmap==undefined) {
+        this.ui_value_names = {};
+        this.ui_key_names = {};
+        this.flag_descriptions = {};
+        this.keys = {};
+        this.values = {};
+        return ;
+    }
+    this.data = 0;
+    this.ui_key_names = {}
+    this.flag_descriptions = {}
+    if (uinames==undefined) {
+        this.setUINames(uinames);
+    }
+    else {
+      this.ui_value_names = uinames;
+      for (var k in uinames) {
+          this.ui_key_names[uinames[k]] = k;
+      }
+    }
+    this.keys = {}
+    this.values = {}
+    for (var k in maskmap) {
+        this.values[maskmap[k]] = maskmap[k];
+        this.keys[k] = maskmap[k];
+    }
+    this.set_flag(value);
+  }, function setUINames(uinames) {
+    this.ui_value_names = {}
+    this.ui_key_names = {}
+    for (var k in this.keys) {
+        var key=k[0].toUpperCase()+k.slice(1, k.length).toLowerCase();
+        key = key.replace(/\_/g, " ").replace(/\-/g, " ");
+        this.ui_value_names[key] = k;
+        this.ui_key_names[k] = key;
+    }
+  }, function copyTo(dst) {
+    ToolProperty.prototype.copyTo.call(this, dst, true);
+    for (var k in this.flag_descriptions) {
+        dst.flag_descriptions[k] = this.flag_descriptions[k];
+    }
+    for (var k in this.keys) {
+        dst.keys[k] = this.keys[k];
+    }
+    for (var k in this.values) {
+        dst.values[k] = this.values[k];
+    }
+    for (var k in this.ui_value_names) {
+        dst.ui_value_names[k] = this.ui_value_names[k];
+    }
+    dst.ui_key_names = {}
+    for (var k in this.ui_key_names) {
+        dst.ui_key_names[k] = this.ui_key_names[k];
+    }
+    return dst;
+  }, function copy() {
+    return this.copyTo(new FlagProperty());
+  }, function pack(data) {
+    pack_int(this.data);
+  }, function set_flag(value) {
+    var flag;
+    if (this.values.hasOwnProperty(value)) {
+        flag = value;
+    }
+    else 
+      if (this.keys.hasOwnProperty(value)) {
+        flag = this.keys[value];
+    }
+    else {
+      console.trace("WARNING: bad flag value!", value, this.values);
+    }
+    this.data|=flag;
+  }, function unset_flag(value) {
+    var flag;
+    if (this.values.hasOwnProperty(value)) {
+        flag = value;
+    }
+    else 
+      if (this.keys.hasOwnProperty(value)) {
+        flag = this.keys[value];
+    }
+    else {
+      console.log(value, this.values);
+      console.trace();
+      throw new Error("Bad flag value");
+    }
+    this.data&=~flag;
+  }, _ESClass.static(function fromSTRUCT(reader) {
+    var t=new FlagProperty();
+    reader(t);
+    return t;
+  })]);
+  _es6_module.add_class(FlagProperty);
+  FlagProperty = _es6_module.add_export('FlagProperty', FlagProperty);
+  FlagProperty.STRUCT = STRUCT.inherit(FlagProperty, ToolProperty)+"\n  data : int;\n}\n";
+  var FloatProperty=_ESClass("FloatProperty", ToolProperty, [function FloatProperty(i, apiname, uiname, description, range, uirange, flag) {
+    ToolProperty.call(this, PropTypes.FLOAT, apiname, uiname, description, flag);
+    if (uirange==undefined) {
+        uirange = range;
+    }
+    this.ui_range = uirange;
+    this.range = range;
+    this.data = i;
+  }, function copyTo(dst) {
+    ToolProperty.prototype.copyTo.call(this, dst, true);
+    dst.ui_range = this.ui_range;
+    dst.range = this.range;
+    return dst;
+  }, function copy() {
+    return this.copyTo(new FloatProperty());
+  }, _ESClass.static(function fromSTRUCT(reader) {
+    var t=new FloatProperty();
+    reader(t);
+    return t;
+  })]);
+  _es6_module.add_class(FloatProperty);
+  FloatProperty = _es6_module.add_export('FloatProperty', FloatProperty);
+  FloatProperty.STRUCT = STRUCT.inherit(FloatProperty, ToolProperty)+"\n  data : float;\n}\n";
+  var IntProperty=_ESClass("IntProperty", ToolProperty, [function IntProperty(i, apiname, uiname, description, range, uirange, flag) {
+    ToolProperty.call(this, PropTypes.INT, apiname, uiname, description, flag);
+    if (uirange==undefined) {
+        uirange = range;
+    }
+    this.ui_range = uirange;
+    this.range = range;
+    this.data = i;
+  }, function copyTo(dst) {
+    ToolProperty.prototype.copyTo.call(this, dst, true);
+    dst.ui_range = this.ui_range;
+    dst.range = this.range;
+    return dst;
+  }, function copy() {
+    return this.copyTo(new IntProperty());
+  }, function pack(data) {
+    pack_int(this.data);
+  }, _ESClass.static(function fromSTRUCT(reader) {
+    var t=new IntProperty();
+    reader(t);
+    return t;
+  })]);
+  _es6_module.add_class(IntProperty);
+  IntProperty = _es6_module.add_export('IntProperty', IntProperty);
+  IntProperty.STRUCT = STRUCT.inherit(IntProperty, ToolProperty)+"\n  data : int;\n}\n";
+  var BoolProperty=_ESClass("BoolProperty", ToolProperty, [function BoolProperty(bool, apiname, uiname, description, flag) {
+    ToolProperty.call(this, PropTypes.BOOL, apiname, uiname, description, flag);
+    this.data = bool ? true : false;
+  }, function pack(data) {
+    pack_int(this.data);
+  }, function copyTo(dst) {
+    ToolProperty.prototype.copyTo.call(this, dst, true);
+    dst.ui_range = this.ui_range;
+    dst.range = this.range;
+    return dst;
+  }, function copy() {
+    return this.copyTo(new BoolProperty());
+  }, _ESClass.static(function fromSTRUCT(reader) {
+    var t=new BoolProperty();
+    reader(t);
+    t.data = !!t.data;
+    return t;
+  })]);
+  _es6_module.add_class(BoolProperty);
+  BoolProperty = _es6_module.add_export('BoolProperty', BoolProperty);
+  BoolProperty.STRUCT = STRUCT.inherit(BoolProperty, ToolProperty)+"\n  data : int;\n}\n";
+  var StringProperty=_ESClass("StringProperty", ToolProperty, [function StringProperty(string, apiname, uiname, description, flag) {
+    if (string==undefined)
+      string = "";
+    ToolProperty.call(this, PropTypes.STRING, apiname, uiname, description, flag);
+    this.data = string;
+  }, function copyTo(dst) {
+    ToolProperty.prototype.copyTo.call(this, dst, true);
+    dst.ui_range = this.ui_range;
+    dst.range = this.range;
+    return dst;
+  }, function copy() {
+    return this.copyTo(new StringProperty());
+  }, function pack(data) {
+    pack_string(this.data);
+  }, _ESClass.static(function fromSTRUCT(reader) {
+    var t=new StringProperty();
+    reader(t);
+    return t;
+  })]);
+  _es6_module.add_class(StringProperty);
+  StringProperty = _es6_module.add_export('StringProperty', StringProperty);
+  StringProperty.STRUCT = STRUCT.inherit(StringProperty, ToolProperty)+"\n  data : string;\n}\n";
+  var TransformProperty=_ESClass("TransformProperty", ToolProperty, [function TransformProperty(value, apiname, uiname, description, flag) {
+    ToolProperty.call(this, PropTypes.TRANSFORM, apiname, uiname, description, flag);
+    if (value!=undefined)
+      ToolProperty.prototype.set_data.call(this, new Matrix4UI(value));
+  }, function set_data(data, owner, changed, set_data) {
+    this.data.load(data);
+    ToolProperty.prototype.set_data.call(this, undefined, owner, changed, false);
+  }, function copyTo(dst) {
+    ToolProperty.prototype.copyTo.call(this, dst, false);
+    dst.data = new Matrix4UI(new Matrix4());
+    dst.data.load(this.data);
+    return dst;
+  }, function copy() {
+    return this.copyTo(new TransformProperty());
+  }, _ESClass.static(function fromSTRUCT(reader) {
+    var t=new TransformProperty();
+    reader(t);
+    t.data = new Matrix4UI(t.data);
+    return t;
+  })]);
+  _es6_module.add_class(TransformProperty);
+  TransformProperty = _es6_module.add_export('TransformProperty', TransformProperty);
+  TransformProperty.STRUCT = STRUCT.inherit(TransformProperty, ToolProperty)+"\n  data : mat4;\n}\n";
+  var EnumProperty=_ESClass("EnumProperty", ToolProperty, [function EnumProperty(string, valid_values, apiname, uiname, description, flag) {
+    ToolProperty.call(this, PropTypes.ENUM, apiname, uiname, description, flag);
+    this.values = {}
+    this.keys = {}
+    this.ui_value_names = {}
+    if (valid_values==undefined)
+      return ;
+    if (__instance_of(valid_values, Array)||__instance_of(valid_values, String)) {
+        for (var i=0; i<valid_values.length; i++) {
+            this.values[valid_values[i]] = valid_values[i];
+            this.keys[valid_values[i]] = valid_values[i];
+        }
+    }
+    else {
+      for (var k in valid_values) {
+          this.values[k] = valid_values[k];
+          this.keys[valid_values[k]] = k;
+      }
+    }
+    if (string==undefined) {
+        this.data = Iterator(valid_values).next();
+    }
+    else {
+      this.set_value(string);
+    }
+    for (var k in this.values) {
+        var uin=k[0].toUpperCase()+k.slice(1, k.length);
+        uin = uin.replace(/\_/g, " ");
+        this.ui_value_names[k] = uin;
+    }
+    this.iconmap = {}
+  }, function load_ui_data(prop) {
+    ToolProperty.prototype.load_ui_data.call(this, prop);
+    this.ui_value_names = Object.create(prop.ui_value_names);
+    this.iconmap = Object.create(prop.iconmap);
+    this.values = Object.create(prop.values);
+    this.keys = Object.create(prop.keys);
+  }, function add_icons(iconmap) {
+    for (var k in iconmap) {
+        this.iconmap[k] = iconmap[k];
+    }
+  }, function copyTo(dst) {
+    ToolProperty.prototype.copyTo.call(this, dst, true);
+    p.keys = Object.create(this.keys);
+    p.values = Object.create(this.values);
+    p.data = this.data;
+    p.ui_value_names = this.ui_value_names;
+    p.update = this.update;
+    p.api_update = this.api_update;
+    for (var k in this.iconmap) {
+        p.iconmap[k] = this.iconmap[k];
+    }
+    return p;
+  }, function copy() {
+    var p=new EnumProperty("dummy", {"dummy": 0}, this.apiname, this.uiname, this.description, this.flag);
+    p.keys = Object.create(this.keys);
+    p.values = Object.create(this.values);
+    p.data = this.data;
+    p.ui_value_names = this.ui_value_names;
+    p.update = this.update;
+    p.api_update = this.api_update;
+    for (var k in this.iconmap) {
+        p.iconmap[k] = this.iconmap[k];
+    }
+    return p;
+  }, function pack(data) {
+    pack_string(this.data);
+  }, function get_value() {
+    if (this.data in this.values)
+      return this.values[this.data];
+    else 
+      return this.data;
+  }, function set_value(val) {
+    if (!(val in this.values)&&(val in this.keys))
+      val = this.keys[val];
+    if (!(val in this.values)) {
+        console.trace("Invalid value for enum!");
+        console.log("Invalid value for enum!", val, this.values);
+        return ;
+    }
+    this.data = new String(val);
+  }, _ESClass.static(function fromSTRUCT(reader) {
+    var t=new EnumProperty();
+    reader(t);
+    return t;
+  })]);
+  _es6_module.add_class(EnumProperty);
+  EnumProperty = _es6_module.add_export('EnumProperty', EnumProperty);
+  EnumProperty.STRUCT = STRUCT.inherit(EnumProperty, ToolProperty)+"\n  data : string | obj.data.toString();\n}\n";
+  var Vec2Property=_ESClass("Vec2Property", ToolProperty, [function Vec2Property(vec2, apiname, uiname, description, flag) {
+    ToolProperty.call(this, PropTypes.VEC2, apiname, uiname, description, flag);
+    this.unit = undefined;
+    this.range = [undefined, undefined];
+    this.real_range = [undefined, undefined];
+    this.data = new Vector3(vec2);
+  }, function copyTo(dst) {
+    ToolProperty.prototype.copyTo.call(this, dst, false);
+    dst.data = new Vector3(this.data);
+    dst.real_range = this.real_range;
+    dst.range = this.range;
+    return dst;
+  }, function set_data(data, owner, changed) {
+    this.data.load(data);
+    ToolProperty.prototype.set_data.call(this, undefined, owner, changed, false);
+  }, function copy() {
+    return this.copyTo(new Vec2Property());
+  }, _ESClass.static(function fromSTRUCT(reader) {
+    var t=new Vec2Property();
+    reader(t);
+    return t;
+  })]);
+  _es6_module.add_class(Vec2Property);
+  Vec2Property = _es6_module.add_export('Vec2Property', Vec2Property);
+  Vec2Property.STRUCT = STRUCT.inherit(Vec2Property, ToolProperty)+"\n  data : array(float);\n}\n";
+  var Vec3Property=_ESClass("Vec3Property", ToolProperty, [function Vec3Property(vec3, apiname, uiname, description, flag) {
+    ToolProperty.call(this, PropTypes.VEC3, apiname, uiname, description, flag);
+    this.unit = "default";
+    this.range = [undefined, undefined];
+    this.real_range = [undefined, undefined];
+    this.data = new Vector3(vec3);
+  }, function copyTo(dst) {
+    ToolProperty.prototype.copyTo.call(this, dst, false);
+    dst.data = new Vector3(this.data);
+    dst.real_range = this.real_range;
+    dst.range = this.range;
+    return dst;
+  }, function set_data(data, owner, changed) {
+    this.data.load(data);
+    ToolProperty.prototype.set_data.call(this, undefined, owner, changed, false);
+  }, function copy() {
+    return this.copyTo(new Vec3Property());
+  }, _ESClass.static(function fromSTRUCT(reader) {
+    var t=new Vec3Property();
+    reader(t);
+    return t;
+  })]);
+  _es6_module.add_class(Vec3Property);
+  Vec3Property = _es6_module.add_export('Vec3Property', Vec3Property);
+  Vec3Property.STRUCT = STRUCT.inherit(Vec3Property, ToolProperty)+"\n  data : vec3;\n}\n";
+  var Vec4Property=_ESClass("Vec4Property", ToolProperty, [function Vec4Property(vec4, apiname, uiname, description, flag) {
+    ToolProperty.call(this, PropTypes.VEC4, apiname, uiname, description, flag);
+    this.subtype==PropTypes.VEC4;
+    this.unit = "default";
+    this.range = [undefined, undefined];
+    this.real_range = [undefined, undefined];
+    this.data = new Vector4(vec4);
+  }, function copyTo(dst) {
+    ToolProperty.prototype.copyTo.call(this, dst, false);
+    dst.data = new Vector4();
+    dst.real_range = this.real_range;
+    dst.range = this.range;
+    dst.data.load(this.data);
+    return dst;
+  }, function set_data(data, owner, changed) {
+    this.data.load(data);
+    ToolProperty.prototype.set_data.call(this, undefined, owner, changed, false);
+  }, function copy() {
+    return this.copyTo(new Vec4Property());
+  }, _ESClass.static(function fromSTRUCT(reader) {
+    var t=new Vec4Property();
+    reader(t);
+    return t;
+  })]);
+  _es6_module.add_class(Vec4Property);
+  Vec4Property = _es6_module.add_export('Vec4Property', Vec4Property);
+  Vec4Property.STRUCT = STRUCT.inherit(Vec4Property, ToolProperty)+"\n  data : vec4;\n}\n";
+  var ToolIter=es6_import_item(_es6_module, 'toolprops_iter', 'ToolIter');
+  var type_filter_iter=_ESClass("type_filter_iter", ToolIter, [function type_filter_iter(iter, typefilter, ctx) {
+    this.types = typefilter;
+    this.ret = {done: false, value: undefined}
+    this.iter = iter;
+    this._ctx = ctx;
+  }, _ESClass.set(function ctx(ctx) {
+    this._ctx = ctx;
+    this.iter.ctx = ctx;
+  }), _ESClass.get(function ctx() {
+    return this._ctx;
+  }), function reset() {
+    this.iter.ctx = this.ctx;
+    this.iter.reset();
+  }, function next() {
+    var ret=this.iter.next();
+    var types=this.types;
+    var tlen=this.types.length;
+    var this2=this;
+    function has_type(obj) {
+      for (i = 0; i<tlen; i++) {
+          if (__instance_of(obj, types[i]))
+            return true;
+      }
+      return false;
+    }
+    while (!ret.done&&!has_type(ret.value)) {
+      ret = this.iter.next();
+    }
+    this.ret.done = ret.done;
+    this.ret.value = ret.value;
+    ret = this.ret;
+    if (ret.done&&this.iter.reset) {
+        this.iter.reset();
+    }
+    return ret;
+  }]);
+  _es6_module.add_class(type_filter_iter);
+  type_filter_iter = _es6_module.add_export('type_filter_iter', type_filter_iter);
+  var CollectionProperty=_ESClass("CollectionProperty", ToolProperty, [function CollectionProperty(data, filter_types, apiname, uiname, description, flag) {
+    ToolProperty.call(this, PropTypes.COLLECTION, apiname, uiname, description, flag);
+    this.flag|=TPropFlags.COLL_LOOSE_TYPE;
+    this.types = filter_types;
+    this._data = undefined;
+    this._ctx = undefined;
+    this.set_data(data);
+  }, function copyTo(dst) {
+    ToolProperty.prototype.copyTo.call(this, dst, false);
+    dst.types = this.types;
+    this.set_data(this.data);
+    return dst;
+  }, function copy() {
+    var ret=this.copyTo(new CollectionProperty());
+    ret.types = this.types;
+    ret._ctx = this._ctx;
+    if (this._data!=undefined&&this._data.copy!=undefined)
+      ret.set_data(this._data.copy());
+    return ret;
+  }, _ESClass.get(function ctx() {
+    return this._ctx;
+  }), _ESClass.set(function ctx(data) {
+    this._ctx = data;
+    if (this._data!=undefined)
+      this._data.ctx = data;
+  }), function set_data(data, owner, changed) {
+    if (data==undefined) {
+        this._data = undefined;
+        return ;
+    }
+    if ("__tooliter__" in data&&typeof data.__tooliter__=="function") {
+        this.set_data(data.__tooliter__(), owner, changed);
+        return ;
+    }
+    else 
+      if (!(this.flag&TPropFlags.COLL_LOOSE_TYPE)&&!(TPropIterable.isTPropIterable(data))) {
+        console.trace();
+        console.log("ERROR: bad data '", data, "' was passed to CollectionProperty.set_data!");
+        throw new Error("ERROR: bad data '", data, "' was passed to CollectionProperty.set_data!");
+    }
+    this._data = data;
+    this._data.ctx = this.ctx;
+    ToolProperty.prototype.set_data.call(this, undefined, owner, changed, false);
+  }, _ESClass.set(function data(data) {
+    this.set_data(data);
+  }), _ESClass.get(function data() {
+    return this._data;
+  }), _ESClass.symbol(Symbol.iterator, function iterator() {
+    if (this._data==undefined)
+      return {next: function() {
+      return {done: true, value: undefined}
+    }}
+    this._data.ctx = this._ctx;
+    if (this.types!=undefined&&this.types.length>0)
+      return new type_filter_iter(this.data[Symbol.iterator](), this.types, this._ctx);
+    else 
+      return this.data[Symbol.iterator]();
+  }), _ESClass.static(function fromSTRUCT(reader) {
+    var ret=new CollectionProperty();
+    reader(ret);
+    return ret;
+  })]);
+  _es6_module.add_class(CollectionProperty);
+  CollectionProperty = _es6_module.add_export('CollectionProperty', CollectionProperty);
+  CollectionProperty.STRUCT = STRUCT.inherit(CollectionProperty, ToolProperty)+"\n    data : abstract(Object) | obj.data == undefined ? new BlankArray() : obj.data;\n  }\n";
+  var BlankArray=_ESClass("BlankArray", [_ESClass.static(function fromSTRUCT(reader) {
+    return undefined;
+  }), function BlankArray() {
+  }]);
+  _es6_module.add_class(BlankArray);
+  BlankArray = _es6_module.add_export('BlankArray', BlankArray);
+  BlankArray.STRUCT = "\n  BlankArray {\n    length : int | 0;\n  }\n";
+  window.BlankArray = BlankArray;
+});
+es6_module_define('toolprops_iter', ["struct"], function _toolprops_iter_module(_es6_module) {
+  "use strict";
+  var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
+  var TPropIterable=_ESClass("TPropIterable", [function TPropIterable() {
+  }, _ESClass.symbol(Symbol.iterator, function iterator() {
+  }), function _is_tprop_iterable() {
+  }, _ESClass.static(function isTPropIterable(obj) {
+    return obj!=undefined&&"_is_tprop_iterable" in obj;
+  })]);
+  _es6_module.add_class(TPropIterable);
+  TPropIterable = _es6_module.add_export('TPropIterable', TPropIterable);
+  window.TPropIterable = TPropIterable;
+  var TCanSafeIter=_ESClass("TCanSafeIter", [function TCanSafeIter() {
+  }, function __tooliter__() {
+  }]);
+  _es6_module.add_class(TCanSafeIter);
+  TCanSafeIter = _es6_module.add_export('TCanSafeIter', TCanSafeIter);
+  window.TCanSafeIter = TCanSafeIter;
+  var ToolIter=_ESClass("ToolIter", TPropIterable, [function ToolIter(itemtypes) {
+    if (itemtypes==undefined) {
+        itemtypes = [];
+    }
+    TPropIterable.call(this);
+    this.itemtypes = itemtypes;
+    this.ctx = undefined;
+    this.ret = {done: true, value: undefined}
+  }, function next() {
+  }, function reset() {
+  }, function spawn() {
+  }, function _get_block(ref) {
+    if (this.ctx!=undefined) {
+        if (ref.lib_id==this.ctx.object.lib_id)
+          return this.ctx.object;
+        else 
+          return this.ctx.datalib.get(ref);
+    }
+  }, _ESClass.symbol(Symbol.iterator, function iterator() {
+    return this;
+  }), _ESClass.static(function fromSTRUCT(reader) {
+    var obj=new ToolIter();
+    reader(obj);
+    return obj;
+  })]);
+  _es6_module.add_class(ToolIter);
+  ToolIter = _es6_module.add_export('ToolIter', ToolIter);
+  ToolIter.STRUCT = "\n  ToolIter {\n  }\n";
+  var MSelectIter=_ESClass("MSelectIter", ToolIter, [function MSelectIter(typemask, mesh) {
+    ToolIter.call(this);
+    this.meshref = new DataRef(mesh);
+    this.mask = typemask;
+    this.mesh = undefined;
+    this.init = true;
+    this.iter = undefined;
+  }, _ESClass.symbol(Symbol.iterator, function iterator() {
+    if (this.init) {
+        return this;
+    }
+    else {
+      return new MSelectIter(this.mask, this.meshref);
+    }
+  }), function reset() {
+    this.init = true;
+    this.mesh = undefined;
+    this.iter = undefined;
+  }, function next() {
+    if (this.init) {
+        this.mesh = this._get_block(this.meshref);
+        this.init = false;
+        this.iter = new selectiter(this.mesh, this.mask);
+    }
+    var ret=this.iter.next();
+    if (ret.done) {
+        this.reset();
+    }
+    return ret;
+  }, _ESClass.static(function fromSTRUCT(reader) {
+    var ob={}
+    reader(ob);
+    var ret=new MSelectIter(ob.mask, ob.meshref);
+    return ret;
+  })]);
+  _es6_module.add_class(MSelectIter);
+  MSelectIter.STRUCT = STRUCT.inherit(MSelectIter, ToolIter)+"\n  meshref  : DataRef;\n  mask     : int;\n}\n";
+  var $map_jTkx_fromSTRUCT;
+  var element_iter_convert=_ESClass("element_iter_convert", ToolIter, [function element_iter_convert(iter, type) {
+    ToolIter.call(this);
+    if (!(__instance_of(iter, TPropIterable))) {
+        throw new Error("element_iter_convert requires a 'safe' TPropIterable-derived iterator");
+    }
+    this.vset = new set();
+    this.iter = iter[Symbol.iterator]();
+    this.subiter = undefined;
+    if (type==MeshTypes.VERT)
+      this.type = Vertex;
+    else 
+      if (type==MeshTypes.EDGE)
+      this.type = Edge;
+    else 
+      if (type==MeshTypes.LOOP)
+      this.type = Loop;
+    else 
+      if (type==MeshTypes.FACE)
+      this.type = Face;
+  }, function reset() {
+    if (this.iter.reset!=undefined)
+      this.iter.reset();
+    this.vset = new set();
+    this.iter.ctx = this.ctx;
+  }, _ESClass.symbol(Symbol.iterator, function iterator() {
+    return this;
+  }), function next() {
+    if (this.mesh!=undefined)
+      this.iter.mesh = this.mesh;
+    var v=this._next();
+    if (v.done)
+      return v;
+    var vset=this.vset;
+    while ((!v.done)&&(v.value==undefined||vset.has(v.value))) {
+      v = this._next();
+    }
+    if (!v.done)
+      vset.add(v.value);
+    return v;
+  }, function _next() {
+    if (this.subiter==undefined) {
+        var next=this.iter.next();
+        if (next.done) {
+            this.reset();
+            return next;
+        }
+        if (next.value.constructor.name==this.type.name)
+          return next;
+        this.subiter = next.value.verts[Symbol.iterator]();
+    }
+    var vset=this.vset;
+    var v=this.subiter.next();
+    if (v.done) {
+        this.subiter = undefined;
+        return this._next();
+    }
+    return v;
+  }, _ESClass.static(function fromSTRUCT(reader) {
+    var ob={}
+    reader(ob);
+    var type=$map_jTkx_fromSTRUCT[ob.type];
+    var ret=new element_iter_convert(ob._iter, type);
+  })]);
+  var $map_jTkx_fromSTRUCT={Vertex: 1, Edge: 2, Loop: 4, Face: 8}
+  _es6_module.add_class(element_iter_convert);
+  element_iter_convert.STRUCT = STRUCT.inherit(element_iter_convert, ToolIter)+"\n  type  : string | this.type != undefined ? this.type.constructor.name : \"\";\n  _iter : abstract(ToolIter) | obj.iter;\n}\n";
+});
+es6_module_define('toolops_api', ["toolprops", "struct", "events"], function _toolops_api_module(_es6_module) {
+  "use strict";
+  var PropTypes=es6_import_item(_es6_module, 'toolprops', 'PropTypes');
+  var TPropFlags=es6_import_item(_es6_module, 'toolprops', 'TPropFlags');
+  var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
+  var EventHandler=es6_import_item(_es6_module, 'events', 'EventHandler');
+  var charmap=es6_import_item(_es6_module, 'events', 'charmap');
+  var UndoFlags={IGNORE_UNDO: 2, IS_ROOT_OPERATOR: 4, UNDO_BARRIER: 8, HAS_UNDO_DATA: 16}
+  UndoFlags = _es6_module.add_export('UndoFlags', UndoFlags);
+  var ToolFlags={HIDE_TITLE_IN_LAST_BUTTONS: 1, USE_PARTIAL_UNDO: 2, USE_DEFAULT_INPUT: 4}
+  ToolFlags = _es6_module.add_export('ToolFlags', ToolFlags);
+  var ModalStates={TRANSFORMING: 1, PLAYING: 2}
+  ModalStates = _es6_module.add_export('ModalStates', ModalStates);
+  var _tool_op_idgen=1;
+  var InheritFlag=_ESClass("InheritFlag", [function InheritFlag(val) {
+    this.val = val;
+  }]);
+  _es6_module.add_class(InheritFlag);
+  
+  var ToolOpAbstract=_ESClass("ToolOpAbstract", [_ESClass.static(function inherit(inputs_or_outputs) {
+    return new InheritFlag(inputs_or_outputs);
+  }), _ESClass.static(function _get_slots() {
+    var ret=[{}, {}];
+    var parent=this.__parent__;
+    if (this.tooldef!=undefined&&(parent==undefined||this.tooldef!==parent.tooldef)) {
+        var tooldef=this.tooldef();
+        for (var k in tooldef) {
+            if (k!="inputs"&&k!="outputs") {
+                continue;
+            }
+            var v=tooldef[k];
+            if (__instance_of(v, InheritFlag)) {
+                v = v.val==undefined ? {} : v.val;
+                var slots=parent._get_slots();
+                slots = k=="inputs" ? slots[0] : slots[1];
+                v = this._inherit_slots(slots, v);
+            }
+            ret[k=="inputs" ? 0 : 1] = v;
+        }
+    }
+    else 
+      if (this.inputs!=undefined||this.outputs!=undefined) {
+        console.trace("Deprecation warning: (second) old form                     of toolprop definition detected for", this);
+        if (this.inputs!=undefined) {
+            ret[0] = this.inputs;
+        }
+        if (this.outputs!=undefined) {
+            ret[1] = this.outputs;
+        }
+    }
+    else {
+      console.trace("Deprecation warning: oldest (and evilest) form                     of toolprop detected for", this);
+    }
+    return ret;
+  }), function ToolOpAbstract(apiname, uiname, description, icon) {
+    if (description==undefined) {
+        description = undefined;
+    }
+    if (icon==undefined) {
+        icon = -1;
+    }
+    var parent=this.constructor.__parent__;
+    var slots=this.constructor._get_slots();
+    for (var i=0; i<2; i++) {
+        var slots2={};
+        if (i==0)
+          this.inputs = slots2;
+        else 
+          this.outputs = slots2;
+        for (var k in slots[i]) {
+            slots2[k] = slots[i][k].copy();
+            slots2[k].apiname = k;
+        }
+    }
+    if (this.constructor.tooldef!=undefined&&(parent==undefined||this.constructor.tooldef!==parent.tooldef)) {
+        var tooldef=this.constructor.tooldef();
+        for (var k in tooldef) {
+            if (k=="inputs"||k=="outputs")
+              continue;
+            this[k] = tooldef[k];
+        }
+    }
+    else {
+      if (this.name==undefined)
+        this.name = apiname;
+      if (this.uiname==undefined)
+        this.uiname = uiname;
+      if (this.description==undefined)
+        this.description = description==undefined ? "" : description;
+      if (this.icon==undefined)
+        this.icon = icon;
+    }
+    this.apistruct = undefined;
+    this.op_id = _tool_op_idgen++;
+    this.stack_index = -1;
+  }, _ESClass.static(function _inherit_slots(old, newslots) {
+    if (old==undefined) {
+        console.trace("Warning: old was undefined in _inherit_slots()!");
+        return newslots;
+    }
+    for (var k in old) {
+        if (!(k in newslots))
+          newslots[k] = old[k];
+    }
+    return newslots;
+  }), _ESClass.static(function inherit_inputs(cls, newslots) {
+    if (cls.inputs==undefined)
+      return newslots;
+    return ToolOpAbstract._inherit_slots(cls.inputs, newslots);
+  }), _ESClass.static(function inherit_outputs(cls, newslots) {
+    if (cls.outputs==undefined)
+      return newslots;
+    return ToolOpAbstract._inherit_slots(cls.outputs, newslots);
+  }), function get_saved_context() {
+    if (this.saved_context==undefined) {
+        console.log("warning : invalid saved_context in "+this.constructor.name+".get_saved_context()");
+        this.saved_context = new SavedContext(new Context());
+    }
+    return this.saved_context;
+  }, _ESClass.symbol(Symbol.keystr, function keystr() {
+    return "TO"+this.op_id;
+  }), function exec(tctx) {
+  }, function default_inputs(ctx, get_default) {
+  }]);
+  _es6_module.add_class(ToolOpAbstract);
+  ToolOpAbstract = _es6_module.add_export('ToolOpAbstract', ToolOpAbstract);
+  ToolOpAbstract.STRUCT = "\n  ToolOpAbstract {\n      flag    : int;\n      saved_context  : SavedContext | obj.get_saved_context();\n      inputs  : iter(k, PropPair) | new PropPair(k, obj.inputs[k]);\n      outputs : iter(k, PropPair) | new PropPair(k, obj.outputs[k]);\n  }\n";
+  var PropPair=_ESClass("PropPair", [function PropPair(key, value) {
+    this.key = key;
+    this.value = value;
+  }, _ESClass.static(function fromSTRUCT(reader) {
+    var obj={}
+    reader(obj);
+    return obj;
+  })]);
+  _es6_module.add_class(PropPair);
+  PropPair.STRUCT = "\n  PropPair {\n    key   : string;\n    value : abstract(ToolProperty);\n  }\n";
+  var $toolops_4uF0_get_constructor;
+  var ToolOp=_ESClass("ToolOp", ToolOpAbstract, [function ToolOp(apiname, uiname, description, icon) {
+    if (apiname==undefined) {
+        apiname = "(undefined)";
+    }
+    if (uiname==undefined) {
+        uiname = "(undefined)";
+    }
+    if (description==undefined) {
+        description = undefined;
+    }
+    if (icon==undefined) {
+        icon = -1;
+    }
+    ToolOpAbstract.call(this, apiname, uiname, description, icon);
+    EventHandler.call(this);
+    this.drawlines = new GArray();
+    if (this.is_modal==undefined)
+      this.is_modal = false;
+    this.undoflag = 0;
+    this.on_modal_end = undefined;
+    this.modal_ctx = null;
+    this.flag = 0;
+    this.keyhandler = undefined;
+    this.parent = undefined;
+    this.widgets = [];
+    this.modal_running = false;
+    this._widget_on_tick = undefined;
+  }, function new_drawline(v1, v2) {
+    var dl=this.modal_ctx.view2d.make_drawline(v1, v2);
+    this.drawlines.push(dl);
+    return dl;
+  }, function reset_drawlines(ctx) {
+    if (ctx==undefined) {
+        ctx = this.modal_ctx;
+    }
+    var view2d=ctx.view2d;
+    var __iter_dl=__get_iter(this.drawlines);
+    var dl;
+    while (1) {
+      var __ival_dl=__iter_dl.next();
+      if (__ival_dl.done) {
+          break;
+      }
+      dl = __ival_dl.value;
+      view2d.kill_drawline(dl);
+    }
+    this.drawlines.reset();
+  }, _ESClass.static(function create_widgets(manager, ctx) {
+  }), _ESClass.static(function reset_widgets(op, ctx) {
+  }), function undo_ignore() {
+    this.undoflag|=UndoFlags.IGNORE_UNDO;
+  }, function on_mousemove() {
+    redraw_viewport();
+  }, function exec_pre(tctx) {
+    for (var k in this.inputs) {
+        if (this.inputs[k].type==PropTypes.COLLECTION) {
+            this.inputs[k].ctx = tctx;
+        }
+    }
+    for (var k in this.outputs) {
+        if (this.outputs[k].type==PropTypes.COLLECTION) {
+            this.outputs[k].ctx = tctx;
+        }
+    }
+  }, function start_modal(ctx) {
+  }, function _start_modal(ctx) {
+    this.modal_running = true;
+    ctx.view2d.push_modal(this);
+    this.modal_ctx = ctx;
+  }, function _end_modal() {
+    var ctx=this.modal_ctx;
+    this.modal_running = false;
+    this.saved_context = new SavedContext(this.modal_ctx);
+    this.modal_ctx.view2d.pop_modal();
+    if (this.on_modal_end!=undefined)
+      this.on_modal_end(this);
+    this.reset_drawlines(ctx);
+  }, function end_modal() {
+    this._end_modal();
+  }, function can_call(ctx) {
+    return true;
+  }, function exec(ctx) {
+  }, function start_modal(ctx) {
+  }, function redo_post(ctx) {
+    window.redraw_viewport();
+  }, function undo_pre(ctx) {
+    this._undocpy = g_app_state.create_undo_file();
+    window.redraw_viewport();
+  }, function undo(ctx) {
+    g_app_state.load_undo_file(this._undocpy);
+  }, _ESClass.static(function fromSTRUCT(reader) {
+    var op=new ToolOp();
+    reader(op);
+    var ins={}
+    for (var i=0; i<op.inputs.length; i++) {
+        ins[op.inputs[i].key] = op.inputs[i].value;
+    }
+    var outs={}
+    for (var i=0; i<op.outputs.length; i++) {
+        outs[op.outputs[i].key] = op.outputs[i].value;
+    }
+    op.inputs = ins;
+    op.outputs = outs;
+    return op;
+  }), _ESClass.static(function get_constructor(name) {
+    if ($toolops_4uF0_get_constructor==undefined) {
+        $toolops_4uF0_get_constructor = {};
+        for (var c in defined_classes) {
+            if (__instance_of(c, ToolOp))
+              $toolops_4uF0_get_constructor[c.name] = c;
+        }
+    }
+    return $toolops_4uF0_get_constructor[c];
+  })]);
+  var $toolops_4uF0_get_constructor=undefined;
+  _es6_module.add_class(ToolOp);
+  ToolOp = _es6_module.add_export('ToolOp', ToolOp);
+  ToolOp.STRUCT = "\n  ToolOp {\n      flag    : int;\n      saved_context  : SavedContext | obj.get_saved_context();\n      inputs  : iter(k, PropPair) | new PropPair(k, obj.inputs[k]);\n      outputs : iter(k, PropPair) | new PropPair(k, obj.outputs[k]);\n  }\n";
+  var ToolMacro=_ESClass("ToolMacro", ToolOp, [function ToolMacro(name, uiname, tools) {
+    if (tools==undefined) {
+        tools = undefined;
+    }
+    ToolOp.call(this, name, uiname);
+    this.cur_modal = 0;
+    this._chained_on_modal_end = false;
+    if (tools==undefined)
+      this.tools = new GArray();
+    else 
+      this.tools = new GArray(tools);
+  }, function add_tool(tool) {
+    tool.parent = this;
+    this.tools.push(tool);
+    if (tool.is_modal)
+      this.is_modal = true;
+  }, function connect_tools(output, input) {
+    var old_set=input.user_set_data;
+    input.user_set_data = function() {
+      this.data = output.data;
+      old_set.call(this);
+    }
+  }, function undo_pre(ctx) {
+  }, function undo(ctx) {
+    for (var i=this.tools.length-1; i>=0; i--) {
+        this.tools[i].undo(ctx);
+    }
+  }, function exec(ctx) {
+    for (var i=0; i<this.tools.length; i++) {
+        this.tools[i].saved_context = this.saved_context;
+    }
+    for (var op in this.tools) {
+        if (op.is_modal)
+          op.is_modal = this.is_modal;
+        for (var k in op.inputs) {
+            var p=op.inputs[k];
+            if (p.user_set_data!=undefined)
+              p.user_set_data.call(p);
+        }
+        op.saved_context = this.saved_context;
+        op.undo_pre(ctx);
+        op.undoflag|=UndoFlags.HAS_UNDO_DATA;
+        op.exec_pre(ctx);
+        op.exec(ctx);
+    }
+  }, function can_call(ctx) {
+    return this.tools[0].can_call(ctx);
+  }, function start_modal(ctx) {
+    if (!this._chained_on_modal_end) {
+        var last_modal=undefined;
+        for (var op in this.tools) {
+            if (op.is_modal)
+              last_modal = op;
+        }
+        console.log("last_modal", last_modal);
+        if (last_modal!=undefined) {
+            console.log("yay, found last modal");
+            var on_modal_end=last_modal.on_modal_end;
+            var this2=this;
+            last_modal.on_modal_end = function(toolop) {
+              if (on_modal_end!=undefined)
+                on_modal_end(toolop);
+              if (this2.on_modal_end)
+                this2.on_modal_end(this2);
+            };
+            this._chained_on_modal_end = true;
+        }
+    }
+    for (var i=0; i<this.tools.length; i++) {
+        this.tools[i].saved_context = this.saved_context;
+    }
+    for (var i=0; i<this.tools.length; i++) {
+        var op=this.tools[i];
+        if (op.is_modal) {
+            this.cur_modal = i;
+            for (var k in op.inputs) {
+                var p=op.inputs[k];
+                if (p.user_set_data!=undefined)
+                  p.user_set_data.call(p);
+            }
+            op.modal_ctx = this.modal_ctx;
+            op.modal_tctx = this.modal_tctx;
+            op.saved_context = this.saved_context;
+            op.undo_pre(ctx);
+            op.undoflag|=UndoFlags.HAS_UNDO_DATA;
+            op.modal_running = true;
+            return op.start_modal(ctx);
+        }
+        else {
+          for (var k in op.inputs) {
+              var p=op.inputs[k];
+              if (p.user_set_data!=undefined)
+                p.user_set_data.call(p);
+          }
+          op.saved_context = this.saved_context;
+          op.exec_pre(ctx);
+          op.undo_pre(ctx);
+          op.undoflag|=UndoFlags.HAS_UNDO_DATA;
+          op.exec(ctx);
+        }
+    }
+  }, function _end_modal() {
+    var ctx=this.modal_ctx;
+    this.next_modal(ctx);
+  }, function next_modal(ctx) {
+    this.tools[this.cur_modal].end_modal(ctx);
+    this.cur_modal++;
+    while (this.cur_modal<this.tools.length&&!this.tools[this.cur_modal].is_modal) {
+      this.cur_modal++    }
+    if (this.cur_modal>=this.tools.length) {
+        ToolOp.prototype._end_modal.call(this);
+    }
+    else {
+      this.tools[this.cur_modal].undo_pre(ctx);
+      this.tools[this.cur_modal].undoflag|=UndoFlags.HAS_UNDO_DATA;
+      this.tools[this.cur_modal].start_modal(ctx);
+    }
+  }, function on_mousemove(event) {
+    this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
+    this.tools[this.cur_modal].on_mousemove(event);
+  }, function on_mousedown(event) {
+    this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
+    this.tools[this.cur_modal].on_mousedown(event);
+  }, function on_mouseup(event) {
+    this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
+    this.tools[this.cur_modal].on_mouseup(event);
+  }, function on_keydown(event) {
+    this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
+    this.tools[this.cur_modal].on_keydown(event);
+  }, function on_keyup(event) {
+    this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
+    this.tools[this.cur_modal].on_keyup(event);
+  }, function on_draw(event) {
+    this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
+    this.tools[this.cur_modal].on_draw(event);
+  }, _ESClass.static(function fromSTRUCT(reader) {
+    var ret=STRUCT.chain_fromSTRUCT(ToolMacro, reader);
+    ret.tools = new GArray(ret.tools);
+    var __iter_t=__get_iter(ret.tools);
+    var t;
+    while (1) {
+      var __ival_t=__iter_t.next();
+      if (__ival_t.done) {
+          break;
+      }
+      t = __ival_t.value;
+      t.parent = this;
+    }
+    return ret;
+  })]);
+  _es6_module.add_class(ToolMacro);
+  ToolMacro = _es6_module.add_export('ToolMacro', ToolMacro);
+  ToolMacro.STRUCT = STRUCT.inherit(ToolMacro, ToolOp)+"\n  tools   : array(abstract(ToolOp));\n  apiname : string;\n  uiname  : string;\n}\n";
+  var StringProperty=es6_import_item(_es6_module, 'toolprops', 'StringProperty');
+  var Vec3Property=es6_import_item(_es6_module, 'toolprops', 'Vec3Property');
+  var Vec4Property=es6_import_item(_es6_module, 'toolprops', 'Vec4Property');
+  var IntProperty=es6_import_item(_es6_module, 'toolprops', 'IntProperty');
+  var FloatProperty=es6_import_item(_es6_module, 'toolprops', 'FloatProperty');
+  var BoolProperty=es6_import_item(_es6_module, 'toolprops', 'BoolProperty');
+  var DataPathOp=_ESClass("DataPathOp", ToolOp, [function DataPathOp(path, use_simple_undo) {
+    if (path==undefined) {
+        path = "";
+    }
+    if (use_simple_undo==undefined) {
+        use_simple_undo = false;
+    }
+    ToolOpAbstract.call(this, "DataPathOp", "DataPath", "DataPath Value Set");
+    this.use_simple_undo = use_simple_undo;
+    this.is_modal = false;
+    this.path = path;
+    this.inputs = {path: new StringProperty(path, "path", "path", "path"), vec3: new Vec3Property(undefined, "vec3", "vec3", "vec3"), vec4: new Vec4Property(undefined, "vec4", "vec4", "vec4"), pint: new IntProperty(0, "pint", "pint", "pint"), pfloat: new FloatProperty(0, "pfloat", "pfloat", "pfloat"), str: new StringProperty("", "str", "str", "str"), bool: new BoolProperty(false, "bool", "bool", "bool"), val_input: new StringProperty("", "val_input", "val_input", "val_input")}
+    this.outputs = {}
+    for (var k in this.inputs) {
+        this.inputs[k].flag|=TPropFlags.PRIVATE;
+    }
+  }, function undo_pre(ctx) {
+    this._undocpy = g_app_state.create_undo_file();
+  }, function undo(ctx) {
+    g_app_state.load_undo_file(this._undocpy);
+  }, function get_prop_input(path, prop) {
+    if (prop==undefined) {
+        console.trace("Warning: DataPathOp failed!", path, prop);
+        return ;
+    }
+    var input;
+    if (prop.type==PropTypes.INT) {
+        input = this.inputs.pint;
+    }
+    else 
+      if (prop.type==PropTypes.FLOAT) {
+        input = this.inputs.pfloat;
+    }
+    else 
+      if (prop.type==PropTypes.VEC3) {
+        input = path.endsWith("]") ? this.inputs.pfloat : this.inputs.vec3;
+    }
+    else 
+      if (prop.type==PropTypes.VEC4) {
+        input = path.endsWith("]") ? this.inputs.pfloat : this.inputs.vec4;
+    }
+    else 
+      if (prop.type==PropTypes.BOOL) {
+        input = this.inputs.bool;
+    }
+    else 
+      if (prop.type==PropTypes.STR) {
+        input = this.inputs.str;
+    }
+    else 
+      if (prop.type==PropTypes.FLAG) {
+        input = this.inputs.str;
+    }
+    else 
+      if (prop.type==PropTypes.ENUM) {
+        input = this.inputs.pint;
+    }
+    else {
+      console.trace("ERROR: unimplemented prop type "+prop.type+"in DataPathOp", prop, this);
+      return undefined;
+    }
+    return input;
+  }, function exec(ctx) {
+    var api=g_app_state.api;
+    var path=this.inputs.path.data.trim();
+    var prop=api.get_prop_meta(ctx, path);
+    if (prop==undefined) {
+        console.trace("Warning: DataPathOp failed!");
+        return ;
+    }
+    var input=this.get_prop_input(path, prop);
+    api.set_prop(ctx, path, input.data);
+  }]);
+  _es6_module.add_class(DataPathOp);
+  mixin(ToolOp, EventHandler);
+  var MassSetPathOp=_ESClass("MassSetPathOp", ToolOp, [function MassSetPathOp(path, subpath, filterstr, use_simple_undo) {
+    if (path==undefined) {
+        path = "";
+    }
+    if (subpath==undefined) {
+        subpath = "";
+    }
+    if (filterstr==undefined) {
+        filterstr = "";
+    }
+    if (use_simple_undo==undefined) {
+        use_simple_undo = false;
+    }
+    ToolOpAbstract.call(this, "DataPathOp", "DataPath", "DataPath Value Set");
+    this.use_simple_undo = use_simple_undo;
+    this.is_modal = false;
+    this.path = path;
+    this.subpath = subpath;
+    this.filterstr = filterstr;
+    this.inputs = {path: new StringProperty(path, "path", "path", "path"), vec3: new Vec3Property(undefined, "vec3", "vec3", "vec3"), vec4: new Vec4Property(undefined, "vec4", "vec4", "vec4"), pint: new IntProperty(0, "pint", "pint", "pint"), pfloat: new FloatProperty(0, "pfloat", "pfloat", "pfloat"), str: new StringProperty("", "str", "str", "str"), bool: new BoolProperty(false, "bool", "bool", "bool"), val_input: new StringProperty("", "val_input", "val_input", "val_input")}
+    this.outputs = {}
+    for (var k in this.inputs) {
+        this.inputs[k].flag|=TPropFlags.PRIVATE;
+    }
+  }, function _get_value(ctx) {
+    var path=this.path.trim();
+    var prop=api.get_prop_meta(ctx, path);
+    if (prop==undefined) {
+        console.trace("Warning: DataPathOp failed!");
+        return ;
+    }
+    return this.get_prop_input(path, prop);
+  }, function undo_pre(ctx) {
+    var value=this._get_value(ctx);
+    var paths=ctx.api.build_mass_set_paths(ctx, this.path, this.subpath, value, this.filterstr);
+    var ud=this._undo = {}
+    for (var i=0; i<paths.length; i++) {
+        var value2=ctx.api.get_prop(paths[i]);
+        ud[paths[i]] = JSON.stringify(value2);
+    }
+  }, function undo(ctx) {
+    var value=this._get_value(ctx);
+    var paths=ctx.api.build_mass_set_paths(ctx, this.path, this.subpath, value, this.filterstr);
+    var ud=this._undo;
+    for (var k in ud) {
+        var data=JSON.parse(ud[k]);
+        if (data=="undefined")
+          data = undefined;
+        ctx.api.set_prop(ctx, k, data);
+    }
+  }, function get_prop_input(path, prop) {
+    if (prop==undefined) {
+        console.trace("Warning: DataPathOp failed!", path, prop);
+        return ;
+    }
+    var input;
+    if (prop.type==PropTypes.INT) {
+        input = this.inputs.pint;
+    }
+    else 
+      if (prop.type==PropTypes.FLOAT) {
+        input = this.inputs.pfloat;
+    }
+    else 
+      if (prop.type==PropTypes.VEC3) {
+        input = path.endsWith("]") ? this.inputs.pfloat : this.inputs.vec3;
+    }
+    else 
+      if (prop.type==PropTypes.VEC4) {
+        input = path.endsWith("]") ? this.inputs.pfloat : this.inputs.vec4;
+    }
+    else 
+      if (prop.type==PropTypes.BOOL) {
+        input = this.inputs.bool;
+    }
+    else 
+      if (prop.type==PropTypes.STR) {
+        input = this.inputs.str;
+    }
+    else 
+      if (prop.type==PropTypes.FLAG) {
+        input = this.inputs.str;
+    }
+    else 
+      if (prop.type==PropTypes.ENUM) {
+        input = this.inputs.pint;
+    }
+    else {
+      console.trace("ERROR: unimplemented prop type "+prop.type+"in DataPathOp", prop, this);
+      return undefined;
+    }
+    return input;
+  }, function exec(ctx) {
+    var api=g_app_state.api;
+    var path=this.inputs.path.data.trim();
+    var prop=api.get_prop_meta(ctx, path);
+    if (prop==undefined) {
+        console.trace("Warning: DataPathOp failed!");
+        return ;
+    }
+    var input=this.get_prop_input(path, prop);
+    api.mass_set_prop(ctx, path, this.subpath, input.data, this.filterstr);
+  }]);
+  _es6_module.add_class(MassSetPathOp);
+  window.init_toolop_structs = function() {
+    
+    function gen_fromSTRUCT(cls1) {
+      function fromSTRUCT(reader) {
+        var op=new cls1();
+        var inputs=op.inputs, outputs=op.outputs;
+        reader(op);
+        var ins=Object.create(inputs), outs=Object.create(outputs);
+        for (var i=0; i<op.inputs.length; i++) {
+            var k=op.inputs[i].key;
+            ins[k] = op.inputs[i].value;
+            if (k in inputs) {
+                ins[k].load_ui_data(inputs[k]);
+            }
+            else {
+              ins[k].uiname = ins[k].apiname = k;
+            }
+        }
+        for (var i=0; i<op.outputs.length; i++) {
+            var k=op.outputs[i].key;
+            outs[k] = op.outputs[i].value;
+            if (k in outputs) {
+                outs[k].load_ui_data(outputs[k]);
+            }
+            else {
+              outs[k].uiname = outs[k].apiname = k;
+            }
+        }
+        op.inputs = ins;
+        op.outputs = outs;
+        return op;
+      }
+      return fromSTRUCT;
+    }
+    for (var i=0; i<defined_classes.length; i++) {
+        var cls=defined_classes[i];
+        var ok=false;
+        var is_toolop=false;
+        var parent=cls.__parent__;
+        while (parent!==undefined) {
+          if (parent===ToolOpAbstract) {
+              ok = true;
+          }
+          else 
+            if (parent===ToolOp) {
+              ok = true;
+              is_toolop = true;
+              break;
+          }
+          parent = parent.__parent__;
+        }
+        if (!ok)
+          continue;
+        if (!("STRUCT" in cls)) {
+            cls.STRUCT = cls.name+" {"+"\n        flag    : int;\n        inputs  : iter(k, PropPair) | new PropPair(k, obj.inputs[k]);\n        outputs : iter(k, PropPair) | new PropPair(k, obj.outputs[k]);\n      ";
+            if (is_toolop)
+              cls.STRUCT+="    saved_context  : SavedContext | obj.get_saved_context();\n";
+            cls.STRUCT+="  }";
+        }
+        if (!("fromSTRUCT" in cls.__statics__)) {
+            cls.fromSTRUCT = gen_fromSTRUCT(cls);
+            define_static(cls, "fromSTRUCT", cls.fromSTRUCT);
+        }
     }
   }
-  function moduleDidLoad() {
-    common.naclModule = document.getElementById('nacl_module');
-    updateStatus('RUNNING');
-    if (typeof window.moduleDidLoad!=='undefined') {
-        window.moduleDidLoad();
+  var WidgetToolOp=_ESClass("WidgetToolOp", ToolOp, [_ESClass.static(function create_widgets(manager, ctx) {
+    var widget=manager.create();
+    var enabled_axes=this.widget_axes;
+    var do_widget_center=this.widget_center;
+    var gen_toolop=this.gen_toolop;
+    var do_x=enabled_axes[0], do_y=enabled_axes[1], do_z=enabled_axes[2];
+    if (do_x)
+      widget.arrow([1, 0, 0], 0, [1, 0, 0, 1]);
+    if (do_y)
+      widget.arrow([0, 1, 0], 1, [0, 1, 0, 1]);
+    if (do_z)
+      widget.arrow([0, 0, 1], 2, [0, 0, 1, 1]);
+    var this2=this;
+    var $zaxis_KFdl;
+    function widget_on_tick(widget) {
+      var mat=widget.matrix;
+      var mesh=ctx.mesh;
+      var cent=new Vector3();
+      var len=0;
+      var v1=new Vector3();
+      var __iter_v=__get_iter(mesh.verts.selected);
+      var v;
+      while (1) {
+        var __ival_v=__iter_v.next();
+        if (__ival_v.done) {
+            break;
+        }
+        v = __ival_v.value;
+        cent.add(v.co);
+        v1.load(v.edges[0].v1.co).sub(v.edges[0].v2.co);
+        v1.normalize();
+        len++;
+      }
+      if (len>0)
+        cent.mulScalar(1.0/len);
+      mat.makeIdentity();
+      mat.translate(cent[0], cent[1], cent[2]);
+      if (this2.widget_align_normal) {
+          var n=new Vector3();
+          var tan=new Vector3();
+          len = 0;
+          var v1=new Vector3();
+          var __iter_f=__get_iter(mesh.faces.selected);
+          var f;
+          while (1) {
+            var __ival_f=__iter_f.next();
+            if (__ival_f.done) {
+                break;
+            }
+            f = __ival_f.value;
+            var e=f.looplists[0].loop.e;
+            len++;
+            n.add(f.no);
+          }
+          n.mulScalar(1.0/len);
+          n.normalize();
+          if (tan.dot(tan)==0.0) {
+              tan.loadXYZ(0, 0, 1);
+          }
+          else {
+            tan.mulScalar(1.0/len);
+            tan.normalize();
+          }
+          var angle=Math.PI-Math.acos($zaxis_KFdl.dot(n));
+          if (n.dot($zaxis_KFdl)>0.9) {
+          }
+          if (1) {
+              if (Math.abs(angle)<0.001||Math.abs(angle)>Math.PI-0.001) {
+                  n.loadXYZ(1, 0, 0);
+              }
+              else {
+                n.cross($zaxis_KFdl);
+                n.normalize();
+              }
+              var q=new Quat();
+              q.axisAngleToQuat(n, angle);
+              var rmat=q.toMatrix();
+              mat.multiply(rmat);
+          }
+      }
+      mat.multiply(ctx.object.matrix);
+    }
+    var $zaxis_KFdl=new Vector3([0, 0, -1]);
+    widget.on_tick = widget_on_tick;
+    widget.on_click = function(widget, id) {
+      console.log("widget click: ", id);
+      ctx.view2d._mstart = null;
+      var toolop=undefined;
+      if (gen_toolop!=undefined) {
+          var toolop=gen_toolop(id, widget, ctx);
+      }
+      else {
+        console.trace("IMPLEMENT ME! missing widget gen_toolop callback!");
+        return ;
+      }
+      if (toolop==undefined) {
+          console.log("Evil! Undefined toolop in WidgetToolOp.create_widgets()!");
+          return ;
+      }
+      widget.user_data = toolop;
+      toolop._widget_on_tick = widget_on_tick;
+      toolop.widgets.push(widget);
+      toolop.on_modal_end = function(toolop) {
+        var __iter_w=__get_iter(toolop.widgets);
+        var w;
+        while (1) {
+          var __ival_w=__iter_w.next();
+          if (__ival_w.done) {
+              break;
+          }
+          w = __ival_w.value;
+          for (var k in toolop.inputs) {
+              var p=toolop.inputs[k];
+              p.remove_listener(w, true);
+          }
+          for (var k in toolop.outputs) {
+              var p=toolop.outputs[k];
+              p.remove_listener(w, true);
+          }
+        }
+        console.log("widget modal end");
+        toolop.widgets = new GArray();
+        widget.on_tick = widget_on_tick;
+      }
+      if (toolop.widget_on_tick)
+        widget.widget_on_tick = toolop.widget_on_tick;
+      widget.on_tick = function(widget) {
+        toolop.widget_on_tick.call(toolop, widget);
+      }
+      g_app_state.toolstack.exec_tool(toolop);
+    }
+  }), function widget_on_tick(widget) {
+    if (this._widget_on_tick!=undefined)
+      this._widget_on_tick(widget);
+  }, function WidgetToolOp() {
+    ToolOp.apply(this, arguments);
+  }]);
+  _es6_module.add_class(WidgetToolOp);
+});
+es6_module_define('eventdag', ["J3DIMath"], function _eventdag_module(_es6_module) {
+  "use strict";
+  var _event_dag_idgen=undefined;
+  es6_import(_es6_module, 'J3DIMath');
+  window.the_global_dag = undefined;
+  var NodeBase=_ESClass("NodeBase", [function dag_update(field, data) {
+    var graph=window.the_global_dag;
+    var node=graph.get_node(this, false);
+    if (node!=undefined)
+      node.dag_update(field, data);
+  }, function dag_unlink() {
+    var graph=window.the_global_dag;
+    var node=graph.get_node(this, false);
+    if (node!=undefined)
+      window.the_global_dag.remove(node);
+  }, function NodeBase() {
+  }]);
+  _es6_module.add_class(NodeBase);
+  NodeBase = _es6_module.add_export('NodeBase', NodeBase);
+  var UIOnlyNode=_ESClass("UIOnlyNode", NodeBase, [function UIOnlyNode() {
+    NodeBase.apply(this, arguments);
+  }]);
+  _es6_module.add_class(UIOnlyNode);
+  UIOnlyNode = _es6_module.add_export('UIOnlyNode', UIOnlyNode);
+  var DataPathNode=_ESClass("DataPathNode", NodeBase, [function dag_get_datapath(ctx) {
+  }, _ESClass.static(function isDataPathNode(obj) {
+    return "dag_get_datapath" in obj;
+  }), function DataPathNode() {
+    NodeBase.apply(this, arguments);
+  }]);
+  _es6_module.add_class(DataPathNode);
+  DataPathNode = _es6_module.add_export('DataPathNode', DataPathNode);
+  Node.dag_inputs = {}
+  Node.dag_outputs = {}
+  var DagFlags={UPDATE: 1, TEMP: 2, DEAD: 4}
+  DagFlags = _es6_module.add_export('DagFlags', DagFlags);
+  var EventNode=_ESClass("EventNode", [function EventNode() {
+    this.flag = 0;
+    this.id = -1;
+    this.graph = undefined;
+  }, function get_owner(ctx) {
+  }, function on_remove(ctx) {
+  }, function dag_update(field, data) {
+    if (field==undefined) {
+        for (var k in this.outputs) {
+            this.dag_update(k);
+        }
+        return ;
+    }
+    var sock=this.outputs[field];
+    if (arguments.length>1) {
+        sock.data = data;
+    }
+    sock.flag|=DagFlags.UPDATE;
+    this.flag|=DagFlags.UPDATE;
+    for (var i=0; i<sock.edges.length; i++) {
+        var e=sock.edges[i], n2=e.opposite(sock).owner;
+    }
+    this.graph.on_update(this, field);
+  }, function unlink() {
+    for (var k in this.inputs) {
+        this.inputs[k].disconnect_all();
+    }
+    for (var k in this.outputs) {
+        this.outputs[k].disconnect_all();
+    }
+  }]);
+  _es6_module.add_class(EventNode);
+  EventNode = _es6_module.add_export('EventNode', EventNode);
+  EventNode.inputs = {}
+  EventNode.outputs = {}
+  var IndirectNode=_ESClass("IndirectNode", EventNode, [function IndirectNode(path) {
+    EventNode.call(this);
+    this.datapath = path;
+  }, function get_owner(ctx) {
+    if (this._owner!=undefined)
+      return this._owner;
+    this._owner = ctx.api.get_object(ctx, this.datapath);
+    return this._owner;
+  }]);
+  _es6_module.add_class(IndirectNode);
+  IndirectNode = _es6_module.add_export('IndirectNode', IndirectNode);
+  var DirectNode=_ESClass("DirectNode", EventNode, [function DirectNode(id) {
+    EventNode.call(this);
+    this.objid = id;
+  }, function get_owner(ctx) {
+    return this.graph.object_idmap[this.objid];
+  }]);
+  _es6_module.add_class(DirectNode);
+  DirectNode = _es6_module.add_export('DirectNode', DirectNode);
+  var DataTypes={DEPEND: 1, NUMBER: 2, BOOL: 4, STRING: 8, VEC2: 16, VEC3: 32, VEC4: 64, MATRIX4: 128, ARRAY: 256}
+  DataTypes = _es6_module.add_export('DataTypes', DataTypes);
+  var TypeDefaults=t = {}
+  t[DataTypes.DEPEND] = undefined;
+  t[DataTypes.NUMBER] = 0;
+  t[DataTypes.STRING] = "";
+  t[DataTypes.VEC2] = new Vector2();
+  t[DataTypes.MATRIX4] = new Vector3();
+  t[DataTypes.ARRAY] = [];
+  t[DataTypes.BOOL] = true;
+  var EventEdge=_ESClass("EventEdge", [function EventEdge(dst, src) {
+    this.dst = dst;
+    this.src = src;
+  }, function opposite(socket) {
+    return socket==this.dst ? this.src : this.dst;
+  }]);
+  _es6_module.add_class(EventEdge);
+  EventEdge = _es6_module.add_export('EventEdge', EventEdge);
+  var EventSocket=_ESClass("EventSocket", [function EventSocket(name, owner, type, datatype) {
+    this.type = type;
+    this.name = name;
+    this.owner = owner;
+    this.datatype = datatype;
+    this.data = undefined;
+    this.flag = DagFlags.UPDATE;
+    this.edges = [];
+  }, function copy() {
+    var s=new EventSocket(this.name, undefined, this.type, this.datatype);
+    return s;
+  }, function connect(b) {
+    if (b.type==this.type) {
+        throw new Error("Cannot put two inputs or outputs together");
+    }
+    var src, dst;
+    if (this.type=="i") {
+        src = b, dst = this;
+    }
+    else 
+      if (this.type=="o") {
+        src = this, dst = b;
+    }
+    else {
+      throw new Error("Malformed socket type.  this.type, b.type, this, b:", this.type, b.type, this, b);
+    }
+    var edge=new EventEdge(dst, src);
+    this.edges.push(edge);
+    b.edges.push(edge);
+  }, function _find_edge(b) {
+    for (var i=0; i<this.edges.length; i++) {
+        if (this.edges[i].opposite(this)===b)
+          return this.edges[i];
+    }
+    return undefined;
+  }, function disconnect(other_socket) {
+    if (other_socket==undefined) {
+        warntrace("Warning, no other_socket in disconnect!");
+        return ;
+    }
+    var e=this._find_edge(other_socket);
+    if (e!=undefined) {
+        other_socket.edges.remove(e);
+        this.edges.remove(e);
+    }
+  }, function disconnect_all() {
+    while (this.edges.length>0) {
+      var e=this.edges[0];
+      e.opposite(this).edges.remove(e);
+      this.edges.remove(e);
+    }
+  }]);
+  _es6_module.add_class(EventSocket);
+  EventSocket = _es6_module.add_export('EventSocket', EventSocket);
+  function gen_callback_exec(func, thisvar) {
+    for (var k in UIOnlyNode.prototype) {
+        if (k=="toString")
+          continue;
+        func[k] = UIOnlyNode.prototype[k];
+    }
+    func.constructor = {}
+    func.constructor.name = func.name;
+    func.constructor.prototype = UIOnlyNode.prototype;
+    func.dag_exec = function(ctx, graph) {
+      var args=[];
+      for (var k in this.constructor.dag_inputs) {
+          args.push(this[k]);
+      }
+      this.apply(thisvar!=undefined ? thisvar : self, args);
     }
   }
-  function hideModule() {
-    common.naclModule.style.height = '0';
-  }
-  function removeModule() {
-    common.naclModule.parentNode.removeChild(common.naclModule);
-    common.naclModule = null;
-  }
-  function startsWith(s, prefix) {
-    return s.lastIndexOf(prefix, 0)===0;
-  }
-  var kMaxLogMessageLength=20;
-  var logMessageArray=[];
-  function logMessage(message) {
-    logMessageArray.push(message);
-    if (logMessageArray.length>kMaxLogMessageLength)
-      logMessageArray.shift();
-    if (document.getElementById('log')!=undefined) {
-        document.getElementById('log').textContent = logMessageArray.join('\n');
+  var $sarr_irMi_link;
+  var $darr_DJJd_link;
+  var EventDag=_ESClass("EventDag", [function EventDag() {
+    this.nodes = [];
+    this.sortlist = [];
+    this.doexec = false;
+    this.node_pathmap = {}
+    this.node_idmap = {}
+    this.object_idmap = {}
+    this.idmap = {}
+    this.ctx = undefined;
+    if (_event_dag_idgen==undefined)
+      _event_dag_idgen = new EIDGen();
+    this.object_idgen = _event_dag_idgen;
+    this.idgen = new EIDGen();
+    this.resort = true;
+  }, function reset_cache() {
+    var __iter_n=__get_iter(this.nodes);
+    var n;
+    while (1) {
+      var __ival_n=__iter_n.next();
+      if (__ival_n.done) {
+          break;
+      }
+      n = __ival_n.value;
+      if (__instance_of(n, IndirectNode)) {
+          n._owner = undefined;
+      }
     }
-    console.log("%c NACL: "+message, "color:blue");
-  }
-  var defaultMessageTypes={'alert': alert, 'log': logMessage}
-  function handleMessage(message_event) {
-    if (typeof message_event.data==='string') {
-        for (var type in defaultMessageTypes) {
-            if (defaultMessageTypes.hasOwnProperty(type)) {
-                if (startsWith(message_event.data, type+':')) {
-                    var func=defaultMessageTypes[type];
-                    func(message_event.data.slice(type.length+1));
-                    return ;
+  }, function init_slots(node, object) {
+    function make_slot(stype, k, v) {
+      var type;
+      if (v===undefined||v===null)
+        type = DataTypes.DEPEND;
+      else 
+        if (v===true||k===false)
+        type = DataTypes.BOOL;
+      else 
+        if (typeof v=="number")
+        type = DataTypes.NUMBER;
+      else 
+        if (typeof v=="string"||__instance_of(v, String))
+        type = DataTypes.STRING;
+      else 
+        if (__instance_of(v, Vector2))
+        type = DataTypes.VEC2;
+      else 
+        if (__instance_of(v, Vector3))
+        type = DataTypes.VEC3;
+      else 
+        if (__instance_of(v, Vector4))
+        type = DataTypes.VEC4;
+      else 
+        if (__instance_of(v, Matrix4))
+        type = DataTypes.MATRIX4;
+      else 
+        if (__instance_of(v, Array)) {
+          for (var i=0; i<v.length; i++) {
+              if (typeof (v[i])!="number"&&typeof (v[i])!=undefined) {
+                  warntrace("WARNING: bad array being passed around!!", v);
+              }
+              type = DataTypes.ARRAY;
+          }
+      }
+      return new EventSocket(k, node, stype, type);
+    }
+    node.inputs = {}
+    node.outputs = {}
+    if (object.constructor.dag_inputs!=undefined) {
+        for (var k in object.constructor.dag_inputs) {
+            var v=object.constructor.dag_inputs[k];
+            node.inputs[k] = make_slot('i', k, v);
+        }
+    }
+    if (object.constructor.dag_outputs!=undefined) {
+        for (var k in object.constructor.dag_outputs) {
+            var v=object.constructor.dag_outputs[k];
+            node.outputs[k] = make_slot('o', k, v);
+        }
+    }
+  }, function indirect_node(ctx, path, object, auto_create) {
+    if (object==undefined) {
+        object = undefined;
+    }
+    if (auto_create==undefined) {
+        auto_create = true;
+    }
+    if (path in this.node_pathmap)
+      return this.node_pathmap[path];
+    if (!auto_create)
+      return undefined;
+    var node=new IndirectNode(path);
+    this.node_pathmap[path] = node;
+    if (object==undefined) {
+        object = ctx.api.get_object(path);
+    }
+    this.init_slots(node, object);
+    this.add(node);
+    return node;
+  }, function direct_node(ctx, object, auto_create) {
+    if (auto_create==undefined) {
+        auto_create = true;
+    }
+    if ("__dag_id" in object&&object.__dag_id in this.node_idmap) {
+        this.object_idmap[object.__dag_id] = object;
+        return this.node_idmap[object.__dag_id];
+    }
+    if (!auto_create)
+      return undefined;
+    if (object.__dag_id==undefined)
+      object.__dag_id = this.object_idgen.gen_id();
+    var node=new DirectNode(object.__dag_id);
+    node.id = object.__dag_id;
+    this.object_idmap[object.__dag_id] = object;
+    this.node_idmap[object.__dag_id] = node;
+    this.init_slots(node, object);
+    this.add(node);
+    return node;
+  }, function add(node) {
+    node.graph = this;
+    this.nodes.push(node);
+    this.resort = true;
+    node.id = this.idgen.gen_id();
+    this.idmap[node.id] = node;
+  }, function remove(node) {
+    if (!(__instance_of(node, EventNode)))
+      node = this.get_node(node, false);
+    if (node==undefined) {
+        console.log("node already removed");
+        return ;
+    }
+    node.unlink();
+    if (__instance_of(node, DirectNode)) {
+        delete this.object_idmap[node.objid];
+        delete this.node_idmap[node.objid];
+    }
+    else 
+      if (__instance_of(node, IndirectNode)) {
+        delete this.node_pathmap[node.datapath];
+    }
+    delete this.idmap[node.id];
+    this.nodes.remove(node);
+    this.sortlist.remove(node);
+    this.resort = true;
+  }, function get_node(object, auto_create) {
+    if (auto_create==undefined) {
+        auto_create = true;
+    }
+    if (this.ctx==undefined)
+      this.ctx = new Context();
+    var node;
+    if (DataPathNode.isDataPathNode(object)) {
+        node = this.indirect_node(this.ctx, object.dag_get_datapath(), object, auto_create);
+    }
+    else {
+      node = this.direct_node(this.ctx, object, auto_create);
+    }
+    if (node!=undefined&&object.dag_exec!=undefined&&node.dag_exec==undefined) {
+        object = undefined;
+        node.dag_exec = function(ctx) {
+          var owner=this.get_owner(ctx);
+          if (owner!=undefined) {
+              return owner.dag_exec.apply(owner, arguments);
+          }
+        };
+    }
+    return node;
+  }, function link(src, srcfield, dst, dstfield, dstthis) {
+    var obja=src, objb=dst;
+    var srcnode=this.get_node(src);
+    if (!(__instance_of(srcfield, Array))) {
+        $sarr_irMi_link[0] = srcfield;
+        srcfield = $sarr_irMi_link;
+    }
+    if (!(__instance_of(dstfield, Array))) {
+        $darr_DJJd_link[0] = dstfield;
+        dstfield = $darr_DJJd_link;
+    }
+    if ((typeof dst=="function"||__instance_of(dst, Function))&&!dst._dag_callback_init) {
+        gen_callback_exec(dst, dstthis);
+        dst._dag_callback_init = true;
+        delete dst.__prototypeid__;
+        dst.constructor.dag_inputs = {};
+        if (__instance_of(srcfield, Array)) {
+            for (var i=0; i<srcfield.length; i++) {
+                var field=srcfield[i];
+                var field2=dstfield[i];
+                if (!(field in srcnode.outputs)) {
+                    console.trace(field, Object.keys(srcnode.outputs), srcnode);
+                    throw new Error("Field not in outputs", field);
                 }
+                var type=srcnode.outputs[field].datatype;
+                dst.constructor.dag_inputs[field2] = TypeDefaults[type];
             }
         }
     }
-    if (typeof window.handleMessage!=='undefined') {
-        window.handleMessage(message_event);
-        return ;
-    }
-    logMessage('Unhandled message: '+message_event.data);
-  }
-  function domContentLoaded(name, tool, path, width, height, attrs) {
-    updateStatus('Page loaded.');
-    if (!browserSupportsNaCl(tool)) {
-        updateStatus('Browser does not support NaCl ('+tool+'), or NaCl is disabled');
-    }
-    else 
-      if (common.naclModule==null) {
-        updateStatus('Creating embed: '+tool);
-        width = typeof width!=='undefined' ? width : 200;
-        height = typeof height!=='undefined' ? height : 200;
-        attachDefaultListeners();
-        createNaClModule(name, tool, path, width, height, attrs);
+    var dstnode=this.get_node(dst);
+    if (__instance_of(srcfield, Array)) {
+        if (srcfield.length!=dstfield.length) {
+            throw new Error("Error, both arguments must be arrays of equal length!", srcfield, dstfield);
+        }
+        for (var i=0; i<dstfield.length; i++) {
+            if (!(dstfield[i] in dstnode.inputs))
+              throw new Error("Event inputs does not exist: "+dstfield[i]);
+            if (!(srcfield[i] in srcnode.outputs))
+              throw new Error("Event output does not exist: "+srcfield[i]);
+            dstnode.inputs[dstfield[i]].connect(srcnode.outputs[srcfield[i]]);
+        }
     }
     else {
-      updateStatus('Waiting.');
+      console.log(dstnode, dstfield);
+      if (!(dstfield in dstnode.inputs))
+        throw new Error("Event input does not exist: "+dstfield);
+      if (!(srcfield in srcnode.outputs))
+        throw new Error("Event output does not exist: "+srcfield);
+      dstnode.inputs[dstfield].connect(srcnode.outputs[srcfield]);
     }
-  }
-  var statusText='NO-STATUSES';
-  function updateStatus(opt_message) {
-    if (opt_message!=undefined) {
-        console.log("%c "+opt_message, "color:teal");
+    this.resort = true;
+  }, function prune_dead_nodes() {
+    var dellist=[];
+    var __iter_n=__get_iter(this.nodes);
+    var n;
+    while (1) {
+      var __ival_n=__iter_n.next();
+      if (__ival_n.done) {
+          break;
+      }
+      n = __ival_n.value;
+      var tot=0;
+      for (var k in n.inputs) {
+          tot+=n.inputs[k].edges.length;
+      }
+      for (var k in n.outputs) {
+          tot+=n.outputs[k].edges.length;
+      }
+      if (tot==0) {
+          dellist.push(n);
+      }
     }
-    if (opt_message) {
-        statusText = opt_message;
+    var __iter_n=__get_iter(dellist);
+    var n;
+    while (1) {
+      var __ival_n=__iter_n.next();
+      if (__ival_n.done) {
+          break;
+      }
+      n = __ival_n.value;
+      this.remove(n);
     }
-  }
-  return {naclModule: null, attachDefaultListeners: attachDefaultListeners, domContentLoaded: domContentLoaded, createNaClModule: createNaClModule, hideModule: hideModule, removeModule: removeModule, logMessage: logMessage, updateStatus: updateStatus}
-}());
-window._nacl_domContentLoaded = function _nacl_domContentLoaded() {
-  var body=document.body;
-  if (body.dataset) {
-      var loadFunction;
-      if (!body.dataset.customLoad) {
-          loadFunction = common.domContentLoaded;
+  }, function sort() {
+    this.prune_dead_nodes();
+    var sortlist=[];
+    var visit={}
+    var __iter_n=__get_iter(this.nodes);
+    var n;
+    while (1) {
+      var __ival_n=__iter_n.next();
+      if (__ival_n.done) {
+          break;
       }
-      else 
-        if (typeof window.domContentLoaded!=='undefined') {
-          loadFunction = window.domContentLoaded;
-      }
-      var searchVars={};
-      if (window.location.search.length>1) {
-          var pairs=window.location.search.substr(1).split('&');
-          for (var key_ix=0; key_ix<pairs.length; key_ix++) {
-              var keyValue=pairs[key_ix].split('=');
-              searchVars[unescape(keyValue[0])] = keyValue.length>1 ? unescape(keyValue[1]) : '';
-          }
-      }
-      if (loadFunction) {
-          var toolchains=body.dataset.tools.split(' ');
-          var configs=body.dataset.configs.split(' ');
-          var attrs={};
-          if (body.dataset.attrs) {
-              var attr_list=body.dataset.attrs.split(' ');
-              for (var key in attr_list) {
-                  var attr=attr_list[key].split('=');
-                  var key=attr[0];
-                  var value=attr[1];
-                  attrs[key] = value;
+      n = __ival_n.value;
+      n.flag&=~DagFlags.TEMP;
+    }
+    function sort(n) {
+      n.flag|=DagFlags.TEMP;
+      for (var k in n.inputs) {
+          var sock=n.inputs[k];
+          for (var i=0; i<sock.length; i++) {
+              var n2=sock.edges[i].opposite(sock).owner;
+              if (!(n2.flag&DagFlags.TEMP)) {
+                  sort(n2);
               }
           }
-          var tc=toolchains.indexOf(searchVars.tc)!==-1 ? searchVars.tc : toolchains[0];
-          if (configs.indexOf(searchVars.config)!==-1)
-            var config=searchVars.config;
-          else 
-            if (configs.indexOf('Release')!==-1)
-            var config='Release';
-          else 
-            var config=configs[0];
-          var pathFormat=body.dataset.path;
-          var path=pathFormat.replace('{tc}', tc).replace('{config}', config);
-          isTest = searchVars.test==='true';
-          isRelease = path.toLowerCase().indexOf('release')!=-1;
-          console.log("%c NACL LOAD", "color:teal");
-          loadFunction(body.dataset.name, tc, path, body.dataset.width, body.dataset.height, attrs);
       }
+      sortlist.push(n);
+      for (var k in n.outputs) {
+          var sock=n.outputs[k];
+          for (var i=0; i<sock.length; i++) {
+              var n2=sock.edges[i].opposite(sock).owner;
+              if (!(n2.flag&DagFlags.TEMP)) {
+                  sort(n2);
+              }
+          }
+      }
+    }
+    var nlen=this.nodes.length, nodes=this.nodes;
+    for (var i=0; i<nlen; i++) {
+        var n=nodes[i];
+        if (n.flag&DagFlags.TEMP)
+          continue;
+        sort(n);
+    }
+    this.sortlist = sortlist;
+    this.resort = false;
+  }, function on_update(node) {
+    this.doexec = true;
+  }, function exec(ctx) {
+    if (this.resort) {
+        this.sort();
+    }
+    var sortlist=this.sortlist;
+    var slen=sortlist.length;
+    for (var i=0; i<slen; i++) {
+        var n=sortlist[i];
+        if (!(n.flag&DagFlags.UPDATE))
+          continue;
+        n.flag&=~DagFlags.UPDATE;
+        var owner=n.get_owner(ctx);
+        if (owner==undefined) {
+            n.flag|=DagFlags.DEAD;
+        }
+        for (var k in n.outputs) {
+            var s=n.outputs[k];
+            if (!(s.flag&DagFlags.UPDATE))
+              continue;
+            for (var j=0; j<s.edges.length; j++) {
+                s.edges[j].opposite(s).owner.flag|=DagFlags.UPDATE;
+            }
+        }
+        if (owner==undefined||owner.dag_exec==undefined)
+          continue;
+        for (var k in n.inputs) {
+            var sock=n.inputs[k];
+            for (var j=0; j<sock.edges.length; j++) {
+                var e=sock.edges[j], s2=e.opposite(sock);
+                var n2=s2.owner, owner2=n2.get_owner(ctx);
+                if (n2==undefined) {
+                    n2.flag|=DagFlags.DEAD;
+                    continue;
+                }
+                if ((sock.flag&DagFlags.UPDATE)||sock.datatype==DataTypes.DEPEND) {
+                }
+                var data=s2.data!=undefined||owner2==undefined ? s2.data : owner2[s2.name];
+                if (data!=undefined)
+                  s2.data = data;
+                switch (sock.datatype) {
+                  case DataTypes.DEPEND:
+                    break;
+                  case DataTypes.NUMBER:
+                  case DataTypes.STRING:
+                  case DataTypes.BOOL:
+                    owner[sock.name] = data;
+                    break;
+                  case DataTypes.VEC2:
+                    if (!(sock.name in owner)) {
+                        owner[sock.name] = new Vector2(data);
+                    }
+                    else {
+                      owner[sock.name].load(data);
+                    }
+                    break;
+                  case DataTypes.VEC3:
+                    if (!(sock.name in owner)) {
+                        owner[sock.name] = new Vector3(data);
+                    }
+                    else {
+                      owner[sock.name].load(data);
+                    }
+                    break;
+                  case DataTypes.VEC4:
+                    if (!(sock.name in owner)) {
+                        owner[sock.name] = new Vector4(data);
+                    }
+                    else {
+                      owner[sock.name].load(data);
+                    }
+                    break;
+                  case DataTypes.MATRIX4:
+                    if (!(sock.name in owner)) {
+                        owner[sock.name] = new Matrix4(data);
+                    }
+                    else {
+                      owner[sock.name].load(data);
+                    }
+                    break;
+                  case DataTypes.ARRAY:
+                    owner[sock.name] = data;
+                    break;
+                }
+            }
+        }
+        owner.dag_exec(ctx, this);
+    }
+  }]);
+  var $sarr_irMi_link=[0];
+  var $darr_DJJd_link=[0];
+  _es6_module.add_class(EventDag);
+  EventDag = _es6_module.add_export('EventDag', EventDag);
+  window.init_event_graph = function init_event_graph() {
+    window.the_global_dag = new EventDag();
+    _event_dag_idgen = new EIDGen();
   }
-};
+});
+es6_module_define('lib_utils', ["events", "toolprops_iter", "struct"], function _lib_utils_module(_es6_module) {
+  "use strict";
+  es6_import(_es6_module, 'events');
+  es6_import(_es6_module, 'toolprops_iter');
+  var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
+  var EventHandler=es6_import_item(_es6_module, 'events', 'EventHandler');
+  var charmap=es6_import_item(_es6_module, 'events', 'charmap');
+  var DBList=_ESClass("DBList", GArray, [function DBList(type) {
+    GArray.call(this);
+    this.type = type;
+    this.idmap = {}
+    this.selected = new GArray();
+    this.active = undefined;
+    this.length = 0;
+    this.selset = new set();
+  }, _ESClass.static(function fromSTRUCT(unpacker) {
+    var dblist=new DBList(0);
+    unpacker(dblist);
+    var arr=dblist.arrdata;
+    dblist.length = 0;
+    for (var i=0; i<arr.length; i++) {
+        GArray.prototype.push.call(dblist, arr[i]);
+    }
+    dblist.selected = new GArray(dblist.selected);
+    delete dblist.arrdata;
+    return dblist;
+  }), function toJSON() {
+    var list=[];
+    var sellist=[];
+    var __iter_block=__get_iter(this);
+    var block;
+    while (1) {
+      var __ival_block=__iter_block.next();
+      if (__ival_block.done) {
+          break;
+      }
+      block = __ival_block.value;
+      list.push(block.lib_id);
+    }
+    var __iter_block=__get_iter(this.selected);
+    var block;
+    while (1) {
+      var __ival_block=__iter_block.next();
+      if (__ival_block.done) {
+          break;
+      }
+      block = __ival_block.value;
+      sellist.push(block.lib_id);
+    }
+    var obj={list: list, selected: sellist, active: this.active!=undefined ? this.active.lib_id : -1, length: this.length, type: this.type}
+    return obj;
+  }, _ESClass.static(function fromJSON(obj) {
+    var list=new DBList(obj.type);
+    list.list = new GArray(obj.list);
+    list.selected = new GArray(obj.selected);
+    list.active = obj.active;
+    list.length = obj.length;
+  }), function clear_select() {
+    var __iter_block=__get_iter(this.selected);
+    var block;
+    while (1) {
+      var __ival_block=__iter_block.next();
+      if (__ival_block.done) {
+          break;
+      }
+      block = __ival_block.value;
+      block.flag&=~SELECT;
+    }
+    this.selset = new set();
+    this.selected = new GArray();
+  }, function set_active(block) {
+    if (block==undefined&&this.length>0) {
+        console.trace();
+        console.log("Undefined actives are illegal for DBLists, unless the list length is zero.");
+        return ;
+    }
+    this.active = block;
+  }, function select(block, do_select) {
+    if (do_select==undefined) {
+        do_select = true;
+    }
+    if (!(__instance_of(block, DataBlock))) {
+        warntrace("WARNING: bad value ", block, " passed to DBList.select()");
+        return ;
+    }
+    if (do_select) {
+        block.flag|=SELECT;
+        if (this.selset.has(block)) {
+            return ;
+        }
+        this.selset.add(block);
+        this.selected.push(block);
+    }
+    else {
+      block.flag&=~SELECT;
+      if (!this.selset.has(block)) {
+          return ;
+      }
+      this.selset.remove(block);
+      this.selected.remove(block);
+    }
+  }, function data_link(block, getblock, getblock_us) {
+    for (var i=0; i<this.length; i++) {
+        this[i] = getblock(this[i]);
+        this.idmap[this[i].lib_id] = this[i];
+    }
+    var sel=this.selected;
+    for (var i=0; i<sel.length; i++) {
+        sel[i] = getblock(sel[i]);
+        this.selset.add(sel[i]);
+    }
+    this.active = getblock(this.active);
+  }, function push(block) {
+    if (!(__instance_of(block, DataBlock))) {
+        warntrace("WARNING: bad value ", block, " passed to DBList.select()");
+        return ;
+    }
+    GArray.prototype.push.call(this, block);
+    this.idmap[block.lib_id] = block;
+    if (this.active==undefined) {
+        this.active = block;
+        this.select(block, true);
+    }
+  }, function remove(block) {
+    var i=this.indexOf(block);
+    if (i<0||i==undefined) {
+        warn("WARNING: Could not remove block "+block.name+" from a DBList");
+        return ;
+    }
+    this.pop(i);
+  }, function pop(i) {
+    if (i<0||i>=this.length) {
+        warn("WARNING: Invalid argument ", i, " to static pop()");
+        print_stack();
+        return ;
+    }
+    var block=this[i];
+    GArray.prototype.pop.call(this, i);
+    delete this.idmap[block.lib_id];
+    if (this.active==block) {
+        this.select(block, false);
+        this.active = this.length>0 ? this[0] : undefined;
+    }
+    if (this.selset.has(block)) {
+        this.selected.remove(block);
+        this.selset.remove(block);
+    }
+  }, function idget(id) {
+    return this.idmap[id];
+  }]);
+  _es6_module.add_class(DBList);
+  DBList.STRUCT = "\n  DBList {\n    type : int;\n    selected : array(dataref(DataBlock));\n    arrdata : array(dataref(DataBlock)) | obj;\n    active : dataref(DataBlock);\n  }\n";
+  function DataArrayRem(dst, field, obj) {
+    var array=dst[field];
+    function rem() {
+      array.remove(obj);
+    }
+    return rem;
+  }
+  function SceneObjRem(scene, obj) {
+    function rem() {
+      var __iter_e=__get_iter(obj.dag_node.inmap["parent"]);
+      var e;
+      while (1) {
+        var __ival_e=__iter_e.next();
+        if (__ival_e.done) {
+            break;
+        }
+        e = __ival_e.value;
+        var node=e.opposite(obj).node;
+        if (__instance_of(node, ASObject))
+          node.unparent(scene);
+      }
+      scene.objects.remove(obj);
+      scene.graph.remove(obj);
+      if (scene.active==obj)
+        scene.active = scene.objects.length>0 ? scene.objects[0] : undefined;
+      if (scene.selection.has(obj))
+        scene.selection.remove(obj);
+    }
+    return rem;
+  }
+  function DataRem(dst, field) {
+    function rem() {
+      dst["field"] = undefined;
+    }
+    return rem;
+  }
+  function wrap_getblock_us(datalib) {
+    return function(dataref, block, fieldname, add_user, refname, rem_func) {
+      if (dataref==undefined)
+        return ;
+      if (rem_func==undefined)
+        rem_func = DataRem(block, fieldname);
+      if (refname==undefined)
+        refname = fieldname;
+      var id=dataref[0];
+      if (id==-1) {
+          return undefined;
+      }
+      else {
+        var b=datalib.get(id);
+        if (b!=undefined) {
+            if (add_user)
+              b.lib_adduser(block, refname, rem_func);
+        }
+        else {
+          warntrace(["WARNING WARNING WARNING saved block reference isn't in database!!!", "  dataref: "].join("\n"), dataref);
+        }
+        return b;
+      }
+    }
+  }
+  wrap_getblock_us = _es6_module.add_export('wrap_getblock_us', wrap_getblock_us);
+  function wrap_getblock(datalib) {
+    return function(dataref) {
+      if (dataref==undefined)
+        return ;
+      var id=dataref[0];
+      if (id==-1) {
+          return undefined;
+      }
+      else {
+        var b=datalib.get(id);
+        if (b!=undefined) {
+        }
+        else {
+          warntrace(["WARNING WARNING WARNING saved block reference isn't in database!!!", "  dataref: "].join("\n"), dataref);
+        }
+        return b;
+      }
+    }
+  }
+  wrap_getblock = _es6_module.add_export('wrap_getblock', wrap_getblock);
+  var DataRefList=_ESClass("DataRefList", GArray, [function DataRefList(lst) {
+    if (lst==undefined) {
+        lst = undefined;
+    }
+    GArray.call(this);
+    this.datalib = undefined;
+    if (lst==undefined)
+      return ;
+    if (__instance_of(lst, Array)) {
+        for (var i=0; i<lst.length; i++) {
+            if (lst[i]==undefined)
+              continue;
+            this.push(lst[i]);
+        }
+    }
+    else 
+      if (Symbol.iterator in lst) {
+        var __iter_b=__get_iter(lst);
+        var b;
+        while (1) {
+          var __ival_b=__iter_b.next();
+          if (__ival_b.done) {
+              break;
+          }
+          b = __ival_b.value;
+          this.push(b);
+        }
+    }
+  }, _ESClass.symbol(Symbol.iterator, function iterator() {
+    return new DataRefListIter(this, new Context());
+  }), _ESClass.set(function ctx(ctx) {
+    this.datalib = ctx.datalib;
+  }), _ESClass.get(function ctx() {
+    return undefined;
+  }), function get(i, return_block) {
+    if (return_block==undefined) {
+        return_block = true;
+    }
+    if (return_block) {
+        var dl=this.datalib!=undefined ? this.datalib : g_app_state.datalib;
+        return dl.get(this[i]);
+    }
+    else {
+      return this[i];
+    }
+  }, function push(b) {
+    if (!(b = this._b(b)))
+      return ;
+    if (__instance_of(b, DataBlock))
+      b = new DataRef(b);
+    GArray.prototype.push.call(this, new DataRef(b));
+  }, function _b(b) {
+    if (b==undefined) {
+        warntrace("WARNING: undefined passed to DataRefList.push()");
+        return ;
+    }
+    if (__instance_of(b, DataBlock)) {
+        return new DataRef(b);
+    }
+    else 
+      if (__instance_of(b, DataRef)) {
+        return b;
+    }
+    else {
+      warntrace("WARNING: bad value ", b, " passed to DataRefList._b()");
+    }
+  }, function remove(b) {
+    if (!(b = this._b(b)))
+      return ;
+    var i=this.indexOf(b);
+    if (i<0) {
+        warntrace("WARNING: ", b, " not found in this DataRefList");
+        return ;
+    }
+    this.pop(i);
+  }, function pop(i, return_block) {
+    if (return_block==undefined) {
+        return_block = true;
+    }
+    var ret=GArray.prototype.pop.call(this, i);
+    if (return_block)
+      ret = new Context().datalib.get(ret.id);
+    return ret;
+  }, function replace(a, b) {
+    if (!(b = this._b(b)))
+      return ;
+    var i=this.indexOf(a);
+    if (i<0) {
+        warntrace("WARNING: ", b, " not found in this DataRefList");
+        return ;
+    }
+    this[i] = b;
+  }, function indexOf(b) {
+    Array.indexOf.call(this, b);
+    if (!(b = this._b(b)))
+      return ;
+    for (var i=0; i<this.length; i++) {
+        if (this[i].id==b.id)
+          return i;
+    }
+    return -1;
+  }, function insert(index, b) {
+    if (!(b = this._b(b)))
+      return ;
+    GArray.prototype.insert.call(this, b);
+  }, function prepend(b) {
+    if (!(b = this._b(b)))
+      return ;
+    GArray.prototype.prepend.call(this, b);
+  }, _ESClass.static(function fromSTRUCT(reader) {
+    var ret={}
+    reader(ret);
+    return new DataRefList(ret.list);
+  })]);
+  _es6_module.add_class(DataRefList);
+  mixin(DataRefList, TPropIterable);
+  DataRefList.STRUCT = "\n  DataRefList {\n    list : array(i, dataref(DataBlock)) | this[i];\n  }\n";
+});
 es6_module_define('transdata', ["mathlib"], function _transdata_module(_es6_module) {
   "use strict";
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
@@ -2196,7 +4472,7 @@ es6_module_define('transdata', ["mathlib"], function _transdata_module(_es6_modu
   TransDataType = _es6_module.add_export('TransDataType', TransDataType);
   TransDataType.selectmode = -1;
 });
-es6_module_define('transform', ["toolprops", "mathlib", "spline_types", "selectmode", "multires_transdata", "dopesheet_transdata", "events", "transdata", "toolops_api", "nacl_api"], function _transform_module(_es6_module) {
+es6_module_define('transform', ["dopesheet_transdata", "spline_types", "native_api", "events", "toolprops", "toolops_api", "selectmode", "mathlib", "transdata", "multires_transdata"], function _transform_module(_es6_module) {
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
   var SelMask=es6_import_item(_es6_module, 'selectmode', 'SelMask');
   var MResTransData=es6_import_item(_es6_module, 'multires_transdata', 'MResTransData');
@@ -2220,10 +4496,10 @@ es6_module_define('transform', ["toolprops", "mathlib", "spline_types", "selectm
   var charmap=es6_import_item(_es6_module, 'events', 'charmap');
   var TouchEventManager=es6_import_item(_es6_module, 'events', 'TouchEventManager');
   var EventHandler=es6_import_item(_es6_module, 'events', 'EventHandler');
-  var clear_jobs=es6_import_item(_es6_module, 'nacl_api', 'clear_jobs');
-  var clear_jobs_except_latest=es6_import_item(_es6_module, 'nacl_api', 'clear_jobs_except_latest');
-  var clear_jobs_except_first=es6_import_item(_es6_module, 'nacl_api', 'clear_jobs_except_first');
-  var JobTypes=es6_import_item(_es6_module, 'nacl_api', 'JobTypes');
+  var clear_jobs=es6_import_item(_es6_module, 'native_api', 'clear_jobs');
+  var clear_jobs_except_latest=es6_import_item(_es6_module, 'native_api', 'clear_jobs_except_latest');
+  var clear_jobs_except_first=es6_import_item(_es6_module, 'native_api', 'clear_jobs_except_first');
+  var JobTypes=es6_import_item(_es6_module, 'native_api', 'JobTypes');
   var _tsv_apply_tmp1=new Vector3();
   var _tsv_apply_tmp2=new Vector3();
   var post_mousemove_cachering=cachering.fromConstructor(Vector3, 64);
@@ -2997,7 +5273,7 @@ es6_module_define('transform', ["toolprops", "mathlib", "spline_types", "selectm
   _es6_module.add_class(RotateOp);
   RotateOp = _es6_module.add_export('RotateOp', RotateOp);
 });
-es6_module_define('transform_ops', ["transdata", "transform", "mathlib", "multires_transdata", "toolops_api", "events", "spline_types", "dopesheet_transdata", "nacl_api", "selectmode", "toolprops"], function _transform_ops_module(_es6_module) {
+es6_module_define('transform_ops', ["transform", "native_api", "spline_types", "toolprops", "mathlib", "events", "transdata", "multires_transdata", "toolops_api", "selectmode", "dopesheet_transdata"], function _transform_ops_module(_es6_module) {
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
   var TransformOp=es6_import_item(_es6_module, 'transform', 'TransformOp');
   var SelMask=es6_import_item(_es6_module, 'selectmode', 'SelMask');
@@ -3022,10 +5298,10 @@ es6_module_define('transform_ops', ["transdata", "transform", "mathlib", "multir
   var charmap=es6_import_item(_es6_module, 'events', 'charmap');
   var TouchEventManager=es6_import_item(_es6_module, 'events', 'TouchEventManager');
   var EventHandler=es6_import_item(_es6_module, 'events', 'EventHandler');
-  var clear_jobs=es6_import_item(_es6_module, 'nacl_api', 'clear_jobs');
-  var clear_jobs_except_latest=es6_import_item(_es6_module, 'nacl_api', 'clear_jobs_except_latest');
-  var clear_jobs_except_first=es6_import_item(_es6_module, 'nacl_api', 'clear_jobs_except_first');
-  var JobTypes=es6_import_item(_es6_module, 'nacl_api', 'JobTypes');
+  var clear_jobs=es6_import_item(_es6_module, 'native_api', 'clear_jobs');
+  var clear_jobs_except_latest=es6_import_item(_es6_module, 'native_api', 'clear_jobs_except_latest');
+  var clear_jobs_except_first=es6_import_item(_es6_module, 'native_api', 'clear_jobs_except_first');
+  var JobTypes=es6_import_item(_es6_module, 'native_api', 'JobTypes');
   var WidgetResizeOp=_ESClass("WidgetResizeOp", TransformOp, [function WidgetResizeOp(user_start_mpos, datamode) {
     TransformOp.call(this, user_start_mpos, datamode);
   }, _ESClass.static(function tooldef() {
@@ -3119,7 +5395,7 @@ es6_module_define('transform_ops', ["transdata", "transform", "mathlib", "multir
   _es6_module.add_class(WidgetResizeOp);
   WidgetResizeOp = _es6_module.add_export('WidgetResizeOp', WidgetResizeOp);
 });
-es6_module_define('spline_selectops', ["spline_types", "animdata", "spline_draw", "toolprops", "toolops_api"], function _spline_selectops_module(_es6_module) {
+es6_module_define('spline_selectops', ["toolops_api", "spline_types", "spline_draw", "animdata", "toolprops"], function _spline_selectops_module(_es6_module) {
   "use strict";
   var $_mh;
   var $_swapt;
@@ -3698,7 +5974,7 @@ es6_module_define('spline_selectops', ["spline_types", "animdata", "spline_draw"
   _es6_module.add_class(CircleSelectOp);
   CircleSelectOp = _es6_module.add_export('CircleSelectOp', CircleSelectOp);
 });
-es6_module_define('spline_createops', ["toolprops", "spline_editops", "toolops_api", "spline_types", "spline"], function _spline_createops_module(_es6_module) {
+es6_module_define('spline_createops', ["toolprops", "spline_types", "spline_editops", "toolops_api", "spline"], function _spline_createops_module(_es6_module) {
   var ToolOp=es6_import_item(_es6_module, 'toolops_api', 'ToolOp');
   var SplineFlags=es6_import_item(_es6_module, 'spline_types', 'SplineFlags');
   var EnumProperty=es6_import_item(_es6_module, 'toolprops', 'EnumProperty');
@@ -4040,7 +6316,7 @@ es6_module_define('spline_createops', ["toolprops", "spline_editops", "toolops_a
   _es6_module.add_class(ImportJSONOp);
   ImportJSONOp = _es6_module.add_export('ImportJSONOp', ImportJSONOp);
 });
-es6_module_define('spline_editops', ["spline_draw", "frameset", "spline_types", "toolprops", "spline", "struct", "toolops_api", "animdata"], function _spline_editops_module(_es6_module) {
+es6_module_define('spline_editops', ["toolops_api", "struct", "toolprops", "frameset", "animdata", "spline", "spline_draw", "spline_types"], function _spline_editops_module(_es6_module) {
   var IntProperty=es6_import_item(_es6_module, 'toolprops', 'IntProperty');
   var FloatProperty=es6_import_item(_es6_module, 'toolprops', 'FloatProperty');
   var CollectionProperty=es6_import_item(_es6_module, 'toolprops', 'CollectionProperty');
@@ -5342,7 +7618,7 @@ es6_module_define('spline_editops', ["spline_draw", "frameset", "spline_types", 
   _es6_module.add_class(SplineMirrorOp);
   SplineMirrorOp = _es6_module.add_export('SplineMirrorOp', SplineMirrorOp);
 });
-es6_module_define('spline_layerops', ["spline", "spline_types", "spline_editops", "toolprops", "toolops_api"], function _spline_layerops_module(_es6_module) {
+es6_module_define('spline_layerops', ["spline_editops", "spline", "spline_types", "toolprops", "toolops_api"], function _spline_layerops_module(_es6_module) {
   var ToolOp=es6_import_item(_es6_module, 'toolops_api', 'ToolOp');
   var UndoFlags=es6_import_item(_es6_module, 'toolops_api', 'UndoFlags');
   var ToolFlags=es6_import_item(_es6_module, 'toolops_api', 'ToolFlags');
@@ -5535,7 +7811,7 @@ es6_module_define('spline_layerops', ["spline", "spline_types", "spline_editops"
 });
 es6_module_define('spline_animops', [], function _spline_animops_module(_es6_module) {
 });
-es6_module_define('multires_ops', ["spline_draw", "spline_types", "spline_editops", "spline_multires", "toolprops", "J3DIMath", "spline", "toolops_api"], function _multires_ops_module(_es6_module) {
+es6_module_define('multires_ops', ["spline_types", "spline_multires", "J3DIMath", "spline_editops", "toolops_api", "spline_draw", "toolprops", "spline"], function _multires_ops_module(_es6_module) {
   es6_import(_es6_module, 'J3DIMath');
   var IntProperty=es6_import_item(_es6_module, 'toolprops', 'IntProperty');
   var FloatProperty=es6_import_item(_es6_module, 'toolprops', 'FloatProperty');
@@ -5563,7 +7839,7 @@ es6_module_define('multires_ops', ["spline_draw", "spline_types", "spline_editop
   var decompose_id=es6_import_item(_es6_module, 'spline_multires', 'decompose_id');
   var has_multires=es6_import_item(_es6_module, 'spline_multires', 'has_multires');
   var iterpoints=es6_import_item(_es6_module, 'spline_multires', 'iterpoints');
-  var $vec_n_Kr_exec;
+  var $vec_W79j_exec;
   var CreateMResPoint=_ESClass("CreateMResPoint", SplineLocalToolOp, [function CreateMResPoint(seg, co) {
     SplineLocalToolOp.call(this, "create_mres_point", "Add Detail Point", "", -1);
     if (seg!=undefined) {
@@ -5609,11 +7885,11 @@ es6_module_define('multires_ops', ["spline_draw", "spline_types", "spline_editop
     if (cp!=undefined) {
         s = cp[1];
         t = cp[0].vectorDistance(co);
-        $vec_n_Kr_exec.zero().load(co).sub(cp[0]);
+        $vec_W79j_exec.zero().load(co).sub(cp[0]);
         var n=seg.normal(s);
-        t*=Math.sign(n.dot($vec_n_Kr_exec));
-        p.offset[0] = $vec_n_Kr_exec[0];
-        p.offset[1] = $vec_n_Kr_exec[1];
+        t*=Math.sign(n.dot($vec_W79j_exec));
+        p.offset[0] = $vec_W79j_exec[0];
+        p.offset[1] = $vec_W79j_exec[1];
     }
     else {
       flag|=MResFlags.UPDATE;
@@ -5625,12 +7901,12 @@ es6_module_define('multires_ops', ["spline_draw", "spline_types", "spline_editop
     var id=compose_id(p.seg, p.id);
     spline.segments.cdata.get_shared('MultiResLayer').active = id;
   }]);
-  var $vec_n_Kr_exec=new Vector3();
+  var $vec_W79j_exec=new Vector3();
   _es6_module.add_class(CreateMResPoint);
   CreateMResPoint = _es6_module.add_export('CreateMResPoint', CreateMResPoint);
   CreateMResPoint.inputs = {segment: new IntProperty(0), co: new Vec3Property(), level: new IntProperty(0)}
 });
-es6_module_define('multires_selectops', ["spline_editops", "toolprops", "spline_multires", "spline", "toolops_api", "J3DIMath", "spline_types", "spline_draw"], function _multires_selectops_module(_es6_module) {
+es6_module_define('multires_selectops', ["spline", "spline_editops", "toolprops", "spline_draw", "spline_multires", "J3DIMath", "toolops_api", "spline_types"], function _multires_selectops_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, 'J3DIMath');
   var IntProperty=es6_import_item(_es6_module, 'toolprops', 'IntProperty');
@@ -5891,7 +8167,7 @@ es6_module_define('multires_selectops', ["spline_editops", "toolprops", "spline_
   SelectOneOp = _es6_module.add_export('SelectOneOp', SelectOneOp);
   SelectOneOp.inputs = ToolOp.inherit_inputs(SelectOpBase, {pid: new IntProperty(-1), state: new BoolProperty(true), set_active: new BoolProperty(true), unique: new BoolProperty(true), level: new IntProperty(0)});
 });
-es6_module_define('multires_transdata', ["transdata", "mathlib", "selectmode", "spline_multires"], function _multires_transdata_module(_es6_module) {
+es6_module_define('multires_transdata', ["transdata", "mathlib", "spline_multires", "selectmode"], function _multires_transdata_module(_es6_module) {
   "use strict";
   var SelMask=es6_import_item(_es6_module, 'selectmode', 'SelMask');
   var compose_id=es6_import_item(_es6_module, 'spline_multires', 'compose_id');
@@ -5904,10 +8180,10 @@ es6_module_define('multires_transdata', ["transdata", "mathlib", "selectmode", "
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
   var TransDataType=es6_import_item(_es6_module, 'transdata', 'TransDataType');
   var TransDataItem=es6_import_item(_es6_module, 'transdata', 'TransDataItem');
-  var $co_RB94_apply;
-  var $co_XnLs_calc_draw_aabb;
-  var $co2_48TJ_calc_draw_aabb;
-  var $co__LJE_aabb;
+  var $co_LuCW_apply;
+  var $co_pTeG_calc_draw_aabb;
+  var $co2_uCEh_calc_draw_aabb;
+  var $co_c0Dg_aabb;
   var MResTransData=_ESClass("MResTransData", TransDataType, [_ESClass.static(function gen_data(ctx, td, data) {
     var doprop=td.doprop;
     var proprad=td.propradius;
@@ -5950,12 +8226,12 @@ es6_module_define('multires_transdata', ["transdata", "mathlib", "selectmode", "
     var p=item.data;
     if (w==0.0)
       return ;
-    $co_RB94_apply.load(item.start_data);
-    $co_RB94_apply[2] = 0.0;
-    $co_RB94_apply.multVecMatrix(mat);
-    $co_RB94_apply.sub(item.start_data).mulScalar(w).add(item.start_data);
-    p[0] = $co_RB94_apply[0];
-    p[1] = $co_RB94_apply[1];
+    $co_LuCW_apply.load(item.start_data);
+    $co_LuCW_apply[2] = 0.0;
+    $co_LuCW_apply.multVecMatrix(mat);
+    $co_LuCW_apply.sub(item.start_data).mulScalar(w).add(item.start_data);
+    p[0] = $co_LuCW_apply[0];
+    p[1] = $co_LuCW_apply[1];
     p.recalc_offset(ctx.spline);
     var seg=ctx.spline.eidmap[p.seg];
     p.mr.recalc_wordscos(seg);
@@ -6014,15 +8290,15 @@ es6_module_define('multires_transdata', ["transdata", "mathlib", "selectmode", "
   }), _ESClass.static(function update(ctx, td) {
   }), _ESClass.static(function calc_prop_distances(ctx, td, data) {
   }), _ESClass.static(function calc_draw_aabb(ctx, td, minmax) {
-    $co_XnLs_calc_draw_aabb.zero();
+    $co_pTeG_calc_draw_aabb.zero();
     var pad=15;
     function do_minmax(co) {
-      $co2_48TJ_calc_draw_aabb[0] = co[0]-pad;
-      $co2_48TJ_calc_draw_aabb[1] = co[1]-pad;
-      minmax.minmax($co2_48TJ_calc_draw_aabb);
-      $co2_48TJ_calc_draw_aabb[0]+=pad*2.0;
-      $co2_48TJ_calc_draw_aabb[1]+=pad*2.0;
-      minmax.minmax($co2_48TJ_calc_draw_aabb);
+      $co2_uCEh_calc_draw_aabb[0] = co[0]-pad;
+      $co2_uCEh_calc_draw_aabb[1] = co[1]-pad;
+      minmax.minmax($co2_uCEh_calc_draw_aabb);
+      $co2_uCEh_calc_draw_aabb[0]+=pad*2.0;
+      $co2_uCEh_calc_draw_aabb[1]+=pad*2.0;
+      minmax.minmax($co2_uCEh_calc_draw_aabb);
     }
     var spline=ctx.spline;
     for (var i=0; i<td.data.length; i++) {
@@ -6047,30 +8323,30 @@ es6_module_define('multires_transdata', ["transdata", "mathlib", "selectmode", "
             minmax.minmax(seg2.aabb[0]);
             minmax.minmax(seg2.aabb[1]);
         }
-        $co_XnLs_calc_draw_aabb[0] = t.data[0];
-        $co_XnLs_calc_draw_aabb[1] = t.data[1];
-        do_minmax($co_XnLs_calc_draw_aabb);
-        $co_XnLs_calc_draw_aabb[0]-=t.data.offset[0];
-        $co_XnLs_calc_draw_aabb[1]-=t.data.offset[1];
-        do_minmax($co_XnLs_calc_draw_aabb);
+        $co_pTeG_calc_draw_aabb[0] = t.data[0];
+        $co_pTeG_calc_draw_aabb[1] = t.data[1];
+        do_minmax($co_pTeG_calc_draw_aabb);
+        $co_pTeG_calc_draw_aabb[0]-=t.data.offset[0];
+        $co_pTeG_calc_draw_aabb[1]-=t.data.offset[1];
+        do_minmax($co_pTeG_calc_draw_aabb);
     }
   }), _ESClass.static(function aabb(ctx, td, item, minmax, selected_only) {
-    $co__LJE_aabb.zero();
+    $co_c0Dg_aabb.zero();
     for (var i=0; i<td.data.length; i++) {
         var t=td.data[i];
         if (t.type!==MResTransData)
           continue;
-        $co__LJE_aabb[0] = t.data[0];
-        $co__LJE_aabb[1] = t.data[1];
-        minmax.minmax($co__LJE_aabb);
+        $co_c0Dg_aabb[0] = t.data[0];
+        $co_c0Dg_aabb[1] = t.data[1];
+        minmax.minmax($co_c0Dg_aabb);
     }
   }), function MResTransData() {
     TransDataType.apply(this, arguments);
   }]);
-  var $co_RB94_apply=new Vector3();
-  var $co_XnLs_calc_draw_aabb=new Vector3();
-  var $co2_48TJ_calc_draw_aabb=[0, 0, 0];
-  var $co__LJE_aabb=new Vector3();
+  var $co_LuCW_apply=new Vector3();
+  var $co_pTeG_calc_draw_aabb=new Vector3();
+  var $co2_uCEh_calc_draw_aabb=[0, 0, 0];
+  var $co_c0Dg_aabb=new Vector3();
   _es6_module.add_class(MResTransData);
   MResTransData = _es6_module.add_export('MResTransData', MResTransData);
   MResTransData.selectmode = SelMask.MULTIRES;
@@ -6309,7 +8585,7 @@ es6_module_define('theme_def', ["theme"], function _theme_def_module(_es6_module
   window.UITheme = new ColorTheme({"ErrorText": [1, 0.20000000298023224, 0.20000000298023224, 0.8899999856948853], "ListBoxText": [0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1], "Highlight": uniformbox4([0.56862, 0.7882, 0.9602, 1.0]), "MenuHighlight": [0.56862, 0.7882, 0.9602, 1.0], "RadialMenu": [1, 0, 0, 1], "RadialMenuHighlight": [0.7831560373306274, 0.7664570808410645, 0.3468262255191803, 0.7717778086662292], "DefaultLine": [0.4163331985473633, 0.3746998906135559, 0.3746998906135559, 1], "SelectLine": [0.699999988079071, 0.699999988079071, 0.699999988079071, 1], "Check": [0.8999999761581421, 0.699999988079071, 0.4000000059604645, 1], "Arrow": [0.4000000059604645, 0.4000000059604645, 0.4000000059604645, 1], "DefaultText": [0, 0, 0, 1], "BoxText": [0, 0, 0, 1], "HotkeyText": [0.43986162543296814, 0.43986162543296814, 0.43986162543296814, 1], "HighlightCursor": [0.8999999761581421, 0.8999999761581421, 0.8999999761581421, 0.875], "TextSelect": [0.4000000059604645, 0.4000000059604645, 0.4000000059604645, 0.75], "TextEditCursor": [0.10000000149011612, 0.10000000149011612, 0.10000000149011612, 1], "TextBoxHighlight": [0.5270000100135803, 0.5270000100135803, 0.5270000100135803, 1], "MenuSep": [0.6901277303695679, 0.6901277303695679, 0.6901277303695679, 1], "MenuBorder": [0.6499999761581421, 0.6499999761581421, 0.6499999761581421, 1], "RadialMenuSep": [0.10000000149011612, 0.20000000298023224, 0.20000000298023224, 1], "TabPanelOutline": [0.4, 0.4, 0.4, 1.0], "TabPanelBG": [0.78, 0.78, 0.78, 1.0], "ActiveTab": [0.78, 0.78, 0.78, 1.0], "HighlightTab": [0.56862, 0.7882, 0.9602, 0.9], "InactiveTab": [0.6, 0.6, 0.6, 1.0], "TabText": [0.0, 0.0, 0.0, 1.0], "IconBox": [1, 1, 1, 0.17968888580799103], "HighlightIcon": [0.30000001192092896, 0.8149344325065613, 1, 0.21444444358348846], "MenuText": [0.10000000149011612, 0.10000000149011612, 0.10000000149011612, 1], "MenuTextHigh": [0.9330000281333923, 0.9330000281333923, 0.9330000281333923, 1], "PanelText": [0, 0, 0, 1], "DialogText": [0.05000003054738045, 0.05000000447034836, 0.05000000447034836, 1], "DialogBorder": [0.40000000298023225, 0.4000000298023224, 0.40000000298023225, 1], "DisabledBox": [0.5000000029802323, 0.5000000029802323, 0.5000000029802323, 1], "IconCheckBG": [0.6879922747612, 0.6879922747612, 0.6879922747612, 1], "IconCheckSet": [0.6, 0.6, 0.6, 1], "IconCheckUnset": [0.44641016151377544, 0.44641016151377544, 0.44641016151377544, 1], "NoteBox": ui_weight_clr([0.8, 0.8, 0.8, 1.0], [0.8, 0.8, 0.8, 1.0]), "Box": ui_weight_clr([0.94, 0.94, 0.94, 1.0], [0.8, 0.8, 0.8, 1.0]), "HoverHint": ui_weight_clr([1, 0.9769999980926514, 0.8930000066757202, 0.8999999761581421], [0.8999999761581421, 0.8999999761581421, 1, 1]), "ErrorBox": ui_weight_clr([1, 0.30000001192092896, 0.20000000298023224, 1], [1, 1, 1, 1]), "ErrorTextBG": ui_weight_clr([1, 1, 1, 1], [0.8999999761581421, 0.8999999761581421, 1, 1]), "ShadowBox": ui_weight_clr([0, 0, 0, 0.10000000149011612], [1, 1, 1, 1]), "ProgressBar": ui_weight_clr([0.4000000059604645, 0.7300000190734863, 0.8999999761581421, 0.8999999761581421], [0.75, 0.75, 1, 1]), "ProgressBarBG": ui_weight_clr([0.699999988079071, 0.699999988079071, 0.699999988079071, 0.699999988079071], [1, 1, 1, 1]), "WarningBox": ui_weight_clr([1, 0.800000011920929, 0.10000000149011612, 0.8999999761581421], [0.699999988079071, 0.800000011920929, 1.0499999523162842, 1]), "ListBoxBG": ui_weight_clr([0.94, 0.94, 0.94, 1.0], [0.94, 0.94, 0.94, 1.0]), "InvBox": ui_weight_clr([0.6, 0.6, 0.6, 1.0], [0.6, 0.6, 0.6, 1.0]), "HLightBox": uniformbox4([0.56862, 0.7882, 0.9602, 1.0]), "ActivePanel": ui_weight_clr([0.800000011920929, 0.4000000059604645, 0.30000001192092896, 0.8999999761581421], [1, 1, 1, 1]), "CollapsingPanel": ui_weight_clr([0.687468421459198, 0.687468421459198, 0.687468421459198, 1], [1, 1, 1, 1]), "SimpleBox": ui_weight_clr([0.94, 0.94, 0.94, 1.0], [0.94, 0.94, 0.94, 1.0]), "DialogBox": ui_weight_clr([0.7269999980926514, 0.7269999980926514, 0.7269999980926514, 1], [1, 1, 1, 1]), "DialogTitle": ui_weight_clr([0.6299999952316284, 0.6299999952316284, 0.6299999952316284, 1], [1, 1, 1, 1]), "MenuBox": ui_weight_clr([0.9200000166893005, 0.9200000166893005, 0.9200000166893005, 1], [1, 1, 1, 1]), "TextBox": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 0.8999999761581421], [1, 1, 1, 1]), "TextBoxInv": ui_weight_clr([0.699999988079071, 0.699999988079071, 0.699999988079071, 1], [0.699999988079071, 0.699999988079071, 0.699999988079071, 1]), "MenuLabel": ui_weight_clr([0.9044828414916992, 0.8657192587852478, 0.8657192587852478, 0.24075555801391602], [0.6000000238418579, 0.6000000238418579, 0.6000000238418579, 0.8999999761581421]), "MenuLabelInv": ui_weight_clr([0.75, 0.75, 0.75, 0.47111111879348755], [1, 1, 0.9410666823387146, 1]), "ScrollBG": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 1], [1, 1, 1, 1]), "ScrollBar": ui_weight_clr([0.5919697284698486, 0.5919697284698486, 0.5919697284698486, 1], [1, 1, 1, 1]), "ScrollBarHigh": ui_weight_clr([0.6548083424568176, 0.6548083424568176, 0.6548083424568176, 1], [1, 1, 1, 1]), "ScrollButton": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 1], [1, 1, 1, 1]), "ScrollButtonHigh": ui_weight_clr([0.75, 0.75, 0.75, 1], [1, 1, 1, 1]), "ScrollInv": ui_weight_clr([0.4000000059604645, 0.4000000059604645, 0.4000000059604645, 1], [1, 1, 1, 1]), "IconInv": ui_weight_clr([0.48299384117126465, 0.5367956161499023, 0.8049896955490112, 0.4000000059604645], [1, 1, 1, 1])});
   window.View2DTheme = new ColorTheme({"Background": [1, 1, 1, 1], "ActiveObject": [0.800000011920929, 0.6000000238418579, 0.30000001192092896, 1], "Selection": [0.699999988079071, 0.4000000059604645, 0.10000000149011612, 1], "GridLineBold": [0.38, 0.38, 0.38, 1.0], "GridLine": [0.5, 0.5, 0.5, 1.0], "AxisX": [0.9, 0.0, 0.0, 1.0], "AxisY": [0.0, 0.9, 0.0, 1.0], "AxisZ": [0.0, 0.0, 0.9, 1.0]});
 });
-es6_module_define('UIElement', ["events", "toolprops", "mathlib"], function _UIElement_module(_es6_module) {
+es6_module_define('UIElement', ["toolprops", "mathlib", "events"], function _UIElement_module(_es6_module) {
   es6_import(_es6_module, 'events');
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
   var inrect_2d=es6_import_item(_es6_module, 'mathlib', 'inrect_2d');
@@ -6354,9 +8630,9 @@ es6_module_define('UIElement', ["events", "toolprops", "mathlib"], function _UIE
     }
   }
   inrect_2d_button = _es6_module.add_export('inrect_2d_button', inrect_2d_button);
-  var $empty_arr_FHgy_get_keymaps;
-  var $pos_8TrU_get_abs_pos;
-  var $ret_mHHb_get_min_size;
+  var $empty_arr_8cWj_get_keymaps;
+  var $pos_gMH7_get_abs_pos;
+  var $ret__4jS_get_min_size;
   var UIElement=_ESClass("UIElement", EventHandler, [function UIElement(ctx, path, pos, size) {
     if (path==undefined) {
         path = undefined;
@@ -6411,7 +8687,7 @@ es6_module_define('UIElement', ["events", "toolprops", "mathlib"], function _UIE
       this.do_recalc();
     this.state|=UIFlags.ENABLED;
   }, function get_keymaps() {
-    return $empty_arr_FHgy_get_keymaps;
+    return $empty_arr_8cWj_get_keymaps;
   }, _ESClass.symbol(Symbol.keystr, function keystr() {
     if (this._h12==undefined) {
         var n=this.constructor.name;
@@ -6501,15 +8777,15 @@ es6_module_define('UIElement', ["events", "toolprops", "mathlib"], function _UIE
     if (this.parent!=undefined)
       this.parent.focus(this);
   }, function get_abs_pos() {
-    $pos_8TrU_get_abs_pos[0] = this.pos[0];
-    $pos_8TrU_get_abs_pos[1] = this.pos[1];
+    $pos_gMH7_get_abs_pos[0] = this.pos[0];
+    $pos_gMH7_get_abs_pos[1] = this.pos[1];
     var p=this.parent;
     while (p!=undefined) {
-      $pos_8TrU_get_abs_pos[0]+=p.pos[0];
-      $pos_8TrU_get_abs_pos[1]+=p.pos[1];
+      $pos_gMH7_get_abs_pos[0]+=p.pos[0];
+      $pos_gMH7_get_abs_pos[1]+=p.pos[1];
       p = p.parent;
     }
-    return $pos_8TrU_get_abs_pos;
+    return $pos_gMH7_get_abs_pos;
   }, function call_menu(menu, off, min_width) {
     if (off==undefined) {
         off = undefined;
@@ -6697,7 +8973,7 @@ es6_module_define('UIElement', ["events", "toolprops", "mathlib"], function _UIE
     }
     return this._minsize;
   }, function get_min_size(canvas, isvertical) {
-    return $ret_mHHb_get_min_size;
+    return $ret__4jS_get_min_size;
   }, function build_draw(canvas, isvertical) {
   }, function on_active() {
   }, function on_inactive() {
@@ -6706,9 +8982,9 @@ es6_module_define('UIElement', ["events", "toolprops", "mathlib"], function _UIE
   }, function on_add(parent) {
   }, function on_remove(parent) {
   }]);
-  var $empty_arr_FHgy_get_keymaps=[];
-  var $pos_8TrU_get_abs_pos=[0, 0];
-  var $ret_mHHb_get_min_size=[1, 1];
+  var $empty_arr_8cWj_get_keymaps=[];
+  var $pos_gMH7_get_abs_pos=[0, 0];
+  var $ret__4jS_get_min_size=[1, 1];
   _es6_module.add_class(UIElement);
   UIElement = _es6_module.add_export('UIElement', UIElement);
   var UIHoverBox=_ESClass("UIHoverBox", UIElement, [function UIHoverBox(ctx, text, is_modal, pos, size) {
@@ -6949,7 +9225,7 @@ es6_module_define('UIFileData', ["struct"], function _UIFileData_module(_es6_mod
     console.log("-JSONlen", LZString.compress(JSON.stringify(a.obj)).length);
   }
 });
-es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_module(_es6_module) {
+es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_module(_es6_module) {
   "use strict";
   var rot2d=es6_import_item(_es6_module, 'mathlib', 'rot2d');
   var inrect_2d=es6_import_item(_es6_module, 'mathlib', 'inrect_2d');
@@ -6984,38 +9260,38 @@ es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_modul
     }
     return cs;
   }
-  var $ret_RFnu_get_2d_canvas={}
+  var $ret_VPYz_get_2d_canvas={}
   function get_2d_canvas() {
-    if ($ret_RFnu_get_2d_canvas.canvas==undefined) {
-        $ret_RFnu_get_2d_canvas.canvas = document.getElementById("canvas2d");
-        $ret_RFnu_get_2d_canvas.ctx = _canvas2d_ctx;
+    if ($ret_VPYz_get_2d_canvas.canvas==undefined) {
+        $ret_VPYz_get_2d_canvas.canvas = document.getElementById("canvas2d");
+        $ret_VPYz_get_2d_canvas.ctx = _canvas2d_ctx;
     }
-    return $ret_RFnu_get_2d_canvas;
+    return $ret_VPYz_get_2d_canvas;
   }
   get_2d_canvas = _es6_module.add_export('get_2d_canvas', get_2d_canvas);
   window.get_2d_canvas = get_2d_canvas;
-  var $ret_ubtP_get_2d_canvas_2={}
+  var $ret_UUpX_get_2d_canvas_2={}
   function get_2d_canvas_2() {
-    if ($ret_ubtP_get_2d_canvas_2.canvas==undefined) {
-        $ret_ubtP_get_2d_canvas_2.canvas = document.getElementById("canvas2d_work");
-        $ret_ubtP_get_2d_canvas_2.ctx = _canvas2d_ctx_2;
+    if ($ret_UUpX_get_2d_canvas_2.canvas==undefined) {
+        $ret_UUpX_get_2d_canvas_2.canvas = document.getElementById("canvas2d_work");
+        $ret_UUpX_get_2d_canvas_2.ctx = _canvas2d_ctx_2;
     }
-    return $ret_ubtP_get_2d_canvas_2;
+    return $ret_UUpX_get_2d_canvas_2;
   }
   get_2d_canvas_2 = _es6_module.add_export('get_2d_canvas_2', get_2d_canvas_2);
   window.get_2d_canvas_2 = get_2d_canvas_2;
   window._ui_canvas_2d_idgen = 1;
-  var $temp_layer_idgen_Q0np_push_layer;
-  var $black_KuvY_quad;
-  var $grads_pVXQ_quad;
-  var $mid_IVRi_colorfield;
-  var $cache_lN9__box1;
-  var $v1_O1rr_box1;
-  var $v3_a8pc_box1;
-  var $pairs_MDx2_box1;
-  var $pos_JikP_text;
-  var $v2_bNP1_box1;
-  var $v4_I7Ys_box1;
+  var $temp_layer_idgen_hRK6_push_layer;
+  var $black_nY9h_quad;
+  var $grads_8cUy_quad;
+  var $mid_qXXr_colorfield;
+  var $cache_GD8j_box1;
+  var $v1_saps_box1;
+  var $v3_n2Qm_box1;
+  var $pairs_5K0P_box1;
+  var $pos_ePva_text;
+  var $v2_a_NW_box1;
+  var $v4_ET3U_box1;
   var UICanvas=_ESClass("UICanvas", [function UICanvas(viewport) {
     var c=get_2d_canvas();
     this.canvas = c.canvas;
@@ -7136,7 +9412,7 @@ es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_modul
   }, function push_layer() {
     this.layerstack.push([this.canvas, this.ctx]);
     var canvas=document.createElement("canvas");
-    canvas.id = "_temp_canvas2d_"+($temp_layer_idgen_Q0np_push_layer++);
+    canvas.id = "_temp_canvas2d_"+($temp_layer_idgen_hRK6_push_layer++);
     document.body.appendChild(canvas);
     canvas.style["position"] = "absolute";
     canvas.style["left"] = "0px";
@@ -7252,7 +9528,7 @@ es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_modul
     var ctx=this.ctx;
     var v=g_app_state.raster.viewport;
     if (c1==undefined) {
-        c1 = $black_KuvY_quad;
+        c1 = $black_nY9h_quad;
     }
     if (c2==undefined) {
         c2 = c1;
@@ -7271,7 +9547,7 @@ es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_modul
         hash+=c1[i]+","+c2[i]+","+c3[i]+","+c4[i];
     }
     var grad;
-    if (1||!(hash in $grads_pVXQ_quad)) {
+    if (1||!(hash in $grads_8cUy_quad)) {
         var min=[v1[0], v1[1]], max=[v1[0], v1[1]];
         for (var i=0; i<2; i++) {
             min[i] = Math.min(min[i], v1[i]);
@@ -7297,7 +9573,7 @@ es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_modul
               grad = ctx.createLinearGradient(min[0], min[1]*0.5+max[1]*0.5, max[0], min[1]*0.5+max[1]*0.5);
             else 
               grad = ctx.createLinearGradient(min[0]*0.5+max[0]*0.5, min[1], min[0]*0.5+max[0]*0.5, max[1]);
-            $grads_pVXQ_quad[hash] = grad;
+            $grads_8cUy_quad[hash] = grad;
             grad.addColorStop(0.0, this._css_color(c1));
             grad.addColorStop(1.0, this._css_color(c3));
           }
@@ -7308,7 +9584,7 @@ es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_modul
         }
     }
     else {
-      grad = $grads_pVXQ_quad[hash];
+      grad = $grads_8cUy_quad[hash];
     }
     if (grad!=undefined)
       ctx.fillStyle = grad;
@@ -7319,29 +9595,29 @@ es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_modul
     ctx.lineTo(v4[0]+x+v[0][0], canvas.height-(v4[1]+y+v[0][1]));
     ctx.fill();
   }, function colorfield(pos, size, color) {
-    $mid_IVRi_colorfield[3] = 1.0;
+    $mid_qXXr_colorfield[3] = 1.0;
     for (var i=0; i<3; i++) {
         if (color[i]==0.0)
-          $mid_IVRi_colorfield[i] = 0.0;
+          $mid_qXXr_colorfield[i] = 0.0;
         else 
-          $mid_IVRi_colorfield[i] = color[i];
+          $mid_qXXr_colorfield[i] = color[i];
     }
-    var color2=this._css_color($mid_IVRi_colorfield);
-    $mid_IVRi_colorfield[3] = 1.0;
+    var color2=this._css_color($mid_qXXr_colorfield);
+    $mid_qXXr_colorfield[3] = 1.0;
     for (var i=0; i<3; i++) {
-        $mid_IVRi_colorfield[i] = (color[i]*3.0-1.0)/4.0;
+        $mid_qXXr_colorfield[i] = (color[i]*3.0-1.0)/4.0;
     }
-    var midclr=this._css_color($mid_IVRi_colorfield);
-    $mid_IVRi_colorfield[3] = 1.0;
+    var midclr=this._css_color($mid_qXXr_colorfield);
+    $mid_qXXr_colorfield[3] = 1.0;
     for (var i=0; i<3; i++) {
-        $mid_IVRi_colorfield[i] = 0.5+color[i]*0.5;
+        $mid_qXXr_colorfield[i] = 0.5+color[i]*0.5;
     }
-    var smidclr=this._css_color($mid_IVRi_colorfield);
-    $mid_IVRi_colorfield[3] = 0.0;
+    var smidclr=this._css_color($mid_qXXr_colorfield);
+    $mid_qXXr_colorfield[3] = 0.0;
     for (var i=0; i<3; i++) {
-        $mid_IVRi_colorfield[i] = color[i];
+        $mid_qXXr_colorfield[i] = color[i];
     }
-    var zerocolor=this._css_color($mid_IVRi_colorfield);
+    var zerocolor=this._css_color($mid_qXXr_colorfield);
     color = this._css_color(color);
     var canvas=this.canvas;
     var ctx=this.ctx;
@@ -7528,7 +9804,7 @@ es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_modul
     if (rfac==undefined)
       rfac = 1;
     var hash=size[0].toString()+" "+size[1]+" "+rfac;
-    if (!(hash in $cache_lN9__box1)) {
+    if (!(hash in $cache_GD8j_box1)) {
         r/=rfac;
         var p1=this.arc_points((($_mh = objcache.array(2)), ($_mh[0] = (0+r+2)), ($_mh[1] = (0+r+2)), ($_mh[2] = (0)), $_mh), Math.PI, ang, r);
         var p2=this.arc_points((($_mh = objcache.array(2)), ($_mh[0] = (0+w-r-2)), ($_mh[1] = (0+r+2)), ($_mh[2] = (0)), $_mh), Math.PI/2, ang, r);
@@ -7556,9 +9832,9 @@ es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_modul
             points.push(p4[i]);
         }
         p2.reverse();
-        $cache_lN9__box1[hash] = [p1, p2, points];
+        $cache_GD8j_box1[hash] = [p1, p2, points];
     }
-    var cp=$cache_lN9__box1[hash];
+    var cp=$cache_GD8j_box1[hash];
     var p1=cp[0];
     var p2=cp[1];
     var points=cp[2];
@@ -7582,45 +9858,45 @@ es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_modul
             var i2=i+plen*2;
             var i3=i+1+plen*2;
             var i4=i+1;
-            $v1_O1rr_box1[0] = p1[i][0]+x;
-            $v1_O1rr_box1[1] = p1[i][1]+y;
-            $v1_O1rr_box1[2] = p1[i][2];
+            $v1_saps_box1[0] = p1[i][0]+x;
+            $v1_saps_box1[1] = p1[i][1]+y;
+            $v1_saps_box1[2] = p1[i][2];
             
-            $v2_bNP1_box1[0] = p2[i][0]+x;
-            $v2_bNP1_box1[1] = p2[i][1]+y;
-            $v2_bNP1_box1[2] = p2[i][2];
+            $v2_a_NW_box1[0] = p2[i][0]+x;
+            $v2_a_NW_box1[1] = p2[i][1]+y;
+            $v2_a_NW_box1[2] = p2[i][2];
             
-            $v3_a8pc_box1[0] = p2[i+1][0]+x;
-            $v3_a8pc_box1[1] = p2[i+1][1]+y;
-            $v3_a8pc_box1[2] = p2[i+1][2];
+            $v3_n2Qm_box1[0] = p2[i+1][0]+x;
+            $v3_n2Qm_box1[1] = p2[i+1][1]+y;
+            $v3_n2Qm_box1[2] = p2[i+1][2];
             
-            $v4_I7Ys_box1[0] = p1[i+1][0]+x;
-            $v4_I7Ys_box1[1] = p1[i+1][1]+y;
-            $v4_I7Ys_box1[2] = p1[i+1][2];
+            $v4_ET3U_box1[0] = p1[i+1][0]+x;
+            $v4_ET3U_box1[1] = p1[i+1][1]+y;
+            $v4_ET3U_box1[2] = p1[i+1][2];
             
-            this.quad($v1_O1rr_box1, $v2_bNP1_box1, $v3_a8pc_box1, $v4_I7Ys_box1, color(i1), color(i2), color(i3), color(i4));
+            this.quad($v1_saps_box1, $v2_a_NW_box1, $v3_n2Qm_box1, $v4_ET3U_box1, color(i1), color(i2), color(i3), color(i4));
         }
     }
     var lines=[];
     var colors=[];
     for (var i=0; i<points.length; i++) {
-        $v1_O1rr_box1[0] = points[(i+1)%points.length][0]+x;
-        $v1_O1rr_box1[1] = points[(i+1)%points.length][1]+y;
-        $v1_O1rr_box1[2] = points[(i+1)%points.length][2];
+        $v1_saps_box1[0] = points[(i+1)%points.length][0]+x;
+        $v1_saps_box1[1] = points[(i+1)%points.length][1]+y;
+        $v1_saps_box1[2] = points[(i+1)%points.length][2];
         
-        $v2_bNP1_box1[0] = points[i][0]+x;
-        $v2_bNP1_box1[1] = points[i][1]+y;
-        $v2_bNP1_box1[2] = points[i][2];
+        $v2_a_NW_box1[0] = points[i][0]+x;
+        $v2_a_NW_box1[1] = points[i][1]+y;
+        $v2_a_NW_box1[2] = points[i][2];
         
-        if ($pairs_MDx2_box1.length<=i) {
-            $pairs_MDx2_box1.push([[0, 0], [0, 0]]);
+        if ($pairs_5K0P_box1.length<=i) {
+            $pairs_5K0P_box1.push([[0, 0], [0, 0]]);
         }
-        $pairs_MDx2_box1[i][0][0] = (($_mh = objcache.array(2)), ($_mh[0] = ($v1_O1rr_box1[0])), ($_mh[1] = ($v1_O1rr_box1[1])), ($_mh[2] = (0)), $_mh);
-        $pairs_MDx2_box1[i][0][1] = (($_mh = objcache.array(2)), ($_mh[0] = ($v2_bNP1_box1[0])), ($_mh[1] = ($v2_bNP1_box1[1])), ($_mh[2] = (0)), $_mh);
-        lines.push($pairs_MDx2_box1[i][0]);
-        $pairs_MDx2_box1[i][1][0] = color((i+1)%points.length);
-        $pairs_MDx2_box1[i][1][1] = color(i);
-        colors.push($pairs_MDx2_box1[i][1]);
+        $pairs_5K0P_box1[i][0][0] = (($_mh = objcache.array(2)), ($_mh[0] = ($v1_saps_box1[0])), ($_mh[1] = ($v1_saps_box1[1])), ($_mh[2] = (0)), $_mh);
+        $pairs_5K0P_box1[i][0][1] = (($_mh = objcache.array(2)), ($_mh[0] = ($v2_a_NW_box1[0])), ($_mh[1] = ($v2_a_NW_box1[1])), ($_mh[2] = (0)), $_mh);
+        lines.push($pairs_5K0P_box1[i][0]);
+        $pairs_5K0P_box1[i][1][0] = color((i+1)%points.length);
+        $pairs_5K0P_box1[i][1][1] = color(i);
+        colors.push($pairs_5K0P_box1[i][1]);
     }
   }, function tri_aa(v1, v2, v3, c1, c2, c3) {
     this.tri(v1, v2, v3, c1, c2, c3);
@@ -7701,23 +9977,23 @@ es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_modul
     for (var i=0; i<lines.length; i++, ly+=12) {
         var w=this._measure_line(lines[i]).width;
         var m=this.transmat.$matrix;
-        $pos_JikP_text[0] = m.m41+v[0][0]+pos1[0];
-        $pos_JikP_text[1] = canvas.height-(m.m42+v[0][1]+pos1[1]+ly);
-        $pos_JikP_text[2] = 0;
+        $pos_ePva_text[0] = m.m41+v[0][0]+pos1[0];
+        $pos_ePva_text[1] = canvas.height-(m.m42+v[0][1]+pos1[1]+ly);
+        $pos_ePva_text[2] = 0;
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.rotate(rot);
         if (rot!=0) {
-            $pos_JikP_text[1]-=w;
+            $pos_ePva_text[1]-=w;
         }
-        rot2d($pos_JikP_text, -rot);
-        $pos_JikP_text[1] = canvas.height-$pos_JikP_text[1];
+        rot2d($pos_ePva_text, -rot);
+        $pos_ePva_text[1] = canvas.height-$pos_ePva_text[1];
         if (color==undefined)
           color = [0, 0, 0, 1];
         ctx.fillStyle = this._css_color(color);
         if (fontsize==undefined)
           fontsize = default_ui_font_size;
         ctx.font = fontsize+"px "+"Arial";
-        var x=$pos_JikP_text[0], y=canvas.height-($pos_JikP_text[1]);
+        var x=$pos_ePva_text[0], y=canvas.height-($pos_ePva_text[1]);
         this._text_line(lines[i], x, y, fontsize);
     }
   }, function _set_font(ctx, fontsize, addition_options) {
@@ -7832,17 +10108,17 @@ es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_modul
   }, function pop_transform() {
     this.transmat.load(this.trans_stack.pop());
   }]);
-  var $temp_layer_idgen_Q0np_push_layer=0;
-  var $black_KuvY_quad=[0, 0, 0, 1];
-  var $grads_pVXQ_quad={}
-  var $mid_IVRi_colorfield=[0, 0, 0, 0.5];
-  var $cache_lN9__box1={}
-  var $v1_O1rr_box1=new Vector3();
-  var $v3_a8pc_box1=new Vector3();
-  var $pairs_MDx2_box1=[];
-  var $pos_JikP_text=[0, 0, 0];
-  var $v2_bNP1_box1=new Vector3();
-  var $v4_I7Ys_box1=new Vector3();
+  var $temp_layer_idgen_hRK6_push_layer=0;
+  var $black_nY9h_quad=[0, 0, 0, 1];
+  var $grads_8cUy_quad={}
+  var $mid_qXXr_colorfield=[0, 0, 0, 0.5];
+  var $cache_GD8j_box1={}
+  var $v1_saps_box1=new Vector3();
+  var $v3_n2Qm_box1=new Vector3();
+  var $pairs_5K0P_box1=[];
+  var $pos_ePva_text=[0, 0, 0];
+  var $v2_a_NW_box1=new Vector3();
+  var $v4_ET3U_box1=new Vector3();
   _es6_module.add_class(UICanvas);
   UICanvas = _es6_module.add_export('UICanvas', UICanvas);
   window.active_canvases = {}
@@ -7850,7 +10126,7 @@ es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_modul
     var u=new UICanvas();
   }
 });
-es6_module_define('UIFrame', ["UIElement", "J3DIMath", "mathlib", "events"], function _UIFrame_module(_es6_module) {
+es6_module_define('UIFrame', ["mathlib", "UIElement", "J3DIMath", "events"], function _UIFrame_module(_es6_module) {
   var aabb_isect_2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_2d');
   var inrect_2d=es6_import_item(_es6_module, 'mathlib', 'inrect_2d');
   es6_import(_es6_module, 'J3DIMath');
@@ -7869,8 +10145,8 @@ es6_module_define('UIFrame', ["UIElement", "J3DIMath", "mathlib", "events"], fun
   var _static_mat=new Matrix4();
   var _ufbd_v1=new Vector3();
   var _canvas_threshold=1.0;
-  var $pos_Akn6__find_active;
-  var $zero_qIR0_build_draw_old;
+  var $pos_5Vgb__find_active;
+  var $zero_MSjB_build_draw_old;
   var UIFrame=_ESClass("UIFrame", UIElement, [function UIFrame(ctx, canvas, path, pos, size) {
     UIElement.call(this, ctx, path, pos, size);
     this.dirty_rects = new GArray();
@@ -8160,10 +10436,10 @@ es6_module_define('UIFrame', ["UIElement", "J3DIMath", "mathlib", "events"], fun
     var found=false;
     for (var i=this.children.length-1; i>=0; i--) {
         var c=this.children[i];
-        $pos_Akn6__find_active[0] = c.pos[0], $pos_Akn6__find_active[1] = c.pos[1];
+        $pos_5Vgb__find_active[0] = c.pos[0], $pos_5Vgb__find_active[1] = c.pos[1];
         if (c.state&UIFlags.HAS_PAN) {
         }
-        if (inrect_2d(mpos, $pos_Akn6__find_active, c.size)) {
+        if (inrect_2d(mpos, $pos_5Vgb__find_active, c.size)) {
             found = true;
             if (this.active!=c&&this.active!=undefined) {
                 this.active.state&=~UIFlags.HIGHLIGHT;
@@ -8743,7 +11019,7 @@ es6_module_define('UIFrame', ["UIElement", "J3DIMath", "mathlib", "events"], fun
       if (this.state&UIFlags.HAS_PAN)
         pos = this.velpan.pan;
       else 
-        pos = $zero_qIR0_build_draw_old;
+        pos = $zero_MSjB_build_draw_old;
       isect = isect||aabb_isect_2d(c.pos, c.size, pos, this.size);
       if (!isect) {
           this.has_hidden_elements = true;
@@ -8895,943 +11171,8 @@ es6_module_define('UIFrame', ["UIElement", "J3DIMath", "mathlib", "events"], fun
         frame.push_modal(e);
     }
   }]);
-  var $pos_Akn6__find_active=[0, 0];
-  var $zero_qIR0_build_draw_old=[0, 0];
+  var $pos_5Vgb__find_active=[0, 0];
+  var $zero_MSjB_build_draw_old=[0, 0];
   _es6_module.add_class(UIFrame);
   UIFrame = _es6_module.add_export('UIFrame', UIFrame);
-});
-es6_module_define('UIPack', ["UIFrame", "UIWidgets", "UIElement", "mathlib", "toolprops"], function _UIPack_module(_es6_module) {
-  var PropTypes=es6_import_item(_es6_module, 'toolprops', 'PropTypes');
-  var TPropFlags=es6_import_item(_es6_module, 'toolprops', 'TPropFlags');
-  var DataRefProperty=es6_import_item(_es6_module, 'toolprops', 'DataRefProperty');
-  var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
-  var inrect_2d=es6_import_item(_es6_module, 'mathlib', 'inrect_2d');
-  var aabb_isect_2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_2d');
-  var UIElement, UIFrame;
-  var UIElement=es6_import_item(_es6_module, 'UIElement', 'UIElement');
-  var PackFlags=es6_import_item(_es6_module, 'UIElement', 'PackFlags');
-  var UIFlags=es6_import_item(_es6_module, 'UIElement', 'UIFlags');
-  var CanvasFlags=es6_import_item(_es6_module, 'UIElement', 'CanvasFlags');
-  var UIFrame=es6_import_item(_es6_module, 'UIFrame', 'UIFrame');
-  var UIButtonAbstract=es6_import_item(_es6_module, 'UIWidgets', 'UIButtonAbstract');
-  var UIButton=es6_import_item(_es6_module, 'UIWidgets', 'UIButton');
-  var UIButtonIcon=es6_import_item(_es6_module, 'UIWidgets', 'UIButtonIcon');
-  var UIMenuButton=es6_import_item(_es6_module, 'UIWidgets', 'UIMenuButton');
-  var UICheckBox=es6_import_item(_es6_module, 'UIWidgets', 'UICheckBox');
-  var UINumBox=es6_import_item(_es6_module, 'UIWidgets', 'UINumBox');
-  var UILabel=es6_import_item(_es6_module, 'UIWidgets', 'UILabel');
-  var UIMenuLabel=es6_import_item(_es6_module, 'UIWidgets', 'UIMenuLabel');
-  var ScrollButton=es6_import_item(_es6_module, 'UIWidgets', 'ScrollButton');
-  var UIVScroll=es6_import_item(_es6_module, 'UIWidgets', 'UIVScroll');
-  var UIIconCheck=es6_import_item(_es6_module, 'UIWidgets', 'UIIconCheck');
-  var $_mh;
-  var $_swapt;
-  var UIPackFrame=_ESClass("UIPackFrame", UIFrame, [function UIPackFrame(ctx, path_prefix) {
-    UIFrame.call(this, ctx);
-    this.mm = new MinMax(2);
-    this._last_pack_recalc = 0;
-    if (path_prefix==undefined)
-      path_prefix = "";
-    this.path_prefix = path_prefix;
-    this.min_size = undefined;
-    this.last_ms = 0;
-    this.last_pos = new Vector2();
-    this.last_size = new Vector2();
-    this.default_packflag = 0;
-  }, function build_draw(canvas, isVertical) {
-    if (this.is_canvas_root())
-      this.pack(canvas, isVertical);
-    UIFrame.prototype.build_draw.call(this, canvas, isVertical);
-  }, function on_resize(newsize, oldsize) {
-    UIFrame.prototype.on_resize.call(this, newsize, oldsize);
-  }, function add(child, packflag) {
-    if (packflag==undefined) {
-        packflag = 0;
-    }
-    packflag|=this.default_packflag;
-    UIFrame.prototype.add.call(this, child, packflag);
-  }, function prepend(child) {
-    child.packflag|=this.default_packflag;
-    UIFrame.prototype.prepend.call(this, child);
-  }, function toolwidget(path, inherit_flag, label) {
-    if (inherit_flag==undefined) {
-        inherit_flag = 0;
-    }
-    if (label==undefined) {
-        label = undefined;
-    }
-    var ret=this.toolop(path, inherit_flag, label);
-    ret.path_exec_widget = true;
-    return ret;
-  }, function _inherit_packflag(inherit_flag) {
-    var icon_size=inherit_flag&(PackFlags.USE_LARGE_ICON|PackFlags.USE_SMALL_ICON);
-    if (icon_size==0) {
-        icon_size = this.default_packflag&(PackFlags.USE_LARGE_ICON|PackFlags.USE_SMALL_ICON);
-    }
-    inherit_flag|=this.default_packflag&~(PackFlags.USE_SMALL_ICON|PackFlags.USE_SMALL_ICON);
-    inherit_flag|=icon_size;
-    return inherit_flag;
-  }, function toolop(path, inherit_flag, label, icon, description) {
-    if (inherit_flag==undefined) {
-        inherit_flag = 0;
-    }
-    if (label==undefined) {
-        label = undefined;
-    }
-    if (icon==undefined) {
-        icon = undefined;
-    }
-    if (description==undefined) {
-        description = undefined;
-    }
-    var ctx=this.ctx;
-    var opname=ctx.api.get_op_uiname(ctx, path);
-    inherit_flag = this._inherit_packflag(inherit_flag);
-    if (opname==undefined) {
-        console.trace();
-        console.log("couldn't find tool operator at path"+path+".");
-        return ;
-    }
-    if (label!=undefined)
-      opname = label;
-    if (inherit_flag&PackFlags.USE_ICON) {
-        var op=ctx.api.get_op(ctx, path);
-        if (op==undefined) {
-            console.trace();
-            console.log("Error fetching operator ", path);
-            var c=new UIButton(ctx, "???");
-            c.packflag|=inherit_flag;
-            this.add(c);
-            return c;
-        }
-        if (DEBUG.icons)
-          console.log("icon toolop", op.icon);
-        icon = icon===undefined ? op.icon : icon;
-        if (icon>=0) {
-            var use_small=inherit_flag&PackFlags.USE_SMALL_ICON;
-            var c=new UIButtonIcon(ctx, opname, icon, [0, 0], [0, 0], path, undefined, undefined, use_small);
-            c.packflag|=inherit_flag;
-            this.add(c);
-            return c;
-        }
-    }
-    var c=new UIButton(ctx, opname, [0, 0], [0, 0], path);
-    if (inherit_flag!=undefined)
-      c.packflag|=inherit_flag;
-    this.add(c);
-    return c;
-  }, function pack(canvas, isVertical) {
-    var arr=[0, 0];
-    var mm=this.mm;
-    if (this.state&UIFlags.HAS_PAN) {
-        mm.reset();
-        var __iter_c=__get_iter(this.children);
-        var c;
-        while (1) {
-          var __ival_c=__iter_c.next();
-          if (__ival_c.done) {
-              break;
-          }
-          c = __ival_c.value;
-          arr[0] = c.pos[0]+c.size[0];
-          arr[1] = c.pos[1]+c.size[1];
-          mm.minmax(c.pos);
-          mm.minmax(arr);
-        }
-        if (this.packflag&PackFlags.CALC_NEGATIVE_PAN) {
-            this.pan_bounds[0] = new Vector2(mm.min).sub(mm.max).mulScalar(0.5);
-            this.pan_bounds[1] = new Vector2(mm.max).sub(mm.min);
-        }
-        else {
-          this.pan_bounds[1] = new Vector2(mm.max).sub(mm.min);
-          this.pan_bounds[1][0]-=this.size[0];
-          this.pan_bounds[1][1]-=this.size[1];
-        }
-        if (this.packflag&PackFlags.PAN_X_ONLY) {
-            this.pan_bounds[0][1] = this.pan_bounds[1][1] = 0.0;
-        }
-        else 
-          if (this.packflag&PackFlags.PAN_Y_ONLY) {
-            this.pan_bounds[0][0] = this.pan_bounds[1][0] = 0.0;
-        }
-    }
-  }, function prop(path, packflag, setter_path) {
-    if (packflag==undefined) {
-        packflag = 0;
-    }
-    if (setter_path==undefined) {
-        setter_path = undefined;
-    }
-    packflag = this._inherit_packflag(packflag);
-    if (this.path_prefix.length>0)
-      path = this.path_prefix+"."+path;
-    if (setter_path==undefined)
-      setter_path = path;
-    var ctx=this.ctx;
-    var prop=ctx.api.get_prop_meta(ctx, path);
-    if (prop==undefined) {
-        console.trace();
-        console.log("couldn't find property: "+path+".", this.path_prefix);
-        return ;
-    }
-    if (prop.type==PropTypes.INT||prop.type==PropTypes.FLOAT) {
-        var range=prop.range;
-        if (prop.range==undefined||(prop.range[0]==0&&prop.range[1]==0)) {
-            range = [-2000, 2000];
-        }
-        var c=new UINumBox(ctx, prop.uiname, range, prop.data, [0, 0], [0, 0], path);
-        c.packflag = packflag;
-        c.unit = prop.unit;
-        c.setter_path = setter_path;
-        this.add(c);
-    }
-    else 
-      if (prop.type==PropTypes.ENUM&&(packflag&PackFlags.ENUM_STRIP)) {
-        var checkmap={};
-        var this2=this;
-        prop.ctx = ctx;
-        function update_enum(chk, val) {
-          if (!val) {
-              chk.set = true;
-              return ;
-          }
-          for (var k in checkmap) {
-              var check=checkmap[k];
-              if (check===chk) {
-                  this2.ctx.api.set_prop(this2.ctx, path, prop.keys[k]);
-                  continue;
-              }
-              check.set = false;
-              check.do_recalc();
-          }
-          var val=prop.values[k];
-        }
-        var subframe;
-        if (__instance_of(this, ColumnFrame)) {
-            subframe = this.col();
-        }
-        else {
-          subframe = this.row();
-        }
-        subframe.packflag|=packflag|PackFlags.NO_AUTO_SPACING|PackFlags.NO_LEAD_SPACING|PackFlags.NO_TRAIL_SPACING;
-        var large_icon=packflag&PackFlags.USE_LARGE_ICON;
-        subframe.pad[0] = large_icon ? -4 : -2;
-        subframe.pad[1] = large_icon ? -4 : -3;
-        function update_callback(chk) {
-          var val=undefined;
-          for (var k in checkmap) {
-              var check=checkmap[k];
-              if (check===chk) {
-                  val = k;
-                  break;
-              }
-          }
-          if (val==undefined) {
-              console.log("error with ui enum strip; path:", path);
-              return ;
-          }
-          val = ctx.api.get_prop(ctx, path)==prop.keys[val];
-          if (!!val!=!!chk.set) {
-              chk.set = val;
-              chk.do_recalc();
-          }
-        }
-        if (packflag&PackFlags.USE_ICON) {
-            for (var k in prop.values) {
-                var label=prop.ui_value_names!=undefined ? prop.ui_value_names[k] : k;
-                if (label==undefined)
-                  label = "(error)";
-                var c=new UIIconCheck(ctx, "", prop.iconmap[prop.values[k]]);
-                c.packflag|=packflag;
-                c.setter_path = setter_path;
-                c.callback = update_enum;
-                c.icon = prop.iconmap[k];
-                c.draw_check = false;
-                c.update_callback = update_callback;
-                c.description = label+"\n"+prop.description;
-                if (prop.get_value()==prop.values[k])
-                  c.set = true;
-                subframe.add(c);
-                checkmap[prop.values[k]] = c;
-            }
-        }
-        else {
-          for (var k in prop.values) {
-              var label=prop.ui_value_names!=undefined ? prop.ui_value_names[k] : k;
-              if (label==undefined)
-                label = "(error)";
-              var c=new UICheckBox(ctx, label);
-              c.setter_path = setter_path;
-              c.callback = update_enum;
-              c.draw_check = false;
-              c.update_callback = update_callback;
-              if (prop.get_value()==prop.values[k])
-                c.set = true;
-              subframe.add(c);
-              checkmap[prop.values[k]] = c;
-          }
-        }
-        return subframe;
-    }
-    else 
-      if (prop.type==PropTypes.ENUM) {
-        var c=new UIMenuButton(ctx, undefined, [0, 0], [0, 0], path);
-        c.setter_path = setter_path;
-        c.packflag|=packflag;
-        this.add(c);
-        return c;
-    }
-    else 
-      if ((prop.type==PropTypes.VEC3&&prop.subtype==PropTypes.COLOR3)||(prop.type==PropTypes.VEC4&&prop.subtype==PropTypes.COLOR4)) {
-        if (packflag&PackFlags.COLOR_BUTTON_ONLY) {
-            var colorb=new UIColorButton(ctx, packflag|this.default_packflag);
-            colorb.state|=UIFlags.USE_PATH;
-            colorb.data_path = path;
-            colorb.setter_path = setter_path;
-            this.add(colorb, packflag);
-            return colorb;
-        }
-        else {
-          var field=new UIColorPicker(ctx, undefined, prop.subtype==PropTypes.COLOR3 ? 3 : 4);
-          field.state|=UIFlags.USE_PATH;
-          field.data_path = path;
-          field.setter_path = setter_path;
-          this.add(field, packflag);
-          return field;
-        }
-    }
-    else 
-      if (prop.type==PropTypes.VEC2) {
-        range = (prop.range!=undefined&&prop.range[0]!=undefined) ? prop.range : [-2000, 2000];
-        var row=this.row();
-        row.packflag = packflag;
-        row.label(prop.uiname);
-        var c=new UINumBox(ctx, "X", range, prop.data, [0, 0], [0, 0], path+"[0]");
-        c.unit = prop.unit;
-        c.setter_path = setter_path+"[0]";
-        c.packflag|=packflag;
-        row.add(c);
-        var c=new UINumBox(ctx, "Y", range, prop.data, [0, 0], [0, 0], path+"[1]");
-        c.unit = prop.unit;
-        c.setter_path = setter_path+"[1]";
-        c.packflag|=packflag;
-        row.add(c);
-        return row;
-    }
-    else 
-      if (prop.type==PropTypes.VEC3) {
-        range = (prop.range!=undefined&&prop.range[0]!=undefined) ? prop.range : [-2000, 2000];
-        var row=this.row();
-        row.packflag = packflag;
-        row.label(prop.uiname);
-        var c=new UINumBox(ctx, "X", range, prop.data, [0, 0], [0, 0], path+"[0]");
-        c.unit = prop.unit;
-        c.setter_path = setter_path+"[0]";
-        c.packflag|=packflag;
-        row.add(c);
-        var c=new UINumBox(ctx, "Y", range, prop.data, [0, 0], [0, 0], path+"[1]");
-        c.unit = prop.unit;
-        c.setter_path = setter_path+"[1]";
-        c.packflag|=packflag;
-        row.add(c);
-        var c=new UINumBox(ctx, "Z", range, prop.data, [0, 0], [0, 0], path+"[2]");
-        c.unit = prop.unit;
-        c.setter_path = setter_path+"[2]";
-        c.packflag|=packflag;
-        row.add(c);
-        return row;
-    }
-    else 
-      if (prop.type==PropTypes.VEC4) {
-        range = (prop.range!=undefined&&prop.range[0]!=undefined) ? prop.range : [-2000, 2000];
-        var row=this.row();
-        row.label(prop.uiname);
-        var c=new UINumBox(ctx, "X", range, prop.data, [0, 0], [0, 0], path+"[0]");
-        c.setter_path = setter_path+"[0]";
-        c.packflag|=packflag;
-        c.unit = prop.unit;
-        row.add(c);
-        var c=new UINumBox(ctx, "Y", range, prop.data, [0, 0], [0, 0], path+"[1]");
-        c.setter_path = setter_path+"[1]";
-        c.packflag|=packflag;
-        c.unit = prop.unit;
-        row.add(c);
-        var c=new UINumBox(ctx, "Z", range, prop.data, [0, 0], [0, 0], path+"[2]");
-        c.setter_path = setter_path+"[2]";
-        c.packflag|=packflag;
-        c.unit = prop.unit;
-        row.add(c);
-        var c=new UINumBox(ctx, "W", range, prop.data, [0, 0], [0, 0], path+"[3]");
-        c.setter_path = setter_path+"[3]";
-        c.packflag|=packflag;
-        c.unit = prop.unit;
-        row.add(c);
-        return row;
-    }
-    else 
-      if (prop.type==PropTypes.STRING&&(prop.flag&TPropFlags.LABEL)) {
-        var ret=this.label(path, true, packflag);
-        ret.setter_path = setter_path;
-        return ret;
-    }
-    else 
-      if (prop.type==PropTypes.BOOL) {
-        var check;
-        if (packflag&PackFlags.USE_ICON) {
-            check = new UIIconCheck(ctx, "", prop.icon, undefined, undefined, path);
-        }
-        else {
-          check = new UICheckBox(ctx, prop.uiname, undefined, undefined, path);
-        }
-        check.setter_path = setter_path;
-        check.packflag|=packflag;
-        this.add(check);
-    }
-    else 
-      if (prop.type==PropTypes.FLAG) {
-        var row=this.row();
-        row.packflag|=packflag;
-        if (path.trim().endsWith("]")) {
-            var s=path.trim();
-            var i=s.length-1;
-            while (i>=0&&s[i-1]!="[") {
-              i--;
-            }
-            var key=s.slice(i, s.length-1).trim();
-            var uiname=prop.ui_key_names[key];
-            if (uiname==undefined) {
-                console.log("WARNING: possibly bad flag mask (will try interpreting it as integer)", path);
-                key = parseInt(key);
-                uiname = prop.ui_key_names[key];
-            }
-            if (isNaN(parseInt(key))&&key in prop.keys) {
-                key = prop.keys[key];
-            }
-            if (uiname==undefined)
-              uiname = "(corrupted)";
-            var check=new UICheckBox(ctx, uiname, undefined, undefined, path);
-            this.add(check);
-            if (key in prop.flag_descriptions) {
-                check.description = prop.flag_descriptions[key];
-            }
-            check.packflag|=PackFlags.INHERIT_WIDTH;
-            check.setter_path = setter_path;
-            return check;
-        }
-        else {
-          row.label(prop.uiname+":");
-          for (var k in prop.keys) {
-              var uiname=prop.ui_key_names[k];
-              var path2=path+"["+k+"]";
-              var check=new UICheckBox(ctx, uiname, undefined, undefined, path2);
-              check.packflag|=PackFlags.INHERIT_WIDTH;
-              check.setter_path = setter_path+"["+k+"]";
-              if (k in prop.flag_descriptions) {
-                  check.description = prop.flag_descriptions[k];
-              }
-              row.add(check);
-          }
-          return check;
-        }
-    }
-    else 
-      if (prop.type==PropTypes.DATAREF) {
-        var c=new UIMenuButton(ctx, undefined, [0, 0], [0, 0], path);
-        c.setter_path = setter_path;
-        c.packflag|=packflag;
-        this.add(c);
-    }
-    else {
-      if (1||DEBUG.ui_datapaths)
-        console.log("warning: unimplemented property type for path "+path+" in user interface code");
-    }
-  }, function label(text, use_path, align) {
-    if (use_path==undefined) {
-        use_path = false;
-    }
-    if (align==undefined) {
-        align = 0;
-    }
-    align = this._inherit_packflag(align);
-    if (use_path!=undefined&&use_path) {
-        var c=new UILabel(this.ctx, "", [0, 0], [0, 0], text);
-        this.add(c);
-        if (align)
-          c.packflag|=align;
-        return c;
-    }
-    else {
-      var c=new UILabel(this.ctx, text, [0, 0], [0, 0], undefined);
-      this.add(c);
-      if (align)
-        c.packflag|=align;
-      return c;
-    }
-  }, function tabstrip(align, default_packflag) {
-    if (align==undefined) {
-        align = 0;
-    }
-    if (default_packflag==undefined) {
-        default_packflag = 0;
-    }
-    var flip=this.default_packflag&PackFlags.FLIP_TABSTRIP;
-    flip = flip||(align&PackFlags.FLIP_TABSTRIP);
-    var ret=new UITabPanel(this.ctx, undefined, undefined, flip);
-    ret.packflag|=align|PackFlags.INHERIT_WIDTH;
-    ret.default_packflag = this._inherit_packflag(default_packflag);
-    this.add(ret);
-    return ret;
-  }, function panel(label, permid, align, default_packflag) {
-    if (align==undefined) {
-        align = 0;
-    }
-    if (default_packflag==undefined) {
-        default_packflag = 0;
-    }
-    align|=this.default_packflag;
-    var ret=new UIPanel(this.ctx, label, permid);
-    ret.packflag|=align|PackFlags.INHERIT_WIDTH;
-    ret.default_packflag = this.default_packflag|default_packflag;
-    this.add(ret);
-    return ret;
-  }, function row(path_prefix, align, default_packflag) {
-    if (path_prefix==undefined) {
-        path_prefix = "";
-    }
-    if (align==undefined) {
-        align = 0;
-    }
-    if (default_packflag==undefined) {
-        default_packflag = 0;
-    }
-    align|=this.default_packflag;
-    var row=new RowFrame(this.ctx, this.path_prefix);
-    this.add(row);
-    row.default_packflag|=default_packflag|this.default_packflag;
-    row.packflag|=align;
-    return row;
-  }, function col(path_prefix, align, default_packflag) {
-    if (path_prefix==undefined) {
-        path_prefix = "";
-    }
-    if (align==undefined) {
-        align = 0;
-    }
-    if (default_packflag==undefined) {
-        default_packflag = 0;
-    }
-    align|=this.default_packflag;
-    var col=new ColumnFrame(this.ctx, this.path_prefix);
-    this.add(col);
-    col.default_packflag|=default_packflag|this.default_packflag;
-    col.packflag|=align;
-    return col;
-  }, function on_tick() {
-    UIFrame.prototype.on_tick.call(this);
-    if (time_ms()-this._last_pack_recalc>300) {
-        this._pack_recalc();
-        this._last_pack_recalc = time_ms();
-    }
-  }, function _pack_recalc() {
-    if (time_ms()-this.last_ms<40) {
-        return ;
-    }
-    this.last_ms = time_ms();
-    if (this.last_pos.vectorDistance(this.pos)>0.0001||this.last_size.vectorDistance(this.size)>1e-05) {
-        if (DEBUG.complex_ui_recalc) {
-            console.log("complex ui recalc", this.pos.toString(), this.last_pos.toString(), this.last_pos.vectorDistance(this.pos), this.last_size.vectorDistance(this.size));
-        }
-        this.parent.do_full_recalc();
-        this.do_recalc();
-        var __iter_c=__get_iter(this.children);
-        var c;
-        while (1) {
-          var __ival_c=__iter_c.next();
-          if (__ival_c.done) {
-              break;
-          }
-          c = __ival_c.value;
-          if (!(__instance_of(c, UIFrame))) {
-              c.recalc = 1;
-          }
-        }
-        this.last_pos.load(this.pos);
-        this.last_size.load(this.size);
-    }
-  }]);
-  _es6_module.add_class(UIPackFrame);
-  UIPackFrame = _es6_module.add_export('UIPackFrame', UIPackFrame);
-  var RowFrame=_ESClass("RowFrame", UIPackFrame, [function RowFrame(ctx, path_prefix, align) {
-    UIPackFrame.call(this, ctx, path_prefix);
-    this.packflag|=PackFlags.INHERIT_HEIGHT|align;
-    this.pad = [4, 4];
-  }, function get_min_size(canvas, isvertical) {
-    if (canvas==undefined) {
-        console.trace();
-        console.log("Warning: undefined canvas in get_min_size");
-        return ;
-    }
-    var maxwidth=0;
-    var tothgt=0;
-    var __iter_c=__get_iter(this.children);
-    var c;
-    while (1) {
-      var __ival_c=__iter_c.next();
-      if (__ival_c.done) {
-          break;
-      }
-      c = __ival_c.value;
-      var size;
-      if (!(c.packflag&PackFlags.KEEP_SIZE))
-        size = c.cached_min_size(canvas, isvertical);
-      else 
-        size = c.size;
-      tothgt+=size[1]+this.pad[1];
-      maxwidth = Math.max(maxwidth, size[0]+2);
-    }
-    if (this.min_size!=undefined) {
-        maxwidth = Math.max(maxwidth, this.min_size[0]);
-        tothgt = Math.max(tothgt, this.min_size[1]);
-    }
-    return [Math.max(maxwidth, 1), Math.max(tothgt, 1)];
-  }, function pack(canvas, is_vertical) {
-    if (canvas==undefined) {
-        console.trace();
-        console.log("Warning: undefined canvas in pack");
-        return ;
-    }
-    if (this.size[0]==0&&this.size[1]==0) {
-        this.size[0] = this.parent.size[0];
-        this.size[1] = this.parent.size[1];
-    }
-    var minsize=this.get_min_size(canvas, is_vertical);
-    var spacing;
-    if (this.packflag&PackFlags.NO_AUTO_SPACING) {
-        spacing = this.pad[1];
-    }
-    else {
-      var spacing=Math.floor((this.size[1]-minsize[1])/this.children.length);
-      spacing = Math.max(spacing, this.pad[1]);
-    }
-    var x=0;
-    var y;
-    if (this.packflag&PackFlags.ALIGN_BOTTOM)
-      y = this.pad[1];
-    else 
-      y = this.size[1]-this.pad[1];
-    for (var i=0; i<this.children.length; i++) {
-        var c=this.children[i];
-        var size;
-        if (!(c.packflag&PackFlags.KEEP_SIZE))
-          size = c.cached_min_size(canvas, is_vertical);
-        else 
-          size = c.size;
-        size = [size[0], size[1]];
-        size[0] = Math.min(size[0], this.size[0]);
-        if (c.packflag&PackFlags.INHERIT_WIDTH)
-          size[0] = this.size[0]-2;
-        if (c.packflag&PackFlags.INHERIT_HEIGHT)
-          size[1]+=spacing;
-        if (c.size==undefined)
-          c.size = [0, 0];
-        c.size[0] = size[0];
-        c.size[1] = size[1];
-        var final_y=y;
-        if (!(this.packflag&PackFlags.ALIGN_BOTTOM))
-          final_y-=size[1];
-        if (this.packflag&PackFlags.ALIGN_RIGHT) {
-            c.pos = [this.size[0]-size[0]-x, final_y];
-        }
-        else 
-          if (this.packflag&PackFlags.ALIGN_LEFT) {
-            c.pos = [x, final_y];
-        }
-        else {
-          c.pos = [x+Math.floor(0.5*(this.size[0]-size[0])), final_y];
-        }
-        var space=(c.packflag&PackFlags.INHERIT_HEIGHT) ? 0 : spacing;
-        if (this.packflag&PackFlags.ALIGN_BOTTOM)
-          y+=c.size[1]+space;
-        else 
-          y-=c.size[1]+space;
-        if (!(c.packflag&PackFlags.NO_REPACK))
-          c.pack(canvas, is_vertical);
-    }
-    UIPackFrame.prototype.pack.call(this, canvas, is_vertical);
-  }]);
-  _es6_module.add_class(RowFrame);
-  RowFrame = _es6_module.add_export('RowFrame', RowFrame);
-  var ColumnFrame=_ESClass("ColumnFrame", UIPackFrame, [function ColumnFrame(ctx, path_prefix, align) {
-    UIPackFrame.call(this, ctx, path_prefix);
-    this.packflag|=PackFlags.INHERIT_WIDTH|align;
-    this.pad = [2, 2];
-  }, function get_min_size(canvas, isvertical) {
-    if (canvas==undefined) {
-        console.trace();
-        console.log("Warning: undefined canvas in get_min_size");
-        return ;
-    }
-    var maxheight=0;
-    var totwid=0;
-    var __iter_c=__get_iter(this.children);
-    var c;
-    while (1) {
-      var __ival_c=__iter_c.next();
-      if (__ival_c.done) {
-          break;
-      }
-      c = __ival_c.value;
-      var size;
-      if (!(c.packflag&PackFlags.KEEP_SIZE))
-        size = c.cached_min_size(canvas, isvertical);
-      else 
-        size = [c.size[0], c.size[1]];
-      totwid+=size[0]+this.pad[0];
-      maxheight = Math.max(maxheight, size[1]+this.pad[1]);
-    }
-    if (this.min_size!=undefined) {
-        totwid = Math.max(totwid, this.min_size[0]);
-        maxheight = Math.max(maxheight, this.min_size[1]);
-    }
-    return [totwid, maxheight];
-  }, function pack(canvas, is_vertical) {
-    if (canvas==undefined) {
-        console.trace();
-        console.log("Warning: undefined canvas in pack");
-        return ;
-    }
-    if (!(this.packflag&PackFlags.ALIGN_LEFT)&&!(this.packflag&PackFlags.ALIGN_RIGHT))
-      this.packflag|=PackFlags.ALIGN_CENTER;
-    if (this.size[0]==0&&this.size[1]==0) {
-        this.size[0] = this.parent.size[0];
-        this.size[1] = this.parent.size[1];
-    }
-    var minsize=this.get_min_size(canvas, is_vertical);
-    if (this.packflag&PackFlags.NO_AUTO_SPACING) {
-        spacing = this.pad[0];
-    }
-    else {
-      var spacing=Math.floor((this.size[0]-minsize[0])/(this.children.length));
-      spacing = Math.max(spacing, this.pad[0]);
-    }
-    var sum=0;
-    var max_wid=0;
-    var max_hgt=0;
-    var __iter_c=__get_iter(this.children);
-    var c;
-    while (1) {
-      var __ival_c=__iter_c.next();
-      if (__ival_c.done) {
-          break;
-      }
-      c = __ival_c.value;
-      var s;
-      if (!(c.packflag&PackFlags.KEEP_SIZE))
-        s = c.cached_min_size(canvas, is_vertical);
-      else 
-        s = [c.size[0], c.size[1]];
-      max_wid = Math.max(s[0], max_wid);
-      max_hgt = Math.max(s[1], max_hgt);
-      sum+=s[0];
-    }
-    if (!(this.packflag&PackFlags.IGNORE_LIMIT))
-      max_wid*=((this.size[0])/sum);
-    var x;
-    var y;
-    if (this.packflag&PackFlags.ALIGN_BOTTOM) {
-        y = this.pad[1];
-    }
-    else 
-      if (this.packflag&PackFlags.ALIGN_TOP) {
-        y = this.size[1]-max_hgt-this.pad[1];
-    }
-    else {
-      y = (this.size[1]-max_hgt)*0.5;
-    }
-    var startx;
-    if (this.packflag&PackFlags.NO_LEAD_SPACING)
-      startx = 0;
-    else 
-      startx = this.pad[0];
-    var do_center_post=false;
-    if (this.packflag&PackFlags.ALIGN_RIGHT) {
-        x = this.size[0]-startx;
-    }
-    else 
-      if (this.packflag&PackFlags.ALIGN_LEFT) {
-        x = startx;
-    }
-    else {
-      this.packflag|=PackFlags.ALIGN_CENTER;
-      x = 0;
-    }
-    var pad=this.pad[0];
-    var finalwid=0;
-    var __iter_c=__get_iter(this.children);
-    var c;
-    while (1) {
-      var __ival_c=__iter_c.next();
-      if (__ival_c.done) {
-          break;
-      }
-      c = __ival_c.value;
-      var size;
-      if (!(c.packflag&PackFlags.KEEP_SIZE))
-        size = c.cached_min_size(canvas, is_vertical);
-      else 
-        size = c.size;
-      size = [size[0], size[1]];
-      if (!(this.packflag&PackFlags.IGNORE_LIMIT)) {
-          if (c.packflag&PackFlags.INHERIT_WIDTH)
-            size[0] = Math.min(size[0], max_wid-pad)+spacing;
-          else 
-            size[0] = Math.min(size[0], max_wid-pad);
-      }
-      if (c.packflag&PackFlags.INHERIT_HEIGHT)
-        size[1] = this.size[1]-this.pad[1];
-      if (c.size==undefined)
-        c.size = [0, 0];
-      c.size[0] = size[0];
-      c.size[1] = size[1];
-      var space=(c.packflag&PackFlags.INHERIT_WIDTH) ? 0 : spacing;
-      if (this.packflag&PackFlags.ALIGN_RIGHT) {
-          c.pos = [x-size[0], y];
-          finalwid = this.size[0]-x-size[0]-1;
-          x-=Math.floor(size[0]+pad+space);
-      }
-      else {
-        c.pos = [x, y];
-        finalwid = x+size[0];
-        x+=Math.floor(size[0]+pad+space);
-      }
-      if (!(c.packflag&PackFlags.NO_REPACK))
-        c.pack(canvas, is_vertical);
-    }
-    if ((this.packflag&PackFlags.ALIGN_CENTER)&&finalwid<this.size[0]) {
-        var __iter_c=__get_iter(this.children);
-        var c;
-        while (1) {
-          var __ival_c=__iter_c.next();
-          if (__ival_c.done) {
-              break;
-          }
-          c = __ival_c.value;
-          if (this.packflag&PackFlags.ALIGN_RIGHT)
-            c.pos[0]-=Math.floor((this.size[0]-finalwid)*0.5);
-          else 
-            c.pos[0]+=Math.floor((this.size[0]-finalwid)*0.5);
-        }
-    }
-    UIPackFrame.prototype.pack.call(this, canvas, is_vertical);
-  }]);
-  _es6_module.add_class(ColumnFrame);
-  ColumnFrame = _es6_module.add_export('ColumnFrame', ColumnFrame);
-  var _te=0;
-  var ToolOpFrame=_ESClass("ToolOpFrame", RowFrame, [function ToolOpFrame(ctx, path) {
-    RowFrame.call(this, ctx, path);
-    this.rebuild = true;
-    this.strct = undefined;
-    this.ctx = ctx;
-  }, function do_rebuild(ctx) {
-    var strct=this.ctx.api.get_struct(ctx, this.path_prefix);
-    this.children.reset();
-    if (strct==undefined)
-      return ;
-    this.strct = strct;
-    var __iter_p=__get_iter(strct);
-    var p;
-    while (1) {
-      var __ival_p=__iter_p.next();
-      if (__ival_p.done) {
-          break;
-      }
-      p = __ival_p.value;
-      if (!(p.flag&PackFlags.UI_DATAPATH_IGNORE))
-        this.prop(p.name, PackFlags.INHERIT_WIDTH);
-    }
-  }, function on_tick() {
-    var strct=this.ctx.api.get_struct(this.ctx, this.path_prefix);
-    if (strct!=this.strct) {
-        this.do_rebuild(this.ctx);
-        this.do_recalc();
-        this.strct = strct;
-    }
-    RowFrame.prototype.on_tick.call(this);
-  }, function build_draw(canvas, isVertical) {
-    if (this.rebuild) {
-        this.do_rebuild(this.ctx);
-        this.rebuild = false;
-    }
-    canvas.simple_box([0, 0], this.size, [0.2, 0.2, 0.2, 0.1]);
-    RowFrame.prototype.build_draw.call(this, canvas, isVertical);
-  }]);
-  _es6_module.add_class(ToolOpFrame);
-  ToolOpFrame = _es6_module.add_export('ToolOpFrame', ToolOpFrame);
-});
-es6_module_define('icon', [], function _icon_module(_es6_module) {
-  "use strict";
-  var $ret_eOj6_enum_to_xy;
-  var IconManager=_ESClass("IconManager", [function IconManager(gl, sheet_path, imgsize, iconsize) {
-    this.path = sheet_path;
-    this.size = new Vector2(imgsize);
-    this.cellsize = new Vector2(iconsize);
-    this.load(gl);
-    this.texture = undefined;
-    this.ready = false;
-  }, function load(gl) {
-    this.tex = {}
-    this.tex.image = new Image();
-    this.tex.image.src = this.path;
-    this.te = {}
-    var thetex=this.tex;
-    var this2=this;
-    this.tex.image.onload = function() {
-      var tex=thetex;
-      this2.ready = true;
-    }
-  }, function get_tile(tile) {
-    var ret=[];
-    this.gen_tile(tile, ret);
-    return ret;
-  }, function enum_to_xy(tile) {
-    var size=this.size;
-    var cellsize=this.cellsize;
-    var fx=Math.floor(size[0]/cellsize[0]);
-    var y=Math.floor(tile/fx);
-    var x=tile%fx;
-    x*=cellsize[0];
-    y*=cellsize[1];
-    $ret_eOj6_enum_to_xy[0] = x;
-    $ret_eOj6_enum_to_xy[1] = y;
-    return $ret_eOj6_enum_to_xy;
-  }, function gen_tile(tile, texcos) {
-    var size=this.size;
-    var cellsize=this.cellsize;
-    var fx=Math.floor(size[0]/cellsize[0]);
-    var y=Math.floor(tile/fx);
-    var x=tile%fx;
-    x = (x*cellsize[0])/size[0];
-    y = (y*cellsize[1])/size[1];
-    var u=1.0/size[0], v=1.0/size[1];
-    u*=cellsize[0];
-    v*=cellsize[1];
-    y+=v;
-    texcos.push(x);
-    texcos.push(y);
-    texcos.push(x);
-    texcos.push(y-v);
-    texcos.push(x+u);
-    texcos.push(y-v);
-    texcos.push(x);
-    texcos.push(y);
-    texcos.push(x+u);
-    texcos.push(y-v);
-    texcos.push(x+u);
-    texcos.push(y);
-  }]);
-  var $ret_eOj6_enum_to_xy=[0, 0];
-  _es6_module.add_class(IconManager);
-  IconManager = _es6_module.add_export('IconManager', IconManager);
-  var icon_vshader="\n\n";
-  var icon_fshader="\n";
 });

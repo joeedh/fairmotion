@@ -1,4 +1,2797 @@
-es6_module_define('notifications', ["UIWidgets", "UITextBox", "toolops_api", "UIFrame", "UIWidgets_special", "UIPack", "UIElement", "UITabPanel", "ScreenArea"], function _notifications_module(_es6_module) {
+es6_module_define('DopeSheetEditor', ["mathlib", "animdata", "UITextBox", "spline_base", "UIWidgets", "spline", "UIElement", "ScreenArea", "spline_layerops", "struct", "toolops_api", "spline_element_array", "dopesheet_ops", "dopesheet_phantom", "UIPack", "spline_editops", "UIFrame", "UIWidgets_special", "UITabPanel", "spline_types", "events"], function _DopeSheetEditor_module(_es6_module) {
+  "use strict";
+  var aabb_isect_2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_2d');
+  var gen_editor_switcher=es6_import_item(_es6_module, 'UIWidgets_special', 'gen_editor_switcher');
+  var KeyMap=es6_import_item(_es6_module, 'events', 'KeyMap');
+  var ToolKeyHandler=es6_import_item(_es6_module, 'events', 'ToolKeyHandler');
+  var FuncKeyHandler=es6_import_item(_es6_module, 'events', 'FuncKeyHandler');
+  var KeyHandler=es6_import_item(_es6_module, 'events', 'KeyHandler');
+  var charmap=es6_import_item(_es6_module, 'events', 'charmap');
+  var TouchEventManager=es6_import_item(_es6_module, 'events', 'TouchEventManager');
+  var EventHandler=es6_import_item(_es6_module, 'events', 'EventHandler');
+  var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
+  var phantom=es6_import_item(_es6_module, 'dopesheet_phantom', 'phantom');
+  var KeyTypes=es6_import_item(_es6_module, 'dopesheet_phantom', 'KeyTypes');
+  var FilterModes=es6_import_item(_es6_module, 'dopesheet_phantom', 'FilterModes');
+  var get_select=es6_import_item(_es6_module, 'dopesheet_phantom', 'get_select');
+  var get_time=es6_import_item(_es6_module, 'dopesheet_phantom', 'get_time');
+  var set_select=es6_import_item(_es6_module, 'dopesheet_phantom', 'set_select');
+  var set_time=es6_import_item(_es6_module, 'dopesheet_phantom', 'set_time');
+  var PackFlags=es6_import_item(_es6_module, 'UIElement', 'PackFlags');
+  var UIElement=es6_import_item(_es6_module, 'UIElement', 'UIElement');
+  var UIFlags=es6_import_item(_es6_module, 'UIElement', 'UIFlags');
+  var CanvasFlags=es6_import_item(_es6_module, 'UIElement', 'CanvasFlags');
+  var UIFrame=es6_import_item(_es6_module, 'UIFrame', 'UIFrame');
+  var UIButtonAbstract=es6_import_item(_es6_module, 'UIWidgets', 'UIButtonAbstract');
+  var UIButton=es6_import_item(_es6_module, 'UIWidgets', 'UIButton');
+  var UIButtonIcon=es6_import_item(_es6_module, 'UIWidgets', 'UIButtonIcon');
+  var UIMenuButton=es6_import_item(_es6_module, 'UIWidgets', 'UIMenuButton');
+  var UICheckBox=es6_import_item(_es6_module, 'UIWidgets', 'UICheckBox');
+  var UINumBox=es6_import_item(_es6_module, 'UIWidgets', 'UINumBox');
+  var UILabel=es6_import_item(_es6_module, 'UIWidgets', 'UILabel');
+  var UIMenuLabel=es6_import_item(_es6_module, 'UIWidgets', 'UIMenuLabel');
+  var ScrollButton=es6_import_item(_es6_module, 'UIWidgets', 'ScrollButton');
+  var UIVScroll=es6_import_item(_es6_module, 'UIWidgets', 'UIVScroll');
+  var UIIconCheck=es6_import_item(_es6_module, 'UIWidgets', 'UIIconCheck');
+  var RowFrame=es6_import_item(_es6_module, 'UIPack', 'RowFrame');
+  var ColumnFrame=es6_import_item(_es6_module, 'UIPack', 'ColumnFrame');
+  var UIPackFrame=es6_import_item(_es6_module, 'UIPack', 'UIPackFrame');
+  var UITextBox=es6_import_item(_es6_module, 'UITextBox', 'UITextBox');
+  var ToolOp=es6_import_item(_es6_module, 'toolops_api', 'ToolOp');
+  var UndoFlags=es6_import_item(_es6_module, 'toolops_api', 'UndoFlags');
+  var ToolFlags=es6_import_item(_es6_module, 'toolops_api', 'ToolFlags');
+  var UITabBar=es6_import_item(_es6_module, 'UITabPanel', 'UITabBar');
+  var UICollapseIcon=es6_import_item(_es6_module, 'UIWidgets_special', 'UICollapseIcon');
+  var ToolOp=es6_import_item(_es6_module, 'toolops_api', 'ToolOp');
+  var RowFrame=es6_import_item(_es6_module, 'UIPack', 'RowFrame');
+  var UndoFlags=es6_import_item(_es6_module, 'toolops_api', 'UndoFlags');
+  var Spline=es6_import_item(_es6_module, 'spline', 'Spline');
+  var RestrictFlags=es6_import_item(_es6_module, 'spline', 'RestrictFlags');
+  var CustomDataLayer=es6_import_item(_es6_module, 'spline_types', 'CustomDataLayer');
+  var SplineTypes=es6_import_item(_es6_module, 'spline_types', 'SplineTypes');
+  var SplineFlags=es6_import_item(_es6_module, 'spline_types', 'SplineFlags');
+  var SplineSegment=es6_import_item(_es6_module, 'spline_types', 'SplineSegment');
+  var TimeDataLayer=es6_import_item(_es6_module, 'animdata', 'TimeDataLayer');
+  var get_vtime=es6_import_item(_es6_module, 'animdata', 'get_vtime');
+  var set_vtime=es6_import_item(_es6_module, 'animdata', 'set_vtime');
+  var AnimKey=es6_import_item(_es6_module, 'animdata', 'AnimKey');
+  var AnimChannel=es6_import_item(_es6_module, 'animdata', 'AnimChannel');
+  var AnimKeyFlags=es6_import_item(_es6_module, 'animdata', 'AnimKeyFlags');
+  var AnimInterpModes=es6_import_item(_es6_module, 'animdata', 'AnimInterpModes');
+  var SplineLayerFlags=es6_import_item(_es6_module, 'spline_element_array', 'SplineLayerFlags');
+  var SplineLayerSet=es6_import_item(_es6_module, 'spline_element_array', 'SplineLayerSet');
+  var SplineFlags=es6_import_item(_es6_module, 'spline_base', 'SplineFlags');
+  var AddLayerOp=es6_import_item(_es6_module, 'spline_layerops', 'AddLayerOp');
+  var ChangeLayerOp=es6_import_item(_es6_module, 'spline_layerops', 'ChangeLayerOp');
+  var ChangeElementLayerOp=es6_import_item(_es6_module, 'spline_layerops', 'ChangeElementLayerOp');
+  var DissolveVertOp=es6_import_item(_es6_module, 'spline_editops', 'DissolveVertOp');
+  var ShiftTimeOp2=es6_import_item(_es6_module, 'dopesheet_ops', 'ShiftTimeOp2');
+  var ShiftTimeOp3=es6_import_item(_es6_module, 'dopesheet_ops', 'ShiftTimeOp3');
+  var SelectOp=es6_import_item(_es6_module, 'dopesheet_ops', 'SelectOp');
+  var DeleteKeyOp=es6_import_item(_es6_module, 'dopesheet_ops', 'DeleteKeyOp');
+  var ColumnSelect=es6_import_item(_es6_module, 'dopesheet_ops', 'ColumnSelect');
+  var SelectKeysToSide=es6_import_item(_es6_module, 'dopesheet_ops', 'SelectKeysToSide');
+  var ToggleSelectOp=es6_import_item(_es6_module, 'dopesheet_ops', 'ToggleSelectOp');
+  var Area=es6_import_item(_es6_module, 'ScreenArea', 'Area');
+  var tree_packflag=PackFlags.INHERIT_WIDTH|PackFlags.ALIGN_LEFT|PackFlags.ALIGN_TOP|PackFlags.NO_AUTO_SPACING|PackFlags.IGNORE_LIMIT;
+  var CHGT=25;
+  var TreeItem=_ESClass("TreeItem", RowFrame, [function TreeItem(ctx, name) {
+    RowFrame.apply(this, arguments);
+    this.path = name;
+    this.packflag|=tree_packflag;
+    this.default_packflag|=tree_packflag;
+    this.namemap = {}
+    this.collapsed = false;
+    this.panel = this.col();
+    var this2=this;
+    this.icon = new UICollapseIcon(undefined, undefined, function(icon) {
+      this2.set_collapsed(icon.collapsed);
+    });
+    this.icon.small_icon = true;
+    this.draw_background = true;
+    this.panel.add(this.icon);
+    this.panel.label(name);
+    this.stored_children = undefined;
+  }, function get_filedata() {
+    return {collapsed: this.collapsed}
+  }, function load_filedata(data) {
+    this.set_collapsed(data.collapsed);
+  }, function get_min_size(canvas, isvertical) {
+    var h=CHGT;
+    var max_width=Math.min(100, this.size[0]);
+    var size=[0, 0];
+    var __iter_c=__get_iter(this.children);
+    var c;
+    while (1) {
+      var __ival_c=__iter_c.next();
+      if (__ival_c.done) {
+          break;
+      }
+      c = __ival_c.value;
+      var s=c.get_min_size(canvas, isvertical);
+      if (c===this.panel) {
+          s[1] = h;
+      }
+      max_width = Math.max(max_width, s[0]);
+      var sh=s[1];
+      if (sh%h!=0) {
+          sh+=h-(sh%h);
+      }
+      size[1]+=sh;
+    }
+    size[0] = max_width;
+    return size;
+  }, function build_path() {
+    var path=this.path;
+    var p=this;
+    while (p!=undefined&&!(__instance_of(p.parent, TreePanel))) {
+      p = p.parent;
+      path = p.path+"."+path;
+    }
+    return path;
+  }, function pack(canvas) {
+    var h=CHGT;
+    var p=this;
+    while (p.parent!=undefined&&!(__instance_of(p, DopeSheetEditor))) {
+      p = p.parent;
+    }
+    var y=this.size[1];
+    var x=0;
+    var w=this.size[0];
+    var side_margin=5;
+    var __iter_c=__get_iter(this.children);
+    var c;
+    while (1) {
+      var __ival_c=__iter_c.next();
+      if (__ival_c.done) {
+          break;
+      }
+      c = __ival_c.value;
+      var size=c.get_min_size(canvas);
+      if (c===this.panel) {
+          size[1] = h;
+      }
+      c.size[0] = w-side_margin;
+      c.size[1] = size[1];
+      y-=Math.max(c.size[1], h);
+      c.pos[0] = x+side_margin;
+      c.pos[1] = y;
+      if (__instance_of(c, UIFrame)) {
+          c.pack(canvas);
+      }
+    }
+  }, function set_collapsed(state) {
+    this.collapsed = state;
+    if (this.icon.collapsed!=state)
+      this.icon.collapsed = state;
+    if (state&&this.stored_children==undefined) {
+        this.stored_children = [];
+        var __iter_c=__get_iter(this._children);
+        var c;
+        while (1) {
+          var __ival_c=__iter_c.next();
+          if (__ival_c.done) {
+              break;
+          }
+          c = __ival_c.value;
+          this.stored_children.push(c);
+        }
+        this._children = [this.panel];
+        this.do_full_recalc();
+    }
+    else 
+      if (!state&&this.stored_children!=undefined) {
+        console.log("restore children");
+        this._children = this.stored_children;
+        this.stored_children = undefined;
+        this.do_full_recalc();
+    }
+  }]);
+  _es6_module.add_class(TreeItem);
+  TreeItem = _es6_module.add_export('TreeItem', TreeItem);
+  var TreePanel=_ESClass("TreePanel", RowFrame, [function TreePanel(ctx) {
+    RowFrame.apply(this, arguments);
+    this.packflag|=tree_packflag;
+    this.default_packflag|=tree_packflag;
+    this.totpath = 0;
+    this.draw_background = true;
+    this.tree = new TreeItem(ctx, "root");
+    this.pathmap = {root: this.tree}
+    this.add(this.tree);
+  }, function load_collapsed(paths) {
+    var cset={}
+    for (var i=0; i<paths.length; i++) {
+        cset[paths[i]] = true;
+    }
+    for (var k in cset) {
+        if (!(k in this.pathmap))
+          continue;
+        console.log("loading collapsed state for", k);
+        this.pathmap[k].set_collapsed(cset[k]);
+    }
+    this.do_full_recalc();
+  }, function get_collapsed_paths() {
+    var ret=[];
+    function recurse(c) {
+      if (c.collapsed) {
+          ret.push(c.build_path());
+      }
+      var __iter_c2=__get_iter(c);
+      var c2;
+      while (1) {
+        var __ival_c2=__iter_c2.next();
+        if (__ival_c2.done) {
+            break;
+        }
+        c2 = __ival_c2.value;
+        if (__instance_of(c2, TreeItem)) {
+            recurse(c2);
+        }
+      }
+    }
+    var __iter_c=__get_iter(this.children);
+    var c;
+    while (1) {
+      var __ival_c=__iter_c.next();
+      if (__ival_c.done) {
+          break;
+      }
+      c = __ival_c.value;
+      if (__instance_of(c, TreeItem)) {
+          recurse(c);
+      }
+    }
+    return ret;
+  }, function reset() {
+    this.children = [];
+    this.tree = new TreeItem(this.ctx, "root");
+    this.add(this.tree);
+    this.pathmap = {root: this.tree}
+    this.totpath = 0;
+    this.do_full_recalc();
+  }, function is_collapsed(path) {
+    path = path.trim();
+    if (!(path in this.pathmap))
+      return undefined;
+    var p=this.pathmap[path];
+    return p.collapsed;
+  }, function get_y(path) {
+    path = path.trim();
+    if (path in this.pathmap) {
+        var p=this.pathmap[path];
+        var hidden=false;
+        var last_hidden=p;
+        while (p.parent!=undefined&&!(__instance_of(p, TreePanel))) {
+          if (p.collapsed) {
+              hidden = true;
+              last_hidden = p;
+          }
+          p = p.parent;
+        }
+        var p=last_hidden;
+        return (p.abspos[1]-this.abspos[1])+this.pos[1]-this.parent.velpan.pan[1];
+    }
+    else {
+      return undefined;
+    }
+  }, function add_path(path) {
+    path = path.trim();
+    var paths=path.split(".");
+    var tree=this.tree;
+    var lasttree=undefined;
+    if (paths[0].trim()=="root")
+      paths = paths.slice(1, paths.length);
+    var path2="";
+    for (var i=0; i<paths.length; i++) {
+        var key=paths[i].trim();
+        if (i==0)
+          path2 = key;
+        else 
+          path2+="."+key;
+        if (!(key in tree.namemap)) {
+            tree.namemap[key] = new TreeItem(this.ctx, key);
+            tree.add(tree.namemap[key]);
+            this.pathmap[path2] = tree.namemap[key];
+        }
+        lasttree = tree;
+        tree = tree.namemap[key];
+    }
+    if (!(path in this.pathmap))
+      this.totpath++;
+    this.pathmap[path] = tree;
+  }, function build_draw(canvas) {
+    RowFrame.prototype.build_draw.apply(this, arguments);
+  }]);
+  _es6_module.add_class(TreePanel);
+  TreePanel = _es6_module.add_export('TreePanel', TreePanel);
+  var PanOp=_ESClass("PanOp", ToolOp, [function PanOp(start_mpos, dopesheet) {
+    ToolOp.call(this);
+    this.ds = dopesheet;
+    this.is_modal = true;
+    this.undoflag|=UndoFlags.IGNORE_UNDO;
+    this.start_pan = new Vector2(dopesheet.velpan.pan);
+    this.first_draw = true;
+    if (0&&start_mpos!=undefined) {
+        this.start_mpos = new Vector2(start_mpos);
+        this.first = false;
+    }
+    else {
+      this.start_mpos = new Vector2();
+      this.first = true;
+    }
+    this.start_cameramat = undefined;
+    this.cameramat = new Matrix4();
+  }, function start_modal(ctx) {
+    this.start_cameramat = new Matrix4(ctx.view2d.cameramat);
+  }, function on_mousemove(event) {
+    var mpos=new Vector3([event.x, event.y, 0]);
+    if (this.first) {
+        this.first = false;
+        this.start_mpos.load(mpos);
+        return ;
+    }
+    var ctx=this.modal_ctx;
+    mpos.sub(this.start_mpos).sub(this.ds.abspos);
+    this.ds.velpan.pan[0] = this.start_pan[0]+mpos[0];
+    this.ds.velpan.pan[1] = this.start_pan[1]+mpos[1];
+    this.ds.do_full_recalc();
+    window.redraw_ui();
+  }, function on_mouseup(event) {
+    this.end_modal();
+  }]);
+  _es6_module.add_class(PanOp);
+  PanOp = _es6_module.add_export('PanOp', PanOp);
+  var DopeSheetEditor=_ESClass("DopeSheetEditor", Area, [function DopeSheetEditor(pos, size) {
+    Area.call(this, DopeSheetEditor.name, DopeSheetEditor.uiname, new Context(), pos, size);
+    this.pinned_ids = undefined;
+    this.nodes = [];
+    this.nodemap = {}
+    this._get_key_ret_cache = new cachering(function() {
+      return [0, 0, 0];
+    }, 2048);
+    this.selected_only = true;
+    this.time_zero_x = 4;
+    this.velpan.can_coast = false;
+    this.velpan.enabled = false;
+    this.draw_background = false;
+    this.first = true;
+    this.groups = {}
+    this._recalc_cache = {}
+    this.vdmap = {}
+    this.heightmap = {}
+    this.rowmap = {}
+    this.old_keyboxes = {}
+    this.collapsed_cache = {}
+    this.nodemap = {}
+    this.cameramat = new Matrix4();
+    this.rendermat = new Matrix4();
+    this.irendermat = new Matrix4();
+    this.zoom = 1.0;
+    this.timescale = 12.0;
+    this.vmap = {}
+    this.last_time = 0;
+    this.phantom_cache = cachering.fromConstructor(phantom, 2048);
+    this.highlight = undefined;
+    this.active = undefined;
+    this.collapsemap = {}
+    this.mpos = new Vector3();
+    this.mdown = false;
+    this.start_mpos = new Vector3();
+    this.CHGT = CHGT;
+    this.CWID = 16;
+    this.keymap = new KeyMap();
+    this.define_keymap();
+    this.channels = new TreePanel();
+    this.channels.size[0] = 180;
+    this.channels.size[1] = 600;
+    this.add(this.channels);
+  }, function area_duplicate() {
+    var ret=new DopeSheetEditor();
+    ret.velpan.pan[0] = this.velpan.pan[0];
+    ret.velpan.pan[1] = this.velpan.pan[1];
+    ret.pinned_ids = this.pinned_ids;
+    ret.selected_only = this.selected_only;
+    ret.time_zero_x = this.time_zero_x;
+    ret.timescale = this.timescale;
+    ret.zoom = this.zoom;
+    return ret;
+  }, function rebuild_vdmap() {
+    var frameset=this.ctx.frameset;
+    this.vdmap = {}
+    for (var vd_eid in frameset.vertex_animdata) {
+        var __iter_v=__get_iter(frameset.vertex_animdata[vd_eid].verts);
+        var v;
+        while (1) {
+          var __ival_v=__iter_v.next();
+          if (__ival_v.done) {
+              break;
+          }
+          v = __ival_v.value;
+          this.vdmap[v.eid] = vd_eid;
+        }
+    }
+  }, function get_vdatas() {
+    var ctx=this.ctx, frameset=ctx.frameset, spline=frameset.spline, pathspline=frameset.pathspline;
+    var vset=new set();
+    if (this.pinned_ids!=undefined) {
+        var __iter_id=__get_iter(this.pinned_ids);
+        var id;
+        while (1) {
+          var __ival_id=__iter_id.next();
+          if (__ival_id.done) {
+              break;
+          }
+          id = __ival_id.value;
+          if (!(id&KeyTypes.PATHSPLINE))
+            continue;
+          var id1=id;
+          id = this.vdmap[id&KeyTypes.CLEARMASK];
+          if (id==undefined) {
+              if (this.ctx!=undefined) {
+                  this.rebuild_vdmap();
+                  console.log("Warning, had to rebuild vdmap!", id1.id1&KeyTypes.CLEARMASK, id1&~KeyTypes.CLEARMASK);
+                  id = this.vdmap[id&KeyTypes.CLEARMASK];
+              }
+              else {
+                continue;
+              }
+          }
+          var vd=frameset.get_vdata(id, false);
+          if (vd!=undefined)
+            vset.add(vd);
+        }
+    }
+    else 
+      if (this.selected_only) {
+        var __iter_v=__get_iter(spline.verts.selected.editable());
+        var v;
+        while (1) {
+          var __ival_v=__iter_v.next();
+          if (__ival_v.done) {
+              break;
+          }
+          v = __ival_v.value;
+          var vd=frameset.get_vdata(v.eid, false);
+          if (vd!=undefined)
+            vset.add(vd);
+        }
+    }
+    else {
+      var __iter_v=__get_iter(spline.verts);
+      var v;
+      while (1) {
+        var __ival_v=__iter_v.next();
+        if (__ival_v.done) {
+            break;
+        }
+        v = __ival_v.value;
+        var vd=frameset.get_vdata(v.eid, false);
+        if (vd!=undefined)
+          vset.add(vd);
+      }
+    }
+    return vset;
+  }, _ESClass.static(function default_new(ctx, scr, gl, pos, size) {
+    var ret=new DopeSheetEditor(pos, size);
+    ret.ctx = ctx;
+    return ret;
+  }), function scaletime(t) {
+    return this.timescale*t;
+  }, function unscaletime(t) {
+    return t/this.timescale;
+  }, function get_datakey(keyid) {
+    if (typeof keyid!="number")
+      keyid = keyid.id;
+    keyid = keyid&KeyTypes.CLEARMASK;
+    var chgt=this.CHGT, cwid=this.CWID;
+    var ph=this.phantom_cache.next();
+    ph.ds = this;
+    ph.type = KeyTypes.DATAPATH;
+    var key=ph.key = this.ctx.frameset.lib_anim_idmap[keyid];
+    var ch=ph.ch = key.channel;
+    ph.path = "root."+ch.path.replace("frameset.drawspline.", "");
+    ph.path = ph.path.replace("[", ".").replace("]", "").trim();
+    ph.id = key.id|ph.type;
+    ph.time = key.time;
+    var y=-1;
+    var y2=this.channels.get_y(ph.path);
+    if (y2!=undefined&&!isNaN(y2))
+      y = y2;
+    var pan=this.velpan.pan;
+    ph.pos[0] = this.time_zero_x-2+this.scaletime(ph.time)+pan[0];
+    ph.pos[1] = y+pan[1];
+    ph.size[0] = cwid, ph.size[1] = chgt;
+    if (this.old_keyboxes[ph.id]==undefined) {
+        var ph2=this.old_keyboxes[ph.id] = new phantom();
+        ph2.ds = this;
+        ph2.load(ph);
+        ph2.ch = undefined;
+        ph2.key = keyid;
+    }
+    return ph;
+  }, function get_vertkey(id) {
+    if (typeof id!="number")
+      id = id.eid;
+    else 
+      id = id&KeyTypes.CLEARMASK;
+    var v=this.ctx.frameset.pathspline.eidmap[id];
+    var vd_eid=this.vdmap[v.eid];
+    var vd=vd_eid!=undefined ? this.ctx.frameset.vertex_animdata[vd_eid] : undefined;
+    var ph=this.phantom_cache.next();
+    ph.ds = this;
+    ph.type = KeyTypes.PATHSPLINE;
+    var chgt=this.CHGT, cwid=this.CWID;
+    ph.vd = vd;
+    ph.v = v;
+    ph.id = v.eid|ph.type;
+    ph.time = get_vtime(v);
+    ph.path = "root.verts."+vd_eid;
+    var y=-1;
+    var y2=this.channels.get_y(ph.path);
+    if (y2!=undefined)
+      y = y2;
+    var pan=this.velpan.pan;
+    ph.pos[0] = this.time_zero_x-2+this.scaletime(ph.time)+pan[0];
+    ph.pos[1] = y+pan[1];
+    ph.size[0] = cwid, ph.size[1] = chgt;
+    if (this.old_keyboxes[ph.id]==undefined) {
+        var ph2=this.old_keyboxes[ph.id] = new phantom();
+        ph2.ds = this;
+        ph2.load(ph);
+        ph2.v = v.eid;
+        ph2.vd = vd.eid;
+    }
+    return ph;
+  }, function setselect(v, state) {
+    if (typeof v=="number")
+      v = this.ctx.frameset.pathspline.eidmap[veid];
+    if (state)
+      v.flag|=SplineFlags.UI_SELECT;
+    else 
+      v.flag&=~SplineFlags.UI_SELECT;
+  }, function on_tick() {
+    Area.prototype.on_tick.apply(this, arguments);
+    if (this.ctx==undefined)
+      this.ctx = new Context();
+    if (this.ctx!=undefined) {
+        var scene=this.ctx.scene;
+        if (scene.time!=this.last_time) {
+            var time_x1=this.time_zero_x+this.scaletime(this.last_time)+this.velpan.pan[0];
+            var time_x=this.time_zero_x+this.scaletime(scene.time)+this.velpan.pan[0];
+            if (time_x1>=0&&time_x1<=this.size[0]) {
+                this.dirty_rects.push([[this.abspos[0]+time_x1-8, this.abspos[1]], [16, this.size[1]]]);
+                this.do_recalc();
+            }
+            if (time_x>=0&&time_x<=this.size[0]) {
+                this.dirty_rects.push([[this.abspos[0]+time_x-8, this.abspos[1]], [16, this.size[1]]]);
+                this.do_recalc();
+            }
+            this.last_time = scene.time;
+        }
+    }
+    var this2=this;
+    function on_sel() {
+      console.log("------------------on sel!----------------");
+      return this2.on_vert_select.apply(this2, arguments);
+    }
+    if (this.first) {
+        if (this.ctx==undefined) {
+            this.ctx = new Context();
+        }
+        var ctx=this.ctx;
+        this.first = false;
+        this.nodes.push(on_sel);
+        the_global_dag.link(ctx.frameset.spline.verts, ["on_select_add"], on_sel, ["eid"]);
+        the_global_dag.link(ctx.frameset.spline.verts, ["on_select_sub"], on_sel, ["eid"]);
+    }
+  }, function on_vert_select() {
+    this.do_full_recalc();
+    console.log("on vert select", arguments);
+  }, function update_collapsed_cache() {
+    for (var path in this.collapsed_cache) {
+        if (!(path in this.channels.pathmap)) {
+            delete this.collapsed_cache[path];
+            continue;
+        }
+        if (!this.channels.is_collapsed(path))
+          delete this.collapsed_cache[path];
+    }
+    for (var path in this.channels.pathmap) {
+        var ti=this.channels.pathmap[path];
+        if (ti.collapsed)
+          this.collapsed_cache[path] = true;
+    }
+  }, function _tree_collapsed_map() {
+    this.update_collapsed_cache();
+    var ret=[];
+    for (var k in this.collapsed_cache) {
+        ret.push(k);
+    }
+    return ret;
+  }, function get_datapaths() {
+    var __gen_this2=this;
+    function _generator_iter() {
+      this.scope = {frameset_3: undefined, spline_3: undefined, actlayer_3: undefined}
+      this.ret = {done: false, value: undefined}
+      this.state = 1;
+      this.trystack = [];
+      this.next = function() {
+        var ret;
+        var stack=this.trystack;
+        try {
+          ret = this._next();
+        }
+        catch (err) {
+            if (stack.length>0) {
+                var item=stack.pop(stack.length-1);
+                this.state = item[0];
+                this.scope[item[1]] = err;
+                return this.next();
+            }
+            else {
+              throw err;
+            }
+        }
+        return ret;
+      }
+      this.push_trystack = function(catchstate, catchvar) {
+        this.trystack.push([catchstate, catchvar]);
+      }
+      this.pop_trystack = function() {
+        this.trystack.pop(this.trystack.length-1);
+      }
+      this._next = function() {
+        var $__ret=undefined;
+        var $__state=this.state;
+        var scope=this.scope;
+        while ($__state<33) {
+          switch ($__state) {
+            case 0:
+              break;
+            case 1:
+              $__state = (__gen_this2.ctx==undefined) ? 2 : 3;
+              break;
+            case 2:
+              return [];
+              
+              $__state = 3;
+              break;
+            case 3:
+              scope.frameset_3=__gen_this2.ctx.frameset;
+              scope.spline_3=scope.frameset_3.spline;
+              scope.actlayer_3=scope.spline_3.layerset.active;
+              
+              $__state = 4;
+              break;
+            case 4:
+              $__state = (__gen_this2.pinned_ids!=undefined) ? 5 : 18;
+              break;
+            case 5:
+              scope.visit_5={};
+              scope.__iter_id_5=__get_iter(__gen_this2.pinned_ids);
+              scope.id_5;
+              
+              $__state = 6;
+              break;
+            case 6:
+              $__state = (1) ? 7 : 33;
+              break;
+            case 7:
+              scope.__ival_id_7=scope.__iter_id_5.next();
+              
+              $__state = 8;
+              break;
+            case 8:
+              $__state = (scope.__ival_id_7.done) ? 9 : 10;
+              break;
+            case 9:
+              $__state = 33;
+              break;
+              
+              $__state = 10;
+              break;
+            case 10:
+              scope.id_5 = scope.__ival_id_7.value;
+              
+              $__state = 11;
+              break;
+            case 11:
+              $__state = (!(scope.id_5&KeyTypes.DATAPATH)) ? 12 : 13;
+              break;
+            case 12:
+              $__state = 6;
+              break;
+              
+              $__state = 13;
+              break;
+            case 13:
+              scope.id_5 = scope.id_5&KeyTypes.CLEARMASK;
+              scope.key_13=scope.frameset_3.lib_anim_idmap[scope.id_5];
+              scope.ch_13=scope.key_13.channel;
+              
+              $__state = 14;
+              break;
+            case 14:
+              $__state = (scope.ch_13.path in scope.visit_5) ? 15 : 16;
+              break;
+            case 15:
+              $__state = 6;
+              break;
+              
+              $__state = 16;
+              break;
+            case 16:
+              scope.visit_5[scope.ch_13.path] = 1;
+              
+              $__state = 17;
+              break;
+            case 17:
+              $__ret = this.ret;
+              $__ret.value = scope.ch_13;
+              
+              $__state = 6;
+              break;
+            case 18:
+              
+              $__state = 19;
+              break;
+            case 19:
+              scope.i_19=0;
+              
+              $__state = 20;
+              break;
+            case 20:
+              $__state = (scope.i_19<scope.frameset_3.lib_anim_channels.length) ? 21 : 33;
+              break;
+            case 21:
+              scope.ch_21=scope.frameset_3.lib_anim_channels[scope.i_19];
+              scope.eid_21=scope.ch_21.path.match(/\[[0-9]+\]/);
+              
+              $__state = 22;
+              break;
+            case 22:
+              $__state = (scope.eid_21==null) ? 23 : 24;
+              break;
+            case 23:
+              console.log("Not an eid path", scope.ch_21.path, scope.eid_21);
+              scope.i_19++;
+              $__state = 20;
+              break;
+              
+              $__state = 24;
+              break;
+            case 24:
+              scope.eid_21 = scope.eid_21[scope.eid_21.length-1];
+              scope.eid_21 = parseInt(scope.eid_21.slice(1, scope.eid_21.length-1));
+              scope.e_24=scope.spline_3.eidmap[scope.eid_21];
+              
+              $__state = 25;
+              break;
+            case 25:
+              $__state = (scope.e_24==undefined) ? 26 : 27;
+              break;
+            case 26:
+              console.log("e was null, not an eid path?", scope.eid_21, scope.ch_21.path);
+              scope.i_19++;
+              $__state = 20;
+              break;
+              
+              $__state = 27;
+              break;
+            case 27:
+              $__state = (__gen_this2.selected_only) ? 28 : 31;
+              break;
+            case 28:
+              scope.bad_28=!(scope.e_24.flag&SplineFlags.SELECT);
+              scope.bad_28 = scope.bad_28||(scope.e_24.flag&SplineFlags.HIDE);
+              scope.bad_28 = scope.bad_28||!(scope.actlayer_3.id in scope.e_24.layers);
+              
+              $__state = 29;
+              break;
+            case 29:
+              $__state = (scope.bad_28) ? 30 : 31;
+              break;
+            case 30:
+              scope.i_19++;
+              $__state = 20;
+              break;
+              
+              $__state = 31;
+              break;
+            case 31:
+              $__ret = this.ret;
+              $__ret.value = scope.ch_21;
+              
+              $__state = 32;
+              break;
+            case 32:
+              scope.i_19++;
+              
+              $__state = 20;
+              break;
+            case 33:
+              break;
+            default:
+              console.log("Generator state error");
+              console.trace();
+              break;
+          }
+          if ($__ret!=undefined) {
+              break;
+          }
+        }
+        if ($__ret!=undefined) {
+            this.ret.value = $__ret.value;
+        }
+        else {
+          this.ret.done = true;
+          this.ret.value = undefined;
+        }
+        this.state = $__state;
+        return this.ret;
+      }
+      this[Symbol.iterator] = function() {
+        return this;
+      }
+      this.forEach = function(callback, thisvar) {
+        if (thisvar==undefined)
+          thisvar = self;
+        var _i=0;
+        while (1) {
+          var ret=this.next();
+          if (ret==undefined||ret.done||(ret._ret!=undefined&&ret._ret.done))
+            break;
+          callback.call(thisvar, ret.value);
+          if (_i++>100) {
+              console.log("inf loop", ret);
+              break;
+          }
+        }
+      }
+    }
+    return new _generator_iter();
+  }, function _on_sel_1(vd, nothing, veid) {
+    var v=this.ctx.frameset.pathspline.eidmap[veid];
+    if (v==undefined) {
+        
+        var id=veid|KeyTypes.PATHSPLINE;
+        if (id in this.old_keyboxes) {
+            var key2=this.old_keyboxes[id];
+            this.dirty_rects.push([[key2.pos[0]+this.abspos[0], key2.pos[1]+this.abspos[1]], [Math.abs(key2.size[0]), key2.size[1]]]);
+            this.do_recalc();
+        }
+        return ;
+    }
+    this.redraw_key(this.get_vertkey(veid));
+  }, function _on_sel_2(nothing, id) {
+    var key=this.ctx.frameset.lib_anim_idmap[id];
+    id|=KeyTypes.DATAPATH;
+    if (key!=undefined) {
+        this.redraw_key(this.get_datakey(id));
+    }
+    else {
+      if (id in this.old_keyboxes) {
+          var key2=this.old_keyboxes[id];
+          this.dirty_rects.push([[key2.pos[0]+this.abspos[0], key2.pos[1]+this.abspos[1]], [Math.abs(key2.size[0]), key2.size[1]]]);
+          this.do_recalc();
+      }
+    }
+  }, function get_key(id_with_type) {
+    var id=id_with_type;
+    if (id&KeyTypes.PATHSPLINE) {
+        return this.get_vertkey(id&KeyTypes.CLEARMASK);
+    }
+    else {
+      return this.get_datakey(id&KeyTypes.CLEARMASK);
+    }
+  }, function get_keypaths(start_y) {
+    var __gen_this2=this;
+    function _generator_iter() {
+      this.scope = {start_y_0: start_y, y_3: undefined, cwid_3: undefined, chgt_3: undefined, spline_3: undefined, actlayer_3: undefined, __iter_ch_3: undefined, ch_3: undefined}
+      this.ret = {done: false, value: undefined}
+      this.state = 1;
+      this.trystack = [];
+      this.next = function() {
+        var ret;
+        var stack=this.trystack;
+        try {
+          ret = this._next();
+        }
+        catch (err) {
+            if (stack.length>0) {
+                var item=stack.pop(stack.length-1);
+                this.state = item[0];
+                this.scope[item[1]] = err;
+                return this.next();
+            }
+            else {
+              throw err;
+            }
+        }
+        return ret;
+      }
+      this.push_trystack = function(catchstate, catchvar) {
+        this.trystack.push([catchstate, catchvar]);
+      }
+      this.pop_trystack = function() {
+        this.trystack.pop(this.trystack.length-1);
+      }
+      this._next = function() {
+        var $__ret=undefined;
+        var $__state=this.state;
+        var scope=this.scope;
+        while ($__state<16) {
+          switch ($__state) {
+            case 0:
+              break;
+            case 1:
+              $__state = (__gen_this2.ctx==undefined) ? 2 : 3;
+              break;
+            case 2:
+              return ;
+              
+              $__state = 3;
+              break;
+            case 3:
+              scope.y_3=scope.start_y_0;
+              scope.cwid_3=__gen_this2.CWID, scope.chgt_3=__gen_this2.CHGT;
+              scope.spline_3=__gen_this2.ctx.frameset.spline;
+              scope.actlayer_3=scope.spline_3.layerset.active;
+              scope.__iter_ch_3=__get_iter(__gen_this2.get_datapaths());
+              scope.ch_3;
+              
+              $__state = 4;
+              break;
+            case 4:
+              $__state = (1) ? 5 : 16;
+              break;
+            case 5:
+              scope.__ival_ch_5=scope.__iter_ch_3.next();
+              
+              $__state = 6;
+              break;
+            case 6:
+              $__state = (scope.__ival_ch_5.done) ? 7 : 8;
+              break;
+            case 7:
+              $__state = 16;
+              break;
+              
+              $__state = 8;
+              break;
+            case 8:
+              scope.ch_3 = scope.__ival_ch_5.value;
+              scope.i_8=0;
+              
+              $__state = 9;
+              break;
+            case 9:
+              $__state = (scope.i_8<scope.ch_3.keys.length) ? 10 : 15;
+              break;
+            case 10:
+              scope.ret_10=__gen_this2._get_key_ret_cache.next();
+              scope.ret_10[0] = scope.ch_3.keys[scope.i_8];
+              scope.ret_10[1] = scope.ch_3;
+              scope.ret_10[2] = __gen_this2.get_datakey(scope.ch_3.keys[scope.i_8].id);
+              scope.id_10=scope.ret_10[2].id;
+              
+              $__state = 11;
+              break;
+            case 11:
+              $__state = (!(scope.id_10 in __gen_this2.nodemap)) ? 12 : 13;
+              break;
+            case 12:
+              scope.this2_12=__gen_this2;
+              scope.on_sel_12=__gen_this2._on_sel_2.bind(__gen_this2);
+              __gen_this2.nodes.push(scope.on_sel_12);
+              window.the_global_dag.link(scope.ret_10[0], ["depend", "id"], scope.on_sel_12, ["depend", "id"]);
+              __gen_this2.nodemap[scope.id_10] = scope.on_sel_12;
+              
+              $__state = 13;
+              break;
+            case 13:
+              $__ret = this.ret;
+              $__ret.value = scope.ret_10;
+              
+              $__state = 14;
+              break;
+            case 14:
+              scope.i_8++;
+              
+              $__state = 9;
+              break;
+            case 15:
+              scope.y_3+=scope.chgt_3;
+              
+              $__state = 4;
+              break;
+            case 16:
+              break;
+            default:
+              console.log("Generator state error");
+              console.trace();
+              break;
+          }
+          if ($__ret!=undefined) {
+              break;
+          }
+        }
+        if ($__ret!=undefined) {
+            this.ret.value = $__ret.value;
+        }
+        else {
+          this.ret.done = true;
+          this.ret.value = undefined;
+        }
+        this.state = $__state;
+        return this.ret;
+      }
+      this[Symbol.iterator] = function() {
+        return this;
+      }
+      this.forEach = function(callback, thisvar) {
+        if (thisvar==undefined)
+          thisvar = self;
+        var _i=0;
+        while (1) {
+          var ret=this.next();
+          if (ret==undefined||ret.done||(ret._ret!=undefined&&ret._ret.done))
+            break;
+          callback.call(thisvar, ret.value);
+          if (_i++>100) {
+              console.log("inf loop", ret);
+              break;
+          }
+        }
+      }
+    }
+    return new _generator_iter();
+  }, function get_keyboth() {
+    var __gen_this2=this;
+    function _generator_iter() {
+      this.scope = {__iter_ret_1: undefined, ret_1: undefined}
+      this.ret = {done: false, value: undefined}
+      this.state = 1;
+      this.trystack = [];
+      this.next = function() {
+        var ret;
+        var stack=this.trystack;
+        try {
+          ret = this._next();
+        }
+        catch (err) {
+            if (stack.length>0) {
+                var item=stack.pop(stack.length-1);
+                this.state = item[0];
+                this.scope[item[1]] = err;
+                return this.next();
+            }
+            else {
+              throw err;
+            }
+        }
+        return ret;
+      }
+      this.push_trystack = function(catchstate, catchvar) {
+        this.trystack.push([catchstate, catchvar]);
+      }
+      this.pop_trystack = function() {
+        this.trystack.pop(this.trystack.length-1);
+      }
+      this._next = function() {
+        var $__ret=undefined;
+        var $__state=this.state;
+        var scope=this.scope;
+        while ($__state<15) {
+          switch ($__state) {
+            case 0:
+              break;
+            case 1:
+              scope.__iter_ret_1=__get_iter(__gen_this2.get_keyverts());
+              scope.ret_1;
+              
+              $__state = 2;
+              break;
+            case 2:
+              $__state = (1) ? 3 : 8;
+              break;
+            case 3:
+              scope.__ival_ret_3=scope.__iter_ret_1.next();
+              
+              $__state = 4;
+              break;
+            case 4:
+              $__state = (scope.__ival_ret_3.done) ? 5 : 6;
+              break;
+            case 5:
+              $__state = 8;
+              break;
+              
+              $__state = 6;
+              break;
+            case 6:
+              scope.ret_1 = scope.__ival_ret_3.value;
+              
+              $__state = 7;
+              break;
+            case 7:
+              $__ret = this.ret;
+              $__ret.value = scope.ret_1;
+              
+              $__state = 2;
+              break;
+            case 8:
+              scope.__iter_ret_1=__get_iter(__gen_this2.get_keypaths());
+              scope.ret_1;
+              
+              $__state = 9;
+              break;
+            case 9:
+              $__state = (1) ? 10 : 15;
+              break;
+            case 10:
+              scope.__ival_ret_10=scope.__iter_ret_1.next();
+              
+              $__state = 11;
+              break;
+            case 11:
+              $__state = (scope.__ival_ret_10.done) ? 12 : 13;
+              break;
+            case 12:
+              $__state = 15;
+              break;
+              
+              $__state = 13;
+              break;
+            case 13:
+              scope.ret_1 = scope.__ival_ret_10.value;
+              
+              $__state = 14;
+              break;
+            case 14:
+              $__ret = this.ret;
+              $__ret.value = scope.ret_1;
+              
+              $__state = 9;
+              break;
+            case 15:
+              break;
+            default:
+              console.log("Generator state error");
+              console.trace();
+              break;
+          }
+          if ($__ret!=undefined) {
+              break;
+          }
+        }
+        if ($__ret!=undefined) {
+            this.ret.value = $__ret.value;
+        }
+        else {
+          this.ret.done = true;
+          this.ret.value = undefined;
+        }
+        this.state = $__state;
+        return this.ret;
+      }
+      this[Symbol.iterator] = function() {
+        return this;
+      }
+      this.forEach = function(callback, thisvar) {
+        if (thisvar==undefined)
+          thisvar = self;
+        var _i=0;
+        while (1) {
+          var ret=this.next();
+          if (ret==undefined||ret.done||(ret._ret!=undefined&&ret._ret.done))
+            break;
+          callback.call(thisvar, ret.value);
+          if (_i++>100) {
+              console.log("inf loop", ret);
+              break;
+          }
+        }
+      }
+    }
+    return new _generator_iter();
+  }, function get_keyverts() {
+    var __gen_this2=this;
+    function _generator_iter() {
+      this.scope = {channels_1: undefined, y_1: undefined, chgt_1: undefined, __iter_vd_1: undefined, vd_1: undefined}
+      this.ret = {done: false, value: undefined}
+      this.state = 1;
+      this.trystack = [];
+      this.next = function() {
+        var ret;
+        var stack=this.trystack;
+        try {
+          ret = this._next();
+        }
+        catch (err) {
+            if (stack.length>0) {
+                var item=stack.pop(stack.length-1);
+                this.state = item[0];
+                this.scope[item[1]] = err;
+                return this.next();
+            }
+            else {
+              throw err;
+            }
+        }
+        return ret;
+      }
+      this.push_trystack = function(catchstate, catchvar) {
+        this.trystack.push([catchstate, catchvar]);
+      }
+      this.pop_trystack = function() {
+        this.trystack.pop(this.trystack.length-1);
+      }
+      this._next = function() {
+        var $__ret=undefined;
+        var $__state=this.state;
+        var scope=this.scope;
+        while ($__state<17) {
+          switch ($__state) {
+            case 0:
+              break;
+            case 1:
+              scope.channels_1=__gen_this2.get_vdatas();
+              scope.y_1=Area.get_barhgt()+2, scope.chgt_1=__gen_this2.CHGT;
+              scope.__iter_vd_1=__get_iter(scope.channels_1);
+              scope.vd_1;
+              
+              $__state = 2;
+              break;
+            case 2:
+              $__state = (1) ? 3 : 17;
+              break;
+            case 3:
+              scope.__ival_vd_3=scope.__iter_vd_1.next();
+              
+              $__state = 4;
+              break;
+            case 4:
+              $__state = (scope.__ival_vd_3.done) ? 5 : 6;
+              break;
+            case 5:
+              $__state = 17;
+              break;
+              
+              $__state = 6;
+              break;
+            case 6:
+              scope.vd_1 = scope.__ival_vd_3.value;
+              scope.__iter_v_6=__get_iter(scope.vd_1.verts);
+              scope.v_6;
+              
+              $__state = 7;
+              break;
+            case 7:
+              $__state = (1) ? 8 : 16;
+              break;
+            case 8:
+              scope.__ival_v_8=scope.__iter_v_6.next();
+              
+              $__state = 9;
+              break;
+            case 9:
+              $__state = (scope.__ival_v_8.done) ? 10 : 11;
+              break;
+            case 10:
+              $__state = 16;
+              break;
+              
+              $__state = 11;
+              break;
+            case 11:
+              scope.v_6 = scope.__ival_v_8.value;
+              
+              $__state = 12;
+              break;
+            case 12:
+              $__state = (!(scope.v_6.eid in __gen_this2.vmap)) ? 13 : 14;
+              break;
+            case 13:
+              scope.this2_13=__gen_this2;
+              scope.on_sel_13=__gen_this2._on_sel_1.bind(__gen_this2, scope.vd_1);
+              __gen_this2.nodes.push(scope.on_sel_13);
+              window.the_global_dag.link(scope.v_6, ["depend", "eid"], scope.on_sel_13, ["depend", "eid"]);
+              __gen_this2.vmap[scope.v_6.eid] = scope.on_sel_13;
+              
+              $__state = 14;
+              break;
+            case 14:
+              __gen_this2.vdmap[scope.v_6.eid] = scope.vd_1.eid;
+              scope.keybox_14=__gen_this2.get_vertkey(scope.v_6.eid);
+              __gen_this2.heightmap[scope.v_6.eid] = scope.keybox_14.pos[1];
+              scope.ret_14=__gen_this2._get_key_ret_cache.next();
+              scope.ret_14[0] = scope.v_6;
+              scope.ret_14[1] = scope.vd_1;
+              scope.ret_14[2] = scope.keybox_14;
+              
+              $__state = 15;
+              break;
+            case 15:
+              $__ret = this.ret;
+              $__ret.value = scope.ret_14;
+              
+              $__state = 7;
+              break;
+            case 16:
+              scope.y_1+=scope.chgt_1;
+              
+              $__state = 2;
+              break;
+            case 17:
+              break;
+            default:
+              console.log("Generator state error");
+              console.trace();
+              break;
+          }
+          if ($__ret!=undefined) {
+              break;
+          }
+        }
+        if ($__ret!=undefined) {
+            this.ret.value = $__ret.value;
+        }
+        else {
+          this.ret.done = true;
+          this.ret.value = undefined;
+        }
+        this.state = $__state;
+        return this.ret;
+      }
+      this[Symbol.iterator] = function() {
+        return this;
+      }
+      this.forEach = function(callback, thisvar) {
+        if (thisvar==undefined)
+          thisvar = self;
+        var _i=0;
+        while (1) {
+          var ret=this.next();
+          if (ret==undefined||ret.done||(ret._ret!=undefined&&ret._ret.done))
+            break;
+          callback.call(thisvar, ret.value);
+          if (_i++>100) {
+              console.log("inf loop", ret);
+              break;
+          }
+        }
+      }
+    }
+    return new _generator_iter();
+  }, function clear_selection() {
+    var __iter_v=__get_iter(this.ctx.pathspline.verts);
+    var v;
+    while (1) {
+      var __ival_v=__iter_v.next();
+      if (__ival_v.done) {
+          break;
+      }
+      v = __ival_v.value;
+      v.flag&=~SplineFlags.UI_SELECT;
+    }
+  }, function findnearest(mpos, limit) {
+    if (limit==undefined) {
+        limit = 18;
+    }
+    var y=Area.get_barhgt()+2;
+    var subverts=[];
+    var subpathkeys=[];
+    var rettype=0;
+    var chgt=this.CHGT;
+    var mindis=1e+18, ret=undefined;
+    var co=new Vector2();
+    var retv=undefined;
+    var retvd=undefined;
+    var rety=0, retx=0;
+    var rethigh=undefined;
+    var __iter_kret=__get_iter(this.get_keyboth());
+    var kret;
+    while (1) {
+      var __ival_kret=__iter_kret.next();
+      if (__ival_kret.done) {
+          break;
+      }
+      kret = __ival_kret.value;
+      var v=kret[0], vd=kret[1], keybox=kret[2];
+      if (keybox.type==KeyTypes.PATHSPLINE) {
+          if (keybox.id==this.highlight) {
+              rethigh = {v: v, vd: vd, y: keybox.pos[1], type: keybox.type};
+          }
+      }
+      else {
+        var k=kret[0], ch=kret[1];
+        if (keybox.id==this.highlight) {
+            rethigh = {key: k, ch: ch, y: keybox.pos[1], type: keybox.type};
+        }
+      }
+      co.load(keybox.size).mulScalar(0.5).add(keybox.pos);
+      var dis=co.vectorDistance(mpos);
+      if (dis<limit&&dis<mindis) {
+          mindis = dis;
+          retv = v;
+          retvd = vd;
+          rety = keybox.pos[1];
+          retx = keybox.pos[0];
+          rettype = keybox.type;
+      }
+    }
+    if (retv!=undefined) {
+        var __iter_kret=__get_iter(this.get_keyverts());
+        var kret;
+        while (1) {
+          var __ival_kret=__iter_kret.next();
+          if (__ival_kret.done) {
+              break;
+          }
+          kret = __ival_kret.value;
+          var v=kret[0], vd=kret[1], keybox=kret[2];
+          if (keybox.pos[0]==retx&&keybox.pos[1]==rety) {
+              subverts.push(kret[0]);
+          }
+        }
+        var __iter_kret=__get_iter(this.get_keypaths());
+        var kret;
+        while (1) {
+          var __ival_kret=__iter_kret.next();
+          if (__ival_kret.done) {
+              break;
+          }
+          kret = __ival_kret.value;
+          var v=kret[0], vd=kret[1], keybox=kret[2];
+          if (keybox.pos[0]==retx&&keybox.pos[1]==rety) {
+              subpathkeys.push(kret[0]);
+          }
+        }
+    }
+    if (rethigh!=undefined) {
+        if (rethigh.type==KeyTypes.PATHSPLINE)
+          rethigh = this.get_vertkey(rethigh.v.eid);
+        else 
+          rethigh = this.get_datakey(rethigh.key);
+    }
+    if (retv==undefined)
+      return undefined;
+    return {v: retv, vd: retvd, keybox: rettype==KeyTypes.PATHSPLINE ? this.get_vertkey(retv.eid) : this.get_datakey(retv), highlight_keybox: rethigh, subverts: subverts, subpathkeys: subpathkeys}
+  }, function on_mousedown(event) {
+    if (Area.prototype.on_mousedown.call(this, event))
+      return ;
+    if (event.button==0) {
+        var nearest=this.findnearest([event.x, event.y]);
+        if (nearest!=undefined) {
+        }
+        if (nearest!=undefined) {
+            var ids=[];
+            var sels=[];
+            sels.push(nearest.keybox.id);
+            var has_sel=get_select(this.ctx, nearest.keybox.id);
+            var __iter_kret=__get_iter(this.get_keyboth());
+            var kret;
+            while (1) {
+              var __ival_kret=__iter_kret.next();
+              if (__ival_kret.done) {
+                  break;
+              }
+              kret = __ival_kret.value;
+              var keybox=kret[2];
+              ids.push(keybox.id);
+              if (keybox.id!=nearest.keybox.id&&keybox.pos[0]==nearest.keybox.pos[0]&&keybox.pos[1]==nearest.keybox.pos[1]) {
+                  sels.push(keybox.id);
+              }
+            }
+            var tool=new SelectOp();
+            tool.inputs.phantom_ids.set_data(ids);
+            tool.inputs.select_ids.set_data(sels);
+            tool.inputs.unique.set_data(!event.shiftKey);
+            tool.inputs.state.set_data(event.shiftKey ? !has_sel : true);
+            g_app_state.toolstack.exec_tool(tool);
+        }
+        else {
+          var ids=[];
+          var __iter_kret=__get_iter(this.get_keyboth());
+          var kret;
+          while (1) {
+            var __ival_kret=__iter_kret.next();
+            if (__ival_kret.done) {
+                break;
+            }
+            kret = __ival_kret.value;
+            var keybox=kret[2];
+            ids.push(keybox.id);
+          }
+          var tool=new SelectOp();
+          tool.inputs.phantom_ids.set_data(ids);
+          tool.inputs.select_ids.set_data([]);
+          tool.inputs.unique.set_data(true);
+          tool.inputs.state.set_data(true);
+          g_app_state.toolstack.exec_tool(tool);
+          var time=Math.floor(this.unscaletime(event.x-this.velpan.pan[0]-this.time_zero_x));
+          this.ctx.scene.change_time(this.ctx, time);
+          window.redraw_viewport();
+        }
+        this.start_mpos[0] = event.x;
+        this.start_mpos[1] = event.y;
+        this.mdown = true;
+    }
+    else 
+      if (event.button==2) {
+        var tool=new PanOp([event.x, event.y, 0], this);
+        g_app_state.toolstack.exec_tool(tool);
+    }
+  }, function on_mousemove(event) {
+    if (Area.prototype.on_mousemove.call(this, event)) {
+        return ;
+    }
+    if (this.mdown) {
+        var dx=event.x-this.start_mpos[0];
+        var dy=event.y-this.start_mpos[1];
+        if (dx*dx+dy*dy>1.5) {
+            var op=new ShiftTimeOp3();
+            var ids=[];
+            var __iter_kret=__get_iter(this.get_keyboth());
+            var kret;
+            while (1) {
+              var __ival_kret=__iter_kret.next();
+              if (__ival_kret.done) {
+                  break;
+              }
+              kret = __ival_kret.value;
+              var keybox=kret[2];
+              if (!keybox.select)
+                continue;
+              ids.push(keybox.id);
+            }
+            op.inputs.phantom_ids.set_data(ids);
+            if (ids.length>0) {
+                this.mdown = false;
+                g_app_state.toolstack.exec_tool(op);
+            }
+            else {
+              var time=Math.floor(this.unscaletime(event.x-this.velpan.pan[0]-this.time_zero_x));
+              this.ctx.scene.change_time(this.ctx, time);
+              window.redraw_viewport();
+            }
+        }
+        return ;
+    }
+    var key=this.findnearest([event.x, event.y]);
+    if (key!=undefined&&key.keybox.id!=this.highlight) {
+        if (key.highlight_keybox!=undefined) {
+            this.redraw_key(key.highlight_keybox);
+        }
+        this.highlight = key.keybox.id;
+        key = key.keybox;
+        this.redraw_key(key);
+    }
+    else 
+      if (key==undefined) {
+        if (this.highlight!=undefined&&(this.highlight&KeyTypes.PATHSPLINE)) {
+            var v=this.ctx.frameset.pathspline.eidmap[(this.highlight&~KeyTypes.PATHSPLINE)];
+            if (v!=undefined) {
+                v.dag_update("depend");
+            }
+        }
+        else 
+          if (this.highlight!=undefined) {
+            if (this.highlight in this.old_keyboxes) {
+                this.redraw_key(this.old_keyboxes[this.highlight]);
+            }
+        }
+        this.highlight = undefined;
+    }
+  }, function on_mouseup(event) {
+    this.mdown = false;
+  }, _ESClass.set(function pinned(state) {
+    if (state) {
+        this.pinned_ids = this.get_all_ids();
+    }
+    else {
+      this.pinned_ids = undefined;
+    }
+    this.do_full_recalc();
+  }), _ESClass.get(function pinned() {
+    return this.pinned_ids!=undefined;
+  }), function do_full_recalc() {
+    Area.prototype.do_full_recalc.apply(this, arguments);
+  }, function is_visible(key) {
+    return true;
+    var x=key.pos[0];
+    var y=key.pos[1];
+    if (x+key.size[0]<0||x>this.size[0]) {
+        return false;
+    }
+    if (y+key.size[1]<0||y>this.size[1]) {
+        return false;
+    }
+    return true;
+  }, function redraw_key(key) {
+    if (!this.is_visible(key))
+      return ;
+    var hash=""+Math.floor(key.pos[0])+","+Math.floor(key.pos[1]);
+    if (hash in this._recalc_cache)
+      return ;
+    this._recalc_cache[hash] = true;
+    this.dirty_rects.push([[key.pos[0]+this.abspos[0], key.pos[1]+this.abspos[1]], [Math.abs(key.size[0]), key.size[1]]]);
+    if (key.id in this.old_keyboxes) {
+        var key2=this.old_keyboxes[key.id];
+        this.dirty_rects.push([[key2.pos[0]+this.abspos[0], key2.pos[1]+this.abspos[1]], [Math.abs(key2.size[0]), key2.size[1]]]);
+    }
+    this.do_recalc();
+  }, function draw_grid(canvas) {
+    var fsize=this.scaletime(1.0);
+    var cellx=this.scaletime(2.0);
+    var celly=this.CHGT;
+    var totx=Math.floor(this.size[0]/cellx+0.5);
+    var toty=Math.floor(this.size[1]/celly+0.5);
+    var sign=this.velpan.pan[0]<0.0 ? -1.0 : 1.0;
+    var offx=this.time_zero_x+(Math.abs(this.velpan.pan[0])%cellx)*sign;
+    var offy=Math.abs(this.velpan.pan[1])%celly;
+    var clr=[0.2, 0.9, 0.4, 1.0];
+    var v1=[0, 0], v2=[0, 0];
+    var alpha=[1, 0.25, 0.25, 0.5, 0.25, 0.25, 0.25, 0.25];
+    var grey=[0.2, 0.2, 0.2, 1.0];
+    var clrs=[clr, grey, grey, grey, grey, grey, grey, grey];
+    var off2=sign*(Math.abs(this.velpan.pan[0])%(cellx*clrs.length));
+    var off3=Math.abs(this.velpan.pan[0])%(cellx*8);
+    var si=Math.abs(Math.floor(off2/cellx));
+    for (var i=0; i<totx; i++, si++) {
+        v1[0] = v2[0] = offx+i*cellx;
+        v1[1] = 0, v2[1] = this.size[1];
+        var clr=clrs[si%clrs.length];
+        if (clr==undefined)
+          clr = clrs[0];
+        clr[3] = alpha[si%alpha.length];
+        canvas.line(v1, v2, clr, clr);
+    }
+  }, function time_overlay(canvas) {
+    var v1=new Vector2();
+    var timeline_y=Area.get_barhgt()+1, y=timeline_y;
+    var fsize=this.scaletime(1.0);
+    var tclr=[1, 1, 1, 1.0];
+    var clr=[0.2, 0.2, 0.2, 0.7];
+    canvas.simple_box([0, Area.get_barhgt()-1], [this.size[0], Area.get_barhgt()], clr);
+    var time_x=this.time_zero_x+this.scaletime(this.ctx.scene.time)+this.velpan.pan[0];
+    var curclr=[0.2, 0.4, 1.0, 1.0];
+    canvas.line([time_x, 0], [time_x, this.size[1]], curclr, curclr);
+    canvas.line([time_x+1, 0], [time_x+1, this.size[1]], curclr, curclr);
+    var timecellx=fsize*8;
+    var offx2=this.time_zero_x+(this.velpan.pan[0])%timecellx;
+    var totx2=Math.floor(this.size[0]/timecellx+0.5);
+    for (var i=0; i<totx2; i++) {
+        v1[0] = offx2+i*timecellx;
+        var frame=(offx2+i*timecellx-this.velpan.pan[0])/fsize;
+        v1[1] = timeline_y+5;
+        canvas.text(v1, ""+Math.floor(frame), tclr);
+    }
+  }, function build_draw(canvas) {
+    var channels=this.channels;
+    window.channels = this.channels;
+    window.ds = this;
+    var size=this.channels.get_min_size(canvas);
+    this.channels.size[1] = size[1];
+    this.channels.pos[1] = Area.get_barhgt()+2+this.velpan.pan[1]-size[1];
+    this.size[0] = this.parent.size[0];
+    this.size[1] = this.parent.size[1];
+    var keys=[];
+    var totpath=0;
+    var visit={}
+    var __iter_kret=__get_iter(this.get_keyboth());
+    var kret;
+    while (1) {
+      var __ival_kret=__iter_kret.next();
+      if (__ival_kret.done) {
+          break;
+      }
+      kret = __ival_kret.value;
+      var v=kret[0], vd=kret[1], keybox=kret[2];
+      var id=keybox.type==KeyTypes.PATHSPLINE ? kret[1].eid : kret[1].path;
+      if (!(id in visit)) {
+          totpath++;
+          visit[id] = 1;
+      }
+      keys.push(list(kret));
+    }
+    if (totpath!==this.channels.totpath) {
+        console.log("rebuilding channel tree", keys.length);
+        var collapsed=this._tree_collapsed_map();
+        this.channels.reset();
+        for (var i=0; i<keys.length; i++) {
+            var key=keys[i], v=key[0], vd=key[1], keybox=key[2];
+            if (keybox.path==undefined) {
+                throw new Error("EEK!");
+                continue;
+            }
+            this.channels.add_path(keybox.path);
+        }
+        
+        this.channels.load_collapsed(collapsed);
+        this.channels.pack(this.get_canvas());
+    }
+    if (!this.first_draw)
+      this.update_collapsed_cache();
+    this.first_draw = false;
+    for (var k in this.collapsed_cache) {
+        if (k in this.channels.pathmap) {
+            this.channels.pathmap[k].set_collapsed(true);
+        }
+    }
+    canvas.simple_box([0, 0], [this.size[0], this.size[1]], [1, 1, 1, 1]);
+    if (this.ctx==undefined)
+      this.ctx = new Context();
+    var rect=this.calc_dirty();
+    this.draw_grid(canvas);
+    var chgt=this.CHGT;
+    var barheight=Area.get_barhgt();
+    var y=barheight+2;
+    this.heightmap = {}
+    var cwid=this.CWID;
+    var this2=this;
+    var pos=[0, 0];
+    var size=[0, 0];
+    var highlight_color=[1, 1.0, 0.5, 1.0];
+    var highlight_sel_color=[1, 1.0, 0.8, 1.0];
+    var selected_color=[1, 0.8, 0.0, 1.0];
+    var active_color=[1, 0.5, 0.25, 1.0];
+    var borderclr=[0.3, 0.3, 0.3, 1.0];
+    var __iter_kret=__get_iter(this.get_keyboth());
+    var kret;
+    while (1) {
+      var __ival_kret=__iter_kret.next();
+      if (__ival_kret.done) {
+          break;
+      }
+      kret = __ival_kret.value;
+      var v=kret[0], vd=kret[1], keybox=kret[2];
+      if (keybox.id in this.old_keyboxes) {
+          this.old_keyboxes[keybox.id].load(keybox);
+      }
+      this.heightmap[keybox.id] = keybox.pos[1];
+      this.channels.add_path(keybox.path);
+      pos[0] = keybox.pos[0]+this.abspos[0];
+      pos[1] = keybox.pos[1]+this.abspos[1];
+      if (!aabb_isect_2d(pos, keybox.size, rect[0], rect[1])) {
+          continue;
+      }
+      var margin=2;
+      pos[0] = keybox.pos[0]+margin;
+      pos[1] = keybox.pos[1]+margin;
+      size[0] = keybox.size[0]-margin*2;
+      size[1] = keybox.size[1]-margin*2;
+      var clr=undefined;
+      var id=keybox.id;
+      if (id==this.highlight&&keybox.select)
+        clr = highlight_sel_color;
+      else 
+        if (id==this.highlight)
+        clr = highlight_color;
+      else 
+        if (id==this.active)
+        clr = active_color;
+      else 
+        if (keybox.select)
+        clr = selected_color;
+      canvas.box2(pos, size, clr);
+      canvas.box2(pos, size, borderclr, undefined, true);
+    }
+    this.time_overlay(canvas);
+    Area.prototype.build_draw.apply(this, arguments);
+    this._recalc_cache = {}
+  }, function redraw_eid(eid) {
+    var v=this.ctx.frameset.pathspline.eidmap[eid];
+    var vd=this.vdmap[v.eid];
+    var y=this.heightmap[v.eid];
+    if (vd==undefined)
+      return ;
+    var box=this.get_vertkey(v.eid);
+    this.redraw_key(box);
+  }, function build_bottombar() {
+    var ctx=new Context();
+    this.ctx = ctx;
+    var the_row=new RowFrame(ctx);
+    the_row.packflag|=PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING|PackFlags.IGNORE_LIMIT;
+    the_row.default_packflag = PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING;
+    the_row.draw_background = true;
+    the_row.rcorner = 100.0;
+    the_row.pos = [0, 2];
+    the_row.size = [this.size[0], Area.get_barhgt()];
+    var col=the_row.col();
+    col.add(gen_editor_switcher(this.ctx, this));
+    col.prop("dopesheet.selected_only");
+    col.prop("dopesheet.pinned");
+    this.rows.push(the_row);
+    this.add(the_row);
+  }, function dag_unlink_all() {
+    var __iter_node=__get_iter(this.nodes);
+    var node;
+    while (1) {
+      var __ival_node=__iter_node.next();
+      if (__ival_node.done) {
+          break;
+      }
+      node = __ival_node.value;
+      node.dag_unlink();
+    }
+    this.nodes = [];
+  }, function on_area_inactive() {
+    Area.prototype.on_area_inactive.call(this);
+    console.log("dopesheet active!");
+  }, function on_area_inactive() {
+    this.first_draw = true;
+    console.log("dopesheet inactive!");
+    this.dag_unlink_all();
+    this.vdmap = {}
+    this.vmap = {}
+    this.old_keyboxes = {}
+    this._recalc_cache = {}
+    for (var i=0; i<this.phantom_cache.length; i++) {
+        var ph=this.phantom_cache.next();
+        ph.ds = undefined;
+        ph.v = ph.vd = undefined;
+    }
+  }, function get_everts() {
+    var verts=[];
+    var __iter_kret=__get_iter(this.get_keyverts());
+    var kret;
+    while (1) {
+      var __ival_kret=__iter_kret.next();
+      if (__ival_kret.done) {
+          break;
+      }
+      kret = __ival_kret.value;
+      var v=kret[0], vd=kret[1], keybox=kret[2];
+      if (!(v.flag&SplineFlags.UI_SELECT))
+        continue;
+      verts.push(v.eid);
+    }
+    return verts;
+  }, function get_all_ids() {
+    var ids=[];
+    var __iter_kret=__get_iter(this.get_keyboth());
+    var kret;
+    while (1) {
+      var __ival_kret=__iter_kret.next();
+      if (__ival_kret.done) {
+          break;
+      }
+      kret = __ival_kret.value;
+      ids.push(kret[2].id);
+    }
+    return ids;
+  }, function get_all_everts() {
+    var verts=[];
+    var __iter_kret=__get_iter(this.get_keyverts());
+    var kret;
+    while (1) {
+      var __ival_kret=__iter_kret.next();
+      if (__ival_kret.done) {
+          break;
+      }
+      kret = __ival_kret.value;
+      var v=kret[0], vd=kret[1], keybox=kret[2];
+      verts.push(v.eid);
+    }
+    return verts;
+  }, function define_keymap() {
+    var k=this.keymap;
+    var this2=this;
+    k.add(new KeyHandler("X", [], "Delete Keyframe"), new FuncKeyHandler(function(ctx) {
+      var tool=new DeleteKeyOp();
+      tool.inputs.phantom_ids.set_data(this2.get_all_ids());
+      g_app_state.toolstack.exec_tool(tool);
+    }));
+    k.add(new KeyHandler("Up", [], "Frame Ahead 10"), new FuncKeyHandler(function(ctx) {
+      ctx.scene.change_time(ctx, ctx.scene.time+10);
+      window.force_viewport_redraw();
+      window.redraw_viewport();
+    }));
+    k.add(new KeyHandler("Down", [], "Frame Back 10"), new FuncKeyHandler(function(ctx) {
+      ctx.scene.change_time(ctx, ctx.scene.time-10);
+      window.force_viewport_redraw();
+      window.redraw_viewport();
+    }));
+    k.add(new KeyHandler("Right", [], ""), new FuncKeyHandler(function(ctx) {
+      console.log("Frame Change!", ctx.scene.time+1);
+      ctx.scene.change_time(ctx, ctx.scene.time+1);
+      window.redraw_viewport();
+    }));
+    k.add(new KeyHandler("Left", [], ""), new FuncKeyHandler(function(ctx) {
+      console.log("Frame Change!", ctx.scene.time-1);
+      ctx.scene.change_time(ctx, ctx.scene.time-1);
+      window.redraw_viewport();
+    }));
+    k.add(new KeyHandler("Left", ["CTRL"], "Select To Left"), new FuncKeyHandler(function(ctx) {
+      var tool=new SelectKeysToSide();
+      tool.inputs.side.set_data(false);
+      tool.inputs.phantom_ids.set_data(this2.get_all_ids());
+      g_app_state.toolstack.exec_tool(tool);
+    }));
+    k.add(new KeyHandler("Right", ["CTRL"], "Select To Right"), new FuncKeyHandler(function(ctx) {
+      var tool=new SelectKeysToSide();
+      tool.inputs.side.set_data(true);
+      tool.inputs.phantom_ids.set_data(this2.get_all_ids());
+      g_app_state.toolstack.exec_tool(tool);
+    }));
+    k.add(new KeyHandler("G", [], "Translate"), new FuncKeyHandler(function(ctx) {
+      console.log("translate");
+      var op=new ShiftTimeOp3();
+      var ids=[];
+      var __iter_kret=__get_iter(this2.get_keyboth());
+      var kret;
+      while (1) {
+        var __ival_kret=__iter_kret.next();
+        if (__ival_kret.done) {
+            break;
+        }
+        kret = __ival_kret.value;
+        var keybox=kret[2];
+        if (!keybox.select)
+          continue;
+        ids.push(keybox.id);
+      }
+      op.inputs.phantom_ids.set_data(ids);
+      g_app_state.toolstack.exec_tool(op);
+    }));
+    k.add(new KeyHandler("A", [], "Toggle Select"), new FuncKeyHandler(function(ctx) {
+      var tool=new ToggleSelectOp();
+      var verts=[];
+      tool.inputs.phantom_ids.set_data(this2.get_all_ids());
+      g_app_state.toolstack.exec_tool(tool);
+    }));
+    k.add(new KeyHandler("K", [], "Column Select"), new FuncKeyHandler(function(ctx) {
+      var tool=new ColumnSelect();
+      var ids=[];
+      var __iter_kret=__get_iter(this2.get_keyboth());
+      var kret;
+      while (1) {
+        var __ival_kret=__iter_kret.next();
+        if (__ival_kret.done) {
+            break;
+        }
+        kret = __ival_kret.value;
+        var keybox=kret[2];
+        ids.push(keybox.id);
+      }
+      tool.inputs.state.set_data(true);
+      tool.inputs.phantom_ids.set_data(ids);
+      g_app_state.toolstack.exec_tool(tool);
+    }));
+    k.add(new KeyHandler("K", ["SHIFT"], "Column Select"), new FuncKeyHandler(function(ctx) {
+      var tool=new ColumnSelect();
+      var ids=[];
+      var __iter_kret=__get_iter(this2.get_keyboth());
+      var kret;
+      while (1) {
+        var __ival_kret=__iter_kret.next();
+        if (__ival_kret.done) {
+            break;
+        }
+        kret = __ival_kret.value;
+        var keybox=kret[2];
+        ids.push(keybox.id);
+      }
+      tool.inputs.state.set_data(false);
+      tool.inputs.phantom_ids.set_data(ids);
+      g_app_state.toolstack.exec_tool(tool);
+    }));
+    k.add(new KeyHandler("Z", ["CTRL", "SHIFT"], "Redo"), new FuncKeyHandler(function(ctx) {
+      console.log("Redo");
+      ctx.toolstack.redo();
+    }));
+    k.add(new KeyHandler("Y", ["CTRL"], "Redo"), new FuncKeyHandler(function(ctx) {
+      console.log("Redo");
+      ctx.toolstack.redo();
+    }));
+    k.add(new KeyHandler("Z", ["CTRL"], "Undo"), new FuncKeyHandler(function(ctx) {
+      console.log("Undo");
+      ctx.toolstack.undo();
+    }));
+  }, function data_link(block, getblock, getblock_us) {
+  }, _ESClass.static(function fromSTRUCT(reader) {
+    var ret=new DopeSheetEditor();
+    reader(ret);
+    if (ret.pan!=undefined) {
+        ret.velpan.pan[0] = ret.pan[0];
+        ret.velpan.pan[1] = ret.pan[1];
+        delete ret.pan;
+    }
+    if ('collapsed_map' in ret) {
+        var cache=ret.collapsed_cache;
+        ret.collapsed_cache = {};
+        var __iter_path=__get_iter(ret.collapsed_map);
+        var path;
+        while (1) {
+          var __ival_path=__iter_path.next();
+          if (__ival_path.done) {
+              break;
+          }
+          path = __ival_path.value;
+          ret.collapsed_cache[path] = true;
+        }
+    }
+    if (ret.pinned_ids!=undefined&&ret.pinned_ids.length==0) {
+        delete ret.pinned_ids;
+    }
+    return ret;
+  })]);
+  _es6_module.add_class(DopeSheetEditor);
+  DopeSheetEditor = _es6_module.add_export('DopeSheetEditor', DopeSheetEditor);
+  DopeSheetEditor.STRUCT = STRUCT.inherit(DopeSheetEditor, Area)+"\n    pan             : vec2 | obj.velpan.pan;\n    zoom            : float;\n    collapsed_map   : array(string) | obj._tree_collapsed_map();\n    selected_only   : int;\n    pinned_ids     : array(int) | obj.pinned_ids != undefined ? obj.pinned_ids : [];\n}\n";
+  DopeSheetEditor.uiname = "Dopesheet";
+  DopeSheetEditor.debug_only = false;
+});
+es6_module_define('dopesheet_phantom', ["spline_types", "animdata"], function _dopesheet_phantom_module(_es6_module) {
+  "use strict";
+  var SplineTypes=es6_import_item(_es6_module, 'spline_types', 'SplineTypes');
+  var SplineFlags=es6_import_item(_es6_module, 'spline_types', 'SplineFlags');
+  var TimeDataLayer=es6_import_item(_es6_module, 'animdata', 'TimeDataLayer');
+  var get_vtime=es6_import_item(_es6_module, 'animdata', 'get_vtime');
+  var set_vtime=es6_import_item(_es6_module, 'animdata', 'set_vtime');
+  var AnimKey=es6_import_item(_es6_module, 'animdata', 'AnimKey');
+  var AnimChannel=es6_import_item(_es6_module, 'animdata', 'AnimChannel');
+  var AnimKeyFlags=es6_import_item(_es6_module, 'animdata', 'AnimKeyFlags');
+  var AnimInterpModes=es6_import_item(_es6_module, 'animdata', 'AnimInterpModes');
+  var KeyTypes={PATHSPLINE: 1<<29, DATAPATH: 1<<30, CLEARMASK: ~((1<<29)|(1<<30))}
+  KeyTypes = _es6_module.add_export('KeyTypes', KeyTypes);
+  var FilterModes={VERTICES: 1, SEGMENTS: 4, FACES: 16}
+  FilterModes = _es6_module.add_export('FilterModes', FilterModes);
+  var phantom=_ESClass("phantom", [function phantom() {
+    this.flag = 0;
+    this.ds = undefined;
+    this.pos = new Vector2(), this.size = new Vector2();
+    this.type = KeyTypes.PATHSPLINE;
+    this.group = "root";
+    this.id = 0;
+    this.e = undefined;
+    this.ch = undefined;
+  }, _ESClass.get(function cached_y() {
+    return this.ds.heightmap[this.id];
+  }), _ESClass.get(function oldbox() {
+    return this.ds.old_keyboxes[this.id];
+  }), _ESClass.get(function select() {
+    if (this.type==KeyTypes.PATHSPLINE) {
+        return this.v.flag&SplineFlags.UI_SELECT;
+    }
+    else {
+      return this.key.flag&AnimKeyFlags.SELECT;
+    }
+  }), _ESClass.set(function select(val) {
+    if (this.type==KeyTypes.PATHSPLINE) {
+        this.v.flag|=SplineFlags.UI_SELECT;
+    }
+    else {
+      if (val) {
+          this.key.flag|=AnimKeyFlags.SELECT;
+      }
+      else {
+        this.key.flag&=~AnimKeyFlags.SELECT;
+      }
+    }
+  }), function load(b) {
+    for (var j=0; j<2; j++) {
+        this.pos[j] = b.pos[j];
+        this.size[j] = b.size[j];
+    }
+    this.id = b.id;
+    this.type = b.type;
+    this.v = b.v;
+    this.vd = b.vd;
+    this.key = b.key;
+    this.ch = b.ch;
+  }]);
+  _es6_module.add_class(phantom);
+  phantom = _es6_module.add_export('phantom', phantom);
+  function get_time(ctx, id) {
+    if (id&KeyTypes.PATHSPLINE) {
+        id = id&KeyTypes.CLEARMASK;
+        var v=ctx.frameset.pathspline.eidmap[id];
+        return get_vtime(v);
+    }
+    else {
+      id = id&KeyTypes.CLEARMASK;
+      var k=ctx.frameset.lib_anim_idmap[id];
+      return k.time;
+    }
+  }
+  get_time = _es6_module.add_export('get_time', get_time);
+  function set_time(ctx, id, time) {
+    if (id&KeyTypes.PATHSPLINE) {
+        id = id&KeyTypes.CLEARMASK;
+        var v=ctx.frameset.pathspline.eidmap[id];
+        set_vtime(v, time);
+        v.dag_update("depend");
+    }
+    else {
+      id = id&KeyTypes.CLEARMASK;
+      var k=ctx.frameset.lib_anim_idmap[id];
+      k.set_time(time);
+      k.dag_update("depend");
+    }
+  }
+  set_time = _es6_module.add_export('set_time', set_time);
+  function get_select(ctx, id) {
+    if (id&KeyTypes.PATHSPLINE) {
+        id = id&KeyTypes.CLEARMASK;
+        var v=ctx.frameset.pathspline.eidmap[id];
+        return v.flag&SplineFlags.UI_SELECT;
+    }
+    else {
+      id = id&KeyTypes.CLEARMASK;
+      var k=ctx.frameset.lib_anim_idmap[id];
+      return k.flag&AnimKeyFlags.SELECT;
+    }
+  }
+  get_select = _es6_module.add_export('get_select', get_select);
+  function set_select(ctx, id, state) {
+    if (id&KeyTypes.PATHSPLINE) {
+        id = id&KeyTypes.CLEARMASK;
+        var v=ctx.frameset.pathspline.eidmap[id];
+        var changed=!!(v.flag&SplineFlags.UI_SELECT)!=!!state;
+        if (state)
+          v.flag|=SplineFlags.UI_SELECT;
+        else 
+          v.flag&=~SplineFlags.UI_SELECT;
+        if (changed)
+          v.dag_update("depend");
+    }
+    else {
+      id = id&KeyTypes.CLEARMASK;
+      var k=ctx.frameset.lib_anim_idmap[id];
+      var changed=!!(k.flag&AnimKeyFlags.SELECT)!=!!state;
+      if (state)
+        k.flag|=AnimKeyFlags.SELECT;
+      else 
+        k.flag&=~AnimKeyFlags.SELECT;
+      if (changed)
+        k.dag_update("depend");
+    }
+  }
+  set_select = _es6_module.add_export('set_select', set_select);
+  function delete_key(ctx, id) {
+    if (id&KeyTypes.PATHSPLINE) {
+        id = id&KeyTypes.CLEARMASK;
+        var pathspline=ctx.frameset.pathspline;
+        var v=pathspline.eidmap[id];
+        var time=get_vtime(v);
+        var kcache=ctx.frameset.kcache;
+        for (var i=0; i<v.segments.length; i++) {
+            var s=v.segments[i], v2=s.other_vert(v), time2=get_vtime(v2);
+            var ts=Math.min(time, time2), te=Math.max(time, time2);
+            for (var j=ts; j<=te; j++) {
+                kcache.invalidate(v2.eid, j);
+            }
+        }
+        v.dag_update("depend");
+        pathspline.dissolve_vertex(v);
+    }
+    else {
+      id = id&KeyTypes.CLEARMASK;
+      var k=ctx.frameset.lib_anim_idmap[id];
+      k.dag_update("depend");
+      k.channel.remove(k);
+    }
+  }
+  delete_key = _es6_module.add_export('delete_key', delete_key);
+});
+es6_module_define('dopesheet_transdata', ["animdata", "mathlib", "transdata"], function _dopesheet_transdata_module(_es6_module) {
+  "use strict";
+  var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
+  var TransDataItem=es6_import_item(_es6_module, 'transdata', 'TransDataItem');
+  var TransDataType=es6_import_item(_es6_module, 'transdata', 'TransDataType');
+  var get_vtime=es6_import_item(_es6_module, 'animdata', 'get_vtime');
+  var set_vtime=es6_import_item(_es6_module, 'animdata', 'set_vtime');
+  var TransKey=_ESClass("TransKey", [function TransKey(v) {
+    this.v = v;
+    this.start_time = get_vtime(v);
+  }]);
+  _es6_module.add_class(TransKey);
+  var TransDopeSheetType=_ESClass("TransDopeSheetType", [_ESClass.static(function apply(ctx, td, item, mat, w) {
+  }), _ESClass.static(function undo_pre(ctx, td, undo_obj) {
+  }), _ESClass.static(function undo(ctx, undo_obj) {
+  }), _ESClass.static(function update(ctx, td) {
+    var fs=ctx.frameset;
+    fs.check_vdata_integrity();
+    window.redraw_ui();
+  }), _ESClass.static(function calc_prop_distances(ctx, td, data) {
+  }), _ESClass.static(function gen_data(ctx, td, data) {
+    var doprop=td.doprop;
+    var proprad=td.propradius;
+    var vs=new set();
+    var __iter_eid=__get_iter(td.top.inputs.data);
+    var eid;
+    while (1) {
+      var __ival_eid=__iter_eid.next();
+      if (__ival_eid.done) {
+          break;
+      }
+      eid = __ival_eid.value;
+      var v=ctx.frameset.pathspline.eidmap[eid];
+      if (v==undefined) {
+          console.log("WARNING: transdata corruption in dopesheet!!");
+          continuel;
+      }
+      vs.add(v);
+    }
+    var __iter_v=__get_iter(vs);
+    var v;
+    while (1) {
+      var __ival_v=__iter_v.next();
+      if (__ival_v.done) {
+          break;
+      }
+      v = __ival_v.value;
+      var titem=new TransDataItem(v, TransDopeSheetType, get_vtime(v));
+      data.push(titem);
+    }
+  }), _ESClass.static(function find_dopesheet(ctx) {
+    var active=ctx.screen.active;
+    if (__instance_of(active, ScreenArea)&&__instance_of(active.editor, DopeSheetEditor)) {
+        return active;
+    }
+    var __iter_c=__get_iter(ctx.screen.children);
+    var c;
+    while (1) {
+      var __ival_c=__iter_c.next();
+      if (__ival_c.done) {
+          break;
+      }
+      c = __ival_c.value;
+      if (__instance_of(c, ScreenArea)&&__instance_of(c.editor, DopeSheetEditor))
+        return c;
+    }
+  }), _ESClass.static(function calc_draw_aabb(ctx, td, minmax) {
+  }), _ESClass.static(function aabb(ctx, td, item, minmax, selected_only) {
+  }), function TransDopeSheetType() {
+  }]);
+  _es6_module.add_class(TransDopeSheetType);
+  TransDopeSheetType = _es6_module.add_export('TransDopeSheetType', TransDopeSheetType);
+});
+es6_module_define('dopesheet_ops', ["toolops_api", "toolprops", "dopesheet_phantom", "animdata"], function _dopesheet_ops_module(_es6_module) {
+  "use strict";
+  var CollectionProperty=es6_import_item(_es6_module, 'toolprops', 'CollectionProperty');
+  var IntProperty=es6_import_item(_es6_module, 'toolprops', 'IntProperty');
+  var FloatProperty=es6_import_item(_es6_module, 'toolprops', 'FloatProperty');
+  var BoolProperty=es6_import_item(_es6_module, 'toolprops', 'BoolProperty');
+  var EnumProperty=es6_import_item(_es6_module, 'toolprops', 'EnumProperty');
+  var ToolOp=es6_import_item(_es6_module, 'toolops_api', 'ToolOp');
+  var UndoFlags=es6_import_item(_es6_module, 'toolops_api', 'UndoFlags');
+  var TimeDataLayer=es6_import_item(_es6_module, 'animdata', 'TimeDataLayer');
+  var get_vtime=es6_import_item(_es6_module, 'animdata', 'get_vtime');
+  var set_vtime=es6_import_item(_es6_module, 'animdata', 'set_vtime');
+  var AnimKey=es6_import_item(_es6_module, 'animdata', 'AnimKey');
+  var AnimChannel=es6_import_item(_es6_module, 'animdata', 'AnimChannel');
+  var AnimKeyFlags=es6_import_item(_es6_module, 'animdata', 'AnimKeyFlags');
+  var AnimInterpModes=es6_import_item(_es6_module, 'animdata', 'AnimInterpModes');
+  var get_time=es6_import_item(_es6_module, 'dopesheet_phantom', 'get_time');
+  var set_time=es6_import_item(_es6_module, 'dopesheet_phantom', 'set_time');
+  var get_select=es6_import_item(_es6_module, 'dopesheet_phantom', 'get_select');
+  var set_select=es6_import_item(_es6_module, 'dopesheet_phantom', 'set_select');
+  var KeyTypes=es6_import_item(_es6_module, 'dopesheet_phantom', 'KeyTypes');
+  var FilterModes=es6_import_item(_es6_module, 'dopesheet_phantom', 'FilterModes');
+  var delete_key=es6_import_item(_es6_module, 'dopesheet_phantom', 'delete_key');
+  var ShiftTimeOp2=_ESClass("ShiftTimeOp2", ToolOp, [function ShiftTimeOp2() {
+    ToolOp.call(this, "shift_time", "shift time", "shift time");
+    this.is_modal = true;
+    var first=true;
+    this.start_mpos = new Vector3();
+  }, function get_curframe_animverts(ctx) {
+    var vset=new set();
+    var spline=ctx.frameset.pathspline;
+    var __iter_eid=__get_iter(this.inputs.vertex_eids);
+    var eid;
+    while (1) {
+      var __ival_eid=__iter_eid.next();
+      if (__ival_eid.done) {
+          break;
+      }
+      eid = __ival_eid.value;
+      var v=spline.eidmap[eid];
+      if (v==undefined) {
+          console.log("ShiftTimeOp2 data corruption! v was undefined!");
+          continue;
+      }
+      vset.add(v);
+    }
+    return vset;
+  }, function start_modal(ctx) {
+    this.first = true;
+  }, function end_modal(ctx) {
+    ToolOp.prototype.end_modal.call(this);
+  }, function cancel(ctx) {
+  }, function finish(ctx) {
+    ctx.scene.change_time(ctx, this.start_time);
+  }, function on_mousemove(event) {
+    if (this.first) {
+        this.start_mpos.load([event.x, event.y, 0]);
+        this.first = false;
+    }
+    var mpos=new Vector3([event.x, event.y, 0]);
+    var dx=-Math.floor(1.5*(this.start_mpos[0]-mpos[0])/20+0.5);
+    this.undo(this.modal_ctx);
+    this.inputs.factor.set_data(dx);
+    this.exec(this.modal_ctx);
+  }, function on_keydown(event) {
+    switch (event.keyCode) {
+      case charmap["Escape"]:
+        this.cancel(this.modal_ctx);
+      case charmap["Return"]:
+      case charmap["Space"]:
+        this.finish(this.modal_ctx);
+        this.end_modal();
+    }
+  }, function on_mouseup(event) {
+    var ctx=this.modal_ctx;
+    this.end_modal();
+    ctx.frameset.download();
+    window.redraw_viewport();
+  }, function undo_pre(ctx) {
+    var ud=this._undo = {}
+    var __iter_v=__get_iter(this.get_curframe_animverts(ctx));
+    var v;
+    while (1) {
+      var __ival_v=__iter_v.next();
+      if (__ival_v.done) {
+          break;
+      }
+      v = __ival_v.value;
+      ud[v.eid] = get_vtime(v);
+    }
+  }, function undo(ctx) {
+    var spline=ctx.frameset.pathspline;
+    for (var k in this._undo) {
+        var v=spline.eidmap[k], time=this._undo[k];
+        set_vtime(v, time);
+        v.dag_update("depend");
+    }
+    ctx.frameset.download();
+  }, function exec(ctx) {
+    var spline=ctx.frameset.pathspline;
+    var starts={}
+    var off=this.inputs.factor.data;
+    var vset=this.get_curframe_animverts(ctx);
+    var __iter_v=__get_iter(vset);
+    var v;
+    while (1) {
+      var __ival_v=__iter_v.next();
+      if (__ival_v.done) {
+          break;
+      }
+      v = __ival_v.value;
+      starts[v.eid] = get_vtime(v);
+    }
+    var frameset=ctx.frameset;
+    var vdmap={}
+    for (var k in frameset.vertex_animdata) {
+        var vd=frameset.vertex_animdata[k];
+        var __iter_v=__get_iter(vd.verts);
+        var v;
+        while (1) {
+          var __ival_v=__iter_v.next();
+          if (__ival_v.done) {
+              break;
+          }
+          v = __ival_v.value;
+          vdmap[v.eid] = k;
+        }
+    }
+    var kcache=ctx.frameset.kcache;
+    var __iter_v=__get_iter(vset);
+    var v;
+    while (1) {
+      var __ival_v=__iter_v.next();
+      if (__ival_v.done) {
+          break;
+      }
+      v = __ival_v.value;
+      var eid=vdmap[v.eid];
+      var time1=get_vtime(v);
+      for (var i=0; i<v.segments.length; i++) {
+          var s=v.segments[i], v2=s.other_vert(v), time2=get_vtime(v2);
+          var t1=Math.min(time1, time2), t2=Math.max(time1, time2);
+          for (var j=t1; j<=t2; j++) {
+              kcache.invalidate(eid, j);
+          }
+      }
+      set_vtime(v, starts[v.eid]+off);
+      kcache.invalidate(eid, starts[v.eid]+off);
+      v.dag_update("depend");
+    }
+    var __iter_v=__get_iter(vset);
+    var v;
+    while (1) {
+      var __ival_v=__iter_v.next();
+      if (__ival_v.done) {
+          break;
+      }
+      v = __ival_v.value;
+      var min=undefined, max=undefined;
+      if (v.segments.length==1) {
+          var s=v.segments[0];
+          var v2=s.other_vert(v);
+          var t1=get_vtime(v), t2=get_vtime(v2);
+          if (t1<t2) {
+              min = 0, max = t2;
+          }
+          else 
+            if (t1==t2) {
+              min = max = t1;
+          }
+          else {
+            min = t1, max = 100000;
+          }
+      }
+      else 
+        if (v.segments.length==2) {
+          var v1=v.segments[0].other_vert(v);
+          var v2=v.segments[1].other_vert(v);
+          var t1=get_vtime(v1), t2=get_vtime(v2);
+          min = Math.min(t1, t2), max = Math.max(t1, t2);
+      }
+      else {
+        min = 0;
+        max = 100000;
+      }
+      var newtime=get_vtime(v);
+      newtime = Math.min(Math.max(newtime, min), max);
+      set_vtime(v, newtime);
+      v.dag_update("depend");
+    }
+    if (!this.modal_running) {
+        ctx.frameset.download();
+    }
+  }]);
+  _es6_module.add_class(ShiftTimeOp2);
+  ShiftTimeOp2 = _es6_module.add_export('ShiftTimeOp2', ShiftTimeOp2);
+  ShiftTimeOp2.inputs = {factor: new FloatProperty(-1, "factor", "factor", "factor"), vertex_eids: new CollectionProperty([], undefined, "verts", "verts")}
+  var ShiftTimeOp3=_ESClass("ShiftTimeOp3", ToolOp, [function ShiftTimeOp3() {
+    ToolOp.call(this, "shift_time", "shift time", "shift time");
+    this.is_modal = true;
+    var first=true;
+    this.start_mpos = new Vector3();
+  }, function start_modal(ctx) {
+    this.first = true;
+  }, function end_modal(ctx) {
+    ToolOp.prototype.end_modal.call(this);
+  }, function cancel(ctx) {
+  }, function finish(ctx) {
+    ctx.scene.change_time(ctx, this.start_time);
+  }, function on_mousemove(event) {
+    if (this.first) {
+        this.start_mpos.load([event.x, event.y, 0]);
+        this.first = false;
+    }
+    var mpos=new Vector3([event.x, event.y, 0]);
+    var dx=-Math.floor(1.5*(this.start_mpos[0]-mpos[0])/20+0.5);
+    console.log("time offset", dx);
+    this.do_undo(this.modal_ctx, true);
+    this.inputs.factor.set_data(dx);
+    this.exec(this.modal_ctx);
+  }, function on_keydown(event) {
+    switch (event.keyCode) {
+      case charmap["Escape"]:
+        this.cancel(this.modal_ctx);
+      case charmap["Return"]:
+      case charmap["Space"]:
+        this.finish(this.modal_ctx);
+        this.end_modal();
+    }
+  }, function on_mouseup(event) {
+    var ctx=this.modal_ctx;
+    this.end_modal();
+    ctx.frameset.download();
+    window.redraw_viewport();
+  }, function undo_pre(ctx) {
+    var ud=this._undo = {}
+    var __iter_id=__get_iter(this.inputs.phantom_ids.data);
+    var id;
+    while (1) {
+      var __ival_id=__iter_id.next();
+      if (__ival_id.done) {
+          break;
+      }
+      id = __ival_id.value;
+      ud[id] = get_time(ctx, id);
+    }
+  }, function do_undo(ctx, no_download) {
+    if (no_download==undefined) {
+        no_download = false;
+    }
+    for (var k in this._undo) {
+        set_time(ctx, k, this._undo[k]);
+    }
+    if (!no_download)
+      ctx.frameset.download();
+  }, function undo(ctx) {
+    this.do_undo(ctx);
+  }, function exec(ctx) {
+    var spline=ctx.frameset.pathspline;
+    var starts={}
+    var off=this.inputs.factor.data;
+    var ids=this.inputs.phantom_ids.data;
+    var __iter_id=__get_iter(ids);
+    var id;
+    while (1) {
+      var __ival_id=__iter_id.next();
+      if (__ival_id.done) {
+          break;
+      }
+      id = __ival_id.value;
+      starts[id] = get_time(ctx, id);
+    }
+    var frameset=ctx.frameset;
+    var vdmap={}
+    for (var k in frameset.vertex_animdata) {
+        var vd=frameset.vertex_animdata[k];
+        var __iter_v=__get_iter(vd.verts);
+        var v;
+        while (1) {
+          var __ival_v=__iter_v.next();
+          if (__ival_v.done) {
+              break;
+          }
+          v = __ival_v.value;
+          vdmap[v.eid] = k;
+        }
+    }
+    console.log("time shift", off);
+    var kcache=ctx.frameset.kcache;
+    var __iter_id=__get_iter(ids);
+    var id;
+    while (1) {
+      var __ival_id=__iter_id.next();
+      if (__ival_id.done) {
+          break;
+      }
+      id = __ival_id.value;
+      set_time(ctx, id, starts[id]+off);
+    }
+    var __iter_id=__get_iter(ids);
+    var id;
+    while (1) {
+      var __ival_id=__iter_id.next();
+      if (__ival_id.done) {
+          break;
+      }
+      id = __ival_id.value;
+      var min=undefined, max=undefined;
+      if (id&KeyTypes.PATHSPLINE) {
+          var v=ctx.frameset.pathspline.eidmap[id&KeyTypes.CLEARMASK];
+          if (v.segments.length==1) {
+              var s=v.segments[0];
+              var v2=s.other_vert(v);
+              var t1=get_vtime(v), t2=get_vtime(v2);
+              if (t1<t2) {
+                  min = 0, max = t2;
+              }
+              else 
+                if (t1==t2) {
+                  min = max = t1;
+              }
+              else {
+                min = t1, max = 100000;
+              }
+          }
+          else 
+            if (v.segments.length==2) {
+              var v1=v.segments[0].other_vert(v);
+              var v2=v.segments[1].other_vert(v);
+              var t1=get_vtime(v1), t2=get_vtime(v2);
+              min = Math.min(t1, t2), max = Math.max(t1, t2);
+          }
+          else {
+            min = 0;
+            max = 100000;
+          }
+          var eid=vdmap[v.eid];
+          for (var j=min; j<max; j++) {
+
+          }
+          var newtime=get_vtime(v);
+          newtime = Math.min(Math.max(newtime, min), max);
+          set_vtime(v, newtime);
+          v.dag_update("depend");
+      }
+    }
+    if (!this.modal_running) {
+        console.log("download");
+        ctx.frameset.download();
+    }
+  }]);
+  _es6_module.add_class(ShiftTimeOp3);
+  ShiftTimeOp3 = _es6_module.add_export('ShiftTimeOp3', ShiftTimeOp3);
+  ShiftTimeOp3.inputs = {factor: new FloatProperty(-1, "factor", "factor", "factor"), phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom_ids")}
+  var SelectOpBase=_ESClass("SelectOpBase", ToolOp, [function SelectOpBase() {
+    ToolOp.call(this);
+  }, function undo_pre(ctx) {
+    var undo=this._undo = {}
+    var __iter_id=__get_iter(this.inputs.phantom_ids.data);
+    var id;
+    while (1) {
+      var __ival_id=__iter_id.next();
+      if (__ival_id.done) {
+          break;
+      }
+      id = __ival_id.value;
+      undo[id] = get_select(ctx, id);
+    }
+  }, function undo(ctx) {
+    var undo=this._undo;
+    for (var id in undo) {
+        set_select(ctx, id, undo[id]);
+    }
+  }]);
+  _es6_module.add_class(SelectOpBase);
+  SelectOpBase = _es6_module.add_export('SelectOpBase', SelectOpBase);
+  SelectOpBase.inputs = {phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom_ids")}
+  var SelectOp=_ESClass("SelectOp", SelectOpBase, [function SelectOp() {
+    SelectOpBase.call(this);
+    this.uiname = "Select";
+  }, function exec(ctx) {
+    var state=this.inputs.state.data;
+    if (this.inputs.unique.data) {
+        var __iter_id=__get_iter(this.inputs.phantom_ids.data);
+        var id;
+        while (1) {
+          var __ival_id=__iter_id.next();
+          if (__ival_id.done) {
+              break;
+          }
+          id = __ival_id.value;
+          set_select(ctx, id, false);
+        }
+    }
+    var __iter_id=__get_iter(this.inputs.select_ids.data);
+    var id;
+    while (1) {
+      var __ival_id=__iter_id.next();
+      if (__ival_id.done) {
+          break;
+      }
+      id = __ival_id.value;
+      set_select(ctx, id, state);
+    }
+  }]);
+  _es6_module.add_class(SelectOp);
+  SelectOp = _es6_module.add_export('SelectOp', SelectOp);
+  SelectOp.inputs = ToolOp.inherit_inputs(SelectOpBase, {select_ids: new CollectionProperty([], undefined, "select_ids", "select_ids"), state: new BoolProperty(true, "state"), unique: new BoolProperty(true, "unique")});
+  var ColumnSelect=_ESClass("ColumnSelect", SelectOpBase, [function ColumnSelect() {
+    SelectOpBase.call(this);
+  }, function exec(ctx) {
+    var cols={}
+    var state=this.inputs.state.data;
+    var __iter_id=__get_iter(this.inputs.phantom_ids.data);
+    var id;
+    while (1) {
+      var __ival_id=__iter_id.next();
+      if (__ival_id.done) {
+          break;
+      }
+      id = __ival_id.value;
+      if (get_select(ctx, id))
+        cols[get_time(ctx, id)] = 1;
+    }
+    var __iter_id=__get_iter(this.inputs.phantom_ids.data);
+    var id;
+    while (1) {
+      var __ival_id=__iter_id.next();
+      if (__ival_id.done) {
+          break;
+      }
+      id = __ival_id.value;
+      if (!(get_time(ctx, id) in cols))
+        continue;
+      set_select(ctx, id, state);
+    }
+  }]);
+  _es6_module.add_class(ColumnSelect);
+  ColumnSelect = _es6_module.add_export('ColumnSelect', ColumnSelect);
+  ColumnSelect.inputs = ToolOp.inherit_inputs(SelectOpBase, {state: new BoolProperty(true, "state"), phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom_ids")});
+  var SelectKeysToSide=_ESClass("SelectKeysToSide", SelectOpBase, [function SelectKeysToSide() {
+    SelectOpBase.call(this);
+  }, function exec(ctx) {
+    var state=this.inputs.state.data;
+    var mintime=1e+17, maxtime=-1e+17;
+    var __iter_id=__get_iter(this.inputs.phantom_ids.data);
+    var id;
+    while (1) {
+      var __ival_id=__iter_id.next();
+      if (__ival_id.done) {
+          break;
+      }
+      id = __ival_id.value;
+      if (!get_select(ctx, id))
+        continue;
+      var time=get_time(ctx, id);
+      mintime = Math.min(mintime, time);
+      maxtime = Math.max(maxtime, time);
+    }
+    if (mintime==1e+17) {
+        mintime = maxtime = ctx.scene.time;
+    }
+    var side=this.inputs.side.data;
+    var __iter_id=__get_iter(this.inputs.phantom_ids.data);
+    var id;
+    while (1) {
+      var __ival_id=__iter_id.next();
+      if (__ival_id.done) {
+          break;
+      }
+      id = __ival_id.value;
+      var time=get_time(ctx, id);
+      if ((side&&time<maxtime)||(!side&&time>mintime))
+        continue;
+      set_select(ctx, id, state);
+    }
+  }]);
+  _es6_module.add_class(SelectKeysToSide);
+  SelectKeysToSide = _es6_module.add_export('SelectKeysToSide', SelectKeysToSide);
+  SelectKeysToSide.inputs = ToolOp.inherit_inputs(SelectOpBase, {state: new BoolProperty(true, "state"), phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom_ids"), side: new BoolProperty(true, "side")});
+  var ToggleSelectOp=_ESClass("ToggleSelectOp", SelectOpBase, [function ToggleSelectOp(mode) {
+    if (mode==undefined) {
+        mode = "auto";
+    }
+    SelectOpBase.call(this);
+    this.inputs.mode.set_data(mode);
+  }, function exec(ctx) {
+    var mode=this.inputs.mode.data;
+    if (mode=="auto") {
+        mode = "select";
+        var __iter_id=__get_iter(this.inputs.phantom_ids.data);
+        var id;
+        while (1) {
+          var __ival_id=__iter_id.next();
+          if (__ival_id.done) {
+              break;
+          }
+          id = __ival_id.value;
+          if (get_select(ctx, id))
+            mode = "deselect";
+        }
+    }
+    mode = mode=="select" ? true : false;
+    var __iter_id=__get_iter(this.inputs.phantom_ids.data);
+    var id;
+    while (1) {
+      var __ival_id=__iter_id.next();
+      if (__ival_id.done) {
+          break;
+      }
+      id = __ival_id.value;
+      set_select(ctx, id, mode);
+    }
+  }]);
+  _es6_module.add_class(ToggleSelectOp);
+  ToggleSelectOp = _es6_module.add_export('ToggleSelectOp', ToggleSelectOp);
+  var mode_vals=["select", "deselect", "auto"];
+  mode_vals = _es6_module.add_export('mode_vals', mode_vals);
+  ToggleSelectOp.inputs = ToolOp.inherit_inputs(SelectOpBase, {phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom ids"), mode: new EnumProperty("auto", mode_vals, "mode", "Mode", "mode")});
+  var DeleteKeyOp=_ESClass("DeleteKeyOp", ToolOp, [function DeleteKeyOp() {
+    ToolOp.call(this);
+  }, function exec(ctx) {
+    var __iter_id=__get_iter(this.inputs.phantom_ids.data);
+    var id;
+    while (1) {
+      var __ival_id=__iter_id.next();
+      if (__ival_id.done) {
+          break;
+      }
+      id = __ival_id.value;
+      if (get_select(ctx, id)) {
+          console.log("deleting!", id&65535);
+          delete_key(ctx, id);
+      }
+    }
+  }]);
+  _es6_module.add_class(DeleteKeyOp);
+  DeleteKeyOp = _es6_module.add_export('DeleteKeyOp', DeleteKeyOp);
+  
+  DeleteKeyOp.inputs = ToolOp.inherit_inputs(ToolOp, {phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom ids")});
+});
+es6_module_define('notifications', ["UIElement", "ScreenArea", "UIFrame", "UITabPanel", "UIWidgets", "UITextBox", "UIWidgets_special", "toolops_api", "UIPack"], function _notifications_module(_es6_module) {
   var UIElement=es6_import_item(_es6_module, 'UIElement', 'UIElement');
   var UIFlags=es6_import_item(_es6_module, 'UIElement', 'UIFlags');
   var PackFlags=es6_import_item(_es6_module, 'UIElement', 'PackFlags');
@@ -460,7 +3253,7 @@ es6_module_define('manipulator', [], function _manipulator_module(_es6_module) {
   }]);
   _es6_module.add_class(Manipulator);
   Manipulator = _es6_module.add_export('Manipulator', Manipulator);
-  var $nil_rGHj_get_render_rects;
+  var $nil_LdnH_get_render_rects;
   var ManipulatorManager=_ESClass("ManipulatorManager", [function ManipulatorManager(view2d) {
     this.view2d = view2d;
     this.stack = [];
@@ -474,7 +3267,7 @@ es6_module_define('manipulator', [], function _manipulator_module(_es6_module) {
         return this.active.get_render_rects(ctx, canvas, g);
     }
     else {
-      return $nil_rGHj_get_render_rects;
+      return $nil_LdnH_get_render_rects;
     }
   }, function remove(mn) {
     if (mn==this.active) {
@@ -535,11 +3328,11 @@ es6_module_define('manipulator', [], function _manipulator_module(_es6_module) {
       this.push(mn);
     return mn;
   }]);
-  var $nil_rGHj_get_render_rects=[];
+  var $nil_LdnH_get_render_rects=[];
   _es6_module.add_class(ManipulatorManager);
   ManipulatorManager = _es6_module.add_export('ManipulatorManager', ManipulatorManager);
 });
-es6_module_define('view2d', ["UIWidgets_special", "spline_createops", "view2d_spline_ops", "UICanvas", "video", "struct", "selectmode", "UITabPanel", "events", "imageblock", "toolops_api", "view2d_editor", "spline_editops", "notifications", "manipulator", "ScreenArea", "UIMenu", "mathlib", "UIElement", "spline_draw", "RadialMenu", "UIWidgets", "UIWidgets_special2", "UIPack"], function _view2d_module(_es6_module) {
+es6_module_define('view2d', ["struct", "UIWidgets_special2", "view2d_spline_ops", "spline_editops", "imageblock", "spline_draw", "UITabPanel", "ScreenArea", "selectmode", "RadialMenu", "UICanvas", "mathlib", "UIElement", "UIWidgets_special", "manipulator", "UIPack", "view2d_editor", "toolops_api", "spline_createops", "events", "video", "notifications", "UIMenu", "UIWidgets"], function _view2d_module(_es6_module) {
   "use strict";
   var toolop_menu=es6_import_item(_es6_module, 'UIMenu', 'toolop_menu');
   var uimenu=es6_import(_es6_module, 'UIMenu');
@@ -659,11 +3452,11 @@ es6_module_define('view2d', ["UIWidgets_special", "spline_createops", "view2d_sp
   var UITabPanel=es6_import_item(_es6_module, 'UITabPanel', 'UITabPanel');
   var ImageUser=es6_import_item(_es6_module, 'imageblock', 'ImageUser');
   var canvas_owners=0;
-  var $v3d_id_jIUx_View2DHandler;
-  var $min_qg62_make_drawline;
-  var $_co_Ttvv_project;
-  var $_co_vrnR_unproject;
-  var $max_55P__make_drawline;
+  var $v3d_id_2OAg_View2DHandler;
+  var $min_rNLD_make_drawline;
+  var $_co_ekHc_project;
+  var $_co_eWXo_unproject;
+  var $max_LR5N_make_drawline;
   var View2DHandler=_ESClass("View2DHandler", Area, [function View2DHandler(gl, mesh, vprogram, fprogram, drawmats, x, y, width, height, znear, zfar) {
     if (znear==undefined) {
         znear = 0.75;
@@ -707,7 +3500,7 @@ es6_module_define('view2d', ["UIWidgets_special", "spline_createops", "view2d_sp
     this.tweak_mode = false;
     this.draw_viewport = true;
     this.draw_anim_paths = false;
-    this._id = $v3d_id_jIUx_View2DHandler++;
+    this._id = $v3d_id_2OAg_View2DHandler++;
     this.topbar = undefined;
     this.drawlines = new GArray();
     this.drawline_groups = {}
@@ -814,11 +3607,11 @@ es6_module_define('view2d', ["UIWidgets_special", "spline_createops", "view2d_sp
     var dl=new drawline(v1, v2, group);
     drawlines.push(dl);
     var pad=5;
-    $min_qg62_make_drawline[0] = Math.min(v1[0], v2[0])-pad;
-    $min_qg62_make_drawline[1] = Math.min(v1[1], v2[1])-pad;
-    $max_55P__make_drawline[0] = Math.max(v1[0], v2[0])+pad;
-    $max_55P__make_drawline[1] = Math.max(v1[1], v2[1])+pad;
-    redraw_viewport($min_qg62_make_drawline, $max_55P__make_drawline);
+    $min_rNLD_make_drawline[0] = Math.min(v1[0], v2[0])-pad;
+    $min_rNLD_make_drawline[1] = Math.min(v1[1], v2[1])-pad;
+    $max_LR5N_make_drawline[0] = Math.max(v1[0], v2[0])+pad;
+    $max_LR5N_make_drawline[1] = Math.max(v1[1], v2[1])+pad;
+    redraw_viewport($min_rNLD_make_drawline, $max_LR5N_make_drawline);
     return dl;
   }, function kill_drawline(dl) {
     var drawlines=this._get_dl_group(dl.group);
@@ -883,16 +3676,16 @@ es6_module_define('view2d', ["UIWidgets_special", "spline_createops", "view2d_sp
     render.multiply(cam);
     this.irendermat.load(this.rendermat).invert();
   }, function project(co) {
-    $_co_Ttvv_project.load(co);
-    $_co_Ttvv_project[2] = 0.0;
-    $_co_Ttvv_project.multVecMatrix(this.rendermat);
-    co[0] = $_co_Ttvv_project[0], co[1] = $_co_Ttvv_project[1];
+    $_co_ekHc_project.load(co);
+    $_co_ekHc_project[2] = 0.0;
+    $_co_ekHc_project.multVecMatrix(this.rendermat);
+    co[0] = $_co_ekHc_project[0], co[1] = $_co_ekHc_project[1];
     return co;
   }, function unproject(co) {
-    $_co_vrnR_unproject.load(co);
-    $_co_vrnR_unproject[2] = 0.0;
-    $_co_vrnR_unproject.multVecMatrix(this.irendermat);
-    co[0] = $_co_vrnR_unproject[0], co[1] = $_co_vrnR_unproject[1];
+    $_co_eWXo_unproject.load(co);
+    $_co_eWXo_unproject[2] = 0.0;
+    $_co_eWXo_unproject.multVecMatrix(this.irendermat);
+    co[0] = $_co_eWXo_unproject[0], co[1] = $_co_eWXo_unproject[1];
     return co;
   }, function do_select(event, mpos, view2d, do_multiple) {
     if (do_multiple==undefined) {
@@ -1453,17 +4246,17 @@ es6_module_define('view2d', ["UIWidgets_special", "spline_createops", "view2d_sp
     this.editor.set_selectmode(mode);
     redraw_viewport();
   }]);
-  var $v3d_id_jIUx_View2DHandler=0;
-  var $min_qg62_make_drawline=[0, 0];
-  var $_co_Ttvv_project=new Vector3();
-  var $_co_vrnR_unproject=new Vector3();
-  var $max_55P__make_drawline=[0, 0];
+  var $v3d_id_2OAg_View2DHandler=0;
+  var $min_rNLD_make_drawline=[0, 0];
+  var $_co_ekHc_project=new Vector3();
+  var $_co_eWXo_unproject=new Vector3();
+  var $max_LR5N_make_drawline=[0, 0];
   _es6_module.add_class(View2DHandler);
   View2DHandler = _es6_module.add_export('View2DHandler', View2DHandler);
   View2DHandler.STRUCT = STRUCT.inherit(View2DHandler, Area)+"\n    _id             : int;\n    _selectmode     : int;\n    rendermat       : mat4;\n    irendermat      : mat4;\n    cameramat       : mat4;\n    only_render     : int;\n    draw_anim_paths : int;\n    draw_normals    : int;\n    editors         : array(abstract(View2DEditor));\n    editor          : int | obj.editors.indexOf(obj.editor);\n    zoom            : float;\n    tweak_mode        : int;\n    default_linewidth : float;\n    default_stroke    : vec4;\n    default_fill      : vec4;\n    extrude_mode      : int;\n    enable_blur       : int;\n    draw_faces        : int;\n    draw_video        : int;\n    pinned_paths      : array(int) | obj.pinned_paths != undefined ? obj.pinned_paths : [];\n    background_image  : ImageUser;\n    background_color  : vec3;\n    draw_bg_image     : int;\n    toolmode          : int;\n    draw_small_verts  : int;\n    edit_all_layers   : int;\n  }\n";
   View2DHandler.uiname = "Work Canvas";
 });
-es6_module_define('view2d_ops', ["toolprops", "toolops_api", "struct", "spline", "frameset", "scene", "ajax", "spline_draw", "fileapi", "spline_draw_new", "vectordraw_canvas2d_simple", "events"], function _view2d_ops_module(_es6_module) {
+es6_module_define('view2d_ops', ["spline", "frameset", "events", "toolprops", "vectordraw_canvas2d_simple", "fileapi", "spline_draw", "struct", "scene", "spline_draw_new", "toolops_api", "ajax"], function _view2d_ops_module(_es6_module) {
   "use strict";
   var ToolOp=es6_import_item(_es6_module, 'toolops_api', 'ToolOp');
   var UndoFlags=es6_import_item(_es6_module, 'toolops_api', 'UndoFlags');
@@ -1477,8 +4270,8 @@ es6_module_define('view2d_ops', ["toolprops", "toolops_api", "struct", "spline",
   var charmap=es6_import_item(_es6_module, 'events', 'charmap');
   var TouchEventManager=es6_import_item(_es6_module, 'events', 'TouchEventManager');
   var EventHandler=es6_import_item(_es6_module, 'events', 'EventHandler');
-  var $v1_J9up_exec_pan;
-  var $v2_Dtmy_exec_pan;
+  var $v1_VOAM_exec_pan;
+  var $v2_C_YP_exec_pan;
   var ViewRotateZoomPanOp=_ESClass("ViewRotateZoomPanOp", ToolOp, [function ViewRotateZoomPanOp() {
     ToolOp.call(this, "view2d_orbit", "Orbit");
     this.undoflag = UndoFlags.IGNORE_UNDO;
@@ -1596,22 +4389,22 @@ es6_module_define('view2d_ops', ["toolprops", "toolops_api", "struct", "spline",
       this.exec_pan(ctx);
   }, function exec_pan(ctx) {
     var view2d=ctx.view2d;
-    $v1_J9up_exec_pan.load(this.mv5);
-    $v2_Dtmy_exec_pan.load(this.mv6);
-    $v1_J9up_exec_pan[2] = 0.9;
-    $v2_Dtmy_exec_pan[2] = 0.9;
+    $v1_VOAM_exec_pan.load(this.mv5);
+    $v2_C_YP_exec_pan.load(this.mv6);
+    $v1_VOAM_exec_pan[2] = 0.9;
+    $v2_C_YP_exec_pan[2] = 0.9;
     var iprojmat=new Matrix4(ctx.view2d.drawmats.rendermat);
     iprojmat.invert();
     var scenter=new Vector3(this.center);
     scenter.multVecMatrix(ctx.view2d.drawmats.rendermat);
     if (isNaN(scenter[2]))
       scenter[2] = 0.0;
-    $v1_J9up_exec_pan[2] = scenter[2];
-    $v2_Dtmy_exec_pan[2] = scenter[2];
-    $v1_J9up_exec_pan.multVecMatrix(iprojmat);
-    $v2_Dtmy_exec_pan.multVecMatrix(iprojmat);
-    var vec=new Vector3($v2_Dtmy_exec_pan);
-    vec.sub($v1_J9up_exec_pan);
+    $v1_VOAM_exec_pan[2] = scenter[2];
+    $v2_C_YP_exec_pan[2] = scenter[2];
+    $v1_VOAM_exec_pan.multVecMatrix(iprojmat);
+    $v2_C_YP_exec_pan.multVecMatrix(iprojmat);
+    var vec=new Vector3($v2_C_YP_exec_pan);
+    vec.sub($v1_VOAM_exec_pan);
     newmat = new Matrix4(this.start_mat);
     if (isNaN(vec[0])||isNaN(vec[1])||isNaN(vec[2]))
       return ;
@@ -1635,8 +4428,8 @@ es6_module_define('view2d_ops', ["toolprops", "toolops_api", "struct", "spline",
     if (g_app_state.screen.tottouch==0)
       this.end_modal();
   }]);
-  var $v1_J9up_exec_pan=new Vector3();
-  var $v2_Dtmy_exec_pan=new Vector3();
+  var $v1_VOAM_exec_pan=new Vector3();
+  var $v2_C_YP_exec_pan=new Vector3();
   _es6_module.add_class(ViewRotateZoomPanOp);
   var ViewRotateOp=_ESClass("ViewRotateOp", ToolOp, [function ViewRotateOp() {
     ToolOp.call(this, "view2d_orbit", "Orbit");
@@ -2069,7 +4862,7 @@ es6_module_define('view2d_ops', ["toolprops", "toolops_api", "struct", "spline",
   ExportCanvasImage = _es6_module.add_export('ExportCanvasImage', ExportCanvasImage);
   
 });
-es6_module_define('view2d_spline_ops', ["ScreenArea", "multires_ops", "UIWidgets", "spline_selectops", "spline", "struct", "multires_selectops", "transform", "spline_types", "UIElement", "lib_api", "spline_editops", "spline_draw", "selectmode", "UIMenu", "toolops_api", "spline_multires", "events", "spline_createops", "UIWidgets_special", "transform_ops", "view2d_editor", "animdata", "UICanvas", "UIPack"], function _view2d_spline_ops_module(_es6_module) {
+es6_module_define('view2d_spline_ops', ["lib_api", "view2d_editor", "events", "UICanvas", "spline_editops", "UIPack", "spline_multires", "transform", "UIWidgets", "ScreenArea", "UIMenu", "multires_selectops", "transform_ops", "toolops_api", "spline_draw", "spline_types", "UIWidgets_special", "spline_selectops", "selectmode", "multires_ops", "struct", "animdata", "spline", "spline_createops", "UIElement"], function _view2d_spline_ops_module(_es6_module) {
   "use strict";
   var ExtrudeVertOp=es6_import_item(_es6_module, 'spline_createops', 'ExtrudeVertOp');
   var toolop_menu=es6_import_item(_es6_module, 'UIMenu', 'toolop_menu');
@@ -2263,8 +5056,8 @@ es6_module_define('view2d_spline_ops', ["ScreenArea", "multires_ops", "UIWidgets
   }]);
   _es6_module.add_class(PlayAnimOp);
   PlayAnimOp = _es6_module.add_export('PlayAnimOp', PlayAnimOp);
-  var $ops_5L5I_tools_menu;
-  var $rect_poLz_handle_mres_mousemove;
+  var $ops_OpTb_tools_menu;
+  var $rect_mwoV_handle_mres_mousemove;
   var SplineEditor=_ESClass("SplineEditor", View2DEditor, [function SplineEditor(view2d) {
     var keymap=new KeyMap();
     View2DEditor.call(this, "Geometry", EditModes.GEOMETRY, DataTypes.FRAMESET, keymap);
@@ -2431,7 +5224,7 @@ es6_module_define('view2d_spline_ops', ["ScreenArea", "multires_ops", "UIWidgets
     }
     return false;
   }, function tools_menu(ctx, mpos, view2d) {
-    var menu=view2d.toolop_menu(ctx, "Tools", $ops_5L5I_tools_menu);
+    var menu=view2d.toolop_menu(ctx, "Tools", $ops_OpTb_tools_menu);
     view2d.call_menu(menu, view2d, mpos);
   }, function on_inactive(view2d) {
   }, function on_active(view2d) {
@@ -2617,10 +5410,10 @@ es6_module_define('view2d_spline_ops', ["ScreenArea", "multires_ops", "UIWidgets
         }
         p = mr.get(p);
         p.flag|=MResFlags.HIGHLIGHT;
-        $rect_poLz_handle_mres_mousemove[0].load(p).subScalar(10);
-        $rect_poLz_handle_mres_mousemove[1].load(p).addScalar(10);
-        $rect_poLz_handle_mres_mousemove[0][2] = $rect_poLz_handle_mres_mousemove[1][2] = 0.0;
-        window.redraw_viewport($rect_poLz_handle_mres_mousemove[0], $rect_poLz_handle_mres_mousemove[1]);
+        $rect_mwoV_handle_mres_mousemove[0].load(p).subScalar(10);
+        $rect_mwoV_handle_mres_mousemove[1].load(p).addScalar(10);
+        $rect_mwoV_handle_mres_mousemove[0][2] = $rect_mwoV_handle_mres_mousemove[1][2] = 0.0;
+        window.redraw_viewport($rect_mwoV_handle_mres_mousemove[0], $rect_mwoV_handle_mres_mousemove[1]);
     }
     var ret=this.findnearest([event.x, event.y, 0], SelMask.SEGMENT, limit);
     if (ret!=undefined) {
@@ -2720,15 +5513,15 @@ es6_module_define('view2d_spline_ops', ["ScreenArea", "multires_ops", "UIWidgets
     menu.swap_mouse_button = 2;
     view2d.call_menu(menu, view2d, [event.x, event.y]);
   }]);
-  var $ops_5L5I_tools_menu=["spline.key_edges()", "spline.key_current_frame()", "spline.connect_handles()", "spline.disconnect_handles()", "spline.toggle_step_mode()", "spline.toggle_manual_handles()", "editor.paste_pose()", "editor.copy_pose()"];
-  var $rect_poLz_handle_mres_mousemove=[new Vector3(), new Vector3()];
+  var $ops_OpTb_tools_menu=["spline.key_edges()", "spline.key_current_frame()", "spline.connect_handles()", "spline.disconnect_handles()", "spline.toggle_step_mode()", "spline.toggle_manual_handles()", "editor.paste_pose()", "editor.copy_pose()"];
+  var $rect_mwoV_handle_mres_mousemove=[new Vector3(), new Vector3()];
   _es6_module.add_class(SplineEditor);
   SplineEditor = _es6_module.add_export('SplineEditor', SplineEditor);
   SplineEditor.STRUCT = "\n  SplineEditor {\n    selectmode : int;\n  }\n";
   var ScreenArea=es6_import_item(_es6_module, 'ScreenArea', 'ScreenArea');
   var Area=es6_import_item(_es6_module, 'ScreenArea', 'Area');
 });
-es6_module_define('frameset', ["animdata", "spline_element_array", "lib_api", "spline_types", "spline", "struct"], function _frameset_module(_es6_module) {
+es6_module_define('frameset', ["spline_element_array", "struct", "lib_api", "spline", "spline_types", "animdata"], function _frameset_module(_es6_module) {
   "use strict";
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
   var DataBlock=es6_import_item(_es6_module, 'lib_api', 'DataBlock');
@@ -4184,7 +6977,7 @@ es6_module_define('frameset', ["animdata", "spline_element_array", "lib_api", "s
   
   SplineFrameSet.STRUCT = STRUCT.inherit(SplineFrameSet, DataBlock)+"\n    idgen             : SDIDGen;\n    frames            : array(SplineFrame) | obj_values_to_array(obj.frames);\n    vertex_animdata   : array(VertexAnimData) | obj_values_to_array(obj.vertex_animdata);\n\n    cur_frame         : float | obj.frame.time;\n    editmode          : string;\n    editveid          : int;\n\n    time              : float;\n    framelist         : array(float);\n    pathspline        : Spline;\n\n    selectmode        : int;\n    draw_anim_paths   : int;\n    templayerid       : int;\n}\n";
 });
-es6_module_define('ops_editor', ["UIPack", "UITabPanel", "events", "UIFrame", "UIWidgets_special", "UICanvas", "toolops_api", "struct", "UIWidgets", "UITextBox", "UIElement", "ScreenArea"], function _ops_editor_module(_es6_module) {
+es6_module_define('ops_editor', ["UIFrame", "UIElement", "UITabPanel", "ScreenArea", "UIWidgets", "struct", "UIWidgets_special", "UIPack", "UICanvas", "toolops_api", "UITextBox", "events"], function _ops_editor_module(_es6_module) {
   var gen_editor_switcher=es6_import_item(_es6_module, 'UIWidgets_special', 'gen_editor_switcher');
   var PackFlags=es6_import_item(_es6_module, 'UIElement', 'PackFlags');
   var UIElement=es6_import_item(_es6_module, 'UIElement', 'UIElement');
@@ -4496,7 +7289,7 @@ es6_module_define('ops_editor', ["UIPack", "UITabPanel", "events", "UIFrame", "U
   OpStackEditor.uiname = "Operator Stack";
   OpStackEditor.debug_only = true;
 });
-es6_module_define('SettingsEditor', ["UIPack", "UIWidgets", "struct", "UITabPanel", "toolops_api", "UICanvas", "ScreenArea", "UIFrame", "UITextBox", "UIElement", "UIWidgets_special", "events", "mathlib"], function _SettingsEditor_module(_es6_module) {
+es6_module_define('SettingsEditor', ["UIWidgets", "events", "ScreenArea", "UIPack", "UIElement", "UIFrame", "UITextBox", "UIWidgets_special", "UICanvas", "UITabPanel", "struct", "mathlib", "toolops_api"], function _SettingsEditor_module(_es6_module) {
   "use strict";
   var gen_editor_switcher=es6_import_item(_es6_module, 'UIWidgets_special', 'gen_editor_switcher');
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
@@ -4727,7 +7520,7 @@ es6_module_define('SettingsEditor', ["UIPack", "UIWidgets", "struct", "UITabPane
   SettingsEditor.debug_only = false;
 });
 var ContextStruct;
-es6_module_define('data_api_define', ["spline_element_array", "imageblock", "ops_editor", "data_api", "units", "selectmode", "spline_createops", "toolprops", "config", "spline_base", "spline_multires", "toolops_api", "theme", "lib_api", "view2d"], function _data_api_define_module(_es6_module) {
+es6_module_define('data_api_define', ["toolops_api", "imageblock", "spline_multires", "spline_base", "selectmode", "toolprops", "config", "lib_api", "view2d", "units", "theme", "spline_createops", "data_api", "spline_element_array", "ops_editor"], function _data_api_define_module(_es6_module) {
   var DataTypes=es6_import_item(_es6_module, 'lib_api', 'DataTypes');
   var EditModes=es6_import_item(_es6_module, 'view2d', 'EditModes');
   var ENABLE_MULTIRES=es6_import_item(_es6_module, 'config', 'ENABLE_MULTIRES');
@@ -5586,7 +8379,7 @@ es6_module_define('data_api_define', ["spline_element_array", "imageblock", "ops
   gen_path_maps = _es6_module.add_export('gen_path_maps', gen_path_maps);
 });
 var data_ops_list;
-es6_module_define('data_api_opdefine', ["spline_layerops", "spline_selectops", "theplatform", "view2d_ops", "image_ops", "view2d_editor", "spline_createops", "view2d", "spline_editops", "spline_animops", "FrameManager", "FrameManager_ops", "view2d_spline_ops", "transform", "dialogs", "toolops_api", "safe_eval"], function _data_api_opdefine_module(_es6_module) {
+es6_module_define('data_api_opdefine', ["transform", "view2d_ops", "dialogs", "view2d_editor", "image_ops", "safe_eval", "theplatform", "spline_editops", "view2d", "spline_createops", "spline_selectops", "view2d_spline_ops", "toolops_api", "FrameManager_ops", "FrameManager", "spline_layerops", "spline_animops"], function _data_api_opdefine_module(_es6_module) {
   var FileDialog=es6_import_item(_es6_module, 'dialogs', 'FileDialog');
   var FileOpenOp=es6_import_item(_es6_module, 'dialogs', 'FileOpenOp');
   var FileSaveAsOp=es6_import_item(_es6_module, 'dialogs', 'FileSaveAsOp');

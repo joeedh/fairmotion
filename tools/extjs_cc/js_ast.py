@@ -1049,6 +1049,24 @@ class VarRefNode (Node):
     
     return n2
 
+class PositiveNode(Node):
+  def __init__(self, expr):
+    super(PositiveNode, self).__init__()
+    self.add(expr)   
+    
+  def extra_str(self):
+    return ""
+  
+  def gen_js(self, tlevel):
+    return self.s("+") + self.children[0].gen_js(tlevel);
+
+  def copy(self):
+    n2 = PositiveNode(self[0])
+    self.copy_basic(n2)
+    self.copy_children(n2)
+    
+    return n2
+
 class NegateNode(Node):
   def __init__(self, expr):
     super(NegateNode, self).__init__()

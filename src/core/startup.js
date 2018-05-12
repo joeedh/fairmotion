@@ -195,10 +195,6 @@ window.startup_intern = function startup() {
       g_app_state.session.validate_session();
       init_event_system();
   }
-  
-  startup_report("loading native client plugin, if possible...");
-  _nacl_domContentLoaded();
-  //init_redraw_globals
 }
 
 function init_event_system() {

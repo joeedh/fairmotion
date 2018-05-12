@@ -1696,8 +1696,6 @@ window.startup_intern = function startup() {
       g_app_state.session.validate_session();
       init_event_system();
   }
-  startup_report("loading native client plugin, if possible...");
-  _nacl_domContentLoaded();
 };
 function init_event_system() {
   window._stime = 10;
@@ -7042,8 +7040,8 @@ es6_module_define('J3DIMath', [], function _J3DIMath_module(_es6_module) {
     this.m21 = this.m22 = this.m23 = 0.0;
     this.m31 = this.m32 = this.m33 = 0.0;
   }
-  var $smatrix_PQhi_scale;
-  var $smatrix_K2DX_translate;
+  var $smatrix_F1RG_scale;
+  var $smatrix_gYjr_translate;
   var Matrix3=_ESClass("Matrix3", [function Matrix3(mat) {
     this.$matrix = new internal_matrix3();
     if (mat!=undefined) {
@@ -7072,17 +7070,17 @@ es6_module_define('J3DIMath', [], function _J3DIMath_module(_es6_module) {
     m.m11 = m.m22 = m.m33 = 1.0;
     return this;
   }, function scale(x, y) {
-    var m=$smatrix_PQhi_scale.$matrix;
+    var m=$smatrix_F1RG_scale.$matrix;
     m.m11 = x;
     m.m22 = y;
-    this.multiply($smatrix_PQhi_scale);
+    this.multiply($smatrix_F1RG_scale);
     return this;
   }, function translate(x, y) {
-    $smatrix_K2DX_translate.makeIdentity();
-    var m=$smatrix_K2DX_translate.$matrix;
+    $smatrix_gYjr_translate.makeIdentity();
+    var m=$smatrix_gYjr_translate.$matrix;
     m.m31 = x;
     m.m32 = y;
-    this.multiply($smatrix_K2DX_translate);
+    this.multiply($smatrix_gYjr_translate);
     return this;
   }, function euler_rotate(x, y, z) {
     var xmat=new Matrix4();
@@ -7143,8 +7141,8 @@ es6_module_define('J3DIMath', [], function _J3DIMath_module(_es6_module) {
     m1.m33 = m33;
     return this;
   }]);
-  var $smatrix_PQhi_scale={$matrix: {m11: 1, m12: 0, m13: 0, m21: 0, m22: 1, m23: 0, m31: 0, m32: 0, m33: 1}}
-  var $smatrix_K2DX_translate=new Matrix3();
+  var $smatrix_F1RG_scale={$matrix: {m11: 1, m12: 0, m13: 0, m21: 0, m22: 1, m23: 0, m31: 0, m32: 0, m33: 1}}
+  var $smatrix_gYjr_translate=new Matrix3();
   _es6_module.add_class(Matrix3);
   var Matrix4=_ESClass("Matrix4", [function Matrix4(m) {
     if (HasCSSMatrix)
@@ -7859,27 +7857,27 @@ es6_module_define('J3DIMath', [], function _J3DIMath_module(_es6_module) {
       _temp_xyz_vecs.push(null);
   }
   var _temp_xyz_cur=0;
-  var $init_NoRs_Vector3;
-  var $_tmp_iQoq_cross;
-  var $vec_pSQa_vectorDistance;
-  var $vec_VBa6_vectorDotDistance;
-  var $add_T8dQ_static_add;
-  var $_static_sub_9SDO_static_sub;
-  var $_static_mul_SVMm_static_mul;
-  var $_static_divide_ZpPk_static_divide;
-  var $_static_addScalar_rR4h_static_addScalar;
-  var $_static_subScalar_8M1K_static_subScalar;
-  var $_static_mulScalar_T811_static_mulScalar;
-  var $_static_divideScalar_TDMe__static_divideScalar;
-  var $n1_jWYW_normalizedDot;
-  var $_v3nd4_n1__VDc_normalizedDot4;
-  var $n1_Who3_normalizedDot3;
-  var $n2__4dP_normalizedDot;
-  var $_v3nd4_n2_OBcx_normalizedDot4;
-  var $n2_IH1i_normalizedDot3;
+  var $init_pCNP_Vector3;
+  var $_tmp_cN7o_cross;
+  var $vec_X08I_vectorDistance;
+  var $vec_DM30_vectorDotDistance;
+  var $add_4s46_static_add;
+  var $_static_sub_7YYo_static_sub;
+  var $_static_mul_Rq5C_static_mul;
+  var $_static_divide_6LMC_static_divide;
+  var $_static_addScalar_Ehvu_static_addScalar;
+  var $_static_subScalar_TtH7_static_subScalar;
+  var $_static_mulScalar_sWeD_static_mulScalar;
+  var $_static_divideScalar__IXj__static_divideScalar;
+  var $n1_bX8H_normalizedDot;
+  var $_v3nd4_n1_9oki_normalizedDot4;
+  var $n1_IISv_normalizedDot3;
+  var $n2_bjjI_normalizedDot;
+  var $_v3nd4_n2_BJ2q_normalizedDot4;
+  var $n2_eXBL_normalizedDot3;
   var Vector3=_ESClass("Vector3", Array, [function Vector3(vec) {
     if (vec==undefined)
-      vec = $init_NoRs_Vector3;
+      vec = $init_pCNP_Vector3;
     if (vec[0]==undefined)
       vec[0] = 0;
     if (vec[1]==undefined)
@@ -8048,21 +8046,21 @@ es6_module_define('J3DIMath', [], function _J3DIMath_module(_es6_module) {
     this[2] = this[2]*v[2];
     return this;
   }, function cross(v) {
-    $_tmp_iQoq_cross[0] = this[1]*v[2]-this[2]*v[1];
-    $_tmp_iQoq_cross[1] = this[2]*v[0]-this[0]*v[2];
-    $_tmp_iQoq_cross[2] = this[0]*v[1]-this[1]*v[0];
-    this[0] = $_tmp_iQoq_cross[0];
-    this[1] = $_tmp_iQoq_cross[1];
-    this[2] = $_tmp_iQoq_cross[2];
+    $_tmp_cN7o_cross[0] = this[1]*v[2]-this[2]*v[1];
+    $_tmp_cN7o_cross[1] = this[2]*v[0]-this[0]*v[2];
+    $_tmp_cN7o_cross[2] = this[0]*v[1]-this[1]*v[0];
+    this[0] = $_tmp_cN7o_cross[0];
+    this[1] = $_tmp_cN7o_cross[1];
+    this[2] = $_tmp_cN7o_cross[2];
     return this;
   }, function vectorDistance(v2) {
-    $vec_pSQa_vectorDistance.load(this);
-    $vec_pSQa_vectorDistance.sub(v2);
-    return $vec_pSQa_vectorDistance.vectorLength();
+    $vec_X08I_vectorDistance.load(this);
+    $vec_X08I_vectorDistance.sub(v2);
+    return $vec_X08I_vectorDistance.vectorLength();
   }, function vectorDotDistance(v2) {
-    $vec_VBa6_vectorDotDistance.load(this);
-    $vec_VBa6_vectorDotDistance.sub(v2);
-    return $vec_VBa6_vectorDotDistance.dot($vec_VBa6_vectorDotDistance);
+    $vec_DM30_vectorDotDistance.load(this);
+    $vec_DM30_vectorDotDistance.sub(v2);
+    return $vec_DM30_vectorDotDistance.dot($vec_DM30_vectorDotDistance);
   }, function sub(v) {
     if (v==null||v==undefined)
       console.trace();
@@ -8076,61 +8074,61 @@ es6_module_define('J3DIMath', [], function _J3DIMath_module(_es6_module) {
     this[2] = this[2]+v[2];
     return this;
   }, function static_add(v) {
-    $add_T8dQ_static_add[0] = this[0]+v[0];
-    $add_T8dQ_static_add[1] = this[1]+v[1];
-    $add_T8dQ_static_add[2] = this[2]+v[2];
-    return $add_T8dQ_static_add;
+    $add_4s46_static_add[0] = this[0]+v[0];
+    $add_4s46_static_add[1] = this[1]+v[1];
+    $add_4s46_static_add[2] = this[2]+v[2];
+    return $add_4s46_static_add;
   }, function static_sub(v) {
-    $_static_sub_9SDO_static_sub[0] = this[0]-v[0];
-    $_static_sub_9SDO_static_sub[1] = this[1]-v[1];
-    $_static_sub_9SDO_static_sub[2] = this[2]-v[2];
-    return $_static_sub_9SDO_static_sub;
+    $_static_sub_7YYo_static_sub[0] = this[0]-v[0];
+    $_static_sub_7YYo_static_sub[1] = this[1]-v[1];
+    $_static_sub_7YYo_static_sub[2] = this[2]-v[2];
+    return $_static_sub_7YYo_static_sub;
   }, function static_mul(v) {
-    $_static_mul_SVMm_static_mul[0] = this[0]*v[0];
-    $_static_mul_SVMm_static_mul[1] = this[1]*v[1];
-    $_static_mul_SVMm_static_mul[2] = this[2]*v[2];
-    return $_static_mul_SVMm_static_mul;
+    $_static_mul_Rq5C_static_mul[0] = this[0]*v[0];
+    $_static_mul_Rq5C_static_mul[1] = this[1]*v[1];
+    $_static_mul_Rq5C_static_mul[2] = this[2]*v[2];
+    return $_static_mul_Rq5C_static_mul;
   }, function static_divide(v) {
-    $_static_divide_ZpPk_static_divide[0] = this[0]/v[0];
-    $_static_divide_ZpPk_static_divide[1] = this[1]/v[1];
-    $_static_divide_ZpPk_static_divide[2] = this[2]/v[2];
-    return $_static_divide_ZpPk_static_divide;
+    $_static_divide_6LMC_static_divide[0] = this[0]/v[0];
+    $_static_divide_6LMC_static_divide[1] = this[1]/v[1];
+    $_static_divide_6LMC_static_divide[2] = this[2]/v[2];
+    return $_static_divide_6LMC_static_divide;
   }, function static_addScalar(s) {
-    $_static_addScalar_rR4h_static_addScalar[0] = this[0]+s;
-    $_static_addScalar_rR4h_static_addScalar[1] = this[1]+s;
-    $_static_addScalar_rR4h_static_addScalar[2] = this[2]+s;
-    return $_static_addScalar_rR4h_static_addScalar;
+    $_static_addScalar_Ehvu_static_addScalar[0] = this[0]+s;
+    $_static_addScalar_Ehvu_static_addScalar[1] = this[1]+s;
+    $_static_addScalar_Ehvu_static_addScalar[2] = this[2]+s;
+    return $_static_addScalar_Ehvu_static_addScalar;
   }, function static_subScalar(s) {
-    $_static_subScalar_8M1K_static_subScalar[0] = this[0]-s;
-    $_static_subScalar_8M1K_static_subScalar[1] = this[1]-s;
-    $_static_subScalar_8M1K_static_subScalar[2] = this[2]-s;
-    return $_static_subScalar_8M1K_static_subScalar;
+    $_static_subScalar_TtH7_static_subScalar[0] = this[0]-s;
+    $_static_subScalar_TtH7_static_subScalar[1] = this[1]-s;
+    $_static_subScalar_TtH7_static_subScalar[2] = this[2]-s;
+    return $_static_subScalar_TtH7_static_subScalar;
   }, function static_mulScalar(s) {
-    $_static_mulScalar_T811_static_mulScalar[0] = this[0]*s;
-    $_static_mulScalar_T811_static_mulScalar[1] = this[1]*s;
-    $_static_mulScalar_T811_static_mulScalar[2] = this[2]*s;
-    return $_static_mulScalar_T811_static_mulScalar;
+    $_static_mulScalar_sWeD_static_mulScalar[0] = this[0]*s;
+    $_static_mulScalar_sWeD_static_mulScalar[1] = this[1]*s;
+    $_static_mulScalar_sWeD_static_mulScalar[2] = this[2]*s;
+    return $_static_mulScalar_sWeD_static_mulScalar;
   }, function _static_divideScalar(s) {
-    $_static_divideScalar_TDMe__static_divideScalar[0] = this[0]/s;
-    $_static_divideScalar_TDMe__static_divideScalar[1] = this[1]/s;
-    $_static_divideScalar_TDMe__static_divideScalar[2] = this[2]/s;
-    return $_static_divideScalar_TDMe__static_divideScalar;
+    $_static_divideScalar__IXj__static_divideScalar[0] = this[0]/s;
+    $_static_divideScalar__IXj__static_divideScalar[1] = this[1]/s;
+    $_static_divideScalar__IXj__static_divideScalar[2] = this[2]/s;
+    return $_static_divideScalar__IXj__static_divideScalar;
   }, function dot(v) {
     return this[0]*v[0]+this[1]*v[1]+this[2]*v[2];
   }, function normalizedDot(v) {
-    $n1_jWYW_normalizedDot.load(this);
-    $n2__4dP_normalizedDot.load(v);
-    $n1_jWYW_normalizedDot.normalize();
-    $n2__4dP_normalizedDot.normalize();
-    return $n1_jWYW_normalizedDot.dot($n2__4dP_normalizedDot);
+    $n1_bX8H_normalizedDot.load(this);
+    $n2_bjjI_normalizedDot.load(v);
+    $n1_bX8H_normalizedDot.normalize();
+    $n2_bjjI_normalizedDot.normalize();
+    return $n1_bX8H_normalizedDot.dot($n2_bjjI_normalizedDot);
   }, _ESClass.static(function normalizedDot4(v1, v2, v3, v4) {
-    $_v3nd4_n1__VDc_normalizedDot4.load(v2).sub(v1).normalize();
-    $_v3nd4_n2_OBcx_normalizedDot4.load(v4).sub(v3).normalize();
-    return $_v3nd4_n1__VDc_normalizedDot4.dot($_v3nd4_n2_OBcx_normalizedDot4);
+    $_v3nd4_n1_9oki_normalizedDot4.load(v2).sub(v1).normalize();
+    $_v3nd4_n2_BJ2q_normalizedDot4.load(v4).sub(v3).normalize();
+    return $_v3nd4_n1_9oki_normalizedDot4.dot($_v3nd4_n2_BJ2q_normalizedDot4);
   }), _ESClass.static(function normalizedDot3(v1, v2, v3) {
-    $n1_Who3_normalizedDot3.load(v1).sub(v2).normalize();
-    $n2_IH1i_normalizedDot3.load(v3).sub(v2).normalize();
-    return $n1_Who3_normalizedDot3.dot($n2_IH1i_normalizedDot3);
+    $n1_IISv_normalizedDot3.load(v1).sub(v2).normalize();
+    $n2_eXBL_normalizedDot3.load(v3).sub(v2).normalize();
+    return $n1_IISv_normalizedDot3.dot($n2_eXBL_normalizedDot3);
   }), function preNormalizedAngle(v2) {
     if (this.dot(v2)<0.0) {
         var vec=new Vector3();
@@ -8169,24 +8167,24 @@ es6_module_define('J3DIMath', [], function _J3DIMath_module(_es6_module) {
   }, function toString() {
     return "["+this[0]+","+this[1]+","+this[2]+"]";
   }]);
-  var $init_NoRs_Vector3=[0, 0, 0];
-  var $_tmp_iQoq_cross=[0, 0, 0];
-  var $vec_pSQa_vectorDistance=new Vector3();
-  var $vec_VBa6_vectorDotDistance=new Vector3();
-  var $add_T8dQ_static_add=new Vector3();
-  var $_static_sub_9SDO_static_sub=new Vector3();
-  var $_static_mul_SVMm_static_mul=new Vector3();
-  var $_static_divide_ZpPk_static_divide=new Vector3();
-  var $_static_addScalar_rR4h_static_addScalar=new Vector3();
-  var $_static_subScalar_8M1K_static_subScalar=new Vector3();
-  var $_static_mulScalar_T811_static_mulScalar=new Vector3();
-  var $_static_divideScalar_TDMe__static_divideScalar=new Vector3();
-  var $n1_jWYW_normalizedDot=new Vector3();
-  var $_v3nd4_n1__VDc_normalizedDot4=new Vector3();
-  var $n1_Who3_normalizedDot3=new Vector3();
-  var $n2__4dP_normalizedDot=new Vector3();
-  var $_v3nd4_n2_OBcx_normalizedDot4=new Vector3();
-  var $n2_IH1i_normalizedDot3=new Vector3();
+  var $init_pCNP_Vector3=[0, 0, 0];
+  var $_tmp_cN7o_cross=[0, 0, 0];
+  var $vec_X08I_vectorDistance=new Vector3();
+  var $vec_DM30_vectorDotDistance=new Vector3();
+  var $add_4s46_static_add=new Vector3();
+  var $_static_sub_7YYo_static_sub=new Vector3();
+  var $_static_mul_Rq5C_static_mul=new Vector3();
+  var $_static_divide_6LMC_static_divide=new Vector3();
+  var $_static_addScalar_Ehvu_static_addScalar=new Vector3();
+  var $_static_subScalar_TtH7_static_subScalar=new Vector3();
+  var $_static_mulScalar_sWeD_static_mulScalar=new Vector3();
+  var $_static_divideScalar__IXj__static_divideScalar=new Vector3();
+  var $n1_bX8H_normalizedDot=new Vector3();
+  var $_v3nd4_n1_9oki_normalizedDot4=new Vector3();
+  var $n1_IISv_normalizedDot3=new Vector3();
+  var $n2_bjjI_normalizedDot=new Vector3();
+  var $_v3nd4_n2_BJ2q_normalizedDot4=new Vector3();
+  var $n2_eXBL_normalizedDot3=new Vector3();
   _es6_module.add_class(Vector3);
   var _vec2_init=[0, 0];
   var _v2_static_mvm_co=new Vector3();
@@ -8428,14 +8426,14 @@ es6_module_define('J3DIMath', [], function _J3DIMath_module(_es6_module) {
     return "["+this[0]+","+this[1]+","+this[2]+","+this[3]+"]";
   }]);
   _es6_module.add_class(Vector4);
-  var $v4init_4C4o_Quat;
+  var $v4init_56f4_Quat;
   var Quat=_ESClass("Quat", Vector4, [function Quat(x, y, z, w) {
-    var vec=$v4init_4C4o_Quat;
+    var vec=$v4init_56f4_Quat;
     if (typeof (x)=="number") {
-        $v4init_4C4o_Quat[0] = x;
-        $v4init_4C4o_Quat[1] = y;
-        $v4init_4C4o_Quat[2] = z;
-        $v4init_4C4o_Quat[3] = w;
+        $v4init_56f4_Quat[0] = x;
+        $v4init_56f4_Quat[1] = y;
+        $v4init_56f4_Quat[2] = z;
+        $v4init_56f4_Quat[3] = w;
     }
     else {
       vec = x;
@@ -8656,7 +8654,7 @@ es6_module_define('J3DIMath', [], function _J3DIMath_module(_es6_module) {
     this[2] = sc1*quat[2]+sc2*quat2[2];
     this[3] = sc1*quat[3]+sc2*quat2[3];
   }]);
-  var $v4init_4C4o_Quat=[0, 0, 0, 0];
+  var $v4init_56f4_Quat=[0, 0, 0, 0];
   _es6_module.add_class(Quat);
   window.Vector2 = Vector2;
   window.Vector3 = Vector3;
@@ -9022,9 +9020,9 @@ function time_func(func, steps) {
   console.log(times);
   return times;
 }
-var $lst_lWlp=new GArray();
+var $lst_4nLd=new GArray();
 function cached_list(iter) {
-  $lst_lWlp.reset();
+  $lst_4nLd.reset();
   var i=0;
   var __iter_item=__get_iter(iter);
   var item;
@@ -9034,11 +9032,11 @@ function cached_list(iter) {
         break;
     }
     item = __ival_item.value;
-    $lst_lWlp.push(item);
+    $lst_4nLd.push(item);
     i++;
   }
-  $lst_lWlp.length = i;
-  return $lst_lWlp;
+  $lst_4nLd.length = i;
+  return $lst_4nLd;
 }
 var g_list=list;
 var eid_list=_ESClass("eid_list", GArray, [function eid_list(iter) {

@@ -36,6 +36,7 @@ def build():
   for f in os.listdir("./build"):
     ok = (f.startswith("app") and f.endswith(".js"))
     ok = ok or f.startswith("iconsheet")
+    ok = ok or f.endswith(".wasm")
     
     if not ok: continue
     

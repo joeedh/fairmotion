@@ -20,7 +20,7 @@ res = [
 'throw', 'try', 'catch', 'delete', 'typeof', 'instanceof',
 'with', 'switch', 'case', 'default', 'yield',
 'float', 'int', 'const', 'short', 'double', 'char',
-'unsigned', 'signed', 'variable', 'template', 'byte',
+'signed', 'variable', 'template', 'byte',
 'global', 'inferred', 'native', 'class', 'extends',
 'static', 'typed', 'finally', 'get', 'set', 'import', 'export', 'from'
 ]

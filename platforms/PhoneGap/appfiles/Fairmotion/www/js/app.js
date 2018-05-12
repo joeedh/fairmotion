@@ -380,7 +380,7 @@ function _load_module(mod) {
   if (dependnames.length!=0) {
   }
   if (mod.callback==undefined) {
-      console.log("WARNING: module", mod.name, "does not exist!");
+      console.warn("WARNING: module", mod.name, "does not exist!");
       return ;
   }
   mod.callback.apply(this, args);
@@ -423,7 +423,7 @@ function es6_import(_es6_module, name) {
         console.log("cannot import module", name, mod);
       throw new ModuleLoadError();
   }
-  return mod.exports;
+  return mod.default_export!==undefined ? mod.default_export : mod.exports;
 }
 function es6_import_item(_es6_module, modname, name) {
   var mod=_es6_get_module(modname);
@@ -898,6 +898,8 @@ es6_module_define('config', ["config_local"], function _config_module(_es6_modul
   PHONE_APP_MODE = _es6_module.add_export('PHONE_APP_MODE', PHONE_APP_MODE);
   var ICONPATH=PHONE_APP_MODE ? "img/" : (ELECTRON_APP_MODE ? "./fcontent/" : "fcontent/");
   ICONPATH = _es6_module.add_export('ICONPATH', ICONPATH);
+  var USE_WASM=true;
+  USE_WASM = _es6_module.add_export('USE_WASM', USE_WASM);
   var USE_NACL=CHROME_APP_MODE;
   USE_NACL = _es6_module.add_export('USE_NACL', USE_NACL);
   var NO_SERVER=CHROME_APP_MODE||PHONE_APP_MODE||ELECTRON_APP_MODE;
@@ -910,7 +912,7 @@ es6_module_define('config', ["config_local"], function _config_module(_es6_modul
   ENABLE_MULTIRES = _es6_module.add_export('ENABLE_MULTIRES', ENABLE_MULTIRES);
   var HAVE_EVAL=false;
   HAVE_EVAL = _es6_module.add_export('HAVE_EVAL', HAVE_EVAL);
-  var MAX_CANVAS2D_VECTOR_CACHE_SIZE=700;
+  var MAX_CANVAS2D_VECTOR_CACHE_SIZE=1700;
   MAX_CANVAS2D_VECTOR_CACHE_SIZE = _es6_module.add_export('MAX_CANVAS2D_VECTOR_CACHE_SIZE', MAX_CANVAS2D_VECTOR_CACHE_SIZE);
   var MAX_RECENT_FILES=12;
   MAX_RECENT_FILES = _es6_module.add_export('MAX_RECENT_FILES', MAX_RECENT_FILES);

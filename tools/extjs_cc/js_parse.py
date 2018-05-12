@@ -328,6 +328,10 @@ def p_assign_statement(p):
     p[0] = p[1]
     p[0].type = p[3]
     
+def p_bracketed_statementlist(p):
+    '''bracketed_statementlist : LBRACKET statementlist RBRACKET'''
+    p[0] = p[2]
+    
 def p_statement(p):
   ''' statement : function
                 | class
@@ -350,6 +354,7 @@ def p_statement(p):
                 | func_native SEMI
                 | import_decl
                 | export_decl
+                | bracketed_statementlist
   '''
   set_parse_globals(p)
   
@@ -575,8 +580,7 @@ def p_template(p):
   p[0] = TemplateNode(p[2])
  
 def p_type_modifiers(p):
-  '''type_modifiers : type_modifiers UNSIGNED
-                    | type_modifiers SIGNED
+  '''type_modifiers : type_modifiers SIGNED
                     | type_modifiers CONST
                     | GLOBAL
                     | VAR
@@ -2070,6 +2074,7 @@ def p_expr(p):
             | expr COMMA expr
             | lparen_restrict expr rparen_restrict
             | expr_uminus
+            | expr_uplus
             | not
             | bitinv
             | new
@@ -2115,7 +2120,7 @@ def p_expr(p):
         p[0].template = p[2]
     elif len(p) == 2:
       if type(p[1]) in [RegExprNode, StrLitNode, TypeofNode, 
-                        BitInvNode, LogicalNotNode, NegateNode, 
+                        BitInvNode, LogicalNotNode, NegateNode, PositiveNode,
                         ArrayLitNode, ObjLitNode, FunctionNode, 
                         KeywordNew, PreInc, PostInc, PreDec, PostDec,
                         TemplateNode, ExprListNode]:
@@ -2168,6 +2173,7 @@ def p_expr_no_list(p):
             | expr_no_list QEST expr_no_list COLON expr_no_list
             | lparen_restrict expr rparen_restrict
             | expr_no_list_uminus
+            | expr_no_list_uplus
             | not_no_list
             | bitinv_no_list
             | new_no_list
@@ -2213,7 +2219,7 @@ def p_expr_no_list(p):
         p[0].template = p[2]
     elif len(p) == 2:
       if type(p[1]) in [RegExprNode, StrLitNode, TypeofNode, 
-                        BitInvNode, LogicalNotNode, NegateNode, 
+                        BitInvNode, LogicalNotNode, NegateNode, PositiveNode, 
                         ArrayLitNode, ObjLitNode, FunctionNode, 
                         KeywordNew, PreInc, PostInc, PreDec, PostDec,
                         TemplateNode, ExprListNode]:
@@ -2229,6 +2235,18 @@ def p_expr_no_list(p):
 #p_expr.__doc__ = p_expr.__doc__.replace("expr", "expr") #+ "    | exprfunction \n"
 #print(p_expr.__doc__)
 
+def p_expr_uplus(p):
+    '''expr_uplus : PLUS expr %prec UMINUS
+    '''
+    set_parse_globals(p);
+    p[0] = PositiveNode(p[2]);
+
+def p_expr_no_list_uplus(p):
+    '''expr_no_list_uplus : PLUS expr_no_list %prec UMINUS
+    '''
+    set_parse_globals(p);
+    p[0] = PositiveNode(p[2]);
+
 def p_expr_uminus(p):
     '''expr_uminus : MINUS expr %prec UMINUS
     '''
@@ -2240,7 +2258,6 @@ def p_expr_no_list_uminus(p):
     '''
     set_parse_globals(p);
     p[0] = NegateNode(p[2]);
-    
 
 def p_paren_expr(p):
   '''paren_expr : LPAREN expr RPAREN
@@ -2564,6 +2581,9 @@ def p_export_decl(p):
     
     name = get_name(n)
     
+    if type(p[3]) == AssignNode and type(p[3][0]) == IdentNode:
+        p[3] = VarDeclNode(p[3][1], local=True, name=p[3][0].val)
+        
     p[0] = ExportNode(name, is_default=True)
     p[0].is_default = True
     p[0].add(p[3])
@@ -2649,9 +2669,17 @@ def p_export_spec(p):
   elif len(p) == 4:
     p[0] = ExportIdent(p[1], p[3])
     
+def p_catch_tok(p):
+    r'''catch_tok : CATCH'''
+    
+    if p[1] != "catch":
+        raise SyntaxError("expected 'catch'")
+    
+    p[0] = p[1]
+    
 def p_catch(p):
-  '''catch : CATCH paren_expr statement_nonctrl
-           | CATCH paren_expr LBRACKET statementlist RBRACKET
+  '''catch : catch_tok paren_expr statement_nonctrl
+           | catch_tok paren_expr LBRACKET statementlist RBRACKET
   '''
 
   set_parse_globals(p)
@@ -2712,6 +2740,8 @@ def p_id(p):
          | GET
          | SET
          | STATIC
+         | CATCH
+         | GLOBAL
   '''
   p[0] = p[1]
     

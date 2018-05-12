@@ -18,7 +18,7 @@ import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler,
         charmap, TouchEventManager, EventHandler} from 'events';
 
 import {clear_jobs, clear_jobs_except_latest, clear_jobs_except_first, 
-        JobTypes} from 'nacl_api';
+        JobTypes} from 'native_api';
 
 var _tsv_apply_tmp1 = new Vector3();
 var _tsv_apply_tmp2 = new Vector3();

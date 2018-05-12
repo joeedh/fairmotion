@@ -349,11 +349,13 @@ export class SplineDrawer {
     
     var len = seg.length;
     
+    let stretch = 1.015;
+    
     s = 0;
     for (var i=0; i<steps; i++, s += ds) {
-      var dv = seg.derivative(s).normalize();
-      var co = seg.evaluate(s);
-      var k = -seg.curvature(s);
+      var dv = seg.derivative(s*stretch).normalize();
+      var co = seg.evaluate(s*stretch);
+      var k = -seg.curvature(s*stretch);
       
       co[0] += -dv[1]*lw;
       co[1] += dv[0]*lw;
@@ -376,15 +378,16 @@ export class SplineDrawer {
     lw = -lw;
     
     for (var i=0; i<steps; i++, s -= ds) {
-      var dv = seg.derivative(s).normalize();
-      var co = seg.evaluate(s);
-      var k = -seg.curvature(s);
+      var dv = seg.derivative(s*stretch).normalize();
+      var co = seg.evaluate(s*stretch);
+      var k = -seg.curvature(s*stretch);
       
       co[0] += -dv[1]*lw;
-      co[1] += dv[0]*lw;
+      co[1] +=  dv[0]*lw;
       
       dv[0] *= -(1.0 - lw*k);
       dv[1] *= -(1.0 - lw*k);
+      
       dv.mulScalar(len*ds/3.0);
       
       if (i > 0) {

@@ -4318,8 +4318,9 @@ es6_module_define('image_ops', ["lib_api", "spline", "spline_draw", "fileapi", "
   _es6_module.add_class(LoadImageOp);
   LoadImageOp = _es6_module.add_export('LoadImageOp', LoadImageOp);
 }, '/dev/fairmotion/src/image/image_ops.js');
-es6_module_define('UserSettings', ["config", "dialogs", "struct", "strutils"], function _UserSettings_module(_es6_module) {
+es6_module_define('UserSettings', ["dialogs", "struct", "theme", "config", "strutils"], function _UserSettings_module(_es6_module) {
   var config=es6_import(_es6_module, 'config');
+  var reload_default_theme=es6_import_item(_es6_module, 'theme', 'reload_default_theme');
   var b64encode=es6_import_item(_es6_module, 'strutils', 'b64encode');
   var b64decode=es6_import_item(_es6_module, 'strutils', 'b64decode');
   var download_file=es6_import_item(_es6_module, 'dialogs', 'download_file');
@@ -4330,6 +4331,12 @@ es6_module_define('UserSettings', ["config", "dialogs", "struct", "strutils"], f
     this.last_server_update = 0;
     this.update_waiting = false;
     this.recent_paths = [];
+  }, function reload_defaults() {
+    this.unit_scheme = "imperial";
+    this.unit = "in";
+    this.recent_paths.length = 0;
+    reload_default_theme();
+    this.server_update(true);
   }, function find_recent_path(path) {
     for (var i=0; i<this.recent_paths.length; i++) {
         if (this.recent_paths[i].path==path) {
@@ -4374,7 +4381,9 @@ es6_module_define('UserSettings', ["config", "dialogs", "struct", "strutils"], f
     if (force==undefined) {
         force = false;
     }
-    if (force||time_ms()-this.last_server_update>3000) {
+    force = force||config.NO_SERVER||time_ms()-this.last_server_update>3000;
+    force = force&&window.g_app_state!==undefined;
+    if (force) {
         _settings_manager.server_push(this);
         this.last_server_update = time_ms();
         this.update_waiting = false;

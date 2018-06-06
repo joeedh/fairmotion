@@ -422,6 +422,14 @@ export class FlagProperty extends ToolProperty {
     this.ui_key_names = {};
     this.flag_descriptions = {};
     
+    this.keys = {}
+    this.values = {}
+    
+    for (var k in maskmap) {
+      this.values[maskmap[k]] = maskmap[k];
+      this.keys[k] = maskmap[k];
+    }
+  
     if (uinames == undefined) {
       this.setUINames(uinames);
     } else {
@@ -429,14 +437,6 @@ export class FlagProperty extends ToolProperty {
       for (var k in uinames) {
         this.ui_key_names[uinames[k]] = k;
       }
-    }
-    
-    this.keys = {}
-    this.values = {}
-    
-    for (var k in maskmap) {
-      this.values[maskmap[k]] = maskmap[k];
-      this.keys[k] = maskmap[k];
     }
     
     this.set_flag(value);  

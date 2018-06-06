@@ -1,3 +1,1053 @@
+es6_module_define('UIFrame', ["mathlib", "UIElement", "J3DIMath", "events"], function _UIFrame_module(_es6_module) {
+  var aabb_isect_2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_2d');
+  var inrect_2d=es6_import_item(_es6_module, 'mathlib', 'inrect_2d');
+  es6_import(_es6_module, 'J3DIMath');
+  var PackFlags=es6_import_item(_es6_module, 'UIElement', 'PackFlags');
+  var UIElement=es6_import_item(_es6_module, 'UIElement', 'UIElement');
+  var UIFlags=es6_import_item(_es6_module, 'UIElement', 'UIFlags');
+  var CanvasFlags=es6_import_item(_es6_module, 'UIElement', 'CanvasFlags');
+  var KeyMap=es6_import_item(_es6_module, 'events', 'KeyMap');
+  var ToolKeyHandler=es6_import_item(_es6_module, 'events', 'ToolKeyHandler');
+  var FuncKeyHandler=es6_import_item(_es6_module, 'events', 'FuncKeyHandler');
+  var KeyHandler=es6_import_item(_es6_module, 'events', 'KeyHandler');
+  var charmap=es6_import_item(_es6_module, 'events', 'charmap');
+  var TouchEventManager=es6_import_item(_es6_module, 'events', 'TouchEventManager');
+  var VelocityPan=es6_import_item(_es6_module, 'events', 'VelocityPan');
+  var EventHandler=es6_import_item(_es6_module, 'events', 'EventHandler');
+  var _static_mat=new Matrix4();
+  var _ufbd_v1=new Vector3();
+  var _canvas_threshold=1.0;
+  var $pos_lF9o__find_active;
+  var $zero_76k4_build_draw_old;
+  var UIFrame=_ESClass("UIFrame", UIElement, [function UIFrame(ctx, canvas, path, pos, size) {
+    UIElement.call(this, ctx, path, pos, size);
+    this.dirty_rects = new GArray();
+    this.bgcolor = undefined;
+    this._pan_cache = {}
+    this.pan_bounds = [[0, 0], [0, 0]];
+    this.depth = 0;
+    this.ctx = ctx;
+    this._children = new GArray([]);
+    this.active = undefined;
+    this.velpan = new VelocityPan();
+    this.tick_timer = new Timer(200);
+    this.mpos = [0, 0];
+    this.draw_background = false;
+    this.has_hidden_elements = false;
+    if (canvas!=undefined) {
+        this.canvas = canvas;
+    }
+    this.leafcount = 0;
+    this.framecount = 0;
+    this.rcorner = 16.0;
+    this.keymap = undefined;
+  }, _ESClass.get(function children() {
+    return this._children;
+  }), _ESClass.set(function children(cs) {
+    var cset=new set();
+    var __iter_c=__get_iter(cs);
+    var c;
+    while (1) {
+      var __ival_c=__iter_c.next();
+      if (__ival_c.done) {
+          break;
+      }
+      c = __ival_c.value;
+      cset.add(c);
+    }
+    var __iter_c=__get_iter(list(this._children));
+    var c;
+    while (1) {
+      var __ival_c=__iter_c.next();
+      if (__ival_c.done) {
+          break;
+      }
+      c = __ival_c.value;
+      if (!cset.has(c)) {
+          c.on_remove(this);
+          c.parent = undefined;
+          c.canvas = undefined;
+      }
+    }
+    this._children.reset();
+    var __iter_c=__get_iter(cs);
+    var c;
+    while (1) {
+      var __ival_c=__iter_c.next();
+      if (__ival_c.done) {
+          break;
+      }
+      c = __ival_c.value;
+      if (!cset.has(c)) {
+          this.add(c);
+      }
+      else {
+        this._children.push(c);
+      }
+    }
+  }), function on_saved_uidata(visit_func) {
+    var __iter_c=__get_iter(this.children);
+    var c;
+    while (1) {
+      var __ival_c=__iter_c.next();
+      if (__ival_c.done) {
+          break;
+      }
+      c = __ival_c.value;
+      visit_func(c);
+    }
+  }, function on_load_uidata(visit) {
+    var __iter_c=__get_iter(this.children);
+    var c;
+    while (1) {
+      var __ival_c=__iter_c.next();
+      if (__ival_c.done) {
+          break;
+      }
+      c = __ival_c.value;
+      visit(c);
+    }
+  }, function on_gl_lost(new_gl) {
+    if (this.canvas!=undefined&&!(this.canvas.gl===new_gl)) {
+        this.canvas.on_gl_lost(new_gl);
+    }
+    if (this.children==undefined)
+      return ;
+    var __iter_c=__get_iter(this.children);
+    var c;
+    while (1) {
+      var __ival_c=__iter_c.next();
+      if (__ival_c.done) {
+          break;
+      }
+      c = __ival_c.value;
+      c.on_gl_lost(new_gl);
+    }
+    this.do_full_recalc();
+  }, function start_pan(start_mpos, button, last_mpos) {
+    if (start_mpos==undefined) {
+        start_mpos = undefined;
+    }
+    if (button==undefined) {
+        button = 0;
+    }
+    if (last_mpos==undefined) {
+        last_mpos = undefined;
+    }
+    if (!(this.state&UIFlags.HAS_PAN)) {
+        if (this.parent==undefined) {
+            console.trace();
+            console.log("Warning: UIFrame.start_pan: no parent frame with pan support");
+        }
+        else {
+          if (start_mpos!=undefined) {
+              start_mpos[0]+=this.pos[0];
+              start_mpos[1]+=this.pos[1];
+          }
+          if (last_mpos!=undefined) {
+              last_mpos[0]+=this.pos[0];
+              last_mpos[1]+=this.pos[1];
+          }
+          this.parent.start_pan(start_mpos, button, last_mpos);
+        }
+    }
+    else {
+      this.start_pan_main(start_mpos, button, last_mpos);
+    }
+  }, function start_pan_main(start_mpos, button, last_mpos) {
+    if (button==undefined) {
+        button = 0;
+    }
+    if (last_mpos==undefined) {
+        last_mpos = start_mpos;
+    }
+    if (start_mpos!=undefined) {
+        this.mpos[0] = start_mpos[0];
+        this.mpos[1] = start_mpos[1];
+    }
+    if (this.velpan==undefined)
+      this.velpan = new VelocityPan();
+    var mpos=[this.mpos[0], this.mpos[1]];
+    var lastmpos;
+    this.abs_transform(mpos);
+    if (last_mpos!=undefined) {
+        last_mpos = [last_mpos[0], last_mpos[1]];
+        this.abs_transform(last_mpos);
+    }
+    else {
+      last_mpos = mpos;
+    }
+    if (DEBUG.touch)
+      console.log("sy", mpos[1]);
+    var f=this;
+    while (f.parent!=undefined) {
+      f = f.parent;
+    }
+    this.velpan.can_coast = !(this.state&UIFlags.NO_VELOCITY_PAN);
+    this.velpan.start(mpos, last_mpos, this, f.push_modal.bind(f), f.pop_modal.bind(f));
+  }, function end_pan() {
+    if (this.modalhandler==this.velpan) {
+        this.velpan.end();
+        this.pop_modal();
+    }
+    else {
+      console.trace();
+      console.log("Warning: UIFrame.end_pan called when not in panning mode");
+      return ;
+    }
+  }, function get_keymaps() {
+    return this.keymap!=undefined ? [this.keymap] : [];
+  }, function do_full_recalc() {
+    this.dirty_rects.push([[this.abspos[0], this.abspos[1]], [this.size[0], this.size[1]]]);
+    this.do_recalc();
+    var __iter_c=__get_iter(this.children);
+    var c;
+    while (1) {
+      var __ival_c=__iter_c.next();
+      if (__ival_c.done) {
+          break;
+      }
+      c = __ival_c.value;
+      if (__instance_of(c, UIFrame))
+        c.do_full_recalc();
+      else 
+        c.do_recalc();
+    }
+  }, function on_resize(newsize, oldsize) {
+    if (this.canvas!=undefined) {
+        this.canvas.on_resize(newsize, oldsize);
+    }
+    this.do_full_recalc();
+    var __iter_c=__get_iter(this.children);
+    var c;
+    while (1) {
+      var __ival_c=__iter_c.next();
+      if (__ival_c.done) {
+          break;
+      }
+      c = __ival_c.value;
+      c.do_recalc();
+      c.on_resize(newsize, oldsize);
+    }
+  }, function on_inactive() {
+    if (this.active!=undefined) {
+        this.active.state&=~UIFlags.HIGHLIGHT;
+        this.active.do_recalc();
+        this.active.on_inactive();
+        this.active = undefined;
+        this.do_recalc();
+    }
+  }, function push_modal(e) {
+    UIElement.prototype.push_modal.call(this, e);
+  }, function pop_modal() {
+    UIElement.prototype.pop_modal.call(this);
+  }, function _offset_mpos(event) {
+    if (this.modalhandler!=null&&__instance_of(this.modalhandler, UIElement)) {
+        event.x-=this.modalhandler.pos[0];
+        event.y-=this.modalhandler.pos[1];
+    }
+    if ((this.state&UIFlags.HAS_PAN)&&this.velpan!=undefined) {
+        event.x-=this.velpan.pan[0];
+        event.y-=this.velpan.pan[1];
+    }
+  }, function _unoffset_mpos(event) {
+    if (this.state&UIFlags.HAS_PAN) {
+        event.x+=this.velpan.pan[0];
+        event.y+=this.velpan.pan[1];
+    }
+  }, function set_pan() {
+    if (this.state&UIFlags.PAN_CANVAS_MAT)
+      this.on_pan(this.velpan.pan, this.velpan.pan);
+  }, function on_pan(pan, old_pan) {
+    if (this.state&UIFlags.PAN_CANVAS_MAT) {
+        var mat=this.canvas.global_matrix;
+        var s=this.canvas.viewport[1];
+        var x=(pan[0]/s[0])*2.0;
+        var y=(pan[1]/s[1])*2.0;
+        mat.makeIdentity();
+        mat.translate(x, y, 0);
+    }
+    else {
+      this.do_full_recalc();
+    }
+    this.pan_do_build();
+  }, function _on_mousemove(event) {
+    if (this.bad_event(event))
+      return ;
+    if (this.modalhandler!=null) {
+        this._offset_mpos(event);
+        this.modalhandler._on_mousemove(event);
+        return true;
+    }
+    else {
+      return this.on_mousemove(event);
+    }
+  }, function focus(e) {
+    if (this.active!==e&&this.active!==undefined) {
+        this.active.state&=~UIFlags.HIGHLIGHT;
+        this.active.on_inactive();
+        this.active.do_recalc();
+    }
+    else 
+      if (e!=undefined&&e===this.active) {
+        if (this.parent!=undefined)
+          this.parent.focus(this);
+        return ;
+    }
+    if (e!=undefined) {
+        e.state|=UIFlags.HIGHLIGHT;
+        e.on_active();
+        e.do_recalc();
+    }
+    this.active = e;
+    if (this.parent!=undefined) {
+        this.parent.focus(this);
+    }
+  }, function _find_active(e) {
+    var mpos=[e.x, e.y];
+    var found=false;
+    for (var i=this.children.length-1; i>=0; i--) {
+        var c=this.children[i];
+        $pos_lF9o__find_active[0] = c.pos[0], $pos_lF9o__find_active[1] = c.pos[1];
+        if (c.state&UIFlags.HAS_PAN) {
+        }
+        if (inrect_2d(mpos, $pos_lF9o__find_active, c.size)) {
+            found = true;
+            if (this.active!=c&&this.active!=undefined) {
+                this.active.state&=~UIFlags.HIGHLIGHT;
+                this.active.on_inactive();
+                this.active.do_recalc();
+            }
+            if (this.active!=c) {
+                c.state|=UIFlags.HIGHLIGHT;
+                c.on_active();
+                c.do_recalc();
+                this.active = c;
+            }
+            break;
+        }
+    }
+    if (!found&&this.active!=undefined) {
+        this.active.state&=~UIFlags.HIGHLIGHT;
+        this.active.on_inactive();
+        this.active.do_recalc();
+        this.active = undefined;
+    }
+  }, function on_mousemove(e) {
+    if (this.bad_event(e))
+      return ;
+    this._offset_mpos(e);
+    var mpos=this.mpos = [e.x, e.y];
+    var found=false;
+    this._find_active(e);
+    if (this.active!=undefined) {
+        e.x-=this.active.pos[0];
+        e.y-=this.active.pos[1];
+        this.active._on_mousemove(e);
+        e.x+=this.active.pos[0];
+        e.y+=this.active.pos[1];
+    }
+    this._unoffset_mpos(e);
+    return this.active!=undefined;
+  }, function bad_event(event) {
+    if (!(this.state&UIFlags.ENABLED))
+      return false;
+    return UIElement.prototype.bad_event.call(this, event);
+  }, function _on_doubleclick(event) {
+    if (this.bad_event(event))
+      return ;
+    if (this.modalhandler!=null) {
+        this._offset_mpos(event);
+        this.modalhandler._on_doubleclick(event);
+    }
+    else {
+      this.on_doubleclick(event);
+    }
+  }, function _on_mousedown(event) {
+    if (this.bad_event(event))
+      return ;
+    if (this.modalhandler!=null) {
+        this._offset_mpos(event);
+        this.modalhandler._on_mousedown(event);
+    }
+    else {
+      this.on_mousedown(event);
+    }
+  }, function on_doubleclick(e) {
+    if (this.bad_event(e))
+      return ;
+    var mpos=this.mpos = [e.x, e.y];
+    this._find_active(e);
+    if (this.active!=undefined) {
+        e.x-=this.active.pos[0];
+        e.y-=this.active.pos[1];
+        this.active._on_doubleclick(e);
+    }
+    this._unoffset_mpos(e);
+    return this.active!=undefined;
+  }, function on_mousedown(e, feed_mousemove) {
+    if (feed_mousemove==undefined) {
+        feed_mousemove = false;
+    }
+    if (this.bad_event(e))
+      return ;
+    if (feed_mousemove)
+      this.on_mousemove(e);
+    else 
+      this._offset_mpos(e);
+    var mpos=this.mpos = [e.x, e.y];
+    this._find_active(e);
+    if ((this.state&UIFlags.USE_PAN)&&(e.button!=0||this.active==undefined)) {
+        console.log("panning");
+        this.start_pan([e.x, e.y]);
+        return ;
+    }
+    if (this.active!=undefined) {
+        e.x-=this.active.pos[0];
+        e.y-=this.active.pos[1];
+        this.active._on_mousedown(e);
+    }
+    this._unoffset_mpos(e);
+    return this.active!=undefined;
+  }, function _on_mouseup(event) {
+    if (this.bad_event(event))
+      return ;
+    if (this.modalhandler!=null) {
+        this._offset_mpos(event);
+        this.modalhandler._on_mouseup(event);
+    }
+    else {
+      this.on_mouseup(event);
+    }
+  }, function on_mouseup(e) {
+    if (this.bad_event(e))
+      return ;
+    this._offset_mpos(e);
+    if (this.active!=undefined) {
+        e.x-=this.active.pos[0];
+        e.y-=this.active.pos[1];
+        this.active._on_mouseup(e);
+    }
+    this._unoffset_mpos(e);
+    return this.active!=undefined;
+  }, function _on_mousewheel(event, delta) {
+    if (this.bad_event(event))
+      return ;
+    if (this.modalhandler!=null) {
+        if (this.modalhandler["pos"]!=undefined) {
+            event.x-=this.modalhandler.pos[0];
+            event.y-=this.modalhandler.pos[1];
+        }
+        this.modalhandler._on_mousewheel(event, delta);
+    }
+    else {
+      this.on_mousewheel(event, delta);
+    }
+  }, function on_mousewheel(e, delta) {
+    if (this.active!=undefined) {
+        if (this.modalhandler!=null&&this.modalhandler["pos"]!=undefined) {
+            event.x-=this.modalhandler.pos[0];
+            event.y-=this.modalhandler.pos[1];
+        }
+        this.active._on_mousewheel(e, delta);
+    }
+    return this.active!=undefined;
+  }, function on_textinput(e) {
+    if (this.active!=undefined) {
+        this.active._on_textinput(e);
+    }
+    return this.active!=undefined;
+  }, function on_keydown(e) {
+    if (this.active!=undefined) {
+        this.active._on_keydown(e);
+    }
+    return this.active!=undefined;
+  }, function on_keyup(e) {
+    if (this.active!=undefined) {
+        this.active._on_keyup(e);
+    }
+    return this.active!=undefined;
+  }, function on_charcode(e) {
+    if (this.active!=undefined) {
+        this.active._on_charcode(e);
+    }
+    return this.active!=undefined;
+  }, function get_uhash() {
+    var s="";
+    var p=this;
+    while (p!=undefined) {
+      s+=p.constructor.name;
+      if (__instance_of(p, Area))
+        break;
+      p = p.parent;
+    }
+    return s;
+  }, function prepend(e, packflag) {
+    e.defunct = false;
+    this.children.prepend(e);
+    if (!(__instance_of(e, UIFrame))) {
+        this.leafcount++;
+    }
+    else {
+      this.framecount++;
+    }
+    if (packflag!=undefined)
+      e.packflag|=packflag;
+    e.parent = this;
+    if (e.canvas==undefined)
+      e.canvas = this.canvas;
+    e.on_add(this);
+    this.do_recalc();
+    this.update_depth();
+  }, function _set_pan(e) {
+    e.state|=UIFlags.USE_PAN;
+    if (__instance_of(e, UIFrame)) {
+        var __iter_c=__get_iter(e.children);
+        var c;
+        while (1) {
+          var __ival_c=__iter_c.next();
+          if (__ival_c.done) {
+              break;
+          }
+          c = __ival_c.value;
+          this._set_pan(c);
+        }
+    }
+  }, function update_depth(e) {
+    return ;
+    var p=this;
+    this.depth = 0;
+    while (p.parent!=undefined) {
+      p = p.parent;
+      this.depth++;
+    }
+    function rec(f, depth) {
+      if (depth==undefined) {
+          depth = 0;
+      }
+      f.depth = depth;
+      var __iter_c=__get_iter(f.children);
+      var c;
+      while (1) {
+        var __ival_c=__iter_c.next();
+        if (__ival_c.done) {
+            break;
+        }
+        c = __ival_c.value;
+        if (__instance_of(c, UIFrame)) {
+            rec(c, depth+1);
+        }
+      }
+    }
+  }, function add(e, packflag) {
+    if (__instance_of(e, UIFrame)&&(e.state&UIFlags.HAS_PAN)&&e.velpan==undefined) {
+        e.velpan = new VelocityPan();
+    }
+    if (this.state&(UIFlags.HAS_PAN|UIFlags.USE_PAN)) {
+        this.state|=UIFlags.USE_PAN;
+        this._set_pan(e);
+    }
+    e.defunct = false;
+    this.children.push(e);
+    if (!(__instance_of(e, UIFrame))) {
+        this.leafcount++;
+    }
+    else {
+      this.framecount++;
+    }
+    if (packflag!=undefined)
+      e.packflag|=packflag;
+    e.parent = this;
+    if (e.canvas==undefined)
+      e.canvas = this.canvas;
+    e.on_add(this);
+    e.do_recalc();
+    this.update_depth();
+  }, function replace(a, b) {
+    if (a==this.modalhandler) {
+        a.pop_modal();
+    }
+    this.dirty_rects.push([[a.abspos[0], a.abspos[1]], [a.size[0], a.size[1]]]);
+    a.on_remove(this);
+    this.children.replace(a, b);
+    if (this.canvas!=undefined)
+      this.canvas.remove_cache(a);
+    if (a==this.active)
+      this.active = b;
+    b.parent = this;
+    if (b.canvas==undefined)
+      b.canvas = this.get_canvas();
+    if (b.ctx==undefined)
+      b.ctx = this.ctx;
+    b.on_add(this);
+    b.do_recalc();
+    this.update_depth();
+  }, function remove(e) {
+    e.defunct = true;
+    this.dirty_rects.push([[e.abspos[0], e.abspos[1]], [e.size[0], e.size[1]]]);
+    if (!(__instance_of(e, UIFrame))) {
+        this.leafcount--;
+    }
+    else {
+      this.framecount--;
+    }
+    if (e==this.modalhandler) {
+        e.pop_modal();
+    }
+    this.children.remove(e);
+    e.on_remove(this);
+    if (this.canvas!=undefined)
+      this.canvas.remove_cache(e);
+    if (e==this.active)
+      this.active = undefined;
+    this.update_depth();
+  }, function set_context(ctx) {
+    this.ctx = ctx;
+    var __iter_c=__get_iter(this.children);
+    var c;
+    while (1) {
+      var __ival_c=__iter_c.next();
+      if (__ival_c.done) {
+          break;
+      }
+      c = __ival_c.value;
+      c.set_context(ctx);
+    }
+  }, function load_filedata(obj) {
+    if (obj.pan) {
+        this.velpan = new VelocityPan();
+        this.velpan.pan.load(obj.pan);
+    }
+  }, function disable() {
+    UIElement.prototype.disable.call(this);
+    var __iter_c=__get_iter(this.children);
+    var c;
+    while (1) {
+      var __ival_c=__iter_c.next();
+      if (__ival_c.done) {
+          break;
+      }
+      c = __ival_c.value;
+      c.disable();
+    }
+  }, function enable() {
+    UIElement.prototype.enable.call(this);
+    var __iter_c=__get_iter(this.children);
+    var c;
+    while (1) {
+      var __ival_c=__iter_c.next();
+      if (__ival_c.done) {
+          break;
+      }
+      c = __ival_c.value;
+      c.enable();
+    }
+  }, function get_filedata() {
+    if (this.state&UIFlags.HAS_PAN&&this.velpan!=undefined) {
+        return {pan: this.velpan.pan}
+    }
+    return undefined;
+  }, function pan_do_build() {
+    var cache=this._pan_cache;
+    var cache2={}
+    var i=0;
+    var viewport=g_app_state.raster.viewport;
+    var __iter_c=__get_iter(this.children);
+    var c;
+    while (1) {
+      var __ival_c=__iter_c.next();
+      if (__ival_c.done) {
+          break;
+      }
+      c = __ival_c.value;
+      c.abspos[0] = 0;
+      c.abspos[1] = 0;
+      c.abs_transform(c.abspos);
+      var hidden=!aabb_isect_2d(c.abspos, c.size, viewport[0], viewport[1]);
+      if (!this.recalc&&!hidden&&(!(i in cache)||cache[i]!=hidden)) {
+          console.log("pan recalc");
+          this.do_recalc();
+      }
+      cache2[i] = hidden;
+      i++;
+    }
+    this._pan_cache = cache2;
+  }, function calc_dirty() {
+    var d=this.last_dirty;
+    var ret=[[0, 0], [0, 0]];
+    var first=true;
+    var margin=1;
+    var __iter_r=__get_iter(this.dirty_rects);
+    var r;
+    while (1) {
+      var __ival_r=__iter_r.next();
+      if (__ival_r.done) {
+          break;
+      }
+      r = __ival_r.value;
+      if (first) {
+          first = false;
+          ret[0][0] = r[0][0]-margin;
+          ret[0][1] = r[0][1]-margin;
+          ret[1][0] = r[1][0]+r[0][0]+margin*2;
+          ret[1][1] = r[1][1]+r[0][1]+margin*2;
+      }
+      else {
+        ret[0][0] = Math.min(ret[0][0], r[0][0]-margin);
+        ret[0][1] = Math.min(ret[0][1], r[0][1]-margin);
+        ret[1][0] = Math.max(ret[1][0], r[0][0]+r[1][0]+margin*2);
+        ret[1][1] = Math.max(ret[1][1], r[0][1]+r[1][1]+margin*2);
+      }
+    }
+    var __iter_c=__get_iter(this.children);
+    var c;
+    while (1) {
+      var __ival_c=__iter_c.next();
+      if (__ival_c.done) {
+          break;
+      }
+      c = __ival_c.value;
+      if (c.constructor.name=="ScreenBorder")
+        continue;
+      if (c.state&UIFlags.INVISIBLE)
+        continue;
+      if (!c.recalc)
+        continue;
+      var ret2;
+      if (__instance_of(c, UIFrame)) {
+          ret2 = c.calc_dirty();
+      }
+      else {
+        ret2 = c.last_dirty;
+      }
+      if (first) {
+          ret[0][0] = ret2[0][0];
+          ret[0][1] = ret2[0][1];
+          ret[1][0] = ret2[1][0]+ret2[0][0];
+          ret[1][1] = ret2[1][1]+ret2[0][1];
+          first = false;
+      }
+      else {
+        for (var i=0; i<2; i++) {
+            ret[0][i] = Math.min(ret[0][i], ret2[0][i]);
+            ret[1][i] = Math.max(ret[1][i], ret2[1][i]+ret2[0][i]);
+        }
+      }
+    }
+    this.abspos[0] = this.abspos[1] = 0.0;
+    this.abs_transform(this.abspos);
+    ret[0][0] = Math.min(Math.max(ret[0][0], this.abspos[0]), this.abspos[0]+this.size[0]);
+    ret[1][0]-=ret[0][0];
+    ret[1][1]-=ret[0][1];
+    return ret;
+  }, function build_draw(canvas, isVertical, cache_frame) {
+    if (cache_frame==undefined) {
+        cache_frame = undefined;
+    }
+    var mat=_static_mat;
+    this.has_hidden_elements = false;
+    this.recalc = 0;
+    if (this._limit==undefined)
+      this._limit = 0;
+    var d=this.calc_dirty();
+    this.dirty_rects.reset();
+    if (this.canvas==undefined) {
+        var p=this;
+        while (p!=undefined&&p.canvas==undefined) {
+          p = p.parent;
+        }
+        if (p!=undefined) {
+            this.canvas = p.canvas;
+            this.pack(this.canvas, false);
+        }
+    }
+    if (this.canvas==undefined) {
+        return ;
+    }
+    var pushed_pan_transform=false;
+    var canvas=this.canvas;
+    try {
+      if (this.state&UIFlags.HAS_PAN&&this.velpan!=undefined) {
+          canvas.push_transform();
+          pushed_pan_transform = true;
+          canvas.translate(this.velpan.pan);
+      }
+    }
+    catch (err) {
+        print_stack(err);
+    }
+    if (this.draw_background) {
+        canvas.simple_box([0, 0], this.size, this.bgcolor, this.rcorner);
+    }
+    var __iter_c=__get_iter(this.children);
+    var c;
+    while (1) {
+      var __ival_c=__iter_c.next();
+      if (__ival_c.done) {
+          break;
+      }
+      c = __ival_c.value;
+      if (c.canvas==undefined)
+        c.canvas = this.canvas;
+      if (!c.recalc)
+        continue;
+      this.canvas.push_transform();
+      this.canvas.translate(c.pos);
+      c.abspos[0] = 0;
+      c.abspos[1] = 0;
+      c.abs_transform(c.abspos);
+      if (!(__instance_of(c, UIFrame))) {
+          var t=c.dirty;
+          c.dirty = c.last_dirty;
+          c.last_dirty = t;
+          c.dirty[0][0] = c.abspos[0];
+          c.dirty[0][1] = c.abspos[1];
+          c.dirty[1][0] = c.size[0];
+          c.dirty[1][1] = c.size[1];
+      }
+      try {
+        c.build_draw(this.canvas, false);
+      }
+      catch (err) {
+          print_stack(err);
+      }
+      this.canvas.pop_transform();
+      c.recalc = false;
+    }
+    if (pushed_pan_transform) {
+        this.canvas.pop_transform();
+    }
+  }, function build_draw_old(canvas, isVertical, cache_frame) {
+    if (cache_frame==undefined) {
+        cache_frame = undefined;
+    }
+    var mat=_static_mat;
+    this.has_hidden_elements = false;
+    var d=this.calc_dirty();
+    if (this.is_canvas_root()) {
+        if (DEBUG.use_2d_uicanvas) {
+            var __iter_c=__get_iter(this.children);
+            var c;
+            while (1) {
+              var __ival_c=__iter_c.next();
+              if (__ival_c.done) {
+                  break;
+              }
+              c = __ival_c.value;
+              if (aabb_isect_2d(c.pos, c.size, d[0], d[1])) {
+                  c.do_recalc();
+              }
+            }
+        }
+        this.canvas.push_transform();
+        this.canvas.translate(this.pos);
+    }
+    if (cache_frame==undefined) {
+        cache_frame = !(this.state&UIFlags.NO_FRAME_CACHE);
+    }
+    if (cache_frame&&this.depth==4) {
+        canvas.frame_begin(this);
+    }
+    if (this.parent==undefined) {
+        this.abspos[0] = this.abspos[1] = 0.0;
+        this.abs_transform(this.abspos);
+    }
+    if (this.state&UIFlags.HAS_PAN&&this.velpan!=undefined) {
+        if (!(this.state&UIFlags.PAN_CANVAS_MAT)) {
+            canvas.push_transform();
+            canvas.translate(this.velpan.pan);
+        }
+    }
+    if (this.pos==undefined) {
+        this.pos = [0, 0];
+        console.log("eek");
+        console.trace();
+    }
+    if (this.draw_background) {
+    }
+    var retag_recalc=false;
+    this.recalc = 0;
+    var viewport=g_app_state.raster.viewport;
+    var __iter_c=__get_iter(this.children);
+    var c;
+    while (1) {
+      var __ival_c=__iter_c.next();
+      if (__ival_c.done) {
+          break;
+      }
+      c = __ival_c.value;
+      c.abspos[0] = 0;
+      c.abspos[1] = 0;
+      c.abs_transform(c.abspos);
+      var t=c.dirty;
+      c.dirty = c.last_dirty;
+      c.last_dirty = t;
+      c.dirty[0][0] = c.abspos[0];
+      c.dirty[0][1] = c.abspos[1];
+      c.dirty[1][0] = c.size[0];
+      c.dirty[1][1] = c.size[1];
+      var isect=aabb_isect_2d(c.abspos, c.size, viewport[0], viewport[1]);
+      var pos;
+      if (this.state&UIFlags.HAS_PAN)
+        pos = this.velpan.pan;
+      else 
+        pos = $zero_76k4_build_draw_old;
+      isect = isect||aabb_isect_2d(c.pos, c.size, pos, this.size);
+      if (!isect) {
+          this.has_hidden_elements = true;
+          continue;
+      }
+      if (c.pos==undefined) {
+          c.pos = [0, 0];
+          c.size = [0, 0];
+          console.log("eek2");
+          console.trace();
+      }
+      mat.makeIdentity();
+      _ufbd_v1.zero();
+      _ufbd_v1[0] = c.pos[0];
+      _ufbd_v1[1] = c.pos[1];
+      mat.translate(_ufbd_v1);
+      if ((c.canvas!=undefined&&c.canvas!=this.get_canvas())||c.is_canvas_root()) {
+          if (c.recalc&&!(c.packflag&PackFlags.NO_REPACK)) {
+              var canvas2=c.get_canvas();
+              canvas2.push_transform();
+              canvas2.translate(c.pos);
+              c.pack(canvas2, false);
+              c.build_draw(canvas2, isVertical);
+              canvas2.pop_transform();
+          }
+          continue;
+      }
+      var do_skip=!c.recalc;
+      if (!(__instance_of(c, UIFrame))&&this.constructor.name!="UIMenu") {
+          do_skip = !c.recalc;
+      }
+      if (c.recalc) {
+          var r=this.recalc;
+          if (c.recalc&&!(c.packflag&PackFlags.NO_REPACK))
+            c.pack(canvas, false);
+          canvas.push_transform(mat);
+          try {
+            c.build_draw(canvas, isVertical);
+          }
+          catch (_err) {
+              print_stack(_err);
+              if (c==this.modalhandler)
+                c.pop_modal();
+              console.log("Error occured while drawing element ", c);
+          }
+          canvas.pop_transform(mat);
+          c.recalc = 0;
+      }
+    }
+    if (cache_frame&&this.depth==4) {
+        canvas.frame_end(this);
+    }
+    if (retag_recalc)
+      this.do_recalc();
+    if (this.state&UIFlags.HAS_PAN&&this.velpan!=undefined) {
+        if (!(this.state&UIFlags.PAN_CANVAS_MAT)) {
+            canvas.pop_transform();
+        }
+    }
+    if (this.is_canvas_root()) {
+        this.canvas.pop_transform();
+    }
+    this.dirty_rects.reset();
+  }, function on_tick(pre_func) {
+    if (!this.tick_timer.ready())
+      return ;
+    UIElement.prototype.on_tick.call(this);
+    if (this.state&UIFlags.HAS_PAN&&this.valpan==undefined) {
+        this.valpan = new VelocityPan();
+        this.state|=UIFlags.USE_PAN;
+        function recurse(f) {
+          var __iter_c=__get_iter(f.children);
+          var c;
+          while (1) {
+            var __ival_c=__iter_c.next();
+            if (__ival_c.done) {
+                break;
+            }
+            c = __ival_c.value;
+            c.state|=UIFlags.USE_PAN;
+            if (__instance_of(c, UIFrame))
+              recurse(c);
+          }
+        }
+        recurse(this);
+    }
+    if (this.velpan!=undefined) {
+        this.velpan.on_tick();
+    }
+    var __iter_c=__get_iter(this.children);
+    var c;
+    while (1) {
+      var __ival_c=__iter_c.next();
+      if (__ival_c.done) {
+          break;
+      }
+      c = __ival_c.value;
+      try {
+        if (pre_func!=undefined)
+          pre_func(c);
+        c.on_tick();
+        if (c.status_timer!=undefined) {
+            c.inc_flash_timer();
+            c.do_recalc();
+        }
+      }
+      catch (_err) {
+          print_stack(_err);
+          if (c==this.modalhandler)
+            c.pop_modal();
+          console.log("Error occured in UIFrame.on_tick ", c);
+      }
+    }
+  }, function pack(canvas, isVertical) {
+    var __iter_c=__get_iter(this.children);
+    var c;
+    while (1) {
+      var __ival_c=__iter_c.next();
+      if (__ival_c.done) {
+          break;
+      }
+      c = __ival_c.value;
+      if (c.recalc&&!(c.packflag&PackFlags.NO_REPACK))
+        c.pack(canvas, isVertical);
+    }
+  }, function add_floating(e, modal, center) {
+    if (modal==undefined) {
+        modal = false;
+    }
+    if (center==undefined) {
+        center = false;
+    }
+    var off=[e.pos[0], e.pos[1]];
+    var frame=this;
+    this.abs_transform(off);
+    while (frame.parent!=undefined) {
+      frame = frame.parent;
+    }
+    if (e.canvas==undefined)
+      e.canvas = frame.get_canvas();
+    if (center) {
+    }
+    e.pos[0] = off[0];
+    e.pos[1] = off[1];
+    frame.add(e);
+    e.do_recalc();
+    frame.do_full_recalc();
+    if (modal) {
+        frame.push_modal(e);
+    }
+  }]);
+  var $pos_lF9o__find_active=[0, 0];
+  var $zero_76k4_build_draw_old=[0, 0];
+  _es6_module.add_class(UIFrame);
+  UIFrame = _es6_module.add_export('UIFrame', UIFrame);
+}, '/dev/fairmotion/src/ui/UIFrame.js');
 es6_module_define('UIPack', ["toolprops", "mathlib", "UIWidgets", "UIElement", "UIFrame"], function _UIPack_module(_es6_module) {
   var PropTypes=es6_import_item(_es6_module, 'toolprops', 'PropTypes');
   var TPropFlags=es6_import_item(_es6_module, 'toolprops', 'TPropFlags');
@@ -933,7 +1983,7 @@ es6_module_define('icon', [], function _icon_module(_es6_module) {
   var icon_vshader="\n\n";
   var icon_fshader="\n";
 }, '/dev/fairmotion/src/ui/icon.js');
-es6_module_define('UIWidgets', ["units", "toolprops", "events", "mathlib", "UIElement", "UIFrame"], function _UIWidgets_module(_es6_module) {
+es6_module_define('UIWidgets', ["UIElement", "events", "toolprops", "units", "UIFrame", "mathlib"], function _UIWidgets_module(_es6_module) {
   var $_mh;
   var $_swapt;
   var UIFrame=es6_import_item(_es6_module, 'UIFrame', 'UIFrame');
@@ -1108,10 +2158,10 @@ es6_module_define('UIWidgets', ["units", "toolprops", "events", "mathlib", "UIEl
   }]);
   _es6_module.add_class(UIButton);
   UIButton = _es6_module.add_export('UIButton', UIButton);
-  var $pos_yiWQ_build_draw;
-  var $high_clr_7rRW_build_draw;
-  var $size_D3sw_build_draw;
-  var $inset_clr_CvPN_build_draw;
+  var $pos_BMIb_build_draw;
+  var $high_clr_pBzW_build_draw;
+  var $size_NV_y_build_draw;
+  var $inset_clr_ERxm_build_draw;
   var UIButtonIcon=_ESClass("UIButtonIcon", UIButton, [function UIButtonIcon(ctx, text, icon, pos, size, path, callback, hint, use_small_icon) {
     if (path==undefined) {
         path = undefined;
@@ -1155,33 +2205,33 @@ es6_module_define('UIWidgets', ["units", "toolprops", "events", "mathlib", "UIEl
           canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
         else 
           if (this.clicked)
-          canvas.box($pos_yiWQ_build_draw, $size_D3sw_build_draw, uicolors["IconInv"]);
+          canvas.box($pos_BMIb_build_draw, $size_NV_y_build_draw, uicolors["IconInv"]);
         else 
           if (this.state&UIFlags.HIGHLIGHT)
-          canvas.box($pos_yiWQ_build_draw, $size_D3sw_build_draw, uicolors["HighlightIcon"]);
+          canvas.box($pos_BMIb_build_draw, $size_NV_y_build_draw, uicolors["HighlightIcon"]);
         else 
-          canvas.box($pos_yiWQ_build_draw, this.size, uicolors["IconBox"]);
+          canvas.box($pos_BMIb_build_draw, this.size, uicolors["IconBox"]);
         return ;
     }
     var pad=this.pad;
     var isize=this.small_icon ? canvas.iconsheet16.cellsize : canvas.iconsheet.cellsize;
     if (isize[0]>this.size[0])
-      $pos_yiWQ_build_draw[0] = 1;
+      $pos_BMIb_build_draw[0] = 1;
     else 
-      $pos_yiWQ_build_draw[0] = 1;
-    $pos_yiWQ_build_draw[1] = 0;
-    var $size_D3sw_build_draw=this.size;
+      $pos_BMIb_build_draw[0] = 1;
+    $pos_BMIb_build_draw[1] = 0;
+    var $size_NV_y_build_draw=this.size;
     if (this.bgmode=="button") {
         if (!(this.state&UIFlags.ENABLED))
           canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
         else 
           if (this.clicked)
-          canvas.box($pos_yiWQ_build_draw, $size_D3sw_build_draw, uicolors["IconInv"]);
+          canvas.box($pos_BMIb_build_draw, $size_NV_y_build_draw, uicolors["IconInv"]);
         else 
           if (this.state&UIFlags.HIGHLIGHT)
-          canvas.box($pos_yiWQ_build_draw, $size_D3sw_build_draw, uicolors["HighlightIcon"]);
+          canvas.box($pos_BMIb_build_draw, $size_NV_y_build_draw, uicolors["HighlightIcon"]);
         else 
-          canvas.box($pos_yiWQ_build_draw, this.size, uicolors["IconBox"]);
+          canvas.box($pos_BMIb_build_draw, this.size, uicolors["IconBox"]);
     }
     else 
       if (this.bgmode=="flat") {
@@ -1189,25 +2239,25 @@ es6_module_define('UIWidgets', ["units", "toolprops", "events", "mathlib", "UIEl
           canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
         else 
           if (this.clicked)
-          canvas.box($pos_yiWQ_build_draw, $size_D3sw_build_draw, $inset_clr_CvPN_build_draw);
+          canvas.box($pos_BMIb_build_draw, $size_NV_y_build_draw, $inset_clr_ERxm_build_draw);
         else 
           if (this.state&UIFlags.HIGHLIGHT)
-          canvas.box($pos_yiWQ_build_draw, $size_D3sw_build_draw, $high_clr_7rRW_build_draw);
+          canvas.box($pos_BMIb_build_draw, $size_NV_y_build_draw, $high_clr_pBzW_build_draw);
     }
-    if ($size_D3sw_build_draw[0]>isize[0])
-      $pos_yiWQ_build_draw[0]+=($size_D3sw_build_draw[0]-isize[0])*0.5;
-    if ($size_D3sw_build_draw[1]>isize[1])
-      $pos_yiWQ_build_draw[1]+=($size_D3sw_build_draw[1]-isize[1])*0.5;
+    if ($size_NV_y_build_draw[0]>isize[0])
+      $pos_BMIb_build_draw[0]+=($size_NV_y_build_draw[0]-isize[0])*0.5;
+    if ($size_NV_y_build_draw[1]>isize[1])
+      $pos_BMIb_build_draw[1]+=($size_NV_y_build_draw[1]-isize[1])*0.5;
     if (this.small_icon)
-      canvas.icon(this.icon, $pos_yiWQ_build_draw, 0.75, true);
+      canvas.icon(this.icon, $pos_BMIb_build_draw, 0.75, true);
     else 
-      canvas.icon(this.icon, $pos_yiWQ_build_draw, 0.75, false);
+      canvas.icon(this.icon, $pos_BMIb_build_draw, 0.75, false);
     canvas.end(this);
   }]);
-  var $pos_yiWQ_build_draw=[0, 0];
-  var $high_clr_7rRW_build_draw=[0.9, 0.9, 0.9, 0.2];
-  var $size_D3sw_build_draw=[0, 0];
-  var $inset_clr_CvPN_build_draw=[0.3, 0.3, 0.3, 0.2];
+  var $pos_BMIb_build_draw=[0, 0];
+  var $high_clr_pBzW_build_draw=[0.9, 0.9, 0.9, 0.2];
+  var $size_NV_y_build_draw=[0, 0];
+  var $inset_clr_ERxm_build_draw=[0.3, 0.3, 0.3, 0.2];
   _es6_module.add_class(UIButtonIcon);
   UIButtonIcon = _es6_module.add_export('UIButtonIcon', UIButtonIcon);
   var UIMenuButton=_ESClass("UIMenuButton", UIButtonAbstract, [function UIMenuButton(ctx, menu, pos, size, path, description) {
@@ -1849,7 +2899,8 @@ es6_module_define('UIWidgets', ["units", "toolprops", "events", "mathlib", "UIEl
           canvas.box([0, 0], this.size, this.bgcolor);
     }
     var tsize=canvas.textsize(this.text);
-    canvas.text([(this.size[0]-tsize[0])*0.5, (this.size[1]-tsize[1])*0.25], this.text, this.color);
+    var $_let_color20=this.color;
+    canvas.text([(this.size[0]-tsize[0])*0.5, (this.size[1]-tsize[1])*0.25], this.text, $_let_color20);
     canvas.end(this);
   }, function get_min_size(canvas, isvertical) {
     var pad=this.bgcolor!=undefined ? 2 : 4;

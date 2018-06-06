@@ -174,6 +174,9 @@ export class SplineDrawer {
       if (e.flag & SplineFlags.HIDE)
         continue;
       
+      if ((e.flag & SplineFlags.NO_RENDER) && e.type != SplineTypes.VERTEX && (selectmode != e.type || only_render))
+        continue;
+      
       var visible = false;
       
       for (var k in e.layers) {

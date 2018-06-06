@@ -1089,7 +1089,9 @@ export class UILabel extends UIElement {
     }
     
     var tsize = canvas.textsize(this.text);
-    canvas.text([(this.size[0]-tsize[0])*0.5, (this.size[1]-tsize[1])*0.25], this.text, this.color);
+    
+    let color = this.color;
+    canvas.text([(this.size[0]-tsize[0])*0.5, (this.size[1]-tsize[1])*0.25], this.text, color);
     
     canvas.end(this);
     //canvas.pop_scissor();

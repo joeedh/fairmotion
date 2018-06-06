@@ -1152,8 +1152,12 @@ export class View2DHandler extends Area {
     function callback(entry) {
       console.log(entry);
       if (entry.i == 0) {
-        console.log("logging out");
-        g_app_state.session.logout_simple();
+        //note: this is an html5 function
+        if (confirm("Settings will be cleared", "Clear Settings?")) {
+          console.log("clearing settings");
+          
+          ctx.appstate.session.settings.reload_defaults();
+        }
       } else if (entry.i == 2) {
         g_app_state.set_startup_file();
       } else if (entry.i == 1) {
@@ -1162,8 +1166,7 @@ export class View2DHandler extends Area {
     }
     
     var menu = new UIMenu("", callback);
-    
-    menu.add_item("Log out", "");
+    menu.add_item("Clear Settings", "");
     menu.add_item("Clear Default File");
     menu.add_item("Save Default File", "CTRL-ALT-U");
     

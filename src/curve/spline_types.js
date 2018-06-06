@@ -158,6 +158,13 @@ export class SplineVertex extends SplineElement {
     ret.load(ret.co);
     delete ret.co;
     
+    for (let axis=0; axis<3; axis++) {
+      if (isNaN(ret[axis])) {
+        console.warn("NaN vertex", ret.eid);
+        ret[axis] = 0;
+      }
+    }
+    
     return ret;
   }
 };
@@ -387,7 +394,7 @@ export class SplineSegment extends SplineElement {
         var wm = n.cross(dm)[2] < 0.0;
         
         if (isNaN(mang)) {
-          console.log(p, co, mid, dm);
+          console.warn("NaN!", p, co, mid, dm);
         }
         
         if (j == 0 && w1 == w2) {

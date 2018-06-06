@@ -15,17 +15,26 @@ export class BoxColor {
     this.colors = undefined; //[clr1, clr2, clr3, clr4, can be a getter
   }
   
+  copy() {
+    var ret = new BoxColor();
+    ret.colors = JSON.parse(JSON.stringify(this.colors));
+    return ret;
+  }
+  
   static fromSTRUCT(reader) {
     return {};
   }
 }
-BoxColor.STRUCT = """
+
+BoxColor.STRUCT = `
   BoxColor {
   }
-"""
+`;
 
 export class BoxColor4 extends BoxColor {
-  constructor(Array<Array<float>> colors) {
+  constructor(colors /*: Array<Array<float>>*/) {
+    super();
+    
     var clrs = this.colors = [[], [], [], []];
     
     if (colors == undefined) return;
@@ -35,6 +44,10 @@ export class BoxColor4 extends BoxColor {
         clrs[i].push(colors[i][j]);
       }
     }
+  }
+  
+  copy() {
+    return new BoxColor4(this.colors);
   }
   
   static fromSTRUCT(reader) {
@@ -78,6 +91,10 @@ export class BoxWColor extends BoxColor {
     return ret;
   }
   
+  copy() {
+    return new BoxWColor(this.color, this.weights);
+  }
+  
   static fromSTRUCT(reader) {
     var ret = new BoxWColor();
     reader(ret);
@@ -103,19 +120,48 @@ export class ColorTheme {
     this.colors = new hashtable();
     this.boxcolors = new hashtable();
     
-    for (var k in defobj) {
-      if (this.colors.has(k) || this.boxcolors.has(k))
-        continue;
-      
-      var c = defobj[k];
-      if (c instanceof BoxColor) {
-        this.boxcolors.set(k, c);
-      } else {
-        this.colors.set(k, c);
+    if (defobj !== undefined) {
+      for (var k in defobj) {
+        if (this.colors.has(k) || this.boxcolors.has(k))
+          continue;
+    
+        var c = defobj[k];
+        if (c instanceof BoxColor) {
+          this.boxcolors.set(k, c);
+        } else {
+          this.colors.set(k, c);
+        }
       }
     }
     
     this.flat_colors = new GArray();
+  }
+  
+  copy() {
+    var ret = new ColorTheme({});
+    
+    function cpy(c) {
+      if (c instanceof BoxColor) {
+        return c.copy();
+      } else {
+        return JSON.parse(JSON.stringify(c));
+      }
+    }
+    
+    for (var k of this.boxcolors) {
+      var c = this.boxcolors.get(k);
+      
+      ret.boxcolors.set(k, cpy(c));
+    }
+    
+    for (var k of this.colors) {
+      var c = this.colors.get(k);
+    
+      ret.colors.set(k, cpy(c));
+    }
+    
+    ret.gen_colors();
+    return ret;
   }
   
   patch(ColorTheme newtheme) {
@@ -286,6 +332,15 @@ Theme.STRUCT = """
 //globals
 global g_theme;
 window.init_theme = function() {
+  window.UITheme.original = window.UITheme.copy();
+  window.View2DTheme.original = window.View2DTheme.copy();
+  
   window.g_theme = new Theme(window.UITheme, window.View2DTheme);
+  window.g_theme.gen_globals();
+}
+
+export function reload_default_theme() {
+  //UITheme.original
+  window.g_theme = new Theme(window.UITheme.original.copy(), window.View2DTheme.original.copy());
   window.g_theme.gen_globals();
 }

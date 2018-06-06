@@ -703,7 +703,8 @@ export class SplineEditor extends View2DEditor {
     if (!this.draw_anim_paths) {
       this.ensure_paths_off();
       
-      var ret = this.ctx.spline.q.findnearest(editor, mpos, selectmask, limit, ignore_layers);
+      //XXXXX FIXME: spline.q.findnearest modifies mpos!!
+      var ret = this.ctx.spline.q.findnearest(editor, [mpos[0], mpos[1]], selectmask, limit, ignore_layers);
       if (ret != undefined) {
         return [this.ctx.spline, ret[0], ret[1]];
       } else {
@@ -714,10 +715,11 @@ export class SplineEditor extends View2DEditor {
     //console.log("\n");
     
     var actspline = this.ctx.spline;
+    
     var pathspline = this.ctx.frameset.pathspline;
     var drawspline = this.ctx.frameset.spline;
     
-    var ret = drawspline.q.findnearest(editor, mpos, selectmask, limit, ignore_layers);
+    var ret = drawspline.q.findnearest(editor, [mpos[0], mpos[1]], selectmask, limit, ignore_layers);
     if (ret != undefined && ret[1] < limit) {
       mindis = ret[1] - (drawspline === actspline ? 3 : 0);
       found = true;
@@ -728,7 +730,7 @@ export class SplineEditor extends View2DEditor {
     }
     
     //for (var spline in frameset._selected_splines) {
-    var ret = frameset.pathspline.q.findnearest(editor, mpos, selectmask, limit, false);
+    var ret = frameset.pathspline.q.findnearest(editor, [mpos[0], mpos[1]], selectmask, limit, false);
     if (ret != undefined) {
       ret[1] -= pathspline === actspline ? 2 : 0;
       

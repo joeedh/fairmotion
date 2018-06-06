@@ -1013,7 +1013,7 @@ es6_module_define('config', ["config_local"], function _config_module(_es6_modul
 
 es6_module_define('config_local', [], function _config_local_module(_es6_module) {
   'use strict';
-  var DEBUG={ui_redraw: true, viewport_partial_update: false, ui_datapaths: false, screen_keyboard: false, force_mobile: false}
+  var DEBUG={ui_redraw: false, viewport_partial_update: false, ui_datapaths: false, screen_keyboard: false, force_mobile: false}
   DEBUG = _es6_module.add_export('DEBUG', DEBUG);
 }, '/dev/fairmotion/src/config/config_local.js');
 

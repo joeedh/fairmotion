@@ -367,7 +367,7 @@ function api_define_material() {
   
   var flag = new FlagProperty(1, MaterialFlags, undefined, "material flags", "material flags");
   flag.update = update_base;
-  
+
   var fillpath = new DataPath(new BoolProperty(false, "fill_over_stroke", "fill_over_stroke",
     "fill_over_stroke"), "fill_over_stroke", "fill_over_stroke", true);
   fillclr.subtype = strokeclr.subtype = PropTypes.COLOR4;

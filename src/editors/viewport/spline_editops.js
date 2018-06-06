@@ -1,5 +1,5 @@
 import {IntProperty, FloatProperty, CollectionProperty,
-        BoolProperty, TPropFlags} from 'toolprops';
+        BoolProperty, TPropFlags, StringProperty} from 'toolprops';
 import {ToolOp, UndoFlags, ToolFlags, ModalStates} from 'toolops_api';
 import {SplineFlags, SplineTypes, RecalcFlags} from 'spline_types';
 import {RestrictFlags, Spline} from 'spline';
@@ -882,7 +882,8 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
     
     inputs   : {
       segment_eid : new IntProperty(-1, "segment_eid", "segment_eid", "segment_eid"),
-      segment_t   : new FloatProperty(0, "segment_t", "segment_t", "segment_t")
+      segment_t   : new FloatProperty(0, "segment_t", "segment_t", "segment_t"),
+      spline_path : new StringProperty("drawspline", "spline_path", "splien_path", "spline_path")
     },
     
     outputs  : {},
@@ -917,7 +918,6 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
 
   on_mousemove(e) {
     let ctx = this.modal_ctx;
-    let spline = ctx.spline;
 
     //console.log("mmove", e.x, e.y, ctx);
     let mpos = [e.x, e.y];
@@ -933,6 +933,15 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
     }
     
     let seg = ret[1];
+    let spline = ret[0];
+    
+    if (spline === ctx.frameset.pathspline) {
+      this.inputs.spline_path.set_data("pathspline");
+      console.log("pathspline");
+    } else {
+      this.inputs.spline_path.set_data("spline");
+      console.log("drawspline");
+    }
     
     this.reset_drawlines(ctx);
     
@@ -954,7 +963,8 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
     if (p !== undefined) {
       this.inputs.segment_t.set_data(p[1]);
       
-      console.log(p[1]);
+      console.log("  t", p[1].toFixed(4));
+      
       p = p[0];
       
       let w = 2;
@@ -977,7 +987,9 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
   }
   
   exec(ctx) {
-    var spline = ctx.spline;
+    var spline = this.inputs.spline_path.data;
+    
+    spline = spline == "pathspline" ? ctx.frameset.pathspline : ctx.frameset.spline;
     
     var seg = spline.eidmap[this.inputs.segment_eid.data];
     var t = this.inputs.segment_t.data;

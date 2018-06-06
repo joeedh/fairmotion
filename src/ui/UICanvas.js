@@ -997,7 +997,7 @@ export class UICanvas {
       //console.log(m.m41, canvas.height-m.m42);
       
       if (color == undefined)
-        color = [0, 0, 0, 1];
+        color = uicolors.DefaultText;
       
       ctx.fillStyle = this._css_color(color);
       

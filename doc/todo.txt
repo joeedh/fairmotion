@@ -1,3 +1,7 @@
+- MAKE SURE SAVING USER PREFERENCES WORKS!
+
+- Refactor UserSettings.js, holdover from waaaay back in AllShape days
+- Make OK dialog that works with promises
 - Disable emulated ES6 features in extjs that need not be emulated anymore
 
 - Finish platform API refactor

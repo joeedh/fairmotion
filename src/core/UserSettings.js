@@ -1,5 +1,6 @@
 import * as config from 'config';
 
+import {reload_default_theme} from 'theme';
 import {b64encode, b64decode} from 'strutils';
 import {download_file} from 'dialogs';
 import {STRUCT} from 'struct';
@@ -11,6 +12,16 @@ export class AppSettings {
     this.last_server_update = 0;
     this.update_waiting = false;
     this.recent_paths = [];
+  }
+  
+  reload_defaults() {
+    this.unit_scheme = "imperial";
+    this.unit = "in";
+    
+    this.recent_paths.length = 0;
+  
+    reload_default_theme();
+    this.server_update(true);
   }
   
   find_recent_path(path) {
@@ -67,7 +78,10 @@ export class AppSettings {
   server_update(force=false) {
     //console.trace("server settings push");
     
-    if (force || time_ms() - this.last_server_update > 3000) {
+    force = force || config.NO_SERVER || time_ms() - this.last_server_update > 3000;
+    force = force && window.g_app_state !== undefined;
+    
+    if (force) {
       //console.log("pushing settings to server. . .");
       _settings_manager.server_push(this);
       

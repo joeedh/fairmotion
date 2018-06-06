@@ -2096,6 +2096,12 @@ es6_module_define('toolprops', ["ajax", "struct", "toolprops_iter"], function _t
     this.data = 0;
     this.ui_key_names = {}
     this.flag_descriptions = {}
+    this.keys = {}
+    this.values = {}
+    for (var k in maskmap) {
+        this.values[maskmap[k]] = maskmap[k];
+        this.keys[k] = maskmap[k];
+    }
     if (uinames==undefined) {
         this.setUINames(uinames);
     }
@@ -2104,12 +2110,6 @@ es6_module_define('toolprops', ["ajax", "struct", "toolprops_iter"], function _t
       for (var k in uinames) {
           this.ui_key_names[uinames[k]] = k;
       }
-    }
-    this.keys = {}
-    this.values = {}
-    for (var k in maskmap) {
-        this.values[maskmap[k]] = maskmap[k];
-        this.keys[k] = maskmap[k];
     }
     this.set_flag(value);
   }, function setUINames(uinames) {
@@ -6319,12 +6319,13 @@ es6_module_define('spline_createops', ["spline_types", "toolprops", "spline", "t
   _es6_module.add_class(ImportJSONOp);
   ImportJSONOp = _es6_module.add_export('ImportJSONOp', ImportJSONOp);
 }, '/dev/fairmotion/src/editors/viewport/spline_createops.js');
-es6_module_define('spline_editops', ["frameset", "struct", "toolprops", "animdata", "spline", "spline_types", "../../curve/spline_base", "toolops_api", "spline_draw"], function _spline_editops_module(_es6_module) {
+es6_module_define('spline_editops', ["struct", "frameset", "../../curve/spline_base", "toolops_api", "toolprops", "spline_draw", "spline", "animdata", "spline_types"], function _spline_editops_module(_es6_module) {
   var IntProperty=es6_import_item(_es6_module, 'toolprops', 'IntProperty');
   var FloatProperty=es6_import_item(_es6_module, 'toolprops', 'FloatProperty');
   var CollectionProperty=es6_import_item(_es6_module, 'toolprops', 'CollectionProperty');
   var BoolProperty=es6_import_item(_es6_module, 'toolprops', 'BoolProperty');
   var TPropFlags=es6_import_item(_es6_module, 'toolprops', 'TPropFlags');
+  var StringProperty=es6_import_item(_es6_module, 'toolprops', 'StringProperty');
   var ToolOp=es6_import_item(_es6_module, 'toolops_api', 'ToolOp');
   var UndoFlags=es6_import_item(_es6_module, 'toolops_api', 'UndoFlags');
   var ToolFlags=es6_import_item(_es6_module, 'toolops_api', 'ToolFlags');
@@ -6950,7 +6951,7 @@ es6_module_define('spline_editops', ["frameset", "struct", "toolprops", "animdat
   var SplitEdgePickOp=_ESClass("SplitEdgePickOp", SplineGlobalToolOp, [function SplitEdgePickOp() {
     SplineGlobalToolOp.call(this);
   }, _ESClass.static(function tooldef() {
-    return {uiname: "Split Segment", apiname: "spline.split_pick_edge", inputs: {segment_eid: new IntProperty(-1, "segment_eid", "segment_eid", "segment_eid"), segment_t: new FloatProperty(0, "segment_t", "segment_t", "segment_t")}, outputs: {}, icon: Icons.SPLIT_EDGE, is_modal: true, description: "Split picked segment"}
+    return {uiname: "Split Segment", apiname: "spline.split_pick_edge", inputs: {segment_eid: new IntProperty(-1, "segment_eid", "segment_eid", "segment_eid"), segment_t: new FloatProperty(0, "segment_t", "segment_t", "segment_t"), spline_path: new StringProperty("drawspline", "spline_path", "splien_path", "spline_path")}, outputs: {}, icon: Icons.SPLIT_EDGE, is_modal: true, description: "Split picked segment"}
   }), function can_call(ctx) {
     return !(ctx.spline.restrict&RestrictFlags.NO_SPLIT_EDGE);
   }, function start_modal(ctx) {
@@ -6965,36 +6966,44 @@ es6_module_define('spline_editops', ["frameset", "struct", "toolprops", "animdat
     SplineGlobalToolOp.prototype.end_modal.call(this, ctx);
   }, function on_mousemove(e) {
     var $_let_ctx14=this.modal_ctx;
-    var $_let_spline15=$_let_ctx14.spline;
-    var $_let_mpos16=[e.x, e.y];
-    var $_let_ret17=$_let_ctx14.view2d.editor.findnearest($_let_mpos16, SplineTypes.SEGMENT, 105);
-    if ($_let_ret17===undefined) {
+    var $_let_mpos15=[e.x, e.y];
+    var $_let_ret16=$_let_ctx14.view2d.editor.findnearest($_let_mpos15, SplineTypes.SEGMENT, 105);
+    if ($_let_ret16===undefined) {
         this.reset_drawlines();
         this.inputs.segment_eid.set_data(-1);
         return ;
     }
-    var $_let_seg22=$_let_ret17[1];
-    this.reset_drawlines($_let_ctx14);
-    var $_let_steps23=16;
-    var $_let_ds24=1.0/($_let_steps23-1), $_let_s25=$_let_ds24;
-    var $_let_lastco26=$_let_seg22.evaluate($_let_s25);
-    for (var $_let_i36=1; $_let_i36<$_let_steps23; $_let_i36++, $_let_s25+=$_let_ds24) {
-        var $_let_co47=$_let_seg22.evaluate($_let_s25);
-        this.new_drawline($_let_lastco26, $_let_co47);
-        $_let_lastco26 = $_let_co47;
+    var $_let_seg20=$_let_ret16[1];
+    var $_let_spline21=$_let_ret16[0];
+    if ($_let_spline21===$_let_ctx14.frameset.pathspline) {
+        this.inputs.spline_path.set_data("pathspline");
+        console.log("pathspline");
     }
-    this.inputs.segment_eid.set_data($_let_seg22.eid);
+    else {
+      this.inputs.spline_path.set_data("spline");
+      console.log("drawspline");
+    }
+    this.reset_drawlines($_let_ctx14);
+    var $_let_steps32=16;
+    var $_let_ds33=1.0/($_let_steps32-1), $_let_s34=$_let_ds33;
+    var $_let_lastco35=$_let_seg20.evaluate($_let_s34);
+    for (var $_let_i45=1; $_let_i45<$_let_steps32; $_let_i45++, $_let_s34+=$_let_ds33) {
+        var $_let_co56=$_let_seg20.evaluate($_let_s34);
+        this.new_drawline($_let_lastco35, $_let_co56);
+        $_let_lastco35 = $_let_co56;
+    }
+    this.inputs.segment_eid.set_data($_let_seg20.eid);
     this.inputs.segment_t.set_data(0.5);
-    var $_let_p48=$_let_seg22.closest_point($_let_mpos16, ClosestModes.CLOSEST);
-    if ($_let_p48!==undefined) {
-        this.inputs.segment_t.set_data($_let_p48[1]);
-        console.log($_let_p48[1]);
-        $_let_p48 = $_let_p48[0];
-        var $_let_w59=2;
-        this.new_drawline([$_let_p48[0]-$_let_w59, $_let_p48[1]-$_let_w59], [$_let_p48[0]-$_let_w59, $_let_p48[1]+$_let_w59]);
-        this.new_drawline([$_let_p48[0]-$_let_w59, $_let_p48[1]+$_let_w59], [$_let_p48[0]+$_let_w59, $_let_p48[1]+$_let_w59]);
-        this.new_drawline([$_let_p48[0]+$_let_w59, $_let_p48[1]+$_let_w59], [$_let_p48[0]+$_let_w59, $_let_p48[1]-$_let_w59]);
-        this.new_drawline([$_let_p48[0]+$_let_w59, $_let_p48[1]-$_let_w59], [$_let_p48[0]-$_let_w59, $_let_p48[1]-$_let_w59]);
+    var $_let_p57=$_let_seg20.closest_point($_let_mpos15, ClosestModes.CLOSEST);
+    if ($_let_p57!==undefined) {
+        this.inputs.segment_t.set_data($_let_p57[1]);
+        console.log("  t", $_let_p57[1].toFixed(4));
+        $_let_p57 = $_let_p57[0];
+        var $_let_w68=2;
+        this.new_drawline([$_let_p57[0]-$_let_w68, $_let_p57[1]-$_let_w68], [$_let_p57[0]-$_let_w68, $_let_p57[1]+$_let_w68]);
+        this.new_drawline([$_let_p57[0]-$_let_w68, $_let_p57[1]+$_let_w68], [$_let_p57[0]+$_let_w68, $_let_p57[1]+$_let_w68]);
+        this.new_drawline([$_let_p57[0]+$_let_w68, $_let_p57[1]+$_let_w68], [$_let_p57[0]+$_let_w68, $_let_p57[1]-$_let_w68]);
+        this.new_drawline([$_let_p57[0]+$_let_w68, $_let_p57[1]-$_let_w68], [$_let_p57[0]-$_let_w68, $_let_p57[1]-$_let_w68]);
     }
   }, function finish(do_cancel) {
     if (do_cancel||this.inputs.segment_eid.data==-1) {
@@ -7006,7 +7015,8 @@ es6_module_define('spline_editops', ["frameset", "struct", "toolprops", "animdat
       this.exec(this.modal_ctx);
     }
   }, function exec(ctx) {
-    var spline=ctx.spline;
+    var spline=this.inputs.spline_path.data;
+    spline = spline=="pathspline" ? ctx.frameset.pathspline : ctx.frameset.spline;
     var seg=spline.eidmap[this.inputs.segment_eid.data];
     var t=this.inputs.segment_t.data;
     if (seg===undefined) {
@@ -7233,16 +7243,16 @@ es6_module_define('spline_editops', ["frameset", "struct", "toolprops", "animdat
   }, _ESClass.static(function tooldef() {
     return {uiname: "Playback", apiname: "editor.playback", inputs: {}, outputs: {}, undoflag: UndoFlags.IGNORE_UNDO, icon: -1, is_modal: true, description: "Play back animation"}
   }), function on_frame(ctx) {
-    var $_let_this260=this;
+    var $_let_this269=this;
     window.redraw_viewport().then(function() {
-      if ($_let_this260.done) {
+      if ($_let_this269.done) {
           return ;
       }
       console.log("frame!");
       console.log("playback op: change time");
-      console.log("  time:", $_let_this260.time, $_let_this260);
-      $_let_this260.time+=1.0;
-      ctx.scene.change_time(ctx, $_let_this260.time);
+      console.log("  time:", $_let_this269.time, $_let_this269);
+      $_let_this269.time+=1.0;
+      ctx.scene.change_time(ctx, $_let_this269.time);
     });
   }, function end_modal(ctx) {
     the_global_dag.remove(this.on_solve_node);
@@ -8467,6 +8477,10 @@ es6_module_define('theme', ["struct"], function _theme_module(_es6_module) {
   darken = _es6_module.add_export('darken', darken);
   var BoxColor=_ESClass("BoxColor", [function BoxColor() {
     this.colors = undefined;
+  }, function copy() {
+    var ret=new BoxColor();
+    ret.colors = JSON.parse(JSON.stringify(this.colors));
+    return ret;
   }, _ESClass.static(function fromSTRUCT(reader) {
     return {}
   })]);
@@ -8474,6 +8488,7 @@ es6_module_define('theme', ["struct"], function _theme_module(_es6_module) {
   BoxColor = _es6_module.add_export('BoxColor', BoxColor);
   BoxColor.STRUCT = "\n  BoxColor {\n  }\n";
   var BoxColor4=_ESClass("BoxColor4", BoxColor, [function BoxColor4(colors) {
+    BoxColor.call(this);
     var clrs=this.colors = [[], [], [], []];
     if (colors==undefined)
       return ;
@@ -8482,6 +8497,8 @@ es6_module_define('theme', ["struct"], function _theme_module(_es6_module) {
             clrs[i].push(colors[i][j]);
         }
     }
+  }, function copy() {
+    return new BoxColor4(this.colors);
   }, _ESClass.static(function fromSTRUCT(reader) {
     var ret=new BoxColor4();
     reader(ret);
@@ -8508,7 +8525,9 @@ es6_module_define('theme', ["struct"], function _theme_module(_es6_module) {
         ret[i].push(clr[3]);
     }
     return ret;
-  }), _ESClass.static(function fromSTRUCT(reader) {
+  }), function copy() {
+    return new BoxWColor(this.color, this.weights);
+  }, _ESClass.static(function fromSTRUCT(reader) {
     var ret=new BoxWColor();
     reader(ret);
     return ret;
@@ -8525,18 +8544,54 @@ es6_module_define('theme', ["struct"], function _theme_module(_es6_module) {
   var ColorTheme=_ESClass("ColorTheme", [function ColorTheme(defobj) {
     this.colors = new hashtable();
     this.boxcolors = new hashtable();
-    for (var k in defobj) {
-        if (this.colors.has(k)||this.boxcolors.has(k))
-          continue;
-        var c=defobj[k];
-        if (__instance_of(c, BoxColor)) {
-            this.boxcolors.set(k, c);
-        }
-        else {
-          this.colors.set(k, c);
+    if (defobj!==undefined) {
+        for (var k in defobj) {
+            if (this.colors.has(k)||this.boxcolors.has(k))
+              continue;
+            var c=defobj[k];
+            if (__instance_of(c, BoxColor)) {
+                this.boxcolors.set(k, c);
+            }
+            else {
+              this.colors.set(k, c);
+            }
         }
     }
     this.flat_colors = new GArray();
+  }, function copy() {
+    var ret=new ColorTheme({});
+    function cpy(c) {
+      if (__instance_of(c, BoxColor)) {
+          return c.copy();
+      }
+      else {
+        return JSON.parse(JSON.stringify(c));
+      }
+    }
+    var __iter_k=__get_iter(this.boxcolors);
+    var k;
+    while (1) {
+      var __ival_k=__iter_k.next();
+      if (__ival_k.done) {
+          break;
+      }
+      k = __ival_k.value;
+      var c=this.boxcolors.get(k);
+      ret.boxcolors.set(k, cpy(c));
+    }
+    var __iter_k=__get_iter(this.colors);
+    var k;
+    while (1) {
+      var __ival_k=__iter_k.next();
+      if (__ival_k.done) {
+          break;
+      }
+      k = __ival_k.value;
+      var c=this.colors.get(k);
+      ret.colors.set(k, cpy(c));
+    }
+    ret.gen_colors();
+    return ret;
   }, function patch(newtheme) {
     if (newtheme==undefined)
       return ;
@@ -8673,9 +8728,16 @@ es6_module_define('theme', ["struct"], function _theme_module(_es6_module) {
   Theme.STRUCT = "\n  Theme {\n    ui     : ColorTheme;\n    view2d : ColorTheme;\n  }\n";
   
   window.init_theme = function() {
+    window.UITheme.original = window.UITheme.copy();
+    window.View2DTheme.original = window.View2DTheme.copy();
     window.g_theme = new Theme(window.UITheme, window.View2DTheme);
     window.g_theme.gen_globals();
   }
+  function reload_default_theme() {
+    window.g_theme = new Theme(window.UITheme.original.copy(), window.View2DTheme.original.copy());
+    window.g_theme.gen_globals();
+  }
+  reload_default_theme = _es6_module.add_export('reload_default_theme', reload_default_theme);
 }, '/dev/fairmotion/src/ui/theme.js');
 es6_module_define('theme_def', ["theme"], function _theme_def_module(_es6_module) {
   "use strict";
@@ -8685,7 +8747,7 @@ es6_module_define('theme_def', ["theme"], function _theme_def_module(_es6_module
   function uniformbox4(clr) {
     return new BoxColor4([clr, clr, clr, clr]);
   }
-  window.UITheme = new ColorTheme({"ErrorText": [1, 0.20000000298023224, 0.20000000298023224, 0.8899999856948853], "ListBoxText": [0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1], "Highlight": uniformbox4([0.56862, 0.7882, 0.9602, 1.0]), "MenuHighlight": [0.56862, 0.7882, 0.9602, 1.0], "RadialMenu": [1, 0, 0, 1], "RadialMenuHighlight": [0.7831560373306274, 0.7664570808410645, 0.3468262255191803, 0.7717778086662292], "DefaultLine": [0.4163331985473633, 0.3746998906135559, 0.3746998906135559, 1], "SelectLine": [0.699999988079071, 0.699999988079071, 0.699999988079071, 1], "Check": [0.8999999761581421, 0.699999988079071, 0.4000000059604645, 1], "Arrow": [0.4000000059604645, 0.4000000059604645, 0.4000000059604645, 1], "DefaultText": [0, 0, 0, 1], "BoxText": [0, 0, 0, 1], "HotkeyText": [0.43986162543296814, 0.43986162543296814, 0.43986162543296814, 1], "HighlightCursor": [0.8999999761581421, 0.8999999761581421, 0.8999999761581421, 0.875], "TextSelect": [0.4000000059604645, 0.4000000059604645, 0.4000000059604645, 0.75], "TextEditCursor": [0.10000000149011612, 0.10000000149011612, 0.10000000149011612, 1], "TextBoxHighlight": [0.5270000100135803, 0.5270000100135803, 0.5270000100135803, 1], "MenuSep": [0.6901277303695679, 0.6901277303695679, 0.6901277303695679, 1], "MenuBorder": [0.6499999761581421, 0.6499999761581421, 0.6499999761581421, 1], "RadialMenuSep": [0.10000000149011612, 0.20000000298023224, 0.20000000298023224, 1], "TabPanelOutline": [0.4, 0.4, 0.4, 1.0], "TabPanelBG": [0.78, 0.78, 0.78, 1.0], "ActiveTab": [0.78, 0.78, 0.78, 1.0], "HighlightTab": [0.56862, 0.7882, 0.9602, 0.9], "InactiveTab": [0.6, 0.6, 0.6, 1.0], "TabText": [0.0, 0.0, 0.0, 1.0], "IconBox": [1, 1, 1, 0.17968888580799103], "HighlightIcon": [0.30000001192092896, 0.8149344325065613, 1, 0.21444444358348846], "MenuText": [0.10000000149011612, 0.10000000149011612, 0.10000000149011612, 1], "MenuTextHigh": [0.9330000281333923, 0.9330000281333923, 0.9330000281333923, 1], "PanelText": [0, 0, 0, 1], "DialogText": [0.05000003054738045, 0.05000000447034836, 0.05000000447034836, 1], "DialogBorder": [0.40000000298023225, 0.4000000298023224, 0.40000000298023225, 1], "DisabledBox": [0.5000000029802323, 0.5000000029802323, 0.5000000029802323, 1], "IconCheckBG": [0.6879922747612, 0.6879922747612, 0.6879922747612, 1], "IconCheckSet": [0.6, 0.6, 0.6, 1], "IconCheckUnset": [0.44641016151377544, 0.44641016151377544, 0.44641016151377544, 1], "NoteBox": ui_weight_clr([0.8, 0.8, 0.8, 1.0], [0.8, 0.8, 0.8, 1.0]), "Box": ui_weight_clr([0.94, 0.94, 0.94, 1.0], [0.8, 0.8, 0.8, 1.0]), "HoverHint": ui_weight_clr([1, 0.9769999980926514, 0.8930000066757202, 0.8999999761581421], [0.8999999761581421, 0.8999999761581421, 1, 1]), "ErrorBox": ui_weight_clr([1, 0.30000001192092896, 0.20000000298023224, 1], [1, 1, 1, 1]), "ErrorTextBG": ui_weight_clr([1, 1, 1, 1], [0.8999999761581421, 0.8999999761581421, 1, 1]), "ShadowBox": ui_weight_clr([0, 0, 0, 0.10000000149011612], [1, 1, 1, 1]), "ProgressBar": ui_weight_clr([0.4000000059604645, 0.7300000190734863, 0.8999999761581421, 0.8999999761581421], [0.75, 0.75, 1, 1]), "ProgressBarBG": ui_weight_clr([0.699999988079071, 0.699999988079071, 0.699999988079071, 0.699999988079071], [1, 1, 1, 1]), "WarningBox": ui_weight_clr([1, 0.800000011920929, 0.10000000149011612, 0.8999999761581421], [0.699999988079071, 0.800000011920929, 1.0499999523162842, 1]), "ListBoxBG": ui_weight_clr([0.94, 0.94, 0.94, 1.0], [0.94, 0.94, 0.94, 1.0]), "InvBox": ui_weight_clr([0.6, 0.6, 0.6, 1.0], [0.6, 0.6, 0.6, 1.0]), "HLightBox": uniformbox4([0.56862, 0.7882, 0.9602, 1.0]), "ActivePanel": ui_weight_clr([0.800000011920929, 0.4000000059604645, 0.30000001192092896, 0.8999999761581421], [1, 1, 1, 1]), "CollapsingPanel": ui_weight_clr([0.687468421459198, 0.687468421459198, 0.687468421459198, 1], [1, 1, 1, 1]), "SimpleBox": ui_weight_clr([0.94, 0.94, 0.94, 1.0], [0.94, 0.94, 0.94, 1.0]), "DialogBox": ui_weight_clr([0.7269999980926514, 0.7269999980926514, 0.7269999980926514, 1], [1, 1, 1, 1]), "DialogTitle": ui_weight_clr([0.6299999952316284, 0.6299999952316284, 0.6299999952316284, 1], [1, 1, 1, 1]), "MenuBox": ui_weight_clr([0.9200000166893005, 0.9200000166893005, 0.9200000166893005, 1], [1, 1, 1, 1]), "TextBox": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 0.8999999761581421], [1, 1, 1, 1]), "TextBoxInv": ui_weight_clr([0.699999988079071, 0.699999988079071, 0.699999988079071, 1], [0.699999988079071, 0.699999988079071, 0.699999988079071, 1]), "MenuLabel": ui_weight_clr([0.9044828414916992, 0.8657192587852478, 0.8657192587852478, 0.24075555801391602], [0.6000000238418579, 0.6000000238418579, 0.6000000238418579, 0.8999999761581421]), "MenuLabelInv": ui_weight_clr([0.75, 0.75, 0.75, 0.47111111879348755], [1, 1, 0.9410666823387146, 1]), "ScrollBG": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 1], [1, 1, 1, 1]), "ScrollBar": ui_weight_clr([0.5919697284698486, 0.5919697284698486, 0.5919697284698486, 1], [1, 1, 1, 1]), "ScrollBarHigh": ui_weight_clr([0.6548083424568176, 0.6548083424568176, 0.6548083424568176, 1], [1, 1, 1, 1]), "ScrollButton": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 1], [1, 1, 1, 1]), "ScrollButtonHigh": ui_weight_clr([0.75, 0.75, 0.75, 1], [1, 1, 1, 1]), "ScrollInv": ui_weight_clr([0.4000000059604645, 0.4000000059604645, 0.4000000059604645, 1], [1, 1, 1, 1]), "IconInv": ui_weight_clr([0.48299384117126465, 0.5367956161499023, 0.8049896955490112, 0.4000000059604645], [1, 1, 1, 1])});
+  window.UITheme = new ColorTheme({"ErrorText": [1, 0.20000000298023224, 0.20000000298023224, 0.8899999856948853], "ListBoxText": [0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1], "MenuHighlight": [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], "RadialMenu": [1, 0, 0, 1], "RadialMenuHighlight": [0.7831560373306274, 0.7664570808410645, 0.3468262255191803, 0.7717778086662292], "DefaultLine": [0.4163331985473633, 0.3746998906135559, 0.3746998906135559, 1], "SelectLine": [0.699999988079071, 0.699999988079071, 0.699999988079071, 1], "Check": [0.8999999761581421, 0.699999988079071, 0.4000000059604645, 1], "Arrow": [0.4000000059604645, 0.4000000059604645, 0.4000000059604645, 1], "DefaultText": [0.9092121131323904, 0.9092121131323904, 0.9092121131323904, 1], "BoxText": [0, 0, 0, 1], "HotkeyText": [0.43986162543296814, 0.43986162543296814, 0.43986162543296814, 1], "HighlightCursor": [0.8999999761581421, 0.8999999761581421, 0.8999999761581421, 0.875], "TextSelect": [0.4000000059604645, 0.4000000059604645, 0.4000000059604645, 0.75], "TextEditCursor": [0.10000000149011612, 0.10000000149011612, 0.10000000149011612, 1], "TextBoxHighlight": [0.5270000100135803, 0.5270000100135803, 0.5270000100135803, 1], "MenuSep": [0.6901277303695679, 0.6901277303695679, 0.6901277303695679, 1], "MenuBorder": [0.6499999761581421, 0.6499999761581421, 0.6499999761581421, 1], "RadialMenuSep": [0.10000000149011612, 0.20000000298023224, 0.20000000298023224, 1], "TabPanelOutline": [0.2449489742783178, 0.2449489742783178, 0.2449489742783178, 1], "TabPanelBG": [0.5715476066494082, 0.5715476066494082, 0.5715476066494082, 1], "ActiveTab": [0.5416025603090641, 0.5416025603090641, 0.5416025603090641, 1], "HighlightTab": [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 0.8999999761581421], "InactiveTab": [0.2449489742783178, 0.2449489742783178, 0.2449489742783178, 1], "TabText": [0.9309493362512627, 0.9309493362512627, 0.9309493362512627, 1], "IconBox": [1, 1, 1, 0.17968888580799103], "HighlightIcon": [0.30000001192092896, 0.8149344325065613, 1, 0.21444444358348846], "MenuText": [0.10000000149011612, 0.10000000149011612, 0.10000000149011612, 1], "MenuTextHigh": [0.9330000281333923, 0.9330000281333923, 0.9330000281333923, 1], "PanelText": [0, 0, 0, 1], "DialogText": [0.05000003054738045, 0.05000000447034836, 0.05000000447034836, 1], "DialogBorder": [0.4000000059604645, 0.40000003576278687, 0.4000000059604645, 1], "DisabledBox": [0.5, 0.5, 0.5, 1], "IconCheckBG": [0.6879922747612, 0.6879922747612, 0.6879922747612, 1], "IconCheckSet": [0.6000000238418579, 0.6000000238418579, 0.6000000238418579, 1], "IconCheckUnset": [0.4464101493358612, 0.4464101493358612, 0.4464101493358612, 1], "Highlight": new BoxColor4([[0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1]]), "NoteBox": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 1], [0.800000011920929, 0.800000011920929, 0.800000011920929, 1]), "Box": ui_weight_clr([0.9399999976158142, 0.9399999976158142, 0.9399999976158142, 1], [0.800000011920929, 0.800000011920929, 0.800000011920929, 1]), "HoverHint": ui_weight_clr([1, 0.9769999980926514, 0.8930000066757202, 0.8999999761581421], [0.8999999761581421, 0.8999999761581421, 1, 1]), "ErrorBox": ui_weight_clr([1, 0.30000001192092896, 0.20000000298023224, 1], [1, 1, 1, 1]), "ErrorTextBG": ui_weight_clr([1, 1, 1, 1], [0.8999999761581421, 0.8999999761581421, 1, 1]), "ShadowBox": ui_weight_clr([0, 0, 0, 0.10000000149011612], [1, 1, 1, 1]), "ProgressBar": ui_weight_clr([0.4000000059604645, 0.7300000190734863, 0.8999999761581421, 0.8999999761581421], [0.75, 0.75, 1, 1]), "ProgressBarBG": ui_weight_clr([0.699999988079071, 0.699999988079071, 0.699999988079071, 0.699999988079071], [1, 1, 1, 1]), "WarningBox": ui_weight_clr([1, 0.800000011920929, 0.10000000149011612, 0.8999999761581421], [0.699999988079071, 0.800000011920929, 1.0499999523162842, 1]), "ListBoxBG": ui_weight_clr([0.9399999976158142, 0.9399999976158142, 0.9399999976158142, 1], [0.9399999976158142, 0.9399999976158142, 0.9399999976158142, 1]), "InvBox": ui_weight_clr([0.6000000238418579, 0.6000000238418579, 0.6000000238418579, 1], [0.6000000238418579, 0.6000000238418579, 0.6000000238418579, 1]), "HLightBox": new BoxColor4([[0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1]]), "ActivePanel": ui_weight_clr([0.800000011920929, 0.4000000059604645, 0.30000001192092896, 0.8999999761581421], [1, 1, 1, 1]), "CollapsingPanel": ui_weight_clr([0.687468409538269, 0.687468409538269, 0.687468409538269, 1], [1, 1, 1, 1]), "SimpleBox": ui_weight_clr([0.4760952293872833, 0.4760952293872833, 0.4760952293872833, 1], [0.9399999976158142, 0.9399999976158142, 0.9399999976158142, 1]), "DialogBox": ui_weight_clr([0.7269999980926514, 0.7269999980926514, 0.7269999980926514, 1], [1, 1, 1, 1]), "DialogTitle": ui_weight_clr([0.6299999952316284, 0.6299999952316284, 0.6299999952316284, 1], [1, 1, 1, 1]), "MenuBox": ui_weight_clr([0.9200000166893005, 0.9200000166893005, 0.9200000166893005, 1], [1, 1, 1, 1]), "TextBox": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 0.8999999761581421], [1, 1, 1, 1]), "TextBoxInv": ui_weight_clr([0.699999988079071, 0.699999988079071, 0.699999988079071, 1], [0.699999988079071, 0.699999988079071, 0.699999988079071, 1]), "MenuLabel": ui_weight_clr([0.9044828414916992, 0.8657192587852478, 0.8657192587852478, 0.24075555801391602], [0.6000000238418579, 0.6000000238418579, 0.6000000238418579, 0.8999999761581421]), "MenuLabelInv": ui_weight_clr([0.75, 0.75, 0.75, 0.47111111879348755], [1, 1, 0.9410666823387146, 1]), "ScrollBG": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 1], [1, 1, 1, 1]), "ScrollBar": ui_weight_clr([0.5919697284698486, 0.5919697284698486, 0.5919697284698486, 1], [1, 1, 1, 1]), "ScrollBarHigh": ui_weight_clr([0.6548083424568176, 0.6548083424568176, 0.6548083424568176, 1], [1, 1, 1, 1]), "ScrollButton": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 1], [1, 1, 1, 1]), "ScrollButtonHigh": ui_weight_clr([0.75, 0.75, 0.75, 1], [1, 1, 1, 1]), "ScrollInv": ui_weight_clr([0.4000000059604645, 0.4000000059604645, 0.4000000059604645, 1], [1, 1, 1, 1]), "IconInv": ui_weight_clr([0.48299384117126465, 0.5367956161499023, 0.8049896955490112, 0.4000000059604645], [1, 1, 1, 1])});
   window.View2DTheme = new ColorTheme({"Background": [1, 1, 1, 1], "ActiveObject": [0.800000011920929, 0.6000000238418579, 0.30000001192092896, 1], "Selection": [0.699999988079071, 0.4000000059604645, 0.10000000149011612, 1], "GridLineBold": [0.38, 0.38, 0.38, 1.0], "GridLine": [0.5, 0.5, 0.5, 1.0], "AxisX": [0.9, 0.0, 0.0, 1.0], "AxisY": [0.0, 0.9, 0.0, 1.0], "AxisZ": [0.0, 0.0, 0.9, 1.0]});
 }, '/dev/fairmotion/src/ui/theme_def.js');
 es6_module_define('UIElement', ["mathlib", "events", "toolprops"], function _UIElement_module(_es6_module) {
@@ -9328,7 +9390,7 @@ es6_module_define('UIFileData', ["struct"], function _UIFileData_module(_es6_mod
     console.log("-JSONlen", LZString.compress(JSON.stringify(a.obj)).length);
   }
 }, '/dev/fairmotion/src/ui/UIFileData.js');
-es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_module(_es6_module) {
+es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_module(_es6_module) {
   "use strict";
   var rot2d=es6_import_item(_es6_module, 'mathlib', 'rot2d');
   var inrect_2d=es6_import_item(_es6_module, 'mathlib', 'inrect_2d');
@@ -9363,38 +9425,38 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
     }
     return cs;
   }
-  var $ret_k9Mg_get_2d_canvas={}
+  var $ret_QWQc_get_2d_canvas={}
   function get_2d_canvas() {
-    if ($ret_k9Mg_get_2d_canvas.canvas==undefined) {
-        $ret_k9Mg_get_2d_canvas.canvas = document.getElementById("canvas2d");
-        $ret_k9Mg_get_2d_canvas.ctx = _canvas2d_ctx;
+    if ($ret_QWQc_get_2d_canvas.canvas==undefined) {
+        $ret_QWQc_get_2d_canvas.canvas = document.getElementById("canvas2d");
+        $ret_QWQc_get_2d_canvas.ctx = _canvas2d_ctx;
     }
-    return $ret_k9Mg_get_2d_canvas;
+    return $ret_QWQc_get_2d_canvas;
   }
   get_2d_canvas = _es6_module.add_export('get_2d_canvas', get_2d_canvas);
   window.get_2d_canvas = get_2d_canvas;
-  var $ret_ye1S_get_2d_canvas_2={}
+  var $ret_mxyx_get_2d_canvas_2={}
   function get_2d_canvas_2() {
-    if ($ret_ye1S_get_2d_canvas_2.canvas==undefined) {
-        $ret_ye1S_get_2d_canvas_2.canvas = document.getElementById("canvas2d_work");
-        $ret_ye1S_get_2d_canvas_2.ctx = _canvas2d_ctx_2;
+    if ($ret_mxyx_get_2d_canvas_2.canvas==undefined) {
+        $ret_mxyx_get_2d_canvas_2.canvas = document.getElementById("canvas2d_work");
+        $ret_mxyx_get_2d_canvas_2.ctx = _canvas2d_ctx_2;
     }
-    return $ret_ye1S_get_2d_canvas_2;
+    return $ret_mxyx_get_2d_canvas_2;
   }
   get_2d_canvas_2 = _es6_module.add_export('get_2d_canvas_2', get_2d_canvas_2);
   window.get_2d_canvas_2 = get_2d_canvas_2;
   window._ui_canvas_2d_idgen = 1;
-  var $temp_layer_idgen_kqhJ_push_layer;
-  var $black_4z9X_quad;
-  var $grads_VKXD_quad;
-  var $mid_v6Q8_colorfield;
-  var $cache_SUaN_box1;
-  var $v1_l3AB_box1;
-  var $v3_uC0H_box1;
-  var $pairs_cXgE_box1;
-  var $pos_CPcY_text;
-  var $v2_hzDD_box1;
-  var $v4_otG4_box1;
+  var $temp_layer_idgen_U1W1_push_layer;
+  var $black_FZTF_quad;
+  var $grads_70S2_quad;
+  var $mid_9UCg_colorfield;
+  var $cache_woPl_box1;
+  var $v1_gM4a_box1;
+  var $v3_GiVJ_box1;
+  var $pairs_2IjT_box1;
+  var $pos_MZsP_text;
+  var $v2_MC1a_box1;
+  var $v4_CItz_box1;
   var UICanvas=_ESClass("UICanvas", [function UICanvas(viewport) {
     var c=get_2d_canvas();
     this.canvas = c.canvas;
@@ -9515,7 +9577,7 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
   }, function push_layer() {
     this.layerstack.push([this.canvas, this.ctx]);
     var canvas=document.createElement("canvas");
-    canvas.id = "_temp_canvas2d_"+($temp_layer_idgen_kqhJ_push_layer++);
+    canvas.id = "_temp_canvas2d_"+($temp_layer_idgen_U1W1_push_layer++);
     document.body.appendChild(canvas);
     canvas.style["position"] = "absolute";
     canvas.style["left"] = "0px";
@@ -9631,7 +9693,7 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
     var ctx=this.ctx;
     var v=g_app_state.raster.viewport;
     if (c1==undefined) {
-        c1 = $black_4z9X_quad;
+        c1 = $black_FZTF_quad;
     }
     if (c2==undefined) {
         c2 = c1;
@@ -9650,7 +9712,7 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
         hash+=c1[i]+","+c2[i]+","+c3[i]+","+c4[i];
     }
     var grad;
-    if (1||!(hash in $grads_VKXD_quad)) {
+    if (1||!(hash in $grads_70S2_quad)) {
         var min=[v1[0], v1[1]], max=[v1[0], v1[1]];
         for (var i=0; i<2; i++) {
             min[i] = Math.min(min[i], v1[i]);
@@ -9676,7 +9738,7 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
               grad = ctx.createLinearGradient(min[0], min[1]*0.5+max[1]*0.5, max[0], min[1]*0.5+max[1]*0.5);
             else 
               grad = ctx.createLinearGradient(min[0]*0.5+max[0]*0.5, min[1], min[0]*0.5+max[0]*0.5, max[1]);
-            $grads_VKXD_quad[hash] = grad;
+            $grads_70S2_quad[hash] = grad;
             grad.addColorStop(0.0, this._css_color(c1));
             grad.addColorStop(1.0, this._css_color(c3));
           }
@@ -9687,7 +9749,7 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
         }
     }
     else {
-      grad = $grads_VKXD_quad[hash];
+      grad = $grads_70S2_quad[hash];
     }
     if (grad!=undefined)
       ctx.fillStyle = grad;
@@ -9698,29 +9760,29 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
     ctx.lineTo(v4[0]+x+v[0][0], canvas.height-(v4[1]+y+v[0][1]));
     ctx.fill();
   }, function colorfield(pos, size, color) {
-    $mid_v6Q8_colorfield[3] = 1.0;
+    $mid_9UCg_colorfield[3] = 1.0;
     for (var i=0; i<3; i++) {
         if (color[i]==0.0)
-          $mid_v6Q8_colorfield[i] = 0.0;
+          $mid_9UCg_colorfield[i] = 0.0;
         else 
-          $mid_v6Q8_colorfield[i] = color[i];
+          $mid_9UCg_colorfield[i] = color[i];
     }
-    var color2=this._css_color($mid_v6Q8_colorfield);
-    $mid_v6Q8_colorfield[3] = 1.0;
+    var color2=this._css_color($mid_9UCg_colorfield);
+    $mid_9UCg_colorfield[3] = 1.0;
     for (var i=0; i<3; i++) {
-        $mid_v6Q8_colorfield[i] = (color[i]*3.0-1.0)/4.0;
+        $mid_9UCg_colorfield[i] = (color[i]*3.0-1.0)/4.0;
     }
-    var midclr=this._css_color($mid_v6Q8_colorfield);
-    $mid_v6Q8_colorfield[3] = 1.0;
+    var midclr=this._css_color($mid_9UCg_colorfield);
+    $mid_9UCg_colorfield[3] = 1.0;
     for (var i=0; i<3; i++) {
-        $mid_v6Q8_colorfield[i] = 0.5+color[i]*0.5;
+        $mid_9UCg_colorfield[i] = 0.5+color[i]*0.5;
     }
-    var smidclr=this._css_color($mid_v6Q8_colorfield);
-    $mid_v6Q8_colorfield[3] = 0.0;
+    var smidclr=this._css_color($mid_9UCg_colorfield);
+    $mid_9UCg_colorfield[3] = 0.0;
     for (var i=0; i<3; i++) {
-        $mid_v6Q8_colorfield[i] = color[i];
+        $mid_9UCg_colorfield[i] = color[i];
     }
-    var zerocolor=this._css_color($mid_v6Q8_colorfield);
+    var zerocolor=this._css_color($mid_9UCg_colorfield);
     color = this._css_color(color);
     var canvas=this.canvas;
     var ctx=this.ctx;
@@ -9907,7 +9969,7 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
     if (rfac==undefined)
       rfac = 1;
     var hash=size[0].toString()+" "+size[1]+" "+rfac;
-    if (!(hash in $cache_SUaN_box1)) {
+    if (!(hash in $cache_woPl_box1)) {
         r/=rfac;
         var p1=this.arc_points((($_mh = objcache.array(2)), ($_mh[0] = (0+r+2)), ($_mh[1] = (0+r+2)), ($_mh[2] = (0)), $_mh), Math.PI, ang, r);
         var p2=this.arc_points((($_mh = objcache.array(2)), ($_mh[0] = (0+w-r-2)), ($_mh[1] = (0+r+2)), ($_mh[2] = (0)), $_mh), Math.PI/2, ang, r);
@@ -9935,9 +9997,9 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
             points.push(p4[i]);
         }
         p2.reverse();
-        $cache_SUaN_box1[hash] = [p1, p2, points];
+        $cache_woPl_box1[hash] = [p1, p2, points];
     }
-    var cp=$cache_SUaN_box1[hash];
+    var cp=$cache_woPl_box1[hash];
     var p1=cp[0];
     var p2=cp[1];
     var points=cp[2];
@@ -9961,45 +10023,45 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
             var i2=i+plen*2;
             var i3=i+1+plen*2;
             var i4=i+1;
-            $v1_l3AB_box1[0] = p1[i][0]+x;
-            $v1_l3AB_box1[1] = p1[i][1]+y;
-            $v1_l3AB_box1[2] = p1[i][2];
+            $v1_gM4a_box1[0] = p1[i][0]+x;
+            $v1_gM4a_box1[1] = p1[i][1]+y;
+            $v1_gM4a_box1[2] = p1[i][2];
             
-            $v2_hzDD_box1[0] = p2[i][0]+x;
-            $v2_hzDD_box1[1] = p2[i][1]+y;
-            $v2_hzDD_box1[2] = p2[i][2];
+            $v2_MC1a_box1[0] = p2[i][0]+x;
+            $v2_MC1a_box1[1] = p2[i][1]+y;
+            $v2_MC1a_box1[2] = p2[i][2];
             
-            $v3_uC0H_box1[0] = p2[i+1][0]+x;
-            $v3_uC0H_box1[1] = p2[i+1][1]+y;
-            $v3_uC0H_box1[2] = p2[i+1][2];
+            $v3_GiVJ_box1[0] = p2[i+1][0]+x;
+            $v3_GiVJ_box1[1] = p2[i+1][1]+y;
+            $v3_GiVJ_box1[2] = p2[i+1][2];
             
-            $v4_otG4_box1[0] = p1[i+1][0]+x;
-            $v4_otG4_box1[1] = p1[i+1][1]+y;
-            $v4_otG4_box1[2] = p1[i+1][2];
+            $v4_CItz_box1[0] = p1[i+1][0]+x;
+            $v4_CItz_box1[1] = p1[i+1][1]+y;
+            $v4_CItz_box1[2] = p1[i+1][2];
             
-            this.quad($v1_l3AB_box1, $v2_hzDD_box1, $v3_uC0H_box1, $v4_otG4_box1, color(i1), color(i2), color(i3), color(i4));
+            this.quad($v1_gM4a_box1, $v2_MC1a_box1, $v3_GiVJ_box1, $v4_CItz_box1, color(i1), color(i2), color(i3), color(i4));
         }
     }
     var lines=[];
     var colors=[];
     for (var i=0; i<points.length; i++) {
-        $v1_l3AB_box1[0] = points[(i+1)%points.length][0]+x;
-        $v1_l3AB_box1[1] = points[(i+1)%points.length][1]+y;
-        $v1_l3AB_box1[2] = points[(i+1)%points.length][2];
+        $v1_gM4a_box1[0] = points[(i+1)%points.length][0]+x;
+        $v1_gM4a_box1[1] = points[(i+1)%points.length][1]+y;
+        $v1_gM4a_box1[2] = points[(i+1)%points.length][2];
         
-        $v2_hzDD_box1[0] = points[i][0]+x;
-        $v2_hzDD_box1[1] = points[i][1]+y;
-        $v2_hzDD_box1[2] = points[i][2];
+        $v2_MC1a_box1[0] = points[i][0]+x;
+        $v2_MC1a_box1[1] = points[i][1]+y;
+        $v2_MC1a_box1[2] = points[i][2];
         
-        if ($pairs_cXgE_box1.length<=i) {
-            $pairs_cXgE_box1.push([[0, 0], [0, 0]]);
+        if ($pairs_2IjT_box1.length<=i) {
+            $pairs_2IjT_box1.push([[0, 0], [0, 0]]);
         }
-        $pairs_cXgE_box1[i][0][0] = (($_mh = objcache.array(2)), ($_mh[0] = ($v1_l3AB_box1[0])), ($_mh[1] = ($v1_l3AB_box1[1])), ($_mh[2] = (0)), $_mh);
-        $pairs_cXgE_box1[i][0][1] = (($_mh = objcache.array(2)), ($_mh[0] = ($v2_hzDD_box1[0])), ($_mh[1] = ($v2_hzDD_box1[1])), ($_mh[2] = (0)), $_mh);
-        lines.push($pairs_cXgE_box1[i][0]);
-        $pairs_cXgE_box1[i][1][0] = color((i+1)%points.length);
-        $pairs_cXgE_box1[i][1][1] = color(i);
-        colors.push($pairs_cXgE_box1[i][1]);
+        $pairs_2IjT_box1[i][0][0] = (($_mh = objcache.array(2)), ($_mh[0] = ($v1_gM4a_box1[0])), ($_mh[1] = ($v1_gM4a_box1[1])), ($_mh[2] = (0)), $_mh);
+        $pairs_2IjT_box1[i][0][1] = (($_mh = objcache.array(2)), ($_mh[0] = ($v2_MC1a_box1[0])), ($_mh[1] = ($v2_MC1a_box1[1])), ($_mh[2] = (0)), $_mh);
+        lines.push($pairs_2IjT_box1[i][0]);
+        $pairs_2IjT_box1[i][1][0] = color((i+1)%points.length);
+        $pairs_2IjT_box1[i][1][1] = color(i);
+        colors.push($pairs_2IjT_box1[i][1]);
     }
   }, function tri_aa(v1, v2, v3, c1, c2, c3) {
     this.tri(v1, v2, v3, c1, c2, c3);
@@ -10080,23 +10142,23 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
     for (var i=0; i<lines.length; i++, ly+=12) {
         var w=this._measure_line(lines[i]).width;
         var m=this.transmat.$matrix;
-        $pos_CPcY_text[0] = m.m41+v[0][0]+pos1[0];
-        $pos_CPcY_text[1] = canvas.height-(m.m42+v[0][1]+pos1[1]+ly);
-        $pos_CPcY_text[2] = 0;
+        $pos_MZsP_text[0] = m.m41+v[0][0]+pos1[0];
+        $pos_MZsP_text[1] = canvas.height-(m.m42+v[0][1]+pos1[1]+ly);
+        $pos_MZsP_text[2] = 0;
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.rotate(rot);
         if (rot!=0) {
-            $pos_CPcY_text[1]-=w;
+            $pos_MZsP_text[1]-=w;
         }
-        rot2d($pos_CPcY_text, -rot);
-        $pos_CPcY_text[1] = canvas.height-$pos_CPcY_text[1];
+        rot2d($pos_MZsP_text, -rot);
+        $pos_MZsP_text[1] = canvas.height-$pos_MZsP_text[1];
         if (color==undefined)
-          color = [0, 0, 0, 1];
+          color = uicolors.DefaultText;
         ctx.fillStyle = this._css_color(color);
         if (fontsize==undefined)
           fontsize = default_ui_font_size;
         ctx.font = fontsize+"px "+"Arial";
-        var x=$pos_CPcY_text[0], y=canvas.height-($pos_CPcY_text[1]);
+        var x=$pos_MZsP_text[0], y=canvas.height-($pos_MZsP_text[1]);
         this._text_line(lines[i], x, y, fontsize);
     }
   }, function _set_font(ctx, fontsize, addition_options) {
@@ -10211,17 +10273,17 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
   }, function pop_transform() {
     this.transmat.load(this.trans_stack.pop());
   }]);
-  var $temp_layer_idgen_kqhJ_push_layer=0;
-  var $black_4z9X_quad=[0, 0, 0, 1];
-  var $grads_VKXD_quad={}
-  var $mid_v6Q8_colorfield=[0, 0, 0, 0.5];
-  var $cache_SUaN_box1={}
-  var $v1_l3AB_box1=new Vector3();
-  var $v3_uC0H_box1=new Vector3();
-  var $pairs_cXgE_box1=[];
-  var $pos_CPcY_text=[0, 0, 0];
-  var $v2_hzDD_box1=new Vector3();
-  var $v4_otG4_box1=new Vector3();
+  var $temp_layer_idgen_U1W1_push_layer=0;
+  var $black_FZTF_quad=[0, 0, 0, 1];
+  var $grads_70S2_quad={}
+  var $mid_9UCg_colorfield=[0, 0, 0, 0.5];
+  var $cache_woPl_box1={}
+  var $v1_gM4a_box1=new Vector3();
+  var $v3_GiVJ_box1=new Vector3();
+  var $pairs_2IjT_box1=[];
+  var $pos_MZsP_text=[0, 0, 0];
+  var $v2_MC1a_box1=new Vector3();
+  var $v4_CItz_box1=new Vector3();
   _es6_module.add_class(UICanvas);
   UICanvas = _es6_module.add_export('UICanvas', UICanvas);
   window.active_canvases = {}
@@ -10229,1053 +10291,3 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
     var u=new UICanvas();
   }
 }, '/dev/fairmotion/src/ui/UICanvas.js');
-es6_module_define('UIFrame', ["mathlib", "UIElement", "J3DIMath", "events"], function _UIFrame_module(_es6_module) {
-  var aabb_isect_2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_2d');
-  var inrect_2d=es6_import_item(_es6_module, 'mathlib', 'inrect_2d');
-  es6_import(_es6_module, 'J3DIMath');
-  var PackFlags=es6_import_item(_es6_module, 'UIElement', 'PackFlags');
-  var UIElement=es6_import_item(_es6_module, 'UIElement', 'UIElement');
-  var UIFlags=es6_import_item(_es6_module, 'UIElement', 'UIFlags');
-  var CanvasFlags=es6_import_item(_es6_module, 'UIElement', 'CanvasFlags');
-  var KeyMap=es6_import_item(_es6_module, 'events', 'KeyMap');
-  var ToolKeyHandler=es6_import_item(_es6_module, 'events', 'ToolKeyHandler');
-  var FuncKeyHandler=es6_import_item(_es6_module, 'events', 'FuncKeyHandler');
-  var KeyHandler=es6_import_item(_es6_module, 'events', 'KeyHandler');
-  var charmap=es6_import_item(_es6_module, 'events', 'charmap');
-  var TouchEventManager=es6_import_item(_es6_module, 'events', 'TouchEventManager');
-  var VelocityPan=es6_import_item(_es6_module, 'events', 'VelocityPan');
-  var EventHandler=es6_import_item(_es6_module, 'events', 'EventHandler');
-  var _static_mat=new Matrix4();
-  var _ufbd_v1=new Vector3();
-  var _canvas_threshold=1.0;
-  var $pos_lF9o__find_active;
-  var $zero_76k4_build_draw_old;
-  var UIFrame=_ESClass("UIFrame", UIElement, [function UIFrame(ctx, canvas, path, pos, size) {
-    UIElement.call(this, ctx, path, pos, size);
-    this.dirty_rects = new GArray();
-    this.bgcolor = undefined;
-    this._pan_cache = {}
-    this.pan_bounds = [[0, 0], [0, 0]];
-    this.depth = 0;
-    this.ctx = ctx;
-    this._children = new GArray([]);
-    this.active = undefined;
-    this.velpan = new VelocityPan();
-    this.tick_timer = new Timer(200);
-    this.mpos = [0, 0];
-    this.draw_background = false;
-    this.has_hidden_elements = false;
-    if (canvas!=undefined) {
-        this.canvas = canvas;
-    }
-    this.leafcount = 0;
-    this.framecount = 0;
-    this.rcorner = 16.0;
-    this.keymap = undefined;
-  }, _ESClass.get(function children() {
-    return this._children;
-  }), _ESClass.set(function children(cs) {
-    var cset=new set();
-    var __iter_c=__get_iter(cs);
-    var c;
-    while (1) {
-      var __ival_c=__iter_c.next();
-      if (__ival_c.done) {
-          break;
-      }
-      c = __ival_c.value;
-      cset.add(c);
-    }
-    var __iter_c=__get_iter(list(this._children));
-    var c;
-    while (1) {
-      var __ival_c=__iter_c.next();
-      if (__ival_c.done) {
-          break;
-      }
-      c = __ival_c.value;
-      if (!cset.has(c)) {
-          c.on_remove(this);
-          c.parent = undefined;
-          c.canvas = undefined;
-      }
-    }
-    this._children.reset();
-    var __iter_c=__get_iter(cs);
-    var c;
-    while (1) {
-      var __ival_c=__iter_c.next();
-      if (__ival_c.done) {
-          break;
-      }
-      c = __ival_c.value;
-      if (!cset.has(c)) {
-          this.add(c);
-      }
-      else {
-        this._children.push(c);
-      }
-    }
-  }), function on_saved_uidata(visit_func) {
-    var __iter_c=__get_iter(this.children);
-    var c;
-    while (1) {
-      var __ival_c=__iter_c.next();
-      if (__ival_c.done) {
-          break;
-      }
-      c = __ival_c.value;
-      visit_func(c);
-    }
-  }, function on_load_uidata(visit) {
-    var __iter_c=__get_iter(this.children);
-    var c;
-    while (1) {
-      var __ival_c=__iter_c.next();
-      if (__ival_c.done) {
-          break;
-      }
-      c = __ival_c.value;
-      visit(c);
-    }
-  }, function on_gl_lost(new_gl) {
-    if (this.canvas!=undefined&&!(this.canvas.gl===new_gl)) {
-        this.canvas.on_gl_lost(new_gl);
-    }
-    if (this.children==undefined)
-      return ;
-    var __iter_c=__get_iter(this.children);
-    var c;
-    while (1) {
-      var __ival_c=__iter_c.next();
-      if (__ival_c.done) {
-          break;
-      }
-      c = __ival_c.value;
-      c.on_gl_lost(new_gl);
-    }
-    this.do_full_recalc();
-  }, function start_pan(start_mpos, button, last_mpos) {
-    if (start_mpos==undefined) {
-        start_mpos = undefined;
-    }
-    if (button==undefined) {
-        button = 0;
-    }
-    if (last_mpos==undefined) {
-        last_mpos = undefined;
-    }
-    if (!(this.state&UIFlags.HAS_PAN)) {
-        if (this.parent==undefined) {
-            console.trace();
-            console.log("Warning: UIFrame.start_pan: no parent frame with pan support");
-        }
-        else {
-          if (start_mpos!=undefined) {
-              start_mpos[0]+=this.pos[0];
-              start_mpos[1]+=this.pos[1];
-          }
-          if (last_mpos!=undefined) {
-              last_mpos[0]+=this.pos[0];
-              last_mpos[1]+=this.pos[1];
-          }
-          this.parent.start_pan(start_mpos, button, last_mpos);
-        }
-    }
-    else {
-      this.start_pan_main(start_mpos, button, last_mpos);
-    }
-  }, function start_pan_main(start_mpos, button, last_mpos) {
-    if (button==undefined) {
-        button = 0;
-    }
-    if (last_mpos==undefined) {
-        last_mpos = start_mpos;
-    }
-    if (start_mpos!=undefined) {
-        this.mpos[0] = start_mpos[0];
-        this.mpos[1] = start_mpos[1];
-    }
-    if (this.velpan==undefined)
-      this.velpan = new VelocityPan();
-    var mpos=[this.mpos[0], this.mpos[1]];
-    var lastmpos;
-    this.abs_transform(mpos);
-    if (last_mpos!=undefined) {
-        last_mpos = [last_mpos[0], last_mpos[1]];
-        this.abs_transform(last_mpos);
-    }
-    else {
-      last_mpos = mpos;
-    }
-    if (DEBUG.touch)
-      console.log("sy", mpos[1]);
-    var f=this;
-    while (f.parent!=undefined) {
-      f = f.parent;
-    }
-    this.velpan.can_coast = !(this.state&UIFlags.NO_VELOCITY_PAN);
-    this.velpan.start(mpos, last_mpos, this, f.push_modal.bind(f), f.pop_modal.bind(f));
-  }, function end_pan() {
-    if (this.modalhandler==this.velpan) {
-        this.velpan.end();
-        this.pop_modal();
-    }
-    else {
-      console.trace();
-      console.log("Warning: UIFrame.end_pan called when not in panning mode");
-      return ;
-    }
-  }, function get_keymaps() {
-    return this.keymap!=undefined ? [this.keymap] : [];
-  }, function do_full_recalc() {
-    this.dirty_rects.push([[this.abspos[0], this.abspos[1]], [this.size[0], this.size[1]]]);
-    this.do_recalc();
-    var __iter_c=__get_iter(this.children);
-    var c;
-    while (1) {
-      var __ival_c=__iter_c.next();
-      if (__ival_c.done) {
-          break;
-      }
-      c = __ival_c.value;
-      if (__instance_of(c, UIFrame))
-        c.do_full_recalc();
-      else 
-        c.do_recalc();
-    }
-  }, function on_resize(newsize, oldsize) {
-    if (this.canvas!=undefined) {
-        this.canvas.on_resize(newsize, oldsize);
-    }
-    this.do_full_recalc();
-    var __iter_c=__get_iter(this.children);
-    var c;
-    while (1) {
-      var __ival_c=__iter_c.next();
-      if (__ival_c.done) {
-          break;
-      }
-      c = __ival_c.value;
-      c.do_recalc();
-      c.on_resize(newsize, oldsize);
-    }
-  }, function on_inactive() {
-    if (this.active!=undefined) {
-        this.active.state&=~UIFlags.HIGHLIGHT;
-        this.active.do_recalc();
-        this.active.on_inactive();
-        this.active = undefined;
-        this.do_recalc();
-    }
-  }, function push_modal(e) {
-    UIElement.prototype.push_modal.call(this, e);
-  }, function pop_modal() {
-    UIElement.prototype.pop_modal.call(this);
-  }, function _offset_mpos(event) {
-    if (this.modalhandler!=null&&__instance_of(this.modalhandler, UIElement)) {
-        event.x-=this.modalhandler.pos[0];
-        event.y-=this.modalhandler.pos[1];
-    }
-    if ((this.state&UIFlags.HAS_PAN)&&this.velpan!=undefined) {
-        event.x-=this.velpan.pan[0];
-        event.y-=this.velpan.pan[1];
-    }
-  }, function _unoffset_mpos(event) {
-    if (this.state&UIFlags.HAS_PAN) {
-        event.x+=this.velpan.pan[0];
-        event.y+=this.velpan.pan[1];
-    }
-  }, function set_pan() {
-    if (this.state&UIFlags.PAN_CANVAS_MAT)
-      this.on_pan(this.velpan.pan, this.velpan.pan);
-  }, function on_pan(pan, old_pan) {
-    if (this.state&UIFlags.PAN_CANVAS_MAT) {
-        var mat=this.canvas.global_matrix;
-        var s=this.canvas.viewport[1];
-        var x=(pan[0]/s[0])*2.0;
-        var y=(pan[1]/s[1])*2.0;
-        mat.makeIdentity();
-        mat.translate(x, y, 0);
-    }
-    else {
-      this.do_full_recalc();
-    }
-    this.pan_do_build();
-  }, function _on_mousemove(event) {
-    if (this.bad_event(event))
-      return ;
-    if (this.modalhandler!=null) {
-        this._offset_mpos(event);
-        this.modalhandler._on_mousemove(event);
-        return true;
-    }
-    else {
-      return this.on_mousemove(event);
-    }
-  }, function focus(e) {
-    if (this.active!==e&&this.active!==undefined) {
-        this.active.state&=~UIFlags.HIGHLIGHT;
-        this.active.on_inactive();
-        this.active.do_recalc();
-    }
-    else 
-      if (e!=undefined&&e===this.active) {
-        if (this.parent!=undefined)
-          this.parent.focus(this);
-        return ;
-    }
-    if (e!=undefined) {
-        e.state|=UIFlags.HIGHLIGHT;
-        e.on_active();
-        e.do_recalc();
-    }
-    this.active = e;
-    if (this.parent!=undefined) {
-        this.parent.focus(this);
-    }
-  }, function _find_active(e) {
-    var mpos=[e.x, e.y];
-    var found=false;
-    for (var i=this.children.length-1; i>=0; i--) {
-        var c=this.children[i];
-        $pos_lF9o__find_active[0] = c.pos[0], $pos_lF9o__find_active[1] = c.pos[1];
-        if (c.state&UIFlags.HAS_PAN) {
-        }
-        if (inrect_2d(mpos, $pos_lF9o__find_active, c.size)) {
-            found = true;
-            if (this.active!=c&&this.active!=undefined) {
-                this.active.state&=~UIFlags.HIGHLIGHT;
-                this.active.on_inactive();
-                this.active.do_recalc();
-            }
-            if (this.active!=c) {
-                c.state|=UIFlags.HIGHLIGHT;
-                c.on_active();
-                c.do_recalc();
-                this.active = c;
-            }
-            break;
-        }
-    }
-    if (!found&&this.active!=undefined) {
-        this.active.state&=~UIFlags.HIGHLIGHT;
-        this.active.on_inactive();
-        this.active.do_recalc();
-        this.active = undefined;
-    }
-  }, function on_mousemove(e) {
-    if (this.bad_event(e))
-      return ;
-    this._offset_mpos(e);
-    var mpos=this.mpos = [e.x, e.y];
-    var found=false;
-    this._find_active(e);
-    if (this.active!=undefined) {
-        e.x-=this.active.pos[0];
-        e.y-=this.active.pos[1];
-        this.active._on_mousemove(e);
-        e.x+=this.active.pos[0];
-        e.y+=this.active.pos[1];
-    }
-    this._unoffset_mpos(e);
-    return this.active!=undefined;
-  }, function bad_event(event) {
-    if (!(this.state&UIFlags.ENABLED))
-      return false;
-    return UIElement.prototype.bad_event.call(this, event);
-  }, function _on_doubleclick(event) {
-    if (this.bad_event(event))
-      return ;
-    if (this.modalhandler!=null) {
-        this._offset_mpos(event);
-        this.modalhandler._on_doubleclick(event);
-    }
-    else {
-      this.on_doubleclick(event);
-    }
-  }, function _on_mousedown(event) {
-    if (this.bad_event(event))
-      return ;
-    if (this.modalhandler!=null) {
-        this._offset_mpos(event);
-        this.modalhandler._on_mousedown(event);
-    }
-    else {
-      this.on_mousedown(event);
-    }
-  }, function on_doubleclick(e) {
-    if (this.bad_event(e))
-      return ;
-    var mpos=this.mpos = [e.x, e.y];
-    this._find_active(e);
-    if (this.active!=undefined) {
-        e.x-=this.active.pos[0];
-        e.y-=this.active.pos[1];
-        this.active._on_doubleclick(e);
-    }
-    this._unoffset_mpos(e);
-    return this.active!=undefined;
-  }, function on_mousedown(e, feed_mousemove) {
-    if (feed_mousemove==undefined) {
-        feed_mousemove = false;
-    }
-    if (this.bad_event(e))
-      return ;
-    if (feed_mousemove)
-      this.on_mousemove(e);
-    else 
-      this._offset_mpos(e);
-    var mpos=this.mpos = [e.x, e.y];
-    this._find_active(e);
-    if ((this.state&UIFlags.USE_PAN)&&(e.button!=0||this.active==undefined)) {
-        console.log("panning");
-        this.start_pan([e.x, e.y]);
-        return ;
-    }
-    if (this.active!=undefined) {
-        e.x-=this.active.pos[0];
-        e.y-=this.active.pos[1];
-        this.active._on_mousedown(e);
-    }
-    this._unoffset_mpos(e);
-    return this.active!=undefined;
-  }, function _on_mouseup(event) {
-    if (this.bad_event(event))
-      return ;
-    if (this.modalhandler!=null) {
-        this._offset_mpos(event);
-        this.modalhandler._on_mouseup(event);
-    }
-    else {
-      this.on_mouseup(event);
-    }
-  }, function on_mouseup(e) {
-    if (this.bad_event(e))
-      return ;
-    this._offset_mpos(e);
-    if (this.active!=undefined) {
-        e.x-=this.active.pos[0];
-        e.y-=this.active.pos[1];
-        this.active._on_mouseup(e);
-    }
-    this._unoffset_mpos(e);
-    return this.active!=undefined;
-  }, function _on_mousewheel(event, delta) {
-    if (this.bad_event(event))
-      return ;
-    if (this.modalhandler!=null) {
-        if (this.modalhandler["pos"]!=undefined) {
-            event.x-=this.modalhandler.pos[0];
-            event.y-=this.modalhandler.pos[1];
-        }
-        this.modalhandler._on_mousewheel(event, delta);
-    }
-    else {
-      this.on_mousewheel(event, delta);
-    }
-  }, function on_mousewheel(e, delta) {
-    if (this.active!=undefined) {
-        if (this.modalhandler!=null&&this.modalhandler["pos"]!=undefined) {
-            event.x-=this.modalhandler.pos[0];
-            event.y-=this.modalhandler.pos[1];
-        }
-        this.active._on_mousewheel(e, delta);
-    }
-    return this.active!=undefined;
-  }, function on_textinput(e) {
-    if (this.active!=undefined) {
-        this.active._on_textinput(e);
-    }
-    return this.active!=undefined;
-  }, function on_keydown(e) {
-    if (this.active!=undefined) {
-        this.active._on_keydown(e);
-    }
-    return this.active!=undefined;
-  }, function on_keyup(e) {
-    if (this.active!=undefined) {
-        this.active._on_keyup(e);
-    }
-    return this.active!=undefined;
-  }, function on_charcode(e) {
-    if (this.active!=undefined) {
-        this.active._on_charcode(e);
-    }
-    return this.active!=undefined;
-  }, function get_uhash() {
-    var s="";
-    var p=this;
-    while (p!=undefined) {
-      s+=p.constructor.name;
-      if (__instance_of(p, Area))
-        break;
-      p = p.parent;
-    }
-    return s;
-  }, function prepend(e, packflag) {
-    e.defunct = false;
-    this.children.prepend(e);
-    if (!(__instance_of(e, UIFrame))) {
-        this.leafcount++;
-    }
-    else {
-      this.framecount++;
-    }
-    if (packflag!=undefined)
-      e.packflag|=packflag;
-    e.parent = this;
-    if (e.canvas==undefined)
-      e.canvas = this.canvas;
-    e.on_add(this);
-    this.do_recalc();
-    this.update_depth();
-  }, function _set_pan(e) {
-    e.state|=UIFlags.USE_PAN;
-    if (__instance_of(e, UIFrame)) {
-        var __iter_c=__get_iter(e.children);
-        var c;
-        while (1) {
-          var __ival_c=__iter_c.next();
-          if (__ival_c.done) {
-              break;
-          }
-          c = __ival_c.value;
-          this._set_pan(c);
-        }
-    }
-  }, function update_depth(e) {
-    return ;
-    var p=this;
-    this.depth = 0;
-    while (p.parent!=undefined) {
-      p = p.parent;
-      this.depth++;
-    }
-    function rec(f, depth) {
-      if (depth==undefined) {
-          depth = 0;
-      }
-      f.depth = depth;
-      var __iter_c=__get_iter(f.children);
-      var c;
-      while (1) {
-        var __ival_c=__iter_c.next();
-        if (__ival_c.done) {
-            break;
-        }
-        c = __ival_c.value;
-        if (__instance_of(c, UIFrame)) {
-            rec(c, depth+1);
-        }
-      }
-    }
-  }, function add(e, packflag) {
-    if (__instance_of(e, UIFrame)&&(e.state&UIFlags.HAS_PAN)&&e.velpan==undefined) {
-        e.velpan = new VelocityPan();
-    }
-    if (this.state&(UIFlags.HAS_PAN|UIFlags.USE_PAN)) {
-        this.state|=UIFlags.USE_PAN;
-        this._set_pan(e);
-    }
-    e.defunct = false;
-    this.children.push(e);
-    if (!(__instance_of(e, UIFrame))) {
-        this.leafcount++;
-    }
-    else {
-      this.framecount++;
-    }
-    if (packflag!=undefined)
-      e.packflag|=packflag;
-    e.parent = this;
-    if (e.canvas==undefined)
-      e.canvas = this.canvas;
-    e.on_add(this);
-    e.do_recalc();
-    this.update_depth();
-  }, function replace(a, b) {
-    if (a==this.modalhandler) {
-        a.pop_modal();
-    }
-    this.dirty_rects.push([[a.abspos[0], a.abspos[1]], [a.size[0], a.size[1]]]);
-    a.on_remove(this);
-    this.children.replace(a, b);
-    if (this.canvas!=undefined)
-      this.canvas.remove_cache(a);
-    if (a==this.active)
-      this.active = b;
-    b.parent = this;
-    if (b.canvas==undefined)
-      b.canvas = this.get_canvas();
-    if (b.ctx==undefined)
-      b.ctx = this.ctx;
-    b.on_add(this);
-    b.do_recalc();
-    this.update_depth();
-  }, function remove(e) {
-    e.defunct = true;
-    this.dirty_rects.push([[e.abspos[0], e.abspos[1]], [e.size[0], e.size[1]]]);
-    if (!(__instance_of(e, UIFrame))) {
-        this.leafcount--;
-    }
-    else {
-      this.framecount--;
-    }
-    if (e==this.modalhandler) {
-        e.pop_modal();
-    }
-    this.children.remove(e);
-    e.on_remove(this);
-    if (this.canvas!=undefined)
-      this.canvas.remove_cache(e);
-    if (e==this.active)
-      this.active = undefined;
-    this.update_depth();
-  }, function set_context(ctx) {
-    this.ctx = ctx;
-    var __iter_c=__get_iter(this.children);
-    var c;
-    while (1) {
-      var __ival_c=__iter_c.next();
-      if (__ival_c.done) {
-          break;
-      }
-      c = __ival_c.value;
-      c.set_context(ctx);
-    }
-  }, function load_filedata(obj) {
-    if (obj.pan) {
-        this.velpan = new VelocityPan();
-        this.velpan.pan.load(obj.pan);
-    }
-  }, function disable() {
-    UIElement.prototype.disable.call(this);
-    var __iter_c=__get_iter(this.children);
-    var c;
-    while (1) {
-      var __ival_c=__iter_c.next();
-      if (__ival_c.done) {
-          break;
-      }
-      c = __ival_c.value;
-      c.disable();
-    }
-  }, function enable() {
-    UIElement.prototype.enable.call(this);
-    var __iter_c=__get_iter(this.children);
-    var c;
-    while (1) {
-      var __ival_c=__iter_c.next();
-      if (__ival_c.done) {
-          break;
-      }
-      c = __ival_c.value;
-      c.enable();
-    }
-  }, function get_filedata() {
-    if (this.state&UIFlags.HAS_PAN&&this.velpan!=undefined) {
-        return {pan: this.velpan.pan}
-    }
-    return undefined;
-  }, function pan_do_build() {
-    var cache=this._pan_cache;
-    var cache2={}
-    var i=0;
-    var viewport=g_app_state.raster.viewport;
-    var __iter_c=__get_iter(this.children);
-    var c;
-    while (1) {
-      var __ival_c=__iter_c.next();
-      if (__ival_c.done) {
-          break;
-      }
-      c = __ival_c.value;
-      c.abspos[0] = 0;
-      c.abspos[1] = 0;
-      c.abs_transform(c.abspos);
-      var hidden=!aabb_isect_2d(c.abspos, c.size, viewport[0], viewport[1]);
-      if (!this.recalc&&!hidden&&(!(i in cache)||cache[i]!=hidden)) {
-          console.log("pan recalc");
-          this.do_recalc();
-      }
-      cache2[i] = hidden;
-      i++;
-    }
-    this._pan_cache = cache2;
-  }, function calc_dirty() {
-    var d=this.last_dirty;
-    var ret=[[0, 0], [0, 0]];
-    var first=true;
-    var margin=1;
-    var __iter_r=__get_iter(this.dirty_rects);
-    var r;
-    while (1) {
-      var __ival_r=__iter_r.next();
-      if (__ival_r.done) {
-          break;
-      }
-      r = __ival_r.value;
-      if (first) {
-          first = false;
-          ret[0][0] = r[0][0]-margin;
-          ret[0][1] = r[0][1]-margin;
-          ret[1][0] = r[1][0]+r[0][0]+margin*2;
-          ret[1][1] = r[1][1]+r[0][1]+margin*2;
-      }
-      else {
-        ret[0][0] = Math.min(ret[0][0], r[0][0]-margin);
-        ret[0][1] = Math.min(ret[0][1], r[0][1]-margin);
-        ret[1][0] = Math.max(ret[1][0], r[0][0]+r[1][0]+margin*2);
-        ret[1][1] = Math.max(ret[1][1], r[0][1]+r[1][1]+margin*2);
-      }
-    }
-    var __iter_c=__get_iter(this.children);
-    var c;
-    while (1) {
-      var __ival_c=__iter_c.next();
-      if (__ival_c.done) {
-          break;
-      }
-      c = __ival_c.value;
-      if (c.constructor.name=="ScreenBorder")
-        continue;
-      if (c.state&UIFlags.INVISIBLE)
-        continue;
-      if (!c.recalc)
-        continue;
-      var ret2;
-      if (__instance_of(c, UIFrame)) {
-          ret2 = c.calc_dirty();
-      }
-      else {
-        ret2 = c.last_dirty;
-      }
-      if (first) {
-          ret[0][0] = ret2[0][0];
-          ret[0][1] = ret2[0][1];
-          ret[1][0] = ret2[1][0]+ret2[0][0];
-          ret[1][1] = ret2[1][1]+ret2[0][1];
-          first = false;
-      }
-      else {
-        for (var i=0; i<2; i++) {
-            ret[0][i] = Math.min(ret[0][i], ret2[0][i]);
-            ret[1][i] = Math.max(ret[1][i], ret2[1][i]+ret2[0][i]);
-        }
-      }
-    }
-    this.abspos[0] = this.abspos[1] = 0.0;
-    this.abs_transform(this.abspos);
-    ret[0][0] = Math.min(Math.max(ret[0][0], this.abspos[0]), this.abspos[0]+this.size[0]);
-    ret[1][0]-=ret[0][0];
-    ret[1][1]-=ret[0][1];
-    return ret;
-  }, function build_draw(canvas, isVertical, cache_frame) {
-    if (cache_frame==undefined) {
-        cache_frame = undefined;
-    }
-    var mat=_static_mat;
-    this.has_hidden_elements = false;
-    this.recalc = 0;
-    if (this._limit==undefined)
-      this._limit = 0;
-    var d=this.calc_dirty();
-    this.dirty_rects.reset();
-    if (this.canvas==undefined) {
-        var p=this;
-        while (p!=undefined&&p.canvas==undefined) {
-          p = p.parent;
-        }
-        if (p!=undefined) {
-            this.canvas = p.canvas;
-            this.pack(this.canvas, false);
-        }
-    }
-    if (this.canvas==undefined) {
-        return ;
-    }
-    var pushed_pan_transform=false;
-    var canvas=this.canvas;
-    try {
-      if (this.state&UIFlags.HAS_PAN&&this.velpan!=undefined) {
-          canvas.push_transform();
-          pushed_pan_transform = true;
-          canvas.translate(this.velpan.pan);
-      }
-    }
-    catch (err) {
-        print_stack(err);
-    }
-    if (this.draw_background) {
-        canvas.simple_box([0, 0], this.size, this.bgcolor, this.rcorner);
-    }
-    var __iter_c=__get_iter(this.children);
-    var c;
-    while (1) {
-      var __ival_c=__iter_c.next();
-      if (__ival_c.done) {
-          break;
-      }
-      c = __ival_c.value;
-      if (c.canvas==undefined)
-        c.canvas = this.canvas;
-      if (!c.recalc)
-        continue;
-      this.canvas.push_transform();
-      this.canvas.translate(c.pos);
-      c.abspos[0] = 0;
-      c.abspos[1] = 0;
-      c.abs_transform(c.abspos);
-      if (!(__instance_of(c, UIFrame))) {
-          var t=c.dirty;
-          c.dirty = c.last_dirty;
-          c.last_dirty = t;
-          c.dirty[0][0] = c.abspos[0];
-          c.dirty[0][1] = c.abspos[1];
-          c.dirty[1][0] = c.size[0];
-          c.dirty[1][1] = c.size[1];
-      }
-      try {
-        c.build_draw(this.canvas, false);
-      }
-      catch (err) {
-          print_stack(err);
-      }
-      this.canvas.pop_transform();
-      c.recalc = false;
-    }
-    if (pushed_pan_transform) {
-        this.canvas.pop_transform();
-    }
-  }, function build_draw_old(canvas, isVertical, cache_frame) {
-    if (cache_frame==undefined) {
-        cache_frame = undefined;
-    }
-    var mat=_static_mat;
-    this.has_hidden_elements = false;
-    var d=this.calc_dirty();
-    if (this.is_canvas_root()) {
-        if (DEBUG.use_2d_uicanvas) {
-            var __iter_c=__get_iter(this.children);
-            var c;
-            while (1) {
-              var __ival_c=__iter_c.next();
-              if (__ival_c.done) {
-                  break;
-              }
-              c = __ival_c.value;
-              if (aabb_isect_2d(c.pos, c.size, d[0], d[1])) {
-                  c.do_recalc();
-              }
-            }
-        }
-        this.canvas.push_transform();
-        this.canvas.translate(this.pos);
-    }
-    if (cache_frame==undefined) {
-        cache_frame = !(this.state&UIFlags.NO_FRAME_CACHE);
-    }
-    if (cache_frame&&this.depth==4) {
-        canvas.frame_begin(this);
-    }
-    if (this.parent==undefined) {
-        this.abspos[0] = this.abspos[1] = 0.0;
-        this.abs_transform(this.abspos);
-    }
-    if (this.state&UIFlags.HAS_PAN&&this.velpan!=undefined) {
-        if (!(this.state&UIFlags.PAN_CANVAS_MAT)) {
-            canvas.push_transform();
-            canvas.translate(this.velpan.pan);
-        }
-    }
-    if (this.pos==undefined) {
-        this.pos = [0, 0];
-        console.log("eek");
-        console.trace();
-    }
-    if (this.draw_background) {
-    }
-    var retag_recalc=false;
-    this.recalc = 0;
-    var viewport=g_app_state.raster.viewport;
-    var __iter_c=__get_iter(this.children);
-    var c;
-    while (1) {
-      var __ival_c=__iter_c.next();
-      if (__ival_c.done) {
-          break;
-      }
-      c = __ival_c.value;
-      c.abspos[0] = 0;
-      c.abspos[1] = 0;
-      c.abs_transform(c.abspos);
-      var t=c.dirty;
-      c.dirty = c.last_dirty;
-      c.last_dirty = t;
-      c.dirty[0][0] = c.abspos[0];
-      c.dirty[0][1] = c.abspos[1];
-      c.dirty[1][0] = c.size[0];
-      c.dirty[1][1] = c.size[1];
-      var isect=aabb_isect_2d(c.abspos, c.size, viewport[0], viewport[1]);
-      var pos;
-      if (this.state&UIFlags.HAS_PAN)
-        pos = this.velpan.pan;
-      else 
-        pos = $zero_76k4_build_draw_old;
-      isect = isect||aabb_isect_2d(c.pos, c.size, pos, this.size);
-      if (!isect) {
-          this.has_hidden_elements = true;
-          continue;
-      }
-      if (c.pos==undefined) {
-          c.pos = [0, 0];
-          c.size = [0, 0];
-          console.log("eek2");
-          console.trace();
-      }
-      mat.makeIdentity();
-      _ufbd_v1.zero();
-      _ufbd_v1[0] = c.pos[0];
-      _ufbd_v1[1] = c.pos[1];
-      mat.translate(_ufbd_v1);
-      if ((c.canvas!=undefined&&c.canvas!=this.get_canvas())||c.is_canvas_root()) {
-          if (c.recalc&&!(c.packflag&PackFlags.NO_REPACK)) {
-              var canvas2=c.get_canvas();
-              canvas2.push_transform();
-              canvas2.translate(c.pos);
-              c.pack(canvas2, false);
-              c.build_draw(canvas2, isVertical);
-              canvas2.pop_transform();
-          }
-          continue;
-      }
-      var do_skip=!c.recalc;
-      if (!(__instance_of(c, UIFrame))&&this.constructor.name!="UIMenu") {
-          do_skip = !c.recalc;
-      }
-      if (c.recalc) {
-          var r=this.recalc;
-          if (c.recalc&&!(c.packflag&PackFlags.NO_REPACK))
-            c.pack(canvas, false);
-          canvas.push_transform(mat);
-          try {
-            c.build_draw(canvas, isVertical);
-          }
-          catch (_err) {
-              print_stack(_err);
-              if (c==this.modalhandler)
-                c.pop_modal();
-              console.log("Error occured while drawing element ", c);
-          }
-          canvas.pop_transform(mat);
-          c.recalc = 0;
-      }
-    }
-    if (cache_frame&&this.depth==4) {
-        canvas.frame_end(this);
-    }
-    if (retag_recalc)
-      this.do_recalc();
-    if (this.state&UIFlags.HAS_PAN&&this.velpan!=undefined) {
-        if (!(this.state&UIFlags.PAN_CANVAS_MAT)) {
-            canvas.pop_transform();
-        }
-    }
-    if (this.is_canvas_root()) {
-        this.canvas.pop_transform();
-    }
-    this.dirty_rects.reset();
-  }, function on_tick(pre_func) {
-    if (!this.tick_timer.ready())
-      return ;
-    UIElement.prototype.on_tick.call(this);
-    if (this.state&UIFlags.HAS_PAN&&this.valpan==undefined) {
-        this.valpan = new VelocityPan();
-        this.state|=UIFlags.USE_PAN;
-        function recurse(f) {
-          var __iter_c=__get_iter(f.children);
-          var c;
-          while (1) {
-            var __ival_c=__iter_c.next();
-            if (__ival_c.done) {
-                break;
-            }
-            c = __ival_c.value;
-            c.state|=UIFlags.USE_PAN;
-            if (__instance_of(c, UIFrame))
-              recurse(c);
-          }
-        }
-        recurse(this);
-    }
-    if (this.velpan!=undefined) {
-        this.velpan.on_tick();
-    }
-    var __iter_c=__get_iter(this.children);
-    var c;
-    while (1) {
-      var __ival_c=__iter_c.next();
-      if (__ival_c.done) {
-          break;
-      }
-      c = __ival_c.value;
-      try {
-        if (pre_func!=undefined)
-          pre_func(c);
-        c.on_tick();
-        if (c.status_timer!=undefined) {
-            c.inc_flash_timer();
-            c.do_recalc();
-        }
-      }
-      catch (_err) {
-          print_stack(_err);
-          if (c==this.modalhandler)
-            c.pop_modal();
-          console.log("Error occured in UIFrame.on_tick ", c);
-      }
-    }
-  }, function pack(canvas, isVertical) {
-    var __iter_c=__get_iter(this.children);
-    var c;
-    while (1) {
-      var __ival_c=__iter_c.next();
-      if (__ival_c.done) {
-          break;
-      }
-      c = __ival_c.value;
-      if (c.recalc&&!(c.packflag&PackFlags.NO_REPACK))
-        c.pack(canvas, isVertical);
-    }
-  }, function add_floating(e, modal, center) {
-    if (modal==undefined) {
-        modal = false;
-    }
-    if (center==undefined) {
-        center = false;
-    }
-    var off=[e.pos[0], e.pos[1]];
-    var frame=this;
-    this.abs_transform(off);
-    while (frame.parent!=undefined) {
-      frame = frame.parent;
-    }
-    if (e.canvas==undefined)
-      e.canvas = frame.get_canvas();
-    if (center) {
-    }
-    e.pos[0] = off[0];
-    e.pos[1] = off[1];
-    frame.add(e);
-    e.do_recalc();
-    frame.do_full_recalc();
-    if (modal) {
-        frame.push_modal(e);
-    }
-  }]);
-  var $pos_lF9o__find_active=[0, 0];
-  var $zero_76k4_build_draw_old=[0, 0];
-  _es6_module.add_class(UIFrame);
-  UIFrame = _es6_module.add_export('UIFrame', UIFrame);
-}, '/dev/fairmotion/src/ui/UIFrame.js');

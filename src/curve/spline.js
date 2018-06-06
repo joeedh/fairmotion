@@ -444,8 +444,8 @@ export class Spline extends DataBlock {
     return h;
   }
   
-  split_edge(seg) {
-    var co = seg.evaluate(0.5);
+  split_edge(seg, s=0.5) {
+    var co = seg.evaluate(s);
     
     static ws = [0.5, 0.5];
     static srcs = [0, 0];

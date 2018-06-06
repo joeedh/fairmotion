@@ -9,7 +9,7 @@ import {LoadImageOp} from 'image_ops';
 
 import {DeleteVertOp, DeleteSegmentOp, DeleteFaceOp,
        ChangeFaceZ, SplitEdgeOp, DuplicateOp,
-       DisconnectHandlesOp} from 'spline_editops';
+       DisconnectHandlesOp, SplitEdgePickOp} from 'spline_editops';
 
 import {ToolOp, ToolMacro, ToolFlags, UndoFlags} from 'toolops_api';
 import {EditModes} from 'view2d';
@@ -37,6 +37,7 @@ import {SessionFlags} from "view2d_editor";
 import {ExportCanvasImage} from 'view2d_ops';
 
 import * as theplatform from 'theplatform';
+import {SplitEdgePickOp} from "../editors/viewport/spline_editops";
 
 class QuitFileOp extends ToolOp {
   static tooldef() {return {
@@ -222,6 +223,11 @@ window.api_define_ops = function() {
     "spline.split_edges": function(ctx, args) {
       return new SplitEdgeOp();
     },
+    
+    "spline.split_pick_edge": function(ctx, args) {
+      return new SplitEdgePickOp();
+    },
+    
     "spline.toggle_step_mode": function(ctx, args) {
       return new InterpStepModeOp();
     },

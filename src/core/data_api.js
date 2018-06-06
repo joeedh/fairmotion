@@ -11,7 +11,7 @@ I was planning on doing that later.
 /*
   Refactor notes:
 
-  Helper methods to build APIs are CamelCased, so e.g.
+  Helper methods to build APIs are CamelCased, as opposed to camelCase, so e.g.
 
     Struct.Float(..).Range(0, 100).OnUpdate(bleh);
 

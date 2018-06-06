@@ -4,6 +4,7 @@
 //as such, cannot use ES6 class syntax
 
 var _defined_modules = {};
+var _curpath_stack = [];
 var allow_cycles = false;
 
 var _is_cyclic = false;
@@ -105,7 +106,37 @@ ES6Module.prototype = {
   }
 };
 
-function es6_get_module_meta(name) {
+function es6_get_module_meta(name, path) {
+  //are we not a path?
+  if (path !== undefined || name.search(/\//) >= 0 || name.search(/\.js/) >= 0) {
+    let path_was_undefined = false;
+    
+    if (path === undefined) {
+      path_was_undefined = true;
+      path = name;
+    }
+    
+    path = _normpath(path, _es6_get_basepath());
+    
+    for (let k in _defined_modules) {
+      let mod = _defined_modules[k];
+      
+      if (mod.path === path) {
+        return mod;
+      }
+    }
+    
+    //get base name from path
+    if (path_was_undefined) {
+      let i = name.length - 1;
+      while (i >= 0 && name[i] != "/") {
+        i--;
+      }
+  
+      name = name.slice(name[i] == "/" ? i + 1 : i, name.length);
+    }
+  }
+  
   if (!(name in _defined_modules)) {
     var mod = new ES6Module(name);
     _defined_modules[name] = mod;
@@ -114,15 +145,33 @@ function es6_get_module_meta(name) {
   return _defined_modules[name];
 }
 
-function es6_module_define(name, depends, callback) {
+function _es6_get_basepath() {
+  if (_curpath_stack.length > 0)
+    return _curpath_stack[0];
+  return "";
+}
+
+function _es6_push_basepath(path) {
+  _curpath_stack.push(path);
+}
+
+function _es6_pop_basepath(path) {
+  return _curpath_stack.pop();
+}
+
+function es6_module_define(name, depends, callback, path) {
+  path = path === undefined ? name : path;
+  
   debug("defining module ", name, "with dependencies", JSON.stringify(depends));
   
   if (name in _defined_modules) {
     throw new Error("Duplicate module name '" + name + "'");
   }
   
-  var mod = es6_get_module_meta(name);
+  var mod = es6_get_module_meta(name, path);
+  
   mod.callback = callback;
+  mod.path = path;
   
   depends.forEach(function(d) {
     mod.depends.push(d);
@@ -222,8 +271,10 @@ function _load_module(mod) {
     return;
   }
   
+  _es6_push_basepath(mod.path);
   mod.callback.apply(this, args);
-
+  _es6_pop_basepath();
+  
   //debug("global exports", mod.global_exports);
   
   for (var k in mod.global_exports) {
@@ -244,7 +295,52 @@ function ModuleLoadError() {
 }
 ModuleLoadError.prototype = Object.create(Error.prototype);
 
+function _normpath1(path) {
+  path = path.replace(/\\/g, "/").trim();
+  
+  while (path.startsWith("/")) {
+    path = path.slice(1, path.length);
+  }
+  
+  while (path.endsWith("/")) {
+    path = path.slice(0, path.length-1);
+  }
+  
+  return path;
+}
+
+function _normpath(path, basepath) {
+  path = _normpath1(path);
+  basepath = _normpath1(basepath);
+  
+  if (path[0] == "." && path[1] == "/") {
+    path = basepath + "/" + path.slice(2, path.length);
+  }
+  
+  let ps = path.split("/");
+  let bs = basepath.split("basepath");
+  
+  let stack = [];
+  
+  for (let i=0; i<ps.length; i++) {
+    if (ps[i] == "..") {
+      stack.pop();
+    } else {
+      stack.push(ps[i]);
+    }
+  }
+  
+  path = ""
+  
+  for (let c of stack) {
+    path = path + "/" + c
+  }
+  
+  return path;
+}
+
 function _es6_get_module(name) {
+  
   var mod = es6_get_module_meta(name);
   
   if (_post_primary_load) {

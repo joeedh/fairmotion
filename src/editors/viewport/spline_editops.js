@@ -794,6 +794,30 @@ export class DissolveVertOp extends SplineLocalToolOp {
   }
 }
 
+//XXX need to consider an API for geometric operations
+//that differ between animation/draw splines
+function frameset_split_edge(ctx, spline, s, t=0.5) {
+  console.log("split edge op!");
+  
+  var interp_animdata = spline === ctx.frameset.spline;
+  var frameset = interp_animdata ? ctx.frameset : undefined;
+  
+  if (interp_animdata) {
+    console.log("interpolating animation data from adjacent vertices!");
+  }
+  
+  var e_v = spline.split_edge(s, t);
+  
+  if (interp_animdata) {
+    frameset.create_path_from_adjacent(e_v[1], e_v[0]);
+  }
+  
+  spline.verts.setselect(e_v[1], true);
+  spline.regen_render();
+  
+  return e_v;
+}
+
 export class SplitEdgeOp extends SplineGlobalToolOp {
   constructor() {
     super();
@@ -839,16 +863,131 @@ export class SplitEdgeOp extends SplineGlobalToolOp {
     }
     
     for (var i=0; i<segs.length; i++) {
-      var e_v = spline.split_edge(segs[i]);
-      
-      if (interp_animdata) {
-        frameset.create_path_from_adjacent(e_v[1], e_v[0]);
-      }
-      
+      let e_v = frameset_split_edge(ctx, spline, segs[i]);
       spline.verts.setselect(e_v[1], true);
     }
     
     spline.regen_render();
+  }
+}
+
+export class SplitEdgePickOp extends SplineGlobalToolOp {
+  constructor() {
+    super();
+  }
+  
+  static tooldef() { return {
+    uiname   : "Split Segment",
+    apiname  : "spline.split_pick_edge",
+    
+    inputs   : {
+      segment_eid : new IntProperty(-1, "segment_eid", "segment_eid", "segment_eid"),
+      segment_t   : new FloatProperty(0, "segment_t", "segment_t", "segment_t")
+    },
+    
+    outputs  : {},
+    
+    icon     : Icons.SPLIT_EDGE,
+    is_modal : true,
+    description : "Split picked segment"
+  }}
+  
+  can_call(ctx) {
+    return !(ctx.spline.restrict & RestrictFlags.NO_SPLIT_EDGE);
+  }
+  
+  start_modal(ctx : Context) {
+  
+  }
+  
+  on_mousedown(e) {
+    console.log("mdown", e);
+    this.finish(e.button != 0);
+  }
+  
+  on_mouseup(e) {
+    console.log("mup");
+    this.finish(e.button != 0);
+  }
+  
+  end_modal(ctx) {
+    this.reset_drawlines();
+    super.end_modal(ctx);
+  }
+
+  on_mousemove(e) {
+    let ctx = this.modal_ctx;
+    let spline = ctx.spline;
+
+    //console.log("mmove", e.x, e.y, ctx);
+    let mpos = [e.x, e.y];
+    
+    let ret = ctx.view2d.editor.findnearest(mpos, SplineTypes.SEGMENT, 105);
+    //console.log(ret);
+    
+    if (ret === undefined) {
+      this.reset_drawlines();
+      this.inputs.segment_eid.set_data(-1);
+      
+      return;
+    }
+    
+    let seg = ret[1];
+    
+    this.reset_drawlines(ctx);
+    
+    let steps = 16;
+    let ds = 1.0 / (steps - 1), s = ds;
+    let lastco = seg.evaluate(s);
+    
+    for (let i=1; i<steps; i++, s += ds) {
+      let co = seg.evaluate(s);
+      this.new_drawline(lastco, co);
+      lastco = co;
+    }
+    
+    this.inputs.segment_eid.set_data(seg.eid);
+    this.inputs.segment_t.set_data(0.5);
+    
+    let p = seg.closest_point(mpos, ClosestModes.CLOSEST);
+    
+    if (p !== undefined) {
+      this.inputs.segment_t.set_data(p[1]);
+      
+      console.log(p[1]);
+      p = p[0];
+      
+      let w = 2;
+      
+      this.new_drawline([p[0]-w, p[1]-w], [p[0]-w, p[1]+w]);
+      this.new_drawline([p[0]-w, p[1]+w], [p[0]+w, p[1]+w]);
+      this.new_drawline([p[0]+w, p[1]+w], [p[0]+w, p[1]-w]);
+      this.new_drawline([p[0]+w, p[1]-w], [p[0]-w, p[1]-w]);
+    }
+  }
+  
+  finish(do_cancel) {
+    if (do_cancel || this.inputs.segment_eid.data == -1) {
+      this.end_modal(this.modal_ctx);
+      this.cancel_modal(this.modal_ctx);
+    } else {
+      this.end_modal(this.modal_ctx);
+      this.exec(this.modal_ctx);
+    }
+  }
+  
+  exec(ctx) {
+    var spline = ctx.spline;
+    
+    var seg = spline.eidmap[this.inputs.segment_eid.data];
+    var t = this.inputs.segment_t.data;
+    
+    if (seg === undefined) {
+      console.warn("Unknown segment", this.inputs.segment_eid.data);
+      return;
+    }
+  
+    frameset_split_edge(ctx, spline, seg, t);
   }
 }
 
@@ -1148,6 +1287,7 @@ export class AnimPlaybackOp extends ToolOp {
     this.timer = undefined;
     this.time = 0;
     this.start_time = 0;
+    this.done = false;
 
     //event dag callback
 
@@ -1173,12 +1313,24 @@ export class AnimPlaybackOp extends ToolOp {
   }}
   
   on_frame(ctx) {
-    //console.log("frame!");
-    this.time += 1.0;
-    ctx.scene.change_time(ctx, this.time);
-
-    //console.log(this.time);
-    window.redraw_viewport();
+    let this2 = this;
+    
+    //XXX BUG! this is getting assigned to window! eek!
+    window.redraw_viewport().then(() => {
+      if (this2.done) {
+        return;
+      }
+      
+      console.log("frame!");
+      console.log("playback op: change time");
+      
+      console.log("  time:", this2.time, this2);
+  
+      this2.time += 1.0;
+      ctx.scene.change_time(ctx, this2.time);
+      
+      //window.redraw_viewport();
+    });
   }
   
   end_modal(ctx) {
@@ -1198,7 +1350,12 @@ export class AnimPlaybackOp extends ToolOp {
   }
   
   finish(ctx) {
-    ctx.scene.change_time(ctx, this.start_time);
+    if (!this.done) {
+      this.done = true;
+      
+      ctx.scene.change_time(ctx, this.start_time);
+      window.redraw_viewport();
+    }
   }
   
   on_mousemove(event) {
@@ -1216,6 +1373,7 @@ export class AnimPlaybackOp extends ToolOp {
   }
   
   on_mouseup(event) {
+    this.finish(this.modal_ctx);
     this.end_modal();
   }
   
@@ -1307,6 +1465,7 @@ export class ToggleManualHandlesOp extends ToolOp {
 
 
 import {TimeDataLayer, get_vtime, set_vtime} from 'animdata';
+import {ClosestModes} from "../../curve/spline_base";
 
 export class ShiftTimeOp extends ToolOp {
   constructor() {

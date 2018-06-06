@@ -179,8 +179,14 @@ def module_transform(node, typespace):
   
   safe_fname = "_" + fname.replace(" ", "_").replace(".", "_").replace("-", "_") + "_module";
   
+  path = os.path.abspath(glob.g_file);
+  path = path.replace(os.path.sep, "/");
+  
+  if ":" in path:
+    path = path[path.find(":")+1:]
+    
   header = "es6_module_define('"+fname+"', "+deps+", function " + safe_fname + "(_es6_module) {"
-  header += "});";
+  header += "}, '"+path+"');";
   
   #print(header)
   

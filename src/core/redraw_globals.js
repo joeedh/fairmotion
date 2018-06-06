@@ -142,6 +142,8 @@ window.init_redraw_globals = function init_redraw_globals() {
   window.workcanvas_redraw_rects = [];
   window.workcanvas_redraw_rects2 = [];
   
+  let redraw_viewport_promise = undefined;
+  
   //combine_mode is optional, false.  used by e.g. transform code.
   window.redraw_viewport = function(min, max, ignore_queuing, combine_mode) {
     //console.trace("redraw_viewport");
@@ -204,32 +206,39 @@ window.init_redraw_globals = function init_redraw_globals() {
     }
     
     if (animreq == undefined) {
-        animreq = window.requestAnimationFrame(function () {
-          animreq = undefined;
-
-          var rects = workcanvas_redraw_rects;
-
-          workcanvas_redraw_rects = workcanvas_redraw_rects2;
-          workcanvas_redraw_rects.length = 0;
-          workcanvas_redraw_rects2 = rects;
-
-          for (var i = 0; i < window.g_app_state.screen.children.length; i++) {
+      redraw_viewport_promise = new Promise((accept, reject) => {
+          animreq = window.requestAnimationFrame(function () {
+            animreq = undefined;
+    
+            var rects = workcanvas_redraw_rects;
+    
+            workcanvas_redraw_rects = workcanvas_redraw_rects2;
+            workcanvas_redraw_rects.length = 0;
+            workcanvas_redraw_rects2 = rects;
+    
+            for (var i = 0; i < window.g_app_state.screen.children.length; i++) {
               var c = window.g_app_state.screen.children[i];
-
+      
               var is_viewport = c.constructor.name == "ScreenArea" &&
-                                c.area.constructor.name == "View2DHandler";
+                c.area.constructor.name == "View2DHandler";
               if (is_viewport) {
-                  var old = window.g_app_state.active_view2d;
-                  window.g_app_state.active_view2d = c.area;
-                  
-                  c.area.do_draw_viewport(rects);
-                  
-                  window.g_app_state.active_view2d = old;
+                var old = window.g_app_state.active_view2d;
+                window.g_app_state.active_view2d = c.area;
+        
+                c.area.do_draw_viewport(rects);
+        
+                window.g_app_state.active_view2d = old;
+                accept();
               }
-          }
-      });
+            }
+          });
+        });
+      
+      return redraw_viewport_promise
+    } else {
+      return redraw_viewport_promise;
     }
-  }
+  };
   
   
   /*

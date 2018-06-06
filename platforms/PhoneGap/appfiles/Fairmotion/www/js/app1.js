@@ -4,7 +4,7 @@ es6_module_define('binomial_table', [], function _binomial_table_module(_es6_mod
   binomial_table = _es6_module.add_export('binomial_table', binomial_table);
   var bernstein_offsets=[0.5, 0.5, 0.5, [-2.454395433094864e-06, 0.3333332834399269, 0.9983400885689026], [0.001029326181821791, 0.499999950070205, 1.001080094461384], [0.0007484641820058213, 0.39999995014961937, 0.9916223032833635], [0.00747765485920259, 0.49999994993116675, 0.9920216541385276], [0.006176745287530699, 0.42857137845455623, 0.9792467106394022], [0.01867388737988243, 0.49999995002432707, 0.9817332430322693], [0.016611678256698216, 0.4444443943546706, 0.9645477564803134], [0.0318136107729407, 0.49999995013233306, 0.9662549745564352], [0.02923757575626286, 0.4545454044244844, 0.9493536381990352], [0.04520010541190214, 0.49999995000093844, 0.9527479087209055], [0.04233208873708591, 0.4615384114337233, 0.9345541642519475], [0.06307772083678, 0.499999949884185, 0.9361285783621467], [0.05505061295198643, 0.4666666165415641, 0.9144768051562312], [0.07381464200312601, 0.4999999499863117, 0.9261856862602873], [0.07086585080545679, 0.4705881851569154, 0.9010837184537138], [0.08785015705495358, 0.4999999500052351, 0.9121501899751944], [0.08633797516664954, 0.47368416066134994, 0.8887012920198291], [0.10085674852455571, 0.49999995002668707, 0.8991436143538185], [0.09626939521380791, 0.4761904262458179, 0.8772643205704603], [0.11287898897980579, 0.4999999500106326, 0.8871213874410105], [0.10961567629503549, 0.4782608194293245, 0.8666924909475161], [0.12399053979920242, 0.49999995001883657, 0.8760098482766634], [0.11893691522148424, 0.47999995011175217, 0.856903841186436], [0.13427315767711878, 0.4999999499938602, 0.8657272405785534], [0.12583340217834665, 0.4814814315944486, 0.8478207525615407], [0.1438070801321841, 0.49999995010838444, 0.8561933270942815], [0.13731065873049084, 0.4827585708580448, 0.8393723121390505], [0.15266691231369403, 0.4999999500228841, 0.8473335028386781], [0.14764163538804362, 0.4838709178884241, 0.8314949235129588], [0.16092017839726627, 0.49999995001011843, 0.8390802438455073], [0.15703794398757703, 0.4848484347226581, 0.8241320979678292], [0.1686271440045509, 0.4999999500022154, 0.8313732846470656], [0.16565239381298041, 0.4857142358385346, 0.8172338925460864], [0.17584121633395217, 0.49999994998092023, 0.8241592181375783], [0.17360015298240747, 0.48648643635722616, 0.8107562272270776], [0.1826095759157511, 0.49999995000327413, 0.817390863785139], [0.18097096179758282, 0.4871794373107607, 0.8046601941691536], [0.18897386977681027, 0.4999999500030464, 0.8110265747952805], [0.18138650895490785, 0.48780482794249286, 0.7989114108725545], [0.19497088370411508, 0.4999999500088741, 0.805029565309377], [0.18782017755793273, 0.4883720428828689, 0.7934794377346648], [0.20063315994686626, 0.499999950005409, 0.7993672932114262], [0.19386424435134791, 0.4888888387513066, 0.7883372649020531], [0.2059895463365685, 0.4999999500039438, 0.7940109106070831], [0.1995578664575849, 0.4893616520415329, 0.783460865762848], [0.2110656776045144, 0.4999999500079566, 0.788934782896729], [0.20493455690286433, 0.4897958684923011, 0.7788288110767058], [0.21588439208915713, 0.4999999500057998, 0.7841160717503776], [0.21002326766793206, 0.4901960283060749, 0.7744219367523002], [0.22046609139058537, 0.4999999498643151, 0.7795343755791644], [0.21484921105580831, 0.4905659875966007, 0.7702230582194506], [0.2248290497416005, 0.4999999500017108, 0.775171420183028], [0.21943449528670134, 0.4909090410432536, 0.766216724881265], [0.2289896798115298, 0.49999994999533437, 0.7710107928651895], [0.2237986244603412, 0.4912280203163389, 0.7623890088530252], [0.23296276154623724, 0.4999999499940523, 0.7670377137918303], [0.2279588980002284, 0.4915253735928629, 0.7587273229280195], [0.23676163871739583, 0.4999999500006673, 0.7632388391231051], [0.23193073384090543, 0.49180322855792064, 0.7489886947262596], [0.2403983889751849, 0.49999995000656583, 0.7596020912239329], [0.2357279328258049, 0.4920634419685388, 0.7456857921489717], [0.24997675224157856, 0.49999994999595754, 0.7500237007108523], [0.24536122873637362, 0.49230764217563344, 0.7425166730814055], [0.2532674996080823, 0.4999999499939666, 0.7467329553469874], [0.24879801553619604, 0.49253726357164573, 0.739472713568139], [0.2564267966855526, 0.49999994999342023, 0.7435736602420647], [0.2520939645797259, 0.49275357332765923, 0.7365460385274015], [0.2594629976737049, 0.4999999500014214, 0.7405374611382101], [0.25525838696611086, 0.49295769661858574, 0.7337294413261868]];
   bernstein_offsets = _es6_module.add_export('bernstein_offsets', bernstein_offsets);
-});
+}, '/dev/fairmotion/src/util/binomial_table.js');
 es6_module_define('strutils', [], function _strutils_module(_es6_module) {
   "use strict";
   function encode_utf8(arr, str) {
@@ -273,7 +273,7 @@ es6_module_define('strutils', [], function _strutils_module(_es6_module) {
     return ret;
   }
   encode_dataurl = _es6_module.add_export('encode_dataurl', encode_dataurl);
-});
+}, '/dev/fairmotion/src/util/strutils.js');
 es6_module_define('lib_api', ["struct", "toolprops_iter"], function _lib_api_module(_es6_module) {
   "use strict";
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
@@ -663,8 +663,8 @@ es6_module_define('lib_api', ["struct", "toolprops_iter"], function _lib_api_mod
   }]);
   _es6_module.add_class(DataRefListIter);
   DataRefListIter = _es6_module.add_export('DataRefListIter', DataRefListIter);
-});
-es6_module_define('lib_api_typedefine', ["spline", "imageblock", "frameset", "scene", "lib_api"], function _lib_api_typedefine_module(_es6_module) {
+}, '/dev/fairmotion/src/core/lib_api.js');
+es6_module_define('lib_api_typedefine', ["spline", "frameset", "imageblock", "lib_api", "scene"], function _lib_api_typedefine_module(_es6_module) {
   var SplineFrameSet=es6_import_item(_es6_module, 'frameset', 'SplineFrameSet');
   var Scene=es6_import_item(_es6_module, 'scene', 'Scene');
   var DataTypes=es6_import_item(_es6_module, 'lib_api', 'DataTypes');
@@ -679,8 +679,8 @@ es6_module_define('lib_api_typedefine', ["spline", "imageblock", "frameset", "sc
     return obj;
   }
   get_data_typemap = _es6_module.add_export('get_data_typemap', get_data_typemap);
-});
-es6_module_define('mathlib', ["struct", "J3DIMath"], function _mathlib_module(_es6_module) {
+}, '/dev/fairmotion/src/core/lib_api_typedefine.js');
+es6_module_define('mathlib', ["J3DIMath", "struct"], function _mathlib_module(_es6_module) {
   "use strict";
   var $_mh;
   var $_swapt;
@@ -751,12 +751,12 @@ es6_module_define('mathlib', ["struct", "J3DIMath"], function _mathlib_module(_e
       FLOAT_MAX = 1000000.0;
       console.log("Floating-point 16-bit system detected!");
   }
-  var $_cs4_Y9lH_get_rect_points=new Array(4);
-  var $_cs8_z7L6_get_rect_points=new Array(8);
+  var $_cs4_RVbl_get_rect_points=new Array(4);
+  var $_cs8_152n_get_rect_points=new Array(8);
   function get_rect_points(p, size) {
     var cs;
     if (p.length==2) {
-        cs = $_cs4_Y9lH_get_rect_points;
+        cs = $_cs4_RVbl_get_rect_points;
         cs[0] = p;
         cs[1] = [p[0], p[1]+size[1]];
         cs[2] = [p[0]+size[0], p[1]+size[1]];
@@ -764,7 +764,7 @@ es6_module_define('mathlib', ["struct", "J3DIMath"], function _mathlib_module(_e
     }
     else 
       if (p.length==3) {
-        cs = $_cs8_z7L6_get_rect_points;
+        cs = $_cs8_152n_get_rect_points;
         cs[0] = p;
         cs[1] = [p[0]+size[0], p[1], p[2]];
         cs[2] = [p[0]+size[0], p[1]+size[1], p[2]];
@@ -801,15 +801,15 @@ es6_module_define('mathlib', ["struct", "J3DIMath"], function _mathlib_module(_e
     }
   }
   get_rect_lines = _es6_module.add_export('get_rect_lines', get_rect_lines);
-  var $vs_gyQG_simple_tri_aabb_isect=[0, 0, 0];
+  var $vs_PuXX_simple_tri_aabb_isect=[0, 0, 0];
   function simple_tri_aabb_isect(v1, v2, v3, min, max) {
-    $vs_gyQG_simple_tri_aabb_isect[0] = v1;
-    $vs_gyQG_simple_tri_aabb_isect[1] = v2;
-    $vs_gyQG_simple_tri_aabb_isect[2] = v3;
+    $vs_PuXX_simple_tri_aabb_isect[0] = v1;
+    $vs_PuXX_simple_tri_aabb_isect[1] = v2;
+    $vs_PuXX_simple_tri_aabb_isect[2] = v3;
     for (var i=0; i<3; i++) {
         var isect=true;
         for (var j=0; j<3; j++) {
-            if ($vs_gyQG_simple_tri_aabb_isect[j][i]<min[i]||$vs_gyQG_simple_tri_aabb_isect[j][i]>=max[i])
+            if ($vs_PuXX_simple_tri_aabb_isect[j][i]<min[i]||$vs_PuXX_simple_tri_aabb_isect[j][i]>=max[i])
               isect = false;
         }
         if (isect)
@@ -934,42 +934,42 @@ es6_module_define('mathlib', ["struct", "J3DIMath"], function _mathlib_module(_e
     return p[0]>=pos[0]&&p[0]<=pos[0]+size[0]&&p[1]>=pos[1]&&p[1]<=pos[1]+size[1];
   }
   inrect_2d = _es6_module.add_export('inrect_2d', inrect_2d);
-  var $smin_IGAk_aabb_isect_line_2d=new Vector2();
-  var $ssize_rNLI_aabb_isect_line_2d=new Vector2();
-  var $sv1_l0OY_aabb_isect_line_2d=new Vector2();
-  var $ps_eagx_aabb_isect_line_2d=[new Vector2(), new Vector2(), new Vector2()];
-  var $l1_xJKv_aabb_isect_line_2d=[0, 0];
-  var $smax_Am9M_aabb_isect_line_2d=new Vector2();
-  var $sv2_XRRa_aabb_isect_line_2d=new Vector2();
-  var $l2_Rc_o_aabb_isect_line_2d=[0, 0];
+  var $smin_lDCT_aabb_isect_line_2d=new Vector2();
+  var $ssize_1XiZ_aabb_isect_line_2d=new Vector2();
+  var $sv1_5XdA_aabb_isect_line_2d=new Vector2();
+  var $ps_6GKW_aabb_isect_line_2d=[new Vector2(), new Vector2(), new Vector2()];
+  var $l1_YctB_aabb_isect_line_2d=[0, 0];
+  var $smax_pRSD_aabb_isect_line_2d=new Vector2();
+  var $sv2_Jdic_aabb_isect_line_2d=new Vector2();
+  var $l2_GHop_aabb_isect_line_2d=[0, 0];
   function aabb_isect_line_2d(v1, v2, min, max) {
     for (var i=0; i<2; i++) {
-        $smin_IGAk_aabb_isect_line_2d[i] = Math.min(min[i], v1[i]);
-        $smax_Am9M_aabb_isect_line_2d[i] = Math.max(max[i], v2[i]);
+        $smin_lDCT_aabb_isect_line_2d[i] = Math.min(min[i], v1[i]);
+        $smax_pRSD_aabb_isect_line_2d[i] = Math.max(max[i], v2[i]);
     }
-    $smax_Am9M_aabb_isect_line_2d.sub($smin_IGAk_aabb_isect_line_2d);
-    $ssize_rNLI_aabb_isect_line_2d.load(max).sub(min);
-    if (!aabb_isect_2d($smin_IGAk_aabb_isect_line_2d, $smax_Am9M_aabb_isect_line_2d, min, $ssize_rNLI_aabb_isect_line_2d))
+    $smax_pRSD_aabb_isect_line_2d.sub($smin_lDCT_aabb_isect_line_2d);
+    $ssize_1XiZ_aabb_isect_line_2d.load(max).sub(min);
+    if (!aabb_isect_2d($smin_lDCT_aabb_isect_line_2d, $smax_pRSD_aabb_isect_line_2d, min, $ssize_1XiZ_aabb_isect_line_2d))
       return false;
     for (var i=0; i<4; i++) {
-        if (inrect_2d(v1, min, $ssize_rNLI_aabb_isect_line_2d))
+        if (inrect_2d(v1, min, $ssize_1XiZ_aabb_isect_line_2d))
           return true;
-        if (inrect_2d(v2, min, $ssize_rNLI_aabb_isect_line_2d))
+        if (inrect_2d(v2, min, $ssize_1XiZ_aabb_isect_line_2d))
           return true;
     }
-    $ps_eagx_aabb_isect_line_2d[0] = min;
-    $ps_eagx_aabb_isect_line_2d[1][0] = min[0];
-    $ps_eagx_aabb_isect_line_2d[1][1] = max[1];
-    $ps_eagx_aabb_isect_line_2d[2] = max;
-    $ps_eagx_aabb_isect_line_2d[3][0] = max[0];
-    $ps_eagx_aabb_isect_line_2d[3][1] = min[1];
-    $l1_xJKv_aabb_isect_line_2d[0] = v1;
-    $l1_xJKv_aabb_isect_line_2d[1] = v2;
+    $ps_6GKW_aabb_isect_line_2d[0] = min;
+    $ps_6GKW_aabb_isect_line_2d[1][0] = min[0];
+    $ps_6GKW_aabb_isect_line_2d[1][1] = max[1];
+    $ps_6GKW_aabb_isect_line_2d[2] = max;
+    $ps_6GKW_aabb_isect_line_2d[3][0] = max[0];
+    $ps_6GKW_aabb_isect_line_2d[3][1] = min[1];
+    $l1_YctB_aabb_isect_line_2d[0] = v1;
+    $l1_YctB_aabb_isect_line_2d[1] = v2;
     for (var i=0; i<4; i++) {
-        var a=$ps_eagx_aabb_isect_line_2d[i], b=$ps_eagx_aabb_isect_line_2d[(i+1)%4];
-        $l2_Rc_o_aabb_isect_line_2d[0] = a;
-        $l2_Rc_o_aabb_isect_line_2d[1] = b;
-        if (line_line_cross($l1_xJKv_aabb_isect_line_2d, $l2_Rc_o_aabb_isect_line_2d))
+        var a=$ps_6GKW_aabb_isect_line_2d[i], b=$ps_6GKW_aabb_isect_line_2d[(i+1)%4];
+        $l2_GHop_aabb_isect_line_2d[0] = a;
+        $l2_GHop_aabb_isect_line_2d[1] = b;
+        if (line_line_cross($l1_YctB_aabb_isect_line_2d, $l2_GHop_aabb_isect_line_2d))
           return true;
     }
     return false;
@@ -1075,46 +1075,46 @@ es6_module_define('mathlib', ["struct", "J3DIMath"], function _mathlib_module(_e
     return line_line_cross([v1, v3], [v2, v4]);
   }
   convex_quad = _es6_module.add_export('convex_quad', convex_quad);
-  var $e1_ldtE_normal_tri=new Vector3();
-  var $e3_viqt_normal_tri=new Vector3();
-  var $e2_mCcl_normal_tri=new Vector3();
+  var $e1_IMVd_normal_tri=new Vector3();
+  var $e3_vt7w_normal_tri=new Vector3();
+  var $e2_v2Qp_normal_tri=new Vector3();
   function normal_tri(v1, v2, v3) {
-    $e1_ldtE_normal_tri[0] = v2[0]-v1[0];
-    $e1_ldtE_normal_tri[1] = v2[1]-v1[1];
-    $e1_ldtE_normal_tri[2] = v2[2]-v1[2];
-    $e2_mCcl_normal_tri[0] = v3[0]-v1[0];
-    $e2_mCcl_normal_tri[1] = v3[1]-v1[1];
-    $e2_mCcl_normal_tri[2] = v3[2]-v1[2];
-    $e3_viqt_normal_tri[0] = $e1_ldtE_normal_tri[1]*$e2_mCcl_normal_tri[2]-$e1_ldtE_normal_tri[2]*$e2_mCcl_normal_tri[1];
-    $e3_viqt_normal_tri[1] = $e1_ldtE_normal_tri[2]*$e2_mCcl_normal_tri[0]-$e1_ldtE_normal_tri[0]*$e2_mCcl_normal_tri[2];
-    $e3_viqt_normal_tri[2] = $e1_ldtE_normal_tri[0]*$e2_mCcl_normal_tri[1]-$e1_ldtE_normal_tri[1]*$e2_mCcl_normal_tri[0];
+    $e1_IMVd_normal_tri[0] = v2[0]-v1[0];
+    $e1_IMVd_normal_tri[1] = v2[1]-v1[1];
+    $e1_IMVd_normal_tri[2] = v2[2]-v1[2];
+    $e2_v2Qp_normal_tri[0] = v3[0]-v1[0];
+    $e2_v2Qp_normal_tri[1] = v3[1]-v1[1];
+    $e2_v2Qp_normal_tri[2] = v3[2]-v1[2];
+    $e3_vt7w_normal_tri[0] = $e1_IMVd_normal_tri[1]*$e2_v2Qp_normal_tri[2]-$e1_IMVd_normal_tri[2]*$e2_v2Qp_normal_tri[1];
+    $e3_vt7w_normal_tri[1] = $e1_IMVd_normal_tri[2]*$e2_v2Qp_normal_tri[0]-$e1_IMVd_normal_tri[0]*$e2_v2Qp_normal_tri[2];
+    $e3_vt7w_normal_tri[2] = $e1_IMVd_normal_tri[0]*$e2_v2Qp_normal_tri[1]-$e1_IMVd_normal_tri[1]*$e2_v2Qp_normal_tri[0];
     
-    var _len=Math.sqrt($e3_viqt_normal_tri[0]*$e3_viqt_normal_tri[0]+$e3_viqt_normal_tri[1]*$e3_viqt_normal_tri[1]+$e3_viqt_normal_tri[2]*$e3_viqt_normal_tri[2]);
+    var _len=Math.sqrt($e3_vt7w_normal_tri[0]*$e3_vt7w_normal_tri[0]+$e3_vt7w_normal_tri[1]*$e3_vt7w_normal_tri[1]+$e3_vt7w_normal_tri[2]*$e3_vt7w_normal_tri[2]);
     if (_len>1e-05)
       _len = 1.0/_len;
-    $e3_viqt_normal_tri[0]*=_len;
-    $e3_viqt_normal_tri[1]*=_len;
-    $e3_viqt_normal_tri[2]*=_len;
-    return $e3_viqt_normal_tri;
+    $e3_vt7w_normal_tri[0]*=_len;
+    $e3_vt7w_normal_tri[1]*=_len;
+    $e3_vt7w_normal_tri[2]*=_len;
+    return $e3_vt7w_normal_tri;
   }
   normal_tri = _es6_module.add_export('normal_tri', normal_tri);
-  var $n2_0Q1r_normal_quad=new Vector3();
+  var $n2_5B8v_normal_quad=new Vector3();
   function normal_quad(v1, v2, v3, v4) {
     var n=normal_tri(v1, v2, v3);
-    $n2_0Q1r_normal_quad[0] = n[0];
-    $n2_0Q1r_normal_quad[1] = n[1];
-    $n2_0Q1r_normal_quad[2] = n[2];
+    $n2_5B8v_normal_quad[0] = n[0];
+    $n2_5B8v_normal_quad[1] = n[1];
+    $n2_5B8v_normal_quad[2] = n[2];
     n = normal_tri(v1, v3, v4);
-    $n2_0Q1r_normal_quad[0] = $n2_0Q1r_normal_quad[0]+n[0];
-    $n2_0Q1r_normal_quad[1] = $n2_0Q1r_normal_quad[1]+n[1];
-    $n2_0Q1r_normal_quad[2] = $n2_0Q1r_normal_quad[2]+n[2];
-    var _len=Math.sqrt($n2_0Q1r_normal_quad[0]*$n2_0Q1r_normal_quad[0]+$n2_0Q1r_normal_quad[1]*$n2_0Q1r_normal_quad[1]+$n2_0Q1r_normal_quad[2]*$n2_0Q1r_normal_quad[2]);
+    $n2_5B8v_normal_quad[0] = $n2_5B8v_normal_quad[0]+n[0];
+    $n2_5B8v_normal_quad[1] = $n2_5B8v_normal_quad[1]+n[1];
+    $n2_5B8v_normal_quad[2] = $n2_5B8v_normal_quad[2]+n[2];
+    var _len=Math.sqrt($n2_5B8v_normal_quad[0]*$n2_5B8v_normal_quad[0]+$n2_5B8v_normal_quad[1]*$n2_5B8v_normal_quad[1]+$n2_5B8v_normal_quad[2]*$n2_5B8v_normal_quad[2]);
     if (_len>1e-05)
       _len = 1.0/_len;
-    $n2_0Q1r_normal_quad[0]*=_len;
-    $n2_0Q1r_normal_quad[1]*=_len;
-    $n2_0Q1r_normal_quad[2]*=_len;
-    return $n2_0Q1r_normal_quad;
+    $n2_5B8v_normal_quad[0]*=_len;
+    $n2_5B8v_normal_quad[1]*=_len;
+    $n2_5B8v_normal_quad[2]*=_len;
+    return $n2_5B8v_normal_quad;
   }
   normal_quad = _es6_module.add_export('normal_quad', normal_quad);
   var _li_vi=new Vector3();
@@ -1509,9 +1509,9 @@ es6_module_define('mathlib', ["struct", "J3DIMath"], function _mathlib_module(_e
         }
     }
   }
-  var $_cent_5B9f=new Vector3();
+  var $_cent_fLRv=new Vector3();
   function get_boundary_winding(points) {
-    var cent=$_cent_5B9f.zero();
+    var cent=$_cent_fLRv.zero();
     if (points.length==0)
       return false;
     for (var i=0; i<points.length; i++) {
@@ -1808,7 +1808,7 @@ es6_module_define('mathlib', ["struct", "J3DIMath"], function _mathlib_module(_e
     return vec;
   }
   rot2d = _es6_module.add_export('rot2d', rot2d);
-});
+}, '/dev/fairmotion/src/util/mathlib.js');
 es6_module_define('colorutils', [], function _colorutils_module(_es6_module) {
   "use strict";
   function rgba_to_hsva(clr, ret, last_hue) {
@@ -1914,7 +1914,7 @@ es6_module_define('colorutils', [], function _colorutils_module(_es6_module) {
     return hsva[0];
   }
   hsva_to_rgba = _es6_module.add_export('hsva_to_rgba', hsva_to_rgba);
-});
+}, '/dev/fairmotion/src/util/colorutils.js');
 es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
   "use strict";
   var token=_ESClass("token", [function token(type, val, lexpos, lexlen, lineno, lexer, parser) {
@@ -2270,7 +2270,7 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
     var ret=p_Struct(parser);
     console.log(JSON.stringify(ret));
   }
-});
+}, '/dev/fairmotion/src/util/parseutil.js');
 es6_module_define('typedwriter', [], function _typedwriter_module(_es6_module) {
   "use strict";
   var TypedCache=_ESClass("TypedCache", [function TypedCache() {
@@ -2391,7 +2391,7 @@ es6_module_define('typedwriter', [], function _typedwriter_module(_es6_module) {
   }]);
   _es6_module.add_class(TypedWriter);
   TypedWriter = _es6_module.add_export('TypedWriter', TypedWriter);
-});
+}, '/dev/fairmotion/src/util/typedwriter.js');
 es6_module_define('jobs', [], function _jobs_module(_es6_module) {
   "use strict";
   var default_job_interval=1;
@@ -2645,8 +2645,8 @@ es6_module_define('jobs', [], function _jobs_module(_es6_module) {
   }]);
   _es6_module.add_class(JobManager);
   JobManager = _es6_module.add_export('JobManager', JobManager);
-});
-es6_module_define('ajax', ["strutils", "config"], function _ajax_module(_es6_module) {
+}, '/dev/fairmotion/src/core/jobs.js');
+es6_module_define('ajax', ["config", "strutils"], function _ajax_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, 'config');
   var encode_utf8=es6_import_item(_es6_module, 'strutils', 'encode_utf8');
@@ -4045,7 +4045,7 @@ es6_module_define('ajax', ["strutils", "config"], function _ajax_module(_es6_mod
     }
     return new _generator_iter();
   }
-});
+}, '/dev/fairmotion/src/core/ajax.js');
 es6_module_define('raster', ["config", "icon"], function _raster_module(_es6_module) {
   "use strict";
   var IconManager=es6_import_item(_es6_module, 'icon', 'IconManager');
@@ -4074,7 +4074,7 @@ es6_module_define('raster', ["config", "icon"], function _raster_module(_es6_mod
     }
   }]);
   _es6_module.add_class(CacheStack);
-  var $ret_2Xvn_viewport;
+  var $ret_rDdJ_viewport;
   var RasterState=_ESClass("RasterState", [function RasterState(gl, size) {
     this.size = size;
     this.pos = [0, 0];
@@ -4098,10 +4098,10 @@ es6_module_define('raster', ["config", "icon"], function _raster_module(_es6_mod
         return this.viewport_stack[this.viewport_stack.length-1];
     }
     else {
-      $ret_2Xvn_viewport[0][0] = $ret_2Xvn_viewport[0][1] = 0.0;
-      $ret_2Xvn_viewport[1][0] = g_app_state.screen.size[0];
-      $ret_2Xvn_viewport[1][1] = g_app_state.screen.size[1];
-      return $ret_2Xvn_viewport;
+      $ret_rDdJ_viewport[0][0] = $ret_rDdJ_viewport[0][1] = 0.0;
+      $ret_rDdJ_viewport[1][0] = g_app_state.screen.size[0];
+      $ret_rDdJ_viewport[1][1] = g_app_state.screen.size[1];
+      return $ret_rDdJ_viewport;
     }
   }), function push_viewport(pos, size) {
     var arr=this.viewport_stack.gen();
@@ -4160,11 +4160,11 @@ es6_module_define('raster', ["config", "icon"], function _raster_module(_es6_mod
     this.scissor_stack.clear();
     this.cur_scissor = undefined;
   }]);
-  var $ret_2Xvn_viewport=[[0, 0], [0, 0]];
+  var $ret_rDdJ_viewport=[[0, 0], [0, 0]];
   _es6_module.add_class(RasterState);
   RasterState = _es6_module.add_export('RasterState', RasterState);
-});
-es6_module_define('imageblock', ["toolops_api", "selectmode", "strutils", "J3DIMath", "struct", "lib_api", "view2d_editor"], function _imageblock_module(_es6_module) {
+}, '/dev/fairmotion/src/core/raster.js');
+es6_module_define('imageblock', ["J3DIMath", "toolops_api", "struct", "strutils", "view2d_editor", "selectmode", "lib_api"], function _imageblock_module(_es6_module) {
   var DataBlock=es6_import_item(_es6_module, 'lib_api', 'DataBlock');
   var DataTypes=es6_import_item(_es6_module, 'lib_api', 'DataTypes');
   var BlockFlags=es6_import_item(_es6_module, 'lib_api', 'BlockFlags');
@@ -4234,8 +4234,8 @@ es6_module_define('imageblock', ["toolops_api", "selectmode", "strutils", "J3DIM
   _es6_module.add_class(ImageUser);
   ImageUser = _es6_module.add_export('ImageUser', ImageUser);
   ImageUser.STRUCT = "\nImageUser {\n  off   : vec2;\n  scale : vec2;\n  image : dataref(Image);\n  flag  : int;\n}\n";
-});
-es6_module_define('image_ops', ["struct", "frameset", "lib_api", "spline_draw", "config", "toolops_api", "toolprops", "dialogs", "fileapi", "spline", "imageblock"], function _image_ops_module(_es6_module) {
+}, '/dev/fairmotion/src/core/imageblock.js');
+es6_module_define('image_ops', ["lib_api", "spline", "spline_draw", "fileapi", "toolprops", "dialogs", "frameset", "struct", "imageblock", "config", "toolops_api"], function _image_ops_module(_es6_module) {
   var Image=es6_import_item(_es6_module, 'imageblock', 'Image');
   var DataTypes=es6_import_item(_es6_module, 'lib_api', 'DataTypes');
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
@@ -4317,8 +4317,8 @@ es6_module_define('image_ops', ["struct", "frameset", "lib_api", "spline_draw", 
   }]);
   _es6_module.add_class(LoadImageOp);
   LoadImageOp = _es6_module.add_export('LoadImageOp', LoadImageOp);
-});
-es6_module_define('UserSettings', ["config", "struct", "dialogs", "strutils"], function _UserSettings_module(_es6_module) {
+}, '/dev/fairmotion/src/image/image_ops.js');
+es6_module_define('UserSettings', ["config", "dialogs", "struct", "strutils"], function _UserSettings_module(_es6_module) {
   var config=es6_import(_es6_module, 'config');
   var b64encode=es6_import_item(_es6_module, 'strutils', 'b64encode');
   var b64decode=es6_import_item(_es6_module, 'strutils', 'b64decode');
@@ -4528,9 +4528,9 @@ es6_module_define('UserSettings', ["config", "struct", "dialogs", "strutils"], f
     call_api(upload_file, {data: data, url: url, chunk_url: url2}, finish, error, status);
     return ujob;
   }
-});
+}, '/dev/fairmotion/src/core/UserSettings.js');
 var g_app_state, g, t;
-es6_module_define('AppState', ["lib_utils", "frameset", "fileapi", "startup_file", "data_api", "FrameManager", "ajax", "lib_api_typedefine", "view2d", "toolprops", "scene", "config", "struct", "DopeSheetEditor", "toolops_api", "ops_editor", "notifications", "jobs", "UserSettings", "ScreenArea", "strutils", "raster", "lib_api", "spline_base", "view2d_ops", "UICanvas"], function _AppState_module(_es6_module) {
+es6_module_define('AppState', ["lib_api", "notifications", "config", "scene", "ops_editor", "toolprops", "FrameManager", "struct", "ScreenArea", "view2d", "lib_utils", "ajax", "toolops_api", "spline_base", "frameset", "DopeSheetEditor", "UserSettings", "raster", "view2d_ops", "startup_file", "fileapi", "lib_api_typedefine", "jobs", "UICanvas", "data_api", "strutils"], function _AppState_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, 'config');
   var html5_fileapi=es6_import(_es6_module, 'fileapi');
@@ -4756,7 +4756,7 @@ es6_module_define('AppState', ["lib_utils", "frameset", "fileapi", "startup_file
     }
     return out;
   }
-  var $toolop_input_cache_mHdf_AppState;
+  var $toolop_input_cache_a84y_AppState;
   var AppState=_ESClass("AppState", [function AppState(screen, mesh, gl) {
     this.screen = screen;
     this.eventhandler = screen;
@@ -4777,7 +4777,7 @@ es6_module_define('AppState', ["lib_utils", "frameset", "fileapi", "startup_file
     this.gl = gl;
     this.size = screen!=undefined ? screen.size : [512, 512];
     this.raster = new RasterState(undefined, screen!=undefined ? screen.size : [512, 512]);
-    this.toolop_input_cache = $toolop_input_cache_mHdf_AppState;
+    this.toolop_input_cache = $toolop_input_cache_a84y_AppState;
     if (this.datalib!=undefined) {
         this.datalib.on_destroy();
     }
@@ -5583,7 +5583,7 @@ es6_module_define('AppState', ["lib_utils", "frameset", "fileapi", "startup_file
         screen.size = this.size;
     }
   }]);
-  var $toolop_input_cache_mHdf_AppState={}
+  var $toolop_input_cache_a84y_AppState={}
   _es6_module.add_class(AppState);
   AppState = _es6_module.add_export('AppState', AppState);
   window.AppState = AppState;
@@ -5861,13 +5861,9 @@ es6_module_define('AppState', ["lib_utils", "frameset", "fileapi", "startup_file
     tool.stack_index = this.undostack.indexOf(tool);
     this.undocur++;
   }, function toolop_cancel(op) {
-    if (this.undostack[this.undocur-1]==op) {
-        console.log("tool cancel;");
-        this.undo();
-    }
-    return ;
-    console.log(this.undostack, this.undocur, op==this.undostack[this.undocur-1]);
-    if (this.undostack[this.undocur-1]==op&&this.undocur==this.undostack.length) {
+    if (this.undostack.indexOf(op)>=0) {
+        this.undostack.remove(op);
+        this.undocur--;
     }
   }, function undo() {
     if (this.undocur>0&&(this.undostack[this.undocur-1].undoflag&UndoFlags.UNDO_BARRIER))
@@ -6107,7 +6103,7 @@ es6_module_define('AppState', ["lib_utils", "frameset", "fileapi", "startup_file
   })]);
   _es6_module.add_class(ToolStack);
   ToolStack.STRUCT = "\n  ToolStack {\n    undocur   : int;\n    undostack : array(abstract(ToolOp)) | obj.undostack.slice(0, obj.undocur);\n  }\n";
-});
+}, '/dev/fairmotion/src/core/AppState.js');
 es6_module_define('units', ["safe_eval"], function _units_module(_es6_module) {
   "use strict";
   var safe_eval=es6_import_item(_es6_module, 'safe_eval', 'safe_eval');
@@ -6248,8 +6244,8 @@ es6_module_define('units', ["safe_eval"], function _units_module(_es6_module) {
   Unit.metric_units = ["cm", "m", "mm", "km"];
   Unit.imperial_units = ["in", "ft", "mile"];
   Unit.internal_unit = "cm";
-});
-es6_module_define('data_api', ["toolops_api", "config", "animdata", "toolprops", "safe_eval", "lib_api", "spline_multires", "data_api_parser", "UIFrame"], function _data_api_module(_es6_module) {
+}, '/dev/fairmotion/src/core/units.js');
+es6_module_define('data_api', ["toolops_api", "config", "toolprops", "spline_multires", "safe_eval", "lib_api", "animdata", "UIFrame", "data_api_parser"], function _data_api_module(_es6_module) {
   var DataPathTypes={PROP: 0, STRUCT: 1, STRUCT_ARRAY: 2}
   DataPathTypes = _es6_module.add_export('DataPathTypes', DataPathTypes);
   var DataFlags={NO_CACHE: 1, RECALC_CACHE: 2}
@@ -6649,10 +6645,10 @@ es6_module_define('data_api', ["toolops_api", "config", "animdata", "toolprops",
   }}, token: {obj: ["", ""], cachesize: 512}}
   TinyParser.split_chars = new set([",", "=", "(", ")", ".", "$", "[", "]"]);
   TinyParser.ws = new set([" ", "\n", "\t", "\r"]);
-  var $cache_2ov7_resolve_path_intern;
-  var $sret_yxWy_resolve_path_intern2;
-  var $retcpy_Lzpe_set_prop;
-  var $scope_2OBH_set_prop;
+  var $cache_fm3X_resolve_path_intern;
+  var $sret_8HXv_resolve_path_intern2;
+  var $retcpy_d4NP_set_prop;
+  var $scope_oWfO_set_prop;
   var DataAPI=_ESClass("DataAPI", [function DataAPI(appstate) {
     this.appstate = appstate;
     this.ops = data_ops_list;
@@ -6973,18 +6969,18 @@ es6_module_define('data_api', ["toolops_api", "config", "animdata", "toolprops",
         return undefined;
     }
     try {
-      if (!(str in $cache_2ov7_resolve_path_intern)) {
+      if (!(str in $cache_fm3X_resolve_path_intern)) {
           var ret=this.resolve_path_intern2(ctx, str);
           var ret2=[];
           for (var i=0; i<ret.length; i++) {
               ret2.push(ret[i]);
           }
-          $cache_2ov7_resolve_path_intern[str] = ret2;
+          $cache_fm3X_resolve_path_intern[str] = ret2;
       }
       else {
-        var ret=$cache_2ov7_resolve_path_intern[str];
+        var ret=$cache_fm3X_resolve_path_intern[str];
         if (ret[0]!=undefined&&!ret[0].cache_good()) {
-            delete $cache_2ov7_resolve_path_intern[str];
+            delete $cache_fm3X_resolve_path_intern[str];
             return this.resolve_path_intern(ctx, str);
         }
       }
@@ -7096,13 +7092,13 @@ es6_module_define('data_api', ["toolops_api", "config", "animdata", "toolprops",
       }
     }
     var ast=parser.parse(str);
-    $sret_yxWy_resolve_path_intern2[0] = do_eval(ast, ContextStruct, pathout, spathout);
+    $sret_8HXv_resolve_path_intern2[0] = do_eval(ast, ContextStruct, pathout, spathout);
     pathout[0] = pathout[0].slice(1, pathout[0].length);
-    $sret_yxWy_resolve_path_intern2[1] = pathout[0];
-    $sret_yxWy_resolve_path_intern2[2] = spathout[0];
-    $sret_yxWy_resolve_path_intern2[3] = mass_set;
-    $sret_yxWy_resolve_path_intern2[4] = ownerpathout[0].slice(1, ownerpathout[0].length);
-    return $sret_yxWy_resolve_path_intern2;
+    $sret_8HXv_resolve_path_intern2[1] = pathout[0];
+    $sret_8HXv_resolve_path_intern2[2] = spathout[0];
+    $sret_8HXv_resolve_path_intern2[3] = mass_set;
+    $sret_8HXv_resolve_path_intern2[4] = ownerpathout[0].slice(1, ownerpathout[0].length);
+    return $sret_8HXv_resolve_path_intern2;
   }, function evaluate(ctx, str, scope) {
     try {
       if (str in this.evalcache) {
@@ -7251,11 +7247,11 @@ es6_module_define('data_api', ["toolops_api", "config", "animdata", "toolprops",
         }
         return ret;
     }
-    $retcpy_Lzpe_set_prop.length = ret.length;
+    $retcpy_d4NP_set_prop.length = ret.length;
     for (var i=0; i<5; i++) {
-        $retcpy_Lzpe_set_prop[i] = ret[i];
+        $retcpy_d4NP_set_prop[i] = ret[i];
     }
-    ret = $retcpy_Lzpe_set_prop;
+    ret = $retcpy_d4NP_set_prop;
     var owner=this.evaluate(ctx, ret[4]);
     if (ret[0]==undefined&&ret[3]!=undefined&&ret[3].do_mass_set) {
         if (DEBUG.ui_datapaths) {
@@ -7305,9 +7301,9 @@ es6_module_define('data_api', ["toolops_api", "config", "animdata", "toolprops",
                 else 
                   val&=~mask;
                 prop.set_data(val, owner, changed);
-                $scope_2OBH_set_prop[0] = val;
+                $scope_oWfO_set_prop[0] = val;
                 path2+=" = scope[0];";
-                this.evaluate(ctx, path2, $scope_2OBH_set_prop);
+                this.evaluate(ctx, path2, $scope_oWfO_set_prop);
             }
             else {
               path+=" = "+value;
@@ -7354,9 +7350,9 @@ es6_module_define('data_api', ["toolops_api", "config", "animdata", "toolprops",
           }
           else {
             if (typeof value=="object") {
-                $scope_2OBH_set_prop[0] = value;
+                $scope_oWfO_set_prop[0] = value;
                 path+=" = scope[0]";
-                this.evaluate(ctx, path, $scope_2OBH_set_prop);
+                this.evaluate(ctx, path, $scope_oWfO_set_prop);
             }
             else {
               changed = value==old_value;
@@ -7397,13 +7393,13 @@ es6_module_define('data_api', ["toolops_api", "config", "animdata", "toolprops",
       return undefined;
     return ret[0].data;
   }]);
-  var $cache_2ov7_resolve_path_intern={}
-  var $sret_yxWy_resolve_path_intern2=[0, 0, 0, 0, 0];
-  var $retcpy_Lzpe_set_prop=new Array(16);
-  var $scope_2OBH_set_prop=[0, 0];
+  var $cache_fm3X_resolve_path_intern={}
+  var $sret_8HXv_resolve_path_intern2=[0, 0, 0, 0, 0];
+  var $retcpy_d4NP_set_prop=new Array(16);
+  var $scope_oWfO_set_prop=[0, 0];
   _es6_module.add_class(DataAPI);
   DataAPI = _es6_module.add_export('DataAPI', DataAPI);
-});
+}, '/dev/fairmotion/src/core/data_api.js');
 es6_module_define('data_api_parser', ["parseutil"], function _data_api_parser_module(_es6_module) {
   "use strict";
   var PUTL=es6_import(_es6_module, 'parseutil');
@@ -7567,8 +7563,8 @@ t+=" "
     console.log(g_app_state.api.get_prop_new(new Context(), tst));
     g_app_state.api.set_prop_new(new Context(), "view2d.zoomfac", 0.5);
   }
-});
-es6_module_define('struct', ["ajax", "safe_eval", "config", "parseutil"], function _struct_module(_es6_module) {
+}, '/dev/fairmotion/src/core/data_api_parser.js');
+es6_module_define('struct', ["config", "ajax", "parseutil", "safe_eval"], function _struct_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, 'config');
   var safe_eval=es6_import(_es6_module, 'safe_eval');
@@ -7894,9 +7890,9 @@ es6_module_define('struct', ["ajax", "safe_eval", "config", "parseutil"], functi
   var _static_view=new DataView(_static_byte.buffer);
   _static_view = _es6_module.add_export('_static_view', _static_view);
   var _ws_env=[[undefined, undefined]];
-  var $sval_ww6f=[0, 0];
-  var $sval_PrIH=[0, 0, 0];
-  var $sval_5_ol=[0, 0, 0, 0];
+  var $sval_H9QG=[0, 0];
+  var $sval_BDDk=[0, 0, 0];
+  var $sval_YFpD=[0, 0, 0, 0];
   var _st_packers=[function(data, val) {
     
     pack_int(data, val);
@@ -7908,16 +7904,16 @@ es6_module_define('struct', ["ajax", "safe_eval", "config", "parseutil"], functi
     pack_double(data, val);
   }, function(data, val) {
     if (val==undefined)
-      val = $sval_ww6f;
+      val = $sval_H9QG;
     
     pack_vec2(data, val);
   }, function(data, val) {
     if (val==undefined)
-      val = $sval_PrIH;
+      val = $sval_BDDk;
     pack_vec3(data, val);
   }, function(data, val) {
     if (val==undefined)
-      val = $sval_5_ol;
+      val = $sval_YFpD;
     pack_vec4(data, val);
   }, function(data, val) {
     if (val==undefined)
@@ -8766,7 +8762,7 @@ es6_module_define('struct', ["ajax", "safe_eval", "config", "parseutil"], functi
     }
     console.log("schema result: ", tarr[tot/2]);
   }
-});
+}, '/dev/fairmotion/src/core/struct.js');
 es6_module_define('video', [], function _video_module(_es6_module) {
   var FrameIterator=_ESClass("FrameIterator", [function FrameIterator(vm) {
     this.vm = vm;
@@ -8920,8 +8916,8 @@ es6_module_define('video', [], function _video_module(_es6_module) {
   VideoManager = _es6_module.add_export('VideoManager', VideoManager);
   var manager=new VideoManager();
   manager = _es6_module.add_export('manager', manager);
-});
-es6_module_define('fileapi', ["fileapi_chrome", "config", "fileapi_electron", "fileapi_html5"], function _fileapi_module(_es6_module) {
+}, '/dev/fairmotion/src/core/video.js');
+es6_module_define('fileapi', ["fileapi_chrome", "fileapi_html5", "config", "fileapi_electron"], function _fileapi_module(_es6_module) {
   var config=es6_import(_es6_module, 'config');
   function get_root_folderid() {
     return '/';
@@ -8958,7 +8954,7 @@ es6_module_define('fileapi', ["fileapi_chrome", "config", "fileapi_electron", "f
         _es6_module.add_export(k, _fileapi_html5[k], true);
     }
   }
-});
+}, '/dev/fairmotion/src/core/fileapi.js');
 es6_module_define('fileapi_html5', ["config"], function _fileapi_html5_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, 'config');
@@ -9042,7 +9038,7 @@ es6_module_define('fileapi_html5', ["config"], function _fileapi_html5_module(_e
     console.log("url:", url);
   }
   save_file = _es6_module.add_export('save_file', save_file);
-});
+}, '/dev/fairmotion/src/core/fileapi_html5.js');
 es6_module_define('fileapi_chrome', [], function _fileapi_chrome_module(_es6_module) {
   "use strict";
   var current_chromeapp_file=undefined;
@@ -9132,8 +9128,8 @@ es6_module_define('fileapi_chrome', [], function _fileapi_chrome_module(_es6_mod
     }
   }
   save_file = _es6_module.add_export('save_file', save_file);
-});
-es6_module_define('fileapi_electron', ["fileapi_html5", "config"], function _fileapi_electron_module(_es6_module) {
+}, '/dev/fairmotion/src/core/fileapi_chrome.js');
+es6_module_define('fileapi_electron', ["config", "fileapi_html5"], function _fileapi_electron_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, 'config');
   var fileapi_html5=es6_import(_es6_module, 'fileapi_html5');
@@ -9247,7 +9243,7 @@ es6_module_define('fileapi_electron', ["fileapi_html5", "config"], function _fil
     console.log("url:", url);
   }
   save_file = _es6_module.add_export('save_file', save_file);
-});
+}, '/dev/fairmotion/src/core/fileapi_electron.js');
 es6_module_define('stupidsecurity', ["strutils"], function _stupidsecurity_module(_es6_module) {
   var limit_code={"0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9}
   limit_code = _es6_module.add_export('limit_code', limit_code);
@@ -9531,8 +9527,8 @@ es6_module_define('stupidsecurity', ["strutils"], function _stupidsecurity_modul
   }
   window.key_rot = key_rotate;
   window.key_unrot = key_unrotate;
-});
-es6_module_define('animdata', ["lib_api", "struct", "spline_base", "toolprops", "eventdag"], function _animdata_module(_es6_module) {
+}, '/dev/fairmotion/src/core/stupidsecurity.js');
+es6_module_define('animdata', ["eventdag", "spline_base", "struct", "lib_api", "toolprops"], function _animdata_module(_es6_module) {
   "use strict";
   var PropTypes=es6_import_item(_es6_module, 'toolprops', 'PropTypes');
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
@@ -9700,9 +9696,9 @@ es6_module_define('animdata', ["lib_api", "struct", "spline_base", "toolprops", 
   _es6_module.add_class(AnimChannel);
   AnimChannel = _es6_module.add_export('AnimChannel', AnimChannel);
   AnimChannel.STRUCT = "\n  AnimChannel {\n    name     : string;\n    keys     : array(AnimKey);\n    proptype : int;\n    path     : string;\n  }\n";
-});
+}, '/dev/fairmotion/src/core/animdata.js');
 es6_module_define('config_defines', [], function _config_defines_module(_es6_module) {
-});
+}, '/dev/fairmotion/src/config/config_defines.js');
 es6_module_define('svg_export', ["mathlib", "spline_base"], function _svg_export_module(_es6_module) {
   "use strict";
   var math=es6_import(_es6_module, 'mathlib');
@@ -9945,24 +9941,24 @@ es6_module_define('svg_export', ["mathlib", "spline_base"], function _svg_export
     return buf;
   }
   export_svg = _es6_module.add_export('export_svg', export_svg);
-});
+}, '/dev/fairmotion/src/core/svg_export.js');
 es6_module_define('curve', ["curvebase"], function _curve_module(_es6_module) {
   "use strict";
-  var $rets_0TOD_derivative;
-  var $rets_fLC5_normal;
+  var $rets_vpvp_derivative;
+  var $rets_KwJo_normal;
   var ClothoidInterface=_ESClass("ClothoidInterface", [_ESClass.static(function evaluate(p1, p2, t1, t2, k1, k2, s, cdata) {
   }), _ESClass.static(function derivative(p1, p2, t1, t2, k1, k2, s, cdata) {
     var df=0.0001;
     var a=this.evaluate(p1, p2, t1, t2, k1, k2, s, cdata);
     var b=this.evaluate(p1, p2, t1, t2, k1, k2, s+df, cdata);
     b.sub(a).mulScalar(1.0/df);
-    return $rets_0TOD_derivative.next().load(b);
+    return $rets_vpvp_derivative.next().load(b);
   }), _ESClass.static(function normal(p1, p2, t1, t2, k1, k2, s, cdata) {
     var df=0.0001;
     var a=this.derivative(p1, p2, t1, t2, k1, k2, s, cdata);
     var b=this.derivative(p1, p2, t1, t2, k1, k2, s+df, cdata);
     b.sub(a).mulScalar(1.0/df);
-    return $rets_fLC5_normal.next().load(b);
+    return $rets_KwJo_normal.next().load(b);
   }), _ESClass.static(function curvature(p1, p2, t1, t2, k1, k2, s, cdata) {
     var dv1=this.derivative(p1, p2, t1, t2, k1, k2, s, cdata);
     var dv2=this.normal(p1, p2, t1, t2, k1, k2, s, cdata);
@@ -9981,13 +9977,13 @@ es6_module_define('curve', ["curvebase"], function _curve_module(_es6_module) {
   }), _ESClass.static(function update(p1, p2, t1, t2, k1, k2, s, cdata) {
   }), function ClothoidInterface() {
   }]);
-  var $rets_0TOD_derivative=cachering.fromConstructor(Vector2, 16);
-  var $rets_fLC5_normal=cachering.fromConstructor(Vector2, 16);
+  var $rets_vpvp_derivative=cachering.fromConstructor(Vector2, 16);
+  var $rets_KwJo_normal=cachering.fromConstructor(Vector2, 16);
   _es6_module.add_class(ClothoidInterface);
   var CurveInterfaces=es6_import_item(_es6_module, 'curvebase', 'CurveInterfaces');
   var CurveTypes=es6_import_item(_es6_module, 'curvebase', 'CurveTypes');
   CurveInterfaces[CurveTypes.CLOTHOID] = ClothoidInterface;
-});
+}, '/dev/fairmotion/src/curve/curve.js');
 es6_module_define('curvebase', [], function _curvebase_module(_es6_module) {
   var CurveTypes={CLOTHOID: 1}
   CurveTypes = _es6_module.add_export('CurveTypes', CurveTypes);
@@ -10012,21 +10008,21 @@ es6_module_define('curvebase', [], function _curvebase_module(_es6_module) {
   }]);
   _es6_module.add_class(CurveData);
   CurveData = _es6_module.add_export('CurveData', CurveData);
-  var $rets_nFpz_derivative;
-  var $rets_PsUc_normal;
+  var $rets_ZbLU_derivative;
+  var $rets_9cOk_normal;
   var CurveInterface=_ESClass("CurveInterface", [_ESClass.static(function evaluate(p1, p2, t1, t2, k1, k2, s, cdata) {
   }), _ESClass.static(function derivative(p1, p2, t1, t2, k1, k2, s, cdata) {
     var df=0.0001;
     var a=this.evaluate(p1, p2, t1, t2, k1, k2, s, cdata);
     var b=this.evaluate(p1, p2, t1, t2, k1, k2, s+df, cdata);
     b.sub(a).mulScalar(1.0/df);
-    return $rets_nFpz_derivative.next().load(b);
+    return $rets_ZbLU_derivative.next().load(b);
   }), _ESClass.static(function normal(p1, p2, t1, t2, k1, k2, s, cdata) {
     var df=0.0001;
     var a=this.derivative(p1, p2, t1, t2, k1, k2, s, cdata);
     var b=this.derivative(p1, p2, t1, t2, k1, k2, s+df, cdata);
     b.sub(a).mulScalar(1.0/df);
-    return $rets_PsUc_normal.next().load(b);
+    return $rets_9cOk_normal.next().load(b);
   }), _ESClass.static(function curvature(p1, p2, t1, t2, k1, k2, s, cdata) {
     var dv1=this.derivative(p1, p2, t1, t2, k1, k2, s, cdata);
     var dv2=this.normal(p1, p2, t1, t2, k1, k2, s, cdata);
@@ -10045,10 +10041,10 @@ es6_module_define('curvebase', [], function _curvebase_module(_es6_module) {
   }), _ESClass.static(function update(p1, p2, t1, t2, k1, k2, s, cdata) {
   }), function CurveInterface() {
   }]);
-  var $rets_nFpz_derivative=cachering.fromConstructor(Vector2, 16);
-  var $rets_PsUc_normal=cachering.fromConstructor(Vector2, 16);
+  var $rets_ZbLU_derivative=cachering.fromConstructor(Vector2, 16);
+  var $rets_9cOk_normal=cachering.fromConstructor(Vector2, 16);
   _es6_module.add_class(CurveInterface);
-});
+}, '/dev/fairmotion/src/curve/curvebase.js');
 es6_module_define('spline_math', ["spline_math_hermite", "config", "native_api"], function _spline_math_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, 'config');
@@ -10148,8 +10144,8 @@ es6_module_define('spline_math', ["spline_math_hermite", "config", "native_api"]
   }
   eval_curve = _es6_module.add_export('eval_curve', eval_curve);
   
-});
-es6_module_define('spline_math_hermite', ["spline_base", "J3DIMath", "toolops_api", "solver"], function _spline_math_hermite_module(_es6_module) {
+}, '/dev/fairmotion/src/curve/spline_math.js');
+es6_module_define('spline_math_hermite', ["J3DIMath", "toolops_api", "solver", "spline_base"], function _spline_math_hermite_module(_es6_module) {
   "use strict";
   var SplineFlags=es6_import_item(_es6_module, 'spline_base', 'SplineFlags');
   var SplineTypes=es6_import_item(_es6_module, 'spline_base', 'SplineTypes');
@@ -10278,10 +10274,10 @@ es6_module_define('spline_math_hermite', ["spline_base", "J3DIMath", "toolops_ap
   spiralcurvature_dv = _es6_module.add_export('spiralcurvature_dv', spiralcurvature_dv);
   var ORDER=4;
   ORDER = _es6_module.add_export('ORDER', ORDER);
-  var $con_cache_rQS7_build_solver={list: [], used: 0}
+  var $con_cache_Yl5R_build_solver={list: [], used: 0}
   function build_solver(spline, order, goal_order, gk, do_basic, update_verts) {
     var slv=new solver();
-    $con_cache_rQS7_build_solver.used = 0;
+    $con_cache_Yl5R_build_solver.used = 0;
     if (order==undefined)
       order = ORDER;
     if (gk==undefined)
@@ -10724,4 +10720,4 @@ es6_module_define('spline_math_hermite', ["spline_base", "J3DIMath", "toolops_ap
     }
   }
   do_solve = _es6_module.add_export('do_solve', do_solve);
-});
+}, '/dev/fairmotion/src/curve/spline_math_hermite.js');

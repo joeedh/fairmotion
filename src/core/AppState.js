@@ -60,6 +60,7 @@ export class FileData {
   }
 }
 
+//truly ancient class, from AllShape.
 class UserSession {
   constructor() {
     this.tokens = {} : ObjectMap;
@@ -1785,25 +1786,9 @@ class ToolStack {
   //op is the toolop requesting the cancelation, which allows us to validate
   //the call.
   toolop_cancel(ToolOp op) {
-    //let's try this method again
-    if (this.undostack[this.undocur-1] == op) {
-      console.log("tool cancel;");
-      this.undo();
-    }
-    
-    //XXX not working on mobile devices, ger
-    return;
-    
-    console.log(this.undostack, this.undocur, op==this.undostack[this.undocur-1]);
-    if (this.undostack[this.undocur-1] == op && this.undocur == this.undostack.length) {
-      /*
-      
-      this.undostack.pop(this.undocur);
+    if (this.undostack.indexOf(op) >= 0) {
+      this.undostack.remove(op);
       this.undocur--;
-      
-      if (this.undocur < 0) 
-        this.undocur = 0;
-      */
     }
   }
   

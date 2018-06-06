@@ -380,7 +380,20 @@ export class View2DHandler extends Area {
   }
   
   kill_drawline(dl) {
+    static min = [0, 0], max = [0, 0];
+  
     var drawlines = this._get_dl_group(dl.group);
+    var pad = 5;
+  
+    var v1 = dl.v1, v2 = dl.v2;
+
+    min[0] = Math.min(v1[0], v2[0]) - pad;
+    min[1] = Math.min(v1[1], v2[1]) - pad;
+    max[0] = Math.max(v1[0], v2[0]) + pad;
+    max[1] = Math.max(v1[1], v2[1]) + pad;
+    
+    redraw_viewport(min, max);
+    
     drawlines.remove(dl);
   }
   

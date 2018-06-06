@@ -36,7 +36,7 @@ import {charmap} from 'events';
 */
 /*
   TOOLOP REFACTOR 2:
-  1. Transition to a 'tooldef' static method:
+  1. Transition to a 'tooldef' static method: <- PARTLY COMPLETE
      class SomeTool extends ToolOp {
         static tooldef() { return {
           apiname  : "load_image",
@@ -389,7 +389,7 @@ export class ToolOp extends ToolOpAbstract {
     redraw_viewport();
   }
 
-  exec_pre(ToolContext tctx) {
+  exec_pre(tctx : ToolContext) {
     for (var k in this.inputs) {
       if (this.inputs[k].type == PropTypes.COLLECTION) {
         this.inputs[k].ctx = tctx;
@@ -403,11 +403,17 @@ export class ToolOp extends ToolOpAbstract {
     }
   }
   
-  start_modal(Context ctx) {
+  //pops tool from undo history
+  cancel_modal(ctx : Context) {
+    console.log("cancel");
+    ctx.toolstack.toolop_cancel(this);
+  }
+
+  start_modal(ctx : Context) {
   }
   
   /*private function*/
-  _start_modal(Context ctx) {
+  _start_modal(ctx : Context) {
     this.modal_running = true;
     ctx.view2d.push_modal(this);
     this.modal_ctx = ctx;
@@ -431,12 +437,12 @@ export class ToolOp extends ToolOpAbstract {
       this._end_modal();
   }
 
-  can_call(Context ctx) { return true; }
-  exec(Context ctx) { }
-  start_modal(Context ctx) { }
+  can_call(ctx : Context) { return true; }
+  exec(ctx : Context) { }
+  start_modal(ctx : Context) { }
 
   //called after redo execution
-  redo_post(Context ctx) {
+  redo_post(ctx : Context) {
     window.redraw_viewport();
   }
   
@@ -444,7 +450,7 @@ export class ToolOp extends ToolOpAbstract {
     remember when overriding to override undo_pre, too, otherwise the tool will
     be copying the mesh unnecessarily*/
     
-  undo_pre(Context ctx) {
+  undo_pre(ctx : Context) {
     this._undocpy = g_app_state.create_undo_file();
     window.redraw_viewport();
   }

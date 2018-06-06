@@ -32,5 +32,6 @@ window.Icons = {
   DELETE         : 28,
   RESIZE         : 29,
   Z_UP           : 30,
-  Z_DOWN         : 31
+  Z_DOWN         : 31,
+  SPLIT_EDGE     : 32
 };

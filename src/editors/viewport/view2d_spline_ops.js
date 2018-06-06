@@ -329,6 +329,7 @@ export class SplineEditor extends View2DEditor {
     var col = the_row.col();
     col.toolop("spline.make_edge()");
     col.toolop("spline.make_edge_face()");
+    col.toolop("spline.split_pick_edge()");
     
     var col = the_row.col();
     

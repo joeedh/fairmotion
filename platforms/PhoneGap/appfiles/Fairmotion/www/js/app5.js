@@ -3351,7 +3351,7 @@ es6_module_define('manipulator', [], function _manipulator_module(_es6_module) {
   _es6_module.add_class(ManipulatorManager);
   ManipulatorManager = _es6_module.add_export('ManipulatorManager', ManipulatorManager);
 }, '/dev/fairmotion/src/editors/viewport/manipulator.js');
-es6_module_define('view2d', ["UIWidgets_special2", "view2d_spline_ops", "UIElement", "selectmode", "UITabPanel", "UIWidgets_special", "struct", "manipulator", "RadialMenu", "mathlib", "UIWidgets", "view2d_editor", "spline_editops", "imageblock", "UIPack", "events", "ScreenArea", "UISplitFrame", "UICanvas", "spline_createops", "UIMenu", "notifications", "video", "spline_draw", "toolops_api"], function _view2d_module(_es6_module) {
+es6_module_define('view2d', ["UIWidgets_special", "events", "notifications", "spline_draw", "spline_createops", "UIWidgets", "mathlib", "view2d_spline_ops", "UIWidgets_special2", "spline_editops", "RadialMenu", "ScreenArea", "toolops_api", "UIMenu", "video", "UIPack", "UISplitFrame", "UITabPanel", "imageblock", "selectmode", "UIElement", "UICanvas", "view2d_editor", "manipulator", "struct"], function _view2d_module(_es6_module) {
   "use strict";
   var toolop_menu=es6_import_item(_es6_module, 'UIMenu', 'toolop_menu');
   var uimenu=es6_import(_es6_module, 'UIMenu');
@@ -3446,12 +3446,17 @@ es6_module_define('view2d', ["UIWidgets_special2", "view2d_spline_ops", "UIEleme
     this.end_modal();
   }]);
   _es6_module.add_class(PanOp);
-  var drawline=_ESClass("drawline", [function drawline(co1, co2, group) {
+  var drawline=_ESClass("drawline", [function drawline(co1, co2, group, color, width) {
     this.v1 = new Vector3(co1);
     this.v2 = new Vector3(co2);
     this.group = group;
-    this.clr = [0.4, 0.4, 0.4, 1.0];
-    this.width = 1;
+    this.width = width;
+    if (color!==undefined) {
+        this.clr = [color[0], color[1], color[2], color[3]!==undefined ? color[3] : 1.0];
+    }
+    else {
+      this.clr = [0.4, 0.4, 0.4, 1.0];
+    }
   }, function set_clr(clr) {
     this.clr = clr;
   }]);
@@ -3473,12 +3478,12 @@ es6_module_define('view2d', ["UIWidgets_special2", "view2d_spline_ops", "UIEleme
   var ImageUser=es6_import_item(_es6_module, 'imageblock', 'ImageUser');
   var canvas_owners=0;
   var _v3d_id=0;
-  var $min_kIpD_make_drawline;
-  var $min_egpK_kill_drawline;
-  var $_co_v06o_project;
-  var $_co_l54v_unproject;
-  var $max_qZy5_make_drawline;
-  var $max_jjYy_kill_drawline;
+  var $min_1zNC_make_drawline;
+  var $min_l3VI_kill_drawline;
+  var $_co_8W7N_project;
+  var $_co_u1QL_unproject;
+  var $max_ZEI6_make_drawline;
+  var $max_70do_kill_drawline;
   var View2DHandler=_ESClass("View2DHandler", Area, [function View2DHandler(x, y, width, height) {
     Area.call(this, View2DHandler.name, "3D Viewport", new Context(), [x, y], [width, height]);
     this.edit_all_layers = false;
@@ -3615,29 +3620,35 @@ es6_module_define('view2d', ["UIWidgets_special2", "view2d_spline_ops", "UIEleme
         this.drawline_groups[group] = new GArray();
     }
     return this.drawline_groups[group];
-  }, function make_drawline(v1, v2, group) {
+  }, function make_drawline(v1, v2, group, color, width) {
     if (group==undefined) {
         group = "main";
     }
+    if (color==undefined) {
+        color = undefined;
+    }
+    if (width==undefined) {
+        width = 1;
+    }
     var drawlines=this._get_dl_group(group);
-    var dl=new drawline(v1, v2, group);
+    var dl=new drawline(v1, v2, group, color, width);
     drawlines.push(dl);
     var pad=5;
-    $min_kIpD_make_drawline[0] = Math.min(v1[0], v2[0])-pad;
-    $min_kIpD_make_drawline[1] = Math.min(v1[1], v2[1])-pad;
-    $max_qZy5_make_drawline[0] = Math.max(v1[0], v2[0])+pad;
-    $max_qZy5_make_drawline[1] = Math.max(v1[1], v2[1])+pad;
-    redraw_viewport($min_kIpD_make_drawline, $max_qZy5_make_drawline);
+    $min_1zNC_make_drawline[0] = Math.min(v1[0], v2[0])-pad;
+    $min_1zNC_make_drawline[1] = Math.min(v1[1], v2[1])-pad;
+    $max_ZEI6_make_drawline[0] = Math.max(v1[0], v2[0])+pad;
+    $max_ZEI6_make_drawline[1] = Math.max(v1[1], v2[1])+pad;
+    redraw_viewport($min_1zNC_make_drawline, $max_ZEI6_make_drawline);
     return dl;
   }, function kill_drawline(dl) {
     var drawlines=this._get_dl_group(dl.group);
     var pad=5;
     var v1=dl.v1, v2=dl.v2;
-    $min_egpK_kill_drawline[0] = Math.min(v1[0], v2[0])-pad;
-    $min_egpK_kill_drawline[1] = Math.min(v1[1], v2[1])-pad;
-    $max_jjYy_kill_drawline[0] = Math.max(v1[0], v2[0])+pad;
-    $max_jjYy_kill_drawline[1] = Math.max(v1[1], v2[1])+pad;
-    redraw_viewport($min_egpK_kill_drawline, $max_jjYy_kill_drawline);
+    $min_l3VI_kill_drawline[0] = Math.min(v1[0], v2[0])-pad;
+    $min_l3VI_kill_drawline[1] = Math.min(v1[1], v2[1])-pad;
+    $max_70do_kill_drawline[0] = Math.max(v1[0], v2[0])+pad;
+    $max_70do_kill_drawline[1] = Math.max(v1[1], v2[1])+pad;
+    redraw_viewport($min_l3VI_kill_drawline, $max_70do_kill_drawline);
     drawlines.remove(dl);
   }, function reset_drawlines(group) {
     if (group==undefined) {
@@ -3699,16 +3710,16 @@ es6_module_define('view2d', ["UIWidgets_special2", "view2d_spline_ops", "UIEleme
     render.multiply(cam);
     this.irendermat.load(this.rendermat).invert();
   }, function project(co) {
-    $_co_v06o_project.load(co);
-    $_co_v06o_project[2] = 0.0;
-    $_co_v06o_project.multVecMatrix(this.rendermat);
-    co[0] = $_co_v06o_project[0], co[1] = $_co_v06o_project[1];
+    $_co_8W7N_project.load(co);
+    $_co_8W7N_project[2] = 0.0;
+    $_co_8W7N_project.multVecMatrix(this.rendermat);
+    co[0] = $_co_8W7N_project[0], co[1] = $_co_8W7N_project[1];
     return co;
   }, function unproject(co) {
-    $_co_l54v_unproject.load(co);
-    $_co_l54v_unproject[2] = 0.0;
-    $_co_l54v_unproject.multVecMatrix(this.irendermat);
-    co[0] = $_co_l54v_unproject[0], co[1] = $_co_l54v_unproject[1];
+    $_co_u1QL_unproject.load(co);
+    $_co_u1QL_unproject[2] = 0.0;
+    $_co_u1QL_unproject.multVecMatrix(this.irendermat);
+    co[0] = $_co_u1QL_unproject[0], co[1] = $_co_u1QL_unproject[1];
     return co;
   }, function do_select(event, mpos, view2d, do_multiple) {
     if (do_multiple==undefined) {
@@ -3737,7 +3748,6 @@ es6_module_define('view2d', ["UIWidgets_special2", "view2d_spline_ops", "UIEleme
   }, function rightclick_menu(event) {
     this.editor.rightclick_menu(event, this);
   }, function on_mousedown(event) {
-    console.trace();
     if (this.bad_event(event))
       return ;
     if (Area.prototype.on_mousedown.call(this, event))
@@ -4153,6 +4163,8 @@ es6_module_define('view2d', ["UIWidgets_special2", "view2d_spline_ops", "UIEleme
     tools.toolop("spline.change_face_z(offset=1, selmode=selectmode)", PackFlags.USE_LARGE_ICON, "Move Up", Icons.Z_UP);
     tools.toolop("spline.change_face_z(offset=-1, selmode=selectmode)", PackFlags.USE_LARGE_ICON, "Move Down", Icons.Z_DOWN);
     var display=tabs.panel("Display");
+    display.packflag|=PackFlags.NO_AUTO_SPACING;
+    display.default_packflag|=PackFlags.NO_AUTO_SPACING;
     display.prop("view2d.only_render");
     display.prop("view2d.draw_small_verts");
     display.prop("view2d.draw_normals");
@@ -4275,12 +4287,12 @@ es6_module_define('view2d', ["UIWidgets_special2", "view2d_spline_ops", "UIEleme
     this.editor.set_selectmode(mode);
     redraw_viewport();
   }]);
-  var $min_kIpD_make_drawline=[0, 0];
-  var $min_egpK_kill_drawline=[0, 0];
-  var $_co_v06o_project=new Vector3();
-  var $_co_l54v_unproject=new Vector3();
-  var $max_qZy5_make_drawline=[0, 0];
-  var $max_jjYy_kill_drawline=[0, 0];
+  var $min_1zNC_make_drawline=[0, 0];
+  var $min_l3VI_kill_drawline=[0, 0];
+  var $_co_8W7N_project=new Vector3();
+  var $_co_u1QL_unproject=new Vector3();
+  var $max_ZEI6_make_drawline=[0, 0];
+  var $max_70do_kill_drawline=[0, 0];
   _es6_module.add_class(View2DHandler);
   View2DHandler = _es6_module.add_export('View2DHandler', View2DHandler);
   View2DHandler.STRUCT = STRUCT.inherit(View2DHandler, Area)+"\n    _id             : int;\n    _selectmode     : int;\n    rendermat       : mat4;\n    irendermat      : mat4;\n    cameramat       : mat4;\n    only_render     : int;\n    draw_anim_paths : int;\n    draw_normals    : int;\n    editors         : array(abstract(View2DEditor));\n    editor          : int | obj.editors.indexOf(obj.editor);\n    zoom            : float;\n    tweak_mode        : int;\n    default_linewidth : float;\n    default_stroke    : vec4;\n    default_fill      : vec4;\n    extrude_mode      : int;\n    enable_blur       : int;\n    draw_faces        : int;\n    draw_video        : int;\n    pinned_paths      : array(int) | obj.pinned_paths != undefined ? obj.pinned_paths : [];\n    background_image  : ImageUser;\n    background_color  : vec3;\n    draw_bg_image     : int;\n    toolmode          : int;\n    draw_small_verts  : int;\n    edit_all_layers   : int;\n  }\n";

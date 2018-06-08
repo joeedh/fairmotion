@@ -52,9 +52,9 @@ export class UITabBar extends UIElement {
     var twid = tpad;
     
     for (var c of this.tabs) {
-      var sz = canvas.textsize(c.text) + c.textpad*2;
+      var sz = canvas.textsize(c.text);
       
-      twid += sz[0] + tpad;
+      twid += sz[0] + tpad + c.textpad*2;
       thickness = Math.max(sz[1], thickness);
     }
     

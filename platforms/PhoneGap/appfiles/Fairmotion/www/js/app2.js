@@ -2161,7 +2161,7 @@ es6_module_define('spline_types', ["config", "spline_math", "mathlib", "toolprop
   
   mixin(ElementRefSet, TPropIterable);
 }, '/dev/fairmotion/src/curve/spline_types.js');
-es6_module_define('spline_query', ["selectmode", "spline_multires"], function _spline_query_module(_es6_module) {
+es6_module_define('spline_query', ["spline_multires", "selectmode"], function _spline_query_module(_es6_module) {
   var SelMask=es6_import_item(_es6_module, 'selectmode', 'SelMask');
   var has_multires=es6_import_item(_es6_module, 'spline_multires', 'has_multires');
   var compose_id=es6_import_item(_es6_module, 'spline_multires', 'compose_id');
@@ -2170,10 +2170,11 @@ es6_module_define('spline_query', ["selectmode", "spline_multires"], function _s
   var MultiResLayer=es6_import_item(_es6_module, 'spline_multires', 'MultiResLayer');
   var PI=Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor, ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos, asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
   var sqrt=Math.sqrt;
-  var $_mpos_S6mn_findnearest_mres;
-  var $_mpos_NZXx_findnearest_vert;
-  var $_v_400b_findnearest_mres;
-  var $_v_rRZl_findnearest_vert;
+  var $_let_findnearest_segment_tmp1=new Vector2();
+  var $_mpos_KtBN_findnearest_mres;
+  var $_mpos_Zk3O_findnearest_vert;
+  var $_v_xkXQ_findnearest_mres;
+  var $_v_oL_X_findnearest_vert;
   var SplineQuery=_ESClass("SplineQuery", [function SplineQuery(spline) {
     this.spline = spline;
   }, function findnearest(editor, mpos, selectmask, limit, ignore_layers) {
@@ -2224,6 +2225,7 @@ es6_module_define('spline_query', ["selectmode", "spline_multires"], function _s
     var spline=this.spline;
     var actlayer=spline.layerset.active;
     var sret=undefined, mindis=limit;
+    mpos = $_let_findnearest_segment_tmp1.load(mpos);
     editor.unproject(mpos);
     var __iter_seg=__get_iter(spline.segments);
     var seg;
@@ -2271,7 +2273,7 @@ es6_module_define('spline_query', ["selectmode", "spline_multires"], function _s
   }, function findnearest_mres(editor, mpos, limit, do_handles, ignore_layers) {
     var spline=this.spline;
     var actlayer=spline.layerset.active;
-    mpos = $_mpos_S6mn_findnearest_mres.load(mpos), mpos[2] = 0.0;
+    mpos = $_mpos_KtBN_findnearest_mres.load(mpos), mpos[2] = 0.0;
     if (!has_multires(spline))
       return undefined;
     if (limit==undefined)
@@ -2302,10 +2304,10 @@ es6_module_define('spline_query', ["selectmode", "spline_multires"], function _s
           continue;
         var seg=spline.eidmap[p.seg];
         var mapco=seg.evaluate(p.s);
-        $_v_400b_findnearest_mres.load(mapco);
-        $_v_400b_findnearest_mres[2] = 0.0;
-        editor.project($_v_400b_findnearest_mres);
-        var dis=$_v_400b_findnearest_mres.vectorDistance(mpos);
+        $_v_xkXQ_findnearest_mres.load(mapco);
+        $_v_xkXQ_findnearest_mres[2] = 0.0;
+        editor.project($_v_xkXQ_findnearest_mres);
+        var dis=$_v_xkXQ_findnearest_mres.vectorDistance(mpos);
         if (dis<limit&&dis<min) {
             min = dis;
             ret = compose_id(p.seg, p.id);
@@ -2321,7 +2323,7 @@ es6_module_define('spline_query', ["selectmode", "spline_multires"], function _s
       limit = 15;
     var min=1e+17;
     var ret=undefined;
-    mpos = $_mpos_NZXx_findnearest_vert.load(mpos), mpos[2] = 0.0;
+    mpos = $_mpos_Zk3O_findnearest_vert.load(mpos), mpos[2] = 0.0;
     var hasmres=has_multires(spline);
     var list=do_handles ? spline.handles : spline.verts;
     var __iter_v=__get_iter(list);
@@ -2340,10 +2342,10 @@ es6_module_define('spline_query', ["selectmode", "spline_multires"], function _s
       if (hasmres&&v.segments.length>0) {
           co = v.segments[0].evaluate(v.segments[0].ends(v));
       }
-      $_v_rRZl_findnearest_vert.load(co);
-      $_v_rRZl_findnearest_vert[2] = 0.0;
-      editor.project($_v_rRZl_findnearest_vert);
-      var dis=$_v_rRZl_findnearest_vert.vectorDistance(mpos);
+      $_v_oL_X_findnearest_vert.load(co);
+      $_v_oL_X_findnearest_vert[2] = 0.0;
+      editor.project($_v_oL_X_findnearest_vert);
+      var dis=$_v_oL_X_findnearest_vert.vectorDistance(mpos);
       if (dis<limit&&dis<min) {
           min = dis;
           ret = v;
@@ -2352,10 +2354,10 @@ es6_module_define('spline_query', ["selectmode", "spline_multires"], function _s
     if (ret!=undefined)
       return [ret, min, do_handles ? SelMask.HANDLE : SelMask.VERTEX];
   }]);
-  var $_mpos_S6mn_findnearest_mres=new Vector3();
-  var $_mpos_NZXx_findnearest_vert=new Vector3();
-  var $_v_400b_findnearest_mres=new Vector3();
-  var $_v_rRZl_findnearest_vert=new Vector3();
+  var $_mpos_KtBN_findnearest_mres=new Vector3();
+  var $_mpos_Zk3O_findnearest_vert=new Vector3();
+  var $_v_xkXQ_findnearest_mres=new Vector3();
+  var $_v_oL_X_findnearest_vert=new Vector3();
   _es6_module.add_class(SplineQuery);
   SplineQuery = _es6_module.add_export('SplineQuery', SplineQuery);
 }, '/dev/fairmotion/src/curve/spline_query.js');

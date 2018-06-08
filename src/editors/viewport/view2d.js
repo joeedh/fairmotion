@@ -123,13 +123,17 @@ class PanOp extends ToolOp {
 }
 
 class drawline {
-  constructor(co1, co2, group) {
+  constructor(co1, co2, group, color, width) {
     this.v1 = new Vector3(co1);
     this.v2 = new Vector3(co2);
     this.group = group;
+    this.width = width;
     
-    this.clr = [0.4, 0.4, 0.4, 1.0];
-    this.width = 1;
+    if (color !== undefined) {
+      this.clr = [color[0], color[1], color[2], color[3] !== undefined ? color[3] : 1.0];
+    } else {
+      this.clr = [0.4, 0.4, 0.4, 1.0];
+    }
   }
 
   set_clr(Array<float> clr) {
@@ -358,10 +362,10 @@ export class View2DHandler extends Area {
     return this.drawline_groups[group];
   }
   
-  make_drawline(v1, v2, group="main") {
+  make_drawline(v1, v2, group="main", color=undefined, width=1) {
     var drawlines = this._get_dl_group(group);
     
-    var dl = new drawline(v1, v2, group);
+    var dl = new drawline(v1, v2, group, color, width);
     drawlines.push(dl);
     
     static min = [0, 0], max = [0, 0];
@@ -544,7 +548,7 @@ export class View2DHandler extends Area {
   }
   
   on_mousedown(event : MouseEvent) {
-    console.trace();
+    //console.trace();
     
     if (this.bad_event(event))
       return;
@@ -1258,7 +1262,35 @@ export class View2DHandler extends Area {
     tools.toolop("spline.change_face_z(offset=-1, selmode=selectmode)", PackFlags.USE_LARGE_ICON, "Move Down", Icons.Z_DOWN);
   
     var display = tabs.panel("Display");
+    /*
+    let tst = {_val : 0, length : 2};
+    tst[0] = 0;
+    
+    Object.defineProperty(tst, 1, {
+      get : function() { return this._val;},
+      set : function(v) { console.trace("size[1] access", this._val, v); this._val = v;}
+    });
+    Object.defineProperty(display, "size", {
+      get : function() {
+        return tst;
+      },
+      
+      set : function(v) {
+        console.trace("size[1] access", tst._val, v[1]);
+        
+        tst[0] = v[0];
+        tst._val = v[1];
+      }
+    });
+    
+    display.size = tst;
+    window.dp = display;
+    //*/
+    
+    display.packflag |= PackFlags.NO_AUTO_SPACING;
+    display.default_packflag |= PackFlags.NO_AUTO_SPACING;
     display.prop("view2d.only_render");
+    //*
     display.prop("view2d.draw_small_verts");
     display.prop("view2d.draw_normals");
     display.prop("view2d.draw_anim_paths");
@@ -1267,6 +1299,7 @@ export class View2DHandler extends Area {
     display.prop("view2d.draw_faces");
     display.toolop("view2d.render_anim()");
     display.toolop("view2d.play_anim()");
+    //*/
     
 //    try {
     display.prop("view2d.selectmask[HANDLE]");

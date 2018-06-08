@@ -348,8 +348,8 @@ export class ToolOp extends ToolOpAbstract {
     this._widget_on_tick = undefined;
   }
   
-  new_drawline(v1, v2) {
-    var dl = this.modal_ctx.view2d.make_drawline(v1, v2);
+  new_drawline(v1, v2, color, line_width) {
+    var dl = this.modal_ctx.view2d.make_drawline(v1, v2, undefined, color, line_width);
     
     this.drawlines.push(dl);
     

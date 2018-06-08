@@ -898,7 +898,7 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
   }
   
   start_modal(ctx : Context) {
-  
+    super.start_modal(ctx);
   }
   
   on_mousedown(e) {
@@ -915,15 +915,22 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
     this.reset_drawlines();
     super.end_modal(ctx);
   }
-
+  
+  on_keydown(event) {
+    switch (event.keyCode) {
+      case charmap["Enter"]:
+      case charmap["Escape"]:
+        this.finish(event.keyCode == charmap["Escape"]);
+        break;
+    }
+  }
+  
   on_mousemove(e) {
     let ctx = this.modal_ctx;
 
-    //console.log("mmove", e.x, e.y, ctx);
     let mpos = [e.x, e.y];
     
     let ret = ctx.view2d.editor.findnearest(mpos, SplineTypes.SEGMENT, 105);
-    //console.log(ret);
     
     if (ret === undefined) {
       this.reset_drawlines();
@@ -937,10 +944,10 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
     
     if (spline === ctx.frameset.pathspline) {
       this.inputs.spline_path.set_data("pathspline");
-      console.log("pathspline");
+      //console.log("pathspline");
     } else {
       this.inputs.spline_path.set_data("spline");
-      console.log("drawspline");
+      //console.log("drawspline");
     }
     
     this.reset_drawlines(ctx);
@@ -951,19 +958,22 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
     
     for (let i=1; i<steps; i++, s += ds) {
       let co = seg.evaluate(s);
-      this.new_drawline(lastco, co);
+      this.new_drawline(lastco, co, [1, 0.3, 0.0, 1.0], 2);
       lastco = co;
     }
     
     this.inputs.segment_eid.set_data(seg.eid);
     this.inputs.segment_t.set_data(0.5);
+  
+    ctx.view2d.unproject(mpos);
+    //console.log("pmpos", mpos);
     
     let p = seg.closest_point(mpos, ClosestModes.CLOSEST);
     
     if (p !== undefined) {
       this.inputs.segment_t.set_data(p[1]);
       
-      console.log("  t", p[1].toFixed(4));
+      //console.log("  p", p[1].toFixed(4), p[0]);
       
       p = p[0];
       

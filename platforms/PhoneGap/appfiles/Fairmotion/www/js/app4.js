@@ -1,4 +1,4 @@
-es6_module_define('UIFrame', ["J3DIMath", "UIElement", "events", "mathlib"], function _UIFrame_module(_es6_module) {
+es6_module_define('UIFrame', ["mathlib", "events", "J3DIMath", "UIElement"], function _UIFrame_module(_es6_module) {
   var aabb_isect_2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_2d');
   var inrect_2d=es6_import_item(_es6_module, 'mathlib', 'inrect_2d');
   es6_import(_es6_module, 'J3DIMath');
@@ -17,8 +17,8 @@ es6_module_define('UIFrame', ["J3DIMath", "UIElement", "events", "mathlib"], fun
   var _static_mat=new Matrix4();
   var _ufbd_v1=new Vector3();
   var _canvas_threshold=1.0;
-  var $pos_ED3M__find_active;
-  var $zero_8Sg9_build_draw_old;
+  var $pos_zvhA__find_active;
+  var $zero_ggZH_build_draw_old;
   var UIFrame=_ESClass("UIFrame", UIElement, [function UIFrame(ctx, canvas, path, pos, size) {
     UIElement.call(this, ctx, path, pos, size);
     this.dirty_rects = new GArray();
@@ -309,10 +309,10 @@ es6_module_define('UIFrame', ["J3DIMath", "UIElement", "events", "mathlib"], fun
     var found=false;
     for (var i=this.children.length-1; i>=0; i--) {
         var c=this.children[i];
-        $pos_ED3M__find_active[0] = c.pos[0], $pos_ED3M__find_active[1] = c.pos[1];
+        $pos_zvhA__find_active[0] = c.pos[0], $pos_zvhA__find_active[1] = c.pos[1];
         if (c.state&UIFlags.HAS_PAN) {
         }
-        if (inrect_2d(mpos, $pos_ED3M__find_active, c.size)) {
+        if (inrect_2d(mpos, $pos_zvhA__find_active, c.size)) {
             found = true;
             if (this.active!=c&&this.active!=undefined) {
                 this.active.state&=~UIFlags.HIGHLIGHT;
@@ -925,7 +925,7 @@ es6_module_define('UIFrame', ["J3DIMath", "UIElement", "events", "mathlib"], fun
       if (this.state&UIFlags.HAS_PAN)
         pos = this.velpan.pan;
       else 
-        pos = $zero_8Sg9_build_draw_old;
+        pos = $zero_ggZH_build_draw_old;
       isect = isect||aabb_isect_2d(c.pos, c.size, pos, this.size);
       if (!isect) {
           this.has_hidden_elements = true;
@@ -1077,8 +1077,8 @@ es6_module_define('UIFrame', ["J3DIMath", "UIElement", "events", "mathlib"], fun
         frame.push_modal(e);
     }
   }]);
-  var $pos_ED3M__find_active=[0, 0];
-  var $zero_8Sg9_build_draw_old=[0, 0];
+  var $pos_zvhA__find_active=[0, 0];
+  var $zero_ggZH_build_draw_old=[0, 0];
   _es6_module.add_class(UIFrame);
   UIFrame = _es6_module.add_export('UIFrame', UIFrame);
 }, '/dev/fairmotion/src/ui/UIFrame.js');
@@ -6838,7 +6838,7 @@ es6_module_define('UIWidgets_special2', ["UIPack", "UIWidgets_special", "dialog"
   UIColorButtonField = _es6_module.add_export('UIColorButtonField', UIColorButtonField);
   window.UIColorButton = UIColorButton;
 }, '/dev/fairmotion/src/ui/UIWidgets_special2.js');
-es6_module_define('UITabPanel', ["UIFrame", "UIPack", "mathlib", "UIWidgets", "UIElement"], function _UITabPanel_module(_es6_module) {
+es6_module_define('UITabPanel', ["UIWidgets", "UIElement", "mathlib", "UIPack", "UIFrame"], function _UITabPanel_module(_es6_module) {
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
   var inrect_2d=es6_import_item(_es6_module, 'mathlib', 'inrect_2d');
   var aabb_isect_2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_2d');
@@ -6912,8 +6912,8 @@ es6_module_define('UITabPanel', ["UIFrame", "UIPack", "mathlib", "UIWidgets", "U
           break;
       }
       c = __ival_c.value;
-      var sz=canvas.textsize(c.text)+c.textpad*2;
-      twid+=sz[0]+tpad;
+      var sz=canvas.textsize(c.text);
+      twid+=sz[0]+tpad+c.textpad*2;
       thickness = Math.max(sz[1], thickness);
     }
     this.thickness = thickness;

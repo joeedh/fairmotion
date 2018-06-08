@@ -2724,7 +2724,7 @@ es6_module_define('toolprops_iter', ["struct"], function _toolprops_iter_module(
   _es6_module.add_class(element_iter_convert);
   element_iter_convert.STRUCT = STRUCT.inherit(element_iter_convert, ToolIter)+"\n  type  : string | this.type != undefined ? this.type.constructor.name : \"\";\n  _iter : abstract(ToolIter) | obj.iter;\n}\n";
 }, '/dev/fairmotion/src/core/toolprops_iter.js');
-es6_module_define('toolops_api', ["struct", "events", "toolprops"], function _toolops_api_module(_es6_module) {
+es6_module_define('toolops_api', ["toolprops", "struct", "events"], function _toolops_api_module(_es6_module) {
   "use strict";
   var PropTypes=es6_import_item(_es6_module, 'toolprops', 'PropTypes');
   var TPropFlags=es6_import_item(_es6_module, 'toolprops', 'TPropFlags');
@@ -2861,7 +2861,7 @@ es6_module_define('toolops_api', ["struct", "events", "toolprops"], function _to
   })]);
   _es6_module.add_class(PropPair);
   PropPair.STRUCT = "\n  PropPair {\n    key   : string;\n    value : abstract(ToolProperty);\n  }\n";
-  var $toolops_w8Wm_get_constructor;
+  var $toolops_rxXr_get_constructor;
   var ToolOp=_ESClass("ToolOp", ToolOpAbstract, [function ToolOp(apiname, uiname, description, icon) {
     if (apiname==undefined) {
         apiname = "(undefined)";
@@ -2889,8 +2889,8 @@ es6_module_define('toolops_api', ["struct", "events", "toolprops"], function _to
     this.widgets = [];
     this.modal_running = false;
     this._widget_on_tick = undefined;
-  }, function new_drawline(v1, v2) {
-    var dl=this.modal_ctx.view2d.make_drawline(v1, v2);
+  }, function new_drawline(v1, v2, color, line_width) {
+    var dl=this.modal_ctx.view2d.make_drawline(v1, v2, undefined, color, line_width);
     this.drawlines.push(dl);
     return dl;
   }, function reset_drawlines(ctx) {
@@ -2970,16 +2970,16 @@ es6_module_define('toolops_api', ["struct", "events", "toolprops"], function _to
     op.outputs = outs;
     return op;
   }), _ESClass.static(function get_constructor(name) {
-    if ($toolops_w8Wm_get_constructor==undefined) {
-        $toolops_w8Wm_get_constructor = {};
+    if ($toolops_rxXr_get_constructor==undefined) {
+        $toolops_rxXr_get_constructor = {};
         for (var c in defined_classes) {
             if (__instance_of(c, ToolOp))
-              $toolops_w8Wm_get_constructor[c.name] = c;
+              $toolops_rxXr_get_constructor[c.name] = c;
         }
     }
-    return $toolops_w8Wm_get_constructor[c];
+    return $toolops_rxXr_get_constructor[c];
   })]);
-  var $toolops_w8Wm_get_constructor=undefined;
+  var $toolops_rxXr_get_constructor=undefined;
   _es6_module.add_class(ToolOp);
   ToolOp = _es6_module.add_export('ToolOp', ToolOp);
   ToolOp.STRUCT = "\n  ToolOp {\n      flag    : int;\n      saved_context  : SavedContext | obj.get_saved_context();\n      inputs  : iter(k, PropPair) | new PropPair(k, obj.inputs[k]);\n      outputs : iter(k, PropPair) | new PropPair(k, obj.outputs[k]);\n  }\n";
@@ -3399,7 +3399,7 @@ es6_module_define('toolops_api', ["struct", "events", "toolprops"], function _to
     if (do_z)
       widget.arrow([0, 0, 1], 2, [0, 0, 1, 1]);
     var this2=this;
-    var $zaxis_66mT;
+    var $zaxis_UlTY;
     function widget_on_tick(widget) {
       var mat=widget.matrix;
       var mesh=ctx.mesh;
@@ -3449,15 +3449,15 @@ es6_module_define('toolops_api', ["struct", "events", "toolprops"], function _to
             tan.mulScalar(1.0/len);
             tan.normalize();
           }
-          var angle=Math.PI-Math.acos($zaxis_66mT.dot(n));
-          if (n.dot($zaxis_66mT)>0.9) {
+          var angle=Math.PI-Math.acos($zaxis_UlTY.dot(n));
+          if (n.dot($zaxis_UlTY)>0.9) {
           }
           if (1) {
               if (Math.abs(angle)<0.001||Math.abs(angle)>Math.PI-0.001) {
                   n.loadXYZ(1, 0, 0);
               }
               else {
-                n.cross($zaxis_66mT);
+                n.cross($zaxis_UlTY);
                 n.normalize();
               }
               var q=new Quat();
@@ -3468,7 +3468,7 @@ es6_module_define('toolops_api', ["struct", "events", "toolprops"], function _to
       }
       mat.multiply(ctx.object.matrix);
     }
-    var $zaxis_66mT=new Vector3([0, 0, -1]);
+    var $zaxis_UlTY=new Vector3([0, 0, -1]);
     widget.on_tick = widget_on_tick;
     widget.on_click = function(widget, id) {
       console.log("widget click: ", id);
@@ -6319,7 +6319,7 @@ es6_module_define('spline_createops', ["spline_types", "toolprops", "spline", "t
   _es6_module.add_class(ImportJSONOp);
   ImportJSONOp = _es6_module.add_export('ImportJSONOp', ImportJSONOp);
 }, '/dev/fairmotion/src/editors/viewport/spline_createops.js');
-es6_module_define('spline_editops', ["struct", "frameset", "../../curve/spline_base", "toolops_api", "toolprops", "spline_draw", "spline", "animdata", "spline_types"], function _spline_editops_module(_es6_module) {
+es6_module_define('spline_editops', ["toolprops", "toolops_api", "frameset", "spline_draw", "struct", "animdata", "spline_types", "../../curve/spline_base", "spline"], function _spline_editops_module(_es6_module) {
   var IntProperty=es6_import_item(_es6_module, 'toolprops', 'IntProperty');
   var FloatProperty=es6_import_item(_es6_module, 'toolprops', 'FloatProperty');
   var CollectionProperty=es6_import_item(_es6_module, 'toolprops', 'CollectionProperty');
@@ -6955,6 +6955,7 @@ es6_module_define('spline_editops', ["struct", "frameset", "../../curve/spline_b
   }), function can_call(ctx) {
     return !(ctx.spline.restrict&RestrictFlags.NO_SPLIT_EDGE);
   }, function start_modal(ctx) {
+    SplineGlobalToolOp.prototype.start_modal.call(this, ctx);
   }, function on_mousedown(e) {
     console.log("mdown", e);
     this.finish(e.button!=0);
@@ -6964,6 +6965,13 @@ es6_module_define('spline_editops', ["struct", "frameset", "../../curve/spline_b
   }, function end_modal(ctx) {
     this.reset_drawlines();
     SplineGlobalToolOp.prototype.end_modal.call(this, ctx);
+  }, function on_keydown(event) {
+    switch (event.keyCode) {
+      case charmap["Enter"]:
+      case charmap["Escape"]:
+        this.finish(event.keyCode==charmap["Escape"]);
+        break;
+    }
   }, function on_mousemove(e) {
     var $_let_ctx14=this.modal_ctx;
     var $_let_mpos15=[e.x, e.y];
@@ -6977,11 +6985,9 @@ es6_module_define('spline_editops', ["struct", "frameset", "../../curve/spline_b
     var $_let_spline21=$_let_ret16[0];
     if ($_let_spline21===$_let_ctx14.frameset.pathspline) {
         this.inputs.spline_path.set_data("pathspline");
-        console.log("pathspline");
     }
     else {
       this.inputs.spline_path.set_data("spline");
-      console.log("drawspline");
     }
     this.reset_drawlines($_let_ctx14);
     var $_let_steps32=16;
@@ -6989,15 +6995,15 @@ es6_module_define('spline_editops', ["struct", "frameset", "../../curve/spline_b
     var $_let_lastco35=$_let_seg20.evaluate($_let_s34);
     for (var $_let_i45=1; $_let_i45<$_let_steps32; $_let_i45++, $_let_s34+=$_let_ds33) {
         var $_let_co56=$_let_seg20.evaluate($_let_s34);
-        this.new_drawline($_let_lastco35, $_let_co56);
+        this.new_drawline($_let_lastco35, $_let_co56, [1, 0.3, 0.0, 1.0], 2);
         $_let_lastco35 = $_let_co56;
     }
     this.inputs.segment_eid.set_data($_let_seg20.eid);
     this.inputs.segment_t.set_data(0.5);
+    $_let_ctx14.view2d.unproject($_let_mpos15);
     var $_let_p57=$_let_seg20.closest_point($_let_mpos15, ClosestModes.CLOSEST);
     if ($_let_p57!==undefined) {
         this.inputs.segment_t.set_data($_let_p57[1]);
-        console.log("  t", $_let_p57[1].toFixed(4));
         $_let_p57 = $_let_p57[0];
         var $_let_w68=2;
         this.new_drawline([$_let_p57[0]-$_let_w68, $_let_p57[1]-$_let_w68], [$_let_p57[0]-$_let_w68, $_let_p57[1]+$_let_w68]);

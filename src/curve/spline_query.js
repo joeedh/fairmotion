@@ -9,6 +9,7 @@ var PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,
     asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
 
 var sqrt = Math.sqrt;
+let findnearest_segment_tmp = new Vector2();
 
 export class SplineQuery {
   constructor(spline) {
@@ -76,6 +77,8 @@ export class SplineQuery {
     var spline = this.spline;
     var actlayer = spline.layerset.active;
     var sret = undefined, mindis=limit;
+    
+    mpos = findnearest_segment_tmp.load(mpos);
     
     editor.unproject(mpos);
     

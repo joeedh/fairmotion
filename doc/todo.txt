@@ -1,5 +1,7 @@
 - MAKE SURE SAVING USER PREFERENCES WORKS!
 
+- Findnearest api shouldn't be unprojecting itself, client code should do that
+
 - Destroy GArray
 
 - Refactor UserSettings.js, holdover from waaaay back in AllShape days

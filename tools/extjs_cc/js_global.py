@@ -272,7 +272,7 @@ class Glob(AbstractGlob):
     g_require_js = False
     g_es6_modules = True
     g_log_forloops = False
-    g_enable_let = True
+    g_enable_let = False
     g_compile_statics_only = False
     
 glob = Glob()

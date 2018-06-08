@@ -1,4 +1,5 @@
 import {aabb_isect_2d, inrect_2d} from 'mathlib';
+import * as config from 'config';
 
 import 'J3DIMath';
 
@@ -47,7 +48,7 @@ export class UIFrame extends UIElement {
     this._children = new GArray([])
     this.active = undefined;
     this.velpan = new VelocityPan();
-    this.tick_timer = new Timer(200);
+    this.tick_timer = new Timer(config.ON_TICK_TIMER_MS-1);
     
     //current mouse position relative to this.pos
     this.mpos = [0, 0];
@@ -546,7 +547,7 @@ export class UIFrame extends UIElement {
       
       this.modalhandler._on_mousewheel(event, delta);
       
-      if (this.modalhandler["pos"] != undefined) {
+      if (this.modalhandler != null && this.modalhandler["pos"] != undefined) {
         event.x += this.modalhandler.pos[0]
         event.y += this.modalhandler.pos[1]
       }
@@ -564,7 +565,7 @@ export class UIFrame extends UIElement {
       
       this.active._on_mousewheel(e, delta);
   
-      if (this.modalhandler["pos"] != undefined) {
+      if (this.modalhandler != null && this.modalhandler["pos"] != undefined) {
         event.x += this.modalhandler.pos[0]
         event.y += this.modalhandler.pos[1]
       }

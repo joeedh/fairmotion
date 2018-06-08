@@ -274,12 +274,12 @@ es6_module_define('spline_element_array', ["eventdag", "struct", "spline_types"]
     this.i = 0;
     return this;
   }, function next() {
-    var $_let_actlayer1=this.layerset.active.id;
+    let actlayer=this.layerset.active.id;
     while (this.i<this.list.length) {
-      var $_let_e3=this.list[this.i];
-      var $_let_ok4=!$_let_e3.hidden;
-      $_let_ok4 = $_let_ok4&&(this.all_layers||$_let_actlayer1 in $_let_e3.layers);
-      if ($_let_ok4)
+      let e=this.list[this.i];
+      let ok=!e.hidden;
+      ok = ok&&(this.all_layers||actlayer in e.layers);
+      if (ok)
         break;
       this.i++;
     }
@@ -656,7 +656,7 @@ es6_module_define('spline_element_array', ["eventdag", "struct", "spline_types"]
   ElementArray.STRUCT = "\n  ElementArray {\n    arr      : array(abstract(SplineElement)) | obj;\n    selected : iter(e, int) | e.eid;\n    active   : int | obj.active != undefined ? obj.active.eid : -1;\n    cdata    : CustomData;\n  }\n";
   ElementArray.dag_outputs = {on_select_add: 0, on_select_sub: 0}
 }, '/dev/fairmotion/src/curve/spline_element_array.js');
-es6_module_define('spline_base', ["struct", "eventdag", "mathlib", "toolprops"], function _spline_base_module(_es6_module) {
+es6_module_define('spline_base', ["mathlib", "toolprops", "eventdag", "struct"], function _spline_base_module(_es6_module) {
   var TPropFlags=es6_import_item(_es6_module, 'toolprops', 'TPropFlags');
   var PropTypes=es6_import_item(_es6_module, 'toolprops', 'PropTypes');
   var acos=Math.acos, asin=Math.asin, abs=Math.abs, log=Math.log, sqrt=Math.sqrt, pow=Math.pow, PI=Math.PI, floor=Math.floor, min=Math.min, max=Math.max, sin=Math.sin, cos=Math.cos, tan=Math.tan, atan=Math.atan, atan2=Math.atan2, exp=Math.exp;
@@ -819,7 +819,7 @@ es6_module_define('spline_base', ["struct", "eventdag", "mathlib", "toolprops"],
   _es6_module.add_class(CustomData);
   CustomData = _es6_module.add_export('CustomData', CustomData);
   CustomData.STRUCT = "\n  CustomData {\n    layers      : array(e, abstract(CustomDataLayer)) | new e();\n    shared_data : array(abstract(Object));\n  }\n";
-  var $srcs2_UuLu_interp;
+  var $srcs2_ksdT_interp;
   var CustomDataSet=_ESClass("CustomDataSet", Array, [function CustomDataSet() {
     Array.call(this);
   }, function on_add(cls, i, shared) {
@@ -836,15 +836,15 @@ es6_module_define('spline_base', ["struct", "eventdag", "mathlib", "toolprops"],
   }, function get_data(layout, layer_name) {
   }, function on_segment_split(old_segment, old_v1, old_v2, new_segments) {
   }, function interp(srcs, ws) {
-    while ($srcs2_UuLu_interp.length<srcs.length) {
-      $srcs2_UuLu_interp.push(0);
+    while ($srcs2_ksdT_interp.length<srcs.length) {
+      $srcs2_ksdT_interp.push(0);
     }
-    $srcs2_UuLu_interp.length = srcs.length;
+    $srcs2_ksdT_interp.length = srcs.length;
     for (var i=0; i<this.length; i++) {
         for (var j=0; j<srcs.length; j++) {
-            $srcs2_UuLu_interp[j] = srcs[j][i];
+            $srcs2_ksdT_interp[j] = srcs[j][i];
         }
-        this[i].interp($srcs2_UuLu_interp, ws);
+        this[i].interp($srcs2_ksdT_interp, ws);
     }
   }, function copy(src) {
     for (var i=0; i<this.length; i++) {
@@ -859,7 +859,7 @@ es6_module_define('spline_base', ["struct", "eventdag", "mathlib", "toolprops"],
     delete ret.arr;
     return ret;
   })]);
-  var $srcs2_UuLu_interp=[];
+  var $srcs2_ksdT_interp=[];
   _es6_module.add_class(CustomDataSet);
   CustomDataSet = _es6_module.add_export('CustomDataSet', CustomDataSet);
   CustomDataSet.STRUCT = "\n  CustomDataSet {\n    arr : iter(abstract(CustomDataLayer)) | obj;\n  }\n";
@@ -918,11 +918,11 @@ es6_module_define('spline_base', ["struct", "eventdag", "mathlib", "toolprops"],
   }, 256);
   var closest_point_cache_vs=cachering.fromConstructor(Vector3, 64);
   var flip_wrapper_cache;
-  var $flip_out_tOHF__get_nextprev;
-  var $ret_cache_S5pJ_global_to_local;
-  var $_co_f064_global_to_local;
-  var $arr_NZO2_global_to_local;
-  var $_vec_Px4m_global_to_local;
+  var $flip_out_ix2y__get_nextprev;
+  var $ret_cache_4zT4_global_to_local;
+  var $_co_CMLO_global_to_local;
+  var $arr_pZZD_global_to_local;
+  var $_vec_iINL_global_to_local;
   var CurveEffect=_ESClass("CurveEffect", [function CurveEffect() {
     this.child = undefined;
     this.prior = undefined;
@@ -941,8 +941,8 @@ es6_module_define('spline_base', ["struct", "eventdag", "mathlib", "toolprops"],
       p = p.prior;
       i++;
     }
-    p = p._get_nextprev(donext, $flip_out_tOHF__get_nextprev);
-    var flip=$flip_out_tOHF__get_nextprev[0];
+    p = p._get_nextprev(donext, $flip_out_ix2y__get_nextprev);
+    var flip=$flip_out_ix2y__get_nextprev[0];
     if (p==undefined) {
         return undefined;
     }
@@ -1160,16 +1160,16 @@ es6_module_define('spline_base', ["struct", "eventdag", "mathlib", "toolprops"],
     }
     var co;
     if (fixed_s!=undefined) {
-        $arr_NZO2_global_to_local[0] = this.evaluate(fixed_s);
-        $arr_NZO2_global_to_local[1] = fixed_s;
-        co = $arr_NZO2_global_to_local;
+        $arr_pZZD_global_to_local[0] = this.evaluate(fixed_s);
+        $arr_pZZD_global_to_local[1] = fixed_s;
+        co = $arr_pZZD_global_to_local;
     }
     else {
       co = this.closest_point(p);
     }
     var s, t, a=0.0;
     if (co==undefined) {
-        co = $_co_f064_global_to_local;
+        co = $_co_CMLO_global_to_local;
         if (p.vectorDistance(this.v1)<p.vectorDistance(this.v2)) {
             co.load(this.v1);
             s = 0;
@@ -1187,7 +1187,7 @@ es6_module_define('spline_base', ["struct", "eventdag", "mathlib", "toolprops"],
       t = p.vectorDistance(co)*0.15;
     }
     var n1=this.normal(s).normalize();
-    var n2=$_vec_Px4m_global_to_local.zero().load(p).sub(co).normalize();
+    var n2=$_vec_iINL_global_to_local.zero().load(p).sub(co).normalize();
     n1[2] = n2[2] = 0.0;
     a = asin(n1[0]*n2[1]-n1[1]*n2[0]);
     var dot=n1.dot(n2);
@@ -1198,7 +1198,7 @@ es6_module_define('spline_base', ["struct", "eventdag", "mathlib", "toolprops"],
         t = -t;
         a = 2.0*Math.PI-a;
     }
-    var ret=$ret_cache_S5pJ_global_to_local.next();
+    var ret=$ret_cache_4zT4_global_to_local.next();
     ret[0] = s;
     ret[1] = t;
     ret[2] = a;
@@ -1212,11 +1212,11 @@ es6_module_define('spline_base', ["struct", "eventdag", "mathlib", "toolprops"],
     co.add(no);
     return co;
   }]);
-  var $flip_out_tOHF__get_nextprev=[0];
-  var $ret_cache_S5pJ_global_to_local=cachering.fromConstructor(Vector3, 64);
-  var $_co_f064_global_to_local=new Vector3();
-  var $arr_NZO2_global_to_local=[0, 0];
-  var $_vec_Px4m_global_to_local=new Vector3();
+  var $flip_out_ix2y__get_nextprev=[0];
+  var $ret_cache_4zT4_global_to_local=cachering.fromConstructor(Vector3, 64);
+  var $_co_CMLO_global_to_local=new Vector3();
+  var $arr_pZZD_global_to_local=[0, 0];
+  var $_vec_iINL_global_to_local=new Vector3();
   _es6_module.add_class(CurveEffect);
   CurveEffect = _es6_module.add_export('CurveEffect', CurveEffect);
   var FlipWrapper=_ESClass("FlipWrapper", CurveEffect, [function FlipWrapper() {
@@ -1261,7 +1261,7 @@ es6_module_define('spline_base', ["struct", "eventdag", "mathlib", "toolprops"],
   define_static(SplineElement, "dag_outputs", {depend: undefined, on_select: 0.0, eid: 0.0});
   SplineElement.STRUCT = "\n  SplineElement {\n    eid        : int;\n    flag       : int;\n    type       : int;\n    cdata      : CustomDataSet;\n  }\n";
 }, '/dev/fairmotion/src/curve/spline_base.js');
-es6_module_define('spline_types', ["config", "spline_math", "mathlib", "toolprops", "eventdag", "toolprops_iter", "struct", "spline_base", "spline_multires", "selectmode"], function _spline_types_module(_es6_module) {
+es6_module_define('spline_types', ["struct", "spline_multires", "toolprops", "toolprops_iter", "selectmode", "config", "mathlib", "eventdag", "spline_math", "spline_base"], function _spline_types_module(_es6_module) {
   "use strict";
   var ENABLE_MULTIRES=es6_import_item(_es6_module, 'config', 'ENABLE_MULTIRES');
   var PI=Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor, ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos, asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
@@ -1304,7 +1304,7 @@ es6_module_define('spline_types', ["config", "spline_math", "mathlib", "toolprop
   var spiraltheta=es6_import_item(_es6_module, 'spline_math', 'spiraltheta');
   var spiralcurvature=es6_import_item(_es6_module, 'spline_math', 'spiralcurvature');
   var spiralcurvature_dv=es6_import_item(_es6_module, 'spline_math', 'spiralcurvature_dv');
-  var $ret_g8ZB_aabb;
+  var $ret_NMY0_aabb;
   var SplineVertex=_ESClass("SplineVertex", SplineElement, [function SplineVertex() {
     SplineElement.call(this, SplineTypes.VERTEX);
     Vector3.apply(this, arguments);
@@ -1315,9 +1315,9 @@ es6_module_define('spline_types', ["config", "spline_math", "mathlib", "toolprop
     this.frames = {}
     this.hpair = undefined;
   }, _ESClass.get(function aabb() {
-    $ret_g8ZB_aabb[0].load(this);
-    $ret_g8ZB_aabb[1].load(this);
-    return $ret_g8ZB_aabb;
+    $ret_NMY0_aabb[0].load(this);
+    $ret_NMY0_aabb[1].load(this);
+    return $ret_NMY0_aabb;
   }), function sethide(state) {
     if (state)
       this.flag|=SplineFlags.HIDE;
@@ -1390,15 +1390,15 @@ es6_module_define('spline_types', ["config", "spline_math", "mathlib", "toolprop
     var ret=STRUCT.chain_fromSTRUCT(SplineVertex, reader);
     ret.load(ret.co);
     delete ret.co;
-    for (var $_let_axis1=0; $_let_axis1<3; $_let_axis1++) {
-        if (isNaN(ret[$_let_axis1])) {
+    for (let axis=0; axis<3; axis++) {
+        if (isNaN(ret[axis])) {
             console.warn("NaN vertex", ret.eid);
-            ret[$_let_axis1] = 0;
+            ret[axis] = 0;
         }
     }
     return ret;
   })]);
-  var $ret_g8ZB_aabb=[new Vector3(), new Vector3()];
+  var $ret_NMY0_aabb=[new Vector3(), new Vector3()];
   _es6_module.add_class(SplineVertex);
   SplineVertex = _es6_module.add_export('SplineVertex', SplineVertex);
   
@@ -1436,7 +1436,7 @@ es6_module_define('spline_types', ["config", "spline_math", "mathlib", "toolprop
   }]);
   _es6_module.add_class(EffectWrapper);
   EffectWrapper = _es6_module.add_export('EffectWrapper', EffectWrapper);
-  var $minmax_Khda_update_aabb;
+  var $minmax_dxsE_update_aabb;
   var SplineSegment=_ESClass("SplineSegment", SplineElement, [function SplineSegment(v1, v2) {
     SplineElement.call(this, SplineTypes.SEGMENT);
     this._evalwrap = new EffectWrapper(this);
@@ -1484,18 +1484,18 @@ es6_module_define('spline_types', ["config", "spline_math", "mathlib", "toolprop
     this._update_has_multires();
     this.flag&=~SplineFlags.UPDATE_AABB;
     var min=this._aabb[0], max=this._aabb[1];
-    $minmax_Khda_update_aabb.reset();
+    $minmax_dxsE_update_aabb.reset();
     min.zero();
     max.zero();
     var co=this.evaluate(0);
-    $minmax_Khda_update_aabb.minmax(co);
+    $minmax_dxsE_update_aabb.minmax(co);
     var ds=1.0/(steps-1);
     for (var i=0, s = 0; i<steps; i++, s+=ds) {
         var co=this.evaluate(s*0.999999999);
-        $minmax_Khda_update_aabb.minmax(co);
+        $minmax_dxsE_update_aabb.minmax(co);
     }
-    min.load($minmax_Khda_update_aabb.min);
-    max.load($minmax_Khda_update_aabb.max);
+    min.load($minmax_dxsE_update_aabb.min);
+    max.load($minmax_dxsE_update_aabb.max);
     min[2] = max[2] = 0.0;
   }, function closest_point(p, mode, fast) {
     if (fast==undefined) {
@@ -1839,7 +1839,7 @@ es6_module_define('spline_types', ["config", "spline_math", "mathlib", "toolprop
     }
     return ret;
   })]);
-  var $minmax_Khda_update_aabb=new MinMax(2);
+  var $minmax_dxsE_update_aabb=new MinMax(2);
   _es6_module.add_class(SplineSegment);
   SplineSegment = _es6_module.add_export('SplineSegment', SplineSegment);
   SplineElement.STRUCT = "\n  SplineElement {\n    eid        : int;\n    flag       : int;\n    type       : int;\n    cdata      : CustomDataSet;\n  }\n";
@@ -1885,7 +1885,7 @@ es6_module_define('spline_types', ["config", "spline_math", "mathlib", "toolprop
     this.ret.value = undefined;
   }]);
   _es6_module.add_class(SplineLoopPathIter);
-  var $cent_iECT_update_winding;
+  var $cent_GsEk_update_winding;
   var SplineLoopPath=_ESClass("SplineLoopPath", [function SplineLoopPath(l, f) {
     this.l = l;
     this.f = f;
@@ -1897,7 +1897,7 @@ es6_module_define('spline_types', ["config", "spline_math", "mathlib", "toolprop
     }
     return this.itercache.next().init(this);
   }), function update_winding() {
-    $cent_iECT_update_winding.zero();
+    $cent_GsEk_update_winding.zero();
     var __iter_l=__get_iter(this);
     var l;
     while (1) {
@@ -1906,9 +1906,9 @@ es6_module_define('spline_types', ["config", "spline_math", "mathlib", "toolprop
           break;
       }
       l = __ival_l.value;
-      $cent_iECT_update_winding.add(l.v);
+      $cent_GsEk_update_winding.add(l.v);
     }
-    $cent_iECT_update_winding.mulScalar(1.0/this.totvert);
+    $cent_GsEk_update_winding.mulScalar(1.0/this.totvert);
     var wsum=0;
     var __iter_l=__get_iter(this);
     var l;
@@ -1918,7 +1918,7 @@ es6_module_define('spline_types', ["config", "spline_math", "mathlib", "toolprop
           break;
       }
       l = __ival_l.value;
-      wsum+=math.winding(l.v, l.next.v, $cent_iECT_update_winding) ? 1 : -1;
+      wsum+=math.winding(l.v, l.next.v, $cent_GsEk_update_winding) ? 1 : -1;
     }
     this.winding = wsum>=0;
   }, function asArray() {
@@ -1946,11 +1946,11 @@ es6_module_define('spline_types', ["config", "spline_math", "mathlib", "toolprop
     delete ret.loops;
     return ret;
   })]);
-  var $cent_iECT_update_winding=new Vector3();
+  var $cent_GsEk_update_winding=new Vector3();
   _es6_module.add_class(SplineLoopPath);
   SplineLoopPath = _es6_module.add_export('SplineLoopPath', SplineLoopPath);
   SplineLoopPath.STRUCT = "\n  SplineLoopPath {\n    totvert : int;\n    loops   : array(SplineLoop) | obj.asArray();\n    winding : int;\n  }\n";
-  var $minmax_qTpJ_update_aabb;
+  var $minmax_W7Ih_update_aabb;
   var SplineFace=_ESClass("SplineFace", SplineElement, [function SplineFace() {
     SplineElement.call(this, SplineTypes.FACE);
     this.z = this.finalz = 0;
@@ -1966,7 +1966,7 @@ es6_module_define('spline_types', ["config", "spline_math", "mathlib", "toolprop
     this.flag|=SplineFlags.UPDATE_AABB|SplineFlags.REDRAW;
   }, function update_aabb() {
     this.flag&=~SplineFlags.UPDATE_AABB;
-    $minmax_qTpJ_update_aabb.reset();
+    $minmax_W7Ih_update_aabb.reset();
     var __iter_path=__get_iter(this.paths);
     var path;
     while (1) {
@@ -1983,14 +1983,14 @@ es6_module_define('spline_types', ["config", "spline_math", "mathlib", "toolprop
             break;
         }
         l = __ival_l.value;
-        $minmax_qTpJ_update_aabb.minmax(l.v.aabb[0]);
-        $minmax_qTpJ_update_aabb.minmax(l.v.aabb[1]);
-        $minmax_qTpJ_update_aabb.minmax(l.s.aabb[0]);
-        $minmax_qTpJ_update_aabb.minmax(l.s.aabb[1]);
+        $minmax_W7Ih_update_aabb.minmax(l.v.aabb[0]);
+        $minmax_W7Ih_update_aabb.minmax(l.v.aabb[1]);
+        $minmax_W7Ih_update_aabb.minmax(l.s.aabb[0]);
+        $minmax_W7Ih_update_aabb.minmax(l.s.aabb[1]);
       }
     }
-    this._aabb[0].load($minmax_qTpJ_update_aabb.min);
-    this._aabb[1].load($minmax_qTpJ_update_aabb.max);
+    this._aabb[0].load($minmax_W7Ih_update_aabb.min);
+    this._aabb[1].load($minmax_W7Ih_update_aabb.max);
     this._aabb[0][2] = this._aabb[1][2] = 0.0;
   }, _ESClass.get(function aabb() {
     if (this.flag&SplineFlags.UPDATE_AABB)
@@ -2007,7 +2007,7 @@ es6_module_define('spline_types', ["config", "spline_math", "mathlib", "toolprop
     }
     return ret;
   })]);
-  var $minmax_qTpJ_update_aabb=new MinMax(3);
+  var $minmax_W7Ih_update_aabb=new MinMax(3);
   _es6_module.add_class(SplineFace);
   SplineFace = _es6_module.add_export('SplineFace', SplineFace);
   SplineFace.STRUCT = STRUCT.inherit(SplineFace, SplineElement)+"\n    paths  : array(SplineLoopPath);\n    mat    : Material;\n    aabb   : array(vec3);\n    z      : float;\n    finalz : float;\n  }\n";
@@ -2161,7 +2161,7 @@ es6_module_define('spline_types', ["config", "spline_math", "mathlib", "toolprop
   
   mixin(ElementRefSet, TPropIterable);
 }, '/dev/fairmotion/src/curve/spline_types.js');
-es6_module_define('spline_query', ["spline_multires", "selectmode"], function _spline_query_module(_es6_module) {
+es6_module_define('spline_query', ["selectmode", "spline_multires"], function _spline_query_module(_es6_module) {
   var SelMask=es6_import_item(_es6_module, 'selectmode', 'SelMask');
   var has_multires=es6_import_item(_es6_module, 'spline_multires', 'has_multires');
   var compose_id=es6_import_item(_es6_module, 'spline_multires', 'compose_id');
@@ -2170,11 +2170,11 @@ es6_module_define('spline_query', ["spline_multires", "selectmode"], function _s
   var MultiResLayer=es6_import_item(_es6_module, 'spline_multires', 'MultiResLayer');
   var PI=Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor, ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos, asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
   var sqrt=Math.sqrt;
-  var $_let_findnearest_segment_tmp1=new Vector2();
-  var $_mpos_KtBN_findnearest_mres;
-  var $_mpos_Zk3O_findnearest_vert;
-  var $_v_xkXQ_findnearest_mres;
-  var $_v_oL_X_findnearest_vert;
+  let findnearest_segment_tmp=new Vector2();
+  var $_mpos_EGtU_findnearest_mres;
+  var $_mpos_FyQB_findnearest_vert;
+  var $_v_e4Fg_findnearest_mres;
+  var $_v_Z76z_findnearest_vert;
   var SplineQuery=_ESClass("SplineQuery", [function SplineQuery(spline) {
     this.spline = spline;
   }, function findnearest(editor, mpos, selectmask, limit, ignore_layers) {
@@ -2225,7 +2225,7 @@ es6_module_define('spline_query', ["spline_multires", "selectmode"], function _s
     var spline=this.spline;
     var actlayer=spline.layerset.active;
     var sret=undefined, mindis=limit;
-    mpos = $_let_findnearest_segment_tmp1.load(mpos);
+    mpos = findnearest_segment_tmp.load(mpos);
     editor.unproject(mpos);
     var __iter_seg=__get_iter(spline.segments);
     var seg;
@@ -2273,7 +2273,7 @@ es6_module_define('spline_query', ["spline_multires", "selectmode"], function _s
   }, function findnearest_mres(editor, mpos, limit, do_handles, ignore_layers) {
     var spline=this.spline;
     var actlayer=spline.layerset.active;
-    mpos = $_mpos_KtBN_findnearest_mres.load(mpos), mpos[2] = 0.0;
+    mpos = $_mpos_EGtU_findnearest_mres.load(mpos), mpos[2] = 0.0;
     if (!has_multires(spline))
       return undefined;
     if (limit==undefined)
@@ -2304,10 +2304,10 @@ es6_module_define('spline_query', ["spline_multires", "selectmode"], function _s
           continue;
         var seg=spline.eidmap[p.seg];
         var mapco=seg.evaluate(p.s);
-        $_v_xkXQ_findnearest_mres.load(mapco);
-        $_v_xkXQ_findnearest_mres[2] = 0.0;
-        editor.project($_v_xkXQ_findnearest_mres);
-        var dis=$_v_xkXQ_findnearest_mres.vectorDistance(mpos);
+        $_v_e4Fg_findnearest_mres.load(mapco);
+        $_v_e4Fg_findnearest_mres[2] = 0.0;
+        editor.project($_v_e4Fg_findnearest_mres);
+        var dis=$_v_e4Fg_findnearest_mres.vectorDistance(mpos);
         if (dis<limit&&dis<min) {
             min = dis;
             ret = compose_id(p.seg, p.id);
@@ -2323,7 +2323,7 @@ es6_module_define('spline_query', ["spline_multires", "selectmode"], function _s
       limit = 15;
     var min=1e+17;
     var ret=undefined;
-    mpos = $_mpos_Zk3O_findnearest_vert.load(mpos), mpos[2] = 0.0;
+    mpos = $_mpos_FyQB_findnearest_vert.load(mpos), mpos[2] = 0.0;
     var hasmres=has_multires(spline);
     var list=do_handles ? spline.handles : spline.verts;
     var __iter_v=__get_iter(list);
@@ -2342,10 +2342,10 @@ es6_module_define('spline_query', ["spline_multires", "selectmode"], function _s
       if (hasmres&&v.segments.length>0) {
           co = v.segments[0].evaluate(v.segments[0].ends(v));
       }
-      $_v_oL_X_findnearest_vert.load(co);
-      $_v_oL_X_findnearest_vert[2] = 0.0;
-      editor.project($_v_oL_X_findnearest_vert);
-      var dis=$_v_oL_X_findnearest_vert.vectorDistance(mpos);
+      $_v_Z76z_findnearest_vert.load(co);
+      $_v_Z76z_findnearest_vert[2] = 0.0;
+      editor.project($_v_Z76z_findnearest_vert);
+      var dis=$_v_Z76z_findnearest_vert.vectorDistance(mpos);
       if (dis<limit&&dis<min) {
           min = dis;
           ret = v;
@@ -2354,14 +2354,14 @@ es6_module_define('spline_query', ["spline_multires", "selectmode"], function _s
     if (ret!=undefined)
       return [ret, min, do_handles ? SelMask.HANDLE : SelMask.VERTEX];
   }]);
-  var $_mpos_KtBN_findnearest_mres=new Vector3();
-  var $_mpos_Zk3O_findnearest_vert=new Vector3();
-  var $_v_xkXQ_findnearest_mres=new Vector3();
-  var $_v_oL_X_findnearest_vert=new Vector3();
+  var $_mpos_EGtU_findnearest_mres=new Vector3();
+  var $_mpos_FyQB_findnearest_vert=new Vector3();
+  var $_v_e4Fg_findnearest_mres=new Vector3();
+  var $_v_Z76z_findnearest_vert=new Vector3();
   _es6_module.add_class(SplineQuery);
   SplineQuery = _es6_module.add_export('SplineQuery', SplineQuery);
 }, '/dev/fairmotion/src/curve/spline_query.js');
-es6_module_define('spline_draw', ["spline_math", "spline_draw_new", "selectmode", "spline_multires", "mathlib", "animdata", "config", "spline_types", "view2d_editor", "spline_element_array"], function _spline_draw_module(_es6_module) {
+es6_module_define('spline_draw', ["spline_types", "config", "spline_draw_new", "selectmode", "mathlib", "spline_multires", "animdata", "spline_math", "view2d_editor", "spline_element_array"], function _spline_draw_module(_es6_module) {
   var aabb_isect_minmax2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_minmax2d');
   var ENABLE_MULTIRES=es6_import_item(_es6_module, 'config', 'ENABLE_MULTIRES');
   var SessionFlags=es6_import_item(_es6_module, 'view2d_editor', 'SessionFlags');
@@ -2538,11 +2538,11 @@ es6_module_define('spline_draw', ["spline_math", "spline_draw_new", "selectmode"
     return string_idgen;
   }
   calc_string_ids = _es6_module.add_export('calc_string_ids', calc_string_ids);
-  var $lists_RJ_7_sort_layer_segments=new cachering(function() {
+  var $lists_su9O_sort_layer_segments=new cachering(function() {
     return [];
   }, 2);
   function sort_layer_segments(layer, spline) {
-    var list=$lists_RJ_7_sort_layer_segments.next();
+    var list=$lists_su9O_sort_layer_segments.next();
     list.length = 0;
     var visit={}
     var layerid=layer.id;
@@ -2805,9 +2805,9 @@ es6_module_define('spline_draw', ["spline_math", "spline_draw_new", "selectmode"
     g.lineWidth = lw;
   }
   var SplineDrawer=es6_import_item(_es6_module, 'spline_draw_new', 'SplineDrawer');
-  var $smin_Rdsh_draw_spline=new Vector3();
-  var $r_ubJd_draw_spline=[[0, 0], [0, 0]];
-  var $smax_Z7OY_draw_spline=new Vector3();
+  var $smin_XDXx_draw_spline=new Vector3();
+  var $r_vRY1_draw_spline=[[0, 0], [0, 0]];
+  var $smax_TUa9_draw_spline=new Vector3();
   function draw_spline(spline, redraw_rects, g, editor, selectmode, only_render, draw_normals, alpha, draw_time_helpers, curtime, ignore_layers) {
     spline.canvas = g;
     if (spline.drawlist==undefined||(spline.recalc&RecalcFlags.DRAWSORT)) {
@@ -2913,13 +2913,13 @@ es6_module_define('spline_draw', ["spline_math", "spline_draw_new", "selectmode"
           break;
       }
       seg = __ival_seg.value;
-      $smin_Rdsh_draw_spline.zero().load(seg.aabb[0]);
-      $smax_Z7OY_draw_spline.zero().load(seg.aabb[1]);
+      $smin_XDXx_draw_spline.zero().load(seg.aabb[0]);
+      $smax_TUa9_draw_spline.zero().load(seg.aabb[1]);
       var skipdraw=true;
       for (var i=0; i<redraw_rects.length; i+=4) {
-          $r_ubJd_draw_spline[0][0] = redraw_rects[i], $r_ubJd_draw_spline[0][1] = redraw_rects[i+1];
-          $r_ubJd_draw_spline[1][0] = redraw_rects[i+2], $r_ubJd_draw_spline[1][1] = redraw_rects[i+3];
-          if (aabb_isect_minmax2d($smin_Rdsh_draw_spline, $smax_Z7OY_draw_spline, $r_ubJd_draw_spline[0], $r_ubJd_draw_spline[1], 2)) {
+          $r_vRY1_draw_spline[0][0] = redraw_rects[i], $r_vRY1_draw_spline[0][1] = redraw_rects[i+1];
+          $r_vRY1_draw_spline[1][0] = redraw_rects[i+2], $r_vRY1_draw_spline[1][1] = redraw_rects[i+3];
+          if (aabb_isect_minmax2d($smin_XDXx_draw_spline, $smax_TUa9_draw_spline, $r_vRY1_draw_spline[0], $r_vRY1_draw_spline[1], 2)) {
               skipdraw = false;
               break;
           }
@@ -3564,21 +3564,21 @@ es6_module_define('spline_draw', ["spline_math", "spline_draw_new", "selectmode"
     g._irender_mat.invert();
   }
   set_rendermat = _es6_module.add_export('set_rendermat', set_rendermat);
-  var $margin_FaEb_redraw_element=new Vector3([15, 15, 15]);
-  var $aabb_IbgA_redraw_element=[new Vector3(), new Vector3()];
+  var $margin_YvPK_redraw_element=new Vector3([15, 15, 15]);
+  var $aabb_pwla_redraw_element=[new Vector3(), new Vector3()];
   function redraw_element(e, view2d) {
     e.flag|=SplineFlags.REDRAW;
-    $margin_FaEb_redraw_element[0] = $margin_FaEb_redraw_element[1] = $margin_FaEb_redraw_element[2] = 15.0;
+    $margin_YvPK_redraw_element[0] = $margin_YvPK_redraw_element[1] = $margin_YvPK_redraw_element[2] = 15.0;
     if (view2d!=undefined)
-      $margin_FaEb_redraw_element.mulScalar(1.0/view2d.zoom);
+      $margin_YvPK_redraw_element.mulScalar(1.0/view2d.zoom);
     var e_aabb=e.aabb;
-    $aabb_IbgA_redraw_element[0].load(e_aabb[0]), $aabb_IbgA_redraw_element[1].load(e_aabb[1]);
-    $aabb_IbgA_redraw_element[0].sub($margin_FaEb_redraw_element), $aabb_IbgA_redraw_element[1].add($margin_FaEb_redraw_element);
-    window.redraw_viewport($aabb_IbgA_redraw_element[0], $aabb_IbgA_redraw_element[1]);
+    $aabb_pwla_redraw_element[0].load(e_aabb[0]), $aabb_pwla_redraw_element[1].load(e_aabb[1]);
+    $aabb_pwla_redraw_element[0].sub($margin_YvPK_redraw_element), $aabb_pwla_redraw_element[1].add($margin_YvPK_redraw_element);
+    window.redraw_viewport($aabb_pwla_redraw_element[0], $aabb_pwla_redraw_element[1]);
   }
   redraw_element = _es6_module.add_export('redraw_element', redraw_element);
 }, '/dev/fairmotion/src/curve/spline_draw.js');
-es6_module_define('spline', ["const", "spline_math", "spline_multires", "config", "eventdag", "spline_types", "spline_element_array", "lib_api", "view2d_editor", "selectmode", "spline_query", "solver", "struct", "solver_new", "spline_draw", "native_api", "toolops_api"], function _spline_module(_es6_module) {
+es6_module_define('spline', ["selectmode", "toolops_api", "spline_draw", "solver_new", "struct", "lib_api", "config", "solver", "const", "spline_element_array", "view2d_editor", "spline_types", "spline_multires", "native_api", "eventdag", "spline_query", "spline_math"], function _spline_module(_es6_module) {
   "use strict";
   var PI=Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor, ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos, asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
   var spline_multires=es6_import(_es6_module, 'spline_multires');
@@ -3668,17 +3668,17 @@ es6_module_define('spline', ["const", "spline_math", "spline_multires", "config"
   _es6_module.add_class(AllPointsIter);
   AllPointsIter = _es6_module.add_export('AllPointsIter', AllPointsIter);
   var RecalcFlags=es6_import_item(_es6_module, 'spline_types', 'RecalcFlags');
-  var $debug_id_gen_06FK_Spline;
-  var $_internal_idgen__n2m_Spline;
-  var $ws_fg8V_split_edge;
-  var $lastco_f90M_trace_face;
-  var $srcs_x532_split_edge;
+  var $debug_id_gen_3Vp3_Spline;
+  var $_internal_idgen_V0AA_Spline;
+  var $ws_bU8R_split_edge;
+  var $lastco_RueL_trace_face;
+  var $srcs_uLVm_split_edge;
   var Spline=_ESClass("Spline", DataBlock, [function Spline(name) {
     if (name==undefined) {
         name = undefined;
     }
     DataBlock.call(this, DataTypes.SPLINE, name);
-    this._debug_id = $debug_id_gen_06FK_Spline++;
+    this._debug_id = $debug_id_gen_3Vp3_Spline++;
     this._pending_solve = undefined;
     this._resolve_after = undefined;
     this.solving = undefined;
@@ -3688,7 +3688,7 @@ es6_module_define('spline', ["const", "spline_math", "spline_multires", "config"
     for (var i=0; i<mformat.length; i++) {
         this.mres_format[i] = mformat[i];
     }
-    this._internal_id = $_internal_idgen__n2m_Spline++;
+    this._internal_id = $_internal_idgen_V0AA_Spline++;
     this.drawlist = [];
     this.recalc = RecalcFlags.DRAWSORT;
     this.size = [0, 0];
@@ -3991,9 +3991,9 @@ es6_module_define('spline', ["const", "spline_math", "spline_multires", "config"
         this.connect_handles(nseg.h2, hpair);
     }
     this.copy_segment_data(nseg, seg);
-    $srcs_x532_split_edge[0] = v1.cdata, $srcs_x532_split_edge[1] = v2.cdata;
+    $srcs_uLVm_split_edge[0] = v1.cdata, $srcs_uLVm_split_edge[1] = v2.cdata;
     this.copy_vert_data(nv, v1);
-    nv.cdata.interp($srcs_x532_split_edge, $ws_fg8V_split_edge);
+    nv.cdata.interp($srcs_uLVm_split_edge, $ws_bU8R_split_edge);
     this.resolve = 1;
     return ret;
   }, function find_segment(v1, v2) {
@@ -4131,16 +4131,16 @@ es6_module_define('spline', ["const", "spline_math", "spline_multires", "config"
       s = __ival_s.value;
       hset.add(s.h1);
       hset.add(s.h2);
-      for (var $_let_si17=0; $_let_si17<2; $_let_si17++) {
-          var $_let_h19=$_let_si17 ? s.h2 : s.h1;
-          if ($_let_h19.segments.indexOf(s)<0) {
-              console.warn("fixing segment reference for handle", $_let_h19.eid);
-              $_let_h19.segments.length = 0;
-              $_let_h19.segments.push(s);
+      for (let si=0; si<2; si++) {
+          let h=si ? s.h2 : s.h1;
+          if (h.segments.indexOf(s)<0) {
+              console.warn("fixing segment reference for handle", h.eid);
+              h.segments.length = 0;
+              h.segments.push(s);
           }
       }
     }
-    var $_let_delset22=new set();
+    let delset=new set();
     var __iter_h=__get_iter(this.handles);
     var h;
     while (1) {
@@ -4150,19 +4150,19 @@ es6_module_define('spline', ["const", "spline_math", "spline_multires", "config"
       }
       h = __ival_h.value;
       if (!hset.has(h)) {
-          $_let_delset22.add(h);
+          delset.add(h);
       }
     }
-    var __iter_$_let_h27=__get_iter($_let_delset22);
-    var $_let_h27;
+    var __iter_h=__get_iter(delset);
+    var h;
     while (1) {
-      var __ival_$_let_h27=__iter_$_let_h27.next();
-      if (__ival_$_let_h27.done) {
+      var __ival_h=__iter_h.next();
+      if (__ival_h.done) {
           break;
       }
-      $_let_h27 = __ival_$_let_h27.value;
-      console.log("Removing orphaned handle", $_let_h27.eid, $_let_h27);
-      this.handles.remove($_let_h27);
+      h = __ival_h.value;
+      console.log("Removing orphaned handle", h.eid, h);
+      this.handles.remove(h);
     }
     var delsegments=new set();
     var __iter_v=__get_iter(this.verts);
@@ -5047,7 +5047,7 @@ es6_module_define('spline', ["const", "spline_math", "spline_multires", "config"
     return this.solve(steps, gk);
   }, function trace_face(g, f) {
     g.beginPath();
-    $lastco_f90M_trace_face.zero();
+    $lastco_RueL_trace_face.zero();
     var __iter_path=__get_iter(f.paths);
     var path;
     while (1) {
@@ -5522,11 +5522,11 @@ es6_module_define('spline', ["const", "spline_math", "spline_multires", "config"
     ret.mres_format = arr;
     return ret;
   })]);
-  var $debug_id_gen_06FK_Spline=0;
-  var $_internal_idgen__n2m_Spline=0;
-  var $ws_fg8V_split_edge=[0.5, 0.5];
-  var $lastco_f90M_trace_face=new Vector3();
-  var $srcs_x532_split_edge=[0, 0];
+  var $debug_id_gen_3Vp3_Spline=0;
+  var $_internal_idgen_V0AA_Spline=0;
+  var $ws_bU8R_split_edge=[0.5, 0.5];
+  var $lastco_RueL_trace_face=new Vector3();
+  var $srcs_uLVm_split_edge=[0, 0];
   _es6_module.add_class(Spline);
   Spline = _es6_module.add_export('Spline', Spline);
   
@@ -5662,7 +5662,7 @@ es6_module_define('solver', [], function _solver_module(_es6_module) {
   _es6_module.add_class(solver);
   solver = _es6_module.add_export('solver', solver);
 }, '/dev/fairmotion/src/curve/solver.js');
-es6_module_define('spline_multires', ["binomial_table", "struct", "spline_base"], function _spline_multires_module(_es6_module) {
+es6_module_define('spline_multires', ["binomial_table", "spline_base", "struct"], function _spline_multires_module(_es6_module) {
   "use strict";
   var acos=Math.acos, asin=Math.asin, abs=Math.abs, log=Math.log, sqrt=Math.sqrt, pow=Math.pow, PI=Math.PI, floor=Math.floor, min=Math.min, max=Math.max, sin=Math.sin, cos=Math.cos, tan=Math.tan, atan=Math.atan, atan2=Math.atan2, exp=Math.exp, ceil=Math.ceil;
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
@@ -5708,7 +5708,7 @@ es6_module_define('spline_multires', ["binomial_table", "struct", "spline_base"]
   var _format=["TX", "TY", "TVX", "TVY", "TSEG", "TS", "TT", "TA", "TFLAG", "TID", "TLEVEL", "TSUPPORT", "TBASIS", "TDEGREE", "TNEXT"];
   _format = _es6_module.add_export('_format', _format);
   var IHEAD=0, ITAIL=1, IFREEHEAD=2, ITOTPOINT=3, ITOT=4;
-  var $p_ySaV_recalc_offset;
+  var $p_lqjd_recalc_offset;
   var BoundPoint=_ESClass("BoundPoint", [function BoundPoint() {
     this.mr = undefined;
     this.i = undefined;
@@ -5731,9 +5731,9 @@ es6_module_define('spline_multires', ["binomial_table", "struct", "spline_base"]
     var co=seg._evalwrap.evaluate(this.s);
     this.offset[0] = this[0]-co[0];
     this.offset[1] = this[1]-co[1];
-    $p_ySaV_recalc_offset[0] = this[0];
-    $p_ySaV_recalc_offset[1] = this[1];
-    var sta=seg._evalwrap.global_to_local($p_ySaV_recalc_offset, undefined, this.s);
+    $p_lqjd_recalc_offset[0] = this[0];
+    $p_lqjd_recalc_offset[1] = this[1];
+    var sta=seg._evalwrap.global_to_local($p_lqjd_recalc_offset, undefined, this.s);
     this.t = sta[1];
     this.a = sta[2];
   }, function toString() {
@@ -5796,7 +5796,7 @@ es6_module_define('spline_multires', ["binomial_table", "struct", "spline_base"]
   }), _ESClass.get(function next() {
     return this.data[this.i+TNEXT];
   })]);
-  var $p_ySaV_recalc_offset=new Vector3([0, 0, 0]);
+  var $p_lqjd_recalc_offset=new Vector3([0, 0, 0]);
   _es6_module.add_class(BoundPoint);
   BoundPoint = _es6_module.add_export('BoundPoint', BoundPoint);
   var pointiter_ret_cache=cachering.fromConstructor(BoundPoint, 12);
@@ -5887,8 +5887,8 @@ es6_module_define('spline_multires', ["binomial_table", "struct", "spline_base"]
       t = 0.0;
     return t;
   }
-  var $sum_zesZ_evaluate;
-  var $ks_sEaX_evaluate;
+  var $sum_0KkK_evaluate;
+  var $ks_uRVc_evaluate;
   var MultiResEffector=_ESClass("MultiResEffector", CurveEffect, [function MultiResEffector(owner) {
     this.mr = owner;
   }, function evaluate(s) {
@@ -5899,18 +5899,18 @@ es6_module_define('spline_multires', ["binomial_table", "struct", "spline_base"]
     n.normalize();
     n.mulScalar(10.0);
     var co=this.prior.evaluate(s);
-    $sum_zesZ_evaluate.zero();
+    $sum_0KkK_evaluate.zero();
     var i=0;
     for (var p in this.mr.points(0)) {
-        $ks_sEaX_evaluate[i] = p.s;
+        $ks_uRVc_evaluate[i] = p.s;
         i++;
     }
     for (var p in this.mr.points(0)) {
         var w=crappybasis(s, p.s, p.support, p.degree);
         if (isNaN(w))
           continue;
-        $sum_zesZ_evaluate[0]+=p.offset[0]*w;
-        $sum_zesZ_evaluate[1]+=p.offset[1]*w;
+        $sum_0KkK_evaluate[0]+=p.offset[0]*w;
+        $sum_0KkK_evaluate[1]+=p.offset[1]*w;
     }
     for (var i=0; i<2; i++) {
         var next=i ? this.next : this.prev;
@@ -5931,16 +5931,16 @@ es6_module_define('spline_multires', ["binomial_table", "struct", "spline_base"]
                   s2 = -next.rescale(this, 1.0-s);
                 }
                 var w=crappybasis(s2, ps, support, p.degree);
-                $sum_zesZ_evaluate[0]+=p.offset[0]*w;
-                $sum_zesZ_evaluate[1]+=p.offset[1]*w;
+                $sum_0KkK_evaluate[0]+=p.offset[0]*w;
+                $sum_0KkK_evaluate[1]+=p.offset[1]*w;
             }
         }
     }
-    co.add($sum_zesZ_evaluate);
+    co.add($sum_0KkK_evaluate);
     return co;
   }]);
-  var $sum_zesZ_evaluate=new Vector3();
-  var $ks_sEaX_evaluate=new Array(2000);
+  var $sum_0KkK_evaluate=new Vector3();
+  var $ks_uRVc_evaluate=new Array(2000);
   _es6_module.add_class(MultiResEffector);
   MultiResEffector = _es6_module.add_export('MultiResEffector', MultiResEffector);
   var MultiResGlobal=_ESClass("MultiResGlobal", [function MultiResGlobal() {
@@ -5953,8 +5953,8 @@ es6_module_define('spline_multires', ["binomial_table", "struct", "spline_base"]
   _es6_module.add_class(MultiResGlobal);
   MultiResGlobal = _es6_module.add_export('MultiResGlobal', MultiResGlobal);
   MultiResGlobal.STRUCT = "\n  MultiResGlobal {\n    active : double | obj.active == undefined ? -1 : obj.active;\n  }\n";
-  var $_co_813K_add_point;
-  var $sta_Ih7v_recalc_worldcos_level;
+  var $_co_lzcS_add_point;
+  var $sta_1ub1_recalc_worldcos_level;
   var MultiResLayer=_ESClass("MultiResLayer", CustomDataLayer, [function MultiResLayer(size) {
     if (size==undefined) {
         size = 16;
@@ -6046,7 +6046,7 @@ es6_module_define('spline_multires', ["binomial_table", "struct", "spline_base"]
     return this.points_iter_cache.next().cache_init(this, level);
   }, function add_point(level, co) {
     if (co==undefined) {
-        co = $_co_813K_add_point;
+        co = $_co_lzcS_add_point;
     }
     this._freecur+=TTOT-(this._freecur%TTOT);
     var i=this._freecur;
@@ -6099,11 +6099,11 @@ es6_module_define('spline_multires', ["binomial_table", "struct", "spline_base"]
   }, function segment_split(old_segment, old_v1, old_v2, new_segments) {
   }, function recalc_worldcos_level(seg, level) {
     for (var p in this.points(level)) {
-        $sta_Ih7v_recalc_worldcos_level[0] = p.s;
-        $sta_Ih7v_recalc_worldcos_level[1] = p.t;
-        $sta_Ih7v_recalc_worldcos_level[2] = p.a;
-        var co=seg._evalwrap.local_to_global($sta_Ih7v_recalc_worldcos_level);
-        var co2=seg._evalwrap.evaluate($sta_Ih7v_recalc_worldcos_level[0]);
+        $sta_1ub1_recalc_worldcos_level[0] = p.s;
+        $sta_1ub1_recalc_worldcos_level[1] = p.t;
+        $sta_1ub1_recalc_worldcos_level[2] = p.a;
+        var co=seg._evalwrap.local_to_global($sta_1ub1_recalc_worldcos_level);
+        var co2=seg._evalwrap.evaluate($sta_1ub1_recalc_worldcos_level[0]);
         p[0] = co[0];
         p[1] = co[1];
         p.offset[0] = co[0]-co2[0];
@@ -6125,8 +6125,8 @@ es6_module_define('spline_multires', ["binomial_table", "struct", "spline_base"]
     ret.max_layers = 8;
     return ret;
   })]);
-  var $_co_813K_add_point=[0, 0];
-  var $sta_Ih7v_recalc_worldcos_level=[0, 0, 0];
+  var $_co_lzcS_add_point=[0, 0];
+  var $sta_1ub1_recalc_worldcos_level=[0, 0, 0];
   _es6_module.add_class(MultiResLayer);
   MultiResLayer = _es6_module.add_export('MultiResLayer', MultiResLayer);
   MultiResLayer.STRUCT = STRUCT.inherit(MultiResLayer, CustomDataLayer)+"\n    data            : array(double);\n    index           : array(double);\n    max_layers      : int;\n    totpoint        : int;\n    _freecur        : int;\n    _size           : int;\n  }\n";
@@ -6191,14 +6191,14 @@ es6_module_define('spline_multires', ["binomial_table", "struct", "spline_base"]
     return index+eid*mul;
   }
   compose_id = _es6_module.add_export('compose_id', compose_id);
-  var $ret_Xa5S_decompose_id=[0, 0];
+  var $ret_lXmp_decompose_id=[0, 0];
   function decompose_id(id) {
     var mul=(1<<24);
     var eid=Math.floor(id/mul);
     id-=eid*mul;
-    $ret_Xa5S_decompose_id[0] = eid;
-    $ret_Xa5S_decompose_id[1] = id;
-    return $ret_Xa5S_decompose_id;
+    $ret_lXmp_decompose_id[0] = eid;
+    $ret_lXmp_decompose_id[1] = id;
+    return $ret_lXmp_decompose_id;
   }
   decompose_id = _es6_module.add_export('decompose_id', decompose_id);
   var _test_id_start=0;
@@ -6296,7 +6296,7 @@ es6_module_define('solver_new', ["spline_math", "spline_base"], function _solver
   var SplineTypes=es6_import_item(_es6_module, 'spline_base', 'SplineTypes');
   var SplineFlags=es6_import_item(_es6_module, 'spline_base', 'SplineFlags');
   var acos=Math.acos, asin=Math.asin, cos=Math.cos, sin=Math.sin, PI=Math.PI, pow=Math.pow, sqrt=Math.sqrt, log=Math.log, abs=Math.abs;
-  var $tan_ImoC_solve=new Vector3();
+  var $tan_8X9v_solve=new Vector3();
   function solve(spline, order, steps, gk, do_inc, edge_segs) {
     var pairs=[];
     var CBREAK=SplineFlags.BREAK_CURVATURES;
@@ -6435,11 +6435,11 @@ es6_module_define('solver_new', ["spline_math", "spline_base"], function _solver
               }
               else {
                 var h=seg1.handle(v);
-                $tan_ImoC_solve.load(h).sub(v).normalize();
+                $tan_8X9v_solve.load(h).sub(v).normalize();
                 if (v==seg1.v2)
-                  $tan_ImoC_solve.negate();
+                  $tan_8X9v_solve.negate();
                 var ta=seg1.derivative(s1, order).normalize();
-                var _d=Math.min(Math.max(ta.dot($tan_ImoC_solve), -1.0), 1.0);
+                var _d=Math.min(Math.max(ta.dot($tan_8X9v_solve), -1.0), 1.0);
                 var r=acos(_d);
                 
               }
@@ -6466,7 +6466,7 @@ es6_module_define('solver_new', ["spline_math", "spline_base"], function _solver
                       }
                       else {
                         var ta=seg1.derivative(s1, order).normalize();
-                        var _d=Math.min(Math.max(ta.dot($tan_ImoC_solve), -1.0), 1.0);
+                        var _d=Math.min(Math.max(ta.dot($tan_8X9v_solve), -1.0), 1.0);
                         var r2=acos(_d);
                         
                       }
@@ -6798,16 +6798,16 @@ es6_module_define('vectordraw_canvas2d', ["config", "mathlib", "vectordraw_base"
     if (clip_mode==undefined) {
         clip_mode = false;
     }
-    var $_let_oldc1=this.canvas, $_let_oldg2=this.g, $_let_oldaabb3=this.aabb, $_let_oldsize4=this.size;
+    let oldc=this.canvas, oldg=this.g, oldaabb=this.aabb, oldsize=this.size;
     this.canvas = path.canvas;
     this.g = path.g;
     this.aabb = path.aabb;
     this.size = path.size;
     this.gen(draw, undefined, clip_mode);
-    this.canvas = $_let_oldc1;
-    this.g = $_let_oldg2;
-    this.aabb = $_let_oldaabb3;
-    this.size = $_let_oldsize4;
+    this.canvas = oldc;
+    this.g = oldg;
+    this.aabb = oldaabb;
+    this.size = oldsize;
   }, function gen(draw, _check_tag, clip_mode) {
     if (_check_tag==undefined) {
         _check_tag = 0;
@@ -6864,7 +6864,7 @@ es6_module_define('vectordraw_canvas2d', ["config", "mathlib", "vectordraw_base"
           console.log("   clipping subgen!");
           path.gen(draw, 1);
       }
-      var $_let_oldc5=path.canvas, $_let_oldg6=path.g, $_let_oldaabb7=path.aabb, $_let_oldsize8=path.size;
+      let oldc=path.canvas, oldg=path.g, oldaabb=path.aabb, oldsize=path.size;
       path.genInto(draw, this, true);
     }
     var mat1=canvaspath_draw_mat_tmps.next();
@@ -7361,7 +7361,7 @@ es6_module_define('vectordraw_canvas2d_simple', ["vectordraw_base", "mathlib", "
   _es6_module.add_class(SimpleCanvasDraw2D);
   SimpleCanvasDraw2D = _es6_module.add_export('SimpleCanvasDraw2D', SimpleCanvasDraw2D);
 }, '/dev/fairmotion/src/vectordraw/vectordraw_canvas2d_simple.js');
-es6_module_define('vectordraw_svg', ["vectordraw_base", "mathlib", "config"], function _vectordraw_svg_module(_es6_module) {
+es6_module_define('vectordraw_svg', ["mathlib", "vectordraw_base", "config"], function _vectordraw_svg_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, 'config');
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
@@ -7917,7 +7917,7 @@ es6_module_define('vectordraw', ["vectordraw_svg", "vectordraw_canvas2d", "vecto
 es6_module_define('strokedraw', [], function _strokedraw_module(_es6_module) {
   "use strict";
 }, '/dev/fairmotion/src/vectordraw/strokedraw.js');
-es6_module_define('spline_draw_new', ["view2d_editor", "selectmode", "spline_element_array", "spline_multires", "animdata", "vectordraw", "spline_types", "config", "spline_math", "mathlib"], function _spline_draw_new_module(_es6_module) {
+es6_module_define('spline_draw_new', ["selectmode", "view2d_editor", "config", "spline_math", "spline_multires", "animdata", "spline_element_array", "mathlib", "vectordraw", "spline_types"], function _spline_draw_new_module(_es6_module) {
   "use strict";
   var aabb_isect_minmax2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_minmax2d');
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
@@ -8168,12 +8168,12 @@ es6_module_define('spline_draw_new', ["view2d_editor", "selectmode", "spline_ele
     var fx=co[0], fy=co[1];
     var lastdv, lastco;
     var len=seg.length;
-    var $_let_stretch1=1.015;
+    let stretch=1.015;
     s = 0;
     for (var i=0; i<steps; i++, s+=ds) {
-        var dv=seg.derivative(s*$_let_stretch1).normalize();
-        var co=seg.evaluate(s*$_let_stretch1);
-        var k=-seg.curvature(s*$_let_stretch1);
+        var dv=seg.derivative(s*stretch).normalize();
+        var co=seg.evaluate(s*stretch);
+        var k=-seg.curvature(s*stretch);
         co[0]+=-dv[1]*lw;
         co[1]+=dv[0]*lw;
         dv[0]*=(1.0-lw*k);
@@ -8191,9 +8191,9 @@ es6_module_define('spline_draw_new', ["view2d_editor", "selectmode", "spline_ele
     s = 1.0;
     lw = -lw;
     for (var i=0; i<steps; i++, s-=ds) {
-        var dv=seg.derivative(s*$_let_stretch1).normalize();
-        var co=seg.evaluate(s*$_let_stretch1);
-        var k=-seg.curvature(s*$_let_stretch1);
+        var dv=seg.derivative(s*stretch).normalize();
+        var co=seg.evaluate(s*stretch);
+        var k=-seg.curvature(s*stretch);
         co[0]+=-dv[1]*lw;
         co[1]+=dv[0]*lw;
         dv[0]*=-(1.0-lw*k);
@@ -8327,7 +8327,7 @@ es6_module_define('spline_draw_new', ["view2d_editor", "selectmode", "spline_ele
   _es6_module.add_class(SplineDrawer);
   SplineDrawer = _es6_module.add_export('SplineDrawer', SplineDrawer);
 }, '/dev/fairmotion/src/curve/spline_draw_new.js');
-es6_module_define('license_api', ["config", "license_electron"], function _license_api_module(_es6_module) {
+es6_module_define('license_api', ["license_electron", "config"], function _license_api_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, 'config');
   var License=_ESClass("License", [function License(owner, email, issued, expiration, max_devices, used_devices, key) {
@@ -8390,8 +8390,8 @@ es6_module_define('theplatform', ["platform_api"], function _theplatform_module(
   app = _es6_module.add_export('app', app);
 }, '/dev/fairmotion/platforms/Electron/theplatform.js');
 es6_module_define('load_wasm', [], function _load_wasm_module(_es6_module) {
-  var $_let_fs1=require('fs');
-  var wasm_binary=$_let_fs1.readFileSync("electron_build/fcontent/built_wasm.wasm");
+  let fs=require('fs');
+  var wasm_binary=fs.readFileSync("electron_build/fcontent/built_wasm.wasm");
   wasm_binary = _es6_module.add_export('wasm_binary', wasm_binary);
 }, '/dev/fairmotion/src/wasm/load_wasm.js');
 es6_module_define('built_wasm', ["load_wasm"], function _built_wasm_module(_es6_module) {

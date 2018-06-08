@@ -587,15 +587,26 @@ export function line_isect(v1, v2, v3, v4, calc_t) {  //calc_t is optional, defa
   return [vi, LINECROSS];
 }
 
+var dtl_v1 = new Vector3()
+var dtl_v2 = new Vector3()
 var dtl_v3 = new Vector3()
 var dtl_v4 = new Vector3()
 var dtl_v5 = new Vector3()
+var dtl_p = new Vector3()
+
 export function dist_to_line_v2(p, v1, v2)
 {
   var v3 = dtl_v3, v4 = dtl_v4;
   var v5 = dtl_v5;
+  v5[2] = 0.0;
+  
+  v1 = dtl_v1.load(v1);
+  v2 = dtl_v2.load(v2);
+  
+  p = dtl_p.load(p);
   
   v3.load(v1); v4.load(v2);
+  v1[2] = v2[2] = v3[2] = v4[2] = p[2] = 0.0;
   
   v4.sub(v3);
   v5[0] = -v4[1];

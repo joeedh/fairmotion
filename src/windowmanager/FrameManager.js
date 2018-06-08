@@ -447,10 +447,11 @@ export class Screen extends UIFrame {
   }
   
   _on_tick() {
+    /*
     var ready = this.tick_timer.ready();
     if (!ready) {
       return;
-    }
+    }//*/
     
     if (this.recalc) {
       this.build_draw(this.canvas, false);
@@ -460,6 +461,7 @@ export class Screen extends UIFrame {
     this.last_tick = time_ms();
     this.on_tick();
     
+    /*
     var ready = this.tick_timer.ready();
     for (var c of this.children) {
       if (c instanceof ScreenArea) {
@@ -472,7 +474,7 @@ export class Screen extends UIFrame {
       } else if (ready) {
         c.on_tick();
       }
-    }
+    }//*/
   }
   
   disabledon_draw() {

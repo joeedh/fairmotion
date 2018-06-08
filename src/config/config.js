@@ -1,5 +1,7 @@
 "use strict";
 
+export var MANIPULATOR_MOUSEOVER_LIMIT = 25;
+
 export var ELECTRON_APP_MODE = document.getElementById("ElectronAppMode") !== null;
 export var CHROME_APP_MODE = document.getElementById("GoogleChromeAppMode") !== null;
 export var PHONE_APP_MODE = document.getElementById("PhoneAppMode") !== null;
@@ -18,6 +20,8 @@ export var HAVE_EVAL = false;
 export var MAX_CANVAS2D_VECTOR_CACHE_SIZE = 1700;
 
 export var MAX_RECENT_FILES = 12;
+
+export var ON_TICK_TIMER_MS  150
 
 window.RELEASE = false;
 

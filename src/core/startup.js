@@ -207,7 +207,7 @@ window.startup_intern = function startup() {
 
 function init_event_system() {
   window._stime = 10;
-
+  
   window.setInterval(function () {
       if (window.skip_draw) return;
 
@@ -216,7 +216,7 @@ function init_event_system() {
 
       //Make sure the canvas[es] are sized correctly.
       reshape();
-  }, 200);
+  }, 300);
 
   window.setInterval(function () {
       //deal with timeouts 
@@ -233,11 +233,16 @@ function init_event_system() {
           pop_solve(k);
         }
       }
-      
-      if (g_app_state != undefined && g_app_state.screen != undefined) {
-          g_app_state.screen._on_tick();
-      }
   }, 32);
+  
+  var config = _es6_get_module("config");
+  
+  //start primary on_tick timer
+  window.setInterval(function () {
+    if (g_app_state != undefined && g_app_state.screen != undefined) {
+      g_app_state.screen._on_tick();
+    }
+  }, config.ON_TICK_TIMER_MS);
   
   function stop_event_propegation(e) {
       //e.stopImmediatePropagation();

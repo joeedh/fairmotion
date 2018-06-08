@@ -442,9 +442,9 @@ class VarDeclNode(IdentNode):
       return ""
     
     s = ""
-    if self.local and type(self.parent) != VarDeclNode: 
-      s += "var "
-    elif "let" in self.modifiers and type(self.parent) != VarDeclNode: 
+    if "let" in self.modifiers and type(self.parent) != VarDeclNode: 
+      s += "let "
+    elif self.local and type(self.parent) != VarDeclNode: 
       s += "var "
     elif "static" in self.modifiers and type(self.parent) != VarDeclNode: 
       s += "static "

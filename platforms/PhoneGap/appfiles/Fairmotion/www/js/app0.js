@@ -1399,7 +1399,7 @@ window.init_redraw_globals = function init_redraw_globals() {
   }
   window.workcanvas_redraw_rects = [];
   window.workcanvas_redraw_rects2 = [];
-  var $_let_redraw_viewport_promise21=undefined;
+  let redraw_viewport_promise=undefined;
   window.redraw_viewport = function(min, max, ignore_queuing, combine_mode) {
     if (ignore_queuing==undefined)
       ignore_queuing = false;
@@ -1442,7 +1442,7 @@ window.init_redraw_globals = function init_redraw_globals() {
     }
     if (animreq==undefined) {
         var $_Hiiuawthis_1=this;
-        $_let_redraw_viewport_promise21 = new Promise(function(accept, reject) {
+        redraw_viewport_promise = new Promise(function(accept, reject) {
           animreq = window.requestAnimationFrame(function() {
             animreq = undefined;
             var rects=workcanvas_redraw_rects;
@@ -1462,10 +1462,10 @@ window.init_redraw_globals = function init_redraw_globals() {
             }
           });
         });
-        return $_let_redraw_viewport_promise21;
+        return redraw_viewport_promise;
     }
     else {
-      return $_let_redraw_viewport_promise21;
+      return redraw_viewport_promise;
     }
   }
   window.rffedraw_viewport = function(min, max, ignore_queuing) {
@@ -1721,7 +1721,7 @@ function init_event_system() {
     if (g==undefined)
       return ;
     reshape();
-  }, 200);
+  }, 300);
   window.setInterval(function() {
     if (window.redraw_start_times==undefined)
       return ;
@@ -1731,10 +1731,13 @@ function init_event_system() {
             pop_solve(k);
         }
     }
+  }, 32);
+  var config=_es6_get_module("config");
+  window.setInterval(function() {
     if (g_app_state!=undefined&&g_app_state.screen!=undefined) {
         g_app_state.screen._on_tick();
     }
-  }, 32);
+  }, config.ON_TICK_TIMER_MS);
   function stop_event_propegation(e) {
     e.stopPropagation();
     e.preventDefault();
@@ -7055,8 +7058,8 @@ es6_module_define('J3DIMath', [], function _J3DIMath_module(_es6_module) {
     this.m21 = this.m22 = this.m23 = 0.0;
     this.m31 = this.m32 = this.m33 = 0.0;
   }
-  var $smatrix_4IQB_scale;
-  var $smatrix_q1bY_translate;
+  var $smatrix_PY38_scale;
+  var $smatrix_NAlt_translate;
   var Matrix3=_ESClass("Matrix3", [function Matrix3(mat) {
     this.$matrix = new internal_matrix3();
     if (mat!=undefined) {
@@ -7085,17 +7088,17 @@ es6_module_define('J3DIMath', [], function _J3DIMath_module(_es6_module) {
     m.m11 = m.m22 = m.m33 = 1.0;
     return this;
   }, function scale(x, y) {
-    var m=$smatrix_4IQB_scale.$matrix;
+    var m=$smatrix_PY38_scale.$matrix;
     m.m11 = x;
     m.m22 = y;
-    this.multiply($smatrix_4IQB_scale);
+    this.multiply($smatrix_PY38_scale);
     return this;
   }, function translate(x, y) {
-    $smatrix_q1bY_translate.makeIdentity();
-    var m=$smatrix_q1bY_translate.$matrix;
+    $smatrix_NAlt_translate.makeIdentity();
+    var m=$smatrix_NAlt_translate.$matrix;
     m.m31 = x;
     m.m32 = y;
-    this.multiply($smatrix_q1bY_translate);
+    this.multiply($smatrix_NAlt_translate);
     return this;
   }, function euler_rotate(x, y, z) {
     var xmat=new Matrix4();
@@ -7156,8 +7159,8 @@ es6_module_define('J3DIMath', [], function _J3DIMath_module(_es6_module) {
     m1.m33 = m33;
     return this;
   }]);
-  var $smatrix_4IQB_scale={$matrix: {m11: 1, m12: 0, m13: 0, m21: 0, m22: 1, m23: 0, m31: 0, m32: 0, m33: 1}}
-  var $smatrix_q1bY_translate=new Matrix3();
+  var $smatrix_PY38_scale={$matrix: {m11: 1, m12: 0, m13: 0, m21: 0, m22: 1, m23: 0, m31: 0, m32: 0, m33: 1}}
+  var $smatrix_NAlt_translate=new Matrix3();
   _es6_module.add_class(Matrix3);
   var Matrix4=_ESClass("Matrix4", [function Matrix4(m) {
     if (HasCSSMatrix)
@@ -7872,27 +7875,27 @@ es6_module_define('J3DIMath', [], function _J3DIMath_module(_es6_module) {
       _temp_xyz_vecs.push(null);
   }
   var _temp_xyz_cur=0;
-  var $init_NVvC_Vector3;
-  var $_tmp_dBtT_cross;
-  var $vec_3HhN_vectorDistance;
-  var $vec_hHm1_vectorDotDistance;
-  var $add_KraH_static_add;
-  var $_static_sub_2AiA_static_sub;
-  var $_static_mul_G_Rj_static_mul;
-  var $_static_divide_zoV8_static_divide;
-  var $_static_addScalar_7Tlo_static_addScalar;
-  var $_static_subScalar_7nQh_static_subScalar;
-  var $_static_mulScalar_o7fT_static_mulScalar;
-  var $_static_divideScalar_mW8r__static_divideScalar;
-  var $n1_lGqQ_normalizedDot;
-  var $_v3nd4_n1_skPF_normalizedDot4;
-  var $n1_ba_h_normalizedDot3;
-  var $n2_5kp0_normalizedDot;
-  var $_v3nd4_n2_qTdt_normalizedDot4;
-  var $n2_1uFp_normalizedDot3;
+  var $init_ux26_Vector3;
+  var $_tmp_nDSS_cross;
+  var $vec_noa2_vectorDistance;
+  var $vec_azBu_vectorDotDistance;
+  var $add_gnao_static_add;
+  var $_static_sub_9FMo_static_sub;
+  var $_static_mul_So8s_static_mul;
+  var $_static_divide_qOgT_static_divide;
+  var $_static_addScalar_deFZ_static_addScalar;
+  var $_static_subScalar_l9Ff_static_subScalar;
+  var $_static_mulScalar_gli5_static_mulScalar;
+  var $_static_divideScalar_iQHb__static_divideScalar;
+  var $n1_0_ot_normalizedDot;
+  var $_v3nd4_n1_rLcl_normalizedDot4;
+  var $n1_h3q8_normalizedDot3;
+  var $n2_mxFC_normalizedDot;
+  var $_v3nd4_n2_3bu2_normalizedDot4;
+  var $n2_R5gc_normalizedDot3;
   var Vector3=_ESClass("Vector3", Array, [function Vector3(vec) {
     if (vec==undefined)
-      vec = $init_NVvC_Vector3;
+      vec = $init_ux26_Vector3;
     if (vec[0]==undefined)
       vec[0] = 0;
     if (vec[1]==undefined)
@@ -8061,21 +8064,21 @@ es6_module_define('J3DIMath', [], function _J3DIMath_module(_es6_module) {
     this[2] = this[2]*v[2];
     return this;
   }, function cross(v) {
-    $_tmp_dBtT_cross[0] = this[1]*v[2]-this[2]*v[1];
-    $_tmp_dBtT_cross[1] = this[2]*v[0]-this[0]*v[2];
-    $_tmp_dBtT_cross[2] = this[0]*v[1]-this[1]*v[0];
-    this[0] = $_tmp_dBtT_cross[0];
-    this[1] = $_tmp_dBtT_cross[1];
-    this[2] = $_tmp_dBtT_cross[2];
+    $_tmp_nDSS_cross[0] = this[1]*v[2]-this[2]*v[1];
+    $_tmp_nDSS_cross[1] = this[2]*v[0]-this[0]*v[2];
+    $_tmp_nDSS_cross[2] = this[0]*v[1]-this[1]*v[0];
+    this[0] = $_tmp_nDSS_cross[0];
+    this[1] = $_tmp_nDSS_cross[1];
+    this[2] = $_tmp_nDSS_cross[2];
     return this;
   }, function vectorDistance(v2) {
-    $vec_3HhN_vectorDistance.load(this);
-    $vec_3HhN_vectorDistance.sub(v2);
-    return $vec_3HhN_vectorDistance.vectorLength();
+    $vec_noa2_vectorDistance.load(this);
+    $vec_noa2_vectorDistance.sub(v2);
+    return $vec_noa2_vectorDistance.vectorLength();
   }, function vectorDotDistance(v2) {
-    $vec_hHm1_vectorDotDistance.load(this);
-    $vec_hHm1_vectorDotDistance.sub(v2);
-    return $vec_hHm1_vectorDotDistance.dot($vec_hHm1_vectorDotDistance);
+    $vec_azBu_vectorDotDistance.load(this);
+    $vec_azBu_vectorDotDistance.sub(v2);
+    return $vec_azBu_vectorDotDistance.dot($vec_azBu_vectorDotDistance);
   }, function sub(v) {
     if (v==null||v==undefined)
       console.trace();
@@ -8089,61 +8092,61 @@ es6_module_define('J3DIMath', [], function _J3DIMath_module(_es6_module) {
     this[2] = this[2]+v[2];
     return this;
   }, function static_add(v) {
-    $add_KraH_static_add[0] = this[0]+v[0];
-    $add_KraH_static_add[1] = this[1]+v[1];
-    $add_KraH_static_add[2] = this[2]+v[2];
-    return $add_KraH_static_add;
+    $add_gnao_static_add[0] = this[0]+v[0];
+    $add_gnao_static_add[1] = this[1]+v[1];
+    $add_gnao_static_add[2] = this[2]+v[2];
+    return $add_gnao_static_add;
   }, function static_sub(v) {
-    $_static_sub_2AiA_static_sub[0] = this[0]-v[0];
-    $_static_sub_2AiA_static_sub[1] = this[1]-v[1];
-    $_static_sub_2AiA_static_sub[2] = this[2]-v[2];
-    return $_static_sub_2AiA_static_sub;
+    $_static_sub_9FMo_static_sub[0] = this[0]-v[0];
+    $_static_sub_9FMo_static_sub[1] = this[1]-v[1];
+    $_static_sub_9FMo_static_sub[2] = this[2]-v[2];
+    return $_static_sub_9FMo_static_sub;
   }, function static_mul(v) {
-    $_static_mul_G_Rj_static_mul[0] = this[0]*v[0];
-    $_static_mul_G_Rj_static_mul[1] = this[1]*v[1];
-    $_static_mul_G_Rj_static_mul[2] = this[2]*v[2];
-    return $_static_mul_G_Rj_static_mul;
+    $_static_mul_So8s_static_mul[0] = this[0]*v[0];
+    $_static_mul_So8s_static_mul[1] = this[1]*v[1];
+    $_static_mul_So8s_static_mul[2] = this[2]*v[2];
+    return $_static_mul_So8s_static_mul;
   }, function static_divide(v) {
-    $_static_divide_zoV8_static_divide[0] = this[0]/v[0];
-    $_static_divide_zoV8_static_divide[1] = this[1]/v[1];
-    $_static_divide_zoV8_static_divide[2] = this[2]/v[2];
-    return $_static_divide_zoV8_static_divide;
+    $_static_divide_qOgT_static_divide[0] = this[0]/v[0];
+    $_static_divide_qOgT_static_divide[1] = this[1]/v[1];
+    $_static_divide_qOgT_static_divide[2] = this[2]/v[2];
+    return $_static_divide_qOgT_static_divide;
   }, function static_addScalar(s) {
-    $_static_addScalar_7Tlo_static_addScalar[0] = this[0]+s;
-    $_static_addScalar_7Tlo_static_addScalar[1] = this[1]+s;
-    $_static_addScalar_7Tlo_static_addScalar[2] = this[2]+s;
-    return $_static_addScalar_7Tlo_static_addScalar;
+    $_static_addScalar_deFZ_static_addScalar[0] = this[0]+s;
+    $_static_addScalar_deFZ_static_addScalar[1] = this[1]+s;
+    $_static_addScalar_deFZ_static_addScalar[2] = this[2]+s;
+    return $_static_addScalar_deFZ_static_addScalar;
   }, function static_subScalar(s) {
-    $_static_subScalar_7nQh_static_subScalar[0] = this[0]-s;
-    $_static_subScalar_7nQh_static_subScalar[1] = this[1]-s;
-    $_static_subScalar_7nQh_static_subScalar[2] = this[2]-s;
-    return $_static_subScalar_7nQh_static_subScalar;
+    $_static_subScalar_l9Ff_static_subScalar[0] = this[0]-s;
+    $_static_subScalar_l9Ff_static_subScalar[1] = this[1]-s;
+    $_static_subScalar_l9Ff_static_subScalar[2] = this[2]-s;
+    return $_static_subScalar_l9Ff_static_subScalar;
   }, function static_mulScalar(s) {
-    $_static_mulScalar_o7fT_static_mulScalar[0] = this[0]*s;
-    $_static_mulScalar_o7fT_static_mulScalar[1] = this[1]*s;
-    $_static_mulScalar_o7fT_static_mulScalar[2] = this[2]*s;
-    return $_static_mulScalar_o7fT_static_mulScalar;
+    $_static_mulScalar_gli5_static_mulScalar[0] = this[0]*s;
+    $_static_mulScalar_gli5_static_mulScalar[1] = this[1]*s;
+    $_static_mulScalar_gli5_static_mulScalar[2] = this[2]*s;
+    return $_static_mulScalar_gli5_static_mulScalar;
   }, function _static_divideScalar(s) {
-    $_static_divideScalar_mW8r__static_divideScalar[0] = this[0]/s;
-    $_static_divideScalar_mW8r__static_divideScalar[1] = this[1]/s;
-    $_static_divideScalar_mW8r__static_divideScalar[2] = this[2]/s;
-    return $_static_divideScalar_mW8r__static_divideScalar;
+    $_static_divideScalar_iQHb__static_divideScalar[0] = this[0]/s;
+    $_static_divideScalar_iQHb__static_divideScalar[1] = this[1]/s;
+    $_static_divideScalar_iQHb__static_divideScalar[2] = this[2]/s;
+    return $_static_divideScalar_iQHb__static_divideScalar;
   }, function dot(v) {
     return this[0]*v[0]+this[1]*v[1]+this[2]*v[2];
   }, function normalizedDot(v) {
-    $n1_lGqQ_normalizedDot.load(this);
-    $n2_5kp0_normalizedDot.load(v);
-    $n1_lGqQ_normalizedDot.normalize();
-    $n2_5kp0_normalizedDot.normalize();
-    return $n1_lGqQ_normalizedDot.dot($n2_5kp0_normalizedDot);
+    $n1_0_ot_normalizedDot.load(this);
+    $n2_mxFC_normalizedDot.load(v);
+    $n1_0_ot_normalizedDot.normalize();
+    $n2_mxFC_normalizedDot.normalize();
+    return $n1_0_ot_normalizedDot.dot($n2_mxFC_normalizedDot);
   }, _ESClass.static(function normalizedDot4(v1, v2, v3, v4) {
-    $_v3nd4_n1_skPF_normalizedDot4.load(v2).sub(v1).normalize();
-    $_v3nd4_n2_qTdt_normalizedDot4.load(v4).sub(v3).normalize();
-    return $_v3nd4_n1_skPF_normalizedDot4.dot($_v3nd4_n2_qTdt_normalizedDot4);
+    $_v3nd4_n1_rLcl_normalizedDot4.load(v2).sub(v1).normalize();
+    $_v3nd4_n2_3bu2_normalizedDot4.load(v4).sub(v3).normalize();
+    return $_v3nd4_n1_rLcl_normalizedDot4.dot($_v3nd4_n2_3bu2_normalizedDot4);
   }), _ESClass.static(function normalizedDot3(v1, v2, v3) {
-    $n1_ba_h_normalizedDot3.load(v1).sub(v2).normalize();
-    $n2_1uFp_normalizedDot3.load(v3).sub(v2).normalize();
-    return $n1_ba_h_normalizedDot3.dot($n2_1uFp_normalizedDot3);
+    $n1_h3q8_normalizedDot3.load(v1).sub(v2).normalize();
+    $n2_R5gc_normalizedDot3.load(v3).sub(v2).normalize();
+    return $n1_h3q8_normalizedDot3.dot($n2_R5gc_normalizedDot3);
   }), function preNormalizedAngle(v2) {
     if (this.dot(v2)<0.0) {
         var vec=new Vector3();
@@ -8182,24 +8185,24 @@ es6_module_define('J3DIMath', [], function _J3DIMath_module(_es6_module) {
   }, function toString() {
     return "["+this[0]+","+this[1]+","+this[2]+"]";
   }]);
-  var $init_NVvC_Vector3=[0, 0, 0];
-  var $_tmp_dBtT_cross=[0, 0, 0];
-  var $vec_3HhN_vectorDistance=new Vector3();
-  var $vec_hHm1_vectorDotDistance=new Vector3();
-  var $add_KraH_static_add=new Vector3();
-  var $_static_sub_2AiA_static_sub=new Vector3();
-  var $_static_mul_G_Rj_static_mul=new Vector3();
-  var $_static_divide_zoV8_static_divide=new Vector3();
-  var $_static_addScalar_7Tlo_static_addScalar=new Vector3();
-  var $_static_subScalar_7nQh_static_subScalar=new Vector3();
-  var $_static_mulScalar_o7fT_static_mulScalar=new Vector3();
-  var $_static_divideScalar_mW8r__static_divideScalar=new Vector3();
-  var $n1_lGqQ_normalizedDot=new Vector3();
-  var $_v3nd4_n1_skPF_normalizedDot4=new Vector3();
-  var $n1_ba_h_normalizedDot3=new Vector3();
-  var $n2_5kp0_normalizedDot=new Vector3();
-  var $_v3nd4_n2_qTdt_normalizedDot4=new Vector3();
-  var $n2_1uFp_normalizedDot3=new Vector3();
+  var $init_ux26_Vector3=[0, 0, 0];
+  var $_tmp_nDSS_cross=[0, 0, 0];
+  var $vec_noa2_vectorDistance=new Vector3();
+  var $vec_azBu_vectorDotDistance=new Vector3();
+  var $add_gnao_static_add=new Vector3();
+  var $_static_sub_9FMo_static_sub=new Vector3();
+  var $_static_mul_So8s_static_mul=new Vector3();
+  var $_static_divide_qOgT_static_divide=new Vector3();
+  var $_static_addScalar_deFZ_static_addScalar=new Vector3();
+  var $_static_subScalar_l9Ff_static_subScalar=new Vector3();
+  var $_static_mulScalar_gli5_static_mulScalar=new Vector3();
+  var $_static_divideScalar_iQHb__static_divideScalar=new Vector3();
+  var $n1_0_ot_normalizedDot=new Vector3();
+  var $_v3nd4_n1_rLcl_normalizedDot4=new Vector3();
+  var $n1_h3q8_normalizedDot3=new Vector3();
+  var $n2_mxFC_normalizedDot=new Vector3();
+  var $_v3nd4_n2_3bu2_normalizedDot4=new Vector3();
+  var $n2_R5gc_normalizedDot3=new Vector3();
   _es6_module.add_class(Vector3);
   var _vec2_init=[0, 0];
   var _v2_static_mvm_co=new Vector3();
@@ -8441,14 +8444,14 @@ es6_module_define('J3DIMath', [], function _J3DIMath_module(_es6_module) {
     return "["+this[0]+","+this[1]+","+this[2]+","+this[3]+"]";
   }]);
   _es6_module.add_class(Vector4);
-  var $v4init_Bthv_Quat;
+  var $v4init_QIiF_Quat;
   var Quat=_ESClass("Quat", Vector4, [function Quat(x, y, z, w) {
-    var vec=$v4init_Bthv_Quat;
+    var vec=$v4init_QIiF_Quat;
     if (typeof (x)=="number") {
-        $v4init_Bthv_Quat[0] = x;
-        $v4init_Bthv_Quat[1] = y;
-        $v4init_Bthv_Quat[2] = z;
-        $v4init_Bthv_Quat[3] = w;
+        $v4init_QIiF_Quat[0] = x;
+        $v4init_QIiF_Quat[1] = y;
+        $v4init_QIiF_Quat[2] = z;
+        $v4init_QIiF_Quat[3] = w;
     }
     else {
       vec = x;
@@ -8669,7 +8672,7 @@ es6_module_define('J3DIMath', [], function _J3DIMath_module(_es6_module) {
     this[2] = sc1*quat[2]+sc2*quat2[2];
     this[3] = sc1*quat[3]+sc2*quat2[3];
   }]);
-  var $v4init_Bthv_Quat=[0, 0, 0, 0];
+  var $v4init_QIiF_Quat=[0, 0, 0, 0];
   _es6_module.add_class(Quat);
   window.Vector2 = Vector2;
   window.Vector3 = Vector3;
@@ -8686,10 +8689,10 @@ if (Array.prototype.set===undefined) {
       if (count<0) {
           throw new RangeError("Count must be >= zero");
       }
-      var $_let_len9=Math.min(this.length-dst, array.length-src);
-      $_let_len9 = Math.min($_let_len9, count);
-      for (var $_let_i15=0; $_let_i15<$_let_len9; $_let_i15++) {
-          this[dst+$_let_i15] = array[src+$_let_i15];
+      let len=Math.min(this.length-dst, array.length-src);
+      len = Math.min(len, count);
+      for (let i=0; i<len; i++) {
+          this[dst+i] = array[src+i];
       }
       return this;
     };
@@ -9035,9 +9038,9 @@ function time_func(func, steps) {
   console.log(times);
   return times;
 }
-var $lst_Uriq=new GArray();
+var $lst_Wgb7=new GArray();
 function cached_list(iter) {
-  $lst_Uriq.reset();
+  $lst_Wgb7.reset();
   var i=0;
   var __iter_item=__get_iter(iter);
   var item;
@@ -9047,11 +9050,11 @@ function cached_list(iter) {
         break;
     }
     item = __ival_item.value;
-    $lst_Uriq.push(item);
+    $lst_Wgb7.push(item);
     i++;
   }
-  $lst_Uriq.length = i;
-  return $lst_Uriq;
+  $lst_Wgb7.length = i;
+  return $lst_Wgb7;
 }
 var g_list=list;
 var eid_list=_ESClass("eid_list", GArray, [function eid_list(iter) {

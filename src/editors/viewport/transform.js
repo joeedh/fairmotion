@@ -6,7 +6,7 @@ import {SelMask} from 'selectmode';
 import {MResTransData} from 'multires_transdata';
 
 import {Vec3Property, BoolProperty, FloatProperty, IntProperty,
-        CollectionProperty, TPropFlags} from 'toolprops';
+        CollectionProperty, TPropFlags, EnumProperty} from 'toolprops';
 
         import {SplineFlags, SplineTypes} from 'spline_types';
 import {ToolOp, ModalStates} from 'toolops_api';
@@ -454,7 +454,12 @@ export class TransData {
       d.type.aabb(ctx, this, d, this.minmax, true);
     }
     
-    this.center.load(this.minmax.max).add(this.minmax.min).mulScalar(0.5);
+    if (top.inputs.use_pivot.data) {
+      this.center.load(top.inputs.pivot.data);
+    } else {
+      this.center.load(this.minmax.max).add(this.minmax.min).mulScalar(0.5);
+    }
+    
     this.start_center.load(this.center);
     
     if (top.modal_running) {
@@ -484,6 +489,7 @@ export class TransData {
   }
 }
 
+//let
 export class TransformOp extends ToolOp {
   constructor(start_mpos, datamode) {
     super();
@@ -511,7 +517,13 @@ export class TransformOp extends ToolOp {
       proportional : new BoolProperty(false, "proportional", "proportional mode"),
       propradius   : new FloatProperty(80, "propradius", "prop radius"),
       datamode     : new IntProperty(0, "datamode", "datamode"),
-      edit_all_layers : new BoolProperty(false, "Edit all layers", "Edit all layers")
+      edit_all_layers : new BoolProperty(false, "Edit all layers", "Edit all layers"),
+      
+      pivot        : new Vec3Property(undefined, "pivot", "pivot", "pivot"),
+      use_pivot    : new BoolProperty(false, "use_pivot", "use pivot", "use pivot"),
+      
+      constraint_axis : new Vec3Property(undefined, "constraint_axis", "Constraint Axis", "Axis to constrain"),
+      constrain       : new BoolProperty(false, "constrain", "Enable Constraint", "Enable Constraint Axis")
     }
   }}
 
@@ -835,6 +847,81 @@ export class TranslateOp extends TransformOp {
   }
 }
 
+export class NonUniformScaleOp extends TransformOp {
+  constructor(user_start_mpos : Array<float>, datamode : int) {
+    super(user_start_mpos, datamode);
+  }
+  
+  static tooldef() { return {
+    uiname   : "Non-Uniform Scale",
+    apiname  : "spline.nonuniform_scale",
+    description : "Resize geometry",
+    is_modal : true,
+    
+    inputs   : ToolOp.inherit({
+      scale : new Vec3Property(undefined, "scale", "scale", "scale")
+    })
+  }}
+  
+  on_mousemove(event) {
+    super.on_mousemove(event);
+    
+    var md = this.modaldata;
+    var ctx = this.modal_ctx;
+    var td = this.transdata;
+    
+    var scale = mousemove_cachering.next();
+    var off1 = mousemove_cachering.next();
+    var off2 = mousemove_cachering.next();
+  
+    off1.load(md.mpos).sub(td.scenter).vectorLength();
+    off2.load(md.start_mpos).sub(td.scenter).vectorLength();
+    
+    scale[0] = off1[0] != off2[0] && off2[0] != 0.0 ? off1[0] / off2[0] : 1.0;
+    scale[1] = off1[1] != off2[1] && off2[1] != 0.0 ? off1[1] / off2[1] : 1.0;
+    scale[2] = 1.0;
+    
+    this.inputs.scale.set_data(scale);
+    
+    this.exec(ctx);
+    this.post_mousemove(event);
+  }
+  
+  exec(ctx) {
+    var td = this.modal_running ? this.transdata : this.ensure_transdata(ctx);
+    
+    var mat = new Matrix4();
+    var scale = this.inputs.scale.data;
+    
+    var cent = td.center;
+    mat.makeIdentity();
+    
+    if (this.inputs.constrain.data) {
+      scale = new Vector3(scale);
+      let caxis = this.inputs.constraint_axis.data;
+      
+      for (let i=0; i<3; i++) {
+        scale[i] += (1.0 - scale[i]) * (1.0 - caxis[i]);
+      }
+    }
+    
+    mat.translate(cent[0], cent[1], 0);
+    mat.scale(scale[0], scale[1], scale[2]);
+    mat.translate(-cent[0], -cent[1], 0);
+    
+    for (var d of td.data) {
+      d.type.apply(ctx, td, d, mat, d.w);
+    }
+    
+    this.update(ctx);
+    
+    if (!this.modal_running) {
+      ctx.frameset.on_ctx_update(ctx);
+      delete this.transdata;
+    }
+  }
+}
+
 export class ScaleOp extends TransformOp {
   constructor(user_start_mpos : Array<float>, datamode : int) {
     super(user_start_mpos, datamode);
@@ -864,6 +951,8 @@ export class ScaleOp extends TransformOp {
     var l1 = off.load(md.mpos).sub(td.scenter).vectorLength();
     var l2 = off.load(md.start_mpos).sub(td.scenter).vectorLength();
     
+    console.log(event.x, event.y);
+    
     scale[0] = scale[1] = l1/l2;
     scale[2] = 1.0;
     
@@ -881,6 +970,15 @@ export class ScaleOp extends TransformOp {
     
     var cent = td.center;
     mat.makeIdentity();
+    
+    if (this.inputs.constrain.data) {
+      scale = new Vector3(scale);
+      let caxis = this.inputs.constraint_axis.data;
+      
+      for (let i=0; i<3; i++) {
+        scale[i] += (1.0 - scale[i]) * (1.0 - caxis[i]);
+      }
+    }
     
     mat.translate(cent[0], cent[1], 0);
     mat.scale(scale[0], scale[1], scale[2]);

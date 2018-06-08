@@ -5,6 +5,9 @@
   but also extrude, inset, etc.
 */
 
+import {dist_to_line_v2} from 'mathlib';
+import * as config from 'config';
+
 export var ManipFlags = {
 };
 
@@ -12,25 +15,54 @@ export var HandleShapes = {
   ARROW         : 0,
   HAMMER        : 1,
   ROTCIRCLE     : 2,
-  SIMEPL_CIRCLE : 3
+  SIMPLE_CIRCLE : 3,
+  OUTLINE       : 4
+};
+
+export var HandleColors = {
+  DEFAULT   : [0, 0, 0, 1],
+  HIGHLIGHT : [0.4, 0.4, 0.4, 1],
+  SELECT    : [1.0, 0.7, 0.3, 1]
 };
 
 var _mh_idgen = 1;
 
 export class ManipHandle {
-  constructor(Vector3 v1, Vector3 v2, Object id, int shape, view2d, Array<float> clr) {
+  constructor(v1 : Vector3, v2 : Vector3, id : Object, shape : int, view2d : View2DHandler, clr : Array<float>) {
     this.id = id;
     this._hid = _mh_idgen++;
     this.shape = shape;
     this.v1 = v1;
     this.v2 = v2;
-    this.color = clr;
+    this.transparent = false; //are we transparent to events?
+    this.color = clr === undefined ? [0, 0, 0, 1] : clr.slice(0, clr.length);
     this.parent = undefined;
-    this.linewidth = 15;
+    this.linewidth = 1.5;
+    
+    if (this.color.length == 3)
+      this.color.push(1.0);
     
     this._min = new Vector2(v1);
     this._max = new Vector2(v2);
     this._redraw_pad = this.linewidth;
+  }
+  
+  on_click(e, view2d, id) {
+  
+  }
+  
+  on_active() {
+    this.color = HandleColors.HIGHLIGHT;
+    this.update();
+  }
+  
+  on_inactive() {
+    this.color = HandleColors.DEFAULT;
+    this.update();
+  }
+  
+  distanceTo(p) {
+    return dist_to_line_v2(p, this.v1, this.v2);
   }
   
   update() {
@@ -53,7 +85,7 @@ export class ManipHandle {
     this._min[0] = minx-p, this._min[1] = miny-p;
     this._max[0] = maxx+p, this._max[1] = maxy+p;
     
-    console.log("update", this._min[0], this._min[1], this._max[0], this._max[1]);
+    //console.log("update", this._min[0], this._min[1], this._max[0], this._max[1]);
     
     //draw new position
     window.redraw_viewport(this._min, this._max);
@@ -75,14 +107,62 @@ export class ManipHandle {
     return [[xmin, ymin, xmax-xmin, ymax-ymin]]
   }
   
+  
   render(canvas, g) {
-    g.lineWidth = this.linewidth;
-    g.strokeStyle = "teal";
+    let c = this.color;
+    let style = "rgba("+(~~(c[0]*255))+","+(~~(c[1]*255))+","+(~~(c[2]*255))+","+c[3]+")";
     
-    g.beginPath();
-    g.moveTo(this.v1[0], this.v1[1]);
-    g.lineTo(this.v2[0], this.v2[1]);
-    g.stroke();
+    g.strokeStyle = g.fillStyle = style;
+    g.lineWidth = this.linewidth;
+    //g.strokeStyle = g.fillStyle = "teal";
+    
+    if (this.shape == HandleShapes.ARROW) {
+      g.beginPath();
+      let dx = this.v2[0] - this.v1[0], dy = this.v2[1] - this.v1[1];
+      let dx2 = this.v1[1] - this.v2[1], dy2 = this.v2[0] - this.v1[0];
+      
+      let l = Math.sqrt(dx2*dx2 + dy2*dy2);
+      if (l == 0.0) {
+        g.beginPath();
+        g.rect(this.v1[0]-5, this.v1[1]-5, 10, 10);
+        g.fill();
+        
+        return;
+      }
+      
+      dx2 *= 1.5/l;
+      dy2 *= 1.5/l;
+      
+      dx *= 0.65;
+      dy *= 0.65;
+      
+      let w = 3;
+      let v1 = this.v1, v2 = this.v2;
+      
+      g.moveTo(v1[0]-dx2, v1[1]-dy2);
+      g.lineTo(v1[0]+dx-dx2, v1[1]+dy-dy2);
+      g.lineTo(v1[0]+dx-dx2*w, v1[1]+dy-dy2*w);
+      g.lineTo(v2[0], v2[1]);
+      g.lineTo(v1[0]+dx+dx2*w, v1[1]+dy+dy2*w);
+      g.lineTo(v1[0]+dx+dx2, v1[1]+dy+dy2);
+      g.lineTo(v1[0]+dx2, v1[1]+dy2);
+      g.closePath();
+      
+      g.fill();
+    } else if (this.shape == HandleShapes.OUTLINE) {
+      g.beginPath();
+      g.moveTo(this.v1[0], this.v1[1]);
+      g.lineTo(this.v1[0], this.v2[1]);
+      g.lineTo(this.v2[0], this.v2[1]);
+      g.lineTo(this.v2[0], this.v1[1]);
+      g.closePath();
+      g.stroke();
+    } else {
+      g.beginPath();
+      g.moveTo(this.v1[0], this.v1[1]);
+      g.lineTo(this.v2[0], this.v2[1]);
+      g.stroke();
+    }
   }  
 }
 
@@ -94,7 +174,7 @@ var _mh_idgen_2 = 1;
 var _mp_first = true;
 
 export class Manipulator {
-  constructor(Array<Array<ManipHandle>> handles) {
+  constructor(handles : Array<Array<ManipHandle>>) {
     this._hid = _mh_idgen_2++;
     this.handles = handles.slice(0, handles.length); //copy handles
     this.recalc = 1;
@@ -140,9 +220,6 @@ export class Manipulator {
   }
   
   on_tick(ctx) {
-  }
-  
-  on_click() {
   }
   
   [Symbol.keystr]() {
@@ -191,19 +268,77 @@ export class Manipulator {
     }
   }
   
-  arrow(normal, id, clr=[1, 1, 1, 0.5]) {
-    normal = new Vector2(normal);
-    normal.normalize().mulScalar(25.0);
+  outline(min, max, id, clr=[0,0,0,1.0]) {
+    min = new Vector2(min);
+    max = new Vector2(max);
     
-    var h = new ManipHandle(new Vector2(), normal, id, HandleShapes.ARROW, this.view3d, clr);
+    var h = new ManipHandle(min, max, id, HandleShapes.OUTLINE, this.view3d, clr);
+    
+    h.transparent = true;
     h.parent = this;
     
     this.handles.push(h);
+    return h;
+  }
+  
+  //make an arror in relative coordinates to this.co
+  arrow(v1, v2, id, clr=[0, 0, 0, 1.0]) {
+    v1 = new Vector2(v1);
+    v2 = new Vector2(v2);
+    
+    var h = new ManipHandle(v1, v2, id, HandleShapes.ARROW, this.view3d, clr);
+    h.parent = this;
+    
+    this.handles.push(h);
+    return h;
+  }
+  
+  findnearest(e) {
+    let limit = config.MANIPULATOR_MOUSEOVER_LIMIT;
+    
+    let h = this.handles[0];
+    let mpos = [e.x-this.co[0], e.y-this.co[1]];
+    let mindis = undefined, minh = undefined;
+    
+    for (let h of this.handles) {
+      if (h.transparent)
+        continue;
+      
+      let dis = h.distanceTo(mpos);
+      
+      if (dis < limit && (mindis === undefined || dis < mindis)) {
+        mindis = dis;
+        minh = h;
+      }
+    }
+    
+    return minh;
+  }
+  
+  on_mousemove(e : MouseEvent, view2d : View2DHandler) : Boolean {
+    //console.log("handle", e.x.toFixed(3), e.y.toFixed(3), ":", (this.co[0]+h.v1[0]).toFixed(3), (this.co[1]+h.v1[1]).toFixed(3));
+    let h = this.findnearest(e);
+
+    //console.log("handle:", h);
+    
+    if (h !== this.active) {
+      if (this.active !== undefined) {
+        this.active.on_inactive();
+      }
+      
+      this.active = h;
+      
+      if (h !== undefined) {
+        h.on_active();
+      }
+    }
+    
+    return false;
   }
   
   /*returns true if handle hit*/
-  do_click(MouseEvent e, View2DHandler view2d) : Boolean {
-    return false;
+  on_click(event : MouseEvent, view2d : View2DHandler) : Boolean {
+    return this.active != undefined ? this.active.on_click(event, view2d, this.active.id) : undefined;
   }
 }
 
@@ -269,8 +404,12 @@ export class ManipulatorManager {
     this.active = this.stack.pop(-1);
   }
   
-  do_click(MouseEvent event, View2DHandler view2d) : Boolean {
-    return this.active != undefined ? this.active.do_click(event, view2d) : undefined;
+  on_mousemove(event : MouseEvent, view2d : View2DHandler) {
+    return this.active != undefined ? this.active.on_mousemove(event, view2d) : undefined;
+  }
+  
+  on_click(event : MouseEvent, view2d : View2DHandler) : Boolean {
+    return this.active != undefined ? this.active.on_click(event, view2d) : undefined;
   }
   
   active_toolop() {
@@ -297,11 +436,11 @@ export class ManipulatorManager {
       this.active.on_tick(ctx);
   }
   
-  arrow(normal, id, clr, do_push=true) {
-    normal = new Vector3(normal);
-    normal.normalize().mulScalar(25.0);
+  arrow(v1, v2, id, clr, do_push=true) {
+    v1 = new Vector2(v1);
+    v2 = new Vector2(v2);
     
-    var h = new ManipHandle(new Vector3(), normal, id, HandleShapes.ARROW, this.view3d, clr);
+    var h = new ManipHandle(v1, v2, id, HandleShapes.ARROW, this.view3d, clr);
     var mn = new Manipulator([h]);
     mn.parent = this;
     

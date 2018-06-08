@@ -303,24 +303,24 @@ ES6Module.prototype = {add_class: function(cls) {
 }};
 function es6_get_module_meta(name, path) {
   if (path!==undefined||name.search(/\//)>=0||name.search(/\.js/)>=0) {
-      var $_let_path_was_undefined25=false;
+      let path_was_undefined=false;
       if (path===undefined) {
-          $_let_path_was_undefined25 = true;
+          path_was_undefined = true;
           path = name;
       }
       path = _normpath(path, _es6_get_basepath());
-      for (var $_let_k32 in _defined_modules) {
-          var $_let_mod37=_defined_modules[$_let_k32];
-          if ($_let_mod37.path===path) {
-              return $_let_mod37;
+      for (let k in _defined_modules) {
+          let mod=_defined_modules[k];
+          if (mod.path===path) {
+              return mod;
           }
       }
-      if ($_let_path_was_undefined25) {
-          var $_let_i46=name.length-1;
-          while ($_let_i46>=0&&name[$_let_i46]!="/") {
-            $_let_i46--;
+      if (path_was_undefined) {
+          let i=name.length-1;
+          while (i>=0&&name[i]!="/") {
+            i--;
           }
-          name = name.slice(name[$_let_i46]=="/" ? $_let_i46+1 : $_let_i46, name.length);
+          name = name.slice(name[i]=="/" ? i+1 : i, name.length);
       }
   }
   if (!(name in _defined_modules)) {
@@ -449,27 +449,27 @@ function _normpath(path, basepath) {
   if (path[0]=="."&&path[1]=="/") {
       path = basepath+"/"+path.slice(2, path.length);
   }
-  var $_let_ps101=path.split("/");
-  var $_let_bs102=basepath.split("basepath");
-  var $_let_stack103=[];
-  for (var $_let_i109=0; $_let_i109<$_let_ps101.length; $_let_i109++) {
-      if ($_let_ps101[$_let_i109]=="..") {
-          $_let_stack103.pop();
+  let ps=path.split("/");
+  let bs=basepath.split("basepath");
+  let stack=[];
+  for (let i=0; i<ps.length; i++) {
+      if (ps[i]=="..") {
+          stack.pop();
       }
       else {
-        $_let_stack103.push($_let_ps101[$_let_i109]);
+        stack.push(ps[i]);
       }
   }
   path = "";
-  var __iter_$_let_c133=__get_iter($_let_stack103);
-  var $_let_c133;
+  var __iter_c=__get_iter(stack);
+  var c;
   while (1) {
-    var __ival_$_let_c133=__iter_$_let_c133.next();
-    if (__ival_$_let_c133.done) {
+    var __ival_c=__iter_c.next();
+    if (__ival_c.done) {
         break;
     }
-    $_let_c133 = __ival_$_let_c133.value;
-    path = path+"/"+$_let_c133;
+    c = __ival_c.value;
+    path = path+"/"+c;
   }
   return path;
 }
@@ -967,6 +967,8 @@ function __bind_super_prop(obj, cls, parent, prop) {
 
 es6_module_define('config', ["config_local"], function _config_module(_es6_module) {
   "use strict";
+  var MANIPULATOR_MOUSEOVER_LIMIT=25;
+  MANIPULATOR_MOUSEOVER_LIMIT = _es6_module.add_export('MANIPULATOR_MOUSEOVER_LIMIT', MANIPULATOR_MOUSEOVER_LIMIT);
   var ELECTRON_APP_MODE=document.getElementById("ElectronAppMode")!==null;
   ELECTRON_APP_MODE = _es6_module.add_export('ELECTRON_APP_MODE', ELECTRON_APP_MODE);
   var CHROME_APP_MODE=document.getElementById("GoogleChromeAppMode")!==null;
@@ -993,6 +995,9 @@ es6_module_define('config', ["config_local"], function _config_module(_es6_modul
   MAX_CANVAS2D_VECTOR_CACHE_SIZE = _es6_module.add_export('MAX_CANVAS2D_VECTOR_CACHE_SIZE', MAX_CANVAS2D_VECTOR_CACHE_SIZE);
   var MAX_RECENT_FILES=12;
   MAX_RECENT_FILES = _es6_module.add_export('MAX_RECENT_FILES', MAX_RECENT_FILES);
+  var ON_TICK_TIMER_MS;
+  ON_TICK_TIMER_MS = _es6_module.add_export('ON_TICK_TIMER_MS', ON_TICK_TIMER_MS);
+  150;
   window.RELEASE = false;
   var config_local=es6_import(_es6_module, 'config_local');
   var _config_local=es6_import(_es6_module, 'config_local');
@@ -1013,6 +1018,8 @@ es6_module_define('config', ["config_local"], function _config_module(_es6_modul
 
 es6_module_define('config_local', [], function _config_local_module(_es6_module) {
   'use strict';
+  var ON_TICK_TIMER_MS=70;
+  ON_TICK_TIMER_MS = _es6_module.add_export('ON_TICK_TIMER_MS', ON_TICK_TIMER_MS);
   var DEBUG={ui_redraw: false, viewport_partial_update: false, ui_datapaths: false, screen_keyboard: false, force_mobile: false}
   DEBUG = _es6_module.add_export('DEBUG', DEBUG);
 }, '/dev/fairmotion/src/config/config_local.js');

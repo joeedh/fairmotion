@@ -921,7 +921,7 @@ Vec2Property.STRUCT = STRUCT.inherit(Vec2Property, ToolProperty) + """
 
 export class Vec3Property extends ToolProperty {
   constructor(vec3, apiname, uiname, description, flag) {
-    ToolProperty.call(this, PropTypes.VEC3, apiname, uiname, description, flag);
+    super(PropTypes.VEC3, apiname, uiname, description, flag);
     
     this.unit = "default";
     this.range = [undefined, undefined]
@@ -930,7 +930,7 @@ export class Vec3Property extends ToolProperty {
   }
   
   copyTo(Vec3Property dst) : Vec3Property {
-    ToolProperty.prototype.copyTo.call(this, dst, false);
+    super.copyTo(dst, false);
     
     dst.data = new Vector3(this.data);
     dst.real_range = this.real_range;
@@ -941,7 +941,7 @@ export class Vec3Property extends ToolProperty {
   
   set_data(Vector3 data, Object owner, changed) {
     this.data.load(data);
-    ToolProperty.prototype.set_data.call(this, undefined, owner, changed, false);
+    super.set_data(undefined, owner, changed, false);
   }
   
   copy() : Vec3Property {

@@ -547,6 +547,29 @@ export class View2DHandler extends Area {
     this.editor.rightclick_menu(event, this);
   }
   
+  _widget_mouseevent(event) {
+    let co = [event.x, event.y];
+    console.log("Widget event", event.x, event.y);
+    this.unproject(co);
+    
+    let event2 = {
+      type : event.type,
+      
+      x: co[0],
+      y: co[1],
+      
+      origX : event.x,
+      origY : event.y,
+      
+      shiftKey : event.shiftKey,
+      ctrlKey : event.ctrlKey,
+      altKey : event.altKey,
+      commandKey : event.commandKey
+    };
+    
+    return event2;
+  }
+  
   on_mousedown(event : MouseEvent) {
     //console.trace();
     
@@ -556,7 +579,7 @@ export class View2DHandler extends Area {
     if (super.on_mousedown(event))
       return;
     
-    if (this.widgets.do_click(event, this)) {
+    if (this.widgets.on_click(this._widget_mouseevent(event), this)) {
       return;
     }
     
@@ -652,6 +675,10 @@ export class View2DHandler extends Area {
     
     if (super.on_mousemove(event)) {
         return;
+    }
+    
+    if (this.widgets.on_mousemove(this._widget_mouseevent(event), this)) {
+      return;
     }
     this.editor.on_mousemove(event);
   }

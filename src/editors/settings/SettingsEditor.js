@@ -213,14 +213,12 @@ class SettingsEditor extends Area {
     Area.prototype.destroy.call(this);
   }
   
-  build_topbar()
+  build_topbar(col)
   {
     this.ctx = new Context();
     
-    var col = new ColumnFrame(this.ctx, undefined, PackFlags.ALIGN_LEFT);
-    
     this.topbar = col;
-    col.packflag |= PackFlags.IGNORE_LIMIT;
+    col.packflag |= PackFlags.IGNORE_LIMIT|PackFlags.ALIGN_LEFT;
     
     col.size = [this.size[0], Area.get_barhgt()];
     col.draw_background = true
@@ -233,9 +231,8 @@ class SettingsEditor extends Area {
     this.add(col);
   }
   
-  build_bottombar() {
+  build_bottombar(col) {
     var ctx = new Context();
-    var col = new ColumnFrame(ctx);
     
     col.packflag |= PackFlags.ALIGN_LEFT;
     col.default_packflag = PackFlags.ALIGN_LEFT;

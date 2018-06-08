@@ -159,6 +159,8 @@ export class UICanvas {
   
   get_canvas(obj_or_id, pos, size, zindex=4) {
     var id = obj_or_id;
+  
+    window._ensure_thedimens();
     
     if (typeof id == "object")
       id = id[Symbol.keystr]();
@@ -168,7 +170,7 @@ export class UICanvas {
       canvas = this.canvases[id];
       canvas.is_blank = false;
     } else {
-      console.trace("creating new canvas. . .");
+      console.warn("creating new canvas. . .");
     
       var canvas = document.createElement("canvas");
       canvas.id = "_canvas2d_" + id;
@@ -213,7 +215,7 @@ export class UICanvas {
       canvas.is_blank = true;
     }
     
-    var y = Math.floor(window.innerHeight - pos[1] - size[1]);
+    var y = Math.floor(window.theHeight - pos[1] - size[1]);
     
     if (canvas.style["top"] != ""+y+"px") {
       canvas.style["top"] = ""+y+"px";

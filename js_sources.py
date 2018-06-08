@@ -135,6 +135,7 @@ sources = [
   #"src/ui/UICanvas2D.js",
   "src/ui/UIFrame.js",
   "src/ui/UIPack.js",
+  "src/ui/UISplitFrame.js",
   "src/ui/icon.js",
 	"src/ui/UIWidgets.js",
   "src/editors/viewport/selectmode.js",

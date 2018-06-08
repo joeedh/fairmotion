@@ -1,4 +1,4 @@
-es6_module_define('UIFrame', ["mathlib", "UIElement", "J3DIMath", "events"], function _UIFrame_module(_es6_module) {
+es6_module_define('UIFrame', ["J3DIMath", "UIElement", "events", "mathlib"], function _UIFrame_module(_es6_module) {
   var aabb_isect_2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_2d');
   var inrect_2d=es6_import_item(_es6_module, 'mathlib', 'inrect_2d');
   es6_import(_es6_module, 'J3DIMath');
@@ -17,8 +17,8 @@ es6_module_define('UIFrame', ["mathlib", "UIElement", "J3DIMath", "events"], fun
   var _static_mat=new Matrix4();
   var _ufbd_v1=new Vector3();
   var _canvas_threshold=1.0;
-  var $pos_lF9o__find_active;
-  var $zero_76k4_build_draw_old;
+  var $pos_ED3M__find_active;
+  var $zero_8Sg9_build_draw_old;
   var UIFrame=_ESClass("UIFrame", UIElement, [function UIFrame(ctx, canvas, path, pos, size) {
     UIElement.call(this, ctx, path, pos, size);
     this.dirty_rects = new GArray();
@@ -277,6 +277,7 @@ es6_module_define('UIFrame', ["mathlib", "UIElement", "J3DIMath", "events"], fun
     if (this.modalhandler!=null) {
         this._offset_mpos(event);
         this.modalhandler._on_mousemove(event);
+        this._unoffset_mpos(event);
         return true;
     }
     else {
@@ -308,10 +309,10 @@ es6_module_define('UIFrame', ["mathlib", "UIElement", "J3DIMath", "events"], fun
     var found=false;
     for (var i=this.children.length-1; i>=0; i--) {
         var c=this.children[i];
-        $pos_lF9o__find_active[0] = c.pos[0], $pos_lF9o__find_active[1] = c.pos[1];
+        $pos_ED3M__find_active[0] = c.pos[0], $pos_ED3M__find_active[1] = c.pos[1];
         if (c.state&UIFlags.HAS_PAN) {
         }
-        if (inrect_2d(mpos, $pos_lF9o__find_active, c.size)) {
+        if (inrect_2d(mpos, $pos_ED3M__find_active, c.size)) {
             found = true;
             if (this.active!=c&&this.active!=undefined) {
                 this.active.state&=~UIFlags.HIGHLIGHT;
@@ -348,7 +349,7 @@ es6_module_define('UIFrame', ["mathlib", "UIElement", "J3DIMath", "events"], fun
         e.y+=this.active.pos[1];
     }
     this._unoffset_mpos(e);
-    return this.active!=undefined;
+    return this._act_has_events();
   }, function bad_event(event) {
     if (!(this.state&UIFlags.ENABLED))
       return false;
@@ -359,6 +360,7 @@ es6_module_define('UIFrame', ["mathlib", "UIElement", "J3DIMath", "events"], fun
     if (this.modalhandler!=null) {
         this._offset_mpos(event);
         this.modalhandler._on_doubleclick(event);
+        this._unoffset_mpos(event);
     }
     else {
       this.on_doubleclick(event);
@@ -369,6 +371,7 @@ es6_module_define('UIFrame', ["mathlib", "UIElement", "J3DIMath", "events"], fun
     if (this.modalhandler!=null) {
         this._offset_mpos(event);
         this.modalhandler._on_mousedown(event);
+        this._unoffset_mpos(event);
     }
     else {
       this.on_mousedown(event);
@@ -376,15 +379,18 @@ es6_module_define('UIFrame', ["mathlib", "UIElement", "J3DIMath", "events"], fun
   }, function on_doubleclick(e) {
     if (this.bad_event(e))
       return ;
+    this._offset_mpos(e);
     var mpos=this.mpos = [e.x, e.y];
     this._find_active(e);
     if (this.active!=undefined) {
         e.x-=this.active.pos[0];
         e.y-=this.active.pos[1];
         this.active._on_doubleclick(e);
+        e.x+=this.active.pos[0];
+        e.y+=this.active.pos[1];
     }
     this._unoffset_mpos(e);
-    return this.active!=undefined;
+    return this._act_has_events();
   }, function on_mousedown(e, feed_mousemove) {
     if (feed_mousemove==undefined) {
         feed_mousemove = false;
@@ -393,28 +399,40 @@ es6_module_define('UIFrame', ["mathlib", "UIElement", "J3DIMath", "events"], fun
       return ;
     if (feed_mousemove)
       this.on_mousemove(e);
-    else 
-      this._offset_mpos(e);
+    this._offset_mpos(e);
     var mpos=this.mpos = [e.x, e.y];
     this._find_active(e);
     if ((this.state&UIFlags.USE_PAN)&&(e.button!=0||this.active==undefined)) {
         console.log("panning");
         this.start_pan([e.x, e.y]);
+        this._unoffset_mpos(e);
         return ;
     }
     if (this.active!=undefined) {
         e.x-=this.active.pos[0];
         e.y-=this.active.pos[1];
         this.active._on_mousedown(e);
+        e.x+=this.active.pos[0];
+        e.y+=this.active.pos[1];
     }
     this._unoffset_mpos(e);
-    return this.active!=undefined;
+    return this._act_has_events();
+  }, function _act_has_events() {
+    if (this.active!=undefined) {
+        var $_let_act1=this.active;
+        while ($_let_act1.active!==undefined) {
+          $_let_act1 = $_let_act1.active;
+        }
+        return !($_let_act1.state&UIFlags.BG_EVENTS_TRANSPARENT);
+    }
+    return false;
   }, function _on_mouseup(event) {
     if (this.bad_event(event))
       return ;
     if (this.modalhandler!=null) {
         this._offset_mpos(event);
         this.modalhandler._on_mouseup(event);
+        this._unoffset_mpos(event);
     }
     else {
       this.on_mouseup(event);
@@ -427,9 +445,11 @@ es6_module_define('UIFrame', ["mathlib", "UIElement", "J3DIMath", "events"], fun
         e.x-=this.active.pos[0];
         e.y-=this.active.pos[1];
         this.active._on_mouseup(e);
+        e.x+=this.active.pos[0];
+        e.y+=this.active.pos[1];
     }
     this._unoffset_mpos(e);
-    return this.active!=undefined;
+    return this._act_has_events();
   }, function _on_mousewheel(event, delta) {
     if (this.bad_event(event))
       return ;
@@ -439,6 +459,10 @@ es6_module_define('UIFrame', ["mathlib", "UIElement", "J3DIMath", "events"], fun
             event.y-=this.modalhandler.pos[1];
         }
         this.modalhandler._on_mousewheel(event, delta);
+        if (this.modalhandler["pos"]!=undefined) {
+            event.x+=this.modalhandler.pos[0];
+            event.y+=this.modalhandler.pos[1];
+        }
     }
     else {
       this.on_mousewheel(event, delta);
@@ -450,28 +474,32 @@ es6_module_define('UIFrame', ["mathlib", "UIElement", "J3DIMath", "events"], fun
             event.y-=this.modalhandler.pos[1];
         }
         this.active._on_mousewheel(e, delta);
+        if (this.modalhandler["pos"]!=undefined) {
+            event.x+=this.modalhandler.pos[0];
+            event.y+=this.modalhandler.pos[1];
+        }
     }
-    return this.active!=undefined;
+    return this._act_has_events();
   }, function on_textinput(e) {
     if (this.active!=undefined) {
         this.active._on_textinput(e);
     }
-    return this.active!=undefined;
+    return this._act_has_events();
   }, function on_keydown(e) {
     if (this.active!=undefined) {
         this.active._on_keydown(e);
     }
-    return this.active!=undefined;
+    return this._act_has_events();
   }, function on_keyup(e) {
     if (this.active!=undefined) {
         this.active._on_keyup(e);
     }
-    return this.active!=undefined;
+    return this._act_has_events();
   }, function on_charcode(e) {
     if (this.active!=undefined) {
         this.active._on_charcode(e);
     }
-    return this.active!=undefined;
+    return this._act_has_events();
   }, function get_uhash() {
     var s="";
     var p=this;
@@ -766,6 +794,9 @@ es6_module_define('UIFrame', ["mathlib", "UIElement", "J3DIMath", "events"], fun
     }
     var pushed_pan_transform=false;
     var canvas=this.canvas;
+    if (this.state&UIFlags.CLIP_CONTENTS) {
+        canvas.push_scissor([0, 0], this.size);
+    }
     try {
       if (this.state&UIFlags.HAS_PAN&&this.velpan!=undefined) {
           canvas.push_transform();
@@ -816,6 +847,9 @@ es6_module_define('UIFrame', ["mathlib", "UIElement", "J3DIMath", "events"], fun
     }
     if (pushed_pan_transform) {
         this.canvas.pop_transform();
+    }
+    if (this.state&UIFlags.CLIP_CONTENTS) {
+        canvas.pop_scissor();
     }
   }, function build_draw_old(canvas, isVertical, cache_frame) {
     if (cache_frame==undefined) {
@@ -891,7 +925,7 @@ es6_module_define('UIFrame', ["mathlib", "UIElement", "J3DIMath", "events"], fun
       if (this.state&UIFlags.HAS_PAN)
         pos = this.velpan.pan;
       else 
-        pos = $zero_76k4_build_draw_old;
+        pos = $zero_8Sg9_build_draw_old;
       isect = isect||aabb_isect_2d(c.pos, c.size, pos, this.size);
       if (!isect) {
           this.has_hidden_elements = true;
@@ -1043,8 +1077,8 @@ es6_module_define('UIFrame', ["mathlib", "UIElement", "J3DIMath", "events"], fun
         frame.push_modal(e);
     }
   }]);
-  var $pos_lF9o__find_active=[0, 0];
-  var $zero_76k4_build_draw_old=[0, 0];
+  var $pos_ED3M__find_active=[0, 0];
+  var $zero_8Sg9_build_draw_old=[0, 0];
   _es6_module.add_class(UIFrame);
   UIFrame = _es6_module.add_export('UIFrame', UIFrame);
 }, '/dev/fairmotion/src/ui/UIFrame.js');
@@ -1916,6 +1950,93 @@ es6_module_define('UIPack', ["toolprops", "mathlib", "UIWidgets", "UIElement", "
   _es6_module.add_class(ToolOpFrame);
   ToolOpFrame = _es6_module.add_export('ToolOpFrame', ToolOpFrame);
 }, '/dev/fairmotion/src/ui/UIPack.js');
+es6_module_define('UISplitFrame', ["UIPack", "UIFrame", "UIElement"], function _UISplitFrame_module(_es6_module) {
+  var UIFrame=es6_import_item(_es6_module, 'UIFrame', 'UIFrame');
+  var UIElement=es6_import_item(_es6_module, 'UIElement', 'UIElement');
+  var UIFlags=es6_import_item(_es6_module, 'UIElement', 'UIFlags');
+  var PackFlags=es6_import_item(_es6_module, 'UIElement', 'PackFlags');
+  var RowFrame=es6_import_item(_es6_module, 'UIPack', 'RowFrame');
+  var ColumnFrame=es6_import_item(_es6_module, 'UIPack', 'ColumnFrame');
+  var UISplitFrame=_ESClass("UISplitFrame", UIFrame, [function UISplitFrame(ctx, is_horizontal, canvas, path, pos, size) {
+    UIFrame.call(this, ctx, canvas, path, pos, size);
+    this.splits = [];
+    this.horizontal = is_horizontal;
+    this.state|=UIFlags.CLIP_CONTENTS;
+  }, function initial() {
+    var frame=new UISplitFrame(this.ctx, this.horizontal);
+    this.splits.push([frame, 0.0, false, false]);
+    this.add(frame);
+    return frame;
+  }, function split(perc1, fake, from_top, in_pixels) {
+    var frame;
+    if (perc1===undefined||isNaN(perc1)) {
+        throw new Error("Invalid percentage "+perc1);
+    }
+    var frame=fake ? undefined : new UISplitFrame(this.ctx, this.horizontal);
+    if (this.splits.length==0) {
+        var initial=new UISplitFrame(this.ctx, this.horizontal);
+        this.splits.push([initial, 0.0, false, false]);
+    }
+    this.splits.push([frame, perc1, from_top, in_pixels]);
+    if (!fake) {
+        this.add(frame);
+    }
+    return frame;
+  }, function build_draw(canvas, is_vertical) {
+    UIFrame.prototype.build_draw.call(this, canvas, is_vertical);
+  }, function pack(canvas, is_vertical) {
+    if (this.splits.length==0) {
+        var __iter_$_let_c1=__get_iter(this.children);
+        var $_let_c1;
+        while (1) {
+          var __ival_$_let_c1=__iter_$_let_c1.next();
+          if (__ival_$_let_c1.done) {
+              break;
+          }
+          $_let_c1 = __ival_$_let_c1.value;
+          var $_let_minsize3=$_let_c1.get_min_size(canvas, is_vertical);
+          if ($_let_c1.packflag&PackFlags.INHERIT_WIDTH)
+            $_let_c1.size[0] = this.size[0];
+          else 
+            $_let_c1.size[0] = $_let_minsize3[0];
+          if ($_let_c1.packflag&PackFlags.INHERIT_HEIGHT)
+            $_let_c1.size[1] = this.size[1];
+          else 
+            $_let_c1.size[1] = $_let_minsize3[1];
+        }
+        UIFrame.prototype.pack.call(this, canvas, is_vertical);
+        return ;
+    }
+    var $_let_size4=this.horizontal ? this.size[0] : this.size[1];
+    function get_perc(split) {
+      var $_let_p7=split[1];
+      if (split[3])
+        $_let_p7/=$_let_size4;
+      if (split[2])
+        $_let_p7 = 1.0-$_let_p7;
+      return $_let_p7;
+    }
+    this.splits.sort(function(a, b) {
+      return get_perc(a)-get_perc(b);
+    });
+    for (var $_let_i12=0; $_let_i12<this.splits.length; $_let_i12++) {
+        var $_let_split15=this.splits[$_let_i12];
+        var $_let_frame16=$_let_split15[0], $_let_perc117=get_perc($_let_split15);
+        var $_let_perc218=$_let_i12<this.splits.length-1 ? get_perc(this.splits[$_let_i12+1]) : 1.0;
+        if ($_let_frame16===undefined) {
+            continue;
+        }
+        var $_let_a25=this.horizontal^1;
+        $_let_frame16.pos[$_let_a25^1] = 0;
+        $_let_frame16.pos[$_let_a25] = this.size[$_let_a25]*$_let_perc117;
+        $_let_frame16.size[$_let_a25^1] = this.size[$_let_a25^1];
+        $_let_frame16.size[$_let_a25] = this.size[$_let_a25]*$_let_perc218-$_let_frame16.pos[$_let_a25];
+    }
+    UIFrame.prototype.pack.call(this, canvas, is_vertical);
+  }]);
+  _es6_module.add_class(UISplitFrame);
+  UISplitFrame = _es6_module.add_export('UISplitFrame', UISplitFrame);
+}, '/dev/fairmotion/src/ui/UISplitFrame.js');
 es6_module_define('icon', [], function _icon_module(_es6_module) {
   "use strict";
   var $ret_LpHS_enum_to_xy;
@@ -6717,7 +6838,7 @@ es6_module_define('UIWidgets_special2', ["UIPack", "UIWidgets_special", "dialog"
   UIColorButtonField = _es6_module.add_export('UIColorButtonField', UIColorButtonField);
   window.UIColorButton = UIColorButton;
 }, '/dev/fairmotion/src/ui/UIWidgets_special2.js');
-es6_module_define('UITabPanel', ["mathlib", "UIFrame", "UIWidgets", "UIPack", "UIElement"], function _UITabPanel_module(_es6_module) {
+es6_module_define('UITabPanel', ["UIFrame", "UIPack", "mathlib", "UIWidgets", "UIElement"], function _UITabPanel_module(_es6_module) {
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
   var inrect_2d=es6_import_item(_es6_module, 'mathlib', 'inrect_2d');
   var aabb_isect_2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_2d');
@@ -6747,6 +6868,7 @@ es6_module_define('UITabPanel', ["mathlib", "UIFrame", "UIWidgets", "UIPack", "U
     this.tbound = tbound;
     this.pos = [0, 0];
     this.size = [0, 0];
+    this.textpad = 1;
   }]);
   _es6_module.add_class(_UITab);
   _UITab = _es6_module.add_export('_UITab', _UITab);
@@ -6780,7 +6902,7 @@ es6_module_define('UITabPanel', ["mathlib", "UIFrame", "UIWidgets", "UIPack", "U
       this.active = tab;
   }, function get_min_size(canvas, isVertical) {
     var thickness=this.min_thickness;
-    var tpad=this.triwid*2.0;
+    var tpad=this.triwid*4.0;
     var twid=tpad;
     var __iter_c=__get_iter(this.tabs);
     var c;
@@ -6790,8 +6912,8 @@ es6_module_define('UITabPanel', ["mathlib", "UIFrame", "UIWidgets", "UIPack", "U
           break;
       }
       c = __ival_c.value;
-      var sz=canvas.textsize(c.text);
-      twid+=sz[0]+tpad*2.0;
+      var sz=canvas.textsize(c.text)+c.textpad*2;
+      twid+=sz[0]+tpad;
       thickness = Math.max(sz[1], thickness);
     }
     this.thickness = thickness;
@@ -6826,7 +6948,7 @@ es6_module_define('UITabPanel', ["mathlib", "UIFrame", "UIWidgets", "UIPack", "U
       t = __ival_t.value;
       if (t.tbound==undefined) {
           t.tbound = canvas.textsize(t.text);
-          t.tbound = [t.tbound[0], t.tbound[1]];
+          t.tbound = [t.tbound[0]+t.textpad*2, t.tbound[1]];
       }
       size[0] = w;
       size[1] = t.tbound[0]+12;
@@ -6839,7 +6961,7 @@ es6_module_define('UITabPanel', ["mathlib", "UIFrame", "UIWidgets", "UIPack", "U
       pos3[1] = pos[1]+size[1];
       this.mm.minmax(pos);
       this.mm.minmax(pos3);
-      pos2[1] = pos[1]+4;
+      pos2[1] = pos[1]+4+t.textpad;
       if (t==this.highlight&&t!=this.active)
         canvas.simple_box(pos, size, uicolors["HighlightTab"]);
       else 
@@ -9367,7 +9489,7 @@ es6_module_define('FrameManager_ops', ["UICanvas", "struct", "events", "UIFrame"
   _es6_module.add_class(HintPickerOp);
   HintPickerOp = _es6_module.add_export('HintPickerOp', HintPickerOp);
 }, '/dev/fairmotion/src/windowmanager/FrameManager_ops.js');
-es6_module_define('ScreenArea', ["events", "struct", "UIWidgets", "UIPack", "UIElement", "UICanvas", "UIFrame", "dialogs", "mathlib", "toolops_api"], function _ScreenArea_module(_es6_module) {
+es6_module_define('ScreenArea', ["UICanvas", "UIPack", "dialogs", "events", "UIElement", "UISplitFrame", "toolops_api", "mathlib", "UIWidgets", "UIFrame", "struct"], function _ScreenArea_module(_es6_module) {
   "use strict";
   var login_dialog=es6_import_item(_es6_module, 'dialogs', 'login_dialog');
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
@@ -9391,9 +9513,11 @@ es6_module_define('ScreenArea', ["events", "struct", "UIWidgets", "UIPack", "UIE
   var EventHandler=es6_import_item(_es6_module, 'events', 'EventHandler');
   var UIButton=es6_import_item(_es6_module, 'UIWidgets', 'UIButton');
   var UIButtonIcon=es6_import_item(_es6_module, 'UIWidgets', 'UIButtonIcon');
+  var UISplitFrame=es6_import_item(_es6_module, 'UISplitFrame', 'UISplitFrame');
   var UICanvas=es6_import_item(_es6_module, 'UICanvas', 'UICanvas');
   var UIFrame=es6_import_item(_es6_module, 'UIFrame', 'UIFrame');
   var RowFrame=es6_import_item(_es6_module, 'UIPack', 'RowFrame');
+  var ColumnFrame=es6_import_item(_es6_module, 'UIPack', 'ColumnFrame');
   var PackFlags=es6_import_item(_es6_module, 'UIElement', 'PackFlags');
   var UIElement=es6_import_item(_es6_module, 'UIElement', 'UIElement');
   var UIFlags=es6_import_item(_es6_module, 'UIElement', 'UIFlags');
@@ -9427,59 +9551,19 @@ es6_module_define('ScreenArea', ["events", "struct", "UIWidgets", "UIPack", "UIE
     plus.description = "Split the screen";
     this.add(plus);
   }, function pack(canvas, is_vertical) {
+    if (this.subframe!==undefined) {
+        this.subframe.size[0] = this.size[0];
+        this.subframe.size[1] = this.size[1];
+        this.subframe.pos[0] = this.subframe.pos[1] = 0;
+    }
     this.plus.size = this.plus.get_min_size(canvas, is_vertical);
     this.plus.small_icon = true;
     this.plus.pos[0] = this.size[0]-this.plus.size[0]-2;
     this.plus.pos[1] = 2;
     this.children.remove(this.plus);
     this.children.push(this.plus);
-    UIFrame.prototype.pack.call(this, canvas, is_vertical);
-    function bind_size(obj) {
-      return ;
-      obj._size = obj.size;
-      Object.defineProperty(obj, 'size', {enumerable: true, configurable: true, get: function() {
-        console.trace(".size access!", this._size[0], this._size[1]);
-        return this._size;
-      }, set: function(val) {
-        this._size = val;
-      }});
-    }
     var panx=this.velpan!=undefined ? this.velpan.pan[0] : 0;
     var pany=this.velpan!=undefined ? this.velpan.pan[1] : 0;
-    var i=0;
-    var __iter_frame=__get_iter(this.rows);
-    var frame;
-    while (1) {
-      var __ival_frame=__iter_frame.next();
-      if (__ival_frame.done) {
-          break;
-      }
-      frame = __ival_frame.value;
-      frame.state|=UIFlags.HAS_PAN|UIFlags.USE_PAN|UIFlags.NO_VELOCITY_PAN;
-      frame.packflag|=PackFlags.INHERIT_WIDTH|PackFlags.CALC_NEGATIVE_PAN|PackFlags.PAN_X_ONLY;
-      if (i==0)
-        frame.pos[1] = this.size[1]-Area.get_barhgt()-pany;
-      frame.size[0] = Math.max(frame.get_min_size(this.get_canvas())[0]+10, this.size[0]);
-      i++;
-    }
-    i = 0;
-    var __iter_frame=__get_iter(this.cols);
-    var frame;
-    while (1) {
-      var __ival_frame=__iter_frame.next();
-      if (__ival_frame.done) {
-          break;
-      }
-      frame = __ival_frame.value;
-      frame.state|=UIFlags.HAS_PAN|UIFlags.USE_PAN|UIFlags.NO_VELOCITY_PAN;
-      frame.packflag|=PackFlags.INHERIT_WIDTH|PackFlags.CALC_NEGATIVE_PAN|PackFlags.PAN_X_ONLY;
-      if (i!=0)
-        frame.pos[0] = this.size[0]-frame.size[0]-panx;
-      frame.size[1] = frame.get_min_size(this.get_canvas())[1];
-      frame.size[0] = frame.get_min_size(this.get_canvas())[0];
-      frame.pos[1] = this.size[1]-frame.size[1]-Area.get_barhgt();
-      i++;
-    }
     UIFrame.prototype.pack.call(this, canvas, is_vertical);
   }, function on_tick() {
     if (this.auto_load_uidata&&this._saved_uidata!=undefined) {
@@ -9566,7 +9650,7 @@ es6_module_define('ScreenArea', ["events", "struct", "UIWidgets", "UIPack", "UIE
         return ;
     }
     stack.pop(stack.length-1);
-  }, _ESClass.static(function default_new(ctx, scr, gl, pos, size) {
+  }, _ESClass.static(function default_new(ctx, scr, unused, pos, size) {
   }), function get_keymaps() {
     return [this.keymap];
   }, function destroy() {
@@ -9610,37 +9694,7 @@ es6_module_define('ScreenArea', ["events", "struct", "UIWidgets", "UIPack", "UIE
     }
     UIFrame.prototype.on_gl_lost.call(this, new_gl);
   }, function on_add(parent) {
-    var __iter_c=__get_iter(this.rows);
-    var c;
-    while (1) {
-      var __ival_c=__iter_c.next();
-      if (__ival_c.done) {
-          break;
-      }
-      c = __ival_c.value;
-      this.remove(c);
-    }
-    var __iter_c=__get_iter(this.cols);
-    var c;
-    while (1) {
-      var __ival_c=__iter_c.next();
-      if (__ival_c.done) {
-          break;
-      }
-      c = __ival_c.value;
-      this.remove(c);
-    }
-    this.rows = new GArray();
-    this.cols = new GArray();
-    try {
-      this.build_sidebar1();
-      this.build_topbar();
-      this.build_bottombar();
-    }
-    catch (error) {
-        print_stack(error);
-        console.log("Failed to build UI properly");
-    }
+    this.build_layout();
   }, function toJSON() {
     if (this.pos==undefined) {
         this.pos = [0, 0];
@@ -9697,6 +9751,36 @@ es6_module_define('ScreenArea', ["events", "struct", "UIWidgets", "UIPack", "UIE
     this.alt = event.altKey;
     this.ctrl = event.ctrlKey;
     UIFrame.prototype.on_keydown.call(this, event);
+  }, function build_layout(make_top, make_bottom) {
+    if (make_top==undefined) {
+        make_top = true;
+    }
+    if (make_bottom==undefined) {
+        make_bottom = true;
+    }
+    if (this.subframe!==undefined) {
+        this.remove(this.subframe);
+    }
+    this.subframe = new UISplitFrame(this.ctx);
+    this.subframe.state|=UIFlags.BG_EVENTS_TRANSPARENT;
+    this.add(this.subframe);
+    var $_let_bottombar12=this.bottombar = this.subframe.initial();
+    if (make_bottom) {
+        $_let_bottombar12.add(new ColumnFrame(this.ctx));
+        $_let_bottombar12.children[0].draw_background = true;
+        this.build_bottombar($_let_bottombar12.children[0]);
+    }
+    else {
+      $_let_bottombar12.state|=UIFlags.BG_EVENTS_TRANSPARENT;
+    }
+    this.middlesplit = this.subframe.split(Area.get_barhgt(), false, false, true);
+    this.middlesplit.state|=UIFlags.BG_EVENTS_TRANSPARENT;
+    if (make_top) {
+        var $_let_topbar16=this.topbar = this.subframe.split(Area.get_barhgt(), false, true, true);
+        $_let_topbar16.add(new ColumnFrame(this.ctx));
+        $_let_topbar16.children[0].draw_background = true;
+        this.build_topbar($_let_topbar16.children[0]);
+    }
   }, function build_bottombar() {
   }, function build_topbar() {
   }, function build_sidebar1() {
@@ -10298,10 +10382,10 @@ es6_module_define('view2d_editor', ["struct"], function _view2d_editor_module(_e
   EditModes = _es6_module.add_export('EditModes', EditModes);
   var SessionFlags={PROP_TRANSFORM: 1}
   SessionFlags = _es6_module.add_export('SessionFlags', SessionFlags);
-  var $v3d_idgen_4ng4_View2DEditor;
+  var $v3d_idgen_JGSl_View2DEditor;
   var View2DEditor=_ESClass("View2DEditor", [function View2DEditor(name, type, lib_type, keymap) {
     this.name = name;
-    this._id = $v3d_idgen_4ng4_View2DEditor++;
+    this._id = $v3d_idgen_JGSl_View2DEditor++;
     this.type = type;
     this.lib_type = lib_type;
     this.keymap = keymap;
@@ -10322,7 +10406,8 @@ es6_module_define('view2d_editor', ["struct"], function _view2d_editor_module(_e
   }, function add_menu(view2d, mpos) {
   }, function draw_object(gl, view2d, object, is_active) {
   }, function build_sidebar1(view2d, panel) {
-  }, function build_bottombar(view2d) {
+  }, function build_bottombar(view2d, col) {
+  }, function build_topbar(view2d, col) {
   }, function set_selectmode(mode) {
   }, function do_select(event, mpos, view2d) {
   }, function tools_menu(ctx, mpos, view2d) {
@@ -10334,12 +10419,12 @@ es6_module_define('view2d_editor', ["struct"], function _view2d_editor_module(_e
   }, function delete_menu(event) {
   }, function gen_edit_menu() {
   }]);
-  var $v3d_idgen_4ng4_View2DEditor=1;
+  var $v3d_idgen_JGSl_View2DEditor=1;
   _es6_module.add_class(View2DEditor);
   View2DEditor = _es6_module.add_export('View2DEditor', View2DEditor);
   View2DEditor.STRUCT = "\n  View2DEditor {\n  }\n";
 }, '/dev/fairmotion/src/editors/viewport/view2d_editor.js');
-es6_module_define('MaterialEditor', ["struct", "UITextBox", "UIElement", "UIWidgets", "UIFrame", "toolops_api", "config", "UICanvas", "mathlib", "events", "spline_editops", "spline_layerops", "spline_types", "UITabPanel", "UIWidgets_special", "ScreenArea", "UIPack"], function _MaterialEditor_module(_es6_module) {
+es6_module_define('MaterialEditor', ["config", "UITextBox", "mathlib", "UIWidgets", "UIPack", "UIWidgets_special", "spline_editops", "UIElement", "spline_types", "spline_layerops", "events", "UIFrame", "ScreenArea", "toolops_api", "UITabPanel", "struct", "UICanvas"], function _MaterialEditor_module(_es6_module) {
   var gen_editor_switcher=es6_import_item(_es6_module, 'UIWidgets_special', 'gen_editor_switcher');
   var ENABLE_MULTIRES=es6_import_item(_es6_module, 'config', 'ENABLE_MULTIRES');
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
@@ -10593,21 +10678,25 @@ es6_module_define('MaterialEditor', ["struct", "UITextBox", "UIElement", "UIWidg
     this.ctx = new Context();
     if (size==undefined)
       size = [1, 1];
-    this.subframe = new UITabPanel(new Context(), [size[0], size[1]]);
-    this.subframe.packflag|=PackFlags.NO_AUTO_SPACE|PackFlags.INHERIT_WIDTH;
-    this.subframe.size[0] = this.size[0];
-    this.subframe.size[1] = this.size[1];
-    this.subframe.pos = [0, Area.get_barhgt()];
-    this.subframe.state|=0;
-    this.subframe.velpan = new VelocityPan();
-    this.subframe.add_tab("Fill", this.fill_panel());
-    this.subframe.add_tab("Stroke", this.stroke_panel());
-    this.subframe.add_tab("Layers", this.layers_panel());
-    this.subframe.add_tab("Point", this.vertex_panel());
+    this.tab_size = size;
+  }, function build_layout() {
+    Area.prototype.build_layout.call(this);
+    var $_let_size7=this.tab_size;
+    this.innerframe = new UITabPanel(this.ctx, [$_let_size7[0], $_let_size7[1]]);
+    this.innerframe.packflag|=PackFlags.NO_AUTO_SPACING|PackFlags.INHERIT_WIDTH|PackFlags.INHERIT_HEIGHT;
+    this.innerframe.size[0] = this.size[0];
+    this.innerframe.size[1] = this.size[1];
+    this.innerframe.pos = [0, Area.get_barhgt()];
+    this.innerframe.state|=0;
+    this.innerframe.velpan = new VelocityPan();
+    this.innerframe.add_tab("Fill", this.fill_panel());
+    this.innerframe.add_tab("Stroke", this.stroke_panel());
+    this.innerframe.add_tab("Layers", this.layers_panel());
+    this.innerframe.add_tab("Point", this.vertex_panel());
     if (ENABLE_MULTIRES) {
-        this.subframe.add_tab("Multires", this.multires_panel());
+        this.innerframe.add_tab("Multires", this.multires_panel());
     }
-    this.add(this.subframe);
+    this.middlesplit.add(this.innerframe);
   }, function define_keymap() {
   }, function on_tick() {
     if (g_app_state.modalstate&ModalStates.PLAYING) {
@@ -10623,7 +10712,7 @@ es6_module_define('MaterialEditor', ["struct", "UITextBox", "UIElement", "UIWidg
     return ret;
   }), function on_mousedown(event) {
     if (event.button==1&&!g_app_state.was_touch) {
-        this.subframe.start_pan([event.x, event.y], 1);
+        this.innerframe.start_pan([event.x, event.y], 1);
     }
     else {
       Area.prototype.on_mousedown.call(this, event);
@@ -10636,20 +10725,17 @@ es6_module_define('MaterialEditor', ["struct", "UITextBox", "UIElement", "UIWidg
     return ret;
   }, function destroy() {
     Area.prototype.destroy.call(this);
-  }, function build_topbar() {
+  }, function build_topbar(col) {
     this.ctx = new Context();
-    var col=new ColumnFrame(this.ctx, undefined, PackFlags.ALIGN_LEFT);
+    col.packflag|=PackFlags.ALIGN_LEFT;
     this.topbar = col;
     col.packflag|=PackFlags.IGNORE_LIMIT;
     col.size = [this.size[0], Area.get_barhgt()];
     col.draw_background = true;
     col.rcorner = 100.0;
     col.pos = [0, this.size[1]-Area.get_barhgt()];
-    this.rows.push(col);
-    this.add(col);
-  }, function build_bottombar() {
+  }, function build_bottombar(col) {
     var ctx=new Context();
-    var col=new ColumnFrame(ctx);
     col.packflag|=PackFlags.ALIGN_LEFT;
     col.default_packflag = PackFlags.ALIGN_LEFT;
     col.draw_background = true;
@@ -10657,21 +10743,19 @@ es6_module_define('MaterialEditor', ["struct", "UITextBox", "UIElement", "UIWidg
     col.pos = [0, 2];
     col.size = [this.size[0], Area.get_barhgt()];
     col.add(gen_editor_switcher(this.ctx, this));
-    this.rows.push(col);
-    this.add(col);
   }, function build_draw(canvas, isVertical) {
-    this.subframe.set_pan();
+    this.innerframe.set_pan();
     var ctx=this.ctx = new Context();
     var sx=this.size[0];
-    var sy=this.size[1]-this.subframe.pos[1]-Area.get_barhgt();
-    var s1=this.size, s2=this.subframe.size;
+    var sy=this.size[1]-this.innerframe.pos[1]-Area.get_barhgt();
+    var s1=this.size, s2=this.innerframe.size;
     if (s2[0]!=sx||s2[1]!=sy) {
         console.log("resizing subframe");
-        this.subframe.size[0] = this.size[0];
-        this.subframe.size[1] = sy;
-        this.subframe.on_resize(this.size, this.subframe.size);
+        this.innerframe.size[0] = this.size[0];
+        this.innerframe.size[1] = sy;
+        this.innerframe.on_resize(this.size, this.innerframe.size);
     }
-    this.subframe.canvas.viewport = this.canvas.viewport;
+    this.innerframe.canvas.viewport = this.canvas.viewport;
     Area.prototype.build_draw.call(this, canvas, isVertical);
     this.mm.reset();
     var arr=[0, 0];

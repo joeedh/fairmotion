@@ -18,6 +18,7 @@ export class _UITab {
     this.tbound = tbound
     this.pos = [0, 0];
     this.size = [0, 0];
+    this.textpad = 1;
   }
 }
 
@@ -47,13 +48,13 @@ export class UITabBar extends UIElement {
   
   get_min_size(UICanvas canvas, Boolean isVertical) : Array<float> { 
     var thickness = this.min_thickness;
-    var tpad = this.triwid*2.0;
+    var tpad = this.triwid*4.0;
     var twid = tpad;
     
     for (var c of this.tabs) {
-      var sz = canvas.textsize(c.text);
+      var sz = canvas.textsize(c.text) + c.textpad*2;
       
-      twid += sz[0] + tpad*2.0;
+      twid += sz[0] + tpad;
       thickness = Math.max(sz[1], thickness);
     }
     
@@ -90,7 +91,7 @@ export class UITabBar extends UIElement {
     for (var t of this.tabs) {
       if (t.tbound == undefined) {
         t.tbound = canvas.textsize(t.text);
-        t.tbound = [t.tbound[0], t.tbound[1]];
+        t.tbound = [t.tbound[0] + t.textpad*2, t.tbound[1]];
       }
       
       size[0] = w;
@@ -106,7 +107,7 @@ export class UITabBar extends UIElement {
       this.mm.minmax(pos3);
       
       //text position
-      pos2[1] = pos[1]+4;
+      pos2[1] = pos[1]+4 + t.textpad;
       
       if (t == this.highlight && t != this.active)
         canvas.simple_box(pos, size, uicolors["HighlightTab"]);

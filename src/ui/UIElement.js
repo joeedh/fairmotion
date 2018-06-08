@@ -21,7 +21,8 @@ export var UIFlags = {
   PAN_CANVAS_MAT       : 2048, IS_CANVAS_ROOT  : 4096, 
   NO_FRAME_CACHE       : (1<<14), INVISIBLE       : (1<<15),
   IGNORE_PAN_BOUNDS    : (1<<16), BLOCK_REPAINT : (1<<17),
-  NO_VELOCITY_PAN      : (1<<18)
+  NO_VELOCITY_PAN      : (1<<18), BG_EVENTS_TRANSPARENT : (1<<19),
+  CLIP_CONTENTS        : (1<<20)
 };
 
 export var PackFlags = {

@@ -294,6 +294,7 @@ export class UIFrame extends UIElement {
     if (this.modalhandler != null) {
       this._offset_mpos(event);
       this.modalhandler._on_mousemove(event);
+      this._unoffset_mpos(event);
       
       return true;
     } else {
@@ -397,7 +398,7 @@ export class UIFrame extends UIElement {
     }
     
     this._unoffset_mpos(e);
-    return this.active != undefined;
+    return this._act_has_events();
   }
   
   bad_event(event) {
@@ -414,6 +415,7 @@ export class UIFrame extends UIElement {
       this._offset_mpos(event);
       
       this.modalhandler._on_doubleclick(event);
+      this._unoffset_mpos(event);
     } else {
       this.on_doubleclick(event);
     }
@@ -426,6 +428,7 @@ export class UIFrame extends UIElement {
       this._offset_mpos(event);
       
       this.modalhandler._on_mousedown(event);
+      this._unoffset_mpos(event);
     } else {
       this.on_mousedown(event);
     }
@@ -433,6 +436,8 @@ export class UIFrame extends UIElement {
 
   on_doubleclick(MouseEvent e) {
     if (this.bad_event(e)) return;
+  
+    this._offset_mpos(e);
     
     var mpos = this.mpos = [e.x, e.y];
     this._find_active(e);
@@ -442,10 +447,13 @@ export class UIFrame extends UIElement {
       e.y -= this.active.pos[1];
       
       this.active._on_doubleclick(e);
+      
+      e.x += this.active.pos[0];
+      e.y += this.active.pos[1];
     }
     
     this._unoffset_mpos(e);
-    return this.active != undefined;
+    return this._act_has_events();
   }
   
   on_mousedown(MouseEvent e, Boolean feed_mousemove=false) {
@@ -453,15 +461,17 @@ export class UIFrame extends UIElement {
     
     if (feed_mousemove)
       this.on_mousemove(e);
-    else
-      this._offset_mpos(e);
     
+    this._offset_mpos(e);
+
     var mpos = this.mpos = [e.x, e.y];
     this._find_active(e);
     
     if ((this.state & UIFlags.USE_PAN) && (e.button != 0 || this.active == undefined)) {
       console.log("panning");
       this.start_pan([e.x, e.y]);
+      this._unoffset_mpos(e);
+      
       return;
     }
     
@@ -470,19 +480,36 @@ export class UIFrame extends UIElement {
       e.y -= this.active.pos[1];
       
       this.active._on_mousedown(e);
+      
+      e.x += this.active.pos[0];
+      e.y += this.active.pos[1];
     }
     
     this._unoffset_mpos(e);
-    return this.active != undefined;
+    
+    return this._act_has_events();
   }
 
-
+  _act_has_events() {
+    if (this.active != undefined) {
+      let act = this.active;
+      while (act.active !== undefined) {
+        act = act.active;
+      }
+      
+      return !(act.state & UIFlags.BG_EVENTS_TRANSPARENT);
+    }
+    
+    return false;
+  }
+  
   _on_mouseup(MouseEvent event) {
     if (this.bad_event(event)) return;
     
     if (this.modalhandler != null) {
       this._offset_mpos(event);
       this.modalhandler._on_mouseup(event);
+      this._unoffset_mpos(event);
     } else {
       this.on_mouseup(event);
     }
@@ -498,10 +525,13 @@ export class UIFrame extends UIElement {
       e.y -= this.active.pos[1];
       
       this.active._on_mouseup(e);
+      
+      e.x += this.active.pos[0];
+      e.y += this.active.pos[1];
     }
     
     this._unoffset_mpos(e);
-    return this.active != undefined;
+    return this._act_has_events();
   }
 
 
@@ -513,7 +543,13 @@ export class UIFrame extends UIElement {
         event.x -= this.modalhandler.pos[0]
         event.y -= this.modalhandler.pos[1]
       }
+      
       this.modalhandler._on_mousewheel(event, delta);
+      
+      if (this.modalhandler["pos"] != undefined) {
+        event.x += this.modalhandler.pos[0]
+        event.y += this.modalhandler.pos[1]
+      }
     } else {
       this.on_mousewheel(event, delta);
     }
@@ -527,25 +563,30 @@ export class UIFrame extends UIElement {
       }
       
       this.active._on_mousewheel(e, delta);
+  
+      if (this.modalhandler["pos"] != undefined) {
+        event.x += this.modalhandler.pos[0]
+        event.y += this.modalhandler.pos[1]
+      }
     }
     
-    return this.active != undefined;
+    return this._act_has_events();
   }
 
   on_textinput(e) {
     if (this.active != undefined) {
       this.active._on_textinput(e);
     }
-    
-    return this.active != undefined;
+  
+    return this._act_has_events();
   }
   
   on_keydown(KeyboardEvent e) {
     if (this.active != undefined) {
       this.active._on_keydown(e);
     }
-    
-    return this.active != undefined;
+  
+    return this._act_has_events();
   }
 
 
@@ -553,16 +594,16 @@ export class UIFrame extends UIElement {
     if (this.active != undefined) {
       this.active._on_keyup(e);
     }
-    
-    return this.active != undefined;
+  
+    return this._act_has_events();
   }
 
   on_charcode(KeyboardEvent e) {
     if (this.active != undefined) {
       this.active._on_charcode(e);
     }
-    
-    return this.active != undefined;
+  
+    return this._act_has_events();
   }
   
   get_uhash() : String {
@@ -912,18 +953,23 @@ export class UIFrame extends UIElement {
     var pushed_pan_transform = false;
     
     var canvas = this.canvas;
+    
+    if (this.state & UIFlags.CLIP_CONTENTS) {
+      canvas.push_scissor([0, 0], this.size);
+    }
+    
     try {
-    if (this.state & UIFlags.HAS_PAN && this.velpan != undefined) {
+      if (this.state & UIFlags.HAS_PAN && this.velpan != undefined) {
       //if (!(this.state & UIFlags.PAN_CANVAS_MAT)) {
         canvas.push_transform();
         pushed_pan_transform = true;
         canvas.translate(this.velpan.pan);
       //}
-    }
+     }
     } catch(err) {
       print_stack(err);
     }
-
+    
     if (this.draw_background) {
       canvas.simple_box([0, 0], this.size, this.bgcolor, this.rcorner);
       //canvas.simple_box([d[0][0], d[0][1]], [d[1][0], d[1][1]], this.bgcolor, this.rcorner);
@@ -971,6 +1017,10 @@ export class UIFrame extends UIElement {
     
     if (pushed_pan_transform) {
       this.canvas.pop_transform();
+    }
+    
+    if (this.state & UIFlags.CLIP_CONTENTS) {
+      canvas.pop_scissor();
     }
   }
 

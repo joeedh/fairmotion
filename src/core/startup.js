@@ -125,13 +125,21 @@ window.startup = function startup() {
         window.clearInterval(timer2);
         
         var canvas = document.getElementById("canvas2d");
-        g_app_state.screen.on_resize([window.innerWidth, window.innerHeight]);
+  
+        window._ensure_thedimens();
+        
+        g_app_state.screen.on_resize([window.theWidth, window.theHeight]);
       }, 200);
     }, 450);
   } else {
     window.myLocalStorage = new MyLocalStorage_LS();
     startup_intern();
   }
+}
+
+window._ensure_thedimens = function() {
+  window.theHeight = document.documentElement.clientHeight-9;
+  window.theWidth = document.documentElement.clientWidth-4;
 }
 
 window.startup_intern = function startup() {

@@ -2,6 +2,7 @@
 
 import {toolop_menu} from 'UIMenu';
 import * as uimenu from 'UIMenu';
+import {UISplitFrame} from 'UISplitFrame';
 
 var PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,
     ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos,
@@ -57,7 +58,7 @@ function delay_redraw(ms) {
   
 class PanOp extends ToolOp {
   constructor(start_mpos) {
-    ToolOp.call(this);
+    super();
     
     this.is_modal = true;
     this.undoflag |= UndoFlags.IGNORE_UNDO;
@@ -122,7 +123,7 @@ class PanOp extends ToolOp {
 }
 
 class drawline {
-  constructor(Vector3 co1, Vector3 co2, String group) {
+  constructor(co1, co2, group) {
     this.v1 = new Vector3(co1);
     this.v2 = new Vector3(co2);
     this.group = group;
@@ -137,7 +138,7 @@ class drawline {
 }
 
 class IndexBufItem {
-  constructor(int id, Object owner) {
+  constructor(id : int, owner : Object) {
     this.user_id = id;
   }
 }
@@ -153,12 +154,12 @@ import {ImageUser} from 'imageblock';
 
 var canvas_owners = 0;
 
+var _v3d_id = 0;
+
 export class View2DHandler extends Area {
-   constructor(WebGLRenderingContext gl, Mesh mesh, ShaderProgram vprogram, ShaderProgram fprogram, 
-               DrawMats drawmats, int x, int y, int width, 
-               int height, int znear=0.75, int zfar = 200.0) 
+   constructor(x, y, width, height)
   {
-    static int v3d_id = 0;
+    super(View2DHandler.name, "3D Viewport", new Context(), [x, y], [width, height]);
 
     this.edit_all_layers = false;
 
@@ -219,7 +220,7 @@ export class View2DHandler extends Area {
     this.draw_viewport = true;
     this.draw_anim_paths = false;
     
-    this._id = v3d_id++;
+    this._id = _v3d_id++;
     this.topbar = undefined;
     
     this.drawlines = new GArray();
@@ -254,8 +255,6 @@ export class View2DHandler extends Area {
     this.ctrl = false;
     
     this.tools_define = {}
-    
-    Area.call(this, View2DHandler.name, "3D Viewport", new Context(), [x, y], [width, height]);
     
     this.keymap = new KeyMap()
     this.define_keymap();
@@ -330,13 +329,13 @@ export class View2DHandler extends Area {
     this._only_render = val;
   }
   
-  push_modal(EventHandler e) {
+  push_modal(e : EventHandler) {
     this.push_touch_delay(1);
     
     super.push_modal(e);
   }
   
-  pop_modal(EventHandler e) {
+  pop_modal(e : EventHandler) {
     if (this.modalhandler != undefined)
       this.pop_touch_delay();
     
@@ -419,11 +418,11 @@ export class View2DHandler extends Area {
     return this._can_select;
   }
   
-  set can_select(int val) {
+  set can_select(val) {
     this._can_select = !!val;
   }
   
-  static fromSTRUCT(Function reader) {
+  static fromSTRUCT(reader : Function) {
     var v3d = new View2DHandler()
     v3d._in_from_struct = true;
     
@@ -448,14 +447,14 @@ export class View2DHandler extends Area {
     return this._selectmode;
   }
   
-  set selectmode(Boolean val) {
+  set selectmode(val) {
     this._selectmode = val;
     
     if (!this._in_from_struct)
       this.set_selectmode(val);
   }
   
-  data_link(DataBlock block, Function getblock, Function getblock_us) {
+  data_link(block : DataBlock, getblock : Function, getblock_us : Function) {
     this.ctx = new Context();
     
     this.background_image.data_link(block, getblock, getblock_us);
@@ -487,7 +486,7 @@ export class View2DHandler extends Area {
     this.irendermat.load(this.rendermat).invert();
   }
   
-  project(Vector3 co) {
+  project(co : Vector3) {
     static _co = new Vector3();
     
     _co.load(co);
@@ -498,7 +497,7 @@ export class View2DHandler extends Area {
     return co;
   }
   
-  unproject(Vector3 co) {
+  unproject(co : Vector3) {
     static _co = new Vector3();
     
     _co.load(co);
@@ -509,22 +508,22 @@ export class View2DHandler extends Area {
     return co;
   }
   
-  do_select(MouseEvent event, Array<float> mpos, 
-            View2DHandler view2d, Boolean do_multiple=false) 
+  do_select(event : MouseEvent, mpos : Array<float>,
+             view2d : View2DHandler, do_multiple=false)
   {
     return this.editor.do_select(event, mpos, view2d, do_multiple);
   }
   
-  do_alt_select(MouseEvent event, Array<float> mpos, View2DHandler view2d) {
+  do_alt_select(event : MouseEvent, mpos : Array<float>, view2d : View2DHandler) {
     return this.editor.do_alt_select(event, mpos, view2d);
   }
   
-  tools_menu(Context ctx, Array<float> mpos) {
+  tools_menu(ctx : Context, mpos : Array<float>) {
     this.editor.tools_menu(ctx, mpos, this);
   }
 
 
-  toolop_menu(Context ctx, String name, Array<String> ops) {
+  toolop_menu(ctx : Context, name : String, ops : Array<String>) {
     if (ops.length > 1 && this.use_radial_menus) {
       return uimenu.toolop_radial_menu(ctx, name, ops);
     } else {
@@ -532,7 +531,7 @@ export class View2DHandler extends Area {
     }
   }
 
-  call_menu(Object menu, UIFrame frame, Array<float> pos) {
+  call_menu(menu : Object, frame : UIFrame, pos : Array<float>) {
     if (menu instanceof UIRadialMenu) {
       return ui_call_radial_menu(menu, frame, pos);
     } else if (menu instanceof UIMenu) {
@@ -540,11 +539,13 @@ export class View2DHandler extends Area {
     }
   }
 
-  rightclick_menu(MouseEvent event) {
+  rightclick_menu(event : MouseEvent) {
     this.editor.rightclick_menu(event, this);
   }
   
-  on_mousedown(MouseEvent event) {
+  on_mousedown(event : MouseEvent) {
+    console.trace();
+    
     if (this.bad_event(event))
       return;
     
@@ -597,7 +598,7 @@ export class View2DHandler extends Area {
     }
   }
 
-  on_mouseup(MouseEvent event) {
+  on_mouseup(event : MouseEvent) {
     if (this.bad_event(event))
       return;
       
@@ -609,7 +610,7 @@ export class View2DHandler extends Area {
     if (this.editor.on_mouseup(event)) return;
   }
 
-  on_mousemove(MyMouseEvent event) {
+  on_mousemove(event : MyMouseEvent) {
     var mpos = new Vector3([event.x, event.y, 0])
     this.mpos = mpos;
       
@@ -715,7 +716,7 @@ export class View2DHandler extends Area {
     
   }
   
-  on_mousewheel(MouseEvent event, float delta) {
+  on_mousewheel(event : MouseEvent, delta : float) {
     this.change_zoom(delta)
   }
 
@@ -994,7 +995,7 @@ export class View2DHandler extends Area {
     }
   }
   
-  undo_redo(RowFrame row) {
+  undo_redo(row : RowFrame) {
     var ctx = this.ctx;
     
     var col = row.col();
@@ -1066,9 +1067,8 @@ export class View2DHandler extends Area {
     
     k.add(new KeyHandler("Up", [], "Frame Ahead 10"), new FuncKeyHandler(function(ctx) {
       //flip_max++;
-      global debug_int_1;
       
-      debug_int_1++;
+      window.debug_int_1++;
 
       ctx.scene.change_time(ctx, ctx.scene.time+10);
 
@@ -1091,7 +1091,7 @@ export class View2DHandler extends Area {
     }));
   }
   
-  _on_keyup(KeyboardEvent event) {
+  _on_keyup(event : KeyboardEvent) {
     this.shift = this.editor.shift = event.shiftKey;
     this.alt = this.editor.alt = event.altKey;
     this.ctrl = this.editor.ctrl = event.ctrlKey;
@@ -1099,11 +1099,9 @@ export class View2DHandler extends Area {
     super._on_keyup(event);
   }
 
-  static default_new(Context ctx, ScreenArea scr, WebGLRenderingContext gl, 
-                     Array<float> pos, Array<float> size) {
-    var ret = new View2DHandler(undefined, ctx.mesh, undefined, undefined, 
-                               new DrawMats(), pos[0], pos[1], size[0], 
-                               size[1], 0.75, 100000);
+  static default_new(ctx : Context, scr : ScreenArea, unused,
+                     pos : Array<float>, size : Array<float>) {
+    var ret = new View2DHandler(pos[0], pos[1], size[0], size[1]);
     return ret;
   }
   
@@ -1147,7 +1145,7 @@ export class View2DHandler extends Area {
       ]);
   }
   
-  gen_session_menu(Context ctx, uimenulabel)
+  gen_session_menu(ctx : Context, uimenulabel)
   {
     function callback(entry) {
       console.log(entry);
@@ -1208,24 +1206,22 @@ export class View2DHandler extends Area {
     Area.prototype.on_area_active.call(this);
   }
 
-  build_bottombar() {
-    this.editor.build_bottombar(this);
+  build_bottombar(col) {
+    this.editor.build_bottombar(this, col);
   }
 
-  build_sidebar1() {
+  build_sidebar1(frame) {
     this.ctx = new Context();
     
     var panel = new RowFrame(this.ctx);
     
     this.sidebar1 = panel;
-    panel.packflag |= PackFlags.IGNORE_LIMIT|PackFlags.NO_AUTO_SPACING
-                   | PackFlags.ALIGN_LEFT | PackFlags.INHERIT_WIDTH;
+    panel.packflag = PackFlags.IGNORE_LIMIT|PackFlags.NO_AUTO_SPACING
+                   | PackFlags.ALIGN_LEFT | PackFlags.INHERIT_HEIGHT;
     panel.pad = [1, 1];
     
-    panel.size = [Area.get_barhgt()*3, this.size[1]];
     panel.draw_background = true;
     panel.rcorner = 100.0;
-    panel.pos = [0, Area.get_barhgt()*3];
     
     var tabs = new UITabPanel(this.ctx);
     tabs.packflag |= PackFlags.INHERIT_WIDTH;
@@ -1238,7 +1234,7 @@ export class View2DHandler extends Area {
                PackFlags.USE_LARGE_ICON | PackFlags.ENUM_STRIP |
                PackFlags.VERTICAL
                );
-    
+  
     var undo = new UIButtonIcon(this.ctx, "Undo", Icons.UNDO);
     undo.hint = "  Hotkey : CTRL-Z"
     undo.callback = function() {
@@ -1261,7 +1257,7 @@ export class View2DHandler extends Area {
     tools.toolop("spline.change_face_z(offset=1, selmode=selectmode)", PackFlags.USE_LARGE_ICON, "Move Up", Icons.Z_UP);
     tools.toolop("spline.change_face_z(offset=-1, selmode=selectmode)", PackFlags.USE_LARGE_ICON, "Move Down", Icons.Z_DOWN);
   
-  var display = tabs.panel("Display");
+    var display = tabs.panel("Display");
     display.prop("view2d.only_render");
     display.prop("view2d.draw_small_verts");
     display.prop("view2d.draw_normals");
@@ -1307,25 +1303,41 @@ export class View2DHandler extends Area {
     var lasttool = tabs.panel("Tool Options");
     lasttool.add(new ToolOpFrame(this.ctx, "last_tool"));
     
-    this.add(panel);
-    this.cols.push(panel);
-    
-    this.editor.build_sidebar1(this, panel);
+    frame.add(panel);
   }
   
-  build_topbar()
+  build_layout() {
+    super.build_layout();
+    
+    this.middlesplit.horizontal = true;
+    
+    let sidebar1 = this.middlesplit.initial();
+    sidebar1.state |= UIFlags.BG_EVENTS_TRANSPARENT;
+    sidebar1.draw_background = false;
+    
+    this.build_sidebar1(sidebar1);
+    
+    this.middlesplit.split(0.5).state |= UIFlags.BG_EVENTS_TRANSPARENT;
+    
+    //*
+    let panel = this.subframe.split(Area.get_barhgt()*2, false, true, true);
+    panel.add(new ColumnFrame(this.ctx));
+    panel.draw_background = true;
+    //panel.children[0].draw_background = true;
+    
+    this.editor.build_sidebar1(this, panel.children[0]);
+    //*/
+}
+
+  build_topbar(col)
   {
     this.ctx = new Context();
     
-    var col = new ColumnFrame(this.ctx, undefined, PackFlags.ALIGN_LEFT);
-    
-    this.topbar = col;
+    col.packflag |= PackFlags.ALIGN_LEFT | PackFlags.INHERIT_WIDTH | PackFlags.INHERIT_HEIGHT;
     col.packflag |= PackFlags.IGNORE_LIMIT|PackFlags.NO_AUTO_SPACING;
     
-    col.size = [this.size[0], Area.get_barhgt()];
     col.draw_background = true;
     col.rcorner = 100.0;
-    col.pos = [0, this.size[1]-Area.get_barhgt()];
     
     col.label("                      ");
     var iconflag = IsMobile ? PackFlags.USE_LARGE_ICON : PackFlags.USE_SMALL_ICON;
@@ -1348,8 +1360,7 @@ export class View2DHandler extends Area {
     col.prop("view2d.zoom");
     col.prop("view2d.default_linewidth");
     
-    this.rows.push(col);
-    this.add(col);
+    this.editor.build_topbar(col);
   }
 
   switch_editor(View2DEditor editortype) {
@@ -1374,7 +1385,7 @@ export class View2DHandler extends Area {
     this.editor.on_inactive(this);
     this.editor = editor;
     editor.on_active(this);
-    editor.gl = this.gl;
+
     
     for (var c of list(this.cols)) {
       this.remove(c);
@@ -1387,8 +1398,11 @@ export class View2DHandler extends Area {
     this.rows = new GArray();
     
     this.build_topbar();
+    
     this.editor.build_bottombar(this);
     this.editor.build_sidebar1(this);
+
+    this.editor.build_topbar(this);
     
     this.do_recalc();
     redraw_viewport();

@@ -1,4 +1,4 @@
-es6_module_define('DopeSheetEditor', ["UITabPanel", "UITextBox", "dopesheet_phantom", "UIPack", "dopesheet_ops", "struct", "ScreenArea", "mathlib", "animdata", "UIFrame", "spline", "spline_element_array", "UIWidgets_special", "events", "spline_base", "spline_editops", "spline_types", "UIWidgets", "spline_layerops", "UIElement", "toolops_api"], function _DopeSheetEditor_module(_es6_module) {
+es6_module_define('DopeSheetEditor', ["UIPack", "spline_editops", "dopesheet_ops", "toolops_api", "spline", "UIElement", "dopesheet_phantom", "struct", "mathlib", "spline_types", "spline_element_array", "spline_base", "UIWidgets_special", "UIWidgets", "spline_layerops", "animdata", "UIFrame", "UITabPanel", "UISplitFrame", "ScreenArea", "events", "UITextBox", "../../ui/UISplitFrame"], function _DopeSheetEditor_module(_es6_module) {
   "use strict";
   var aabb_isect_2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_2d');
   var gen_editor_switcher=es6_import_item(_es6_module, 'UIWidgets_special', 'gen_editor_switcher');
@@ -33,6 +33,7 @@ es6_module_define('DopeSheetEditor', ["UITabPanel", "UITextBox", "dopesheet_phan
   var ScrollButton=es6_import_item(_es6_module, 'UIWidgets', 'ScrollButton');
   var UIVScroll=es6_import_item(_es6_module, 'UIWidgets', 'UIVScroll');
   var UIIconCheck=es6_import_item(_es6_module, 'UIWidgets', 'UIIconCheck');
+  var UISplitFrame=es6_import_item(_es6_module, 'UISplitFrame', 'UISplitFrame');
   var RowFrame=es6_import_item(_es6_module, 'UIPack', 'RowFrame');
   var ColumnFrame=es6_import_item(_es6_module, 'UIPack', 'ColumnFrame');
   var UIPackFrame=es6_import_item(_es6_module, 'UIPack', 'UIPackFrame');
@@ -73,10 +74,11 @@ es6_module_define('DopeSheetEditor', ["UITabPanel", "UITextBox", "dopesheet_phan
   var SelectKeysToSide=es6_import_item(_es6_module, 'dopesheet_ops', 'SelectKeysToSide');
   var ToggleSelectOp=es6_import_item(_es6_module, 'dopesheet_ops', 'ToggleSelectOp');
   var Area=es6_import_item(_es6_module, 'ScreenArea', 'Area');
+  var UISplitFrame=es6_import_item(_es6_module, '../../ui/UISplitFrame', 'UISplitFrame');
   var tree_packflag=PackFlags.INHERIT_WIDTH|PackFlags.ALIGN_LEFT|PackFlags.ALIGN_TOP|PackFlags.NO_AUTO_SPACING|PackFlags.IGNORE_LIMIT;
   var CHGT=25;
   var TreeItem=_ESClass("TreeItem", RowFrame, [function TreeItem(ctx, name) {
-    RowFrame.apply(this, arguments);
+    RowFrame.call(this, ctx);
     this.path = name;
     this.packflag|=tree_packflag;
     this.default_packflag|=tree_packflag;
@@ -98,7 +100,7 @@ es6_module_define('DopeSheetEditor', ["UITabPanel", "UITextBox", "dopesheet_phan
     this.set_collapsed(data.collapsed);
   }, function get_min_size(canvas, isvertical) {
     var h=CHGT;
-    var max_width=Math.min(100, this.size[0]);
+    var max_width=100;
     var size=[0, 0];
     var __iter_c=__get_iter(this.children);
     var c;
@@ -120,6 +122,7 @@ es6_module_define('DopeSheetEditor', ["UITabPanel", "UITextBox", "dopesheet_phan
       size[1]+=sh;
     }
     size[0] = max_width;
+    size[0] = 120;
     return size;
   }, function build_path() {
     var path=this.path;
@@ -190,7 +193,7 @@ es6_module_define('DopeSheetEditor', ["UITabPanel", "UITextBox", "dopesheet_phan
   _es6_module.add_class(TreeItem);
   TreeItem = _es6_module.add_export('TreeItem', TreeItem);
   var TreePanel=_ESClass("TreePanel", RowFrame, [function TreePanel(ctx) {
-    RowFrame.apply(this, arguments);
+    RowFrame.call(this, ctx);
     this.packflag|=tree_packflag;
     this.default_packflag|=tree_packflag;
     this.totpath = 0;
@@ -257,11 +260,13 @@ es6_module_define('DopeSheetEditor', ["UITabPanel", "UITextBox", "dopesheet_phan
     return p.collapsed;
   }, function get_y(path) {
     path = path.trim();
+    this.abspos[0] = this.abspos[1] = 0.0;
+    this.abs_transform(this.abspos);
     if (path in this.pathmap) {
         var p=this.pathmap[path];
         var hidden=false;
         var last_hidden=p;
-        while (p.parent!=undefined&&!(__instance_of(p, TreePanel))) {
+        while (p.parent!==undefined&&!(__instance_of(p, TreePanel))) {
           if (p.collapsed) {
               hidden = true;
               last_hidden = p;
@@ -269,7 +274,9 @@ es6_module_define('DopeSheetEditor', ["UITabPanel", "UITextBox", "dopesheet_phan
           p = p.parent;
         }
         var p=last_hidden;
-        return (p.abspos[1]-this.abspos[1])+this.pos[1]-this.parent.velpan.pan[1];
+        p.abspos[0] = p.abspos[1] = 0.0;
+        p.abs_transform(p.abspos);
+        return (p.abspos[1]-this.abspos[1])+this.pos[1]-this.parent.velpan.pan[1]+this.parent.parent.pos[1];
     }
     else {
       return undefined;
@@ -381,10 +388,17 @@ es6_module_define('DopeSheetEditor', ["UITabPanel", "UITextBox", "dopesheet_phan
     this.CWID = 16;
     this.keymap = new KeyMap();
     this.define_keymap();
+  }, function build_layout() {
     this.channels = new TreePanel();
-    this.channels.size[0] = 180;
+    this.channels.size[0] = 100;
     this.channels.size[1] = 600;
-    this.add(this.channels);
+    Area.prototype.build_layout.call(this, false, true);
+    this.middlesplit.horizontal = true;
+    var $_let_sidebar7=this.middlesplit.initial();
+    $_let_sidebar7.state|=UIFlags.BG_EVENTS_TRANSPARENT;
+    this.middlesplit.split(145, false, false, true).state|=UIFlags.BG_EVENTS_TRANSPARENT;
+    $_let_sidebar7.draw_background = false;
+    $_let_sidebar7.add(this.channels);
   }, function area_duplicate() {
     var ret=new DopeSheetEditor();
     ret.velpan.pan[0] = this.velpan.pan[0];
@@ -499,7 +513,7 @@ es6_module_define('DopeSheetEditor', ["UITabPanel", "UITextBox", "dopesheet_phan
       y = y2;
     var pan=this.velpan.pan;
     ph.pos[0] = this.time_zero_x-2+this.scaletime(ph.time)+pan[0];
-    ph.pos[1] = y+pan[1];
+    ph.pos[1] = y;
     ph.size[0] = cwid, ph.size[1] = chgt;
     if (this.old_keyboxes[ph.id]==undefined) {
         var ph2=this.old_keyboxes[ph.id] = new phantom();
@@ -532,9 +546,9 @@ es6_module_define('DopeSheetEditor', ["UITabPanel", "UITextBox", "dopesheet_phan
       y = y2;
     var pan=this.velpan.pan;
     ph.pos[0] = this.time_zero_x-2+this.scaletime(ph.time)+pan[0];
-    ph.pos[1] = y+pan[1];
+    ph.pos[1] = y;
     ph.size[0] = cwid, ph.size[1] = chgt;
-    if (this.old_keyboxes[ph.id]==undefined) {
+    if (this.old_keyboxes[ph.id]===undefined) {
         var ph2=this.old_keyboxes[ph.id] = new phantom();
         ph2.ds = this;
         ph2.load(ph);
@@ -1459,8 +1473,9 @@ es6_module_define('DopeSheetEditor', ["UITabPanel", "UITextBox", "dopesheet_phan
       return undefined;
     return {v: retv, vd: retvd, keybox: rettype==KeyTypes.PATHSPLINE ? this.get_vertkey(retv.eid) : this.get_datakey(retv), highlight_keybox: rethigh, subverts: subverts, subpathkeys: subpathkeys}
   }, function on_mousedown(event) {
-    if (Area.prototype.on_mousedown.call(this, event))
-      return ;
+    if (Area.prototype.on_mousedown.call(this, event)) {
+        return ;
+    }
     if (event.button==0) {
         var nearest=this.findnearest([event.x, event.y]);
         if (nearest!=undefined) {
@@ -1670,13 +1685,18 @@ es6_module_define('DopeSheetEditor', ["UITabPanel", "UITextBox", "dopesheet_phan
     }
   }, function build_draw(canvas) {
     var channels=this.channels;
+    if (channels===undefined) {
+        this.do_full_recalc();
+        return ;
+    }
     window.channels = this.channels;
     window.ds = this;
     var size=this.channels.get_min_size(canvas);
-    this.channels.size[1] = size[1];
-    this.channels.pos[1] = Area.get_barhgt()+2+this.velpan.pan[1]-size[1];
     this.size[0] = this.parent.size[0];
     this.size[1] = this.parent.size[1];
+    size[1] = Math.max(size[1], this.parent.size[1]-Area.get_barhgt());
+    this.channels.size[1] = size[1];
+    this.channels.pos[1] = Area.get_barhgt()+this.velpan.pan[1]-size[1];
     var keys=[];
     var totpath=0;
     var visit={}
@@ -1778,8 +1798,7 @@ es6_module_define('DopeSheetEditor', ["UITabPanel", "UITextBox", "dopesheet_phan
       canvas.box2(pos, size, clr);
       canvas.box2(pos, size, borderclr, undefined, true);
     }
-    this.time_overlay(canvas);
-    Area.prototype.build_draw.apply(this, arguments);
+    Area.prototype.build_draw.call(this, canvas);
     this._recalc_cache = {}
   }, function redraw_eid(eid) {
     var v=this.ctx.frameset.pathspline.eidmap[eid];
@@ -1789,10 +1808,9 @@ es6_module_define('DopeSheetEditor', ["UITabPanel", "UITextBox", "dopesheet_phan
       return ;
     var box=this.get_vertkey(v.eid);
     this.redraw_key(box);
-  }, function build_bottombar() {
+  }, function build_bottombar(the_row) {
     var ctx=new Context();
     this.ctx = ctx;
-    var the_row=new RowFrame(ctx);
     the_row.packflag|=PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING|PackFlags.IGNORE_LIMIT;
     the_row.default_packflag = PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING;
     the_row.draw_background = true;
@@ -1803,8 +1821,6 @@ es6_module_define('DopeSheetEditor', ["UITabPanel", "UITextBox", "dopesheet_phan
     col.add(gen_editor_switcher(this.ctx, this));
     col.prop("dopesheet.selected_only");
     col.prop("dopesheet.pinned");
-    this.rows.push(the_row);
-    this.add(the_row);
   }, function dag_unlink_all() {
     var __iter_node=__get_iter(this.nodes);
     var node;
@@ -2250,7 +2266,7 @@ es6_module_define('dopesheet_transdata', ["mathlib", "transdata", "animdata"], f
   _es6_module.add_class(TransDopeSheetType);
   TransDopeSheetType = _es6_module.add_export('TransDopeSheetType', TransDopeSheetType);
 }, '/dev/fairmotion/src/editors/dopesheet/dopesheet_transdata.js');
-es6_module_define('dopesheet_ops', ["dopesheet_phantom", "toolprops", "toolops_api", "animdata"], function _dopesheet_ops_module(_es6_module) {
+es6_module_define('dopesheet_ops', ["toolops_api", "animdata", "toolprops", "dopesheet_phantom"], function _dopesheet_ops_module(_es6_module) {
   "use strict";
   var CollectionProperty=es6_import_item(_es6_module, 'toolprops', 'CollectionProperty');
   var IntProperty=es6_import_item(_es6_module, 'toolprops', 'IntProperty');
@@ -2274,11 +2290,12 @@ es6_module_define('dopesheet_ops', ["dopesheet_phantom", "toolprops", "toolops_a
   var FilterModes=es6_import_item(_es6_module, 'dopesheet_phantom', 'FilterModes');
   var delete_key=es6_import_item(_es6_module, 'dopesheet_phantom', 'delete_key');
   var ShiftTimeOp2=_ESClass("ShiftTimeOp2", ToolOp, [function ShiftTimeOp2() {
-    ToolOp.call(this, "shift_time", "shift time", "shift time");
-    this.is_modal = true;
+    ToolOp.call(this);
     var first=true;
     this.start_mpos = new Vector3();
-  }, function get_curframe_animverts(ctx) {
+  }, _ESClass.static(function tooldef() {
+    return {apiname: "spline.shift_time2", uiname: "Shift Time2", is_modal: true, inputs: {factor: new FloatProperty(-1, "factor", "factor", "factor"), vertex_eids: new CollectionProperty([], undefined, "verts", "verts")}, outputs: {}, icon: -1, description: "Move keyframes around"}
+  }), function get_curframe_animverts(ctx) {
     var vset=new set();
     var spline=ctx.frameset.pathspline;
     var __iter_eid=__get_iter(this.inputs.vertex_eids);
@@ -2291,7 +2308,7 @@ es6_module_define('dopesheet_ops', ["dopesheet_phantom", "toolprops", "toolops_a
       eid = __ival_eid.value;
       var v=spline.eidmap[eid];
       if (v==undefined) {
-          console.log("ShiftTimeOp2 data corruption! v was undefined!");
+          console.warn("ShiftTimeOp2 data corruption! v was undefined!");
           continue;
       }
       vset.add(v);
@@ -2446,13 +2463,13 @@ es6_module_define('dopesheet_ops', ["dopesheet_phantom", "toolprops", "toolops_a
   }]);
   _es6_module.add_class(ShiftTimeOp2);
   ShiftTimeOp2 = _es6_module.add_export('ShiftTimeOp2', ShiftTimeOp2);
-  ShiftTimeOp2.inputs = {factor: new FloatProperty(-1, "factor", "factor", "factor"), vertex_eids: new CollectionProperty([], undefined, "verts", "verts")}
   var ShiftTimeOp3=_ESClass("ShiftTimeOp3", ToolOp, [function ShiftTimeOp3() {
-    ToolOp.call(this, "shift_time", "shift time", "shift time");
-    this.is_modal = true;
+    ToolOp.call(this);
     var first=true;
     this.start_mpos = new Vector3();
-  }, function start_modal(ctx) {
+  }, _ESClass.static(function tooldef() {
+    return {apiname: "spline.shift_time3", uiname: "Shift Time", is_modal: true, inputs: {factor: new FloatProperty(-1, "factor", "factor", "factor"), phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom_ids")}, outputs: {}, icon: -1, description: "Move keyframes around"}
+  }), function start_modal(ctx) {
     this.first = true;
   }, function end_modal(ctx) {
     ToolOp.prototype.end_modal.call(this);
@@ -2466,7 +2483,6 @@ es6_module_define('dopesheet_ops', ["dopesheet_phantom", "toolprops", "toolops_a
     }
     var mpos=new Vector3([event.x, event.y, 0]);
     var dx=-Math.floor(1.5*(this.start_mpos[0]-mpos[0])/20+0.5);
-    console.log("time offset", dx);
     this.do_undo(this.modal_ctx, true);
     this.inputs.factor.set_data(dx);
     this.exec(this.modal_ctx);
@@ -2537,7 +2553,6 @@ es6_module_define('dopesheet_ops', ["dopesheet_phantom", "toolprops", "toolops_a
           vdmap[v.eid] = k;
         }
     }
-    console.log("time shift", off);
     var kcache=ctx.frameset.kcache;
     var __iter_id=__get_iter(ids);
     var id;
@@ -2603,10 +2618,11 @@ es6_module_define('dopesheet_ops', ["dopesheet_phantom", "toolprops", "toolops_a
   }]);
   _es6_module.add_class(ShiftTimeOp3);
   ShiftTimeOp3 = _es6_module.add_export('ShiftTimeOp3', ShiftTimeOp3);
-  ShiftTimeOp3.inputs = {factor: new FloatProperty(-1, "factor", "factor", "factor"), phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom_ids")}
   var SelectOpBase=_ESClass("SelectOpBase", ToolOp, [function SelectOpBase() {
     ToolOp.call(this);
-  }, function undo_pre(ctx) {
+  }, _ESClass.static(function tooldef() {
+    return {inputs: {phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom_ids")}, outputs: {}}
+  }), function undo_pre(ctx) {
     var undo=this._undo = {}
     var __iter_id=__get_iter(this.inputs.phantom_ids.data);
     var id;
@@ -2626,11 +2642,12 @@ es6_module_define('dopesheet_ops', ["dopesheet_phantom", "toolprops", "toolops_a
   }]);
   _es6_module.add_class(SelectOpBase);
   SelectOpBase = _es6_module.add_export('SelectOpBase', SelectOpBase);
-  SelectOpBase.inputs = {phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom_ids")}
   var SelectOp=_ESClass("SelectOp", SelectOpBase, [function SelectOp() {
     SelectOpBase.call(this);
     this.uiname = "Select";
-  }, function exec(ctx) {
+  }, _ESClass.static(function tooldef() {
+    return {apiname: "spline.select_keyframe", uiname: "Select Keyframe", is_modal: false, inputs: ToolOp.inherit({select_ids: new CollectionProperty([], undefined, "select_ids", "select_ids"), state: new BoolProperty(true, "state"), unique: new BoolProperty(true, "unique")}), outputs: {}, icon: -1, description: "Select keyframes"}
+  }), function exec(ctx) {
     var state=this.inputs.state.data;
     if (this.inputs.unique.data) {
         var __iter_id=__get_iter(this.inputs.phantom_ids.data);
@@ -2657,10 +2674,11 @@ es6_module_define('dopesheet_ops', ["dopesheet_phantom", "toolprops", "toolops_a
   }]);
   _es6_module.add_class(SelectOp);
   SelectOp = _es6_module.add_export('SelectOp', SelectOp);
-  SelectOp.inputs = ToolOp.inherit_inputs(SelectOpBase, {select_ids: new CollectionProperty([], undefined, "select_ids", "select_ids"), state: new BoolProperty(true, "state"), unique: new BoolProperty(true, "unique")});
   var ColumnSelect=_ESClass("ColumnSelect", SelectOpBase, [function ColumnSelect() {
     SelectOpBase.call(this);
-  }, function exec(ctx) {
+  }, _ESClass.static(function tooldef() {
+    return {apiname: "spline.select_keyframe_column", uiname: "Column Select", is_modal: false, inputs: ToolOp.inherit({state: new BoolProperty(true, "state"), phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom_ids")}), outputs: {}, icon: -1, description: "Select keyframes in a single column"}
+  }), function exec(ctx) {
     var cols={}
     var state=this.inputs.state.data;
     var __iter_id=__get_iter(this.inputs.phantom_ids.data);
@@ -2689,10 +2707,11 @@ es6_module_define('dopesheet_ops', ["dopesheet_phantom", "toolprops", "toolops_a
   }]);
   _es6_module.add_class(ColumnSelect);
   ColumnSelect = _es6_module.add_export('ColumnSelect', ColumnSelect);
-  ColumnSelect.inputs = ToolOp.inherit_inputs(SelectOpBase, {state: new BoolProperty(true, "state"), phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom_ids")});
   var SelectKeysToSide=_ESClass("SelectKeysToSide", SelectOpBase, [function SelectKeysToSide() {
     SelectOpBase.call(this);
-  }, function exec(ctx) {
+  }, _ESClass.static(function tooldef() {
+    return {apiname: "spline.select_keys_to_side", uiname: "Select Keys To Side", is_modal: false, inputs: ToolOp.inherit({state: new BoolProperty(true, "state"), phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom_ids"), side: new BoolProperty(true, "side")}), outputs: {}, icon: -1, description: "Select keyframes before or after the cursor"}
+  }), function exec(ctx) {
     var state=this.inputs.state.data;
     var mintime=1e+17, maxtime=-1e+17;
     var __iter_id=__get_iter(this.inputs.phantom_ids.data);
@@ -2729,14 +2748,17 @@ es6_module_define('dopesheet_ops', ["dopesheet_phantom", "toolprops", "toolops_a
   }]);
   _es6_module.add_class(SelectKeysToSide);
   SelectKeysToSide = _es6_module.add_export('SelectKeysToSide', SelectKeysToSide);
-  SelectKeysToSide.inputs = ToolOp.inherit_inputs(SelectOpBase, {state: new BoolProperty(true, "state"), phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom_ids"), side: new BoolProperty(true, "side")});
+  var mode_vals=["select", "deselect", "auto"];
+  mode_vals = _es6_module.add_export('mode_vals', mode_vals);
   var ToggleSelectOp=_ESClass("ToggleSelectOp", SelectOpBase, [function ToggleSelectOp(mode) {
     if (mode==undefined) {
         mode = "auto";
     }
     SelectOpBase.call(this);
     this.inputs.mode.set_data(mode);
-  }, function exec(ctx) {
+  }, _ESClass.static(function tooldef() {
+    return {apiname: "spline.toggle_select_keys", uiname: "Select Keyframe Selection", is_modal: false, inputs: ToolOp.inherit({phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom ids"), mode: new EnumProperty("auto", mode_vals, "mode", "Mode", "mode")}), outputs: {}, icon: -1, description: "Select all keyframes, or deselect them if already selected"}
+  }), function exec(ctx) {
     var mode=this.inputs.mode.data;
     if (mode=="auto") {
         mode = "select";
@@ -2766,12 +2788,11 @@ es6_module_define('dopesheet_ops', ["dopesheet_phantom", "toolprops", "toolops_a
   }]);
   _es6_module.add_class(ToggleSelectOp);
   ToggleSelectOp = _es6_module.add_export('ToggleSelectOp', ToggleSelectOp);
-  var mode_vals=["select", "deselect", "auto"];
-  mode_vals = _es6_module.add_export('mode_vals', mode_vals);
-  ToggleSelectOp.inputs = ToolOp.inherit_inputs(SelectOpBase, {phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom ids"), mode: new EnumProperty("auto", mode_vals, "mode", "Mode", "mode")});
   var DeleteKeyOp=_ESClass("DeleteKeyOp", ToolOp, [function DeleteKeyOp() {
     ToolOp.call(this);
-  }, function exec(ctx) {
+  }, _ESClass.static(function tooldef() {
+    return {apiname: "spline.delete_key", uiname: "Delete Keyframe", is_modal: false, inputs: {phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom ids")}, outputs: {}, icon: -1, description: "Delete a keyframe"}
+  }), function exec(ctx) {
     var __iter_id=__get_iter(this.inputs.phantom_ids.data);
     var id;
     while (1) {
@@ -2781,7 +2802,6 @@ es6_module_define('dopesheet_ops', ["dopesheet_phantom", "toolprops", "toolops_a
       }
       id = __ival_id.value;
       if (get_select(ctx, id)) {
-          console.log("deleting!", id&65535);
           delete_key(ctx, id);
       }
     }
@@ -2789,7 +2809,6 @@ es6_module_define('dopesheet_ops', ["dopesheet_phantom", "toolprops", "toolops_a
   _es6_module.add_class(DeleteKeyOp);
   DeleteKeyOp = _es6_module.add_export('DeleteKeyOp', DeleteKeyOp);
   
-  DeleteKeyOp.inputs = ToolOp.inherit_inputs(ToolOp, {phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom ids")});
 }, '/dev/fairmotion/src/editors/dopesheet/dopesheet_ops.js');
 es6_module_define('notifications', ["UIWidgets_special", "UIElement", "UIPack", "UITabPanel", "UIWidgets", "toolops_api", "UIFrame", "UITextBox", "ScreenArea"], function _notifications_module(_es6_module) {
   var UIElement=es6_import_item(_es6_module, 'UIElement', 'UIElement');
@@ -3332,10 +3351,11 @@ es6_module_define('manipulator', [], function _manipulator_module(_es6_module) {
   _es6_module.add_class(ManipulatorManager);
   ManipulatorManager = _es6_module.add_export('ManipulatorManager', ManipulatorManager);
 }, '/dev/fairmotion/src/editors/viewport/manipulator.js');
-es6_module_define('view2d', ["UICanvas", "view2d_editor", "selectmode", "manipulator", "UIPack", "toolops_api", "RadialMenu", "struct", "UIWidgets", "UIWidgets_special2", "spline_createops", "imageblock", "UIWidgets_special", "spline_draw", "UIMenu", "ScreenArea", "video", "mathlib", "notifications", "spline_editops", "view2d_spline_ops", "UIElement", "events", "UITabPanel"], function _view2d_module(_es6_module) {
+es6_module_define('view2d', ["UIWidgets_special2", "view2d_spline_ops", "UIElement", "selectmode", "UITabPanel", "UIWidgets_special", "struct", "manipulator", "RadialMenu", "mathlib", "UIWidgets", "view2d_editor", "spline_editops", "imageblock", "UIPack", "events", "ScreenArea", "UISplitFrame", "UICanvas", "spline_createops", "UIMenu", "notifications", "video", "spline_draw", "toolops_api"], function _view2d_module(_es6_module) {
   "use strict";
   var toolop_menu=es6_import_item(_es6_module, 'UIMenu', 'toolop_menu');
   var uimenu=es6_import(_es6_module, 'UIMenu');
+  var UISplitFrame=es6_import_item(_es6_module, 'UISplitFrame', 'UISplitFrame');
   var PI=Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor, ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos, asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
   var aabb_isect_2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_2d');
   var inrect_2d=es6_import_item(_es6_module, 'mathlib', 'inrect_2d');
@@ -3452,20 +3472,15 @@ es6_module_define('view2d', ["UICanvas", "view2d_editor", "selectmode", "manipul
   var UITabPanel=es6_import_item(_es6_module, 'UITabPanel', 'UITabPanel');
   var ImageUser=es6_import_item(_es6_module, 'imageblock', 'ImageUser');
   var canvas_owners=0;
-  var $v3d_id_DRhS_View2DHandler;
-  var $min_QB37_make_drawline;
-  var $min_tutR_kill_drawline;
-  var $_co_40___project;
-  var $_co_fXie_unproject;
-  var $max_b5pv_make_drawline;
-  var $max_HvD0_kill_drawline;
-  var View2DHandler=_ESClass("View2DHandler", Area, [function View2DHandler(gl, mesh, vprogram, fprogram, drawmats, x, y, width, height, znear, zfar) {
-    if (znear==undefined) {
-        znear = 0.75;
-    }
-    if (zfar==undefined) {
-        zfar = 200.0;
-    }
+  var _v3d_id=0;
+  var $min_kIpD_make_drawline;
+  var $min_egpK_kill_drawline;
+  var $_co_v06o_project;
+  var $_co_l54v_unproject;
+  var $max_qZy5_make_drawline;
+  var $max_jjYy_kill_drawline;
+  var View2DHandler=_ESClass("View2DHandler", Area, [function View2DHandler(x, y, width, height) {
+    Area.call(this, View2DHandler.name, "3D Viewport", new Context(), [x, y], [width, height]);
     this.edit_all_layers = false;
     this.widgets = new ManipulatorManager(this);
     this.bgcanvas_owner = "View3D_"+(canvas_owners++);
@@ -3502,7 +3517,7 @@ es6_module_define('view2d', ["UICanvas", "view2d_editor", "selectmode", "manipul
     this.tweak_mode = false;
     this.draw_viewport = true;
     this.draw_anim_paths = false;
-    this._id = $v3d_id_DRhS_View2DHandler++;
+    this._id = _v3d_id++;
     this.topbar = undefined;
     this.drawlines = new GArray();
     this.drawline_groups = {}
@@ -3526,7 +3541,6 @@ es6_module_define('view2d', ["UICanvas", "view2d_editor", "selectmode", "manipul
     this.alt = false;
     this.ctrl = false;
     this.tools_define = {}
-    Area.call(this, View2DHandler.name, "3D Viewport", new Context(), [x, y], [width, height]);
     this.keymap = new KeyMap();
     this.define_keymap();
     this.editor = new SplineEditor(this);
@@ -3609,21 +3623,21 @@ es6_module_define('view2d', ["UICanvas", "view2d_editor", "selectmode", "manipul
     var dl=new drawline(v1, v2, group);
     drawlines.push(dl);
     var pad=5;
-    $min_QB37_make_drawline[0] = Math.min(v1[0], v2[0])-pad;
-    $min_QB37_make_drawline[1] = Math.min(v1[1], v2[1])-pad;
-    $max_b5pv_make_drawline[0] = Math.max(v1[0], v2[0])+pad;
-    $max_b5pv_make_drawline[1] = Math.max(v1[1], v2[1])+pad;
-    redraw_viewport($min_QB37_make_drawline, $max_b5pv_make_drawline);
+    $min_kIpD_make_drawline[0] = Math.min(v1[0], v2[0])-pad;
+    $min_kIpD_make_drawline[1] = Math.min(v1[1], v2[1])-pad;
+    $max_qZy5_make_drawline[0] = Math.max(v1[0], v2[0])+pad;
+    $max_qZy5_make_drawline[1] = Math.max(v1[1], v2[1])+pad;
+    redraw_viewport($min_kIpD_make_drawline, $max_qZy5_make_drawline);
     return dl;
   }, function kill_drawline(dl) {
     var drawlines=this._get_dl_group(dl.group);
     var pad=5;
     var v1=dl.v1, v2=dl.v2;
-    $min_tutR_kill_drawline[0] = Math.min(v1[0], v2[0])-pad;
-    $min_tutR_kill_drawline[1] = Math.min(v1[1], v2[1])-pad;
-    $max_HvD0_kill_drawline[0] = Math.max(v1[0], v2[0])+pad;
-    $max_HvD0_kill_drawline[1] = Math.max(v1[1], v2[1])+pad;
-    redraw_viewport($min_tutR_kill_drawline, $max_HvD0_kill_drawline);
+    $min_egpK_kill_drawline[0] = Math.min(v1[0], v2[0])-pad;
+    $min_egpK_kill_drawline[1] = Math.min(v1[1], v2[1])-pad;
+    $max_jjYy_kill_drawline[0] = Math.max(v1[0], v2[0])+pad;
+    $max_jjYy_kill_drawline[1] = Math.max(v1[1], v2[1])+pad;
+    redraw_viewport($min_egpK_kill_drawline, $max_jjYy_kill_drawline);
     drawlines.remove(dl);
   }, function reset_drawlines(group) {
     if (group==undefined) {
@@ -3685,16 +3699,16 @@ es6_module_define('view2d', ["UICanvas", "view2d_editor", "selectmode", "manipul
     render.multiply(cam);
     this.irendermat.load(this.rendermat).invert();
   }, function project(co) {
-    $_co_40___project.load(co);
-    $_co_40___project[2] = 0.0;
-    $_co_40___project.multVecMatrix(this.rendermat);
-    co[0] = $_co_40___project[0], co[1] = $_co_40___project[1];
+    $_co_v06o_project.load(co);
+    $_co_v06o_project[2] = 0.0;
+    $_co_v06o_project.multVecMatrix(this.rendermat);
+    co[0] = $_co_v06o_project[0], co[1] = $_co_v06o_project[1];
     return co;
   }, function unproject(co) {
-    $_co_fXie_unproject.load(co);
-    $_co_fXie_unproject[2] = 0.0;
-    $_co_fXie_unproject.multVecMatrix(this.irendermat);
-    co[0] = $_co_fXie_unproject[0], co[1] = $_co_fXie_unproject[1];
+    $_co_l54v_unproject.load(co);
+    $_co_l54v_unproject[2] = 0.0;
+    $_co_l54v_unproject.multVecMatrix(this.irendermat);
+    co[0] = $_co_l54v_unproject[0], co[1] = $_co_l54v_unproject[1];
     return co;
   }, function do_select(event, mpos, view2d, do_multiple) {
     if (do_multiple==undefined) {
@@ -3723,6 +3737,7 @@ es6_module_define('view2d', ["UICanvas", "view2d_editor", "selectmode", "manipul
   }, function rightclick_menu(event) {
     this.editor.rightclick_menu(event, this);
   }, function on_mousedown(event) {
+    console.trace();
     if (this.bad_event(event))
       return ;
     if (Area.prototype.on_mousedown.call(this, event))
@@ -4007,8 +4022,7 @@ es6_module_define('view2d', ["UICanvas", "view2d_editor", "selectmode", "manipul
       window.redraw_viewport();
     }));
     k.add(new KeyHandler("Up", [], "Frame Ahead 10"), new FuncKeyHandler(function(ctx) {
-      
-      debug_int_1++;
+      window.debug_int_1++;
       ctx.scene.change_time(ctx, ctx.scene.time+10);
       window.force_viewport_redraw();
       window.redraw_viewport();
@@ -4028,8 +4042,8 @@ es6_module_define('view2d', ["UICanvas", "view2d_editor", "selectmode", "manipul
     this.alt = this.editor.alt = event.altKey;
     this.ctrl = this.editor.ctrl = event.ctrlKey;
     Area.prototype._on_keyup.call(this, event);
-  }, _ESClass.static(function default_new(ctx, scr, gl, pos, size) {
-    var ret=new View2DHandler(undefined, ctx.mesh, undefined, undefined, new DrawMats(), pos[0], pos[1], size[0], size[1], 0.75, 100000);
+  }, _ESClass.static(function default_new(ctx, scr, unused, pos, size) {
+    var ret=new View2DHandler(pos[0], pos[1], size[0], size[1]);
     return ret;
   }), function area_duplicate() {
     var cpy=new View2DHandler(undefined, undefined, undefined, undefined, undefined, 0, 0, this.size[0], this.size[1], undefined, undefined);
@@ -4104,18 +4118,16 @@ es6_module_define('view2d', ["UICanvas", "view2d_editor", "selectmode", "manipul
       e.canvas = this.canvas;
     }
     Area.prototype.on_area_active.call(this);
-  }, function build_bottombar() {
-    this.editor.build_bottombar(this);
-  }, function build_sidebar1() {
+  }, function build_bottombar(col) {
+    this.editor.build_bottombar(this, col);
+  }, function build_sidebar1(frame) {
     this.ctx = new Context();
     var panel=new RowFrame(this.ctx);
     this.sidebar1 = panel;
-    panel.packflag|=PackFlags.IGNORE_LIMIT|PackFlags.NO_AUTO_SPACING|PackFlags.ALIGN_LEFT|PackFlags.INHERIT_WIDTH;
+    panel.packflag = PackFlags.IGNORE_LIMIT|PackFlags.NO_AUTO_SPACING|PackFlags.ALIGN_LEFT|PackFlags.INHERIT_HEIGHT;
     panel.pad = [1, 1];
-    panel.size = [Area.get_barhgt()*3, this.size[1]];
     panel.draw_background = true;
     panel.rcorner = 100.0;
-    panel.pos = [0, Area.get_barhgt()*3];
     var tabs=new UITabPanel(this.ctx);
     tabs.packflag|=PackFlags.INHERIT_WIDTH;
     panel.add(tabs);
@@ -4166,18 +4178,25 @@ es6_module_define('view2d', ["UICanvas", "view2d_editor", "selectmode", "manipul
     panel2.prop('view2d.background_color');
     var lasttool=tabs.panel("Tool Options");
     lasttool.add(new ToolOpFrame(this.ctx, "last_tool"));
-    this.add(panel);
-    this.cols.push(panel);
-    this.editor.build_sidebar1(this, panel);
-  }, function build_topbar() {
+    frame.add(panel);
+  }, function build_layout() {
+    Area.prototype.build_layout.call(this);
+    this.middlesplit.horizontal = true;
+    var $_let_sidebar129=this.middlesplit.initial();
+    $_let_sidebar129.state|=UIFlags.BG_EVENTS_TRANSPARENT;
+    $_let_sidebar129.draw_background = false;
+    this.build_sidebar1($_let_sidebar129);
+    this.middlesplit.split(0.5).state|=UIFlags.BG_EVENTS_TRANSPARENT;
+    var $_let_panel30=this.subframe.split(Area.get_barhgt()*2, false, true, true);
+    $_let_panel30.add(new ColumnFrame(this.ctx));
+    $_let_panel30.draw_background = true;
+    this.editor.build_sidebar1(this, $_let_panel30.children[0]);
+  }, function build_topbar(col) {
     this.ctx = new Context();
-    var col=new ColumnFrame(this.ctx, undefined, PackFlags.ALIGN_LEFT);
-    this.topbar = col;
+    col.packflag|=PackFlags.ALIGN_LEFT|PackFlags.INHERIT_WIDTH|PackFlags.INHERIT_HEIGHT;
     col.packflag|=PackFlags.IGNORE_LIMIT|PackFlags.NO_AUTO_SPACING;
-    col.size = [this.size[0], Area.get_barhgt()];
     col.draw_background = true;
     col.rcorner = 100.0;
-    col.pos = [0, this.size[1]-Area.get_barhgt()];
     col.label("                      ");
     var iconflag=IsMobile ? PackFlags.USE_LARGE_ICON : PackFlags.USE_SMALL_ICON;
     col.toolop("screen.hint_picker()", iconflag, "?");
@@ -4193,8 +4212,7 @@ es6_module_define('view2d', ["UICanvas", "view2d_editor", "selectmode", "manipul
     col.add(this.note_area);
     col.prop("view2d.zoom");
     col.prop("view2d.default_linewidth");
-    this.rows.push(col);
-    this.add(col);
+    this.editor.build_topbar(col);
   }, function switch_editor(editortype) {
     if (editortype==undefined) {
         console.log("Undefined passed to switch_editor()");
@@ -4221,7 +4239,6 @@ es6_module_define('view2d', ["UICanvas", "view2d_editor", "selectmode", "manipul
     this.editor.on_inactive(this);
     this.editor = editor;
     editor.on_active(this);
-    editor.gl = this.gl;
     var __iter_c=__get_iter(list(this.cols));
     var c;
     while (1) {
@@ -4247,6 +4264,7 @@ es6_module_define('view2d', ["UICanvas", "view2d_editor", "selectmode", "manipul
     this.build_topbar();
     this.editor.build_bottombar(this);
     this.editor.build_sidebar1(this);
+    this.editor.build_topbar(this);
     this.do_recalc();
     redraw_viewport();
   }, function ensure_editor(editortype) {
@@ -4257,13 +4275,12 @@ es6_module_define('view2d', ["UICanvas", "view2d_editor", "selectmode", "manipul
     this.editor.set_selectmode(mode);
     redraw_viewport();
   }]);
-  var $v3d_id_DRhS_View2DHandler=0;
-  var $min_QB37_make_drawline=[0, 0];
-  var $min_tutR_kill_drawline=[0, 0];
-  var $_co_40___project=new Vector3();
-  var $_co_fXie_unproject=new Vector3();
-  var $max_b5pv_make_drawline=[0, 0];
-  var $max_HvD0_kill_drawline=[0, 0];
+  var $min_kIpD_make_drawline=[0, 0];
+  var $min_egpK_kill_drawline=[0, 0];
+  var $_co_v06o_project=new Vector3();
+  var $_co_l54v_unproject=new Vector3();
+  var $max_qZy5_make_drawline=[0, 0];
+  var $max_jjYy_kill_drawline=[0, 0];
   _es6_module.add_class(View2DHandler);
   View2DHandler = _es6_module.add_export('View2DHandler', View2DHandler);
   View2DHandler.STRUCT = STRUCT.inherit(View2DHandler, Area)+"\n    _id             : int;\n    _selectmode     : int;\n    rendermat       : mat4;\n    irendermat      : mat4;\n    cameramat       : mat4;\n    only_render     : int;\n    draw_anim_paths : int;\n    draw_normals    : int;\n    editors         : array(abstract(View2DEditor));\n    editor          : int | obj.editors.indexOf(obj.editor);\n    zoom            : float;\n    tweak_mode        : int;\n    default_linewidth : float;\n    default_stroke    : vec4;\n    default_fill      : vec4;\n    extrude_mode      : int;\n    enable_blur       : int;\n    draw_faces        : int;\n    draw_video        : int;\n    pinned_paths      : array(int) | obj.pinned_paths != undefined ? obj.pinned_paths : [];\n    background_image  : ImageUser;\n    background_color  : vec3;\n    draw_bg_image     : int;\n    toolmode          : int;\n    draw_small_verts  : int;\n    edit_all_layers   : int;\n  }\n";
@@ -4875,7 +4892,7 @@ es6_module_define('view2d_ops', ["events", "ajax", "fileapi", "spline_draw_new",
   ExportCanvasImage = _es6_module.add_export('ExportCanvasImage', ExportCanvasImage);
   
 }, '/dev/fairmotion/src/editors/viewport/view2d_ops.js');
-es6_module_define('view2d_spline_ops', ["struct", "UIPack", "UIWidgets_special", "multires_selectops", "spline_draw", "spline_selectops", "toolops_api", "UIMenu", "events", "spline", "view2d_editor", "transform_ops", "selectmode", "animdata", "spline_createops", "transform", "multires_ops", "ScreenArea", "UIWidgets", "spline_types", "spline_editops", "UICanvas", "spline_multires", "lib_api", "UIElement"], function _view2d_spline_ops_module(_es6_module) {
+es6_module_define('view2d_spline_ops', ["ScreenArea", "lib_api", "events", "transform", "animdata", "spline_draw", "UIMenu", "spline_multires", "spline", "UIWidgets", "UICanvas", "toolops_api", "multires_selectops", "selectmode", "UIPack", "spline_editops", "struct", "UIElement", "view2d_editor", "multires_ops", "spline_createops", "spline_selectops", "transform_ops", "spline_types", "UIWidgets_special", "UIFrame"], function _view2d_spline_ops_module(_es6_module) {
   "use strict";
   var ExtrudeVertOp=es6_import_item(_es6_module, 'spline_createops', 'ExtrudeVertOp');
   var toolop_menu=es6_import_item(_es6_module, 'UIMenu', 'toolop_menu');
@@ -4914,6 +4931,7 @@ es6_module_define('view2d_spline_ops', ["struct", "UIPack", "UIWidgets_special",
   var SplineSegment=es6_import_item(_es6_module, 'spline_types', 'SplineSegment');
   var SplineFace=es6_import_item(_es6_module, 'spline_types', 'SplineFace');
   var Spline=es6_import_item(_es6_module, 'spline', 'Spline');
+  var UIFrame=es6_import_item(_es6_module, 'UIFrame', 'UIFrame');
   var ColumnFrame=es6_import_item(_es6_module, 'UIPack', 'ColumnFrame');
   var RowFrame=es6_import_item(_es6_module, 'UIPack', 'RowFrame');
   var UIMenuLabel=es6_import_item(_es6_module, 'UIWidgets', 'UIMenuLabel');
@@ -5069,8 +5087,8 @@ es6_module_define('view2d_spline_ops', ["struct", "UIPack", "UIWidgets_special",
   }]);
   _es6_module.add_class(PlayAnimOp);
   PlayAnimOp = _es6_module.add_export('PlayAnimOp', PlayAnimOp);
-  var $ops_4NWi_tools_menu;
-  var $rect_XOv6_handle_mres_mousemove;
+  var $ops_8QAm_tools_menu;
+  var $rect_0UUI_handle_mres_mousemove;
   var SplineEditor=_ESClass("SplineEditor", View2DEditor, [function SplineEditor(view2d) {
     var keymap=new KeyMap();
     View2DEditor.call(this, "Geometry", EditModes.GEOMETRY, DataTypes.FRAMESET, keymap);
@@ -5107,41 +5125,36 @@ es6_module_define('view2d_spline_ops', ["struct", "UIPack", "UIWidgets_special",
     else {
       ctx.view2d.widgets.ensure_not_toolop(ctx, WidgetResizeOp);
     }
-  }, function build_sidebar1(view2d, panel) {
+  }, function build_sidebar1(view2d, col) {
+    console.trace("build_sidebar1");
     var ctx=new Context();
-    var the_row=new RowFrame(ctx);
-    the_row.packflag|=PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING|PackFlags.IGNORE_LIMIT;
-    the_row.default_packflag = PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING;
-    the_row.draw_background = true;
-    the_row.rcorner = 100.0;
-    the_row.pos = [0, 2];
-    the_row.size = [Area.get_barhgt()*2.0+16, view2d.size[1]];
-    the_row.default_packflag|=PackFlags.USE_LARGE_ICON;
-    the_row.default_packflag&=~PackFlags.USE_SMALL_ICON;
-    var col=the_row.col();
+    col.packflag|=PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING|PackFlags.IGNORE_LIMIT|PackFlags.INHERIT_WIDTH;
+    col.default_packflag = PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING;
+    col.draw_background = true;
+    col.rcorner = 100.0;
+    col.default_packflag|=PackFlags.USE_LARGE_ICON;
+    col.default_packflag&=~PackFlags.USE_SMALL_ICON;
+    var $_let_blank1=new UIFrame(this.ctx);
+    $_let_blank1.size[0] = 70;
+    $_let_blank1.size[1] = 1;
+    $_let_blank1.get_min_size = function() {
+      return this.size;
+    }
+    col.add($_let_blank1);
     col.toolop("spline.make_edge()");
     col.toolop("spline.make_edge_face()");
     col.toolop("spline.split_pick_edge()");
-    var col=the_row.col();
-    view2d.cols.push(the_row);
-    view2d.add(the_row);
-  }, function build_bottombar(view2d) {
+  }, function build_bottombar(view2d, col) {
     var ctx=new Context();
-    var the_row=new RowFrame(ctx);
-    the_row.packflag|=PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING|PackFlags.IGNORE_LIMIT;
-    the_row.default_packflag = PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING;
-    the_row.draw_background = true;
-    the_row.rcorner = 100.0;
-    the_row.size = [view2d.size[0], Area.get_barhgt()+4];
-    the_row.pos = [0, 0];
-    var col=the_row.col();
+    col.packflag|=PackFlags.ALIGN_LEFT|PackFlags.INHERIT_WIDTH|PackFlags.INHERIT_HEIGHT;
+    col.packflag|=PackFlags.NO_AUTO_SPACING|PackFlags.IGNORE_LIMIT;
+    col.default_packflag = PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING;
+    col.rcorner = 100.0;
     col.add(gen_editor_switcher(this.ctx, view2d));
     var prop=col.prop("view2d.selectmode", PackFlags.USE_SMALL_ICON|PackFlags.ENUM_STRIP);
     prop.packflag|=PackFlags.USE_ICON|PackFlags.ENUM_STRIP;
     col.prop('view2d.default_stroke', PackFlags.COLOR_BUTTON_ONLY);
     col.prop('view2d.edit_all_layers');
-    view2d.rows.push(the_row);
-    view2d.add(the_row);
   }, function define_keymap() {
     var k=this.keymap;
     k.add_tool(new KeyHandler("PageUp", [], "Send Face Up"), "spline.change_face_z(offset=1, selmode=selectmode)");
@@ -5238,7 +5251,7 @@ es6_module_define('view2d_spline_ops', ["struct", "UIPack", "UIWidgets_special",
     }
     return false;
   }, function tools_menu(ctx, mpos, view2d) {
-    var menu=view2d.toolop_menu(ctx, "Tools", $ops_4NWi_tools_menu);
+    var menu=view2d.toolop_menu(ctx, "Tools", $ops_8QAm_tools_menu);
     view2d.call_menu(menu, view2d, mpos);
   }, function on_inactive(view2d) {
   }, function on_active(view2d) {
@@ -5424,10 +5437,10 @@ es6_module_define('view2d_spline_ops', ["struct", "UIPack", "UIWidgets_special",
         }
         p = mr.get(p);
         p.flag|=MResFlags.HIGHLIGHT;
-        $rect_XOv6_handle_mres_mousemove[0].load(p).subScalar(10);
-        $rect_XOv6_handle_mres_mousemove[1].load(p).addScalar(10);
-        $rect_XOv6_handle_mres_mousemove[0][2] = $rect_XOv6_handle_mres_mousemove[1][2] = 0.0;
-        window.redraw_viewport($rect_XOv6_handle_mres_mousemove[0], $rect_XOv6_handle_mres_mousemove[1]);
+        $rect_0UUI_handle_mres_mousemove[0].load(p).subScalar(10);
+        $rect_0UUI_handle_mres_mousemove[1].load(p).addScalar(10);
+        $rect_0UUI_handle_mres_mousemove[0][2] = $rect_0UUI_handle_mres_mousemove[1][2] = 0.0;
+        window.redraw_viewport($rect_0UUI_handle_mres_mousemove[0], $rect_0UUI_handle_mres_mousemove[1]);
     }
     var ret=this.findnearest([event.x, event.y, 0], SelMask.SEGMENT, limit);
     if (ret!=undefined) {
@@ -5527,8 +5540,8 @@ es6_module_define('view2d_spline_ops', ["struct", "UIPack", "UIWidgets_special",
     menu.swap_mouse_button = 2;
     view2d.call_menu(menu, view2d, [event.x, event.y]);
   }]);
-  var $ops_4NWi_tools_menu=["spline.key_edges()", "spline.key_current_frame()", "spline.connect_handles()", "spline.disconnect_handles()", "spline.toggle_step_mode()", "spline.toggle_manual_handles()", "editor.paste_pose()", "editor.copy_pose()"];
-  var $rect_XOv6_handle_mres_mousemove=[new Vector3(), new Vector3()];
+  var $ops_8QAm_tools_menu=["spline.key_edges()", "spline.key_current_frame()", "spline.connect_handles()", "spline.disconnect_handles()", "spline.toggle_step_mode()", "spline.toggle_manual_handles()", "editor.paste_pose()", "editor.copy_pose()"];
+  var $rect_0UUI_handle_mres_mousemove=[new Vector3(), new Vector3()];
   _es6_module.add_class(SplineEditor);
   SplineEditor = _es6_module.add_export('SplineEditor', SplineEditor);
   SplineEditor.STRUCT = "\n  SplineEditor {\n    selectmode : int;\n  }\n";
@@ -6991,7 +7004,7 @@ es6_module_define('frameset', ["spline_element_array", "animdata", "spline_types
   
   SplineFrameSet.STRUCT = STRUCT.inherit(SplineFrameSet, DataBlock)+"\n    idgen             : SDIDGen;\n    frames            : array(SplineFrame) | obj_values_to_array(obj.frames);\n    vertex_animdata   : array(VertexAnimData) | obj_values_to_array(obj.vertex_animdata);\n\n    cur_frame         : float | obj.frame.time;\n    editmode          : string;\n    editveid          : int;\n\n    time              : float;\n    framelist         : array(float);\n    pathspline        : Spline;\n\n    selectmode        : int;\n    draw_anim_paths   : int;\n    templayerid       : int;\n}\n";
 }, '/dev/fairmotion/src/core/frameset.js');
-es6_module_define('ops_editor', ["UIPack", "UIWidgets", "UICanvas", "UIFrame", "UITextBox", "struct", "UIWidgets_special", "toolops_api", "ScreenArea", "events", "UIElement", "UITabPanel"], function _ops_editor_module(_es6_module) {
+es6_module_define('ops_editor', ["UIElement", "UIPack", "UITextBox", "UIFrame", "UIWidgets_special", "struct", "UIWidgets", "ScreenArea", "toolops_api", "UITabPanel", "UICanvas", "events"], function _ops_editor_module(_es6_module) {
   var gen_editor_switcher=es6_import_item(_es6_module, 'UIWidgets_special', 'gen_editor_switcher');
   var PackFlags=es6_import_item(_es6_module, 'UIElement', 'PackFlags');
   var UIElement=es6_import_item(_es6_module, 'UIElement', 'UIElement');
@@ -7253,9 +7266,9 @@ es6_module_define('ops_editor', ["UIPack", "UIWidgets", "UICanvas", "UIFrame", "
   }, function destroy() {
     this.subframe.canvas.destroy();
     Area.prototype.destroy.call(this);
-  }, function build_topbar() {
+  }, function build_topbar(col) {
     this.ctx = new Context();
-    var col=new ColumnFrame(this.ctx, undefined, PackFlags.ALIGN_LEFT);
+    col.packflag|=PackFlags.ALIGN_LEFT;
     this.topbar = col;
     col.packflag|=PackFlags.IGNORE_LIMIT;
     col.size = [this.size[0], Area.get_barhgt()];
@@ -7263,11 +7276,8 @@ es6_module_define('ops_editor', ["UIPack", "UIWidgets", "UICanvas", "UIFrame", "
     col.rcorner = 100.0;
     col.pos = [0, this.size[1]-Area.get_barhgt()];
     col.prop("opseditor.filter_sel", PackFlags.USE_SMALL_ICON);
-    this.rows.push(col);
-    this.add(col);
-  }, function build_bottombar() {
+  }, function build_bottombar(col) {
     var ctx=new Context();
-    var col=new ColumnFrame(ctx);
     col.packflag|=PackFlags.ALIGN_LEFT;
     col.default_packflag = PackFlags.ALIGN_LEFT;
     col.draw_background = true;
@@ -7275,8 +7285,6 @@ es6_module_define('ops_editor', ["UIPack", "UIWidgets", "UICanvas", "UIFrame", "
     col.pos = [0, 2];
     col.size = [this.size[0], Area.get_barhgt()];
     col.add(gen_editor_switcher(this.ctx, this));
-    this.rows.push(col);
-    this.add(col);
   }, function build_draw(canvas, isVertical) {
     this.subframe.set_pan();
     var ctx=this.ctx = new Context();
@@ -7303,7 +7311,7 @@ es6_module_define('ops_editor', ["UIPack", "UIWidgets", "UICanvas", "UIFrame", "
   OpStackEditor.uiname = "Operator Stack";
   OpStackEditor.debug_only = true;
 }, '/dev/fairmotion/src/editors/ops/ops_editor.js');
-es6_module_define('SettingsEditor', ["UIFrame", "UITabPanel", "ScreenArea", "UIPack", "events", "UIWidgets", "UICanvas", "UITextBox", "mathlib", "toolops_api", "struct", "UIElement", "UIWidgets_special"], function _SettingsEditor_module(_es6_module) {
+es6_module_define('SettingsEditor', ["UICanvas", "toolops_api", "UITextBox", "UIFrame", "UIWidgets_special", "UIWidgets", "UIPack", "UITabPanel", "mathlib", "ScreenArea", "events", "struct", "UIElement"], function _SettingsEditor_module(_es6_module) {
   "use strict";
   var gen_editor_switcher=es6_import_item(_es6_module, 'UIWidgets_special', 'gen_editor_switcher');
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
@@ -7467,20 +7475,18 @@ es6_module_define('SettingsEditor', ["UIFrame", "UITabPanel", "ScreenArea", "UIP
   }, function destroy() {
     this.subframe.canvas.destroy();
     Area.prototype.destroy.call(this);
-  }, function build_topbar() {
+  }, function build_topbar(col) {
     this.ctx = new Context();
-    var col=new ColumnFrame(this.ctx, undefined, PackFlags.ALIGN_LEFT);
     this.topbar = col;
-    col.packflag|=PackFlags.IGNORE_LIMIT;
+    col.packflag|=PackFlags.IGNORE_LIMIT|PackFlags.ALIGN_LEFT;
     col.size = [this.size[0], Area.get_barhgt()];
     col.draw_background = true;
     col.rcorner = 100.0;
     col.pos = [0, this.size[1]-Area.get_barhgt()];
     this.rows.push(col);
     this.add(col);
-  }, function build_bottombar() {
+  }, function build_bottombar(col) {
     var ctx=new Context();
-    var col=new ColumnFrame(ctx);
     col.packflag|=PackFlags.ALIGN_LEFT;
     col.default_packflag = PackFlags.ALIGN_LEFT;
     col.draw_background = true;

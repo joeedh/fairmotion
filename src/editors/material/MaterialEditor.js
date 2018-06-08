@@ -44,7 +44,7 @@ class LayerPanel extends RowFrame {
     this.delayed_recalc = 0;
   }
   
-  build_draw(UICanvas canvas, bool is_vertical) {
+  build_draw(canvas : UICanvas, is_vertical : Boolean) {
     super.build_draw(canvas, is_vertical);
   }
   
@@ -308,7 +308,7 @@ class MaterialEditor extends Area {
     return panel;
   }
   
-  constructor(Context ctx, Array<float> pos, Array<float> size) {
+  constructor(ctx, pos, size) {
     super(MaterialEditor.name, MaterialEditor.uiname, new Context(), pos, size);
     
     this.mm = new MinMax(2);
@@ -324,24 +324,33 @@ class MaterialEditor extends Area {
     if (size == undefined)
       size = [1, 1];
     
-    this.subframe = new UITabPanel(new Context(), [size[0], size[1]]);
-    this.subframe.packflag |= PackFlags.NO_AUTO_SPACE|PackFlags.INHERIT_WIDTH;
-    this.subframe.size[0] = this.size[0];
-    this.subframe.size[1] = this.size[1];
-    this.subframe.pos = [0, Area.get_barhgt()];
-    this.subframe.state |= 0; //UIFlags.HAS_PAN|UIFlags.IS_CANVAS_ROOT|UIFlags.PAN_CANVAS_MAT;
-    this.subframe.velpan = new VelocityPan();
+    this.tab_size = size;
+  }
+  
+  build_layout() {
+    super.build_layout();
     
-    this.subframe.add_tab("Fill", this.fill_panel());
-    this.subframe.add_tab("Stroke", this.stroke_panel());
-    this.subframe.add_tab("Layers", this.layers_panel());
-    this.subframe.add_tab("Point", this.vertex_panel());
+    let size = this.tab_size;
     
+    this.innerframe = new UITabPanel(this.ctx, [size[0], size[1]]);
+    //this.innerframe.packflag |= PackFlags.ALIGN_TOP;
+    this.innerframe.packflag |= PackFlags.NO_AUTO_SPACING|PackFlags.INHERIT_WIDTH|PackFlags.INHERIT_HEIGHT;
+    this.innerframe.size[0] = this.size[0];
+    this.innerframe.size[1] = this.size[1];
+    this.innerframe.pos = [0, Area.get_barhgt()];
+    this.innerframe.state |= 0; //UIFlags.HAS_PAN|UIFlags.IS_CANVAS_ROOT|UIFlags.PAN_CANVAS_MAT;
+    this.innerframe.velpan = new VelocityPan();
+  
+    this.innerframe.add_tab("Fill", this.fill_panel());
+    this.innerframe.add_tab("Stroke", this.stroke_panel());
+    this.innerframe.add_tab("Layers", this.layers_panel());
+    this.innerframe.add_tab("Point", this.vertex_panel());
+  
     if (ENABLE_MULTIRES) {
-      this.subframe.add_tab("Multires", this.multires_panel());
+      this.innerframe.add_tab("Multires", this.multires_panel());
     }
-    
-    this.add(this.subframe);
+  
+    this.middlesplit.add(this.innerframe);
   }
   
   define_keymap() {
@@ -367,7 +376,7 @@ class MaterialEditor extends Area {
   
   on_mousedown(MouseEvent event) {
     if (event.button == 1 && !g_app_state.was_touch) {
-      this.subframe.start_pan([event.x, event.y], 1);
+      this.innerframe.start_pan([event.x, event.y], 1);
     } else {
       super.on_mousedown(event);
     }
@@ -385,15 +394,15 @@ class MaterialEditor extends Area {
   } 
   
   destroy() {
-    //this.subframe.canvas.destroy(g_app_state.gl);
+    //this.innerframe.canvas.destroy(g_app_state.gl);
     Area.prototype.destroy.call(this);
   }
   
-  build_topbar()
+  build_topbar(col)
   {
     this.ctx = new Context();
     
-    var col = new ColumnFrame(this.ctx, undefined, PackFlags.ALIGN_LEFT);
+    col.packflag |= PackFlags.ALIGN_LEFT;
     
     this.topbar = col;
     col.packflag |= PackFlags.IGNORE_LIMIT;
@@ -404,14 +413,10 @@ class MaterialEditor extends Area {
     col.pos = [0, this.size[1]-Area.get_barhgt()]
     
     //add items here
-    
-    this.rows.push(col);
-    this.add(col);
   }
   
-  build_bottombar() {
+  build_bottombar(col) {
     var ctx = new Context();
-    var col = new ColumnFrame(ctx);
     
     col.packflag |= PackFlags.ALIGN_LEFT;
     col.default_packflag = PackFlags.ALIGN_LEFT;
@@ -422,29 +427,26 @@ class MaterialEditor extends Area {
     col.size = [this.size[0], Area.get_barhgt()];
     
     col.add(gen_editor_switcher(this.ctx, this));
-    
-    this.rows.push(col);
-    this.add(col);
   }
   
   build_draw(UICanvas canvas, Boolean isVertical) {
-    this.subframe.set_pan();
+    this.innerframe.set_pan();
     var ctx = this.ctx = new Context();
     
     //paranoid check
     var sx = this.size[0];
-    var sy = this.size[1]-this.subframe.pos[1]-Area.get_barhgt();
-    var s1 = this.size, s2=this.subframe.size;
+    var sy = this.size[1]-this.innerframe.pos[1]-Area.get_barhgt();
+    var s1 = this.size, s2=this.innerframe.size;
     
     if (s2[0] != sx || s2[1] != sy) {
       console.log("resizing subframe");
       
-      this.subframe.size[0] = this.size[0];
-      this.subframe.size[1] = sy;
-      this.subframe.on_resize(this.size, this.subframe.size);
+      this.innerframe.size[0] = this.size[0];
+      this.innerframe.size[1] = sy;
+      this.innerframe.on_resize(this.size, this.innerframe.size);
     }
     
-    this.subframe.canvas.viewport = this.canvas.viewport;
+    this.innerframe.canvas.viewport = this.canvas.viewport;
   
     super.build_draw(canvas, isVertical);
     

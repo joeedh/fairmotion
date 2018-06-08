@@ -19,6 +19,8 @@ import {
   UIMenuLabel, ScrollButton, UIVScroll, UIIconCheck
 } from 'UIWidgets';
 
+import {UISplitFrame} from 'UISplitFrame';
+
 import {RowFrame, ColumnFrame, UIPackFrame} from 'UIPack';
 import {UITextBox} from 'UITextBox';
 import {ToolOp, UndoFlags, ToolFlags} from 'toolops_api';
@@ -48,6 +50,7 @@ import {ShiftTimeOp2, ShiftTimeOp3, SelectOp, DeleteKeyOp,
 
 /******************* main area struct ********************************/
 import {Area} from 'ScreenArea';
+import {UISplitFrame} from "../../ui/UISplitFrame";
 
 var tree_packflag = PackFlags.INHERIT_WIDTH|PackFlags.ALIGN_LEFT
                    |PackFlags.ALIGN_TOP|PackFlags.NO_AUTO_SPACING
@@ -57,7 +60,7 @@ var CHGT = 25;
           
 export class TreeItem extends RowFrame {
   constructor(ctx, name) {
-    RowFrame.apply(this, arguments);
+    super(ctx);
     
     this.path = name;
     
@@ -90,11 +93,12 @@ export class TreeItem extends RowFrame {
     this.set_collapsed(data.collapsed);
   }
   
-  get_min_size(UICanvas canvas, Boolean isvertical) {
+  get_min_size(canvas : UICanvas, isvertical : Boolean) {
     var h = CHGT;
     
-    var max_width = Math.min(100, this.size[0]);
+    var max_width = 100; //Math.min(100, this.size[0]);
     var size = [0, 0];
+    
     for (var c of this.children) {
       var s = c.get_min_size(canvas, isvertical);
       if (c === this.panel) {
@@ -112,6 +116,8 @@ export class TreeItem extends RowFrame {
     }
     
     size[0] = max_width;
+    size[0] = 120; //XXX
+
     return size;
   }
   
@@ -190,7 +196,7 @@ export class TreeItem extends RowFrame {
 
 export class TreePanel extends RowFrame {
   constructor(ctx) {
-    RowFrame.apply(this, arguments);
+    super(ctx);
     
     this.packflag |= tree_packflag;
     this.default_packflag |= tree_packflag;
@@ -268,13 +274,17 @@ export class TreePanel extends RowFrame {
   
   get_y(path) {
     path = path.trim()
+  
+    //ensure abspos is up to date
+    this.abspos[0] = this.abspos[1] = 0.0;
+    this.abs_transform(this.abspos);
     
     if (path in this.pathmap) {
       var p = this.pathmap[path];
       var hidden = false;
       var last_hidden = p;
       
-      while (p.parent != undefined && !(p instanceof TreePanel)) {
+      while (p.parent !== undefined && !(p instanceof TreePanel)) {
         if (p.collapsed) {
           hidden = true;
           last_hidden = p;
@@ -287,7 +297,11 @@ export class TreePanel extends RowFrame {
       //    p = p.parent;
       //}
       
-      return (p.abspos[1] - this.abspos[1]) + this.pos[1] - this.parent.velpan.pan[1];
+      //ensure abspos is up to date
+      p.abspos[0] = p.abspos[1] = 0.0;
+      p.abs_transform(p.abspos);
+      
+      return (p.abspos[1] - this.abspos[1]) + this.pos[1] - this.parent.velpan.pan[1] + this.parent.parent.pos[1];
     } else {
       //console.log("not in pathmap!", path);
       return undefined;
@@ -395,7 +409,7 @@ export class PanOp extends ToolOp {
 
 export class DopeSheetEditor extends Area {
   constructor(pos, size) {
-    Area.call(this, DopeSheetEditor.name, DopeSheetEditor.uiname, new Context(), pos, size);
+    super(DopeSheetEditor.name, DopeSheetEditor.uiname, new Context(), pos, size);
     
     this.pinned_ids = undefined;
     this.nodes = [];
@@ -449,12 +463,26 @@ export class DopeSheetEditor extends Area {
     
     this.keymap = new KeyMap();
     this.define_keymap();
-    
+  }
+  
+  build_layout() {
     this.channels = new TreePanel();
-    this.channels.size[0] = 180;
+    this.channels.size[0] = 100;
     this.channels.size[1] = 600;
     
-    this.add(this.channels);
+    //this.add(this.channels);
+    
+    super.build_layout(false, true);
+    
+    //*
+    this.middlesplit.horizontal = true;
+    let sidebar = this.middlesplit.initial();
+    sidebar.state |= UIFlags.BG_EVENTS_TRANSPARENT;
+    this.middlesplit.split(145, false, false, true).state |= UIFlags.BG_EVENTS_TRANSPARENT;
+    
+    sidebar.draw_background = false;
+    sidebar.add(this.channels);
+    //*/
   }
   
   area_duplicate() {
@@ -580,7 +608,7 @@ export class DopeSheetEditor extends Area {
     var pan = this.velpan.pan;
 
     ph.pos[0] = this.time_zero_x-2+this.scaletime(ph.time)+pan[0];
-    ph.pos[1] = y+pan[1];
+    ph.pos[1] = y//+pan[1];
     
     ph.size[0] = cwid, ph.size[1] = chgt;
     
@@ -628,11 +656,11 @@ export class DopeSheetEditor extends Area {
     var pan = this.velpan.pan;
 
     ph.pos[0] = this.time_zero_x-2+this.scaletime(ph.time)+pan[0];
-    ph.pos[1] = y+pan[1];
+    ph.pos[1] = y//+pan[1];
     
     ph.size[0] = cwid, ph.size[1] = chgt;
         
-    if (this.old_keyboxes[ph.id] == undefined) {
+    if (this.old_keyboxes[ph.id] === undefined) {
       var ph2 = this.old_keyboxes[ph.id] = new phantom();
       ph2.ds = this;
 
@@ -1045,13 +1073,18 @@ export class DopeSheetEditor extends Area {
   }
   
   on_mousedown(event) {
-    if (Area.prototype.on_mousedown.call(this, event))
-      return;
+    //console.log("dp mousedown", event.x, event.y, event.button, this.highlight);
     
-    //console.log("mousedown!", event.button, this.highlight);
+    if (super.on_mousedown(event)) {
+      return;
+    }
+  
+    //console.log("dp mousedown", event.x, event.y, event.button, this.highlight, "\n");
     
     if (event.button == 0) {
       var nearest = this.findnearest([event.x, event.y]);
+      
+      //console.log("nearest: ", nearest, event.x, event.y);
       
       if (nearest != undefined) {
         //console.log("nearest type:", nearest.keybox.type);
@@ -1121,7 +1154,7 @@ export class DopeSheetEditor extends Area {
   }
   
   on_mousemove(event) {
-    if (Area.prototype.on_mousemove.call(this, event)) {
+    if (super.on_mousemove(event)) {
       return;
     }
     
@@ -1160,6 +1193,8 @@ export class DopeSheetEditor extends Area {
     //console.log("dopesheet mousemove");
     var key = this.findnearest([event.x, event.y]);
     
+    //console.log("nearest: ", key, event.x, event.y);
+  
     if (key != undefined && key.keybox.id != this.highlight) {
       if (key.highlight_keybox != undefined) {
         //undraw old key
@@ -1329,15 +1364,23 @@ export class DopeSheetEditor extends Area {
   build_draw(canvas) {
     var channels = this.channels;
     
+    if (channels === undefined) {
+      this.do_full_recalc();
+      return;
+    }
+    
     window.channels = this.channels;
     window.ds = this;
     
     var size = this.channels.get_min_size(canvas);
-    this.channels.size[1] = size[1];
-    this.channels.pos[1] = Area.get_barhgt()+2+this.velpan.pan[1] - size[1];
     
     this.size[0] = this.parent.size[0];
     this.size[1] = this.parent.size[1];
+    
+    size[1] = Math.max(size[1], this.parent.size[1] - Area.get_barhgt());
+    
+    this.channels.size[1] = size[1];
+    this.channels.pos[1] = Area.get_barhgt() + this.velpan.pan[1] - size[1];
     
     var keys = [];
     var totpath = 0;
@@ -1381,6 +1424,7 @@ export class DopeSheetEditor extends Area {
     
     if (!this.first_draw)
       this.update_collapsed_cache();
+    
     this.first_draw = false;
     
     for (var k in this.collapsed_cache) {
@@ -1466,9 +1510,7 @@ export class DopeSheetEditor extends Area {
         canvas.box2(pos, size, borderclr, undefined, true);
     }
     
-    this.time_overlay(canvas);
-    
-    Area.prototype.build_draw.apply(this, arguments);
+    super.build_draw(canvas);
     this._recalc_cache = {};
   }
   
@@ -1483,11 +1525,10 @@ export class DopeSheetEditor extends Area {
     this.redraw_key(box);
   }
   
-  build_bottombar() {
+  build_bottombar(the_row) {
     var ctx = new Context();
     
     this.ctx = ctx;
-    var the_row = new RowFrame(ctx);
 
     the_row.packflag |= PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING|PackFlags.IGNORE_LIMIT;
     the_row.default_packflag = PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING;
@@ -1502,9 +1543,6 @@ export class DopeSheetEditor extends Area {
     
     col.prop("dopesheet.selected_only");
     col.prop("dopesheet.pinned");
-    
-    this.rows.push(the_row);
-    this.add(the_row);
   }
   
   dag_unlink_all() {

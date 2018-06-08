@@ -4539,7 +4539,7 @@ es6_module_define('UserSettings', ["dialogs", "struct", "theme", "config", "stru
   }
 }, '/dev/fairmotion/src/core/UserSettings.js');
 var g_app_state, g, t;
-es6_module_define('AppState', ["lib_api", "notifications", "config", "scene", "ops_editor", "toolprops", "FrameManager", "struct", "ScreenArea", "view2d", "lib_utils", "ajax", "toolops_api", "spline_base", "frameset", "DopeSheetEditor", "UserSettings", "raster", "view2d_ops", "startup_file", "fileapi", "lib_api_typedefine", "jobs", "UICanvas", "data_api", "strutils"], function _AppState_module(_es6_module) {
+es6_module_define('AppState', ["frameset", "view2d", "data_api", "notifications", "struct", "scene", "ops_editor", "ScreenArea", "lib_utils", "fileapi", "view2d_ops", "UICanvas", "strutils", "UserSettings", "spline_base", "toolprops", "raster", "jobs", "startup_file", "DopeSheetEditor", "config", "lib_api", "lib_api_typedefine", "FrameManager", "ajax", "toolops_api"], function _AppState_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, 'config');
   var html5_fileapi=es6_import(_es6_module, 'fileapi');
@@ -4749,7 +4749,7 @@ es6_module_define('AppState', ["lib_api", "notifications", "config", "scene", "o
     g.reset_state();
     var op=new BasicFileOp();
     g.toolstack.exec_tool(op);
-    var view2d=new View2DHandler(undefined, undefined, undefined, undefined, undefined, 0, 0, size[0], size[1], 0.75, 1000.0);
+    var view2d=new View2DHandler(0, 0, size[0], size[1], 0.75, 1000.0);
     g.view2d = g.active_view2d = view2d;
     gen_screen(undefined, view2d, size[0], size[1]);
     view2d.ctx = new Context();
@@ -4765,7 +4765,7 @@ es6_module_define('AppState', ["lib_api", "notifications", "config", "scene", "o
     }
     return out;
   }
-  var $toolop_input_cache_a84y_AppState;
+  var $toolop_input_cache_Eb2k_AppState;
   var AppState=_ESClass("AppState", [function AppState(screen, mesh, gl) {
     this.screen = screen;
     this.eventhandler = screen;
@@ -4786,7 +4786,7 @@ es6_module_define('AppState', ["lib_api", "notifications", "config", "scene", "o
     this.gl = gl;
     this.size = screen!=undefined ? screen.size : [512, 512];
     this.raster = new RasterState(undefined, screen!=undefined ? screen.size : [512, 512]);
-    this.toolop_input_cache = $toolop_input_cache_a84y_AppState;
+    this.toolop_input_cache = $toolop_input_cache_Eb2k_AppState;
     if (this.datalib!=undefined) {
         this.datalib.on_destroy();
     }
@@ -5592,7 +5592,7 @@ es6_module_define('AppState', ["lib_api", "notifications", "config", "scene", "o
         screen.size = this.size;
     }
   }]);
-  var $toolop_input_cache_a84y_AppState={}
+  var $toolop_input_cache_Eb2k_AppState={}
   _es6_module.add_class(AppState);
   AppState = _es6_module.add_export('AppState', AppState);
   window.AppState = AppState;

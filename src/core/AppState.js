@@ -229,8 +229,7 @@ window.gen_default_file = function gen_default_file(size) {
   //set up screen UI
   
   //a 3d viewport
-  var view2d = new View2DHandler(undefined, undefined, undefined, undefined,
-                     undefined, 0, 0, size[0], size[1], 0.75, 1000.0);
+  var view2d = new View2DHandler(0, 0, size[0], size[1], 0.75, 1000.0);
   
   g.view2d = g.active_view2d = view2d;
 

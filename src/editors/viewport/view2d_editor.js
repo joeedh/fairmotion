@@ -49,13 +49,14 @@ export class View2DEditor {
   editor_duplicate(View2DHandler view2d) {}
   render_selbuf(WebGLRenderingContext gl, View2DHandler view2d, int typemask) {}
 
-  selbuf_changed(int typemask) {}
-  reset_selbuf_changed(int typemask) {}
-  add_menu(View2DHandler view2d, Array<float> mpos) {}
-  draw_object(WebGLRenderingContext gl, View2DHandler view2d, ASObject object, Boolean is_active) {}
+  selbuf_changed(typemask : int) {}
+  reset_selbuf_changed(typemask : int) {}
+  add_menu(view2d : View2DHandler, mpos : Array<float>) {}
+  draw_object(gl : WebGLRenderingContext, view2d : View2DHandler, object : ASObject, is_active : Boolean) {}
   
-  build_sidebar1(View2DHandler view2d, RowFrame panel) {}
-  build_bottombar(View2DHandler view2d) {}
+  build_sidebar1(view2d : View2DHandler, panel : RowFrame) {}
+  build_bottombar(view2d : View2DHandler, col : ColumnFrame) {}
+  build_topbar(view2d : View2DHandler, col : ColumnFrame) {}
   
   set_selectmode(int mode) {}
 

@@ -1382,7 +1382,7 @@ window.init_redraw_globals = function init_redraw_globals() {
   var _popsolve_max=[0, 0];
   window.pop_solve = function(id) {
     if (!(id in this.redraw_queue)) {
-        console.trace("Warning: either pop_solve call was switched, or the system automatically called due to timeout");
+        console.warn("Warning: either pop_solve call was switched, or the system automatically called due to timeout");
         return ;
     }
     var queue=redraw_queue[id];
@@ -1499,7 +1499,7 @@ window.init_redraw_globals = function init_redraw_globals() {
     }
     else 
       if (!window.redraw_whole_screen&&window.redraw_rect_defined) {
-        var h=window.innerHeight;
+        var h=window.theHeight;
         window.redraw_rect[0][0] = Math.min(min[0], window.redraw_rect[0][0]);
         window.redraw_rect[0][1] = Math.min(min[1], window.redraw_rect[0][1]);
         window.redraw_rect[1][0] = Math.max(max[0], window.redraw_rect[1][0]);
@@ -1567,7 +1567,8 @@ window.init_redraw_globals = function init_redraw_globals() {
             window.redraw_ui();
         }
     }
-    var width=window.innerWidth, height=window.innerHeight;
+    window._ensure_thedimens();
+    var width=window.theWidth, height=window.theHeight;
     if (canvas.width==width&&canvas.height==height)
       return ;
     var oldsize=[canvas.width, canvas.height];
@@ -1662,7 +1663,8 @@ window.startup = function startup() {
         var timer2=window.setInterval(function() {
           window.clearInterval(timer2);
           var canvas=document.getElementById("canvas2d");
-          g_app_state.screen.on_resize([window.innerWidth, window.innerHeight]);
+          window._ensure_thedimens();
+          g_app_state.screen.on_resize([window.theWidth, window.theHeight]);
         }, 200);
       }, 450);
   }
@@ -1670,6 +1672,10 @@ window.startup = function startup() {
     window.myLocalStorage = new MyLocalStorage_LS();
     startup_intern();
   }
+};
+window._ensure_thedimens = function() {
+  window.theHeight = document.documentElement.clientHeight-9;
+  window.theWidth = document.documentElement.clientWidth-4;
 };
 window.startup_intern = function startup() {
   window.IsMobile = mobilecheck();

@@ -20,17 +20,18 @@ import {DataTypes} from 'lib_api';
 import {STRUCT} from 'struct';
 import {EditModes} from 'view2d_editor';
 
-import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
+import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler,
         charmap, TouchEventManager, EventHandler} from 'events';
 
 import {SelectLinkedOp, SelectOneOp} from 'spline_selectops';
 import {TranslateOp} from 'transform';
 
 import {SelMask, ToolModes} from 'selectmode';
-import {SplineTypes, SplineFlags, SplineVertex, 
+import {SplineTypes, SplineFlags, SplineVertex,
         SplineSegment, SplineFace} from 'spline_types';
 import {Spline} from 'spline';
 
+import {UIFrame} from 'UIFrame';
 import {ColumnFrame, RowFrame} from 'UIPack';
 import {UIMenuLabel, UIButtonIcon} from 'UIWidgets';
 import {UIMenu} from 'UIMenu';
@@ -182,7 +183,7 @@ export class PlayAnimOp extends ToolOp {
     this.start_time = time_ms();
     
     this.timer = window.setInterval(function() {
-      if (this2.doing_draw) 
+      if (this2.doing_draw)
         return;
       this2.render_frame();
     }, 10);
@@ -296,7 +297,7 @@ export class SplineEditor extends View2DEditor {
     this.ctx = new Context();
     
     console.log("Add menu")
-     
+    
     var oplist = [] //XXX "mesh.add_cube()", "mesh.add_circle()"]
     var menu = toolop_menu(view2d.ctx, add_title ? "Add" : "", oplist);
     
@@ -310,54 +311,48 @@ export class SplineEditor extends View2DEditor {
       ctx.view2d.widgets.ensure_not_toolop(ctx, WidgetResizeOp);
     }
   }
- 
-  build_sidebar1(View2DHandler view2d, RowFrame panel) {
-    var ctx = new Context();
-    
-    var the_row = new RowFrame(ctx);
 
-    the_row.packflag |= PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING|PackFlags.IGNORE_LIMIT;
-    the_row.default_packflag = PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING;
-    the_row.draw_background = true;
-    the_row.rcorner = 100.0
-    the_row.pos = [0, 2]
-    the_row.size = [Area.get_barhgt()*2.0+16, view2d.size[1]];
+  build_sidebar1(view2d : View2DHandler, col : RowFrame) {
+    console.trace("build_sidebar1");
     
-    the_row.default_packflag |= PackFlags.USE_LARGE_ICON;
-    the_row.default_packflag &= ~PackFlags.USE_SMALL_ICON;
+    var ctx = new Context();
+  
+    col.packflag |= PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING|PackFlags.IGNORE_LIMIT|PackFlags.INHERIT_WIDTH;
+    col.default_packflag = PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING;
+    col.draw_background = true;
+    col.rcorner = 100.0
     
-    var col = the_row.col();
+    col.default_packflag |= PackFlags.USE_LARGE_ICON;
+    col.default_packflag &= ~PackFlags.USE_SMALL_ICON;
+    
+    //stupid blank spacer hack
+    let blank = new UIFrame(this.ctx);
+    blank.size[0] = 70;
+    blank.size[1] = 1;
+    blank.get_min_size = function() { return this.size;};
+    
+    col.add(blank)
+  
     col.toolop("spline.make_edge()");
     col.toolop("spline.make_edge_face()");
     col.toolop("spline.split_pick_edge()");
-    
-    var col = the_row.col();
-    
-    view2d.cols.push(the_row);
-    view2d.add(the_row);
-  }  
+  }
   
-  build_bottombar(view2d) {
+  build_bottombar(view2d, col) {
     var ctx = new Context();
-
-    var the_row = new RowFrame(ctx);
-
-    the_row.packflag |= PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING|PackFlags.IGNORE_LIMIT;
-    the_row.default_packflag = PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING;
+  
+    col.packflag |= PackFlags.ALIGN_LEFT | PackFlags.INHERIT_WIDTH | PackFlags.INHERIT_HEIGHT;
+    col.packflag |= PackFlags.NO_AUTO_SPACING|PackFlags.IGNORE_LIMIT;
     
-    the_row.draw_background = true;
+    col.default_packflag = PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING;
     
-    the_row.rcorner = 100.0
-    the_row.size = [view2d.size[0], Area.get_barhgt() + 4];
-    the_row.pos = [0, 0]; //view2d.size[0]-the_row.size[0]-Area.get_barhgt()-2]
-    
-    var col = the_row.col();
+    col.rcorner = 100.0
     
     //col.packflag |= PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING|PackFlags.IGNORE_LIMIT;
     //col.default_packflag = PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING;
     
     col.add(gen_editor_switcher(this.ctx, view2d));
-    var prop = col.prop("view2d.selectmode", 
+    var prop = col.prop("view2d.selectmode",
                         PackFlags.USE_SMALL_ICON|PackFlags.ENUM_STRIP);
                         
     prop.packflag |= PackFlags.USE_ICON|PackFlags.ENUM_STRIP;
@@ -368,27 +363,24 @@ export class SplineEditor extends View2DEditor {
     //col.prop('view2d.default_fill', PackFlags.COLOR_BUTTON_ONLY);
 
     col.prop('view2d.edit_all_layers');
-
-    view2d.rows.push(the_row);
-    view2d.add(the_row);
   }
 
   define_keymap() {
     var k = this.keymap;
     
-    k.add_tool(new KeyHandler("PageUp", [], "Send Face Up"), 
+    k.add_tool(new KeyHandler("PageUp", [], "Send Face Up"),
                "spline.change_face_z(offset=1, selmode=selectmode)");
-    k.add_tool(new KeyHandler("PageDown", [], "Send Face Down"), 
+    k.add_tool(new KeyHandler("PageDown", [], "Send Face Down"),
                "spline.change_face_z(offset=-1, selmode=selectmode)");
 
-    k.add_tool(new KeyHandler("G", [], "Translate"), 
+    k.add_tool(new KeyHandler("G", [], "Translate"),
                "spline.translate(datamode=selectmode)");
-    k.add_tool(new KeyHandler("S", [], "Scale"), 
+    k.add_tool(new KeyHandler("S", [], "Scale"),
                "spline.scale(datamode=selectmode)");
-    k.add_tool(new KeyHandler("S", ["SHIFT"], "Scale Time"), 
+    k.add_tool(new KeyHandler("S", ["SHIFT"], "Scale Time"),
                "spline.shift_time()");
                
-    k.add_tool(new KeyHandler("R", [], "Rotate"), 
+    k.add_tool(new KeyHandler("R", [], "Rotate"),
                "spline.rotate(datamode=selectmode)");
     
     k.add_tool(new KeyHandler("A", [], "Select Linked"), "spline.toggle_select_all()");
@@ -412,22 +404,22 @@ export class SplineEditor extends View2DEditor {
       }
     }));*/
 
-    k.add_tool(new KeyHandler("A", ["ALT"], "Animation Playback"), 
+    k.add_tool(new KeyHandler("A", ["ALT"], "Animation Playback"),
                "editor.playback()");
 
-    k.add_tool(new KeyHandler("H", [], "Hide Selection"), 
+    k.add_tool(new KeyHandler("H", [], "Hide Selection"),
                "spline.hide(selmode=selectmode)");
-    k.add_tool(new KeyHandler("H", ["ALT"], "Reveal Selection"), 
+    k.add_tool(new KeyHandler("H", ["ALT"], "Reveal Selection"),
                "spline.unhide(selmode=selectmode)");
 
-    k.add_tool(new KeyHandler("G", ["CTRL"], "Ghost Selection"), 
+    k.add_tool(new KeyHandler("G", ["CTRL"], "Ghost Selection"),
                "spline.hide(selmode=selectmode, ghost=1)");
-    k.add_tool(new KeyHandler("G", ["ALT"], "Unghost Selection"), 
+    k.add_tool(new KeyHandler("G", ["ALT"], "Unghost Selection"),
                "spline.unhide(selmode=selectmode, ghost=1)");
     
-    /*k.add_tool(new KeyHandler("C", [], "Connect Handles"), 
+    /*k.add_tool(new KeyHandler("C", [], "Connect Handles"),
                "spline.connect_handles()");
-    k.add_tool(new KeyHandler("C", ["SHIFT"], "Disconnect Handles"), 
+    k.add_tool(new KeyHandler("C", ["SHIFT"], "Disconnect Handles"),
                "spline.disconnect_handles()");
     */
 
@@ -456,7 +448,7 @@ export class SplineEditor extends View2DEditor {
         s2 = SelMask.SEGMENT;
       else if (s == SelMask.SEGMENT)
         s2 = SelMask.FACE;
-      else 
+      else
         s2 = SelMask.VERTEX;
       
       console.log("toggle select mode", s, s2, SelMask.SEGMENT,  SelMask.FACE);
@@ -476,7 +468,7 @@ export class SplineEditor extends View2DEditor {
         ctx.appstate.toolstack.exec_tool(tool);
       }
     }));
-              
+    
     k.add_tool(new KeyHandler("B", [], "Toggle Break-Tangents"),
               "spline.toggle_break_tangents()");
     k.add_tool(new KeyHandler("B", ["SHIFT"], "Toggle Break-Curvature"),
@@ -638,8 +630,8 @@ export class SplineEditor extends View2DEditor {
           var mr = seg.cdata.get_layer(MultiResLayer);
           p = mr.get(p);
           
-          var tool = new mr_selectops.SelectOneOp(ret[1], !event.shiftKey, 
-                            !event.shiftKey || !(p.flag & MResFlags.SELECT), 
+          var tool = new mr_selectops.SelectOneOp(ret[1], !event.shiftKey,
+                            !event.shiftKey || !(p.flag & MResFlags.SELECT),
                             spline.actlevel);
           
           g_app_state.toolstack.exec_tool(tool);
@@ -656,7 +648,7 @@ export class SplineEditor extends View2DEditor {
           if (list.highlight == undefined)
             continue;
 
-          var op = new SelectOneOp(list.highlight, !event.shiftKey, 
+          var op = new SelectOneOp(list.highlight, !event.shiftKey,
                                   !(list.highlight.flag & SplineFlags.SELECT),
                                   this.selectmode, true);
           //console.log("exec selectoneop op");
@@ -752,7 +744,7 @@ export class SplineEditor extends View2DEditor {
   
   mres_make_point(event, limit) {
     console.log("make point");
-     
+    
     var view2d = this.ctx.view2d;
     var co = new Vector3([event.x, event.y, 0]);
     
@@ -767,7 +759,7 @@ export class SplineEditor extends View2DEditor {
     
     var p = seg.closest_point(co);
     
-    if (p == undefined) 
+    if (p == undefined)
       return;
       
     console.log(p);
@@ -825,7 +817,7 @@ export class SplineEditor extends View2DEditor {
       var seg = ret[1];
       
       var p = seg.closest_point(co);
-      if (p == undefined) 
+      if (p == undefined)
         return;
         
       var dl = view2d.make_drawline(co, p[0], "mres");

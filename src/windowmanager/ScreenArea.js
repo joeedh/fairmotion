@@ -15,10 +15,11 @@ import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler,
         charmap, TouchEventManager, EventHandler} from 'events';
 
 import {UIButton, UIButtonIcon} from 'UIWidgets';
+import {UISplitFrame} from "UISplitFrame";
 
 import {UICanvas} from 'UICanvas';
 import {UIFrame} from 'UIFrame';
-import {RowFrame} from 'UIPack';
+import {RowFrame, ColumnFrame} from 'UIPack';
 import {
   PackFlags, UIElement, UIFlags, UIHoverHint, UIHoverBox
 } from 'UIElement';
@@ -38,9 +39,9 @@ function _get_area_stack(cls) {
   return _area_active_stacks[h];
 }
 
-//this should have been named ScreenEditor, ger
+//this should have been named ScreenEditor, bleh
 export class Area extends UIFrame {
-  constructor(String type, String uiname, Context ctx, Array<float> pos, Array<float> size) {
+  constructor(type : String, uiname : String, ctx : Context, pos : Array<float>, size : Array<float>) {
     super(ctx, undefined, undefined, pos, size);
     
     this.keymap = new KeyMap();
@@ -75,6 +76,12 @@ export class Area extends UIFrame {
   }
   
   pack(canvas, is_vertical) {
+    if (this.subframe !== undefined) {
+      this.subframe.size[0] = this.size[0];
+      this.subframe.size[1] = this.size[1];
+      this.subframe.pos[0] = this.subframe.pos[1] = 0;
+    }
+
     this.plus.size = this.plus.get_min_size(canvas, is_vertical);
     this.plus.small_icon = true;
     this.plus.pos[0] = this.size[0]-this.plus.size[0]-2;
@@ -94,58 +101,9 @@ export class Area extends UIFrame {
     this.children.remove(this.minus)
     this.children.push(this.minus)
     */
-    
-    //make sure side/top/bottom bars have correct size
 
-    super.pack(canvas, is_vertical);
-    
-    function bind_size(obj) {
-      return; //XXX 
-      
-      obj._size = obj.size;
-      Object.defineProperty(obj, 'size', {
-        enumerable   : true,
-        configurable : true,
-        get : function() {
-          console.trace(".size access!", this._size[0], this._size[1]);
-          return this._size;
-        },
-        set : function (val) {
-          this._size = val;
-        }
-      });
-    }
-    
     var panx = this.velpan != undefined ? this.velpan.pan[0] : 0;
     var pany = this.velpan != undefined ? this.velpan.pan[1] : 0;
-    
-    var i=0;
-    for (var frame of this.rows) {
-      frame.state    |= UIFlags.HAS_PAN|UIFlags.USE_PAN|UIFlags.NO_VELOCITY_PAN;
-      frame.packflag |= PackFlags.INHERIT_WIDTH|PackFlags.CALC_NEGATIVE_PAN|PackFlags.PAN_X_ONLY;
-      
-      if (i == 0)
-        frame.pos[1] = this.size[1] - Area.get_barhgt() - pany;
-
-      frame.size[0] = Math.max(frame.get_min_size(this.get_canvas())[0] + 10, this.size[0]);
-        
-      i++;
-    }
-    
-    i = 0;
-    for (var frame of this.cols) {
-      frame.state    |= UIFlags.HAS_PAN|UIFlags.USE_PAN|UIFlags.NO_VELOCITY_PAN;
-      frame.packflag |= PackFlags.INHERIT_WIDTH|PackFlags.CALC_NEGATIVE_PAN|PackFlags.PAN_X_ONLY;
-      
-      if (i != 0)
-        frame.pos[0] = this.size[0] - frame.size[0] - panx;
-
-      frame.size[1] = frame.get_min_size(this.get_canvas())[1];
-      frame.size[0] = frame.get_min_size(this.get_canvas())[0];
-      
-      frame.pos[1] = this.size[1] - frame.size[1] - Area.get_barhgt();
-      i++;
-    }
     
     super.pack(canvas, is_vertical);
   } 
@@ -234,7 +192,7 @@ export class Area extends UIFrame {
     recurse(this);
   }
   
-  set saved_uidata(String str) : String {
+  set saved_uidata(str) : String {
     this._saved_uidata = str;
   }
   
@@ -267,8 +225,8 @@ export class Area extends UIFrame {
     stack.pop(stack.length-1);
   }
   
-  static default_new(Context ctx, ScreenArea scr, WebGLRenderingContext gl, 
-                     Array<float> pos, Array<float> size) {}
+  static default_new(ctx : Context, scr : ScreenArea,  unused,
+                     pos : Array<float>, size : Array<float>) {}
   
  
   get_keymaps() {
@@ -295,7 +253,7 @@ export class Area extends UIFrame {
   define_keymap() {
   }
   
-  on_gl_lost(WebGLRenderingContext new_gl) {
+  on_gl_lost(new_gl : WebGLRenderingContext) {
     for (var c of this.cols) {
       c.on_gl_lost();
     }
@@ -308,16 +266,9 @@ export class Area extends UIFrame {
   
   on_add(parent)
   {
-    for (var c of this.rows) {
-      this.remove(c);
-    }
-    for (var c of this.cols) {
-      this.remove(c);
-    }
+    this.build_layout();
     
-    this.rows = new GArray();
-    this.cols = new GArray();
-    
+    /*
     try {
       this.build_sidebar1();
       this.build_topbar();
@@ -325,8 +276,9 @@ export class Area extends UIFrame {
     } catch (error) {
       print_stack(error);
       console.log("Failed to build UI properly");
-    }
+    }//*/
     
+    //this.b
     /*
     for (var c of this.rows) {
       if (c.pos[1] > 70)
@@ -337,7 +289,7 @@ export class Area extends UIFrame {
        c.size[1] = c.get_min_size(this.get_canvas())[1]; //this.size[1]-Area.get_barhgt()*2;
     }*/
   }
-
+  
   toJSON()
   {
     if (this.pos == undefined) {
@@ -355,7 +307,7 @@ export class Area extends UIFrame {
     throw new Error("Error: unimplemented area_duplicate() in editor");
   }
   
-  on_resize(Array<int> newsize, Array<int> oldsize)
+  on_resize(newsize : Array<int>, oldsize : Array<int>)
   {
     if (oldsize == undefined)
       oldsize = this.size;
@@ -386,7 +338,7 @@ export class Area extends UIFrame {
     }
   }
   
-  on_keyup(KeyboardEvent event) {
+  on_keyup(event : KeyboardEvent) {
     var ctx = new Context();
     var maps = this.get_keymaps();
     
@@ -402,7 +354,7 @@ export class Area extends UIFrame {
     super.on_keyup(event);
   }
   
-  on_keydown(Keyboard event) {
+  on_keydown(event : Keyboard) {
     this.shift = event.shiftKey;
     this.alt = event.altKey;
     this.ctrl = event.ctrlKey;
@@ -410,6 +362,41 @@ export class Area extends UIFrame {
     super.on_keydown(event);
   }
 
+  build_layout(make_top=true, make_bottom=true) {
+    if (this.subframe !== undefined) {
+      this.remove(this.subframe);
+    }
+  
+    this.subframe = new UISplitFrame(this.ctx);
+    this.subframe.state |= UIFlags.BG_EVENTS_TRANSPARENT;
+    this.add(this.subframe);
+    
+    let bottombar = this.bottombar = this.subframe.initial();
+    
+    if (make_bottom) {
+      //bottombar.draw_background = true;
+      bottombar.add(new ColumnFrame(this.ctx));
+      bottombar.children[0].draw_background = true;
+      
+      this.build_bottombar(bottombar.children[0]);
+    } else {
+      bottombar.state |= UIFlags.BG_EVENTS_TRANSPARENT;
+    }
+    
+    this.middlesplit = this.subframe.split(Area.get_barhgt(), false, false, true);
+    this.middlesplit.state |= UIFlags.BG_EVENTS_TRANSPARENT;
+  
+    if (make_top) {
+      let topbar = this.topbar = this.subframe.split(Area.get_barhgt(), false, true, true);
+  
+      //topbar.draw_background = true;
+      topbar.add(new ColumnFrame(this.ctx));
+      topbar.children[0].draw_background = true;
+      
+      this.build_topbar(topbar.children[0]);
+    }
+  }
+  
   build_bottombar()
   {
   }
@@ -430,14 +417,14 @@ export class Area extends UIFrame {
   {
   }
 }
-Area.STRUCT = """
+Area.STRUCT = `
   Area { 
     pos  : vec2;
     size : vec2;
     type : string;
     saved_uidata : string;
   }
-"""
+`
 
 export class ScreenArea extends UIFrame {
   constructor(area, ctx, pos, size, add_area) {
@@ -613,7 +600,7 @@ export class ScreenArea extends UIFrame {
     canvas.line([1, 0], [1, this.size[1]], border2, border2);
   }
   
-  on_draw(WebGLRenderingContext g)
+  on_draw(g)
   {
     return;
     /*
@@ -658,7 +645,7 @@ export class ScreenArea extends UIFrame {
     this.area._on_mouseup(event);
   }*/
   
-  on_resize(Array<int> newsize, Array<int> oldsize)
+  on_resize(newsize : Array<int>, oldsize : Array<int>)
   {
     var oldsize = new Vector2(this.area.size);
     
@@ -676,7 +663,7 @@ export class ScreenArea extends UIFrame {
 }
 
 
-ScreenArea.STRUCT = """
+ScreenArea.STRUCT = `
   ScreenArea {
     pos     : vec2;
     size    : vec2;
@@ -684,4 +671,4 @@ ScreenArea.STRUCT = """
     editors : iter(k, abstract(Area)) | obj.editors[k];
     area    : string | obj.area.constructor.name;
   }
-"""
+`;

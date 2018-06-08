@@ -18,12 +18,25 @@ import {
     
 export class ShiftTimeOp2 extends ToolOp {
   constructor() {
-    ToolOp.call(this, "shift_time", "shift time", "shift time");
+    super();
     
-    this.is_modal = true;
     var first = true;
     this.start_mpos = new Vector3();
   }
+  
+  static tooldef() {return {
+    apiname : "spline.shift_time2",
+    uiname : "Shift Time2",
+    
+    is_modal : true,
+    inputs : {
+      factor       : new FloatProperty(-1, "factor", "factor", "factor"),
+      vertex_eids  : new CollectionProperty([], undefined, "verts", "verts")
+    },
+    outputs : {},
+    icon     : -1,
+    description : "Move keyframes around"
+  }}
   
   get_curframe_animverts(ctx) {
     var vset = new set();
@@ -34,7 +47,7 @@ export class ShiftTimeOp2 extends ToolOp {
       var v = spline.eidmap[eid];
       
       if (v == undefined) {
-        console.log("ShiftTimeOp2 data corruption! v was undefined!");
+        console.warn("ShiftTimeOp2 data corruption! v was undefined!");
         continue;
       }
       
@@ -202,20 +215,27 @@ export class ShiftTimeOp2 extends ToolOp {
   }
 }
 
-ShiftTimeOp2.inputs = {
-  factor       : new FloatProperty(-1, "factor", "factor", "factor"),
-  vertex_eids  : new CollectionProperty([], undefined, "verts", "verts")
-}
-
 export class ShiftTimeOp3 extends ToolOp {
   constructor() {
-    ToolOp.call(this, "shift_time", "shift time", "shift time");
+    super();
     
-    this.is_modal = true;
     var first = true;
     this.start_mpos = new Vector3();
   }
   
+  static tooldef() {return {
+    apiname : "spline.shift_time3",
+    uiname : "Shift Time",
+    
+    is_modal : true,
+    inputs : {
+      factor: new FloatProperty(-1, "factor", "factor", "factor"),
+      phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom_ids")
+    },
+    outputs : {},
+    icon     : -1,
+    description : "Move keyframes around"
+  }}
   
   start_modal(ctx) {
     this.first = true;
@@ -243,7 +263,7 @@ export class ShiftTimeOp3 extends ToolOp {
     var mpos = new Vector3([event.x, event.y, 0]);
     var dx = -Math.floor(1.5*(this.start_mpos[0] - mpos[0])/20+0.5);
     
-    console.log("time offset", dx);
+    //console.log("time offset", dx);
     
     this.do_undo(this.modal_ctx, true);
     this.inputs.factor.set_data(dx);
@@ -313,7 +333,7 @@ export class ShiftTimeOp3 extends ToolOp {
       }
     }
     
-    console.log("time shift", off);
+    //console.log("time shift", off);
     
     var kcache = ctx.frameset.kcache;
     for (var id of ids) {
@@ -370,15 +390,17 @@ export class ShiftTimeOp3 extends ToolOp {
   }
 }
 
-ShiftTimeOp3.inputs = {
-  factor       : new FloatProperty(-1, "factor", "factor", "factor"),
-  phantom_ids  : new CollectionProperty([], undefined, "phantom_ids", "phantom_ids")
-}
-
 export class SelectOpBase extends ToolOp {
   constructor() {
-    ToolOp.call(this);
+    super();
   }
+  
+  static tooldef() {return {
+    inputs  : {
+      phantom_ids  : new CollectionProperty([], undefined, "phantom_ids", "phantom_ids")
+    },
+    outputs : {}
+  }}
   
   undo_pre(ctx) {
     var undo = this._undo = {};
@@ -396,9 +418,6 @@ export class SelectOpBase extends ToolOp {
     }
   }
 }
-SelectOpBase.inputs = {
-  phantom_ids  : new CollectionProperty([], undefined, "phantom_ids", "phantom_ids")
-}
 
 export class SelectOp extends SelectOpBase {
   constructor() {
@@ -406,6 +425,22 @@ export class SelectOp extends SelectOpBase {
     
     this.uiname = "Select";
   }
+  
+  static tooldef() {return {
+    apiname : "spline.select_keyframe",
+    uiname : "Select Keyframe",
+    
+    is_modal : false,
+    inputs : ToolOp.inherit({
+      select_ids  : new CollectionProperty([], undefined, "select_ids", "select_ids"),
+      state       : new BoolProperty(true, "state"),
+      unique      : new BoolProperty(true, "unique")
+    }),
+    
+    outputs : {},
+    icon     : -1,
+    description : "Select keyframes"
+  }}
   
   exec(ctx) {
     var state = this.inputs.state.data;
@@ -422,16 +457,24 @@ export class SelectOp extends SelectOpBase {
   }
 }
 
-SelectOp.inputs = ToolOp.inherit_inputs(SelectOpBase, {
-  select_ids  : new CollectionProperty([], undefined, "select_ids", "select_ids"),
-  state       : new BoolProperty(true, "state"),
-  unique      : new BoolProperty(true, "unique")
-});
-
 export class ColumnSelect extends SelectOpBase {
   constructor() {
-    SelectOpBase.call(this);
+    super();
   }
+  static tooldef() {return {
+    apiname : "spline.select_keyframe_column",
+    uiname : "Column Select",
+    
+    is_modal : false,
+    inputs : ToolOp.inherit({
+      state       : new BoolProperty(true, "state"),
+      phantom_ids  : new CollectionProperty([], undefined, "phantom_ids", "phantom_ids")
+    }),
+    
+    outputs : {},
+    icon     : -1,
+    description : "Select keyframes in a single column"
+  }}
   
   exec(ctx) {
     var cols = {};
@@ -451,15 +494,26 @@ export class ColumnSelect extends SelectOpBase {
   }
 }
 
-ColumnSelect.inputs = ToolOp.inherit_inputs(SelectOpBase, {
-  state       : new BoolProperty(true, "state"),
-  phantom_ids  : new CollectionProperty([], undefined, "phantom_ids", "phantom_ids")
-});
-
 export class SelectKeysToSide extends SelectOpBase {
   constructor() {
-    SelectOpBase.call(this);
+    super();
   }
+  
+  static tooldef() {return {
+    apiname : "spline.select_keys_to_side",
+    uiname : "Select Keys To Side",
+    
+    is_modal : false,
+    inputs : ToolOp.inherit({
+      state       : new BoolProperty(true, "state"),
+      phantom_ids  : new CollectionProperty([], undefined, "phantom_ids", "phantom_ids"),
+      side        : new BoolProperty(true, "side")
+    }),
+    
+    outputs : {},
+    icon     : -1,
+    description : "Select keyframes before or after the cursor"
+  }}
   
   exec(ctx) {
     var state = this.inputs.state.data;
@@ -492,18 +546,29 @@ export class SelectKeysToSide extends SelectOpBase {
   }
 }
 
-SelectKeysToSide.inputs = ToolOp.inherit_inputs(SelectOpBase, {
-  state       : new BoolProperty(true, "state"),
-  phantom_ids  : new CollectionProperty([], undefined, "phantom_ids", "phantom_ids"),
-  side        : new BoolProperty(true, "side")
-});
+export var mode_vals = ["select", "deselect", "auto"];
 
 export class ToggleSelectOp extends SelectOpBase {
   constructor(mode="auto") {
-    SelectOpBase.call(this);
+    super();
     
     this.inputs.mode.set_data(mode);
   }
+  
+  static tooldef() {return {
+    apiname : "spline.toggle_select_keys",
+    uiname : "Select Keyframe Selection",
+    
+    is_modal : false,
+    inputs : ToolOp.inherit({
+      phantom_ids : new CollectionProperty([], undefined, "phantom_ids", "phantom ids"),
+      mode        : new EnumProperty("auto", mode_vals, "mode", "Mode", "mode")
+    }),
+    
+    outputs : {},
+    icon     : -1,
+    description : "Select all keyframes, or deselect them if already selected"
+  }}
   
   exec(ctx) {
     var mode = this.inputs.mode.data;
@@ -524,28 +589,32 @@ export class ToggleSelectOp extends SelectOpBase {
   }
 }
 
-export var mode_vals = ["select", "deselect", "auto"];
-ToggleSelectOp.inputs = ToolOp.inherit_inputs(SelectOpBase, {
-  phantom_ids : new CollectionProperty([], undefined, "phantom_ids", "phantom ids"),
-  mode        : new EnumProperty("auto", mode_vals, "mode", "Mode", "mode")
-});
-
 
 export class DeleteKeyOp extends ToolOp {
   constructor() {
-    ToolOp.call(this);
+    super();
   }
+  
+  static tooldef() {return {
+    apiname : "spline.delete_key",
+    uiname : "Delete Keyframe",
+    
+    is_modal : false,
+    inputs : {
+      phantom_ids : new CollectionProperty([], undefined, "phantom_ids", "phantom ids")
+    },
+    
+    outputs : {},
+    icon     : -1,
+    description : "Delete a keyframe"
+  }}
   
   exec(ctx) {
     for (var id of this.inputs.phantom_ids.data) {
       if (get_select(ctx, id)) {
-        console.log("deleting!", id & 65535);
+        //console.log("deleting!", id & 65535);
         delete_key(ctx, id);
       }
     }
   }
 };
-
-DeleteKeyOp.inputs = ToolOp.inherit_inputs(ToolOp, {
-  phantom_ids : new CollectionProperty([], undefined, "phantom_ids", "phantom ids")
-});

@@ -7,7 +7,7 @@
     <script type="text/javascript" src="fcontent/app.js"></script>
     <style>
         body {
-            overflow: hidden;
+            overflow : hidden;
         }
 
         #framerate {
@@ -28,12 +28,20 @@
             padding: 1em;
             color: white;
         }
+
+        canvas {
+            padding : 0px;
+            margin : 0px;
+        }
+
         #canvas2d {
             background: "rgba(255,255,255,0.0)";
             position: absolute;
             left: 0px;
             right: 0px;
             z-index: 1;
+            padding : 0px;
+            margin : 0px;
         }
 
         #canvas2d_work {
@@ -42,6 +50,8 @@
             left: 0px;
             right: 0px;
             z-index: 10;
+            padding : 0px;
+            margin : 0px;
         }
 
         #fileinput {

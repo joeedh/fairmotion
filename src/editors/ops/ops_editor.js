@@ -290,11 +290,10 @@ export class OpStackEditor extends Area {
     Area.prototype.destroy.call(this);
   }
   
-  build_topbar()
+  build_topbar(col)
   {
     this.ctx = new Context();
-    
-    var col = new ColumnFrame(this.ctx, undefined, PackFlags.ALIGN_LEFT);
+    col.packflag |= PackFlags.ALIGN_LEFT;
     
     this.topbar = col;
     col.packflag |= PackFlags.IGNORE_LIMIT;
@@ -305,14 +304,10 @@ export class OpStackEditor extends Area {
     col.pos = [0, this.size[1]-Area.get_barhgt()]
     
     col.prop("opseditor.filter_sel", PackFlags.USE_SMALL_ICON);
-    
-    this.rows.push(col);
-    this.add(col);
   }
   
-  build_bottombar() {
+  build_bottombar(col) {
     var ctx = new Context();
-    var col = new ColumnFrame(ctx);
     
     col.packflag |= PackFlags.ALIGN_LEFT;
     col.default_packflag = PackFlags.ALIGN_LEFT;
@@ -324,9 +319,6 @@ export class OpStackEditor extends Area {
     col.size = [this.size[0], Area.get_barhgt()];
     
     col.add(gen_editor_switcher(this.ctx, this));
-    
-    this.rows.push(col);
-    this.add(col);
   }
   
   build_draw(UICanvas canvas, Boolean isVertical) {

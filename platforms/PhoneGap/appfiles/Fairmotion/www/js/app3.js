@@ -8747,10 +8747,10 @@ es6_module_define('theme_def', ["theme"], function _theme_def_module(_es6_module
   function uniformbox4(clr) {
     return new BoxColor4([clr, clr, clr, clr]);
   }
-  window.UITheme = new ColorTheme({"ErrorText": [1, 0.20000000298023224, 0.20000000298023224, 0.8899999856948853], "ListBoxText": [0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1], "MenuHighlight": [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], "RadialMenu": [1, 0, 0, 1], "RadialMenuHighlight": [0.7831560373306274, 0.7664570808410645, 0.3468262255191803, 0.7717778086662292], "DefaultLine": [0.4163331985473633, 0.3746998906135559, 0.3746998906135559, 1], "SelectLine": [0.699999988079071, 0.699999988079071, 0.699999988079071, 1], "Check": [0.8999999761581421, 0.699999988079071, 0.4000000059604645, 1], "Arrow": [0.4000000059604645, 0.4000000059604645, 0.4000000059604645, 1], "DefaultText": [0.9092121131323904, 0.9092121131323904, 0.9092121131323904, 1], "BoxText": [0, 0, 0, 1], "HotkeyText": [0.43986162543296814, 0.43986162543296814, 0.43986162543296814, 1], "HighlightCursor": [0.8999999761581421, 0.8999999761581421, 0.8999999761581421, 0.875], "TextSelect": [0.4000000059604645, 0.4000000059604645, 0.4000000059604645, 0.75], "TextEditCursor": [0.10000000149011612, 0.10000000149011612, 0.10000000149011612, 1], "TextBoxHighlight": [0.5270000100135803, 0.5270000100135803, 0.5270000100135803, 1], "MenuSep": [0.6901277303695679, 0.6901277303695679, 0.6901277303695679, 1], "MenuBorder": [0.6499999761581421, 0.6499999761581421, 0.6499999761581421, 1], "RadialMenuSep": [0.10000000149011612, 0.20000000298023224, 0.20000000298023224, 1], "TabPanelOutline": [0.2449489742783178, 0.2449489742783178, 0.2449489742783178, 1], "TabPanelBG": [0.5715476066494082, 0.5715476066494082, 0.5715476066494082, 1], "ActiveTab": [0.5416025603090641, 0.5416025603090641, 0.5416025603090641, 1], "HighlightTab": [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 0.8999999761581421], "InactiveTab": [0.2449489742783178, 0.2449489742783178, 0.2449489742783178, 1], "TabText": [0.9309493362512627, 0.9309493362512627, 0.9309493362512627, 1], "IconBox": [1, 1, 1, 0.17968888580799103], "HighlightIcon": [0.30000001192092896, 0.8149344325065613, 1, 0.21444444358348846], "MenuText": [0.10000000149011612, 0.10000000149011612, 0.10000000149011612, 1], "MenuTextHigh": [0.9330000281333923, 0.9330000281333923, 0.9330000281333923, 1], "PanelText": [0, 0, 0, 1], "DialogText": [0.05000003054738045, 0.05000000447034836, 0.05000000447034836, 1], "DialogBorder": [0.4000000059604645, 0.40000003576278687, 0.4000000059604645, 1], "DisabledBox": [0.5, 0.5, 0.5, 1], "IconCheckBG": [0.6879922747612, 0.6879922747612, 0.6879922747612, 1], "IconCheckSet": [0.6000000238418579, 0.6000000238418579, 0.6000000238418579, 1], "IconCheckUnset": [0.4464101493358612, 0.4464101493358612, 0.4464101493358612, 1], "Highlight": new BoxColor4([[0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1]]), "NoteBox": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 1], [0.800000011920929, 0.800000011920929, 0.800000011920929, 1]), "Box": ui_weight_clr([0.9399999976158142, 0.9399999976158142, 0.9399999976158142, 1], [0.800000011920929, 0.800000011920929, 0.800000011920929, 1]), "HoverHint": ui_weight_clr([1, 0.9769999980926514, 0.8930000066757202, 0.8999999761581421], [0.8999999761581421, 0.8999999761581421, 1, 1]), "ErrorBox": ui_weight_clr([1, 0.30000001192092896, 0.20000000298023224, 1], [1, 1, 1, 1]), "ErrorTextBG": ui_weight_clr([1, 1, 1, 1], [0.8999999761581421, 0.8999999761581421, 1, 1]), "ShadowBox": ui_weight_clr([0, 0, 0, 0.10000000149011612], [1, 1, 1, 1]), "ProgressBar": ui_weight_clr([0.4000000059604645, 0.7300000190734863, 0.8999999761581421, 0.8999999761581421], [0.75, 0.75, 1, 1]), "ProgressBarBG": ui_weight_clr([0.699999988079071, 0.699999988079071, 0.699999988079071, 0.699999988079071], [1, 1, 1, 1]), "WarningBox": ui_weight_clr([1, 0.800000011920929, 0.10000000149011612, 0.8999999761581421], [0.699999988079071, 0.800000011920929, 1.0499999523162842, 1]), "ListBoxBG": ui_weight_clr([0.9399999976158142, 0.9399999976158142, 0.9399999976158142, 1], [0.9399999976158142, 0.9399999976158142, 0.9399999976158142, 1]), "InvBox": ui_weight_clr([0.6000000238418579, 0.6000000238418579, 0.6000000238418579, 1], [0.6000000238418579, 0.6000000238418579, 0.6000000238418579, 1]), "HLightBox": new BoxColor4([[0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1]]), "ActivePanel": ui_weight_clr([0.800000011920929, 0.4000000059604645, 0.30000001192092896, 0.8999999761581421], [1, 1, 1, 1]), "CollapsingPanel": ui_weight_clr([0.687468409538269, 0.687468409538269, 0.687468409538269, 1], [1, 1, 1, 1]), "SimpleBox": ui_weight_clr([0.4760952293872833, 0.4760952293872833, 0.4760952293872833, 1], [0.9399999976158142, 0.9399999976158142, 0.9399999976158142, 1]), "DialogBox": ui_weight_clr([0.7269999980926514, 0.7269999980926514, 0.7269999980926514, 1], [1, 1, 1, 1]), "DialogTitle": ui_weight_clr([0.6299999952316284, 0.6299999952316284, 0.6299999952316284, 1], [1, 1, 1, 1]), "MenuBox": ui_weight_clr([0.9200000166893005, 0.9200000166893005, 0.9200000166893005, 1], [1, 1, 1, 1]), "TextBox": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 0.8999999761581421], [1, 1, 1, 1]), "TextBoxInv": ui_weight_clr([0.699999988079071, 0.699999988079071, 0.699999988079071, 1], [0.699999988079071, 0.699999988079071, 0.699999988079071, 1]), "MenuLabel": ui_weight_clr([0.9044828414916992, 0.8657192587852478, 0.8657192587852478, 0.24075555801391602], [0.6000000238418579, 0.6000000238418579, 0.6000000238418579, 0.8999999761581421]), "MenuLabelInv": ui_weight_clr([0.75, 0.75, 0.75, 0.47111111879348755], [1, 1, 0.9410666823387146, 1]), "ScrollBG": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 1], [1, 1, 1, 1]), "ScrollBar": ui_weight_clr([0.5919697284698486, 0.5919697284698486, 0.5919697284698486, 1], [1, 1, 1, 1]), "ScrollBarHigh": ui_weight_clr([0.6548083424568176, 0.6548083424568176, 0.6548083424568176, 1], [1, 1, 1, 1]), "ScrollButton": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 1], [1, 1, 1, 1]), "ScrollButtonHigh": ui_weight_clr([0.75, 0.75, 0.75, 1], [1, 1, 1, 1]), "ScrollInv": ui_weight_clr([0.4000000059604645, 0.4000000059604645, 0.4000000059604645, 1], [1, 1, 1, 1]), "IconInv": ui_weight_clr([0.48299384117126465, 0.5367956161499023, 0.8049896955490112, 0.4000000059604645], [1, 1, 1, 1])});
+  window.UITheme = new ColorTheme({"ErrorText": [1, 0.20000000298023224, 0.20000000298023224, 0.8899999856948853], "ListBoxText": [0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1], "MenuHighlight": [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], "RadialMenu": [1, 0, 0, 1], "RadialMenuHighlight": [0.7831560373306274, 0.7664570808410645, 0.3468262255191803, 0.7717778086662292], "DefaultLine": [0.4163331985473633, 0.3746998906135559, 0.3746998906135559, 1], "SelectLine": [0.699999988079071, 0.699999988079071, 0.699999988079071, 1], "Check": [0.8999999761581421, 0.699999988079071, 0.4000000059604645, 1], "Arrow": [0.4000000059604645, 0.4000000059604645, 0.4000000059604645, 1], "DefaultText": [0.9092121131323904, 0.9092121131323904, 0.9092121131323904, 1], "BoxText": [0, 0, 0, 1], "HotkeyText": [0.43986162543296814, 0.43986162543296814, 0.43986162543296814, 1], "HighlightCursor": [0.8999999761581421, 0.8999999761581421, 0.8999999761581421, 0.875], "TextSelect": [0.4000000059604645, 0.4000000059604645, 0.4000000059604645, 0.75], "TextEditCursor": [0.10000000149011612, 0.10000000149011612, 0.10000000149011612, 1], "TextBoxHighlight": [0.5270000100135803, 0.5270000100135803, 0.5270000100135803, 1], "MenuSep": [0.6901277303695679, 0.6901277303695679, 0.6901277303695679, 1], "MenuBorder": [0.6499999761581421, 0.6499999761581421, 0.6499999761581421, 1], "RadialMenuSep": [0.10000000149011612, 0.20000000298023224, 0.20000000298023224, 1], "TabPanelOutline": [0.2449489742783178, 0.2449489742783178, 0.2449489742783178, 1], "TabPanelBG": [0.476, 0.476, 0.476, 1.0], "ActiveTab": [0.476, 0.476, 0.476, 1], "HighlightTab": [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 0.8999999761581421], "InactiveTab": [0.2449489742783178, 0.2449489742783178, 0.2449489742783178, 1], "TabText": [0.9309493362512627, 0.9309493362512627, 0.9309493362512627, 1], "IconBox": [1, 1, 1, 0.17968888580799103], "HighlightIcon": [0.30000001192092896, 0.8149344325065613, 1, 0.21444444358348846], "MenuText": [0.10000000149011612, 0.10000000149011612, 0.10000000149011612, 1], "MenuTextHigh": [0.9330000281333923, 0.9330000281333923, 0.9330000281333923, 1], "PanelText": [0, 0, 0, 1], "DialogText": [0.05000003054738045, 0.05000000447034836, 0.05000000447034836, 1], "DialogBorder": [0.4000000059604645, 0.40000003576278687, 0.4000000059604645, 1], "DisabledBox": [0.5, 0.5, 0.5, 1], "IconCheckBG": [0.5879922747612, 0.5879922747612, 0.5879922747612, 1], "IconCheckSet": [0.231, 0.231, 0.231, 1], "IconCheckUnset": [0.577, 0.577, 0.577, 1], "Highlight": new BoxColor4([[0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1]]), "NoteBox": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 1], [0.800000011920929, 0.800000011920929, 0.800000011920929, 1]), "Box": ui_weight_clr([0.9399999976158142, 0.9399999976158142, 0.9399999976158142, 1], [0.800000011920929, 0.800000011920929, 0.800000011920929, 1]), "HoverHint": ui_weight_clr([1, 0.9769999980926514, 0.8930000066757202, 0.8999999761581421], [0.8999999761581421, 0.8999999761581421, 1, 1]), "ErrorBox": ui_weight_clr([1, 0.30000001192092896, 0.20000000298023224, 1], [1, 1, 1, 1]), "ErrorTextBG": ui_weight_clr([1, 1, 1, 1], [0.8999999761581421, 0.8999999761581421, 1, 1]), "ShadowBox": ui_weight_clr([0, 0, 0, 0.10000000149011612], [1, 1, 1, 1]), "ProgressBar": ui_weight_clr([0.4000000059604645, 0.7300000190734863, 0.8999999761581421, 0.8999999761581421], [0.75, 0.75, 1, 1]), "ProgressBarBG": ui_weight_clr([0.699999988079071, 0.699999988079071, 0.699999988079071, 0.699999988079071], [1, 1, 1, 1]), "WarningBox": ui_weight_clr([1, 0.800000011920929, 0.10000000149011612, 0.8999999761581421], [0.699999988079071, 0.800000011920929, 1.0499999523162842, 1]), "ListBoxBG": ui_weight_clr([0.9399999976158142, 0.9399999976158142, 0.9399999976158142, 1], [0.9399999976158142, 0.9399999976158142, 0.9399999976158142, 1]), "InvBox": ui_weight_clr([0.6000000238418579, 0.6000000238418579, 0.6000000238418579, 1], [0.6000000238418579, 0.6000000238418579, 0.6000000238418579, 1]), "HLightBox": new BoxColor4([[0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1]]), "ActivePanel": ui_weight_clr([0.800000011920929, 0.4000000059604645, 0.30000001192092896, 0.8999999761581421], [1, 1, 1, 1]), "CollapsingPanel": ui_weight_clr([0.687468409538269, 0.687468409538269, 0.687468409538269, 1], [1, 1, 1, 1]), "SimpleBox": ui_weight_clr([0.4760952293872833, 0.4760952293872833, 0.4760952293872833, 1], [0.9399999976158142, 0.9399999976158142, 0.9399999976158142, 1]), "DialogBox": ui_weight_clr([0.7269999980926514, 0.7269999980926514, 0.7269999980926514, 1], [1, 1, 1, 1]), "DialogTitle": ui_weight_clr([0.6299999952316284, 0.6299999952316284, 0.6299999952316284, 1], [1, 1, 1, 1]), "MenuBox": ui_weight_clr([0.9200000166893005, 0.9200000166893005, 0.9200000166893005, 1], [1, 1, 1, 1]), "TextBox": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 0.8999999761581421], [1, 1, 1, 1]), "TextBoxInv": ui_weight_clr([0.699999988079071, 0.699999988079071, 0.699999988079071, 1], [0.699999988079071, 0.699999988079071, 0.699999988079071, 1]), "MenuLabel": ui_weight_clr([0.9044828414916992, 0.8657192587852478, 0.8657192587852478, 0.24075555801391602], [0.6000000238418579, 0.6000000238418579, 0.6000000238418579, 0.8999999761581421]), "MenuLabelInv": ui_weight_clr([0.75, 0.75, 0.75, 0.47111111879348755], [1, 1, 0.9410666823387146, 1]), "ScrollBG": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 1], [1, 1, 1, 1]), "ScrollBar": ui_weight_clr([0.5919697284698486, 0.5919697284698486, 0.5919697284698486, 1], [1, 1, 1, 1]), "ScrollBarHigh": ui_weight_clr([0.6548083424568176, 0.6548083424568176, 0.6548083424568176, 1], [1, 1, 1, 1]), "ScrollButton": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 1], [1, 1, 1, 1]), "ScrollButtonHigh": ui_weight_clr([0.75, 0.75, 0.75, 1], [1, 1, 1, 1]), "ScrollInv": ui_weight_clr([0.4000000059604645, 0.4000000059604645, 0.4000000059604645, 1], [1, 1, 1, 1]), "IconInv": ui_weight_clr([0.48299384117126465, 0.5367956161499023, 0.8049896955490112, 0.4000000059604645], [1, 1, 1, 1])});
   window.View2DTheme = new ColorTheme({"Background": [1, 1, 1, 1], "ActiveObject": [0.800000011920929, 0.6000000238418579, 0.30000001192092896, 1], "Selection": [0.699999988079071, 0.4000000059604645, 0.10000000149011612, 1], "GridLineBold": [0.38, 0.38, 0.38, 1.0], "GridLine": [0.5, 0.5, 0.5, 1.0], "AxisX": [0.9, 0.0, 0.0, 1.0], "AxisY": [0.0, 0.9, 0.0, 1.0], "AxisZ": [0.0, 0.0, 0.9, 1.0]});
 }, '/dev/fairmotion/src/ui/theme_def.js');
-es6_module_define('UIElement', ["mathlib", "events", "toolprops"], function _UIElement_module(_es6_module) {
+es6_module_define('UIElement', ["toolprops", "mathlib", "events"], function _UIElement_module(_es6_module) {
   es6_import(_es6_module, 'events');
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
   var inrect_2d=es6_import_item(_es6_module, 'mathlib', 'inrect_2d');
@@ -8758,7 +8758,7 @@ es6_module_define('UIElement', ["mathlib", "events", "toolprops"], function _UIE
   var EventHandler=es6_import_item(_es6_module, 'events', 'EventHandler');
   var charmap=es6_import_item(_es6_module, 'events', 'charmap');
   var TPropFlags=es6_import_item(_es6_module, 'toolprops', 'TPropFlags');
-  var UIFlags={ENABLED: 1, HIGHLIGHT: 2, FOCUS: 4, GREYED: 8, REDERROR: 16, WARNING: 32, USE_PATH: 64, NO_RECALC: 128, FLASH: (16|32), SKIP_DRAW: 256, HAS_PAN: 512, USE_PAN: 1024, PAN_CANVAS_MAT: 2048, IS_CANVAS_ROOT: 4096, NO_FRAME_CACHE: (1<<14), INVISIBLE: (1<<15), IGNORE_PAN_BOUNDS: (1<<16), BLOCK_REPAINT: (1<<17), NO_VELOCITY_PAN: (1<<18)}
+  var UIFlags={ENABLED: 1, HIGHLIGHT: 2, FOCUS: 4, GREYED: 8, REDERROR: 16, WARNING: 32, USE_PATH: 64, NO_RECALC: 128, FLASH: (16|32), SKIP_DRAW: 256, HAS_PAN: 512, USE_PAN: 1024, PAN_CANVAS_MAT: 2048, IS_CANVAS_ROOT: 4096, NO_FRAME_CACHE: (1<<14), INVISIBLE: (1<<15), IGNORE_PAN_BOUNDS: (1<<16), BLOCK_REPAINT: (1<<17), NO_VELOCITY_PAN: (1<<18), BG_EVENTS_TRANSPARENT: (1<<19), CLIP_CONTENTS: (1<<20)}
   UIFlags = _es6_module.add_export('UIFlags', UIFlags);
   var PackFlags={INHERIT_HEIGHT: 1, INHERIT_WIDTH: 2, ALIGN_RIGHT: 4, ALIGN_LEFT: 8, ALIGN_CENTER: 16, ALIGN_BOTTOM: 32, IGNORE_LIMIT: 64, NO_REPACK: 128, UI_DATAPATH_IGNORE: 256, USE_ICON: 1024|2048, USE_SMALL_ICON: 1024, USE_LARGE_ICON: 2048, ENUM_STRIP: 4096, NO_AUTO_SPACING: 8192, ALIGN_CENTER_Y: 16384, ALIGN_CENTER_X: 32768, FLIP_TABSTRIP: 65536, NO_LEAD_SPACING: (1<<17), NO_TRAIL_SPACING: (1<<18), KEEP_SIZE: (1<<19), _KEEPSIZE: ((1<<19)|128), ALIGN_TOP: (1<<20), CALC_NEGATIVE_PAN: (1<<21), PAN_X_ONLY: (1<<22), PAN_Y_ONLY: (1<<23), VERTICAL: (1<<24), COLOR_BUTTON_ONLY: (1<<25)}
   PackFlags = _es6_module.add_export('PackFlags', PackFlags);
@@ -8795,9 +8795,9 @@ es6_module_define('UIElement', ["mathlib", "events", "toolprops"], function _UIE
     }
   }
   inrect_2d_button = _es6_module.add_export('inrect_2d_button', inrect_2d_button);
-  var $empty_arr_Sw7e_get_keymaps;
-  var $pos_Z9X8_get_abs_pos;
-  var $ret_4Ol3_get_min_size;
+  var $empty_arr_qG2Q_get_keymaps;
+  var $pos_k1F7_get_abs_pos;
+  var $ret_7Iut_get_min_size;
   var UIElement=_ESClass("UIElement", EventHandler, [function UIElement(ctx, path, pos, size) {
     if (path==undefined) {
         path = undefined;
@@ -8852,7 +8852,7 @@ es6_module_define('UIElement', ["mathlib", "events", "toolprops"], function _UIE
       this.do_recalc();
     this.state|=UIFlags.ENABLED;
   }, function get_keymaps() {
-    return $empty_arr_Sw7e_get_keymaps;
+    return $empty_arr_qG2Q_get_keymaps;
   }, _ESClass.symbol(Symbol.keystr, function keystr() {
     if (this._h12==undefined) {
         var n=this.constructor.name;
@@ -8942,15 +8942,15 @@ es6_module_define('UIElement', ["mathlib", "events", "toolprops"], function _UIE
     if (this.parent!=undefined)
       this.parent.focus(this);
   }, function get_abs_pos() {
-    $pos_Z9X8_get_abs_pos[0] = this.pos[0];
-    $pos_Z9X8_get_abs_pos[1] = this.pos[1];
+    $pos_k1F7_get_abs_pos[0] = this.pos[0];
+    $pos_k1F7_get_abs_pos[1] = this.pos[1];
     var p=this.parent;
     while (p!=undefined) {
-      $pos_Z9X8_get_abs_pos[0]+=p.pos[0];
-      $pos_Z9X8_get_abs_pos[1]+=p.pos[1];
+      $pos_k1F7_get_abs_pos[0]+=p.pos[0];
+      $pos_k1F7_get_abs_pos[1]+=p.pos[1];
       p = p.parent;
     }
-    return $pos_Z9X8_get_abs_pos;
+    return $pos_k1F7_get_abs_pos;
   }, function call_menu(menu, off, min_width) {
     if (off==undefined) {
         off = undefined;
@@ -9138,7 +9138,7 @@ es6_module_define('UIElement', ["mathlib", "events", "toolprops"], function _UIE
     }
     return this._minsize;
   }, function get_min_size(canvas, isvertical) {
-    return $ret_4Ol3_get_min_size;
+    return $ret_7Iut_get_min_size;
   }, function build_draw(canvas, isvertical) {
   }, function on_active() {
   }, function on_inactive() {
@@ -9147,9 +9147,9 @@ es6_module_define('UIElement', ["mathlib", "events", "toolprops"], function _UIE
   }, function on_add(parent) {
   }, function on_remove(parent) {
   }]);
-  var $empty_arr_Sw7e_get_keymaps=[];
-  var $pos_Z9X8_get_abs_pos=[0, 0];
-  var $ret_4Ol3_get_min_size=[1, 1];
+  var $empty_arr_qG2Q_get_keymaps=[];
+  var $pos_k1F7_get_abs_pos=[0, 0];
+  var $ret_7Iut_get_min_size=[1, 1];
   _es6_module.add_class(UIElement);
   UIElement = _es6_module.add_export('UIElement', UIElement);
   var UIHoverBox=_ESClass("UIHoverBox", UIElement, [function UIHoverBox(ctx, text, is_modal, pos, size) {
@@ -9425,38 +9425,38 @@ es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_modul
     }
     return cs;
   }
-  var $ret_QWQc_get_2d_canvas={}
+  var $ret_jZQf_get_2d_canvas={}
   function get_2d_canvas() {
-    if ($ret_QWQc_get_2d_canvas.canvas==undefined) {
-        $ret_QWQc_get_2d_canvas.canvas = document.getElementById("canvas2d");
-        $ret_QWQc_get_2d_canvas.ctx = _canvas2d_ctx;
+    if ($ret_jZQf_get_2d_canvas.canvas==undefined) {
+        $ret_jZQf_get_2d_canvas.canvas = document.getElementById("canvas2d");
+        $ret_jZQf_get_2d_canvas.ctx = _canvas2d_ctx;
     }
-    return $ret_QWQc_get_2d_canvas;
+    return $ret_jZQf_get_2d_canvas;
   }
   get_2d_canvas = _es6_module.add_export('get_2d_canvas', get_2d_canvas);
   window.get_2d_canvas = get_2d_canvas;
-  var $ret_mxyx_get_2d_canvas_2={}
+  var $ret_x1Lq_get_2d_canvas_2={}
   function get_2d_canvas_2() {
-    if ($ret_mxyx_get_2d_canvas_2.canvas==undefined) {
-        $ret_mxyx_get_2d_canvas_2.canvas = document.getElementById("canvas2d_work");
-        $ret_mxyx_get_2d_canvas_2.ctx = _canvas2d_ctx_2;
+    if ($ret_x1Lq_get_2d_canvas_2.canvas==undefined) {
+        $ret_x1Lq_get_2d_canvas_2.canvas = document.getElementById("canvas2d_work");
+        $ret_x1Lq_get_2d_canvas_2.ctx = _canvas2d_ctx_2;
     }
-    return $ret_mxyx_get_2d_canvas_2;
+    return $ret_x1Lq_get_2d_canvas_2;
   }
   get_2d_canvas_2 = _es6_module.add_export('get_2d_canvas_2', get_2d_canvas_2);
   window.get_2d_canvas_2 = get_2d_canvas_2;
   window._ui_canvas_2d_idgen = 1;
-  var $temp_layer_idgen_U1W1_push_layer;
-  var $black_FZTF_quad;
-  var $grads_70S2_quad;
-  var $mid_9UCg_colorfield;
-  var $cache_woPl_box1;
-  var $v1_gM4a_box1;
-  var $v3_GiVJ_box1;
-  var $pairs_2IjT_box1;
-  var $pos_MZsP_text;
-  var $v2_MC1a_box1;
-  var $v4_CItz_box1;
+  var $temp_layer_idgen_LCXP_push_layer;
+  var $black_y2KO_quad;
+  var $grads_Qzeq_quad;
+  var $mid_PXC9_colorfield;
+  var $cache_9vHo_box1;
+  var $v1_ato1_box1;
+  var $v3_Wx4h_box1;
+  var $pairs_MBzG_box1;
+  var $pos_uQOj_text;
+  var $v2_a7q9_box1;
+  var $v4_rmvY_box1;
   var UICanvas=_ESClass("UICanvas", [function UICanvas(viewport) {
     var c=get_2d_canvas();
     this.canvas = c.canvas;
@@ -9526,6 +9526,7 @@ es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_modul
         zindex = 4;
     }
     var id=obj_or_id;
+    window._ensure_thedimens();
     if (typeof id=="object")
       id = id[Symbol.keystr]();
     var canvas;
@@ -9534,7 +9535,7 @@ es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_modul
         canvas.is_blank = false;
     }
     else {
-      console.trace("creating new canvas. . .");
+      console.warn("creating new canvas. . .");
       var canvas=document.createElement("canvas");
       canvas.id = "_canvas2d_"+id;
       document.body.appendChild(canvas);
@@ -9567,7 +9568,7 @@ es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_modul
         canvas.style["left"] = Math.floor(pos[0])+"px";
         canvas.is_blank = true;
     }
-    var y=Math.floor(window.innerHeight-pos[1]-size[1]);
+    var y=Math.floor(window.theHeight-pos[1]-size[1]);
     if (canvas.style["top"]!=""+y+"px") {
         canvas.style["top"] = ""+y+"px";
         canvas.is_blank = true;
@@ -9577,7 +9578,7 @@ es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_modul
   }, function push_layer() {
     this.layerstack.push([this.canvas, this.ctx]);
     var canvas=document.createElement("canvas");
-    canvas.id = "_temp_canvas2d_"+($temp_layer_idgen_U1W1_push_layer++);
+    canvas.id = "_temp_canvas2d_"+($temp_layer_idgen_LCXP_push_layer++);
     document.body.appendChild(canvas);
     canvas.style["position"] = "absolute";
     canvas.style["left"] = "0px";
@@ -9693,7 +9694,7 @@ es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_modul
     var ctx=this.ctx;
     var v=g_app_state.raster.viewport;
     if (c1==undefined) {
-        c1 = $black_FZTF_quad;
+        c1 = $black_y2KO_quad;
     }
     if (c2==undefined) {
         c2 = c1;
@@ -9712,7 +9713,7 @@ es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_modul
         hash+=c1[i]+","+c2[i]+","+c3[i]+","+c4[i];
     }
     var grad;
-    if (1||!(hash in $grads_70S2_quad)) {
+    if (1||!(hash in $grads_Qzeq_quad)) {
         var min=[v1[0], v1[1]], max=[v1[0], v1[1]];
         for (var i=0; i<2; i++) {
             min[i] = Math.min(min[i], v1[i]);
@@ -9738,7 +9739,7 @@ es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_modul
               grad = ctx.createLinearGradient(min[0], min[1]*0.5+max[1]*0.5, max[0], min[1]*0.5+max[1]*0.5);
             else 
               grad = ctx.createLinearGradient(min[0]*0.5+max[0]*0.5, min[1], min[0]*0.5+max[0]*0.5, max[1]);
-            $grads_70S2_quad[hash] = grad;
+            $grads_Qzeq_quad[hash] = grad;
             grad.addColorStop(0.0, this._css_color(c1));
             grad.addColorStop(1.0, this._css_color(c3));
           }
@@ -9749,7 +9750,7 @@ es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_modul
         }
     }
     else {
-      grad = $grads_70S2_quad[hash];
+      grad = $grads_Qzeq_quad[hash];
     }
     if (grad!=undefined)
       ctx.fillStyle = grad;
@@ -9760,29 +9761,29 @@ es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_modul
     ctx.lineTo(v4[0]+x+v[0][0], canvas.height-(v4[1]+y+v[0][1]));
     ctx.fill();
   }, function colorfield(pos, size, color) {
-    $mid_9UCg_colorfield[3] = 1.0;
+    $mid_PXC9_colorfield[3] = 1.0;
     for (var i=0; i<3; i++) {
         if (color[i]==0.0)
-          $mid_9UCg_colorfield[i] = 0.0;
+          $mid_PXC9_colorfield[i] = 0.0;
         else 
-          $mid_9UCg_colorfield[i] = color[i];
+          $mid_PXC9_colorfield[i] = color[i];
     }
-    var color2=this._css_color($mid_9UCg_colorfield);
-    $mid_9UCg_colorfield[3] = 1.0;
+    var color2=this._css_color($mid_PXC9_colorfield);
+    $mid_PXC9_colorfield[3] = 1.0;
     for (var i=0; i<3; i++) {
-        $mid_9UCg_colorfield[i] = (color[i]*3.0-1.0)/4.0;
+        $mid_PXC9_colorfield[i] = (color[i]*3.0-1.0)/4.0;
     }
-    var midclr=this._css_color($mid_9UCg_colorfield);
-    $mid_9UCg_colorfield[3] = 1.0;
+    var midclr=this._css_color($mid_PXC9_colorfield);
+    $mid_PXC9_colorfield[3] = 1.0;
     for (var i=0; i<3; i++) {
-        $mid_9UCg_colorfield[i] = 0.5+color[i]*0.5;
+        $mid_PXC9_colorfield[i] = 0.5+color[i]*0.5;
     }
-    var smidclr=this._css_color($mid_9UCg_colorfield);
-    $mid_9UCg_colorfield[3] = 0.0;
+    var smidclr=this._css_color($mid_PXC9_colorfield);
+    $mid_PXC9_colorfield[3] = 0.0;
     for (var i=0; i<3; i++) {
-        $mid_9UCg_colorfield[i] = color[i];
+        $mid_PXC9_colorfield[i] = color[i];
     }
-    var zerocolor=this._css_color($mid_9UCg_colorfield);
+    var zerocolor=this._css_color($mid_PXC9_colorfield);
     color = this._css_color(color);
     var canvas=this.canvas;
     var ctx=this.ctx;
@@ -9969,7 +9970,7 @@ es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_modul
     if (rfac==undefined)
       rfac = 1;
     var hash=size[0].toString()+" "+size[1]+" "+rfac;
-    if (!(hash in $cache_woPl_box1)) {
+    if (!(hash in $cache_9vHo_box1)) {
         r/=rfac;
         var p1=this.arc_points((($_mh = objcache.array(2)), ($_mh[0] = (0+r+2)), ($_mh[1] = (0+r+2)), ($_mh[2] = (0)), $_mh), Math.PI, ang, r);
         var p2=this.arc_points((($_mh = objcache.array(2)), ($_mh[0] = (0+w-r-2)), ($_mh[1] = (0+r+2)), ($_mh[2] = (0)), $_mh), Math.PI/2, ang, r);
@@ -9997,9 +9998,9 @@ es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_modul
             points.push(p4[i]);
         }
         p2.reverse();
-        $cache_woPl_box1[hash] = [p1, p2, points];
+        $cache_9vHo_box1[hash] = [p1, p2, points];
     }
-    var cp=$cache_woPl_box1[hash];
+    var cp=$cache_9vHo_box1[hash];
     var p1=cp[0];
     var p2=cp[1];
     var points=cp[2];
@@ -10023,45 +10024,45 @@ es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_modul
             var i2=i+plen*2;
             var i3=i+1+plen*2;
             var i4=i+1;
-            $v1_gM4a_box1[0] = p1[i][0]+x;
-            $v1_gM4a_box1[1] = p1[i][1]+y;
-            $v1_gM4a_box1[2] = p1[i][2];
+            $v1_ato1_box1[0] = p1[i][0]+x;
+            $v1_ato1_box1[1] = p1[i][1]+y;
+            $v1_ato1_box1[2] = p1[i][2];
             
-            $v2_MC1a_box1[0] = p2[i][0]+x;
-            $v2_MC1a_box1[1] = p2[i][1]+y;
-            $v2_MC1a_box1[2] = p2[i][2];
+            $v2_a7q9_box1[0] = p2[i][0]+x;
+            $v2_a7q9_box1[1] = p2[i][1]+y;
+            $v2_a7q9_box1[2] = p2[i][2];
             
-            $v3_GiVJ_box1[0] = p2[i+1][0]+x;
-            $v3_GiVJ_box1[1] = p2[i+1][1]+y;
-            $v3_GiVJ_box1[2] = p2[i+1][2];
+            $v3_Wx4h_box1[0] = p2[i+1][0]+x;
+            $v3_Wx4h_box1[1] = p2[i+1][1]+y;
+            $v3_Wx4h_box1[2] = p2[i+1][2];
             
-            $v4_CItz_box1[0] = p1[i+1][0]+x;
-            $v4_CItz_box1[1] = p1[i+1][1]+y;
-            $v4_CItz_box1[2] = p1[i+1][2];
+            $v4_rmvY_box1[0] = p1[i+1][0]+x;
+            $v4_rmvY_box1[1] = p1[i+1][1]+y;
+            $v4_rmvY_box1[2] = p1[i+1][2];
             
-            this.quad($v1_gM4a_box1, $v2_MC1a_box1, $v3_GiVJ_box1, $v4_CItz_box1, color(i1), color(i2), color(i3), color(i4));
+            this.quad($v1_ato1_box1, $v2_a7q9_box1, $v3_Wx4h_box1, $v4_rmvY_box1, color(i1), color(i2), color(i3), color(i4));
         }
     }
     var lines=[];
     var colors=[];
     for (var i=0; i<points.length; i++) {
-        $v1_gM4a_box1[0] = points[(i+1)%points.length][0]+x;
-        $v1_gM4a_box1[1] = points[(i+1)%points.length][1]+y;
-        $v1_gM4a_box1[2] = points[(i+1)%points.length][2];
+        $v1_ato1_box1[0] = points[(i+1)%points.length][0]+x;
+        $v1_ato1_box1[1] = points[(i+1)%points.length][1]+y;
+        $v1_ato1_box1[2] = points[(i+1)%points.length][2];
         
-        $v2_MC1a_box1[0] = points[i][0]+x;
-        $v2_MC1a_box1[1] = points[i][1]+y;
-        $v2_MC1a_box1[2] = points[i][2];
+        $v2_a7q9_box1[0] = points[i][0]+x;
+        $v2_a7q9_box1[1] = points[i][1]+y;
+        $v2_a7q9_box1[2] = points[i][2];
         
-        if ($pairs_2IjT_box1.length<=i) {
-            $pairs_2IjT_box1.push([[0, 0], [0, 0]]);
+        if ($pairs_MBzG_box1.length<=i) {
+            $pairs_MBzG_box1.push([[0, 0], [0, 0]]);
         }
-        $pairs_2IjT_box1[i][0][0] = (($_mh = objcache.array(2)), ($_mh[0] = ($v1_gM4a_box1[0])), ($_mh[1] = ($v1_gM4a_box1[1])), ($_mh[2] = (0)), $_mh);
-        $pairs_2IjT_box1[i][0][1] = (($_mh = objcache.array(2)), ($_mh[0] = ($v2_MC1a_box1[0])), ($_mh[1] = ($v2_MC1a_box1[1])), ($_mh[2] = (0)), $_mh);
-        lines.push($pairs_2IjT_box1[i][0]);
-        $pairs_2IjT_box1[i][1][0] = color((i+1)%points.length);
-        $pairs_2IjT_box1[i][1][1] = color(i);
-        colors.push($pairs_2IjT_box1[i][1]);
+        $pairs_MBzG_box1[i][0][0] = (($_mh = objcache.array(2)), ($_mh[0] = ($v1_ato1_box1[0])), ($_mh[1] = ($v1_ato1_box1[1])), ($_mh[2] = (0)), $_mh);
+        $pairs_MBzG_box1[i][0][1] = (($_mh = objcache.array(2)), ($_mh[0] = ($v2_a7q9_box1[0])), ($_mh[1] = ($v2_a7q9_box1[1])), ($_mh[2] = (0)), $_mh);
+        lines.push($pairs_MBzG_box1[i][0]);
+        $pairs_MBzG_box1[i][1][0] = color((i+1)%points.length);
+        $pairs_MBzG_box1[i][1][1] = color(i);
+        colors.push($pairs_MBzG_box1[i][1]);
     }
   }, function tri_aa(v1, v2, v3, c1, c2, c3) {
     this.tri(v1, v2, v3, c1, c2, c3);
@@ -10142,23 +10143,23 @@ es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_modul
     for (var i=0; i<lines.length; i++, ly+=12) {
         var w=this._measure_line(lines[i]).width;
         var m=this.transmat.$matrix;
-        $pos_MZsP_text[0] = m.m41+v[0][0]+pos1[0];
-        $pos_MZsP_text[1] = canvas.height-(m.m42+v[0][1]+pos1[1]+ly);
-        $pos_MZsP_text[2] = 0;
+        $pos_uQOj_text[0] = m.m41+v[0][0]+pos1[0];
+        $pos_uQOj_text[1] = canvas.height-(m.m42+v[0][1]+pos1[1]+ly);
+        $pos_uQOj_text[2] = 0;
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.rotate(rot);
         if (rot!=0) {
-            $pos_MZsP_text[1]-=w;
+            $pos_uQOj_text[1]-=w;
         }
-        rot2d($pos_MZsP_text, -rot);
-        $pos_MZsP_text[1] = canvas.height-$pos_MZsP_text[1];
+        rot2d($pos_uQOj_text, -rot);
+        $pos_uQOj_text[1] = canvas.height-$pos_uQOj_text[1];
         if (color==undefined)
           color = uicolors.DefaultText;
         ctx.fillStyle = this._css_color(color);
         if (fontsize==undefined)
           fontsize = default_ui_font_size;
         ctx.font = fontsize+"px "+"Arial";
-        var x=$pos_MZsP_text[0], y=canvas.height-($pos_MZsP_text[1]);
+        var x=$pos_uQOj_text[0], y=canvas.height-($pos_uQOj_text[1]);
         this._text_line(lines[i], x, y, fontsize);
     }
   }, function _set_font(ctx, fontsize, addition_options) {
@@ -10273,17 +10274,17 @@ es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_modul
   }, function pop_transform() {
     this.transmat.load(this.trans_stack.pop());
   }]);
-  var $temp_layer_idgen_U1W1_push_layer=0;
-  var $black_FZTF_quad=[0, 0, 0, 1];
-  var $grads_70S2_quad={}
-  var $mid_9UCg_colorfield=[0, 0, 0, 0.5];
-  var $cache_woPl_box1={}
-  var $v1_gM4a_box1=new Vector3();
-  var $v3_GiVJ_box1=new Vector3();
-  var $pairs_2IjT_box1=[];
-  var $pos_MZsP_text=[0, 0, 0];
-  var $v2_MC1a_box1=new Vector3();
-  var $v4_CItz_box1=new Vector3();
+  var $temp_layer_idgen_LCXP_push_layer=0;
+  var $black_y2KO_quad=[0, 0, 0, 1];
+  var $grads_Qzeq_quad={}
+  var $mid_PXC9_colorfield=[0, 0, 0, 0.5];
+  var $cache_9vHo_box1={}
+  var $v1_ato1_box1=new Vector3();
+  var $v3_Wx4h_box1=new Vector3();
+  var $pairs_MBzG_box1=[];
+  var $pos_uQOj_text=[0, 0, 0];
+  var $v2_a7q9_box1=new Vector3();
+  var $v4_rmvY_box1=new Vector3();
   _es6_module.add_class(UICanvas);
   UICanvas = _es6_module.add_export('UICanvas', UICanvas);
   window.active_canvases = {}

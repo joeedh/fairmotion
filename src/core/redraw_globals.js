@@ -119,7 +119,7 @@ window.init_redraw_globals = function init_redraw_globals() {
     //console.log("pop solve", id);
     
     if (!(id in this.redraw_queue)) {
-      console.trace("Warning: either pop_solve call was switched, or the system automatically called due to timeout");
+      console.warn("Warning: either pop_solve call was switched, or the system automatically called due to timeout");
       return;
     }
     
@@ -285,7 +285,7 @@ window.init_redraw_globals = function init_redraw_globals() {
               window.redraw_rect[1][1] = 15000;
           }
       } else if (!window.redraw_whole_screen && window.redraw_rect_defined) {
-          var h = window.innerHeight;
+          var h = window.theHeight;
 
           window.redraw_rect[0][0] = Math.min(min[0], window.redraw_rect[0][0]);
           window.redraw_rect[0][1] = Math.min(min[1], window.redraw_rect[0][1]);
@@ -374,8 +374,10 @@ window.init_redraw_globals = function init_redraw_globals() {
               window.redraw_ui();
           }
       }
-
-      var width = window.innerWidth, height = window.innerHeight;
+      
+      window._ensure_thedimens();
+      
+      var width = window.theWidth, height = window.theHeight;
 
       if (canvas.width == width && canvas.height == height)
           return;

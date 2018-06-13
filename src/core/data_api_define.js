@@ -28,6 +28,9 @@ import {ExtrudeModes} from 'spline_createops';
 import {DataFlags, DataPathTypes} from 'data_api';
 import {OpStackEditor} from 'ops_editor';
 
+import {AnimKeyFlags, AnimInterpModes} from 'animdata';
+import {VDAnimFlags} from 'frameset';
+
 import {
   MultiResLayer, MultiResEffector, MResFlags, has_multires,
   ensure_multires, iterpoints, compose_id, decompose_id
@@ -291,7 +294,7 @@ function api_define_view2d() {
   
   tool_mode.add_icons({
     SELECT: Icons.CURSOR_ARROW,
-    APPEND: Icons.MAKE_SEGMENT,
+    APPEND: Icons.APPEND_VERTEX,
     RESIZE: Icons.RESIZE
   });
   
@@ -325,6 +328,8 @@ function api_define_view2d() {
   }
   
   var edit_all_layers = new BoolProperty(0, "edit_all_layers", "Edit All Layers");
+  let show_animpath_prop = new BoolProperty(0, "draw_anim_paths", "Show Animation Paths", "Edit Animation Keyframe Paths");
+  show_animpath_prop.icon = Icons.SHOW_ANIMPATHS;
   
   View2DStruct = new DataStruct([
     new DataPath(edit_all_layers, "edit_all_layers", "edit_all_layers", true),
@@ -342,7 +347,7 @@ function api_define_view2d() {
     new DataPath(new BoolProperty(0, "draw_faces", "Show Faces"), "draw_faces", "draw_faces", true),
     new DataPath(draw_video, "draw_video", "draw_video", true),
     new DataPath(new BoolProperty(0, "draw_normals", "Show Normals", "Show Normal Comb"), "draw_normals", "draw_normals", true),
-    new DataPath(new BoolProperty(0, "draw_anim_paths", "Show Animation Paths"), "draw_anim_paths", "draw_anim_paths", true),
+    new DataPath(show_animpath_prop,  "draw_anim_paths", "draw_anim_paths", true),
     new DataPath(zoomprop, "zoom", "zoom", true),
     new DataPath(api_define_material(), "active_material", "active_material", true),
     new DataPath(linewidth, "default_linewidth", "default_linewidth", true),
@@ -723,39 +728,62 @@ function api_define_spline() {
   return SplineStruct;
 }
 
-function api_define_animpaths() {
-  var AnimPathStruct = new DataStruct([
-    new DataPath(api_define_spline(), "spline", "spline", true)
-  ]);
+function api_define_vertex_animdata() {
+  var animflags = new FlagProperty("", VDAnimFlags, undefined, "animflags", "Anim Flags");
   
-  AnimPathStruct.Int("eid", "eid", "ID", "Vertex ID");
+  var VertexAnimData = new DataStruct([]);
+
+  VertexAnimData.Flags(VDAnimFlags, "animflag", "animflag", "Animation Flags", "Keyframe Settings");
+  VertexAnimData.Int("owning_vertex", "eid", "Owning Vertex", "Vertex in drawspline that owns this animation path");
   
-  function getiter(list) {
-    return new obj_value_iter(arr);
-  }
-  
-  function getlength(list) {
-    var tot = 0;
-    
-    for (var k in list) {
-      tot++;
-    }
-    
-    return tot;
-  }
-  
-  function get_struct(list) {
-    return AnimPathStruct;
-    console.log(arguments);
-  }
-  
-  return new DataStructArray(get_struct, getiter, getlength);
+  return VertexAnimData;
 }
 
 function api_define_frameset() {
+  let animdata_struct = api_define_vertex_animdata();
+  
+  function define_animdata_array() {
+    return new DataStructArray(
+      function getstruct(item) {
+        return animdata_struct;
+      },
+      function itempath(key) {
+        return "[" + key + "]";
+      },
+      function getitem(key) {
+        return this.vertex_animdata[key];
+      },
+      function getiter() {
+        return this[Symbol.iterator]()
+      },
+      
+      function getkeyiter() {
+        var keys = Object.keys(this.vertex_animdata);
+        var ret = new GArray();
+        
+        for (var i = 0; i < keys.length; i++) {
+          ret.push(keys[i]);
+        }
+        
+        return ret;
+      },
+      
+      function getlength() {
+        let i = 0;
+        
+        for (let k in this.vertex_animdata) {
+          i++;
+        }
+        
+        return i;
+      });
+  }
+  
   var FrameSetStruct = new DataStruct(api_define_DataBlock().concat([
     new DataPath(api_define_spline(), "drawspline", "spline", true),
-    new DataPath(api_define_spline(), "pathspline", "pathspline", true)
+    new DataPath(api_define_spline(), "pathspline", "pathspline", true),
+    new DataPath(define_animdata_array(), "keypaths", "vertex_animdata", true),
+    new DataPath(animdata_struct, "active_keypath", "active_animdata", true)
   ]));
   
   datablock_structs[DataTypes.FRAMESET] = FrameSetStruct;

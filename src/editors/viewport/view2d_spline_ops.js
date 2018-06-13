@@ -333,9 +333,17 @@ export class SplineEditor extends View2DEditor {
     
     col.add(blank)
   
+    //col.default_packflag |= PackFlags.USE_ICON;
+    
     col.toolop("spline.make_edge()");
     col.toolop("spline.make_edge_face()");
     col.toolop("spline.split_pick_edge()");
+  
+    col.toolop("spline.change_face_z(offset=1, selmode=selectmode)", PackFlags.USE_LARGE_ICON, "Move Up", Icons.Z_UP);
+    col.toolop("spline.change_face_z(offset=-1, selmode=selectmode)", PackFlags.USE_LARGE_ICON, "Move Down", Icons.Z_DOWN);
+
+    col.prop("view2d.draw_anim_paths");
+    
   }
   
   build_bottombar(view2d, col) {

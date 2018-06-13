@@ -281,6 +281,7 @@ export class UIPackFrame extends UIFrame {
           var c = new UIIconCheck(ctx, "", prop.iconmap[prop.values[k]]);
           
           c.packflag |= packflag;
+          c._enum_colors = true;
           
           c.setter_path = setter_path;
           c.callback = update_enum
@@ -451,6 +452,7 @@ export class UIPackFrame extends UIFrame {
       check.packflag |= packflag;
       
       this.add(check);
+      return check;
     } else if (prop.type == PropTypes.FLAG) {
       var row = this.row();
       row.packflag |= packflag;
@@ -519,6 +521,7 @@ export class UIPackFrame extends UIFrame {
       c.packflag |= packflag;
       
       this.add(c);
+      return c;
     } else {
       if (1||DEBUG.ui_datapaths)
         console.log("warning: unimplemented property type for path " + path + " in user interface code");

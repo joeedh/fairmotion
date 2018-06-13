@@ -1083,7 +1083,7 @@ es6_module_define('UIFrame', ["config", "mathlib", "UIElement", "events", "J3DIM
   _es6_module.add_class(UIFrame);
   UIFrame = _es6_module.add_export('UIFrame', UIFrame);
 }, '/dev/fairmotion/src/ui/UIFrame.js');
-es6_module_define('UIPack', ["mathlib", "toolprops", "UIFrame", "UIWidgets", "UIElement"], function _UIPack_module(_es6_module) {
+es6_module_define('UIPack', ["mathlib", "UIWidgets", "toolprops", "UIFrame", "UIElement"], function _UIPack_module(_es6_module) {
   var PropTypes=es6_import_item(_es6_module, 'toolprops', 'PropTypes');
   var TPropFlags=es6_import_item(_es6_module, 'toolprops', 'TPropFlags');
   var DataRefProperty=es6_import_item(_es6_module, 'toolprops', 'DataRefProperty');
@@ -1326,6 +1326,7 @@ es6_module_define('UIPack', ["mathlib", "toolprops", "UIFrame", "UIWidgets", "UI
                   label = "(error)";
                 var c=new UIIconCheck(ctx, "", prop.iconmap[prop.values[k]]);
                 c.packflag|=packflag;
+                c._enum_colors = true;
                 c.setter_path = setter_path;
                 c.callback = update_enum;
                 c.icon = prop.iconmap[k];
@@ -1469,6 +1470,7 @@ es6_module_define('UIPack', ["mathlib", "toolprops", "UIFrame", "UIWidgets", "UI
         check.setter_path = setter_path;
         check.packflag|=packflag;
         this.add(check);
+        return check;
     }
     else 
       if (prop.type==PropTypes.FLAG) {
@@ -1523,6 +1525,7 @@ es6_module_define('UIPack', ["mathlib", "toolprops", "UIFrame", "UIWidgets", "UI
         c.setter_path = setter_path;
         c.packflag|=packflag;
         this.add(c);
+        return c;
     }
     else {
       if (1||DEBUG.ui_datapaths)
@@ -2105,7 +2108,7 @@ es6_module_define('icon', [], function _icon_module(_es6_module) {
   var icon_vshader="\n\n";
   var icon_fshader="\n";
 }, '/dev/fairmotion/src/ui/icon.js');
-es6_module_define('UIWidgets', ["UIFrame", "mathlib", "units", "events", "UIElement", "toolprops"], function _UIWidgets_module(_es6_module) {
+es6_module_define('UIWidgets', ["mathlib", "UIFrame", "UIElement", "events", "units", "toolprops"], function _UIWidgets_module(_es6_module) {
   var $_mh;
   var $_swapt;
   var UIFrame=es6_import_item(_es6_module, 'UIFrame', 'UIFrame');
@@ -2280,10 +2283,10 @@ es6_module_define('UIWidgets', ["UIFrame", "mathlib", "units", "events", "UIElem
   }]);
   _es6_module.add_class(UIButton);
   UIButton = _es6_module.add_export('UIButton', UIButton);
-  var $pos_F8Sp_build_draw;
-  var $high_clr_y6dp_build_draw;
-  var $size_7oDf_build_draw;
-  var $inset_clr_Yg5g_build_draw;
+  var $pos_Di9Y_build_draw;
+  var $high_clr_22Xh_build_draw;
+  var $size_dqee_build_draw;
+  var $inset_clr_fl_7_build_draw;
   var UIButtonIcon=_ESClass("UIButtonIcon", UIButton, [function UIButtonIcon(ctx, text, icon, pos, size, path, callback, hint, use_small_icon) {
     if (path==undefined) {
         path = undefined;
@@ -2327,33 +2330,33 @@ es6_module_define('UIWidgets', ["UIFrame", "mathlib", "units", "events", "UIElem
           canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
         else 
           if (this.clicked)
-          canvas.box($pos_F8Sp_build_draw, $size_7oDf_build_draw, uicolors["IconInv"]);
+          canvas.box($pos_Di9Y_build_draw, $size_dqee_build_draw, uicolors["IconInv"]);
         else 
           if (this.state&UIFlags.HIGHLIGHT)
-          canvas.box($pos_F8Sp_build_draw, $size_7oDf_build_draw, uicolors["HighlightIcon"]);
+          canvas.box($pos_Di9Y_build_draw, $size_dqee_build_draw, uicolors["HighlightIcon"]);
         else 
-          canvas.box($pos_F8Sp_build_draw, this.size, uicolors["IconBox"]);
+          canvas.box($pos_Di9Y_build_draw, this.size, uicolors["IconBox"]);
         return ;
     }
     var pad=this.pad;
     var isize=this.small_icon ? canvas.iconsheet16.cellsize : canvas.iconsheet.cellsize;
     if (isize[0]>this.size[0])
-      $pos_F8Sp_build_draw[0] = 1;
+      $pos_Di9Y_build_draw[0] = 1;
     else 
-      $pos_F8Sp_build_draw[0] = 1;
-    $pos_F8Sp_build_draw[1] = 0;
-    var $size_7oDf_build_draw=this.size;
+      $pos_Di9Y_build_draw[0] = 1;
+    $pos_Di9Y_build_draw[1] = 0;
+    var $size_dqee_build_draw=this.size;
     if (this.bgmode=="button") {
         if (!(this.state&UIFlags.ENABLED))
           canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
         else 
           if (this.clicked)
-          canvas.box($pos_F8Sp_build_draw, $size_7oDf_build_draw, uicolors["IconInv"]);
+          canvas.box($pos_Di9Y_build_draw, $size_dqee_build_draw, uicolors["IconInv"]);
         else 
           if (this.state&UIFlags.HIGHLIGHT)
-          canvas.box($pos_F8Sp_build_draw, $size_7oDf_build_draw, uicolors["HighlightIcon"]);
+          canvas.box($pos_Di9Y_build_draw, $size_dqee_build_draw, uicolors["HighlightIcon"]);
         else 
-          canvas.box($pos_F8Sp_build_draw, this.size, uicolors["IconBox"]);
+          canvas.box($pos_Di9Y_build_draw, this.size, uicolors["IconBox"]);
     }
     else 
       if (this.bgmode=="flat") {
@@ -2361,25 +2364,25 @@ es6_module_define('UIWidgets', ["UIFrame", "mathlib", "units", "events", "UIElem
           canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
         else 
           if (this.clicked)
-          canvas.box($pos_F8Sp_build_draw, $size_7oDf_build_draw, $inset_clr_Yg5g_build_draw);
+          canvas.box($pos_Di9Y_build_draw, $size_dqee_build_draw, $inset_clr_fl_7_build_draw);
         else 
           if (this.state&UIFlags.HIGHLIGHT)
-          canvas.box($pos_F8Sp_build_draw, $size_7oDf_build_draw, $high_clr_y6dp_build_draw);
+          canvas.box($pos_Di9Y_build_draw, $size_dqee_build_draw, $high_clr_22Xh_build_draw);
     }
-    if ($size_7oDf_build_draw[0]>isize[0])
-      $pos_F8Sp_build_draw[0]+=($size_7oDf_build_draw[0]-isize[0])*0.5;
-    if ($size_7oDf_build_draw[1]>isize[1])
-      $pos_F8Sp_build_draw[1]+=($size_7oDf_build_draw[1]-isize[1])*0.5;
+    if ($size_dqee_build_draw[0]>isize[0])
+      $pos_Di9Y_build_draw[0]+=($size_dqee_build_draw[0]-isize[0])*0.5;
+    if ($size_dqee_build_draw[1]>isize[1])
+      $pos_Di9Y_build_draw[1]+=($size_dqee_build_draw[1]-isize[1])*0.5;
     if (this.small_icon)
-      canvas.icon(this.icon, $pos_F8Sp_build_draw, 0.75, true);
+      canvas.icon(this.icon, $pos_Di9Y_build_draw, 0.75, true);
     else 
-      canvas.icon(this.icon, $pos_F8Sp_build_draw, 0.75, false);
+      canvas.icon(this.icon, $pos_Di9Y_build_draw, 0.75, false);
     canvas.end(this);
   }]);
-  var $pos_F8Sp_build_draw=[0, 0];
-  var $high_clr_y6dp_build_draw=[0.9, 0.9, 0.9, 0.2];
-  var $size_7oDf_build_draw=[0, 0];
-  var $inset_clr_Yg5g_build_draw=[0.3, 0.3, 0.3, 0.2];
+  var $pos_Di9Y_build_draw=[0, 0];
+  var $high_clr_22Xh_build_draw=[0.9, 0.9, 0.9, 0.2];
+  var $size_dqee_build_draw=[0, 0];
+  var $inset_clr_fl_7_build_draw=[0.3, 0.3, 0.3, 0.2];
   _es6_module.add_class(UIButtonIcon);
   UIButtonIcon = _es6_module.add_export('UIButtonIcon', UIButtonIcon);
   var UIMenuButton=_ESClass("UIMenuButton", UIButtonAbstract, [function UIMenuButton(ctx, menu, pos, size, path, description) {
@@ -3474,6 +3477,7 @@ es6_module_define('UIWidgets', ["UIFrame", "mathlib", "units", "events", "UIElem
     this.set = false;
     this.mdown = false;
     this.text = text;
+    this._enum_colors = false;
     if (pos!=undefined) {
         this.pos[0] = pos[0];
         this.pos[1] = pos[1];
@@ -3531,12 +3535,14 @@ es6_module_define('UIWidgets', ["UIFrame", "mathlib", "units", "events", "UIElem
     canvas.begin(this);
     var base=this.packflag&PackFlags.USE_LARGE_ICON ? 24+16 : 24;
     var csize=[base, base];
+    let SetColor=this._enum_colors ? uicolors["IconEnumSet"] : uicolors["IconCheckSet"];
+    let UnsetColor=this._enum_colors ? uicolors["IconEnumUnset"] : uicolors["IconCheckUnset"];
     if (!(this.state&UIFlags.ENABLED)) {
         canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
     }
     else 
       if (this.state&UIFlags.HIGHLIGHT) {
-        var clr=this.set ? uicolors["IconCheckSet"] : uicolors["IconCheckUnset"];
+        var clr=this.set ? SetColor : UnsetColor;
         clr = clr.slice(0, clr.length);
         for (var i=0; i<3; i++) {
             clr[i]*=1.1;
@@ -3545,16 +3551,32 @@ es6_module_define('UIWidgets', ["UIFrame", "mathlib", "units", "events", "UIElem
     }
     else 
       if (this.set) {
-        canvas.box([0, 0], this.size, uicolors["IconCheckSet"], 2);
+        canvas.box([0, 0], this.size, SetColor, 2);
     }
     else {
-      canvas.box([0, 0], this.size, uicolors["IconCheckUnset"], 2);
+      canvas.box([0, 0], this.size, UnsetColor, 2);
     }
     var tsize=canvas.textsize(this.text);
     canvas.text([csize[0]+5, (this.size[1]-tsize[1])*0.25], this.text);
     var pos=[4, 4];
     var draw_small=!(this.packflag&PackFlags.USE_LARGE_ICON);
     canvas.icon(this.icon, pos, 0.75, draw_small);
+    if (!this._enum_colors) {
+        if (this.set) {
+            canvas.icon(Icons.CHECKED, pos, 0.75, draw_small);
+        }
+        else {
+          canvas.icon(Icons.UNCHECKED, pos, 0.75, draw_small);
+        }
+    }
+    else {
+      if (this.set) {
+          canvas.icon(Icons.ENUM_CHECKED, pos, 0.75, draw_small);
+      }
+      else {
+        canvas.icon(Icons.ENUM_UNCHECKED, pos, 0.75, draw_small);
+      }
+    }
     canvas.end(this);
   }, function get_min_size(canvas, isvertical) {
     var base=this.packflag&PackFlags.USE_LARGE_ICON ? 24+16 : 24;

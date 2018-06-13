@@ -28,7 +28,7 @@ export class TinyParserError extends Error {
 
 import {UIFrame} from 'UIFrame';
 import {PropTypes, TPropFlags, ToolProperty, IntProperty, FloatProperty, 
-        Vec3Property, Vec4Property, StringProperty} from 'toolprops';
+        Vec3Property, Vec4Property, StringProperty, FlagProperty, EnumProperty} from 'toolprops';
 import {ToolFlags, UndoFlags} from 'toolops_api';
 import {DataBlock} from 'lib_api';
 import {apiparser} from 'data_api_parser';

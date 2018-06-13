@@ -1285,9 +1285,6 @@ export class View2DHandler extends Area {
     tools.toolop("view2d.circle_select()", PackFlags.USE_LARGE_ICON);
     tools.toolop("spline.toggle_select_all()", PackFlags.USE_LARGE_ICON);
   
-    tools.toolop("spline.change_face_z(offset=1, selmode=selectmode)", PackFlags.USE_LARGE_ICON, "Move Up", Icons.Z_UP);
-    tools.toolop("spline.change_face_z(offset=-1, selmode=selectmode)", PackFlags.USE_LARGE_ICON, "Move Down", Icons.Z_DOWN);
-  
     var display = tabs.panel("Display");
     /*
     let tst = {_val : 0, length : 2};

@@ -526,15 +526,24 @@ export class DopeSheetEditor extends Area {
         var id1=id;
         id = this.vdmap[id & KeyTypes.CLEARMASK];
         
-        if (id == undefined) {
+        if (id === undefined) {
           if (this.ctx != undefined) {
             this.rebuild_vdmap();
             
-            console.log("Warning, had to rebuild vdmap!", id1. id1 & KeyTypes.CLEARMASK, id1 & ~KeyTypes.CLEARMASK);
+            console.warn("Warning, had to rebuild vdmap!", id1. id1 & KeyTypes.CLEARMASK, id1 & ~KeyTypes.CLEARMASK);
             id = this.vdmap[id & KeyTypes.CLEARMASK];
+            
+            if (id === undefined) {
+              console.warn("  id was still undefined!");
+              continue;
+            }
           } else {
             continue;
           }
+        }
+        
+        if (typeof id == "string") {
+          id = parseInt(id);
         }
         
         var vd = frameset.get_vdata(id, false);

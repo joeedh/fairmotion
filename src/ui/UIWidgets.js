@@ -1670,7 +1670,10 @@ export class UIIconCheck extends UIHoverHint {
     this.ctx = ctx;
     this.set = false;
     this.mdown = false;
-    this.text = text
+    this.text = text;
+    
+    this._enum_colors = false;
+    
     if (pos != undefined) {
       this.pos[0] = pos[0];
       this.pos[1] = pos[1];
@@ -1748,10 +1751,14 @@ export class UIIconCheck extends UIHoverHint {
     var base = this.packflag & PackFlags.USE_LARGE_ICON ? 24+16 : 24;
     var csize = [base, base];
     
-    if (!(this.state & UIFlags.ENABLED)) {
+    let SetColor = this._enum_colors ? uicolors["IconEnumSet"] : uicolors["IconCheckSet"];
+    let UnsetColor = this._enum_colors ? uicolors["IconEnumUnset"] : uicolors["IconCheckUnset"];
+    //let BGColor = this._enum_colors ? uicolors["IconEnumBG"] : uicolors["IconCheckBG"];
+  
+  if (!(this.state & UIFlags.ENABLED)) {
         canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
     } else if (this.state & UIFlags.HIGHLIGHT) {
-      var clr = this.set ? uicolors["IconCheckSet"] : uicolors["IconCheckUnset"];
+      var clr = this.set ? SetColor : UnsetColor;
       clr = clr.slice(0, clr.length);
       
       for (var i=0; i<3; i++) {
@@ -1760,9 +1767,9 @@ export class UIIconCheck extends UIHoverHint {
       
       canvas.box([0, 0], this.size, clr, 2);
     } else if(this.set) {
-      canvas.box([0, 0], this.size, uicolors["IconCheckSet"], 2);
+      canvas.box([0, 0], this.size, SetColor, 2);
     } else {
-      canvas.box([0, 0], this.size, uicolors["IconCheckUnset"], 2);
+      canvas.box([0, 0], this.size, UnsetColor, 2);
     }
     
     var tsize = canvas.textsize(this.text);
@@ -1772,6 +1779,21 @@ export class UIIconCheck extends UIHoverHint {
     var draw_small = !(this.packflag & PackFlags.USE_LARGE_ICON);
     
     canvas.icon(this.icon, pos, 0.75, draw_small);
+    
+    if (!this._enum_colors) {
+      if (this.set) {
+        canvas.icon(Icons.CHECKED, pos, 0.75, draw_small);
+      } else {
+        canvas.icon(Icons.UNCHECKED, pos, 0.75, draw_small);
+      }
+    } else {
+      if (this.set) {
+        canvas.icon(Icons.ENUM_CHECKED, pos, 0.75, draw_small);
+      } else {
+        canvas.icon(Icons.ENUM_UNCHECKED, pos, 0.75, draw_small);
+      }
+    }
+    
     canvas.end(this);
   }
 

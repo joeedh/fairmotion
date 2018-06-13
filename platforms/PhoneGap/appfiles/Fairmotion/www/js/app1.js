@@ -6262,7 +6262,7 @@ es6_module_define('units', ["safe_eval"], function _units_module(_es6_module) {
   Unit.imperial_units = ["in", "ft", "mile"];
   Unit.internal_unit = "cm";
 }, '/dev/fairmotion/src/core/units.js');
-es6_module_define('data_api', ["data_api_parser", "UIFrame", "safe_eval", "toolops_api", "toolprops", "lib_api", "spline_multires", "animdata", "config"], function _data_api_module(_es6_module) {
+es6_module_define('data_api', ["config", "toolops_api", "safe_eval", "spline_multires", "animdata", "data_api_parser", "lib_api", "UIFrame", "toolprops"], function _data_api_module(_es6_module) {
   var DataPathTypes={PROP: 0, STRUCT: 1, STRUCT_ARRAY: 2}
   DataPathTypes = _es6_module.add_export('DataPathTypes', DataPathTypes);
   var DataFlags={NO_CACHE: 1, RECALC_CACHE: 2}
@@ -6283,6 +6283,8 @@ es6_module_define('data_api', ["data_api_parser", "UIFrame", "safe_eval", "toolo
   var Vec3Property=es6_import_item(_es6_module, 'toolprops', 'Vec3Property');
   var Vec4Property=es6_import_item(_es6_module, 'toolprops', 'Vec4Property');
   var StringProperty=es6_import_item(_es6_module, 'toolprops', 'StringProperty');
+  var FlagProperty=es6_import_item(_es6_module, 'toolprops', 'FlagProperty');
+  var EnumProperty=es6_import_item(_es6_module, 'toolprops', 'EnumProperty');
   var ToolFlags=es6_import_item(_es6_module, 'toolops_api', 'ToolFlags');
   var UndoFlags=es6_import_item(_es6_module, 'toolops_api', 'UndoFlags');
   var DataBlock=es6_import_item(_es6_module, 'lib_api', 'DataBlock');
@@ -6662,10 +6664,10 @@ es6_module_define('data_api', ["data_api_parser", "UIFrame", "safe_eval", "toolo
   }}, token: {obj: ["", ""], cachesize: 512}}
   TinyParser.split_chars = new set([",", "=", "(", ")", ".", "$", "[", "]"]);
   TinyParser.ws = new set([" ", "\n", "\t", "\r"]);
-  var $cache_WfTf_resolve_path_intern;
-  var $sret_WuEz_resolve_path_intern2;
-  var $retcpy_k9T6_set_prop;
-  var $scope_ISEy_set_prop;
+  var $cache_Fv5o_resolve_path_intern;
+  var $sret_BqW5_resolve_path_intern2;
+  var $retcpy_v1uU_set_prop;
+  var $scope_sdvJ_set_prop;
   var DataAPI=_ESClass("DataAPI", [function DataAPI(appstate) {
     this.appstate = appstate;
     this.ops = data_ops_list;
@@ -6986,18 +6988,18 @@ es6_module_define('data_api', ["data_api_parser", "UIFrame", "safe_eval", "toolo
         return undefined;
     }
     try {
-      if (!(str in $cache_WfTf_resolve_path_intern)) {
+      if (!(str in $cache_Fv5o_resolve_path_intern)) {
           var ret=this.resolve_path_intern2(ctx, str);
           var ret2=[];
           for (var i=0; i<ret.length; i++) {
               ret2.push(ret[i]);
           }
-          $cache_WfTf_resolve_path_intern[str] = ret2;
+          $cache_Fv5o_resolve_path_intern[str] = ret2;
       }
       else {
-        var ret=$cache_WfTf_resolve_path_intern[str];
+        var ret=$cache_Fv5o_resolve_path_intern[str];
         if (ret[0]!=undefined&&!ret[0].cache_good()) {
-            delete $cache_WfTf_resolve_path_intern[str];
+            delete $cache_Fv5o_resolve_path_intern[str];
             return this.resolve_path_intern(ctx, str);
         }
       }
@@ -7109,13 +7111,13 @@ es6_module_define('data_api', ["data_api_parser", "UIFrame", "safe_eval", "toolo
       }
     }
     var ast=parser.parse(str);
-    $sret_WuEz_resolve_path_intern2[0] = do_eval(ast, ContextStruct, pathout, spathout);
+    $sret_BqW5_resolve_path_intern2[0] = do_eval(ast, ContextStruct, pathout, spathout);
     pathout[0] = pathout[0].slice(1, pathout[0].length);
-    $sret_WuEz_resolve_path_intern2[1] = pathout[0];
-    $sret_WuEz_resolve_path_intern2[2] = spathout[0];
-    $sret_WuEz_resolve_path_intern2[3] = mass_set;
-    $sret_WuEz_resolve_path_intern2[4] = ownerpathout[0].slice(1, ownerpathout[0].length);
-    return $sret_WuEz_resolve_path_intern2;
+    $sret_BqW5_resolve_path_intern2[1] = pathout[0];
+    $sret_BqW5_resolve_path_intern2[2] = spathout[0];
+    $sret_BqW5_resolve_path_intern2[3] = mass_set;
+    $sret_BqW5_resolve_path_intern2[4] = ownerpathout[0].slice(1, ownerpathout[0].length);
+    return $sret_BqW5_resolve_path_intern2;
   }, function evaluate(ctx, str, scope) {
     try {
       if (str in this.evalcache) {
@@ -7264,11 +7266,11 @@ es6_module_define('data_api', ["data_api_parser", "UIFrame", "safe_eval", "toolo
         }
         return ret;
     }
-    $retcpy_k9T6_set_prop.length = ret.length;
+    $retcpy_v1uU_set_prop.length = ret.length;
     for (var i=0; i<5; i++) {
-        $retcpy_k9T6_set_prop[i] = ret[i];
+        $retcpy_v1uU_set_prop[i] = ret[i];
     }
-    ret = $retcpy_k9T6_set_prop;
+    ret = $retcpy_v1uU_set_prop;
     var owner=this.evaluate(ctx, ret[4]);
     if (ret[0]==undefined&&ret[3]!=undefined&&ret[3].do_mass_set) {
         if (DEBUG.ui_datapaths) {
@@ -7318,9 +7320,9 @@ es6_module_define('data_api', ["data_api_parser", "UIFrame", "safe_eval", "toolo
                 else 
                   val&=~mask;
                 prop.set_data(val, owner, changed);
-                $scope_ISEy_set_prop[0] = val;
+                $scope_sdvJ_set_prop[0] = val;
                 path2+=" = scope[0];";
-                this.evaluate(ctx, path2, $scope_ISEy_set_prop);
+                this.evaluate(ctx, path2, $scope_sdvJ_set_prop);
             }
             else {
               path+=" = "+value;
@@ -7367,9 +7369,9 @@ es6_module_define('data_api', ["data_api_parser", "UIFrame", "safe_eval", "toolo
           }
           else {
             if (typeof value=="object") {
-                $scope_ISEy_set_prop[0] = value;
+                $scope_sdvJ_set_prop[0] = value;
                 path+=" = scope[0]";
-                this.evaluate(ctx, path, $scope_ISEy_set_prop);
+                this.evaluate(ctx, path, $scope_sdvJ_set_prop);
             }
             else {
               changed = value==old_value;
@@ -7410,10 +7412,10 @@ es6_module_define('data_api', ["data_api_parser", "UIFrame", "safe_eval", "toolo
       return undefined;
     return ret[0].data;
   }]);
-  var $cache_WfTf_resolve_path_intern={}
-  var $sret_WuEz_resolve_path_intern2=[0, 0, 0, 0, 0];
-  var $retcpy_k9T6_set_prop=new Array(16);
-  var $scope_ISEy_set_prop=[0, 0];
+  var $cache_Fv5o_resolve_path_intern={}
+  var $sret_BqW5_resolve_path_intern2=[0, 0, 0, 0, 0];
+  var $retcpy_v1uU_set_prop=new Array(16);
+  var $scope_sdvJ_set_prop=[0, 0];
   _es6_module.add_class(DataAPI);
   DataAPI = _es6_module.add_export('DataAPI', DataAPI);
 }, '/dev/fairmotion/src/core/data_api.js');
@@ -9545,7 +9547,7 @@ es6_module_define('stupidsecurity', ["strutils"], function _stupidsecurity_modul
   window.key_rot = key_rotate;
   window.key_unrot = key_unrotate;
 }, '/dev/fairmotion/src/core/stupidsecurity.js');
-es6_module_define('animdata', ["toolprops", "struct", "spline_base", "lib_api", "eventdag"], function _animdata_module(_es6_module) {
+es6_module_define('animdata', ["lib_api", "spline_base", "eventdag", "struct", "toolprops"], function _animdata_module(_es6_module) {
   "use strict";
   var PropTypes=es6_import_item(_es6_module, 'toolprops', 'PropTypes');
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
@@ -9556,9 +9558,13 @@ es6_module_define('animdata', ["toolprops", "struct", "spline_base", "lib_api", 
   es6_import(_es6_module, 'struct');
   var TimeDataLayer=_ESClass("TimeDataLayer", CustomDataLayer, [function TimeDataLayer() {
     CustomDataLayer.call(this);
+    this.owning_veid = -1;
     this.time = 1.0;
   }, function interp(srcs, ws) {
     this.time = 0.0;
+    if (srcs.length>0) {
+        this.owning_veid = srcs[0].owning_veid;
+    }
     for (var i=0; i<srcs.length; i++) {
         this.time+=srcs[i].time*ws[i];
     }
@@ -9568,7 +9574,7 @@ es6_module_define('animdata', ["toolprops", "struct", "spline_base", "lib_api", 
   })]);
   _es6_module.add_class(TimeDataLayer);
   TimeDataLayer = _es6_module.add_export('TimeDataLayer', TimeDataLayer);
-  TimeDataLayer.STRUCT = STRUCT.inherit(TimeDataLayer, CustomDataLayer)+"\n    time : float;\n  }\n";
+  TimeDataLayer.STRUCT = STRUCT.inherit(TimeDataLayer, CustomDataLayer)+"\n    time         : float;\n    owning_veid  : int;\n  }\n";
   TimeDataLayer.layerinfo = {type_name: "TimeDataLayer"}
   function get_vtime(v) {
     var ret=v.cdata.get_layer(TimeDataLayer);

@@ -251,6 +251,13 @@ export class VertexAnimData {
     return undefined;
   }
   
+  _get_animdata(v) {
+    let ret = v.cdata.get_layer(TimeDataLayer);
+    
+    ret.owning_veid = this.eid;
+    return ret;
+  }
+  
   update(co, time) {
     this._set_layer();
     
@@ -263,8 +270,8 @@ export class VertexAnimData {
     
     if (this.startv == undefined) {
       this.startv = this.spline.make_vertex(co);
-      this.startv.cdata.get_layer(TimeDataLayer).time = 1;
-        
+      this._get_animdata(this.startv).time = 1;
+      
       this.spline.regen_sort();
       this.spline.resolve = 1;
     }
@@ -275,13 +282,13 @@ export class VertexAnimData {
     if (seg == undefined) {
       var e = this.endv;
       
-      if (e.cdata.get_layer(TimeDataLayer).time == time) {
+      if (this._get_animdata(e).time == time) {
         e.load(co);
         e.flag |= SplineFlags.UPDATE;
       } else {
         var nv = spline.make_vertex(co);
-        
-        nv.cdata.get_layer(TimeDataLayer).time = time;
+  
+        this._get_animdata(nv).time = time;
         spline.make_segment(e, nv);
         
         spline.regen_sort();
@@ -298,8 +305,8 @@ export class VertexAnimData {
         var nv = ret[1];
         
         spline.regen_sort();
-        
-        nv.cdata.get_layer(TimeDataLayer).time = time;
+  
+        this._get_animdata(nv).time = time;
         nv.load(co);
       }
     }
@@ -1045,6 +1052,14 @@ export class SplineFrameSet extends DataBlock {
     this.switch_on_select = true;
   }
   
+  get active_animdata() {
+    if (this.spline.verts.active === undefined) {
+      return undefined;
+    }
+    
+    return this.get_vdata(this.spline.verts.active.eid, true);
+  }
+  
   find_orphan_pathverts() {
     var vset = new set();
     var vset2 = new set();
@@ -1686,6 +1701,10 @@ export class SplineFrameSet extends DataBlock {
   }
   
   get_vdata(eid, auto_create=true) {
+    if (typeof eid != "number") {
+      throw new Error("Expected a number for eid");
+    }
+    
     if (auto_create && !(eid in this.vertex_animdata)) {
         this.vertex_animdata[eid] = new VertexAnimData(eid, this.pathspline);
     }
@@ -1870,6 +1889,15 @@ export class SplineFrameSet extends DataBlock {
     
     for (var i=0; i<ret.vertex_animdata.length; i++) {
       vert_animdata[ret.vertex_animdata[i].eid] = ret.vertex_animdata[i];
+    }
+    
+    //ensure owning_veid references are up to date
+    for (let k in vert_animdata) {
+      let vd = vert_animdata[k];
+      
+      for (let v of vd.verts) {
+        vd._get_animdata(v).owning_veid = vd.eid;
+      }
     }
     
     ret.frames = frames;

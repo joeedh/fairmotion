@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import note
+
 import os, sys, os.path, time, random, math
 import shelve, struct, io, imp, ctypes, re
 import subprocess, shlex, signal
@@ -9,6 +11,8 @@ from math import floor
 import zipfile
 
 from dbcache import CachedDB
+
+THENOTE = "note"
 
 #normpath helper func
 def np(path):
@@ -598,6 +602,7 @@ def build_target(files):
   
   filtered = list(iter_files(files))
   build_final = False
+  first = True
   
   for f, target, abspath, rebuild in filtered:
     fname = os.path.split(abspath)[1]
@@ -607,6 +612,12 @@ def build_target(files):
     build_final |= rebuild in [REBUILD, WASBUILT]
     if rebuild != REBUILD: continue
     
+    if first:
+        first = False
+        if note.hasNote(THENOTE):
+            note.endNote(THENOTE)
+        startNote(THENOTE, "Build System", "Starting Build")
+        
     sf.build = WASBUILT
     
     built_files.append([abspath, safe_stat(abspath), f])
@@ -637,6 +648,9 @@ def build_target(files):
     
     dcmd = os.path.split(f)[1] if ("/" in f or "\\" in f) else f
     print("[%i%%] " % perc, dcmd)
+    
+    #startNote(THENOTE, "Build System", "Starting Build")
+    changeNote(THENOTE, "[%i%%] %s" % (perc, dcmd))
     
     #execute build command
     while len(procs) >= num_cores:
@@ -691,7 +705,10 @@ def build_target(files):
     time.sleep(0.75)
     
   if len(failed_files) > 0:
+    changeNote(THENOTE, "Build Failed")
+    
     print("build failure\n\n")
+    
     for f in failed_files:
       for i, f2 in enumerate(built_files):
         if f2[2] == f: break
@@ -1098,7 +1115,31 @@ def buildall():
     pass
     signal_handler(None, None)
 
+note_timer = time.time()
+
+def checkNote():
+    global note_timer
+    
+    if not note.hasNote(THENOTE):
+        return
+        
+    if time.time() - note_timer > 1.5:
+        note.endNote(THENOTE)
+
+def changeNote(id, msg):
+    global note_timer
+    note_timer = time.time()
+    
+    note.changeNote(id, msg)
+    
+def startNote(id, title, msg):
+    global note_timer
+    note_timer = time.time()
+    
+    note.startNote(id, title, msg)
+    
 def buildall_intern():
+
   for t in targets:
     for s in t:
       s.build = False;
@@ -1107,14 +1148,21 @@ def buildall_intern():
     filter_srcs(t)
   
   build_final = False
+  
   for t in targets:
     build_final |= build_target(t)
   
   build_final |= do_copy_targets()
   
-  if build_final:
+  if build_final:    
     build_platforms()
-  
+    
+    if note.hasNote(THENOTE):
+        changeNote(THENOTE, "Finished build")
+    else:
+        startNote(THENOTE, "Build System", "Finished build")
+    changeNote(THENOTE, "Finished build")
+        
 def themain():  
   #print("         themain!", build_cmd)
   if build_cmd == "loop":
@@ -1126,11 +1174,16 @@ def themain():
       buildall()
       #print_profs()
       
+      checkNote();
+      
       t = time.time() - start
+      #time.sleep(0.25)
+      #"""
       if (t < 1.5):
         time.sleep(1.5 - t+0.1);
       else:
-        time.sleep(0.1);
+        time.sleep(0.1); 
+      #"""
   else:
     buildall()
 

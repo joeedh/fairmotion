@@ -33,5 +33,11 @@ window.Icons = {
   RESIZE         : 29,
   Z_UP           : 30,
   Z_DOWN         : 31,
-  SPLIT_EDGE     : 32
+  SPLIT_EDGE     : 32,
+  SHOW_ANIMPATHS : 33,
+  UNCHECKED      : 34,
+  CHECKED        : 35,
+  ENUM_UNCHECKED : 36,
+  ENUM_CHECKED   : 37,
+  APPEND_VERTEX  : 38
 };

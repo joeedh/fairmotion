@@ -7025,7 +7025,7 @@ es6_module_define('esprima', [], function _esprima_module(_es6_module) {
 }, '/dev/fairmotion/tools/utils/libs/node_modules/esprima/esprima.js');
 es6_module_define('icon_enum', [], function _icon_enum_module(_es6_module) {
   "use strict";
-  window.Icons = {HFLIP: 0, TRANSLATE: 1, ROTATE: 2, HELP_PICKER: 3, UNDO: 4, REDO: 5, CIRCLE_SEL: 6, BACKSPACE: 7, LEFT_ARROW: 8, RIGHT_ARROW: 9, UI_EXPAND: 10, UI_COLLAPSE: 11, FILTER_SEL_OPS: 12, SCROLL_DOWN: 13, SCROLL_UP: 14, NOTE_EXCL: 15, TINY_X: 16, FOLDER: 17, FILE: 18, SMALL_PLUS: 19, SMALL_MINUS: 20, MAKE_SEGMENT: 21, MAKE_POLYGON: 22, FACE_MODE: 23, EDGE_MODE: 24, VERT_MODE: 25, CURSOR_ARROW: 26, TOGGLE_SEL_ALL: 27, DELETE: 28, RESIZE: 29, Z_UP: 30, Z_DOWN: 31, SPLIT_EDGE: 32}
+  window.Icons = {HFLIP: 0, TRANSLATE: 1, ROTATE: 2, HELP_PICKER: 3, UNDO: 4, REDO: 5, CIRCLE_SEL: 6, BACKSPACE: 7, LEFT_ARROW: 8, RIGHT_ARROW: 9, UI_EXPAND: 10, UI_COLLAPSE: 11, FILTER_SEL_OPS: 12, SCROLL_DOWN: 13, SCROLL_UP: 14, NOTE_EXCL: 15, TINY_X: 16, FOLDER: 17, FILE: 18, SMALL_PLUS: 19, SMALL_MINUS: 20, MAKE_SEGMENT: 21, MAKE_POLYGON: 22, FACE_MODE: 23, EDGE_MODE: 24, VERT_MODE: 25, CURSOR_ARROW: 26, TOGGLE_SEL_ALL: 27, DELETE: 28, RESIZE: 29, Z_UP: 30, Z_DOWN: 31, SPLIT_EDGE: 32, SHOW_ANIMPATHS: 33, UNCHECKED: 34, CHECKED: 35, ENUM_UNCHECKED: 36, ENUM_CHECKED: 37, APPEND_VERTEX: 38}
 }, '/dev/fairmotion/src/datafiles/icon_enum.js');
 es6_module_define('J3DIMath', [], function _J3DIMath_module(_es6_module) {
   "use strict";
@@ -9038,9 +9038,9 @@ function time_func(func, steps) {
   console.log(times);
   return times;
 }
-var $lst_Wgb7=new GArray();
+var $lst_pt2P=new GArray();
 function cached_list(iter) {
-  $lst_Wgb7.reset();
+  $lst_pt2P.reset();
   var i=0;
   var __iter_item=__get_iter(iter);
   var item;
@@ -9050,11 +9050,11 @@ function cached_list(iter) {
         break;
     }
     item = __ival_item.value;
-    $lst_Wgb7.push(item);
+    $lst_pt2P.push(item);
     i++;
   }
-  $lst_Wgb7.length = i;
-  return $lst_Wgb7;
+  $lst_pt2P.length = i;
+  return $lst_pt2P;
 }
 var g_list=list;
 var eid_list=_ESClass("eid_list", GArray, [function eid_list(iter) {

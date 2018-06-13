@@ -164,19 +164,19 @@ class SettingsEditor extends Area {
     this._filter_sel = false;
     this.ctx = new Context();
     
-    this.subframe = new UITabPanel(new Context(), [size[0], size[1]]);
-    this.subframe.packflag |= PackFlags.NO_AUTO_SPACE|PackFlags.INHERIT_WIDTH;
-    this.subframe.size[0] = this.size[0];
-    this.subframe.size[1] = this.size[1];
-    this.subframe.pos = [0, Area.get_barhgt()];
-    this.subframe.state |= UIFlags.HAS_PAN|UIFlags.IS_CANVAS_ROOT|UIFlags.PAN_CANVAS_MAT;
-    this.subframe.velpan = new VelocityPan();
+    this.mainframe = new UITabPanel(new Context(), [size[0], size[1]]);
+    this.mainframe.packflag |= PackFlags.NO_AUTO_SPACING|PackFlags.INHERIT_WIDTH;
+    this.mainframe.size[0] = this.size[0];
+    this.mainframe.size[1] = this.size[1];
+    this.mainframe.pos = [0, Area.get_barhgt()];
+    this.mainframe.state |= UIFlags.HAS_PAN|UIFlags.IS_CANVAS_ROOT|UIFlags.PAN_CANVAS_MAT;
+    this.mainframe.velpan = new VelocityPan();
     
-    this.subframe.add_tab("Units", this.units_panel());
-    this.subframe.add_tab("UI Colors", this.colortheme_panel("theme.ui.colors[", g_theme.ui.flat_colors));
-    //this.subframe.add_tab("View2D Colors", this.colortheme_panel("theme.view2d.colors[", g_theme.view2d.flat_colors));
+    this.mainframe.add_tab("Units", this.units_panel());
+    this.mainframe.add_tab("UI Colors", this.colortheme_panel("theme.ui.colors[", g_theme.ui.flat_colors));
+    //this.mainframe.add_tab("View2D Colors", this.colortheme_panel("theme.view2d.colors[", g_theme.view2d.flat_colors));
     
-    this.add(this.subframe);
+    //this.add(this.mainframe);
   }
   
   define_keymap() {
@@ -191,7 +191,7 @@ class SettingsEditor extends Area {
   
   on_mousedown(MouseEvent event) {
     if (event.button == 1 && !g_app_state.was_touch) {
-      this.subframe.start_pan([event.x, event.y], 1);
+      this.mainframe.start_pan([event.x, event.y], 1);
     } else {
       super.on_mousedown(event);
     }
@@ -209,8 +209,14 @@ class SettingsEditor extends Area {
   } 
   
   destroy() {
-    this.subframe.canvas.destroy();
+    this.mainframe.canvas.destroy();
     Area.prototype.destroy.call(this);
+  }
+  
+  build_layout() {
+    super.build_layout();
+    
+    this.middlesplit.add(this.mainframe);
   }
   
   build_topbar(col)
@@ -224,11 +230,6 @@ class SettingsEditor extends Area {
     col.draw_background = true
     col.rcorner = 100.0
     col.pos = [0, this.size[1]-Area.get_barhgt()]
-    
-    //add items here
-    
-    this.rows.push(col);
-    this.add(col);
   }
   
   build_bottombar(col) {
@@ -243,28 +244,25 @@ class SettingsEditor extends Area {
     col.size = [this.size[0], Area.get_barhgt()];
     
     col.add(gen_editor_switcher(this.ctx, this));
-    
-    this.rows.push(col);
-    this.add(col);
   }
   
   build_draw(UICanvas canvas, Boolean isVertical) {
-    this.subframe.set_pan();
+    this.mainframe.set_pan();
     var ctx = this.ctx = new Context();
     
     //paranoid check
     var sx = this.size[0];
-    var sy = this.size[1]-this.subframe.pos[1]-Area.get_barhgt();
-    var s1 = this.size, s2=this.subframe.size;
+    var sy = this.size[1]-this.mainframe.pos[1]-Area.get_barhgt();
+    var s1 = this.size, s2=this.mainframe.size;
     
     if (s2[0] != sx || s2[1] != sy) {
       //console.log("resizing subframe");
-      this.subframe.size[0] = this.size[0];
-      this.subframe.size[1] = sy;
-      this.subframe.on_resize(this.size, this.subframe.size);
+      this.mainframe.size[0] = this.size[0];
+      this.mainframe.size[1] = sy;
+      this.mainframe.on_resize(this.size, this.mainframe.size);
     }
     
-    this.subframe.canvas.viewport = this.canvas.viewport;
+    this.mainframe.canvas.viewport = this.canvas.viewport;
     
     super.build_draw(canvas, isVertical);
     
@@ -291,8 +289,8 @@ class SettingsEditor extends Area {
     reader(obj);
     
     /*if (obj.pan != undefined) {
-      obj.subframe.velpan = new VelocityPan();
-      obj.subframe.velpan.pan = new Vector2(obj.pan);
+      obj.mainframe.velpan = new VelocityPan();
+      obj.mainframe.velpan.pan = new Vector2(obj.pan);
     }*/
     
     return obj;

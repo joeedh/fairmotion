@@ -10,13 +10,18 @@ import 'struct';
 
 export class TimeDataLayer extends CustomDataLayer {
   constructor() {
-    CustomDataLayer.call(this);
+    super();
     
+    this.owning_veid = -1;
     this.time = 1.0;
   }
   
   interp(srcs, ws) {
     this.time = 0.0;
+    
+    if (srcs.length > 0) {
+      this.owning_veid = srcs[0].owning_veid;
+    }
     
     for (var i=0; i<srcs.length; i++) {
       this.time += srcs[i].time*ws[i];
@@ -31,7 +36,8 @@ export class TimeDataLayer extends CustomDataLayer {
 }
 
 TimeDataLayer.STRUCT = STRUCT.inherit(TimeDataLayer, CustomDataLayer) + """
-    time : float;
+    time         : float;
+    owning_veid  : int;
   }
 """;
 TimeDataLayer.layerinfo = {

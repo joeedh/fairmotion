@@ -1,5 +1,8 @@
 {
   "name"    : "Fairmotion",
   "version" : "0.0.1",
-  "main"    : "main.js"
+  "main"    : "main.js",
+  "dependencies": {
+    "electron": "^2.0.2"
+  }
 }

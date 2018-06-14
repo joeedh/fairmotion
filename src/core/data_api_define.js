@@ -966,6 +966,27 @@ function api_define_dopesheet() {
   return DopeSheetStruct;
 }
 
+var CurveEditStruct = undefined;
+
+function api_define_editcurve() {
+  var selected_only = new BoolProperty(false, "selected_only", "Selected Only", "Show only keys of selected vertices");
+  
+  //this one is a dynamic "smart" property, implemented with get/setters in the DopeSheetEditor class itself
+  var pinned = new BoolProperty(false, "pinned", "Pin", "Pin view");
+  
+  selected_only.update = function () {
+    if (this.ctx != undefined && this.ctx.editcurve != undefined)
+      this.ctx.editcurve.do_full_recalc();
+  }
+  
+  CurveEditStruct = new DataStruct([
+    new DataPath(selected_only, "selected_only", "selected_only", true),
+    new DataPath(pinned, "pinned", "pinned", true)
+  ]);
+  
+  return CurveEditStruct;
+}
+
 var ObjectStruct = undefined;
 
 function api_define_object() {
@@ -1135,6 +1156,7 @@ window.api_define_context = function () {
   ContextStruct = new DataStruct([
     new DataPath(api_define_view2d(), "view2d", "ctx.view2d", true),
     new DataPath(api_define_dopesheet(), "dopesheet", "ctx.dopesheet", true),
+    new DataPath(api_define_editcurve(), "editcurve", "ctx.editcurve", true),
     new DataPath(api_define_frameset(), "frameset", "ctx.frameset", true),
     new DataPath(api_define_seditor(), "settings_editor", "ctx.settings_editor", false),
     new DataPath(api_define_settings(), "settings", "ctx.appstate.session.settings", false),

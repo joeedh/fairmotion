@@ -1,4 +1,4 @@
-es6_module_define('DopeSheetEditor', ["../../ui/UISplitFrame", "mathlib", "dopesheet_ops", "UIFrame", "struct", "UIElement", "UIWidgets", "spline_element_array", "dopesheet_phantom", "animdata", "toolops_api", "spline_layerops", "ScreenArea", "spline", "UIWidgets_special", "UITextBox", "UISplitFrame", "spline_base", "spline_editops", "UIPack", "events", "spline_types", "UITabPanel"], function _DopeSheetEditor_module(_es6_module) {
+es6_module_define('DopeSheetEditor', ["UITextBox", "spline", "toolops_api", "events", "struct", "dopesheet_ops", "dopesheet_phantom", "spline_editops", "../../ui/UISplitFrame", "spline_types", "UIFrame", "spline_layerops", "UITabPanel", "mathlib", "UIPack", "spline_element_array", "UIElement", "spline_base", "UIWidgets_special", "UIWidgets", "ScreenArea", "UISplitFrame", "animdata"], function _DopeSheetEditor_module(_es6_module) {
   "use strict";
   var aabb_isect_2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_2d');
   var gen_editor_switcher=es6_import_item(_es6_module, 'UIWidgets_special', 'gen_editor_switcher');
@@ -2817,6 +2817,134 @@ es6_module_define('dopesheet_ops', ["toolprops", "toolops_api", "animdata", "dop
   DeleteKeyOp = _es6_module.add_export('DeleteKeyOp', DeleteKeyOp);
   
 }, '/dev/fairmotion/src/editors/dopesheet/dopesheet_ops.js');
+es6_module_define('editcurve_ops', [], function _editcurve_ops_module(_es6_module) {
+}, '/dev/fairmotion/src/editors/curve/editcurve_ops.js');
+es6_module_define('editcurve_util', [], function _editcurve_util_module(_es6_module) {
+}, '/dev/fairmotion/src/editors/curve/editcurve_util.js');
+es6_module_define('CurveEditor', ["dopesheet_phantom", "mathlib", "../../ui/UISplitFrame", "UIFrame", "spline_element_array", "struct", "UISplitFrame", "UITabPanel", "spline_base", "spline_editops", "UIWidgets_special", "UIWidgets", "ScreenArea", "toolops_api", "../dopesheet/DopeSheetEditor", "dopesheet_ops", "spline_types", "UIPack", "UITextBox", "spline", "events", "animdata", "UIElement", "spline_layerops"], function _CurveEditor_module(_es6_module) {
+  "use strict";
+  var aabb_isect_2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_2d');
+  var gen_editor_switcher=es6_import_item(_es6_module, 'UIWidgets_special', 'gen_editor_switcher');
+  var KeyMap=es6_import_item(_es6_module, 'events', 'KeyMap');
+  var ToolKeyHandler=es6_import_item(_es6_module, 'events', 'ToolKeyHandler');
+  var FuncKeyHandler=es6_import_item(_es6_module, 'events', 'FuncKeyHandler');
+  var KeyHandler=es6_import_item(_es6_module, 'events', 'KeyHandler');
+  var charmap=es6_import_item(_es6_module, 'events', 'charmap');
+  var TouchEventManager=es6_import_item(_es6_module, 'events', 'TouchEventManager');
+  var EventHandler=es6_import_item(_es6_module, 'events', 'EventHandler');
+  var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
+  var phantom=es6_import_item(_es6_module, 'dopesheet_phantom', 'phantom');
+  var KeyTypes=es6_import_item(_es6_module, 'dopesheet_phantom', 'KeyTypes');
+  var FilterModes=es6_import_item(_es6_module, 'dopesheet_phantom', 'FilterModes');
+  var get_select=es6_import_item(_es6_module, 'dopesheet_phantom', 'get_select');
+  var get_time=es6_import_item(_es6_module, 'dopesheet_phantom', 'get_time');
+  var set_select=es6_import_item(_es6_module, 'dopesheet_phantom', 'set_select');
+  var set_time=es6_import_item(_es6_module, 'dopesheet_phantom', 'set_time');
+  var PackFlags=es6_import_item(_es6_module, 'UIElement', 'PackFlags');
+  var UIElement=es6_import_item(_es6_module, 'UIElement', 'UIElement');
+  var UIFlags=es6_import_item(_es6_module, 'UIElement', 'UIFlags');
+  var CanvasFlags=es6_import_item(_es6_module, 'UIElement', 'CanvasFlags');
+  var UIFrame=es6_import_item(_es6_module, 'UIFrame', 'UIFrame');
+  var UIButtonAbstract=es6_import_item(_es6_module, 'UIWidgets', 'UIButtonAbstract');
+  var UIButton=es6_import_item(_es6_module, 'UIWidgets', 'UIButton');
+  var UIButtonIcon=es6_import_item(_es6_module, 'UIWidgets', 'UIButtonIcon');
+  var UIMenuButton=es6_import_item(_es6_module, 'UIWidgets', 'UIMenuButton');
+  var UICheckBox=es6_import_item(_es6_module, 'UIWidgets', 'UICheckBox');
+  var UINumBox=es6_import_item(_es6_module, 'UIWidgets', 'UINumBox');
+  var UILabel=es6_import_item(_es6_module, 'UIWidgets', 'UILabel');
+  var UIMenuLabel=es6_import_item(_es6_module, 'UIWidgets', 'UIMenuLabel');
+  var ScrollButton=es6_import_item(_es6_module, 'UIWidgets', 'ScrollButton');
+  var UIVScroll=es6_import_item(_es6_module, 'UIWidgets', 'UIVScroll');
+  var UIIconCheck=es6_import_item(_es6_module, 'UIWidgets', 'UIIconCheck');
+  var UISplitFrame=es6_import_item(_es6_module, 'UISplitFrame', 'UISplitFrame');
+  var RowFrame=es6_import_item(_es6_module, 'UIPack', 'RowFrame');
+  var ColumnFrame=es6_import_item(_es6_module, 'UIPack', 'ColumnFrame');
+  var UIPackFrame=es6_import_item(_es6_module, 'UIPack', 'UIPackFrame');
+  var UITextBox=es6_import_item(_es6_module, 'UITextBox', 'UITextBox');
+  var ToolOp=es6_import_item(_es6_module, 'toolops_api', 'ToolOp');
+  var UndoFlags=es6_import_item(_es6_module, 'toolops_api', 'UndoFlags');
+  var ToolFlags=es6_import_item(_es6_module, 'toolops_api', 'ToolFlags');
+  var UITabBar=es6_import_item(_es6_module, 'UITabPanel', 'UITabBar');
+  var UICollapseIcon=es6_import_item(_es6_module, 'UIWidgets_special', 'UICollapseIcon');
+  var ToolOp=es6_import_item(_es6_module, 'toolops_api', 'ToolOp');
+  var RowFrame=es6_import_item(_es6_module, 'UIPack', 'RowFrame');
+  var UndoFlags=es6_import_item(_es6_module, 'toolops_api', 'UndoFlags');
+  var Spline=es6_import_item(_es6_module, 'spline', 'Spline');
+  var RestrictFlags=es6_import_item(_es6_module, 'spline', 'RestrictFlags');
+  var CustomDataLayer=es6_import_item(_es6_module, 'spline_types', 'CustomDataLayer');
+  var SplineTypes=es6_import_item(_es6_module, 'spline_types', 'SplineTypes');
+  var SplineFlags=es6_import_item(_es6_module, 'spline_types', 'SplineFlags');
+  var SplineSegment=es6_import_item(_es6_module, 'spline_types', 'SplineSegment');
+  var TimeDataLayer=es6_import_item(_es6_module, 'animdata', 'TimeDataLayer');
+  var get_vtime=es6_import_item(_es6_module, 'animdata', 'get_vtime');
+  var set_vtime=es6_import_item(_es6_module, 'animdata', 'set_vtime');
+  var AnimKey=es6_import_item(_es6_module, 'animdata', 'AnimKey');
+  var AnimChannel=es6_import_item(_es6_module, 'animdata', 'AnimChannel');
+  var AnimKeyFlags=es6_import_item(_es6_module, 'animdata', 'AnimKeyFlags');
+  var AnimInterpModes=es6_import_item(_es6_module, 'animdata', 'AnimInterpModes');
+  var SplineLayerFlags=es6_import_item(_es6_module, 'spline_element_array', 'SplineLayerFlags');
+  var SplineLayerSet=es6_import_item(_es6_module, 'spline_element_array', 'SplineLayerSet');
+  var SplineFlags=es6_import_item(_es6_module, 'spline_base', 'SplineFlags');
+  var AddLayerOp=es6_import_item(_es6_module, 'spline_layerops', 'AddLayerOp');
+  var ChangeLayerOp=es6_import_item(_es6_module, 'spline_layerops', 'ChangeLayerOp');
+  var ChangeElementLayerOp=es6_import_item(_es6_module, 'spline_layerops', 'ChangeElementLayerOp');
+  var DissolveVertOp=es6_import_item(_es6_module, 'spline_editops', 'DissolveVertOp');
+  var ShiftTimeOp2=es6_import_item(_es6_module, 'dopesheet_ops', 'ShiftTimeOp2');
+  var ShiftTimeOp3=es6_import_item(_es6_module, 'dopesheet_ops', 'ShiftTimeOp3');
+  var SelectOp=es6_import_item(_es6_module, 'dopesheet_ops', 'SelectOp');
+  var DeleteKeyOp=es6_import_item(_es6_module, 'dopesheet_ops', 'DeleteKeyOp');
+  var ColumnSelect=es6_import_item(_es6_module, 'dopesheet_ops', 'ColumnSelect');
+  var SelectKeysToSide=es6_import_item(_es6_module, 'dopesheet_ops', 'SelectKeysToSide');
+  var ToggleSelectOp=es6_import_item(_es6_module, 'dopesheet_ops', 'ToggleSelectOp');
+  var Area=es6_import_item(_es6_module, 'ScreenArea', 'Area');
+  var UISplitFrame=es6_import_item(_es6_module, '../../ui/UISplitFrame', 'UISplitFrame');
+  var TreePanel=es6_import_item(_es6_module, '../dopesheet/DopeSheetEditor', 'TreePanel');
+  var CurveEditor=_ESClass("CurveEditor", Area, [function CurveEditor(pos, size) {
+    Area.call(this, CurveEditor.name, CurveEditor.uiname, new Context(), pos, size);
+    this.pinned_ids = undefined;
+  }, function build_layout() {
+    build_layout();
+    this.channels = new TreePanel();
+    this.channels.size[0] = 100;
+    this.channels.size[1] = 600;
+    Area.prototype.build_layout.call(this, false, true);
+    this.middlesplit.horizontal = true;
+    let sidebar=this.middlesplit.initial();
+    sidebar.state|=UIFlags.BG_EVENTS_TRANSPARENT;
+    this.middlesplit.split(145, false, false, true).state|=UIFlags.BG_EVENTS_TRANSPARENT;
+    sidebar.draw_background = false;
+    sidebar.add(this.channels);
+  }, function build_bottombar(the_row) {
+    var ctx=new Context();
+    this.ctx = ctx;
+    the_row.packflag|=PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING|PackFlags.IGNORE_LIMIT;
+    the_row.default_packflag = PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING;
+    the_row.draw_background = true;
+    the_row.rcorner = 100.0;
+    the_row.pos = [0, 2];
+    the_row.size = [this.size[0], Area.get_barhgt()];
+    var col=the_row.col();
+    col.add(gen_editor_switcher(this.ctx, this));
+    col.prop("editcurve.selected_only");
+    col.prop("editcurve.pinned");
+  }, _ESClass.static(function fromSTRUCT(reader) {
+    var ret=new CurveEditor();
+    reader(ret);
+    if (ret.pan!=undefined) {
+        ret.velpan.pan[0] = ret.pan[0];
+        ret.velpan.pan[1] = ret.pan[1];
+        delete ret.pan;
+    }
+    if (ret.pinned_ids!=undefined&&ret.pinned_ids.length==0) {
+        delete ret.pinned_ids;
+    }
+    return ret;
+  })]);
+  _es6_module.add_class(CurveEditor);
+  CurveEditor = _es6_module.add_export('CurveEditor', CurveEditor);
+  DopeSheetEditor.STRUCT = STRUCT.inherit(DopeSheetEditor, Area)+"\n    pan             : vec2 | obj.velpan.pan;\n    zoom            : float;\n    selected_only   : int;\n    pinned_ids     : array(int) | obj.pinned_ids != undefined ? obj.pinned_ids : [];\n}\n";
+  CurveEditor.uiname = "Curve Editor";
+}, '/dev/fairmotion/src/editors/curve/CurveEditor.js');
 es6_module_define('notifications', ["UITextBox", "UIFrame", "UIWidgets_special", "UITabPanel", "ScreenArea", "UIWidgets", "UIPack", "toolops_api", "UIElement"], function _notifications_module(_es6_module) {
   var UIElement=es6_import_item(_es6_module, 'UIElement', 'UIElement');
   var UIFlags=es6_import_item(_es6_module, 'UIElement', 'UIFlags');
@@ -7695,7 +7823,7 @@ es6_module_define('SettingsEditor', ["ScreenArea", "UITabPanel", "UIPack", "UIWi
   SettingsEditor.debug_only = false;
 }, '/dev/fairmotion/src/editors/settings/SettingsEditor.js');
 var ContextStruct;
-es6_module_define('data_api_define', ["spline_multires", "config", "spline_element_array", "units", "animdata", "theme", "view2d", "selectmode", "imageblock", "toolprops", "ops_editor", "spline_base", "lib_api", "spline_createops", "toolops_api", "data_api", "frameset"], function _data_api_define_module(_es6_module) {
+es6_module_define('data_api_define', ["units", "spline_base", "imageblock", "toolprops", "theme", "frameset", "view2d", "animdata", "toolops_api", "ops_editor", "spline_multires", "spline_element_array", "config", "data_api", "selectmode", "spline_createops", "lib_api"], function _data_api_define_module(_es6_module) {
   var DataTypes=es6_import_item(_es6_module, 'lib_api', 'DataTypes');
   var EditModes=es6_import_item(_es6_module, 'view2d', 'EditModes');
   var ENABLE_MULTIRES=es6_import_item(_es6_module, 'config', 'ENABLE_MULTIRES');
@@ -8251,6 +8379,17 @@ es6_module_define('data_api_define', ["spline_multires", "config", "spline_eleme
     DopeSheetStruct = new DataStruct([new DataPath(selected_only, "selected_only", "selected_only", true), new DataPath(pinned, "pinned", "pinned", true)]);
     return DopeSheetStruct;
   }
+  var CurveEditStruct=undefined;
+  function api_define_editcurve() {
+    var selected_only=new BoolProperty(false, "selected_only", "Selected Only", "Show only keys of selected vertices");
+    var pinned=new BoolProperty(false, "pinned", "Pin", "Pin view");
+    selected_only.update = function() {
+      if (this.ctx!=undefined&&this.ctx.editcurve!=undefined)
+        this.ctx.editcurve.do_full_recalc();
+    }
+    CurveEditStruct = new DataStruct([new DataPath(selected_only, "selected_only", "selected_only", true), new DataPath(pinned, "pinned", "pinned", true)]);
+    return CurveEditStruct;
+  }
   var ObjectStruct=undefined;
   function api_define_object() {
     var name=new StringProperty("", "name", "name", "Name", TPropFlags.LABEL);
@@ -8544,7 +8683,7 @@ es6_module_define('data_api_define', ["spline_multires", "config", "spline_eleme
     return new _generator_iter();
   }
   window.api_define_context = function() {
-    ContextStruct = new DataStruct([new DataPath(api_define_view2d(), "view2d", "ctx.view2d", true), new DataPath(api_define_dopesheet(), "dopesheet", "ctx.dopesheet", true), new DataPath(api_define_frameset(), "frameset", "ctx.frameset", true), new DataPath(api_define_seditor(), "settings_editor", "ctx.settings_editor", false), new DataPath(api_define_settings(), "settings", "ctx.appstate.session.settings", false), new DataPath(api_define_object(), "object", "ctx.object", false), new DataPath(api_define_scene(), "scene", "ctx.scene", false), new DataPath(new DataStruct([]), "last_tool", "", false, false, DataFlags.RECALC_CACHE), new DataPath(api_define_appstate(), "appstate", "ctx.appstate", false), new DataPath(OpStackArray, "operator_stack", "ctx.appstate.toolstack.undostack", false, true, DataFlags.RECALC_CACHE), new DataPath(api_define_theme(), "theme", "g_theme", false), new DataPath(api_define_spline(), "spline", "ctx.spline", false), new DataPath(api_define_datalib(), "datalib", "ctx.datalib", false), new DataPath(api_define_opseditor(), "opseditor", "ctx.opseditor", false)]);
+    ContextStruct = new DataStruct([new DataPath(api_define_view2d(), "view2d", "ctx.view2d", true), new DataPath(api_define_dopesheet(), "dopesheet", "ctx.dopesheet", true), new DataPath(api_define_editcurve(), "editcurve", "ctx.editcurve", true), new DataPath(api_define_frameset(), "frameset", "ctx.frameset", true), new DataPath(api_define_seditor(), "settings_editor", "ctx.settings_editor", false), new DataPath(api_define_settings(), "settings", "ctx.appstate.session.settings", false), new DataPath(api_define_object(), "object", "ctx.object", false), new DataPath(api_define_scene(), "scene", "ctx.scene", false), new DataPath(new DataStruct([]), "last_tool", "", false, false, DataFlags.RECALC_CACHE), new DataPath(api_define_appstate(), "appstate", "ctx.appstate", false), new DataPath(OpStackArray, "operator_stack", "ctx.appstate.toolstack.undostack", false, true, DataFlags.RECALC_CACHE), new DataPath(api_define_theme(), "theme", "g_theme", false), new DataPath(api_define_spline(), "spline", "ctx.spline", false), new DataPath(api_define_datalib(), "datalib", "ctx.datalib", false), new DataPath(api_define_opseditor(), "opseditor", "ctx.opseditor", false)]);
   }
   function gen_path_maps(strct, obj, path1, path2) {
     if (obj==undefined)

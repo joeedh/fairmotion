@@ -27,6 +27,7 @@ import {View2DHandler} from 'view2d';
 import {Scene} from 'scene';
 import {SplineTypes, SplineFlags} from 'spline_base';
 import {DopeSheetEditor} from 'DopeSheetEditor';
+import {CurveEditor} from 'CurveEditor';
 import {OpStackEditor} from 'ops_editor';
 
 import {
@@ -1506,6 +1507,10 @@ export class Context {
  
   get dopesheet() : DopeSheetEditor {
     return Area.context_area(DopeSheetEditor);
+  }
+  
+  get editcurve() : CurveEditor {
+    return Area.context_area(CurveEditor);
   }
   
   /*need to figure out a better way to pass active editor types

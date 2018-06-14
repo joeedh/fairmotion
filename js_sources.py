@@ -72,6 +72,7 @@ sources = [
 	"src/core/fileapi_electron.js",
 	"src/core/stupidsecurity.js",
   "src/core/animdata.js",
+  "src/core/animutil.js",
   "src/config/config_defines.js",
   "src/core/svg_export.js",
 
@@ -164,7 +165,11 @@ sources = [
   "src/editors/dopesheet/dopesheet_phantom.js",
   "src/editors/dopesheet/dopesheet_transdata.js",
   "src/editors/dopesheet/dopesheet_ops.js",
-  
+
+  "src/editors/curve/editcurve_ops.js",
+  "src/editors/curve/editcurve_util.js",
+  "src/editors/curve/CurveEditor.js",
+
   "src/ui/notifications.js",
 
 	"src/editors/viewport/manipulator.js",

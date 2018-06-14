@@ -4547,7 +4547,7 @@ es6_module_define('UserSettings', ["config", "dialogs", "theme", "struct", "stru
   }
 }, '/dev/fairmotion/src/core/UserSettings.js');
 var g_app_state, g, t;
-es6_module_define('AppState', ["jobs", "view2d", "view2d_ops", "UserSettings", "toolops_api", "config", "toolprops", "data_api", "startup_file", "frameset", "fileapi", "notifications", "UICanvas", "strutils", "ajax", "lib_utils", "ops_editor", "lib_api", "struct", "spline_base", "FrameManager", "lib_api_typedefine", "ScreenArea", "DopeSheetEditor", "raster", "scene"], function _AppState_module(_es6_module) {
+es6_module_define('AppState', ["lib_api_typedefine", "scene", "ops_editor", "FrameManager", "raster", "CurveEditor", "config", "view2d_ops", "UserSettings", "DopeSheetEditor", "jobs", "lib_api", "view2d", "strutils", "ScreenArea", "lib_utils", "toolprops", "startup_file", "toolops_api", "notifications", "UICanvas", "struct", "spline_base", "frameset", "fileapi", "ajax", "data_api"], function _AppState_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, 'config');
   var html5_fileapi=es6_import(_es6_module, 'fileapi');
@@ -4592,6 +4592,7 @@ es6_module_define('AppState', ["jobs", "view2d", "view2d_ops", "UserSettings", "
   var SplineTypes=es6_import_item(_es6_module, 'spline_base', 'SplineTypes');
   var SplineFlags=es6_import_item(_es6_module, 'spline_base', 'SplineFlags');
   var DopeSheetEditor=es6_import_item(_es6_module, 'DopeSheetEditor', 'DopeSheetEditor');
+  var CurveEditor=es6_import_item(_es6_module, 'CurveEditor', 'CurveEditor');
   var OpStackEditor=es6_import_item(_es6_module, 'ops_editor', 'OpStackEditor');
   var pack_byte=es6_import_item(_es6_module, 'ajax', 'pack_byte');
   var pack_short=es6_import_item(_es6_module, 'ajax', 'pack_short');
@@ -4773,7 +4774,7 @@ es6_module_define('AppState', ["jobs", "view2d", "view2d_ops", "UserSettings", "
     }
     return out;
   }
-  var $toolop_input_cache_N6ki_AppState;
+  var $toolop_input_cache_j7Cv_AppState;
   var AppState=_ESClass("AppState", [function AppState(screen, mesh, gl) {
     this.screen = screen;
     this.eventhandler = screen;
@@ -4794,7 +4795,7 @@ es6_module_define('AppState', ["jobs", "view2d", "view2d_ops", "UserSettings", "
     this.gl = gl;
     this.size = screen!=undefined ? screen.size : [512, 512];
     this.raster = new RasterState(undefined, screen!=undefined ? screen.size : [512, 512]);
-    this.toolop_input_cache = $toolop_input_cache_N6ki_AppState;
+    this.toolop_input_cache = $toolop_input_cache_j7Cv_AppState;
     if (this.datalib!=undefined) {
         this.datalib.on_destroy();
     }
@@ -5600,7 +5601,7 @@ es6_module_define('AppState', ["jobs", "view2d", "view2d_ops", "UserSettings", "
         screen.size = this.size;
     }
   }]);
-  var $toolop_input_cache_N6ki_AppState={}
+  var $toolop_input_cache_j7Cv_AppState={}
   _es6_module.add_class(AppState);
   AppState = _es6_module.add_export('AppState', AppState);
   window.AppState = AppState;
@@ -5725,6 +5726,8 @@ es6_module_define('AppState', ["jobs", "view2d", "view2d_ops", "UserSettings", "
     return ret;
   }), _ESClass.get(function dopesheet() {
     return Area.context_area(DopeSheetEditor);
+  }), _ESClass.get(function editcurve() {
+    return Area.context_area(CurveEditor);
   }), _ESClass.get(function settings_editor() {
     return Area.context_area(SettingsEditor);
   }), _ESClass.get(function frameset() {
@@ -9720,6 +9723,14 @@ es6_module_define('animdata', ["lib_api", "spline_base", "eventdag", "struct", "
   AnimChannel = _es6_module.add_export('AnimChannel', AnimChannel);
   AnimChannel.STRUCT = "\n  AnimChannel {\n    name     : string;\n    keys     : array(AnimKey);\n    proptype : int;\n    path     : string;\n  }\n";
 }, '/dev/fairmotion/src/core/animdata.js');
+es6_module_define('animutil', [], function _animutil_module(_es6_module) {
+  "use strict";
+  var AnimTypes={SPLINE_PATH_TIME: 1, DATABLOCK_PATH: 2, ALL: 1|2}
+  AnimTypes = _es6_module.add_export('AnimTypes', AnimTypes);
+  function iterAnimCurves(ctx, types) {
+  }
+  iterAnimCurves = _es6_module.add_export('iterAnimCurves', iterAnimCurves);
+}, '/dev/fairmotion/src/core/animutil.js');
 es6_module_define('config_defines', [], function _config_defines_module(_es6_module) {
 }, '/dev/fairmotion/src/config/config_defines.js');
 es6_module_define('svg_export', ["mathlib", "spline_base"], function _svg_export_module(_es6_module) {

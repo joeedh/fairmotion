@@ -1785,14 +1785,14 @@ export class DopeSheetEditor extends Area {
   }
 }
 
-DopeSheetEditor.STRUCT = STRUCT.inherit(DopeSheetEditor, Area) + """
+DopeSheetEditor.STRUCT = STRUCT.inherit(DopeSheetEditor, Area) + `
     pan             : vec2 | obj.velpan.pan;
     zoom            : float;
     collapsed_map   : array(string) | obj._tree_collapsed_map();
     selected_only   : int;
     pinned_ids     : array(int) | obj.pinned_ids != undefined ? obj.pinned_ids : [];
 }
-""";
+`;
 
 DopeSheetEditor.uiname = "Dopesheet";
 DopeSheetEditor.debug_only = false;

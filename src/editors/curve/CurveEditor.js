@@ -122,7 +122,7 @@ export class CurveEditor extends Area {
   }
 }
 
-DopeSheetEditor.STRUCT = STRUCT.inherit(DopeSheetEditor, Area) + `
+CurveEditor.STRUCT = STRUCT.inherit(CurveEditor, Area) + `
     pan             : vec2 | obj.velpan.pan;
     zoom            : float;
     selected_only   : int;

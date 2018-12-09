@@ -13,6 +13,9 @@ export class AddLayerOp extends SplineLocalToolOp {
       this.inputs.name.set_data(name);
   }
   
+  can_call(ctx) {
+    return ctx.spline === ctx.frameset.spline; //only allow on drawspline
+  }
   /*
   undo_pre(ctx) {
   }

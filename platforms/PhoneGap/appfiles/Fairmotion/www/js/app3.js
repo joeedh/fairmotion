@@ -5344,7 +5344,7 @@ es6_module_define('transform', ["spline_types", "native_api", "selectmode", "mat
   _es6_module.add_class(RotateOp);
   RotateOp = _es6_module.add_export('RotateOp', RotateOp);
 }, '/dev/fairmotion/src/editors/viewport/transform.js');
-es6_module_define('transform_ops', ["toolprops", "toolops_api", "multires_transdata", "spline_types", "transform", "transdata", "native_api", "mathlib", "dopesheet_transdata", "selectmode", "events"], function _transform_ops_module(_es6_module) {
+es6_module_define('transform_ops', ["native_api", "transform", "spline_types", "dopesheet_transdata", "events", "selectmode", "mathlib", "transdata", "toolops_api", "multires_transdata", "toolprops"], function _transform_ops_module(_es6_module) {
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
   var TransformOp=es6_import_item(_es6_module, 'transform', 'TransformOp');
   var ScaleOp=es6_import_item(_es6_module, 'transform', 'ScaleOp');
@@ -5379,9 +5379,9 @@ es6_module_define('transform_ops', ["toolprops", "toolops_api", "multires_transd
     TransformOp.call(this, user_start_mpos, datamode);
   }, _ESClass.static(function tooldef() {
     return {uiname: "Resize", apiname: "spline.widget_resize", description: "Resize geometry", is_modal: true, inputs: ToolOp.inherit({translation: new Vec2Property(), scale: new Vec2Property(), rotation: new FloatProperty(0.0), pivot: new Vec2Property()}), outputs: {}}
-  }), _ESClass.static(function create_widgets(manager, ctx) {
-    var spline=ctx.spline;
-    var minmax=new MinMax(2);
+  }), _ESClass.static(function _get_bounds(minmax, spline, ctx) {
+    var totsel=0;
+    minmax.reset();
     var __iter_v=__get_iter(spline.verts.selected.editable());
     var v;
     while (1) {
@@ -5391,16 +5391,40 @@ es6_module_define('transform_ops', ["toolprops", "toolops_api", "multires_transd
       }
       v = __ival_v.value;
       minmax.minmax(v);
+      totsel++;
     }
-    var __iter_h=__get_iter(spline.handles.selected.editable());
-    var h;
+    if (ctx.view2d.selectmode&SelMask.HANDLE) {
+        var __iter_h=__get_iter(spline.handles.selected.editable());
+        var h;
+        while (1) {
+          var __ival_h=__iter_h.next();
+          if (__ival_h.done) {
+              break;
+          }
+          h = __ival_h.value;
+          minmax.minmax(h);
+          totsel++;
+        }
+    }
+    var __iter_seg=__get_iter(spline.segments.selected.editable());
+    var seg;
     while (1) {
-      var __ival_h=__iter_h.next();
-      if (__ival_h.done) {
+      var __ival_seg=__iter_seg.next();
+      if (__ival_seg.done) {
           break;
       }
-      h = __ival_h.value;
-      minmax.minmax(h);
+      seg = __ival_seg.value;
+      let aabb=seg.aabb;
+      minmax.minmax(aabb[0]);
+      minmax.minmax(aabb[1]);
+    }
+    return totsel;
+  }), _ESClass.static(function create_widgets(manager, ctx) {
+    var spline=ctx.spline;
+    var minmax=new MinMax(2);
+    let totsel=WidgetResizeOp._get_bounds(minmax, spline, ctx);
+    if (totsel<2) {
+        return ;
     }
     console.log(minmax.min, minmax.max);
     var cent=new Vector2(minmax.min).add(minmax.max).mulScalar(0.5);
@@ -5438,34 +5462,9 @@ es6_module_define('transform_ops', ["toolprops", "toolops_api", "multires_transd
     set_handles();
     widget.co = new Vector2(cent);
     widget.on_tick = function(ctx) {
-      minmax.reset();
-      var totsel=0;
-      var __iter_v=__get_iter(spline.verts.selected.editable());
-      var v;
-      while (1) {
-        var __ival_v=__iter_v.next();
-        if (__ival_v.done) {
-            break;
-        }
-        v = __ival_v.value;
-        minmax.minmax(v);
-        totsel++;
-      }
-      if (ctx.view2d.selectmode&SelMask.HANDLE) {
-          var __iter_h_0=__get_iter(spline.handles.selected.editable());
-          var h_0;
-          while (1) {
-            var __ival_h_0=__iter_h_0.next();
-            if (__ival_h_0.done) {
-                break;
-            }
-            h_0 = __ival_h_0.value;
-            minmax.minmax(h_0);
-            totsel++;
-          }
-      }
+      var totsel=WidgetResizeOp._get_bounds(minmax, spline, ctx);
       var update=false;
-      if (totsel==0) {
+      if (totsel<2) {
           this.hide();
           return ;
       }
@@ -5542,6 +5541,136 @@ es6_module_define('transform_ops', ["toolprops", "toolops_api", "multires_transd
   })]);
   _es6_module.add_class(WidgetResizeOp);
   WidgetResizeOp = _es6_module.add_export('WidgetResizeOp', WidgetResizeOp);
+  var WidgetRotateOp=_ESClass("WidgetRotateOp", TransformOp, [function WidgetRotateOp(user_start_mpos, datamode) {
+    TransformOp.call(this, user_start_mpos, datamode);
+  }, _ESClass.static(function tooldef() {
+    return {uiname: "Rotate", apiname: "spline.widget_rotate", description: "Rotate geometry", is_modal: true, inputs: ToolOp.inherit({translation: new Vec2Property(), scale: new Vec2Property(), rotation: new FloatProperty(0.0), pivot: new Vec2Property()}), outputs: {}}
+  }), _ESClass.static(function _get_bounds(minmax, spline, ctx) {
+    var totsel=0;
+    minmax.reset();
+    var __iter_v=__get_iter(spline.verts.selected.editable());
+    var v;
+    while (1) {
+      var __ival_v=__iter_v.next();
+      if (__ival_v.done) {
+          break;
+      }
+      v = __ival_v.value;
+      minmax.minmax(v);
+      totsel++;
+    }
+    if (ctx.view2d.selectmode&SelMask.HANDLE) {
+        var __iter_h=__get_iter(spline.handles.selected.editable());
+        var h;
+        while (1) {
+          var __ival_h=__iter_h.next();
+          if (__ival_h.done) {
+              break;
+          }
+          h = __ival_h.value;
+          minmax.minmax(h);
+          totsel++;
+        }
+    }
+    var __iter_seg=__get_iter(spline.segments.selected.editable());
+    var seg;
+    while (1) {
+      var __ival_seg=__iter_seg.next();
+      if (__ival_seg.done) {
+          break;
+      }
+      seg = __ival_seg.value;
+      let aabb=seg.aabb;
+      minmax.minmax(aabb[0]);
+      minmax.minmax(aabb[1]);
+    }
+    return totsel;
+  }), _ESClass.static(function create_widgets(manager, ctx) {
+    var spline=ctx.spline;
+    var minmax=new MinMax(2);
+    let totsel=WidgetResizeOp._get_bounds(minmax, spline, ctx);
+    if (totsel<2) {
+        return ;
+    }
+    console.log(minmax.min, minmax.max);
+    var cent=new Vector2(minmax.min).add(minmax.max).mulScalar(0.5);
+    var widget=manager.create(this);
+    var w=(minmax.max[0]-minmax.min[0])*0.5;
+    var h=(minmax.max[1]-minmax.min[1])*0.5;
+    var len=9;
+    if (w==0&h==0) {
+        return ;
+    }
+    let r=Math.sqrt(w*w+h*h)*Math.sqrt(2)*0.5;
+    let circle=widget.circle([0, 0], r, "rotate_circle", [0.4, 0.4, 0.4, 0.7]);
+    widget.co = new Vector2(cent);
+    widget.on_tick = function(ctx) {
+      var totsel=WidgetResizeOp._get_bounds(minmax, spline, ctx);
+      var update=false;
+      if (totsel<2) {
+          this.hide();
+          return ;
+      }
+      else {
+        update = this.hidden;
+        this.unhide();
+      }
+      var cx=(minmax.min[0]+minmax.max[0])*0.5;
+      var cy=(minmax.min[1]+minmax.max[1])*0.5;
+      var w2=(minmax.max[0]-minmax.min[0])*0.5;
+      var h2=(minmax.max[1]-minmax.min[1])*0.5;
+      update = update||cx!=this.co[0]||cy!=this.co[1];
+      update = update||w2!=w||h2!=h;
+      if (update) {
+          this.co[0] = cx;
+          this.co[1] = cy;
+          this.update();
+      }
+      return ;
+      if (update) {
+          w = w2, h = h2;
+          this.co[0] = cx;
+          this.co[1] = cy;
+          set_handles();
+          this.update();
+      }
+    }
+    let corner_onclick=function(e, view2d, id) {
+      console.log("id", id);
+      let ci=id;
+      let anchor=corners[(ci+2)%4];
+      let co=new Vector3();
+      co[0] = anchor.v1[0]+widget.co[0];
+      co[1] = anchor.v1[1]+widget.co[1];
+      let mpos=new Vector3([e.origX, e.origY, 0.0]);
+      let toolop=e.ctrlKey ? new ScaleOp(mpos, view2d.selectmode) : new NonUniformScaleOp(mpos, view2d.selectmode);
+      console.log("mpos", mpos[0], mpos[1]);
+      toolop.inputs.use_pivot.set_data(true);
+      toolop.inputs.pivot.set_data(co);
+      view2d.ctx.toolstack.exec_tool(toolop);
+      return true;
+    }
+    circle.on_click = function(e, view2d, id) {
+      console.log("widget click!");
+      let mpos=new Vector3([e.origX, e.origY, 0.0]);
+      console.log("mpos", mpos[0], mpos[1]);
+      let toolop=new ScaleOp(mpos, view2d.selectmode);
+      let co=new Vector3(widget.co);
+      if (!e.shiftKey) {
+          co[1]+=id=='b' ? h : -h;
+      }
+      toolop.inputs.use_pivot.set_data(true);
+      toolop.inputs.pivot.set_data(co);
+      toolop.inputs.constrain.set_data(true);
+      toolop.inputs.constraint_axis.set_data(new Vector3([0, 1, 0]));
+      view2d.ctx.toolstack.exec_tool(toolop);
+      return true;
+    }
+    return widget;
+  }), _ESClass.static(function reset_widgets(op, ctx) {
+  })]);
+  _es6_module.add_class(WidgetRotateOp);
+  WidgetRotateOp = _es6_module.add_export('WidgetRotateOp', WidgetRotateOp);
 }, '/dev/fairmotion/src/editors/viewport/transform_ops.js');
 es6_module_define('spline_selectops', ["toolprops", "spline_draw", "toolops_api", "spline_types", "animdata"], function _spline_selectops_module(_es6_module) {
   "use strict";
@@ -7882,7 +8011,7 @@ es6_module_define('spline_editops', ["toolops_api", "spline_types", "spline", ".
   _es6_module.add_class(SplineMirrorOp);
   SplineMirrorOp = _es6_module.add_export('SplineMirrorOp', SplineMirrorOp);
 }, '/dev/fairmotion/src/editors/viewport/spline_editops.js');
-es6_module_define('spline_layerops', ["toolprops", "spline", "toolops_api", "spline_editops", "spline_types"], function _spline_layerops_module(_es6_module) {
+es6_module_define('spline_layerops', ["toolops_api", "spline", "spline_types", "spline_editops", "toolprops"], function _spline_layerops_module(_es6_module) {
   var ToolOp=es6_import_item(_es6_module, 'toolops_api', 'ToolOp');
   var UndoFlags=es6_import_item(_es6_module, 'toolops_api', 'UndoFlags');
   var ToolFlags=es6_import_item(_es6_module, 'toolops_api', 'ToolFlags');
@@ -7901,6 +8030,8 @@ es6_module_define('spline_layerops', ["toolprops", "spline", "toolops_api", "spl
     SplineLocalToolOp.call(this, undefined, "Add Layer");
     if (name!=undefined)
       this.inputs.name.set_data(name);
+  }, function can_call(ctx) {
+    return ctx.spline===ctx.frameset.spline;
   }, function exec(ctx) {
     var layer=ctx.spline.layerset.new_layer(this.inputs.name.data);
     this.outputs.layerid.set_data(layer.id);

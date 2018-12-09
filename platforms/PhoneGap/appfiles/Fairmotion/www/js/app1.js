@@ -274,7 +274,7 @@ es6_module_define('strutils', [], function _strutils_module(_es6_module) {
   }
   encode_dataurl = _es6_module.add_export('encode_dataurl', encode_dataurl);
 }, '/dev/fairmotion/src/util/strutils.js');
-es6_module_define('lib_api', ["toolprops_iter", "struct"], function _lib_api_module(_es6_module) {
+es6_module_define('lib_api', ["struct", "toolprops_iter"], function _lib_api_module(_es6_module) {
   "use strict";
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
   var _DataTypeDef=[["IMAGE", 8], ["SCENE", 5], ["SCRIPT", 4], ["SPLINE", 6], ["FRAMESET", 7], ["ADDON", 8]];
@@ -587,21 +587,6 @@ es6_module_define('lib_api', ["toolprops_iter", "struct"], function _lib_api_mod
         console.log("Ref count error when deleting a datablock!", this.lib_refs, this);
     }
   }, function afterSTRUCT() {
-    var map={}
-    if (this.addon_data===undefined||!(__instance_of(this.addon_data, Array))) {
-        this.addon_data = [];
-    }
-    var __iter_dk=__get_iter(this.addon_data);
-    var dk;
-    while (1) {
-      var __ival_dk=__iter_dk.next();
-      if (__ival_dk.done) {
-          break;
-      }
-      dk = __ival_dk.value;
-      map[dk.key] = dk.val;
-    }
-    this.addon_data = map;
     for (var i=0; i<this.lib_anim_channels.length; i++) {
         var ch=this.lib_anim_channels[i];
         ch.idgen = this.lib_anim_idgen;
@@ -615,6 +600,21 @@ es6_module_define('lib_api', ["toolprops_iter", "struct"], function _lib_api_mod
   }, _ESClass.static(function fromSTRUCT(reader) {
     var ret=new DataBlock();
     reader(ret);
+    var map={}
+    if (ret.addon_data===undefined||!(__instance_of(ret.addon_data, Array))) {
+        ret.addon_data = [];
+    }
+    var __iter_dk=__get_iter(ret.addon_data);
+    var dk;
+    while (1) {
+      var __ival_dk=__iter_dk.next();
+      if (__ival_dk.done) {
+          break;
+      }
+      dk = __ival_dk.value;
+      map[dk.key] = dk.val;
+    }
+    ret.addon_data = map;
     return ret;
   }), function _addon_data_save() {
     var ret=[];
@@ -631,7 +631,11 @@ es6_module_define('lib_api', ["toolprops_iter", "struct"], function _lib_api_mod
   var _DictKey=_ESClass("_DictKey", [function _DictKey(key, val) {
     this.key = key;
     this.val = val;
-  }]);
+  }, _ESClass.static(function fromSTRUCT(reader) {
+    let ret=new _DictKey();
+    reader(ret);
+    return ret;
+  })]);
   _es6_module.add_class(_DictKey);
   _DictKey = _es6_module.add_export('_DictKey', _DictKey);
   _DictKey.STRUCT = "\n  _DictKey {\n    key : string;\n    val : abstract(Object);\n  }\n";
@@ -4172,7 +4176,7 @@ es6_module_define('raster', ["icon", "config"], function _raster_module(_es6_mod
   _es6_module.add_class(RasterState);
   RasterState = _es6_module.add_export('RasterState', RasterState);
 }, '/dev/fairmotion/src/core/raster.js');
-es6_module_define('imageblock', ["strutils", "struct", "lib_api", "view2d_editor", "selectmode", "toolops_api", "J3DIMath"], function _imageblock_module(_es6_module) {
+es6_module_define('imageblock', ["J3DIMath", "selectmode", "strutils", "struct", "toolops_api", "view2d_editor", "lib_api"], function _imageblock_module(_es6_module) {
   var DataBlock=es6_import_item(_es6_module, 'lib_api', 'DataBlock');
   var DataTypes=es6_import_item(_es6_module, 'lib_api', 'DataTypes');
   var BlockFlags=es6_import_item(_es6_module, 'lib_api', 'BlockFlags');
@@ -4222,6 +4226,7 @@ es6_module_define('imageblock', ["strutils", "struct", "lib_api", "view2d_editor
     if (ret.data.length==0) {
         ret.data = undefined;
     }
+    this.afterSTRUCT();
     return ret;
   })]);
   _es6_module.add_class(Image);
@@ -4547,7 +4552,7 @@ es6_module_define('UserSettings', ["config", "dialogs", "theme", "struct", "stru
   }
 }, '/dev/fairmotion/src/core/UserSettings.js');
 var g_app_state, g, t;
-es6_module_define('AppState', ["lib_api_typedefine", "scene", "ops_editor", "FrameManager", "raster", "CurveEditor", "config", "view2d_ops", "UserSettings", "DopeSheetEditor", "jobs", "lib_api", "view2d", "strutils", "ScreenArea", "lib_utils", "toolprops", "startup_file", "toolops_api", "notifications", "UICanvas", "struct", "spline_base", "frameset", "fileapi", "ajax", "data_api"], function _AppState_module(_es6_module) {
+es6_module_define('AppState', ["view2d", "ops_editor", "UICanvas", "scene", "toolops_api", "lib_api_typedefine", "config", "view2d_ops", "CurveEditor", "FrameManager", "struct", "fileapi", "jobs", "notifications", "toolprops", "ajax", "DopeSheetEditor", "lib_utils", "strutils", "data_api", "startup_file", "raster", "frameset", "ScreenArea", "spline_base", "UserSettings", "lib_api"], function _AppState_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, 'config');
   var html5_fileapi=es6_import(_es6_module, 'fileapi');
@@ -4744,7 +4749,7 @@ es6_module_define('AppState', ["lib_api_typedefine", "scene", "ops_editor", "Fra
             try {
               var buf=file;
               buf = new DataView(b64decode(buf).buffer);
-              g.load_user_file_new(buf, new unpack_ctx());
+              g.load_user_file_new(buf, undefined, new unpack_ctx());
               return ;
             }
             catch (err) {
@@ -4774,7 +4779,7 @@ es6_module_define('AppState', ["lib_api_typedefine", "scene", "ops_editor", "Fra
     }
     return out;
   }
-  var $toolop_input_cache_j7Cv_AppState;
+  var $toolop_input_cache_w937_AppState;
   var AppState=_ESClass("AppState", [function AppState(screen, mesh, gl) {
     this.screen = screen;
     this.eventhandler = screen;
@@ -4795,7 +4800,7 @@ es6_module_define('AppState', ["lib_api_typedefine", "scene", "ops_editor", "Fra
     this.gl = gl;
     this.size = screen!=undefined ? screen.size : [512, 512];
     this.raster = new RasterState(undefined, screen!=undefined ? screen.size : [512, 512]);
-    this.toolop_input_cache = $toolop_input_cache_j7Cv_AppState;
+    this.toolop_input_cache = $toolop_input_cache_w937_AppState;
     if (this.datalib!=undefined) {
         this.datalib.on_destroy();
     }
@@ -5219,7 +5224,7 @@ es6_module_define('AppState', ["lib_api_typedefine", "scene", "ops_editor", "Fra
         }
     }
   }, function do_versions_post(version) {
-  }, function load_user_file_new(data, uctx, use_existing_screen) {
+  }, function load_user_file_new(data, path, uctx, use_existing_screen) {
     if (use_existing_screen==undefined) {
         use_existing_screen = false;
     }
@@ -5424,6 +5429,7 @@ es6_module_define('AppState', ["lib_api_typedefine", "scene", "ops_editor", "Fra
       }
     }
     load_state();
+    this.filepath = path;
     if (toolstack!=undefined) {
         this.toolstack = fstructs.read_object(toolstack, ToolStack);
         this.toolstack.undocur = this.toolstack.undostack.length;
@@ -5601,7 +5607,7 @@ es6_module_define('AppState', ["lib_api_typedefine", "scene", "ops_editor", "Fra
         screen.size = this.size;
     }
   }]);
-  var $toolop_input_cache_j7Cv_AppState={}
+  var $toolop_input_cache_w937_AppState={}
   _es6_module.add_class(AppState);
   AppState = _es6_module.add_export('AppState', AppState);
   window.AppState = AppState;
@@ -7586,7 +7592,7 @@ t+=" "
     g_app_state.api.set_prop_new(new Context(), "view2d.zoomfac", 0.5);
   }
 }, '/dev/fairmotion/src/core/data_api_parser.js');
-es6_module_define('struct', ["ajax", "config", "parseutil", "safe_eval"], function _struct_module(_es6_module) {
+es6_module_define('struct', ["safe_eval", "ajax", "parseutil", "config"], function _struct_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, 'config');
   var safe_eval=es6_import(_es6_module, 'safe_eval');
@@ -7912,9 +7918,9 @@ es6_module_define('struct', ["ajax", "config", "parseutil", "safe_eval"], functi
   var _static_view=new DataView(_static_byte.buffer);
   _static_view = _es6_module.add_export('_static_view', _static_view);
   var _ws_env=[[undefined, undefined]];
-  var $sval_nW1Y=[0, 0];
-  var $sval_V9Do=[0, 0, 0];
-  var $sval_jikp=[0, 0, 0, 0];
+  var $sval_x7CK=[0, 0];
+  var $sval_BCaa=[0, 0, 0];
+  var $sval_ikEk=[0, 0, 0, 0];
   var _st_packers=[function(data, val) {
     
     pack_int(data, val);
@@ -7926,16 +7932,16 @@ es6_module_define('struct', ["ajax", "config", "parseutil", "safe_eval"], functi
     pack_double(data, val);
   }, function(data, val) {
     if (val==undefined)
-      val = $sval_nW1Y;
+      val = $sval_x7CK;
     
     pack_vec2(data, val);
   }, function(data, val) {
     if (val==undefined)
-      val = $sval_V9Do;
+      val = $sval_BCaa;
     pack_vec3(data, val);
   }, function(data, val) {
     if (val==undefined)
-      val = $sval_jikp;
+      val = $sval_ikEk;
     pack_vec4(data, val);
   }, function(data, val) {
     if (val==undefined)
@@ -8607,8 +8613,17 @@ es6_module_define('struct', ["ajax", "config", "parseutil", "safe_eval"], functi
       }
       cls = __ival_cls.value;
       try {
-        if (cls.STRUCT!=undefined&&cls.fromSTRUCT!=undefined) {
+        if (cls.STRUCT!==undefined&&cls.fromSTRUCT!=undefined) {
             istruct.add_struct(cls);
+        }
+        else 
+          if (cls.STRUCT!==undefined) {
+            if (cls.prototype.fromSTRUCT!==undefined) {
+                console.warn("fromSTRUCT must be a static method for class", cls.name, cls);
+            }
+            else {
+              console.warn("STRUCT class", cls.name, "has no fromSTRUCT method", cls);
+            }
         }
       }
       catch (err) {
@@ -9151,8 +9166,9 @@ es6_module_define('fileapi_chrome', [], function _fileapi_chrome_module(_es6_mod
   }
   save_file = _es6_module.add_export('save_file', save_file);
 }, '/dev/fairmotion/src/core/fileapi_chrome.js');
-es6_module_define('fileapi_electron', ["fileapi_html5", "config"], function _fileapi_electron_module(_es6_module) {
+es6_module_define('fileapi_electron', ["config", "fileapi_html5"], function _fileapi_electron_module(_es6_module) {
   "use strict";
+  let fs=require("fs");
   var config=es6_import(_es6_module, 'config');
   var fileapi_html5=es6_import(_es6_module, 'fileapi_html5');
   function reset() {
@@ -9202,9 +9218,82 @@ es6_module_define('fileapi_electron', ["fileapi_html5", "config"], function _fil
     myLocalStorage.set("recent_files", {});
   }
   clearRecentList = _es6_module.add_export('clearRecentList', clearRecentList);
-  function open_file(callback, thisvar, set_current_file, extslabel, exts) {
+  function is_dir(path) {
+    try {
+      let st=fs.statSync(path);
+      return st.isDirectory();
+    }
+    catch (error) {
+        print_stack(error);
+        return false;
+    }
+  }
+  is_dir = _es6_module.add_export('is_dir', is_dir);
+  function get_base_dir(path) {
+    if (path===undefined)
+      return undefined;
+    while (path.length>0&&!is_dir(path)) {
+      while (path.length>0&&path[path.length-1]!="/"&&path[path.length-1]!="\\") {
+        path = path.slice(0, path.length-1);
+      }
+      if (path.length>0) {
+          path = path.slice(0, path.length-1);
+      }
+    }
+    return path=="" ? undefined : path;
+  }
+  get_base_dir = _es6_module.add_export('get_base_dir', get_base_dir);
+  function open_file(callback, thisvar, set_current_file, extslabel, exts, error_cb) {
     if (thisvar==undefined)
       thisvar = this;
+    let default_path=get_base_dir(g_app_state.filepath);
+    let dialog=require('electron').dialog;
+    if (dialog===undefined) {
+        dialog = require('electron').remote.dialog;
+    }
+    var $_g_Jaawthis_1=this;
+    dialog.showOpenDialog(undefined, {title: "Open", defaultPath: default_path, filters: [{name: extslabel, extensions: exts}], securityScopedBookmarks: true}, function(path) {
+      if (__instance_of(path, Array)) {
+          path = path[0];
+      }
+      let fname=path;
+      let idx1=path.lastIndexOf("/");
+      let idx2=path.lastIndexOf("\\");
+      let idx=Math.max(idx1, idx2);
+      if (idx>=0) {
+          fname = fname.slice(idx+1, fname.length);
+      }
+      console.log("path:", path, "name", fname);
+      let buf;
+      try {
+        buf = fs.readFileSync(path);
+      }
+      catch (error) {
+          print_stack(error);
+          console.warn("Failed to load file at path ", path);
+          if (error_cb!==undefined)
+            error_cb();
+      }
+      let buf2=new Uint8Array(buf.byteLength);
+      let i=0;
+      var __iter_b=__get_iter(buf);
+      var b;
+      while (1) {
+        var __ival_b=__iter_b.next();
+        if (__ival_b.done) {
+            break;
+        }
+        b = __ival_b.value;
+        buf2[i++] = b;
+      }
+      buf = buf2.buffer;
+      if (thisvar!==undefined)
+        callback.call(thisvar, buf, fname, path);
+      else 
+        callback(buf, fname, path);
+    });
+    return ;
+    console.trace("open_file called");
     var form=document.createElement("form");
     document.body.appendChild(form);
     var input=document.createElement("input");
@@ -9245,7 +9334,66 @@ es6_module_define('fileapi_electron', ["fileapi_html5", "config"], function _fil
     form.appendChild(input);
   }
   open_file = _es6_module.add_export('open_file', open_file);
-  function save_file(data, save_as_mode, set_current_file, extslabel, exts, error_cb) {
+  function can_access_path(path) {
+    try {
+      fs.accessSync(path, fs.constants.R_OK|fs.constants.W_OK);
+      return true;
+    }
+    catch (error) {
+        return false;
+    }
+  }
+  can_access_path = _es6_module.add_export('can_access_path', can_access_path);
+  function save_file(data, path, error_cb, success_cb) {
+    if (__instance_of(data, DataView)) {
+        data = data.buffer;
+    }
+    else 
+      if (!(__instance_of(data, ArrayBuffer))&&data.buffer) {
+        data = data.buffer;
+    }
+    console.log("Data", data, path);
+    data = new Uint8Array(data);
+    try {
+      fs.writeFileSync(path, data);
+    }
+    catch (error) {
+        console.warn("Failed to write to path "+path);
+        if (error_cb!==undefined)
+          error_cb(error);
+        print_stack(error);
+        return ;
+    }
+    if (success_cb!==undefined) {
+        success_cb(path);
+    }
+  }
+  save_file = _es6_module.add_export('save_file', save_file);
+  function save_with_dialog(data, default_path, extslabel, exts, error_cb, success_cb) {
+    let dialog=require('electron').dialog;
+    if (dialog===undefined) {
+        dialog = require('electron').remote.dialog;
+    }
+    var $_g_Jaawthis_2=this;
+    dialog.showSaveDialog(undefined, {title: "Save", defaultPath: default_path, filters: [{name: extslabel, extensions: exts}], securityScopedBookmarks: true}, function(path) {
+      console.log("path:", path);
+      save_file(data, path, error_cb, success_cb);
+    });
+    return ;
+    if (!(__instance_of(data, Blob)))
+      data = new Blob([data], {type: "application/octet-binary"});
+    var url=URL.createObjectURL(data);
+    var link=document.createElement("a");
+    link.href = url;
+    var name=g_app_state.filepath;
+    name = name==""||name===undefined ? "untitled.fmo" : name.trim();
+    link.download = name;
+    console.log(link, link.__proto__);
+    window._link = link;
+    link.click();
+  }
+  save_with_dialog = _es6_module.add_export('save_with_dialog', save_with_dialog);
+  function save_file_old(data, save_as_mode, set_current_file, extslabel, exts, error_cb) {
     if (config.CHROME_APP_MODE) {
         return chrome_app_save(data, save_as_mode, set_current_file, extslabel, exts, error_cb);
     }
@@ -9264,7 +9412,7 @@ es6_module_define('fileapi_electron', ["fileapi_html5", "config"], function _fil
     window.open(url);
     console.log("url:", url);
   }
-  save_file = _es6_module.add_export('save_file', save_file);
+  save_file_old = _es6_module.add_export('save_file_old', save_file_old);
 }, '/dev/fairmotion/src/core/fileapi_electron.js');
 es6_module_define('stupidsecurity', ["strutils"], function _stupidsecurity_module(_es6_module) {
   var limit_code={"0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9}
@@ -9550,7 +9698,7 @@ es6_module_define('stupidsecurity', ["strutils"], function _stupidsecurity_modul
   window.key_rot = key_rotate;
   window.key_unrot = key_unrotate;
 }, '/dev/fairmotion/src/core/stupidsecurity.js');
-es6_module_define('animdata', ["lib_api", "spline_base", "eventdag", "struct", "toolprops"], function _animdata_module(_es6_module) {
+es6_module_define('animdata', ["struct", "eventdag", "toolprops", "lib_api", "spline_base"], function _animdata_module(_es6_module) {
   "use strict";
   var PropTypes=es6_import_item(_es6_module, 'toolprops', 'PropTypes');
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
@@ -9605,8 +9753,10 @@ es6_module_define('animdata', ["lib_api", "spline_base", "eventdag", "struct", "
     this.id = -1;
     this.flag = 0;
     this.time = 1.0;
+    this.handles = [0, 0];
     this.mode = AnimInterpModes.STEP;
     this.data = undefined;
+    this.owner_eid = -1;
     this.channel = undefined;
   }, function dag_get_datapath(ctx) {
     var owner=this.channel.owner;
@@ -9632,7 +9782,7 @@ es6_module_define('animdata', ["lib_api", "spline_base", "eventdag", "struct", "
   AnimKey = _es6_module.add_export('AnimKey', AnimKey);
   define_static(AnimKey, "dag_inputs", {});
   define_static(AnimKey, "dag_outputs", {"depend": undefined, "id": 0.0});
-  AnimKey.STRUCT = "\n  AnimKey {\n    id   : int;\n    flag : int;\n    time : float;\n    mode : int;\n    data : abstract(ToolProperty);\n  }\n";
+  AnimKey.STRUCT = "\n  AnimKey {\n    owner_eid : int;\n    id        : int;\n    flag      : int;\n    time      : float;\n    mode      : int;\n    handles   : array(float);\n    data      : abstract(ToolProperty);\n  }\n";
   var AnimChannel=_ESClass("AnimChannel", [function AnimChannel(proptype, name, path) {
     this.keys = [];
     this.resort = false;
@@ -9642,10 +9792,18 @@ es6_module_define('animdata', ["lib_api", "spline_base", "eventdag", "struct", "
     this.owner = undefined;
     this.idgen = undefined;
     this.idmap = undefined;
+  }, function add(key) {
+    if (key.id==-1) {
+        key.id = this.idgen.gen_id();
+    }
+    this.idmap[key.id] = key;
+    this.keys.push(key);
+    return this;
   }, function remove(key) {
     delete this.idmap[key.id];
     this.keys.remove(key);
     this.resort = true;
+    return this;
   }, function _do_resort() {
     this.keys.sort(function(a, b) {
       return a.time-b.time;
@@ -9670,7 +9828,7 @@ es6_module_define('animdata', ["lib_api", "spline_base", "eventdag", "struct", "
     for (var i=0; i<this.keys.length; i++) {
         if (this.keys[i].time==time) {
             this.keys[i].data.set_data(val);
-            return ;
+            return this.keys[i];
         }
     }
     var propcls=this.get_propcls();
@@ -9683,6 +9841,7 @@ es6_module_define('animdata', ["lib_api", "spline_base", "eventdag", "struct", "
     key.time = time;
     this.keys.push(key);
     this._do_resort();
+    return key;
   }, function evaluate(time) {
     if (this.resort) {
         this._do_resort();
@@ -9972,7 +10131,11 @@ es6_module_define('svg_export', ["mathlib", "spline_base"], function _svg_export
         export_segment(item);
     }
     buf+="</svg>";
-    return buf;
+    let ret=new Uint8Array(buf.length);
+    for (let i=0; i<buf.length; i++) {
+        ret[i] = buf[i].charCodeAt(i);
+    }
+    return ret;
   }
   export_svg = _es6_module.add_export('export_svg', export_svg);
 }, '/dev/fairmotion/src/core/svg_export.js');

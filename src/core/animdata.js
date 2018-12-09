@@ -79,9 +79,14 @@ export class AnimKey extends DataPathNode {
   constructor() {
     this.id = -1;
     this.flag = 0
+    
     this.time = 1.0;
+    this.handles = [0, 0];
+    
     this.mode = AnimInterpModes.STEP;
     this.data = undefined;
+    
+    this.owner_eid = -1; //used by spline code only
     
     this.channel = undefined; //owning channel
   }
@@ -127,11 +132,13 @@ define_static(AnimKey, "dag_outputs", {
 
 AnimKey.STRUCT = """
   AnimKey {
-    id   : int;
-    flag : int;
-    time : float;
-    mode : int;
-    data : abstract(ToolProperty);
+    owner_eid : int;
+    id        : int;
+    flag      : int;
+    time      : float;
+    mode      : int;
+    handles   : array(float);
+    data      : abstract(ToolProperty);
   }
 """;
 
@@ -153,10 +160,23 @@ export class AnimChannel {
       this.idmap = undefined; //is set by client code
     }
     
+    add(key) {
+      if (key.id == -1) {
+        key.id = this.idgen.gen_id();
+      }
+      
+      this.idmap[key.id] = key;
+      this.keys.push(key);
+      
+      return this;
+    }
+    
     remove(key) {
       delete this.idmap[key.id];
       this.keys.remove(key);
       this.resort = true;
+      
+      return this;
     }
     
     _do_resort() {
@@ -190,7 +210,7 @@ export class AnimChannel {
       for (var i=0; i<this.keys.length; i++) {
         if (this.keys[i].time == time) {
           this.keys[i].data.set_data(val);
-          return;
+          return this.keys[i];
         }
       }
       
@@ -207,8 +227,9 @@ export class AnimChannel {
       key.time = time;
       
       this.keys.push(key);
-      
       this._do_resort();
+      
+      return key;
     }
     
     evaluate(time) {

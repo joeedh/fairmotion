@@ -27,8 +27,48 @@ export var HandleColors = {
 
 var _mh_idgen = 1;
 
-export class ManipHandle {
+export class HandleBase {
+  on_click(e, view2d, id) {
+  
+  }
+  
+  on_active() {
+    this.color = HandleColors.HIGHLIGHT;
+    this.update();
+  }
+  
+  on_inactive() {
+    this.color = HandleColors.DEFAULT;
+    this.update();
+  }
+  
+  distanceTo(p) {
+    throw new Error("unimplemented distanceTo");
+  }
+  
+  update() {
+    throw new Error("unimplemented update");
+  }
+  
+  [Symbol.keystr]() {
+    throw new Error("unimplemented keystr");
+  }
+  
+  get_render_rects(ctx, canvas, g) {
+    throw new Error("unimplemented get_render_rects");
+  }
+  
+  
+  render(canvas, g) {
+    throw new Error("unimplemented render");
+  }
+  
+} HandleBase;
+
+export class ManipHandle extends HandleBase {
   constructor(v1 : Vector3, v2 : Vector3, id : Object, shape : int, view2d : View2DHandler, clr : Array<float>) {
+    super();
+    
     this.id = id;
     this._hid = _mh_idgen++;
     this.shape = shape;
@@ -65,10 +105,11 @@ export class ManipHandle {
     return dist_to_line_v2(p, this.v1, this.v2);
   }
   
-  update() {
+  update_aabb() {
+    //redraw old position from last draw
     this._min[0] = this.v1[0] + this.parent.co[0];
     this._min[1] = this.v1[1] + this.parent.co[1];
-    
+  
     this._max[0] = this.v2[0] + this.parent.co[0];
     this._max[1] = this.v2[1] + this.parent.co[1];
     
@@ -77,18 +118,33 @@ export class ManipHandle {
     var maxx = Math.max(this._min[0], this._max[0]);
     var maxy = Math.max(this._min[1], this._max[1]);
     
+    this._min[0] = minx;
+    this._min[1] = miny;
+    this._max[0] = maxx;
+    this._max[1] = maxy;
+  }
+  
+  update() {
     var p = this._redraw_pad;
     
-    //redraw old position from last draw
-    window.redraw_viewport(this._min, this._max);
+    static min = new Vector2(), max = new Vector2();
     
-    this._min[0] = minx-p, this._min[1] = miny-p;
-    this._max[0] = maxx+p, this._max[1] = maxy+p;
-    
-    //console.log("update", this._min[0], this._min[1], this._max[0], this._max[1]);
-    
+    min[0] = this._min[0] - p;
+    min[1] = this._min[1] - p;
+    max[0] = this._max[0] + p;
+    max[1] = this._max[1] + p;
+  
+    window.redraw_viewport(min, max);
+  
+    this.update_aabb();
+
+    min[0] = this._min[0] - p;
+    min[1] = this._min[1] - p;
+    max[0] = this._max[0] + p;
+    max[1] = this._max[1] + p;
+  
     //draw new position
-    window.redraw_viewport(this._min, this._max);
+    window.redraw_viewport(min, max);
   }
   
   [Symbol.keystr]() {
@@ -96,15 +152,12 @@ export class ManipHandle {
   }
   
   get_render_rects(ctx, canvas, g) {
-    var p = this._redraw_pad;
+    let p = this._redraw_pad;
     
-    var xmin = Math.min(this.v1[0], this.v2[0])-p;
-    var xmax = Math.max(this.v1[0], this.v2[0])+p;
+    this.update_aabb();
     
-    var ymin = Math.min(this.v1[1], this.v2[1])-p;
-    var ymax = Math.max(this.v1[1], this.v2[1])+p;
-    
-    return [[xmin, ymin, xmax-xmin, ymax-ymin]]
+    let xmin = this._min[0], ymin = this._min[1], xmax = this._max[0], ymax = this._max[1];
+    return [[xmin-p, ymin-p, xmax-xmin+2*p, ymax-ymin+2*p]]
   }
   
   
@@ -164,6 +217,112 @@ export class ManipHandle {
       g.stroke();
     }
   }  
+}
+
+export class ManipCircle extends HandleBase {
+  constructor(p : Vector2, r : Number, id : Object, view2d : View2DHandler, clr : Array<float>) {
+    super();
+    
+    this.id = id;
+    this._hid = _mh_idgen++;
+    this.p = new Vector2(p);
+    this.r = r;
+    this.transparent = false; //are we transparent to events?
+    this.color = clr === undefined ? [0, 0, 0, 1] : clr.slice(0, clr.length);
+    this.parent = undefined;
+    this.linewidth = 1.5;
+    
+    if (this.color.length == 3)
+      this.color.push(1.0);
+    
+    this._min = new Vector2();
+    this._max = new Vector2();
+    this._redraw_pad = this.linewidth;
+  }
+  
+  on_click(e, view2d, id) {
+  
+  }
+  
+  on_active() {
+    this.color = HandleColors.HIGHLIGHT;
+    this.update();
+  }
+  
+  on_inactive() {
+    this.color = HandleColors.DEFAULT;
+    this.update();
+  }
+  
+  distanceTo(p) {
+    let dx = this.p[0] - p[0];
+    let dy = this.p[1] - p[1];
+    let dis = dx*dx + dy*dy;
+    
+    dis = dis != 0.0 ? Math.sqrt(dis) : 0.0;
+    
+    return Math.abs(dis - this.r);
+  }
+  
+  update_aabb() {
+    this._min[0] = this.parent.co[0] + this.p[0] - Math.sqrt(2)*this.r;
+    this._min[1] = this.parent.co[1] + this.p[1] - Math.sqrt(2)*this.r;
+  
+    this._max[0] = this.parent.co[0] + this.p[0] + Math.sqrt(2)*this.r;
+    this._max[1] = this.parent.co[1] + this.p[1] + Math.sqrt(2)*this.r;
+  }
+  
+  update() {
+    var p = this._redraw_pad;
+    
+    static min = new Vector2(), max = new Vector2();
+    
+    min[0] = this._min[0] - p;
+    min[1] = this._min[1] - p;
+    max[0] = this._max[0] + p;
+    max[1] = this._max[1] + p;
+    
+    window.redraw_viewport(min, max);
+    
+    this.update_aabb();
+    
+    min[0] = this._min[0] - p;
+    min[1] = this._min[1] - p;
+    max[0] = this._max[0] + p;
+    max[1] = this._max[1] + p;
+    
+    //draw new position
+    window.redraw_viewport(min, max);
+  }
+  
+  [Symbol.keystr]() {
+    return "MC" + this._hid.toString;
+  }
+  
+  get_render_rects(ctx, canvas, g) {
+    let p = this._redraw_pad;
+  
+    this.update_aabb();
+    
+    let xmin = this._min[0], ymin = this._min[1], xmax = this._max[0], ymax = this._max[1];
+    return [[xmin-p, ymin-p, xmax-xmin+2*p, ymax-ymin+2*p]]
+  }
+  
+  
+  render(canvas, g) {
+    let c = this.color;
+    let style = "rgba("+(~~(c[0]*255))+","+(~~(c[1]*255))+","+(~~(c[2]*255))+","+c[3]+")";
+    
+    g.strokeStyle = g.fillStyle = style;
+    g.lineWidth = this.linewidth;
+    //g.strokeStyle = g.fillStyle = "teal";
+    
+    g.beginPath();
+    g.arc(this.p[0], this.p[1], this.r, -Math.PI, Math.PI);
+    g.closePath();
+    g.stroke();
+    
+  }
 }
 
 //okay.  should modal tool ops drive the manipulator positions, or should
@@ -287,6 +446,15 @@ export class Manipulator {
     v2 = new Vector2(v2);
     
     var h = new ManipHandle(v1, v2, id, HandleShapes.ARROW, this.view3d, clr);
+    h.parent = this;
+    
+    this.handles.push(h);
+    return h;
+  }
+  
+  circle(p, r, id, clr=[0, 0, 0, 1.0]) {
+    let h = new ManipCircle(new Vector2(p), r, id, this.view3d, clr);
+
     h.parent = this;
     
     this.handles.push(h);
@@ -434,6 +602,18 @@ export class ManipulatorManager {
   on_tick(ctx) {
     if (this.active != undefined && this.active.on_tick != undefined)
       this.active.on_tick(ctx);
+  }
+  
+  circle(p, r, clr, do_push=true) {
+    let h = new ManipCircle(p, r, id, this.view3d, clr);
+    let mn = new Manipulator([h]);
+    mn.parent = this;
+    
+    if (do_push) {
+      this.push(mn);
+    }
+    
+    return mn;
   }
   
   arrow(v1, v2, id, clr, do_push=true) {

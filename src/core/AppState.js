@@ -208,7 +208,7 @@ window.gen_default_file = function gen_default_file(size) {
         var buf = file;
         buf = new DataView(b64decode(buf).buffer);
         
-        g.load_user_file_new(buf, new unpack_ctx());
+        g.load_user_file_new(buf, undefined, new unpack_ctx());
         return;
       } catch (err) {
         print_stack(err);
@@ -840,10 +840,10 @@ export class AppState {
     }
   }
 
-  do_versions_post(float version) {
+  do_versions_post(version : float) {
   }
   
-  load_user_file_new(DataView data, unpack_ctx uctx, use_existing_screen=false) {
+  load_user_file_new(data : DataView, path : String, uctx : unpack_ctx, use_existing_screen=false) {
     //fixes a bug where some files loaded with squished
     //size.  probably need to track down actual cause, though.
     if (this.screen != undefined)
@@ -973,6 +973,7 @@ export class AppState {
     if (this.datalib != undefined) {
       this.datalib.on_destroy();
     }
+    
     this.datalib = datalib;
     
     //ensure we get an error if the unpacking code/
@@ -985,6 +986,8 @@ export class AppState {
     
     var toolstack = undefined;
     var this2 = this;
+    
+    
     function load_state() {
       //handle version changes
       this2.do_versions(datalib, blocks, version);
@@ -1086,6 +1089,8 @@ export class AppState {
     }
      
     load_state();
+    this.filepath = path;
+    
     if (toolstack != undefined) {
       this.toolstack = fstructs.read_object(toolstack, ToolStack);
       this.toolstack.undocur = this.toolstack.undostack.length;

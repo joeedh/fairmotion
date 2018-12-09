@@ -1,3 +1,40 @@
+GFX REFACTOR:
+ -
+
+- Auto Update Push System
+  * Push to small subset of users first, to test?
+- Have only one platform for project/code documentation
+  * Commit logs, wiki, etc, chat logs?
+
+* LKEY in edge/face selection modes
+* Dirty flags for edge/face selection modes, e.g. when switching from vert selection mode and it doesn't update selection colors
+* UI for proportional edit mode (. . .a magnet?)
+
+* Implement ask-before-quit and ask-before-new
+
+Books:
+  * The business side of creativity
+  * Eat that frog
+  * How to be a rockstar freelancer
+  * Never Check Email In The Morning
+  * Getting things done
+  *
+
+Knowledge Management Platforms:
+    * SharePoint
+    * Confluence
+    * Slack
+    * GitHub
+    * Jira
+    * Jenkins
+    * LightHouse (must host)
+
+* Look up hp laserjet firmware development team's story
+
+* Terraform
+
+- Find way to raise error if a subclass of DataBlock fails to call afterStruct properly.
+
 - MAKE SURE SAVING USER PREFERENCES WORKS!
 
 - Findnearest api shouldn't be unprojecting itself, client code should do that

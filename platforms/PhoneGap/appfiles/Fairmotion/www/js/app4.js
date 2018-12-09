@@ -1,4 +1,4 @@
-es6_module_define('UIFrame', ["config", "mathlib", "UIElement", "events", "J3DIMath"], function _UIFrame_module(_es6_module) {
+es6_module_define('UIFrame', ["config", "J3DIMath", "events", "mathlib", "UIElement"], function _UIFrame_module(_es6_module) {
   var aabb_isect_2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_2d');
   var inrect_2d=es6_import_item(_es6_module, 'mathlib', 'inrect_2d');
   var config=es6_import(_es6_module, 'config');
@@ -18,8 +18,8 @@ es6_module_define('UIFrame', ["config", "mathlib", "UIElement", "events", "J3DIM
   var _static_mat=new Matrix4();
   var _ufbd_v1=new Vector3();
   var _canvas_threshold=1.0;
-  var $pos_MiC1__find_active;
-  var $zero_fZLl_build_draw_old;
+  var $pos_JQuW__find_active;
+  var $zero_R9hy_build_draw_old;
   var UIFrame=_ESClass("UIFrame", UIElement, [function UIFrame(ctx, canvas, path, pos, size) {
     UIElement.call(this, ctx, path, pos, size);
     this.dirty_rects = new GArray();
@@ -310,10 +310,10 @@ es6_module_define('UIFrame', ["config", "mathlib", "UIElement", "events", "J3DIM
     var found=false;
     for (var i=this.children.length-1; i>=0; i--) {
         var c=this.children[i];
-        $pos_MiC1__find_active[0] = c.pos[0], $pos_MiC1__find_active[1] = c.pos[1];
+        $pos_JQuW__find_active[0] = c.pos[0], $pos_JQuW__find_active[1] = c.pos[1];
         if (c.state&UIFlags.HAS_PAN) {
         }
-        if (inrect_2d(mpos, $pos_MiC1__find_active, c.size)) {
+        if (inrect_2d(mpos, $pos_JQuW__find_active, c.size)) {
             found = true;
             if (this.active!=c&&this.active!=undefined) {
                 this.active.state&=~UIFlags.HIGHLIGHT;
@@ -568,7 +568,7 @@ es6_module_define('UIFrame', ["config", "mathlib", "UIElement", "events", "J3DIM
         }
       }
     }
-  }, function add(e, packflag) {
+  }, function insert(idx, e, packflag) {
     if (__instance_of(e, UIFrame)&&(e.state&UIFlags.HAS_PAN)&&e.velpan==undefined) {
         e.velpan = new VelocityPan();
     }
@@ -577,7 +577,7 @@ es6_module_define('UIFrame', ["config", "mathlib", "UIElement", "events", "J3DIM
         this._set_pan(e);
     }
     e.defunct = false;
-    this.children.push(e);
+    this.children.insert(idx, e);
     if (!(__instance_of(e, UIFrame))) {
         this.leafcount++;
     }
@@ -592,6 +592,8 @@ es6_module_define('UIFrame', ["config", "mathlib", "UIElement", "events", "J3DIM
     e.on_add(this);
     e.do_recalc();
     this.update_depth();
+  }, function add(e, packflag) {
+    return this.insert(this.children.length, e);
   }, function replace(a, b) {
     if (a==this.modalhandler) {
         a.pop_modal();
@@ -926,7 +928,7 @@ es6_module_define('UIFrame', ["config", "mathlib", "UIElement", "events", "J3DIM
       if (this.state&UIFlags.HAS_PAN)
         pos = this.velpan.pan;
       else 
-        pos = $zero_fZLl_build_draw_old;
+        pos = $zero_R9hy_build_draw_old;
       isect = isect||aabb_isect_2d(c.pos, c.size, pos, this.size);
       if (!isect) {
           this.has_hidden_elements = true;
@@ -1078,8 +1080,8 @@ es6_module_define('UIFrame', ["config", "mathlib", "UIElement", "events", "J3DIM
         frame.push_modal(e);
     }
   }]);
-  var $pos_MiC1__find_active=[0, 0];
-  var $zero_fZLl_build_draw_old=[0, 0];
+  var $pos_JQuW__find_active=[0, 0];
+  var $zero_R9hy_build_draw_old=[0, 0];
   _es6_module.add_class(UIFrame);
   UIFrame = _es6_module.add_export('UIFrame', UIFrame);
 }, '/dev/fairmotion/src/ui/UIFrame.js');
@@ -3588,7 +3590,7 @@ es6_module_define('UIWidgets', ["mathlib", "UIFrame", "UIElement", "events", "un
 es6_module_define('selectmode', [], function _selectmode_module(_es6_module) {
   var SelMask={VERTEX: 1, HANDLE: 2, SEGMENT: 4, FACE: 16, MULTIRES: 32, TOPOLOGY: 1|2|4|16}
   SelMask = _es6_module.add_export('SelMask', SelMask);
-  var ToolModes={SELECT: 1, APPEND: 2, RESIZE: 3}
+  var ToolModes={SELECT: 1, APPEND: 2, RESIZE: 3, ROTATE: 4}
   ToolModes = _es6_module.add_export('ToolModes', ToolModes);
 }, '/dev/fairmotion/src/editors/viewport/selectmode.js');
 es6_module_define('UITextBox', ["UIFrame", "UIPack", "mathlib", "UIHTMLTextBox", "UIElement", "UIWidgets", "events"], function _UITextBox_module(_es6_module) {
@@ -4518,7 +4520,7 @@ es6_module_define('platform_capabilies', [], function _platform_capabilies_modul
 }, '/dev/fairmotion/platforms/common/platform_capabilies.js');
 es6_module_define('platform_utils', [], function _platform_utils_module(_es6_module) {
 }, '/dev/fairmotion/platforms/common/platform_utils.js');
-es6_module_define('UIMenu', ["UIElement", "events", "mathlib", "toolops_api", "UIPack", "UIFrame", "UIWidgets", "UITextBox"], function _UIMenu_module(_es6_module) {
+es6_module_define('UIMenu', ["events", "UIFrame", "UIElement", "toolops_api", "UIWidgets", "UIPack", "UITextBox", "mathlib"], function _UIMenu_module(_es6_module) {
   var UIElement=es6_import_item(_es6_module, 'UIElement', 'UIElement');
   var PackFlags=es6_import_item(_es6_module, 'UIElement', 'PackFlags');
   var UIFlags=es6_import_item(_es6_module, 'UIElement', 'UIFlags');
@@ -4555,6 +4557,7 @@ es6_module_define('UIMenu', ["UIElement", "events", "mathlib", "toolops_api", "U
     UIElement.call(this);
     this.clicked = false;
     this.label = label;
+    this.submenu = undefined;
     this.text = "";
     this.pos = pos;
     this.hotkey = hotkey;
@@ -4563,6 +4566,12 @@ es6_module_define('UIMenu', ["UIElement", "events", "mathlib", "toolops_api", "U
     this.callback = undefined;
     this.add_sep = false;
     this.packed = false;
+  }, function on_active() {
+    UIElement.prototype.on_active.call(this);
+    console.log("active");
+  }, function on_inactive() {
+    UIElement.prototype.on_inactive.call(this);
+    console.log("inactive");
   }, function on_mousedown(event) {
     if ((event.button==0||(event.button==2&&this.parent.close_on_right))&&!this.clicked) {
         this.clicked = true;
@@ -4620,7 +4629,7 @@ es6_module_define('UIMenu', ["UIElement", "events", "mathlib", "toolops_api", "U
     this.call_time = 0;
     this.last_active = undefined;
     this.ignore_next_mouseup = undefined;
-  }, function add_item(text, hotkey, id) {
+  }, function insert_item(idx, text, hotkey, id) {
     if (hotkey==undefined) {
         hotkey = "";
     }
@@ -4633,8 +4642,16 @@ es6_module_define('UIMenu', ["UIElement", "events", "mathlib", "toolops_api", "U
     if (id==undefined)
       id = en.id;
     this.idmap[en.i] = id;
-    this.add(en);
+    this.insert(idx, en);
     return en;
+  }, function add_item(text, hotkey, id) {
+    if (hotkey==undefined) {
+        hotkey = "";
+    }
+    if (id==undefined) {
+        id = undefined;
+    }
+    return this.insert_item(this.children.length, text, hotkey, id);
   }, function on_keydown(event) {
     if (event.keyCode==charmap["Enter"]) {
         if (this.active!=undefined&&this.active.constructor.name==UIMenuEntry.name) {
@@ -7484,7 +7501,7 @@ es6_module_define('dialog', ["UIWidgets", "UIFrame", "toolops_api", "UIWidgets_s
   ErrorDialog = _es6_module.add_export('ErrorDialog', ErrorDialog);
   window.Dialog = Dialog;
 }, '/dev/fairmotion/src/ui/dialog.js');
-es6_module_define('dialogs', ["UIElement", "ajax", "UIWidgets_special", "UIWidgets", "UITextBox", "toolops_api", "strutils", "config", "spline_createops", "svg_export", "fileapi", "UIPack", "dialog", "toolprops", "UIFrame"], function _dialogs_module(_es6_module) {
+es6_module_define('dialogs', ["spline_createops", "toolprops", "UITextBox", "ajax", "fileapi", "strutils", "dialog", "UIWidgets", "UIPack", "svg_export", "UIElement", "UIWidgets_special", "toolops_api", "config", "UIFrame"], function _dialogs_module(_es6_module) {
   var Dialog=es6_import_item(_es6_module, 'dialog', 'Dialog');
   var PackedDialog=es6_import_item(_es6_module, 'dialog', 'PackedDialog');
   var DialogFlags=es6_import_item(_es6_module, 'dialog', 'DialogFlags');
@@ -7856,6 +7873,8 @@ es6_module_define('dialogs', ["UIElement", "ajax", "UIWidgets_special", "UIWidge
   download_file = _es6_module.add_export('download_file', download_file);
   var open_file=es6_import_item(_es6_module, 'fileapi', 'open_file');
   var save_file=es6_import_item(_es6_module, 'fileapi', 'save_file');
+  var save_with_dialog=es6_import_item(_es6_module, 'fileapi', 'save_with_dialog');
+  var can_access_path=es6_import_item(_es6_module, 'fileapi', 'can_access_path');
   var FileOpenRecentOp=_ESClass("FileOpenRecentOp", ToolOp, [_ESClass.static(function tooldef() {
     return {apiname: "open_recent", uiname: "Open Recent", inputs: {}, outputs: {}, icon: -1, is_modal: false, undoflag: UndoFlags.IGNORE_UNDO}
   }), function FileOpenRecentOp() {
@@ -7889,54 +7908,15 @@ es6_module_define('dialogs', ["UIElement", "ajax", "UIWidgets_special", "UIWidge
     this.inputs = {path: new StringProperty("", "path", "File Path", "File Path")}
   }, function exec(ctx) {
     console.log("File open");
-    if (config.USE_HTML5_FILEAPI) {
-        console.log("html5 file api!");
-        open_file(function(buf, fname, fileid) {
-          console.log("\n\ngot file!", buf, fname, fileid, "\n\n");
-          g_app_state.load_user_file_new(new DataView(buf));
-          if (fileid!=undefined) {
-              g_app_state.session.settings.add_recent_file("entry://"+fileid);
-              g_app_state.session.settings.server_update(true);
-          }
-        }, this, true, "Fairmotion Files", ["fmo"]);
-        return ;
-    }
-    ctx = new Context();
-    var pd=new ProgressDialog(ctx, "Downloading");
-    function error(job, owner, msg) {
-      pd.end();
-      error_dialog(ctx, "Network Error", undefined, true);
-    }
-    function status(job, owner, status) {
-      pd.value = status.progress;
-      pd.bar.do_recalc();
-      if (DEBUG.netio)
-        console.log("status: ", status.progress);
-    }
-    function open_callback(dialog, path) {
-      if (DEBUG.netio)
-        console.log("loading...", path);
-      pd.call(ctx.screen.mpos);
-      function finish(job, owner) {
-        pd.end();
-        g_app_state.load_user_file_new(new DataView(job.value));
-        console.log("setting g_app_state.filepath", path);
-        g_app_state.filepath = path;
-        if (DEBUG.netio)
-          console.log("finished downloading");
-        g_app_state.session.settings.download(function() {
-          g_app_state.session.settings.add_recent_file(path);
+    open_file(function(buf, fname, filepath) {
+      console.log("\n\ngot file!", buf, fname, filepath, "\n\n");
+      g_app_state.load_user_file_new(new DataView(buf), filepath);
+      if (filepath!=undefined) {
+          g_app_state.session.settings.add_recent_file(filepath);
           g_app_state.session.settings.server_update(true);
-        });
       }
-      call_api(get_file_data, {path: path}, finish, error, status);
-    }
-    console.log("File open");
-    if (this.inputs.path.data!="") {
-        open_callback(undefined, this.inputs.path.data);
-        return ;
-    }
-    file_dialog("OPEN", new Context(), open_callback);
+    }, this, true, "Fairmotion Files", ["fmo"]);
+    return ;
   }]);
   _es6_module.add_class(FileOpenOp);
   FileOpenOp = _es6_module.add_export('FileOpenOp', FileOpenOp);
@@ -7953,8 +7933,11 @@ es6_module_define('dialogs', ["UIElement", "ajax", "UIWidgets_special", "UIWidge
     var thepath=undefined;
     var mesh_data=g_app_state.create_user_file_new().buffer;
     if (config.USE_HTML5_FILEAPI) {
-        save_file(mesh_data, true, true, "Fairmotion Files", ["fmo"], function() {
+        save_with_dialog(mesh_data, g_app_state.filepath, "Fairmotion Files", ["fmo"], function() {
           error_dialog(ctx, "Could not write file", undefined, true);
+        }, function(path) {
+          g_app_state.filepath = path;
+          g_app_state.notes.label("File saved");
         });
         return ;
     }
@@ -8025,51 +8008,23 @@ es6_module_define('dialogs', ["UIElement", "ajax", "UIWidgets_special", "UIWidge
   }, function exec(ctx) {
     console.log("File save");
     var mesh_data=g_app_state.create_user_file_new().buffer;
-    if (config.USE_HTML5_FILEAPI) {
-        save_file(mesh_data, false, true, "Fairmotion Files", ["fmo"], function() {
+    let path=g_app_state.filepath;
+    let ok=path!=""&&path!==undefined;
+    ok = ok&&can_access_path(path);
+    if (!ok) {
+        save_with_dialog(mesh_data, undefined, "Fairmotion Files", ["fmo"], function() {
           error_dialog(ctx, "Could not write file", undefined, true);
+        }, function(path) {
+          g_app_state.filepath = path;
+          g_app_state.notes.label("File saved");
         });
-        return ;
-    }
-    ctx = new Context();
-    var pd=new ProgressDialog(ctx, "Uploading");
-    function error(job, owner, msg) {
-      pd.end();
-      error_dialog(ctx, "Network Error", undefined, true);
-    }
-    function status(job, owner, status) {
-      pd.value = status.progress;
-      pd.bar.do_recalc();
-      if (DEBUG.netio)
-        console.log("status: ", status.progress);
-    }
-    function finish(job, owner) {
-      pd.end();
-      if (DEBUG.netio)
-        console.log("finished uploading");
-    }
-    function save_callback(dialog, path) {
-      console.log("setting g_app_state.filepath", path);
-      g_app_state.filepath = path;
-      g_app_state.session.settings.add_recent_file(path);
-      g_app_state.session.settings.server_update(true);
-      pd.call(ctx.screen.mpos);
-      if (DEBUG.netio)
-        console.log("saving...", path);
-      
-      if (!path.endsWith(fairmotion_file_ext)) {
-          path = path+fairmotion_file_ext;
-      }
-      var token=g_app_state.session.tokens.access;
-      var url="/api/files/upload/start?accessToken="+token+"&path="+path;
-      var url2="/api/files/upload?accessToken="+token;
-      call_api(upload_file, {data: mesh_data, url: url, chunk_url: url2}, finish, error, status);
-    }
-    if (g_app_state.filepath!="") {
-        save_callback(undefined, g_app_state.filepath);
     }
     else {
-      file_dialog("SAVE", new Context(), save_callback, true);
+      save_file(mesh_data, path, function() {
+        error_dialog(ctx, "Could not write file", undefined, true);
+      }, function() {
+        g_app_state.notes.label("File saved");
+      });
     }
   }]);
   _es6_module.add_class(FileSaveOp);
@@ -8225,9 +8180,8 @@ es6_module_define('dialogs', ["UIElement", "ajax", "UIWidgets_special", "UIWidge
     else {
       name = "document";
     }
-    var blob=new Blob([buf], {type: "text/svg+xml"});
     if (config.CHROME_APP_MODE) {
-        save_file(blob, true, false, "SVG", ["svg"], function() {
+        save_with_dialog(buf, undefined, "SVG", ["svg"], function() {
           error_dialog(ctx, "Could not write file", undefined, true);
         });
     }
@@ -10421,7 +10375,7 @@ es6_module_define('view2d_editor', ["struct"], function _view2d_editor_module(_e
   View2DEditor = _es6_module.add_export('View2DEditor', View2DEditor);
   View2DEditor.STRUCT = "\n  View2DEditor {\n  }\n";
 }, '/dev/fairmotion/src/editors/viewport/view2d_editor.js');
-es6_module_define('MaterialEditor', ["UIElement", "UITabPanel", "toolops_api", "UITextBox", "spline_editops", "spline_layerops", "mathlib", "spline_types", "UIWidgets_special", "config", "struct", "events", "ScreenArea", "UIFrame", "UIPack", "UICanvas", "UIWidgets"], function _MaterialEditor_module(_es6_module) {
+es6_module_define('MaterialEditor', ["UIPack", "UIFrame", "UITabPanel", "struct", "toolops_api", "events", "config", "UICanvas", "spline_types", "mathlib", "UIElement", "UITextBox", "ScreenArea", "UIWidgets_special", "spline_layerops", "UIWidgets", "spline_editops"], function _MaterialEditor_module(_es6_module) {
   var gen_editor_switcher=es6_import_item(_es6_module, 'UIWidgets_special', 'gen_editor_switcher');
   var ENABLE_MULTIRES=es6_import_item(_es6_module, 'config', 'ENABLE_MULTIRES');
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
@@ -10487,7 +10441,6 @@ es6_module_define('MaterialEditor', ["UIElement", "UITabPanel", "toolops_api", "
   var Area=es6_import_item(_es6_module, 'ScreenArea', 'Area');
   var LayerPanel=_ESClass("LayerPanel", RowFrame, [function LayerPanel(ctx) {
     RowFrame.call(this, ctx);
-    this.last_spline_path = "";
     this.last_total_layers = this.last_active_id = 0;
     this.do_rebuild = 1;
     this.delayed_recalc = 0;
@@ -10501,9 +10454,8 @@ es6_module_define('MaterialEditor', ["UIElement", "UITabPanel", "toolops_api", "
     RowFrame.prototype.on_tick.call(this);
     if (this.ctx==undefined)
       return ;
-    var spline=this.ctx.spline;
+    var spline=this.ctx.frameset.spline;
     var do_rebuild=spline.layerset.length!=this.last_total_layers;
-    do_rebuild = do_rebuild||this.last_spline_path!=this.ctx.splinepath;
     do_rebuild = do_rebuild||spline.layerset.active.id!=this.last_active_id;
     if (!this.do_rebuild&&do_rebuild) {
         this.do_recalc();
@@ -10520,8 +10472,7 @@ es6_module_define('MaterialEditor', ["UIElement", "UITabPanel", "toolops_api", "
       return ;
     this.do_rebuild = false;
     console.log("layers ui rebuild!");
-    var spline=this.ctx.spline;
-    this.last_spline_path = this.ctx.splinepath;
+    var spline=this.ctx.frameset.spline;
     this.last_total_layers = spline.layerset.length;
     this.last_active_id = spline.layerset.active.id;
     while (this.children.length>0) {
@@ -10552,7 +10503,7 @@ es6_module_define('MaterialEditor', ["UIElement", "UITabPanel", "toolops_api", "
     var this2=this;
     down.callback = function() {
       console.log("Shift layers down");
-      var ctx=new Context(), spline=ctx.spline;
+      var ctx=new Context(), spline=ctx.frameset.spline;
       var layer=spline.layerset.active;
       var tool=new ShiftLayerOrderOp(layer.id, -1);
       g_app_state.toolstack.exec_tool(tool);
@@ -10560,7 +10511,7 @@ es6_module_define('MaterialEditor', ["UIElement", "UITabPanel", "toolops_api", "
     }
     up.callback = function() {
       console.log("Shift layers up");
-      var ctx=new Context(), spline=ctx.spline;
+      var ctx=new Context(), spline=ctx.frameset.spline;
       var layer=spline.layerset.active;
       var tool=new ShiftLayerOrderOp(layer.id, 1);
       g_app_state.toolstack.exec_tool(tool);
@@ -10592,7 +10543,7 @@ es6_module_define('MaterialEditor', ["UIElement", "UITabPanel", "toolops_api", "
     controls2.add(new UIButton(this.ctx, "Sel Down"));
     var this2=this;
     controls2.children[0].callback = function() {
-      var lset=this2.ctx.spline.layerset;
+      var lset=this2.ctx.frameset.spline.layerset;
       var oldl=lset.active;
       console.log("oldl", oldl);
       if (oldl.order==lset.length-1)
@@ -10602,7 +10553,7 @@ es6_module_define('MaterialEditor', ["UIElement", "UITabPanel", "toolops_api", "
       g_app_state.toolstack.exec_tool(tool);
     }
     controls2.children[1].callback = function() {
-      var lset=this2.ctx.spline.layerset;
+      var lset=this2.ctx.frameset.spline.layerset;
       var oldl=lset.active;
       console.log("oldl", oldl);
       if (oldl.order==0)
@@ -10612,7 +10563,7 @@ es6_module_define('MaterialEditor', ["UIElement", "UITabPanel", "toolops_api", "
       g_app_state.toolstack.exec_tool(tool);
     }
     var controls3=this.col();
-    controls3.prop('spline.active_layer.flag');
+    controls3.prop('frameset.drawspline.active_layer.flag');
     this.delayed_recalc = 4;
   }]);
   _es6_module.add_class(LayerPanel);
@@ -10677,13 +10628,10 @@ es6_module_define('MaterialEditor', ["UIElement", "UITabPanel", "toolops_api", "
       size = [1, 1];
     this.tab_size = size;
   }, function build_layout() {
-    Area.prototype.build_layout.call(this);
+    Area.prototype.build_layout.call(this, false, true);
     let size=this.tab_size;
     this.innerframe = new UITabPanel(this.ctx, [size[0], size[1]]);
     this.innerframe.packflag|=PackFlags.NO_AUTO_SPACING|PackFlags.INHERIT_WIDTH|PackFlags.INHERIT_HEIGHT;
-    this.innerframe.size[0] = this.size[0];
-    this.innerframe.size[1] = this.size[1];
-    this.innerframe.pos = [0, Area.get_barhgt()];
     this.innerframe.state|=0;
     this.innerframe.velpan = new VelocityPan();
     this.innerframe.add_tab("Fill", this.fill_panel());

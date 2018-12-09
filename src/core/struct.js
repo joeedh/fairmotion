@@ -1669,8 +1669,14 @@ window.init_struct_packer = function() {
   
   for (var cls of defined_classes) {
     try {
-      if (cls.STRUCT != undefined && cls.fromSTRUCT != undefined) {
+      if (cls.STRUCT !== undefined && cls.fromSTRUCT != undefined) {
         istruct.add_struct(cls);
+      } else if (cls.STRUCT !== undefined) {
+        if (cls.prototype.fromSTRUCT !== undefined) {
+          console.warn("fromSTRUCT must be a static method for class", cls.name, cls);
+        } else {
+          console.warn("STRUCT class", cls.name, "has no fromSTRUCT method", cls);
+        }
       }
     } catch (err) {
       if (err instanceof PUTLParseError) {

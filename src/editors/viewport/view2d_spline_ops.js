@@ -6,7 +6,7 @@ import {DeleteVertOp, DeleteSegmentOp} from 'spline_editops';
 import {CreateMResPoint} from 'multires_ops';
 import * as mr_selectops from 'multires_selectops';
 import * as spline_selectops from 'spline_selectops';
-import {WidgetResizeOp} from 'transform_ops';
+import {WidgetResizeOp, WidgetRotateOp} from 'transform_ops';
 
 import {compose_id, decompose_id, MResFlags, MultiResLayer}
         from 'spline_multires';
@@ -305,10 +305,16 @@ export class SplineEditor extends View2DEditor {
   }
   
   on_tick(ctx) {
+    let widgets = [WidgetResizeOp, WidgetRotateOp];
+    
     if (ctx.view2d.toolmode == ToolModes.RESIZE) {
       ctx.view2d.widgets.ensure_toolop(ctx, WidgetResizeOp);
+    } else if (ctx.view2d.toolmode == ToolModes.ROTATE) {
+      ctx.view2d.widgets.ensure_toolop(ctx, WidgetRotateOp);
     } else {
-      ctx.view2d.widgets.ensure_not_toolop(ctx, WidgetResizeOp);
+      for (let cls of widgets) {
+        ctx.view2d.widgets.ensure_not_toolop(ctx, cls);
+      }
     }
   }
 

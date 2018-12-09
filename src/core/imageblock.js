@@ -57,6 +57,8 @@ export class Image extends DataBlock {
       ret.data = undefined;
     }
     
+    this.afterSTRUCT();
+    
     return ret;
   }
 }

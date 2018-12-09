@@ -43,17 +43,42 @@ export class WidgetResizeOp extends TransformOp {
     outputs : {}
   }}
   
+  static _get_bounds(minmax, spline, ctx) {
+    var totsel=0;
+
+    minmax.reset();
+  
+    for (var v of spline.verts.selected.editable()) {
+      minmax.minmax(v);
+      totsel++;
+    }
+  
+    if (ctx.view2d.selectmode & SelMask.HANDLE) {
+      for (var h of spline.handles.selected.editable()) {
+        minmax.minmax(h);
+        totsel++;
+      }
+    }
+    
+    for (var seg of spline.segments.selected.editable()) {
+      let aabb = seg.aabb;
+      minmax.minmax(aabb[0]);
+      minmax.minmax(aabb[1]);
+    }
+    
+    return totsel;
+  }
+  
   static create_widgets(manager : ManipulatorManager, ctx : Context) {
     var spline = ctx.spline;
     var minmax = new MinMax(2);
     
-    for (var v of spline.verts.selected.editable()) {
-      minmax.minmax(v);
-    }
-    for (var h of spline.handles.selected.editable()) {
-      minmax.minmax(h);
-    }
+    let totsel = WidgetResizeOp._get_bounds(minmax, spline, ctx);
     
+    if (totsel < 2) {
+      return;
+    }
+
     console.log(minmax.min, minmax.max);
     
     var cent = new Vector2(minmax.min).add(minmax.max).mulScalar(0.5);
@@ -120,25 +145,12 @@ export class WidgetResizeOp extends TransformOp {
       } else {
         this.unhide();
       }*/
-      
-      minmax.reset();
-      var totsel=0;
-      
-      for (var v of spline.verts.selected.editable()) {
-        minmax.minmax(v);
-        totsel++;
-      }
-      
-      if (ctx.view2d.selectmode & SelMask.HANDLE) {
-        for (var h of spline.handles.selected.editable()) {
-          minmax.minmax(h);
-          totsel++;
-        }
-      }
+  
+      var totsel = WidgetResizeOp._get_bounds(minmax, spline, ctx);
       
       var update = false;
       
-      if (totsel == 0) {
+      if (totsel < 2) {
         this.hide();
         return;
       } else {
@@ -251,6 +263,192 @@ export class WidgetResizeOp extends TransformOp {
       return true;
     }
   
+    return widget;
+  }
+  
+  static reset_widgets(op : ToolOp, ctx : Context) {
+  }
+}
+
+export class WidgetRotateOp extends TransformOp {
+  constructor(user_start_mpos : Array<float>, datamode : int) {
+    super(user_start_mpos, datamode)
+  }
+  
+  static tooldef() { return {
+    uiname   : "Rotate",
+    apiname  : "spline.widget_rotate",
+    description : "Rotate geometry",
+    is_modal : true,
+    
+    inputs   : ToolOp.inherit({
+      translation : new Vec2Property(),
+      scale       : new Vec2Property(),
+      rotation    : new FloatProperty(0.0),
+      pivot       : new Vec2Property()
+    }),
+    
+    outputs : {}
+  }}
+  
+  static _get_bounds(minmax, spline, ctx) {
+    var totsel=0;
+    
+    minmax.reset();
+    
+    for (var v of spline.verts.selected.editable()) {
+      minmax.minmax(v);
+      totsel++;
+    }
+    
+    if (ctx.view2d.selectmode & SelMask.HANDLE) {
+      for (var h of spline.handles.selected.editable()) {
+        minmax.minmax(h);
+        totsel++;
+      }
+    }
+    
+    for (var seg of spline.segments.selected.editable()) {
+      let aabb = seg.aabb;
+      minmax.minmax(aabb[0]);
+      minmax.minmax(aabb[1]);
+    }
+    
+    return totsel;
+  }
+  
+  static create_widgets(manager : ManipulatorManager, ctx : Context) {
+    var spline = ctx.spline;
+    var minmax = new MinMax(2);
+    
+    let totsel = WidgetResizeOp._get_bounds(minmax, spline, ctx);
+    
+    if (totsel < 2) {
+      return;
+    }
+    
+    console.log(minmax.min, minmax.max);
+    
+    var cent = new Vector2(minmax.min).add(minmax.max).mulScalar(0.5);
+    
+    var widget = manager.create(this);
+    
+    var w = (minmax.max[0] - minmax.min[0])*0.5;
+    var h = (minmax.max[1] - minmax.min[1])*0.5;
+    var len = 9;
+    
+    if (w == 0  & h == 0) {
+      return;
+    }
+    
+    let r = Math.sqrt(w*w + h*h)*Math.sqrt(2)*0.5;
+    
+    let circle = widget.circle([0, 0], r, "rotate_circle", [0.4, 0.4, 0.4, 0.7]);
+    widget.co = new Vector2(cent);
+    
+    widget.on_tick = function(ctx) {
+      /*if (g_app_state.modalstate == ModalStates.TRANSFORMING) {
+        this.hide();
+        return;
+      } else {
+        this.unhide();
+      }*/
+      
+      var totsel = WidgetResizeOp._get_bounds(minmax, spline, ctx);
+      
+      var update = false;
+      
+      if (totsel < 2) {
+        this.hide();
+        return;
+      } else {
+        update = this.hidden;  //update if not already unhidden
+        this.unhide();
+      }
+      
+      var cx = (minmax.min[0] + minmax.max[0])*0.5;
+      var cy = (minmax.min[1] + minmax.max[1])*0.5;
+      
+      var w2 = (minmax.max[0] - minmax.min[0])*0.5;
+      var h2 = (minmax.max[1] - minmax.min[1])*0.5;
+      
+      update = update || cx != this.co[0] || cy != this.co[1];
+      update = update || w2 != w || h2 != h;
+      
+      if (update) {
+        this.co[0] = cx;
+        this.co[1] = cy;
+        
+        this.update();
+      }
+      
+      return; //XXX
+      
+      if (update) {
+        w = w2, h = h2;
+        
+        this.co[0] = cx;
+        this.co[1] = cy;
+        
+        set_handles();
+        
+        this.update();
+        
+        //console.log("update widget!", cx, cy);
+      }
+    }
+    
+    let corner_onclick = function(e, view2d, id) {
+      console.log("id", id);
+      let ci = id;
+      let anchor = corners[(ci + 2) % 4];
+      let co = new Vector3();
+      
+      co[0] = anchor.v1[0] + widget.co[0];
+      co[1] = anchor.v1[1] + widget.co[1];
+      
+      let mpos = new Vector3([e.origX, e.origY, 0.0]);
+      //view2d.project(mpos);
+      
+      let toolop = e.ctrlKey ? new ScaleOp(mpos, view2d.selectmode) : new NonUniformScaleOp(mpos, view2d.selectmode);
+      
+      console.log("mpos", mpos[0], mpos[1]);
+      
+      toolop.inputs.use_pivot.set_data(true);
+      toolop.inputs.pivot.set_data(co);
+      
+      view2d.ctx.toolstack.exec_tool(toolop);
+      
+      return true;
+    }
+    
+    circle.on_click = function(e, view2d, id) {
+      console.log("widget click!");
+      
+      let mpos = new Vector3([e.origX, e.origY, 0.0]);
+      //view2d.project(mpos);
+      
+      console.log("mpos", mpos[0], mpos[1]);
+      
+      let toolop = new ScaleOp(mpos, view2d.selectmode);
+      
+      let co = new Vector3(widget.co);
+      
+      if (!e.shiftKey) {
+        co[1] += id == 'b' ? h : -h;
+      }
+      
+      toolop.inputs.use_pivot.set_data(true);
+      toolop.inputs.pivot.set_data(co);
+      
+      toolop.inputs.constrain.set_data(true);
+      toolop.inputs.constraint_axis.set_data(new Vector3([0, 1, 0]));
+      
+      view2d.ctx.toolstack.exec_tool(toolop);
+      
+      return true;
+    }
+    
     return widget;
   }
   

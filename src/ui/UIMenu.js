@@ -1,9 +1,11 @@
 import {UIElement, PackFlags, UIFlags, CanvasFlags} from 'UIElement';
 import {UIFrame} from 'UIFrame';
 
-import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
-        charmap, TouchEventManager, EventHandler,
-        ignore_next_mouseup_event} from 'events';
+import {
+  KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler,
+  charmap, TouchEventManager, EventHandler,
+  ignore_next_mouseup_event
+} from 'events';
 import {inrect_2d} from 'mathlib';
 
 import {
@@ -16,59 +18,71 @@ import {RowFrame, ColumnFrame, UIPackFrame} from 'UIPack';
 import {UITextBox} from 'UITextBox';
 import {ToolOp, UndoFlags, ToolFlags} from 'toolops_api';
 
-export class UIMenuEntry extends UIElement{
+export class UIMenuEntry extends UIElement {
   constructor(label, hotkey, pos, size) {
-    UIElement.call(this);
+    super();
     
     this.clicked = false;
-    this.label = label
-    this.text = ""
-    this.pos = pos
-    this.hotkey = hotkey
-    this.size = size
-    this.i = 0
+    this.label = label;
+    this.submenu = undefined;
+    
+    this.text = "";
+    this.pos = pos;
+    this.hotkey = hotkey;
+    this.size = size;
+    this.i = 0;
     this.callback = undefined;
     this.add_sep = false;
     this.packed = false;
   }
-
-  on_mousedown(MouseEvent event) {
-    if ((event.button == 0 || (event.button==2&&this.parent.close_on_right)) && !this.clicked) {
+  
+  on_active() {
+    super.on_active();
+    console.log("active");
+  }
+  
+  on_inactive() {
+    super.on_inactive();
+    console.log("inactive");
+  }
+  
+  on_mousedown(event: MouseEvent) {
+    if ((event.button == 0 || (event.button == 2 && this.parent.close_on_right)) && !this.clicked) {
       this.clicked = true;
       this.do_recalc();
       
-      if (inrect_2d([event.x, event.y], [0,0], this.size)) {
+      if (inrect_2d([event.x, event.y], [0, 0], this.size)) {
         if (this.callback != undefined) {
           this.callback(this);
         }
       }
       
-    }  
+    }
   }
-
-  on_mouseup(MouseEvent event) {
-    if (event.button == 0 || (event.button==2&&this.parent.close_on_right)) {
+  
+  on_mouseup(event: MouseEvent) {
+    if (event.button == 0 || (event.button == 2 && this.parent.close_on_right)) {
       this.clicked = false;
       this.do_recalc();
       
-      if (inrect_2d([event.x, event.y], [0,0], this.size)) {
+      if (inrect_2d([event.x, event.y], [0, 0], this.size)) {
         if (this.callback != undefined) {
           this.callback(this);
         }
       }
-    }  
+    }
   }
-
-  build_draw(UICanvas canvas) {
+  
+  build_draw(canvas: UICanvas) {
     canvas.begin(this);
     
     var tsize = canvas.textsize(this.text, menu_text_size);
-    var y = 0.5*(this.size[1]-tsize[1]);
+    var y = 0.5 * (this.size[1] - tsize[1]);
     
     var textclr, hotclr;
     if (this.state & UIFlags.HIGHLIGHT) {
       //console.log(uicolors["MenuTextHigh"], "--=-=-=")
-      canvas.simple_box([1, 1], [this.size[0]-2, this.size[1]-2], uicolors["MenuHighlight"], 0.0)
+      canvas.simple_box([1, 1], [this.size[0] - 2, this.size[1] - 2], uicolors["MenuHighlight"], 0.0)
       textclr = hotclr = uicolors["MenuTextHigh"];
     } else {
       textclr = uicolors["MenuText"];
@@ -76,54 +90,63 @@ export class UIMenuEntry extends UIElement{
     }
     
     canvas.text([2, y], this.text, textclr, menu_text_size);
+    
     if (this.hotkey != undefined) {
       var tsize = canvas.textsize(this.hotkey, menu_text_size);
       
-      canvas.text([this.size[0]-tsize[0]-8, y], this.hotkey, hotclr, menu_text_size);
+      canvas.text([this.size[0] - tsize[0] - 8, y], this.hotkey, hotclr, menu_text_size);
     }
     
     canvas.end(this);
   }
-
-  get_min_size(UICanvas canvas, Boolean isvertical)
-  {
-    return [canvas.textsize(this.text, menu_text_size)[0]+4, 24]
+  
+  get_min_size(canvas: UICanvas, isvertical: Boolean) {
+    return [canvas.textsize(this.text, menu_text_size)[0] + 4, 24]
   }
 }
 
 export class UIMenu extends UIFrame {
   constructor(name, callback) {
-    UIFrame.call(this);
+    super();
     
     this.name = name
     this.callback = callback;
     this.idmap = {}
     this.closed = false;
-    this.chosen_id = undefined : String;
-    this.minwidth = undefined : int;
+    this.chosen_id = undefined
+  :
+    String;
+    this.minwidth = undefined
+  :
+    int;
     this.hkey_line_pos = 0;
     this.close_on_right = false;
     this.call_time = 0;
     this.last_active = undefined;
-    this.ignore_next_mouseup = undefined : int;
+    this.ignore_next_mouseup = undefined
+  :
+    int;
   }
-
-  add_item(text, hotkey="", id=undefined) {
-    var en = new UIMenuEntry(text, hotkey, [0,0], [0,0]);
+  
+  insert_item(idx, text, hotkey = "", id = undefined) {
+    var en = new UIMenuEntry(text, hotkey, [0, 0], [0, 0]);
     
     en.close_on_right = this.close_on_right;
     en.i = this.children.length;
     if (id == undefined)
       id = en.id;
-      
+    
     this.idmap[en.i] = id;
     
-    this.add(en);
-    
+    this.insert(idx, en);
     return en;
   }
-
-  on_keydown(KeyboardEvent event) {
+  
+  add_item(text, hotkey = "", id = undefined) {
+    return this.insert_item(this.children.length, text, hotkey, id);
+  }
+  
+  on_keydown(event: KeyboardEvent) {
     if (event.keyCode == charmap["Enter"]) {
       if (this.active != undefined && this.active.constructor.name == UIMenuEntry.name) {
         this.active.callback(this.active);
@@ -132,9 +155,9 @@ export class UIMenu extends UIFrame {
       this.end_menu();
     }
   }
-
+  
   packmenu(canvas) {
-    var maxwid=-1;
+    var maxwid = -1;
     var y = 0;
     
     var ehgt = IsMobile ? 45 : 25;
@@ -143,9 +166,10 @@ export class UIMenu extends UIFrame {
     this.ehgt = ehgt
     
     var this2 = this;
+    
     function menu_callback(e) {
       if (this2.closed) return;
-
+      
       this2.end_menu();
       
       if (this2.callback != undefined) {
@@ -153,7 +177,7 @@ export class UIMenu extends UIFrame {
         this2.callback(e, this2.idmap[e.i]);
       }
     }
-      
+    
     for (var c of this.children) {
       if (c.constructor.name != "UIMenuEntry") continue; //there may be other elements present
       
@@ -162,25 +186,25 @@ export class UIMenu extends UIFrame {
     
     var y;
     if (this.name != undefined && this.name != "")
-      y = ehgt+15;
+      y = ehgt + 15;
     else
       y = 5;
-      
+    
     var maxcol = 0
     var hkey_line_pos = 0
     for (var c of this.children) {
       if (c.constructor.name != "UIMenuEntry") continue; //there may be other elements present
       
       var st = c.label + "    " + c.hotkey;
-      maxwid = Math.max(canvas.textsize(st, menu_text_size)[0]+30, maxwid)
-      hkey_line_pos = Math.max(canvas.textsize(c.label + "    ", menu_text_size)[0]+18, hkey_line_pos);
+      maxwid = Math.max(canvas.textsize(st, menu_text_size)[0] + 30, maxwid)
+      hkey_line_pos = Math.max(canvas.textsize(c.label + "    ", menu_text_size)[0] + 18, hkey_line_pos);
       maxcol = Math.max(st.length, maxcol)
       y += ehgt;
     }
     
     this.hkey_line_pos = hkey_line_pos;
     
-    if (this.minwidth != undefined) 
+    if (this.minwidth != undefined)
       maxwid = Math.max(this.minwidth, maxwid);
     
     this.size = [maxwid, y]
@@ -199,7 +223,7 @@ export class UIMenu extends UIFrame {
       y += ehgt;
     }
   }
-
+  
   end_menu() {
     if (!this.closed) {
       this.closed = true;
@@ -215,7 +239,7 @@ export class UIMenu extends UIFrame {
       }
     }
   }
-
+  
   on_mousedown(event) {
     if (!inrect_2d([event.x, event.y], [0, 0], this.size)) {
       this.end_menu();
@@ -223,7 +247,7 @@ export class UIMenu extends UIFrame {
       super.on_mousedown(event);
     }
   }
-
+  
   on_mousemove(event) {
     super.on_mousemove(event);
     
@@ -231,32 +255,32 @@ export class UIMenu extends UIFrame {
       hidden elements for, as an example, switching between menus on
       a menu bar.  theoretically, the client could also insert icon
       elements and the like.*/
-    if (!inrect_2d([event.x, event.y], [-12, -100], [this.size[0]+12*2, this.size[1]+200])) {
+    if (!inrect_2d([event.x, event.y], [-12, -100], [this.size[0] + 12 * 2, this.size[1] + 200])) {
       this.end_menu();
     }
   }
-
+  
   build_draw(canvas, isvertical) {
     if (!this.packed) {
       this.packmenu(canvas);
       this.packed = true;
     }
     
-    canvas.shadow_box([8, -1], [this.size[0]-10, this.size[1]-10]);
+    canvas.shadow_box([8, -1], [this.size[0] - 10, this.size[1] - 10]);
     canvas.simple_box([0, 0], this.size, uicolors["MenuBox"][0], 0.0);
     canvas.box_outline([0, 0], this.size, uicolors["MenuBorder"], 0.0);
     //canvas.box([0, 0], this.size, uicolors["Box"], 0.0, true);
-    canvas.text([24, this.size[1]-22], this.name, uicolors["MenuText"], menu_text_size)
-
+    canvas.text([24, this.size[1] - 22], this.name, uicolors["MenuText"], menu_text_size)
+    
     var clr = uicolors["MenuSep"];
     if (this.name != undefined && this.name != "")
-      canvas.line([0, Math.floor(this.size[1]-30), 0], [Math.floor(this.size[0]), 
-                                    Math.floor(this.size[1]-30), 0], clr, clr, 1.0);
+      canvas.line([0, Math.floor(this.size[1] - 30), 0], [Math.floor(this.size[0]),
+        Math.floor(this.size[1] - 30), 0], clr, clr, 1.0);
     
     var ehgt = this.ehgt
-    var y = ehgt+2
+    var y = ehgt + 2
     
-    for (var i=1; i<this.children.length; i++) {
+    for (var i = 1; i < this.children.length; i++) {
       var c = this.children[i]
       
       if (c.constructor.name != UIMenuEntry.name) continue; //there may be other elements present
@@ -266,12 +290,12 @@ export class UIMenu extends UIFrame {
         continue;
       }
       
-      canvas.line([0, y+3, 0], [this.size[0], y+3, 0], clr, clr, 1);
+      canvas.line([0, y + 3, 0], [this.size[0], y + 3, 0], clr, clr, 1);
       y += ehgt;
     }
     
     super.build_draw(canvas, true);
-     
+    
     y += 10;
     
     //canvas.line([20, 0, 0], [20, this.size[1], 0], uicolors["MenuSep"], undefined, 1);
@@ -282,7 +306,7 @@ export class UIMenu extends UIFrame {
 
 //is_menu_open is defined in RadialMenu.js
 
-export function ui_call_menu(menu, frame, pos, center=true, min_width=20)//center is optional, defaults to true
+export function ui_call_menu(menu, frame, pos, center = true, min_width = 20)//center is optional, defaults to true
 {
   console.log("menu call");
   
@@ -294,7 +318,8 @@ export function ui_call_menu(menu, frame, pos, center=true, min_width=20)//cente
     frame = frame.parent;
   }
   
-  off[0] -= frame.pos[0]; off[1] -= frame.pos[1];
+  off[0] -= frame.pos[0];
+  off[1] -= frame.pos[1];
   
   menu.closed = false;
   menu.minwidth = min_width
@@ -311,8 +336,8 @@ export function ui_call_menu(menu, frame, pos, center=true, min_width=20)//cente
   menu.packmenu(canvas);
   
   if (center) {
-    off[0] -= menu.size[0]/3
-    off[1] -= menu.size[1]/3
+    off[0] -= menu.size[0] / 3
+    off[1] -= menu.size[1] / 3
   }
   
   menu.pos[0] = off[0];
@@ -333,7 +358,7 @@ export function ui_call_menu(menu, frame, pos, center=true, min_width=20)//cente
   ]);
   
   //frame.do_full_recalc();
-  frame._on_mousemove({"x": pos[0]-frame.pos[0], "y":pos[1]-frame.pos[1]})
+  frame._on_mousemove({"x": pos[0] - frame.pos[0], "y": pos[1] - frame.pos[1]})
 }
 
 import {ToolFlags, UndoFlags} from 'toolops_api';
@@ -351,15 +376,15 @@ export function toolop_menu(ctx, name, oplist) {
   }
   
   var menu = new UIMenu(name, op_callback);
-  for (var i=0; i<oplist.length; i++) {
+  for (var i = 0; i < oplist.length; i++) {
     var opstr = oplist[i];
     var op = opstr;
-    var add_sep = (i > 1 && oplist[i-1] == "sep");
+    var add_sep = (i > 1 && oplist[i - 1] == "sep");
     
     if (oplist[i] == "sep") {
       continue;
     }
-
+    
     if (typeof opstr == "string") {
       op = ctx.api.get_op(ctx, opstr);
     }
@@ -377,10 +402,10 @@ export function toolop_menu(ctx, name, oplist) {
       hotkey = hotkey.build_str(true);
     else
       hotkey = ""
-      
+    
     oplist_instance.push(op);
     
-    var en = menu.add_item(op.uiname, hotkey, oplist_instance.length-1);
+    var en = menu.add_item(op.uiname, hotkey, oplist_instance.length - 1);
     en.add_sep = add_sep;
   }
   

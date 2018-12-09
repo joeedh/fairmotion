@@ -1269,12 +1269,37 @@ export function patch_canvas2d(g) {
       this._render_mat.scale(x, y, 1.0);
     }*/
     
-    var co = new Vector3();
+    var co = new Vector3(), co2 = new Vector3();
+    
     g.moveTo = function(x, y) {
       co.zero(); co[0] = x; co[1] = y;
       transform(this, co);
       
       g._moveTo(co[0], co[1]);
+    }
+    
+    g._arc = g.arc;
+    g.arc = function(x, y, r, th1, th2) {
+      co[0] = x;
+      co[1] = y;
+      
+      co2[0] = x + Math.sin(th1)*r;
+      co2[1] = y + Math.cos(th1)*r;
+  
+      co[2] = co2[2] = 0.0;
+
+      transform(this, co);
+      transform(this, co2);
+      
+      r = co.vectorDistance(co2);
+      
+      co2.sub(co);
+      let th = Math.atan2(co2[1], co2[0]);
+      
+      let dth = th - th1;
+      dth = 0; //XXX
+      
+      g._arc(co[0], co[1], r, th1 + dth, th2 + dth);
     }
     
     g.drawImage = function(image) {

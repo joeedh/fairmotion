@@ -305,7 +305,7 @@ export class SplineSegment extends SplineElement {
     }
   }
   
-  update_aabb(steps=6) {
+  update_aabb(steps=8) {
     this._update_has_multires();
     
     this.flag &= ~SplineFlags.UPDATE_AABB;

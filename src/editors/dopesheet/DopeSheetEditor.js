@@ -1519,6 +1519,7 @@ export class DopeSheetEditor extends Area {
         canvas.box2(pos, size, borderclr, undefined, true);
     }
     
+    this.time_overlay(canvas);
     super.build_draw(canvas);
     this._recalc_cache = {};
   }

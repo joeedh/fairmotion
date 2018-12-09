@@ -495,18 +495,6 @@ export class DataBlock {
   }
 
   afterSTRUCT() {
-    var map = {};
-
-    if (this.addon_data === undefined || !(this.addon_data instanceof Array)) {
-      this.addon_data = [];
-    }
-
-    for (var dk of this.addon_data) {
-      map[dk.key] = dk.val;
-    }
-
-    this.addon_data = map;
-
     for (var i=0; i<this.lib_anim_channels.length; i++) {
       var ch = this.lib_anim_channels[i];
       ch.idgen = this.lib_anim_idgen;
@@ -523,8 +511,20 @@ export class DataBlock {
   
   static fromSTRUCT(reader) {
     var ret = new DataBlock();
-    
+
     reader(ret);
+  
+    var map = {};
+    
+    if (ret.addon_data === undefined || !(ret.addon_data instanceof Array)) {
+      ret.addon_data = [];
+    }
+    
+    for (var dk of ret.addon_data) {
+      map[dk.key] = dk.val;
+    }
+    
+    ret.addon_data = map;
     
     return ret;
   }
@@ -549,7 +549,14 @@ export class _DictKey {
     this.key = key;
     this.val = val;
   }
+  
+  static fromSTRUCT(reader) {
+    let ret = new _DictKey();
+    reader(ret);
+    return ret;
+  }
 }
+
 _DictKey.STRUCT = `
   _DictKey {
     key : string;

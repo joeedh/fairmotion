@@ -549,7 +549,7 @@ export class View2DHandler extends Area {
   
   _widget_mouseevent(event) {
     let co = [event.x, event.y];
-    console.log("Widget event", event.x, event.y);
+    //console.log("Widget event", event.x, event.y);
     this.unproject(co);
     
     let event2 = {

@@ -37,7 +37,7 @@ class LayerPanel extends RowFrame {
   constructor(ctx) {
     super(ctx);
     
-    this.last_spline_path = "";
+    //this.last_spline_path = "";
     this.last_total_layers = this.last_active_id = 0;
     
     this.do_rebuild = 1;
@@ -58,10 +58,10 @@ class LayerPanel extends RowFrame {
 
     if (this.ctx == undefined) return;
 
-    var spline = this.ctx.spline;
+    var spline = this.ctx.frameset.spline;
     
     var do_rebuild = spline.layerset.length != this.last_total_layers;
-    do_rebuild = do_rebuild || this.last_spline_path != this.ctx.splinepath;
+    //do_rebuild = do_rebuild || this.last_spline_path != this.ctx.splinepath;
     do_rebuild = do_rebuild || spline.layerset.active.id != this.last_active_id;
     
     if (!this.do_rebuild && do_rebuild) {
@@ -85,9 +85,9 @@ class LayerPanel extends RowFrame {
     
     console.log("layers ui rebuild!");
     
-    var spline = this.ctx.spline;
+    var spline = this.ctx.frameset.spline;
     
-    this.last_spline_path = this.ctx.splinepath;
+    //this.last_spline_path = this.ctx.splinepath;
     this.last_total_layers = spline.layerset.length;
     this.last_active_id = spline.layerset.active.id;
     
@@ -129,7 +129,7 @@ class LayerPanel extends RowFrame {
     var this2 = this;
     down.callback = function() {
       console.log("Shift layers down");
-      var ctx = new Context(), spline = ctx.spline;
+      var ctx = new Context(), spline = ctx.frameset.spline;
       var layer = spline.layerset.active;
       
       var tool = new ShiftLayerOrderOp(layer.id, -1);
@@ -138,7 +138,7 @@ class LayerPanel extends RowFrame {
     }
     up.callback = function() {
       console.log("Shift layers up");
-      var ctx = new Context(), spline = ctx.spline;
+      var ctx = new Context(), spline = ctx.frameset.spline;
       var layer = spline.layerset.active;
       
       var tool = new ShiftLayerOrderOp(layer.id, 1);
@@ -186,7 +186,7 @@ class LayerPanel extends RowFrame {
     
     var this2 = this;
     controls2.children[0].callback = function() {
-      var lset = this2.ctx.spline.layerset;
+      var lset = this2.ctx.frameset.spline.layerset;
       var oldl = lset.active;
       
       console.log("oldl", oldl);
@@ -200,7 +200,7 @@ class LayerPanel extends RowFrame {
     }
     
     controls2.children[1].callback = function() {
-      var lset = this2.ctx.spline.layerset;
+      var lset = this2.ctx.frameset.spline.layerset;
       var oldl = lset.active;
       
       console.log("oldl", oldl);
@@ -214,7 +214,7 @@ class LayerPanel extends RowFrame {
     }
     
     var controls3 = this.col();
-    controls3.prop('spline.active_layer.flag');
+    controls3.prop('frameset.drawspline.active_layer.flag');
     
     this.delayed_recalc = 4;
   }
@@ -328,16 +328,16 @@ class MaterialEditor extends Area {
   }
   
   build_layout() {
-    super.build_layout();
+    super.build_layout(false, true);
     
     let size = this.tab_size;
     
     this.innerframe = new UITabPanel(this.ctx, [size[0], size[1]]);
     //this.innerframe.packflag |= PackFlags.ALIGN_TOP;
     this.innerframe.packflag |= PackFlags.NO_AUTO_SPACING|PackFlags.INHERIT_WIDTH|PackFlags.INHERIT_HEIGHT;
-    this.innerframe.size[0] = this.size[0];
-    this.innerframe.size[1] = this.size[1];
-    this.innerframe.pos = [0, Area.get_barhgt()];
+    //this.innerframe.size[0] = this.size[0];
+    //this.innerframe.size[1] = this.size[1];
+    //this.innerframe.pos = [0, Area.get_barhgt()];
     this.innerframe.state |= 0; //UIFlags.HAS_PAN|UIFlags.IS_CANVAS_ROOT|UIFlags.PAN_CANVAS_MAT;
     this.innerframe.velpan = new VelocityPan();
   

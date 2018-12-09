@@ -683,9 +683,9 @@ export class UIFrame extends UIElement {
     //rec(p);
   }
   
-  add(UIElement e, int packflag) { //packflag is optional
-    if (e instanceof UIFrame && (e.state & UIFlags.HAS_PAN) && 
-        e.velpan == undefined) 
+  insert(idx : int, e : UIElement, packflag : int) {
+    if (e instanceof UIFrame && (e.state & UIFlags.HAS_PAN) &&
+      e.velpan == undefined)
     {
       e.velpan = new VelocityPan();
     }
@@ -696,7 +696,7 @@ export class UIFrame extends UIElement {
     }
     
     e.defunct = false;
-    this.children.push(e);
+    this.children.insert(idx, e);
     
     if (!(e instanceof UIFrame)) {
       this.leafcount++;
@@ -715,6 +715,10 @@ export class UIFrame extends UIElement {
     e.do_recalc();
     
     this.update_depth();
+  }
+  
+  add(e : UIElement, packflag : int) { //packflag is optional
+    return this.insert(this.children.length, e);
   }
 
   replace(UIElement a, UIElement b) {

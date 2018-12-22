@@ -86,6 +86,7 @@ sources = [
   "src/curve/spline_types.js",
   "src/curve/spline_query.js",
   "src/curve/spline_draw.js",
+  "src/curve/spline_draw_sort.js",
   "src/curve/spline.js",
   "src/curve/solver.js",
   "src/curve/spline_multires.js",

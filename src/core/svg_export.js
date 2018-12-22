@@ -329,7 +329,7 @@ export function export_svg(spline, visible_only=false) {
   
   let ret = new Uint8Array(buf.length);
   for (let i=0; i<buf.length; i++) {
-    ret[i] = buf[i].charCodeAt(i);
+    ret[i] = buf.charCodeAt(i);
   }
   
   return ret;

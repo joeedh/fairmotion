@@ -7501,7 +7501,7 @@ es6_module_define('dialog', ["UIWidgets", "UIFrame", "toolops_api", "UIWidgets_s
   ErrorDialog = _es6_module.add_export('ErrorDialog', ErrorDialog);
   window.Dialog = Dialog;
 }, '/dev/fairmotion/src/ui/dialog.js');
-es6_module_define('dialogs', ["spline_createops", "toolprops", "UITextBox", "ajax", "fileapi", "strutils", "dialog", "UIWidgets", "UIPack", "svg_export", "UIElement", "UIWidgets_special", "toolops_api", "config", "UIFrame"], function _dialogs_module(_es6_module) {
+es6_module_define('dialogs', ["strutils", "UIFrame", "UIWidgets", "UITextBox", "svg_export", "UIWidgets_special", "toolprops", "config", "toolops_api", "UIPack", "ajax", "spline_createops", "fileapi", "UIElement", "dialog"], function _dialogs_module(_es6_module) {
   var Dialog=es6_import_item(_es6_module, 'dialog', 'Dialog');
   var PackedDialog=es6_import_item(_es6_module, 'dialog', 'PackedDialog');
   var DialogFlags=es6_import_item(_es6_module, 'dialog', 'DialogFlags');
@@ -8174,12 +8174,16 @@ es6_module_define('dialogs', ["spline_createops", "toolprops", "UITextBox", "aja
     var buf=export_svg(ctx.spline);
     if (g_app_state.filepath!="") {
         var name=g_app_state.filepath;
+        if (name===undefined||name=="") {
+            name = "untitled";
+        }
         if (name.endsWith(".fmo"))
           name = name.slice(0, name.length-4);
     }
     else {
       name = "document";
     }
+    var blob=new Blob([buf], {type: "text/svg+xml"});
     if (config.CHROME_APP_MODE) {
         save_with_dialog(buf, undefined, "SVG", ["svg"], function() {
           error_dialog(ctx, "Could not write file", undefined, true);

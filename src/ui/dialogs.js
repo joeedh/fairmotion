@@ -845,13 +845,18 @@ export class FileSaveSVGOp extends ToolOp {
     
     if (g_app_state.filepath != "") {
       var name = g_app_state.filepath;
+      
+      if (name === undefined || name == "") {
+        name = "untitled";
+      }
+      
       if (name.endsWith(".fmo"))
         name = name.slice(0, name.length-4);
     } else {
       name = "document";
     }
     
-    //var blob = new Blob([buf], {type : "text/svg+xml"});
+    var blob = new Blob([buf], {type : "text/svg+xml"});
     
     if (config.CHROME_APP_MODE) {
       save_with_dialog(buf, undefined, "SVG", ["svg"], function() {

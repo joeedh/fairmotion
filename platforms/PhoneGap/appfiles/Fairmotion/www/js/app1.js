@@ -9892,7 +9892,7 @@ es6_module_define('animutil', [], function _animutil_module(_es6_module) {
 }, '/dev/fairmotion/src/core/animutil.js');
 es6_module_define('config_defines', [], function _config_defines_module(_es6_module) {
 }, '/dev/fairmotion/src/config/config_defines.js');
-es6_module_define('svg_export', ["mathlib", "spline_base"], function _svg_export_module(_es6_module) {
+es6_module_define('svg_export', ["spline_base", "mathlib"], function _svg_export_module(_es6_module) {
   "use strict";
   var math=es6_import(_es6_module, 'mathlib');
   var SplineFlags=es6_import_item(_es6_module, 'spline_base', 'SplineFlags');
@@ -10133,7 +10133,7 @@ es6_module_define('svg_export', ["mathlib", "spline_base"], function _svg_export
     buf+="</svg>";
     let ret=new Uint8Array(buf.length);
     for (let i=0; i<buf.length; i++) {
-        ret[i] = buf[i].charCodeAt(i);
+        ret[i] = buf.charCodeAt(i);
     }
     return ret;
   }

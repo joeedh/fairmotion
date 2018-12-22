@@ -1,0 +1,14 @@
+#Rendering System Refactor
+##Design Elements
+
+The rendering system has a complex set of requirements.  It must support
+
+* Rendering in layers
+* "Nice" strokes
+* Blur effects
+* Masking effects
+* Incremental updating
+* Not use gigabytes upon gigabytes of RAM
+
+
+

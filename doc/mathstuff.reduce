@@ -1,0 +1,43 @@
+on factor;
+off period;
+
+comment: point in triangle test;
+
+operator int_sign, not_zero;
+
+forall x let int(sign(x), x) = abs(x);
+forall x let int(sign(x**2), x) = x;
+forall x,c let int(sign(x*c), x) = abs(x);
+forall x,c let int(sign(x-c), x) = abs(x-c)-c;
+forall x,a,b let int(sign(a - x*b), x) = abs(x - a/b) + a/b;
+
+forall x let int(not_zero(x), x) = x;
+forall x let int(not_zero(x*x), x) = x;
+forall x,c let int(not_zero(x*c), x) = x; comment: *not_zero(c);
+forall x,c let int(not_zero(x+c), x) = x;
+forall x,c let int(not_zero(c-x), x) = x;
+forall x,a,b let int(not_zero(a - x*b), x) = x;
+
+ax := 0;
+ay := 0;
+
+vax := ax - x;
+vay := ay - y;
+
+vbx := bx - x;
+vby := by - y;
+
+vcx := cx - x;
+vcy := cy - y;
+
+f1 := vbx * vcy - vby * vcx;
+f2 := vcx * vay - vcy * vax;
+f3 := vax * vby - vay * vbx;
+
+ftst := sign(f1) - sign(f2)*0.5 - sign(f3)*0.5;
+
+ix := int(ftst, x);
+iy := (sub(x=x+w, ix) - sub(x=x-w, ix)) / (2 * w);
+
+iy := int(iy, y);
+iy := (sub(y=y+w, iy) - sub(y=y-w, iy)) / (2 * w);

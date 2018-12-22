@@ -1,0 +1,230 @@
+<doctype html>
+<html>
+<head>
+    <title>Sign Function Integration Tests</title>
+</head>
+<style>
+
+</style>
+<script type="application/javascript">
+"use strict";
+
+let sign = Math.sign, floor = Math.floor, abs = Math.abs, sin = Math.sin, cos = Math.cos, atan = Math.atan, sqrt = Math.sqrt,
+    log = Math.log, PI = Math.PI, acos = Math.acos, asin = Math.asin, tan = Math.tan, atan2 = Math.atan2, pow = Math.pow,
+    cbrt = Math.cbrt;
+
+window.w = 0.15;
+
+let not_zero = (f) => f != 0.0 ? 1.0 : 0.0;
+
+let integrate = (f, a, b, steps=256) => {
+  let s = a, ds = (b - a) / steps;
+  let sum = 0.0;
+
+  for (let i=0; i<steps; i++, s += ds) {
+    sum += f(s) * ds;
+  }
+
+  return sum;
+};
+
+let DIMEN = 64;
+
+class AppState {
+    constructor(canvas, g) {
+      this.canvas = canvas;
+      this.g = g;
+      this.mdown = false;
+      this.image = new ImageData(DIMEN, DIMEN);
+    }
+
+    beginDraw() {
+      this.canvas.width = window.innerWidth-45;
+      this.canvas.height = window.innerHeight-45;
+
+
+      let g = this.g;
+      g.save();
+
+      let w = Math.max(this.canvas.width, this.canvas.height);
+      let w2 = 0.25;
+
+      g.scale(w, w);
+      g.translate(0.5, 0.33);
+      g.scale(w2, -w2);
+
+      g.lineWidth /= w*w2;
+
+      g.beginPath();
+      g.strokeStyle = "red";
+      g.moveTo(-1, 0);
+      g.lineTo(1, 0);
+      g.stroke();
+
+      g.beginPath();
+      g.strokeStyle = "green";
+      g.moveTo(0, -1);
+      g.lineTo(0, 1);
+      g.stroke();
+    }
+
+    endDraw() {
+      this.g.restore();
+    }
+
+    drawFuncInt(g, f, a=0.0, b=1.0, steps=64) {
+      this.drawFunc(g, (s) => integrate(f, 0, s, steps), a, b, steps);
+    }
+
+    drawFunc(g, f, a=0.0, b=1.0, steps=64) {
+      let s=a, ds = (b-a) / (steps - 1);
+
+      g.beginPath();
+
+      for (let i=0; i<steps; i++, s += ds) {
+        let y = f(s);
+        //console.log(y);
+
+        if (i == 0)
+          g.moveTo(s, y);
+        else
+          g.lineTo(s, y);
+      }
+
+      g.stroke();
+    }
+
+    draw() {
+      let g = this.g;
+
+      let idata = this.image.data;
+      let wid = this.image.width;
+
+      let ax = 0.0, ay = 0;
+      let bx = 1.0, by = 0.01;
+      let cx = 0.5, cy = 0.55;
+
+      for (let i=0; i<wid*wid; i++) {
+        let ix = i % wid, iy = ~~(i / wid);
+        let idx = i*4;
+
+        let x = ix/wid, y = 1.0 - iy/wid;
+        let sz = 1.5;
+
+        x = (x-0.5)*sz + 0.5;
+        y *= sz;
+
+        y -= 0.2;
+
+        let f = (-(((((cy-y)*bx+cx*y-(cx-x)*by)*abs(cy)+abs(cx*y-cy*x+(cy-y
+                 )*bx-(cx-x)*by)*cy)*by-abs(cy)*bx*cy*y)*abs(by)-abs(bx*y-by*x)
+                 *abs(cy)*by*cy))/(abs(by)*abs(cy)*by*cy);
+
+        f = (-(((abs(bx*y)*cy+2*abs(by)*by*x)*bx*y-(bx*y-by*x)*abs(bx*y-
+           by*x)*cy)*(bx-cx)*abs(cy)-((by-y)*cx-(cy-y)*bx)*abs((by-y)*cx-
+           (cy-y)*bx)*abs(by)*bx*cy-(cx*y-cy*x-(cx-x)*by+(cy-y)*bx)*abs(
+           cx*y-cy*x+(cy-y)*bx-(cx-x)*by)*abs(by)*bx*cy-((bx*cy-by*cx)*
+           abs(bx*cy-by*cx)*abs(by)*bx+(bx-cx)*abs(by*x)*abs(cy)*by*x-((
+           bx-x)*cy-(cx-x)*by)*abs((bx-x)*cy-(cx-x)*by)*abs(by)*bx)*cy))/
+           (2*(bx-cx)*abs(by)*abs(cy)*bx*cy*x*y);
+
+        let ftst = (2*sign((bx-x)*(cy-y)-(by-y)*(cx-x))-sign(bx*y-by*x)-sign(-(cx*y-cy*x)))/2;
+
+        f = (-(((((abs(cx*y)*cy-4*abs(cy)*by*x)*abs(by)-abs(bx*y)*abs(
+           cy)*cy)*cx*y-(cx*y-cy*x)*abs(cx*y-cy*x)*abs(by)*cy)*bx+(bx*y-
+           by*x)*abs(bx*y-by*x)*abs(cy)*cx*cy)*(bx-cx)+2*((by-y)*cx-(cy-y
+           )*bx)*abs((by-y)*cx-(cy-y)*bx)*abs(by)*bx*cx*cy+2*(cx*y-cy*x-(
+           cx-x)*by+(cy-y)*bx)*abs(cx*y-cy*x+(cy-y)*bx-(cx-x)*by)*abs(by)
+           *bx*cx*cy+((abs(by*x)*abs(cy)*by*cx-abs(cy*x)*abs(by)*bx*cy)*(
+           bx-cx)*x+2*(bx*cy-by*cx)*abs(bx*cy-by*cx)*abs(by)*bx*cx-2*((bx
+           -x)*cy-(cx-x)*by)*abs((bx-x)*cy-(cx-x)*by)*abs(by)*bx*cx)*cy))
+           /(4*(bx-cx)*abs(by)*abs(cy)*bx*cx*cy*x*y);
+
+        f = (-(2*abs((by-y)*cx-(cy-y)*bx)*abs(by)*cy+abs(bx*y-by*x)*abs(
+           cy)*cy-2*abs(cx*y-cy*x+(cy-y)*bx-(cx-x)*by)*abs(by)*cy-abs(cx*
+          y-cy*x)*abs(by)*cy-abs(bx*y)*abs(cy)*cy+abs(cx*y)*abs(by)*cy-2
+           *abs(by)*abs(cy)*by*x))/(2*abs(by)*abs(cy)*cy*x);
+
+        f = abs(f);
+        let ans, ans1, ans2, ans3, ans4, ans5;
+
+        ans2=2*(((w+x)*cy-(w+y)*cx+(w+y-cy)*bx-(w+x-cx)*by)*abs((w+x)*
+           cy-(w+y)*cx+(w+y-cy)*bx-(w+x-cx)*by)+((w-x)*cy+(w+y)*cx-(w+y-
+           cy)*bx-(w-x+cx)*by)*abs((w-x)*cy+(w+y)*cx-(w+y-cy)*bx-(w-x+cx)
+           *by))*abs(by)*bx*cx*cy;
+        ans1=((((w-x)*by+(w+y)*bx)*abs((w-x)*by+(w+y)*bx)*cy+8*(w+y)*
+           abs(by)*bx*by*w+((w+x)*by-(w+y)*bx)*abs((w+x)*by-(w+y)*bx)*cy)
+           *abs(cy)*cx-(((w+x)*cy-(w+y)*cx)*abs((w+x)*cy-(w+y)*cx)+((w-x)
+           *cy+(w+y)*cx)*abs((w-x)*cy+(w+y)*cx))*abs(by)*bx*cy-((((w-x)*
+           by-(w-y)*bx)*abs((w-x)*by-(w-y)*bx)*cy-8*(w-y)*abs(by)*bx*by*w
+           +((w+x)*by+(w-y)*bx)*abs((w+x)*by+(w-y)*bx)*cy)*abs(cy)*cx-(((
+           w+x)*cy+(w-y)*cx)*abs((w+x)*cy+(w-y)*cx)+((w-x)*cy-(w-y)*cx)*
+           abs((w-x)*cy-(w-y)*cx))*abs(by)*bx*cy))*(bx-cx)-2*(((w+x)*cy+(
+           w-y)*cx-(w-y+cy)*bx-(w+x-cx)*by)*abs((w+x)*cy+(w-y)*cx-(w-y+cy
+           )*bx-(w+x-cx)*by)+((w-x)*cy-(w-y)*cx+(w-y+cy)*bx-(w-x+cx)*by)*
+           abs((w-x)*cy-(w-y)*cx+(w-y+cy)*bx-(w-x+cx)*by))*abs(by)*bx*cx*
+           cy+ans2;
+        f=ans1/(16*(bx-cx)*abs(by)*abs(cy)*bx*cx*cy*w**2);
+
+        f = abs(f);
+
+        f = ftst*ftst*0.5;
+        idata[idx] = f*255;
+        idata[idx+3] = 255;
+      }
+
+      this.beginDraw();
+      g.putImageData(this.image, 10, 10);
+
+      g.strokeStyle = "grey"
+
+      g.beginPath();
+      g.rect(-1, -1, 2, 2);
+      g.stroke();
+
+      g.strokeStyle = "orange"
+      //this.drawFunc(g, (x) => sign(x), -3, 3);
+
+      let a = 1.5, b = 4;
+      //this.drawFuncInt(g, (x) => sign(a - x*b), -3, 3);
+      //this.drawFunc(g, (x) => -abs(x-a/b)+a/b, -3, 3);
+
+      this.drawFuncInt(g, (x) => not_zero(3 - x*2), -3, 3);
+      this.drawFunc(g, (x) => not_zero(x), -3, 3);
+
+      this.endDraw();
+    }
+}
+
+function init() {
+  let drawid = undefined;
+
+  let f = () => {
+    drawid = undefined;
+    _appstate.draw();
+  }
+
+  window.redraw_all = function() {
+    if (drawid !== undefined) {
+      return;
+    }
+
+    drawid = window.requestAnimationFrame(f);
+  }
+
+  let canvas = document.getElementById("canvas2d");
+  let g = canvas.getContext("2d");
+
+  window._appstate = new AppState(canvas, g);
+  window.redraw_all();
+
+  console.log("started!");
+}
+
+</script>
+<body onload="init()">
+<canvas id="canvas2d">
+
+</canvas>
+</body>
+</html>

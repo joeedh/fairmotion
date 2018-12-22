@@ -1,6 +1,5 @@
 import {DataTypes} from 'lib_api';
 import {EditModes} from 'view2d';
-import {ENABLE_MULTIRES} from 'config';
 import {ImageFlags, Image} from 'imageblock';
 
 import {
@@ -30,11 +29,6 @@ import {OpStackEditor} from 'ops_editor';
 
 import {AnimKeyFlags, AnimInterpModes} from 'animdata';
 import {VDAnimFlags} from 'frameset';
-
-import {
-  MultiResLayer, MultiResEffector, MResFlags, has_multires,
-  ensure_multires, iterpoints, compose_id, decompose_id
-} from 'spline_multires';
 
 var SelModes = {
   VERTEX: SelMask.VERTEX,
@@ -327,6 +321,14 @@ function api_define_view2d() {
     window.redraw_viewport();
   }
   
+  let draw_faces = new BoolProperty(0, "draw_faces", "Show Faces");
+  let enable_blur = new BoolProperty(0, "enable_blur", "Blur");
+  
+  draw_faces.update = enable_blur.update = function() {
+    this.ctx.spline.regen_sort();
+    redraw_viewport();
+  }
+  
   var edit_all_layers = new BoolProperty(0, "edit_all_layers", "Edit All Layers");
   let show_animpath_prop = new BoolProperty(0, "draw_anim_paths", "Show Animation Paths", "Edit Animation Keyframe Paths");
   show_animpath_prop.icon = Icons.SHOW_ANIMPATHS;
@@ -343,8 +345,8 @@ function api_define_view2d() {
     new DataPath(only_render, "only_render", "only_render", true),
     new DataPath(draw_bg_image, "draw_bg_image", "draw_bg_image", true),
     new DataPath(tweak_mode, "tweak_mode", "tweak_mode", true),
-    new DataPath(new BoolProperty(0, "enable_blur", "Blur"), "enable_blur", "enable_blur", true),
-    new DataPath(new BoolProperty(0, "draw_faces", "Show Faces"), "draw_faces", "draw_faces", true),
+    new DataPath(enable_blur, "enable_blur", "enable_blur", true),
+    new DataPath(draw_faces, "draw_faces", "draw_faces", true),
     new DataPath(draw_video, "draw_video", "draw_video", true),
     new DataPath(new BoolProperty(0, "draw_normals", "Show Normals", "Show Normal Comb"), "draw_normals", "draw_normals", true),
     new DataPath(show_animpath_prop,  "draw_anim_paths", "draw_anim_paths", true),
@@ -536,74 +538,6 @@ function api_define_spline_layer_struct() {
   window.SplineLayerStruct = SplineLayerStruct;
 }
 
-function api_define_multires_struct() {
-  //mres points is a customdata layer stored within segments
-  
-  var co = new Vec2Property(undefined, "co", "co");
-  var flag = new FlagProperty(1, MResFlags, undefined, "multires flags", "multires flags");
-  flag.update = function () {
-    window.redraw_viewport();
-  }
-  
-  var support = new FloatProperty(0, "support", "support");
-  
-  support.range = [0.0001, 2.0];
-  support.update = function () {
-    window.redraw_viewport();
-  }
-  
-  var degree = new FloatProperty(0, "degree", "degree");
-  
-  degree.range = [0.1, 65.0];
-  degree.update = function () {
-    window.redraw_viewport();
-  }
-  
-  var MResPointStruct = new DataStruct([
-    new DataPath(co, "co", "", true),
-    new DataPath(flag, "flag", "flag", true),
-    new DataPath(support, "support", "support", true),
-    new DataPath(degree, "degree", "degree", true)
-  ]);
-  
-  return MResPointStruct;
-}
-
-function api_define_multires_array() {
-  //array is bound to spline.segments
-  //mres points is a customdata layer stored within segments
-  
-  var MResPointStruct = api_define_multires_struct();
-  
-  var mpoints = new DataStructArray(
-    function getstruct(item) {
-      return MResPointStruct;
-    },
-    function itempath(key) {
-      return ".idmap[decompose_id(" + key + ")[0]].cdata.get_layer(MultiResLayer).get(decompose_id(" + key + ")[1])"
-    },
-    function getitem(key) {
-      var seg = decompose_id(key)[0];
-      seg = this.local_idmap[seg];
-      var mr = seg.cdata.get_layer(MultiResLayer);
-      
-      var p = decompose_id(key)[1];
-      return mr.get(p);
-    },
-    function getiter() {
-      return iterpoints(this.spline, this.spline.actlevel);
-    },
-    function getkeyiter() {
-      return iterpoints(this.spline, this.spline.actlevel, true);
-    },
-    function getlength() {
-      //return bogus value for now
-      return 1;
-    });
-  
-  return mpoints;
-}
-
 function api_define_spline() {
   api_define_spline_layer_struct();
   
@@ -698,13 +632,6 @@ function api_define_spline() {
       });
   }
   
-  var mres_points = api_define_multires_array();
-  var mres_act_id = "ctx.spline.segments.cdata.get_shared('MultiResLayer').active";
-  
-  var mres_act_path = "eidmap[decompose_id(ID)[0]].cdata";
-  mres_act_path += ".get_layer(MultiResLayer).get(decompose_id(ID)[1])";
-  mres_act_path = mres_act_path.replace(/ID/g, mres_act_id);
-  
   var SplineStruct = new DataStruct(api_define_DataBlock().concat([
     new DataPath(api_define_spline_face(), "active_face", "faces.active", true),
     new DataPath(api_define_spline_segment(), "active_segment", "segments.active", true),
@@ -718,8 +645,6 @@ function api_define_spline() {
     new DataPath(define_editable_element_array(SplineVertexStruct), "editable_verts", "verts", true),
 
     new DataPath(layerset, "layerset", "layerset", true),
-    new DataPath(mres_points, "mres_points", "segments", true),
-    new DataPath(api_define_multires_struct(), "active_mres_point", mres_act_path, true),
     new DataPath(SplineLayerStruct, "active_layer", "layerset.active", true)
   ]));
   
@@ -1143,8 +1068,8 @@ var OpStackArray = new DataStructArray(
     return g_app_state.toolstack.undostack.length;
   }
 );
-global
-ContextStruct = undefined;
+
+global ContextStruct = undefined;
 
 window.test_range = function* range(len) {
   for (var i = 0; i < len; i++) {

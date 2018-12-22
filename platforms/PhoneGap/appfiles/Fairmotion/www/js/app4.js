@@ -10379,7 +10379,7 @@ es6_module_define('view2d_editor', ["struct"], function _view2d_editor_module(_e
   View2DEditor = _es6_module.add_export('View2DEditor', View2DEditor);
   View2DEditor.STRUCT = "\n  View2DEditor {\n  }\n";
 }, '/dev/fairmotion/src/editors/viewport/view2d_editor.js');
-es6_module_define('MaterialEditor', ["UIPack", "UIFrame", "UITabPanel", "struct", "toolops_api", "events", "config", "UICanvas", "spline_types", "mathlib", "UIElement", "UITextBox", "ScreenArea", "UIWidgets_special", "spline_layerops", "UIWidgets", "spline_editops"], function _MaterialEditor_module(_es6_module) {
+es6_module_define('MaterialEditor', ["struct", "spline_editops", "UIFrame", "ScreenArea", "UITabPanel", "toolops_api", "spline_types", "UIPack", "spline_layerops", "events", "config", "UIElement", "UIWidgets", "mathlib", "UIWidgets_special", "UICanvas", "UITextBox"], function _MaterialEditor_module(_es6_module) {
   var gen_editor_switcher=es6_import_item(_es6_module, 'UIWidgets_special', 'gen_editor_switcher');
   var ENABLE_MULTIRES=es6_import_item(_es6_module, 'config', 'ENABLE_MULTIRES');
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
@@ -10578,8 +10578,8 @@ es6_module_define('MaterialEditor', ["UIPack", "UIFrame", "UITabPanel", "struct"
     panel.packflag|=PackFlags.NO_AUTO_SPACING;
     panel.packflag|=PackFlags.IGNORE_LIMIT;
     panel.label("Fill Color");
-    panel.prop("spline.active_face.mat.fillcolor", undefined, "spline.faces{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}.mat.fillcolor");
-    panel.prop("spline.active_face.mat.blur", undefined, "spline.faces{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}.mat.blur");
+    panel.prop("spline.active_face.mat.fillcolor", undefined, "spline.editable_faces{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}.mat.fillcolor");
+    panel.prop("spline.active_face.mat.blur", undefined, "spline.editable_faces{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}.mat.blur");
     return panel;
   }, function multires_panel() {
     var ctx=this.ctx;

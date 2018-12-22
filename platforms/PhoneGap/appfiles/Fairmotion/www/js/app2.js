@@ -429,8 +429,8 @@ es6_module_define('spline_element_array', ["eventdag", "struct", "spline_types"]
   }]);
   _es6_module.add_class(SelectedEditableAllLayersIter);
   SelectedEditableAllLayersIter = _es6_module.add_export('SelectedEditableAllLayersIter', SelectedEditableAllLayersIter);
-  var ElementArraySet=_ESClass("ElementArraySet", set, [function ElementArraySet() {
-    set.apply(this, arguments);
+  var ElementArraySet=_ESClass("ElementArraySet", set, [function ElementArraySet(arg) {
+    set.call(this, arg);
     this.layerset = undefined;
   }, function editable(ignore_layers) {
     return ignore_layers ? new SelectedEditableAllLayersIter(this, this.layerset) : new SelectedEditableIter(this, this.layerset);
@@ -550,6 +550,9 @@ es6_module_define('spline_element_array', ["eventdag", "struct", "spline_types"]
     if (idx<0) {
         throw new Error("Element not in list");
     }
+    if (this.active===e) {
+        this.active = undefined;
+    }
     if (this.selected.has(e))
       this.setselect(e, false);
     delete this.idmap[e.eid];
@@ -579,18 +582,21 @@ es6_module_define('spline_element_array', ["eventdag", "struct", "spline_types"]
     }
     var changed=!!(e.flag&SplineFlags.SELECT)!=!!state;
     if (state) {
-        if (this.active==undefined)
+        if (this.active===undefined)
           this.active = e;
         this.global_sel.add(e);
         this.selected.add(e);
         e.flag|=SplineFlags.SELECT;
     }
     else {
+      if (this.active===e) {
+          this.active = undefined;
+      }
       this.global_sel.remove(e);
       this.selected.remove(e);
       e.flag&=~SplineFlags.SELECT;
     }
-    if (changed&&this.on_select!=undefined) {
+    if (changed&&this.on_select!==undefined) {
         this.on_select(e, state);
         this.select_listeners.fire(e, state);
     }

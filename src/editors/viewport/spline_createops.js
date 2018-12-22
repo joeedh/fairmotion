@@ -113,6 +113,7 @@ export class ExtrudeVertOp extends SplineLocalToolOp {
     }
     
     var co = this.inputs.location.data;
+    var actvert = spline.verts.active;
     
     for (var i=0; i<spline.verts.length; i++) {
       var v = spline.verts[i];
@@ -134,11 +135,11 @@ export class ExtrudeVertOp extends SplineLocalToolOp {
     
     spline.verts.setselect(v, true);
     
-    if (spline.verts.active !== v && spline.verts.active != undefined && !spline.verts.active.hidden && 
-        !((spline.restrict & RestrictFlags.VALENCE2) && spline.verts.active.segments.length >= 2))
+    if (actvert !== v && actvert != undefined && !actvert.hidden &&
+        !((spline.restrict & RestrictFlags.VALENCE2) && actvert.segments.length >= 2))
     {
-      if (spline.verts.active.segments.length == 2) {
-        var v2 = spline.verts.active;
+      if (actvert.segments.length == 2) {
+        var v2 = actvert;
 
         //auto-pair handles on original line
         var h1 = v2.segments[0].handle(v2), h2 = v2.segments[1].handle(v2);
@@ -150,15 +151,15 @@ export class ExtrudeVertOp extends SplineLocalToolOp {
         h2.flag |= SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
       }
       
-      var seg = spline.make_segment(spline.verts.active, v);
+      var seg = spline.make_segment(actvert, v);
       seg.z = max_z_seg;
       
       console.log("creating segment");
       
-      if (spline.verts.active.segments.length > 1) {
-        var seg2 = spline.verts.active.segments[0];
+      if (actvert.segments.length > 1) {
+        var seg2 = actvert.segments[0];
         seg.mat.load(seg2.mat);
-        //seg.mat.linewidth = spline.verts.active.segments[0].mat.linewidth;
+        //seg.mat.linewidth = actvert.segments[0].mat.linewidth;
       } else {
         seg.mat.linewidth = this.inputs.linewidth.data;
         
@@ -169,7 +170,7 @@ export class ExtrudeVertOp extends SplineLocalToolOp {
       }
       
       v.flag |= SplineFlags.UPDATE;
-      spline.verts.active.flag |= SplineFlags.UPDATE;
+      actvert.flag |= SplineFlags.UPDATE;
     }
     
     spline.verts.active = v;

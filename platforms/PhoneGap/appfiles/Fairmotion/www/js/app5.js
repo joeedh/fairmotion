@@ -7999,10 +7999,9 @@ es6_module_define('SettingsEditor', ["ScreenArea", "UITabPanel", "UIPack", "UIWi
   SettingsEditor.debug_only = false;
 }, '/dev/fairmotion/src/editors/settings/SettingsEditor.js');
 var ContextStruct;
-es6_module_define('data_api_define', ["units", "spline_base", "imageblock", "toolprops", "theme", "frameset", "view2d", "animdata", "toolops_api", "ops_editor", "spline_multires", "spline_element_array", "config", "data_api", "selectmode", "spline_createops", "lib_api"], function _data_api_define_module(_es6_module) {
+es6_module_define('data_api_define', ["spline_base", "toolops_api", "toolprops", "imageblock", "data_api", "animdata", "selectmode", "frameset", "lib_api", "theme", "units", "spline_element_array", "view2d", "ops_editor", "spline_createops"], function _data_api_define_module(_es6_module) {
   var DataTypes=es6_import_item(_es6_module, 'lib_api', 'DataTypes');
   var EditModes=es6_import_item(_es6_module, 'view2d', 'EditModes');
-  var ENABLE_MULTIRES=es6_import_item(_es6_module, 'config', 'ENABLE_MULTIRES');
   var ImageFlags=es6_import_item(_es6_module, 'imageblock', 'ImageFlags');
   var Image=es6_import_item(_es6_module, 'imageblock', 'Image');
   var BoxColor4=es6_import_item(_es6_module, 'theme', 'BoxColor4');
@@ -8037,14 +8036,6 @@ es6_module_define('data_api_define', ["units", "spline_base", "imageblock", "too
   var AnimKeyFlags=es6_import_item(_es6_module, 'animdata', 'AnimKeyFlags');
   var AnimInterpModes=es6_import_item(_es6_module, 'animdata', 'AnimInterpModes');
   var VDAnimFlags=es6_import_item(_es6_module, 'frameset', 'VDAnimFlags');
-  var MultiResLayer=es6_import_item(_es6_module, 'spline_multires', 'MultiResLayer');
-  var MultiResEffector=es6_import_item(_es6_module, 'spline_multires', 'MultiResEffector');
-  var MResFlags=es6_import_item(_es6_module, 'spline_multires', 'MResFlags');
-  var has_multires=es6_import_item(_es6_module, 'spline_multires', 'has_multires');
-  var ensure_multires=es6_import_item(_es6_module, 'spline_multires', 'ensure_multires');
-  var iterpoints=es6_import_item(_es6_module, 'spline_multires', 'iterpoints');
-  var compose_id=es6_import_item(_es6_module, 'spline_multires', 'compose_id');
-  var decompose_id=es6_import_item(_es6_module, 'spline_multires', 'decompose_id');
   var SelModes={VERTEX: SelMask.VERTEX, SEGMENT: SelMask.SEGMENT, FACE: SelMask.FACE}
   var selmask_enum=new EnumProperty(undefined, SelModes, "selmask_enum", "Selection Mode");
   selmask_enum = _es6_module.add_export('selmask_enum', selmask_enum);
@@ -8202,10 +8193,16 @@ es6_module_define('data_api_define', ["units", "spline_base", "imageblock", "too
     background_color.update = function() {
       window.redraw_viewport();
     }
+    let draw_faces=new BoolProperty(0, "draw_faces", "Show Faces");
+    let enable_blur=new BoolProperty(0, "enable_blur", "Blur");
+    draw_faces.update = enable_blur.update = function() {
+      this.ctx.spline.regen_sort();
+      redraw_viewport();
+    }
     var edit_all_layers=new BoolProperty(0, "edit_all_layers", "Edit All Layers");
     let show_animpath_prop=new BoolProperty(0, "draw_anim_paths", "Show Animation Paths", "Edit Animation Keyframe Paths");
     show_animpath_prop.icon = Icons.SHOW_ANIMPATHS;
-    View2DStruct = new DataStruct([new DataPath(edit_all_layers, "edit_all_layers", "edit_all_layers", true), new DataPath(background_color, "background_color", "background_color", true), new DataPath(default_stroke, "default_stroke", "default_stroke", true), new DataPath(default_fill, "default_fill", "default_fill", true), new DataPath(tool_mode, "toolmode", "toolmode", true), new DataPath(draw_small_verts, "draw_small_verts", "draw_small_verts", true), new DataPath(selmask_enum.copy(), "selectmode", "selectmode", true), new DataPath(selmask_mask.copy(), "selectmask", "selectmode", true), new DataPath(only_render, "only_render", "only_render", true), new DataPath(draw_bg_image, "draw_bg_image", "draw_bg_image", true), new DataPath(tweak_mode, "tweak_mode", "tweak_mode", true), new DataPath(new BoolProperty(0, "enable_blur", "Blur"), "enable_blur", "enable_blur", true), new DataPath(new BoolProperty(0, "draw_faces", "Show Faces"), "draw_faces", "draw_faces", true), new DataPath(draw_video, "draw_video", "draw_video", true), new DataPath(new BoolProperty(0, "draw_normals", "Show Normals", "Show Normal Comb"), "draw_normals", "draw_normals", true), new DataPath(show_animpath_prop, "draw_anim_paths", "draw_anim_paths", true), new DataPath(zoomprop, "zoom", "zoom", true), new DataPath(api_define_material(), "active_material", "active_material", true), new DataPath(linewidth, "default_linewidth", "default_linewidth", true), new DataPath(extrude_mode, "extrude_mode", "extrude_mode", true), new DataPath(new BoolProperty(0, "pin_paths", "Pin Paths", "Remember visible animation paths"), "pin_paths", "pin_paths", true), new DataPath(api_define_imageuser(), "background_image", "background_image", true)]);
+    View2DStruct = new DataStruct([new DataPath(edit_all_layers, "edit_all_layers", "edit_all_layers", true), new DataPath(background_color, "background_color", "background_color", true), new DataPath(default_stroke, "default_stroke", "default_stroke", true), new DataPath(default_fill, "default_fill", "default_fill", true), new DataPath(tool_mode, "toolmode", "toolmode", true), new DataPath(draw_small_verts, "draw_small_verts", "draw_small_verts", true), new DataPath(selmask_enum.copy(), "selectmode", "selectmode", true), new DataPath(selmask_mask.copy(), "selectmask", "selectmode", true), new DataPath(only_render, "only_render", "only_render", true), new DataPath(draw_bg_image, "draw_bg_image", "draw_bg_image", true), new DataPath(tweak_mode, "tweak_mode", "tweak_mode", true), new DataPath(enable_blur, "enable_blur", "enable_blur", true), new DataPath(draw_faces, "draw_faces", "draw_faces", true), new DataPath(draw_video, "draw_video", "draw_video", true), new DataPath(new BoolProperty(0, "draw_normals", "Show Normals", "Show Normal Comb"), "draw_normals", "draw_normals", true), new DataPath(show_animpath_prop, "draw_anim_paths", "draw_anim_paths", true), new DataPath(zoomprop, "zoom", "zoom", true), new DataPath(api_define_material(), "active_material", "active_material", true), new DataPath(linewidth, "default_linewidth", "default_linewidth", true), new DataPath(extrude_mode, "extrude_mode", "extrude_mode", true), new DataPath(new BoolProperty(0, "pin_paths", "Pin Paths", "Remember visible animation paths"), "pin_paths", "pin_paths", true), new DataPath(api_define_imageuser(), "background_image", "background_image", true)]);
     return View2DStruct;
   }
   var MaterialStruct;
@@ -8294,46 +8291,6 @@ es6_module_define('data_api_define', ["units", "spline_base", "imageblock", "too
     SplineLayerStruct = new DataStruct([new DataPath(new IntProperty(0, "id", "id", "id"), "id", "id", true), new DataPath(new StringProperty("", "name", "name", "name"), "name", "name", true), new DataPath(flag, "flag", "flag", true)]);
     window.SplineLayerStruct = SplineLayerStruct;
   }
-  function api_define_multires_struct() {
-    var co=new Vec2Property(undefined, "co", "co");
-    var flag=new FlagProperty(1, MResFlags, undefined, "multires flags", "multires flags");
-    flag.update = function() {
-      window.redraw_viewport();
-    }
-    var support=new FloatProperty(0, "support", "support");
-    support.range = [0.0001, 2.0];
-    support.update = function() {
-      window.redraw_viewport();
-    }
-    var degree=new FloatProperty(0, "degree", "degree");
-    degree.range = [0.1, 65.0];
-    degree.update = function() {
-      window.redraw_viewport();
-    }
-    var MResPointStruct=new DataStruct([new DataPath(co, "co", "", true), new DataPath(flag, "flag", "flag", true), new DataPath(support, "support", "support", true), new DataPath(degree, "degree", "degree", true)]);
-    return MResPointStruct;
-  }
-  function api_define_multires_array() {
-    var MResPointStruct=api_define_multires_struct();
-    var mpoints=new DataStructArray(function getstruct(item) {
-      return MResPointStruct;
-    }, function itempath(key) {
-      return ".idmap[decompose_id("+key+")[0]].cdata.get_layer(MultiResLayer).get(decompose_id("+key+")[1])";
-    }, function getitem(key) {
-      var seg=decompose_id(key)[0];
-      seg = this.local_idmap[seg];
-      var mr=seg.cdata.get_layer(MultiResLayer);
-      var p=decompose_id(key)[1];
-      return mr.get(p);
-    }, function getiter() {
-      return iterpoints(this.spline, this.spline.actlevel);
-    }, function getkeyiter() {
-      return iterpoints(this.spline, this.spline.actlevel, true);
-    }, function getlength() {
-      return 1;
-    });
-    return mpoints;
-  }
   function api_define_spline() {
     api_define_spline_layer_struct();
     var layerset=new DataStructArray(function getstruct(item) {
@@ -8411,12 +8368,7 @@ es6_module_define('data_api_define', ["units", "spline_base", "imageblock", "too
         return this.length;
       });
     }
-    var mres_points=api_define_multires_array();
-    var mres_act_id="ctx.spline.segments.cdata.get_shared('MultiResLayer').active";
-    var mres_act_path="eidmap[decompose_id(ID)[0]].cdata";
-    mres_act_path+=".get_layer(MultiResLayer).get(decompose_id(ID)[1])";
-    mres_act_path = mres_act_path.replace(/ID/g, mres_act_id);
-    var SplineStruct=new DataStruct(api_define_DataBlock().concat([new DataPath(api_define_spline_face(), "active_face", "faces.active", true), new DataPath(api_define_spline_segment(), "active_segment", "segments.active", true), new DataPath(api_define_spline_vertex(), "active_vertex", "verts.active", true), new DataPath(define_element_array(SplineFaceStruct), "faces", "faces", true), new DataPath(define_element_array(SplineSegmentStruct), "segments", "segments", true), new DataPath(define_element_array(SplineVertexStruct), "verts", "verts", true), new DataPath(define_editable_element_array(SplineFaceStruct), "editable_faces", "faces", true), new DataPath(define_editable_element_array(SplineSegmentStruct), "editable_segments", "segments", true), new DataPath(define_editable_element_array(SplineVertexStruct), "editable_verts", "verts", true), new DataPath(layerset, "layerset", "layerset", true), new DataPath(mres_points, "mres_points", "segments", true), new DataPath(api_define_multires_struct(), "active_mres_point", mres_act_path, true), new DataPath(SplineLayerStruct, "active_layer", "layerset.active", true)]));
+    var SplineStruct=new DataStruct(api_define_DataBlock().concat([new DataPath(api_define_spline_face(), "active_face", "faces.active", true), new DataPath(api_define_spline_segment(), "active_segment", "segments.active", true), new DataPath(api_define_spline_vertex(), "active_vertex", "verts.active", true), new DataPath(define_element_array(SplineFaceStruct), "faces", "faces", true), new DataPath(define_element_array(SplineSegmentStruct), "segments", "segments", true), new DataPath(define_element_array(SplineVertexStruct), "verts", "verts", true), new DataPath(define_editable_element_array(SplineFaceStruct), "editable_faces", "faces", true), new DataPath(define_editable_element_array(SplineSegmentStruct), "editable_segments", "segments", true), new DataPath(define_editable_element_array(SplineVertexStruct), "editable_verts", "verts", true), new DataPath(layerset, "layerset", "layerset", true), new DataPath(SplineLayerStruct, "active_layer", "layerset.active", true)]));
     datablock_structs[DataTypes.SPLINE] = SplineStruct;
     return SplineStruct;
   }

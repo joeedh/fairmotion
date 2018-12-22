@@ -6251,7 +6251,7 @@ es6_module_define('spline_selectops', ["toolprops", "spline_draw", "toolops_api"
   _es6_module.add_class(CircleSelectOp);
   CircleSelectOp = _es6_module.add_export('CircleSelectOp', CircleSelectOp);
 }, '/dev/fairmotion/src/editors/viewport/spline_selectops.js');
-es6_module_define('spline_createops', ["spline_editops", "spline", "toolprops", "toolops_api", "spline_types"], function _spline_createops_module(_es6_module) {
+es6_module_define('spline_createops', ["spline_types", "spline", "toolprops", "spline_editops", "toolops_api"], function _spline_createops_module(_es6_module) {
   var ToolOp=es6_import_item(_es6_module, 'toolops_api', 'ToolOp');
   var SplineFlags=es6_import_item(_es6_module, 'spline_types', 'SplineFlags');
   var EnumProperty=es6_import_item(_es6_module, 'toolprops', 'EnumProperty');
@@ -6306,6 +6306,7 @@ es6_module_define('spline_createops', ["spline_editops", "spline", "toolprops", 
       max_z_seg = Math.max(max_z_seg, s.z);
     }
     var co=this.inputs.location.data;
+    var actvert=spline.verts.active;
     for (var i=0; i<spline.verts.length; i++) {
         var v=spline.verts[i];
         spline.verts.setselect(v, false);
@@ -6320,9 +6321,9 @@ es6_module_define('spline_createops', ["spline_editops", "spline", "toolprops", 
       v.flag|=SplineFlags.BREAK_TANGENTS;
     this.outputs.vertex.set_data(v.eid);
     spline.verts.setselect(v, true);
-    if (spline.verts.active!==v&&spline.verts.active!=undefined&&!spline.verts.active.hidden&&!((spline.restrict&RestrictFlags.VALENCE2)&&spline.verts.active.segments.length>=2)) {
-        if (spline.verts.active.segments.length==2) {
-            var v2=spline.verts.active;
+    if (actvert!==v&&actvert!=undefined&&!actvert.hidden&&!((spline.restrict&RestrictFlags.VALENCE2)&&actvert.segments.length>=2)) {
+        if (actvert.segments.length==2) {
+            var v2=actvert;
             var h1=v2.segments[0].handle(v2), h2=v2.segments[1].handle(v2);
             spline.connect_handles(h1, h2);
             h1.flag|=SplineFlags.AUTO_PAIRED_HANDLE;
@@ -6330,11 +6331,11 @@ es6_module_define('spline_createops', ["spline_editops", "spline", "toolprops", 
             h1.flag|=SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
             h2.flag|=SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
         }
-        var seg=spline.make_segment(spline.verts.active, v);
+        var seg=spline.make_segment(actvert, v);
         seg.z = max_z_seg;
         console.log("creating segment");
-        if (spline.verts.active.segments.length>1) {
-            var seg2=spline.verts.active.segments[0];
+        if (actvert.segments.length>1) {
+            var seg2=actvert.segments[0];
             seg.mat.load(seg2.mat);
         }
         else {
@@ -6345,7 +6346,7 @@ es6_module_define('spline_createops', ["spline_editops", "spline", "toolprops", 
           }
         }
         v.flag|=SplineFlags.UPDATE;
-        spline.verts.active.flag|=SplineFlags.UPDATE;
+        actvert.flag|=SplineFlags.UPDATE;
     }
     spline.verts.active = v;
     spline.regen_render();

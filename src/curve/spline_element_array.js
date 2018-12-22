@@ -589,8 +589,8 @@ export class SelectedEditableAllLayersIter {
 
 //note: the global sline.selected list uses this too
 export class ElementArraySet extends set {
-  constructor() {
-    set.apply(this, arguments);
+  constructor(arg) {
+    super(arg);
     
     this.layerset = undefined;
   }
@@ -715,7 +715,7 @@ export class ElementArray extends GArray {
     }
   }
   
-  push(SplineElement e, custom_eid=undefined) {
+  push(e : SplineElement, custom_eid=undefined) {
     if (e.cdata == undefined || e.cdata.length != this.cdata.layers.length) {
       e.cdata = this.cdata.gen_edata();
     }
@@ -740,11 +740,15 @@ export class ElementArray extends GArray {
     e.layers[this.layerset.active.id] = 1;
   }
   
-  remove(SplineElement e, soft_error=false) {
+  remove(e : SplineElement, soft_error=false) {
     var idx = this.indexOf(e);
     
     if (idx < 0) {
       throw new Error("Element not in list");
+    }
+    
+    if (this.active === e) {
+      this.active = undefined;
     }
     
     if (this.selected.has(e))
@@ -779,7 +783,7 @@ export class ElementArray extends GArray {
     }
   }
   
-  setselect(SplineElement e, Boolean state) {
+  setselect(e : SplineElement, state : Boolean) {
     if (state && !(e.flag & SplineFlags.SELECT)) {
       this.dag_update("on_select_add", this.type);
       
@@ -795,7 +799,7 @@ export class ElementArray extends GArray {
     var changed = !!(e.flag & SplineFlags.SELECT) != !!state;
     
     if (state) {
-      if (this.active == undefined)
+      if (this.active === undefined)
         this.active = e;
       
       this.global_sel.add(e);
@@ -803,13 +807,18 @@ export class ElementArray extends GArray {
       
       e.flag |= SplineFlags.SELECT;
     } else {
+      //NOTE: new behaviour, clear active on deselect!
+      if (this.active === e) {
+        this.active = undefined;
+      }
+      
       this.global_sel.remove(e);
       this.selected.remove(e);
         
       e.flag &= ~SplineFlags.SELECT;
     }
     
-    if (changed && this.on_select != undefined) {
+    if (changed && this.on_select !== undefined) {
       this.on_select(e, state);
       this.select_listeners.fire(e, state);
     }

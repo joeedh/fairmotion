@@ -233,9 +233,9 @@ class MaterialEditor extends Area {
     
     panel.label("Fill Color");
     panel.prop("spline.active_face.mat.fillcolor", undefined, 
-               "spline.faces{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}.mat.fillcolor");
+               "spline.editable_faces{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}.mat.fillcolor");
     panel.prop("spline.active_face.mat.blur", undefined, 
-               "spline.faces{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}.mat.blur");
+               "spline.editable_faces{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}.mat.blur");
     
     return panel
   }

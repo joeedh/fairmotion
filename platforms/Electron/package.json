@@ -3,6 +3,7 @@
   "version" : "0.0.1",
   "main"    : "main.js",
   "dependencies": {
-    "electron": "^2.0.2"
+    "electron": "^2.0.2",
+    "fastcall": "^0.2.5"
   }
 }

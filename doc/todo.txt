@@ -1,5 +1,12 @@
+- Ensure NO TOOLOPS ACCESS CTX.EDIT_ALL_LAYERS in .exec(), they should store it in their constructors in
+         a tool property, like is done with selectmode
+
 GFX REFACTOR:
  -
+
+- VIEWPORT ABSTRACTION REFACTOR:
+  * So we can support test/images
+  * While I'm at it, also support simple beziers (though that's still within the spline system)
 
 - Auto Update Push System
   * Push to small subset of users first, to test?

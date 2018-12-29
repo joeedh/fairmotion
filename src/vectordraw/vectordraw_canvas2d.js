@@ -14,7 +14,7 @@ import {
 var canvaspath_draw_mat_tmps = new cachering(function() {
   return new Matrix4();
 }, 16);
-var canvaspath_draw_args_tmps = new Array(8);
+var canvaspath_draw_args_tmps = new Array(16);
 for (var i=1; i<canvaspath_draw_args_tmps.length; i++) {
   canvaspath_draw_args_tmps[i] = new Array(i);
 }
@@ -24,7 +24,7 @@ var canvaspath_draw_vs = new cachering(function() {
 
 var CCMD=0, CARGLEN=1;
 
-var MOVETO = 0, BEZIERTO=1, LINETO=2, BEGINPATH=3;
+var MOVETO = 0, BEZIERTO=1, LINETO=2, BEGINPATH=3, CUBICTO=4;
 
 export class CanvasPath extends QuadBezPath {
   constructor() {
@@ -112,6 +112,12 @@ export class CanvasPath extends QuadBezPath {
     this._pushCmd(MOVETO, x, y);
     this.lastx = x;
     this.lasty = y;
+  }
+  
+  cubicTo(x2, y2, x3, y3, x4, y4) {
+    this._pushCmd(CUBICTO, x2, y2, x3, y3, x4, y4);
+    this.lastx = x4;
+    this.lasty = y4;
   }
   
   bezierTo(x2, y2, x3, y3) {
@@ -278,6 +284,9 @@ export class CanvasPath extends QuadBezPath {
           break;
         case BEZIERTO:
           this.g.quadraticCurveTo(tmp[0], tmp[1], tmp[2], tmp[3]);
+          break;
+        case CUBICTO:
+          this.g.bezierCurveTo(tmp[0], tmp[1], tmp[2], tmp[3], tmp[4], tmp[5]);
           break;
         case BEGINPATH:
           this.g.beginPath();

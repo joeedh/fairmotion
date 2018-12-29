@@ -168,7 +168,10 @@ class AppState {
 
         f = abs(f);
 
-        f = ftst*ftst*0.5;
+        f = sign((x-ax)*(y-by) - (y-ay)*(x-bx))*0.5 + 0.5;
+        f *= sign((x-bx)*(y-cy) - (y-by)*(x-cx))*0.5 + 0.5;
+        f *= sign((x-cx)*(y-ay) - (y-cy)*(x-ax))*0.5 + 0.5;
+
         idata[idx] = f*255;
         idata[idx+3] = 255;
       }
@@ -189,8 +192,8 @@ class AppState {
       //this.drawFuncInt(g, (x) => sign(a - x*b), -3, 3);
       //this.drawFunc(g, (x) => -abs(x-a/b)+a/b, -3, 3);
 
-      this.drawFuncInt(g, (x) => not_zero(3 - x*2), -3, 3);
-      this.drawFunc(g, (x) => not_zero(x), -3, 3);
+      this.drawFuncInt(g, (x) => x-0.9 > 0.0, -3, 3);
+      //this.drawFunc(g, (x) => not_zero(x), -3, 3);
 
       this.endDraw();
     }

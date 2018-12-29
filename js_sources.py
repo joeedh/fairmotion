@@ -162,6 +162,7 @@ sources = [
   "src/windowmanager/ScreenBorder.js",
   
   "src/editors/viewport/view2d_editor.js",
+  "src/editors/viewport/view2d_object.js",
   "src/editors/material/MaterialEditor.js",
   "src/editors/dopesheet/DopeSheetEditor.js",
   "src/editors/dopesheet/dopesheet_phantom.js",

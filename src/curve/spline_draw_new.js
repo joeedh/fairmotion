@@ -236,7 +236,7 @@ export class SplineDrawer {
   update_stroke(seg, drawparams) {
     var redraw_rects = drawparams.redraw_rects, actlayer = drawparams.actlayer;
     var only_render = drawparams.only_render, selectmode = drawparams.selectmode;
-    var zoom = drawparams.zooom, z = drawparams.z, off = drawparams.off, spline = drawparams.spline;
+    var zoom = drawparams.zoom, z = drawparams.z, off = drawparams.off, spline = drawparams.spline;
     var drawlist = drawparams.drawlist;
     
     var eid = seg.eid; 
@@ -265,7 +265,10 @@ export class SplineDrawer {
     
     seg.flag &= ~SplineFlags.REDRAW;
     
-    var steps = 7, ds = 1.0 / (steps - 1), s = 0.0;
+    var l = seg.ks[KSCALE] * zoom;
+    var steps = 4 + ~~(Math.sqrt(l)/500);
+    console.log("l", l, steps);
+    var ds = 1.0 / (steps - 1), s = 0.0;
     
     /*
     on factor;

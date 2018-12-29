@@ -667,7 +667,7 @@ def build_target(files):
             db[p[2][0]] = p[2][1]
             
       procs = newprocs
-      time.sleep(0.75)
+      note.sleep(0.75)
     
     if len(failed_files) > 0: continue
    
@@ -702,11 +702,14 @@ def build_target(files):
         if failed_ret(ret): #ret in [-1, 65280]:
           failed_files.append(p[1])
     procs = newprocs
-    time.sleep(0.75)
+
+    note.sleep(0.75)
     
   if len(failed_files) > 0:
+    clearNote(THENOTE);
     changeNote(THENOTE, "Build Failed")
-    
+    note.sleep(1);
+
     print("build failure\n\n")
     
     for f in failed_files:
@@ -720,12 +723,17 @@ def build_target(files):
     
     close_db(db)
     close_db(db_depend)
-    
+
     if build_cmd != "loop":
       sys.exit(-1)
     else:
       return 0
-        
+
+  if build_final:
+    clearNote(THENOTE);
+    ensureNote(THENOTE, "Build System", "Finished target");
+    note.sleep(1.0);
+
   for pathtime in built_files:
     if pathtime[0] in db:
       print("saving", db[pathtime[0]], pathtime[1])
@@ -741,7 +749,10 @@ def build_target(files):
     sys.stdout.flush()
     aggregate(files, target_path+files.target)
     print("done.")
-    
+
+    #ensureNote(THENOTE, "Build System", "Finished target");
+    #note.sleep(1.0);
+
   if build_cmd != "loop":
     print("build finished")
     
@@ -1137,7 +1148,17 @@ def startNote(id, title, msg):
     note_timer = time.time()
     
     note.startNote(id, title, msg)
-    
+
+def ensureNote(id, title, msg):
+    if not note.hasNote(id):
+        note.startNote(id, title, msg)
+    else:
+        note.changeNote(id, msg)
+
+def clearNote(id):
+    if note.hasNote(id):
+        note.clearNote(id);
+
 def buildall_intern():
 
   for t in targets:
@@ -1156,13 +1177,11 @@ def buildall_intern():
   
   if build_final:    
     build_platforms()
-    
-    if note.hasNote(THENOTE):
-        changeNote(THENOTE, "Finished build")
-    else:
-        startNote(THENOTE, "Build System", "Finished build")
-    changeNote(THENOTE, "Finished build")
-        
+
+    clearNote(THENOTE);
+    ensureNote(THENOTE, "Build System", "Finished Build");
+    note.sleep(3.0);
+
 def themain():  
   #print("         themain!", build_cmd)
   if build_cmd == "loop":
@@ -1177,12 +1196,13 @@ def themain():
       checkNote();
       
       t = time.time() - start
-      #time.sleep(0.25)
+      #note.sleep(0.25)
       #"""
+
       if (t < 1.5):
-        time.sleep(1.5 - t+0.1);
+        note.sleep(1.5 - t+0.1);
       else:
-        time.sleep(0.1); 
+        note.sleep(0.1);
       #"""
   else:
     buildall()

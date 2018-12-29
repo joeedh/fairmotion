@@ -3,13 +3,20 @@ off period;
 
 comment: point in triangle test;
 
-operator int_sign, not_zero;
+operator int_sign, not_zero, binsign;
+operator binsign;
 
 forall x let int(sign(x), x) = abs(x);
 forall x let int(sign(x**2), x) = x;
 forall x,c let int(sign(x*c), x) = abs(x);
 forall x,c let int(sign(x-c), x) = abs(x-c)-c;
 forall x,a,b let int(sign(a - x*b), x) = abs(x - a/b) + a/b;
+
+forall x let int(binsign(x), x) = abs(x);
+forall x let int(binsign(x**2), x) = x;
+forall x,c let int(binsign(x*c), x) = int(binsign(x), x);
+comment: forall x,c let int(binsign(x-c), x) = abs(x-c)-c;
+comment: forall x,a,b let int(binsign(a - x*b), x) = abs(x - a/b) + a/b;
 
 forall x let int(not_zero(x), x) = x;
 forall x let int(not_zero(x*x), x) = x;
@@ -34,7 +41,7 @@ f1 := vbx * vcy - vby * vcx;
 f2 := vcx * vay - vcy * vax;
 f3 := vax * vby - vay * vbx;
 
-ftst := sign(f1) - sign(f2)*0.5 - sign(f3)*0.5;
+ftst := (binsign(f1)*0.5+0.5) * (binsign(f2)*0.5+0.5) * (binsign(f3)*0.5+0.5);
 
 ix := int(ftst, x);
 iy := (sub(x=x+w, ix) - sub(x=x-w, ix)) / (2 * w);

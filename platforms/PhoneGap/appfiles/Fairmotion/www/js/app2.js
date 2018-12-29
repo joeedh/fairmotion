@@ -6246,7 +6246,7 @@ es6_module_define('vectordraw_base', [], function _vectordraw_base_module(_es6_m
   _es6_module.add_class(VectorDraw);
   VectorDraw = _es6_module.add_export('VectorDraw', VectorDraw);
 }, '/dev/fairmotion/src/vectordraw/vectordraw_base.js');
-es6_module_define('vectordraw_canvas2d', ["config", "mathlib", "vectordraw_base"], function _vectordraw_canvas2d_module(_es6_module) {
+es6_module_define('vectordraw_canvas2d', ["config", "vectordraw_base", "mathlib"], function _vectordraw_canvas2d_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, 'config');
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
@@ -6257,7 +6257,7 @@ es6_module_define('vectordraw_canvas2d', ["config", "mathlib", "vectordraw_base"
   var canvaspath_draw_mat_tmps=new cachering(function() {
     return new Matrix4();
   }, 16);
-  var canvaspath_draw_args_tmps=new Array(8);
+  var canvaspath_draw_args_tmps=new Array(16);
   for (var i=1; i<canvaspath_draw_args_tmps.length; i++) {
       canvaspath_draw_args_tmps[i] = new Array(i);
   }
@@ -6265,7 +6265,7 @@ es6_module_define('vectordraw_canvas2d', ["config", "mathlib", "vectordraw_base"
     return new Vector2();
   }, 32);
   var CCMD=0, CARGLEN=1;
-  var MOVETO=0, BEZIERTO=1, LINETO=2, BEGINPATH=3;
+  var MOVETO=0, BEZIERTO=1, LINETO=2, BEGINPATH=3, CUBICTO=4;
   var CanvasPath=_ESClass("CanvasPath", QuadBezPath, [function CanvasPath() {
     QuadBezPath.call(this);
     this.commands = [];
@@ -6328,6 +6328,10 @@ es6_module_define('vectordraw_canvas2d', ["config", "mathlib", "vectordraw_base"
     this._pushCmd(MOVETO, x, y);
     this.lastx = x;
     this.lasty = y;
+  }, function cubicTo(x2, y2, x3, y3, x4, y4) {
+    this._pushCmd(CUBICTO, x2, y2, x3, y3, x4, y4);
+    this.lastx = x4;
+    this.lasty = y4;
   }, function bezierTo(x2, y2, x3, y3) {
     this._pushCmd(BEZIERTO, x2, y2, x3, y3);
     this.lastx = x3;
@@ -6454,6 +6458,9 @@ es6_module_define('vectordraw_canvas2d', ["config", "mathlib", "vectordraw_base"
           break;
         case BEZIERTO:
           this.g.quadraticCurveTo(tmp[0], tmp[1], tmp[2], tmp[3]);
+          break;
+        case CUBICTO:
+          this.g.bezierCurveTo(tmp[0], tmp[1], tmp[2], tmp[3], tmp[4], tmp[5]);
           break;
         case BEGINPATH:
           this.g.beginPath();
@@ -7675,7 +7682,7 @@ es6_module_define('vectordraw', ["vectordraw_canvas2d", "vectordraw_svg", "vecto
 es6_module_define('strokedraw', [], function _strokedraw_module(_es6_module) {
   "use strict";
 }, '/dev/fairmotion/src/vectordraw/strokedraw.js');
-es6_module_define('spline_draw_new', ["selectmode", "view2d_editor", "config", "spline_math", "spline_multires", "animdata", "spline_element_array", "mathlib", "vectordraw", "spline_types"], function _spline_draw_new_module(_es6_module) {
+es6_module_define('spline_draw_new', ["view2d_editor", "spline_types", "mathlib", "spline_element_array", "selectmode", "vectordraw", "spline_math", "spline_multires", "animdata", "config"], function _spline_draw_new_module(_es6_module) {
   "use strict";
   var aabb_isect_minmax2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_minmax2d');
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
@@ -7859,7 +7866,7 @@ es6_module_define('spline_draw_new', ["selectmode", "view2d_editor", "config", "
   }, function update_stroke(seg, drawparams) {
     var redraw_rects=drawparams.redraw_rects, actlayer=drawparams.actlayer;
     var only_render=drawparams.only_render, selectmode=drawparams.selectmode;
-    var zoom=drawparams.zooom, z=drawparams.z, off=drawparams.off, spline=drawparams.spline;
+    var zoom=drawparams.zoom, z=drawparams.z, off=drawparams.off, spline=drawparams.spline;
     var drawlist=drawparams.drawlist;
     var eid=seg.eid;
     if (this.has_path(eid, z, eid==seg.eid)&&!(seg.flag&SplineFlags.REDRAW)) {
@@ -7871,7 +7878,10 @@ es6_module_define('spline_draw_new', ["selectmode", "view2d_editor", "config", "
         this.last_stroke_stringid = seg.stringid;
     }
     seg.flag&=~SplineFlags.REDRAW;
-    var steps=7, ds=1.0/(steps-1), s=0.0;
+    var l=seg.ks[KSCALE]*zoom;
+    var steps=4+~~(Math.sqrt(l)/500);
+    console.log("l", l, steps);
+    var ds=1.0/(steps-1), s=0.0;
     var path=this.get_path(eid, z, eid==seg.eid);
     path.update();
     path.was_updated = true;

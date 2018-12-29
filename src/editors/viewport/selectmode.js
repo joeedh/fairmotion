@@ -3,7 +3,7 @@ export var SelMask = {
   HANDLE   : 2,
   SEGMENT  : 4,
   FACE     : 16,
-  MULTIRES : 32,
+  MULTIRES : 32, //not used anymore
   TOPOLOGY : 1|2|4|16
 };
 

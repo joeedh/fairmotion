@@ -10379,360 +10379,558 @@ es6_module_define('view2d_editor', ["struct"], function _view2d_editor_module(_e
   View2DEditor = _es6_module.add_export('View2DEditor', View2DEditor);
   View2DEditor.STRUCT = "\n  View2DEditor {\n  }\n";
 }, '/dev/fairmotion/src/editors/viewport/view2d_editor.js');
-es6_module_define('MaterialEditor', ["struct", "spline_editops", "UIFrame", "ScreenArea", "UITabPanel", "toolops_api", "spline_types", "UIPack", "spline_layerops", "events", "config", "UIElement", "UIWidgets", "mathlib", "UIWidgets_special", "UICanvas", "UITextBox"], function _MaterialEditor_module(_es6_module) {
-  var gen_editor_switcher=es6_import_item(_es6_module, 'UIWidgets_special', 'gen_editor_switcher');
-  var ENABLE_MULTIRES=es6_import_item(_es6_module, 'config', 'ENABLE_MULTIRES');
-  var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
-  var UICanvas=es6_import_item(_es6_module, 'UICanvas', 'UICanvas');
+es6_module_define('view2d_object', ["struct", "spline_base", "selectmode"], function _view2d_object_module(_es6_module) {
+  "use strict";
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
-  var PackFlags=es6_import_item(_es6_module, 'UIElement', 'PackFlags');
-  var KeyMap=es6_import_item(_es6_module, 'events', 'KeyMap');
-  var ToolKeyHandler=es6_import_item(_es6_module, 'events', 'ToolKeyHandler');
-  var FuncKeyHandler=es6_import_item(_es6_module, 'events', 'FuncKeyHandler');
-  var KeyHandler=es6_import_item(_es6_module, 'events', 'KeyHandler');
-  var charmap=es6_import_item(_es6_module, 'events', 'charmap');
-  var TouchEventManager=es6_import_item(_es6_module, 'events', 'TouchEventManager');
-  var EventHandler=es6_import_item(_es6_module, 'events', 'EventHandler');
-  var VelocityPan=es6_import_item(_es6_module, 'events', 'VelocityPan');
-  var UIFlags=es6_import_item(_es6_module, 'UIElement', 'UIFlags');
-  var PackFlags=es6_import_item(_es6_module, 'UIElement', 'PackFlags');
-  var CanvasFlags=es6_import_item(_es6_module, 'UIElement', 'CanvasFlags');
-  var open_mobile_keyboard=es6_import_item(_es6_module, 'UIElement', 'open_mobile_keyboard');
-  var close_mobile_keyboard=es6_import_item(_es6_module, 'UIElement', 'close_mobile_keyboard');
-  var inrect_2d_button=es6_import_item(_es6_module, 'UIElement', 'inrect_2d_button');
-  var UIElement=es6_import_item(_es6_module, 'UIElement', 'UIElement');
-  var UIHoverBox=es6_import_item(_es6_module, 'UIElement', 'UIHoverBox');
-  var UIHoverHint=es6_import_item(_es6_module, 'UIElement', 'UIHoverHint');
-  var UIFrame=es6_import_item(_es6_module, 'UIFrame', 'UIFrame');
-  var UIPackFrame=es6_import_item(_es6_module, 'UIPack', 'UIPackFrame');
-  var RowFrame=es6_import_item(_es6_module, 'UIPack', 'RowFrame');
-  var ColumnFrame=es6_import_item(_es6_module, 'UIPack', 'ColumnFrame');
-  var ToolOpFrame=es6_import_item(_es6_module, 'UIPack', 'ToolOpFrame');
-  var UIButtonAbstract=es6_import_item(_es6_module, 'UIWidgets', 'UIButtonAbstract');
-  var UIButton=es6_import_item(_es6_module, 'UIWidgets', 'UIButton');
-  var UIButtonIcon=es6_import_item(_es6_module, 'UIWidgets', 'UIButtonIcon');
-  var UIMenuButton=es6_import_item(_es6_module, 'UIWidgets', 'UIMenuButton');
-  var UICheckBox=es6_import_item(_es6_module, 'UIWidgets', 'UICheckBox');
-  var UINumBox=es6_import_item(_es6_module, 'UIWidgets', 'UINumBox');
-  var UILabel=es6_import_item(_es6_module, 'UIWidgets', 'UILabel');
-  var _HiddenMenuElement=es6_import_item(_es6_module, 'UIWidgets', '_HiddenMenuElement');
-  var UIMenuLabel=es6_import_item(_es6_module, 'UIWidgets', 'UIMenuLabel');
-  var ScrollButton=es6_import_item(_es6_module, 'UIWidgets', 'ScrollButton');
-  var UIVScroll=es6_import_item(_es6_module, 'UIWidgets', 'UIVScroll');
-  var UIIconCheck=es6_import_item(_es6_module, 'UIWidgets', 'UIIconCheck');
-  var UICollapseIcon=es6_import_item(_es6_module, 'UIWidgets_special', 'UICollapseIcon');
-  var UIPanel=es6_import_item(_es6_module, 'UIWidgets_special', 'UIPanel');
-  var gen_editor_switcher=es6_import_item(_es6_module, 'UIWidgets_special', 'gen_editor_switcher');
-  var UIColorField=es6_import_item(_es6_module, 'UIWidgets_special', 'UIColorField');
-  var UIColorBox=es6_import_item(_es6_module, 'UIWidgets_special', 'UIColorBox');
-  var UIColorPicker=es6_import_item(_es6_module, 'UIWidgets_special', 'UIColorPicker');
-  var UIBoxWColor=es6_import_item(_es6_module, 'UIWidgets_special', 'UIBoxWColor');
-  var UIBoxColor=es6_import_item(_es6_module, 'UIWidgets_special', 'UIBoxColor');
-  var UIProgressBar=es6_import_item(_es6_module, 'UIWidgets_special', 'UIProgressBar');
-  var UIListEntry=es6_import_item(_es6_module, 'UIWidgets_special', 'UIListEntry');
-  var UIListBox=es6_import_item(_es6_module, 'UIWidgets_special', 'UIListBox');
-  var _UITab=es6_import_item(_es6_module, 'UITabPanel', '_UITab');
-  var UITabBar=es6_import_item(_es6_module, 'UITabPanel', 'UITabBar');
-  var UITabPanel=es6_import_item(_es6_module, 'UITabPanel', 'UITabPanel');
-  var UITextBox=es6_import_item(_es6_module, 'UITextBox', 'UITextBox');
-  var ModalStates=es6_import_item(_es6_module, 'toolops_api', 'ModalStates');
-  var SplineFlags=es6_import_item(_es6_module, 'spline_types', 'SplineFlags');
-  var ShiftLayerOrderOp=es6_import_item(_es6_module, 'spline_editops', 'ShiftLayerOrderOp');
-  var AddLayerOp=es6_import_item(_es6_module, 'spline_layerops', 'AddLayerOp');
-  var DeleteLayerOp=es6_import_item(_es6_module, 'spline_layerops', 'DeleteLayerOp');
-  var ChangeLayerOp=es6_import_item(_es6_module, 'spline_layerops', 'ChangeLayerOp');
-  var ChangeElementLayerOp=es6_import_item(_es6_module, 'spline_layerops', 'ChangeElementLayerOp');
-  var Area=es6_import_item(_es6_module, 'ScreenArea', 'Area');
-  var LayerPanel=_ESClass("LayerPanel", RowFrame, [function LayerPanel(ctx) {
-    RowFrame.call(this, ctx);
-    this.last_total_layers = this.last_active_id = 0;
-    this.do_rebuild = 1;
-    this.delayed_recalc = 0;
-  }, function build_draw(canvas, is_vertical) {
-    RowFrame.prototype.build_draw.call(this, canvas, is_vertical);
-  }, function on_tick() {
-    if (this.do_rebuild) {
-        this.rebuild();
-        return ;
-    }
-    RowFrame.prototype.on_tick.call(this);
-    if (this.ctx==undefined)
-      return ;
-    var spline=this.ctx.frameset.spline;
-    var do_rebuild=spline.layerset.length!=this.last_total_layers;
-    do_rebuild = do_rebuild||spline.layerset.active.id!=this.last_active_id;
-    if (!this.do_rebuild&&do_rebuild) {
-        this.do_recalc();
-    }
-    this.do_rebuild|=do_rebuild;
-    if (this.delayed_recalc) {
-        this.delayed_recalc--;
-        this.do_recalc();
-        this.do_full_recalc();
-        window.redraw_ui();
-    }
-  }, function rebuild() {
-    if (this.ctx==undefined)
-      return ;
-    this.do_rebuild = false;
-    console.log("layers ui rebuild!");
-    var spline=this.ctx.frameset.spline;
-    this.last_total_layers = spline.layerset.length;
-    this.last_active_id = spline.layerset.active.id;
-    while (this.children.length>0) {
-      this.remove(this.children[0]);
-    }
-    this.label("Layers");
-    var controls=this.col();
-    var add=new UIButtonIcon(this.ctx, "Add");
-    var del=new UIButtonIcon(this.ctx, "Delete");
-    add.icon = Icons.SMALL_PLUS;
-    del.icon = Icons.SMALL_MINUS;
-    var this2=this;
-    add.callback = function() {
-      g_app_state.toolstack.exec_tool(new AddLayerOp());
-    }
-    del.callback = function() {
-      var tool=new DeleteLayerOp();
-      var layer=this.ctx.spline.layerset.active;
-      if (layer==undefined)
-        return ;
-      tool.inputs.layer_id.set_data(layer.id);
-      g_app_state.toolstack.exec_tool(tool);
-    }
-    var up=new UIButtonIcon(this.ctx, "Up", 30);
-    var down=new UIButtonIcon(this.ctx, "Down", 29);
-    up.icon = Icons.SCROLL_UP;
-    down.icon = Icons.SCROLL_DOWN;
-    var this2=this;
-    down.callback = function() {
-      console.log("Shift layers down");
-      var ctx=new Context(), spline=ctx.frameset.spline;
-      var layer=spline.layerset.active;
-      var tool=new ShiftLayerOrderOp(layer.id, -1);
-      g_app_state.toolstack.exec_tool(tool);
-      this2.rebuild();
-    }
-    up.callback = function() {
-      console.log("Shift layers up");
-      var ctx=new Context(), spline=ctx.frameset.spline;
-      var layer=spline.layerset.active;
-      var tool=new ShiftLayerOrderOp(layer.id, 1);
-      g_app_state.toolstack.exec_tool(tool);
-      this2.rebuild();
-    }
-    this.controls = {add: add, del: del, up: up, down: down}
-    for (var k in this.controls) {
-        controls.add(this.controls[k]);
-    }
-    var list=this.list = new UIListBox();
-    list.size = [200, 250];
-    this.add(list);
-    for (var i=spline.layerset.length-1; i>=0; i--) {
-        var layer=spline.layerset[i];
-        list.add_item(layer.name, layer.id);
-    }
-    list.set_active(spline.layerset.active.id);
-    list.callback = function(list, text, id) {
-      var layer=spline.layerset.idmap[id];
-      if (layer==undefined) {
-          console.log("Error!", arguments);
-          return ;
-      }
-      console.log("Changing layers!");
-      g_app_state.toolstack.exec_tool(new ChangeLayerOp(id));
-    }
-    var controls2=this.col();
-    controls2.add(new UIButton(this.ctx, "Sel Up"));
-    controls2.add(new UIButton(this.ctx, "Sel Down"));
-    var this2=this;
-    controls2.children[0].callback = function() {
-      var lset=this2.ctx.frameset.spline.layerset;
-      var oldl=lset.active;
-      console.log("oldl", oldl);
-      if (oldl.order==lset.length-1)
-        return ;
-      var newl=lset[oldl.order+1];
-      var tool=new ChangeElementLayerOp(oldl.id, newl.id);
-      g_app_state.toolstack.exec_tool(tool);
-    }
-    controls2.children[1].callback = function() {
-      var lset=this2.ctx.frameset.spline.layerset;
-      var oldl=lset.active;
-      console.log("oldl", oldl);
-      if (oldl.order==0)
-        return ;
-      var newl=lset[oldl.order-1];
-      var tool=new ChangeElementLayerOp(oldl.id, newl.id);
-      g_app_state.toolstack.exec_tool(tool);
-    }
-    var controls3=this.col();
-    controls3.prop('frameset.drawspline.active_layer.flag');
-    this.delayed_recalc = 4;
+  var SelMask=es6_import_item(_es6_module, 'selectmode', 'SelMask');
+  var SplineTypes=es6_import_item(_es6_module, 'spline_base', 'SplineTypes');
+  var WorkObjectType=_ESClass("WorkObjectType", [function WorkObjectType(ctx, selmode) {
+    this.ctx = ctx;
+    this.selmode = selmode;
+  }, function setSelMode(mode) {
+    this.selmode = mode;
+  }, function findnearest(ctx, p) {
+    throw new Error("implement findnearest!");
+  }, function iterKeys() {
+    throw new Error("want element key iter");
+  }, _ESClass.get(function length() {
+    throw new Error("need length");
+  }), function setCtx(ctx) {
+    this.ctx = ctx;
+    return this;
+  }, function getPos(ei) {
+    throw new Error("want a Vector2 for pos");
+  }, function setPos(ei, pos) {
+    throw new Error("want to set pos");
+  }, function getBounds(ei) {
+    throw new Error("want [Vector2, Vector2], min/max bounds");
+  }, function getSelect(ei) {
+    throw new Error("want boolean");
+  }, function setSelect(ei, state) {
+    throw new Error("want to set selection");
+  }, function getVisible(ei) {
+    return this.getHide(ei);
+  }, function getHide(ei) {
+    throw new Error("want to get hide");
+  }, function setHide(e1, state) {
+    throw new Error("want to set hide");
   }]);
-  _es6_module.add_class(LayerPanel);
-  var MaterialEditor=_ESClass("MaterialEditor", Area, [function fill_panel() {
-    var ctx=this.ctx;
-    var panel=new RowFrame(ctx);
-    panel.packflag|=PackFlags.INHERIT_WIDTH;
-    panel.packflag|=PackFlags.NO_AUTO_SPACING;
-    panel.packflag|=PackFlags.IGNORE_LIMIT;
-    panel.label("Fill Color");
-    panel.prop("spline.active_face.mat.fillcolor", undefined, "spline.editable_faces{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}.mat.fillcolor");
-    panel.prop("spline.active_face.mat.blur", undefined, "spline.editable_faces{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}.mat.blur");
-    return panel;
-  }, function multires_panel() {
-    var ctx=this.ctx;
-    var panel=new RowFrame(ctx);
-    set_prefix = "spline.mres_points{$.level == ctx.spline.actlevel &&";
-    set_prefix+=" ctx.spline.layerset.active.id in ctx.spline.eidmap[$.seg].layers &&";
-    set_prefix+=" ($.flag & 1) &&";
-    set_prefix+=" !($.flag & 64)}";
-    panel.packflag|=PackFlags.INHERIT_WIDTH;
-    panel.packflag|=PackFlags.NO_AUTO_SPACING;
-    panel.packflag|=PackFlags.IGNORE_LIMIT;
-    panel.prop("spline.active_mres_point.support", undefined, set_prefix+".support");
-    panel.prop("spline.active_mres_point.degree", undefined, set_prefix+".degree");
-    return panel;
-  }, function stroke_panel() {
-    var ctx=this.ctx;
-    var panel=new RowFrame(ctx);
-    panel.packflag|=PackFlags.INHERIT_WIDTH;
-    panel.packflag|=PackFlags.NO_AUTO_SPACING;
-    panel.packflag|=PackFlags.IGNORE_LIMIT;
-    var set_prefix="spline.segments{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}.mat";
-    panel.label("Stroke Color");
-    panel.prop("spline.active_segment.mat.strokecolor", undefined, set_prefix+".strokecolor");
-    panel.prop("spline.active_segment.mat.linewidth", undefined, set_prefix+".linewidth");
-    panel.prop("spline.active_segment.mat.blur", undefined, set_prefix+".blur");
-    panel.prop("spline.active_segment.renderable", undefined, "spline.segments{($.flag & 1) && !$.hidden}.renderable");
-    panel.prop("spline.active_segment.mat.flag[MASK_TO_FACE]", undefined, set_prefix+".flag[MASK_TO_FACE]");
-    return panel;
-  }, function layers_panel() {
-    return new LayerPanel(new Context());
-  }, function vertex_panel() {
-    var ctx=this.ctx;
-    var set_prefix="spline.verts{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}";
-    var panel=new RowFrame(ctx);
-    panel.prop("spline.active_vertex.flag[BREAK_TANGENTS]", undefined, set_prefix+".flag[BREAK_TANGENTS]");
-    panel.prop("spline.active_vertex.flag[BREAK_CURVATURES]", undefined, set_prefix+".flag[BREAK_CURVATURES]");
-    panel.prop("spline.active_vertex.flag[USE_HANDLES]", undefined, set_prefix+".flag[USE_HANDLES]");
-    panel.prop("spline.active_vertex.flag[GHOST]", undefined, set_prefix+".flag[GHOST]");
-    return panel;
-  }, function MaterialEditor(ctx, pos, size) {
-    Area.call(this, MaterialEditor.name, MaterialEditor.uiname, new Context(), pos, size);
-    this.mm = new MinMax(2);
-    this.keymap = new KeyMap();
-    this.define_keymap();
-    this.drawlines = new GArray();
-    this.pan_bounds = [[0, 0], [0, 0]];
-    this._filter_sel = false;
-    this.ctx = new Context();
-    if (size==undefined)
-      size = [1, 1];
-    this.tab_size = size;
-  }, function build_layout() {
-    Area.prototype.build_layout.call(this, false, true);
-    let size=this.tab_size;
-    this.innerframe = new UITabPanel(this.ctx, [size[0], size[1]]);
-    this.innerframe.packflag|=PackFlags.NO_AUTO_SPACING|PackFlags.INHERIT_WIDTH|PackFlags.INHERIT_HEIGHT;
-    this.innerframe.state|=0;
-    this.innerframe.velpan = new VelocityPan();
-    this.innerframe.add_tab("Fill", this.fill_panel());
-    this.innerframe.add_tab("Stroke", this.stroke_panel());
-    this.innerframe.add_tab("Layers", this.layers_panel());
-    this.innerframe.add_tab("Point", this.vertex_panel());
-    if (ENABLE_MULTIRES) {
-        this.innerframe.add_tab("Multires", this.multires_panel());
+  _es6_module.add_class(WorkObjectType);
+  WorkObjectType = _es6_module.add_export('WorkObjectType', WorkObjectType);
+  
+  let pos_tmps=cachering.fromConstructor(Vector3, 64);
+  function concat_iterator(iter1, iter2) {
+    if (iter2===undefined) {
+        return iter1;
     }
-    this.middlesplit.add(this.innerframe);
-  }, function define_keymap() {
-  }, function on_tick() {
-    if (g_app_state.modalstate&ModalStates.PLAYING) {
-        this.state|=UIFlags.BLOCK_REPAINT;
-        return ;
+    else 
+      if (iter1===undefined) {
+        return iter2;
     }
-    else {
-      this.state&=~UIFlags.BLOCK_REPAINT;
-    }
-    Area.prototype.on_tick.call(this);
-  }, _ESClass.static(function default_new(ctx, scr, gl, pos, size) {
-    var ret=new MaterialEditor(ctx, pos, size);
-    return ret;
-  }), function on_mousedown(event) {
-    if (event.button==1&&!g_app_state.was_touch) {
-        this.innerframe.start_pan([event.x, event.y], 1);
-    }
-    else {
-      Area.prototype.on_mousedown.call(this, event);
-    }
-  }, function on_area_inactive() {
-    this.destroy();
-    Area.prototype.on_area_inactive.call(this);
-  }, function area_duplicate() {
-    var ret=new MaterialEditor(this.pos[0], this.pos[1], this.size[0], this.size[1]);
-    return ret;
-  }, function destroy() {
-    Area.prototype.destroy.call(this);
-  }, function build_topbar(col) {
-    this.ctx = new Context();
-    col.packflag|=PackFlags.ALIGN_LEFT;
-    this.topbar = col;
-    col.packflag|=PackFlags.IGNORE_LIMIT;
-    col.size = [this.size[0], Area.get_barhgt()];
-    col.draw_background = true;
-    col.rcorner = 100.0;
-    col.pos = [0, this.size[1]-Area.get_barhgt()];
-  }, function build_bottombar(col) {
-    var ctx=new Context();
-    col.packflag|=PackFlags.ALIGN_LEFT;
-    col.default_packflag = PackFlags.ALIGN_LEFT;
-    col.draw_background = true;
-    col.rcorner = 100.0;
-    col.pos = [0, 2];
-    col.size = [this.size[0], Area.get_barhgt()];
-    col.add(gen_editor_switcher(this.ctx, this));
-  }, function build_draw(canvas, isVertical) {
-    this.innerframe.set_pan();
-    var ctx=this.ctx = new Context();
-    var sx=this.size[0];
-    var sy=this.size[1]-this.innerframe.pos[1]-Area.get_barhgt();
-    var s1=this.size, s2=this.innerframe.size;
-    if (s2[0]!=sx||s2[1]!=sy) {
-        console.log("resizing subframe");
-        this.innerframe.size[0] = this.size[0];
-        this.innerframe.size[1] = sy;
-        this.innerframe.on_resize(this.size, this.innerframe.size);
-    }
-    this.innerframe.canvas.viewport = this.canvas.viewport;
-    Area.prototype.build_draw.call(this, canvas, isVertical);
-    this.mm.reset();
-    var arr=[0, 0];
-    var __iter_c=__get_iter(this.children);
-    var c;
-    while (1) {
-      var __ival_c=__iter_c.next();
-      if (__ival_c.done) {
-          break;
+    return (function() {
+      var __gen_this2=this;
+      function _generator_iter() {
+        this.scope = {__iter_item_1: undefined, item_1: undefined}
+        this.ret = {done: false, value: undefined}
+        this.state = 1;
+        this.trystack = [];
+        this.next = function() {
+          var ret;
+          var stack=this.trystack;
+          try {
+            ret = this._next();
+          }
+          catch (err) {
+              if (stack.length>0) {
+                  var item=stack.pop(stack.length-1);
+                  this.state = item[0];
+                  this.scope[item[1]] = err;
+                  return this.next();
+              }
+              else {
+                throw err;
+              }
+          }
+          return ret;
+        }
+        this.push_trystack = function(catchstate, catchvar) {
+          this.trystack.push([catchstate, catchvar]);
+        }
+        this.pop_trystack = function() {
+          this.trystack.pop(this.trystack.length-1);
+        }
+        this._next = function() {
+          var $__ret=undefined;
+          var $__state=this.state;
+          var scope=this.scope;
+          while ($__state<15) {
+            switch ($__state) {
+              case 0:
+                break;
+              case 1:
+                scope.__iter_item_1=__get_iter(iter1);
+                scope.item_1;
+                
+                $__state = 2;
+                break;
+              case 2:
+                $__state = (1) ? 3 : 8;
+                break;
+              case 3:
+                scope.__ival_item_3=scope.__iter_item_1.next();
+                
+                $__state = 4;
+                break;
+              case 4:
+                $__state = (scope.__ival_item_3.done) ? 5 : 6;
+                break;
+              case 5:
+                $__state = 8;
+                break;
+                
+                $__state = 6;
+                break;
+              case 6:
+                scope.item_1 = scope.__ival_item_3.value;
+                
+                $__state = 7;
+                break;
+              case 7:
+                $__ret = this.ret;
+                $__ret.value = scope.item_1;
+                
+                $__state = 2;
+                break;
+              case 8:
+                scope.__iter_item_1=__get_iter(iter2);
+                scope.item_1;
+                
+                $__state = 9;
+                break;
+              case 9:
+                $__state = (1) ? 10 : 15;
+                break;
+              case 10:
+                scope.__ival_item_10=scope.__iter_item_1.next();
+                
+                $__state = 11;
+                break;
+              case 11:
+                $__state = (scope.__ival_item_10.done) ? 12 : 13;
+                break;
+              case 12:
+                $__state = 15;
+                break;
+                
+                $__state = 13;
+                break;
+              case 13:
+                scope.item_1 = scope.__ival_item_10.value;
+                
+                $__state = 14;
+                break;
+              case 14:
+                $__ret = this.ret;
+                $__ret.value = scope.item_1;
+                
+                $__state = 9;
+                break;
+              case 15:
+                break;
+              default:
+                console.log("Generator state error");
+                console.trace();
+                break;
+            }
+            if ($__ret!=undefined) {
+                break;
+            }
+          }
+          if ($__ret!=undefined) {
+              this.ret.value = $__ret.value;
+          }
+          else {
+            this.ret.done = true;
+            this.ret.value = undefined;
+          }
+          this.state = $__state;
+          return this.ret;
+        }
+        this[Symbol.iterator] = function() {
+          return this;
+        }
+        this.forEach = function(callback, thisvar) {
+          if (thisvar==undefined)
+            thisvar = self;
+          var _i=0;
+          while (1) {
+            var ret=this.next();
+            if (ret==undefined||ret.done||(ret._ret!=undefined&&ret._ret.done))
+              break;
+            callback.call(thisvar, ret.value);
+            if (_i++>100) {
+                console.log("inf loop", ret);
+                break;
+            }
+          }
+        }
       }
-      c = __ival_c.value;
-      this.mm.minmax(c.pos);
-      arr[0] = c.pos[0]+c.size[0];
-      arr[1] = c.pos[1]+c.size[1];
-      this.mm.minmax(c.pos);
-      this.mm.minmax(arr);
+      return new _generator_iter();
+    })();
+  }
+  var WorkSpline=_ESClass("WorkSpline", WorkObjectType, [function WorkSpline(ctx, selmode, edit_all_layers) {
+    WorkObjectType.call(this, ctx, selmode);
+    this.edit_all_layers = edit_all_layers;
+  }, function iterKeys() {
+    let ctx=this.ctx;
+    let selmode=this.selmode;
+    let spline=ctx.spline;
+    let iter=undefined;
+    if (selmode&SelMask.VERTEX) {
+        iter = concat_iterator(iter, spline.verts.editable(ctx));
     }
-    this.pan_bounds[1][1] = this.mm.max[1]-this.mm.min[1]-this.size[1];
-  }, function set_canvasbox() {
-    this.asp = this.size[0]/this.size[1];
-  }, function data_link(block, getblock, getblock_us) {
-  }, _ESClass.static(function fromSTRUCT(reader) {
-    var ret=new MaterialEditor();
-    reader(ret);
-    return ret;
-  })]);
-  _es6_module.add_class(MaterialEditor);
-  MaterialEditor.STRUCT = STRUCT.inherit(MaterialEditor, Area)+"\n  }\n";
-  MaterialEditor.uiname = "Properties";
-  MaterialEditor.debug_only = false;
-}, '/dev/fairmotion/src/editors/material/MaterialEditor.js');
+    if (selmode&SelMask.HANDLE) {
+        iter = concat_iterator(iter, spline.handles.editable(ctx));
+    }
+    if (selmode&SelMask.SEGMENT) {
+        iter = concat_iterator(iter, spline.segments.editable(ctx));
+    }
+    if (selmode&SelMask.FACE) {
+        iter = concat_iterator(iter, spline.faces.editable(ctx));
+    }
+    return (function() {
+      var __gen_this2=this;
+      function _generator_iter() {
+        this.scope = {__iter_item_1: undefined, item_1: undefined}
+        this.ret = {done: false, value: undefined}
+        this.state = 1;
+        this.trystack = [];
+        this.next = function() {
+          var ret;
+          var stack=this.trystack;
+          try {
+            ret = this._next();
+          }
+          catch (err) {
+              if (stack.length>0) {
+                  var item=stack.pop(stack.length-1);
+                  this.state = item[0];
+                  this.scope[item[1]] = err;
+                  return this.next();
+              }
+              else {
+                throw err;
+              }
+          }
+          return ret;
+        }
+        this.push_trystack = function(catchstate, catchvar) {
+          this.trystack.push([catchstate, catchvar]);
+        }
+        this.pop_trystack = function() {
+          this.trystack.pop(this.trystack.length-1);
+        }
+        this._next = function() {
+          var $__ret=undefined;
+          var $__state=this.state;
+          var scope=this.scope;
+          while ($__state<8) {
+            switch ($__state) {
+              case 0:
+                break;
+              case 1:
+                scope.__iter_item_1=__get_iter(iter);
+                scope.item_1;
+                
+                $__state = 2;
+                break;
+              case 2:
+                $__state = (1) ? 3 : 8;
+                break;
+              case 3:
+                scope.__ival_item_3=scope.__iter_item_1.next();
+                
+                $__state = 4;
+                break;
+              case 4:
+                $__state = (scope.__ival_item_3.done) ? 5 : 6;
+                break;
+              case 5:
+                $__state = 8;
+                break;
+                
+                $__state = 6;
+                break;
+              case 6:
+                scope.item_1 = scope.__ival_item_3.value;
+                
+                $__state = 7;
+                break;
+              case 7:
+                $__ret = this.ret;
+                $__ret.value = scope.item_1.eid;
+                
+                $__state = 2;
+                break;
+              case 8:
+                break;
+              default:
+                console.log("Generator state error");
+                console.trace();
+                break;
+            }
+            if ($__ret!=undefined) {
+                break;
+            }
+          }
+          if ($__ret!=undefined) {
+              this.ret.value = $__ret.value;
+          }
+          else {
+            this.ret.done = true;
+            this.ret.value = undefined;
+          }
+          this.state = $__state;
+          return this.ret;
+        }
+        this[Symbol.iterator] = function() {
+          return this;
+        }
+        this.forEach = function(callback, thisvar) {
+          if (thisvar==undefined)
+            thisvar = self;
+          var _i=0;
+          while (1) {
+            var ret=this.next();
+            if (ret==undefined||ret.done||(ret._ret!=undefined&&ret._ret.done))
+              break;
+            callback.call(thisvar, ret.value);
+            if (_i++>100) {
+                console.log("inf loop", ret);
+                break;
+            }
+          }
+        }
+      }
+      return new _generator_iter();
+    })();
+  }, function iterSelectedKeys() {
+    let ctx=this.ctx;
+    let selmode=this.selmode;
+    let spline=ctx.spline;
+    let iter=undefined;
+    if (selmode&SelMask.VERTEX) {
+        iter = concat_iterator(iter, spline.verts.selected.editable(ctx));
+    }
+    if (selmode&SelMask.HANDLE) {
+        iter = concat_iterator(iter, spline.handles.selected.editable(ctx));
+    }
+    if (selmode&SelMask.SEGMENT) {
+        iter = concat_iterator(iter, spline.segments.selected.editable(ctx));
+    }
+    if (selmode&SelMask.FACE) {
+        iter = concat_iterator(iter, spline.faces.selected.editable(ctx));
+    }
+    return (function() {
+      var __gen_this2=this;
+      function _generator_iter() {
+        this.scope = {__iter_item_1: undefined, item_1: undefined}
+        this.ret = {done: false, value: undefined}
+        this.state = 1;
+        this.trystack = [];
+        this.next = function() {
+          var ret;
+          var stack=this.trystack;
+          try {
+            ret = this._next();
+          }
+          catch (err) {
+              if (stack.length>0) {
+                  var item=stack.pop(stack.length-1);
+                  this.state = item[0];
+                  this.scope[item[1]] = err;
+                  return this.next();
+              }
+              else {
+                throw err;
+              }
+          }
+          return ret;
+        }
+        this.push_trystack = function(catchstate, catchvar) {
+          this.trystack.push([catchstate, catchvar]);
+        }
+        this.pop_trystack = function() {
+          this.trystack.pop(this.trystack.length-1);
+        }
+        this._next = function() {
+          var $__ret=undefined;
+          var $__state=this.state;
+          var scope=this.scope;
+          while ($__state<8) {
+            switch ($__state) {
+              case 0:
+                break;
+              case 1:
+                scope.__iter_item_1=__get_iter(iter);
+                scope.item_1;
+                
+                $__state = 2;
+                break;
+              case 2:
+                $__state = (1) ? 3 : 8;
+                break;
+              case 3:
+                scope.__ival_item_3=scope.__iter_item_1.next();
+                
+                $__state = 4;
+                break;
+              case 4:
+                $__state = (scope.__ival_item_3.done) ? 5 : 6;
+                break;
+              case 5:
+                $__state = 8;
+                break;
+                
+                $__state = 6;
+                break;
+              case 6:
+                scope.item_1 = scope.__ival_item_3.value;
+                
+                $__state = 7;
+                break;
+              case 7:
+                $__ret = this.ret;
+                $__ret.value = scope.item_1.eid;
+                
+                $__state = 2;
+                break;
+              case 8:
+                break;
+              default:
+                console.log("Generator state error");
+                console.trace();
+                break;
+            }
+            if ($__ret!=undefined) {
+                break;
+            }
+          }
+          if ($__ret!=undefined) {
+              this.ret.value = $__ret.value;
+          }
+          else {
+            this.ret.done = true;
+            this.ret.value = undefined;
+          }
+          this.state = $__state;
+          return this.ret;
+        }
+        this[Symbol.iterator] = function() {
+          return this;
+        }
+        this.forEach = function(callback, thisvar) {
+          if (thisvar==undefined)
+            thisvar = self;
+          var _i=0;
+          while (1) {
+            var ret=this.next();
+            if (ret==undefined||ret.done||(ret._ret!=undefined&&ret._ret.done))
+              break;
+            callback.call(thisvar, ret.value);
+            if (_i++>100) {
+                console.log("inf loop", ret);
+                break;
+            }
+          }
+        }
+      }
+      return new _generator_iter();
+    })();
+  }, _ESClass.get(function length() {
+    throw new Error("need length");
+  }), function findnearest(ctx, p) {
+    throw new Error("implement findnearest!");
+  }, function getPos(ei) {
+    let spline=this.ctx.spline;
+    let e=spline.eidmap[ei];
+    if (e===undefined) {
+        console.warn("Bad element index", ei, "for spline", spline);
+        return undefined;
+    }
+    if (e.type==SplineTypes.VERTEX||e.type==SplineTypes.HANDLE) {
+        return e;
+    }
+    else 
+      if (e.type==SplineTypes.SEGMENT) {
+        let p=pos_tmps.next().zero();
+        p.load(e.evaluate(0.5));
+        return p;
+    }
+    else 
+      if (e.type==SplineTypes.FACE) {
+        let p=pos_tmps.next().zero();
+        return p.load(e.aabb[0]).interp(e.aabb[1], 0.5);
+    }
+    else {
+      console.warn("bad element type for", e, "type at error time was:", e.type);
+      throw new Error("bad element type"+e.type);
+    }
+    throw new Error("want a Vector2 for pos");
+  }, function setPos(ei, pos) {
+    let spline=this.ctx.spline;
+    let e=spline.eidmap[ei];
+    if (e===undefined) {
+        console.warn("Bad element index", ei, "for spline", spline);
+        return false;
+    }
+    if (e.type==SplineTypes.VERTEX||e.type==SplineTypes.HANDLE) {
+        e.load(pos);
+        return true;
+    }
+    else 
+      if (e.type==SplineTypes.SEGMENT) {
+        p = this.getPos(ei);
+        p.sub(pos).negate();
+        e.v1.add(p);
+        e.v2.add(p);
+        return true;
+    }
+    else 
+      if (e.type==SplineTypes.FACE) {
+        p = this.getPos(ei);
+        p.sub(pos).negate();
+        var __iter_v=__get_iter(e.verts);
+        var v;
+        while (1) {
+          var __ival_v=__iter_v.next();
+          if (__ival_v.done) {
+              break;
+          }
+          v = __ival_v.value;
+          v.add(p);
+        }
+        return true;
+    }
+    else {
+      console.warn("bad element type for", e, "type at error time was:", e.type);
+      throw new Error("bad element type"+e.type);
+    }
+    return false;
+  }, function getBounds(ei) {
+    throw new Error("want [Vector2, Vector2], min/max bounds");
+  }, function getSelect(ei) {
+    throw new Error("want boolean");
+  }, function setSelect(ei, state) {
+    throw new Error("want to set selection");
+  }, function getVisible(ei) {
+    throw new Error("implement me");
+  }, function getHide(ei) {
+    throw new Error("want to hide");
+  }, function setHide(e1, state) {
+    throw new Error("want to set hide");
+  }]);
+  _es6_module.add_class(WorkSpline);
+  WorkSpline = _es6_module.add_export('WorkSpline', WorkSpline);
+  
+}, '/dev/fairmotion/src/editors/viewport/view2d_object.js');

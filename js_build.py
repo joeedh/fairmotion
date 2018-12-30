@@ -9,7 +9,7 @@ NOTETITLE = "Build System"
 note.showNote(THENOTE, NOTETITLE, "Build system on");
 note.sleep(0.5);
 note.showNote(THENOTE, NOTETITLE, "Yay");
-#note.hideNote(THENOTE)
+note.hideNote(THENOTE)
 
 import os, sys, os.path, time, random, math
 import shelve, struct, io, imp, ctypes, re
@@ -130,7 +130,7 @@ def addslash(path):
   path += sep
   return path
 
-num_cores = getcfg("num_cores", 5, "int")
+num_cores = getcfg("num_cores", 15, "int")
 do_minify = getcfg("do_minify", False, "bool")
 do_smaps = getcfg("do_smaps", False, "bool")
 do_coverage_profile = getcfg("do_coverage_profile", False, "bool")
@@ -645,7 +645,7 @@ def build_target(files):
         use_popen = handlers[k].use_popen
         re_size = len(k)
 
-    perc = int((float(fi) / len(filtered))*100.0)
+    perc = int((float(len(filtered)-fi) / len(filtered))*100.0)
 
     """
     dcmd = cmd.replace(JCC, "js_cc").replace(PYBIN, "")
@@ -661,7 +661,8 @@ def build_target(files):
     """
 
     dcmd = os.path.split(f)[1] if ("/" in f or "\\" in f) else f
-
+    dcmd = ("[%i%%] " % perc) + dcmd.strip()
+    
     #execute build command
 
     if len(failed_files) > 0: continue
@@ -674,7 +675,6 @@ def build_target(files):
         cmd = cmd.replace("\\", "\\\\")
 
       cmdlist = shlex.split(cmd)
-      #cmdlist[0] = np(cmdlist[0])
 
       commands.append([cmdlist, dcmd])
     else:
@@ -693,7 +693,7 @@ def build_target(files):
 
         cmdlist, dcmd = commands.pop()
         
-        reportbuf = ("[%i%%] " % perc) + dcmd.strip() #" ".join(cmdlist)
+        reportbuf = dcmd #" ".join(cmdlist)
         print(reportbuf);
         note.appendNote(THENOTE, reportbuf)
         
@@ -706,13 +706,14 @@ def build_target(files):
         newprocs.append(p)
       else:
         ret = p[0].returncode
+        
         if failed_ret(ret):
           failed_files.append(p[1])
 
     procs = newprocs
     note.sleep(0.05)
 
-  if len(failed_files) == 0:
+  if len(failed_files) == 0 and len(built_files) > 0:
     note.showNote(THENOTE, NOTETITLE, "Done!");
     note.sleep(1)
     
@@ -738,7 +739,9 @@ def build_target(files):
       sys.exit(-1)
     else:
       return 0
-
+    
+  note.hideNote(THENOTE)
+  
   for pathtime in built_files:
     if pathtime[0] in db:
       print("saving", db[pathtime[0]], pathtime[1])
@@ -750,6 +753,10 @@ def build_target(files):
 
   #write aggregate, minified file
   if build_final:
+    #note.showNote(THENOTE, NOTETITLE, "\n\nwriting %s..." % (target_path+files.target))
+    #note.sleep(0.5);
+    #note.hideNote(THENOTE)
+    
     print("\n\nwriting %s..." % (target_path+files.target))
     sys.stdout.flush()
     aggregate(files, target_path+files.target)
@@ -1164,11 +1171,9 @@ def themain():
       buildall()
       #print_profs()
 
-      print("Run");
-      
       t = time.time()
       while time.time() - t < 0.6:
-          note.sleep(0.005);
+          note.sleep(0.05);
   else:
     buildall()
 

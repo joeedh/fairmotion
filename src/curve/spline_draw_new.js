@@ -263,6 +263,7 @@ export class SplineDrawer {
       this.last_stroke_stringid = seg.stringid;
     }
     
+    
     seg.flag &= ~SplineFlags.REDRAW;
     
     var l = seg.ks[KSCALE] * zoom;

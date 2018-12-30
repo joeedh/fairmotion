@@ -85,7 +85,7 @@ class NoteManager:
 
 if sys.platform == "win32":
     import note_win32_manual
-
+    
     _driver = note_win32_manual.SimpleNotifier
 else:
     _driver = NoteBase #stub implementation

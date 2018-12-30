@@ -20,7 +20,7 @@ import threading
 def tst(a, b, c, d):
     return 0;
 
-DEBUG = False
+DEBUG = 0
     
 UPDATE_TEXT = 0
 SETHIDE = 1
@@ -68,7 +68,6 @@ class SimpleNotifier (NoteBase):
             self._has_spawned = True
             self.spawnWindow(title, msg)
             
-            time.sleep(0.05)
             self._pushcmd(SETHIDE, 0)
             self.push_line(msg)
             return
@@ -298,17 +297,21 @@ class SimpleNotifier (NoteBase):
                 #QS_ALLPOSTMESSAGE
                 #ctypes.windll.user32.MsgWaitForMultipleObjects();
                 handles = ctypes.wintypes.HANDLE
-                retw = ctypes.windll.user32.MsgWaitForMultipleObjectsEx(0, #// no handles
-                                                     0, #// no handles
-                                                     55, # 55,
-                                                     QS_ALLINPUT,
-                                                     MWMO_ALERTABLE)
+                #retw = ctypes.windll.user32.MsgWaitForMultipleObjectsEx(
+                #                                     0, #// no handles
+                #                                     0, #// no handles
+                #                                     5, # 55,
+                #                                     QS_ALLINPUT,
+                #                                     MWMO_ALERTABLE)
                 #SleepEx(1, 1);
                 
-                if (self.hidden):
-                    continue;
+                #if (self.hidden):
+                #    continue;
                     
                 #retw = ctypes.windll.user32.WaitMessage()
+                #SleepEx(1, True)
+                Sleep(1);
+                
                 ret = ctypes.windll.user32.PeekMessageW(byref(msg), 0, 0);
                 
                 if ret == 0: #no messages available
@@ -318,7 +321,8 @@ class SimpleNotifier (NoteBase):
 
                 if retm:
                     if DEBUG: print("got message!!!! -----------------------------");
-                    if DEBUG: print(ctypes.windll.user32.DispatchMessageW(byref(msg)))
+                    retd = ctypes.windll.user32.DispatchMessageW(byref(msg));
+                    if DEBUG: print(retd)
                 else: #if GetLastError() == 0:
                     if DEBUG: print("quit time", GetLastError())
                     #PostQuitMessage(0)

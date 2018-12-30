@@ -266,7 +266,7 @@ export class SplineDrawer {
     seg.flag &= ~SplineFlags.REDRAW;
     
     var l = seg.ks[KSCALE] * zoom;
-    var steps = 4 + ~~(Math.sqrt(l)/500);
+    var steps = 4 + ~~(Math.sqrt(l)/50);
     console.log("l", l, steps);
     var ds = 1.0 / (steps - 1), s = 0.0;
     

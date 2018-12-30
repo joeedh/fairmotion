@@ -1,4 +1,4 @@
-es6_module_define('native_api', ["ajax", "toolops_api", "spline_base", "spline_math_hermite", "typedwriter", "solver", "built_wasm"], function _native_api_module(_es6_module) {
+es6_module_define('native_api', ["toolops_api", "built_wasm", "typedwriter", "ajax", "spline_math_hermite", "solver", "spline_base"], function _native_api_module(_es6_module) {
   var wasm=es6_import(_es6_module, 'built_wasm');
   var active_solves={}
   active_solves = _es6_module.add_export('active_solves', active_solves);
@@ -1465,9 +1465,9 @@ es6_module_define('events', [], function _events_module(_es6_module) {
   }]);
   _es6_module.add_class(FuncKeyHandler);
   FuncKeyHandler = _es6_module.add_export('FuncKeyHandler', FuncKeyHandler);
-  var $vel_JxuP_on_tick;
-  var $vel_T45V_calc_vel;
-  var $was_clamped_2GkZ_clamp_pan;
+  var $vel_HiUj_on_tick;
+  var $vel_zU97_calc_vel;
+  var $was_clamped_qkg8_clamp_pan;
   var VelocityPan=_ESClass("VelocityPan", EventHandler, [function VelocityPan() {
     this.start_mpos = new Vector2();
     this.last_mpos = new Vector2();
@@ -1489,11 +1489,11 @@ es6_module_define('events', [], function _events_module(_es6_module) {
   }, function on_tick() {
     if (!this.panning&&this.coasting) {
         var damp=0.99;
-        $vel_JxuP_on_tick.load(this.vel);
-        $vel_JxuP_on_tick.mulScalar(time_ms()-this.last_ms);
+        $vel_HiUj_on_tick.load(this.vel);
+        $vel_HiUj_on_tick.mulScalar(time_ms()-this.last_ms);
         this.vel.mulScalar(damp);
         this.last_ms = time_ms();
-        this.pan.sub($vel_JxuP_on_tick);
+        this.pan.sub($vel_HiUj_on_tick);
         var was_clamped=this.clamp_pan();
         this.owner.on_pan(this.pan, this.start_pan);
         var stop=was_clamped!=undefined&&(was_clamped[0]&&was_clamped[1]);
@@ -1513,8 +1513,8 @@ es6_module_define('events', [], function _events_module(_es6_module) {
         console.log("small t!!!", t);
         return ;
     }
-    $vel_T45V_calc_vel.load(this.last_mpos).sub(this.mpos).divideScalar(t);
-    this.vel.add($vel_T45V_calc_vel);
+    $vel_zU97_calc_vel.load(this.last_mpos).sub(this.mpos).divideScalar(t);
+    this.vel.add($vel_zU97_calc_vel);
     this.coasting = (this.vel.vectorLength()>0.25);
     this.last_ms = time_ms();
   }, function start(start_mpos, last_mpos, owner, push_modal_func, pop_modal_func) {
@@ -1561,15 +1561,15 @@ es6_module_define('events', [], function _events_module(_es6_module) {
     if (this.owner.state&8192*4)
       return ;
     var p=this.pan;
-    $was_clamped_2GkZ_clamp_pan[0] = false;
-    $was_clamped_2GkZ_clamp_pan[1] = false;
+    $was_clamped_qkg8_clamp_pan[0] = false;
+    $was_clamped_qkg8_clamp_pan[1] = false;
     for (var i=0; i<2; i++) {
         var l=p[i];
         p[i] = Math.min(Math.max(bs[0][i], p[i]), bs[0][i]+bs[1][i]);
         if (p[i]!=l)
-          $was_clamped_2GkZ_clamp_pan[i] = true;
+          $was_clamped_qkg8_clamp_pan[i] = true;
     }
-    return $was_clamped_2GkZ_clamp_pan;
+    return $was_clamped_qkg8_clamp_pan;
   }, function on_mouseup(event) {
     console.log("pan mouse up!", this.panning, this.owner);
     if (this.panning) {
@@ -1586,9 +1586,9 @@ es6_module_define('events', [], function _events_module(_es6_module) {
     this.coasting = false;
     this.vel.zero();
   }]);
-  var $vel_JxuP_on_tick=new Vector2();
-  var $vel_T45V_calc_vel=new Vector2();
-  var $was_clamped_2GkZ_clamp_pan=[0, 0];
+  var $vel_HiUj_on_tick=new Vector2();
+  var $vel_zU97_calc_vel=new Vector2();
+  var $was_clamped_qkg8_clamp_pan=[0, 0];
   _es6_module.add_class(VelocityPan);
   VelocityPan = _es6_module.add_export('VelocityPan', VelocityPan);
   var TouchEventManager=_ESClass("TouchEventManager", [function TouchEventManager(owner, delay) {
@@ -1764,7 +1764,7 @@ es6_module_define('touchevents', [], function _touchevents_module(_es6_module) {
   }]);
   _es6_module.add_class(TouchManager);
 }, '/dev/fairmotion/src/ui/touchevents.js');
-es6_module_define('toolprops', ["struct", "ajax", "toolprops_iter"], function _toolprops_module(_es6_module) {
+es6_module_define('toolprops', ["toolprops_iter", "ajax", "struct"], function _toolprops_module(_es6_module) {
   "use strict";
   
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
@@ -2656,7 +2656,7 @@ es6_module_define('toolprops_iter', ["struct"], function _toolprops_iter_module(
   })]);
   _es6_module.add_class(MSelectIter);
   MSelectIter.STRUCT = STRUCT.inherit(MSelectIter, ToolIter)+"\n  meshref  : DataRef;\n  mask     : int;\n}\n";
-  var $map_qgem_fromSTRUCT;
+  var $map_dWhz_fromSTRUCT;
   var element_iter_convert=_ESClass("element_iter_convert", ToolIter, [function element_iter_convert(iter, type) {
     ToolIter.call(this);
     if (!(__instance_of(iter, TPropIterable))) {
@@ -2717,10 +2717,10 @@ es6_module_define('toolprops_iter', ["struct"], function _toolprops_iter_module(
   }, _ESClass.static(function fromSTRUCT(reader) {
     var ob={}
     reader(ob);
-    var type=$map_qgem_fromSTRUCT[ob.type];
+    var type=$map_dWhz_fromSTRUCT[ob.type];
     var ret=new element_iter_convert(ob._iter, type);
   })]);
-  var $map_qgem_fromSTRUCT={Vertex: 1, Edge: 2, Loop: 4, Face: 8}
+  var $map_dWhz_fromSTRUCT={Vertex: 1, Edge: 2, Loop: 4, Face: 8}
   _es6_module.add_class(element_iter_convert);
   element_iter_convert.STRUCT = STRUCT.inherit(element_iter_convert, ToolIter)+"\n  type  : string | this.type != undefined ? this.type.constructor.name : \"\";\n  _iter : abstract(ToolIter) | obj.iter;\n}\n";
 }, '/dev/fairmotion/src/core/toolprops_iter.js');
@@ -2861,7 +2861,7 @@ es6_module_define('toolops_api', ["events", "toolprops", "struct"], function _to
   })]);
   _es6_module.add_class(PropPair);
   PropPair.STRUCT = "\n  PropPair {\n    key   : string;\n    value : abstract(ToolProperty);\n  }\n";
-  var $toolops_r945_get_constructor;
+  var $toolops_ubxA_get_constructor;
   var ToolOp=_ESClass("ToolOp", ToolOpAbstract, [function ToolOp(apiname, uiname, description, icon) {
     if (apiname==undefined) {
         apiname = "(undefined)";
@@ -2970,16 +2970,16 @@ es6_module_define('toolops_api', ["events", "toolprops", "struct"], function _to
     op.outputs = outs;
     return op;
   }), _ESClass.static(function get_constructor(name) {
-    if ($toolops_r945_get_constructor==undefined) {
-        $toolops_r945_get_constructor = {};
+    if ($toolops_ubxA_get_constructor==undefined) {
+        $toolops_ubxA_get_constructor = {};
         for (var c in defined_classes) {
             if (__instance_of(c, ToolOp))
-              $toolops_r945_get_constructor[c.name] = c;
+              $toolops_ubxA_get_constructor[c.name] = c;
         }
     }
-    return $toolops_r945_get_constructor[c];
+    return $toolops_ubxA_get_constructor[c];
   })]);
-  var $toolops_r945_get_constructor=undefined;
+  var $toolops_ubxA_get_constructor=undefined;
   _es6_module.add_class(ToolOp);
   ToolOp = _es6_module.add_export('ToolOp', ToolOp);
   ToolOp.STRUCT = "\n  ToolOp {\n      flag    : int;\n      saved_context  : SavedContext | obj.get_saved_context();\n      inputs  : iter(k, PropPair) | new PropPair(k, obj.inputs[k]);\n      outputs : iter(k, PropPair) | new PropPair(k, obj.outputs[k]);\n  }\n";
@@ -3399,7 +3399,7 @@ es6_module_define('toolops_api', ["events", "toolprops", "struct"], function _to
     if (do_z)
       widget.arrow([0, 0, 1], 2, [0, 0, 1, 1]);
     var this2=this;
-    var $zaxis_JzjB;
+    var $zaxis_OFJY;
     function widget_on_tick(widget) {
       var mat=widget.matrix;
       var mesh=ctx.mesh;
@@ -3449,15 +3449,15 @@ es6_module_define('toolops_api', ["events", "toolprops", "struct"], function _to
             tan.mulScalar(1.0/len);
             tan.normalize();
           }
-          var angle=Math.PI-Math.acos($zaxis_JzjB.dot(n));
-          if (n.dot($zaxis_JzjB)>0.9) {
+          var angle=Math.PI-Math.acos($zaxis_OFJY.dot(n));
+          if (n.dot($zaxis_OFJY)>0.9) {
           }
           if (1) {
               if (Math.abs(angle)<0.001||Math.abs(angle)>Math.PI-0.001) {
                   n.loadXYZ(1, 0, 0);
               }
               else {
-                n.cross($zaxis_JzjB);
+                n.cross($zaxis_OFJY);
                 n.normalize();
               }
               var q=new Quat();
@@ -3468,7 +3468,7 @@ es6_module_define('toolops_api', ["events", "toolprops", "struct"], function _to
       }
       mat.multiply(ctx.object.matrix);
     }
-    var $zaxis_JzjB=new Vector3([0, 0, -1]);
+    var $zaxis_OFJY=new Vector3([0, 0, -1]);
     widget.on_tick = widget_on_tick;
     widget.on_click = function(widget, id) {
       console.log("widget click: ", id);
@@ -3704,8 +3704,8 @@ es6_module_define('eventdag', ["J3DIMath"], function _eventdag_module(_es6_modul
       this.apply(thisvar!=undefined ? thisvar : self, args);
     }
   }
-  var $sarr_w8Ca_link;
-  var $darr_x8VU_link;
+  var $sarr_zYUl_link;
+  var $darr_bj2D_link;
   var EventDag=_ESClass("EventDag", [function EventDag() {
     this.nodes = [];
     this.sortlist = [];
@@ -3875,12 +3875,12 @@ es6_module_define('eventdag', ["J3DIMath"], function _eventdag_module(_es6_modul
     var obja=src, objb=dst;
     var srcnode=this.get_node(src);
     if (!(__instance_of(srcfield, Array))) {
-        $sarr_w8Ca_link[0] = srcfield;
-        srcfield = $sarr_w8Ca_link;
+        $sarr_zYUl_link[0] = srcfield;
+        srcfield = $sarr_zYUl_link;
     }
     if (!(__instance_of(dstfield, Array))) {
-        $darr_x8VU_link[0] = dstfield;
-        dstfield = $darr_x8VU_link;
+        $darr_bj2D_link[0] = dstfield;
+        dstfield = $darr_bj2D_link;
     }
     if ((typeof dst=="function"||__instance_of(dst, Function))&&!dst._dag_callback_init) {
         gen_callback_exec(dst, dstthis);
@@ -4088,8 +4088,8 @@ es6_module_define('eventdag', ["J3DIMath"], function _eventdag_module(_es6_modul
         owner.dag_exec(ctx, this);
     }
   }]);
-  var $sarr_w8Ca_link=[0];
-  var $darr_x8VU_link=[0];
+  var $sarr_zYUl_link=[0];
+  var $darr_bj2D_link=[0];
   _es6_module.add_class(EventDag);
   EventDag = _es6_module.add_export('EventDag', EventDag);
   window.init_event_graph = function init_event_graph() {
@@ -4097,7 +4097,7 @@ es6_module_define('eventdag', ["J3DIMath"], function _eventdag_module(_es6_modul
     _event_dag_idgen = new EIDGen();
   }
 }, '/dev/fairmotion/src/core/eventdag.js');
-es6_module_define('lib_utils', ["events", "toolprops_iter", "struct"], function _lib_utils_module(_es6_module) {
+es6_module_define('lib_utils', ["struct", "events", "toolprops_iter"], function _lib_utils_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, 'events');
   es6_import(_es6_module, 'toolprops_iter');
@@ -4475,7 +4475,7 @@ es6_module_define('transdata', ["mathlib"], function _transdata_module(_es6_modu
   TransDataType = _es6_module.add_export('TransDataType', TransDataType);
   TransDataType.selectmode = -1;
 }, '/dev/fairmotion/src/editors/viewport/transdata.js');
-es6_module_define('transform', ["spline_types", "native_api", "selectmode", "mathlib", "transdata", "toolprops", "multires_transdata", "dopesheet_transdata", "events", "toolops_api"], function _transform_module(_es6_module) {
+es6_module_define('transform', ["toolops_api", "dopesheet_transdata", "selectmode", "transdata", "native_api", "mathlib", "toolprops", "events", "spline_types", "multires_transdata"], function _transform_module(_es6_module) {
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
   var SelMask=es6_import_item(_es6_module, 'selectmode', 'SelMask');
   var MResTransData=es6_import_item(_es6_module, 'multires_transdata', 'MResTransData');
@@ -5344,7 +5344,7 @@ es6_module_define('transform', ["spline_types", "native_api", "selectmode", "mat
   _es6_module.add_class(RotateOp);
   RotateOp = _es6_module.add_export('RotateOp', RotateOp);
 }, '/dev/fairmotion/src/editors/viewport/transform.js');
-es6_module_define('transform_ops', ["native_api", "transform", "spline_types", "dopesheet_transdata", "events", "selectmode", "mathlib", "transdata", "toolops_api", "multires_transdata", "toolprops"], function _transform_ops_module(_es6_module) {
+es6_module_define('transform_ops', ["dopesheet_transdata", "selectmode", "toolops_api", "transform", "spline_types", "mathlib", "toolprops", "multires_transdata", "transdata", "native_api", "events"], function _transform_ops_module(_es6_module) {
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
   var TransformOp=es6_import_item(_es6_module, 'transform', 'TransformOp');
   var ScaleOp=es6_import_item(_es6_module, 'transform', 'ScaleOp');
@@ -5672,7 +5672,7 @@ es6_module_define('transform_ops', ["native_api", "transform", "spline_types", "
   _es6_module.add_class(WidgetRotateOp);
   WidgetRotateOp = _es6_module.add_export('WidgetRotateOp', WidgetRotateOp);
 }, '/dev/fairmotion/src/editors/viewport/transform_ops.js');
-es6_module_define('spline_selectops', ["toolprops", "spline_draw", "toolops_api", "spline_types", "animdata"], function _spline_selectops_module(_es6_module) {
+es6_module_define('spline_selectops', ["spline_draw", "animdata", "toolops_api", "toolprops", "spline_types"], function _spline_selectops_module(_es6_module) {
   "use strict";
   var $_mh;
   var $_swapt;
@@ -6251,7 +6251,7 @@ es6_module_define('spline_selectops', ["toolprops", "spline_draw", "toolops_api"
   _es6_module.add_class(CircleSelectOp);
   CircleSelectOp = _es6_module.add_export('CircleSelectOp', CircleSelectOp);
 }, '/dev/fairmotion/src/editors/viewport/spline_selectops.js');
-es6_module_define('spline_createops', ["spline_types", "spline", "toolprops", "spline_editops", "toolops_api"], function _spline_createops_module(_es6_module) {
+es6_module_define('spline_createops', ["toolops_api", "spline_types", "spline", "toolprops", "spline_editops"], function _spline_createops_module(_es6_module) {
   var ToolOp=es6_import_item(_es6_module, 'toolops_api', 'ToolOp');
   var SplineFlags=es6_import_item(_es6_module, 'spline_types', 'SplineFlags');
   var EnumProperty=es6_import_item(_es6_module, 'toolprops', 'EnumProperty');
@@ -6594,7 +6594,7 @@ es6_module_define('spline_createops', ["spline_types", "spline", "toolprops", "s
   _es6_module.add_class(ImportJSONOp);
   ImportJSONOp = _es6_module.add_export('ImportJSONOp', ImportJSONOp);
 }, '/dev/fairmotion/src/editors/viewport/spline_createops.js');
-es6_module_define('spline_editops', ["toolops_api", "spline_types", "spline", "../../curve/spline_base", "animdata", "struct", "spline_draw", "toolprops", "frameset"], function _spline_editops_module(_es6_module) {
+es6_module_define('spline_editops', ["toolops_api", "struct", "spline_draw", "animdata", "../../curve/spline_base", "toolprops", "spline", "frameset", "spline_types"], function _spline_editops_module(_es6_module) {
   var IntProperty=es6_import_item(_es6_module, 'toolprops', 'IntProperty');
   var FloatProperty=es6_import_item(_es6_module, 'toolprops', 'FloatProperty');
   var CollectionProperty=es6_import_item(_es6_module, 'toolprops', 'CollectionProperty');
@@ -8012,7 +8012,7 @@ es6_module_define('spline_editops', ["toolops_api", "spline_types", "spline", ".
   _es6_module.add_class(SplineMirrorOp);
   SplineMirrorOp = _es6_module.add_export('SplineMirrorOp', SplineMirrorOp);
 }, '/dev/fairmotion/src/editors/viewport/spline_editops.js');
-es6_module_define('spline_layerops', ["toolops_api", "spline", "spline_types", "spline_editops", "toolprops"], function _spline_layerops_module(_es6_module) {
+es6_module_define('spline_layerops', ["spline_editops", "spline_types", "toolprops", "toolops_api", "spline"], function _spline_layerops_module(_es6_module) {
   var ToolOp=es6_import_item(_es6_module, 'toolops_api', 'ToolOp');
   var UndoFlags=es6_import_item(_es6_module, 'toolops_api', 'UndoFlags');
   var ToolFlags=es6_import_item(_es6_module, 'toolops_api', 'ToolFlags');
@@ -8207,7 +8207,7 @@ es6_module_define('spline_layerops', ["toolops_api", "spline", "spline_types", "
 }, '/dev/fairmotion/src/editors/viewport/spline_layerops.js');
 es6_module_define('spline_animops', [], function _spline_animops_module(_es6_module) {
 }, '/dev/fairmotion/src/editors/viewport/spline_animops.js');
-es6_module_define('multires_ops', ["spline", "toolops_api", "spline_editops", "toolprops", "spline_draw", "spline_types", "J3DIMath", "spline_multires"], function _multires_ops_module(_es6_module) {
+es6_module_define('multires_ops', ["spline", "spline_multires", "spline_draw", "spline_editops", "spline_types", "toolprops", "toolops_api", "J3DIMath"], function _multires_ops_module(_es6_module) {
   es6_import(_es6_module, 'J3DIMath');
   var IntProperty=es6_import_item(_es6_module, 'toolprops', 'IntProperty');
   var FloatProperty=es6_import_item(_es6_module, 'toolprops', 'FloatProperty');
@@ -8235,7 +8235,7 @@ es6_module_define('multires_ops', ["spline", "toolops_api", "spline_editops", "t
   var decompose_id=es6_import_item(_es6_module, 'spline_multires', 'decompose_id');
   var has_multires=es6_import_item(_es6_module, 'spline_multires', 'has_multires');
   var iterpoints=es6_import_item(_es6_module, 'spline_multires', 'iterpoints');
-  var $vec_XG4j_exec;
+  var $vec_8G2s_exec;
   var CreateMResPoint=_ESClass("CreateMResPoint", SplineLocalToolOp, [function CreateMResPoint(seg, co) {
     SplineLocalToolOp.call(this, "create_mres_point", "Add Detail Point", "", -1);
     if (seg!=undefined) {
@@ -8281,11 +8281,11 @@ es6_module_define('multires_ops', ["spline", "toolops_api", "spline_editops", "t
     if (cp!=undefined) {
         s = cp[1];
         t = cp[0].vectorDistance(co);
-        $vec_XG4j_exec.zero().load(co).sub(cp[0]);
+        $vec_8G2s_exec.zero().load(co).sub(cp[0]);
         var n=seg.normal(s);
-        t*=Math.sign(n.dot($vec_XG4j_exec));
-        p.offset[0] = $vec_XG4j_exec[0];
-        p.offset[1] = $vec_XG4j_exec[1];
+        t*=Math.sign(n.dot($vec_8G2s_exec));
+        p.offset[0] = $vec_8G2s_exec[0];
+        p.offset[1] = $vec_8G2s_exec[1];
     }
     else {
       flag|=MResFlags.UPDATE;
@@ -8297,12 +8297,12 @@ es6_module_define('multires_ops', ["spline", "toolops_api", "spline_editops", "t
     var id=compose_id(p.seg, p.id);
     spline.segments.cdata.get_shared('MultiResLayer').active = id;
   }]);
-  var $vec_XG4j_exec=new Vector3();
+  var $vec_8G2s_exec=new Vector3();
   _es6_module.add_class(CreateMResPoint);
   CreateMResPoint = _es6_module.add_export('CreateMResPoint', CreateMResPoint);
   CreateMResPoint.inputs = {segment: new IntProperty(0), co: new Vec3Property(), level: new IntProperty(0)}
 }, '/dev/fairmotion/src/editors/viewport/multires/multires_ops.js');
-es6_module_define('multires_selectops', ["spline_editops", "toolops_api", "spline_types", "spline_multires", "J3DIMath", "spline_draw", "toolprops", "spline"], function _multires_selectops_module(_es6_module) {
+es6_module_define('multires_selectops', ["spline_multires", "spline_draw", "toolops_api", "toolprops", "J3DIMath", "spline", "spline_editops", "spline_types"], function _multires_selectops_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, 'J3DIMath');
   var IntProperty=es6_import_item(_es6_module, 'toolprops', 'IntProperty');
@@ -8563,7 +8563,7 @@ es6_module_define('multires_selectops', ["spline_editops", "toolops_api", "splin
   SelectOneOp = _es6_module.add_export('SelectOneOp', SelectOneOp);
   SelectOneOp.inputs = ToolOp.inherit_inputs(SelectOpBase, {pid: new IntProperty(-1), state: new BoolProperty(true), set_active: new BoolProperty(true), unique: new BoolProperty(true), level: new IntProperty(0)});
 }, '/dev/fairmotion/src/editors/viewport/multires/multires_selectops.js');
-es6_module_define('multires_transdata', ["spline_multires", "mathlib", "selectmode", "transdata"], function _multires_transdata_module(_es6_module) {
+es6_module_define('multires_transdata', ["transdata", "spline_multires", "mathlib", "selectmode"], function _multires_transdata_module(_es6_module) {
   "use strict";
   var SelMask=es6_import_item(_es6_module, 'selectmode', 'SelMask');
   var compose_id=es6_import_item(_es6_module, 'spline_multires', 'compose_id');
@@ -8576,10 +8576,10 @@ es6_module_define('multires_transdata', ["spline_multires", "mathlib", "selectmo
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
   var TransDataType=es6_import_item(_es6_module, 'transdata', 'TransDataType');
   var TransDataItem=es6_import_item(_es6_module, 'transdata', 'TransDataItem');
-  var $co_kwdo_apply;
-  var $co_xgrv_calc_draw_aabb;
-  var $co2_L3tO_calc_draw_aabb;
-  var $co_2Lsn_aabb;
+  var $co_4vM4_apply;
+  var $co_YD8o_calc_draw_aabb;
+  var $co2_gdJs_calc_draw_aabb;
+  var $co_KUkM_aabb;
   var MResTransData=_ESClass("MResTransData", TransDataType, [_ESClass.static(function gen_data(ctx, td, data) {
     var doprop=td.doprop;
     var proprad=td.propradius;
@@ -8622,12 +8622,12 @@ es6_module_define('multires_transdata', ["spline_multires", "mathlib", "selectmo
     var p=item.data;
     if (w==0.0)
       return ;
-    $co_kwdo_apply.load(item.start_data);
-    $co_kwdo_apply[2] = 0.0;
-    $co_kwdo_apply.multVecMatrix(mat);
-    $co_kwdo_apply.sub(item.start_data).mulScalar(w).add(item.start_data);
-    p[0] = $co_kwdo_apply[0];
-    p[1] = $co_kwdo_apply[1];
+    $co_4vM4_apply.load(item.start_data);
+    $co_4vM4_apply[2] = 0.0;
+    $co_4vM4_apply.multVecMatrix(mat);
+    $co_4vM4_apply.sub(item.start_data).mulScalar(w).add(item.start_data);
+    p[0] = $co_4vM4_apply[0];
+    p[1] = $co_4vM4_apply[1];
     p.recalc_offset(ctx.spline);
     var seg=ctx.spline.eidmap[p.seg];
     p.mr.recalc_wordscos(seg);
@@ -8686,15 +8686,15 @@ es6_module_define('multires_transdata', ["spline_multires", "mathlib", "selectmo
   }), _ESClass.static(function update(ctx, td) {
   }), _ESClass.static(function calc_prop_distances(ctx, td, data) {
   }), _ESClass.static(function calc_draw_aabb(ctx, td, minmax) {
-    $co_xgrv_calc_draw_aabb.zero();
+    $co_YD8o_calc_draw_aabb.zero();
     var pad=15;
     function do_minmax(co) {
-      $co2_L3tO_calc_draw_aabb[0] = co[0]-pad;
-      $co2_L3tO_calc_draw_aabb[1] = co[1]-pad;
-      minmax.minmax($co2_L3tO_calc_draw_aabb);
-      $co2_L3tO_calc_draw_aabb[0]+=pad*2.0;
-      $co2_L3tO_calc_draw_aabb[1]+=pad*2.0;
-      minmax.minmax($co2_L3tO_calc_draw_aabb);
+      $co2_gdJs_calc_draw_aabb[0] = co[0]-pad;
+      $co2_gdJs_calc_draw_aabb[1] = co[1]-pad;
+      minmax.minmax($co2_gdJs_calc_draw_aabb);
+      $co2_gdJs_calc_draw_aabb[0]+=pad*2.0;
+      $co2_gdJs_calc_draw_aabb[1]+=pad*2.0;
+      minmax.minmax($co2_gdJs_calc_draw_aabb);
     }
     var spline=ctx.spline;
     for (var i=0; i<td.data.length; i++) {
@@ -8719,30 +8719,30 @@ es6_module_define('multires_transdata', ["spline_multires", "mathlib", "selectmo
             minmax.minmax(seg2.aabb[0]);
             minmax.minmax(seg2.aabb[1]);
         }
-        $co_xgrv_calc_draw_aabb[0] = t.data[0];
-        $co_xgrv_calc_draw_aabb[1] = t.data[1];
-        do_minmax($co_xgrv_calc_draw_aabb);
-        $co_xgrv_calc_draw_aabb[0]-=t.data.offset[0];
-        $co_xgrv_calc_draw_aabb[1]-=t.data.offset[1];
-        do_minmax($co_xgrv_calc_draw_aabb);
+        $co_YD8o_calc_draw_aabb[0] = t.data[0];
+        $co_YD8o_calc_draw_aabb[1] = t.data[1];
+        do_minmax($co_YD8o_calc_draw_aabb);
+        $co_YD8o_calc_draw_aabb[0]-=t.data.offset[0];
+        $co_YD8o_calc_draw_aabb[1]-=t.data.offset[1];
+        do_minmax($co_YD8o_calc_draw_aabb);
     }
   }), _ESClass.static(function aabb(ctx, td, item, minmax, selected_only) {
-    $co_2Lsn_aabb.zero();
+    $co_KUkM_aabb.zero();
     for (var i=0; i<td.data.length; i++) {
         var t=td.data[i];
         if (t.type!==MResTransData)
           continue;
-        $co_2Lsn_aabb[0] = t.data[0];
-        $co_2Lsn_aabb[1] = t.data[1];
-        minmax.minmax($co_2Lsn_aabb);
+        $co_KUkM_aabb[0] = t.data[0];
+        $co_KUkM_aabb[1] = t.data[1];
+        minmax.minmax($co_KUkM_aabb);
     }
   }), function MResTransData() {
     TransDataType.apply(this, arguments);
   }]);
-  var $co_kwdo_apply=new Vector3();
-  var $co_xgrv_calc_draw_aabb=new Vector3();
-  var $co2_L3tO_calc_draw_aabb=[0, 0, 0];
-  var $co_2Lsn_aabb=new Vector3();
+  var $co_4vM4_apply=new Vector3();
+  var $co_YD8o_calc_draw_aabb=new Vector3();
+  var $co2_gdJs_calc_draw_aabb=[0, 0, 0];
+  var $co_KUkM_aabb=new Vector3();
   _es6_module.add_class(MResTransData);
   MResTransData = _es6_module.add_export('MResTransData', MResTransData);
   MResTransData.selectmode = SelMask.MULTIRES;
@@ -9078,9 +9078,9 @@ es6_module_define('UIElement', ["mathlib", "toolprops", "events"], function _UIE
     }
   }
   inrect_2d_button = _es6_module.add_export('inrect_2d_button', inrect_2d_button);
-  var $empty_arr_N8nx_get_keymaps;
-  var $pos_Vsrw_get_abs_pos;
-  var $ret_9lEz_get_min_size;
+  var $empty_arr_HWHb_get_keymaps;
+  var $pos_KJxy_get_abs_pos;
+  var $ret_AWKY_get_min_size;
   var UIElement=_ESClass("UIElement", EventHandler, [function UIElement(ctx, path, pos, size) {
     if (path==undefined) {
         path = undefined;
@@ -9135,7 +9135,7 @@ es6_module_define('UIElement', ["mathlib", "toolprops", "events"], function _UIE
       this.do_recalc();
     this.state|=UIFlags.ENABLED;
   }, function get_keymaps() {
-    return $empty_arr_N8nx_get_keymaps;
+    return $empty_arr_HWHb_get_keymaps;
   }, _ESClass.symbol(Symbol.keystr, function keystr() {
     if (this._h12==undefined) {
         var n=this.constructor.name;
@@ -9225,15 +9225,15 @@ es6_module_define('UIElement', ["mathlib", "toolprops", "events"], function _UIE
     if (this.parent!=undefined)
       this.parent.focus(this);
   }, function get_abs_pos() {
-    $pos_Vsrw_get_abs_pos[0] = this.pos[0];
-    $pos_Vsrw_get_abs_pos[1] = this.pos[1];
+    $pos_KJxy_get_abs_pos[0] = this.pos[0];
+    $pos_KJxy_get_abs_pos[1] = this.pos[1];
     var p=this.parent;
     while (p!=undefined) {
-      $pos_Vsrw_get_abs_pos[0]+=p.pos[0];
-      $pos_Vsrw_get_abs_pos[1]+=p.pos[1];
+      $pos_KJxy_get_abs_pos[0]+=p.pos[0];
+      $pos_KJxy_get_abs_pos[1]+=p.pos[1];
       p = p.parent;
     }
-    return $pos_Vsrw_get_abs_pos;
+    return $pos_KJxy_get_abs_pos;
   }, function call_menu(menu, off, min_width) {
     if (off==undefined) {
         off = undefined;
@@ -9421,7 +9421,7 @@ es6_module_define('UIElement', ["mathlib", "toolprops", "events"], function _UIE
     }
     return this._minsize;
   }, function get_min_size(canvas, isvertical) {
-    return $ret_9lEz_get_min_size;
+    return $ret_AWKY_get_min_size;
   }, function build_draw(canvas, isvertical) {
   }, function on_active() {
   }, function on_inactive() {
@@ -9430,9 +9430,9 @@ es6_module_define('UIElement', ["mathlib", "toolprops", "events"], function _UIE
   }, function on_add(parent) {
   }, function on_remove(parent) {
   }]);
-  var $empty_arr_N8nx_get_keymaps=[];
-  var $pos_Vsrw_get_abs_pos=[0, 0];
-  var $ret_9lEz_get_min_size=[1, 1];
+  var $empty_arr_HWHb_get_keymaps=[];
+  var $pos_KJxy_get_abs_pos=[0, 0];
+  var $ret_AWKY_get_min_size=[1, 1];
   _es6_module.add_class(UIElement);
   UIElement = _es6_module.add_export('UIElement', UIElement);
   var UIHoverBox=_ESClass("UIHoverBox", UIElement, [function UIHoverBox(ctx, text, is_modal, pos, size) {
@@ -9708,38 +9708,38 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
     }
     return cs;
   }
-  var $ret_G6Y4_get_2d_canvas={}
+  var $ret_1Bew_get_2d_canvas={}
   function get_2d_canvas() {
-    if ($ret_G6Y4_get_2d_canvas.canvas==undefined) {
-        $ret_G6Y4_get_2d_canvas.canvas = document.getElementById("canvas2d");
-        $ret_G6Y4_get_2d_canvas.ctx = _canvas2d_ctx;
+    if ($ret_1Bew_get_2d_canvas.canvas==undefined) {
+        $ret_1Bew_get_2d_canvas.canvas = document.getElementById("canvas2d");
+        $ret_1Bew_get_2d_canvas.ctx = _canvas2d_ctx;
     }
-    return $ret_G6Y4_get_2d_canvas;
+    return $ret_1Bew_get_2d_canvas;
   }
   get_2d_canvas = _es6_module.add_export('get_2d_canvas', get_2d_canvas);
   window.get_2d_canvas = get_2d_canvas;
-  var $ret_7ExE_get_2d_canvas_2={}
+  var $ret_5GX4_get_2d_canvas_2={}
   function get_2d_canvas_2() {
-    if ($ret_7ExE_get_2d_canvas_2.canvas==undefined) {
-        $ret_7ExE_get_2d_canvas_2.canvas = document.getElementById("canvas2d_work");
-        $ret_7ExE_get_2d_canvas_2.ctx = _canvas2d_ctx_2;
+    if ($ret_5GX4_get_2d_canvas_2.canvas==undefined) {
+        $ret_5GX4_get_2d_canvas_2.canvas = document.getElementById("canvas2d_work");
+        $ret_5GX4_get_2d_canvas_2.ctx = _canvas2d_ctx_2;
     }
-    return $ret_7ExE_get_2d_canvas_2;
+    return $ret_5GX4_get_2d_canvas_2;
   }
   get_2d_canvas_2 = _es6_module.add_export('get_2d_canvas_2', get_2d_canvas_2);
   window.get_2d_canvas_2 = get_2d_canvas_2;
   window._ui_canvas_2d_idgen = 1;
-  var $temp_layer_idgen_SNHR_push_layer;
-  var $black_RQAx_quad;
-  var $grads_0zuP_quad;
-  var $mid_MseH_colorfield;
-  var $cache_i8vV_box1;
-  var $v1_xmpj_box1;
-  var $v3_m2j6_box1;
-  var $pairs_4Z0__box1;
-  var $pos_maya_text;
-  var $v2_htnG_box1;
-  var $v4_ZPjw_box1;
+  var $temp_layer_idgen_9Xai_push_layer;
+  var $black_szQ4_quad;
+  var $grads_mdxB_quad;
+  var $mid_UqSQ_colorfield;
+  var $cache_BDZs_box1;
+  var $v1_B3Ww_box1;
+  var $v3_ZvLG_box1;
+  var $pairs_tno2_box1;
+  var $pos_a9QG_text;
+  var $v2_BxhD_box1;
+  var $v4_18Rv_box1;
   var UICanvas=_ESClass("UICanvas", [function UICanvas(viewport) {
     var c=get_2d_canvas();
     this.canvas = c.canvas;
@@ -9861,7 +9861,7 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
   }, function push_layer() {
     this.layerstack.push([this.canvas, this.ctx]);
     var canvas=document.createElement("canvas");
-    canvas.id = "_temp_canvas2d_"+($temp_layer_idgen_SNHR_push_layer++);
+    canvas.id = "_temp_canvas2d_"+($temp_layer_idgen_9Xai_push_layer++);
     document.body.appendChild(canvas);
     canvas.style["position"] = "absolute";
     canvas.style["left"] = "0px";
@@ -9977,7 +9977,7 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
     var ctx=this.ctx;
     var v=g_app_state.raster.viewport;
     if (c1==undefined) {
-        c1 = $black_RQAx_quad;
+        c1 = $black_szQ4_quad;
     }
     if (c2==undefined) {
         c2 = c1;
@@ -9996,7 +9996,7 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
         hash+=c1[i]+","+c2[i]+","+c3[i]+","+c4[i];
     }
     var grad;
-    if (1||!(hash in $grads_0zuP_quad)) {
+    if (1||!(hash in $grads_mdxB_quad)) {
         var min=[v1[0], v1[1]], max=[v1[0], v1[1]];
         for (var i=0; i<2; i++) {
             min[i] = Math.min(min[i], v1[i]);
@@ -10022,7 +10022,7 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
               grad = ctx.createLinearGradient(min[0], min[1]*0.5+max[1]*0.5, max[0], min[1]*0.5+max[1]*0.5);
             else 
               grad = ctx.createLinearGradient(min[0]*0.5+max[0]*0.5, min[1], min[0]*0.5+max[0]*0.5, max[1]);
-            $grads_0zuP_quad[hash] = grad;
+            $grads_mdxB_quad[hash] = grad;
             grad.addColorStop(0.0, this._css_color(c1));
             grad.addColorStop(1.0, this._css_color(c3));
           }
@@ -10033,7 +10033,7 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
         }
     }
     else {
-      grad = $grads_0zuP_quad[hash];
+      grad = $grads_mdxB_quad[hash];
     }
     if (grad!=undefined)
       ctx.fillStyle = grad;
@@ -10044,29 +10044,29 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
     ctx.lineTo(v4[0]+x+v[0][0], canvas.height-(v4[1]+y+v[0][1]));
     ctx.fill();
   }, function colorfield(pos, size, color) {
-    $mid_MseH_colorfield[3] = 1.0;
+    $mid_UqSQ_colorfield[3] = 1.0;
     for (var i=0; i<3; i++) {
         if (color[i]==0.0)
-          $mid_MseH_colorfield[i] = 0.0;
+          $mid_UqSQ_colorfield[i] = 0.0;
         else 
-          $mid_MseH_colorfield[i] = color[i];
+          $mid_UqSQ_colorfield[i] = color[i];
     }
-    var color2=this._css_color($mid_MseH_colorfield);
-    $mid_MseH_colorfield[3] = 1.0;
+    var color2=this._css_color($mid_UqSQ_colorfield);
+    $mid_UqSQ_colorfield[3] = 1.0;
     for (var i=0; i<3; i++) {
-        $mid_MseH_colorfield[i] = (color[i]*3.0-1.0)/4.0;
+        $mid_UqSQ_colorfield[i] = (color[i]*3.0-1.0)/4.0;
     }
-    var midclr=this._css_color($mid_MseH_colorfield);
-    $mid_MseH_colorfield[3] = 1.0;
+    var midclr=this._css_color($mid_UqSQ_colorfield);
+    $mid_UqSQ_colorfield[3] = 1.0;
     for (var i=0; i<3; i++) {
-        $mid_MseH_colorfield[i] = 0.5+color[i]*0.5;
+        $mid_UqSQ_colorfield[i] = 0.5+color[i]*0.5;
     }
-    var smidclr=this._css_color($mid_MseH_colorfield);
-    $mid_MseH_colorfield[3] = 0.0;
+    var smidclr=this._css_color($mid_UqSQ_colorfield);
+    $mid_UqSQ_colorfield[3] = 0.0;
     for (var i=0; i<3; i++) {
-        $mid_MseH_colorfield[i] = color[i];
+        $mid_UqSQ_colorfield[i] = color[i];
     }
-    var zerocolor=this._css_color($mid_MseH_colorfield);
+    var zerocolor=this._css_color($mid_UqSQ_colorfield);
     color = this._css_color(color);
     var canvas=this.canvas;
     var ctx=this.ctx;
@@ -10253,7 +10253,7 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
     if (rfac==undefined)
       rfac = 1;
     var hash=size[0].toString()+" "+size[1]+" "+rfac;
-    if (!(hash in $cache_i8vV_box1)) {
+    if (!(hash in $cache_BDZs_box1)) {
         r/=rfac;
         var p1=this.arc_points((($_mh = objcache.array(2)), ($_mh[0] = (0+r+2)), ($_mh[1] = (0+r+2)), ($_mh[2] = (0)), $_mh), Math.PI, ang, r);
         var p2=this.arc_points((($_mh = objcache.array(2)), ($_mh[0] = (0+w-r-2)), ($_mh[1] = (0+r+2)), ($_mh[2] = (0)), $_mh), Math.PI/2, ang, r);
@@ -10281,9 +10281,9 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
             points.push(p4[i]);
         }
         p2.reverse();
-        $cache_i8vV_box1[hash] = [p1, p2, points];
+        $cache_BDZs_box1[hash] = [p1, p2, points];
     }
-    var cp=$cache_i8vV_box1[hash];
+    var cp=$cache_BDZs_box1[hash];
     var p1=cp[0];
     var p2=cp[1];
     var points=cp[2];
@@ -10307,45 +10307,45 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
             var i2=i+plen*2;
             var i3=i+1+plen*2;
             var i4=i+1;
-            $v1_xmpj_box1[0] = p1[i][0]+x;
-            $v1_xmpj_box1[1] = p1[i][1]+y;
-            $v1_xmpj_box1[2] = p1[i][2];
+            $v1_B3Ww_box1[0] = p1[i][0]+x;
+            $v1_B3Ww_box1[1] = p1[i][1]+y;
+            $v1_B3Ww_box1[2] = p1[i][2];
             
-            $v2_htnG_box1[0] = p2[i][0]+x;
-            $v2_htnG_box1[1] = p2[i][1]+y;
-            $v2_htnG_box1[2] = p2[i][2];
+            $v2_BxhD_box1[0] = p2[i][0]+x;
+            $v2_BxhD_box1[1] = p2[i][1]+y;
+            $v2_BxhD_box1[2] = p2[i][2];
             
-            $v3_m2j6_box1[0] = p2[i+1][0]+x;
-            $v3_m2j6_box1[1] = p2[i+1][1]+y;
-            $v3_m2j6_box1[2] = p2[i+1][2];
+            $v3_ZvLG_box1[0] = p2[i+1][0]+x;
+            $v3_ZvLG_box1[1] = p2[i+1][1]+y;
+            $v3_ZvLG_box1[2] = p2[i+1][2];
             
-            $v4_ZPjw_box1[0] = p1[i+1][0]+x;
-            $v4_ZPjw_box1[1] = p1[i+1][1]+y;
-            $v4_ZPjw_box1[2] = p1[i+1][2];
+            $v4_18Rv_box1[0] = p1[i+1][0]+x;
+            $v4_18Rv_box1[1] = p1[i+1][1]+y;
+            $v4_18Rv_box1[2] = p1[i+1][2];
             
-            this.quad($v1_xmpj_box1, $v2_htnG_box1, $v3_m2j6_box1, $v4_ZPjw_box1, color(i1), color(i2), color(i3), color(i4));
+            this.quad($v1_B3Ww_box1, $v2_BxhD_box1, $v3_ZvLG_box1, $v4_18Rv_box1, color(i1), color(i2), color(i3), color(i4));
         }
     }
     var lines=[];
     var colors=[];
     for (var i=0; i<points.length; i++) {
-        $v1_xmpj_box1[0] = points[(i+1)%points.length][0]+x;
-        $v1_xmpj_box1[1] = points[(i+1)%points.length][1]+y;
-        $v1_xmpj_box1[2] = points[(i+1)%points.length][2];
+        $v1_B3Ww_box1[0] = points[(i+1)%points.length][0]+x;
+        $v1_B3Ww_box1[1] = points[(i+1)%points.length][1]+y;
+        $v1_B3Ww_box1[2] = points[(i+1)%points.length][2];
         
-        $v2_htnG_box1[0] = points[i][0]+x;
-        $v2_htnG_box1[1] = points[i][1]+y;
-        $v2_htnG_box1[2] = points[i][2];
+        $v2_BxhD_box1[0] = points[i][0]+x;
+        $v2_BxhD_box1[1] = points[i][1]+y;
+        $v2_BxhD_box1[2] = points[i][2];
         
-        if ($pairs_4Z0__box1.length<=i) {
-            $pairs_4Z0__box1.push([[0, 0], [0, 0]]);
+        if ($pairs_tno2_box1.length<=i) {
+            $pairs_tno2_box1.push([[0, 0], [0, 0]]);
         }
-        $pairs_4Z0__box1[i][0][0] = (($_mh = objcache.array(2)), ($_mh[0] = ($v1_xmpj_box1[0])), ($_mh[1] = ($v1_xmpj_box1[1])), ($_mh[2] = (0)), $_mh);
-        $pairs_4Z0__box1[i][0][1] = (($_mh = objcache.array(2)), ($_mh[0] = ($v2_htnG_box1[0])), ($_mh[1] = ($v2_htnG_box1[1])), ($_mh[2] = (0)), $_mh);
-        lines.push($pairs_4Z0__box1[i][0]);
-        $pairs_4Z0__box1[i][1][0] = color((i+1)%points.length);
-        $pairs_4Z0__box1[i][1][1] = color(i);
-        colors.push($pairs_4Z0__box1[i][1]);
+        $pairs_tno2_box1[i][0][0] = (($_mh = objcache.array(2)), ($_mh[0] = ($v1_B3Ww_box1[0])), ($_mh[1] = ($v1_B3Ww_box1[1])), ($_mh[2] = (0)), $_mh);
+        $pairs_tno2_box1[i][0][1] = (($_mh = objcache.array(2)), ($_mh[0] = ($v2_BxhD_box1[0])), ($_mh[1] = ($v2_BxhD_box1[1])), ($_mh[2] = (0)), $_mh);
+        lines.push($pairs_tno2_box1[i][0]);
+        $pairs_tno2_box1[i][1][0] = color((i+1)%points.length);
+        $pairs_tno2_box1[i][1][1] = color(i);
+        colors.push($pairs_tno2_box1[i][1]);
     }
   }, function tri_aa(v1, v2, v3, c1, c2, c3) {
     this.tri(v1, v2, v3, c1, c2, c3);
@@ -10426,23 +10426,23 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
     for (var i=0; i<lines.length; i++, ly+=12) {
         var w=this._measure_line(lines[i]).width;
         var m=this.transmat.$matrix;
-        $pos_maya_text[0] = m.m41+v[0][0]+pos1[0];
-        $pos_maya_text[1] = canvas.height-(m.m42+v[0][1]+pos1[1]+ly);
-        $pos_maya_text[2] = 0;
+        $pos_a9QG_text[0] = m.m41+v[0][0]+pos1[0];
+        $pos_a9QG_text[1] = canvas.height-(m.m42+v[0][1]+pos1[1]+ly);
+        $pos_a9QG_text[2] = 0;
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.rotate(rot);
         if (rot!=0) {
-            $pos_maya_text[1]-=w;
+            $pos_a9QG_text[1]-=w;
         }
-        rot2d($pos_maya_text, -rot);
-        $pos_maya_text[1] = canvas.height-$pos_maya_text[1];
+        rot2d($pos_a9QG_text, -rot);
+        $pos_a9QG_text[1] = canvas.height-$pos_a9QG_text[1];
         if (color==undefined)
           color = uicolors.DefaultText;
         ctx.fillStyle = this._css_color(color);
         if (fontsize==undefined)
           fontsize = default_ui_font_size;
         ctx.font = fontsize+"px "+"Arial";
-        var x=$pos_maya_text[0], y=canvas.height-($pos_maya_text[1]);
+        var x=$pos_a9QG_text[0], y=canvas.height-($pos_a9QG_text[1]);
         this._text_line(lines[i], x, y, fontsize);
     }
   }, function _set_font(ctx, fontsize, addition_options) {
@@ -10557,17 +10557,17 @@ es6_module_define('UICanvas', ["UIElement", "mathlib"], function _UICanvas_modul
   }, function pop_transform() {
     this.transmat.load(this.trans_stack.pop());
   }]);
-  var $temp_layer_idgen_SNHR_push_layer=0;
-  var $black_RQAx_quad=[0, 0, 0, 1];
-  var $grads_0zuP_quad={}
-  var $mid_MseH_colorfield=[0, 0, 0, 0.5];
-  var $cache_i8vV_box1={}
-  var $v1_xmpj_box1=new Vector3();
-  var $v3_m2j6_box1=new Vector3();
-  var $pairs_4Z0__box1=[];
-  var $pos_maya_text=[0, 0, 0];
-  var $v2_htnG_box1=new Vector3();
-  var $v4_ZPjw_box1=new Vector3();
+  var $temp_layer_idgen_9Xai_push_layer=0;
+  var $black_szQ4_quad=[0, 0, 0, 1];
+  var $grads_mdxB_quad={}
+  var $mid_UqSQ_colorfield=[0, 0, 0, 0.5];
+  var $cache_BDZs_box1={}
+  var $v1_B3Ww_box1=new Vector3();
+  var $v3_ZvLG_box1=new Vector3();
+  var $pairs_tno2_box1=[];
+  var $pos_a9QG_text=[0, 0, 0];
+  var $v2_BxhD_box1=new Vector3();
+  var $v4_18Rv_box1=new Vector3();
   _es6_module.add_class(UICanvas);
   UICanvas = _es6_module.add_export('UICanvas', UICanvas);
   window.active_canvases = {}

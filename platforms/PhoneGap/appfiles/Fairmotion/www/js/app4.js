@@ -1,4 +1,4 @@
-es6_module_define('UIFrame', ["config", "J3DIMath", "events", "mathlib", "UIElement"], function _UIFrame_module(_es6_module) {
+es6_module_define('UIFrame', ["J3DIMath", "UIElement", "mathlib", "config", "events"], function _UIFrame_module(_es6_module) {
   var aabb_isect_2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_2d');
   var inrect_2d=es6_import_item(_es6_module, 'mathlib', 'inrect_2d');
   var config=es6_import(_es6_module, 'config');
@@ -18,8 +18,8 @@ es6_module_define('UIFrame', ["config", "J3DIMath", "events", "mathlib", "UIElem
   var _static_mat=new Matrix4();
   var _ufbd_v1=new Vector3();
   var _canvas_threshold=1.0;
-  var $pos_JQuW__find_active;
-  var $zero_R9hy_build_draw_old;
+  var $pos_4DcA__find_active;
+  var $zero_SDCO_build_draw_old;
   var UIFrame=_ESClass("UIFrame", UIElement, [function UIFrame(ctx, canvas, path, pos, size) {
     UIElement.call(this, ctx, path, pos, size);
     this.dirty_rects = new GArray();
@@ -310,10 +310,10 @@ es6_module_define('UIFrame', ["config", "J3DIMath", "events", "mathlib", "UIElem
     var found=false;
     for (var i=this.children.length-1; i>=0; i--) {
         var c=this.children[i];
-        $pos_JQuW__find_active[0] = c.pos[0], $pos_JQuW__find_active[1] = c.pos[1];
+        $pos_4DcA__find_active[0] = c.pos[0], $pos_4DcA__find_active[1] = c.pos[1];
         if (c.state&UIFlags.HAS_PAN) {
         }
-        if (inrect_2d(mpos, $pos_JQuW__find_active, c.size)) {
+        if (inrect_2d(mpos, $pos_4DcA__find_active, c.size)) {
             found = true;
             if (this.active!=c&&this.active!=undefined) {
                 this.active.state&=~UIFlags.HIGHLIGHT;
@@ -928,7 +928,7 @@ es6_module_define('UIFrame', ["config", "J3DIMath", "events", "mathlib", "UIElem
       if (this.state&UIFlags.HAS_PAN)
         pos = this.velpan.pan;
       else 
-        pos = $zero_R9hy_build_draw_old;
+        pos = $zero_SDCO_build_draw_old;
       isect = isect||aabb_isect_2d(c.pos, c.size, pos, this.size);
       if (!isect) {
           this.has_hidden_elements = true;
@@ -1080,12 +1080,12 @@ es6_module_define('UIFrame', ["config", "J3DIMath", "events", "mathlib", "UIElem
         frame.push_modal(e);
     }
   }]);
-  var $pos_JQuW__find_active=[0, 0];
-  var $zero_R9hy_build_draw_old=[0, 0];
+  var $pos_4DcA__find_active=[0, 0];
+  var $zero_SDCO_build_draw_old=[0, 0];
   _es6_module.add_class(UIFrame);
   UIFrame = _es6_module.add_export('UIFrame', UIFrame);
 }, '/dev/fairmotion/src/ui/UIFrame.js');
-es6_module_define('UIPack', ["mathlib", "UIWidgets", "toolprops", "UIFrame", "UIElement"], function _UIPack_module(_es6_module) {
+es6_module_define('UIPack', ["toolprops", "UIElement", "UIFrame", "mathlib", "UIWidgets"], function _UIPack_module(_es6_module) {
   var PropTypes=es6_import_item(_es6_module, 'toolprops', 'PropTypes');
   var TPropFlags=es6_import_item(_es6_module, 'toolprops', 'TPropFlags');
   var DataRefProperty=es6_import_item(_es6_module, 'toolprops', 'DataRefProperty');
@@ -2045,7 +2045,7 @@ es6_module_define('UISplitFrame', ["UIPack", "UIFrame", "UIElement"], function _
 }, '/dev/fairmotion/src/ui/UISplitFrame.js');
 es6_module_define('icon', [], function _icon_module(_es6_module) {
   "use strict";
-  var $ret_aK5Q_enum_to_xy;
+  var $ret_dHE9_enum_to_xy;
   var IconManager=_ESClass("IconManager", [function IconManager(gl, sheet_path, imgsize, iconsize) {
     this.path = sheet_path;
     this.size = new Vector2(imgsize);
@@ -2076,9 +2076,9 @@ es6_module_define('icon', [], function _icon_module(_es6_module) {
     var x=tile%fx;
     x*=cellsize[0];
     y*=cellsize[1];
-    $ret_aK5Q_enum_to_xy[0] = x;
-    $ret_aK5Q_enum_to_xy[1] = y;
-    return $ret_aK5Q_enum_to_xy;
+    $ret_dHE9_enum_to_xy[0] = x;
+    $ret_dHE9_enum_to_xy[1] = y;
+    return $ret_dHE9_enum_to_xy;
   }, function gen_tile(tile, texcos) {
     var size=this.size;
     var cellsize=this.cellsize;
@@ -2104,13 +2104,13 @@ es6_module_define('icon', [], function _icon_module(_es6_module) {
     texcos.push(x+u);
     texcos.push(y);
   }]);
-  var $ret_aK5Q_enum_to_xy=[0, 0];
+  var $ret_dHE9_enum_to_xy=[0, 0];
   _es6_module.add_class(IconManager);
   IconManager = _es6_module.add_export('IconManager', IconManager);
   var icon_vshader="\n\n";
   var icon_fshader="\n";
 }, '/dev/fairmotion/src/ui/icon.js');
-es6_module_define('UIWidgets', ["mathlib", "UIFrame", "UIElement", "events", "units", "toolprops"], function _UIWidgets_module(_es6_module) {
+es6_module_define('UIWidgets', ["toolprops", "mathlib", "UIElement", "UIFrame", "events", "units"], function _UIWidgets_module(_es6_module) {
   var $_mh;
   var $_swapt;
   var UIFrame=es6_import_item(_es6_module, 'UIFrame', 'UIFrame');
@@ -2285,10 +2285,10 @@ es6_module_define('UIWidgets', ["mathlib", "UIFrame", "UIElement", "events", "un
   }]);
   _es6_module.add_class(UIButton);
   UIButton = _es6_module.add_export('UIButton', UIButton);
-  var $pos_Di9Y_build_draw;
-  var $high_clr_22Xh_build_draw;
-  var $size_dqee_build_draw;
-  var $inset_clr_fl_7_build_draw;
+  var $pos_GuHC_build_draw;
+  var $high_clr_gCfV_build_draw;
+  var $size_zIPE_build_draw;
+  var $inset_clr_y9Xh_build_draw;
   var UIButtonIcon=_ESClass("UIButtonIcon", UIButton, [function UIButtonIcon(ctx, text, icon, pos, size, path, callback, hint, use_small_icon) {
     if (path==undefined) {
         path = undefined;
@@ -2332,33 +2332,33 @@ es6_module_define('UIWidgets', ["mathlib", "UIFrame", "UIElement", "events", "un
           canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
         else 
           if (this.clicked)
-          canvas.box($pos_Di9Y_build_draw, $size_dqee_build_draw, uicolors["IconInv"]);
+          canvas.box($pos_GuHC_build_draw, $size_zIPE_build_draw, uicolors["IconInv"]);
         else 
           if (this.state&UIFlags.HIGHLIGHT)
-          canvas.box($pos_Di9Y_build_draw, $size_dqee_build_draw, uicolors["HighlightIcon"]);
+          canvas.box($pos_GuHC_build_draw, $size_zIPE_build_draw, uicolors["HighlightIcon"]);
         else 
-          canvas.box($pos_Di9Y_build_draw, this.size, uicolors["IconBox"]);
+          canvas.box($pos_GuHC_build_draw, this.size, uicolors["IconBox"]);
         return ;
     }
     var pad=this.pad;
     var isize=this.small_icon ? canvas.iconsheet16.cellsize : canvas.iconsheet.cellsize;
     if (isize[0]>this.size[0])
-      $pos_Di9Y_build_draw[0] = 1;
+      $pos_GuHC_build_draw[0] = 1;
     else 
-      $pos_Di9Y_build_draw[0] = 1;
-    $pos_Di9Y_build_draw[1] = 0;
-    var $size_dqee_build_draw=this.size;
+      $pos_GuHC_build_draw[0] = 1;
+    $pos_GuHC_build_draw[1] = 0;
+    var $size_zIPE_build_draw=this.size;
     if (this.bgmode=="button") {
         if (!(this.state&UIFlags.ENABLED))
           canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
         else 
           if (this.clicked)
-          canvas.box($pos_Di9Y_build_draw, $size_dqee_build_draw, uicolors["IconInv"]);
+          canvas.box($pos_GuHC_build_draw, $size_zIPE_build_draw, uicolors["IconInv"]);
         else 
           if (this.state&UIFlags.HIGHLIGHT)
-          canvas.box($pos_Di9Y_build_draw, $size_dqee_build_draw, uicolors["HighlightIcon"]);
+          canvas.box($pos_GuHC_build_draw, $size_zIPE_build_draw, uicolors["HighlightIcon"]);
         else 
-          canvas.box($pos_Di9Y_build_draw, this.size, uicolors["IconBox"]);
+          canvas.box($pos_GuHC_build_draw, this.size, uicolors["IconBox"]);
     }
     else 
       if (this.bgmode=="flat") {
@@ -2366,25 +2366,25 @@ es6_module_define('UIWidgets', ["mathlib", "UIFrame", "UIElement", "events", "un
           canvas.box([0, 0], this.size, this.do_flash_color(uicolors["DisabledBox"]));
         else 
           if (this.clicked)
-          canvas.box($pos_Di9Y_build_draw, $size_dqee_build_draw, $inset_clr_fl_7_build_draw);
+          canvas.box($pos_GuHC_build_draw, $size_zIPE_build_draw, $inset_clr_y9Xh_build_draw);
         else 
           if (this.state&UIFlags.HIGHLIGHT)
-          canvas.box($pos_Di9Y_build_draw, $size_dqee_build_draw, $high_clr_22Xh_build_draw);
+          canvas.box($pos_GuHC_build_draw, $size_zIPE_build_draw, $high_clr_gCfV_build_draw);
     }
-    if ($size_dqee_build_draw[0]>isize[0])
-      $pos_Di9Y_build_draw[0]+=($size_dqee_build_draw[0]-isize[0])*0.5;
-    if ($size_dqee_build_draw[1]>isize[1])
-      $pos_Di9Y_build_draw[1]+=($size_dqee_build_draw[1]-isize[1])*0.5;
+    if ($size_zIPE_build_draw[0]>isize[0])
+      $pos_GuHC_build_draw[0]+=($size_zIPE_build_draw[0]-isize[0])*0.5;
+    if ($size_zIPE_build_draw[1]>isize[1])
+      $pos_GuHC_build_draw[1]+=($size_zIPE_build_draw[1]-isize[1])*0.5;
     if (this.small_icon)
-      canvas.icon(this.icon, $pos_Di9Y_build_draw, 0.75, true);
+      canvas.icon(this.icon, $pos_GuHC_build_draw, 0.75, true);
     else 
-      canvas.icon(this.icon, $pos_Di9Y_build_draw, 0.75, false);
+      canvas.icon(this.icon, $pos_GuHC_build_draw, 0.75, false);
     canvas.end(this);
   }]);
-  var $pos_Di9Y_build_draw=[0, 0];
-  var $high_clr_22Xh_build_draw=[0.9, 0.9, 0.9, 0.2];
-  var $size_dqee_build_draw=[0, 0];
-  var $inset_clr_fl_7_build_draw=[0.3, 0.3, 0.3, 0.2];
+  var $pos_GuHC_build_draw=[0, 0];
+  var $high_clr_gCfV_build_draw=[0.9, 0.9, 0.9, 0.2];
+  var $size_zIPE_build_draw=[0, 0];
+  var $inset_clr_y9Xh_build_draw=[0.3, 0.3, 0.3, 0.2];
   _es6_module.add_class(UIButtonIcon);
   UIButtonIcon = _es6_module.add_export('UIButtonIcon', UIButtonIcon);
   var UIMenuButton=_ESClass("UIMenuButton", UIButtonAbstract, [function UIMenuButton(ctx, menu, pos, size, path, description) {
@@ -3593,7 +3593,7 @@ es6_module_define('selectmode', [], function _selectmode_module(_es6_module) {
   var ToolModes={SELECT: 1, APPEND: 2, RESIZE: 3, ROTATE: 4}
   ToolModes = _es6_module.add_export('ToolModes', ToolModes);
 }, '/dev/fairmotion/src/editors/viewport/selectmode.js');
-es6_module_define('UITextBox', ["UIFrame", "UIPack", "mathlib", "UIHTMLTextBox", "UIElement", "UIWidgets", "events"], function _UITextBox_module(_es6_module) {
+es6_module_define('UITextBox', ["UIElement", "events", "UIHTMLTextBox", "UIFrame", "mathlib", "UIPack", "UIWidgets"], function _UITextBox_module(_es6_module) {
   var $_mh;
   var $_swapt;
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
@@ -4106,7 +4106,7 @@ es6_module_define('UITextBox', ["UIFrame", "UIPack", "mathlib", "UIHTMLTextBox",
   _UITextBox = _es6_module.add_export('_UITextBox', _UITextBox);
   window.UITextBox = UITextBox;
 }, '/dev/fairmotion/src/ui/UITextBox.js');
-es6_module_define('UIHTMLTextBox', ["UIFrame", "UIElement", "mathlib"], function _UIHTMLTextBox_module(_es6_module) {
+es6_module_define('UIHTMLTextBox', ["UIFrame", "mathlib", "UIElement"], function _UIHTMLTextBox_module(_es6_module) {
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
   var inrect_2d=es6_import_item(_es6_module, 'mathlib', 'inrect_2d');
   var aabb_isect_2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_2d');
@@ -4279,7 +4279,7 @@ es6_module_define('UIHTMLTextBox', ["UIFrame", "UIElement", "mathlib"], function
   UIHTMLTextbox = _es6_module.add_export('UIHTMLTextbox', UIHTMLTextbox);
   
 }, '/dev/fairmotion/src/ui/UIHTMLTextBox.js');
-es6_module_define('ScreenKeyboard', ["UIPack", "UIElement", "events", "UIFrame", "UIWidgets"], function _ScreenKeyboard_module(_es6_module) {
+es6_module_define('ScreenKeyboard', ["UIElement", "events", "UIWidgets", "UIPack", "UIFrame"], function _ScreenKeyboard_module(_es6_module) {
   var PackFlags=es6_import_item(_es6_module, 'UIElement', 'PackFlags');
   var KeyMap=es6_import_item(_es6_module, 'events', 'KeyMap');
   var ToolKeyHandler=es6_import_item(_es6_module, 'events', 'ToolKeyHandler');
@@ -4520,7 +4520,7 @@ es6_module_define('platform_capabilies', [], function _platform_capabilies_modul
 }, '/dev/fairmotion/platforms/common/platform_capabilies.js');
 es6_module_define('platform_utils', [], function _platform_utils_module(_es6_module) {
 }, '/dev/fairmotion/platforms/common/platform_utils.js');
-es6_module_define('UIMenu', ["events", "UIFrame", "UIElement", "toolops_api", "UIWidgets", "UIPack", "UITextBox", "mathlib"], function _UIMenu_module(_es6_module) {
+es6_module_define('UIMenu', ["toolops_api", "UIPack", "UITextBox", "UIFrame", "mathlib", "UIElement", "events", "UIWidgets"], function _UIMenu_module(_es6_module) {
   var UIElement=es6_import_item(_es6_module, 'UIElement', 'UIElement');
   var PackFlags=es6_import_item(_es6_module, 'UIElement', 'PackFlags');
   var UIFlags=es6_import_item(_es6_module, 'UIElement', 'UIFlags');
@@ -4879,7 +4879,7 @@ es6_module_define('UIMenu', ["events", "UIFrame", "UIElement", "toolops_api", "U
   window.UIMenu = UIMenu;
   window.ui_call_menu = ui_call_menu;
 }, '/dev/fairmotion/src/ui/UIMenu.js');
-es6_module_define('RadialMenu', ["UITextBox", "mathlib", "UIPack", "events", "UIElement", "UIWidgets", "toolops_api", "UIFrame"], function _RadialMenu_module(_es6_module) {
+es6_module_define('RadialMenu', ["events", "UIElement", "mathlib", "toolops_api", "UITextBox", "UIWidgets", "UIPack", "UIFrame"], function _RadialMenu_module(_es6_module) {
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
   var aabb_isect_2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_2d');
   var inrect_2d=es6_import_item(_es6_module, 'mathlib', 'inrect_2d');
@@ -5665,7 +5665,7 @@ es6_module_define('RadialMenu', ["UITextBox", "mathlib", "UIPack", "events", "UI
   }
   window.UIRadialMenu = UIRadialMenu;
 }, '/dev/fairmotion/src/ui/RadialMenu.js');
-es6_module_define('UIWidgets_special', ["colorutils", "UITextBox", "UIMenu", "UIWidgets", "UIPack", "UIFrame", "UIElement", "mathlib", "events"], function _UIWidgets_special_module(_es6_module) {
+es6_module_define('UIWidgets_special', ["UIMenu", "mathlib", "UIFrame", "UIPack", "colorutils", "UIElement", "UITextBox", "UIWidgets", "events"], function _UIWidgets_special_module(_es6_module) {
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
   var inrect_2d=es6_import_item(_es6_module, 'mathlib', 'inrect_2d');
   var aabb_isect_2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_2d');
@@ -5863,10 +5863,10 @@ es6_module_define('UIWidgets_special', ["colorutils", "UITextBox", "UIMenu", "UI
   }]);
   _es6_module.add_class(UIPanel);
   UIPanel = _es6_module.add_export('UIPanel', UIPanel);
-  var $ret_LiqJ=undefined;
+  var $ret_TU6u=undefined;
   function get_editor_list() {
-    if ($ret_LiqJ==undefined) {
-        $ret_LiqJ = new GArray();
+    if ($ret_TU6u==undefined) {
+        $ret_TU6u = new GArray();
         var __iter_cls=__get_iter(defined_classes);
         var cls;
         while (1) {
@@ -5876,11 +5876,11 @@ es6_module_define('UIWidgets_special', ["colorutils", "UITextBox", "UIMenu", "UI
           }
           cls = __ival_cls.value;
           if (cls.__parent__!=undefined&&cls.__parent__.name=="Area") {
-              $ret_LiqJ.push(cls);
+              $ret_TU6u.push(cls);
           }
         }
     }
-    return $ret_LiqJ;
+    return $ret_TU6u;
   }
   function gen_editor_switcher(ctx, parent) {
     var editors=get_editor_list();
@@ -5913,16 +5913,16 @@ es6_module_define('UIWidgets_special', ["colorutils", "UITextBox", "UIMenu", "UI
   }
   gen_editor_switcher = _es6_module.add_export('gen_editor_switcher', gen_editor_switcher);
   var _hue_field=[[1, 0, 0, 1], [1, 1, 0, 1], [0, 1, 0, 1], [0, 1, 1, 1], [0, 0, 1, 1], [1, 0, 1, 1]];
-  var $pos_pZ_c_do_mouse;
-  var $mpos_RjK9_do_mouse;
-  var $sz_JB9e_build_draw;
-  var $v1_bF0O_build_draw;
-  var $v3_Ot81_build_draw;
-  var $clr_osoY_build_draw;
-  var $pos1_D0by_build_draw;
-  var $size_FLIK_do_mouse;
-  var $v2_CYI5_build_draw;
-  var $v4_EEEL_build_draw;
+  var $pos_iO3O_do_mouse;
+  var $mpos_gXbu_do_mouse;
+  var $sz_aJe8_build_draw;
+  var $v1_P2Ti_build_draw;
+  var $v3_KSnc_build_draw;
+  var $clr__gtn_build_draw;
+  var $pos1_2Moj_build_draw;
+  var $size_8vZ6_do_mouse;
+  var $v2_fbhd_build_draw;
+  var $v4_gY9K_build_draw;
   var UIColorField=_ESClass("UIColorField", UIElement, [function UIColorField(ctx, callback) {
     if (callback==undefined) {
         callback = undefined;
@@ -5938,10 +5938,10 @@ es6_module_define('UIWidgets_special', ["colorutils", "UITextBox", "UIMenu", "UI
   }, function get_min_size(canvas, isVertical) {
     return [150, 165];
   }, function do_mouse(event) {
-    $mpos_RjK9_do_mouse[0] = event.x;
-    $mpos_RjK9_do_mouse[1] = event.y;
+    $mpos_gXbu_do_mouse[0] = event.x;
+    $mpos_gXbu_do_mouse[1] = event.y;
     if (this.mode=="h") {
-        this.h = ($mpos_RjK9_do_mouse[0]-7)/(this.size[0]-12-2);
+        this.h = ($mpos_gXbu_do_mouse[0]-7)/(this.size[0]-12-2);
         this.h = Math.min(Math.max(this.h, 0), 1.0);
         this.do_recalc();
         if (this.callback!=undefined) {
@@ -5950,9 +5950,9 @@ es6_module_define('UIWidgets_special', ["colorutils", "UITextBox", "UIMenu", "UI
     }
     else 
       if (this.mode=="sv") {
-        var v=$mpos_RjK9_do_mouse[0]/this.size[0];
+        var v=$mpos_gXbu_do_mouse[0]/this.size[0];
         v = Math.sqrt(v);
-        var s=($mpos_RjK9_do_mouse[1]-this.huehgt+2)/(this.size[1]-this.huehgt);
+        var s=($mpos_gXbu_do_mouse[1]-this.huehgt+2)/(this.size[1]-this.huehgt);
         this.v = Math.min(Math.max(v, 0), 1.0);
         this.s = Math.min(Math.max(s, 0), 1.0);
         this.do_recalc();
@@ -5990,9 +5990,9 @@ es6_module_define('UIWidgets_special', ["colorutils", "UITextBox", "UIMenu", "UI
     canvas.simple_box([0, 0], this.size);
     var cs=_hue_field;
     var segs=cs.length;
-    var wid=Math.ceil((this.size[0]-2-$sz_JB9e_build_draw[0])/cs.length);
+    var wid=Math.ceil((this.size[0]-2-$sz_aJe8_build_draw[0])/cs.length);
     var h=this.h, s=this.s, v=this.v;
-    var halfx=Math.floor($sz_JB9e_build_draw[0]*0.5);
+    var halfx=Math.floor($sz_aJe8_build_draw[0]*0.5);
     canvas.box([0, 0], [this.size[0], 26], [0, 0, 0, 1], 0, true);
     var y=this.huehgt;
     var c1, c2, c3, c4;
@@ -6001,24 +6001,24 @@ es6_module_define('UIWidgets_special', ["colorutils", "UITextBox", "UIMenu", "UI
     for (var i=0; i<segs; i++) {
         var i2=(i+1)%cs.length;
         var c1=cs[i], c2=cs[i2], c3=cs[i2], c4=cs[i];
-        $v1_bF0O_build_draw[0] = i*wid+1+halfx;
-        $v1_bF0O_build_draw[1] = 1;
-        $v2_CYI5_build_draw[0] = i*wid+1+halfx;
-        $v2_CYI5_build_draw[1] = y;
-        $v3_Ot81_build_draw[0] = i*wid+wid+1+halfx;
-        $v3_Ot81_build_draw[1] = y;
-        $v4_EEEL_build_draw[0] = i*wid+wid+1+halfx, $v4_EEEL_build_draw[1] = 1;
-        canvas.quad($v2_CYI5_build_draw, $v3_Ot81_build_draw, $v4_EEEL_build_draw, $v1_bF0O_build_draw, c1, c2, c3, c4, true);
+        $v1_P2Ti_build_draw[0] = i*wid+1+halfx;
+        $v1_P2Ti_build_draw[1] = 1;
+        $v2_fbhd_build_draw[0] = i*wid+1+halfx;
+        $v2_fbhd_build_draw[1] = y;
+        $v3_KSnc_build_draw[0] = i*wid+wid+1+halfx;
+        $v3_KSnc_build_draw[1] = y;
+        $v4_gY9K_build_draw[0] = i*wid+wid+1+halfx, $v4_gY9K_build_draw[1] = 1;
+        canvas.quad($v2_fbhd_build_draw, $v3_KSnc_build_draw, $v4_gY9K_build_draw, $v1_P2Ti_build_draw, c1, c2, c3, c4, true);
     }
-    canvas.quad($v4_EEEL_build_draw, $v3_Ot81_build_draw, [this.size[0]-1, y], [this.size[0]-1, 1], cs[0]);
-    $v1_bF0O_build_draw[0] = 0;
-    $v1_bF0O_build_draw[1] = y+2;
-    $v2_CYI5_build_draw[0] = 0;
-    $v2_CYI5_build_draw[1] = this.size[1];
-    $v3_Ot81_build_draw[0] = this.size[0];
-    $v3_Ot81_build_draw[1] = this.size[1];
-    $v4_EEEL_build_draw[0] = this.size[0];
-    $v4_EEEL_build_draw[1] = 27;
+    canvas.quad($v4_gY9K_build_draw, $v3_KSnc_build_draw, [this.size[0]-1, y], [this.size[0]-1, 1], cs[0]);
+    $v1_P2Ti_build_draw[0] = 0;
+    $v1_P2Ti_build_draw[1] = y+2;
+    $v2_fbhd_build_draw[0] = 0;
+    $v2_fbhd_build_draw[1] = this.size[1];
+    $v3_KSnc_build_draw[0] = this.size[0];
+    $v3_KSnc_build_draw[1] = this.size[1];
+    $v4_gY9K_build_draw[0] = this.size[0];
+    $v4_gY9K_build_draw[1] = 27;
     var h1=Math.floor(h*cs.length)%cs.length;
     var h2=(h1+1)%cs.length;
     var t=h*cs.length-h1;
@@ -6031,34 +6031,34 @@ es6_module_define('UIWidgets_special', ["colorutils", "UITextBox", "UIMenu", "UI
     if (t<0||t>1)
       t = 0;
     for (var i=0; i<3; i++) {
-        $clr_osoY_build_draw[i] = cs[h1][i]+(cs[h2][i]-cs[h1][i])*t;
+        $clr__gtn_build_draw[i] = cs[h1][i]+(cs[h2][i]-cs[h1][i])*t;
     }
     c1 = [0, 0, 0, 1];
     c2 = [0, 0, 0, 1];
-    c3 = $clr_osoY_build_draw;
+    c3 = $clr__gtn_build_draw;
     c4 = [1, 1, 1, 1];
-    canvas.colorfield([0, this.huehgt], [this.size[0], this.size[1]-this.huehgt], $clr_osoY_build_draw);
-    $pos1_D0by_build_draw[0] = Math.floor(1+h*(this.size[0]-2-$sz_JB9e_build_draw[0]));
-    $pos1_D0by_build_draw[1] = Math.floor(y*0.5-$sz_JB9e_build_draw[1]*0.5);
-    canvas.box($pos1_D0by_build_draw, $sz_JB9e_build_draw);
-    $pos1_D0by_build_draw[0] = Math.floor((this.size[0]-$sz_JB9e_build_draw[0])*v*v);
-    $pos1_D0by_build_draw[1] = Math.floor((this.size[1]-y-4)*s+y+2-$sz_JB9e_build_draw[1]*0.5);
-    canvas.box($pos1_D0by_build_draw, $sz_JB9e_build_draw);
+    canvas.colorfield([0, this.huehgt], [this.size[0], this.size[1]-this.huehgt], $clr__gtn_build_draw);
+    $pos1_2Moj_build_draw[0] = Math.floor(1+h*(this.size[0]-2-$sz_aJe8_build_draw[0]));
+    $pos1_2Moj_build_draw[1] = Math.floor(y*0.5-$sz_aJe8_build_draw[1]*0.5);
+    canvas.box($pos1_2Moj_build_draw, $sz_aJe8_build_draw);
+    $pos1_2Moj_build_draw[0] = Math.floor((this.size[0]-$sz_aJe8_build_draw[0])*v*v);
+    $pos1_2Moj_build_draw[1] = Math.floor((this.size[1]-y-4)*s+y+2-$sz_aJe8_build_draw[1]*0.5);
+    canvas.box($pos1_2Moj_build_draw, $sz_aJe8_build_draw);
   }]);
-  var $pos_pZ_c_do_mouse=[0, 0];
-  var $mpos_RjK9_do_mouse=[0, 0];
-  var $sz_JB9e_build_draw=[12, 12];
-  var $v1_bF0O_build_draw=new Vector2();
-  var $v3_Ot81_build_draw=new Vector2();
-  var $clr_osoY_build_draw=[0, 0, 0, 1];
-  var $pos1_D0by_build_draw=[0, 0];
-  var $size_FLIK_do_mouse=[0, 0];
-  var $v2_CYI5_build_draw=new Vector2();
-  var $v4_EEEL_build_draw=new Vector2();
+  var $pos_iO3O_do_mouse=[0, 0];
+  var $mpos_gXbu_do_mouse=[0, 0];
+  var $sz_aJe8_build_draw=[12, 12];
+  var $v1_P2Ti_build_draw=new Vector2();
+  var $v3_KSnc_build_draw=new Vector2();
+  var $clr__gtn_build_draw=[0, 0, 0, 1];
+  var $pos1_2Moj_build_draw=[0, 0];
+  var $size_8vZ6_do_mouse=[0, 0];
+  var $v2_fbhd_build_draw=new Vector2();
+  var $v4_gY9K_build_draw=new Vector2();
   _es6_module.add_class(UIColorField);
   UIColorField = _es6_module.add_export('UIColorField', UIColorField);
-  var $white_ZV3o_build_draw;
-  var $grey_QkRQ_build_draw;
+  var $white_FTQZ_build_draw;
+  var $grey_ZHpn_build_draw;
   var UIColorBox=_ESClass("UIColorBox", UIElement, [function UIColorBox(ctx, color) {
     if (color==undefined) {
         color = undefined;
@@ -6078,19 +6078,19 @@ es6_module_define('UIWidgets_special', ["colorutils", "UITextBox", "UIMenu", "UI
         pos[1] = 0;
         for (var j=0; j<tot2; j++) {
             var k=(i+j)%2;
-            canvas.box2(pos, wid, k ? $white_ZV3o_build_draw : $grey_QkRQ_build_draw);
+            canvas.box2(pos, wid, k ? $white_FTQZ_build_draw : $grey_ZHpn_build_draw);
             pos[1]+=wid[1];
         }
         pos[0]+=wid[0];
     }
     canvas.box2([0, 0], this.size, this.color);
   }]);
-  var $white_ZV3o_build_draw=[1.0, 1.0, 1.0, 1.0];
-  var $grey_QkRQ_build_draw=[0.3, 0.3, 0.3, 1.0];
+  var $white_FTQZ_build_draw=[1.0, 1.0, 1.0, 1.0];
+  var $grey_ZHpn_build_draw=[0.3, 0.3, 0.3, 1.0];
   _es6_module.add_class(UIColorBox);
   UIColorBox = _es6_module.add_export('UIColorBox', UIColorBox);
-  var $hsva_CWvI_update_widgets;
-  var $hsva__Mtn_hsv_callback;
+  var $hsva_5Ew6_update_widgets;
+  var $hsva_U_sR_hsv_callback;
   var UIColorPicker=_ESClass("UIColorPicker", RowFrame, [function UIColorPicker(ctx, color, color_length) {
     if (color==undefined) {
         color = undefined;
@@ -6211,10 +6211,10 @@ es6_module_define('UIWidgets_special', ["colorutils", "UITextBox", "UIMenu", "UI
     }
   }, function update_widgets() {
     var c=this._color, lasthue=undefined;
-    for (var i=0; i<$hsva_CWvI_update_widgets.length; i++) {
-        if (isNaN($hsva_CWvI_update_widgets[i])) {
+    for (var i=0; i<$hsva_5Ew6_update_widgets.length; i++) {
+        if (isNaN($hsva_5Ew6_update_widgets[i])) {
             console.log("Eek, NaN!");
-            $hsva_CWvI_update_widgets[i] = 0.0;
+            $hsva_5Ew6_update_widgets[i] = 0.0;
         }
     }
     for (var i=0; i<this._color.length; i++) {
@@ -6226,16 +6226,16 @@ es6_module_define('UIWidgets_special', ["colorutils", "UITextBox", "UIMenu", "UI
     for (var i=0; i<this.color_length; i++) {
         this.last_valid[i] = this._color[i];
     }
-    this.last_valid_hue = rgba_to_hsva(this._color, $hsva_CWvI_update_widgets, this.last_valid_hue);
-    if ($hsva_CWvI_update_widgets[1]<0) {
-        $hsva_CWvI_update_widgets[1] = this.last_valid_sat;
+    this.last_valid_hue = rgba_to_hsva(this._color, $hsva_5Ew6_update_widgets, this.last_valid_hue);
+    if ($hsva_5Ew6_update_widgets[1]<0) {
+        $hsva_5Ew6_update_widgets[1] = this.last_valid_sat;
     }
     else {
-      this.last_valid_sat = $hsva_CWvI_update_widgets[1];
+      this.last_valid_sat = $hsva_5Ew6_update_widgets[1];
     }
-    this.field.h = $hsva_CWvI_update_widgets[0]*0.9999;
-    this.field.s = $hsva_CWvI_update_widgets[1];
-    this.field.v = $hsva_CWvI_update_widgets[2];
+    this.field.h = $hsva_5Ew6_update_widgets[0]*0.9999;
+    this.field.s = $hsva_5Ew6_update_widgets[1];
+    this.field.v = $hsva_5Ew6_update_widgets[2];
     this.field.do_recalc();
     this.preview.color = this._color;
     this.preview.do_recalc();
@@ -6243,28 +6243,28 @@ es6_module_define('UIWidgets_special', ["colorutils", "UITextBox", "UIMenu", "UI
     this.g.set_val(this._color[1]);
     this.b.set_val(this._color[2]);
     if (isNaN(this.color[2])) {
-        console.log("NaN!", this._color, $hsva_CWvI_update_widgets);
+        console.log("NaN!", this._color, $hsva_5Ew6_update_widgets);
     }
     if (this.color_length==4) {
         this.a.set_val(this._color[3]);
     }
     this.do_path();
   }, function hsv_callback(field, h, s, v) {
-    $hsva__Mtn_hsv_callback[0] = h*0.9999;
-    $hsva__Mtn_hsv_callback[1] = s;
-    $hsva__Mtn_hsv_callback[2] = v;
+    $hsva_U_sR_hsv_callback[0] = h*0.9999;
+    $hsva_U_sR_hsv_callback[1] = s;
+    $hsva_U_sR_hsv_callback[2] = v;
     if (this.color_length==4)
-      $hsva__Mtn_hsv_callback[3] = this._color[3];
+      $hsva_U_sR_hsv_callback[3] = this._color[3];
     else 
-      $hsva__Mtn_hsv_callback[3] = 1.0;
+      $hsva_U_sR_hsv_callback[3] = 1.0;
     this.last_valid_hue = h;
     this.last_valid_sat = s;
-    this.last_valid_hue = hsva_to_rgba($hsva__Mtn_hsv_callback, this._color, h*0.9999);
+    this.last_valid_hue = hsva_to_rgba($hsva_U_sR_hsv_callback, this._color, h*0.9999);
     this.update_widgets();
     this.on_colorchange();
   }]);
-  var $hsva_CWvI_update_widgets=[0, 0, 0, 0];
-  var $hsva__Mtn_hsv_callback=[0, 0, 0, 0];
+  var $hsva_5Ew6_update_widgets=[0, 0, 0, 0];
+  var $hsva_U_sR_hsv_callback=[0, 0, 0, 0];
   _es6_module.add_class(UIColorPicker);
   UIColorPicker = _es6_module.add_export('UIColorPicker', UIColorPicker);
   var UIBoxWColor=_ESClass("UIBoxWColor", ColumnFrame, [function UIBoxWColor(ctx, path) {
@@ -6311,9 +6311,9 @@ es6_module_define('UIWidgets_special', ["colorutils", "UITextBox", "UIMenu", "UI
   }]);
   _es6_module.add_class(UIBoxColor);
   UIBoxColor = _es6_module.add_export('UIBoxColor', UIBoxColor);
-  var $zero_p7A8_build_draw;
-  var $size2_pODP_build_draw;
-  var $one_pTlD_build_draw;
+  var $zero_OAfR_build_draw;
+  var $size2_6AMG_build_draw;
+  var $one_YigB_build_draw;
   var UIProgressBar=_ESClass("UIProgressBar", UIElement, [function UIProgressBar(ctx, value, min, max, min_wid, min_hgt) {
     if (value==undefined) {
         value = 0.0;
@@ -6355,18 +6355,18 @@ es6_module_define('UIWidgets_special', ["colorutils", "UITextBox", "UIMenu", "UI
   }, function build_draw(canvas, isVertical) {
     canvas.begin(this);
     var perc=(this.value/(this.max-this.min));
-    canvas.box($zero_p7A8_build_draw, this.size, uicolors["ProgressBarBG"]);
+    canvas.box($zero_OAfR_build_draw, this.size, uicolors["ProgressBarBG"]);
     if (perc>0.0) {
         perc = Math.min(Math.max(0.0, perc), 1.0);
-        $size2_pODP_build_draw[1] = this.size[1]-2;
-        $size2_pODP_build_draw[0] = Math.floor(this.size[0]*perc)-2;
-        canvas.box($one_pTlD_build_draw, $size2_pODP_build_draw, uicolors["ProgressBar"]);
+        $size2_6AMG_build_draw[1] = this.size[1]-2;
+        $size2_6AMG_build_draw[0] = Math.floor(this.size[0]*perc)-2;
+        canvas.box($one_YigB_build_draw, $size2_6AMG_build_draw, uicolors["ProgressBar"]);
     }
     canvas.end(this);
   }]);
-  var $zero_p7A8_build_draw=[0, 0];
-  var $size2_pODP_build_draw=[0, 0];
-  var $one_pTlD_build_draw=[1, 1];
+  var $zero_OAfR_build_draw=[0, 0];
+  var $size2_6AMG_build_draw=[0, 0];
+  var $one_YigB_build_draw=[1, 1];
   _es6_module.add_class(UIProgressBar);
   UIProgressBar = _es6_module.add_export('UIProgressBar', UIProgressBar);
   var UIListEntry=_ESClass("UIListEntry", ColumnFrame, [function UIListEntry(ctx, text, id) {
@@ -6445,7 +6445,7 @@ es6_module_define('UIWidgets_special', ["colorutils", "UITextBox", "UIMenu", "UI
   }]);
   _es6_module.add_class(UIListEntry);
   UIListEntry = _es6_module.add_export('UIListEntry', UIListEntry);
-  var $pan_Kiib__vscroll_callback;
+  var $pan_tmDa__vscroll_callback;
   var UIListBox=_ESClass("UIListBox", ColumnFrame, [function UIListBox(ctx, pos, size, callback) {
     ColumnFrame.call(this, ctx);
     if (size!=undefined&&size[0]+size[1]!=0.0)
@@ -6512,8 +6512,8 @@ es6_module_define('UIWidgets_special', ["colorutils", "UITextBox", "UIMenu", "UI
       ret["active_entry"] = this.active_entry.text;
     return ret;
   }, function _vscroll_callback(vscroll, value) {
-    $pan_Kiib__vscroll_callback[1] = value;
-    this.listbox.velpan.set_pan($pan_Kiib__vscroll_callback);
+    $pan_tmDa__vscroll_callback[1] = value;
+    this.listbox.velpan.set_pan($pan_tmDa__vscroll_callback);
     this.listbox.do_full_recalc();
     this.do_full_recalc();
   }, function on_doubleclick(event) {
@@ -6680,12 +6680,12 @@ es6_module_define('UIWidgets_special', ["colorutils", "UITextBox", "UIMenu", "UI
       return CACHEARR2(500, 300);
     }
   }]);
-  var $pan_Kiib__vscroll_callback=[0, 0];
+  var $pan_tmDa__vscroll_callback=[0, 0];
   _es6_module.add_class(UIListBox);
   UIListBox = _es6_module.add_export('UIListBox', UIListBox);
   window.UIColorPicker = UIColorPicker;
 }, '/dev/fairmotion/src/ui/UIWidgets_special.js');
-es6_module_define('UIWidgets_special2', ["UIElement", "UIWidgets_special", "dialog", "UIPack"], function _UIWidgets_special2_module(_es6_module) {
+es6_module_define('UIWidgets_special2', ["dialog", "UIPack", "UIWidgets_special", "UIElement"], function _UIWidgets_special2_module(_es6_module) {
   'use strict';
   var PackedDialog=es6_import_item(_es6_module, 'dialog', 'PackedDialog');
   var Dialog=es6_import_item(_es6_module, 'dialog', 'Dialog');
@@ -6878,7 +6878,7 @@ es6_module_define('UIWidgets_special2', ["UIElement", "UIWidgets_special", "dial
   UIColorButtonField = _es6_module.add_export('UIColorButtonField', UIColorButtonField);
   window.UIColorButton = UIColorButton;
 }, '/dev/fairmotion/src/ui/UIWidgets_special2.js');
-es6_module_define('UITabPanel', ["UIWidgets", "UIFrame", "mathlib", "UIPack", "UIElement"], function _UITabPanel_module(_es6_module) {
+es6_module_define('UITabPanel', ["UIFrame", "UIWidgets", "mathlib", "UIElement", "UIPack"], function _UITabPanel_module(_es6_module) {
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
   var inrect_2d=es6_import_item(_es6_module, 'mathlib', 'inrect_2d');
   var aabb_isect_2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_2d');
@@ -7253,7 +7253,7 @@ es6_module_define('utildefine', [], function _utildefine_module(_es6_module) {
   var $_mh;
   var $_swapt;
 }, '/dev/fairmotion/src/core/utildefine.js');
-es6_module_define('dialog', ["UIWidgets", "UIFrame", "toolops_api", "UIWidgets_special", "UIPack", "UICanvas", "UITextBox", "UIElement"], function _dialog_module(_es6_module) {
+es6_module_define('dialog', ["UIFrame", "UITextBox", "UIWidgets", "toolops_api", "UIPack", "UIElement", "UICanvas", "UIWidgets_special"], function _dialog_module(_es6_module) {
   var DialogFlags={MODAL: 1, END_ON_ESCAPE: 2, DEFAULT: 2}
   DialogFlags = _es6_module.add_export('DialogFlags', DialogFlags);
   var ToolFlags=es6_import_item(_es6_module, 'toolops_api', 'ToolFlags');
@@ -7501,7 +7501,7 @@ es6_module_define('dialog', ["UIWidgets", "UIFrame", "toolops_api", "UIWidgets_s
   ErrorDialog = _es6_module.add_export('ErrorDialog', ErrorDialog);
   window.Dialog = Dialog;
 }, '/dev/fairmotion/src/ui/dialog.js');
-es6_module_define('dialogs', ["strutils", "UIFrame", "UIWidgets", "UITextBox", "svg_export", "UIWidgets_special", "toolprops", "config", "toolops_api", "UIPack", "ajax", "spline_createops", "fileapi", "UIElement", "dialog"], function _dialogs_module(_es6_module) {
+es6_module_define('dialogs', ["dialog", "UIElement", "svg_export", "config", "UIPack", "fileapi", "toolops_api", "UIFrame", "toolprops", "UIWidgets", "UIWidgets_special", "ajax", "UITextBox", "strutils", "spline_createops"], function _dialogs_module(_es6_module) {
   var Dialog=es6_import_item(_es6_module, 'dialog', 'Dialog');
   var PackedDialog=es6_import_item(_es6_module, 'dialog', 'PackedDialog');
   var DialogFlags=es6_import_item(_es6_module, 'dialog', 'DialogFlags');
@@ -8287,7 +8287,7 @@ es6_module_define('dialogs', ["strutils", "UIFrame", "UIWidgets", "UITextBox", "
   }
   import_json = _es6_module.add_export('import_json', import_json);
 }, '/dev/fairmotion/src/ui/dialogs.js');
-es6_module_define('FrameManager', ["struct", "UIFrame", "ScreenArea", "dialogs", "UIPack", "toolops_api", "config", "ScreenBorder", "events", "UIElement", "mathlib", "UICanvas", "FrameManager_ops"], function _FrameManager_module(_es6_module) {
+es6_module_define('FrameManager', ["toolops_api", "dialogs", "UIElement", "mathlib", "ScreenArea", "events", "FrameManager_ops", "ScreenBorder", "UIPack", "UICanvas", "UIFrame", "config", "struct"], function _FrameManager_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, 'config');
   var login_dialog=es6_import_item(_es6_module, 'dialogs', 'login_dialog');
@@ -9065,7 +9065,7 @@ es6_module_define('FrameManager', ["struct", "UIFrame", "ScreenArea", "dialogs",
   window.ScreenArea = ScreenArea;
   window.Area = Area;
 }, '/dev/fairmotion/src/windowmanager/FrameManager.js');
-es6_module_define('FrameManager_ops', ["ScreenArea", "UIElement", "mathlib", "struct", "UIFrame", "UIPack", "dialogs", "UICanvas", "toolops_api", "events"], function _FrameManager_ops_module(_es6_module) {
+es6_module_define('FrameManager_ops', ["UIElement", "toolops_api", "UIFrame", "UIPack", "struct", "events", "mathlib", "UICanvas", "dialogs", "ScreenArea"], function _FrameManager_ops_module(_es6_module) {
   "use strict";
   var login_dialog=es6_import_item(_es6_module, 'dialogs', 'login_dialog');
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
@@ -9444,7 +9444,7 @@ es6_module_define('FrameManager_ops', ["ScreenArea", "UIElement", "mathlib", "st
   _es6_module.add_class(HintPickerOp);
   HintPickerOp = _es6_module.add_export('HintPickerOp', HintPickerOp);
 }, '/dev/fairmotion/src/windowmanager/FrameManager_ops.js');
-es6_module_define('ScreenArea', ["dialogs", "UICanvas", "UISplitFrame", "UIFrame", "mathlib", "struct", "UIElement", "toolops_api", "events", "UIWidgets", "UIPack"], function _ScreenArea_module(_es6_module) {
+es6_module_define('ScreenArea', ["UIPack", "events", "mathlib", "struct", "UIFrame", "UIElement", "UICanvas", "dialogs", "UIWidgets", "toolops_api", "UISplitFrame"], function _ScreenArea_module(_es6_module) {
   "use strict";
   var login_dialog=es6_import_item(_es6_module, 'dialogs', 'login_dialog');
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
@@ -9905,7 +9905,7 @@ es6_module_define('ScreenArea', ["dialogs", "UICanvas", "UISplitFrame", "UIFrame
   ScreenArea = _es6_module.add_export('ScreenArea', ScreenArea);
   ScreenArea.STRUCT = "\n  ScreenArea {\n    pos     : vec2;\n    size    : vec2;\n    type    : string;\n    editors : iter(k, abstract(Area)) | obj.editors[k];\n    area    : string | obj.area.constructor.name;\n  }\n";
 }, '/dev/fairmotion/src/windowmanager/ScreenArea.js');
-es6_module_define('ScreenBorder', ["UICanvas", "events", "struct", "UIFrame", "dialogs", "FrameManager_ops", "UIPack", "config", "toolops_api", "ScreenArea", "mathlib", "UIElement"], function _ScreenBorder_module(_es6_module) {
+es6_module_define('ScreenBorder', ["UIElement", "mathlib", "UIPack", "ScreenArea", "FrameManager_ops", "UIFrame", "struct", "toolops_api", "events", "dialogs", "UICanvas", "config"], function _ScreenBorder_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, 'config');
   var BORDER_WIDTH=IsMobile ? 24 : 12;
@@ -10038,8 +10038,8 @@ es6_module_define('ScreenBorder', ["UICanvas", "events", "struct", "UIFrame", "d
   _es6_module.add_class(AreaEdge);
   AreaEdge = _es6_module.add_export('AreaEdge', AreaEdge);
   var _screenborder_id_gen=1;
-  var $black_TpQp_on_mousemove;
-  var $black_hyLf_build_draw;
+  var $black_1BdA_on_mousemove;
+  var $black_G3P__build_draw;
   var ScreenBorder=_ESClass("ScreenBorder", UIElement, [function ScreenBorder(area, borderindex) {
     UIElement.call(this);
     this.area = area;
@@ -10287,7 +10287,7 @@ es6_module_define('ScreenBorder', ["UICanvas", "events", "struct", "UIFrame", "d
       x = sx = (x+sx)*0.5;
     }
     this.canvas.clear();
-    this.canvas.line([x, y], [sx, sy], $black_TpQp_on_mousemove, $black_TpQp_on_mousemove);
+    this.canvas.line([x, y], [sx, sy], $black_1BdA_on_mousemove, $black_1BdA_on_mousemove);
   }, function finish() {
     if (this.moving) {
         this.canvas.pop_layer();
@@ -10323,10 +10323,10 @@ es6_module_define('ScreenBorder', ["UICanvas", "events", "struct", "UIFrame", "d
     var sx=this.edge.max[0]-this.edge.min[0];
     var sy=this.edge.max[1]-this.edge.min[1];
     if (this.moving)
-      canvas.line(this.moving_line[0], this.moving_line[1], $black_hyLf_build_draw, $black_hyLf_build_draw);
+      canvas.line(this.moving_line[0], this.moving_line[1], $black_G3P__build_draw, $black_G3P__build_draw);
   }]);
-  var $black_TpQp_on_mousemove=[0, 0, 0, 1];
-  var $black_hyLf_build_draw=[0, 0, 0, 1];
+  var $black_1BdA_on_mousemove=[0, 0, 0, 1];
+  var $black_G3P__build_draw=[0, 0, 0, 1];
   _es6_module.add_class(ScreenBorder);
   ScreenBorder = _es6_module.add_export('ScreenBorder', ScreenBorder);
 }, '/dev/fairmotion/src/windowmanager/ScreenBorder.js');
@@ -10337,10 +10337,10 @@ es6_module_define('view2d_editor', ["struct"], function _view2d_editor_module(_e
   EditModes = _es6_module.add_export('EditModes', EditModes);
   var SessionFlags={PROP_TRANSFORM: 1}
   SessionFlags = _es6_module.add_export('SessionFlags', SessionFlags);
-  var $v3d_idgen_RHgp_View2DEditor;
+  var $v3d_idgen_lrcn_View2DEditor;
   var View2DEditor=_ESClass("View2DEditor", [function View2DEditor(name, type, lib_type, keymap) {
     this.name = name;
-    this._id = $v3d_idgen_RHgp_View2DEditor++;
+    this._id = $v3d_idgen_lrcn_View2DEditor++;
     this.type = type;
     this.lib_type = lib_type;
     this.keymap = keymap;
@@ -10374,12 +10374,12 @@ es6_module_define('view2d_editor', ["struct"], function _view2d_editor_module(_e
   }, function delete_menu(event) {
   }, function gen_edit_menu() {
   }]);
-  var $v3d_idgen_RHgp_View2DEditor=1;
+  var $v3d_idgen_lrcn_View2DEditor=1;
   _es6_module.add_class(View2DEditor);
   View2DEditor = _es6_module.add_export('View2DEditor', View2DEditor);
   View2DEditor.STRUCT = "\n  View2DEditor {\n  }\n";
 }, '/dev/fairmotion/src/editors/viewport/view2d_editor.js');
-es6_module_define('view2d_object', ["struct", "spline_base", "selectmode"], function _view2d_object_module(_es6_module) {
+es6_module_define('view2d_object', ["spline_base", "struct", "selectmode"], function _view2d_object_module(_es6_module) {
   "use strict";
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
   var SelMask=es6_import_item(_es6_module, 'selectmode', 'SelMask');

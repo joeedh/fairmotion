@@ -668,7 +668,7 @@ es6_module_define('lib_api', ["struct", "toolprops_iter"], function _lib_api_mod
   _es6_module.add_class(DataRefListIter);
   DataRefListIter = _es6_module.add_export('DataRefListIter', DataRefListIter);
 }, '/dev/fairmotion/src/core/lib_api.js');
-es6_module_define('lib_api_typedefine', ["spline", "lib_api", "imageblock", "scene", "frameset"], function _lib_api_typedefine_module(_es6_module) {
+es6_module_define('lib_api_typedefine', ["spline", "imageblock", "frameset", "scene", "lib_api"], function _lib_api_typedefine_module(_es6_module) {
   var SplineFrameSet=es6_import_item(_es6_module, 'frameset', 'SplineFrameSet');
   var Scene=es6_import_item(_es6_module, 'scene', 'Scene');
   var DataTypes=es6_import_item(_es6_module, 'lib_api', 'DataTypes');
@@ -755,12 +755,12 @@ es6_module_define('mathlib', ["J3DIMath", "struct"], function _mathlib_module(_e
       FLOAT_MAX = 1000000.0;
       console.log("Floating-point 16-bit system detected!");
   }
-  var $_cs4_pw9l_get_rect_points=new Array(4);
-  var $_cs8_v4Hz_get_rect_points=new Array(8);
+  var $_cs4_VM9j_get_rect_points=new Array(4);
+  var $_cs8_9TPc_get_rect_points=new Array(8);
   function get_rect_points(p, size) {
     var cs;
     if (p.length==2) {
-        cs = $_cs4_pw9l_get_rect_points;
+        cs = $_cs4_VM9j_get_rect_points;
         cs[0] = p;
         cs[1] = [p[0], p[1]+size[1]];
         cs[2] = [p[0]+size[0], p[1]+size[1]];
@@ -768,7 +768,7 @@ es6_module_define('mathlib', ["J3DIMath", "struct"], function _mathlib_module(_e
     }
     else 
       if (p.length==3) {
-        cs = $_cs8_v4Hz_get_rect_points;
+        cs = $_cs8_9TPc_get_rect_points;
         cs[0] = p;
         cs[1] = [p[0]+size[0], p[1], p[2]];
         cs[2] = [p[0]+size[0], p[1]+size[1], p[2]];
@@ -805,15 +805,15 @@ es6_module_define('mathlib', ["J3DIMath", "struct"], function _mathlib_module(_e
     }
   }
   get_rect_lines = _es6_module.add_export('get_rect_lines', get_rect_lines);
-  var $vs_z0aQ_simple_tri_aabb_isect=[0, 0, 0];
+  var $vs_WWJo_simple_tri_aabb_isect=[0, 0, 0];
   function simple_tri_aabb_isect(v1, v2, v3, min, max) {
-    $vs_z0aQ_simple_tri_aabb_isect[0] = v1;
-    $vs_z0aQ_simple_tri_aabb_isect[1] = v2;
-    $vs_z0aQ_simple_tri_aabb_isect[2] = v3;
+    $vs_WWJo_simple_tri_aabb_isect[0] = v1;
+    $vs_WWJo_simple_tri_aabb_isect[1] = v2;
+    $vs_WWJo_simple_tri_aabb_isect[2] = v3;
     for (var i=0; i<3; i++) {
         var isect=true;
         for (var j=0; j<3; j++) {
-            if ($vs_z0aQ_simple_tri_aabb_isect[j][i]<min[i]||$vs_z0aQ_simple_tri_aabb_isect[j][i]>=max[i])
+            if ($vs_WWJo_simple_tri_aabb_isect[j][i]<min[i]||$vs_WWJo_simple_tri_aabb_isect[j][i]>=max[i])
               isect = false;
         }
         if (isect)
@@ -938,42 +938,42 @@ es6_module_define('mathlib', ["J3DIMath", "struct"], function _mathlib_module(_e
     return p[0]>=pos[0]&&p[0]<=pos[0]+size[0]&&p[1]>=pos[1]&&p[1]<=pos[1]+size[1];
   }
   inrect_2d = _es6_module.add_export('inrect_2d', inrect_2d);
-  var $smin_eaIf_aabb_isect_line_2d=new Vector2();
-  var $ssize_Tzyy_aabb_isect_line_2d=new Vector2();
-  var $sv1_Nxf__aabb_isect_line_2d=new Vector2();
-  var $ps_vGvS_aabb_isect_line_2d=[new Vector2(), new Vector2(), new Vector2()];
-  var $l1_lKVa_aabb_isect_line_2d=[0, 0];
-  var $smax_F17p_aabb_isect_line_2d=new Vector2();
-  var $sv2_cABL_aabb_isect_line_2d=new Vector2();
-  var $l2_9G8__aabb_isect_line_2d=[0, 0];
+  var $smin_sWNR_aabb_isect_line_2d=new Vector2();
+  var $ssize_cRyq_aabb_isect_line_2d=new Vector2();
+  var $sv1_x8Ub_aabb_isect_line_2d=new Vector2();
+  var $ps_4UPA_aabb_isect_line_2d=[new Vector2(), new Vector2(), new Vector2()];
+  var $l1_5m0z_aabb_isect_line_2d=[0, 0];
+  var $smax_2PbQ_aabb_isect_line_2d=new Vector2();
+  var $sv2_XF24_aabb_isect_line_2d=new Vector2();
+  var $l2_G5_N_aabb_isect_line_2d=[0, 0];
   function aabb_isect_line_2d(v1, v2, min, max) {
     for (var i=0; i<2; i++) {
-        $smin_eaIf_aabb_isect_line_2d[i] = Math.min(min[i], v1[i]);
-        $smax_F17p_aabb_isect_line_2d[i] = Math.max(max[i], v2[i]);
+        $smin_sWNR_aabb_isect_line_2d[i] = Math.min(min[i], v1[i]);
+        $smax_2PbQ_aabb_isect_line_2d[i] = Math.max(max[i], v2[i]);
     }
-    $smax_F17p_aabb_isect_line_2d.sub($smin_eaIf_aabb_isect_line_2d);
-    $ssize_Tzyy_aabb_isect_line_2d.load(max).sub(min);
-    if (!aabb_isect_2d($smin_eaIf_aabb_isect_line_2d, $smax_F17p_aabb_isect_line_2d, min, $ssize_Tzyy_aabb_isect_line_2d))
+    $smax_2PbQ_aabb_isect_line_2d.sub($smin_sWNR_aabb_isect_line_2d);
+    $ssize_cRyq_aabb_isect_line_2d.load(max).sub(min);
+    if (!aabb_isect_2d($smin_sWNR_aabb_isect_line_2d, $smax_2PbQ_aabb_isect_line_2d, min, $ssize_cRyq_aabb_isect_line_2d))
       return false;
     for (var i=0; i<4; i++) {
-        if (inrect_2d(v1, min, $ssize_Tzyy_aabb_isect_line_2d))
+        if (inrect_2d(v1, min, $ssize_cRyq_aabb_isect_line_2d))
           return true;
-        if (inrect_2d(v2, min, $ssize_Tzyy_aabb_isect_line_2d))
+        if (inrect_2d(v2, min, $ssize_cRyq_aabb_isect_line_2d))
           return true;
     }
-    $ps_vGvS_aabb_isect_line_2d[0] = min;
-    $ps_vGvS_aabb_isect_line_2d[1][0] = min[0];
-    $ps_vGvS_aabb_isect_line_2d[1][1] = max[1];
-    $ps_vGvS_aabb_isect_line_2d[2] = max;
-    $ps_vGvS_aabb_isect_line_2d[3][0] = max[0];
-    $ps_vGvS_aabb_isect_line_2d[3][1] = min[1];
-    $l1_lKVa_aabb_isect_line_2d[0] = v1;
-    $l1_lKVa_aabb_isect_line_2d[1] = v2;
+    $ps_4UPA_aabb_isect_line_2d[0] = min;
+    $ps_4UPA_aabb_isect_line_2d[1][0] = min[0];
+    $ps_4UPA_aabb_isect_line_2d[1][1] = max[1];
+    $ps_4UPA_aabb_isect_line_2d[2] = max;
+    $ps_4UPA_aabb_isect_line_2d[3][0] = max[0];
+    $ps_4UPA_aabb_isect_line_2d[3][1] = min[1];
+    $l1_5m0z_aabb_isect_line_2d[0] = v1;
+    $l1_5m0z_aabb_isect_line_2d[1] = v2;
     for (var i=0; i<4; i++) {
-        var a=$ps_vGvS_aabb_isect_line_2d[i], b=$ps_vGvS_aabb_isect_line_2d[(i+1)%4];
-        $l2_9G8__aabb_isect_line_2d[0] = a;
-        $l2_9G8__aabb_isect_line_2d[1] = b;
-        if (line_line_cross($l1_lKVa_aabb_isect_line_2d, $l2_9G8__aabb_isect_line_2d))
+        var a=$ps_4UPA_aabb_isect_line_2d[i], b=$ps_4UPA_aabb_isect_line_2d[(i+1)%4];
+        $l2_G5_N_aabb_isect_line_2d[0] = a;
+        $l2_G5_N_aabb_isect_line_2d[1] = b;
+        if (line_line_cross($l1_5m0z_aabb_isect_line_2d, $l2_G5_N_aabb_isect_line_2d))
           return true;
     }
     return false;
@@ -1079,46 +1079,46 @@ es6_module_define('mathlib', ["J3DIMath", "struct"], function _mathlib_module(_e
     return line_line_cross([v1, v3], [v2, v4]);
   }
   convex_quad = _es6_module.add_export('convex_quad', convex_quad);
-  var $e1_dMC6_normal_tri=new Vector3();
-  var $e3_Sfrs_normal_tri=new Vector3();
-  var $e2_1ffs_normal_tri=new Vector3();
+  var $e1_T4He_normal_tri=new Vector3();
+  var $e3_S_nB_normal_tri=new Vector3();
+  var $e2_H__C_normal_tri=new Vector3();
   function normal_tri(v1, v2, v3) {
-    $e1_dMC6_normal_tri[0] = v2[0]-v1[0];
-    $e1_dMC6_normal_tri[1] = v2[1]-v1[1];
-    $e1_dMC6_normal_tri[2] = v2[2]-v1[2];
-    $e2_1ffs_normal_tri[0] = v3[0]-v1[0];
-    $e2_1ffs_normal_tri[1] = v3[1]-v1[1];
-    $e2_1ffs_normal_tri[2] = v3[2]-v1[2];
-    $e3_Sfrs_normal_tri[0] = $e1_dMC6_normal_tri[1]*$e2_1ffs_normal_tri[2]-$e1_dMC6_normal_tri[2]*$e2_1ffs_normal_tri[1];
-    $e3_Sfrs_normal_tri[1] = $e1_dMC6_normal_tri[2]*$e2_1ffs_normal_tri[0]-$e1_dMC6_normal_tri[0]*$e2_1ffs_normal_tri[2];
-    $e3_Sfrs_normal_tri[2] = $e1_dMC6_normal_tri[0]*$e2_1ffs_normal_tri[1]-$e1_dMC6_normal_tri[1]*$e2_1ffs_normal_tri[0];
+    $e1_T4He_normal_tri[0] = v2[0]-v1[0];
+    $e1_T4He_normal_tri[1] = v2[1]-v1[1];
+    $e1_T4He_normal_tri[2] = v2[2]-v1[2];
+    $e2_H__C_normal_tri[0] = v3[0]-v1[0];
+    $e2_H__C_normal_tri[1] = v3[1]-v1[1];
+    $e2_H__C_normal_tri[2] = v3[2]-v1[2];
+    $e3_S_nB_normal_tri[0] = $e1_T4He_normal_tri[1]*$e2_H__C_normal_tri[2]-$e1_T4He_normal_tri[2]*$e2_H__C_normal_tri[1];
+    $e3_S_nB_normal_tri[1] = $e1_T4He_normal_tri[2]*$e2_H__C_normal_tri[0]-$e1_T4He_normal_tri[0]*$e2_H__C_normal_tri[2];
+    $e3_S_nB_normal_tri[2] = $e1_T4He_normal_tri[0]*$e2_H__C_normal_tri[1]-$e1_T4He_normal_tri[1]*$e2_H__C_normal_tri[0];
     
-    var _len=Math.sqrt($e3_Sfrs_normal_tri[0]*$e3_Sfrs_normal_tri[0]+$e3_Sfrs_normal_tri[1]*$e3_Sfrs_normal_tri[1]+$e3_Sfrs_normal_tri[2]*$e3_Sfrs_normal_tri[2]);
+    var _len=Math.sqrt($e3_S_nB_normal_tri[0]*$e3_S_nB_normal_tri[0]+$e3_S_nB_normal_tri[1]*$e3_S_nB_normal_tri[1]+$e3_S_nB_normal_tri[2]*$e3_S_nB_normal_tri[2]);
     if (_len>1e-05)
       _len = 1.0/_len;
-    $e3_Sfrs_normal_tri[0]*=_len;
-    $e3_Sfrs_normal_tri[1]*=_len;
-    $e3_Sfrs_normal_tri[2]*=_len;
-    return $e3_Sfrs_normal_tri;
+    $e3_S_nB_normal_tri[0]*=_len;
+    $e3_S_nB_normal_tri[1]*=_len;
+    $e3_S_nB_normal_tri[2]*=_len;
+    return $e3_S_nB_normal_tri;
   }
   normal_tri = _es6_module.add_export('normal_tri', normal_tri);
-  var $n2_3xn6_normal_quad=new Vector3();
+  var $n2_cy0m_normal_quad=new Vector3();
   function normal_quad(v1, v2, v3, v4) {
     var n=normal_tri(v1, v2, v3);
-    $n2_3xn6_normal_quad[0] = n[0];
-    $n2_3xn6_normal_quad[1] = n[1];
-    $n2_3xn6_normal_quad[2] = n[2];
+    $n2_cy0m_normal_quad[0] = n[0];
+    $n2_cy0m_normal_quad[1] = n[1];
+    $n2_cy0m_normal_quad[2] = n[2];
     n = normal_tri(v1, v3, v4);
-    $n2_3xn6_normal_quad[0] = $n2_3xn6_normal_quad[0]+n[0];
-    $n2_3xn6_normal_quad[1] = $n2_3xn6_normal_quad[1]+n[1];
-    $n2_3xn6_normal_quad[2] = $n2_3xn6_normal_quad[2]+n[2];
-    var _len=Math.sqrt($n2_3xn6_normal_quad[0]*$n2_3xn6_normal_quad[0]+$n2_3xn6_normal_quad[1]*$n2_3xn6_normal_quad[1]+$n2_3xn6_normal_quad[2]*$n2_3xn6_normal_quad[2]);
+    $n2_cy0m_normal_quad[0] = $n2_cy0m_normal_quad[0]+n[0];
+    $n2_cy0m_normal_quad[1] = $n2_cy0m_normal_quad[1]+n[1];
+    $n2_cy0m_normal_quad[2] = $n2_cy0m_normal_quad[2]+n[2];
+    var _len=Math.sqrt($n2_cy0m_normal_quad[0]*$n2_cy0m_normal_quad[0]+$n2_cy0m_normal_quad[1]*$n2_cy0m_normal_quad[1]+$n2_cy0m_normal_quad[2]*$n2_cy0m_normal_quad[2]);
     if (_len>1e-05)
       _len = 1.0/_len;
-    $n2_3xn6_normal_quad[0]*=_len;
-    $n2_3xn6_normal_quad[1]*=_len;
-    $n2_3xn6_normal_quad[2]*=_len;
-    return $n2_3xn6_normal_quad;
+    $n2_cy0m_normal_quad[0]*=_len;
+    $n2_cy0m_normal_quad[1]*=_len;
+    $n2_cy0m_normal_quad[2]*=_len;
+    return $n2_cy0m_normal_quad;
   }
   normal_quad = _es6_module.add_export('normal_quad', normal_quad);
   var _li_vi=new Vector3();
@@ -1521,9 +1521,9 @@ es6_module_define('mathlib', ["J3DIMath", "struct"], function _mathlib_module(_e
         }
     }
   }
-  var $_cent_0bhs=new Vector3();
+  var $_cent_h1uK=new Vector3();
   function get_boundary_winding(points) {
-    var cent=$_cent_0bhs.zero();
+    var cent=$_cent_h1uK.zero();
     if (points.length==0)
       return false;
     for (var i=0; i<points.length; i++) {
@@ -4086,7 +4086,7 @@ es6_module_define('raster', ["icon", "config"], function _raster_module(_es6_mod
     }
   }]);
   _es6_module.add_class(CacheStack);
-  var $ret_YV64_viewport;
+  var $ret_bAbc_viewport;
   var RasterState=_ESClass("RasterState", [function RasterState(gl, size) {
     this.size = size;
     this.pos = [0, 0];
@@ -4110,10 +4110,10 @@ es6_module_define('raster', ["icon", "config"], function _raster_module(_es6_mod
         return this.viewport_stack[this.viewport_stack.length-1];
     }
     else {
-      $ret_YV64_viewport[0][0] = $ret_YV64_viewport[0][1] = 0.0;
-      $ret_YV64_viewport[1][0] = g_app_state.screen.size[0];
-      $ret_YV64_viewport[1][1] = g_app_state.screen.size[1];
-      return $ret_YV64_viewport;
+      $ret_bAbc_viewport[0][0] = $ret_bAbc_viewport[0][1] = 0.0;
+      $ret_bAbc_viewport[1][0] = g_app_state.screen.size[0];
+      $ret_bAbc_viewport[1][1] = g_app_state.screen.size[1];
+      return $ret_bAbc_viewport;
     }
   }), function push_viewport(pos, size) {
     var arr=this.viewport_stack.gen();
@@ -4172,11 +4172,11 @@ es6_module_define('raster', ["icon", "config"], function _raster_module(_es6_mod
     this.scissor_stack.clear();
     this.cur_scissor = undefined;
   }]);
-  var $ret_YV64_viewport=[[0, 0], [0, 0]];
+  var $ret_bAbc_viewport=[[0, 0], [0, 0]];
   _es6_module.add_class(RasterState);
   RasterState = _es6_module.add_export('RasterState', RasterState);
 }, '/dev/fairmotion/src/core/raster.js');
-es6_module_define('imageblock', ["J3DIMath", "selectmode", "strutils", "struct", "toolops_api", "view2d_editor", "lib_api"], function _imageblock_module(_es6_module) {
+es6_module_define('imageblock', ["struct", "strutils", "lib_api", "J3DIMath", "toolops_api", "selectmode", "view2d_editor"], function _imageblock_module(_es6_module) {
   var DataBlock=es6_import_item(_es6_module, 'lib_api', 'DataBlock');
   var DataTypes=es6_import_item(_es6_module, 'lib_api', 'DataTypes');
   var BlockFlags=es6_import_item(_es6_module, 'lib_api', 'BlockFlags');
@@ -4248,7 +4248,7 @@ es6_module_define('imageblock', ["J3DIMath", "selectmode", "strutils", "struct",
   ImageUser = _es6_module.add_export('ImageUser', ImageUser);
   ImageUser.STRUCT = "\nImageUser {\n  off   : vec2;\n  scale : vec2;\n  image : dataref(Image);\n  flag  : int;\n}\n";
 }, '/dev/fairmotion/src/core/imageblock.js');
-es6_module_define('image_ops', ["imageblock", "frameset", "dialogs", "config", "struct", "spline", "fileapi", "toolops_api", "spline_draw", "lib_api", "toolprops"], function _image_ops_module(_es6_module) {
+es6_module_define('image_ops', ["frameset", "struct", "fileapi", "spline_draw", "toolprops", "toolops_api", "spline", "dialogs", "config", "imageblock", "lib_api"], function _image_ops_module(_es6_module) {
   var Image=es6_import_item(_es6_module, 'imageblock', 'Image');
   var DataTypes=es6_import_item(_es6_module, 'lib_api', 'DataTypes');
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
@@ -4331,7 +4331,7 @@ es6_module_define('image_ops', ["imageblock", "frameset", "dialogs", "config", "
   _es6_module.add_class(LoadImageOp);
   LoadImageOp = _es6_module.add_export('LoadImageOp', LoadImageOp);
 }, '/dev/fairmotion/src/image/image_ops.js');
-es6_module_define('UserSettings', ["config", "dialogs", "theme", "struct", "strutils"], function _UserSettings_module(_es6_module) {
+es6_module_define('UserSettings', ["theme", "config", "dialogs", "struct", "strutils"], function _UserSettings_module(_es6_module) {
   var config=es6_import(_es6_module, 'config');
   var reload_default_theme=es6_import_item(_es6_module, 'theme', 'reload_default_theme');
   var b64encode=es6_import_item(_es6_module, 'strutils', 'b64encode');
@@ -4552,7 +4552,7 @@ es6_module_define('UserSettings', ["config", "dialogs", "theme", "struct", "stru
   }
 }, '/dev/fairmotion/src/core/UserSettings.js');
 var g_app_state, g, t;
-es6_module_define('AppState', ["view2d", "ops_editor", "UICanvas", "scene", "toolops_api", "lib_api_typedefine", "config", "view2d_ops", "CurveEditor", "FrameManager", "struct", "fileapi", "jobs", "notifications", "toolprops", "ajax", "DopeSheetEditor", "lib_utils", "strutils", "data_api", "startup_file", "raster", "frameset", "ScreenArea", "spline_base", "UserSettings", "lib_api"], function _AppState_module(_es6_module) {
+es6_module_define('AppState', ["DopeSheetEditor", "view2d", "ops_editor", "lib_api_typedefine", "jobs", "fileapi", "notifications", "toolops_api", "data_api", "strutils", "startup_file", "raster", "config", "FrameManager", "UserSettings", "spline_base", "frameset", "ajax", "ScreenArea", "lib_api", "struct", "UICanvas", "lib_utils", "CurveEditor", "toolprops", "view2d_ops", "scene"], function _AppState_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, 'config');
   var html5_fileapi=es6_import(_es6_module, 'fileapi');
@@ -4779,7 +4779,7 @@ es6_module_define('AppState', ["view2d", "ops_editor", "UICanvas", "scene", "too
     }
     return out;
   }
-  var $toolop_input_cache_w937_AppState;
+  var $toolop_input_cache_QGxm_AppState;
   var AppState=_ESClass("AppState", [function AppState(screen, mesh, gl) {
     this.screen = screen;
     this.eventhandler = screen;
@@ -4800,7 +4800,7 @@ es6_module_define('AppState', ["view2d", "ops_editor", "UICanvas", "scene", "too
     this.gl = gl;
     this.size = screen!=undefined ? screen.size : [512, 512];
     this.raster = new RasterState(undefined, screen!=undefined ? screen.size : [512, 512]);
-    this.toolop_input_cache = $toolop_input_cache_w937_AppState;
+    this.toolop_input_cache = $toolop_input_cache_QGxm_AppState;
     if (this.datalib!=undefined) {
         this.datalib.on_destroy();
     }
@@ -5607,7 +5607,7 @@ es6_module_define('AppState', ["view2d", "ops_editor", "UICanvas", "scene", "too
         screen.size = this.size;
     }
   }]);
-  var $toolop_input_cache_w937_AppState={}
+  var $toolop_input_cache_QGxm_AppState={}
   _es6_module.add_class(AppState);
   AppState = _es6_module.add_export('AppState', AppState);
   window.AppState = AppState;
@@ -6271,7 +6271,7 @@ es6_module_define('units', ["safe_eval"], function _units_module(_es6_module) {
   Unit.imperial_units = ["in", "ft", "mile"];
   Unit.internal_unit = "cm";
 }, '/dev/fairmotion/src/core/units.js');
-es6_module_define('data_api', ["config", "toolops_api", "safe_eval", "spline_multires", "animdata", "data_api_parser", "lib_api", "UIFrame", "toolprops"], function _data_api_module(_es6_module) {
+es6_module_define('data_api', ["lib_api", "data_api_parser", "UIFrame", "animdata", "spline_multires", "toolops_api", "safe_eval", "toolprops", "config"], function _data_api_module(_es6_module) {
   var DataPathTypes={PROP: 0, STRUCT: 1, STRUCT_ARRAY: 2}
   DataPathTypes = _es6_module.add_export('DataPathTypes', DataPathTypes);
   var DataFlags={NO_CACHE: 1, RECALC_CACHE: 2}
@@ -6673,10 +6673,10 @@ es6_module_define('data_api', ["config", "toolops_api", "safe_eval", "spline_mul
   }}, token: {obj: ["", ""], cachesize: 512}}
   TinyParser.split_chars = new set([",", "=", "(", ")", ".", "$", "[", "]"]);
   TinyParser.ws = new set([" ", "\n", "\t", "\r"]);
-  var $cache_Fv5o_resolve_path_intern;
-  var $sret_BqW5_resolve_path_intern2;
-  var $retcpy_v1uU_set_prop;
-  var $scope_sdvJ_set_prop;
+  var $cache_GKLh_resolve_path_intern;
+  var $sret_XqOX_resolve_path_intern2;
+  var $retcpy_2ujz_set_prop;
+  var $scope_MTQY_set_prop;
   var DataAPI=_ESClass("DataAPI", [function DataAPI(appstate) {
     this.appstate = appstate;
     this.ops = data_ops_list;
@@ -6997,18 +6997,18 @@ es6_module_define('data_api', ["config", "toolops_api", "safe_eval", "spline_mul
         return undefined;
     }
     try {
-      if (!(str in $cache_Fv5o_resolve_path_intern)) {
+      if (!(str in $cache_GKLh_resolve_path_intern)) {
           var ret=this.resolve_path_intern2(ctx, str);
           var ret2=[];
           for (var i=0; i<ret.length; i++) {
               ret2.push(ret[i]);
           }
-          $cache_Fv5o_resolve_path_intern[str] = ret2;
+          $cache_GKLh_resolve_path_intern[str] = ret2;
       }
       else {
-        var ret=$cache_Fv5o_resolve_path_intern[str];
+        var ret=$cache_GKLh_resolve_path_intern[str];
         if (ret[0]!=undefined&&!ret[0].cache_good()) {
-            delete $cache_Fv5o_resolve_path_intern[str];
+            delete $cache_GKLh_resolve_path_intern[str];
             return this.resolve_path_intern(ctx, str);
         }
       }
@@ -7120,13 +7120,13 @@ es6_module_define('data_api', ["config", "toolops_api", "safe_eval", "spline_mul
       }
     }
     var ast=parser.parse(str);
-    $sret_BqW5_resolve_path_intern2[0] = do_eval(ast, ContextStruct, pathout, spathout);
+    $sret_XqOX_resolve_path_intern2[0] = do_eval(ast, ContextStruct, pathout, spathout);
     pathout[0] = pathout[0].slice(1, pathout[0].length);
-    $sret_BqW5_resolve_path_intern2[1] = pathout[0];
-    $sret_BqW5_resolve_path_intern2[2] = spathout[0];
-    $sret_BqW5_resolve_path_intern2[3] = mass_set;
-    $sret_BqW5_resolve_path_intern2[4] = ownerpathout[0].slice(1, ownerpathout[0].length);
-    return $sret_BqW5_resolve_path_intern2;
+    $sret_XqOX_resolve_path_intern2[1] = pathout[0];
+    $sret_XqOX_resolve_path_intern2[2] = spathout[0];
+    $sret_XqOX_resolve_path_intern2[3] = mass_set;
+    $sret_XqOX_resolve_path_intern2[4] = ownerpathout[0].slice(1, ownerpathout[0].length);
+    return $sret_XqOX_resolve_path_intern2;
   }, function evaluate(ctx, str, scope) {
     try {
       if (str in this.evalcache) {
@@ -7275,11 +7275,11 @@ es6_module_define('data_api', ["config", "toolops_api", "safe_eval", "spline_mul
         }
         return ret;
     }
-    $retcpy_v1uU_set_prop.length = ret.length;
+    $retcpy_2ujz_set_prop.length = ret.length;
     for (var i=0; i<5; i++) {
-        $retcpy_v1uU_set_prop[i] = ret[i];
+        $retcpy_2ujz_set_prop[i] = ret[i];
     }
-    ret = $retcpy_v1uU_set_prop;
+    ret = $retcpy_2ujz_set_prop;
     var owner=this.evaluate(ctx, ret[4]);
     if (ret[0]==undefined&&ret[3]!=undefined&&ret[3].do_mass_set) {
         if (DEBUG.ui_datapaths) {
@@ -7329,9 +7329,9 @@ es6_module_define('data_api', ["config", "toolops_api", "safe_eval", "spline_mul
                 else 
                   val&=~mask;
                 prop.set_data(val, owner, changed);
-                $scope_sdvJ_set_prop[0] = val;
+                $scope_MTQY_set_prop[0] = val;
                 path2+=" = scope[0];";
-                this.evaluate(ctx, path2, $scope_sdvJ_set_prop);
+                this.evaluate(ctx, path2, $scope_MTQY_set_prop);
             }
             else {
               path+=" = "+value;
@@ -7378,9 +7378,9 @@ es6_module_define('data_api', ["config", "toolops_api", "safe_eval", "spline_mul
           }
           else {
             if (typeof value=="object") {
-                $scope_sdvJ_set_prop[0] = value;
+                $scope_MTQY_set_prop[0] = value;
                 path+=" = scope[0]";
-                this.evaluate(ctx, path, $scope_sdvJ_set_prop);
+                this.evaluate(ctx, path, $scope_MTQY_set_prop);
             }
             else {
               changed = value==old_value;
@@ -7421,10 +7421,10 @@ es6_module_define('data_api', ["config", "toolops_api", "safe_eval", "spline_mul
       return undefined;
     return ret[0].data;
   }]);
-  var $cache_Fv5o_resolve_path_intern={}
-  var $sret_BqW5_resolve_path_intern2=[0, 0, 0, 0, 0];
-  var $retcpy_v1uU_set_prop=new Array(16);
-  var $scope_sdvJ_set_prop=[0, 0];
+  var $cache_GKLh_resolve_path_intern={}
+  var $sret_XqOX_resolve_path_intern2=[0, 0, 0, 0, 0];
+  var $retcpy_2ujz_set_prop=new Array(16);
+  var $scope_MTQY_set_prop=[0, 0];
   _es6_module.add_class(DataAPI);
   DataAPI = _es6_module.add_export('DataAPI', DataAPI);
 }, '/dev/fairmotion/src/core/data_api.js');
@@ -7592,7 +7592,7 @@ t+=" "
     g_app_state.api.set_prop_new(new Context(), "view2d.zoomfac", 0.5);
   }
 }, '/dev/fairmotion/src/core/data_api_parser.js');
-es6_module_define('struct', ["safe_eval", "ajax", "parseutil", "config"], function _struct_module(_es6_module) {
+es6_module_define('struct', ["config", "ajax", "parseutil", "safe_eval"], function _struct_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, 'config');
   var safe_eval=es6_import(_es6_module, 'safe_eval');
@@ -7918,9 +7918,9 @@ es6_module_define('struct', ["safe_eval", "ajax", "parseutil", "config"], functi
   var _static_view=new DataView(_static_byte.buffer);
   _static_view = _es6_module.add_export('_static_view', _static_view);
   var _ws_env=[[undefined, undefined]];
-  var $sval_x7CK=[0, 0];
-  var $sval_BCaa=[0, 0, 0];
-  var $sval_ikEk=[0, 0, 0, 0];
+  var $sval_s00P=[0, 0];
+  var $sval_GJv2=[0, 0, 0];
+  var $sval_aXvW=[0, 0, 0, 0];
   var _st_packers=[function(data, val) {
     
     pack_int(data, val);
@@ -7932,16 +7932,16 @@ es6_module_define('struct', ["safe_eval", "ajax", "parseutil", "config"], functi
     pack_double(data, val);
   }, function(data, val) {
     if (val==undefined)
-      val = $sval_x7CK;
+      val = $sval_s00P;
     
     pack_vec2(data, val);
   }, function(data, val) {
     if (val==undefined)
-      val = $sval_BCaa;
+      val = $sval_GJv2;
     pack_vec3(data, val);
   }, function(data, val) {
     if (val==undefined)
-      val = $sval_ikEk;
+      val = $sval_aXvW;
     pack_vec4(data, val);
   }, function(data, val) {
     if (val==undefined)
@@ -8954,7 +8954,7 @@ es6_module_define('video', [], function _video_module(_es6_module) {
   var manager=new VideoManager();
   manager = _es6_module.add_export('manager', manager);
 }, '/dev/fairmotion/src/core/video.js');
-es6_module_define('fileapi', ["fileapi_chrome", "fileapi_electron", "config", "fileapi_html5"], function _fileapi_module(_es6_module) {
+es6_module_define('fileapi', ["fileapi_html5", "config", "fileapi_chrome", "fileapi_electron"], function _fileapi_module(_es6_module) {
   var config=es6_import(_es6_module, 'config');
   function get_root_folderid() {
     return '/';
@@ -9166,7 +9166,7 @@ es6_module_define('fileapi_chrome', [], function _fileapi_chrome_module(_es6_mod
   }
   save_file = _es6_module.add_export('save_file', save_file);
 }, '/dev/fairmotion/src/core/fileapi_chrome.js');
-es6_module_define('fileapi_electron', ["config", "fileapi_html5"], function _fileapi_electron_module(_es6_module) {
+es6_module_define('fileapi_electron', ["fileapi_html5", "config"], function _fileapi_electron_module(_es6_module) {
   "use strict";
   let fs=require("fs");
   var config=es6_import(_es6_module, 'config');
@@ -9698,7 +9698,7 @@ es6_module_define('stupidsecurity', ["strutils"], function _stupidsecurity_modul
   window.key_rot = key_rotate;
   window.key_unrot = key_unrotate;
 }, '/dev/fairmotion/src/core/stupidsecurity.js');
-es6_module_define('animdata', ["struct", "eventdag", "toolprops", "lib_api", "spline_base"], function _animdata_module(_es6_module) {
+es6_module_define('animdata', ["struct", "toolprops", "spline_base", "lib_api", "eventdag"], function _animdata_module(_es6_module) {
   "use strict";
   var PropTypes=es6_import_item(_es6_module, 'toolprops', 'PropTypes');
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
@@ -10141,21 +10141,21 @@ es6_module_define('svg_export', ["spline_base", "mathlib"], function _svg_export
 }, '/dev/fairmotion/src/core/svg_export.js');
 es6_module_define('curve', ["curvebase"], function _curve_module(_es6_module) {
   "use strict";
-  var $rets_2luU_derivative;
-  var $rets_13Ns_normal;
+  var $rets_gsK4_derivative;
+  var $rets_OGvS_normal;
   var ClothoidInterface=_ESClass("ClothoidInterface", [_ESClass.static(function evaluate(p1, p2, t1, t2, k1, k2, s, cdata) {
   }), _ESClass.static(function derivative(p1, p2, t1, t2, k1, k2, s, cdata) {
     var df=0.0001;
     var a=this.evaluate(p1, p2, t1, t2, k1, k2, s, cdata);
     var b=this.evaluate(p1, p2, t1, t2, k1, k2, s+df, cdata);
     b.sub(a).mulScalar(1.0/df);
-    return $rets_2luU_derivative.next().load(b);
+    return $rets_gsK4_derivative.next().load(b);
   }), _ESClass.static(function normal(p1, p2, t1, t2, k1, k2, s, cdata) {
     var df=0.0001;
     var a=this.derivative(p1, p2, t1, t2, k1, k2, s, cdata);
     var b=this.derivative(p1, p2, t1, t2, k1, k2, s+df, cdata);
     b.sub(a).mulScalar(1.0/df);
-    return $rets_13Ns_normal.next().load(b);
+    return $rets_OGvS_normal.next().load(b);
   }), _ESClass.static(function curvature(p1, p2, t1, t2, k1, k2, s, cdata) {
     var dv1=this.derivative(p1, p2, t1, t2, k1, k2, s, cdata);
     var dv2=this.normal(p1, p2, t1, t2, k1, k2, s, cdata);
@@ -10174,8 +10174,8 @@ es6_module_define('curve', ["curvebase"], function _curve_module(_es6_module) {
   }), _ESClass.static(function update(p1, p2, t1, t2, k1, k2, s, cdata) {
   }), function ClothoidInterface() {
   }]);
-  var $rets_2luU_derivative=cachering.fromConstructor(Vector2, 16);
-  var $rets_13Ns_normal=cachering.fromConstructor(Vector2, 16);
+  var $rets_gsK4_derivative=cachering.fromConstructor(Vector2, 16);
+  var $rets_OGvS_normal=cachering.fromConstructor(Vector2, 16);
   _es6_module.add_class(ClothoidInterface);
   var CurveInterfaces=es6_import_item(_es6_module, 'curvebase', 'CurveInterfaces');
   var CurveTypes=es6_import_item(_es6_module, 'curvebase', 'CurveTypes');
@@ -10205,21 +10205,21 @@ es6_module_define('curvebase', [], function _curvebase_module(_es6_module) {
   }]);
   _es6_module.add_class(CurveData);
   CurveData = _es6_module.add_export('CurveData', CurveData);
-  var $rets_ySZX_derivative;
-  var $rets_oUc4_normal;
+  var $rets_I4vd_derivative;
+  var $rets_z9jM_normal;
   var CurveInterface=_ESClass("CurveInterface", [_ESClass.static(function evaluate(p1, p2, t1, t2, k1, k2, s, cdata) {
   }), _ESClass.static(function derivative(p1, p2, t1, t2, k1, k2, s, cdata) {
     var df=0.0001;
     var a=this.evaluate(p1, p2, t1, t2, k1, k2, s, cdata);
     var b=this.evaluate(p1, p2, t1, t2, k1, k2, s+df, cdata);
     b.sub(a).mulScalar(1.0/df);
-    return $rets_ySZX_derivative.next().load(b);
+    return $rets_I4vd_derivative.next().load(b);
   }), _ESClass.static(function normal(p1, p2, t1, t2, k1, k2, s, cdata) {
     var df=0.0001;
     var a=this.derivative(p1, p2, t1, t2, k1, k2, s, cdata);
     var b=this.derivative(p1, p2, t1, t2, k1, k2, s+df, cdata);
     b.sub(a).mulScalar(1.0/df);
-    return $rets_oUc4_normal.next().load(b);
+    return $rets_z9jM_normal.next().load(b);
   }), _ESClass.static(function curvature(p1, p2, t1, t2, k1, k2, s, cdata) {
     var dv1=this.derivative(p1, p2, t1, t2, k1, k2, s, cdata);
     var dv2=this.normal(p1, p2, t1, t2, k1, k2, s, cdata);
@@ -10238,11 +10238,11 @@ es6_module_define('curvebase', [], function _curvebase_module(_es6_module) {
   }), _ESClass.static(function update(p1, p2, t1, t2, k1, k2, s, cdata) {
   }), function CurveInterface() {
   }]);
-  var $rets_ySZX_derivative=cachering.fromConstructor(Vector2, 16);
-  var $rets_oUc4_normal=cachering.fromConstructor(Vector2, 16);
+  var $rets_I4vd_derivative=cachering.fromConstructor(Vector2, 16);
+  var $rets_z9jM_normal=cachering.fromConstructor(Vector2, 16);
   _es6_module.add_class(CurveInterface);
 }, '/dev/fairmotion/src/curve/curvebase.js');
-es6_module_define('spline_math', ["native_api", "config", "spline_math_hermite"], function _spline_math_module(_es6_module) {
+es6_module_define('spline_math', ["spline_math_hermite", "native_api", "config"], function _spline_math_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, 'config');
   var FEPS=1e-18;
@@ -10342,7 +10342,7 @@ es6_module_define('spline_math', ["native_api", "config", "spline_math_hermite"]
   eval_curve = _es6_module.add_export('eval_curve', eval_curve);
   
 }, '/dev/fairmotion/src/curve/spline_math.js');
-es6_module_define('spline_math_hermite', ["spline_base", "J3DIMath", "toolops_api", "solver"], function _spline_math_hermite_module(_es6_module) {
+es6_module_define('spline_math_hermite', ["toolops_api", "spline_base", "solver", "J3DIMath"], function _spline_math_hermite_module(_es6_module) {
   "use strict";
   var SplineFlags=es6_import_item(_es6_module, 'spline_base', 'SplineFlags');
   var SplineTypes=es6_import_item(_es6_module, 'spline_base', 'SplineTypes');
@@ -10471,10 +10471,10 @@ es6_module_define('spline_math_hermite', ["spline_base", "J3DIMath", "toolops_ap
   spiralcurvature_dv = _es6_module.add_export('spiralcurvature_dv', spiralcurvature_dv);
   var ORDER=4;
   ORDER = _es6_module.add_export('ORDER', ORDER);
-  var $con_cache_EGtU_build_solver={list: [], used: 0}
+  var $con_cache_6AYe_build_solver={list: [], used: 0}
   function build_solver(spline, order, goal_order, gk, do_basic, update_verts) {
     var slv=new solver();
-    $con_cache_EGtU_build_solver.used = 0;
+    $con_cache_6AYe_build_solver.used = 0;
     if (order==undefined)
       order = ORDER;
     if (gk==undefined)

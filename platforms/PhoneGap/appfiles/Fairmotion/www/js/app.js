@@ -1058,7 +1058,7 @@ es6_module_define('const', ["config"], function _const_module(_es6_module) {
       var node = document.createElement("script")
       node.src = path
       node.async = false
-      
+
       document.head.appendChild(node);
     }
   

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import note
+import note, traceback
 
 THENOTE = "note"
 NOTETITLE = "Build System"
@@ -735,12 +735,15 @@ def build_target(files):
     close_db(db)
     close_db(db_depend)
 
+    sys.stdout.flush()
+    
     if build_cmd != "loop":
+      note.destroy()
       sys.exit(-1)
     else:
       return 0
     
-  note.hideNote(THENOTE)
+  #note.hideNote(THENOTE)
   
   for pathtime in built_files:
     if pathtime[0] in db:
@@ -992,16 +995,31 @@ def do_copy_targets():
     db.close()
     db_depend.close()
 
-    traceback.print_stack()
-    traceback.print_last()
+    try: #ignore dumb errors from traceback
+        traceback.print_stack()
+        traceback.print_last()
+    except:
+        pass
 
   return build_final
 
 def build_platforms():
     from platforms import build
-
-    build.build()
-
+    
+    try:
+        build.build()
+    except:
+        try: #ignore dumb errors from traceback
+            traceback.print_stack()
+            traceback.print_last()
+        except:
+            pass
+        
+        sys.stderr.write("failed to build packages\n")
+        return 0
+    
+    return 1
+    
 def build_chrome_package():
   print("Building chrome app. . .")
 
@@ -1128,17 +1146,19 @@ def py_lowlevel_signal(signal1):
   return 0
 
 
-def buildall():
+def buildall(redo_final=False):
   try:
-    buildall_intern()
+    return buildall_intern(redo_final)
   except KeyboardInterrupt:
     signal_handler(None, None)
-
+    
+  return 1
+  
 note_timer = time.time()
 
 import win32api
 
-def buildall_intern():
+def buildall_intern(redo_final=False):
   for t in targets:
     for s in t:
       s.build = False;
@@ -1146,7 +1166,7 @@ def buildall_intern():
   for t in targets:
     filter_srcs(t)
 
-  build_final = False
+  build_final = redo_final
 
   for t in targets:
     build_final |= build_target(t)
@@ -1154,21 +1174,36 @@ def buildall_intern():
   build_final |= do_copy_targets()
 
   if build_final:
-    build_platforms()
-
-    note.showNote(THENOTE, NOTETITLE, "Finished Build");
-    note.sleep(1.0);
-    note.hideNote(THENOTE)
-
+    ok = build_platforms()
+    
+    if not ok:
+        sys.stderr.write("Build failed\n")
+        
+        note.showNote(THENOTE, NOTETITLE, "Build failed");
+        note.sleep(1.0);
+        note.hideNote(THENOTE)
+        return 0
+    else:
+        print("Finished build")
+        
+        note.showNote(THENOTE, NOTETITLE, "Finished Build");
+        note.sleep(1.0);
+        note.hideNote(THENOTE)
+    
+  return 1
+    
 def themain():
   #init_ctrl_c_handler()
 
   if build_cmd == "loop":
+    ok = True
+    
     while 1:
       prof_reset()
       
       start = time.time();
-      buildall()
+      ok = buildall(not ok)
+      
       #print_profs()
 
       t = time.time()
@@ -1184,7 +1219,16 @@ if __name__ == "__main__":
   except KeyboardInterrupt:
     signal_handler(None, None)
     ret = -1
-  
+  except:
+    try: #ignore dumb errors from traceback
+        traceback.print_stack()
+        traceback.print_last()
+    except:
+        pass
+        
+    note.destroy()
+    ret = -1
+    
   print("main exit!")
   note.destroy()
   sys.exit(ret)

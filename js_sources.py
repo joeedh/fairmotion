@@ -96,6 +96,9 @@ sources = [
   "src/vectordraw/vectordraw_stub.js",
   "src/vectordraw/vectordraw_canvas2d_simple.js",
   "src/vectordraw/vectordraw_svg.js",
+  "src/vectordraw/vectordraw_canvas2d_jobs.js",
+  "src/vectordraw/vectordraw_jobs.js",
+  "src/vectordraw/vectordraw_jobs_base.js",
   "src/vectordraw/vectordraw.js",
   "src/vectordraw/strokedraw.js",
   "src/curve/spline_draw_new.js",
@@ -192,6 +195,7 @@ sources = [
 ]
 
 copy_targets = {
+   "vectordraw_canvas2d_worker.js" : "src/vectordraw/vectordraw_canvas2d_worker.js",
    "jasmine.js"      : "tools/utils/libs/jasmine/lib/jasmine.js",
    "jasmine-html.js" : "tools/utils/libs/jasmine/lib/jasmine-html.js",
    "jasmine-console.js"      : "tools/utils/libs/jasmine/lib/console.js",

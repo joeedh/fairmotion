@@ -966,7 +966,8 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
   if create_logger:
     traverse(result, FunctionNode, create_type_logger)
   
-  process_arrow_function_this(result, typespace)
+  #don't need to do this anymore, yay!
+  #process_arrow_function_this(result, typespace)
   
   if expand_generators:
     flatten_statementlists(result, typespace)

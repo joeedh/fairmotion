@@ -6271,7 +6271,7 @@ es6_module_define('units', ["safe_eval"], function _units_module(_es6_module) {
   Unit.imperial_units = ["in", "ft", "mile"];
   Unit.internal_unit = "cm";
 }, '/dev/fairmotion/src/core/units.js');
-es6_module_define('data_api', ["toolops_api", "toolprops", "config", "UIFrame", "data_api_parser", "animdata", "spline_multires", "safe_eval", "lib_api"], function _data_api_module(_es6_module) {
+es6_module_define('data_api', ["safe_eval", "data_api_parser", "toolprops", "animdata", "UIFrame", "config", "toolops_api", "spline_multires", "lib_api"], function _data_api_module(_es6_module) {
   var DataPathTypes={PROP: 0, STRUCT: 1, STRUCT_ARRAY: 2}
   DataPathTypes = _es6_module.add_export('DataPathTypes', DataPathTypes);
   var DataFlags={NO_CACHE: 1, RECALC_CACHE: 2}
@@ -6673,10 +6673,10 @@ es6_module_define('data_api', ["toolops_api", "toolprops", "config", "UIFrame", 
   }}, token: {obj: ["", ""], cachesize: 512}}
   TinyParser.split_chars = new set([",", "=", "(", ")", ".", "$", "[", "]"]);
   TinyParser.ws = new set([" ", "\n", "\t", "\r"]);
-  var $cache_jdd6_resolve_path_intern;
-  var $sret_MRHm_resolve_path_intern2;
-  var $retcpy_yUj2_set_prop;
-  var $scope_YcT2_set_prop;
+  var $cache_mL95_resolve_path_intern;
+  var $sret_QYQb_resolve_path_intern2;
+  var $retcpy_IlFX_set_prop;
+  var $scope_Bv5s_set_prop;
   var DataAPI=_ESClass("DataAPI", [function DataAPI(appstate) {
     this.appstate = appstate;
     this.ops = data_ops_list;
@@ -6997,18 +6997,18 @@ es6_module_define('data_api', ["toolops_api", "toolprops", "config", "UIFrame", 
         return undefined;
     }
     try {
-      if (!(str in $cache_jdd6_resolve_path_intern)) {
+      if (!(str in $cache_mL95_resolve_path_intern)) {
           var ret=this.resolve_path_intern2(ctx, str);
           var ret2=[];
           for (var i=0; i<ret.length; i++) {
               ret2.push(ret[i]);
           }
-          $cache_jdd6_resolve_path_intern[str] = ret2;
+          $cache_mL95_resolve_path_intern[str] = ret2;
       }
       else {
-        var ret=$cache_jdd6_resolve_path_intern[str];
+        var ret=$cache_mL95_resolve_path_intern[str];
         if (ret[0]!=undefined&&!ret[0].cache_good()) {
-            delete $cache_jdd6_resolve_path_intern[str];
+            delete $cache_mL95_resolve_path_intern[str];
             return this.resolve_path_intern(ctx, str);
         }
       }
@@ -7120,13 +7120,13 @@ es6_module_define('data_api', ["toolops_api", "toolprops", "config", "UIFrame", 
       }
     }
     var ast=parser.parse(str);
-    $sret_MRHm_resolve_path_intern2[0] = do_eval(ast, ContextStruct, pathout, spathout);
+    $sret_QYQb_resolve_path_intern2[0] = do_eval(ast, ContextStruct, pathout, spathout);
     pathout[0] = pathout[0].slice(1, pathout[0].length);
-    $sret_MRHm_resolve_path_intern2[1] = pathout[0];
-    $sret_MRHm_resolve_path_intern2[2] = spathout[0];
-    $sret_MRHm_resolve_path_intern2[3] = mass_set;
-    $sret_MRHm_resolve_path_intern2[4] = ownerpathout[0].slice(1, ownerpathout[0].length);
-    return $sret_MRHm_resolve_path_intern2;
+    $sret_QYQb_resolve_path_intern2[1] = pathout[0];
+    $sret_QYQb_resolve_path_intern2[2] = spathout[0];
+    $sret_QYQb_resolve_path_intern2[3] = mass_set;
+    $sret_QYQb_resolve_path_intern2[4] = ownerpathout[0].slice(1, ownerpathout[0].length);
+    return $sret_QYQb_resolve_path_intern2;
   }, function evaluate(ctx, str, scope) {
     try {
       if (str in this.evalcache) {
@@ -7275,11 +7275,11 @@ es6_module_define('data_api', ["toolops_api", "toolprops", "config", "UIFrame", 
         }
         return ret;
     }
-    $retcpy_yUj2_set_prop.length = ret.length;
+    $retcpy_IlFX_set_prop.length = ret.length;
     for (var i=0; i<5; i++) {
-        $retcpy_yUj2_set_prop[i] = ret[i];
+        $retcpy_IlFX_set_prop[i] = ret[i];
     }
-    ret = $retcpy_yUj2_set_prop;
+    ret = $retcpy_IlFX_set_prop;
     var owner=this.evaluate(ctx, ret[4]);
     if (ret[0]==undefined&&ret[3]!=undefined&&ret[3].do_mass_set) {
         if (DEBUG.ui_datapaths) {
@@ -7329,9 +7329,9 @@ es6_module_define('data_api', ["toolops_api", "toolprops", "config", "UIFrame", 
                 else 
                   val&=~mask;
                 prop.set_data(val, owner, changed);
-                $scope_YcT2_set_prop[0] = val;
+                $scope_Bv5s_set_prop[0] = val;
                 path2+=" = scope[0];";
-                this.evaluate(ctx, path2, $scope_YcT2_set_prop);
+                this.evaluate(ctx, path2, $scope_Bv5s_set_prop);
             }
             else {
               path+=" = "+value;
@@ -7378,9 +7378,9 @@ es6_module_define('data_api', ["toolops_api", "toolprops", "config", "UIFrame", 
           }
           else {
             if (typeof value=="object") {
-                $scope_YcT2_set_prop[0] = value;
+                $scope_Bv5s_set_prop[0] = value;
                 path+=" = scope[0]";
-                this.evaluate(ctx, path, $scope_YcT2_set_prop);
+                this.evaluate(ctx, path, $scope_Bv5s_set_prop);
             }
             else {
               changed = value==old_value;
@@ -7421,10 +7421,10 @@ es6_module_define('data_api', ["toolops_api", "toolprops", "config", "UIFrame", 
       return undefined;
     return ret[0].data;
   }]);
-  var $cache_jdd6_resolve_path_intern={}
-  var $sret_MRHm_resolve_path_intern2=[0, 0, 0, 0, 0];
-  var $retcpy_yUj2_set_prop=new Array(16);
-  var $scope_YcT2_set_prop=[0, 0];
+  var $cache_mL95_resolve_path_intern={}
+  var $sret_QYQb_resolve_path_intern2=[0, 0, 0, 0, 0];
+  var $retcpy_IlFX_set_prop=new Array(16);
+  var $scope_Bv5s_set_prop=[0, 0];
   _es6_module.add_class(DataAPI);
   DataAPI = _es6_module.add_export('DataAPI', DataAPI);
 }, '/dev/fairmotion/src/core/data_api.js');

@@ -1987,7 +1987,8 @@ def p_arrow_function(p):
   '''
   
   func = FunctionNode("(anonymous)")
-  func.is_anonymous = func.is_arrow = True
+  func.is_anonymous = True
+  func.is_arrow = True
   
   if len(p) == 4:
     func.add(ExprListNode([p[1]]))

@@ -1302,6 +1302,7 @@ class FunctionNode (StatementList):
     n2.ret = self.ret
     n2.is_native = self.is_native
     n2.is_anonymous = self.is_anonymous
+    n2.is_arrow = self.is_arrow
     
     return n2
     
@@ -1369,12 +1370,63 @@ class FunctionNode (StatementList):
     node.parent = self[0]
     
     self.args[arg] = node
+
+  def gen_js_arrow(self, tlevel):
+    t = tab(tlevel-1)
+    t2 = tab(tlevel)
+        
     
-  def gen_js(self, tlevel):
     t = tab(tlevel-1)
     t2 = tab(tlevel)
     
+    s = self.s("(")
+    
+    for i, c in enumerate(self.children[0].children):
+      if i > 0: 
+        s += self.s(", ")
+      
+      s += c.gen_js(tlevel)
+      
+    s += self.s(") => ")
+    
+    add_block = len(self.children[1:]) > 1 
+    
+    if add_block:
+        s += self.s(t + " {\n")
+    else:
+        t2 = ""
+        
+    for c in self.children[1:]:
+      if not add_block and type(c) == ReturnNode:
+        c = c[0]
+        
+      if type(c) != StatementList:
+        cd = self.s(t2) + c.gen_js(tlevel+1 if add_block else 0)
+      else:
+        cd = c.gen_js(tlevel)
+      
+      #XXX if len(cd.strip()) == 0: continue
+      
+      if len(cd.strip()) > 0 and not cd.strip().endswith("}") and not cd.strip().endswith(";"):
+        cd += self.s(";")
+        
+      if not cd.endswith("\n"): 
+        cd += self.s("\n")
+      s += cd
+      
+    if add_block:
+        s += self.s(t+"}")
+    
+    return s
+    
+  def gen_js(self, tlevel):
     if self.is_native: return ""
+
+    if self.is_arrow:
+        return self.gen_js_arrow(tlevel)
+
+    t = tab(tlevel-1)
+    t2 = tab(tlevel)
     
     if self.name != "" and self.name != "(anonymous)":
       s = "function %s("%self.name

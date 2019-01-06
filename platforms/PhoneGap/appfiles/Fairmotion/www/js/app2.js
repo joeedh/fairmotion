@@ -6246,7 +6246,7 @@ es6_module_define('vectordraw_base', [], function _vectordraw_base_module(_es6_m
   _es6_module.add_class(VectorDraw);
   VectorDraw = _es6_module.add_export('VectorDraw', VectorDraw);
 }, '/dev/fairmotion/src/vectordraw/vectordraw_base.js');
-es6_module_define('vectordraw_canvas2d', ["config", "mathlib", "vectordraw_base"], function _vectordraw_canvas2d_module(_es6_module) {
+es6_module_define('vectordraw_canvas2d', ["vectordraw_base", "vectordraw_jobs_base", "config", "vectordraw_jobs", "mathlib"], function _vectordraw_canvas2d_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, 'config');
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
@@ -6254,6 +6254,8 @@ es6_module_define('vectordraw_canvas2d', ["config", "mathlib", "vectordraw_base"
   var VectorVertex=es6_import_item(_es6_module, 'vectordraw_base', 'VectorVertex');
   var QuadBezPath=es6_import_item(_es6_module, 'vectordraw_base', 'QuadBezPath');
   var VectorDraw=es6_import_item(_es6_module, 'vectordraw_base', 'VectorDraw');
+  var OPCODES=es6_import_item(_es6_module, 'vectordraw_jobs_base', 'OPCODES');
+  var vectordraw_jobs=es6_import(_es6_module, 'vectordraw_jobs');
   var canvaspath_draw_mat_tmps=new cachering(function() {
     return new Matrix4();
   }, 16);
@@ -6264,17 +6266,28 @@ es6_module_define('vectordraw_canvas2d', ["config", "mathlib", "vectordraw_base"
   var canvaspath_draw_vs=new cachering(function() {
     return new Vector2();
   }, 32);
-  var CCMD=0, CARGLEN=1;
-  var MOVETO=0, BEZIERTO=1, LINETO=2, BEGINPATH=3, CUBICTO=4;
+  let MOVETO=OPCODES.MOVETO, BEZIERTO=OPCODES.QUADRATIC, LINETO=OPCODES.LINETO, BEGINPATH=OPCODES.BEGINPATH, CUBICTO=OPCODES.CUBIC, CLOSEPATH=OPCODES.CLOSEPATH;
+  let arglens={}
+  arglens[BEGINPATH] = 0;
+  arglens[CLOSEPATH] = 0;
+  arglens[MOVETO] = 2;
+  arglens[LINETO] = 2;
+  arglens[BEZIERTO] = 4;
+  arglens[CUBICTO] = 6;
+  let render_idgen=1;
   var CanvasPath=_ESClass("CanvasPath", QuadBezPath, [function CanvasPath() {
     QuadBezPath.call(this);
+    this.dead = false;
     this.commands = [];
     this.recalc = 1;
+    this._render_id = render_idgen++;
+    this._image = undefined;
+    this._image_off = [0, 0];
     this.lastx = 0;
     this.lasty = 0;
     this.canvas = undefined;
     this.g = undefined;
-    this.path_start_i = 0;
+    this.path_start_i = 2;
     this.first = true;
     this._mm = new MinMax(2);
   }, function update_aabb(draw, fast_mode) {
@@ -6292,7 +6305,7 @@ es6_module_define('vectordraw_canvas2d', ["config", "mathlib", "vectordraw_base"
     var cs=this.commands, i=0;
     while (i<cs.length) {
       var cmd=cs[i++];
-      var arglen=cs[i++];
+      var arglen=arglens[cmd];
       if (fast_mode&&prev!=BEGINPATH) {
           prev = cmd;
           i+=arglen;
@@ -6313,14 +6326,15 @@ es6_module_define('vectordraw_canvas2d', ["config", "mathlib", "vectordraw_base"
   }, function beginPath() {
     this.path_start_i = this.commands.length;
     this._pushCmd(BEGINPATH);
+  }, function closePath() {
+    this.path_start_i = this.commands.length;
+    this._pushCmd(CLOSEPATH);
   }, function undo() {
     this.commands.length = this.path_start_i;
   }, function _pushCmd() {
-    this.commands.push(arguments[0]);
-    var arglen=arguments.length-1;
-    this.commands.push(arglen);
-    for (var i=0; i<arglen; i++) {
-        this.commands.push(arguments[i+1]);
+    let arglen=arguments.length;
+    for (let i=0; i<arglen; i++) {
+        this.commands.push(arguments[i]);
     }
     this.recalc = 1;
     this.first = false;
@@ -6346,20 +6360,47 @@ es6_module_define('vectordraw_canvas2d', ["config", "mathlib", "vectordraw_base"
     this.lasty = y2;
   }, function destroy(draw) {
     this.canvas = this.g = undefined;
-  }, function genInto(draw, path, clip_mode) {
+    this._image = this.commands = undefined;
+  }, function genInto(draw, path, commands, clip_mode) {
     if (clip_mode==undefined) {
         clip_mode = false;
     }
     let oldc=this.canvas, oldg=this.g, oldaabb=this.aabb, oldsize=this.size;
-    this.canvas = path.canvas;
-    this.g = path.g;
-    this.aabb = path.aabb;
-    this.size = path.size;
-    this.gen(draw, undefined, clip_mode);
+    this.aabb = [new Vector2(path.aabb[0]), new Vector2(path.aabb[1])];
+    this.size = [path.size[0], path.size[1]];
+    this.gen_commands(draw, commands, undefined, true);
     this.canvas = oldc;
     this.g = oldg;
     this.aabb = oldaabb;
     this.size = oldsize;
+  }, function gen_commands(draw, commands, _check_tag, clip_mode) {
+    if (_check_tag==undefined) {
+        _check_tag = 0;
+    }
+    if (clip_mode==undefined) {
+        clip_mode = false;
+    }
+    let m=this.matrix.$matrix;
+    let r=~~(this.color[0]*255), g=~~(this.color[1]*255), b=~~(this.color[2]*255), a=this.color[3];
+    let commands2=[];
+    if (!clip_mode) {
+        commands2 = commands2.concat([OPCODES.FILLSTYLE, r, g, b, a]);
+        commands2 = commands2.concat([OPCODES.SETBLUR, this.blur]);
+    }
+    commands2.push(OPCODES.BEGINPATH);
+    commands2 = commands2.concat(this.commands);
+    commands2.push(clip_mode ? OPCODES.CLIP : OPCODES.FILL);
+    var __iter_c=__get_iter(commands2);
+    var c;
+    while (1) {
+      var __ival_c=__iter_c.next();
+      if (__ival_c.done) {
+          break;
+      }
+      c = __ival_c.value;
+      commands.push(c);
+    }
+    return commands;
   }, function gen(draw, _check_tag, clip_mode) {
     if (_check_tag==undefined) {
         _check_tag = 0;
@@ -6374,6 +6415,7 @@ es6_module_define('vectordraw_canvas2d', ["config", "mathlib", "vectordraw_base"
     this.recalc = 0;
     var do_clip=this.clip_paths.length>0;
     var do_blur=this.blur>0.0;
+    var zoom=draw.matrix.$matrix.m11;
     this.update_aabb(draw);
     var w=this.size[0] = Math.ceil(this.aabb[1][0]-this.aabb[0][0]);
     var h=this.size[1] = Math.ceil(this.aabb[1][1]-this.aabb[0][1]);
@@ -6389,21 +6431,21 @@ es6_module_define('vectordraw_canvas2d', ["config", "mathlib", "vectordraw_base"
         this.size[1] = h2;
         w = w2, h = h2;
     }
-    if (this.canvas==undefined) {
-        this.canvas = document.createElement("canvas");
-        this.canvas.style.background = "rgba(0.0, 0.0, 0.0, 0.0)";
-        this.g = this.canvas.getContext("2d");
+    if (1) {
+        var mat1=canvaspath_draw_mat_tmps.next();
+        var mat=canvaspath_draw_mat_tmps.next();
+        mat1.makeIdentity(), mat.makeIdentity();
+        mat1.translate(-this.aabb[0][0], -this.aabb[0][1]);
+        mat1.translate(draw.pan[0], draw.pan[1]);
+        mat.makeIdentity();
+        mat.load(draw.matrix);
+        mat.preMultiply(mat1);
+        let m=mat.$matrix;
+        this.matrix = mat;
     }
-    if (this.g==undefined) {
-        console.log("render error!", this.id, this.size[0], this.size[1], this.canvas, this);
-        return ;
-    }
-    if (this.canvas.width!=w||this.canvas.height!=h) {
-        this.canvas.width = w;
-        this.canvas.height = h;
-    }
-    this.g.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.g.globalCompositeOperation = "source-over";
+    let commands2=[w, h];
+    let m=this.matrix.$matrix;
+    commands2 = commands2.concat([OPCODES.SETTRANSFORM, m.m11, m.m12, m.m21, m.m22, m.m41, m.m42]);
     var __iter_path=__get_iter(this.clip_paths);
     var path;
     while (1) {
@@ -6417,67 +6459,18 @@ es6_module_define('vectordraw_canvas2d', ["config", "mathlib", "vectordraw_base"
           path.gen(draw, 1);
       }
       let oldc=path.canvas, oldg=path.g, oldaabb=path.aabb, oldsize=path.size;
-      path.genInto(draw, this, true);
+      path.genInto(draw, this, commands2, true);
     }
-    var mat1=canvaspath_draw_mat_tmps.next();
-    var mat=canvaspath_draw_mat_tmps.next();
-    mat1.makeIdentity(), mat.makeIdentity();
-    mat1.translate(-this.aabb[0][0], -this.aabb[0][1]);
-    mat.makeIdentity();
-    mat.load(draw.matrix);
-    mat.preMultiply(mat1);
-    var co=canvaspath_draw_vs.next().zero();
-    var r=~~(this.color[0]*255), g=~~(this.color[1]*255), b=~~(this.color[2]*255), a=this.color[3];
-    this.g.fillStyle = "rgba("+r+","+g+","+b+","+a+")";
-    if (do_blur) {
-        var doff=25000;
-        this.g.translate(-doff, -doff);
-        this.g.shadowOffsetX = doff;
-        this.g.shadowOffsetY = doff;
-        this.g.shadowColor = "rgba("+r+","+g+","+b+","+a+")";
-        this.g.shadowBlur = this.blur;
-    }
-    this.g.beginPath();
-    var cs=this.commands, i=0;
-    while (i<cs.length) {
-      var cmd=cs[i++];
-      var arglen=cs[i++];
-      var tmp=canvaspath_draw_args_tmps[arglen];
-      for (var j=0; j<arglen; j+=2) {
-          co[0] = cs[i++], co[1] = cs[i++];
-          co.multVecMatrix(mat);
-          co.add(draw.pan);
-          tmp[j] = co[0], tmp[j+1] = co[1];
-      }
-      switch (cmd) {
-        case MOVETO:
-          this.g.moveTo(tmp[0], tmp[1]);
-          break;
-        case LINETO:
-          this.g.lineTo(tmp[0], tmp[1]);
-          break;
-        case BEZIERTO:
-          this.g.quadraticCurveTo(tmp[0], tmp[1], tmp[2], tmp[3]);
-          break;
-        case CUBICTO:
-          this.g.bezierCurveTo(tmp[0], tmp[1], tmp[2], tmp[3], tmp[4], tmp[5]);
-          break;
-        case BEGINPATH:
-          this.g.beginPath();
-          break;
-      }
-    }
-    if (!clip_mode) {
-        this.g.fill();
-    }
-    else {
-      this.g.clip();
-    }
-    if (do_blur) {
-        this.g.translate(doff, doff);
-        this.g.shadowOffsetX = this.g.shadowOffsetY = 0.0;
-        this.g.shadowBlur = 0.0;
-    }
+    this.gen_commands(draw, commands2, _check_tag, clip_mode);
+    commands2 = new Float64Array(commands2);
+    let renderid=clip_mode ? render_idgen++ : this._render_id;
+    vectordraw_jobs.manager.cancelRenderJob(renderid);
+    let imageoff=[this.aabb[0][0], this.aabb[0][1]];
+    vectordraw_jobs.manager.postRenderJob(renderid, commands2).then((data) =>      {
+      this._image = data;
+      this._image_off = imageoff;
+      window.redraw_viewport();
+    });
   }, function reset(draw) {
     this.commands.length = 0;
     this.path_start_i = 0;
@@ -6501,12 +6494,15 @@ es6_module_define('vectordraw_canvas2d', ["config", "mathlib", "vectordraw_base"
         this.recalc = 0;
         this.gen(draw);
     }
+    if (this._image===undefined) {
+        return ;
+    }
     g.imageSmoothingEnabled = false;
     if (g._drawImage!=undefined) {
-        g._drawImage(this.canvas, this.aabb[0][0]+offx, this.aabb[0][1]+offy);
+        g._drawImage(this._image, this._image_off[0]+offx, this._image_off[1]+offy);
     }
     else {
-      g.drawImage(this.canvas, this.aabb[0][0]+offx, this.aabb[0][1]+offy);
+      g.drawImage(this._image, this._image_off[0]+offx, this._image_off[1]+offy);
     }
   }, function update() {
     this.recalc = 1;
@@ -7663,6 +7659,180 @@ es6_module_define('vectordraw_svg', ["vectordraw_base", "mathlib", "config"], fu
   _es6_module.add_class(SVGDraw2D);
   SVGDraw2D = _es6_module.add_export('SVGDraw2D', SVGDraw2D);
 }, '/dev/fairmotion/src/vectordraw/vectordraw_svg.js');
+es6_module_define('vectordraw_canvas2d_jobs', [], function _vectordraw_canvas2d_jobs_module(_es6_module) {
+}, '/dev/fairmotion/src/vectordraw/vectordraw_canvas2d_jobs.js');
+es6_module_define('vectordraw_jobs', ["vectordraw_jobs_base"], function _vectordraw_jobs_module(_es6_module) {
+  "use strict";
+  var MESSAGES=es6_import_item(_es6_module, 'vectordraw_jobs_base', 'MESSAGES');
+  let MS=MESSAGES;
+  let Debug=false;
+  let MAX_THREADS=2;
+  var Thread=_ESClass("Thread", [function Thread(worker, id, manager) {
+    this.id = id;
+    this.manager = manager;
+    this.worker = worker;
+    this.dead = false;
+    this.queue = [];
+    this.lock = 0;
+    this.owner = undefined;
+    this.msgstate = undefined;
+    worker.onmessage = this.onmessage.bind(this);
+    this.callbacks = {}
+    this.ownerid_msgid_map = {}
+    this.msgid_ownerid_map = {}
+  }, function cancelRenderJob(ownerid) {
+    if (ownerid in this.ownerid_msgid_map) {
+        let oldid=this.msgid_ownerid_map[ownerid];
+        this.postMessage(MS.CANCEL_JOB, oldid);
+        delete this.ownerid_msgid_map[ownerid];
+        delete this.msgid_ownerid_map[oldid];
+    }
+    else {
+      if (Debug)
+        console.log("Bad owner id", ownerid);
+    }
+  }, function postRenderJob(ownerid, commands, datablocks) {
+    let id=this.manager._rthread_idgen++;
+    this.ownerid_msgid_map[ownerid] = id;
+    this.postMessage(MS.NEW_JOB, id, undefined);
+    this.postMessage(MS.SET_COMMANDS, id, [commands.buffer]);
+    if (datablocks!==undefined) {
+        var __iter_block=__get_iter(datablocks);
+        var block;
+        while (1) {
+          var __ival_block=__iter_block.next();
+          if (__ival_block.done) {
+              break;
+          }
+          block = __ival_block.value;
+          this.postMessage(MS.ADD_DATABLOCK, id, [block]);
+        }
+    }
+    return new Promise((accept, reject) =>      {
+      let callback=(data) => accept(data);
+      this.callbacks[id] = callback;
+      this.postMessage(MS.RUN, id);
+    });
+  }, function clearOutstandingThreads() {
+  }, function onmessage(e) {
+    switch (e.data.type) {
+      case MS.RESULT:
+        let id=e.data.msgid;
+        if (!(id in this.callbacks)) {
+            if (Debug)
+              console.warn("Renderthread callback not found for: ", id);
+            return ;
+        }
+        let cb=this.callbacks[id];
+        delete this.callbacks[id];
+        if (Debug)
+          console.log(e.data.data[0]);
+        cb(e.data.data[0]);
+        break;
+    }
+    if (Debug)
+      console.log("event message in main thread", e);
+  }, function tryLock(owner) {
+    if (this.lock==0||this.owner===owner) {
+        return true;
+    }
+    return false;
+  }, function tryUnlock(owner) {
+    if (this.lock==0||this.owner!==owner) {
+        return false;
+    }
+    this.owner = undefined;
+    this.lock = 0;
+    return true;
+  }, function postMessage(type, msgid, transfers) {
+    this.worker.postMessage({type: type, msgid: msgid, data: transfers}, transfers);
+  }, function close() {
+    if (this.worker!==undefined) {
+        this.worker.terminate();
+        this.worker = undefined;
+    }
+    else {
+      console.warn("Worker already killed once", this.id);
+    }
+  }]);
+  _es6_module.add_class(Thread);
+  Thread = _es6_module.add_export('Thread', Thread);
+  var ThreadManager=_ESClass("ThreadManager", [function ThreadManager() {
+    this.threads = [];
+    this.thread_idmap = {}
+    this._idgen = 0;
+    this._rthread_idgen = 0;
+    this.max_threads = MAX_THREADS;
+  }, function spawnThread(source) {
+    let worker=new Worker(source);
+    let thread=new Thread(worker, this._idgen++, this);
+    this.thread_idmap[thread.id] = thread;
+    this.threads.push(thread);
+    return thread;
+  }, function endThread(thread) {
+    if (thread.worker===undefined) {
+        console.warn("Double call to ThreadManager.endThread()");
+        return ;
+    }
+    this.threads.remove(thread);
+    delete this.thread_idmap[thread.id];
+    thread.close();
+  }, function getRandomThread(source) {
+    if (this.threads.length<this.max_threads) {
+        return this.spawnThread(source);
+    }
+    let ri=~~(Math.random()*this.threads.length*0.99999);
+    return this.threads[ri];
+  }, function postRenderJob(ownerid, commands, datablocks) {
+    let thread=this.getRandomThread("vectordraw_canvas2d_worker.js");
+    let ret=thread.postRenderJob(ownerid, commands, datablocks);
+    return ret;
+  }, function cancelAllJobs() {
+    var __iter_thread=__get_iter(this.threads);
+    var thread;
+    while (1) {
+      var __ival_thread=__iter_thread.next();
+      if (__ival_thread.done) {
+          break;
+      }
+      thread = __ival_thread.value;
+      thread.worker.terminate();
+    }
+    this.threads = [];
+    this.thread_idmap = {}
+  }, function cancelRenderJob(ownerid) {
+    var __iter_thread=__get_iter(this.threads);
+    var thread;
+    while (1) {
+      var __ival_thread=__iter_thread.next();
+      if (__ival_thread.done) {
+          break;
+      }
+      thread = __ival_thread.value;
+      if (ownerid in thread.ownerid_msgid_map) {
+          thread.cancelRenderJob(ownerid);
+      }
+    }
+  }]);
+  _es6_module.add_class(ThreadManager);
+  ThreadManager = _es6_module.add_export('ThreadManager', ThreadManager);
+  var manager=new ThreadManager();
+  manager = _es6_module.add_export('manager', manager);
+  function test() {
+    let thread=manager.getRandomThread("vectordraw_canvas2d_worker.js");
+    thread.postMessage("yay", [new ArrayBuffer(512)]);
+    return thread;
+  }
+  test = _es6_module.add_export('test', test);
+}, '/dev/fairmotion/src/vectordraw/vectordraw_jobs.js');
+es6_module_define('vectordraw_jobs_base', [], function _vectordraw_jobs_base_module(_es6_module) {
+  var OPCODES={LINESTYLE: 0, LINEWIDTH: 1, FILLSTYLE: 2, BEGINPATH: 3, CLOSEPATH: 4, MOVETO: 5, LINETO: 6, RECT: 7, ARC: 8, CUBIC: 9, QUADRATIC: 10, STROKE: 11, FILL: 12, SAVE: 13, RESTORE: 14, TRANSLATE: 15, ROTATE: 16, SCALE: 17, SETBLUR: 18, SETCOMPOSITE: 19, CLIP: 20, DRAWIMAGE: 21, PUTIMAGE: 22, SETTRANSFORM: 23}
+  OPCODES = _es6_module.add_export('OPCODES', OPCODES);
+  var MESSAGES={NEW_JOB: 0, ADD_DATABLOCK: 1, SET_COMMANDS: 2, RUN: 3, ERROR: 10, RESULT: 11, ACK: 12, CLEAR_QUEUE: 13, CANCEL_JOB: 14}
+  MESSAGES = _es6_module.add_export('MESSAGES', MESSAGES);
+  var CompositeModes={"source-over": 0, "source-atop": 1}
+  CompositeModes = _es6_module.add_export('CompositeModes', CompositeModes);
+}, '/dev/fairmotion/src/vectordraw/vectordraw_jobs_base.js');
 es6_module_define('vectordraw', ["vectordraw_canvas2d", "vectordraw_base", "vectordraw_svg", "vectordraw_stub"], function _vectordraw_module(_es6_module) {
   "use strict";
   var CanvasDraw2D=es6_import_item(_es6_module, 'vectordraw_canvas2d', 'CanvasDraw2D');
@@ -7682,12 +7852,13 @@ es6_module_define('vectordraw', ["vectordraw_canvas2d", "vectordraw_base", "vect
 es6_module_define('strokedraw', [], function _strokedraw_module(_es6_module) {
   "use strict";
 }, '/dev/fairmotion/src/vectordraw/strokedraw.js');
-es6_module_define('spline_draw_new', ["vectordraw", "animdata", "spline_element_array", "mathlib", "spline_multires", "spline_types", "selectmode", "view2d_editor", "spline_math", "config"], function _spline_draw_new_module(_es6_module) {
+es6_module_define('spline_draw_new', ["vectordraw_jobs", "spline_multires", "animdata", "mathlib", "selectmode", "config", "view2d_editor", "spline_types", "spline_element_array", "vectordraw", "spline_math"], function _spline_draw_new_module(_es6_module) {
   "use strict";
   var aabb_isect_minmax2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_minmax2d');
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
   var ENABLE_MULTIRES=es6_import_item(_es6_module, 'config', 'ENABLE_MULTIRES');
   var config=es6_import(_es6_module, 'config');
+  var vectordraw_jobs=es6_import(_es6_module, 'vectordraw_jobs');
   var SessionFlags=es6_import_item(_es6_module, 'view2d_editor', 'SessionFlags');
   var SelMask=es6_import_item(_es6_module, 'selectmode', 'SelMask');
   var ORDER=es6_import_item(_es6_module, 'spline_math', 'ORDER');
@@ -7753,6 +7924,7 @@ es6_module_define('spline_draw_new', ["vectordraw", "animdata", "spline_element_
     this.used_paths = {}
     this.recalc_all = false;
     this.drawer = drawer;
+    this.last_zoom = undefined;
     this.last_3_mat = undefined;
     this.last_stroke_z = undefined;
     this.last_stroke_eid = undefined;
@@ -7766,6 +7938,11 @@ es6_module_define('spline_draw_new', ["vectordraw", "animdata", "spline_element_
     var do_blur=!!(only_render||editor.enable_blur);
     var draw_faces=!!(only_render||editor.draw_faces);
     var recalc_all=this.recalc_all||this.draw_faces!==draw_faces||this.do_blur!==do_blur;
+    recalc_all = recalc_all||zoom!==this.last_zoom;
+    if (recalc_all) {
+        vectordraw_jobs.manager.cancelAllJobs();
+    }
+    this.last_zoom = zoom;
     this.draw_faces = draw_faces;
     this.do_blur = do_blur;
     this.last_stroke_mat = undefined;
@@ -7879,8 +8056,8 @@ es6_module_define('spline_draw_new', ["vectordraw", "animdata", "spline_element_
     }
     seg.flag&=~SplineFlags.REDRAW;
     var l=seg.ks[KSCALE]*zoom;
-    var steps=4+~~(Math.sqrt(l)/50);
-    console.log("l", l, steps);
+    let add=(Math.sqrt(l)/5);
+    var steps=7+~~add;
     var ds=1.0/(steps-1), s=0.0;
     var path=this.get_path(eid, z, eid==seg.eid);
     path.update();

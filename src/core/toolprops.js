@@ -489,11 +489,14 @@ export class FlagProperty extends ToolProperty {
   }
 
   set_flag(value) {
-    var flag;
+    let flag;
+    
     if (this.values.hasOwnProperty(value)) {
        flag = value;
     } else if (this.keys.hasOwnProperty(value)) {
       flag = this.keys[value];
+    } else if (value === 0) { //clear all flags
+      this.data = flag = 0;
     } else {
       console.trace("WARNING: bad flag value!", value, this.values);
       //throw new Error("Bad flag value");
@@ -503,7 +506,8 @@ export class FlagProperty extends ToolProperty {
   }
 
   unset_flag(value) {
-    var flag;
+    let flag;
+    
     if (this.values.hasOwnProperty(value)) {
        flag = value;
     } else if (this.keys.hasOwnProperty(value)) {

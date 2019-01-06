@@ -23,7 +23,7 @@ def build():
     if f == "native": continue
 
     path = "./platforms/electron/" + f
-    
+
     file = open(path, "rb")
     buf = file.read()
     file.close()
@@ -32,7 +32,18 @@ def build():
     file = open(path, "wb")
     file.write(buf)
     file.close()
-    
+
+  def copy(a, b):
+    file = open(a, "rb")
+    buf = file.read()
+    file.close()
+
+    file = open(b, "wb")
+    file.write(buf)
+    file.close()
+
+  copy("./src/vectordraw/vectordraw_canvas2d_worker.js", "./electron_build/vectordraw_canvas2d_worker.js");
+
   for f in os.listdir("./build"):
     ok = (f.startswith("app") and f.endswith(".js"))
     ok = ok or f.startswith("iconsheet")

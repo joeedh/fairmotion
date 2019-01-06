@@ -13,7 +13,9 @@ function createWindow () {
     height: 768,
     webPreferences : {
       nodeIntegration: true,
-      preload : "preload.js"
+      preload : "preload.js",
+      experimentalFeatures : true,
+      experimentalCanvasFeatures : true
     }
   });
 

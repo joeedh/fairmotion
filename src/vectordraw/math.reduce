@@ -1,0 +1,38 @@
+on factor;
+off period;
+
+operator inside;
+
+comment: implicit form of quadratic polynomial (constructed from beziers);
+
+procedure implicit(x, y):
+    k1*x**2 + k2*y**2 + k3;
+
+f := (sub(x=x+w, int(implicit(x, y), x)) - sub(x=x-w, int(implicit(x, y), x))) / (2*w);
+f := (sub(x=x+w, int(f, x)) - sub(x=x-w, int(f, x))) / (2*w);
+
+f := (sub(y = y+w, int(implicit(x, y), y)) - sub(y=y-w, int(implicit(x, y), y))) / (2*w);
+f := (sub(y = y+w, int(f, y)) - sub(y=y-w, int(f, y))) / (2*w);
+
+procedure bez(a, b, s);
+    a + (b - a)*s;
+
+lin  := bez(k1, k2, s);
+quad := bez(lin, sub(k2=k3, k1=k2, lin), s);
+
+px := sub(k1=x1, k2=x2, k3=x3, quad);
+py := sub(k1=y1, k2=y2, k3=y3, quad);
+
+vx := df(px, s);
+vy := df(py, s);
+
+lx := sx - px;
+ly := sy - py;
+
+f1 := vx*lx + vy*ly;
+
+fs := -f1 / df(f1, s);
+comment: fs := fs - sub(s=fs, f1) / sub(s=fs, df(f1, s));
+
+cres := resultant(px, py, s);
+

@@ -5,6 +5,8 @@ import {ENABLE_MULTIRES} from 'config';
 
 import * as config from 'config';
 
+import * as vectordraw_jobs from 'vectordraw_jobs';
+
 import {SessionFlags} from 'view2d_editor';
 import {SelMask} from 'selectmode';
 import {ORDER, KSCALE, KANGLE, KSTARTX, KSTARTY, KSTARTZ, KTOTKS, INT_STEPS} from 'spline_math';
@@ -80,6 +82,7 @@ export class SplineDrawer {
     
     this.drawer = drawer;
     
+    this.last_zoom = undefined;
     this.last_3_mat = undefined;
     this.last_stroke_z   = undefined;
     this.last_stroke_eid = undefined;
@@ -102,7 +105,15 @@ export class SplineDrawer {
     var draw_faces = !!(only_render || editor.draw_faces);
     
     var recalc_all = this.recalc_all || this.draw_faces !== draw_faces || this.do_blur !== do_blur;
+    recalc_all = recalc_all || zoom !== this.last_zoom;
+  
+    //console.log("all will redrw?", recalc_all);
+    if (recalc_all) {
+      //abort all outstanding render threads
+      vectordraw_jobs.manager.cancelAllJobs();
+    }
     
+    this.last_zoom = zoom;
     this.draw_faces = draw_faces;
     this.do_blur = do_blur;
     
@@ -267,9 +278,12 @@ export class SplineDrawer {
     seg.flag &= ~SplineFlags.REDRAW;
     
     var l = seg.ks[KSCALE] * zoom;
-    var steps = 4 + ~~(Math.sqrt(l)/50);
-    console.log("l", l, steps);
+    let add = (Math.sqrt(l) / 5);
+    var steps = 7 + ~~add;
+    
+    //console.log("STEPS", "l", l, "add", add, "steps", steps);
     var ds = 1.0 / (steps - 1), s = 0.0;
+    
     
     /*
     on factor;

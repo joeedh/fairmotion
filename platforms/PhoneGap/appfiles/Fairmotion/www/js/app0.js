@@ -9038,9 +9038,9 @@ function time_func(func, steps) {
   console.log(times);
   return times;
 }
-var $lst_imVv=new GArray();
+var $lst_3AQL=new GArray();
 function cached_list(iter) {
-  $lst_imVv.reset();
+  $lst_3AQL.reset();
   var i=0;
   var __iter_item=__get_iter(iter);
   var item;
@@ -9050,11 +9050,11 @@ function cached_list(iter) {
         break;
     }
     item = __ival_item.value;
-    $lst_imVv.push(item);
+    $lst_3AQL.push(item);
     i++;
   }
-  $lst_imVv.length = i;
-  return $lst_imVv;
+  $lst_3AQL.length = i;
+  return $lst_3AQL;
 }
 var g_list=list;
 var eid_list=_ESClass("eid_list", GArray, [function eid_list(iter) {

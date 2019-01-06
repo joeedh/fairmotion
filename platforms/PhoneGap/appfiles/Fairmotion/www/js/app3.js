@@ -1764,7 +1764,7 @@ es6_module_define('touchevents', [], function _touchevents_module(_es6_module) {
   }]);
   _es6_module.add_class(TouchManager);
 }, '/dev/fairmotion/src/ui/touchevents.js');
-es6_module_define('toolprops', ["toolprops_iter", "ajax", "struct"], function _toolprops_module(_es6_module) {
+es6_module_define('toolprops', ["struct", "ajax", "toolprops_iter"], function _toolprops_module(_es6_module) {
   "use strict";
   
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
@@ -2145,7 +2145,7 @@ es6_module_define('toolprops', ["toolprops_iter", "ajax", "struct"], function _t
   }, function pack(data) {
     pack_int(this.data);
   }, function set_flag(value) {
-    var flag;
+    let flag;
     if (this.values.hasOwnProperty(value)) {
         flag = value;
     }
@@ -2153,12 +2153,16 @@ es6_module_define('toolprops', ["toolprops_iter", "ajax", "struct"], function _t
       if (this.keys.hasOwnProperty(value)) {
         flag = this.keys[value];
     }
+    else 
+      if (value===0) {
+        this.data = flag = 0;
+    }
     else {
       console.trace("WARNING: bad flag value!", value, this.values);
     }
     this.data|=flag;
   }, function unset_flag(value) {
-    var flag;
+    let flag;
     if (this.values.hasOwnProperty(value)) {
         flag = value;
     }

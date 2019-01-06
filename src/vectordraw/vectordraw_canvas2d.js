@@ -11,6 +11,9 @@ import {
   VectorDraw
 } from 'vectordraw_base';
 
+import {OPCODES} from 'vectordraw_jobs_base';
+import * as vectordraw_jobs from 'vectordraw_jobs';
+
 var canvaspath_draw_mat_tmps = new cachering(function() {
   return new Matrix4();
 }, 16);
@@ -22,16 +25,31 @@ var canvaspath_draw_vs = new cachering(function() {
   return new Vector2();
 }, 32);
 
-var CCMD=0, CARGLEN=1;
+let MOVETO = OPCODES.MOVETO, BEZIERTO=OPCODES.QUADRATIC, LINETO=OPCODES.LINETO, BEGINPATH=OPCODES.BEGINPATH,
+    CUBICTO=OPCODES.CUBIC, CLOSEPATH = OPCODES.CLOSEPATH;
 
-var MOVETO = 0, BEZIERTO=1, LINETO=2, BEGINPATH=3, CUBICTO=4;
+let arglens = {};
+
+arglens[BEGINPATH] = 0;
+arglens[CLOSEPATH] = 0;
+arglens[MOVETO] = 2;
+arglens[LINETO] = 2;
+arglens[BEZIERTO] = 4;
+arglens[CUBICTO] = 6;
+
+let render_idgen = 1;
 
 export class CanvasPath extends QuadBezPath {
   constructor() {
     super();
     
+    this.dead = false;
     this.commands = [];
     this.recalc = 1;
+    
+    this._render_id = render_idgen++;
+    this._image = undefined;
+    this._image_off = [0, 0];
     
     this.lastx = 0;
     this.lasty = 0;
@@ -39,7 +57,7 @@ export class CanvasPath extends QuadBezPath {
     this.canvas = undefined;
     this.g = undefined;
     
-    this.path_start_i = 0;
+    this.path_start_i = 2;
     this.first = true;
     this._mm = new MinMax(2);
   }
@@ -59,7 +77,7 @@ export class CanvasPath extends QuadBezPath {
     var cs = this.commands, i = 0;
     while (i < cs.length) {
       var cmd = cs[i++];
-      var arglen = cs[i++];
+      var arglen = arglens[cmd];
       
       if (fast_mode && prev != BEGINPATH) {
         prev = cmd;
@@ -90,18 +108,21 @@ export class CanvasPath extends QuadBezPath {
     this._pushCmd(BEGINPATH);
   }
   
+  closePath() {
+    this.path_start_i = this.commands.length;
+    this._pushCmd(CLOSEPATH);
+  }
+  
   undo() { //remove last added path
     //hrm, wonder if I should update the aabb.  I'm thinking not.
     this.commands.length = this.path_start_i;
   }
 
   _pushCmd() {
-    this.commands.push(arguments[0]);
-    var arglen = arguments.length - 1;
+    let arglen = arguments.length;
     
-    this.commands.push(arglen);
-    for (var i=0; i<arglen; i++) {
-      this.commands.push(arguments[i+1]);
+    for (let i=0; i<arglen; i++) {
+      this.commands.push(arguments[i]);
     }
     
     this.recalc = 1;
@@ -139,23 +160,54 @@ export class CanvasPath extends QuadBezPath {
   
   destroy(draw) {
     this.canvas = this.g = undefined;
+    this._image = this.commands = undefined;
   }
   
   //renders into another path's canvas
-  genInto(draw, path, clip_mode=false) {
+  genInto(draw, path, commands, clip_mode=false) {
     let oldc = this.canvas, oldg = this.g, oldaabb = this.aabb, oldsize = this.size;
     
-    this.canvas = path.canvas;
-    this.g = path.g;
-    this.aabb = path.aabb;
-    this.size = path.size;
+    //this.canvas = path.canvas;
+    //this.g = path.g;
     
-    this.gen(draw, undefined, clip_mode);
+    this.aabb = [new Vector2(path.aabb[0]), new Vector2(path.aabb[1])];
+    this.size = [path.size[0], path.size[1]];
+    
+    this.gen_commands(draw, commands, undefined, true);
+    //this.gen(draw, undefined, clip_mode);
     
     this.canvas = oldc;
     this.g = oldg;
     this.aabb = oldaabb;
     this.size = oldsize;
+  }
+  
+  gen_commands(draw, commands, _check_tag=0, clip_mode=false) {
+    let m = this.matrix.$matrix;
+    
+    let r = ~~(this.color[0]*255),
+      g = ~~(this.color[1]*255),
+      b = ~~(this.color[2]*255),
+      a = this.color[3];
+    
+    let commands2 = [];
+  
+    //commands2 = commands2.concat([OPCODES.SETTRANSFORM, m.m11, m.m12, m.m21, m.m22, m.m41, m.m42]);
+    if (!clip_mode) {
+      commands2 = commands2.concat([OPCODES.FILLSTYLE, r, g, b, a]);
+      commands2 = commands2.concat([OPCODES.SETBLUR, this.blur]);
+    }
+    
+    commands2.push(OPCODES.BEGINPATH);
+  
+    commands2 = commands2.concat(this.commands);
+    commands2.push(clip_mode ? OPCODES.CLIP : OPCODES.FILL);
+  
+    for (let c of commands2) {
+      commands.push(c);
+    }
+    
+    return commands;
   }
   
   gen(draw, _check_tag=0, clip_mode=false) {
@@ -169,7 +221,7 @@ export class CanvasPath extends QuadBezPath {
     var do_clip = this.clip_paths.length > 0;
     var do_blur = this.blur > 0.0;
     
-    //var zoom = draw.matrix.$matrix.m11; //scale should always be uniform, I think
+    var zoom = draw.matrix.$matrix.m11; //scale should always be uniform, I think
     
     this.update_aabb(draw);
     
@@ -188,33 +240,32 @@ export class CanvasPath extends QuadBezPath {
       
       this.size[0] = w2;
       this.size[1] = h2;
+      
       w = w2, h = h2;
     }
     
-    if (this.canvas == undefined) {
-      //console.warn("creating canvas. . .");
+    if (1) {
+      var mat1 = canvaspath_draw_mat_tmps.next();
+      var mat = canvaspath_draw_mat_tmps.next();
+      mat1.makeIdentity(), mat.makeIdentity();
+  
+      mat1.translate(-this.aabb[0][0], -this.aabb[0][1]);
+      mat1.translate(draw.pan[0], draw.pan[1]);
+  
+      mat.makeIdentity();
+      mat.load(draw.matrix);
+  
+      mat.preMultiply(mat1);
       
-      this.canvas = document.createElement("canvas");
-      this.canvas.style.background = "rgba(0.0, 0.0, 0.0, 0.0)";
-      this.g = this.canvas.getContext("2d");
+      let m = mat.$matrix;
+  
+      this.matrix = mat;
     }
     
-    if (this.g == undefined) { //presumably a degenerate path
-      console.log("render error!", this.id, this.size[0], this.size[1], this.canvas, this);
-      return;
-    }
-    
-    if (this.canvas.width != w || this.canvas.height != h) {
-      //console.log("resetting canvas:", this.canvas.width, this.canvas.height, w, h);
-      
-      this.canvas.width = w;
-      this.canvas.height = h;
-    }
-
-    this.g.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    
-    this.g.globalCompositeOperation = "source-over";
-
+    let commands2 = [w, h];
+    let m = this.matrix.$matrix;
+    commands2 = commands2.concat([OPCODES.SETTRANSFORM, m.m11, m.m12, m.m21, m.m22, m.m41, m.m42]);
+  
     for (var path of this.clip_paths) {
       //console.log("CLIPPING!", path);
       
@@ -225,27 +276,30 @@ export class CanvasPath extends QuadBezPath {
       
       let oldc = path.canvas, oldg = path.g, oldaabb = path.aabb, oldsize = path.size;
       
-      path.genInto(draw, this, true);
+      path.genInto(draw, this, commands2, true);
     }
     
-    var mat1 = canvaspath_draw_mat_tmps.next();
-    var mat = canvaspath_draw_mat_tmps.next();
-    mat1.makeIdentity(), mat.makeIdentity();
+    this.gen_commands(draw, commands2, _check_tag, clip_mode);
+    commands2 = new Float64Array(commands2);
     
-    mat1.translate(-this.aabb[0][0], -this.aabb[0][1]);
+    let renderid = clip_mode ? render_idgen++ : this._render_id;
+  
+    //cancel any outstanding jobs
+    vectordraw_jobs.manager.cancelRenderJob(renderid);
     
-    mat.makeIdentity();
-    mat.load(draw.matrix);
+    let imageoff = [this.aabb[0][0], this.aabb[0][1]];
+    vectordraw_jobs.manager.postRenderJob(renderid, commands2).then((data) => {
+      //console.log("Got render result!", data);
+      
+      //this.__image = undefined;
+      this._image = data;
+      this._image_off = imageoff;
+      window.redraw_viewport();
+    });
     
-    mat.preMultiply(mat1);
-    
-    var co = canvaspath_draw_vs.next().zero();
-    
-    var r = ~~(this.color[0]*255),
-        g = ~~(this.color[1]*255),
-        b = ~~(this.color[2]*255),
-        a = this.color[3];
-    
+    /*
+    this.g.save();
+    this.g.setTransform(m.m11, m.m12, m.m21, m.m22, m.m41, m.m42);
     this.g.fillStyle = "rgba("+r+","+g+","+b+","+a+")";
     
     if (do_blur) {
@@ -259,10 +313,11 @@ export class CanvasPath extends QuadBezPath {
     
     this.g.beginPath();
     
-    var cs = this.commands, i = 0;
+    this._image = this.canvas;
+    var cs = this.commands, i = 2;
     while (i < cs.length) {
       var cmd = cs[i++];
-      var arglen = cs[i++];
+      var arglen = arglens[cmd];
       
       //console.log(cmd, arglen);
       
@@ -270,8 +325,6 @@ export class CanvasPath extends QuadBezPath {
       
       for (var j=0; j<arglen; j += 2) {
         co[0] = cs[i++], co[1] = cs[i++];
-        co.multVecMatrix(mat);
-        co.add(draw.pan);
         tmp[j] = co[0], tmp[j+1] = co[1];
       }
 
@@ -299,12 +352,14 @@ export class CanvasPath extends QuadBezPath {
     } else {
       this.g.clip();
     }
-    
     if (do_blur) {
       this.g.translate(doff, doff);
       this.g.shadowOffsetX = this.g.shadowOffsetY = 0.0;
       this.g.shadowBlur = 0.0;
     }
+    this.g.restore();
+
+    //*/
   }
   
   reset(draw) {
@@ -323,14 +378,18 @@ export class CanvasPath extends QuadBezPath {
       this.gen(draw);
     }
     
+    if (this._image === undefined) {
+      return;
+    }
+    
     g.imageSmoothingEnabled = false;
     //console.log(this.aabb[0][0], this.aabb[0][1], offx, offy, this.off, this.commands, draw.matrix);
     
     //XXX bypass patch methods
     if (g._drawImage != undefined) {
-      g._drawImage(this.canvas, this.aabb[0][0]+offx, this.aabb[0][1]+offy);
+      g._drawImage(this._image, this._image_off[0]+offx, this._image_off[1]+offy);
     } else {
-      g.drawImage(this.canvas, this.aabb[0][0]+offx, this.aabb[0][1]+offy);
+      g.drawImage(this._image, this._image_off[0]+offx, this._image_off[1]+offy);
     }
   }
   

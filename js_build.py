@@ -231,7 +231,7 @@ def signal_handler(signal1, stack):
 
   #import traceback
   #traceback.print_stack()
-  #traceback.print_last()
+  #traceback.print_exc()
 
   sys.exit(-1)
 
@@ -996,8 +996,8 @@ def do_copy_targets():
     db_depend.close()
 
     try: #ignore dumb errors from traceback
-        traceback.print_stack()
-        traceback.print_last()
+        #traceback.print_stack()
+        traceback.print_exc()
     except:
         pass
 
@@ -1010,8 +1010,8 @@ def build_platforms():
         build.build()
     except:
         try: #ignore dumb errors from traceback
-            traceback.print_stack()
-            traceback.print_last()
+            #traceback.print_stack()
+            traceback.print_exc()
         except:
             pass
         
@@ -1221,8 +1221,8 @@ if __name__ == "__main__":
     ret = -1
   except:
     try: #ignore dumb errors from traceback
-        traceback.print_stack()
-        traceback.print_last()
+        #traceback.print_stack()
+        traceback.print_exc()
     except:
         pass
         

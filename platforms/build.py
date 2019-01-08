@@ -1,9 +1,3 @@
-#platforms = [
-#  "html5",
-#  "Electron",
-#  "chromeapp",
-#]
-
 import platforms.chromeapp.build
 import platforms.html5.build
 import platforms.PhoneGap.build
@@ -15,6 +9,12 @@ platforms = [
   platforms.PhoneGap.build,
   platforms.Electron.build
 ]
+
+try:
+    import platforms.build_local
+    platforms = platforms.build_local.platforms
+except ImportError:
+    print("error importing platforms/build_local.py")
 
 def build():
   print("building platform packages. . .")

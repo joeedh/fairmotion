@@ -5,7 +5,7 @@ let MS = MESSAGES;
 
 let Debug = false;
 
-let MAX_THREADS = 2;
+let MAX_THREADS = 5;
 
 //uses web workers
 export class Thread {
@@ -169,20 +169,31 @@ export class ThreadManager {
   }
   
   postRenderJob(ownerid, commands, datablocks) {
-    let thread = this.getRandomThread("vectordraw_canvas2d_worker.js");
-    let ret = thread.postRenderJob(ownerid, commands, datablocks);
+    let thread;
     
+    //we want at last one gpu-capable render thread
+    if (this.threads.length == 0) {
+      thread = this.getRandomThread("vectordraw_canvas2d_worker.js");
+    } else {
+      thread = this.getRandomThread("vectordraw_skia_worker.js");
+    }
+  
+    let ret = thread.postRenderJob(ownerid, commands, datablocks);
     return ret;
   }
   
   cancelAllJobs() {
     //kill all threads, we'll re-spawn new ones as needed
     for (let thread of this.threads) {
-      thread.worker.terminate();
+      //thread.worker.terminate();
+      thread.postMessage(MS.CLEAR_QUEUE, 0);
+      thread.callback = {};
+      thread.msgid_ownerid_map = {};
+      thread.ownerid_msgid_map = {};
     }
     
-    this.threads = [];
-    this.thread_idmap = {};
+    //this.threads = [];
+    //this.thread_idmap = {};
   }
   
   cancelRenderJob(ownerid) {

@@ -206,6 +206,9 @@ window.startup_intern = function startup() {
 }
 
 function init_event_system() {
+  //let events = _es6_get_module("core/events");
+  
+  
   window._stime = 10;
   
   window.setInterval(function () {

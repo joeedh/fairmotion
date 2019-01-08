@@ -40,6 +40,7 @@ sources = [
   "src/core/safe_eval.js",
   "tools/utils/libs/node_modules/esprima/esprima.js",
   
+  #"src/core/events.js",
   #"src/util/base_vector.js",
   "src/datafiles/icon_enum.js",
   #"src/util/vector.js",
@@ -113,7 +114,7 @@ sources = [
   
   "src/editors/viewport/events.js",
   "src/ui/touchevents.js",
-  
+
   "src/core/toolprops.js",
   "src/core/toolprops_iter.js",
 	"src/core/toolops_api.js",
@@ -196,6 +197,7 @@ sources = [
 
 copy_targets = {
    "vectordraw_canvas2d_worker.js" : "src/vectordraw/vectordraw_canvas2d_worker.js",
+   "vectordraw_skia_worker.js" : "src/vectordraw/vectordraw_skia_worker.js",
    "jasmine.js"      : "tools/utils/libs/jasmine/lib/jasmine.js",
    "jasmine-html.js" : "tools/utils/libs/jasmine/lib/jasmine-html.js",
    "jasmine-console.js"      : "tools/utils/libs/jasmine/lib/console.js",

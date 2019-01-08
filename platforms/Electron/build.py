@@ -43,6 +43,7 @@ def build():
     file.close()
 
   copy("./src/vectordraw/vectordraw_canvas2d_worker.js", "./electron_build/vectordraw_canvas2d_worker.js");
+  copy("./src/vectordraw/vectordraw_skia_worker.js", "./electron_build/vectordraw_skia_worker.js");
 
   for f in os.listdir("./build"):
     ok = (f.startswith("app") and f.endswith(".js"))

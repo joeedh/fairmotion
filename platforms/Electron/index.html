@@ -2,6 +2,27 @@
 <html>
 
 <head>
+    <script src="node_modules/canvaskit-wasm/bin/canvaskit.js"></script>
+    <script type="application/javascript">
+      CanvasKitInit({
+        locateFile: (file) => 'node_modules/canvaskit-wasm/bin/'+file,
+      }).ready().then((CanvasKit) => {
+        console.log("CanvasKit initialized");
+        window.CanvasKit = CanvasKit;
+        // Code goes here using CanvasKit
+
+        window.test_canvaskit = function() {
+          let canvas = new OffscreenCanvas(128, 128);
+          canvas.tagName = "CANVAS";
+
+          let surface = CanvasKit.MakeSWCanvasSurface(canvas);
+          let skcanvas = surface.getCanvas();
+
+          skcanvas._surface = surface;
+          return skcanvas;
+        }
+      });
+    </script>
     <meta charset="utf-8" />
     <title>Fairmotion</title>
     <script type="text/javascript" src="fcontent/app.js"></script>

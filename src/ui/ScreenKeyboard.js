@@ -1,7 +1,7 @@
 import {PackFlags} from 'UIElement';
 
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
-        charmap, TouchEventManager, EventHandler} from 'events';
+        charmap, TouchEventManager, EventHandler} from "../editors/viewport/events";
 
 import {UIFlags, PackFlags, CanvasFlags, open_mobile_keyboard, close_mobile_keyboard, inrect_2d_button, 
         UIElement, UIHoverBox, UIHoverHint} from 'UIElement';

@@ -19,7 +19,7 @@ import {UICanvas} from 'UICanvas';
 import {STRUCT} from 'struct';
 import {RowFrame, ColumnFrame} from 'UIPack';
 
-import {KeyMap, VelocityPan, KeyHandler, FuncKeyHandler} from 'events';
+import {KeyMap, VelocityPan, KeyHandler, FuncKeyHandler} from '../viewport/events';
 
 class OpStackFrame extends RowFrame {
   constructor(Context ctx, Array<float> size) {

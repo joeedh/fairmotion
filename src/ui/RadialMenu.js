@@ -15,7 +15,7 @@ import {UITextBox} from 'UITextBox';
 import {ToolOp, UndoFlags, ToolFlags} from 'toolops_api';
 
 import {ignore_next_mouseup_event, KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
-        charmap, TouchEventManager, EventHandler} from 'events';
+        charmap, TouchEventManager, EventHandler} from "../editors/viewport/events";
 
 import {PackFlags} from 'UIElement';
 

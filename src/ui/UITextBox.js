@@ -9,7 +9,7 @@ import {
 } from 'UIElement';
        
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
-        charmap, TouchEventManager, EventHandler} from 'events';
+        charmap, TouchEventManager, EventHandler} from "../editors/viewport/events";
 
 import {UIFrame} from 'UIFrame';
 import {

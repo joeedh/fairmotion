@@ -1,8 +1,8 @@
-import "events";
+import "../editors/viewport/events";
 
 import {MinMax, inrect_2d, aabb_isect_2d} from 'mathlib';
-import {EventHandler} from 'events';
-import {charmap} from 'events';
+import {EventHandler} from "../editors/viewport/events";
+import {charmap} from "../editors/viewport/events";
 import {TPropFlags} from 'toolprops';
 
 export var UIFlags = {

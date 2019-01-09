@@ -6,7 +6,7 @@ import {STRUCT} from 'struct';
 import {unpack_ctx} from 'ajax';
 
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
-        charmap, TouchEventManager, EventHandler} from 'events';
+        charmap, TouchEventManager, EventHandler} from './events';
 
 class ViewRotateZoomPanOp extends ToolOp {
   constructor() {

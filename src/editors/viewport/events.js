@@ -1,8 +1,11 @@
 "use strict";
 
+import 'J3DIMath';
+
 /*
 this entire module needs to be rewritten.
 */
+
 
 export class MyKeyboardEvent {
   constructor(int code, shift=false, ctrl=false, alt=false) {

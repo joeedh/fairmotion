@@ -21,7 +21,7 @@ import {STRUCT} from 'struct';
 import {EditModes} from 'view2d_editor';
 
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler,
-        charmap, TouchEventManager, EventHandler} from 'events';
+        charmap, TouchEventManager, EventHandler} from './events';
 
 import {SelectLinkedOp, SelectOneOp} from 'spline_selectops';
 import {TranslateOp} from 'transform';

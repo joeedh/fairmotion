@@ -4,7 +4,7 @@ import {aabb_isect_2d} from 'mathlib';
 import {gen_editor_switcher} from 'UIWidgets_special';
 
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler,
-  charmap, TouchEventManager, EventHandler} from 'events';
+  charmap, TouchEventManager, EventHandler} from '../viewport/events';
 
 import {STRUCT} from 'struct';
 import {phantom, KeyTypes, FilterModes,

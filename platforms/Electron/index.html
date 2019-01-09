@@ -4,6 +4,7 @@
 <head>
     <script src="node_modules/canvaskit-wasm/bin/canvaskit.js"></script>
     <script type="application/javascript">
+      //*
       CanvasKitInit({
         locateFile: (file) => 'node_modules/canvaskit-wasm/bin/'+file,
       }).ready().then((CanvasKit) => {
@@ -22,6 +23,7 @@
           return skcanvas;
         }
       });
+      //*/
     </script>
     <meta charset="utf-8" />
     <title>Fairmotion</title>

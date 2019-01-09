@@ -18,13 +18,16 @@ function debug() {
     return;
   
   var s = "console.log";
-  console.log.apply(console, arguments);
+  console.warn.apply(console, arguments);
 }
 
-function ES6Module(name) {
+function ES6Module(name, path) {
   this.name = name;
+  this.path = path;
   
-  this.depends = [];
+  this.links = []; //modules that depend on this module, use only for debugging purposes
+  this.depends = []; //modules this module depend on
+  
   this.flag = 0;
   this.loaded = false;
   
@@ -87,7 +90,9 @@ ES6Module.prototype = {
       throw new Error("ES6Module.add_depend: Expected a string");
     }
     
+    _es6_push_basepath(this.path);
     this.depends.push(es6_get_module_meta(module));
+    _es6_pop_basepath();
   },
   
   set_default_export : function(name, object) {
@@ -106,43 +111,73 @@ ES6Module.prototype = {
   }
 };
 
-function es6_get_module_meta(name, path) {
-  //are we not a path?
-  if (path !== undefined || name.search(/\//) >= 0 || name.search(/\.js/) >= 0) {
-    let path_was_undefined = false;
+function _es6_get_basename(path) {
+  if (!(path.endsWith(".js"))) {
+    path += ".js";
+  }
+  
+  let name = path.split("/");
+  name = name[name.length-1];
+  name = name.slice(0, name.length-3);
+  
+  return name;
+}
+
+function es6_get_module_meta(path) {
+  path = path.replace(/\\/g, "/");
+  
+  //extjs originally just looked up modules by their
+  //filenames (minus .js), detect if this is happening
+  let compatibility_mode = !path.toLowerCase().endsWith(".js") && path.search("/") < 0;
+  if (compatibility_mode) {
+    let name = path;
     
-    if (path === undefined) {
-      path_was_undefined = true;
-      path = name;
+    //first look for module in same directory. . .
+    if (!path.toLowerCase().endsWith(".js")) {
+      path += ".js";
     }
     
-    path = _normpath(path, _es6_get_basepath());
+    path = _normpath("./" + path, _es6_get_basepath());
     
-    for (let k in _defined_modules) {
-      let mod = _defined_modules[k];
+    //ok we didn't find it; now search all defined modules. . .
+    if (!(path in _defined_modules)) {
+      //search modules by name
+      for (let k in _defined_modules) {
+        let mod = _defined_modules[k];
+        
+        if (mod.name == name) {
+          return mod;
+        }
+      }
       
-      if (mod.path === path) {
-        return mod;
-      }
+      console.warn("Unknown module", name, "hackishly patching. . .");
+      throw new Error("");
+      
+      let mod = new ES6Module(name, name);
+      mod._bad_path = true;
+      
+      _defined_modules[name] = mod;
+      return mod;
+    } else {
+      return _defined_modules[path];
     }
+  }
+  
+  if (!path.endsWith(".js")) {
+    path += ".js";
+  }
+  
+  path = _normpath(path, _es6_get_basepath());
+  path = _normpath1(path);
+  
+  if (!(path in _defined_modules)) {
+    let name = _es6_get_basename(path);
     
-    //get base name from path
-    if (path_was_undefined) {
-      let i = name.length - 1;
-      while (i >= 0 && name[i] != "/") {
-        i--;
-      }
-  
-      name = name.slice(name[i] == "/" ? i + 1 : i, name.length);
-    }
+    let mod = new ES6Module(name, path);
+    _defined_modules[path] = mod;
   }
   
-  if (!(name in _defined_modules)) {
-    var mod = new ES6Module(name);
-    _defined_modules[name] = mod;
-  }
-  
-  return _defined_modules[name];
+  return _defined_modules[path];
 }
 
 function _es6_get_basepath() {
@@ -164,14 +199,23 @@ function es6_module_define(name, depends, callback, path) {
   
   debug("defining module ", name, "with dependencies", JSON.stringify(depends));
   
-  if (name in _defined_modules) {
-    throw new Error("Duplicate module name '" + name + "'");
+  //if (name in _defined_modules) {
+    //throw new Error("Duplicate module name '" + name + "'");
+  //  console.log("Warning, duplicate module name \""+name+"\",", " make sure to use path in import statements");
+  //}
+  
+  let mod;
+  
+  path = _normpath(path, _es6_get_basepath());
+  
+  if (!(path in _defined_modules)) {
+    mod = new ES6Module(name, path);
+    _defined_modules[path] = mod;
+  } else {
+    mod = _defined_modules[path];
   }
   
-  var mod = es6_get_module_meta(name, path);
-  
   mod.callback = callback;
-  mod.path = path;
   
   depends.forEach(function(d) {
     mod.depends.push(d);
@@ -186,6 +230,10 @@ function sort_modules() {
   for (var k in _defined_modules) {
     var mod = _defined_modules[k];
     
+    if (mod.callback === undefined) {
+      debug('module "' + mod.path + '" does not exist', mod);
+      throw new Error('module "' + mod.path + '" does not exist');
+    }
     mod.flag = 0;
   }
   
@@ -198,13 +246,13 @@ function sort_modules() {
     }
     path = p2;
     
-    path.push(mod.name);
+    path.push(mod.path);
     
     if (path.length > 1) {
-      //debug(path);
+      debug(path);
     }
     
-    if (mod.name in localvisit) { //mod.flag > 1) {
+    if (mod.path in localvisit) { //mod.flag > 1) {
       _is_cyclic = true;
 
       debug("Cycle!", path);
@@ -214,7 +262,7 @@ function sort_modules() {
       return;
     }
     
-    localvisit[mod.name] = 1;
+    localvisit[mod.path] = 1;
     
     for (var i=0; i<mod.depends.length; i++) {
       var p = mod.depends[i];
@@ -254,20 +302,27 @@ function _load_module(mod) {
   
   if (mod.loaded) return;
   
-  debug("loading module", mod.name);
+  debug("loading module", mod.name, mod);
   
-  var dependnames = [];
   for (var i=0; i<mod.depends.length; i++) {
     args.push(mod.depends[i].exports);
-    dependnames.push(mod.depends[i].name);
   }
   
-  if (dependnames.length != 0) {
-    //debug("  ", JSON.stringify(dependnames));
+  if (_debug_modules) {
+    var dependnames = [];
+    
+    for (let dep of mod.depends) {
+      dependnames.push(dep.name);
+    }
+    
+    if (dependnames.length != 0) {
+      debug("  ", JSON.stringify(dependnames));
+    }
   }
   
   if (mod.callback == undefined) {
     console.warn("WARNING: module", mod.name, "does not exist!");
+    throw new Error("module \"" + mod.path + "\" does not exist");
     return;
   }
   
@@ -310,17 +365,24 @@ function _normpath1(path) {
 }
 
 function _normpath(path, basepath) {
+  if (basepath.trim().length == 0)
+    return _normpath1(path);
+  
   path = _normpath1(path);
   basepath = _normpath1(basepath);
   
+  if (path.startsWith(basepath)) {
+    path = _normpath1(path.slice(basepath.length, path.length));
+  }
+  
   if (path[0] == "." && path[1] == "/") {
-    path = basepath + "/" + path.slice(2, path.length);
+    path = path.slice(2, path.length);
   }
   
   let ps = path.split("/");
-  let bs = basepath.split("basepath");
+  let bs = basepath.split("/");
   
-  let stack = [];
+  let stack = bs.slice(0, bs.length-1);
   
   for (let i=0; i<ps.length; i++) {
     if (ps[i] == "..") {
@@ -330,9 +392,12 @@ function _normpath(path, basepath) {
     }
   }
   
-  path = ""
+  path = "";
   
   for (let c of stack) {
+    if (c.trim().length == 0 || c.trim() == "/")
+      continue;
+    
     path = path + "/" + c
   }
   
@@ -358,6 +423,10 @@ function _es6_get_module(name) {
 function es6_import(_es6_module, name) {
   var mod = _es6_get_module(name);
   
+  if (mod !== undefined) {
+    mod.links.push(_es6_module);
+  }
+  
   //add to active module's dependencies, if necassary
   if (mod != undefined && _es6_module.depends.indexOf(mod) < 0) {
     debug("updating dependencies");
@@ -375,6 +444,10 @@ function es6_import(_es6_module, name) {
 
 function es6_import_item(_es6_module, modname, name) {
   var mod = _es6_get_module(modname);
+  
+  if (mod !== undefined) {
+    mod.links.push(_es6_module);
+  }
   
   //add to active module's dependencies, if necassary
   if (mod != undefined && _es6_module.depends.indexOf(mod) < 0) {
@@ -470,14 +543,22 @@ function load_modules() {
   
   var start_time = time_ms();
   
-  for (var k in _defined_modules) {
-    var mod = _defined_modules[k];
-    for (var i=0; i<mod.depends.length; i++) {
-      var d = mod.depends[i];
+  //link all module.depends
+  for (let k in _defined_modules) {
+    let mod = _defined_modules[k];
+    for (var i = 0; i < mod.depends.length; i++) {
+      let mod2 = mod.depends[i];
       
-      if (typeof d == "string" || d instanceof String) {
-        mod.depends[i] = es6_get_module_meta(d);
+      if (typeof(mod2) == "string") {
+        _es6_push_basepath(mod.path);
+        mod2 = es6_get_module_meta(mod2);
+        _es6_pop_basepath();
       }
+      
+      mod.depends[i] = mod2;
+      
+      if (mod2.links.indexOf(mod) < 0)
+        mod2.links.push(mod);
     }
   }
 

@@ -8,7 +8,7 @@ import {MinMax, inrect_2d, aabb_isect_2d} from 'mathlib';
 //import {UITextBox} from 'UITextBox';
 
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
-        charmap, TouchEventManager, EventHandler} from 'events';
+        charmap, TouchEventManager, EventHandler} from "../editors/viewport/events";
 
 import {
   UIElement, UIFlags, CanvasFlags,

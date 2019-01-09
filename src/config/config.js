@@ -6,6 +6,14 @@ export var ELECTRON_APP_MODE = document.getElementById("ElectronAppMode") !== nu
 export var CHROME_APP_MODE = document.getElementById("GoogleChromeAppMode") !== null;
 export var PHONE_APP_MODE = document.getElementById("PhoneAppMode") !== null;
 
+let platform = "web";
+if (ELECTRON_APP_MODE) {
+  platform = process.platform.toLowerCase();
+}
+
+export var PLATFORM = platform;
+export var IS_WIN = platform.toLowerCase().search("win") >= 0;
+
 export var ICONPATH = PHONE_APP_MODE ? "img/" : (ELECTRON_APP_MODE ? "./fcontent/" : "fcontent/");
 
 export var USE_WASM = true;

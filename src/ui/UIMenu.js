@@ -5,7 +5,7 @@ import {
   KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler,
   charmap, TouchEventManager, EventHandler,
   ignore_next_mouseup_event
-} from 'events';
+} from "../editors/viewport/events";
 import {inrect_2d} from 'mathlib';
 
 import {

@@ -8,7 +8,7 @@ import {
 import {UIFrame} from "UIFrame";
 
 //import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler,
-//  charmap, TouchEventManager, EventHandler} from 'events';
+//  charmap, TouchEventManager, EventHandler} from "../editors/viewport/events";
 
 export class UIHTMLElement extends UIElement {
   constructor(element, ctx, path) {

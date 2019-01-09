@@ -7,7 +7,7 @@ import 'J3DIMath';
 import {PackFlags, UIElement, UIFlags, CanvasFlags} from 'UIElement';
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
         charmap, TouchEventManager, VelocityPan, 
-        EventHandler} from 'events';
+        EventHandler} from "../editors/viewport/events";
         
 /************** ui frame **************/
 var _static_mat = new Matrix4();

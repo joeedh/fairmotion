@@ -25,7 +25,7 @@ import {ManipulatorManager, Manipulator,
         HandleShapes, ManipFlags, ManipHandle} from 'manipulator';
 
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
-        charmap, TouchEventManager, EventHandler} from 'events';
+        charmap, TouchEventManager, EventHandler} from './events';
 
 import * as view2d_editor from 'view2d_editor';
 export var EditModes = view2d_editor.EditModes;

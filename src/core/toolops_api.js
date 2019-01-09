@@ -3,8 +3,8 @@
 import {PropTypes, TPropFlags}  from 'toolprops';
   
 import {STRUCT} from 'struct';
-import {EventHandler} from 'events';
-import {charmap} from 'events';
+import {EventHandler} from "../editors/viewport/events";
+import {charmap} from "../editors/viewport/events";
 
 /*
   basic design of tool ops:

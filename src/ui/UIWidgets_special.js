@@ -4,7 +4,7 @@ import {UIFrame} from 'UIFrame';
 import {rgba_to_hsva, hsva_to_rgba} from 'colorutils';
 
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
-        charmap, TouchEventManager, EventHandler} from 'events';
+        charmap, TouchEventManager, EventHandler} from "../editors/viewport/events";
 
 import {
   UIButtonAbstract, UIButton, UIButtonIcon,

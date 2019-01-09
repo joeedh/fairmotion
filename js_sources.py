@@ -40,7 +40,7 @@ sources = [
   "src/core/safe_eval.js",
   "tools/utils/libs/node_modules/esprima/esprima.js",
   
-  #"src/core/events.js",
+  "src/core/events.js",
   #"src/util/base_vector.js",
   "src/datafiles/icon_enum.js",
   #"src/util/vector.js",

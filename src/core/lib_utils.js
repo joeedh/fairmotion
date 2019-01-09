@@ -1,11 +1,11 @@
 "use strict";
 
-import "events";
+import "../editors/viewport/events";
 import "toolprops_iter";
 
-import {STRUCT} from 'struct';
-import {EventHandler} from 'events';
-import {charmap} from 'events';
+import {STRUCT} from "struct";
+import {EventHandler} from "../editors/viewport/events";
+import {charmap} from "../editors/viewport/events";
 
 /*
   Some notes on undo:

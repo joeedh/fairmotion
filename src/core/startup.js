@@ -159,7 +159,7 @@ window.startup_intern = function startup() {
   }//*/
   
   load_modules();
-    
+  
   if (window.CHROME_APP_MODE) {
     //set up some chrome app settings
     var config = _es6_get_module("config");
@@ -207,7 +207,6 @@ window.startup_intern = function startup() {
 
 function init_event_system() {
   //let events = _es6_get_module("core/events");
-  
   
   window._stime = 10;
   

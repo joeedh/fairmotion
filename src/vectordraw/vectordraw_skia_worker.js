@@ -7,7 +7,12 @@ CanvasKitInit({
 }).ready().then((CanvasKit) => {
   console.log("CanvasKit initialized");
   self.CanvasKit = CanvasKit;
-  // Code goes here using CanvasKit
+  
+  postMessage({
+    type : MSG_WORKER_READY,
+    data : 0,
+    msgid : 0
+  });
 });
 
 let Debug = false;
@@ -82,7 +87,8 @@ let MSG_NEW_JOB = 0,
   MSG_RESULT = 11,
   MSG_ACK = 12,
   MSG_CLEAR_QUEUE = 13,
-  MSG_CANCEL_JOB = 14;
+  MSG_CANCEL_JOB = 14,
+  MSG_WORKER_READY = 15;
 
 let state = {
   canvas: undefined,
@@ -325,7 +331,9 @@ function doDrawList(commands, datablocks, id) {
     msgid : id
   }, [result]);
   
-  handleQueue();
+  self.setTimeout(() => {
+    handleQueue();
+  }, 1);
 }
 
 //commands should be a float32 array

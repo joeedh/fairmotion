@@ -1,6 +1,37 @@
 "not_a_module";
 
+window.init_redraw_globals_2 = function init_redraw_globals() {
+  let eventmanager = es6_get_module_meta(_rootpath_src + "/core/eventmanager.js").exports;
+  let eman = eventmanager.manager;
+  
+  eman.addEventListener("draw", (e) => {
+    requestAnimationFrame(e.callback[0]);
+  });
+};
+
 window.init_redraw_globals = function init_redraw_globals() {
+  let eventmanager = es6_get_module_meta(_rootpath_src + "/core/eventmanager.js").exports;
+  let eman = eventmanager.manager;
+  
+  let _req_idgen = 1;
+  function myrequestAnimationFrame(func1) {
+    let id = _req_idgen++;
+    
+    if (!eman.ready) {
+      requestAnimationFrame(func1);
+    } else {
+      window.setTimeout(() => {
+        eman.fireEvent("draw", {
+          type: "draw",
+          callback: [func1]
+        });
+      }, 1);
+    }
+    
+    
+    return id;
+  }
+  
   window.redraw_rect_combined = [new Vector3(), new Vector3()];
   window.redraw_rect = [new Vector3(), new Vector3()]; //[[0, 0, 0], [0, 0, 0]];
   window.last_redraw_rect = [new Vector3(), new Vector3()];
@@ -66,7 +97,7 @@ window.init_redraw_globals = function init_redraw_globals() {
       //  console.trace("ui redraw", animreq_ui);
       
       if (animreq_ui == undefined) {
-          animreq_ui = window.requestAnimationFrame(function () {
+          animreq_ui = myrequestAnimationFrame(function () {
               animreq_ui = undefined;
 
               if (DEBUG.ui_redraw)
@@ -207,7 +238,7 @@ window.init_redraw_globals = function init_redraw_globals() {
     
     if (animreq == undefined) {
       redraw_viewport_promise = new Promise((accept, reject) => {
-          animreq = window.requestAnimationFrame(function () {
+          animreq = myrequestAnimationFrame(function () {
             animreq = undefined;
     
             var rects = workcanvas_redraw_rects;
@@ -315,7 +346,7 @@ window.init_redraw_globals = function init_redraw_globals() {
       }
 
       if (animreq == undefined) {
-          animreq = window.requestAnimationFrame(function () {
+          animreq = myrequestAnimationFrame(function () {
               animreq = undefined;
 
               for (var i = 0; i < window.g_app_state.screen.children.length; i++) {

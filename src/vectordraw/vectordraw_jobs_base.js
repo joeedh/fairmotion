@@ -38,7 +38,8 @@ export var MESSAGES = {
   RESULT : 11,
   ACK    : 12,
   CLEAR_QUEUE : 13,
-  CANCEL_JOB : 14
+  CANCEL_JOB : 14,
+  WORKER_READY : 15
 };
 
 export var CompositeModes = {

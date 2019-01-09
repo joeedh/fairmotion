@@ -158,6 +158,8 @@ window.startup_intern = function startup() {
     window.myLocalStorage = {};
   }//*/
   
+  //return;
+  
   load_modules();
   
   if (window.CHROME_APP_MODE) {
@@ -202,11 +204,13 @@ window.startup_intern = function startup() {
 
       g_app_state.session.validate_session();
       init_event_system();
+      init_redraw_globals_2();
   }
 }
 
 function init_event_system() {
-  //let events = _es6_get_module("core/events");
+  let eventmanager = es6_get_module_meta(_rootpath_src + "/core/eventmanager.js").exports;
+  let eman = eventmanager.manager;
   
   window._stime = 10;
   
@@ -617,23 +621,25 @@ function init_event_system() {
   }
 
   var ce = document.getElementById("canvas2d_work");
-
-  ce.addEventListener("mousemove", handleMouseMove, false);
-  ce.addEventListener("mousedown", handleMouseDown, false);
-  ce.addEventListener("touchstart", handleTouchDown, false);
-  ce.addEventListener("touchmove", handleTouchMove, false);
-  ce.addEventListener("mouseup", handleMouseUp, false);
-  ce.addEventListener("touchend", handleTouchUp, false);
-  ce.addEventListener("touchcancel", handleTouchCancel, false);
-
-  window.addEventListener("DOMMouseScroll", handleMouseWheel, false);
-  window.addEventListener("mousewheel", handleMouseWheel, false);
-
-  document.addEventListener("keydown", handleKeyDown, false);
-  document.addEventListener("keyup", handleKeyUp, false);
-
-  document.addEventListener("keypress", handleKeyPress, false);
-  document.addEventListener("textinput", handleTextInput);
-  document.addEventListener("input", handleTextInput);
+  
+  eman.init(ce);
+  
+  eman.addEventListener("mousemove", handleMouseMove, false);
+  eman.addEventListener("mousedown", handleMouseDown, false);
+  eman.addEventListener("touchstart", handleTouchDown, false);
+  eman.addEventListener("touchmove", handleTouchMove, false);
+  eman.addEventListener("mouseup", handleMouseUp, false);
+  eman.addEventListener("touchend", handleTouchUp, false);
+  eman.addEventListener("touchcancel", handleTouchCancel, false);
+  
+  eman.addEventListener("DOMMouseScroll", handleMouseWheel, false);
+  eman.addEventListener("mousewheel", handleMouseWheel, false);
+  
+  eman.addEventListener("keydown", handleKeyDown, false);
+  eman.addEventListener("keyup", handleKeyUp, false);
+  
+  eman.addEventListener("keypress", handleKeyPress, false);
+  eman.addEventListener("textinput", handleTextInput);
+  eman.addEventListener("input", handleTextInput);
 }
 

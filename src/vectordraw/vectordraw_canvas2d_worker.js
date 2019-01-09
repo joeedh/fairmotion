@@ -73,7 +73,9 @@ let MSG_NEW_JOB = 0,
   MSG_RESULT = 11,
   MSG_ACK = 12,
   MSG_CLEAR_QUEUE = 13,
-  MSG_CANCEL_JOB = 14;
+  MSG_CANCEL_JOB = 14,
+  MSG_WORKER_READY = 15;
+
 
 let state = {
   canvas: undefined,
@@ -92,6 +94,11 @@ function init() {
   //state.canvas = new OffscreenCanvas();
   //state.canvas = document.createElement("canvas");
   //state.g = state.canvas.getContext("2d");
+  postMessage({
+    type : MSG_WORKER_READY,
+    data : 0,
+    msgid : 0
+  });
 }
 
 //commands should be a float32 array

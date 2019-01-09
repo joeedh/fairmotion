@@ -6,6 +6,7 @@
 var _defined_modules = {};
 var _curpath_stack = [];
 var allow_cycles = false;
+var _rootpath_src = "";
 
 var _is_cyclic = false;
 var _post_primary_load = false;
@@ -187,6 +188,13 @@ function _es6_get_basepath() {
 }
 
 function _es6_push_basepath(path) {
+  //hackish way of setting root-level base path
+  
+  if (path.search("core") >= 0) {
+    _rootpath_src = path.slice(0, path.search(/\/src\/core/)) + "/src";
+  }
+  
+  
   _curpath_stack.push(path);
 }
 
@@ -570,7 +578,9 @@ function load_modules() {
   
   //add modules to global namespace, but only for debugging purposes
   for (var k in _defined_modules) {
-    window["_"+k] = _defined_modules[k].exports;
+    let mod = _defined_modules[k];
+    
+    window["_"+mod.name] = mod.exports;
   }
 }
 

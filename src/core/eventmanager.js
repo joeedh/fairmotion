@@ -6,25 +6,33 @@
  * (e.g. in draw), where events are queued
 * */
 
+
 export var types = [
+  "draw",
   "keydown",
   "keyup",
   "keypress",
+  "input",
+  "textinput",
   "resize",
   "context",
   "mousedown",
   "mouseup",
   "mousemove",
+  "DOMMouseScroll",
+  "mousewheel",
   "touchstart",
   "touchcancel",
   "touchdrag",
+  "touchend",
   "touchmove"
 //  "contextmenu",
 //  "selectstart"
 ];
 
-let window_events = new Set(["keydown", "keyup", "keypress", "resize"]);
-let document_events = new Set(["contextmenu", "selectstart"]);
+let window_events = new Set(["keydown", "keyup", "keypress", "resize", "DOMMouseScroll", "mousewheel"]);
+let document_events = new Set(["contextmenu", "selectstart", "input", "textinput"]);
+let custom_events = new Set(["draw"]);
 
 export class EventHandler {
   pushModal(manager) {
@@ -49,7 +57,7 @@ export function copyEvent(event) {
   
   for (let k in event) {
     let v = event[k];
-    let ok = typeof v == "number" || typeof v == "boolean";
+    let ok = typeof v == "number" || typeof v == "boolean" || typeof v == "object";
     ok = ok || k.search("touch") >= 0;
     
     if (ok) {
@@ -57,7 +65,7 @@ export function copyEvent(event) {
     }
   }
   
-  ret = JSON.parse(JSON.stringify(ret));
+  //ret = JSON.parse(JSON.stringify(ret));
   
   ret.stopPropagation = event.stopPropagation.bind(event);
   ret.preventDefault = event.preventDefault.bind(event);
@@ -67,9 +75,11 @@ export function copyEvent(event) {
 
 export class EventManager {
   constructor() {
+    this.ready = false;
     this.queue = [];
     this._freeze = 0;
     this.stacks = {}; //listener stacks
+    this._callbacks = {};
     this.queue = [];
     this.modal_stack = {};
     this.dom = undefined;
@@ -123,8 +133,29 @@ export class EventManager {
     this._freeze++;
   }
   
+  fireEvent(type, data) {
+    if (data === undefined) {
+      data = {};
+    }
+    
+    data.type = type;
+    if (data.stopPropagation === undefined) {
+      data.stopPropagation = () => {};
+    }
+    
+    if (data.preventDefault === undefined) {
+      data.preventDefault = () => {};
+    }
+    
+    return this._callbacks[type](data);
+  }
+  
   unfreeze() {
     this._freeze = Math.max(this._freeze-1, 0);
+    
+    if (!this._freeze) {
+      this._handleQueue();
+    }
   }
   
   _handleQueue() {
@@ -207,8 +238,12 @@ export class EventManager {
       } else {
         dom = this.dom;
       }
+
+      let cb = this._callbacks[type] = makecb(type);
       
-      dom.addEventListener(type, makecb(type));
+      if (!custom_events.has(type)) {
+        dom.addEventListener(type, makecb(type));
+      }
     }
   }
   
@@ -244,6 +279,7 @@ export class EventManager {
     }
     
     this.bindDom();
+    this.ready = true;
   }
 }
 

@@ -1389,10 +1389,10 @@ class FunctionNode (StatementList):
       
     s += self.s(") => ")
     
-    add_block = len(self.children[1:]) > 1 
+    add_block = len(self.children[1:]) != 1
     
     if add_block:
-        s += self.s(t + " {\n")
+        s += self.s(t + " {" + ("\n" if len(self.children) > 1 else ""))
     else:
         t2 = ""
         
@@ -1404,13 +1404,17 @@ class FunctionNode (StatementList):
         cd = self.s(t2) + c.gen_js(tlevel+1 if add_block else 0)
       else:
         cd = c.gen_js(tlevel)
-      
+
+      if not add_block:
+          while cd.endswith("\n") or cd.endswith(" ") or cd.endswith("\t") or cd.endswith(";"):
+            cd = cd[:-1]
+
       #XXX if len(cd.strip()) == 0: continue
       
-      if len(cd.strip()) > 0 and not cd.strip().endswith("}") and not cd.strip().endswith(";"):
+      if add_block and len(cd.strip()) > 0 and not cd.strip().endswith("}") and not cd.strip().endswith(";"):
         cd += self.s(";")
         
-      if not cd.endswith("\n"): 
+      if add_block and not cd.endswith("\n"):
         cd += self.s("\n")
       s += cd
       

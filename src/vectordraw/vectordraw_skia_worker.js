@@ -299,7 +299,7 @@ function doDrawList(commands, datablocks, id) {
           if (Debug) console.log(id, "set blur", blur, clr, strokecolor);
           
           g.shadowColor = "rgba(" + clr[0] + "," + clr[1] + "," + clr[2] + "," + clr[3] + ")";
-          g.shadowBlur = blur;
+          g.shadowBlur = blur*0.5;
         }
         //*/
         
@@ -333,7 +333,7 @@ function doDrawList(commands, datablocks, id) {
   
   self.setTimeout(() => {
     handleQueue();
-  }, 1);
+  }, 0);
 }
 
 //commands should be a float32 array

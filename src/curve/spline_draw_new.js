@@ -370,7 +370,7 @@ export class SplineDrawer {
     
     var len = seg.length;
     
-    let stretch = 1.015;
+    let stretch = 1.0//15;
     
     s = 0;
     for (var i=0; i<steps; i++, s += ds) {

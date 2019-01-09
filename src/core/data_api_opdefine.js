@@ -53,7 +53,7 @@ class QuitFileOp extends ToolOp {
     super.start_modal(ctx);
     this.end_modal(ctx);
   
-    theplatform.app.quit_app();
+    theplatform.app.quitApp();
   }
 }
 

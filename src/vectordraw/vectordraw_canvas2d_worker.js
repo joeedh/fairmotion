@@ -286,10 +286,10 @@ function doDrawList(commands, datablocks, id) {
           
           let clr = fillcolor;
           
-          if (Debug) console.log(id, "set blur", blur, clr, strokecolor);
+          if (Debug) console.log(id, "set blur", blur, clr, fillcolor);
           
-          g.shadowColor = "rgba(" + clr[0] + "," + clr[1] + "," + clr[2] + "," + clr[3] + ")";
-          g.shadowBlur = blur;
+          g.shadowColor = "rgba(" + clr[0] + "," + clr[1] + "," + clr[2] + "," + 1.0 + ")";
+          g.shadowBlur = blur*0.5;
         }
         //*/
         
@@ -316,7 +316,11 @@ function doDrawList(commands, datablocks, id) {
     msgid : id
   }, [result]);
   
-  handleQueue();
+  self.setTimeout(() => {
+    for (let i=0; i<3; i++) {
+      handleQueue();
+    }
+  }, 0);
 }
 
 let MAGIC = 123452;

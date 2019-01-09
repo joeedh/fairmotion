@@ -7,7 +7,9 @@ let MS = MESSAGES;
 let Debug = false;
 let freeze_while_drawing = true;
 
-let MAX_THREADS = 5;
+import * as theplatform from 'theplatform';
+
+let MAX_THREADS = theplatform.app.numberOfCPUs();
 
 //uses web workers
 export class Thread {
@@ -25,6 +27,7 @@ export class Thread {
     this.msgstate = undefined;
     
     worker.onmessage = this.onmessage.bind(this);
+    
     this.callbacks = {};
     this.ownerid_msgid_map = {};
     this.msgid_ownerid_map = {};
@@ -190,6 +193,22 @@ export class ThreadManager {
       
       return;
     }, 150)
+  }
+  
+  setMaxThreads(n) {
+    if (n === undefined || typeof n != "number" || n < 0) {
+      throw new Error("n must be a number");
+    }
+    
+    this.max_threads = n;
+    while (this.threads.length > n) {
+      let thread = this.threads.pop();
+      thread.worker.terminate();
+    }
+    
+    while (this.threads.length < n) {
+      this.spawnThread("vectordraw_skia_worker.js");
+    }
   }
   
   startDrawing() {

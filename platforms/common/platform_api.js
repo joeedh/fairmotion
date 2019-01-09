@@ -6,26 +6,30 @@ export class PlatformAPIBase {
   }
   
   //returns a promise
-  save_file(path_handle, name, databuf, type) {
+  saveFile(path_handle, name, databuf, type) {
+  }
+  
+  numberOfCPUs() {
+    return 2;
   }
   
   //returns a promise
-  save_dialog(name, databuf, type) {
+  saveDialog(name, databuf, type) {
   }
   
   //returns a promise
-  open_dialog(type) {
+  openDialog(type) {
   }
   
   //returns a promise
-  open_last_file() {
+  openLastFile() {
   }
   
   //handler is a function, returns true if exit should be allowed
-  exit_catcher(handler) {
+  exitCatcher(handler) {
   }
   
-  quit_app() {
+  quitApp() {
   
   }
 }

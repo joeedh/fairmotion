@@ -8,26 +8,47 @@ export class ElectronPlatformAPI {
   }
   
   //returns a promise
-  save_file(path_handle, name, databuf, type) {
+  saveFile(path_handle, name, databuf, type) {
+  }
+  
+  numberOfCPUs() {
+    let os = require("os");
+    let cpus = os.cpus();
+    
+    let tot=0;
+    for (let cpu of cpus) {
+      //try to ignore hyperthreading
+      if (cpu.model.toLowerCase().search("intel") >= 0) {
+        tot += 0.5;
+      } else {
+        tot += 1.0;
+      }
+    }
+    
+    tot = ~~Math.ceil(tot);
+    
+    console.log(tot, cpus);
+    
+    return tot;
   }
   
   //returns a promise
-  save_dialog(name, databuf, type) {
+  saveDialog(name, databuf, type) {
   }
   
   //returns a promise
-  open_dialog(type) {
+  openDialog(type) {
   }
   
   //returns a promise
-  open_last_file() {
+  openLastFile() {
   }
   
   //handler is a function, returns true if exit should be allowed
-  exit_catcher(handler) {
+  exitCatcher(handler) {
   }
   
-  quit_app() {
+  quitApp() {
     close();
   }
 }

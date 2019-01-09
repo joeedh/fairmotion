@@ -5,10 +5,10 @@ export class PlatformAPI extends PlatformAPIBase {
     super();
   }
   
-  save_dialog() {
+  saveDialog() {
   }
   
-  open_dialog() {
+  openDialog() {
   }
 }
 
@@ -20,3 +20,5 @@ export var PlatCapab = {
   open_last_file : false,
   exit_catcher   : false
 };
+
+export var app = new PlatformAPI();

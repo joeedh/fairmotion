@@ -29,7 +29,7 @@ export class UIHTMLElement extends UIElement {
     this.element.style["z-index"] = this.zindex;
     this.element.style["position"] = "absolute"
     this.element.style["left"] = this.abspos[0] + "px";
-    this.element.style["top"] = (window.innerHeight-this.abspos[1]-this.size[1]) + "px";
+    this.element.style["top"] = (window.innerHeight-this.abspos[1]-this.size[1]-7) + "px";
     this.element.style["width"] = this.size[0] + "px";
     this.element.style["height"] = this.size[1] + "px";
   }
@@ -190,7 +190,8 @@ export class UIHTMLTextbox extends UIHTMLElement {
   }
   
   select_all() {
-    console.warn("UIHTMLTextBox.select_all(): Implement me!");
+    //console.warn("UIHTMLTextBox.select_all(): Implement me!");
+    this.element.select();
   }
   
   replace_text(text) {

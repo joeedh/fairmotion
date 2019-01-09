@@ -780,8 +780,13 @@ export class UINumBox extends UIHoverHint {
     
     //callback for ending text edit swap;
     function on_end_edit(tbox, cancelled) {
+      //save tbox.text for lalter
+      let text = tbox.text;
+  
+      //for some reason this sets tbox.text to undefined
       tbox.parent.replace(tbox, numbox);
-      numbox.set_val(Unit.parse(tbox.text, numbox.val, unit_error, numbox, numbox.unit));
+      
+      numbox.set_val(Unit.parse(text, numbox.val, unit_error, numbox, numbox.unit));
     }
     
     //swap out with text button
@@ -796,6 +801,10 @@ export class UINumBox extends UIHoverHint {
     
     textbox.begin_edit(event);
     textbox.set_cursor();
+    
+    window.setTimeout(() => {
+      textbox.select_all();
+    }, 0);
     
     textbox.on_end_edit = on_end_edit;  
   }

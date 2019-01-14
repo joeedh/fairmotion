@@ -107,7 +107,7 @@ sources = [
   "src/license/license_electron.js",
   "platforms/Electron/theplatform.js",
   "platforms/html5/platform_html5.js",
-  "platforms/phonegap/platform_phonegap.js",
+  "platforms/PhoneGap/platform_phonegap.js",
   "platforms/chromeapp/platform_chromeapp.js",
   "src/wasm/load_wasm.js",
   "src/wasm/built_wasm.js",

@@ -16,6 +16,10 @@ import {TypedWriter} from 'typedwriter';
 //XXX evil super-old module!
 import * as ajax from 'ajax';
 
+export function isReady() {
+  return wasm.ready;
+}
+
 var mmax = Math.max, mmin = Math.min, mfloor = Math.floor;
 var abs = Math.abs, sqrt=Math.sqrt, sin=Math.sin, cos=Math.cos,
   pow = Math.pow, log=Math.log, acos=Math.acos, asin=Math.asin,
@@ -110,6 +114,7 @@ window._wasm_post_message = function(type, ptr, len) {
 }
 
 export function postToWasm(type : int, msg : ArrayBuffer) {
+  
   if (!(msg instanceof ArrayBuffer)) {
     throw new Error("msg must be array buffer");
   }
@@ -1060,7 +1065,7 @@ Array<constraint> cons, set<SplineVertex> update_verts,
   
   ret.stage1 = function() {
     //console.log("Got reply!", status.data.byteLength, data.byteLength);
-    console.log(status, "<----");
+    //console.log(status, "<----");
     
     //okay, now read back data (from status.data)
     let buf1 = status.data;

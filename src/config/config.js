@@ -5,6 +5,7 @@ export var MANIPULATOR_MOUSEOVER_LIMIT = 25;
 export var ELECTRON_APP_MODE = document.getElementById("ElectronAppMode") !== null;
 export var CHROME_APP_MODE = document.getElementById("GoogleChromeAppMode") !== null;
 export var PHONE_APP_MODE = document.getElementById("PhoneAppMode") !== null;
+export var HTML5_APP_MODE = document.getElementById("Html5AppMode") !== null;
 
 let platform = "web";
 if (ELECTRON_APP_MODE) {
@@ -16,9 +17,12 @@ export var IS_WIN = platform.toLowerCase().search("win") >= 0;
 
 export var ICONPATH = PHONE_APP_MODE ? "img/" : (ELECTRON_APP_MODE ? "./fcontent/" : "fcontent/");
 
+export var IS_NODEJS = ELECTRON_APP_MODE;
+
 export var USE_WASM = true;
 export var USE_NACL = CHROME_APP_MODE;
-export var NO_SERVER = CHROME_APP_MODE || PHONE_APP_MODE || ELECTRON_APP_MODE;
+//old (from all-shape days ~2011) server mode is no longer supported
+export var NO_SERVER = true; //CHROME_APP_MODE || PHONE_APP_MODE || ELECTRON_APP_MODE;
 
 export var USE_HTML5_FILEAPI = NO_SERVER;
 export var DISABLE_SOLVE=false;

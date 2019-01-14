@@ -1,9 +1,13 @@
 "use strict";
 
-let fs = require("fs");
-
 import * as config from 'config';
 import * as fileapi_html5 from 'fileapi_html5';
+
+let fs;
+
+if (config.IS_NODEJS) {
+  fs = require("fs");
+}
 
 export function reset() {
   //do nothing

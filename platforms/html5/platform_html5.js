@@ -5,18 +5,22 @@ export class PlatformAPI extends PlatformAPIBase {
     super();
   }
   
-  save_dialog() {
+  saveDialog() {
   }
   
-  open_dialog() {
+  openDialog() {
+  }
+  
+  numberOfCPUs() {
+    return navigator.hardwareConcurrency;
   }
 }
 
 export var PlatCapab = {
   NativeAPI      : false,
-  save_file      : false,
-  save_dialog    : true,
-  open_dialog    : true,
-  open_last_file : false,
-  exit_catcher   : false
+  saveFile      : false,
+  saveDialog    : true,
+  openDialog    : true,
+  openLastFile : false,
+  exitCatcher   : false
 };

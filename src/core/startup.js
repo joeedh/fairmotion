@@ -52,7 +52,9 @@ class MyLocalStorage_LS {
   
   getAsync(key) {
     return new Promise(function(accept, reject) {
-      accept(localStorage[key]);
+      if (key in localStorage && localStorage[key] !== undefined) {
+        accept(localStorage[key]);
+      }
     });
   }
   

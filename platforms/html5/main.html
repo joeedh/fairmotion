@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script src="node_modules/canvaskit-wasm/bin/canvaskit.js"></script>
+    <script type="application/javascript">
+    </script>
+    <meta charset="utf-8" />
+    <title>Fairmotion</title>
+    <script type="text/javascript" src="fcontent/app.js"></script>
+    <style>
+        body {
+            overflow : hidden;
+        }
+
+        #framerate {
+            position: absolute;
+            z-index: 3;
+            top: 10px;
+            left: 300px;
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 1em;
+            color: white;
+        }
+        #framerate {
+            position: absolute;
+            z-index: 3;
+            top: 10px;
+            left: 300px;
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 1em;
+            color: white;
+        }
+
+        canvas {
+            padding : 0px;
+            margin : 0px;
+        }
+
+        #canvas2d {
+            background: "rgba(255,255,255,0.0)";
+            position: absolute;
+            left: 0px;
+            right: 0px;
+            z-index: 1;
+            padding : 0px;
+            margin : 0px;
+        }
+
+        #canvas2d_work {
+            background: "rgba(255,255,255,1.0)";
+            position: absolute;
+            left: 0px;
+            right: 0px;
+            z-index: 10;
+            padding : 0px;
+            margin : 0px;
+        }
+
+        #fileinput {
+            visibility: visible;
+            position: absolute;
+            left: 700px;
+            right: 400px;
+            z-index: 2;
+        }
+
+    </style>
+</head>
+
+<body onload="start_app()">
+<script type="text/javascript">
+  window.start_app = function start_app() {
+    startup();
+  }
+
+</script>
+
+<div id="Html5AppMode" style="display: hidden"></div>
+
+<div class="app">
+    <canvas id="canvas2d_work"></canvas>
+    <canvas id="canvas2d"></canvas>
+</div>
+</body>
+
+</html>

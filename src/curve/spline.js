@@ -1583,7 +1583,7 @@ export class Spline extends DataBlock {
     this.propagate_draw_flags();
     
     var this2 = this;
-    if (config.USE_WASM) {
+    if (config.USE_WASM && native_api.isReady()) {
       var ret = native_api.do_solve(SplineFlags, this, steps, gk, true);
     
       ret.then(function() {
@@ -1658,6 +1658,7 @@ export class Spline extends DataBlock {
           });
           this2.solving = true;
         }
+        
       }, 10);
       
       return promise;

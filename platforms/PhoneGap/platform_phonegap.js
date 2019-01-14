@@ -14,11 +14,11 @@ export class PlatformAPI extends PlatformAPIBase {
 
 export var PlatCapab = {
   NativeAPI      : false,
-  save_file      : false,
-  save_dialog    : true,
-  open_dialog    : true,
-  open_last_file : false,
-  exit_catcher   : false
+  saveFile      : false,
+  saveDialog    : true,
+  openDialog    : true,
+  openLastFile : false,
+  exitCatcher   : false
 };
 
 export var app = new PlatformAPI();

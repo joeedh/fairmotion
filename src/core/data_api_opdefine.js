@@ -49,6 +49,7 @@ class QuitFileOp extends ToolOp {
     undoflag : UndoFlags.IGNORE_UNDO
   }}
   
+  
   start_modal(ctx) {
     super.start_modal(ctx);
     this.end_modal(ctx);

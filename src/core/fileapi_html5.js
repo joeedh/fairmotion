@@ -74,6 +74,10 @@ export function open_file(callback, thisvar, set_current_file, extslabel, exts) 
     form.appendChild(input);
 }
 
+export function can_access_path(path) {
+    return false;
+}
+
 //XXX refactor me!
 export function save_file(data, save_as_mode, set_current_file, extslabel, exts, error_cb) {
     if (config.CHROME_APP_MODE) {
@@ -89,8 +93,9 @@ export function save_file(data, save_as_mode, set_current_file, extslabel, exts,
     link.href = url;
     
     //XXX evil usage of global
-    var name = g_app_state.filepath.trim();
-    name = name == "" ? "untitled.fmo" : name;
+    var name = g_app_state.filepath;
+    
+    name = name === undefined || name.trim() == "" ? "untitled.fmo" : name;
     
     link.download = name; 
     console.log(link, link.__proto__);
@@ -103,3 +108,6 @@ export function save_file(data, save_as_mode, set_current_file, extslabel, exts,
     console.log("url:", url);
 }
 
+export function save_with_dialog(data, default_path, extslabel, exts, error_cb, success_cb) {
+    return save_file(data, true, false, extslabel, exts, error_cb);
+}

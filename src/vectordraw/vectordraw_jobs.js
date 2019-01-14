@@ -7,9 +7,17 @@ let MS = MESSAGES;
 let Debug = false;
 let freeze_while_drawing = true;
 
-import * as theplatform from 'theplatform';
+import * as platform from 'platform';
+import * as config from 'config';
 
-let MAX_THREADS = theplatform.app.numberOfCPUs();
+let MAX_THREADS = platform.app.numberOfCPUs();
+
+MAX_THREADS = Math.max(MAX_THREADS, 2);
+
+//prioritize fast startup in html5 mode, at least for now
+if (config.USE_HTML5_FILEAPI) {
+  MAX_THREADS = 1;
+}
 
 //uses web workers
 export class Thread {

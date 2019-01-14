@@ -1156,7 +1156,7 @@ def buildall(redo_final=False):
   
 note_timer = time.time()
 
-import win32api
+#import win32api
 
 def buildall_intern(redo_final=False):
   for t in targets:

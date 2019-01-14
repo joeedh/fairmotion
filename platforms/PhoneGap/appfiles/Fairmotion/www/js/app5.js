@@ -1,18 +1,622 @@
-es6_module_define('MaterialEditor', ["UIElement", "UITextBox", "events", "UIWidgets", "config", "ScreenArea", "UIWidgets_special", "struct", "toolops_api", "spline_layerops", "UIFrame", "spline_editops", "UIPack", "UITabPanel", "UICanvas", "mathlib", "spline_types"], function _MaterialEditor_module(_es6_module) {
+es6_module_define('view2d_editor', ["struct"], function _view2d_editor_module(_es6_module) {
+  "use strict";
+  var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
+  var EditModes={VERT: 1, EDGE: 2, FACE: 8, OBJECT: 16, GEOMETRY: 1|2|8}
+  EditModes = _es6_module.add_export('EditModes', EditModes);
+  var SessionFlags={PROP_TRANSFORM: 1}
+  SessionFlags = _es6_module.add_export('SessionFlags', SessionFlags);
+  var $v3d_idgen_M7D9_View2DEditor;
+  var View2DEditor=_ESClass("View2DEditor", [function View2DEditor(name, type, lib_type, keymap) {
+    this.name = name;
+    this._id = $v3d_idgen_M7D9_View2DEditor++;
+    this.type = type;
+    this.lib_type = lib_type;
+    this.keymap = keymap;
+  }, _ESClass.static(function fromSTRUCT(reader) {
+    var obj={}
+    reader(obj);
+    return obj;
+  }), function get_keymaps() {
+    return [this.keymap];
+  }, function on_area_inactive(view2d) {
+  }, function on_inactive(view2d) {
+  }, function on_active(view2d) {
+  }, function data_link(block, getblock, getblock_us) {
+  }, function editor_duplicate(view2d) {
+  }, function render_selbuf(gl, view2d, typemask) {
+  }, function selbuf_changed(typemask) {
+  }, function reset_selbuf_changed(typemask) {
+  }, function add_menu(view2d, mpos) {
+  }, function draw_object(gl, view2d, object, is_active) {
+  }, function build_sidebar1(view2d, panel) {
+  }, function build_bottombar(view2d, col) {
+  }, function build_topbar(view2d, col) {
+  }, function set_selectmode(mode) {
+  }, function do_select(event, mpos, view2d) {
+  }, function tools_menu(ctx, mpos, view2d) {
+  }, function rightclick_menu(event, view2d) {
+  }, function on_mousedown(event) {
+  }, function on_mousemove(event) {
+  }, function on_mouseup(event) {
+  }, function do_alt_select(event, mpos, view2d) {
+  }, function delete_menu(event) {
+  }, function gen_edit_menu() {
+  }]);
+  var $v3d_idgen_M7D9_View2DEditor=1;
+  _es6_module.add_class(View2DEditor);
+  View2DEditor = _es6_module.add_export('View2DEditor', View2DEditor);
+  View2DEditor.STRUCT = "\n  View2DEditor {\n  }\n";
+}, '/home/ec2-user/fairmotion/src/editors/viewport/view2d_editor.js');
+es6_module_define('view2d_object', ["selectmode", "struct", "spline_base"], function _view2d_object_module(_es6_module) {
+  "use strict";
+  var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
+  var SelMask=es6_import_item(_es6_module, 'selectmode', 'SelMask');
+  var SplineTypes=es6_import_item(_es6_module, 'spline_base', 'SplineTypes');
+  var WorkObjectType=_ESClass("WorkObjectType", [function WorkObjectType(ctx, selmode) {
+    this.ctx = ctx;
+    this.selmode = selmode;
+  }, function setSelMode(mode) {
+    this.selmode = mode;
+  }, function findnearest(ctx, p) {
+    throw new Error("implement findnearest!");
+  }, function iterKeys() {
+    throw new Error("want element key iter");
+  }, _ESClass.get(function length() {
+    throw new Error("need length");
+  }), function setCtx(ctx) {
+    this.ctx = ctx;
+    return this;
+  }, function getPos(ei) {
+    throw new Error("want a Vector2 for pos");
+  }, function setPos(ei, pos) {
+    throw new Error("want to set pos");
+  }, function getBounds(ei) {
+    throw new Error("want [Vector2, Vector2], min/max bounds");
+  }, function getSelect(ei) {
+    throw new Error("want boolean");
+  }, function setSelect(ei, state) {
+    throw new Error("want to set selection");
+  }, function getVisible(ei) {
+    return this.getHide(ei);
+  }, function getHide(ei) {
+    throw new Error("want to get hide");
+  }, function setHide(e1, state) {
+    throw new Error("want to set hide");
+  }]);
+  _es6_module.add_class(WorkObjectType);
+  WorkObjectType = _es6_module.add_export('WorkObjectType', WorkObjectType);
+  
+  let pos_tmps=cachering.fromConstructor(Vector3, 64);
+  function concat_iterator(iter1, iter2) {
+    if (iter2===undefined) {
+        return iter1;
+    }
+    else 
+      if (iter1===undefined) {
+        return iter2;
+    }
+    return (function() {
+      var __gen_this2=this;
+      function _generator_iter() {
+        this.scope = {__iter_item_1: undefined, item_1: undefined}
+        this.ret = {done: false, value: undefined}
+        this.state = 1;
+        this.trystack = [];
+        this.next = function() {
+          var ret;
+          var stack=this.trystack;
+          try {
+            ret = this._next();
+          }
+          catch (err) {
+              if (stack.length>0) {
+                  var item=stack.pop(stack.length-1);
+                  this.state = item[0];
+                  this.scope[item[1]] = err;
+                  return this.next();
+              }
+              else {
+                throw err;
+              }
+          }
+          return ret;
+        }
+        this.push_trystack = function(catchstate, catchvar) {
+          this.trystack.push([catchstate, catchvar]);
+        }
+        this.pop_trystack = function() {
+          this.trystack.pop(this.trystack.length-1);
+        }
+        this._next = function() {
+          var $__ret=undefined;
+          var $__state=this.state;
+          var scope=this.scope;
+          while ($__state<15) {
+            switch ($__state) {
+              case 0:
+                break;
+              case 1:
+                scope.__iter_item_1=__get_iter(iter1);
+                scope.item_1;
+                
+                $__state = 2;
+                break;
+              case 2:
+                $__state = (1) ? 3 : 8;
+                break;
+              case 3:
+                scope.__ival_item_3=scope.__iter_item_1.next();
+                
+                $__state = 4;
+                break;
+              case 4:
+                $__state = (scope.__ival_item_3.done) ? 5 : 6;
+                break;
+              case 5:
+                $__state = 8;
+                break;
+                
+                $__state = 6;
+                break;
+              case 6:
+                scope.item_1 = scope.__ival_item_3.value;
+                
+                $__state = 7;
+                break;
+              case 7:
+                $__ret = this.ret;
+                $__ret.value = scope.item_1;
+                
+                $__state = 2;
+                break;
+              case 8:
+                scope.__iter_item_1=__get_iter(iter2);
+                scope.item_1;
+                
+                $__state = 9;
+                break;
+              case 9:
+                $__state = (1) ? 10 : 15;
+                break;
+              case 10:
+                scope.__ival_item_10=scope.__iter_item_1.next();
+                
+                $__state = 11;
+                break;
+              case 11:
+                $__state = (scope.__ival_item_10.done) ? 12 : 13;
+                break;
+              case 12:
+                $__state = 15;
+                break;
+                
+                $__state = 13;
+                break;
+              case 13:
+                scope.item_1 = scope.__ival_item_10.value;
+                
+                $__state = 14;
+                break;
+              case 14:
+                $__ret = this.ret;
+                $__ret.value = scope.item_1;
+                
+                $__state = 9;
+                break;
+              case 15:
+                break;
+              default:
+                console.log("Generator state error");
+                console.trace();
+                break;
+            }
+            if ($__ret!=undefined) {
+                break;
+            }
+          }
+          if ($__ret!=undefined) {
+              this.ret.value = $__ret.value;
+          }
+          else {
+            this.ret.done = true;
+            this.ret.value = undefined;
+          }
+          this.state = $__state;
+          return this.ret;
+        }
+        this[Symbol.iterator] = function() {
+          return this;
+        }
+        this.forEach = function(callback, thisvar) {
+          if (thisvar==undefined)
+            thisvar = self;
+          var _i=0;
+          while (1) {
+            var ret=this.next();
+            if (ret==undefined||ret.done||(ret._ret!=undefined&&ret._ret.done))
+              break;
+            callback.call(thisvar, ret.value);
+            if (_i++>100) {
+                console.log("inf loop", ret);
+                break;
+            }
+          }
+        }
+      }
+      return new _generator_iter();
+    })();
+  }
+  var WorkSpline=_ESClass("WorkSpline", WorkObjectType, [function WorkSpline(ctx, selmode, edit_all_layers) {
+    WorkObjectType.call(this, ctx, selmode);
+    this.edit_all_layers = edit_all_layers;
+  }, function iterKeys() {
+    let ctx=this.ctx;
+    let selmode=this.selmode;
+    let spline=ctx.spline;
+    let iter=undefined;
+    if (selmode&SelMask.VERTEX) {
+        iter = concat_iterator(iter, spline.verts.editable(ctx));
+    }
+    if (selmode&SelMask.HANDLE) {
+        iter = concat_iterator(iter, spline.handles.editable(ctx));
+    }
+    if (selmode&SelMask.SEGMENT) {
+        iter = concat_iterator(iter, spline.segments.editable(ctx));
+    }
+    if (selmode&SelMask.FACE) {
+        iter = concat_iterator(iter, spline.faces.editable(ctx));
+    }
+    return (function() {
+      var __gen_this2=this;
+      function _generator_iter() {
+        this.scope = {__iter_item_1: undefined, item_1: undefined}
+        this.ret = {done: false, value: undefined}
+        this.state = 1;
+        this.trystack = [];
+        this.next = function() {
+          var ret;
+          var stack=this.trystack;
+          try {
+            ret = this._next();
+          }
+          catch (err) {
+              if (stack.length>0) {
+                  var item=stack.pop(stack.length-1);
+                  this.state = item[0];
+                  this.scope[item[1]] = err;
+                  return this.next();
+              }
+              else {
+                throw err;
+              }
+          }
+          return ret;
+        }
+        this.push_trystack = function(catchstate, catchvar) {
+          this.trystack.push([catchstate, catchvar]);
+        }
+        this.pop_trystack = function() {
+          this.trystack.pop(this.trystack.length-1);
+        }
+        this._next = function() {
+          var $__ret=undefined;
+          var $__state=this.state;
+          var scope=this.scope;
+          while ($__state<8) {
+            switch ($__state) {
+              case 0:
+                break;
+              case 1:
+                scope.__iter_item_1=__get_iter(iter);
+                scope.item_1;
+                
+                $__state = 2;
+                break;
+              case 2:
+                $__state = (1) ? 3 : 8;
+                break;
+              case 3:
+                scope.__ival_item_3=scope.__iter_item_1.next();
+                
+                $__state = 4;
+                break;
+              case 4:
+                $__state = (scope.__ival_item_3.done) ? 5 : 6;
+                break;
+              case 5:
+                $__state = 8;
+                break;
+                
+                $__state = 6;
+                break;
+              case 6:
+                scope.item_1 = scope.__ival_item_3.value;
+                
+                $__state = 7;
+                break;
+              case 7:
+                $__ret = this.ret;
+                $__ret.value = scope.item_1.eid;
+                
+                $__state = 2;
+                break;
+              case 8:
+                break;
+              default:
+                console.log("Generator state error");
+                console.trace();
+                break;
+            }
+            if ($__ret!=undefined) {
+                break;
+            }
+          }
+          if ($__ret!=undefined) {
+              this.ret.value = $__ret.value;
+          }
+          else {
+            this.ret.done = true;
+            this.ret.value = undefined;
+          }
+          this.state = $__state;
+          return this.ret;
+        }
+        this[Symbol.iterator] = function() {
+          return this;
+        }
+        this.forEach = function(callback, thisvar) {
+          if (thisvar==undefined)
+            thisvar = self;
+          var _i=0;
+          while (1) {
+            var ret=this.next();
+            if (ret==undefined||ret.done||(ret._ret!=undefined&&ret._ret.done))
+              break;
+            callback.call(thisvar, ret.value);
+            if (_i++>100) {
+                console.log("inf loop", ret);
+                break;
+            }
+          }
+        }
+      }
+      return new _generator_iter();
+    })();
+  }, function iterSelectedKeys() {
+    let ctx=this.ctx;
+    let selmode=this.selmode;
+    let spline=ctx.spline;
+    let iter=undefined;
+    if (selmode&SelMask.VERTEX) {
+        iter = concat_iterator(iter, spline.verts.selected.editable(ctx));
+    }
+    if (selmode&SelMask.HANDLE) {
+        iter = concat_iterator(iter, spline.handles.selected.editable(ctx));
+    }
+    if (selmode&SelMask.SEGMENT) {
+        iter = concat_iterator(iter, spline.segments.selected.editable(ctx));
+    }
+    if (selmode&SelMask.FACE) {
+        iter = concat_iterator(iter, spline.faces.selected.editable(ctx));
+    }
+    return (function() {
+      var __gen_this2=this;
+      function _generator_iter() {
+        this.scope = {__iter_item_1: undefined, item_1: undefined}
+        this.ret = {done: false, value: undefined}
+        this.state = 1;
+        this.trystack = [];
+        this.next = function() {
+          var ret;
+          var stack=this.trystack;
+          try {
+            ret = this._next();
+          }
+          catch (err) {
+              if (stack.length>0) {
+                  var item=stack.pop(stack.length-1);
+                  this.state = item[0];
+                  this.scope[item[1]] = err;
+                  return this.next();
+              }
+              else {
+                throw err;
+              }
+          }
+          return ret;
+        }
+        this.push_trystack = function(catchstate, catchvar) {
+          this.trystack.push([catchstate, catchvar]);
+        }
+        this.pop_trystack = function() {
+          this.trystack.pop(this.trystack.length-1);
+        }
+        this._next = function() {
+          var $__ret=undefined;
+          var $__state=this.state;
+          var scope=this.scope;
+          while ($__state<8) {
+            switch ($__state) {
+              case 0:
+                break;
+              case 1:
+                scope.__iter_item_1=__get_iter(iter);
+                scope.item_1;
+                
+                $__state = 2;
+                break;
+              case 2:
+                $__state = (1) ? 3 : 8;
+                break;
+              case 3:
+                scope.__ival_item_3=scope.__iter_item_1.next();
+                
+                $__state = 4;
+                break;
+              case 4:
+                $__state = (scope.__ival_item_3.done) ? 5 : 6;
+                break;
+              case 5:
+                $__state = 8;
+                break;
+                
+                $__state = 6;
+                break;
+              case 6:
+                scope.item_1 = scope.__ival_item_3.value;
+                
+                $__state = 7;
+                break;
+              case 7:
+                $__ret = this.ret;
+                $__ret.value = scope.item_1.eid;
+                
+                $__state = 2;
+                break;
+              case 8:
+                break;
+              default:
+                console.log("Generator state error");
+                console.trace();
+                break;
+            }
+            if ($__ret!=undefined) {
+                break;
+            }
+          }
+          if ($__ret!=undefined) {
+              this.ret.value = $__ret.value;
+          }
+          else {
+            this.ret.done = true;
+            this.ret.value = undefined;
+          }
+          this.state = $__state;
+          return this.ret;
+        }
+        this[Symbol.iterator] = function() {
+          return this;
+        }
+        this.forEach = function(callback, thisvar) {
+          if (thisvar==undefined)
+            thisvar = self;
+          var _i=0;
+          while (1) {
+            var ret=this.next();
+            if (ret==undefined||ret.done||(ret._ret!=undefined&&ret._ret.done))
+              break;
+            callback.call(thisvar, ret.value);
+            if (_i++>100) {
+                console.log("inf loop", ret);
+                break;
+            }
+          }
+        }
+      }
+      return new _generator_iter();
+    })();
+  }, _ESClass.get(function length() {
+    throw new Error("need length");
+  }), function findnearest(ctx, p) {
+    throw new Error("implement findnearest!");
+  }, function getPos(ei) {
+    let spline=this.ctx.spline;
+    let e=spline.eidmap[ei];
+    if (e===undefined) {
+        console.warn("Bad element index", ei, "for spline", spline);
+        return undefined;
+    }
+    if (e.type==SplineTypes.VERTEX||e.type==SplineTypes.HANDLE) {
+        return e;
+    }
+    else 
+      if (e.type==SplineTypes.SEGMENT) {
+        let p=pos_tmps.next().zero();
+        p.load(e.evaluate(0.5));
+        return p;
+    }
+    else 
+      if (e.type==SplineTypes.FACE) {
+        let p=pos_tmps.next().zero();
+        return p.load(e.aabb[0]).interp(e.aabb[1], 0.5);
+    }
+    else {
+      console.warn("bad element type for", e, "type at error time was:", e.type);
+      throw new Error("bad element type"+e.type);
+    }
+    throw new Error("want a Vector2 for pos");
+  }, function setPos(ei, pos) {
+    let spline=this.ctx.spline;
+    let e=spline.eidmap[ei];
+    if (e===undefined) {
+        console.warn("Bad element index", ei, "for spline", spline);
+        return false;
+    }
+    if (e.type==SplineTypes.VERTEX||e.type==SplineTypes.HANDLE) {
+        e.load(pos);
+        return true;
+    }
+    else 
+      if (e.type==SplineTypes.SEGMENT) {
+        p = this.getPos(ei);
+        p.sub(pos).negate();
+        e.v1.add(p);
+        e.v2.add(p);
+        return true;
+    }
+    else 
+      if (e.type==SplineTypes.FACE) {
+        p = this.getPos(ei);
+        p.sub(pos).negate();
+        var __iter_v=__get_iter(e.verts);
+        var v;
+        while (1) {
+          var __ival_v=__iter_v.next();
+          if (__ival_v.done) {
+              break;
+          }
+          v = __ival_v.value;
+          v.add(p);
+        }
+        return true;
+    }
+    else {
+      console.warn("bad element type for", e, "type at error time was:", e.type);
+      throw new Error("bad element type"+e.type);
+    }
+    return false;
+  }, function getBounds(ei) {
+    throw new Error("want [Vector2, Vector2], min/max bounds");
+  }, function getSelect(ei) {
+    throw new Error("want boolean");
+  }, function setSelect(ei, state) {
+    throw new Error("want to set selection");
+  }, function getVisible(ei) {
+    throw new Error("implement me");
+  }, function getHide(ei) {
+    throw new Error("want to hide");
+  }, function setHide(e1, state) {
+    throw new Error("want to set hide");
+  }]);
+  _es6_module.add_class(WorkSpline);
+  WorkSpline = _es6_module.add_export('WorkSpline', WorkSpline);
+  
+}, '/home/ec2-user/fairmotion/src/editors/viewport/view2d_object.js');
+es6_module_define('MaterialEditor', ["struct", "UIFrame", "mathlib", "UIPack", "UITextBox", "spline_layerops", "UIWidgets_special", "config", "UITabPanel", "../viewport/events", "toolops_api", "spline_types", "ScreenArea", "UIWidgets", "UIElement", "UICanvas", "spline_editops"], function _MaterialEditor_module(_es6_module) {
   var gen_editor_switcher=es6_import_item(_es6_module, 'UIWidgets_special', 'gen_editor_switcher');
   var ENABLE_MULTIRES=es6_import_item(_es6_module, 'config', 'ENABLE_MULTIRES');
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
   var UICanvas=es6_import_item(_es6_module, 'UICanvas', 'UICanvas');
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
   var PackFlags=es6_import_item(_es6_module, 'UIElement', 'PackFlags');
-  var KeyMap=es6_import_item(_es6_module, 'events', 'KeyMap');
-  var ToolKeyHandler=es6_import_item(_es6_module, 'events', 'ToolKeyHandler');
-  var FuncKeyHandler=es6_import_item(_es6_module, 'events', 'FuncKeyHandler');
-  var KeyHandler=es6_import_item(_es6_module, 'events', 'KeyHandler');
-  var charmap=es6_import_item(_es6_module, 'events', 'charmap');
-  var TouchEventManager=es6_import_item(_es6_module, 'events', 'TouchEventManager');
-  var EventHandler=es6_import_item(_es6_module, 'events', 'EventHandler');
-  var VelocityPan=es6_import_item(_es6_module, 'events', 'VelocityPan');
+  var KeyMap=es6_import_item(_es6_module, '../viewport/events', 'KeyMap');
+  var ToolKeyHandler=es6_import_item(_es6_module, '../viewport/events', 'ToolKeyHandler');
+  var FuncKeyHandler=es6_import_item(_es6_module, '../viewport/events', 'FuncKeyHandler');
+  var KeyHandler=es6_import_item(_es6_module, '../viewport/events', 'KeyHandler');
+  var charmap=es6_import_item(_es6_module, '../viewport/events', 'charmap');
+  var TouchEventManager=es6_import_item(_es6_module, '../viewport/events', 'TouchEventManager');
+  var EventHandler=es6_import_item(_es6_module, '../viewport/events', 'EventHandler');
+  var VelocityPan=es6_import_item(_es6_module, '../viewport/events', 'VelocityPan');
   var UIFlags=es6_import_item(_es6_module, 'UIElement', 'UIFlags');
   var PackFlags=es6_import_item(_es6_module, 'UIElement', 'PackFlags');
   var CanvasFlags=es6_import_item(_es6_module, 'UIElement', 'CanvasFlags');
@@ -354,18 +958,18 @@ es6_module_define('MaterialEditor', ["UIElement", "UITextBox", "events", "UIWidg
   MaterialEditor.STRUCT = STRUCT.inherit(MaterialEditor, Area)+"\n  }\n";
   MaterialEditor.uiname = "Properties";
   MaterialEditor.debug_only = false;
-}, '/dev/fairmotion/src/editors/material/MaterialEditor.js');
-es6_module_define('DopeSheetEditor', ["spline_element_array", "toolops_api", "spline_base", "UITabPanel", "../../ui/UISplitFrame", "animdata", "ScreenArea", "UIPack", "spline_types", "spline_layerops", "UIFrame", "struct", "events", "mathlib", "UIElement", "UISplitFrame", "UIWidgets_special", "dopesheet_phantom", "spline", "dopesheet_ops", "spline_editops", "UIWidgets", "UITextBox"], function _DopeSheetEditor_module(_es6_module) {
+}, '/home/ec2-user/fairmotion/src/editors/material/MaterialEditor.js');
+es6_module_define('DopeSheetEditor', ["UITabPanel", "dopesheet_phantom", "dopesheet_ops", "UIWidgets", "UITextBox", "spline_element_array", "UISplitFrame", "../../ui/UISplitFrame", "../viewport/events", "UIPack", "spline", "spline_types", "animdata", "spline_base", "UIElement", "spline_editops", "mathlib", "spline_layerops", "ScreenArea", "UIFrame", "struct", "toolops_api", "UIWidgets_special"], function _DopeSheetEditor_module(_es6_module) {
   "use strict";
   var aabb_isect_2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_2d');
   var gen_editor_switcher=es6_import_item(_es6_module, 'UIWidgets_special', 'gen_editor_switcher');
-  var KeyMap=es6_import_item(_es6_module, 'events', 'KeyMap');
-  var ToolKeyHandler=es6_import_item(_es6_module, 'events', 'ToolKeyHandler');
-  var FuncKeyHandler=es6_import_item(_es6_module, 'events', 'FuncKeyHandler');
-  var KeyHandler=es6_import_item(_es6_module, 'events', 'KeyHandler');
-  var charmap=es6_import_item(_es6_module, 'events', 'charmap');
-  var TouchEventManager=es6_import_item(_es6_module, 'events', 'TouchEventManager');
-  var EventHandler=es6_import_item(_es6_module, 'events', 'EventHandler');
+  var KeyMap=es6_import_item(_es6_module, '../viewport/events', 'KeyMap');
+  var ToolKeyHandler=es6_import_item(_es6_module, '../viewport/events', 'ToolKeyHandler');
+  var FuncKeyHandler=es6_import_item(_es6_module, '../viewport/events', 'FuncKeyHandler');
+  var KeyHandler=es6_import_item(_es6_module, '../viewport/events', 'KeyHandler');
+  var charmap=es6_import_item(_es6_module, '../viewport/events', 'charmap');
+  var TouchEventManager=es6_import_item(_es6_module, '../viewport/events', 'TouchEventManager');
+  var EventHandler=es6_import_item(_es6_module, '../viewport/events', 'EventHandler');
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
   var phantom=es6_import_item(_es6_module, 'dopesheet_phantom', 'phantom');
   var KeyTypes=es6_import_item(_es6_module, 'dopesheet_phantom', 'KeyTypes');
@@ -2404,8 +3008,8 @@ es6_module_define('DopeSheetEditor', ["spline_element_array", "toolops_api", "sp
   DopeSheetEditor.STRUCT = STRUCT.inherit(DopeSheetEditor, Area)+"\n    pan             : vec2 | obj.velpan.pan;\n    zoom            : float;\n    collapsed_map   : array(string) | obj._tree_collapsed_map();\n    selected_only   : int;\n    pinned_ids     : array(int) | obj.pinned_ids != undefined ? obj.pinned_ids : [];\n}\n";
   DopeSheetEditor.uiname = "Dopesheet";
   DopeSheetEditor.debug_only = false;
-}, '/dev/fairmotion/src/editors/dopesheet/DopeSheetEditor.js');
-es6_module_define('dopesheet_phantom', ["spline_types", "animdata"], function _dopesheet_phantom_module(_es6_module) {
+}, '/home/ec2-user/fairmotion/src/editors/dopesheet/DopeSheetEditor.js');
+es6_module_define('dopesheet_phantom', ["animdata", "spline_types"], function _dopesheet_phantom_module(_es6_module) {
   "use strict";
   var SplineTypes=es6_import_item(_es6_module, 'spline_types', 'SplineTypes');
   var SplineFlags=es6_import_item(_es6_module, 'spline_types', 'SplineFlags');
@@ -2557,8 +3161,8 @@ es6_module_define('dopesheet_phantom', ["spline_types", "animdata"], function _d
     }
   }
   delete_key = _es6_module.add_export('delete_key', delete_key);
-}, '/dev/fairmotion/src/editors/dopesheet/dopesheet_phantom.js');
-es6_module_define('dopesheet_transdata', ["mathlib", "transdata", "animdata"], function _dopesheet_transdata_module(_es6_module) {
+}, '/home/ec2-user/fairmotion/src/editors/dopesheet/dopesheet_phantom.js');
+es6_module_define('dopesheet_transdata', ["mathlib", "animdata", "transdata"], function _dopesheet_transdata_module(_es6_module) {
   "use strict";
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
   var TransDataItem=es6_import_item(_es6_module, 'transdata', 'TransDataItem');
@@ -2630,8 +3234,8 @@ es6_module_define('dopesheet_transdata', ["mathlib", "transdata", "animdata"], f
   }]);
   _es6_module.add_class(TransDopeSheetType);
   TransDopeSheetType = _es6_module.add_export('TransDopeSheetType', TransDopeSheetType);
-}, '/dev/fairmotion/src/editors/dopesheet/dopesheet_transdata.js');
-es6_module_define('dopesheet_ops', ["toolops_api", "toolprops", "dopesheet_phantom", "animdata"], function _dopesheet_ops_module(_es6_module) {
+}, '/home/ec2-user/fairmotion/src/editors/dopesheet/dopesheet_transdata.js');
+es6_module_define('dopesheet_ops', ["dopesheet_phantom", "animdata", "toolops_api", "toolprops"], function _dopesheet_ops_module(_es6_module) {
   "use strict";
   var CollectionProperty=es6_import_item(_es6_module, 'toolprops', 'CollectionProperty');
   var IntProperty=es6_import_item(_es6_module, 'toolprops', 'IntProperty');
@@ -3174,22 +3778,22 @@ es6_module_define('dopesheet_ops', ["toolops_api", "toolprops", "dopesheet_phant
   _es6_module.add_class(DeleteKeyOp);
   DeleteKeyOp = _es6_module.add_export('DeleteKeyOp', DeleteKeyOp);
   
-}, '/dev/fairmotion/src/editors/dopesheet/dopesheet_ops.js');
+}, '/home/ec2-user/fairmotion/src/editors/dopesheet/dopesheet_ops.js');
 es6_module_define('editcurve_ops', [], function _editcurve_ops_module(_es6_module) {
-}, '/dev/fairmotion/src/editors/curve/editcurve_ops.js');
+}, '/home/ec2-user/fairmotion/src/editors/curve/editcurve_ops.js');
 es6_module_define('editcurve_util', [], function _editcurve_util_module(_es6_module) {
-}, '/dev/fairmotion/src/editors/curve/editcurve_util.js');
-es6_module_define('CurveEditor', ["spline_layerops", "UIWidgets_special", "spline_editops", "UIPack", "spline", "mathlib", "../dopesheet/DopeSheetEditor", "UITextBox", "../../ui/UISplitFrame", "UIWidgets", "dopesheet_phantom", "UIElement", "spline_base", "spline_element_array", "ScreenArea", "spline_types", "toolops_api", "UISplitFrame", "UIFrame", "events", "UITabPanel", "struct", "dopesheet_ops", "animdata"], function _CurveEditor_module(_es6_module) {
+}, '/home/ec2-user/fairmotion/src/editors/curve/editcurve_util.js');
+es6_module_define('CurveEditor', ["spline_layerops", "UITextBox", "toolops_api", "UIWidgets", "UISplitFrame", "struct", "UITabPanel", "../../ui/UISplitFrame", "ScreenArea", "dopesheet_phantom", "UIFrame", "../dopesheet/DopeSheetEditor", "spline", "../viewport/events", "spline_editops", "animdata", "spline_base", "dopesheet_ops", "UIWidgets_special", "spline_types", "UIPack", "mathlib", "UIElement", "spline_element_array"], function _CurveEditor_module(_es6_module) {
   "use strict";
   var aabb_isect_2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_2d');
   var gen_editor_switcher=es6_import_item(_es6_module, 'UIWidgets_special', 'gen_editor_switcher');
-  var KeyMap=es6_import_item(_es6_module, 'events', 'KeyMap');
-  var ToolKeyHandler=es6_import_item(_es6_module, 'events', 'ToolKeyHandler');
-  var FuncKeyHandler=es6_import_item(_es6_module, 'events', 'FuncKeyHandler');
-  var KeyHandler=es6_import_item(_es6_module, 'events', 'KeyHandler');
-  var charmap=es6_import_item(_es6_module, 'events', 'charmap');
-  var TouchEventManager=es6_import_item(_es6_module, 'events', 'TouchEventManager');
-  var EventHandler=es6_import_item(_es6_module, 'events', 'EventHandler');
+  var KeyMap=es6_import_item(_es6_module, '../viewport/events', 'KeyMap');
+  var ToolKeyHandler=es6_import_item(_es6_module, '../viewport/events', 'ToolKeyHandler');
+  var FuncKeyHandler=es6_import_item(_es6_module, '../viewport/events', 'FuncKeyHandler');
+  var KeyHandler=es6_import_item(_es6_module, '../viewport/events', 'KeyHandler');
+  var charmap=es6_import_item(_es6_module, '../viewport/events', 'charmap');
+  var TouchEventManager=es6_import_item(_es6_module, '../viewport/events', 'TouchEventManager');
+  var EventHandler=es6_import_item(_es6_module, '../viewport/events', 'EventHandler');
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
   var phantom=es6_import_item(_es6_module, 'dopesheet_phantom', 'phantom');
   var KeyTypes=es6_import_item(_es6_module, 'dopesheet_phantom', 'KeyTypes');
@@ -3302,8 +3906,8 @@ es6_module_define('CurveEditor', ["spline_layerops", "UIWidgets_special", "splin
   CurveEditor = _es6_module.add_export('CurveEditor', CurveEditor);
   CurveEditor.STRUCT = STRUCT.inherit(CurveEditor, Area)+"\n    pan             : vec2 | obj.velpan.pan;\n    zoom            : float;\n    selected_only   : int;\n    pinned_ids     : array(int) | obj.pinned_ids != undefined ? obj.pinned_ids : [];\n}\n";
   CurveEditor.uiname = "Curve Editor";
-}, '/dev/fairmotion/src/editors/curve/CurveEditor.js');
-es6_module_define('notifications', ["UIWidgets", "UIPack", "UITabPanel", "UIElement", "UIWidgets_special", "toolops_api", "ScreenArea", "UIFrame", "UITextBox"], function _notifications_module(_es6_module) {
+}, '/home/ec2-user/fairmotion/src/editors/curve/CurveEditor.js');
+es6_module_define('notifications', ["UIElement", "UIFrame", "UITextBox", "UIPack", "toolops_api", "UITabPanel", "UIWidgets", "UIWidgets_special", "ScreenArea"], function _notifications_module(_es6_module) {
   var UIElement=es6_import_item(_es6_module, 'UIElement', 'UIElement');
   var UIFlags=es6_import_item(_es6_module, 'UIElement', 'UIFlags');
   var PackFlags=es6_import_item(_es6_module, 'UIElement', 'PackFlags');
@@ -3605,7 +4209,7 @@ es6_module_define('notifications', ["UIWidgets", "UIPack", "UITabPanel", "UIElem
   }
   var ScreenArea=es6_import_item(_es6_module, 'ScreenArea', 'ScreenArea');
   var Area=es6_import_item(_es6_module, 'ScreenArea', 'Area');
-}, '/dev/fairmotion/src/ui/notifications.js');
+}, '/home/ec2-user/fairmotion/src/ui/notifications.js');
 es6_module_define('manipulator', ["mathlib", "config"], function _manipulator_module(_es6_module) {
   "use strict";
   var dist_to_line_v2=es6_import_item(_es6_module, 'mathlib', 'dist_to_line_v2');
@@ -3639,8 +4243,8 @@ es6_module_define('manipulator', ["mathlib", "config"], function _manipulator_mo
   _es6_module.add_class(HandleBase);
   HandleBase = _es6_module.add_export('HandleBase', HandleBase);
   HandleBase;
-  var $min_KV8m_update;
-  var $max_jaKx_update;
+  var $min_fo7m_update;
+  var $max_KXM__update;
   var ManipHandle=_ESClass("ManipHandle", HandleBase, [function ManipHandle(v1, v2, id, shape, view2d, clr) {
     HandleBase.call(this);
     this.id = id;
@@ -3681,17 +4285,17 @@ es6_module_define('manipulator', ["mathlib", "config"], function _manipulator_mo
     this._max[1] = maxy;
   }, function update() {
     var p=this._redraw_pad;
-    $min_KV8m_update[0] = this._min[0]-p;
-    $min_KV8m_update[1] = this._min[1]-p;
-    $max_jaKx_update[0] = this._max[0]+p;
-    $max_jaKx_update[1] = this._max[1]+p;
-    window.redraw_viewport($min_KV8m_update, $max_jaKx_update);
+    $min_fo7m_update[0] = this._min[0]-p;
+    $min_fo7m_update[1] = this._min[1]-p;
+    $max_KXM__update[0] = this._max[0]+p;
+    $max_KXM__update[1] = this._max[1]+p;
+    window.redraw_viewport($min_fo7m_update, $max_KXM__update);
     this.update_aabb();
-    $min_KV8m_update[0] = this._min[0]-p;
-    $min_KV8m_update[1] = this._min[1]-p;
-    $max_jaKx_update[0] = this._max[0]+p;
-    $max_jaKx_update[1] = this._max[1]+p;
-    window.redraw_viewport($min_KV8m_update, $max_jaKx_update);
+    $min_fo7m_update[0] = this._min[0]-p;
+    $min_fo7m_update[1] = this._min[1]-p;
+    $max_KXM__update[0] = this._max[0]+p;
+    $max_KXM__update[1] = this._max[1]+p;
+    window.redraw_viewport($min_fo7m_update, $max_KXM__update);
   }, _ESClass.symbol(Symbol.keystr, function keystr() {
     return "MH"+this._hid.toString;
   }), function get_render_rects(ctx, canvas, g) {
@@ -3748,12 +4352,12 @@ es6_module_define('manipulator', ["mathlib", "config"], function _manipulator_mo
       g.stroke();
     }
   }]);
-  var $min_KV8m_update=new Vector2();
-  var $max_jaKx_update=new Vector2();
+  var $min_fo7m_update=new Vector2();
+  var $max_KXM__update=new Vector2();
   _es6_module.add_class(ManipHandle);
   ManipHandle = _es6_module.add_export('ManipHandle', ManipHandle);
-  var $min_pZXt_update;
-  var $max_tO4l_update;
+  var $min_Iu33_update;
+  var $max_gT6x_update;
   var ManipCircle=_ESClass("ManipCircle", HandleBase, [function ManipCircle(p, r, id, view2d, clr) {
     HandleBase.call(this);
     this.id = id;
@@ -3789,17 +4393,17 @@ es6_module_define('manipulator', ["mathlib", "config"], function _manipulator_mo
     this._max[1] = this.parent.co[1]+this.p[1]+Math.sqrt(2)*this.r;
   }, function update() {
     var p=this._redraw_pad;
-    $min_pZXt_update[0] = this._min[0]-p;
-    $min_pZXt_update[1] = this._min[1]-p;
-    $max_tO4l_update[0] = this._max[0]+p;
-    $max_tO4l_update[1] = this._max[1]+p;
-    window.redraw_viewport($min_pZXt_update, $max_tO4l_update);
+    $min_Iu33_update[0] = this._min[0]-p;
+    $min_Iu33_update[1] = this._min[1]-p;
+    $max_gT6x_update[0] = this._max[0]+p;
+    $max_gT6x_update[1] = this._max[1]+p;
+    window.redraw_viewport($min_Iu33_update, $max_gT6x_update);
     this.update_aabb();
-    $min_pZXt_update[0] = this._min[0]-p;
-    $min_pZXt_update[1] = this._min[1]-p;
-    $max_tO4l_update[0] = this._max[0]+p;
-    $max_tO4l_update[1] = this._max[1]+p;
-    window.redraw_viewport($min_pZXt_update, $max_tO4l_update);
+    $min_Iu33_update[0] = this._min[0]-p;
+    $min_Iu33_update[1] = this._min[1]-p;
+    $max_gT6x_update[0] = this._max[0]+p;
+    $max_gT6x_update[1] = this._max[1]+p;
+    window.redraw_viewport($min_Iu33_update, $max_gT6x_update);
   }, _ESClass.symbol(Symbol.keystr, function keystr() {
     return "MC"+this._hid.toString;
   }), function get_render_rects(ctx, canvas, g) {
@@ -3817,8 +4421,8 @@ es6_module_define('manipulator', ["mathlib", "config"], function _manipulator_mo
     g.closePath();
     g.stroke();
   }]);
-  var $min_pZXt_update=new Vector2();
-  var $max_tO4l_update=new Vector2();
+  var $min_Iu33_update=new Vector2();
+  var $max_gT6x_update=new Vector2();
   _es6_module.add_class(ManipCircle);
   ManipCircle = _es6_module.add_export('ManipCircle', ManipCircle);
   var _mh_idgen_2=1;
@@ -3980,7 +4584,7 @@ es6_module_define('manipulator', ["mathlib", "config"], function _manipulator_mo
   }]);
   _es6_module.add_class(Manipulator);
   Manipulator = _es6_module.add_export('Manipulator', Manipulator);
-  var $nil_kP1__get_render_rects;
+  var $nil_0RXN_get_render_rects;
   var ManipulatorManager=_ESClass("ManipulatorManager", [function ManipulatorManager(view2d) {
     this.view2d = view2d;
     this.stack = [];
@@ -3994,7 +4598,7 @@ es6_module_define('manipulator', ["mathlib", "config"], function _manipulator_mo
         return this.active.get_render_rects(ctx, canvas, g);
     }
     else {
-      return $nil_kP1__get_render_rects;
+      return $nil_0RXN_get_render_rects;
     }
   }, function remove(mn) {
     if (mn==this.active) {
@@ -4068,11 +4672,11 @@ es6_module_define('manipulator', ["mathlib", "config"], function _manipulator_mo
       this.push(mn);
     return mn;
   }]);
-  var $nil_kP1__get_render_rects=[];
+  var $nil_0RXN_get_render_rects=[];
   _es6_module.add_class(ManipulatorManager);
   ManipulatorManager = _es6_module.add_export('ManipulatorManager', ManipulatorManager);
-}, '/dev/fairmotion/src/editors/viewport/manipulator.js');
-es6_module_define('view2d', ["view2d_spline_ops", "UITabPanel", "imageblock", "view2d_editor", "video", "UICanvas", "notifications", "spline_draw", "UISplitFrame", "UIWidgets_special2", "struct", "UIPack", "events", "UIWidgets_special", "toolops_api", "selectmode", "ScreenArea", "RadialMenu", "manipulator", "mathlib", "UIMenu", "spline_editops", "UIWidgets", "spline_createops", "UIElement"], function _view2d_module(_es6_module) {
+}, '/home/ec2-user/fairmotion/src/editors/viewport/manipulator.js');
+es6_module_define('view2d', ["spline_createops", "selectmode", "notifications", "UICanvas", "imageblock", "struct", "UITabPanel", "view2d_editor", "UIMenu", "mathlib", "./events", "toolops_api", "spline_draw", "view2d_spline_ops", "ScreenArea", "video", "UIWidgets_special2", "RadialMenu", "manipulator", "UIElement", "spline_editops", "UIWidgets", "UIPack", "UISplitFrame", "UIWidgets_special"], function _view2d_module(_es6_module) {
   "use strict";
   var toolop_menu=es6_import_item(_es6_module, 'UIMenu', 'toolop_menu');
   var uimenu=es6_import(_es6_module, 'UIMenu');
@@ -4099,13 +4703,13 @@ es6_module_define('view2d', ["view2d_spline_ops", "UITabPanel", "imageblock", "v
   var HandleShapes=es6_import_item(_es6_module, 'manipulator', 'HandleShapes');
   var ManipFlags=es6_import_item(_es6_module, 'manipulator', 'ManipFlags');
   var ManipHandle=es6_import_item(_es6_module, 'manipulator', 'ManipHandle');
-  var KeyMap=es6_import_item(_es6_module, 'events', 'KeyMap');
-  var ToolKeyHandler=es6_import_item(_es6_module, 'events', 'ToolKeyHandler');
-  var FuncKeyHandler=es6_import_item(_es6_module, 'events', 'FuncKeyHandler');
-  var KeyHandler=es6_import_item(_es6_module, 'events', 'KeyHandler');
-  var charmap=es6_import_item(_es6_module, 'events', 'charmap');
-  var TouchEventManager=es6_import_item(_es6_module, 'events', 'TouchEventManager');
-  var EventHandler=es6_import_item(_es6_module, 'events', 'EventHandler');
+  var KeyMap=es6_import_item(_es6_module, './events', 'KeyMap');
+  var ToolKeyHandler=es6_import_item(_es6_module, './events', 'ToolKeyHandler');
+  var FuncKeyHandler=es6_import_item(_es6_module, './events', 'FuncKeyHandler');
+  var KeyHandler=es6_import_item(_es6_module, './events', 'KeyHandler');
+  var charmap=es6_import_item(_es6_module, './events', 'charmap');
+  var TouchEventManager=es6_import_item(_es6_module, './events', 'TouchEventManager');
+  var EventHandler=es6_import_item(_es6_module, './events', 'EventHandler');
   var view2d_editor=es6_import(_es6_module, 'view2d_editor');
   var EditModes=view2d_editor.EditModes;
   EditModes = _es6_module.add_export('EditModes', EditModes);
@@ -4199,12 +4803,12 @@ es6_module_define('view2d', ["view2d_spline_ops", "UITabPanel", "imageblock", "v
   var ImageUser=es6_import_item(_es6_module, 'imageblock', 'ImageUser');
   var canvas_owners=0;
   var _v3d_id=0;
-  var $min_H0H5_make_drawline;
-  var $min_1nbg_kill_drawline;
-  var $_co_U2xG_project;
-  var $_co_Fo0T_unproject;
-  var $max_qFpR_make_drawline;
-  var $max__wSq_kill_drawline;
+  var $min_1kmM_make_drawline;
+  var $min_EGoP_kill_drawline;
+  var $_co_fH_Y_project;
+  var $_co_qMFE_unproject;
+  var $max_WaQA_make_drawline;
+  var $max_DcL6_kill_drawline;
   var View2DHandler=_ESClass("View2DHandler", Area, [function View2DHandler(x, y, width, height) {
     Area.call(this, View2DHandler.name, "3D Viewport", new Context(), [x, y], [width, height]);
     this.edit_all_layers = false;
@@ -4355,21 +4959,21 @@ es6_module_define('view2d', ["view2d_spline_ops", "UITabPanel", "imageblock", "v
     var dl=new drawline(v1, v2, group, color, width);
     drawlines.push(dl);
     var pad=5;
-    $min_H0H5_make_drawline[0] = Math.min(v1[0], v2[0])-pad;
-    $min_H0H5_make_drawline[1] = Math.min(v1[1], v2[1])-pad;
-    $max_qFpR_make_drawline[0] = Math.max(v1[0], v2[0])+pad;
-    $max_qFpR_make_drawline[1] = Math.max(v1[1], v2[1])+pad;
-    redraw_viewport($min_H0H5_make_drawline, $max_qFpR_make_drawline);
+    $min_1kmM_make_drawline[0] = Math.min(v1[0], v2[0])-pad;
+    $min_1kmM_make_drawline[1] = Math.min(v1[1], v2[1])-pad;
+    $max_WaQA_make_drawline[0] = Math.max(v1[0], v2[0])+pad;
+    $max_WaQA_make_drawline[1] = Math.max(v1[1], v2[1])+pad;
+    redraw_viewport($min_1kmM_make_drawline, $max_WaQA_make_drawline);
     return dl;
   }, function kill_drawline(dl) {
     var drawlines=this._get_dl_group(dl.group);
     var pad=5;
     var v1=dl.v1, v2=dl.v2;
-    $min_1nbg_kill_drawline[0] = Math.min(v1[0], v2[0])-pad;
-    $min_1nbg_kill_drawline[1] = Math.min(v1[1], v2[1])-pad;
-    $max__wSq_kill_drawline[0] = Math.max(v1[0], v2[0])+pad;
-    $max__wSq_kill_drawline[1] = Math.max(v1[1], v2[1])+pad;
-    redraw_viewport($min_1nbg_kill_drawline, $max__wSq_kill_drawline);
+    $min_EGoP_kill_drawline[0] = Math.min(v1[0], v2[0])-pad;
+    $min_EGoP_kill_drawline[1] = Math.min(v1[1], v2[1])-pad;
+    $max_DcL6_kill_drawline[0] = Math.max(v1[0], v2[0])+pad;
+    $max_DcL6_kill_drawline[1] = Math.max(v1[1], v2[1])+pad;
+    redraw_viewport($min_EGoP_kill_drawline, $max_DcL6_kill_drawline);
     drawlines.remove(dl);
   }, function reset_drawlines(group) {
     if (group==undefined) {
@@ -4431,16 +5035,16 @@ es6_module_define('view2d', ["view2d_spline_ops", "UITabPanel", "imageblock", "v
     render.multiply(cam);
     this.irendermat.load(this.rendermat).invert();
   }, function project(co) {
-    $_co_U2xG_project.load(co);
-    $_co_U2xG_project[2] = 0.0;
-    $_co_U2xG_project.multVecMatrix(this.rendermat);
-    co[0] = $_co_U2xG_project[0], co[1] = $_co_U2xG_project[1];
+    $_co_fH_Y_project.load(co);
+    $_co_fH_Y_project[2] = 0.0;
+    $_co_fH_Y_project.multVecMatrix(this.rendermat);
+    co[0] = $_co_fH_Y_project[0], co[1] = $_co_fH_Y_project[1];
     return co;
   }, function unproject(co) {
-    $_co_Fo0T_unproject.load(co);
-    $_co_Fo0T_unproject[2] = 0.0;
-    $_co_Fo0T_unproject.multVecMatrix(this.irendermat);
-    co[0] = $_co_Fo0T_unproject[0], co[1] = $_co_Fo0T_unproject[1];
+    $_co_qMFE_unproject.load(co);
+    $_co_qMFE_unproject[2] = 0.0;
+    $_co_qMFE_unproject.multVecMatrix(this.irendermat);
+    co[0] = $_co_qMFE_unproject[0], co[1] = $_co_qMFE_unproject[1];
     return co;
   }, function do_select(event, mpos, view2d, do_multiple) {
     if (do_multiple==undefined) {
@@ -5014,33 +5618,33 @@ es6_module_define('view2d', ["view2d_spline_ops", "UITabPanel", "imageblock", "v
     this.editor.set_selectmode(mode);
     redraw_viewport();
   }]);
-  var $min_H0H5_make_drawline=[0, 0];
-  var $min_1nbg_kill_drawline=[0, 0];
-  var $_co_U2xG_project=new Vector3();
-  var $_co_Fo0T_unproject=new Vector3();
-  var $max_qFpR_make_drawline=[0, 0];
-  var $max__wSq_kill_drawline=[0, 0];
+  var $min_1kmM_make_drawline=[0, 0];
+  var $min_EGoP_kill_drawline=[0, 0];
+  var $_co_fH_Y_project=new Vector3();
+  var $_co_qMFE_unproject=new Vector3();
+  var $max_WaQA_make_drawline=[0, 0];
+  var $max_DcL6_kill_drawline=[0, 0];
   _es6_module.add_class(View2DHandler);
   View2DHandler = _es6_module.add_export('View2DHandler', View2DHandler);
   View2DHandler.STRUCT = STRUCT.inherit(View2DHandler, Area)+"\n    _id             : int;\n    _selectmode     : int;\n    rendermat       : mat4;\n    irendermat      : mat4;\n    cameramat       : mat4;\n    only_render     : int;\n    draw_anim_paths : int;\n    draw_normals    : int;\n    editors         : array(abstract(View2DEditor));\n    editor          : int | obj.editors.indexOf(obj.editor);\n    zoom            : float;\n    tweak_mode        : int;\n    default_linewidth : float;\n    default_stroke    : vec4;\n    default_fill      : vec4;\n    extrude_mode      : int;\n    enable_blur       : int;\n    draw_faces        : int;\n    draw_video        : int;\n    pinned_paths      : array(int) | obj.pinned_paths != undefined ? obj.pinned_paths : [];\n    background_image  : ImageUser;\n    background_color  : vec3;\n    draw_bg_image     : int;\n    toolmode          : int;\n    draw_small_verts  : int;\n    edit_all_layers   : int;\n  }\n";
   View2DHandler.uiname = "Work Canvas";
-}, '/dev/fairmotion/src/editors/viewport/view2d.js');
-es6_module_define('view2d_ops', ["ajax", "struct", "frameset", "toolprops", "vectordraw_canvas2d_simple", "toolops_api", "scene", "events", "spline", "fileapi", "spline_draw_new", "spline_draw"], function _view2d_ops_module(_es6_module) {
+}, '/home/ec2-user/fairmotion/src/editors/viewport/view2d.js');
+es6_module_define('view2d_ops', ["spline", "fileapi", "ajax", "vectordraw_canvas2d_simple", "toolops_api", "spline_draw", "scene", "struct", "frameset", "toolprops", "./events", "spline_draw_new"], function _view2d_ops_module(_es6_module) {
   "use strict";
   var ToolOp=es6_import_item(_es6_module, 'toolops_api', 'ToolOp');
   var UndoFlags=es6_import_item(_es6_module, 'toolops_api', 'UndoFlags');
   var ToolFlags=es6_import_item(_es6_module, 'toolops_api', 'ToolFlags');
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
   var unpack_ctx=es6_import_item(_es6_module, 'ajax', 'unpack_ctx');
-  var KeyMap=es6_import_item(_es6_module, 'events', 'KeyMap');
-  var ToolKeyHandler=es6_import_item(_es6_module, 'events', 'ToolKeyHandler');
-  var FuncKeyHandler=es6_import_item(_es6_module, 'events', 'FuncKeyHandler');
-  var KeyHandler=es6_import_item(_es6_module, 'events', 'KeyHandler');
-  var charmap=es6_import_item(_es6_module, 'events', 'charmap');
-  var TouchEventManager=es6_import_item(_es6_module, 'events', 'TouchEventManager');
-  var EventHandler=es6_import_item(_es6_module, 'events', 'EventHandler');
-  var $v1_aV6S_exec_pan;
-  var $v2_FC9s_exec_pan;
+  var KeyMap=es6_import_item(_es6_module, './events', 'KeyMap');
+  var ToolKeyHandler=es6_import_item(_es6_module, './events', 'ToolKeyHandler');
+  var FuncKeyHandler=es6_import_item(_es6_module, './events', 'FuncKeyHandler');
+  var KeyHandler=es6_import_item(_es6_module, './events', 'KeyHandler');
+  var charmap=es6_import_item(_es6_module, './events', 'charmap');
+  var TouchEventManager=es6_import_item(_es6_module, './events', 'TouchEventManager');
+  var EventHandler=es6_import_item(_es6_module, './events', 'EventHandler');
+  var $v1_pLCQ_exec_pan;
+  var $v2_xsX7_exec_pan;
   var ViewRotateZoomPanOp=_ESClass("ViewRotateZoomPanOp", ToolOp, [function ViewRotateZoomPanOp() {
     ToolOp.call(this, "view2d_orbit", "Orbit");
     this.undoflag = UndoFlags.IGNORE_UNDO;
@@ -5158,22 +5762,22 @@ es6_module_define('view2d_ops', ["ajax", "struct", "frameset", "toolprops", "vec
       this.exec_pan(ctx);
   }, function exec_pan(ctx) {
     var view2d=ctx.view2d;
-    $v1_aV6S_exec_pan.load(this.mv5);
-    $v2_FC9s_exec_pan.load(this.mv6);
-    $v1_aV6S_exec_pan[2] = 0.9;
-    $v2_FC9s_exec_pan[2] = 0.9;
+    $v1_pLCQ_exec_pan.load(this.mv5);
+    $v2_xsX7_exec_pan.load(this.mv6);
+    $v1_pLCQ_exec_pan[2] = 0.9;
+    $v2_xsX7_exec_pan[2] = 0.9;
     var iprojmat=new Matrix4(ctx.view2d.drawmats.rendermat);
     iprojmat.invert();
     var scenter=new Vector3(this.center);
     scenter.multVecMatrix(ctx.view2d.drawmats.rendermat);
     if (isNaN(scenter[2]))
       scenter[2] = 0.0;
-    $v1_aV6S_exec_pan[2] = scenter[2];
-    $v2_FC9s_exec_pan[2] = scenter[2];
-    $v1_aV6S_exec_pan.multVecMatrix(iprojmat);
-    $v2_FC9s_exec_pan.multVecMatrix(iprojmat);
-    var vec=new Vector3($v2_FC9s_exec_pan);
-    vec.sub($v1_aV6S_exec_pan);
+    $v1_pLCQ_exec_pan[2] = scenter[2];
+    $v2_xsX7_exec_pan[2] = scenter[2];
+    $v1_pLCQ_exec_pan.multVecMatrix(iprojmat);
+    $v2_xsX7_exec_pan.multVecMatrix(iprojmat);
+    var vec=new Vector3($v2_xsX7_exec_pan);
+    vec.sub($v1_pLCQ_exec_pan);
     newmat = new Matrix4(this.start_mat);
     if (isNaN(vec[0])||isNaN(vec[1])||isNaN(vec[2]))
       return ;
@@ -5197,8 +5801,8 @@ es6_module_define('view2d_ops', ["ajax", "struct", "frameset", "toolprops", "vec
     if (g_app_state.screen.tottouch==0)
       this.end_modal();
   }]);
-  var $v1_aV6S_exec_pan=new Vector3();
-  var $v2_FC9s_exec_pan=new Vector3();
+  var $v1_pLCQ_exec_pan=new Vector3();
+  var $v2_xsX7_exec_pan=new Vector3();
   _es6_module.add_class(ViewRotateZoomPanOp);
   var ViewRotateOp=_ESClass("ViewRotateOp", ToolOp, [function ViewRotateOp() {
     ToolOp.call(this, "view2d_orbit", "Orbit");
@@ -5630,8 +6234,8 @@ es6_module_define('view2d_ops', ["ajax", "struct", "frameset", "toolprops", "vec
   _es6_module.add_class(ExportCanvasImage);
   ExportCanvasImage = _es6_module.add_export('ExportCanvasImage', ExportCanvasImage);
   
-}, '/dev/fairmotion/src/editors/viewport/view2d_ops.js');
-es6_module_define('view2d_spline_ops', ["transform_ops", "UICanvas", "UIMenu", "spline_types", "UIWidgets", "transform", "spline_multires", "selectmode", "spline_createops", "multires_ops", "animdata", "spline_editops", "spline", "events", "UIWidgets_special", "toolops_api", "spline_selectops", "UIElement", "UIFrame", "lib_api", "spline_draw", "struct", "UIPack", "multires_selectops", "view2d_editor", "ScreenArea"], function _view2d_spline_ops_module(_es6_module) {
+}, '/home/ec2-user/fairmotion/src/editors/viewport/view2d_ops.js');
+es6_module_define('view2d_spline_ops', ["lib_api", "spline_selectops", "UIFrame", "multires_ops", "./events", "spline_createops", "spline_multires", "struct", "UIElement", "multires_selectops", "UIPack", "animdata", "transform_ops", "spline_types", "spline_draw", "UIWidgets", "toolops_api", "spline", "transform", "selectmode", "UICanvas", "spline_editops", "view2d_editor", "ScreenArea", "UIMenu", "UIWidgets_special"], function _view2d_spline_ops_module(_es6_module) {
   "use strict";
   var ExtrudeVertOp=es6_import_item(_es6_module, 'spline_createops', 'ExtrudeVertOp');
   var toolop_menu=es6_import_item(_es6_module, 'UIMenu', 'toolop_menu');
@@ -5653,13 +6257,13 @@ es6_module_define('view2d_spline_ops', ["transform_ops", "UICanvas", "UIMenu", "
   var DataTypes=es6_import_item(_es6_module, 'lib_api', 'DataTypes');
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
   var EditModes=es6_import_item(_es6_module, 'view2d_editor', 'EditModes');
-  var KeyMap=es6_import_item(_es6_module, 'events', 'KeyMap');
-  var ToolKeyHandler=es6_import_item(_es6_module, 'events', 'ToolKeyHandler');
-  var FuncKeyHandler=es6_import_item(_es6_module, 'events', 'FuncKeyHandler');
-  var KeyHandler=es6_import_item(_es6_module, 'events', 'KeyHandler');
-  var charmap=es6_import_item(_es6_module, 'events', 'charmap');
-  var TouchEventManager=es6_import_item(_es6_module, 'events', 'TouchEventManager');
-  var EventHandler=es6_import_item(_es6_module, 'events', 'EventHandler');
+  var KeyMap=es6_import_item(_es6_module, './events', 'KeyMap');
+  var ToolKeyHandler=es6_import_item(_es6_module, './events', 'ToolKeyHandler');
+  var FuncKeyHandler=es6_import_item(_es6_module, './events', 'FuncKeyHandler');
+  var KeyHandler=es6_import_item(_es6_module, './events', 'KeyHandler');
+  var charmap=es6_import_item(_es6_module, './events', 'charmap');
+  var TouchEventManager=es6_import_item(_es6_module, './events', 'TouchEventManager');
+  var EventHandler=es6_import_item(_es6_module, './events', 'EventHandler');
   var SelectLinkedOp=es6_import_item(_es6_module, 'spline_selectops', 'SelectLinkedOp');
   var SelectOneOp=es6_import_item(_es6_module, 'spline_selectops', 'SelectOneOp');
   var TranslateOp=es6_import_item(_es6_module, 'transform', 'TranslateOp');
@@ -5827,8 +6431,8 @@ es6_module_define('view2d_spline_ops', ["transform_ops", "UICanvas", "UIMenu", "
   }]);
   _es6_module.add_class(PlayAnimOp);
   PlayAnimOp = _es6_module.add_export('PlayAnimOp', PlayAnimOp);
-  var $ops_W6xa_tools_menu;
-  var $rect_sU_p_handle_mres_mousemove;
+  var $ops_R2ZI_tools_menu;
+  var $rect_SmvE_handle_mres_mousemove;
   var SplineEditor=_ESClass("SplineEditor", View2DEditor, [function SplineEditor(view2d) {
     var keymap=new KeyMap();
     View2DEditor.call(this, "Geometry", EditModes.GEOMETRY, DataTypes.FRAMESET, keymap);
@@ -6008,7 +6612,7 @@ es6_module_define('view2d_spline_ops', ["transform_ops", "UICanvas", "UIMenu", "
     }
     return false;
   }, function tools_menu(ctx, mpos, view2d) {
-    var menu=view2d.toolop_menu(ctx, "Tools", $ops_W6xa_tools_menu);
+    var menu=view2d.toolop_menu(ctx, "Tools", $ops_R2ZI_tools_menu);
     view2d.call_menu(menu, view2d, mpos);
   }, function on_inactive(view2d) {
   }, function on_active(view2d) {
@@ -6194,10 +6798,10 @@ es6_module_define('view2d_spline_ops', ["transform_ops", "UICanvas", "UIMenu", "
         }
         p = mr.get(p);
         p.flag|=MResFlags.HIGHLIGHT;
-        $rect_sU_p_handle_mres_mousemove[0].load(p).subScalar(10);
-        $rect_sU_p_handle_mres_mousemove[1].load(p).addScalar(10);
-        $rect_sU_p_handle_mres_mousemove[0][2] = $rect_sU_p_handle_mres_mousemove[1][2] = 0.0;
-        window.redraw_viewport($rect_sU_p_handle_mres_mousemove[0], $rect_sU_p_handle_mres_mousemove[1]);
+        $rect_SmvE_handle_mres_mousemove[0].load(p).subScalar(10);
+        $rect_SmvE_handle_mres_mousemove[1].load(p).addScalar(10);
+        $rect_SmvE_handle_mres_mousemove[0][2] = $rect_SmvE_handle_mres_mousemove[1][2] = 0.0;
+        window.redraw_viewport($rect_SmvE_handle_mres_mousemove[0], $rect_SmvE_handle_mres_mousemove[1]);
     }
     var ret=this.findnearest([event.x, event.y, 0], SelMask.SEGMENT, limit);
     if (ret!=undefined) {
@@ -6297,15 +6901,15 @@ es6_module_define('view2d_spline_ops', ["transform_ops", "UICanvas", "UIMenu", "
     menu.swap_mouse_button = 2;
     view2d.call_menu(menu, view2d, [event.x, event.y]);
   }]);
-  var $ops_W6xa_tools_menu=["spline.key_edges()", "spline.key_current_frame()", "spline.connect_handles()", "spline.disconnect_handles()", "spline.toggle_step_mode()", "spline.toggle_manual_handles()", "editor.paste_pose()", "editor.copy_pose()"];
-  var $rect_sU_p_handle_mres_mousemove=[new Vector3(), new Vector3()];
+  var $ops_R2ZI_tools_menu=["spline.key_edges()", "spline.key_current_frame()", "spline.connect_handles()", "spline.disconnect_handles()", "spline.toggle_step_mode()", "spline.toggle_manual_handles()", "editor.paste_pose()", "editor.copy_pose()"];
+  var $rect_SmvE_handle_mres_mousemove=[new Vector3(), new Vector3()];
   _es6_module.add_class(SplineEditor);
   SplineEditor = _es6_module.add_export('SplineEditor', SplineEditor);
   SplineEditor.STRUCT = "\n  SplineEditor {\n    selectmode : int;\n  }\n";
   var ScreenArea=es6_import_item(_es6_module, 'ScreenArea', 'ScreenArea');
   var Area=es6_import_item(_es6_module, 'ScreenArea', 'Area');
-}, '/dev/fairmotion/src/editors/viewport/view2d_spline_ops.js');
-es6_module_define('animspline', ["spline_types", "spline", "struct", "spline_element_array", "lib_api", "animdata", "toolprops"], function _animspline_module(_es6_module) {
+}, '/home/ec2-user/fairmotion/src/editors/viewport/view2d_spline_ops.js');
+es6_module_define('animspline', ["animdata", "toolprops", "struct", "spline", "spline_element_array", "lib_api", "spline_types"], function _animspline_module(_es6_module) {
   "use strict";
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
   var DataBlock=es6_import_item(_es6_module, 'lib_api', 'DataBlock');
@@ -6808,8 +7412,8 @@ es6_module_define('animspline', ["spline_types", "spline", "struct", "spline_ele
   _es6_module.add_class(VertexAnimData);
   VertexAnimData = _es6_module.add_export('VertexAnimData', VertexAnimData);
   VertexAnimData.STRUCT = "\nVertexAnimData {\n  eid         : int;\n  flag        : int;\n  animflag    : int;\n  cur_time    : int;\n  layerid     : int;\n  startv_eid  : int;\n}\n";
-}, '/dev/fairmotion/src/core/animspline.js');
-es6_module_define('frameset', ["spline", "lib_api", "spline_types", "struct", "spline_element_array", "animspline", "animdata"], function _frameset_module(_es6_module) {
+}, '/home/ec2-user/fairmotion/src/core/animspline.js');
+es6_module_define('frameset', ["animspline", "spline_types", "spline_element_array", "spline", "struct", "animdata", "lib_api"], function _frameset_module(_es6_module) {
   "use strict";
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
   var DataBlock=es6_import_item(_es6_module, 'lib_api', 'DataBlock');
@@ -7821,8 +8425,8 @@ es6_module_define('frameset', ["spline", "lib_api", "spline_types", "struct", "s
   SplineFrameSet = _es6_module.add_export('SplineFrameSet', SplineFrameSet);
   
   SplineFrameSet.STRUCT = STRUCT.inherit(SplineFrameSet, DataBlock)+"\n    idgen             : SDIDGen;\n    frames            : array(SplineFrame) | obj_values_to_array(obj.frames);\n    vertex_animdata   : array(VertexAnimData) | obj_values_to_array(obj.vertex_animdata);\n\n    cur_frame         : float | obj.frame.time;\n    editmode          : string;\n    editveid          : int;\n\n    time              : float;\n    framelist         : array(float);\n    pathspline        : Spline;\n\n    selectmode        : int;\n    draw_anim_paths   : int;\n    templayerid       : int;\n}\n";
-}, '/dev/fairmotion/src/core/frameset.js');
-es6_module_define('ops_editor', ["ScreenArea", "UITabPanel", "toolops_api", "events", "UITextBox", "UIWidgets", "struct", "UICanvas", "UIWidgets_special", "UIFrame", "UIPack", "UIElement"], function _ops_editor_module(_es6_module) {
+}, '/home/ec2-user/fairmotion/src/core/frameset.js');
+es6_module_define('ops_editor', ["toolops_api", "../viewport/events", "struct", "UITextBox", "UIPack", "UIElement", "UICanvas", "UIFrame", "UIWidgets_special", "UITabPanel", "UIWidgets", "ScreenArea"], function _ops_editor_module(_es6_module) {
   var gen_editor_switcher=es6_import_item(_es6_module, 'UIWidgets_special', 'gen_editor_switcher');
   var PackFlags=es6_import_item(_es6_module, 'UIElement', 'PackFlags');
   var UIElement=es6_import_item(_es6_module, 'UIElement', 'UIElement');
@@ -7856,10 +8460,10 @@ es6_module_define('ops_editor', ["ScreenArea", "UITabPanel", "toolops_api", "eve
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
   var RowFrame=es6_import_item(_es6_module, 'UIPack', 'RowFrame');
   var ColumnFrame=es6_import_item(_es6_module, 'UIPack', 'ColumnFrame');
-  var KeyMap=es6_import_item(_es6_module, 'events', 'KeyMap');
-  var VelocityPan=es6_import_item(_es6_module, 'events', 'VelocityPan');
-  var KeyHandler=es6_import_item(_es6_module, 'events', 'KeyHandler');
-  var FuncKeyHandler=es6_import_item(_es6_module, 'events', 'FuncKeyHandler');
+  var KeyMap=es6_import_item(_es6_module, '../viewport/events', 'KeyMap');
+  var VelocityPan=es6_import_item(_es6_module, '../viewport/events', 'VelocityPan');
+  var KeyHandler=es6_import_item(_es6_module, '../viewport/events', 'KeyHandler');
+  var FuncKeyHandler=es6_import_item(_es6_module, '../viewport/events', 'FuncKeyHandler');
   var OpStackFrame=_ESClass("OpStackFrame", RowFrame, [function OpStackFrame(ctx, size) {
     RowFrame.call(this, ctx);
     this.pan_bounds = [[0, 0], [0, 0]];
@@ -8128,8 +8732,8 @@ es6_module_define('ops_editor', ["ScreenArea", "UITabPanel", "toolops_api", "eve
   OpStackEditor.STRUCT = STRUCT.inherit(OpStackEditor, Area)+"\n    filter_sel : int | obj._filter_sel;\n  }\n";
   OpStackEditor.uiname = "Operator Stack";
   OpStackEditor.debug_only = true;
-}, '/dev/fairmotion/src/editors/ops/ops_editor.js');
-es6_module_define('SettingsEditor', ["ScreenArea", "UIElement", "UIPack", "UIFrame", "UITextBox", "events", "mathlib", "UICanvas", "struct", "UITabPanel", "UIWidgets", "UIWidgets_special", "toolops_api"], function _SettingsEditor_module(_es6_module) {
+}, '/home/ec2-user/fairmotion/src/editors/ops/ops_editor.js');
+es6_module_define('SettingsEditor', ["UIPack", "toolops_api", "UITabPanel", "UIFrame", "ScreenArea", "UIElement", "struct", "UIWidgets", "mathlib", "UITextBox", "UIWidgets_special", "UICanvas", "../viewport/events"], function _SettingsEditor_module(_es6_module) {
   "use strict";
   var gen_editor_switcher=es6_import_item(_es6_module, 'UIWidgets_special', 'gen_editor_switcher');
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
@@ -8140,14 +8744,14 @@ es6_module_define('SettingsEditor', ["ScreenArea", "UIElement", "UIPack", "UIFra
   var UIFlags=es6_import_item(_es6_module, 'UIElement', 'UIFlags');
   var CanvasFlags=es6_import_item(_es6_module, 'UIElement', 'CanvasFlags');
   var UIFrame=es6_import_item(_es6_module, 'UIFrame', 'UIFrame');
-  var KeyMap=es6_import_item(_es6_module, 'events', 'KeyMap');
-  var ToolKeyHandler=es6_import_item(_es6_module, 'events', 'ToolKeyHandler');
-  var FuncKeyHandler=es6_import_item(_es6_module, 'events', 'FuncKeyHandler');
-  var KeyHandler=es6_import_item(_es6_module, 'events', 'KeyHandler');
-  var charmap=es6_import_item(_es6_module, 'events', 'charmap');
-  var TouchEventManager=es6_import_item(_es6_module, 'events', 'TouchEventManager');
-  var EventHandler=es6_import_item(_es6_module, 'events', 'EventHandler');
-  var VelocityPan=es6_import_item(_es6_module, 'events', 'VelocityPan');
+  var KeyMap=es6_import_item(_es6_module, '../viewport/events', 'KeyMap');
+  var ToolKeyHandler=es6_import_item(_es6_module, '../viewport/events', 'ToolKeyHandler');
+  var FuncKeyHandler=es6_import_item(_es6_module, '../viewport/events', 'FuncKeyHandler');
+  var KeyHandler=es6_import_item(_es6_module, '../viewport/events', 'KeyHandler');
+  var charmap=es6_import_item(_es6_module, '../viewport/events', 'charmap');
+  var TouchEventManager=es6_import_item(_es6_module, '../viewport/events', 'TouchEventManager');
+  var EventHandler=es6_import_item(_es6_module, '../viewport/events', 'EventHandler');
+  var VelocityPan=es6_import_item(_es6_module, '../viewport/events', 'VelocityPan');
   var UIButtonAbstract=es6_import_item(_es6_module, 'UIWidgets', 'UIButtonAbstract');
   var UIButton=es6_import_item(_es6_module, 'UIWidgets', 'UIButton');
   var UIButtonIcon=es6_import_item(_es6_module, 'UIWidgets', 'UIButtonIcon');
@@ -8354,1118 +8958,4 @@ es6_module_define('SettingsEditor', ["ScreenArea", "UIElement", "UIPack", "UIFra
   SettingsEditor.STRUCT = STRUCT.inherit(SettingsEditor, Area)+"\n  }\n";
   SettingsEditor.uiname = "Settings";
   SettingsEditor.debug_only = false;
-}, '/dev/fairmotion/src/editors/settings/SettingsEditor.js');
-var ContextStruct;
-es6_module_define('data_api_define', ["theme", "selectmode", "imageblock", "view2d", "toolops_api", "toolprops", "spline_element_array", "units", "ops_editor", "animdata", "lib_api", "spline_createops", "spline_base", "frameset", "data_api"], function _data_api_define_module(_es6_module) {
-  var DataTypes=es6_import_item(_es6_module, 'lib_api', 'DataTypes');
-  var EditModes=es6_import_item(_es6_module, 'view2d', 'EditModes');
-  var ImageFlags=es6_import_item(_es6_module, 'imageblock', 'ImageFlags');
-  var Image=es6_import_item(_es6_module, 'imageblock', 'Image');
-  var BoxColor4=es6_import_item(_es6_module, 'theme', 'BoxColor4');
-  var BoxWColor=es6_import_item(_es6_module, 'theme', 'BoxWColor');
-  var ColorTheme=es6_import_item(_es6_module, 'theme', 'ColorTheme');
-  var ThemePair=es6_import_item(_es6_module, 'theme', 'ThemePair');
-  var BoxColor=es6_import_item(_es6_module, 'theme', 'BoxColor');
-  var darken=es6_import_item(_es6_module, 'theme', 'darken');
-  var EnumProperty=es6_import_item(_es6_module, 'toolprops', 'EnumProperty');
-  var FlagProperty=es6_import_item(_es6_module, 'toolprops', 'FlagProperty');
-  var FloatProperty=es6_import_item(_es6_module, 'toolprops', 'FloatProperty');
-  var StringProperty=es6_import_item(_es6_module, 'toolprops', 'StringProperty');
-  var BoolProperty=es6_import_item(_es6_module, 'toolprops', 'BoolProperty');
-  var Vec2Property=es6_import_item(_es6_module, 'toolprops', 'Vec2Property');
-  var DataRefProperty=es6_import_item(_es6_module, 'toolprops', 'DataRefProperty');
-  var Vec3Property=es6_import_item(_es6_module, 'toolprops', 'Vec3Property');
-  var Vec4Property=es6_import_item(_es6_module, 'toolprops', 'Vec4Property');
-  var IntProperty=es6_import_item(_es6_module, 'toolprops', 'IntProperty');
-  var TPropFlags=es6_import_item(_es6_module, 'toolprops', 'TPropFlags');
-  var PropTypes=es6_import_item(_es6_module, 'toolprops', 'PropTypes');
-  var ModalStates=es6_import_item(_es6_module, 'toolops_api', 'ModalStates');
-  var SplineFlags=es6_import_item(_es6_module, 'spline_base', 'SplineFlags');
-  var MaterialFlags=es6_import_item(_es6_module, 'spline_base', 'MaterialFlags');
-  var SplineTypes=es6_import_item(_es6_module, 'spline_base', 'SplineTypes');
-  var SelMask=es6_import_item(_es6_module, 'selectmode', 'SelMask');
-  var ToolModes=es6_import_item(_es6_module, 'selectmode', 'ToolModes');
-  var Unit=es6_import_item(_es6_module, 'units', 'Unit');
-  var ExtrudeModes=es6_import_item(_es6_module, 'spline_createops', 'ExtrudeModes');
-  var DataFlags=es6_import_item(_es6_module, 'data_api', 'DataFlags');
-  var DataPathTypes=es6_import_item(_es6_module, 'data_api', 'DataPathTypes');
-  var OpStackEditor=es6_import_item(_es6_module, 'ops_editor', 'OpStackEditor');
-  var AnimKeyFlags=es6_import_item(_es6_module, 'animdata', 'AnimKeyFlags');
-  var AnimInterpModes=es6_import_item(_es6_module, 'animdata', 'AnimInterpModes');
-  var VDAnimFlags=es6_import_item(_es6_module, 'frameset', 'VDAnimFlags');
-  var SelModes={VERTEX: SelMask.VERTEX, SEGMENT: SelMask.SEGMENT, FACE: SelMask.FACE}
-  var selmask_enum=new EnumProperty(undefined, SelModes, "selmask_enum", "Selection Mode");
-  selmask_enum = _es6_module.add_export('selmask_enum', selmask_enum);
-  var selmask_ui_vals={}
-  var __iter_k=__get_in_iter(SelModes);
-  var k;
-  while (1) {
-    var __ival_k=__iter_k.next();
-    if (__ival_k.done) {
-        break;
-    }
-    k = __ival_k.value;
-    var s=k[0].toUpperCase()+k.slice(1, k.length).toLowerCase();
-    var slst=s.split("_");
-    var s2="";
-    for (var i=0; i<slst.length; i++) {
-        s2+=slst[i][0].toUpperCase()+slst[i].slice(1, slst[i].length).toLowerCase()+" ";
-    }
-    s = s2.trim();
-    selmask_ui_vals[k] = s;
-  }
-  selmask_enum.ui_value_names = selmask_ui_vals;
-  selmask_enum.add_icons({VERTEX: Icons.VERT_MODE, SEGMENT: Icons.EDGE_MODE, FACE: Icons.FACE_MODE});
-  var data_api=es6_import(_es6_module, 'data_api');
-  var DataPath=data_api.DataPath;
-  var DataStruct=data_api.DataStruct;
-  var DataStructArray=data_api.DataStructArray;
-  var units=Unit.units;
-  var unit_enum={}
-  var unit_ui_vals={}
-  for (var i=0; i<units.length; i++) {
-      var s=units[i].suffix_list[0];
-      unit_enum[s] = s;
-      unit_ui_vals[s] = s.toUpperCase();
-  }
-  Unit.units_enum = new EnumProperty("in", unit_enum, "unit_enum", "Units");
-  Unit.units_enum.ui_value_names = unit_ui_vals;
-  var SettingsUpdate=function() {
-    g_app_state.session.settings.server_update();
-  }
-  var SettingsUpdateRecalc=function() {
-    g_app_state.session.settings.server_update();
-    g_app_state.screen.do_full_recalc();
-  }
-  var SettingsStruct=undefined;
-  function api_define_settings() {
-    unitsys_enum = new EnumProperty("imperial", ["imperial", "metric"], "system", "System", "Metric or Imperial");
-    var units_enum=Unit.units_enum.copy();
-    units_enum.apiname = "default_unit";
-    units_enum.uiname = "Default Unit";
-    units_enum.update = unitsys_enum.update = SettingsUpdateRecalc;
-    SettingsStruct = new DataStruct([new DataPath(unitsys_enum, "unit_system", "unit_scheme", true), new DataPath(units_enum, "default_unit", "unit", true)]);
-    return SettingsStruct;
-  }
-  var SettingsEditorStruct=undefined;
-  function api_define_seditor() {
-    SettingsEditorStruct = new DataStruct([]);
-    return SettingsEditorStruct;
-  }
-  var OpsEditorStruct=undefined;
-  function api_define_opseditor() {
-    var filter_sel=new BoolProperty(0, "filter_sel", "Filter Sel", "Exclude selection ops");
-    filter_sel.icon = Icons.FILTER_SEL_OPS;
-    OpsEditorStruct = new DataStruct([new DataPath(filter_sel, "filter_sel", "filter_sel", true)]);
-    return OpsEditorStruct;
-  }
-  var ExtrudeModes=es6_import_item(_es6_module, 'spline_createops', 'ExtrudeModes');
-  var AnimKeyStruct=undefined;
-  function api_define_animkey() {
-    if (AnimKeyStruct!=undefined)
-      return AnimKeyStruct;
-    AnimKeyStruct = new DataStruct([new DataPath(new IntProperty(-1, "id", "id"), "id", "id", true)]);
-    return AnimKeyStruct;
-  }
-  api_define_animkey();
-  window.AnimKeyStruct = AnimKeyStruct;
-  window.AnimKeyStruct2 = AnimKeyStruct;
-  var datablock_structs={}
-  function api_define_DataBlock() {
-    api_define_animkey();
-    var array=new DataStructArray(function getstruct(item) {
-      return AnimKeyStruct2;
-    }, function itempath(key) {
-      return "["+key+"]";
-    }, function getitem(key) {
-      console.log("get key", key, this);
-      return this[key];
-    }, function getiter() {
-      return new obj_value_iter(this);
-    }, function getkeyiter() {
-      return new obj_key_iter(this);
-    }, function getlength() {
-      var tot=0.0;
-      for (var k in this) {
-          tot++;
-      }
-      return tot;
-    });
-    return [new DataPath(array, "animkeys", "lib_anim_idmap", true)];
-  }
-  var ImageUserStruct=undefined;
-  function api_define_imageuser() {
-    var image=new DataRefProperty(undefined, [DataTypes.IMAGE], "image", "Image");
-    var off=new Vec2Property(undefined, "offset", "Offset");
-    var scale=new Vec2Property(undefined, "scale", "Scale");
-    scale.range = [0.0001, 90.0];
-    off.api_update = scale.api_update = function api_update(ctx, path) {
-      window.redraw_viewport();
-    }
-    ImageUserStruct = new DataStruct([new DataPath(image, "image", "image", true), new DataPath(off, "off", "off", true), new DataPath(scale, "scale", "scale", true)]);
-    return ImageUserStruct;
-  }
-  function api_define_view2d() {
-    var only_render=new BoolProperty(0, "only_render", "Hide Controls");
-    only_render.api_update = function(ctx, path) {
-      window.redraw_viewport();
-    }
-    var draw_small_verts=new BoolProperty(0, "draw_small_verts", "Small Points", "Draw Pointers Smaller");
-    draw_small_verts.api_update = function(ctx, path) {
-      window.redraw_viewport();
-    }
-    var extrude_mode=new EnumProperty(0, ExtrudeModes, "extrude_mode", "Extrude Mode");
-    var linewidth=new FloatProperty(2.0, "default_linewidth", "Line Wid");
-    linewidth.range = [0.01, 100];
-    var zoomprop=new FloatProperty(1, "zoom", "Zoom");
-    zoomprop.update = function(ctx, path) {
-      this.ctx.view2d.set_zoom(this.data);
-    }
-    zoomprop.range = zoomprop.real_range = zoomprop.ui_range = [0.1, 100];
-    var draw_bg_image=new BoolProperty(0, "draw_bg_image", "Draw Image");
-    var draw_video=new BoolProperty(0, "draw_video", "Draw Video");
-    draw_video.update = draw_bg_image.update = function() {
-      window.redraw_viewport();
-    }
-    var tool_mode=new EnumProperty("SELECT", ToolModes, "select", "Active Tool", "Active Tool");
-    tool_mode.add_icons({SELECT: Icons.CURSOR_ARROW, APPEND: Icons.APPEND_VERTEX, RESIZE: Icons.RESIZE});
-    var tweak_mode=new BoolProperty(0, "tweak_mode", "Tweak Mode");
-    tweak_mode.icon = Icons.CURSOR_ARROW;
-    var uinames={}
-    for (var key in SelMask) {
-        var k2=key[0].toUpperCase()+key.slice(1, key.length).toLowerCase();
-        k2 = k2.replace(/\_/g, " ");
-        uinames[key] = "Show "+k2+"s";
-    }
-    var selmask_mask=new FlagProperty(1, SelMask, uinames, undefined, "Sel Mask");
-    selmask_mask.ui_key_names = uinames;
-    selmask_mask.update = function() {
-      window.redraw_viewport();
-    }
-    var background_color=new Vec3Property(undefined, "background_color", "Background");
-    background_color.subtype = PropTypes.COLOR3;
-    var default_stroke=new Vec4Property(undefined, "default_stroke", "Stroke");
-    var default_fill=new Vec4Property(undefined, "default_fill", "Fill");
-    default_stroke.subtype = default_fill.subtype = PropTypes.COLOR4;
-    background_color.update = function() {
-      window.redraw_viewport();
-    }
-    let draw_faces=new BoolProperty(0, "draw_faces", "Show Faces");
-    let enable_blur=new BoolProperty(0, "enable_blur", "Blur");
-    draw_faces.update = enable_blur.update = function() {
-      this.ctx.spline.regen_sort();
-      redraw_viewport();
-    }
-    var edit_all_layers=new BoolProperty(0, "edit_all_layers", "Edit All Layers");
-    let show_animpath_prop=new BoolProperty(0, "draw_anim_paths", "Show Animation Paths", "Edit Animation Keyframe Paths");
-    show_animpath_prop.icon = Icons.SHOW_ANIMPATHS;
-    View2DStruct = new DataStruct([new DataPath(edit_all_layers, "edit_all_layers", "edit_all_layers", true), new DataPath(background_color, "background_color", "background_color", true), new DataPath(default_stroke, "default_stroke", "default_stroke", true), new DataPath(default_fill, "default_fill", "default_fill", true), new DataPath(tool_mode, "toolmode", "toolmode", true), new DataPath(draw_small_verts, "draw_small_verts", "draw_small_verts", true), new DataPath(selmask_enum.copy(), "selectmode", "selectmode", true), new DataPath(selmask_mask.copy(), "selectmask", "selectmode", true), new DataPath(only_render, "only_render", "only_render", true), new DataPath(draw_bg_image, "draw_bg_image", "draw_bg_image", true), new DataPath(tweak_mode, "tweak_mode", "tweak_mode", true), new DataPath(enable_blur, "enable_blur", "enable_blur", true), new DataPath(draw_faces, "draw_faces", "draw_faces", true), new DataPath(draw_video, "draw_video", "draw_video", true), new DataPath(new BoolProperty(0, "draw_normals", "Show Normals", "Show Normal Comb"), "draw_normals", "draw_normals", true), new DataPath(show_animpath_prop, "draw_anim_paths", "draw_anim_paths", true), new DataPath(zoomprop, "zoom", "zoom", true), new DataPath(api_define_material(), "active_material", "active_material", true), new DataPath(linewidth, "default_linewidth", "default_linewidth", true), new DataPath(extrude_mode, "extrude_mode", "extrude_mode", true), new DataPath(new BoolProperty(0, "pin_paths", "Pin Paths", "Remember visible animation paths"), "pin_paths", "pin_paths", true), new DataPath(api_define_imageuser(), "background_image", "background_image", true)]);
-    return View2DStruct;
-  }
-  var MaterialStruct;
-  function api_define_material() {
-    var fillclr=new Vec4Property(new Vector4(), "fill", "fill", "Fill Color");
-    var strokeclr=new Vec4Property(new Vector4(), "stroke", "stroke", "Stroke Color");
-    var update_base=function(material) {
-      material.update();
-      window.redraw_viewport();
-    }
-    var flag=new FlagProperty(1, MaterialFlags, undefined, "material flags", "material flags");
-    flag.update = update_base;
-    var fillpath=new DataPath(new BoolProperty(false, "fill_over_stroke", "fill_over_stroke", "fill_over_stroke"), "fill_over_stroke", "fill_over_stroke", true);
-    fillclr.subtype = strokeclr.subtype = PropTypes.COLOR4;
-    var linewidth=new FloatProperty(1, "linewidth", "linewidth", "Line Width");
-    linewidth.range = [0.1, 200];
-    var blur=new FloatProperty(1, "blur", "blur", "Blur");
-    blur.range = [0.0, 800];
-    fillclr.update = strokeclr.update = linewidth.update = blur.update = update_base;
-    MaterialStruct = new DataStruct([new DataPath(fillclr, "fillcolor", "fillcolor", true), new DataPath(linewidth, "linewidth", "linewidth", true), new DataPath(flag, "flag", "flag", true)]);
-    MaterialStruct.Color4("strokecolor", "strokecolor", "Stroke", "Stroke color").OnUpdate(update_base);
-    MaterialStruct.Float("blur", "blur", "Blur", "Amount of blur").Range(0, 800).OnUpdate(update_base);
-    return MaterialStruct;
-  }
-  var SplineFaceStruct;
-  function api_define_spline_face() {
-    var flagprop=new FlagProperty(2, SplineFlags, undefined, "Flags", "Flags");
-    SplineFaceStruct = new DataStruct([new DataPath(new IntProperty(0, "eid", "eid", "eid"), "eid", "eid", true), new DataPath(api_define_material(), "mat", "mat", true), new DataPath(flagprop, "flag", "flag", true)]);
-    return SplineFaceStruct;
-  }
-  var SplineVertexStruct;
-  function api_define_spline_vertex() {
-    var flagprop=new FlagProperty(2, SplineFlags, undefined, "Flags", "Flags");
-    flagprop.ui_key_names["BREAK_CURVATURES"] = "Less Smooth";
-    flagprop.ui_key_names["BREAK_TANGENTS"] = "Sharp Corner";
-    var coprop=new Vec3Property(undefined, "co", "Co", "Coordinates");
-    flagprop.update = function(owner) {
-      this.ctx.spline.regen_sort();
-      console.log("vertex update", owner);
-      if (owner!=undefined) {
-          owner.flag|=SplineFlags.UPDATE;
-      }
-      this.ctx.spline.propagate_update_flags();
-      this.ctx.spline.resolve = 1;
-      window.redraw_viewport();
-    }
-    SplineVertexStruct = new DataStruct([new DataPath(new IntProperty(0, "eid", "eid", "eid"), "eid", "eid", true), new DataPath(flagprop, "flag", "flag", true), new DataPath(coprop, "co", "", true)]);
-    return SplineVertexStruct;
-  }
-  var SplineSegmentStruct;
-  function api_define_spline_segment() {
-    var flagprop=new FlagProperty(2, SplineFlags, undefined, "Flags", "Flags");
-    flagprop.update = function(segment) {
-      new Context().spline.regen_sort();
-      segment.flag|=SplineFlags.REDRAW;
-      console.log(segment);
-      window.redraw_viewport();
-    }
-    var zprop=new FloatProperty(0, "z", "z", "z");
-    zpath = new DataPath(zprop, "z", "z", true);
-    zpath.update = function(segment, old_value, changed) {
-      if (segment!=undefined&&old_value!=undefined) {
-          changed = segment.z!=old_value;
-      }
-      if (!changed) {
-          return ;
-      }
-      if (!(g_app_state.modalstate&ModalStates.PLAYING)) {
-          this.ctx.frameset.spline.regen_sort();
-          this.ctx.frameset.pathspline.regen_sort();
-      }
-      segment.flag|=SplineFlags.REDRAW;
-    }
-    SplineSegmentStruct = new DataStruct([new DataPath(new IntProperty(0, "eid", "eid", "eid"), "eid", "eid", true), new DataPath(flagprop, "flag", "flag", true), new DataPath(new BoolProperty(0, "renderable", "renderable"), "renderable", "renderable", true), new DataPath(api_define_material(), "mat", "mat", true), zpath]);
-    return SplineSegmentStruct;
-  }
-  var SplineLayerFlags=es6_import_item(_es6_module, 'spline_element_array', 'SplineLayerFlags');
-  var SplineLayerStruct;
-  function api_define_spline_layer_struct() {
-    var flag=new FlagProperty(2, SplineLayerFlags);
-    flag.flag_descriptions = {MASK: "Use previous layer as a mask"}
-    flag.ui_key_names.MASK = flag.ui_value_names[SplineLayerFlags.MASK] = "Mask To Prev";
-    flag.update = function() {
-      window.redraw_viewport();
-    }
-    SplineLayerStruct = new DataStruct([new DataPath(new IntProperty(0, "id", "id", "id"), "id", "id", true), new DataPath(new StringProperty("", "name", "name", "name"), "name", "name", true), new DataPath(flag, "flag", "flag", true)]);
-    window.SplineLayerStruct = SplineLayerStruct;
-  }
-  function api_define_spline() {
-    api_define_spline_layer_struct();
-    var layerset=new DataStructArray(function getstruct(item) {
-      return SplineLayerStruct;
-    }, function itempath(key) {
-      return ".idmap["+key+"]";
-    }, function getitem(key) {
-      return this.idmap[key];
-    }, function getiter() {
-      return this[Symbol.iterator]();
-    }, function getkeyiter() {
-      var keys=Object.keys(this.idmap);
-      var ret=new GArray();
-      for (var i=0; i<keys.length; i++) {
-          ret.push(keys[i]);
-      }
-      return ret;
-    }, function getlength() {
-      return this.length;
-    });
-    function define_editable_element_array(the_struct) {
-      return new DataStructArray(function getstruct(item) {
-        return the_struct;
-      }, function itempath(key) {
-        return ".local_idmap["+key+"]";
-      }, function getitem(key) {
-        return this.local_idmap[key];
-      }, function getiter() {
-        return this[Symbol.iterator]();
-      }, function getkeyiter(ctx) {
-        var keys=new GArray();
-        var __iter_e=__get_iter(this.editable(ctx));
-        var e;
-        while (1) {
-          var __ival_e=__iter_e.next();
-          if (__ival_e.done) {
-              break;
-          }
-          e = __ival_e.value;
-          keys.push(e.eid);
-        }
-        return keys;
-      }, function getlength() {
-        let len=0;
-        var __iter_e=__get_iter(this.editable(ctx));
-        var e;
-        while (1) {
-          var __ival_e=__iter_e.next();
-          if (__ival_e.done) {
-              break;
-          }
-          e = __ival_e.value;
-          len++;
-        }
-        return len;
-      });
-    }
-    function define_element_array(the_struct) {
-      return new DataStructArray(function getstruct(item) {
-        return the_struct;
-      }, function itempath(key) {
-        return ".local_idmap["+key+"]";
-      }, function getitem(key) {
-        return this.local_idmap[key];
-      }, function getiter() {
-        return this[Symbol.iterator]();
-      }, function getkeyiter() {
-        var keys=Object.keys(this.local_idmap);
-        var ret=new GArray();
-        for (var i=0; i<keys.length; i++) {
-            ret.push(keys[i]);
-        }
-        return ret;
-      }, function getlength() {
-        return this.length;
-      });
-    }
-    var SplineStruct=new DataStruct(api_define_DataBlock().concat([new DataPath(api_define_spline_face(), "active_face", "faces.active", true), new DataPath(api_define_spline_segment(), "active_segment", "segments.active", true), new DataPath(api_define_spline_vertex(), "active_vertex", "verts.active", true), new DataPath(define_element_array(SplineFaceStruct), "faces", "faces", true), new DataPath(define_element_array(SplineSegmentStruct), "segments", "segments", true), new DataPath(define_element_array(SplineVertexStruct), "verts", "verts", true), new DataPath(define_editable_element_array(SplineFaceStruct), "editable_faces", "faces", true), new DataPath(define_editable_element_array(SplineSegmentStruct), "editable_segments", "segments", true), new DataPath(define_editable_element_array(SplineVertexStruct), "editable_verts", "verts", true), new DataPath(layerset, "layerset", "layerset", true), new DataPath(SplineLayerStruct, "active_layer", "layerset.active", true)]));
-    datablock_structs[DataTypes.SPLINE] = SplineStruct;
-    return SplineStruct;
-  }
-  function api_define_vertex_animdata() {
-    var animflags=new FlagProperty("", VDAnimFlags, undefined, "animflags", "Anim Flags");
-    var VertexAnimData=new DataStruct([]);
-    VertexAnimData.Flags(VDAnimFlags, "animflag", "animflag", "Animation Flags", "Keyframe Settings");
-    VertexAnimData.Int("owning_vertex", "eid", "Owning Vertex", "Vertex in drawspline that owns this animation path");
-    return VertexAnimData;
-  }
-  function api_define_frameset() {
-    let animdata_struct=api_define_vertex_animdata();
-    function define_animdata_array() {
-      return new DataStructArray(function getstruct(item) {
-        return animdata_struct;
-      }, function itempath(key) {
-        return "["+key+"]";
-      }, function getitem(key) {
-        return this.vertex_animdata[key];
-      }, function getiter() {
-        return this[Symbol.iterator]();
-      }, function getkeyiter() {
-        var keys=Object.keys(this.vertex_animdata);
-        var ret=new GArray();
-        for (var i=0; i<keys.length; i++) {
-            ret.push(keys[i]);
-        }
-        return ret;
-      }, function getlength() {
-        let i=0;
-        for (let k in this.vertex_animdata) {
-            i++;
-        }
-        return i;
-      });
-    }
-    var FrameSetStruct=new DataStruct(api_define_DataBlock().concat([new DataPath(api_define_spline(), "drawspline", "spline", true), new DataPath(api_define_spline(), "pathspline", "pathspline", true), new DataPath(define_animdata_array(), "keypaths", "vertex_animdata", true), new DataPath(animdata_struct, "active_keypath", "active_animdata", true)]));
-    datablock_structs[DataTypes.FRAMESET] = FrameSetStruct;
-    return FrameSetStruct;
-  }
-  var SceneStruct=undefined;
-  function api_define_scene() {
-    var name=new StringProperty("", "name", "name", "Name", TPropFlags.LABEL);
-    var frame=new IntProperty(0, "frame", "Frame", "Frame", TPropFlags.LABEL);
-    frame.range = [1, 10000];
-    var SceneStruct=new DataStruct(api_define_DataBlock().concat([new DataPath(name, "name", "name", true), new DataPath(frame, "frame", "time", true)]));
-    datablock_structs[DataTypes.SCENE] = SceneStruct;
-    return SceneStruct;
-  }
-  function get_theme_color(color) {
-    var st;
-    var name=new StringProperty("", "name", "name", "name");
-    name = new DataPath(name, "name", "[0]", true);
-    if (__instance_of(color[1], BoxColor4)) {
-        var type=new StringProperty("Corners", "type", "type");
-        var c1=new Vec4Property(new Vector4(), "c1", "c1", "Color 1");
-        var c2=new Vec4Property(new Vector4(), "c2", "c2", "Color 2");
-        var c3=new Vec4Property(new Vector4(), "c3", "c3", "Color 3");
-        var c4=new Vec4Property(new Vector4(), "c4", "c4", "Color 4");
-        c1.subtype = c2.subtype = c3.subtype = c4.subtype = PropTypes.COLOR4;
-        function gen_func(i) {
-          function update() {
-            g_theme.gen_globals();
-            SettingsUpdate();
-          }
-        }
-        c1.update = gen_func(0);
-        c2.update = gen_func(1);
-        c3.update = gen_func(2);
-        c4.update = gen_func(3);
-        st = new DataStruct([new DataPath(type, "type", "type", true, false), name, new DataPath(c1, "c1", "[1].colors[0]", true), new DataPath(c2, "c2", "[1].colors[1]", true), new DataPath(c3, "c3", "[1].colors[2]", true), new DataPath(c4, "c4", "[1].colors[3]", true)]);
-    }
-    else 
-      if (__instance_of(color[1], BoxWColor)) {
-        var type=new StringProperty("Weighted", "type", "type");
-        var clr=new Vec4Property(new Vector4(), "color", "color", "color");
-        var weights=new Vec4Property(new Vector4(), "weight", "weight", "weight");
-        clr.subtype = PropTypes.COLOR4;
-        clr.update = function() {
-          g_theme.gen_globals();
-          SettingsUpdate();
-        };
-        weights.update = function() {
-          g_theme.gen_globals();
-          SettingsUpdate();
-        };
-        weights.range = weights.real_range = weights.ui_range = [0, 1];
-        st = new DataStruct([new DataPath(type, "type", "type", true, false), name, new DataPath(clr, "color", "[1].color", true), new DataPath(weights, "weights", "[1].weights", true)]);
-    }
-    else {
-      var clr=new Vec4Property(new Vector4(), "color", "color", "color");
-      clr.subtype = PropTypes.COLOR4;
-      clr.update = function(color) {
-        g_theme.gen_globals();
-        SettingsUpdate();
-      };
-      var type=new StringProperty("Simple", "type", "type");
-      st = new DataStruct([new DataPath(type, "type", "type", true, false), name, new DataPath(clr, "color", "[1]", true)]);
-    }
-    return st;
-  }
-  var ColorThemeStruct=undefined;
-  function api_define_colortheme() {
-    var colors=new DataStructArray(get_theme_color, function getpath(key) {
-      return "["+key+"]";
-    }, function getitem(key) {
-      return this[key];
-    }, function getiter() {
-      return this[Symbol.iterator]();
-    }, function getkeyiter() {
-      arr = [];
-      for (var i=0; i<this.length; i++) {
-          arr.push(i);
-      }
-      return arr[Symbol.iterator]();
-    }, function getlength() {
-      return this.length;
-    });
-    ColorThemeStruct = new DataStruct([new DataPath(colors, "colors", "flat_colors", false)]);
-    return ColorThemeStruct;
-  }
-  var ThemeStruct=undefined;
-  function api_define_theme() {
-    api_define_colortheme();
-    ThemeStruct = new DataStruct([new DataPath(ColorThemeStruct, "ui", "ui", false), new DataPath(ColorThemeStruct, "view2d", "view2d", false)]);
-    return ThemeStruct;
-  }
-  var DopeSheetStruct=undefined;
-  function api_define_dopesheet() {
-    var selected_only=new BoolProperty(false, "selected_only", "Selected Only", "Show only keys of selected vertices");
-    var pinned=new BoolProperty(false, "pinned", "Pin", "Pin view");
-    selected_only.update = function() {
-      if (this.ctx!=undefined&&this.ctx.dopesheet!=undefined)
-        this.ctx.dopesheet.do_full_recalc();
-    }
-    DopeSheetStruct = new DataStruct([new DataPath(selected_only, "selected_only", "selected_only", true), new DataPath(pinned, "pinned", "pinned", true)]);
-    return DopeSheetStruct;
-  }
-  var CurveEditStruct=undefined;
-  function api_define_editcurve() {
-    var selected_only=new BoolProperty(false, "selected_only", "Selected Only", "Show only keys of selected vertices");
-    var pinned=new BoolProperty(false, "pinned", "Pin", "Pin view");
-    selected_only.update = function() {
-      if (this.ctx!=undefined&&this.ctx.editcurve!=undefined)
-        this.ctx.editcurve.do_full_recalc();
-    }
-    CurveEditStruct = new DataStruct([new DataPath(selected_only, "selected_only", "selected_only", true), new DataPath(pinned, "pinned", "pinned", true)]);
-    return CurveEditStruct;
-  }
-  var ObjectStruct=undefined;
-  function api_define_object() {
-    var name=new StringProperty("", "name", "name", "Name", TPropFlags.LABEL);
-    var ctx_bb=new Vec3Property(new Vector3(), "dimensions", "Dimensions", "Editable dimensions");
-    ctx_bb.flag|=TPropFlags.USE_UNDO;
-    ctx_bb.update = function() {
-      if (this.ctx.mesh!=undefined)
-        this.ctx.mesh.regen_render();
-      if (this.ctx.view2d!=undefined&&this.ctx.view2d.selectmode&EditModes.GEOMETRY) {
-          this.ctx.object.dag_update();
-      }
-    }
-    ObjectStruct = new DataStruct([new DataPath(name, "name", "name", true), new DataPath(ctx_bb, "ctx_bb", "ctx_bb", true)]);
-    return ObjectStruct;
-  }
-  var ImageStruct=undefined;
-  function api_define_image() {
-    var name=new StringProperty("");
-    var lib_id=new IntProperty(0);
-    var path=new StringProperty("");
-    var flag=new FlagProperty(1, ImageFlags, undefined, "image flags", "image flags");
-    ImageStruct = new DataStruct([new DataPath(name, "name", "name", true), new DataPath(lib_id, "lib_id", "lib_id", true), new DataPath(path, 'path', 'path', true), new DataPath(flag, 'flag', 'flag', true)]);
-    datablock_structs[DataTypes.IMAGE] = ImageStruct;
-    return ImageStruct;
-  }
-  function api_define_datalist(name, typeid) {
-    var items=new DataStructArray(function getstruct(item) {
-      return datablock_structs[item.lib_type];
-    }, function itempath(key) {
-      return "["+key+"]";
-    }, function getitem(key) {
-      return this[key];
-    }, function getiter() {
-      var ret=[];
-      for (var k in this) {
-          ret.push(this[k]);
-      }
-      return ret[Symbol.iterator]();
-    }, function getkeyiter() {
-      return list(this)[Symbol.iterator]();
-    }, function getlength() {
-      return list(this).length;
-    });
-    return new DataStruct([new DataPath(new StringProperty(name, "name"), "name", "name", false), new DataPath(new IntProperty(typeid, "typeid"), "typeid", "typeid", false), new DataPath(items, "items", "idmap", true)]);
-  }
-  var DataLibStruct=undefined;
-  function api_define_datalib() {
-    var paths=[];
-    if (DataLibStruct!=undefined)
-      return DataLibStruct;
-    for (var k in DataTypes) {
-        var v=DataTypes[k];
-        var name=k.toLowerCase();
-        paths.push(new DataPath(api_define_datalist(name, v), name, "datalists.items["+v+"]", false));
-    }
-    DataLibStruct = new DataStruct(paths);
-    return DataLibStruct;
-  }
-  api_define_datalib();
-  window.DataLibStruct2 = DataLibStruct;
-  var AppStateStruct=undefined;
-  function api_define_appstate() {
-    var sel_multiple_mode=new BoolProperty(false, "select_multiple", "Multiple", "Select multiple elements");
-    var sel_inverse_mode=new BoolProperty(false, "select_inverse", "Deselect", "Deselect Elements");
-    AppStateStruct = new DataStruct([new DataPath(sel_multiple_mode, "select_multiple", "select_multiple", true), new DataPath(sel_inverse_mode, "select_inverse", "select_inverse", true)]);
-    return AppStateStruct;
-  }
-  function get_tool_struct(tool) {
-    OpStackArray.flag|=DataFlags.RECALC_CACHE;
-    if (tool.apistruct!=undefined) {
-        tool.apistruct.flag|=DataFlags.RECALC_CACHE;
-        return tool.apistruct;
-    }
-    tool.apistruct = g_app_state.toolstack.gen_tool_datastruct(tool);
-    tool.apistruct.flag|=DataFlags.RECALC_CACHE;
-    return tool.apistruct;
-  }
-  get_tool_struct = _es6_module.add_export('get_tool_struct', get_tool_struct);
-  var OpStackArray=new DataStructArray(get_tool_struct, function getitempath(key) {
-    return "["+key+"]";
-  }, function getitem(key) {
-    return g_app_state.toolstack.undostack[key];
-  }, function getiter() {
-    return g_app_state.toolstack.undostack[Symbol.iterator]();
-  }, function getkeyiter() {
-    function range(len) {
-      var __gen_this2=this;
-      function _generator_iter() {
-        this.scope = {len_0: len, i_1: undefined}
-        this.ret = {done: false, value: undefined}
-        this.state = 1;
-        this.trystack = [];
-        this.next = function() {
-          var ret;
-          var stack=this.trystack;
-          try {
-            ret = this._next();
-          }
-          catch (err) {
-              if (stack.length>0) {
-                  var item=stack.pop(stack.length-1);
-                  this.state = item[0];
-                  this.scope[item[1]] = err;
-                  return this.next();
-              }
-              else {
-                throw err;
-              }
-          }
-          return ret;
-        }
-        this.push_trystack = function(catchstate, catchvar) {
-          this.trystack.push([catchstate, catchvar]);
-        }
-        this.pop_trystack = function() {
-          this.trystack.pop(this.trystack.length-1);
-        }
-        this._next = function() {
-          var $__ret=undefined;
-          var $__state=this.state;
-          var scope=this.scope;
-          while ($__state<5) {
-            switch ($__state) {
-              case 0:
-                break;
-              case 1:
-                scope.i_1=0;
-                
-                $__state = 2;
-                break;
-              case 2:
-                $__state = (scope.i_1<scope.len_0) ? 3 : 5;
-                break;
-              case 3:
-                $__ret = this.ret;
-                $__ret.value = scope.i_1;
-                
-                $__state = 4;
-                break;
-              case 4:
-                scope.i_1++;
-                
-                $__state = 2;
-                break;
-              case 5:
-                break;
-              default:
-                console.log("Generator state error");
-                console.trace();
-                break;
-            }
-            if ($__ret!=undefined) {
-                break;
-            }
-          }
-          if ($__ret!=undefined) {
-              this.ret.value = $__ret.value;
-          }
-          else {
-            this.ret.done = true;
-            this.ret.value = undefined;
-          }
-          this.state = $__state;
-          return this.ret;
-        }
-        this[Symbol.iterator] = function() {
-          return this;
-        }
-        this.forEach = function(callback, thisvar) {
-          if (thisvar==undefined)
-            thisvar = self;
-          var _i=0;
-          while (1) {
-            var ret=this.next();
-            if (ret==undefined||ret.done||(ret._ret!=undefined&&ret._ret.done))
-              break;
-            callback.call(thisvar, ret.value);
-            if (_i++>100) {
-                console.log("inf loop", ret);
-                break;
-            }
-          }
-        }
-      }
-      return new _generator_iter();
-    }
-    return range(g_app_state.toolstack.undostack.length)[Symbol.iterator]();
-  }, function getlength() {
-    return g_app_state.toolstack.undostack.length;
-  });
-  ContextStruct = undefined;
-  window.test_range = function range(len) {
-    var __gen_this2=this;
-    function _generator_iter() {
-      this.scope = {len_0: len, i_1: undefined}
-      this.ret = {done: false, value: undefined}
-      this.state = 1;
-      this.trystack = [];
-      this.next = function() {
-        var ret;
-        var stack=this.trystack;
-        try {
-          ret = this._next();
-        }
-        catch (err) {
-            if (stack.length>0) {
-                var item=stack.pop(stack.length-1);
-                this.state = item[0];
-                this.scope[item[1]] = err;
-                return this.next();
-            }
-            else {
-              throw err;
-            }
-        }
-        return ret;
-      }
-      this.push_trystack = function(catchstate, catchvar) {
-        this.trystack.push([catchstate, catchvar]);
-      }
-      this.pop_trystack = function() {
-        this.trystack.pop(this.trystack.length-1);
-      }
-      this._next = function() {
-        var $__ret=undefined;
-        var $__state=this.state;
-        var scope=this.scope;
-        while ($__state<5) {
-          switch ($__state) {
-            case 0:
-              break;
-            case 1:
-              scope.i_1=0;
-              
-              $__state = 2;
-              break;
-            case 2:
-              $__state = (scope.i_1<scope.len_0) ? 3 : 5;
-              break;
-            case 3:
-              $__ret = this.ret;
-              $__ret.value = scope.i_1;
-              
-              $__state = 4;
-              break;
-            case 4:
-              scope.i_1++;
-              
-              $__state = 2;
-              break;
-            case 5:
-              break;
-            default:
-              console.log("Generator state error");
-              console.trace();
-              break;
-          }
-          if ($__ret!=undefined) {
-              break;
-          }
-        }
-        if ($__ret!=undefined) {
-            this.ret.value = $__ret.value;
-        }
-        else {
-          this.ret.done = true;
-          this.ret.value = undefined;
-        }
-        this.state = $__state;
-        return this.ret;
-      }
-      this[Symbol.iterator] = function() {
-        return this;
-      }
-      this.forEach = function(callback, thisvar) {
-        if (thisvar==undefined)
-          thisvar = self;
-        var _i=0;
-        while (1) {
-          var ret=this.next();
-          if (ret==undefined||ret.done||(ret._ret!=undefined&&ret._ret.done))
-            break;
-          callback.call(thisvar, ret.value);
-          if (_i++>100) {
-              console.log("inf loop", ret);
-              break;
-          }
-        }
-      }
-    }
-    return new _generator_iter();
-  }
-  window.api_define_context = function() {
-    ContextStruct = new DataStruct([new DataPath(api_define_view2d(), "view2d", "ctx.view2d", true), new DataPath(api_define_dopesheet(), "dopesheet", "ctx.dopesheet", true), new DataPath(api_define_editcurve(), "editcurve", "ctx.editcurve", true), new DataPath(api_define_frameset(), "frameset", "ctx.frameset", true), new DataPath(api_define_seditor(), "settings_editor", "ctx.settings_editor", false), new DataPath(api_define_settings(), "settings", "ctx.appstate.session.settings", false), new DataPath(api_define_object(), "object", "ctx.object", false), new DataPath(api_define_scene(), "scene", "ctx.scene", false), new DataPath(new DataStruct([]), "last_tool", "", false, false, DataFlags.RECALC_CACHE), new DataPath(api_define_appstate(), "appstate", "ctx.appstate", false), new DataPath(OpStackArray, "operator_stack", "ctx.appstate.toolstack.undostack", false, true, DataFlags.RECALC_CACHE), new DataPath(api_define_theme(), "theme", "g_theme", false), new DataPath(api_define_spline(), "spline", "ctx.spline", false), new DataPath(api_define_datalib(), "datalib", "ctx.datalib", false), new DataPath(api_define_opseditor(), "opseditor", "ctx.opseditor", false)]);
-  }
-  function gen_path_maps(strct, obj, path1, path2) {
-    if (obj==undefined)
-      obj = {}
-    if (path1==undefined) {
-        path1 = "";
-        path2 = "";
-    }
-    if (path1!="")
-      obj[path1] = strct;
-    for (var p in strct.paths) {
-        if (!(__instance_of(p.data, DataStruct))) {
-            if (p.use_path) {
-                obj[path1+"."+p.path] = "r = "+path2+"."+p.path+"; obj["+path1+"].pathmap["+p.path+"]";
-            }
-            else {
-              obj[path1+"."+p.path] = "r = undefined; obj["+path1+"].pathmap["+p.path+"]";
-            }
-        }
-        else {
-          gen_path_maps(p, obj, path1+p.name, path2+p.path);
-        }
-    }
-  }
-  gen_path_maps = _es6_module.add_export('gen_path_maps', gen_path_maps);
-}, '/dev/fairmotion/src/core/data_api_define.js');
-var data_ops_list;
-es6_module_define('data_api_opdefine', ["spline_animops", "toolops_api", "transform", "spline_layerops", "../editors/viewport/spline_editops", "dialogs", "theplatform", "safe_eval", "FrameManager", "spline_createops", "spline_selectops", "spline_editops", "FrameManager_ops", "view2d_ops", "image_ops", "view2d_spline_ops", "view2d_editor", "view2d"], function _data_api_opdefine_module(_es6_module) {
-  var FileDialog=es6_import_item(_es6_module, 'dialogs', 'FileDialog');
-  var FileOpenOp=es6_import_item(_es6_module, 'dialogs', 'FileOpenOp');
-  var FileSaveAsOp=es6_import_item(_es6_module, 'dialogs', 'FileSaveAsOp');
-  var FileNewOp=es6_import_item(_es6_module, 'dialogs', 'FileNewOp');
-  var FileSaveOp=es6_import_item(_es6_module, 'dialogs', 'FileSaveOp');
-  var ProgressDialog=es6_import_item(_es6_module, 'dialogs', 'ProgressDialog');
-  var LoginDialog=es6_import_item(_es6_module, 'dialogs', 'LoginDialog');
-  var FileSaveSVGOp=es6_import_item(_es6_module, 'dialogs', 'FileSaveSVGOp');
-  var FileSaveB64Op=es6_import_item(_es6_module, 'dialogs', 'FileSaveB64Op');
-  var FileDialog=es6_import_item(_es6_module, 'dialogs', 'FileDialog');
-  var error_dialog=es6_import_item(_es6_module, 'dialogs', 'error_dialog');
-  var import_json=es6_import_item(_es6_module, 'dialogs', 'import_json');
-  var download_file=es6_import_item(_es6_module, 'dialogs', 'download_file');
-  var FileOpenRecentOp=es6_import_item(_es6_module, 'dialogs', 'FileOpenRecentOp');
-  var LoadImageOp=es6_import_item(_es6_module, 'image_ops', 'LoadImageOp');
-  var DeleteVertOp=es6_import_item(_es6_module, 'spline_editops', 'DeleteVertOp');
-  var DeleteSegmentOp=es6_import_item(_es6_module, 'spline_editops', 'DeleteSegmentOp');
-  var DeleteFaceOp=es6_import_item(_es6_module, 'spline_editops', 'DeleteFaceOp');
-  var ChangeFaceZ=es6_import_item(_es6_module, 'spline_editops', 'ChangeFaceZ');
-  var SplitEdgeOp=es6_import_item(_es6_module, 'spline_editops', 'SplitEdgeOp');
-  var DuplicateOp=es6_import_item(_es6_module, 'spline_editops', 'DuplicateOp');
-  var DisconnectHandlesOp=es6_import_item(_es6_module, 'spline_editops', 'DisconnectHandlesOp');
-  var SplitEdgePickOp=es6_import_item(_es6_module, 'spline_editops', 'SplitEdgePickOp');
-  var ToolOp=es6_import_item(_es6_module, 'toolops_api', 'ToolOp');
-  var ToolMacro=es6_import_item(_es6_module, 'toolops_api', 'ToolMacro');
-  var ToolFlags=es6_import_item(_es6_module, 'toolops_api', 'ToolFlags');
-  var UndoFlags=es6_import_item(_es6_module, 'toolops_api', 'UndoFlags');
-  var EditModes=es6_import_item(_es6_module, 'view2d', 'EditModes');
-  var transform=es6_import(_es6_module, 'transform');
-  var spline_selectops=es6_import(_es6_module, 'spline_selectops');
-  var spline_createops=es6_import(_es6_module, 'spline_createops');
-  var spline_editops=es6_import(_es6_module, 'spline_editops');
-  var spline_animops=es6_import(_es6_module, 'spline_animops');
-  var spline_layerops=es6_import(_es6_module, 'spline_layerops');
-  var FrameManager=es6_import(_es6_module, 'FrameManager');
-  var FrameManager_ops=es6_import(_es6_module, 'FrameManager_ops');
-  var safe_eval=es6_import(_es6_module, 'safe_eval');
-  var TransSplineVert=es6_import_item(_es6_module, 'transform', 'TransSplineVert');
-  var TransData=es6_import_item(_es6_module, 'transform', 'TransData');
-  var TransformOp=es6_import_item(_es6_module, 'transform', 'TransformOp');
-  var TranslateOp=es6_import_item(_es6_module, 'transform', 'TranslateOp');
-  var ScaleOp=es6_import_item(_es6_module, 'transform', 'ScaleOp');
-  var RotateOp=es6_import_item(_es6_module, 'transform', 'RotateOp');
-  var SelectOpBase=es6_import_item(_es6_module, 'spline_selectops', 'SelectOpBase');
-  var SelectOneOp=es6_import_item(_es6_module, 'spline_selectops', 'SelectOneOp');
-  var ToggleSelectAllOp=es6_import_item(_es6_module, 'spline_selectops', 'ToggleSelectAllOp');
-  var SelectLinkedOp=es6_import_item(_es6_module, 'spline_selectops', 'SelectLinkedOp');
-  var HideOp=es6_import_item(_es6_module, 'spline_selectops', 'HideOp');
-  var UnhideOp=es6_import_item(_es6_module, 'spline_selectops', 'UnhideOp');
-  var CircleSelectOp=es6_import_item(_es6_module, 'spline_selectops', 'CircleSelectOp');
-  var ExtrudeModes=es6_import_item(_es6_module, 'spline_createops', 'ExtrudeModes');
-  var ExtrudeVertOp=es6_import_item(_es6_module, 'spline_createops', 'ExtrudeVertOp');
-  var CreateEdgeOp=es6_import_item(_es6_module, 'spline_createops', 'CreateEdgeOp');
-  var CreateEdgeFaceOp=es6_import_item(_es6_module, 'spline_createops', 'CreateEdgeFaceOp');
-  var ImportJSONOp=es6_import_item(_es6_module, 'spline_createops', 'ImportJSONOp');
-  var KeyCurrentFrame=es6_import_item(_es6_module, 'spline_editops', 'KeyCurrentFrame');
-  var ShiftLayerOrderOp=es6_import_item(_es6_module, 'spline_editops', 'ShiftLayerOrderOp');
-  var SplineGlobalToolOp=es6_import_item(_es6_module, 'spline_editops', 'SplineGlobalToolOp');
-  var SplineLocalToolOp=es6_import_item(_es6_module, 'spline_editops', 'SplineLocalToolOp');
-  var KeyEdgesOp=es6_import_item(_es6_module, 'spline_editops', 'KeyEdgesOp');
-  var CopyPoseOp=es6_import_item(_es6_module, 'spline_editops', 'CopyPoseOp');
-  var PastePoseOp=es6_import_item(_es6_module, 'spline_editops', 'PastePoseOp');
-  var InterpStepModeOp=es6_import_item(_es6_module, 'spline_editops', 'InterpStepModeOp');
-  var DeleteVertOp=es6_import_item(_es6_module, 'spline_editops', 'DeleteVertOp');
-  var DeleteSegmentOp=es6_import_item(_es6_module, 'spline_editops', 'DeleteSegmentOp');
-  var DeleteFaceOp=es6_import_item(_es6_module, 'spline_editops', 'DeleteFaceOp');
-  var ChangeFaceZ=es6_import_item(_es6_module, 'spline_editops', 'ChangeFaceZ');
-  var DissolveVertOp=es6_import_item(_es6_module, 'spline_editops', 'DissolveVertOp');
-  var SplitEdgeOp=es6_import_item(_es6_module, 'spline_editops', 'SplitEdgeOp');
-  var VertPropertyBaseOp=es6_import_item(_es6_module, 'spline_editops', 'VertPropertyBaseOp');
-  var ToggleBreakTanOp=es6_import_item(_es6_module, 'spline_editops', 'ToggleBreakTanOp');
-  var ToggleBreakCurvOp=es6_import_item(_es6_module, 'spline_editops', 'ToggleBreakCurvOp');
-  var ConnectHandlesOp=es6_import_item(_es6_module, 'spline_editops', 'ConnectHandlesOp');
-  var DisconnectHandlesOp=es6_import_item(_es6_module, 'spline_editops', 'DisconnectHandlesOp');
-  var AnimPlaybackOp=es6_import_item(_es6_module, 'spline_editops', 'AnimPlaybackOp');
-  var ToggleManualHandlesOp=es6_import_item(_es6_module, 'spline_editops', 'ToggleManualHandlesOp');
-  var ShiftTimeOp=es6_import_item(_es6_module, 'spline_editops', 'ShiftTimeOp');
-  var DuplicateOp=es6_import_item(_es6_module, 'spline_editops', 'DuplicateOp');
-  var SplineMirrorOp=es6_import_item(_es6_module, 'spline_editops', 'SplineMirrorOp');
-  var AddLayerOp=es6_import_item(_es6_module, 'spline_layerops', 'AddLayerOp');
-  var ChangeLayerOp=es6_import_item(_es6_module, 'spline_layerops', 'ChangeLayerOp');
-  var ChangeElementLayerOp=es6_import_item(_es6_module, 'spline_layerops', 'ChangeElementLayerOp');
-  var SplitAreasTool=es6_import_item(_es6_module, 'FrameManager_ops', 'SplitAreasTool');
-  var CollapseAreasTool=es6_import_item(_es6_module, 'FrameManager_ops', 'CollapseAreasTool');
-  var HintPickerOpElement=es6_import_item(_es6_module, 'FrameManager_ops', 'HintPickerOpElement');
-  var HintPickerOp=es6_import_item(_es6_module, 'FrameManager_ops', 'HintPickerOp');
-  var RenderAnimOp=es6_import_item(_es6_module, 'view2d_spline_ops', 'RenderAnimOp');
-  var PlayAnimOp=es6_import_item(_es6_module, 'view2d_spline_ops', 'PlayAnimOp');
-  var SessionFlags=es6_import_item(_es6_module, 'view2d_editor', 'SessionFlags');
-  var ExportCanvasImage=es6_import_item(_es6_module, 'view2d_ops', 'ExportCanvasImage');
-  var theplatform=es6_import(_es6_module, 'theplatform');
-  var SplitEdgePickOp=es6_import_item(_es6_module, '../editors/viewport/spline_editops', 'SplitEdgePickOp');
-  var QuitFileOp=_ESClass("QuitFileOp", ToolOp, [_ESClass.static(function tooldef() {
-    return {uiname: "Quit", apiname: "appstate.quit", is_modal: true, inputs: {}, outputs: {}, undoflag: UndoFlags.IGNORE_UNDO}
-  }), function start_modal(ctx) {
-    ToolOp.prototype.start_modal.call(this, ctx);
-    this.end_modal(ctx);
-    theplatform.app.quit_app();
-  }, function QuitFileOp() {
-    ToolOp.apply(this, arguments);
-  }]);
-  _es6_module.add_class(QuitFileOp);
-  data_ops_list = undefined;
-  window.api_define_ops = function() {
-    data_ops_list = {"mesh.subdivide": function(ctx, args) {
-      if (!("faces" in args))
-        throw TinyParserError;
-      return new MeshToolOp(new QuadSubdOp(args["faces"], 1));
-    }, "mesh.inset": function(ctx, args) {
-      if (!("faces" in args))
-        throw TinyParserError;
-      return new MeshToolOp(new InsetRegionsOp(args["faces"]));
-    }, "mesh.vertsmooth": function(ctx, args) {
-      if (!("verts" in args))
-        throw TinyParserError;
-      return new MeshToolOp(new VertSmoothOp(args["verts"]));
-    }, "spline.add_layer": function(ctx, args) {
-      return new AddLayerOp(args.name);
-    }, "spline.change_face_z": function(ctx, args) {
-      if (!("offset" in args))
-        throw new TinyParserError();
-      return new ChangeFaceZ(parseInt(args["offset"]), parseInt(args["selmode"]));
-    }, "spline.toggle_break_curvature": function(ctx, args) {
-      return new ToggleBreakCurvOp();
-    }, "spline.toggle_break_tangents": function(ctx, args) {
-      return new ToggleBreakTanOp();
-    }, "spline.translate": function(ctx, args) {
-      var op=new TranslateOp(EditModes.GEOMETRY, ctx.object);
-      if ("datamode" in args) {
-          op.inputs.datamode.set_data(args["datamode"]);
-      }
-      op.inputs.edit_all_layers.set_data(ctx.view2d.edit_all_layers);
-      console.log("=====", args, ctx.view2d.session_flag, ctx.view2d.propradius);
-      if (ctx.view2d.session_flag&SessionFlags.PROP_TRANSFORM) {
-          op.inputs.proportional.set_data(true);
-          op.inputs.propradius.set_data(ctx.view2d.propradius);
-      }
-      return op;
-    }, "spline.rotate": function(ctx, args) {
-      var op=new RotateOp(EditModes.GEOMETRY, ctx.object);
-      if ("datamode" in args) {
-          op.inputs.datamode.set_data(args["datamode"]);
-      }
-      op.inputs.edit_all_layers.set_data(ctx.view2d.edit_all_layers);
-      if (ctx.view2d.session_flag&SessionFlags.PROP_TRANSFORM) {
-          op.inputs.proportional.set_data(true);
-          op.inputs.propradius.set_data(ctx.view2d.propradius);
-      }
-      return op;
-    }, "spline.scale": function(ctx, args) {
-      var op=new ScaleOp(EditModes.GEOMETRY, ctx.object);
-      if ("datamode" in args) {
-          op.inputs.datamode.set_data(args["datamode"]);
-      }
-      op.inputs.edit_all_layers.set_data(ctx.view2d.edit_all_layers);
-      if (ctx.view2d.session_flag&SessionFlags.PROP_TRANSFORM) {
-          op.inputs.proportional.set_data(true);
-          op.inputs.propradius.set_data(ctx.view2d.propradius);
-      }
-      return op;
-    }, "spline.key_edges": function(ctx, args) {
-      return new KeyEdgesOp();
-    }, "view2d.export_image": function(ctx, args) {
-      return new ExportCanvasImage();
-    }, "editor.copy_pose": function(ctx, args) {
-      return new CopyPoseOp();
-    }, "editor.paste_pose": function(ctx, args) {
-      return new PastePoseOp();
-    }, "editor.playback": function(ctx, args) {
-      return new AnimPlaybackOp();
-    }, "spline.key_current_frame": function(ctx, args) {
-      return new KeyCurrentFrame();
-    }, "spline.shift_time": function(ctx, args) {
-      return new ShiftTimeOp();
-    }, "spline.delete_faces": function(ctx, args) {
-      return new DeleteFaceOp();
-    }, "spline.toggle_manual_handles": function(ctx, args) {
-      return new ToggleManualHandlesOp();
-    }, "spline.delete_segments": function(ctx, args) {
-      return new DeleteSegmentOp();
-    }, "spline.delete_verts": function(ctx, args) {
-      return new DeleteVertOp();
-    }, "spline.dissolve_verts": function(ctx, args) {
-      return new DissolveVertOp();
-    }, "spline.make_edge": function(ctx, args) {
-      return new CreateEdgeOp(ctx.view2d.default_linewidth);
-    }, "spline.make_edge_face": function(ctx, args) {
-      return new CreateEdgeFaceOp(ctx.view2d.default_linewidth);
-    }, "spline.split_edges": function(ctx, args) {
-      return new SplitEdgeOp();
-    }, "spline.split_pick_edge": function(ctx, args) {
-      return new SplitEdgePickOp();
-    }, "spline.toggle_step_mode": function(ctx, args) {
-      return new InterpStepModeOp();
-    }, "spline.mirror_verts": function(ctx, args) {
-      return new SplineMirrorOp();
-    }, "spline.duplicate_transform": function(ctx, args) {
-      var tool=new DuplicateOp();
-      var macro=new ToolMacro("duplicate_transform", "Duplicate");
-      macro.description = tool.description;
-      macro.add_tool(tool);
-      macro.icon = tool.icon;
-      var transop=new TranslateOp(ctx.view2d.mpos, 1|2);
-      macro.add_tool(transop);
-      return macro;
-    }, "spline.toggle_select_all": function(ctx, args) {
-      var op=new ToggleSelectAllOp();
-      return op;
-    }, "spline.connect_handles": function(ctx, args) {
-      return new ConnectHandlesOp();
-    }, "spline.disconnect_handles": function(ctx, args) {
-      return new DisconnectHandlesOp();
-    }, "spline.hide": function(ctx, args) {
-      return new HideOp(args.selmode, args.ghost);
-    }, "spline.unhide": function(ctx, args) {
-      return new UnhideOp(args.selmode, args.ghost);
-    }, "image.load_image": function(ctx, args) {
-      return new LoadImageOp(args.datapath, args.name);
-    }, "spline.select_linked": function(ctx, args) {
-      if (!("vertex_eid" in args)) {
-          throw new Error("need a vertex_eid argument");
-      }
-      var op=new SelectLinkedOp();
-      op.inputs.vertex_eid.set_data(args.vertex_eid);
-      return op;
-    }, "view2d.circle_select": function(ctx, args) {
-      return new CircleSelectOp(ctx.view2d.selectmode);
-    }, "view2d.render_anim": function(Ctx, args) {
-      return new RenderAnimOp();
-    }, "view2d.play_anim": function(Ctx, args) {
-      return new PlayAnimOp();
-    }, "appstate.open": function(ctx, args) {
-      return new FileOpenOp();
-    }, "appstate.open_recent": function(ctx, args) {
-      return new FileOpenRecentOp();
-    }, "appstate.export_svg": function(ctx, args) {
-      return new FileSaveSVGOp();
-    }, "appstate.export_al3_b64": function(ctx, args) {
-      return new FileSaveB64Op();
-    }, "appstate.save": function(ctx, args) {
-      return new FileSaveOp();
-    }, "appstate.save_as": function(ctx, args) {
-      return new FileSaveAsOp();
-    }, "appstate.new": function(ctx, args) {
-      return new FileNewOp();
-    }, "appstate.quit": function(ctx, args) {
-      return new QuitFileOp();
-    }, "screen.area_split_tool": function(ctx, args) {
-      return new SplitAreasTool(g_app_state.screen);
-    }, "screen.hint_picker": function(ctx, args) {
-      return new HintPickerOp();
-    }, "object.toggle_select_all": function(ctx, args) {
-      return new ToggleSelectObjOp("auto");
-    }, "object.translate": function(ctx, args) {
-      return new TranslateOp(EditModes.OBJECT, ctx.object);
-    }, "object.rotate": function(ctx, args) {
-      return new RotateOp(EditModes.OBJECT);
-    }, "object.scale": function(ctx, args) {
-      return new ScaleOp(EditModes.OBJECT);
-    }, "object.duplicate": function(ctx, args) {
-      return new ObjectDuplicateOp(ctx.scene.objects.selected);
-    }, "object.set_parent": function(ctx, args) {
-      var op=new ObjectParentOp();
-      op.flag|=ToolFlags.USE_DEFAULT_INPUT;
-      return op;
-    }, "object.delete_selected": function(ctx, args) {
-      var op=new ObjectDeleteOp();
-      op.flag|=ToolFlags.USE_DEFAULT_INPUT;
-      return op;
-    }}
-  }
-}, '/dev/fairmotion/src/core/data_api_opdefine.js');
+}, '/home/ec2-user/fairmotion/src/editors/settings/SettingsEditor.js');

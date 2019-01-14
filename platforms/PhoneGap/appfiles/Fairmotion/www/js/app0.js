@@ -149,7 +149,7 @@ es6_module_define('object_cache', [], function _object_cache_module(_es6_module)
     ret.value = undefined;
     return ret;
   }
-}, '/dev/fairmotion/src/util/object_cache.js');
+}, '/home/ec2-user/fairmotion/src/util/object_cache.js');
 "not_a_module";
 var CryptoJS=CryptoJS||(function(Math, undefined) {
   var C={}
@@ -1280,9 +1280,27 @@ if (typeof module!=='undefined'&&module!=null) {
 es6_module_define('startup_file', [], function _startup_file_module(_es6_module) {
   "use strict";
   window.startup_file_str = "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";
-}, '/dev/fairmotion/src/core/startup_file.js');
+}, '/home/ec2-user/fairmotion/src/core/startup_file.js');
 "not_a_module";
+window.init_redraw_globals_2 = function init_redraw_globals() {
+  let eventmanager=es6_get_module_meta(_rootpath_src+"/core/eventmanager.js").exports;
+  let eman=eventmanager.manager;
+  eman.addEventListener("draw", (e) => requestAnimationFrame(e.callback[0]));
+};
 window.init_redraw_globals = function init_redraw_globals() {
+  let eventmanager=es6_get_module_meta(_rootpath_src+"/core/eventmanager.js").exports;
+  let eman=eventmanager.manager;
+  let _req_idgen=1;
+  function myrequestAnimationFrame(func1) {
+    let id=_req_idgen++;
+    if (!eman.ready) {
+        requestAnimationFrame(func1);
+    }
+    else {
+      window.setTimeout(() => eman.fireEvent("draw", {type: "draw", callback: [func1]}), 1);
+    }
+    return id;
+  }
   window.redraw_rect_combined = [new Vector3(), new Vector3()];
   window.redraw_rect = [new Vector3(), new Vector3()];
   window.last_redraw_rect = [new Vector3(), new Vector3()];
@@ -1344,7 +1362,7 @@ window.init_redraw_globals = function init_redraw_globals() {
     if (block_ui_draw)
       return ;
     if (animreq_ui==undefined) {
-        animreq_ui = window.requestAnimationFrame(function() {
+        animreq_ui = myrequestAnimationFrame(function() {
           animreq_ui = undefined;
           if (DEBUG.ui_redraw)
             console.log("ui frame");
@@ -1441,27 +1459,24 @@ window.init_redraw_globals = function init_redraw_globals() {
       r.push(-w), r.push(-w), r.push(w), r.push(w);
     }
     if (animreq==undefined) {
-        var $_Hiiuawthis_1=this;
-        redraw_viewport_promise = new Promise(function(accept, reject) {
-          animreq = window.requestAnimationFrame(function() {
-            animreq = undefined;
-            var rects=workcanvas_redraw_rects;
-            workcanvas_redraw_rects = workcanvas_redraw_rects2;
-            workcanvas_redraw_rects.length = 0;
-            workcanvas_redraw_rects2 = rects;
-            for (var i=0; i<window.g_app_state.screen.children.length; i++) {
-                var c=window.g_app_state.screen.children[i];
-                var is_viewport=c.constructor.name=="ScreenArea"&&c.area.constructor.name=="View2DHandler";
-                if (is_viewport) {
-                    var old=window.g_app_state.active_view2d;
-                    window.g_app_state.active_view2d = c.area;
-                    c.area.do_draw_viewport(rects);
-                    window.g_app_state.active_view2d = old;
-                    accept();
-                }
-            }
-          });
-        });
+        redraw_viewport_promise = new Promise((accept, reject) => animreq = myrequestAnimationFrame(function() {
+animreq = undefined;
+var rects=workcanvas_redraw_rects;
+workcanvas_redraw_rects = workcanvas_redraw_rects2;
+workcanvas_redraw_rects.length = 0;
+workcanvas_redraw_rects2 = rects;
+for (var i=0; i<window.g_app_state.screen.children.length; i++) {
+    var c=window.g_app_state.screen.children[i];
+    var is_viewport=c.constructor.name=="ScreenArea"&&c.area.constructor.name=="View2DHandler";
+    if (is_viewport) {
+        var old=window.g_app_state.active_view2d;
+        window.g_app_state.active_view2d = c.area;
+        c.area.do_draw_viewport(rects);
+        window.g_app_state.active_view2d = old;
+        accept();
+    }
+}
+}));
         return redraw_viewport_promise;
     }
     else {
@@ -1524,7 +1539,7 @@ window.init_redraw_globals = function init_redraw_globals() {
         }
     }
     if (animreq==undefined) {
-        animreq = window.requestAnimationFrame(function() {
+        animreq = myrequestAnimationFrame(function() {
           animreq = undefined;
           for (var i=0; i<window.g_app_state.screen.children.length; i++) {
               var c=window.g_app_state.screen.children[i];
@@ -1613,7 +1628,9 @@ var MyLocalStorage_LS=_ESClass("MyLocalStorage_LS", [function set(key, val) {
   return localStorage[key];
 }, function getAsync(key) {
   return new Promise(function(accept, reject) {
-    accept(localStorage[key]);
+    if (key in localStorage&&localStorage[key]!==undefined) {
+        accept(localStorage[key]);
+    }
   });
 }, function hasCached(key) {
   return key in localStorage;
@@ -1710,9 +1727,12 @@ window.startup_intern = function startup() {
       gen_default_file([canvas.clientWidth, canvas.clientHeight]);
       g_app_state.session.validate_session();
       init_event_system();
+      init_redraw_globals_2();
   }
 };
 function init_event_system() {
+  let eventmanager=es6_get_module_meta(_rootpath_src+"/core/eventmanager.js").exports;
+  let eman=eventmanager.manager;
   window._stime = 10;
   window.setInterval(function() {
     if (window.skip_draw)
@@ -2005,20 +2025,21 @@ function init_event_system() {
     }
   }
   var ce=document.getElementById("canvas2d_work");
-  ce.addEventListener("mousemove", handleMouseMove, false);
-  ce.addEventListener("mousedown", handleMouseDown, false);
-  ce.addEventListener("touchstart", handleTouchDown, false);
-  ce.addEventListener("touchmove", handleTouchMove, false);
-  ce.addEventListener("mouseup", handleMouseUp, false);
-  ce.addEventListener("touchend", handleTouchUp, false);
-  ce.addEventListener("touchcancel", handleTouchCancel, false);
-  window.addEventListener("DOMMouseScroll", handleMouseWheel, false);
-  window.addEventListener("mousewheel", handleMouseWheel, false);
-  document.addEventListener("keydown", handleKeyDown, false);
-  document.addEventListener("keyup", handleKeyUp, false);
-  document.addEventListener("keypress", handleKeyPress, false);
-  document.addEventListener("textinput", handleTextInput);
-  document.addEventListener("input", handleTextInput);
+  eman.init(ce);
+  eman.addEventListener("mousemove", handleMouseMove, false);
+  eman.addEventListener("mousedown", handleMouseDown, false);
+  eman.addEventListener("touchstart", handleTouchDown, false);
+  eman.addEventListener("touchmove", handleTouchMove, false);
+  eman.addEventListener("mouseup", handleMouseUp, false);
+  eman.addEventListener("touchend", handleTouchUp, false);
+  eman.addEventListener("touchcancel", handleTouchCancel, false);
+  eman.addEventListener("DOMMouseScroll", handleMouseWheel, false);
+  eman.addEventListener("mousewheel", handleMouseWheel, false);
+  eman.addEventListener("keydown", handleKeyDown, false);
+  eman.addEventListener("keyup", handleKeyUp, false);
+  eman.addEventListener("keypress", handleKeyPress, false);
+  eman.addEventListener("textinput", handleTextInput);
+  eman.addEventListener("input", handleTextInput);
 }
 es6_module_define('safe_eval', ["parseutil"], function _safe_eval_module(_es6_module) {
   "use strict";
@@ -2828,7 +2849,7 @@ es6_module_define('safe_eval', ["parseutil"], function _safe_eval_module(_es6_mo
     return exec(ast, scope);
   }
   safe_eval = _es6_module.add_export('safe_eval', safe_eval);
-}, '/dev/fairmotion/src/core/safe_eval.js');
+}, '/home/ec2-user/fairmotion/src/core/safe_eval.js');
 es6_module_define('esprima', [], function _esprima_module(_es6_module) {
   (function(root, factory) {
     'use strict';
@@ -7022,11 +7043,217 @@ es6_module_define('esprima', [], function _esprima_module(_es6_module) {
       return types;
     }());
   }));
-}, '/dev/fairmotion/tools/utils/libs/node_modules/esprima/esprima.js');
+}, '/home/ec2-user/fairmotion/tools/utils/libs/node_modules/esprima/esprima.js');
+es6_module_define('eventmanager', [], function _eventmanager_module(_es6_module) {
+  var types=["draw", "keydown", "keyup", "keypress", "input", "textinput", "resize", "context", "mousedown", "mouseup", "mousemove", "DOMMouseScroll", "mousewheel", "touchstart", "touchcancel", "touchdrag", "touchend", "touchmove"];
+  types = _es6_module.add_export('types', types);
+  let window_events=new Set(["keydown", "keyup", "keypress", "resize", "DOMMouseScroll", "mousewheel"]);
+  let document_events=new Set(["contextmenu", "selectstart", "input", "textinput"]);
+  let custom_events=new Set(["draw"]);
+  var EventHandler=_ESClass("EventHandler", [function pushModal(manager) {
+  }, function popModal(manager) {
+  }, function _on_mousedown() {
+  }, function _on_mouseup() {
+  }, function EventHandler() {
+  }]);
+  _es6_module.add_class(EventHandler);
+  EventHandler = _es6_module.add_export('EventHandler', EventHandler);
+  function copyEvent(event) {
+    let ret={stopped: false}
+    for (let k in event) {
+        let v=event[k];
+        let ok=typeof v=="number"||typeof v=="boolean"||typeof v=="object";
+        ok = ok||k.search("touch")>=0;
+        if (ok) {
+            ret[k] = v;
+        }
+    }
+    ret.stopPropagation = event.stopPropagation.bind(event);
+    ret.preventDefault = event.preventDefault.bind(event);
+    return ret;
+  }
+  copyEvent = _es6_module.add_export('copyEvent', copyEvent);
+  var EventManager=_ESClass("EventManager", [function EventManager() {
+    this.ready = false;
+    this.queue = [];
+    this._freeze = 0;
+    this.stacks = {}
+    this._callbacks = {}
+    this.queue = [];
+    this.modal_stack = {}
+    this.dom = undefined;
+  }, function pushModal(handler) {
+    let modal_data={keys: []}
+    let makecb=(type) =>      {
+      let key="_on_"+type;
+      return (e) =>        {
+        handler[key](e);
+        e.stopPropagation();
+        return true;
+      }
+    }
+    for (let k in this.stacks) {
+        let key="_on_"+k;
+        if (!(key in handler)) {
+            continue;
+        }
+        modal_data.keys.push(k);
+        this.addEventListener(k, makecb(k));
+    }
+    modal_data.owner = handler;
+    this.modal_stack.push(modal_data);
+  }, function popModal() {
+    if (this.modal_stack.length===0) {
+        console.warn("WARNING: double call to core/events.js:EventManager.prototype.popModal()");
+        return ;
+    }
+    let modal_data=this.modal_stack.pop();
+    var __iter_k=__get_iter(modal_data.keys);
+    var k;
+    while (1) {
+      var __ival_k=__iter_k.next();
+      if (__ival_k.done) {
+          break;
+      }
+      k = __ival_k.value;
+      this.popEventListener(k);
+    }
+  }, function freeze() {
+    this._freeze++;
+  }, function fireEvent(type, data) {
+    if (data===undefined) {
+        data = {};
+    }
+    data.type = type;
+    if (data.stopPropagation===undefined) {
+        data.stopPropagation = () =>          {        };
+    }
+    if (data.preventDefault===undefined) {
+        data.preventDefault = () =>          {        };
+    }
+    return this._callbacks[type](data);
+  }, function unfreeze() {
+    this._freeze = Math.max(this._freeze-1, 0);
+    if (!this._freeze) {
+        this._handleQueue();
+    }
+  }, function _handleQueue() {
+    let queue=this.queue;
+    this.queue = [];
+    for (let i=0; i<queue.length; i++) {
+        let e=queue[i];
+        let type=e._event_type;
+        let stack=this.stacks[type];
+        for (let i=stack.length-1; i>=0; i--) {
+            let ret;
+            try {
+              ret = stack[i](e);
+            }
+            catch (error) {
+                print_stack(error);
+                console.log("Error while processing an event in events.manager._handleQueue");
+                continue;
+            }
+            if (e.stopped) {
+                break;
+            }
+        }
+    }
+  }, function bindDom() {
+    let makecb=(type) =>      {
+      let stop=false;
+      function mystop() {
+        stop = true;
+        this.stopped = true;
+      }
+      return (e) =>        {
+        e = copyEvent(e);
+        if (this._freeze) {
+            e._event_type = type;
+            this.queue.push(e);
+            e.stopPropagation();
+            e.stopPropagation = () => e.stopped = true;
+            return true;
+        }
+        else {
+          this._handleQueue();
+        }
+        let sp=e.stopPropagation;
+        e.stopPropagation = mystop;
+        stop = false;
+        let stack=this.stacks[type], ret=0;
+        for (let i=stack.length-1; !stop&&i>=0; i--) {
+            ret = stack[i](e);
+        }
+        if (stop) {
+            sp();
+        }
+        return ret;
+      }
+    }
+    var __iter_type=__get_iter(types);
+    var type;
+    while (1) {
+      var __ival_type=__iter_type.next();
+      if (__ival_type.done) {
+          break;
+      }
+      type = __ival_type.value;
+      let dom=undefined;
+      if (window_events.has(type)) {
+          dom = window;
+      }
+      else 
+        if (document_events.has(type)) {
+          dom = document;
+      }
+      else {
+        dom = this.dom;
+      }
+      let cb=this._callbacks[type] = makecb(type);
+      if (!custom_events.has(type)) {
+          dom.addEventListener(type, makecb(type));
+      }
+    }
+  }, function popEventListener(type) {
+    return this.stacks[type].pop();
+  }, function removeEventListener(handler) {
+    if (handler===undefined||handler._event_type===undefined) {
+        throw new Error("invalid handler "+handler);
+    }
+    let type=handler._event_type;
+    this.stacks[type].remove(handler, false);
+  }, function addEventListener(type, handler) {
+    handler._event_type = type;
+    if (!(type in this.stacks)) {
+        console.warn("Invalid type", type, handler);
+        throw new Error("invalid type "+type);
+    }
+    this.stacks[type].push(handler);
+  }, function init(dom) {
+    this.dom = dom;
+    var __iter_k=__get_iter(types);
+    var k;
+    while (1) {
+      var __ival_k=__iter_k.next();
+      if (__ival_k.done) {
+          break;
+      }
+      k = __ival_k.value;
+      this.stacks[k] = [];
+    }
+    this.bindDom();
+    this.ready = true;
+  }]);
+  _es6_module.add_class(EventManager);
+  EventManager = _es6_module.add_export('EventManager', EventManager);
+  var manager=new EventManager();
+  manager = _es6_module.add_export('manager', manager);
+}, '/home/ec2-user/fairmotion/src/core/eventmanager.js');
 es6_module_define('icon_enum', [], function _icon_enum_module(_es6_module) {
   "use strict";
   window.Icons = {HFLIP: 0, TRANSLATE: 1, ROTATE: 2, HELP_PICKER: 3, UNDO: 4, REDO: 5, CIRCLE_SEL: 6, BACKSPACE: 7, LEFT_ARROW: 8, RIGHT_ARROW: 9, UI_EXPAND: 10, UI_COLLAPSE: 11, FILTER_SEL_OPS: 12, SCROLL_DOWN: 13, SCROLL_UP: 14, NOTE_EXCL: 15, TINY_X: 16, FOLDER: 17, FILE: 18, SMALL_PLUS: 19, SMALL_MINUS: 20, MAKE_SEGMENT: 21, MAKE_POLYGON: 22, FACE_MODE: 23, EDGE_MODE: 24, VERT_MODE: 25, CURSOR_ARROW: 26, TOGGLE_SEL_ALL: 27, DELETE: 28, RESIZE: 29, Z_UP: 30, Z_DOWN: 31, SPLIT_EDGE: 32, SHOW_ANIMPATHS: 33, UNCHECKED: 34, CHECKED: 35, ENUM_UNCHECKED: 36, ENUM_CHECKED: 37, APPEND_VERTEX: 38}
-}, '/dev/fairmotion/src/datafiles/icon_enum.js');
+}, '/home/ec2-user/fairmotion/src/datafiles/icon_enum.js');
 es6_module_define('J3DIMath', [], function _J3DIMath_module(_es6_module) {
   "use strict";
   var PI=Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor, ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos, asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
@@ -7058,8 +7285,8 @@ es6_module_define('J3DIMath', [], function _J3DIMath_module(_es6_module) {
     this.m21 = this.m22 = this.m23 = 0.0;
     this.m31 = this.m32 = this.m33 = 0.0;
   }
-  var $smatrix_Yzuz_scale;
-  var $smatrix_WbIG_translate;
+  var $smatrix_rsg0_scale;
+  var $smatrix__BKX_translate;
   var Matrix3=_ESClass("Matrix3", [function Matrix3(mat) {
     this.$matrix = new internal_matrix3();
     if (mat!=undefined) {
@@ -7088,17 +7315,17 @@ es6_module_define('J3DIMath', [], function _J3DIMath_module(_es6_module) {
     m.m11 = m.m22 = m.m33 = 1.0;
     return this;
   }, function scale(x, y) {
-    var m=$smatrix_Yzuz_scale.$matrix;
+    var m=$smatrix_rsg0_scale.$matrix;
     m.m11 = x;
     m.m22 = y;
-    this.multiply($smatrix_Yzuz_scale);
+    this.multiply($smatrix_rsg0_scale);
     return this;
   }, function translate(x, y) {
-    $smatrix_WbIG_translate.makeIdentity();
-    var m=$smatrix_WbIG_translate.$matrix;
+    $smatrix__BKX_translate.makeIdentity();
+    var m=$smatrix__BKX_translate.$matrix;
     m.m31 = x;
     m.m32 = y;
-    this.multiply($smatrix_WbIG_translate);
+    this.multiply($smatrix__BKX_translate);
     return this;
   }, function euler_rotate(x, y, z) {
     var xmat=new Matrix4();
@@ -7159,8 +7386,8 @@ es6_module_define('J3DIMath', [], function _J3DIMath_module(_es6_module) {
     m1.m33 = m33;
     return this;
   }]);
-  var $smatrix_Yzuz_scale={$matrix: {m11: 1, m12: 0, m13: 0, m21: 0, m22: 1, m23: 0, m31: 0, m32: 0, m33: 1}}
-  var $smatrix_WbIG_translate=new Matrix3();
+  var $smatrix_rsg0_scale={$matrix: {m11: 1, m12: 0, m13: 0, m21: 0, m22: 1, m23: 0, m31: 0, m32: 0, m33: 1}}
+  var $smatrix__BKX_translate=new Matrix3();
   _es6_module.add_class(Matrix3);
   var Matrix4=_ESClass("Matrix4", [function Matrix4(m) {
     if (HasCSSMatrix)
@@ -7875,27 +8102,27 @@ es6_module_define('J3DIMath', [], function _J3DIMath_module(_es6_module) {
       _temp_xyz_vecs.push(null);
   }
   var _temp_xyz_cur=0;
-  var $init_iEhK_Vector3;
-  var $_tmp_3Ixf_cross;
-  var $vec_ptav_vectorDistance;
-  var $vec_6Skf_vectorDotDistance;
-  var $add_U3in_static_add;
-  var $_static_sub_h34n_static_sub;
-  var $_static_mul_zzTs_static_mul;
-  var $_static_divide_A6So_static_divide;
-  var $_static_addScalar_9E8A_static_addScalar;
-  var $_static_subScalar_NkGj_static_subScalar;
-  var $_static_mulScalar_iemh_static_mulScalar;
-  var $_static_divideScalar_u9GY__static_divideScalar;
-  var $n1_oDyi_normalizedDot;
-  var $_v3nd4_n1_XfTD_normalizedDot4;
-  var $n1_bPcS_normalizedDot3;
-  var $n2_VUBT_normalizedDot;
-  var $_v3nd4_n2_xFnI_normalizedDot4;
-  var $n2_17wG_normalizedDot3;
+  var $init_I7uy_Vector3;
+  var $_tmp_3ZVX_cross;
+  var $vec_TnMp_vectorDistance;
+  var $vec_smWX_vectorDotDistance;
+  var $add_JeUu_static_add;
+  var $_static_sub_ileU_static_sub;
+  var $_static_mul_5fp__static_mul;
+  var $_static_divide_xokk_static_divide;
+  var $_static_addScalar_65NV_static_addScalar;
+  var $_static_subScalar_TQF9_static_subScalar;
+  var $_static_mulScalar_jmlg_static_mulScalar;
+  var $_static_divideScalar_9muK__static_divideScalar;
+  var $n1_yTIN_normalizedDot;
+  var $_v3nd4_n1_g9mo_normalizedDot4;
+  var $n1_15tV_normalizedDot3;
+  var $n2_k8x0_normalizedDot;
+  var $_v3nd4_n2_gpuq_normalizedDot4;
+  var $n2_KnrC_normalizedDot3;
   var Vector3=_ESClass("Vector3", Array, [function Vector3(vec) {
     if (vec==undefined)
-      vec = $init_iEhK_Vector3;
+      vec = $init_I7uy_Vector3;
     if (vec[0]==undefined)
       vec[0] = 0;
     if (vec[1]==undefined)
@@ -8064,21 +8291,21 @@ es6_module_define('J3DIMath', [], function _J3DIMath_module(_es6_module) {
     this[2] = this[2]*v[2];
     return this;
   }, function cross(v) {
-    $_tmp_3Ixf_cross[0] = this[1]*v[2]-this[2]*v[1];
-    $_tmp_3Ixf_cross[1] = this[2]*v[0]-this[0]*v[2];
-    $_tmp_3Ixf_cross[2] = this[0]*v[1]-this[1]*v[0];
-    this[0] = $_tmp_3Ixf_cross[0];
-    this[1] = $_tmp_3Ixf_cross[1];
-    this[2] = $_tmp_3Ixf_cross[2];
+    $_tmp_3ZVX_cross[0] = this[1]*v[2]-this[2]*v[1];
+    $_tmp_3ZVX_cross[1] = this[2]*v[0]-this[0]*v[2];
+    $_tmp_3ZVX_cross[2] = this[0]*v[1]-this[1]*v[0];
+    this[0] = $_tmp_3ZVX_cross[0];
+    this[1] = $_tmp_3ZVX_cross[1];
+    this[2] = $_tmp_3ZVX_cross[2];
     return this;
   }, function vectorDistance(v2) {
-    $vec_ptav_vectorDistance.load(this);
-    $vec_ptav_vectorDistance.sub(v2);
-    return $vec_ptav_vectorDistance.vectorLength();
+    $vec_TnMp_vectorDistance.load(this);
+    $vec_TnMp_vectorDistance.sub(v2);
+    return $vec_TnMp_vectorDistance.vectorLength();
   }, function vectorDotDistance(v2) {
-    $vec_6Skf_vectorDotDistance.load(this);
-    $vec_6Skf_vectorDotDistance.sub(v2);
-    return $vec_6Skf_vectorDotDistance.dot($vec_6Skf_vectorDotDistance);
+    $vec_smWX_vectorDotDistance.load(this);
+    $vec_smWX_vectorDotDistance.sub(v2);
+    return $vec_smWX_vectorDotDistance.dot($vec_smWX_vectorDotDistance);
   }, function sub(v) {
     if (v==null||v==undefined)
       console.trace();
@@ -8092,61 +8319,61 @@ es6_module_define('J3DIMath', [], function _J3DIMath_module(_es6_module) {
     this[2] = this[2]+v[2];
     return this;
   }, function static_add(v) {
-    $add_U3in_static_add[0] = this[0]+v[0];
-    $add_U3in_static_add[1] = this[1]+v[1];
-    $add_U3in_static_add[2] = this[2]+v[2];
-    return $add_U3in_static_add;
+    $add_JeUu_static_add[0] = this[0]+v[0];
+    $add_JeUu_static_add[1] = this[1]+v[1];
+    $add_JeUu_static_add[2] = this[2]+v[2];
+    return $add_JeUu_static_add;
   }, function static_sub(v) {
-    $_static_sub_h34n_static_sub[0] = this[0]-v[0];
-    $_static_sub_h34n_static_sub[1] = this[1]-v[1];
-    $_static_sub_h34n_static_sub[2] = this[2]-v[2];
-    return $_static_sub_h34n_static_sub;
+    $_static_sub_ileU_static_sub[0] = this[0]-v[0];
+    $_static_sub_ileU_static_sub[1] = this[1]-v[1];
+    $_static_sub_ileU_static_sub[2] = this[2]-v[2];
+    return $_static_sub_ileU_static_sub;
   }, function static_mul(v) {
-    $_static_mul_zzTs_static_mul[0] = this[0]*v[0];
-    $_static_mul_zzTs_static_mul[1] = this[1]*v[1];
-    $_static_mul_zzTs_static_mul[2] = this[2]*v[2];
-    return $_static_mul_zzTs_static_mul;
+    $_static_mul_5fp__static_mul[0] = this[0]*v[0];
+    $_static_mul_5fp__static_mul[1] = this[1]*v[1];
+    $_static_mul_5fp__static_mul[2] = this[2]*v[2];
+    return $_static_mul_5fp__static_mul;
   }, function static_divide(v) {
-    $_static_divide_A6So_static_divide[0] = this[0]/v[0];
-    $_static_divide_A6So_static_divide[1] = this[1]/v[1];
-    $_static_divide_A6So_static_divide[2] = this[2]/v[2];
-    return $_static_divide_A6So_static_divide;
+    $_static_divide_xokk_static_divide[0] = this[0]/v[0];
+    $_static_divide_xokk_static_divide[1] = this[1]/v[1];
+    $_static_divide_xokk_static_divide[2] = this[2]/v[2];
+    return $_static_divide_xokk_static_divide;
   }, function static_addScalar(s) {
-    $_static_addScalar_9E8A_static_addScalar[0] = this[0]+s;
-    $_static_addScalar_9E8A_static_addScalar[1] = this[1]+s;
-    $_static_addScalar_9E8A_static_addScalar[2] = this[2]+s;
-    return $_static_addScalar_9E8A_static_addScalar;
+    $_static_addScalar_65NV_static_addScalar[0] = this[0]+s;
+    $_static_addScalar_65NV_static_addScalar[1] = this[1]+s;
+    $_static_addScalar_65NV_static_addScalar[2] = this[2]+s;
+    return $_static_addScalar_65NV_static_addScalar;
   }, function static_subScalar(s) {
-    $_static_subScalar_NkGj_static_subScalar[0] = this[0]-s;
-    $_static_subScalar_NkGj_static_subScalar[1] = this[1]-s;
-    $_static_subScalar_NkGj_static_subScalar[2] = this[2]-s;
-    return $_static_subScalar_NkGj_static_subScalar;
+    $_static_subScalar_TQF9_static_subScalar[0] = this[0]-s;
+    $_static_subScalar_TQF9_static_subScalar[1] = this[1]-s;
+    $_static_subScalar_TQF9_static_subScalar[2] = this[2]-s;
+    return $_static_subScalar_TQF9_static_subScalar;
   }, function static_mulScalar(s) {
-    $_static_mulScalar_iemh_static_mulScalar[0] = this[0]*s;
-    $_static_mulScalar_iemh_static_mulScalar[1] = this[1]*s;
-    $_static_mulScalar_iemh_static_mulScalar[2] = this[2]*s;
-    return $_static_mulScalar_iemh_static_mulScalar;
+    $_static_mulScalar_jmlg_static_mulScalar[0] = this[0]*s;
+    $_static_mulScalar_jmlg_static_mulScalar[1] = this[1]*s;
+    $_static_mulScalar_jmlg_static_mulScalar[2] = this[2]*s;
+    return $_static_mulScalar_jmlg_static_mulScalar;
   }, function _static_divideScalar(s) {
-    $_static_divideScalar_u9GY__static_divideScalar[0] = this[0]/s;
-    $_static_divideScalar_u9GY__static_divideScalar[1] = this[1]/s;
-    $_static_divideScalar_u9GY__static_divideScalar[2] = this[2]/s;
-    return $_static_divideScalar_u9GY__static_divideScalar;
+    $_static_divideScalar_9muK__static_divideScalar[0] = this[0]/s;
+    $_static_divideScalar_9muK__static_divideScalar[1] = this[1]/s;
+    $_static_divideScalar_9muK__static_divideScalar[2] = this[2]/s;
+    return $_static_divideScalar_9muK__static_divideScalar;
   }, function dot(v) {
     return this[0]*v[0]+this[1]*v[1]+this[2]*v[2];
   }, function normalizedDot(v) {
-    $n1_oDyi_normalizedDot.load(this);
-    $n2_VUBT_normalizedDot.load(v);
-    $n1_oDyi_normalizedDot.normalize();
-    $n2_VUBT_normalizedDot.normalize();
-    return $n1_oDyi_normalizedDot.dot($n2_VUBT_normalizedDot);
+    $n1_yTIN_normalizedDot.load(this);
+    $n2_k8x0_normalizedDot.load(v);
+    $n1_yTIN_normalizedDot.normalize();
+    $n2_k8x0_normalizedDot.normalize();
+    return $n1_yTIN_normalizedDot.dot($n2_k8x0_normalizedDot);
   }, _ESClass.static(function normalizedDot4(v1, v2, v3, v4) {
-    $_v3nd4_n1_XfTD_normalizedDot4.load(v2).sub(v1).normalize();
-    $_v3nd4_n2_xFnI_normalizedDot4.load(v4).sub(v3).normalize();
-    return $_v3nd4_n1_XfTD_normalizedDot4.dot($_v3nd4_n2_xFnI_normalizedDot4);
+    $_v3nd4_n1_g9mo_normalizedDot4.load(v2).sub(v1).normalize();
+    $_v3nd4_n2_gpuq_normalizedDot4.load(v4).sub(v3).normalize();
+    return $_v3nd4_n1_g9mo_normalizedDot4.dot($_v3nd4_n2_gpuq_normalizedDot4);
   }), _ESClass.static(function normalizedDot3(v1, v2, v3) {
-    $n1_bPcS_normalizedDot3.load(v1).sub(v2).normalize();
-    $n2_17wG_normalizedDot3.load(v3).sub(v2).normalize();
-    return $n1_bPcS_normalizedDot3.dot($n2_17wG_normalizedDot3);
+    $n1_15tV_normalizedDot3.load(v1).sub(v2).normalize();
+    $n2_KnrC_normalizedDot3.load(v3).sub(v2).normalize();
+    return $n1_15tV_normalizedDot3.dot($n2_KnrC_normalizedDot3);
   }), function preNormalizedAngle(v2) {
     if (this.dot(v2)<0.0) {
         var vec=new Vector3();
@@ -8185,24 +8412,24 @@ es6_module_define('J3DIMath', [], function _J3DIMath_module(_es6_module) {
   }, function toString() {
     return "["+this[0]+","+this[1]+","+this[2]+"]";
   }]);
-  var $init_iEhK_Vector3=[0, 0, 0];
-  var $_tmp_3Ixf_cross=[0, 0, 0];
-  var $vec_ptav_vectorDistance=new Vector3();
-  var $vec_6Skf_vectorDotDistance=new Vector3();
-  var $add_U3in_static_add=new Vector3();
-  var $_static_sub_h34n_static_sub=new Vector3();
-  var $_static_mul_zzTs_static_mul=new Vector3();
-  var $_static_divide_A6So_static_divide=new Vector3();
-  var $_static_addScalar_9E8A_static_addScalar=new Vector3();
-  var $_static_subScalar_NkGj_static_subScalar=new Vector3();
-  var $_static_mulScalar_iemh_static_mulScalar=new Vector3();
-  var $_static_divideScalar_u9GY__static_divideScalar=new Vector3();
-  var $n1_oDyi_normalizedDot=new Vector3();
-  var $_v3nd4_n1_XfTD_normalizedDot4=new Vector3();
-  var $n1_bPcS_normalizedDot3=new Vector3();
-  var $n2_VUBT_normalizedDot=new Vector3();
-  var $_v3nd4_n2_xFnI_normalizedDot4=new Vector3();
-  var $n2_17wG_normalizedDot3=new Vector3();
+  var $init_I7uy_Vector3=[0, 0, 0];
+  var $_tmp_3ZVX_cross=[0, 0, 0];
+  var $vec_TnMp_vectorDistance=new Vector3();
+  var $vec_smWX_vectorDotDistance=new Vector3();
+  var $add_JeUu_static_add=new Vector3();
+  var $_static_sub_ileU_static_sub=new Vector3();
+  var $_static_mul_5fp__static_mul=new Vector3();
+  var $_static_divide_xokk_static_divide=new Vector3();
+  var $_static_addScalar_65NV_static_addScalar=new Vector3();
+  var $_static_subScalar_TQF9_static_subScalar=new Vector3();
+  var $_static_mulScalar_jmlg_static_mulScalar=new Vector3();
+  var $_static_divideScalar_9muK__static_divideScalar=new Vector3();
+  var $n1_yTIN_normalizedDot=new Vector3();
+  var $_v3nd4_n1_g9mo_normalizedDot4=new Vector3();
+  var $n1_15tV_normalizedDot3=new Vector3();
+  var $n2_k8x0_normalizedDot=new Vector3();
+  var $_v3nd4_n2_gpuq_normalizedDot4=new Vector3();
+  var $n2_KnrC_normalizedDot3=new Vector3();
   _es6_module.add_class(Vector3);
   var _vec2_init=[0, 0];
   var _v2_static_mvm_co=new Vector3();
@@ -8444,14 +8671,14 @@ es6_module_define('J3DIMath', [], function _J3DIMath_module(_es6_module) {
     return "["+this[0]+","+this[1]+","+this[2]+","+this[3]+"]";
   }]);
   _es6_module.add_class(Vector4);
-  var $v4init_XnkH_Quat;
+  var $v4init_TWzR_Quat;
   var Quat=_ESClass("Quat", Vector4, [function Quat(x, y, z, w) {
-    var vec=$v4init_XnkH_Quat;
+    var vec=$v4init_TWzR_Quat;
     if (typeof (x)=="number") {
-        $v4init_XnkH_Quat[0] = x;
-        $v4init_XnkH_Quat[1] = y;
-        $v4init_XnkH_Quat[2] = z;
-        $v4init_XnkH_Quat[3] = w;
+        $v4init_TWzR_Quat[0] = x;
+        $v4init_TWzR_Quat[1] = y;
+        $v4init_TWzR_Quat[2] = z;
+        $v4init_TWzR_Quat[3] = w;
     }
     else {
       vec = x;
@@ -8672,14 +8899,14 @@ es6_module_define('J3DIMath', [], function _J3DIMath_module(_es6_module) {
     this[2] = sc1*quat[2]+sc2*quat2[2];
     this[3] = sc1*quat[3]+sc2*quat2[3];
   }]);
-  var $v4init_XnkH_Quat=[0, 0, 0, 0];
+  var $v4init_TWzR_Quat=[0, 0, 0, 0];
   _es6_module.add_class(Quat);
   window.Vector2 = Vector2;
   window.Vector3 = Vector3;
   window.Vector4 = Vector4;
   window.Quat = Quat;
   window.Matrix4 = Matrix4;
-}, '/dev/fairmotion/src/core/J3DIMath.js');
+}, '/home/ec2-user/fairmotion/src/core/J3DIMath.js');
 "not_a_module";
 if (Array.prototype.set===undefined) {
     Array.prototype.set = function set1(array, src, dst, count) {
@@ -9038,9 +9265,9 @@ function time_func(func, steps) {
   console.log(times);
   return times;
 }
-var $lst_2GN_=new GArray();
+var $lst_bM2T=new GArray();
 function cached_list(iter) {
-  $lst_2GN_.reset();
+  $lst_bM2T.reset();
   var i=0;
   var __iter_item=__get_iter(iter);
   var item;
@@ -9050,11 +9277,11 @@ function cached_list(iter) {
         break;
     }
     item = __ival_item.value;
-    $lst_2GN_.push(item);
+    $lst_bM2T.push(item);
     i++;
   }
-  $lst_2GN_.length = i;
-  return $lst_2GN_;
+  $lst_bM2T.length = i;
+  return $lst_bM2T;
 }
 var g_list=list;
 var eid_list=_ESClass("eid_list", GArray, [function eid_list(iter) {

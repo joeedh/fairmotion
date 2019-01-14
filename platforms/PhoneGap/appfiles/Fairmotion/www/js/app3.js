@@ -1,4 +1,2415 @@
-es6_module_define('native_api', ["toolops_api", "spline_math_hermite", "spline_base", "solver", "built_wasm", "typedwriter", "ajax"], function _native_api_module(_es6_module) {
+es6_module_define('built_wasm', ["load_wasm"], function _built_wasm_module(_es6_module) {
+  var Module={}
+  Module = _es6_module.set_default_export('Module', Module);
+  
+  Module.ready = false;
+  es6_import(_es6_module, 'load_wasm');
+  function initwasm() {
+    Module.TOTAL_MEMORY = 67108864;
+    var moduleOverrides={}
+    var key;
+    for (key in Module) {
+        if (Module.hasOwnProperty(key)) {
+            moduleOverrides[key] = Module[key];
+        }
+    }
+    Module['arguments'] = [];
+    Module['thisProgram'] = './this.program';
+    Module['quit'] = function(status, toThrow) {
+      throw toThrow;
+    }
+    Module['preRun'] = [];
+    Module['postRun'] = [];
+    var ENVIRONMENT_IS_WEB=false;
+    var ENVIRONMENT_IS_WORKER=false;
+    var ENVIRONMENT_IS_NODE=false;
+    var ENVIRONMENT_IS_SHELL=false;
+    if (Module['ENVIRONMENT']) {
+        if (Module['ENVIRONMENT']==='WEB') {
+            ENVIRONMENT_IS_WEB = true;
+        }
+        else 
+          if (Module['ENVIRONMENT']==='WORKER') {
+            ENVIRONMENT_IS_WORKER = true;
+        }
+        else 
+          if (Module['ENVIRONMENT']==='NODE') {
+            ENVIRONMENT_IS_NODE = true;
+        }
+        else 
+          if (Module['ENVIRONMENT']==='SHELL') {
+            ENVIRONMENT_IS_SHELL = true;
+        }
+        else {
+          throw new Error('Module[\'ENVIRONMENT\'] value is not valid. must be one of: WEB|WORKER|NODE|SHELL.');
+        }
+    }
+    else {
+      ENVIRONMENT_IS_WEB = typeof window==='object';
+      ENVIRONMENT_IS_WORKER = typeof importScripts==='function';
+      ENVIRONMENT_IS_NODE = typeof process==='object'&&typeof require==='function'&&!ENVIRONMENT_IS_WEB&&!ENVIRONMENT_IS_WORKER;
+      ENVIRONMENT_IS_SHELL = !ENVIRONMENT_IS_WEB&&!ENVIRONMENT_IS_NODE&&!ENVIRONMENT_IS_WORKER;
+    }
+    if (ENVIRONMENT_IS_NODE) {
+        var nodeFS;
+        var nodePath;
+        Module['read'] = function shell_read(filename, binary) {
+          var ret;
+          if (!nodeFS)
+            nodeFS = require('fs');
+          if (!nodePath)
+            nodePath = require('path');
+          filename = nodePath['normalize'](filename);
+          ret = nodeFS['readFileSync'](filename);
+          return binary ? ret : ret.toString();
+        };
+        Module['readBinary'] = function readBinary(filename) {
+          var ret=Module['read'](filename, true);
+          if (!ret.buffer) {
+              ret = new Uint8Array(ret);
+          }
+          assert(ret.buffer);
+          return ret;
+        };
+        if (process['argv'].length>1) {
+            Module['thisProgram'] = process['argv'][1].replace(/\\/g, '/');
+        }
+        Module['arguments'] = process['argv'].slice(2);
+        if (typeof module!=='undefined') {
+            module['exports'] = Module;
+        }
+        process['on']('uncaughtException', function(ex) {
+          if (!(__instance_of(ex, ExitStatus))) {
+              throw ex;
+          }
+        });
+        process['on']('unhandledRejection', function(reason, p) {
+          Module['printErr']('node.js exiting due to unhandled promise rejection');
+          process['exit'](1);
+        });
+        Module['inspect'] = function() {
+          return '[Emscripten Module object]';
+        };
+    }
+    else 
+      if (ENVIRONMENT_IS_SHELL) {
+        if (typeof read!='undefined') {
+            Module['read'] = function shell_read(f) {
+              return read(f);
+            };
+        }
+        Module['readBinary'] = function readBinary(f) {
+          var data;
+          if (typeof readbuffer==='function') {
+              return new Uint8Array(readbuffer(f));
+          }
+          data = read(f, 'binary');
+          assert(typeof data==='object');
+          return data;
+        };
+        if (typeof scriptArgs!='undefined') {
+            Module['arguments'] = scriptArgs;
+        }
+        else 
+          if (typeof arguments!='undefined') {
+            Module['arguments'] = arguments;
+        }
+        if (typeof quit==='function') {
+            Module['quit'] = function(status, toThrow) {
+              quit(status);
+            };
+        }
+    }
+    else 
+      if (ENVIRONMENT_IS_WEB||ENVIRONMENT_IS_WORKER) {
+        Module['read'] = function shell_read(url) {
+          var xhr=new XMLHttpRequest();
+          xhr.open('GET', url, false);
+          xhr.send(null);
+          return xhr.responseText;
+        };
+        if (ENVIRONMENT_IS_WORKER) {
+            Module['readBinary'] = function readBinary(url) {
+              var xhr=new XMLHttpRequest();
+              xhr.open('GET', url, false);
+              xhr.responseType = 'arraybuffer';
+              xhr.send(null);
+              return new Uint8Array(xhr.response);
+            };
+        }
+        Module['readAsync'] = function readAsync(url, onload, onerror) {
+          var xhr=new XMLHttpRequest();
+          xhr.open('GET', url, true);
+          xhr.responseType = 'arraybuffer';
+          xhr.onload = function xhr_onload() {
+            if (xhr.status==200||(xhr.status==0&&xhr.response)) {
+                onload(xhr.response);
+                return ;
+            }
+            onerror();
+          }
+          xhr.onerror = onerror;
+          xhr.send(null);
+        };
+        Module['setWindowTitle'] = function(title) {
+          document.title = title;
+        };
+    }
+    else {
+      throw new Error('unknown runtime environment');
+    }
+    Module['print'] = typeof console!=='undefined' ? console.log.bind(console) : (typeof print!=='undefined' ? print : null);
+    Module['printErr'] = typeof printErr!=='undefined' ? printErr : ((typeof console!=='undefined'&&console.warn.bind(console))||Module['print']);
+    Module.print = Module['print'];
+    Module.printErr = Module['printErr'];
+    for (key in moduleOverrides) {
+        if (moduleOverrides.hasOwnProperty(key)) {
+            Module[key] = moduleOverrides[key];
+        }
+    }
+    moduleOverrides = undefined;
+    var STACK_ALIGN=16;
+    stackSave = stackRestore = stackAlloc = setTempRet0 = getTempRet0 = function() {
+      abort('cannot use the stack before compiled code is ready to run, and has provided stack access');
+    }
+    function staticAlloc(size) {
+      assert(!staticSealed);
+      var ret=STATICTOP;
+      STATICTOP = (STATICTOP+size+15)&-16;
+      return ret;
+    }
+    function dynamicAlloc(size) {
+      assert(DYNAMICTOP_PTR);
+      var ret=HEAP32[DYNAMICTOP_PTR>>2];
+      var end=(ret+size+15)&-16;
+      HEAP32[DYNAMICTOP_PTR>>2] = end;
+      if (end>=TOTAL_MEMORY) {
+          var success=enlargeMemory();
+          if (!success) {
+              HEAP32[DYNAMICTOP_PTR>>2] = ret;
+              return 0;
+          }
+      }
+      return ret;
+    }
+    function alignMemory(size, factor) {
+      if (!factor)
+        factor = STACK_ALIGN;
+      var ret=size = Math.ceil(size/factor)*factor;
+      return ret;
+    }
+    function getNativeTypeSize(type) {
+      switch (type) {
+        case 'i1':
+        case 'i8':
+          return 1;
+        case 'i16':
+          return 2;
+        case 'i32':
+          return 4;
+        case 'i64':
+          return 8;
+        case 'float':
+          return 4;
+        case 'double':
+          return 8;
+        default:
+          if (type[type.length-1]==='*') {
+              return 4;
+          }
+          else 
+            if (type[0]==='i') {
+              var bits=parseInt(type.substr(1));
+              assert(bits%8===0);
+              return bits/8;
+          }
+          else {
+            return 0;
+          }
+      }
+    }
+    function warnOnce(text) {
+      if (!warnOnce.shown)
+        warnOnce.shown = {}
+      if (!warnOnce.shown[text]) {
+          warnOnce.shown[text] = 1;
+          Module.printErr(text);
+      }
+    }
+    var jsCallStartIndex=1;
+    var functionPointers=new Array(0);
+    function addFunction(func, sig) {
+      if (typeof sig==='undefined') {
+          Module.printErr('Warning: addFunction: Provide a wasm function signature '+'string as a second argument');
+      }
+      var base=0;
+      for (var i=base; i<base+0; i++) {
+          if (!functionPointers[i]) {
+              functionPointers[i] = func;
+              return jsCallStartIndex+i;
+          }
+      }
+      throw 'Finished up all reserved function pointers. Use a higher value for RESERVED_FUNCTION_POINTERS.';
+    }
+    function removeFunction(index) {
+      functionPointers[index-jsCallStartIndex] = null;
+    }
+    var funcWrappers={}
+    function getFuncWrapper(func, sig) {
+      if (!func)
+        return ;
+      assert(sig);
+      if (!funcWrappers[sig]) {
+          funcWrappers[sig] = {};
+      }
+      var sigCache=funcWrappers[sig];
+      if (!sigCache[func]) {
+          if (sig.length===1) {
+              sigCache[func] = function dynCall_wrapper() {
+                return dynCall(sig, func);
+              };
+          }
+          else 
+            if (sig.length===2) {
+              sigCache[func] = function dynCall_wrapper(arg) {
+                return dynCall(sig, func, [arg]);
+              };
+          }
+          else {
+            sigCache[func] = function dynCall_wrapper() {
+              return dynCall(sig, func, Array.prototype.slice.call(arguments));
+            };
+          }
+      }
+      return sigCache[func];
+    }
+    function makeBigInt(low, high, unsigned) {
+      return unsigned ? ((+((low>>>0)))+((+((high>>>0)))*4294967296.0)) : ((+((low>>>0)))+((+((high|0)))*4294967296.0));
+    }
+    function dynCall(sig, ptr, args) {
+      if (args&&args.length) {
+          assert(args.length==sig.length-1);
+          assert(('dynCall_'+sig) in Module, 'bad function pointer type - no table for sig \''+sig+'\'');
+          return Module['dynCall_'+sig].apply(null, [ptr].concat(args));
+      }
+      else {
+        assert(sig.length==1);
+        assert(('dynCall_'+sig) in Module, 'bad function pointer type - no table for sig \''+sig+'\'');
+        return Module['dynCall_'+sig].call(null, ptr);
+      }
+    }
+    function getCompilerSetting(name) {
+      throw 'You must build with -s RETAIN_COMPILER_SETTINGS=1 for getCompilerSetting or emscripten_get_compiler_setting to work';
+    }
+    var Runtime={dynCall: dynCall, getTempRet0: function() {
+      abort('getTempRet0() is now a top-level function, after removing the Runtime object. Remove "Runtime."');
+    }, staticAlloc: function() {
+      abort('staticAlloc() is now a top-level function, after removing the Runtime object. Remove "Runtime."');
+    }, stackAlloc: function() {
+      abort('stackAlloc() is now a top-level function, after removing the Runtime object. Remove "Runtime."');
+    }}
+    var GLOBAL_BASE=1024;
+    var ABORT=0;
+    var EXITSTATUS=0;
+    function assert(condition, text) {
+      if (!condition) {
+          abort('Assertion failed: '+text);
+      }
+    }
+    var globalScope=this;
+    function getCFunc(ident) {
+      var func=Module['_'+ident];
+      assert(func, 'Cannot call unknown function '+ident+', make sure it is exported');
+      return func;
+    }
+    var JSfuncs={'stackSave': function() {
+      stackSave();
+    }, 'stackRestore': function() {
+      stackRestore();
+    }, 'arrayToC': function(arr) {
+      var ret=stackAlloc(arr.length);
+      writeArrayToMemory(arr, ret);
+      return ret;
+    }, 'stringToC': function(str) {
+      var ret=0;
+      if (str!==null&&str!==undefined&&str!==0) {
+          var len=(str.length<<2)+1;
+          ret = stackAlloc(len);
+          stringToUTF8(str, ret, len);
+      }
+      return ret;
+    }}
+    var toC={'string': JSfuncs['stringToC'], 'array': JSfuncs['arrayToC']}
+    function ccall(ident, returnType, argTypes, args, opts) {
+      var func=getCFunc(ident);
+      var cArgs=[];
+      var stack=0;
+      assert(returnType!=='array', 'Return type should not be "array".');
+      if (args) {
+          for (var i=0; i<args.length; i++) {
+              var converter=toC[argTypes[i]];
+              if (converter) {
+                  if (stack===0)
+                    stack = stackSave();
+                  cArgs[i] = converter(args[i]);
+              }
+              else {
+                cArgs[i] = args[i];
+              }
+          }
+      }
+      var ret=func.apply(null, cArgs);
+      if (returnType==='string')
+        ret = Pointer_stringify(ret);
+      else 
+        if (returnType==='boolean')
+        ret = Boolean(ret);
+      if (stack!==0) {
+          stackRestore(stack);
+      }
+      return ret;
+    }
+    function cwrap(ident, returnType, argTypes) {
+      argTypes = argTypes||[];
+      var cfunc=getCFunc(ident);
+      var numericArgs=argTypes.every(function(type) {
+        return type==='number';
+      });
+      var numericRet=returnType!=='string';
+      if (numericRet&&numericArgs) {
+          return cfunc;
+      }
+      return function() {
+        return ccall(ident, returnType, argTypes, arguments);
+      }
+    }
+    function setValue(ptr, value, type, noSafe) {
+      type = type||'i8';
+      if (type.charAt(type.length-1)==='*')
+        type = 'i32';
+      switch (type) {
+        case 'i1':
+          HEAP8[((ptr)>>0)] = value;
+          break;
+        case 'i8':
+          HEAP8[((ptr)>>0)] = value;
+          break;
+        case 'i16':
+          HEAP16[((ptr)>>1)] = value;
+          break;
+        case 'i32':
+          HEAP32[((ptr)>>2)] = value;
+          break;
+        case 'i64':
+          (tempI64 = [value>>>0, (tempDouble = value, (+(Math_abs(tempDouble)))>=1.0 ? (tempDouble>0.0 ? ((Math_min((+(Math_floor((tempDouble)/4294967296.0))), 4294967295.0))|0)>>>0 : (~~((+(Math_ceil((tempDouble-+(((~~(tempDouble)))>>>0))/4294967296.0)))))>>>0) : 0)], HEAP32[((ptr)>>2)] = tempI64[0], HEAP32[(((ptr)+(4))>>2)] = tempI64[1]);
+          break;
+        case 'float':
+          HEAPF32[((ptr)>>2)] = value;
+          break;
+        case 'double':
+          HEAPF64[((ptr)>>3)] = value;
+          break;
+        default:
+          abort('invalid type for setValue: '+type);
+      }
+    }
+    function getValue(ptr, type, noSafe) {
+      type = type||'i8';
+      if (type.charAt(type.length-1)==='*')
+        type = 'i32';
+      switch (type) {
+        case 'i1':
+          return HEAP8[((ptr)>>0)];
+        case 'i8':
+          return HEAP8[((ptr)>>0)];
+        case 'i16':
+          return HEAP16[((ptr)>>1)];
+        case 'i32':
+          return HEAP32[((ptr)>>2)];
+        case 'i64':
+          return HEAP32[((ptr)>>2)];
+        case 'float':
+          return HEAPF32[((ptr)>>2)];
+        case 'double':
+          return HEAPF64[((ptr)>>3)];
+        default:
+          abort('invalid type for getValue: '+type);
+      }
+      return null;
+    }
+    var ALLOC_NORMAL=0;
+    var ALLOC_STACK=1;
+    var ALLOC_STATIC=2;
+    var ALLOC_DYNAMIC=3;
+    var ALLOC_NONE=4;
+    function allocate(slab, types, allocator, ptr) {
+      var zeroinit, size;
+      if (typeof slab==='number') {
+          zeroinit = true;
+          size = slab;
+      }
+      else {
+        zeroinit = false;
+        size = slab.length;
+      }
+      var singleType=typeof types==='string' ? types : null;
+      var ret;
+      if (allocator==ALLOC_NONE) {
+          ret = ptr;
+      }
+      else {
+        ret = [typeof _malloc==='function' ? _malloc : staticAlloc, stackAlloc, staticAlloc, dynamicAlloc][allocator===undefined ? ALLOC_STATIC : allocator](Math.max(size, singleType ? 1 : types.length));
+      }
+      if (zeroinit) {
+          var stop;
+          ptr = ret;
+          assert((ret&3)==0);
+          stop = ret+(size&~3);
+          for (; ptr<stop; ptr+=4) {
+              HEAP32[((ptr)>>2)] = 0;
+          }
+          stop = ret+size;
+          while (ptr<stop) {
+            HEAP8[((ptr++)>>0)] = 0;
+          }
+          return ret;
+      }
+      if (singleType==='i8') {
+          if (slab.subarray||slab.slice) {
+              HEAPU8.set((slab), ret);
+          }
+          else {
+            HEAPU8.set(new Uint8Array(slab), ret);
+          }
+          return ret;
+      }
+      var i=0, type, typeSize, previousType;
+      while (i<size) {
+        var curr=slab[i];
+        type = singleType||types[i];
+        if (type===0) {
+            i++;
+            continue;
+        }
+        assert(type, 'Must know what type to store in allocate!');
+        if (type=='i64')
+          type = 'i32';
+        setValue(ret+i, curr, type);
+        if (previousType!==type) {
+            typeSize = getNativeTypeSize(type);
+            previousType = type;
+        }
+        i+=typeSize;
+      }
+      return ret;
+    }
+    function getMemory(size) {
+      if (!staticSealed)
+        return staticAlloc(size);
+      if (!runtimeInitialized)
+        return dynamicAlloc(size);
+      return _malloc(size);
+    }
+    function Pointer_stringify(ptr, length) {
+      if (length===0||!ptr)
+        return '';
+      var hasUtf=0;
+      var t;
+      var i=0;
+      while (1) {
+        assert(ptr+i<TOTAL_MEMORY);
+        t = HEAPU8[(((ptr)+(i))>>0)];
+        hasUtf|=t;
+        if (t==0&&!length)
+          break;
+        i++;
+        if (length&&i==length)
+          break;
+      }
+      if (!length)
+        length = i;
+      var ret='';
+      if (hasUtf<128) {
+          var MAX_CHUNK=1024;
+          var curr;
+          while (length>0) {
+            curr = String.fromCharCode.apply(String, HEAPU8.subarray(ptr, ptr+Math.min(length, MAX_CHUNK)));
+            ret = ret ? ret+curr : curr;
+            ptr+=MAX_CHUNK;
+            length-=MAX_CHUNK;
+          }
+          return ret;
+      }
+      return UTF8ToString(ptr);
+    }
+    function AsciiToString(ptr) {
+      var str='';
+      while (1) {
+        var ch=HEAP8[((ptr++)>>0)];
+        if (!ch)
+          return str;
+        str+=String.fromCharCode(ch);
+      }
+    }
+    function stringToAscii(str, outPtr) {
+      return writeAsciiToMemory(str, outPtr, false);
+    }
+    var UTF8Decoder=typeof TextDecoder!=='undefined' ? new TextDecoder('utf8') : undefined;
+    function UTF8ArrayToString(u8Array, idx) {
+      var endPtr=idx;
+      while (u8Array[endPtr]) {
+        ++endPtr      }
+      if (endPtr-idx>16&&u8Array.subarray&&UTF8Decoder) {
+          return UTF8Decoder.decode(u8Array.subarray(idx, endPtr));
+      }
+      else {
+        var u0, u1, u2, u3, u4, u5;
+        var str='';
+        while (1) {
+          u0 = u8Array[idx++];
+          if (!u0)
+            return str;
+          if (!(u0&0x80)) {
+              str+=String.fromCharCode(u0);
+              continue;
+          }
+          u1 = u8Array[idx++]&63;
+          if ((u0&0xe0)==0xc0) {
+              str+=String.fromCharCode(((u0&31)<<6)|u1);
+              continue;
+          }
+          u2 = u8Array[idx++]&63;
+          if ((u0&0xf0)==0xe0) {
+              u0 = ((u0&15)<<12)|(u1<<6)|u2;
+          }
+          else {
+            u3 = u8Array[idx++]&63;
+            if ((u0&0xf8)==0xf0) {
+                u0 = ((u0&7)<<18)|(u1<<12)|(u2<<6)|u3;
+            }
+            else {
+              u4 = u8Array[idx++]&63;
+              if ((u0&0xfc)==0xf8) {
+                  u0 = ((u0&3)<<24)|(u1<<18)|(u2<<12)|(u3<<6)|u4;
+              }
+              else {
+                u5 = u8Array[idx++]&63;
+                u0 = ((u0&1)<<30)|(u1<<24)|(u2<<18)|(u3<<12)|(u4<<6)|u5;
+              }
+            }
+          }
+          if (u0<0x10000) {
+              str+=String.fromCharCode(u0);
+          }
+          else {
+            var ch=u0-0x10000;
+            str+=String.fromCharCode(0xd800|(ch>>10), 0xdc00|(ch&0x3ff));
+          }
+        }
+      }
+    }
+    function UTF8ToString(ptr) {
+      return UTF8ArrayToString(HEAPU8, ptr);
+    }
+    function stringToUTF8Array(str, outU8Array, outIdx, maxBytesToWrite) {
+      if (!(maxBytesToWrite>0))
+        return 0;
+      var startIdx=outIdx;
+      var endIdx=outIdx+maxBytesToWrite-1;
+      for (var i=0; i<str.length; ++i) {
+          var u=str.charCodeAt(i);
+          if (u>=0xd800&&u<=0xdfff)
+            u = 0x10000+((u&0x3ff)<<10)|(str.charCodeAt(++i)&0x3ff);
+          if (u<=0x7f) {
+              if (outIdx>=endIdx)
+                break;
+              outU8Array[outIdx++] = u;
+          }
+          else 
+            if (u<=0x7ff) {
+              if (outIdx+1>=endIdx)
+                break;
+              outU8Array[outIdx++] = 0xc0|(u>>6);
+              outU8Array[outIdx++] = 0x80|(u&63);
+          }
+          else 
+            if (u<=0xffff) {
+              if (outIdx+2>=endIdx)
+                break;
+              outU8Array[outIdx++] = 0xe0|(u>>12);
+              outU8Array[outIdx++] = 0x80|((u>>6)&63);
+              outU8Array[outIdx++] = 0x80|(u&63);
+          }
+          else 
+            if (u<=0x1fffff) {
+              if (outIdx+3>=endIdx)
+                break;
+              outU8Array[outIdx++] = 0xf0|(u>>18);
+              outU8Array[outIdx++] = 0x80|((u>>12)&63);
+              outU8Array[outIdx++] = 0x80|((u>>6)&63);
+              outU8Array[outIdx++] = 0x80|(u&63);
+          }
+          else 
+            if (u<=0x3ffffff) {
+              if (outIdx+4>=endIdx)
+                break;
+              outU8Array[outIdx++] = 0xf8|(u>>24);
+              outU8Array[outIdx++] = 0x80|((u>>18)&63);
+              outU8Array[outIdx++] = 0x80|((u>>12)&63);
+              outU8Array[outIdx++] = 0x80|((u>>6)&63);
+              outU8Array[outIdx++] = 0x80|(u&63);
+          }
+          else {
+            if (outIdx+5>=endIdx)
+              break;
+            outU8Array[outIdx++] = 0xfc|(u>>30);
+            outU8Array[outIdx++] = 0x80|((u>>24)&63);
+            outU8Array[outIdx++] = 0x80|((u>>18)&63);
+            outU8Array[outIdx++] = 0x80|((u>>12)&63);
+            outU8Array[outIdx++] = 0x80|((u>>6)&63);
+            outU8Array[outIdx++] = 0x80|(u&63);
+          }
+      }
+      outU8Array[outIdx] = 0;
+      return outIdx-startIdx;
+    }
+    function stringToUTF8(str, outPtr, maxBytesToWrite) {
+      assert(typeof maxBytesToWrite=='number', 'stringToUTF8(str, outPtr, maxBytesToWrite) is missing the third parameter that specifies the length of the output buffer!');
+      return stringToUTF8Array(str, HEAPU8, outPtr, maxBytesToWrite);
+    }
+    function lengthBytesUTF8(str) {
+      var len=0;
+      for (var i=0; i<str.length; ++i) {
+          var u=str.charCodeAt(i);
+          if (u>=0xd800&&u<=0xdfff)
+            u = 0x10000+((u&0x3ff)<<10)|(str.charCodeAt(++i)&0x3ff);
+          if (u<=0x7f) {
+              ++len;
+          }
+          else 
+            if (u<=0x7ff) {
+              len+=2;
+          }
+          else 
+            if (u<=0xffff) {
+              len+=3;
+          }
+          else 
+            if (u<=0x1fffff) {
+              len+=4;
+          }
+          else 
+            if (u<=0x3ffffff) {
+              len+=5;
+          }
+          else {
+            len+=6;
+          }
+      }
+      return len;
+    }
+    var UTF16Decoder=typeof TextDecoder!=='undefined' ? new TextDecoder('utf-16le') : undefined;
+    function UTF16ToString(ptr) {
+      assert(ptr%2==0, 'Pointer passed to UTF16ToString must be aligned to two bytes!');
+      var endPtr=ptr;
+      var idx=endPtr>>1;
+      while (HEAP16[idx]) {
+        ++idx      }
+      endPtr = idx<<1;
+      if (endPtr-ptr>32&&UTF16Decoder) {
+          return UTF16Decoder.decode(HEAPU8.subarray(ptr, endPtr));
+      }
+      else {
+        var i=0;
+        var str='';
+        while (1) {
+          var codeUnit=HEAP16[(((ptr)+(i*2))>>1)];
+          if (codeUnit==0)
+            return str;
+          ++i;
+          str+=String.fromCharCode(codeUnit);
+        }
+      }
+    }
+    function stringToUTF16(str, outPtr, maxBytesToWrite) {
+      assert(outPtr%2==0, 'Pointer passed to stringToUTF16 must be aligned to two bytes!');
+      assert(typeof maxBytesToWrite=='number', 'stringToUTF16(str, outPtr, maxBytesToWrite) is missing the third parameter that specifies the length of the output buffer!');
+      if (maxBytesToWrite===undefined) {
+          maxBytesToWrite = 0x7fffffff;
+      }
+      if (maxBytesToWrite<2)
+        return 0;
+      maxBytesToWrite-=2;
+      var startPtr=outPtr;
+      var numCharsToWrite=(maxBytesToWrite<str.length*2) ? (maxBytesToWrite/2) : str.length;
+      for (var i=0; i<numCharsToWrite; ++i) {
+          var codeUnit=str.charCodeAt(i);
+          HEAP16[((outPtr)>>1)] = codeUnit;
+          outPtr+=2;
+      }
+      HEAP16[((outPtr)>>1)] = 0;
+      return outPtr-startPtr;
+    }
+    function lengthBytesUTF16(str) {
+      return str.length*2;
+    }
+    function UTF32ToString(ptr) {
+      assert(ptr%4==0, 'Pointer passed to UTF32ToString must be aligned to four bytes!');
+      var i=0;
+      var str='';
+      while (1) {
+        var utf32=HEAP32[(((ptr)+(i*4))>>2)];
+        if (utf32==0)
+          return str;
+        ++i;
+        if (utf32>=0x10000) {
+            var ch=utf32-0x10000;
+            str+=String.fromCharCode(0xd800|(ch>>10), 0xdc00|(ch&0x3ff));
+        }
+        else {
+          str+=String.fromCharCode(utf32);
+        }
+      }
+    }
+    function stringToUTF32(str, outPtr, maxBytesToWrite) {
+      assert(outPtr%4==0, 'Pointer passed to stringToUTF32 must be aligned to four bytes!');
+      assert(typeof maxBytesToWrite=='number', 'stringToUTF32(str, outPtr, maxBytesToWrite) is missing the third parameter that specifies the length of the output buffer!');
+      if (maxBytesToWrite===undefined) {
+          maxBytesToWrite = 0x7fffffff;
+      }
+      if (maxBytesToWrite<4)
+        return 0;
+      var startPtr=outPtr;
+      var endPtr=startPtr+maxBytesToWrite-4;
+      for (var i=0; i<str.length; ++i) {
+          var codeUnit=str.charCodeAt(i);
+          if (codeUnit>=0xd800&&codeUnit<=0xdfff) {
+              var trailSurrogate=str.charCodeAt(++i);
+              codeUnit = 0x10000+((codeUnit&0x3ff)<<10)|(trailSurrogate&0x3ff);
+          }
+          HEAP32[((outPtr)>>2)] = codeUnit;
+          outPtr+=4;
+          if (outPtr+4>endPtr)
+            break;
+      }
+      HEAP32[((outPtr)>>2)] = 0;
+      return outPtr-startPtr;
+    }
+    function lengthBytesUTF32(str) {
+      var len=0;
+      for (var i=0; i<str.length; ++i) {
+          var codeUnit=str.charCodeAt(i);
+          if (codeUnit>=0xd800&&codeUnit<=0xdfff)
+            ++i;
+          len+=4;
+      }
+      return len;
+    }
+    function allocateUTF8(str) {
+      var size=lengthBytesUTF8(str)+1;
+      var ret=_malloc(size);
+      if (ret)
+        stringToUTF8Array(str, HEAP8, ret, size);
+      return ret;
+    }
+    function allocateUTF8OnStack(str) {
+      var size=lengthBytesUTF8(str)+1;
+      var ret=stackAlloc(size);
+      stringToUTF8Array(str, HEAP8, ret, size);
+      return ret;
+    }
+    function demangle(func) {
+      warnOnce('warning: build with  -s DEMANGLE_SUPPORT=1  to link in libcxxabi demangling');
+      return func;
+    }
+    function demangleAll(text) {
+      var regex=/__Z[\w\d_]+/g;
+      return text.replace(regex, function(x) {
+        var y=demangle(x);
+        return x===y ? x : (x+' ['+y+']');
+      });
+    }
+    function jsStackTrace() {
+      var err=new Error();
+      if (!err.stack) {
+          try {
+            throw new Error(0);
+          }
+          catch (e) {
+              err = e;
+          }
+          if (!err.stack) {
+              return '(no stack trace available)';
+          }
+      }
+      return err.stack.toString();
+    }
+    function stackTrace() {
+      var js=jsStackTrace();
+      if (Module['extraStackTrace'])
+        js+='\n'+Module['extraStackTrace']();
+      return demangleAll(js);
+    }
+    var PAGE_SIZE=16384;
+    var WASM_PAGE_SIZE=65536;
+    var ASMJS_PAGE_SIZE=1024*1024*32;
+    var MIN_TOTAL_MEMORY=1024*1024*32;
+    function alignUp(x, multiple) {
+      if (x%multiple>0) {
+          x+=multiple-(x%multiple);
+      }
+      return x;
+    }
+    var HEAP, buffer, HEAP8, HEAPU8, HEAP16, HEAPU16, HEAP32, HEAPU32, HEAPF32, HEAPF64;
+    function updateGlobalBuffer(buf) {
+      Module['buffer'] = buffer = buf;
+    }
+    function updateGlobalBufferViews() {
+      Module['HEAP8'] = HEAP8 = new Int8Array(buffer);
+      Module['HEAP16'] = HEAP16 = new Int16Array(buffer);
+      Module['HEAP32'] = HEAP32 = new Int32Array(buffer);
+      Module['HEAPU8'] = HEAPU8 = new Uint8Array(buffer);
+      Module['HEAPU16'] = HEAPU16 = new Uint16Array(buffer);
+      Module['HEAPU32'] = HEAPU32 = new Uint32Array(buffer);
+      Module['HEAPF32'] = HEAPF32 = new Float32Array(buffer);
+      Module['HEAPF64'] = HEAPF64 = new Float64Array(buffer);
+    }
+    var STATIC_BASE, STATICTOP, staticSealed;
+    var STACK_BASE, STACKTOP, STACK_MAX;
+    var DYNAMIC_BASE, DYNAMICTOP_PTR;
+    STATIC_BASE = STATICTOP = STACK_BASE = STACKTOP = STACK_MAX = DYNAMIC_BASE = DYNAMICTOP_PTR = 0;
+    staticSealed = false;
+    function writeStackCookie() {
+      assert((STACK_MAX&3)==0);
+      HEAPU32[(STACK_MAX>>2)-1] = 0x2135467;
+      HEAPU32[(STACK_MAX>>2)-2] = 0x89bacdfe;
+    }
+    function checkStackCookie() {
+      if (HEAPU32[(STACK_MAX>>2)-1]!=0x2135467||HEAPU32[(STACK_MAX>>2)-2]!=0x89bacdfe) {
+          abort('Stack overflow! Stack cookie has been overwritten, expected hex dwords 0x89BACDFE and 0x02135467, but received 0x'+HEAPU32[(STACK_MAX>>2)-2].toString(16)+' '+HEAPU32[(STACK_MAX>>2)-1].toString(16));
+      }
+      if (HEAP32[0]!==0x63736d65)
+        throw 'Runtime error: The application has corrupted its heap memory area (address zero)!';
+    }
+    function abortStackOverflow(allocSize) {
+      abort('Stack overflow! Attempted to allocate '+allocSize+' bytes on the stack, but stack has only '+(STACK_MAX-stackSave()+allocSize)+' bytes available!');
+    }
+    function abortOnCannotGrowMemory() {
+      abort('Cannot enlarge memory arrays. Either (1) compile with  -s TOTAL_MEMORY=X  with X higher than the current value '+TOTAL_MEMORY+', (2) compile with  -s ALLOW_MEMORY_GROWTH=1  which allows increasing the size at runtime, or (3) if you want malloc to return NULL (0) instead of this abort, compile with  -s ABORTING_MALLOC=0 ');
+    }
+    if (!Module['reallocBuffer'])
+      Module['reallocBuffer'] = function(size) {
+      var ret;
+      try {
+        if (ArrayBuffer.transfer) {
+            ret = ArrayBuffer.transfer(buffer, size);
+        }
+        else {
+          var oldHEAP8=HEAP8;
+          ret = new ArrayBuffer(size);
+          var temp=new Int8Array(ret);
+          temp.set(oldHEAP8);
+        }
+      }
+      catch (e) {
+          return false;
+      }
+      var success=_emscripten_replace_memory(ret);
+      if (!success)
+        return false;
+      return ret;
+    }
+    function enlargeMemory() {
+      assert(HEAP32[DYNAMICTOP_PTR>>2]>TOTAL_MEMORY);
+      var PAGE_MULTIPLE=Module["usingWasm"] ? WASM_PAGE_SIZE : ASMJS_PAGE_SIZE;
+      var LIMIT=2147483648-PAGE_MULTIPLE;
+      if (HEAP32[DYNAMICTOP_PTR>>2]>LIMIT) {
+          Module.printErr('Cannot enlarge memory, asked to go up to '+HEAP32[DYNAMICTOP_PTR>>2]+' bytes, but the limit is '+LIMIT+' bytes!');
+          return false;
+      }
+      var OLD_TOTAL_MEMORY=TOTAL_MEMORY;
+      TOTAL_MEMORY = Math.max(TOTAL_MEMORY, MIN_TOTAL_MEMORY);
+      while (TOTAL_MEMORY<HEAP32[DYNAMICTOP_PTR>>2]) {
+        if (TOTAL_MEMORY<=536870912) {
+            TOTAL_MEMORY = alignUp(2*TOTAL_MEMORY, PAGE_MULTIPLE);
+        }
+        else {
+          TOTAL_MEMORY = Math.min(alignUp((3*TOTAL_MEMORY+2147483648)/4, PAGE_MULTIPLE), LIMIT);
+        }
+      }
+      var start=Date.now();
+      var replacement=Module['reallocBuffer'](TOTAL_MEMORY);
+      if (!replacement||replacement.byteLength!=TOTAL_MEMORY) {
+          Module.printErr('Failed to grow the heap from '+OLD_TOTAL_MEMORY+' bytes to '+TOTAL_MEMORY+' bytes, not enough memory!');
+          if (replacement) {
+              Module.printErr('Expected to get back a buffer of size '+TOTAL_MEMORY+' bytes, but instead got back a buffer of size '+replacement.byteLength);
+          }
+          TOTAL_MEMORY = OLD_TOTAL_MEMORY;
+          return false;
+      }
+      updateGlobalBuffer(replacement);
+      updateGlobalBufferViews();
+      if (!Module["usingWasm"]) {
+          Module.printErr('Warning: Enlarging memory arrays, this is not fast! '+[OLD_TOTAL_MEMORY, TOTAL_MEMORY]);
+      }
+      return true;
+    }
+    var byteLength;
+    try {
+      byteLength = Function.prototype.call.bind(Object.getOwnPropertyDescriptor(ArrayBuffer.prototype, 'byteLength').get);
+      byteLength(new ArrayBuffer(4));
+    }
+    catch (e) {
+        byteLength = function(buffer) {
+          return buffer.byteLength;
+        };
+    }
+    var TOTAL_STACK=Module['TOTAL_STACK']||5242880;
+    var TOTAL_MEMORY=Module['TOTAL_MEMORY']||33554432;
+    if (TOTAL_MEMORY<TOTAL_STACK)
+      Module.printErr('TOTAL_MEMORY should be larger than TOTAL_STACK, was '+TOTAL_MEMORY+'! (TOTAL_STACK='+TOTAL_STACK+')');
+    assert(typeof Int32Array!=='undefined'&&typeof Float64Array!=='undefined'&&Int32Array.prototype.subarray!==undefined&&Int32Array.prototype.set!==undefined, 'JS engine does not provide full typed array support');
+    if (Module['buffer']) {
+        buffer = Module['buffer'];
+        assert(buffer.byteLength===TOTAL_MEMORY, 'provided buffer should be '+TOTAL_MEMORY+' bytes, but it is '+buffer.byteLength);
+    }
+    else {
+      if (typeof WebAssembly==='object'&&typeof WebAssembly.Memory==='function') {
+          assert(TOTAL_MEMORY%WASM_PAGE_SIZE===0);
+          console.log("============", TOTAL_MEMORY, WASM_PAGE_SIZE);
+          Module['wasmMemory'] = new WebAssembly.Memory({'initial': TOTAL_MEMORY/WASM_PAGE_SIZE});
+          buffer = Module['wasmMemory'].buffer;
+      }
+      else {
+        buffer = new ArrayBuffer(TOTAL_MEMORY);
+      }
+      assert(buffer.byteLength===TOTAL_MEMORY);
+      Module['buffer'] = buffer;
+    }
+    updateGlobalBufferViews();
+    function getTotalMemory() {
+      return TOTAL_MEMORY;
+    }
+    HEAP32[0] = 0x63736d65;
+    HEAP16[1] = 0x6373;
+    if (HEAPU8[2]!==0x73||HEAPU8[3]!==0x63)
+      throw 'Runtime error: expected the system to be little-endian!';
+    function callRuntimeCallbacks(callbacks) {
+      while (callbacks.length>0) {
+        var callback=callbacks.shift();
+        if (typeof callback=='function') {
+            callback();
+            continue;
+        }
+        var func=callback.func;
+        if (typeof func==='number') {
+            if (callback.arg===undefined) {
+                Module['dynCall_v'](func);
+            }
+            else {
+              Module['dynCall_vi'](func, callback.arg);
+            }
+        }
+        else {
+          func(callback.arg===undefined ? null : callback.arg);
+        }
+      }
+    }
+    var __ATPRERUN__=[];
+    var __ATINIT__=[];
+    var __ATMAIN__=[];
+    var __ATEXIT__=[];
+    var __ATPOSTRUN__=[];
+    var runtimeInitialized=false;
+    var runtimeExited=false;
+    function preRun() {
+      if (Module['preRun']) {
+          if (typeof Module['preRun']=='function')
+            Module['preRun'] = [Module['preRun']];
+          while (Module['preRun'].length) {
+            addOnPreRun(Module['preRun'].shift());
+          }
+      }
+      callRuntimeCallbacks(__ATPRERUN__);
+    }
+    function ensureInitRuntime() {
+      checkStackCookie();
+      if (runtimeInitialized)
+        return ;
+      runtimeInitialized = true;
+      callRuntimeCallbacks(__ATINIT__);
+    }
+    function preMain() {
+      checkStackCookie();
+      callRuntimeCallbacks(__ATMAIN__);
+    }
+    function exitRuntime() {
+      checkStackCookie();
+      callRuntimeCallbacks(__ATEXIT__);
+      runtimeExited = true;
+    }
+    function postRun() {
+      checkStackCookie();
+      if (Module['postRun']) {
+          if (typeof Module['postRun']=='function')
+            Module['postRun'] = [Module['postRun']];
+          while (Module['postRun'].length) {
+            addOnPostRun(Module['postRun'].shift());
+          }
+      }
+      callRuntimeCallbacks(__ATPOSTRUN__);
+    }
+    function addOnPreRun(cb) {
+      __ATPRERUN__.unshift(cb);
+    }
+    function addOnInit(cb) {
+      __ATINIT__.unshift(cb);
+    }
+    function addOnPreMain(cb) {
+      __ATMAIN__.unshift(cb);
+    }
+    function addOnExit(cb) {
+      __ATEXIT__.unshift(cb);
+    }
+    function addOnPostRun(cb) {
+      __ATPOSTRUN__.unshift(cb);
+    }
+    function writeStringToMemory(string, buffer, dontAddNull) {
+      warnOnce('writeStringToMemory is deprecated and should not be called! Use stringToUTF8() instead!');
+      var lastChar, end;
+      if (dontAddNull) {
+          end = buffer+lengthBytesUTF8(string);
+          lastChar = HEAP8[end];
+      }
+      stringToUTF8(string, buffer, Infinity);
+      if (dontAddNull)
+        HEAP8[end] = lastChar;
+    }
+    function writeArrayToMemory(array, buffer) {
+      assert(array.length>=0, 'writeArrayToMemory array must have a length (should be an array or typed array)');
+      HEAP8.set(array, buffer);
+    }
+    function writeAsciiToMemory(str, buffer, dontAddNull) {
+      for (var i=0; i<str.length; ++i) {
+          assert(str.charCodeAt(i)===str.charCodeAt(i)&0xff);
+          HEAP8[((buffer++)>>0)] = str.charCodeAt(i);
+      }
+      if (!dontAddNull)
+        HEAP8[((buffer)>>0)] = 0;
+    }
+    function unSign(value, bits, ignore) {
+      if (value>=0) {
+          return value;
+      }
+      return bits<=32 ? 2*Math.abs(1<<(bits-1))+value : Math.pow(2, bits)+value;
+    }
+    function reSign(value, bits, ignore) {
+      if (value<=0) {
+          return value;
+      }
+      var half=bits<=32 ? Math.abs(1<<(bits-1)) : Math.pow(2, bits-1);
+      if (value>=half&&(bits<=32||value>half)) {
+          value = -2*half+value;
+      }
+      return value;
+    }
+    assert(Math['imul']&&Math['fround']&&Math['clz32']&&Math['trunc'], 'this is a legacy browser, build with LEGACY_VM_SUPPORT');
+    var Math_abs=Math.abs;
+    var Math_cos=Math.cos;
+    var Math_sin=Math.sin;
+    var Math_tan=Math.tan;
+    var Math_acos=Math.acos;
+    var Math_asin=Math.asin;
+    var Math_atan=Math.atan;
+    var Math_atan2=Math.atan2;
+    var Math_exp=Math.exp;
+    var Math_log=Math.log;
+    var Math_sqrt=Math.sqrt;
+    var Math_ceil=Math.ceil;
+    var Math_floor=Math.floor;
+    var Math_pow=Math.pow;
+    var Math_imul=Math.imul;
+    var Math_fround=Math.fround;
+    var Math_round=Math.round;
+    var Math_min=Math.min;
+    var Math_max=Math.max;
+    var Math_clz32=Math.clz32;
+    var Math_trunc=Math.trunc;
+    var runDependencies=0;
+    var runDependencyWatcher=null;
+    var dependenciesFulfilled=null;
+    var runDependencyTracking={}
+    function getUniqueRunDependency(id) {
+      var orig=id;
+      while (1) {
+        if (!runDependencyTracking[id])
+          return id;
+        id = orig+Math.random();
+      }
+      return id;
+    }
+    function addRunDependency(id) {
+      runDependencies++;
+      if (Module['monitorRunDependencies']) {
+          Module['monitorRunDependencies'](runDependencies);
+      }
+      if (id) {
+          assert(!runDependencyTracking[id]);
+          runDependencyTracking[id] = 1;
+          if (runDependencyWatcher===null&&typeof setInterval!=='undefined') {
+              runDependencyWatcher = setInterval(function() {
+                if (ABORT) {
+                    clearInterval(runDependencyWatcher);
+                    runDependencyWatcher = null;
+                    return ;
+                }
+                var shown=false;
+                for (var dep in runDependencyTracking) {
+                    if (!shown) {
+                        shown = true;
+                        Module.printErr('still waiting on run dependencies:');
+                    }
+                    Module.printErr('dependency: '+dep);
+                }
+                if (shown) {
+                    Module.printErr('(end of list)');
+                }
+              }, 10000);
+          }
+      }
+      else {
+        Module.printErr('warning: run dependency added without ID');
+      }
+    }
+    function removeRunDependency(id) {
+      runDependencies--;
+      if (Module['monitorRunDependencies']) {
+          Module['monitorRunDependencies'](runDependencies);
+      }
+      if (id) {
+          assert(runDependencyTracking[id]);
+          delete runDependencyTracking[id];
+      }
+      else {
+        Module.printErr('warning: run dependency removed without ID');
+      }
+      if (runDependencies==0) {
+          if (runDependencyWatcher!==null) {
+              clearInterval(runDependencyWatcher);
+              runDependencyWatcher = null;
+          }
+          if (dependenciesFulfilled) {
+              var callback=dependenciesFulfilled;
+              dependenciesFulfilled = null;
+              callback();
+          }
+      }
+    }
+    Module["preloadedImages"] = {}
+    Module["preloadedAudios"] = {}
+    var memoryInitializer=null;
+    var FS={error: function() {
+      abort('Filesystem support (FS) was not included. The problem is that you are using files from JS, but files were not used from C/C++, so filesystem support was not auto-included. You can force-include filesystem support with  -s FORCE_FILESYSTEM=1');
+    }, init: function() {
+      FS.error();
+    }, createDataFile: function() {
+      FS.error();
+    }, createPreloadedFile: function() {
+      FS.error();
+    }, createLazyFile: function() {
+      FS.error();
+    }, open: function() {
+      FS.error();
+    }, mkdev: function() {
+      FS.error();
+    }, registerDevice: function() {
+      FS.error();
+    }, analyzePath: function() {
+      FS.error();
+    }, loadFilesFromDB: function() {
+      FS.error();
+    }, ErrnoError: function ErrnoError() {
+      FS.error();
+    }}
+    Module['FS_createDataFile'] = FS.createDataFile;
+    Module['FS_createPreloadedFile'] = FS.createPreloadedFile;
+    var dataURIPrefix='data:application/octet-stream;base64,';
+    function isDataURI(filename) {
+      return String.prototype.startsWith ? filename.startsWith(dataURIPrefix) : filename.indexOf(dataURIPrefix)===0;
+    }
+    function integrateWasmJS() {
+      var method='native-wasm';
+      var wasmTextFile='_built_wasm.wast';
+      var wasmBinaryFile='_built_wasm.wasm';
+      var asmjsCodeFile='_built_wasm.temp.asm.js';
+      if (typeof Module['locateFile']==='function') {
+          if (!isDataURI(wasmTextFile)) {
+              wasmTextFile = Module['locateFile'](wasmTextFile);
+          }
+          if (!isDataURI(wasmBinaryFile)) {
+              wasmBinaryFile = Module['locateFile'](wasmBinaryFile);
+          }
+          if (!isDataURI(asmjsCodeFile)) {
+              asmjsCodeFile = Module['locateFile'](asmjsCodeFile);
+          }
+      }
+      var wasmPageSize=64*1024;
+      var info={'global': null, 'env': null, 'asm2wasm': {"f64-rem": function(x, y) {
+        return x%y;
+      }, "debugger": function() {
+        debugger;
+      }}, 'parent': Module}
+      var exports=null;
+      function mergeMemory(newBuffer) {
+        var oldBuffer=Module['buffer'];
+        if (newBuffer.byteLength<oldBuffer.byteLength) {
+            Module['printErr']('the new buffer in mergeMemory is smaller than the previous one. in native wasm, we should grow memory here');
+        }
+        var oldView=new Int8Array(oldBuffer);
+        var newView=new Int8Array(newBuffer);
+        newView.set(oldView);
+        updateGlobalBuffer(newBuffer);
+        updateGlobalBufferViews();
+      }
+      function fixImports(imports) {
+        return imports;
+      }
+      function getBinary() {
+        try {
+          if (Module['wasmBinary']) {
+              return new Uint8Array(Module['wasmBinary']);
+          }
+          if (Module['readBinary']) {
+              return Module['readBinary'](wasmBinaryFile);
+          }
+          else {
+            throw "on the web, we need the wasm binary to be preloaded and set on Module['wasmBinary']. emcc.py will do that for you when generating HTML (but not JS)";
+          }
+        }
+        catch (err) {
+            abort(err);
+        }
+      }
+      function getBinaryPromise() {
+        if (!Module['wasmBinary']&&(ENVIRONMENT_IS_WEB||ENVIRONMENT_IS_WORKER)&&typeof fetch==='function') {
+            return fetch(wasmBinaryFile, {credentials: 'same-origin'}).then(function(response) {
+              if (!response['ok']) {
+                  throw "failed to load wasm binary file at '"+wasmBinaryFile+"'";
+              }
+              return response['arrayBuffer']();
+            }).catch(function() {
+              return getBinary();
+            });
+        }
+        return new Promise(function(resolve, reject) {
+          resolve(getBinary());
+        });
+      }
+      function doNativeWasm(global, env, providedBuffer) {
+        if (typeof WebAssembly!=='object') {
+            Module['printErr']('no native wasm support detected');
+            return false;
+        }
+        console.log("============2", TOTAL_MEMORY, WASM_PAGE_SIZE);
+        if (!(__instance_of(Module['wasmMemory'], WebAssembly.Memory))) {
+            Module['printErr']('no native wasm Memory in use');
+            return false;
+        }
+        env['memory'] = Module['wasmMemory'];
+        info['global'] = {'NaN': NaN, 'Infinity': Infinity}
+        info['global.Math'] = Math;
+        info['env'] = env;
+        function receiveInstance(instance, module) {
+          exports = instance.exports;
+          if (exports.memory)
+            mergeMemory(exports.memory);
+          Module['asm'] = exports;
+          Module["usingWasm"] = true;
+          removeRunDependency('wasm-instantiate');
+        }
+        addRunDependency('wasm-instantiate');
+        if (Module['instantiateWasm']) {
+            try {
+              return Module['instantiateWasm'](info, receiveInstance);
+            }
+            catch (e) {
+                Module['printErr']('Module.instantiateWasm callback failed with error: '+e);
+                return false;
+            }
+        }
+        var trueModule=Module;
+        function receiveInstantiatedSource(output) {
+          assert(Module===trueModule, 'the Module object should not be replaced during async compilation - perhaps the order of HTML elements is wrong?');
+          trueModule = null;
+          receiveInstance(output['instance'], output['module']);
+        }
+        function instantiateArrayBuffer(receiver) {
+          getBinaryPromise().then(function(binary) {
+            return WebAssembly.instantiate(binary, info);
+          }).then(receiver).catch(function(reason) {
+            Module['printErr']('failed to asynchronously prepare wasm: '+reason);
+            abort(reason);
+          });
+        }
+        if (!Module['wasmBinary']&&typeof WebAssembly.instantiateStreaming==='function'&&!isDataURI(wasmBinaryFile)&&typeof fetch==='function') {
+            WebAssembly.instantiateStreaming(fetch(wasmBinaryFile, {credentials: 'same-origin'}), info).then(receiveInstantiatedSource).catch(function(reason) {
+              Module['printErr']('wasm streaming compile failed: '+reason);
+              Module['printErr']('falling back to ArrayBuffer instantiation');
+              instantiateArrayBuffer(receiveInstantiatedSource);
+            });
+        }
+        else {
+          instantiateArrayBuffer(receiveInstantiatedSource);
+        }
+        return {}
+      }
+      Module['asmPreload'] = Module['asm'];
+      var asmjsReallocBuffer=Module['reallocBuffer'];
+      var wasmReallocBuffer=function(size) {
+        var PAGE_MULTIPLE=Module["usingWasm"] ? WASM_PAGE_SIZE : ASMJS_PAGE_SIZE;
+        size = alignUp(size, PAGE_MULTIPLE);
+        var old=Module['buffer'];
+        var oldSize=old.byteLength;
+        if (Module["usingWasm"]) {
+            try {
+              var result=Module['wasmMemory'].grow((size-oldSize)/wasmPageSize);
+              if (result!==(-1|0)) {
+                  return Module['buffer'] = Module['wasmMemory'].buffer;
+              }
+              else {
+                return null;
+              }
+            }
+            catch (e) {
+                console.error('Module.reallocBuffer: Attempted to grow from '+oldSize+' bytes to '+size+' bytes, but got error: '+e);
+                return null;
+            }
+        }
+      }
+      Module['reallocBuffer'] = function(size) {
+        if (finalMethod==='asmjs') {
+            return asmjsReallocBuffer(size);
+        }
+        else {
+          return wasmReallocBuffer(size);
+        }
+      }
+      var finalMethod='';
+      Module['asm'] = function(global, env, providedBuffer) {
+        env = fixImports(env);
+        console.log("-----------------", env);
+        if (!env['table']) {
+            var TABLE_SIZE=Module['wasmTableSize'];
+            if (TABLE_SIZE===undefined)
+              TABLE_SIZE = 1024;
+            var MAX_TABLE_SIZE=Module['wasmMaxTableSize'];
+            if (typeof WebAssembly==='object'&&typeof WebAssembly.Table==='function') {
+                if (MAX_TABLE_SIZE!==undefined) {
+                    env['table'] = new WebAssembly.Table({'initial': TABLE_SIZE, 'maximum': MAX_TABLE_SIZE, 'element': 'anyfunc'});
+                }
+                else {
+                  env['table'] = new WebAssembly.Table({'initial': TABLE_SIZE, element: 'anyfunc'});
+                }
+            }
+            else {
+              env['table'] = new Array(TABLE_SIZE);
+            }
+            Module['wasmTable'] = env['table'];
+        }
+        if (!env['memoryBase']) {
+            env['memoryBase'] = Module['STATIC_BASE'];
+        }
+        if (!env['tableBase']) {
+            env['tableBase'] = 0;
+        }
+        var exports;
+        exports = doNativeWasm(global, env, providedBuffer);
+        if (!exports)
+          abort('no binaryen method succeeded. consider enabling more options, like interpreting, if you want that: https://github.com/kripken/emscripten/wiki/WebAssembly#binaryen-methods');
+        return exports;
+      }
+      var methodHandler=Module['asm'];
+    }
+    integrateWasmJS();
+    var ASM_CONSTS=[];
+    function _sendMessage(x, buffer, len) {
+      _wasm_post_message(x, buffer, len);
+    }
+    STATIC_BASE = GLOBAL_BASE;
+    STATICTOP = STATIC_BASE+10400;
+    __ATINIT__.push();
+    var STATIC_BUMP=10400;
+    Module["STATIC_BASE"] = STATIC_BASE;
+    Module["STATIC_BUMP"] = STATIC_BUMP;
+    var tempDoublePtr=STATICTOP;
+    STATICTOP+=16;
+    assert(tempDoublePtr%8==0);
+    function copyTempFloat(ptr) {
+      HEAP8[tempDoublePtr] = HEAP8[ptr];
+      HEAP8[tempDoublePtr+1] = HEAP8[ptr+1];
+      HEAP8[tempDoublePtr+2] = HEAP8[ptr+2];
+      HEAP8[tempDoublePtr+3] = HEAP8[ptr+3];
+    }
+    function copyTempDouble(ptr) {
+      HEAP8[tempDoublePtr] = HEAP8[ptr];
+      HEAP8[tempDoublePtr+1] = HEAP8[ptr+1];
+      HEAP8[tempDoublePtr+2] = HEAP8[ptr+2];
+      HEAP8[tempDoublePtr+3] = HEAP8[ptr+3];
+      HEAP8[tempDoublePtr+4] = HEAP8[ptr+4];
+      HEAP8[tempDoublePtr+5] = HEAP8[ptr+5];
+      HEAP8[tempDoublePtr+6] = HEAP8[ptr+6];
+      HEAP8[tempDoublePtr+7] = HEAP8[ptr+7];
+    }
+    function __ZSt18uncaught_exceptionv() {
+      return !!__ZSt18uncaught_exceptionv.uncaught_exception;
+    }
+    var EXCEPTIONS={last: 0, caught: [], infos: {}, deAdjust: function(adjusted) {
+      if (!adjusted||EXCEPTIONS.infos[adjusted])
+        return adjusted;
+      for (var key in EXCEPTIONS.infos) {
+          var ptr=+key;
+          var info=EXCEPTIONS.infos[ptr];
+          if (info.adjusted===adjusted) {
+              return ptr;
+          }
+      }
+      return adjusted;
+    }, addRef: function(ptr) {
+      if (!ptr)
+        return ;
+      var info=EXCEPTIONS.infos[ptr];
+      info.refcount++;
+    }, decRef: function(ptr) {
+      if (!ptr)
+        return ;
+      var info=EXCEPTIONS.infos[ptr];
+      assert(info.refcount>0);
+      info.refcount--;
+      if (info.refcount===0&&!info.rethrown) {
+          if (info.destructor) {
+              Module['dynCall_vi'](info.destructor, ptr);
+          }
+          delete EXCEPTIONS.infos[ptr];
+          ___cxa_free_exception(ptr);
+      }
+    }, clearRef: function(ptr) {
+      if (!ptr)
+        return ;
+      var info=EXCEPTIONS.infos[ptr];
+      info.refcount = 0;
+    }}
+    function ___resumeException(ptr) {
+      if (!EXCEPTIONS.last) {
+          EXCEPTIONS.last = ptr;
+      }
+      throw ptr+" - Exception catching is disabled, this exception cannot be caught. Compile with -s DISABLE_EXCEPTION_CATCHING=0 or DISABLE_EXCEPTION_CATCHING=2 to catch.";
+    }
+    function ___cxa_find_matching_catch() {
+      var thrown=EXCEPTIONS.last;
+      if (!thrown) {
+          return ((setTempRet0(0), 0)|0);
+      }
+      var info=EXCEPTIONS.infos[thrown];
+      var throwntype=info.type;
+      if (!throwntype) {
+          return ((setTempRet0(0), thrown)|0);
+      }
+      var typeArray=Array.prototype.slice.call(arguments);
+      var pointer=Module['___cxa_is_pointer_type'](throwntype);
+      if (!___cxa_find_matching_catch.buffer)
+        ___cxa_find_matching_catch.buffer = _malloc(4);
+      HEAP32[((___cxa_find_matching_catch.buffer)>>2)] = thrown;
+      thrown = ___cxa_find_matching_catch.buffer;
+      for (var i=0; i<typeArray.length; i++) {
+          if (typeArray[i]&&Module['___cxa_can_catch'](typeArray[i], throwntype, thrown)) {
+              thrown = HEAP32[((thrown)>>2)];
+              info.adjusted = thrown;
+              return ((setTempRet0(typeArray[i]), thrown)|0);
+          }
+      }
+      thrown = HEAP32[((thrown)>>2)];
+      return ((setTempRet0(throwntype), thrown)|0);
+    }
+    function ___gxx_personality_v0() {
+    }
+    function ___lock() {
+    }
+    var SYSCALLS={varargs: 0, get: function(varargs) {
+      SYSCALLS.varargs+=4;
+      var ret=HEAP32[(((SYSCALLS.varargs)-(4))>>2)];
+      return ret;
+    }, getStr: function() {
+      var ret=Pointer_stringify(SYSCALLS.get());
+      return ret;
+    }, get64: function() {
+      var low=SYSCALLS.get(), high=SYSCALLS.get();
+      if (low>=0)
+        assert(high===0);
+      else 
+        assert(high===-1);
+      return low;
+    }, getZero: function() {
+      assert(SYSCALLS.get()===0);
+    }}
+    function ___syscall140(which, varargs) {
+      SYSCALLS.varargs = varargs;
+      try {
+        var stream=SYSCALLS.getStreamFromFD(), offset_high=SYSCALLS.get(), offset_low=SYSCALLS.get(), result=SYSCALLS.get(), whence=SYSCALLS.get();
+        var offset=offset_low;
+        FS.llseek(stream, offset, whence);
+        HEAP32[((result)>>2)] = stream.position;
+        if (stream.getdents&&offset===0&&whence===0)
+          stream.getdents = null;
+        return 0;
+      }
+      catch (e) {
+          if (typeof FS==='undefined'||!(__instance_of(e, FS.ErrnoError)))
+            abort(e);
+          return -e.errno;
+      }
+    }
+    function flush_NO_FILESYSTEM() {
+      var fflush=Module["_fflush"];
+      if (fflush)
+        fflush(0);
+      var printChar=___syscall146.printChar;
+      if (!printChar)
+        return ;
+      var buffers=___syscall146.buffers;
+      if (buffers[1].length)
+        printChar(1, 10);
+      if (buffers[2].length)
+        printChar(2, 10);
+    }
+    function ___syscall146(which, varargs) {
+      SYSCALLS.varargs = varargs;
+      try {
+        var stream=SYSCALLS.get(), iov=SYSCALLS.get(), iovcnt=SYSCALLS.get();
+        var ret=0;
+        if (!___syscall146.buffers) {
+            ___syscall146.buffers = [null, [], []];
+            ___syscall146.printChar = function(stream, curr) {
+              var buffer=___syscall146.buffers[stream];
+              assert(buffer);
+              if (curr===0||curr===10) {
+                  (stream===1 ? Module['print'] : Module['printErr'])(UTF8ArrayToString(buffer, 0));
+                  buffer.length = 0;
+              }
+              else {
+                buffer.push(curr);
+              }
+            };
+        }
+        for (var i=0; i<iovcnt; i++) {
+            var ptr=HEAP32[(((iov)+(i*8))>>2)];
+            var len=HEAP32[(((iov)+(i*8+4))>>2)];
+            for (var j=0; j<len; j++) {
+                ___syscall146.printChar(stream, HEAPU8[ptr+j]);
+            }
+            ret+=len;
+        }
+        return ret;
+      }
+      catch (e) {
+          if (typeof FS==='undefined'||!(__instance_of(e, FS.ErrnoError)))
+            abort(e);
+          return -e.errno;
+      }
+    }
+    function ___syscall54(which, varargs) {
+      SYSCALLS.varargs = varargs;
+      try {
+        return 0;
+      }
+      catch (e) {
+          if (typeof FS==='undefined'||!(__instance_of(e, FS.ErrnoError)))
+            abort(e);
+          return -e.errno;
+      }
+    }
+    function ___syscall6(which, varargs) {
+      SYSCALLS.varargs = varargs;
+      try {
+        var stream=SYSCALLS.getStreamFromFD();
+        FS.close(stream);
+        return 0;
+      }
+      catch (e) {
+          if (typeof FS==='undefined'||!(__instance_of(e, FS.ErrnoError)))
+            abort(e);
+          return -e.errno;
+      }
+    }
+    function ___unlock() {
+    }
+    function _clock() {
+      if (_clock.start===undefined)
+        _clock.start = Date.now();
+      return ((Date.now()-_clock.start)*(1000000/1000))|0;
+    }
+    function _emscripten_memcpy_big(dest, src, num) {
+      HEAPU8.set(HEAPU8.subarray(src, src+num), dest);
+      return dest;
+    }
+    function ___setErrNo(value) {
+      if (Module['___errno_location'])
+        HEAP32[((Module['___errno_location']())>>2)] = value;
+      else 
+        Module.printErr('failed to set errno from JS');
+      return value;
+    }
+    DYNAMICTOP_PTR = staticAlloc(4);
+    STACK_BASE = STACKTOP = alignMemory(STATICTOP);
+    STACK_MAX = STACK_BASE+TOTAL_STACK;
+    DYNAMIC_BASE = alignMemory(STACK_MAX);
+    HEAP32[DYNAMICTOP_PTR>>2] = DYNAMIC_BASE;
+    staticSealed = true;
+    assert(DYNAMIC_BASE<TOTAL_MEMORY, "TOTAL_MEMORY not big enough for stack");
+    var ASSERTIONS=true;
+    function intArrayFromString(stringy, dontAddNull, length) {
+      var len=length>0 ? length : lengthBytesUTF8(stringy)+1;
+      var u8array=new Array(len);
+      var numBytesWritten=stringToUTF8Array(stringy, u8array, 0, u8array.length);
+      if (dontAddNull)
+        u8array.length = numBytesWritten;
+      return u8array;
+    }
+    function intArrayToString(array) {
+      var ret=[];
+      for (var i=0; i<array.length; i++) {
+          var chr=array[i];
+          if (chr>0xff) {
+              if (ASSERTIONS) {
+                  assert(false, 'Character code '+chr+' ('+String.fromCharCode(chr)+')  at offset '+i+' not in 0x00-0xFF.');
+              }
+              chr&=0xff;
+          }
+          ret.push(String.fromCharCode(chr));
+      }
+      return ret.join('');
+    }
+    function nullFunc_ii(x) {
+      Module["printErr"]("Invalid function pointer called with signature 'ii'. Perhaps this is an invalid value (e.g. caused by calling a virtual method on a NULL pointer)? Or calling a function with an incorrect type, which will fail? (it is worth building your source files with -Werror (warnings are errors), as warnings can indicate undefined behavior which can cause this)");
+      Module["printErr"]("Build with ASSERTIONS=2 for more info.");
+      abort(x);
+    }
+    function nullFunc_iiii(x) {
+      Module["printErr"]("Invalid function pointer called with signature 'iiii'. Perhaps this is an invalid value (e.g. caused by calling a virtual method on a NULL pointer)? Or calling a function with an incorrect type, which will fail? (it is worth building your source files with -Werror (warnings are errors), as warnings can indicate undefined behavior which can cause this)");
+      Module["printErr"]("Build with ASSERTIONS=2 for more info.");
+      abort(x);
+    }
+    Module['wasmTableSize'] = 10;
+    Module['wasmMaxTableSize'] = 10;
+    function invoke_ii(index, a1) {
+      try {
+        return Module["dynCall_ii"](index, a1);
+      }
+      catch (e) {
+          if (typeof e!=='number'&&e!=='longjmp')
+            throw e;
+          Module["setThrew"](1, 0);
+      }
+    }
+    function invoke_iiii(index, a1, a2, a3) {
+      try {
+        return Module["dynCall_iiii"](index, a1, a2, a3);
+      }
+      catch (e) {
+          if (typeof e!=='number'&&e!=='longjmp')
+            throw e;
+          Module["setThrew"](1, 0);
+      }
+    }
+    Module.asmGlobalArg = {}
+    Module.asmLibraryArg = {"abort": abort, "assert": assert, "enlargeMemory": enlargeMemory, "getTotalMemory": getTotalMemory, "abortOnCannotGrowMemory": abortOnCannotGrowMemory, "abortStackOverflow": abortStackOverflow, "nullFunc_ii": nullFunc_ii, "nullFunc_iiii": nullFunc_iiii, "invoke_ii": invoke_ii, "invoke_iiii": invoke_iiii, "__ZSt18uncaught_exceptionv": __ZSt18uncaught_exceptionv, "___cxa_find_matching_catch": ___cxa_find_matching_catch, "___gxx_personality_v0": ___gxx_personality_v0, "___lock": ___lock, "___resumeException": ___resumeException, "___setErrNo": ___setErrNo, "___syscall140": ___syscall140, "___syscall146": ___syscall146, "___syscall54": ___syscall54, "___syscall6": ___syscall6, "___unlock": ___unlock, "_clock": _clock, "_emscripten_memcpy_big": _emscripten_memcpy_big, "_sendMessage": _sendMessage, "flush_NO_FILESYSTEM": flush_NO_FILESYSTEM, "DYNAMICTOP_PTR": DYNAMICTOP_PTR, "tempDoublePtr": tempDoublePtr, "ABORT": ABORT, "STACKTOP": STACKTOP, "STACK_MAX": STACK_MAX}
+    var asm=Module["asm"](Module.asmGlobalArg, Module.asmLibraryArg, buffer);
+    var real__FM_free=asm["_FM_free"];
+    asm["_FM_free"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return real__FM_free.apply(null, arguments);
+    }
+    var real__FM_malloc=asm["_FM_malloc"];
+    asm["_FM_malloc"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return real__FM_malloc.apply(null, arguments);
+    }
+    var real____em_js__sendMessage=asm["___em_js__sendMessage"];
+    asm["___em_js__sendMessage"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return real____em_js__sendMessage.apply(null, arguments);
+    }
+    var real____errno_location=asm["___errno_location"];
+    asm["___errno_location"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return real____errno_location.apply(null, arguments);
+    }
+    var real__fflush=asm["_fflush"];
+    asm["_fflush"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return real__fflush.apply(null, arguments);
+    }
+    var real__free=asm["_free"];
+    asm["_free"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return real__free.apply(null, arguments);
+    }
+    var real__gotMessage=asm["_gotMessage"];
+    asm["_gotMessage"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return real__gotMessage.apply(null, arguments);
+    }
+    var real__llvm_bswap_i32=asm["_llvm_bswap_i32"];
+    asm["_llvm_bswap_i32"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return real__llvm_bswap_i32.apply(null, arguments);
+    }
+    var real__main=asm["_main"];
+    asm["_main"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return real__main.apply(null, arguments);
+    }
+    var real__malloc=asm["_malloc"];
+    asm["_malloc"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return real__malloc.apply(null, arguments);
+    }
+    var real__sbrk=asm["_sbrk"];
+    asm["_sbrk"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return real__sbrk.apply(null, arguments);
+    }
+    var real_establishStackSpace=asm["establishStackSpace"];
+    asm["establishStackSpace"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return real_establishStackSpace.apply(null, arguments);
+    }
+    var real_getTempRet0=asm["getTempRet0"];
+    asm["getTempRet0"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return real_getTempRet0.apply(null, arguments);
+    }
+    var real_setTempRet0=asm["setTempRet0"];
+    asm["setTempRet0"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return real_setTempRet0.apply(null, arguments);
+    }
+    var real_setThrew=asm["setThrew"];
+    asm["setThrew"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return real_setThrew.apply(null, arguments);
+    }
+    var real_stackAlloc=asm["stackAlloc"];
+    asm["stackAlloc"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return real_stackAlloc.apply(null, arguments);
+    }
+    var real_stackRestore=asm["stackRestore"];
+    asm["stackRestore"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return real_stackRestore.apply(null, arguments);
+    }
+    var real_stackSave=asm["stackSave"];
+    asm["stackSave"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return real_stackSave.apply(null, arguments);
+    }
+    Module["asm"] = asm;
+    var _FM_free=Module["_FM_free"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return Module["asm"]["_FM_free"].apply(null, arguments);
+    }
+    var _FM_malloc=Module["_FM_malloc"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return Module["asm"]["_FM_malloc"].apply(null, arguments);
+    }
+    var ___em_js__sendMessage=Module["___em_js__sendMessage"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return Module["asm"]["___em_js__sendMessage"].apply(null, arguments);
+    }
+    var ___errno_location=Module["___errno_location"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return Module["asm"]["___errno_location"].apply(null, arguments);
+    }
+    var _emscripten_replace_memory=Module["_emscripten_replace_memory"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return Module["asm"]["_emscripten_replace_memory"].apply(null, arguments);
+    }
+    var _fflush=Module["_fflush"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return Module["asm"]["_fflush"].apply(null, arguments);
+    }
+    var _free=Module["_free"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return Module["asm"]["_free"].apply(null, arguments);
+    }
+    var _gotMessage=Module["_gotMessage"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return Module["asm"]["_gotMessage"].apply(null, arguments);
+    }
+    var _llvm_bswap_i32=Module["_llvm_bswap_i32"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return Module["asm"]["_llvm_bswap_i32"].apply(null, arguments);
+    }
+    var _main=Module["_main"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return Module["asm"]["_main"].apply(null, arguments);
+    }
+    var _malloc=Module["_malloc"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return Module["asm"]["_malloc"].apply(null, arguments);
+    }
+    var _memcpy=Module["_memcpy"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return Module["asm"]["_memcpy"].apply(null, arguments);
+    }
+    var _memset=Module["_memset"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return Module["asm"]["_memset"].apply(null, arguments);
+    }
+    var _sbrk=Module["_sbrk"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return Module["asm"]["_sbrk"].apply(null, arguments);
+    }
+    var establishStackSpace=Module["establishStackSpace"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return Module["asm"]["establishStackSpace"].apply(null, arguments);
+    }
+    var getTempRet0=Module["getTempRet0"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return Module["asm"]["getTempRet0"].apply(null, arguments);
+    }
+    var runPostSets=Module["runPostSets"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return Module["asm"]["runPostSets"].apply(null, arguments);
+    }
+    var setTempRet0=Module["setTempRet0"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return Module["asm"]["setTempRet0"].apply(null, arguments);
+    }
+    var setThrew=Module["setThrew"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return Module["asm"]["setThrew"].apply(null, arguments);
+    }
+    var stackAlloc=Module["stackAlloc"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return Module["asm"]["stackAlloc"].apply(null, arguments);
+    }
+    var stackRestore=Module["stackRestore"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return Module["asm"]["stackRestore"].apply(null, arguments);
+    }
+    var stackSave=Module["stackSave"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return Module["asm"]["stackSave"].apply(null, arguments);
+    }
+    var dynCall_ii=Module["dynCall_ii"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return Module["asm"]["dynCall_ii"].apply(null, arguments);
+    }
+    var dynCall_iiii=Module["dynCall_iiii"] = function() {
+      assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+      assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+      return Module["asm"]["dynCall_iiii"].apply(null, arguments);
+    }
+    
+    Module['asm'] = asm;
+    if (!Module["intArrayFromString"])
+      Module["intArrayFromString"] = function() {
+      abort("'intArrayFromString' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["intArrayToString"])
+      Module["intArrayToString"] = function() {
+      abort("'intArrayToString' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    Module["ccall"] = ccall;
+    if (!Module["cwrap"])
+      Module["cwrap"] = function() {
+      abort("'cwrap' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["setValue"])
+      Module["setValue"] = function() {
+      abort("'setValue' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["getValue"])
+      Module["getValue"] = function() {
+      abort("'getValue' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["allocate"])
+      Module["allocate"] = function() {
+      abort("'allocate' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    Module["getMemory"] = getMemory;
+    if (!Module["Pointer_stringify"])
+      Module["Pointer_stringify"] = function() {
+      abort("'Pointer_stringify' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["AsciiToString"])
+      Module["AsciiToString"] = function() {
+      abort("'AsciiToString' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["stringToAscii"])
+      Module["stringToAscii"] = function() {
+      abort("'stringToAscii' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["UTF8ArrayToString"])
+      Module["UTF8ArrayToString"] = function() {
+      abort("'UTF8ArrayToString' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["UTF8ToString"])
+      Module["UTF8ToString"] = function() {
+      abort("'UTF8ToString' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["stringToUTF8Array"])
+      Module["stringToUTF8Array"] = function() {
+      abort("'stringToUTF8Array' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["stringToUTF8"])
+      Module["stringToUTF8"] = function() {
+      abort("'stringToUTF8' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["lengthBytesUTF8"])
+      Module["lengthBytesUTF8"] = function() {
+      abort("'lengthBytesUTF8' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["UTF16ToString"])
+      Module["UTF16ToString"] = function() {
+      abort("'UTF16ToString' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["stringToUTF16"])
+      Module["stringToUTF16"] = function() {
+      abort("'stringToUTF16' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["lengthBytesUTF16"])
+      Module["lengthBytesUTF16"] = function() {
+      abort("'lengthBytesUTF16' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["UTF32ToString"])
+      Module["UTF32ToString"] = function() {
+      abort("'UTF32ToString' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["stringToUTF32"])
+      Module["stringToUTF32"] = function() {
+      abort("'stringToUTF32' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["lengthBytesUTF32"])
+      Module["lengthBytesUTF32"] = function() {
+      abort("'lengthBytesUTF32' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["allocateUTF8"])
+      Module["allocateUTF8"] = function() {
+      abort("'allocateUTF8' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["stackTrace"])
+      Module["stackTrace"] = function() {
+      abort("'stackTrace' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["addOnPreRun"])
+      Module["addOnPreRun"] = function() {
+      abort("'addOnPreRun' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["addOnInit"])
+      Module["addOnInit"] = function() {
+      abort("'addOnInit' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["addOnPreMain"])
+      Module["addOnPreMain"] = function() {
+      abort("'addOnPreMain' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["addOnExit"])
+      Module["addOnExit"] = function() {
+      abort("'addOnExit' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["addOnPostRun"])
+      Module["addOnPostRun"] = function() {
+      abort("'addOnPostRun' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["writeStringToMemory"])
+      Module["writeStringToMemory"] = function() {
+      abort("'writeStringToMemory' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["writeArrayToMemory"])
+      Module["writeArrayToMemory"] = function() {
+      abort("'writeArrayToMemory' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["writeAsciiToMemory"])
+      Module["writeAsciiToMemory"] = function() {
+      abort("'writeAsciiToMemory' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["addRunDependency"])
+      Module["addRunDependency"] = function() {
+      abort("'addRunDependency' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ). Alternatively, forcing filesystem support (-s FORCE_FILESYSTEM=1) can export this for you");
+    }
+    if (!Module["removeRunDependency"])
+      Module["removeRunDependency"] = function() {
+      abort("'removeRunDependency' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ). Alternatively, forcing filesystem support (-s FORCE_FILESYSTEM=1) can export this for you");
+    }
+    if (!Module["FS"])
+      Module["FS"] = function() {
+      abort("'FS' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["FS_createFolder"])
+      Module["FS_createFolder"] = function() {
+      abort("'FS_createFolder' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ). Alternatively, forcing filesystem support (-s FORCE_FILESYSTEM=1) can export this for you");
+    }
+    if (!Module["FS_createPath"])
+      Module["FS_createPath"] = function() {
+      abort("'FS_createPath' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ). Alternatively, forcing filesystem support (-s FORCE_FILESYSTEM=1) can export this for you");
+    }
+    if (!Module["FS_createDataFile"])
+      Module["FS_createDataFile"] = function() {
+      abort("'FS_createDataFile' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ). Alternatively, forcing filesystem support (-s FORCE_FILESYSTEM=1) can export this for you");
+    }
+    if (!Module["FS_createPreloadedFile"])
+      Module["FS_createPreloadedFile"] = function() {
+      abort("'FS_createPreloadedFile' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ). Alternatively, forcing filesystem support (-s FORCE_FILESYSTEM=1) can export this for you");
+    }
+    if (!Module["FS_createLazyFile"])
+      Module["FS_createLazyFile"] = function() {
+      abort("'FS_createLazyFile' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ). Alternatively, forcing filesystem support (-s FORCE_FILESYSTEM=1) can export this for you");
+    }
+    if (!Module["FS_createLink"])
+      Module["FS_createLink"] = function() {
+      abort("'FS_createLink' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ). Alternatively, forcing filesystem support (-s FORCE_FILESYSTEM=1) can export this for you");
+    }
+    if (!Module["FS_createDevice"])
+      Module["FS_createDevice"] = function() {
+      abort("'FS_createDevice' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ). Alternatively, forcing filesystem support (-s FORCE_FILESYSTEM=1) can export this for you");
+    }
+    if (!Module["FS_unlink"])
+      Module["FS_unlink"] = function() {
+      abort("'FS_unlink' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ). Alternatively, forcing filesystem support (-s FORCE_FILESYSTEM=1) can export this for you");
+    }
+    if (!Module["GL"])
+      Module["GL"] = function() {
+      abort("'GL' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["staticAlloc"])
+      Module["staticAlloc"] = function() {
+      abort("'staticAlloc' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["dynamicAlloc"])
+      Module["dynamicAlloc"] = function() {
+      abort("'dynamicAlloc' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["warnOnce"])
+      Module["warnOnce"] = function() {
+      abort("'warnOnce' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["loadDynamicLibrary"])
+      Module["loadDynamicLibrary"] = function() {
+      abort("'loadDynamicLibrary' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["loadWebAssemblyModule"])
+      Module["loadWebAssemblyModule"] = function() {
+      abort("'loadWebAssemblyModule' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["getLEB"])
+      Module["getLEB"] = function() {
+      abort("'getLEB' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["getFunctionTables"])
+      Module["getFunctionTables"] = function() {
+      abort("'getFunctionTables' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["alignFunctionTables"])
+      Module["alignFunctionTables"] = function() {
+      abort("'alignFunctionTables' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["registerFunctions"])
+      Module["registerFunctions"] = function() {
+      abort("'registerFunctions' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["addFunction"])
+      Module["addFunction"] = function() {
+      abort("'addFunction' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["removeFunction"])
+      Module["removeFunction"] = function() {
+      abort("'removeFunction' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["getFuncWrapper"])
+      Module["getFuncWrapper"] = function() {
+      abort("'getFuncWrapper' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["prettyPrint"])
+      Module["prettyPrint"] = function() {
+      abort("'prettyPrint' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["makeBigInt"])
+      Module["makeBigInt"] = function() {
+      abort("'makeBigInt' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["dynCall"])
+      Module["dynCall"] = function() {
+      abort("'dynCall' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["getCompilerSetting"])
+      Module["getCompilerSetting"] = function() {
+      abort("'getCompilerSetting' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["stackSave"])
+      Module["stackSave"] = function() {
+      abort("'stackSave' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["stackRestore"])
+      Module["stackRestore"] = function() {
+      abort("'stackRestore' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["stackAlloc"])
+      Module["stackAlloc"] = function() {
+      abort("'stackAlloc' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }
+    if (!Module["ALLOC_NORMAL"])
+      Object.defineProperty(Module, "ALLOC_NORMAL", {get: function() {
+      abort("'ALLOC_NORMAL' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }});
+    if (!Module["ALLOC_STACK"])
+      Object.defineProperty(Module, "ALLOC_STACK", {get: function() {
+      abort("'ALLOC_STACK' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }});
+    if (!Module["ALLOC_STATIC"])
+      Object.defineProperty(Module, "ALLOC_STATIC", {get: function() {
+      abort("'ALLOC_STATIC' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }});
+    if (!Module["ALLOC_DYNAMIC"])
+      Object.defineProperty(Module, "ALLOC_DYNAMIC", {get: function() {
+      abort("'ALLOC_DYNAMIC' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }});
+    if (!Module["ALLOC_NONE"])
+      Object.defineProperty(Module, "ALLOC_NONE", {get: function() {
+      abort("'ALLOC_NONE' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }});
+    function ExitStatus(status) {
+      this.name = "ExitStatus";
+      this.message = "Program terminated with exit("+status+")";
+      this.status = status;
+    }
+    ExitStatus.prototype = new Error();
+    ExitStatus.prototype.constructor = ExitStatus;
+    var initialStackTop;
+    var calledMain=false;
+    dependenciesFulfilled = function runCaller() {
+      if (!Module['calledRun'])
+        run();
+      if (!Module['calledRun'])
+        dependenciesFulfilled = runCaller;
+    }
+    Module['callMain'] = function callMain(args) {
+      assert(runDependencies==0, 'cannot call main when async dependencies remain! (listen on __ATMAIN__)');
+      assert(__ATPRERUN__.length==0, 'cannot call main when preRun functions remain to be called');
+      args = args||[];
+      ensureInitRuntime();
+      var argc=args.length+1;
+      var argv=stackAlloc((argc+1)*4);
+      HEAP32[argv>>2] = allocateUTF8OnStack(Module['thisProgram']);
+      for (var i=1; i<argc; i++) {
+          HEAP32[(argv>>2)+i] = allocateUTF8OnStack(args[i-1]);
+      }
+      HEAP32[(argv>>2)+argc] = 0;
+      try {
+        var ret=Module['_main'](argc, argv, 0);
+        exit(ret, true);
+      }
+      catch (e) {
+          if (__instance_of(e, ExitStatus)) {
+              return ;
+          }
+          else 
+            if (e=='SimulateInfiniteLoop') {
+              Module['noExitRuntime'] = true;
+              return ;
+          }
+          else {
+            var toLog=e;
+            if (e&&typeof e==='object'&&e.stack) {
+                toLog = [e, e.stack];
+            }
+            Module.printErr('exception thrown: '+toLog);
+            Module['quit'](1, e);
+          }
+      }
+      finally {
+          calledMain = true;
+        }
+    }
+    function run(args) {
+      args = args||Module['arguments'];
+      if (runDependencies>0) {
+          return ;
+      }
+      writeStackCookie();
+      preRun();
+      if (runDependencies>0)
+        return ;
+      if (Module['calledRun'])
+        return ;
+      function doRun() {
+        if (Module['calledRun'])
+          return ;
+        Module['calledRun'] = true;
+        if (ABORT)
+          return ;
+        ensureInitRuntime();
+        preMain();
+        if (Module['onRuntimeInitialized'])
+          Module['onRuntimeInitialized']();
+        if (Module['_main']&&shouldRunNow)
+          Module['callMain'](args);
+        postRun();
+      }
+      if (Module['setStatus']) {
+          Module['setStatus']('Running...');
+          setTimeout(function() {
+            setTimeout(function() {
+              Module['setStatus']('');
+            }, 1);
+            doRun();
+          }, 1);
+      }
+      else {
+        doRun();
+      }
+      checkStackCookie();
+      Module['ready'] = true;
+    }
+    Module['run'] = run;
+    function checkUnflushedContent() {
+      var print=Module['print'];
+      var printErr=Module['printErr'];
+      var has=false;
+      Module['print'] = Module['printErr'] = function(x) {
+        has = true;
+      }
+      try {
+        var flush=flush_NO_FILESYSTEM;
+        if (flush)
+          flush(0);
+      }
+      catch (e) {
+      }
+      Module['print'] = print;
+      Module['printErr'] = printErr;
+      if (has) {
+          warnOnce('stdio streams had content in them that was not flushed. you should set NO_EXIT_RUNTIME to 0 (see the FAQ), or make sure to emit a newline when you printf etc.');
+      }
+    }
+    function exit(status, implicit) {
+      checkUnflushedContent();
+      if (implicit&&Module['noExitRuntime']&&status===0) {
+          return ;
+      }
+      if (Module['noExitRuntime']) {
+          if (!implicit) {
+              Module.printErr('exit('+status+') called, but NO_EXIT_RUNTIME is set, so halting execution but not exiting the runtime or preventing further async execution (build with NO_EXIT_RUNTIME=0, if you want a true shutdown)');
+          }
+      }
+      else {
+        ABORT = true;
+        EXITSTATUS = status;
+        STACKTOP = initialStackTop;
+        exitRuntime();
+        if (Module['onExit'])
+          Module['onExit'](status);
+      }
+      if (ENVIRONMENT_IS_NODE) {
+          process['exit'](status);
+      }
+      Module['quit'](status, new ExitStatus(status));
+    }
+    Module['exit'] = exit;
+    var abortDecorators=[];
+    function abort(what) {
+      if (Module['onAbort']) {
+          Module['onAbort'](what);
+      }
+      if (what!==undefined) {
+          Module.print(what);
+          Module.printErr(what);
+          what = JSON.stringify(what);
+      }
+      else {
+        what = '';
+      }
+      ABORT = true;
+      EXITSTATUS = 1;
+      var extra='';
+      var output='abort('+what+') at '+stackTrace()+extra;
+      if (abortDecorators) {
+          abortDecorators.forEach(function(decorator) {
+            output = decorator(output, what);
+          });
+      }
+      throw output;
+    }
+    Module['abort'] = abort;
+    if (Module['preInit']) {
+        if (typeof Module['preInit']=='function')
+          Module['preInit'] = [Module['preInit']];
+        while (Module['preInit'].length>0) {
+          Module['preInit'].pop()();
+        }
+    }
+    var shouldRunNow=true;
+    if (Module['noInitialRun']) {
+        shouldRunNow = false;
+    }
+    Module["noExitRuntime"] = true;
+    run();
+  }
+  function tryInitWasm() {
+    if (window.solverwasm_binary!==undefined) {
+        Module.wasmBinary = window.solverwasm_binary;
+        initwasm();
+    }
+    else {
+      window.setTimeout(tryInitWasm);
+    }
+  }
+  tryInitWasm = _es6_module.add_export('tryInitWasm', tryInitWasm);
+  tryInitWasm();
+}, '/home/ec2-user/fairmotion/src/wasm/built_wasm.js');
+es6_module_define('native_api', ["solver", "ajax", "toolops_api", "spline_math_hermite", "built_wasm", "spline_base", "typedwriter"], function _native_api_module(_es6_module) {
   var wasm=es6_import(_es6_module, 'built_wasm');
   var active_solves={}
   active_solves = _es6_module.add_export('active_solves', active_solves);
@@ -18,6 +2429,10 @@ es6_module_define('native_api', ["toolops_api", "spline_math_hermite", "spline_b
   var build_solver=es6_import_item(_es6_module, 'spline_math_hermite', 'build_solver');
   var TypedWriter=es6_import_item(_es6_module, 'typedwriter', 'TypedWriter');
   var ajax=es6_import(_es6_module, 'ajax');
+  function isReady() {
+    return wasm.ready;
+  }
+  isReady = _es6_module.add_export('isReady', isReady);
   var mmax=Math.max, mmin=Math.min, mfloor=Math.floor;
   var abs=Math.abs, sqrt=Math.sqrt, sin=Math.sin, cos=Math.cos, pow=Math.pow, log=Math.log, acos=Math.acos, asin=Math.asin, PI=Math.PI;
   var last_call=undefined;
@@ -1010,7 +3425,6 @@ es6_module_define('native_api', ["toolops_api", "spline_math_hermite", "spline_b
         console.log("time e:", time_ms()-timestart, "\n\n\n");
     }
     ret.stage1 = function() {
-      console.log(status, "<----");
       let buf1=status.data;
       data = new DataView(buf1);
       status.value = wrap_unload(spline, data);
@@ -1018,7 +3432,7 @@ es6_module_define('native_api', ["toolops_api", "spline_math_hermite", "spline_b
     return ret;
   }
   nacl_solve = _es6_module.add_export('nacl_solve', nacl_solve);
-}, '/dev/fairmotion/src/wasm/native_api.js');
+}, '/home/ec2-user/fairmotion/src/wasm/native_api.js');
 es6_module_define('addon_api', [], function _addon_api_module(_es6_module) {
   "use strict";
   var modules={}
@@ -1047,7 +3461,7 @@ es6_module_define('addon_api', [], function _addon_api_module(_es6_module) {
   }]);
   _es6_module.add_class(AddonManager);
   AddonManager = _es6_module.add_export('AddonManager', AddonManager);
-}, '/dev/fairmotion/src/addon_api/addon_api.js');
+}, '/home/ec2-user/fairmotion/src/addon_api/addon_api.js');
 es6_module_define('scene', ["lib_api", "struct"], function _scene_module(_es6_module) {
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
   var DataBlock=es6_import_item(_es6_module, 'lib_api', 'DataBlock');
@@ -1094,9 +3508,10 @@ es6_module_define('scene', ["lib_api", "struct"], function _scene_module(_es6_mo
   _es6_module.add_class(Scene);
   Scene = _es6_module.add_export('Scene', Scene);
   Scene.STRUCT = STRUCT.inherit(Scene, DataBlock)+"\n    time              : float;\n    active_splinepath : string;\n  }\n";
-}, '/dev/fairmotion/src/scene/scene.js');
-es6_module_define('events', [], function _events_module(_es6_module) {
+}, '/home/ec2-user/fairmotion/src/scene/scene.js');
+es6_module_define('events', ["J3DIMath"], function _events_module(_es6_module) {
   "use strict";
+  es6_import(_es6_module, 'J3DIMath');
   var MyKeyboardEvent=_ESClass("MyKeyboardEvent", [function MyKeyboardEvent(code, shift, ctrl, alt) {
     if (shift==undefined) {
         shift = false;
@@ -1465,9 +3880,9 @@ es6_module_define('events', [], function _events_module(_es6_module) {
   }]);
   _es6_module.add_class(FuncKeyHandler);
   FuncKeyHandler = _es6_module.add_export('FuncKeyHandler', FuncKeyHandler);
-  var $vel_iOZ4_on_tick;
-  var $vel_cVWK_calc_vel;
-  var $was_clamped_dC7r_clamp_pan;
+  var $vel_HUe4_on_tick;
+  var $vel_wWv5_calc_vel;
+  var $was_clamped_1992_clamp_pan;
   var VelocityPan=_ESClass("VelocityPan", EventHandler, [function VelocityPan() {
     this.start_mpos = new Vector2();
     this.last_mpos = new Vector2();
@@ -1489,11 +3904,11 @@ es6_module_define('events', [], function _events_module(_es6_module) {
   }, function on_tick() {
     if (!this.panning&&this.coasting) {
         var damp=0.99;
-        $vel_iOZ4_on_tick.load(this.vel);
-        $vel_iOZ4_on_tick.mulScalar(time_ms()-this.last_ms);
+        $vel_HUe4_on_tick.load(this.vel);
+        $vel_HUe4_on_tick.mulScalar(time_ms()-this.last_ms);
         this.vel.mulScalar(damp);
         this.last_ms = time_ms();
-        this.pan.sub($vel_iOZ4_on_tick);
+        this.pan.sub($vel_HUe4_on_tick);
         var was_clamped=this.clamp_pan();
         this.owner.on_pan(this.pan, this.start_pan);
         var stop=was_clamped!=undefined&&(was_clamped[0]&&was_clamped[1]);
@@ -1513,8 +3928,8 @@ es6_module_define('events', [], function _events_module(_es6_module) {
         console.log("small t!!!", t);
         return ;
     }
-    $vel_cVWK_calc_vel.load(this.last_mpos).sub(this.mpos).divideScalar(t);
-    this.vel.add($vel_cVWK_calc_vel);
+    $vel_wWv5_calc_vel.load(this.last_mpos).sub(this.mpos).divideScalar(t);
+    this.vel.add($vel_wWv5_calc_vel);
     this.coasting = (this.vel.vectorLength()>0.25);
     this.last_ms = time_ms();
   }, function start(start_mpos, last_mpos, owner, push_modal_func, pop_modal_func) {
@@ -1561,15 +3976,15 @@ es6_module_define('events', [], function _events_module(_es6_module) {
     if (this.owner.state&8192*4)
       return ;
     var p=this.pan;
-    $was_clamped_dC7r_clamp_pan[0] = false;
-    $was_clamped_dC7r_clamp_pan[1] = false;
+    $was_clamped_1992_clamp_pan[0] = false;
+    $was_clamped_1992_clamp_pan[1] = false;
     for (var i=0; i<2; i++) {
         var l=p[i];
         p[i] = Math.min(Math.max(bs[0][i], p[i]), bs[0][i]+bs[1][i]);
         if (p[i]!=l)
-          $was_clamped_dC7r_clamp_pan[i] = true;
+          $was_clamped_1992_clamp_pan[i] = true;
     }
-    return $was_clamped_dC7r_clamp_pan;
+    return $was_clamped_1992_clamp_pan;
   }, function on_mouseup(event) {
     console.log("pan mouse up!", this.panning, this.owner);
     if (this.panning) {
@@ -1586,9 +4001,9 @@ es6_module_define('events', [], function _events_module(_es6_module) {
     this.coasting = false;
     this.vel.zero();
   }]);
-  var $vel_iOZ4_on_tick=new Vector2();
-  var $vel_cVWK_calc_vel=new Vector2();
-  var $was_clamped_dC7r_clamp_pan=[0, 0];
+  var $vel_HUe4_on_tick=new Vector2();
+  var $vel_wWv5_calc_vel=new Vector2();
+  var $was_clamped_1992_clamp_pan=[0, 0];
   _es6_module.add_class(VelocityPan);
   VelocityPan = _es6_module.add_export('VelocityPan', VelocityPan);
   var TouchEventManager=_ESClass("TouchEventManager", [function TouchEventManager(owner, delay) {
@@ -1721,7 +4136,7 @@ es6_module_define('events', [], function _events_module(_es6_module) {
   TouchEventManager = _es6_module.add_export('TouchEventManager', TouchEventManager);
   window.TouchEventManager = TouchEventManager;
   var touch_manager=window.touch_manager = new TouchEventManager(undefined, 20);
-}, '/dev/fairmotion/src/editors/viewport/events.js');
+}, '/home/ec2-user/fairmotion/src/editors/viewport/events.js');
 es6_module_define('touchevents', [], function _touchevents_module(_es6_module) {
   "use strict";
   var TouchManager=_ESClass("TouchManager", [function TouchManager(event) {
@@ -1763,8 +4178,8 @@ es6_module_define('touchevents', [], function _touchevents_module(_es6_module) {
     return true;
   }]);
   _es6_module.add_class(TouchManager);
-}, '/dev/fairmotion/src/ui/touchevents.js');
-es6_module_define('toolprops', ["struct", "ajax", "toolprops_iter"], function _toolprops_module(_es6_module) {
+}, '/home/ec2-user/fairmotion/src/ui/touchevents.js');
+es6_module_define('toolprops', ["ajax", "toolprops_iter", "struct"], function _toolprops_module(_es6_module) {
   "use strict";
   
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
@@ -2576,7 +4991,7 @@ es6_module_define('toolprops', ["struct", "ajax", "toolprops_iter"], function _t
   BlankArray = _es6_module.add_export('BlankArray', BlankArray);
   BlankArray.STRUCT = "\n  BlankArray {\n    length : int | 0;\n  }\n";
   window.BlankArray = BlankArray;
-}, '/dev/fairmotion/src/core/toolprops.js');
+}, '/home/ec2-user/fairmotion/src/core/toolprops.js');
 es6_module_define('toolprops_iter', ["struct"], function _toolprops_iter_module(_es6_module) {
   "use strict";
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
@@ -2660,7 +5075,7 @@ es6_module_define('toolprops_iter', ["struct"], function _toolprops_iter_module(
   })]);
   _es6_module.add_class(MSelectIter);
   MSelectIter.STRUCT = STRUCT.inherit(MSelectIter, ToolIter)+"\n  meshref  : DataRef;\n  mask     : int;\n}\n";
-  var $map_tZwJ_fromSTRUCT;
+  var $map_oGBr_fromSTRUCT;
   var element_iter_convert=_ESClass("element_iter_convert", ToolIter, [function element_iter_convert(iter, type) {
     ToolIter.call(this);
     if (!(__instance_of(iter, TPropIterable))) {
@@ -2721,20 +5136,20 @@ es6_module_define('toolprops_iter', ["struct"], function _toolprops_iter_module(
   }, _ESClass.static(function fromSTRUCT(reader) {
     var ob={}
     reader(ob);
-    var type=$map_tZwJ_fromSTRUCT[ob.type];
+    var type=$map_oGBr_fromSTRUCT[ob.type];
     var ret=new element_iter_convert(ob._iter, type);
   })]);
-  var $map_tZwJ_fromSTRUCT={Vertex: 1, Edge: 2, Loop: 4, Face: 8}
+  var $map_oGBr_fromSTRUCT={Vertex: 1, Edge: 2, Loop: 4, Face: 8}
   _es6_module.add_class(element_iter_convert);
   element_iter_convert.STRUCT = STRUCT.inherit(element_iter_convert, ToolIter)+"\n  type  : string | this.type != undefined ? this.type.constructor.name : \"\";\n  _iter : abstract(ToolIter) | obj.iter;\n}\n";
-}, '/dev/fairmotion/src/core/toolprops_iter.js');
-es6_module_define('toolops_api', ["events", "struct", "toolprops"], function _toolops_api_module(_es6_module) {
+}, '/home/ec2-user/fairmotion/src/core/toolprops_iter.js');
+es6_module_define('toolops_api', ["struct", "toolprops", "../editors/viewport/events"], function _toolops_api_module(_es6_module) {
   "use strict";
   var PropTypes=es6_import_item(_es6_module, 'toolprops', 'PropTypes');
   var TPropFlags=es6_import_item(_es6_module, 'toolprops', 'TPropFlags');
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
-  var EventHandler=es6_import_item(_es6_module, 'events', 'EventHandler');
-  var charmap=es6_import_item(_es6_module, 'events', 'charmap');
+  var EventHandler=es6_import_item(_es6_module, '../editors/viewport/events', 'EventHandler');
+  var charmap=es6_import_item(_es6_module, '../editors/viewport/events', 'charmap');
   var UndoFlags={IGNORE_UNDO: 2, IS_ROOT_OPERATOR: 4, UNDO_BARRIER: 8, HAS_UNDO_DATA: 16}
   UndoFlags = _es6_module.add_export('UndoFlags', UndoFlags);
   var ToolFlags={HIDE_TITLE_IN_LAST_BUTTONS: 1, USE_PARTIAL_UNDO: 2, USE_DEFAULT_INPUT: 4}
@@ -2865,7 +5280,7 @@ es6_module_define('toolops_api', ["events", "struct", "toolprops"], function _to
   })]);
   _es6_module.add_class(PropPair);
   PropPair.STRUCT = "\n  PropPair {\n    key   : string;\n    value : abstract(ToolProperty);\n  }\n";
-  var $toolops_PhGa_get_constructor;
+  var $toolops_VivW_get_constructor;
   var ToolOp=_ESClass("ToolOp", ToolOpAbstract, [function ToolOp(apiname, uiname, description, icon) {
     if (apiname==undefined) {
         apiname = "(undefined)";
@@ -2974,16 +5389,16 @@ es6_module_define('toolops_api', ["events", "struct", "toolprops"], function _to
     op.outputs = outs;
     return op;
   }), _ESClass.static(function get_constructor(name) {
-    if ($toolops_PhGa_get_constructor==undefined) {
-        $toolops_PhGa_get_constructor = {};
+    if ($toolops_VivW_get_constructor==undefined) {
+        $toolops_VivW_get_constructor = {};
         for (var c in defined_classes) {
             if (__instance_of(c, ToolOp))
-              $toolops_PhGa_get_constructor[c.name] = c;
+              $toolops_VivW_get_constructor[c.name] = c;
         }
     }
-    return $toolops_PhGa_get_constructor[c];
+    return $toolops_VivW_get_constructor[c];
   })]);
-  var $toolops_PhGa_get_constructor=undefined;
+  var $toolops_VivW_get_constructor=undefined;
   _es6_module.add_class(ToolOp);
   ToolOp = _es6_module.add_export('ToolOp', ToolOp);
   ToolOp.STRUCT = "\n  ToolOp {\n      flag    : int;\n      saved_context  : SavedContext | obj.get_saved_context();\n      inputs  : iter(k, PropPair) | new PropPair(k, obj.inputs[k]);\n      outputs : iter(k, PropPair) | new PropPair(k, obj.outputs[k]);\n  }\n";
@@ -3403,7 +5818,7 @@ es6_module_define('toolops_api', ["events", "struct", "toolprops"], function _to
     if (do_z)
       widget.arrow([0, 0, 1], 2, [0, 0, 1, 1]);
     var this2=this;
-    var $zaxis_LHmJ;
+    var $zaxis_Zbp1;
     function widget_on_tick(widget) {
       var mat=widget.matrix;
       var mesh=ctx.mesh;
@@ -3453,15 +5868,15 @@ es6_module_define('toolops_api', ["events", "struct", "toolprops"], function _to
             tan.mulScalar(1.0/len);
             tan.normalize();
           }
-          var angle=Math.PI-Math.acos($zaxis_LHmJ.dot(n));
-          if (n.dot($zaxis_LHmJ)>0.9) {
+          var angle=Math.PI-Math.acos($zaxis_Zbp1.dot(n));
+          if (n.dot($zaxis_Zbp1)>0.9) {
           }
           if (1) {
               if (Math.abs(angle)<0.001||Math.abs(angle)>Math.PI-0.001) {
                   n.loadXYZ(1, 0, 0);
               }
               else {
-                n.cross($zaxis_LHmJ);
+                n.cross($zaxis_Zbp1);
                 n.normalize();
               }
               var q=new Quat();
@@ -3472,7 +5887,7 @@ es6_module_define('toolops_api', ["events", "struct", "toolprops"], function _to
       }
       mat.multiply(ctx.object.matrix);
     }
-    var $zaxis_LHmJ=new Vector3([0, 0, -1]);
+    var $zaxis_Zbp1=new Vector3([0, 0, -1]);
     widget.on_tick = widget_on_tick;
     widget.on_click = function(widget, id) {
       console.log("widget click: ", id);
@@ -3528,7 +5943,7 @@ es6_module_define('toolops_api', ["events", "struct", "toolprops"], function _to
     ToolOp.apply(this, arguments);
   }]);
   _es6_module.add_class(WidgetToolOp);
-}, '/dev/fairmotion/src/core/toolops_api.js');
+}, '/home/ec2-user/fairmotion/src/core/toolops_api.js');
 es6_module_define('eventdag', ["J3DIMath"], function _eventdag_module(_es6_module) {
   "use strict";
   var _event_dag_idgen=undefined;
@@ -3708,8 +6123,8 @@ es6_module_define('eventdag', ["J3DIMath"], function _eventdag_module(_es6_modul
       this.apply(thisvar!=undefined ? thisvar : self, args);
     }
   }
-  var $sarr_PfiU_link;
-  var $darr_OG1t_link;
+  var $sarr_1ZhY_link;
+  var $darr_RYqZ_link;
   var EventDag=_ESClass("EventDag", [function EventDag() {
     this.nodes = [];
     this.sortlist = [];
@@ -3879,12 +6294,12 @@ es6_module_define('eventdag', ["J3DIMath"], function _eventdag_module(_es6_modul
     var obja=src, objb=dst;
     var srcnode=this.get_node(src);
     if (!(__instance_of(srcfield, Array))) {
-        $sarr_PfiU_link[0] = srcfield;
-        srcfield = $sarr_PfiU_link;
+        $sarr_1ZhY_link[0] = srcfield;
+        srcfield = $sarr_1ZhY_link;
     }
     if (!(__instance_of(dstfield, Array))) {
-        $darr_OG1t_link[0] = dstfield;
-        dstfield = $darr_OG1t_link;
+        $darr_RYqZ_link[0] = dstfield;
+        dstfield = $darr_RYqZ_link;
     }
     if ((typeof dst=="function"||__instance_of(dst, Function))&&!dst._dag_callback_init) {
         gen_callback_exec(dst, dstthis);
@@ -4092,22 +6507,22 @@ es6_module_define('eventdag', ["J3DIMath"], function _eventdag_module(_es6_modul
         owner.dag_exec(ctx, this);
     }
   }]);
-  var $sarr_PfiU_link=[0];
-  var $darr_OG1t_link=[0];
+  var $sarr_1ZhY_link=[0];
+  var $darr_RYqZ_link=[0];
   _es6_module.add_class(EventDag);
   EventDag = _es6_module.add_export('EventDag', EventDag);
   window.init_event_graph = function init_event_graph() {
     window.the_global_dag = new EventDag();
     _event_dag_idgen = new EIDGen();
   }
-}, '/dev/fairmotion/src/core/eventdag.js');
-es6_module_define('lib_utils', ["toolprops_iter", "struct", "events"], function _lib_utils_module(_es6_module) {
+}, '/home/ec2-user/fairmotion/src/core/eventdag.js');
+es6_module_define('lib_utils', ["toolprops_iter", "../editors/viewport/events", "struct"], function _lib_utils_module(_es6_module) {
   "use strict";
-  es6_import(_es6_module, 'events');
+  es6_import(_es6_module, '../editors/viewport/events');
   es6_import(_es6_module, 'toolprops_iter');
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
-  var EventHandler=es6_import_item(_es6_module, 'events', 'EventHandler');
-  var charmap=es6_import_item(_es6_module, 'events', 'charmap');
+  var EventHandler=es6_import_item(_es6_module, '../editors/viewport/events', 'EventHandler');
+  var charmap=es6_import_item(_es6_module, '../editors/viewport/events', 'charmap');
   var DBList=_ESClass("DBList", GArray, [function DBList(type) {
     GArray.call(this);
     this.type = type;
@@ -4452,7 +6867,7 @@ es6_module_define('lib_utils', ["toolprops_iter", "struct", "events"], function 
   _es6_module.add_class(DataRefList);
   mixin(DataRefList, TPropIterable);
   DataRefList.STRUCT = "\n  DataRefList {\n    list : array(i, dataref(DataBlock)) | this[i];\n  }\n";
-}, '/dev/fairmotion/src/core/lib_utils.js');
+}, '/home/ec2-user/fairmotion/src/core/lib_utils.js');
 es6_module_define('transdata', ["mathlib"], function _transdata_module(_es6_module) {
   "use strict";
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
@@ -4478,8 +6893,8 @@ es6_module_define('transdata', ["mathlib"], function _transdata_module(_es6_modu
   _es6_module.add_class(TransDataType);
   TransDataType = _es6_module.add_export('TransDataType', TransDataType);
   TransDataType.selectmode = -1;
-}, '/dev/fairmotion/src/editors/viewport/transdata.js');
-es6_module_define('transform', ["mathlib", "multires_transdata", "native_api", "selectmode", "dopesheet_transdata", "toolops_api", "events", "spline_types", "transdata", "toolprops"], function _transform_module(_es6_module) {
+}, '/home/ec2-user/fairmotion/src/editors/viewport/transdata.js');
+es6_module_define('transform', ["./events", "spline_types", "selectmode", "transdata", "native_api", "dopesheet_transdata", "mathlib", "multires_transdata", "toolops_api", "toolprops"], function _transform_module(_es6_module) {
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
   var SelMask=es6_import_item(_es6_module, 'selectmode', 'SelMask');
   var MResTransData=es6_import_item(_es6_module, 'multires_transdata', 'MResTransData');
@@ -4497,13 +6912,13 @@ es6_module_define('transform', ["mathlib", "multires_transdata", "native_api", "
   var TransDataItem=es6_import_item(_es6_module, 'transdata', 'TransDataItem');
   var TransDataType=es6_import_item(_es6_module, 'transdata', 'TransDataType');
   var TransDopeSheetType=es6_import_item(_es6_module, 'dopesheet_transdata', 'TransDopeSheetType');
-  var KeyMap=es6_import_item(_es6_module, 'events', 'KeyMap');
-  var ToolKeyHandler=es6_import_item(_es6_module, 'events', 'ToolKeyHandler');
-  var FuncKeyHandler=es6_import_item(_es6_module, 'events', 'FuncKeyHandler');
-  var KeyHandler=es6_import_item(_es6_module, 'events', 'KeyHandler');
-  var charmap=es6_import_item(_es6_module, 'events', 'charmap');
-  var TouchEventManager=es6_import_item(_es6_module, 'events', 'TouchEventManager');
-  var EventHandler=es6_import_item(_es6_module, 'events', 'EventHandler');
+  var KeyMap=es6_import_item(_es6_module, './events', 'KeyMap');
+  var ToolKeyHandler=es6_import_item(_es6_module, './events', 'ToolKeyHandler');
+  var FuncKeyHandler=es6_import_item(_es6_module, './events', 'FuncKeyHandler');
+  var KeyHandler=es6_import_item(_es6_module, './events', 'KeyHandler');
+  var charmap=es6_import_item(_es6_module, './events', 'charmap');
+  var TouchEventManager=es6_import_item(_es6_module, './events', 'TouchEventManager');
+  var EventHandler=es6_import_item(_es6_module, './events', 'EventHandler');
   var clear_jobs=es6_import_item(_es6_module, 'native_api', 'clear_jobs');
   var clear_jobs_except_latest=es6_import_item(_es6_module, 'native_api', 'clear_jobs_except_latest');
   var clear_jobs_except_first=es6_import_item(_es6_module, 'native_api', 'clear_jobs_except_first');
@@ -5347,8 +7762,8 @@ es6_module_define('transform', ["mathlib", "multires_transdata", "native_api", "
   }]);
   _es6_module.add_class(RotateOp);
   RotateOp = _es6_module.add_export('RotateOp', RotateOp);
-}, '/dev/fairmotion/src/editors/viewport/transform.js');
-es6_module_define('transform_ops', ["toolprops", "events", "dopesheet_transdata", "spline_types", "toolops_api", "native_api", "transform", "selectmode", "multires_transdata", "transdata", "mathlib"], function _transform_ops_module(_es6_module) {
+}, '/home/ec2-user/fairmotion/src/editors/viewport/transform.js');
+es6_module_define('transform_ops', ["native_api", "multires_transdata", "transform", "spline_types", "mathlib", "selectmode", "dopesheet_transdata", "toolprops", "toolops_api", "transdata", "./events"], function _transform_ops_module(_es6_module) {
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
   var TransformOp=es6_import_item(_es6_module, 'transform', 'TransformOp');
   var ScaleOp=es6_import_item(_es6_module, 'transform', 'ScaleOp');
@@ -5368,13 +7783,13 @@ es6_module_define('transform_ops', ["toolprops", "events", "dopesheet_transdata"
   var TransDataItem=es6_import_item(_es6_module, 'transdata', 'TransDataItem');
   var TransDataType=es6_import_item(_es6_module, 'transdata', 'TransDataType');
   var TransDopeSheetType=es6_import_item(_es6_module, 'dopesheet_transdata', 'TransDopeSheetType');
-  var KeyMap=es6_import_item(_es6_module, 'events', 'KeyMap');
-  var ToolKeyHandler=es6_import_item(_es6_module, 'events', 'ToolKeyHandler');
-  var FuncKeyHandler=es6_import_item(_es6_module, 'events', 'FuncKeyHandler');
-  var KeyHandler=es6_import_item(_es6_module, 'events', 'KeyHandler');
-  var charmap=es6_import_item(_es6_module, 'events', 'charmap');
-  var TouchEventManager=es6_import_item(_es6_module, 'events', 'TouchEventManager');
-  var EventHandler=es6_import_item(_es6_module, 'events', 'EventHandler');
+  var KeyMap=es6_import_item(_es6_module, './events', 'KeyMap');
+  var ToolKeyHandler=es6_import_item(_es6_module, './events', 'ToolKeyHandler');
+  var FuncKeyHandler=es6_import_item(_es6_module, './events', 'FuncKeyHandler');
+  var KeyHandler=es6_import_item(_es6_module, './events', 'KeyHandler');
+  var charmap=es6_import_item(_es6_module, './events', 'charmap');
+  var TouchEventManager=es6_import_item(_es6_module, './events', 'TouchEventManager');
+  var EventHandler=es6_import_item(_es6_module, './events', 'EventHandler');
   var clear_jobs=es6_import_item(_es6_module, 'native_api', 'clear_jobs');
   var clear_jobs_except_latest=es6_import_item(_es6_module, 'native_api', 'clear_jobs_except_latest');
   var clear_jobs_except_first=es6_import_item(_es6_module, 'native_api', 'clear_jobs_except_first');
@@ -5446,7 +7861,7 @@ es6_module_define('transform_ops', ["toolprops", "events", "dopesheet_transdata"
         corners[i] = widget.arrow([0, 0], [0, 0], i, [0, 0, 0, 1.0]);
     }
     let signs=[[-1, -1], [-1, 1], [1, 1], [1, -1]];
-    let set_handles=function() {
+    let set_handles=() =>      {
       rarrow.v1[0] = w, rarrow.v1[1] = 0.0;
       rarrow.v2[0] = w+len, rarrow.v2[1] = 0.0;
       larrow.v1[0] = -w, larrow.v1[1] = 0.0;
@@ -5675,8 +8090,8 @@ es6_module_define('transform_ops', ["toolprops", "events", "dopesheet_transdata"
   })]);
   _es6_module.add_class(WidgetRotateOp);
   WidgetRotateOp = _es6_module.add_export('WidgetRotateOp', WidgetRotateOp);
-}, '/dev/fairmotion/src/editors/viewport/transform_ops.js');
-es6_module_define('spline_selectops', ["spline_draw", "animdata", "spline_types", "toolprops", "toolops_api"], function _spline_selectops_module(_es6_module) {
+}, '/home/ec2-user/fairmotion/src/editors/viewport/transform_ops.js');
+es6_module_define('spline_selectops', ["spline_draw", "animdata", "toolprops", "toolops_api", "spline_types"], function _spline_selectops_module(_es6_module) {
   "use strict";
   var $_mh;
   var $_swapt;
@@ -6254,8 +8669,8 @@ es6_module_define('spline_selectops', ["spline_draw", "animdata", "spline_types"
   }]);
   _es6_module.add_class(CircleSelectOp);
   CircleSelectOp = _es6_module.add_export('CircleSelectOp', CircleSelectOp);
-}, '/dev/fairmotion/src/editors/viewport/spline_selectops.js');
-es6_module_define('spline_createops', ["spline_types", "toolops_api", "toolprops", "spline", "spline_editops"], function _spline_createops_module(_es6_module) {
+}, '/home/ec2-user/fairmotion/src/editors/viewport/spline_selectops.js');
+es6_module_define('spline_createops', ["toolops_api", "spline_types", "spline", "spline_editops", "toolprops"], function _spline_createops_module(_es6_module) {
   var ToolOp=es6_import_item(_es6_module, 'toolops_api', 'ToolOp');
   var SplineFlags=es6_import_item(_es6_module, 'spline_types', 'SplineFlags');
   var EnumProperty=es6_import_item(_es6_module, 'toolprops', 'EnumProperty');
@@ -6597,8 +9012,8 @@ es6_module_define('spline_createops', ["spline_types", "toolops_api", "toolprops
   }]);
   _es6_module.add_class(ImportJSONOp);
   ImportJSONOp = _es6_module.add_export('ImportJSONOp', ImportJSONOp);
-}, '/dev/fairmotion/src/editors/viewport/spline_createops.js');
-es6_module_define('spline_editops', ["frameset", "toolprops", "spline", "spline_draw", "toolops_api", "../../curve/spline_base", "animdata", "spline_types", "struct"], function _spline_editops_module(_es6_module) {
+}, '/home/ec2-user/fairmotion/src/editors/viewport/spline_createops.js');
+es6_module_define('spline_editops', ["toolops_api", "../../curve/spline_base", "spline", "spline_draw", "animdata", "toolprops", "spline_types", "frameset", "struct"], function _spline_editops_module(_es6_module) {
   var IntProperty=es6_import_item(_es6_module, 'toolprops', 'IntProperty');
   var FloatProperty=es6_import_item(_es6_module, 'toolprops', 'FloatProperty');
   var CollectionProperty=es6_import_item(_es6_module, 'toolprops', 'CollectionProperty');
@@ -7529,7 +9944,7 @@ es6_module_define('spline_editops', ["frameset", "toolprops", "spline", "spline_
     return {uiname: "Playback", apiname: "editor.playback", inputs: {}, outputs: {}, undoflag: UndoFlags.IGNORE_UNDO, icon: -1, is_modal: true, description: "Play back animation"}
   }), function on_frame(ctx) {
     let this2=this;
-    window.redraw_viewport().then(function() {
+    window.redraw_viewport().then(() =>      {
       if (this2.done) {
           return ;
       }
@@ -8015,8 +10430,8 @@ es6_module_define('spline_editops', ["frameset", "toolprops", "spline", "spline_
   }]);
   _es6_module.add_class(SplineMirrorOp);
   SplineMirrorOp = _es6_module.add_export('SplineMirrorOp', SplineMirrorOp);
-}, '/dev/fairmotion/src/editors/viewport/spline_editops.js');
-es6_module_define('spline_layerops', ["spline_types", "toolprops", "toolops_api", "spline", "spline_editops"], function _spline_layerops_module(_es6_module) {
+}, '/home/ec2-user/fairmotion/src/editors/viewport/spline_editops.js');
+es6_module_define('spline_layerops', ["toolops_api", "spline", "spline_types", "spline_editops", "toolprops"], function _spline_layerops_module(_es6_module) {
   var ToolOp=es6_import_item(_es6_module, 'toolops_api', 'ToolOp');
   var UndoFlags=es6_import_item(_es6_module, 'toolops_api', 'UndoFlags');
   var ToolFlags=es6_import_item(_es6_module, 'toolops_api', 'ToolFlags');
@@ -8208,10 +10623,10 @@ es6_module_define('spline_layerops', ["spline_types", "toolprops", "toolops_api"
   }]);
   _es6_module.add_class(DeleteLayerOp);
   DeleteLayerOp = _es6_module.add_export('DeleteLayerOp', DeleteLayerOp);
-}, '/dev/fairmotion/src/editors/viewport/spline_layerops.js');
+}, '/home/ec2-user/fairmotion/src/editors/viewport/spline_layerops.js');
 es6_module_define('spline_animops', [], function _spline_animops_module(_es6_module) {
-}, '/dev/fairmotion/src/editors/viewport/spline_animops.js');
-es6_module_define('multires_ops', ["spline_editops", "spline_multires", "J3DIMath", "spline_types", "spline_draw", "toolprops", "spline", "toolops_api"], function _multires_ops_module(_es6_module) {
+}, '/home/ec2-user/fairmotion/src/editors/viewport/spline_animops.js');
+es6_module_define('multires_ops', ["spline", "toolprops", "spline_editops", "J3DIMath", "spline_draw", "spline_multires", "spline_types", "toolops_api"], function _multires_ops_module(_es6_module) {
   es6_import(_es6_module, 'J3DIMath');
   var IntProperty=es6_import_item(_es6_module, 'toolprops', 'IntProperty');
   var FloatProperty=es6_import_item(_es6_module, 'toolprops', 'FloatProperty');
@@ -8239,7 +10654,7 @@ es6_module_define('multires_ops', ["spline_editops", "spline_multires", "J3DIMat
   var decompose_id=es6_import_item(_es6_module, 'spline_multires', 'decompose_id');
   var has_multires=es6_import_item(_es6_module, 'spline_multires', 'has_multires');
   var iterpoints=es6_import_item(_es6_module, 'spline_multires', 'iterpoints');
-  var $vec_tqqi_exec;
+  var $vec_LiKD_exec;
   var CreateMResPoint=_ESClass("CreateMResPoint", SplineLocalToolOp, [function CreateMResPoint(seg, co) {
     SplineLocalToolOp.call(this, "create_mres_point", "Add Detail Point", "", -1);
     if (seg!=undefined) {
@@ -8285,11 +10700,11 @@ es6_module_define('multires_ops', ["spline_editops", "spline_multires", "J3DIMat
     if (cp!=undefined) {
         s = cp[1];
         t = cp[0].vectorDistance(co);
-        $vec_tqqi_exec.zero().load(co).sub(cp[0]);
+        $vec_LiKD_exec.zero().load(co).sub(cp[0]);
         var n=seg.normal(s);
-        t*=Math.sign(n.dot($vec_tqqi_exec));
-        p.offset[0] = $vec_tqqi_exec[0];
-        p.offset[1] = $vec_tqqi_exec[1];
+        t*=Math.sign(n.dot($vec_LiKD_exec));
+        p.offset[0] = $vec_LiKD_exec[0];
+        p.offset[1] = $vec_LiKD_exec[1];
     }
     else {
       flag|=MResFlags.UPDATE;
@@ -8301,12 +10716,12 @@ es6_module_define('multires_ops', ["spline_editops", "spline_multires", "J3DIMat
     var id=compose_id(p.seg, p.id);
     spline.segments.cdata.get_shared('MultiResLayer').active = id;
   }]);
-  var $vec_tqqi_exec=new Vector3();
+  var $vec_LiKD_exec=new Vector3();
   _es6_module.add_class(CreateMResPoint);
   CreateMResPoint = _es6_module.add_export('CreateMResPoint', CreateMResPoint);
   CreateMResPoint.inputs = {segment: new IntProperty(0), co: new Vec3Property(), level: new IntProperty(0)}
-}, '/dev/fairmotion/src/editors/viewport/multires/multires_ops.js');
-es6_module_define('multires_selectops', ["toolops_api", "spline_multires", "spline_types", "spline_editops", "toolprops", "spline", "spline_draw", "J3DIMath"], function _multires_selectops_module(_es6_module) {
+}, '/home/ec2-user/fairmotion/src/editors/viewport/multires/multires_ops.js');
+es6_module_define('multires_selectops', ["toolops_api", "spline_draw", "spline_multires", "toolprops", "spline", "spline_editops", "J3DIMath", "spline_types"], function _multires_selectops_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, 'J3DIMath');
   var IntProperty=es6_import_item(_es6_module, 'toolprops', 'IntProperty');
@@ -8566,8 +10981,8 @@ es6_module_define('multires_selectops', ["toolops_api", "spline_multires", "spli
   _es6_module.add_class(SelectOneOp);
   SelectOneOp = _es6_module.add_export('SelectOneOp', SelectOneOp);
   SelectOneOp.inputs = ToolOp.inherit_inputs(SelectOpBase, {pid: new IntProperty(-1), state: new BoolProperty(true), set_active: new BoolProperty(true), unique: new BoolProperty(true), level: new IntProperty(0)});
-}, '/dev/fairmotion/src/editors/viewport/multires/multires_selectops.js');
-es6_module_define('multires_transdata', ["selectmode", "spline_multires", "transdata", "mathlib"], function _multires_transdata_module(_es6_module) {
+}, '/home/ec2-user/fairmotion/src/editors/viewport/multires/multires_selectops.js');
+es6_module_define('multires_transdata', ["spline_multires", "mathlib", "selectmode", "transdata"], function _multires_transdata_module(_es6_module) {
   "use strict";
   var SelMask=es6_import_item(_es6_module, 'selectmode', 'SelMask');
   var compose_id=es6_import_item(_es6_module, 'spline_multires', 'compose_id');
@@ -8580,10 +10995,10 @@ es6_module_define('multires_transdata', ["selectmode", "spline_multires", "trans
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
   var TransDataType=es6_import_item(_es6_module, 'transdata', 'TransDataType');
   var TransDataItem=es6_import_item(_es6_module, 'transdata', 'TransDataItem');
-  var $co_7wuZ_apply;
-  var $co_NTyI_calc_draw_aabb;
-  var $co2_9sSG_calc_draw_aabb;
-  var $co_NpDQ_aabb;
+  var $co_BDZ4_apply;
+  var $co_xwS4_calc_draw_aabb;
+  var $co2_ONlw_calc_draw_aabb;
+  var $co_3VUk_aabb;
   var MResTransData=_ESClass("MResTransData", TransDataType, [_ESClass.static(function gen_data(ctx, td, data) {
     var doprop=td.doprop;
     var proprad=td.propradius;
@@ -8626,12 +11041,12 @@ es6_module_define('multires_transdata', ["selectmode", "spline_multires", "trans
     var p=item.data;
     if (w==0.0)
       return ;
-    $co_7wuZ_apply.load(item.start_data);
-    $co_7wuZ_apply[2] = 0.0;
-    $co_7wuZ_apply.multVecMatrix(mat);
-    $co_7wuZ_apply.sub(item.start_data).mulScalar(w).add(item.start_data);
-    p[0] = $co_7wuZ_apply[0];
-    p[1] = $co_7wuZ_apply[1];
+    $co_BDZ4_apply.load(item.start_data);
+    $co_BDZ4_apply[2] = 0.0;
+    $co_BDZ4_apply.multVecMatrix(mat);
+    $co_BDZ4_apply.sub(item.start_data).mulScalar(w).add(item.start_data);
+    p[0] = $co_BDZ4_apply[0];
+    p[1] = $co_BDZ4_apply[1];
     p.recalc_offset(ctx.spline);
     var seg=ctx.spline.eidmap[p.seg];
     p.mr.recalc_wordscos(seg);
@@ -8690,15 +11105,15 @@ es6_module_define('multires_transdata', ["selectmode", "spline_multires", "trans
   }), _ESClass.static(function update(ctx, td) {
   }), _ESClass.static(function calc_prop_distances(ctx, td, data) {
   }), _ESClass.static(function calc_draw_aabb(ctx, td, minmax) {
-    $co_NTyI_calc_draw_aabb.zero();
+    $co_xwS4_calc_draw_aabb.zero();
     var pad=15;
     function do_minmax(co) {
-      $co2_9sSG_calc_draw_aabb[0] = co[0]-pad;
-      $co2_9sSG_calc_draw_aabb[1] = co[1]-pad;
-      minmax.minmax($co2_9sSG_calc_draw_aabb);
-      $co2_9sSG_calc_draw_aabb[0]+=pad*2.0;
-      $co2_9sSG_calc_draw_aabb[1]+=pad*2.0;
-      minmax.minmax($co2_9sSG_calc_draw_aabb);
+      $co2_ONlw_calc_draw_aabb[0] = co[0]-pad;
+      $co2_ONlw_calc_draw_aabb[1] = co[1]-pad;
+      minmax.minmax($co2_ONlw_calc_draw_aabb);
+      $co2_ONlw_calc_draw_aabb[0]+=pad*2.0;
+      $co2_ONlw_calc_draw_aabb[1]+=pad*2.0;
+      minmax.minmax($co2_ONlw_calc_draw_aabb);
     }
     var spline=ctx.spline;
     for (var i=0; i<td.data.length; i++) {
@@ -8723,34 +11138,34 @@ es6_module_define('multires_transdata', ["selectmode", "spline_multires", "trans
             minmax.minmax(seg2.aabb[0]);
             minmax.minmax(seg2.aabb[1]);
         }
-        $co_NTyI_calc_draw_aabb[0] = t.data[0];
-        $co_NTyI_calc_draw_aabb[1] = t.data[1];
-        do_minmax($co_NTyI_calc_draw_aabb);
-        $co_NTyI_calc_draw_aabb[0]-=t.data.offset[0];
-        $co_NTyI_calc_draw_aabb[1]-=t.data.offset[1];
-        do_minmax($co_NTyI_calc_draw_aabb);
+        $co_xwS4_calc_draw_aabb[0] = t.data[0];
+        $co_xwS4_calc_draw_aabb[1] = t.data[1];
+        do_minmax($co_xwS4_calc_draw_aabb);
+        $co_xwS4_calc_draw_aabb[0]-=t.data.offset[0];
+        $co_xwS4_calc_draw_aabb[1]-=t.data.offset[1];
+        do_minmax($co_xwS4_calc_draw_aabb);
     }
   }), _ESClass.static(function aabb(ctx, td, item, minmax, selected_only) {
-    $co_NpDQ_aabb.zero();
+    $co_3VUk_aabb.zero();
     for (var i=0; i<td.data.length; i++) {
         var t=td.data[i];
         if (t.type!==MResTransData)
           continue;
-        $co_NpDQ_aabb[0] = t.data[0];
-        $co_NpDQ_aabb[1] = t.data[1];
-        minmax.minmax($co_NpDQ_aabb);
+        $co_3VUk_aabb[0] = t.data[0];
+        $co_3VUk_aabb[1] = t.data[1];
+        minmax.minmax($co_3VUk_aabb);
     }
   }), function MResTransData() {
     TransDataType.apply(this, arguments);
   }]);
-  var $co_7wuZ_apply=new Vector3();
-  var $co_NTyI_calc_draw_aabb=new Vector3();
-  var $co2_9sSG_calc_draw_aabb=[0, 0, 0];
-  var $co_NpDQ_aabb=new Vector3();
+  var $co_BDZ4_apply=new Vector3();
+  var $co_xwS4_calc_draw_aabb=new Vector3();
+  var $co2_ONlw_calc_draw_aabb=[0, 0, 0];
+  var $co_3VUk_aabb=new Vector3();
   _es6_module.add_class(MResTransData);
   MResTransData = _es6_module.add_export('MResTransData', MResTransData);
   MResTransData.selectmode = SelMask.MULTIRES;
-}, '/dev/fairmotion/src/editors/viewport/multires/multires_transdata.js');
+}, '/home/ec2-user/fairmotion/src/editors/viewport/multires/multires_transdata.js');
 var g_theme;
 es6_module_define('theme', ["struct"], function _theme_module(_es6_module) {
   "use strict";
@@ -9025,7 +11440,7 @@ es6_module_define('theme', ["struct"], function _theme_module(_es6_module) {
     window.g_theme.gen_globals();
   }
   reload_default_theme = _es6_module.add_export('reload_default_theme', reload_default_theme);
-}, '/dev/fairmotion/src/ui/theme.js');
+}, '/home/ec2-user/fairmotion/src/ui/theme.js');
 es6_module_define('theme_def', ["theme"], function _theme_def_module(_es6_module) {
   "use strict";
   var ColorTheme=es6_import_item(_es6_module, 'theme', 'ColorTheme');
@@ -9036,14 +11451,14 @@ es6_module_define('theme_def', ["theme"], function _theme_def_module(_es6_module
   }
   window.UITheme = new ColorTheme({"ErrorText": [1, 0.20000000298023224, 0.20000000298023224, 0.8899999856948853], "ListBoxText": [0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1], "MenuHighlight": [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], "RadialMenu": [1, 0, 0, 1], "RadialMenuHighlight": [0.7831560373306274, 0.7664570808410645, 0.3468262255191803, 0.7717778086662292], "DefaultLine": [0.4163331985473633, 0.3746998906135559, 0.3746998906135559, 1], "SelectLine": [0.699999988079071, 0.699999988079071, 0.699999988079071, 1], "Check": [0.8999999761581421, 0.699999988079071, 0.4000000059604645, 1], "Arrow": [0.4000000059604645, 0.4000000059604645, 0.4000000059604645, 1], "DefaultText": [0.9092121124267578, 0.9092121124267578, 0.9092121124267578, 1], "BoxText": [0, 0, 0, 1], "HotkeyText": [0.43986162543296814, 0.43986162543296814, 0.43986162543296814, 1], "HighlightCursor": [0.8999999761581421, 0.8999999761581421, 0.8999999761581421, 0.875], "TextSelect": [0.4000000059604645, 0.4000000059604645, 0.4000000059604645, 0.75], "TextEditCursor": [0.10000000149011612, 0.10000000149011612, 0.10000000149011612, 1], "TextBoxHighlight": [0.5270000100135803, 0.5270000100135803, 0.5270000100135803, 1], "MenuSep": [0.6901277303695679, 0.6901277303695679, 0.6901277303695679, 1], "MenuBorder": [0.6499999761581421, 0.6499999761581421, 0.6499999761581421, 1], "RadialMenuSep": [0.10000000149011612, 0.20000000298023224, 0.20000000298023224, 1], "TabPanelOutline": [0.24494896829128265, 0.24494896829128265, 0.24494896829128265, 1], "TabPanelBG": [0.47600001096725464, 0.47600001096725464, 0.47600001096725464, 1], "ActiveTab": [0.47600001096725464, 0.47600001096725464, 0.47600001096725464, 1], "HighlightTab": [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 0.8999999761581421], "InactiveTab": [0.24494896829128265, 0.24494896829128265, 0.24494896829128265, 1], "TabText": [0.930949330329895, 0.930949330329895, 0.930949330329895, 1], "IconBox": [1, 1, 1, 0.17968888580799103], "HighlightIcon": [0.30000001192092896, 0.8149344325065613, 1, 0.21444444358348846], "MenuText": [0.10000000149011612, 0.10000000149011612, 0.10000000149011612, 1], "MenuTextHigh": [0.9330000281333923, 0.9330000281333923, 0.9330000281333923, 1], "PanelText": [0, 0, 0, 1], "DialogText": [0.05000003054738045, 0.05000000447034836, 0.05000000447034836, 1], "DialogBorder": [0.4000000059604645, 0.40000003576278687, 0.4000000059604645, 1], "DisabledBox": [0.5, 0.5, 0.5, 1], "IconCheckBG": [0.587992250919342, 0.587992250919342, 0.587992250919342, 1], "IconCheckSet": [0.6324555320336759, 0.6324555320336759, 0.6324555320336759, 1], "IconCheckUnset": [0.565685424949238, 0.565685424949238, 0.565685424949238, 1], "IconEnumBG": [0.587992250919342, 0.587992250919342, 0.587992250919342, 1], "IconEnumSet": [0.3324555320336759, 0.3324555320336759, 0.3324555320336759, 1], "IconEnumUnset": [0.565685424949238, 0.565685424949238, 0.565685424949238, 1], "Highlight": new BoxColor4([[0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1]]), "NoteBox": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 1], [0.800000011920929, 0.800000011920929, 0.800000011920929, 1]), "Box": ui_weight_clr([0.9399999976158142, 0.9399999976158142, 0.9399999976158142, 1], [0.800000011920929, 0.800000011920929, 0.800000011920929, 1]), "HoverHint": ui_weight_clr([1, 0.9769999980926514, 0.8930000066757202, 0.8999999761581421], [0.8999999761581421, 0.8999999761581421, 1, 1]), "ErrorBox": ui_weight_clr([1, 0.30000001192092896, 0.20000000298023224, 1], [1, 1, 1, 1]), "ErrorTextBG": ui_weight_clr([1, 1, 1, 1], [0.8999999761581421, 0.8999999761581421, 1, 1]), "ShadowBox": ui_weight_clr([0, 0, 0, 0.10000000149011612], [1, 1, 1, 1]), "ProgressBar": ui_weight_clr([0.4000000059604645, 0.7300000190734863, 0.8999999761581421, 0.8999999761581421], [0.75, 0.75, 1, 1]), "ProgressBarBG": ui_weight_clr([0.699999988079071, 0.699999988079071, 0.699999988079071, 0.699999988079071], [1, 1, 1, 1]), "WarningBox": ui_weight_clr([1, 0.800000011920929, 0.10000000149011612, 0.8999999761581421], [0.699999988079071, 0.800000011920929, 1.0499999523162842, 1]), "ListBoxBG": ui_weight_clr([0.9399999976158142, 0.9399999976158142, 0.9399999976158142, 1], [0.9399999976158142, 0.9399999976158142, 0.9399999976158142, 1]), "InvBox": ui_weight_clr([0.6000000238418579, 0.6000000238418579, 0.6000000238418579, 1], [0.6000000238418579, 0.6000000238418579, 0.6000000238418579, 1]), "HLightBox": new BoxColor4([[0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1]]), "ActivePanel": ui_weight_clr([0.800000011920929, 0.4000000059604645, 0.30000001192092896, 0.8999999761581421], [1, 1, 1, 1]), "CollapsingPanel": ui_weight_clr([0.687468409538269, 0.687468409538269, 0.687468409538269, 1], [1, 1, 1, 1]), "SimpleBox": ui_weight_clr([0.4760952293872833, 0.4760952293872833, 0.4760952293872833, 1], [0.9399999976158142, 0.9399999976158142, 0.9399999976158142, 1]), "DialogBox": ui_weight_clr([0.7269999980926514, 0.7269999980926514, 0.7269999980926514, 1], [1, 1, 1, 1]), "DialogTitle": ui_weight_clr([0.6299999952316284, 0.6299999952316284, 0.6299999952316284, 1], [1, 1, 1, 1]), "MenuBox": ui_weight_clr([0.9200000166893005, 0.9200000166893005, 0.9200000166893005, 1], [1, 1, 1, 1]), "TextBox": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 0.8999999761581421], [1, 1, 1, 1]), "TextBoxInv": ui_weight_clr([0.699999988079071, 0.699999988079071, 0.699999988079071, 1], [0.699999988079071, 0.699999988079071, 0.699999988079071, 1]), "MenuLabel": ui_weight_clr([0.9044828414916992, 0.8657192587852478, 0.8657192587852478, 0.24075555801391602], [0.6000000238418579, 0.6000000238418579, 0.6000000238418579, 0.8999999761581421]), "MenuLabelInv": ui_weight_clr([0.75, 0.75, 0.75, 0.47111111879348755], [1, 1, 0.9410666823387146, 1]), "ScrollBG": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 1], [1, 1, 1, 1]), "ScrollBar": ui_weight_clr([0.5919697284698486, 0.5919697284698486, 0.5919697284698486, 1], [1, 1, 1, 1]), "ScrollBarHigh": ui_weight_clr([0.6548083424568176, 0.6548083424568176, 0.6548083424568176, 1], [1, 1, 1, 1]), "ScrollButton": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 1], [1, 1, 1, 1]), "ScrollButtonHigh": ui_weight_clr([0.75, 0.75, 0.75, 1], [1, 1, 1, 1]), "ScrollInv": ui_weight_clr([0.4000000059604645, 0.4000000059604645, 0.4000000059604645, 1], [1, 1, 1, 1]), "IconInv": ui_weight_clr([0.48299384117126465, 0.5367956161499023, 0.8049896955490112, 0.4000000059604645], [1, 1, 1, 1])});
   window.View2DTheme = new ColorTheme({"Background": [1, 1, 1, 1], "ActiveObject": [0.800000011920929, 0.6000000238418579, 0.30000001192092896, 1], "Selection": [0.699999988079071, 0.4000000059604645, 0.10000000149011612, 1], "GridLineBold": [0.38, 0.38, 0.38, 1.0], "GridLine": [0.5, 0.5, 0.5, 1.0], "AxisX": [0.9, 0.0, 0.0, 1.0], "AxisY": [0.0, 0.9, 0.0, 1.0], "AxisZ": [0.0, 0.0, 0.9, 1.0]});
-}, '/dev/fairmotion/src/ui/theme_def.js');
-es6_module_define('UIElement', ["mathlib", "toolprops", "events"], function _UIElement_module(_es6_module) {
-  es6_import(_es6_module, 'events');
+}, '/home/ec2-user/fairmotion/src/ui/theme_def.js');
+es6_module_define('UIElement', ["../editors/viewport/events", "mathlib", "toolprops"], function _UIElement_module(_es6_module) {
+  es6_import(_es6_module, '../editors/viewport/events');
   var MinMax=es6_import_item(_es6_module, 'mathlib', 'MinMax');
   var inrect_2d=es6_import_item(_es6_module, 'mathlib', 'inrect_2d');
   var aabb_isect_2d=es6_import_item(_es6_module, 'mathlib', 'aabb_isect_2d');
-  var EventHandler=es6_import_item(_es6_module, 'events', 'EventHandler');
-  var charmap=es6_import_item(_es6_module, 'events', 'charmap');
+  var EventHandler=es6_import_item(_es6_module, '../editors/viewport/events', 'EventHandler');
+  var charmap=es6_import_item(_es6_module, '../editors/viewport/events', 'charmap');
   var TPropFlags=es6_import_item(_es6_module, 'toolprops', 'TPropFlags');
   var UIFlags={ENABLED: 1, HIGHLIGHT: 2, FOCUS: 4, GREYED: 8, REDERROR: 16, WARNING: 32, USE_PATH: 64, NO_RECALC: 128, FLASH: (16|32), SKIP_DRAW: 256, HAS_PAN: 512, USE_PAN: 1024, PAN_CANVAS_MAT: 2048, IS_CANVAS_ROOT: 4096, NO_FRAME_CACHE: (1<<14), INVISIBLE: (1<<15), IGNORE_PAN_BOUNDS: (1<<16), BLOCK_REPAINT: (1<<17), NO_VELOCITY_PAN: (1<<18), BG_EVENTS_TRANSPARENT: (1<<19), CLIP_CONTENTS: (1<<20)}
   UIFlags = _es6_module.add_export('UIFlags', UIFlags);
@@ -9082,9 +11497,9 @@ es6_module_define('UIElement', ["mathlib", "toolprops", "events"], function _UIE
     }
   }
   inrect_2d_button = _es6_module.add_export('inrect_2d_button', inrect_2d_button);
-  var $empty_arr_1zdG_get_keymaps;
-  var $pos_Io0w_get_abs_pos;
-  var $ret_Hgsx_get_min_size;
+  var $empty_arr_2nQR_get_keymaps;
+  var $pos_Z8WV_get_abs_pos;
+  var $ret_Bljs_get_min_size;
   var UIElement=_ESClass("UIElement", EventHandler, [function UIElement(ctx, path, pos, size) {
     if (path==undefined) {
         path = undefined;
@@ -9139,7 +11554,7 @@ es6_module_define('UIElement', ["mathlib", "toolprops", "events"], function _UIE
       this.do_recalc();
     this.state|=UIFlags.ENABLED;
   }, function get_keymaps() {
-    return $empty_arr_1zdG_get_keymaps;
+    return $empty_arr_2nQR_get_keymaps;
   }, _ESClass.symbol(Symbol.keystr, function keystr() {
     if (this._h12==undefined) {
         var n=this.constructor.name;
@@ -9229,15 +11644,15 @@ es6_module_define('UIElement', ["mathlib", "toolprops", "events"], function _UIE
     if (this.parent!=undefined)
       this.parent.focus(this);
   }, function get_abs_pos() {
-    $pos_Io0w_get_abs_pos[0] = this.pos[0];
-    $pos_Io0w_get_abs_pos[1] = this.pos[1];
+    $pos_Z8WV_get_abs_pos[0] = this.pos[0];
+    $pos_Z8WV_get_abs_pos[1] = this.pos[1];
     var p=this.parent;
     while (p!=undefined) {
-      $pos_Io0w_get_abs_pos[0]+=p.pos[0];
-      $pos_Io0w_get_abs_pos[1]+=p.pos[1];
+      $pos_Z8WV_get_abs_pos[0]+=p.pos[0];
+      $pos_Z8WV_get_abs_pos[1]+=p.pos[1];
       p = p.parent;
     }
-    return $pos_Io0w_get_abs_pos;
+    return $pos_Z8WV_get_abs_pos;
   }, function call_menu(menu, off, min_width) {
     if (off==undefined) {
         off = undefined;
@@ -9425,7 +11840,7 @@ es6_module_define('UIElement', ["mathlib", "toolprops", "events"], function _UIE
     }
     return this._minsize;
   }, function get_min_size(canvas, isvertical) {
-    return $ret_Hgsx_get_min_size;
+    return $ret_Bljs_get_min_size;
   }, function build_draw(canvas, isvertical) {
   }, function on_active() {
   }, function on_inactive() {
@@ -9434,9 +11849,9 @@ es6_module_define('UIElement', ["mathlib", "toolprops", "events"], function _UIE
   }, function on_add(parent) {
   }, function on_remove(parent) {
   }]);
-  var $empty_arr_1zdG_get_keymaps=[];
-  var $pos_Io0w_get_abs_pos=[0, 0];
-  var $ret_Hgsx_get_min_size=[1, 1];
+  var $empty_arr_2nQR_get_keymaps=[];
+  var $pos_Z8WV_get_abs_pos=[0, 0];
+  var $ret_Bljs_get_min_size=[1, 1];
   _es6_module.add_class(UIElement);
   UIElement = _es6_module.add_export('UIElement', UIElement);
   var UIHoverBox=_ESClass("UIHoverBox", UIElement, [function UIHoverBox(ctx, text, is_modal, pos, size) {
@@ -9559,7 +11974,7 @@ es6_module_define('UIElement', ["mathlib", "toolprops", "events"], function _UIE
   }]);
   _es6_module.add_class(UIHoverHint);
   UIHoverHint = _es6_module.add_export('UIHoverHint', UIHoverHint);
-}, '/dev/fairmotion/src/ui/UIElement.js');
+}, '/home/ec2-user/fairmotion/src/ui/UIElement.js');
 es6_module_define('UIFileData', ["struct"], function _UIFileData_module(_es6_module) {
   "use struct";
   var STRUCT=es6_import_item(_es6_module, 'struct', 'STRUCT');
@@ -9676,906 +12091,4 @@ es6_module_define('UIFileData', ["struct"], function _UIFileData_module(_es6_mod
     console.log("- binlen", arr.length);
     console.log("-JSONlen", LZString.compress(JSON.stringify(a.obj)).length);
   }
-}, '/dev/fairmotion/src/ui/UIFileData.js');
-es6_module_define('UICanvas', ["mathlib", "UIElement"], function _UICanvas_module(_es6_module) {
-  "use strict";
-  var rot2d=es6_import_item(_es6_module, 'mathlib', 'rot2d');
-  var inrect_2d=es6_import_item(_es6_module, 'mathlib', 'inrect_2d');
-  var PackFlags=es6_import_item(_es6_module, 'UIElement', 'PackFlags');
-  var $_mh;
-  var $_swapt;
-  var $arr4_window__box_process_clr=[0, 0, 0, 0];
-  window._box_process_clr = function _box_process_clr(default_cs, clr) {
-    var cs=default_cs;
-    if (clr!=undefined) {
-        if (typeof clr=="number") {
-            var cs2=$arr4_window__box_process_clr;
-            for (var i=0; i<4; i++) {
-                cs2[i] = (($_mh = objcache.array(2)), ($_mh[0] = (cs[i][0])), ($_mh[1] = (cs[i][1])), ($_mh[2] = (cs[i][2])), ($_mh[3] = (cs[i][3])), $_mh);
-                for (var j=0; j<4; j++) {
-                    cs2[i]*=clr;
-                }
-            }
-            cs = cs2;
-        }
-        else 
-          if (typeof clr[0]=="number") {
-            var cs=$arr4_window__box_process_clr;
-            cs[0] = clr;
-            cs[1] = clr;
-            cs[2] = clr;
-            cs[3] = clr;
-        }
-        else {
-          cs = clr;
-        }
-    }
-    return cs;
-  }
-  var $ret_sw_7_get_2d_canvas={}
-  function get_2d_canvas() {
-    if ($ret_sw_7_get_2d_canvas.canvas==undefined) {
-        $ret_sw_7_get_2d_canvas.canvas = document.getElementById("canvas2d");
-        $ret_sw_7_get_2d_canvas.ctx = _canvas2d_ctx;
-    }
-    return $ret_sw_7_get_2d_canvas;
-  }
-  get_2d_canvas = _es6_module.add_export('get_2d_canvas', get_2d_canvas);
-  window.get_2d_canvas = get_2d_canvas;
-  var $ret_Vn6z_get_2d_canvas_2={}
-  function get_2d_canvas_2() {
-    if ($ret_Vn6z_get_2d_canvas_2.canvas==undefined) {
-        $ret_Vn6z_get_2d_canvas_2.canvas = document.getElementById("canvas2d_work");
-        $ret_Vn6z_get_2d_canvas_2.ctx = _canvas2d_ctx_2;
-    }
-    return $ret_Vn6z_get_2d_canvas_2;
-  }
-  get_2d_canvas_2 = _es6_module.add_export('get_2d_canvas_2', get_2d_canvas_2);
-  window.get_2d_canvas_2 = get_2d_canvas_2;
-  window._ui_canvas_2d_idgen = 1;
-  var $temp_layer_idgen_WBwG_push_layer;
-  var $black_LCMr_quad;
-  var $grads_ywYC_quad;
-  var $mid_l_De_colorfield;
-  var $cache_yo3o_box1;
-  var $v1_Fodh_box1;
-  var $v3_dvrq_box1;
-  var $pairs_Srhr_box1;
-  var $pos_GrOm_text;
-  var $v2_35XW_box1;
-  var $v4_COea_box1;
-  var UICanvas=_ESClass("UICanvas", [function UICanvas(viewport) {
-    var c=get_2d_canvas();
-    this.canvas = c.canvas;
-    this.id = _ui_canvas_2d_idgen++;
-    this.ctx = c.ctx;
-    this.canvases = {}
-    var ctx=c.ctx, fl=Math.floor;
-    
-    if (ctx.setFillColor==undefined) {
-        ctx.setFillColor = function(r, g, b, a) {
-          if (a==undefined)
-            a = 1.0;
-          this.fillStyle = "rgba("+fl(r*255)+","+fl(g*255)+","+fl(b*255)+","+a+")";
-        };
-    }
-    if (ctx.setStrokeColor==undefined) {
-        ctx.setStrokeColor = function(r, g, b, a) {
-          if (a==undefined)
-            a = 1.0;
-          this.strokeStyle = "rgba("+fl(r*255)+","+fl(g*255)+","+fl(b*255)+","+a+")";
-        };
-    }
-    this.layerstack = [];
-    this.scissor_stack = [];
-    this._lastclip = [[0, 0], [0, 0]];
-    this.transmat = new Matrix4();
-    this.trans_stack = [];
-    this.raster = g_app_state.raster;
-    this.global_matrix = new Matrix4();
-    this.iconsheet = g_app_state.raster.iconsheet;
-    this.iconsheet16 = g_app_state.raster.iconsheet16;
-    this.viewport = viewport;
-  }, function destroy() {
-  }, function _css_color(c) {
-    if (isNaN(c[0]))
-      return "black";
-    var s="rgba(";
-    for (var i=0; i<3; i++) {
-        if (i>0)
-          s+=",";
-        s+=Math.floor(c[i]*255);
-    }
-    s+=","+(c[3]==undefined ? "1.0" : c[3])+")";
-    return s;
-  }, function reset_canvases() {
-    console.trace("reset_canvases called");
-    for (var k in this.canvases) {
-        document.body.removeChild(this.canvases[k]);
-    }
-    this.canvases = {}
-  }, function kill_canvas(obj_or_id) {
-    console.trace("kill called");
-    var id=obj_or_id;
-    if (typeof id=="object") {
-        console.log(id);
-        id = id[Symbol.keystr]();
-    }
-    var canvas=this.canvases[id];
-    delete this.canvases[id];
-    
-    delete active_canvases[id];
-    if (canvas!=undefined) {
-        document.body.removeChild(canvas);
-    }
-  }, function get_canvas(obj_or_id, pos, size, zindex) {
-    if (zindex==undefined) {
-        zindex = 4;
-    }
-    var id=obj_or_id;
-    window._ensure_thedimens();
-    if (typeof id=="object")
-      id = id[Symbol.keystr]();
-    var canvas;
-    if (id in this.canvases) {
-        canvas = this.canvases[id];
-        canvas.is_blank = false;
-    }
-    else {
-      console.warn("creating new canvas. . .");
-      var canvas=document.createElement("canvas");
-      canvas.id = "_canvas2d_"+id;
-      document.body.appendChild(canvas);
-      canvas.style["position"] = "absolute";
-      canvas.style["left"] = "0px";
-      canvas.style["top"] = "0px";
-      canvas.style["z-index"] = ""+zindex;
-      canvas.style["pointer-events"] = "none";
-      canvas.width = this.canvas.width;
-      canvas.height = this.canvas.height;
-      canvas.ctx = canvas.getContext("2d");
-      if (canvas.ctx.canvas==undefined) {
-          canvas.ctx.canvas = canvas;
-      }
-      canvas.is_blank = true;
-      this.canvases[id] = canvas;
-      
-      active_canvases[id] = [canvas, this];
-    }
-    if (parseInt(canvas.style["z-index"])!=zindex) {
-        canvas.style["z-index"] = zindex;
-    }
-    if (canvas.width!=size[0]) {
-        canvas.width = size[0];
-    }
-    if (canvas.height!=size[1]) {
-        canvas.height = size[1];
-    }
-    if (canvas.style["left"]!=""+Math.floor(pos[0])+"px") {
-        canvas.style["left"] = Math.floor(pos[0])+"px";
-        canvas.is_blank = true;
-    }
-    var y=Math.floor(window.theHeight-pos[1]-size[1]);
-    if (canvas.style["top"]!=""+y+"px") {
-        canvas.style["top"] = ""+y+"px";
-        canvas.is_blank = true;
-    }
-    canvas.ctx.is_blank = canvas.is_blank;
-    return canvas;
-  }, function push_layer() {
-    this.layerstack.push([this.canvas, this.ctx]);
-    var canvas=document.createElement("canvas");
-    canvas.id = "_temp_canvas2d_"+($temp_layer_idgen_WBwG_push_layer++);
-    document.body.appendChild(canvas);
-    canvas.style["position"] = "absolute";
-    canvas.style["left"] = "0px";
-    canvas.style["top"] = "0px";
-    canvas.style["z-index"] = ""+(4+this.layerstack.length);
-    canvas.style["pointer-events"] = "none";
-    canvas.width = this.canvas.width;
-    canvas.height = this.canvas.height;
-    this.canvas = canvas;
-    this.ctx = canvas.getContext("2d");
-  }, function pop_layer() {
-    if (this.layerstack.length==0) {
-        console.trace("%cTHE SHEER EVIL OF IT!", "color:red");
-        return ;
-    }
-    var item=this.layerstack.pop();
-    document.body.removeChild(this.canvas);
-    this.canvas = item[0];
-    this.ctx = item[1];
-  }, function on_draw(gl) {
-  }, function set_viewport(viewport) {
-    this.viewport = viewport;
-  }, function clear(p, size) {
-    var v=this.viewport;
-    var canvas=this.canvas;
-    var ctx=this.ctx;
-    if (p==undefined) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.beginPath();
-        ctx.rect(0, 0, canvas.width, canvas.height);
-    }
-    else {
-      ctx.clearRect(p[0]+v[0][0], canvas.height-(v[0][1]+p[1]+size[1]), size[0], size[1]);
-      ctx.beginPath();
-      ctx.rect(p[0]+v[0][0], canvas.height-(v[0][1]+p[1]+size[1]), size[0], size[1]);
-    }
-  }, function reset() {
-    var v=this.viewport;
-    var canvas=this.canvas;
-    var ctx=this.ctx;
-  }, function clip(rect, vis_only) {
-    if (vis_only==undefined) {
-        vis_only = false;
-    }
-    var canvas=this.canvas;
-    var ctx=this.ctx;
-    rect[0] = new Vector2(rect[0]);
-    rect[1] = new Vector2(rect[1]);
-    var v=this.viewport;
-    this._clip_to_viewport(rect[0], rect[1], v);
-    ctx.fillStyle = Math.random()>0.5 ? "rgba(255,0,0,0.7)" : "rgba(0,255,0,0.7)";
-    ctx.beginPath();
-    ctx.rect(v[0][0]+rect[0][0], canvas.height-(v[0][1]+rect[0][1]+rect[1][1]), rect[1][0], rect[1][1]);
-    ctx.closePath();
-    if (vis_only)
-      ctx.fill();
-    else 
-      ctx.clip();
-  }, function root_start() {
-    this.ctx.save();
-  }, function root_end() {
-    this.ctx.restore();
-  }, function begin() {
-  }, function end() {
-  }, function frame_begin() {
-  }, function frame_end() {
-  }, function use_cache(item) {
-  }, function has_cache(item) {
-    return false;
-  }, function remove_cache(item) {
-  }, function on_resize(oldsize, newsize) {
-  }, function invbox(pos, size, clr, r) {
-    var cs=uicolors["InvBox"];
-    cs = _box_process_clr(cs, clr);
-    this.box(pos, size, cs, r);
-  }, function simple_box(pos, size, clr, r) {
-    if (clr==undefined) {
-        clr = undefined;
-    }
-    if (r==undefined) {
-        r = 2.0;
-    }
-    var cs=uicolors["SimpleBox"];
-    cs = _box_process_clr(cs, clr);
-    this.box(pos, size, cs, r);
-  }, function hlightbox(pos, size, clr_mul, r) {
-    var cs=uicolors["HLightBox"];
-    if (clr_mul!==undefined&&typeof clr_mul=="number") {
-        cs = [new Vector4(cs[0]), new Vector4(cs[1]), new Vector4(cs[2]), new Vector4(cs[3])];
-        for (var i=0; i<4; i++) {
-            for (var j=0; j<4; j++) {
-                cs[i][j]*=clr_mul;
-            }
-        }
-    }
-    else 
-      if (clr_mul!==undefined&&__instance_of(clr_mul, Array)) {
-        if (typeof clr_mul[0]=="number") {
-            cs = [clr_mul, clr_mul, clr_mul, clr_mul];
-        }
-        else {
-          cs = [new Vector4(clr_mul[0]), new Vector4(clr_mul[1]), new Vector4(clr_mul[2]), new Vector4(clr_mul[3])];
-        }
-    }
-    this.box(pos, size, cs, r);
-  }, function box_outline(pos, size, clr, rfac) {
-    this.box(pos, size, clr, rfac, true);
-  }, function quad(v1, v2, v3, v4, c1, c2, c3, c4, horiz_gradient) {
-    if (horiz_gradient==undefined) {
-        horiz_gradient = false;
-    }
-    var canvas=this.canvas;
-    var ctx=this.ctx;
-    var v=g_app_state.raster.viewport;
-    if (c1==undefined) {
-        c1 = $black_LCMr_quad;
-    }
-    if (c2==undefined) {
-        c2 = c1;
-    }
-    if (c3==undefined) {
-        c3 = c2;
-    }
-    if (c4==undefined) {
-        c4 = c3;
-    }
-    var m=this.transmat.$matrix;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    var x=m.m41, y=m.m42;
-    var hash="";
-    for (var i=0; i<4; i++) {
-        hash+=c1[i]+","+c2[i]+","+c3[i]+","+c4[i];
-    }
-    var grad;
-    if (1||!(hash in $grads_ywYC_quad)) {
-        var min=[v1[0], v1[1]], max=[v1[0], v1[1]];
-        for (var i=0; i<2; i++) {
-            min[i] = Math.min(min[i], v1[i]);
-            max[i] = Math.max(max[i], v1[i]);
-            min[i] = Math.min(min[i], v2[i]);
-            max[i] = Math.max(max[i], v2[i]);
-            min[i] = Math.min(min[i], v3[i]);
-            max[i] = Math.max(max[i], v3[i]);
-            min[i] = Math.min(min[i], v4[i]);
-            max[i] = Math.max(max[i], v4[i]);
-        }
-        min[0]+=x+v[0][0];
-        max[0]+=x+v[0][0];
-        min[1] = canvas.height-(min[1]+y+v[0][1]);
-        max[1] = canvas.height-(max[1]+y+v[0][1]);
-        var grad;
-        if (isNaN(min[0])||isNaN(max[0])||isNaN(min[1])||isNaN(max[1])||isNaN(c1[0])||isNaN(c3[0])) {
-            grad = "black";
-        }
-        else {
-          try {
-            if (horiz_gradient)
-              grad = ctx.createLinearGradient(min[0], min[1]*0.5+max[1]*0.5, max[0], min[1]*0.5+max[1]*0.5);
-            else 
-              grad = ctx.createLinearGradient(min[0]*0.5+max[0]*0.5, min[1], min[0]*0.5+max[0]*0.5, max[1]);
-            $grads_ywYC_quad[hash] = grad;
-            grad.addColorStop(0.0, this._css_color(c1));
-            grad.addColorStop(1.0, this._css_color(c3));
-          }
-          catch (error) {
-              print_stack(error);
-              console.log("GRADIENT ERROR", min[0], min[1], max[0], max[1]);
-          }
-        }
-    }
-    else {
-      grad = $grads_ywYC_quad[hash];
-    }
-    if (grad!=undefined)
-      ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.moveTo(v1[0]+x+v[0][0], canvas.height-(v1[1]+y+v[0][1]));
-    ctx.lineTo(v2[0]+x+v[0][0], canvas.height-(v2[1]+y+v[0][1]));
-    ctx.lineTo(v3[0]+x+v[0][0], canvas.height-(v3[1]+y+v[0][1]));
-    ctx.lineTo(v4[0]+x+v[0][0], canvas.height-(v4[1]+y+v[0][1]));
-    ctx.fill();
-  }, function colorfield(pos, size, color) {
-    $mid_l_De_colorfield[3] = 1.0;
-    for (var i=0; i<3; i++) {
-        if (color[i]==0.0)
-          $mid_l_De_colorfield[i] = 0.0;
-        else 
-          $mid_l_De_colorfield[i] = color[i];
-    }
-    var color2=this._css_color($mid_l_De_colorfield);
-    $mid_l_De_colorfield[3] = 1.0;
-    for (var i=0; i<3; i++) {
-        $mid_l_De_colorfield[i] = (color[i]*3.0-1.0)/4.0;
-    }
-    var midclr=this._css_color($mid_l_De_colorfield);
-    $mid_l_De_colorfield[3] = 1.0;
-    for (var i=0; i<3; i++) {
-        $mid_l_De_colorfield[i] = 0.5+color[i]*0.5;
-    }
-    var smidclr=this._css_color($mid_l_De_colorfield);
-    $mid_l_De_colorfield[3] = 0.0;
-    for (var i=0; i<3; i++) {
-        $mid_l_De_colorfield[i] = color[i];
-    }
-    var zerocolor=this._css_color($mid_l_De_colorfield);
-    color = this._css_color(color);
-    var canvas=this.canvas;
-    var ctx=this.ctx;
-    var v=g_app_state.raster.viewport;
-    var m=this.transmat.$matrix;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    var x=m.m41, y=m.m42;
-    var bx=pos[0]+x+v[0][0], by=canvas.height-(pos[1]+y+v[0][1])-size[1];
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.rect(bx, by, size[0], size[1]);
-    ctx.closePath();
-    ctx.fill();
-    function draw_grad(a, b, c, is_horiz) {
-      var grad;
-      var dp=0.0, dp2=0.0, dp3=35;
-      if (is_horiz==1)
-        grad = ctx.createLinearGradient(bx+1, by, bx+size[0]-2, by);
-      else 
-        if (is_horiz==2)
-        grad = ctx.createLinearGradient(bx+dp+size[0]-dp*2, by+dp, bx+dp, by+size[1]-dp*2.0);
-      else 
-        if (is_horiz==3)
-        grad = ctx.createLinearGradient(bx+dp2+dp3, by+dp2+dp3, bx+dp2+size[0]-dp2*2, by+size[1]-dp2*2.0);
-      else 
-        grad = ctx.createLinearGradient(bx, by+size[1], bx, by);
-      grad.addColorStop(0.0, a);
-      grad.addColorStop(1.0, c);
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.rect(bx, by, size[0], size[1]);
-      ctx.closePath();
-      ctx.fill();
-    }
-    try {
-      draw_grad("rgba(255,255,255,1.0)", "rgba(255,255,255, 0.5)", "rgba(255,255,255,0.0)", 0);
-      draw_grad("rgba(0,0,0,1.0)", "rgba(0,0,0,0.5)", "rgba(0,0,0,0.0)", 1);
-    }
-    catch (error) {
-    }
-  }, function icon(icon, pos, alpha, small, clr) {
-    if (alpha==undefined) {
-        alpha = 1.0;
-    }
-    if (small==undefined) {
-        small = false;
-    }
-    if (clr==undefined) {
-        clr = undefined;
-    }
-    if (icon<0)
-      return ;
-    var sheet=small ? g_app_state.raster.iconsheet16 : g_app_state.raster.iconsheet;
-    var img=sheet.tex.image;
-    var csize=sheet.cellsize;
-    var canvas=this.canvas;
-    var ctx=this.ctx;
-    var v=g_app_state.raster.viewport;
-    var m=this.transmat.$matrix;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    var x=m.m41+v[0][0]+pos[0], y=canvas.height-(m.m42+v[0][1]+pos[1])-csize[1];
-    var spos=sheet.enum_to_xy(icon);
-    ctx.drawImage(img, spos[0], spos[1], csize[0], csize[1], x, y, csize[0], csize[1]);
-  }, function quad_aa(v1, v2, v3, v4, c1, c2, c3, c4) {
-    this.quad(v1, v2, v3, v4, c1, c2, c3, c4);
-  }, function _clip_to_viewport(pos, size, v) {
-    if (pos[0]<0) {
-        size[0]+=pos[0];
-        pos[0] = 0;
-    }
-    if (pos[0]+size[0]>v[1][0]) {
-        size[0] = v[1][0]-pos[0];
-    }
-    if (pos[1]<0) {
-        size[1]+=pos[1];
-        pos[1] = 0;
-    }
-    if (pos[1]+size[1]>v[1][1]) {
-        size[1] = v[1][1]-pos[1];
-    }
-  }, function push_scissor(pos, size) {
-    var t="";
-    for (var i=0; i<this.scissor_stack.length; i++) {
-        t+="  ";
-    }
-    var oldpos=pos;
-    pos = new Vector3([pos[0], pos[1], 0]);
-    size = new Vector3([pos[0]+size[0], pos[1]+size[1], 0]);
-    pos.multVecMatrix(this.transmat);
-    size.multVecMatrix(this.transmat);
-    size[0]-=pos[0];
-    size[1]-=pos[1];
-    var v=g_app_state.raster.viewport;
-    this._clip_to_viewport(pos, size, v);
-    pos[0]+=v[0][0];
-    pos[1]+=v[0][1];
-    for (var i=0; i<3; i++) {
-        pos[i] = Math.floor(pos[i]);
-        size[i] = Math.ceil(size[i]);
-    }
-    this.scissor_stack.push([pos, size]);
-    var canvas=this.canvas;
-    var g=this.ctx;
-    try {
-      g.save();
-      if (window._cd==undefined)
-        window._cd = 0;
-      g.fillStyle = (window._cd++%2) ? "rgba(255, 0, 0, 0.5)" : "rgba(0, 255, 0, 0.5)";
-      g.beginPath();
-      g.rect(pos[0], canvas.height-(pos[1]+size[1]), size[0], size[1]);
-      g.closePath();
-      g.clip();
-    }
-    catch (err) {
-        print_stack(err);
-    }
-  }, function pop_scissor() {
-    this.scissor_stack.pop();
-    var t="";
-    for (var i=0; i<this.scissor_stack.length; i++) {
-        t+="  ";
-    }
-    this.ctx.restore();
-  }, function _clipeq(c1, c2) {
-    return c1[0][0]==c2[0][0]&&c1[0][1]==c2[0][1]&&c1[1][0]==c2[1][0]&&c1[1][1]==c2[1][1];
-  }, function arc_points(pos, start, arc, r, steps) {
-    if (steps==undefined) {
-        steps = Math.floor(6*arc/Math.PI);
-    }
-    var f, df;
-    var f=start;
-    var df=arc/steps;
-    var points=[];
-    for (var i=0; i<steps+1; i++) {
-        var x=pos[0]+Math.sin(f)*r;
-        var y=pos[1]+Math.cos(f)*r;
-        points.push([x, y, 0]);
-        f+=df;
-    }
-    return points;
-  }, function arc(pos, start, arc, r, clr, half) {
-    if (clr==undefined) {
-        clr = [0.9, 0.8, 0.7, 0.6];
-    }
-    var steps=18/(2.0-arc/(Math.PI*2));
-    var f, df;
-    var f=start;
-    var df=arc/steps;
-    var points=[];
-    for (var i=0; i<steps+1; i++) {
-        var x=pos[0]+Math.sin(f)*r;
-        var y=pos[1]+Math.cos(f)*r;
-        points.push([x, y, 0]);
-        f+=df;
-    }
-    var lines=[];
-    var colors=[];
-    for (var i=0; i<points.length-1; i++) {
-        lines.push([points[i], points[i+1]]);
-        colors.push([clr, clr]);
-    }
-    colors[0][0] = [1.0, 1.0, 0.0, 1.0];
-    colors[0][1] = [1.0, 1.0, 0.0, 1.0];
-  }, function box1(pos, size, clr, rfac, outline_only) {
-    if (clr==undefined) {
-        clr = undefined;
-    }
-    if (rfac==undefined) {
-        rfac = undefined;
-    }
-    if (outline_only==undefined) {
-        outline_only = false;
-    }
-    var c1, c2, c3, c4;
-    var cs=uicolors["Box"];
-    if (outline_only==undefined)
-      outline_only = false;
-    cs = _box_process_clr(cs, clr);
-    var x=Math.floor(pos[0]), y=Math.floor(pos[1]);
-    var w=size[0], h=size[1];
-    var start=0;
-    var ang=Math.PI/2;
-    var r=4;
-    if (rfac==undefined)
-      rfac = 1;
-    var hash=size[0].toString()+" "+size[1]+" "+rfac;
-    if (!(hash in $cache_yo3o_box1)) {
-        r/=rfac;
-        var p1=this.arc_points((($_mh = objcache.array(2)), ($_mh[0] = (0+r+2)), ($_mh[1] = (0+r+2)), ($_mh[2] = (0)), $_mh), Math.PI, ang, r);
-        var p2=this.arc_points((($_mh = objcache.array(2)), ($_mh[0] = (0+w-r-2)), ($_mh[1] = (0+r+2)), ($_mh[2] = (0)), $_mh), Math.PI/2, ang, r);
-        var p3=this.arc_points((($_mh = objcache.array(2)), ($_mh[0] = (0+w-r-2)), ($_mh[1] = (0+h-r-2)), ($_mh[2] = (0)), $_mh), 0, ang, r);
-        var p4=this.arc_points((($_mh = objcache.array(2)), ($_mh[0] = (0+r+2)), ($_mh[1] = (0+h-r-2)), ($_mh[2] = (0)), $_mh), -Math.PI/2, ang, r);
-        var plen=p1.length;
-        p4.reverse();
-        p3.reverse();
-        p2.reverse();
-        p1.reverse();
-        var points=[];
-        for (var i=0; i<p1.length; i++) {
-            points.push(p1[i]);
-        }
-        for (var i=0; i<p2.length; i++) {
-            points.push(p2[i]);
-            p1.push(p2[i]);
-        }
-        for (var i=0; i<p3.length; i++) {
-            points.push(p3[i]);
-        }
-        p2 = p3;
-        for (var i=0; i<p4.length; i++) {
-            p2.push(p4[i]);
-            points.push(p4[i]);
-        }
-        p2.reverse();
-        $cache_yo3o_box1[hash] = [p1, p2, points];
-    }
-    var cp=$cache_yo3o_box1[hash];
-    var p1=cp[0];
-    var p2=cp[1];
-    var points=cp[2];
-    var plen=p1.length;
-    function color(i) {
-      if (i<plen)
-        return cs[0];
-      else 
-        if (i<plen*2)
-        return cs[1];
-      else 
-        if (i<plen*3)
-        return cs[2];
-      else 
-        if (i<=plen*4+1)
-        return cs[3];
-    }
-    if (!outline_only) {
-        for (var i=0; i<p1.length-1; i++) {
-            var i1=i;
-            var i2=i+plen*2;
-            var i3=i+1+plen*2;
-            var i4=i+1;
-            $v1_Fodh_box1[0] = p1[i][0]+x;
-            $v1_Fodh_box1[1] = p1[i][1]+y;
-            $v1_Fodh_box1[2] = p1[i][2];
-            
-            $v2_35XW_box1[0] = p2[i][0]+x;
-            $v2_35XW_box1[1] = p2[i][1]+y;
-            $v2_35XW_box1[2] = p2[i][2];
-            
-            $v3_dvrq_box1[0] = p2[i+1][0]+x;
-            $v3_dvrq_box1[1] = p2[i+1][1]+y;
-            $v3_dvrq_box1[2] = p2[i+1][2];
-            
-            $v4_COea_box1[0] = p1[i+1][0]+x;
-            $v4_COea_box1[1] = p1[i+1][1]+y;
-            $v4_COea_box1[2] = p1[i+1][2];
-            
-            this.quad($v1_Fodh_box1, $v2_35XW_box1, $v3_dvrq_box1, $v4_COea_box1, color(i1), color(i2), color(i3), color(i4));
-        }
-    }
-    var lines=[];
-    var colors=[];
-    for (var i=0; i<points.length; i++) {
-        $v1_Fodh_box1[0] = points[(i+1)%points.length][0]+x;
-        $v1_Fodh_box1[1] = points[(i+1)%points.length][1]+y;
-        $v1_Fodh_box1[2] = points[(i+1)%points.length][2];
-        
-        $v2_35XW_box1[0] = points[i][0]+x;
-        $v2_35XW_box1[1] = points[i][1]+y;
-        $v2_35XW_box1[2] = points[i][2];
-        
-        if ($pairs_Srhr_box1.length<=i) {
-            $pairs_Srhr_box1.push([[0, 0], [0, 0]]);
-        }
-        $pairs_Srhr_box1[i][0][0] = (($_mh = objcache.array(2)), ($_mh[0] = ($v1_Fodh_box1[0])), ($_mh[1] = ($v1_Fodh_box1[1])), ($_mh[2] = (0)), $_mh);
-        $pairs_Srhr_box1[i][0][1] = (($_mh = objcache.array(2)), ($_mh[0] = ($v2_35XW_box1[0])), ($_mh[1] = ($v2_35XW_box1[1])), ($_mh[2] = (0)), $_mh);
-        lines.push($pairs_Srhr_box1[i][0]);
-        $pairs_Srhr_box1[i][1][0] = color((i+1)%points.length);
-        $pairs_Srhr_box1[i][1][1] = color(i);
-        colors.push($pairs_Srhr_box1[i][1]);
-    }
-  }, function tri_aa(v1, v2, v3, c1, c2, c3) {
-    this.tri(v1, v2, v3, c1, c2, c3);
-  }, function _split_text(line) {
-    var i=0;
-    var segments=[{line: "", format: "", color: undefined}];
-    while (i<line.length) {
-      var c=line[i];
-      if (c=="%") {
-          var n=line[i+1];
-          var color=undefined;
-          var format="";
-          color = undefined;
-          switch (n) {
-            case "b":
-              format = "bold";
-              break;
-            case "i":
-              format = "italic";
-              break;
-            case "/":
-              format = "";
-              color = undefined;
-              i++;
-              break;
-            case "c":
-              i++;
-              var end=line.slice(i, line.length).search("}");
-              color = line.slice(i+2, i+end).trim();
-              console.log("COLOR!!!", end, color, "|", line.slice(i, line.length));
-              i+=end;
-              break;
-          }
-          segments.push({line: "", format: format, color: color});
-          i+=2;
-          continue;
-      }
-      segments[segments.length-1].line+=c;
-      i++;
-    }
-    return segments;
-  }, function _measure_line(line, fontsize) {
-    var segs=this._split_text(line);
-    var x=0.0;
-    var g=this.ctx;
-    for (var i=0; i<segs.length; i++) {
-        x+=g.measureText(segs[i].line).width;
-    }
-    return {width: x}
-  }, function _text_line(line, x, y, fontsize) {
-    var segs=this._split_text(line);
-    var g=this.ctx;
-    var startclr=g.fillStyle;
-    for (var i=0; i<segs.length; i++) {
-        this._set_font(g, fontsize, segs[i].format);
-        if (segs[i].color!=undefined) {
-            g.fillStyle = segs[i].color;
-        }
-        else {
-          g.fillStyle = startclr;
-        }
-        g.fillText(segs[i].line, x, y);
-        x+=g.measureText(segs[i].line).width;
-    }
-    g.fillStyle = startclr;
-  }, function text(pos1, text, color, fontsize, scale, rot, scissor_pos, scissor_size) {
-    var canvas=this.canvas;
-    var ctx=this.ctx;
-    var v=g_app_state.raster.viewport;
-    var lines=text.split("\n");
-    if (text[0]!="\n"&&text[1]!="\r"&&lines[0].trim()=="") {
-        lines = lines.splice(1, lines.length);
-    }
-    lines.reverse();
-    if (rot==undefined)
-      rot = 0;
-    var ly=0;
-    for (var i=0; i<lines.length; i++, ly+=12) {
-        var w=this._measure_line(lines[i]).width;
-        var m=this.transmat.$matrix;
-        $pos_GrOm_text[0] = m.m41+v[0][0]+pos1[0];
-        $pos_GrOm_text[1] = canvas.height-(m.m42+v[0][1]+pos1[1]+ly);
-        $pos_GrOm_text[2] = 0;
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.rotate(rot);
-        if (rot!=0) {
-            $pos_GrOm_text[1]-=w;
-        }
-        rot2d($pos_GrOm_text, -rot);
-        $pos_GrOm_text[1] = canvas.height-$pos_GrOm_text[1];
-        if (color==undefined)
-          color = uicolors.DefaultText;
-        ctx.fillStyle = this._css_color(color);
-        if (fontsize==undefined)
-          fontsize = default_ui_font_size;
-        ctx.font = fontsize+"px "+"Arial";
-        var x=$pos_GrOm_text[0], y=canvas.height-($pos_GrOm_text[1]);
-        this._text_line(lines[i], x, y, fontsize);
-    }
-  }, function _set_font(ctx, fontsize, addition_options) {
-    if (addition_options==undefined) {
-        addition_options = "";
-    }
-    addition_options = addition_options.trim()+" ";
-    if (fontsize==undefined)
-      fontsize = default_ui_font_size;
-    ctx.font = addition_options+fontsize+"px "+"Arial";
-  }, function line(v1, v2, c1, c2) {
-    var canvas=this.canvas;
-    var ctx=this.ctx;
-    var v=g_app_state.raster.viewport;
-    var m=this.transmat.$matrix;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    var x=m.m41, y=m.m42;
-    ctx.strokeStyle = this._css_color(c1);
-    ctx.beginPath();
-    ctx.moveTo(v1[0]+x+v[0][0], canvas.height-(v1[1]+y+v[0][1]));
-    ctx.lineTo(v2[0]+x+v[0][0], canvas.height-(v2[1]+y+v[0][1]));
-    ctx.stroke();
-  }, function tri(v1, v2, v3, c1, c2, c3) {
-    var canvas=this.canvas;
-    var ctx=this.ctx;
-    var v=g_app_state.raster.viewport;
-    var m=this.transmat.$matrix;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    var x=m.m41, y=m.m42;
-    ctx.fillStyle = this._css_color(c1);
-    ctx.beginPath();
-    ctx.moveTo(v1[0]+x+v[0][0], canvas.height-(v1[1]+y+v[0][1]));
-    ctx.lineTo(v2[0]+x+v[0][0], canvas.height-(v2[1]+y+v[0][1]));
-    ctx.lineTo(v3[0]+x+v[0][0], canvas.height-(v3[1]+y+v[0][1]));
-    ctx.fill();
-  }, function shadow_box(pos, size, steps, margin, clr) {
-    if (steps==undefined) {
-        steps = 6;
-    }
-    if (margin==undefined) {
-        margin = [6, 6];
-    }
-    if (clr==undefined) {
-        clr = uicolors["ShadowBox"];
-    }
-  }, function box(pos, size, clr, rfac, outline_only) {
-    if (IsMobile||rfac==0.0)
-      return this.box2(pos, size, clr, rfac, outline_only);
-    else 
-      return this.box1(pos, size, clr, rfac, outline_only);
-  }, function passpart(pos, size, clr) {
-    if (clr==undefined) {
-        clr = [0, 0, 0, 0.5];
-    }
-    var p=this.viewport[0];
-    var s=this.viewport[1];
-    this.box2([p[0], p[1]], [pos[0], s[1]], clr);
-    this.box2([p[0]+pos[0]+size[0], p[1]], [s[0]-pos[0]-size[0], s[1]], clr);
-    this.box2([pos[0]+p[0], pos[1]+p[1]+size[1]], [size[0], s[1]-size[1]-p[1]], clr);
-    this.box2([pos[0]+p[0], p[1]], [size[0], pos[1]], clr);
-  }, function box2(pos, size, clr, rfac, outline_only) {
-    if (clr==undefined) {
-        clr = undefined;
-    }
-    if (rfac==undefined) {
-        rfac = undefined;
-    }
-    if (outline_only==undefined) {
-        outline_only = false;
-    }
-    var cs=uicolors["Box"];
-    cs = _box_process_clr(cs, clr);
-    var x=pos[0], y=pos[1];
-    var w=size[0], h=size[1];
-    if (outline_only) {
-        this.line([pos[0], pos[1]], [pos[0], pos[1]+size[1]], clr, clr, 1.0);
-        this.line([pos[0], pos[1]+size[1]], [pos[0]+size[0], pos[1]+size[1]], clr, clr, 1.0);
-        this.line([pos[0]+size[0], pos[1]+size[1]], [pos[0]+size[0], pos[1]], clr, clr, 1.0);
-        this.line([pos[0]+size[0], pos[1]], [pos[0], pos[1]], clr, clr, 1.0);
-    }
-    else {
-      this.quad((($_mh = objcache.array(2)), ($_mh[0] = (x)), ($_mh[1] = (y)), ($_mh[2] = (0)), $_mh), (($_mh = objcache.array(2)), ($_mh[0] = (x+w)), ($_mh[1] = (y)), ($_mh[2] = (0)), $_mh), (($_mh = objcache.array(2)), ($_mh[0] = (x+w)), ($_mh[1] = (y+h)), ($_mh[2] = (0)), $_mh), (($_mh = objcache.array(2)), ($_mh[0] = (x)), ($_mh[1] = (y+h)), ($_mh[2] = (0)), $_mh), cs[0], cs[1], cs[2], cs[3]);
-    }
-  }, function textsize(text, size) {
-    if (size==undefined) {
-        size = default_ui_font_size;
-    }
-    var lines=text.split("\n");
-    if (text[0]!="\n"&&text[1]!="\r"&&lines[0].trim()=="") {
-        lines = lines.splice(1, lines.length);
-    }
-    lines.reverse();
-    var canvas=this.canvas;
-    var ctx=this.ctx;
-    var v=this.viewport;
-    this._set_font(ctx, size);
-    var wid=0, hgt=0;
-    for (var i=0; i<lines.length; i++) {
-        wid = Math.max(wid, this._measure_line(lines[i]).width);
-        hgt+=size+2;
-    }
-    return [wid, hgt];
-  }, function translate(off) {
-    this.transmat.translate(off[0], off[1], 0.0);
-  }, function push_transform(mat) {
-    if (mat==undefined) {
-        mat = undefined;
-    }
-    this.trans_stack.push(new Matrix4(this.transmat));
-    if (mat!=undefined)
-      this.transmat.multiply(mat);
-  }, function pop_transform() {
-    this.transmat.load(this.trans_stack.pop());
-  }]);
-  var $temp_layer_idgen_WBwG_push_layer=0;
-  var $black_LCMr_quad=[0, 0, 0, 1];
-  var $grads_ywYC_quad={}
-  var $mid_l_De_colorfield=[0, 0, 0, 0.5];
-  var $cache_yo3o_box1={}
-  var $v1_Fodh_box1=new Vector3();
-  var $v3_dvrq_box1=new Vector3();
-  var $pairs_Srhr_box1=[];
-  var $pos_GrOm_text=[0, 0, 0];
-  var $v2_35XW_box1=new Vector3();
-  var $v4_COea_box1=new Vector3();
-  _es6_module.add_class(UICanvas);
-  UICanvas = _es6_module.add_export('UICanvas', UICanvas);
-  window.active_canvases = {}
-  function test_canvas2d() {
-    var u=new UICanvas();
-  }
-}, '/dev/fairmotion/src/ui/UICanvas.js');
+}, '/home/ec2-user/fairmotion/src/ui/UIFileData.js');

@@ -242,6 +242,7 @@ Iterator = _KeyValIterator;
 var _defined_modules={};
 var _curpath_stack=[];
 var allow_cycles=false;
+var _rootpath_src="";
 var _is_cyclic=false;
 var _post_primary_load=false;
 var _es6_module_resort=false;
@@ -251,10 +252,12 @@ function debug() {
   if (!_debug_modules)
     return ;
   var s="console.log";
-  console.log.apply(console, arguments);
+  console.warn.apply(console, arguments);
 }
-function ES6Module(name) {
+function ES6Module(name, path) {
   this.name = name;
+  this.path = path;
+  this.links = [];
   this.depends = [];
   this.flag = 0;
   this.loaded = false;
@@ -289,7 +292,9 @@ ES6Module.prototype = {add_class: function(cls) {
   if (typeof module!="string"&&!(__instance_of(module, String))) {
       throw new Error("ES6Module.add_depend: Expected a string");
   }
+  _es6_push_basepath(this.path);
   this.depends.push(es6_get_module_meta(module));
+  _es6_pop_basepath();
 }, set_default_export: function(name, object) {
   if (this.default_export!=undefined) {
       throw new Error("Can only have one default export");
@@ -301,33 +306,53 @@ ES6Module.prototype = {add_class: function(cls) {
   }
   return object;
 }};
-function es6_get_module_meta(name, path) {
-  if (path!==undefined||name.search(/\//)>=0||name.search(/\.js/)>=0) {
-      let path_was_undefined=false;
-      if (path===undefined) {
-          path_was_undefined = true;
-          path = name;
+function _es6_get_basename(path) {
+  if (!(path.endsWith(".js"))) {
+      path+=".js";
+  }
+  let name=path.split("/");
+  name = name[name.length-1];
+  name = name.slice(0, name.length-3);
+  return name;
+}
+function es6_get_module_meta(path) {
+  path = path.replace(/\\/g, "/");
+  let compatibility_mode=!path.toLowerCase().endsWith(".js")&&path.search("/")<0;
+  if (compatibility_mode) {
+      let name=path;
+      if (!path.toLowerCase().endsWith(".js")) {
+          path+=".js";
       }
-      path = _normpath(path, _es6_get_basepath());
-      for (let k in _defined_modules) {
-          let mod=_defined_modules[k];
-          if (mod.path===path) {
-              return mod;
+      path = _normpath("./"+path, _es6_get_basepath());
+      if (!(path in _defined_modules)) {
+          for (let k in _defined_modules) {
+              let mod=_defined_modules[k];
+              if (mod.name==name) {
+                  return mod;
+              }
           }
+          console.warn("Unknown module", name, "hackishly patching. . .");
+          throw new Error("");
+          let mod=new ES6Module(name, name);
+          mod._bad_path = true;
+          _defined_modules[name] = mod;
+          return mod;
       }
-      if (path_was_undefined) {
-          let i=name.length-1;
-          while (i>=0&&name[i]!="/") {
-            i--;
-          }
-          name = name.slice(name[i]=="/" ? i+1 : i, name.length);
+      else {
+        return _defined_modules[path];
       }
   }
-  if (!(name in _defined_modules)) {
-      var mod=new ES6Module(name);
-      _defined_modules[name] = mod;
+  if (!path.endsWith(".js")) {
+      path+=".js";
   }
-  return _defined_modules[name];
+  path = _normpath(path, _es6_get_basepath());
+  path = _normpath1(path);
+  if (!(path in _defined_modules)) {
+      let name=_es6_get_basename(path);
+      let mod=new ES6Module(name, path);
+      _defined_modules[path] = mod;
+  }
+  return _defined_modules[path];
 }
 function _es6_get_basepath() {
   if (_curpath_stack.length>0)
@@ -335,6 +360,9 @@ function _es6_get_basepath() {
   return "";
 }
 function _es6_push_basepath(path) {
+  if (path.search("core")>=0) {
+      _rootpath_src = path.slice(0, path.search(/\/src\/core/))+"/src";
+  }
   _curpath_stack.push(path);
 }
 function _es6_pop_basepath(path) {
@@ -343,12 +371,16 @@ function _es6_pop_basepath(path) {
 function es6_module_define(name, depends, callback, path) {
   path = path===undefined ? name : path;
   debug("defining module ", name, "with dependencies", JSON.stringify(depends));
-  if (name in _defined_modules) {
-      throw new Error("Duplicate module name '"+name+"'");
+  let mod;
+  path = _normpath(path, _es6_get_basepath());
+  if (!(path in _defined_modules)) {
+      mod = new ES6Module(name, path);
+      _defined_modules[path] = mod;
   }
-  var mod=es6_get_module_meta(name, path);
+  else {
+    mod = _defined_modules[path];
+  }
   mod.callback = callback;
-  mod.path = path;
   depends.forEach(function(d) {
     mod.depends.push(d);
   });
@@ -358,6 +390,10 @@ function sort_modules() {
   var sortlist=[];
   for (var k in _defined_modules) {
       var mod=_defined_modules[k];
+      if (mod.callback===undefined) {
+          debug('module "'+mod.path+'" does not exist', mod);
+          throw new Error('module "'+mod.path+'" does not exist');
+      }
       mod.flag = 0;
   }
   var localvisit={}
@@ -367,10 +403,11 @@ function sort_modules() {
         p2.push(path[i]);
     }
     path = p2;
-    path.push(mod.name);
+    path.push(mod.path);
     if (path.length>1) {
+        debug(path);
     }
-    if (mod.name in localvisit) {
+    if (mod.path in localvisit) {
         _is_cyclic = true;
         debug("Cycle!", path);
         if (!allow_cycles) {
@@ -378,7 +415,7 @@ function sort_modules() {
         }
         return ;
     }
-    localvisit[mod.name] = 1;
+    localvisit[mod.path] = 1;
     for (var i=0; i<mod.depends.length; i++) {
         var p=mod.depends[i];
         if (!p.flag) {
@@ -406,16 +443,29 @@ function _load_module(mod) {
   var start=time_ms();
   if (mod.loaded)
     return ;
-  debug("loading module", mod.name);
-  var dependnames=[];
+  debug("loading module", mod.name, mod);
   for (var i=0; i<mod.depends.length; i++) {
       args.push(mod.depends[i].exports);
-      dependnames.push(mod.depends[i].name);
   }
-  if (dependnames.length!=0) {
+  if (_debug_modules) {
+      var dependnames=[];
+      var __iter_dep=__get_iter(mod.depends);
+      var dep;
+      while (1) {
+        var __ival_dep=__iter_dep.next();
+        if (__ival_dep.done) {
+            break;
+        }
+        dep = __ival_dep.value;
+        dependnames.push(dep.name);
+      }
+      if (dependnames.length!=0) {
+          debug("  ", JSON.stringify(dependnames));
+      }
   }
   if (mod.callback==undefined) {
       console.warn("WARNING: module", mod.name, "does not exist!");
+      throw new Error("module \""+mod.path+"\" does not exist");
       return ;
   }
   _es6_push_basepath(mod.path);
@@ -444,14 +494,19 @@ function _normpath1(path) {
   return path;
 }
 function _normpath(path, basepath) {
+  if (basepath.trim().length==0)
+    return _normpath1(path);
   path = _normpath1(path);
   basepath = _normpath1(basepath);
+  if (path.startsWith(basepath)) {
+      path = _normpath1(path.slice(basepath.length, path.length));
+  }
   if (path[0]=="."&&path[1]=="/") {
-      path = basepath+"/"+path.slice(2, path.length);
+      path = path.slice(2, path.length);
   }
   let ps=path.split("/");
-  let bs=basepath.split("basepath");
-  let stack=[];
+  let bs=basepath.split("/");
+  let stack=bs.slice(0, bs.length-1);
   for (let i=0; i<ps.length; i++) {
       if (ps[i]=="..") {
           stack.pop();
@@ -469,6 +524,8 @@ function _normpath(path, basepath) {
         break;
     }
     c = __ival_c.value;
+    if (c.trim().length==0||c.trim()=="/")
+      continue;
     path = path+"/"+c;
   }
   return path;
@@ -490,6 +547,9 @@ function _es6_get_module(name) {
 }
 function es6_import(_es6_module, name) {
   var mod=_es6_get_module(name);
+  if (mod!==undefined) {
+      mod.links.push(_es6_module);
+  }
   if (mod!=undefined&&_es6_module.depends.indexOf(mod)<0) {
       debug("updating dependencies");
       _es6_module_resort = true;
@@ -504,6 +564,9 @@ function es6_import(_es6_module, name) {
 }
 function es6_import_item(_es6_module, modname, name) {
   var mod=_es6_get_module(modname);
+  if (mod!==undefined) {
+      mod.links.push(_es6_module);
+  }
   if (mod!=undefined&&_es6_module.depends.indexOf(mod)<0) {
       debug("updating dependencies");
       _es6_module_resort = true;
@@ -571,13 +634,18 @@ function reload_modules() {
 function load_modules() {
   startup_report("Loading modules. . .");
   var start_time=time_ms();
-  for (var k in _defined_modules) {
-      var mod=_defined_modules[k];
+  for (let k in _defined_modules) {
+      let mod=_defined_modules[k];
       for (var i=0; i<mod.depends.length; i++) {
-          var d=mod.depends[i];
-          if (typeof d=="string"||__instance_of(d, String)) {
-              mod.depends[i] = es6_get_module_meta(d);
+          let mod2=mod.depends[i];
+          if (typeof (mod2)=="string") {
+              _es6_push_basepath(mod.path);
+              mod2 = es6_get_module_meta(mod2);
+              _es6_pop_basepath();
           }
+          mod.depends[i] = mod2;
+          if (mod2.links.indexOf(mod)<0)
+            mod2.links.push(mod);
       }
   }
   var sortlist=sort_modules();
@@ -585,7 +653,8 @@ function load_modules() {
   _post_primary_load = true;
   startup_report("...Finished.  "+(time_ms()-start_time).toFixed(1)+"ms", totcycle, "cycle iterations");
   for (var k in _defined_modules) {
-      window["_"+k] = _defined_modules[k].exports;
+      let mod=_defined_modules[k];
+      window["_"+mod.name] = mod.exports;
   }
 }
 function test_modules() {
@@ -975,13 +1044,25 @@ es6_module_define('config', ["config_local"], function _config_module(_es6_modul
   CHROME_APP_MODE = _es6_module.add_export('CHROME_APP_MODE', CHROME_APP_MODE);
   var PHONE_APP_MODE=document.getElementById("PhoneAppMode")!==null;
   PHONE_APP_MODE = _es6_module.add_export('PHONE_APP_MODE', PHONE_APP_MODE);
+  var HTML5_APP_MODE=document.getElementById("Html5AppMode")!==null;
+  HTML5_APP_MODE = _es6_module.add_export('HTML5_APP_MODE', HTML5_APP_MODE);
+  let platform="web";
+  if (ELECTRON_APP_MODE) {
+      platform = process.platform.toLowerCase();
+  }
+  var PLATFORM=platform;
+  PLATFORM = _es6_module.add_export('PLATFORM', PLATFORM);
+  var IS_WIN=platform.toLowerCase().search("win")>=0;
+  IS_WIN = _es6_module.add_export('IS_WIN', IS_WIN);
   var ICONPATH=PHONE_APP_MODE ? "img/" : (ELECTRON_APP_MODE ? "./fcontent/" : "fcontent/");
   ICONPATH = _es6_module.add_export('ICONPATH', ICONPATH);
+  var IS_NODEJS=ELECTRON_APP_MODE;
+  IS_NODEJS = _es6_module.add_export('IS_NODEJS', IS_NODEJS);
   var USE_WASM=true;
   USE_WASM = _es6_module.add_export('USE_WASM', USE_WASM);
   var USE_NACL=CHROME_APP_MODE;
   USE_NACL = _es6_module.add_export('USE_NACL', USE_NACL);
-  var NO_SERVER=CHROME_APP_MODE||PHONE_APP_MODE||ELECTRON_APP_MODE;
+  var NO_SERVER=true;
   NO_SERVER = _es6_module.add_export('NO_SERVER', NO_SERVER);
   var USE_HTML5_FILEAPI=NO_SERVER;
   USE_HTML5_FILEAPI = _es6_module.add_export('USE_HTML5_FILEAPI', USE_HTML5_FILEAPI);
@@ -1014,15 +1095,11 @@ es6_module_define('config', ["config_local"], function _config_module(_es6_modul
   }
   if (DEBUG!=undefined&&DEBUG.force_mobile)
     window.IsMobile = true;
-}, '/dev/fairmotion/src/config/config.js');
+}, '/home/ec2-user/fairmotion/src/config/config.js');
 
 es6_module_define('config_local', [], function _config_local_module(_es6_module) {
   'use strict';
-  var ON_TICK_TIMER_MS=70;
-  ON_TICK_TIMER_MS = _es6_module.add_export('ON_TICK_TIMER_MS', ON_TICK_TIMER_MS);
-  var DEBUG={ui_redraw: false, viewport_partial_update: false, ui_datapaths: false, screen_keyboard: false, force_mobile: false}
-  DEBUG = _es6_module.add_export('DEBUG', DEBUG);
-}, '/dev/fairmotion/src/config/config_local.js');
+}, '/home/ec2-user/fairmotion/src/config/config_local.js');
 
 es6_module_define('const', ["config"], function _const_module(_es6_module) {
   "use strict";
@@ -1049,10 +1126,10 @@ es6_module_define('const', ["config"], function _const_module(_es6_module) {
         return g_app_state.api;
       }});
   }
-}, '/dev/fairmotion/src/core/const.js');
+}, '/home/ec2-user/fairmotion/src/core/const.js');
 
 
-    var totfile=6, fname="app";
+    var totfile=7, fname="app";
     for (var i=0; i<totfile; i++) {
       var path = "/fcontent/"+fname+i+".js";
       var node = document.createElement("script")

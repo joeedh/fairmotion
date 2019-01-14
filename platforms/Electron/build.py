@@ -18,11 +18,11 @@ def build():
     
   print("  copying files")
   
-  for f in os.listdir("./platforms/electron"):
+  for f in os.listdir("./platforms/Electron"):
     if f == "__pycache__": continue
     if f == "native": continue
 
-    path = "./platforms/electron/" + f
+    path = "./platforms/Electron/" + f
 
     file = open(path, "rb")
     buf = file.read()

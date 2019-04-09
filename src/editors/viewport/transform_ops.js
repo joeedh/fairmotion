@@ -48,19 +48,19 @@ export class WidgetResizeOp extends TransformOp {
 
     minmax.reset();
   
-    for (var v of spline.verts.selected.editable()) {
+    for (var v of spline.verts.selected.editable(ctx)) {
       minmax.minmax(v);
       totsel++;
     }
   
     if (ctx.view2d.selectmode & SelMask.HANDLE) {
-      for (var h of spline.handles.selected.editable()) {
+      for (var h of spline.handles.selected.editable(ctx)) {
         minmax.minmax(h);
         totsel++;
       }
     }
     
-    for (var seg of spline.segments.selected.editable()) {
+    for (var seg of spline.segments.selected.editable(ctx)) {
       let aabb = seg.aabb;
       minmax.minmax(aabb[0]);
       minmax.minmax(aabb[1]);
@@ -197,10 +197,13 @@ export class WidgetResizeOp extends TransformOp {
       
       console.log("mpos", mpos[0], mpos[1]);
       
+      toolop.inputs.edit_all_layers.set_data(view2d.ctx.edit_all_layers);
       toolop.inputs.use_pivot.set_data(true);
       toolop.inputs.pivot.set_data(co);
       
       view2d.ctx.toolstack.exec_tool(toolop);
+      console.log(view2d.ctx, toolop.modal_ctx.edit_all_layers);
+      
       
       return true;
     }
@@ -227,7 +230,8 @@ export class WidgetResizeOp extends TransformOp {
       
       toolop.inputs.use_pivot.set_data(true);
       toolop.inputs.pivot.set_data(co);
-      
+  
+      toolop.inputs.edit_all_layers.set_data(view2d.ctx.edit_all_layers);
       toolop.inputs.constrain.set_data(true);
       toolop.inputs.constraint_axis.set_data(new Vector3([1, 0, 0]));
       
@@ -251,7 +255,8 @@ export class WidgetResizeOp extends TransformOp {
       if (!e.shiftKey) {
         co[1] += id == 'b' ? h : -h;
       }
-
+  
+      toolop.inputs.edit_all_layers.set_data(view2d.ctx.edit_all_layers);
       toolop.inputs.use_pivot.set_data(true);
       toolop.inputs.pivot.set_data(co);
     
@@ -296,19 +301,19 @@ export class WidgetRotateOp extends TransformOp {
     
     minmax.reset();
     
-    for (var v of spline.verts.selected.editable()) {
+    for (var v of spline.verts.selected.editable(ctx)) {
       minmax.minmax(v);
       totsel++;
     }
     
     if (ctx.view2d.selectmode & SelMask.HANDLE) {
-      for (var h of spline.handles.selected.editable()) {
+      for (var h of spline.handles.selected.editable(ctx)) {
         minmax.minmax(h);
         totsel++;
       }
     }
     
-    for (var seg of spline.segments.selected.editable()) {
+    for (var seg of spline.segments.selected.editable(ctx)) {
       let aabb = seg.aabb;
       minmax.minmax(aabb[0]);
       minmax.minmax(aabb[1]);

@@ -595,11 +595,16 @@ export class ElementArraySet extends set {
     this.layerset = undefined;
   }
 
-  editable(ignore_layers) {
+  editable(ctx) {
+    if (ctx === undefined) {
+      console.warn("Missing ctx in editable() iterator!");
+    }
+    
+    let ignore_layers = ctx !== undefined ? ctx.edit_all_layers : false;
     return ignore_layers ? new SelectedEditableAllLayersIter(this, this.layerset) : new SelectedEditableIter(this, this.layerset);
   }
 
-  //get editable() {
+  //get editable(ctx) {
   //  return new SelectedEditableIter(this, this.layerset);
   //}
 

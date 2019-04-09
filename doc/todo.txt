@@ -1,3 +1,7 @@
+EDIT ALL LAYERS STUFF:
+- Improve the mechanism that clones bits of Context
+  into toolop instances.
+
 - Ensure NO TOOLOPS ACCESS CTX.EDIT_ALL_LAYERS in .exec(), they should store it in their constructors in
          a tool property, like is done with selectmode
 

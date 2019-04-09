@@ -182,7 +182,7 @@ export class TransSplineVert {
       tdmap[tv.data.eid] = tv;
     }
     
-    for (var v of spline.verts.selected.editable(edit_all_layers)) {
+    for (var v of spline.verts.selected.editable(ctx)) {
       shash.forEachPoint(v, proprad, function(v2, dis) {
         if (v2.flag & SplineFlags.SELECT) return;
         if (v2.hidden) return;
@@ -218,7 +218,7 @@ export class TransSplineVert {
     var edit_all_layers = td.edit_all_layers;
 
     for (var i=0; i<2; i++) {
-      for (var v of i ? spline.handles.selected.editable(edit_all_layers) : spline.verts.selected.editable(edit_all_layers)) {
+      for (var v of i ? spline.handles.selected.editable(ctx) : spline.verts.selected.editable(ctx)) {
         var co = new Vector3(v);
         
         if (i) {
@@ -272,7 +272,7 @@ export class TransSplineVert {
     
     console.log("proprad", proprad);
     
-    for (var v of spline.verts.selected.editable(edit_all_layers)) {
+    for (var v of spline.verts.selected.editable(ctx)) {
       shash.forEachPoint(v, proprad, function(v2, dis) {
         if (v2.flag & SplineFlags.SELECT) return;
         

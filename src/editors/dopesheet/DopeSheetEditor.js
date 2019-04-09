@@ -552,7 +552,7 @@ export class DopeSheetEditor extends Area {
           vset.add(vd);
       }
     } else if (this.selected_only) {
-      for (var v of spline.verts.selected.editable()) {
+      for (var v of spline.verts.selected.editable(ctx)) {
         var vd = frameset.get_vdata(v.eid, false);
         
         if (vd != undefined)

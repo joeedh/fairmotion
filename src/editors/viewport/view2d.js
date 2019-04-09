@@ -292,7 +292,7 @@ export class View2DHandler extends Area {
       var spline = this.ctx.frameset.spline;
       
       var eids = [];
-      for (var v of spline.verts.selected.editable()) {
+      for (var v of spline.verts.selected.editable(this.ctx)) {
         eids.push(v.eid);
       }
       

@@ -319,7 +319,7 @@ function api_define_view2d() {
   
   background_color.update = function () {
     window.redraw_viewport();
-  }
+  };
   
   let draw_faces = new BoolProperty(0, "draw_faces", "Show Faces");
   let enable_blur = new BoolProperty(0, "enable_blur", "Blur");
@@ -327,9 +327,14 @@ function api_define_view2d() {
   draw_faces.update = enable_blur.update = function() {
     this.ctx.spline.regen_sort();
     redraw_viewport();
-  }
+  };
   
   var edit_all_layers = new BoolProperty(0, "edit_all_layers", "Edit All Layers");
+  
+  edit_all_layers.update = function() {
+    redraw_viewport();
+  };
+  
   let show_animpath_prop = new BoolProperty(0, "draw_anim_paths", "Show Animation Paths", "Edit Animation Keyframe Paths");
   show_animpath_prop.icon = Icons.SHOW_ANIMPATHS;
   

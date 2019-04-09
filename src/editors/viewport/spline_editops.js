@@ -23,7 +23,7 @@ export class KeyCurrentFrame extends ToolOp {
   }}
   
   exec(ctx) {
-    for (var v of ctx.frameset.spline.verts.selected.editable()) {
+    for (var v of ctx.frameset.spline.verts.selected.editable(ctx)) {
       v.flag |= SplineFlags.FRAME_DIRTY;
     }
     
@@ -283,8 +283,8 @@ export class CopyPoseOp extends SplineLocalToolOp {
 
   exec(ctx) {
     var lists = [
-      ctx.spline.verts.selected.editable(),
-      ctx.spline.handles.selected.editable()
+      ctx.spline.verts.selected.editable(ctx),
+      ctx.spline.handles.selected.editable(ctx)
     ]
     
     var pose_clipboard = {};
@@ -429,7 +429,7 @@ export class InterpStepModeOp extends ToolOp {
     var spline = ctx.frameset.spline, pathspline = ctx.frameset.pathspline;
     var frameset = ctx.frameset;
     
-    for (var v of spline.verts.selected.editable()) {
+    for (var v of spline.verts.selected.editable(ctx)) {
       var vd = frameset.vertex_animdata[v.eid];
       if (vd == undefined) continue;
       
@@ -508,7 +508,7 @@ export class DeleteVertOp extends SplineLocalToolOp {
     
     var dellist = [];
     
-    for (var v of spline.verts.selected.editable()) {
+    for (var v of spline.verts.selected.editable(ctx)) {
       v.flag |= SplineFlags.UPDATE;
       
       dellist.push(v);
@@ -562,7 +562,7 @@ export class DeleteSegmentOp extends ToolOp {
     
     var dellist = [];
     
-    for (var s of spline.segments.selected.editable()) {
+    for (var s of spline.segments.selected.editable(ctx)) {
       dellist.push(s);
     }
     
@@ -611,7 +611,7 @@ export class DeleteFaceOp extends SplineLocalToolOp {
     var vset = new set(), sset = new set(), fset = new set();
     var dellist = [];
     
-    for (var f of spline.faces.selected.editable()) {
+    for (var f of spline.faces.selected.editable(ctx)) {
       fset.add(f);
     }
     
@@ -719,7 +719,7 @@ export class ChangeFaceZ extends SplineLocalToolOp {
     }
     
     if (selmode & SplineTypes.FACE) {
-      for (var f of spline.faces.selected.editable()) {
+      for (var f of spline.faces.selected.editable(ctx)) {
         if (isNaN(f.z)) f.z = 0.0;
         
         if (f.hidden) continue;
@@ -729,7 +729,7 @@ export class ChangeFaceZ extends SplineLocalToolOp {
     }
     
     if (selmode & SplineTypes.SEGMENT) {
-      for (var s of spline.segments.selected.editable()) {
+      for (var s of spline.segments.selected.editable(ctx)) {
         if (isNaN(s.z)) s.z = 0.0;
         
         if (s.hidden) continue;
@@ -771,7 +771,7 @@ export class DissolveVertOp extends SplineLocalToolOp {
     var spline = ctx.spline;
     var dellist = [];
     
-    var verts = spline.verts.selected.editable();
+    var verts = spline.verts.selected.editable(ctx);
     if (this.inputs.use_verts.data) {
       verts = new set();
       
@@ -855,7 +855,7 @@ export class SplitEdgeOp extends SplineGlobalToolOp {
       console.log("interpolating animation data from adjacent vertices!");
     }
     
-    for (var s of spline.segments.selected.editable()) {
+    for (var s of spline.segments.selected.editable(ctx)) {
       if (s.v1.hidden || s.v2.hidden) continue;
       
       if ((s.v1.flag & SplineFlags.SELECT && s.v2.flag & SplineFlags.SELECT))
@@ -1018,7 +1018,7 @@ export class VertPropertyBaseOp extends ToolOp {
     var spline = ctx.spline;
     var vdata = {};
     
-    for (var v of spline.verts.selected.editable()) {
+    for (var v of spline.verts.selected.editable(ctx)) {
       vdata[v.eid] = v.flag;
     }
     
@@ -1065,7 +1065,7 @@ export class ToggleBreakTanOp extends VertPropertyBaseOp {
     for (var si=0; si<2; si++) {
       var list = si ? spline.handles : spline.verts;
       
-      for (var v of list.selected.editable()) {
+      for (var v of list.selected.editable(ctx)) {
         if (v.type == SplineTypes.HANDLE && !v.use) continue;
         
         //don't let owning vertex cancel out toggling of handle, if
@@ -1108,7 +1108,7 @@ export class ToggleBreakCurvOp extends VertPropertyBaseOp {
   exec(ctx) {
     var spline = ctx.spline;
     
-    for (var v of spline.verts.selected.editable()) {
+    for (var v of spline.verts.selected.editable(ctx)) {
       v.flag ^=  SplineFlags.BREAK_CURVATURES;
       v.flag |= SplineFlags.UPDATE;
     }
@@ -1139,7 +1139,7 @@ export class ConnectHandlesOp extends ToolOp {
     
     var h1 = undefined, h2 = undefined;
     
-    for (var h of spline.handles.selected.editable()) {
+    for (var h of spline.handles.selected.editable(ctx)) {
       if (h1 == undefined)
         h1 = h;
       else if (h2 == undefined)
@@ -1191,7 +1191,7 @@ export class DisconnectHandlesOp extends ToolOp {
     var spline = ctx.spline;
     console.log("Disconnect handles");
     
-    for (var h of spline.handles.selected.editable()) {
+    for (var h of spline.handles.selected.editable(ctx)) {
       var v = h.owning_segment.handle_vertex(h);
       if (h.hpair == undefined)
         continue;
@@ -1450,7 +1450,7 @@ export class ToggleManualHandlesOp extends ToolOp {
     var spline = ctx.spline;
     var ud = this._undo = {};
     
-    for (var v of spline.verts.selected.editable()) {
+    for (var v of spline.verts.selected.editable(ctx)) {
       ud[v.eid] = v.flag & SplineFlags.USE_HANDLES;
     }
   }
@@ -1476,7 +1476,7 @@ export class ToggleManualHandlesOp extends ToolOp {
   exec(ctx) {
     var spline = ctx.spline;
     
-    for (var v of spline.verts.selected.editable()) {
+    for (var v of spline.verts.selected.editable(ctx)) {
       v.flag ^= SplineFlags.USE_HANDLES;
       v.flag |= SplineFlags.UPDATE;
     }
@@ -1515,12 +1515,12 @@ export class ShiftTimeOp extends ToolOp {
     var spline = ctx.frameset.spline, pathspline = ctx.frameset.pathspline;
     var frameset = ctx.frameset;
     
-    for (var v of pathspline.verts.selected.editable()) {
+    for (var v of pathspline.verts.selected.editable(ctx)) {
       vset.add(v);
     }
     
     if (vset.length == 0) {
-      for (var v of spline.verts.selected.editable()) {
+      for (var v of spline.verts.selected.editable(ctx)) {
         var vd = frameset.vertex_animdata[v.eid];
         if (vd == undefined) continue;
         
@@ -1697,18 +1697,18 @@ export class DuplicateOp extends SplineLocalToolOp {
     var spline = ctx.spline;
     
     var eidmap = {};
-    for (var v of spline.verts.selected.editable()) {
+    for (var v of spline.verts.selected.editable(ctx)) {
       vset.add(v);
     }
     
-    for (var s of spline.segments.selected.editable()) {
+    for (var s of spline.segments.selected.editable(ctx)) {
       sset.add(s);
       
       vset.add(s.v1);
       vset.add(s.v2);
     }
     
-    for (var f of spline.faces.selected.editable()) {
+    for (var f of spline.faces.selected.editable(ctx)) {
       fset.add(f);
       
       for (var path of f.paths) {
@@ -1821,7 +1821,7 @@ export class SplineMirrorOp extends SplineLocalToolOp {
       for (var i=0; i<2; i++) {
         var list = i ? spline.handles : spline.verts;
         
-        for (var v of list.selected.editable()) {
+        for (var v of list.selected.editable(ctx)) {
           if (i==1 && v.owning_vertex != undefined && v.owning_vertex.hidden)
             continue;
           if (i == 0 && v.hidden)

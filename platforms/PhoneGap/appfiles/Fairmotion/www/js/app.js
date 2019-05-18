@@ -1095,11 +1095,11 @@ es6_module_define('config', ["config_local"], function _config_module(_es6_modul
   }
   if (DEBUG!=undefined&&DEBUG.force_mobile)
     window.IsMobile = true;
-}, '/home/ec2-user/fairmotion/src/config/config.js');
+}, '/dev/cleanfairmotion/src/config/config.js');
 
 es6_module_define('config_local', [], function _config_local_module(_es6_module) {
   'use strict';
-}, '/home/ec2-user/fairmotion/src/config/config_local.js');
+}, '/dev/cleanfairmotion/src/config/config_local.js');
 
 es6_module_define('const', ["config"], function _const_module(_es6_module) {
   "use strict";
@@ -1126,7 +1126,7 @@ es6_module_define('const', ["config"], function _const_module(_es6_module) {
         return g_app_state.api;
       }});
   }
-}, '/home/ec2-user/fairmotion/src/core/const.js');
+}, '/dev/cleanfairmotion/src/core/const.js');
 
 
     var totfile=7, fname="app";

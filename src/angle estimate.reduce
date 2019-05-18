@@ -1,0 +1,49 @@
+    on factor;
+    off period;
+
+    procedure quadrature(seq, val, steps);
+        for i:= 0:steps-1 sum sub(s=i*val/steps, ds=val/steps, seq)*val/steps;
+
+    quadrature(df(sin(s), s), 1.0, 10.0);
+
+    load_package "taylor";
+    load_package "avector";
+
+    operator isin, icos;
+    forall s let df(isin(s), s) = sin(th);
+    forall s let df(icos(s), s) = cos(th);
+    let isin(0) = 0;
+    let icos(0) = 0;
+    let isin(s1) = isin_s1;
+    let icos(s1) = icos_s1;
+    
+    let repart(s) = s;
+    let repart(k1) = k1;
+    let repart(k2) = k2;
+    let impart(s) = 0;
+    let impart(k1) = 0;
+    let impart(k2) = 0;
+    
+    on rounded;
+    
+    procedure fmod1(a, b);
+        (abs(a)/abs(b) - floor(abs(a)/abs(b)))*abs(b);
+        
+    procedure fmod(a, b);
+        (a/b - floor(a/b))*b;
+    
+    k  := k1 + (k2 - k1)*s;
+    th := int(k, s);
+
+    tk1 := -30; tk2 := 2.0;
+    dx := repart sub(k1=tk1, k2=tk2, sin(th));
+    dy := repart sub(k1=tk1, k2=tk2, cos(th));
+
+    a1 := quadrature(dx, 1.0, 330);
+    a2 := quadrature(dy, 1.0, 300);
+    atan2(a1, a2);
+    atan2(a2, a1);
+    atan(a1/a2);
+    atan(a2/a1);
+
+    fmod(sub(s=1.0, k1=tk1, k2=tk2, th), pi);

@@ -1,0 +1,282 @@
+off factor;
+off period;
+off rounded;
+
+load_package "taylor";
+
+let impart(s) = 0;
+let repart(s) = s;
+let impart(k1) = 0;
+let impart(k2) = 0;
+let repart(k1) = k1;
+let repart(k2) = k2;
+
+procedure quadrature(seq, val, qsteps);
+    begin scalar ds1;
+        ds1 := val/qsteps;
+        return for i := 0:qsteps-1 sum sub(ds=ds1, sub(ds=ds1, s=val*(i/(qsteps)), seq)*ds);
+    end;
+    
+procedure cquadrature(seq, val, qsteps);
+    begin scalar ds1;
+        ds1 := val/qsteps;
+        return for i := 0:qsteps-1 collect sub(ds=ds1, sub(ds=ds1, s=val*(i/(qsteps)), seq)*ds);
+    end;
+    
+procedure cquadrature2(seq, val, qsteps); comment: assumes seq is a list, so does no multiplication;
+    begin scalar ds1;
+        ds1 := val/qsteps;
+        return for i := 0:qsteps-1 collect sub(ds=ds1, sub(ds=ds1, s=val*(i/(qsteps)), seq));
+    end;
+
+on rounded;
+tsin := taylortostandard taylor(sin(s), s, 0, 6);
+tcos := taylortostandard taylor(cos(s), s, 0, 6);
+
+dtsin := tcos - 0.5*tsin*ds - tcos*(1.0/6.0)*ds**2 + tsin*(1.0/24.0)*ds**3 + tcos*(1.0/120)*ds**4 - tsin*(1.0/720)*ds***5;
+
+dtsin2 := df(tsin, s);
+
+qs1 := repart quadrature(dtsin, s, 300);
+qs2 := repart quadrature(dtsin2, s, 300);
+
+procedure qsin(s1);
+    sub(s=s1, qs1);
+    
+procedure qsin2(s1);
+    sub(s=s1, qs2);
+    
+qsin(pi);
+    
+f := qsin(s);
+sub(s=0.0, f);
+sub(s=0.5, f);
+sub(s=1.0, f);
+sub(s=1.5, f);
+sub(s=pi, f);
+
+quadrature(df(tsin, s), pi, 100);
+
+th := k1 + (k2 - k1)*s;
+
+operator a, b;
+
+off factor;
+off complex;
+off rounded;
+
+tm := 2;
+qm := 3;
+
+operator tmpa, tmpb;
+
+f1 := arcps3(tmpa(s), s, tm, qm);
+f2 := arcps3(tmpb(s), s, tm, qm);
+fpsmul := arcps3(tmpa(s)*tmpb(s), s, tm, qm);
+
+fdiff := for i := 1:qm collect part(f1, i)*part(f2, i) - part(f3, i);
+ff := part(fdiff, 1);
+
+off period;
+off rounded;
+
+load_package "taylor";
+
+let impart(s) = 0;
+let repart(s) = s;
+let impart(k1) = 0;
+let impart(k2) = 0;
+let repart(k1) = k1;
+let repart(k2) = k2;
+
+on rounded;
+
+procedure arcps(seq, expvar, terms, qsteps);
+    quadrature(for i:= 0:terms sum df(seq, expvar, (i+1))*ds**i*(1.0/factorial(i)), expvar, qsteps);
+
+procedure arcps2(seq, expvar, terms, qsteps);
+    cquadrature(for i:= 0:terms sum df(seq, expvar, (i+1))*ds**i*(1.0/factorial(i)), expvar, qsteps);
+
+procedure arcps3(seq, expvar, terms, qsteps);
+{
+    seq,    comment: 1      ;
+    expvar, comment: 2    5 ;
+    terms,  comment: 3    | ;
+    qsteps, comment: 4    v ;
+    cquadrature2(for i:= 0:terms collect {df(seq, expvar, (i+1))*ds**(i+1)*(1.0/factorial(i))}, expvar, qsteps)
+};
+
+th := k1 + (k2 - k1)*s;
+
+operator a, b;
+
+off factor;
+off complex;
+off rounded;
+
+
+operator tmpa, tmpb;
+
+procedure ord(i, k);
+    {k-i+1, i};
+
+procedure mult_row(a, b, i);
+  for j := 1: i sum 
+    begin scalar j1, j2;
+        j1 := part(ord(j, i), 1);
+        j2 := part(ord(j, i), 2);
+        
+        return part(a, j1, 1)*part(b, j2, 1) / s*qm;
+    end;
+
+procedure arcps_mul_df(a, b);
+    begin scalar terms, qsteps, seq, expvar, ret;
+        qsteps := part(a, 4); terms := part(a, 3); expvar := part(a, 2);
+        ret := for i := 1:qsteps collect 
+            for j := 1:terms+1 collect
+                {mult_row(part(a, 5, i), part(b, 5, i), j)};
+        return {{bad}, expvar, terms, qsteps, ret};
+    end;
+    
+procedure arcps_sub(a, b);
+    begin scalar terms, qsteps, seq, expvar, ret;
+        qsteps := part(a, 4); terms := part(a, 3); expvar := part(a, 2);
+        ret := for i := 1:qsteps collect 
+            for j := 1:terms+1 collect
+                {part(a, 5, i, j, 1) - part(b, 5, i, j, 1)};
+        return {part(a, 1)-part(b, 1), expvar, terms, qsteps, ret};
+    end;    
+
+procedure arcps_add(a, b);
+    begin scalar terms, qsteps, seq, expvar, ret;
+        qsteps := part(a, 4); terms := part(a, 3); expvar := part(a, 2);
+        ret := for i := 1:qsteps collect 
+            for j := 1:terms+1 collect
+                {part(a, 5, i, j, 1) + part(b, 5, i, j, 1)};
+        return {part(a, 1)-part(b, 1), expvar, terms, qsteps, ret};
+    end;    
+
+procedure mult_full_matrix(a, f);
+    begin scalar terms, qsteps, seq, expvar, ret;
+        qsteps := part(a, 4); terms := part(a, 3); expvar := part(a, 2);
+        ret := for i := 1:qsteps sum 
+            for j := 1:terms+1 sum
+                part(a, 5, i, j, 1) * f;
+        return ret;
+    end;    
+
+procedure arcps_mul(a, b);
+    begin scalar terms, qsteps, seq, expvar, ret;
+        qsteps := part(a, 4); terms := part(a, 3); expvar := part(a, 2);
+        ret := for i := 1:qsteps collect 
+            for j := 1:terms+1 collect
+                {mult_full_matrix(b, part(a, 5, i, j, 1))};
+        return {part(a, 1)*part(b, 1), expvar, terms, qsteps, ret};
+    end;    
+
+procedure makestandard(a);
+    begin scalar terms, qsteps, seq, expvar, ret, ds;
+        qsteps := part(a, 4); terms := part(a, 3); expvar := part(a, 2);
+        ds := s/qsteps;
+        
+        ret := for i := 1:qsteps sum
+            (for j := 1:terms+1 sum
+                part(a, 5, i, j, 1));
+        return ret;
+    end;    
+
+procedure arcps_add_scalar(a, b);
+    begin scalar terms, qsteps, seq, expvar, ret, ds;
+        qsteps := part(a, 4); terms := part(a, 3); expvar := part(a, 2);
+        ds := expvar/qsteps;
+        
+        ret := for i := 1:qsteps collect 
+            for j := 1:terms+1 collect
+                (if j = 1 then {part(a, 5, i, j, 1) + b/qsteps} else {part(a, 5, i, j, 1)});
+        return {part(a, 1)+part(b, 1), expvar, terms, qsteps, ret};
+    end;    
+
+arcps_sub(f1a, arcps_mul(f1a, f1a));
+
+procedure arcps_mul_scalar(a, b);
+    begin scalar terms, qsteps, seq, expvar, ret, ds;
+        qsteps := part(a, 4); terms := part(a, 3); expvar := part(a, 2);
+        ds := expvar/qsteps;
+        
+        ret := for i := 1:qsteps collect 
+            for j := 1:terms+1 collect
+                {part(a, 5, i, j, 1) * b}; comment: (if j = 1 then {part(a, 5, i, j, 1) + b/qsteps} else {part(a, 5, i, j, 1)});
+        return {part(a, 1)*b, expvar, terms, qsteps, ret};
+    end;    
+
+
+on factor;
+
+procedure arcps_invert(a); begin scalar expvar, seq;
+    expvar := part(a, 2);
+    seq    := part(a, 1);
+    
+    return arcps3(
+        if 1.0/seq, expvar, part(a, 3), part(a, 4));
+    end;
+
+    f1 := arcps3(sin(s+1.0), s, 2, 3);
+    arcps_invert(f1);
+    
+procedure arcps_invert0(a);
+    begin scalar terms, qsteps, seq, expvar, ret, ds, last;
+        last := 1.0;
+        qsteps := part(a, 4); terms := part(a, 3); expvar := part(a, 2); seq := part(a, 1);
+        ds := expvar/qsteps;
+        seq := part(a, 1);
+        
+        ret := for i := 1:qsteps collect begin scalar ret, ret2;
+            ret2 := for j := 1:terms+1 collect
+                1.0/(0.0000000001+sub(expvar=0, seq)**j*(-1)**j);
+            
+            ret := for j := 1:terms+1 collect
+                {for k := 1:j sum part(ret2, j)*part(a, 5, i, k, 1)};
+                    
+            return ret;
+        end;
+        return {1.0/part(a, 1), expvar, terms, qsteps, ret};
+    end;    
+
+procedure arcps_div(a, b);
+    arcps_mul(a, arcps_invert(b));
+
+procedure arcps_invert1(a);
+    begin scalar terms, qsteps, seq, expvar, ret, ds, last;
+        last := 1.0;
+        qsteps := part(a, 4); terms := part(a, 3); expvar := part(a, 2); seq := part(a, 1);
+        ds := expvar/qsteps;
+        seq := part(a, 1);
+        
+        ret := for i := 1:qsteps collect begin scalar ret, ret2;
+            ret2 := for j := 1:terms+1 collect
+                1.0 / (0.0000001+part(a, 5, i, j, 1)**j*(-1)**(j+1));
+            
+           ret := for j := 1:terms+1 collect
+                  {for k := 1:j sum part(ret2, j)*part(a, 5, i, k, 1)};
+                    
+            return ret;
+        end;
+        return {1.0/part(a, 1), expvar, terms, qsteps, ret};
+    end;    
+
+
+k  := k1 + (k2 - k1)*(s+0.5);
+th := int(k, s);
+
+on factor;
+
+f1 := arcps3(sin(th), s, 1, 2);
+f2 := arcps3(cos(th), s, 1, 2);
+
+sx := sub(s=-0.5, f1);
+ex := sub(s=0.5, f1);
+vecx := arcps_sub(ex, sx);
+
+sy := sub(s=-0.5, f2);
+ey := sub(s=0.5, f2);
+vecy := arcps_sub(ey, sy);

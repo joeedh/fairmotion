@@ -1,0 +1,28 @@
+
+trig1 := {cos2(~x)*cos2(~y) => (cos2(x+y)+cos2(x-y))/2,  
+          cos2(~x)*sin2(~y) => (sin2(x+y)-sin2(x-y))/2,  
+          sin2(~x)*sin2(~y) => (cos2(x-y)-cos2(x+y))/2,  
+          cos2(~x)^2        => (1+cos2(2*x))/2,  
+          sin2(~x)^2        => (1-cos2(2*x))/2,
+          df(sin2(~y), s)   => cos2(y)*df(y, s),
+          df(cos2(~y), s)   => -sin2(y)*df(y, s),
+          sin2(~s)**2 + cos(~s)**2 => 1.0
+};
+
+clearrules trig1;
+let trig1;
+
+operator isin, cos2, sin2;
+
+let df(sin2(s), s) = cos2(s);
+let df(cos2(s), s) = -sin2(s);
+
+forall s let sin2(s)**2 + cos2(s)**2 = 1.0;
+
+let isin(0) = 0;
+
+forall s let df(isin(s), s) = sin(s**2);
+
+arcps3(isin(s), s, 3, 3);
+
+clearrules rules;

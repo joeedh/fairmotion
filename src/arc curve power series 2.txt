@@ -1,0 +1,75 @@
+off factor;
+off period;
+off rounded;
+
+operator sin2, cos2;
+
+load_package "taylor";
+
+let impart(s) = 0;
+let repart(s) = s;
+let impart(k1) = 0;
+let impart(k2) = 0;
+let repart(k1) = k1;
+let repart(k2) = k2;
+
+trig1 := {cos2(~x)*cos2(~y) => (cos2(x+y)+cos2(x-y))/2,  
+          cos2(~x)*sin2(~y) => (sin2(x+y)-sin2(x-y))/2,  
+          sin2(~x)*sin2(~y) => (cos2(x-y)-cos2(x+y))/2,  
+          cos2(~x)^2        => (1+cos2(2*x))/2,  
+          sin2(~x)^2        => (1-cos2(2*x))/2,
+          df(sin2(~y), ~s)   => cos2(y)*df(y, s),
+          df(cos2(~y), ~s)   => -sin2(y)*df(y, s),
+          sin2(~s)**2 + cos(~s)**2 => 1.0
+};
+
+clearrules trig1;
+let trig1;
+
+procedure quadrature(seq, val, qsteps);
+    begin scalar ds1;
+        ds1 := val/qsteps;
+        return for i := 0:qsteps-1 sum sub(ds=ds1, sub(ds=ds1, s=val*(i/(qsteps)), seq)*ds);
+    end;
+    
+procedure cquadrature(seq, val, qsteps);
+    begin scalar ds1;
+        ds1 := val/qsteps;
+        return for i := 0:qsteps-1 collect sub(ds=ds1, sub(ds=ds1, s=val*(i/(qsteps)), seq)*ds);
+    end;
+    
+procedure cquadrature2(seq, val, qsteps); comment: assumes seq is a list, so does no multiplication;
+    begin scalar ds1;
+        ds1 := val/qsteps;
+        return for i := 0:qsteps-1 collect sub(ds=ds1, sub(ds=ds1, s=val*(i/(qsteps)), seq));
+    end;
+
+procedure arcps(seq, expvar, terms, qsteps);
+    quadrature(for i:= 0:terms sum df(seq, expvar, i+1)*ds**i*(1.0/factorial(i)), expvar, qsteps);
+
+procedure arcps2(seq, expvar, terms, qsteps);
+    cquadrature(for i:= 0:terms sum df(seq, expvar, i)*ds**i*(1.0/factorial(i)), expvar, qsteps);
+
+procedure arcps3(seq, expvar, terms, qsteps);
+{
+    seq,    comment: 1      ;
+    expvar, comment: 2    5 ;
+    terms,  comment: 3    | ;
+    qsteps, comment: 4    v ;
+    for j := 0:qsteps-1 collect {taylortostandard taylor(sub(expvar=ds+ds2*j, seq), ds, 0, terms)}
+};
+
+procedure zero(n);
+    0;
+    
+operator isin, cos2, sin2;
+let isin(0) = 0;
+let cos2(0) = 1;
+let sin2(0) = 0;
+
+forall s let df(isin(s), s) = sin(s**2);
+
+f := arcps3(isin(s), s, 2, 3);
+f2 := arcps(isin(s), s, 2, 3);
+
+f1 := for j:= 1:part(f,4) sum sub(ds2=s/part(f, 4), isin=zero, ds=s/part(f, 4), part(f, 5, j, 1));

@@ -1,0 +1,29 @@
+on factor;
+off period;
+
+load_package "tps";
+load_package "taylor";
+load_package "avector";
+
+operator isin, icos;
+
+forall s let df(isin(s), s) = sin(th);
+forall s let df(icos(s), s) = cos(th);
+let isin(0) = 0;
+let icos(0) = 0;
+
+k  := k1 + (k2-k1)*(s+0.5);
+th := int(k, s);
+
+dx := sin(th);
+dy := cos(th);
+
+px := taylor(isin(s), s, 0, 5);
+py := taylor(icos(s), s, 0, 5);
+
+sx := sub(s=-0.5, px);
+ex := sub(s=0.5, px);
+
+sy := sub(s=-0.5, py);
+ey := sub(s=0.5, py);
+

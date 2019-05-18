@@ -229,6 +229,29 @@ window.api_define_ops = function() {
       return new SplitEdgePickOp();
     },
     
+    "spline.split_pick_edge_transform": function(ctx, args) {
+      let ret = new ToolMacro("spline.split_pick_edge_transform", "Split Segment");
+      
+      let tool = new SplitEdgePickOp();
+      let tool2 = new TranslateOp(undefined, 1|2); //XXX import SplineTypes and use instead of this dumb magic number
+      
+      ret.description = tool.description;
+      ret.icon = tool.icon;
+      
+      ret.add_tool(tool);
+      ret.add_tool(tool2);
+      
+      //XXX stupidly hackish way of passing last mouse position between tools
+      tool.on_modal_end = () => {
+        let ctx = tool.modal_ctx;
+        
+        tool2.user_start_mpos = tool.mpos;
+        console.log("                 on_modal_end successfully called", tool2.user_start_mpos);
+      };
+      
+      return ret;
+    },
+    
     "spline.toggle_step_mode": function(ctx, args) {
       return new InterpStepModeOp();
     },

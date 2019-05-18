@@ -120,36 +120,36 @@ export class ToolOpAbstract {
     var ret = [{}, {}];
     var parent = this.__parent__; //this.__parents__.length > 0 ? this.__parents__[0] : undefined;
     
-    if (this.tooldef != undefined 
-        && (parent == undefined || this.tooldef !== parent.tooldef) )
+    if (this.tooldef !== undefined
+        && (parent === undefined || this.tooldef !== parent.tooldef) )
     {
       var tooldef = this.tooldef();
       for (var k in tooldef) {
-        if (k != "inputs" && k != "outputs") {
+        if (k !== "inputs" && k !== "outputs") {
           continue;
         }
         
         var v = tooldef[k];
         if (v instanceof InheritFlag) {
-          v = v.val == undefined ? {} : v.val;
+          v = v.val === undefined ? {} : v.val;
           
           var slots = parent._get_slots();
-          slots = k == "inputs" ? slots[0] : slots[1];
+          slots = k === "inputs" ? slots[0] : slots[1];
           
           v = this._inherit_slots(slots, v);
         }
         
-        ret[k == "inputs" ? 0 : 1] = v;
+        ret[k === "inputs" ? 0 : 1] = v;
       }
-    } else if (this.inputs != undefined || this.outputs != undefined) {
+    } else if (this.inputs !== undefined || this.outputs !== undefined) {
       console.trace("Deprecation warning: (second) old form\
                      of toolprop definition detected for", this);
                      
-      if (this.inputs != undefined) {
+      if (this.inputs !== undefined) {
         ret[0] = this.inputs;
       }
       
-      if (this.outputs != undefined) {
+      if (this.outputs !== undefined) {
         ret[1] = this.outputs;
       }
     } else {
@@ -180,36 +180,36 @@ export class ToolOpAbstract {
       }
     }
     
-    if (this.constructor.tooldef != undefined && (parent == undefined 
+    if (this.constructor.tooldef !== undefined && (parent === undefined
         || this.constructor.tooldef !== parent.tooldef)) 
     {
       var tooldef = this.constructor.tooldef();
       
       for (var k in tooldef) {
         //we handled input/outputs above
-        if (k == "inputs" || k == "outputs")
+        if (k === "inputs" || k === "outputs")
           continue;
           
         this[k] = tooldef[k];
       }
     } else {
-      if (this.name == undefined)
+      if (this.name === undefined)
         this.name = apiname;
-      if (this.uiname == undefined)
+      if (this.uiname === undefined)
         this.uiname = uiname;
-      if (this.description == undefined)
-        this.description = description == undefined ? "" : description;
-      if (this.icon == undefined)
+      if (this.description === undefined)
+        this.description = description === undefined ? "" : description;
+      if (this.icon === undefined)
         this.icon = icon;
     }
     
-    this.apistruct = undefined : DataStruct; //may or may not be set
+    this.apistruct = undefined; //DataStruct, may or may not be set
     this.op_id = _tool_op_idgen++;
     this.stack_index = -1;
   }
   
   static _inherit_slots(old, newslots) {
-    if (old == undefined) {
+    if (old === undefined) {
       console.trace("Warning: old was undefined in _inherit_slots()!");
       
       return newslots;
@@ -224,21 +224,21 @@ export class ToolOpAbstract {
   }
   
   static inherit_inputs(cls, newslots) {
-    if (cls.inputs == undefined)
+    if (cls.inputs === undefined)
       return newslots;
       
     return ToolOpAbstract._inherit_slots(cls.inputs, newslots);
   }
   
   static inherit_outputs(cls, newslots) {
-    if (cls.outputs == undefined)
+    if (cls.outputs === undefined)
       return newslots;
       
     return ToolOpAbstract._inherit_slots(cls.outputs, newslots);
   }
   
   get_saved_context() {
-    if (this.saved_context == undefined) {
+    if (this.saved_context === undefined) {
       console.log("warning : invalid saved_context in "+this.constructor.name + ".get_saved_context()");
       this.saved_context = new SavedContext(new Context());
     }
@@ -266,7 +266,7 @@ export class ToolOpAbstract {
     otherwise we might end up destroying the tool default cache every time
     we modify a tool input.
   */
-  default_inputs(Context ctx, ToolGetDefaultFunc get_default) {  }
+  default_inputs(ctx : Context, get_default : ToolGetDefaultFunc) {  }
   
   /*
   static unit_test_req(Context ctx) : ToolOpTestReq {}
@@ -277,14 +277,14 @@ export class ToolOpAbstract {
   */
 }
 
-ToolOpAbstract.STRUCT = """
+ToolOpAbstract.STRUCT = `
   ToolOpAbstract {
       flag    : int;
       saved_context  : SavedContext | obj.get_saved_context();
       inputs  : iter(k, PropPair) | new PropPair(k, obj.inputs[k]);
       outputs : iter(k, PropPair) | new PropPair(k, obj.outputs[k]);
   }
-"""
+`;
 
 class PropPair {
   constructor(key, value) {
@@ -298,39 +298,29 @@ class PropPair {
     return obj;
   }
 }
-PropPair.STRUCT = """
+
+PropPair.STRUCT = `
   PropPair {
     key   : string;
     value : abstract(ToolProperty);
   }
-""";
+`;
+
+let _toolop_tools = undefined;
 
 export class ToolOp extends ToolOpAbstract {
-  String name, uiname, description;
-  ToolOp parent;
-  Context modal_ctx;
-  ToolContext modal_tctx;
-  ObjectMap<String, ToolProperty> inputs;
-  ObjectMap<String, ToolProperty> outputs;
-  Array drawlines; //for modal tools
-  Array widgets;
-  KeyHandler keyhandler;
-  Boolean is_modal, modal_running;
-  Function on_modal_end, _widget_on_tick;
-  int flag, icon, undoflag;
-  
-  constructor(String apiname="(undefined)", 
-              String uiname="(undefined)", 
-              String description=undefined,
-              int icon=-1) 
+  constructor(apiname = "(undefined)",
+              uiname="(undefined)",
+              description=undefined,
+              icon=-1)
   {
-    ToolOpAbstract.call(this, apiname, uiname, description, icon);
+    super(apiname, uiname, description, icon);
     EventHandler.call(this);
     
     this.drawlines = new GArray();
     
     //XXX
-    if (this.is_modal == undefined)
+    if (this.is_modal === undefined)
       this.is_modal = false;
     
     this.undoflag = 0;
@@ -373,12 +363,12 @@ export class ToolOp extends ToolOpAbstract {
          the active tool isn't one already,
          otherwise edits the active toolop.
   */
-  static create_widgets(ManipulatorManager manager, Context ctx) {
+  static create_widgets(manager : ManipulatorManager, ctx : Context) {
   }
   
   /*forcably resets widgets to "default" state (the meaning of which
     may vary from tool to tool).*/
-  static reset_widgets(ToolOp op, Context ctx) {
+  static reset_widgets(op : ToolOp, ctx : Context) {
   }
   
   undo_ignore() {
@@ -391,13 +381,13 @@ export class ToolOp extends ToolOpAbstract {
 
   exec_pre(tctx : ToolContext) {
     for (var k in this.inputs) {
-      if (this.inputs[k].type == PropTypes.COLLECTION) {
+      if (this.inputs[k].type === PropTypes.COLLECTION) {
         this.inputs[k].ctx = tctx;
       }
     }
     
     for (var k in this.outputs) {
-      if (this.outputs[k].type == PropTypes.COLLECTION) {
+      if (this.outputs[k].type === PropTypes.COLLECTION) {
         this.outputs[k].ctx = tctx;
       }
     }
@@ -426,14 +416,13 @@ export class ToolOp extends ToolOpAbstract {
     this.saved_context = new SavedContext(this.modal_ctx);
     this.modal_ctx.view2d.pop_modal();
     
-    if (this.on_modal_end != undefined)
+    if (this.on_modal_end !== undefined)
       this.on_modal_end(this);
     
     this.reset_drawlines(ctx);
   }
 
-  end_modal() 
-  {/*called by inheriting tools*/
+  end_modal() {/*called by inheriting tools*/
       this._end_modal();
   }
 
@@ -455,7 +444,7 @@ export class ToolOp extends ToolOpAbstract {
     window.redraw_viewport();
   }
 
-  undo(Context ctx) {
+  undo(ctx : Context) {
     g_app_state.load_undo_file(this._undocpy);
   }
     
@@ -480,44 +469,41 @@ export class ToolOp extends ToolOpAbstract {
   }
   
   static get_constructor(name) {
-    static toolops = undefined;
-    
-    if (toolops == undefined) {
-      toolops = {};
+    if (_toolop_tools === undefined) {
+      _toolop_tools = {};
       
-      for (var c in defined_classes) {
-        if (c instanceof ToolOp) toolops[c.name] = c;
+      for (let c of defined_classes) {
+        if (c instanceof ToolOp) _toolop_tools[c.name] = c;
       }
     }
     
-    return toolops[c];
+    return _toolop_tools[c];
   }
 }
 
-ToolOp.STRUCT = """
+ToolOp.STRUCT = `
   ToolOp {
       flag    : int;
       saved_context  : SavedContext | obj.get_saved_context();
       inputs  : iter(k, PropPair) | new PropPair(k, obj.inputs[k]);
       outputs : iter(k, PropPair) | new PropPair(k, obj.outputs[k]);
   }
-"""
+`;
 
 export class ToolMacro extends ToolOp {
-  constructor (String name, String uiname, Array<ToolOp> tools=undefined) 
-    {
-    ToolOp.call(this, name, uiname);
+  constructor (name, uiname, tools) {
+    super(name, uiname);
     
     this.cur_modal = 0;
     this._chained_on_modal_end = false;
     
-    if (tools == undefined)
+    if (tools === undefined)
       this.tools = new GArray<ToolOp>();
     else
       this.tools = new GArray<ToolOp>(tools);
   }
 
-  add_tool(ToolOp tool) {
+  add_tool(tool : ToolOp) {
     tool.parent = this;
     
     this.tools.push(tool);
@@ -525,7 +511,7 @@ export class ToolMacro extends ToolOp {
       this.is_modal = true;
   }
   
-  connect_tools(ToolOp output, ToolOp input) 
+  connect_tools(output : ToolOp, input : ToolOp)
   {
     var old_set = input.user_set_data;
     
@@ -536,21 +522,23 @@ export class ToolMacro extends ToolOp {
     }
   }
 
-  undo_pre(Context ctx) {
+  undo_pre(ctx : Context) {
   }
 
-  undo(Context ctx) {
+  undo(ctx : Context) {
     for (var i=this.tools.length-1; i >= 0; i--) {
-      this.tools[i].undo(ctx);
+      if (this.tools[i].undoflag & UndoFlags.HAS_UNDO_DATA) {
+        this.tools[i].undo(ctx);
+      }
     }
   }
 
-  exec(ToolContext ctx) {
+  exec(ctx : ToolContext) {
     for (var i=0; i<this.tools.length; i++) {
       this.tools[i].saved_context = this.saved_context;
     }
     
-    for (var op in this.tools) {
+    for (let op of this.tools) {
       if (op.is_modal)
         op.is_modal = this.is_modal;
       
@@ -559,10 +547,10 @@ export class ToolMacro extends ToolOp {
         
         if (p.user_set_data != undefined)
           p.user_set_data.call(p);
-      }
+      };
       
       op.saved_context = this.saved_context;
-      op.undo_pre(ctx);    
+      op.undo_pre(ctx);
       
       op.undoflag |= UndoFlags.HAS_UNDO_DATA;
       
@@ -571,27 +559,32 @@ export class ToolMacro extends ToolOp {
     }
   }
 
-  can_call(Context ctx) {
+  can_call(ctx : Context) {
     return this.tools[0].can_call(ctx); //only check with first tool
   }
   
-  start_modal(Context ctx) {
+  _start_modal(ctx) {
+    //do nothing here
+  }
+  
+  start_modal(ctx : Context) {
     if (!this._chained_on_modal_end) {
       //find last modal op, and chain its on_modal_end callback
-      var last_modal = undefined;
-      for (var op in this.tools) {
+      let last_modal = undefined;
+      
+      for (let op of this.tools) {
         if (op.is_modal)
           last_modal = op;
       }
       
       console.log("last_modal", last_modal);
-      if (last_modal != undefined) {
-        console.log("yay, found last modal")
-        var on_modal_end = last_modal.on_modal_end;
-        var this2 = this;
+      
+      if (last_modal !== undefined) {
+        let on_modal_end = last_modal.on_modal_end;
+        let this2 = this;
         
         last_modal.on_modal_end = function(toolop) {
-          if (on_modal_end != undefined)
+          if (on_modal_end !== undefined)
             on_modal_end(toolop);
           
           if (this2.on_modal_end)
@@ -602,21 +595,30 @@ export class ToolMacro extends ToolOp {
       }
     }
     
-    for (var i=0; i<this.tools.length; i++) {
+    for (let i=0; i<this.tools.length; i++) {
       this.tools[i].saved_context = this.saved_context;
     }
     
-    for (var i=0; i<this.tools.length; i++) {
-      var op = this.tools[i];
+    for (let i=0; i<this.tools.length; i++) {
+      let op = this.tools[i];
       
       if (op.is_modal) {
         this.cur_modal = i;
         
-        for (var k in op.inputs) {
-          var p = op.inputs[k];
-          if (p.user_set_data != undefined)
+        for (let k in op.inputs) {
+          let p = op.inputs[k];
+          
+          if (p.user_set_data !== undefined)
             p.user_set_data.call(p);
         }
+        
+        op.__end_modal = op._end_modal;
+        op._end_modal = (ctx) => {
+          op.__end_modal(ctx);
+          
+          this.next_modal(ctx ? ctx : this.modal_ctx);
+        };
+        
         op.modal_ctx = this.modal_ctx;
         op.modal_tctx = this.modal_tctx;
         
@@ -624,13 +626,16 @@ export class ToolMacro extends ToolOp {
         
         op.undo_pre(ctx);
         op.undoflag |= UndoFlags.HAS_UNDO_DATA;
-
+        
         op.modal_running = true;
+
+        op._start_modal(ctx);
         return op.start_modal(ctx);
       } else {
-        for (var k in op.inputs) {
-          var p = op.inputs[k];
-          if (p.user_set_data != undefined)
+        for (let k in op.inputs) {
+          let p = op.inputs[k];
+          
+          if (p.user_set_data !== undefined)
             p.user_set_data.call(p);
         }
         
@@ -646,25 +651,30 @@ export class ToolMacro extends ToolOp {
   }
 
   _end_modal() {
-    var ctx = this.modal_ctx;
-    
-    this.next_modal(ctx);
+    this.next_modal(this.modal_ctx);
   }
 
-  next_modal(Context ctx) {
+  next_modal(ctx : Context) {
+    console.log("next_modal called");
     
-    this.tools[this.cur_modal].end_modal(ctx);
+    //okay, I don't think this is needed
+    //this.tools[this.cur_modal].end_modal(ctx);
     
     this.cur_modal++;
     
-    while (this.cur_modal < this.tools.length && !this.tools[this.cur_modal].is_modal)
+    while (this.cur_modal < this.tools.length && !this.tools[this.cur_modal].is_modal) {
       this.cur_modal++;
-      
+    }
+    
     if (this.cur_modal >= this.tools.length) {
       super._end_modal();
     } else {
+      console.log("next_modal op", this.tools[this.cur_modal]);
+      
       this.tools[this.cur_modal].undo_pre(ctx);
       this.tools[this.cur_modal].undoflag |= UndoFlags.HAS_UNDO_DATA;
+      
+      this.tools[this.cur_modal]._start_modal(ctx);
       this.tools[this.cur_modal].start_modal(ctx);
     }
   }

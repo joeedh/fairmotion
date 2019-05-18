@@ -3,7 +3,6 @@ import {
 } from 'mathlib';
 
 import {SelMask} from 'selectmode';
-import {MResTransData} from 'multires_transdata';
 
 import {Vec3Property, BoolProperty, FloatProperty, IntProperty,
         CollectionProperty, TPropFlags, EnumProperty} from 'toolprops';
@@ -494,7 +493,7 @@ export class TransformOp extends ToolOp {
   constructor(start_mpos, datamode) {
     super();
     
-    this.types = new GArray([MResTransData, TransSplineVert]);
+    this.types = new GArray([TransSplineVert]);
     this.first_viewport_redraw = true;
     
     if (start_mpos != undefined && typeof start_mpos != "number" && start_mpos instanceof Array) {
@@ -535,8 +534,6 @@ export class TransformOp extends ToolOp {
     if (this.transdata == undefined) {
       this.types = [];
       
-      if (selmode & SelMask.MULTIRES)
-        this.types.push(MResTransData);
       if (selmode & SelMask.TOPOLOGY)
         this.types.push(TransSplineVert);
         
@@ -600,7 +597,7 @@ export class TransformOp extends ToolOp {
   }
   
   start_modal(ctx) {
-    ToolOp.prototype.start_modal.call(this);
+    super.start_modal(ctx);
     
     this.first_viewport_redraw = true;
     ctx.appstate.set_modalstate(ModalStates.TRANSFORMING);

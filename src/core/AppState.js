@@ -255,7 +255,8 @@ function output_startup_file() : String {
 }
 
 export class AppState {
-  constructor(FrameManager screen, Mesh mesh, WebGLRenderingContext gl) {
+  //XXX mesh? gl? nuke 'em!
+  constructor(screen : FrameManager, mesh : Mesh, gl : WebGLRenderingContext) {
     this.screen = screen;
     this.eventhandler = screen : EventHandler;
     
@@ -280,13 +281,13 @@ export class AppState {
     this.filepath = ""
     this.version = g_app_version;
     this.gl = gl;
-    this.size = screen != undefined ? screen.size : [512, 512];
-    this.raster = new RasterState(undefined, screen != undefined ? screen.size : [512, 512]);
+    this.size = screen !== undefined ? screen.size : [512, 512];
+    this.raster = new RasterState(undefined, screen !== undefined ? screen.size : [512, 512]);
     
     static toolop_input_cache = {};
     this.toolop_input_cache = toolop_input_cache;
     
-    if (this.datalib != undefined) {
+    if (this.datalib !== undefined) {
       this.datalib.on_destroy();
     }
     this.datalib = new DataLib();
@@ -337,7 +338,7 @@ export class AppState {
     this.screen.destroy();
   }
   
-  on_gl_lost(WebGLRenderingContext new_gl) {
+  on_gl_lost(new_gl : WebGLRenderingContext) {
     this.gl = new_gl;
     this.raster.on_gl_lost(new_gl);
     this.datalib.on_gl_lost(new_gl);
@@ -346,7 +347,7 @@ export class AppState {
   
   update_context() {
     var scene = this.datalib.get_active(DataTypes.SCENE);
-    if (scene == undefined) return;
+    if (scene === undefined) return;
   }
 
   switch_active_spline(newpath) {
@@ -363,22 +364,23 @@ export class AppState {
   }
   
   reset_state(screen) {
-    global active_canvases;
+    //global active_canvases;
     
     this.spline_pathstack = [];
     this.active_splinepath = "frameset.drawspline";
     
-    for (var k in active_canvases) {
-      var canvas = active_canvases[k];
+    for (let k in window.active_canvases) {
+      let canvas = window.active_canvases[k];
       
       canvas[1].kill_canvas(k);
     }
-    active_canvases = {};
+    
+    window.active_canvases = {};
     
     AppState.call(this, screen, undefined, this.gl);
     
     try {
-      if (this.screen != undefined)
+      if (this.screen !== undefined)
         this.screen.destroy()
     } catch (error) {
       print_stack(error);
@@ -455,7 +457,7 @@ export class AppState {
     
     console.log(scenefile);
     
-    if (this.datalib != undefined) {
+    if (this.datalib !== undefined) {
       this.datalib.on_destroy();
     }
     
@@ -473,7 +475,7 @@ export class AppState {
     this.toolstack = toolstack;
     this.screen.ctx = new Context();
     
-    if (the_global_dag != undefined)
+    if (the_global_dag !== undefined)
       the_global_dag.reset_cache();
     window.redraw_viewport();
   }
@@ -531,19 +533,19 @@ export class AppState {
     var save_screen=true, save_toolstack=false;
     var save_theme=false;
     
-    if (args.gen_dataview != undefined)
+    if (args.gen_dataview !== undefined)
       gen_dataview = args.gen_dataview;
       
-    if (args.compress != undefined)
+    if (args.compress !== undefined)
       compress = args.compress;
       
-    if (args.save_screen != undefined)
+    if (args.save_screen !== undefined)
       save_screen = args.save_screen;
       
-    if (args.save_toolstack != undefined)
+    if (args.save_toolstack !== undefined)
       save_toolstack = args.save_toolstack;
       
-    if (args.save_theme != undefined)
+    if (args.save_theme !== undefined)
       save_theme = args.save_theme;
     
     function bheader(data, type, subtype) {

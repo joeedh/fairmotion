@@ -912,7 +912,27 @@ export class Spline extends DataBlock {
     }
   }
   
-  select_flush(int datamode) {
+  select_none(ctx : ToolContext, datamode : int) {
+    if (ctx === undefined) {
+      throw new Error("ctx cannot be undefined");
+    }
+    
+    if (datamode === undefined) {
+      throw new Error("datamode cannot be undefined");
+    }
+    
+    for (let elist of this.elists) {
+      if (!(datamode & elist.type)) {
+        continue;
+      }
+      
+      for (let e of elist.selected.editable(ctx)) {
+        this.setselect(e, false);
+      }
+    }
+  }
+  
+  select_flush(datamode : int) {
     if (datamode & (SplineTypes.VERTEX|SplineTypes.HANDLE)) {
       //flush upwards
       var fset = new set();

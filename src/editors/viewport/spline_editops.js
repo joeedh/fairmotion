@@ -813,6 +813,9 @@ function frameset_split_edge(ctx, spline, s, t=0.5) {
   }
   
   spline.verts.setselect(e_v[1], true);
+  spline.verts.active = e_v[1];
+  
+  spline.regen_sort();
   spline.regen_render();
   
   return e_v;
@@ -874,6 +877,7 @@ export class SplitEdgeOp extends SplineGlobalToolOp {
 export class SplitEdgePickOp extends SplineGlobalToolOp {
   constructor() {
     super();
+    this.mpos = new Vector2();
   }
   
   static tooldef() { return {
@@ -883,7 +887,8 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
     inputs   : {
       segment_eid : new IntProperty(-1, "segment_eid", "segment_eid", "segment_eid"),
       segment_t   : new FloatProperty(0, "segment_t", "segment_t", "segment_t"),
-      spline_path : new StringProperty("drawspline", "spline_path", "splien_path", "spline_path")
+      spline_path : new StringProperty("drawspline", "spline_path", "splien_path", "spline_path"),
+      deselect : new BoolProperty(true, "deselect", "deselect", "deselect")
     },
     
     outputs  : {},
@@ -929,6 +934,7 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
     let ctx = this.modal_ctx;
 
     let mpos = [e.x, e.y];
+    this.mpos.load(mpos);
     
     let ret = ctx.view2d.editor.findnearest(mpos, SplineTypes.SEGMENT, 105);
     
@@ -991,15 +997,19 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
       this.end_modal(this.modal_ctx);
       this.cancel_modal(this.modal_ctx);
     } else {
-      this.end_modal(this.modal_ctx);
       this.exec(this.modal_ctx);
+      this.end_modal(this.modal_ctx);
     }
   }
   
-  exec(ctx) {
+  exec(ctx : ToolContext) {
     var spline = this.inputs.spline_path.data;
     
     spline = spline == "pathspline" ? ctx.frameset.pathspline : ctx.frameset.spline;
+    
+    if (this.inputs.deselect.data) {
+      spline.select_none(ctx, SplineTypes.ALL);
+    }
     
     var seg = spline.eidmap[this.inputs.segment_eid.data];
     var t = this.inputs.segment_t.data;

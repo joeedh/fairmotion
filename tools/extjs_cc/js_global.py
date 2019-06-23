@@ -6,11 +6,13 @@ glob_cmd_help_override = {
   "g_tried_semi" : "Internal semicolon flag, for handling EOF edge cases",
   "g_file" : "Input file",
   "g_line" : "Most recently parsed line",
+  "g_destroy_templates" : "Flatten template strings",
   "g_lexpos" : "Most recently parsed lexical position",
   "g_gen_log_code" : "Generate type logging code",
   "g_harmony_iterators" : "expansion of es6 harmony for-loops; Python's StopIteration style will be used instead.",
   "g_log_forloops" : "add extra data for logging for loops",
   "g_es6_modules" : "generate ES6 modules",
+  "g_warn_for_in" : "warn when for-in loops are used",
   "g_autoglobalize" : "Make module locals (but not exports) global.  Useful during refactoring."
 }
 glob_cmd_short_override = {}
@@ -21,6 +23,7 @@ glob_cmd_exclude = set(["g_comment_line", "g_comment", "g_comment_id", "g_lexer"
 glob_long_word_shorten = {"generators": "gens", "error": "err", "warnings": "warn", "production": "prod"}
 
 gcs = glob_cmd_short_override
+gcs["g_destroy_templates"] = "dt"
 gcs["g_log_productions"] = "lp"
 gcs["g_preprocess_code"] = "npc"
 gcs["g_include_dirs"] = "I"
@@ -221,6 +224,8 @@ class Glob(AbstractGlob):
     g_error = False
     g_smap_file = 0;
     g_line = 0
+    g_destroy_templates = False
+    g_warn_for_in = False
     g_log_productions = False
     g_production_debug = False
     g_print_stack = True

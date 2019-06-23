@@ -963,7 +963,15 @@ class ArrayLitNode (Node):
     
     s += self.s("]")
     return s
-    
+
+class RuntimeObjectKey (Node):
+  def __init__(self, expr):
+    super(RuntimeObjectKey, self).__init__()
+    self.add(expr)
+  
+  def gen_js(self, tlevel):
+    return "[" + self[0].gen_js(tlevel) + "]"
+
 class ObjLitNode (Node):
   def __init__(self):
     self.name = "anonymous"
@@ -983,7 +991,7 @@ class ObjLitNode (Node):
     for i, c in enumerate(self):
       if i > 0: 
         s += self.s(", ")
-        
+      
       s += c[0].gen_js(tlevel) + self.s(": ") + c[1].gen_js(tlevel)
       
     s += self.s("}")
@@ -1540,7 +1548,7 @@ class DefaultCaseNode(CaseNode):
     super(DefaultCaseNode, self).__init__("default")
   
   def copy(self):
-    n2 = DefaultCaseNode("default")
+    n2 = DefaultCaseNode()
     self.copy_basic(n2)
     self.copy_children(n2)
     

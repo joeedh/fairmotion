@@ -131,7 +131,7 @@ def test_lexarrow():
     j = lex_arrow(test, i)
     
     if j >= 0:
-      print("found an arrow func!", i, j, test[i:j])
+      #print("found an arrow func!", i, j, test[i:j])
       i = j
     
 if __name__ == "__main__":

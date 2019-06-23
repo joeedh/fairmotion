@@ -32,6 +32,7 @@ precedence = (
   ("left", "LSHIFT", "RSHIFT", "LLSHIFT", "RRSHIFT"),
   ("left", "PLUS", "MINUS"),
   ("left", "TIMES", "DIVIDE"),
+  ("left", "EXPONENT"),
   ("right", "UMINUS"), #negation prefix operation, note this is a "fictitious" token
   ("right", "VAR_TYPE_PREC"), #ficitious token
   ("right", "BITINV"),
@@ -584,6 +585,7 @@ def p_type_modifiers(p):
                     | type_modifiers CONST
                     | GLOBAL
                     | VAR
+                    | CONST
                     | LET
                     | STATIC
   '''
@@ -894,9 +896,7 @@ def p_empty(p):
 def p_var_type(p):
   ''' var_type : var_type id_var_type
                | id_var_type
-               | INT
                | SHORT
-               | FLOAT
                | DOUBLE
                | CHAR
                | BYTE
@@ -1407,9 +1407,7 @@ def p_method_def(p):
 def p_var_element(p):
   '''
     var_element : id %prec VAR_TYPE_PREC
-                | INT %prec VAR_TYPE_PREC
                 | SHORT %prec VAR_TYPE_PREC
-                | FLOAT %prec VAR_TYPE_PREC
                 | DOUBLE %prec VAR_TYPE_PREC
                 | CHAR %prec VAR_TYPE_PREC
                 | BYTE %prec VAR_TYPE_PREC
@@ -1681,7 +1679,12 @@ def p_colon_opt(p):
     
 def p_func_name_opt(p):
   ''' func_name_opt : ID
-               |
+                    | SET
+                    | GET
+                    | SHORT
+                    | DOUBLE
+                    | TYPED
+                    |
   '''
   if len(p) == 1:
     p[0] = "(anonymous)"
@@ -1740,8 +1743,15 @@ def p_exprfunction(p):
   
   pop_scope()
   
+def p_exprlist_trail_comma(p):
+  '''exprlist_trail_comma : exprlist
+                          | exprlist COMMA
+  '''
+  
+  p[0] = p[1]
+  
 def p_array_literal(p):
-  '''array_literal : LSBRACKET exprlist RSBRACKET
+  '''array_literal : LSBRACKET exprlist_trail_comma RSBRACKET
                    | LSBRACKET RSBRACKET
   '''
   set_parse_globals(p)
@@ -1775,10 +1785,20 @@ def p_typeof_no_list(p):
   '''
   p[0] = TypeofNode(p[2])
 
+def p_objlit_key(p):
+    r'''
+      objlit_key : id_str_or_num
+                 | LSBRACKET expr RSBRACKET
+    '''
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        p[0] = RuntimeObjectKey(p[2])
+        
 def p_obj_lit_list(p):
   r'''
-    obj_lit_list : id_str_or_num COLON expr
-             | obj_lit_list COMMA id_str_or_num COLON expr
+    obj_lit_list : objlit_key COLON expr
+             | obj_lit_list COMMA objlit_key COLON expr
              | obj_lit_list COMMA
   '''
   
@@ -2045,10 +2065,12 @@ def p_expr(p):
             | expr cmplx_assign expr COLON var_type SEMI
             | expr RSHIFT expr
             | expr LSHIFT expr
+            | expr EXPONENT expr
             | expr LLSHIFT expr
             | expr RRSHIFT expr
             | expr COND_DOT expr
             | expr DOT expr
+            | expr DOT DELETE
             | expr LAND expr
             | expr LOR expr
             | expr BOR expr
@@ -2098,6 +2120,9 @@ def p_expr(p):
     if len(p) == 5: #assignment ops and array lookups
       p[0] = ArrayRefNode(p[1], p[3])
     elif len(p) == 4:
+      if p[3] == "delete":
+        p[3] = IdentNode("delete")
+        
       if p[1] == '(' and p[3] == ')':
         p[0] = ExprNode([p[2]], add_parens=True)
       elif type(p[2]) == str and p[2].startswith("=") \
@@ -2149,6 +2174,7 @@ def p_expr_no_list(p):
             | expr_no_list RRSHIFT expr_no_list
             | expr_no_list COND_DOT expr_no_list
             | expr_no_list DOT expr_no_list
+            | expr_no_list EXPONENT expr_no_list
             | expr_no_list LAND expr_no_list
             | expr_no_list LOR expr_no_list
             | expr_no_list BOR expr_no_list

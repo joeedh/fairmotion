@@ -766,7 +766,9 @@ def expand_of_loops(result, typespace):
     
     if (node.of_keyword == "in"):
       use_in_iter = True
-      typespace.warning("Temporary warning: detected for-in usage", node);
+      
+      if glob.g_warn_for_in:
+        typespace.warning("Detected for-in usage", node);
       
       if not inside_generator(node):
         return

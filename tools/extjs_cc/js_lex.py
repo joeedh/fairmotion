@@ -19,7 +19,7 @@ res = [
 'var', 'let', 'in', 'of', 'for', 'new', "return", "continue", "break",
 'throw', 'try', 'catch', 'delete', 'typeof', 'instanceof',
 'with', 'switch', 'case', 'default', 'yield',
-'float', 'int', 'const', 'short', 'double', 'char',
+'const', 'short', 'double', 'char',
 'signed', 'variable', 'template', 'byte',
 'global', 'inferred', 'native', 'class', 'extends',
 'static', 'typed', 'finally', 'get', 'set', 'import', 'export', 'from'
@@ -63,6 +63,7 @@ tokens = (
    'INC',
    'DEC',
    'GTHAN',
+   "EXPONENT",
    'LTHAN',
    'EQUAL',
    'MOD',
@@ -181,6 +182,7 @@ t_DEC = r'--'
 t_PLUS    = r'\+'
 t_MINUS   = r'-'
 t_TIMES   = r'\*'
+t_EXPONENT = r'\*\*'
 t_DIVIDE  = r'/'
 t_MOD     = r'%'
 
@@ -197,7 +199,7 @@ def t_LPAREN(t):
   lexpos = t.lexpos
   arrowi = lex_arrow(lexdata, lexpos)
   if arrowi >= 0:
-    print("found an arrow func!")
+    #print("found an arrow func!")
     t.type = "ARROW_PRE"
     
   return t
@@ -564,23 +566,30 @@ def ml_escape(s):
   return s2
       
 def t_mlstr_MLSTRLIT(t):
-  r'"""|\`' #(""")|(\\""")';
-  
-  global strlit_val;
-  
-  if ("\\" in t.value):
-    strlit_val = StringLit(strlit_val + t.value);
-    return
-    
-  str = StringLit(ml_escape(strlit_val))
-  #str = StringLit(str)
-  
-  t.strval = t.value;
-  t.value = StringLit('"' + str + '"');
-  t.type = "STRINGLIT"
+    r'"""|\`' #(""")|(\\""")';
 
-  t.lexer.pop_state();
-  return t;
+    global strlit_val;
+
+    if ("\\" in t.value):
+        strlit_val = StringLit(strlit_val + t.value);
+        return
+
+    if glob.g_destroy_templates:
+        strlit_val = ml_escape(strlit_val)
+        
+    str = StringLit(strlit_val)
+    #str = StringLit(str)
+
+    t.strval = t.value;
+    if glob.g_destroy_templates:
+        t.value = StringLit('"' + str + '"');
+    else:
+        t.value = StringLit('`' + str + '`');
+    
+    t.type = "STRINGLIT"
+
+    t.lexer.pop_state();
+    return t;
 
 def t_mlstr_ALL(t):
   r'(.|[\n\r\v])'

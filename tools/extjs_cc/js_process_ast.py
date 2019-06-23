@@ -675,7 +675,11 @@ def expand_harmony_super(result, typespace):
         n4 = BinOpNode(n3[0], "call", ".")
         n3.replace(n3[0], n4)
         
-        n2 = js_parse("$s.prototype", [base.val, n3], start_node=BinOpNode)
+        if type(base) == BinOpNode:
+          n2 = js_parse("$n.prototype", [base, n3], start_node=BinOpNode)
+        else:
+          n2 = js_parse("$s.prototype", [base.val, n3], start_node=BinOpNode)
+          
         n.parent.replace(n, n2)
         n.parent.replace(n.parent[1], n3)
       elif isinstance(n.parent, BinOpNode) and n.parent.op == "." and isinstance(n.parent[1], IdentNode):
@@ -715,6 +719,7 @@ def expand_harmony_super(result, typespace):
     if len(node.parents) > 1:
       typespace.error("Super not allowed in classes with multiple inheritance", node)
     elif len(node.parents) == 0:
+      print("----------------->", has_super(node), node.get_line_str())
       typespace.error("Class " + str(node.name) + " has no parent", node)
     
     for c in node:
@@ -1389,11 +1394,14 @@ def kill_bad_globals(node, typespace):
       descend(n)
     elif type(n) == VarDeclNode:
       scope[n.val] = n;
+
       descend(n[0])
       
       if len(n) > 2:
         descend(n, 2);
     elif type(n) == AssignNode:
+      #deal with ambiguous grammar with expression lists
+      
       if type(n.parent) == ObjLitNode:
         descend(n)
         return
@@ -1401,8 +1409,13 @@ def kill_bad_globals(node, typespace):
       #if n[0].gen_js(0).replace(";", "").strip() == "mode":
       #  raise "sd"
       if type(n[0]) in [IdentNode, VarDeclNode] and n[0].val not in scope:
+        ok = n.parent is not None and n.parent.parent is not None and n.parent.parent.parent is not None
+        ok = ok and (type(n.parent) == ExprListNode and type(n.parent.parent) == BinOpNode and type(n.parent.parent.parent) == VarDeclNode)
         print(scope.keys())
-        typespace.error("Undeclared global %s"%n[0].val, n[0])      
+        
+        if not ok:
+          typespace.error("Undeclared global %s"%n[0].val, n[0])      
+          
       descend(n);
     else:
       descend(n);
@@ -1442,8 +1455,10 @@ def add_func_opt_code(result, typespace):
       else:
         is_opt = p[0].gen_js(0).strip() != "";
       
-      if not is_opt and was_opt:
-        typespace.error("Cannot have required parameter after an optional one", node)
+      #XXX okay, strange, browsers allow this, I thought spec didn't?
+      #unless that was removed in final draft. . .
+      #if not is_opt and was_opt:
+      #  typespace.error("Cannot have required parameter after an optional one", node)
         
       name = p.val
       if is_opt: 

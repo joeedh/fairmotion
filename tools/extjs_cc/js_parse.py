@@ -1312,7 +1312,6 @@ def p_class_element_list(p):
 def p_class_element(p):
   '''class_element : STATIC method_def
                    | method_def
-                   | class_property SEMI
   '''
   set_parse_globals(p)
   

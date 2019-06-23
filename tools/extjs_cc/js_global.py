@@ -13,7 +13,8 @@ glob_cmd_help_override = {
   "g_log_forloops" : "add extra data for logging for loops",
   "g_es6_modules" : "generate ES6 modules",
   "g_warn_for_in" : "warn when for-in loops are used",
-  "g_autoglobalize" : "Make module locals (but not exports) global.  Useful during refactoring."
+  "g_autoglobalize" : "Make module locals (but not exports) global.  Useful during refactoring.",
+  "g_expand_classes" : "Fully transpile classes"
 }
 glob_cmd_short_override = {}
 
@@ -23,6 +24,7 @@ glob_cmd_exclude = set(["g_comment_line", "g_comment", "g_comment_id", "g_lexer"
 glob_long_word_shorten = {"generators": "gens", "error": "err", "warnings": "warn", "production": "prod"}
 
 gcs = glob_cmd_short_override
+gcs["g_expand_classes"] = "gc"
 gcs["g_destroy_templates"] = "dt"
 gcs["g_log_productions"] = "lp"
 gcs["g_preprocess_code"] = "npc"
@@ -262,6 +264,7 @@ class Glob(AbstractGlob):
     #g_harmony_iterators = True
     g_refactor_mode = False
     g_refactor_classes = False
+    g_expand_classes = True
     g_add_opt_initializers = True
     g_replace_instanceof = True
     g_instanceof_func = "__instance_of"

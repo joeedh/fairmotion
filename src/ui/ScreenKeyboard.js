@@ -12,7 +12,7 @@ import {UIButtonAbstract, UIButton, UIButtonIcon, UIMenuButton, UICheckBox, UINu
 
 class ScreenKeyboard extends RowFrame {
   constructor(Context ctx, EventHandler client, Function on_close) {
-    RowFrame.call(this, ctx);
+    super(ctx);
     
     this.size = [0, 0];
     this.pos = [0, 0];

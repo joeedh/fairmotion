@@ -34,15 +34,26 @@ def module_transform(node, typespace):
     pi = n.parent.index(n)
     n.parent.remove(n)
     
+    is_const = False
+    if type(n[0]) == VarDeclNode and "const" in n[0].modifiers:
+      is_const = True
+      print("const export!")
+      
     for n2 in n[:]:
       n.remove(n2)
       n.parent.insert(pi, n2)
       pi += 1
      
     if not n.is_default:
-      n2 = js_parse("""
-        $s = _es6_module.add_export('$s', $s);
-      """, [n.name, n.name, n.name]);
+      if not is_const:
+        n2 = js_parse("""
+          $s = _es6_module.add_export('$s', $s);
+        """, [n.name, n.name, n.name]);
+      else:
+        n2 = js_parse("""
+          _es6_module.add_export('$s', $s);
+        """, [n.name, n.name, n.name]);
+      
     else: 
       n2 = js_parse("""
         $s = _es6_module.set_default_export('$s', $s);

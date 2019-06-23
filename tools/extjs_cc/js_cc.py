@@ -276,7 +276,7 @@ from js_typespace import *
 from js_generators import *
 from js_process_ast import traverse, traverse_i, null_node, \
                            find_node, flatten_statementlists, \
-                           kill_bad_globals, expand_harmony_classes, \
+                           kill_bad_globals, expand_harmony_classes, create_class_list,\
                            transform_exisential_operators
 
 from js_module import module_transform
@@ -931,10 +931,12 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
     module_transform(result, typespace)
   
   if glob.g_require_js:
-    expand_requirejs_classes(result, typespace);
+    expand_requirejs_classes(result, typespace)
+  elif glob.g_expand_classes:
+    expand_harmony_classes(result, typespace)
+    expand_typed_classes(result, typespace)
   else:
-    expand_harmony_classes(result, typespace);
-  expand_typed_classes(result, typespace)
+    create_class_list(result, typespace)
   
   if glob.g_clear_slashr:
     print("\n")
@@ -1139,9 +1141,11 @@ def add_newlines(data):
     
   return data2
   
-def parse(data, file=None, create_logger=False, expand_loops=True, expand_generators=True):
+def parse(data, file=None, create_logger=False, expand_loops=True, expand_generators=None):
     if file != None: glob.g_file = file
-    
+    if expand_generators is None:
+      expand_generators = glob.g_expand_generators
+      
     if glob.g_add_newlines:
       data = add_newlines(data)
       #print(data[1017297])

@@ -62,7 +62,7 @@ export var BlockFlags = {
 
 export class DataRef extends Array {
   constructor(block_or_id, lib=undefined) {
-    Array.call(this, 2);
+    super(2);
     this.length = 2;
     
     if (lib != undefined && lib instanceof DataLib)
@@ -138,12 +138,6 @@ DataRef.STRUCT = `
 `;
 
 export class DataList<T> {
-  GArray<T> list;
-  ObjectMap<String,T> namemap;
-  ObjectMap<Int,T> idmap;
-  int type;
-  T active;
-  
   [Symbol.keystr]() : String {
     return this.type;
   }
@@ -183,12 +177,6 @@ export class DataList<T> {
 }
 
 export class DataLib {
-  hashtable<int,DataList>  datalists;
-  ObjectMap<int,DataBlock> idmap;
-  EIDGen idgen;
-  
-  int id;
-  
   constructor() {
     this.id = 0;
     this.datalists = new hashtable();
@@ -376,12 +364,9 @@ export class DataLib {
 }
 
 export class UserRef {
-  String user, srcname;
-  Function rem_func;
-  
   constructor() {
     this.user = 0;
-    this.rem_func = 0;
+    this.rem_func = 0; //is a function
     this.srcname = "";
   }
 }
@@ -586,14 +571,9 @@ DataBlock.STRUCT = `
 import {ToolIter} from 'toolprops_iter';
 
 export class DataRefListIter<T> extends ToolIter {
-  Array lst;
-  
-  DataLib datalib;
-  IterRet<T> ret;
-  Boolean init;
-  int i;
-  
-  constructor(Array lst, Context ctx) {
+  constructor(lst : Array, ctx : Context) {
+    super();
+
     this.lst = lst;
     this.i = 0;
     this.datalib = ctx.datalib;

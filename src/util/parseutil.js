@@ -34,7 +34,7 @@ export class tokdef {
 
 export class PUTLParseError extends Error {
   constructor(msg) {
-    Error.call(this);
+    super();
   }
 }
 

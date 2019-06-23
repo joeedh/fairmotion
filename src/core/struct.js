@@ -170,6 +170,7 @@ function SchemaParser() {
       
       return t;
     }),
+    tk("DOT", /\./),
     tk("OPEN", /\{/),
     tk("EQUALS", /=/),
     tk("CLOSE", /}/),
@@ -338,10 +339,26 @@ function SchemaParser() {
   function p_Struct(p) {
     var st = {}
     st.name = p.expect("ID", "struct name")
+
     st.fields = [];
     st.id = -1;
-    
-    var tok = p.peek()
+
+    var tok;
+
+    while (!p.at_end()) {
+      tok = p.peek();
+
+      if (tok.type == "DOT") {
+        p.next();
+
+        st.name += "." + p.expect("ID");
+
+        tok = p.peek();
+      } else {
+        break;
+      }
+    }
+
     var id = -1;
     
     if (tok.type == "ID" && tok.value == "id") {
@@ -1758,8 +1775,8 @@ class StaticString extends String {
   constructor(s, maxlength) {
     if (s.length > maxlength)
       s = s.slice(0, maxlength);
-      
-    String.call(this, s);
+
+    super(s);
   }
 }
 
@@ -1777,7 +1794,7 @@ var _basic_types = {
 
 class SchemaError extends Error {
   constructor(msg) {
-    Error.call(this, msg);
+    super(msg);
     this.msg = msg;
   }
 }

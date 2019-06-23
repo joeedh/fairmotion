@@ -25,7 +25,7 @@ import {ScreenArea, Area} from 'ScreenArea';
 
 export class SplitAreasTool extends ToolOp {
   constructor(screen) {
-    ToolOp.call(this, "area_split_tool", "Split Screen", "Split a screen editor");
+    super("area_split_tool", "Split Screen", "Split a screen editor");
 
     this.screen = screen;
     this.canvas = screen.canvas;
@@ -195,7 +195,7 @@ export class SplitAreasTool extends ToolOp {
 
 export class CollapseAreasTool extends EventHandler {
   constructor(screen, border) {
-    EventHandler.call(this);
+    super();
     this.border = border;
     this.screen = screen;
     this.canvas = screen.canvas;
@@ -330,7 +330,7 @@ export class CollapseAreasTool extends EventHandler {
 
 export class HintPickerOpElement extends UIElement {
   constructor(ctx, HintPickerOp op) {
-    UIElement.call(this, ctx);
+    super(ctx);
     this.op = op;
   }
   
@@ -343,7 +343,7 @@ export class HintPickerOpElement extends UIElement {
 
 export class HintPickerOp extends ToolOp {
   constructor() {
-    ToolOp.call(this);
+    super();
     
     this.canvas = g_app_state.screen.canvas;
     

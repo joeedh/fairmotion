@@ -350,7 +350,7 @@ export class TreePanel extends RowFrame {
 
 export class PanOp extends ToolOp {
   constructor(start_mpos, dopesheet) {
-    ToolOp.call(this);
+    super();
     
     this.ds = dopesheet;
     
@@ -781,60 +781,66 @@ export class DopeSheetEditor extends Area {
   
   //returns list of animchannels
   get_datapaths() {
-    if (this.ctx == undefined) return [];
-    
-    var frameset = this.ctx.frameset;
-    var spline = frameset.spline;
-    var actlayer = spline.layerset.active;
-    
-    if (this.pinned_ids != undefined) {
-      var visit = {};
-      for (var id of this.pinned_ids) {
-        if (!(id & KeyTypes.DATAPATH))
-          continue;
-        
-        id = id & KeyTypes.CLEARMASK;
-        
-        var key = frameset.lib_anim_idmap[id];
-        var ch = key.channel;
-        
-        if (ch.path in visit) continue;
-        
-        visit[ch.path] = 1;
-        yield ch;
-      }
-    } else {
-      for (var i=0; i<frameset.lib_anim_channels.length; i++) {
-        //search for eid entry
-        var ch = frameset.lib_anim_channels[i];
-        
-        var eid = ch.path.match(/\[[0-9]+\]/);
-        if (eid == null) {
-          console.log("Not an eid path", ch.path, eid);
-          continue;
-        }
-        
-        eid = eid[eid.length-1];
-        eid = parseInt(eid.slice(1, eid.length-1));
-        
-        var e = spline.eidmap[eid];
-        if (e == undefined) {
-          console.log("e was null, not an eid path?", eid, ch.path);
-          continue;
-        }
-        
-        if (this.selected_only) {
-          var bad = !(e.flag & SplineFlags.SELECT);
-          bad = bad || (e.flag & SplineFlags.HIDE);
-          bad = bad || !(actlayer.id in e.layers);
-          
-          if (bad)
+    "use strict";
+
+    let this2 = this;
+
+    return (function* () {
+      if (this2.ctx == undefined) return ([])[Symbol.iterator];
+
+      var frameset = this2.ctx.frameset;
+      var spline = frameset.spline;
+      var actlayer = spline.layerset.active;
+
+      if (this2.pinned_ids != undefined) {
+        var visit = {};
+        for (var id of this2.pinned_ids) {
+          if (!(id & KeyTypes.DATAPATH))
             continue;
+
+          id = id & KeyTypes.CLEARMASK;
+
+          var key = frameset.lib_anim_idmap[id];
+          var ch = key.channel;
+
+          if (ch.path in visit) continue;
+
+          visit[ch.path] = 1;
+          yield ch;
         }
-        
-        yield ch;
+      } else {
+        for (var i = 0; i < frameset.lib_anim_channels.length; i++) {
+          //search for eid entry
+          var ch = frameset.lib_anim_channels[i];
+
+          var eid = ch.path.match(/\[[0-9]+\]/);
+          if (eid == null) {
+            console.log("Not an eid path", ch.path, eid);
+            continue;
+          }
+
+          eid = eid[eid.length - 1];
+          eid = parseInt(eid.slice(1, eid.length - 1));
+
+          var e = spline.eidmap[eid];
+          if (e == undefined) {
+            console.log("e was null, not an eid path?", eid, ch.path);
+            continue;
+          }
+
+          if (this2.selected_only) {
+            var bad = !(e.flag & SplineFlags.SELECT);
+            bad = bad || (e.flag & SplineFlags.HIDE);
+            bad = bad || !(actlayer.id in e.layers);
+
+            if (bad)
+              continue;
+          }
+
+          yield ch;
+        }
       }
-    }
+    })();
   }
   
   //bind feeds vd
@@ -895,100 +901,110 @@ export class DopeSheetEditor extends Area {
   
   //get datapath keyframes
   get_keypaths(start_y) {
-    if (this.ctx == undefined) return;
-    
-    var y = start_y;
-    var cwid = this.CWID, chgt = this.CHGT;
-    
-    var spline = this.ctx.frameset.spline;
-    var actlayer = spline.layerset.active;
-    
-    for (var ch of this.get_datapaths()) {
-      for (var i=0; i<ch.keys.length; i++) {
-        var ret = this._get_key_ret_cache.next();
-        
-        ret[0] = ch.keys[i];
-        ret[1] = ch;
-        ret[2] = this.get_datakey(ch.keys[i].id);
-        
-        var id = ret[2].id;
-        
-        //make sure dag node callback exists
-        if (!(id in this.nodemap)) {
-          var this2 = this;
-          
-          var on_sel = this._on_sel_2.bind(this);
-          this.nodes.push(on_sel);
-          
-          window.the_global_dag.link(
-            ret[0], 
-            ["depend", "id"],
-            
-            on_sel,
-            ["depend", "id"]
-          );
-          
-          this.nodemap[id] = on_sel;
+    let this2 = this;
+    return (function* () {
+      if (this2.ctx == undefined) return;
+
+      var y = start_y;
+      var cwid = this2.CWID, chgt = this2.CHGT;
+
+      var spline = this2.ctx.frameset.spline;
+      var actlayer = spline.layerset.active;
+
+      for (var ch of this2.get_datapaths()) {
+        for (var i = 0; i < ch.keys.length; i++) {
+          var ret = this2._get_key_ret_cache.next();
+
+          ret[0] = ch.keys[i];
+          ret[1] = ch;
+          ret[2] = this2.get_datakey(ch.keys[i].id);
+
+          var id = ret[2].id;
+
+          //make sure dag node callback exists
+          if (!(id in this2.nodemap)) {
+            var this2 = this2;
+
+            var on_sel = this2._on_sel_2.bind(this2);
+            this2.nodes.push(on_sel);
+
+            window.the_global_dag.link(
+              ret[0],
+              ["depend", "id"],
+
+              on_sel,
+              ["depend", "id"]
+            );
+
+            this2.nodemap[id] = on_sel;
+          }
+
+          yield ret;
         }
 
-        yield ret;
+        y += chgt;
       }
-      
-      y += chgt;
-    }
+    })();
   }
 
   get_keyboth() {
-    for (var ret of this.get_keyverts()) {
-      yield ret;
-    }
-    
-    for (var ret of this.get_keypaths()) {
-      yield ret;
-    }
+    let this2 = this;
+
+    return (function*() {
+      for (var ret of this2.get_keyverts()) {
+        yield ret;
+      }
+
+      for (var ret of this2.get_keypaths()) {
+        yield ret;
+      }
+    })();
   }
   
   get_keyverts() {
-    var channels = this.get_vdatas();
-    var y = Area.get_barhgt()+2, chgt = this.CHGT;
-    
-    for (var vd of channels) {
-      for (var v of vd.verts) {
-        if (!(v.eid in this.vmap)) {
-          var this2 = this;
-          
-          var on_sel = this._on_sel_1.bind(this, vd);
-          this.nodes.push(on_sel);
-          
-          window.the_global_dag.link(
-            v, 
-            ["depend", "eid"], 
-            
-            on_sel,
-            ["depend", "eid"]
-          );
-          
-          this.vmap[v.eid] = on_sel;
+    var this2 = this;
+    return (function*() {
+      var channels = this2.get_vdatas();
+      var y = Area.get_barhgt() + 2, chgt = this2.CHGT;
+
+      for (var vd of channels) {
+        for (var v of vd.verts) {
+          if (!(v.eid in this2.vmap)) {
+            var this2 = this2;
+
+            var on_sel = this2._on_sel_1.bind(this2, vd);
+            this2.nodes.push(on_sel);
+
+            window.the_global_dag.link(
+              v,
+              ["depend", "eid"],
+
+              on_sel,
+              ["depend", "eid"]
+            );
+
+            this2.vmap[v.eid] = on_sel;
+          }
+          this2.vdmap[v.eid] = vd.eid;
+
+          //if (!(v.eid in this2.heightmap))
+          //  this2.heightmap[v.eid] = y+this2.velpan.pan[1];
+
+          //get_key might change y
+          var keybox = this2.get_vertkey(v.eid);
+
+          this2.heightmap[v.eid] = keybox.pos[1];
+
+          var ret = this2._get_key_ret_cache.next();
+          ret[0] = v;
+          ret[1] = vd;
+          ret[2] = keybox;
+          yield ret;
         }
-        this.vdmap[v.eid] = vd.eid;
-        
-        //if (!(v.eid in this.heightmap))
-        //  this.heightmap[v.eid] = y+this.velpan.pan[1];
-        
-        //get_key might change y
-        var keybox = this.get_vertkey(v.eid);
-        
-        this.heightmap[v.eid] = keybox.pos[1];
-        
-        var ret = this._get_key_ret_cache.next();
-        ret[0] = v;
-        ret[1] = vd;
-        ret[2] = keybox;
-        yield ret;
+
+        y += chgt;
       }
-      
-      y += chgt;
-    }
+    })();
   }
  
   clear_selection() {
@@ -1564,7 +1580,7 @@ export class DopeSheetEditor extends Area {
   }
   
   on_area_inactive() {
-    Area.prototype.on_area_inactive.call(this);
+    super.on_area_inactive();
     console.log("dopesheet active!");
   }
   

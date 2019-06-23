@@ -331,6 +331,19 @@ for t1 in targets:
     f1.source_abs = np(f1.source)
     _fmap[f1.source_abs] = f1
 
+def tinyhash(h):
+    import base64
+
+    buf = [0, 0, 0, 0]
+    i = 0
+    for s in h:
+        buf[i] = (buf[i] + ord(s)) & 127
+        i = (i + 1) & 3
+
+    s = str(base64.b64encode(bytes(buf)), "latin-1")
+
+    return s.replace("=", "").replace("/", "").replace("-", "")
+
 for t1 in targets:
   for i, f1 in enumerate(t1):
     if f1.source_abs in _fmap:
@@ -343,7 +356,10 @@ for t in targets:
       f2 = os.path.split(f.source)[1]
     else:
       f2 = f.source
-    f.target = build_path + f2;
+
+    f3 = os.path.abspath(f.source)
+
+    f.target = build_path + "_" + tinyhash(f3) + "_" + f2;
 
 win32 = sys.platform == "win32"
 PYBIN = sys.executable
@@ -360,6 +376,9 @@ print("using python executable \"" + PYBIN.strip() + "\"")
 
 #minified, concatenated build
 JFLAGS = " -dpr " # --no-expand-iterators "
+
+#don't transpile classes, they'll still be fed to a global list though
+JFLAGS += " -nec"
 
 if aggregate_smaps:
   JFLAGS += " -nref"

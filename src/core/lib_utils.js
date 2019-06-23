@@ -33,7 +33,7 @@ import {charmap} from "../editors/viewport/events";
  *  A generic container list for datablocks */
 class DBList extends GArray {
   constructor(type) {
-    GArray.call(this);
+    super();
     
     this.type = type;
     this.idmap = {};
@@ -167,7 +167,7 @@ class DBList extends GArray {
       return;
     }
     
-    GArray.prototype.push.call(this, block);
+    super.push(block);
     this.idmap[block.lib_id] = block;
     
     if (this.active == undefined) {
@@ -395,7 +395,7 @@ class DataRefList extends GArray {
     if (b instanceof DataBlock)
       b = new DataRef(b);
     
-    GArray.prototype.push.call(this, new DataRef(b));
+    super.push(new DataRef(b));
   }
   
   _b(b) {
@@ -426,7 +426,7 @@ class DataRefList extends GArray {
   }
   
   pop(int i, Boolean return_block=true) {
-    var ret = GArray.prototype.pop.call(this, i);
+    var ret = super.pop(i);
     
     if (return_block)
       ret = new Context().datalib.get(ret.id);
@@ -447,7 +447,7 @@ class DataRefList extends GArray {
   }
   
   indexOf(b) {
-    Array.indexOf.call(this, b);
+    super.indexOf(b);
     
     if (!(b = this._b(b))) return;
     
@@ -463,13 +463,13 @@ class DataRefList extends GArray {
   insert(int index, b) {
     if (!(b = this._b(b))) return;
     
-    GArray.prototype.insert.call(this, b);
+    super.insert(b);
   }
   
   prepend(b) {
     if (!(b = this._b(b))) return;
     
-    GArray.prototype.prepend.call(this, b);
+    super.prepend(b);
   }
   
   static fromSTRUCT(reader) {

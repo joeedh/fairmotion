@@ -10,7 +10,7 @@ import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler,
 
 class ViewRotateZoomPanOp extends ToolOp {
   constructor() {
-    ToolOp.call(this, "view2d_orbit", "Orbit");
+    super("view2d_orbit", "Orbit");
 
     this.undoflag = UndoFlags.IGNORE_UNDO;
 
@@ -245,7 +245,7 @@ class ViewRotateZoomPanOp extends ToolOp {
 
 class ViewRotateOp extends ToolOp {
   constructor() {
-    ToolOp.call(this, "view2d_orbit", "Orbit");
+    super("view2d_orbit", "Orbit");
 
     this.undoflag = UndoFlags.IGNORE_UNDO;
 
@@ -323,7 +323,7 @@ class ViewRotateOp extends ToolOp {
 
 class ViewPanOp extends ToolOp {
   constructor() {
-    ToolOp.call(this, "view2d_pan", "Pan");
+    super("view2d_pan", "Pan");
     
     this.undoflag = UndoFlags.IGNORE_UNDO;
     
@@ -519,9 +519,9 @@ function tprop_to_mprop(mprop, tprop) {
 class MeshToolOp extends ToolOp {
   constructor(meshop) {
     if (meshop == undefined)
-      ToolOp.call(this);
+      super();
     else
-      ToolOp.call(this, meshop.name, meshop.uiname, meshop.description, meshop.icon);
+      super(meshop.name, meshop.uiname, meshop.description, meshop.icon);
     
     this.is_modal = false;
     
@@ -610,7 +610,7 @@ MeshToolOp.STRUCT = STRUCT.inherit(MeshToolOp, ToolOp) + """
 
 class ToggleSubSurfOp extends ToolOp {
   constructor() {
-    ToolOp.call(this, "subsurf_toggle", "Toggle Subsurf");
+    super("subsurf_toggle", "Toggle Subsurf");
     
     this.undoflag = UndoFlags.IGNORE_UNDO;
     
@@ -640,7 +640,7 @@ class ToggleSubSurfOp extends ToolOp {
 
 export class BasicFileDataOp extends ToolOp {
   constructor(String data) {
-    ToolOp.call(this, "basic_file_with_data", "internal op (with data)", "Root operator; creates a scene with a simple cube");
+    super("basic_file_with_data", "internal op (with data)", "Root operator; creates a scene with a simple cube");
     
     this.is_modal = false;
     this.undoflag = UndoFlags.IGNORE_UNDO|UndoFlags.IS_ROOT_OPERATOR|UndoFlags.UNDO_BARRIER;
@@ -670,7 +670,7 @@ import {Scene} from 'scene';
 
 export class BasicFileOp extends ToolOp {
   constructor() {
-    ToolOp.call(this, "basic_file", "internal op", "Root operator; creates a scene with a simple cube");
+    super("basic_file", "internal op", "Root operator; creates a scene with a simple cube");
     
     this.is_modal = false;
     this.undoflag = UndoFlags.IS_ROOT_OPERATOR|UndoFlags.UNDO_BARRIER;
@@ -698,7 +698,7 @@ import {FloatProperty} from 'toolprops';
 
 export class FrameChangeOp extends ToolOp {
   constructor(frame) {
-    ToolOp.call(this);
+    super();
     
     this._undo = undefined;
     

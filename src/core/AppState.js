@@ -257,6 +257,11 @@ function output_startup_file() : String {
 export class AppState {
   //XXX mesh? gl? nuke 'em!
   constructor(screen : FrameManager, mesh : Mesh, gl : WebGLRenderingContext) {
+    this.init(screen, mesh, gl);
+  }
+
+  //XXX mesh? gl? nuke 'em!
+  init(screen : FrameManager, mesh : Mesh, gl : WebGLRenderingContext) {
     this.screen = screen;
     this.eventhandler = screen : EventHandler;
     
@@ -377,7 +382,7 @@ export class AppState {
     
     window.active_canvases = {};
     
-    AppState.call(this, screen, undefined, this.gl);
+    this.init(screen, undefined, this.gl);
     
     try {
       if (this.screen !== undefined)

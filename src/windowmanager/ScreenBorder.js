@@ -203,7 +203,7 @@ export class AreaEdge {
 var _screenborder_id_gen = 1;
 export class ScreenBorder extends UIElement {
   constructor(area, borderindex) {
-    UIElement.call(this);
+    super();
     this.area = area;
     this.canvas = undefined;
     this.start_mpos = [0, 0];

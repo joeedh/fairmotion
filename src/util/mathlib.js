@@ -24,9 +24,11 @@ import 'J3DIMath';
 
 export class Matrix4UI extends Matrix4 {
   constructor(loc, rot=undefined, size=undefined) {
+    super();
+
     if (loc instanceof Matrix4) {
       this.load(loc);
-      return;
+      return this;
     }
     
     if (rot == undefined)
@@ -1331,8 +1333,8 @@ var test_vpool = new WrapperVecPool();
 
 class WVector3 extends Vector3 {
   constructor(view, arg=undefined) {
+    super(arg);
     this.view = view;
-    Vector3.call(this, arg);
   }
   
   get 0() {

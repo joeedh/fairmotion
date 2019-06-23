@@ -421,7 +421,7 @@ export class SelectOpBase extends ToolOp {
 
 export class SelectOp extends SelectOpBase {
   constructor() {
-    SelectOpBase.call(this);
+    super();
     
     this.uiname = "Select";
   }

@@ -37,7 +37,7 @@ export class BoxColor4 extends BoxColor {
     
     var clrs = this.colors = [[], [], [], []];
     
-    if (colors == undefined) return;
+    if (colors == undefined) return this;
     
     for (var i=0; i<4; i++) {
       for (var j=0; j<4; j++) {
@@ -66,13 +66,28 @@ BoxColor4.STRUCT = """
 //weighted box color
 export class BoxWColor extends BoxColor {
   constructor(Array<float> color, Array<float> weights) {
-    if (color == undefined || weights == undefined)
-      return;
-      
+    super();
+
+    if (color == undefined || weights == undefined) {
+      return this;
+    }
     this.color = [color[0], color[1], color[2], color[3]];
     this.weights = [weights[0], weights[1], weights[2], weights[3]];
   }
-  
+
+  set colors(c) {
+    if (c === undefined) {
+      console.warn("undefined was passed to BoxWColor.colors setter")
+      return;
+    }
+    
+    if (typeof c[0] == "object") {
+      this.color = c[0];
+    } else {
+      this.color = c;
+    }
+  }
+
   get colors() {
     var ret = [[], [], [], []];
     var clr = this.color;
@@ -101,12 +116,12 @@ export class BoxWColor extends BoxColor {
     return ret;
   }
 }
-BoxWColor.STRUCT = """
+BoxWColor.STRUCT = `
   BoxWColor {
     color   : vec4;
     weights : vec4;
   }
-""";
+`;
 
 export class ThemePair {
   constructor(String key, GArray value) {

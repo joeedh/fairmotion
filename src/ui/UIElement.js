@@ -406,7 +406,7 @@ export class UIElement extends EventHandler {
       this.fake_push_modal++;
       this.parent.push_modal(this);
     } else {
-      EventHandler.prototype.push_modal.call(this, e);
+      super.push_modal(e);
       
       if (this.parent != undefined) {
         this.parent.push_modal(this);
@@ -422,7 +422,7 @@ export class UIElement extends EventHandler {
       return;
     }
     
-    EventHandler.prototype.pop_modal.call(this);
+    super.pop_modal();
     
     if (this.parent != undefined)
       this.parent.pop_modal();
@@ -517,7 +517,7 @@ export class UIElement extends EventHandler {
       this.inc_flash_timer();
     }
     
-    EventHandler.prototype.on_tick.call(this);
+    super.on_tick()
   }
   
   on_keydown(KeyboardEvent event) { }
@@ -559,7 +559,7 @@ export class UIElement extends EventHandler {
 
 export class UIHoverBox extends UIElement {
   constructor(Context ctx, String text, Boolean is_modal, Array<float> pos, Array<float> size) {
-    UIElement.call(this, ctx, undefined, pos, size);
+    super(ctx, undefined, pos, size);
     
     this.is_modal = is_modal;
     this.text = text;
@@ -652,8 +652,8 @@ export class UIHoverBox extends UIElement {
 export class UIHoverHint extends UIElement {
   constructor(Context ctx, String path=undefined, Array<float> pos=undefined, Array<float> size=undefined) {
     global ui_hover_time;
-    
-    UIElement.call(this, ctx, path, pos, size);
+
+    super(ctx, path, pos, size);
     
     this.start_time = 0;
     this.hover_time = ui_hover_time;

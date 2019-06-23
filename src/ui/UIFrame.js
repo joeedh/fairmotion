@@ -16,24 +16,6 @@ var _ufbd_v1 = new Vector3();
 //hack for spreading updates across frames
 var _canvas_threshold = 1.0;
 export class UIFrame extends UIElement {
-  GArray<UIElement> _children;
-  UIElement active;
-
-  Array<float> bgcolor;
-  Array<float> mpos;
-
-  VelocityPan velpan;
-  KeyMap keymap;
-
-  Boolean draw_background, has_hidden_elements;
-  Timer tick_timer;
-  
-  //private variables?
-  ObjectMap _pan_cache;
-  int depth;
-  int leafcount, framecount;
-  float rcorner;
-  
   constructor(ctx, canvas, path, pos, size) { //path, pos, size are optional
     super(ctx, path, pos, size);
     
@@ -67,6 +49,13 @@ export class UIFrame extends UIElement {
   }
   
   get children() : GArray<UIElement> {
+    for (let i=0; i<this._children.length; i++) {
+      if (this._children[i] === undefined) {
+        console.warn("corrupted UI frame");
+        this._children.pop_i(i);
+        i--;
+      }
+    }
     return this._children;
   }
   
@@ -779,7 +768,9 @@ export class UIFrame extends UIElement {
   {
     this.ctx = ctx;
     for (var c of this.children) {
-      c.set_context(ctx);
+      if (c !== undefined) {
+        c.set_context(ctx);
+      }
     }
   }
   

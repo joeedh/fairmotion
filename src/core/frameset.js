@@ -327,7 +327,7 @@ SplineKCache.STRUCT = """
 */
 export class SplineFrameSet extends DataBlock {
   constructor() {
-    DataBlock.call(this, DataTypes.FRAMESET)
+    super(DataTypes.FRAMESET)
     
     this.editmode = "MAIN";
     this.editveid = -1;

@@ -156,7 +156,7 @@ export class RenderAnimOp extends ToolOp {
 
 export class PlayAnimOp extends ToolOp {
   constructor() {
-    ToolOp.call(this);
+    super();
   }
   
   static tooldef() {return {
@@ -169,7 +169,7 @@ export class PlayAnimOp extends ToolOp {
   }}
   
   start_modal(ctx) {
-    ToolOp.prototype.start_modal.call(this, ctx);
+    super.start_modal(ctx);
     console.log("Anim render start!");
     
     this.viewport = {
@@ -259,7 +259,7 @@ export class PlayAnimOp extends ToolOp {
 export class SplineEditor extends View2DEditor {
   constructor(view2d) {
     var keymap = new KeyMap();
-    View2DEditor.call(this, "Geometry", EditModes.GEOMETRY, DataTypes.FRAMESET, keymap);
+    super("Geometry", EditModes.GEOMETRY, DataTypes.FRAMESET, keymap);
     
     this.mpos = new Vector3();
     this.start_mpos = new Vector3();

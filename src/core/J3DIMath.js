@@ -1,5 +1,7 @@
 "use strict";
 
+//wow this file still exists
+
 var PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,
     ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos,
     asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
@@ -202,11 +204,11 @@ class Matrix4 {
       if (typeof m == 'object') {
           if ("length" in m && m.length >= 16) {
               this.load(m);
-              return;
+              return this;
           }
           else if (m instanceof Matrix4) {
               this.load(m);
-              return;
+              return this;
           }
       }
       this.makeIdentity();
@@ -1163,7 +1165,20 @@ var _temp_xyz_cur = 0;
 // Vector3
 //
 class Vector3 extends Array {
-  constructor(Array<float> vec) {
+  constructor(vec : Array<float>) {
+    super()
+
+    this.Vector3_init(vec);
+  }
+
+  Vector3_init(vec : Array<float>) {
+    if (self.length === undefined) {
+      self.length = 3;
+      self[0] = 0;
+      self[1] = 0;
+      self[2] = 0;
+    }
+
     static init = [0, 0, 0];
     
     if (vec == undefined)
@@ -1883,7 +1898,7 @@ function Color(Array<float> color) {
 class Vector4 extends Array {
   constructor(float x, float y, float z, float w)
   {
-    Array.call(this, 4);
+    super(4);
     this.length = 4;
     this.load(x,y,z,w);
   }
@@ -2073,6 +2088,7 @@ class Vector4 extends Array {
 class Quat extends Vector4 {
   constructor(float x, float y, float z, float w)
   {
+    super(vec);
     static v4init = [0, 0, 0, 0]
     var vec = v4init;
     
@@ -2081,8 +2097,6 @@ class Quat extends Vector4 {
     } else {
       vec = x;
     }
-    
-    Vector4.call(this, vec);
   }
 
   load(x,y,z,w)

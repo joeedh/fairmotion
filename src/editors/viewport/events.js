@@ -86,6 +86,10 @@ export function ignore_next_mouseup_event(button) {
 
 export class EventHandler {
   constructor() {
+    this.EventHandler_init();
+  }
+
+  EventHandler_init() {
     this.modalstack = new Array<EventHandler>();
     this.modalhandler = null;
     this.keymap = null;
@@ -458,7 +462,7 @@ export class KeyHandler {
 
 export class KeyMap extends hashtable {
   constructor() {
-    hashtable.call(this);
+    super();
     
     this.op_map = new hashtable();
   }
@@ -514,6 +518,7 @@ export class KeyHandlerCls {
 
 export class ToolKeyHandler extends KeyHandlerCls {
   constructor(ToolOp tool) {
+    super();
     this.tool = tool;
   }
   
@@ -525,6 +530,7 @@ export class ToolKeyHandler extends KeyHandlerCls {
 
 export class FuncKeyHandler extends KeyHandlerCls {
   constructor(func) {
+    super();
     this.handle = func;
   }
 }
@@ -532,6 +538,8 @@ export class FuncKeyHandler extends KeyHandlerCls {
 //helper class for implementing velocity pan
 export class VelocityPan extends EventHandler {
   constructor() {
+    super();
+
     this.start_mpos = new Vector2();
     this.last_mpos = new Vector2();
     
@@ -735,7 +743,11 @@ export class VelocityPan extends EventHandler {
 }
 
 export class TouchEventManager {
-  constructor(EventHandler owner, int delay=100) {
+  constructor(owner : EventHandler, int delay=100) {
+    this.init(owner, delay);
+  }
+
+  init(owner : EventHandler, int delay=100) {
     this.queue = new GArray();
     this.queue_ms = new GArray();
     this.delay = delay;

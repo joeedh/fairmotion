@@ -109,7 +109,7 @@ ToolIter.STRUCT = """
 
 class MSelectIter extends ToolIter {
   constructor(int typemask, Mesh mesh) {
-    ToolIter.call(this);
+    super();
     
     //inherits .ctx, .parent (IterProperty), and .ret ({done, val} objet)
     this.meshref = new DataRef(mesh);
@@ -169,7 +169,7 @@ MSelectIter.STRUCT = STRUCT.inherit(MSelectIter, ToolIter) + """
 
 class element_iter_convert extends ToolIter {
   constructor(iter, type) {
-    ToolIter.call(this);
+    super();
     
     if (!(iter instanceof TPropIterable)) {
       throw new Error("element_iter_convert requires a 'safe' TPropIterable-derived iterator");

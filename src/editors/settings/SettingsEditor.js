@@ -151,8 +151,8 @@ class SettingsEditor extends Area {
     return panel
   }
   
-  constructor(Context ctx, Array<float> pos, Array<float> size) {
-    Area.call(this, SettingsEditor.name, SettingsEditor.uiname, new Context(), pos, size);
+  constructor(ctx : Context, pos : Array<float>, size : Array<float>) {
+    super(SettingsEditor.name, SettingsEditor.uiname, new Context(), pos, size);
     
     this.mm = new MinMax(2);
     this.keymap = new KeyMap();

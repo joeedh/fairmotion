@@ -429,7 +429,20 @@ Area.STRUCT = `
 export class ScreenArea extends UIFrame {
   constructor(area, ctx, pos, size, add_area) {
     super(ctx, undefined, undefined, pos, size);
-    
+
+    this.ScreenArea_init(area, ctx, pos, size, add_area);
+  }
+
+  ScreenArea_init(area, ctx, pos, size, add_area) {
+    if (area === undefined) {
+      //happens when called via fromSTRUCT
+      this.editors = {};
+
+      this.area = undefined;
+      this.type = undefined;
+      return
+    }
+
     if (add_area == undefined)
       add_area = true;
     
@@ -494,8 +507,8 @@ export class ScreenArea extends UIFrame {
   }
   
   static fromSTRUCT(reader) {
-    var ob = Object.create(ScreenArea.prototype);
-    
+    var ob = new ScreenArea();
+
     reader(ob);
     
     var act = ob.area;
@@ -513,7 +526,7 @@ export class ScreenArea extends UIFrame {
     if (!(ob.area instanceof Area))
       ob.area = editarr[0];
     
-    ScreenArea.call(ob, ob.area, new Context(), ob.pos, ob.size, false);
+    ScreenArea.prototype.ScreenArea_init.call(ob, ob.area, new Context(), ob.pos, ob.size, false);
     ob.editors = screens2;
     
     return ob;

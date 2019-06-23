@@ -17,10 +17,6 @@ import {
 } from 'UIElement';
 
 export class UIButtonAbstract extends UIHoverHint {
-  Boolean clicked, click_on_down, can_pan, modal_click, was_touch;
-  Array<float> start_mpos;
-  int text_size;
-  
   constructor(ctx, path=undefined, pos=undefined, size=undefined) {
     super(ctx, path, pos, size);
     

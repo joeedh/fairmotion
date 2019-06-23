@@ -59,7 +59,7 @@ export class FileDialog extends PackedDialog {
     this.callback = callback;
     
     var cwd = get_current_dir();
-    
+
     if (cwd != undefined) {
       this.rebuild_parent_stack(cwd);
       window._pstack = this.parent_stack;
@@ -752,7 +752,9 @@ export class LoginDialog extends PackedDialog {
       super.end(do_cancel);
       return;
     }
-    
+
+    let superend = super.end;
+
     function finish(job, owner) {
       if (dialog.closed)
         return;
@@ -770,7 +772,7 @@ export class LoginDialog extends PackedDialog {
         console.log(job.value, "2");
         
       dialog.closed = true;
-      super.end(false);
+      superend(false);
       
       g_app_state.session.validate_session();
     }
@@ -823,7 +825,7 @@ export function login_dialog(ctx)
 
 export class FileSaveSVGOp extends ToolOp {
   constructor() {
-    ToolOp.call(this, "export_svg", "Export SVG");
+    super("export_svg", "Export SVG");
     
     this.is_modal = false;
     
@@ -874,7 +876,7 @@ export class FileSaveSVGOp extends ToolOp {
 
 export class FileSaveB64Op extends ToolOp {
   constructor() {
-    ToolOp.call(this, "export_al3_b64", "Export AL3-B64");
+    super("export_al3_b64", "Export AL3-B64");
     
     this.is_modal = false;
     

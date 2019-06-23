@@ -122,7 +122,7 @@ EventNode.outputs = {
 
 export class IndirectNode extends EventNode {
   constructor(path) {
-    EventNode.call(this);
+    super();
     this.datapath = path;
   }
   
@@ -138,7 +138,7 @@ export class IndirectNode extends EventNode {
 
 export class DirectNode extends EventNode {
   constructor(id) {
-    EventNode.call(this);
+    super();
     
     this.objid = id;
   }

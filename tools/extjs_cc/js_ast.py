@@ -444,6 +444,8 @@ class VarDeclNode(IdentNode):
     s = ""
     if "let" in self.modifiers and type(self.parent) != VarDeclNode: 
       s += "let "
+    elif "const" in self.modifiers and type(self.parent) != VarDeclNode: 
+      s += "const "
     elif self.local and type(self.parent) != VarDeclNode: 
       s += "var "
     elif "static" in self.modifiers and type(self.parent) != VarDeclNode: 
@@ -1398,6 +1400,7 @@ class FunctionNode (StatementList):
     s += self.s(") => ")
     
     add_block = len(self.children[1:]) != 1
+    add_block = add_block or type(self.children[1]) in [IfNode, WhileNode, SwitchNode, ForCNode, ForInNode, ForLoopNode, TryNode]
     
     if add_block:
         s += self.s(t + " {" + ("\n" if len(self.children) > 1 else ""))
@@ -1436,14 +1439,21 @@ class FunctionNode (StatementList):
 
     if self.is_arrow:
         return self.gen_js_arrow(tlevel)
-
+      
     t = tab(tlevel-1)
     t2 = tab(tlevel)
     
-    if self.name != "" and self.name != "(anonymous)":
-      s = "function %s("%self.name
+    s = "function"
+    
+    if not glob.g_expand_generators and self.is_generator:
+      s += "* "
     else:
-      s = "function("
+      s += " "
+      
+    if self.name != "" and self.name != "(anonymous)":
+      s += "%s("%self.name
+    else:
+      s += "("
     
     s = self.s(s)
     

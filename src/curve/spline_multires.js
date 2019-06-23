@@ -1,5 +1,7 @@
 "use strict";
 
+//XXX this file will be removed in the not-to-distant future
+
 var acos = Math.acos, asin = Math.asin, abs=Math.abs, log=Math.log,
     sqrt=Math.sqrt, pow=Math.pow, PI=Math.PI, floor=Math.floor, min=Math.min,
     max=Math.max, sin=Math.sin, cos=Math.cos, tan=Math.tan, atan=Math.atan,
@@ -403,6 +405,7 @@ function crappybasis(s, k, support, degree) {
 
 export class MultiResEffector extends CurveEffect {
   constructor(MultiResLayer owner) {
+    super()
     this.mr = owner;
   }
   

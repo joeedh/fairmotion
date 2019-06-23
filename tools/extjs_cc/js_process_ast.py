@@ -521,7 +521,7 @@ def gen_manifest_file(result, typespace):
   return s
   
 _the_typespace = None
-
+  
 def expand_harmony_class(result, cls):
   global _the_typespace
   
@@ -645,6 +645,7 @@ def expand_harmony_classes(result, typespace):
   global _the_typespace
   _the_typespace = typespace
 
+  check_constructor_return(result, typespace)
   expand_harmony_super(result, typespace)
 
   def visit(n):
@@ -652,8 +653,88 @@ def expand_harmony_classes(result, typespace):
     
   traverse(result, ClassNode, visit)
   flatten_statementlists(result, typespace)
+
+
+def check_constructor_return(result, typespace):
+  def check_constructor(n):
+    flatten_statementlists(n, typespace);
+    
+    def visit4(n2):
+      if isinstance(n2, ReturnNode): #type(n2) == ReturnNode:
+        typespace.warning("Detected return in a constructor", n2);
+      else:
+        for n3 in n2:
+          if not isinstance(n3, FunctionNode):
+            visit4(n3)
+      
+      
+    visit4(n)
+    
+  def visit(n):
+    for n2 in n:
+      if type(n2) == MethodNode and n2.name == "constructor":
+        check_constructor(n2)
+        
+  traverse(result, ClassNode, visit)
   
+def check_constructor_super(result, typespace):
+  def check_constructor(n):
+    flatten_statementlists(n, typespace);
+    
+    #I hate how python does closures
+    has_super = [False]
+    
+    def visit2(n2):
+      if not has_super[0] and type(n2[0]) == BinOpNode and type(n2[0][0]) == IdentNode and n2[0][0].val == "this":
+        typespace.error("Can't assign to this before calling super() in constructor", n2)
+    
+    #note that we allow super inside of control blocks,
+    #we don't check if all branches leads to its invocation
+    def visit3(n2):
+      if n2[0].gen_js(0).strip() == "super":
+        has_super[0] = True
+        
+        if n2.parent != n[1]:
+          #sys.stderr.write(repr(n2.parent) + "\n" + repr(n2.parent.get_line_str()) + "\n")
+          typespace.warning("Super inside a control block", n2)
+    
+    
+    for n2 in n[1]:
+      traverse(n2, FuncCallNode, visit3)      
+      traverse(n2, AssignNode, visit2)
+      
+      
+  def visit(n):
+    if n.parents is None or len(n.parents) == 0:
+      return
+    
+    for n2 in n:
+      if type(n2) == MethodNode and n2.name == "constructor":
+        check_constructor(n2)
+        
+  traverse(result, ClassNode, visit)
+
+def add_class_list(typespace, n):
+    n2 = js_parse("_ESClass.register($s)", n.name)
+    
+    return n2
+
+def create_class_list(result, typespace):
+  check_constructor_super(result, typespace)
+  check_constructor_return(result, typespace)
+  
+  global _the_typespace
+  _the_typespace = typespace
+
+  def visit(n):
+    n.parent.insert(n.parent.index(n)+1, add_class_list(typespace, n))
+    
+  traverse(result, ClassNode, visit)
+  flatten_statementlists(result, typespace)
+ 
 def expand_harmony_super(result, typespace):
+  check_constructor_super(result, typespace)
+  
   global _the_typespace
   
   _the_typespace = typespace

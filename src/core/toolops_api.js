@@ -315,7 +315,7 @@ export class ToolOp extends ToolOpAbstract {
               icon=-1)
   {
     super(apiname, uiname, description, icon);
-    EventHandler.call(this);
+    EventHandler.prototype.EventHandler_init.call(this);
     
     this.drawlines = new GArray();
     
@@ -636,7 +636,7 @@ export class ToolMacro extends ToolOp {
           let p = op.inputs[k];
           
           if (p.user_set_data !== undefined)
-            p.user_set_data.call(p);
+            p.user_set_data3(p);
         }
         
         op.saved_context = this.saved_context;
@@ -737,7 +737,7 @@ import {
   in ToolContext, u.e. object, scene, and mesh.*/
 class DataPathOp extends ToolOp {
   constructor(String path="", use_simple_undo=false) {
-    ToolOpAbstract.call(this, "DataPathOp", "DataPath", "DataPath Value Set");
+    super("DataPathOp", "DataPath", "DataPath Value Set");
     
     this.use_simple_undo = use_simple_undo;
     this.is_modal = false;
@@ -829,7 +829,7 @@ mixin(ToolOp, EventHandler);
   in ToolContext, u.e. object, scene, and mesh.*/
 class MassSetPathOp extends ToolOp {
   constructor(String path="", String subpath="", String filterstr="", bool use_simple_undo=false) {
-    ToolOpAbstract.call(this, "DataPathOp", "DataPath", "DataPath Value Set");
+    super("DataPathOp", "DataPath", "DataPath Value Set");
     
     this.use_simple_undo = use_simple_undo;
     this.is_modal = false;
@@ -1031,7 +1031,7 @@ window.init_toolop_structs = function() {
       cls.STRUCT += "  }";
     }
     
-    if (!("fromSTRUCT" in cls.__statics__)) {
+    if (!cls.fromSTRUCT) {
       cls.fromSTRUCT = gen_fromSTRUCT(cls);
       define_static(cls, "fromSTRUCT", cls.fromSTRUCT);
     }

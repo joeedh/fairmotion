@@ -433,7 +433,7 @@ var closest_point_cache_vs = cachering.fromConstructor(Vector3, 64);
 //forward declaration
 var flip_wrapper_cache;
 
-//prior is a CurvEffect instance 
+//prior is a CurveEffect instance
 export class CurveEffect {
   constructor() {
     this.child = undefined;
@@ -818,6 +818,7 @@ export class CurveEffect {
 
 export class FlipWrapper extends CurveEffect {
   constructor() {
+    super();
     this.eff = undefined;
     this.depth = 0;
   }

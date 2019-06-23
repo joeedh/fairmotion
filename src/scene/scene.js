@@ -3,7 +3,7 @@ import {DataBlock, DataTypes} from 'lib_api';
 
 export class Scene extends DataBlock {
   constructor() {
-    DataBlock.call(this, DataTypes.SCENE);
+    super(DataTypes.SCENE);
     
     this.active_splinepath = "frameset.drawspline";
     this.time = 1;

@@ -462,7 +462,7 @@ export class SelectedEditableIter {
       return !e.hidden && actlayer in e.layers;
     }
     
-    ret = undefined;
+    var ret = undefined;
     var good = false;
     var c = 0;
     var iter = this.iter;

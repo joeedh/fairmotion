@@ -35,11 +35,12 @@ export class TimeDataLayer extends CustomDataLayer {
   }
 }
 
-TimeDataLayer.STRUCT = STRUCT.inherit(TimeDataLayer, CustomDataLayer) + """
+TimeDataLayer.STRUCT = STRUCT.inherit(TimeDataLayer, CustomDataLayer) + `
     time         : float;
     owning_veid  : int;
   }
-""";
+`;
+
 TimeDataLayer.layerinfo = {
   type_name : "TimeDataLayer"
 };
@@ -77,6 +78,8 @@ import {DataTypes, DataNames} from 'lib_api';
 //where tying to the pathspline vertices (as we do with time) is not appropriate
 export class AnimKey extends DataPathNode {
   constructor() {
+    super();
+
     this.id = -1;
     this.flag = 0
     

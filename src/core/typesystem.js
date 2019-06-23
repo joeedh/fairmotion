@@ -207,6 +207,17 @@ var _ESClass = (function() {
     return construct;
   };
 
+  Class.register = function(cls) {
+      cls.prototype.__prototypeid__ = Class.__prototype_idgen++;
+
+      //if (cls.prototype.prototype !== undefined) {
+      //  cls.__parent__ = cls.prototype.prototype.constructor;
+      //}
+      cls.__parent__ = cls.prototype.__proto__.constructor;
+
+      defined_classes.push(cls);
+  }
+
   Class.get = function(func) {
     return new ClassGetter(func);
   }
@@ -230,25 +241,40 @@ var _ESClass = (function() {
 })();
 
 function mixin(child, parent) {
-  for (var k in parent.prototype) {
-    if (child.prototype[k] == undefined) {
-      child.prototype[k] = parent.prototype[k];
+  let ok = 1;
+
+  while (ok) {
+    let keys = Object.getOwnPropertyNames(parent.prototype);
+    for (var i=0; i<keys.length; i++) {
+      let k = keys[i];
+
+      if (child.prototype[k] == undefined) {
+        child.prototype[k] = parent.prototype[k];
+      }
     }
-  }
-  var symbols = Object.getOwnPropertySymbols(parent);
-  for (var i=0; i<symbols.length; i++) {
-    var k = symbols[i];
-    
-    if (!(k in child.prototype)) {
-      child.prototype[k] = parent.prototype[k];
+
+    var symbols = Object.getOwnPropertySymbols(parent.prototype);
+    for (var i=0; i<symbols.length; i++) {
+      var k = symbols[i];
+
+      if (!(k in child.prototype)) {
+        child.prototype[k] = parent.prototype[k];
+      }
     }
+
+    ok = parent !== parent.prototype.__proto__.constructor;
+    parent = parent.prototype.__proto__.constructor;
+    ok = ok && parent !== undefined && parent !== Object;
   }
 }
 
 function define_static(obj, name, val) {
   obj[name] = val;
-  obj.__statics__[name] = name;
-  
+
+  if (obj.__statics__) {
+    obj.__statics__[name] = name;
+  }
+
   if (val != undefined && (typeof val == "object" || typeof val == "function" || typeof val == "string")) {
     val._is_static_method = true;
   }
@@ -433,6 +459,7 @@ function define_docstring(func, docstr) {
   return func;
 }
 
+//XXX do I ever use this?
 function __bind_super_prop(obj, cls, parent, prop) {
   var descr = Object.getOwnPropertyDescriptor(parent.prototype, prop);
   

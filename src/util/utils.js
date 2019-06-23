@@ -92,7 +92,7 @@ var int debug_int_1 = 0;
 
 class cachering extends Array {
   constructor (Function createcallback, int count=32) {
-    Array.call(this, count);
+    super(count);
     
     this._cur = 0;
     this.length = count;
@@ -116,10 +116,14 @@ class cachering extends Array {
     for (var i=1; i<arguments.length; i++) {
       args.push(arguments[i]);
     }
-    
+
+    if (arguments.length > 2) {
+      throw new Error("too many arguments to fromConstructor");
+    }
+
     function callback() {
       var ret = new cls();
-      cls.apply(ret, arguments);
+      //cls.apply(ret, arguments);
       return ret;
     }
     
@@ -129,7 +133,7 @@ class cachering extends Array {
 
 class GArray extends Array {
   constructor(Object input) {
-    Array<T>.call(this)
+    super()
 
     if (input != undefined) {
       for (var i=0; i<input.length; i++) {
@@ -367,14 +371,12 @@ EXPORT_FUNC(list)
 var Function g_list = list;
 
 class eid_list extends GArray {
-  constructor(GeoArrayIter<Element> iter) {
-    GArray.call(this);
+  constructor(iter : GeoArrayIter) {
+    super();
 
     for (var item of iter) {
       this.push([item.type, item.eid]);
     }
-
-    return lst;
   }
 }
 
@@ -1263,7 +1265,7 @@ function is_obj_lit(obj) {
 
 class UnitTestError extends Error {
   constructor(msg) {
-    Error.call(this, msg);
+    super(msg);
     this.msg = msg;
   }
 }

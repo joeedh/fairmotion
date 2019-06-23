@@ -21,7 +21,7 @@ import {PackFlags} from 'UIElement';
 
 class UIRadialMenuEntry extends UIElement {
   constructor(label, hotkey, pos, size) {
-    UIElement.call(this);
+    super();
 
     this.clicked = false;
     this.label = label
@@ -96,7 +96,7 @@ class UIRadialMenuEntry extends UIElement {
 
 export class UIRadialMenu extends UIFrame {
   constructor(name, callback) {
-    UIFrame.call(this);
+    super();
     
     this.name = name
     this.callback = callback;

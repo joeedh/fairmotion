@@ -41,9 +41,9 @@ import {
 
 export class SplineVertex extends SplineElement {
   constructor() {
-    SplineElement.call(this, SplineTypes.VERTEX);
-    Vector3.apply(this, arguments);
-    
+    super(SplineTypes.VERTEX);
+    Vector3.prototype.Vector3_init.apply(this, arguments);
+
     this.type = SplineTypes.VERTEX;
     this.flag = SplineFlags.FRAME_DIRTY|SplineFlags.UPDATE;
     this.segments = [];
@@ -188,8 +188,8 @@ var closest_point_cache_vs = cachering.fromConstructor(Vector3, 64);
 
 export class EffectWrapper extends CurveEffect {
   constructor(SplineSegment owner) {
+    super();
     this.seg = owner;
-    
   }
   
   rescale(ceff, width) {
@@ -1205,7 +1205,7 @@ ElementRefIter.STRUCT = """
 
 export class ElementRefSet extends set {
   constructor(mask) {
-    set.call(this);
+    super();
     
     this.mask = mask == undefined ? SplineTypes.ALL : mask;
   }

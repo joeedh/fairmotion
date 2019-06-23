@@ -1335,7 +1335,7 @@ def p_property_id(p):
                   | LSBRACKET expr RSBRACKET
   '''
   if len(p) == 4:
-    p[0] = p[2]
+    p[0] = RuntimeObjectKey(p[2])
   else:
     p[0] = p[1]
 

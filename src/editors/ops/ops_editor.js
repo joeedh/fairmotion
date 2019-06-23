@@ -23,8 +23,8 @@ import {KeyMap, VelocityPan, KeyHandler, FuncKeyHandler} from '../viewport/event
 
 class OpStackFrame extends RowFrame {
   constructor(Context ctx, Array<float> size) {
-    RowFrame.call(this, ctx);
-    
+    super(ctx);
+
     this.pan_bounds = [[0, 0], [0, 0]];
     this.bad = false;
     
@@ -218,7 +218,7 @@ import {Area} from 'ScreenArea';
 
 export class OpStackEditor extends Area {
   constructor(x, y, width, height) {
-    Area.call(this, OpStackEditor.name, OpStackEditor.uiname, new Context(), [x, y], [width, height]);
+    super(OpStackEditor.name, OpStackEditor.uiname, new Context(), [x, y], [width, height]);
     
     this.first_build = true;
     this.auto_load_uidata = false;
@@ -287,7 +287,7 @@ export class OpStackEditor extends Area {
   
   destroy() {
     this.subframe.canvas.destroy();
-    Area.prototype.destroy.call(this);
+    super.destroy();
   }
   
   build_topbar(col)

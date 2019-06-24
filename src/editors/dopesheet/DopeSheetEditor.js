@@ -1,7 +1,30 @@
+import {Area} from 'ScreenArea';
+import {STRUCT} from 'struct';
+import {UIBase} from 'ui_base';
+
+export class DopeSheetEditor extends Area {
+  static define() { return {
+    tagname : "dopesheet-editor-x",
+    areaname : "dopesheet_editor",
+    uiname : "Animation Keys"
+  }}
+
+  static fromSTRUCT(reader) {
+    let ret = document.createElement("dopesheet-editor-x");
+    reader(ret);
+    return ret;
+  }
+}
+DopeSheetEditor.STRUCT = STRUCT.inherit(DopeSheetEditor, Area) + `
+}
+`;
+Area.register(DopeSheetEditor);
+
+#if 0
 "use strict";
 
 import {aabb_isect_2d} from 'mathlib';
-import {gen_editor_switcher} from 'UIWidgets_special';
+//import {gen_editor_switcher} from 'UIWidgets_special';
 
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
         charmap, TouchEventManager, EventHandler} from '../viewport/events';
@@ -10,26 +33,12 @@ import {STRUCT} from 'struct';
 import {phantom, KeyTypes, FilterModes,
         get_select, get_time, set_select, set_time
        } from 'dopesheet_phantom';
-  
-import {PackFlags, UIElement, UIFlags, CanvasFlags} from 'UIElement';
-import {UIFrame} from 'UIFrame';
-import {
-  UIButtonAbstract, UIButton, UIButtonIcon,
-  UIMenuButton, UICheckBox, UINumBox, UILabel,
-  UIMenuLabel, ScrollButton, UIVScroll, UIIconCheck
-} from 'UIWidgets';
 
-import {UISplitFrame} from 'UISplitFrame';
+import {PackFlags, UIFlags, UIBase} from 'ui_base';
 
-import {RowFrame, ColumnFrame, UIPackFrame} from 'UIPack';
-import {UITextBox} from 'UITextBox';
 import {ToolOp, UndoFlags, ToolFlags} from 'toolops_api';
-import {UITabBar} from 'UITabPanel';
-
-import {UICollapseIcon} from 'UIWidgets_special';
 
 import {ToolOp} from 'toolops_api';
-import {RowFrame} from 'UIPack';
 import {UndoFlags} from 'toolops_api';
 
 import {Spline, RestrictFlags} from 'spline';
@@ -43,6 +52,7 @@ import {SplineLayerFlags, SplineLayerSet} from 'spline_element_array';
 import {SplineFlags} from 'spline_base';
 import {AddLayerOp, ChangeLayerOp, ChangeElementLayerOp} from 'spline_layerops';
 import {DissolveVertOp} from 'spline_editops';
+import {RowFrame} from 'ui';
 
 import {ShiftTimeOp2, ShiftTimeOp3, SelectOp, DeleteKeyOp,
         ColumnSelect, SelectKeysToSide, ToggleSelectOp
@@ -50,7 +60,6 @@ import {ShiftTimeOp2, ShiftTimeOp3, SelectOp, DeleteKeyOp,
 
 /******************* main area struct ********************************/
 import {Area} from 'ScreenArea';
-import {UISplitFrame} from "../../ui/UISplitFrame";
 
 var tree_packflag = PackFlags.INHERIT_WIDTH|PackFlags.ALIGN_LEFT
                    |PackFlags.ALIGN_TOP|PackFlags.NO_AUTO_SPACING
@@ -61,30 +70,40 @@ var CHGT = 25;
 export class TreeItem extends RowFrame {
   constructor(ctx, name) {
     super(ctx);
-    
+
     this.path = name;
-    
+
     this.packflag |= tree_packflag;
     this.default_packflag |= tree_packflag;
-    
+
     this.namemap = {};
     this.collapsed = false;
-    
+  }
+
+  init() {
     this.panel = this.col();
     var this2 = this;
+
+    //$XXX
+    /*
     this.icon = new UICollapseIcon(undefined, undefined, function(icon) {
       this2.set_collapsed(icon.collapsed)
     });
-    
+
     this.icon.small_icon = true;
-    
+
     this.draw_background = true;
     this.panel.add(this.icon);
     this.panel.label(name);
-    
+    //*/
+
     this.stored_children = undefined;
   }
-  
+
+  static define() {return {
+    tagname : "dopesheet-treeitem-x"
+  }}
+
   get_filedata() { 
     return {collapsed : this.collapsed};
   }
@@ -193,6 +212,7 @@ export class TreeItem extends RowFrame {
     }
   } 
 }
+UIBase.register(TreeItem);
 
 export class TreePanel extends RowFrame {
   constructor(ctx) {
@@ -204,13 +224,19 @@ export class TreePanel extends RowFrame {
     this.totpath = 0;
     
     this.draw_background = true;
-    
-    this.tree = new TreeItem(ctx, "root");
+
     this.pathmap = {root : this.tree};
-    
+  }
+
+  init() {
+    this.tree = new TreeItem(ctx, "root");
     this.add(this.tree);
   }
-  
+
+  static define() {return {
+    tagname : "dopesheet-treepanel-x"
+  }}
+
   load_collapsed(paths) {
     var cset = {};
     
@@ -347,6 +373,7 @@ export class TreePanel extends RowFrame {
     RowFrame.prototype.build_draw.apply(this, arguments);
   }
 }
+UIBase.register(TreePanel);
 
 export class PanOp extends ToolOp {
   constructor(start_mpos, dopesheet) {
@@ -409,7 +436,7 @@ export class PanOp extends ToolOp {
 
 export class DopeSheetEditor extends Area {
   constructor(pos, size) {
-    super(DopeSheetEditor.name, DopeSheetEditor.uiname, new Context(), pos, size);
+    super();
     
     this.pinned_ids = undefined;
     this.nodes = [];
@@ -464,7 +491,13 @@ export class DopeSheetEditor extends Area {
     this.keymap = new KeyMap();
     this.define_keymap();
   }
-  
+
+  static define() {return {
+    tagname : "dopesheet-x",
+    areaname : "dopesheet",
+    uiname : "Animation Dopesheet"
+  }}
+
   build_layout() {
     this.channels = new TreePanel();
     this.channels.size[0] = 100;
@@ -1811,5 +1844,8 @@ DopeSheetEditor.STRUCT = STRUCT.inherit(DopeSheetEditor, Area) + `
 }
 `;
 
-DopeSheetEditor.uiname = "Dopesheet";
+UIBase.register(DopeSheetEditor);
+
+//DopeSheetEditor.uiname = "Dopesheet";
 DopeSheetEditor.debug_only = false;
+#endif

@@ -1,3 +1,96 @@
+import {Area} from 'ScreenArea';
+import {STRUCT} from 'struct';
+import {UIBase} from 'ui_base';
+import {ImageUser} from 'imageblock';
+import {Container} from 'ui';
+
+import * as view2d_editor from 'view2d_editor';
+export var EditModes = view2d_editor.EditModes;
+
+export class View2DHandler extends Area {
+  constructor() {
+    super();
+
+    this._selectmode = 1;
+    this.rendermat = new Matrix4();
+    this.irendermat = new Matrix4();
+    this.cameramat = new Matrix4();
+    this.editors = [];
+    this.background_image = new ImageUser();
+    this.pinned_paths = [];
+    this.zoom = 1.0;
+    this.background_color = new Vector3();
+    this.default_stroke = new Vector4();
+    this.default_fill = new Vector4();
+  }
+
+  init() {
+    this.container = document.createElement("container-x");
+    this.container.ctx = this.ctx;
+
+    this.container.style["width"] = "100%";
+    this.shadow.appendChild(this.container);
+
+    this.makeHeader(this.container);
+    this.setCSS();
+  }
+
+  copy() {
+    let ret = document.createElement("view2d-editor-x");
+
+    return ret;
+  }
+
+  makeHeader(container) {
+    super.makeHeader(container);
+  }
+
+  static define() { return {
+    tagname : "view2d-editor-x",
+    areaname : "view2d_editor",
+    uiname : "Work Canvas"
+  }}
+
+  static fromSTRUCT(reader) {
+    let ret = document.createElement("view2d-editor-x");
+
+    reader(ret);
+    return ret;
+  }
+}
+
+View2DHandler.STRUCT = STRUCT.inherit(View2DHandler, Area) + """
+  _id             : int;
+  _selectmode     : int;
+  rendermat       : mat4;
+  irendermat      : mat4;
+  cameramat       : mat4;
+  only_render     : int;
+  draw_anim_paths : int;
+  draw_normals    : int;
+  editors         : array(abstract(View2DEditor));
+  editor          : int | obj.editors.indexOf(obj.editor);
+  zoom            : float;
+  tweak_mode        : int;
+  default_linewidth : float;
+  default_stroke    : vec4;
+  default_fill      : vec4;
+  extrude_mode      : int;
+  enable_blur       : int;
+  draw_faces        : int;
+  draw_video        : int;
+  pinned_paths      : array(int) | obj.pinned_paths != undefined ? obj.pinned_paths : [];
+  background_image  : ImageUser;
+  background_color  : vec3;
+  draw_bg_image     : int;
+  toolmode          : int;
+  draw_small_verts  : int;
+  edit_all_layers   : int;
+}
+"""
+Area.register(View2DHandler);
+
+#if 0
 "use strict";
 
 import {toolop_menu} from 'UIMenu';
@@ -1508,3 +1601,4 @@ View2DHandler.STRUCT = STRUCT.inherit(View2DHandler, Area) + """
 """
 
 View2DHandler.uiname = "Work Canvas";
+#endif

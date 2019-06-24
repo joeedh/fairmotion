@@ -1,3 +1,26 @@
+import {Area} from 'ScreenArea';
+import {STRUCT} from 'struct';
+import {UIBase} from 'ui_base';
+
+export class OpStackEditor extends Area {
+  static define() { return {
+    tagname : "opstack-editor-x",
+    areaname : "opstack_editor",
+    uiname : "Operator Stack"
+  }}
+
+  static fromSTRUCT(reader) {
+    let ret = document.createElement("opstack-editor-x");
+    reader(ret);
+    return ret;
+  }
+}
+OpStackEditor.STRUCT = STRUCT.inherit(OpStackEditor, Area) + `
+}
+`;
+Area.register(OpStackEditor);
+
+#if 0
 import {gen_editor_switcher} from 'UIWidgets_special';
 
 import {PackFlags, UIElement, UIFlags, CanvasFlags} from 'UIElement';
@@ -365,3 +388,4 @@ OpStackEditor.STRUCT = STRUCT.inherit(OpStackEditor, Area) + """
 
 OpStackEditor.uiname = "Operator Stack";
 OpStackEditor.debug_only = true;
+#endif

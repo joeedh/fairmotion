@@ -1,5 +1,27 @@
-"use strict";
+import {Area} from 'ScreenArea';
+import {STRUCT} from 'struct';
+import {UIBase} from 'ui_base';
 
+export class SettingsEditor extends Area {
+  static define() { return {
+    tagname : "settings-editor-x",
+    areaname : "settings_editor",
+    uiname : "Settings"
+  }}
+
+  static fromSTRUCT(reader) {
+    let ret = document.createElement("settings-editor-x");
+    reader(ret);
+    return ret;
+  }
+}
+SettingsEditor.STRUCT = STRUCT.inherit(SettingsEditor, Area) + `
+}
+`;
+Area.register(SettingsEditor);
+
+"use strict";
+#if 0
 import {gen_editor_switcher} from 'UIWidgets_special';
 
 import {
@@ -306,3 +328,4 @@ SettingsEditor.STRUCT = STRUCT.inherit(SettingsEditor, Area) + """
 """
 SettingsEditor.uiname = "Settings";
 SettingsEditor.debug_only = false;
+#endif

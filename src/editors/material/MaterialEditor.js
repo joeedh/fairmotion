@@ -1,3 +1,26 @@
+import {Area} from 'ScreenArea';
+import {STRUCT} from 'struct';
+import {UIBase} from 'ui_base';
+
+export class MaterialEditor extends Area {
+  static define() { return {
+    tagname : "material-editor-x",
+    areaname : "material_editor",
+    uiname : "Properties"
+  }}
+
+  static fromSTRUCT(reader) {
+    let ret = document.createElement("material-editor-x");
+    reader(ret);
+    return ret;
+  }
+}
+MaterialEditor.STRUCT = STRUCT.inherit(MaterialEditor, Area) + `
+}
+`;
+Area.register(MaterialEditor);
+
+#if 0
 import {gen_editor_switcher} from 'UIWidgets_special';
 import {ENABLE_MULTIRES} from 'config';
 
@@ -484,3 +507,4 @@ MaterialEditor.STRUCT = STRUCT.inherit(MaterialEditor, Area) + """
 """
 MaterialEditor.uiname = "Properties";
 MaterialEditor.debug_only = false;
+#endif

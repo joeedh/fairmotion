@@ -1,7 +1,7 @@
 "use strict";
 
 import {ExtrudeVertOp} from 'spline_createops';
-import {toolop_menu} from 'UIMenu';
+//$XXX import {toolop_menu} from 'UIMenu';
 import {DeleteVertOp, DeleteSegmentOp} from 'spline_editops';
 import {CreateMResPoint} from 'multires_ops';
 import * as mr_selectops from 'multires_selectops';
@@ -13,9 +13,9 @@ import {compose_id, decompose_id, MResFlags, MultiResLayer}
         
 var ScreenArea, Area;
 
-import {get_2d_canvas, get_2d_canvas_2} from 'UICanvas';
+//$XXX import {get_2d_canvas, get_2d_canvas_2} from 'UICanvas';
 
-import {gen_editor_switcher} from 'UIWidgets_special';
+//$XXX import {gen_editor_switcher} from 'UIWidgets_special';
 import {DataTypes} from 'lib_api';
 import {STRUCT} from 'struct';
 import {EditModes} from 'view2d_editor';
@@ -31,15 +31,15 @@ import {SplineTypes, SplineFlags, SplineVertex,
         SplineSegment, SplineFace} from 'spline_types';
 import {Spline} from 'spline';
 
-import {UIFrame} from 'UIFrame';
-import {ColumnFrame, RowFrame} from 'UIPack';
-import {UIMenuLabel, UIButtonIcon} from 'UIWidgets';
-import {UIMenu} from 'UIMenu';
+//$XXX import {UIFrame} from 'UIFrame';
+//$XXX import {ColumnFrame, RowFrame} from 'UIPack';
+//$XXX import {UIMenuLabel, UIButtonIcon} from 'UIWidgets';
+//$XXX import {UIMenu} from 'UIMenu';
 import {View2DEditor, SessionFlags} from 'view2d_editor';
 import {DataBlock, DataTypes} from 'lib_api';
 import {redraw_element} from 'spline_draw';
 import {UndoFlags, ToolFlags, ModalStates, ToolOp} from 'toolops_api';
-import {PackFlags, UIFlags} from 'UIElement';
+//$XXX import {PackFlags, UIFlags} from 'UIElement';
 
 import {get_vtime} from 'animdata';
 

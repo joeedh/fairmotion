@@ -1,15 +1,140 @@
 "use strict";
 
 import * as config from 'config';
-
 import * as html5_fileapi from 'fileapi';
 
+import {CurveEditor} from 'CurveEditor';
+import {OpStackEditor} from 'ops_editor';
+import {View2DHandler} from 'view2d';
+import {MaterialEditor} from "MaterialEditor";
+import {DopeSheetEditor} from "DopeSheetEditor";
+import {SettingsEditor} from 'SettingsEditor';
+import {registerToolStackGetter} from 'FrameManager_ops';
+
+import {Area} from 'ScreenArea';
+Area.prototype.getScreen = () => {
+  return g_app_state.screen;
+}
+
+registerToolStackGetter(() => {
+  return g_app_state.toolstack;
+});
+
+//can't I have the screen area registration code generate this for me?
+export let AreaTypes = {
+  VIEW2D : View2DHandler,
+  SETTINGS : SettingsEditor,
+  OPSTACK : OpStackEditor,
+  MATERIAL : MaterialEditor,
+  DOPESHEET : DopeSheetEditor,
+  CURVE : CurveEditor
+};
+
+import {setAreaTypes} from "../path.ux/scripts/ScreenArea";
+setAreaTypes(AreaTypes);
+
+/*
+XXX I may want to put this in path.ux itself
+
+stupidly, we store the "active" area (of each type)
+globally (or rather, they're accessible through the Context
+struct).  this is done to simplify the datapath api code.
+it's a bit stupid.
+ */
+(function patcharea() {
+  var _area_active_stacks = {};
+  var _area_active_lasts = {};
+
+  function _get_area_stack(cls) {
+    var h = cls.name;
+
+    if (!(h in _area_active_stacks)) {
+      _area_active_stacks[h] = new Array();
+    }
+
+    return _area_active_stacks[h];
+  };
+
+  Area.context_area = function (cls) {
+    var stack = _get_area_stack(cls.name);
+
+    if (stack.length == 0)
+      return _area_active_lasts[cls.name];
+    else
+      return stack[stack.length - 1];
+  };
+
+  Area.prototype.push_ctx_active = function () {
+    var stack = _get_area_stack(this.constructor);
+    stack.push(this);
+    _area_active_lasts[this.constructor.name] = this;
+  };
+
+  Area.prototype.pop_ctx_active = function () {
+    var stack = _get_area_stack(this.constructor);
+    if (stack.length == 0 || stack[stack.length - 1] != this) {
+      console.trace();
+      console.log("Warning: invalid Area.pop_active() call");
+      return;
+    }
+
+    stack.pop(stack.length - 1);
+  };
+})();
+
+import {Screen} from 'FrameManager';
+
+export function gen_screen(unused, w, h) {
+  let app = document.getElementById("app");
+
+  if (!app) {
+    app = document.body;
+  }
+
+  let screen = document.getElementById("screenmain");
+  if (screen) {
+    screen.clear();
+  } else {
+    screen = document.createElement("screen-x");
+    app.appendChild(screen);
+  }
+
+  screen.style["width"] = "100%";
+  screen.style["height"] = "100%";
+  screen.style["position"] = "absolute";
+
+  screen.setAttribute("id", "screenmain");
+  screen.id = "screenmain";
+
+  screen.size = [window.innerWidth, window.innerHeight];
+  screen.ctx = new Context();
+
+  let sarea = document.createElement("screenarea-x");
+  sarea.size[0] = window.innerWidth;
+  sarea.size[1] = window.innerHeight;
+
+  screen.appendChild(sarea);
+
+  sarea.setCSS();
+  screen.setCSS();
+  screen.makeBorders();
+
+  sarea.switch_editor(View2DHandler);
+  sarea.area.setCSS();
+
+  g_app_state.screen = screen;
+  g_app_state.eventhandler = screen;
+  //g_app_state.active_view2d = view2d;
+
+  app.appendChild(screen);
+}
+
 import 'startup_file';
-import {gen_screen} from 'FrameManager';
+//$XXX import {gen_screen} from 'FrameManager';
 import {DataPath, DataStruct, DataPathTypes, DataFlags,
         DataAPI, DataStructArray} from 'data_api';
 import {wrap_getblock, wrap_getblock_us} from 'lib_utils';
-import {UICanvas} from 'UICanvas';
+//$XXX import {UICanvas} from 'UICanvas';
 import {urlencode, b64decode, b64encode} from 'strutils';
 import {BasicFileOp} from 'view2d_ops'; 
 import {AppSettings} from 'UserSettings';
@@ -190,7 +315,8 @@ window.gen_default_file = function gen_default_file(size) {
   
   var g = g_app_state;
   global startup_file_str;
-  
+
+  #if 0
   if (!myLocalStorage.hasCached("startup_file")) {
     myLocalStorage.startup_file = startup_file_str;
   }
@@ -219,7 +345,8 @@ window.gen_default_file = function gen_default_file(size) {
   
   if (size == undefined)
     var size = [512, 512];
-  
+  #endif
+
   //reset app state, calling without args
   //will leave .screen undefined
   g.reset_state();
@@ -230,14 +357,12 @@ window.gen_default_file = function gen_default_file(size) {
   //set up screen UI
   
   //a 3d viewport
-  var view2d = new View2DHandler(0, 0, size[0], size[1], 0.75, 1000.0);
-  
-  g.view2d = g.active_view2d = view2d;
+  //var view2d = new View2DHandler(0, 0, size[0], size[1], 0.75, 1000.0);
+
+  //g.view2d = g.active_view2d = view2d;
 
   //now create screen
-  gen_screen(undefined, view2d, size[0], size[1]);
-    
-  view2d.ctx = new Context();
+  gen_screen(undefined, size[0], size[1]);
 }
 
 function output_startup_file() : String {
@@ -1476,6 +1601,7 @@ SavedContext.STRUCT = """
 """;
 
 import {SplineFrameSet} from 'frameset';
+import {SettingsEditor} from "../editors/settings/SettingsEditor";
 
 export class Context {
   constructor() {
@@ -2030,8 +2156,13 @@ class ToolStack {
       this.exec_tool(op);
     }
   }
-  
-  exec_tool(ToolOp tool) {
+
+  exec_tool(tool : ToolOp) {
+    console.warn("exec_tool deprecated in favor of execTool");
+    return this.execTool(tool);
+  }
+
+  execTool(tool : ToolOp) {
     this.set_tool_coll_flag(tool);
     
     /*if (this.appstate.screen && 

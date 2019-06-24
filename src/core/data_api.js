@@ -26,7 +26,7 @@ import * as safe_eval from 'safe_eval';
 export class TinyParserError extends Error {
 }
 
-import {UIFrame} from 'UIFrame';
+//$XXX import {UIFrame} from 'UIFrame';
 import {PropTypes, TPropFlags, ToolProperty, IntProperty, FloatProperty, 
         Vec3Property, Vec4Property, StringProperty, FlagProperty, EnumProperty} from 'toolprops';
 import {ToolFlags, UndoFlags} from 'toolops_api';
@@ -710,6 +710,9 @@ export class DataAPI {
   }
   
   get_op_keyhandler(ctx, str) {
+    //$XXX
+    console.warn("get_op_keyhandler: implement me!");
+#if 0
     //build hash key from active screen area and str;
     var hash = str;
     if (ctx.screen.active.type != undefined)
@@ -743,6 +746,7 @@ export class DataAPI {
     //cache final result
     this.op_keyhandler_cache[hash] = find_hotkey_recurse(ctx.screen);
     return this.op_keyhandler_cache[hash] ;
+#endif
   }
   
   call_op(ctx, str) {

@@ -1,3 +1,22 @@
+export class Notification {
+
+}
+
+export class NotificationManager {
+  label() {
+
+  }
+
+  progbar() {
+
+  }
+
+  on_tick() {
+
+  }
+}
+
+#if 0
 import {UIElement, UIFlags, PackFlags, CanvasFlags} from 'UIElement';
 import {UIFrame} from 'UIFrame';
 import {
@@ -319,3 +338,4 @@ function test_notes() {
 }
 
 import {ScreenArea, Area} from 'ScreenArea';
+#endif

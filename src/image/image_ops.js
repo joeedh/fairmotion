@@ -12,7 +12,7 @@ import {TPropFlags} from 'toolprops';
 import 'struct'; //get istruct
 import {redo_draw_sort} from 'spline_draw';
 
-import {FileDialog, FileDialogModes, file_dialog, download_file} from 'dialogs';
+//$XXX import {FileDialog, FileDialogModes, file_dialog, download_file} from 'dialogs';
 
 import * as config from 'config';
 import * as html5_fileapi from 'fileapi';

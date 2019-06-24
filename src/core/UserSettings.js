@@ -2,7 +2,7 @@ import * as config from 'config';
 
 import {reload_default_theme} from 'theme';
 import {b64encode, b64decode} from 'strutils';
-import {download_file} from 'dialogs';
+//#XXX import {download_file} from 'dialogs';
 import {STRUCT} from 'struct';
 
 export class AppSettings {

@@ -1,9 +1,11 @@
+/* $XXX
 import {
   FileDialog, FileOpenOp, FileSaveAsOp, FileNewOp,
   FileSaveOp, ProgressDialog, LoginDialog, FileSaveSVGOp,
   FileSaveB64Op, FileDialog, error_dialog, import_json,
   download_file, FileOpenRecentOp
 } from 'dialogs';
+*/
 
 import {LoadImageOp} from 'image_ops';
 
@@ -30,7 +32,7 @@ import {SelectOpBase, SelectOneOp, ToggleSelectAllOp, SelectLinkedOp, HideOp, Un
 import {ExtrudeModes, ExtrudeVertOp, CreateEdgeOp, CreateEdgeFaceOp, ImportJSONOp} from 'spline_createops';
 import {KeyCurrentFrame, ShiftLayerOrderOp, SplineGlobalToolOp, SplineLocalToolOp, KeyEdgesOp, CopyPoseOp, PastePoseOp, InterpStepModeOp, DeleteVertOp, DeleteSegmentOp, DeleteFaceOp, ChangeFaceZ, DissolveVertOp, SplitEdgeOp, VertPropertyBaseOp, ToggleBreakTanOp, ToggleBreakCurvOp, ConnectHandlesOp, DisconnectHandlesOp, AnimPlaybackOp, ToggleManualHandlesOp, ShiftTimeOp, DuplicateOp, SplineMirrorOp} from 'spline_editops';
 import {AddLayerOp, ChangeLayerOp, ChangeElementLayerOp} from 'spline_layerops';
-import {SplitAreasTool, CollapseAreasTool, HintPickerOpElement, HintPickerOp} from 'FrameManager_ops';
+//import {SplitAreasTool, CollapseAreasTool, HintPickerOpElement, HintPickerOp} from 'FrameManager_ops';
 
 import {RenderAnimOp, PlayAnimOp} from 'view2d_spline_ops';
 import {SessionFlags} from "view2d_editor";

@@ -103,7 +103,7 @@ window.init_redraw_globals = function init_redraw_globals() {
               if (DEBUG.ui_redraw)
                 console.log("ui frame");
 
-              if (window.g_app_state != undefined)
+              if (window.g_app_state != undefined && window.g_app_state.eventhandler.on_draw)
                   window.g_app_state.eventhandler.on_draw();
           });
       }
@@ -386,14 +386,18 @@ window.init_redraw_globals = function init_redraw_globals() {
       if (g == undefined)
           return;
 
+      window._ensure_thedimens();
+
       // change the size of the canvas's backing store to match the size it is displayed.
-      var canvas = document.getElementById('canvas2d_work');
-      var canvas2d = document.getElementById("canvas2d")
+      //var canvas = document.getElementById('canvas2d_work');
+      //var canvas2d = document.getElementById("canvas2d")
 
-      g.canvas = canvas;
-      g.canvas2d = canvas2d;
+      //g.canvas = canvas;
+      //g.canvas2d = canvas2d;
 
-      //ensure canvas2d'd dimensions are correct
+      let screen = g.screen;
+
+      /*
       if (canvas2d.width != canvas.clientWidth || canvas2d.height != canvas.clientHeight) {
           canvas2d.width = canvas.clientWidth;
           canvas2d.height = canvas.clientHeight;
@@ -401,31 +405,10 @@ window.init_redraw_globals = function init_redraw_globals() {
           window.redraw_viewport();
 
           if (g != undefined && g.screen != undefined) {
-              g.screen.do_full_recalc();
+              //g.screen.do_full_recalc();
+              g.screen.update();
               window.redraw_ui();
           }
-      }
-      
-      window._ensure_thedimens();
-      
-      var width = window.theWidth, height = window.theHeight;
-
-      if (canvas.width == width && canvas.height == height)
-          return;
-
-      var oldsize = [canvas.width, canvas.height]
-      var newsize = [width, height]
-
-      canvas.width = width;
-      canvas.height = height;
-
-      g.size = new Vector2(newsize);
-
-      if (g.screen != undefined) {
-          g.screen.do_full_recalc();
-          g.eventhandler.on_resize(newsize, oldsize);
-
-          window.redraw_ui();
-      }
+      }//*/
   }
 }

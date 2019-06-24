@@ -123,13 +123,10 @@ window.startup = function startup() {
       startup_intern();
       
       //feed an on_resize event
-      var timer2 = window.setInterval(function() {
-        window.clearInterval(timer2);
-        
-        var canvas = document.getElementById("canvas2d");
+      window.setTimeout(function() {
+        //var canvas = document.getElementById("canvas2d");
   
         window._ensure_thedimens();
-        
         g_app_state.screen.on_resize([window.theWidth, window.theHeight]);
       }, 200);
     }, 450);
@@ -161,9 +158,9 @@ window.startup_intern = function startup() {
   }//*/
   
   //return;
-  
+
   load_modules();
-  
+
   if (window.CHROME_APP_MODE) {
     //set up some chrome app settings
     var config = _es6_get_module("config");
@@ -172,11 +169,6 @@ window.startup_intern = function startup() {
   
   init_theme();
   init_redraw_globals();
-  
-  var canvas = document.getElementById('canvas2d_work');
-  canvas.width = canvas.clientWidth;
-  canvas.height = canvas.clientHeight;
-  window._canvas2d_ctx = canvas.getContext("2d");
   
   //remove default mouse handlers (especially right click)
   document.onselectstart = function() { return false; };
@@ -198,11 +190,12 @@ window.startup_intern = function startup() {
       startup_report("create event dag...")
       init_event_graph();
 
+      var body = document.body;
       g_app_state = new AppState(undefined, undefined, undefined);
-      g_app_state.size = [canvas.clientWidth, canvas.clientHeight];
+      g_app_state.size = [body.clientWidth, body.clientHeight];
 
       startup_report("loading new scene file...");
-      gen_default_file([canvas.clientWidth, canvas.clientHeight]);
+      gen_default_file([body.clientWidth, body.clientHeight]);
 
       g_app_state.session.validate_session();
       init_event_system();
@@ -248,17 +241,26 @@ function init_event_system() {
   //start primary on_tick timer
   window.setInterval(function () {
     if (g_app_state != undefined && g_app_state.screen != undefined) {
-      g_app_state.screen._on_tick();
+      let w = window.theWidth, h = window.theHeight;
+
+      window._ensure_thedimens();
+
+      if (w != window.theWidth || h != window.theHeight) {
+        console.log("resize!");
+        g_app_state.screen.on_resize([window.theWidth, window.theHeight]);
+      }
+
+      g_app_state.screen.update();
     }
   }, config.ON_TICK_TIMER_MS);
-  
+
   function stop_event_propegation(e) {
-      //e.stopImmediatePropagation();
-      e.stopPropagation();
-      e.preventDefault();
+    //e.stopImmediatePropagation();
+    e.stopPropagation();
+    e.preventDefault();
   }
 
-
+#if 0
   function handleTouchMove(e) {
       g_app_state.was_touch = true;
       stop_event_propegation(e);
@@ -293,7 +295,7 @@ function init_event_system() {
 
           var evt = new MyMouseEvent(e.pageX, g_app_state.screen.size[1] - e.pageY, 0,
                   MyMouseEvent.MOUSEMOVE);
-          g_app_state.eventhandler._on_mousemove(evt);
+          g_app_state.eventhandler.on_mousemove(evt);
       }
   }
 
@@ -329,7 +331,7 @@ function init_event_system() {
           event.x = event.pageX;
           event.y = g_app_state.screen.size[1] - event.pageY;
 
-          g_app_state.eventhandler._on_mousewheel(event, delta);
+          g_app_state.eventhandler.on_mousewheel(event, delta);
       }
   }
 
@@ -464,7 +466,7 @@ function init_event_system() {
           e2.ctrlKey = e.ctrlKey;
 
           //console.log("md1", e.x, e.y);
-          g_app_state.eventhandler._on_mousedown(e2);
+          g_app_state.eventhandler.on_mousedown(e2);
 
           var is_dclick = last_mouse_button == e.button && time_ms() - last_mouse_down < DBCLK_THRESH;
           var dx = last_mouse_pos[0] - e.pageX, dy = last_mouse_pos[1] - e.pageY;
@@ -483,7 +485,7 @@ function init_event_system() {
               e2.altKey = e.altKey;
               e2.ctrlKey = e.ctrlKey;
 
-              g_app_state.eventhandler._on_doubleclick(e2);
+              g_app_state.eventhandler.on_doubleclick(e2);
           }
 
           //console.log("md2", e.x, e.y);
@@ -505,7 +507,7 @@ function init_event_system() {
           e2.altKey = e.altKey;
           e2.ctrlKey = e.ctrlKey;
 
-          g_app_state.eventhandler._on_mouseup(e2);
+          g_app_state.eventhandler.on_mouseup(e2);
       }
 
       if (e.button == 2) {
@@ -513,6 +515,7 @@ function init_event_system() {
           return false;
       }
   }
+#endif
 
   function gen_keystr(key, keystate) {
       if (typeof key == "number") {
@@ -572,7 +575,7 @@ function init_event_system() {
       handle_key_exclude(e);
 
       if (g_app_state.screen != undefined)
-          g_app_state.eventhandler._on_keydown(e)
+          g_app_state.eventhandler.on_keydown(e)
   }
 
   function handleKeyUp(e) {
@@ -583,7 +586,7 @@ function init_event_system() {
       handle_key_exclude(e);
 
       if (g_app_state.screen != undefined)
-          g_app_state.eventhandler._on_keyup(e);
+          g_app_state.eventhandler.on_keyup(e);
   }
 
   function handleKeyPress(e) {
@@ -598,13 +601,15 @@ function init_event_system() {
               return;
 
           e["char"] = String.fromCharCode(e.charCode);
-          g_app_state.eventhandler._on_charcode(e);
+          if (g_app_state.eventhandler !== undefined && g_app_state.eventhandler.on_charcode) {
+            g_app_state.eventhandler.on_charcode(e);
+          }
       }
   }
 
   function handleTextInput(e, e2) {
-      //console.log("ya0", e, e2);
-
+      console.log("text input event", e, e2);
+      #if 0
       uevt = e;
       if (g_app_state.screen != undefined) {
           var canvas = document.getElementById("canvas2d_work");
@@ -618,14 +623,15 @@ function init_event_system() {
           text = text.replace(/\<TK\>/g, "");
 
           //console.log("textinput event");
-          g_app_state.eventhandler._on_textinput({text: text});
+          g_app_state.eventhandler.on_textinput({text: text});
       }
+      #endif
   }
 
-  var ce = document.getElementById("canvas2d_work");
+  //var ce = document.getElementById("canvas2d_work");
   
-  eman.init(ce);
-  
+  eman.init(g_app_state.screen);
+  /*
   eman.addEventListener("mousemove", handleMouseMove, false);
   eman.addEventListener("mousedown", handleMouseDown, false);
   eman.addEventListener("touchstart", handleTouchDown, false);
@@ -636,7 +642,8 @@ function init_event_system() {
   
   eman.addEventListener("DOMMouseScroll", handleMouseWheel, false);
   eman.addEventListener("mousewheel", handleMouseWheel, false);
-  
+  //*/
+
   eman.addEventListener("keydown", handleKeyDown, false);
   eman.addEventListener("keyup", handleKeyUp, false);
   

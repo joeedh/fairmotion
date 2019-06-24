@@ -274,23 +274,43 @@ function SchemaParser() {
     
     return {type : T_ITER, data : {type : arraytype, iname : itername}};
   }
-  
+
+  function p_dotid(p) {
+    let id = p.expect("ID");
+    let ok = 1;
+
+    while (ok) {
+      let t = p.peeknext();
+
+      if (t.type == "DOT") {
+        p.next();
+
+        id += "." + p.expect("ID");
+
+        ok = 1;
+      } else {
+        ok = 0;
+      }
+    }
+
+    return id;
+  }
+
   function p_Abstract(p) {
     p.expect("ABSTRACT");
     p.expect("LPARAM");
     
-    var type = p.expect("ID");
+    var type = p_dotid(p);
     p.expect("RPARAM");
     
     return {type : T_TSTRUCT, data : type};
   }
-  
+
   function p_Type(p) {
     var tok = p.peek()
     
     if (tok.type == "ID") {
-      p.next();
-      return {type : T_STRUCT, data : tok.value};
+      return {type : T_STRUCT, data : p_dotid(p)};
     } else if (basic_types.has(tok.type.toLowerCase())) {
       p.next();
       return {type : SchemaTypes[tok.type.toLowerCase()]};
@@ -319,13 +339,13 @@ function SchemaParser() {
     field.set = undefined;
     field.get = undefined;
     
-    var tok = p.peek();
+    var tok = p.peeknext();
     if (tok.type == "JSCRIPT") {
       field.get =  tok.value;
       p.next()
     }
     
-    tok = p.peek();
+    tok = p.peeknext();
     if (tok.type == "JSCRIPT") {
       field.set = tok.value;
       p.next();

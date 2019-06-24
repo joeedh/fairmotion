@@ -1,3 +1,28 @@
+import {Area} from 'ScreenArea';
+import {STRUCT} from 'struct';
+import {UIBase} from 'ui_base';
+
+export class CurveEditor extends Area {
+  static define() { return {
+    tagname : "curve-editor-x",
+    areaname : "curve_editor",
+    uiname : "Curve Editor"
+  }}
+
+  static fromSTRUCT(reader) {
+    let ret = document.createElement("curve-editor-x");
+    reader(ret);
+    return ret;
+  }
+}
+
+CurveEditor.STRUCT = STRUCT.inherit(CurveEditor, Area) + `
+}
+`;
+Area.register(CurveEditor);
+
+
+#if 0
 "use strict";
 
 import {aabb_isect_2d} from 'mathlib';
@@ -131,3 +156,4 @@ CurveEditor.STRUCT = STRUCT.inherit(CurveEditor, Area) + `
 `;
 
 CurveEditor.uiname = "Curve Editor";
+#endif

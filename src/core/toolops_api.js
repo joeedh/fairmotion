@@ -6,6 +6,95 @@ import {STRUCT} from 'struct';
 import {EventHandler} from "../editors/viewport/events";
 import {charmap} from "../editors/viewport/events";
 
+export function patchMouseEvent(e, dom) {
+  dom = dom === undefined ? g_app_state.screen : dom;
+
+  let e2 = {
+    prototype : e
+  };
+
+  let keys = Object.getOwnPropertyNames(e).concat(Object.getOwnPropertySymbols(e));
+  for (let k in e) {
+    keys.push(k);
+  }
+
+  for (let k of keys) {
+    try {
+      e2[k] = e[k];
+    } catch (error) {
+      console.log("failed to set property", k);
+      continue;
+    }
+
+    if (typeof e2[k] == "function") {
+      e2[k] = e2[k].bind(e);
+    }
+  }
+
+  let rect = dom.getClientRects()[0];
+
+  e2.x = ((e.x === undefined ? e.clientX : e.x)-rect.left);
+  e2.y = ((e.y === undefined ? e.clientY : e.y)-rect.top);
+
+  e2.y = rect.height - e2.y;
+
+  e2.x *= window.devicePixelRatio;
+  e2.y *= window.devicePixelRatio;
+
+  return e2;
+}
+
+export function pushModalLight(obj) {
+  let keys = new Set([
+    "keydown", "keyup", "keypress", "mousedown", "mouseup", "touchstart", "touchend",
+    "touchcancel", "mousewheel", "mousemove"
+  ]);
+
+  let ret = {
+    keys : keys,
+    handlers : {}
+  };
+
+  function make_handler(type, key) {
+    return function(e) {
+      if (type.startsWith("mouse")) {
+        e = patchMouseEvent(e);
+      }
+
+      let ret = key !== undefined ? obj[key](e) : undefined;
+
+      e.preventDefault();
+      e.stopPropagation();
+      return ret;
+    }
+  }
+
+  for (let k of keys) {
+    let key;
+
+    if (obj["on"+k])
+      key = "on" + k;
+    else if (obj["on_"+k])
+      key = "on_" + k;
+    else
+      key = undefined;
+
+    let handler = make_handler(k, key);
+    ret.handlers[k] = handler;
+    window.addEventListener(k, handler);
+  }
+
+  return ret;
+}
+
+export function popModalLight(state) {
+  for (let k in state.handlers) {
+    window.removeEventListener(k, state.handlers[k]);
+  }
+
+  state.handlers = {};
+}
+
 /*
   basic design of tool ops:
   
@@ -153,7 +242,7 @@ export class ToolOpAbstract {
         ret[1] = this.outputs;
       }
     } else {
-      console.trace("Deprecation warning: oldest (and evilest) form\
+      console.warn("Deprecation warning: oldest (and evilest) form\
                      of toolprop detected for", this);
     }
     
@@ -229,7 +318,11 @@ export class ToolOpAbstract {
       
     return ToolOpAbstract._inherit_slots(cls.inputs, newslots);
   }
-  
+
+  static invoke(ctx, args) {
+    return new this();
+  }
+
   static inherit_outputs(cls, newslots) {
     if (cls.outputs === undefined)
       return newslots;
@@ -405,7 +498,10 @@ export class ToolOp extends ToolOpAbstract {
   /*private function*/
   _start_modal(ctx : Context) {
     this.modal_running = true;
-    ctx.view2d.push_modal(this);
+
+    //ctx.view2d.push_modal(this);
+    this._modal_state = pushModalLight(this);
+
     this.modal_ctx = ctx;
   }
 
@@ -414,8 +510,13 @@ export class ToolOp extends ToolOpAbstract {
     
     this.modal_running = false;
     this.saved_context = new SavedContext(this.modal_ctx);
-    this.modal_ctx.view2d.pop_modal();
-    
+
+    if (this._modal_state !== undefined) {
+      //this.modal_ctx.view2d.pop_modal();
+      popModalLight(this._modal_state);
+      this._modal_state = undefined;
+    }
+
     if (this.on_modal_end !== undefined)
       this.on_modal_end(this);
     
@@ -1003,8 +1104,9 @@ window.init_toolop_structs = function() {
     var ok=false;
     var is_toolop = false;
     
-    var parent = cls.__parent__;
-    while (parent !== undefined) {
+    var parent = cls.prototype.__proto__.constructor;
+
+    while (parent) {
       if (parent === ToolOpAbstract) {
         ok = true;
       } else if (parent === ToolOp) {
@@ -1013,13 +1115,22 @@ window.init_toolop_structs = function() {
         break;
       }
       
-      parent = parent.__parent__;
+      parent = parent.prototype.__proto__;
+
+      if (!parent)
+        break;
+
+      parent = parent.constructor;
+
+      if (!parent || parent === Object)
+        break;
     }
-    
+
     if (!ok) continue;
-    
+
     //console.log("-->", cls.name);
-    if (!("STRUCT" in cls)) {
+
+    if (!Object.hasOwnProperty(cls, "STRUCT")) {
       cls.STRUCT = cls.name + " {" + """
         flag    : int;
         inputs  : iter(k, PropPair) | new PropPair(k, obj.inputs[k]);
@@ -1030,13 +1141,13 @@ window.init_toolop_structs = function() {
       
       cls.STRUCT += "  }";
     }
-    
+
     if (!cls.fromSTRUCT) {
       cls.fromSTRUCT = gen_fromSTRUCT(cls);
-      define_static(cls, "fromSTRUCT", cls.fromSTRUCT);
+      //define_static(cls, "fromSTRUCT", cls.fromSTRUCT);
     }
   }
-}
+};
 
 //builds a basic, flexible mesh widget that centers on selected geometry
 //gen_toolop has prototype: gen_toolop(ctx, id, widget) { }

@@ -17,6 +17,22 @@ I was planning on doing that later.
 
 */
 
+function is_int(s) {
+  s = s.trim();
+
+  if (typeof s == "number") {
+    return s == ~~s;
+  }
+
+  let m = s.match(/(\-)?[0-9]+/);
+
+  if (!m)
+    return false;
+
+  return m[0].length == s.length;
+}
+window._is_int = is_int;
+
 export var DataPathTypes = {PROP: 0, STRUCT: 1, STRUCT_ARRAY : 2};
 export var DataFlags = {NO_CACHE : 1, RECALC_CACHE : 2};
 
@@ -36,14 +52,13 @@ import {apiparser} from 'data_api_parser';
 import {MultiResLayer, MultiResEffector, MResFlags, has_multires, 
         ensure_multires, iterpoints, compose_id, decompose_id
        } from 'spline_multires';
+
 import * as safe_eval from 'safe_eval';
 
-export class DataAPIError extends Error {
-  constructor(msg) {
-    super(msg);
-  }
-}
-window.DataAPIError = DataAPIError;
+export * from 'data_api_base';
+import {
+  DataPathTypes, DataFlags, DataAPIError
+} from 'data_api_base';
 
 export class DataPath {
   constructor(prop, name, path, dest_is_prop=false, use_path=true, flag=0) { 
@@ -502,11 +517,13 @@ TinyParser.ctemplates = {
 TinyParser.split_chars = new set([",", "=", "(", ")", ".", "$", "[", "]"]);
 TinyParser.ws = new set([" ", "\n", "\t", "\r"]);
 
+import {toolmap} from 'data_api_pathux';
+
 export class DataAPI { 
   constructor(appstate) {
     this.appstate = appstate;
     
-    this.ops = data_ops_list;
+    //this.ops = data_ops_list;
     this.parser = new TinyParser();
     this.parser2 = apiparser();
     
@@ -552,7 +569,7 @@ export class DataAPI {
     }
     
     function parse_call(p) {
-      p.expect(_TOKEN, _LP);
+       p.expect(_TOKEN, _LP);
       var args=[];
       var t = undefined
       
@@ -688,7 +705,24 @@ export class DataAPI {
 
     return args;
   }
-  
+
+  get_opclass_intern(ctx, str) {
+    var ret = this.parse_call_line(ctx, str);
+
+    if (ret == undefined)
+      return;
+
+    var call = ret[1];
+    var path = ret[0];
+
+    if (!(path in toolmap)) { //this.ops)) {
+      console.error("Invalid api call " + str + "!");
+      return;
+    }
+
+    return toolmap[path];
+  }
+
   get_op_intern(ctx, str) {
     var ret = this.parse_call_line(ctx, str);
     
@@ -698,13 +732,16 @@ export class DataAPI {
     var call = ret[1];
     var path = ret[0];
     
-    if (!(path in this.ops)) {
-      console.log("Invalid api call " + str + "!");
+    if (!(path in toolmap)) { //this.ops)) {
+      console.error("Invalid api call " + str + "!");
       return;
     }
     
     var args = this.prepare_args(ctx, call);
-    var op = this.ops[path](ctx, args)
+
+    let cls = toolmap[path];
+    let op = cls.invoke(ctx, args);
+    //var op = this.ops[path](ctx, args)
 
     return op;
   }
@@ -824,7 +861,26 @@ export class DataAPI {
       }
     }
   }
-  
+
+  get_opclass(ctx, str) {
+    if (str == undefined) {
+      str = ctx;
+      ctx = new Context();
+    }
+
+    try {
+      var op = this.get_opclass_intern(ctx, str);
+      return op;
+    } catch (error) {
+      if ((error instanceof TinyParserError)) {
+        throw error;
+      } else {
+        console.log("Error calling " + str);
+        console.trace();
+      }
+    }
+  }
+
   copy_path(path) {
     var ret = [];
     
@@ -848,7 +904,7 @@ export class DataAPI {
     s = s.slice(0, s.length-1); //get rid of trailing '.' 
     return s;
   }
-  
+
   on_frame_change(ctx, time) {
     //console.log("api time update!", time);
     
@@ -1018,6 +1074,23 @@ export class DataAPI {
         
         spathout[0] = spathout[0] + ".pathmap." + node.val;
         
+        return ret;
+      } else if (node.type == "EQUALS") {
+        let ret = do_eval(node.children[0], scope, pathout, spathout);
+
+        pathout[0] += "==";
+        let val = node.children[1].value;
+
+        if (typeof val == "string" || val instanceof String) {
+          let prop = ret.data;
+
+          if (prop.type == PropTypes.ENUM) {
+            val = prop.values[val];
+          }
+        }
+
+        pathout[0] += val;
+
         return ret;
       } else if (node.type == "CODE") {
         mass_set = {
@@ -1380,7 +1453,18 @@ export class DataAPI {
       } else {
         path = ret[2];
       }
-      
+
+      //truncate equals paths, e.g. some_enum == 3
+      let si = path.search(/\=\=/);
+      if (si >= 0) {
+        value = path.slice(si+2, path.length).trim();
+        path = path.slice(0, si).trim();
+
+        if (is_int(value)) {
+          value = parseInt(value);
+        }
+      }
+
       var prop = ret[0].data;
       prop.ctx = ctx;
       
@@ -1422,9 +1506,8 @@ export class DataAPI {
         if (prop.type == PropTypes.DATAREF) {
           console.trace("IMPLEMENT ME!");
         } else if (prop.type == PropTypes.ENUM) {
-          value = prop.values[value];
           if (value instanceof String || typeof value == "string") {
-            value = '"'+value+'"';
+            value = prop.values[value];
           }
         } else if (prop.type == PropTypes.STRING) {
           value = '"' + value + '"';
@@ -1472,7 +1555,8 @@ export class DataAPI {
             changed = value == old_value;
             
             path += " = " + value;
-            
+            console.log("SETPATH:", path);
+
             this.evaluate(ctx, path);
           }
         }
@@ -1482,7 +1566,7 @@ export class DataAPI {
         if (DEBUG.ui_datapaths) {
           console.log("prop set:", valpath, value);
         }
-        
+
         value = this.evaluate(ctx, valpath);
         prop.set_data(value, owner, changed);
       }

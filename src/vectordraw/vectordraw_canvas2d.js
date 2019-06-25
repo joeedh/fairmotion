@@ -291,7 +291,7 @@ export class CanvasPath extends QuadBezPath {
     
     vectordraw_jobs.manager.postRenderJob(renderid, commands2).then((data) => {
       //console.log("Got render result!", data);
-      
+
       //this.__image = undefined;
       this._image = data;
       this._image_off = imageoff;

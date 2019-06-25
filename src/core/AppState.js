@@ -79,17 +79,28 @@ it's a bit stupid.
     }
 
     stack.pop(stack.length - 1);
+
+    if (stack.length > 0) {
+      _area_active_lasts[this.constructor.name] = stack[stack.length-1];
+    }
   };
 })();
 
 import {Screen} from 'FrameManager';
+import {PathUXInterface} from 'data_api_pathux';
 
-export function gen_screen(unused, w, h) {
+export function get_app_div() {
   let app = document.getElementById("app");
 
   if (!app) {
     app = document.body;
   }
+
+  return app;
+}
+
+export function gen_screen(unused, w, h) {
+  let app = get_app_div();
 
   let screen = document.getElementById("screenmain");
   if (screen) {
@@ -308,6 +319,13 @@ class UserSession {
   }
 }
 
+window.test_load_file = function() {
+  var buf = startup_file_str;
+  buf = new DataView(b64decode(buf).buffer);
+
+  g_app_state.load_user_file_new(buf, undefined, new unpack_ctx());
+};
+
 //size is screen size
 window.gen_default_file = function gen_default_file(size) {
   //needed for chrome app file system api
@@ -316,7 +334,7 @@ window.gen_default_file = function gen_default_file(size) {
   var g = g_app_state;
   global startup_file_str;
 
-  #if 0
+  #if 1
   if (!myLocalStorage.hasCached("startup_file")) {
     myLocalStorage.startup_file = startup_file_str;
   }
@@ -344,7 +362,7 @@ window.gen_default_file = function gen_default_file(size) {
   }
   
   if (size == undefined)
-    var size = [512, 512];
+    size = [512, 512];
   #endif
 
   //reset app state, calling without args
@@ -382,11 +400,11 @@ function output_startup_file() : String {
 export class AppState {
   //XXX mesh? gl? nuke 'em!
   constructor(screen : FrameManager, mesh : Mesh, gl : WebGLRenderingContext) {
-    this.init(screen, mesh, gl);
+    this.AppState_init(screen, mesh, gl);
   }
 
   //XXX mesh? gl? nuke 'em!
-  init(screen : FrameManager, mesh : Mesh, gl : WebGLRenderingContext) {
+  AppState_init(screen : FrameManager, mesh : Mesh, gl : WebGLRenderingContext) {
     this.screen = screen;
     this.eventhandler = screen : EventHandler;
     
@@ -408,6 +426,10 @@ export class AppState {
     this.toolstack = new ToolStack(this);
     this.active_view2d = undefined;
     this.api = new DataAPI(this);
+
+    this.pathcontroller = new PathUXInterface(this.api);
+    this.pathcontroller.setContext(new Context(this));
+
     this.filepath = ""
     this.version = g_app_version;
     this.gl = gl;
@@ -464,8 +486,9 @@ export class AppState {
       scene.active_splinepath = val;
   }
   
-  destroy() { //destroy GL object references
-    this.screen.destroy();
+  destroy() {
+    console.trace("Appstate.destroy called");
+    this.destroyScreen();
   }
   
   on_gl_lost(new_gl : WebGLRenderingContext) {
@@ -506,16 +529,16 @@ export class AppState {
     }
     
     window.active_canvases = {};
-    
-    this.init(screen, undefined, this.gl);
-    
+
     try {
       if (this.screen !== undefined)
-        this.screen.destroy()
+        this.destroyScreen();
     } catch (error) {
       print_stack(error);
       console.log("ERROR: failed to fully destroy screen context");
     }
+
+    this.AppState_init(screen, undefined, this.gl);
   }
 
   //shallow copy
@@ -627,9 +650,8 @@ export class AppState {
     this.link_blocks(datalib, filedata);
     
     //this.load_user_file_new(undofile);
-    this.screen = screen;
+
     this.eventhandler = screen;
-    
     this.toolstack = toolstack;
     
     this.screen.ctx = new Context();
@@ -972,13 +994,37 @@ export class AppState {
     }
   }
 
+  dataLinkScreen(screen, getblock, getblock_us) {
+    for (let sarea of screen.sareas) {
+      for (let area of sarea.editors) {
+        area.data_link(area, getblock, getblock_us);
+      }
+    }
+  }
+
+  destroyScreen() {
+    console.warn("destroyScreen called");
+
+    if (this.screen !== undefined) {
+      for (let sarea of this.screen.sareas) {
+        for (let area of sarea.editors) {
+          area.on_destroy();
+        }
+      }
+
+      this.screen.clear();
+      this.screen.remove();
+      this.screen = undefined;
+    }
+  }
+
   do_versions_post(version : float) {
   }
   
   load_user_file_new(data : DataView, path : String, uctx : unpack_ctx, use_existing_screen=false) {
     //fixes a bug where some files loaded with squished
     //size.  probably need to track down actual cause, though.
-    if (this.screen != undefined)
+    if (this.screen !== undefined)
       this.size = new Vector2(this.screen.size);
     
     if (uctx == undefined) {
@@ -998,7 +1044,7 @@ export class AppState {
     var version_minor = unpack_int(data, uctx)/1000.0;
     
     var version = version_major + version_minor;
-    
+
     if (file_flag & FileFlags.COMPRESSED_LZSTRING) {
       if (DEBUG.compression)
         console.log("decompressing. . .");
@@ -1076,7 +1122,7 @@ export class AppState {
           datalib.add(b.data, false);
         } else {
           if (b.type == "SCRN") {
-            b.data = fstructs.read_object(b.data, Screen);
+            b.data = this.readScreen(fstructs, b.data);
           } else if (b.type == "THME") {
             b.data = fstructs.read_object(b.data, Theme);
           }
@@ -1118,8 +1164,7 @@ export class AppState {
     
     var toolstack = undefined;
     var this2 = this;
-    
-    
+
     function load_state() {
       //handle version changes
       this2.do_versions(datalib, blocks, version);
@@ -1137,11 +1182,14 @@ export class AppState {
         
         if (block.type == "SCRN") {
           screen = block.data;
+          console.log("SCREEN", screen, screen.sareas);
         }
       }
-      
-      var size =  new Vector2(this2.size);
-      if (screen == undefined) {
+
+      this2.destroyScreen();
+
+      var size = new Vector2(this2.size);
+      if (screen === undefined) {
         //generate default UI layout
         gen_default_file(this2.size);
         
@@ -1161,12 +1209,16 @@ export class AppState {
         }
         this2.reset_state(screen, undefined);
         this2.datalib = datalib;
+
+        get_app_div().appendChild(screen);
       }
+
+      this2.screen = screen;
       this2.size = size;
       
       //stupid. . .
-      for (var sa of screen.areas) {
-        //need to get rid of appstate.active_view2d
+      for (var sa of screen.sareas) {
+        //TODO: need to get rid of appstate.active_view2d
         if (sa.area instanceof View2DHandler) {
           this2.active_view2d = sa.area;
           break;
@@ -1174,10 +1226,10 @@ export class AppState {
       }
       
       var ctx = new Context();
-      
+
       if (screen != undefined) {
         screen.view2d = this2.active_view2d;
-        screen.data_link(screen, getblock, getblock_us);
+        this2.dataLinkScreen(screen, getblock, getblock_us);
       }
       
       //load data into appstate
@@ -1185,12 +1237,10 @@ export class AppState {
         this2.datalib.on_destroy();
       }
       this2.datalib = datalib;
-      if (this2.screen.canvas == undefined) {
-        this2.screen.canvas = new UICanvas([new Vector2(this2.screen.pos), new Vector2(this2.screen.size)])
-      }
-      
+
       this2.eventhandler = this2.screen;
       this2.screen.on_resize(this2.size);
+
       this2.screen.size = this2.size;
       
       var ctx = new Context();
@@ -1282,6 +1332,72 @@ export class AppState {
     window.redraw_viewport();
   }
 
+  readScreen(fstructs, data) {
+    let screen;
+
+    if (!(Screen.structName in fstructs.structs)) {
+      console.log("converting pre-path.ux file");
+
+      let fakeclass = {
+        fromSTRUCT : (reader) => {
+          let ret = {};
+          reader(ret);
+          return ret;
+        },
+
+        structName : "Screen",
+        name : "Screen"
+      };
+
+
+      data = fstructs.read_object(data, fakeclass);
+      screen = document.createElement("screen-x");
+
+      screen.size = data.size;
+      console.log(data);
+      console.log("SCREEN SIZE", screen.size);
+
+      for (let sarea of data.areas) {
+        console.log("AREA!");
+
+        let sarea2 = document.createElement("screenarea-x");
+
+        sarea2.size = sarea.size;
+        sarea2.pos = sarea.pos;
+
+        for (let editor of sarea.editors) {
+          let areaname = editor.constructor.define().areaname;
+
+          sarea2.editors.push(editor);
+          sarea2.editormap[areaname] = editor;
+
+          if (editor.constructor.name == sarea.area) {
+            sarea2.area = editor;
+            sarea2.shadow.appendChild(editor);
+          }
+        }
+
+        screen.appendChild(sarea2);
+      }
+    } else {
+      screen = fstructs.read_object(data, Screen);
+    }
+
+    screen.style["width"] = "100%";
+    screen.style["height"] = "100%";
+    screen.style["position"] = "absolute";
+
+    screen.setAttribute("id", "screenmain");
+    screen.id = "screenmain";
+
+    screen.ctx = new Context();
+
+    screen.setCSS();
+    screen.makeBorders();
+
+    return screen;
+  }
+
   load_blocks(DataView data, unpack_ctx uctx) {
     if (uctx == undefined) {
       uctx = new unpack_ctx();
@@ -1366,7 +1482,8 @@ export class AppState {
     var version = filedata.version;
     
     var tmap = get_data_typemap();
-    
+    var screen = undefined;
+
     for (var i=0; i<blocks.length; i++) {
       var b = blocks[i];
       
@@ -1383,7 +1500,7 @@ export class AppState {
           datalib.add(b.data, false);
         } else {
           if (b.type == "SCRN") {
-            b.data = fstructs.read_object(b.data, Screen);
+            b.data = screen = this.readScreen(fstructs, b.data);
           }
         }
       }
@@ -1395,8 +1512,7 @@ export class AppState {
     
     var getblock = wrap_getblock(datalib);
     var getblock_us = wrap_getblock_us(datalib);  
-    var screen = undefined;
-    
+
     this.scene = undefined;
     
     //handle version changes
@@ -1414,10 +1530,10 @@ export class AppState {
         block.data.data_link(block.data, getblock, getblock_us);
       }
     }
-    
-    for (var i=0; i<blocks.length; i++) {
-      var block = blocks[i];
-      
+
+    for (let block of blocks) {
+    //for (var i=0; i<blocks.length; i++) {
+      //var block = blocks[i];
       if (block.type == "SCRN") {
         screen = block.data;
       }
@@ -1426,7 +1542,7 @@ export class AppState {
     if (screen != undefined) {
       this.active_view2d = undefined;
       
-      for (var sa of screen.areas) {
+      for (var sa of screen.sareas) {
         //need to get rid of appstate.active_view2d
         if (sa.area instanceof View2DHandler) {
           this.active_view2d = sa.area;
@@ -1439,14 +1555,10 @@ export class AppState {
     
     if (screen != undefined) {
       screen.view2d = this.active_view2d;
-      screen.data_link(screen, getblock, getblock_us);
+      this.dataLinkScreen(screen, getblock, getblock_us);
     }
     
     if (screen != undefined) {
-      if (screen.canvas == undefined) {
-        screen.canvas = new UICanvas([new Vector2(screen.pos), new Vector2(screen.size)])
-      }
-      
       screen.on_resize(this.size);
       screen.size = this.size;
     }
@@ -1531,7 +1643,7 @@ class SavedContext {
       fset.editmode = this._frameset_editmode;
     state.switch_active_spline(this._spline_path);
     
-    var spline = state.api.get_object(this._spline_path); 
+    var spline = state.api.get_object(this._spline_path);
     if (spline != undefined) {
       var layer = spline.layerset.idmap[this._active_spline_layer];
       
@@ -1546,7 +1658,7 @@ class SavedContext {
   }
   
   get spline() : FrameSet {
-    var ret = g_app_state.api.get_object(this._spline_path); 
+    var ret = g_app_state.api.get_object(this._spline_path);
     
     if (ret == undefined) {
       warntrace("Warning: bad spline path", this._spline_path);
@@ -1604,13 +1716,16 @@ import {SplineFrameSet} from 'frameset';
 import {SettingsEditor} from "../editors/settings/SettingsEditor";
 
 export class Context {
-  constructor() {
-    this.font = g_app_state.raster.font;
-    this.appstate = g_app_state;
+  constructor(state=g_app_state) {
+    this.appstate = state;
     this.keymap_mpos = [0, 0];
-    this.api = g_app_state.api;
+    this.api = state.pathcontroller;
   }
-  
+
+  get font() {
+    return g_app_state.raster.font;
+  }
+
   switch_active_spline(newpath) {
     g_app_state.switch_active_spline(newpath);
   }
@@ -1629,7 +1744,7 @@ export class Context {
   }
 
   get spline() : FrameSet {
-    var ret = this.api.get_object(g_app_state.active_splinepath); 
+    var ret = this.api.getObject(g_app_state.active_splinepath);
     
     if (ret == undefined) {
       warntrace("Warning: bad spline path", g_app_state.active_splinepath);

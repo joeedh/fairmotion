@@ -1,8 +1,9 @@
 import {Area} from 'ScreenArea';
 import {STRUCT} from 'struct';
 import {UIBase} from 'ui_base';
+import {Editor} from 'editor_base';
 
-export class MaterialEditor extends Area {
+export class MaterialEditor extends Editor {
   static define() { return {
     tagname : "material-editor-x",
     areaname : "material_editor",
@@ -18,7 +19,7 @@ export class MaterialEditor extends Area {
 MaterialEditor.STRUCT = STRUCT.inherit(MaterialEditor, Area) + `
 }
 `;
-Area.register(MaterialEditor);
+Editor.register(MaterialEditor);
 
 #if 0
 import {gen_editor_switcher} from 'UIWidgets_special';

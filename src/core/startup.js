@@ -183,19 +183,20 @@ window.startup_intern = function startup() {
       init_struct_packer();
 
       startup_report("initializing data api...");
-      
-      api_define_ops();
-      api_define_context();
+
+      init_data_api();
       
       startup_report("create event dag...")
       init_event_graph();
 
       var body = document.body;
       g_app_state = new AppState(undefined, undefined, undefined);
-      g_app_state.size = [body.clientWidth, body.clientHeight];
+      let w = window.innerWidth, h = window.innerHeight;
+
+      g_app_state.size = [w, h];
 
       startup_report("loading new scene file...");
-      gen_default_file([body.clientWidth, body.clientHeight]);
+      gen_default_file([w, h]);
 
       g_app_state.session.validate_session();
       init_event_system();
@@ -604,6 +605,7 @@ function init_event_system() {
           if (g_app_state.eventhandler !== undefined && g_app_state.eventhandler.on_charcode) {
             g_app_state.eventhandler.on_charcode(e);
           }
+
       }
   }
 

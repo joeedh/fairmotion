@@ -2,6 +2,7 @@
 ;
 import {STRUCT} from 'struct';
 import {pack_int, pack_float, pack_static_string} from 'ajax';
+import {setPropTypes} from '../path.ux/scripts/toolprop'
 
 export var PropTypes = {
   INT    : 0,
@@ -26,12 +27,20 @@ export var PropTypes = {
   COLOR4      : 25
 };
 
+setPropTypes(PropTypes);
+
 export var TPropFlags = {
-  PRIVATE         : 1, 
-  LABEL           : 2, 
-  COLL_LOOSE_TYPE : 4,
-  USE_UNDO        : 8, //use toolstack.exec_datapath instead of api.set_prop
-  UNDO_SIMPLE     : 16 //use simple undo implementation
+  PRIVATE         : 2,
+  LABEL           : 4,
+  COLL_LOOSE_TYPE : 8,
+  USE_UNDO        : 16, //use toolstack.exec_datapath instead of api.set_prop
+  UNDO_SIMPLE     : 32, //use simple undo implementation
+  USE_ICONS       : 64,
+  USE_CUSTOM_GETSET : 128
+};
+
+export const PropSubTypes = {
+  COLOR : 1
 };
 
 export class ToolProperty {
@@ -64,7 +73,17 @@ export class ToolProperty {
     this.unit = undefined;
     this.icon = -1;
   }
-  
+
+  //path.ux compatibility method
+  getValue() {
+    return this.data;
+  }
+
+  //path.ux compatibility method
+  setValue(value) {
+    this.set_data(value);
+  }
+
   copyTo(dst, copy_data=false) {
     dst.flag = this.flag;
     dst.icon = this.icon;
@@ -563,6 +582,7 @@ export class FloatProperty extends ToolProperty {
     this.ui_range = uirange
     this.range = range
     this.data = i;
+    this.step = 0.001;
   }
   
   copyTo(FloatProperty dst) {
@@ -604,7 +624,8 @@ export class IntProperty extends ToolProperty {
     
     this.ui_range = uirange
     this.range = range
-    
+    this.step = 1;
+
     this.data = i;
   }
   
@@ -887,7 +908,8 @@ export class Vec2Property extends ToolProperty {
     this.unit = undefined; //"default";
     this.range = [undefined, undefined]
     this.real_range = [undefined, undefined]
-    this.data = new Vector3(vec2);  
+    this.data = new Vector3(vec2);
+    this.step = 0.001;
   }
   
   copyTo(Vec2Property dst) : Vec2Property {
@@ -930,7 +952,8 @@ export class Vec3Property extends ToolProperty {
     this.unit = "default";
     this.range = [undefined, undefined]
     this.real_range = [undefined, undefined]
-    this.data = new Vector3(vec3);  
+    this.data = new Vector3(vec3);
+    this.step = 0.001;
   }
   
   copyTo(Vec3Property dst) : Vec3Property {
@@ -975,7 +998,8 @@ export class Vec4Property extends ToolProperty {
     this.unit = "default";
     this.range = [undefined, undefined]
     this.real_range = [undefined, undefined]
-    this.data = new Vector4(vec4);  
+    this.data = new Vector4(vec4);
+    this.step = 0.001;
   }
   
   copyTo(Vec4Property dst) : Vec4Property {

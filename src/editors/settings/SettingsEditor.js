@@ -1,8 +1,9 @@
 import {Area} from 'ScreenArea';
 import {STRUCT} from 'struct';
 import {UIBase} from 'ui_base';
+import {Editor} from 'editor_base';
 
-export class SettingsEditor extends Area {
+export class SettingsEditor extends Editor {
   static define() { return {
     tagname : "settings-editor-x",
     areaname : "settings_editor",
@@ -18,7 +19,7 @@ export class SettingsEditor extends Area {
 SettingsEditor.STRUCT = STRUCT.inherit(SettingsEditor, Area) + `
 }
 `;
-Area.register(SettingsEditor);
+Editor.register(SettingsEditor);
 
 "use strict";
 #if 0
@@ -60,7 +61,7 @@ class SettingsEditor extends Area {
     var ctx=this.ctx;
     var path = prefix + i + "]";
     
-    var type = this.ctx.api.get_prop(ctx, path + ".type");
+    var type = this.ctx.api.getValue(ctx, path + ".type");
     
     if (type == "Simple") {
       var ret = new UIColorPicker(ctx);

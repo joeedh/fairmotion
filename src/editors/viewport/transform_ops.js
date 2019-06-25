@@ -22,6 +22,8 @@ import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler,
 import {clear_jobs, clear_jobs_except_latest, clear_jobs_except_first,
         JobTypes} from 'native_api';
 
+import {Vec2Property, FloatProperty} from 'toolprops';
+
 export class WidgetResizeOp extends TransformOp {
   constructor(user_start_mpos : Array<float>, datamode : int) {
     super(user_start_mpos, datamode)

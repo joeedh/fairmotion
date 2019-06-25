@@ -622,7 +622,7 @@ var _st_packers = [
     
     if (type.data == "Object" || (val.constructor.name != type.data && (val instanceof cls))) {
       if (DEBUG.Struct) {
-        console.log(val.constructor.name + " inherits from " + cls.name);
+        console.log(val.constructor.name + " inherits from " + cls.structName);
       }
       stt = thestruct.get_struct(val.constructor.name);
     } else if (val.constructor.name == type.data) {
@@ -872,7 +872,7 @@ function _st_pack_type2(data, val, obj, thestruct, field, type) {
       
       if (type.data == "Object" || (val.constructor.name != type.data && (val instanceof cls))) {
         if (DEBUG.Struct) {
-          console.log(val.constructor.name + " inherits from " + cls.name);
+          console.log(val.constructor.name + " inherits from " + cls.structName);
         }
         stt = thestruct.get_struct(val.constructor.name);
       } else if (val.constructor.name == type.data) {
@@ -1066,10 +1066,18 @@ export class STRUCT {
 
   parse_structs(buf) {
     global defined_classes;
-    var clsmap = {}
-    
+
+    var clsmap;
+
+    //XXX hackish!
+    clsmap = {};
     for (var i=0; i<defined_classes.length; i++) {
-      clsmap[defined_classes[i].name] = defined_classes[i];
+      let name = defined_classes[i].structName;
+
+      if (name === undefined)
+        continue;
+
+      clsmap[name] = defined_classes[i];
     }
     
     schema_parse.input(buf);
@@ -1078,9 +1086,10 @@ export class STRUCT {
       
       //if struct does not exist anymore, load it into a dummy object
       if (!(stt.name in clsmap)) {
-        if (!(stt.name in this.null_natives))
-          warntrace("WARNING: struct " + stt.name + " no longer exists.  will try to convert.");
-        
+        if (!(stt.name in this.null_natives)) {
+          console.warn("WARNING: struct " + stt.name + " no longer exists.  will try to convert.");
+        }
+
         var dummy = Object.create(Object.prototype);
         dummy.prototype = Object.create(Object.prototype);
         dummy.STRUCT = STRUCT.fmt_struct(stt);
@@ -1090,13 +1099,13 @@ export class STRUCT {
           
           return obj;
         }
-        dummy.name = stt.name;
-        dummy.prototype.name = dummy.name;
+        dummy.name = dummy.structName = stt.name;
+        dummy.prototype.name = dummy.prototype.structName = dummy.name;
         dummy.prototype.constructor = dummy;
-        
+
         this.struct_cls[dummy.name] = dummy;
-        this.struct_cls[dummy.name] = stt;
-        
+        this.structs[dummy.name] = stt;
+
         if (stt.id != -1)
           this.struct_ids[stt.id] = stt;
       } else {
@@ -1115,12 +1124,13 @@ export class STRUCT {
 
   add_struct(cls) {
     var stt = schema_parse.parse(cls.STRUCT);
-    
+    cls.structName = stt.name;
+
     if (stt.id == -1)
       stt.id = this.idgen.gen_id();
     
-    this.structs[cls.name] = stt;
-    this.struct_cls[cls.name] = cls;
+    this.structs[stt.name] = stt;
+    this.struct_cls[stt.name] = cls;
     this.struct_ids[stt.id] = stt;
   }
 
@@ -1425,10 +1435,10 @@ export class STRUCT {
 
   //uctx is a private, optional parameter
   read_object(data, cls, unpack_ctx uctx=new unpack_ctx()) : Object {
-    var stt = this.structs[cls.name];
+    var stt = this.structs[cls.structName];
     var thestruct = this;
     
-    profile_start(cls.name);
+    profile_start(cls.structName);
     
     var unpack_funcs = {
       T_INT : function(type) {
@@ -1584,10 +1594,10 @@ export class STRUCT {
       }
     }
     
-    profile_end(cls.name);
+    profile_end(cls.structName);
     
     if (cls.fromSTRUCT == undefined) {
-      console.trace("-------->", data, cls.constructor, "|", cls.name, "|", cls, "|");
+      console.trace("-------->", data, cls.constructor, "|", cls.structName, "|", cls, "|");
       return undefined;
     }
     
@@ -1710,14 +1720,14 @@ window.init_struct_packer = function() {
         istruct.add_struct(cls);
       } else if (cls.STRUCT !== undefined) {
         if (cls.prototype.fromSTRUCT !== undefined) {
-          console.warn("fromSTRUCT must be a static method for class", cls.name, cls);
+          console.warn("fromSTRUCT must be a static method for class", cls.structName, cls);
         } else {
-          console.warn("STRUCT class", cls.name, "has no fromSTRUCT method", cls);
+          console.warn("STRUCT class", cls.structName, "has no fromSTRUCT method", cls);
         }
       }
     } catch (err) {
       if (err instanceof PUTLParseError) {
-        console.log("cls.name: ", cls.name)
+        console.log("cls.structName: ", cls.structName)
         print_stack(err);
         console.log("Error parsing struct: " + err.message);
       } else {

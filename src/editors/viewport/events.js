@@ -517,14 +517,13 @@ export class KeyHandlerCls {
 }
 
 export class ToolKeyHandler extends KeyHandlerCls {
-  constructor(ToolOp tool) {
+  constructor(tool : String) {
     super();
     this.tool = tool;
   }
   
   handle(ctx) {
-    var tool = this.tool; 
-    ctx.api.call_op(ctx, tool);
+    ctx.api.execTool(ctx, this.tool);
   }
 }
 

@@ -1,3 +1,10 @@
+/*
+Refactor TODO:
+
+- Auto-register toolops in data_api_pathux.js
+- Move invokation snippets from this file into the relevant toolops
+*/
+
 /* $XXX
 import {
   FileDialog, FileOpenOp, FileSaveAsOp, FileNewOp,
@@ -63,30 +70,12 @@ class QuitFileOp extends ToolOp {
 //import {TranslateOp} from 'transform';
 
 global data_ops_list = undefined;
+import {register_toolops} from "data_api_pathux";
 
 window.api_define_ops = function() {
-  data_ops_list = {
-    "mesh.subdivide": function(ctx, args) {
-      if (!("faces" in args))
-        throw TinyParserError;
-        
-      return new MeshToolOp(new QuadSubdOp(args["faces"], 1))
-    },
-    
-    "mesh.inset": function(ctx, args) {
-      if (!("faces" in args))
-        throw TinyParserError;
-      
-      return new MeshToolOp(new InsetRegionsOp(args["faces"]))
-    },
-    
-    "mesh.vertsmooth": function(ctx, args) {
-      if (!("verts" in args))
-        throw TinyParserError;
-      
-      return new MeshToolOp(new VertSmoothOp(args["verts"]));
-    },
+  register_toolops();
 
+  data_ops_list = {
     "spline.add_layer" : function(ctx, args) {
       return new AddLayerOp(args.name);
     },

@@ -1,8 +1,9 @@
 import {Area} from 'ScreenArea';
 import {STRUCT} from 'struct';
 import {UIBase} from 'ui_base';
+import {Editor} from 'editor_base';
 
-export class OpStackEditor extends Area {
+export class OpStackEditor extends Editor {
   static define() { return {
     tagname : "opstack-editor-x",
     areaname : "opstack_editor",
@@ -18,7 +19,7 @@ export class OpStackEditor extends Area {
 OpStackEditor.STRUCT = STRUCT.inherit(OpStackEditor, Area) + `
 }
 `;
-Area.register(OpStackEditor);
+Editor.register(OpStackEditor);
 
 #if 0
 import {gen_editor_switcher} from 'UIWidgets_special';

@@ -289,7 +289,8 @@ function api_define_view2d() {
   tool_mode.add_icons({
     SELECT: Icons.CURSOR_ARROW,
     APPEND: Icons.APPEND_VERTEX,
-    RESIZE: Icons.RESIZE
+    RESIZE: Icons.RESIZE,
+    ROTATE: Icons.ROTATE
   });
   
   var tweak_mode = new BoolProperty(0, "tweak_mode", "Tweak Mode");
@@ -495,7 +496,7 @@ function api_define_spline_segment() {
      var path = s.dag_get_path();
 
      path = path.slice(0, path.search(/\.segments/)).trim();
-     var spline = g_app_state.api.get_object(path);
+     var spline = g_app_state.pathcontroller.getObject(new Context(), path);
 
      if (spline == undefined) {
      warn("Warning, could not get spline to call regen_sort() on!", path, s);
@@ -1103,6 +1104,11 @@ window.api_define_context = function () {
   ]);
 }
 
+window.init_data_api = function() {
+  api_define_ops();
+  api_define_context();
+};
+
 export function gen_path_maps(strct, obj, path1, path2) {//path is private, optional
   if (obj == undefined)
     obj = {}
@@ -1126,3 +1132,4 @@ export function gen_path_maps(strct, obj, path1, path2) {//path is private, opti
     }
   }
 }
+

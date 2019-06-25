@@ -8,9 +8,11 @@ import {unpack_ctx} from 'ajax';
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
         charmap, TouchEventManager, EventHandler} from './events';
 
+import {Vec2Property, Vec3Property, IntProperty, StringProperty, TPropFlags} from "../../core/toolprops";
+
 class ViewRotateZoomPanOp extends ToolOp {
   constructor() {
-    super("view2d_orbit", "Orbit");
+    super();
 
     this.undoflag = UndoFlags.IGNORE_UNDO;
 
@@ -36,6 +38,14 @@ class ViewRotateZoomPanOp extends ToolOp {
     this.mv5 = new Vector3();
     this.mv6 = new Vector3();
   }
+  static tooldef() {return {
+    apiname : "view2d.viewrotatezoom",
+    uiname : "View Rotate Zoom",
+    is_modal : true,
+    undoflag : UndoFlags.IGNORE_UNDO,
+    inputs : {},
+    outputs : {}
+  }}
 
   can_call(Context ctx) {
     return true;
@@ -245,18 +255,20 @@ class ViewRotateZoomPanOp extends ToolOp {
 
 class ViewRotateOp extends ToolOp {
   constructor() {
-    super("view2d_orbit", "Orbit");
-
-    this.undoflag = UndoFlags.IGNORE_UNDO;
+    super();
 
     this.transdata = null;
-    this.is_modal = true;
-
-    this.inputs = {MV1: new Vec3Property(new Vector3(), "mvector1", "mvector1", "mvector1"), 
-                   MV2: new Vec3Property(new Vector3(), "mvector2", "mvector2", "mvector2")}
-                   
-    this.outputs = {}
   }
+
+  static tooldef() {return {
+    apiname : "view2d.orbit",
+    uiname : "Orbit",
+    is_modal : true,
+    undoflag : UndoFlags.IGNORE_UNDO,
+    inputs : {MV1: new Vec3Property(new Vector3(), "mvector1", "mvector1", "mvector1"),
+      MV2: new Vec3Property(new Vector3(), "mvector2", "mvector2", "mvector2")},
+    outputs : {}
+  }}
 
   can_call(Context ctx) {
     return true;
@@ -429,234 +441,33 @@ class ViewPanOp extends ToolOp {
   }
 }
 
-function mprop_to_tprop(props, props2) {
-  if (props2 == undefined) {
-    props2 = {}
-  }
-  
-  for (var k1 of Iterator(props)) {
-    var k = k1[0]
-    var p = props[k];
-    var p2;
-    
-    var name = k; var uiname = k; var descr = k;
-    if (p.type == MPropTypes.ELEMENT_BUF) {
-      if (p.save_in_toolops) {
-        var lst = list(p);
-        for (var i=0; i<lst.length; i++) {
-          lst[i] = lst[i].eid;
-        }
-        p2 = new ElementBufProperty(lst, name, uiname, descr);
-        p2.ignore = false;
-      } else {
-        p2 = new ElementBufProperty([], name, uiname, descr);
-        p2.ignore = true;
-      }
-    } else if (p.type == MPropTypes.INT) {
-      p2 = new IntProperty(p.data, name, uiname, descr);
-      p2.ignore = false;
-      if (p.range != undefined)
-        p2.range = p2.ui_range = p.range;
-    } else if (p.type == MPropTypes.FLOAT) {
-      p2 = new FloatProperty(p.data, name, uiname, descr);
-      p2.ignore = false;
-      if (p.range != undefined)
-        p2.range = p2.ui_range = p.range;
-    } else if (p.type == MPropTypes.STRING) {
-      p2 = new StringProperty(p.data, name, uiname, descr);
-      p2.ignore = false;
-    } else if (p.type == MPropTypes.VEC3) {
-      p2 = new Vec3Property(p.data, name, uiname, descr);
-      p2.ignore = false;
-    } else if (p.type == MPropTypes.BOOL) {
-      p2 = new BoolProperty(p.data, name, uiname, descr);
-      p2.ignore = false;
-    } else if (p.type == PropTypes.FLAG) {
-      p2 = p;
-    }
-    
-    if (props2.hasOwnProperty(k)) {
-      props2[k].data = p2.data;
-    } else {
-      props2[k] = p2;
-    }
-    
-    props[k].flag = p.flag;
-  }
-  
-  return props2;
-}
-
-function tprop_to_mprop(mprop, tprop) {
-  for (var k1 of Iterator(tprop)) {
-    var k = k1[0]
-    var p = tprop[k];
-    var p2 = mprop[k];
-    
-    if (p.ignore) 
-      continue;
-    
-    if (p.type == PropTypes.BOOL) {
-      p2.data = p.data;
-    } else if (p.type == PropTypes.INT) {
-      p2.data = p.data;
-    } else if (p.type == PropTypes.FLOAT) {
-      p2.data = p.data;
-    } else if (p.type == PropTypes.STRING) {
-      p2.data = p.data;
-    } else if (p.type == PropTypes.VEC3) {
-      p2.data = p.data;
-    } else if (p.type == PropTypes.FLAG) {
-      p2.set_data(p.data);
-    } else {
-      throw "Unimplemented toolop->meshop type conversion";
-    }
-  }
-  
-  return mprop;
-}
-
-class MeshToolOp extends ToolOp {
-  constructor(meshop) {
-    if (meshop == undefined)
-      super();
-    else
-      super(meshop.name, meshop.uiname, meshop.description, meshop.icon);
-    
-    this.is_modal = false;
-    
-    this.flag |= meshop.flag;
-    this.meshop = meshop;
-    
-    if (this.meshop) {
-      this.inputs = meshop.inputs;
-      this.outputs = meshop.outputs;
-    }
-    
-    this._partial = undefined : Mesh;
-  }
-  
-  default_inputs(Context ctx, ToolGetDefaultFunc get_default) {  
-    this.meshop.default_inputs(ctx, get_default);
-  }
-
-  undo_pre(ctx) {
-    if (this.meshop.flag & ToolFlags.USE_PARTIAL_UNDO) {
-      this._partial = ctx.mesh.gen_partial(ctx.mesh.selected, this.meshop.undo_expand_lvl);
-    } else {
-      var data = [];
-      
-      ctx.mesh.pack(data);
-      this._mesh = new DataView(new Uint8Array(data).buffer);
-    }
-  }
-
-  undo(ctx) {
-    if (this.meshop.flag & ToolFlags.USE_PARTIAL_UNDO) {
-      var part = this._partial;
-      var mesh = ctx.mesh;
-      
-      g_app_state.jobs.kill_owner_jobs(mesh);
-
-      mesh.load_partial(this._partial);
-      mesh.regen_render();
-      
-      this._partial = undefined;
-    } else {
-      var mesh = ctx.mesh;
-      var data = this._mesh;
-      
-      g_app_state.jobs.kill_owner_jobs(mesh);
-      
-      //use STRUCT system for this?
-      mesh.load(new Mesh());
-      mesh.unpack(data, new unpack_ctx());
-      
-      mesh.regen_render();
-      this._mesh = undefined;
-    }
-  }
-
-  can_call(ctx) {
-    return true;
-  }
-
-  exec(ctx) {
-    this.meshop.inputs = this.inputs;
-    g_app_state.jobs.kill_owner_jobs(ctx.mesh);
-    
-    ctx.mesh.ops.call_op(this.meshop);
-    
-    mprop_to_tprop(this.meshop.outputs, this.outputs);
-    ctx.mesh.regen_render();
-  }
-  
-  static fromSTRUCT(reader) {
-    var ret = STRUCT.chain_fromSTRUCT(MeshToolOp, reader);
-    
-    ret.name = ret.meshop.name;
-    ret.description = ret.meshop.description;
-    ret.uiname = ret.meshop.uiname;
-    ret.icon = ret.meshop.icon;
-    
-    return ret;
-  }
-}
-
-MeshToolOp.STRUCT = STRUCT.inherit(MeshToolOp, ToolOp) + """
-  meshop : abstract(MeshOp);
-}
-""";
-
-class ToggleSubSurfOp extends ToolOp {
-  constructor() {
-    super("subsurf_toggle", "Toggle Subsurf");
-    
-    this.undoflag = UndoFlags.IGNORE_UNDO;
-    
-    this.is_modal = false;
-    
-    this.inputs = {}                 
-    this.outputs = {}
-  }
-  
-  can_call(ctx) {
-    return true;
-  }
-
-  exec(ctx) {
-    console.log("subsurf");
-    
-    if (ctx.view2d.ss_mesh == null) {
-      ctx.mesh.regen_render();
-      ctx.view2d.ss_mesh = gpu_subsurf(ctx.view2d.gl, ctx.mesh, ctx.view2d.get_ss_steps());
-    } else {
-      destroy_subsurf_mesh(ctx.view2d.gl, ctx.view2d.ss_mesh);
-      ctx.view2d.ss_mesh = null;
-      ctx.mesh.regen_render();
-    }
-  }
-}
+import {StringProperty} from 'toolprops';
 
 export class BasicFileDataOp extends ToolOp {
-  constructor(String data) {
-    super("basic_file_with_data", "internal op (with data)", "Root operator; creates a scene with a simple cube");
+  constructor(data : String) {
+    super();
     
     this.is_modal = false;
     this.undoflag = UndoFlags.IGNORE_UNDO|UndoFlags.IS_ROOT_OPERATOR|UndoFlags.UNDO_BARRIER;
-    
-    this.inputs = {
-      data : new StringProperty(data, "filedata", "file data in base64")
-    };
-    
-    this.inputs.data.flag |= TPropFlags.PRIVATE;
-    this.outputs = {};
-    
+
+    if (data)
+      this.inputs.data.set_data(data);
+
     //make empty saved_context
     this.saved_context = new SavedContext();
   }
-  
-  exec(ToolContext ctx) {
+
+  static tooldef() {return {
+    uiname : "internal file load op",
+    apiname : "app.basic_file_with_data",
+    undoflag : UndoFlags.IGNORE_UNDO|UndoFlags.IS_ROOT_OPERATOR|UndoFlags.UNDO_BARRIER,
+
+    inputs : {
+      data : new StringProperty("", "filedata", "file data in base64", TPropFlags.PRIVATE)
+    }
+  }}
+
+  exec(ctx : ToolContext) {
     var data = new DataView(b64decode(this.inputs.data.data).buffer);
     
     console.log(this.inputs.data.data.length, data.byteLength);
@@ -670,15 +481,16 @@ import {Scene} from 'scene';
 
 export class BasicFileOp extends ToolOp {
   constructor() {
-    super("basic_file", "internal op", "Root operator; creates a scene with a simple cube");
-    
-    this.is_modal = false;
-    this.undoflag = UndoFlags.IS_ROOT_OPERATOR|UndoFlags.UNDO_BARRIER;
-    
-    this.inputs = {};
-    this.outputs = {};
+    super();
   }
-  
+
+  static tooldef() {return {
+    apiname : "app.basic_file",
+    uiname : "Make Basic File (internal)",
+    undoflag : UndoFlags.IS_ROOT_OPERATOR|UndoFlags.UNDO_BARRIER,
+    description : "Internal tool op; makes basic file"
+  }}
+
   exec(ToolContext ctx) {
     var datalib = ctx.datalib;
     
@@ -705,7 +517,15 @@ export class FrameChangeOp extends ToolOp {
     if (frame != undefined)
       this.inputs.frame.set_data(frame);
   }
-  
+
+  static tooldef() {return {
+    apiname : "scene.change_frame",
+    uiname : "Change Frame",
+
+    inputs : {
+      frame: new FloatProperty(0, "frame", "frame", "frame")
+    }
+  }}
   undo_pre(ctx) {
     this._undo = ctx.scene.time;
   }
@@ -718,10 +538,6 @@ export class FrameChangeOp extends ToolOp {
     ctx.scene.change_time(ctx, this.inputs.frame.data);
   }
 }
-
-FrameChangeOp.inputs = {
-  frame : new FloatProperty(0, "frame", "frame", "frame")
-};
 
 import {SimpleCanvasDraw2D} from 'vectordraw_canvas2d_simple';
 import {draw_spline} from 'spline_draw';

@@ -1087,9 +1087,23 @@ export class SplineFrameSet extends DataBlock {
     
     this.draw_anim_paths = editor.draw_anim_paths;
     this.selectmode = editor.selectmode;
-    
+
+    g.save();
+    let dpi = window.devicePixelRatio;
+    //g.scale(1/dpi, 1/dpi);
+
+    /*
+    g.beginPath();
+    g.moveTo(10, 400);
+    g.lineTo(500, 400);
+    g.strokeStyle = "black";
+    g.lineWidth = 1.0;
+    g.stroke();
+    //*/
+
     this.spline.draw(redraw_rects, g, editor, editor.selectmode, editor.only_render, editor.draw_normals, this.spline===ctx.spline ? 1.0 : 0.3,
                      undefined, undefined, ignore_layers);
+    g.restore();
   }
   
   static fromSTRUCT(reader) {

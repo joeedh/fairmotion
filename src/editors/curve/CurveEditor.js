@@ -1,8 +1,9 @@
 import {Area} from 'ScreenArea';
 import {STRUCT} from 'struct';
 import {UIBase} from 'ui_base';
+import {Editor} from 'editor_base';
 
-export class CurveEditor extends Area {
+export class CurveEditor extends Editor {
   static define() { return {
     tagname : "curve-editor-x",
     areaname : "curve_editor",
@@ -19,7 +20,7 @@ export class CurveEditor extends Area {
 CurveEditor.STRUCT = STRUCT.inherit(CurveEditor, Area) + `
 }
 `;
-Area.register(CurveEditor);
+Editor.register(CurveEditor);
 
 
 #if 0

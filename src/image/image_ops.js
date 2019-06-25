@@ -99,7 +99,7 @@ export class LoadImageOp extends ToolOp {
     var outpath = this.inputs.dest_datapath.data.trim();
     
     if (outpath != "") {
-      ctx.api.set_prop(ctx, outpath, image);
+      ctx.api.setValue(ctx, outpath, image);
     }
   }
 }

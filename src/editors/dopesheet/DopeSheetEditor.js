@@ -1,8 +1,9 @@
 import {Area} from 'ScreenArea';
 import {STRUCT} from 'struct';
 import {UIBase} from 'ui_base';
+import {Editor} from 'editor_base';
 
-export class DopeSheetEditor extends Area {
+export class DopeSheetEditor extends Editor {
   static define() { return {
     tagname : "dopesheet-editor-x",
     areaname : "dopesheet_editor",
@@ -18,7 +19,7 @@ export class DopeSheetEditor extends Area {
 DopeSheetEditor.STRUCT = STRUCT.inherit(DopeSheetEditor, Area) + `
 }
 `;
-Area.register(DopeSheetEditor);
+Editor.register(DopeSheetEditor);
 
 #if 0
 "use strict";

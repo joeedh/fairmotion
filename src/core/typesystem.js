@@ -281,6 +281,9 @@ function define_static(obj, name, val) {
 }
 
 function __instance_of(child, parent) {
+  if (child instanceof parent)
+    return true;
+
   if (parent == undefined)
     return child == undefined;
   if (typeof child != "object" && typeof child != "function")

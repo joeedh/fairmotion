@@ -564,7 +564,9 @@ export class ManipulatorManager {
     }
     
     this.active = cls.create_widgets(this, ctx);
-    this.active.toolop_class = cls;
+    if (this.active !== undefined) {
+      this.active.toolop_class = cls;
+    }
   }
   
   pop() {

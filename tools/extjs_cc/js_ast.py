@@ -1398,10 +1398,15 @@ class FunctionNode (StatementList):
       s += c.gen_js(tlevel)
       
     s += self.s(") => ")
-    
+
+    rn = self.children[1];
+    if isinstance(rn, ReturnNode):
+        rn = rn[0]
+
     add_block = len(self.children[1:]) != 1
-    add_block = add_block or type(self.children[1]) in [IfNode, WhileNode, SwitchNode, ForCNode, ForInNode, ForLoopNode, TryNode]
-    
+    add_block = add_block or type(rn) in [IfNode, WhileNode, SwitchNode, ForCNode, ThrowNode]
+    add_block = add_block or type(rn) in [ForInNode, ForLoopNode, TryNode, ObjLitNode, DoWhileNode]
+
     if add_block:
         s += self.s(t + " {" + ("\n" if len(self.children) > 1 else ""))
     else:

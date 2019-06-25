@@ -9,8 +9,13 @@ export function apiparser() {
   
   var tokens = [
     tk("ID", /[a-zA-Z_]+[a-zA-Z$0-9_]*/),
-    tk("EQUALS", /=/),
+    tk("ASSIGN", /=/),
+    tk("EQUALS", /==/),
     tk("COLON", /:/),
+    tk("INT", /[0-9]+/, (t) => {
+      t.value = parseInt(t.value);
+      return t;
+    }),
     tk("LSBRACKET", /\[/),
     tk("RSBRACKET", /\]/),
     tk("LPARAM", /\(/),
@@ -91,9 +96,9 @@ export function apiparser() {
     //node format : children : [name_expr, args]
     //func_call : LPARAM arg_list RPARAM
     //arg_list  : ID 
-    //          | ID EQUALS EXPR
+    //          | ID ASSIGN EXPR
     //          | arg_list COMMA ID
-    //          | arg_list COMMA ID EQUALS EXPR
+    //          | arg_list COMMA ID ASSIGN EXPR
     
     var lexstart1 = p.lexer.lexpos;
     p.expect("LPARAM");
@@ -114,7 +119,7 @@ export function apiparser() {
       var arg = p.expect("ID");
       
       var val = undefined;
-      if (p.peeknext().type == "EQUALS") {
+      if (p.peeknext().type == "ASSIGN") {
         p.next();
         var val = p_Expr(p, ",)");
       }
@@ -163,6 +168,18 @@ export function apiparser() {
         ast = bnode({lexpos: lexstart, lexlen: t.lexpos+t.lexlen}, ast, valnode(t2, id), ".");
       } else if (t.type == "LPARAM") {
         ast = p_FuncCall(p, ast);
+      } else if (t.type == "EQUALS") {
+        p.expect("EQUALS");
+        let t2 = p.next();
+
+        var n2 = {
+          type : "EQUALS",
+          lexstart : t2.lexpos,
+          lexend : t2.lexpos+t2.lexlen,
+          value : t2.value
+        };
+
+        ast = bnode({lexstart : n2.lexstart, lexend : n2.lexend}, ast, n2, "EQUALS");
       } else if (t.type == "LSBRACKET") {
         p.expect("LSBRACKET");
         var val = p_Expr(p, "]");

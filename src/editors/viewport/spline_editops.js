@@ -256,7 +256,7 @@ export class KeyEdgesOp extends SplineLocalToolOp {
         path += "." + k;
       }
       
-      ctx.api.key_animpath(ctx, frameset, path, ctx.scene.time);
+      ctx.api.setAnimPathKey(ctx, frameset, path, ctx.scene.time);
     }
   }
 }

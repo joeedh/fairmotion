@@ -925,7 +925,8 @@ function toolop_radial_menu(ctx, name, oplist) {
     var op = opstr;
     
     if (typeof opstr == "string") {
-      op = ctx.api.get_op(ctx, opstr);
+      //op = ctx.api.get_op(ctx, opstr);
+      op = ctx.api.createTool(ctx, opstr);
     }
     
     if (op == undefined)

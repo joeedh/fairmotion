@@ -141,7 +141,7 @@ sources = [
   "src/scene/scene.js",
   
   "src/editors/viewport/events.js",
-  "src/ui/touchevents.js",
+  "src/core/touchevents.js",
 
   "src/core/toolprops.js",
   "src/core/toolprops_iter.js",
@@ -162,8 +162,8 @@ sources = [
   "src/editors/viewport/multires/multires_selectops.js",
   "src/editors/viewport/multires/multires_transdata.js",
   
-  "src/ui/theme.js",
-  "src/ui/theme_def.js",
+  "src/datafiles/theme.js",
+  "src/datafiles/theme_def.js",
 
 
   ##"src/ui/UIElement.js",
@@ -173,7 +173,7 @@ sources = [
   ##"src/ui/UIFrame.js",
   ##"src/ui/UIPack.js",
   ##"src/ui/UISplitFrame.js",
-  "src/ui/icon.js",
+  "src/core/icon.js",
   ##"src/ui/UIWidgets.js",
   "src/editors/viewport/selectmode.js",
   ##"src/ui/UITextBox.js",
@@ -208,8 +208,9 @@ sources = [
   "src/editors/curve/editcurve_util.js",
   "src/editors/curve/CurveEditor.js",
 
-  "src/ui/notifications.js",
+  "src/core/notifications.js",
 
+  "src/editors/editor_base.js",
 	"src/editors/viewport/manipulator.js",
 	"src/editors/viewport/view2d.js",
 	"src/editors/viewport/view2d_ops.js",
@@ -218,7 +219,9 @@ sources = [
   "src/core/frameset.js",
   "src/editors/ops/ops_editor.js",
   "src/editors/settings/SettingsEditor.js",
-	"src/core/data_api_define.js",
+  "src/core/data_api_define.js",
+  "src/core/data_api_base.js",
+  "src/core/data_api_pathux.js",
   "src/core/data_api_opdefine.js",
   
   "src/datafiles/iconsheet.svg",

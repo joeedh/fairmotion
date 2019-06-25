@@ -246,18 +246,19 @@ window.init_redraw_globals = function init_redraw_globals() {
             workcanvas_redraw_rects = workcanvas_redraw_rects2;
             workcanvas_redraw_rects.length = 0;
             workcanvas_redraw_rects2 = rects;
-    
-            for (var i = 0; i < window.g_app_state.screen.children.length; i++) {
-              var c = window.g_app_state.screen.children[i];
-      
-              var is_viewport = c.constructor.name == "ScreenArea" &&
-                c.area.constructor.name == "View2DHandler";
-              if (is_viewport) {
+
+            console.log("REDRAWING VIEWPORT");
+            let screen = g_app_state.screen;
+
+            for (let sarea of screen.sareas) {
+              if (sarea.area.constructor.name == "View2DHandler") {
                 var old = window.g_app_state.active_view2d;
-                window.g_app_state.active_view2d = c.area;
-        
-                c.area.do_draw_viewport(rects);
-        
+                window.g_app_state.active_view2d = sarea.area;
+
+                sarea.area.push_ctx_active();
+                sarea.area.do_draw_viewport(rects);
+                sarea.area.pop_ctx_active();
+
                 window.g_app_state.active_view2d = old;
                 accept();
               }

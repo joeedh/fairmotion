@@ -36,7 +36,7 @@ export class Scene extends DataBlock {
     ctx.frameset.change_time(time, _update_animation);
     
     //handle datapath keyframes
-    ctx.api.on_frame_change(ctx, time);
+    ctx.api.onFrameChange(ctx, time);
   }
   
   copy() : Scene {

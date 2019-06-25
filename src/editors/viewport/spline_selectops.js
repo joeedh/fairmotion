@@ -95,6 +95,7 @@ export class SelectOneOp extends SelectOpBase {
   }
   
   static tooldef() { return {
+    apiname : "spline.select_one",
     uiname  : "Select Element",
     inputs  : ToolOp.inherit({
       eid        : new IntProperty(-1),
@@ -296,7 +297,19 @@ export class HideOp extends SelectOpBase {
     if (ghost != undefined)
       this.inputs.ghost.set_data(ghost);
   }
-  
+
+  static tooldef() {return {
+    apiname : "spline.hide",
+    uiname : "Hide",
+
+    inputs : ToolOp.inherit({
+      selmode : new IntProperty(1|2),
+      ghost   : new BoolProperty(false)
+    }),
+
+    outputs : ToolOp.inherit({})
+  }}
+
   undo_pre(ctx) {
     super.undo_pre(ctx);
     window.redraw_viewport();
@@ -345,10 +358,6 @@ export class HideOp extends SelectOpBase {
     spline.validate_active();
   }
 }
-HideOp.inputs = {
-  selmode : new IntProperty(1|2),
-  ghost   : new BoolProperty(false)
-}
 
 export class UnhideOp extends ToolOp {
   constructor(mode, ghost) {
@@ -361,7 +370,19 @@ export class UnhideOp extends ToolOp {
       
     this._undo = undefined;
   }
-  
+
+  static tooldef() {return {
+    apiname : "spline.unhide",
+    uiname : "Unhide",
+
+    inputs : ToolOp.inherit({
+      selmode : new IntProperty(1|2),
+      ghost   : new BoolProperty(false)
+    }),
+
+    outputs : ToolOp.inherit({})
+  }}
+
   undo_pre(ctx) {
     var ud = this._undo = [];
     var spline = ctx.spline;
@@ -428,11 +449,6 @@ export class UnhideOp extends ToolOp {
   }
 }
 
-UnhideOp.inputs = {
-  selmode : new IntProperty(1|2),
-  ghost   : new BoolProperty(false)
-}
-
 import {CollectionProperty} from 'toolprops';
 import {ElementRefSet} from 'spline_types';
 
@@ -449,9 +465,13 @@ export class CircleSelectOp extends SelectOpBase {
     this.sel_or_unsel = true;
     this.radius = _last_radius;
   }
-  
+
+  static invoke(ctx) {
+    return new CircleSelectOp(ctx.selectmode);
+  }
+
   static tooldef() { return {
-    apiname  : "circle_select",
+    apiname  : "view2d.circle_select",
     uiname   : "Circle Select",
       
     inputs : ToolOp.inherit({

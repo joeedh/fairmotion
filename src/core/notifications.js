@@ -1,14 +1,17 @@
+import {sendNote} from 'ui_noteframe';
+
 export class Notification {
 
 }
 
 export class NotificationManager {
-  label() {
-
+  label(label, description) {
+    sendNote(label);
   }
 
-  progbar() {
-
+  progbar(label, progress, description) {
+    let f = progress.toFixed(1);
+    sendNote(label + " " + f + "%");
   }
 
   on_tick() {
@@ -210,7 +213,7 @@ export class NotificationManager {
     
     return n;
   }
-  
+
   progbar(String label, float progress, String id=label, String description="") {
     var this2 = this;
     function callback(ProgressNote note) {

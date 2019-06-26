@@ -1,6 +1,8 @@
 import {Editor} from 'editor_base';
 import {Area} from 'ScreenArea';
-import {patchMouseEvent} from 'toolops_api';
+import {patchMouseEvent, ToolOp, UndoFlags} from 'toolops_api';
+import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
+  charmap, TouchEventManager, EventHandler} from "../events";
 import {STRUCT} from 'struct';
 import {UIBase} from 'ui_base';
 import {ImageUser} from 'imageblock';
@@ -15,6 +17,102 @@ import {ManipulatorManager, Manipulator,
 import * as view2d_editor from 'view2d_editor';
 export var EditModes = view2d_editor.EditModes;
 
+function delay_redraw(ms) {
+  var start_time = time_ms();
+  var timer = window.setInterval(function() {
+    if (time_ms() - start_time < ms)
+      return;
+
+    window.clearInterval(timer);
+    window.redraw_viewport();
+  }, 20);
+}
+
+class PanOp extends ToolOp {
+  constructor(start_mpos) {
+    super();
+
+    this.is_modal = true;
+    this.undoflag |= UndoFlags.IGNORE_UNDO;
+
+    if (start_mpos != undefined) {
+      this.start_mpos = new Vector3(start_mpos);
+      this.start_mpos[2] = 0.0;
+
+      this.first = false;
+    } else {
+      this.start_mpos = new Vector3();
+
+      this.first = true;
+    }
+
+    this.start_cameramat = undefined;
+    this.cameramat = new Matrix4();
+  }
+
+  static tooldef() { return {
+    uiname     : "Pan",
+    apiname    : "view2d.pan",
+
+    undoflag   : UndoFlags.IGNORE_UNDO,
+
+    inputs     : {},
+    outputs    : {},
+
+    is_modal   : true
+  }}
+
+  start_modal(ctx) {
+    this.start_cameramat = new Matrix4(ctx.view2d.cameramat);
+  }
+
+  on_mousemove(event) {
+    var mpos = new Vector3([event.x, event.y, 0]);
+
+    //console.log("mousemove!");
+
+    if (this.first) {
+      this.first = false;
+      this.start_mpos.load(mpos);
+
+      return;
+    }
+
+    var ctx = this.modal_ctx;
+    mpos.sub(this.start_mpos).mulScalar(1.0/ctx.view2d.zoom);
+
+    this.cameramat.load(this.start_cameramat).translate(mpos[0], mpos[1], 0.0);
+    ctx.view2d.set_cameramat(this.cameramat);
+
+    //console.log("panning");
+    window.force_viewport_redraw();
+    window.redraw_viewport();
+  }
+
+  on_mouseup(event) {
+    this.end_modal();
+  }
+}
+
+class drawline {
+  constructor(co1, co2, group, color, width) {
+    this.v1 = new Vector3(co1);
+    this.v2 = new Vector3(co2);
+    this.group = group;
+    this.width = width;
+
+    if (color !== undefined) {
+      this.clr = [color[0], color[1], color[2], color[3] !== undefined ? color[3] : 1.0];
+    } else {
+      this.clr = [0.4, 0.4, 0.4, 1.0];
+    }
+  }
+
+  set_clr(Array<float> clr) {
+    this.clr = clr;
+  }
+}
+
 export class View2DHandler extends Editor {
   constructor() {
     super();
@@ -26,6 +124,7 @@ export class View2DHandler extends Editor {
 
     this.draw_faces = true;
     this.do_blur = true;
+    this.need_data_link = false;
 
     this._can_select = 1;
     this._only_render = 0;
@@ -42,12 +141,99 @@ export class View2DHandler extends Editor {
     this.default_stroke = new Vector4();
     this.default_fill = new Vector4();
 
+    this.drawlines = new GArray();
+    this.drawline_groups = {};
+
     this.editor = new SplineEditor(this);
     this.editors = new GArray([this.editor]);
 
     //this.eventdiv = document.createElement("div");
 
     this.canvases = {};
+    this.regen_keymap();
+  }
+
+  regen_keymap() {
+    this.keymap = new KeyMap();
+
+    this.define_keymap();
+
+    for (let map of this.editor.get_keymaps()) {
+      this.keymap.concat(map);
+    }
+  }
+
+  define_keymap() {
+    var k = this.keymap;
+
+    k.add(new HotKey("Z", ["CTRL", "SHIFT"], "Redo"), new FuncKeyHandler(function(ctx) {
+      console.log("Redo")
+      ctx.toolstack.redo();
+    }));
+    k.add(new HotKey("Y", ["CTRL"], "Redo"), new FuncKeyHandler(function(ctx) {
+      console.log("Redo")
+      ctx.toolstack.redo();
+    }));
+    k.add(new HotKey("Z", ["CTRL"], "Undo"), new FuncKeyHandler(function(ctx) {
+      console.log("Undo");
+      ctx.toolstack.undo();
+    }));
+
+    k.add(new HotKey("O", [], "Toggle Proportional Transform"), new FuncKeyHandler(function(ctx) {
+      console.log("toggling proportional transform");
+      ctx.view2d.session_flag ^= SessionFlags.PROP_TRANSFORM;
+    }));
+
+    k.add(new HotKey("K", [], ""), new FuncKeyHandler(function(ctx) {
+      g_app_state.toolstack.exec_tool(new CurveRootFinderTest());
+    }));
+
+    k.add(new HotKey("Right", [], ""), new FuncKeyHandler(function(ctx) {
+      console.log("Frame Change!", ctx.scene.time+1);
+      ctx.scene.change_time(ctx, ctx.scene.time+1);
+
+      window.redraw_viewport();
+      //var tool = new FrameChangeOp(ctx.scene.time+1);
+    }));
+
+    k.add(new HotKey("Left", [], ""), new FuncKeyHandler(function(ctx) {
+      console.log("Frame Change!", ctx.scene.time-1);
+      ctx.scene.change_time(ctx, ctx.scene.time-1);
+
+      window.redraw_viewport();
+      //var tool = new FrameChangeOp(ctx.scene.time-1);
+    }));
+
+    /*k.add(new HotKey("I", ["CTRL"], "Toggle Generator Debug"), new FuncKeyHandler(function(ctx) {
+      console.log("Toggling frame debug")
+      _do_frame_debug ^= 1;
+      test_nested_with();
+    }));*/
+
+    k.add(new HotKey("Up", [], "Frame Ahead 10"), new FuncKeyHandler(function(ctx) {
+      //flip_max++;
+
+      window.debug_int_1++;
+
+      ctx.scene.change_time(ctx, ctx.scene.time+10);
+
+      window.force_viewport_redraw();
+      window.redraw_viewport();
+      console.log("debug_int_1: ", debug_int_1);
+    }));
+    k.add(new HotKey("Down", [], "Frame Back 10"), new FuncKeyHandler(function(ctx) {
+      //flip_max--;
+      global debug_int_1;
+
+      debug_int_1--;
+      debug_int_1 = Math.max(0, debug_int_1);
+
+      ctx.scene.change_time(ctx, ctx.scene.time-10);
+
+      window.force_viewport_redraw();
+      window.redraw_viewport();
+      console.log("debug_int_1: ", debug_int_1);
+    }));
   }
 
   getCanvas(id, zindex) {
@@ -101,7 +287,9 @@ export class View2DHandler extends Editor {
     this.addEventListener("mouseup", this.on_mouseup.bind(this), false);
 
     this._i = 0;
+
     //this.shadow.appendChild();
+    this.regen_keymap();
   }
 
   _mouse(e) {
@@ -157,16 +345,19 @@ export class View2DHandler extends Editor {
   on_resize(newsize, oldsize) {
     super.on_resize(newsize, oldsize);
 
-    //force resize of canvases
-    this.get_bg_canvas();
-    this.get_fg_canvas();
+    //note that file code might call this before data_link, so
+    //this.image might still be a DataRef, crashing draw
+    if (!this.need_data_link) {
+      //force resize of canvases
+      this.get_fg_canvas();
+      this.get_bg_canvas();
 
-    //window.redraw_viewport();
-    this.do_draw_viewport([]);
+      this.do_draw_viewport([]);
+    }
   }
 
   do_draw_viewport(redraw_rects) {
-    console.log(this.size);
+    //console.log(this.size);
 
     var canvas = this.get_fg_canvas();
     var bgcanvas = this.get_bg_canvas();
@@ -393,6 +584,8 @@ export class View2DHandler extends Editor {
     v3d._in_from_struct = true;
 
     reader(v3d)
+
+    v3d.need_data_link = true;
 
     if (v3d.pinned_paths != undefined && v3d.pinned_paths.length == 0)
       v3d.pinned_paths = undefined;
@@ -623,12 +816,12 @@ export class View2DHandler extends Editor {
         //XXX g_app_state.toolstack.exec_tool(new ViewRotateOp());
         //need to add mouse keymaps to properly handle this next one
       } else if (event.button == 0 && event.altKey) {
-        this.on_mousemove(event);
+        this.on_mousemove(event.original);
 
         this._mstart = new Vector2(this.mpos);
         selfound = this.do_alt_select(event, this.mpos, this);
       } else if (event.button == 0) {
-        this.on_mousemove(event);
+        this.on_mousemove(event.original);
 
         this._mstart = new Vector2(this.mpos);
         selfound = this.do_select(event, this.mpos, this, this.shift|g_app_state.select_multiple);
@@ -871,8 +1064,8 @@ import {UIColorButton} from 'UIWidgets_special2';
 import {ManipulatorManager, Manipulator, 
         HandleShapes, ManipFlags, ManipHandle} from 'manipulator';
 
-import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
-        charmap, TouchEventManager, EventHandler} from './events';
+import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
+        charmap, TouchEventManager, EventHandler} from '../events';
 
 import * as view2d_editor from 'view2d_editor';
 export var EditModes = view2d_editor.EditModes;
@@ -906,64 +1099,64 @@ function delay_redraw(ms) {
 class PanOp extends ToolOp {
   constructor(start_mpos) {
     super();
-    
+
     this.is_modal = true;
     this.undoflag |= UndoFlags.IGNORE_UNDO;
-    
+
     if (start_mpos != undefined) {
       this.start_mpos = new Vector3(start_mpos);
       this.start_mpos[2] = 0.0;
-      
+
       this.first = false;
     } else {
       this.start_mpos = new Vector3();
-      
+
       this.first = true;
     }
-    
+
     this.start_cameramat = undefined;
     this.cameramat = new Matrix4();
   }
-  
+
   static tooldef() { return {
     uiname     : "Pan",
     apiname    : "view2d.pan",
-    
+
     undoflag   : UndoFlags.IGNORE_UNDO,
-    
+
     inputs     : {},
     outputs    : {},
-    
+
     is_modal   : true
   }}
-  
+
   start_modal(ctx) {
     this.start_cameramat = new Matrix4(ctx.view2d.cameramat);
   }
-  
+
   on_mousemove(event) {
     var mpos = new Vector3([event.x, event.y, 0]);
-    
+
     //console.log("mousemove!");
-    
+
     if (this.first) {
       this.first = false;
       this.start_mpos.load(mpos);
-      
+
       return;
     }
-    
+
     var ctx = this.modal_ctx;
     mpos.sub(this.start_mpos).mulScalar(1.0/ctx.view2d.zoom);
-    
+
     this.cameramat.load(this.start_cameramat).translate(mpos[0], mpos[1], 0.0);
     ctx.view2d.set_cameramat(this.cameramat);
-    
+
     //console.log("panning");
     window.force_viewport_redraw();
     window.redraw_viewport();
   }
-  
+
   on_mouseup(event) {
     this.end_modal();
   }
@@ -975,7 +1168,7 @@ class drawline {
     this.v2 = new Vector3(co2);
     this.group = group;
     this.width = width;
-    
+
     if (color !== undefined) {
       this.clr = [color[0], color[1], color[2], color[3] !== undefined ? color[3] : 1.0];
     } else {
@@ -1378,6 +1571,7 @@ export class View2DHandler extends Area {
   
   data_link(block : DataBlock, getblock : Function, getblock_us : Function) {
     this.ctx = new Context();
+    this.need_data_link = false;
     
     this.background_image.data_link(block, getblock, getblock_us);
   }
@@ -1521,7 +1715,8 @@ export class View2DHandler extends Area {
       shiftKey : event.shiftKey,
       ctrlKey : event.ctrlKey,
       altKey : event.altKey,
-      commandKey : event.commandKey
+      commandKey : event.commandKey,
+      original : event
     };
     
     return event2;
@@ -1553,12 +1748,12 @@ export class View2DHandler extends Area {
         //XXX g_app_state.toolstack.exec_tool(new ViewRotateOp());
       //need to add mouse keymaps to properly handle this next one
       } else if (event.button == 0 && event.altKey) {
-        this.on_mousemove(event);
+        this.on_mousemove(event.original);
         
         this._mstart = new Vector2(this.mpos);
         selfound = this.do_alt_select(event, this.mpos, this);
       } else if (event.button == 0) {
-        this.on_mousemove(event);
+        this.on_mousemove(event.original);
         
         this._mstart = new Vector2(this.mpos);
         selfound = this.do_select(event, this.mpos, this, this.shift|g_app_state.select_multiple); 
@@ -2001,29 +2196,29 @@ export class View2DHandler extends Area {
   define_keymap() {
     var k = this.keymap;
     
-    k.add(new KeyHandler("Z", ["CTRL", "SHIFT"], "Redo"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("Z", ["CTRL", "SHIFT"], "Redo"), new FuncKeyHandler(function(ctx) {
       console.log("Redo")
       ctx.toolstack.redo();
     }));
-    k.add(new KeyHandler("Y", ["CTRL"], "Redo"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("Y", ["CTRL"], "Redo"), new FuncKeyHandler(function(ctx) {
       console.log("Redo")
       ctx.toolstack.redo();
     }));
-    k.add(new KeyHandler("Z", ["CTRL"], "Undo"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("Z", ["CTRL"], "Undo"), new FuncKeyHandler(function(ctx) {
       console.log("Undo");
       ctx.toolstack.undo();
     }));
     
-    k.add(new KeyHandler("O", [], "Toggle Proportional Transform"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("O", [], "Toggle Proportional Transform"), new FuncKeyHandler(function(ctx) {
       console.log("toggling proportional transform");
       ctx.view2d.session_flag ^= SessionFlags.PROP_TRANSFORM;
     }));
     
-    k.add(new KeyHandler("K", [], ""), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("K", [], ""), new FuncKeyHandler(function(ctx) {
       g_app_state.toolstack.exec_tool(new CurveRootFinderTest());
     }));
     
-    k.add(new KeyHandler("Right", [], ""), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("Right", [], ""), new FuncKeyHandler(function(ctx) {
       console.log("Frame Change!", ctx.scene.time+1);
       ctx.scene.change_time(ctx, ctx.scene.time+1);
 
@@ -2031,7 +2226,7 @@ export class View2DHandler extends Area {
       //var tool = new FrameChangeOp(ctx.scene.time+1);
     }));
     
-    k.add(new KeyHandler("Left", [], ""), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("Left", [], ""), new FuncKeyHandler(function(ctx) {
       console.log("Frame Change!", ctx.scene.time-1);
       ctx.scene.change_time(ctx, ctx.scene.time-1);
       
@@ -2039,13 +2234,13 @@ export class View2DHandler extends Area {
       //var tool = new FrameChangeOp(ctx.scene.time-1);
     }));
     
-    /*k.add(new KeyHandler("I", ["CTRL"], "Toggle Generator Debug"), new FuncKeyHandler(function(ctx) {
+    /*k.add(new HotKey("I", ["CTRL"], "Toggle Generator Debug"), new FuncKeyHandler(function(ctx) {
       console.log("Toggling frame debug")
       _do_frame_debug ^= 1;
       test_nested_with();
     }));*/
     
-    k.add(new KeyHandler("Up", [], "Frame Ahead 10"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("Up", [], "Frame Ahead 10"), new FuncKeyHandler(function(ctx) {
       //flip_max++;
       
       window.debug_int_1++;
@@ -2056,7 +2251,7 @@ export class View2DHandler extends Area {
       window.redraw_viewport();
       console.log("debug_int_1: ", debug_int_1);
     }));
-    k.add(new KeyHandler("Down", [], "Frame Back 10"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("Down", [], "Frame Back 10"), new FuncKeyHandler(function(ctx) {
       //flip_max--;
       global debug_int_1;
       

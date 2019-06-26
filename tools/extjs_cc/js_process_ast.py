@@ -740,8 +740,33 @@ def expand_harmony_super(result, typespace):
   _the_typespace = typespace
   
   flatten_statementlists(result, typespace)
-      
+  
   def repl_super(cls, method, base, gets, sets, methods):
+    def static_visit(n):
+      if n.val != "super":
+        return
+      #print("found static super!", base.val)
+      
+      if isinstance(n.parent, FuncCallNode):
+        n.parent[1].prepend("this")
+        n.parent.replace(n, BinOpNode(base.copy(), "call", "."))
+      elif isinstance(n.parent, BinOpNode) and n.parent.op == "." and isinstance(n.parent[1], FuncCallNode):
+        n3 = n.parent[1].copy()
+        n3[1].prepend("this")
+        n4 = BinOpNode(n3[0], "call", ".")
+        n3.replace(n3[0], n4)
+        
+        #if type(base) == BinOpNode:
+        #  n2 = js_parse("$n", [base, n3], start_node=BinOpNode)
+        #else:
+        #  n2 = js_parse("$s", [base.val, n3], start_node=BinOpNode)
+        
+        n2 = base.copy()
+        n.parent.replace(n, n2)
+        n.parent.replace(n.parent[1], n3)
+      else:
+        n.parent.replace(n, base.copy())
+        
     def visit(n):
       if n.val != "super":
         return
@@ -769,8 +794,11 @@ def expand_harmony_super(result, typespace):
         n2 = js_parse("__bind_super_prop(this, $s, $s, '$s')", [cls.name, base.val, n.parent[1].val], start_node=FuncCallNode)
         
         n.parent.parent.replace(n.parent, n2)
-      
-    traverse(method, IdentNode, visit);
+    
+    if method.is_static:
+      traverse(method, IdentNode, static_visit);
+    else:
+      traverse(method, IdentNode, visit);
 
   def visit(node):
     def has_super(node):

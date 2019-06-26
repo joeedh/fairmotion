@@ -9,6 +9,7 @@ import {View2DHandler} from 'view2d';
 import {MaterialEditor} from "MaterialEditor";
 import {DopeSheetEditor} from "DopeSheetEditor";
 import {SettingsEditor} from 'SettingsEditor';
+import {MenuBar} from 'MenuBar';
 import {registerToolStackGetter} from 'FrameManager_ops';
 
 import {Area} from 'ScreenArea';
@@ -27,7 +28,8 @@ export let AreaTypes = {
   OPSTACK : OpStackEditor,
   MATERIAL : MaterialEditor,
   DOPESHEET : DopeSheetEditor,
-  CURVE : CurveEditor
+  CURVE : CurveEditor,
+  MENUBAR : MenuBar
 };
 
 import {setAreaTypes} from "../path.ux/scripts/ScreenArea";
@@ -106,7 +108,7 @@ export function gen_screen(unused, w, h) {
   if (screen) {
     screen.clear();
   } else {
-    screen = document.createElement("screen-x");
+    screen = document.createElement("fairmotion-screen-x");
     app.appendChild(screen);
   }
 
@@ -132,6 +134,11 @@ export function gen_screen(unused, w, h) {
 
   sarea.switch_editor(View2DHandler);
   sarea.area.setCSS();
+
+  let t = MenuBar.getHeight() / sarea.size[1];
+
+  screen.splitArea(sarea, t);
+  sarea.switch_editor(MenuBar);
 
   g_app_state.screen = screen;
   g_app_state.eventhandler = screen;
@@ -195,6 +202,91 @@ export class FileData {
     this.fstructs = fstructs;
     this.version = version;
   }
+}
+
+console.log("converting pre-path.ux file");
+
+function ensureMenuBar(appstate, screen) {
+  for (let sarea of screen.sareas) {
+    if (!sarea.area || !(sarea.area instanceof MenuBar)) {
+      continue;
+    }
+
+    return;
+  }
+
+  screen.regenScreenMesh();
+
+  console.log("Adding menu bar", screen.size);
+
+  let scale = (screen.size[1] - MenuBar.getHeight()) / screen.size[1];
+
+  for (let sv of screen.screenverts) {
+    sv[1] = sv[1]*scale + MenuBar.getHeight();
+  }
+
+  screen.loadFromVerts();
+
+  let sarea2 = document.createElement("screenarea-x");
+
+  sarea2.pos[0] = 0;
+  sarea2.pos[1] = 0;
+  sarea2.size[0] = screen.size[0];
+  sarea2.size[1] = MenuBar.getHeight();
+  screen.appendChild(sarea2);
+
+  sarea2.switch_editor(MenuBar);
+
+  screen.regenScreenMesh();
+  screen.snapScreenVerts();
+}
+
+function patchScreen(appstate, fstructs, data) {
+  let fakeclass = {
+  fromSTRUCT : (reader) => {
+    let ret = {};
+    reader(ret);
+    return ret;
+  },
+
+  structName : "Screen",
+  name : "Screen"
+  };
+
+
+  data = fstructs.read_object(data, fakeclass);
+  let screen = document.createElement("fairmotion-screen-x");
+
+  screen.size = data.size;
+  console.log(data);
+  console.log("SCREEN SIZE", screen.size);
+
+  for (let sarea of data.areas) {
+    console.log("AREA!");
+
+    let sarea2 = document.createElement("screenarea-x");
+
+    sarea2.size = sarea.size;
+    sarea2.pos = sarea.pos;
+
+    for (let editor of sarea.editors) {
+      let areaname = editor.constructor.define().areaname;
+
+      sarea2.editors.push(editor);
+      sarea2.editormap[areaname] = editor;
+
+      if (editor.constructor.name == sarea.area) {
+        sarea2.area = editor;
+        sarea2.shadow.appendChild(editor);
+      }
+    }
+
+    screen.appendChild(sarea2);
+  }
+
+  ensureMenuBar(appstate, screen);
+
+  return screen;
 }
 
 //truly ancient class, from AllShape.
@@ -1336,49 +1428,7 @@ export class AppState {
     let screen;
 
     if (!(Screen.structName in fstructs.structs)) {
-      console.log("converting pre-path.ux file");
-
-      let fakeclass = {
-        fromSTRUCT : (reader) => {
-          let ret = {};
-          reader(ret);
-          return ret;
-        },
-
-        structName : "Screen",
-        name : "Screen"
-      };
-
-
-      data = fstructs.read_object(data, fakeclass);
-      screen = document.createElement("screen-x");
-
-      screen.size = data.size;
-      console.log(data);
-      console.log("SCREEN SIZE", screen.size);
-
-      for (let sarea of data.areas) {
-        console.log("AREA!");
-
-        let sarea2 = document.createElement("screenarea-x");
-
-        sarea2.size = sarea.size;
-        sarea2.pos = sarea.pos;
-
-        for (let editor of sarea.editors) {
-          let areaname = editor.constructor.define().areaname;
-
-          sarea2.editors.push(editor);
-          sarea2.editormap[areaname] = editor;
-
-          if (editor.constructor.name == sarea.area) {
-            sarea2.area = editor;
-            sarea2.shadow.appendChild(editor);
-          }
-        }
-
-        screen.appendChild(sarea2);
-      }
+      screen = patchScreen(this, fstructs, data);
     } else {
       screen = fstructs.read_object(data, Screen);
     }
@@ -1630,7 +1680,7 @@ class SavedContext {
   }
   
   //changes state so that normal Context() accessor structs have the right data
-  set_context(state) {
+  set_context(state : Context) {
     var scene = state.datalib.get(this._scene);
     var fset = state.datalib.get(this._frameset);
 
@@ -1643,7 +1693,7 @@ class SavedContext {
       fset.editmode = this._frameset_editmode;
     state.switch_active_spline(this._spline_path);
     
-    var spline = state.api.get_object(this._spline_path);
+    var spline = state.api.getObject(state, this._spline_path);
     if (spline != undefined) {
       var layer = spline.layerset.idmap[this._active_spline_layer];
       
@@ -1714,6 +1764,7 @@ SavedContext.STRUCT = """
 
 import {SplineFrameSet} from 'frameset';
 import {SettingsEditor} from "../editors/settings/SettingsEditor";
+import {MenuBar} from "../editors/menubar/MenuBar";
 
 export class Context {
   constructor(state=g_app_state) {

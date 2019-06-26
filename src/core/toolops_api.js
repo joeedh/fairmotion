@@ -3,9 +3,11 @@
 import {PropTypes, TPropFlags}  from 'toolprops';
   
 import {STRUCT} from 'struct';
-import {EventHandler} from "../editors/viewport/events";
-import {charmap} from "../editors/viewport/events";
+import {EventHandler} from "../editors/events";
+import {charmap} from "../editors/events";
 
+//makes e.x/e.y relative to dom,
+//and also flips to origin at bottom left instead of top left
 export function patchMouseEvent(e, dom) {
   dom = dom === undefined ? g_app_state.screen : dom;
 
@@ -41,19 +43,29 @@ export function patchMouseEvent(e, dom) {
   e2.x *= window.devicePixelRatio;
   e2.y *= window.devicePixelRatio;
 
+  e2.original = e;
+
   return e2;
 }
 
 export function pushModalLight(obj) {
   let keys = new Set([
-    "keydown", "keyup", "keypress", "mousedown", "mouseup", "touchstart", "touchend",
+    /*"keydown", "keyup", "keypress",*/ "mousedown", "mouseup", "touchstart", "touchend",
     "touchcancel", "mousewheel", "mousemove"
   ]);
 
+  if (g_app_state.eventhandler !== g_app_state.screen) {
+    console.error("nested modal event call!");
+    return;
+  }
+
   let ret = {
     keys : keys,
-    handlers : {}
+    handlers : {},
+    last_eventhandler : g_app_state.eventhandler
   };
+
+  g_app_state.eventhandler = obj;
 
   function make_handler(type, key) {
     return function(e) {
@@ -84,15 +96,22 @@ export function pushModalLight(obj) {
     window.addEventListener(k, handler);
   }
 
+  console.warn("pushModalLight", ret);
   return ret;
 }
 
 export function popModalLight(state) {
-  for (let k in state.handlers) {
-    window.removeEventListener(k, state.handlers[k]);
-  }
+  console.warn("popModalLight", state);
 
-  state.handlers = {};
+  if (state !== undefined) {
+    g_app_state.eventhandler = state.last_eventhandler;
+
+    for (let k in state.handlers) {
+      window.removeEventListener(k, state.handlers[k]);
+    }
+
+    state.handlers = {};
+  }
 }
 
 /*

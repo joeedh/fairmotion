@@ -5,8 +5,8 @@ import {ToolOp, UndoFlags, ToolFlags} from 'toolops_api';
 import {STRUCT} from 'struct';
 import {unpack_ctx} from 'ajax';
 
-import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
-        charmap, TouchEventManager, EventHandler} from './events';
+import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
+        charmap, TouchEventManager, EventHandler} from '../events';
 
 import {Vec2Property, Vec3Property, IntProperty, StringProperty, TPropFlags} from "../../core/toolprops";
 

@@ -16,8 +16,8 @@ import {ToolOp, ModalStates} from 'toolops_api';
 import {TransDataItem, TransDataType} from 'transdata';
 import {TransDopeSheetType} from 'dopesheet_transdata';
 
-import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
-        charmap, TouchEventManager, EventHandler} from './events';
+import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
+        charmap, TouchEventManager, EventHandler} from '../events';
 
 import {clear_jobs, clear_jobs_except_latest, clear_jobs_except_first,
         JobTypes} from 'native_api';

@@ -43,7 +43,7 @@ import {UICanvas} from 'UICanvas';
 import {STRUCT} from 'struct';
 import {RowFrame, ColumnFrame} from 'UIPack';
 
-import {KeyMap, VelocityPan, KeyHandler, FuncKeyHandler} from '../viewport/events';
+import {KeyMap, VelocityPan, HotKey, FuncKeyHandler} from '../events';
 
 class OpStackFrame extends RowFrame {
   constructor(Context ctx, Array<float> size) {
@@ -276,15 +276,15 @@ export class OpStackEditor extends Area {
   define_keymap() {
     var k = this.keymap;
     
-    k.add(new KeyHandler("Z", ["CTRL", "SHIFT"], "Redo"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("Z", ["CTRL", "SHIFT"], "Redo"), new FuncKeyHandler(function(ctx) {
       console.log("Redo")
       ctx.toolstack.redo();
     }));
-    k.add(new KeyHandler("Y", ["CTRL"], "Redo"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("Y", ["CTRL"], "Redo"), new FuncKeyHandler(function(ctx) {
       console.log("Redo")
       ctx.toolstack.redo();
     }));
-    k.add(new KeyHandler("Z", ["CTRL"], "Undo"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("Z", ["CTRL"], "Undo"), new FuncKeyHandler(function(ctx) {
       console.log("Undo");
       ctx.toolstack.undo();
     }));

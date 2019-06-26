@@ -466,7 +466,7 @@ function es6_import_item(_es6_module, modname, name) {
   }
   
   if (!(name in mod.exports)) {
-    if (1||_debug_modules) console.log("name not in exports", name, mod);
+    if (1||_debug_modules) console.log(_es6_module.name + ":", "name not in exports", name, mod);
     throw new ModuleLoadError("");
   }
   

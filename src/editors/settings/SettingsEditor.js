@@ -34,8 +34,8 @@ import {STRUCT} from 'struct';
 import {PackFlags, UIElement, UIFlags, CanvasFlags} from 'UIElement';
 import {UIFrame} from 'UIFrame';
 
-import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
-        charmap, TouchEventManager, EventHandler, VelocityPan} from '../viewport/events';
+import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
+        charmap, TouchEventManager, EventHandler, VelocityPan} from '../events';
 
 import {
   UIButtonAbstract, UIButton, UIButtonIcon,

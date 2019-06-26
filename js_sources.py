@@ -139,8 +139,9 @@ sources = [
   "src/wasm/native_api.js",
   "src/addon_api/addon_api.js",
   "src/scene/scene.js",
-  
-  "src/editors/viewport/events.js",
+
+  "src/editors/menubar/MenuBar.js",
+  "src/editors/events.js",
   "src/core/touchevents.js",
 
   "src/core/toolprops.js",
@@ -210,6 +211,7 @@ sources = [
 
   "src/core/notifications.js",
 
+  "src/editors/app_ops.js",
   "src/editors/editor_base.js",
 	"src/editors/viewport/manipulator.js",
 	"src/editors/viewport/view2d.js",

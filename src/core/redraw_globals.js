@@ -247,7 +247,7 @@ window.init_redraw_globals = function init_redraw_globals() {
             workcanvas_redraw_rects.length = 0;
             workcanvas_redraw_rects2 = rects;
 
-            console.log("REDRAWING VIEWPORT");
+            //console.log("REDRAWING VIEWPORT");
             let screen = g_app_state.screen;
 
             for (let sarea of screen.sareas) {

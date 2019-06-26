@@ -13,7 +13,7 @@ import {ToolOp, UndoFlags, ToolFlags} from 'toolops_api';
 import {STRUCT} from 'struct';
 
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
-        charmap, TouchEventManager, EventHandler} from "../editors/viewport/events";
+        charmap, TouchEventManager, EventHandler} from "../editors/events";
 
 import {UICanvas} from 'UICanvas';
 import {UIFrame} from 'UIFrame';

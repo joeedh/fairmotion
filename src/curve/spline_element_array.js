@@ -630,7 +630,23 @@ export class ElementArray extends GArray {
     
     this.selected = new ElementArraySet();
     this.selected.layerset = layerset;
+
+    this.active = undefined;
+    this.highlight = undefined;
+
+    //this._highlight = undefined;
   }
+
+  /*
+  get highlight() {
+    return this._highlight;
+  }
+
+  set highlight(val) {
+    console.trace("highlight set", val);
+    this._highlight = val;
+  }
+  //*/
 
   editable(ctx) {
     if (ctx === undefined) {

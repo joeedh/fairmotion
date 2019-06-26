@@ -20,8 +20,8 @@ import {DataTypes} from 'lib_api';
 import {STRUCT} from 'struct';
 import {EditModes} from 'view2d_editor';
 
-import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler,
-        charmap, TouchEventManager, EventHandler} from './events';
+import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
+        charmap, TouchEventManager, EventHandler} from '../events';
 
 import {SelectLinkedOp, SelectOneOp} from 'spline_selectops';
 import {TranslateOp} from 'transform';
@@ -383,24 +383,24 @@ export class SplineEditor extends View2DEditor {
   define_keymap() {
     var k = this.keymap;
     
-    k.add_tool(new KeyHandler("PageUp", [], "Send Face Up"),
+    k.add_tool(new HotKey("PageUp", [], "Send Face Up"),
                "spline.change_face_z(offset=1, selmode=selectmode)");
-    k.add_tool(new KeyHandler("PageDown", [], "Send Face Down"),
+    k.add_tool(new HotKey("PageDown", [], "Send Face Down"),
                "spline.change_face_z(offset=-1, selmode=selectmode)");
 
-    k.add_tool(new KeyHandler("G", [], "Translate"),
+    k.add_tool(new HotKey("G", [], "Translate"),
                "spline.translate(datamode=selectmode)");
-    k.add_tool(new KeyHandler("S", [], "Scale"),
+    k.add_tool(new HotKey("S", [], "Scale"),
                "spline.scale(datamode=selectmode)");
-    k.add_tool(new KeyHandler("S", ["SHIFT"], "Scale Time"),
+    k.add_tool(new HotKey("S", ["SHIFT"], "Scale Time"),
                "spline.shift_time()");
                
-    k.add_tool(new KeyHandler("R", [], "Rotate"),
+    k.add_tool(new HotKey("R", [], "Rotate"),
                "spline.rotate(datamode=selectmode)");
     
-    k.add_tool(new KeyHandler("A", [], "Select Linked"), "spline.toggle_select_all()");
+    k.add_tool(new HotKey("A", [], "Select Linked"), "spline.toggle_select_all()");
     /*
-    k.add(new KeyHandler("A", [], "Toggle Select"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("A", [], "Toggle Select"), new FuncKeyHandler(function(ctx) {
       var view2d = ctx.view2d;
       var selectmode = view2d.selectmode;
       
@@ -419,27 +419,27 @@ export class SplineEditor extends View2DEditor {
       }
     }));*/
 
-    k.add_tool(new KeyHandler("A", ["ALT"], "Animation Playback"),
+    k.add_tool(new HotKey("A", ["ALT"], "Animation Playback"),
                "editor.playback()");
 
-    k.add_tool(new KeyHandler("H", [], "Hide Selection"),
+    k.add_tool(new HotKey("H", [], "Hide Selection"),
                "spline.hide(selmode=selectmode)");
-    k.add_tool(new KeyHandler("H", ["ALT"], "Reveal Selection"),
+    k.add_tool(new HotKey("H", ["ALT"], "Reveal Selection"),
                "spline.unhide(selmode=selectmode)");
 
-    k.add_tool(new KeyHandler("G", ["CTRL"], "Ghost Selection"),
+    k.add_tool(new HotKey("G", ["CTRL"], "Ghost Selection"),
                "spline.hide(selmode=selectmode, ghost=1)");
-    k.add_tool(new KeyHandler("G", ["ALT"], "Unghost Selection"),
+    k.add_tool(new HotKey("G", ["ALT"], "Unghost Selection"),
                "spline.unhide(selmode=selectmode, ghost=1)");
     
-    /*k.add_tool(new KeyHandler("C", [], "Connect Handles"),
+    /*k.add_tool(new HotKey("C", [], "Connect Handles"),
                "spline.connect_handles()");
-    k.add_tool(new KeyHandler("C", ["SHIFT"], "Disconnect Handles"),
+    k.add_tool(new HotKey("C", ["SHIFT"], "Disconnect Handles"),
                "spline.disconnect_handles()");
     */
 
     
-    k.add(new KeyHandler("L", [], "Select Linked"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("L", [], "Select Linked"), new FuncKeyHandler(function(ctx) {
       var mpos = ctx.keymap_mpos;
       var ret = ctx.spline.q.findnearest_vert(ctx.view2d, mpos, 55, undefined, ctx.view2d.edit_all_layers);
       
@@ -456,7 +456,7 @@ export class SplineEditor extends View2DEditor {
     
     var this2 = this;
     //cycle through select modes
-    k.add(new KeyHandler("T", [], "Cycle Select Mode"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("T", [], "Cycle Select Mode"), new FuncKeyHandler(function(ctx) {
       var s = ctx.view2d.selectmode, s2;
       
       if (s == SelMask.VERTEX)
@@ -471,7 +471,7 @@ export class SplineEditor extends View2DEditor {
       ctx.view2d.set_selectmode(s2);
     }));
     
-    k.add(new KeyHandler("L", ["SHIFT"], "Select Linked"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("L", ["SHIFT"], "Select Linked"), new FuncKeyHandler(function(ctx) {
       var mpos = ctx.keymap_mpos;
       var ret = ctx.spline.q.findnearest_vert(ctx.view2d, mpos, 55, undefined, ctx.view2d.edit_all_layers);
       
@@ -484,9 +484,9 @@ export class SplineEditor extends View2DEditor {
       }
     }));
     
-    k.add_tool(new KeyHandler("B", [], "Toggle Break-Tangents"),
+    k.add_tool(new HotKey("B", [], "Toggle Break-Tangents"),
               "spline.toggle_break_tangents()");
-    k.add_tool(new KeyHandler("B", ["SHIFT"], "Toggle Break-Curvature"),
+    k.add_tool(new HotKey("B", ["SHIFT"], "Toggle Break-Curvature"),
               "spline.toggle_break_curvature()");
     
     var this2 = this;
@@ -511,25 +511,25 @@ export class SplineEditor extends View2DEditor {
       }
     }
     
-    k.add(new KeyHandler("X", [], "Delete"), new FuncKeyHandler(del_tool));
-    k.add(new KeyHandler("Delete", [], "Delete"), new FuncKeyHandler(del_tool));
-    k.add(new KeyHandler("Backspace", [], "Delete"), new FuncKeyHandler(del_tool));
+    k.add(new HotKey("X", [], "Delete"), new FuncKeyHandler(del_tool));
+    k.add(new HotKey("Delete", [], "Delete"), new FuncKeyHandler(del_tool));
+    k.add(new HotKey("Backspace", [], "Delete"), new FuncKeyHandler(del_tool));
 
-    k.add_tool(new KeyHandler("D", [], "Dissolve Vertices"), "spline.dissolve_verts()");
-    k.add_tool(new KeyHandler("D", ["SHIFT"], "Duplicate"), "spline.duplicate_transform()");
-    k.add_tool(new KeyHandler("F", [], "Create Face/Edge"), "spline.make_edge_face()");
-    k.add_tool(new KeyHandler("E", [], "Split Segments"), "spline.split_edges()");
+    k.add_tool(new HotKey("D", [], "Dissolve Vertices"), "spline.dissolve_verts()");
+    k.add_tool(new HotKey("D", ["SHIFT"], "Duplicate"), "spline.duplicate_transform()");
+    k.add_tool(new HotKey("F", [], "Create Face/Edge"), "spline.make_edge_face()");
+    k.add_tool(new HotKey("E", [], "Split Segments"), "spline.split_edges()");
 
-    k.add_tool(new KeyHandler("M", [], "Mirror Verts"), "spline.mirror_verts()");
+    k.add_tool(new HotKey("M", [], "Mirror Verts"), "spline.mirror_verts()");
 
-    k.add_tool(new KeyHandler("C", [], "Circle Select"), "view2d.circle_select()");
+    k.add_tool(new HotKey("C", [], "Circle Select"), "view2d.circle_select()");
 
-    k.add(new KeyHandler("Z", [], "Toggle Only Render"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("Z", [], "Toggle Only Render"), new FuncKeyHandler(function(ctx) {
       ctx.view2d.only_render ^= 1;
       window.redraw_viewport();
     }));
     
-    k.add(new KeyHandler("W", [], "Tools Menu"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("W", [], "Tools Menu"), new FuncKeyHandler(function(ctx) {
       var mpos = ctx.keymap_mpos;
       ctx.view2d.tools_menu(ctx, mpos);
     }));
@@ -580,11 +580,11 @@ export class SplineEditor extends View2DEditor {
     var spline = this.ctx.spline;
     var toolmode = this.ctx.view2d.toolmode;
     
-    if (this.highlight_spline != undefined) {
+    if (this.highlight_spline !== undefined) {
       //console.log(this.highlight_spline, this.highlight_spline._debug_id, spline._debug_id);
     }
     
-    if (this.highlight_spline != undefined && this.highlight_spline !== spline) {
+    if (this.highlight_spline !== undefined && this.highlight_spline !== spline) {
       var newpath;
       
       console.log("spline switch!");
@@ -618,7 +618,7 @@ export class SplineEditor extends View2DEditor {
       var can_append = toolmode == ToolModes.APPEND;
       
       can_append = can_append && (this.selectmode & (SelMask.VERTEX|SelMask.HANDLE));
-      can_append = can_append && spline.verts.highlight == undefined && spline.handles.highlight == undefined;
+      can_append = can_append && spline.verts.highlight === undefined && spline.handles.highlight === undefined;
       
       if (can_append) {
         var co = new Vector3([event.x, event.y, 0]);

@@ -66,20 +66,6 @@ export class LoadImageOp extends ToolOp {
       
       return;
     }
-    
-    file_dialog(FileDialogModes.OPEN, ctx, function(dialog, path) {
-      console.log("path!:", path);
-      
-      download_file(path, function(dataview) {
-        var buffer = dataview.buffer;
-        
-        console.log("loaded image!", buffer, buffer.byteLength);
-        
-        this2.inputs.imagedata.set_data(buffer);
-        this2.inputs.imagepath.set_data(path);
-        this2.exec(ctx);
-      }, undefined, true);
-    }, undefined, /\.(png|jpg|gif|bmp|tif|exr|jpeg|ico)/);
   }
   
   exec(ctx) {

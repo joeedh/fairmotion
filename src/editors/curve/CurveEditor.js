@@ -29,8 +29,8 @@ Editor.register(CurveEditor);
 import {aabb_isect_2d} from 'mathlib';
 import {gen_editor_switcher} from 'UIWidgets_special';
 
-import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler,
-  charmap, TouchEventManager, EventHandler} from '../viewport/events';
+import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
+  charmap, TouchEventManager, EventHandler} from '../events';
 
 import {STRUCT} from 'struct';
 import {phantom, KeyTypes, FilterModes,

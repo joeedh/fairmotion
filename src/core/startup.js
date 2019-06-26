@@ -575,7 +575,7 @@ function init_event_system() {
       
       handle_key_exclude(e);
 
-      if (g_app_state.screen != undefined)
+      if (g_app_state.screen !== undefined)
           g_app_state.eventhandler.on_keydown(e)
   }
 
@@ -632,7 +632,7 @@ function init_event_system() {
 
   //var ce = document.getElementById("canvas2d_work");
   
-  eman.init(g_app_state.screen);
+  eman.init(window);
   /*
   eman.addEventListener("mousemove", handleMouseMove, false);
   eman.addEventListener("mousedown", handleMouseDown, false);

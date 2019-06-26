@@ -27,8 +27,8 @@ Editor.register(DopeSheetEditor);
 import {aabb_isect_2d} from 'mathlib';
 //import {gen_editor_switcher} from 'UIWidgets_special';
 
-import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
-        charmap, TouchEventManager, EventHandler} from '../viewport/events';
+import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
+        charmap, TouchEventManager, EventHandler} from '../events';
 
 import {STRUCT} from 'struct';
 import {phantom, KeyTypes, FilterModes,
@@ -1679,26 +1679,26 @@ export class DopeSheetEditor extends Area {
     
     var this2 = this;
     
-    k.add(new KeyHandler("X", [], "Delete Keyframe"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("X", [], "Delete Keyframe"), new FuncKeyHandler(function(ctx) {
       var tool = new DeleteKeyOp();
       tool.inputs.phantom_ids.set_data(this2.get_all_ids());
       
       g_app_state.toolstack.exec_tool(tool);
     }));
     
-    k.add(new KeyHandler("Up", [], "Frame Ahead 10"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("Up", [], "Frame Ahead 10"), new FuncKeyHandler(function(ctx) {
       ctx.scene.change_time(ctx, ctx.scene.time+10);
       window.force_viewport_redraw();
       window.redraw_viewport();
     }));
     
-    k.add(new KeyHandler("Down", [], "Frame Back 10"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("Down", [], "Frame Back 10"), new FuncKeyHandler(function(ctx) {
       ctx.scene.change_time(ctx, ctx.scene.time-10);
       window.force_viewport_redraw();
       window.redraw_viewport();
     }));
 
-    k.add(new KeyHandler("Right", [], ""), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("Right", [], ""), new FuncKeyHandler(function(ctx) {
       console.log("Frame Change!", ctx.scene.time+1);
       ctx.scene.change_time(ctx, ctx.scene.time+1);
 
@@ -1706,7 +1706,7 @@ export class DopeSheetEditor extends Area {
       //var tool = new FrameChangeOp(ctx.scene.time+1);
     }));
     
-    k.add(new KeyHandler("Left", [], ""), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("Left", [], ""), new FuncKeyHandler(function(ctx) {
       console.log("Frame Change!", ctx.scene.time-1);
       ctx.scene.change_time(ctx, ctx.scene.time-1);
       
@@ -1714,7 +1714,7 @@ export class DopeSheetEditor extends Area {
       //var tool = new FrameChangeOp(ctx.scene.time-1);
     }));
 
-    k.add(new KeyHandler("Left", ["CTRL"], "Select To Left"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("Left", ["CTRL"], "Select To Left"), new FuncKeyHandler(function(ctx) {
       var tool = new SelectKeysToSide();
       
       tool.inputs.side.set_data(false);
@@ -1722,7 +1722,7 @@ export class DopeSheetEditor extends Area {
       g_app_state.toolstack.exec_tool(tool);
     }));
     
-    k.add(new KeyHandler("Right", ["CTRL"], "Select To Right"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("Right", ["CTRL"], "Select To Right"), new FuncKeyHandler(function(ctx) {
       var tool = new SelectKeysToSide();
       
       tool.inputs.side.set_data(true);
@@ -1730,7 +1730,7 @@ export class DopeSheetEditor extends Area {
       g_app_state.toolstack.exec_tool(tool);
     }));
     
-    k.add(new KeyHandler("G", [], "Translate"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("G", [], "Translate"), new FuncKeyHandler(function(ctx) {
       console.log("translate")
       
       var op = new ShiftTimeOp3();
@@ -1747,7 +1747,7 @@ export class DopeSheetEditor extends Area {
       g_app_state.toolstack.exec_tool(op);
     }));
     
-    k.add(new KeyHandler("A", [], "Toggle Select"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("A", [], "Toggle Select"), new FuncKeyHandler(function(ctx) {
       var tool = new ToggleSelectOp();
       var verts = [];
       
@@ -1756,7 +1756,7 @@ export class DopeSheetEditor extends Area {
       g_app_state.toolstack.exec_tool(tool);
     }));
     
-    k.add(new KeyHandler("K", [], "Column Select"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("K", [], "Column Select"), new FuncKeyHandler(function(ctx) {
       var tool = new ColumnSelect();
       
       var ids = [];
@@ -1772,7 +1772,7 @@ export class DopeSheetEditor extends Area {
       g_app_state.toolstack.exec_tool(tool);
     }));
 
-    k.add(new KeyHandler("K", ["SHIFT"], "Column Select"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("K", ["SHIFT"], "Column Select"), new FuncKeyHandler(function(ctx) {
       var tool = new ColumnSelect();
       
       var ids = [];
@@ -1788,15 +1788,15 @@ export class DopeSheetEditor extends Area {
       g_app_state.toolstack.exec_tool(tool);
     }));
     
-    k.add(new KeyHandler("Z", ["CTRL", "SHIFT"], "Redo"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("Z", ["CTRL", "SHIFT"], "Redo"), new FuncKeyHandler(function(ctx) {
       console.log("Redo")
       ctx.toolstack.redo();
     }));
-    k.add(new KeyHandler("Y", ["CTRL"], "Redo"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("Y", ["CTRL"], "Redo"), new FuncKeyHandler(function(ctx) {
       console.log("Redo")
       ctx.toolstack.redo();
     }));
-    k.add(new KeyHandler("Z", ["CTRL"], "Undo"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("Z", ["CTRL"], "Undo"), new FuncKeyHandler(function(ctx) {
       console.log("Undo");
       ctx.toolstack.undo();
     }));

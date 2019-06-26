@@ -38,6 +38,7 @@ export var DataFlags = {NO_CACHE : 1, RECALC_CACHE : 2};
 
 import * as config from 'config';
 import * as safe_eval from 'safe_eval';
+import {PropSubTypes} from 'toolprops';
 
 export class TinyParserError extends Error {
 }
@@ -220,7 +221,7 @@ export class DataStruct {
 
   Color3(apiname, path, uiname, description) {
     var ret = new Vec3Property(0, apiname, uiname, description);
-    ret.subtype = PropTypes.COLOR3;
+    ret.subtype = PropSubTypes.COLOR;
 
     ret = new DataPath(ret, apiname, path, path!=undefined);
     this.add(ret);
@@ -230,7 +231,7 @@ export class DataStruct {
 
   Color4(apiname, path, uiname, description) {
     var ret = new Vec4Property(0, apiname, uiname, description);
-    ret.subtype = PropTypes.COLOR4;
+    ret.subtype = PropSubTypes.COLOR;
 
     ret = new DataPath(ret, apiname, path, path!=undefined);
     this.add(ret);

@@ -3,7 +3,73 @@ import {STRUCT} from 'struct';
 import {UIBase} from 'ui_base';
 import {Editor} from 'editor_base';
 
+import {PackFlags} from 'ui_base';
+
 export class MaterialEditor extends Editor {
+  constructor() {
+    super();
+
+    this.define_keymap();
+  }
+
+  init() {
+    if (this.ctx === undefined) {
+      //this.ctx = g_app_state.screen.ctx;
+      //XXX eek!
+      this.ctx = new Context();
+    }
+
+    super.init();
+
+    this.makeToolbars();
+    this.setCSS();
+  }
+
+  makeToolbars() {
+
+    let row = this.container//.row();
+
+    let tabs = row.tabs("right");
+
+    //tabs.style["width"] = "300px";
+    //tabs.style["height"] = "400px";
+    tabs.float(1, 35*UIBase.getDPI(), 7);
+
+    this.strokePanel(tabs);
+    this.update();
+  }
+
+  strokePanel(tabs) {
+    let panel = tabs.tab("Stroke");
+
+    var ctx = this.ctx;
+
+    //panel.packflag |= PackFlags.INHERIT_WIDTH;
+    //panel.packflag |= PackFlags.NO_AUTO_SPACING;
+    //panel.packflag |= PackFlags.IGNORE_LIMIT;
+
+    var set_prefix = "spline.segments{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}.mat";
+
+    panel.label("Stroke Color");
+    panel.prop("spline.active_segment.mat.strokecolor", undefined,
+      set_prefix + ".strokecolor");
+    panel.prop("spline.active_segment.mat.linewidth", undefined,
+      set_prefix + ".linewidth");
+    panel.prop("spline.active_segment.mat.blur", undefined,
+      set_prefix + ".blur");
+    panel.prop("spline.active_segment.renderable", undefined,
+      "spline.segments{($.flag & 1) && !$.hidden}.renderable");
+
+    panel.prop("spline.active_segment.mat.flag[MASK_TO_FACE]", undefined,
+      set_prefix + ".flag[MASK_TO_FACE]");
+
+    return panel
+  }
+
+  define_keymap() {
+    let k = this.keymap;
+  }
+
   static define() { return {
     tagname : "material-editor-x",
     areaname : "material_editor",
@@ -33,9 +99,9 @@ import {UICanvas} from 'UICanvas';
 import {STRUCT} from 'struct';
 import {PackFlags} from 'UIElement';
 
-import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
+import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
         charmap, TouchEventManager, EventHandler, VelocityPan
-       } from '../viewport/events';
+       } from '../events';
 
 import {UIFlags, PackFlags, CanvasFlags, open_mobile_keyboard, close_mobile_keyboard, inrect_2d_button, 
        UIElement, UIHoverBox, UIHoverHint} from 'UIElement';

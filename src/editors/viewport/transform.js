@@ -12,9 +12,10 @@ import {ToolOp, ModalStates} from 'toolops_api';
 
 import {TransDataItem, TransDataType} from 'transdata';
 import {TransDopeSheetType} from 'dopesheet_transdata';
+import {SessionFlags} from 'view2d_editor';
 
-import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
-        charmap, TouchEventManager, EventHandler} from './events';
+import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
+        charmap, TouchEventManager, EventHandler} from '../events';
 
 import {clear_jobs, clear_jobs_except_latest, clear_jobs_except_first, 
         JobTypes} from 'native_api';
@@ -505,7 +506,30 @@ export class TransformOp extends ToolOp {
     
     this.modaldata = {};
   }
-  
+
+  static invoke(ctx, args) {
+    var op = new this();
+
+    if ("datamode" in args) {
+      op.inputs.datamode.set_data(args["datamode"]);
+    }
+    if ("mpos" in args) {
+      this.user_start_mpos = args["mpos"];
+    }
+
+    op.inputs.edit_all_layers.set_data(ctx.view2d.edit_all_layers);
+
+    console.log("=====", args, ctx.view2d.session_flag, ctx.view2d.propradius);
+    //op.inputs.datamode.set_data(ctx.view2d.selectmode);
+
+    if (ctx.view2d.session_flag & SessionFlags.PROP_TRANSFORM) {
+      op.inputs.proportional.set_data(true);
+      op.inputs.propradius.set_data(ctx.view2d.propradius);
+    }
+
+    return op;
+  }
+
   static tooldef() { return {
     inputs : {
       /* some TransData backends may use this, e.g. to store arrays of
@@ -601,7 +625,12 @@ export class TransformOp extends ToolOp {
     
     this.first_viewport_redraw = true;
     ctx.appstate.set_modalstate(ModalStates.TRANSFORMING);
-    
+
+    //do one solve
+    ctx.spline.solve().then(function() {
+      redraw_viewport();
+    });
+
     this.ensure_transdata(ctx);
     this.modaldata = {};
   }
@@ -687,20 +716,18 @@ export class TransformOp extends ToolOp {
     }
     
     var this2 = this;
-    
-    //return;
-    if (ctx.spline.resolve == 0) {
+
+    redraw_viewport(min2, max2, undefined, !this2.first_viewport_redraw);
+
+    if (!ctx.spline.solving) {
       if (force_solve && !ctx.spline.solving) { //ha!
         redraw_viewport(min2, max2, undefined, !this2.first_viewport_redraw);
       } else if (force_solve) {
-        ctx.spline._pending_solve.then(function() {
+        ctx.spline._pending_solve.then(function () {
           redraw_viewport(min2, max2, undefined, !this2.first_viewport_redraw);
         });
       }
-      return;
-    }
-    
-    if (force_solve || !ctx.spline.solving) {
+    } else if (force_solve) {
       ctx.spline.solve(undefined, undefined, force_solve).then(function() {
         redraw_viewport(min2, max2, undefined, !this2.first_viewport_redraw);
       });
@@ -744,6 +771,22 @@ export class TransformOp extends ToolOp {
     var propdelta = 15;
     
     switch(event.keyCode) {
+      case 88: //xkey
+      case 89: //ykey
+        this.inputs.constraint_axis.data.zero();
+        this.inputs.constraint_axis.data[event.keyCode == 89 ? 1 : 0] = 1;
+        this.inputs.constrain.set_data(true);
+
+        this.exec(this.modal_ctx);
+        window.redraw_viewport();
+        break;
+      case 13: //return key
+        console.log("end transform!");
+        this.end_modal();
+        break;
+      case 27: //escape
+        this.cancel();
+        break;
       case 189: //minus key
         if (this.inputs.proportional.data) {
           this.inputs.propradius.set_data(this.inputs.propradius.data-propdelta);
@@ -803,6 +846,11 @@ export class TranslateOp extends TransformOp {
   on_mousemove(event) {
     super.on_mousemove(event);
 
+    if (this.modaldata === undefined) {
+      console.trace("ERROR: corrupted modal event call in TransformOp");
+      return;
+    }
+
     var md = this.modaldata;
     var ctx = this.modal_ctx;
     var td = this.transdata;
@@ -827,7 +875,13 @@ export class TranslateOp extends TransformOp {
     
     var mat = new Matrix4();
     var off = this.inputs.translation.data;
-    
+
+    if (this.inputs.constrain.data) {
+      off = new Vector3(off);
+      off.mul(this.inputs.constraint_axis.data);
+      console.log(this.inputs.constraint_axis.data);
+    }
+
     mat.makeIdentity();
     mat.translate(off[0], off[1], 0);
     

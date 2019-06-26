@@ -402,7 +402,7 @@ export var charmap_rev = charmap_latin_1_rev;
 window.charmap = charmap;
 window.charmap_rev = charmap_rev;
 
-export class KeyHandler {
+export class HotKey {
   constructor(key, modifiers, uiname, menunum, ignore_charmap_error) { //menunum is optional, defaults to undefined
     if (!charmap.hasOwnProperty(key)) {
       if (ignore_charmap_error != undefined && ignore_charmap_error != true) {
@@ -443,7 +443,7 @@ export class KeyHandler {
       }
     }
   }
-  
+
   build_str(add_menu_num) : String {
     var s = ""
     if (this.ctrl) s += "CTRL-"
@@ -465,6 +465,14 @@ export class KeyMap extends hashtable {
     super();
     
     this.op_map = new hashtable();
+  }
+
+  concat(keymap) {
+    for (let key of keymap) {
+      this.add(key, keymap.get(key));
+    }
+
+    return this;
   }
 
   get_tool_handler(toolstr) {
@@ -491,22 +499,23 @@ export class KeyMap extends hashtable {
       value.tool.keyhandler = keyhandler;
     }
     
-    hashtable.prototype.add.call(this, keyhandler, value);
+    super.set(keyhandler, value);
   }
 
-  process_event(Context ctx, KeyboardEvent event) : Object {
+  process_event(ctx : Context, event : KeyboardEvent) : Object {
     var modlist = []
+
     if (event.ctrlKey) modlist.push("CTRL")
     if (event.shiftKey) modlist.push("SHIFT")
     if (event.altKey) modlist.push("ALT")
     
-    var key = new KeyHandler(event.keyCode, modlist, 0, 0, true);
-    
+    var key = new HotKey(event.keyCode, modlist, 0, 0, true);
+
     if (this.has(key)) {
       ctx.keymap_mpos = ctx.view2d.mpos;
-      return this.get(key);
+      return this.get(key).handle(ctx);
     }
-    
+
     return undefined;
   }
 }

@@ -3,6 +3,7 @@ import {STRUCT} from 'struct';
 import {UIBase} from 'ui_base';
 import {Editor} from 'editor_base';
 import * as ui_widgets from 'ui_widgets';
+import * as platform from 'platform';
 
 /*
   gen_file_menu(Context ctx, uimenulabel)
@@ -74,13 +75,63 @@ export class MenuBar extends Editor {
     ];
 
     menudef.reverse();
-    
+
     row.menu("File", menudef);
 
+    this.genSessionMenu(row);
 
     let notef = document.createElement("noteframe-x");
     notef.ctx = this.ctx;
     row._add(notef);
+  }
+
+  genSessionMenu(row)
+  {
+    function callback(entry) {
+      console.log(entry);
+      if (entry.i == 0) {
+        //note: this is an html5 function
+        if (confirm("Settings will be cleared", "Clear Settings?")) {
+          console.log("clearing settings");
+
+          ctx.appstate.session.settings.reload_defaults();
+        }
+      } else if (entry.i == 2) {
+        g_app_state.set_startup_file();
+      } else if (entry.i == 1) {
+        myLocalStorage.set("startup_file", startup_file_str);
+      }
+    }
+
+
+    row.menu("Session", [
+      ["Save Default File", () => {
+        platform.app.questionDialog("Erase default startup file?").then((val) => {
+          if (val) {
+            g_app_state.set_startup_file();
+            console.log("save default file", val);
+          }
+        });
+      }],
+
+      ["Clear Default File", () => {
+        platform.app.questionDialog("Erase default startup file?").then((val) => {
+          if (val) {
+            myLocalStorage.set("startup_file", startup_file_str);
+            console.log("clear default file", val);
+          }
+        });
+      }, "ctrl-alt-u"],
+      ["Reset Settings", () => {
+        platform.app.questionDialog("Settings will be cleared", "Clear Settings?").then((val) => {
+          if (val) {
+            console.log("clearing settings");
+
+            ctx.appstate.session.settings.reload_defaults();
+          }
+        });
+      }]
+    ]);
   }
 
   makeHeader(container) {
@@ -91,20 +142,25 @@ export class MenuBar extends Editor {
   static define() { return {
     tagname : "menubar-editor-x",
     areaname : "menubar_editor",
-    uiname : "menu"
+    uiname : "menu",
+    icon : Icons.MENU_EDITOR
   }}
 
   static getHeight() {
-    return ~~(UIBase.getDPI()*15);
+    return ~~(UIBase.getDPI()*19);
+  }
+
+  copy() {
+    return document.createElement("menubar-editor-x");
   }
 
   static fromSTRUCT(reader) {
-    let ret = document.createElement("material-editor-x");
+    let ret = document.createElement("menubar-editor-x");
     reader(ret);
     return ret;
   }
 }
-MenuBar.STRUCT = STRUCT.inherit(MenuBar, Area) + `
+MenuBar.STRUCT = STRUCT.inherit(MenuBar, Editor) + `
 }
 `;
 Editor.register(MenuBar);

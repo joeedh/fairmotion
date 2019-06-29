@@ -576,7 +576,8 @@ export class View2DHandler extends Editor {
   static define() { return {
     tagname : "view2d-editor-x",
     areaname : "view2d_editor",
-    uiname : "Work Canvas"
+    uiname : "Work Canvas",
+    icon : Icons.VIEW2D_EDITOR
   }}
 
   static fromSTRUCT(reader) {

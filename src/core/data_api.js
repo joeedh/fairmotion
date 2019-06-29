@@ -61,6 +61,8 @@ import {
   DataPathTypes, DataFlags, DataAPIError
 } from 'data_api_base';
 
+let resolve_path_rets = new cachering(() => new Array(5), 32);
+
 export class DataPath {
   constructor(prop, name, path, dest_is_prop=false, use_path=true, flag=0) { 
     this.flag = flag;
@@ -1015,10 +1017,17 @@ export class DataAPI {
         cache[str] = ret2;
       } else {
         var ret = cache[str];
-        
+
         if (ret[0] != undefined && !ret[0].cache_good()) {
           delete cache[str];
           return this.resolve_path_intern(ctx, str);
+        } else {
+          let ret2 = resolve_path_rets.next();
+          for (let i=0; i<ret.length; i++) {
+            ret2[i] = ret[i];
+          }
+
+          return ret2;
         }
       }
       
@@ -1175,8 +1184,8 @@ export class DataAPI {
     
     var ast = parser.parse(str);
     
-    static sret = [0, 0, 0, 0, 0];
-    
+    let sret = resolve_path_rets.next();
+
     sret[0] = do_eval(ast, ContextStruct, pathout, spathout);
     pathout[0] = pathout[0].slice(1, pathout[0].length);
     

@@ -660,8 +660,6 @@ function api_define_spline() {
 }
 
 function api_define_vertex_animdata() {
-  var animflags = new FlagProperty("", VDAnimFlags, undefined, "animflags", "Anim Flags");
-  
   var VertexAnimData = new DataStruct([]);
 
   VertexAnimData.Flags(VDAnimFlags, "animflag", "animflag", "Animation Flags", "Keyframe Settings");

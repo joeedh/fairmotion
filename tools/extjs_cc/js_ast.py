@@ -1399,13 +1399,24 @@ class FunctionNode (StatementList):
       
     s += self.s(") => ")
 
-    rn = self.children[1];
-    if isinstance(rn, ReturnNode):
-        rn = rn[0]
+    add_block = len(self.children[1:]) < 2
+    if len(self.children) > 1:
+        rn = self.children[1];
+        if isinstance(rn, ReturnNode):
+            rn = rn[0]
 
-    add_block = len(self.children[1:]) != 1
-    add_block = add_block or type(rn) in [IfNode, WhileNode, SwitchNode, ForCNode, ThrowNode]
-    add_block = add_block or type(rn) in [ForInNode, ForLoopNode, TryNode, ObjLitNode, DoWhileNode]
+        while isinstance(rn, StatementList):
+            add_block = add_block or len(rn) > 1
+            if len(rn) > 0:
+                rn = rn[0]
+            else:
+                break
+
+        add_block = add_block or type(rn) in [IfNode, WhileNode, SwitchNode, ForCNode, ThrowNode]
+        add_block = add_block or type(rn) in [ForInNode, ForLoopNode, TryNode, ObjLitNode, DoWhileNode]
+
+    #XXX logic here doesn't always works, sometimes produces garbage results
+    add_block = True
 
     if add_block:
         s += self.s(t + " {" + ("\n" if len(self.children) > 1 else ""))

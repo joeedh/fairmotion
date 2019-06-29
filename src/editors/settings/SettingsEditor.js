@@ -7,8 +7,13 @@ export class SettingsEditor extends Editor {
   static define() { return {
     tagname : "settings-editor-x",
     areaname : "settings_editor",
-    uiname : "Settings"
+    uiname : "Settings",
+    icon : Icons.SETTINGS_EDITOR
   }}
+
+  copy() {
+    return document.createElement("settings-editor-x");
+  }
 
   static fromSTRUCT(reader) {
     let ret = document.createElement("settings-editor-x");

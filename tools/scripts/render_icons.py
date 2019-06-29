@@ -1,5 +1,6 @@
 import os, os.path, sys, subprocess, time, math, random
 
+#sys.exit(0)
 sep = os.path.sep
 
 env = os.environ
@@ -71,31 +72,90 @@ def gen_cmdstr(cmd):
     cmdstr += c + " "
   return cmdstr
 
+def copy(src, dst):
+    file = open(src, "rb")
+    buf = file.read()
+    file.close();
+
+    file = open(dst, "wb")
+    file.write(buf)
+    file.close()
+
+have_pillow = True
+try:
+    import PIL
+except:
+    have_pillow = False
+    sys.stderr.write("Warning: Pillow module not found; cannot sharpen iconsheets\n")
+
+oversample_fac = 2
+
+def sharpen_iconsheets(paths):
+    global have_pillow, oversample_fac
+
+    if not have_pillow: return
+    import PIL, PIL.ImageFilter, PIL.Image
+
+    filter = PIL.ImageFilter.SHARPEN
+    #filter = PIL.ImageFilter.UnsharpMask(radius=2, percent=150, threshold=3)
+
+    for f in paths:
+        im = PIL.Image.open(f)
+        for i in range(2):
+            im = im.filter(filter);
+
+        im = im.resize((im.width//oversample_fac, im.height//oversample_fac), PIL.Image.LANCZOS)
+        im = im.filter(filter);
+
+        print(im.width, im.height)
+        im.save(f)
+
+sizes = [16, 24, 32, 64]
+paths = []
+
 start_dir = os.getcwd()
-for f in files:
-  out = os.path.split(f)[1].replace(".svg", "")
-  
-  basepath = sep + "src" + sep + "datafiles" + sep
-  dir = np(os.getcwd()) + basepath
-  os.chdir(dir)
-  
-  cmd = [inkscape_path, "-C", "-e%s.png"%out, "-h 512", "-w 512", "-z", f]
-  print("- " + gen_cmdstr(cmd))
-  subprocess.call(cmd)
-  
-  cmd = [inkscape_path, "-C", "-e%s16.png"%out, "-h 256", "-w 256", "-z", f]
-  print("- " + gen_cmdstr(cmd))
-  subprocess.call(cmd)
-  
-  sub = ".."+sep
-  if "WIN" in sys.platform.upper():
-    cp = "copy"
-  else:
-    cp = "cp"
-  
-  """
-  print("copying rendered icon sheet to build/")
-  os.system("%s %s %s%sbuild%s%s" % (cp, "%s.png"%out, sub, sub, sep, "%s.png"%out))
-  os.system("%s %s %s%sbuild%s%s" % (cp, "%s16.png"%out, sub, sub, sep, "%s16.png"%out))
-  #"""
+basepath = sep + "src" + sep + "datafiles" + sep
+dir = np(os.getcwd()) + basepath
+os.chdir(dir)
+
+for s in sizes:
+    if have_pillow: #render twice as big for downsampling
+        dimen = s*16*oversample_fac
+    else:
+        dimen = s*16
+
+    for f in files:
+      out = os.path.split(f)[1].replace(".svg", "")
+
+      fname = "%s%i.png"%(out, s)
+
+      x1, y1 = 0, 0
+      x2, y2 = 512, 512
+
+      cmd = [inkscape_path, "-C", "-e"+fname, "-h %i"%dimen, "-w %i"%dimen, "-z", "--export-area=%i:%i:%i:%i" % (x1,y1,x2,y2), f]
+
+      print("- " + gen_cmdstr(cmd))
+      subprocess.call(cmd)
+
+      paths.append("./" + fname)
+
+sharpen_iconsheets(paths)
+
+for p in paths:
+    fname = os.path.split(p)[1]
+    copy(p, "../../build/" + fname)
+
+#"""
+#print("copying rendered icon sheet to build/")
+#copy("./%s.png"%out, "../../build/%s.png"%out)
+#copy("./%s16.png"%out, "../../build/%s16.png"%out)
+#os.system("%s %s %s%sbuild%s%s" % (cp, "%s.png"%out, sub, sub, sep, "%s.png"%out))
+#os.system("%s %s %s%sbuild%s%s" % (cp, "%s16.png"%out, sub, sub, sep, "%s16.png"%out))
+#"""
+
 os.chdir(start_dir)
+
+
+
+
+

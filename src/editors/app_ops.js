@@ -64,6 +64,8 @@ export class FileOpenRecentOp extends ToolOp {
   }
 }
 
+//import {Icons} from 'icon_enum';
+
 export class FileOpenOp extends ToolOp {
   constructor() {
     super();
@@ -80,7 +82,7 @@ export class FileOpenOp extends ToolOp {
       path : new StringProperty("", "path", "File Path", "File Path")
     },
     outputs  : {},
-    icon     : -1,
+    icon     : Icons.RESIZE,
     is_modal : false,
     undoflag : UndoFlags.IGNORE_UNDO,
     flag : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS

@@ -7,8 +7,13 @@ export class CurveEditor extends Editor {
   static define() { return {
     tagname : "curve-editor-x",
     areaname : "curve_editor",
-    uiname : "Curve Editor"
+    uiname : "Curve Editor",
+    icon : Icons.CURVE_EDITOR
   }}
+
+  copy() {
+    return document.createElement("curve-editor-x");
+  }
 
   static fromSTRUCT(reader) {
     let ret = document.createElement("curve-editor-x");

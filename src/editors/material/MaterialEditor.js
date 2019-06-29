@@ -50,9 +50,12 @@ export class MaterialEditor extends Editor {
 
     var set_prefix = "spline.segments{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}.mat";
 
-    panel.label("Stroke Color");
-    panel.prop("spline.active_segment.mat.strokecolor", undefined,
+    //panel.label("Stroke Color");
+    let panel2 = panel.panel("Stroke Color");
+
+    panel2.prop("spline.active_segment.mat.strokecolor", undefined,
       set_prefix + ".strokecolor");
+
     panel.prop("spline.active_segment.mat.linewidth", undefined,
       set_prefix + ".linewidth");
     panel.prop("spline.active_segment.mat.blur", undefined,
@@ -70,10 +73,15 @@ export class MaterialEditor extends Editor {
     let k = this.keymap;
   }
 
+  copy() {
+    return document.createElement("material-editor-x");
+  }
+
   static define() { return {
     tagname : "material-editor-x",
     areaname : "material_editor",
-    uiname : "Properties"
+    uiname : "Properties",
+    icon : Icons.MATERIAL_EDITOR
   }}
 
   static fromSTRUCT(reader) {
@@ -569,7 +577,7 @@ class MaterialEditor extends Area {
   }
 }
 
-MaterialEditor.STRUCT = STRUCT.inherit(MaterialEditor, Area) + """
+MaterialEditor.STRUCT = STRUCT.inherit(MaterialEditor, Editor) + """
   }
 """
 MaterialEditor.uiname = "Properties";

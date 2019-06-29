@@ -32,7 +32,26 @@ export class PlatformAPIBase {
   quitApp() {
   
   }
+
+  //returns a promise
+  alertDialog(msg) {
+
+  }
+
+  //returns a promise
+  questionDialog(msg) {
+
+  }
 }
+
+//for debugging purposes
+window.setZoom = function(z) {
+  let webFrame = require('electron').webFrame;
+
+// Set the zoom factor to 200%
+  webFrame.setZoomFactor(z);
+}
+
 
 export class NativeAPIBase {
   

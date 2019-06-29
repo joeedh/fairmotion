@@ -358,26 +358,12 @@ function SchemaParser() {
   
   function p_Struct(p) {
     var st = {}
-    st.name = p.expect("ID", "struct name")
+    st.name = p_dotid(p); //p.expect("ID", "struct name");
 
     st.fields = [];
     st.id = -1;
 
-    var tok;
-
-    while (!p.at_end()) {
-      tok = p.peek();
-
-      if (tok.type == "DOT") {
-        p.next();
-
-        st.name += "." + p.expect("ID");
-
-        tok = p.peek();
-      } else {
-        break;
-      }
-    }
+    var tok = p.peeknext();
 
     var id = -1;
     
@@ -620,12 +606,12 @@ var _st_packers = [
       throw new Error("Undefined passed to tstruct, for field " + JSON.stringify(field));
     }
     
-    if (type.data == "Object" || (val.constructor.name != type.data && (val instanceof cls))) {
+    if (type.data == "Object" || (val.constructor.structName != type.data && (val instanceof cls))) {
       if (DEBUG.Struct) {
-        console.log(val.constructor.name + " inherits from " + cls.structName);
+        console.log(val.constructor.structName + " inherits from " + cls.structName);
       }
-      stt = thestruct.get_struct(val.constructor.name);
-    } else if (val.constructor.name == type.data) {
+      stt = thestruct.get_struct(val.constructor.structName);
+    } else if (val.constructor.structName == type.data) {
       stt = thestruct.get_struct(type.data);
     } else {
       console.trace();
@@ -636,19 +622,19 @@ var _st_packers = [
       console.log(__instance_of(val, cls));
       console.log(cls === ToolProperty);
       
-      console.log(val.constructor.name != type.data);
-      console.log(val.constructor.name, type.data);
-      console.log((val.constructor.name != type.data, (val instanceof cls)));
+      console.log(val.constructor.structName != type.data);
+      console.log(val.constructor.structName, type.data);
+      console.log((val.constructor.structName != type.data, (val instanceof cls)));
       console.log(val instanceof cls);
       //console.log(cls.__subclass_map[244], val.constructor.__prototypeid__);
       
       
       console.log(val.constructor);
-      console.log(IntProperty.__prototypeid__, val.__prototypeid__, val.constructor.__prototypeid__, val.constructor.name);
+      console.log(IntProperty.__prototypeid__, val.__prototypeid__, val.constructor.__prototypeid__, val.constructor.structName);
       console.log(val); 
       
-      //console.log((val.constructor.name != type.data && (val instanceof cls)));
-      throw new Error("Bad struct " + val.constructor.name + ", " + JSON.stringify(val) + " passed to write_struct");
+      //console.log((val.constructor.structName != type.data && (val instanceof cls)));
+      throw new Error("Bad struct " + val.constructor.structName + ", " + JSON.stringify(val) + " passed to write_struct");
     }
     
     if (stt.id == 0 || stt.id == undefined) {
@@ -870,12 +856,12 @@ function _st_pack_type2(data, val, obj, thestruct, field, type) {
         throw new Error("Undefined passed to tstruct, for field " + JSON.stringify(field));
       }
       
-      if (type.data == "Object" || (val.constructor.name != type.data && (val instanceof cls))) {
+      if (type.data == "Object" || (val.constructor.structName != type.data && (val instanceof cls))) {
         if (DEBUG.Struct) {
-          console.log(val.constructor.name + " inherits from " + cls.structName);
+          console.log(val.constructor.structName + " inherits from " + cls.structName);
         }
-        stt = thestruct.get_struct(val.constructor.name);
-      } else if (val.constructor.name == type.data) {
+        stt = thestruct.get_struct(val.constructor.structName);
+      } else if (val.constructor.structName == type.data) {
         stt = thestruct.get_struct(type.data);
       } else {
         console.trace();
@@ -886,9 +872,9 @@ function _st_pack_type2(data, val, obj, thestruct, field, type) {
         console.log(__instance_of(val, cls));
         console.log(cls === ToolProperty);
         
-        console.log(val.constructor.name != type.data);
+        console.log(val.constructor.structName != type.data);
         console.log(val.constructor.name, type.data);
-        console.log((val.constructor.name != type.data, (val instanceof cls)));
+        console.log((val.3 != type.data, (val instanceof cls)));
         console.log(val instanceof cls);
         //console.log(cls.__subclass_map[244], val.constructor.__prototypeid__);
         
@@ -1427,7 +1413,7 @@ export class STRUCT {
   }
 
   write_object(data, obj) {
-    var cls = obj.constructor.name;
+    var cls = obj.constructor.structName;
     var stt = this.get_struct(cls);
     
     this.write_struct(data, obj, stt);

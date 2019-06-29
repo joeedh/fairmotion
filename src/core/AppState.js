@@ -11,6 +11,24 @@ import {DopeSheetEditor} from "DopeSheetEditor";
 import {SettingsEditor} from 'SettingsEditor';
 import {MenuBar} from 'MenuBar';
 import {registerToolStackGetter} from 'FrameManager_ops';
+import {FairmotionScreen} from 'editor_base';
+
+import {iconmanager, setIconMap} from 'ui_base';
+
+//set iconsheets, need to find proper place for it other than here in AppState.js
+iconmanager.reset(16);
+
+setIconMap(window.Icons);
+
+if (window.devicePixelRatio > 1.1) {
+  //iconmanager.add(document.getElementById("iconsheet24"), 24, 16);
+} else {
+  //iconmanager.add(document.getElementById("iconsheet16"), 16);
+}
+//to deal with dpi/zoom hell, just use twice as big of icons and scale
+iconmanager.add(document.getElementById("iconsheet32"), 32, 16);
+iconmanager.add(document.getElementById("iconsheet64"), 64, 32);
+//iconmanager.add(document.getElementById("iconsheet64"), 64);
 
 import {Area} from 'ScreenArea';
 Area.prototype.getScreen = () => {
@@ -1104,7 +1122,7 @@ export class AppState {
         }
       }
 
-      this.screen.clear();
+      this.screen.destroy();
       this.screen.remove();
       this.screen = undefined;
     }
@@ -1430,7 +1448,7 @@ export class AppState {
     if (!(Screen.structName in fstructs.structs)) {
       screen = patchScreen(this, fstructs, data);
     } else {
-      screen = fstructs.read_object(data, Screen);
+      screen = fstructs.read_object(data, FairmotionScreen);
     }
 
     screen.style["width"] = "100%";

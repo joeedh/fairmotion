@@ -4,7 +4,9 @@ export var PlatCapab = {
   save_dialog    : undefined,
   open_dialog    : undefined,
   open_last_file : undefined,
-  exit_catcher   : undefined
+  exit_catcher   : undefined,
+  alert_dialog    : undefined,
+  question_dialog : undefined
 };
 
 

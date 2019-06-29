@@ -121,7 +121,11 @@ export function open_file(callback, thisvar, set_current_file, extslabel, exts, 
     }
     
     let fname = path;
-    
+
+    if (path === undefined) {
+      return;
+    }
+
     let idx1 = path.lastIndexOf("/");
     let idx2 = path.lastIndexOf("\\");
   

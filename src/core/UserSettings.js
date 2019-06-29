@@ -142,8 +142,10 @@ export class AppSettings {
         }
         
         g_app_state.session.settings = settings;
-        if (g_app_state.screen != undefined)
-          g_app_state.screen.do_full_recalc();
+        if (g_app_state.screen != undefined) {
+          redraw_viewport();
+          redraw_ui();
+        }
         
         if (on_finish != undefined) {
           on_finish(settings);

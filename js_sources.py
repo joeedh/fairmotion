@@ -88,6 +88,7 @@ sources = [
   "src/path.ux/scripts/ui_base.js",
   "src/path.ux/scripts/ui.js",
   "src/path.ux/scripts/ui_colorpicker.js",
+  "src/path.ux/scripts/ui_colorpicker2.js",
   "src/path.ux/scripts/ui_curvewidget.js",
   "src/path.ux/scripts/ui_tabs.js",
   "src/path.ux/scripts/simple_toolsys.js",
@@ -100,6 +101,7 @@ sources = [
   "src/path.ux/scripts/ui_noteframe.js",
   "src/path.ux/scripts/image.js",
   "src/path.ux/scripts/const.js",
+  "src/path.ux/scripts/simple_events.js",
   "src/path.ux/scripts/config.js",
 
   "src/curve/curve.js",

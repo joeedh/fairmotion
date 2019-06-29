@@ -6,7 +6,11 @@ import {ToolProperty, PropTypes} from 'toolprops';
 export var toolmap = {};
 export var toollist = [];
 
-import {DataPathTypes} from "./data_api_base";
+import {DataPathTypes, DataAPIError} from "./data_api_base";
+import {UIBase} from 'ui_base';
+import {Editor} from 'editor_base';
+
+import {ToolKeyHandler} from "../editors/events";
 
 let resolvepath_rets = new cachering(() => {return {
   parent : undefined,
@@ -63,6 +67,70 @@ export class PathUXInterface extends ModelInterface {
     this.ctx = ctx;
   }
 
+  _getToolHotkey(screen, toolstring) {
+    let ctx = this.ctx;
+    let x = screen.mpos[0], y = screen.mpos[1];
+
+    function processKeymap(keymap) {
+      for (let k of keymap) {
+        let v = keymap.get(k);
+
+        if (v instanceof ToolKeyHandler && v.tool == toolstring) {
+          console.log("found tool!", v);
+          return k.toLowerCase();
+        }
+      }
+    }
+
+    function rec(n) {
+      if (!n || !n.getClientRects)
+        return;
+
+      let rect = n.getClientRects();
+
+      if (rect.length == 0) return;
+
+      rect = rect[0];
+      let ok = (x >= rect.x && y >= rect.y && x <= rect.x + rect.width && y <= rect.y + rect.height);
+
+      //if (!ok) return;
+
+      for (let n2 of n.childNodes) {
+        let ret = rec(n2);
+        if (ret !== undefined)
+          return ret;
+      }
+
+      if (n.shadowRoot) {
+        for (let n2 of n.shadowRoot.childNodes) {
+          let ret = rec(n2);
+          if (ret !== undefined)
+            return ret;
+        }
+      }
+
+      if (n instanceof Editor) {
+        if (n.keymap === undefined) {
+          return;
+        }
+
+        let ret = processKeymap(n.keymap);
+
+        if (ret !== undefined) {
+          return ret;
+        }
+      }
+    }
+
+    let ret = rec(screen);
+
+    if (ret === undefined && screen.keymap !== undefined) {
+      ret = processKeymap(screen.keymap);
+    }
+
+    return ret;
+  }
+
   setContext(ctx) {
     this.ctx = ctx;
   }
@@ -72,7 +140,16 @@ export class PathUXInterface extends ModelInterface {
   }
 
   getToolDef(path) {
-    return this.api.get_opclass(this.ctx, path).tooldef();
+    let ret = this.api.get_opclass(this.ctx, path);
+    if (ret === undefined) {
+      throw new DataAPIError("bad toolop path", path);
+    }
+
+    ret = ret.tooldef();
+    ret = Object.assign({}, ret);
+
+    ret.hotkey = this._getToolHotkey(this.ctx.screen, path);
+    return ret;
   }
 
   //TODO: work out and document mass set interface for path.ux
@@ -182,7 +259,16 @@ export class PathUXInterface extends ModelInterface {
 
     let ret = resolvepath_rets.next();
 
-    ret.value = this.api.get_prop(ctx, path);
+    try {
+      ret.value = this.api.get_prop(ctx, path);
+    } catch (error) {
+      if (error instanceof DataAPIError) {
+        ret.value = undefined;
+      } else {
+        throw error;
+      }
+    }
+
     ret.mass_set = rp[3];
     ret.key = rp[0].path;
 
@@ -194,7 +280,15 @@ export class PathUXInterface extends ModelInterface {
     ret.struct = undefined;
 
     if (rp[4]) {
-      ret.obj = this.api.evaluate(this.ctx, rp[4]);
+      try {
+        ret.obj = this.api.evaluate(this.ctx, rp[4]);
+      } catch (error) {
+        if (error instanceof DataAPIError) {
+          ret.obj = undefined;
+        } else {
+          throw error;
+        }
+      }
     }
 
     if (rp[0].type == DataPathTypes.PROP) {

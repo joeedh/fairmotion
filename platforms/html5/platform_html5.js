@@ -14,6 +14,14 @@ export class PlatformAPI extends PlatformAPIBase {
   numberOfCPUs() {
     return navigator.hardwareConcurrency;
   }
+
+  alertDialog(msg) {
+    alert(msg);
+  }
+
+  questionDialog(msg) {
+
+  }
 }
 
 export var PlatCapab = {

@@ -404,7 +404,7 @@ def cp_handler(file, target):
     return "cp %s %s" % (file, target)
 
 def svg_handler(file, target):
-  return PYBIN + " tools/scripts/render_icons.py"
+  return PYBIN + " tools/scripts/render_icons_fancy.py"
 
 def jcc_handler(file, target):
   return PYBIN + "%s %s %s %s -np" % (JCC, file, target, JFLAGS)

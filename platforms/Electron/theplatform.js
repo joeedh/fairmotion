@@ -51,6 +51,21 @@ export class ElectronPlatformAPI {
   quitApp() {
     close();
   }
+
+  alertDialog(msg) {
+    return new Promise((accept, reject) => {
+      alert(msg);
+      accept();
+    })
+  }
+
+  questionDialog(msg) {
+    return new Promise((accept, reject) => {
+      let ret = confirm(msg);
+      accept(ret);
+    });
+
+  }
 }
 
 export var app = new ElectronPlatformAPI();

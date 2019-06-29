@@ -7,8 +7,13 @@ export class DopeSheetEditor extends Editor {
   static define() { return {
     tagname : "dopesheet-editor-x",
     areaname : "dopesheet_editor",
-    uiname : "Animation Keys"
+    uiname : "Animation Keys",
+    icon : Icons.DOPESHEET_EDITOR
   }}
+
+  copy() {
+    return document.createElement("dopesheet-editor-x");
+  }
 
   static fromSTRUCT(reader) {
     let ret = document.createElement("dopesheet-editor-x");
@@ -102,7 +107,7 @@ export class TreeItem extends RowFrame {
   }
 
   static define() {return {
-    tagname : "dopesheet-treeitem-x"
+    tagname : "dopesheet-treeitem-x",
   }}
 
   get_filedata() { 
@@ -496,7 +501,8 @@ export class DopeSheetEditor extends Area {
   static define() {return {
     tagname : "dopesheet-x",
     areaname : "dopesheet",
-    uiname : "Animation Dopesheet"
+    uiname : "Animation Dopesheet",
+    icon : Icons.DOPESHEET_EDITOR
   }}
 
   build_layout() {

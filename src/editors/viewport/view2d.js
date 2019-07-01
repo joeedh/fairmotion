@@ -298,6 +298,7 @@ export class View2DHandler extends Editor {
 
   data_link(block : DataBlock, getblock : Function, getblock_us : Function) {
     this.ctx = new Context();
+    this.need_data_link = false;
 
     this.background_image.data_link(block, getblock, getblock_us);
   }
@@ -536,7 +537,7 @@ export class View2DHandler extends Editor {
 
     //tabs.style["width"] = "300px";
     tabs.style["height"] = "400px";
-    tabs.float(1, 35*UIBase.getDPI(), 7);
+    tabs.float(1, 2*25*UIBase.getDPI(), 7);
 
     var tools = tabs.tab("Tools");
     //*
@@ -563,9 +564,26 @@ export class View2DHandler extends Editor {
 
   makeHeader(container) {
     let row = super.makeHeader(container);
+    row.noMargins();
 
     console.log("VIEW2D ctx:", this.ctx);
+
     row.prop("view2d.zoom");
+
+    row = container.row();
+    row.noMargins();
+    container.noMargins();
+
+    row.prop("view2d.selectmask[HANDLE]", PackFlags.USE_ICONS);
+    row.prop("view2d.selectmode", PackFlags.USE_ICONS);
+
+    row.prop("view2d.only_render", PackFlags.USE_ICONS);
+    row.prop("view2d.draw_small_verts", PackFlags.USE_ICONS);
+    row.prop("view2d.draw_normals", PackFlags.USE_ICONS);
+    row.prop("view2d.draw_anim_paths", PackFlags.USE_ICONS);
+    row.prop("view2d.enable_blur", PackFlags.USE_ICONS);
+    row.prop("view2d.draw_faces", PackFlags.USE_ICONS);
+    row.prop("view2d.extrude_mode", PackFlags.USE_ICONS);
   }
 
   set_zoom(zoom) {
@@ -1576,6 +1594,7 @@ export class View2DHandler extends Area {
     
     this.background_image.data_link(block, getblock, getblock_us);
   }
+
   set_cameramat(mat=undefined) {
     var cam = this.cameramat, render = this.rendermat, zoom = new Matrix4();
 

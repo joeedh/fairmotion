@@ -70,6 +70,21 @@ export var ElementColor = {
   SELECT_HIGHLIGHT_ACTIVE : [0.85, 0.85, 1.0]
 };
 
+export var HandleColor = {
+  UNSELECT   : [0.2, 0.7, 0.07],
+  SELECT     : [0.1, 1, 0.26],
+  HIGHLIGHT  : [0.2, 0.93, 0.4],
+  ACTIVE     : [0.1, 1, 0.75],
+  SELECT_ACTIVE : mix([1, 0.6, 0.26], [0.1, 0.2, 1.0], 0.7),
+  SELECT_HIGHLIGHT : [1, 1, 0.8],
+  HIGHLIGHT_ACTIVE : mix([1, 0.93, 0.4], [0.3, 0.4, 1.0], 0.5),
+  SELECT_HIGHLIGHT_ACTIVE : [0.85, 0.85, 1.0]
+};
+HandleColor.SELECT_ACTIVE = mix(HandleColor.SELECT, HandleColor.ACTIVE, 0.5);
+HandleColor.SELECT_HIGHLIGHT = mix(HandleColor.SELECT, HandleColor.HIGHLIGHT, 0.5);
+HandleColor.HIGHLIGHT_ACTIVE = mix(HandleColor.HIGHLIGHT, HandleColor.ACTIVE, 0.5);
+HandleColor.SELECT_HIGHLIGHT_ACTIVE = mix(mix(HandleColor.SELECT, HandleColor.ACTIVE, 0.5), HandleColor.HIGHLIGHT, 0.5);
+
 function rgb2css(color) {
   var r = color[0], g = color[1], b = color[2];
   return "rgb(" + (~~(r*255)) + "," + (~~(g*255)) + "," + (~~(b*255)) + ")";
@@ -83,6 +98,13 @@ for (var k in ElementColor) {
   element_colormap[f] = rgb2css(ElementColor[k]);
 }
 
+//create final lookup table
+export var handle_colormap = new Array(8);
+for (var k in HandleColor) {
+  var f = FlagMap[k];
+  handle_colormap[f] = rgb2css(HandleColor[k]);
+}
+
 function get_element_flag(e, list) {
   var f = 0;
 
@@ -94,7 +116,10 @@ function get_element_flag(e, list) {
 }
 
 export function get_element_color(e, list) {
-  return element_colormap[get_element_flag(e, list)];
+  if (e.type == SplineTypes.HANDLE)
+    return handle_colormap[get_element_flag(e, list)];
+  else
+    return element_colormap[get_element_flag(e, list)];
 }
 
 

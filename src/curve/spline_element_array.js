@@ -198,7 +198,7 @@ export class SplineLayerSet extends Array {
     var min = Math.min(new_i, start), max = Math.max(new_i, start);
     var diff = max-min;
     
-    idx = start;
+    let idx = start;
     
     if (start > new_i) {
       for (var i=0; i<diff; i++) {

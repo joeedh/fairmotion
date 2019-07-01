@@ -424,7 +424,9 @@ export class FlagProperty extends ToolProperty {
               description, range, uirange, flag) 
   {
     super(PropTypes.FLAG, apiname, uiname, description, flag);
-    
+
+    this.iconmap = {};
+
     //detect if we were called by fromSTRUCT
     if (value == undefined && maskmap == undefined) {
       this.ui_value_names = {};
@@ -461,6 +463,12 @@ export class FlagProperty extends ToolProperty {
     this.set_flag(value);  
   }
 
+  addIcons(iconmap) {
+    for (var k in iconmap) {
+      this.iconmap[k] = iconmap[k];
+    }
+  }
+
   setUINames(uinames) {
     this.ui_value_names = {}
     this.ui_key_names = {};
@@ -474,9 +482,9 @@ export class FlagProperty extends ToolProperty {
     }
   }
 
-  copyTo(FlagProperty dst) {
-    ToolProperty.prototype.copyTo.call(this, dst, true);
-    
+  copyTo(dst : FlagProperty) {
+    super.copyTo(dst, true);
+
     for (var k in this.flag_descriptions) {
       dst.flag_descriptions[k] = this.flag_descriptions[k];
     }
@@ -495,7 +503,12 @@ export class FlagProperty extends ToolProperty {
     for (var k in this.ui_key_names) {
       dst.ui_key_names[k] = this.ui_key_names[k];
     }
-    
+
+    dst.iconmap = {};
+    for (let k in this.iconmap) {
+      dst.iconmap[k] = this.iconmap[k];
+    }
+
     return dst;
   }
   
@@ -781,7 +794,8 @@ export class EnumProperty extends ToolProperty {
   {
 
     super(PropTypes.ENUM, apiname, uiname, description, flag);
-    
+
+    this.descriptions = {};
     this.values = {}
     this.keys = {};
     this.ui_value_names = {}
@@ -811,6 +825,7 @@ export class EnumProperty extends ToolProperty {
       
       uin = uin.replace(/\_/g, " ");
       this.ui_value_names[k] = uin;
+      this.descriptions[k] = uin;
     }
     
     this.iconmap = {};
@@ -824,7 +839,7 @@ export class EnumProperty extends ToolProperty {
     this.values = Object.create(prop.values);
     this.keys = Object.create(prop.keys);
   }
-  
+
   add_icons(iconmap) {
     for (var k in iconmap) {
       this.iconmap[k] = iconmap[k];

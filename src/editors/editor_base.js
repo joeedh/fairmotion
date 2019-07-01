@@ -37,15 +37,11 @@ export class FairmotionScreen extends Screen {
     });
   }
   on_keyup(e) {
-    console.log("keyup!", e);
-
     if (g_app_state.eventhandler !== this)
       return g_app_state.eventhandler.on_keyup(e);
   }
 
   on_keydown(e) {
-    console.log("keydown!", e);
-
     if (g_app_state.eventhandler !== this)
       return g_app_state.eventhandler.on_keydown(e);
 
@@ -54,7 +50,6 @@ export class FairmotionScreen extends Screen {
     }
 
     let area = this.pickElement(this.mpos[0], this.mpos[1], undefined, undefined, Area);
-    console.log("active area:", area, area.keymap);
 
     if (area !== undefined && area.keymap.process_event(this.ctx, e)) {
       return;

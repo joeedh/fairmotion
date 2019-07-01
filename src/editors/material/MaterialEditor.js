@@ -1,9 +1,270 @@
 import {Area} from 'ScreenArea';
 import {STRUCT} from 'struct';
-import {UIBase} from 'ui_base';
+import {Container} from 'ui';
 import {Editor} from 'editor_base';
 
-import {PackFlags} from 'ui_base';
+import {PackFlags, UIBase} from 'ui_base';
+import {ShiftLayerOrderOp} from 'spline_editops';
+import {AddLayerOp, DeleteLayerOp, ChangeLayerOp, ChangeElementLayerOp} from 'spline_layerops';
+
+import 'ui_table';
+import 'ui_menu';
+import 'ui_listbox';
+
+function list(iter) {
+  let ret = [];
+
+  for (let item of iter) {
+    ret.push(item);
+  }
+
+  return ret;
+}
+
+class LayerPanel extends Container {
+  constructor(ctx) {
+    super(ctx);
+
+    //this.last_spline_path = "";
+    this.last_total_layers = this.last_active_id = 0;
+
+    this.do_rebuild = 1;
+    this.delayed_recalc = 0;
+  }
+
+  update() {
+    if (this.do_rebuild) {
+      this.rebuild();
+      return;
+    }
+
+    super.update();
+
+    if (this.ctx == undefined) return;
+
+    var spline = this.ctx.frameset.spline;
+
+    var do_rebuild = spline.layerset.length != this.last_total_layers;
+    //do_rebuild = do_rebuild || this.last_spline_path != this.ctx.splinepath;
+    do_rebuild = do_rebuild || spline.layerset.active.id != this.last_active_id;
+
+    this.do_rebuild |= do_rebuild;
+
+    if (this.delayed_recalc > 0) {
+      this.delayed_recalc--;
+
+      this.update();
+    }
+  }
+
+  rebuild() {
+    if (this.ctx == undefined) return;
+    this.do_rebuild = false;
+
+    console.log("layers ui rebuild!");
+
+    var spline = this.ctx.frameset.spline;
+
+    //this.last_spline_path = this.ctx.splinepath;
+    this.last_total_layers = spline.layerset.length;
+    this.last_active_id = spline.layerset.active.id;
+
+    for (let child of list(this.dom.childNodes)) {
+      child.remove();
+    }
+
+    this.label("Layers");
+
+    let listbox = this.listbox();
+
+    for (var i=spline.layerset.length-1; i>= 0; i--) {
+      var layer = spline.layerset[i];
+
+      let row = listbox.addItem(layer.name, layer.id);
+      //list.add_item(layer.name, layer.id);
+    }
+
+    if (spline.layerset.active !== undefined) {
+      listbox.setActive(spline.layerset.active.id);
+    }
+
+    listbox.onchange = (id, item) => {
+      var layer = spline.layerset.idmap[id];
+
+      if (layer == undefined) {
+        console.log("Error!", arguments);
+        return;
+      }
+
+      console.log("Changing layers!", id);ChangeLayerOp
+      g_app_state.toolstack.exec_tool(new ChangeLayerOp(id));
+    }
+    let row = this.row();
+
+    row.iconbutton(Icons.SMALL_PLUS, "Add Layer", () => {
+      g_app_state.toolstack.exec_tool(new AddLayerOp());
+      this.rebuild();
+    }, undefined);
+    row.iconbutton(Icons.SCROLL_UP, "Move Up", () => {
+      console.log("Shift layers up");
+      var ctx = new Context(), spline = ctx.frameset.spline;
+      var layer = spline.layerset.active;
+
+      var tool = new ShiftLayerOrderOp(layer.id, 1);
+      g_app_state.toolstack.exec_tool(tool);
+      this.rebuild();
+    }, undefined);
+    row.iconbutton(Icons.SCROLL_DOWN, "Move Down", () => {
+      console.log("Shift layers down");
+      var ctx = new Context(), spline = ctx.frameset.spline;
+      var layer = spline.layerset.active;
+
+      var tool = new ShiftLayerOrderOp(layer.id, -1);
+      g_app_state.toolstack.exec_tool(tool);
+      this.rebuild();
+    }, undefined);
+    row.iconbutton(Icons.SMALL_MINUS, "Remove Layer", () => {
+      var tool = new DeleteLayerOp();
+      var layer = this.ctx.spline.layerset.active;
+
+      if (layer == undefined)
+        return;
+
+      tool.inputs.layer_id.set_data(layer.id);
+      g_app_state.toolstack.exec_tool(tool);
+      this.rebuild();
+    }, undefined);
+  }
+
+  _old() {
+    return;
+    var controls = this.col();
+
+    var add = new UIButtonIcon(this.ctx, "Add");
+    var del = new UIButtonIcon(this.ctx, "Delete");
+    add.icon = Icons.SMALL_PLUS;
+    del.icon = Icons.SMALL_MINUS;
+
+    var this2 = this;
+    add.callback = function() {
+      g_app_state.toolstack.exec_tool(new AddLayerOp());
+    }
+
+    del.callback = function() {
+      var tool = new DeleteLayerOp();
+      var layer = this.ctx.spline.layerset.active;
+
+      if (layer == undefined)
+        return;
+
+      tool.inputs.layer_id.set_data(layer.id);
+      g_app_state.toolstack.exec_tool(tool);
+    }
+
+    var up = new UIButtonIcon(this.ctx, "Up", 30);
+    var down = new UIButtonIcon(this.ctx, "Down", 29);
+
+    up.icon = Icons.SCROLL_UP;
+    down.icon = Icons.SCROLL_DOWN;
+
+    var this2 = this;
+    down.callback = function() {
+      console.log("Shift layers down");
+      var ctx = new Context(), spline = ctx.frameset.spline;
+      var layer = spline.layerset.active;
+
+      var tool = new ShiftLayerOrderOp(layer.id, -1);
+      g_app_state.toolstack.exec_tool(tool);
+      this2.rebuild();
+    }
+    up.callback = function() {
+      console.log("Shift layers up");
+      var ctx = new Context(), spline = ctx.frameset.spline;
+      var layer = spline.layerset.active;
+
+      var tool = new ShiftLayerOrderOp(layer.id, 1);
+      g_app_state.toolstack.exec_tool(tool);
+      this2.rebuild();
+    }
+
+    this.controls = {
+      add  : add,
+      del  : del,
+      up   : up,
+      down : down
+    };
+
+    for (var k in this.controls) {
+      controls.add(this.controls[k]);
+    }
+
+    var list = this.list = new UIListBox();
+    list.size = [200, 250];
+
+    this.add(list);
+
+    for (var i=spline.layerset.length-1; i>= 0; i--) {
+      var layer = spline.layerset[i];
+
+      list.add_item(layer.name, layer.id);
+    }
+
+    list.set_active(spline.layerset.active.id);
+    list.callback = function(list, text, id) {
+      var layer = spline.layerset.idmap[id];
+      if (layer == undefined) {
+        console.log("Error!", arguments);
+        return;
+      }
+
+      console.log("Changing layers!");
+      g_app_state.toolstack.exec_tool(new ChangeLayerOp(id));
+    }
+
+    var controls2 = this.col();
+    controls2.add(new UIButton(this.ctx, "Sel Up"));
+    controls2.add(new UIButton(this.ctx, "Sel Down"));
+
+    var this2 = this;
+    controls2.children[0].callback = function() {
+      var lset = this2.ctx.frameset.spline.layerset;
+      var oldl = lset.active;
+
+      console.log("oldl", oldl);
+
+      if (oldl.order == lset.length-1) return;
+      var newl = lset[oldl.order+1];
+
+      var tool = new ChangeElementLayerOp(oldl.id, newl.id);
+
+      g_app_state.toolstack.exec_tool(tool);
+    }
+
+    controls2.children[1].callback = function() {
+      var lset = this2.ctx.frameset.spline.layerset;
+      var oldl = lset.active;
+
+      console.log("oldl", oldl);
+
+      if (oldl.order == 0) return;
+      var newl = lset[oldl.order-1];
+
+      var tool = new ChangeElementLayerOp(oldl.id, newl.id);
+
+      g_app_state.toolstack.exec_tool(tool);
+    }
+
+    var controls3 = this.col();
+    controls3.prop('frameset.drawspline.active_layer.flag');
+
+    this.delayed_recalc = 4;
+  }
+
+  static define() {return {
+    tagname : "layerpanel-x"
+  }}
+};
+UIBase.register(LayerPanel);
 
 export class MaterialEditor extends Editor {
   constructor() {
@@ -22,7 +283,13 @@ export class MaterialEditor extends Editor {
     super.init();
 
     this.makeToolbars();
+
     this.setCSS();
+  }
+
+  setCSS() {
+    super.setCSS();
+    this.style["background-color"] = this.getDefault("DefaultPanelBG");
   }
 
   makeToolbars() {
@@ -36,7 +303,31 @@ export class MaterialEditor extends Editor {
     tabs.float(1, 35*UIBase.getDPI(), 7);
 
     this.strokePanel(tabs);
+    this.fillPanel(tabs);
+    this.layersPanel(tabs);
+    this.vertexPanel(tabs);
+
     this.update();
+  }
+
+  fillPanel(tabs) {
+    var ctx = this.ctx;
+
+    let panel = tabs.tab("Fill");
+    let panel2 = panel.panel("Fill Color");
+
+    //panel.packflag |= PackFlags.INHERIT_WIDTH;
+    //panel.packflag |= PackFlags.NO_AUTO_SPACING;
+    //panel.packflag |= PackFlags.IGNORE_LIMIT;
+
+    //"spline.faces{($.flag & 1) && !$.hidden}.fillcolor"
+
+    panel2.prop("spline.active_face.mat.fillcolor", undefined,
+      "spline.editable_faces{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}.mat.fillcolor");
+    panel.prop("spline.active_face.mat.blur", undefined,
+      "spline.editable_faces{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}.mat.blur");
+
+    return panel
   }
 
   strokePanel(tabs) {
@@ -68,6 +359,29 @@ export class MaterialEditor extends Editor {
 
     return panel
   }
+
+  layersPanel(tabs) {
+    var ctx = this.ctx;
+    var panel = tabs.tab("Layers");
+
+    panel.add(document.createElement("layerpanel-x"));
+    //return new LayerPanel(new Context());
+  }
+
+  vertexPanel(tabs) {
+    var ctx = this.ctx;
+    var panel = tabs.tab("Control Point");
+
+    var set_prefix = "spline.verts{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}";
+
+    panel.prop("spline.active_vertex.flag[BREAK_TANGENTS]", undefined, set_prefix + ".flag[BREAK_TANGENTS]");
+    panel.prop("spline.active_vertex.flag[BREAK_CURVATURES]", undefined, set_prefix + ".flag[BREAK_CURVATURES]");
+    panel.prop("spline.active_vertex.flag[USE_HANDLES]", undefined, set_prefix + ".flag[USE_HANDLES]");
+    panel.prop("spline.active_vertex.flag[GHOST]", undefined, set_prefix + ".flag[GHOST]");
+
+    return panel;
+  }
+
 
   define_keymap() {
     let k = this.keymap;

@@ -14,7 +14,7 @@ import {
   BoolProperty, Vec2Property,
   DataRefProperty,
   Vec3Property, Vec4Property, IntProperty,
-  TPropFlags, PropTypes
+  TPropFlags, PropTypes, PropSubTypes
 } from 'toolprops';
 
 import {ModalStates} from 'toolops_api';
@@ -254,19 +254,31 @@ function api_define_imageuser() {
 }
 
 function api_define_view2d() {
-  var only_render = new BoolProperty(0, "only_render", "Hide Controls");
+  var only_render = new BoolProperty(0, "only_render", "Hide Controls", "Hide Controls");
   
   only_render.api_update = function (ctx, path) {
     window.redraw_viewport();
   }
+  only_render.icon = Icons.ONLY_RENDER;
   
-  var draw_small_verts = new BoolProperty(0, "draw_small_verts", "Small Points", "Draw Pointers Smaller");
+  var draw_small_verts = new BoolProperty(0, "draw_small_verts", "Small Points", "Small Control Points");
   draw_small_verts.api_update = function (ctx, path) {
     window.redraw_viewport();
+  };
+  draw_small_verts.icon = Icons.DRAW_SMALL_VERTS;
+  
+  var extrude_mode = new EnumProperty(0, ExtrudeModes, "extrude_mode", "New Line Mode", "New Line Mode");
+  extrude_mode.add_icons({
+    SMOOTH : Icons.EXTRUDE_MODE_G2,
+    LESS_SMOOTH : Icons.EXTRUDE_MODE_G1,
+    BROKEN : Icons.EXTRUDE_MODE_G0
+  });
+
+  //use same tooltip for all items, their icons are explanatory enough hopefully
+  for (let k in ExtrudeModes) {
+    extrude_mode.descriptions[k] = extrude_mode.description;
   }
-  
-  var extrude_mode = new EnumProperty(0, ExtrudeModes, "extrude_mode", "Extrude Mode");
-  
+
   var linewidth = new FloatProperty(2.0, "default_linewidth", "Line Wid");
   linewidth.range = [0.01, 100];
   
@@ -305,6 +317,13 @@ function api_define_view2d() {
   }
   
   var selmask_mask = new FlagProperty(1, SelMask, uinames, undefined, "Sel Mask");
+  selmask_mask.addIcons({
+    VERTEX: Icons.VERT_MODE,
+    HANDLE : Icons.SHOW_HANDLES,
+    SEGMENT: Icons.EDGE_MODE,
+    FACE: Icons.FACE_MODE
+  });
+
   selmask_mask.ui_key_names = uinames;
   
   selmask_mask.update = function () {
@@ -312,34 +331,41 @@ function api_define_view2d() {
   }
   
   var background_color = new Vec3Property(undefined, "background_color", "Background");
-  background_color.subtype = PropTypes.COLOR3;
+  background_color.subtype = PropSubTypes.COLOR;
   
   var default_stroke = new Vec4Property(undefined, "default_stroke", "Stroke");
   var default_fill = new Vec4Property(undefined, "default_fill", "Fill");
-  default_stroke.subtype = default_fill.subtype = PropTypes.COLOR4;
+  default_stroke.subtype = default_fill.subtype = PropSubTypes.COLOR;
   
   background_color.update = function () {
     window.redraw_viewport();
   };
   
   let draw_faces = new BoolProperty(0, "draw_faces", "Show Faces");
+  draw_faces.icon = Icons.MAKE_POLYGON;
+
   let enable_blur = new BoolProperty(0, "enable_blur", "Blur");
-  
+  enable_blur.icon = Icons.ENABLE_BLUR;
+
   draw_faces.update = enable_blur.update = function() {
     this.ctx.spline.regen_sort();
     redraw_viewport();
   };
-  
-  var edit_all_layers = new BoolProperty(0, "edit_all_layers", "Edit All Layers");
-  
-  edit_all_layers.update = function() {
-    redraw_viewport();
-  };
-  
+
+  let edit_all_layers = new BoolProperty(0, "edit_all_layers", "Edit All Layers");
+
   let show_animpath_prop = new BoolProperty(0, "draw_anim_paths", "Show Animation Paths", "Edit Animation Keyframe Paths");
   show_animpath_prop.icon = Icons.SHOW_ANIMPATHS;
-  
-  View2DStruct = new DataStruct([
+
+  let draw_normals = new BoolProperty(0, "draw_normals", "Show Normals", "Show Normal Comb");
+  draw_normals.icon = Icons.DRAW_NORMALS;
+
+
+  draw_normals.update = edit_all_layers.update = function() {
+    redraw_viewport();
+  };
+
+  window.View2DStruct = new DataStruct([
     new DataPath(edit_all_layers, "edit_all_layers", "edit_all_layers", true),
     new DataPath(background_color, "background_color", "background_color", true),
     new DataPath(default_stroke, "default_stroke", "default_stroke", true),
@@ -354,7 +380,7 @@ function api_define_view2d() {
     new DataPath(enable_blur, "enable_blur", "enable_blur", true),
     new DataPath(draw_faces, "draw_faces", "draw_faces", true),
     new DataPath(draw_video, "draw_video", "draw_video", true),
-    new DataPath(new BoolProperty(0, "draw_normals", "Show Normals", "Show Normal Comb"), "draw_normals", "draw_normals", true),
+    new DataPath(draw_normals,"draw_normals", "draw_normals", true),
     new DataPath(show_animpath_prop,  "draw_anim_paths", "draw_anim_paths", true),
     new DataPath(zoomprop, "zoom", "zoom", true),
     new DataPath(api_define_material(), "active_material", "active_material", true),
@@ -383,7 +409,7 @@ function api_define_material() {
 
   var fillpath = new DataPath(new BoolProperty(false, "fill_over_stroke", "fill_over_stroke",
     "fill_over_stroke"), "fill_over_stroke", "fill_over_stroke", true);
-  fillclr.subtype = strokeclr.subtype = PropTypes.COLOR4;
+  fillclr.subtype = strokeclr.subtype = PropSubTypes.COLOR;
   
   var linewidth = new FloatProperty(1, "linewidth", "linewidth", "Line Width");
   linewidth.range = [0.1, 200];
@@ -429,6 +455,7 @@ function api_define_spline_vertex() {
   var flagprop = new FlagProperty(2, SplineFlags, undefined, "Flags", "Flags");
   
   flagprop.ui_key_names["BREAK_CURVATURES"] = "Less Smooth";
+  flagprop.flag_descriptions["BREAK_CURVATURES"] = "Allows curve to more tightly bend at this point";
   flagprop.ui_key_names["BREAK_TANGENTS"] = "Sharp Corner";
   
   var coprop = new Vec3Property(undefined, "co", "Co", "Coordinates");
@@ -752,7 +779,7 @@ function get_theme_color(color) {
     var c3 = new Vec4Property(new Vector4(), "c3", "c3", "Color 3");
     var c4 = new Vec4Property(new Vector4(), "c4", "c4", "Color 4");
     
-    c1.subtype = c2.subtype = c3.subtype = c4.subtype = PropTypes.COLOR4;
+    c1.subtype = c2.subtype = c3.subtype = c4.subtype = PropSubTypes.COLOR;
     
     function gen_func(i) {
       function update() {
@@ -780,7 +807,7 @@ function get_theme_color(color) {
     var clr = new Vec4Property(new Vector4(), "color", "color", "color");
     var weights = new Vec4Property(new Vector4(), "weight", "weight", "weight");
     
-    clr.subtype = PropTypes.COLOR4;
+    clr.subtype = PropSubTypes.COLOR;
     clr.update = function () {
       //color.color = this.data;
       g_theme.gen_globals();
@@ -802,7 +829,7 @@ function get_theme_color(color) {
     ]);
   } else {
     var clr = new Vec4Property(new Vector4(), "color", "color", "color");
-    clr.subtype = PropTypes.COLOR4;
+    clr.subtype = PropSubTypes.COLOR;
     clr.update = function (color) {
       /*for (var i=0; i<4; i++) {
        color[1][i] = this.data[i];

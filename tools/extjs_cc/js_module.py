@@ -2,6 +2,7 @@ from js_global import *
 from js_ast import *
 from js_cc import js_parse
 from js_process_ast import *
+import sys
 
 def module_transform(node, typespace):
   flatten_statementlists(node, typespace);
@@ -60,16 +61,21 @@ def module_transform(node, typespace):
       """, [n.name, n.name, n.name]);
       
     n.parent.insert(pi, n2)
-    
+
+  def get_module_ident(name):
+    return name.replace(".", "_").replace("/", "_").replace(" ", "")
+
   def exportfromvisit(n):
+    name = get_module_ident(n.name.val)
+
     n2 = js_parse("""
-      import * as _$s1 from '$s1';
+      import * as _$s1 from '$s2';
       
-      for (var k in _$s1) {
+      for (let k in _$s1) {
         _es6_module.add_export(k, _$s1[k], true);
       }
-    """, [n.name.val])
-    
+    """, [name, n.name.val])
+
     n.parent.replace(n, n2)
   #print(node)
 

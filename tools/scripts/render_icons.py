@@ -86,14 +86,16 @@ try:
     import PIL
 except:
     have_pillow = False
-    sys.stderr.write("Warning: Pillow module not found; cannot sharpen iconsheets\n")
+    #sys.stderr.write("Warning: Pillow module not found; cannot sharpen iconsheets\n")
 
 oversample_fac = 2
 
 def sharpen_iconsheets(paths):
     global have_pillow, oversample_fac
 
-    if not have_pillow: return
+    if not have_pillow:
+      return
+      
     import PIL, PIL.ImageFilter, PIL.Image
 
     filter = PIL.ImageFilter.SHARPEN
@@ -116,46 +118,47 @@ paths = []
 start_dir = os.getcwd()
 basepath = sep + "src" + sep + "datafiles" + sep
 dir = np(os.getcwd()) + basepath
-os.chdir(dir)
 
-for s in sizes:
-    if have_pillow: #render twice as big for downsampling
-        dimen = s*16*oversample_fac
-    else:
-        dimen = s*16
+def main():
+  os.chdir(dir)
 
-    for f in files:
-      out = os.path.split(f)[1].replace(".svg", "")
+  for s in sizes:
+      if have_pillow: #render twice as big for downsampling
+          dimen = s*16*oversample_fac
+      else:
+          dimen = s*16
 
-      fname = "%s%i.png"%(out, s)
+      for f in files:
+        out = os.path.split(f)[1].replace(".svg", "")
 
-      x1, y1 = 0, 0
-      x2, y2 = 512, 512
+        fname = "%s%i.png"%(out, s)
 
-      cmd = [inkscape_path, "-C", "-e"+fname, "-h %i"%dimen, "-w %i"%dimen, "-z", "--export-area=%i:%i:%i:%i" % (x1,y1,x2,y2), f]
+        x1, y1 = 0, 0
+        x2, y2 = 512, 512
 
-      print("- " + gen_cmdstr(cmd))
-      subprocess.call(cmd)
+        cmd = [inkscape_path, "-C", "-e"+fname, "-h %i"%dimen, "-w %i"%dimen, "-z", "--export-area=%i:%i:%i:%i" % (x1,y1,x2,y2), f]
 
-      paths.append("./" + fname)
+        print("- " + gen_cmdstr(cmd))
+        subprocess.call(cmd)
 
-sharpen_iconsheets(paths)
+        paths.append("./" + fname)
 
-for p in paths:
-    fname = os.path.split(p)[1]
-    copy(p, "../../build/" + fname)
+  sharpen_iconsheets(paths)
 
-#"""
-#print("copying rendered icon sheet to build/")
-#copy("./%s.png"%out, "../../build/%s.png"%out)
-#copy("./%s16.png"%out, "../../build/%s16.png"%out)
-#os.system("%s %s %s%sbuild%s%s" % (cp, "%s.png"%out, sub, sub, sep, "%s.png"%out))
-#os.system("%s %s %s%sbuild%s%s" % (cp, "%s16.png"%out, sub, sub, sep, "%s16.png"%out))
-#"""
+  for p in paths:
+      fname = os.path.split(p)[1]
+      copy(p, "../../build/" + fname)
 
-os.chdir(start_dir)
+  #"""
+  #print("copying rendered icon sheet to build/")
+  #copy("./%s.png"%out, "../../build/%s.png"%out)
+  #copy("./%s16.png"%out, "../../build/%s16.png"%out)
+  #os.system("%s %s %s%sbuild%s%s" % (cp, "%s.png"%out, sub, sub, sep, "%s.png"%out))
+  #os.system("%s %s %s%sbuild%s%s" % (cp, "%s16.png"%out, sub, sub, sep, "%s16.png"%out))
+  #"""
 
+  os.chdir(start_dir)
 
-
-
-
+print(__name__)
+if __name__ == "__main__":
+  main()

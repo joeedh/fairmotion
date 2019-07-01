@@ -16,6 +16,7 @@ let resolvepath_rets = new cachering(() => {return {
   parent : undefined,
   obj : undefined,
   key : undefined,
+  subkey : undefined,
   value : undefined,
   prop : undefined,
   struct : undefined,
@@ -153,12 +154,29 @@ export class PathUXInterface extends ModelInterface {
   }
 
   //TODO: work out and document mass set interface for path.ux
-  buildMassSetPaths(ctx, listpath, subpath, value, filterstr) {
-    return this.api.build_mass_set_paths(ctx, listpath, subpath, value, filterstr);
-  }
+  //buildMassSetPaths(ctx, listpath, subpath, value, filterstr) {
+  //  return this.api.build_mass_set_paths(ctx, listpath, subpath, value, filterstr);
+  //}
 
-  massSetProp(ctx, listpath, subpath, value, filterstr) {
-    return this.api.mass_set_prop(ctx, listpath, subpath, value, filterstr);
+  massSetProp(ctx, mass_set_path, value) {
+    //let rdef = this.resolvePath(ctx, path);
+    let path = mass_set_path;
+
+    console.log(mass_set_path);
+
+    let i1 = path.search(/\{/);
+    let i2 = path.search(/\}/);
+    let filterpath = path.slice(i1+1, i2);
+
+    let listpath = path.slice(0, i1);
+    let subpath = path.slice(i2+2, path.length);
+
+    console.log("i1", i1, "i2", i2);
+    console.log("listpath", listpath);
+    console.log("filter", filterpath);
+    console.log("subpath", subpath);
+
+    return this.api.mass_set_prop(ctx, listpath, subpath, value, filterpath);
   }
 
   onFrameChange(ctx, newtime) {
@@ -240,16 +258,20 @@ export class PathUXInterface extends ModelInterface {
   }
 
 
-  /*returns {
-    parent : [parent object of property path]
-    obj : [object owning property key]
-    key : [property key]
-    value : [value of property]
-    prop : [optional toolprop.ToolProperty representing the property definition]
-    struct : [optional datastruct representing the type, if value is an object]
-    mass_set : mass setter string, if controller implementation supports it
-  }
-  */
+  /**
+   * @example
+   *
+   * return {
+   *   obj      : [object owning property key]
+   *   parent   : [parent of obj]
+   *   key      : [property key]
+   *   subkey   : used by flag properties, represents a key within the property
+   *   value    : [value of property]
+   *   prop     : [optional toolprop.ToolProperty representing the property definition]
+   *   struct   : [optional datastruct representing the type, if value is an object]
+   *   mass_set : mass setter string, if controller implementation supports it
+   * }
+   */
   resolvePath(ctx, path) {
     let rp = this.api.resolve_path_intern(ctx, path);
 
@@ -271,6 +293,7 @@ export class PathUXInterface extends ModelInterface {
 
     ret.mass_set = rp[3];
     ret.key = rp[0].path;
+    ret.subkey = undefined;
 
     //XXX data_api doesn't support returning parents of owning objects
     ret.parent = undefined;
@@ -295,6 +318,23 @@ export class PathUXInterface extends ModelInterface {
       ret.prop = rp[0].data;
     } else if (rp[0].type == DataPathTypes.STRUCT) {
       ret.struct = rp[0].data;
+    }
+
+    if (ret.prop !== undefined && ret.prop.type == PropTypes.FLAG) {
+      let s = "" + rp[1];
+      if (s.search(/\&/) >= 0) {
+        let i = s.search(/\&/);
+        s = parseInt(s.slice(i + 1, s.length).trim());
+      }
+
+      ret.subkey = parseInt(s);
+
+      for (let k in ret.prop.keys) {
+        if (ret.prop.keys[k] == ret.subkey) {
+          ret.subkey = k;
+          break;
+        }
+      }
     }
 
     return ret;

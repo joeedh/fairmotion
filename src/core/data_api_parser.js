@@ -26,7 +26,6 @@ export function apiparser() {
     }),
     tk("COMMA", /,/),
     tk("DOT", /\./),
-    tk("NUM", /[0-9]+/),
     tk("SEMI", /;/),
     tk("NEWLINE", /\n/, function(t) {
       t.lexer.lineno += 1;
@@ -44,7 +43,7 @@ export function apiparser() {
   var parser = new PUTL.parser(lex);
   
   function numnode(token, n) {
-    return {type : "NUM", val : n, children : [],
+    return {type : "INT", val : n, children : [],
             lexstart: token.lexpos, 
             lexend: token.lexpos+token.lexlen
            }
@@ -152,8 +151,8 @@ export function apiparser() {
     
     if (t.type == "ID")
       ast = valnode(t, p.expect("ID"));
-    else if (t.type == "NUM")
-      ast = numnode(t, p.expect("NUM"));
+    else if (t.type == "INT")
+      ast = numnode(t, p.expect("INT"));
     else
       p.error("Invalid token " + t.type + "'" + t.value + "'");
     
@@ -186,6 +185,11 @@ export function apiparser() {
         p.expect("RSBRACKET");
         
         ast = arrnode({lexpos: lexstart, lexlen: t.lexpos+t.lexlen}, ast, val);
+      } else if (t.type == "INT") {
+        ast = numnode(t, t.value);
+        p.next();
+
+        //return ast;
       } else if (t.type =="CODE") {
         p.next();
         var n2 = {
@@ -217,7 +221,7 @@ function fmt_ast(ast, tlevel=0) {
   for (var i=0; i<tlevel; i++) t += " ";
   
   s += t + ast["type"]
-  if (ast["type"] == "ID" || ast["type"] == "VAR" || ast["type"] == "NUM")
+  if (ast["type"] == "ID" || ast["type"] == "VAR" || ast["type"] == "INT")
     s += " " + ast["val"];
   s += " {\n"
   

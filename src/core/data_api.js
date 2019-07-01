@@ -1338,7 +1338,7 @@ export class DataAPI {
       var ast = safe_eval.compile(filterstr);
       var scope = {ctx : ctx, $ : undefined};
       
-      function filter($) {
+      filter = function filter($) {
         scope.$ = $;
         return safe_eval.exec(ast, scope);
       }
@@ -1364,7 +1364,7 @@ export class DataAPI {
     return ret;
   }
   
-  //set properties on an entire collection, filter is filter function
+  //set properties on an entire collection, filterstr is filter function
   mass_set_prop(ctx, listpath, subpath, value, filterstr) {
     if (ctx == undefined) {
       filterstr = value;

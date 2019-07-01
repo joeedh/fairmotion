@@ -37,7 +37,7 @@ export class KeyCurrentFrame extends ToolOp {
 
 export class ShiftLayerOrderOp extends ToolOp {
   constructor(layer_id, off) {
-    ToolOp.call(this);
+    super();
     
     if (layer_id != undefined) {
       this.inputs.layer_id.set_data(layer_id);
@@ -1552,7 +1552,7 @@ export class ShiftTimeOp extends ToolOp {
   }
   
   end_modal(ctx) {
-    ToolOp.prototype.end_modal.call(this);
+    super.end_modal(ctx);
   }
   
   cancel(ctx) {

@@ -4,6 +4,7 @@ import {UIBase} from 'ui_base';
 import {Editor} from 'editor_base';
 import * as ui_widgets from 'ui_widgets';
 import * as platform from 'platform';
+import {Menu} from 'ui_menu';
 
 /*
   gen_file_menu(Context ctx, uimenulabel)
@@ -59,7 +60,7 @@ export class MenuBar extends Editor {
     super.init();
 
     let row = this.header;
-    let SEP = ui_widgets.Menu.SEP;
+    let SEP = Menu.SEP;
 
     let menudef = [
       "appstate.quit()",

@@ -1337,7 +1337,7 @@ export class AppState {
       
       var ctx = new Context();
 
-      if (screen != undefined) {
+      if (screen !== undefined) {
         screen.view2d = this2.active_view2d;
         this2.dataLinkScreen(screen, getblock, getblock_us);
       }

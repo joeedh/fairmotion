@@ -1,11 +1,17 @@
 "use strict";
 
 import 'J3DIMath';
+import {keymap, reverse_keymap} from "../path.ux/scripts/events";
+
+export let charmap = keymap;
+export let charmap_rev = reverse_keymap;
+
+window.charmap = charmap;
+window.charmap_rev = charmap_rev;
 
 /*
 this entire module needs to be rewritten.
 */
-
 
 
 export class MyKeyboardEvent {
@@ -343,62 +349,6 @@ export class EventHandler {
 
 var valid_modifiers = {"SHIFT": 1, "CTRL": 2, "ALT": 4}
 
-export var charmap_latin_1 = {
-  "Space": 32,
-  "Escape" : 27,
-  "Enter": 13,
-  "Up" : 38,
-  "Down" : 40,
-  "Left": 37,
-  "Right": 39,
-  
-  "Num0": 96,
-  "Num1": 97,
-  "Num2": 98,
-  "Num3": 99,
-  "Num4": 100,
-  "Num5": 101,
-  "Num6": 102,
-  "Num7": 103,
-  "Num8": 104,
-  "Num9": 105,
-  "Home": 36,
-  "End": 35,
-  "Delete": 46,
-  "Backspace": 8,
-  "Insert": 45,
-  "PageUp": 33,
-  "PageDown": 34,
-  "Tab" : 9,
-  "-" : 189,
-  "=" : 187,
-  "NumPlus" : 107,
-  "NumMinus" : 109,
-  "Shift" : 16,
-  "Ctrl" : 17,
-  "Control" : 17,
-  "Alt" : 18
-}
-
-for (var i=0; i<26; i++) {
-  charmap_latin_1[String.fromCharCode(i+65)] = i+65
-}
-for (var i=0; i<10; i++) {
-  charmap_latin_1[String.fromCharCode(i+48)] = i+48
-}
-
-for (var k in charmap_latin_1) {
-  charmap_latin_1[charmap_latin_1[k]] = k;
-}
-
-var charmap_latin_1_rev = {}
-for (var k in charmap_latin_1) {
-  charmap_latin_1_rev[charmap_latin_1[k]] = k
-}
-
-export var charmap = charmap_latin_1;
-export var charmap_rev = charmap_latin_1_rev;
-
 window.charmap = charmap;
 window.charmap_rev = charmap_rev;
 
@@ -413,7 +363,7 @@ export class HotKey {
       this.key = 0;
       this.keyAscii = "[corrupted hotkey]"
       this.shift = this.alt = this.ctrl = false;
-      return
+      return this;
     }
     
     if (typeof(key) == "string") {

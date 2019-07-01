@@ -953,6 +953,8 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
   
   has_generators = [False]
   def has_generator(n):
+    if not glob.g_expand_generators: return
+
     if type(n) == YieldNode:
       has_generators[0] = True
     

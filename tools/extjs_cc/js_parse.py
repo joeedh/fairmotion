@@ -1741,16 +1741,40 @@ def p_exprfunction(p):
   p[0].type = type1
   
   pop_scope()
-  
-def p_exprlist_trail_comma(p):
-  '''exprlist_trail_comma : exprlist
-                          | exprlist COMMA
+
+
+def p_comma_opt(p):
+  '''comma_opt : COMMA
+               |
   '''
   
+def p_expr_for_arraylit(p):
+  '''expr_for_arraylit : expr_no_list
+                       | obj_literal
+  '''
   p[0] = p[1]
   
+def p_arraylist(p):
+  '''arraylist : expr_for_arraylit
+               | arraylist expr_for_arraylit
+               | arraylist COMMA
+  '''
+  
+  if len(p) == 3:
+    if p[2] != ",":
+      if not isinstance(p[1], ExprListNode):
+        p[0] = ExprListNode([])
+        p[0].add(p[1])
+      else:
+        p[0] = p[1]
+      p[0].add(p[2])
+    else:
+      p[0] = p[1]
+  elif len(p) == 2:
+    p[0] = ExprListNode([p[1]])
+    
 def p_array_literal(p):
-  '''array_literal : LSBRACKET exprlist_trail_comma RSBRACKET
+  '''array_literal : LSBRACKET arraylist RSBRACKET
                    | LSBRACKET RSBRACKET
   '''
   set_parse_globals(p)

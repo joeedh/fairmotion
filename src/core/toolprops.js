@@ -831,7 +831,7 @@ export class EnumProperty extends ToolProperty {
     this.iconmap = {};
   }
   
-  load_ui_data(ToolProperty prop) {
+  load_ui_data(prop : ToolProperty) {
     ToolProperty.prototype.load_ui_data.call(this, prop);
     
     this.ui_value_names = Object.create(prop.ui_value_names);
@@ -846,7 +846,7 @@ export class EnumProperty extends ToolProperty {
     }
   }
 
-  copyTo(EnumProperty dst) : EnumProperty {
+  copyTo(dst : EnumProperty) : EnumProperty {
     ToolProperty.prototype.copyTo.call(this, dst, true);
     
     p.keys = Object.create(this.keys);
@@ -883,14 +883,24 @@ export class EnumProperty extends ToolProperty {
     pack_string(this.data);
   }
 
-  get_value() {
+  get_data() {
     if (this.data in this.values)
       return this.values[this.data];
     else
       return this.data;
   }
 
+  get_value() {
+    console.warn("Call to EnumProperty.prototype.get_value");
+    return this.get_data();
+  }
+
   set_value(val) {
+    console.warn("Call to EnumProperty.prototype.set_value");
+    this.set_data(val);
+  }
+
+  set_data(val) {
     if (!(val in this.values) && (val in this.keys))
       val = this.keys[val];
     
@@ -1075,7 +1085,9 @@ export class type_filter_iter extends ToolIter {
   
   set ctx(ctx) {
     this._ctx = ctx;
-    this.iter.ctx = ctx;
+    
+    if (this.iter !== undefined)
+      this.iter.ctx = ctx;
   }
   
   get ctx() {

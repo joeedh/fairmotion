@@ -8,8 +8,9 @@ var SPI2 = Math.sqrt(PI/2);
 
 export class constraint {
   constructor(typename, k, klst, klen, ceval, params, limit) {
-    if (limit == undefined) limit = 0.001;
-    
+    if (limit == undefined) limit = 0.00001;
+
+    this.limit = limit;
     this.type = typename;
     this.klst = klst;
     
@@ -53,7 +54,7 @@ export class constraint {
       var gs = this.glst[ki];
       
       //var origscale = ks.length > 5 ? ks[KSCALE] : -1;
-      
+
       for (var i=0; i<this.klen[ki]; i++) {
         var orig = ks[i];
         
@@ -236,11 +237,14 @@ export class solver {
           ks=klst[ki];
           gs=glst[ki];
           
-          var ck = i > 8 && c.k2 != undefined? c.k2 : c.k;
+          var ck = i > 8 && c.k2 !== undefined ? c.k2 : c.k;
           //ck = c.k2 != undefined ? 0.8 : c.k;
-          
+
+          //stupid hack to suppress numerical instability
+          let mul = 1.0 / Math.pow(1.0 + ks[KSCALE], 0.25);
+
           for (var k=0; k<klen; k++) {
-            ks[k] += -rmul*gs[k]*ck*gk;
+            ks[k] += -rmul*gs[k]*ck*gk*mul;
           }
           
           //kg *= 0.5;

@@ -138,8 +138,10 @@ export class View2DHandler extends Editor {
     this.pinned_paths = [];
     this.zoom = 1.0;
     this.background_color = new Vector3([1, 1, 1]);
-    this.default_stroke = new Vector4();
-    this.default_fill = new Vector4();
+
+    this.default_stroke = new Vector4([0,0,0,1]);
+    this.default_fill = new Vector4([0,0,0,1]);
+    this.default_linewidth = 2;
 
     this.drawlines = new GArray();
     this.drawline_groups = {};
@@ -293,7 +295,7 @@ export class View2DHandler extends Editor {
   }
 
   _mouse(e) {
-    return patchMouseEvent(e, this.get_bg_canvas());
+    return patchMouseEvent(e, this); //this.get_bg_canvas());
   }
 
   data_link(block : DataBlock, getblock : Function, getblock_us : Function) {
@@ -321,12 +323,28 @@ export class View2DHandler extends Editor {
     this.irendermat.load(this.rendermat).invert();
   }
 
+  _getCanvasOff() : Vector3 {
+    static off = new Vector3();
+
+    let r1 = this.get_bg_canvas().getClientRects()[0];
+    let r2 = this.getClientRects()[0];
+
+    off[0] = r1.x - r2.x;
+    off[1] = r1.y - r2.y;
+
+    return off;
+  }
+
   project(co : Vector3) {
     static _co = new Vector3();
 
     _co.load(co);
     _co[2] = 0.0;
     _co.multVecMatrix(this.rendermat);
+
+    let off = this._getCanvasOff();
+    _co[0] -= off[0];
+    _co[1] -= off[1];
 
     co[0] = _co[0], co[1] = _co[1];
     return co;
@@ -336,6 +354,11 @@ export class View2DHandler extends Editor {
     static _co = new Vector3();
 
     _co.load(co);
+
+    let off = this._getCanvasOff();
+    _co[0] += off[0];
+    _co[1] += off[1];
+
     _co[2] = 0.0;
     _co.multVecMatrix(this.irendermat);
 
@@ -345,6 +368,14 @@ export class View2DHandler extends Editor {
 
   on_resize(newsize, oldsize) {
     super.on_resize(newsize, oldsize);
+
+    if (this.size !== undefined) {
+      this.set_cameramat();
+
+      if (!this.need_data_link) {
+        this.do_draw_viewport([]);
+      }
+    }
 
     //note that file code might call this before data_link, so
     //this.image might still be a DataRef, crashing draw
@@ -556,7 +587,14 @@ export class View2DHandler extends Editor {
       delay_redraw(50); //stupid hack to deal with async nacl spline solve
     });
 
-    tools.tool("view2d.circle_select()", PackFlags.LARGE_ICON|PackFlags.USE_ICONS);
+    let tool = tools.tool("view2d.circle_select(mode=select selectmode=selectmode)", PackFlags.LARGE_ICON|PackFlags.USE_ICONS);
+    tool.icon = Icons.CIRCLE_SEL_ADD;
+    tool.description = "Select control points in a circle";
+
+    tool = tools.tool("view2d.circle_select(mode=deselect selectmode=selectmode)", PackFlags.LARGE_ICON|PackFlags.USE_ICONS);
+    tool.icon = Icons.CIRCLE_SEL_SUB;
+    tool.description = "Deselect control points in a circle";
+
     tools.tool("spline.toggle_select_all()", PackFlags.LARGE_ICON|PackFlags.USE_ICONS);
 
     this.update();
@@ -606,6 +644,10 @@ export class View2DHandler extends Editor {
 
     v3d.need_data_link = true;
 
+    //if (isNaN(v3d.default_linewidth)) {
+    //  v3d.default_linewidth = 2.0;
+    //}
+
     if (v3d.pinned_paths != undefined && v3d.pinned_paths.length == 0)
       v3d.pinned_paths = undefined;
 
@@ -618,6 +660,18 @@ export class View2DHandler extends Editor {
 
     v3d.editor.view2d = v3d;
     v3d._in_from_struct = false;
+
+    /*
+    let f = () => {
+      if (this.size !== undefined) {
+        v3d.set_cameramat(v3d.cameramat)
+      } else {
+        console.log("eek!");
+        v3d.doOnce(f);
+      }
+    };
+    v3d.doOnce(f);
+    //*/
 
     return v3d;
   }
@@ -1130,7 +1184,7 @@ class PanOp extends ToolOp {
     } else {
       this.start_mpos = new Vector3();
 
-      this.first = true;
+      this.first = 2;
     }
 
     this.start_cameramat = undefined;
@@ -1159,7 +1213,7 @@ class PanOp extends ToolOp {
     //console.log("mousemove!");
 
     if (this.first) {
-      this.first = false;
+      this.first--;
       this.start_mpos.load(mpos);
 
       return;

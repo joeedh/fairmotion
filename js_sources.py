@@ -105,7 +105,7 @@ sources = [
   "src/path.ux/scripts/image.js",
   "src/path.ux/scripts/const.js",
   "src/path.ux/scripts/simple_events.js",
-  "src/path.ux/scripts/config.js",
+  #"src/path.ux/scripts/config.js",
 
   "src/curve/curve.js",
   "src/curve/curvebase.js",

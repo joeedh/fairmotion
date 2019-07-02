@@ -130,7 +130,10 @@ window.init_redraw_globals = function init_redraw_globals() {
   window.push_solve = function(spline) {
     var id = _solve_idgen++;
 
-    //console.log("push solve", id);
+    if (DEBUG.solve_order) {
+      console.log("push solve", id);
+    }
+
     var sid = spline._internal_id;
     
     redraw_queue[id] = [];
@@ -147,7 +150,9 @@ window.init_redraw_globals = function init_redraw_globals() {
   var _popsolve_max = [0, 0];
   
   window.pop_solve = function(id) {
-    //console.log("pop solve", id);
+    if (DEBUG.solve_order) {
+      console.log("pop solve", id);
+    }
     
     if (!(id in this.redraw_queue)) {
       console.warn("Warning: either pop_solve call was switched, or the system automatically called due to timeout");

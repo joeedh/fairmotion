@@ -171,6 +171,5 @@ extern "C" void gotMessage(int type, void *message, int len) {
 }
 
 int main(int argc, char ** argv) {
-
-  printf("Hello, world!\n");
+  printf("Wasm start\n");
 }

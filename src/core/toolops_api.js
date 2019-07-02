@@ -48,71 +48,7 @@ export function patchMouseEvent(e, dom) {
   return e2;
 }
 
-export function pushModalLight(obj) {
-  let keys = new Set([
-    /*"keydown", "keyup", "keypress",*/ "mousedown", "mouseup", "touchstart", "touchend",
-    "touchcancel", "mousewheel", "mousemove"
-  ]);
-
-  if (g_app_state.eventhandler !== g_app_state.screen) {
-    console.error("nested modal event call!");
-    return;
-  }
-
-  let ret = {
-    keys : keys,
-    handlers : {},
-    last_eventhandler : g_app_state.eventhandler
-  };
-
-  g_app_state.eventhandler = obj;
-
-  function make_handler(type, key) {
-    return function(e) {
-      if (type.startsWith("mouse")) {
-        e = patchMouseEvent(e);
-      }
-
-      let ret = key !== undefined ? obj[key](e) : undefined;
-
-      e.preventDefault();
-      e.stopPropagation();
-      return ret;
-    }
-  }
-
-  for (let k of keys) {
-    let key;
-
-    if (obj["on"+k])
-      key = "on" + k;
-    else if (obj["on_"+k])
-      key = "on_" + k;
-    else
-      key = undefined;
-
-    let handler = make_handler(k, key);
-    ret.handlers[k] = handler;
-    window.addEventListener(k, handler);
-  }
-
-  console.warn("pushModalLight", ret);
-  return ret;
-}
-
-export function popModalLight(state) {
-  console.warn("popModalLight", state);
-
-  if (state !== undefined) {
-    g_app_state.eventhandler = state.last_eventhandler;
-
-    for (let k in state.handlers) {
-      window.removeEventListener(k, state.handlers[k]);
-    }
-
-    state.handlers = {};
-  }
-}
+import {pushModalLight, popModalLight} from 'simple_events';
 
 /*
   basic design of tool ops:
@@ -518,9 +454,23 @@ export class ToolOp extends ToolOpAbstract {
   _start_modal(ctx : Context) {
     this.modal_running = true;
 
-    //ctx.view2d.push_modal(this);
-    this._modal_state = pushModalLight(this);
+    let patch = (e) => {
+      let dom = this.ctx !== undefined ? this.ctx.active_area : g_app_state.screen;
+      return patchMouseEvent(e, dom);
+    };
 
+    //ctx.view2d.push_modal(this);
+    //for (let k in )
+    let handlers = {
+      on_mousedown : (e) => this.on_mousedown(patch(e)),
+      on_mousemove : (e) => this.on_mousemove(patch(e)),
+      on_mouseup : (e) => this.on_mouseup(patch(e)),
+      on_keydown : this.on_keydown.bind(this),
+      on_keyup : this.on_keyup.bind(this)
+    };
+
+
+    this._modal_state = pushModalLight(handlers);
     this.modal_ctx = ctx;
   }
 
@@ -852,6 +802,8 @@ import {
         StringProperty, Vec3Property, Vec4Property, 
         IntProperty, FloatProperty, BoolProperty
        } from 'toolprops';
+import {pushModalLight} from "../path.ux/scripts/simple_events";
+import {popModalLight} from "../path.ux/scripts/simple_events";
 
 /*note: datapathops can only access data paths
   in ToolContext, u.e. object, scene, and mesh.*/

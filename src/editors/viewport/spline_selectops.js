@@ -17,6 +17,12 @@ import {SplineFlags, SplineTypes, SplineVertex,
 import {redraw_element} from 'spline_draw';
 import {get_vtime} from 'animdata';
 
+export let SelOpModes = {
+  AUTO: 0,
+  SELECT: 1,
+  DESELECT: 2
+};
+
 export class SelectOpBase extends ToolOp {
   constructor(datamode, do_flush, uiname) {
     super(undefined, uiname);
@@ -29,11 +35,36 @@ export class SelectOpBase extends ToolOp {
   
   static tooldef() { return {
     inputs : {
-      mode     : new IntProperty(0),
+      mode     : new EnumProperty("AUTO", SelOpModes, "mode", "mode"),
       datamode : new IntProperty(0), //datamode
       flush    : new BoolProperty(false)
     }
   }}
+
+  static invoke(ctx, args) {
+    let datamode;
+
+    let ret = new this();
+
+    if ("selectmode" in args) {
+      datamode = args["selectmode"];
+    } else {
+      datamode = ctx.selectmode;
+    }
+
+    ret.inputs.datamode.set_data(datamode);
+
+    console.log("args", args);
+
+    if ("mode" in args) {
+      let mode = args["mode"].toUpperCase().trim();
+      ret.inputs.mode.set_data(mode);
+    } else {
+      ret.inputs.mode.set_data("AUTO");
+    }
+
+    return ret;
+  }
   
   undo_pre(ctx) {
     var spline = ctx.spline;
@@ -158,11 +189,8 @@ export class ToggleSelectAllOp extends SelectOpBase {
     apiname : "spline.toggle_select_all",
     icon    : Icons.TOGGLE_SEL_ALL,
     
-    inputs  : {
-      mode: new EnumProperty("auto", 
-        ["select", "deselect", "auto"], 
-        "mode", "Mode", "mode")
-    }
+    inputs  : ToolOp.inherit({
+    })
   }}
   
   undo_pre(ctx) {
@@ -170,17 +198,19 @@ export class ToggleSelectAllOp extends SelectOpBase {
     
     redraw_viewport();
   }
-  
+
   exec(ctx) {
     console.log("toggle select!");
     
     var spline = ctx.spline;
-    var mode = this.inputs.mode.data;
+    var mode = this.inputs.mode.get_data();
     var layerid = ctx.spline.layerset.active.id;
     var totsel = 0.0;
-    let iterctx = mode == "sub" ? {edit_all_layers : false} : ctx;
 
-    if (mode == "auto") {
+    //why this context override? - joeedh
+    let iterctx = mode == SelOpModes.AUTO ? {edit_all_layers : false} : ctx;
+
+    if (mode == SelOpModes.AUTO) {
       for (var v of spline.verts.editable(iterctx)) {
         totsel += v.flag & SplineFlags.SELECT;
       }
@@ -193,15 +223,17 @@ export class ToggleSelectAllOp extends SelectOpBase {
         totsel += f.flag & SplineFlags.SELECT;
       }
 
-      mode = totsel ? "sub" : "add";
+      mode = totsel ? SelOpModes.DESELECT : SelOpModes.SELECT;
     }
-    
-    if (mode == "sub") spline.verts.active = undefined;
+
+    console.log("MODE", mode);
+
+    if (mode == SelOpModes.DESELECT) spline.verts.active = undefined;
 
     for (var v of spline.verts.editable(iterctx)) {
       v.flag |= SplineFlags.REDRAW;
 
-      if (mode == "sub") {
+      if (mode == SelOpModes.DESELECT) {
         spline.setselect(v, false);
       } else {
         spline.setselect(v, true);
@@ -211,7 +243,7 @@ export class ToggleSelectAllOp extends SelectOpBase {
     for (var s of spline.segments.editable(iterctx)) {
       s.flag |= SplineFlags.REDRAW;
 
-      if (mode == "sub") {
+      if (mode == SelOpModes.DESELECT) {
         spline.setselect(s, false);
       } else {
         spline.setselect(s, true);
@@ -221,7 +253,7 @@ export class ToggleSelectAllOp extends SelectOpBase {
     for (var f of spline.faces.editable(iterctx)) {
       f.flag |= SplineFlags.REDRAW;
 
-      if (mode == "sub") {
+      if (mode == SelOpModes.DESELECT) {
         spline.setselect(f, false);
       } else {
         spline.setselect(f, true);
@@ -244,7 +276,6 @@ export class SelectLinkedOp extends SelectOpBase {
     
     inputs : ToolOp.inherit({
       vertex_eid : new IntProperty(-1),
-      mode: new EnumProperty("select", ["select", "deselect"], "mode", "Mode", "mode")
     })
   }}
   
@@ -263,7 +294,7 @@ export class SelectLinkedOp extends SelectOpBase {
       return;
     }
     
-    var state = this.inputs.mode.data == "select" ? 1 : 0;
+    var state = this.inputs.mode.get_data() != SelOpModes.AUTO ? 1 : 0;
     var visit = new set();
     var verts = spline.verts;
     
@@ -424,7 +455,6 @@ export class UnhideOp extends ToolOp {
     var mode = this.inputs.selmode.data;
     var ghost = this.inputs.ghost.data;
     
-    console.log("mode!", mode);
     for (var elist of spline.elists) {
       if (!(mode & elist.type))
         continue;
@@ -466,19 +496,17 @@ export class CircleSelectOp extends SelectOpBase {
     this.radius = _last_radius;
   }
 
-  static invoke(ctx) {
-    return new CircleSelectOp(ctx.selectmode);
-  }
-
   static tooldef() { return {
     apiname  : "view2d.circle_select",
     uiname   : "Circle Select",
-      
+
+    //note that for the inherited mode property,
+    //tablets need to ability to only add or subtract, don't switch between doing both with e.g. shift or right mouse
     inputs : ToolOp.inherit({
       add_elements : new CollectionProperty(new ElementRefSet(SplineTypes.ALL), [               SplineVertex, SplineSegment, SplineFace],
                      "elements", "Elements", "Elements"),
       sub_elements : new CollectionProperty(new ElementRefSet(SplineTypes.ALL), [               SplineVertex, SplineSegment, SplineFace],
-                     "elements", "Elements", "Elements")
+                    "elements", "Elements", "Elements"),
     }),
   
     outputs  : ToolOp.inherit({}),
@@ -500,7 +528,7 @@ export class CircleSelectOp extends SelectOpBase {
     var editor = ctx.view2d;
     
     this.reset_drawlines();
-    
+
     var steps = 64;
     var t = -Math.PI, dt = (Math.PI*2.0)/steps;
     var lastco = new Vector3();
@@ -535,7 +563,7 @@ export class CircleSelectOp extends SelectOpBase {
     eset_add.data.ctx = ctx;
     eset_sub.data.ctx = ctx;
     
-    console.log("exec!");
+    //console.log("exec!");
     
     for (var e of eset_add) {
       spline.setselect(e, true);
@@ -559,7 +587,7 @@ export class CircleSelectOp extends SelectOpBase {
     var eset_add = this.inputs.add_elements.data;
     var eset_sub = this.inputs.sub_elements.data;
     var actlayer = spline.layerset.active.id;
-    
+
     if (datamode & SplineTypes.VERTEX) {
       for (var v of spline.verts) {
         if (v.hidden) 
@@ -568,8 +596,9 @@ export class CircleSelectOp extends SelectOpBase {
           continue;
         
         co.load(v);
+        co[2] = 0.0;
         editor.project(co);
-        
+
         if (co.vectorDistance(this.mpos) < this.radius) {
           if (sel_or_unsel) {
             eset_sub.remove(v);
@@ -592,12 +621,17 @@ export class CircleSelectOp extends SelectOpBase {
     
     this.mpos[0] = event.x;
     this.mpos[1] = event.y;
-    
+
     this._draw_circle();
     //console.log("mousemove!");
-    
+
+    if (this.inputs.mode.get_data() != SelOpModes.AUTO) {
+      this.sel_or_unsel = this.inputs.mode.get_data() == SelOpModes.SELECT;
+    }
+
     if (this.mdown) {
       this.do_sel(this.sel_or_unsel);
+      window.redraw_viewport();
     }
     
     this.exec(ctx);
@@ -614,7 +648,7 @@ export class CircleSelectOp extends SelectOpBase {
     var ctx = this.modal_ctx;
     var spline = ctx.spline;
     var view2d = ctx.view2d;
-    
+
     var radius_inc = 10;
     
     switch (event.keyCode) {
@@ -628,17 +662,24 @@ export class CircleSelectOp extends SelectOpBase {
         this.radius -= radius_inc;
         this._draw_circle();
         break;
+      case charmap["Escape"]:
+      case charmap["Enter"]:
+      case charmap["Space"]:
+        this.end_modal();
+        break;
     }
   }
   
   on_mousedown(event) {
-    if (event.button == 0) {
-      this.sel_or_unsel = true;
-      this.mdown = true;
-    } else {
-      this.sel_or_unsel = false;
-      this.mdown = true;
+    let auto = this.inputs.mode.get_data() == SelOpModes.AUTO;
+
+    console.log("auto", auto);
+
+    if (auto) {
+      this.sel_or_unsel = (event.button == 0) ^ event.shiftKey;
     }
+
+    this.mdown = true;
   }
   
   on_mouseup(event) {

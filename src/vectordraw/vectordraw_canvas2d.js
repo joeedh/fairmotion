@@ -261,7 +261,13 @@ export class CanvasPath extends QuadBezPath {
   
       this.matrix = mat;
     }
-    
+
+    if (isNaN(w) || isNaN(h)) {
+      console.log("NaN path size", w, h, this);
+      if (isNaN(w)) w = 4.0;
+      if (isNaN(h)) h = 4.0;
+    }
+
     let commands2 = [w, h];
     let m = this.matrix.$matrix;
     commands2 = commands2.concat([OPCODES.SETTRANSFORM, m.m11, m.m12, m.m21, m.m22, m.m41, m.m42]);

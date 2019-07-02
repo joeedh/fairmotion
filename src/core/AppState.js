@@ -14,6 +14,7 @@ import {registerToolStackGetter} from 'FrameManager_ops';
 import {FairmotionScreen} from 'editor_base';
 
 import {iconmanager, setIconMap} from 'ui_base';
+import {Editor} from 'editor_base';
 
 //set iconsheets, need to find proper place for it other than here in AppState.js
 iconmanager.reset(16);
@@ -52,59 +53,6 @@ export let AreaTypes = {
 
 import {setAreaTypes} from "../path.ux/scripts/ScreenArea";
 setAreaTypes(AreaTypes);
-
-/*
-XXX I may want to put this in path.ux itself
-
-stupidly, we store the "active" area (of each type)
-globally (or rather, they're accessible through the Context
-struct).  this is done to simplify the datapath api code.
-it's a bit stupid.
- */
-(function patcharea() {
-  var _area_active_stacks = {};
-  var _area_active_lasts = {};
-
-  function _get_area_stack(cls) {
-    var h = cls.name;
-
-    if (!(h in _area_active_stacks)) {
-      _area_active_stacks[h] = new Array();
-    }
-
-    return _area_active_stacks[h];
-  };
-
-  Area.context_area = function (cls) {
-    var stack = _get_area_stack(cls.name);
-
-    if (stack.length == 0)
-      return _area_active_lasts[cls.name];
-    else
-      return stack[stack.length - 1];
-  };
-
-  Area.prototype.push_ctx_active = function () {
-    var stack = _get_area_stack(this.constructor);
-    stack.push(this);
-    _area_active_lasts[this.constructor.name] = this;
-  };
-
-  Area.prototype.pop_ctx_active = function () {
-    var stack = _get_area_stack(this.constructor);
-    if (stack.length == 0 || stack[stack.length - 1] != this) {
-      console.trace();
-      console.log("Warning: invalid Area.pop_active() call");
-      return;
-    }
-
-    stack.pop(stack.length - 1);
-
-    if (stack.length > 0) {
-      _area_active_lasts[this.constructor.name] = stack[stack.length-1];
-    }
-  };
-})();
 
 import {Screen} from 'FrameManager';
 import {PathUXInterface} from 'data_api_pathux';
@@ -1292,7 +1240,6 @@ export class AppState {
         
         if (block.type == "SCRN") {
           screen = block.data;
-          console.log("SCREEN", screen, screen.sareas);
         }
       }
 
@@ -1679,7 +1626,8 @@ class SavedContext {
 
       this._scene = ctx.scene ? new DataRef(ctx.scene) : new DataRef(-1);
       this._frameset = ctx.frameset ? new DataRef(ctx.frameset) : new DataRef(-1);
-      
+
+      this._selectmode = ctx.selectmode;
       this._frameset_editmode = "MAIN";
       
       this._spline_path = ctx.splinepath;
@@ -1687,6 +1635,7 @@ class SavedContext {
         this._active_spline_layer = ctx.spline.layerset.active.id;
       }
     } else {
+      this.selectmode = 0;
       this._scene = new DataRef(-1); this._frameset = new DataRef(-1);
       this.time = 0; this._spline_path = "frameset.drawspline";
       this._active_spline_layer = -1;
@@ -1704,7 +1653,9 @@ class SavedContext {
 
     if (scene != undefined && scene.time != this.time)
       scene.change_time(this, this.time, false);
-      
+
+    this._selectmode = state.selectmode;
+
     //console.log(this._spline_path);
     
     if (fset != undefined)
@@ -1739,7 +1690,11 @@ class SavedContext {
 
     return ret;
   }
-  
+
+  get selectmode() : int {
+    return this._selectmode;
+  }
+
   get frameset() : FrameSet {
     return g_app_state.datalib.get(this._frameset);
   }
@@ -1795,6 +1750,10 @@ export class Context {
     return g_app_state.raster.font;
   }
 
+  get active_area() {
+    return Editor.active_area();
+  }
+
   switch_active_spline(newpath) {
     g_app_state.switch_active_spline(newpath);
   }
@@ -1828,17 +1787,17 @@ export class Context {
   }
  
   get dopesheet() : DopeSheetEditor {
-    return Area.context_area(DopeSheetEditor);
+    return Editor.context_area(DopeSheetEditor);
   }
   
   get editcurve() : CurveEditor {
-    return Area.context_area(CurveEditor);
+    return Editor.context_area(CurveEditor);
   }
   
   /*need to figure out a better way to pass active editor types
     around API*/
   get settings_editor() : SettingsEditor {
-    return Area.context_area(SettingsEditor);
+    return Editor.context_area(SettingsEditor);
   }
   
   get frameset() : SplineFrameSet {
@@ -1848,15 +1807,19 @@ export class Context {
   /*need to figure out a better way to pass active editor types
     around API*/
   get opseditor() : OpStackEditor {
-    return Area.context_area(OpStackEditor);
+    return Editor.context_area(OpStackEditor);
   }
-  
+
+  get selectmode() {
+    return this.view2d.selectmode;
+  }
+
   /*need to figure out a better way to pass active editor types
     around API.  this one in particular is evil, a holdover fro
     the days when View2DHandler encapsulated the entire application
     state*/
   get view2d() {
-    var ret = Area.context_area(View2DHandler);
+    var ret = Editor.context_area(View2DHandler);
     if (ret == undefined)
       ret = g_app_state.active_view2d;
       

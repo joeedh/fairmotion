@@ -22,6 +22,9 @@ export var KSTARTX = ORDER+3;
 export var KSTARTY = ORDER+4;
 export var KSTARTZ = ORDER+5;
 
+//XXX circular dependency between solver.js and here
+window.KSCALE = KSCALE;
+
 export var KTOTKS  = ORDER+6;
 
 export var INT_STEPS = 4;
@@ -699,7 +702,9 @@ export function build_solver(spline, order, goal_order, gk, do_basic, update_ver
     
     if (v.flag & SplineFlags.BREAK_CURVATURES)
       continue;
-      
+    if (v.flag & SplineFlags.USE_HANDLES)
+      continue;
+
     if (mindis == 0.0) {
       bad = true;
     } else {

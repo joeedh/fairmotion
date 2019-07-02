@@ -77,7 +77,8 @@ export class BoxWColor extends BoxColor {
 
   set colors(c) {
     if (c === undefined) {
-      console.warn("undefined was passed to BoxWColor.colors setter")
+      if (DEBUG.theme)
+        console.warn("undefined was passed to BoxWColor.colors setter")
       return;
     }
     

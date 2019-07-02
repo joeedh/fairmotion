@@ -5,6 +5,22 @@ import * as ui_base from "../path.ux/scripts/ui_base";
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
   charmap, TouchEventManager, EventHandler} from "./events";
 
+var _area_active_stacks = {}; //last active stacks for each area type
+var _area_active_lasts = {};
+var _area_main_stack = []; //combined stack of all area types
+var _last_area = undefined;
+
+function _get_area_stack(cls) {
+  var h = cls.name;
+
+  if (!(h in _area_active_stacks)) {
+    _area_active_stacks[h] = new Array();
+  }
+
+  return _area_active_stacks[h];
+};
+
+
 /*
 primary app screen subclass
 */
@@ -32,7 +48,7 @@ export class FairmotionScreen extends Screen {
     k.add_tool(new HotKey("S", ["CTRL"], "Save File"),
       "appstate.save()");
     k.add_func(new HotKey("U", ["CTRL", "SHIFT"]), function() {
-      console.log("saving new startup file.");
+       ("saving new startup file.");
       g_app_state.set_startup_file();
     });
   }
@@ -100,6 +116,53 @@ export class Editor extends Area {
 
   static register(cls) {
     return Area.register(cls);
+  }
+
+  static active_area() {
+    let ret = _area_main_stack[_area_main_stack.length-1];
+    if (ret === undefined) {
+      ret = _last_area;
+    }
+
+    return ret;
+  }
+  
+  static context_area(cls) {
+    var stack = _get_area_stack(cls.name);
+
+    if (stack.length == 0)
+      return _area_active_lasts[cls.name];
+    else
+      return stack[stack.length - 1];
+  }
+
+  push_ctx_active() {
+    var stack = _get_area_stack(this.constructor);
+    stack.push(this);
+    _area_active_lasts[this.constructor.name] = this;
+
+    _area_main_stack.push(this);
+    _last_area = this;
+  }
+
+  pop_ctx_active() {
+    var stack = _get_area_stack(this.constructor);
+    if (stack.length == 0 || stack[stack.length - 1] != this) {
+      console.trace();
+      console.log("Warning: invalid Area.pop_active() call");
+      return;
+    }
+
+    stack.pop(stack.length - 1);
+
+    if (stack.length > 0) {
+      _area_active_lasts[this.constructor.name] = stack[stack.length-1];
+    }
+
+    let area = _area_main_stack.pop();
+    if (area !== undefined) {
+      _last_area = area;
+    }
   }
 }
 

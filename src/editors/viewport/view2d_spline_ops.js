@@ -448,7 +448,7 @@ export class SplineEditor extends View2DEditor {
       if (ret != undefined) {
         var tool = new SelectLinkedOp(true, ctx.view2d.selectmode);
         tool.inputs.vertex_eid.set_data(ret[0].eid);
-        tool.inputs.mode.set_data("select");
+        tool.inputs.mode.set_data("SELECT");
         
         ctx.appstate.toolstack.exec_tool(tool);
       }

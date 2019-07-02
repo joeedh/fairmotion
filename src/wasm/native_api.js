@@ -17,7 +17,7 @@ import {TypedWriter} from 'typedwriter';
 import * as ajax from 'ajax';
 
 export function isReady() {
-  return wasm.ready;
+  return wasm.calledRun;
 }
 
 var mmax = Math.max, mmin = Math.min, mfloor = Math.floor;
@@ -401,15 +401,15 @@ export function* gen_draw_cache(postMessage, status, spline) {
 
 //sflags should be SplineFlags from spline_types.js,
 //passed in here to avoid a cyclic module dependency
-export function do_solve(sflags, Spline spline, int steps, float gk=0.95, return_promise=false, draw_id=0) {
-  if (spline._solve_id == undefined) {
-    spline._solve_id = solve_idgen++;
-  }
-  
-  if (spline._solve_id in active_solves) {
-    //delete active_jobs[spline._solve_id];
-  }
-  
+export function do_solve(sflags : int, spline : Spline, steps : int, gk=0.95, return_promise=false) {
+  let draw_id = push_solve(spline);
+
+  //if (spline._solve_id !== undefined && spline._solve_id in active_solves) {
+  //  delete active_jobs[spline._solve_id];
+  //}
+
+  spline._solve_id = draw_id;
+
   var job_id = solve_idgen++;
   active_solves[spline._solve_id] = job_id;
   active_jobs[job_id] = spline._solve_id;
@@ -719,8 +719,8 @@ function write_nacl_solve_new(writer, spline, cons, update_verts, update_segs, g
     //console.log("c.type, c.k, gk:", c.type, c.k, gk);
     
     writer.int32(type);
-    writer.float32(c.k*gk);
-    writer.float32(c.k2 == undefined ? c.k*gk : c.k2*gk);
+    writer.float32(c.k);
+    writer.float32(c.k2 == undefined ? c.k : c.k2);
     
     writer.int32(0); //pad int
     
@@ -965,7 +965,7 @@ function wrap_unload(spline, data) {
 }
 
 //generator is manually unpacked for easier analysis
-
+//XXX rewrite this
 export function nacl_solve(Function postMessage, ObjLit status, Spline spline,
 Array<constraint> cons, set<SplineVertex> update_verts,
   float gk, set<SplineSegment> edge_segs)

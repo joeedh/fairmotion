@@ -402,7 +402,11 @@ export class SplineElement extends DataPathNode {
   get hidden() {
     return !!(this.flag & SplineFlags.HIDE);
   }
-  
+
+  valueOf() {
+    return this.eid;
+  }
+
   [Symbol.keystr]() {
     return ""+this.eid;
   }

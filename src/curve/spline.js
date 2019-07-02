@@ -946,7 +946,7 @@ export class Spline extends DataBlock {
           
           if (s.other_vert(v).flag & SplineFlags.SELECT) {
             sset.add(s);
-            console.log("selecting segment");
+            //console.log("selecting segment");
           }
           
           var l = s.l;
@@ -955,7 +955,7 @@ export class Spline extends DataBlock {
           
           do {
             if (c++ > 1000) {
-              console.log("Infinite loop detected!");
+              console.warn("Infinite loop detected!");
               break;
             }
             
@@ -979,7 +979,7 @@ export class Spline extends DataBlock {
             }
             
             if (good) {
-              console.log("selecting face");
+              //console.log("selecting face");
               fset.add(f);
             }
             
@@ -1033,7 +1033,7 @@ export class Spline extends DataBlock {
         
         do {
           if (c++ > 1000) {
-            console.log("Infinite loop detected!");
+            console.warn("Infinite loop detected!");
             break;
           }
           
@@ -1337,7 +1337,7 @@ export class Spline extends DataBlock {
         this._radial_loop_remove(s2.l);
         
         if (ci++ > 100) {
-          console.log("Infinite loop error!");
+          console.warn("Infinite loop error!");
           break;
         }
       }
@@ -1345,7 +1345,7 @@ export class Spline extends DataBlock {
         this._radial_loop_remove(s1.l);
         
         if (ci++ > 100) {
-          console.log("Infinite loop error!");
+          console.warn("Infinite loop error!");
           break;
         }
       }
@@ -1477,7 +1477,7 @@ export class Spline extends DataBlock {
           var _i = 0;
           do {
             if (_i++ > 1000) {
-              console.log("infinite loop!");
+              console.warn("infinite loop!");
               break;
             }
             
@@ -1589,7 +1589,7 @@ export class Spline extends DataBlock {
           var _i = 0;
           do {
             if (_i++ > 5000) {
-              console.log("infinite loop!");
+              console.warn("infinite loop!");
               break;
             }
             
@@ -1603,7 +1603,7 @@ export class Spline extends DataBlock {
     this.propagate_draw_flags();
     
     var this2 = this;
-    if (config.USE_WASM && native_api.isReady()) {
+    if (!DEBUG.no_native && config.USE_WASM && native_api.isReady()) {
       var ret = native_api.do_solve(SplineFlags, this, steps, gk, true);
     
       ret.then(function() {
@@ -1625,7 +1625,7 @@ export class Spline extends DataBlock {
       });
   
       return ret;
-    } else if (config.USE_NACL && window.common != undefined && window.common.naclModule != undefined) {
+    } else if (!DEBUG.no_native && config.USE_NACL && window.common != undefined && window.common.naclModule != undefined) {
       var ret = do_solve(SplineFlags, this, steps, gk, true);
     
       ret.then(function() {

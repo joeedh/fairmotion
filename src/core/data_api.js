@@ -823,7 +823,7 @@ export class DataAPI {
       this.appstate.toolstack.exec_tool(op);
     } catch (error) {
       console.log("Error calling " + str);
-      console.trace();
+      print_stack(error);
     }
   }
   
@@ -859,8 +859,8 @@ export class DataAPI {
       if ((error instanceof TinyParserError)) {
         throw error;
       } else {
+        print_stack(error);
         console.log("Error calling " + str);
-        console.trace();
       }
     }
   }

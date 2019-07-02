@@ -2,7 +2,7 @@
 
 #include "src/config/config_defines.js"
 
-import * as config from 'config';
+import * as config from '../config/config';
 
 //math globals
 var FEPS = 1e-18;
@@ -41,7 +41,7 @@ import * as native_api from 'native_api';
 export function do_solve() {
   if (config.USE_NACL) {
     return do_solve_nacl.apply(this, arguments);
-  } else if (config.USE_WASM && native_api.isReady()) {
+  } else if (!DEBUG.no_native && config.USE_WASM && native_api.isReady()) {
     return native_api.do_solve.apply(this, arguments);
   } else {
     return math.do_solve.apply(this, arguments);

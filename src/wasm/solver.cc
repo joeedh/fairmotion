@@ -222,17 +222,17 @@ double eval_constraint(
   return 0.0;
 }
 
-#define CLAMP_R(r) (r < 0.001 ? 0.0 : r)
-
-#define STEPS 35
-#define DF 0.000003
+#define STEPS 65
+#define DF 0.00003
+#define GK 1.0
+#define GKS_PER_SEG 16
 
 int solve_intern(
     SplineVertex *vs, int totvert, SplineSegment *ss, 
     int totseg, Constraint *cs, int totcons) 
 {
   Constraint *con = cs;
-  double gs[32] = {0.0};
+  double gs[GKS_PER_SEG*2] = {0.0};
   
   double error = 0.0;
 
@@ -243,7 +243,7 @@ int solve_intern(
   
   int si;
   for (si=0; si<STEPS; si++) {
-    if (si > 0 && error/(double)totcons < 0.0001) 
+    if (si > 0 && error/(double)totcons < 0.0007) 
       break;
     
     error = 0.0;
@@ -263,18 +263,18 @@ int solve_intern(
       }
       
       double r = eval_constraint(con, ss, vs);
-      double clampr = CLAMP_R(r);
       
       error += r;
       
-      if (isnan(r) || clampr < 0.0)
+      if (isnan(r) || r < 0.00001)
         continue;
       
       for (int sj=0; sj<2; sj++) {
         int segi = sj ? con->seg2 : con->seg1;
-        if (segi < 0) {
-          for (int j=0; j<16; j++) {
-            gs[16*sj+j] = 0.0;
+
+        if (segi < 0 || ((ss+segi)->flag & FIXED_KS)) {
+          for (int j=0; j<GKS_PER_SEG; j++) {
+            gs[GKS_PER_SEG*sj + j] = 0.0;
           }
           
           continue;
@@ -293,20 +293,19 @@ int solve_intern(
           
           s->ks[j] += DF;
           double r2 = eval_constraint(con, ss, vs);
-          //r2 = CLAMP_R(r2);
+          
           s->ks[j] = orig;
           
           if (isnan(r2)) {
-            gs[16*sj+j] = 0.0;
+            gs[GKS_PER_SEG*sj + j] = 0.0;
             continue;
           }
           
-          gs[16*sj+j] = (r2-r)/DF;
+          gs[GKS_PER_SEG*sj + j] = (r2-r)/DF;
         }
       }
       
-      double ck = si > 10 ? (double)con->k2 : (double)con->k;
-      //logf("con k: %.3f", ck);
+      double ck = si > 8 ? (double)con->k2 : (double)con->k;
         
       for (int sj=0; sj<2; sj++) {
         int segi = sj ? con->seg2 : con->seg1;
@@ -316,10 +315,10 @@ int solve_intern(
         
         double totg = 0.0;
         for (int j=0; j<ORDER; j++) {
-          totg += gs[16*sj+j]*gs[16*sj+j];
+          totg += gs[GKS_PER_SEG*sj + j]*gs[GKS_PER_SEG*sj + j];
         }
         
-        if (totg == 0.0)
+        if (totg <= 0.00001 || isnan(totg))
           continue;
         
         SplineSegment *s = ss + segi;
@@ -332,10 +331,20 @@ int solve_intern(
         if (con->type == CURVATURE_CONSTRAINT || 
             con->type == COPY_C_CONSTRAINT)
           continue;
-          
+        
+        //stupid hack to suppress numerical instability        
+        double mul = 1.0 / pow(1.0 + s->ks[KSCALE], 0.25);
+        
         //ignore ws weights for now
         for (int j=0; j<ORDER; j++) {
-          s->ks[j] += -rmul*gs[16*sj+j]*ck;
+          //s->ks[j] += -rmul*gs[GKS_PER_SEG*sj + j]*ck*GK;
+          //*
+          double newk = s->ks[j] - rmul*gs[GKS_PER_SEG*sj + j]*ck*GK*mul;
+          
+          if (!isnan(newk)) {
+            s->ks[j] = newk;
+          }
+          //*/
         }
       }
     }

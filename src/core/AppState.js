@@ -103,17 +103,24 @@ export function gen_screen(unused, w, h) {
 
   let t = MenuBar.getHeight() / sarea.size[1];
 
-  screen.splitArea(sarea, t);
+  let view2d = screen.splitArea(sarea, t);
   sarea.switch_editor(MenuBar);
+
+  let mated = screen.splitArea(view2d, 0.7, false);
+  mated.switch_editor(MaterialEditor);
 
   g_app_state.screen = screen;
   g_app_state.eventhandler = screen;
   //g_app_state.active_view2d = view2d;
 
+  //make material editor
+
   app.appendChild(screen);
 }
 
-import 'startup_file';
+import './startup_file_example';
+import {startup_file} from './startup_file';
+
 //$XXX import {gen_screen} from 'FrameManager';
 import {DataPath, DataStruct, DataPathTypes, DataFlags,
         DataAPI, DataStructArray} from 'data_api';
@@ -378,50 +385,53 @@ class UserSession {
 }
 
 window.test_load_file = function() {
-  var buf = startup_file_str;
+  var buf = startup_file;
   buf = new DataView(b64decode(buf).buffer);
 
   g_app_state.load_user_file_new(buf, undefined, new unpack_ctx());
 };
 
-//size is screen size
-window.gen_default_file = function gen_default_file(size) {
-  //needed for chrome app file system api
-  html5_fileapi.reset();
-  
-  var g = g_app_state;
-  global startup_file_str;
-
-  #if 1
+let load_default_file = function(g : AppState, size=[512, 512]) {
   if (!myLocalStorage.hasCached("startup_file")) {
-    myLocalStorage.startup_file = startup_file_str;
+    myLocalStorage.startup_file = startup_file;
   }
-  
+
   //if (RELEASE && (!("startup_file" in myLocalStorage) || myLocalStorage.startup_file == undefined || myLocalStorage.startup_file == "undefined")) {
-  //  myLocalStorage.startup_file = startup_file_str;
+  //  myLocalStorage.startup_file = startup_file;
   //}
-  
+
   //try loading twice, load embedded startup_file on second attempt
   for (var i=0; i<2; i++) {
-    var file = i==0 ? myLocalStorage.getCached("startup_file") : startup_file_str;
-    
+    var file = i==0 ? myLocalStorage.getCached("startup_file") : startup_file;
+    file = file.trim().replace(/[\n\r]/g, "");
+
     if (file) {
       try {
-        var buf = file;
-        buf = new DataView(b64decode(buf).buffer);
-        
+        var buf = new DataView(b64decode(file).buffer);
+
         g.load_user_file_new(buf, undefined, new unpack_ctx());
-        return;
+        return true;
       } catch (err) {
         print_stack(err);
         console.log("ERROR: Could not load user-defined startup file.");
       }
     }
   }
+
+  return false;
+};
+
+//size is screen size
+window.gen_default_file = function gen_default_file(size=[512, 512], force_new=false) {
+  //needed for chrome app file system api
+  html5_fileapi.reset();
   
-  if (size == undefined)
-    size = [512, 512];
-  #endif
+  var g = g_app_state;
+  global startup_file;
+
+  if (!force_new && load_default_file(g)) {
+    return;
+  }
 
   //reset app state, calling without args
   //will leave .screen undefined
@@ -1890,9 +1900,43 @@ function Context() {
 }
 create_prototype(Context);
 */
+export class ModalContext extends Context {
+  constructor(state : AppState, ctx : Context) {
+    super(state);
+
+    //make sure tools keep original ui context
+    //of area that originally called them
+
+    this._active_area = ctx.active_area;
+    this._view2d = ctx.view2d;
+    this._dopesheet = ctx.dopesheet;
+    this._editcurve = ctx.editcurve;
+    this._settings_editor = ctx.settings_editor;
+  }
+
+  get active_area() {
+    return this._active_area;
+  }
+
+  get view2d() {
+    return this._view2d;
+  }
+
+  get dopesheet() {
+    return this._dopesheet;
+  }
+
+  get editcurve() {
+    return this._editcurve;
+  }
+
+  get settings_editor() {
+    return this._settings_editor;
+  }
+}
 
 class ToolStack {
-  constructor(appstate) {
+  constructor(appstate : AppState) {
     this.undocur = 0;
     this.undostack = new GArray();
     
@@ -2353,7 +2397,9 @@ class ToolStack {
     }
     
     if (tool.is_modal) {
-      tool.modal_ctx = ctx;
+      let modal_ctx = new ModalContext(this.appstate, ctx);
+
+      tool.modal_ctx = modal_ctx;
       tool.modal_tctx = new ToolContext();
       tool.saved_context = new SavedContext(tool.modal_tctx);
       
@@ -2365,7 +2411,7 @@ class ToolStack {
         if (tool.is_modal)
           tool.modal_running = true;
           
-        tool.undo_pre(ctx);
+        tool.undo_pre(modal_ctx);
         tool.undoflag |= UndoFlags.HAS_UNDO_DATA;
         
         //will be set again by modal_init, line after next
@@ -2373,8 +2419,8 @@ class ToolStack {
           tool.modal_running = false;
       }
       
-      tool._start_modal(ctx);
-      tool.start_modal(ctx);
+      tool._start_modal(modal_ctx);
+      tool.start_modal(modal_ctx);
     } else {
       var tctx = new ToolContext();
       tool.saved_context = new SavedContext(tctx);

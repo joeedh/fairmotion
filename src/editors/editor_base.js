@@ -4,6 +4,7 @@ import {STRUCT} from 'struct';
 import * as ui_base from "../path.ux/scripts/ui_base";
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
   charmap, TouchEventManager, EventHandler} from "./events";
+import {patch_canvas2d, set_rendermat} from 'spline_draw';
 
 var _area_active_stacks = {}; //last active stacks for each area type
 var _area_active_lasts = {};
@@ -67,9 +68,22 @@ export class FairmotionScreen extends Screen {
 
     let area = this.pickElement(this.mpos[0], this.mpos[1], undefined, undefined, Area);
 
-    if (area !== undefined && area.keymap.process_event(this.ctx, e)) {
+    if (area === undefined) {
       return;
     }
+
+    area.push_ctx_active();
+
+    try {
+      if (area.keymap.process_event(this.ctx, e)) {
+        return;
+      }
+    } catch (error) {
+      print_stack(error);
+      console.log("Error executing hotkey");
+    }
+
+    area.pop_ctx_active();
   }
 
   static define() {return {
@@ -91,6 +105,12 @@ FairmotionScreen.STRUCT = STRUCT.inherit(FairmotionScreen, Screen) + `
 ui_base.UIBase.register(FairmotionScreen);
 
 export class Editor extends Area {
+  constructor() {
+    super();
+
+    this.canvases = {};
+  }
+
   init() {
     super.init();
 
@@ -104,6 +124,46 @@ export class Editor extends Area {
     this.setCSS();
 
     this.keymap = new KeyMap();
+  }
+
+  getCanvas(id, zindex) {
+    let canvas;
+
+    if (id in this.canvases) {
+      canvas = this.canvases[id];
+    } else {
+      console.log("creating new canvas", id, zindex);
+
+      canvas = this.canvases[id] = document.createElement("canvas");
+      canvas.g = this.canvases[id].getContext("2d");
+
+      patch_canvas2d(canvas.g);
+
+      this.shadow.prepend(canvas);
+
+      canvas.style["position"] = "absolute";
+    }
+
+    canvas.style["z-index"] = zindex;
+
+    if (this.size !== undefined) {
+      let w = ~~(this.size[0] * window.devicePixelRatio);
+      let h = ~~(this.size[1] * window.devicePixelRatio);
+
+      if (canvas.width != w) {
+        canvas.width = w;
+        canvas.style["width"] = (~~this.size[0]) + "px";
+        //this.eventdiv.style["width"] = (~~this.size[0]) + "px";
+      }
+
+      if (canvas.height != h) {
+        canvas.height = h;
+        canvas.style["height"] = (~~this.size[1]) + "px";
+        //this.eventdiv.style["height"] = (~~this.size[1]) + "px";
+      }
+    }
+
+    return canvas;
   }
 
   on_destroy() {
@@ -134,6 +194,22 @@ export class Editor extends Area {
       return _area_active_lasts[cls.name];
     else
       return stack[stack.length - 1];
+  }
+
+  //wraps an event handler so that it calls this.push_ctx_active/pop_ctx_active
+  static wrapContextEvent(f) {
+    return function(e) {
+      this.push_ctx_active();
+
+      try {
+        f(e);
+      } catch (error) {
+        print_stack(error);
+        console.warn("Error executing view2d", e.type,"callback");
+      }
+
+      this.pop_ctx_active();
+    }
   }
 
   push_ctx_active() {

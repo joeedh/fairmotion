@@ -5,6 +5,7 @@ import {Editor} from 'editor_base';
 import * as ui_widgets from 'ui_widgets';
 import * as platform from 'platform';
 import {Menu} from 'ui_menu';
+import {startup_file} from 'startup_file';
 
 /*
   gen_file_menu(Context ctx, uimenulabel)
@@ -38,7 +39,7 @@ import {Menu} from 'ui_menu';
       } else if (entry.i == 2) {
         g_app_state.set_startup_file();
       } else if (entry.i == 1) {
-        myLocalStorage.set("startup_file", startup_file_str);
+        myLocalStorage.set("startup_file", startup_file);
       }
     }
 
@@ -100,13 +101,12 @@ export class MenuBar extends Editor {
       } else if (entry.i == 2) {
         g_app_state.set_startup_file();
       } else if (entry.i == 1) {
-        myLocalStorage.set("startup_file", startup_file_str);
+        myLocalStorage.set("startup_file", startup_file);
       }
     }
 
-
     row.menu("Session", [
-      ["Save Default File", () => {
+      ["Save Default File", function () {
         platform.app.questionDialog("Erase default startup file?").then((val) => {
           if (val) {
             g_app_state.set_startup_file();
@@ -115,15 +115,16 @@ export class MenuBar extends Editor {
         });
       }],
 
-      ["Clear Default File", () => {
+      ["Clear Default File", function() {
         platform.app.questionDialog("Erase default startup file?").then((val) => {
           if (val) {
-            myLocalStorage.set("startup_file", startup_file_str);
+            myLocalStorage.set("startup_file", startup_file);
             console.log("clear default file", val);
           }
         });
-      }, "ctrl-alt-u"],
-      ["Reset Settings", () => {
+      }, "ctrl-alt-u"
+      ],
+      ["Reset Settings", function() {
         platform.app.questionDialog("Settings will be cleared", "Clear Settings?").then((val) => {
           if (val) {
             console.log("clearing settings");

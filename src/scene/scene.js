@@ -1,10 +1,13 @@
 import {STRUCT} from 'struct';
 import {DataBlock, DataTypes} from 'lib_api';
+import {SplineFrameSet} from "../core/frameset";
 
 export class Scene extends DataBlock {
   constructor() {
     super(DataTypes.SCENE);
-    
+
+    this.framesets = [];
+
     this.active_splinepath = "frameset.drawspline";
     this.time = 1;
   }
@@ -60,13 +63,18 @@ export class Scene extends DataBlock {
   
   data_link(block, getblock, getblock_us) {
     DataBlock.prototype.data_link.apply(this, arguments);
+
+    for (let i=0; i<this.framesets.length; i++) {
+      this.framesets[i] = getblock_us(this.framesets[i]);
+    }
     //if (this.active_splinepath != undefined)
     //  g_app_state.switch_active_spline(this.active_splinepath);
   }
 }
 
-Scene.STRUCT = STRUCT.inherit(Scene, DataBlock) + """
+Scene.STRUCT = STRUCT.inherit(Scene, DataBlock) + `
     time              : float;
     active_splinepath : string;
+    framesets         : array(dataref(SplineFrameSet));
   }
-""";
+`;

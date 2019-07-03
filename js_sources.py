@@ -34,6 +34,7 @@ sources = [
   "tools/utils/libs/lz-string/libs/base64-string-v1.1.0.js",
   "tools/utils/libs/lz-string/libs/lz-string-1.3.3.js",
   #"src/util/jslzjb.js",
+  "src/core/startup_file_example.js",
   "src/core/startup_file.js",
   "src/core/redraw_globals.js",
   "src/core/startup.js",

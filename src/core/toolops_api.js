@@ -454,8 +454,10 @@ export class ToolOp extends ToolOpAbstract {
   _start_modal(ctx : Context) {
     this.modal_running = true;
 
+    let active_area = ctx.active_area;
     let patch = (e) => {
-      let dom = this.ctx !== undefined ? this.ctx.active_area : g_app_state.screen;
+      let dom = active_area ? active_area : g_app_state.screen;
+      console.log("dom", dom.tagName);
       return patchMouseEvent(e, dom);
     };
 

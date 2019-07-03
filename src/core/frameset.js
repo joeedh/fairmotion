@@ -1274,7 +1274,7 @@ export class SplineFrameSet extends DataBlock {
   }
 };
 
-SplineFrameSet.STRUCT = STRUCT.inherit(SplineFrameSet, DataBlock) + """
+SplineFrameSet.STRUCT = STRUCT.inherit(SplineFrameSet, DataBlock) + `
     idgen             : SDIDGen;
     frames            : array(SplineFrame) | obj_values_to_array(obj.frames);
     vertex_animdata   : array(VertexAnimData) | obj_values_to_array(obj.vertex_animdata);
@@ -1291,5 +1291,5 @@ SplineFrameSet.STRUCT = STRUCT.inherit(SplineFrameSet, DataBlock) + """
     draw_anim_paths   : int;
     templayerid       : int;
 }
-""";
+`;
 //XXX kcache            : SplineKCache;

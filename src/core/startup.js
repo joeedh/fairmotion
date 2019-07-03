@@ -572,10 +572,10 @@ function init_event_system() {
       //make sure focus isn't in an embedded html control
       if (document.activeElement !== document.body && !(document.activeElement instanceof HTMLCanvasElement))
         return;
-      
+
       handle_key_exclude(e);
 
-      if (g_app_state.screen !== undefined)
+      if (g_app_state.eventhandler !== undefined && g_app_state.eventhandler.on_keydown)
           g_app_state.eventhandler.on_keydown(e)
   }
 
@@ -586,7 +586,7 @@ function init_event_system() {
 
       handle_key_exclude(e);
 
-      if (g_app_state.screen != undefined)
+    if (g_app_state.eventhandler !== undefined && g_app_state.eventhandler.on_keyup)
           g_app_state.eventhandler.on_keyup(e);
   }
 
@@ -625,6 +625,7 @@ function init_event_system() {
           text = text.replace(/\<TK\>/g, "");
 
           //console.log("textinput event");
+        if (g_app_state.eventhandler !== undefined && g_app_state.eventhandler.on_textinput)
           g_app_state.eventhandler.on_textinput({text: text});
       }
       #endif

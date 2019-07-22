@@ -35,6 +35,11 @@ export function patchMouseEvent(e, dom) {
 
   let rect = dom.getClientRects()[0];
 
+  if (rect === undefined) {
+    console.warn("bad rect in toolops_api.patchMouseEvent");
+    return e2;
+  }
+
   e2.x = ((e.x === undefined ? e.clientX : e.x)-rect.left);
   e2.y = ((e.y === undefined ? e.clientY : e.y)-rect.top);
 
@@ -123,7 +128,9 @@ export var UndoFlags = {
 export var ToolFlags = {
   HIDE_TITLE_IN_LAST_BUTTONS : 1, 
   USE_PARTIAL_UNDO           : 2,
-  USE_DEFAULT_INPUT          : 4
+  USE_DEFAULT_INPUT          : 4,
+  USE_REPEAT_FUNCTION        : 8,
+  USE_TOOL_CONTEXT           : 16 //will use context in tool.ctx instead of providing one
 };
 
 //this is a bitmask!!
@@ -152,14 +159,26 @@ export class ToolOpAbstract {
     inputs   : ToolOp.inherit({}), //will inherit inputs from parent class
     outputs  : {},
     icon     : -1,
-    is_modal : false
+    is_modal : false,
+    flag     : [see ToolFlags]
   }}
   */
   
   static inherit(inputs_or_outputs) {
     return new InheritFlag(inputs_or_outputs);
   }
-  
+
+  /*
+  * this is like invoke, only instead
+  * of returning one class it returns a list of them,
+  * each with .ctx set to the context to execute with.
+  *
+  * this is used for e.g. running the same tool on multiple editable splines
+  * */
+  static invokeMultiple(ctx, args) {
+
+  }
+
   static _get_slots() {
     var ret = [{}, {}];
     var parent = this.__parent__; //this.__parents__.length > 0 ? this.__parents__[0] : undefined;
@@ -585,12 +604,12 @@ export class ToolMacro extends ToolOp {
   
   connect_tools(output : ToolOp, input : ToolOp)
   {
-    var old_set = input.user_set_data;
+    var old_set = input.userSetData;
     
-    input.user_set_data = function() {
+    input.userSetData = function() {
       this.data = output.data;
       
-      old_set.call(this);
+      old_set.call(this, this.data);
     }
   }
 
@@ -607,27 +626,34 @@ export class ToolMacro extends ToolOp {
 
   exec(ctx : ToolContext) {
     for (var i=0; i<this.tools.length; i++) {
-      this.tools[i].saved_context = this.saved_context;
+      if (!(this.tools[i].flag & ToolFlags.USE_TOOL_CONTEXT)) {
+        this.tools[i].saved_context = this.saved_context;
+      }
     }
     
     for (let op of this.tools) {
       if (op.is_modal)
         op.is_modal = this.is_modal;
-      
+
+      let tctx = (op.flag & ToolFlags.USE_TOOL_CONTEXT) ? op.ctx : ctx;
+
       for (var k in op.inputs) {
         var p = op.inputs[k];
         
-        if (p.user_set_data != undefined)
-          p.user_set_data.call(p);
+        if (p.userSetData != undefined)
+          p.userSetData.call(p, p.data);
       };
-      
-      op.saved_context = this.saved_context;
-      op.undo_pre(ctx);
+
+      if (!(op.flag & ToolFlags.USE_TOOL_CONTEXT)) {
+        op.saved_context = this.saved_context;
+      }
+
+      op.undo_pre(tctx);
       
       op.undoflag |= UndoFlags.HAS_UNDO_DATA;
       
-      op.exec_pre(ctx);
-      op.exec(ctx);
+      op.exec_pre(tctx);
+      op.exec(tctx);
     }
   }
 
@@ -680,8 +706,8 @@ export class ToolMacro extends ToolOp {
         for (let k in op.inputs) {
           let p = op.inputs[k];
           
-          if (p.user_set_data !== undefined)
-            p.user_set_data.call(p);
+          if (p.userSetData !== undefined)
+            p.userSetData.call(p, p.data);
         }
         
         op.__end_modal = op._end_modal;
@@ -707,8 +733,8 @@ export class ToolMacro extends ToolOp {
         for (let k in op.inputs) {
           let p = op.inputs[k];
           
-          if (p.user_set_data !== undefined)
-            p.user_set_data3(p);
+          if (p.userSetData !== undefined)
+            p.userSetData(p, p.data);
         }
         
         op.saved_context = this.saved_context;

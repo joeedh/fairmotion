@@ -5,7 +5,7 @@ import {SelMask} from 'selectmode';
 import {SessionFlags} from 'view2d_editor';
 import * as strutils from 'strutils';
 
-import 'J3DIMath';
+import 'vectormath';
 
 export var ImageFlags = {
   SELECT : 1,

@@ -40,9 +40,18 @@ import {
 } from 'spline_math';
 
 export class SplineVertex extends SplineElement {
-  constructor() {
+  constructor(co) {
     super(SplineTypes.VERTEX);
-    Vector3.prototype.Vector3_init.apply(this, arguments);
+    Vector3.prototype.initVector3.apply(this, arguments);
+
+    if (co !== undefined) {
+      this[0] = co[0];
+      this[1] = co[1];
+      
+      if (co.length > 2) {
+        this[2] = co[2];
+      }
+    }
 
     this.type = SplineTypes.VERTEX;
     this.flag = SplineFlags.FRAME_DIRTY|SplineFlags.UPDATE;
@@ -53,7 +62,7 @@ export class SplineVertex extends SplineElement {
     //handle variables
     this.hpair = undefined; //connected handle in shared tangents mode
   }
-  
+
   get aabb() {
     static ret = [new Vector3(), new Vector3()];
     ret[0].load(this); ret[1].load(this);
@@ -151,30 +160,31 @@ export class SplineVertex extends SplineElement {
     
     return ret;
   }
-  
-  static fromSTRUCT(reader) {
-    var ret = STRUCT.chain_fromSTRUCT(SplineVertex, reader);
-    
-    ret.load(ret.co);
-    delete ret.co;
+
+  loadSTRUCT(reader) {
+    reader(this);
+    super.loadSTRUCT(reader);
+
+    this.load(this.co);
+    delete this.co;
     
     for (let axis=0; axis<3; axis++) {
-      if (isNaN(ret[axis])) {
-        console.warn("NaN vertex", ret.eid);
-        ret[axis] = 0;
+      if (isNaN(this[axis])) {
+        console.warn("NaN vertex", this.eid);
+        this[axis] = 0;
       }
     }
     
-    return ret;
+    return this;
   }
 };
 
-SplineVertex.STRUCT = STRUCT.inherit(SplineVertex, SplineElement) + """
+SplineVertex.STRUCT = STRUCT.inherit(SplineVertex, SplineElement) + `
   co       : vec3          | obj;
   segments : array(e, int) | e.eid;
   hpair    : int           | obj.hpair != undefined? obj.hpair.eid : -1;
 }
-""";
+`;
 
 mixin(SplineVertex, Vector3);
 
@@ -187,7 +197,7 @@ var closest_point_ret_cache = new cachering(function() {
 var closest_point_cache_vs = cachering.fromConstructor(Vector3, 64);
 
 export class EffectWrapper extends CurveEffect {
-  constructor(SplineSegment owner) {
+  constructor(owner : SplineSegment) {
     super();
     this.seg = owner;
   }
@@ -224,17 +234,17 @@ export class EffectWrapper extends CurveEffect {
     return seg2._evalwrap;
   }
 
-  evaluate(float s) : Vector3 {
+  evaluate(s : float) : Vector3 {
     return this.seg.evaluate(s, undefined, undefined, undefined, true);
   }
   
-  derivative(float s) : Vector3 {
+  derivative(s : float) : Vector3 {
     return this.seg.derivative(s, undefined, undefined, true);
   }
 }
 
 export class SplineSegment extends SplineElement {
-  constructor(SplineVertex v1, SplineVertex v2) {
+  constructor(v1 : SplineVertex, v2 : SplineVertex) {
     super(SplineTypes.SEGMENT);
     
     this._evalwrap = new EffectWrapper(this);
@@ -604,7 +614,7 @@ export class SplineSegment extends SplineElement {
     eval_curve(0.5, this.v1, this.v2, this.ks, order, 1);
     
     var k = spiralcurvature(s, this.ks, order);
-    return k/this.ks[KSCALE];
+    return k/(0.00001 + this.ks[KSCALE]);
   }
   
   curvature_dv(s, order, override_scale) {
@@ -615,7 +625,7 @@ export class SplineSegment extends SplineElement {
     eval_curve(0.5, this.v1, this.v2, this.ks, order, 1);
     
     var k = spiralcurvature_dv(s, this.ks, order);
-    return k/this.ks[KSCALE];
+    return k/(0.00001 + this.ks[KSCALE]);
   }
   
   derivative(s, order, no_update_curve, no_effects) {
@@ -759,31 +769,29 @@ export class SplineSegment extends SplineElement {
     if (v == this.v1) return this.v2;
     if (v == this.v2) return this.v1;
   }
-  
-  static fromSTRUCT(reader) {
-    var ret = new SplineSegment();
-    reader(ret);
-    
-    ret.mat.update = function() {
-      ret.flag |= SplineFlags.REDRAW;
-    }
-    
-    return ret;
+
+  loadSTRUCT(reader) {
+    reader(this);
+    super.loadSTRUCT(reader);
+
+    this.mat.update = function() {
+      this.flag |= SplineFlags.REDRAW;
+    };
   }
 }
 
 
 
-SplineElement.STRUCT = """
+SplineElement.STRUCT = `
   SplineElement {
     eid        : int;
     flag       : int;
     type       : int;
     cdata      : CustomDataSet;
   }
-""";
+`;
 
-SplineSegment.STRUCT = STRUCT.inherit(SplineSegment, SplineElement) + """
+SplineSegment.STRUCT = STRUCT.inherit(SplineSegment, SplineElement) + `
   ks   : array(float);
   
   v1   : int | obj.v1.eid;
@@ -804,7 +812,7 @@ SplineSegment.STRUCT = STRUCT.inherit(SplineSegment, SplineElement) + """
   topoid   : int;
   stringid : int;
 }
-""";
+`;
 
 export class SplineLoop extends SplineElement {
   constructor(f, s, v) {
@@ -822,7 +830,7 @@ export class SplineLoop extends SplineElement {
     return ret;
   }
 }
-SplineLoop.STRUCT = STRUCT.inherit(SplineLoop, SplineElement) + """
+SplineLoop.STRUCT = STRUCT.inherit(SplineLoop, SplineElement) + `
     f    : int | obj.f.eid;
     s    : int | obj.s.eid;
     v    : int | obj.v.eid;
@@ -831,7 +839,7 @@ SplineLoop.STRUCT = STRUCT.inherit(SplineLoop, SplineElement) + """
     radial_next : int | obj.radial_next != undefined ? obj.radial_next.eid : -1;
     radial_prev : int | obj.radial_prev != undefined ? obj.radial_prev.eid : -1;
   }
-"""
+`;
 
 class SplineLoopPathIter {
   constructor(path) {
@@ -942,13 +950,13 @@ export class SplineLoopPath {
     return ret;
   }
 }
-SplineLoopPath.STRUCT = """
+SplineLoopPath.STRUCT = ` 
   SplineLoopPath {
     totvert : int;
     loops   : array(SplineLoop) | obj.asArray();
     winding : int;
   }
-"""
+`;
 
 export class SplineFace extends SplineElement {
   constructor() {
@@ -1016,14 +1024,14 @@ export class SplineFace extends SplineElement {
   }
 }
 
-SplineFace.STRUCT = STRUCT.inherit(SplineFace, SplineElement) + """
+SplineFace.STRUCT = STRUCT.inherit(SplineFace, SplineElement) + `
     paths  : array(SplineLoopPath);
     mat    : Material;
     aabb   : array(vec3);
     z      : float;
     finalz : float;
   }
-""";
+`;
 
 export class Material {
   constructor() {
@@ -1100,7 +1108,7 @@ export class Material {
   }
 }
 
-Material.STRUCT = """
+Material.STRUCT = `
   Material {
     fillcolor        : array(float);
     strokecolor      : array(float);
@@ -1110,7 +1118,7 @@ Material.STRUCT = """
     blur             : float;
     flag             : int;
   }
-""";
+`;
 
 import {ToolIter, TPropIterable} from 'toolprops_iter';
 
@@ -1196,12 +1204,12 @@ export class ElementRefIter extends ToolIter {
     return ret;
   }
 }
-ElementRefIter.STRUCT = """
+ElementRefIter.STRUCT = `
   ElementRefIter {
     mask        : int;
     saved_items : iter(int) | obj;
   }
-"""
+`;
 
 export class ElementRefSet extends set {
   constructor(mask) {

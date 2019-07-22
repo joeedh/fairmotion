@@ -7,7 +7,7 @@ Refactor TODO:
 
 /* $XXX
 import {
-  FileDialog, FileOpenOp, FileSaveAsOp, FileNewOp,
+  FileDialog, FileOpenOp, FileSaveAsOp,
   FileSaveOp, ProgressDialog, LoginDialog, FileSaveSVGOp,
   FileSaveB64Op, FileDialog, error_dialog, import_json,
   download_file, FileOpenRecentOp
@@ -33,7 +33,9 @@ import * as FrameManager from 'FrameManager';
 import * as FrameManager_ops from 'FrameManager_ops';
 import * as safe_eval from 'safe_eval';
 
-import {TransSplineVert, TransData, TransformOp, TranslateOp, ScaleOp, RotateOp} from 'transform';
+import {TransformOp, TranslateOp, ScaleOp, RotateOp} from 'transform';
+import {TransSplineVert} from 'transform_spline';
+import {TransData} from 'transdata';
 
 import {SelectOpBase, SelectOneOp, ToggleSelectAllOp, SelectLinkedOp, HideOp, UnhideOp, CircleSelectOp} from 'spline_selectops';
 import {ExtrudeModes, ExtrudeVertOp, CreateEdgeOp, CreateEdgeFaceOp, ImportJSONOp} from 'spline_createops';
@@ -334,9 +336,9 @@ window.api_define_ops = function() {
     "appstate.save_as" : function(ctx, args) {
       return new FileSaveAsOp();
     },
-    "appstate.new" : function(ctx, args) {
-      return new FileNewOp();
-    },
+    //"appstate.new" : function(ctx, args) {
+      //return new FileNewOp();
+    //},
     
     "appstate.quit" : function(ctx, args) {
       return new QuitFileOp();

@@ -14,12 +14,6 @@ export class SettingsEditor extends Editor {
   copy() {
     return document.createElement("settings-editor-x");
   }
-
-  static fromSTRUCT(reader) {
-    let ret = document.createElement("settings-editor-x");
-    reader(ret);
-    return ret;
-  }
 }
 SettingsEditor.STRUCT = STRUCT.inherit(SettingsEditor, Area) + `
 }

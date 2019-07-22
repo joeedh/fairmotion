@@ -15,9 +15,9 @@ export class ExtrudeVertOp extends SplineLocalToolOp {
   constructor(co, /*ExtrudeModes*/ mode) {
     super();
     
-    if (co != undefined)
+    if (co !== undefined)
       this.inputs.location.set_data(co);
-    if (mode != undefined) {
+    if (mode !== undefined) {
       this.inputs.mode.set_data(mode);
     }
   }
@@ -113,6 +113,7 @@ export class ExtrudeVertOp extends SplineLocalToolOp {
     }
     
     var co = this.inputs.location.data;
+    console.log("co", co);
     var actvert = spline.verts.active;
     
     for (var i=0; i<spline.verts.length; i++) {
@@ -123,7 +124,8 @@ export class ExtrudeVertOp extends SplineLocalToolOp {
     var start_eid = spline.idgen.cur_id;
     
     var v = spline.make_vertex(co);
-    
+    console.log("v", v);
+
     var smode = this.inputs.mode.get_value();
     
     if (smode == ExtrudeModes.LESS_SMOOTH)

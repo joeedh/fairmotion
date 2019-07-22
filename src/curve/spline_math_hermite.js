@@ -163,7 +163,7 @@ var mmax = Math.max, mmin = Math.min;
 #define FAST_INT_STEPS 3
 #define ONE_INT_STEPS 0.333333333
 
-import 'J3DIMath';
+import 'vectormath';
 
 var acache = [new Vector3(), new Vector3(), new Vector3(), 
               new Vector3(), new Vector3(), new Vector3(), 

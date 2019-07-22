@@ -44,7 +44,7 @@ export class TinyParserError extends Error {
 }
 
 //$XXX import {UIFrame} from 'UIFrame';
-import {PropTypes, TPropFlags, ToolProperty, IntProperty, FloatProperty, 
+import {PropTypes, TPropFlags, ToolProperty, IntProperty, FloatProperty, Vec2Property,
         Vec3Property, Vec4Property, StringProperty, FlagProperty, EnumProperty} from 'toolprops';
 import {ToolFlags, UndoFlags} from 'toolops_api';
 import {DataBlock} from 'lib_api';
@@ -222,7 +222,7 @@ export class DataStruct {
   }
 
   Color3(apiname, path, uiname, description) {
-    var ret = new Vec3Property(0, apiname, uiname, description);
+    var ret = new Vec3Property(undefined, apiname, uiname, description);
     ret.subtype = PropSubTypes.COLOR;
 
     ret = new DataPath(ret, apiname, path, path!=undefined);
@@ -232,7 +232,7 @@ export class DataStruct {
   }
 
   Color4(apiname, path, uiname, description) {
-    var ret = new Vec4Property(0, apiname, uiname, description);
+    var ret = new Vec4Property(undefined, apiname, uiname, description);
     ret.subtype = PropSubTypes.COLOR;
 
     ret = new DataPath(ret, apiname, path, path!=undefined);
@@ -242,7 +242,7 @@ export class DataStruct {
   }
 
   Vector2(apiname, path, uiname, description) {
-    var ret = new Vec2Property(0, apiname, uiname, description);
+    var ret = new Vec2Property(undefined, apiname, uiname, description);
 
     ret = new DataPath(ret, apiname, path, path!=undefined);
     this.add(ret);
@@ -251,7 +251,7 @@ export class DataStruct {
   }
 
   Vector3(apiname, path, uiname, description) {
-    var ret = new Vec3Property(0, apiname, uiname, description);
+    var ret = new Vec3Property(undefined, apiname, uiname, description);
 
     ret = new DataPath(ret, apiname, path, path!=undefined);
     this.add(ret);
@@ -279,7 +279,7 @@ export class DataStruct {
   Float(apiname, path, uiname, description) {
     var ret = new FloatProperty(0, apiname, uiname, description);
     
-    ret = new DataPath(ret, apiname, path, path!==undefined);
+    ret = new DataPath(ret, apiname, path, path !== undefined);
     this.add(ret);
     
     return ret;
@@ -288,7 +288,7 @@ export class DataStruct {
   Struct(apiname, path, uiname, description) {
     var ret = new DataStruct([]);
     
-    var path = new DataPath(ret, apiname, path, path!=undefined);
+    var path = new DataPath(ret, apiname, path, path !== undefined);
     this.add(path);
     
     return ret;
@@ -297,7 +297,7 @@ export class DataStruct {
   Int(apiname, path, uiname, description) {
     var ret = new IntProperty(0, apiname, uiname, description);
 
-    ret = new DataPath(ret, apiname, path, path != undefined);
+    ret = new DataPath(ret, apiname, path, path !== undefined);
     this.add(ret);
 
     return ret;
@@ -360,6 +360,7 @@ export class DataStruct {
     
     this.pathmap[p.name] = p;
     this.paths.push(p);
+
     p.parent = this;
   }
 
@@ -1303,8 +1304,37 @@ export class DataAPI {
       }
       
       var prop = ret[0].data;
+
+      if (prop.flag & TPropFlags.USE_CUSTOM_GETSET) {
+        let thisvar = undefined;
+
+        if (prop.flag & TPropFlags.NEEDS_OWNING_OBJECT) {
+          thisvar = ret[4] !== undefined ? this.evaluate(ctx, ret[4]) : prop;
+          //thisvar = this.get_object(ctx, str);
+        }
+
+        //console.log(path, ret[1]);
+        val = prop.userGetData.call(thisvar, prop, val);
+
+        if (path.match("==")) {
+          let i = path.search(/\=\=/);
+          let num = path.slice(i+2, path.length).trim();
+
+          if (num.match(/[0-9]+/)) {
+            num = parseInt(num);
+          } else {
+            num = prop.values[num];
+          }
+
+          val = val == num;
+          //console.log("idx", idx);
+        }
+      }
+
       if (prop.type == PropTypes.ENUM && (val in prop.keys))
         val = prop.keys[val];
+
+
     } else { //return actual object
         var path = ret[1];
         val = this.evaluate(ctx, path);
@@ -1422,8 +1452,20 @@ export class DataAPI {
     
     //console.log("owner:", owner);
     var owner = this.evaluate(ctx, ret[4]);
+
     //console.log("      ", owner);
-    
+    if (ret[0] !== undefined && ret[0].type == DataPathTypes.PROP) {
+      var prop = ret[0].data;
+      prop.ctx = ctx;
+
+      console.log(prop.userSetData);
+      console.log("PROP", prop, prop.flag, prop.flag & TPropFlags.USE_CUSTOM_GETSET);
+
+      if (prop.flag & TPropFlags.USE_CUSTOM_GETSET) {
+        value = prop.userSetData.call(owner, prop, value);
+      }
+    }
+
     if (ret[0] == undefined && ret[3] != undefined && ret[3].do_mass_set) {
       if (DEBUG.ui_datapaths) {
         console.log("Mass set prop", str, value);

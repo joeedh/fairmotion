@@ -11,7 +11,7 @@ import {DopeSheetEditor} from "DopeSheetEditor";
 import {SettingsEditor} from 'SettingsEditor';
 import {MenuBar} from 'MenuBar';
 import {registerToolStackGetter} from 'FrameManager_ops';
-import {FairmotionScreen} from 'editor_base';
+import {FairmotionScreen, resetAreaStacks} from 'editor_base';
 
 import {iconmanager, setIconMap} from 'ui_base';
 import {Editor} from 'editor_base';
@@ -75,6 +75,7 @@ export function gen_screen(unused, w, h) {
     screen.clear();
   } else {
     screen = document.createElement("fairmotion-screen-x");
+    resetAreaStacks();
     app.appendChild(screen);
   }
 
@@ -229,6 +230,7 @@ function patchScreen(appstate, fstructs, data) {
 
   data = fstructs.read_object(data, fakeclass);
   let screen = document.createElement("fairmotion-screen-x");
+  resetAreaStacks();
 
   screen.size = data.size;
   console.log(data);
@@ -687,7 +689,9 @@ export class AppState {
     var filedata = this.load_blocks(scenefile);
     
     this.link_blocks(datalib, filedata);
-    
+
+    resetAreaStacks();
+
     //this.load_user_file_new(scenefile);
     this.screen = screen;
     this.eventhandler = screen;
@@ -1087,6 +1091,17 @@ export class AppState {
   }
 
   do_versions_post(version : float) {
+    let datalib = this.datalib;
+
+    if (version < 0.052) {
+      for (let scene of datalib.scenes) {
+        for (let frameset of datalib.framesets) {
+          let ob = scene.addFrameset(frameset);
+          scene.setActiveObject(ob);
+        }
+      }
+      console.log("objectification");
+    }
   }
   
   load_user_file_new(data : DataView, path : String, uctx : unpack_ctx, use_existing_screen=false) {
@@ -1281,6 +1296,8 @@ export class AppState {
       }
 
       this2.screen = screen;
+      resetAreaStacks();
+
       this2.size = size;
       
       //stupid. . .
@@ -1306,10 +1323,7 @@ export class AppState {
       this2.datalib = datalib;
 
       this2.eventhandler = this2.screen;
-      this2.screen.on_resize(this2.size);
 
-      this2.screen.size = this2.size;
-      
       var ctx = new Context();
       
       //find toolstack block, if it exists
@@ -1396,6 +1410,10 @@ export class AppState {
     }
     
     this.do_versions_post(version);
+
+    this2.screen.on_resize(this2.size);
+    this2.screen.size = this2.size;
+
     window.redraw_viewport();
   }
 
@@ -1636,6 +1654,7 @@ class SavedContext {
 
       this._scene = ctx.scene ? new DataRef(ctx.scene) : new DataRef(-1);
       this._frameset = ctx.frameset ? new DataRef(ctx.frameset) : new DataRef(-1);
+      this._object = ctx.scene && ctx.scene.objects.active ? ctx.scene.objects.active.id : -1;
 
       this._selectmode = ctx.selectmode;
       this._frameset_editmode = "MAIN";
@@ -1663,6 +1682,11 @@ class SavedContext {
 
     if (scene != undefined && scene.time != this.time)
       scene.change_time(this, this.time, false);
+
+    //this._object = ctx.scene && ctx.scene.objects.active ? ctx.scene.objects.active.id : -1;
+    if (this._object >= 0 && (!scene.objects.active || this._object != scene.objects.active.id)) {
+      scene.setActiveObject(this._object);
+    }
 
     this._selectmode = state.selectmode;
 
@@ -1811,7 +1835,8 @@ export class Context {
   }
   
   get frameset() : SplineFrameSet {
-    return g_app_state.datalib.framesets.active;
+    return this.scene.objects.active.data;
+    //return g_app_state.datalib.framesets.active;
   }
   
   /*need to figure out a better way to pass active editor types
@@ -1830,15 +1855,20 @@ export class Context {
     state*/
   get view2d() {
     var ret = Editor.context_area(View2DHandler);
-    if (ret == undefined)
-      ret = g_app_state.active_view2d;
+
+    //if (ret === undefined)
+    //  ret = g_app_state.active_view2d;
       
     return ret; //g_app_state.active_view2d;
   }
   
   get scene() {
     var list = this.datalib.scenes;
+
+    //sanity check
     if (list.length == 0) {
+      console.warn("No scenes; adding empty scene");
+
       var scene = new Scene();
       scene.set_fake_user();
       
@@ -2136,12 +2166,13 @@ class ToolStack {
       var tool = this.undostack[this.undocur];
       
       var ctx = new Context();
+      var tctx = (tool.flag & ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : ctx;
 
       if (the_global_dag != undefined)
         the_global_dag.reset_cache();
       
       tool.saved_context.set_context(ctx);
-      tool.undo(ctx);
+      tool.undo(tctx);
       
       if (the_global_dag != undefined)
         the_global_dag.reset_cache();
@@ -2162,11 +2193,11 @@ class ToolStack {
       tool.is_modal = false;
       
       if (!(tool.undoflag & UndoFlags.IGNORE_UNDO)) {
-        tool.undo_pre(ctx);
+        tool.undo_pre((tool.flag & ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : ctx);
         tool.undoflag |= UndoFlags.HAS_UNDO_DATA;
       }
       
-      var tctx = new ToolContext();
+      var tctx = (tool.flag & ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : new ToolContext();
       
       if (the_global_dag != undefined)
         the_global_dag.reset_cache();
@@ -2353,6 +2384,17 @@ class ToolStack {
     return this.execTool(tool);
   }
 
+  execToolRepeat(ctx, cls, args={}) {
+    let tools = cls.getRepeat(ctx, args);
+
+    for (let tool of tools) {
+      tool.flag |= ToolFlags.USE_TOOL_CONTEXT;
+    }
+
+    let macro = new ToolMacro(cls.tooldef().apiname, cls.tooldef().uiname, tools);
+    this.execTool(macro);
+  }
+
   execTool(tool : ToolOp) {
     this.set_tool_coll_flag(tool);
     
@@ -2392,8 +2434,8 @@ class ToolStack {
       
       p.ctx = ctx;
       
-      if (p.user_set_data != undefined)
-        p.user_set_data.call(p);
+      if (p.userSetData != undefined)
+        p.userSetData.call(p, p.data);
     }
     
     if (tool.is_modal) {
@@ -2422,12 +2464,12 @@ class ToolStack {
       tool._start_modal(modal_ctx);
       tool.start_modal(modal_ctx);
     } else {
-      var tctx = new ToolContext();
+      var tctx = (tool.flag & ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : new ToolContext();
       tool.saved_context = new SavedContext(tctx);
       
       if (!(tool.undoflag & UndoFlags.IGNORE_UNDO)) {
         //undo callbacks, unlike .exec, get full context structure
-        tool.undo_pre(ctx);
+        tool.undo_pre((tool.flag & ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : ctx);
         tool.undoflag |= UndoFlags.HAS_UNDO_DATA;
       }
       

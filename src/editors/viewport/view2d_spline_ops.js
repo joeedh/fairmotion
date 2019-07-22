@@ -3,14 +3,9 @@
 import {ExtrudeVertOp} from 'spline_createops';
 //$XXX import {toolop_menu} from 'UIMenu';
 import {DeleteVertOp, DeleteSegmentOp} from 'spline_editops';
-import {CreateMResPoint} from 'multires_ops';
-import * as mr_selectops from 'multires_selectops';
 import * as spline_selectops from 'spline_selectops';
 import {WidgetResizeOp, WidgetRotateOp} from 'transform_ops';
 
-import {compose_id, decompose_id, MResFlags, MultiResLayer}
-        from 'spline_multires';
-        
 var ScreenArea, Area;
 
 //$XXX import {get_2d_canvas, get_2d_canvas_2} from 'UICanvas';
@@ -256,10 +251,12 @@ export class PlayAnimOp extends ToolOp {
   }
 }
 
+import {EditorTypes} from 'view2d_base';
+
 export class SplineEditor extends View2DEditor {
   constructor(view2d) {
     var keymap = new KeyMap();
-    super("Geometry", EditModes.GEOMETRY, DataTypes.FRAMESET, keymap);
+    super("Geometry", EditorTypes.SPLINE, EditModes.GEOMETRY, DataTypes.FRAMESET, keymap);
     
     this.mpos = new Vector3();
     this.start_mpos = new Vector3();
@@ -454,23 +451,6 @@ export class SplineEditor extends View2DEditor {
       }
     }));
     
-    var this2 = this;
-    //cycle through select modes
-    k.add(new HotKey("T", [], "Cycle Select Mode"), new FuncKeyHandler(function(ctx) {
-      var s = ctx.view2d.selectmode, s2;
-      
-      if (s == SelMask.VERTEX)
-        s2 = SelMask.SEGMENT;
-      else if (s == SelMask.SEGMENT)
-        s2 = SelMask.FACE;
-      else
-        s2 = SelMask.VERTEX;
-      
-      console.log("toggle select mode", s, s2, SelMask.SEGMENT,  SelMask.FACE);
-      console.log(s == SelMask.VERTEX, s == (SelMask.VERTEX|SelMask.HANDLE), (s == SelMask.SEGMENT));
-      ctx.view2d.set_selectmode(s2);
-    }));
-    
     k.add(new HotKey("L", ["SHIFT"], "Select Linked"), new FuncKeyHandler(function(ctx) {
       var mpos = ctx.keymap_mpos;
       var ret = ctx.spline.q.findnearest_vert(ctx.view2d, mpos, 55, undefined, ctx.view2d.edit_all_layers);
@@ -622,39 +602,19 @@ export class SplineEditor extends View2DEditor {
       
       if (can_append) {
         var co = new Vector3([event.x, event.y, 0]);
+        //co = this.view2d.getLocalMouse(co[0], co[1]);
+
         this.view2d.unproject(co);
-        
+        console.log(co);
+
         var op = new ExtrudeVertOp(co, this.ctx.view2d.extrude_mode);
+        op.inputs.location.set_data(co);
         op.inputs.linewidth.set_data(this.ctx.view2d.default_linewidth);
         op.inputs.stroke.set_data(this.ctx.view2d.default_stroke);
         
         g_app_state.toolstack.exec_tool(op);
         redraw_viewport();
-      }  else if (can_append && (this.selectmode & SelMask.MULTIRES)) {
-        var ret = this.findnearest([event.x, event.y, 0], SelMask.MULTIRES, this.ctx.view2d.edit_all_layers);
-        
-        console.log(ret);
-        
-        if (ret != undefined) {
-          var seg = decompose_id(ret[1])[0];
-          var p = decompose_id(ret[1])[1];
-          
-          var spline = ret[0];
-          seg = spline.eidmap[seg];
-          
-          var mr = seg.cdata.get_layer(MultiResLayer);
-          p = mr.get(p);
-          
-          var tool = new mr_selectops.SelectOneOp(ret[1], !event.shiftKey,
-                            !event.shiftKey || !(p.flag & MResFlags.SELECT),
-                            spline.actlevel);
-          
-          g_app_state.toolstack.exec_tool(tool);
-        } else {
-          this.mres_make_point(event, 75);
-          redraw_viewport([-1000, -1000], [1000, 1000]);
-        }
-      } else {
+      }  else {
         for (var i=0; i<spline.elists.length; i++) {
           var list = spline.elists[i];
 
@@ -757,90 +717,6 @@ export class SplineEditor extends View2DEditor {
     return closest;
   }
   
-  mres_make_point(event, limit) {
-    console.log("make point");
-    
-    var view2d = this.ctx.view2d;
-    var co = new Vector3([event.x, event.y, 0]);
-    
-    view2d.reset_drawlines("mres")
-    view2d.unproject(co);
-    
-    var ret = this.findnearest([event.x, event.y, 0], SelMask.SEGMENT, limit, this.ctx.view2d.edit_all_layers);
-    if (ret == undefined) return;
-    
-    var spline = ret[0];
-    var seg = ret[1];
-    
-    var p = seg.closest_point(co);
-    
-    if (p == undefined)
-      return;
-      
-    console.log(p);
-    
-    var tool = new CreateMResPoint(seg, co);
-    g_app_state.toolstack.exec_tool(tool);
-  }
-  
-  handle_mres_mousemove(event, limit) {
-    var view2d = this.ctx.view2d;
-    var co = new Vector3([event.x, event.y, 0]);
-    
-    view2d.reset_drawlines("mres")
-    view2d.unproject(co);
-    
-    var pid = this.findnearest([event.x, event.y, 0], SelMask.MULTIRES, limit);
-    
-    static rect = [new Vector3(), new Vector3()];
-    
-    if (pid != undefined) {
-      var spline = pid[0];
-      var seg = decompose_id(pid[1]), p;
-      p = seg[1], seg = seg[0];
-      
-      seg = spline.eidmap[seg];
-      
-      if (seg == undefined) {
-        console.log("ERROR: CORRUPTED MRES DATA!");
-      }
-      
-      var mr = seg.cdata.get_layer(MultiResLayer);
-      
-      for (var seg2 of spline.segments) {
-        var mr2 = seg2.cdata.get_layer(MultiResLayer);
-        
-        for (var p2 of mr2.points(spline.actlevel)) {
-          p2.flag &= ~MResFlags.HIGHLIGHT;
-        }
-      }
-      
-      p = mr.get(p);
-      p.flag |= MResFlags.HIGHLIGHT;
-      
-      rect[0].load(p).subScalar(10);
-      rect[1].load(p).addScalar(10);
-      rect[0][2] = rect[1][2] = 0.0;
-      
-      window.redraw_viewport(rect[0], rect[1]);
-    }
-    
-    var ret = this.findnearest([event.x, event.y, 0], SelMask.SEGMENT, limit);
-
-    if (ret != undefined) {
-      var spline = ret[0];
-      var seg = ret[1];
-      
-      var p = seg.closest_point(co);
-      if (p == undefined)
-        return;
-        
-      var dl = view2d.make_drawline(co, p[0], "mres");
-    }
-    
-   // window.redraw_viewport();
-  }
-  
   on_mousemove(event) {
     if (this.ctx == undefined) return;
 
@@ -857,12 +733,7 @@ export class SplineEditor extends View2DEditor {
     this.mpos[0] = event.x, this.mpos[1] = event.y, this.mpos[2] = 0.0;
     
     var selectmode = this.selectmode;
-    
-    //find closest
-    if (selectmode & SelMask.MULTIRES) {
-       this.handle_mres_mousemove(event, 75);
-    }
-    
+
     if (this.mdown) { // && this.mpos.vectorDistance(this.start_mpos) > 2) {
       this.mdown = false;
 

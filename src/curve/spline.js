@@ -422,6 +422,7 @@ export class Spline extends DataBlock {
   
   make_vertex(co, eid=undefined) {
     var v = new SplineVertex(co);
+
     v.flag |= SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
     
     this.verts.push(v, eid);

@@ -102,7 +102,30 @@ export class SplineLayerSet extends Array {
     
     this.flag = 0;
   }
-  
+
+  rename(id, oldname, newname, validate=false) {
+    let layer = this.idmap[id];
+
+    if (layer === undefined) {
+      console.warn("Unknown layer at id", id);
+      return;
+    }
+
+    if (layer.name != old_name) {
+      console.warn("old layer name doesn't match");
+    }
+
+    if (validate) {
+      newname = this.validate_name(newname);
+    }
+
+    delete this.namemap[layer.name];
+    layer.name = newname;
+    this.namemap[newname] = layer;
+
+    return true;
+  }
+
   get(id) {
     if (id == undefined) {
       throw new Error("id cannot be undefined");
@@ -127,11 +150,11 @@ export class SplineLayerSet extends Array {
   set active(val) {
     this._active = val;
   }
-  
+
   new_layer() {
     var ret = new SplineLayer();
+
     ret.name = this.new_name();
-    
     ret.id = this.idgen.gen_id();
     
     this.push(ret);
@@ -149,19 +172,19 @@ export class SplineLayerSet extends Array {
     return name + " " + i;
   }
   
-  validate_name(layer) {
+  validate_name(name) {
     if (!(name in this.namemap)) return;
     var i = 1;
     
     while ((name + " " + i) in this.namemap) {
       i++;
     }
-    
-    layer.name = name + " " + i;
+
+    return name + " " + i;
   }
   
   push(layer) {
-    this.validate_name(layer.name);
+    layer.name = this.validate_name(layer.name);
     
     this.namemap[layer.name] = layer;
     this.idmap[layer.id] = layer;
@@ -175,7 +198,7 @@ export class SplineLayerSet extends Array {
   }
   
   insert(i, layer) {
-    this.validate_name(layer.name);
+    layer.name = this.validate_name(layer.name);
     
     this.namemap[layer.name] = layer;
     this.idmap[layer.id] = layer;

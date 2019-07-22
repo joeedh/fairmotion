@@ -11,12 +11,6 @@ export class OpStackEditor extends Editor {
     hidden : true
   }}
 
-  static fromSTRUCT(reader) {
-    let ret = document.createElement("opstack-editor-x");
-    reader(ret);
-    return ret;
-  }
-
   copy() {
     return document.createElement("opstack-editor-x");
   }

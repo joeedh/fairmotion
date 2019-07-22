@@ -3,7 +3,7 @@
 //interface
 var _event_dag_idgen = undefined;
 
-import 'J3DIMath';
+import './vectormath.js';
 
 
 window.the_global_dag = undefined;

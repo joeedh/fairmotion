@@ -87,6 +87,12 @@ export class CanvasPath extends QuadBezPath {
       
       for (var j=0; j<arglen; j += 2) {
         tmp[0] = cs[i++], tmp[1] = cs[i++];
+
+        if (isNaN(tmp.dot(tmp))) {
+          console.warn("NaN!");
+          continue;
+        }
+
         tmp.multVecMatrix(draw.matrix);
         tmp.add(draw.pan);
         
@@ -122,6 +128,9 @@ export class CanvasPath extends QuadBezPath {
     let arglen = arguments.length;
     
     for (let i=0; i<arglen; i++) {
+      if (isNaN(arguments[i])) {
+        console.warn("NaN!");
+      }
       this.commands.push(arguments[i]);
     }
     

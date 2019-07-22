@@ -1,6 +1,6 @@
 "use strict";
 
-import 'J3DIMath';
+import 'vectormath';
 import {keymap, reverse_keymap} from "../path.ux/scripts/events";
 
 export let charmap = keymap;

@@ -9,6 +9,7 @@ import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
         charmap, TouchEventManager, EventHandler} from '../events';
 
 import {Vec2Property, Vec3Property, IntProperty, StringProperty, TPropFlags} from "../../core/toolprops";
+import {SceneObject, ObjectFlags} from 'sceneobject';
 
 class ViewRotateZoomPanOp extends ToolOp {
   constructor() {
@@ -491,7 +492,7 @@ export class BasicFileOp extends ToolOp {
     description : "Internal tool op; makes basic file"
   }}
 
-  exec(ToolContext ctx) {
+  exec(ctx : ToolContext) {
     var datalib = ctx.datalib;
     
     var splineset = new SplineFrameSet();
@@ -500,8 +501,11 @@ export class BasicFileOp extends ToolOp {
     datalib.add(splineset);
     
     var scene = new Scene();
+
     scene.set_fake_user();
-    
+    let ob = scene.addFrameset(splineset);
+    scene.setActiveObject(ob);
+
     datalib.add(scene);
   }
 }

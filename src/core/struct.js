@@ -74,7 +74,7 @@ var _tote=0, _cace=0, _compe=0;
 #define MAX_CLSNAME 24
 
 #define T_INT         0
-#define T_FLOAT       1 
+#define T_FLOAT       1
 #define T_DOUBLE      2
 #define T_VEC2        3
 #define T_VEC3        4
@@ -114,7 +114,7 @@ var SchemaTypes = Object.create({
     "arraybuffer" : T_ARRAYBUFFER
 });
 
-var SchemaTypeMap = {}
+var SchemaTypeMap = {};
 for (var k in SchemaTypes) {
   SchemaTypeMap[SchemaTypes[k]] = k;
 }
@@ -145,11 +145,11 @@ function SchemaParser() {
     "int", 
     "float", 
     "double", 
-    "vec2", 
-    "vec3", 
-    "vec4", 
-    "mat4", 
-    "string", 
+    "vec2",
+    "vec3",
+    "vec4",
+    "mat4",
+    "string",
     "static_string",
     "array",
     "iter",
@@ -234,7 +234,8 @@ function SchemaParser() {
   function p_DataRef(p) {
     p.expect("DATAREF");
     p.expect("LPARAM");
-    
+
+
     var tname = p.expect("ID");
     p.expect("RPARAM");
     
@@ -574,7 +575,7 @@ var _st_packers = [
   },
   function(data, val) { //mat4
     if (val == undefined) val = new Matrix4();
-    
+
     packer_debug("mat4")
     pack_mat4(data, val);
   },
@@ -825,7 +826,7 @@ function _st_pack_type2(data, val, obj, thestruct, field, type) {
       break;
     case 6: //mat4
       if (val == undefined) val = new Matrix4();
-      
+
       packer_debug("mat4")
       pack_mat4(data, val);
       break;
@@ -995,6 +996,27 @@ function _st_pack_type2(data, val, obj, thestruct, field, type) {
   }
 }*/
 
+function define_empty_class(name) {
+  var cls = function() {
+  };
+
+  cls.prototype = Object.create(Object.prototype);
+  cls.constructor = cls.prototype.constructor = cls;
+
+  cls.STRUCT = name+" {\n  }\n";
+  cls.structName = name;
+
+  cls.prototype.loadSTRUCT = function (reader) {
+    reader(this);
+  };
+
+  cls.newSTRUCT = function() {
+    return new this();
+  };
+
+  return cls;
+}
+
 function _st_pack_type(data, val, obj, thestruct, field, type) {
   //packer_debug("pack_type call")
   //var name = field.name;
@@ -1027,26 +1049,28 @@ export class STRUCT {
     
     var this2 = this;
     function define_null_native(name, cls) {
-      var obj = {name : name, prototype : Object.create(Object.prototype)};
-      obj.constructor = obj;
-      
-      obj.STRUCT = name + " {\n  }\n";
-      obj.fromSTRUCT = function(reader) {
-        var ob = {};
-        reader(ob);
-        
-        return ob;
+      function newcls() {
       }
-      
-      var stt = schema_parse.parse(obj.STRUCT);
+
+      newcls.prototype = Object.create(Object.prototype);
+
+      newcls.constructor = newcls;
+      newcls.STRUCT = name + " {\n  }\n";
+      newcls.structName = name;
+
+      newcls.prototype.loadSTRUCT = function(reader) {
+        reader(this);
+      }
+
+      var stt = schema_parse.parse(newcls.STRUCT);
       stt.id = this2.idgen.gen_id();
-      
+
       this2.structs[name] = stt;
       this2.struct_cls[name] = cls;
       this2.struct_ids[stt.id] = stt;
       this2.null_natives[name] = 1;
     }
-    
+
     define_null_native("Object", Object);
   }
 
@@ -1076,21 +1100,13 @@ export class STRUCT {
           console.warn("WARNING: struct " + stt.name + " no longer exists.  will try to convert.");
         }
 
-        var dummy = Object.create(Object.prototype);
-        dummy.prototype = Object.create(Object.prototype);
-        dummy.STRUCT = STRUCT.fmt_struct(stt);
-        dummy.fromSTRUCT = function(reader) {
-          var obj = {};
-          reader(obj);
-          
-          return obj;
-        }
-        dummy.name = dummy.structName = stt.name;
-        dummy.prototype.name = dummy.prototype.structName = dummy.name;
-        dummy.prototype.constructor = dummy;
+        var dummy = define_empty_class(stt.name);
 
-        this.struct_cls[dummy.name] = dummy;
-        this.structs[dummy.name] = stt;
+        dummy.STRUCT = STRUCT.fmt_struct(stt);
+        dummy.structName = stt.name;
+
+        this.struct_cls[dummy.structName] = dummy;
+        this.structs[dummy.structName] = stt;
 
         if (stt.id != -1)
           this.struct_ids[stt.id] = stt;
@@ -1565,8 +1581,12 @@ export class STRUCT {
       var fields = stt.fields;
       var flen = fields.length;
       
+      if (loader_used) {
+        return;
+      }
+
       loader_used = true;
-      
+
       if (DEBUG.Struct)
         console.log("flen", flen, fields, stt);
       for (var i=0; i<flen; i++) {
@@ -1579,23 +1599,43 @@ export class STRUCT {
         obj[f.name] = val;
       }
     }
-    
+
     profile_end(cls.structName);
-    
-    if (cls.fromSTRUCT == undefined) {
-      console.trace("-------->", data, cls.constructor, "|", cls.structName, "|", cls, "|");
-      return undefined;
+
+    let obj;
+
+    if (cls.prototype.loadSTRUCT !== undefined) {
+      if (cls.newSTRUCT !== undefined) {
+        obj = cls.newSTRUCT();
+      } else {
+        obj = new cls();
+      }
+
+      obj.loadSTRUCT(load);
+    } else if (cls.fromSTRUCT !== undefined) {
+      if (DEBUG.Struct) {
+        console.warn("Class " + cls.structName + " has deprecated fromSTRUCT interface; use loadSTRUCT instead");
+      }
+
+      obj = cls.fromSTRUCT(load);
+    } else { //default behavior
+      let obj;
+      if (cls.newSTRUCT !== undefined) {
+        obj = cls.newSTRUCT();
+      } else {
+        obj = new cls();
+      }
+
+      load(obj);
     }
-    
-    var ret = cls.fromSTRUCT(load);
-    
+
     //make sure fromSTRUCT actually read the data,
     //so client functions can read succeeding data
     if (!loader_used) {
       load({});
     }
     
-    return ret;
+    return obj;
   }
 }
 
@@ -1701,18 +1741,19 @@ window.init_struct_packer = function() {
   var errs = [];
   
   for (var cls of defined_classes) {
+    if (cls.name == "Matrix4UI" || cls.name == "Matrix4" || cls.name == "Vector3" || cls.name == "Vector4" || cls.name == "Vector2") {
+      //XXX dumb, kind of locked into the custom vector STRUCT types that's not in nstructjs
+      //since I now use the vectormath in path.ux, I have to specially make sure I don't
+      //parse the STRUCT scripts there
+      continue;
+    }
+
     try {
-      if (cls.STRUCT !== undefined && cls.fromSTRUCT != undefined) {
+      if (cls.STRUCT !== undefined) {
         istruct.add_struct(cls);
-      } else if (cls.STRUCT !== undefined) {
-        if (cls.prototype.fromSTRUCT !== undefined) {
-          console.warn("fromSTRUCT must be a static method for class", cls.structName, cls);
-        } else {
-          console.warn("STRUCT class", cls.structName, "has no fromSTRUCT method", cls);
-        }
       }
     } catch (err) {
-      if (err instanceof PUTLParseError) {
+      if (err instanceof PUTL.PUTLParseError) {
         console.log("cls.structName: ", cls.structName)
         print_stack(err);
         console.log("Error parsing struct: " + err.message);

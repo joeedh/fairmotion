@@ -3,8 +3,9 @@ export var SelMask = {
   HANDLE   : 2,
   SEGMENT  : 4,
   FACE     : 16,
-  MULTIRES : 32, //not used anymore
-  TOPOLOGY : 1|2|4|16
+  //MULTIRES : 32, //not used anymore, slot now used by sceneobject
+  TOPOLOGY : 1|2|4|16,
+  OBJECT   : 32
 };
 
 export var ToolModes = {

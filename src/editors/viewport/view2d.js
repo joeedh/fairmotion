@@ -17,6 +17,8 @@ import {ManipulatorManager, Manipulator,
 import * as view2d_editor from 'view2d_editor';
 export var EditModes = view2d_editor.EditModes;
 
+let projrets = cachering.fromConstructor(Vector3, 128);
+
 function delay_redraw(ms) {
   var start_time = time_ms();
   var timer = window.setInterval(function() {
@@ -151,10 +153,6 @@ export class View2DHandler extends Editor {
 
     //this.eventdiv = document.createElement("div");
 
-    this.on_mousedown = Editor.wrapContextEvent(this.on_mousedown.bind(this));
-    this.on_mousemove = Editor.wrapContextEvent(this.on_mousemove.bind(this));
-    this.on_mouseup = Editor.wrapContextEvent(this.on_mouseup.bind(this));
-
     this.regen_keymap();
   }
 
@@ -170,6 +168,30 @@ export class View2DHandler extends Editor {
 
   define_keymap() {
     var k = this.keymap;
+
+    var this2 = this;
+    //cycle through select modes
+    k.add(new HotKey("T", [], "Cycle Select Mode"), new FuncKeyHandler(function(ctx) {
+      var s = ctx.view2d.selectmode, s2;
+
+      let hf = s & SelMask.HANDLE;
+      s2 &= ~SelMask.HANDLE;
+
+      if (s == SelMask.VERTEX)
+        s2 = SelMask.SEGMENT;
+      else if (s == SelMask.SEGMENT)
+        s2 = SelMask.FACE;
+      else if (s == SelMask.FACE)
+        s2 = SelMask.OBJECT;
+      else
+        s2 = SelMask.VERTEX;
+
+      s2 |= hf;
+
+      console.log("toggle select mode", s, s2, SelMask.SEGMENT,  SelMask.FACE);
+      console.log(s == SelMask.VERTEX, s == (SelMask.VERTEX|SelMask.HANDLE), (s == SelMask.SEGMENT));
+      ctx.view2d.set_selectmode(s2);
+    }));
 
     k.add(new HotKey("Z", ["CTRL", "SHIFT"], "Redo"), new FuncKeyHandler(function(ctx) {
       console.log("Redo")
@@ -247,9 +269,13 @@ export class View2DHandler extends Editor {
     this.makeToolbars();
     this.setCSS();
 
-    this.addEventListener("mousedown", this.on_mousedown.bind(this), false);
-    this.addEventListener("mousemove", this.on_mousemove.bind(this), false);
-    this.addEventListener("mouseup", this.on_mouseup.bind(this), false);
+    this.on_mousedown = Editor.wrapContextEvent(this.on_mousedown.bind(this));
+    this.on_mousemove = Editor.wrapContextEvent(this.on_mousemove.bind(this));
+    this.on_mouseup = Editor.wrapContextEvent(this.on_mouseup.bind(this));
+
+    this.addEventListener("mousedown", this.on_mousedown.bind(this));
+    this.addEventListener("mousemove", this.on_mousemove.bind(this));
+    this.addEventListener("mouseup", this.on_mouseup.bind(this));
 
     this._i = 0;
 
@@ -258,7 +284,13 @@ export class View2DHandler extends Editor {
   }
 
   _mouse(e) {
-    return patchMouseEvent(e, this); //this.get_bg_canvas());
+    let e2 = patchMouseEvent(e, this); //this.get_bg_canvas());
+    let mpos = this.getLocalMouse(e.x, e.y);
+
+    e2.x = e2.clientX = mpos[0];
+    e2.y = e2.clientY = mpos[1];
+
+    return e2;
   }
 
   data_link(block : DataBlock, getblock : Function, getblock_us : Function) {
@@ -305,9 +337,9 @@ export class View2DHandler extends Editor {
     _co[2] = 0.0;
     _co.multVecMatrix(this.rendermat);
 
-    let off = this._getCanvasOff();
-    _co[0] -= off[0];
-    _co[1] -= off[1];
+    //let off = this._getCanvasOff();
+    //_co[0] -= off[0];
+    //_co[1] -= off[1];
 
     co[0] = _co[0], co[1] = _co[1];
     return co;
@@ -318,15 +350,40 @@ export class View2DHandler extends Editor {
 
     _co.load(co);
 
-    let off = this._getCanvasOff();
-    _co[0] += off[0];
-    _co[1] += off[1];
+    //let off = this._getCanvasOff();
+    //_co[0] += off[0];
+    //_co[1] += off[1];
 
     _co[2] = 0.0;
     _co.multVecMatrix(this.irendermat);
 
     co[0] = _co[0], co[1] = _co[1];
     return co;
+  }
+
+  getLocalMouse(x, y) {
+    let ret = projrets.next();
+
+    let canvas = this.get_bg_canvas();
+
+    let rect = canvas.getClientRects()[0];
+
+    let dpi = UIBase.getDPI();
+
+    if (rect === undefined) {
+      console.warn("error in getLocalMouse");
+      ret[0] = x*dpi;
+      ret[1] = y*dpi;
+      return ret;
+    }
+
+    //console.log(x, rect.left);
+
+    ret[0] = (x - rect.left) * dpi;
+    ret[1] = (rect.height - (y - rect.top)) * dpi;
+    ret[2] = 0.0;
+
+    return ret;
   }
 
   on_resize(newsize, oldsize) {
@@ -387,8 +444,8 @@ export class View2DHandler extends Editor {
     g.save();
     bg_g.save();
 
-    var p1 = new Vector2([this.pos[0], this.pos[1]]);
-    var p2 = new Vector2([this.pos[0]+this.size[0], this.pos[1]+this.size[1]])
+    var p1 = new Vector2([0, 0]); //this.pos[0], this.pos[1]]);
+    var p2 = new Vector2([this.size[0], this.size[1]]);
     this.unproject(p1), this.unproject(p2);
 
     var r = redraw_rects;
@@ -599,44 +656,46 @@ export class View2DHandler extends Editor {
     icon : Icons.VIEW2D_EDITOR
   }}
 
-  static fromSTRUCT(reader) {
-    let v3d = document.createElement("view2d-editor-x");
-    v3d._in_from_struct = true;
+  static newSTRUCT() {
+    return document.createElement("view2d-editor-x");
+  }
 
-    reader(v3d)
+  loadSTRUCT(reader) {
+    this._in_from_struct = true;
+    reader(this);
+    super.loadSTRUCT(reader);
 
-    v3d.need_data_link = true;
+    this._in_from_struct = true;
+    this.need_data_link = true;
 
-    //if (isNaN(v3d.default_linewidth)) {
-    //  v3d.default_linewidth = 2.0;
+    //if (isNaN(this.default_linewidth)) {
+    //  this.default_linewidth = 2.0;
     //}
 
-    if (v3d.pinned_paths != undefined && v3d.pinned_paths.length == 0)
-      v3d.pinned_paths = undefined;
+    if (this.pinned_paths != undefined && this.pinned_paths.length == 0)
+      this.pinned_paths = undefined;
 
-    if (v3d.editor == undefined) {
+    if (this.editor == undefined) {
       console.log("WARNING: corrupted View2DHandler sturct data");
-      v3d.editor = v3d.editors[0];
+      this.editor = this.editors[0];
     } else {
-      v3d.editor = v3d.editors[v3d.editor];
+      this.editor = this.editors[this.editor];
     }
 
-    v3d.editor.view2d = v3d;
-    v3d._in_from_struct = false;
+    this.editor.view2d = this;
+    this._in_from_struct = false;
 
     /*
     let f = () => {
       if (this.size !== undefined) {
-        v3d.set_cameramat(v3d.cameramat)
+        this.set_cameramat(this.cameramat)
       } else {
         console.log("eek!");
-        v3d.doOnce(f);
+        this.doOnce(f);
       }
     };
-    v3d.doOnce(f);
+    this.doOnce(f);
     //*/
-
-    return v3d;
   }
 
   get selectmode() {
@@ -897,13 +956,15 @@ export class View2DHandler extends Editor {
     if (this.editor.on_mouseup(event)) return;
   }
 
-  on_mousemove(event : MyMouseEvent) {
+  on_mousemove(event) {
     //are we over a ui panel?
     if (this.ctx.screen.pickElement(event.pageX, event.pageY) !== this) {
       return;
     }
 
     event = this._mouse(event);
+
+    //console.log(event.x, event.y);
 
     var mpos = new Vector3([event.x, event.y, 0])
     this.mpos = mpos;

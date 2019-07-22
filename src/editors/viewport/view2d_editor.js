@@ -1,24 +1,26 @@
 "use strict";
 
 import {STRUCT} from 'struct';
+import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
+  charmap, TouchEventManager, EventHandler} from '../events';
+//import {WidgetResizeOp, WidgetRotateOp} from "./transform_ops";
+import {ToolModes} from "./selectmode";
 
 //bitmask
 //VERT/EDGE/FACE is compatible with MeshTypes, thus why we skip 4
-export var EditModes = {VERT : 1, EDGE : 2, FACE : 8, OBJECT : 16, GEOMETRY : 1|2|8};
+export {EditModes, EditorTypes, SessionFlags} from 'view2d_base.js';
 
-export var SessionFlags = {
-  PROP_TRANSFORM : 1
-}
+let v3d_idgen = 0;
 
 export class View2DEditor {
-  constructor(String name, int type, int lib_type, KeyMap keymap) {
-    static v3d_idgen = 1;
-    
+  constructor(name : String, editor_type : int, type : int, lib_type : int) {
     this.name = name;
     this._id = v3d_idgen++;
     this.type = type;
+    this.editor_type = editor_type;
     this.lib_type = lib_type;
-    this.keymap = keymap;
+    this.keymap = new KeyMap();
+    this.selectmode = 0;
   }
 
   /*
@@ -27,8 +29,9 @@ export class View2DEditor {
     presence of fromSTRUCT.  Need to review 
     that.
    */
-  static fromSTRUCT(Function reader) {
+  static fromSTRUCT(reader : Function) {
     var obj = {};
+
     reader(obj);
     
     return obj;
@@ -37,42 +40,85 @@ export class View2DEditor {
   get_keymaps() : Array<KeyMap> {
     return [this.keymap];
   }
-  
-  on_area_inactive(View2DHandler view2d) {}
-  
-  on_inactive(View2DHandler view2d) {}
-  on_active(View2DHandler view2d) {}
-  
-  data_link(DataBlock block, Function getblock, Function getblock_us) {}
-  
-  //returns new copy
-  editor_duplicate(View2DHandler view2d) {}
-  render_selbuf(WebGLRenderingContext gl, View2DHandler view2d, int typemask) {}
 
-  selbuf_changed(typemask : int) {}
-  reset_selbuf_changed(typemask : int) {}
-  add_menu(view2d : View2DHandler, mpos : Array<float>) {}
-  draw_object(gl : WebGLRenderingContext, view2d : View2DHandler, object : ASObject, is_active : Boolean) {}
-  
-  build_sidebar1(view2d : View2DHandler, panel : RowFrame) {}
-  build_bottombar(view2d : View2DHandler, col : ColumnFrame) {}
-  build_topbar(view2d : View2DHandler, col : ColumnFrame) {}
-  
-  set_selectmode(int mode) {}
+  on_area_inactive(view2d : View2DHandler) {
+  }
+
+  editor_duplicate(view2d : View2DHandler) {
+    throw new Error("implement me!");
+  }
+
+  data_link(block, getblock, getblock_us) {
+  }
+
+  add_menu(view2d : View2DHandler, mpos, add_title = true) {
+  }
+
+  on_tick(ctx) {
+    let widgets = [WidgetResizeOp, WidgetRotateOp];
+
+    if (ctx.view2d.toolmode == ToolModes.RESIZE) {
+      ctx.view2d.widgets.ensure_toolop(ctx, WidgetResizeOp);
+    } else if (ctx.view2d.toolmode == ToolModes.ROTATE) {
+      ctx.view2d.widgets.ensure_toolop(ctx, WidgetRotateOp);
+    } else {
+      for (let cls of widgets) {
+        ctx.view2d.widgets.ensure_not_toolop(ctx, cls);
+      }
+    }
+  }
+
+  define_keymap() {
+    var k = this.keymap;
+  }
+
+  set_selectmode(mode: int) {
+    this.selectmode = mode;
+  }
 
   //returns number of selected items
-  do_select(MouseEvent event, Array<float> mpos, View2DHandler view2d) {}
-  
-  tools_menu(Context ctx, Array<float> mpos, View2DHandler view2d) {}
-  rightclick_menu(MouseEvent event, View2DHandler view2d) {}
-  
-  on_mousedown(MouseEvent event) {}
-  on_mousemove(MouseEvent event) {}
-  on_mouseup(MouseEvent event) {}
-  
-  do_alt_select(MouseEvent event, Array<float> mpos, View2DHandler view2d) {}
-  delete_menu(MouseEvent event) {}
-  gen_edit_menu() : UIMenu {}
+  do_select(event, mpos, view2d : View2DHandler, do_multiple) {
+    //console.log("XXX do_select!", mpos);
+    return false;
+  }
+
+  tools_menu(ctx, mpos, view2d : View2DHandler) {
+    //let ops = [];
+    //var menu = view2d.toolop_menu(ctx, "Tools", ops);
+    //view2d.call_menu(menu, view2d, mpos);
+  }
+
+  on_inactive(view2d : View2DHandler) {
+  }
+
+  on_active(view2d : View2DHandler) {
+  }
+
+  rightclick_menu(event, view2d : View2DHandler) {
+  }
+
+  on_mousedown(event) {
+  }
+  //returns [spline, element, mindis]
+  findnearest(mpos, selectmask, limit, ignore_layers) {
+  }
+
+  on_mousemove(event) {
+    this.mdown = true;
+  }
+
+  on_mouseup(event) {
+    this.mdown = false;
+  }
+
+  do_alt_select(event, mpos, view2d : View2DHandler) {
+  }
+
+  gen_edit_menu(add_title = false) {
+  }
+
+  delete_menu(event) {
+  }
 }
 
 View2DEditor.STRUCT = """

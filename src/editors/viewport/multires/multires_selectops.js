@@ -1,6 +1,6 @@
 "use strict";
 
-import 'J3DIMath';
+import 'vectormath';
 
 import {IntProperty, FloatProperty, CollectionProperty,
         BoolProperty, TPropFlags, Vec3Property} from 'toolprops';

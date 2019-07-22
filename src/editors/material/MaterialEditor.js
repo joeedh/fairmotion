@@ -397,12 +397,6 @@ export class MaterialEditor extends Editor {
     uiname : "Properties",
     icon : Icons.MATERIAL_EDITOR
   }}
-
-  static fromSTRUCT(reader) {
-    let ret = document.createElement("material-editor-x");
-    reader(ret);
-    return ret;
-  }
 }
 MaterialEditor.STRUCT = STRUCT.inherit(MaterialEditor, Area) + `
 }

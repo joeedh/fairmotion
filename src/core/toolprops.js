@@ -36,7 +36,8 @@ export var TPropFlags = {
   USE_UNDO        : 16, //use toolstack.exec_datapath instead of api.set_prop
   UNDO_SIMPLE     : 32, //use simple undo implementation
   USE_ICONS       : 64,
-  USE_CUSTOM_GETSET : 128
+  USE_CUSTOM_GETSET : 128,
+  NEEDS_OWNING_OBJECT : 256 //used by user_get_data, property needs 'this'
 };
 
 export const PropSubTypes = {
@@ -84,14 +85,21 @@ export class ToolProperty {
     this.set_data(value);
   }
 
-  copyTo(dst, copy_data=false) {
+  copyTo(dst, copy_data=false, copy_listeners=true) {
     dst.flag = this.flag;
     dst.icon = this.icon;
     dst.unit = this.unit;
     dst.hotkey_ref = this.hotkey_ref;
     dst.uiname = this.uiname;
     dst.apiname = this.apiname;
-    
+
+    dst.userSetData = this.userSetData;
+    dst.userGetData = this.userGetData;
+
+    if (copy_listeners) {
+      dst.listeners = this.listeners;
+    }
+
     if (copy_data)
       dst.data = this.data;
     
@@ -146,8 +154,35 @@ export class ToolProperty {
     this.unit = prop.unit;
     this.hotkey_ref = prop.hotkey_ref;
   }
-  
-  user_set_data(this_input) { }
+
+  /**
+     custom data api getter.  set .flag to TPRopFlags.USE_CUSTOM_GETSET
+     to enable.
+
+     this will be assigned to
+     owning object by data api if prop.flag has TPropFlags.NEEDS_OWNING_OBJECT.
+
+     prop is property definition.  val is current value fetched by the data api.
+   */
+  userGetData(prop, val) {
+    return val;
+  }
+
+/**
+ custom data api setter.  set .flag to TPRopFlags.USE_CUSTOM_GETSET
+ to enable.
+
+ this will be assigned to
+ owning object by data api if prop.flag has TPropFlags.NEEDS_OWNING_OBJECT.
+
+ prop is property definition.  val is value to set.
+
+ returns final value that was set.
+ */
+  userSetData(prop, val) {
+    return val;
+  }
+
   update(owner_obj, old_value, has_changed) { }
   api_update(ctx, path) { }
 
@@ -167,9 +202,13 @@ export class ToolProperty {
   //owner is used by data_api, is passed to .update
   //and listener functions
   set_data(data, owner, changed=true, set_data=true) {
-    if (set_data)
-      this.data = data;
-    
+    if (this.flag & TPropFlags.USE_CUSTOM_GETSET) {
+      this.userSetData.call(owner, this, data);
+    } else {
+      if (set_data)
+        this.data = data;
+    }
+
     this.api_update(this.ctx, this.path, owner);
     this.update.call(this, owner, undefined, changed);
     
@@ -846,32 +885,36 @@ export class EnumProperty extends ToolProperty {
     }
   }
 
-  copyTo(dst : EnumProperty) : EnumProperty {
-    ToolProperty.prototype.copyTo.call(this, dst, true);
-    
-    p.keys = Object.create(this.keys);
-    p.values = Object.create(this.values);
-    p.data = this.data;
-    p.ui_value_names = this.ui_value_names;
-    p.update = this.update;
-    p.api_update = this.api_update;
-    
+  copyTo(dst : EnumProperty, copy_listeners=true) : EnumProperty {
+    super.copyTo(dst, true, copy_listeners);
+
+    dst.keys = Object.create(this.keys);
+    dst.values = Object.create(this.values);
+    dst.data = this.data;
+    dst.ui_value_names = this.ui_value_names;
+
+    if (copy_listeners) {
+      dst.update = this.update;
+      dst.api_update = this.api_update;
+    }
+
     for (var k in this.iconmap) {
-      p.iconmap[k] = this.iconmap[k];
+      dst.iconmap[k] = this.iconmap[k];
     }
     
-    return p;
+    return dst;
   }
   
-  copy() {
+  copy() : EnumProperty {
     var p = new EnumProperty("dummy", {"dummy" : 0}, this.apiname, this.uiname, this.description, this.flag)
+
+    this.copyTo(p);
+
     p.keys = Object.create(this.keys);
     p.values = Object.create(this.values);
     p.data = this.data;
     p.ui_value_names = this.ui_value_names;
-    p.update = this.update;
-    p.api_update = this.api_update;
-    
+
     for (var k in this.iconmap) {
       p.iconmap[k] = this.iconmap[k];
     }
@@ -891,12 +934,12 @@ export class EnumProperty extends ToolProperty {
   }
 
   get_value() {
-    console.warn("Call to EnumProperty.prototype.get_value");
+    //console.warn("Call to EnumProperty.prototype.get_value");
     return this.get_data();
   }
 
   set_value(val) {
-    console.warn("Call to EnumProperty.prototype.set_value");
+    //console.warn("Call to EnumProperty.prototype.set_value");
     this.set_data(val);
   }
 

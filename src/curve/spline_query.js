@@ -29,16 +29,7 @@ export class SplineQuery {
         dis = ret[1];
       }
     }
-    
-    //[data, distance, type]
-    if (selectmask & SelMask.MULTIRES) {
-      var ret = this.findnearest_mres(editor, mpos, limit, ignore_layers);
-      if (ret != undefined && ret[1] < dis) {
-        data = ret;
-        dis = ret[1];
-      }
-    }
-    
+
     if (selectmask & SelMask.HANDLE) {
       var ret = this.findnearest_vert(editor, mpos, limit, true, ignore_layers);
       if (ret != undefined && ret[1] < dis) {
@@ -125,48 +116,7 @@ export class SplineQuery {
     if (closest != undefined)
       return [closest, dis, SelMask.FACE];
   }
-  
-  findnearest_mres(editor, mpos, limit, do_handles, ignore_layers) {
-    var spline = this.spline;
-    var actlayer = spline.layerset.active;
-    
-    static _mpos = new Vector3();
-    static _v = new Vector3();
-    mpos = _mpos.load(mpos), mpos[2] = 0.0;
-    
-    if (!has_multires(spline))
-      return undefined;
-      
-    if (limit == undefined) limit = 15;
-    var min = 1e17, ret = undefined;
-    
-    for (var seg of spline.segments) {
-      if (seg.hidden || seg.v1.hidden || seg.v2.hidden) continue;
-      if (!ignore_layers && !seg.in_layer(actlayer)) continue;
-      
-      var mr = seg.cdata.get_layer(MultiResLayer);
-      for (var p of mr.points(spline.actlevel)) {
-        if (p.flag & MResFlags.HIDE)
-          continue;
-        
-        var seg = spline.eidmap[p.seg];
-        var mapco = seg.evaluate(p.s);
-  
-        _v.load(mapco); _v[2] = 0.0;
-        editor.project(_v);
-        
-        var dis = _v.vectorDistance(mpos);
-        if (dis < limit && dis < min) {
-          min = dis;
-          ret = compose_id(p.seg, p.id);
-        }
-      }
-    }
-    
-    if (ret != undefined)
-      return [ret, min, SelMask.MULTIRES];
-  }
-  
+
   findnearest_vert(editor, mpos, limit, do_handles, ignore_layers) {
     var spline = this.spline;
     var actlayer = spline.layerset.active;
@@ -178,22 +128,20 @@ export class SplineQuery {
     
     static _mpos = new Vector3();
     static _v = new Vector3();
-    mpos = _mpos.load(mpos), mpos[2] = 0.0;
-    
-    var hasmres = has_multires(spline);
+
+    mpos = _mpos.load(mpos);
+    mpos[2] = 0.0;
+
     var list = do_handles ? spline.handles : spline.verts;
     for (var v of list) {
         if (v.hidden) continue;
         if (!ignore_layers && !v.in_layer(actlayer)) continue;
         
         var co = v;
-        if (hasmres && v.segments.length > 0) {
-          co = v.segments[0].evaluate(v.segments[0].ends(v));
-        }
-        
+
         _v.load(co); _v[2] = 0.0;
         editor.project(_v);
-        
+
         var dis = _v.vectorDistance(mpos);
         if (dis < limit && dis < min) {
           min = dis;
@@ -201,7 +149,8 @@ export class SplineQuery {
         }
     }
     
-    if (ret != undefined)
+    if (ret != undefined) {
       return [ret, min, do_handles ? SelMask.HANDLE : SelMask.VERTEX];
+    }
   }
 }

@@ -14,12 +14,6 @@ export class CurveEditor extends Editor {
   copy() {
     return document.createElement("curve-editor-x");
   }
-
-  static fromSTRUCT(reader) {
-    let ret = document.createElement("curve-editor-x");
-    reader(ret);
-    return ret;
-  }
 }
 
 CurveEditor.STRUCT = STRUCT.inherit(CurveEditor, Area) + `

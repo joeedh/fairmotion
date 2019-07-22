@@ -113,10 +113,10 @@ CustomDataLayer.layerinfo = {
   shared_class : empty_class
 };
 
-CustomDataLayer.STRUCT = """
+CustomDataLayer.STRUCT = `
   CustomDataLayer {
   }
-"""
+`;
 
 export class CustomData {
   constructor(owner, layer_add_callback, layer_del_callback) {
@@ -142,7 +142,7 @@ export class CustomData {
     }
   }
   
-  add_layer(LayerTypeClass cls, String name) {
+  add_layer(cls : LayerTypeClass, name : String) {
     var templ = cls
     
     var i = this.get_layer(templ.layerinfo.type_name);
@@ -185,18 +185,18 @@ export class CustomData {
     return ret;
   }
   
-  get_shared(String type) {
+  get_shared(type : String) {
     return this.shared_data[this.get_layer_i(type, 0)];
   }
   
-  get_layer_i(String type, i=0) {
+  get_layer_i(type : String, i=0) {
     if (!(type in this.startmap))
       return -1;
     
     return this.startmap[type]+i;
   }
   
-  get_layer(String type, i) {
+  get_layer(type : String, i) {
     if (i == undefined) i = 0;
     
     return this.layers[this.startmap[type]+i];
@@ -211,38 +211,34 @@ export class CustomData {
     return i;
   }
   
-  static fromSTRUCT(reader) {
-    var ret = new CustomData();
-    
-    reader(ret);
+  loadSTRUCT(reader) {
+    reader(this);
     
     //we saved instances; turn back to class constructors
-    for (var i=0; i<ret.layers.length; i++) {
-      ret.layers[i] = ret.layers[i].constructor;
-      var l = ret.layers[i];
+    for (var i=0; i<this.layers.length; i++) {
+      this.layers[i] = this.layers[i].constructor;
+      var l = this.layers[i];
       
       var typename = l.layerinfo.type_name;
-      if (!(typename in ret.startmap)) {
-        ret.startmap[typename] = i;
+      if (!(typename in this.startmap)) {
+        this.startmap[typename] = i;
       }
     }
     
-    if (ret.shared_data.length != ret.layers.length) {
-      for (var i=0; i<ret.layers.length; i++) {
-        var layer = ret.layers[i];
+    if (this.shared_data.length != this.layers.length) {
+      for (var i=0; i<this.layers.length; i++) {
+        var layer = this.layers[i];
         
         var scls = layer.layerinfo.shared_class;
         scls = scls == undefined ? empty_class : scls;
         var shared = new scls;
         
-        if (ret.shared_data.length > i)
-          ret.shared_data[i] = shared;
+        if (this.shared_data.length > i)
+          this.shared_data[i] = shared;
         else
-          ret.shared_data.push(shared);
+          this.shared_data.push(shared);
       }
     }
-    
-    return ret;
   }
    
   afterSTRUCT(element_array, cdata) {
@@ -317,26 +313,22 @@ export class CustomDataSet extends Array {
       this[i].copy(src[i]);
     }
   }
-  
-  static fromSTRUCT(reader) {
-    var ret = new CustomDataSet();
+
+  loadSTRUCT(reader) {
+    reader(this);
     
-    reader(ret);
-    
-    for (var i=0; i<ret.arr.length; i++) {
-      ret.push(ret.arr[i]);
+    for (var i=0; i<this.arr.length; i++) {
+      this.push(this.arr[i]);
     }
-    delete ret.arr;
-    
-    return ret;
+    delete this.arr;
   }
 }
 
-CustomDataSet.STRUCT = """
+CustomDataSet.STRUCT = `
   CustomDataSet {
     arr : iter(abstract(CustomDataLayer)) | obj;
   }
-"""
+`;
 
 export class SplineElement extends DataPathNode {
   constructor(type) {
@@ -417,14 +409,25 @@ export class SplineElement extends DataPathNode {
     }
   }
   
-  static fromSTRUCT(reader) {
-    var ret = new SplineElement();
-    
-    reader(ret);
-    
-    return ret;
+  loadSTRUCT(reader) {
+    reader(this);
   }
 }
+
+define_static(SplineElement, "dag_outputs", {
+  depend    : undefined,
+  on_select : 0.0,
+  eid       : 0.0
+});
+
+SplineElement.STRUCT = `
+SplineElement {
+  eid        : int;
+  flag       : int;
+  type       : int;
+  cdata      : CustomDataSet;
+}
+`;
 
 var derivative_cache_vs = cachering.fromConstructor(Vector3, 64);
 var closest_point_ret_cache_vs = cachering.fromConstructor(Vector3, 256);
@@ -887,18 +890,3 @@ export class FlipWrapper extends CurveEffect {
 }
 
 flip_wrapper_cache = cachering.fromConstructor(FlipWrapper, 32);
-
-define_static(SplineElement, "dag_outputs", {
-  depend    : undefined,
-  on_select : 0.0,
-  eid       : 0.0
-});
-
-SplineElement.STRUCT = """
-  SplineElement {
-    eid        : int;
-    flag       : int;
-    type       : int;
-    cdata      : CustomDataSet;
-  }
-""";

@@ -20,7 +20,7 @@ export var FLOAT_MAX = 1e22
   of [location, rotation-euler, size] 
   parameters*/
 
-import 'J3DIMath';
+import 'vectormath';
 
 export class Matrix4UI extends Matrix4 {
   constructor(loc, rot=undefined, size=undefined) {
@@ -1355,7 +1355,19 @@ class WVector3 extends Vector3 {
   set 2(n) {
     this.view[2] = n;
   }
+
+  loadSTRUCT(reader) {
+    reader(this);
+
+    this.load(this._vec);
+    delete this._vec;
+  }
 }
+WVector3.STRUCT = `
+WVector3 {
+  _vec : vec3;
+}
+`;
 
 var cos = Math.cos;
 var sin = Math.sin;

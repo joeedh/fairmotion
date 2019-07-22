@@ -1,6 +1,7 @@
 "use strict";
 
 //wow this file still exists
+//it dates from the original Apple webgl example I turned into AllShape.
 
 var PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,
     ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos,

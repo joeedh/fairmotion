@@ -10,7 +10,19 @@ export class VectorVertex extends Vector2 {
   constructor(co) {
     super(co);
   }
+
+  loadSTRUCT(reader) {
+    reader(this);
+
+    this.load(this._vec);
+    delete this._vec;
+  }
 }
+VectorVertex.STRUCT = `
+VectorVertex {
+  _vec : vec2;
+}
+`;
 
 /*
 on factor;

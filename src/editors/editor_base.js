@@ -6,9 +6,10 @@ import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
   charmap, TouchEventManager, EventHandler} from "./events";
 import {patch_canvas2d, set_rendermat} from 'spline_draw';
 
-var _area_active_stacks = {}; //last active stacks for each area type
-var _area_active_lasts = {};
-var _area_main_stack = []; //combined stack of all area types
+export var _area_active_stacks = {}; //last active stacks for each area type
+export var _area_active_lasts = {};
+export var _area_main_stack = []; //combined stack of all area types
+
 var _last_area = undefined;
 
 function _get_area_stack(cls) {
@@ -21,6 +22,19 @@ function _get_area_stack(cls) {
   return _area_active_stacks[h];
 };
 
+export function resetAreaStacks() {
+  _area_main_stack.length = 0;
+
+  for (let k in _area_active_lasts) {
+    _area_active_lasts[k].length = 0;
+  }
+
+  for (let k in _area_active_stacks) {
+    _area_active_stacks[k].length = 0;
+  }
+
+  _last_area = undefined;
+}
 
 /*
 primary app screen subclass
@@ -73,30 +87,22 @@ export class FairmotionScreen extends Screen {
     }
 
     area.push_ctx_active();
+    var ret = false;
 
     try {
-      if (area.keymap.process_event(this.ctx, e)) {
-        return;
-      }
+      ret = area.keymap.process_event(this.ctx, e);
     } catch (error) {
       print_stack(error);
       console.log("Error executing hotkey");
     }
 
     area.pop_ctx_active();
+    return ret;
   }
 
   static define() {return {
     tagname : "fairmotion-screen-x"
   };}
-
-  static fromSTRUCT(reader) {
-    /*Parent class's fromSTRUCT pulls tagname from define(), so no need to
-      do weirdness with STRUCT.chain_fromSTRUCT
-     */
-
-    return super.fromSTRUCT(reader);
-  }
 }
 
 FairmotionScreen.STRUCT = STRUCT.inherit(FairmotionScreen, Screen) + `
@@ -212,27 +218,30 @@ export class Editor extends Area {
     }
   }
 
-  push_ctx_active() {
+  push_ctx_active(ctx) {
     var stack = _get_area_stack(this.constructor);
     stack.push(this);
     _area_active_lasts[this.constructor.name] = this;
 
-    _area_main_stack.push(this);
+    _area_main_stack.push(_last_area);
     _last_area = this;
   }
 
-  pop_ctx_active() {
-    var stack = _get_area_stack(this.constructor);
-    if (stack.length == 0 || stack[stack.length - 1] != this) {
+  pop_ctx_active(ctx) {
+    let cls = this.constructor;
+
+    var stack = _get_area_stack(cls);
+
+    if (stack.length == 0 || stack[stack.length - 1] !== this) {
       console.trace();
       console.log("Warning: invalid Area.pop_active() call");
       return;
     }
 
-    stack.pop(stack.length - 1);
+    stack.pop();
 
     if (stack.length > 0) {
-      _area_active_lasts[this.constructor.name] = stack[stack.length-1];
+      _area_active_lasts[cls.name] = stack[stack.length - 1];
     }
 
     let area = _area_main_stack.pop();

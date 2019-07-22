@@ -33,7 +33,8 @@ import {VDAnimFlags} from 'frameset';
 var SelModes = {
   VERTEX: SelMask.VERTEX,
   SEGMENT: SelMask.SEGMENT,
-  FACE: SelMask.FACE
+  FACE: SelMask.FACE,
+  OBJECT: SelMask.OBJECT
 };
 
 export var selmask_enum = new EnumProperty(undefined, SelModes, "selmask_enum", "Selection Mode");
@@ -51,12 +52,27 @@ for (var k in SelModes) {
   
   selmask_ui_vals[k] = s;
 }
+
+//selmask_enum.
+selmask_enum.flag |= TPropFlags.USE_CUSTOM_GETSET | TPropFlags.NEEDS_OWNING_OBJECT;
 selmask_enum.ui_value_names = selmask_ui_vals;
 selmask_enum.add_icons({
   VERTEX: Icons.VERT_MODE,
   SEGMENT: Icons.EDGE_MODE,
-  FACE: Icons.FACE_MODE
+  FACE: Icons.FACE_MODE,
+  OBJECT: Icons.OBJECT_MODE
 });
+selmask_enum.userGetData = function(prop, val, val2) {
+  //console.log("selmask_enum.userGetData", this, val);
+  //console.log(this.constructor.name, this.selectmode & (~SelMask.HANDLE), val, val2, "||");
+  return this.selectmode & (~SelMask.HANDLE);
+};
+selmask_enum.userSetData = function(prop, val) {
+  console.log("selmask_enum.userSetData", this, prop, val);
+  this.selectmode = val | (this.selectmode & SelMask.HANDLE);
+
+  return this.selectmode;
+};
 
 import * as data_api from 'data_api';
 
@@ -321,7 +337,8 @@ function api_define_view2d() {
     VERTEX: Icons.VERT_MODE,
     HANDLE : Icons.SHOW_HANDLES,
     SEGMENT: Icons.EDGE_MODE,
-    FACE: Icons.FACE_MODE
+    FACE: Icons.FACE_MODE,
+    OBJECT: Icons.OBJECT_MODE
   });
 
   selmask_mask.ui_key_names = uinames;
@@ -750,6 +767,44 @@ function api_define_frameset() {
 
 var SceneStruct = undefined;
 
+function api_define_sceneobject() {
+  var SceneObjectStruct = new DataStruct();
+
+  SceneObjectStruct.Vector2("loc", "loc", "Position", "Position");
+  SceneObjectStruct.Vector2("scale", "scale", "Scale", "Scale");
+  SceneObjectStruct.Float("rot", "rot", "Rotation", "Rotation");
+  SceneObjectStruct.add(new DataPath(api_define_frameset(), "frameset", "data", true));
+
+  return SceneObjectStruct;
+}
+
+function api_define_sceneobjects() {
+  let SceneObjectStruct = api_define_sceneobject();
+
+  let objectarray = new DataStructArray(
+    function getstruct(item) {
+      return SceneObjectStruct;
+    },
+    function itempath(key) {
+      return ".object_idmap[" + key + "]";
+    },
+    function getitem(key) {
+      console.log("get key", key, this);
+      return this.object_idmap[key];
+    },
+    function getiter() {
+      return new obj_value_iter(this.object_idmap);
+    },
+    function getkeyiter() {
+      return new obj_key_iter(this.object_idmap);
+    },
+    function getlength() {
+      return this.objects.length;
+    });
+
+  return objectarray;
+}
+
 function api_define_scene() {
   var name = new StringProperty("", "name", "name", "Name", TPropFlags.LABEL);
   var frame = new IntProperty(0, "frame", "Frame", "Frame", TPropFlags.LABEL);
@@ -758,7 +813,9 @@ function api_define_scene() {
   
   var SceneStruct = new DataStruct(api_define_DataBlock().concat([
     new DataPath(name, "name", "name", true),
-    new DataPath(frame, "frame", "time", true)
+    new DataPath(frame, "frame", "time", true),
+    new DataPath(api_define_sceneobjects(), "objects", "objects", true),
+    new DataPath(api_define_sceneobject(), "active_object", "objects.active", true)
   ]));
   
   datablock_structs[DataTypes.SCENE] = SceneStruct;

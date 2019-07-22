@@ -15,7 +15,7 @@ var _cross_vec1=new Vector3();
 var _cross_vec2=new Vector3();
 var FLOAT_MIN=-1e+21;
 var FLOAT_MAX=1e+22;
-import J3DIMath;
+import 'vectormath';
 
 class Matrix4UI extends Matrix4 {
   constructor(loc, rot=undefined, size=undefined) {

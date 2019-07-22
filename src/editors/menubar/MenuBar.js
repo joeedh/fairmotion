@@ -73,7 +73,13 @@ export class MenuBar extends Editor {
       "appstate.open_recent()",
       "appstate.open()",
       SEP,
-      "appstate.new()"
+      ["New File", function () {
+        platform.app.questionDialog("Create blank scene?\nAny unsaved changes\nwill be lost").then((val) => {
+           if (val) {
+             gen_default_file(g_app_state.screen.size);
+           }
+         });
+      }]
     ];
 
     menudef.reverse();
@@ -154,12 +160,6 @@ export class MenuBar extends Editor {
 
   copy() {
     return document.createElement("menubar-editor-x");
-  }
-
-  static fromSTRUCT(reader) {
-    let ret = document.createElement("menubar-editor-x");
-    reader(ret);
-    return ret;
   }
 }
 MenuBar.STRUCT = STRUCT.inherit(MenuBar, Editor) + `

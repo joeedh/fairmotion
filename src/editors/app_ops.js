@@ -9,6 +9,7 @@ import {export_svg} from 'svg_export';
 
 import {ToolOp, UndoFlags, ToolFlags} from 'toolops_api';
 import {get_root_folderid, get_current_dir, path_to_id} from 'fileapi';
+import * as platform from 'platform';
 
 export var FileDialogModes = {OPEN: "Open", SAVE: "Save"}
 var fdialog_exclude_chars = new set([
@@ -192,36 +193,6 @@ export class FileSaveAsOp extends ToolOp {
     }
 
     file_dialog("SAVE", new Context(), save_callback, true);
-  }
-}
-
-export class FileNewOp extends ToolOp {
-  constructor() {
-    super();
-  }
-
-  static tooldef() { return {
-    apiname  : "appstate.new",
-    uiname   : "New",
-    inputs   : {},
-    outputs  : {},
-    icon     : -1,
-    is_modal : false,
-    undoflag : UndoFlags.IGNORE_UNDO,
-    flag : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS
-  }}
-
-  exec(ctx) {
-    function new_callback(dialog, do_cancel) {
-      if (!do_cancel) {
-        gen_default_file(g_app_state.screen.size);
-      }
-    }
-
-    var okay = new OkayDialog("Create blank scene?\nAny unsaved changes\nwill be lost", new_callback)
-    okay.call();
-
-    console.log("File new");
   }
 }
 

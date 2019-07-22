@@ -1664,30 +1664,29 @@ export class DopeSheetEditor extends Editor {
     }));
   }
 
-  data_link(DataBlock block, Function getblock, Function getblock_us) {
+  data_link(block : DataBlock, getblock : Function, getblock_us : Function) {
   }
 
-  static fromSTRUCT(reader) {
-    let ret = document.createElement("dopesheet-editor-x");
+  loadSTRUCT(reader) {
+    reader(this);
+    super.loadSTRUCT(reader);
 
-    reader(ret);
+    if ('collapsed_map' in this) {
+      var cache = this.collapsed_cache;
 
-    if ('collapsed_map' in ret) {
-      var cache = ret.collapsed_cache;
-
-      ret.collapsed_cache = {};
-      for (var path of ret.collapsed_map) {
-        ret.collapsed_cache[path] = true;
+      this.collapsed_cache = {};
+      for (var path of this.collapsed_map) {
+        this.collapsed_cache[path] = true;
       }
 
-      //delete ret.collapsed_map;
+      //delete this.collapsed_map;
     }
 
-    if (ret.pinned_ids != undefined && ret.pinned_ids.length == 0) {
-      delete ret.pinned_ids;
+    if (this.pinned_ids != undefined && this.pinned_ids.length == 0) {
+      delete this.pinned_ids;
     }
 
-    return ret;
+    return this;
   }
 
   static define() { return {

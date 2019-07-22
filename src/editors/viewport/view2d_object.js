@@ -1,5 +1,9 @@
 "use strict";
 
+/*
+SCRAPPED
+*/
+
 import {STRUCT} from 'struct';
 import {SelMask} from 'selectmode';
 import {SplineTypes} from 'spline_base';

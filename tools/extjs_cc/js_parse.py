@@ -1215,22 +1215,19 @@ def p_class(p):
     p[0].template = p[3];
   
 def p_exprclass(p):
-  '''exprclass : CLASS id_opt class_tail'''
+  '''exprclass : CLASS id template_opt class_tail'''
   set_parse_globals(p)
-  
-  tail = p[3]
+
+  tail = p[4]
   heritage = tail[0]
-  
-  if p[2] == None:
-    p[2] = "(anonymous)"
-    p[2].is_anonymous = True
-    
   cls = ClassNode(p[2], heritage)
-  
+
   for n in tail[1]:
     cls.add(n)
-  
-  p[0] = expand_harmony_class(cls)
+
+  p[0] = cls;
+  if p[3] != None:
+    p[0].template = p[3];
 
 def p_class_tail(p):
   '''class_tail : class_heritage_opt LBRACKET class_body_opt RBRACKET'''
@@ -2083,6 +2080,7 @@ def p_expr(p):
             | array_literal
             | arrow_function
             | exprfunction
+            | exprclass
             | obj_literal
             | expr cmplx_assign expr
             | expr cmplx_assign expr COLON var_type SEMI
@@ -2172,7 +2170,7 @@ def p_expr(p):
                         BitInvNode, LogicalNotNode, NegateNode, PositiveNode,
                         ArrayLitNode, ObjLitNode, FunctionNode, 
                         KeywordNew, PreInc, PostInc, PreDec, PostDec,
-                        TemplateNode, ExprListNode]:
+                        TemplateNode, ExprListNode, ClassNode, TypedClassNode]:
         p[0] = p[1]
       elif type(p[1]) in [float, int, HexInt]:
         p[0] = NumLitNode(p[1])
@@ -2190,6 +2188,7 @@ def p_expr_no_list(p):
             | id
             | array_literal
             | exprfunction
+            | exprclass
             | expr_no_list cmplx_assign expr_no_list
             | expr_no_list RSHIFT expr_no_list
             | expr_no_list LSHIFT expr_no_list
@@ -2272,7 +2271,7 @@ def p_expr_no_list(p):
                         BitInvNode, LogicalNotNode, NegateNode, PositiveNode, 
                         ArrayLitNode, ObjLitNode, FunctionNode, 
                         KeywordNew, PreInc, PostInc, PreDec, PostDec,
-                        TemplateNode, ExprListNode]:
+                        TemplateNode, ExprListNode, ClassNode, TypedClassNode]:
         p[0] = p[1]
       elif type(p[1]) in [float, int, HexInt]:
         p[0] = NumLitNode(p[1])

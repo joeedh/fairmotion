@@ -472,7 +472,7 @@ function api_define_spline_vertex() {
   var flagprop = new FlagProperty(2, SplineFlags, undefined, "Flags", "Flags");
   
   flagprop.ui_key_names["BREAK_CURVATURES"] = "Less Smooth";
-  flagprop.flag_descriptions["BREAK_CURVATURES"] = "Allows curve to more tightly bend at this point";
+  flagprop.descriptions["BREAK_CURVATURES"] = "Allows curve to more tightly bend at this point";
   flagprop.ui_key_names["BREAK_TANGENTS"] = "Sharp Corner";
   
   var coprop = new Vec3Property(undefined, "co", "Co", "Coordinates");
@@ -569,7 +569,7 @@ var SplineLayerStruct;
 function api_define_spline_layer_struct() {
   var flag = new FlagProperty(2, SplineLayerFlags);
   
-  flag.flag_descriptions = {
+  flag.descriptions = {
     MASK: "Use previous layer as a mask"
   };
   

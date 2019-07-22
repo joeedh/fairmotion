@@ -470,7 +470,7 @@ export class FlagProperty extends ToolProperty {
     if (value == undefined && maskmap == undefined) {
       this.ui_value_names = {};
       this.ui_key_names = {};
-      this.flag_descriptions = {};
+      this.descriptions = {};
       this.keys = {};
       this.values = {};
       
@@ -480,7 +480,7 @@ export class FlagProperty extends ToolProperty {
     this.data = 0 : int;
     
     this.ui_key_names = {};
-    this.flag_descriptions = {};
+    this.descriptions = {};
     
     this.keys = {}
     this.values = {}
@@ -524,8 +524,8 @@ export class FlagProperty extends ToolProperty {
   copyTo(dst : FlagProperty) {
     super.copyTo(dst, true);
 
-    for (var k in this.flag_descriptions) {
-      dst.flag_descriptions[k] = this.flag_descriptions[k];
+    for (var k in this.descriptions) {
+      dst.descriptions[k] = this.descriptions[k];
     }
     
     for (var k in this.keys) {

@@ -134,6 +134,39 @@ class LayerPanel extends Container {
       g_app_state.toolstack.exec_tool(tool);
       this.rebuild();
     }, undefined);
+
+    row = this.row();
+    row.button("Move Up", () => {
+      var lset = this.ctx.frameset.spline.layerset;
+      var oldl = lset.active;
+
+      console.log("oldl", oldl);
+
+      if (oldl.order == lset.length-1) return;
+      var newl = lset[oldl.order+1];
+
+      var tool = new ChangeElementLayerOp(oldl.id, newl.id);
+
+      this.ctx.toolstack.execTool(tool);
+
+    });
+
+    row.button("Move Down", () => {
+      var lset = this.ctx.frameset.spline.layerset;
+      var oldl = lset.active;
+
+      console.log("oldl", oldl);
+
+      if (oldl.order == 0) return;
+      var newl = lset[oldl.order-1];
+
+      var tool = new ChangeElementLayerOp(oldl.id, newl.id);
+
+      this.ctx.toolstack.execTool(tool);
+    });
+
+    row.prop('frameset.drawspline.active_layer.flag[HIDE]');
+    row.prop('frameset.drawspline.active_layer.flag[CAN_SELECT]');
   }
 
   _old() {
@@ -144,6 +177,7 @@ class LayerPanel extends Container {
     var del = new UIButtonIcon(this.ctx, "Delete");
     add.icon = Icons.SMALL_PLUS;
     del.icon = Icons.SMALL_MINUS;
+
 
     var this2 = this;
     add.callback = function() {
@@ -222,11 +256,14 @@ class LayerPanel extends Container {
     }
 
     var controls2 = this.col();
-    controls2.add(new UIButton(this.ctx, "Sel Up"));
-    controls2.add(new UIButton(this.ctx, "Sel Down"));
+    let selup = new UIButton(this.ctx, "Sel Up");
+    let seldown = new UIButton(this.ctx, "Sel Down");
+
+    controls2.add(selup);
+    controls2.add(seldown);
 
     var this2 = this;
-    controls2.children[0].callback = function() {
+    selup.callback = function() {
       var lset = this2.ctx.frameset.spline.layerset;
       var oldl = lset.active;
 
@@ -240,7 +277,7 @@ class LayerPanel extends Container {
       g_app_state.toolstack.exec_tool(tool);
     }
 
-    controls2.children[1].callback = function() {
+    seldown.callback = function() {
       var lset = this2.ctx.frameset.spline.layerset;
       var oldl = lset.active;
 
@@ -490,7 +527,14 @@ class LayerPanel extends RowFrame {
     this.do_rebuild = false;
     
     console.log("layers ui rebuild!");
-    
+
+    if (this.ctx.frameset === undefined) {
+      this.disabled = true;
+      return;
+    }
+
+    this.disabled = false;
+
     var spline = this.ctx.frameset.spline;
     
     //this.last_spline_path = this.ctx.splinepath;

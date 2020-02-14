@@ -267,11 +267,9 @@ export class SplineSegment extends SplineElement {
     
     this.has_multires = false;
     this.mat = new Material();
-    
-    var this2 = this;
-    this.mat.update = function() {
-      this2.flag |= SplineFlags.REDRAW;
-    }
+
+    //XXX this is kind of hackish, seting a callback this way
+    this.mat.update = this._material_update.bind(this);
     
     this.z = this.finalz = 5;
     
@@ -291,6 +289,12 @@ export class SplineSegment extends SplineElement {
       this.ks[i] = 0;
       this._last_ks[i] = 0;
     }
+  }
+
+  _material_update() {
+    this.flag |= SplineFlags.REDRAW|SplineFlags.FRAME_DIRTY|SplineFlags.UPDATE;
+    this.v1.flag |= SplineFlags.UPDATE;
+    this.v2.flag |= SplineFlags.UPDATE;
   }
 
   get aabb() {
@@ -774,22 +778,10 @@ export class SplineSegment extends SplineElement {
     reader(this);
     super.loadSTRUCT(reader);
 
-    this.mat.update = function() {
-      this.flag |= SplineFlags.REDRAW;
-    };
+    //XXX this is kind of hackish, seting a callback this way
+    this.mat.update = this._material_update.bind(this);
   }
 }
-
-
-
-SplineElement.STRUCT = `
-  SplineElement {
-    eid        : int;
-    flag       : int;
-    type       : int;
-    cdata      : CustomDataSet;
-  }
-`;
 
 SplineSegment.STRUCT = STRUCT.inherit(SplineSegment, SplineElement) + `
   ks   : array(float);

@@ -33,12 +33,41 @@ import {Spline} from 'spline';
 import {View2DEditor, SessionFlags} from 'view2d_editor';
 import {DataBlock, DataTypes} from 'lib_api';
 import {redraw_element} from 'spline_draw';
-import {UndoFlags, ToolFlags, ModalStates, ToolOp} from 'toolops_api';
+import {UndoFlags, ToolFlags, ModalStates, ToolOp, ToolMacro} from 'toolops_api';
 //$XXX import {PackFlags, UIFlags} from 'UIElement';
 
 import {get_vtime} from 'animdata';
 
+import {DeleteVertOp, DeleteSegmentOp, DeleteFaceOp,
+  ChangeFaceZ, SplitEdgeOp, DuplicateOp,
+  DisconnectHandlesOp, SplitEdgePickOp} from 'spline_editops';
+
 window.anim_to_playback = [];
+
+export class DuplicateTransformMacro extends ToolMacro {
+  constructor() {
+    super("duplicate_transform", "Duplicate");
+  }
+
+  static invoke(ctx, args) {
+    var tool = new DuplicateOp();
+    let macro = new DuplicateTransformMacro();
+    
+    macro.add_tool(tool);
+
+    var transop = new TranslateOp(ctx.view2d.mpos, 1|2);
+    macro.add_tool(transop);
+
+    return macro;
+  }
+  static tooldef() {return {
+    uiname   : "Duplicate",
+    apiname  : "spline.duplicate_transform",
+    is_modal : true,
+    icon : Icons.DUPLICATE,
+    description : "Duplicate geometry"
+  }}
+};
 
 export class RenderAnimOp extends ToolOp {
   constructor() {
@@ -737,7 +766,14 @@ export class SplineEditor extends View2DEditor {
     if (this.mdown) { // && this.mpos.vectorDistance(this.start_mpos) > 2) {
       this.mdown = false;
 
-      var op = new TranslateOp(this.start_mpos);
+      let mpos = new Vector2();
+      mpos.load(this.start_mpos);
+      //this.ctx.view2d.project(mpos);
+
+      var op = new TranslateOp(mpos);
+
+      console.log("start_mpos:", mpos);
+
       op.inputs.datamode.set_data(this.ctx.view2d.selectmode);
       op.inputs.edit_all_layers.set_data(this.ctx.view2d.edit_all_layers);
 

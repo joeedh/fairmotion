@@ -84,6 +84,7 @@ sources = [
   "src/path.ux/scripts/util.js",
   "src/path.ux/scripts/vectormath.js",
   "src/path.ux/scripts/math.js",
+  "src/path.ux/scripts/html5_fileapi.js",
   "src/path.ux/scripts/controller.js",
   "src/path.ux/scripts/events.js",
   "src/path.ux/scripts/struct.js",

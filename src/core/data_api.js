@@ -1405,6 +1405,7 @@ export class DataAPI {
     }
     
     var paths = this.build_mass_set_paths(ctx, listpath, subpath, value, filterstr);
+    
     for (var i=0; i<paths.length; i++) {
       this.set_prop(ctx, paths[i], value);
     }
@@ -1458,8 +1459,8 @@ export class DataAPI {
       var prop = ret[0].data;
       prop.ctx = ctx;
 
-      console.log(prop.userSetData);
-      console.log("PROP", prop, prop.flag, prop.flag & TPropFlags.USE_CUSTOM_GETSET);
+      //console.log(prop.userSetData);
+      //console.log("PROP", prop, prop.flag, prop.flag & TPropFlags.USE_CUSTOM_GETSET);
 
       if (prop.flag & TPropFlags.USE_CUSTOM_GETSET) {
         value = prop.userSetData.call(owner, prop, value);
@@ -1607,7 +1608,10 @@ export class DataAPI {
             changed = value == old_value;
             
             path += " = " + value;
-            console.log("SETPATH:", path);
+
+            if (DEBUG.ui_datapaths) {
+              console.log("SETPATH:", path);
+            }
 
             this.evaluate(ctx, path);
           }

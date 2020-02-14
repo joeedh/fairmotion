@@ -227,6 +227,7 @@ function patchScreen(appstate, fstructs, data) {
   name : "Screen"
   };
 
+  fakeclass.prototype = Object.create(Object.prototype);
 
   data = fstructs.read_object(data, fakeclass);
   let screen = document.createElement("fairmotion-screen-x");

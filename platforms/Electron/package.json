@@ -1,9 +1,9 @@
 {
-  "name"    : "Fairmotion",
-  "version" : "0.0.1",
-  "main"    : "main.js",
+  "name": "Fairmotion",
+  "version": "0.0.2",
+  "main": "main.js",
   "dependencies": {
-    "electron": "^2.0.2",
-    "fastcall": "^0.2.5"
+    "canvaskit-wasm": "^0.12.0",
+    "electron": "^8.0.0"
   }
 }

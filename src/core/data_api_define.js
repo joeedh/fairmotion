@@ -417,6 +417,7 @@ function api_define_material() {
   var strokeclr = new Vec4Property(new Vector4(), "stroke", "stroke", "Stroke Color");
   
   var update_base = function (material) {
+    //console.warn("material.update called", material);
     material.update();
     window.redraw_viewport();
   }

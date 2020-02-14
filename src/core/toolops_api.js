@@ -476,7 +476,7 @@ export class ToolOp extends ToolOpAbstract {
     let active_area = ctx.active_area;
     let patch = (e) => {
       let dom = active_area ? active_area : g_app_state.screen;
-      console.log("dom", dom.tagName);
+      //console.log("dom", dom.tagName);
       return patchMouseEvent(e, dom);
     };
 

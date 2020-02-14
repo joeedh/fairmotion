@@ -56,5 +56,6 @@ window.Icons = {
   EXTRUDE_MODE_G0 : 52,
   CIRCLE_SEL_SUB : 53,
   CIRCLE_SEL_ADD : 54,
-  OBJECT_MODE : 55
+  OBJECT_MODE : 55,
+  DUPLICATE : 56
 };

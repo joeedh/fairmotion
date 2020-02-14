@@ -162,8 +162,6 @@ export class PathUXInterface extends ModelInterface {
     //let rdef = this.resolvePath(ctx, path);
     let path = mass_set_path;
 
-    console.log(mass_set_path);
-
     let i1 = path.search(/\{/);
     let i2 = path.search(/\}/);
     let filterpath = path.slice(i1+1, i2);
@@ -171,10 +169,10 @@ export class PathUXInterface extends ModelInterface {
     let listpath = path.slice(0, i1);
     let subpath = path.slice(i2+2, path.length);
 
-    console.log("i1", i1, "i2", i2);
-    console.log("listpath", listpath);
-    console.log("filter", filterpath);
-    console.log("subpath", subpath);
+    //console.log("i1", i1, "i2", i2);
+    //console.log("listpath", listpath);
+    //console.log("filter", filterpath);
+    //console.log("subpath", subpath);
 
     return this.api.mass_set_prop(ctx, listpath, subpath, value, filterpath);
   }

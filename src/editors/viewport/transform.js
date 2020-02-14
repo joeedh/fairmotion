@@ -196,6 +196,8 @@ export class TransformOp extends ToolOp {
       md.mpos = new Vector3(mpos);
       md.last_mpos = new Vector3(mpos);
     } else {
+      mpos.load(ctx.view2d.getLocalMouse(event.original.x, event.original.y));
+
       md.last_mpos.load(md.mpos);
       md.mpos.load(mpos);
     }
@@ -396,6 +398,8 @@ export class TranslateOp extends TransformOp {
 
     var start = mousemove_cachering.next(), off = mousemove_cachering.next();
 
+    console.log("mpos:", md.mpos, "start", md.start_mpos);
+
     start.load(md.start_mpos);
     off.load(md.mpos);
     
@@ -404,7 +408,7 @@ export class TranslateOp extends TransformOp {
     
     off.sub(start);
     this.inputs.translation.set_data(off);
-    
+
     this.exec(ctx);
     this.post_mousemove(event);
   }

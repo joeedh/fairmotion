@@ -1689,7 +1689,7 @@ export class DuplicateOp extends SplineLocalToolOp {
     inputs   : {},
     outputs  : {},
     
-    icon     : -1,
+    icon     : Icons.DUPLICATE,
     is_modal : false,
     description : "Make a duplicate of selected geometry."
   }}

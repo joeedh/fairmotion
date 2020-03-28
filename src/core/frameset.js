@@ -351,7 +351,11 @@ export class SplineFrameSet extends DataBlock {
     
     this.switch_on_select = true;
   }
-  
+
+  fix_anim_paths() {
+    this.find_orphan_pathverts();
+  }
+
   get active_animdata() {
     if (this.spline.verts.active === undefined) {
       return undefined;
@@ -695,6 +699,7 @@ export class SplineFrameSet extends DataBlock {
           var vdata = this.get_vdata(v.eid, false);
           
           v.load(vdata.evaluate(this.time));
+
           v.flag &= ~SplineFlags.FRAME_DIRTY;
           v.flag |= SplineFlags.UPDATE;
           

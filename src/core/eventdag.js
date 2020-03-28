@@ -255,17 +255,22 @@ export class EventSocket {
   }
 }
 
+window._NodeBase = NodeBase;
+
 //for client objects that are actually functions
 function gen_callback_exec(func, thisvar) {
-  for (var k in UIOnlyNode.prototype) {
+  //*
+  for (var k of Object.getOwnPropertyNames(NodeBase.prototype)) {
     if (k == "toString") continue;
-    func[k] = UIOnlyNode.prototype[k];
-  }
+
+    func[k] = NodeBase.prototype[k];
+  }//*/
   
   func.constructor = {};
   func.constructor.name = func.name;
-  func.constructor.prototype = UIOnlyNode.prototype;
-  
+  func.constructor.prototype = NodeBase.prototype;
+  func.prototype = NodeBase.prototype;
+
   func.dag_exec = function(ctx, graph) {
     var args = [];
     for (var k in this.constructor.dag_inputs) {
@@ -419,14 +424,19 @@ export class EventDag {
   }
   
   remove(node) {
-    if (!(node instanceof EventNode))
+    if (!(node instanceof EventNode)) {
       node = this.get_node(node, false);
-    
-    if (node == undefined) {
-      console.log("node already removed");
-      return;
+
+      if (node == undefined) {
+        console.log("node already removed");
+        return;
+      }
     }
-    
+
+    if (this.nodes.indexOf(node) < 0) {
+      console.log("node not in graph", node);
+    }
+
     node.unlink();
     
     if (node instanceof DirectNode) {
@@ -439,8 +449,11 @@ export class EventDag {
     delete this.idmap[node.id];
     
     this.nodes.remove(node);
-    this.sortlist.remove(node);
-    
+
+    if (this.sortlist.indexOf(node) >= 0) {
+      this.sortlist.remove(node);
+    }
+
     this.resort = true;
   }
   

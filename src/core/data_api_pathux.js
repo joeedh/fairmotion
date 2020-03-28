@@ -177,6 +177,10 @@ export class PathUXInterface extends ModelInterface {
     return this.api.mass_set_prop(ctx, listpath, subpath, value, filterpath);
   }
 
+  on_frame_change(ctx, newtime) {
+    return this.api.on_frame_change(ctx, newtime);
+  }
+
   onFrameChange(ctx, newtime) {
     return this.api.on_frame_change(ctx, newtime);
   }

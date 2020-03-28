@@ -429,7 +429,7 @@ export function do_solve(sflags : int, spline : Spline, steps : int, gk=0.95, re
       continue;
     
     //need to clear seg.ks in this case
-    if ((seg.v1.flag & SplineFlags.BREAK_TANGENTS) && (seg.v2.flag & SplineFlags.BREAK_TANGENTS)) {
+    if ((seg.v1.flag & SplineFlags.BREAK_TANGENTS) || (seg.v2.flag & SplineFlags.BREAK_TANGENTS)) {
       for (var j=0; j<seg.ks.length; j++) {
         seg.ks[j] = 0.0000001;
       }

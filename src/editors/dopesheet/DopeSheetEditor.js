@@ -16,7 +16,7 @@ import {phantom, KeyTypes, FilterModes,
         get_select, get_time, set_select, set_time
        } from 'dopesheet_phantom';
 
-import {PackFlags, UIFlags, UIBase} from 'ui_base';
+import {PackFlags, UIFlags, UIBase, color2css, _getFont_new} from 'ui_base';
 
 import {ToolOp, UndoFlags, ToolFlags} from 'toolops_api';
 
@@ -49,30 +49,57 @@ var tree_packflag = 0;/*PackFlags.INHERIT_WIDTH|PackFlags.ALIGN_LEFT
           
 var CHGT = 25;
 
-let color2CSS = (c) => {
-  if (typeof c == "string")
-    return c;
-
-  let r = ~~(c[0]*255);
-  let g = ~~(c[1]*255);
-  let b = ~~(c[2]*255);
-
-  if (c.length > 3) {
-    return "rgba(" + r + "," + g + "," + b + "," + a + ")";
-  } else {
-    return "rgb(" + r + "," + g + "," + b + ")";
-  }
-};
-
-export class TreeItem extends RowFrame {
+export class TreeItem extends ColumnFrame {
   constructor() {
     super();
+
     this.namemap = {};
+    this.name = "";
     this.collapsed = false;
 
     //bind for doOnce
     this.rebuild_intern = this.rebuild_intern.bind(this)
     this._redraw = this._redraw.bind(this);
+  }
+
+  //*
+  init() {
+    super.init();
+
+    let row = this.widget = this.row();
+
+    //*
+    this.icon = row.iconbutton(Icons.UI_EXPAND, "", () => {
+      this.set_collapsed(!this.collapsed);
+
+      this.setCSS();
+    }, undefined, PackFlags.SMALL_ICON);
+    //*/
+
+    row.label(this.name);
+
+    this.setCSS();
+  }//*/
+
+  setCSS() {
+    super.setCSS();
+
+    this.style["margin-left"] = "2px";
+    this.style["padding-left"] = "2px";
+
+    if (this.widget !== undefined) {
+      this.widget.remove();
+      this._prepend(this.widget);
+    }
+
+    if (this.icon !== undefined) {
+      let i = 0;
+      for (let k in this.namemap) {
+        i++;
+      }
+
+      this.icon.hidden = i == 0;
+    }
   }
 
   build_path() {
@@ -88,28 +115,28 @@ export class TreeItem extends RowFrame {
   }
 
   set_collapsed(state) {
-    //console.log("set collapsed", state);
+    if (this.icon !== undefined) {
+      this.icon.icon = !state ? Icons.UI_COLLAPSE : Icons.UI_EXPAND;
+    }
 
-    this.collapsed = state;
+    if (state && !this.collapsed) {
+      this.collapsed = true;
 
-    if (this.icon.collapsed != state)
-      this.icon.collapsed = state;
+      for (let k in this.namemap) {
+        let child = this.namemap[k];
 
-    if (state && this.stored_children == undefined) {
-      this.stored_children = [];
-      for (var c of this._children) {
-        this.stored_children.push(c);
+        if (child.parentNode) {
+          child.remove();
+        }
       }
+    } else if (this.collapsed) {
+      this.collapsed = false;
 
-      this._children = [this.panel];
+      for (let k in this.namemap) {
+        let child = this.namemap[k];
 
-      this.rebuild();
-    } else if (!state && this.stored_children != undefined) {
-      console.log("restore children");
-      this._children = this.stored_children;
-      this.stored_children = undefined;
-
-      this.rebuild();
+        this._add(child);
+      }
     }
   }
 
@@ -146,11 +173,11 @@ export class TreeItem extends RowFrame {
 
 UIBase.register(TreeItem);
 
-export class TreePanel extends RowFrame {
+export class TreePanel extends ColumnFrame {
   constructor() {
     super();
 
-    this.tree = document.createElement("treeitem-x");
+    this.tree = document.createElement("dopesheet-treeitem-x");
     this.tree.path = "root";
     this.add(this.tree);
 
@@ -163,19 +190,67 @@ export class TreePanel extends RowFrame {
 
   init() {
     super.init();
+
     this.setCSS();
+    this._redraw();
   }
 
   rebuild_intern() {
 
   }
 
+  countPaths(visible_only=false) {
+    let i = 0;
+
+    for (let path in this.pathmap) {
+      if (visible_only && this.pathmap[path].collapsed) {
+        continue;
+      }
+
+      i++;
+    }
+
+    return i;
+  }
+
+  load_collapsed(map) {
+    for (let path in map) {
+      let child = this.pathmap[path];
+
+      if (child) {
+        child.set_collapsed(map[path]);
+      }
+    }
+
+    this.setCSS();
+  }
+
+  is_collapsed(path) {
+    return path in this.pathmap ? this.pathmap[path].collapsed : false;
+  }
+
   rebuild() {
     this.doOnce(this.rebuild_intern());
   }
 
-  _redraw() {
+  reset() {
+    for (let k in this.pathmap) {
+      let v = this.pathmap[k];
 
+      v.remove();
+    }
+
+    this.pathmap = {};
+
+    this.tree.remove();
+
+    this.tree = document.createElement("dopesheet-treeitem-x");
+    this.tree.path = "root";
+    this.add(this.tree);
+  }
+
+  _redraw() {
+    this.setCSS();
   }
 
   recalc() {
@@ -192,6 +267,8 @@ export class TreePanel extends RowFrame {
     if (paths[0].trim() == "root")
       paths = paths.slice(1, paths.length);
 
+    //console.log("PATH", path);
+
     var path2 = "";
     for (var i=0; i<paths.length; i++) {
       var key = paths[i].trim();
@@ -201,12 +278,16 @@ export class TreePanel extends RowFrame {
       else
         path2 += "." + key;
 
-      if (!(key in tree.namemap)) {
-        tree.namemap[key] = document.createElement("dopesheet-treeitem-x");
-        tree.namemap[key].path = key;
-        tree.add(tree.namemap[key]);
+      //console.log("  KEY", key, "PATH", path2, "TREE", tree.path);
 
-        this.pathmap[path2] = tree.namemap[key];
+      if (!(key in tree.namemap)) {
+        let tree2 = document.createElement("dopesheet-treeitem-x");
+        tree2.name = key;
+        tree2.path = key;
+        tree._prepend(tree2);
+
+        this.pathmap[path2] = tree2;
+        tree.namemap[key] = tree2;
       }
 
       lasttree = tree;
@@ -216,6 +297,34 @@ export class TreePanel extends RowFrame {
     if (!(path in this.pathmap))
       this.totpath++;
     this.pathmap[path] = tree;
+  }
+
+  get_y(path) {
+    if (!(path in this.pathmap)) {
+      return undefined;
+    }
+
+    let item = this.pathmap[path];
+    let a = this.getClientRects()[0];
+    let b = item.getClientRects()[0];
+    let dpi = UIBase.getDPI();
+
+    if (a !== undefined && b !== undefined) {
+      return (b.top - a.top) * dpi;
+    } else {
+      return undefined;
+    }
+  }
+
+  get_x(path) {
+    return 0;
+  }
+
+  setCSS() {
+    super.setCSS();
+
+    this.style["width"] = "55px";
+    this.style["height"] = "500px";
   }
 
   static define() {
@@ -232,7 +341,9 @@ export class PanOp extends ToolOp {
     super();
     
     this.ds = dopesheet;
-    
+
+    this._last_dpi = undefined;
+
     this.is_modal = true;
     this.undoflag |= UndoFlags.IGNORE_UNDO;
     this.start_pan = new Vector2(dopesheet.pan);
@@ -296,6 +407,7 @@ export class DopeSheetEditor extends Editor {
     this.pinned_ids = undefined;
     this.nodes = [];
     this.nodemap = {};
+    this._last_path_count = undefined;
 
     this._get_key_ret_cache = new cachering(function () {
       return [0, 0, 0];
@@ -323,7 +435,7 @@ export class DopeSheetEditor extends Editor {
     this.rendermat = new Matrix4();
     this.irendermat = new Matrix4();
     this.zoom = 1.0;
-    this.timescale = 12.0;
+    this.timescale = 24.0;
     this.vmap = {};
     this.last_time = 0;
 
@@ -348,16 +460,37 @@ export class DopeSheetEditor extends Editor {
     this.on_mouseup = Editor.wrapContextEvent(this.on_mouseup.bind(this));
   }
 
+  makeHeader(container) {
+    let row = super.makeHeader(container);
+    row.noMargins();
+
+    row.prop("scene.frame");
+    return row;
+  }
   init() {
     super.init();
-    this.setCSS();
 
-    this.addEventListener("mousedown", this.on_mousedown.bind(this), false);
-    this.addEventListener("mousemove", this.on_mousemove.bind(this), false);
-    this.addEventListener("mouseup", this.on_mouseup.bind(this), false);
+    //this.addEventListener("mousedown", this.on_mousedown.bind(this), false);
+    //this.addEventListener("mousemove", this.on_mousemove.bind(this), false);
+    //this.addEventListener("mouseup", this.on_mouseup.bind(this), false);
+
+    let canvas = this.canvas = document.createElement("canvas");
+    let g = this.g = canvas.getContext("2d");
+
+    //this.shadow.appendChild(canvas);
+
+    //let row = this.container.row();
 
     this.channels = document.createElement("dopesheet-treepanel-x");
-    this.container.add(this.channels);
+    this.shadow.appendChild(this.canvas);
+    this.channels.float(0, 0);
+
+    //row.add(this.channels);
+    this.shadow.appendChild(this.channels);
+    //this.channels.float(this.pos[0], 0.0);
+
+    //row.add(canvas);
+    //row.label("yay");
   }
 
   get abspos() {
@@ -368,11 +501,42 @@ export class DopeSheetEditor extends Editor {
 
   _redraw() {
     this.dirty_rects.length = 0;
+
+    this.drawGrid();
+    this.rebuild_intern();
+
+    let g = this.g, canvas = this.canvas;
+
+
   }
 
   setCSS() {
     super.setCSS();
+
+    if (this.canvas === undefined) {
+      return;
+    }
+
+    let dpi = UIBase.getDPI();
+
+    let w = ~~(this.size[0]*dpi+0.5);
+    let h = ~~(this.size[1]*dpi+0.5);
+
+    let w2 = this.size[0], h2 = this.size[1];
+
+    this.canvas.width = w;
+    this.canvas.height = h;
+
+    this.canvas.style["width"] = w2 + "px";
+    this.canvas.style["height"] = h2 + "px";
+
     //this.style["background-color"] = "rgba(0,0,0,0)";
+
+    let rect = this.canvas.getClientRects()[0];
+    if (rect !== undefined) {
+      let rect2 = this.getClientRects()[0];
+      this.channels.float(0.0, rect.top - rect2.top);
+    }
   }
 
   rebuild_vdmap() {
@@ -524,6 +688,8 @@ export class DopeSheetEditor extends Editor {
     var y = -1;
     var y2 = this.channels.get_y(ph.path);
 
+    //console.log("Channel y:", y2, ph.path);
+
     if (y2 != undefined)
       y = y2;
 
@@ -561,8 +727,19 @@ export class DopeSheetEditor extends Editor {
     });
   }
 
+  updateDPI() {
+    let dpi = UIBase.getDPI();
+
+    if (dpi != this._last_dpi) {
+      this._last_dpi = dpi;
+      this.recalc();
+    }
+  }
+
   update() {
     super.update();
+
+    this.updateDPI();
 
     if (this.ctx == undefined)
       return;
@@ -606,6 +783,13 @@ export class DopeSheetEditor extends Editor {
       //on_vert_select
       the_global_dag.link(ctx.frameset.spline.verts, ["on_select_add"], on_sel, ["eid"]);
       the_global_dag.link(ctx.frameset.spline.verts, ["on_select_sub"], on_sel, ["eid"]);
+    }
+
+    let pathcount = this.channels.countPaths(true);
+
+    if (this._last_path_count != pathcount) {
+      this._last_path_count = pathcount;
+      this.recalc();
     }
   }
 
@@ -791,8 +975,6 @@ export class DopeSheetEditor extends Editor {
 
           //make sure dag node callback exists
           if (!(id in this2.nodemap)) {
-            var this2 = this2;
-
             var on_sel = this2._on_sel_2.bind(this2);
             this2.nodes.push(on_sel);
 
@@ -831,15 +1013,14 @@ export class DopeSheetEditor extends Editor {
 
   get_keyverts() {
     var this2 = this;
+
     return (function*() {
       var channels = this2.get_vdatas();
-      var y = this.getBarHeight() + 2, chgt = this2.CHGT;
+      var y = this2.getBarHeight() + 2, chgt = this2.CHGT;
 
       for (var vd of channels) {
         for (var v of vd.verts) {
           if (!(v.eid in this2.vmap)) {
-            var this2 = this2;
-
             var on_sel = this2._on_sel_1.bind(this2, vd);
             this2.nodes.push(on_sel);
 
@@ -1163,14 +1344,17 @@ export class DopeSheetEditor extends Editor {
     this.do_recalc();
   }
 
-  draw_grid(canvas) {
+  drawGrid() {
+    let canvas = this.canvas;
+    let g = this.g;
+
     var fsize = this.scaletime(1.0);
 
-    var cellx = this.scaletime(2.0);
+    var cellx = this.scaletime(1.0);
     var celly = this.CHGT;
 
-    var totx = Math.floor(this.size[0]/cellx+0.5);
-    var toty = Math.floor(this.size[1]/celly+0.5);
+    var totx = Math.floor(canvas.width/cellx+0.5);
+    var toty = Math.floor(canvas.height/celly+0.5);
 
     var sign = this.pan[0] < 0.0 ? -1.0 : 1.0;
 
@@ -1190,42 +1374,94 @@ export class DopeSheetEditor extends Editor {
 
     var si =  Math.abs(Math.floor(off2/cellx)); // Math.floor(Math.abs(this.pan[0])/cellx);
 
+    g.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    g.lineWidth = 1;
+
     for (var i=0; i<totx; i++, si++) {
       v1[0] = v2[0] = offx + i*cellx;
-      v1[1] = 0, v2[1] = this.size[1];
+      v1[1] = 0, v2[1] = canvas.height;
+
+      let frame = Math.floor(this.pan[0] / cellx) + i;
 
       var clr = clrs[si % clrs.length];
       if (clr == undefined) clr = clrs[0];
 
       clr[3] = alpha[si % alpha.length];
-      this.line(v1, v2, clr, clr);
+      g.beginPath();
+      g.strokeStyle = color2css(clr);
+
+      g.moveTo(v1[0], v1[1]);
+      g.lineTo(v2[0], v2[1]);
+      g.stroke();
+
+      //this.line(v1, v2, clr, clr);
+      let dpi = UIBase.getDPI();
+
+      g.font = _getFont_new(this, 14*dpi);
+
+      g.fillStyle = "black"; //this.getDefault("DefaultTextColor");
+
+      g.fillText(""+frame, v1[0], v1[1]+15);
 
       //  text(Array<float> pos1, String text, Array<float> color, float fontsize, 
       //       float scale, float rot, Array<float> scissor_pos, Array<float> scissor_size)
     }
+
+    /*
+    if (this.ctx === undefined || this.ctx.scene === undefined) {
+      console.log("dopesheet ERROR");
+      return;
+    }//*/
+
+    let frame = this.ctx.scene.time;
+    let x = offx + frame*cellx;
+
+    if (x >= 0 && x < this.canvas.width) {
+      g.strokeStyle = "orange";
+      g.lineWidth = 2;
+
+      g.beginPath();
+      g.moveTo(x, 0);
+      g.lineTo(x, canvas.height);
+      g.stroke();
+    }
   }
 
-  get_bg_canvas() {
-    return this.getCanvas("bg");
-  }
+  //get_bg_canvas() {
+  //  return this.getCanvas("bg");
+  //}
 
   simple_box(p, size, clr) {
-    let canvas = this.get_bg_canvas();
-    let g = canvas.g;
+    let canvas = this.canvas; //this.get_bg_canvas();
+    let g = this.g;
 
     g.lineWidth = 1;
-    g.fillStyle = color2CSS(c1);
-    g.strokeStyle = "orange";
+
+    if (clr !== undefined) {
+      g.fillStyle = color2css(clr);
+    } else {
+      g.fillStyle = "orange";
+    }
+
+    g.strokeStyle = g.fillStyle;
 
     g.beginPath();
 
+    /*
     g.moveTo(p[0], p[1]);
     g.lineTo(p[0], p[1]+size[1]);
-    p.lineTo(p[0]+size[0], p[1]+size[1]);
-    p.lineTo(p[0]+size[0], p[1]);
-    p.closePath();
+    g.lineTo(p[0]+size[0], p[1]+size[1]);
+    g.lineTo(p[0]+size[0], p[1]);
+    g.closePath();
+    //*/
 
-    p.stroke();
+    //let dpi = UIBase.getDPI();
+
+    g.rect(p[0], p[1], size[0], size[1]);
+
+    g.fill();
+    g.lineWidth = 1;
+    g.stroke();
   }
 
   line(v1, v2, c1, c2) {
@@ -1275,28 +1511,16 @@ export class DopeSheetEditor extends Editor {
     this.doOnce(this.rebuild_intern);
   }
 
-  rebuild_intern(canvas) {
-    if (DEBUG.dopesheet) {
-      window.ds = this; //debug global
-    }
+  calc_dirty() {
+    return [
+      0, 0, this.size[0], this.size[1]
+    ]
+  }
 
-    return; //XXX
+  rebuild_intern(canvas) {
     var channels = this.channels;
 
-    if (channels === undefined) {
-      this.doOnce(() => this.rebuild());
-      return;
-    }
-
-    var size = this.channels.get_min_size(canvas);
-
-    this.size[0] = this.parent.size[0];
-    this.size[1] = this.parent.size[1];
-
-    size[1] = Math.max(size[1], this.parent.size[1] - this.getBarHeight());
-
-    this.channels.size[1] = size[1];
-    this.channels.pos[1] = this.getBarHeight() + this.pan[1] - size[1];
+    let barheight = this.getBarHeight();
 
     var keys = [];
     var totpath = 0;
@@ -1315,13 +1539,17 @@ export class DopeSheetEditor extends Editor {
       keys.push(list(kret));
     }
 
+    this.update_collapsed_cache();
+    var collapsed = this._tree_collapsed_map();
+    let channel_regen = false;
+
     if (totpath !== this.channels.totpath) {
       console.log("rebuilding channel tree", keys.length);
-      var collapsed = this._tree_collapsed_map();
 
+      channel_regen = true;
       this.channels.reset();
 
-      for (var i=0; i<keys.length; i++) {
+      for (var i = 0; i < keys.length; i++) {
         var key = keys[i], v = key[0], vd = key[1], keybox = key[2];
 
         if (keybox.path == undefined) {
@@ -1330,38 +1558,49 @@ export class DopeSheetEditor extends Editor {
         }
 
         this.channels.add_path(keybox.path);
-      };
+      }
+      ;
 
+      //this.channels.rebuild();
       this.channels.load_collapsed(collapsed);
-      this.channels.rebuild();
-      //console.log("    after reset", keys.length, this.channels.totpath);
-    }
+      this.channels.update();
 
-    if (!this.first_draw)
+      //console.log("    after reset", keys.length, this.channels.totpath);
+
       this.update_collapsed_cache();
 
-    this.first_draw = false;
+      this.channels.load_collapsed(collapsed);
+      this.channels.update();
+    }
 
+    /*
     for (var k in this.collapsed_cache) {
       if (k in this.channels.pathmap) {
         this.channels.pathmap[k].set_collapsed(true);
       }
-    }
+    }*/
 
     //this.dirty_rects.push([[this.abspos[0], this.abspos[1]], [this.size[0], this.size[1]]]);
 
-    this.simple_box([0, 0], [this.size[0], this.size[1]], [1, 1, 1, 1]);
+    //this.simple_box([0, 0], [this.size[0], this.size[1]], [1, 1, 1, 1]);
+    //give channel boxes time to layout
+    if (channel_regen) {
+      this.doOnce(() => {
+        this.rebuild_intern_2();
+      }, 330);
+    } else {
+      this.rebuild_intern_2();
+    }
+  }
 
-    if (this.ctx == undefined)
-      this.ctx = new Context();
+  rebuild_intern_2() {
+    var channels = this.channels;
+    let barheight = this.getBarHeight();
 
     var rect = this.calc_dirty();
     //console.log("pre", rect[0], rect[1])
 
-    this.draw_grid(canvas);
-
     var chgt = this.CHGT;
-    var barheight = this.getBarHeight();
 
     var y = barheight+2;
     this.heightmap = {};
@@ -1381,6 +1620,7 @@ export class DopeSheetEditor extends Editor {
     var selected_color = [1, 0.8, 0.0, 1.0];
     var active_color = [1, 0.5, 0.25, 1.0];
     var borderclr = [0.3, 0.3, 0.3, 1.0];
+    var unselclr = [0.3, 0.3, 0.3, 1.0];
 
     //for (var i=0; i<keys.length; i++) {
     for (var kret of this.get_keyboth()) {
@@ -1399,7 +1639,7 @@ export class DopeSheetEditor extends Editor {
         pos[1] = keybox.pos[1] + this.abspos[1];
 
         if (!aabb_isect_2d(pos, keybox.size, rect[0], rect[1])) {
-          continue;
+          //continue;
         }
 
         var margin = 2;
@@ -1420,13 +1660,17 @@ export class DopeSheetEditor extends Editor {
           clr = active_color;
         else if (keybox.select)
           clr = selected_color;
+        else
+          clr = unselclr;
+
+        //console.log("drawing key", pos, size, clr);
 
         this.simple_box(pos, size, clr);
-        this.simple_box(pos, size, borderclr, undefined, true);
+        //this.simple_box(pos, size, borderclr, undefined, true);
     }
 
-    this.time_overlay(canvas);
-    super.build_draw(canvas);
+    //this.time_overlay(canvas);
+    //super.build_draw(canvas);
     this._recalc_cache = {};
   }
 
@@ -1475,8 +1719,8 @@ export class DopeSheetEditor extends Editor {
     this.on_area_inactive();
   }
 
-  on_area_inactive() {
-    super.on_area_inactive();
+  on_area_active() {
+    super.on_area_active();
     console.log("dopesheet active!");
   }
 
@@ -1718,9 +1962,10 @@ export class DopeSheetEditor extends Editor {
 DopeSheetEditor.STRUCT = STRUCT.inherit(DopeSheetEditor, Editor) + `
     pan             : vec2 | obj.pan;
     zoom            : float;
+    timescale       : float;
     collapsed_map   : array(string) | obj._tree_collapsed_map();
     selected_only   : int;
-    pinned_ids     : array(int) | obj.pinned_ids != undefined ? obj.pinned_ids : [];
+    pinned_ids      : array(int) | obj.pinned_ids != undefined ? obj.pinned_ids : [];
 }
 `;
 

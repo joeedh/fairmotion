@@ -909,6 +909,10 @@ export class DataAPI {
     return s;
   }
 
+  onFrameChange(ctx, time) {
+    return this.on_frame_change(ctx, time);
+  }
+
   on_frame_change(ctx, time) {
     //console.log("api time update!", time);
     

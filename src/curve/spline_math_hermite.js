@@ -266,6 +266,7 @@ export function build_solver(spline, order, goal_order, gk, do_basic, update_ver
     if (edge_seg) {
       for (var j=0; j<KTOTKS; j++) {
         seg._last_ks[j] = seg.ks[j];
+        seg.ks[j] = 0.0;
       }
       seg.flag |= SplineFlags.TEMP_TAG;
       slv.edge_segs.push(seg);

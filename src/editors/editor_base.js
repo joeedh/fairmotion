@@ -117,6 +117,10 @@ export class Editor extends Area {
     this.canvases = {};
   }
 
+  makeHeader(container) {
+    return super.makeHeader(container);
+  }
+
   init() {
     super.init();
 
@@ -211,7 +215,7 @@ export class Editor extends Area {
         f(e);
       } catch (error) {
         print_stack(error);
-        console.warn("Error executing view2d", e.type,"callback");
+        console.warn("Error executing area", e.type,"callback");
       }
 
       this.pop_ctx_active();

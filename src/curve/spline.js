@@ -831,11 +831,11 @@ export class Spline extends DataBlock {
       if (s.v2.indexOf(s) >= 0)
         s.v2.segments.remove(s, true);
         
-      if (s.h1 != undefined && s.h1.type == SplineTypes.HANDLE) {
+      if (s.h1 !== undefined && s.h1.type === SplineTypes.HANDLE) {
         this.handles.remove(s.h1, true);
         delete this.eidmap[s.h1.eid];
       }
-      if (s.h2 != undefined && s.h2.type == SplineTypes.HANDLE) {
+      if (s.h2 !== undefined && s.h2.type === SplineTypes.HANDLE) {
         this.handles.remove(s.h2, true);
         delete this.eidmap[s.h2.eid];
       }
@@ -862,7 +862,7 @@ export class Spline extends DataBlock {
     for (var s of this.segments) {
       //console.log(s);
       
-      if (s.v1.segments == undefined || s.v2.segments == undefined) {
+      if (s.v1.segments === undefined || s.v2.segments === undefined) {
 //        if (!(s.v1 instanceof SplineVertex) || !(s.v2 instanceof SplineVertex)) {
           if (s.h1 instanceof SplineVertex)
             this.handles.remove(s.h1);
@@ -880,20 +880,20 @@ export class Spline extends DataBlock {
       if (s.v2.segments.indexOf(s) < 0) {
         s.v2.segments.push(s);
       }
-      if (s.h1 == undefined || s.h1.type != SplineTypes.HANDLE) {
+      if (s.h1 === undefined || s.h1.type !== SplineTypes.HANDLE) {
         console.log("Missing handle 1; adding. . .", s.eid, s);
         s.h1 = this.make_handle();
         s.h1.load(s.v1).interp(s.v2, 1.0/3.0);
       }
       
-      if (s.h2 == undefined || s.h2.type != SplineTypes.HANDLE) {
+      if (s.h2 === undefined || s.h2.type !== SplineTypes.HANDLE) {
         console.log("Missing handle 2; adding. . .", s.eid, s);
         s.h2 = this.make_handle();
         s.h2.load(s.v2).interp(s.v2, 2.0/3.0);
       }
-      if (s.h1.segments[0] != s)
+      if (s.h1.segments[0] !== s)
         s.h1.segments = [s];
-      if (s.h2.segments[0] != s)
+      if (s.h2.segments[0] !== s)
         s.h2.segments = [s];
     }
     
@@ -993,7 +993,7 @@ export class Spline extends DataBlock {
       this.faces.clear_selection();
       
       //select first if necassary
-      if (sact == undefined || !sset.has(sact)) {
+      if (sact === undefined || !sset.has(sact)) {
         for (var s of sset) {
           sact = s;
           break;
@@ -1019,7 +1019,7 @@ export class Spline extends DataBlock {
         this.faces.setselect(f, true);
       }
       
-    } else if (datamode == SplineTypes.SEGMENT) {
+    } else if (datamode === SplineTypes.SEGMENT) {
       this.verts.clear_selection();
       this.faces.clear_selection();
       
@@ -1028,7 +1028,7 @@ export class Spline extends DataBlock {
         this.verts.setselect(s.v2, true);
         
         var l = s.l;
-        if (l == undefined) 
+        if (l === undefined)
           continue;
         var c=0;
         
@@ -1063,9 +1063,9 @@ export class Spline extends DataBlock {
           }
           
           l = l.next;
-        } while (l != s.l);
+        } while (l !== s.l);
       }
-    } else if (datamode == SplineTypes.FACE) {
+    } else if (datamode === SplineTypes.FACE) {
       this.verts.clear_selection();
       this.segments.clear_selection();
       
@@ -1081,12 +1081,12 @@ export class Spline extends DataBlock {
   }
   
   make_segment(v1, v2, eid=undefined, check_existing=true) {
-    if (eid == undefined)
+    if (eid === undefined)
       eid = this.idgen.gen_id();
     
     if (check_existing) {
       var seg = this.find_segment(v1, v2);
-      if (seg != undefined) return seg;
+      if (seg !== undefined) return seg;
     }
     
     var seg = new SplineSegment(v1, v2);
@@ -1116,7 +1116,7 @@ export class Spline extends DataBlock {
   }
   
   _radial_loop_insert(l) {
-    if (l.s.l == undefined) {
+    if (l.s.l === undefined) {
       l.radial_next = l.radial_prev = l;
       l.s.l = l;
       return;
@@ -1896,8 +1896,8 @@ export class Spline extends DataBlock {
     this.set_active(undefined);
   }
   
-  set_active(SplineElement e) {
-    if (e == undefined) {
+  set_active(e : SplineElement) {
+    if (e === undefined) {
       for (var i=0; i<this.elists.length; i++) {
         this.elists[i].active = undefined;
       }
@@ -1908,12 +1908,12 @@ export class Spline extends DataBlock {
     elist.active = e;
   }
   
-  setselect(SplineElement e, Boolean state) { 
+  setselect(e : SplineElement,state : Boolean) {
     var elist = this.get_elist(e.type);
     elist.setselect(e, state);
   }
   
-  clear_selection(SplineElement e) {
+  clear_selection(e : SplineElement) {
     for (var i=0; i<this.elists.length; i++) {
       this.elists[i].clear_selection();
     }
@@ -2059,7 +2059,7 @@ export class Spline extends DataBlock {
       
       seg.eid = s.eid; seg.flag = s.flag;
       
-      if (seg.ks.length == s.ks.length) {
+      if (seg.ks.length === s.ks.length) {
         seg.ks = s.ks;
       } else {
         spline.resolve = true;
@@ -2097,13 +2097,13 @@ export class Spline extends DataBlock {
       }
     }
     
-    if (obj.verts.active != undefined)
+    if (obj.verts.active !== undefined)
       spline.verts.active = eidmap[obj.verts.active];
     
-    if (obj.handles.active != undefined)
+    if (obj.handles.active !== undefined)
       spline.handles.active = eidmap[obj.handles.active];
       
-    if (obj.segments.active != undefined)
+    if (obj.segments.active !== undefined)
       spline.segments.active = eidmap[obj.segments.active];
     
     spline.eidmap = eidmap;
@@ -2133,7 +2133,7 @@ export class Spline extends DataBlock {
     this.canvas = g;
     this.selectmode = selectmode;
     
-    if (g._is_patched == undefined) {
+    if (g._is_patched === undefined) {
       patch_canvas2d(g);
     }
     
@@ -2323,9 +2323,22 @@ export class Spline extends DataBlock {
     
     return ret;
   }
-};
+
+  static nodedef() {return {
+    name    : "Spline",
+    uiName  : "Spline",
+    outputs : {
+      on_solve : null, //null means depend socket type
+      on_vertex_time_change : new set()
+    },
+    inputs  : {}
+  }}
+}
+;
 
 mixin(Spline, DataPathNode);
+
+//on_solve : 0
 
 Spline.STRUCT = STRUCT.inherit(Spline, DataBlock) + """
     idgen    : SDIDGen;
@@ -2344,7 +2357,3 @@ Spline.STRUCT = STRUCT.inherit(Spline, DataBlock) + """
     mres_format : array(string);
 }
 """
-
-Spline.dag_outputs = {
-  on_solve : 0
-};

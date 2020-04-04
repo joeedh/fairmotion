@@ -4,7 +4,7 @@ import {PropTypes} from 'toolprops';
 import {STRUCT} from 'struct';
 
 import {CustomDataLayer, SplineTypes, SplineFlags} from 'spline_base';
-import {DataPathNode} from 'eventdag';
+import {DataPathWrapperNode} from 'eventdag';
 
 import 'struct';
 
@@ -76,7 +76,7 @@ import {DataTypes, DataNames} from 'lib_api';
 
 //generic animation curve system, used for interpolating non-spatial stuff
 //where tying to the pathspline vertices (as we do with time) is not appropriate
-export class AnimKey extends DataPathNode {
+export class AnimKey extends DataPathWrapperNode {
   constructor() {
     super();
 
@@ -123,15 +123,17 @@ export class AnimKey extends DataPathNode {
     reader(ret);
     return ret;
   }
+
+  static nodedef() {return {
+    name : "AnimKey",
+    inputs : {},
+    outputs : {
+      "depend" : undefined,
+      "id"     : 0.0
+    }
+  }}
 }
 
-define_static(AnimKey, "dag_inputs", {
-});
-
-define_static(AnimKey, "dag_outputs", {
-  "depend" : undefined,
-  "id"     : 0.0
-});
 
 AnimKey.STRUCT = """
   AnimKey {

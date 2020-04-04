@@ -412,13 +412,17 @@ export class SplineElement extends DataPathNode {
   loadSTRUCT(reader) {
     reader(this);
   }
-}
 
-define_static(SplineElement, "dag_outputs", {
-  depend    : undefined,
-  on_select : 0.0,
-  eid       : 0.0
-});
+  static nodedef() {return {
+    name : "SplineElement",
+    uiName : "SplineElement",
+    outputs : {
+      depend    : undefined,
+      on_select : 0.0,
+      eid       : 0.0
+    }
+  }}
+}
 
 SplineElement.STRUCT = `
 SplineElement {

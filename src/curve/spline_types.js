@@ -16,7 +16,7 @@ import {
 
 import {STRUCT} from 'struct';
 import * as math from 'mathlib';
-import {DataPathNode} from 'eventdag';
+import {DataPathNode, NodeBase} from 'eventdag';
 
 var abs=Math.abs, acos=Math.acos, asin=Math.asin, 
     atan2=Math.atan2,PI=Math.PI, sqrt=Math.sqrt,pow=Math.pow,
@@ -62,6 +62,13 @@ export class SplineVertex extends SplineElement {
     //handle variables
     this.hpair = undefined; //connected handle in shared tangents mode
   }
+
+  static nodedef() {return {
+    name : "SplineVertex",
+    uiName : "SplineVertex",
+    inputs : {},
+    outputs : NodeBase.Inherit()
+  }}
 
   get aabb() {
     static ret = [new Vector3(), new Vector3()];
@@ -277,7 +284,7 @@ export class SplineSegment extends SplineElement {
     
     //handles are SplineVerts too
     this.h1 = this.h2 = undefined;
-    
+
     this.type = SplineTypes.SEGMENT;
     this.flag = 0;
     this.eid = 0;

@@ -940,6 +940,15 @@ export class ElementArray extends GArray {
     
     this.cdata.afterSTRUCT(this, this.cdata);
   }
+
+  static nodedef() { return {
+    inputs : {},
+    outputs : {
+      on_select_add : 0,  // passes type of elements this array stores
+      on_select_sub : 0,  // passes type of elements this array stores
+      on_select_change : 0
+    }
+  }}
 }
 
 mixin(ElementArray, DataPathNode);
@@ -952,8 +961,3 @@ ElementArray.STRUCT = """
     cdata    : CustomData;
   }
 """
-
-ElementArray.dag_outputs = {
-  on_select_add : 0,  // passes type of elements this array stores
-  on_select_sub : 0  // passes type of elements this array stores
-}

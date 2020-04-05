@@ -101,10 +101,12 @@ export function get_time(ctx, id) {
 export function set_time(ctx, id, time) {
   if (id & KeyTypes.PATHSPLINE) {
     id = id & KeyTypes.CLEARMASK;
-    
-    var v = ctx.frameset.pathspline.eidmap[id];
 
-    set_vtime(v, time);
+    let spline = ctx.frameset.pathspline;
+
+    var v = spline.eidmap[id];
+
+    set_vtime(spline, v, time);
     v.dag_update("depend");
   } else {
     id = id & KeyTypes.CLEARMASK;

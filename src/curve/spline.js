@@ -123,7 +123,12 @@ import {RecalcFlags} from 'spline_types';
 export class Spline extends DataBlock {
   constructor(name=undefined) {
     super(DataTypes.SPLINE, name);
-    
+
+    //used for eventdag.  stores eids.
+    this._vert_add_set = new set();
+    this._vert_rem_set = new set();
+    this._vert_time_set = new set();
+
     static debug_id_gen=0;
     this._debug_id = debug_id_gen++;
     
@@ -424,8 +429,13 @@ export class Spline extends DataBlock {
     var v = new SplineVertex(co);
 
     v.flag |= SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
-    
+
     this.verts.push(v, eid);
+    this._vert_add_set.add(v.eid);
+
+    this.dag_update("on_vert_add", this._vert_add_set);
+    this.dag_update("on_vert_change");
+
     return v;
   }
   
@@ -1379,8 +1389,22 @@ export class Spline extends DataBlock {
     this.kill_vertex(v);
     this.resolve = 1;
   }
-  
+
+  //used by dopesheet editor to detect things like
+  //active layer changes
+  buildSelCtxKey() {
+    let key = "";
+
+    key += this.layerset.active.id;
+    return key;
+  }
+
   kill_vertex(v) {
+    this._vert_rem_set.add(v.eid);
+
+    this.dag_update("on_vert_add", this._vert_rem_set);
+    this.dag_update("on_vert_change");
+
     //XXX paranoia removal from selection list, should not be necassary
     if (v.flag & SplineFlags.SELECT) {
       this.verts.setselect(v, false);
@@ -1388,7 +1412,7 @@ export class Spline extends DataBlock {
     
     if (this.hpair != undefined)
       this.disconnect_handle(this);
-    
+
     while (v.segments.length > 0) {
       var last = v.segments.length;
       this.kill_segment(v.segments[0]);
@@ -2324,12 +2348,28 @@ export class Spline extends DataBlock {
     return ret;
   }
 
+  flagUpdateVertTime(v) {
+    this._vert_time_set.add(v.eid);
+    this.dag_update("on_vert_time_change", this._vert_time_set);
+  }
+
+  dag_exec(ctx, inputs, outputs, graph) {
+    outputs.on_vert_add.loadData(this._vert_add_set);
+
+    this._vert_add_set = new set();
+    this._vert_rem_set = new set();
+    this._vert_time_set = new set();
+  }
+
   static nodedef() {return {
     name    : "Spline",
     uiName  : "Spline",
     outputs : {
       on_solve : null, //null means depend socket type
-      on_vertex_time_change : new set()
+      on_vert_time_change : new set(),  //set of eids
+      on_vert_add : new set(), //set of eids
+      on_vert_remove : new set(), //set of eids
+      on_vert_change : null //simple event, not a set
     },
     inputs  : {}
   }}

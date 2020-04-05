@@ -1611,7 +1611,7 @@ export class ShiftTimeOp extends ToolOp {
     for (var k in this._undo) {
       var v = spline.eidmap[k], time = this._undo[k];
       
-      set_vtime(v, time);
+      set_vtime(spline, v, time);
       v.dag_update("depend");
     }
     
@@ -1633,7 +1633,7 @@ export class ShiftTimeOp extends ToolOp {
     var kcache = ctx.frameset.kcache;
     for (var v of vset) {
       kcache.invalidate(v.eid, get_vtime(v));
-      set_vtime(v, starts[v.eid]+off);
+      set_vtime(spline, v, starts[v.eid]+off);
 
       kcache.invalidate(v.eid, get_vtime(v));
       v.dag_update("depend");
@@ -1668,7 +1668,7 @@ export class ShiftTimeOp extends ToolOp {
       var newtime = get_vtime(v);
       
       newtime = Math.min(Math.max(newtime, min), max);
-      set_vtime(v, newtime);
+      set_vtime(spline, v, newtime);
       
       v.dag_update("depend");
     }

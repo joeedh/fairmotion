@@ -26,8 +26,13 @@ export class NodeBase {
     var node = graph.get_node(this, false);
 
     //console.log("Updating node field", field, node);
-    if (node != undefined)
+    if (node !== undefined) {
       node.dag_update(output_socket_name, data);
+    } else if (DEBUG.dag) {
+      console.warn("Failed to find node data for ",
+                    this.dag_get_datapath !== undefined ? this.dag_get_datapath(g_app_state.ctx) : this,
+                    "\nThis is not necassarily an error");
+    }
   }
 
   /*
@@ -123,17 +128,6 @@ export class NodeFieldSocketWrapper extends NodeBase {
     }
   }
 
-  //field is name of wrapped output property that's updated. if field is undefined,
-  //will update all outputs
-  dag_update(field, data) {
-    var graph = window.the_global_dag;
-    var node = graph.get_node(this, false);
-
-    //console.log("Updating node field", field, node);
-    if (node != undefined)
-      node.dag_update(field, data);
-  }
-
   dag_exec_finish(ctx, inputs, outputs, graph) {
     for (let k in outputs) {
       let sock = outputs[k];
@@ -153,7 +147,7 @@ export class DataPathNode extends NodeBase {
 
   //have to be compatible with DataPathWrapperNode too
   static isDataPathNode(obj) {
-    return "dag_get_datapath" in obj;
+    return obj.dag_get_datapath !== undefined;
   }
 }
 
@@ -343,6 +337,10 @@ export class EventNode {
   */
 
   dag_update(field, data) {
+    if (DEBUG.dag) {
+      console.trace("dag_update:", field, data);
+    }
+
     if (field === undefined) {
       for (var k in this.outputs) {
         this.dag_update(k);
@@ -359,13 +357,7 @@ export class EventNode {
 
     sock.update();
     this.flag |= DagFlags.UPDATE;
-    
-    for (var i=0; i<sock.edges.length; i++) {
-      var e = sock.edges[i], n2 = e.opposite(sock).owner;
-      
-      //n2.flag |= DagFlags.UPDATE;
-    }
-    
+
     this.graph.on_update(this, field);
   }
   
@@ -380,6 +372,11 @@ export class EventNode {
   }
 }
 
+/**
+ Links to nodes without actually linking to the
+ physical references.  This is the internal node
+ version of DataPathNode.
+ */
 export class IndirectNode extends EventNode {
   constructor(path) {
     super();
@@ -389,10 +386,9 @@ export class IndirectNode extends EventNode {
   get_owner(ctx) {
     if (this._owner != undefined)
       return this._owner;
-      
+
     this._owner = ctx.api.getObject(ctx, this.datapath);
     return this._owner;
-    //return ctx.api.getObject(ctx, this.datapath);
   }
 }
 
@@ -424,15 +420,24 @@ export var DataTypes = {
 }
 
 var TypeDefaults = t = {};
-t[DataTypes.DEPEND] = undefined;
+t[DataTypes.DEPEND] = null;
 t[DataTypes.NUMBER] = 0;
 t[DataTypes.STRING] = "";
-t[DataTypes.VEC2]   = new Vector2();
-t[DataTypes.MATRIX4] = new Vector3();
+t[DataTypes.VEC2]   = () => new Vector2();
+t[DataTypes.MATRIX4] = () => new Vector3();
 t[DataTypes.ARRAY] = [];
 t[DataTypes.BOOL] = true;
-t[DataTypes.SET] = new set();
+t[DataTypes.SET] = () => new set();
 
+export function makeDefaultSlotData(type) {
+  let ret = TypeDefaults[type];
+
+  if (typeof ret == "function") {
+    return ret();
+  }
+
+  return ret;
+}
 //this would normally be a local function
 //but I don't want to form a closure and get memory leaks
 function wrap_ndef(ndef) {
@@ -457,7 +462,7 @@ export class EventSocket {
     this.type = type;
 
     this.name = name;
-    this.owner = owner;
+    this.node = node;
 
     this.datatype = datatype;
     this.data = undefined;
@@ -473,20 +478,35 @@ export class EventSocket {
 
   copy() {
     var s = new EventSocket(this.name, undefined, this.type, this.datatype);
+
+    s.loadData(this.data, false);
+
+    if (s.data === undefined) {
+      s.data = makeDefaultSlotData(this.datatype);
+    }
+
     return s;
   }
 
   loadData(data, auto_set_update=true) {
+    let update = false;
+
     switch (this.datatype) {
       case DataTypes.VEC2:
       case DataTypes.VEC3:
       case DataTypes.VEC4:
       case DataTypes.MATRIX4:
-        //auto_set_update
+        update = auto_set_update && this.data.equals(data);
+
         this.data.load(data);
         break;
       default:
+        update = auto_set_update && this.data === data;
         this.data = data;
+    }
+
+    if (update) {
+      this.update();
     }
   }
 
@@ -560,12 +580,12 @@ function gen_callback_exec(func, thisvar) {
   func.prototype = NodeBase.prototype;
 
   func.dag_exec = function(ctx, inputs, outputs, graph) {
-    return this.apply(arguments);
+    return func.apply(thisvar, arguments);
   }
 }
 
 export class EventDag {
-  constructor() {
+  constructor(ctx) {
     this.nodes = [];
     this.sortlist = [];
     
@@ -577,7 +597,7 @@ export class EventDag {
     
     this.idmap = {};
     
-    this.ctx = undefined;
+    this.ctx = ctx;
     
     if (_event_dag_idgen == undefined)
       _event_dag_idgen = new EIDGen();
@@ -596,64 +616,65 @@ export class EventDag {
   }
   
   init_slots(node, object) {
-    node.inputs = {};
-    node.outputs = {};
     let ndef;
 
     ndef = get_ndef(object.constructor);
-    if (ndef !== undefined) {
+
+    if (ndef) {
       node.name = ndef.name;
       node.uiName = ndef.uiName;
-    }
 
-    if (object.constructor.dag_inputs != undefined) {
-      console.warn("Warning, NodeBase.dag_inputs is deprecated");
+      for (let i = 0; i < 2; i++) {
+        let key = i ? "outputs" : "inputs";
+        let stype = i ? "o" : "i";
 
-      for (var k in object.constructor.dag_inputs) {
-        var v = object.constructor.dag_inputs[k];
-        
-        node.inputs[k] = make_slot('i', k, v);
+        //get_ndef() already converted/inherited sockets
+        //node.outputs = build_sockets(object.constructor, "outputs");
+
+        let sockdef = ndef[key];
+        let socks = {};
+
+        node[key] = socks;
+
+        for (let k in sockdef) {
+          let sock = sockdef[k].copy();
+
+          //don't use slot definition's .data for collections,
+          //which are designed to be passed around by reference
+          //this is diferent from vectors/matrices, which are passed around by
+          //value.
+          if (sock.datatype == DataTypes.ARRAY || sock.datatype == DataTypes.SET) {
+            sock.data = makeDefaultSlotData(sock.datatype);
+          }
+
+          sock.type = stype;
+          sock.node = node;
+
+          socks[k] = sock;
+        }
       }
-    } else if (ndef) {
-      //get_ndef() already converted/inherited sockets
-      //node.inputs = build_sockets(object.constructor, "inputs");
+    } else {
+      console.warn("Failed to find node definition", object);
 
+      //failed to find nodedef
       node.inputs = {};
-      for (let k in ndef.inputs) {
-        node.inputs[k] = ndef.inputs[k].copy();
-      }
-    }
-    
-    if (object.constructor.dag_outputs != undefined) {
-      console.warn("Warning, NodeBase.dag_outputs is deprecated");
-      for (var k in object.constructor.dag_outputs) {
-        var v = object.constructor.dag_outputs[k];
-        
-        node.outputs[k] = make_slot('o', k, v);
-      }
-    } else if (ndef) {
-      //get_ndef() already converted/inherited sockets
-      //node.outputs = build_sockets(object.constructor, "outputs");
-
       node.outputs = {};
-      for (let k in ndef.outputs) {
-        node.outputs[k] = ndef.outputs[k].copy();
-      }
     }
   }
   
   indirect_node(ctx, path, object=undefined, auto_create=true) {
     if (path in this.node_pathmap)
       return this.node_pathmap[path];
+
     if (!auto_create) return undefined;
-    
+
     var node = new IndirectNode(path);
     this.node_pathmap[path] = node;
     
-    if (object == undefined) {
+    if (object === undefined) {
       //XXX getObject no longer gracefully handles undefined ctx,
       //make sure it exists
-      ctx = ctx === undefined ? new Context() : ctx;
+      ctx = ctx === undefined ? this.ctx : ctx;
       object = ctx.api.getObject(ctx, path);
     }
     
@@ -740,9 +761,6 @@ export class EventDag {
       return object;
     }
 
-    if (this.ctx == undefined)
-      this.ctx = new Context();
-    
     var node;
     
     if (DataPathNode.isDataPathNode(object)) {
@@ -756,7 +774,7 @@ export class EventDag {
     /*We build a dag_exec bridge here,
       to avoid lots of calls to empty functions*/
       
-    if (node != undefined && object.dag_exec != undefined && node.dag_exec == undefined) {
+    if (node !== undefined && object.dag_exec !== undefined && node.dag_exec === undefined) {
       //don't make cyclic reference from closure. . .
       //. . .pretty please?
       object = undefined;
@@ -764,7 +782,7 @@ export class EventDag {
       node.dag_exec = function(ctx, inputs, outputs, graph) {
         var owner = this.get_owner(ctx);
         
-        if (owner != undefined) {
+        if (owner !== undefined) {
           return owner.dag_exec.apply(owner, arguments);
         }
       }
@@ -819,22 +837,20 @@ export class EventDag {
 
       //don't want to make closure here
       dst.constructor.nodedef = wrap_ndef(ndef);
-      
+
       if (srcfield instanceof Array) {
         for (var i=0; i<srcfield.length; i++) {
           var field = srcfield[i];
           var field2 = dstfield[i];
-          
-          //console.log("field", field, srcnode.inputs, srcnode);
-          
+
           if (!(field in srcnode.outputs)) {
             console.trace(field, Object.keys(srcnode.outputs), srcnode);
-            
+
             throw new Error("Field not in outputs: " + field);
           }
-          
-          var type = srcnode.outputs[field].datatype;
-          ndef.inputs[field2] = TypeDefaults[type];
+
+          let sock = srcnode.outputs[field];
+          ndef.inputs[field2] = sock.copy();
         }
       }
     }
@@ -915,7 +931,7 @@ export class EventDag {
         var sock = n.inputs[k];
         
         for (var i=0; i<sock.length; i++) {
-          var n2 = sock.edges[i].opposite(sock).owner;
+          var n2 = sock.edges[i].opposite(sock).node;
           
           if (!(n2.flag & DagFlags.TEMP)) {
             sort(n2);
@@ -929,7 +945,7 @@ export class EventDag {
         var sock = n.outputs[k];
         
         for (var i=0; i<sock.length; i++) {
-          var n2 = sock.edges[i].opposite(sock).owner;
+          var n2 = sock.edges[i].opposite(sock).node;
           
           if (!(n2.flag & DagFlags.TEMP)) {
             sort(n2);
@@ -954,8 +970,27 @@ export class EventDag {
   on_update(node) {
     this.doexec = true;
   }
-  
+
+  startUpdateTimer() {
+    this.timer = window.setInterval(() => {
+      if (this.doexec && this.ctx !== undefined) {
+        this.exec(this.ctx);
+      }
+    }, 100);
+  }
+
   exec(ctx) {
+    if (ctx === undefined) {
+      ctx = this.ctx;
+    }
+
+    this.doexec = false;
+    this.ctx = ctx;
+
+    if (DEBUG.dag) {
+      console.log("eventdag EXEC");
+    }
+
     if (this.resort) {
       this.sort();
     }
@@ -980,23 +1015,7 @@ export class EventDag {
       }
       
       //console.log("have dag_exec?", owner.dag_exec != undefined);
-      
-      //flag child nodes that need updating first
-      for (var k in n.outputs) {
-        var s = n.outputs[k];
-        
-        if (!(s.flag & DagFlags.UPDATE))
-          continue;
-          
-        //console.log("Updating socket", k);
-        for (var j=0; j<s.edges.length; j++) {
-          //s.edges[j].opposite(s).flag |= DagFlags.UPDATE;
-          s.edges[j].opposite(s).owner.flag |= DagFlags.UPDATE;
-          
-          //console.log("Updating child node", s.edges[j].opposite(s).owner.get_owner(new Context()));
-        }
-      }
-      
+
       //does object have a dag node callback?
       if (owner == undefined || owner.dag_exec == undefined)
         continue;
@@ -1008,54 +1027,50 @@ export class EventDag {
         for (var j=0; j<sock.edges.length; j++) {
           var e = sock.edges[j], s2 = e.opposite(sock);
           
-          var n2 = s2.owner, owner2 = n2.get_owner(ctx);
+          var n2 = s2.node, owner2 = n2.get_owner(ctx);
           if (n2 == undefined) {
             //dead
             n2.flag |= DagFlags.DEAD;
             continue;
           }
           
-          if ((sock.flag & DagFlags.UPDATE) || sock.datatype == DataTypes.DEPEND) {
-            //for (var k=0; k<sock.edges.length; k++) {
-              //sock.edges[k].opposite(sock).owner.flag |= DagFlags.UPDATE;
-            //}
+          if (s2.flag & DagFlags.UPDATE) {
+            sock.loadData(s2.data);
           }
-          
-          
-          var data = s2.data != undefined || owner2 == undefined ? s2.data : owner2[s2.name];
-          
-          //cache data for later use if we need it, e.g. a node has died
-          if (data != undefined)
-            s2.data = data;
-          
-          switch (sock.datatype) {
-            case DataTypes.DEPEND: //do nothing
-              break;
 
-            case DataTypes.NUMBER:
-            case DataTypes.STRING:
-            case DataTypes.BOOL:
-            case DataTypes.ARRAY:
-            case DataTypes.SET:
-              sock.data = data;
-              break;
-            case DataTypes.VEC2:
-            case DataTypes.VEC3:
-            case DataTypes.VEC4:
-            case DataTypes.MATRIX4:
-              sock.data.load(data);
-              break;
-          }
+          //ignore any other input links
+          //it's such a specialist case that client code
+          //can fetch it themselves
+          break;
         }
       }
             
       owner.dag_exec(ctx, n.inputs, n.outputs, this);
+
+      //flag child nodes that need updating first
+      for (var k in n.outputs) {
+        var s = n.outputs[k];
+
+        if (!(s.flag & DagFlags.UPDATE))
+          continue;
+
+        s.flag &= ~DagFlags.UPDATE;
+
+        if (DEBUG.dag)
+          console.log("Propegating updated socket", k);
+
+        for (var j=0; j<s.edges.length; j++) {
+          s.edges[j].opposite(s).node.flag |= DagFlags.UPDATE;
+        }
+      }
+
     }
   }
 }
 
-window.init_event_graph = function init_event_graph() {
-  window.the_global_dag = new EventDag();
+window.init_event_graph = function init_event_graph(ctx) {
+  window.the_global_dag = new EventDag(ctx);
+  window.the_global_dag.startUpdateTimer();
 
   _event_dag_idgen = new EIDGen();
 }

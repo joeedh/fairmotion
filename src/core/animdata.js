@@ -53,11 +53,13 @@ export function get_vtime(v) {
   return -1;
 }
 
-export function set_vtime(v, time) {
+export function set_vtime(spline, v, time) {
   var ret = v.cdata.get_layer(TimeDataLayer);
   
   if (ret != undefined) {
     ret.time = time;
+
+    spline.flagUpdateVertTime(v);
   }
 }
 

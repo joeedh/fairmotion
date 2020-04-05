@@ -185,15 +185,15 @@ window.startup_intern = function startup() {
       startup_report("initializing data api...");
 
       init_data_api();
-      
-      startup_report("create event dag...")
-      init_event_graph();
 
       var body = document.body;
       g_app_state = new AppState(undefined, undefined, undefined);
       let w = window.innerWidth, h = window.innerHeight;
 
       g_app_state.size = [w, h];
+
+      startup_report("create event dag...");
+      init_event_graph(g_app_state.ctx);
 
       startup_report("loading new scene file...");
       gen_default_file([w, h]);

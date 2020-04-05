@@ -43,6 +43,7 @@ export * from 'config_local';
 
 //debug flags
 window._DEBUG = {
+  dag : false,
   theme : false,
   no_native : false,
   solve_order : false,
@@ -68,7 +69,6 @@ window._DEBUG = {
   ui_menus : false,
   ui_canvas : false,
   ui_redraw : false,
-  dag : false,
   icons : false,
   complex_ui_recalc : false,
   screen_keyboard : false, // !RELEASE

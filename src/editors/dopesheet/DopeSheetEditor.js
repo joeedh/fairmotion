@@ -39,6 +39,14 @@ import {ShiftTimeOp2, ShiftTimeOp3, SelectOp, DeleteKeyOp,
         ColumnSelect, SelectKeysToSide, ToggleSelectOp
        } from 'dopesheet_ops';
 
+let projrets = cachering.fromConstructor(Vector2, 128);
+
+const RecalcFlags = {
+  CHANNELS : 1,
+  REDRAW_KEYS : 2,
+  ALL : 1|2
+};
+
 /******************* main area struct ********************************/
 import {Area} from 'ScreenArea';
 import {Container, ColumnFrame, RowFrame} from '../../path.ux/scripts/ui.js';
@@ -234,6 +242,8 @@ export class TreePanel extends ColumnFrame {
   }
 
   reset() {
+    this.totpath = 0;
+
     for (let k in this.pathmap) {
       let v = this.pathmap[k];
 
@@ -253,8 +263,16 @@ export class TreePanel extends ColumnFrame {
     this.setCSS();
   }
 
+  _rebuild_redraw_all() {
+    this._redraw(true);
+  }
+
   recalc() {
-    this.doOnce(this._redraw);
+    this.doOnce(this._rebuild_redraw_all);
+  }
+
+  has_path(path) {
+    return path in this.pathmap;
   }
 
   add_path(path) {
@@ -369,7 +387,8 @@ export class PanOp extends ToolOp {
   
   on_mousemove(event) {
     var mpos = new Vector3([event.x, event.y, 0]);
-    
+
+    console.log(event.x, event.y);
     //console.log("mousemove!");
     
     if (this.first) {
@@ -377,18 +396,19 @@ export class PanOp extends ToolOp {
       this.start_mpos.load(mpos);
       
       return;
+    } else {
+
     }
     
     var ctx = this.modal_ctx;
-    mpos.sub(this.start_mpos).sub(this.ds.abspos); //.mulScalar(1.0/ctx.view2d.zoom);
-    
-    this.ds.pan[0] = this.start_pan[0] + mpos[0];
-    this.ds.pan[1] = this.start_pan[1] + mpos[1];
+
+    this.ds.pan[0] = this.start_pan[0] + (mpos[0] - this.start_mpos[0]);
+    this.ds.pan[1] = this.start_pan[1] + -(mpos[1] - this.start_mpos[1]);
     
     //this.cameramat.load(this.start_cameramat).translate(mpos[0], mpos[1], 0.0);
     //ctx.view2d.set_cameramat(this.cameramat);
     
-    this.ds.rebuild();
+    this.ds._redraw(RecalcFlags.REDRAW_KEYS);
   }
   
   on_mouseup(event) {
@@ -403,6 +423,10 @@ export class DopeSheetEditor extends Editor {
 
     this.rebuild_intern = this.rebuild_intern.bind(this)
     this._redraw = this._redraw.bind(this);
+
+    this._queue_full_recalc = true;
+    this._queueDagLink = true;
+    this._last_sel_ctx_key = "";
 
     this.pinned_ids = undefined;
     this.nodes = [];
@@ -425,6 +449,7 @@ export class DopeSheetEditor extends Editor {
     this.vdmap = {};
     this.heightmap = {};
     this.rowmap = {};
+    this.totchannel = 0;
 
     this.old_keyboxes = {}; //used to cache keybox rect to clear later, when key moves 
     this.collapsed_cache = {};
@@ -470,19 +495,18 @@ export class DopeSheetEditor extends Editor {
   init() {
     super.init();
 
-    //this.addEventListener("mousedown", this.on_mousedown.bind(this), false);
-    //this.addEventListener("mousemove", this.on_mousemove.bind(this), false);
-    //this.addEventListener("mouseup", this.on_mouseup.bind(this), false);
+    this.addEventListener("mousedown", this.on_mousedown.bind(this), false);
+    this.addEventListener("mousemove", this.on_mousemove.bind(this), false);
+    this.addEventListener("mouseup", this.on_mouseup.bind(this), false);
 
-    let canvas = this.canvas = document.createElement("canvas");
-    let g = this.g = canvas.getContext("2d");
+    let canvas = this.canvas = this.getCanvas("bg", 0, false); //document.createElement("canvas");
+    let g = this.g = canvas.g; //canvas.getContext("2d");
 
-    //this.shadow.appendChild(canvas);
+    let fgcanvas = this.fgcanvas = this.getCanvas("fg", 1, false);
 
     //let row = this.container.row();
 
     this.channels = document.createElement("dopesheet-treepanel-x");
-    this.shadow.appendChild(this.canvas);
     this.channels.float(0, 0);
 
     //row.add(this.channels);
@@ -494,20 +518,28 @@ export class DopeSheetEditor extends Editor {
   }
 
   get abspos() {
-    let rect = this.getClientRects();
+    let rect = this.getClientRects()[0];
 
     return new Vector2([rect.x, rect.y]);
   }
 
-  _redraw() {
-    this.dirty_rects.length = 0;
+  _redraw(full_recalc=0) {
+    //make sure canvas styling is up to date
+    this.getCanvas("bg");
+    this.getCanvas("fg");
+    this.getCanvas("grid");
+
+    if (full_recalc) {
+      let canvas = this.fgcanvas;
+      canvas.g.clearRect(0, 0, canvas.width, canvas.height);
+    }
 
     this.drawGrid();
-    this.rebuild_intern();
 
-    let g = this.g, canvas = this.canvas;
-
-
+    if (full_recalc) {
+      this.dirty_rects.length = 0;
+      this.rebuild_intern(full_recalc);
+    }
   }
 
   setCSS() {
@@ -517,25 +549,14 @@ export class DopeSheetEditor extends Editor {
       return;
     }
 
-    let dpi = UIBase.getDPI();
-
-    let w = ~~(this.size[0]*dpi+0.5);
-    let h = ~~(this.size[1]*dpi+0.5);
-
-    let w2 = this.size[0], h2 = this.size[1];
-
-    this.canvas.width = w;
-    this.canvas.height = h;
-
-    this.canvas.style["width"] = w2 + "px";
-    this.canvas.style["height"] = h2 + "px";
-
     //this.style["background-color"] = "rgba(0,0,0,0)";
 
     let rect = this.canvas.getClientRects()[0];
     if (rect !== undefined) {
       let rect2 = this.getClientRects()[0];
-      this.channels.float(0.0, rect.top - rect2.top);
+      let dpi = UIBase.getDPI();
+
+      this.channels.float(0.0, rect.top - rect2.top + this.pan[1]/dpi);
     }
   }
 
@@ -645,8 +666,8 @@ export class DopeSheetEditor extends Editor {
 
     var pan = this.pan;
 
-    ph.pos[0] = this.time_zero_x-2+this.scaletime(ph.time)+pan[0];
-    ph.pos[1] = y//+pan[1];
+    ph.pos[0] = this.time_zero_x-2+this.scaletime(ph.time) + pan[0];
+    ph.pos[1] = y + pan[1]; //TreePanel.get_y takes this into account: + pan[1];
 
     ph.size[0] = cwid, ph.size[1] = chgt;
 
@@ -696,7 +717,7 @@ export class DopeSheetEditor extends Editor {
     var pan = this.pan;
 
     ph.pos[0] = this.time_zero_x-2+this.scaletime(ph.time)+pan[0];
-    ph.pos[1] = y//+pan[1];
+    ph.pos[1] = y+pan[1];
 
     ph.size[0] = cwid, ph.size[1] = chgt;
 
@@ -721,18 +742,20 @@ export class DopeSheetEditor extends Editor {
       v.flag &= ~SplineFlags.UI_SELECT;
   }
 
-  recalc() {
-    this.doOnce(() => {
-      this._redraw();
-    });
+  recalc(flag=RecalcFlags.REDRAW_KEYS) {
+    console.trace("dopesheet recalc called");
+    this._queue_full_recalc = flag;
   }
 
   updateDPI() {
     let dpi = UIBase.getDPI();
 
     if (dpi != this._last_dpi) {
+      console.log("dopesheet recalc dpi");
+
       this._last_dpi = dpi;
-      this.recalc();
+      this.setCSS();
+      this._redraw(RecalcFlags.ALL);
     }
   }
 
@@ -744,45 +767,36 @@ export class DopeSheetEditor extends Editor {
     if (this.ctx == undefined)
       return;
 
+    let selctx = this.ctx.spline.buildSelCtxKey();
+
+    if (selctx != this._last_sel_ctx_key) {
+      this._last_sel_ctx_key = selctx;
+      this.recalc();
+    }
+
+    if (this._queue_full_recalc) {
+      let flag = this._queue_full_recalc;
+
+      this._queue_full_recalc = false;
+
+      this._redraw(flag);
+    }
+
     var scene = this.ctx.scene;
 
     if (scene.time != this.last_time) {
       //console.log("detected frame update!");
+      this._redraw(false);
 
-      var time_x1 = this.time_zero_x + this.scaletime(this.last_time) + this.pan[0];
-      var time_x = this.time_zero_x + this.scaletime(scene.time) + this.pan[0];
-
-      if (time_x1 >= 0 && time_x1 <= this.size[0]) {
-        this.dirty_rects.push([[this.abspos[0]+time_x1-8, this.abspos[1]], [16, this.size[1]]]);
-        this.recalc();
-      }
-
-      if (time_x >= 0 && time_x <= this.size[0]) {
-        this.dirty_rects.push([[this.abspos[0]+time_x-8, this.abspos[1]], [16, this.size[1]]]);
-        this.recalc();
-      }
       this.last_time = scene.time;
     }
 
+    this.first = false;
     var this2 = this;
-    function on_sel() {
-      console.log("------------------on sel!----------------");
-      return this2.on_vert_select.apply(this2, arguments);
-    }
 
-    if (this.first) {
-      if (this.ctx == undefined) {
-        this.ctx = new Context();
-      }
 
-      var ctx = this.ctx;
-      this.first = false;
-
-      this.nodes.push(on_sel);
-
-      //on_vert_select
-      the_global_dag.link(ctx.frameset.spline.verts, ["on_select_add"], on_sel, ["eid"]);
-      the_global_dag.link(ctx.frameset.spline.verts, ["on_select_sub"], on_sel, ["eid"]);
+    if (this._queueDagLink) {
+      this.linkEventDag();
     }
 
     let pathcount = this.channels.countPaths(true);
@@ -791,6 +805,61 @@ export class DopeSheetEditor extends Editor {
       this._last_path_count = pathcount;
       this.recalc();
     }
+  }
+
+  linkEventDag() {
+    var ctx = this.ctx;
+
+    if (ctx === undefined) {
+      console.log("No ctx for dopesheet editor linkEventDag")
+      //wait for ctx
+      return;
+    }
+
+    if (this.nodes.length > 0) {
+      this.dag_unlink_all();
+    }
+
+    this._queueDagLink = false;
+
+    function on_sel() {
+      console.log("------------------on sel!----------------");
+      return this2.on_vert_select.apply(this2, arguments);
+    }
+
+    let on_vert_change = (ctx, inputs, outputs, graph) => {
+      this.recalc();
+    };
+
+    let on_vert_time_change = (ctx, inputs, outputs, graph) => {
+      console.log(inputs, inputs ? Object.keys(inputs) : inputs);
+
+      let verts = inputs.verts.data;
+      let spline = ctx.frameset.spline;
+
+      for (let eid of verts) {
+        let v = spline.eidmap[eid];
+
+        if (v === undefined || v.type != SplineTypes.VERTEX) {
+          console.log("error in dopesheet on_vert_time_change node");
+          continue;
+        }
+
+        this._on_sel_1(eid);
+      }
+    };
+
+    this.nodes.push(on_sel);
+    this.nodes.push(on_vert_change);
+
+    //on_vert_select
+    the_global_dag.link(ctx.frameset.spline.verts, ["on_select_add"], on_sel, ["eid"]);
+    the_global_dag.link(ctx.frameset.spline.verts, ["on_select_sub"], on_sel, ["eid"]);
+
+    //callback for when verts are added and removed
+    the_global_dag.link(ctx.frameset.spline, ["on_vert_change"], on_vert_change, ["verts"]);
+
+    the_global_dag.link(ctx.frameset.spline, ["on_vert_time_change"], on_vert_time_change, ["verts"]);
   }
 
   on_vert_select() {
@@ -896,17 +965,17 @@ export class DopeSheetEditor extends Editor {
   }
 
   //bind feeds vd
-  _on_sel_1(vd, nothing, veid) {
+  _on_sel_1(veid) {
       //console.log(vd);
       var v = this.ctx.frameset.pathspline.eidmap[veid];
-      if (v == undefined) {;
+      if (v === undefined) {
         var id = veid | KeyTypes.PATHSPLINE;
 
         if (id in this.old_keyboxes) {
           var key2 = this.old_keyboxes[id];
 
           this.dirty_rects.push([
-              [key2.pos[0]+this.abspos[0], key2.pos[1]+this.abspos[1]],
+              [key2.pos[0], key2.pos[1]],
               [Math.abs(key2.size[0]), key2.size[1]]
           ]);
 
@@ -931,7 +1000,7 @@ export class DopeSheetEditor extends Editor {
           var key2 = this.old_keyboxes[id];
 
           this.dirty_rects.push([
-              [key2.pos[0]+this.abspos[0], key2.pos[1]+this.abspos[1]],
+              [key2.pos[0], key2.pos[1]],
               [Math.abs(key2.size[0]), key2.size[1]]
           ]);
 
@@ -1016,10 +1085,12 @@ export class DopeSheetEditor extends Editor {
 
     return (function*() {
       var channels = this2.get_vdatas();
-      var y = this2.getBarHeight() + 2, chgt = this2.CHGT;
+      var y = 2, chgt = this2.CHGT;
 
       for (var vd of channels) {
         for (var v of vd.verts) {
+          //let's not use individual vertex nodes in the event graph after all
+          /*
           if (!(v.eid in this2.vmap)) {
             var on_sel = this2._on_sel_1.bind(this2, vd);
             this2.nodes.push(on_sel);
@@ -1034,6 +1105,7 @@ export class DopeSheetEditor extends Editor {
 
             this2.vmap[v.eid] = on_sel;
           }
+          //*/
           this2.vdmap[v.eid] = vd.eid;
 
           //if (!(v.eid in this2.heightmap))
@@ -1062,8 +1134,37 @@ export class DopeSheetEditor extends Editor {
     }
   }
 
-  findnearest(mpos, limit=18) {
-    var y = this.getBarHeight()+2;
+  getLocalMouse(x, y) {
+    let ret = projrets.next();
+
+    let dpi = UIBase.getDPI();
+
+    //x -= this.pan[0]/dpi;
+    //y -= this.pan[1]/dpi;
+
+    let canvas = this.get_bg_canvas();
+    let rect = canvas.getClientRects()[0];
+
+    if (rect === undefined) {
+      console.warn("error in getLocalMouse");
+      ret[0] = (x - this.pos[0])*dpi;
+      ret[1] = (y - this.pos[1])*dpi;
+      return ret;
+    }
+
+    //console.log(x, rect.left);
+
+    ret[0] = (x - rect.left) * dpi;
+    ret[1] = (y - rect.top) * dpi;
+    ret[2] = 0.0;
+
+    return ret;
+  }
+
+  findnearest(mpos, limit=48) {
+    mpos = this.getLocalMouse(mpos[0], mpos[1]);
+
+    var y = 0; //this.getBarHeight()+2;
     var subverts = [];
     var subpathkeys = [];
     var rettype = 0;
@@ -1126,7 +1227,7 @@ export class DopeSheetEditor extends Editor {
       }
     }
 
-    if (rethigh != undefined) {
+    if (rethigh !== undefined) {
       if (rethigh.type == KeyTypes.PATHSPLINE)
         rethigh = this.get_vertkey(rethigh.v.eid);
       else
@@ -1147,6 +1248,8 @@ export class DopeSheetEditor extends Editor {
   }
 
   on_mousedown(event) {
+    console.log("dopesheet mousedown!");
+
     if (event.button == 0) {
       var nearest = this.findnearest([event.x, event.y]);
 
@@ -1208,16 +1311,13 @@ export class DopeSheetEditor extends Editor {
 
       this.mdown = true;
     } else if (event.button == 2) {
+      console.log(event.x, event.y);
       var tool = new PanOp([event.x, event.y, 0], this);
       g_app_state.toolstack.execTool(tool);
     }
   }
 
   on_mousemove(event) {
-    if (super.on_mousemove(event)) {
-      return;
-    }
-
     if (this.mdown) {
       var dx = event.x - this.start_mpos[0];
       var dy = event.y - this.start_mpos[1];
@@ -1250,7 +1350,7 @@ export class DopeSheetEditor extends Editor {
       return;
     }
 
-    //console.log("dopesheet mousemove");
+    //console.log("dopesheet mousemove", this.getLocalMouse(event.x, event.y));
     var key = this.findnearest([event.x, event.y]);
 
     //console.log("nearest: ", key, event.x, event.y);
@@ -1328,7 +1428,7 @@ export class DopeSheetEditor extends Editor {
     this._recalc_cache[hash] = true;
 
     this.dirty_rects.push([
-        [key.pos[0]+this.abspos[0], key.pos[1]+this.abspos[1]],
+        [key.pos[0], key.pos[1]],
         [Math.abs(key.size[0]), key.size[1]]
     ]);
 
@@ -1336,17 +1436,17 @@ export class DopeSheetEditor extends Editor {
       var key2 = this.old_keyboxes[key.id];
 
       this.dirty_rects.push([
-          [key2.pos[0]+this.abspos[0], key2.pos[1]+this.abspos[1]],
+          [key2.pos[0], key2.pos[1]],
           [Math.abs(key2.size[0]), key2.size[1]]
       ]);
     }
 
-    this.do_recalc();
+    this.rebuild_intern(RecalcFlags.REDRAW_KEYS);
   }
 
   drawGrid() {
-    let canvas = this.canvas;
-    let g = this.g;
+    let canvas = this.getCanvas("grid", -1, false);
+    let g = canvas.g
 
     var fsize = this.scaletime(1.0);
 
@@ -1374,7 +1474,7 @@ export class DopeSheetEditor extends Editor {
 
     var si =  Math.abs(Math.floor(off2/cellx)); // Math.floor(Math.abs(this.pan[0])/cellx);
 
-    g.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    g.clearRect(0, 0, canvas.width, canvas.height);
     g.lineWidth = 1;
 
     for (var i=0; i<totx; i++, si++) {
@@ -1427,13 +1527,13 @@ export class DopeSheetEditor extends Editor {
     }
   }
 
-  //get_bg_canvas() {
-  //  return this.getCanvas("bg");
-  //}
+  get_bg_canvas() {
+    return this.getCanvas("bg", 0, false);
+  }
 
   simple_box(p, size, clr) {
-    let canvas = this.canvas; //this.get_bg_canvas();
-    let g = this.g;
+    let canvas = this.fgcanvas; //this.get_bg_canvas();
+    let g = canvas.g;
 
     g.lineWidth = 1;
 
@@ -1455,9 +1555,10 @@ export class DopeSheetEditor extends Editor {
     g.closePath();
     //*/
 
-    //let dpi = UIBase.getDPI();
+    let dpi = UIBase.getDPI();
 
     g.rect(p[0], p[1], size[0], size[1]);
+    //g.rect(p[0]*dpi, p[1]*dpi, size[0]*dpi, size[1]*dpi);
 
     g.fill();
     g.lineWidth = 1;
@@ -1479,13 +1580,13 @@ export class DopeSheetEditor extends Editor {
 
   time_overlay(canvas) {
     var v1 = new Vector2();
-    var timeline_y = this.getBarHeight()+1, y = timeline_y;
+    var timeline_y = 0, y = timeline_y;
 
     var fsize = this.scaletime(1.0);
     var tclr = [1, 1, 1, 1.0];
 
     var clr = [0.2, 0.2, 0.2, 0.7];
-    this.simple_box([0, this.getBarHeight()-1], [this.size[0], this.getBarHeight()], clr);
+    this.simple_box([0, 0-1], [this.size[0], 0], clr);
 
     var time_x = this.time_zero_x+this.scaletime(this.ctx.scene.time)+this.pan[0];
 
@@ -1517,7 +1618,13 @@ export class DopeSheetEditor extends Editor {
     ]
   }
 
-  rebuild_intern(canvas) {
+  rebuild_intern(do_full_rebuild=0) {
+    console.warn("Dopesheet rebuild!!");
+
+    if (do_full_rebuild) {
+      this.rebuild_vdmap();
+    }
+
     var channels = this.channels;
 
     let barheight = this.getBarHeight();
@@ -1539,14 +1646,18 @@ export class DopeSheetEditor extends Editor {
       keys.push(list(kret));
     }
 
+    this.totchannel = totpath;
+
     this.update_collapsed_cache();
     var collapsed = this._tree_collapsed_map();
     let channel_regen = false;
 
-    if (totpath !== this.channels.totpath) {
-      console.log("rebuilding channel tree", keys.length);
+    channel_regen = do_full_rebuild & RecalcFlags.CHANNELS;
+    channel_regen = channel_regen || totpath !== this.channels.totpath;
 
-      channel_regen = true;
+    if (channel_regen) {
+      console.log("rebuilding channel tree", totpath, this.channels.totpath);
+
       this.channels.reset();
 
       for (var i = 0; i < keys.length; i++) {
@@ -1557,7 +1668,9 @@ export class DopeSheetEditor extends Editor {
           continue;
         }
 
-        this.channels.add_path(keybox.path);
+        if (!this.channels.has_path(keybox.path)) {
+          this.channels.add_path(keybox.path);
+        }
       }
       ;
 
@@ -1585,6 +1698,8 @@ export class DopeSheetEditor extends Editor {
     //this.simple_box([0, 0], [this.size[0], this.size[1]], [1, 1, 1, 1]);
     //give channel boxes time to layout
     if (channel_regen) {
+      this.setCSS();
+
       this.doOnce(() => {
         this.rebuild_intern_2();
       }, 330);
@@ -1602,7 +1717,7 @@ export class DopeSheetEditor extends Editor {
 
     var chgt = this.CHGT;
 
-    var y = barheight+2;
+    var y = 0;
     this.heightmap = {};
 
     var cwid = this.CWID;
@@ -1610,6 +1725,8 @@ export class DopeSheetEditor extends Editor {
     var this2 = this;
 
     //console.log("post", rect[0], rect[1]);
+
+    var margin = 2;
 
     var pos = [0, 0]
     var size = [0, 0];
@@ -1621,6 +1738,8 @@ export class DopeSheetEditor extends Editor {
     var active_color = [1, 0.5, 0.25, 1.0];
     var borderclr = [0.3, 0.3, 0.3, 1.0];
     var unselclr = [0.3, 0.3, 0.3, 1.0];
+
+    let dpi = UIBase.getDPI();
 
     //for (var i=0; i<keys.length; i++) {
     for (var kret of this.get_keyboth()) {
@@ -1635,16 +1754,16 @@ export class DopeSheetEditor extends Editor {
         this.heightmap[keybox.id] = keybox.pos[1];
         this.channels.add_path(keybox.path);
 
-        pos[0] = keybox.pos[0] + this.abspos[0];
-        pos[1] = keybox.pos[1] + this.abspos[1];
-
-        if (!aabb_isect_2d(pos, keybox.size, rect[0], rect[1])) {
-          //continue;
-        }
-
-        var margin = 2;
+        //pos[0] = keybox.pos[0];// + this.abspos[0];
+        //pos[1] = keybox.pos[1];// + this.abspos[1];
         pos[0] = keybox.pos[0] + margin;
         pos[1] = keybox.pos[1] + margin;
+
+        //if (!aabb_isect_2d(pos, keybox.size, rect[0], rect[1])) {
+          //continue;
+        //}
+
+        var margin = 2;
         size[0] = keybox.size[0] - margin*2;
         size[1] = keybox.size[1] - margin*2;
 
@@ -1672,6 +1791,7 @@ export class DopeSheetEditor extends Editor {
     //this.time_overlay(canvas);
     //super.build_draw(canvas);
     this._recalc_cache = {};
+    this.setCSS();
   }
 
   redraw_eid(eid) {
@@ -1721,6 +1841,7 @@ export class DopeSheetEditor extends Editor {
 
   on_area_active() {
     super.on_area_active();
+    this._queueDagLink = true;
     console.log("dopesheet active!");
   }
 
@@ -1909,6 +2030,13 @@ export class DopeSheetEditor extends Editor {
   }
 
   data_link(block : DataBlock, getblock : Function, getblock_us : Function) {
+
+  }
+
+  on_fileload(ctx) {
+    console.log("relinking dopesheet editor in event dag after file-based undo");
+    this._queueDagLink = true;
+    this.recalc();
   }
 
   loadSTRUCT(reader) {

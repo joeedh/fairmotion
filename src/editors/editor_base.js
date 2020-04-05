@@ -136,8 +136,9 @@ export class Editor extends Area {
     this.keymap = new KeyMap();
   }
 
-  getCanvas(id, zindex) {
+  getCanvas(id, zindex, patch_canvas2d_matrix=true) {
     let canvas;
+    let dpi = ui_base.UIBase.getDPI();
 
     if (id in this.canvases) {
       canvas = this.canvases[id];
@@ -147,29 +148,34 @@ export class Editor extends Area {
       canvas = this.canvases[id] = document.createElement("canvas");
       canvas.g = this.canvases[id].getContext("2d");
 
-      patch_canvas2d(canvas.g);
+      if (patch_canvas2d_matrix) {
+        patch_canvas2d(canvas.g);
+      }
 
       this.shadow.prepend(canvas);
 
       canvas.style["position"] = "absolute";
     }
 
-    canvas.style["z-index"] = zindex;
+    if (canvas.style["z-index"] != zindex) {
+      canvas.style["z-index"] = zindex;
+    }
 
     if (this.size !== undefined) {
-      let w = ~~(this.size[0] * window.devicePixelRatio);
-      let h = ~~(this.size[1] * window.devicePixelRatio);
+      let w = ~~(this.size[0] * dpi);
+      let h = ~~(this.size[1] * dpi);
 
-      if (canvas.width != w) {
+      let sw = this.size[0] + "px";
+      let sh = this.size[1] + "px";
+
+      if (canvas.width != w || canvas.style["width"] != sw) {
         canvas.width = w;
-        canvas.style["width"] = (~~this.size[0]) + "px";
-        //this.eventdiv.style["width"] = (~~this.size[0]) + "px";
+        canvas.style["width"] = sw;
       }
 
-      if (canvas.height != h) {
+      if (canvas.height != h || canvas.style["height"] != sh) {
         canvas.height = h;
-        canvas.style["height"] = (~~this.size[1]) + "px";
-        //this.eventdiv.style["height"] = (~~this.size[1]) + "px";
+        canvas.style["height"] = sh;
       }
     }
 
@@ -177,6 +183,14 @@ export class Editor extends Area {
   }
 
   on_destroy() {
+
+  }
+
+  /**
+   * mostly called by AppState.load_undo_file,
+   * called when a file is loaded into an existing screen UI
+   * */
+  on_fileload(ctx) {
 
   }
 

@@ -828,18 +828,26 @@ export class ElementArray extends GArray {
   }
   
   setselect(e : SplineElement, state : Boolean) {
-    if (state && !(e.flag & SplineFlags.SELECT)) {
-      this.dag_update("on_select_add", this.type);
-      
-    } else if (!state && (e.flag & SplineFlags.SELECT)) {
-      this.dag_update("on_select_sub", this.type);
-    }
-    
     if (e.type != this.type) {
       console.trace("Warning: bad element fed to ElementArray! Got ", e.type, " but expected", this.type);
       return;
     }
-    
+
+    let selchange = 0;
+
+    if (state && !(e.flag & SplineFlags.SELECT)) {
+      this.dag_update("on_select_add", this.type);
+      selchange = 1;
+      
+    } else if (!state && (e.flag & SplineFlags.SELECT)) {
+      this.dag_update("on_select_sub", this.type);
+      selchange = 1;
+    }
+
+    if (selchange) {
+      this.dag_update("on_select_change", this.type);
+    }
+
     var changed = !!(e.flag & SplineFlags.SELECT) != !!state;
     
     if (state) {

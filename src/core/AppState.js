@@ -478,7 +478,7 @@ export class AppState {
   AppState_init(screen : FrameManager, mesh : Mesh, gl : WebGLRenderingContext) {
     this.screen = screen;
     this.eventhandler = screen : EventHandler;
-    
+
     this.active_editor = undefined;
     
     this._nonblocks = new set (["SCRN", "TSTK", "THME"]);
@@ -528,6 +528,8 @@ export class AppState {
     } else {
       this.session = new UserSession();
     }
+
+    this.ctx = new Context(this);
   }
 
   set_modalstate(state=0) {
@@ -699,7 +701,7 @@ export class AppState {
     this.active_view2d = view2d;
     
     this.toolstack = toolstack;
-    this.screen.ctx = new Context();
+    this.screen.ctx = this.ctx = new Context();
     
     if (the_global_dag !== undefined)
       the_global_dag.reset_cache();
@@ -729,6 +731,12 @@ export class AppState {
     
     this.screen.ctx = new Context();
     window.redraw_viewport();
+
+    for (let sarea of screen.sareas) {
+      for (let area of sarea.editors) {
+        area.on_fileload(this.ctx);
+      }
+    }
   }
   
   /*
@@ -2157,6 +2165,9 @@ class ToolStack {
   }
   
   undo() {
+    //flush event graph
+    the_global_dag.exec(this.ctx);
+
     if (this.undocur > 0 && (this.undostack[this.undocur-1].undoflag & UndoFlags.UNDO_BARRIER))
       return;
     if (this.undocur > 0 && !(this.undostack[this.undocur-1].undoflag & UndoFlags.HAS_UNDO_DATA))
@@ -2186,6 +2197,9 @@ class ToolStack {
   }
 
   redo() {
+    //flush event graph
+    the_global_dag.exec(this.ctx);
+
     if (this.undocur < this.undostack.length) {
       var tool = this.undostack[this.undocur];
       var ctx = new Context();
@@ -2397,6 +2411,9 @@ class ToolStack {
   }
 
   execTool(tool : ToolOp) {
+    //flush event graph
+    the_global_dag.exec(this.ctx);
+
     this.set_tool_coll_flag(tool);
     
     /*if (this.appstate.screen && 

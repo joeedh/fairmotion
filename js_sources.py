@@ -107,6 +107,7 @@ sources = [
   "src/path.ux/scripts/FrameManager.js",
   "src/path.ux/scripts/FrameManager_ops.js",
   "src/path.ux/scripts/toolprop.js",
+  "src/path.ux/scripts/toolprop_abstract.js",
   "src/path.ux/scripts/ui_noteframe.js",
   "src/path.ux/scripts/image.js",
   "src/path.ux/scripts/const.js",

@@ -21,7 +21,18 @@ export class SplineLayer extends set {
     
     this.name = "unnamed";
   }
-  
+
+  copyStructure() {
+    let ret = new SplineLayer();
+
+    ret.id = this.id;
+    ret.order = this.order;
+    ret.flag = this.flag;
+    ret.name = "" + this.name;
+
+    return ret;
+  }
+
   add(e) {
     if (e == undefined) {
       console.trace("WARNING: e was undefined in SplineLayer.add");
@@ -79,7 +90,7 @@ export class SplineLayer extends set {
   }
 }
 
-SplineLayer.STRUCT = """
+SplineLayer.STRUCT = `
 SplineLayer {
   id    : int;
   order : int;
@@ -87,7 +98,7 @@ SplineLayer {
   eids  : array(int) | obj._to_EIDs();
   name  : string;
 }
-""";
+`;
 
 export class SplineLayerSet extends Array {
   constructor() {
@@ -101,6 +112,28 @@ export class SplineLayerSet extends Array {
     this._active = undefined;
     
     this.flag = 0;
+  }
+
+  copyStructure() {
+    let ret = new SplineLayerSet();
+
+    ret.idgen = this.idgen.copy();
+    ret.flag = this.flag;
+
+    for (let layer of this) {
+      let layer2 = layer.copyStructure();
+
+      ret.namemap[layer2.name] = layer2;
+      ret.idmap[layer2.id] = layer2;
+
+      if (layer === this.active) {
+        ret.active = layer2;
+      }
+
+      super.push.call(ret, layer2);
+    }
+
+    return ret;
   }
 
   rename(id, oldname, newname, validate=false) {
@@ -173,7 +206,9 @@ export class SplineLayerSet extends Array {
   }
   
   validate_name(name) {
-    if (!(name in this.namemap)) return;
+    if (!(name in this.namemap))
+      return name;
+
     var i = 1;
     
     while ((name + " " + i) in this.namemap) {
@@ -307,8 +342,13 @@ export class SplineLayerSet extends Array {
     reader(ret);
     
     for (var i=0; i<ret._layers.length; i++) {
-      ret.push(ret._layers[i]);
+      if (!ret._layers[i].name) {
+        console.log("Layer name corruption detected");
+        ret._layers[i].name = "Layer " + (i+1);
+      }
+
       ret._layers[i].order = i;
+      ret.push(ret._layers[i]);
     }
     
     ret.active = ret.idmap[ret.active];
@@ -759,12 +799,12 @@ export class ElementArray extends GArray {
     }
   }
   
-  push(e : SplineElement, custom_eid=undefined) {
-    if (e.cdata == undefined || e.cdata.length != this.cdata.layers.length) {
+  push(e : SplineElement, custom_eid=undefined, add_to_layerset=true) {
+    if (e.cdata === undefined || e.cdata.length !== this.cdata.layers.length) {
       e.cdata = this.cdata.gen_edata();
     }
     
-    if (custom_eid == undefined) {
+    if (custom_eid === undefined) {
       e.eid = this.idgen.gen_id();
     } else {
       e.eid = custom_eid;
@@ -779,9 +819,11 @@ export class ElementArray extends GArray {
       e.flag &= ~SplineFlags.SELECT;
       this.setselect(e, true);
     }
-    
-    this.layerset.active.add(e);
-    e.layers[this.layerset.active.id] = 1;
+
+    if (add_to_layerset) {
+      this.layerset.active.add(e);
+      e.layers[this.layerset.active.id] = 1;
+    }
   }
   
   remove(e : SplineElement, soft_error=false) {

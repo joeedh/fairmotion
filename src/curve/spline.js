@@ -285,7 +285,8 @@ export class Spline extends DataBlock {
     var ret = new Spline();
     
     ret.idgen = this.idgen.copy();
-    
+    ret.layerset = this.layerset.copyStructure();
+
     for (var i=0; i<ret.elists.length; i++) {
       ret.elists[i].idgen = ret.idgen;
       ret.elists[i].cdata.load_layout(this.elists[i].cdata);
@@ -293,40 +294,44 @@ export class Spline extends DataBlock {
     
     var eidmap = ret.eidmap;
     
-    for (var si=0; si<2; si++) {
+    for (let si=0; si<2; si++) {
       var list1 = si ?  this.handles : this.verts;
       var list2 = si ?  ret.handles  : ret.verts;
       
-      for (var i=0; i<list1.length; i++) {
+      for (let i=0; i<list1.length; i++) {
         var v = list1[i];
         var v2 = new SplineVertex(v);
 
-        if (si == 1) {
+        if (si === 1) {
           v2.type = SplineTypes.HANDLE;
         }
+
+        v2.load(v);
         v2.flag = v.flag;
         v2.eid = v.eid;
-        list2.push(v2);
-        
+        list2.push(v2, v2.eid, false);
+
+        for (let layeri in v.layers) {
+          ret.layerset.idmap[layeri].add(v2);
+        }
+
         if (si == 1) {
           ret.copy_handle_data(v2, v);
-          v2.load(v);
         } else {
           ret.copy_vert_data(v2, v);
-          v2.load(v);
         }
         
-        eidmap[v2.eid] = v2;
+        eidmap[v.eid] = v2;
         
-        if (v == list1.active)
+        if (v === list1.active)
           list2.active = v2;
       }
     }
     
-    for (var i=0; i<this.segments.length; i++) {
+    for (let i=0; i<this.segments.length; i++) {
       var s = this.segments[i];
       var s2 = new SplineSegment();
-      
+
       s2.eid = s.eid;
       s2.flag = s.flag;
       ret.segments.push(s2);
@@ -334,7 +339,7 @@ export class Spline extends DataBlock {
       
       if (s == this.segments.active)
         ret.segments.active = s;
-      
+
       s2.h1 = eidmap[s.h1.eid];
       s2.h2 = eidmap[s.h2.eid];
       s2.h1.segments.push(s2);
@@ -355,6 +360,10 @@ export class Spline extends DataBlock {
         s2.h2.hpair = eidmap[s.h2.hpair.eid]
       
       ret.copy_segment_data(s2, s);
+
+      for (let layeri in s.layers) {
+        ret.layerset.idmap[layeri].add(s2);
+      }
     }
     
     for (var i=0; i<this.faces.length; i++) {
@@ -380,6 +389,10 @@ export class Spline extends DataBlock {
       
       if (f == this.faces.active)
         ret.faces.active = f2;
+
+      for (let layeri in f.layers) {
+        ret.layerset.idmap[layeri].add(f2);
+      }
     }
     
     return ret;

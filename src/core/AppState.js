@@ -1650,7 +1650,7 @@ export class ToolContext {
     this.scene = scene;
     this.edit_all_layers = ctx.edit_all_layers;
 
-    this.api = g_app_state.api;
+    this.api = g_app_state.pathcontroller;
   }
 }
 window.ToolContext = ToolContext;
@@ -1751,7 +1751,7 @@ class SavedContext {
   }
    
   get api() : DataAPI {
-    return g_app_state.api;
+    return g_app_state.pathcontroller;
   }
   
   static fromSTRUCT(reader) : SavedContext {

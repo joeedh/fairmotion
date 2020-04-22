@@ -5,16 +5,44 @@ import {SplineLocalToolOp} from 'spline_editops';
 import {StringProperty, IntProperty, FloatProperty, 
         BoolProperty, CollectionProperty} from 'toolprops';
 
-export class AddLayerOp extends SplineLocalToolOp {
+export class SplineLayerOp extends SplineLocalToolOp {
+  static tooldef() {return {
+    inputs : ToolOp.inherit({
+      spline_path: new StringProperty("frameset.drawspline")
+    })
+  }}
+
+  get_spline(ctx) {
+    return ctx.api.getValue(this.inputs.spline_path.data);
+  }
+}
+
+export class AddLayerOp extends SplineLayerOp {
   constructor(name) {
     super(undefined, "Add Layer");
     
     if (name != undefined)
       this.inputs.name.set_data(name);
   }
-  
+
+  static tooldef() {return {
+    uiname   : "Add Layer",
+    apiname  : "spline.layers.add",
+
+    inputs   : ToolOp.inherit({
+      name        : new StringProperty("Layer", "name", "Name", "Layer Name"),
+      make_active : new BoolProperty(true, "Make Active"),
+    }),
+
+    outputs : ToolOp.inherit({
+      layerid : new IntProperty(0, "layerid", "layerid", "New Layer ID")
+    }),
+    is_modal : false
+  };}
+
   can_call(ctx) {
-    return ctx.spline === ctx.frameset.spline; //only allow on drawspline
+    let spline = ctx.api.getValue(ctx, this.inputs.spline_path.data);
+    return spline !== undefined;
   }
   /*
   undo_pre(ctx) {
@@ -22,51 +50,45 @@ export class AddLayerOp extends SplineLocalToolOp {
   
   undo(ctx) {
     var id = this.outputs.layerid.data;
-    var layer = ctx.spline.layerset.idmap[id];
+    var layer = this.get_spline(ctx).layerset.idmap[id];
     
     if (layer == undefined) {
       console.log("WARNING: could not find layer to delete!");
       return;
     }
     
-    ctx.spline.layerset.remove(layer);
-    ctx.spline.regen_sort();
+    this.get_spline(ctx).layerset.remove(layer);
+    this.get_spline(ctx).regen_sort();
   }//*/
   
   exec(ctx) {
-    var layer = ctx.spline.layerset.new_layer(this.inputs.name.data);
+    console.warn(ctx, ctx.api);
+    let spline = ctx.api.getValue(ctx, this.inputs.spline_path.data);
+
+    var layer = spline.layerset.new_layer(this.inputs.name.data);
     this.outputs.layerid.set_data(layer.id);
     
     if (this.inputs.make_active.data) {
-      ctx.spline.layerset.active = layer;
+      spline.layerset.active = layer;
       
       //clear actives
-      for (var list of ctx.spline.elists) {
+      for (var list of spline.elists) {
         list.active = undefined;
       }
     }
     
-    ctx.spline.regen_sort();
+    spline.regen_sort();
   }
 }
 
-AddLayerOp.inputs = {
-  name        : new StringProperty("Layer", "name", "Name", "Layer Name"),
-  make_active : new BoolProperty(true, "Make Active")
-};
-
-AddLayerOp.outputs = {
-  layerid : new IntProperty(0, "layerid", "layerid", "New Layer ID")
-};
-
-export class ChangeLayerOp extends ToolOp {
+export class ChangeLayerOp extends SplineLayerOp {
   static tooldef() {return {
     uiname   : "Change Layer",
     apiname  : "spline.layers.set",
   
-    inputs   : {
+    inputs   : ToolOp.inherit({
       layerid : new IntProperty(0, "layerid", "layerid", "Layer ID")
-    },
+    }),
     is_modal : false
   };}
   
@@ -78,7 +100,7 @@ export class ChangeLayerOp extends ToolOp {
   }
   
   undo_pre(ctx) {
-    var spline = ctx.spline;
+    var spline = this.get_spline(ctx);
     
     var actives = [];
     for (var list of spline.elists) {
@@ -86,13 +108,13 @@ export class ChangeLayerOp extends ToolOp {
     }
     
     this._undo = {
-      id : ctx.spline.layerset.active.id,
+      id : this.get_spline(ctx).layerset.active.id,
       actives : actives
     }
   }
   
   undo(ctx) {
-    var spline = ctx.spline;
+    var spline = this.get_spline(ctx);
     var layer = spline.layerset.idmap[this._undo.id];
     var actives = this._undo.actives;
     
@@ -109,7 +131,7 @@ export class ChangeLayerOp extends ToolOp {
   }
   
   exec(ctx) {
-    var spline = ctx.spline;
+    var spline = this.get_spline(ctx);
     var layer = spline.layerset.idmap[this.inputs.layerid.data];
     
     if (layer == undefined) {
@@ -127,7 +149,7 @@ export class ChangeLayerOp extends ToolOp {
   }
 };
 
-export class ChangeElementLayerOp extends SplineLocalToolOp {
+export class ChangeElementLayerOp extends SplineLayerOp {
   constructor(old_layer, new_layer) {
     super(undefined, "Move to Layer");
     
@@ -137,10 +159,23 @@ export class ChangeElementLayerOp extends SplineLocalToolOp {
     if (new_layer != undefined)
       this.inputs.new_layer.set_data(new_layer);
   }
-  
+
+  static tooldef() {return {
+    name   : "move_to_layer",
+    uiname : "Move To Layer",
+    path   : "spline.move_to_layer",
+    inputs : ToolOp.inherit({
+      old_layer : new IntProperty(0),
+      new_layer : new IntProperty(0)
+    }),
+    outputs : {
+
+    }
+  }}
+
   exec(ctx) {
-    var spline = ctx.spline;
-    
+    var spline = this.get_spline(ctx);
+
     var oldl = this.inputs.old_layer.data;
     var newl = this.inputs.new_layer.data;
     
@@ -171,12 +206,8 @@ export class ChangeElementLayerOp extends SplineLocalToolOp {
     spline.regen_sort();
   }
 }
-ChangeElementLayerOp.inputs = {
-  old_layer : new IntProperty(0),
-  new_layer : new IntProperty(0)
-}
 
-export class DeleteLayerOp extends SplineLocalToolOp {
+export class DeleteLayerOp extends SplineLayerOp {
   constructor() {
     super(undefined);
   }
@@ -185,14 +216,14 @@ export class DeleteLayerOp extends SplineLocalToolOp {
     uiname   : "Delete Layer",
     apiname  : "spline.layers.remove",
     
-    inputs   : {
+    inputs   : ToolOp.inherit({
       layer_id : new IntProperty(-1)
-    },
+    }),
     is_modal : false
   }}
   
   exec(ctx) {
-    var spline = ctx.spline;
+    var spline = this.get_spline(ctx);
     var layer = spline.layerset.idmap[this.inputs.layer_id.data];
     
     if (layer == undefined) {

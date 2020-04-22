@@ -971,7 +971,7 @@ class MassSetPathOp extends ToolOp {
   
   undo_pre(Context ctx) {
     var value = this._get_value(ctx);
-    var paths = ctx.api.build_mass_set_paths(ctx, this.path, this.subpath, value, this.filterstr);
+    var paths = ctx.api.buildMassSetPaths(ctx, this.path, this.subpath, value, this.filterstr);
     
     var ud = this._undo = {};
     for (var i=0; i<paths.length; i++) {
@@ -983,7 +983,7 @@ class MassSetPathOp extends ToolOp {
 
   undo(Context ctx) {
     var value = this._get_value(ctx);
-    var paths = ctx.api.build_mass_set_paths(ctx, this.path, this.subpath, value, this.filterstr);
+    var paths = ctx.api.buildMassSetPaths(ctx, this.path, this.subpath, value, this.filterstr);
     
     var ud = this._undo;
     for (var k in ud) {

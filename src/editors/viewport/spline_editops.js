@@ -54,7 +54,8 @@ export class ShiftLayerOrderOp extends ToolOp {
     
     inputs   : {
       layer_id : new IntProperty(0),
-      off      : new IntProperty(1)
+      off      : new IntProperty(1),
+      spline_path : new StringProperty("frameset.drawspline")
     },
     outputs  : {},
     icon     : -1,
@@ -62,7 +63,7 @@ export class ShiftLayerOrderOp extends ToolOp {
   }}
   
   exec(ctx) {
-    var spline = ctx.spline;
+    var spline = ctx.api.getValue(ctx, this.inputs.spline_path.data);
     
     var layer = this.inputs.layer_id.data;
     layer = spline.layerset.idmap[layer];

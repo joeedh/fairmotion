@@ -32,6 +32,10 @@ class LayerPanel extends Container {
     this.delayed_recalc = 0;
   }
 
+  init() {
+    super.init();
+  }
+
   update() {
     if (this.do_rebuild) {
       this.rebuild();
@@ -69,7 +73,13 @@ class LayerPanel extends Container {
     this.last_total_layers = spline.layerset.length;
     this.last_active_id = spline.layerset.active.id;
 
-    for (let child of list(this.dom.childNodes)) {
+    for (let child of this.childNodes) {
+      child.remove();
+    }
+    for (let child of this.shadow.childNodes) {
+      child.remove();
+    }
+    for (let child of this.children) {
       child.remove();
     }
 
@@ -81,6 +91,7 @@ class LayerPanel extends Container {
       var layer = spline.layerset[i];
 
       let row = listbox.addItem(layer.name, layer.id);
+      console.log("Adding item", layer.name);
       //list.add_item(layer.name, layer.id);
     }
 

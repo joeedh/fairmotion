@@ -154,9 +154,10 @@ export class PathUXInterface extends ModelInterface {
   }
 
   //TODO: work out and document mass set interface for path.ux
-  //buildMassSetPaths(ctx, listpath, subpath, value, filterstr) {
-  //  return this.api.build_mass_set_paths(ctx, listpath, subpath, value, filterstr);
-  //}
+
+  buildMassSetPaths(ctx, listpath, subpath, value, filterstr) {
+    return this.api.build_mass_set_paths(ctx, listpath, subpath, value, filterstr);
+  }
 
   massSetProp(ctx, mass_set_path, value) {
     //let rdef = this.resolvePath(ctx, path);

@@ -1975,8 +1975,8 @@ def p_concise_body(p):
     p[0] = p[2]
 
 def p_arrowparamlist_opt(p):
-  '''arrowparamlist_opt : ID
-                        | arrowparamlist_opt COMMA ID
+  '''arrowparamlist_opt : var_decl_no_list
+                        | arrowparamlist_opt COMMA var_decl_no_list
                         |
   '''
 #todo: support rest parameters

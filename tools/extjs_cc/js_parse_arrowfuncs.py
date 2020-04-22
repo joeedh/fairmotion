@@ -9,6 +9,15 @@ arrow_re = re.compile(r'\=\>')
 assign_re = re.compile(r'\=')
 rest_re = re.compile(r'\.\.\.')
 
+s = r'(' + r'[a-zA-Z$_]+[a-zA-Z_$0-9]*' + r')';
+s += r'(\s*\=.+'
+s += r')?'
+s += r'(?=[,)])'
+id_with_default_re = re.compile(s)
+
+#print(s)
+#print(id_with_default_re.match("a"))
+
 class ValidateException (RuntimeError):
   pass
   
@@ -44,8 +53,12 @@ def arrow_validate(lexdata, lexpos, lookahead_limit):
   def id(required=True):
     return reget(id_re, required)
   
+  def id_with_default(required=True):
+    return reget(id_with_default_re, required)
+    
   def comma(required=True):
-    return reget(comma_re, required)
+    
+    reget(comma_re, required)
   
   def arrow(required=True):
     return reget(arrow_re, required)
@@ -83,7 +96,7 @@ def arrow_validate(lexdata, lexpos, lookahead_limit):
         comma()
       first = 0
       
-      id()
+      id_with_default()
       c = peek()
         
     rparen()

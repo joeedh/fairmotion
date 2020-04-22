@@ -1573,7 +1573,7 @@ def add_func_opt_code(result, typespace):
       if is_opt: 
         was_opt = True
         code = js_parse("""
-          if ($s1 == undefined) {
+          if ($s1 === undefined) {
             $s1 = $n2;
           }
         """, (name, p[0]));

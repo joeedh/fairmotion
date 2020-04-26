@@ -1,4 +1,4 @@
-import {STRUCT} from 'struct';
+import {STRUCT} from '../core/struct.js';
 import {SplineFlags, SplineTypes, CustomDataLayer,
         CustomData, CustomDataSet} from 'spline_types';
 

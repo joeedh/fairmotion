@@ -3,7 +3,7 @@ import {Area} from 'ScreenArea';
 import {patchMouseEvent, ToolOp, UndoFlags} from 'toolops_api';
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
   charmap, TouchEventManager, EventHandler} from "../events";
-import {STRUCT} from 'struct';
+import {STRUCT} from '../../core/struct.js';
 import {UIBase} from 'ui_base';
 import {ImageUser} from 'imageblock';
 import {SplineEditor} from 'view2d_spline_ops';
@@ -14,8 +14,8 @@ import {SelMask, ToolModes} from 'selectmode';
 import {ManipulatorManager, Manipulator,
   HandleShapes, ManipFlags, ManipHandle} from 'manipulator';
 
-import * as view2d_editor from 'view2d_editor';
-export var EditModes = view2d_editor.EditModes;
+import {EditModes} from 'view2d_editor';
+export {EditModes} from 'view2d_editor';
 
 let projrets = cachering.fromConstructor(Vector3, 128);
 

@@ -5,7 +5,7 @@ var PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,
     asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
 
 import * as spline_multires from 'spline_multires';
-import {STRUCT} from 'struct';
+import {STRUCT} from '../core/struct.js';
 import {DataBlock, DataTypes} from 'lib_api';
 import {SessionFlags} from 'view2d_editor';
 import {SelMask} from 'selectmode';

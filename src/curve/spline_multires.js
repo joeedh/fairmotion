@@ -8,7 +8,7 @@ var acos = Math.acos, asin = Math.asin, abs=Math.abs, log=Math.log,
     atan2=Math.atan2, exp=Math.exp, ceil=Math.ceil;
     
 //import {RestrictFlags, Spline} from 'spline';
-import {STRUCT} from 'struct';
+import {STRUCT} from '../core/struct.js';
 
 import {CustomDataLayer, SplineTypes, SplineFlags, CurveEffect} from 'spline_base';
 

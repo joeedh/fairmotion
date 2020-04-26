@@ -1,6 +1,6 @@
 "use strict";
 ;
-import {STRUCT} from 'struct';
+import {STRUCT} from './struct.js';
 import {pack_int, pack_float, pack_static_string} from 'ajax';
 import {setPropTypes} from '../path.ux/scripts/toolprop'
 

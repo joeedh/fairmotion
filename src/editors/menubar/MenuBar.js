@@ -1,5 +1,5 @@
 import {Area} from 'ScreenArea';
-import {STRUCT} from 'struct';
+import {STRUCT} from '../../core/struct.js';
 import {UIBase} from 'ui_base';
 import {Editor} from 'editor_base';
 import * as ui_widgets from 'ui_widgets';

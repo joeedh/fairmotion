@@ -1,5 +1,5 @@
 import {Area} from 'ScreenArea';
-import {STRUCT} from 'struct';
+import {STRUCT} from '../../core/struct.js';
 import {UIBase} from 'ui_base';
 import {Editor} from 'editor_base';
 
@@ -39,7 +39,7 @@ import {UITabBar} from 'UITabPanel';
 import {UICollapseIcon, UIPanel} from 'UIWidgets_special';
 
 import {UICanvas} from 'UICanvas';
-import {STRUCT} from 'struct';
+import {STRUCT} from '../../core/struct.js';
 import {RowFrame, ColumnFrame} from 'UIPack';
 
 import {KeyMap, VelocityPan, HotKey, FuncKeyHandler} from '../events';

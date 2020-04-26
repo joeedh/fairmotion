@@ -4,7 +4,7 @@
 SCRAPPED
 */
 
-import {STRUCT} from 'struct';
+import {STRUCT} from '../../core/struct.js';
 import {SelMask} from 'selectmode';
 import {SplineTypes} from 'spline_base';
 

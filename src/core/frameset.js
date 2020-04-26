@@ -1,14 +1,12 @@
 "use strict";
 
-import {STRUCT} from 'struct';
+import {STRUCT} from './struct.js';
 import {DataBlock, DataTypes} from 'lib_api';
 import {Spline, RestrictFlags} from 'spline';
 import {CustomDataLayer, SplineTypes, SplineFlags, SplineSegment} from 'spline_types';
 import {TimeDataLayer, get_vtime, set_vtime, AnimChannel, AnimKey,
         AnimInterpModes, AnimKeyFlags} from 'animdata';
 import {SplineLayerFlags, SplineLayerSet} from 'spline_element_array';
-
-import 'struct';
 
 import * as animspline from 'animspline';
 

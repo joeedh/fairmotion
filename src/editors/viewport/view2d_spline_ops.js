@@ -12,8 +12,10 @@ var ScreenArea, Area;
 
 //$XXX import {gen_editor_switcher} from 'UIWidgets_special';
 import {DataTypes} from 'lib_api';
-import {STRUCT} from 'struct';
+import {STRUCT} from '../../core/struct.js';
 import {EditModes} from 'view2d_editor';
+let EditModes2 = EditModes;
+console.warn("EDITMODES2", EditModes2, _es6_module, _es6_get_module("view2d_editor").exports);
 
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
         charmap, TouchEventManager, EventHandler} from '../events';
@@ -285,7 +287,7 @@ import {EditorTypes} from 'view2d_base';
 export class SplineEditor extends View2DEditor {
   constructor(view2d) {
     var keymap = new KeyMap();
-    super("Geometry", EditorTypes.SPLINE, EditModes.GEOMETRY, DataTypes.FRAMESET, keymap);
+    super("Geometry", EditorTypes.SPLINE, EditModes2.GEOMETRY, DataTypes.FRAMESET, keymap);
     
     this.mpos = new Vector3();
     this.start_mpos = new Vector3();
@@ -306,6 +308,11 @@ export class SplineEditor extends View2DEditor {
     m.keymap = this.keymap;
     
     return m;
+  }
+
+  loadSTRUCT(reader) {
+    reader(this);
+
   }
 
   static fromSTRUCT(reader) {

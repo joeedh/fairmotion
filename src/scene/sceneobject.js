@@ -1,4 +1,4 @@
-import {STRUCT} from 'struct';
+import {STRUCT} from '../core/struct.js';
 import {DataTypes, DataBlock} from "../core/lib_api";
 
 export let UpdateFlags = {

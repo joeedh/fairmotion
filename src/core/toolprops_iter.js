@@ -1,6 +1,6 @@
 "use strict";
 
-import {STRUCT} from 'struct';
+import {STRUCT} from './struct.js';
 
 /*
   Iterator Tool property design:

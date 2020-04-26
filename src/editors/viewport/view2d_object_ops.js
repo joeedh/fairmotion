@@ -17,7 +17,7 @@ var ScreenArea, Area;
 
 //$XXX import {gen_editor_switcher} from 'UIWidgets_special';
 import {DataTypes} from 'lib_api';
-import {STRUCT} from 'struct';
+import {STRUCT} from '../../core/struct.js';
 import {EditModes} from 'view2d_editor';
 
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,

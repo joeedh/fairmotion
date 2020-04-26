@@ -1,5 +1,5 @@
 import {Area} from 'ScreenArea';
-import {STRUCT} from 'struct';
+import {STRUCT} from '../../core/struct.js';
 import {Container} from 'ui';
 import {Editor} from 'editor_base';
 
@@ -460,7 +460,7 @@ import {
 } from 'mathlib';
 
 import {UICanvas} from 'UICanvas';
-import {STRUCT} from 'struct';
+import {STRUCT} from '../../core/struct.js';
 import {PackFlags} from 'UIElement';
 
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,

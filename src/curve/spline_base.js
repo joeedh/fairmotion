@@ -7,7 +7,7 @@ var acos = Math.acos, asin = Math.asin, abs=Math.abs, log=Math.log,
     max=Math.max, sin=Math.sin, cos=Math.cos, tan=Math.tan, atan=Math.atan,
     atan2=Math.atan2, exp=Math.exp;
     
-import {STRUCT} from 'struct';
+import {STRUCT} from '../core/struct.js';
 import 'mathlib';
 import {DataPathNode} from 'eventdag';
 

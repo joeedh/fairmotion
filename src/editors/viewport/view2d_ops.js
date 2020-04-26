@@ -2,7 +2,7 @@
 
 //multitouch
 import {ToolOp, UndoFlags, ToolFlags} from 'toolops_api';
-import {STRUCT} from 'struct';
+import {STRUCT} from '../../core/struct.js';
 import {unpack_ctx} from 'ajax';
 
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,

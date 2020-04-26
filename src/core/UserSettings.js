@@ -3,7 +3,7 @@ import * as config from 'config';
 import {reload_default_theme} from '../datafiles/theme.js';
 import {b64encode, b64decode} from 'strutils';
 //#XXX import {download_file} from 'dialogs';
-import {STRUCT} from 'struct';
+import {STRUCT} from './struct.js';
 
 export class AppSettings {
   constructor() {

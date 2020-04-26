@@ -1,5 +1,5 @@
 import {DataBlock, DataTypes, BlockFlags} from 'lib_api';
-import {STRUCT} from 'struct';
+import {STRUCT} from './struct.js';
 import {ModalStates} from 'toolops_api';
 import {SelMask} from 'selectmode';
 import {SessionFlags} from 'view2d_editor';

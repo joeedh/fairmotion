@@ -14,7 +14,7 @@ import {
   TPropFlags, PropTypes
 } from 'toolprops';
 
-import {STRUCT} from 'struct';
+import {STRUCT} from '../core/struct.js';
 import * as math from 'mathlib';
 import {DataPathNode, NodeBase} from 'eventdag';
 

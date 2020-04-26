@@ -1,6 +1,6 @@
 "use strict";
 
-import {STRUCT} from 'struct';
+import {STRUCT} from '../core/struct.js';
 
 export function darken(c, m) {
   for (var i=0; i<3; i++) {

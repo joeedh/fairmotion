@@ -68,14 +68,33 @@ def module_transform(node, typespace):
   def exportfromvisit(n):
     name = get_module_ident(n.name.val)
 
-    n2 = js_parse("""
-      import * as _$s1 from '$s2';
+    print(n[0])
+    
+    if len(n) > 0 and n[0].val == "*":
+      n2 = js_parse("""
+        import * as _$s1 from '$s2';
+        
+        for (let k in _$s1) {
+          _es6_module.add_export(k, _$s1[k], true);
+        }
+      """, [name, n.name.val])
+    else:
+      n2 = StatementList();
       
-      for (let k in _$s1) {
-        _es6_module.add_export(k, _$s1[k], true);
-      }
-    """, [name, n.name.val])
-
+      depends.add(n.name.val);
+      
+      for id in n:
+        name = id.gen_js(0)
+        
+        n3 = js_parse("""
+        let _ex_$s1 = es6_import_item(_es6_module, '$s2', '$s1');
+        
+        _es6_module.add_export('$s1', _ex_$s1, true);
+        
+        """, [name, n.name.val]);
+        
+        n2.add(n3)
+    
     n.parent.replace(n, n2)
   #print(node)
 

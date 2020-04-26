@@ -133,7 +133,7 @@ import {AppSettings} from 'UserSettings';
 import {JobManager} from 'jobs';
 import {RasterState} from 'raster';
 import {NotificationManager, Notification} from 'notifications';
-import {STRUCT} from 'struct';
+import {STRUCT} from './struct.js';
 import {get_data_typemap} from 'lib_api_typedefine';
 import {Screen} from 'FrameManager';
 import {ScreenArea, Area} from 'ScreenArea';
@@ -162,7 +162,7 @@ import {
 
 //#ifdef PACK_PROFILE
 import {profile_reset, profile_report, gen_struct_str, 
-        STRUCT} from 'struct';
+        STRUCT} from './struct.js';
 //#endif
 
 export var FileFlags = {COMPRESSED_LZSTRING : 1};

@@ -1,6 +1,6 @@
 "use strict";
 
-import {STRUCT} from 'struct';
+import {STRUCT} from './struct.js';
 import {DataBlock, DataTypes} from 'lib_api';
 import {Spline, RestrictFlags} from 'spline';
 import {CustomDataLayer, SplineTypes, SplineFlags, SplineSegment} from 'spline_types';

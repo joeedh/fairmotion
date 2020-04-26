@@ -1,6 +1,6 @@
 import {Image} from 'imageblock';
 import {DataTypes} from 'lib_api';
-import {STRUCT} from 'struct';
+import {STRUCT} from '../core/struct.js';
 import {IntProperty, FloatProperty, CollectionProperty,
         BoolProperty, StringProperty, TPropFlags, 
         DataRefProperty, ArrayBufferProperty} from 'toolprops';

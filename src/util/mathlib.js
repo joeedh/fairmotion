@@ -2,7 +2,7 @@
 
 #include "src/core/utildefine.js"
 
-import {STRUCT} from 'struct';
+import {STRUCT} from '../core/struct.js';
 
 export var feps = 2.22e-16;
 

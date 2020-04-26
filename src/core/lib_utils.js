@@ -3,7 +3,7 @@
 import "../editors/events";
 import "toolprops_iter";
 
-import {STRUCT} from "struct";
+import {STRUCT} from "./struct.js";
 import {EventHandler} from "../editors/events";
 import {charmap} from "../editors/events";
 

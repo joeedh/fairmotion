@@ -9,7 +9,7 @@ import {
 } from 'mathlib';
 
 import {ToolOp, UndoFlags, ToolFlags} from 'toolops_api';
-import {STRUCT} from 'struct';
+import {STRUCT} from '../core/struct.js';
 
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, KeyHandler, 
         charmap, TouchEventManager, EventHandler} from "../editors/events";

@@ -66,7 +66,6 @@ sources = [
 	"src/core/units.js",
 	"src/core/data_api.js",
   "src/core/data_api_parser.js",
-	"src/core/struct.js",
   "src/core/video.js",
 	"src/core/fileapi.js",
 	"src/core/fileapi_html5.js",
@@ -118,6 +117,8 @@ sources = [
   "src/path.ux/scripts/simple_events.js",
   #"src/path.ux/scripts/config.js",
 
+	"src/core/struct.js",
+  
   "src/curve/curve.js",
   "src/curve/curvebase.js",
   #"src/curve/bspline.js",

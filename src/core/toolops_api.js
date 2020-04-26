@@ -2,7 +2,7 @@
 
 import {PropTypes, TPropFlags}  from 'toolprops';
   
-import {STRUCT} from 'struct';
+import {STRUCT} from './struct.js';
 import {EventHandler} from "../editors/events";
 import {charmap} from "../editors/events";
 

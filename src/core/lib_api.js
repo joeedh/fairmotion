@@ -1,6 +1,6 @@
 "use strict";
 
-import {STRUCT} from 'struct';
+import {STRUCT} from './struct.js';
 
 /* 
   NOTE: be careful when you assume a given datablock reference is not undefined.

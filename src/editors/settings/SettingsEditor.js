@@ -1,5 +1,5 @@
 import {Area} from 'ScreenArea';
-import {STRUCT} from 'struct';
+import {STRUCT} from '../../core/struct.js';
 import {UIBase} from 'ui_base';
 import {Editor} from 'editor_base';
 
@@ -29,7 +29,7 @@ import {
 } from 'mathlib';
 
 import {UICanvas} from 'UICanvas';
-import {STRUCT} from 'struct';
+import {STRUCT} from '../../core/struct.js';
 import {PackFlags, UIElement, UIFlags, CanvasFlags} from 'UIElement';
 import {UIFrame} from 'UIFrame';
 

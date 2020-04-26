@@ -1,7 +1,7 @@
 "use strict";
 
 import {PropTypes} from 'toolprops';
-import {STRUCT} from 'struct';
+import {STRUCT} from './struct.js';
 
 import {CustomDataLayer, SplineTypes, SplineFlags} from 'spline_base';
 import {DataPathWrapperNode} from 'eventdag';

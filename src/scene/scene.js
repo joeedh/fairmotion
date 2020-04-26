@@ -1,4 +1,4 @@
-import {STRUCT} from 'struct';
+import {STRUCT} from '../core/struct.js';
 import {DataBlock, DataTypes} from 'lib_api';
 import {SplineFrameSet} from "../core/frameset";
 import {SceneObject, ObjectFlags} from 'sceneobject';

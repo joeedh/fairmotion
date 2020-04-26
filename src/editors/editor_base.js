@@ -1,6 +1,6 @@
 import {Area, ScreenArea} from 'ScreenArea';
 import {Screen} from 'FrameManager';
-import {STRUCT} from 'struct';
+import {STRUCT} from '../core/struct.js';
 import * as ui_base from "../path.ux/scripts/ui_base";
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
   charmap, TouchEventManager, EventHandler} from "./events";

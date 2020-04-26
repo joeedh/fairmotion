@@ -1,6 +1,6 @@
 "use strict";
 
-import {STRUCT} from 'struct';
+import {STRUCT} from '../../core/struct.js';
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
   charmap, TouchEventManager, EventHandler} from '../events';
 //import {WidgetResizeOp, WidgetRotateOp} from "./transform_ops";

@@ -1,5 +1,5 @@
 import {Area} from 'ScreenArea';
-import {STRUCT} from 'struct';
+import {STRUCT} from '../../core/struct.js';
 import {UIBase} from 'ui_base';
 import {Editor} from 'editor_base';
 
@@ -31,7 +31,7 @@ import {gen_editor_switcher} from 'UIWidgets_special';
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
   charmap, TouchEventManager, EventHandler} from '../events';
 
-import {STRUCT} from 'struct';
+import {STRUCT} from '../../core/struct.js';
 import {phantom, KeyTypes, FilterModes,
   get_select, get_time, set_select, set_time
 } from 'dopesheet_phantom';

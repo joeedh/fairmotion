@@ -341,7 +341,7 @@ export class SplineSegment extends SplineElement {
     minmax.minmax(co);
     
     var ds = 1.0/(steps-1);
-    for (var i=0, s=0; i<steps; i++, s += ds) {
+    for (let i=0, s=0; i<steps; i++, s += ds) {
       
       var co = this.evaluate(s*0.999999999);
       minmax.minmax(co);

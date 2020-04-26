@@ -1,6 +1,6 @@
 "use strict";
 
-import {ColorTheme, ui_weight_clr, BoxColor4} from 'theme';
+import {ColorTheme, ui_weight_clr, BoxColor4} from './theme.js';
 
 function uniformbox4(clr) {
   return new BoxColor4([clr, clr, clr, clr]);

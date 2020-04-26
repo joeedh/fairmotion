@@ -5,26 +5,30 @@ import {pack_int, pack_float, pack_static_string} from 'ajax';
 import {setPropTypes} from '../path.ux/scripts/toolprop'
 
 export var PropTypes = {
-  INT    : 0,
-  FLOAT  : 1,
-  STRING : 4,
-  VEC3   : 6,
-  VEC4   : 7,
-  BOOL   : 8,
-  MATRIX3: 12,
-  MATRIX4: 13,
-  ENUM   : 14,
-  STRUCT      : 15, //internal type to data api
-  FLAG        : 16,
-  DATAREF     : 17,
-  DATAREFLIST : 18,
-  TRANSFORM   : 19, //ui-friendly matrix property
-  COLLECTION  : 20,
-  VEC2        : 21,
-  IMAGE       : 22, //this is only a subtype, used with DataRefProperty
-  ARRAYBUFFER : 23,
-  COLOR3      : 24,
-  COLOR4      : 25
+  INT : 1,
+  STRING : 2,
+  BOOL : 4,
+  ENUM : 8,
+  FLAG : 16,
+  FLOAT : 32,
+  //ITER : 32,
+  VEC2 : 64,
+  VEC3 : 128,
+  VEC4 : 256,
+  MATRIX4 : 512,
+  QUAT : 1024,
+  //PROPLIST : 4096,
+  //STRSET : 8192
+
+  STRUCT      : 1<<15, //internal type to data api
+  DATAREF     : 1<<16,
+  DATAREFLIST : 1<<17,
+  TRANSFORM   : 1<<18, //ui-friendly matrix property
+  COLLECTION  : 1<<19,
+  IMAGE       : 1<<20, //this is only a subtype, used with DataRefProperty
+  ARRAYBUFFER : 1<<21,
+  COLOR3      : 1<<22,
+  COLOR4      : 1<<23
 };
 
 setPropTypes(PropTypes);
@@ -1149,7 +1153,7 @@ export class type_filter_iter extends ToolIter {
     var this2 = this;
     
     function has_type(obj) {
-      for (i=0; i<tlen; i++) {
+      for (let i=0; i<tlen; i++) {
         if (obj instanceof types[i]) return true;
       }
       

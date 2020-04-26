@@ -1484,13 +1484,40 @@ def flatten_statementlists(node, typespace):
   
   return node  
 
+def flatten_var_decls_exprlists(node, typespace):
+  def visit(start):
+    def visit1(n):
+      if type(n[0]) != ExprListNode:
+        return
+      if len(n[0]) < 2 or type(n[0][1]) != AssignNode:
+        return
+      
+      an = n[0][1]
+      
+      if type(an[0]) != IdentNode:
+        return
+      
+      vn = VarDeclNode(an[1], name=an[0].val)
+      vn.val = an[0].val
+      vn.add(UnknownTypeNode())
+      
+      an.parent.remove(an)
+      start.add(vn)
+      
+      visit1(vn)
+      #print(n)
+    
+    visit1(start)
+    
+  traverse(node, VarDeclNode, visit, False)
+  
 def kill_bad_globals(node, typespace):
   def recurse(n, scope, tlevel=0):
     def descend(n2, start=0):
       for c in n2.children[start:]:
         recurse(c, scope, tlevel)
     
-    if type(n) == FunctionNode:
+    if isinstance(n, FunctionNode):
       scope = dict(scope)
       args = n.get_args()
       

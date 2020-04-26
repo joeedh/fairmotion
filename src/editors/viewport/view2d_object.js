@@ -212,7 +212,7 @@ export class WorkSpline extends WorkObjectType {
       
       return true;
     } else if (e.type == SplineTypes.SEGMENT) {
-      p = this.getPos(ei);
+      let p = this.getPos(ei);
       p.sub(pos).negate();
       
       e.v1.add(p);

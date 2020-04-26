@@ -277,7 +277,7 @@ from js_generators import *
 from js_process_ast import traverse, traverse_i, null_node, \
                            find_node, flatten_statementlists, \
                            kill_bad_globals, expand_harmony_classes, create_class_list,\
-                           transform_exisential_operators
+                           transform_exisential_operators, flatten_var_decls_exprlists
 
 from js_module import module_transform
 
@@ -707,13 +707,15 @@ def parse_intern_es6(data):
       glob.g_error = True
     
     result = StatementList()
-
+  
   if glob.g_error:
     print_err(glob.g_error_pre)
   
   if glob.g_print_nodes:
     print(result)
-   
+  
+  flatten_var_decls_exprlists(result, typespace)
+  
   typespace = JSTypeSpace()
   
   #handle some directives
@@ -894,6 +896,8 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
     print_err(glob.g_error_pre)
     
   typespace = JSTypeSpace()
+
+  flatten_var_decls_exprlists(result, typespace)
   
   #handle some directives
   for c in result:

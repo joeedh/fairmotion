@@ -1686,12 +1686,13 @@ class TryNode(Node):
     
     #if len(self.children) == 0:
     #  c1 = s + self.s("{\n" + t + "}\n")
-      
+    
     if type(self.children[0]) != StatementList:
-      c1 = s + self.s("\n") + "%s%s" % (t2, self.children[0].gen_js(tlevel))
+      c1 = s + self.s("{\n") + "%s%s" % (t2, self.children[0].gen_js(tlevel))
+      c1 += self.s("}")
     else:
       c1 = s + self.s("{\n") 
-      c1 += self.children[0].gen_js(tlevel) + self.s(t) + self.s("}\n")
+      c1 += self.children[0].gen_js(tlevel) + self.s(t) + self.s("}")
       
     if len(self.children) > 1:
       c2 = ""
@@ -1700,7 +1701,7 @@ class TryNode(Node):
     else:
       c2 = ""
     
-    return c1 + c2
+    return c1 #+ c2
     
   def extra_str(self):
     return ""
@@ -2325,6 +2326,14 @@ class ExportIdent(IdentNode):
     IdentNode.__init__(self, name)
 
     self.bindname = binding
+    
+class BindingArg(IdentNode):
+  def __init__(self, id):
+    IdentNode.__init__(self, id, True)
+    self.val = id
+  
+  def gen_js(self, tlevel=0):
+    return self.s("..." + str(self.val))
     
 class ImportNode(Node):
   '''

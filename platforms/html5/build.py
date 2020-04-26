@@ -15,8 +15,16 @@ def copy(src, dst):
     cmd = "copy" if is_win32 else "cp"
     cmd += ' "%s" "%s"' % (src, dst)
 
+    f1 = open(src, "rb");
+    buf = f1.read()
+    f1.close()
+    
+    f2 = open(dst, "wb")
+    f2.write(buf)
+    f2.close()
+    
     #print(cmd)
-    os.system(cmd)
+    #os.system(cmd)
 
 def build():
   print("Building html5 app. . .")

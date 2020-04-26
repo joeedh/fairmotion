@@ -220,7 +220,7 @@ class ViewRotateZoomPanOp extends ToolOp {
     var vec = new Vector3(v2);
     vec.sub(v1);
     
-    newmat = new Matrix4(this.start_mat);
+    let newmat = new Matrix4(this.start_mat);
     
     if (isNaN(vec[0]) || isNaN(vec[1]) || isNaN(vec[2]))
       return;
@@ -315,12 +315,12 @@ class ViewRotateOp extends ToolOp {
     var vec = new Vector3(v2);
     vec.sub(v1);
     
-    perp = new Vector3([-vec[1], vec[0], 0.0]);
+    let perp = new Vector3([-vec[1], vec[0], 0.0]);
     var q = new Quat();
     q.axisAngleToQuat(perp, vec.vectorLength()*2);
-    mat = q.toMatrix();
+    let mat = q.toMatrix();
     
-    newmat = new Matrix4(mat);
+    let newmat = new Matrix4(mat);
     newmat.multiply(this.start_mat);
     
     ctx.view2d.drawmats.cameramat = newmat;
@@ -382,7 +382,7 @@ class ViewPanOp extends ToolOp {
       this.start_mpos[1] = this.start_mpos[1]/(this.modal_ctx.view2d.size[1]/2) - 1.0;
     }
     
-    mstart = new Vector3(this.start_mpos);
+    let mstart = new Vector3(this.start_mpos);
 
     var mend = new Vector3([event.x, event.y, 0.0]);
     mend[0] = mend[0]/(this.modal_ctx.view2d.size[0]/2) - 1.0;
@@ -423,7 +423,7 @@ class ViewPanOp extends ToolOp {
     var vec = new Vector3(v2);
     vec.sub(v1);
     
-    newmat = new Matrix4(this.start_mat);
+    let newmat = new Matrix4(this.start_mat);
     
     if (isNaN(vec[0]) || isNaN(vec[1]) || isNaN(vec[2]))
       return;

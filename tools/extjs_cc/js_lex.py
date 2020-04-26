@@ -22,7 +22,8 @@ res = [
 'const', 'short', 'double', 'char',
 'signed', 'variable', 'template', 'byte',
 'global', 'inferred', 'native', 'class', 'extends',
-'static', 'typed', 'finally', 'get', 'set', 'import', 'export', 'from'
+'static', 'typed', 'finally', 'get', 'set', 'import', 'export', 'from',
+'await'
 ]
 
 reserved = {}
@@ -385,7 +386,6 @@ def gen_re():
     return s
       
   def consume_ifnot(s):
-    
     s2 = "[^"
     if type(s) == list:
       for s3 in s:
@@ -442,7 +442,7 @@ def gen_re():
     #this variable-width lookbehind I'm doing here.
     
     def g(c, n):
-      s = "(?<=[([\=,]"
+      s = "(?<=[([\=,:]"
       
       if n != 0:
         s += "[%s]{%d}" % (c, n)

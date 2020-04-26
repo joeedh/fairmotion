@@ -1,8 +1,13 @@
 import ctypes
 import ctypes.wintypes
 import sys
-import queue #for thread-safe queue
-import tkinter
+if sys.version[0] != '2':
+  import queue #for thread-safe queue
+  import tkinter
+else:
+  import Queue as queue
+  import Tkinter as tkinter
+  
 import threading
 import time
 from tkinter import *

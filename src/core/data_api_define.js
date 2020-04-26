@@ -6,7 +6,7 @@ import {
   BoxColor4, BoxWColor, ColorTheme,
   ThemePair, BoxColor,
   darken
-} from 'theme';
+} from '../datafiles/theme.js';
 
 import {
   EnumProperty, FlagProperty,

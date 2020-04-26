@@ -695,7 +695,7 @@ def build_target(files):
 
       cmdlist = shlex.split(cmd)
 
-      commands.append([cmdlist, dcmd])
+      commands.append([cmdlist, dcmd, f])
     else:
       print(cmd)
       ret = os.system(cmd)
@@ -710,7 +710,7 @@ def build_target(files):
         if len(procs) >= num_cores:
             break
 
-        cmdlist, dcmd = commands.pop()
+        cmdlist, dcmd, f = commands.pop()
         
         reportbuf = dcmd #" ".join(cmdlist)
         print(reportbuf);
@@ -728,7 +728,8 @@ def build_target(files):
         
         if failed_ret(ret):
           failed_files.append(p[1])
-
+    
+    
     procs = newprocs
     note.sleep(0.05)
 
@@ -740,7 +741,7 @@ def build_target(files):
     note.showNote(THENOTE, NOTETITLE, "Build Failed")
     note.sleep(1);
 
-    print("build failure\n\n")
+    print("build failure\n\n", failed_files)
 
     for f in failed_files:
       for i, f2 in enumerate(built_files):

@@ -476,7 +476,7 @@ def p_module_spec(p):
   p[0].val = p[0].val.replace("'", "").replace("\"", "");
 
 def p_binding_ident(p):
-  ''' binding_ident : ID
+  ''' binding_ident : id
   '''
   p[0] = p[1]
  
@@ -1513,17 +1513,28 @@ def p_template_ref_opt(p):
     
 def p_func_call(p):
   r''' func_call : template_ref_opt LPAREN exprlist RPAREN
+                 | template_ref_opt LPAREN TRIPLEDOT binding_ident RPAREN
+                 | template_ref_opt LPAREN expr COMMA TRIPLEDOT binding_ident RPAREN
                  | template_ref_opt LPAREN RPAREN
   '''
   set_parse_globals(p)
-  if len(p) == 4:
-    elist = ExprNode([])
-  else:
+  
+  #print(len(p), "yay", p[4])
+  
+  if len(p) == 8:
     elist = p[3]
-    
+    elist.add(BindingArg(p[6]))
+  if len(p) == 6:
+    elist = ExprNode([BindingArg(p[4])])
+  elif len(p) == 4:
+    elist = ExprNode([])
+  elif len(p) == 5:
+    elist = p[3]
+  
   p[0] = FuncCallNode(elist);
   if p[1] != None:
     p[0].template = p[1]
+  
 
 #this is nearly identical to exprlist; it is identical on the action side
 def p_funcdeflist(p):
@@ -2588,6 +2599,9 @@ def p_try(p):
     p[0] = TryNode()
     if p[2] != "{":
       p[0].add(p[2])
+  elif len(p) == 4:
+    p[0] = TryNode()
+    p[0].add(ExprListNode([]))
   else:
     p[0] = TryNode()
     p[0].add(p[3])
@@ -2771,7 +2785,7 @@ def p_return(p):
     p[0] = ReturnNode(p[2])
   else:
     p[0] = ReturnNode(ExprNode([]))
-  
+    
 def p_yield(p):
   '''yield : YIELD expr
             | YIELD'''
@@ -2791,6 +2805,7 @@ def p_id(p):
          | STATIC
          | CATCH
          | GLOBAL
+         | AWAIT
   '''
   p[0] = p[1]
     

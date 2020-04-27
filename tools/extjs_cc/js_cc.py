@@ -9,6 +9,7 @@ from js_global import glob, Glob
 from js_ast import *
 from js_parse import parser, print_err
 from js_preprocessor import preprocess_text
+from js_comment import *
 
 plexer.lineno = 0
 
@@ -637,53 +638,7 @@ def gen_source_map(src, gensrc, map):
     file.write(js)
     file.close()
   return js
-  
-def process_comments(node, typespace):
-  #move comments that are too deep in the ast tree up
-  def recurse(n):
-    for c in n:
-      recurse(c)
-      
-    if n.comment == None: return
     
-    n2 = n
-    #find top-most node with same lineno 
-    while type(n2.parent) != StatementList and n2.parent != None and n2.parent.line == n2.line and n2.parent.comment == None:
-      n2 = n2.parent
-    
-    if n2 == n: return
-    n2.comment = n.comment
-    n2.commentline = n.commentline
-    n.comment = None
-  
-  #move comments that are too high in the ast tree downwards
-  def recurse_down(n):
-    def visit(n2, state):
-      if abs(n2.line-state[0]) < state[1]:
-        state[1] = abs(n2.line-state[0])
-        state[2] = n2
-      for c in n2:
-        visit(c, state)
-      
-    for c in n:
-      recurse_down(c)
-      
-    if n.comment == None: return
-    if n.commentline == n.line: return
-    
-    state = [n.commentline, n.line, n]
-    visit(n, state)
-    
-    n2 = state[2]
-    if n2 == n: return
-    
-    n2.comment = n.comment
-    n2.commentline = n.commentline
-    n.comment = None
-    
-  recurse(node)
-  recurse_down(node)
-  
 def parse_intern_es6(data):
   glob.g_lines = data.split("\n")
   
@@ -736,7 +691,8 @@ def parse_intern_es6(data):
     file.write(buf)
     file.close()
   
-  process_comments(result, typespace)
+  if glob.g_include_comments:
+    process_comments(result, typespace)
   
   if glob.g_enable_static_vars:
     process_static_vars(result, typespace)
@@ -1020,6 +976,9 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
     
   if glob.g_do_docstrings:
     process_docstrings(result, typespace)
+    
+  if glob.g_include_comments:
+    process_comments(result, typespace)
   
   if glob.g_gen_source_map:
     smap = SourceMap()

@@ -15,7 +15,8 @@ glob_cmd_help_override = {
   "g_warn_for_in" : "warn when for-in loops are used",
   "g_autoglobalize" : "Make module locals (but not exports) global.  Useful during refactoring.",
   "g_expand_classes" : "Fully transpile classes",
-  "g_expand_generators" : "Transpile generators"
+  "g_expand_generators" : "Transpile generators",
+  "g_include_comments" : "Include Comments"
 }
 glob_cmd_short_override = {}
 
@@ -56,6 +57,7 @@ gcs["g_log_forloops"] = "lf"
 gcs["g_enable_let"] = "lt"
 gcs["g_compile_statics_only"] = "sn"
 gcs["g_profile_coverage"] = "pc"
+gcs["g_include_comments"] = "ic"
 
 def argv_to_argline():
   s = ""
@@ -265,8 +267,9 @@ class Glob(AbstractGlob):
     g_expand_iterators = True
     #g_harmony_iterators = True
     g_refactor_mode = False
+    g_include_comments = False
     g_refactor_classes = False
-    g_expand_classes = True
+    g_expand_classes = False
     g_add_opt_initializers = True
     g_replace_instanceof = True
     g_instanceof_func = "__instance_of"

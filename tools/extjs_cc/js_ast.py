@@ -2306,10 +2306,17 @@ class ExportNode(Node):
   
   #just pass through
   def gen_js(self, tlevel=0):
-    ret = ""
+    ret = self.s("export ")
     for c in self.children:
       ret += c.gen_js(tlevel)
     return ret
+
+#use for comment system
+class NewlineNode(Node):
+  def __init__(self):
+    Node.__init__(self)
+  def gen_js(self, tlevel=0):
+    return "\n"
     
 class ExportNameNode(Node):
   def __init__(self): #children is list of ExportIdents
@@ -2346,8 +2353,23 @@ class ImportNode(Node):
   
   def gen_js(self, tlevel):
     s = self.s("import ")
-    for c in self:
-      s += c.gen_js(tlevel)
+    
+    if len(self) == 2 and self[1].name == "*":
+      s += self[1].gen_js(tlevel)
+    else:
+      s += self.s("{")
+      
+      for i, c in enumerate(self[1:]):
+        if i > 0:
+          s += self.s(", ");
+        s += c.gen_js(tlevel)
+      s += self.s("}")
+     
+    s += self.s(" from '")
+    s += self[0].gen_js(0) + "'"
+    
+    #s += str(self.parent)
+    
     return s
     
 class ImportDeclNode(Node):
@@ -2367,7 +2389,12 @@ class ImportDeclNode(Node):
     return str(self.name) + " as " + str(self.bindname)
     
   def gen_js(self, tlevel):
-    return self.s("* as " + self.bindname + " from '" + self.name + "'")
+    if self.bindname == self.name:
+      s = self.s(self.name)
+    else:
+      s = self.s(self.name + " as " + self.bindname)
+    
+    return s 
     
   def copy(self):
     n2 = PreDec(self[0])
@@ -2395,3 +2422,4 @@ def line_print(s, do_print=True):
   if do_print:
     print(s2)
   return s2
+

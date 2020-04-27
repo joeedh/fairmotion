@@ -14,6 +14,12 @@ from types import BuiltinMethodType as PyMethodType, BuiltinFunctionType as PyFu
 class StringLit (str):
   pass
 
+class Comment (object):
+  def __init__(self, val="", lexpos=-1):
+    self.val = val
+    self.lexpos = lexpos
+    self.id = -1
+  
 res = [
 'if', 'else', 'while', 'do', 'function', 
 'var', 'let', 'in', 'of', 'for', 'new', "return", "continue", "break",
@@ -639,21 +645,22 @@ def t_instr_ALL(t):
 def t_SLASHR(t):
   r'\r+'
 
-comment_str = ""
+comment_str = Comment()
 comment_startline = -1
 def t_OPENCOM(t):
   r'/\*'
   
   global comment_str, comment_startline
   t.lexer.push_state("incomment")
-  comment_str = t.value
+  
+  comment_str = Comment(t.value, t.lexpos)
   comment_startline = t.lexer.lineno if t.lexer.lineno != -1 else 0
   
 def t_incomment_CLOSECOM(t):
   r'\*/'
   
   global comment_str
-  comment_str += t.value
+  comment_str.val += t.value
   t.lexer.pop_state()
   
   i = t.lexer.lexpos
@@ -661,10 +668,13 @@ def t_incomment_CLOSECOM(t):
   while i < len(ld):
     if ld[i] not in [" ", "\t", "\n", "\r"]: break
     if ld[i] == "\n":
-      comment_str += "\n"
+      comment_str.val += "\n"
       break
     i += 1
+    
   t.lexer.comment = comment_str
+  
+  comment_str.id = t.lexer.comment_id
   t.lexer.comments[t.lexer.comment_id] = [comment_str, comment_startline]
   t.lexer.comment_id += 1
   
@@ -672,7 +682,7 @@ def t_incomment_ALL(t):
   r'[^/\*]+';
   
   global comment_str
-  comment_str += t.value
+  comment_str.val += t.value
   
   t.lexer.lineno += t.value.count("\n")
 
@@ -699,7 +709,8 @@ def t_COMMENT(t):
   global comment_startline, comment_str
   #r'(/\*(.|\n|\r)*\*/)|'
 
-  t.lexer.comment = t.value
+  t.lexer.comment = Comment(t.value, t.lexpos)
+  t.lexer.comment.id = t.lexer.comment_id
   t.lexer.comments[t.lexer.comment_id] = [t.lexer.comment, t.lexer.lineno]
   t.lexer.comment_id += 1
   

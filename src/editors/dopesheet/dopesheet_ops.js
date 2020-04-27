@@ -3,18 +3,18 @@
 import {
   CollectionProperty, IntProperty, FloatProperty, BoolProperty,
   EnumProperty
-} from 'toolprops';
+} from '../../core/toolprops.js';
 
-import {ToolOp, UndoFlags} from 'toolops_api';
+import {ToolOp, UndoFlags} from '../../core/toolops_api.js';
 
 import {TimeDataLayer, get_vtime, set_vtime,
         AnimKey, AnimChannel, AnimKeyFlags, AnimInterpModes
-       } from 'animdata';
+       } from '../../core/animdata.js';
        
 import {
   get_time, set_time, get_select, set_select, KeyTypes, FilterModes,
   delete_key
-} from 'dopesheet_phantom';
+} from './dopesheet_phantom.js';
     
 export class ShiftTimeOp2 extends ToolOp {
   constructor() {

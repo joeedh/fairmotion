@@ -1,7 +1,7 @@
 "use strict";
 
 //make sure config is loaded first, so we don't override anything
-import 'config';
+import '../config/config.js';
 
 /* various constant (except for DEBUG) globals */
 

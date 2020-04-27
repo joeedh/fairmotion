@@ -1,6 +1,6 @@
 "use strict";
 
-import * as config from 'config';
+import * as config from '../config/config.js';
 
 export var wasm_binary = undefined;
 

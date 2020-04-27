@@ -1,11 +1,6 @@
 import os, sys, os.path
-from js_ast import *
-from js_lex import plexer
-from js_global import glob, Glob
 import re, traceback
 import argparse, base64, json
-from js_cc import js_parse
-from js_process_ast import traverse
 import runpy
 
 def resolve_path(st, sources, path):
@@ -78,6 +73,21 @@ def substitute(buf, statements):
   
   return out
   
+DEBUG = 0
+
+def outchar(c):
+  if DEBUG:
+    sys.stdout.write(c)
+    
+def resetcolor():
+  if DEBUG:
+    sys.stdout.write("\033[m")
+  
+def setcolor(n):
+  if DEBUG:
+    s = '\033[%im' % (n)
+    sys.stdout.write(s)
+  
 def main(path, sources):
   state = [0]
   
@@ -109,24 +119,32 @@ def main(path, sources):
   
   schar = [""]
   
-  def state1(lexpos):
-    i = lexpos
+  def importstate(i):
     mystate = 0
     
     if next(i, "/*"):
+      setcolor(32)
       state[0] = 1
-      return i + 2
+      return i + 1
     elif buf[i] in ["'", '"', "`"]:
+      setcolor(31)
       schar[0] = buf[i]
       state[0] = 2
       return i + 1
     elif next(i, "//"):
+      setcolor(33)
       state[0] = 3
-      return i + 2
+      return i + 1
       
-    if not (next(i, "import") and buf[i-1] in [";", " ", "\t", "\n", "\r", "}", "/"]):
+    ok = next(i, "import") and (i==0 or buf[i-1] in [";", " ", "\t", "\n", "\r", "}", "/"])
+    ok = ok and buf[i+6] in [" ", "\t", "\n", "{", "'", '"', "`"]
+    
+    if not ok:
+      resetcolor()
       return i + 1
     
+    outchar("mport ")
+    setcolor(34)
     i += 6
     
     while buf[i] in [" ", "\t", "\r", "\n"]:
@@ -143,14 +161,17 @@ def main(path, sources):
           
         if mystate == 0 and next(i, "from"):
           break
+        outchar(buf[i])
           
         i += 1
       i += 4
-
+      
+      resetcolor()
+      outchar("from ")
       
     if i >= len(buf):
       sys.stderr.write("error: %s\n" % (buf[start:start+75]));
-      raise RuntimeError("error!")
+      raise RuntimeError("error:%i: >>%s<<\n" % (linemap[start], buf[start:start+75]))
     
     chars = set(["'", '"', '`'])
     ws = set([" ", "\t", "\n", "\r"])
@@ -161,38 +182,57 @@ def main(path, sources):
     i += 1
     start = i
     
+    setcolor(35)
     while buf[i] not in chars:
+      outchar(buf[i])
       i += 1
+    resetcolor()
     
     end = i
     path2 = buf[start:end].strip()
     statements.append([path2, start, end, "bleh", linemap[start]])
     
-    return i+1
+    return i + 1
   
+  _str = [0, 0]
   def string(i):
-    if buf[i] == schar[0] and buf[i-1] != "\\":
+    _str[0] = _str[1]
+    _str[1] = buf[i]
+      
+    if _str[0] == _str[1]:
+      _str[1] = 0
+        
+    if buf[i] == schar[0] and _str[1] != "\\":
+      resetcolor()
       state[0] = 0
+      _str[0] = _str[1] = 0
+      
     return i + 1
     
   def comment(i):
     if next(i, "*/"):
       state[0] = 0
+      resetcolor();
       i += 1
       
     return i + 1
     
   def linecomment(i):
     if buf[i] == "\n":
+      resetcolor();
       state[0] = 0
     return i + 1
     
-  states = [state1, comment, string, linecomment]
+  states = [importstate, comment, string, linecomment]
   
   i = 0
   while i < len(buf):
+    if DEBUG: 
+      outchar(buf[i])
+    
     start = i
     i = states[state[0]](i)
+    
     if i == start:
       i += 1
   

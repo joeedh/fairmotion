@@ -1,10 +1,10 @@
-import {TransDataType, TransData} from 'transdata';
-import {SelMask} from 'selectmode';
-import {TransDataItem} from "./transdata";
-import {TransSplineVert} from "./transform_spline";
-import {UpdateFlags} from "../../scene/sceneobject";
+import {TransDataType, TransData} from './transdata.js';
+import {SelMask} from './selectmode.js';
+import {TransDataItem} from "./transdata.js";
+import {TransSplineVert} from "./transform_spline.js";
+import {UpdateFlags} from "../../scene/sceneobject.js";
 
-import 'vectormath';
+import '../../path.ux/scripts/vectormath.js';
 
 let iter_cachering = new cachering(() => {
   let ret = new TransDataItem();

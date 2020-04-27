@@ -2,7 +2,7 @@
 
 //XXX refactor me!
 
-import * as config from 'config';
+import * as config from '../config/config.js';
 
 export function clearRecentList() {
   //nothing

@@ -1,9 +1,9 @@
-import {ToolOp, UndoFlags, ToolFlags} from 'toolops_api';
-import {SplineFlags, SplineTypes, RecalcFlags} from 'spline_types';
-import {RestrictFlags, Spline} from 'spline';
-import {SplineLocalToolOp} from 'spline_editops';
+import {ToolOp, UndoFlags, ToolFlags} from '../../core/toolops_api.js';
+import {SplineFlags, SplineTypes, RecalcFlags} from '../../curve/spline_types.js';
+import {RestrictFlags, Spline} from '../../curve/spline.js';
+import {SplineLocalToolOp} from './spline_editops.js';
 import {StringProperty, IntProperty, FloatProperty, 
-        BoolProperty, CollectionProperty} from 'toolprops';
+        BoolProperty, CollectionProperty} from '../../core/toolprops.js';
 
 export class SplineLayerOp extends SplineLocalToolOp {
   static tooldef() {return {

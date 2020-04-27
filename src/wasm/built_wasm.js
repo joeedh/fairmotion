@@ -1,5 +1,5 @@
 export default Module = {};
-import {wasm_binary} from 'load_wasm';
+import {wasm_binary} from './load_wasm.js';
 Module.wasmBinary = wasm_binary;
 Module.TOTAL_MEMORY = 33554432;
 // Copyright 2010 The Emscripten Authors.  All rights reserved.

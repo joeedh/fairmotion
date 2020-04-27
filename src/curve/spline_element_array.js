@@ -1,8 +1,8 @@
 import {STRUCT} from '../core/struct.js';
 import {SplineFlags, SplineTypes, CustomDataLayer,
-        CustomData, CustomDataSet} from 'spline_types';
+        CustomData, CustomDataSet} from './spline_types.js';
 
-import {DataPathNode} from 'eventdag';
+import {DataPathNode} from '../core/eventdag.js';
 
 export var SplineLayerFlags = {
   //SELECT     : 1,

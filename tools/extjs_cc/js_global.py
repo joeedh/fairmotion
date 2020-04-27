@@ -27,7 +27,7 @@ glob_long_word_shorten = {"generators": "gens", "error": "err", "warnings": "war
 
 gcs = glob_cmd_short_override
 gcs["g_expand_generators"] = "eg"
-gcs["g_expand_classes"] = "nec"
+gcs["g_expand_classes"] = "ec"
 gcs["g_destroy_templates"] = "dt"
 gcs["g_log_productions"] = "lp"
 gcs["g_preprocess_code"] = "npc"

@@ -1,12 +1,12 @@
 "use strict";
 
-import {PropTypes} from 'toolprops';
+import {PropTypes} from './toolprops.js';
 import {STRUCT} from './struct.js';
 
-import {CustomDataLayer, SplineTypes, SplineFlags} from 'spline_base';
-import {DataPathWrapperNode} from 'eventdag';
+import {CustomDataLayer, SplineTypes, SplineFlags} from '../curve/spline_base.js';
+import {DataPathWrapperNode} from './eventdag.js';
 
-import 'struct';
+import '../path.ux/scripts/struct.js';
 
 export class TimeDataLayer extends CustomDataLayer {
   constructor() {
@@ -73,8 +73,8 @@ export var AnimInterpModes = {
   LINEAR  : 4
 }
 
-import {IntProperty, FloatProperty} from 'toolprops';
-import {DataTypes, DataNames} from 'lib_api';
+import {IntProperty, FloatProperty} from './toolprops.js';
+import {DataTypes, DataNames} from './lib_api.js';
 
 //generic animation curve system, used for interpolating non-spatial stuff
 //where tying to the pathspline vertices (as we do with time) is not appropriate

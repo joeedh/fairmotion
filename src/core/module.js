@@ -11,7 +11,7 @@ var _rootpath_src = "";
 var _is_cyclic = false;
 var _post_primary_load = false;
 var _es6_module_resort = false;
-var _es6_module_verbose = false;
+var _es6_module_verbose = 0;
 var _debug_modules = 0;
 
 function debug() {
@@ -130,6 +130,13 @@ function es6_get_module_meta(path) {
   //extjs originally just looked up modules by their
   //filenames (minus .js), detect if this is happening
   let compatibility_mode = !path.toLowerCase().endsWith(".js") && path.search("/") < 0;
+
+  //don't allow this any longer
+  compatibility_mode = false;
+  if (!path.startsWith("\.") && path.search("/") < 0) {
+    throw new Error("Bad import string: " + path);
+  }
+
   if (compatibility_mode) {
     let name = path;
     
@@ -413,7 +420,6 @@ function _normpath(path, basepath) {
 }
 
 function _es6_get_module(name) {
-  
   var mod = es6_get_module_meta(name);
   
   if (_post_primary_load) {

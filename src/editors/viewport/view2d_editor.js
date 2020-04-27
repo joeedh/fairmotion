@@ -2,13 +2,13 @@
 
 import {STRUCT} from '../../core/struct.js';
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
-  charmap, TouchEventManager, EventHandler} from '../events';
+  charmap, TouchEventManager, EventHandler} from '../events.js';
 //import {WidgetResizeOp, WidgetRotateOp} from "./transform_ops";
-import {ToolModes} from "./selectmode";
+import {ToolModes} from "./selectmode.js";
 
 //bitmask
 //VERT/EDGE/FACE is compatible with MeshTypes, thus why we skip 4
-export {EditModes, EditorTypes, SessionFlags} from 'view2d_base.js';
+export {EditModes, EditorTypes, SessionFlags} from './view2d_base.js';
 
 let v3d_idgen = 0;
 

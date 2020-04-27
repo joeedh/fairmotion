@@ -1,6 +1,6 @@
 "use strict";
 
-import * as PUTL from 'parseutil';
+import * as PUTL from '../path.ux/scripts/parseutil.js';
 
 export function apiparser() {
   function tk(name, re, func) {

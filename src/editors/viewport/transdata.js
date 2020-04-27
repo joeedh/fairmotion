@@ -2,7 +2,7 @@
 
 import {
   MinMax
-} from 'mathlib';
+} from '../../util/mathlib.js';
 
 export class TransDataItem {
   constructor(Object data, TransDataType type, Object start_data) {

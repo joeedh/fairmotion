@@ -378,7 +378,7 @@ print("using python executable \"" + PYBIN.strip() + "\"")
 JFLAGS = " -dpr " # --no-expand-iterators "
 
 #don't transpile classes, they'll still be fed to a global list though
-JFLAGS += " -nec"
+#JFLAGS += " -nec "
 
 if aggregate_smaps:
   JFLAGS += " -nref"

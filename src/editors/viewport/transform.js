@@ -1,31 +1,31 @@
 import {
   MinMax
-} from 'mathlib';
+} from '../../util/mathlib.js';
 
-import {SelMask} from 'selectmode';
+import {SelMask} from './selectmode.js';
 
 import {Vec3Property, BoolProperty, FloatProperty, IntProperty,
-        CollectionProperty, TPropFlags, EnumProperty} from 'toolprops';
+        CollectionProperty, TPropFlags, EnumProperty} from '../../core/toolprops.js';
 
-        import {SplineFlags, SplineTypes} from 'spline_types';
-import {ToolOp, ModalStates} from 'toolops_api';
+        import {SplineFlags, SplineTypes} from '../../curve/spline_types.js';
+import {ToolOp, ModalStates} from '../../core/toolops_api.js';
 
-import {TransDataItem, TransDataType, TransData} from 'transdata';
-import {TransDopeSheetType} from 'dopesheet_transdata';
-import {SessionFlags} from 'view2d_base';
+import {TransDataItem, TransDataType, TransData} from './transdata.js';
+import {TransDopeSheetType} from '../dopesheet/dopesheet_transdata.js';
+import {SessionFlags} from './view2d_base.js';
 
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
-        charmap, TouchEventManager, EventHandler} from '../events';
+        charmap, TouchEventManager, EventHandler} from '../events.js';
 
 import {clear_jobs, clear_jobs_except_latest, clear_jobs_except_first, 
-        JobTypes} from 'native_api';
+        JobTypes} from '../../wasm/native_api.js';
 
 var _tsv_apply_tmp1 = new Vector3();
 var _tsv_apply_tmp2 = new Vector3();
 var post_mousemove_cachering = cachering.fromConstructor(Vector3, 64);
 var mousemove_cachering = cachering.fromConstructor(Vector3, 64);
 
-import {TransSplineVert} from "./transform_spline";
+import {TransSplineVert} from "./transform_spline.js";
 
 
 //let

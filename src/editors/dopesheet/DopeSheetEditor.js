@@ -1,43 +1,43 @@
-import {Area} from 'ScreenArea';
+import {Area} from '../../path.ux/scripts/ScreenArea.js';
 import {STRUCT} from '../../core/struct.js';
-import {UIBase} from 'ui_base';
-import {Editor} from 'editor_base';
+import {UIBase} from '../../path.ux/scripts/ui_base.js';
+import {Editor} from '../editor_base.js';
 
 "use strict";
 
-import {aabb_isect_2d} from 'mathlib';
+import {aabb_isect_2d} from '../../util/mathlib.js';
 //import {gen_editor_switcher} from 'UIWidgets_special';
 
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
-        charmap, TouchEventManager, EventHandler} from '../events';
+        charmap, TouchEventManager, EventHandler} from '../events.js';
 
 import {STRUCT} from '../../core/struct.js';
 import {phantom, KeyTypes, FilterModes,
         get_select, get_time, set_select, set_time
-       } from 'dopesheet_phantom';
+       } from './dopesheet_phantom.js';
 
-import {PackFlags, UIFlags, UIBase, color2css, _getFont_new} from 'ui_base';
+import {PackFlags, UIFlags, UIBase, color2css, _getFont_new} from '../../path.ux/scripts/ui_base.js';
 
-import {ToolOp, UndoFlags, ToolFlags} from 'toolops_api';
+import {ToolOp, UndoFlags, ToolFlags} from '../../core/toolops_api.js';
 
-import {ToolOp} from 'toolops_api';
-import {UndoFlags} from 'toolops_api';
+import {ToolOp} from '../../core/toolops_api.js';
+import {UndoFlags} from '../../core/toolops_api.js';
 
-import {Spline, RestrictFlags} from 'spline';
-import {CustomDataLayer, SplineTypes, SplineFlags, SplineSegment} from 'spline_types';
+import {Spline, RestrictFlags} from '../../curve/spline.js';
+import {CustomDataLayer, SplineTypes, SplineFlags, SplineSegment} from '../../curve/spline_types.js';
 import {TimeDataLayer, get_vtime, set_vtime,
         AnimKey, AnimChannel, AnimKeyFlags, AnimInterpModes
-       } from 'animdata';
+       } from '../../core/animdata.js';
        
-import {SplineLayerFlags, SplineLayerSet} from 'spline_element_array';
+import {SplineLayerFlags, SplineLayerSet} from '../../curve/spline_element_array.js';
 
-import {SplineFlags} from 'spline_base';
-import {AddLayerOp, ChangeLayerOp, ChangeElementLayerOp} from 'spline_layerops';
-import {DissolveVertOp} from 'spline_editops';
+import {SplineFlags} from '../../curve/spline_base.js';
+import {AddLayerOp, ChangeLayerOp, ChangeElementLayerOp} from '../viewport/spline_layerops.js';
+import {DissolveVertOp} from '../viewport/spline_editops.js';
 
 import {ShiftTimeOp2, ShiftTimeOp3, SelectOp, DeleteKeyOp,
         ColumnSelect, SelectKeysToSide, ToggleSelectOp
-       } from 'dopesheet_ops';
+       } from './dopesheet_ops.js';
 
 let projrets = cachering.fromConstructor(Vector2, 128);
 
@@ -48,7 +48,7 @@ const RecalcFlags = {
 };
 
 /******************* main area struct ********************************/
-import {Area} from 'ScreenArea';
+import {Area} from '../../path.ux/scripts/ScreenArea.js';
 import {Container, ColumnFrame, RowFrame} from '../../path.ux/scripts/ui.js';
 
 var tree_packflag = 0;/*PackFlags.INHERIT_WIDTH|PackFlags.ALIGN_LEFT

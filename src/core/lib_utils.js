@@ -1,11 +1,11 @@
 "use strict";
 
-import "../editors/events";
-import "toolprops_iter";
+import "../editors/events.js";
+import "./toolprops_iter.js";
 
 import {STRUCT} from "./struct.js";
-import {EventHandler} from "../editors/events";
-import {charmap} from "../editors/events";
+import {EventHandler} from "../editors/events.js";
+import {charmap} from "../editors/events.js";
 
 /*
   Some notes on undo:

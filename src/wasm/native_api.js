@@ -1,4 +1,4 @@
-import * as wasm from 'built_wasm';
+import * as wasm from './built_wasm.js';
 
 export var active_solves = {};
 export var solve_starttimes = {};
@@ -6,15 +6,15 @@ export var solve_starttimes2 = {};
 export var solve_endtimes = {};
 export var active_jobs = {}
 
-import {constraint, solver} from "solver";
-import {ModalStates} from 'toolops_api';
-import {SplineTypes, SplineFlags} from 'spline_base';
-import {build_solver} from 'spline_math_hermite';
+import {constraint, solver} from "../curve/solver.js";
+import {ModalStates} from '../core/toolops_api.js';
+import {SplineTypes, SplineFlags} from '../curve/spline_base.js';
+import {build_solver} from '../curve/spline_math_hermite.js';
 
-import {TypedWriter} from 'typedwriter';
+import {TypedWriter} from '../util/typedwriter.js';
 
 //XXX evil super-old module!
-import * as ajax from 'ajax';
+import * as ajax from '../core/ajax.js';
 
 export function isReady() {
   return wasm.calledRun;
@@ -37,7 +37,7 @@ import {
   ORDER, KSCALE, KANGLE,
   KSTARTX, KSTARTY, KSTARTZ,
   KTOTKS, INT_STEPS
-} from 'spline_math_hermite';
+} from '../curve/spline_math_hermite.js';
 
 export function onMessage(type, message, ptr) {
   var iview = new Int32Array(message);

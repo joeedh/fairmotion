@@ -1,16 +1,16 @@
 "use strict";
 
-import {SelMask} from 'selectmode';
+import {SelMask} from '../selectmode.js';
 import {compose_id, decompose_id, has_multires, ensure_multires,
-        MultiResLayer, iterpoints, MResFlags} from 'spline_multires';
+        MultiResLayer, iterpoints, MResFlags} from '../../../curve/spline_multires.js';
         
 import {
   MinMax
-} from 'mathlib';
+} from '../../../util/mathlib.js';
 
 import {
   TransDataType, TransDataItem
-} from 'transdata';
+} from '../transdata.js';
 
 export class MResTransData extends TransDataType {
   static gen_data(ToolContext ctx, TransData td, Array<TransDataItem> data) {

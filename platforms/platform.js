@@ -1,10 +1,10 @@
-import * as config from 'config';
+import * as config from '../src/config/config.js';
 
-import * as html5 from 'platform_html5';
-import * as electron from 'theplatform';
-import * as phonegap from 'platform_phonegap';
-import * as chromeapp from 'platform_chromeapp';
-import {wasm_binary} from "../src/wasm/load_wasm";
+import * as html5 from './html5/platform_html5.js';
+import * as electron from './Electron/theplatform.js';
+import * as phonegap from './PhoneGap/platform_phonegap.js';
+import * as chromeapp from './chromeapp/platform_chromeapp.js';
+import {wasm_binary} from "../src/wasm/load_wasm.js";
 
 let mod;
 

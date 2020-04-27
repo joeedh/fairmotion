@@ -1,7 +1,7 @@
 "use strict";
 
-import * as config from 'config';
-import * as fileapi_html5 from 'fileapi_html5';
+import * as config from '../config/config.js';
+import * as fileapi_html5 from './fileapi_html5.js';
 
 let fs;
 

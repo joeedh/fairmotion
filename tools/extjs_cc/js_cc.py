@@ -232,7 +232,6 @@ def js_parse(data, args=None, file="", flatten=True,
 
   ret = parser.parse(data, lexer=plexer)
   if glob.g_error:
-    print("------------LLLLLLLLLLLLLLLLLLL yeek!!!")
     ret = None
   
   if glob.g_clear_slashr:

@@ -1,21 +1,21 @@
 "use strict";
 
-import 'vectormath';
+import '../../../path.ux/scripts/vectormath.js';
 
 import {IntProperty, FloatProperty, CollectionProperty,
-        BoolProperty, TPropFlags, Vec3Property} from 'toolprops';
-import {ToolOp, UndoFlags, ToolFlags, ModalStates} from 'toolops_api';
-import {SplineFlags, SplineTypes, RecalcFlags} from 'spline_types';
-import {RestrictFlags, Spline} from 'spline';
-import {TPropFlags} from 'toolprops';
-import {redo_draw_sort} from 'spline_draw';
+        BoolProperty, TPropFlags, Vec3Property} from '../../../core/toolprops.js';
+import {ToolOp, UndoFlags, ToolFlags, ModalStates} from '../../../core/toolops_api.js';
+import {SplineFlags, SplineTypes, RecalcFlags} from '../../../curve/spline_types.js';
+import {RestrictFlags, Spline} from '../../../curve/spline.js';
+import {TPropFlags} from '../../../core/toolprops.js';
+import {redo_draw_sort} from '../../../curve/spline_draw.js';
 
-import {SplineLocalToolOp} from 'spline_editops';
+import {SplineLocalToolOp} from '../spline_editops.js';
 
 import {ensure_multires, has_multires, MResFlags, 
         compose_id, decompose_id, BoundPoint, 
         MultiResLayer
-       } from 'spline_multires';
+       } from '../../../curve/spline_multires.js';
 
 class SelectOpBase extends ToolOp {
   constructor(actlevel, uiname, description, icon) {

@@ -1,21 +1,21 @@
-import {Editor} from 'editor_base';
-import {Area} from 'ScreenArea';
-import {patchMouseEvent, ToolOp, UndoFlags} from 'toolops_api';
+import {Editor} from '../editor_base.js';
+import {Area} from '../../path.ux/scripts/ScreenArea.js';
+import {patchMouseEvent, ToolOp, UndoFlags} from '../../core/toolops_api.js';
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
-  charmap, TouchEventManager, EventHandler} from "../events";
+  charmap, TouchEventManager, EventHandler} from "../events.js";
 import {STRUCT} from '../../core/struct.js';
-import {UIBase} from 'ui_base';
-import {ImageUser} from 'imageblock';
-import {SplineEditor} from 'view2d_spline_ops';
-import {Container} from 'ui';
-import {PackFlags} from 'ui_base';
-import {patch_canvas2d, set_rendermat} from 'spline_draw';
-import {SelMask, ToolModes} from 'selectmode';
+import {UIBase} from '../../path.ux/scripts/ui_base.js';
+import {ImageUser} from '../../core/imageblock.js';
+import {SplineEditor} from './view2d_spline_ops.js';
+import {Container} from '../../path.ux/scripts/ui.js';
+import {PackFlags} from '../../path.ux/scripts/ui_base.js';
+import {patch_canvas2d, set_rendermat} from '../../curve/spline_draw.js';
+import {SelMask, ToolModes} from './selectmode.js';
 import {ManipulatorManager, Manipulator,
-  HandleShapes, ManipFlags, ManipHandle} from 'manipulator';
+  HandleShapes, ManipFlags, ManipHandle} from './manipulator.js';
 
-import {EditModes} from 'view2d_editor';
-export {EditModes} from 'view2d_editor';
+import {EditModes} from './view2d_editor.js';
+export {EditModes} from './view2d_editor.js';
 
 let projrets = cachering.fromConstructor(Vector3, 128);
 

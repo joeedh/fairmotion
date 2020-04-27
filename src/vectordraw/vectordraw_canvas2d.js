@@ -1,18 +1,18 @@
 "use strict";
 
-import * as config from 'config';
+import * as config from '../config/config.js';
 
 import {
   MinMax
-} from 'mathlib';
+} from '../util/mathlib.js';
 
 import {
   VectorFlags, VectorVertex, QuadBezPath,
   VectorDraw
-} from 'vectordraw_base';
+} from './vectordraw_base.js';
 
-import {OPCODES} from 'vectordraw_jobs_base';
-import * as vectordraw_jobs from 'vectordraw_jobs';
+import {OPCODES} from './vectordraw_jobs_base.js';
+import * as vectordraw_jobs from './vectordraw_jobs.js';
 
 var canvaspath_draw_mat_tmps = new cachering(function() {
   return new Matrix4();

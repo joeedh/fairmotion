@@ -1,6 +1,6 @@
 "use strict";
 
-import {ENABLE_MULTIRES} from 'config';
+import {ENABLE_MULTIRES} from '../config/config.js';
 
 var PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,
     ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos,
@@ -8,36 +8,36 @@ var PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,
 
 import {
   MinMax
-} from 'mathlib';
+} from '../util/mathlib.js';
 
 import {
   TPropFlags, PropTypes
-} from 'toolprops';
+} from '../core/toolprops.js';
 
 import {STRUCT} from '../core/struct.js';
-import * as math from 'mathlib';
-import {DataPathNode, NodeBase} from 'eventdag';
+import * as math from '../util/mathlib.js';
+import {DataPathNode, NodeBase} from '../core/eventdag.js';
 
 var abs=Math.abs, acos=Math.acos, asin=Math.asin, 
     atan2=Math.atan2,PI=Math.PI, sqrt=Math.sqrt,pow=Math.pow,
     log=Math.log;
 
-export * from 'spline_base';
+export * from './spline_base';
 
 import {MultiResLayer, has_multires, ensure_multires, decompose_id, compose_id}
-        from 'spline_multires';
+        from './spline_multires.js';
         
 import {SplineTypes, SplineFlags, ClosestModes, RecalcFlags,
         MaterialFlags, CustomDataLayer, CustomData, CustomDataSet,
-        SplineElement, CurveEffect} from 'spline_base';
+        SplineElement, CurveEffect} from './spline_base.js';
         
-import {SelMask} from 'selectmode';
-import {ORDER, KSCALE, KANGLE, KSTARTX, KSTARTY, KSTARTZ, KTOTKS, INT_STEPS} from 'spline_math';
+import {SelMask} from '../editors/viewport/selectmode.js';
+import {ORDER, KSCALE, KANGLE, KSTARTX, KSTARTY, KSTARTZ, KTOTKS, INT_STEPS} from './spline_math.js';
 
 import {
   eval_curve, spiraltheta, spiralcurvature,
   spiralcurvature_dv
-} from 'spline_math';
+} from './spline_math.js';
 
 export class SplineVertex extends SplineElement {
   constructor(co) {
@@ -1119,7 +1119,7 @@ Material.STRUCT = `
   }
 `;
 
-import {ToolIter, TPropIterable} from 'toolprops_iter';
+import {ToolIter, TPropIterable} from '../core/toolprops_iter.js';
 
 //stores elements as eid's, for tool operators
 export class ElementRefIter extends ToolIter {

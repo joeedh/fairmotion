@@ -207,7 +207,7 @@ export function get_current_dir() {
 }
 
 import {encode_utf8, decode_utf8, truncate_utf8,
-  urlencode, b64decode, b64encode} from 'strutils';
+  urlencode, b64decode, b64encode} from '../util/strutils.js';
 
 export function path_to_id(path) {
   if (path.trim() == "/") {

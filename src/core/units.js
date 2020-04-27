@@ -1,6 +1,6 @@
 "use strict";
 
-import {safe_eval} from 'safe_eval';
+import {safe_eval} from './safe_eval.js';
 
 /*
 --Unit system design--

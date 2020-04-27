@@ -10,7 +10,7 @@ var acos = Math.acos, asin = Math.asin, abs=Math.abs, log=Math.log,
 //import {RestrictFlags, Spline} from 'spline';
 import {STRUCT} from '../core/struct.js';
 
-import {CustomDataLayer, SplineTypes, SplineFlags, CurveEffect} from 'spline_base';
+import {CustomDataLayer, SplineTypes, SplineFlags, CurveEffect} from './spline_base.js';
 
 export var MResFlags = {
   SELECT    : 1,
@@ -314,7 +314,7 @@ class point_iter {
 
 import {
         binomial_table, bernstein_offsets
-       } from 'binomial_table';
+       } from '../util/binomial_table.js';
 
 function binomial(n, k) {
   if (binomial_table.length > n) {

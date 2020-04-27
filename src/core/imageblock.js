@@ -1,11 +1,11 @@
-import {DataBlock, DataTypes, BlockFlags} from 'lib_api';
+import {DataBlock, DataTypes, BlockFlags} from './lib_api.js';
 import {STRUCT} from './struct.js';
-import {ModalStates} from 'toolops_api';
-import {SelMask} from 'selectmode';
-import {SessionFlags} from 'view2d_editor';
-import * as strutils from 'strutils';
+import {ModalStates} from './toolops_api.js';
+import {SelMask} from '../editors/viewport/selectmode.js';
+import {SessionFlags} from '../editors/viewport/view2d_editor.js';
+import * as strutils from '../util/strutils.js';
 
-import 'vectormath';
+import '../path.ux/scripts/vectormath.js';
 
 export var ImageFlags = {
   SELECT : 1,

@@ -1,28 +1,28 @@
 import {
   MinMax
-} from 'mathlib';
+} from '../../util/mathlib.js';
 
-import {TransformOp, ScaleOp, NonUniformScaleOp} from 'transform';
+import {TransformOp, ScaleOp, NonUniformScaleOp} from './transform.js';
 
-import {SelMask} from 'selectmode';
-import {MResTransData} from 'multires_transdata';
+import {SelMask} from './selectmode.js';
+import {MResTransData} from './multires/multires_transdata.js';
 
 import {Vec3Property, BoolProperty, FloatProperty, IntProperty,
-        CollectionProperty, TPropFlags} from 'toolprops';
+        CollectionProperty, TPropFlags} from '../../core/toolprops.js';
 
-import {SplineFlags, SplineTypes} from 'spline_types';
-import {ToolOp, ModalStates} from 'toolops_api';
+import {SplineFlags, SplineTypes} from '../../curve/spline_types.js';
+import {ToolOp, ModalStates} from '../../core/toolops_api.js';
 
-import {TransDataItem, TransDataType} from 'transdata';
-import {TransDopeSheetType} from 'dopesheet_transdata';
+import {TransDataItem, TransDataType} from './transdata.js';
+import {TransDopeSheetType} from '../dopesheet/dopesheet_transdata.js';
 
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
-        charmap, TouchEventManager, EventHandler} from '../events';
+        charmap, TouchEventManager, EventHandler} from '../events.js';
 
 import {clear_jobs, clear_jobs_except_latest, clear_jobs_except_first,
-        JobTypes} from 'native_api';
+        JobTypes} from '../../wasm/native_api.js';
 
-import {Vec2Property, FloatProperty} from 'toolprops';
+import {Vec2Property, FloatProperty} from '../../core/toolprops.js';
 
 export class WidgetResizeOp extends TransformOp {
   constructor(user_start_mpos : Array<float>, datamode : int) {

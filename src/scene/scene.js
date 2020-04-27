@@ -1,9 +1,9 @@
 import {STRUCT} from '../core/struct.js';
-import {DataBlock, DataTypes} from 'lib_api';
-import {SplineFrameSet} from "../core/frameset";
-import {SceneObject, ObjectFlags} from 'sceneobject';
-import {DataPathNode} from 'eventdag';
-import {SplineElement} from "../curve/spline_base";
+import {DataBlock, DataTypes} from '../core/lib_api.js';
+import {SplineFrameSet} from "../core/frameset.js";
+import {SceneObject, ObjectFlags} from './sceneobject.js';
+import {DataPathNode} from '../core/eventdag.js';
+import {SplineElement} from "../curve/spline_base.js";
 
 export class ObjectList extends Array {
   constructor(scene) {

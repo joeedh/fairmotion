@@ -38,8 +38,8 @@ export var ON_TICK_TIMER_MS  150
 window.RELEASE = false;
 
 //load local configuration overrides
-import * as config_local from 'config_local';
-export * from 'config_local';
+import * as config_local from './config_local.js';
+export * from './config_local';
 
 //debug flags
 window._DEBUG = {

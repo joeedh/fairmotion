@@ -1,22 +1,22 @@
 "use strict";
 
 import {STRUCT} from './struct.js';
-import {DataBlock, DataTypes} from 'lib_api';
-import {Spline, RestrictFlags} from 'spline';
-import {CustomDataLayer, SplineTypes, SplineFlags, SplineSegment} from 'spline_types';
+import {DataBlock, DataTypes} from './lib_api.js';
+import {Spline, RestrictFlags} from '../curve/spline.js';
+import {CustomDataLayer, SplineTypes, SplineFlags, SplineSegment} from '../curve/spline_types.js';
 import {TimeDataLayer, get_vtime, set_vtime, AnimChannel, AnimKey,
-  AnimInterpModes, AnimKeyFlags} from 'animdata';
-import {SplineLayerFlags, SplineLayerSet} from 'spline_element_array';
+  AnimInterpModes, AnimKeyFlags} from './animdata.js';
+import {SplineLayerFlags, SplineLayerSet} from '../curve/spline_element_array.js';
 
-import 'struct';
+import '../path.ux/scripts/struct.js';
 
 var restrictflags = RestrictFlags.NO_DELETE | RestrictFlags.NO_EXTRUDE |
   RestrictFlags.NO_CONNECT;
 
 var vertanimdata_eval_cache = cachering.fromConstructor(Vector3, 64);
 
-import {AnimChannel, AnimKey} from 'animdata';
-import {PropTypes} from 'toolprops';
+import {AnimChannel, AnimKey} from './animdata.js';
+import {PropTypes} from './toolprops.js';
 
 export class VertexAnimIter {
   constructor(vd) {

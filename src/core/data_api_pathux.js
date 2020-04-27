@@ -1,16 +1,16 @@
 import {ModelInterface} from '../path.ux/scripts/controller.js';
 
-import {ToolOpAbstract, ToolOp, ToolMacro} from 'toolops_api';
-import {ToolProperty, PropTypes} from 'toolprops';
+import {ToolOpAbstract, ToolOp, ToolMacro} from './toolops_api.js';
+import {ToolProperty, PropTypes} from './toolprops.js';
 
 export var toolmap = {};
 export var toollist = [];
 
-import {DataPathTypes, DataAPIError} from "./data_api_base";
-import {UIBase} from 'ui_base';
-import {Editor} from 'editor_base';
+import {DataPathTypes, DataAPIError} from "./data_api_base.js";
+import {UIBase} from '../path.ux/scripts/ui_base.js';
+import {Editor} from '../editors/editor_base.js';
 
-import {ToolKeyHandler} from "../editors/events";
+import {ToolKeyHandler} from "../editors/events.js";
 
 let resolvepath_rets = new cachering(() => {return {
   parent : undefined,

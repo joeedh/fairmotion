@@ -4,18 +4,18 @@ var PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,
     ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos,
     asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
 
-import * as spline_multires from 'spline_multires';
+import * as spline_multires from './spline_multires.js';
 import {STRUCT} from '../core/struct.js';
-import {DataBlock, DataTypes} from 'lib_api';
-import {SessionFlags} from 'view2d_editor';
-import {SelMask} from 'selectmode';
-import {SplineQuery} from 'spline_query';
-import {draw_spline, patch_canvas2d, set_rendermat} from 'spline_draw';
-import {solve} from 'solver_new';
-import {ModalStates} from 'toolops_api';
-import {DataPathNode} from 'eventdag';
+import {DataBlock, DataTypes} from '../core/lib_api.js';
+import {SessionFlags} from '../editors/viewport/view2d_editor.js';
+import {SelMask} from '../editors/viewport/selectmode.js';
+import {SplineQuery} from './spline_query.js';
+import {draw_spline, patch_canvas2d, set_rendermat} from './spline_draw.js';
+import {solve} from './solver_new.js';
+import {ModalStates} from '../core/toolops_api.js';
+import {DataPathNode} from '../core/eventdag.js';
 
-import * as config from 'config';
+import * as config from '../config/config.js';
 
 var atan2 = Math.atan2;
 
@@ -29,18 +29,18 @@ var SPI2 = Math.sqrt(PI/2);
 export var _SOLVING = false;
 export var INCREMENTAL = 1;
 
-import {ORDER, KSCALE, KANGLE, KSTARTX, KSTARTY, KSTARTZ, KTOTKS, INT_STEPS} from 'spline_math';
-import {solver, constraint} from "solver";
-import "const";
+import {ORDER, KSCALE, KANGLE, KSTARTX, KSTARTY, KSTARTZ, KTOTKS, INT_STEPS} from './spline_math.js';
+import {solver, constraint} from "./solver.js";
+import "../path.ux/scripts/const.js";
 
-import * as native_api from 'native_api';
+import * as native_api from '../wasm/native_api.js';
 
 import {
   SplineFlags, SplineTypes, SplineElement, SplineVertex, 
-  SplineSegment, SplineLoop, SplineLoopPath, SplineFace} from 'spline_types';
+  SplineSegment, SplineLoop, SplineLoopPath, SplineFace} from './spline_types.js';
 
 import {ElementArraySet, ElementArray, 
-        SplineLayer, SplineLayerSet} from 'spline_element_array';
+        SplineLayer, SplineLayerSet} from './spline_element_array.js';
 
 
 #include "src/config/config_defines.js"
@@ -52,7 +52,7 @@ var rect_tmp = [
 import {
   eval_curve,
   do_solve
-} from 'spline_math';
+} from './spline_math.js';
 
 export var RestrictFlags = {
   NO_EXTRUDE    : 1,
@@ -118,7 +118,7 @@ export class AllPointsIter {
   }
 }
 
-import {RecalcFlags} from 'spline_types';
+import {RecalcFlags} from './spline_types.js';
 
 export class Spline extends DataBlock {
   constructor(name=undefined) {

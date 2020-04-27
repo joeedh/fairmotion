@@ -1,4 +1,4 @@
-import {sendNote} from 'ui_noteframe';
+import {sendNote} from '../path.ux/scripts/ui_noteframe.js';
 
 export class Notification {
 
@@ -30,7 +30,7 @@ import {
 
 import {RowFrame, ColumnFrame, UIPackFrame} from 'UIPack';
 import {UITextBox} from 'UITextBox';
-import {ToolOp, UndoFlags, ToolFlags} from 'toolops_api';
+import {ToolOp, UndoFlags, ToolFlags} from './toolops_api.js';
 import {UITabBar} from 'UITabPanel';
 import {UICollapseIcon, UIPanel, UIColorField, UIColorBox,
         UIColorPicker, UIProgressBar, UIListBox, UIListEntry
@@ -340,5 +340,5 @@ function test_notes() {
   console.log("Notification test");
 }
 
-import {ScreenArea, Area} from 'ScreenArea';
+import {ScreenArea, Area} from '../path.ux/scripts/ScreenArea.js';
 #endif

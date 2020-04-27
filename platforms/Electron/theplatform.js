@@ -1,4 +1,4 @@
-import {PlatformAPIBase} from 'platform_api';
+import {PlatformAPIBase} from '../common/platform_api.js';
 
 export class ElectronPlatformAPI {
   constructor() {

@@ -18,7 +18,7 @@ file api implementation
  export function openRecent(thisvar, id);
 */
 
-import * as config from 'config';
+import * as config from '../config/config.js';
 
 //XXX analyze how this works, probably allshape code
 export function get_root_folderid() {
@@ -41,9 +41,9 @@ export function id_to_path() {
 }
 
 if (config.CHROME_APP_MODE) {
-  export * from 'fileapi_chrome';
+  export * from './fileapi_chrome';
 } else if (config.ELECTRON_APP_MODE) {
-  export * from 'fileapi_electron';
+  export * from './fileapi_electron';
 } else {
-  export * from 'fileapi_html5';
+  export * from './fileapi_html5';
 }

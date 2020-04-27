@@ -1,15 +1,15 @@
-import {Area} from 'ScreenArea';
+import {Area} from '../../path.ux/scripts/ScreenArea.js';
 import {STRUCT} from '../../core/struct.js';
-import {Container} from 'ui';
-import {Editor} from 'editor_base';
+import {Container} from '../../path.ux/scripts/ui.js';
+import {Editor} from '../editor_base.js';
 
-import {PackFlags, UIBase} from 'ui_base';
-import {ShiftLayerOrderOp} from 'spline_editops';
-import {AddLayerOp, DeleteLayerOp, ChangeLayerOp, ChangeElementLayerOp} from 'spline_layerops';
+import {PackFlags, UIBase} from '../../path.ux/scripts/ui_base.js';
+import {ShiftLayerOrderOp} from '../viewport/spline_editops.js';
+import {AddLayerOp, DeleteLayerOp, ChangeLayerOp, ChangeElementLayerOp} from '../viewport/spline_layerops.js';
 
-import 'ui_table';
-import 'ui_menu';
-import 'ui_listbox';
+import '../../path.ux/scripts/ui_table.js';
+import '../../path.ux/scripts/ui_menu.js';
+import '../../path.ux/scripts/ui_listbox.js';
 
 function list(iter) {
   let ret = [];
@@ -453,11 +453,11 @@ Editor.register(MaterialEditor);
 
 #if 0
 import {gen_editor_switcher} from 'UIWidgets_special';
-import {ENABLE_MULTIRES} from 'config';
+import {ENABLE_MULTIRES} from '../../config/config.js';
 
 import {
   MinMax
-} from 'mathlib';
+} from '../../util/mathlib.js';
 
 import {UICanvas} from 'UICanvas';
 import {STRUCT} from '../../core/struct.js';
@@ -465,7 +465,7 @@ import {PackFlags} from 'UIElement';
 
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
         charmap, TouchEventManager, EventHandler, VelocityPan
-       } from '../events';
+       } from '../events.js';
 
 import {UIFlags, PackFlags, CanvasFlags, open_mobile_keyboard, close_mobile_keyboard, inrect_2d_button, 
        UIElement, UIHoverBox, UIHoverHint} from 'UIElement';
@@ -478,14 +478,14 @@ import {UICollapseIcon, UIPanel, gen_editor_switcher, UIColorField, UIColorBox, 
 import {_UITab, UITabBar, UITabPanel} from 'UITabPanel';
 import {UITextBox} from 'UITextBox';
 
-import {ModalStates} from 'toolops_api';
+import {ModalStates} from '../../core/toolops_api.js';
 
-import {SplineFlags} from 'spline_types';
-import {ShiftLayerOrderOp} from 'spline_editops';
-import {AddLayerOp, DeleteLayerOp, ChangeLayerOp, ChangeElementLayerOp} from 'spline_layerops';
+import {SplineFlags} from '../../curve/spline_types.js';
+import {ShiftLayerOrderOp} from '../viewport/spline_editops.js';
+import {AddLayerOp, DeleteLayerOp, ChangeLayerOp, ChangeElementLayerOp} from '../viewport/spline_layerops.js';
 
 /******************* main area struct ********************************/
-import {Area} from 'ScreenArea';
+import {Area} from '../../path.ux/scripts/ScreenArea.js';
 
 class LayerPanel extends RowFrame {
   constructor(ctx) {
@@ -828,8 +828,8 @@ class MaterialEditor extends Area {
     Area.prototype.on_tick.call(this);
   }
   
-  static default_new(Context ctx, ScreenArea scr, WebGLRenderingContext gl, 
-                     Array<float> pos, Array<float> size) : MaterialEditor
+  static default_new(ctx : Context, scr : ScreenArea, gl : WebGLRenderingContext,
+                     pos : Array<float>, size : Array<float>) : MaterialEditor
   {
     var ret = new MaterialEditor(ctx, pos, size);
     return ret;

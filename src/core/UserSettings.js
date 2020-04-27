@@ -1,7 +1,7 @@
-import * as config from 'config';
+import * as config from '../config/config.js';
 
 import {reload_default_theme} from '../datafiles/theme.js';
-import {b64encode, b64decode} from 'strutils';
+import {b64encode, b64decode} from '../util/strutils.js';
 //#XXX import {download_file} from 'dialogs';
 import {STRUCT} from './struct.js';
 

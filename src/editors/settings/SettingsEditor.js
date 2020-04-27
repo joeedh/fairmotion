@@ -1,7 +1,7 @@
-import {Area} from 'ScreenArea';
+import {Area} from '../../path.ux/scripts/ScreenArea.js';
 import {STRUCT} from '../../core/struct.js';
-import {UIBase} from 'ui_base';
-import {Editor} from 'editor_base';
+import {UIBase} from '../../path.ux/scripts/ui_base.js';
+import {Editor} from '../editor_base.js';
 
 export class SettingsEditor extends Editor {
   static define() { return {
@@ -26,7 +26,7 @@ import {gen_editor_switcher} from 'UIWidgets_special';
 
 import {
   MinMax
-} from 'mathlib';
+} from '../../util/mathlib.js';
 
 import {UICanvas} from 'UICanvas';
 import {STRUCT} from '../../core/struct.js';
@@ -34,7 +34,7 @@ import {PackFlags, UIElement, UIFlags, CanvasFlags} from 'UIElement';
 import {UIFrame} from 'UIFrame';
 
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
-        charmap, TouchEventManager, EventHandler, VelocityPan} from '../events';
+        charmap, TouchEventManager, EventHandler, VelocityPan} from '../events.js';
 
 import {
   UIButtonAbstract, UIButton, UIButtonIcon,
@@ -44,7 +44,7 @@ import {
 
 import {RowFrame, ColumnFrame, UIPackFrame} from 'UIPack';
 import {UITextBox} from 'UITextBox';
-import {ToolOp, UndoFlags, ToolFlags} from 'toolops_api';
+import {ToolOp, UndoFlags, ToolFlags} from '../../core/toolops_api.js';
 import {UITabBar} from 'UITabPanel';
 import {UICollapseIcon, UIPanel, UIColorField, UIColorBox,
         UIColorPicker, UIProgressBar, UIListBox, UIListEntry,
@@ -53,7 +53,7 @@ import {UICollapseIcon, UIPanel, UIColorField, UIColorBox,
 import {UITabPanel} from 'UITabPanel';
 
 /******************* main area struct ********************************/
-import {Area} from 'ScreenArea';
+import {Area} from '../../path.ux/scripts/ScreenArea.js';
 
 class SettingsEditor extends Area {
   do_theme_color(int i, String prefix) : UIFrame {

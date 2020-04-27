@@ -6,16 +6,16 @@ var PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,
     ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos,
     asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
 
-import {ToolOp} from 'toolops_api';
+import {ToolOp} from '../../core/toolops_api.js';
 import {IntProperty, BoolProperty, EnumProperty,
         StringProperty, FlagProperty, CollectionProperty
-       } from 'toolprops';
+       } from '../../core/toolprops.js';
        
 import {SplineFlags, SplineTypes, SplineVertex,
         SplineSegment, SplineFace
-       } from 'spline_types';
-import {redraw_element} from 'spline_draw';
-import {get_vtime} from 'animdata';
+       } from '../../curve/spline_types.js';
+import {redraw_element} from '../../curve/spline_draw.js';
+import {get_vtime} from '../../core/animdata.js';
 
 export let SelOpModes = {
   AUTO: 0,
@@ -479,8 +479,8 @@ export class UnhideOp extends ToolOp {
   }
 }
 
-import {CollectionProperty} from 'toolprops';
-import {ElementRefSet} from 'spline_types';
+import {CollectionProperty} from '../../core/toolprops.js';
+import {ElementRefSet} from '../../curve/spline_types.js';
 
 var _last_radius = 45;
 export class CircleSelectOp extends SelectOpBase {

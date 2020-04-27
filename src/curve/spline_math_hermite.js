@@ -2,9 +2,9 @@
 
 //hermite clothoid
 
-import {SplineFlags, SplineTypes} from 'spline_base';
-import {solver, constraint} from "solver";
-import {ModalStates} from 'toolops_api';
+import {SplineFlags, SplineTypes} from './spline_base.js';
+import {solver, constraint} from "./solver.js";
+import {ModalStates} from '../core/toolops_api.js';
 
 //math globals
 var FEPS = 1e-18;
@@ -163,7 +163,7 @@ var mmax = Math.max, mmin = Math.min;
 #define FAST_INT_STEPS 3
 #define ONE_INT_STEPS 0.333333333
 
-import 'vectormath';
+import '../path.ux/scripts/vectormath.js';
 
 var acache = [new Vector3(), new Vector3(), new Vector3(), 
               new Vector3(), new Vector3(), new Vector3(), 

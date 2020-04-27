@@ -1,10 +1,10 @@
 "use strict";
 
-import {PropTypes, TPropFlags}  from 'toolprops';
+import {PropTypes, TPropFlags}  from './toolprops.js';
   
 import {STRUCT} from './struct.js';
-import {EventHandler} from "../editors/events";
-import {charmap} from "../editors/events";
+import {EventHandler} from "../editors/events.js";
+import {charmap} from "../editors/events.js";
 
 //makes e.x/e.y relative to dom,
 //and also flips to origin at bottom left instead of top left
@@ -53,7 +53,7 @@ export function patchMouseEvent(e, dom) {
   return e2;
 }
 
-import {pushModalLight, popModalLight} from 'simple_events';
+import {pushModalLight, popModalLight} from '../path.ux/scripts/simple_events.js';
 
 /*
   basic design of tool ops:
@@ -829,9 +829,9 @@ ToolMacro.STRUCT = STRUCT.inherit(ToolMacro, ToolOp) + """
 import {
         StringProperty, Vec3Property, Vec4Property, 
         IntProperty, FloatProperty, BoolProperty
-       } from 'toolprops';
-import {pushModalLight} from "../path.ux/scripts/simple_events";
-import {popModalLight} from "../path.ux/scripts/simple_events";
+       } from './toolprops.js';
+import {pushModalLight} from "../path.ux/scripts/simple_events.js";
+import {popModalLight} from "../path.ux/scripts/simple_events.js";
 
 /*note: datapathops can only access data paths
   in ToolContext, u.e. object, scene, and mesh.*/

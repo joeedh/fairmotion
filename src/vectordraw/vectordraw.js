@@ -2,20 +2,20 @@
 
 import {
   CanvasDraw2D, CanvasPath
-} from 'vectordraw_canvas2d';
+} from './vectordraw_canvas2d.js';
 
 import {
   StubCanvasDraw2D,
   StubCanvasPath
-} from "vectordraw_stub";
+} from "./vectordraw_stub.js";
 
 import {
   SVGDraw2D, SVGPath
-} from 'vectordraw_svg';
+} from './vectordraw_svg.js';
 
 import {
   VectorFlags
-} from 'vectordraw_base';
+} from './vectordraw_base.js';
 
 export var VectorFlags = VectorFlags;
 

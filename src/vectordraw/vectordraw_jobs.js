@@ -1,14 +1,14 @@
 "use strict";
 
-import * as eventmanager from 'eventmanager';
-import {MESSAGES} from 'vectordraw_jobs_base';
+import * as eventmanager from '../core/eventmanager.js';
+import {MESSAGES} from './vectordraw_jobs_base.js';
 let MS = MESSAGES;
 
 let Debug = false;
 let freeze_while_drawing = true;
 
-import * as platform from 'platform';
-import * as config from 'config';
+import * as platform from '../../platforms/platform.js';
+import * as config from '../config/config.js';
 
 let MAX_THREADS = platform.app.numberOfCPUs();
 

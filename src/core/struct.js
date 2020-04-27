@@ -1,7 +1,7 @@
 "use strict";
 
-import * as config from 'config';
-import * as safe_eval from 'safe_eval';
+import * as config from '../config/config.js';
+import * as safe_eval from './safe_eval.js';
 
 #include "src/core/utildefine.js"
 
@@ -14,9 +14,9 @@ import {
   unpack_vec3, unpack_vec4, unpack_mat4, unpack_quat,
   unpack_dataref, unpack_string, unpack_static_string,
   unpack_bytes, unpack_ctx
-} from 'ajax';
+} from './ajax.js';
 
-import * as PUTL from 'parseutil';
+import * as PUTL from '../path.ux/scripts/parseutil.js';
 
 /*
 

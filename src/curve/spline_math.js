@@ -2,7 +2,7 @@
 
 #include "src/config/config_defines.js"
 
-import * as config from '../config/config';
+import * as config from '../config/config.js';
 
 //math globals
 var FEPS = 1e-18;
@@ -11,7 +11,7 @@ var sin = Math.sin, acos=Math.acos, asin=Math.asin, atan2=Math.atan2, sqrt=Math.
 var cos = Math.cos, pow=Math.pow, abs=Math.abs;
 var SPI2 = Math.sqrt(PI/2);
 
-import * as math from 'spline_math_hermite';
+import * as math from './spline_math_hermite.js';
 
 export var spiraltheta = math.spiraltheta;
 export var spiralcurvature = math.spiralcurvature;
@@ -22,7 +22,7 @@ export var ORDER = math.ORDER;
 
 //import {do_solve} from 'nacl_api';
 
-import {DISABLE_SOLVE} from 'config';
+import {DISABLE_SOLVE} from '../config/config.js';
 
 function do_solve_nacl(sflags, spline, steps, gk, return_promise) {
   if (DISABLE_SOLVE)
@@ -36,7 +36,7 @@ function do_solve_nacl(sflags, spline, steps, gk, return_promise) {
   }
 }
 
-import * as native_api from 'native_api';
+import * as native_api from '../wasm/native_api.js';
 
 export function do_solve() {
   if (config.USE_NACL) {

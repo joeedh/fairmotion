@@ -1,10 +1,10 @@
 "use strict";
 
-import {SplineTypes, SplineFlags} from 'spline_types';
+import {SplineTypes, SplineFlags} from '../../curve/spline_types.js';
 
 import {TimeDataLayer, get_vtime, set_vtime,
         AnimKey, AnimChannel, AnimKeyFlags, AnimInterpModes
-       } from 'animdata';
+       } from '../../core/animdata.js';
 
 export var KeyTypes = {
   PATHSPLINE : 1<<29,

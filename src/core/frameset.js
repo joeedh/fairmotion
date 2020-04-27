@@ -1,16 +1,16 @@
 "use strict";
 
 import {STRUCT} from './struct.js';
-import {DataBlock, DataTypes} from 'lib_api';
-import {Spline, RestrictFlags} from 'spline';
-import {CustomDataLayer, SplineTypes, SplineFlags, SplineSegment} from 'spline_types';
+import {DataBlock, DataTypes} from './lib_api.js';
+import {Spline, RestrictFlags} from '../curve/spline.js';
+import {CustomDataLayer, SplineTypes, SplineFlags, SplineSegment} from '../curve/spline_types.js';
 import {TimeDataLayer, get_vtime, set_vtime, AnimChannel, AnimKey,
-        AnimInterpModes, AnimKeyFlags} from 'animdata';
-import {SplineLayerFlags, SplineLayerSet} from 'spline_element_array';
+        AnimInterpModes, AnimKeyFlags} from './animdata.js';
+import {SplineLayerFlags, SplineLayerSet} from '../curve/spline_element_array.js';
 
-import * as animspline from 'animspline';
+import * as animspline from './animspline.js';
 
-export * from 'animspline';
+export * from './animspline';
 
 var restrictflags = animspline.restrictflags;
 var VertexAnimIter = animspline.VertexAnimIter;

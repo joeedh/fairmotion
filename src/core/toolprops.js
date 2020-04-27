@@ -1,8 +1,8 @@
 "use strict";
 ;
 import {STRUCT} from './struct.js';
-import {pack_int, pack_float, pack_static_string} from 'ajax';
-import {setPropTypes} from '../path.ux/scripts/toolprop'
+import {pack_int, pack_float, pack_static_string} from './ajax.js';
+import {setPropTypes} from '../path.ux/scripts/toolprop.js'
 
 export var PropTypes = {
   INT : 1,
@@ -1118,7 +1118,7 @@ Vec4Property.STRUCT = STRUCT.inherit(Vec4Property, ToolProperty) + """
   a TMeshSelectedIter, etc.
 */
 
-import {ToolIter} from 'toolprops_iter';
+import {ToolIter} from './toolprops_iter.js';
 export class type_filter_iter extends ToolIter {
   constructor(iter, typefilter, ctx) {
     //super(iter, typefilter);

@@ -1,48 +1,47 @@
 "use strict";
 
-import {ExtrudeVertOp} from 'spline_createops';
+import {ExtrudeVertOp} from './spline_createops.js';
 //$XXX import {toolop_menu} from 'UIMenu';
-import {DeleteVertOp, DeleteSegmentOp} from 'spline_editops';
-import * as spline_selectops from 'spline_selectops';
-import {WidgetResizeOp, WidgetRotateOp} from 'transform_ops';
+import {DeleteVertOp, DeleteSegmentOp} from './spline_editops.js';
+import * as spline_selectops from './spline_selectops.js';
+import {WidgetResizeOp, WidgetRotateOp} from './transform_ops.js';
 
 var ScreenArea, Area;
 
 //$XXX import {get_2d_canvas, get_2d_canvas_2} from 'UICanvas';
 
 //$XXX import {gen_editor_switcher} from 'UIWidgets_special';
-import {DataTypes} from 'lib_api';
+import {DataTypes} from '../../core/lib_api.js';
 import {STRUCT} from '../../core/struct.js';
-import {EditModes} from 'view2d_editor';
+import {EditModes} from './view2d_editor.js';
 let EditModes2 = EditModes;
-console.warn("EDITMODES2", EditModes2, _es6_module, _es6_get_module("view2d_editor").exports);
 
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
-        charmap, TouchEventManager, EventHandler} from '../events';
+        charmap, TouchEventManager, EventHandler} from '../events.js';
 
-import {SelectLinkedOp, SelectOneOp} from 'spline_selectops';
-import {TranslateOp} from 'transform';
+import {SelectLinkedOp, SelectOneOp} from './spline_selectops.js';
+import {TranslateOp} from './transform.js';
 
-import {SelMask, ToolModes} from 'selectmode';
+import {SelMask, ToolModes} from './selectmode.js';
 import {SplineTypes, SplineFlags, SplineVertex,
-        SplineSegment, SplineFace} from 'spline_types';
-import {Spline} from 'spline';
+        SplineSegment, SplineFace} from '../../curve/spline_types.js';
+import {Spline} from '../../curve/spline.js';
 
 //$XXX import {UIFrame} from 'UIFrame';
 //$XXX import {ColumnFrame, RowFrame} from 'UIPack';
 //$XXX import {UIMenuLabel, UIButtonIcon} from 'UIWidgets';
 //$XXX import {UIMenu} from 'UIMenu';
-import {View2DEditor, SessionFlags} from 'view2d_editor';
-import {DataBlock, DataTypes} from 'lib_api';
-import {redraw_element} from 'spline_draw';
-import {UndoFlags, ToolFlags, ModalStates, ToolOp, ToolMacro} from 'toolops_api';
+import {View2DEditor, SessionFlags} from './view2d_editor.js';
+import {DataBlock, DataTypes} from '../../core/lib_api.js';
+import {redraw_element} from '../../curve/spline_draw.js';
+import {UndoFlags, ToolFlags, ModalStates, ToolOp, ToolMacro} from '../../core/toolops_api.js';
 //$XXX import {PackFlags, UIFlags} from 'UIElement';
 
-import {get_vtime} from 'animdata';
+import {get_vtime} from '../../core/animdata.js';
 
 import {DeleteVertOp, DeleteSegmentOp, DeleteFaceOp,
   ChangeFaceZ, SplitEdgeOp, DuplicateOp,
-  DisconnectHandlesOp, SplitEdgePickOp} from 'spline_editops';
+  DisconnectHandlesOp, SplitEdgePickOp} from './spline_editops.js';
 
 window.anim_to_playback = [];
 
@@ -282,7 +281,7 @@ export class PlayAnimOp extends ToolOp {
   }
 }
 
-import {EditorTypes} from 'view2d_base';
+import {EditorTypes} from './view2d_base.js';
 
 export class SplineEditor extends View2DEditor {
   constructor(view2d) {
@@ -923,4 +922,4 @@ SplineEditor.STRUCT = """
   }
 """
 
-import {ScreenArea, Area} from 'ScreenArea';
+import {ScreenArea, Area} from '../../path.ux/scripts/ScreenArea.js';

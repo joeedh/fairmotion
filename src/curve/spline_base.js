@@ -1,6 +1,6 @@
 import {
   TPropFlags, PropTypes
-} from 'toolprops';
+} from '../core/toolprops.js';
 
 var acos = Math.acos, asin = Math.asin, abs=Math.abs, log=Math.log,
     sqrt=Math.sqrt, pow=Math.pow, PI=Math.PI, floor=Math.floor, min=Math.min,
@@ -8,8 +8,8 @@ var acos = Math.acos, asin = Math.asin, abs=Math.abs, log=Math.log,
     atan2=Math.atan2, exp=Math.exp;
     
 import {STRUCT} from '../core/struct.js';
-import 'mathlib';
-import {DataPathNode} from 'eventdag';
+import '../util/mathlib.js';
+import {DataPathNode} from '../core/eventdag.js';
 
 export var MaterialFlags = {
   SELECT       : 1,

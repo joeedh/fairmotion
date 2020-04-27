@@ -4,6 +4,34 @@
 var defined_classes = [];
 var defined_tests = new Array();
 
+
+if (Array.prototype.remove === undefined) {
+  Array.prototype.remove = function (item, throw_error = true) {
+    let idx = this.indexOf(item);
+
+    if (idx < 0) {
+      console.warn("Item not in array:", item);
+
+      if (throw_error) {
+        throw new Error("Item not in array");
+      } else {
+        return this;
+      }
+    }
+
+    while (idx < this.length - 1) {
+      this[idx] = this[idx + 1];
+
+      idx++;
+    }
+
+    this[idx] = undefined;
+    this.length--;
+
+    return this;
+  }
+}
+
 function register_test(obj) {
   defined_tests.push(obj);
 }
@@ -22,6 +50,10 @@ var _ESClass = (function() {
   };
     
   var SymbolMethod = function SymbolMethod(symbol, func) {
+    if (typeof symbol === "object" && Array.isArray(symbol)) {
+      symbol = symbol[0];
+    }
+
     this.symbol = symbol;
     this.func = func;
   };

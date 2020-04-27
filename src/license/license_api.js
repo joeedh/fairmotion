@@ -1,6 +1,6 @@
 "use strict";
 
-import * as config from 'config';
+import * as config from '../config/config.js';
 
 export class License {
   constructor(owner, email, issued, expiration, max_devices, used_devices, key) {
@@ -23,7 +23,7 @@ export class HardwareKey {
   }
 };
 
-import * as license_electron from "license_electron";
+import * as license_electron from "./license_electron.js";
  
 export function getHardwareKey() {
   if (config.ELECTRON_APP_MODE) {

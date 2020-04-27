@@ -1,12 +1,12 @@
-import {aabb_isect_minmax2d} from 'mathlib';
-import {ENABLE_MULTIRES} from 'config';
+import {aabb_isect_minmax2d} from '../util/mathlib.js';
+import {ENABLE_MULTIRES} from '../config/config.js';
 
-import {SessionFlags} from 'view2d_editor';
-import {SelMask} from 'selectmode';
-import {ORDER, KSCALE, KANGLE, KSTARTX, KSTARTY, KSTARTZ, KTOTKS, INT_STEPS} from 'spline_math';
-import {get_vtime} from 'animdata';
+import {SessionFlags} from '../editors/viewport/view2d_editor.js';
+import {SelMask} from '../editors/viewport/selectmode.js';
+import {ORDER, KSCALE, KANGLE, KSTARTX, KSTARTY, KSTARTZ, KTOTKS, INT_STEPS} from './spline_math.js';
+import {get_vtime} from '../core/animdata.js';
 
-import {iterpoints, MultiResLayer, MResFlags, has_multires} from 'spline_multires';
+import {iterpoints, MultiResLayer, MResFlags, has_multires} from './spline_multires.js';
 
 var spline_draw_cache_vs = cachering.fromConstructor(Vector3, 64);
 var spline_draw_trans_vs = cachering.fromConstructor(Vector3, 32);
@@ -19,9 +19,9 @@ import {
   SplineFlags, SplineTypes, SplineElement, SplineVertex,
   SplineSegment, SplineLoop, SplineLoopPath, SplineFace,
   RecalcFlags, MaterialFlags
-} from 'spline_types';
+} from './spline_types.js';
 
-import {ElementArray, SplineLayerFlags} from 'spline_element_array';
+import {ElementArray, SplineLayerFlags} from './spline_element_array.js';
 
 
 export function calc_string_ids(spline, startid=0) {

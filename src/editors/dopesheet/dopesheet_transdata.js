@@ -2,10 +2,10 @@
 
 import {
   MinMax
-} from 'mathlib';
+} from '../../util/mathlib.js';
 
-import {TransDataItem, TransDataType} from 'transdata';
-import {get_vtime, set_vtime} from 'animdata';
+import {TransDataItem, TransDataType} from '../viewport/transdata.js';
+import {get_vtime, set_vtime} from '../../core/animdata.js';
 //import {ScreenArea, Area} from 'ScreenArea';
 
 class TransKey {

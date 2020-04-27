@@ -1,15 +1,15 @@
-import * as config from 'config';
+import * as config from '../config/config.js';
 
-import {urlencode, b64decode, b64encode} from 'strutils';
+import {urlencode, b64decode, b64encode} from '../util/strutils.js';
 
-import {ToolFlags, UndoFlags} from 'toolops_api';
-import {StringProperty} from 'toolprops';
+import {ToolFlags, UndoFlags} from '../core/toolops_api.js';
+import {StringProperty} from '../core/toolprops.js';
 
-import {export_svg} from 'svg_export';
+import {export_svg} from '../core/svg_export.js';
 
-import {ToolOp, UndoFlags, ToolFlags} from 'toolops_api';
-import {get_root_folderid, get_current_dir, path_to_id} from 'fileapi';
-import * as platform from 'platform';
+import {ToolOp, UndoFlags, ToolFlags} from '../core/toolops_api.js';
+import {get_root_folderid, get_current_dir, path_to_id} from '../core/fileapi.js';
+import * as platform from '../../platforms/platform.js';
 
 export var FileDialogModes = {OPEN: "Open", SAVE: "Save"}
 var fdialog_exclude_chars = new set([
@@ -21,7 +21,7 @@ var fdialog_exclude_chars = new set([
   "^"
 ]);
 
-import {open_file, save_file, save_with_dialog, can_access_path} from 'fileapi';
+import {open_file, save_file, save_with_dialog, can_access_path} from '../core/fileapi.js';
 
 export class FileOpenRecentOp extends ToolOp {
   static tooldef() { return {
@@ -396,7 +396,7 @@ export class FileSaveB64Op extends ToolOp {
   }
 }
 
-import {ImportJSONOp} from 'spline_createops';
+import {ImportJSONOp} from './viewport/spline_createops.js';
 
 var _dom_input_node = undefined;
 export var import_json = window.import_json = function import_json() {

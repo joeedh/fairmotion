@@ -1,7 +1,7 @@
 "use strict";
 
-import {IconManager} from 'icon';
-import * as config from 'config';
+import {IconManager} from './icon.js';
+import * as config from '../config/config.js';
 
 class CacheStack extends Array {
   constructor(itemlen) {

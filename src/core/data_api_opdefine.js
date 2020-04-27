@@ -14,41 +14,41 @@ import {
 } from 'dialogs';
 */
 
-import {LoadImageOp} from 'image_ops';
+import {LoadImageOp} from '../image/image_ops.js';
 
 import {DeleteVertOp, DeleteSegmentOp, DeleteFaceOp,
        ChangeFaceZ, SplitEdgeOp, DuplicateOp,
-       DisconnectHandlesOp, SplitEdgePickOp} from 'spline_editops';
+       DisconnectHandlesOp, SplitEdgePickOp} from '../editors/viewport/spline_editops.js';
 
-import {ToolOp, ToolMacro, ToolFlags, UndoFlags} from 'toolops_api';
-import {EditModes} from 'view2d';
+import {ToolOp, ToolMacro, ToolFlags, UndoFlags} from './toolops_api.js';
+import {EditModes} from '../editors/viewport/view2d.js';
 
-import * as transform from 'transform';
-import * as spline_selectops from 'spline_selectops';
-import * as spline_createops from 'spline_createops';
-import * as spline_editops  from 'spline_editops';
-import * as spline_animops from 'spline_animops';
-import * as spline_layerops from 'spline_layerops';
-import * as FrameManager from 'FrameManager';
-import * as FrameManager_ops from 'FrameManager_ops';
-import * as safe_eval from 'safe_eval';
+import * as transform from '../editors/viewport/transform.js';
+import * as spline_selectops from '../editors/viewport/spline_selectops.js';
+import * as spline_createops from '../editors/viewport/spline_createops.js';
+import * as spline_editops  from '../editors/viewport/spline_editops.js';
+import * as spline_animops from '../editors/viewport/spline_animops.js';
+import * as spline_layerops from '../editors/viewport/spline_layerops.js';
+import * as FrameManager from '../path.ux/scripts/FrameManager.js';
+import * as FrameManager_ops from '../path.ux/scripts/FrameManager_ops.js';
+import * as safe_eval from './safe_eval.js';
 
-import {TransformOp, TranslateOp, ScaleOp, RotateOp} from 'transform';
-import {TransSplineVert} from 'transform_spline';
-import {TransData} from 'transdata';
+import {TransformOp, TranslateOp, ScaleOp, RotateOp} from '../editors/viewport/transform.js';
+import {TransSplineVert} from '../editors/viewport/transform_spline.js';
+import {TransData} from '../editors/viewport/transdata.js';
 
-import {SelectOpBase, SelectOneOp, ToggleSelectAllOp, SelectLinkedOp, HideOp, UnhideOp, CircleSelectOp} from 'spline_selectops';
-import {ExtrudeModes, ExtrudeVertOp, CreateEdgeOp, CreateEdgeFaceOp, ImportJSONOp} from 'spline_createops';
-import {KeyCurrentFrame, ShiftLayerOrderOp, SplineGlobalToolOp, SplineLocalToolOp, KeyEdgesOp, CopyPoseOp, PastePoseOp, InterpStepModeOp, DeleteVertOp, DeleteSegmentOp, DeleteFaceOp, ChangeFaceZ, DissolveVertOp, SplitEdgeOp, VertPropertyBaseOp, ToggleBreakTanOp, ToggleBreakCurvOp, ConnectHandlesOp, DisconnectHandlesOp, AnimPlaybackOp, ToggleManualHandlesOp, ShiftTimeOp, DuplicateOp, SplineMirrorOp} from 'spline_editops';
-import {AddLayerOp, ChangeLayerOp, ChangeElementLayerOp} from 'spline_layerops';
+import {SelectOpBase, SelectOneOp, ToggleSelectAllOp, SelectLinkedOp, HideOp, UnhideOp, CircleSelectOp} from '../editors/viewport/spline_selectops.js';
+import {ExtrudeModes, ExtrudeVertOp, CreateEdgeOp, CreateEdgeFaceOp, ImportJSONOp} from '../editors/viewport/spline_createops.js';
+import {KeyCurrentFrame, ShiftLayerOrderOp, SplineGlobalToolOp, SplineLocalToolOp, KeyEdgesOp, CopyPoseOp, PastePoseOp, InterpStepModeOp, DeleteVertOp, DeleteSegmentOp, DeleteFaceOp, ChangeFaceZ, DissolveVertOp, SplitEdgeOp, VertPropertyBaseOp, ToggleBreakTanOp, ToggleBreakCurvOp, ConnectHandlesOp, DisconnectHandlesOp, AnimPlaybackOp, ToggleManualHandlesOp, ShiftTimeOp, DuplicateOp, SplineMirrorOp} from '../editors/viewport/spline_editops.js';
+import {AddLayerOp, ChangeLayerOp, ChangeElementLayerOp} from '../editors/viewport/spline_layerops.js';
 //import {SplitAreasTool, CollapseAreasTool, HintPickerOpElement, HintPickerOp} from 'FrameManager_ops';
 
-import {RenderAnimOp, PlayAnimOp} from 'view2d_spline_ops';
-import {SessionFlags} from "view2d_editor";
-import {ExportCanvasImage} from 'view2d_ops';
+import {RenderAnimOp, PlayAnimOp} from '../editors/viewport/view2d_spline_ops.js';
+import {SessionFlags} from "../editors/viewport/view2d_editor.js";
+import {ExportCanvasImage} from '../editors/viewport/view2d_ops.js';
 
-import * as theplatform from 'theplatform';
-import {SplitEdgePickOp} from "../editors/viewport/spline_editops";
+import * as theplatform from '../../platforms/Electron/theplatform.js';
+import {SplitEdgePickOp} from "../editors/viewport/spline_editops.js";
 
 class QuitFileOp extends ToolOp {
   static tooldef() {return {
@@ -72,7 +72,7 @@ class QuitFileOp extends ToolOp {
 //import {TranslateOp} from 'transform';
 
 global data_ops_list = undefined;
-import {register_toolops} from "data_api_pathux";
+import {register_toolops} from "./data_api_pathux.js";
 
 window.api_define_ops = function() {
   register_toolops();

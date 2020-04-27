@@ -1,11 +1,11 @@
-import {Area} from 'ScreenArea';
+import {Area} from '../../path.ux/scripts/ScreenArea.js';
 import {STRUCT} from '../../core/struct.js';
-import {UIBase} from 'ui_base';
-import {Editor} from 'editor_base';
-import * as ui_widgets from 'ui_widgets';
-import * as platform from 'platform';
-import {Menu} from 'ui_menu';
-import {startup_file} from 'startup_file';
+import {UIBase} from '../../path.ux/scripts/ui_base.js';
+import {Editor} from '../editor_base.js';
+import * as ui_widgets from '../../path.ux/scripts/ui_widgets.js';
+import * as platform from '../../../platforms/platform.js';
+import {Menu} from '../../path.ux/scripts/ui_menu.js';
+import {startup_file} from '../../core/startup_file.js';
 
 /*
   gen_file_menu(Context ctx, uimenulabel)

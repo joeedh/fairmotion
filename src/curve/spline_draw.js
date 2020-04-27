@@ -1,10 +1,10 @@
-import {aabb_isect_minmax2d} from 'mathlib';
-import {ENABLE_MULTIRES} from 'config';
+import {aabb_isect_minmax2d} from '../util/mathlib.js';
+import {ENABLE_MULTIRES} from '../config/config.js';
 
-import {SessionFlags} from 'view2d_editor';
-import {SelMask} from 'selectmode';
-import {ORDER, KSCALE, KANGLE, KSTARTX, KSTARTY, KSTARTZ, KTOTKS, INT_STEPS} from 'spline_math';
-import {get_vtime} from 'animdata';
+import {SessionFlags} from '../editors/viewport/view2d_editor.js';
+import {SelMask} from '../editors/viewport/selectmode.js';
+import {ORDER, KSCALE, KANGLE, KSTARTX, KSTARTY, KSTARTZ, KTOTKS, INT_STEPS} from './spline_math.js';
+import {get_vtime} from '../core/animdata.js';
 
 var spline_draw_cache_vs = cachering.fromConstructor(Vector3, 64);
 var spline_draw_trans_vs = cachering.fromConstructor(Vector3, 32);
@@ -19,9 +19,9 @@ import {
   SplineFlags, SplineTypes, SplineElement, SplineVertex, 
   SplineSegment, SplineLoop, SplineLoopPath, SplineFace,
   RecalcFlags, MaterialFlags
-} from 'spline_types';
+} from './spline_types.js';
 
-import {ElementArray, SplineLayerFlags} from 'spline_element_array';
+import {ElementArray, SplineLayerFlags} from './spline_element_array.js';
 
 //obsolete:
 //var uclr_h = "#22ff11"
@@ -126,10 +126,10 @@ export function get_element_color(e, list) {
 var VERT_SIZE=3.0;
 var SMALL_VERT_SIZE=1.0;
 
-import {SplineDrawer} from 'spline_draw_new';
-import {redo_draw_sort} from 'spline_draw_sort';
+import {SplineDrawer} from './spline_draw_new.js';
+import {redo_draw_sort} from './spline_draw_sort.js';
 
-export * from 'spline_draw_sort';
+export * from './spline_draw_sort';
 
 export function draw_curve_normals(spline, g, zoom) {
   for (var seg of spline.segments) {

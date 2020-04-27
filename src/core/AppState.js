@@ -1,20 +1,20 @@
 "use strict";
 
-import * as config from 'config';
-import * as html5_fileapi from 'fileapi';
+import * as config from '../config/config.js';
+import * as html5_fileapi from './fileapi.js';
 
-import {CurveEditor} from 'CurveEditor';
-import {OpStackEditor} from 'ops_editor';
-import {View2DHandler} from 'view2d';
-import {MaterialEditor} from "MaterialEditor";
-import {DopeSheetEditor} from "DopeSheetEditor";
-import {SettingsEditor} from 'SettingsEditor';
-import {MenuBar} from 'MenuBar';
-import {registerToolStackGetter} from 'FrameManager_ops';
-import {FairmotionScreen, resetAreaStacks} from 'editor_base';
+import {CurveEditor} from '../editors/curve/CurveEditor.js';
+import {OpStackEditor} from '../editors/ops/ops_editor.js';
+import {View2DHandler} from '../editors/viewport/view2d.js';
+import {MaterialEditor} from "../editors/material/MaterialEditor.js";
+import {DopeSheetEditor} from "../editors/dopesheet/DopeSheetEditor.js";
+import {SettingsEditor} from '../editors/settings/SettingsEditor.js';
+import {MenuBar} from '../editors/menubar/MenuBar.js';
+import {registerToolStackGetter} from '../path.ux/scripts/FrameManager_ops.js';
+import {FairmotionScreen, resetAreaStacks} from '../editors/editor_base.js';
 
-import {iconmanager, setIconMap} from 'ui_base';
-import {Editor} from 'editor_base';
+import {iconmanager, setIconMap} from '../path.ux/scripts/ui_base.js';
+import {Editor} from '../editors/editor_base.js';
 
 //set iconsheets, need to find proper place for it other than here in AppState.js
 iconmanager.reset(16);
@@ -31,7 +31,7 @@ iconmanager.add(document.getElementById("iconsheet32"), 32, 16);
 iconmanager.add(document.getElementById("iconsheet64"), 64, 32);
 //iconmanager.add(document.getElementById("iconsheet64"), 64);
 
-import {Area} from 'ScreenArea';
+import {Area} from '../path.ux/scripts/ScreenArea.js';
 Area.prototype.getScreen = () => {
   return g_app_state.screen;
 }
@@ -51,11 +51,11 @@ export let AreaTypes = {
   MENUBAR : MenuBar
 };
 
-import {setAreaTypes} from "../path.ux/scripts/ScreenArea";
+import {setAreaTypes} from "../path.ux/scripts/ScreenArea.js";
 setAreaTypes(AreaTypes);
 
-import {Screen} from 'FrameManager';
-import {PathUXInterface} from 'data_api_pathux';
+import {Screen} from '../path.ux/scripts/FrameManager.js';
+import {PathUXInterface} from './data_api_pathux.js';
 
 export function get_app_div() {
   let app = document.getElementById("app");
@@ -119,33 +119,33 @@ export function gen_screen(unused, w, h) {
   app.appendChild(screen);
 }
 
-import './startup_file_example';
-import {startup_file} from './startup_file';
+import './startup_file_example.js';
+import {startup_file} from './startup_file.js';
 
 //$XXX import {gen_screen} from 'FrameManager';
 import {DataPath, DataStruct, DataPathTypes, DataFlags,
-        DataAPI, DataStructArray} from 'data_api';
-import {wrap_getblock, wrap_getblock_us} from 'lib_utils';
+        DataAPI, DataStructArray} from './data_api.js';
+import {wrap_getblock, wrap_getblock_us} from './lib_utils.js';
 //$XXX import {UICanvas} from 'UICanvas';
-import {urlencode, b64decode, b64encode} from 'strutils';
-import {BasicFileOp} from 'view2d_ops'; 
-import {AppSettings} from 'UserSettings';
-import {JobManager} from 'jobs';
-import {RasterState} from 'raster';
-import {NotificationManager, Notification} from 'notifications';
+import {urlencode, b64decode, b64encode} from '../util/strutils.js';
+import {BasicFileOp} from '../editors/viewport/view2d_ops.js'; 
+import {AppSettings} from './UserSettings.js';
+import {JobManager} from './jobs.js';
+import {RasterState} from './raster.js';
+import {NotificationManager, Notification} from './notifications.js';
 import {STRUCT} from './struct.js';
-import {get_data_typemap} from 'lib_api_typedefine';
-import {Screen} from 'FrameManager';
-import {ScreenArea, Area} from 'ScreenArea';
-import {DataLib, DataBlock, DataTypes} from 'lib_api';
-import {ToolMacro, ToolOp, UndoFlags, ToolFlags} from 'toolops_api';
-import {PropTypes, TPropFlags, StringProperty, CollectionProperty} from 'toolprops';
-import {View2DHandler} from 'view2d';
-import {Scene} from 'scene';
-import {SplineTypes, SplineFlags} from 'spline_base';
-import {DopeSheetEditor} from 'DopeSheetEditor';
-import {CurveEditor} from 'CurveEditor';
-import {OpStackEditor} from 'ops_editor';
+import {get_data_typemap} from './lib_api_typedefine.js';
+import {Screen} from '../path.ux/scripts/FrameManager.js';
+import {ScreenArea, Area} from '../path.ux/scripts/ScreenArea.js';
+import {DataLib, DataBlock, DataTypes} from './lib_api.js';
+import {ToolMacro, ToolOp, UndoFlags, ToolFlags} from './toolops_api.js';
+import {PropTypes, TPropFlags, StringProperty, CollectionProperty} from './toolprops.js';
+import {View2DHandler} from '../editors/viewport/view2d.js';
+import {Scene} from '../scene/scene.js';
+import {SplineTypes, SplineFlags} from '../curve/spline_base.js';
+import {DopeSheetEditor} from '../editors/dopesheet/DopeSheetEditor.js';
+import {CurveEditor} from '../editors/curve/CurveEditor.js';
+import {OpStackEditor} from '../editors/ops/ops_editor.js';
 
 import {
   pack_byte, pack_short, pack_int, pack_float,
@@ -156,7 +156,7 @@ import {
   unpack_vec3, unpack_vec4, unpack_mat4, unpack_quat,
   unpack_dataref, unpack_string, unpack_static_string,
   unpack_bytes, unpack_ctx
-} from 'ajax';
+} from './ajax.js';
 
 //include "src/config/config_defines.js"
 
@@ -1778,9 +1778,9 @@ SavedContext.STRUCT = """
   }
 """;
 
-import {SplineFrameSet} from 'frameset';
-import {SettingsEditor} from "../editors/settings/SettingsEditor";
-import {MenuBar} from "../editors/menubar/MenuBar";
+import {SplineFrameSet} from './frameset.js';
+import {SettingsEditor} from "../editors/settings/SettingsEditor.js";
+import {MenuBar} from "../editors/menubar/MenuBar.js";
 
 export class Context {
   constructor(state=g_app_state) {

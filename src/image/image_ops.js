@@ -1,21 +1,21 @@
-import {Image} from 'imageblock';
-import {DataTypes} from 'lib_api';
+import {Image} from '../core/imageblock.js';
+import {DataTypes} from '../core/lib_api.js';
 import {STRUCT} from '../core/struct.js';
 import {IntProperty, FloatProperty, CollectionProperty,
         BoolProperty, StringProperty, TPropFlags, 
-        DataRefProperty, ArrayBufferProperty} from 'toolprops';
+        DataRefProperty, ArrayBufferProperty} from '../core/toolprops.js';
 
-import {ToolOp, UndoFlags, ToolFlags, ModalStates} from 'toolops_api';
-import {RestrictFlags, Spline} from 'spline';
-import {VDAnimFlags} from 'frameset';
-import {TPropFlags} from 'toolprops';
-import 'struct'; //get istruct
-import {redo_draw_sort} from 'spline_draw';
+import {ToolOp, UndoFlags, ToolFlags, ModalStates} from '../core/toolops_api.js';
+import {RestrictFlags, Spline} from '../curve/spline.js';
+import {VDAnimFlags} from '../core/frameset.js';
+import {TPropFlags} from '../core/toolprops.js';
+import '../path.ux/scripts/struct.js'; //get istruct
+import {redo_draw_sort} from '../curve/spline_draw.js';
 
 //$XXX import {FileDialog, FileDialogModes, file_dialog, download_file} from 'dialogs';
 
-import * as config from 'config';
-import * as html5_fileapi from 'fileapi';
+import * as config from '../config/config.js';
+import * as html5_fileapi from '../core/fileapi.js';
 
 export class LoadImageOp extends ToolOp {
   static tooldef() { return {

@@ -2,7 +2,7 @@
 
 //#include "src/config/config_defines.js"
 
-import * as config from 'config';
+import * as config from '../config/config.js';
 
 //#ifndef PACK_PROFILE
 
@@ -21,7 +21,7 @@ net api refator
 #define profile_end(name) ;
 
 import {encode_utf8, decode_utf8, truncate_utf8, 
-        urlencode, b64decode, b64encode} from 'strutils';
+        urlencode, b64decode, b64encode} from '../util/strutils.js';
 
 //#endif
 

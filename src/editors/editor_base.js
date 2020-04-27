@@ -1,10 +1,10 @@
-import {Area, ScreenArea} from 'ScreenArea';
-import {Screen} from 'FrameManager';
+import {Area, ScreenArea} from '../path.ux/scripts/ScreenArea.js';
+import {Screen} from '../path.ux/scripts/FrameManager.js';
 import {STRUCT} from '../core/struct.js';
-import * as ui_base from "../path.ux/scripts/ui_base";
+import * as ui_base from "../path.ux/scripts/ui_base.js";
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
-  charmap, TouchEventManager, EventHandler} from "./events";
-import {patch_canvas2d, set_rendermat} from 'spline_draw';
+  charmap, TouchEventManager, EventHandler} from "./events.js";
+import {patch_canvas2d, set_rendermat} from '../curve/spline_draw.js';
 
 export var _area_active_stacks = {}; //last active stacks for each area type
 export var _area_active_lasts = {};

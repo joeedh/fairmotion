@@ -1,15 +1,15 @@
 "use strict";
 
 //multitouch
-import {ToolOp, UndoFlags, ToolFlags} from 'toolops_api';
+import {ToolOp, UndoFlags, ToolFlags} from '../../core/toolops_api.js';
 import {STRUCT} from '../../core/struct.js';
-import {unpack_ctx} from 'ajax';
+import {unpack_ctx} from '../../core/ajax.js';
 
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
-        charmap, TouchEventManager, EventHandler} from '../events';
+        charmap, TouchEventManager, EventHandler} from '../events.js';
 
-import {Vec2Property, Vec3Property, IntProperty, StringProperty, TPropFlags} from "../../core/toolprops";
-import {SceneObject, ObjectFlags} from 'sceneobject';
+import {Vec2Property, Vec3Property, IntProperty, StringProperty, TPropFlags} from "../../core/toolprops.js";
+import {SceneObject, ObjectFlags} from '../../scene/sceneobject.js';
 
 class ViewRotateZoomPanOp extends ToolOp {
   constructor() {
@@ -442,7 +442,7 @@ class ViewPanOp extends ToolOp {
   }
 }
 
-import {StringProperty} from 'toolprops';
+import {StringProperty} from '../../core/toolprops.js';
 
 export class BasicFileDataOp extends ToolOp {
   constructor(data : String) {
@@ -476,9 +476,9 @@ export class BasicFileDataOp extends ToolOp {
   }
 }
 
-import {Spline} from "spline";
-import {SplineFrameSet} from "frameset";
-import {Scene} from 'scene';
+import {Spline} from "../../curve/spline.js";
+import {SplineFrameSet} from "../../core/frameset.js";
+import {Scene} from '../../scene/scene.js';
 
 export class BasicFileOp extends ToolOp {
   constructor() {
@@ -510,7 +510,7 @@ export class BasicFileOp extends ToolOp {
   }
 }
 
-import {FloatProperty} from 'toolprops';
+import {FloatProperty} from '../../core/toolprops.js';
 
 export class FrameChangeOp extends ToolOp {
   constructor(frame) {
@@ -543,11 +543,11 @@ export class FrameChangeOp extends ToolOp {
   }
 }
 
-import {SimpleCanvasDraw2D} from 'vectordraw_canvas2d_simple';
-import {draw_spline} from 'spline_draw';
-import {save_file} from 'fileapi';
-import {patch_canvas2d, set_rendermat} from 'spline_draw';
-import {SplineDrawer} from 'spline_draw_new';
+import {SimpleCanvasDraw2D} from '../../vectordraw/vectordraw_canvas2d_simple.js';
+import {draw_spline} from '../../curve/spline_draw.js';
+import {save_file} from '../../core/fileapi.js';
+import {patch_canvas2d, set_rendermat} from '../../curve/spline_draw.js';
+import {SplineDrawer} from '../../curve/spline_draw_new.js';
 
 export class ExportCanvasImage extends ToolOp {
   static tooldef() {return {

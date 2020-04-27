@@ -1,6 +1,6 @@
-import {DataTypes} from 'lib_api';
-import {EditModes} from 'view2d';
-import {ImageFlags, Image} from 'imageblock';
+import {DataTypes} from './lib_api.js';
+import {EditModes} from '../editors/viewport/view2d.js';
+import {ImageFlags, Image} from './imageblock.js';
 
 import {
   BoxColor4, BoxWColor, ColorTheme,
@@ -15,20 +15,20 @@ import {
   DataRefProperty,
   Vec3Property, Vec4Property, IntProperty,
   TPropFlags, PropTypes, PropSubTypes
-} from 'toolprops';
+} from './toolprops.js';
 
-import {ModalStates} from 'toolops_api';
+import {ModalStates} from './toolops_api.js';
 
-import {SplineFlags, MaterialFlags, SplineTypes} from 'spline_base';
-import {SelMask, ToolModes} from 'selectmode';
-import {Unit} from 'units';
+import {SplineFlags, MaterialFlags, SplineTypes} from '../curve/spline_base.js';
+import {SelMask, ToolModes} from '../editors/viewport/selectmode.js';
+import {Unit} from './units.js';
 
-import {ExtrudeModes} from 'spline_createops';
-import {DataFlags, DataPathTypes} from 'data_api';
-import {OpStackEditor} from 'ops_editor';
+import {ExtrudeModes} from '../editors/viewport/spline_createops.js';
+import {DataFlags, DataPathTypes} from './data_api.js';
+import {OpStackEditor} from '../editors/ops/ops_editor.js';
 
-import {AnimKeyFlags, AnimInterpModes} from 'animdata';
-import {VDAnimFlags} from 'frameset';
+import {AnimKeyFlags, AnimInterpModes} from './animdata.js';
+import {VDAnimFlags} from './frameset.js';
 
 var SelModes = {
   VERTEX: SelMask.VERTEX,
@@ -74,7 +74,7 @@ selmask_enum.userSetData = function(prop, val) {
   return this.selectmode;
 };
 
-import * as data_api from 'data_api';
+import * as data_api from './data_api.js';
 
 var DataPath = data_api.DataPath;
 var DataStruct = data_api.DataStruct;
@@ -189,7 +189,7 @@ function api_define_opseditor() {
 
 //*/
 
-import {ExtrudeModes} from 'spline_createops';
+import {ExtrudeModes} from '../editors/viewport/spline_createops.js';
 
 var AnimKeyStruct = undefined;
 
@@ -563,7 +563,7 @@ function api_define_spline_segment() {
   return SplineSegmentStruct;
 }
 
-import {SplineLayerFlags} from 'spline_element_array';
+import {SplineLayerFlags} from '../curve/spline_element_array.js';
 
 var SplineLayerStruct;
 

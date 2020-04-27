@@ -1,8 +1,8 @@
-import {SelMask} from 'selectmode';
+import {SelMask} from '../editors/viewport/selectmode.js';
 import {
         has_multires, compose_id, decompose_id,
         MResFlags, MultiResLayer
-       } from 'spline_multires';
+       } from './spline_multires.js';
 
 var PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,
     ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos,

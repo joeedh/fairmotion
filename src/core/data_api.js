@@ -36,30 +36,30 @@ window._is_int = is_int;
 export var DataPathTypes = {PROP: 0, STRUCT: 1, STRUCT_ARRAY : 2};
 export var DataFlags = {NO_CACHE : 1, RECALC_CACHE : 2};
 
-import * as config from 'config';
-import * as safe_eval from 'safe_eval';
-import {PropSubTypes} from 'toolprops';
+import * as config from '../config/config.js';
+import * as safe_eval from './safe_eval.js';
+import {PropSubTypes} from './toolprops.js';
 
 export class TinyParserError extends Error {
 }
 
 //$XXX import {UIFrame} from 'UIFrame';
 import {PropTypes, TPropFlags, ToolProperty, IntProperty, FloatProperty, Vec2Property,
-        Vec3Property, Vec4Property, StringProperty, FlagProperty, EnumProperty} from 'toolprops';
-import {ToolFlags, UndoFlags} from 'toolops_api';
-import {DataBlock} from 'lib_api';
-import {apiparser} from 'data_api_parser';
+        Vec3Property, Vec4Property, StringProperty, FlagProperty, EnumProperty} from './toolprops.js';
+import {ToolFlags, UndoFlags} from './toolops_api.js';
+import {DataBlock} from './lib_api.js';
+import {apiparser} from './data_api_parser.js';
 
 import {MultiResLayer, MultiResEffector, MResFlags, has_multires, 
         ensure_multires, iterpoints, compose_id, decompose_id
-       } from 'spline_multires';
+       } from '../curve/spline_multires.js';
 
-import * as safe_eval from 'safe_eval';
+import * as safe_eval from './safe_eval.js';
 
-export * from 'data_api_base';
+export * from './data_api_base';
 import {
   DataPathTypes, DataFlags, DataAPIError
-} from 'data_api_base';
+} from './data_api_base.js';
 
 let resolve_path_rets = new cachering(() => new Array(5), 32);
 
@@ -511,7 +511,7 @@ class TinyParser {
 
 import {
   AnimKey, AnimChannel, AnimKeyFlags, AnimInterpModes
-} from 'animdata';
+} from './animdata.js';
 
 TinyParser.ctemplates = {
   toks : {obj : Array(64), init : function(val) { val.length = 0; }},
@@ -521,7 +521,7 @@ TinyParser.ctemplates = {
 TinyParser.split_chars = new set([",", "=", "(", ")", ".", "$", "[", "]"]);
 TinyParser.ws = new set([" ", "\n", "\t", "\r"]);
 
-import {toolmap} from 'data_api_pathux';
+import {toolmap} from './data_api_pathux.js';
 
 export class DataAPI { 
   constructor(appstate) {

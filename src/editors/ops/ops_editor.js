@@ -1,7 +1,7 @@
-import {Area} from 'ScreenArea';
+import {Area} from '../../path.ux/scripts/ScreenArea.js';
 import {STRUCT} from '../../core/struct.js';
-import {UIBase} from 'ui_base';
-import {Editor} from 'editor_base';
+import {UIBase} from '../../path.ux/scripts/ui_base.js';
+import {Editor} from '../editor_base.js';
 
 export class OpStackEditor extends Editor {
   static define() { return {
@@ -33,7 +33,7 @@ import {
 
 import {RowFrame, ColumnFrame, UIPackFrame, ToolOpFrame} from 'UIPack';
 import {UITextBox} from 'UITextBox';
-import {ToolOp, UndoFlags, ToolFlags, ToolMacro} from 'toolops_api';
+import {ToolOp, UndoFlags, ToolFlags, ToolMacro} from '../../core/toolops_api.js';
 import {UITabBar} from 'UITabPanel';
 
 import {UICollapseIcon, UIPanel} from 'UIWidgets_special';
@@ -42,7 +42,7 @@ import {UICanvas} from 'UICanvas';
 import {STRUCT} from '../../core/struct.js';
 import {RowFrame, ColumnFrame} from 'UIPack';
 
-import {KeyMap, VelocityPan, HotKey, FuncKeyHandler} from '../events';
+import {KeyMap, VelocityPan, HotKey, FuncKeyHandler} from '../events.js';
 
 class OpStackFrame extends RowFrame {
   constructor(Context ctx, Array<float> size) {
@@ -237,7 +237,7 @@ class OpStackFrame extends RowFrame {
 
 
 /******************* main area struct ********************************/
-import {Area} from 'ScreenArea';
+import {Area} from '../../path.ux/scripts/ScreenArea.js';
 
 export class OpStackEditor extends Area {
   constructor(x, y, width, height) {

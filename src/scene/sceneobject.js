@@ -1,5 +1,5 @@
 import {STRUCT} from '../core/struct.js';
-import {DataTypes, DataBlock} from "../core/lib_api";
+import {DataTypes, DataBlock} from "../core/lib_api.js";
 
 export let UpdateFlags = {
   REDRAW    : 1,

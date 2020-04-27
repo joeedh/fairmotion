@@ -522,7 +522,7 @@ def gen_manifest_file(result, typespace):
   
 _the_typespace = None
   
-def expand_harmony_class(result, cls):
+def expand_harmony_class(result, cls, parent):
   global _the_typespace
   
   arglist = ExprListNode([])
@@ -633,13 +633,15 @@ def expand_harmony_class(result, cls):
       found_con = True
       con = m
       
-  parent = cls.parents[0] if len(cls.parents) != 0 else None
+  #parent = cls.parents[0] if len(cls.parents) != 0 else None
   
   n = FuncCallNode("_ESClass")
   n.add(arglist)
-  n2 = VarDeclNode(n, local=True, name=cls.name);
   
-  return n2
+  if not isinstance(parent, AssignNode) and not isinstance(parent, VarDeclNode):
+    n = VarDeclNode(n, local=True, name=cls.name);
+  
+  return n
 
 def expand_harmony_classes(result, typespace):
   global _the_typespace
@@ -649,7 +651,8 @@ def expand_harmony_classes(result, typespace):
   expand_harmony_super(result, typespace)
 
   def visit(n):
-    n.parent.replace(n, expand_harmony_class(typespace, n))
+    n2 = expand_harmony_class(typespace, n, n.parent)
+    n.parent.replace(n, n2)
     
   traverse(result, ClassNode, visit)
   flatten_statementlists(result, typespace)

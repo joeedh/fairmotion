@@ -568,7 +568,7 @@ DataBlock.STRUCT = `
   }
 `;
 
-import {ToolIter} from 'toolprops_iter';
+import {ToolIter} from './toolprops_iter.js';
 
 export class DataRefListIter<T> extends ToolIter {
   constructor(lst : Array, ctx : Context) {

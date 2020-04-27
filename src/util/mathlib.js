@@ -20,7 +20,7 @@ export var FLOAT_MAX = 1e22
   of [location, rotation-euler, size] 
   parameters*/
 
-import 'vectormath';
+import '../path.ux/scripts/vectormath.js';
 
 export class Matrix4UI extends Matrix4 {
   constructor(loc, rot=undefined, size=undefined) {

@@ -5,8 +5,8 @@ SCRAPPED
 */
 
 import {STRUCT} from '../../core/struct.js';
-import {SelMask} from 'selectmode';
-import {SplineTypes} from 'spline_base';
+import {SelMask} from './selectmode.js';
+import {SplineTypes} from '../../curve/spline_base.js';
 
 /*
 * note to self: DONT ACCESS VIEW2D IN THESE CLASSES

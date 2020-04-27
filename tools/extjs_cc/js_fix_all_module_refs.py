@@ -11,7 +11,7 @@ def error():
 
 def main(sources):
   for f in sources:
-    if f.lower().endswith(".png") or f.lower().endswith(".jpg") or f.lower().endswith(".wasm"):
+    if not f.lower().endswith(".js"):
       continue
 
     print("processing", os.path.split(f)[1])

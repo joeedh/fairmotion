@@ -1,7 +1,7 @@
 "use strict";
 
-import * as math from 'mathlib';
-import {SplineFlags, MaterialFlags, SplineTypes} from 'spline_base';
+import * as math from '../util/mathlib.js';
+import {SplineFlags, MaterialFlags, SplineTypes} from '../curve/spline_base.js';
 
 var cubic_rets = cachering.fromConstructor(Vector3, 64);
 /*

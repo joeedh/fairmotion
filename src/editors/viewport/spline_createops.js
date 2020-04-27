@@ -1,9 +1,9 @@
-import {ToolOp} from 'toolops_api';
-import {SplineFlags} from 'spline_types';
+import {ToolOp} from '../../core/toolops_api.js';
+import {SplineFlags} from '../../curve/spline_types.js';
 import {EnumProperty, IntProperty, Vec3Property, 
-        Vec4Property, StringProperty, FloatProperty} from 'toolprops';
-import {RestrictFlags} from 'spline';
-import {SplineLocalToolOp} from 'spline_editops';
+        Vec4Property, StringProperty, FloatProperty} from '../../core/toolprops.js';
+import {RestrictFlags} from '../../curve/spline.js';
+import {SplineLocalToolOp} from './spline_editops.js';
 
 export var ExtrudeModes = {
   SMOOTH      : 0,

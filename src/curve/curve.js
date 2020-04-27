@@ -87,7 +87,7 @@ class ClothoidInterface {
   }
 }
 
-import {CurveInterfaces} from 'curvebase';
-import {CurveTypes} from 'curvebase';
+import {CurveInterfaces} from './curvebase.js';
+import {CurveTypes} from './curvebase.js';
 
 CurveInterfaces[CurveTypes.CLOTHOID] = ClothoidInterface;

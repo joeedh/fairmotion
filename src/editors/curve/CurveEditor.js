@@ -1,7 +1,7 @@
-import {Area} from 'ScreenArea';
+import {Area} from '../../path.ux/scripts/ScreenArea.js';
 import {STRUCT} from '../../core/struct.js';
-import {UIBase} from 'ui_base';
-import {Editor} from 'editor_base';
+import {UIBase} from '../../path.ux/scripts/ui_base.js';
+import {Editor} from '../editor_base.js';
 
 export class CurveEditor extends Editor {
   static define() { return {
@@ -25,16 +25,16 @@ Editor.register(CurveEditor);
 #if 0
 "use strict";
 
-import {aabb_isect_2d} from 'mathlib';
+import {aabb_isect_2d} from '../../util/mathlib.js';
 import {gen_editor_switcher} from 'UIWidgets_special';
 
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
-  charmap, TouchEventManager, EventHandler} from '../events';
+  charmap, TouchEventManager, EventHandler} from '../events.js';
 
 import {STRUCT} from '../../core/struct.js';
 import {phantom, KeyTypes, FilterModes,
   get_select, get_time, set_select, set_time
-} from 'dopesheet_phantom';
+} from '../dopesheet/dopesheet_phantom.js';
 
 import {PackFlags, UIElement, UIFlags, CanvasFlags} from 'UIElement';
 import {UIFrame} from 'UIFrame';
@@ -48,35 +48,35 @@ import {UISplitFrame} from 'UISplitFrame';
 
 import {RowFrame, ColumnFrame, UIPackFrame} from 'UIPack';
 import {UITextBox} from 'UITextBox';
-import {ToolOp, UndoFlags, ToolFlags} from 'toolops_api';
+import {ToolOp, UndoFlags, ToolFlags} from '../../core/toolops_api.js';
 import {UITabBar} from 'UITabPanel';
 
 import {UICollapseIcon} from 'UIWidgets_special';
 
-import {ToolOp} from 'toolops_api';
+import {ToolOp} from '../../core/toolops_api.js';
 import {RowFrame} from 'UIPack';
-import {UndoFlags} from 'toolops_api';
+import {UndoFlags} from '../../core/toolops_api.js';
 
-import {Spline, RestrictFlags} from 'spline';
-import {CustomDataLayer, SplineTypes, SplineFlags, SplineSegment} from 'spline_types';
+import {Spline, RestrictFlags} from '../../curve/spline.js';
+import {CustomDataLayer, SplineTypes, SplineFlags, SplineSegment} from '../../curve/spline_types.js';
 import {TimeDataLayer, get_vtime, set_vtime,
   AnimKey, AnimChannel, AnimKeyFlags, AnimInterpModes
-} from 'animdata';
+} from '../../core/animdata.js';
 
-import {SplineLayerFlags, SplineLayerSet} from 'spline_element_array';
+import {SplineLayerFlags, SplineLayerSet} from '../../curve/spline_element_array.js';
 
-import {SplineFlags} from 'spline_base';
-import {AddLayerOp, ChangeLayerOp, ChangeElementLayerOp} from 'spline_layerops';
-import {DissolveVertOp} from 'spline_editops';
+import {SplineFlags} from '../../curve/spline_base.js';
+import {AddLayerOp, ChangeLayerOp, ChangeElementLayerOp} from '../viewport/spline_layerops.js';
+import {DissolveVertOp} from '../viewport/spline_editops.js';
 
 import {ShiftTimeOp2, ShiftTimeOp3, SelectOp, DeleteKeyOp,
   ColumnSelect, SelectKeysToSide, ToggleSelectOp
-} from 'dopesheet_ops';
+} from '../dopesheet/dopesheet_ops.js';
 
 /******************* main area struct ********************************/
-import {Area} from 'ScreenArea';
-import {UISplitFrame} from "../../ui/UISplitFrame";
-import {TreePanel} from "../dopesheet/DopeSheetEditor";
+import {Area} from '../../path.ux/scripts/ScreenArea.js';
+import {UISplitFrame} from "../../ui/UISplitFrame.js";
+import {TreePanel} from "../dopesheet/DopeSheetEditor.js";
 
 export class CurveEditor extends Area {
   constructor(pos, size) {

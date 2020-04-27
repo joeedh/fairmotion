@@ -237,7 +237,7 @@ function init_event_system() {
       }
   }, 32);
   
-  var config = _es6_get_module("config");
+  var config = _es6_get_module(_rootpath_src + "/config/config.js");
   
   //start primary on_tick timer
   window.setInterval(function () {

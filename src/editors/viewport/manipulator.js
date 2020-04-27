@@ -5,8 +5,8 @@
   but also extrude, inset, etc.
 */
 
-import {dist_to_line_v2} from 'mathlib';
-import * as config from 'config';
+import {dist_to_line_v2} from '../../util/mathlib.js';
+import * as config from '../../config/config.js';
 
 export var ManipFlags = {
 };

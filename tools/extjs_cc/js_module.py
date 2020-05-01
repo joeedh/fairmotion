@@ -181,6 +181,12 @@ def module_transform(node, typespace):
           """, [n2.bindname, modname]);
           
           slist.add(n3);
+        elif hasattr(n2, "is_default_binding") and n2.is_default_binding:
+          n3 = js_parse("""
+          var $s = es6_import_item(_es6_module, '$s', 'default');
+          """, [n2.bindname, modname, n2.name]);
+          
+          slist.add(n3)
         else:
           n3 = js_parse("""
           var $s = es6_import_item(_es6_module, '$s', '$s');

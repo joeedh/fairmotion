@@ -410,6 +410,11 @@ def p_import_def_bind(p):
   '''
   p[0] = p[1]
   
+  if type(p[0]) == str:
+    p[0] = BindingIdent(p[0])
+    
+  p[0].is_default_binding = True
+  
 def p_name_space_import(p):
   '''name_space_import : TIMES ID import_bind'''
   

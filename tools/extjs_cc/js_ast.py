@@ -2292,6 +2292,13 @@ class FinallyNode (Node):
     
     return s
 
+class BindingIdent (IdentNode):
+  def __init__(self, val):
+    IdentNode.__init__(self, val)
+    self.is_default_binding = False
+    self.name = val
+    self.bindname = val
+    
 class ExportNode(Node):
   def __init__(self, name, is_default=False): #first child is whats exported
     Node.__init__(self)

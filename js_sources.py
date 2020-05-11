@@ -1,4 +1,4 @@
-import os, os.path
+import os, os.path, glob
 
 if not os.path.exists("src/config/config_defines.js"):
   print("Auto-generating src/config/config_defines.js. . .")
@@ -17,7 +17,15 @@ try:
   import build_local
 except:
   build_local = {}
-  
+
+pathux = []
+for path in glob.glob("src/path.ux/scripts/**", recursive=True):
+    if not path.lower().endswith(".js"):
+        continue
+    if "_old" in path.lower():
+        continue
+    pathux.append(path)
+
 sources = [
   "src/html/unit_test.html",
   "src/html/main.html",
@@ -76,54 +84,12 @@ sources = [
   "src/core/animutil.js",
   "src/config/config_defines.js",
   "src/core/svg_export.js",
-  "src/core/vectormath.js",
+  "src/core/vectormath.js"] + pathux + [
 
-  #path.ux
-  "src/path.ux/scripts/polyfill.js",
-  "src/path.ux/scripts/util.js",
-  "src/path.ux/scripts/vectormath.js",
-  "src/path.ux/scripts/math.js",
-  "src/path.ux/scripts/html5_fileapi.js",
-  "src/path.ux/scripts/controller.js",
-  "src/path.ux/scripts/events.js",
-  "src/path.ux/scripts/struct.js",
-  "src/path.ux/scripts/ui_menu.js",
-  "src/path.ux/scripts/ui_listbox.js",
-  "src/path.ux/scripts/ui_table.js",
-  "src/path.ux/scripts/ui_base.js",
-  "src/path.ux/scripts/ui.js",
-  "src/path.ux/scripts/ui_button.js", 
-  "src/path.ux/scripts/ui_richedit.js", 
-  "src/path.ux/scripts/ui_colorpicker.js",
-  "src/path.ux/scripts/ui_colorpicker2.js",
-  "src/path.ux/scripts/ui_curvewidget.js",
-  "src/path.ux/scripts/ui_tabs.js",
-  "src/path.ux/scripts/controller_ops.js",
-  "src/path.ux/scripts/context.js",
-  "src/path.ux/scripts/_struct.js",
-  "src/path.ux/scripts/simple_toolsys.js",
-  "src/path.ux/scripts/simple_controller.js",
-  "src/path.ux/scripts/toolpath.js",
-  "src/path.ux/scripts/parseutil.js",
-  "src/path.ux/scripts/ui_widgets.js",
-  "src/path.ux/scripts/ui_widgets2.js",
-  "src/path.ux/scripts/units.js",
-  "src/path.ux/scripts/ScreenArea.js",
-  "src/path.ux/scripts/ScreenOverdraw.js",
-  "src/path.ux/scripts/FrameManager.js",
-  "src/path.ux/scripts/FrameManager_ops.js",
-  "src/path.ux/scripts/toolprop.js",
-  "src/path.ux/scripts/toolprop_abstract.js",
-  "src/path.ux/scripts/ui_noteframe.js",
-  "src/path.ux/scripts/ui_theme.js",
-  "src/path.ux/scripts/theme.js",
-  "src/path.ux/scripts/image.js",
-  "src/path.ux/scripts/const.js",
-  "src/path.ux/scripts/simple_events.js",
-  #"src/path.ux/scripts/config.js",
 
-	"src/core/struct.js",
-  
+
+  "src/core/struct.js",
+
   "src/curve/curve.js",
   "src/curve/curvebase.js",
   #"src/curve/bspline.js",

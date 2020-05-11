@@ -372,7 +372,7 @@ class IdentNode (ValueNode):
     self.copy_basic(n2)
     self.copy_children(n2)
     return n2
-    
+
 class VarDeclNode(IdentNode):
   def __init__(self, expr, local=False, name="(unnamed)"):
     #self[0] is assignment expression
@@ -382,6 +382,7 @@ class VarDeclNode(IdentNode):
     super(VarDeclNode, self).__init__(expr)
     self.modifiers = set()
     self.val = name
+    self.suppress_modifiers = False
     
     if local:
         self.modifiers.add("local")
@@ -442,14 +443,16 @@ class VarDeclNode(IdentNode):
       return ""
     
     s = ""
-    if "let" in self.modifiers and type(self.parent) != VarDeclNode: 
-      s += "let "
-    elif "const" in self.modifiers and type(self.parent) != VarDeclNode: 
-      s += "const "
-    elif self.local and type(self.parent) != VarDeclNode: 
-      s += "var "
-    elif "static" in self.modifiers and type(self.parent) != VarDeclNode: 
-      s += "static "
+
+    if not self.suppress_modifiers:
+      if "let" in self.modifiers and type(self.parent) != VarDeclNode: 
+        s += "let "
+      elif "const" in self.modifiers and type(self.parent) != VarDeclNode: 
+        s += "const "
+      elif self.local and type(self.parent) != VarDeclNode: 
+        s += "var "
+      elif "static" in self.modifiers and type(self.parent) != VarDeclNode: 
+        s += "static "
     s += str(self.val)
     
     s = self.s(s)
@@ -1032,7 +1035,40 @@ class ExprListNode (ExprNode):
     
   def flatten(self):
     pass
+ 
+class ExpandNode (ExprListNode):
+  def __init__(self, nodes=None):
+    ExprListNode.__init__(self, [] if nodes is None else nodes)
     
+    self.modifiers = set()
+    self.etype = "array"
+  
+  def gen_js(self, tlevel=0):
+    s = ""
+    
+    for m in self.modifiers:
+      s += self.s(m.lower() + " " )
+      
+    s += self.s("/*unprocessed ExpandNode*/")
+                
+    if self.etype == "array":
+      s += self.s("[")
+    else:
+      s += self.s("{")
+    
+    for i in range(len(self)):
+      if i > 0:
+        s += self.s(", ")
+      
+      s += self[i].gen_js(tlevel)
+      
+    if self.etype == "array":
+      s += self.s("]")
+    else:
+      s += self.s("}")
+    
+    return s
+  
 class MemberRefNode (Node):
   def __init__(self, parent, member):
     super(MemberRefNode, self).__init__()
@@ -2126,19 +2162,24 @@ class MethodNode(FunctionNode):
   def __init__(self, name, is_static=False):
     FunctionNode.__init__(self, name, glob.g_line)
     self.is_static = is_static
+    self.is_generator = False
     
     #self[0] : params
     #self[1] : statementlist
     
   def gen_js(self, tlevel):
     s = ""
+
+    if self.is_generator:
+        s += self.s("* ")
+
     if self.is_static:
       s += "static "
     
     name = self.name
     if type(name) != str:
       name = name.gen_js(tlevel)
-      
+    
     s += self.s(name + "(")
     
     for i, c in enumerate(self[0]):

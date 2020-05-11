@@ -567,7 +567,10 @@ def p_templatedeflist(p):
   set_parse_globals(p)
   
   if len(p) == 2:
-    p[0] = ExprListNode([p[1]])
+    print(p[1])
+    p[0] = ExprListNode([])
+    if p[1]:
+      p[0].add(p[1])
   elif len(p) == 4:
     if type(p[1]) == ExprListNode:
       p[0] = p[1]
@@ -741,6 +744,7 @@ def p_typescript_var_decl(p):
     
 def p_var_decl(p):
   '''var_decl : type_modifiers var_type
+              | type_modifiers var_expand
               | var_decl ASSIGN expr
               | var_decl COMMA id
               | var_decl COMMA id ASSIGN expr
@@ -748,7 +752,12 @@ def p_var_decl(p):
   set_parse_globals(p)
   
   if len(p) == 3:
-    if type(p[1]) != VarDeclNode:
+    if type(p[2]) == ExpandNode:
+        p[0] = p[2]
+        for m in p[1]:
+          p[0].modifiers.add(m)
+          
+    elif type(p[1]) != VarDeclNode:
       if type(p[2]) not in [VarDeclNode, IdentNode]:
         print(p[2])
         glob.g_error_pre = p
@@ -773,11 +782,32 @@ def p_var_decl(p):
       
       scope_add(p[0].val, p[0]);
   elif len(p) == 4 and p[2] == "=":
-    p[0] = p[1]
-    if len(p[1][0]) == 0 and type(p[1][0]) == ExprNode:
-      p[1].replace(p[1][0], p[3])
+    if type(p[1]) == ExpandNode:
+      node = None
+      
+      for i, n in enumerate(p[1]):
+        n2 = VarDeclNode(ExprNode([]), name=n.val)
+        n2.add(UnknownTypeNode())
+        n2.modifiers = p[1].modifiers
+        if p[1].etype == "array":
+          n2[0].add(ArrayRefNode(p[3], IdentNode(str(i))))
+        else:
+          n2[0].add(BinOpNode(p[3], n.val, "."))
+        
+        if not node:
+          p[0] = n2
+        else:
+          node.add(n2)          
+        node = n2
+        
+      print(p[0])
+      
     else:
-      p[1].replace(p[1][0], AssignNode(p[1][0], p[3]))
+      p[0] = p[1]
+      if len(p[1][0]) == 0 and type(p[1][0]) == ExprNode:
+        p[1].replace(p[1][0], p[3])
+      else:
+        p[1].replace(p[1][0], AssignNode(p[1][0], p[3]))
   elif len(p) == 4 and p[2] == ",":
     if type(p[3]) == IdentNode:
       p[3] = p[3].val
@@ -898,6 +928,39 @@ def p_empty(p):
   '''
   set_parse_globals(p)
 
+def p_var_fancy_list(p):
+  '''var_fancy_list : id
+                    | var_fancy_list COMMA id
+  '''
+  set_parse_globals(p)
+  
+  if len(p) == 2:
+    p[0] = ExpandNode([])
+    if p[1]:
+      p[0].add(p[1])
+  else:
+    p[0] = p[1]
+    if p[3]:
+      p[0].add(p[3])
+  
+
+def p_var_fancy_array(p):
+  '''var_fancy_array : LSBRACKET var_fancy_list RSBRACKET'''
+  
+  p[0] = p[2]
+
+def p_var_fancy_object(p):
+  '''var_fancy_object : LBRACKET var_fancy_list RBRACKET'''
+  
+  p[0] = p[2]
+  p[0].etype = "object"
+
+def p_var_expand(p):
+  '''var_expand : var_fancy_array
+                | var_fancy_object
+  '''
+  p[0] = p[1]
+  
 def p_var_type(p):
   ''' var_type : var_type id_var_type
                | id_var_type
@@ -917,10 +980,13 @@ def p_var_type(p):
   set_parse_globals(p, extra_str)
   
   if len(p) == 1:
-    p[0] = UnknownTypeNode()
+    raise RuntimeError("internal parse error")
+  elif len(p) == 2:
+    p[0] = p[1]
   elif len(p) == 3:
     if type(p[2]) == TemplateNode:
       if type(p[1]) not in [IdentNode, VarDeclNode]:
+        print("---", p[1])
         glob.g_error_pre = p
         glob.g_error = True
         print_err(p, False)
@@ -939,64 +1005,15 @@ def p_var_type(p):
       p[0] = VarDeclNode(ExprNode([]))
       
       p[0].val = p[2].val
+      if not p[1]:
+        p[1] = UnknownTypeNode()
+        
       p[0].type = p[1]
       p[0].add(p[1])
     else:
       p[0] = p[1]
-      if type(p[2]) in [IdentNode, VarDeclNode]:
+      if isinstance(p[2], IdentNode) or isinstance(p[2], VarDeclNode):
         p[0].val = p[2].val
-  else:
-    if type(p[1]) == str:
-      p[0] = BuiltinTypeNode(p[1])
-    else:
-      p[0] = p[1]
-    
-  """
-  if len(p) == 1:
-    #possible global here, write code to check
-    p[0].local = False
-    if "local" in p[0].modifiers:
-      p[0].modifiers.remove("local")
-      
-    p[0].type = UnknownTypeNode()
-    p[0].add(p[0].type)
-  elif len(p) == 2:
-    p[0].modifiers = set(p[1])
-    if "local" in p[0].modifiers:
-      p[0].local = True
-      
-    p[0].type = UnknownTypeNode()
-    p[0].add(p[0].type)
-  elif len(p) == 3:
-    if type(p[2]) == TemplateNode:
-      if "template" in p[1]:
-        print_err(p)
-      else:
-        p[1].add("template")
-      p[0].template = p[2]
-      p[0].add(p[2])
-    else:
-      if p[0] not in["int", "float", "short", "double", "char", "byte"]:
-        p[0].add(TypeRefNode(p[2]))
-      else:
-        p[0].add(BuiltinTypeNode(p[2]))
-        
-    p[0].type = p[0][1]
-        
-    for mod in p[1]:
-      if mod == "local":
-        p[0].local = True
-      p[0].modifiers.add(mod)
-  elif len(p) == 5:
-    p[0] = p[1]
-    p[0].modifiers.add("template")
-    n = TemplateNode(p[3])
-    
-    n.type = p[0].type
-    
-    p[0].replace(p[0][1], n);
-    p[0].type = n
-  """
 
 def p_typeof_opt(p):
   '''typeof_opt : TYPEOF
@@ -1016,6 +1033,9 @@ def p_simple_templatedeflist(p):
   if len(p) == 3:
     if p[1] != None:
       p[2] = TypeofNode(p[2])
+    if p[2] is None:
+      p[2] = IdentNode("undefined")
+      
     p[0] = ExprListNode([p[2]])
   elif len(p) == 5:
     if p[3] != None:
@@ -1346,18 +1366,32 @@ def p_property_id_right(p):
   '''
   p[0] = p[1]
 
+def p_star_opt(p):
+  '''star_opt : TIMES
+              |
+  '''
+  set_parse_globals(p)
+
+  if len(p) == 2:
+    p[0] = p[1]
+  else:
+    p[0] = None
+
 def p_method(p):
-  '''method : property_id_right LPAREN funcdeflist RPAREN func_type_opt LBRACKET statementlist_opt RBRACKET'''
+  '''method : star_opt property_id_right LPAREN funcdeflist RPAREN func_type_opt LBRACKET statementlist_opt RBRACKET'''
   set_parse_globals(p)
   
-  name = p[1]
-  params = p[3]
-  statementlist = p[7]
+  name = p[2]
+  params = p[4]
+  statementlist = p[8]
   
   if statementlist == None:
     statementlist = StatementList()
   
   p[0] = MethodNode(name)
+  if p[1]:
+    p[0].is_generator = True
+
   p[0].add(params)  
   p[0].add(statementlist)
   
@@ -2437,11 +2471,17 @@ def p_var_id(p):
   p[0] = p[2]
 #"""
 
+def p_for_of_expand(p):
+  '''
+  for_of_expand
+  '''
+
 def p_for_decl(p):
   '''
     for_decl : for_var_decl SEMI expr_opt SEMI expr_opt
              | id in_or_of expr
              | simple_var_decl in_or_of expr
+             | for_of_expand
   '''
   
   set_parse_globals(p)
@@ -2452,6 +2492,8 @@ def p_for_decl(p):
     
     p[0] = ForInNode(p[1], p[3])
     p[0].of_keyword = of_keyword
+  elif len(p) == 2 and type(p[1]) === ExpandNode:
+    p[0] = p[1];
   else:
     p[0] = ForCNode(p[1], p[3], p[5])
   

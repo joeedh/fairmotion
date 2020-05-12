@@ -19,6 +19,7 @@ class NoExtraArg:
   pass
 
 def combine_try_nodes(node):
+
   def visit(n):
     if type(n.parent) == TryNode: return
     
@@ -29,24 +30,37 @@ def combine_try_nodes(node):
     
     #we remove n here, since we may have to ascend through
     #several layers of StatementList nodes
-    sl.children.remove(n)
-    while 1:
-      while i >= 0:
-        if type(sl[i]) == TryNode:
-          break
-        i -= 1
+    #sl.children.remove(n)
+    
+    p = n.parent 
+    lastp = n
+    
+    while p and type(p) == StatementList:
+      print(p.get_line_str())
       
-      if i >= 0 or null_node(sl.parent): break
-      
-      i = sl.parent.children.index(sl)
-      sl = sl.parent
-      
-    if i < 0:
+      if lastp is not None and type(p) == StatementList:
+        i = max(p.index(lastp)-1, 0)
+         
+        if type(p[i]) == TryNode:
+          p = p[i]
+          break;
+        elif type(p[i]) != StatementList:
+          n = p
+          sys.stderr.write("%s:(%d): error: orphaned catch block\n" % (n.file, n.line))
+          sys.exit(-1)
+          
+                  
+      lastp = p
+      p = p.parent
+    
+    if type(p) != TryNode or len(p) >= 2:
+      n = p
       sys.stderr.write("%s:(%d): error: orphaned catch block\n" % (n.file, n.line))
       sys.exit(-1)
     
-    tn = sl[i]
-    tn.add(n)
+    n.parent.remove(n)
+    p.add(n)
+    return
     
   traverse(node, CatchNode, visit, copy_children=True)
 
@@ -718,7 +732,138 @@ def inside_generator(node):
   return found[0]
   
 def expand_of_loops(result, typespace):
+  onIterEnd = """
+      if (__re_t_.done && typeof __itervar_["return"] === "function") {
+        __itervar_["return"]();
+      }
+  """
+  
+  def addIterEnds(node):
+    def visit(n):
+      sn = StatementList()
+      sn.force_block = True
+      
+      n.parent.replace(n, sn)
+      sn.add(js_parse(onIterEnd))
+      sn.add(n)
+      
+    traverse(node, ReturnNode, visit)
+    
+  def expand_expand_loop(node, scope):
+    
+    sn = StatementList()
+    sn.force_block = True
+    
+    n3 = None
+    vdecl = None
+    if node[0].etype == "array":
+        namenode = BinOpNode(IdentNode("__re_t_"), IdentNode("value"), ".")
+        for i, c in enumerate(node[0]):
+            n4 = VarDeclNode(ArrayRefNode(namenode, NumLitNode(i)), name=c.val)
+            if len(n4) == 1:
+                n4.add(UnknownTypeNode())
+            
+            if n3 is None:
+                n3 = n4
+            else:
+                n3.add(n4)
+                
+            if vdecl is None:
+                vdecl = n3
+            n3 = n4
+    else:
+        namenode = BinOpNode(IdentNode("__re_t_"), IdentNode("value"), ".")
+
+        for i, c in enumerate(node[0]):
+            n4 = VarDeclNode(BinOpNode(namenode, c, "."), name=c.val)
+            if len(n4) == 1:
+                n4.add(UnknownTypeNode())
+            
+            if n3 is None:
+                n3 = n4
+            else:
+                n3.add(n4)
+                
+            if vdecl is None:
+                vdecl = n3
+            n3 = n4
+    
+    vdecl.modifiers = node[0].modifiers
+    
+    label = node.parent.label 
+    label = "" if label is None else label
+    
+    innersn = StatementList()
+    for c in node.parent[1:]:
+      innersn.add(c)
+      
+    n2 = js_parse("""
+        let __itervar_ = __get_iter($n1);
+        let __re_t_ = __itervar_.next();
+        $s4 for (; !__re_t_.done; __re_t_ = __itervar_.next()) {
+            $n3;
+            $n2;
+        }
+        
+        $s5
+    """, [node[1], innersn, vdecl, label+": " if len(label)>0 else "", onIterEnd])
+    
+        
+    sn.add(n2)
+    sn.force_block = True
+    
+    node.parent.parent.replace(node.parent, sn)
+    addIterEnds(sn)
+    
   def expand_mozilla_forloops_new(node, scope):
+    if node.of_keyword != "of":
+      return
+    
+    if type(node[0]) == ExpandNode:
+        expand_expand_loop(node, scope)
+        return
+        
+    vdecl = node[0]
+    label = node.parent.label 
+    label = "" if label is None else label + ":"
+    
+    name = vdecl.val
+    if isinstance(name, Node):
+      name = name.gen_js(0)
+      
+    innersn = StatementList()
+    for c in node.parent[1:]:
+      innersn.add(c)
+    
+    flatten_statementlists(innersn, typespace)
+    #print(innersn)
+      
+    n2 = js_parse("""
+        let __itervar_ = __get_iter($n1);
+        let __re_t_ = __itervar_.next();
+        $n3;
+        $s5 for (; !__re_t_.done; __re_t_ = __itervar_.next()) {
+          $s4 = __re_t_.value;
+        
+          $n2
+        }
+        
+        $s6
+    """, [node[1], innersn, vdecl, name, label, onIterEnd])
+    sn = StatementList()
+    sn.force_block = True
+    sn.add(n2)
+
+    #print("===============================>", sn.gen_js(0), "<==========================")
+    
+    node.parent.parent.replace(node.parent, sn)
+    addIterEnds(sn)
+    
+  def old_expand_mozilla_forloops_new(node, scope):
+    if type(node[0]) == ExpandNode:
+        expand_expand_loop(node, scope)
+        return
+        
     use_in_iter = False
     
     if (node.of_keyword == "in"):
@@ -773,13 +918,16 @@ def expand_of_loops(result, typespace):
     
     getiter = "__get_in_iter" if use_in_iter else "__get_iter"
     
+    label = node.parent.label 
+    label = label+": " if label is not None else ""
+    
     itername = node[0].val
     objname = node[1].gen_js(0)
     if glob.g_log_forloops:
       n2 = js_parse("""
         var __iter_$s1 = __get_iter($s2, $s3, $s4, $s5);
         var $s1;
-        while (1) {
+        LABEL while (1) {
           var __ival_$s1 = __iter_$s1.next();
           if (__ival_$s1.done) {
             break;
@@ -787,12 +935,12 @@ def expand_of_loops(result, typespace):
           
           $s1 = __ival_$s1.value;
         }
-      """.replace("__get_iter", getiter), (itername, GETITER, objname, "'"+node[0].file+"'", node[0].line, "'"+node.of_keyword+"'"));
+      """.replace("LABEL", label).replace("__get_iter", getiter), (itername, GETITER, objname, "'"+node[0].file+"'", node[0].line, "'"+node.of_keyword+"'"));
     else:
       n2 = js_parse("""
         var __iter_$s1 = __get_iter($s2);
         var $s1;
-        while (1) {
+        LABEL while (1) {
           var __ival_$s1 = __iter_$s1.next();
           if (__ival_$s1.done) {
             break;
@@ -800,7 +948,7 @@ def expand_of_loops(result, typespace):
           
           $s1 = __ival_$s1.value;
         }
-      """.replace("__get_iter", getiter), (itername, objname));
+      """.replace("LABEL", label).replace("__get_iter", getiter), (itername, objname));
     
     def set_line(n, slist, line, lexpos):
       n.line = line

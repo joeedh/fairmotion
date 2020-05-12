@@ -24,6 +24,8 @@ for path in glob.glob("src/path.ux/scripts/**", recursive=True):
         continue
     if "_old" in path.lower():
         continue
+    if path.endswith("jobs.js") or path.endswith("isect.js"):
+      continue
     pathux.append(path)
 
 sources = [

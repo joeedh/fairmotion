@@ -1,27 +1,12 @@
-#try to render sharper/better-filtered icons from svg
-#requires Pillow, e.g. pip install Pillow
-
+#!python3
 import os, os.path, sys, subprocess, time, math, random
 
-try:
-  import PIL, PIL.Image, PIL.ImageChops, PIL.ImageMath
-  have_pillow = True
-except:
-  have_pillow = False
+SHARPEN = True
+SVG_SIZE = 512
+SVG_DIVISIONS = 16
+OUTPUT_HEIGHT_SCALE = 0.5
 
-if not have_pillow:
-  sys.stderr.write("\nPillow module not installed; rendering iconsheets with less quality\n")
-  sys.stderr.flush()
-  
-  import render_icons
-  render_icons.main()
-  sys.exit(0)
-
-from math import *
-
-print("==Iconsheet Render==")
-print("make sure the following is in the svg tag:\n    shape-rendering=\"crispEdges\"\n")
-
+#sys.exit(0)
 sep = os.path.sep
 
 env = os.environ
@@ -30,23 +15,14 @@ if "INKSCAPE_PATH" in env:
 else:
   inkscape_path = None
   
-def copy(src, dst):
-    file = open(src, "rb")
-    buf = file.read()
-    file.close();
-
-    file = open(dst, "wb")
-    file.write(buf)
-    file.close()
-
 def np(path):
   return os.path.abspath(os.path.normpath(path))
   
 def find(old, path):
-  path = np(path)
-  
   if old: 
     return old
+
+  path = np(path)
     
   if os.path.exists(path):
     return path
@@ -64,7 +40,10 @@ def find_inkscape_win32():
     if ret: return ret
     
   ret = find(inkscape_path, "c:\\Program Files\\Inkscape\\inkscape.exe")
+  
   ret = find(ret, "c:\\Program Files (x86)\\Inkscape\\inkscape.exe")
+  ret = find(ret, "c:\\Program Files\\Inkscape\\bin\\inkscape.exe")
+  ret = find(ret, "c:\\Program Files (x86)\\Inkscape\\bin\\inkscape.exe")
   
   return ret
   
@@ -94,128 +73,123 @@ if inkscape_path == None:
   sys.exit();
   #sys.exit(-1)
 
-sep = os.path.sep
+def get_inkscape_version():
+    p = subprocess.run([inkscape_path, "--version"], stdout=subprocess.PIPE, check=True)
+    s = str(p.stdout, "latin-1").lower()
+    if s.startswith("inkscape"):
+        s = s[8:].strip()
 
-env = os.environ
-  
-def np(path):
-  return os.path.abspath(os.path.normpath(path))
-  
-sizes = [16, 24, 32, 64]
+    if " " in s:
+        s = s[:s.find(" ")].strip()
+
+    return s
+
+inkscape_version = get_inkscape_version()
+inkscape_1 = inkscape_version.startswith("1")
+
+files = ["iconsheet.svg"]
+
+def gen_cmdstr(cmd):
+  cmdstr = ""
+  for c in cmd:
+    cmdstr += c + " "
+  return cmdstr
+
+def copy(src, dst):
+    file = open(src, "rb")
+    buf = file.read()
+    file.close();
+
+    file = open(dst, "wb")
+    file.write(buf)
+    file.close()
+
+have_pillow = True
+try:
+    import PIL
+except:
+    have_pillow = False
+    #sys.stderr.write("Warning: Pillow module not found; cannot sharpen iconsheets\n")
+
+oversample_fac = 2
+
+def sharpen_iconsheets(paths):
+    print("\nsharpening. . .\n");
+
+    global have_pillow, oversample_fac
+
+    if not have_pillow:
+      return
+      
+    import PIL, PIL.ImageFilter, PIL.Image
+
+    filter = PIL.ImageFilter.SHARPEN
+    #filter = PIL.ImageFilter.UnsharpMask(radius=2, percent=150, threshold=3)
+
+    for f in paths:
+        im = PIL.Image.open(f)
+        for i in range(2):
+            im = im.filter(filter);
+
+        im = im.resize((im.width//oversample_fac, im.height//oversample_fac), PIL.Image.LANCZOS)
+        im = im.filter(filter);
+
+        print(im.width, im.height)
+        im.save(f)
+
+sizes = [16, 24, 32, 40, 50, 64, 80, 128]
 paths = []
 
 start_dir = os.getcwd()
 basepath = sep + "src" + sep + "datafiles" + sep
-dir = np(os.getcwd()) + basepath
 
-os.chdir("tools/scripts/render_icons_electron")
-src = os.path.join(dir, "iconsheet.svg")
+dir = np(os.getcwd())
+if not dir.endswith(os.path.sep):
+    dir += os.path.sep
+dir += basepath
 
-first = True
-image = None
-import random
-random.seed(0)
+def main():
+  os.chdir(dir)
 
-filter = 0.75
-
-for s in sizes:
-    #s = 64
-    totw = 0.0
-    first = True
-    w = 2
-    for i in range(w*w):
-      offx = ((i % w) - w*0.5)/w
-      offy = ((i // w) - w*0.5)/w
-      
-      offx += (random.random()-0.5)/w
-      offy += (random.random()-0.5)/w
-      
-      offx *= filter;
-      offy *= filter;
-      
-      dimen = s*16
-      fname = "iconsheet%i.png" % s
-      
-      #cmd = ["electron", ".", src, "512", "512", str(dimen), str(dimen), "%.4f" % offx, "%.4f" % offy, "_out.png"]
-      #cmd = " ".join(cmd)
-      #os.system(cmd);
-      
-      dimen = int(dimen)
-      cmd = [inkscape_path, "-C", "--export-png=_out.png", "-h %i"%dimen, "-w %i"%dimen, "-z",
-             "--export-area=%.5f:%.5f:%.5f:%.5f" % (offx,offy,512+offx,512+offy), src]
-#             "--export-area=%i:%i:%i:%i" % (0,0,512,512), src]
-             
-      
-      subprocess.call(cmd)
-      print(" ".join(cmd))
-      #continue
-      im = PIL.Image.open("_out.png")
-      if first:
-        first = False
-        image = list(im.split())
-        totw = 1.0;
+  for s in sizes:
+      if have_pillow and SHARPEN: #render twice as big for downsampling
+          dimen = s*SVG_DIVISIONS*oversample_fac
       else:
-        im = list(im.split())
-        
-        w1 = 1.0 - sqrt(offx*offx + offy*offy) / sqrt(w*2);
-        w1 = w1*w1*(3.0 - 2.0*w1);
-        w1 *= w1;
-        w1 = w1*0.8 + 0.2;
-        
-        #w1 = 1.0
-        totw += w1;
-        
-        #print(w1)
-        
-        for j in range(len(image)):
-          image[j] = PIL.ImageMath.eval("float(a) + float(b)*(%.6f)" % w1, a=image[j], b = im[j])
+          dimen = s*SVG_DIVISIONS
 
-      image2 = list(range(len(image)));
-      for j in range(len(image2)):
-        image2[j] = PIL.ImageMath.eval("convert(float(a)/%.6f, 'L')" % (totw), a=image[j])
-        
-      mode = "RGBA" if len(image) == 4 else "RGB"
-      image2 = PIL.Image.merge(mode, image2)
-      image2.save("accum.png")
-    
-    copy("accum.png", "../../../build/" + fname)
-    copy("accum.png", "../../../src/datafiles/" + fname)
-    #subprocess.call(cmd);
-    
-    continue
-    """
-    #break
-    if have_pillow: #render twice as big for downsampling
-        dimen = s*16*oversample_fac
-    else:
-        dimen = s*16
+      for f in files:
+        out = os.path.split(f)[1].replace(".svg", "")
 
-    for f in files:
-      out = os.path.split(f)[1].replace(".svg", "")
+        fname = "%s%i.png"%(out, s)
 
-      fname = "%s%i.png"%(out, s)
+        x1, y1 = 0, int(SVG_SIZE*(1.0 - OUTPUT_HEIGHT_SCALE))
+        x2, y2 = SVG_SIZE, SVG_SIZE
 
-      x1, y1 = 0, 0
-      x2, y2 = 512, 512
+        height = int(dimen * OUTPUT_HEIGHT_SCALE)
 
-      cmd = [inkscape_path, "-C", "-e"+fname, "-h %i"%dimen, "-w %i"%dimen, "-z", "--export-area=%i:%i:%i:%i" % (x1,y1,x2,y2), f]
+        if inkscape_1:
+            y1 = 0
+            y2 =  int(SVG_SIZE * OUTPUT_HEIGHT_SCALE)
+            cmd = [inkscape_path, "--export-filename="+fname, "-w",  "%i"%dimen, "-h", "%i"%height, "--export-area=%i:%i:%i:%i" % (x1,y1,x2,y2), f]
+        else:
+            cmd = [inkscape_path, "-C", "-e"+fname, "-w %i"%dimen, "-h %i"%height, "-z", "--export-area=%i:%i:%i:%i" % (x1,y1,x2,y2), f]
 
-      print("- " + gen_cmdstr(cmd))
-      subprocess.call(cmd)
+        print("- " + gen_cmdstr(cmd))
+        subprocess.call(cmd)
 
-      paths.append("./" + fname)
-      """
+        paths.append("./" + fname)
 
-#for p in paths:
-#    fname = os.path.split(p)[1]
-#    copy(p, "../../build/" + fname)
+  if SHARPEN:
+    sharpen_iconsheets(paths)
 
-#"""
-#print("copying rendered icon sheet to build/")
-#copy("./%s.png"%out, "../../build/%s.png"%out)
-#copy("./%s16.png"%out, "../../build/%s16.png"%out)
-#os.system("%s %s %s%sbuild%s%s" % (cp, "%s.png"%out, sub, sub, sep, "%s.png"%out))
-#os.system("%s %s %s%sbuild%s%s" % (cp, "%s16.png"%out, sub, sub, sep, "%s16.png"%out))
-#"""
+  for p in paths:
+      fname = os.path.split(p)[1]
+      p2 = os.path.abspath(".." + os.path.sep + ".." + os.path.sep + "build" + os.path.sep + fname)
+      print("copying to", p, p2)
+      copy(p, p2)
 
-os.chdir(start_dir)
+  os.chdir(start_dir)
+
+print(__name__)
+if __name__ == "__main__":
+  main()

@@ -1467,6 +1467,10 @@ def flatten_statementlists(node, typespace):
     return
     
   def visit_slists(n):
+    #don't flatten blocks with forced {}
+    if n.force_block:
+        return
+        
     if not null_node(n.parent) and type(n.parent) in [FunctionNode, StatementList]:
       p = n.parent
       i = p.index(n)
@@ -1514,13 +1518,36 @@ def flatten_var_decls_exprlists(node, typespace):
     
   traverse(node, VarDeclNode, visit, False)
   
-def kill_bad_globals(node, typespace):
+def kill_bad_globals(node, typespace):    
+  treatAssignsAsLets = [0]
+  
   def recurse(n, scope, tlevel=0):
     def descend(n2, start=0):
       for c in n2.children[start:]:
         recurse(c, scope, tlevel)
     
-    if isinstance(n, FunctionNode):
+    if isinstance(n, ExpandNode):
+      ok = "var" in n.modifiers
+      ok = ok or "let" in n.modifiers
+      ok = ok or "const" in n.modifiers
+      ok = ok or "local" in n.modifiers
+      
+      if not ok:
+        return
+        
+      for c in n:
+        if isinstance(c, IdentNode):
+          c = c.val
+        scope[c] = n
+      
+    elif isinstance(n, ForCNode):
+      scope = dict(scope)
+      treatAssignsAsLets[0] = True
+      recurse(n[0], scope, tlevel)
+      treatAssignsAsLets[0] = False
+      
+      #descend(n, 1)
+    elif isinstance(n, FunctionNode):
       scope = dict(scope)
       args = n.get_args()
       
@@ -1541,6 +1568,10 @@ def kill_bad_globals(node, typespace):
     elif type(n) == AssignNode:
       #deal with ambiguous grammar with expression lists
       
+      if treatAssignsAsLets:
+        scope[n[0].gen_js(0).strip()] = n[1]
+        return
+        
       if type(n.parent) == ObjLitNode:
         descend(n)
         return
@@ -1755,7 +1786,6 @@ def build_classes(nfiles):
     
     def visit(n):
       c = n[0].gen_js(0)
-      print(c)
    
       if c.startswith("this.") and c.count(".") == 1 and c.count("(") == 0 and c.count("[") == 0:
         c = c[5:]

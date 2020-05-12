@@ -103,7 +103,7 @@ export function b64encode(arr, add_newlines=false, collimit=76) {
   var is_str = btypeof(arr) == "string";
   
   var ci = 0;
-  for (var i=0; i<arr.length-2; i += 3) {
+  for (let i=0; i<arr.length-2; i += 3) {
     if (arr[i] < 0 || arr[i] > 255) {
       console.log("Invalid input ", arr[i], " at index ", i, " passed to B64Encode")
       throw new Error("Invalid input " + arr[i] +" at index " + i +" passed to B64Encode");
@@ -123,7 +123,7 @@ export function b64encode(arr, add_newlines=false, collimit=76) {
     var b4 = (n>>18) & 63;
   
     _b64_arr[0] = b1; _b64_arr[1] = b2; _b64_arr[2] = b3; _b64_arr[3] = b4;
-    for (var j=0; j<4; j++) {
+    for (let j=0; j<4; j++) {
       if (ci >= collimit && add_newlines) {
         ci = 0;
         s += "\n";
@@ -133,6 +133,8 @@ export function b64encode(arr, add_newlines=false, collimit=76) {
       ci++;
     }
   }
+  
+  let i;
   
   if ((arr.length % 3) != 0) {
     i = arr.length % 3;
@@ -167,7 +169,7 @@ export function b64encode(arr, add_newlines=false, collimit=76) {
 
 export function b64decode(s, gen_str=false, gen_uint8arr=true) {
   var s2 = ""
-  for (var i=0; i<s.length; i++) {
+  for (let i=0; i<s.length; i++) {
     if (s[i] != "\n" && s[i] != "\r" && s[i] != " " && s[i] != "\t")
       s2 += s[i];
   }
@@ -175,7 +177,7 @@ export function b64decode(s, gen_str=false, gen_uint8arr=true) {
   s = s2;
   s2 = gen_str ? "" : []
   
-  for (var i=0; i<s.length; i += 4) {
+  for (let i=0; i<s.length; i += 4) {
     var a = _b64_map[s[i]], b = _b64_map[s[i+1]], c = _b64_map[s[i+2]], d=_b64_map[s[i+3]];
     var n = a | (b<<6) | (c<<12) | (d<<18)
     
@@ -224,7 +226,7 @@ export function limit_line(s, limit=80) {
   var s2 = "";
   var ci = 0;
   
-  for (var i=0; i<s.length; i++) {
+  for (let i=0; i<s.length; i++) {
     if (ci > limit) {
       s2 += "\n";
       ci = 0;
@@ -253,7 +255,7 @@ perc_unres = a;
 
 var perc_res = " %\n\r\t!*'();:@&=+$,/?#[]"
 var a = [];
-for (var i=0; i<perc_res.length; i++) {
+for (let i=0; i<perc_res.length; i++) {
   a.push(perc_res.charCodeAt(i));
 }
 perc_res = a;
@@ -265,7 +267,7 @@ export function urlencode(s) {
   encode_utf8(arr, s);
   console.log("arr", arr);
   
-  for (var i=0; i<arr.length; i++) {
+  for (let i=0; i<arr.length; i++) {
     var c = arr[i];
     
     if (perc_unres.indexOf(c) >= 0) {

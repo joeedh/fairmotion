@@ -22,7 +22,7 @@ glob_cmd_short_override = {}
 
 glob_cmd_parse_exclude = set(["infile", "outfile", "nfile"])
 glob_cmd_advanced = set(["g_error", "g_line", "g_file", "g_tried_semi", "g_error_pre", "g_lexpos", "g_clear_slashr", "g_lexer"])
-glob_cmd_exclude = set(["g_comment_line", "g_comment", "g_comment_id", "g_lexer", "g_error_pre", "g_outfile", "g_lines", "g_lexdata"])
+glob_cmd_exclude = set(["g_error_msg", "g_comment_line", "g_comment", "g_comment_id", "g_lexer", "g_error_pre", "g_outfile", "g_lines", "g_lexdata"])
 glob_long_word_shorten = {"generators": "gens", "error": "err", "warnings": "warn", "production": "prod"}
 
 gcs = glob_cmd_short_override
@@ -237,6 +237,7 @@ class Glob(AbstractGlob):
     g_print_stack = True
     g_file = ""
     g_error_pre = None
+    g_error_msg = None
     g_tried_semi = False
     g_lexpos = 0
     g_clear_slashr = False

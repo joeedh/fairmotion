@@ -33,6 +33,7 @@ precedence = (
   ("left", "PLUS", "MINUS"),
   ("left", "TIMES", "DIVIDE"),
   ("left", "EXPONENT"),
+ # ("right", "RIGHTMOST"), #ficitious token
   ("right", "UMINUS"), #negation prefix operation, note this is a "fictitious" token
   ("right", "VAR_TYPE_PREC"), #ficitious token
   ("right", "BITINV"),
@@ -153,6 +154,9 @@ def restrict_prev(type1="noline"):
 def handle_semi_error(p):
   global parser 
   
+  if p and p.lexer._no_semi_handling:
+    return
+    
   if glob.g_production_debug:
     print("in handle_semi_error")
     
@@ -188,8 +192,9 @@ def handle_semi_error(p):
     p = p2
     print(prev.type, cur.type, p2, restrict_prev())
     print("didn't handle semi error")
-    glob.g_line = p.lineno
-    glob.g_lexpos = p.lexpos
+    #glob.g_line = p.lineno
+    #XXX glob.g_lexpos = p.lexpos
+    
     #print_err(p)
     
   if ret and not glob.g_tried_semi:
@@ -228,17 +233,43 @@ def set_parse_globals_error(p):
   if glob.g_production_debug:
     print("in %s" % get_production()[0])
   #prodname_log.append(get_production()[0])
-    
-  if (p.lexer.cur != None):
+  
+  if p.lexer.prev != None:
+    glob.g_line = p.lexer.prev.lineno
+  elif (p.lexer.cur != None):
     glob.g_line = p.lexer.cur.lineno
   else:
     glob.g_line = p.lineno
+
   if type(glob.g_line) != int:
     glob.g_line = glob.g_line(0)
   if type(glob.g_line) != int:
     glob.g_line = glob.g_line(0)
 
 
+def set_parse_globals_node(n):
+    lexer = glob.g_lexer
+    
+    glob.g_line = n.line
+    glob.g_lexpos = n.lexpos
+    
+    lexer.lineno = glob.g_line
+    lexer.lexpos = glob.g_lexpos
+    
+    glob.g_lexer._force_lexpos_line = [lexer.lexpos, n.line]
+    
+def raiseSyntaxError(node, msg):
+    glob.g_error_msg = msg
+    
+    if not node or type(node) == "string" or type(node) == "number":
+        glob.g_lexer._force_lexpos_line = [glob.g_lexpos, glob.g_line]
+        raise SyntaxError(msg)
+        
+    glob.g_lexer._no_semi_handling = True
+    set_parse_globals_node(node)
+    
+    raise SyntaxError(msg)
+    
 def set_parse_globals(p, extra_str=""):
   global prodname_log
   
@@ -261,22 +292,35 @@ def set_parse_globals(p, extra_str=""):
     if len(prodname_log) > 20:
       prodname_log = prodname_log[-20:]
       
-  if (p.lexer.cur != None):
+  if p.lexer.prev is not None:
+    glob.g_line = p.lexer.prev.lineno
+  elif p.lexer.cur is not None:
     glob.g_line = p.lexer.cur.lineno
   else:
     glob.g_line = p.lineno
-  if type(glob.g_line) != int:
-    glob.g_line = glob.g_line(0)
-  if type(glob.g_line) != int:
-    glob.g_line = glob.g_line(0)
-  
-  l = 0
-  for i in range(len(p)):
-    l = max(l, p.lexpos(i))
-  
-  if l == 0 and p.lexer.cur != None:
-    l = p.lexer.prev_lexpos - p.lexer.token_len(p.lexer.cur) - 1
     
+  if type(glob.g_line) != int:
+    glob.g_line = glob.g_line(0)
+  if type(glob.g_line) != int:
+    glob.g_line = glob.g_line(0)
+  
+  #l = 0
+  #for i in range(len(p)):
+  #  l = max(l, p.lexpos(i))
+  
+  l = None
+  for i in range(len(p)):
+    lp = p.lexspan(i)[0]
+    
+    if l is None or lp < l:
+        l = lp
+  
+  if l is None:
+    l = 0
+  
+  #if l == 0 and p.lexer.cur != None:
+  #  l = p.lexer.prev_lexpos - p.lexer.token_len(p.lexer.cur) - 1
+  
   glob.g_lexpos = l
   p.lexpos2 = l
 
@@ -419,7 +463,7 @@ def p_name_space_import(p):
   '''name_space_import : TIMES ID import_bind'''
   
   if p[2] != "as":
-    raise SyntaxError("Expected 'as'")
+    raiseSyntaxError(p[3], "Expected 'as'")
     
   p[0] = ImportDeclNode("*")
   p[0].bindname = p[3]
@@ -456,7 +500,7 @@ def p_import_spec(p):
   
   #second id is 'soft' keyword
   if len(p) ==4 and p[2] != "as":
-    raise SyntaxError("Expected 'as'")
+    raiseSyntaxError(p[3], "Expected 'as'")
   
   if len(p) == 4:
     n = ImportDeclNode(p[1], p[2])
@@ -567,7 +611,6 @@ def p_templatedeflist(p):
   set_parse_globals(p)
   
   if len(p) == 2:
-    print(p[1])
     p[0] = ExprListNode([])
     if p[1]:
       p[0].add(p[1])
@@ -685,11 +728,10 @@ def p_var_decl_no_list(p):
       scope_add(p[1].val, p[1])
     else:
       if type(p[1]) not in [VarDeclNode, IdentNode]:
-        print(p[1])
         glob.g_error_pre = p
         glob.g_error = True
         print_err(p, False)
-        raise SyntaxError
+        raiseSyntaxError(p[1], "Invalid variable declaration")
         
       p[0] = VarDeclNode(ExprNode([]));
       p[0].val = p[1].val
@@ -759,11 +801,10 @@ def p_var_decl(p):
           
     elif type(p[1]) != VarDeclNode:
       if type(p[2]) not in [VarDeclNode, IdentNode]:
-        print(p[2])
         glob.g_error_pre = p
         glob.g_error = True
         print_err(p, False)
-        raise SyntaxError
+        raiseSyntaxError(p[2], "Invalid variable declaration")
         
       if type(p[2]) == VarDeclNode:
         p[0] = p[2]
@@ -799,8 +840,6 @@ def p_var_decl(p):
         else:
           node.add(n2)          
         node = n2
-        
-      print(p[0])
       
     else:
       p[0] = p[1]
@@ -986,11 +1025,10 @@ def p_var_type(p):
   elif len(p) == 3:
     if type(p[2]) == TemplateNode:
       if type(p[1]) not in [IdentNode, VarDeclNode]:
-        print("---", p[1])
         glob.g_error_pre = p
         glob.g_error = True
         print_err(p, False)
-        raise SyntaxError
+        raiseSyntaxError(p[1], "Invalid variable declaration")
       p[0] = VarDeclNode(ExprNode([]))
         
       p[0].val = p[1].val
@@ -1294,7 +1332,7 @@ def p_class_heritage(p):
   
   p[0] = p[2]
   if len(p[0]) > 1:
-    raise SyntaxError("Multiple inheritance was removed from final ES6 spec")
+    raiseSyntaxError(p[0], "Multiple inheritance was removed from final ES6 spec")
 
 def p_class_heritage_opt(p):
   '''class_heritage_opt : class_heritage
@@ -1332,40 +1370,74 @@ def p_class_element_list(p):
     p[0].append(p[2])
     
 def p_class_element(p):
-  '''class_element : STATIC method_def
-                   | method_def
+  '''class_element : method_def
   '''
   set_parse_globals(p)
   
   if len(p) == 2:
     p[0] = p[1]
-  elif p[1] == "static":
-    p[0] = p[2]
-    p[0].is_static = True
-  elif p[2] == ";":
+  
+def p_prefix_opt(p):
+  '''prefix_opt : STATIC
+                | GET
+                | SET
+                |
+  '''
+  
+  if len(p) == 2:
     p[0] = p[1]
-      
+
 def p_id_right(p):
   '''id_right : id %prec UMINUS
   '''
+  set_parse_globals(p)
   p[0] = p[1]
 
 def p_property_id(p):
   ''' property_id : ID
-                  | GET  
-                  | SET
+                  | GET
+                  | SET 
+                  | FOR
+                  | WHILE
+                  | DO
+                  | NUMBER
+                  | IF
+                  | ELSE
+                  | VAR
+                  | CONST
+                  | LET
+                  | STATIC
+                  | YIELD
+                  | FUNCTION
+                  | RETURN
                   | LSBRACKET expr RSBRACKET
   '''
+  set_parse_globals(p)
+
   if len(p) == 4:
     p[0] = RuntimeObjectKey(p[2])
   else:
     p[0] = p[1]
+    if type(p[0]) == int:
+        p[0] = str(p[0])
 
 def p_property_id_right(p):
   '''property_id_right : property_id %prec UMINUS
   '''
+  set_parse_globals(p)
   p[0] = p[1]
 
+def p_property_id_opt(p):
+    '''property_id_opt : property_id property_id
+                       | property_id
+    '''
+    set_parse_globals(p)
+    
+    if len(p) == 2:
+        p[0] = [None, p[1]]
+    else:
+        p[0] = [p[1], p[2]]
+        
 def p_star_opt(p):
   '''star_opt : TIMES
               |
@@ -1373,30 +1445,49 @@ def p_star_opt(p):
   set_parse_globals(p)
 
   if len(p) == 2:
-    p[0] = p[1]
+    p[0] = IdentNode("+"+p[1])
   else:
     p[0] = None
 
 def p_method(p):
-  '''method : star_opt property_id_right LPAREN funcdeflist RPAREN func_type_opt LBRACKET statementlist_opt RBRACKET'''
+  '''method : star_opt property_id_opt LPAREN funcdeflist RPAREN func_type_opt LBRACKET statementlist_opt RBRACKET'''
   set_parse_globals(p)
   
-  name = p[2]
-  params = p[4]
-  statementlist = p[8]
+  p2 = p[:2] + p[2] + p[3:]
+  
+  name = p2[3]
+  params = p2[5]
+  statementlist = p2[9]
   
   if statementlist == None:
     statementlist = StatementList()
   
   p[0] = MethodNode(name)
-  if p[1]:
+  
+  if p2[2] in ["get", "set"] and p2[1] is not None:
+    raiseSyntaxError(p2[1], "getter/setter generators not supported by JS")
+  
+  if p2[2] == "static":
+    p[0].is_static = True
+  elif p2[2] == "get":
+    p[0] = MethodGetter(name)
+    if len(params) > 0:
+      raiseSyntaxError(params, "getters must have no parameters")
+  elif p2[2] == "set":
+    p[0] = MethodSetter(name)
+    if len(params) != 1:
+      raiseSyntaxError(params, "setters must one parameter")
+  elif p2[2] is not None:
+      raiseSyntaxError(params, "expected method, getter or setter")
+    
+  if p2[1] is not None:
     p[0].is_generator = True
 
   p[0].add(params)  
   p[0].add(statementlist)
   
-  if p[5] != None:
-    p[0].type = p[5]
+  if p2[5] != None:
+    p[0].type = p2[5]
 
 def p_getset_id(p):
   '''getset_id : property_id
@@ -1404,38 +1495,13 @@ def p_getset_id(p):
   '''
   
   p[0] = p[1]
-  
+    
 def p_method_def(p):
   '''method_def : method
-                | GET getset_id LPAREN RPAREN func_type_opt LBRACKET statementlist_opt RBRACKET
-                | SET getset_id LPAREN setter_param_list RPAREN func_type_opt LBRACKET statementlist_opt RBRACKET
   '''
 
   set_parse_globals(p)
-  
-  if len(p) == 2:
-    p[0] = p[1]
-  elif p[1] == "get" and len(p) == 9:
-    name = p[2]
-    p[0] = MethodGetter(name)
-    if p[7] == None: p[7] = StatementList()
-    p[0].add(p[7])
-    
-    if p[5] != None:
-      p[0].type = p[5]
-  elif p[1] == "set" and len(p) == 10:
-    name = p[2]
-    p[0] = MethodSetter(name)
-    p[0].add(p[4])
-    if p[8] == None: p[8] = StatementList()
-    p[0].add(p[8])
-    if p[6] != None:
-      p[0].type = p[6]
-  else:
-    glob.g_error = True
-    glob.g_error_pre = p
-    print_err(p, True)
-    raise SyntaxError("Expected 'get' or 'set'");
+  p[0] = p[1]
 
 #right associativity! that's how you do c-style type
 #declarations and not have var_type eat up all the id tokens!
@@ -1536,7 +1602,7 @@ def p_setter_param_list(p):
       n.add(n.type)
   else:
     if type(p[1]) not in [IdentNode, VarDeclNode]:
-      raise SyntaxError
+      raiseSyntaxError(p[1], "Invalid variable declaration")
     
     p[0] = ExprListNode([p[1]])
     
@@ -1557,8 +1623,6 @@ def p_func_call(p):
                  | template_ref_opt LPAREN RPAREN
   '''
   set_parse_globals(p)
-  
-  #print(len(p), "yay", p[4])
   
   if len(p) == 8:
     elist = p[3]
@@ -1616,14 +1680,7 @@ def p_func_type_opt(p):
     p[0] = p[2]
   else:
     p[0] = None
- 
-def p_star_opt(p):
-  ''' star_opt : TIMES
-               |
-  '''
-  if len(p) == 2:
-    p[0] = p[1]
-  
+   
 def p_funcref(p):
   ''' funcref : FUNCTION star_opt id template_opt push_scope LPAREN funcdeflist RPAREN func_type_opt
   '''
@@ -1639,7 +1696,7 @@ def p_funcref(p):
   if p[9] != None:
     p[0].type = p[9]
     if type(p[0].type) == str:
-      p[0].type = TyperefNode(p[0].type)
+      p[0].type = TypeRefNode(p[0].type)
       
   if p[4] != None:
     p[0].template = p[4]
@@ -1684,12 +1741,12 @@ def p_function(p):
   for c in exprlist:
     p[0].add(c)
   
-  p[0].is_generator = p[2] == "*"
+  p[0].is_generator = p[2] is not None
   
   if p[9] != None:
     p[0].type = p[9]
     if type(p[0].type) == str:
-      p[0].type = TyperefNode(p[0].type)
+      p[0].type = TypeRefNode(p[0].type)
       
   if p[4] != None:
     p[0].template = p[4]
@@ -1736,6 +1793,17 @@ def p_func_name_opt(p):
     p[0] = "(anonymous)"
   else:
     p[0] = p[1]
+
+def p_func_name(p):
+  ''' func_name     : ID
+                    | SET
+                    | GET
+                    | SHORT
+                    | DOUBLE
+                    | TYPED
+  '''
+  
+  p[0] = p[1];
  
 def p_exprfunction(p):
   ''' exprfunction : FUNCTION star_opt func_name_opt template_opt push_scope LPAREN funcdeflist RPAREN colon_opt var_type_opt lbracket_restrict statementlist_opt rbracket_restrict
@@ -1752,7 +1820,7 @@ def p_exprfunction(p):
     p[0] = FunctionNode(p[3], p.lineno)
     p[0].is_anonymous = True
     p[0].add(p[7])
-    p[0].is_generator = p[2] == "*"
+    p[0].is_generator = p[2] is not None
     p[7].flatten()
 
     colon = p[9]
@@ -1765,7 +1833,7 @@ def p_exprfunction(p):
     p[0] = FunctionNode(p[3], p.lineno)
     p[0].is_anonymous = True
     p[0].add(ExprNode([]))
-    p[0].is_generator = p[2] == "*"
+    p[0].is_generator = p[2] is not None
     
     colon = p[8]
     type1 = p[9]
@@ -1781,7 +1849,7 @@ def p_exprfunction(p):
     glob.g_error = True
     glob.g_error_pre = p
     print_err(p, False)
-    raise SyntaxError()
+    raiseSyntaxError(p[3], "Expected ':'")
     
   if template != None:
     p[0].template = template
@@ -1868,12 +1936,18 @@ def p_objlit_key(p):
 def p_obj_lit_list(p):
   r'''
     obj_lit_list : objlit_key COLON expr
-             | obj_lit_list COMMA objlit_key COLON expr
-             | obj_lit_list COMMA
+                 | objlit_function
+                 | obj_lit_list COMMA objlit_function
+                 | obj_lit_list COMMA objlit_key COLON expr
+                 | obj_lit_list COMMA
   '''
   
   set_parse_globals(p)
-  if len(p) == 4:
+  
+  if len(p) == 2:
+    p[0] = ObjLitNode()
+    p[0].add(AssignNode(IdentNode(p[1].name), p[1]))
+  elif len(p) == 4:
     p[0] = ObjLitNode()
     p[0].add(AssignNode(p[1], p[3]))
   elif len(p) == 3:
@@ -1894,6 +1968,42 @@ def p_obj_literal(p):
   
   pop_scope()
   
+def p_star_opt_2(p):
+  '''star_opt_2 : 
+                 | TIMES
+  '''
+  
+  if len(p) == 2:
+    p[0] = p[1]
+    
+def p_objlit_function(p):
+  ''' objlit_function : TIMES func_name LPAREN funcdeflist RPAREN lbracket_restrict statementlist_opt rbracket_restrict
+                      | func_name LPAREN funcdeflist RPAREN lbracket_restrict statementlist_opt rbracket_restrict
+  '''
+  
+  set_parse_globals(p)
+  
+  colon = None
+  type1 = None
+  template = None
+  
+  if len(p) == 9:
+    p[0] = FunctionNode(p[2], p.lineno)
+    p[0].add(p[4])
+    
+    for c in p[7]:
+      p[0].add(c)
+      
+    p[0].is_generator = True
+  else:
+    p[0] = FunctionNode(p[1], p.lineno)
+    p[0].add(p[3])
+    
+    for c in p[6]:
+      p[0].add(c)
+    
+  pop_scope()
+
 def p_delete(p):
   '''delete : DELETE expr
   '''
@@ -2067,7 +2177,7 @@ def p_arrow_paramlist(p):
     elif type(p[1]) == str:
       p[0] = IdentNode(p[1])
     else:
-      raise SyntaxError("bad arrow parameter block")
+      raiseSyntaxError(p[1], "bad arrow parameter block")
 
 
 def p_arrow_function(p):
@@ -2436,7 +2546,7 @@ def p_for_var_decl(p):
   if type(p[1]) == str:
     if p[1] not in parsescope:
       print_err(p, msg="undeclared variable")
-      raise SyntaxError
+      raiseSyntaxError(p[1], "Undeclared Variable")
     
     p[0] = VarDeclNode(p[3] if len(p) == 4 else ExprNode([]))
     p[0].type = parsescope[p[1]].type
@@ -2473,8 +2583,11 @@ def p_var_id(p):
 
 def p_for_of_expand(p):
   '''
-  for_of_expand
+  for_of_expand : type_modifiers var_expand OF expr
   '''
+  p[0] = ForInNode(p[2], p[4])
+  p[2].modifiers = p[1]
+  p[0].of_keyword = "of"
 
 def p_for_decl(p):
   '''
@@ -2492,24 +2605,35 @@ def p_for_decl(p):
     
     p[0] = ForInNode(p[1], p[3])
     p[0].of_keyword = of_keyword
-  elif len(p) == 2 and type(p[1]) === ExpandNode:
+  elif len(p) == 2:
     p[0] = p[1];
   else:
     p[0] = ForCNode(p[1], p[3], p[5])
   
+def p_loop_label_opt(p):
+  '''loop_label_opt : 
+                    | ID COLON
+  '''
+  
+  if len(p) == 3:
+    p[0] = p[1]
+
 def p_for(p):
-  '''for : FOR LPAREN for_decl RPAREN statement_nonctrl
-         | FOR LPAREN for_decl RPAREN LBRACKET statementlist_opt RBRACKET
+  '''for : loop_label_opt FOR LPAREN for_decl RPAREN statement_nonctrl
+         | loop_label_opt FOR LPAREN for_decl RPAREN LBRACKET statementlist_opt RBRACKET
   '''
 
   set_parse_globals(p)
-  if len(p) == 6:
-    p[0] = ForLoopNode(p[3])
-    p[0].add(p[5])
-  else:
-    p[0] = ForLoopNode(p[3])
+  if len(p) == 7:
+    p[0] = ForLoopNode(p[4])
     p[0].add(p[6])
-
+  else:
+    p[0] = ForLoopNode(p[4])
+    p[0].add(p[7])
+  
+  if p[1] is not None:
+    p[0].label = p[1]
+    
 def p_ctrl_statement(p):
   """ ctrl_statement : statement_nonctrl
                      | LBRACKET statementlist_opt RBRACKET
@@ -2526,27 +2650,31 @@ def p_ctrl_statement(p):
     p[0] = NullStatement()
 
 def p_dowhile(p):
-  '''dowhile : DO ctrl_statement WHILE paren_expr
+  '''dowhile : loop_label_opt DO ctrl_statement WHILE paren_expr
+  '''
+
+  set_parse_globals(p)
+  
+  if len(p) == 6:
+    p[0] = DoWhileNode(p[5])
+    p[0].add(p[3])
+    p[0].label = p[1]
+
+def p_while(p):
+  '''while : loop_label_opt WHILE paren_expr statement_nonctrl
+           | loop_label_opt WHILE paren_expr LBRACKET statementlist_opt RBRACKET
   '''
 
   set_parse_globals(p)
   if len(p) == 5:
-    p[0] = DoWhileNode(p[4])
-    p[0].add(p[2])
-
-def p_while(p):
-  '''while : WHILE paren_expr statement_nonctrl
-        | WHILE paren_expr LBRACKET statementlist_opt RBRACKET
-  '''
-
-  set_parse_globals(p)
-  if len(p) == 4:
-    p[0] = WhileNode(p[2])
-    p[0].add(p[3])
-  else:
-    p[0] = WhileNode(p[2])
+    p[0] = WhileNode(p[3])
     p[0].add(p[4])
-
+  else:
+    p[0] = WhileNode(p[3])
+    p[0].add(p[5])
+    
+  p[0].label = p[1]
+  
 def p_default_case(p):
   '''default_case : DEFAULT COLON statementlist
   '''
@@ -2679,7 +2807,7 @@ def p_export_decl(p):
     elif type(n) == AssignNode:
       return n[0].gen_js(0).strip()
       
-  if len(p) == 5 and p[2] == "*":
+  if len(p) == 5 and (p[2] == "*" or (type(p[2]) == IdentNode and p[2].val == "*")):
     p[0] = ExportFromNode(p[3])
     p[0].add(ExportIdent("*"))
   elif len(p) == 5:
@@ -2772,7 +2900,7 @@ def p_export_spec(p):
                   | ID ID ID
   '''                  #middle ID is 'as'
   if len(p) == 4 and p[2] != "as":
-    raise SyntaxError("expected 'as'")
+    raiseSyntaxError(None, "expected 'as'")
   
   if len(p) == 2:
     p[0] = ExportIdent(p[1])
@@ -2783,7 +2911,7 @@ def p_catch_tok(p):
     r'''catch_tok : CATCH'''
     
     if p[1] != "catch":
-        raise SyntaxError("expected 'catch'")
+        raiseSyntaxError(None, "expected 'catch'")
     
     p[0] = p[1]
     
@@ -2810,17 +2938,24 @@ def p_else(p):
   
 def p_break(p):
   '''break : BREAK 
+           | BREAK ID
   '''
             
   set_parse_globals(p)
   p[0] = BreakNode()
+  if len(p) == 3:
+    p[0].label = p[2]
 
 def p_continue(p):
   '''continue : CONTINUE 
+              | CONTINUE ID
   '''
             
   set_parse_globals(p)
   p[0] = ContinueNode()
+  
+  if len(p) == 3:
+    p[0].label = p[2]
 
 def p_return(p):
   '''return : RETURN expr
@@ -2932,7 +3067,9 @@ def get_cur_pos(p):
   if lexpos == None: lexpos = 0
   """
   
-  if type(p) == LexToken:
+  if glob.g_lexer is not None and glob.g_lexer._force_lexpos_line is not None:
+    lexpos, line = glob.g_lexer._force_lexpos_line
+  elif type(p) == LexToken:
     lexpos, line = p.lexpos, p.lineno
   elif p != None and type(p.lineno) != int:
     lexpos = p.lexpos(0)
@@ -2962,9 +3099,15 @@ def get_cur_pos(p):
   return lexpos, line
   """
   
-def print_err(p, do_exit=True, msg="syntax error"):
+def print_err(p, do_exit=True, msg=None):
   if glob.g_print_stack and not glob.g_validate_mode:
     traceback.print_stack()
+    
+  if msg is None:
+    msg = glob.g_error_msg
+    glob.g_error_msg = None
+  if msg is None:
+    msg = "syntax error"
     
   if p == None and not glob.g_validate_mode:
     sys.stderr.write(msg +": unexpected EOF in input\n")
@@ -3002,7 +3145,7 @@ def print_err(p, do_exit=True, msg="syntax error"):
   if not glob.g_msvc_errors:
     sys.stderr.write("%s\n%s\n"%(linestr, colstr))
   
-  sys.stderr.write("P: %s\n" % p)
+  #sys.stderr.write("P: %s\n" % p)
     
   if do_exit and glob.g_exit_on_err:
     sys.exit(-1)
@@ -3011,7 +3154,53 @@ tried_semi = False
   
 def p_error(p):
   global parser
-      
+  
+  if p and p.lexer._force_lexpos_line is not None:
+    p.lexpos = p.lexer._force_lexpos_line[0]
+    p.lineno = p.lexer._force_lexpos_line[1]
+    p.line = p.lexer._force_lexpos_line[1]
+
+  ### stack unwinding to fix error
+  ### with reserved words as identifiers,
+  ### e.g. class method names
+  if 0: #p and p.type == "LPAREN":
+    print(dir(parser._parser), "\n")
+    p2 = parser._parser
+    
+    print("::", p.lexer.prev, "\n")
+    prev = p2.symstack[-1]
+    sys.stdout.flush()
+    sys.stderr.flush()
+    
+    if prev and isinstance(prev, LexToken) and prev.type in ["GET", "SET", "STATIC"]:
+    #if p.lexer.prev.value in ["get", "set", "static"]:
+        #prev.type = "ID"
+
+        t = LexToken()
+        t.type = "LPAREN"
+        t.value = "("
+        t.lexpos = p.lexpos
+        t.lineno = p.lineno
+        p.lexer.push(t)
+        
+        t = LexToken()
+        t.type = "ID"
+        t.value = prev.value
+        t.lexpos = p.lexpos
+        t.lineno = p.lineno
+        p.lexer.push(t)
+
+        p2.errok()
+
+        prev.value = None
+        
+        print(p2.symstack, "\n")
+        print(p2.statestack, "\n")
+        print(p, "\n")
+        print("--------------", p2.action[p2.state], "\n\n")
+        
+        return
+  
   """
   print(p.lexer.prev.lineno, p.lineno)
   if p.lexer.prev.lineno < p.lineno or p.type == "RBRACKET":
@@ -3023,7 +3212,7 @@ def p_error(p):
       print("in p_error")
     else:
       print("in p_error", p.type, p.value)
-      
+  
   if p == None:
     if not restricted() and glob.g_tried_semi == False:
       t = LexToken()

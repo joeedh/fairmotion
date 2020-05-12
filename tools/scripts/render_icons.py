@@ -19,10 +19,10 @@ def np(path):
   return os.path.abspath(os.path.normpath(path))
   
 def find(old, path):
-  path = np(path)
-  
   if old: 
     return old
+
+  path = np(path)
     
   if os.path.exists(path):
     return path
@@ -40,7 +40,10 @@ def find_inkscape_win32():
     if ret: return ret
     
   ret = find(inkscape_path, "c:\\Program Files\\Inkscape\\inkscape.exe")
+  
   ret = find(ret, "c:\\Program Files (x86)\\Inkscape\\inkscape.exe")
+  ret = find(ret, "c:\\Program Files\\Inkscape\\bin\\inkscape.exe")
+  ret = find(ret, "c:\\Program Files (x86)\\Inkscape\\bin\\inkscape.exe")
   
   return ret
   
@@ -181,7 +184,8 @@ def main():
 
   for p in paths:
       fname = os.path.split(p)[1]
-      copy(p, "./" + fname)
+      print("copying to", p, os.path.abspath(".." + os.path.sep + "build" + os.path.sep + fname))
+      copy(p, ".." + os.path.sep + "build" + os.path.sep + fname)
 
   os.chdir(start_dir)
 

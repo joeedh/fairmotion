@@ -1026,6 +1026,8 @@ class ExprListNode (ExprNode):
   def __init__(self, exprnodes):
     super(ExprListNode, self).__init__(exprnodes)
     
+  def get_type_str(self):
+    return "(none)"
   def copy(self):
     n2 = ExprListNode(self)
     self.copy_basic(n2)
@@ -1231,12 +1233,16 @@ def legacy_endstatem(c, c2):
 class StatementList (Node):
   def __init__(self):
     super(StatementList, self).__init__()
+    self.force_block = False
   
   def gen_js(self, tlevel):
     t = tab(tlevel)
     t2 = tab(tlevel+1)
     s = ""
     
+    if self.force_block:
+        s += self.s("{")
+        
     for c in self.children:
       if type(c) == StatementList:
         c2 = c.gen_js(tlevel);
@@ -1263,12 +1269,16 @@ class StatementList (Node):
       
       s += c2
       
+    if self.force_block:
+        s += "}"
     return s
   
   def copy(self):
     n2 = StatementList()
     self.copy_basic(n2)
     self.copy_children(n2)
+    
+    n2.force_block = self.force_block
     
     return n2
     
@@ -1538,13 +1548,22 @@ class FunctionNode (StatementList):
    
   def extra_str(self):
     s = ""
+    
+    if self.is_generator:
+      s += "* "
+    
     if self.type != None:
       if type(self.type) == str:
         s += self.type + " "
       else:
         s += self.type.get_type_str() + " "
     
-    s += self.name
+    if isinstance(self.name, NumLitNode):
+        s += str(self.name.val)
+    elif isinstance(self.name, Node):
+        s += self.name.extra_str()
+    else:
+        s += self.name
     
     if self.template != None:
       s += self.template.extra_str()
@@ -1731,13 +1750,13 @@ class TryNode(Node):
       c1 += self.children[0].gen_js(tlevel) + self.s(t) + self.s("}")
       
     if len(self.children) > 1:
-      c2 = ""
+      c2 = "\n"
       for c in self.children[1:]:
         c2 += self.s(t) + c.gen_js(tlevel)
     else:
       c2 = ""
     
-    return c1 #+ c2
+    return c1 + c2
     
   def extra_str(self):
     return ""
@@ -1773,6 +1792,7 @@ class WhileNode(Node):
   def __init__(self, expr):
     super(WhileNode, self).__init__()
     self.add(expr)   
+    self.label = None
     
   def extra_str(self):
     return ""
@@ -1781,6 +1801,7 @@ class WhileNode(Node):
     n2 = WhileNode(self[0])
     self.copy_basic(n2)
     self.copy_children(n2)
+    n2.label = self.label
     
     return n2 
     
@@ -1790,8 +1811,12 @@ class WhileNode(Node):
     
     if len(self.children) == 0:
       return self.s("malformed while {\n")
+    
+    s = ""
+    if self.label is not None:
+      s += self.label + ": "
       
-    s = self.s("while (") + self.children[0].gen_js(tlevel) + self.s(") {\n")
+    s += self.s("while (") + self.children[0].gen_js(tlevel) + self.s(") {\n")
     
     if len(self.children) == 1:
       c = self.s("malformed while\n")
@@ -1874,23 +1899,30 @@ class ForLoopNode(Node):
   
   def __init__(self, expr):
     super(ForLoopNode, self).__init__()
-    self.add(expr)   
+    self.add(expr) 
+    self.label = None
   
   def copy(self):
     n2 = ForLoopNode(self[0])
     self.copy_basic(n2)
     self.copy_children(n2)
+    n2.label = self.label
     
     return n2
     
   def extra_str(self):
-    return ""
+    return self.label+":" if self.label is not None else ""
   
   def gen_js(self, tlevel):
     t = tab(tlevel-1)
     t2 = tab(tlevel)
     
-    s = self.s("for (") + self.children[0].gen_js(tlevel) + self.s(") {\n")
+    s = "";
+    
+    if self.label is not None:
+      s += self.s(self.label + ": ")
+      
+    s += self.s("for (") + self.children[0].gen_js(tlevel) + self.s(") {\n")
     
     c = endline(self, self.children[1].gen_js(tlevel+1))
 
@@ -1903,11 +1935,13 @@ class DoWhileNode(Node):
   def __init__(self, expr):
     super(DoWhileNode, self).__init__()
     self.add(expr)   
+    self.label = None
     
   def copy(self):
     n2 = DoWhileNode(self[0])
     self.copy_basic(n2)
     self.copy_children(n2)
+    n2.label = self.label
     
     return n2
     
@@ -1918,7 +1952,11 @@ class DoWhileNode(Node):
     t = tab(tlevel-1)
     t2 = tab(tlevel)
     
-    s = self.s("do {\n")    
+    s = ""
+    if self.label is not None:
+      s += self.s(self.label + ": ")
+      
+    s += self.s("do {\n")    
     
     if type(self[1]) != StatementList:
       s += self.s(t2);
@@ -2120,24 +2158,44 @@ class PostDec(IncDec):
     return n2
     
 class ContinueNode (Node):
+  def __init__(self):
+    Node.__init__(self)
+    self.label = None
+    
   def gen_js(self, tlevel):
-    return self.s("continue")
+    s = self.s("continue")
+    
+    if self.label is not None:
+      s += self.s(" " + self.label)
+
+    return s
     
   def copy(self):
     n2 = ContinueNode()
     self.copy_basic(n2)
     self.copy_children(n2)
+    n2.label = self.label
     
     return n2
     
 class BreakNode (Node):
+  def __init__(self):
+    Node.__init__(self)
+    self.label = None
+    
   def gen_js(self, tlevel):
-    return self.s("break")
+    s = self.s("break")
+    
+    if self.label is not None:
+      s += self.s(" " + self.label)
+
+    return s
     
   def copy(self):
     n2 = BreakNode()
     self.copy_basic(n2)
     self.copy_children(n2)
+    n2.label = self.label
     
     return n2
 
@@ -2325,6 +2383,13 @@ class TypedClassNode(Node):
 class FinallyNode (Node):
   def __init__(self):
     Node.__init__(self)
+    
+  def copy(self):
+    n2 = FinallyNode(self[0])
+    self.copy_basic(n2)
+    self.copy_children(n2)
+    
+    return n2 
   
   def gen_js(self, tlevel):
     s = self.s("finally {\n")

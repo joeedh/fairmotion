@@ -1,6 +1,7 @@
 import sys, traceback, re
 
 from js_global import glob
+from ply.lex import LexToken
 
 import ply.yacc as yacc
 import ply.lex as lex
@@ -31,6 +32,21 @@ res = [
 'static', 'typed', 'finally', 'get', 'set', 'import', 'export', 'from',
 'await'
 ]
+
+special_ids = [
+    'set', 'get', 'static', 'function', 'for', 'if', 'while', 'do',
+    'eval', 'struct', 'enum'
+];
+
+"""
+reserved tokens following these rules
+are turned back into IDs
+"""
+reserved_collapsed_rules = []
+
+for special in special_ids:
+    rule = [special.upper(), "LPAREN"]
+    reserved_collapsed_rules.append(rule)
 
 reserved = {}
 for k in res:
@@ -782,6 +798,15 @@ class LexWithPrev():
     self.peeks = []
     self.rawlines = []
     self.prev_lexpos = 0
+    
+    self.statestack = [];
+    
+    self._laststack = 0
+    self._no_semi_handling = False;
+    self._force_lexpos_line = None
+    
+    self._prev = -1
+    self._cur = None
 
     self.comment = None
     self.comment_id = 0
@@ -797,19 +822,32 @@ class LexWithPrev():
     
     return t
   
+  def peek_i(self, i=0):
+    while len(self.peeks) < i+1:
+        if self.peek() is None:
+            break
+    return self.peeks[i][0] if i < len(self.peeks) else None
+    
   def peek(self):
     p = self.lexer.token()
     
-    if p == None: return p
+    if p is None:
+        return None
+        
+    t = LexToken()
+    t.type = p.type
+    t.value = p.value
+    t.lexpos = p.lexpos
+    t.lineno = self.lexer.lineno
     
-    self.comments = self.lexer.comments
-    self.comment = self.lexer.comment
-    self.commend_id = self.lexer.comment_id
+    t._comments = self.lexer.comments
+    t._comment = self.lexer.comment
+    t._comment_id = self.lexer.comment_id
     
     p.lineno = self.lexer.lineno;
     p.lexer = self;
     
-    self.peeks.append([p, self.lexer.lexpos])
+    self.peeks.append([t, self.lexer.lexpos, self.lineno])
     return p
   
   def token_len(self, t):
@@ -819,16 +857,48 @@ class LexWithPrev():
       return len(t.value)
     
   def token(self):
+    t = self._token()
+    
+    return t
+    if self._prev == -1:
+        self._prev = t
+        t = self._token()
+    else:
+        self._prev = self._cur;
+        
+    self._cur = t
+    
+    return self._prev
+    
+    for rule in reserved_collapsed_rules:
+        if t.type == rule[0] and n.type == rule[1]:
+            t.type = "ID"
+    
+    return t
+    
+  def _token(self):
     self.prev = self.cur;
+
     if len(self.peeks) > 0:
       self.prev_lexpos = self.lexpos
       
-      self.cur, self.lexpos = self.peeks.pop(0)
+      #print(self.peeks)
+      
+      self.cur, self.lexpos, self.lexer.lineno = self.peeks.pop(0)
       
       self.cur.lexpos = self.lexpos
       self.cur.prev_lexpos = self.prev_lexpos
+      
+      self.lineno = self.lexer.lineno
+      self.prev_lexpos = self.lexpos;
+      self.lexpos = self.lexer.lexpos
+      
+      self.comments = self.cur._comments
+      self.comment = self.cur._comment
+      self.comment_id = self.cur._comment_id
+      
       return self.cur
-    
+
     self.cur = self.lexer.token()
     
     if self.cur != None:
@@ -837,7 +907,7 @@ class LexWithPrev():
       self.cur.prev_lexpos = self.prev_lexpos
       self.comments = self.lexer.comments
       self.comment = self.lexer.comment
-      self.commend_id = self.lexer.comment_id
+      self.comment_id = self.lexer.comment_id
     else:
       #reset state
       """
@@ -856,6 +926,13 @@ class LexWithPrev():
     return self.cur
     
   def input(self, data):
+    self._no_semi_handling = False;
+    self._force_lexpos_line = None
+    self._laststack = 0
+
+    self._prev = -1
+    self._cur = None
+    
     self.comment_id = 0
     if not in_lthan_test:
       global tgthan_lexposes, gthan_ignores, lthan_ignores
@@ -913,12 +990,21 @@ class LexWithPrev():
     self.lexer.lexpos = lexpos
   
   def push(self, tok):
-    self.peeks.insert(0, [tok, tok.lexpos])
+    if not hasattr(tok, "_comments"):
+        tok._comments = ""
+    if not hasattr(tok, "_comment"):
+        tok._comment = ""
+    if not hasattr(tok, "_comment_id"):
+        tok._comment_id = -1
+        
+    self.peeks.insert(0, [tok, tok.lexpos, tok.lineno])
   
   def push_state(self, state):
+    self.statestack.push(state)
     self.lexer.push_state(state)
   
   def pop_state(self):
+    self.statestack.pop()
     self.lexer.pop_state()
     
 plexer = LexWithPrev(lex.lex())

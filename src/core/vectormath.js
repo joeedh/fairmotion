@@ -1,8 +1,8 @@
 "use strict";
 
-export * from '../path.ux/scripts/vectormath.js';
+export * from '../path.ux/scripts/util/vectormath.js';
 
-import {Vector2, Vector3, Vector4, Matrix4, Quat} from '../path.ux/scripts/vectormath.js';
+import {Vector2, Vector3, Vector4, Matrix4, Quat} from '../path.ux/scripts/util/vectormath.js';
 
 window.Vector2 = Vector2;
 window.Vector3 = Vector3;

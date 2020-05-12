@@ -1,6 +1,6 @@
-import {Area} from '../../path.ux/scripts/ScreenArea.js';
+import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
 import {STRUCT} from '../../core/struct.js';
-import {UIBase} from '../../path.ux/scripts/ui_base.js';
+import {UIBase} from '../../path.ux/scripts/core/ui_base.js';
 import {Editor} from '../editor_base.js';
 
 "use strict";
@@ -16,7 +16,7 @@ import {phantom, KeyTypes, FilterModes,
         get_select, get_time, set_select, set_time
        } from './dopesheet_phantom.js';
 
-import {PackFlags, UIFlags, UIBase, color2css, _getFont_new} from '../../path.ux/scripts/ui_base.js';
+import {PackFlags, UIFlags, UIBase, color2css, _getFont_new} from '../../path.ux/scripts/core/ui_base.js';
 
 import {ToolOp, UndoFlags, ToolFlags} from '../../core/toolops_api.js';
 
@@ -48,8 +48,8 @@ const RecalcFlags = {
 };
 
 /******************* main area struct ********************************/
-import {Area} from '../../path.ux/scripts/ScreenArea.js';
-import {Container, ColumnFrame, RowFrame} from '../../path.ux/scripts/ui.js';
+import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
+import {Container, ColumnFrame, RowFrame} from '../../path.ux/scripts/core/ui.js';
 
 var tree_packflag = 0;/*PackFlags.INHERIT_WIDTH|PackFlags.ALIGN_LEFT
                    |PackFlags.ALIGN_TOP|PackFlags.NO_AUTO_SPACING

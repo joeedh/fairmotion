@@ -922,4 +922,4 @@ SplineEditor.STRUCT = """
   }
 """
 
-import {ScreenArea, Area} from '../../path.ux/scripts/ScreenArea.js';
+import {ScreenArea, Area} from '../../path.ux/scripts/screen/ScreenArea.js';

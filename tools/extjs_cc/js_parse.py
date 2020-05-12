@@ -1483,6 +1483,10 @@ def p_method(p):
   if p2[1] is not None:
     p[0].is_generator = True
 
+  #clear any weird children subclasses of FunctionNode have made
+  for c in p[0][:]:
+    p[0].remove(c)
+    
   p[0].add(params)  
   p[0].add(statementlist)
   

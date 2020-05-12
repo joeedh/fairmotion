@@ -1,6 +1,6 @@
 "use strict";
 
-import '../../../path.ux/scripts/vectormath.js';
+import '../../../path.ux/scripts/util/vectormath.js';
 
 import {IntProperty, FloatProperty, CollectionProperty,
         BoolProperty, TPropFlags, Vec3Property} from '../../../core/toolprops.js';

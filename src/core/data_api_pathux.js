@@ -1,4 +1,4 @@
-import {ModelInterface} from '../path.ux/scripts/controller.js';
+import {ModelInterface} from '../path.ux/scripts/controller/controller.js';
 
 import {ToolOpAbstract, ToolOp, ToolMacro} from './toolops_api.js';
 import {ToolProperty, PropTypes} from './toolprops.js';
@@ -7,7 +7,7 @@ export var toolmap = {};
 export var toollist = [];
 
 import {DataPathTypes, DataAPIError} from "./data_api_base.js";
-import {UIBase} from '../path.ux/scripts/ui_base.js';
+import {UIBase} from '../path.ux/scripts/core/ui_base.js';
 import {Editor} from '../editors/editor_base.js';
 
 import {ToolKeyHandler} from "../editors/events.js";

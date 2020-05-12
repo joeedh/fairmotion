@@ -1,6 +1,6 @@
-import {Area} from '../../path.ux/scripts/ScreenArea.js';
+import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
 import {STRUCT} from '../../core/struct.js';
-import {UIBase} from '../../path.ux/scripts/ui_base.js';
+import {UIBase} from '../../path.ux/scripts/core/ui_base.js';
 import {Editor} from '../editor_base.js';
 
 export class SettingsEditor extends Editor {
@@ -53,7 +53,7 @@ import {UICollapseIcon, UIPanel, UIColorField, UIColorBox,
 import {UITabPanel} from 'UITabPanel';
 
 /******************* main area struct ********************************/
-import {Area} from '../../path.ux/scripts/ScreenArea.js';
+import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
 
 class SettingsEditor extends Area {
   do_theme_color(int i, String prefix) : UIFrame {

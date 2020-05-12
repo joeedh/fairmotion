@@ -1,10 +1,10 @@
-import {Area} from '../../path.ux/scripts/ScreenArea.js';
+import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
 import {STRUCT} from '../../core/struct.js';
-import {UIBase} from '../../path.ux/scripts/ui_base.js';
+import {UIBase} from '../../path.ux/scripts/core/ui_base.js';
 import {Editor} from '../editor_base.js';
-import * as ui_widgets from '../../path.ux/scripts/ui_widgets.js';
+import * as ui_widgets from '../../path.ux/scripts/widgets/ui_widgets.js';
 import * as platform from '../../../platforms/platform.js';
-import {Menu} from '../../path.ux/scripts/ui_menu.js';
+import {Menu} from '../../path.ux/scripts/widgets/ui_menu.js';
 import {startup_file} from '../../core/startup_file.js';
 
 /*

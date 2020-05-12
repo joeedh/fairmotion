@@ -340,9 +340,27 @@ function _load_module(mod) {
     throw new Error("module \"" + mod.path + "\" does not exist");
     return;
   }
-  
+
+  let old = window.module;
+
   _es6_push_basepath(mod.path);
+
+
+  //support code that sets module.exports
+  window.module = {};
+
   mod.callback.apply(this, args);
+
+  if (module.exports) {
+    let keys = Object.keys(module);
+    keys = keys.concat(Object.getOwnPropertySymbols(module));
+
+    for (let k in keys) {
+      mod.exports[k] = module.exports[k];
+    }
+  }
+
+  window.module = old;
   _es6_pop_basepath();
   
   //debug("global exports", mod.global_exports);

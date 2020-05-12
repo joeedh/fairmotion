@@ -9,7 +9,7 @@ import {ToolOp, UndoFlags, ToolFlags, ModalStates} from '../core/toolops_api.js'
 import {RestrictFlags, Spline} from '../curve/spline.js';
 import {VDAnimFlags} from '../core/frameset.js';
 import {TPropFlags} from '../core/toolprops.js';
-import '../path.ux/scripts/struct.js'; //get istruct
+import '../path.ux/scripts/util/struct.js'; //get istruct
 import {redo_draw_sort} from '../curve/spline_draw.js';
 
 //$XXX import {FileDialog, FileDialogModes, file_dialog, download_file} from 'dialogs';

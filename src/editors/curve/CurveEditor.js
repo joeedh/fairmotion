@@ -1,6 +1,6 @@
-import {Area} from '../../path.ux/scripts/ScreenArea.js';
+import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
 import {STRUCT} from '../../core/struct.js';
-import {UIBase} from '../../path.ux/scripts/ui_base.js';
+import {UIBase} from '../../path.ux/scripts/core/ui_base.js';
 import {Editor} from '../editor_base.js';
 
 export class CurveEditor extends Editor {
@@ -74,7 +74,7 @@ import {ShiftTimeOp2, ShiftTimeOp3, SelectOp, DeleteKeyOp,
 } from '../dopesheet/dopesheet_ops.js';
 
 /******************* main area struct ********************************/
-import {Area} from '../../path.ux/scripts/ScreenArea.js';
+import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
 import {UISplitFrame} from "../../ui/UISplitFrame.js";
 import {TreePanel} from "../dopesheet/DopeSheetEditor.js";
 

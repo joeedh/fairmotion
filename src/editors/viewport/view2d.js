@@ -1,14 +1,14 @@
 import {Editor} from '../editor_base.js';
-import {Area} from '../../path.ux/scripts/ScreenArea.js';
+import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
 import {patchMouseEvent, ToolOp, UndoFlags} from '../../core/toolops_api.js';
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
   charmap, TouchEventManager, EventHandler} from "../events.js";
 import {STRUCT} from '../../core/struct.js';
-import {UIBase} from '../../path.ux/scripts/ui_base.js';
+import {UIBase} from '../../path.ux/scripts/core/ui_base.js';
 import {ImageUser} from '../../core/imageblock.js';
 import {SplineEditor} from './view2d_spline_ops.js';
-import {Container} from '../../path.ux/scripts/ui.js';
-import {PackFlags} from '../../path.ux/scripts/ui_base.js';
+import {Container} from '../../path.ux/scripts/core/ui.js';
+import {PackFlags} from '../../path.ux/scripts/core/ui_base.js';
 import {patch_canvas2d, set_rendermat} from '../../curve/spline_draw.js';
 import {SelMask, ToolModes} from './selectmode.js';
 import {ManipulatorManager, Manipulator,

@@ -8,7 +8,7 @@ import {TimeDataLayer, get_vtime, set_vtime, AnimChannel, AnimKey,
   AnimInterpModes, AnimKeyFlags} from './animdata.js';
 import {SplineLayerFlags, SplineLayerSet} from '../curve/spline_element_array.js';
 
-import '../path.ux/scripts/struct.js';
+import '../path.ux/scripts/util/struct.js';
 
 var restrictflags = RestrictFlags.NO_DELETE | RestrictFlags.NO_EXTRUDE |
   RestrictFlags.NO_CONNECT;

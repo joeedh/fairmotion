@@ -43,7 +43,7 @@ class set {
 }*/
 
 //var parseutil = require('./parseutil');
-import * as parseutil from '../path.ux/scripts/parseutil.js';
+import * as parseutil from '../path.ux/scripts/util/parseutil.js';
 
 var token = parseutil.token;
 var tokdef = parseutil.tokdef;

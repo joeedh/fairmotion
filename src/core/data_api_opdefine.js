@@ -29,8 +29,8 @@ import * as spline_createops from '../editors/viewport/spline_createops.js';
 import * as spline_editops  from '../editors/viewport/spline_editops.js';
 import * as spline_animops from '../editors/viewport/spline_animops.js';
 import * as spline_layerops from '../editors/viewport/spline_layerops.js';
-import * as FrameManager from '../path.ux/scripts/FrameManager.js';
-import * as FrameManager_ops from '../path.ux/scripts/FrameManager_ops.js';
+import * as FrameManager from '../path.ux/scripts/screen/FrameManager.js';
+import * as FrameManager_ops from '../path.ux/scripts/screen/FrameManager_ops.js';
 import * as safe_eval from './safe_eval.js';
 
 import {TransformOp, TranslateOp, ScaleOp, RotateOp} from '../editors/viewport/transform.js';

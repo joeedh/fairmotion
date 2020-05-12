@@ -1,6 +1,6 @@
-import {Area} from '../../path.ux/scripts/ScreenArea.js';
+import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
 import {STRUCT} from '../../core/struct.js';
-import {UIBase} from '../../path.ux/scripts/ui_base.js';
+import {UIBase} from '../../path.ux/scripts/core/ui_base.js';
 import {Editor} from '../editor_base.js';
 
 export class OpStackEditor extends Editor {
@@ -237,7 +237,7 @@ class OpStackFrame extends RowFrame {
 
 
 /******************* main area struct ********************************/
-import {Area} from '../../path.ux/scripts/ScreenArea.js';
+import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
 
 export class OpStackEditor extends Area {
   constructor(x, y, width, height) {

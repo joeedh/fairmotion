@@ -1,7 +1,7 @@
 "use strict";
 
-import '../path.ux/scripts/vectormath.js';
-import {keymap, reverse_keymap} from "../path.ux/scripts/events.js";
+import '../path.ux/scripts/util/vectormath.js';
+import {keymap, reverse_keymap} from "../path.ux/scripts/util/events.js";
 
 export let charmap = keymap;
 export let charmap_rev = reverse_keymap;

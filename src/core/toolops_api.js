@@ -53,7 +53,7 @@ export function patchMouseEvent(e, dom) {
   return e2;
 }
 
-import {pushModalLight, popModalLight} from '../path.ux/scripts/simple_events.js';
+import {pushModalLight, popModalLight} from '../path.ux/scripts/util/simple_events.js';
 
 /*
   basic design of tool ops:
@@ -830,8 +830,8 @@ import {
         StringProperty, Vec3Property, Vec4Property, 
         IntProperty, FloatProperty, BoolProperty
        } from './toolprops.js';
-import {pushModalLight} from "../path.ux/scripts/simple_events.js";
-import {popModalLight} from "../path.ux/scripts/simple_events.js";
+import {pushModalLight} from "../path.ux/scripts/util/simple_events.js";
+import {popModalLight} from "../path.ux/scripts/util/simple_events.js";
 
 /*note: datapathops can only access data paths
   in ToolContext, u.e. object, scene, and mesh.*/

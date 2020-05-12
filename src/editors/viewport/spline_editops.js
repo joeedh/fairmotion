@@ -5,7 +5,7 @@ import {SplineFlags, SplineTypes, RecalcFlags} from '../../curve/spline_types.js
 import {RestrictFlags, Spline} from '../../curve/spline.js';
 import {VDAnimFlags} from '../../core/frameset.js';
 import {TPropFlags} from '../../core/toolprops.js';
-import '../../path.ux/scripts/struct.js'; //get istruct
+import '../../path.ux/scripts/util/struct.js'; //get istruct
 import {redo_draw_sort} from '../../curve/spline_draw.js';
 
 export class KeyCurrentFrame extends ToolOp {

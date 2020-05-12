@@ -1,7 +1,7 @@
-import {Area, ScreenArea} from '../path.ux/scripts/ScreenArea.js';
-import {Screen} from '../path.ux/scripts/FrameManager.js';
+import {Area, ScreenArea} from '../path.ux/scripts/screen/ScreenArea.js';
+import {Screen} from '../path.ux/scripts/screen/FrameManager.js';
 import {STRUCT} from '../core/struct.js';
-import * as ui_base from "../path.ux/scripts/ui_base.js";
+import * as ui_base from "../path.ux/scripts/core/ui_base.js";
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
   charmap, TouchEventManager, EventHandler} from "./events.js";
 import {patch_canvas2d, set_rendermat} from '../curve/spline_draw.js';

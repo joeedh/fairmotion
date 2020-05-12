@@ -31,7 +31,7 @@ export var INCREMENTAL = 1;
 
 import {ORDER, KSCALE, KANGLE, KSTARTX, KSTARTY, KSTARTZ, KTOTKS, INT_STEPS} from './spline_math.js';
 import {solver, constraint} from "./solver.js";
-import "../path.ux/scripts/const.js";
+import "../path.ux/scripts/config/const.js";
 
 import * as native_api from '../wasm/native_api.js';
 

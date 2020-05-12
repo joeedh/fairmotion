@@ -84,8 +84,35 @@ export class DataRef extends Array {
       this[1] = lib != undefined ? lib : -1;
     }
   }
-  
-  copyTo(DataRef dst) {
+
+  static fromBlock(obj) {
+    let ret = new DataRef();
+
+    if (!obj) {
+      ret[0] = -1;
+      return ret;
+    }
+
+    if (typeof obj === "number") {
+      ret[0] = obj;
+      return ret;
+    }
+
+    if (obj instanceof DataRef) {
+      this.copyTo(ret);
+      return ret;
+    }
+
+    if (obj instanceof DataBlock) {
+      ret[0] = obj.lib_id;
+      return ret;
+    }
+
+    ret[0] = -1;
+    return ret;
+  }
+
+  copyTo(dst : DataRef) {
     dst[0] = this[0];
     dst[1] = this[1];
     return dst;
@@ -136,6 +163,16 @@ DataRef.STRUCT = `
     lib : int;
   }
 `;
+
+export class DataRefCompat extends DataRef {
+}
+DataRefCompat.STRUCT = `
+dataref {
+  0 : int;
+  1 : int;
+}
+`;
+window.__dataref = DataRefCompat;
 
 export class DataList<T> {
   [Symbol.keystr]() : String {

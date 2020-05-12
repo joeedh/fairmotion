@@ -2,6 +2,8 @@
 
 #include "src/core/utildefine.js"
 
+import "../core/vectormath.js"
+
 import {STRUCT} from '../core/struct.js';
 
 export var feps = 2.22e-16;
@@ -20,7 +22,7 @@ export var FLOAT_MAX = 1e22
   of [location, rotation-euler, size] 
   parameters*/
 
-import '../path.ux/scripts/vectormath.js';
+import '../path.ux/scripts/util/vectormath.js';
 
 export class Matrix4UI extends Matrix4 {
   constructor(loc, rot=undefined, size=undefined) {

@@ -22,9 +22,9 @@ pathux = []
 for path in glob.glob("src/path.ux/scripts/**", recursive=True):
     if not path.lower().endswith(".js"):
         continue
-    if "_old" in path.lower():
+    if "_old" in os.path.split(path)[1].lower():
         continue
-    if path.endswith("jobs.js") or path.endswith("isect.js"):
+    if path.endswith("jobs.js") or path.endswith("isect.js") or "kdtree" in path:
       continue
     pathux.append(path)
 

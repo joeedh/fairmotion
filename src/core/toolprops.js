@@ -2,7 +2,7 @@
 ;
 import {STRUCT} from './struct.js';
 import {pack_int, pack_float, pack_static_string} from './ajax.js';
-import {setPropTypes} from '../path.ux/scripts/toolprop.js'
+import {setPropTypes} from '../path.ux/scripts/toolsys/toolprop.js'
 
 export var PropTypes = {
   INT : 1,

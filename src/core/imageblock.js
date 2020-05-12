@@ -5,7 +5,7 @@ import {SelMask} from '../editors/viewport/selectmode.js';
 import {SessionFlags} from '../editors/viewport/view2d_editor.js';
 import * as strutils from '../util/strutils.js';
 
-import '../path.ux/scripts/vectormath.js';
+import '../path.ux/scripts/util/vectormath.js';
 
 export var ImageFlags = {
   SELECT : 1,

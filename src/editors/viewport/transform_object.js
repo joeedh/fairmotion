@@ -4,7 +4,7 @@ import {TransDataItem} from "./transdata.js";
 import {TransSplineVert} from "./transform_spline.js";
 import {UpdateFlags} from "../../scene/sceneobject.js";
 
-import '../../path.ux/scripts/vectormath.js';
+import '../../path.ux/scripts/util/vectormath.js';
 
 let iter_cachering = new cachering(() => {
   let ret = new TransDataItem();

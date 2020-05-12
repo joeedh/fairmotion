@@ -1,4 +1,4 @@
-import {sendNote} from '../path.ux/scripts/ui_noteframe.js';
+import {sendNote} from '../path.ux/scripts/widgets/ui_noteframe.js';
 
 export class Notification {
 
@@ -340,5 +340,5 @@ function test_notes() {
   console.log("Notification test");
 }
 
-import {ScreenArea, Area} from '../path.ux/scripts/ScreenArea.js';
+import {ScreenArea, Area} from '../path.ux/scripts/screen/ScreenArea.js';
 #endif

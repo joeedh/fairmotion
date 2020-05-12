@@ -10,10 +10,10 @@ import {MaterialEditor} from "../editors/material/MaterialEditor.js";
 import {DopeSheetEditor} from "../editors/dopesheet/DopeSheetEditor.js";
 import {SettingsEditor} from '../editors/settings/SettingsEditor.js';
 import {MenuBar} from '../editors/menubar/MenuBar.js';
-import {registerToolStackGetter} from '../path.ux/scripts/FrameManager_ops.js';
+import {registerToolStackGetter} from '../path.ux/scripts/screen/FrameManager_ops.js';
 import {FairmotionScreen, resetAreaStacks} from '../editors/editor_base.js';
 
-import {iconmanager, setIconMap} from '../path.ux/scripts/ui_base.js';
+import {iconmanager, setIconMap} from '../path.ux/scripts/core/ui_base.js';
 import {Editor} from '../editors/editor_base.js';
 
 //set iconsheets, need to find proper place for it other than here in AppState.js
@@ -31,7 +31,7 @@ iconmanager.add(document.getElementById("iconsheet32"), 32, 16);
 iconmanager.add(document.getElementById("iconsheet64"), 64, 32);
 //iconmanager.add(document.getElementById("iconsheet64"), 64);
 
-import {Area} from '../path.ux/scripts/ScreenArea.js';
+import {Area} from '../path.ux/scripts/screen/ScreenArea.js';
 Area.prototype.getScreen = () => {
   return g_app_state.screen;
 }
@@ -51,10 +51,10 @@ export let AreaTypes = {
   MENUBAR : MenuBar
 };
 
-import {setAreaTypes} from "../path.ux/scripts/ScreenArea.js";
+import {setAreaTypes} from "../path.ux/scripts/screen/ScreenArea.js";
 setAreaTypes(AreaTypes);
 
-import {Screen} from '../path.ux/scripts/FrameManager.js';
+import {Screen} from '../path.ux/scripts/screen/FrameManager.js';
 import {PathUXInterface} from './data_api_pathux.js';
 
 export function get_app_div() {
@@ -135,8 +135,8 @@ import {RasterState} from './raster.js';
 import {NotificationManager, Notification} from './notifications.js';
 import {STRUCT} from './struct.js';
 import {get_data_typemap} from './lib_api_typedefine.js';
-import {Screen} from '../path.ux/scripts/FrameManager.js';
-import {ScreenArea, Area} from '../path.ux/scripts/ScreenArea.js';
+import {Screen} from '../path.ux/scripts/screen/FrameManager.js';
+import {ScreenArea, Area} from '../path.ux/scripts/screen/ScreenArea.js';
 import {DataLib, DataBlock, DataTypes} from './lib_api.js';
 import {ToolMacro, ToolOp, UndoFlags, ToolFlags} from './toolops_api.js';
 import {PropTypes, TPropFlags, StringProperty, CollectionProperty} from './toolprops.js';
@@ -406,7 +406,9 @@ let load_default_file = function(g : AppState, size=[512, 512]) {
   //try loading twice, load embedded startup_file on second attempt
   for (var i=0; i<2; i++) {
     var file = i==0 ? myLocalStorage.getCached("startup_file") : startup_file;
-    file = file.trim().replace(/[\n\r]/g, "");
+
+    if (file)
+      file = file.trim().replace(/[\n\r]/g, "");
 
     if (file) {
       try {

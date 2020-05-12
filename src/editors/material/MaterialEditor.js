@@ -1,15 +1,15 @@
-import {Area} from '../../path.ux/scripts/ScreenArea.js';
+import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
 import {STRUCT} from '../../core/struct.js';
-import {Container} from '../../path.ux/scripts/ui.js';
+import {Container} from '../../path.ux/scripts/core/ui.js';
 import {Editor} from '../editor_base.js';
 
-import {PackFlags, UIBase} from '../../path.ux/scripts/ui_base.js';
+import {PackFlags, UIBase} from '../../path.ux/scripts/core/ui_base.js';
 import {ShiftLayerOrderOp} from '../viewport/spline_editops.js';
 import {AddLayerOp, DeleteLayerOp, ChangeLayerOp, ChangeElementLayerOp} from '../viewport/spline_layerops.js';
 
-import '../../path.ux/scripts/ui_table.js';
-import '../../path.ux/scripts/ui_menu.js';
-import '../../path.ux/scripts/ui_listbox.js';
+import '../../path.ux/scripts/widgets/ui_table.js';
+import '../../path.ux/scripts/widgets/ui_menu.js';
+import '../../path.ux/scripts/widgets/ui_listbox.js';
 
 function list(iter) {
   let ret = [];
@@ -485,7 +485,7 @@ import {ShiftLayerOrderOp} from '../viewport/spline_editops.js';
 import {AddLayerOp, DeleteLayerOp, ChangeLayerOp, ChangeElementLayerOp} from '../viewport/spline_layerops.js';
 
 /******************* main area struct ********************************/
-import {Area} from '../../path.ux/scripts/ScreenArea.js';
+import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
 
 class LayerPanel extends RowFrame {
   constructor(ctx) {

@@ -247,6 +247,8 @@ var _ESClass = (function() {
       //}
       cls.__parent__ = cls.prototype.__proto__.constructor;
 
+      cls.prototype.prototype = cls.prototype.__proto__
+
       defined_classes.push(cls);
   }
 

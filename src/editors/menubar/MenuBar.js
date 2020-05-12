@@ -1,6 +1,6 @@
-import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
+import {Area, AreaFlags} from '../../path.ux/scripts/screen/ScreenArea.js';
 import {STRUCT} from '../../core/struct.js';
-import {UIBase} from '../../path.ux/scripts/core/ui_base.js';
+import {UIBase, iconmanager} from '../../path.ux/scripts/core/ui_base.js';
 import {Editor} from '../editor_base.js';
 import * as ui_widgets from '../../path.ux/scripts/widgets/ui_widgets.js';
 import * as platform from '../../../platforms/platform.js';
@@ -57,6 +57,18 @@ import {startup_file} from '../../core/startup_file.js';
   }
  */
 export class MenuBar extends Editor {
+  constructor() {
+    super();
+
+    let dpi = UIBase.getDPI();
+
+    let tilesize = iconmanager.getTileSize(1);
+
+    let h = Math.max(this.getDefault("TitleText").size, tilesize) + 5;
+
+    this.maxSize = [undefined, h];
+    this.minSize = [undefined, h];
+  }
   init() {
     super.init();
 
@@ -151,7 +163,8 @@ export class MenuBar extends Editor {
     tagname : "menubar-editor-x",
     areaname : "menubar_editor",
     uiname : "menu",
-    icon : Icons.MENU_EDITOR
+    icon : Icons.MENU_EDITOR,
+    flag : AreaFlags.HIDDEN|AreaFlags.NO_SWITCHER
   }}
 
   static getHeight() {

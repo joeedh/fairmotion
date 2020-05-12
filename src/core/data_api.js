@@ -1335,8 +1335,8 @@ export class DataAPI {
         }
       }
 
-      if (prop.type == PropTypes.ENUM && (val in prop.keys))
-        val = prop.keys[val];
+      //if (prop.type == PropTypes.ENUM && (val in prop.keys))
+      //  val = prop.keys[val];
 
 
     } else { //return actual object

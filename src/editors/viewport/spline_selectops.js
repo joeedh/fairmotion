@@ -162,7 +162,7 @@ export class SelectOneOp extends SelectOpBase {
       spline.clear_selection();
     }
     
-    //console.log("selectone!");
+    console.log("selectone!", e, state);
     spline.setselect(e, state);
     
     if (state && this.inputs.set_active.data) {

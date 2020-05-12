@@ -3,18 +3,25 @@
 window.init_redraw_globals_2 = function init_redraw_globals() {
   let eventmanager = es6_get_module_meta(_rootpath_src + "/core/eventmanager.js").exports;
   let eman = eventmanager.manager;
-  
+
+  /*
   eman.addEventListener("draw", (e) => {
     requestAnimationFrame(e.callback[0]);
   });
+  //*/
 };
 
 window.init_redraw_globals = function init_redraw_globals() {
-  let eventmanager = es6_get_module_meta(_rootpath_src + "/core/eventmanager.js").exports;
-  let eman = eventmanager.manager;
+  //let eventmanager = es6_get_module_meta(_rootpath_src + "/core/eventmanager.js").exports;
+  //let eman = eventmanager.manager;
   
-  let _req_idgen = 1;
+  //let _req_idgen = 1;
+
   function myrequestAnimationFrame(func1) {
+    return requestAnimationFrame(func1);
+  }
+
+  function old_myrequestAnimationFrame(func1) {
     let id = _req_idgen++;
     
     if (!eman.ready) {
@@ -91,22 +98,7 @@ window.init_redraw_globals = function init_redraw_globals() {
   }
 
   window.redraw_ui = function () {
-      if (block_ui_draw) return;
-
-      //if (DEBUG.ui_redraw && Math.random() > 0.99)
-      //  console.trace("ui redraw", animreq_ui);
-      
-      if (animreq_ui == undefined) {
-          animreq_ui = myrequestAnimationFrame(function () {
-              animreq_ui = undefined;
-
-              if (DEBUG.ui_redraw)
-                console.log("ui frame");
-
-              if (window.g_app_state != undefined && window.g_app_state.eventhandler.on_draw)
-                  window.g_app_state.eventhandler.on_draw();
-          });
-      }
+    console.warn("deprecated call to window.redraw_ui()");
   }
 
   window.redraw_viewport_p = function(min, max, promise) {
@@ -241,7 +233,7 @@ window.init_redraw_globals = function init_redraw_globals() {
       r.push(-w), r.push(-w), r.push(w), r.push(w);
     }
     
-    if (animreq == undefined) {
+    if (animreq === undefined) {
       redraw_viewport_promise = new Promise((accept, reject) => {
           animreq = myrequestAnimationFrame(function () {
             animreq = undefined;

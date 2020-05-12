@@ -223,15 +223,19 @@ export class ThreadManager {
     this.drawing = true;
     this.start_time = time_ms();
     
-    if (freeze_while_drawing)
-      eventmanager.manager.freeze();
+    if (freeze_while_drawing) {
+      console.warn("Implement me! freeze_while_drawing");
+      //eventmanager.manager.freeze();
+    }
   }
   
   endDrawing() {
     this.drawing = false;
-    
-    if (freeze_while_drawing)
-      eventmanager.manager.unfreeze();
+
+    if (freeze_while_drawing) {
+      console.warn("Implement me! freeze_while_drawing");
+      //eventmanager.manager.unfreeze();
+    }
   }
   
   spawnThread(source) {

@@ -4,7 +4,7 @@ window.Icons = {
   HFLIP          : 0,
   TRANSLATE      : 1,
   ROTATE         : 2,
-  HELP_PICKER    : 3,
+  HELP           : 3,
   UNDO           : 4,
   REDO           : 5,
   CIRCLE_SEL     : 6,

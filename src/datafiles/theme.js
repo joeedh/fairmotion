@@ -288,7 +288,7 @@ ColorTheme.STRUCT = """
   }
 """
 
-window.menu_text_size = IsMobile ? 14 : 14;
+window.menu_text_size = 14;
 window.default_ui_font_size = 16;
 window.ui_hover_time = 800;
 //var view2d_bg = [0.6, 0.6, 0.9, 1.0];

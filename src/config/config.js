@@ -1,5 +1,11 @@
 "use strict";
 
+export let PathUXConstants = {
+  autoSizeUpdate : true,
+  useAreaTabSwitcher : false,
+  addHelpPickers : true
+};
+
 export var MANIPULATOR_MOUSEOVER_LIMIT = 25;
 
 export var ELECTRON_APP_MODE = document.getElementById("ElectronAppMode") !== null;

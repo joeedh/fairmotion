@@ -37,7 +37,7 @@ class Mat4Compat extends Matrix4 {
 
 Mat4Compat.STRUCT = `
 mat4 {
-  _matrix : mat4_intern;
+  _matrix : mat4_intern | obj.$matrix;
 }
 `;
 
@@ -83,7 +83,7 @@ function makeVecPatch(cls, size, name) {
   }
   s += "}\n";
 
-  console.log(s);
+  //console.log(s);
   dummycls.STRUCT = s;
   dummycls.structName = dummycls.name = name;
 
@@ -100,7 +100,7 @@ makeVecPatch(Vector4, 4, "quat");
 let _old = nstructjs.STRUCT.prototype.parse_structs;
 nstructjs.STRUCT.prototype.parse_structs = function(buf, defined_classes) {
   buf = patch_dataref_type(buf);
-  console.log(buf);
+  //console.log(buf);
   let ret = _old.call(this, buf);
 
   if (!this.structs.dataref) {

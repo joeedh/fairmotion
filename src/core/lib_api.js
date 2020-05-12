@@ -168,8 +168,8 @@ export class DataRefCompat extends DataRef {
 }
 DataRefCompat.STRUCT = `
 dataref {
-  0 : int;
-  1 : int;
+  0 : int | obj ? obj.lib_id  : -1;
+  1 : int | obj ? obj.lib_lib : 0;
 }
 `;
 window.__dataref = DataRefCompat;

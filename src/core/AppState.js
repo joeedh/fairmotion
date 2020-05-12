@@ -16,6 +16,9 @@ import {FairmotionScreen, resetAreaStacks} from '../editors/editor_base.js';
 import {iconmanager, setIconMap} from '../path.ux/scripts/core/ui_base.js';
 import {Editor} from '../editors/editor_base.js';
 
+import {cconst} from '../path.ux/scripts/pathux.js';
+cconst.loadConstants(config.PathUXConstants);
+
 //set iconsheets, need to find proper place for it other than here in AppState.js
 iconmanager.reset(16);
 
@@ -1422,8 +1425,8 @@ export class AppState {
     
     this.do_versions_post(version);
 
-    this2.screen.on_resize(this2.size);
-    this2.screen.size = this2.size;
+    //this2.screen.on_resize(this2.size);
+    //this2.screen.size = this2.size;
 
     window.redraw_viewport();
   }

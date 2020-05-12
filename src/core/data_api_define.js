@@ -1216,3 +1216,11 @@ export function gen_path_maps(strct, obj, path1, path2) {//path is private, opti
   }
 }
 
+window.genNewDataAPI = () => {
+  let recurse = (dstruct) => {
+
+  };
+
+  recurse(ContextStruct);
+};
+

@@ -4,6 +4,33 @@ import {STRUCT} from './struct.js';
 import {pack_int, pack_float, pack_static_string} from './ajax.js';
 import {setPropTypes} from '../path.ux/scripts/toolsys/toolprop.js'
 
+export var PropTyeps = {
+  INT : 1,
+  STRING : 2,
+  BOOL : 4,
+  ENUM : 8,
+  FLAG : 16,
+  FLOAT : 32,
+  VEC2 : 64,
+  VEC3 : 128,
+  VEC4 : 256,
+  MATRIX4 : 512,
+  QUAT : 1024,
+  PROPLIST : 4096,
+  STRSET : 8192,
+  CURVE  : 8192<<1,
+  //ITER : 8192<<1
+  STRUCT      : 1<<19, //internal type to data api
+  DATAREF     : 1<<20,
+  DATAREFLIST : 1<<21,
+  TRANSFORM   : 1<<22, //ui-friendly matrix property
+  COLLECTION  : 1<<23,
+  IMAGE       : 1<<24, //this is only a subtype, used with DataRefProperty
+  ARRAYBUFFER : 1<<25,
+  COLOR3      : 1<<26,
+  COLOR4      : 1<<27
+};
+
 export var PropTypes = {
   INT : 1,
   STRING : 2,
@@ -19,16 +46,6 @@ export var PropTypes = {
   QUAT : 1024,
   //PROPLIST : 4096,
   //STRSET : 8192
-
-  STRUCT      : 1<<15, //internal type to data api
-  DATAREF     : 1<<16,
-  DATAREFLIST : 1<<17,
-  TRANSFORM   : 1<<18, //ui-friendly matrix property
-  COLLECTION  : 1<<19,
-  IMAGE       : 1<<20, //this is only a subtype, used with DataRefProperty
-  ARRAYBUFFER : 1<<21,
-  COLOR3      : 1<<22,
-  COLOR4      : 1<<23
 };
 
 setPropTypes(PropTypes);
@@ -935,6 +952,14 @@ export class EnumProperty extends ToolProperty {
       return this.values[this.data];
     else
       return this.data;
+  }
+
+  getValue() {
+    return this.get_data();
+  }
+
+  setValue(v) {
+    return this.set_data(v);
   }
 
   get_value() {

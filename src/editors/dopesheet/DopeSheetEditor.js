@@ -480,9 +480,9 @@ export class DopeSheetEditor extends Editor {
     this.keymap = new KeyMap();
     this.define_keymap();
 
-    this.on_mousedown = Editor.wrapContextEvent(this.on_mousedown.bind(this));
-    this.on_mousemove = Editor.wrapContextEvent(this.on_mousemove.bind(this));
-    this.on_mouseup = Editor.wrapContextEvent(this.on_mouseup.bind(this));
+    //this.on_mousedown = Editor.wrapContextEvent(this.on_mousedown.bind(this));
+    //this.on_mousemove = Editor.wrapContextEvent(this.on_mousemove.bind(this));
+    //this.on_mouseup = Editor.wrapContextEvent(this.on_mouseup.bind(this));
   }
 
   makeHeader(container) {
@@ -1247,7 +1247,14 @@ export class DopeSheetEditor extends Editor {
     };
   }
 
+
+  isEventUI(event) {
+    return this.ctx.screen.pickElement(event.x, event.y) !== this
+  }
+
   on_mousedown(event) {
+    if (this.isEventUI(event)) return;
+
     console.log("dopesheet mousedown!");
 
     if (event.button == 0) {
@@ -1318,6 +1325,8 @@ export class DopeSheetEditor extends Editor {
   }
 
   on_mousemove(event) {
+    if (this.isEventUI(event)) return;
+
     if (this.mdown) {
       var dx = event.x - this.start_mpos[0];
       var dy = event.y - this.start_mpos[1];
@@ -1525,6 +1534,15 @@ export class DopeSheetEditor extends Editor {
       g.lineTo(x, canvas.height);
       g.stroke();
     }
+  }
+
+  getCanvas() {
+    let ret = super.getCanvas(...arguments);
+
+    ret.visibleToPick = false;
+    ret.style["pointer-events"] = "none";
+
+    return ret;
   }
 
   get_bg_canvas() {

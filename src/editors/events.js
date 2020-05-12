@@ -1,7 +1,8 @@
 "use strict";
 
-import '../path.ux/scripts/util/vectormath.js';
+import {Vector2, Vector3, Matrix4} from '../path.ux/scripts/util/vectormath.js';
 import {keymap, reverse_keymap} from "../path.ux/scripts/util/events.js";
+
 
 export let charmap = keymap;
 export let charmap_rev = reverse_keymap;
@@ -527,7 +528,7 @@ export class VelocityPan extends EventHandler {
   
   on_tick() {
     if (!this.panning && this.coasting) {
-      static vel = new Vector2();
+      let vel = new Vector2();
       var damp = 0.99;
       
       vel.load(this.vel);
@@ -549,7 +550,7 @@ export class VelocityPan extends EventHandler {
   }
   
   calc_vel() {
-    static vel = new Vector2();
+    let vel = new Vector2();
     
     if (!this.can_coast) {
       this.vel.zero();

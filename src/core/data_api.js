@@ -202,11 +202,12 @@ export class DataStructArray {
 }
 
 export class DataStruct {
-  constructor(paths) {
+  constructor(paths, cls) {
     this.paths = new GArray(paths);
     this.pathmap = {}
     this.parent = undefined;
-    
+    this.dataClass = cls;
+
     this._flag = 0;
     
     for (var p of this.paths) {

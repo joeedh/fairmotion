@@ -1,6 +1,7 @@
 import {DataTypes} from './lib_api.js';
 import {EditModes} from '../editors/viewport/view2d.js';
 import {ImageFlags, Image} from './imageblock.js';
+import {AppSettings} from './UserSettings.js';
 
 import {
   BoxColor4, BoxWColor, ColorTheme,
@@ -118,7 +119,7 @@ function api_define_settings() {
   SettingsStruct = new DataStruct([
     new DataPath(unitsys_enum, "unit_system", "unit_scheme", true),
     new DataPath(units_enum, "default_unit", "unit", true)
-  ]);
+  ], AppSettings);
   
   return SettingsStruct;
 }
@@ -1184,7 +1185,7 @@ window.api_define_context = function () {
     new DataPath(api_define_spline(), "spline", "ctx.spline", false),
     new DataPath(api_define_datalib(), "datalib", "ctx.datalib", false),
     new DataPath(api_define_opseditor(), "opseditor", "ctx.opseditor", false)
-  ]);
+  ], Context);
 }
 
 window.init_data_api = function() {
@@ -1217,10 +1218,248 @@ export function gen_path_maps(strct, obj, path1, path2) {//path is private, opti
 }
 
 window.genNewDataAPI = () => {
-  let recurse = (dstruct) => {
+  let out = "";
+  let ctx = g_app_state.ctx;
 
+  let getClass = (dstruct, path) => {
+    if (dstruct.dataClass)
+      return dstruct.dataClass;
+
+    console.log(path);
+    window.ctx = CTX;
+
+    let val;
+    try {
+      val = eval(path);
+    } catch (error) {
+      print_stack(error);
+      console.warn("failed");
+    }
+
+    if (!val || !(typeof val === "object")) {
+      console.warn("Failed to resovle a class", dstruct, "at", path);
+      return undefined;
+    }
+
+    return val.constructor;
   };
 
-  recurse(ContextStruct);
+  let structs = {};
+
+  let genStruct = (cls, dstruct, path) => {
+    if (!cls) {
+      console.warn("Failed to resolve a class", dstruct, path);
+      return;
+    }
+
+    let name = cls.name;
+    out += "function api_define_" + name + "(api) {\n";
+
+    name = "_" + name;
+    out += `  let ${name} = api.mapStruct(${cls.name}, true);\n`;
+
+    for (let dpath of dstruct.paths) {
+      let name2 = dpath.name;
+
+      let path2 = path.trim();
+      if (path2.length > 0) {
+        path2 += "."
+      }
+      path2 += dpath.path;
+
+      let checkenum = (a, def) => {
+        if (!a)
+          return false;
+
+        let ok = false;
+
+        for (let k in def) {
+          if (a[k] !== k) {
+            ok = true;
+          }
+        }
+
+        return ok;
+      }
+
+      let format_obj = (obj) => {
+        let def = "{\n";
+        let keys = Object.keys(obj);
+        for (let i=0; i<keys.length; i++) {
+          let k = ""+keys[i];
+          let v = obj[keys[i]];
+
+          if (k.search(" ") >= 0)
+            k = `"${k}"`;
+          if (typeof v !== "number" && !(typeof v === "string" && v.startsWith("Icons.")))
+            v = `"${v}"`;
+
+          def += "        " + k + " : " + v;
+
+          if (i < keys.length-1) {
+            def += ",";
+          }
+          def += "\n";
+        }
+        def += "    }"
+
+        return def;
+      };
+
+      let path3 = dpath.path;
+      if (path3.startsWith("ctx.")) {
+        path3 = path3.slice(4, path3.length);
+      }
+
+      if (dpath.type === DataPathTypes.STRUCT) {
+        let stt = "undefined";
+        let cls2 = getClass(dpath.data, path2);
+
+        if (cls2 !== undefined) {
+          stt = `api.mapStruct(${cls2.name}, true)`;
+        } else {
+          out += "  /*WARNING: failed to resolve a class*/\n";
+        }
+        out += `  ${name}.struct("${path3}", "${dpath.name}", "${dpath.uiname}", ${stt});\n`;
+
+      } else if (dpath.type === DataPathTypes.STRUCT_ARRAY) {
+        out += `\n\n  /* WARNING: data struct array detected ${dpath.name}{${path3}} */\n\n`;
+      } else {
+        let prop = dpath.data;
+
+        let name2 = dpath.name;
+
+        //out += `  let ${name2} `;
+        out += `  `;
+
+        let uiname = dpath.uiname || prop.uiname || dpath.name;
+
+        let numprop = (prop) => {
+          s = "";
+
+          if (prop.range && prop.range[0] && prop.range[1]) {
+            s += `.range(${prop.range[0]}, ${prop.range[1]})`;
+          }
+          if (prop.ui_range && prop.ui_range[0] && prop.ui_range[1]) {
+            s += `.uiRange(${prop.ui_range[0]}, ${prop.ui_range[1]})`;
+          }
+
+          return s;
+        };
+
+        let path3 = dpath.path;
+        if (path3.startsWith("ctx.")) {
+          path3 = path3.slice(4, path3.length);
+        }
+
+        switch (prop.type) {
+          case PropTypes.BOOL:
+            out += `${name}.bool("${path3}", "${dpath.name}", "${uiname}")`;
+            break;
+          case PropTypes.INT:
+            out += `${name}.int("${path3}", "${dpath.name}", "${uiname}")`;
+            out += numprop(prop);
+            break;
+          case PropTypes.FLOAT:
+            out += `${name}.float("${path3}", "${dpath.name}", "${uiname}")`;
+            out += numprop(prop);
+            break;
+          case PropTypes.VEC2:
+            out += `${name}.vec2("${path3}", "${dpath.name}", "${uiname}")`;
+            out += numprop(prop);
+            break;
+          case PropTypes.ENUM:
+          case PropTypes.FLAG:
+            let key = prop.type === PropTypes.ENUM ? "enum" : "flags";
+
+            let def = format_obj(prop.type === PropTypes.FLAG ? prop.keys : prop.values);
+            out += `${name}.${key}("${path3}", ${def}, "${dpath.name}", "${uiname}")`;
+
+            if (prop.type === PropTypes.ENUM) {
+              if (checkenum(prop.ui_value_names, prop.values)) {
+                out += `.uiNames(${format_obj(prop.ui_value_names)})`;
+              }
+            } else {
+              if (checkenum(prop.ui_key_names, prop.keys)) {
+                out += `.uiNames(${format_obj(prop.ui_key_names)})`;
+              }
+            }
+
+            if (checkenum(prop.descriptions, prop.values)) {
+              out += `.descriptions(${format_obj(prop.descriptions)})`;
+            }
+
+            if (checkenum(prop.iconmap, prop.values)) {
+              let iconmap2 = {}
+              for (let k in prop.iconmap) {
+                let v = prop.iconmap[k];
+
+                for (let k2 in Icons) {
+                  if (Icons[k2] === v) {
+                    iconmap2[k] = "Icons." + k2;
+                  }
+                }
+              }
+
+              out += `.icons(${format_obj(iconmap2)})`;
+            }
+            break;
+        }
+
+        if (prop.userSetData && prop.userSetData !== prop.prototype.userSetData) {
+          out += ".customSet(" + prop.userSetData + ")"
+        }
+        if (prop.update && prop.update !== prop.prototype.update) {
+          out += `.on("change", ${""+prop.update})`
+        }
+        out += ";\n";
+      }
+    }
+
+    out += "}\n\n";
+  };
+
+  let recurse = (dstruct, path) => {
+    let cls = getClass(dstruct, path);
+
+    if (cls === undefined) {
+      console.warn("failed to resolve class for path", path, dstruct);
+      return;
+    }
+
+    if (!(cls.name in structs)) {
+      genStruct(cls, dstruct, path);
+      structs[cls.name] = cls;
+    }
+
+    if (path.length > 0) {
+      path += "."
+    }
+
+    for (let dpath of dstruct.paths) {
+      if (dpath.type === DataPathTypes.STRUCT) {
+        recurse(dpath.data, path + dpath.path);
+      }
+    }
+  };
+
+  recurse(ContextStruct, "");
+  console.log(structs);
+  console.log(out);
+
+  for (let k in structs) {
+    out += `  api_define_${k}(api);\n`;
+  }
+
+  let lines = out.split("\n");
+
+  out = "function makeAPI(api) {\n";
+
+  for (let l of lines) {
+    out += "  " + l + "\n";
+  }
+  out += "}\n";
+
+  return out;
 };
 

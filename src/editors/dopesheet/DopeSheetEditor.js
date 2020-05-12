@@ -890,7 +890,7 @@ export class DopeSheetEditor extends Editor {
   }
 
   _tree_collapsed_map() {
-    this.update_collapsed_cache();
+    //this.update_collapsed_cache();
 
     var ret = [];
     for (var k in this.collapsed_cache) {

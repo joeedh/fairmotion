@@ -4,7 +4,7 @@ let data2 = {};
 let stop;
 
 let data = {
-  * stopPropagation(a, b, c) {
+  * stopPropagation(int a, short b, char c) {
     stop = true;
     outer: for (var [t, dd] of c) {
       t = 1;
@@ -13,7 +13,7 @@ let data = {
     continue outer1;
     }
   },
-  s1topPropagation(a, b, c) {
+  s1topPropagation(a, b, array<float> c) {
     stop = true;
     for (let b of c) {
     }
@@ -129,3 +129,16 @@ let bleh = () => {
   }
 };
 
+function a(array<float> c, d : int) {
+  let d, s;
+  for (let y of d) {
+    console.log(e, "e");
+  }
+}
+
+/**
+ * 
+ * yay
+ */
+
+//yay2sdsa

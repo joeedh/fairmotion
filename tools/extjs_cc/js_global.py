@@ -240,6 +240,8 @@ class Glob(AbstractGlob):
     g_error_msg = None
     g_tried_semi = False
     g_lexpos = 0
+    g_lexpos2 = 0
+    g_destructuring = True
     g_clear_slashr = False
     g_print_warnings = True
     g_gen_log_code = False

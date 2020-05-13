@@ -814,10 +814,14 @@ def expand_of_loops(result, typespace):
     
     node.parent.parent.replace(node.parent, sn)
     addIterEnds(sn)
-    
+  
+  Found = [0]
+
   def expand_mozilla_forloops_new(node, scope):
     if node.of_keyword != "of":
       return
+
+    Found[0] = 1
     
     if type(node[0]) == ExpandNode:
         expand_expand_loop(node, scope)
@@ -969,7 +973,11 @@ def expand_of_loops(result, typespace):
     node.parent.parent.replace(node.parent, n2)
 
   #expand_of_loops lexical scope here    
-  traverse(result, ForInNode, expand_mozilla_forloops_new, use_scope=True)
+  for i in range(1000):
+    Found[0] = 0
+    traverse(result, ForInNode, expand_mozilla_forloops_new, use_scope=True)
+    if not Found[0]:
+      break
 
 f_id = [0]
 def parse_intern(data, create_logger=False, expand_loops=True, expand_generators=True):

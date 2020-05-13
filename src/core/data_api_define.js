@@ -305,7 +305,10 @@ function api_define_view2d() {
     this.ctx.view2d.set_zoom(this.data);
   }
   zoomprop.range = zoomprop.real_range = zoomprop.ui_range = [0.1, 100];
-  
+  zoomprop.expRate = 1.2;
+  zoomprop.step = 0.1;
+  zoomprop.decimalPlaces = 3;
+
   var draw_bg_image = new BoolProperty(0, "draw_bg_image", "Draw Image");
   
   var draw_video = new BoolProperty(0, "draw_video", "Draw Video");
@@ -433,9 +436,6 @@ function api_define_material() {
   var linewidth = new FloatProperty(1, "linewidth", "linewidth", "Line Width");
   linewidth.range = [0.1, 200];
   
-  var blur = new FloatProperty(1, "blur", "blur", "Blur");
-  blur.range = [0.0, 800];
-  
   fillclr.update = strokeclr.update = linewidth.update = blur.update = update_base;
   
   //fillclr.flag |= TPropFlags.USE_UNDO;
@@ -449,7 +449,7 @@ function api_define_material() {
   ]);
   
   MaterialStruct.Color4("strokecolor", "strokecolor", "Stroke", "Stroke color").OnUpdate(update_base);
-  MaterialStruct.Float("blur", "blur", "Blur", "Amount of blur").Range(0, 800).OnUpdate(update_base);
+  MaterialStruct.Float("blur", "blur", "Blur", "Amount of blur").Range(0, 800).Step(0.5).OnUpdate(update_base);
   
   return MaterialStruct;
 }

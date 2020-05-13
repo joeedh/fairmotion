@@ -655,7 +655,12 @@ export class FloatProperty extends ToolProperty {
     this.ui_range = uirange
     this.range = range
     this.data = i;
-    this.step = 0.001;
+    this.expRate = 1.2;
+    this.step = 0.05;
+    this.decimalPlaces = 2;
+
+    this.baseUnit = "meter";
+    this.displayUnit = "meter";
   }
   
   copyTo(FloatProperty dst) {
@@ -663,7 +668,10 @@ export class FloatProperty extends ToolProperty {
     
     dst.ui_range = this.ui_range;
     dst.range = this.range;
-    
+    dst.step = this.step;
+    dst.decimalPlaces = this.decimalPlaces;
+    dst.expRate = this.expRate;
+
     return dst;
   }
   
@@ -694,6 +702,9 @@ export class IntProperty extends ToolProperty {
     if (uirange == undefined) {
       uirange = range;
     }
+    
+    this.baseUnit = "meter";
+    this.displayUnit = "meter";
     
     this.ui_range = uirange
     this.range = range

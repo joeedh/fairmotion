@@ -115,6 +115,7 @@ export class DataPath {
 
   Default(val) {
     this.data.value =  val;
+    return this;
   }
 
   Range(min, max) {
@@ -122,16 +123,34 @@ export class DataPath {
     return this;
   }
 
+  ExpRate(rate) {
+    this.data.expRate = rate;
+    return this;
+  }
+
+  Step(f) {
+    this.data.step = f;
+    return this;
+  }
+
+  DecimalPlaces(p) {
+    this.data.decimalPlaces = p;
+    return this;
+  }
+
   SetFlag(flag) {
     this.data.flag |= flag;
+    return this;
   }
 
   ClearFlag() {
     this.data.flag = 0;
+    return this;
   }
 
   FlagsUINames(uinames) {
     this.data.setUINames(uinames);
+    return this;
   }
 
   cache_good() {

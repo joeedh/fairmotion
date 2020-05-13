@@ -98,6 +98,7 @@ class Node (object):
     self.line = glob.g_line
     self.file = glob.g_file
     self.lexpos = glob.g_lexpos
+    self.lexpos2 = glob.g_lexpos2
     self.final_type = None
     self.smap = None
     
@@ -311,6 +312,7 @@ class NumLitNode (ValueNode):
       s = str(self.val)
     
     s = self.s(s)
+
     return s
     
   def copy(self):
@@ -347,8 +349,14 @@ class CommentNode (Node):
 class IdentNode (ValueNode):
   def __init__(self, ident, local=False):
     super(IdentNode, self).__init__()
+
+    if type(ident) == IdentNode:
+      ident = ident.val
+      
     self.val = ident
     self.local = local
+
+    self.lexpos2 = self.lexpos + len(ident)
   
   def gen_js(self, tlevel):
     s = self.s(str(self.val))
@@ -380,6 +388,10 @@ class VarDeclNode(IdentNode):
     #self[2..] are chained var decl child nodes
     
     super(VarDeclNode, self).__init__(expr)
+
+    if type(name) == IdentNode:
+      name = name.val
+
     self.modifiers = set()
     self.val = name
     self.suppress_modifiers = False
@@ -695,7 +707,11 @@ class UndefinedTypeNode(TypeNode):
     
 class TypeRefNode (TypeNode):
   def __init__(self, typeref):
+    if type(typeref) == IdentNode:
+      typeref = typeref.val
+      
     TypeNode.__init__(self, typeref)
+
     self.template = None
   
   def copy(self):

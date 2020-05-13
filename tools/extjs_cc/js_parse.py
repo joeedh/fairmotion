@@ -309,19 +309,34 @@ def set_parse_globals(p, extra_str=""):
   #  l = max(l, p.lexpos(i))
   
   l = None
+  l2 = None
+
   for i in range(len(p)):
-    lp = p.lexspan(i)[0]
-    
-    if l is None or lp < l:
-        l = lp
-  
+    span = list(p.lexspan(i))
+      
+    if type(p[i]) in [str, StringLit]:
+      span[1] = span[0] + len(p[i])
+    elif isinstance(p[i], Node):
+      span[0] = min(p[i].lexpos, span[0])
+      span[1] = max(p[i].lexpos2, span[1])
+      pass
+
+    for j in range(2):
+      lp = span[j]
+      
+      if l is None or lp < l:
+          l = lp
+      if l2 is None or lp > l2:
+          l2 = lp
+
   if l is None:
-    l = 0
+    l = l2 = -1
   
   #if l == 0 and p.lexer.cur != None:
   #  l = p.lexer.prev_lexpos - p.lexer.token_len(p.lexer.cur) - 1
   
   glob.g_lexpos = l
+  glob.g_lexpos2 = l2
   p.lexpos2 = l
 
 def p_statementlist(p):
@@ -420,7 +435,7 @@ def p_import_decl(p):
     if type(p[3]) == StrLitNode:
       p[0][0] = p[3]
     else:
-      p[0][0].val = p[3]
+      p[0][0].val = p[3] if not isinstance(p[3], IdentNode) else p[3].val
   elif len(p) == 4:
     p[0] = ImportNode()
     p[0].replace(p[0][0], p[2])
@@ -527,7 +542,7 @@ def p_module_spec(p):
 def p_binding_ident(p):
   ''' binding_ident : id
   '''
-  p[0] = p[1]
+  p[0] = p[1].val
  
 
 """
@@ -734,7 +749,7 @@ def p_var_decl_no_list(p):
         raiseSyntaxError(p[1], "Invalid variable declaration")
         
       p[0] = VarDeclNode(ExprNode([]));
-      p[0].val = p[1].val
+      p[0].val = p[1].val if not isinstance(p[1], IdentNode) else p[1].val
       p[0].type = UnknownTypeNode()
       p[0].add(p[0].type)
       p[0].local = False
@@ -744,7 +759,7 @@ def p_var_decl_no_list(p):
   elif len(p) == 3:
     if type(p[1]) == VarDeclNode:
       p[0] = p[1]
-      p[0].val = p[2]
+      p[0].val = p[2] if not isinstance(p[2], IdentNode) else p[2].val
       
       if "local" in p[0].modifiers:
         p[0].local = True
@@ -755,7 +770,7 @@ def p_var_decl_no_list(p):
       p[0].modifiers = p[1]
     else:
       p[0] = VarDeclNode(ExprNode([]))
-      p[0].val = p[2]
+      p[0].val = p[2] if not isinstance(p[2], IdentNode) else p[2].val
       p[0].type = p[1]
       p[0].add(p[2])
       p[0].local = False
@@ -824,23 +839,29 @@ def p_var_decl(p):
       scope_add(p[0].val, p[0]);
   elif len(p) == 4 and p[2] == "=":
     if type(p[1]) == ExpandNode:
-      node = None
-      
-      for i, n in enumerate(p[1]):
-        n2 = VarDeclNode(ExprNode([]), name=n.val)
-        n2.add(UnknownTypeNode())
-        n2.modifiers = p[1].modifiers
-        if p[1].etype == "array":
-          n2[0].add(ArrayRefNode(p[3], IdentNode(str(i))))
-        else:
-          n2[0].add(BinOpNode(p[3], n.val, "."))
+      if glob.g_destructuring:
+        node = None
         
-        if not node:
-          p[0] = n2
-        else:
-          node.add(n2)          
-        node = n2
-      
+        for i, n in enumerate(p[1]):
+          n2 = VarDeclNode(ExprNode([]), name=n.val)
+          n2.add(UnknownTypeNode())
+          n2.modifiers = p[1].modifiers
+          if p[1].etype == "array":
+            n3 = ArrayRefNode(p[3], IdentNode(str(i)))
+            n2[0].add(n3)
+          else:
+            n3 = BinOpNode(p[3], n.val, ".")
+            n2[0].add(n3)
+          n3.lexpos = n3[0].lexpos
+          n3.lexpos2 = n3[0].lexpos2
+          
+          if not node:
+            p[0] = n2
+          else:
+            node.add(n2)          
+          node = n2
+      else:
+        p[0] = p[1]      
     else:
       p[0] = p[1]
       if len(p[1][0]) == 0 and type(p[1][0]) == ExprNode:
@@ -855,7 +876,7 @@ def p_var_decl(p):
       n = p[1].copy()
       n.children = [ExprNode([]), n.type];
       
-      n.val = p[3]
+      n.val = p[3] if not isinstance(p[3], IdentNode) else p[3].val
       scope_add(n.val, n)
       p[3] = n
       
@@ -869,7 +890,7 @@ def p_var_decl(p):
       n = p[1].copy()
       n.children = [ExprNode([]), n.type];
       
-      n.val = p[3]
+      n.val = p[3] if not isinstance(p[3], IdentNode) else p[3].val
       scope_add(n.val, n)
       p[3] = n
     
@@ -885,7 +906,7 @@ def p_ident_arr(p):
   set_parse_globals(p)
   
   if len(p) == 2:
-    p[0] = IdentNode(p[1])
+    p[0] = p[1]
   elif len(p) == 5:
     p[0] = StaticArrNode(p[1], p[3])
   
@@ -953,7 +974,7 @@ def p_id_var_type(p):
   '''id_var_type : id 
   '''
   set_parse_globals(p, p[1])
-  p[0] = IdentNode(p[1])
+  p[0] = p[1]
 
 def p_id_var_decl(p):
   '''id_var_decl : id 
@@ -975,12 +996,11 @@ def p_var_fancy_list(p):
   
   if len(p) == 2:
     p[0] = ExpandNode([])
-    if p[1]:
-      p[0].add(p[1])
+    p[0].add(p[1].val)
   else:
     p[0] = p[1]
-    if p[3]:
-      p[0].add(p[3])
+
+    p[0].add(p[3].val)
   
 
 def p_var_fancy_array(p):
@@ -1092,13 +1112,13 @@ def p_simple_var_decl(p):
   set_parse_globals(p)
   if len(p) == 2:
     p[0] = VarDeclNode(ExprNode([]), local=False)
-    p[0].val = p[1]
+    p[0].val = p[1] if not isinstance(p[1], IdentNode) else p[1].val
     p[0].add(UnknownTypeNode())
     p[0].type = p[0][1]
     scope_add(p[0].val, p[0])
   else:
     p[0] = VarDeclNode(ExprNode([]), local=True)
-    p[0].val = p[2]
+    p[0].val = p[2] if not isinstance(p[2], IdentNode) else p[2].val
     if p[1] == "let":
       p[0].modifiers.add("let");
     
@@ -1151,6 +1171,8 @@ def p_assign(p):
 def p_exprlist(p):
   r'''exprlist : expr
   '''
+  set_parse_globals(p)
+
   p[0] = p[1]
   if type(p[0]) != ExprListNode:
     if type(p[0]) == ExprNode:
@@ -1200,7 +1222,8 @@ def p_typed_class(p):
       parent = p[5][0]
     else:
       parent = None
-    name = p[3]
+
+    name = p[3].val
     
     p[0] = TypedClassNode(name, parent)
     for c in p[5][1]:
@@ -1257,7 +1280,7 @@ def p_typed_inherit_opt(p):
   set_parse_globals(p)
 
   if len(p) == 3:
-    p[0] = p[2]
+    p[0] = p[2].val
   else:
     p[0] = None
     
@@ -1268,7 +1291,7 @@ def p_class(p):
    
   tail = p[4]
   heritage = tail[0]
-  cls = ClassNode(p[2], heritage)
+  cls = ClassNode(p[2].val, heritage)
   
   for n in tail[1]:
     cls.add(n)
@@ -1283,7 +1306,7 @@ def p_exprclass(p):
 
   tail = p[4]
   heritage = tail[0]
-  cls = ClassNode(p[2], heritage)
+  cls = ClassNode(p[2].val, heritage)
 
   for n in tail[1]:
     cls.add(n)
@@ -1521,7 +1544,7 @@ def p_var_element(p):
   if len(p) == 2:
     p[0] = p[1]
   elif len(p) == 3:
-    pn = IdentNode(p[1])
+    pn = IdentNode(p[1]) if not isinstance(p[1], IdentNode) else p[1]
     
     p[0] = p[2]
     p[0].add(pn)
@@ -1566,7 +1589,7 @@ def p_class_property(p):
       n = p[1].copy()
       n.children = [ExprNode([]), n.type];
       
-      n.val = p[3]
+      n.val = p[3] if not isinstance(p[3], IdentNode) else p[3].val
       scope_add(n.val, n)
       p[3] = n
       
@@ -1580,7 +1603,7 @@ def p_class_property(p):
       n = p[1].copy()
       n.children = [ExprNode([]), n.type];
       
-      n.val = p[3]
+      n.val = p[3] if not isinstance(p[3], IdentNode) else p[3].val
       scope_add(n.val, n)
       p[3] = n
     
@@ -1712,7 +1735,7 @@ def p_func_native(p):
   
   set_parse_globals(p)
   
-  name = p[4]
+  name = p[4].val
   
   p[0] = FunctionNode(p[4], glob.g_line)
   p[0].add(p[7])
@@ -1735,7 +1758,7 @@ def p_function(p):
   
   set_parse_globals(p)
   
-  name = p[3]
+  name = p[3].val
   exprlist = p[11]
   params = p[7]
   params.flatten()
@@ -1871,6 +1894,7 @@ def p_expr_for_arraylit(p):
   '''expr_for_arraylit : expr_no_list
                        | obj_literal
   '''
+  set_parse_globals(p)
   p[0] = p[1]
   
 def p_arraylist(p):
@@ -1914,6 +1938,8 @@ def p_id_str_or_num(p):
     p[0] = StrLitNode(p[1])
   elif type(p[1]) == str:
     p[0] = IdentNode(p[1])
+  elif type(p[1]) == IdentNode:
+    p[0] = p[1]
   else:
     p[0] = NumLitNode(p[1])
 
@@ -2292,6 +2318,7 @@ def p_expr(p):
             | re_lit
     '''
     set_parse_globals(p)
+
     if len(p) == 7:
       if p[2] != "[": #assignment
         p[0] = AssignNode(p[1], p[3], p[2])
@@ -2334,11 +2361,11 @@ def p_expr(p):
                         BitInvNode, LogicalNotNode, NegateNode, PositiveNode,
                         ArrayLitNode, ObjLitNode, FunctionNode, 
                         KeywordNew, PreInc, PostInc, PreDec, PostDec,
-                        TemplateNode, ExprListNode, ClassNode, TypedClassNode]:
+                        TemplateNode, ExprListNode, ClassNode, TypedClassNode, IdentNode]:
         p[0] = p[1]
       elif type(p[1]) in [float, int, HexInt]:
         p[0] = NumLitNode(p[1])
-      elif p[1].startswith('"'):
+      elif p[1].val.startswith('"'):
         p[0] = StrLitNode(p[1])
       else:
         p[0] = IdentNode(p[1])
@@ -2396,6 +2423,7 @@ def p_expr_no_list(p):
             | re_lit
     '''
     set_parse_globals(p)
+
     if len(p) == 7:
       if p[2] != "[": #assignment
         p[0] = AssignNode(p[1], p[3], p[2])
@@ -2439,6 +2467,8 @@ def p_expr_no_list(p):
         p[0] = p[1]
       elif type(p[1]) in [float, int, HexInt]:
         p[0] = NumLitNode(p[1])
+      elif type(p[1]) == IdentNode:
+        p[0] = p[1]
       elif p[1].startswith('"'):
         p[0] = StrLitNode(p[1])
       else:
@@ -2516,7 +2546,7 @@ def p_simple_var_decl_strict(p):
   set_parse_globals(p)
   
   p[0] = VarDeclNode(ExprNode([]), local=True)
-  p[0].val = p[2]
+  p[0].val = p[2] if not isinstance(p[2], IdentNode) else p[2].val
   
   if p[1] == "let":
     p[0].modifiers.add("let");
@@ -2554,7 +2584,7 @@ def p_for_var_decl(p):
     
     p[0] = VarDeclNode(p[3] if len(p) == 4 else ExprNode([]))
     p[0].type = parsescope[p[1]].type
-    p[0].val = p[1]
+    p[0].val = p[1] if not isinstance(p[1], IdentNode) else p[1].val
     
     if p[0].type == None:
       p[0].type = UnknownTypeNode
@@ -2589,6 +2619,8 @@ def p_for_of_expand(p):
   '''
   for_of_expand : type_modifiers var_expand OF expr
   '''
+  set_parse_globals(p)
+
   p[0] = ForInNode(p[2], p[4])
   p[2].modifiers = p[1]
   p[0].of_keyword = "of"
@@ -2946,6 +2978,7 @@ def p_break(p):
   '''
             
   set_parse_globals(p)
+  
   p[0] = BreakNode()
   if len(p) == 3:
     p[0].label = p[2]
@@ -2993,7 +3026,9 @@ def p_id(p):
          | GLOBAL
          | AWAIT
   '''
-  p[0] = p[1]
+  set_parse_globals(p)
+  p[0] = IdentNode(p[1])
+  #p[0] = p[1]
     
 # Error rule for syntax errors
 def err_find_line(lexer, lpos):

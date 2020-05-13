@@ -1,114 +1,109 @@
-from js_cc import js_parse
-from js_process_ast import *
+import js_lex
+import js_global
+from js_global import glob 
 from js_ast import *
-from js_global import glob
-from js_typespace import *
-from js_parser_only_ast import *
 
-import os, sys, struct, time, random, math, os.path
-def handle_potential_class(result, ni, typespace):
-  c = result[ni]
-  op = c[0].gen_js(0).strip();
-  
-  name = c[1][0].gen_js(0).strip()
+import argparse, sys
+from js_parse import parser
 
-  if op == "inherit":
-    parents = [c[1][1].gen_js(0).strip()];
-  else:
-    parents = []
-  
-  cls = ClassNode(name, parents)
-  constructor = None
-  
-  i = ni-1
-  while i >= 0:
-    n = result[i]
-    if type(n) == FunctionNode:
-      if n.name == name:
-        constructor = n
-        break
-        
-    i -= 1
-  
-  if constructor == None:
-    typespace.error("Could not find constructor for " + name + ".", result[ni])
-  
-  
-  members = {}
-  i = ni;
-  m1 = js_parse("obj.prototype.func = {}");
-  m2 = js_parse("obj.func = {}");
-  while i < len(result):
-    n = result[i];
-    bad = type(n) != AssignNode
-    bad |= type(n[1]) != FunctionNode
-    
-    if bad: 
-      i += 1
-      continue
-    
-    root = n[0]
-    while type(root) == BinOpNode:
-      root = root[0]
-    
-    bad = root.gen_js(0).strip() != name
-    if bad:
-      i += 1
-      continue
-    
-    is_static = False
-    if root.parent[1].gen_js(0) == "prototype":
-      method_name = root.parent.parent[1].gen_js(0).strip()
-    else:
-      method_name = root.parent[1].gen_js(0).strip()
-      is_static = True
-    
-    f = n[1]
-    
-    print(method_name)
-    m = MethodNode(method_name)
-    m.add(f[0])
-    
-    if len(f) > 2:
-      s = StatementList()
-      for c in f.children[1:]:
-        s.add(c)
-    else:
-      m.add(f[1])
-    cls.add(m)
-    
-    i += 1
-  
-  print(name, parents, constructor.name)
-  
-  if name != "ClassTest":
-    sys.exit()
-  
-def refactor(data):
-  result = js_parse(data)
-  if result == None: result = StatementList()
-  
-  """
-  def set_smap(n, smap):
-    n.smap = smap
+def setcolor(c):
+  sys.stdout.write("\u001b[%im" % c);
+  sys.stdout.flush()
+
+colors = [37, 31, 32, 33, 34, 35, 36]
+
+def mark(node, depth=0):
+  maxd = [0]
+  def maxdepth(n, depth=0):
+    maxd[0] = max(maxd[0], depth)
+
     for c in n:
-      set_smap(c, smap)
-  smap = SourceMap()
-  set_smap(result, smap)
-  result.gen_js(0)
-  #"""
-  
-  typespace = JSTypeSpace()
-  flatten_statementlists(result, typespace)
-  
-  for c in result:
-    if type(c) == FuncCallNode and c[0].gen_js(0).strip() in ["inherit", "create_prototype"]:
-      handle_potential_class(result, result.index(c), typespace)
-      
-  print(len(result))
-  
-  
-  buf = data
-  
-  return buf, result
-  
+      maxdepth(c, depth+1)
+
+  maxdepth(node, depth)
+
+  node.level = maxd[0] - depth
+
+  for c in node:
+    mark(c, depth+1)
+
+def process(buf):
+    glob.g_lexer = js_lex.plexer
+    glob.g_destructuring = False
+    ret = parser.parse(buf, lexer=js_lex.plexer)
+
+    marks = [-1 for x in range(len(buf))]
+    level = [0]
+    color = [0]
+
+    nodes = []
+
+    def marklexpos(n):
+      if len(n) == 0:
+        return
+
+      for c in n:
+        marklexpos(c)
+
+      n.lexpos = n[0].lexpos
+      n.lexpos2 = n[-1].lexpos2
+
+    def recurse(n):
+      if 1: #n.level == level[0]:
+        nodes.append(n)
+
+      for c in n:
+        recurse(c)
+    
+    #return  
+    mark(ret)
+    marklexpos(ret)
+    recurse(ret)
+    
+    level = 1
+
+    c1 = 0
+    for ni in range(0, 15): 
+      for n in nodes:
+        if n.level != ni: continue
+
+        if not isinstance(n, FunctionNode):
+          continue
+
+        found = 0
+        for i in range(n.lexpos, n.lexpos2):
+          if marks[i] < 0:
+            marks[i] = c1
+            found = 1
+          pass
+        
+        if found:
+          c1 = (c1 + 1) % (len(colors)-1)
+
+        #print(n.lexpos, n.lexpos2, n.get_line_str(), n.gen_js(0))
+
+    for i in range(len(buf)):
+      if marks[i] == -1:
+        c = 0
+      else:
+        c = marks[i] + 1
+
+      setcolor(colors[c])
+      sys.stdout.write(buf[i])
+
+def main():
+    cparse = argparse.ArgumentParser()
+    glob.add_args(cparse);
+    args = cparse.parse_args()
+
+    path = args.infile
+    glob.g_file = path
+
+    file = open(path, "r")
+    buf = file.read()
+    file.close()
+
+    process(buf)
+
+if __name__ == "__main__":
+    main()

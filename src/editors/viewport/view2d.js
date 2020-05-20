@@ -589,7 +589,7 @@ export class View2DHandler extends Editor {
 
     //tabs.style["width"] = "300px";
     tabs.style["height"] = "400px";
-    tabs.float(1, 2*25*UIBase.getDPI(), 7);
+    tabs.float(1, 3*25*UIBase.getDPI(), 7);
 
     var tools = tabs.tab("Tools");
     //*

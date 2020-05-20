@@ -39,13 +39,13 @@ export var PropTypes = {
 setPropTypes(PropTypes);
 
 export var TPropFlags = {
-  PRIVATE         : 2,
-  LABEL           : 4,
-  COLL_LOOSE_TYPE : 8,
-  USE_UNDO        : 16, //use toolstack.exec_datapath instead of api.set_prop
-  UNDO_SIMPLE     : 32, //use simple undo implementation
-  USE_ICONS       : 64,
-  USE_CUSTOM_GETSET : 128,
+  PRIVATE             : 2,
+  LABEL               : 4,
+  COLL_LOOSE_TYPE     : 8,
+  USE_UNDO            : 16, //use toolstack.exec_datapath instead of api.set_prop
+  UNDO_SIMPLE         : 32, //use simple undo implementation
+  USE_ICONS           : 64,
+  USE_CUSTOM_GETSET   : 128,
   NEEDS_OWNING_OBJECT : 256 //used by user_get_data, property needs 'this'
 };
 
@@ -166,6 +166,13 @@ ToolProperty.prototype.userGetData = function(prop, val) {
   return val;
 };
 
+let _copyTo = ToolProperty.prototype.copyTo;
+ToolProperty.prototype.copyTo = function(b) {
+  _copyTo.call(this, b);
+  b.userSetData = this.userSetData;
+  b.userGetData = this.userGetData;
+  return this;
+}
 ToolProperty.prototype.update = () => {};
 ToolProperty.prototype.api_update = () => {};
 

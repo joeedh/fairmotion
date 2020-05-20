@@ -3,7 +3,8 @@
 export let PathUXConstants = {
   autoSizeUpdate : true,
   useAreaTabSwitcher : false,
-  addHelpPickers : true
+  addHelpPickers : true,
+  showPathsInToolTips : true
 };
 
 export var MANIPULATOR_MOUSEOVER_LIMIT = 25;

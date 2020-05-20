@@ -1184,7 +1184,7 @@ export class DataAPI {
         
         var is_flag = false;
         
-        if (array.type === DataPathTypes.PROP && array.data.type === PropTypes.FLAG) {
+        if (array.type === DataPathTypes.PROP && (array.data.type & (PropTypes.FLAG|PropTypes.ENUM))) {
           spathout[0] += ".data.data & "+index;
           is_flag = true;
         } else if (array.type === DataPathTypes.PROP) {
@@ -1336,7 +1336,7 @@ export class DataAPI {
     if (ret == undefined) return ret;
     
     var val = ret[0];
-    
+
     if (ret[0].type == DataPathTypes.PROP) {
       if (ret[0].use_path) {
         var path = ret[1];
@@ -1349,7 +1349,9 @@ export class DataAPI {
         if (val instanceof ToolProperty)
           val = val.data;
       }
-      
+
+      window.__prop = {path : path, val : val};
+
       var prop = ret[0].data;
 
       if (prop.flag & TPropFlags.USE_CUSTOM_GETSET) {
@@ -1362,6 +1364,7 @@ export class DataAPI {
 
         //console.log(path, ret[1]);
         val = prop.userGetData.call(thisvar, prop, val);
+        window.__prop = {path : path, val : val, userGetData : prop.userGetData, flag : prop.flag};
 
         if (path.match("==")) {
           let i = path.search(/\=\=/);
@@ -1369,9 +1372,11 @@ export class DataAPI {
 
           if (num.match(/[0-9]+/)) {
             num = parseInt(num);
-          } else {
+          } else if (num in prop.values) {
             num = prop.values[num];
           }
+
+          //window.__prop = {path : path, val : val, num : num};
 
           val = val == num;
           //console.log("idx", idx);
@@ -1385,7 +1390,8 @@ export class DataAPI {
     } else { //return actual object
         var path = ret[1];
         val = this.evaluate(ctx, path);
-        
+      window.__prop = {path : path, val : val};
+
         return val;
     }
     
@@ -1627,7 +1633,7 @@ export class DataAPI {
           valpath += ".data.data";
           path += ".data.data";
         }
-        
+
         var oval = this.evaluate(ctx, path);
         
         /*don't override array references
@@ -1666,7 +1672,9 @@ export class DataAPI {
             this.evaluate(ctx, path);
           }
         }
-        
+
+        window.__path = {path : path, valpath : valpath};
+
         changed = value == old_value;
         
         if (DEBUG.ui_datapaths) {

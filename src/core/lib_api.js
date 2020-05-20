@@ -531,24 +531,22 @@ export class DataBlock {
     }
   }
   
-  static fromSTRUCT(reader) {
-    var ret = new DataBlock();
+  loadSTRUCT(reader) {
+    reader(this);
 
-    reader(ret);
-  
     var map = {};
     
-    if (ret.addon_data === undefined || !(ret.addon_data instanceof Array)) {
-      ret.addon_data = [];
+    if (this.addon_data === undefined || !(this.addon_data instanceof Array)) {
+      this.addon_data = [];
     }
     
-    for (var dk of ret.addon_data) {
+    for (var dk of this.addon_data) {
       map[dk.key] = dk.val;
     }
     
-    ret.addon_data = map;
+    this.addon_data = map;
     
-    return ret;
+    return this;
   }
 
   _addon_data_save() {

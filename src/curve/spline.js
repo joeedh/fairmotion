@@ -2181,8 +2181,12 @@ export class Spline extends DataBlock {
       this.solve().then(function() {
         for (var i=0; i<redraw_rects.length; i++) {
           var rr = redraw_rects[i];
-          
-          window.redraw_viewport(rr[0], rr[1]);
+
+          if (rr) {
+            window.redraw_viewport(rr[0], rr[1]);
+          } else if (redraw_rects.length < 2) {
+            window.redraw_viewport();
+          }
         }
       });
     }
@@ -2191,34 +2195,36 @@ export class Spline extends DataBlock {
                  draw_normals, alpha, draw_time_helpers, curtime, ignore_layers);
   }
   
-  static fromSTRUCT(reader) {
-    var ret = STRUCT.chain_fromSTRUCT(Spline, reader);
+  loadSTRUCT(reader) {
+    reader(this);
+    super.loadSTRUCT(reader);
     
-    ret.afterSTRUCT();
+    this.afterSTRUCT();
 
     //chain_fromSTRUCT corrupts this, argh!
-    ret.query = ret.q = new SplineQuery(ret);
+    // -- okay, now that we're using loadSTRUCT, is this line still necassary?
+    this.query = this.q = new SplineQuery(this);
     
     var eidmap = {};
     
-    ret.elists = [];
-    ret.elist_map = {};
+    this.elists = [];
+    this.elist_map = {};
     
     //restore elist stuff
     for (var k in _elist_map) {
       var type = _elist_map[k];
-      var v = ret[k];
+      var v = this[k];
       
       if (v == undefined) continue;
       
-      ret.elists.push(v);
-      ret.elist_map[type] = v;
+      this.elists.push(v);
+      this.elist_map[type] = v;
     }
     
-    ret.init_sel_handlers();
+    this.init_sel_handlers();
     
     for (var si=0; si<2; si++) {
-      var list = si ? ret.handles : ret.verts;
+      var list = si ? this.handles : this.verts;
       
       for (var i=0; i<list.length; i++) {  
         var v = list[i];
@@ -2229,12 +2235,12 @@ export class Spline extends DataBlock {
       }
     }
     
-    for (var h of ret.handles) {
+    for (var h of this.handles) {
       h.hpair = eidmap[h.hpair];
     }
     
-    for (var i=0; i<ret.segments.length; i++) {
-      var s = ret.segments[i];
+    for (var i=0; i<this.segments.length; i++) {
+      var s = this.segments[i];
       
       s.v1 = eidmap[s.v1];
       s.v2 = eidmap[s.v2];
@@ -2246,7 +2252,7 @@ export class Spline extends DataBlock {
     }
     
     for (var si=0; si<2; si++) {
-      var list = si ? ret.handles : ret.verts;
+      var list = si ? this.handles : this.verts;
       
       for (var i=0; i<list.length; i++) {  
         var v = list[i];
@@ -2257,8 +2263,8 @@ export class Spline extends DataBlock {
       }
     }
     
-    for (var i=0; i<ret.faces.length; i++) {
-      var f = ret.faces[i];
+    for (var i=0; i<this.faces.length; i++) {
+      var f = this.faces[i];
       
       f.flag |= SplineFlags.UPDATE_AABB;
       
@@ -2280,8 +2286,8 @@ export class Spline extends DataBlock {
       }
     }
     
-    for (var i=0; i<ret.faces.length; i++) {
-      var f = ret.faces[i];
+    for (var i=0; i<this.faces.length; i++) {
+      var f = this.faces[i];
       
       for (var path of f.paths) {
         var l = path.l;
@@ -2300,55 +2306,55 @@ export class Spline extends DataBlock {
       //console.log("\n");
     }
     
-    for (var i=0; i<ret.segments.length; i++) {
-      var s = ret.segments[i];
+    for (var i=0; i<this.segments.length; i++) {
+      var s = this.segments[i];
       
       s.l = eidmap[s.l];
     }
     
-    ret.eidmap = eidmap;
+    this.eidmap = eidmap;
     
     var selected = new ElementArraySet();
-    selected.layerset = ret.layerset;
+    selected.layerset = this.layerset;
     
-    for (var i=0; i<ret.selected.length; i++) {
-      var eid = ret.selected[i];
+    for (var i=0; i<this.selected.length; i++) {
+      var eid = this.selected[i];
       
       if (!(eid in eidmap)) {
         console.log("WARNING! eid", eid, "not in eidmap!", Object.keys(eidmap));
         continue;
       }
       
-      selected.add(eidmap[ret.selected[i]]);
+      selected.add(eidmap[this.selected[i]]);
     }
     
-    ret.selected = selected;
+    this.selected = selected;
     
-    ret.verts.afterSTRUCT(SplineTypes.VERTEX, ret.idgen, ret.eidmap, 
-                          ret.selected, ret.layerset, ret);
-    ret.handles.afterSTRUCT(SplineTypes.HANDLE, ret.idgen, ret.eidmap, 
-                          ret.selected, ret.layerset, ret);
-    ret.segments.afterSTRUCT(SplineTypes.SEGMENT, ret.idgen, ret.eidmap, 
-                          ret.selected, ret.layerset, ret);
-    ret.faces.afterSTRUCT(SplineTypes.FACE, ret.idgen, ret.eidmap, ret.selected, 
-                          ret.layerset, ret);
+    this.verts.afterSTRUCT(SplineTypes.VERTEX, this.idgen, this.eidmap, 
+                          this.selected, this.layerset, this);
+    this.handles.afterSTRUCT(SplineTypes.HANDLE, this.idgen, this.eidmap, 
+                          this.selected, this.layerset, this);
+    this.segments.afterSTRUCT(SplineTypes.SEGMENT, this.idgen, this.eidmap, 
+                          this.selected, this.layerset, this);
+    this.faces.afterSTRUCT(SplineTypes.FACE, this.idgen, this.eidmap, this.selected, 
+                          this.layerset, this);
     
-    if (ret.layerset == undefined) {
-      ret.layerset = new SplineLayerSet();
-      ret.layerset.new_layer();
+    if (this.layerset == undefined) {
+      this.layerset = new SplineLayerSet();
+      this.layerset.new_layer();
     } else {
-      ret.layerset.afterSTRUCT(ret);
+      this.layerset.afterSTRUCT(this);
     }
     
-    ret.regen_sort();
+    this.regen_sort();
     
-    if (spline_multires.has_multires(ret) && ret.mres_format != undefined) {
+    if (spline_multires.has_multires(this) && this.mres_format != undefined) {
       console.log("Converting old multires layout. . .");
       
-      for (var seg of ret.segments) {
+      for (var seg of this.segments) {
         var mr = seg.cdata.get_layer(spline_multires.MultiResLayer);
         
-        mr._convert(ret.mres_format, spline_multires._format);
+        mr._convert(this.mres_format, spline_multires._format);
       }
     }
     
@@ -2356,9 +2362,9 @@ export class Spline extends DataBlock {
     for (var i=0; i<spline_multires._format.length; i++) {
       arr.push(spline_multires._format[i]);
     }
-    ret.mres_format = arr;
+    this.mres_format = arr;
     
-    return ret;
+    return this;
   }
 
   flagUpdateVertTime(v) {

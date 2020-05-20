@@ -90,7 +90,7 @@ export function gen_screen(unused, w, h) {
   screen.id = "screenmain";
 
   screen.size = [window.innerWidth, window.innerHeight];
-  screen.ctx = new Context();
+  screen.ctx = new FullContext();
 
   let sarea = document.createElement("screenarea-x");
   sarea.size[0] = window.innerWidth;
@@ -504,7 +504,7 @@ export class AppState {
     this.api = new DataAPI(this);
 
     this.pathcontroller = new PathUXInterface(this.api);
-    this.pathcontroller.setContext(new Context(this));
+    this.pathcontroller.setContext(new FullContext(this));
 
     this.filepath = ""
     this.version = g_app_version;
@@ -534,7 +534,7 @@ export class AppState {
       this.session = new UserSession();
     }
 
-    this.ctx = new Context(this);
+    this.ctx = new FullContext(this);
   }
 
   set_modalstate(state=0) {
@@ -706,7 +706,7 @@ export class AppState {
     this.active_view2d = view2d;
     
     this.toolstack = toolstack;
-    this.screen.ctx = this.ctx = new Context();
+    this.screen.ctx = this.ctx = new FullContext();
     
     if (the_global_dag !== undefined)
       the_global_dag.reset_cache();
@@ -734,7 +734,7 @@ export class AppState {
     this.eventhandler = screen;
     this.toolstack = toolstack;
     
-    this.screen.ctx = new Context();
+    this.screen.ctx = new FullContext();
     window.redraw_viewport();
 
     for (let sarea of screen.sareas) {
@@ -1323,7 +1323,7 @@ export class AppState {
         }
       }
       
-      var ctx = new Context();
+      var ctx = new FullContext();
 
       if (screen !== undefined) {
         screen.view2d = this2.active_view2d;
@@ -1338,7 +1338,7 @@ export class AppState {
 
       this2.eventhandler = this2.screen;
 
-      var ctx = new Context();
+      var ctx = new FullContext();
       
       //find toolstack block, if it exists
       for (var i=0; i<blocks.length; i++) {
@@ -1447,7 +1447,7 @@ export class AppState {
     screen.setAttribute("id", "screenmain");
     screen.id = "screenmain";
 
-    screen.ctx = new Context();
+    screen.ctx = new FullContext();
 
     screen.setCSS();
     screen.makeBorders();
@@ -1608,7 +1608,7 @@ export class AppState {
       }
     }
     
-    var ctx = new Context();
+    var ctx = new FullContext();
     
     if (screen != undefined) {
       screen.view2d = this.active_view2d;
@@ -1624,43 +1624,133 @@ export class AppState {
 
 window.AppState = AppState;
 
-/*
-  The Context classes represent a set of common arguments that
-  are passed to various parts of the API (especially the tool
-  and data/UI APIs).  Like most of the rest of the tool API,
-  it's inspired by what Blender does.
-*/
-//restricted context for tools
-export class ToolContext {
-  constructor(frameset, spline, scene, splinepath) {
-    var ctx = new Context();
-    
-    if (splinepath == undefined)
-      splinepath = ctx.splinepath;
-    
-    if (frameset == undefined) 
-      frameset = ctx.frameset;
-      
-    if (spline == undefined && frameset != undefined) 
-      spline = ctx.spline;
-      
-    if (scene == undefined)
-      scene = ctx.scene;
-      
-    this.datalib = g_app_state.datalib;
-    
-    this.splinepath = splinepath;
-    this.frameset = frameset;
-    this.spline = spline;
-    this.scene = scene;
-    this.edit_all_layers = ctx.edit_all_layers;
+class SavedContext {
+  constructor(ctx) {
+    this._props = {};
 
-    this.api = g_app_state.pathcontroller;
+    this._datalib = undefined;
+
+    if (ctx) {
+      this.save(ctx)
+    } else {
+      ctx = g_app_state.ctx;
+
+      this.state = g_app_state;
+      this.datalib = ctx.datalib;
+      this.api = ctx.api;
+      this.toolstack = ctx.toolstack;
+    }
+  }
+
+  get datalib() {
+    if (this._datalib) {
+      return this._datalib;
+    }
+
+    return g_app_state.datalib;
+  }
+
+  set datalib(d) {
+    this._datalib = d;
+  }
+
+  make(k) {
+    if (k === "datalib") {
+      return;
+    }
+
+    Object.defineProperty(this, k, {
+      get : function() {
+        let ctx = g_app_state.ctx;
+
+        let v = this._props[k];
+
+        if (v.type === "block") {
+          return ctx.datalib.get(v.value);
+        } else if (v.type === "passthru") {
+          return v.value;
+        } else if (v.type === "path") {
+          return ctx.api.getValue(ctx, v.value);
+        } else {
+          return ctx[k];
+        }
+      }
+    })
+  }
+
+  set_context(ctx) {
+    //not necassary anymore
+  }
+
+  save(ctx) {
+    this.state = ctx.state;
+    this.datalib = ctx.datalib;
+    this.api = ctx.api;
+    this.toolstack = ctx.toolstack;
+    this.screen = ctx.screen;
+    this._props = {};
+
+    ctx = ctx.toLocked();
+
+
+    for (let k in ctx.props) {
+      let v = ctx.props[k].data;
+
+      let val = v.value;
+      let type = v.type;
+
+      if (v.type === "passthru" && typeof val === "object") {
+        val = undefined;
+        type = "lookup";
+      }
+
+      if (v.type !== "block" && typeof val === "object") {
+        val = undefined;
+      }
+
+      this._props[k] = {
+        type  : type,
+        key   : k,
+        value : val
+      };
+
+      this.make(k, v);
+    }
+  }
+
+  saveJSON() {
+    return JSON.stringify(this._props);
+  }
+
+  loadSTRUCT(reader) {
+    reader(this);
+
+    let json;
+
+    try {
+      json = JSON.parse(this.json);
+    } catch (error) {
+      console.warn("json error");
+      json = {};
+    }
+
+    for (let k in json) {
+      this._props[k] = json[k];
+      this.make(k);
+    }
+
+    delete this.json;
   }
 }
-window.ToolContext = ToolContext;
 
-class SavedContext {
+SavedContext.STRUCT = `
+SavedContext {
+  json : string | this.saveJSON();
+}
+`;
+window.SavedContext = SavedContext;
+
+class SavedContextOld {
   constructor(ctx=undefined) {
     if (ctx != undefined) {
       this.time = ctx.scene != undefined ? ctx.scene.time : undefined;
@@ -1770,9 +1860,7 @@ class SavedContext {
   }
 }
 
-window.SavedContext = SavedContext;
-
-SavedContext.STRUCT = """
+SavedContextOld.STRUCT = """
   SavedContext {
     _scene               : DataRef | obj._scene == undefined ? new DataRef(-1) : obj._scene;
     _frameset            : DataRef | obj._frameset == undefined ? new DataRef(-1) : obj._frameset;
@@ -1787,15 +1875,23 @@ import {SplineFrameSet} from './frameset.js';
 import {SettingsEditor} from "../editors/settings/SettingsEditor.js";
 import {MenuBar} from "../editors/menubar/MenuBar.js";
 
-export class Context {
+import {ContextOverlay, Context} from "../path.ux/scripts/controller/context.js";
+
+export class BaseContextOverlay extends ContextOverlay {
   constructor(state=g_app_state) {
-    this.appstate = state;
-    this.keymap_mpos = [0, 0];
-    this.api = state.pathcontroller;
+    super(state);
   }
 
-  get font() {
-    return g_app_state.raster.font;
+  get appstate() {
+    return this.state;
+  }
+
+  get api() {
+    return this.state.pathcontroller;
+  }
+
+  get toolmode() {
+    return this.scene ? this.scene.toolmode : undefined;
   }
 
   get active_area() {
@@ -1805,8 +1901,9 @@ export class Context {
   switch_active_spline(newpath) {
     g_app_state.switch_active_spline(newpath);
   }
+
   get splinepath() : String {
-    return g_app_state.active_splinepath == undefined ? "frameset.drawspline" : g_app_state.active_splinepath;
+    return g_app_state.active_splinepath === undefined ? "frameset.drawspline" : g_app_state.active_splinepath;
   }
   
   get filepath() : String {
@@ -1833,26 +1930,67 @@ export class Context {
     
     return ret;
   }
- 
-  get dopesheet() : DopeSheetEditor {
-    return Editor.context_area(DopeSheetEditor);
-  }
-  
-  get editcurve() : CurveEditor {
-    return Editor.context_area(CurveEditor);
-  }
-  
-  /*need to figure out a better way to pass active editor types
-    around API*/
-  get settings_editor() : SettingsEditor {
-    return Editor.context_area(SettingsEditor);
-  }
-  
+
   get frameset() : SplineFrameSet {
     return this.scene.objects.active.data;
     //return g_app_state.datalib.framesets.active;
   }
   
+
+
+  get scene() {
+    var list = this.datalib.scenes;
+
+    //sanity check
+    if (list.length == 0) {
+      console.warn("No scenes; adding empty scene");
+
+      var scene = new Scene();
+      scene.set_fake_user();
+      
+      this.datalib.add(scene);
+    }
+    
+    return this.datalib.get_active(DataTypes.SCENE);
+  }
+  get datalib() {
+    return g_app_state.datalib;
+  }
+  
+  get toolstack() {
+    return g_app_state.toolstack;
+  }
+}
+
+export class ViewContextOverlay extends ContextOverlay {
+  constructor(state = g_app_state) {
+    super();
+
+    this.appstate = state;
+    this._keymap_mpos = [0, 0];
+  }
+
+  get font() {
+    return g_app_state.raster.font;
+  }
+
+  get keymap_mpos() {
+    return this._keymap_mpos;
+  }
+
+  get dopesheet() : DopeSheetEditor {
+    return Editor.context_area(DopeSheetEditor);
+  }
+
+  get editcurve() : CurveEditor {
+    return Editor.context_area(CurveEditor);
+  }
+
+  /*need to figure out a better way to pass active editor types
+    around API*/
+  get settings_editor() : SettingsEditor {
+    return Editor.context_area(SettingsEditor);
+  }
   /*need to figure out a better way to pass active editor types
     around API*/
   get opseditor() : OpStackEditor {
@@ -1872,40 +2010,132 @@ export class Context {
 
     //if (ret === undefined)
     //  ret = g_app_state.active_view2d;
-      
+
     return ret; //g_app_state.active_view2d;
   }
-  
-  get scene() {
-    var list = this.datalib.scenes;
 
-    //sanity check
-    if (list.length == 0) {
-      console.warn("No scenes; adding empty scene");
-
-      var scene = new Scene();
-      scene.set_fake_user();
-      
-      this.datalib.add(scene);
-    }
-    
-    return this.datalib.get_active(DataTypes.SCENE);
-  }
-  
   get screen() {
     return g_app_state.screen;
   }
-  
-  get datalib() {
-    return g_app_state.datalib;
+}
+
+export class BaseContext extends Context {
+  constructor(state=g_app_state) {
+    super(state);
+
+    this.reset(state);
   }
-  
-  get toolstack() {
-    return g_app_state.toolstack;
+
+  reset(state=this.state) {
+    this.pushOverlay(new BaseContextOverlay(state));
+  }
+
+  saveProperty(key) {
+    let v = this[key];
+
+    function passthru(v) {
+      return {
+        type  : "passthru",
+        key   : key,
+        value : v
+      };
+    }
+
+    function lookup(v) {
+      return {
+        type  : "lookup",
+        key   : key,
+        value : v
+      };
+    }
+
+    if (!v) return passthru(v);
+
+    if (typeof v !== "object") {
+      return passthru(v);
+    }
+
+    if (key === "spline") {
+      return {
+        type  : "path",
+        key   : key,
+        value : this.splinepath
+      }
+    } else if (v instanceof DataBlock) {
+      return {
+        type   : "block",
+        key    : key,
+        value  : new DataRef(v)
+      }
+    }
+
+    return lookup(v);
+  }
+
+  loadProperty(ctx, key, val) {
+    if (val.type === "lookup") {
+      return ctx[val.key];
+    } else if (val.type === "path") {
+      return ctx.api.getValue(ctx, val.value);
+    } else if (val.type === "passthru") {
+      return val.value;
+    } else if (val.type === "block") {
+      return ctx.datalib.get(val.value);
+    }
   }
 }
 
-window.Context = Context;
+export class FullContext extends BaseContext {
+  constructor(state=g_app_state) {
+    super(state);
+
+    this.reset(state);
+  }
+
+  reset(state=this.state) {
+    super.reset(state);
+    this.pushOverlay(new ViewContextOverlay(state));
+  }
+}
+
+window.Context = FullContext; //XXX track down and kill all references to this dirty, dirty global
+
+/*
+  The Context classes represent a set of common arguments that
+  are passed to various parts of the API (especially the tool
+  and data/UI APIs).  Like most of the rest of the tool API,
+  it's inspired by what Blender does.
+*/
+//restricted context for tools
+export class _ToolContext {
+  constructor(frameset, spline, scene, splinepath) {
+    var ctx = new FullContext().toLocked();
+
+    if (splinepath == undefined)
+      splinepath = ctx.splinepath;
+
+    if (frameset == undefined)
+      frameset = ctx.frameset;
+
+    if (spline == undefined && frameset != undefined)
+      spline = ctx.spline;
+
+    if (scene == undefined)
+      scene = ctx.scene;
+
+    this.datalib = g_app_state.datalib;
+
+    this.splinepath = splinepath;
+    this.frameset = frameset;
+    this.spline = spline;
+    this.scene = scene;
+    this.edit_all_layers = ctx.edit_all_layers;
+
+    this.api = g_app_state.pathcontroller;
+  }
+}
+
+//window.ToolContext = ToolContext;
 
 /*
 function Context() {
@@ -1944,40 +2174,6 @@ function Context() {
 }
 create_prototype(Context);
 */
-export class ModalContext extends Context {
-  constructor(state : AppState, ctx : Context) {
-    super(state);
-
-    //make sure tools keep original ui context
-    //of area that originally called them
-
-    this._active_area = ctx.active_area;
-    this._view2d = ctx.view2d;
-    this._dopesheet = ctx.dopesheet;
-    this._editcurve = ctx.editcurve;
-    this._settings_editor = ctx.settings_editor;
-  }
-
-  get active_area() {
-    return this._active_area;
-  }
-
-  get view2d() {
-    return this._view2d;
-  }
-
-  get dopesheet() {
-    return this._dopesheet;
-  }
-
-  get editcurve() {
-    return this._editcurve;
-  }
-
-  get settings_editor() {
-    return this._settings_editor;
-  }
-}
 
 class ToolStack {
   constructor(appstate : AppState) {
@@ -1995,7 +2191,7 @@ class ToolStack {
     
     g_app_state.datalib = new DataLib();
     
-    var mctx = new Context();
+    var mctx = new FullContext().toLocked();
     var first=true;
     
     var last_time = 0;
@@ -2043,7 +2239,7 @@ class ToolStack {
       do_next(thei);
       thei += 1;
       
-      var cctx = new Context();
+      var cctx = new FullContextt().toLocked();
       if (cctx.frameset != undefined) {
         cctx.frameset.spline.solve();
         cctx.frameset.pathspline.solve();
@@ -2071,7 +2267,7 @@ class ToolStack {
     
     g_app_state.datalib = new DataLib();
         
-    var mctx = new Context();
+    var mctx = new FullContext();
     var first=true;
     
     console.log("reexecuting tool stack from scratch. . .");
@@ -2120,7 +2316,8 @@ class ToolStack {
     }
     
     /*set .ctx on tool properties*/
-    var tctx = new ToolContext();
+    var tctx = ctx.toLocked(); //new ToolContext();
+
     for (var k in tool.inputs) {
       tool.inputs[k].ctx = tctx;
     }
@@ -2182,7 +2379,7 @@ class ToolStack {
       this.undocur--;
       var tool = this.undostack[this.undocur];
       
-      var ctx = new Context();
+      var ctx = new FullContext();
       var tctx = (tool.flag & ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : ctx;
 
       if (the_global_dag != undefined)
@@ -2207,7 +2404,7 @@ class ToolStack {
 
     if (this.undocur < this.undostack.length) {
       var tool = this.undostack[this.undocur];
-      var ctx = new Context();
+      var ctx = new FullContext();
       
       tool.saved_context.set_context(ctx);
       tool.is_modal = false;
@@ -2217,7 +2414,7 @@ class ToolStack {
         tool.undoflag |= UndoFlags.HAS_UNDO_DATA;
       }
       
-      var tctx = (tool.flag & ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : new ToolContext();
+      var tctx = (tool.flag & ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : tool.ctx.toLocked();
       
       if (the_global_dag != undefined)
         the_global_dag.reset_cache();
@@ -2262,7 +2459,7 @@ class ToolStack {
       console.log("reexec_tool: can't reexec tool in inactive portion of stack");
     }
     
-    tool.saved_context = new SavedContext(new Context());
+    tool.saved_context = new SavedContext(new FullContext());
   }
   
   kill_opstack() {
@@ -2437,8 +2634,9 @@ class ToolStack {
       }
     }*/
     
-    var ctx = new Context();
-    
+    var ctx = new FullContext();
+    tool.ctx = ctx;
+
     if (tool.can_call(ctx) == false) {
       if (DEBUG.toolstack) {
         console.trace()
@@ -2462,10 +2660,10 @@ class ToolStack {
     }
     
     if (tool.is_modal) {
-      let modal_ctx = new ModalContext(this.appstate, ctx);
+      let modal_ctx = ctx.toLocked();
 
       tool.modal_ctx = modal_ctx;
-      tool.modal_tctx = new ToolContext();
+      tool.modal_tctx = new BaseContext().toLocked();
       tool.saved_context = new SavedContext(tool.modal_tctx);
       
       tool.exec_pre(tool.modal_tctx);
@@ -2487,7 +2685,7 @@ class ToolStack {
       tool._start_modal(modal_ctx);
       tool.start_modal(modal_ctx);
     } else {
-      var tctx = (tool.flag & ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : new ToolContext();
+      var tctx = (tool.flag & ToolFlags.USE_TOOL_CONTEXT) ? new BaseContext().toLocked() : ctx.toLocked();
       tool.saved_context = new SavedContext(tctx);
       
       if (!(tool.undoflag & UndoFlags.IGNORE_UNDO)) {

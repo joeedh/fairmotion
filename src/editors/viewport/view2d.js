@@ -16,6 +16,7 @@ import {ManipulatorManager, Manipulator,
 
 import {EditModes} from './view2d_editor.js';
 export {EditModes} from './view2d_editor.js';
+import './toolmodes/all.js';
 
 let projrets = cachering.fromConstructor(Vector3, 128);
 

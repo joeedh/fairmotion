@@ -2,7 +2,7 @@
 
 #include "src/core/utildefine.js"
 
-var PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,
+let PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,
     ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos,
     asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
 
@@ -27,9 +27,9 @@ export class SelectOpBase extends ToolOp {
   constructor(datamode, do_flush, uiname) {
     super(undefined, uiname);
     
-    if (datamode != undefined)
+    if (datamode !== undefined)
       this.inputs.datamode.set_data(datamode);
-    if (do_flush != undefined)
+    if (do_flush !== undefined)
       this.inputs.flush.set_data(do_flush);
   }
   
@@ -67,43 +67,43 @@ export class SelectOpBase extends ToolOp {
   }
   
   undo_pre(ctx) {
-    var spline = ctx.spline;
-    var ud = this._undo = []
+    let spline = ctx.spline;
+    let ud = this._undo = []
     
-    for (var v of spline.verts.selected) {
+    for (let v of spline.verts.selected) {
       ud.push(v.eid);
     }
     
-    for (var h of spline.handles.selected) {
+    for (let h of spline.handles.selected) {
       ud.push(h.eid);
     }
     
-    for (var s of spline.segments.selected) {
+    for (let s of spline.segments.selected) {
       ud.push(s.eid);
     }
     
-    ud.active_vert = spline.verts.active != undefined ? spline.verts.active.eid : -1;
-    ud.active_handle = spline.handles.active != undefined ? spline.handles.active.eid : -1;
-    ud.active_segment = spline.segments.active != undefined ? spline.segments.active.eid : -1;
-    ud.active_face = spline.faces.active != undefined ? spline.faces.active.eid : -1;
+    ud.active_vert = spline.verts.active !== undefined ? spline.verts.active.eid : -1;
+    ud.active_handle = spline.handles.active !== undefined ? spline.handles.active.eid : -1;
+    ud.active_segment = spline.segments.active !== undefined ? spline.segments.active.eid : -1;
+    ud.active_face = spline.faces.active !== undefined ? spline.faces.active.eid : -1;
   }
   
   undo(ctx) {
-    var ud = this._undo;
-    var spline = ctx.spline;
+    let ud = this._undo;
+    let spline = ctx.spline;
     
     console.log(ctx, spline);
     
     spline.clear_selection();
-    var eidmap = spline.eidmap;
+    let eidmap = spline.eidmap;
     
-    for (var i=0; i<ud.length; i++) {
+    for (let i=0; i<ud.length; i++) {
       if (!(ud[i] in eidmap)) {
         console.trace("Warning, corruption in SelectOpBase.undo(): '", ud[i], "'.");
         continue;
       }
       
-      var e = eidmap[ud[i]];
+      let e = eidmap[ud[i]];
       spline.setselect(e, true);
     }
     
@@ -138,8 +138,8 @@ export class SelectOneOp extends SelectOpBase {
   }}
   
   exec(Context ctx) {
-    var spline = ctx.spline;
-    var e = spline.eidmap[this.inputs.eid.data];
+    let spline = ctx.spline;
+    let e = spline.eidmap[this.inputs.eid.data];
 
     //console.log("selectone!", this.inputs.eid.data);
     
@@ -150,13 +150,13 @@ export class SelectOneOp extends SelectOpBase {
     
     //console.log("e", e);
     
-    var state = this.inputs.state.data;
+    let state = this.inputs.state.data;
     
     if (this.inputs.unique.data) {
       state = true;
       
       //XXX evil
-      for (var e of spline.selected) {
+      for (let e of spline.selected) {
         redraw_element(e);
       }
       spline.clear_selection();
@@ -202,24 +202,24 @@ export class ToggleSelectAllOp extends SelectOpBase {
   exec(ctx) {
     console.log("toggle select!");
     
-    var spline = ctx.spline;
-    var mode = this.inputs.mode.get_data();
-    var layerid = ctx.spline.layerset.active.id;
-    var totsel = 0.0;
+    let spline = ctx.spline;
+    let mode = this.inputs.mode.get_data();
+    let layerid = ctx.spline.layerset.active.id;
+    let totsel = 0.0;
 
     //why this context override? - joeedh
-    let iterctx = mode == SelOpModes.AUTO ? {edit_all_layers : false} : ctx;
+    let iterctx = mode === SelOpModes.AUTO ? {edit_all_layers : false} : ctx;
 
-    if (mode == SelOpModes.AUTO) {
-      for (var v of spline.verts.editable(iterctx)) {
+    if (mode === SelOpModes.AUTO) {
+      for (let v of spline.verts.editable(iterctx)) {
         totsel += v.flag & SplineFlags.SELECT;
       }
 
-      for (var s of spline.segments.editable(iterctx)) {
+      for (let s of spline.segments.editable(iterctx)) {
         totsel += s.flag & SplineFlags.SELECT;
       }
 
-      for (var f of spline.faces.editable(iterctx)) {
+      for (let f of spline.faces.editable(iterctx)) {
         totsel += f.flag & SplineFlags.SELECT;
       }
 
@@ -228,32 +228,32 @@ export class ToggleSelectAllOp extends SelectOpBase {
 
     console.log("MODE", mode);
 
-    if (mode == SelOpModes.DESELECT) spline.verts.active = undefined;
+    if (mode === SelOpModes.DESELECT) spline.verts.active = undefined;
 
-    for (var v of spline.verts.editable(iterctx)) {
+    for (let v of spline.verts.editable(iterctx)) {
       v.flag |= SplineFlags.REDRAW;
 
-      if (mode == SelOpModes.DESELECT) {
+      if (mode === SelOpModes.DESELECT) {
         spline.setselect(v, false);
       } else {
         spline.setselect(v, true);
       }
     }
     
-    for (var s of spline.segments.editable(iterctx)) {
+    for (let s of spline.segments.editable(iterctx)) {
       s.flag |= SplineFlags.REDRAW;
 
-      if (mode == SelOpModes.DESELECT) {
+      if (mode === SelOpModes.DESELECT) {
         spline.setselect(s, false);
       } else {
         spline.setselect(s, true);
       }
     }
     
-    for (var f of spline.faces.editable(iterctx)) {
+    for (let f of spline.faces.editable(iterctx)) {
       f.flag |= SplineFlags.REDRAW;
 
-      if (mode == SelOpModes.DESELECT) {
+      if (mode === SelOpModes.DESELECT) {
         spline.setselect(f, false);
       } else {
         spline.setselect(f, true);
@@ -286,25 +286,25 @@ export class SelectLinkedOp extends SelectOpBase {
   }
   
   exec(ToolContext ctx) {
-    var spline = ctx.spline;
+    let spline = ctx.spline;
     
-    var v = spline.eidmap[this.inputs.vertex_eid.data];
+    let v = spline.eidmap[this.inputs.vertex_eid.data];
     if (v == undefined) {
       console.trace("Error in SelectLinkedOp");
       return;
     }
     
-    var state = this.inputs.mode.get_data() != SelOpModes.AUTO ? 1 : 0;
-    var visit = new set();
-    var verts = spline.verts;
+    let state = this.inputs.mode.get_data() != SelOpModes.AUTO ? 1 : 0;
+    let visit = new set();
+    let verts = spline.verts;
     
     function recurse(v) {
       visit.add(v);
 
       verts.setselect(v, state);
       
-      for (var i=0; i<v.segments.length; i++) {
-        var seg = v.segments[i], v2 = seg.other_vert(v);
+      for (let i=0; i<v.segments.length; i++) {
+        let seg = v.segments[i], v2 = seg.other_vert(v);
         if (!visit.has(v2)) {
           recurse(v2);
         }
@@ -316,7 +316,7 @@ export class SelectLinkedOp extends SelectOpBase {
   }
 }
 
-//var selmode_enum = selectmode_enum.copy();
+//let selmode_enum = selectmode_enum.copy();
 //selmode_enum.flag |= PackFlags.UI_DATAPATH_IGNORE;
 
 export class HideOp extends SelectOpBase {
@@ -347,11 +347,11 @@ export class HideOp extends SelectOpBase {
   }
   
   undo(ctx) {
-    var ud = this._undo;
-    var spline = ctx.spline;
+    let ud = this._undo;
+    let spline = ctx.spline;
     
-    for (var i=0; i<ud.length; i++) {
-      var e = spline.eidmap[ud[i]];
+    for (let i=0; i<ud.length; i++) {
+      let e = spline.eidmap[ud[i]];
       
       e.flag &= ~(SplineFlags.HIDE|SplineFlags.GHOST);
     }
@@ -361,16 +361,16 @@ export class HideOp extends SelectOpBase {
   }
   
   exec(ctx) {
-    var spline = ctx.spline;
+    let spline = ctx.spline;
     
-    var mode = this.inputs.selmode.data;
-    var ghost = this.inputs.ghost.data;
-    var layer = spline.layerset.active;
+    let mode = this.inputs.selmode.data;
+    let ghost = this.inputs.ghost.data;
+    let layer = spline.layerset.active;
     
-    for (var elist of spline.elists) {
+    for (let elist of spline.elists) {
       if (!(elist.type & mode)) continue;
       
-      for (var e of elist.selected) {
+      for (let e of elist.selected) {
         if (!(layer.id in e.layers))
           continue;
           
@@ -415,11 +415,11 @@ export class UnhideOp extends ToolOp {
   }}
 
   undo_pre(ctx) {
-    var ud = this._undo = [];
-    var spline = ctx.spline;
+    let ud = this._undo = [];
+    let spline = ctx.spline;
      
-    for (var elist of spline.elists) {
-      for (var e of elist) {
+    for (let elist of spline.elists) {
+      for (let e of elist) {
         //don't use .hidden here, SplineVertex overrides it
         if (e.flag & SplineFlags.HIDE) {
           ud.push(e.eid);
@@ -431,13 +431,13 @@ export class UnhideOp extends ToolOp {
   }
   
   undo(ctx) {
-    var ud = this._undo;
-    var spline = ctx.spline;
+    let ud = this._undo;
+    let spline = ctx.spline;
     
-    var i = 0;
+    let i = 0;
     while (i < ud.length) {
-      var e = spline.eidmap[ud[i++]];
-      var flag = ud[i++];
+      let e = spline.eidmap[ud[i++]];
+      let flag = ud[i++];
       
       e.flag |= flag;
       
@@ -449,24 +449,24 @@ export class UnhideOp extends ToolOp {
   }
   
   exec(ctx) {
-    var spline = ctx.spline;
-    var layer = spline.layerset.active;
+    let spline = ctx.spline;
+    let layer = spline.layerset.active;
     
-    var mode = this.inputs.selmode.data;
-    var ghost = this.inputs.ghost.data;
+    let mode = this.inputs.selmode.data;
+    let ghost = this.inputs.ghost.data;
     
-    for (var elist of spline.elists) {
+    for (let elist of spline.elists) {
       if (!(mode & elist.type))
         continue;
         
-      for (var e of elist) {
+      for (let e of elist) {
           if (!(layer.id in e.layers))
             continue;
         //if (e.hidden) { //flag & SplineFlags.HIDE) {
           if (!ghost && (e.flag & SplineFlags.GHOST))
             continue;
           
-          var was_hidden = e.flag & SplineFlags.HIDE;
+          let was_hidden = e.flag & SplineFlags.HIDE;
           
           e.flag &= ~(SplineFlags.HIDE|SplineFlags.GHOST);
           e.sethide(false);
@@ -482,7 +482,7 @@ export class UnhideOp extends ToolOp {
 import {CollectionProperty} from '../../core/toolprops.js';
 import {ElementRefSet} from '../../curve/spline_types.js';
 
-var _last_radius = 45;
+let _last_radius = 45;
 export class CircleSelectOp extends SelectOpBase {
   constructor(datamode, do_flush=true) {
     super(datamode, do_flush, "Circle Select");
@@ -518,33 +518,33 @@ export class CircleSelectOp extends SelectOpBase {
   start_modal(ctx) {
     this.radius = _last_radius;
     
-    var mpos = ctx.view2d.mpos;
+    let mpos = ctx.view2d.mpos;
     if (mpos != undefined)
       this.on_mousemove({x : mpos[0], y : mpos[1]});
   }
   
   _draw_circle() {
-    var ctx = this.modal_ctx;
-    var editor = ctx.view2d;
+    let ctx = this.modal_ctx;
+    let editor = ctx.view2d;
     
     this.reset_drawlines();
 
-    var steps = 64;
-    var t = -Math.PI, dt = (Math.PI*2.0)/steps;
-    var lastco = new Vector3();
-    var co = new Vector3();
+    let steps = 64;
+    let t = -Math.PI, dt = (Math.PI*2.0)/steps;
+    let lastco = new Vector3();
+    let co = new Vector3();
     
-    var mpos = this.mpos;
-    var radius = this.radius;
+    let mpos = this.mpos;
+    let radius = this.radius;
     
-    for (var i=0; i<steps; i++, t += dt) {
+    for (let i=0; i<steps; i++, t += dt) {
       co[0] = sin(t)*radius + mpos[0];
       co[1] = cos(t)*radius + mpos[1];
       
       editor.unproject(co);
       
       if (i > 0) {
-        var dl = this.new_drawline(lastco, co);
+        let dl = this.new_drawline(lastco, co);
       }
       
       lastco.load(co);
@@ -554,9 +554,9 @@ export class CircleSelectOp extends SelectOpBase {
   }
   
   exec(ctx) {
-    var spline=ctx.spline;
-    var eset_add = this.inputs.add_elements;
-    var eset_sub = this.inputs.sub_elements;
+    let spline=ctx.spline;
+    let eset_add = this.inputs.add_elements;
+    let eset_sub = this.inputs.sub_elements;
     
     eset_add.ctx = ctx;
     eset_sub.ctx = ctx;
@@ -565,11 +565,11 @@ export class CircleSelectOp extends SelectOpBase {
     
     //console.log("exec!");
     
-    for (var e of eset_add) {
+    for (let e of eset_add) {
       spline.setselect(e, true);
     }
     
-    for (var e of eset_sub) {
+    for (let e of eset_sub) {
       spline.setselect(e, false);
     }
     
@@ -579,17 +579,17 @@ export class CircleSelectOp extends SelectOpBase {
   }
   
   do_sel(sel_or_unsel) {
-    var datamode = this.inputs.datamode.data;
-    var ctx = this.modal_ctx, spline = ctx.spline;
-    var editor = ctx.view2d;
+    let datamode = this.inputs.datamode.data;
+    let ctx = this.modal_ctx, spline = ctx.spline;
+    let editor = ctx.view2d;
     
-    var co = new Vector3();
-    var eset_add = this.inputs.add_elements.data;
-    var eset_sub = this.inputs.sub_elements.data;
-    var actlayer = spline.layerset.active.id;
+    let co = new Vector3();
+    let eset_add = this.inputs.add_elements.data;
+    let eset_sub = this.inputs.sub_elements.data;
+    let actlayer = spline.layerset.active.id;
 
     if (datamode & SplineTypes.VERTEX) {
-      for (var v of spline.verts) {
+      for (let v of spline.verts) {
         if (v.hidden) 
           continue;
         if (!(actlayer in v.layers))
@@ -615,9 +615,9 @@ export class CircleSelectOp extends SelectOpBase {
   }
   
   on_mousemove(event) {
-    var ctx = this.modal_ctx;
-    var spline = ctx.spline;
-    var editor = ctx.view2d;
+    let ctx = this.modal_ctx;
+    let spline = ctx.spline;
+    let editor = ctx.view2d;
     
     this.mpos[0] = event.x;
     this.mpos[1] = event.y;
@@ -645,11 +645,11 @@ export class CircleSelectOp extends SelectOpBase {
   
   on_keydown(event) {
     console.log(event.keyCode);
-    var ctx = this.modal_ctx;
-    var spline = ctx.spline;
-    var view2d = ctx.view2d;
+    let ctx = this.modal_ctx;
+    let spline = ctx.spline;
+    let view2d = ctx.view2d;
 
-    var radius_inc = 10;
+    let radius_inc = 10;
     
     switch (event.keyCode) {
       case charmap["="]:

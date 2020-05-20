@@ -1109,40 +1109,42 @@ export class SplineFrameSet extends DataBlock {
     g.restore();
   }
   
-  static fromSTRUCT(reader) {
+  loadSTRUCT(reader) {
     window.inFromStruct = true;
-    var ret = STRUCT.chain_fromSTRUCT(SplineFrameSet, reader);
+
+    reader(this);
+    super.loadSTRUCT(reader);
 
     //XXX kcache is being buggy, for now, don't load from disk
-    ret.kcache = new SplineKCache();
+    this.kcache = new SplineKCache();
 
-    if (ret.kcache == undefined) {
-      ret.kcache = new SplineKCache();
+    if (this.kcache == undefined) {
+      this.kcache = new SplineKCache();
     }
     
-    ret.afterSTRUCT();
-    if (ret.pathspline == undefined) {
-      ret.pathspline = ret.make_pathspline();
+    this.afterSTRUCT();
+    if (this.pathspline == undefined) {
+      this.pathspline = this.make_pathspline();
     }
     
-    for (v of ret.pathspline.verts) {
+    for (v of this.pathspline.verts) {
      // v.flag |= SplineFlags.UPDATE;
     }
-    for (var h of ret.pathspline.handles) {
+    for (var h of this.pathspline.handles) {
      // h.flag |= SplineFlags.UPDATE;
     }
     
-    for (var vd of ret.vertex_animdata) {
-      vd.spline = ret.pathspline;
+    for (var vd of this.vertex_animdata) {
+      vd.spline = this.pathspline;
       
       if (vd.layerid == undefined) {
-        var layer = ret.pathspline.layerset.new_layer();
+        var layer = this.pathspline.layerset.new_layer();
         layer.flag |= SplineLayerFlags.HIDE;
         
         vd.layerid  = layer.id;
         
         if (vd.startv_eid != undefined) {
-          var v = ret.pathspline.eidmap[vd.startv_eid];
+          var v = this.pathspline.eidmap[vd.startv_eid];
           var s = v.segments[0];
           
           v.layers = {};
@@ -1179,33 +1181,33 @@ export class SplineFrameSet extends DataBlock {
       }
     }
     
-    //console.log("PARENTV", ret.eid);
-    ret.pathspline.is_anim_path = true;
-    if (ret.templayerid == undefined)
-      ret.templayerid = ret.pathspline.layerset.new_layer().id;
-    //ret.pathspline.solve();
+    //console.log("PARENTV", this.eid);
+    this.pathspline.is_anim_path = true;
+    if (this.templayerid == undefined)
+      this.templayerid = this.pathspline.layerset.new_layer().id;
+    //this.pathspline.solve();
     
     var frames = {};
     var vert_animdata = {};
     
     //ensure sane id generator
-    var max_cur = ret.idgen.cur_id;
+    var max_cur = this.idgen.cur_id;
     var firstframe = undefined;
-    for (var i=0; i<ret.frames.length; i++) {
-      //if (ret.frames[i].spline.idgen == undefined)
-      //  ret.frames[i].spline.idgen = ret.idgen;
+    for (var i=0; i<this.frames.length; i++) {
+      //if (this.frames[i].spline.idgen == undefined)
+      //  this.frames[i].spline.idgen = this.idgen;
         
-      max_cur = Math.max(ret.frames[i].spline.idgen.cur_id, max_cur);
+      max_cur = Math.max(this.frames[i].spline.idgen.cur_id, max_cur);
       
-      if (i == 0) firstframe = ret.frames[i];
+      if (i == 0) firstframe = this.frames[i];
       
-      ret.frames[i].spline.idgen = ret.idgen;
-      frames[ret.frames[i].time] = ret.frames[i];
+      this.frames[i].spline.idgen = this.idgen;
+      frames[this.frames[i].time] = this.frames[i];
     }
-    ret.idgen.max_cur(max_cur);
+    this.idgen.max_cur(max_cur);
     
-    for (var i=0; i<ret.vertex_animdata.length; i++) {
-      vert_animdata[ret.vertex_animdata[i].eid] = ret.vertex_animdata[i];
+    for (var i=0; i<this.vertex_animdata.length; i++) {
+      vert_animdata[this.vertex_animdata[i].eid] = this.vertex_animdata[i];
     }
     
     //ensure owning_veid references are up to date
@@ -1217,41 +1219,41 @@ export class SplineFrameSet extends DataBlock {
       }
     }
     
-    ret.frames = frames;
-    //ret.pathspline.resolve = 1;
-    ret.pathspline.regen_sort();
+    this.frames = frames;
+    //this.pathspline.resolve = 1;
+    this.pathspline.regen_sort();
     
-    var fk = ret.cur_frame;
-    delete ret.cur_frame;
+    var fk = this.cur_frame;
+    delete this.cur_frame;
     
     if (fk == undefined) {
-      ret.frame = firstframe;
-      ret.spline = firstframe.spline;
+      this.frame = firstframe;
+      this.spline = firstframe.spline;
     } else {
-      ret.frame = ret.frames[fk];
-      ret.spline = ret.frames[fk].spline;
+      this.frame = this.frames[fk];
+      this.spline = this.frames[fk].spline;
     }
     
-    ret.vertex_animdata = vert_animdata;
+    this.vertex_animdata = vert_animdata;
 
-    if (ret.framelist.length == 0) {
-      for (var k in ret.frames) {
-        ret.framelist.push(parseFloat(k));
+    if (this.framelist.length == 0) {
+      for (var k in this.frames) {
+        this.framelist.push(parseFloat(k));
       }
     }
     
-    for (k in ret.frames) {
-      ret.frames[k].spline.verts.select_listeners.addListener(ret.on_spline_select, ret);
-      ret.frames[k].spline.handles.select_listeners.addListener(ret.on_spline_select, ret);
+    for (k in this.frames) {
+      this.frames[k].spline.verts.select_listeners.addListener(this.on_spline_select, this);
+      this.frames[k].spline.handles.select_listeners.addListener(this.on_spline_select, this);
     }
     
-    ret.spline.fix_spline(); //XXX
+    this.spline.fix_spline(); //XXX
 
-    ret.rationalize_vdata_layers();
-    ret.update_visibility();
+    this.rationalize_vdata_layers();
+    this.update_visibility();
 
     //try {
-      //ret.change_time(ret.time);
+      //this.change_time(this.time);
     /*} catch(error) {
       console.trace("\n==Error restoring frame data while loading frameset");
       print_stack();
@@ -1259,8 +1261,6 @@ export class SplineFrameSet extends DataBlock {
     }*/
     
     window.inFromStruct = false;
-    
-    return ret;
   }
   
   make_pathspline() {

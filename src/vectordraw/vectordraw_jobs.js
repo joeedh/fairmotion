@@ -9,6 +9,7 @@ let freeze_while_drawing = true;
 
 import * as platform from '../../platforms/platform.js';
 import * as config from '../config/config.js';
+import {pushModalLight, popModalLight, keymap} from "../path.ux/scripts/util/simple_events.js";
 
 let MAX_THREADS = platform.app.numberOfCPUs();
 
@@ -224,7 +225,17 @@ export class ThreadManager {
     this.start_time = time_ms();
     
     if (freeze_while_drawing) {
-      console.warn("Implement me! freeze_while_drawing");
+      //console.warn("Implement me! freeze_while_drawing");
+      if (!this._modalstate) {
+        this._modalstate = pushModalLight({
+          on_keydown: (e) => {
+            if (e.keyCode === keymap["Escape"]) {
+              popModalLight(this._modalstate);
+              this._modalstate = undefined;
+            }
+          }
+        });
+      }
       //eventmanager.manager.freeze();
     }
   }
@@ -233,8 +244,12 @@ export class ThreadManager {
     this.drawing = false;
 
     if (freeze_while_drawing) {
-      console.warn("Implement me! freeze_while_drawing");
+      //console.warn("Implement me! freeze_while_drawing");
       //eventmanager.manager.unfreeze();
+      if (this._modalstate) {
+        popModalLight(this._modalstate);
+        this._modalstate = undefined;
+      }
     }
   }
   

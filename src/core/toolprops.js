@@ -55,11 +55,28 @@ export const PropSubTypes = {
 
 
 ToolProperty.prototype.set_data = function(d) {
+  console.warn("deprectaed ToolProperty.prototype.set_data called!");
   return this.setValue(d);
 };
 ToolProperty.prototype.get_data = function(d) {
-  return this.get_data(d);
+  console.warn("deprectaed ToolProperty.prototype.get_data called!");
+  return this.getValue();
 };
+ToolProperty.prototype.get_value = function(d) {
+  console.warn("deprectaed ToolProperty.prototype.get_value called!");
+  return this.getValue();
+};
+
+ToolProperty.prototype._fire = function() {
+  if (this.update) {
+    this.update(this.dataref);
+  }
+
+  if (this.api_update) {
+    this.api_update(this.dataref);
+  }
+};
+
 ToolProperty.prototype.load_ui_data = function(prop) {
   this.uiname = prop.uiname;
   this.apiname = prop.apiname;

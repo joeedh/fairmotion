@@ -1587,8 +1587,9 @@ export class DataAPI {
             val |= mask;
           else
             val &= ~mask;
-          
-          prop.set_data(val, owner, changed);
+
+          prop.dataref = owner;
+          prop.setValue(val, owner, changed);
           
           scope[0] = val;
           path2 += " = scope[0];";
@@ -1600,7 +1601,9 @@ export class DataAPI {
           this.evaluate(ctx, path);
           
           changed = value != old_value;
-          prop.set_data(value, owner, changed);
+
+          prop.dataref = owner;
+          prop.setValue(value, owner, changed);
         }
       } else {
         if (prop.type == PropTypes.DATAREF) {
@@ -1671,7 +1674,8 @@ export class DataAPI {
         }
 
         value = this.evaluate(ctx, valpath);
-        prop.set_data(value, owner, changed);
+        prop.dataref = owner;
+        prop.setValue(value, owner, changed);
       }
       
       ret[0].ctx = ctx;

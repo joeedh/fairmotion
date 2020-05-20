@@ -4,6 +4,7 @@ import {SplineFrameSet} from "../core/frameset.js";
 import {SceneObject, ObjectFlags} from './sceneobject.js';
 import {DataPathNode} from '../core/eventdag.js';
 import {SplineElement} from "../curve/spline_base.js";
+import {ToolModes} from "../editors/viewport/toolmodes/toolmode.js";
 
 export class ObjectList extends Array {
   constructor(scene) {
@@ -184,6 +185,8 @@ LayerIDSet {
 `;
 */
 
+export class ToolModeSwitchError extends Error {}
+
 export class Scene extends DataBlock {
   constructor() {
     super(DataTypes.SCENE);
@@ -194,8 +197,52 @@ export class Scene extends DataBlock {
 
     //this.layer_idset = new LayerIDSet();
 
+    this.toolmodes = [];
+    this.toolmodes.map = {};
+    this.toolmode_i = 0;
+
+    for (let cls of ToolModes) {
+      let mode = new cls();
+      this.toolmodes.push(mode);
+      this.toolmodes.map[cls.toolDefine().name] = mode;
+    }
+
     this.active_splinepath = "frameset.drawspline";
     this.time = 1;
+  }
+
+  switchToolMode(tname) {
+    let tool = this.toolmodes.map[tname];
+
+    if (!tool) {
+      throw new ToolModeSwitchError("unknown tool mode " + tname);
+    }
+
+    try {
+      if (this.toolmode) {
+        this.toolmode.onInactive();
+      }
+    } catch (error) {
+      print_stack(error);
+
+      throw new ToolModeSwitchError("error switchign tool mode");
+    }
+
+    this.toolmode_i = this.toolmodes.indexOf(tool);
+
+    try {
+      if (this.toolmode) {
+        this.toolmode.onActive();
+      }
+    } catch (error) {
+      print_stack(error);
+
+      throw new ToolModeSwitchError("error switchign tool mode");
+    }
+  }
+
+  get toolmode() {
+    return this.toolmodes[this.toolmode_i];
   }
 
   setActiveObject(ob) {
@@ -260,14 +307,15 @@ export class Scene extends DataBlock {
     return "scenes[" + this.lib_id + "]";
   }
 
-  static fromSTRUCT(reader) {
-    var ret = STRUCT.chain_fromSTRUCT(Scene, reader);
+  loadSTRUCT(reader) {
+    reader(this);
+    super.loadSTRUCT(reader);
 
     let objs = new ObjectList(this);
-    for (let i=0; i<ret.objects.length; i++) {
-      objs.add(ret.objects[i]);
+    for (let i=0; i<this.objects.length; i++) {
+      objs.add(this.objects[i]);
     }
-    ret.objects = objs;
+    this.objects = objs;
 
     if (this.active_object >= 0) {
       this.objects.active = this.objects.idmap[this.active_object];
@@ -275,12 +323,12 @@ export class Scene extends DataBlock {
 
     delete this.active_object;
 
-    ret.afterSTRUCT();
-    
-    if (ret.active_splinepath == "frameset.active_spline")
-      ret.active_splinepath = "frameset.drawspline";
-      
-    return ret;
+    this.afterSTRUCT();
+
+    if (this.active_splinepath === "frameset.active_spline")
+      this.active_splinepath = "frameset.drawspline";
+
+    return this;
   }
   
   data_link(block, getblock, getblock_us) {
@@ -290,6 +338,9 @@ export class Scene extends DataBlock {
       this.objects[i].data_link(block, getblock, getblock_us);
     }
 
+    for (let tool of this.toolmodes) {
+      tool.dataLink(this, getblock, getblock_us);
+    }
     //for (let i=0; i<this.framesets.length; i++) {
     //  this.framesets[i] = getblock_us(this.framesets[i]);
     //}
@@ -307,6 +358,8 @@ Scene.STRUCT = STRUCT.inherit(Scene, DataBlock) + `
     objects           : array(SceneObject);
     active_object     : int | obj.objects.active !== undefined ? obj.objects.active.id : -1;
     object_idgen      : EIDGen;
+    toolmodes         : array(ToolMode);
+    active_toolmode   : string | this.toolmode !== undefined ? this.toolmode.constructor.toolDefine().name : "";
   }
 `;
 

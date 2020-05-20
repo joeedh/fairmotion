@@ -374,8 +374,7 @@ JCC = getcfg("JCC", np("tools/extjs_cc/js_cc.py"), "path")
 TCC = getcfg("TCC", np("tools/extjs_cc/js_cc.py"), "path")
 print("using python executable \"" + PYBIN.strip() + "\"")
 
-#minified, concatenated build
-JFLAGS = " -dpr " # --no-expand-iterators "
+JFLAGS = " -dpr --no-expand-iterators "
 
 #don't transpile classes, they'll still be fed to a global list though
 #JFLAGS += " -nec "

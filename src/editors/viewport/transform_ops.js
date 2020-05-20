@@ -46,23 +46,23 @@ export class WidgetResizeOp extends TransformOp {
   }}
   
   static _get_bounds(minmax, spline, ctx) {
-    var totsel=0;
+    let totsel=0;
 
     minmax.reset();
   
-    for (var v of spline.verts.selected.editable(ctx)) {
+    for (let v of spline.verts.selected.editable(ctx)) {
       minmax.minmax(v);
       totsel++;
     }
   
     if (ctx.view2d.selectmode & SelMask.HANDLE) {
-      for (var h of spline.handles.selected.editable(ctx)) {
+      for (let h of spline.handles.selected.editable(ctx)) {
         minmax.minmax(h);
         totsel++;
       }
     }
     
-    for (var seg of spline.segments.selected.editable(ctx)) {
+    for (let seg of spline.segments.selected.editable(ctx)) {
       let aabb = seg.aabb;
       minmax.minmax(aabb[0]);
       minmax.minmax(aabb[1]);
@@ -72,8 +72,8 @@ export class WidgetResizeOp extends TransformOp {
   }
   
   static create_widgets(manager : ManipulatorManager, ctx : Context) {
-    var spline = ctx.spline;
-    var minmax = new MinMax(2);
+    let spline = ctx.spline;
+    let minmax = new MinMax(2);
     
     let totsel = WidgetResizeOp._get_bounds(minmax, spline, ctx);
     
@@ -83,21 +83,21 @@ export class WidgetResizeOp extends TransformOp {
 
     console.log(minmax.min, minmax.max);
     
-    var cent = new Vector2(minmax.min).add(minmax.max).mulScalar(0.5);
+    let cent = new Vector2(minmax.min).add(minmax.max).mulScalar(0.5);
     
-    var widget = manager.create(this);
+    let widget = manager.create(this);
   
-    var w = (minmax.max[0] - minmax.min[0])*0.5;
-    var h = (minmax.max[1] - minmax.min[1])*0.5;
-    var len = 9;
+    let w = (minmax.max[0] - minmax.min[0])*0.5;
+    let h = (minmax.max[1] - minmax.min[1])*0.5;
+    let len = 9;
     
-    var outline = widget.outline([-w, -h], [w, h], "outline", [0.4, 0.4, 0.4, 0.7]);
+    let outline = widget.outline([-w, -h], [w, h], "outline", [0.4, 0.4, 0.4, 0.7]);
     
     //positions are set in set_handles below
-    var larrow = widget.arrow([0,0], [0,0], "l", [0, 0, 0, 1.0]);
-    var rarrow = widget.arrow([0,0], [0,0], "r", [0, 0, 0, 1.0]);
-    var tarrow = widget.arrow([0,0], [0,0], "t", [0, 0, 0, 1.0]);
-    var barrow = widget.arrow([0,0], [0,0], "b", [0, 0, 0, 1.0]);
+    let larrow = widget.arrow([0,0], [0,0], "l", [0, 0, 0, 1.0]);
+    let rarrow = widget.arrow([0,0], [0,0], "r", [0, 0, 0, 1.0]);
+    let tarrow = widget.arrow([0,0], [0,0], "t", [0, 0, 0, 1.0]);
+    let barrow = widget.arrow([0,0], [0,0], "b", [0, 0, 0, 1.0]);
     
     let corners = new Array(4);
     for (let i=0; i<4; i++) {
@@ -148,9 +148,9 @@ export class WidgetResizeOp extends TransformOp {
         this.unhide();
       }*/
   
-      var totsel = WidgetResizeOp._get_bounds(minmax, spline, ctx);
+      let totsel = WidgetResizeOp._get_bounds(minmax, spline, ctx);
       
-      var update = false;
+      let update = false;
       
       if (totsel < 2) {
         this.hide();
@@ -160,11 +160,11 @@ export class WidgetResizeOp extends TransformOp {
         this.unhide();
       }
       
-      var cx = (minmax.min[0]+minmax.max[0])*0.5;
-      var cy = (minmax.min[1]+minmax.max[1])*0.5;
+      let cx = (minmax.min[0]+minmax.max[0])*0.5;
+      let cy = (minmax.min[1]+minmax.max[1])*0.5;
 
-      var w2 = (minmax.max[0] - minmax.min[0])*0.5;
-      var h2 = (minmax.max[1] - minmax.min[1])*0.5;
+      let w2 = (minmax.max[0] - minmax.min[0])*0.5;
+      let h2 = (minmax.max[1] - minmax.min[1])*0.5;
       
       update = update || cx != this.co[0] || cy != this.co[1];
       update = update || w2 != w || h2 != h;
@@ -181,7 +181,7 @@ export class WidgetResizeOp extends TransformOp {
         
         //console.log("update widget!", cx, cy);
       }
-    }
+    };
     
     let corner_onclick = function(e, view2d, id) {
       console.log("id", id);
@@ -199,9 +199,9 @@ export class WidgetResizeOp extends TransformOp {
       
       console.log("mpos", mpos[0], mpos[1]);
       
-      toolop.inputs.edit_all_layers.set_data(view2d.ctx.edit_all_layers);
-      toolop.inputs.use_pivot.set_data(true);
-      toolop.inputs.pivot.set_data(co);
+      toolop.inputs.edit_all_layers.setValue(view2d.ctx.edit_all_layers);
+      toolop.inputs.use_pivot.setValue(true);
+      toolop.inputs.pivot.setValue(co);
       
       view2d.ctx.toolstack.exec_tool(toolop);
       console.log(view2d.ctx, toolop.modal_ctx.edit_all_layers);
@@ -213,10 +213,11 @@ export class WidgetResizeOp extends TransformOp {
     for (let i=0; i<4; i++) {
       corners[i].on_click = corner_onclick;
     }
-    
+
     larrow.on_click = rarrow.on_click = function(e, view2d, id) {
       console.log("widget click!");
   
+      //let mpos = new Vector3([e.origX, e.origY, 0.0]);
       let mpos = new Vector3([e.origX, e.origY, 0.0]);
       //view2d.project(mpos);
   
@@ -225,23 +226,24 @@ export class WidgetResizeOp extends TransformOp {
       let toolop = new ScaleOp(mpos, view2d.selectmode);
       
       let co = new Vector3(widget.co);
-      
+      co[2] = 1.0;
+
       if (!e.shiftKey) {
-        co[0] += id == 'l' ? w : -w;
+        co[0] += id === 'l' ? w : -w;
       }
       
-      toolop.inputs.use_pivot.set_data(true);
-      toolop.inputs.pivot.set_data(co);
+      toolop.inputs.use_pivot.setValue(true);
+      toolop.inputs.pivot.setValue(co);
   
-      toolop.inputs.edit_all_layers.set_data(view2d.ctx.edit_all_layers);
-      toolop.inputs.constrain.set_data(true);
-      toolop.inputs.constraint_axis.set_data(new Vector3([1, 0, 0]));
+      toolop.inputs.edit_all_layers.setValue(view2d.ctx.edit_all_layers);
+      toolop.inputs.constrain.setValue(true);
+      toolop.inputs.constraint_axis.setValue(new Vector3([1, 0, 0]));
       
       view2d.ctx.toolstack.exec_tool(toolop);
       
       return true;
     }
-  
+
     tarrow.on_click = barrow.on_click = function(e, view2d, id) {
       console.log("widget click!");
     
@@ -253,17 +255,18 @@ export class WidgetResizeOp extends TransformOp {
       let toolop = new ScaleOp(mpos, view2d.selectmode);
   
       let co = new Vector3(widget.co);
-  
+      co[2] = 1.0;
+
       if (!e.shiftKey) {
-        co[1] += id == 'b' ? h : -h;
+        co[1] += id === 'b' ? h : -h;
       }
   
-      toolop.inputs.edit_all_layers.set_data(view2d.ctx.edit_all_layers);
-      toolop.inputs.use_pivot.set_data(true);
-      toolop.inputs.pivot.set_data(co);
+      toolop.inputs.edit_all_layers.setValue(view2d.ctx.edit_all_layers);
+      toolop.inputs.use_pivot.setValue(true);
+      toolop.inputs.pivot.setValue(co);
     
-      toolop.inputs.constrain.set_data(true);
-      toolop.inputs.constraint_axis.set_data(new Vector3([0, 1, 0]));
+      toolop.inputs.constrain.setValue(true);
+      toolop.inputs.constraint_axis.setValue(new Vector3([0, 1, 0]));
     
       view2d.ctx.toolstack.exec_tool(toolop);
     
@@ -299,23 +302,23 @@ export class WidgetRotateOp extends TransformOp {
   }}
   
   static _get_bounds(minmax, spline, ctx) {
-    var totsel=0;
+    let totsel=0;
     
     minmax.reset();
     
-    for (var v of spline.verts.selected.editable(ctx)) {
+    for (let v of spline.verts.selected.editable(ctx)) {
       minmax.minmax(v);
       totsel++;
     }
     
     if (ctx.view2d.selectmode & SelMask.HANDLE) {
-      for (var h of spline.handles.selected.editable(ctx)) {
+      for (let h of spline.handles.selected.editable(ctx)) {
         minmax.minmax(h);
         totsel++;
       }
     }
     
-    for (var seg of spline.segments.selected.editable(ctx)) {
+    for (let seg of spline.segments.selected.editable(ctx)) {
       let aabb = seg.aabb;
       minmax.minmax(aabb[0]);
       minmax.minmax(aabb[1]);
@@ -325,8 +328,8 @@ export class WidgetRotateOp extends TransformOp {
   }
   
   static create_widgets(manager : ManipulatorManager, ctx : Context) {
-    var spline = ctx.spline;
-    var minmax = new MinMax(2);
+    let spline = ctx.spline;
+    let minmax = new MinMax(2);
     
     let totsel = WidgetResizeOp._get_bounds(minmax, spline, ctx);
     
@@ -336,13 +339,13 @@ export class WidgetRotateOp extends TransformOp {
     
     console.log(minmax.min, minmax.max);
     
-    var cent = new Vector2(minmax.min).add(minmax.max).mulScalar(0.5);
+    let cent = new Vector2(minmax.min).add(minmax.max).mulScalar(0.5);
     
-    var widget = manager.create(this);
+    let widget = manager.create(this);
     
-    var w = (minmax.max[0] - minmax.min[0])*0.5;
-    var h = (minmax.max[1] - minmax.min[1])*0.5;
-    var len = 9;
+    let w = (minmax.max[0] - minmax.min[0])*0.5;
+    let h = (minmax.max[1] - minmax.min[1])*0.5;
+    let len = 9;
     
     if (w == 0  & h == 0) {
       return;
@@ -361,9 +364,9 @@ export class WidgetRotateOp extends TransformOp {
         this.unhide();
       }*/
       
-      var totsel = WidgetResizeOp._get_bounds(minmax, spline, ctx);
+      let totsel = WidgetResizeOp._get_bounds(minmax, spline, ctx);
       
-      var update = false;
+      let update = false;
       
       if (totsel < 2) {
         this.hide();
@@ -373,11 +376,11 @@ export class WidgetRotateOp extends TransformOp {
         this.unhide();
       }
       
-      var cx = (minmax.min[0] + minmax.max[0])*0.5;
-      var cy = (minmax.min[1] + minmax.max[1])*0.5;
+      let cx = (minmax.min[0] + minmax.max[0])*0.5;
+      let cy = (minmax.min[1] + minmax.max[1])*0.5;
       
-      var w2 = (minmax.max[0] - minmax.min[0])*0.5;
-      var h2 = (minmax.max[1] - minmax.min[1])*0.5;
+      let w2 = (minmax.max[0] - minmax.min[0])*0.5;
+      let h2 = (minmax.max[1] - minmax.min[1])*0.5;
       
       update = update || cx != this.co[0] || cy != this.co[1];
       update = update || w2 != w || h2 != h;
@@ -421,8 +424,8 @@ export class WidgetRotateOp extends TransformOp {
       
       console.log("mpos", mpos[0], mpos[1]);
       
-      toolop.inputs.use_pivot.set_data(true);
-      toolop.inputs.pivot.set_data(co);
+      toolop.inputs.use_pivot.setValue(true);
+      toolop.inputs.pivot.setValue(co);
       
       view2d.ctx.toolstack.exec_tool(toolop);
       
@@ -445,11 +448,11 @@ export class WidgetRotateOp extends TransformOp {
         co[1] += id == 'b' ? h : -h;
       }
       
-      toolop.inputs.use_pivot.set_data(true);
-      toolop.inputs.pivot.set_data(co);
+      toolop.inputs.use_pivot.setValue(true);
+      toolop.inputs.pivot.setValue(co);
       
-      toolop.inputs.constrain.set_data(true);
-      toolop.inputs.constraint_axis.set_data(new Vector3([0, 1, 0]));
+      toolop.inputs.constrain.setValue(true);
+      toolop.inputs.constraint_axis.setValue(new Vector3([0, 1, 0]));
       
       view2d.ctx.toolstack.exec_tool(toolop);
       

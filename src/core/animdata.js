@@ -25,11 +25,9 @@ export class TimeDataLayer extends CustomDataLayer {
       this.time += srcs[i].time*ws[i];
     }
   }
-  
-  static fromSTRUCT(reader) {
-    var ret = STRUCT.chain_fromSTRUCT(TimeDataLayer, reader);
-    
-    return ret;
+
+  loadSTRUCT(reader) {
+    reader(this);
   }
 }
 

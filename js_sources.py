@@ -28,6 +28,8 @@ for path in glob.glob("src/path.ux/scripts/**", recursive=True):
       continue
     pathux.append(path)
 
+tools = list(glob.glob("src/editors/viewport/toolmodes/*.js"))
+
 sources = [
   "src/html/unit_test.html",
   "src/html/main.html",
@@ -88,7 +90,7 @@ sources = [
   "src/core/svg_export.js",
   "src/core/vectormath.js"] + pathux + [
 
-
+  ] + tools + [
 
   "src/core/struct.js",
 

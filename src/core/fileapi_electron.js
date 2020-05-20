@@ -115,7 +115,13 @@ export function open_file(callback, thisvar, set_current_file, extslabel, exts, 
       extensions : exts
     }],
     securityScopedBookmarks : true //apparently needed for macOS
-  }, (path) => {
+  }).then((e) => {
+    if (e.cancelled) {
+      return;
+    }
+
+    let path = e.filePaths;
+
     if (path instanceof Array) {
       path = path[0];
     }

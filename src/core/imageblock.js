@@ -49,17 +49,17 @@ export class Image extends DataBlock {
     
     return this._dom;
   }
-  
-  static fromSTRUCT(reader) {
-    var ret = STRUCT.chain_fromSTRUCT(Image, reader);
-    
-    if (ret.data.length == 0) {
-      ret.data = undefined;
+
+
+  loadSTRUCT(reader) {
+    reader(this);
+    super.loadSTRUCT();
+
+    if (this.data.length === 0) {
+      this.data = undefined;
     }
-    
-    ret.afterSTRUCT();
-    
-    return ret;
+
+    this.afterSTRUCT();
   }
 }
 

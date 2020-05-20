@@ -13,7 +13,9 @@ export function profile_report() {}
 *
 * */
 window.STRUCT_ENDIAN = false;
+nstructjs.binpack.STRUCT_ENDIAN = false;
 nstructjs.setDebugMode(false);
+
 window.istruct = nstructjs.manager;
 
 function patch_dataref_type(buf) {

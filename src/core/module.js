@@ -351,7 +351,9 @@ function _load_module(mod) {
 
   mod.callback.apply(this, args);
 
-  if (module.exports) {
+  if (!module) {
+    console.warn("possible module error?");
+  } else if (module.exports) {
     let keys = Object.keys(module);
     keys = keys.concat(Object.getOwnPropertySymbols(module));
 

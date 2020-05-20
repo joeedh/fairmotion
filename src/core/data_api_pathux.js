@@ -317,13 +317,48 @@ export class PathUXInterface extends ModelInterface {
       }
     }
 
-    if (rp[0].type == DataPathTypes.PROP) {
+    if (rp[0].type === DataPathTypes.PROP) {
       ret.prop = rp[0].data;
-    } else if (rp[0].type == DataPathTypes.STRUCT) {
+    } else if (rp[0].type === DataPathTypes.STRUCT) {
       ret.struct = rp[0].data;
     }
 
-    if (ret.prop !== undefined && ret.prop.type == PropTypes.FLAG) {
+    let found = 0;
+    if (ret.prop !== undefined && ret.prop.type & (PropTypes.FLAG|PropTypes.ENUM)) {
+      let prop = ret.prop;
+      let p = path.trim();
+
+      if (p.endsWith(/\]/) && p.search(/\[/) >= 0) {
+        let i = p.length-1;
+        while (p[i] !== "[") {
+          i--;
+        }
+
+        let key = p.slice(i+1, p.length-1);
+
+        if (key in prop.values) {
+          key = prop.values[key];
+          found = 1;
+        } else {
+          for (let k in prop.values) {
+            if (prop.values[k] === key) {
+              found = 1;
+            } else if (prop.values[k] === parseInt(key)) {
+              key = parseInt(key);
+              found = 1;
+            }
+          }
+        }
+
+        if (!found) {
+          throw new DataPathError(path + ": Unknown enum/flag key: " + key);
+        } else {
+          ret.subkey = key;
+        }
+      }
+    }
+
+    if (!found && ret.prop !== undefined && ret.prop.type === PropTypes.FLAG) {
       let s = "" + rp[1];
       if (s.search(/\&/) >= 0) {
         let i = s.search(/\&/);

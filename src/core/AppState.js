@@ -414,15 +414,15 @@ let load_default_file = function(g : AppState, size=[512, 512]) {
       file = file.trim().replace(/[\n\r]/g, "");
 
     if (file) {
-      try {
+      //try {
         var buf = new DataView(b64decode(file).buffer);
 
         g.load_user_file_new(buf, undefined, new unpack_ctx());
         return true;
-      } catch (err) {
-        print_stack(err);
-        console.log("ERROR: Could not load user-defined startup file.");
-      }
+      //} catch (err) {
+       // print_stack(err);
+        //console.log("ERROR: Could not load user-defined startup file.");
+      //}
     }
   }
 

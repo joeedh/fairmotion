@@ -16,13 +16,14 @@ this entire module needs to be rewritten.
 
 
 export class MyKeyboardEvent {
-  constructor(int code, shift=false, ctrl=false, alt=false) {
+  constructor(code : int, shift=false, ctrl=false, alt=false) {
     this.keyCode = code;
     this.shiftKey = shift;
     this.ctrlKey = ctrl;
     this.altKey = alt;
   }
 }
+
 window.MyKeyboardEvent = MyKeyboardEvent;
 
 export class MyMouseEvent {

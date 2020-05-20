@@ -1,25 +1,31 @@
 "use strict";
-;
-import {STRUCT} from './struct.js';
-import {pack_int, pack_float, pack_static_string} from './ajax.js';
-import {setPropTypes} from '../path.ux/scripts/toolsys/toolprop.js'
 
-export var PropTyeps = {
-  INT : 1,
-  STRING : 2,
-  BOOL : 4,
-  ENUM : 8,
-  FLAG : 16,
-  FLOAT : 32,
-  VEC2 : 64,
-  VEC3 : 128,
-  VEC4 : 256,
-  MATRIX4 : 512,
-  QUAT : 1024,
-  PROPLIST : 4096,
-  STRSET : 8192,
-  CURVE  : 8192<<1,
-  //ITER : 8192<<1
+import {STRUCT} from './struct.js';
+import * as nstructjs from "../path.ux/scripts/util/struct.js";
+import {pack_int, pack_float, pack_static_string} from './ajax.js';
+import {setPropTypes, ToolProperty} from '../path.ux/scripts/toolsys/toolprop.js';
+import * as toolprop from '../path.ux/scripts/toolsys/toolprop.js';
+export {
+  StringProperty, StringSetProperty, Vec2Property, Vec3Property, Vec4Property,
+  Mat4Property, IntProperty, FloatProperty, BoolProperty, FlagProperty, EnumProperty,
+  ListProperty, PropClasses, ToolProperty
+} from '../path.ux/scripts/toolsys/toolprop.js';
+
+export var PropTypes = {
+  INT         : 1,
+  STRING      : 2,
+  BOOL        : 4,
+  ENUM        : 8,
+  FLAG        : 16,
+  FLOAT       : 32,
+  VEC2        : 64,
+  VEC3        : 128,
+  VEC4        : 256,
+  MATRIX4     : 512,
+  QUAT        : 1024,
+  PROPLIST    : 4096,
+  STRSET      : 1<<13,
+  CURVE       : 1<<14,
   STRUCT      : 1<<19, //internal type to data api
   DATAREF     : 1<<20,
   DATAREFLIST : 1<<21,
@@ -27,25 +33,7 @@ export var PropTyeps = {
   COLLECTION  : 1<<23,
   IMAGE       : 1<<24, //this is only a subtype, used with DataRefProperty
   ARRAYBUFFER : 1<<25,
-  COLOR3      : 1<<26,
-  COLOR4      : 1<<27
-};
-
-export var PropTypes = {
-  INT : 1,
-  STRING : 2,
-  BOOL : 4,
-  ENUM : 8,
-  FLAG : 16,
-  FLOAT : 32,
-  //ITER : 32,
-  VEC2 : 64,
-  VEC3 : 128,
-  VEC4 : 256,
-  MATRIX4 : 512,
-  QUAT : 1024,
-  //PROPLIST : 4096,
-  //STRSET : 8192
+  ITER        : 1<<28
 };
 
 setPropTypes(PropTypes);
@@ -65,6 +53,601 @@ export const PropSubTypes = {
   COLOR : 1
 };
 
+
+ToolProperty.prototype.set_data = function(d) {
+  return this.setValue(d);
+};
+ToolProperty.prototype.get_data = function(d) {
+  return this.get_data(d);
+};
+ToolProperty.prototype.load_ui_data = function(prop) {
+  this.uiname = prop.uiname;
+  this.apiname = prop.apiname;
+  this.description = prop.description;
+  this.unit = prop.unit;
+  this.hotkey_ref = prop.hotkey_ref;
+  this.range = prop.range;
+  this.uiRange = prop.uiRange;
+  this.icon = prop.icon;
+  this.radix = prop.radix;
+  this.decimalPlaces = prop.declarations;
+  this.step = prop.step;
+  this.stepIsRelative = prop.stepIsRelative;
+  this.expRate = prop.expRate;
+};
+
+ToolProperty.prototype._exec_listeners = function(data_api_owner) {
+  for (var l of this.callbacks) {
+    if (RELEASE) {
+      try {
+        l[1](l[0], this, data_api_owner);
+      } catch (_err) {
+        print_stack(_err);
+        console.log("Warning: a property event listener failed", "property:", this, "callback:", l[1], "owner:", l[0])
+      }
+    } else {
+      l[1](l[0], this, data_api_owner);
+    }
+  }
+};
+//only one callback per owner allowed
+//any existing callback will be overwritten
+ToolProperty.prototype.add_listener = function add_listener(owner, callback) {
+  let cb = () => {
+    callback(...arguments);
+  };
+
+  for (let cb of this.callbacks['change']) {
+    if (cb.owner === owner) {
+      console.warn("owner already added a callback");
+      return;
+    }
+  }
+
+  this.on('change', cb);
+  cb.owner = owner;
+};
+
+ToolProperty.prototype.remove_listener = function(owner, silent_fail=false) {
+  for (let cb of this.callbacks['change']) {
+    if (cb.owner === owner) {
+      this.off('change', cb);
+    }
+  }
+};
+
+ToolProperty.prototype.add_icons = function(iconmap) {
+  return this.addIcons(iconmap);
+};
+
+
+/**
+ custom data api setter.  set .flag to TPRopFlags.USE_CUSTOM_GETSET
+ to enable.
+
+ this will be assigned to
+ owning object by data api if prop.flag has TPropFlags.NEEDS_OWNING_OBJECT.
+
+ prop is property definition.  val is value to set.
+
+ returns final value that was set.
+ */
+ToolProperty.prototype.userSetData = function(prop, val) {
+  return val;
+};
+
+/**
+ custom data api getter.  set .flag to TPRopFlags.USE_CUSTOM_GETSET
+ to enable.
+
+ this will be assigned to
+ owning object by data api if prop.flag has TPropFlags.NEEDS_OWNING_OBJECT.
+
+ prop is property definition.  val is current value fetched by the data api.
+ */
+ToolProperty.prototype.userGetData = function(prop, val) {
+  return val;
+};
+
+ToolProperty.prototype.update = () => {};
+ToolProperty.prototype.api_update = () => {};
+
+for (let i=0; i<2; i++) {
+  let key = i ? "FlagProperty" : "EnumProperty";
+
+  toolprop[key].prototype.setUINames = function (uinames) {
+    this.ui_value_names = {};
+    this.ui_key_names = {};
+
+    for (let k in this.keys) {
+      let key = k[0].toUpperCase() + k.slice(1, k.length).toLowerCase();
+      key = key.replace(/_/g, " ").replace(/-/g, " ");
+
+      this.ui_value_names[key] = k;
+      this.ui_key_names[k] = key;
+    }
+  };
+
+  Object.defineProperty(toolprop[key].prototype, "ui_key_names", {
+    get() {
+      if (!Object.hasOwnProperty(this, "_ui_key_names")) {
+        this._ui_key_names = {};
+
+        for (let k in this.ui_value_names) {
+          this._ui_key_names[this.ui_value_names[k]] = k;
+        }
+      }
+
+      return this._ui_key_names;
+    },
+
+    set(val) {
+      this._ui_key_names = val;
+    }
+  });
+}
+
+export class ArrayBufferProperty extends ToolProperty {
+  constructor(data, apiname = "", uiname = apiname, description = "", flag = 0) {
+    super(PropTypes.ARRAYBUFFER, apiname, uiname, description, flag);
+
+    if (data !== undefined) {
+      this.set_data(data);
+    }
+  }
+
+  copyTo(dst : ArrayBufferProperty) {
+    super.copyTo(dst, false);
+
+    if (this.data != undefined)
+      dst.set_data(this.data);
+
+    return dst;
+  }
+
+  copy(): ArrayBufferProperty {
+    return this.copyTo(new ArrayBufferProperty());
+  }
+
+  _getDataU8() {
+    return this.data instanceof ArrayBuffer ? new Uint8Array(this.data) : this.data;
+  }
+
+  loadSTRUCT(reader) {
+    reader(this);
+    super.loadSTRUCT(reader);
+
+    this.data = new Uint8Array(this.data).buffer;
+  }
+}
+
+ArrayBufferProperty.STRUCT = nstructjs.inherit(ArrayBufferProperty, ToolProperty) + `
+  data : array(byte) | this._getDataU8;
+}`;
+
+nstructjs.register(ArrayBufferProperty);
+ToolProperty.register(ArrayBufferProperty);
+
+export class DataRefProperty extends ToolProperty {
+  //allowed_types can be either a datablock type,
+  //or a set of allowed datablock types.
+  constructor(value: DataBlock, allowed_types: set<int>, apiname, uiname, description, flag) {
+    super(PropTypes.DATAREF, apiname, uiname, description, flag);
+
+    if (allowed_types == undefined)
+      allowed_types = new set();
+
+    if (!(allowed_types instanceof set)) {
+      if (allowed_types instanceof Array)
+        allowed_types = new set(allowed_types);
+      else
+        allowed_types = new set([allowed_types]);
+    }
+
+    this.types = new set();
+
+//ensure this.types stores integer type ids, not type classes
+    for (var val of allowed_types) {
+      if (typeof val == "object") {
+        val = new val().lib_type;
+      }
+
+      this.types.add(val);
+    }
+
+    if (value != undefined)
+      this.set_data(value);
+  }
+
+  get_block(ctx) {
+    if (this.data == undefined)
+      return undefined;
+    else
+      return ctx.datalib.get(this.data);
+  }
+
+  copyTo(dst: DataRefProperty) {
+    super.copyTo(dst, false);
+
+    var data = this.data;
+
+    if (data != undefined)
+      data = data.copy();
+
+    dst.types = new set(this.types);
+
+    if (data != undefined)
+      dst.set_data(data);
+
+    return dst;
+  }
+
+  copy(): DataRefProperty {
+    return this.copyTo(new DataRefProperty());
+  }
+
+  set_data(value: DataBlock, owner: Object, changed, set_data) {
+    if (value == undefined) {
+      ToolProperty.prototype.set_data.call(this, undefined, owner, changed, set_data);
+    } else if (!(value instanceof DataRef)) {
+      if (!this.types.has(value.lib_type)) {
+        console.trace("Invalid datablock type " + value.lib_type + " passed to DataRefProperty.set_value()");
+        return;
+      }
+
+      value = new DataRef(value);
+      ToolProperty.prototype.set_data.call(this, value, owner, changed, set_data);
+    } else {
+      ToolProperty.prototype.set_data.call(this, value, owner, changed, set_data);
+    }
+  }
+
+  loadSTRUCT(reader) {
+    reader(this);
+    super.loadSTRUCT(reader);
+
+    this.types = new set(this.types);
+
+    if (this.data !== undefined && this.data.id < 0)
+      this.data = undefined;
+    this.set_data(this.data);
+  }
+}
+
+DataRefProperty.STRUCT = STRUCT.inherit(DataRefProperty, ToolProperty) + `
+  data  : DataRef | this.data == undefined ? new DataRef(-1) : this.data;
+  types : iter(int);
+}`;;
+
+nstructjs.register(DataRefProperty);
+ToolProperty.register(DataRefProperty);
+
+export class RefListProperty extends ToolProperty {
+  //allowed_types can be either a datablock integer type id,
+  //or a set of allowed datablock integer types.
+  constructor(value: Array<DataBlock>, allowed_types: set<int>, apiname, uiname, description, flag) {
+    super(PropTypes.DATAREFLIST, apiname, uiname, description, flag);
+
+
+    if (allowed_types === undefined)
+      allowed_types = [];
+
+    if (!(allowed_types instanceof set)) {
+      allowed_types = new set([allowed_types]);
+    }
+
+    this.types = allowed_types;
+
+    if (value !== undefined) {
+      this.set_data(value);
+    }
+  }
+
+  copyTo(dst: RefListProperty) {
+    ToolProperty.prototype.copyTo.call(this, dst, false);
+
+    dst.types = new set(this.types);
+    if (this.data != undefined)
+      dst.set_data(this.data);
+
+    return dst;
+  }
+
+  copy(): RefListProperty {
+    return this.copyTo(new RefListProperty());
+  }
+
+  set_data(value: DataBlock, owner: Object, changed, set_data) {
+    if (value != undefined && value.constructor.name == "Array")
+      value = new GArray(value);
+
+    if (value == undefined) {
+      ToolProperty.prototype.set_data.call(this, undefined, owner, changed, set_data);
+    } else {
+      var lst = new DataRefList();
+      for (var i = 0; i < value.length; i++) {
+        var block = value[i];
+
+        if (block == undefined || !this.types.has(block.lib_type)) {
+          console.trace();
+          if (block == undefined)
+            console.log("Undefined datablock in list passed to RefListProperty.set_data");
+          else
+            console.log("Invalid datablock type " + block.lib_type + " passed to RefListProperty.set_value()");
+          continue;
+        }
+        lst.push(block);
+      }
+
+      value = lst;
+      super.set_data(this, value, owner, changed, set_data);
+    }
+  }
+
+  loadSTRUCT(reader) {
+    reader(this);
+    super.loadSTRUCT(reader);
+
+    this.types = new set(this.types);
+    this.set_data(this.data);
+  }
+}
+
+
+RefListProperty.STRUCT = nstructjs.inherit(RefListProperty, ToolProperty) + `
+  data  : iter(dataref);
+  types : iter(int);
+}
+`;
+nstructjs.register(RefListProperty);
+ToolProperty.register(RefListProperty);
+
+export class TransformProperty extends ToolProperty {
+  constructor(value, apiname, uiname, description, flag) {
+    super(PropTypes.TRANSFORM, apiname, uiname, description, flag)
+
+    if (value !== undefined)
+      ToolProperty.prototype.set_data.call(this, new Matrix4UI(value));
+  }
+
+  set_data(data: Matrix4, owner: Object, changed, set_data) {
+    this.data.load(data);
+    ToolProperty.prototype.set_data.call(this, undefined, owner, changed, false);
+  }
+
+  copyTo(dst: TransformProperty) {
+    ToolProperty.prototype.copyTo.call(this, dst, false);
+
+    dst.data = new Matrix4UI(new Matrix4());
+    dst.data.load(this.data);
+
+    return dst;
+  }
+
+  copy(): TransformProperty {
+    return this.copyTo(new TransformProperty());
+  }
+
+  loadSTRUCT(reader) {
+    reader(this);
+    super.loadSTRUCT(reader);
+
+    this.data = new Matrix4UI(this.data);
+  }
+
+}
+TransformProperty.STRUCT = STRUCT.inherit(TransformProperty, ToolProperty) + `
+  data : mat4;
+}`;
+
+nstructjs.register(TransformProperty);
+ToolProperty.register(TransformProperty);
+
+/*
+  A (very) generic container property.
+  Internally, it stores references to special
+  iterable objects that implements the TPropIterable
+  interface (which we do via the multiple inheritance
+  system), not arrays.
+
+  e.g. you might pass an eid_list, a DataRefList,
+  a TMeshSelectedIter, etc.
+*/
+
+import {ToolIter} from './toolprops_iter.js';
+export class type_filter_iter extends ToolIter {
+  constructor(iter, typefilter, ctx) {
+    //super(iter, typefilter);
+    super(iter);
+
+    this.types = typefilter;
+    this.ret = {done : false, value : undefined};
+    this.iter = iter;
+    this._ctx = ctx;
+  }
+
+  set ctx(ctx) {
+    this._ctx = ctx;
+
+    if (this.iter !== undefined)
+      this.iter.ctx = ctx;
+  }
+
+  get ctx() {
+    return this._ctx;
+  }
+
+  reset() {
+    this.iter.ctx = this.ctx;
+    this.iter.reset();
+  }
+
+  next() {
+    var ret = this.iter.next();
+    var types = this.types;
+    var tlen = this.types.length;
+    var this2 = this;
+
+    function has_type(obj) {
+      for (let i=0; i<tlen; i++) {
+        if (obj instanceof types[i]) return true;
+      }
+
+      return false;
+    }
+
+    while (!ret.done && !has_type(ret.value)) {
+      ret = this.iter.next();
+    }
+
+    this.ret.done = ret.done;
+    this.ret.value = ret.value;
+    ret = this.ret;
+
+    if (ret.done && this.iter.reset) {
+      this.iter.reset();
+    }
+
+    return ret;
+  }
+}
+
+export class CollectionProperty extends ToolProperty {
+  constructor(data, filter_types: Array<Function>, apiname, uiname, description, flag) {
+    super(PropTypes.COLLECTION, apiname, uiname, description, flag);
+
+    this.flag |= TPropFlags.COLL_LOOSE_TYPE;
+
+    this.types = filter_types;
+    this._data = undefined;
+    this._ctx = undefined;
+
+    if (data !== undefined) {
+      this.set_data(data);
+    }
+  }
+
+  copyTo(dst: CollectionProperty): CollectionProperty {
+    ToolProperty.prototype.copyTo.call(this, dst, false);
+
+    dst.types = this.types;
+    this.set_data(this.data);
+
+    return dst;
+  }
+
+  copy(): CollectionProperty {
+    var ret = this.copyTo(new CollectionProperty());
+    ret.types = this.types;
+    ret._ctx = this._ctx;
+
+    if (this._data != undefined && this._data.copy != undefined)
+      ret.set_data(this._data.copy());
+
+    return ret;
+  }
+
+  get ctx() {
+    return this._ctx;
+  }
+
+  set ctx(data) {
+    this._ctx = data;
+
+    if (this._data != undefined)
+      this._data.ctx = data;
+  }
+
+  set_data(data, owner: Object, changed) {
+    if (data == undefined) {
+      this._data = undefined;
+      return;
+    }
+
+    if ("__tooliter__" in data && typeof  data.__tooliter__ == "function") {
+      this.set_data(data.__tooliter__(), owner, changed);
+      return;
+    } else if (!(this.flag & TPropFlags.COLL_LOOSE_TYPE) && !(TPropIterable.isTPropIterable(data))) {
+      console.trace();
+      console.log("ERROR: bad data '", data, "' was passed to CollectionProperty.set_data!");
+
+      //this is, sadly, an unrecoverable error.
+      throw new Error("ERROR: bad data '", data, "' was passed to CollectionProperty.set_data!");
+    }
+
+    this._data = data;
+    this._data.ctx = this.ctx;
+
+    ToolProperty.prototype.set_data.call(this, undefined, owner, changed, false);
+  }
+
+//tool props are not supposed to use setters
+//for .data, but since we need one for .get
+//(and since that meant renaming an inherited
+//member), we add a setter here for the sake of
+//robustness.
+
+//XXX: except. . .now you can't pass owner into it
+
+  set data(data) {
+    this.set_data(data);
+  }
+
+  get data() {
+    return this._data;
+  }
+
+  [Symbol.iterator]() {
+    if (this._data == undefined) //return empty iterator if no data
+      return {
+        next: function () {
+          return {done: true, value: undefined};
+        }
+      };
+
+    this._data.ctx = this._ctx;
+
+    if (this.types != undefined && this.types.length > 0)
+      return new type_filter_iter(this.data[Symbol.iterator](), this.types, this._ctx);
+    else
+      return this.data[Symbol.iterator]();
+  }
+
+  static fromSTRUCT(reader) {
+    var ret = new CollectionProperty();
+
+    reader(ret);
+
+    return ret;
+  }
+
+  loadSTRUCT(reader) {
+    reader(this);
+    super.loadSTRUCT(reader);
+  }
+}
+
+CollectionProperty.STRUCT = nstructjs.inherit(CollectionProperty, ToolProperty) + `
+  data : abstract(Object) | obj.data == undefined ? new BlankArray() : obj.data;
+}`;
+nstructjs.register(CollectionProperty);
+ToolProperty.register(CollectionProperty);
+
+export class BlankArray {
+  static fromSTRUCT(reader) {
+    return undefined;
+  }
+}
+
+BlankArray.STRUCT = `
+  BlankArray {
+  length : int | 0;
+}`;
+nstructjs.register(BlankArray);
+window.BlankArray = BlankArray;
+
+
+`
 export class ToolProperty {
   constructor(type, apiname="", uiname=apiname, description="", flag=0) {
     this.type = type;
@@ -271,208 +854,14 @@ export class ToolProperty {
   }
 }
 
-ToolProperty.STRUCT = """
+ToolProperty.STRUCT = 
   ToolProperty {
     type : int;
     flag : int;
   }
-""";
+;
 
-export class ArrayBufferProperty extends ToolProperty {
-  constructor(data, apiname="", uiname=apiname, description="", flag=0) {
-    super(PropTypes.ARRAYBUFFER, apiname, uiname, description, flag);
-    
-    if (data != undefined) {
-      this.set_data(data);
-    }
-  }
-  
-  copyTo(ArrayBufferProperty dst) {
-    super.copyTo(dst, false);
 
-    if (this.data != undefined)
-      dst.set_data(this.data);
-    
-    return dst;
-  }
-  
-  copy() : ArrayBufferProperty {
-    return this.copyTo(new ArrayBufferProperty());
-  }
-}
-ArrayBufferProperty.STRUCT = STRUCT.inherit(ArrayBufferProperty, ToolProperty) + """
-  data : arraybuffer;
-}
-""";
-
-export class DataRefProperty extends ToolProperty {
-  //allowed_types can be either a datablock type,
-  //or a set of allowed datablock types.
-  constructor(DataBlock value, set<int> allowed_types, apiname, uiname, description, flag) {
-    super(PropTypes.DATAREF, apiname, uiname, description, flag);
-    
-    if (allowed_types == undefined)
-      allowed_types = new set();
-    
-    if (!(allowed_types instanceof set)) {
-      if (allowed_types instanceof Array)
-        allowed_types = new set(allowed_types);
-      else
-        allowed_types = new set([allowed_types]);
-    }
-    
-    this.types = new set();
-    
-    //ensure this.types stores integer type ids, not type classes
-    for (var val of allowed_types) {
-      if (typeof val == "object") {
-        val = new val().lib_type;
-      }
-      
-      this.types.add(val);
-    }
-    
-    if (value != undefined)
-      this.set_data(value);
-  }
-  
-  get_block(ctx) {
-    if (this.data == undefined)
-      return undefined;
-    else
-      return ctx.datalib.get(this.data);
-  }
-  
-  copyTo(DataRefProperty dst) {
-    super.copyTo(dst, false);
-
-    var data = this.data;
-    
-    if (data != undefined)
-      data = data.copy();
-    
-    dst.types = new set(this.types);
-    
-    if (data != undefined)
-      dst.set_data(data);
-    
-    return dst;
-  }
-  
-  copy() : DataRefProperty {
-    return this.copyTo(new DataRefProperty());
-  }
-  
-  set_data(DataBlock value, Object owner, changed, set_data) {
-    if (value == undefined) {
-      ToolProperty.prototype.set_data.call(this, undefined, owner, changed, set_data);
-    } else if (!(value instanceof DataRef)) {
-      if (!this.types.has(value.lib_type)) {
-        console.trace("Invalid datablock type " + value.lib_type + " passed to DataRefProperty.set_value()");
-        return;
-      }
-      
-      value = new DataRef(value);
-      ToolProperty.prototype.set_data.call(this, value, owner, changed, set_data);
-    } else {
-      ToolProperty.prototype.set_data.call(this, value, owner, changed, set_data);
-    }
-  }
-  
-  static fromSTRUCT(reader) {
-    var l = new DataRefProperty();;
-    reader(l);
-    
-    l.types = new set(l.types);
-    
-    if (l.data != undefined && l.data.id < 0)
-      l.data = undefined;
-    l.set_data(l.data);
-    
-    return l;
-  }
-}
-
-DataRefProperty.STRUCT = STRUCT.inherit(DataRefProperty, ToolProperty) + """
-  data : DataRef | obj.data == undefined ? new DataRef(-1) : obj.data;
-  types : iter(int);
-}
-""";
-
-export class RefListProperty extends ToolProperty {
-  //allowed_types can be either a datablock integer type id,
-  //or a set of allowed datablock integer types.
-  constructor(Array<DataBlock> value, set<int> allowed_types, apiname, uiname, description, flag) {
-    super(PropTypes.DATAREFLIST, apiname, uiname, description, flag);
-    
-    if (allowed_types == undefined)
-      allowed_types = [];
-      
-    if (!(allowed_types instanceof set)) {
-      allowed_types = new set([allowed_types]);
-    }
-    
-    this.types = allowed_types;
-    this.set_data(value);
-  }
-  
-  copyTo(RefListProperty dst) {
-    ToolProperty.prototype.copyTo.call(this, dst, false);
-    
-    dst.types = new set(this.types);
-    if (this.data != undefined)
-      dst.set_data(this.data);
-    
-    return dst;
-  }
-  
-  copy() : RefListProperty {
-    return this.copyTo(new RefListProperty());
-  }
-  
-  set_data(DataBlock value, Object owner, changed, set_data) {
-    if (value != undefined && value.constructor.name == "Array")
-      value = new GArray(value);
-    
-    if (value == undefined) {
-      ToolProperty.prototype.set_data.call(this, undefined, owner, changed, set_data);
-    } else {
-      var lst = new DataRefList();
-      for (var i=0; i<value.length; i++) {
-        var block = value[i];
-        
-        if (block == undefined || !this.types.has(block.lib_type)) {
-          console.trace();
-          if (block == undefined)
-            console.log("Undefined datablock in list passed to RefListProperty.set_data");
-          else
-            console.log("Invalid datablock type " + block.lib_type + " passed to RefListProperty.set_value()");
-          continue;
-        }
-        lst.push(block);
-      }
-      
-      value = lst;
-      super.set_data(this, value, owner, changed, set_data);
-    }
-  }
-  
-  static fromSTRUCT(reader) {
-    var t = new RefListProperty()
-    reader(t)
-    
-    t.types = new set(t.types);
-    t.set_data(t.data);
-    
-    return t;
-  }
-}
-
-RefListProperty.STRUCT = STRUCT.inherit(RefListProperty, ToolProperty) + """
-  data : iter(dataref(DataBlock));
-  types : iter(int);
-}
-"""
 //flag (bitmask) property.  maskmap maps API names
 //to bitmasks (e.g. 1, 2, 4, 8, along with combinatoins, like 1|4, 2|8, etc).
 //
@@ -639,10 +1028,10 @@ export class FlagProperty extends ToolProperty {
   }
 }
 
-FlagProperty.STRUCT = STRUCT.inherit(FlagProperty, ToolProperty) + """
+FlagProperty.STRUCT = STRUCT.inherit(FlagProperty, ToolProperty) + 
   data : int;
 }
-""";
+;
 
 export class FloatProperty extends ToolProperty {
   constructor(i, apiname, uiname, description, range, uirange, flag) {//range, uirange, flag are optional
@@ -688,10 +1077,10 @@ export class FloatProperty extends ToolProperty {
   }
 }
 
-FloatProperty.STRUCT = STRUCT.inherit(FloatProperty, ToolProperty) + """
+FloatProperty.STRUCT = STRUCT.inherit(FloatProperty, ToolProperty) + 
   data : float;
 }
-""";
+;
 
 export class IntProperty extends ToolProperty {
   constructor (i, apiname, uiname, description, 
@@ -737,10 +1126,10 @@ export class IntProperty extends ToolProperty {
   }
 }
 
-IntProperty.STRUCT = STRUCT.inherit(IntProperty, ToolProperty) + """
+IntProperty.STRUCT = STRUCT.inherit(IntProperty, ToolProperty) + 
   data : int;
 }
-""";
+;
 
 export class BoolProperty extends ToolProperty {
   constructor(bool, apiname, uiname, description, flag) {
@@ -775,10 +1164,10 @@ export class BoolProperty extends ToolProperty {
   }
 }
 
-BoolProperty.STRUCT = STRUCT.inherit(BoolProperty, ToolProperty) + """
+BoolProperty.STRUCT = STRUCT.inherit(BoolProperty, ToolProperty) + 
   data : int;
 }
-""";
+;
 
 export class StringProperty extends ToolProperty {
   constructor(string, apiname, uiname, description, flag) {
@@ -812,10 +1201,10 @@ export class StringProperty extends ToolProperty {
     return t;
   }
 }
-StringProperty.STRUCT = STRUCT.inherit(StringProperty, ToolProperty) + """
+StringProperty.STRUCT = STRUCT.inherit(StringProperty, ToolProperty) + 
   data : string;
 }
-""";
+;
 
 export class TransformProperty extends ToolProperty {
   constructor(value, apiname, uiname, description, flag) {
@@ -853,10 +1242,10 @@ export class TransformProperty extends ToolProperty {
   }
 
 }
-TransformProperty.STRUCT = STRUCT.inherit(TransformProperty, ToolProperty) + """
+TransformProperty.STRUCT = STRUCT.inherit(TransformProperty, ToolProperty) + 
   data : mat4;
 }
-""";
+;
 
 
 export class EnumProperty extends ToolProperty {
@@ -1003,10 +1392,10 @@ export class EnumProperty extends ToolProperty {
   }
 }
 
-EnumProperty.STRUCT = STRUCT.inherit(EnumProperty, ToolProperty) + """
+EnumProperty.STRUCT = STRUCT.inherit(EnumProperty, ToolProperty) + 
   data : string | obj.data.toString();
 }
-""";
+;
 
 
 export class Vec2Property extends ToolProperty {
@@ -1048,10 +1437,10 @@ export class Vec2Property extends ToolProperty {
   }
 }
 
-Vec2Property.STRUCT = STRUCT.inherit(Vec2Property, ToolProperty) + """
+Vec2Property.STRUCT = STRUCT.inherit(Vec2Property, ToolProperty) + 
   data : array(float);
 }
-""";
+;
 
 export class Vec3Property extends ToolProperty {
   constructor(vec3, apiname, uiname, description, flag) {
@@ -1093,10 +1482,10 @@ export class Vec3Property extends ToolProperty {
   }
 }
 
-Vec3Property.STRUCT = STRUCT.inherit(Vec3Property, ToolProperty) + """
+Vec3Property.STRUCT = STRUCT.inherit(Vec3Property, ToolProperty) + 
   data : vec3;
 }
-""";
+;
 
 export class Vec4Property extends ToolProperty {
   constructor(vec4, apiname, uiname, description, flag) {
@@ -1138,10 +1527,10 @@ export class Vec4Property extends ToolProperty {
   }
 }
 
-Vec4Property.STRUCT = STRUCT.inherit(Vec4Property, ToolProperty) + """
+Vec4Property.STRUCT = STRUCT.inherit(Vec4Property, ToolProperty) + 
   data : vec4;
 }
-""";
+;
 
 /*
   A (very) generic container property.
@@ -1316,10 +1705,10 @@ export class CollectionProperty extends ToolProperty {
   }
 }
 
-CollectionProperty.STRUCT = STRUCT.inherit(CollectionProperty, ToolProperty) + """
+CollectionProperty.STRUCT = STRUCT.inherit(CollectionProperty, ToolProperty) + 
     data : abstract(Object) | obj.data == undefined ? new BlankArray() : obj.data;
   }
-""";
+;
 
 export class BlankArray {
   static fromSTRUCT(reader) {
@@ -1327,10 +1716,13 @@ export class BlankArray {
   }
 }
 
-BlankArray.STRUCT = """
+BlankArray.STRUCT = 
   BlankArray {
     length : int | 0;
   }
-""";
+;
 
 window.BlankArray = BlankArray;
+
+#endif
+`;

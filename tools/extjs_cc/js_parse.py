@@ -1977,9 +1977,12 @@ def p_obj_lit_list(p):
   if len(p) == 2:
     p[0] = ObjLitNode()
     p[0].add(AssignNode(IdentNode(p[1].name), p[1]))
-  elif len(p) == 4:
+  elif len(p) == 4 and p[2] == ":":
     p[0] = ObjLitNode()
     p[0].add(AssignNode(p[1], p[3]))
+  elif len(p) == 4:
+    p[0] = p[1]
+    p[1].add(AssignNode(IdentNode(p[3].name), p[3]))
   elif len(p) == 3:
     p[0] = p[1]
   elif len(p) == 6:

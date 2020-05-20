@@ -61,7 +61,7 @@ import {
   DataPathTypes, DataFlags, DataAPIError
 } from './data_api_base.js';
 
-let resolve_path_rets = new cachering(() => new Array(5), 32);
+let resolve_path_rets = new cachering(() => new Array(6), 32);
 
 export class DataPath {
   constructor(prop, name, path, dest_is_prop=false, use_path=true, flag=0) { 
@@ -1077,10 +1077,11 @@ export class DataAPI {
     var ownerpathout = [""];
     var mass_set = undefined;
     var this2 = this;
+    var debugmsg = "";
     
     function do_eval(node, scope, pathout, spathout) {
-      if (node.type == "ID") {
-        if (scope == undefined) {
+      if (node.type === "ID") {
+        if (scope === undefined) {
           console.log("data api error: ", str + ", " + pathout[0] + ", " + spathout[0]);
         }
         
@@ -1095,13 +1096,13 @@ export class DataAPI {
           
         var ret = scope.pathmap[node.val];
         
-        if (ret == undefined)
+        if (ret === undefined)
           return undefined;
          
         if (ret.use_path) {
           ownerpathout[0] = pathout[0];
           
-          if (ret.path != "" && ret.path[0] != "[" && ret.path[0] != "(")
+          if (ret.path !== "" && ret.path[0] !== "[" && ret.path[0] != "(")
             pathout[0] = pathout[0] + "." + ret.path;
           else
             pathout[0] += ret.path
@@ -1110,16 +1111,16 @@ export class DataAPI {
         spathout[0] = spathout[0] + ".pathmap." + node.val;
         
         return ret;
-      } else if (node.type == "EQUALS") {
+      } else if (node.type === "EQUALS") {
         let ret = do_eval(node.children[0], scope, pathout, spathout);
 
         pathout[0] += "==";
         let val = node.children[1].value;
 
-        if (typeof val == "string" || val instanceof String) {
+        if (typeof val === "string" || val instanceof String) {
           let prop = ret.data;
 
-          if (prop.type == PropTypes.ENUM) {
+          if (prop.type === PropTypes.ENUM) {
             val = prop.values[val];
           }
         }
@@ -1127,7 +1128,7 @@ export class DataAPI {
         pathout[0] += val;
 
         return ret;
-      } else if (node.type == "CODE") {
+      } else if (node.type === "CODE") {
         mass_set = {
           filter  : node.children[1].value,
           path    : str.slice(0, node.children[1].lexstart),
@@ -1135,39 +1136,58 @@ export class DataAPI {
           do_mass_set : true
         }
         
-        if (mass_set.subpath[0] == ".")
+        if (mass_set.subpath[0] === ".")
           mass_set.subpath = mass_set.subpath.slice(1, mass_set.subpath.length);
         
         return mass_set; //do_eval(node.children[0], scope, pathout, spathout);
-      } else if (node.type == ".") {
+      } else if (node.type === ".") {
         var n2 = do_eval(node.children[0], scope, pathout, spathout);
         
-        if (n2 != undefined) {
+        if (n2 !== undefined) {
           if (n2 instanceof DataPath)
             n2 = n2.data;
           
           return do_eval(node.children[1], n2, pathout, spathout);
         }
-      } else if (node.type == "ARRAY") {
+      } else if (node.type === "ARRAY") {
         var array = do_eval(node.children[0], scope, pathout, spathout);
-        var index = do_eval(node.children[1], scope, pathout, spathout);
-        
-        if (array == undefined) return undefined;
-        
+        if (array === undefined) return undefined;
+
+        scope = Object.assign({}, scope);
+
+        let index;
+
+        if (array.type === DataPathTypes.PROP && (array.data.type & (PropTypes.FLAG|PropTypes.ENUM))) {
+          index = node.children[1].val;
+
+          if (typeof index === "string") {
+            index = index.trim();
+          }
+
+          debugmsg = index in array.data.values;
+
+          if (index in array.data.values) {
+            index = array.data.values[index];
+          } else if (index in array.data.keys) {
+            index = array.data.keys[index];
+          }
+        } else {
+          index = do_eval(node.children[1], scope, pathout, spathout);
+        }
+
         //var transform_key = (array.type == DataPathTypes.PROP && array.data.type == PropTypes.FLAG);
         //transform_key = transform_key && isNaN(parseInt(index));
-        if (index == undefined)
+        if (index === undefined)
           index = node.children[1].val;
         
         arr_index = index;
         
         var is_flag = false;
         
-        if (array.type == DataPathTypes.PROP && array.data.type == PropTypes.FLAG) {
-          index = array.data.keys[index];
+        if (array.type === DataPathTypes.PROP && array.data.type === PropTypes.FLAG) {
           spathout[0] += ".data.data & "+index;
           is_flag = true;
-        } else if (array.type == DataPathTypes.PROP) {
+        } else if (array.type === DataPathTypes.PROP) {
           spathout[0] += ".data.data["+index+"]";
         }
         
@@ -1182,15 +1202,17 @@ export class DataAPI {
           
           path = path.slice(1, path.length);
           
-          if (array.type == DataPathTypes.PROP && array.data.type == PropTypes.FLAG) {
-            pathout[0] += "&"+index;
-          } else if (array.type == DataPathTypes.STRUCT_ARRAY) {
+          if (array.type === DataPathTypes.PROP && array.data.type === PropTypes.FLAG) {
+            pathout[0] += "&" + index;
+          } else if (array.type === DataPathTypes.PROP && array.data.type === PropTypes.ENUM) {
+              pathout[0] += "=="+index;
+          } else if (array.type === DataPathTypes.STRUCT_ARRAY) {
             pathout[0] += array.data.getitempath(index);
           } else {
             pathout[0] += "["+index+"]";
           }
           
-          if (array.type == DataPathTypes.STRUCT_ARRAY) {
+          if (array.type === DataPathTypes.STRUCT_ARRAY) {
             var arr = this2.evaluate(ctx, path, undefined);
             
             var stt = array.data.getter(arr[index]); 
@@ -1218,7 +1240,8 @@ export class DataAPI {
     sret[2] = spathout[0];
     sret[3] = mass_set;
     sret[4] = ownerpathout[0].slice(1, ownerpathout[0].length);
-    
+    sret[5] = debugmsg;
+
     return sret;
   }
   

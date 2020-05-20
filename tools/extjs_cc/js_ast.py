@@ -1258,6 +1258,7 @@ class StatementList (Node):
     
     if self.force_block:
         s += self.s("{")
+        pass
         
     for c in self.children:
       if type(c) == StatementList:
@@ -1286,7 +1287,8 @@ class StatementList (Node):
       s += c2
       
     if self.force_block:
-        s += "}"
+        s += self.s("}")
+        pass
     return s
   
   def copy(self):

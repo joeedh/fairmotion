@@ -1086,11 +1086,16 @@ export class View2DHandler extends Editor {
   }
 
   update() {
+    this.push_ctx_active();
+
     super.update();
     this.updateDPI();
 
+    
     this.widgets.on_tick(this.ctx);
     this.editor.on_tick(this.ctx);
+    
+    this.pop_ctx_active();
 
     //wait 3 seconds before loading video
     if (this.draw_video && (time_ms() - this.startup_time) > 300) {

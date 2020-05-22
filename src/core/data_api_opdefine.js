@@ -101,17 +101,17 @@ window.api_define_ops = function() {
       var op = new TranslateOp(EditModes.GEOMETRY, ctx.object);
 
       if ("datamode" in args) {
-        op.inputs.datamode.set_data(args["datamode"]);
+        op.inputs.datamode.setValue(args["datamode"]);
       }
 
-      op.inputs.edit_all_layers.set_data(ctx.view2d.edit_all_layers);
+      op.inputs.edit_all_layers.setValue(ctx.view2d.edit_all_layers);
 
       console.log("=====", args, ctx.view2d.session_flag, ctx.view2d.propradius);
-      //op.inputs.datamode.set_data(ctx.view2d.selectmode);
+      //op.inputs.datamode.setValue(ctx.view2d.selectmode);
       
       if (ctx.view2d.session_flag & SessionFlags.PROP_TRANSFORM) {
-        op.inputs.proportional.set_data(true);
-        op.inputs.propradius.set_data(ctx.view2d.propradius);
+        op.inputs.proportional.setValue(true);
+        op.inputs.propradius.setValue(ctx.view2d.propradius);
       }
         
       return op;
@@ -121,16 +121,16 @@ window.api_define_ops = function() {
       var op = new RotateOp(EditModes.GEOMETRY, ctx.object);
 
       if ("datamode" in args) {
-        op.inputs.datamode.set_data(args["datamode"]);
+        op.inputs.datamode.setValue(args["datamode"]);
       }
 
-      op.inputs.edit_all_layers.set_data(ctx.view2d.edit_all_layers);
+      op.inputs.edit_all_layers.setValue(ctx.view2d.edit_all_layers);
 
-      //op.inputs.datamode.set_data(ctx.view2d.selectmode);
+      //op.inputs.datamode.setValue(ctx.view2d.selectmode);
       
       if (ctx.view2d.session_flag & SessionFlags.PROP_TRANSFORM) {
-        op.inputs.proportional.set_data(true);
-        op.inputs.propradius.set_data(ctx.view2d.propradius);
+        op.inputs.proportional.setValue(true);
+        op.inputs.propradius.setValue(ctx.view2d.propradius);
       }
         
       return op;
@@ -140,16 +140,16 @@ window.api_define_ops = function() {
       var op = new ScaleOp(EditModes.GEOMETRY, ctx.object);
 
       if ("datamode" in args) {
-        op.inputs.datamode.set_data(args["datamode"]);
+        op.inputs.datamode.setValue(args["datamode"]);
       }
 
-      op.inputs.edit_all_layers.set_data(ctx.view2d.edit_all_layers);
+      op.inputs.edit_all_layers.setValue(ctx.view2d.edit_all_layers);
 
-      //op.inputs.datamode.set_data(ctx.view2d.selectmode);
+      //op.inputs.datamode.setValue(ctx.view2d.selectmode);
       
       if (ctx.view2d.session_flag & SessionFlags.PROP_TRANSFORM) {
-        op.inputs.proportional.set_data(true);
-        op.inputs.propradius.set_data(ctx.view2d.propradius);
+        op.inputs.proportional.setValue(true);
+        op.inputs.propradius.setValue(ctx.view2d.propradius);
       }
         
       return op;
@@ -269,7 +269,7 @@ window.api_define_ops = function() {
     
     "spline.toggle_select_all" : function(ctx, args) {
       var op = new ToggleSelectAllOp();
-      //op.inputs.selmode.set_data(ctx.view2d.selectmode)
+      //op.inputs.selmode.setValue(ctx.view2d.selectmode)
       
       return op;
     },
@@ -300,7 +300,7 @@ window.api_define_ops = function() {
       }
       
       var op = new SelectLinkedOp();
-      op.inputs.vertex_eid.set_data(args.vertex_eid);
+      op.inputs.vertex_eid.setValue(args.vertex_eid);
       
       return op;
     },

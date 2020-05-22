@@ -743,7 +743,7 @@ export class DopeSheetEditor extends Editor {
   }
 
   recalc(flag=RecalcFlags.REDRAW_KEYS) {
-    console.trace("dopesheet recalc called");
+    console.warn("dopesheet recalc called");
     this._queue_full_recalc = flag;
   }
 
@@ -751,7 +751,7 @@ export class DopeSheetEditor extends Editor {
     let dpi = UIBase.getDPI();
 
     if (dpi != this._last_dpi) {
-      console.log("dopesheet recalc dpi");
+      console.warn("dopesheet recalc dpi");
 
       this._last_dpi = dpi;
       this.setCSS();
@@ -1281,10 +1281,10 @@ export class DopeSheetEditor extends Editor {
 
         var tool = new SelectOp();
 
-        tool.inputs.phantom_ids.set_data(ids);
-        tool.inputs.select_ids.set_data(sels);
-        tool.inputs.unique.set_data(!event.shiftKey);
-        tool.inputs.state.set_data(event.shiftKey ? !has_sel : true);
+        tool.inputs.phantom_ids.setValue(ids);
+        tool.inputs.select_ids.setValue(sels);
+        tool.inputs.unique.setValue(!event.shiftKey);
+        tool.inputs.state.setValue(event.shiftKey ? !has_sel : true);
 
         g_app_state.toolstack.execTool(tool);
       } else {
@@ -1297,10 +1297,10 @@ export class DopeSheetEditor extends Editor {
 
         var tool = new SelectOp();
 
-        tool.inputs.phantom_ids.set_data(ids);
-        tool.inputs.select_ids.set_data([]);
-        tool.inputs.unique.set_data(true);
-        tool.inputs.state.set_data(true);
+        tool.inputs.phantom_ids.setValue(ids);
+        tool.inputs.select_ids.setValue([]);
+        tool.inputs.unique.setValue(true);
+        tool.inputs.state.setValue(true);
 
         g_app_state.toolstack.execTool(tool);
 
@@ -1342,7 +1342,7 @@ export class DopeSheetEditor extends Editor {
           ids.push(keybox.id);
         }
 
-        op.inputs.phantom_ids.set_data(ids);
+        op.inputs.phantom_ids.setValue(ids);
         if (ids.length > 0) { //move verts
           this.mdown = false;
 
@@ -1926,7 +1926,7 @@ export class DopeSheetEditor extends Editor {
 
     k.add(new HotKey("X", [], "Delete Keyframe"), new FuncKeyHandler(function(ctx) {
       var tool = new DeleteKeyOp();
-      tool.inputs.phantom_ids.set_data(this2.get_all_ids());
+      tool.inputs.phantom_ids.setValue(this2.get_all_ids());
 
       g_app_state.toolstack.execTool(tool);
     }));
@@ -1962,16 +1962,16 @@ export class DopeSheetEditor extends Editor {
     k.add(new HotKey("Left", ["CTRL"], "Select To Left"), new FuncKeyHandler(function(ctx) {
       var tool = new SelectKeysToSide();
 
-      tool.inputs.side.set_data(false);
-      tool.inputs.phantom_ids.set_data(this2.get_all_ids());
+      tool.inputs.side.setValue(false);
+      tool.inputs.phantom_ids.setValue(this2.get_all_ids());
       g_app_state.toolstack.execTool(tool);
     }));
 
     k.add(new HotKey("Right", ["CTRL"], "Select To Right"), new FuncKeyHandler(function(ctx) {
       var tool = new SelectKeysToSide();
 
-      tool.inputs.side.set_data(true);
-      tool.inputs.phantom_ids.set_data(this2.get_all_ids());
+      tool.inputs.side.setValue(true);
+      tool.inputs.phantom_ids.setValue(this2.get_all_ids());
       g_app_state.toolstack.execTool(tool);
     }));
 
@@ -1988,7 +1988,7 @@ export class DopeSheetEditor extends Editor {
         ids.push(keybox.id);
       }
 
-      op.inputs.phantom_ids.set_data(ids);
+      op.inputs.phantom_ids.setValue(ids);
       g_app_state.toolstack.execTool(op);
     }));
 
@@ -1996,7 +1996,7 @@ export class DopeSheetEditor extends Editor {
       var tool = new ToggleSelectOp();
       var verts = [];
 
-      tool.inputs.phantom_ids.set_data(this2.get_all_ids());
+      tool.inputs.phantom_ids.setValue(this2.get_all_ids());
 
       g_app_state.toolstack.execTool(tool);
     }));
@@ -2011,8 +2011,8 @@ export class DopeSheetEditor extends Editor {
         ids.push(keybox.id);
       }
 
-      tool.inputs.state.set_data(true);
-      tool.inputs.phantom_ids.set_data(ids);
+      tool.inputs.state.setValue(true);
+      tool.inputs.phantom_ids.setValue(ids);
 
       g_app_state.toolstack.execTool(tool);
     }));
@@ -2027,8 +2027,8 @@ export class DopeSheetEditor extends Editor {
         ids.push(keybox.id);
       }
 
-      tool.inputs.state.set_data(false);
-      tool.inputs.phantom_ids.set_data(ids);
+      tool.inputs.state.setValue(false);
+      tool.inputs.phantom_ids.setValue(ids);
 
       g_app_state.toolstack.execTool(tool);
     }));

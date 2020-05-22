@@ -22,8 +22,9 @@ def module_transform(node, typespace):
       n2 = js_parse("""
         _es6_module.add_global('$s', $s);
       """, [n.val, n.val]);
-      
-      startn.parent.insert(startn.parent.index(startn)+1, n2);
+
+      insert_after(startn, n2)      
+      #startn.parent.insert(startn.parent.index(startn)+1, n2);
       
       for n2 in n[2:]:
         varvisit(n2, startn);
@@ -198,10 +199,13 @@ def module_transform(node, typespace):
   flatten_statementlists(node, typespace)
   
   def class_visit(n):
+    if type(n.parent) in [BinOpNode, ExprNode, ExprListNode, AssignNode, VarDeclNode]:
+      return
     n2 = js_parse("""
       _es6_module.add_class($s);
     """, [n.name])
-    n.parent.insert(n.parent.index(n)+1, n2);
+
+    insert_after(n, n2);
     
   traverse(node, ClassNode, class_visit)
   flatten_statementlists(node, typespace)

@@ -57,5 +57,6 @@ window.Icons = {
   CIRCLE_SEL_SUB : 53,
   CIRCLE_SEL_ADD : 54,
   OBJECT_MODE : 55,
-  DUPLICATE : 56
+  DUPLICATE : 56,
+  CONSOLE_EDITOR : 57
 };

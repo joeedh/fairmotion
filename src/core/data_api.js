@@ -1255,7 +1255,7 @@ export class DataAPI {
       
       if (config.HAVE_EVAL) {
         var script = """
-          var func = function(ctx, scope) {
+          func = function(ctx, scope) {
             return $s
           }
         """.replace("$s", str);

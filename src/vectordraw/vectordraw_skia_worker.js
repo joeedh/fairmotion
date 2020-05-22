@@ -5,7 +5,7 @@ importScripts("node_modules/canvaskit-wasm/bin/canvaskit.js");
 CanvasKitInit({
   locateFile: (file) => 'node_modules/canvaskit-wasm/bin/'+file,
 }).ready().then((CanvasKit) => {
-  console.log("CanvasKit initialized");
+  console.log("%c CanvasKit initialized", "color: blue");
   self.CanvasKit = CanvasKit;
   
   postMessage({
@@ -316,10 +316,17 @@ function doDrawList(commands, datablocks, id) {
     g.translate(-blur_doff, 0.0);
   }
   
-  canvas2.i = canvas2.nb.i = canvas;
-  canvas2.nb.flush();
-
+  //canvas2.i = canvas2._surface.i = canvas;
+  //*
+  canvas2.Lk = canvas2.mm.Lk = canvas;
+  canvas2.mm.flush();
   canvas2.dispose();
+  //*/
+  /*
+  canvas.width = 55;
+  canvas.height = 55;
+  canvas.getContext("2d");
+  //*/
   
   state.running = false;
   

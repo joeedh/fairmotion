@@ -418,7 +418,7 @@ export function parentify(node) {
 }
 
 export function compile(code) {
-  return parentify(esprima.parse(code).body);
+  return parentify(_esprima.parse(code).body);
 }
 
 export function exec(ast, scope1) {

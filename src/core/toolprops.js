@@ -216,7 +216,7 @@ export class ArrayBufferProperty extends ToolProperty {
     super(PropTypes.ARRAYBUFFER, apiname, uiname, description, flag);
 
     if (data !== undefined) {
-      this.set_data(data);
+      this.setValue(data);
     }
   }
 
@@ -224,7 +224,7 @@ export class ArrayBufferProperty extends ToolProperty {
     super.copyTo(dst, false);
 
     if (this.data != undefined)
-      dst.set_data(this.data);
+      dst.setValue(this.data);
 
     return dst;
   }
@@ -280,7 +280,7 @@ export class DataRefProperty extends ToolProperty {
     }
 
     if (value != undefined)
-      this.set_data(value);
+      this.setValue(value);
   }
 
   get_block(ctx) {
@@ -301,7 +301,7 @@ export class DataRefProperty extends ToolProperty {
     dst.types = new set(this.types);
 
     if (data != undefined)
-      dst.set_data(data);
+      dst.setValue(data);
 
     return dst;
   }
@@ -312,7 +312,7 @@ export class DataRefProperty extends ToolProperty {
 
   set_data(value: DataBlock, owner: Object, changed, set_data) {
     if (value == undefined) {
-      ToolProperty.prototype.set_data.call(this, undefined, owner, changed, set_data);
+      ToolProperty.prototype.setValue.call(this, undefined, owner, changed, set_data);
     } else if (!(value instanceof DataRef)) {
       if (!this.types.has(value.lib_type)) {
         console.trace("Invalid datablock type " + value.lib_type + " passed to DataRefProperty.set_value()");
@@ -320,9 +320,9 @@ export class DataRefProperty extends ToolProperty {
       }
 
       value = new DataRef(value);
-      ToolProperty.prototype.set_data.call(this, value, owner, changed, set_data);
+      ToolProperty.prototype.setValue.call(this, value, owner, changed, set_data);
     } else {
-      ToolProperty.prototype.set_data.call(this, value, owner, changed, set_data);
+      ToolProperty.prototype.setValue.call(this, value, owner, changed, set_data);
     }
   }
 
@@ -334,7 +334,7 @@ export class DataRefProperty extends ToolProperty {
 
     if (this.data !== undefined && this.data.id < 0)
       this.data = undefined;
-    this.set_data(this.data);
+    this.setValue(this.data);
   }
 }
 
@@ -363,7 +363,7 @@ export class RefListProperty extends ToolProperty {
     this.types = allowed_types;
 
     if (value !== undefined) {
-      this.set_data(value);
+      this.setValue(value);
     }
   }
 
@@ -372,7 +372,7 @@ export class RefListProperty extends ToolProperty {
 
     dst.types = new set(this.types);
     if (this.data != undefined)
-      dst.set_data(this.data);
+      dst.setValue(this.data);
 
     return dst;
   }
@@ -386,7 +386,7 @@ export class RefListProperty extends ToolProperty {
       value = new GArray(value);
 
     if (value == undefined) {
-      ToolProperty.prototype.set_data.call(this, undefined, owner, changed, set_data);
+      ToolProperty.prototype.setValue.call(this, undefined, owner, changed, set_data);
     } else {
       var lst = new DataRefList();
       for (var i = 0; i < value.length; i++) {
@@ -395,7 +395,7 @@ export class RefListProperty extends ToolProperty {
         if (block == undefined || !this.types.has(block.lib_type)) {
           console.trace();
           if (block == undefined)
-            console.log("Undefined datablock in list passed to RefListProperty.set_data");
+            console.log("Undefined datablock in list passed to RefListProperty.setValue");
           else
             console.log("Invalid datablock type " + block.lib_type + " passed to RefListProperty.set_value()");
           continue;
@@ -404,7 +404,7 @@ export class RefListProperty extends ToolProperty {
       }
 
       value = lst;
-      super.set_data(this, value, owner, changed, set_data);
+      super.setValue(this, value, owner, changed, set_data);
     }
   }
 
@@ -413,7 +413,7 @@ export class RefListProperty extends ToolProperty {
     super.loadSTRUCT(reader);
 
     this.types = new set(this.types);
-    this.set_data(this.data);
+    this.setValue(this.data);
   }
 }
 
@@ -431,12 +431,12 @@ export class TransformProperty extends ToolProperty {
     super(PropTypes.TRANSFORM, apiname, uiname, description, flag)
 
     if (value !== undefined)
-      ToolProperty.prototype.set_data.call(this, new Matrix4UI(value));
+      ToolProperty.prototype.setValue.call(this, new Matrix4UI(value));
   }
 
   set_data(data: Matrix4, owner: Object, changed, set_data) {
     this.data.load(data);
-    ToolProperty.prototype.set_data.call(this, undefined, owner, changed, false);
+    ToolProperty.prototype.setValue.call(this, undefined, owner, changed, false);
   }
 
   copyTo(dst: TransformProperty) {
@@ -547,7 +547,7 @@ export class CollectionProperty extends ToolProperty {
     this._ctx = undefined;
 
     if (data !== undefined) {
-      this.set_data(data);
+      this.setValue(data);
     }
   }
 
@@ -555,7 +555,7 @@ export class CollectionProperty extends ToolProperty {
     ToolProperty.prototype.copyTo.call(this, dst, false);
 
     dst.types = this.types;
-    this.set_data(this.data);
+    this.setValue(this.data);
 
     return dst;
   }
@@ -566,7 +566,7 @@ export class CollectionProperty extends ToolProperty {
     ret._ctx = this._ctx;
 
     if (this._data != undefined && this._data.copy != undefined)
-      ret.set_data(this._data.copy());
+      ret.setValue(this._data.copy());
 
     return ret;
   }
@@ -589,20 +589,20 @@ export class CollectionProperty extends ToolProperty {
     }
 
     if ("__tooliter__" in data && typeof  data.__tooliter__ == "function") {
-      this.set_data(data.__tooliter__(), owner, changed);
+      this.setValue(data.__tooliter__(), owner, changed);
       return;
     } else if (!(this.flag & TPropFlags.COLL_LOOSE_TYPE) && !(TPropIterable.isTPropIterable(data))) {
       console.trace();
-      console.log("ERROR: bad data '", data, "' was passed to CollectionProperty.set_data!");
+      console.log("ERROR: bad data '", data, "' was passed to CollectionProperty.setValue!");
 
       //this is, sadly, an unrecoverable error.
-      throw new Error("ERROR: bad data '", data, "' was passed to CollectionProperty.set_data!");
+      throw new Error("ERROR: bad data '", data, "' was passed to CollectionProperty.setValue!");
     }
 
     this._data = data;
     this._data.ctx = this.ctx;
 
-    ToolProperty.prototype.set_data.call(this, undefined, owner, changed, false);
+    ToolProperty.prototype.setValue.call(this, undefined, owner, changed, false);
   }
 
 //tool props are not supposed to use setters
@@ -614,7 +614,7 @@ export class CollectionProperty extends ToolProperty {
 //XXX: except. . .now you can't pass owner into it
 
   set data(data) {
-    this.set_data(data);
+    this.setValue(data);
   }
 
   get data() {
@@ -710,7 +710,7 @@ export class ToolProperty {
 
   //path.ux compatibility method
   setValue(value) {
-    this.set_data(value);
+    this.setValue(value);
   }
 
   copyTo(dst, copy_data=false, copy_listeners=true) {
@@ -857,16 +857,16 @@ export class ToolProperty {
     case PropTypes.INT_ARRAY:
     case PropTypes.ENUM:
     case PropTypes.FLAG:
-      prop.set_data(json.data);
+      prop.setValue(json.data);
       break;
     case PropTypes.ELEMENTS:
-      prop.set_data(new GArray(json.data));
+      prop.setValue(new GArray(json.data));
       break;
     case PropTypes.VEC3:
-      prop.set_data(new Vector3(json.data));
+      prop.setValue(new Vector3(json.data));
       break;
     case PropTypes.VEC4:
-      prop.set_data(new Vector4(json.data));
+      prop.setValue(new Vector4(json.data));
       break;
     }
   }
@@ -1235,12 +1235,12 @@ export class TransformProperty extends ToolProperty {
     super(PropTypes.TRANSFORM, apiname, uiname, description, flag)
     
     if (value != undefined) 
-      ToolProperty.prototype.set_data.call(this, new Matrix4UI(value));
+      ToolProperty.prototype.setValue.call(this, new Matrix4UI(value));
   }
   
   set_data(Matrix4 data, Object owner, changed, set_data) {
     this.data.load(data);
-    ToolProperty.prototype.set_data.call(this, undefined, owner, changed, false);
+    ToolProperty.prototype.setValue.call(this, undefined, owner, changed, false);
   }
   
   copyTo(TransformProperty dst) {
@@ -1383,7 +1383,7 @@ export class EnumProperty extends ToolProperty {
   }
 
   setValue(v) {
-    return this.set_data(v);
+    return this.setValue(v);
   }
 
   get_value() {
@@ -1393,7 +1393,7 @@ export class EnumProperty extends ToolProperty {
 
   set_value(val) {
     //console.warn("Call to EnumProperty.prototype.set_value");
-    this.set_data(val);
+    this.setValue(val);
   }
 
   set_data(val) {
@@ -1445,7 +1445,7 @@ export class Vec2Property extends ToolProperty {
   
   set_data(Vector2 data, Object owner, changed) {
     this.data.load(data);
-    ToolProperty.prototype.set_data.call(this, undefined, owner, changed, false);
+    ToolProperty.prototype.setValue.call(this, undefined, owner, changed, false);
   }
   
   copy() : Vec2Property {
@@ -1489,7 +1489,7 @@ export class Vec3Property extends ToolProperty {
   
   set_data(Vector3 data, Object owner, changed) {
     this.data.load(data);
-    super.set_data(undefined, owner, changed, false);
+    super.setValue(undefined, owner, changed, false);
   }
   
   copy() : Vec3Property {
@@ -1536,7 +1536,7 @@ export class Vec4Property extends ToolProperty {
   
   set_data(Vector4 data, Object owner, changed) {
     this.data.load(data);
-    ToolProperty.prototype.set_data.call(this, undefined, owner, changed, false);
+    ToolProperty.prototype.setValue.call(this, undefined, owner, changed, false);
   }
   
   copy() : Vec4Property {
@@ -1635,14 +1635,14 @@ export class CollectionProperty extends ToolProperty {
     this._data = undefined;
     this._ctx = undefined;
     
-    this.set_data(data);
+    this.setValue(data);
   }
   
   copyTo(CollectionProperty dst) : CollectionProperty {
     ToolProperty.prototype.copyTo.call(this, dst, false);
     
     dst.types = this.types;
-    this.set_data(this.data);
+    this.setValue(this.data);
     
     return dst;
   }
@@ -1653,7 +1653,7 @@ export class CollectionProperty extends ToolProperty {
     ret._ctx = this._ctx;
     
     if (this._data != undefined && this._data.copy != undefined)
-      ret.set_data(this._data.copy());
+      ret.setValue(this._data.copy());
     
     return ret;
   }
@@ -1676,20 +1676,20 @@ export class CollectionProperty extends ToolProperty {
     }
     
     if ("__tooliter__" in data && typeof  data.__tooliter__ == "function") {
-      this.set_data(data.__tooliter__(), owner, changed);
+      this.setValue(data.__tooliter__(), owner, changed);
       return;
     } else if (!(this.flag & TPropFlags.COLL_LOOSE_TYPE) && !(TPropIterable.isTPropIterable(data))) {
       console.trace();
-      console.log("ERROR: bad data '", data, "' was passed to CollectionProperty.set_data!");
+      console.log("ERROR: bad data '", data, "' was passed to CollectionProperty.setValue!");
       
       //this is, sadly, an unrecoverable error.
-      throw new Error("ERROR: bad data '", data, "' was passed to CollectionProperty.set_data!");
+      throw new Error("ERROR: bad data '", data, "' was passed to CollectionProperty.setValue!");
     }
     
     this._data = data;
     this._data.ctx = this.ctx;
     
-    ToolProperty.prototype.set_data.call(this, undefined, owner, changed, false);
+    ToolProperty.prototype.setValue.call(this, undefined, owner, changed, false);
   }
   
   //tool props are not supposed to use setters
@@ -1701,7 +1701,7 @@ export class CollectionProperty extends ToolProperty {
   //XXX: except. . .now you can't pass owner into it
   
   set data(data) {
-    this.set_data(data);
+    this.setValue(data);
   }
   
   get data() {

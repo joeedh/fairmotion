@@ -1,5 +1,5 @@
 from js_lex import HexInt, StringLit
-from js_global import glob
+from js_global import glob, termColor
 from js_util_types import odict
 import sys, traceback, os, os.path
 
@@ -113,7 +113,6 @@ class Node (object):
   def c(self):
     if self.comment == None: return ""
     
-    print("------------------------->", self.comment)
     if self.comment.strip().startswith("//"):
       self.comment = "/*" + self.comment[self.comment.find("//"):] + "*/"
     return self.comment
@@ -204,6 +203,9 @@ class Node (object):
   def copy(self):
     raise RuntimeError("Unimplemented copy function in type %s!"%str(type(self)))
   
+  def get_color(self):
+    return "orange"
+
   def copy_children(self, n2):
     n2.children[:] = []
     for c in self:
@@ -225,29 +227,30 @@ class Node (object):
     
   def __str__(self, tlevel=0):
     t = tab(tlevel, "-")
-    
+    t = termColor(t, "grey")
+
     name = ""
     if self.type != None:
       if type(self.type) == str:
-        name += self.type + " "
+        name += termColor(self.type, "blue") + " "
       else:
         if hasattr(self.type, "get_type_str"):
-          name += self.type.get_type_str() + ": "
+          name += termColor(self.type.get_type_str(), "darkblue") + ": "
         else:
           name += "(" + self.type.get_line_str() + "): "
     
-    name += str(type(self)).replace("js_ast.", "").replace("<class", "").replace(">", "").replace(" ", "").replace("'", "")
+    name += termColor(str(type(self)), self.get_color()).replace("js_ast.", "").replace("<class", "").replace(">", "").replace(" ", "").replace("'", "")
     if len(self.children) == 0:
       return t + name + " " + self.extra_str()
     else:
-      s = t + name + " " + self.extra_str() + " {\n"
+      s = t + name + " " + self.extra_str() + termColor(" {\n", self.get_color())
       for c in self.children:
         cs = c.__str__(tlevel+1)
         if not (cs.endswith("\n")):
           cs += "\n"
         
         s += cs
-      s += t + "}\n"
+      s += t + termColor("}\n", self.get_color())
       return s
   def __repr__(self):
     return str(self)
@@ -358,6 +361,9 @@ class IdentNode (ValueNode):
 
     self.lexpos2 = self.lexpos + len(ident)
   
+  def get_color(self):
+    return "teal"
+
   def gen_js(self, tlevel):
     s = self.s(str(self.val))
     
@@ -382,6 +388,9 @@ class IdentNode (ValueNode):
     return n2
 
 class VarDeclNode(IdentNode):
+  def get_color(self):
+    return "yellow"
+
   def __init__(self, expr, local=False, name="(unnamed)"):
     #self[0] is assignment expression
     #self[1] is type
@@ -475,6 +484,7 @@ class VarDeclNode(IdentNode):
     if len(self.children) > 2:
       for c in self.children[2:]:
         s += self.s(", ") + c.gen_js(tlevel)
+        pass
     
     return s
   
@@ -911,7 +921,10 @@ class ExprNode (Node):
     
     for e in exprnodes:
       self.add(e)
-      
+  
+  def get_color(self):
+    return "blue"
+
   def copy(self):
     n2 = ExprNode(self)
     self.copy_basic(n2)
@@ -1051,6 +1064,10 @@ class ExprListNode (ExprNode):
     
   def get_type_str(self):
     return "(none)"
+  
+  def get_color(self):
+    return "peach"
+
   def copy(self):
     n2 = ExprListNode(self)
     self.copy_basic(n2)
@@ -1258,6 +1275,9 @@ class StatementList (Node):
     super(StatementList, self).__init__()
     self.force_block = False
   
+  def get_color(self):
+    return "green"
+
   def gen_js(self, tlevel):
     t = tab(tlevel)
     t2 = tab(tlevel+1)
@@ -2352,6 +2372,7 @@ class ClassNode(Node):
     self.parents = parents
     
   def gen_js(self, tlevel):
+    t0 = tab(tlevel-1)
     t1 = tab(tlevel)
     t2 = tab(tlevel+1)
     
@@ -2365,7 +2386,7 @@ class ClassNode(Node):
 
     for c in self:
       s += t1 + c.gen_js(tlevel+1) + "\n"
-    s += "}"
+    s += t0 + "}"
     
     return s
 

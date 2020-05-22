@@ -133,6 +133,9 @@ sources = [
   "src/scene/scene.js",
   "src/scene/sceneobject.js",
 
+  "src/editors/all.js",
+  "src/editors/console/console.js",
+  "src/editors/theme.js",
   "src/editors/menubar/MenuBar.js",
   "src/editors/events.js",
   "src/core/touchevents.js",
@@ -236,7 +239,7 @@ copy_targets = {
    "jasmine.js"      : "tools/utils/libs/jasmine/lib/jasmine.js",
    "jasmine-html.js" : "tools/utils/libs/jasmine/lib/jasmine-html.js",
    "jasmine-console.js"      : "tools/utils/libs/jasmine/lib/console.js",
-   "jasmine_boot.js"         : "src/unit_tests/jasmine_boot.js"
+   "jasmine_boot.js"         : "src/unit_tests/jasmine_boot.js",
 }
 
 optional_copy_targets = {

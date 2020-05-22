@@ -41,7 +41,7 @@ export class TransformOp extends ToolOp {
     }
     
     if (datamode != undefined)
-      this.inputs.datamode.set_data(datamode);
+      this.inputs.datamode.setValue(datamode);
     
     this.modaldata = {};
   }
@@ -50,20 +50,20 @@ export class TransformOp extends ToolOp {
     var op = new this();
 
     if ("datamode" in args) {
-      op.inputs.datamode.set_data(args["datamode"]);
+      op.inputs.datamode.setValue(args["datamode"]);
     }
     if ("mpos" in args) {
       this.user_start_mpos = args["mpos"];
     }
 
-    op.inputs.edit_all_layers.set_data(ctx.view2d.edit_all_layers);
+    op.inputs.edit_all_layers.setValue(ctx.view2d.edit_all_layers);
 
     console.log("=====", args, ctx.view2d.session_flag, ctx.view2d.propradius);
-    //op.inputs.datamode.set_data(ctx.view2d.selectmode);
+    //op.inputs.datamode.setValue(ctx.view2d.selectmode);
 
     if (ctx.view2d.session_flag & SessionFlags.PROP_TRANSFORM) {
-      op.inputs.proportional.set_data(true);
-      op.inputs.propradius.set_data(ctx.view2d.propradius);
+      op.inputs.proportional.setValue(true);
+      op.inputs.propradius.setValue(ctx.view2d.propradius);
     }
 
     return op;
@@ -316,7 +316,7 @@ export class TransformOp extends ToolOp {
       case 89: //ykey
         this.inputs.constraint_axis.data.zero();
         this.inputs.constraint_axis.data[event.keyCode == 89 ? 1 : 0] = 1;
-        this.inputs.constrain.set_data(true);
+        this.inputs.constrain.setValue(true);
 
         this.exec(this.modal_ctx);
         window.redraw_viewport();
@@ -330,7 +330,7 @@ export class TransformOp extends ToolOp {
         break;
       case 189: //minus key
         if (this.inputs.proportional.data) {
-          this.inputs.propradius.set_data(this.inputs.propradius.data-propdelta);
+          this.inputs.propradius.setValue(this.inputs.propradius.data-propdelta);
           this.transdata.propradius = this.inputs.propradius.data;
           this.transdata.calc_propweights();
           this.modal_ctx.view2d.propradius = this.inputs.propradius.data;
@@ -342,7 +342,7 @@ export class TransformOp extends ToolOp {
         break;
       case 187: //plus key
         if (this.inputs.proportional.data) {
-          this.inputs.propradius.set_data(this.inputs.propradius.data+propdelta);
+          this.inputs.propradius.setValue(this.inputs.propradius.data+propdelta);
           this.transdata.propradius = this.inputs.propradius.data;
           this.transdata.calc_propweights();
           this.modal_ctx.view2d.propradius = this.inputs.propradius.data;
@@ -407,7 +407,7 @@ export class TranslateOp extends TransformOp {
     ctx.view2d.unproject(off);
     
     off.sub(start);
-    this.inputs.translation.set_data(off);
+    this.inputs.translation.setValue(off);
 
     this.exec(ctx);
     this.post_mousemove(event);
@@ -475,7 +475,7 @@ export class NonUniformScaleOp extends TransformOp {
     scale[1] = off1[1] != off2[1] && off2[1] != 0.0 ? off1[1] / off2[1] : 1.0;
     scale[2] = 1.0;
     
-    this.inputs.scale.set_data(scale);
+    this.inputs.scale.setValue(scale);
     
     this.exec(ctx);
     this.post_mousemove(event);
@@ -550,7 +550,7 @@ export class ScaleOp extends TransformOp {
     scale[0] = scale[1] = l1/l2;
     scale[2] = 1.0;
     
-    this.inputs.scale.set_data(scale);
+    this.inputs.scale.setValue(scale);
     
     this.exec(ctx);
     this.post_mousemove(event);
@@ -631,7 +631,7 @@ export class RotateOp extends TransformOp {
     this.angle_sum += angle;
     md.start_mpos.load(md.mpos);
     
-    this.inputs.angle.set_data(this.angle_sum);
+    this.inputs.angle.setValue(this.angle_sum);
     
     this.exec(ctx);
     this.post_mousemove(event);

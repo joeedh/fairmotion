@@ -13,23 +13,27 @@ import {
   SVGDraw2D, SVGPath
 } from './vectordraw_svg.js';
 
+export {VectorFlags} from  './vectordraw_base.js';
+
 import {
-  VectorFlags
-} from './vectordraw_base.js';
+  SimpleCanvasPath, SimpleCanvasDraw2D
+} from './vectordraw_canvas2d_simple.js';
 
-export var VectorFlags = VectorFlags;
-
+//*
+export let Canvas = SimpleCanvasDraw2D;
+export let Path = SimpleCanvasPath;
+//*/
 /*
-export var Canvas = StubCanvasDraw2D;
-export var Path = StubCanvasPath;
+export let Canvas = StubCanvasDraw2D;
+export let Path = StubCanvasPath;
 //*/
 
-//* canvas2d
-export var Canvas = CanvasDraw2D;
-export var Path = CanvasPath;
+/* canvas2d
+export let Canvas = CanvasDraw2D;
+export let Path = CanvasPath;
 //*/
 
 /* svg
-export var Canvas = SVGDraw2D;
-export var Path = SVGPath;
+export let Canvas = SVGDraw2D;
+export let Path = SVGPath;
 //*/

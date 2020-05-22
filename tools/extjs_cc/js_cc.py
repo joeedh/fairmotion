@@ -4,12 +4,97 @@ import ply, re, traceback
 import argparse, base64, json
 
 from js_lex import plexer
-from js_global import glob, Glob
+from js_global import glob, Glob, termColor
 
 from js_ast import *
 from js_parse import parser, print_err
 from js_preprocessor import preprocess_text
 from js_comment import *
+
+def syntaxColor(s):
+  s2 = ""
+  bs = set(["{", "}", "[", "]", "(", ")"])
+  ops = set(["-", "=", "+", ",", "*", ".", "/", "!", "|", "^", "&", "%", "~"])
+  
+  import re
+  
+
+  def chr1(i):
+    return i
+    #return chr(i+16)
+    s = ""
+    for j in range(i):
+      s += "@"
+
+    return s
+    i = str(i)
+    
+    return str(i)
+
+  base = 0
+  colors = {
+    "teal" : chr1(base+1),
+    "orange" : chr1(base+2),
+    "blue" : chr1(base+3),
+    "peach" : chr1(base+4),
+    "green" : chr1(base+5),
+    "yellow" : chr1(base+6),
+    "lightred" : chr1(base+7),
+    "gray" : chr1(base+7),
+    "white" : chr1(base+8)
+  };
+  rcolors = {}
+
+  for k in colors:
+    rcolors[colors[k]] = k
+  
+  map = [-1 for x in range(len(s))]
+
+  for i in range(len(s)):
+    c = s[i]
+
+    if c in bs:
+      map[i] = colors["gray"]
+    elif c in ops:
+      map[i] = colors["orange"]
+
+  def mid():
+    id = _midgen[0]
+    _midgen[0] += 1
+
+    id = "_" + str(id) + "_"
+
+    return id
+  
+  _clr = ["blue"]
+
+  #[\n\r=\t \(\),\{\}\[\]]
+  keyword = re.compile(r"(?<=\b)(var|let|const|class|constructor|if|else|extends|super|do|while|for|try|catch|finally|of|in|undefined|null|function|=>)(?=\b)")
+  string = re.compile(r'(".*")|(\'.*\')|(`.*`)')
+  call = re.compile(r'([a-zA-Z0-9_]+)(?=\()')
+  args = re.compile(r'(?<=[,\()])[ a-zA-Z0-9_]+(?=[,\)])')
+  def repl(arg):
+    start = arg.start()
+    end = arg.end()
+
+    for i in range(start, end):
+      map[i] = colors[_clr[0]]
+
+    return arg.string[arg.start():arg.end()]
+
+  _clr[0] = "yellow"; re.sub(args, repl, s)
+  _clr[0] = "green"; re.sub(call, repl, s)
+  _clr[0] = "blue"; re.sub(keyword, repl, s)
+  _clr[0] = "peach"; re.sub(string, repl, s)
+
+  s2 = ""
+  for i in range(len(s)):
+    c = s[i]
+    if map[i] < 0:
+      s2 += termColor(c, "reset")
+    else:
+      s2 += termColor(c, rcolors[map[i]])
+  return s2
 
 plexer.lineno = 0
 
@@ -248,6 +333,9 @@ def js_parse(data, args=None, file="", flatten=True,
   if glob.g_error:
     ret = None
   
+  if ret:
+    flatten_statementlists(ret, None)
+
   if glob.g_clear_slashr:
     print("\n")
     
@@ -714,7 +802,7 @@ def parse_intern_es6(data):
   buf = format_es6(result, typespace)
  
   if glob.g_outfile == "":
-    print(buf)
+    print(syntaxColor(buf))
   
   return buf, result
   
@@ -1007,6 +1095,13 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
     print_err(glob.g_error_pre)
     
   typespace = JSTypeSpace()
+  
+  if glob.g_raw_code:
+    buf = result.gen_js(0);
+    if glob.g_outfile == "":
+      print(syntaxColor(buf))
+      
+    return buf, result
 
   flatten_var_decls_exprlists(result, typespace)
   
@@ -1029,9 +1124,11 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
     
   if glob.g_enable_let:
     process_let(result, typespace)
+    pass
     
   if glob.g_force_global_strict:
     kill_bad_globals(result, typespace)
+    pass
   
   #handle .? operator
   transform_exisential_operators(result, typespace)
@@ -1044,7 +1141,9 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
     
   if glob.g_es6_modules:
     module_transform(result, typespace)
+    pass
   
+  #"""
   if glob.g_require_js:
     expand_requirejs_classes(result, typespace)
   elif glob.g_expand_classes:
@@ -1052,7 +1151,9 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
     expand_typed_classes(result, typespace)
   else:
     create_class_list(result, typespace)
-  
+    pass
+  #"""
+
   if glob.g_clear_slashr:
     print("\n")
   
@@ -1168,7 +1269,8 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
       buf, smap = js_minify(result)
     
   if glob.g_outfile == "":
-    print(buf)
+    sys.stdout.write(syntaxColor(buf) + "\n")
+
     if 0:
       file = open("generator_test.html", "w")
       file.write("""
@@ -1333,7 +1435,7 @@ def main():
       from js_refactor import refactor
       buf, node = refactor(data)
       if args.outfile == "":
-        print(buf)
+        print(syntaxColor(buf))
     elif glob.g_gen_log_code:
       buf, node = parse(data, expand_loops=doloops, create_logger=True)
     else:

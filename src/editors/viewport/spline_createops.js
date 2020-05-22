@@ -16,9 +16,9 @@ export class ExtrudeVertOp extends SplineLocalToolOp {
     super();
     
     if (co !== undefined)
-      this.inputs.location.set_data(co);
+      this.inputs.location.setValue(co);
     if (mode !== undefined) {
-      this.inputs.mode.set_data(mode);
+      this.inputs.mode.setValue(mode);
     }
   }
   
@@ -133,7 +133,7 @@ export class ExtrudeVertOp extends SplineLocalToolOp {
     else if (smode == ExtrudeModes.BROKEN)
       v.flag |= SplineFlags.BREAK_TANGENTS;
       
-    this.outputs.vertex.set_data(v.eid);
+    this.outputs.vertex.setValue(v.eid);
     
     spline.verts.setselect(v, true);
     
@@ -185,7 +185,7 @@ export class CreateEdgeOp extends SplineLocalToolOp {
     super();
     
     if (linewidth != undefined)
-      this.inputs.linewidth.set_data(linewidth);
+      this.inputs.linewidth.setValue(linewidth);
   }
   
   static tooldef() { return {
@@ -250,7 +250,7 @@ export class CreateEdgeFaceOp extends SplineLocalToolOp {
     super();
     
     if (linewidth != undefined)
-      this.inputs.linewidth.set_data(linewidth);
+      this.inputs.linewidth.setValue(linewidth);
   }
   
   static tooldef() { return {
@@ -427,7 +427,7 @@ export class ImportJSONOp extends ToolOp {
     super();
     
     if (str != undefined) {
-      this.inputs.strdata.set_data(str);
+      this.inputs.strdata.setValue(str);
     }
   }
   

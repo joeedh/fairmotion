@@ -2,8 +2,11 @@
 <html>
 
 <head>
+   <!--  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-eval' 'unsafe-inline'">-->
+
     <script src="node_modules/canvaskit-wasm/bin/canvaskit.js"></script>
     <script type="application/javascript">
+      window.haveElectron = true;
       /*
       CanvasKitInit({
         locateFile: (file) => 'node_modules/canvaskit-wasm/bin/'+file,

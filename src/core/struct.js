@@ -14,7 +14,10 @@ export function profile_report() {}
 * */
 window.STRUCT_ENDIAN = false;
 nstructjs.binpack.STRUCT_ENDIAN = false;
+
+
 nstructjs.setDebugMode(false);
+nstructjs.setWarningMode(1); //turn off "class uses old fromSTRUCT interface" warnings
 
 window.istruct = nstructjs.manager;
 

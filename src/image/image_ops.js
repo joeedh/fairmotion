@@ -43,8 +43,8 @@ export class LoadImageOp extends ToolOp {
     datapath = ""+datapath;
     name = ""+name;
     
-    this.inputs.dest_datapath.set_data(datapath);
-    this.inputs.name.set_data(name)
+    this.inputs.dest_datapath.setValue(datapath);
+    this.inputs.name.setValue(name)
   }
   
   start_modal(ctx) {
@@ -59,8 +59,8 @@ export class LoadImageOp extends ToolOp {
       html5_fileapi.open_file(function(buffer, name) {
         console.log("loaded image!", buffer, buffer.byteLength);
         
-        this2.inputs.imagedata.set_data(buffer);
-        this2.inputs.imagepath.set_data(name);
+        this2.inputs.imagedata.setValue(buffer);
+        this2.inputs.imagepath.setValue(name);
         this2.exec(ctx);
       }, this, false, "Images", ["png", "jpg", "bmp", "tiff", "gif", "tga", "targa", "ico", "exr"]);
       
@@ -81,7 +81,7 @@ export class LoadImageOp extends ToolOp {
     image.path = this.inputs.imagepath.data;
     image.data = this.inputs.imagedata.data;
     
-    this.outputs.block.set_data(image);
+    this.outputs.block.setValue(image);
     var outpath = this.inputs.dest_datapath.data.trim();
     
     if (outpath != "") {

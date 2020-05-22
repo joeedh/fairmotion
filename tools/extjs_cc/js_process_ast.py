@@ -718,23 +718,51 @@ def check_constructor_super(result, typespace):
   traverse(result, ClassNode, visit)
 
 def add_class_list(typespace, n):
-    n2 = js_parse("_ESClass.register($s)", n.name)
+    name = n.name
+    #n2 = n.parent
+    #while n2 is not None and not (type(n2) == StatementList or isinstance(n2, FunctionNode)):
+    #  n2 = n2.parent
+
+    n2 = n.parent
+    ok = type(n2) == StatementList or isinstance(n2, FunctionNode)
+    if not ok:
+      if type(n2) == VarDeclNode:
+        name = n2.val
+      elif type(n2) == AssignNode:
+        name = n2[0].gen_js(0).strip()
+
+    n2 = js_parse("_ESClass.register($s)", name)[0]
     
     return n2
 
 def create_class_list(result, typespace):
-  check_constructor_super(result, typespace)
-  check_constructor_return(result, typespace)
+  #check_constructor_super(result, typespace)
+  #check_constructor_return(result, typespace)
   
   global _the_typespace
   _the_typespace = typespace
 
   def visit(n):
-    n.parent.insert(n.parent.index(n)+1, add_class_list(typespace, n))
+    insert_after(n, add_class_list(typespace, n))
+    #n.parent.insert(n.parent.index(n)+1, )
     
+  flatten_statementlists(result, typespace)
   traverse(result, ClassNode, visit)
   flatten_statementlists(result, typespace)
- 
+
+def get_parent_statementlist(node):
+  ln = node
+  pn = node.parent
+
+  while pn is not None and type(pn) not in [StatementList, FunctionNode]:
+        ln = pn
+        pn = pn.parent
+  return [pn, ln]
+
+def insert_after(n, n2):
+  pn, ln = get_parent_statementlist(n)
+  pn.insert(pn.index(ln)+1, n2)
+
 def expand_harmony_super(result, typespace):
   check_constructor_super(result, typespace)
   

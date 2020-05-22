@@ -479,8 +479,8 @@ export class SplineEditor extends View2DEditor {
 
       if (ret != undefined) {
         var tool = new SelectLinkedOp(true, ctx.view2d.selectmode);
-        tool.inputs.vertex_eid.set_data(ret[0].eid);
-        tool.inputs.mode.set_data("SELECT");
+        tool.inputs.vertex_eid.setValue(ret[0].eid);
+        tool.inputs.mode.setValue("SELECT");
         
         ctx.appstate.toolstack.exec_tool(tool);
       }
@@ -492,8 +492,8 @@ export class SplineEditor extends View2DEditor {
       
       if (ret != undefined) {
         var tool = new SelectLinkedOp(true);
-        tool.inputs.vertex_eid.set_data(ret[0].eid);
-        tool.inputs.mode.set_data("deselect");
+        tool.inputs.vertex_eid.setValue(ret[0].eid);
+        tool.inputs.mode.setValue("deselect");
         
         ctx.appstate.toolstack.exec_tool(tool);
       }
@@ -643,9 +643,9 @@ export class SplineEditor extends View2DEditor {
         console.log(co);
 
         var op = new ExtrudeVertOp(co, this.ctx.view2d.extrude_mode);
-        op.inputs.location.set_data(co);
-        op.inputs.linewidth.set_data(this.ctx.view2d.default_linewidth);
-        op.inputs.stroke.set_data(this.ctx.view2d.default_stroke);
+        op.inputs.location.setValue(co);
+        op.inputs.linewidth.setValue(this.ctx.view2d.default_linewidth);
+        op.inputs.stroke.setValue(this.ctx.view2d.default_stroke);
         
         g_app_state.toolstack.exec_tool(op);
         redraw_viewport();
@@ -780,14 +780,14 @@ export class SplineEditor extends View2DEditor {
 
       console.log("start_mpos:", mpos);
 
-      op.inputs.datamode.set_data(this.ctx.view2d.selectmode);
-      op.inputs.edit_all_layers.set_data(this.ctx.view2d.edit_all_layers);
+      op.inputs.datamode.setValue(this.ctx.view2d.selectmode);
+      op.inputs.edit_all_layers.setValue(this.ctx.view2d.edit_all_layers);
 
       var ctx = new Context();
       
       if (ctx.view2d.session_flag & SessionFlags.PROP_TRANSFORM) {
-        op.inputs.proportional.set_data(true);
-        op.inputs.propradius.set_data(ctx.view2d.propradius);
+        op.inputs.proportional.setValue(true);
+        op.inputs.propradius.setValue(ctx.view2d.propradius);
       }
       
       g_app_state.toolstack.exec_tool(op);

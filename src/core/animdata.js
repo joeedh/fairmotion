@@ -212,7 +212,7 @@ export class AnimChannel {
       
       for (var i=0; i<this.keys.length; i++) {
         if (this.keys[i].time == time) {
-          this.keys[i].data.set_data(val);
+          this.keys[i].data.setValue(val);
           return this.keys[i];
         }
       }
@@ -226,7 +226,7 @@ export class AnimChannel {
       
       key.channel = this;
       key.data = new propcls();
-      key.data.set_data(val);
+      key.data.setValue(val);
       key.time = time;
       
       this.keys.push(key);

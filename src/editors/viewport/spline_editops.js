@@ -40,11 +40,11 @@ export class ShiftLayerOrderOp extends ToolOp {
     super();
     
     if (layer_id != undefined) {
-      this.inputs.layer_id.set_data(layer_id);
+      this.inputs.layer_id.setValue(layer_id);
     }
     
     if (off != undefined) {
-      this.inputs.off.set_data(off);
+      this.inputs.off.setValue(off);
     }
   }
   
@@ -350,7 +350,7 @@ export class PastePoseOp extends SplineLocalToolOp {
     }
     
     this.inputs.pose.flag |= TPropFlags.COLL_LOOSE_TYPE;
-    this.inputs.pose.set_data(array);
+    this.inputs.pose.setValue(array);
     
     this.exec(ctx);
   }
@@ -679,9 +679,9 @@ export class ChangeFaceZ extends SplineLocalToolOp {
     super(undefined);
     
     if (offset != undefined)
-      this.inputs.offset.set_data(offset); 
+      this.inputs.offset.setValue(offset); 
     if (selmode != undefined)
-      this.inputs.selmode.set_data(selmode);
+      this.inputs.selmode.setValue(selmode);
   }
   
   static tooldef() { return {
@@ -941,7 +941,7 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
     
     if (ret === undefined) {
       this.reset_drawlines();
-      this.inputs.segment_eid.set_data(-1);
+      this.inputs.segment_eid.setValue(-1);
       
       return;
     }
@@ -950,10 +950,10 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
     let spline = ret[0];
     
     if (spline === ctx.frameset.pathspline) {
-      this.inputs.spline_path.set_data("pathspline");
+      this.inputs.spline_path.setValue("pathspline");
       //console.log("pathspline");
     } else {
-      this.inputs.spline_path.set_data("spline");
+      this.inputs.spline_path.setValue("spline");
       //console.log("drawspline");
     }
     
@@ -969,8 +969,8 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
       lastco = co;
     }
     
-    this.inputs.segment_eid.set_data(seg.eid);
-    this.inputs.segment_t.set_data(0.5);
+    this.inputs.segment_eid.setValue(seg.eid);
+    this.inputs.segment_t.setValue(0.5);
   
     ctx.view2d.unproject(mpos);
     //console.log("pmpos", mpos);
@@ -978,7 +978,7 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
     let p = seg.closest_point(mpos, ClosestModes.CLOSEST);
     
     if (p !== undefined) {
-      this.inputs.segment_t.set_data(p[1]);
+      this.inputs.segment_t.setValue(p[1]);
       
       //console.log("  p", p[1].toFixed(4), p[0]);
       
@@ -1577,7 +1577,7 @@ export class ShiftTimeOp extends ToolOp {
     //console.log("time offset", dx);
     
     this.undo(this.modal_ctx);
-    this.inputs.factor.set_data(dx);
+    this.inputs.factor.setValue(dx);
     
     this.exec(this.modal_ctx);
     

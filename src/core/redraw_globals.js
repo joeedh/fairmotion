@@ -172,13 +172,58 @@ window.init_redraw_globals = function init_redraw_globals() {
   
   let redraw_viewport_promise = undefined;
   
+  let animreq2;
+  window._all_draw_jobs_done = function() {
+    console.log("all rendering jobs done");
+    animreq2 = undefined;
+  }
+
+  window.redraw_viewport_test = function() {
+    if (animreq2 !== undefined) {
+      return redraw_viewport_promise;
+    }
+
+    redraw_viewport_promise = new Promise((accept, reject) => {
+      animreq = myrequestAnimationFrame(function () {
+        animreq = undefined;
+
+        var rects = workcanvas_redraw_rects;
+
+        workcanvas_redraw_rects = workcanvas_redraw_rects2;
+        workcanvas_redraw_rects.length = 0;
+        workcanvas_redraw_rects2 = rects;
+
+        //console.log("REDRAWING VIEWPORT");
+        let screen = g_app_state.screen;
+
+        for (let sarea of screen.sareas) {
+          if (sarea.area.constructor.name == "View2DHandler") {
+            var old = window.g_app_state.active_view2d;
+            window.g_app_state.active_view2d = sarea.area;
+
+            sarea.area.push_ctx_active();
+            sarea.area.do_draw_viewport(rects);
+            sarea.area.pop_ctx_active();
+
+            window.g_app_state.active_view2d = old;
+            accept();
+          }
+        }
+      });
+    });
+  }
+
   //combine_mode is optional, false.  used by e.g. transform code.
   window.redraw_viewport = function(min, max, ignore_queuing, combine_mode) {
+    //return window.redraw_viewport_test()
     //console.trace("redraw_viewport");
     
     if (ignore_queuing == undefined)
       ignore_queuing = false;
     
+    if (ignore_queuing) {
+      console.log("ignore_queuing");
+    }
     if (!ignore_queuing && pending_redraws > 0) {
       var q = cur_redraw_queue;
       

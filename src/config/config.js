@@ -1,10 +1,13 @@
 "use strict";
 
 export let PathUXConstants = {
+  colorSchemeType : "dark",
   autoSizeUpdate : true,
   useAreaTabSwitcher : false,
   addHelpPickers : true,
-  showPathsInToolTips : true
+  showPathsInToolTips : true,
+  DEBUG : {
+  }
 };
 
 export var MANIPULATOR_MOUSEOVER_LIMIT = 25;
@@ -13,6 +16,8 @@ export var ELECTRON_APP_MODE = document.getElementById("ElectronAppMode") !== nu
 export var CHROME_APP_MODE = document.getElementById("GoogleChromeAppMode") !== null;
 export var PHONE_APP_MODE = document.getElementById("PhoneAppMode") !== null;
 export var HTML5_APP_MODE = document.getElementById("Html5AppMode") !== null;
+
+export var HAVE_SKIA = true;
 
 let platform = "web";
 if (ELECTRON_APP_MODE) {

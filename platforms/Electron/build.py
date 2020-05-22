@@ -45,6 +45,8 @@ def build():
 
   copy("./src/vectordraw/vectordraw_canvas2d_worker.js", "./electron_build/vectordraw_canvas2d_worker.js");
   copy("./src/vectordraw/vectordraw_skia_worker.js", "./electron_build/vectordraw_skia_worker.js");
+  copy("./src/path.ux/scripts/platforms/electron/icogen.js", "./electron_build/icogen.js");
+
   #copy("./build/iconsheet.png", "./electron_build/fcontent/iconsheet.png");
   #copy("./build/iconsheet16.png", "./electron_build/fcontent/iconsheet16.png");
 

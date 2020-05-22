@@ -2301,6 +2301,7 @@ def p_expr(p):
             | expr COND_DOT expr
             | expr DOT expr
             | expr DOT DELETE
+            | expr DOT DEFAULT
             | expr LAND expr
             | expr LOR expr
             | expr BOR expr
@@ -3044,6 +3045,7 @@ def p_id(p):
          | CATCH
          | GLOBAL
          | AWAIT
+         | FROM
   '''
   set_parse_globals(p)
   p[0] = IdentNode(p[1])

@@ -16,8 +16,12 @@ function createWindow () {
       preload : "preload.js",
       experimentalFeatures : true,
       experimentalCanvasFeatures : true
-    }
-  });
+    },
+    darkTheme : true,
+    backgroundColor : "#555555",
+    //titleBarStyle : "hidden-inset",
+    //frame : false
+});
 
   win.setMenu(null);
   

@@ -80,8 +80,6 @@ export class WidgetResizeOp extends TransformOp {
     if (totsel < 2) {
       return;
     }
-
-    console.log(minmax.min, minmax.max);
     
     let cent = new Vector2(minmax.min).add(minmax.max).mulScalar(0.5);
     
@@ -184,7 +182,6 @@ export class WidgetResizeOp extends TransformOp {
     };
     
     let corner_onclick = function(e, view2d, id) {
-      console.log("id", id);
       let ci = id;
       let anchor = corners[(ci + 2) % 4];
       let co = new Vector3();
@@ -197,15 +194,11 @@ export class WidgetResizeOp extends TransformOp {
   
       let toolop = e.ctrlKey ? new ScaleOp(mpos, view2d.selectmode) : new NonUniformScaleOp(mpos, view2d.selectmode);
       
-      console.log("mpos", mpos[0], mpos[1]);
-      
       toolop.inputs.edit_all_layers.setValue(view2d.ctx.edit_all_layers);
       toolop.inputs.use_pivot.setValue(true);
       toolop.inputs.pivot.setValue(co);
       
       view2d.ctx.toolstack.exec_tool(toolop);
-      console.log(view2d.ctx, toolop.modal_ctx.edit_all_layers);
-      
       
       return true;
     }
@@ -215,13 +208,9 @@ export class WidgetResizeOp extends TransformOp {
     }
 
     larrow.on_click = rarrow.on_click = function(e, view2d, id) {
-      console.log("widget click!");
-  
       //let mpos = new Vector3([e.origX, e.origY, 0.0]);
       let mpos = new Vector3([e.origX, e.origY, 0.0]);
       //view2d.project(mpos);
-  
-      console.log("mpos", mpos[0], mpos[1]);
   
       let toolop = new ScaleOp(mpos, view2d.selectmode);
       
@@ -245,12 +234,8 @@ export class WidgetResizeOp extends TransformOp {
     }
 
     tarrow.on_click = barrow.on_click = function(e, view2d, id) {
-      console.log("widget click!");
-    
       let mpos = new Vector3([e.origX, e.origY, 0.0]);
       //view2d.project(mpos);
-      
-      console.log("mpos", mpos[0], mpos[1]);
       
       let toolop = new ScaleOp(mpos, view2d.selectmode);
   
@@ -337,8 +322,6 @@ export class WidgetRotateOp extends TransformOp {
       return;
     }
     
-    console.log(minmax.min, minmax.max);
-    
     let cent = new Vector2(minmax.min).add(minmax.max).mulScalar(0.5);
     
     let widget = manager.create(this);
@@ -409,7 +392,6 @@ export class WidgetRotateOp extends TransformOp {
     }
     
     let corner_onclick = function(e, view2d, id) {
-      console.log("id", id);
       let ci = id;
       let anchor = corners[(ci + 2) % 4];
       let co = new Vector3();
@@ -422,8 +404,6 @@ export class WidgetRotateOp extends TransformOp {
       
       let toolop = e.ctrlKey ? new ScaleOp(mpos, view2d.selectmode) : new NonUniformScaleOp(mpos, view2d.selectmode);
       
-      console.log("mpos", mpos[0], mpos[1]);
-      
       toolop.inputs.use_pivot.setValue(true);
       toolop.inputs.pivot.setValue(co);
       
@@ -433,12 +413,9 @@ export class WidgetRotateOp extends TransformOp {
     }
     
     circle.on_click = function(e, view2d, id) {
-      console.log("widget click!");
       
       let mpos = new Vector3([e.origX, e.origY, 0.0]);
       //view2d.project(mpos);
-      
-      console.log("mpos", mpos[0], mpos[1]);
       
       let toolop = new ScaleOp(mpos, view2d.selectmode);
       

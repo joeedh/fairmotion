@@ -11,6 +11,8 @@ import {
   VectorDraw
 } from './vectordraw_base.js';
 
+var debug = 0;
+
 var canvaspath_draw_mat_tmps = new cachering(_ => new Matrix4(), 16);
 
 var canvaspath_draw_args_tmps = new Array(8);
@@ -166,6 +168,12 @@ export class SimpleCanvasPath extends QuadBezPath {
     var g = draw.g;
     var tmp = new Vector3();
     
+    let debuglog = function() {
+      if (debug > 1) {
+        console.warn("%c path.draw", "color : green", ...arguments);
+      }
+    }
+
     g.beginPath();
     
     for (var i=0; i<this.commands.length; i += this.commands[i+1]+2) {
@@ -173,15 +181,18 @@ export class SimpleCanvasPath extends QuadBezPath {
       
       switch (cmd) {
         case BEGINPATH:
+          debuglog("BEGINPATH");
           g.beginPath();
           break;
         case LINETO:
+          debuglog("LINETO");
           tmp[0] = cmd[i+2], tmp[1] = cmd[i+3], tmp[2] = 0.0;
           tmp.multVecMatrix(draw.matrix);
           
           g.lineTo(tmp[0], tmp[1]);
           break;
         case BEZIERTO:
+          debuglog("BEZIERTO");
           tmp[0] = cmd[i+2], tmp[1] = cmd[i+3], tmp[2] = 0.0;
           tmp.multVecMatrix(draw.matrix);
           
@@ -193,6 +204,7 @@ export class SimpleCanvasPath extends QuadBezPath {
           g.quadraticCurveTo(x1, y1, tmp[0], tmp[1]);
           break;
         case MOVETO:
+          debuglog("MOVETO");
           tmp[0] = cmd[i+2], tmp[1] = cmd[i+3], tmp[2] = 0.0;
           tmp.multVecMatrix(draw.matrix);
           
@@ -208,9 +220,13 @@ export class SimpleCanvasPath extends QuadBezPath {
     
     g.fillStyle = "rgba("+r+","+g1+","+b+","+a+")";
     
+    debuglog("g.fillStyle", g.fillStyle);
+
     var doff = 25000;
     var do_blur = this.blur > 1;
     
+    debuglog("do_blur", do_blur);
+
     if (do_blur) {
       g.translate(-doff, -doff);
 
@@ -224,6 +240,8 @@ export class SimpleCanvasPath extends QuadBezPath {
       g.shadowBlur = 0;
     }
     
+    debuglog("fill");
+
     g.fill();
     
     if (do_blur) {
@@ -310,6 +328,11 @@ export class SimpleCanvasDraw2D extends VectorDraw {
   }
   
   update() {
+    console.warn("update called");
+
+    for (let p of this.paths) {
+      p.update();
+    }
   }
   
   static kill_canvas(svg) {
@@ -321,10 +344,15 @@ export class SimpleCanvasDraw2D extends VectorDraw {
   draw(g) {
     var canvas = g.canvas;
     
-    canvas.style["background"] = "rgba(0,0,0,0)";
+    //canvas.style["background"] = "rgba(0,0,0,0)";
     
     this.canvas = canvas;
     this.g = g;
+
+    g.beginPath()
+    g.rect(0, 0, canvas.width, canvas.height);
+    g.fillStyle = "orange";
+    g.fill();
     
     for (var p of this.paths) {
       p.draw(this);

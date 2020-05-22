@@ -1,6 +1,71 @@
 import argparse
 import os, sys, struct, io, random, os.path, types, re
 
+#fix stupid console on win32
+if "win" in sys.platform:
+  import ctypes
+
+  kernel32 = ctypes.windll.kernel32
+  #kernel32.AllocConsole()
+  handle = kernel32.GetStdHandle(-11)
+
+  error = kernel32.GetLastError()
+  kernel32.SetConsoleMode(handle, 1|4)
+  #print("error", error, handle);
+
+
+colormap = {
+  "black"   : 30,
+  "red"     : 31,
+  "green"   : 32,
+  "yellow"  : 33,
+  "blue"    : 34,
+  "magenta" : 35,
+  "cyan"    : 36,
+  "teal"    : 36,
+  "white"   : 37,
+  "reset"   : 0,
+  "grey"    : 2,
+  "gray"    : 2,
+  "orange"  : 202,
+  "pink"    : 198,
+  "brown"   : 314,
+  "lightred": 91,
+  "peach"   : 210,
+  "darkblue" : 273
+}
+
+def termColor(s, c):
+  if c in colormap:
+    c = colormap[c]
+  
+  if c > 107:
+    s2 = '\u001b[38;5;' + str(c) + "m"
+    return s2 + s + '\u001b[0m'
+    
+  s = str(s)
+  c = str(c)
+
+  return '\u001b[' + c + 'm' + s + '\u001b[0m'
+
+if __name__ == "__main__":
+  sys.stdout.write('\u001b[33m')
+  sys.stdout.flush()
+  sys.stdout.write("yay");
+  sys.stdout.flush()
+  #print terminal colors
+  w = 18
+  for j in range(w):
+    for i in range(w):
+      d = str(j*w + i)
+      while len(d) < 3:
+        d = "0" + d
+      d += " "
+      sys.stdout.write(termColor(d, j*w + i))
+    sys.stdout.write("\n")
+
+  sys.stdout.flush()
+
 glob_cmd_help_override = {
   "g_error" : "Force error",
   "g_tried_semi" : "Internal semicolon flag, for handling EOF edge cases",
@@ -16,7 +81,8 @@ glob_cmd_help_override = {
   "g_autoglobalize" : "Make module locals (but not exports) global.  Useful during refactoring.",
   "g_expand_classes" : "Fully transpile classes",
   "g_expand_generators" : "Transpile generators",
-  "g_include_comments" : "Include Comments"
+  "g_include_comments" : "Include Comments",
+  "g_raw_code" : "Disable code transformations"
 }
 glob_cmd_short_override = {}
 
@@ -58,6 +124,7 @@ gcs["g_enable_let"] = "lt"
 gcs["g_compile_statics_only"] = "sn"
 gcs["g_profile_coverage"] = "pc"
 gcs["g_include_comments"] = "ic"
+gcs["g_raw_code"] = "raw";
 
 def argv_to_argline():
   s = ""
@@ -256,6 +323,7 @@ class Glob(AbstractGlob):
     g_validate_mode = False
     g_lex_templates = True
     g_lexdata = None
+    g_raw_code = False
     g_comment_id = -1
     g_comment_line = -1
     g_comment = ""

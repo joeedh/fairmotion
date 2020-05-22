@@ -4,21 +4,23 @@ import * as eventmanager from '../core/eventmanager.js';
 import {MESSAGES} from './vectordraw_jobs_base.js';
 let MS = MESSAGES;
 
-let Debug = false;
+let Debug = 0;
 let freeze_while_drawing = true;
 
 import * as platform from '../../platforms/platform.js';
 import * as config from '../config/config.js';
 import {pushModalLight, popModalLight, keymap} from "../path.ux/scripts/util/simple_events.js";
 
-let MAX_THREADS = platform.app.numberOfCPUs();
+let MAX_THREADS = platform.app.numberOfCPUs() - 1;
 
 MAX_THREADS = Math.max(MAX_THREADS, 2);
 
 //prioritize fast startup in html5 mode, at least for now
-if (config.USE_HTML5_FILEAPI) {
+if (config.HTML5_APP_MODE || !config.HAVE_SKIA) {
   MAX_THREADS = 1;
 }
+
+window.MAX_THREADS = MAX_THREADS;
 
 //uses web workers
 export class Thread {
@@ -36,6 +38,8 @@ export class Thread {
     this.msgstate = undefined;
     
     worker.onmessage = this.onmessage.bind(this);
+    
+    this.ondone = null;
     
     this.callbacks = {};
     this.ownerid_msgid_map = {};
@@ -92,7 +96,6 @@ export class Thread {
         accept(data);
       }
   
-      
       this.callbacks[id] = callback;
       this.postMessage(MS.RUN, id);
     });
@@ -109,6 +112,7 @@ export class Thread {
   onmessage(e) {
     switch (e.data.type) {
       case MS.WORKER_READY:
+        console.log("%c Skia worker ready", "color: blue");
         this.ready = true;
         this.manager.has_ready_thread = true;
         break;
@@ -138,7 +142,7 @@ export class Thread {
           this.manager.on_thread_done(this);
         }
         
-        if (Debug) console.log(e.data.data[0]);
+        if (Debug) console.log(cb, e.data.data[0]);
         cb(e.data.data[0]);
         break;
     }
@@ -291,7 +295,9 @@ export class ThreadManager {
     if (this.threads.length == 0) {
       thread = this.spawnThread("vectordraw_canvas2d_worker.js");
       thread.ready = true; //canvas2d worker starts out in ready state
-      
+      //thread = this.spawnThread("vectordraw_skia_worker.js");
+      //thread.ready = true;
+
       //*
       for (let i=0; i<this.max_threads-1; i++) {
         this.spawnThread("vectordraw_skia_worker.js");
@@ -302,6 +308,7 @@ export class ThreadManager {
     }
   
     let ret = thread.postRenderJob(ownerid, commands, datablocks);
+
     return ret;
   }
   
@@ -317,6 +324,8 @@ export class ThreadManager {
     
     if (ok) {
       if (Debug) console.log("thread done");
+
+      window._all_draw_jobs_done();
       
       if (this.drawing && freeze_while_drawing) {
         this.endDrawing();

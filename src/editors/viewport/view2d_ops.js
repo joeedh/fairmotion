@@ -452,7 +452,7 @@ export class BasicFileDataOp extends ToolOp {
     this.undoflag = UndoFlags.IGNORE_UNDO|UndoFlags.IS_ROOT_OPERATOR|UndoFlags.UNDO_BARRIER;
 
     if (data)
-      this.inputs.data.set_data(data);
+      this.inputs.data.setValue(data);
 
     //make empty saved_context
     this.saved_context = new SavedContext();
@@ -519,7 +519,7 @@ export class FrameChangeOp extends ToolOp {
     this._undo = undefined;
     
     if (frame != undefined)
-      this.inputs.frame.set_data(frame);
+      this.inputs.frame.setValue(frame);
   }
 
   static tooldef() {return {

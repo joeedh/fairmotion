@@ -7,6 +7,8 @@ import * as platform from '../../../platforms/platform.js';
 import {Menu} from '../../path.ux/scripts/widgets/ui_menu.js';
 import {startup_file} from '../../core/startup_file.js';
 
+import * as electron_api from '../../path.ux/scripts/platforms/electron/electron_api.js';
+
 /*
   gen_file_menu(Context ctx, uimenulabel)
   {
@@ -103,6 +105,11 @@ export class MenuBar extends Editor {
     let notef = document.createElement("noteframe-x");
     notef.ctx = this.ctx;
     row._add(notef);
+
+    if (window.haveElectron) {
+      electron_api.initMenuBar(this);
+      this.minSize[1] = this.maxSize[1] = 1;
+    }
   }
 
   genSessionMenu(row)

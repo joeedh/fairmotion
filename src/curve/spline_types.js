@@ -970,11 +970,13 @@ export class SplineFace extends SplineElement {
     
     var this2 = this;
     
-    this.mat.update = function() {
-      this2.flag |= SplineFlags.REDRAW;
-    }
+    this.mat.update = this._mat_update.bind(this);
   }
   
+  _mat_update() {
+    this.flag |= SplineFlags.REDRAW;
+  }
+
   update() {
     this.flag |= SplineFlags.UPDATE_AABB|SplineFlags.REDRAW;
   }
@@ -1010,16 +1012,12 @@ export class SplineFace extends SplineElement {
     this._aabb = val;
   }
     
-  static fromSTRUCT(reader) {
-    var ret = new SplineFace();
-    ret.flag |= SplineFlags.UPDATE_AABB;
-    
-    reader(ret);
-    ret.mat.update = function() {
-      ret.flag |= SplineFlags.REDRAW;
-    }
-     
-    return ret;
+  loadSTRUCT(reader) {
+    reader(this);
+
+    super.loadSTRUCT(reader);
+    this.flag |= SplineFlags.UPDATE_AABB;
+    this.mat.update = this._mat_update.bind(this);
   }
 }
 

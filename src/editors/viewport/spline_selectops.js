@@ -28,9 +28,9 @@ export class SelectOpBase extends ToolOp {
     super(undefined, uiname);
     
     if (datamode !== undefined)
-      this.inputs.datamode.set_data(datamode);
+      this.inputs.datamode.setValue(datamode);
     if (do_flush !== undefined)
-      this.inputs.flush.set_data(do_flush);
+      this.inputs.flush.setValue(do_flush);
   }
   
   static tooldef() { return {
@@ -52,15 +52,15 @@ export class SelectOpBase extends ToolOp {
       datamode = ctx.selectmode;
     }
 
-    ret.inputs.datamode.set_data(datamode);
+    ret.inputs.datamode.setValue(datamode);
 
     console.log("args", args);
 
     if ("mode" in args) {
       let mode = args["mode"].toUpperCase().trim();
-      ret.inputs.mode.set_data(mode);
+      ret.inputs.mode.setValue(mode);
     } else {
-      ret.inputs.mode.set_data("AUTO");
+      ret.inputs.mode.setValue("AUTO");
     }
 
     return ret;
@@ -118,11 +118,11 @@ export class SelectOneOp extends SelectOpBase {
   constructor(SplineElement e=undefined, unique=true, mode=true, datamode=0, do_flush=false) {
     super(datamode, do_flush, "Select Element");
     
-    this.inputs.unique.set_data(unique);
-    this.inputs.state.set_data(mode);
+    this.inputs.unique.setValue(unique);
+    this.inputs.state.setValue(mode);
     
     if (e != undefined)
-      this.inputs.eid.set_data(e.eid);
+      this.inputs.eid.setValue(e.eid);
   }
   
   static tooldef() { return {
@@ -267,7 +267,7 @@ export class SelectLinkedOp extends SelectOpBase {
     super(datamode);
     
     if (mode != undefined)
-      this.inputs.mode.set_data(mode);
+      this.inputs.mode.setValue(mode);
   }
   
   static tooldef() { return {
@@ -324,9 +324,9 @@ export class HideOp extends SelectOpBase {
     super(undefined, undefined, "Hide");
     
     if (mode != undefined)
-      this.inputs.selmode.set_data(mode);
+      this.inputs.selmode.setValue(mode);
     if (ghost != undefined)
-      this.inputs.ghost.set_data(ghost);
+      this.inputs.ghost.setValue(ghost);
   }
 
   static tooldef() {return {
@@ -395,9 +395,9 @@ export class UnhideOp extends ToolOp {
     super(undefined, "Unhide");
     
     if (mode != undefined)
-      this.inputs.selmode.set_data(mode);
+      this.inputs.selmode.setValue(mode);
     if (ghost != undefined)
-      this.inputs.ghost.set_data(ghost);
+      this.inputs.ghost.setValue(ghost);
       
     this._undo = undefined;
   }

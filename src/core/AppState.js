@@ -1,8 +1,18 @@
 "use strict";
 
+import '../editors/all.js';
+
+import * as electron_api from '../path.ux/scripts/platforms/electron/electron_api.js';
+if (window.haveElectron) {
+  electron_api.checkInit();
+}
+
+import * as theme from '../editors/theme.js';
+
 import * as config from '../config/config.js';
 import * as html5_fileapi from './fileapi.js';
 
+import {ConsoleEditor} from '../editors/console/console.js';
 import {CurveEditor} from '../editors/curve/CurveEditor.js';
 import {OpStackEditor} from '../editors/ops/ops_editor.js';
 import {View2DHandler} from '../editors/viewport/view2d.js';
@@ -13,7 +23,7 @@ import {MenuBar} from '../editors/menubar/MenuBar.js';
 import {registerToolStackGetter} from '../path.ux/scripts/screen/FrameManager_ops.js';
 import {FairmotionScreen, resetAreaStacks} from '../editors/editor_base.js';
 
-import {iconmanager, setIconMap} from '../path.ux/scripts/core/ui_base.js';
+import {iconmanager, setIconMap, setTheme} from '../path.ux/scripts/core/ui_base.js';
 import {Editor} from '../editors/editor_base.js';
 
 import cconst from '../path.ux/scripts/config/const.js';
@@ -22,6 +32,7 @@ cconst.loadConstants(config.PathUXConstants);
 //set iconsheets, need to find proper place for it other than here in AppState.js
 iconmanager.reset(16);
 
+setTheme(theme.theme);
 setIconMap(window.Icons);
 
 if (window.devicePixelRatio > 1.1) {
@@ -2001,6 +2012,10 @@ export class ViewContextOverlay extends ContextOverlay {
     return this.view2d.selectmode;
   }
 
+  get console() {
+    return  Editor.context_area(ConsoleEditor);
+  }
+
   /*need to figure out a better way to pass active editor types
     around API.  this one in particular is evil, a holdover fro
     the days when View2DHandler encapsulated the entire application
@@ -2587,7 +2602,7 @@ class ToolStack {
     //console.log("exists", exists, "undo_push", undo_push, "path, prop", path, prop);
     
     var input = op.get_prop_input(path, prop);
-    input.set_data(val);
+    input.setValue(val);
     
     if (exists) {
       this.redo();

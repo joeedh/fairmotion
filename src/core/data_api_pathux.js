@@ -50,7 +50,7 @@ export function register_toolops() {
     let def = cls.tooldef();
 
     if (def.apiname === undefined) {
-      console.warn(cls.name + ": tooldef is missing apiname member (abstract class?)");
+      //console.warn(cls.name + ": tooldef is missing apiname member (abstract class?)");
       continue;
     }
 
@@ -77,7 +77,7 @@ export class PathUXInterface extends ModelInterface {
         let v = keymap.get(k);
 
         if (v instanceof ToolKeyHandler && v.tool == toolstring) {
-          console.log("found tool!", v);
+          //console.log("found tool!", v);
           return k.toLowerCase();
         }
       }
@@ -200,7 +200,7 @@ export class PathUXInterface extends ModelInterface {
         v = v.data;
       }
 
-      tool.inputs[k].set_data(v);
+      tool.inputs[k].setValue(v);
     }
 
     return tool;

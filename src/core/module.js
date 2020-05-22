@@ -345,9 +345,10 @@ function _load_module(mod) {
 
   _es6_push_basepath(mod.path);
 
-
+  mod.exports = {};
   //support code that sets module.exports
   window.module = {};
+  window.exports = mod.exports;
 
   mod.callback.apply(this, args);
 

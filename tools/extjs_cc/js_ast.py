@@ -1009,11 +1009,18 @@ class ObjLitNode (Node):
   def gen_js(self, tlevel):
     s = self.s("{")
     
+    tab = ""
+    for i in range(tlevel):
+      tab += " "
+
     for i, c in enumerate(self):
       if i > 0: 
-        s += self.s(", ")
+        s += self.s(", \n" + tab + " ")
       
-      s += c[0].gen_js(tlevel) + self.s(": ") + c[1].gen_js(tlevel)
+      if type(c) == ObjLitSetGet:
+        s += c.gen_js(tlevel+1)
+      else:
+        s += c[0].gen_js(tlevel+1) + self.s(": ") + c[1].gen_js(tlevel+1)
       
     s += self.s("}")
     return s
@@ -1377,6 +1384,7 @@ class FunctionNode (StatementList):
     n2.is_native = self.is_native
     n2.is_anonymous = self.is_anonymous
     n2.is_arrow = self.is_arrow
+    n2.add_function_keyword = self.add_function_keyword
     
     return n2
     
@@ -1385,6 +1393,8 @@ class FunctionNode (StatementList):
   def __init__(self, name, lineno=0):
     super(FunctionNode, self).__init__()
     
+    self.add_function_keyword = True
+
     self.name = name
     self.origname = name
     
@@ -1523,7 +1533,7 @@ class FunctionNode (StatementList):
     t = tab(tlevel-1)
     t2 = tab(tlevel)
     
-    s = "function"
+    s = "function" if self.add_function_keyword else ""
     
     if not glob.g_expand_generators and self.is_generator:
       s += "* "
@@ -2267,7 +2277,34 @@ class MethodNode(FunctionNode):
     s += self.s(tab(tlevel-1) + "}")
     
     return s
+
+class ObjLitSetGet(Node):
+  def __init__(self, key=None, val=None, getsetkey=None):
+    Node.__init__(self)
     
+    val.add_function_keyword = False
+    self.getsetkey = getsetkey
+
+    if key is not None and val is not None:
+      self.add(key)
+      self.add(val)
+  
+  def copy(self):
+    n2 = ObjLitSetGet(getsetkey=self.key)
+    
+    self.copy_basic(n2)
+    self.copy_children(n2)
+    return n2
+
+  def gen_js(self, tlevel=0):
+    s = ""
+
+    s += self.s(self.getsetkey + " ")
+    
+    s += self[1].gen_js(tlevel).strip()
+
+    return s
+
 class MethodGetter(MethodNode):
   def __init__(self, name, is_static=False):
     MethodNode.__init__(self, name, is_static)

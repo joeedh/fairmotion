@@ -3,7 +3,7 @@
   "version": "0.0.2",
   "main": "main.js",
   "dependencies": {
-    "canvaskit-wasm": "^0.12.0",
+    "canvaskit-wasm": "^0.15.0",
     "electron": "^8.0.0"
   }
 }

@@ -50,8 +50,8 @@ export class SplineQuery {
     if (selectmask & SelMask.FACE) {
       mpos = [mpos[0], mpos[1]];
       
-      mpos[0] += editor.abspos[0];
-      mpos[1] += editor.abspos[1];
+      mpos[0] += editor.pos[0];
+      mpos[1] += editor.pos[1];
       
       var ret = this.findnearest_face(editor, mpos, limit, ignore_layers);
       

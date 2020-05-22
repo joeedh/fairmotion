@@ -92,7 +92,7 @@ export class RenderAnimOp extends ToolOp {
     window.anim_to_playback.filesize = 0;
 
     this.viewport = {
-      pos  : [ctx.view2d.abspos[0], window.innerHeight-(ctx.view2d.abspos[1]+ctx.view2d.size[1])],
+      pos  : [ctx.view2d.pos[0], window.innerHeight-(ctx.view2d.pos[1]+ctx.view2d.size[1])],
       size : [ctx.view2d.size[0], ctx.view2d.size[1]]
     }
     
@@ -198,7 +198,7 @@ export class PlayAnimOp extends ToolOp {
     console.log("Anim render start!");
     
     this.viewport = {
-      pos  : [ctx.view2d.abspos[0], window.innerHeight-(ctx.view2d.abspos[1]+ctx.view2d.size[1])],
+      pos  : [ctx.view2d.pos[0], window.innerHeight-(ctx.view2d.pos[1]+ctx.view2d.size[1])],
       size : [ctx.view2d.size[0], ctx.view2d.size[1]]
     }
     
@@ -233,7 +233,7 @@ export class PlayAnimOp extends ToolOp {
     
     var vd = window.anim_to_playback.viewport;
     
-    var pos = ctx.view2d.abspos;
+    var pos = ctx.view2d.pos;
     var this2 = this;
     
     if (fi >= window.anim_to_playback.length) {

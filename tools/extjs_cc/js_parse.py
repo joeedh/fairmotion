@@ -1976,13 +1976,20 @@ def p_obj_lit_list(p):
   
   if len(p) == 2:
     p[0] = ObjLitNode()
-    p[0].add(AssignNode(IdentNode(p[1].name), p[1]))
+
+    if type(p[1]) == ObjLitSetGet:
+      p[0].add(p[1])
+    else:
+      p[0].add(AssignNode(IdentNode(p[1].name), p[1]))
   elif len(p) == 4 and p[2] == ":":
     p[0] = ObjLitNode()
     p[0].add(AssignNode(p[1], p[3]))
   elif len(p) == 4:
     p[0] = p[1]
-    p[1].add(AssignNode(IdentNode(p[3].name), p[3]))
+    if type(p[3]) == ObjLitSetGet:
+      p[0].add(p[3])
+    else:
+      p[0].add(AssignNode(IdentNode(p[3].name), p[3]))
   elif len(p) == 3:
     p[0] = p[1]
   elif len(p) == 6:
@@ -2012,6 +2019,8 @@ def p_star_opt_2(p):
 def p_objlit_function(p):
   ''' objlit_function : TIMES func_name LPAREN funcdeflist RPAREN lbracket_restrict statementlist_opt rbracket_restrict
                       | func_name LPAREN funcdeflist RPAREN lbracket_restrict statementlist_opt rbracket_restrict
+                      | GET func_name LPAREN funcdeflist RPAREN lbracket_restrict statementlist_opt rbracket_restrict
+                      | SET func_name LPAREN funcdeflist RPAREN lbracket_restrict statementlist_opt rbracket_restrict
   '''
   
   set_parse_globals(p)
@@ -2020,14 +2029,21 @@ def p_objlit_function(p):
   type1 = None
   template = None
   
-  if len(p) == 9:
+  if len(p) == 9 and p[1] == "*":
     p[0] = FunctionNode(p[2], p.lineno)
     p[0].add(p[4])
     
     for c in p[7]:
       p[0].add(c)
-      
+    
     p[0].is_generator = True
+  elif len(p) == 9 and p[1] in ["get", "set"]:
+    fn = FunctionNode(p[2], p.lineno)
+    fn.add(p[4])
+    for c in p[7]:
+      fn.add(c)
+
+    p[0] = ObjLitSetGet(p[2], fn, p[1])
   else:
     p[0] = FunctionNode(p[1], p.lineno)
     p[0].add(p[3])

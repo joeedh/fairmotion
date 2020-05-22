@@ -14,5 +14,7 @@ html5app/vectordraw_canvas2d_worker.js
 html5app/vectordraw_skia_worker.js
 phonegap_app.zip
 platforms/PhoneGap/appfiles/Fairmotion/www/js/app*.js
+platforms/PhoneGap/appfiles/Fairmotion/www/img/*iconsheet*
 platforms/PhoneGap/appfiles/Fairmotion/www/js/*.wasm
+platforms/PhoneGap/appfiles/Fairmotion/www/js/*.html
 src/config/config_local.js

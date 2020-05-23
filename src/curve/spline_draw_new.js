@@ -110,7 +110,7 @@ export class SplineDrawer {
     //console.log("all will redrw?", recalc_all);
     if (recalc_all) {
       //abort all outstanding render threads
-      vectordraw_jobs.manager.cancelAllJobs();
+      //vectordraw_jobs.manager.cancelAllJobs();
     }
     
     this.last_zoom = zoom;

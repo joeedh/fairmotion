@@ -5,7 +5,7 @@ import {MESSAGES} from './vectordraw_jobs_base.js';
 let MS = MESSAGES;
 
 let Debug = 0;
-let freeze_while_drawing = true;
+let freeze_while_drawing = false;
 
 import * as platform from '../../platforms/platform.js';
 import * as config from '../config/config.js';
@@ -16,7 +16,7 @@ let MAX_THREADS = platform.app.numberOfCPUs() - 1;
 MAX_THREADS = Math.max(MAX_THREADS, 2);
 
 //prioritize fast startup in html5 mode, at least for now
-if (config.HTML5_APP_MODE || !config.HAVE_SKIA) {
+if (config.HTML5_APP_MODE) {
   MAX_THREADS = 1;
 }
 
@@ -138,12 +138,13 @@ export class Thread {
         this.freezelvl--;
   
         if (Debug) console.log("thread", this.manager.threads.indexOf(this), "freezelvl:", this.freezelvl);
-        if (this.freezelvl == 0) {
-          this.manager.on_thread_done(this);
-        }
         
         if (Debug) console.log(cb, e.data.data[0]);
         cb(e.data.data[0]);
+
+        if (this.freezelvl == 0) {
+          this.manager.on_thread_done(this);
+        }
         break;
     }
   
@@ -220,7 +221,11 @@ export class ThreadManager {
     }
     
     while (this.threads.length < n) {
-      this.spawnThread("vectordraw_skia_worker.js");
+      if (config.HAVE_SKIA) {
+        this.spawnThread("vectordraw_skia_worker.js");
+      } else {
+        this.spawnThread("vectordraw_canvas2d_worker.js");
+      }
     }
   }
   
@@ -300,8 +305,13 @@ export class ThreadManager {
 
       //*
       for (let i=0; i<this.max_threads-1; i++) {
-        this.spawnThread("vectordraw_skia_worker.js");
+        if (config.HAVE_SKIA) {
+          this.spawnThread("vectordraw_skia_worker.js");
+        } else {
+          this.spawnThread("vectordraw_canvas2d_worker.js");
+        }
       }
+      
       //*/
     } else {
       thread = this.getRandomThread();
@@ -323,7 +333,7 @@ export class ThreadManager {
     }
     
     if (ok) {
-      if (Debug) console.log("thread done");
+      if (Debug) console.warn("thread done");
 
       window._all_draw_jobs_done();
       

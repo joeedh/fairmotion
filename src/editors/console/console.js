@@ -1,6 +1,7 @@
 import {Editor} from '../editor_base.js';
 import {color2css, css2color, UIBase, keymap, util, cconst, nstructjs, Vector2, Vector3, Matrix4} from '../../path.ux/scripts/pathux.js';
 import { termColorMap } from '../../path.ux/scripts/util/util.js';
+import { loadFile } from '../../path.ux/scripts/util/html5_fileapi.js';
 
 let g_screen = undefined;
 let _silence = () => {};
@@ -47,7 +48,8 @@ patch_console();
 
 const NO_CHILDREN = 0x7ffff;
 const LineFlags = {
-    ACTIVE : 1
+    ACTIVE : 1,
+    TWO_LINE : 2
 };
 
 export class ConsoleLineEntry {
@@ -171,7 +173,7 @@ export class ConsoleEditor extends Editor {
         this.history = [];
         this.history.cur = 0;
         this.head = 0;
-        this.bufferSize = 256;
+        this.bufferSize = 512;
 
         this.scroll = new Vector2();
 
@@ -481,6 +483,11 @@ export class ConsoleEditor extends Editor {
     init() {
         super.init();
 
+        this.addEventListener("mousewheel", (e) => {
+            this.scroll[1] += -e.deltaY;
+            this.queueRedraw();
+        });
+
         let header = this.header;
         let container = this.container;
 
@@ -540,6 +547,8 @@ export class ConsoleEditor extends Editor {
     }
 
     doCommand(cmd) {
+        this.scroll[1] = 0.0;
+
         this.pushHistory(cmd);
         let v = undefined;
 
@@ -655,6 +664,8 @@ export class ConsoleEditor extends Editor {
         }
 
         if (printall) {
+            this.scroll[1] = 0.0;
+
             this.pushLine(new ConsoleLineEntry(""));
             for (let k of list) {
                 let l = new ConsoleLineEntry("  " + k);
@@ -678,7 +689,7 @@ export class ConsoleEditor extends Editor {
         i = Math.min(Math.max(i+di, 0), this.history.length-1);
         this.history.cur = i;
 
-        let s = this.history[i].command;
+        let s = this.history[i].command.trim();
 
         this.textbox.value = s;
         this.textbox.setSelectionRange(s.length, s.length);
@@ -696,6 +707,11 @@ export class ConsoleEditor extends Editor {
         e.stopPropagation();
 
         switch (e.keyCode) {
+            case keymap["R"]:
+                if ((e.ctrlKey | e.commandKey) && !e.shiftKey && !e.altKey) {
+                    location.reload();
+                }
+                break;
             case keymap["Tab"]:
                 this.doTab(this.textbox.value);
                 e.preventDefault();
@@ -918,6 +934,12 @@ export class ConsoleEditor extends Editor {
             let s = l.line;
 
             if (l.closed || y < -lh*4 ||  y >= canvas.height + lh*3) {
+                if (!l.closed) {
+                    y -= lh;
+                    if (l.flag & LineFlags.TWO_LINE) {
+                        y -= lh;
+                    }
+                }
                 continue;
             }
 
@@ -945,9 +967,13 @@ export class ConsoleEditor extends Editor {
             if (l.loc.length > 0) {
                 let w2 = measureText(l.loc).width;
                 if (w1 + w2 + pad1*2 < canvas.width) {
+                    l.flag &= ~LineFlags.TWO_LINE;
+
                     g.fillStyle = this.colors["loc"];
                     fillText(l.loc, canvas.width - pad1 - w2, y);
                 } else {
+                    l.flag |= LineFlags.TWO_LINE;
+
                     g.fillStyle = this.colors["loc"];
                     fillText(l.loc, canvas.width - pad1 - w2, y);
                     y -= lh;

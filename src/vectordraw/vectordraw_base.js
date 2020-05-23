@@ -102,11 +102,13 @@ export class QuadBezPath {
   moveTo(x, y) {
     this.lastx = x;
     this.lasty = y;
+    throw new Error("implement me");
   }
   
   bezierTo(x2, y2, x3, y3) {
     this.lastx = x3;
     this.lasty = y3;
+    throw new Error("implement me");
   }
   
   cubicTo(x2, y2, x3, y3, x4, y4, subdiv=1) {
@@ -151,6 +153,7 @@ export class QuadBezPath {
   }
   
   lineTo(x2, y2) {
+    throw new Error("implement me");
     this.lastx = x2;
     this.lasty = y2;
   }

@@ -12,6 +12,7 @@ import {
 } from './vectordraw_base.js';
 
 var debug = 0;
+window._setDebug = (d) => {debug = d;};
 
 var canvaspath_draw_mat_tmps = new cachering(_ => new Matrix4(), 16);
 
@@ -25,7 +26,8 @@ var canvaspath_draw_vs = new cachering(function() {
 
 var CCMD=0, CARGLEN=1;
 
-var MOVETO = 0, BEZIERTO=1, LINETO=2, BEGINPATH=3;
+var MOVETO = 0, BEZIERTO=1, LINETO=2, BEGINPATH=3, CUBICTO=4;
+
 var NS = "http://www.w3.org/2000/svg";
 var XLS = "http://www.w3.org/1999/xlink"
 
@@ -37,6 +39,9 @@ export function makeElement(type, attrs={}) {
   
   return ret;
 }
+
+//use by debug reporting    
+let lasttime = performance.now();
 
 export class SimpleCanvasPath extends QuadBezPath {
   constructor() {
@@ -116,7 +121,7 @@ export class SimpleCanvasPath extends QuadBezPath {
     this.commands.push(arglen);
     
     for (var i=0; i<arglen; i++) {
-      this.commands.push(arguments[i+1]);
+      this.commands.push(arguments[i + 1]);
     }
     
     this.recalc = 1;
@@ -129,6 +134,12 @@ export class SimpleCanvasPath extends QuadBezPath {
     this.lasty = y;
   }
   
+  cubicTo(x2, y2, x3, y3, x4, y4) {
+    this._pushCmd(CUBICTO, x2, y2, x3, y3, x4, y4);
+    this.lastx = x4;
+    this.lasty = y4;
+  }
+
   bezierTo(x2, y2, x3, y3) {
     this._pushCmd(BEZIERTO, x2, y2, x3, y3);
     this.lastx = x3;
@@ -161,23 +172,73 @@ export class SimpleCanvasPath extends QuadBezPath {
     this.first = true;
   }
   
-  draw(draw, offx=0, offy=0, canvas=draw.canvas, g=draw.g) {
+  draw(draw, offx=0, offy=0, canvas=draw.canvas, g=draw.g, clipMode=false) {
+    var zoom = draw.matrix.$matrix.m11; //scale should always be uniform, I think
+
     offx += this.off[0], offy += this.off[1];
     
+    if (isNaN(offx) || isNaN(offy)) {
+      throw new Error("nan!");
+    }
+
     this._last_z = this.z;
     var g = draw.g;
     var tmp = new Vector3();
     
     let debuglog = function() {
       if (debug > 1) {
-        console.warn("%c path.draw", "color : green", ...arguments);
+        let time = performance.now();
+
+        if (time - lasttime > 5) {
+          console.log(...arguments);
+          lasttime = time;
+        }
       }
     }
 
-    g.beginPath();
+    let debuglog2 = function() {
+      if (debug > 0) {
+        let time = performance.now();
+
+        if (time - lasttime > 5) {
+          console.log(...arguments);
+          lasttime = time;
+        }
+      }
+    }
+
+    debuglog2("start " + this.id);
     
-    for (var i=0; i<this.commands.length; i += this.commands[i+1]+2) {
-      var cmd = this.commands[i];
+    let matrix = draw.matrix;
+    
+    g.beginPath();
+    let cmds = this.commands;
+    let i;
+
+    function loadtemp(off) {
+      tmp[0] = cmds[i+2 + off*2];
+      tmp[1] = cmds[i+3 + off*2];
+      tmp[2] = 0.0;
+
+      //tmp.multVecMatrix(draw.matrix);
+
+      if (isNaN(tmp.dot(tmp))) {
+        throw new Error("NaN");
+      }
+    }
+
+    if (!clipMode && this.clip_paths.length > 0) {
+      g.beginPath();
+      g.save();
+      
+      for (let path of this.clip_paths) {
+        path.draw(draw, offx, offy, canvas, g, true);
+      }
+      g.clip();
+    }
+
+    for (i=0; i<cmds.length; i += cmds[i+1] + 2) {
+      var cmd = cmds[i];
       
       switch (cmd) {
         case BEGINPATH:
@@ -186,31 +247,44 @@ export class SimpleCanvasPath extends QuadBezPath {
           break;
         case LINETO:
           debuglog("LINETO");
-          tmp[0] = cmd[i+2], tmp[1] = cmd[i+3], tmp[2] = 0.0;
-          tmp.multVecMatrix(draw.matrix);
+          loadtemp(0);
           
           g.lineTo(tmp[0], tmp[1]);
           break;
         case BEZIERTO:
           debuglog("BEZIERTO");
-          tmp[0] = cmd[i+2], tmp[1] = cmd[i+3], tmp[2] = 0.0;
-          tmp.multVecMatrix(draw.matrix);
+          loadtemp(0);
           
           var x1 = tmp[0], y1 = tmp[1];
 
-          tmp[0] = cmd[i+4], tmp[1] = cmd[i+5], tmp[2] = 0.0;
-          tmp.multVecMatrix(draw.matrix);
+          loadtemp(1);
           
           g.quadraticCurveTo(x1, y1, tmp[0], tmp[1]);
           break;
+        case CUBICTO:
+          debuglog("CUBICTO");
+
+          loadtemp(0);
+          var x1 = tmp[0], y1 = tmp[1];
+
+          loadtemp(1);
+          var x2 = tmp[0], y2 = tmp[1];
+          
+          loadtemp(2);
+
+          g.bezierCurveTo(x1, y1, x2, y2, tmp[0], tmp[1]);
+          break;
         case MOVETO:
           debuglog("MOVETO");
-          tmp[0] = cmd[i+2], tmp[1] = cmd[i+3], tmp[2] = 0.0;
-          tmp.multVecMatrix(draw.matrix);
-          
+          loadtemp(0);
+
           g.moveTo(tmp[0], tmp[1]);
           break;
       }
+    }
+    
+    if (clipMode) {
+      return;
     }
     
     var r = ~~(this.color[0]*255),
@@ -218,34 +292,26 @@ export class SimpleCanvasPath extends QuadBezPath {
         b = ~~(this.color[2]*255),
         a =    this.color[3];
     
-    g.fillStyle = "rgba("+r+","+g1+","+b+","+a+")";
+    let fstyle = "rgba("+r+","+g1+","+b+","+a+")";
+    g.fillStyle = fstyle;
     
-    debuglog("g.fillStyle", g.fillStyle);
+    debuglog2("g.fillStyle", g.fillStyle);
 
-    var doff = 25000;
-    var do_blur = this.blur > 1;
-    
-    debuglog("do_blur", do_blur);
+    var doff = 2500;
+    var do_blur = this.blur > 1 && !clipMode;
 
     if (do_blur) {
-      g.translate(-doff, -doff);
-
-      g.shadowOffsetX = doff;
-      g.shadowOffsetY = doff;
-      g.shadowColor = "rgba("+r+","+g+","+b+","+a+")";
-      g.shadowBlur = this.blur;
+      g.filter = "blur(" + (this.blur*0.25*zoom) + "px)";
     } else {
-      g.shadowOffsetX = 0;
-      g.shadowOffsetY = 0;
-      g.shadowBlur = 0;
+      g.filter = "none";
     }
     
-    debuglog("fill");
-
-    g.fill();
+    debuglog2("fill");
     
-    if (do_blur) {
-      g.translate(doff, doff);
+    g.fill();
+
+    if (this.clip_paths.length > 0) {
+      g.restore();
     }
   }
   
@@ -344,19 +410,28 @@ export class SimpleCanvasDraw2D extends VectorDraw {
   draw(g) {
     var canvas = g.canvas;
     
+    
     //canvas.style["background"] = "rgba(0,0,0,0)";
     
     this.canvas = canvas;
     this.g = g;
 
+    /*
     g.beginPath()
     g.rect(0, 0, canvas.width, canvas.height);
     g.fillStyle = "orange";
     g.fill();
-    
+    //*/
+
+    g.save();
+
     for (var p of this.paths) {
       p.draw(this);
     }
+
+    g.restore();
+
+    console.log(this.g);
   }
   
   //set draw matrix

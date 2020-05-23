@@ -58,7 +58,8 @@ export class TransformOp extends ToolOp {
 
     op.inputs.edit_all_layers.setValue(ctx.view2d.edit_all_layers);
 
-    console.log("=====", args, ctx.view2d.session_flag, ctx.view2d.propradius);
+    //console.log("=====", args, ctx.view2d.session_flag, ctx.view2d.propradius);
+
     //op.inputs.datamode.setValue(ctx.view2d.selectmode);
 
     if (ctx.view2d.session_flag & SessionFlags.PROP_TRANSFORM) {
@@ -398,7 +399,7 @@ export class TranslateOp extends TransformOp {
 
     var start = mousemove_cachering.next(), off = mousemove_cachering.next();
 
-    console.log("mpos:", md.mpos, "start", md.start_mpos);
+    //console.log("mpos:", md.mpos, "start", md.start_mpos);
 
     start.load(md.start_mpos);
     off.load(md.mpos);
@@ -422,7 +423,7 @@ export class TranslateOp extends TransformOp {
     if (this.inputs.constrain.data) {
       off = new Vector3(off);
       off.mul(this.inputs.constraint_axis.data);
-      console.log(this.inputs.constraint_axis.data);
+      //console.log(this.inputs.constraint_axis.data);
     }
 
     mat.makeIdentity();
@@ -545,7 +546,7 @@ export class ScaleOp extends TransformOp {
     var l1 = off.load(md.mpos).sub(td.scenter).vectorLength();
     var l2 = off.load(md.start_mpos).sub(td.scenter).vectorLength();
     
-    console.log(event.x, event.y);
+    //console.log(event.x, event.y);
     
     scale[0] = scale[1] = l1/l2;
     scale[2] = 1.0;

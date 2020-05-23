@@ -19,7 +19,7 @@ import {
   SimpleCanvasPath, SimpleCanvasDraw2D
 } from './vectordraw_canvas2d_simple.js';
 
-//*
+/*
 export let Canvas = SimpleCanvasDraw2D;
 export let Path = SimpleCanvasPath;
 //*/
@@ -28,7 +28,7 @@ export let Canvas = StubCanvasDraw2D;
 export let Path = StubCanvasPath;
 //*/
 
-/* canvas2d
+//* canvas2d worker
 export let Canvas = CanvasDraw2D;
 export let Path = CanvasPath;
 //*/

@@ -8,6 +8,10 @@ export class PlatformAPIBase {
   //returns a promise
   saveFile(path_handle, name, databuf, type) {
   }
+
+  getProcessMemoryPromise() {
+
+  }
   
   numberOfCPUs() {
     return 2;

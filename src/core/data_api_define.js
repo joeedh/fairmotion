@@ -776,7 +776,8 @@ function api_define_sceneobject() {
   SceneObjectStruct.Vector2("scale", "scale", "Scale", "Scale");
   SceneObjectStruct.Float("rot", "rot", "Rotation", "Rotation");
   SceneObjectStruct.add(new DataPath(api_define_frameset(), "frameset", "data", true));
-
+  SceneObjectStruct.Bool("edit_all_layers", "edit_all_layers", "Edit All Layers", "Edit All Layers");
+  
   return SceneObjectStruct;
 }
 

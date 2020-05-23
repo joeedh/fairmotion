@@ -260,36 +260,13 @@ function doDrawList(commands, datablocks, id) {
         
         //*
         if (blur2 == 0 && blur != 0) {
-          g.shadowOffsetX = g.shadowOffsetY = g.shadowBlur = 0.0;
-          g.translate(-blur_doff, 0.0);
           blur = 0;
+          g.filter = "none";
         } else if (blur2 > 0) {
           let scale = transform[0];
-
           blur = blur2*scale;
-          //console.log(blur2, scale);
-          
-          blur_doff = (~~(width-blur-1)); //300; //Math.max(width, height)-20;
-          blur_doff = Math.ceil(blur_doff/scale);
-          
-          if (scale > 1.0) {
-            blur_doff *= 4.0;
-          } else {
-            blur_doff = (~~(width-blur-2))/scale;
-          }
-          
-          //if (Debug) console.log(width, blur_doff);
-          g.translate(blur_doff, 0);
-          
-          g.shadowOffsetX = -blur_doff*scale;
-          g.shadowOffsetY = 0;
-          
-          let clr = fillcolor;
-          
-          if (Debug) console.log(id, "set blur", blur, clr, fillcolor);
-          
-          g.shadowColor = "rgba(" + clr[0] + "," + clr[1] + "," + clr[2] + "," + 1.0 + ")";
-          g.shadowBlur = blur*0.5;
+
+          g.filter = "blur(" + (blur*0.25) + "px)";
         }
         //*/
         
@@ -321,6 +298,10 @@ function doDrawList(commands, datablocks, id) {
       handleQueue();
     }
   }, 0);
+
+  if (self.gc && typeof(self.gc) === "function") {
+    self.gc();
+  }
 }
 
 let MAGIC = 123452;

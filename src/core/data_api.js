@@ -44,7 +44,7 @@ export class TinyParserError extends Error {
 }
 
 //$XXX import {UIFrame} from 'UIFrame';
-import {PropTypes, TPropFlags, ToolProperty, IntProperty, FloatProperty, Vec2Property,
+import {PropTypes, TPropFlags, ToolProperty, IntProperty, FloatProperty, Vec2Property, BoolProperty,
         Vec3Property, Vec4Property, StringProperty, FlagProperty, EnumProperty} from './toolprops.js';
 import {ToolFlags, UndoFlags} from './toolops_api.js';
 import {DataBlock} from './lib_api.js';

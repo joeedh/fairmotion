@@ -6,6 +6,16 @@ export class ElectronPlatformAPI {
   
   init() {
   }
+
+  getProcessMemoryPromise() {
+    return  new Promise((accept, reject) => {
+      require("process").getProcessMemoryInfo().then((data) => {
+        let blink = require("process").getBlinkMemoryInfo();
+
+        accept(data.private*1024 + blink.total*1024);
+      })
+    });
+  }
   
   //returns a promise
   saveFile(path_handle, name, databuf, type) {

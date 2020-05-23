@@ -120,13 +120,17 @@ export class View2DHandler extends Editor {
   constructor() {
     super();
 
+    this.dpi_scale = 1.0;
+
+    this.enable_blur = true;
+    this.draw_small_verts = false;
+
     this.toolmode = ToolModes.SELECT;
     this._last_dpi = undefined;
 
     this.widgets = new ManipulatorManager(this);
 
     this.draw_faces = true;
-    this.do_blur = true;
     this.need_data_link = false;
 
     this._can_select = 1;
@@ -155,6 +159,11 @@ export class View2DHandler extends Editor {
     //this.eventdiv = document.createElement("div");
 
     this.regen_keymap();
+  }
+
+  get do_blur() {
+    console.warn("evil do_blur");
+    return this.enable_blur;
   }
 
   regen_keymap() {
@@ -341,6 +350,7 @@ export class View2DHandler extends Editor {
     //let off = this._getCanvasOff();
     //_co[0] -= off[0];
     //_co[1] -= off[1];
+    _co.mulScalar(this.dpi_scale);
 
     co[0] = _co[0], co[1] = _co[1];
     return co;
@@ -357,7 +367,8 @@ export class View2DHandler extends Editor {
 
     _co[2] = 0.0;
     _co.multVecMatrix(this.irendermat);
-
+    _co.mulScalar(1.0 / this.dpi_scale);
+    
     co[0] = _co[0], co[1] = _co[1];
     return co;
   }
@@ -445,6 +456,30 @@ export class View2DHandler extends Editor {
     g.save();
     bg_g.save();
 
+    let pan = new Vector3();
+    let dpi_scale = this.dpi_scale;
+    
+    //this.rendermat.makeIdentity();
+    //this.irendermat.load(this.rendermat).invert();
+
+    let mat = new DOMMatrix();
+    let mat2 = g.getTransform();
+    
+    //let mx = mat2.m41, my = mat2.m42;
+
+    //mat.scale(dpi_scale,dpi_scale);
+    //mat2.multiplySelf(mat);
+    //mat2.m41 = mx;
+    //mat2.m42 = my;
+
+    //g.setTransform(mat2);
+    //g._scale(1/dpi_scale, 1/dpi_scale);
+    //bg_g._scale(1/dpi_scale, 1/dpi_scale);
+    
+    //pan.multVecMatrix(this.rendermat);
+    
+    g.dpi_scale = this.dpi_scale;
+    
     var p1 = new Vector2([0, 0]); //this.pos[0], this.pos[1]]);
     var p2 = new Vector2([this.size[0], this.size[1]]);
     this.unproject(p1), this.unproject(p2);
@@ -481,6 +516,15 @@ export class View2DHandler extends Editor {
       return;
     }
 
+    let matrix = new Matrix4();
+    let m2 = new Matrix4();
+    m2.scale(dpi_scale, dpi_scale, 1.0);
+    matrix.multiply(m2);
+    matrix.multiply(this.rendermat);
+
+    set_rendermat(g, matrix);
+    set_rendermat(bg_g, matrix);
+
     if (this.draw_video && this.video !== undefined) {
       var frame = Math.floor(this.video_time);
       var image = this.video.get(frame);
@@ -498,8 +542,9 @@ export class View2DHandler extends Editor {
 
       bg_g.drawImage(img, iuser.off[0], iuser.off[1], img.width*iuser.scale[0], img.height*iuser.scale[1]);
     }
-
-    this.ctx.frameset.draw(this.ctx, g, this, redraw_rects, this.edit_all_layers);
+    
+    //this.rendermat
+    this.ctx.frameset.draw(this.ctx, g, this, matrix, redraw_rects, this.edit_all_layers);
 
     var frameset = this.ctx.frameset;
     var spline = frameset.spline;
@@ -568,12 +613,12 @@ export class View2DHandler extends Editor {
   }
 
   get_fg_canvas() { //XXX todo: get rid of this.drawcanvas.
-    this.drawcanvas = this.getCanvas("fg", -2);
+    this.drawcanvas = this.getCanvas("fg", -2, undefined, this.dpi_scale);
     return this.drawcanvas;
   }
 
   get_bg_canvas() {
-    return this.getCanvas("bg", -3);
+    return this.getCanvas("bg", -3, undefined, this.dpi_scale);
   }
 
   copy() {
@@ -623,11 +668,13 @@ export class View2DHandler extends Editor {
 
   makeHeader(container) {
     let row = super.makeHeader(container);
+    
     row.noMargins();
 
     console.log("VIEW2D ctx:", this.ctx);
 
     row.prop("view2d.zoom");
+    row.prop("view2d.edit_all_layers");
 
     row = container.row();
     row.noMargins();
@@ -1085,7 +1132,24 @@ export class View2DHandler extends Editor {
     this._last_dpi = UIBase.getDPI();
   }
 
+  get edit_all_layers() {
+    if (this.ctx && this.ctx.scene)
+      return this.ctx.scene.edit_all_layers;
+  }
+
+  set edit_all_layers(v) {
+    if (this.ctx && this.ctx.scene)
+      this.ctx.scene.edit_all_layers = v;
+  }
+  
   update() {
+    let key = "" + this.enable_blur + ":" + this.only_render + ":" + this.draw_faces + ":" + this.edit_all_layers + ":" + this.draw_normals + ":" + this.draw_small_verts;
+    
+    if (key !== this._last_key_1) {
+      this._last_key_1 = key;
+      window.redraw_viewport();
+    }
+
     this.push_ctx_active();
 
     super.update();
@@ -1138,7 +1202,6 @@ View2DHandler.STRUCT = STRUCT.inherit(View2DHandler, Area) + `
   draw_bg_image     : int;
   toolmode          : int;
   draw_small_verts  : int;
-  edit_all_layers   : int;
 }
 `;
 

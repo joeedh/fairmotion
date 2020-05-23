@@ -128,6 +128,7 @@ var SMALL_VERT_SIZE=1.0;
 
 import {SplineDrawer} from './spline_draw_new.js';
 import {redo_draw_sort} from './spline_draw_sort.js';
+import { Vector2 } from '../core/vectormath.js';
 
 export * from './spline_draw_sort';
 
@@ -167,7 +168,7 @@ export function draw_curve_normals(spline, g, zoom) {
 }
 
 
-export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_render,
+export function draw_spline(spline, redraw_rects, g, editor, matrix, selectmode, only_render,
                             draw_normals, alpha, draw_time_helpers, curtime, ignore_layers)
 {
   spline.canvas = g;
@@ -180,7 +181,7 @@ export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_re
     spline.drawer = new SplineDrawer(spline);
   }
   
-  spline.drawer.update(spline, spline.drawlist, spline.draw_layerlist, editor.rendermat, 
+  spline.drawer.update(spline, spline.drawlist, spline.draw_layerlist, matrix, 
                        redraw_rects, only_render, selectmode, g, editor.zoom, editor, ignore_layers);
   spline.drawer.draw(editor.drawg);
   
@@ -191,6 +192,20 @@ export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_re
     zoom = 1.0;
   }
   
+  //*
+    matrix = new Matrix4(matrix);
+    let matrix2 = new Matrix4();
+
+    matrix2.translate(0.0, g.canvas.height, 0.0);
+    
+    let mm = new Matrix4();
+    mm.scale(1.0, -1.0, 1.0);
+    matrix2.multiply(mm);
+    
+    matrix.preMultiply(matrix2);
+
+  //*/
+
   if (!only_render && draw_normals)
     draw_curve_normals(spline, g, zoom);
   
@@ -210,9 +225,12 @@ export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_re
   
   //draw element handles
   
+  let tmp1 = new Vector2();
+  let tmp2 = new Vector2();
+  
   g.beginPath();
   if (selectmode & SelMask.HANDLE) {
-    var w = vert_size/editor.zoom;
+    var w = vert_size/g.canvas.dpi_scale*editor.zoom;
     
     for (var i=0; i<spline.handles.length; i++) {
       var v = spline.handles[i];
@@ -234,19 +252,25 @@ export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_re
       if (v.flag & SplineFlags.HIDE) 
         continue;
 
+
+      tmp1.load(v).multVecMatrix(matrix);
+
       g.beginPath();
       if (clr !== last_clr)
         g.fillStyle = clr;
       last_clr = clr;
-      g.rect(v[0]-w, v[1]-w, w*2, w*2);
+      g.rect(tmp1[0]-w, tmp1[1]-w, w*2, w*2);
       g.fill()
       
       g.beginPath();
       g.lineWidth = 1;//*zoom;
-      
+
       var ov = v.owning_segment.handle_vertex(v);
-      g.moveTo(v[0], v[1]);
-      g.lineTo(ov[0], ov[1]);
+      
+      tmp2.load(ov).multVecMatrix(matrix);
+
+      g.moveTo(tmp1[0], tmp1[1]);
+      g.lineTo(tmp2[0], tmp2[1]);
       
       g.stroke();
     }
@@ -254,7 +278,7 @@ export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_re
   
   var last_clr = undefined;
   if (selectmode & SelMask.VERTEX) {
-    var w = vert_size/editor.zoom;
+    var w = vert_size//editor.zoom;
     
     for (var i=0; i<spline.verts.length; i++) {
       var v = spline.verts[i];
@@ -265,7 +289,8 @@ export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_re
       if (v.flag & SplineFlags.HIDE) continue;
 
       
-      var co = v;
+      var co = tmp1.load(v);
+      co.multVecMatrix(matrix);
       
       if (draw_time_helpers) {
         var time = get_vtime(v);
@@ -298,7 +323,7 @@ export function draw_spline(spline, redraw_rects, g, editor, selectmode, only_re
 
 export function patch_canvas2d(g) {
     var this2 = this;
-    g._is_patched = this;
+    //g._is_patched = this;
     
     if (g._lineTo == undefined) {
       g._lineTo = g.lineTo;
@@ -312,6 +337,7 @@ export function patch_canvas2d(g) {
       g._scale = g.scale;
       g._rotate = g.rotate;
     }
+    return;
 
     var a = new Vector3(), b = new Vector3(), c = new Vector3(), d = new Vector3();
     
@@ -321,13 +347,17 @@ export function patch_canvas2d(g) {
       if (rendermat != undefined) {
         co.multVecMatrix(rendermat);
       }
-      co[1] = g.canvas.height - co[1];
+
+      let dpiscale = g.canvas.dpi_scale || 1.0;
+      co[1] = g.canvas.height/dpiscale - co[1];
     }
     
     function untransform(g, co) {
       var rendermat = g._irender_mat;
       
-      co[1] = g.canvas.height - co[1];
+      let dpiscale = g.canvas.dpi_scale || 1.0;
+
+      co[1] = g.canvas.height/dpiscale - co[1];
       
       if (rendermat != undefined) {
         co.multVecMatrix(rendermat);

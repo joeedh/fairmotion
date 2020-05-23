@@ -341,6 +341,11 @@ function doDrawList(commands, datablocks, id) {
   self.setTimeout(() => {
     handleQueue();
   }, 0);
+
+  
+  if (self.gc && typeof(self.gc) === "function") {
+    self.gc();
+  }
 }
 
 //commands should be a float32 array

@@ -2164,7 +2164,7 @@ export class Spline extends DataBlock {
     }
   }
   
-  draw(redraw_rects, g, editor, selectmode, only_render, draw_normals, alpha,
+  draw(redraw_rects, g, editor, matrix, selectmode, only_render, draw_normals, alpha,
        draw_time_helpers, curtime, ignore_layers)
   {
     this.canvas = g;
@@ -2191,7 +2191,7 @@ export class Spline extends DataBlock {
       });
     }
     
-     draw_spline(this, redraw_rects, g, editor, selectmode, only_render, 
+     draw_spline(this, redraw_rects, g, editor, matrix, selectmode, only_render, 
                  draw_normals, alpha, draw_time_helpers, curtime, ignore_layers);
   }
   

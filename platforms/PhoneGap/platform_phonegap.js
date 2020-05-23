@@ -5,6 +5,10 @@ export class PlatformAPI extends PlatformAPIBase {
     super();
   }
   
+  getProcessMemoryPromise() {
+    return new Promise(); //never fulfills
+  }
+
   saveDialog() {
   }
   

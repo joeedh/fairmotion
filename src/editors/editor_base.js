@@ -136,7 +136,7 @@ export class Editor extends Area {
     this.keymap = new KeyMap();
   }
 
-  getCanvas(id, zindex, patch_canvas2d_matrix=true) {
+  getCanvas(id, zindex, patch_canvas2d_matrix=true, dpi_scale=1.0) {
     let canvas;
     let dpi = ui_base.UIBase.getDPI();
 
@@ -157,13 +157,15 @@ export class Editor extends Area {
       canvas.style["position"] = "absolute";
     }
 
+    canvas.dpi_scale = dpi_scale;
+
     if (canvas.style["z-index"] != zindex) {
       canvas.style["z-index"] = zindex;
     }
 
     if (this.size !== undefined) {
-      let w = ~~(this.size[0] * dpi);
-      let h = ~~(this.size[1] * dpi);
+      let w = ~~(this.size[0] * dpi*dpi_scale);
+      let h = ~~(this.size[1] * dpi*dpi_scale);
 
       let sw = this.size[0] + "px";
       let sh = this.size[1] + "px";
@@ -214,7 +216,7 @@ export class Editor extends Area {
   static context_area(cls) {
     var stack = _get_area_stack(cls.name);
 
-    if (stack.length == 0)
+    if (stack.length === 0)
       return _area_active_lasts[cls.name];
     else
       return stack[stack.length - 1];

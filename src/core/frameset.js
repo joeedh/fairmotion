@@ -1085,7 +1085,7 @@ export class SplineFrameSet extends DataBlock {
     //*/
   }
   
-  draw(ctx, g, editor, redraw_rects, ignore_layers) {
+  draw(ctx, g, editor, matrix, redraw_rects, ignore_layers) {
     var size = editor.size, pos = editor.pos;
     
     this.draw_anim_paths = editor.draw_anim_paths;
@@ -1104,7 +1104,7 @@ export class SplineFrameSet extends DataBlock {
     g.stroke();
     //*/
 
-    this.spline.draw(redraw_rects, g, editor, editor.selectmode, editor.only_render, editor.draw_normals, this.spline===ctx.spline ? 1.0 : 0.3,
+    this.spline.draw(redraw_rects, g, editor, matrix, editor.selectmode, editor.only_render, editor.draw_normals, this.spline===ctx.spline ? 1.0 : 0.3,
                      undefined, undefined, ignore_layers);
     g.restore();
   }

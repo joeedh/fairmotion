@@ -5,6 +5,7 @@ import * as config from '../config/config.js';
 import {
   MinMax
 } from '../util/mathlib.js';
+import * as math from '../path.ux/scripts/util/math.js'
 
 import {
   VectorFlags, VectorVertex, QuadBezPath,
@@ -48,12 +49,39 @@ export class Batch {
     this.path_idmap = {};
     this.regen = 1;
     this.gen_req = 0;
+
+    this.viewport = {
+      pos : [0, 0],
+      size : [1, 1]
+    };
+
+    this.realViewport = {
+      pos : [0, 0],
+      size : [1, 1]
+    }
+
+    this.patharea = 0;
   }
 
   add(p) {
     if (this.has(p)) {
       return;
     }
+    
+    let draw = {
+      matrix : new Matrix4()
+    }
+    p.update_aabb(draw);
+
+    let min = p.aabb[0], max = p.aabb[1];
+    if (p.blur > 0) {
+      min.addScalar(-p.blur*0.5);
+      max.addScalar(p.blur*0.5);
+    }
+    let w = max[0] - min[0];
+    let h = max[1] - min[1];
+
+    this.patharea += w*h;
 
     p._batch = this;
 
@@ -86,6 +114,7 @@ export class Batch {
   }
 
   destroy() {
+    this.patharea = 0;
     console.warn("destroying batch", this.length);
 
     for (let p of this.paths) {
@@ -103,8 +132,50 @@ export class Batch {
     return p._batch_id in this.path_idmap;
   }
 
+  checkViewport(draw) {
+    let canvas = draw.canvas;
+    //let cv = this._getPaddedViewport(canvas);
+    let cv = {
+      pos  : new Vector2(),
+      size : new Vector2([canvas.width, canvas.height])
+    };
+    let pan = draw.pan;
+
+    cv.pos[0] -= draw.pan[0];
+    cv.pos[1] -= draw.pan[1];
+    
+    let clip1 = math.aabb_intersect_2d(this.viewport.pos, this.viewport.size, cv.pos, cv.size);
+    let clip2 = math.aabb_intersect_2d(this.realViewport.pos, this.realViewport.size, cv.pos, cv.size);
+
+    if (!clip1 || !clip2) {
+      return clip1 !== clip2;
+    }
+    
+    clip1.pos.floor();
+    clip1.size.floor();
+    clip2.pos.floor();
+    clip2.size.floor();
+
+    //console.log(clip1.pos, clip1.size);
+    //console.log(clip2.pos, clip2.size);
+
+    let bad = clip1.pos.vectorDistance(clip2.pos) > 2;
+    bad = bad || clip1.size.vectorDistance(clip2.size) > 2;
+
+    //console.log("clip is bad:", bad);
+
+    return bad;
+  }
+
+  _getPaddedViewport(canvas) {
+    let cpad = 512;
+    return {
+      pos  : new Vector2([-cpad, -cpad]),
+      size : new Vector2([canvas.width+cpad*2, canvas.height+cpad*2])
+    }
+  }
+
   gen(draw) {
-    console.log(this.gen_req);
     if (this.gen_req-- > 0) {
       return
     }
@@ -129,11 +200,14 @@ export class Batch {
       if (set_off) {
         mat.translate(-min[0], -min[1], 0.0);
       }
-      mat.scale(zoom, -zoom, 1.0);
+
+      let m = new Matrix4(draw.matrix);
+      mat.multiply(m);
 
       draw.push_transform(mat, false);
       return mat;
     }
+
 
     for (let p of this.paths) {
       setMat(p);
@@ -144,10 +218,44 @@ export class Batch {
       max.max(p.aabb[1]);
     }
 
+    this.realViewport = {
+      pos : new Vector2(min),
+      size : new Vector2(max).sub(min)
+    }
+
+    //clip to something reasonably close to the viewport
+    let min2 = new Vector2(min);
+    let size2 = new Vector2(max);
+    size2.sub(min2);
+    min2.add(draw.pan);
+
+    let cpad = 256;
+
+    let cv = this._getPaddedViewport(canvas);
+    let box = math.aabb_intersect_2d(min2, size2, cv.pos, cv.size);
+    min2 = min2.floor();
+    size2 = size2.floor();
+    //console.log(min2, size2, canvas.width, canvas.height);
+    //console.log("ISECT", box);
+
+    if (!box) {
+      return;
+    }
+
+    box.pos.sub(draw.pan);
+
+    min.load(box.pos);
+    max.load(min).add(box.size);
+
+    this.viewport = {
+      pos  : new Vector2(box.pos),
+      size : new Vector2(box.size)
+    }
+
     let width = ~~(max[0] - min[0]);
     let height = ~~(max[1] - min[1]);
     
-    console.log("width/height", width, height);
+    //console.log("width/height", width, height);
 
     let commands = [width, height];
 
@@ -173,12 +281,14 @@ export class Batch {
       this.gen_req = 0;
       return;
     }
-
+    
     //console.log(commands, commands[0], commands[1], commands.length);
     commands = new Float64Array(commands);
 
+    min = new Vector2(min);
+    
     vectordraw_jobs.manager.postRenderJob(renderid, commands).then((data) => {
-      console.log("Got render result!", data);
+      console.log("Got render result!");
       this.gen_req = 0;
 
       //this.__image = undefined;
@@ -190,6 +300,10 @@ export class Batch {
   }
 
   draw(draw) {
+    if (this.checkViewport(draw)) {
+      this.regen = 1;
+    }
+
     let canvas = draw.canvas, g = draw.g;
     var zoom = draw.matrix.$matrix.m11; //scale should always be uniform, I think
     let offx = draw.pan[0], offy = draw.pan[1];
@@ -229,10 +343,13 @@ export class Batch {
       g.fillStyle = "rgba(0,255,0,0.4)";
       g.fill();
       //*/
+      g.restore();
+      /*
       if (g._resetTransform)
         g._resetTransform();
       else
         g.resetTransform();
+      //*/
     } else {
       g.save();
 
@@ -249,7 +366,8 @@ export class Batch {
       g.fillStyle = "rgba(0,255,0,0.4)";
       g.fill();
       //*/
-      g.resetTransform();
+      //g.resetTransform();
+      g.restore();
     }
   }
 }
@@ -794,7 +912,8 @@ export class CanvasDraw2D extends VectorDraw {
       }
       
       if (!path._batch) {
-        if (batch.paths.length > blimit) {
+        if (batch.patharea > (canvas.width*canvas.height)*0.25) {
+        //if (batch.paths.length > blimit) {
           batch = new Batch();
           this.batches.push(batch);
         }

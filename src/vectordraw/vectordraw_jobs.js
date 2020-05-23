@@ -11,7 +11,7 @@ import * as platform from '../../platforms/platform.js';
 import * as config from '../config/config.js';
 import {pushModalLight, popModalLight, keymap} from "../path.ux/scripts/util/simple_events.js";
 
-let MAX_THREADS = platform.app.numberOfCPUs() - 1;
+let MAX_THREADS = platform.app.numberOfCPUs() + 1;
 
 MAX_THREADS = Math.max(MAX_THREADS, 2);
 
@@ -299,9 +299,8 @@ export class ThreadManager {
     //we want at last one gpu-capable render thread
     if (this.threads.length == 0) {
       thread = this.spawnThread("vectordraw_canvas2d_worker.js");
-      thread.ready = true; //canvas2d worker starts out in ready state
       //thread = this.spawnThread("vectordraw_skia_worker.js");
-      //thread.ready = true;
+      thread.ready = true; //canvas2d worker starts out in ready state
 
       //*
       for (let i=0; i<this.max_threads-1; i++) {
@@ -334,13 +333,26 @@ export class ThreadManager {
     
     if (ok) {
       if (Debug) console.warn("thread done");
-
+      
       window._all_draw_jobs_done();
       
       if (this.drawing && freeze_while_drawing) {
         this.endDrawing();
       }
+      
+      this.checkMemory();
     }
+  }
+
+
+  checkMemory() {
+    let promise = platform.app.getProcessMemoryPromise();
+    if (!promise)
+      return;
+
+    promise.then((memory) => {
+      console.log("Memory in use:", (memory/1024/1024).toFixed(1));
+    })
   }
   
   cancelAllJobs() {

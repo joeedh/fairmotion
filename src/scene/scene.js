@@ -191,6 +191,8 @@ export class Scene extends DataBlock {
   constructor() {
     super(DataTypes.SCENE);
 
+    this.edit_all_layers = false;
+    
     this.objects = new ObjectList(this);
     this.objects.active = undefined;
     this.object_idgen = new EIDGen();
@@ -360,6 +362,7 @@ Scene.STRUCT = STRUCT.inherit(Scene, DataBlock) + `
     object_idgen      : EIDGen;
     toolmodes         : array(ToolMode);
     active_toolmode   : string | this.toolmode !== undefined ? this.toolmode.constructor.toolDefine().name : "";
+    edit_all_layers   : int;
   }
 `;
 

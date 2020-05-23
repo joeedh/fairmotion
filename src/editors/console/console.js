@@ -7,9 +7,16 @@ let g_screen = undefined;
 let _silence = () => {};
 let _unsilence = () => {};
 
-function patch_console() {
-    let methods = {};
+let _patched = false;
 
+function patch_console() {
+    if (_patched) {
+        return;
+    }
+    
+    _patched = true;
+
+    let methods = {};
     let ignore = 0;
     
     _silence = () => ignore = 1;
@@ -43,8 +50,6 @@ function patch_console() {
     patch("error");
     patch("trace");
 }
-
-patch_console();
 
 const NO_CHILDREN = 0x7ffff;
 const LineFlags = {
@@ -193,6 +198,10 @@ export class ConsoleEditor extends Editor {
         }
     }
 
+    on_area_active() {
+        patch_console();
+    }
+    
     formatMessage() {
         let s = "";
         let prev = "";

@@ -1922,9 +1922,9 @@ export class BaseContextOverlay extends ContextOverlay {
   }
 
   get edit_all_layers() {
-    let view2d = this.view2d;
+    let scene = this.scene;
 
-    return view2d !== undefined ? view2d.edit_all_layers : false;
+    return scene !== undefined ? scene.edit_all_layers : false;
   }
 
   get spline() : FrameSet {

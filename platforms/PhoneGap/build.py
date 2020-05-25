@@ -21,7 +21,7 @@ def build():
   for f in os.listdir(basepath + ""):
     path = basepath + "/" + f
 	
-    if f == "js": continue
+    if f == "js" and f != "config.js": continue
     
     zf.write(path, f);
     

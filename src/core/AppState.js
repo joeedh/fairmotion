@@ -10,7 +10,7 @@ if (window.haveElectron) {
 import * as theme from '../editors/theme.js';
 
 import * as config from '../config/config.js';
-import * as html5_fileapi from './fileapi.js';
+import * as html5_fileapi from './fileapi/fileapi.js';
 
 import {ConsoleEditor} from '../editors/console/console.js';
 import {CurveEditor} from '../editors/curve/CurveEditor.js';
@@ -69,7 +69,7 @@ import {setAreaTypes} from "../path.ux/scripts/screen/ScreenArea.js";
 setAreaTypes(AreaTypes);
 
 import {Screen} from '../path.ux/scripts/screen/FrameManager.js';
-import {PathUXInterface} from './data_api_pathux.js';
+import {PathUXInterface} from './data_api/data_api_pathux.js';
 
 export function get_app_div() {
   let app = document.getElementById("app");
@@ -133,12 +133,12 @@ export function gen_screen(unused, w, h) {
   app.appendChild(screen);
 }
 
-import './startup_file_example.js';
-import {startup_file} from './startup_file.js';
+import './startup/startup_file_example.js';
+import {startup_file} from './startup/startup_file.js';
 
 //$XXX import {gen_screen} from 'FrameManager';
 import {DataPath, DataStruct, DataPathTypes, DataFlags,
-        DataAPI, DataStructArray} from './data_api.js';
+        DataAPI, DataStructArray} from './data_api/data_api.js';
 import {wrap_getblock, wrap_getblock_us} from './lib_utils.js';
 //$XXX import {UICanvas} from 'UICanvas';
 import {urlencode, b64decode, b64encode} from '../util/strutils.js';
@@ -191,8 +191,6 @@ export class FileData {
     this.version = version;
   }
 }
-
-console.log("converting pre-path.ux file");
 
 function ensureMenuBar(appstate, screen) {
   for (let sarea of screen.sareas) {
@@ -485,16 +483,15 @@ function output_startup_file() : String {
 }
 
 export class AppState {
-  //XXX mesh? gl? nuke 'em!
-  constructor(screen : FrameManager, mesh : Mesh, gl : WebGLRenderingContext) {
-    this.AppState_init(screen, mesh, gl);
+  constructor(screen : FrameManager) {
+    this.AppState_init(screen);
   }
 
-  //XXX mesh? gl? nuke 'em!
-  AppState_init(screen : FrameManager, mesh : Mesh, gl : WebGLRenderingContext) {
+  AppState_init(screen : FrameManager) {
     this.screen = screen;
     this.eventhandler = screen : EventHandler;
 
+    this.settings = new AppSettings();
     this.active_editor = undefined;
     
     this._nonblocks = new set (["SCRN", "TSTK", "THME"]);
@@ -519,7 +516,6 @@ export class AppState {
 
     this.filepath = ""
     this.version = g_app_version;
-    this.gl = gl;
     this.size = screen !== undefined ? screen.size : [512, 512];
     this.raster = new RasterState(undefined, screen !== undefined ? screen.size : [512, 512]);
     

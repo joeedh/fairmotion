@@ -4,8 +4,177 @@ import {reload_default_theme} from '../datafiles/theme.js';
 import {b64encode, b64decode} from '../util/strutils.js';
 //#XXX import {download_file} from 'dialogs';
 import {STRUCT} from './struct.js';
+import {exportTheme, CSSFont} from '../path.ux/scripts/core/ui_theme.js';
+import {setTheme} from '../path.ux/scripts/core/ui_base.js';
+import * as ui_base from '../path.ux/scripts/core/ui_base.js';
+import {theme} from '../editors/theme.js';
+
+let defaultTheme = exportTheme(theme);
+
+export function loadTheme(str) {
+  var theme;
+  eval(str);
+
+  setTheme(theme);
+}
+
+export class RecentPath {
+  constructor(path, displayname) {
+    this.path = path;
+    this.displayname = displayname;
+  }
+  
+  loadSTRUCT(reader) {
+    reader(this);
+  }
+}
+RecentPath.STRUCT = `
+  RecentPath {
+    path        : string;
+    displayname : string;
+  }
+`;
 
 export class AppSettings {
+  constructor() {
+    this.reload_defaults(false);
+    this.recent_paths = [];
+  }
+
+  reload_defaults(load_theme=false) {
+    this.unit_scheme = "imperial";
+    this.unit = "in";
+    this.theme = defaultTheme;
+    
+    if (load_theme) {
+      loadTheme(this.theme);
+    }
+  }
+  
+  reloadDefaultTheme() {
+    this.theme = defaultTheme;
+    loadTheme(this.theme);
+  }
+
+  setTheme(th = ui_base.theme) {
+    this.theme = exportTheme(th);
+    return this;
+  }
+
+  loadFrom(b, load_theme=true) {
+    this.unit = b.unit;
+    this.unit_scheme = b.unit_scheme;
+    this.theme = b.theme;
+
+    if (load_theme) {
+      loadTheme(this.theme);
+    }
+
+    return this;
+  }
+
+  download(callback) {
+    console.warn("Deprecated function AppSettings.prototype.download() called");
+    
+    this.load().then(() => {
+      if (callback) {
+        callback();
+      }
+    });
+  }
+
+  load() {
+    return new Promise((accept, reject) => {
+      myLocalStorage.getAsync("_fairmotion_settings").then((data) => {
+        console.log("Loading saved settings. . . ");
+
+        data = new DataView(b64decode(data).buffer);
+
+        let fdata = g_app_state.load_blocks(data);
+        let blocks = fdata.blocks;
+        let fstruct = fdata.fstructs;
+        let version = fdata.version;
+
+        var settings = undefined;
+        console.log(blocks);
+
+        for (var i=0; i<blocks.length; i++) {
+          if (blocks[i].type === "USET") {
+            settings = fstruct.read_object(blocks[i].data, AppSettings);
+            console.log("found settings:", settings);
+          }
+        }
+        
+        if (settings == undefined) {
+          console.trace("could not find settings block");
+          reject("could not find settings block, but did get a file");
+          return;
+        }
+
+        this.loadFrom(settings);
+        accept(this);
+      });
+    });
+  }
+
+  save() {
+    var data = this.gen_file().buffer;
+    data = b64encode(new Uint8Array(data));
+    
+    myLocalStorage.set("_fairmotion_settings", data);
+  }
+
+  gen_file() {
+    let blocks = {USET : this};
+    
+    var args = {blocks : blocks};
+    return g_app_state.write_blocks(args);
+  }
+
+  find_recent_path(path) {
+    for (var i=0; i<this.recent_paths.length; i++) {
+      if (this.recent_paths[i].path == path) {
+        return i;
+      }
+    }
+    
+    return -1;
+  }
+  
+  add_recent_file(path, displayname=path) {
+    var rp = this.find_recent_path(path);
+    path = new RecentPath(path, displayname);
+    
+    if (rp >= 0) {
+      this.recent_paths.remove(this.recent_paths[path]);
+      this.recent_paths.push(path);
+    } else if (this.recent_paths.length >= config.MAX_RECENT_FILES) {
+      this.recent_paths.shift();
+      this.recent_paths.push(path);
+    } else {
+      this.recent_paths.push(path);
+    }
+  }
+
+  loadSTRUCT(reader) {
+    reader(this);
+
+    if (typeof this.theme !== "string") {
+      this.theme = defaultTheme;
+    }
+  }
+}
+AppSettings.STRUCT = `
+AppSettings {
+  unit_scheme  : string;
+  unit         : string;
+  theme        : string;
+  recent_paths : array(RecentPath);
+}
+`;
+
+
+export class OldAppSettings {
   constructor() {
     this.unit_scheme = "imperial";
     this.unit = "in";
@@ -92,7 +261,7 @@ export class AppSettings {
     }
   }
   
-  gen_file() : {
+  gen_file() {
     var blocks = {USET : this};
     
     var args = {blocks : blocks};
@@ -175,33 +344,15 @@ export class AppSettings {
   }
 }
 
-AppSettings.STRUCT = """
-  AppSettings {
+OldAppSettings.STRUCT = `
+  OldAppSettings {
     unit_scheme  : string;
     unit         : string;
     theme        : Theme | g_theme;
     recent_paths : array(RecentPath);
   }
-""";
+`;
 
-export class RecentPath {
-  constructor(path, displayname) {
-    this.path = path;
-    this.displayname = displayname;
-  }
-  
-  static fromSTRUCT(reader) {
-    var ret = new RecentPath();
-    reader(ret);
-    return ret;
-  }
-}
-RecentPath.STRUCT = """
-  RecentPath {
-    path        : string;
-    displayname : string;
-  }
-""";
 
 export class SettUploadManager {
   constructor() {

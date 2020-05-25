@@ -411,7 +411,7 @@ function makeAPI(api) {
       dummy : "Dummy"
     }).icons({
     }).on("change", function () {
-      g_app_state.session.settings.server_update();
+      g_app_state.session.settings.save();
       g_app_state.screen.do_full_recalc();
     });
   }

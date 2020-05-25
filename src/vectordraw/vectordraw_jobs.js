@@ -351,7 +351,7 @@ export class ThreadManager {
       return;
 
     promise.then((memory) => {
-      console.log("Memory in use:", (memory/1024/1024).toFixed(1));
+      //console.log("Memory in use:", (memory/1024/1024).toFixed(1));
     })
   }
   

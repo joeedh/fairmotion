@@ -2,8 +2,240 @@ import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
 import {STRUCT} from '../../core/struct.js';
 import {UIBase} from '../../path.ux/scripts/core/ui_base.js';
 import {Editor} from '../editor_base.js';
+import {Vector2} from '../../path.ux/scripts/util/vectormath.js';
+import { DropBox } from '../../path.ux/scripts/pathux.js';
+import {pushModalLight, popModalLight} from '../../path.ux/scripts/util/simple_events.js';
+
+function startPan(edit, x, y) {
+  if (edit._modaldata) {
+    popModalLight(edit._modaldata);
+    edit._modaldata = undefined;
+    return;
+  }
+
+  let startmpos = new Vector2([x, y]);
+  let lastmpos = new Vector2([x, y]);
+  let mpos = new Vector2();
+  let dv = new Vector2();
+  let first = true;
+
+  edit._modaldata = pushModalLight({
+    on_mousedown(e) {
+    },
+
+    on_mousemove(e) {
+      lastmpos.load(mpos);
+
+      mpos[0] = e.x;
+      mpos[1] = e.y;
+
+      if (first) {
+        first = false;
+        return;
+      }
+
+      dv.load(mpos).sub(lastmpos);
+      edit.pan.add(dv);
+      edit.redraw();
+
+      //console.log(dv, edit.pan);
+    },
+
+    on_mouseup(e) {
+      this.stop();
+    },
+
+    stop() {
+      if (edit._modaldata) {
+        popModalLight(edit._modaldata);
+        edit._modaldata = undefined;
+      }
+    },
+
+    on_keydown(e) {
+      if (e.keyCode === 27) {
+        this.stop();
+      }
+    }
+  });
+}
+
+export class CurveEdit extends UIBase {
+  constructor() {
+    super();
+    this.curvePaths = [];
+    this._drawreq = false;
+
+    this.size = new Vector2([512, 512]);
+    this.canvas = document.createElement("canvas");
+    this.g = this.canvas.getContext("2d");
+    this.shadow.appendChild(this.canvas);
+
+    this.pan = new Vector2();
+    this.zoom = new Vector2([1, 1]);
+
+    this.addEventListener("mousedown", this.on_mousedown.bind(this));
+    this.addEventListener("mousemove", this.on_mousemove.bind(this));
+    this.addEventListener("mouseup", this.on_mouseup.bind(this));
+  }
+
+  on_mousedown(e) {
+    this.mdown = true;
+
+    startPan(this);
+    console.log("mdown");
+  }
+
+  on_mousemove(e) {
+    console.log("mmove");
+  }
+
+  on_mouseup(e) { 
+    console.log("mup");
+    this.mdown = false;
+  }
+
+  init() {
+    super.init();
+  }
+
+  redraw() {
+    if (this._drawreq) {
+      return;
+    }
+
+    this.doOnce(this.draw);
+  }
+
+  draw() {
+    this._drawreq = false;
+    let g = this.g;
+    let canvas = this.canvas;
+
+    g.fillStyle = "rgb(240, 240, 240)";
+    g.rect(0, 0, canvas.width, canvas.height);
+    g.fill();
+
+    let fsize = 10;
+    g.font = "" + fsize + "px sans-serif";
+
+    let pad = fsize*3.0;
+    let csize = 32;
+    let steps = ~~(this.size[0]  / csize + 1.0);
+    
+    g.fillStyle = "grey";
+    g.beginPath();
+    g.rect(0, 0, pad, this.size[1]);
+    g.rect(0, this.size[1] - pad, this.size[0], pad);
+    g.rect(0, 0, this.size[0], pad);
+    g.rect(this.size[0]-pad, 0, pad, this.size[1]);
+    //g.rect(
+    g.fill();
+
+    g.fillStyle = "orange";
+
+    for (let step=0; step<2; step++) {
+      let off = this.pan[step] % csize;
+      let x = off - csize;
+
+      for (let i=0; i<steps; i++) {
+        let val = i- ~~(this.pan[step] / csize);
+        val = val.toFixed(1);
+        
+        if (x >= this.size[step] - pad) {
+          break;
+        }
+
+        let v1 = [0, 0];
+        let v2 = [0, 0];
+        
+        v1[step] = v2[step] = x;
+        v1[step^1] = pad;
+        v2[step^1] = this.size[step^1]-pad;
+
+        if (x >= pad) {
+          g.beginPath();
+          g.moveTo(v1[0], v1[1]);
+          g.lineTo(v2[0], v2[1]);
+          g.stroke();
+
+          v1[step] = v2[step] = x;
+          v1[step^1] = 0;
+          v2[step^1] = this.size[step^1];
+
+          if (!step) {
+            v1[1] += fsize*1.45;
+          }
+
+          g.fillText(""+val, 10+v1[0], v1[1]);
+        }
+        x += csize;
+      }
+    }
+  }
+
+  updateSize() {
+    let rect = this.getBoundingClientRect();
+    if (!rect)
+      return;
+
+    let dpi = UIBase.getDPI();
+    let w = ~~(this.size[0]*dpi);
+    let h = ~~((this.size[1]-22.5)*dpi);
+    let c = this.canvas;
+    
+    if (w !== c.width || h !== c.height) {
+      console.log("size update");
+      c.width = w;
+      c.height = h;
+
+      c.style["width"] = (w/dpi) + "px";
+      c.style["height"] = (h/dpi) + "px";
+      this.redraw();
+    }
+  }
+
+  update() {
+    super.update();
+
+    this.updateSize();
+  }
+
+  static define() {return {
+    tagname : "curve-edit-x",
+    style   : "curve-edit"
+  }}
+}
+UIBase.register(CurveEdit);
 
 export class CurveEditor extends Editor {
+  constructor() {
+    super();
+
+    this.pan = new Vector2();
+    this.zoom = new Vector2([1, 1]);
+  }
+
+  init() {
+    super.init();
+
+    let edit = this.edit = document.createElement("curve-edit-x");
+
+    edit.pan.load(this.pan);
+    edit.zoom.load(this.zoom);
+
+    this.pan = edit.pan;
+    this.zoom = edit.zoom;
+
+    this.container.add(edit);
+  }
+
+  update() {
+    this.edit.size[0] = this.size[0];
+    this.edit.size[1] = this.size[1];
+    super.update();
+  }
+
   static define() { return {
     tagname : "curve-editor-x",
     areaname : "curve_editor",
@@ -17,143 +249,8 @@ export class CurveEditor extends Editor {
 }
 
 CurveEditor.STRUCT = STRUCT.inherit(CurveEditor, Area) + `
+  pan  : vec2;
+  zoom : vec2;
 }
 `;
 Editor.register(CurveEditor);
-
-
-#if 0
-"use strict";
-
-import {aabb_isect_2d} from '../../util/mathlib.js';
-import {gen_editor_switcher} from 'UIWidgets_special';
-
-import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
-  charmap, TouchEventManager, EventHandler} from '../events.js';
-
-import {STRUCT} from '../../core/struct.js';
-import {phantom, KeyTypes, FilterModes,
-  get_select, get_time, set_select, set_time
-} from '../dopesheet/dopesheet_phantom.js';
-
-import {PackFlags, UIElement, UIFlags, CanvasFlags} from 'UIElement';
-import {UIFrame} from 'UIFrame';
-import {
-  UIButtonAbstract, UIButton, UIButtonIcon,
-  UIMenuButton, UICheckBox, UINumBox, UILabel,
-  UIMenuLabel, ScrollButton, UIVScroll, UIIconCheck
-} from 'UIWidgets';
-
-import {UISplitFrame} from 'UISplitFrame';
-
-import {RowFrame, ColumnFrame, UIPackFrame} from 'UIPack';
-import {UITextBox} from 'UITextBox';
-import {ToolOp, UndoFlags, ToolFlags} from '../../core/toolops_api.js';
-import {UITabBar} from 'UITabPanel';
-
-import {UICollapseIcon} from 'UIWidgets_special';
-
-import {ToolOp} from '../../core/toolops_api.js';
-import {RowFrame} from 'UIPack';
-import {UndoFlags} from '../../core/toolops_api.js';
-
-import {Spline, RestrictFlags} from '../../curve/spline.js';
-import {CustomDataLayer, SplineTypes, SplineFlags, SplineSegment} from '../../curve/spline_types.js';
-import {TimeDataLayer, get_vtime, set_vtime,
-  AnimKey, AnimChannel, AnimKeyFlags, AnimInterpModes
-} from '../../core/animdata.js';
-
-import {SplineLayerFlags, SplineLayerSet} from '../../curve/spline_element_array.js';
-
-import {SplineFlags} from '../../curve/spline_base.js';
-import {AddLayerOp, ChangeLayerOp, ChangeElementLayerOp} from '../viewport/spline_layerops.js';
-import {DissolveVertOp} from '../viewport/spline_editops.js';
-
-import {ShiftTimeOp2, ShiftTimeOp3, SelectOp, DeleteKeyOp,
-  ColumnSelect, SelectKeysToSide, ToggleSelectOp
-} from '../dopesheet/dopesheet_ops.js';
-
-/******************* main area struct ********************************/
-import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
-import {UISplitFrame} from "../../ui/UISplitFrame.js";
-import {TreePanel} from "../dopesheet/DopeSheetEditor.js";
-
-export class CurveEditor extends Area {
-  constructor(pos, size) {
-    super(CurveEditor.name, CurveEditor.uiname, new Context(), pos, size);
-    
-    this.pinned_ids = undefined;
-  }
-  
-  build_layout() {
-    build_layout() {
-      this.channels = new TreePanel();
-      this.channels.size[0] = 100;
-      this.channels.size[1] = 600;
-    
-      //this.add(this.channels);
-    
-      super.build_layout(false, true);
-    
-      //*
-      this.middlesplit.horizontal = true;
-      let sidebar = this.middlesplit.initial();
-      sidebar.state |= UIFlags.BG_EVENTS_TRANSPARENT;
-      this.middlesplit.split(145, false, false, true).state |= UIFlags.BG_EVENTS_TRANSPARENT;
-    
-      sidebar.draw_background = false;
-      sidebar.add(this.channels);
-      //*/
-    }
-  }
-  
-  build_bottombar(the_row) {
-    var ctx = new Context();
-    
-    this.ctx = ctx;
-    
-    the_row.packflag |= PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING|PackFlags.IGNORE_LIMIT;
-    the_row.default_packflag = PackFlags.ALIGN_LEFT|PackFlags.NO_AUTO_SPACING;
-    the_row.draw_background = true;
-    the_row.rcorner = 100.0
-    the_row.pos = [0, 2]
-    the_row.size = [this.size[0], Area.get_barhgt()];
-    
-    var col = the_row.col();
-    
-    col.add(gen_editor_switcher(this.ctx, this));
-    
-    col.prop("editcurve.selected_only");
-    col.prop("editcurve.pinned");
-  }
-
-  static fromSTRUCT(reader) {
-    var ret = new CurveEditor();
-  
-    reader(ret);
-  
-    if (ret.pan != undefined) {
-      ret.velpan.pan[0] = ret.pan[0];
-      ret.velpan.pan[1] = ret.pan[1];
-    
-      delete ret.pan;
-    }
-  
-    if (ret.pinned_ids != undefined && ret.pinned_ids.length == 0) {
-      delete ret.pinned_ids;
-    }
-  
-    return ret;
-  }
-}
-
-CurveEditor.STRUCT = STRUCT.inherit(CurveEditor, Area) + `
-    pan             : vec2 | obj.velpan.pan;
-    zoom            : float;
-    selected_only   : int;
-    pinned_ids     : array(int) | obj.pinned_ids != undefined ? obj.pinned_ids : [];
-}
-`;
-
-CurveEditor.uiname = "Curve Editor";
-#endif

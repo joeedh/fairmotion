@@ -26,3 +26,4 @@ export var PlatCapab = {
 };
 
 export var app = new PlatformAPI();
+

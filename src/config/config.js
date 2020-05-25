@@ -10,6 +10,8 @@ export let PathUXConstants = {
   }
 };
 
+export var ORIGIN = location.origin;
+
 export var MANIPULATOR_MOUSEOVER_LIMIT = 25;
 
 export var ELECTRON_APP_MODE = document.getElementById("ElectronAppMode") !== null;
@@ -52,6 +54,7 @@ window.RELEASE = false;
 //load local configuration overrides
 import * as config_local from './config_local.js';
 export * from './config_local';
+
 
 //debug flags
 window._DEBUG = {
@@ -111,3 +114,9 @@ for (var k in _DEBUG) {
 
 if (DEBUG != undefined && DEBUG.force_mobile)
   window.IsMobile = true;
+
+if (window._platform_config) {
+  for (let k in _platform_config) {
+    exports[k] = _platform_config[k];
+  }
+}

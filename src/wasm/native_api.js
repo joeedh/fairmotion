@@ -9,7 +9,7 @@ export var active_jobs = {}
 import {constraint, solver} from "../curve/solver.js";
 import {ModalStates} from '../core/toolops_api.js';
 import {SplineTypes, SplineFlags} from '../curve/spline_base.js';
-import {build_solver} from '../curve/spline_math_hermite.js';
+import {build_solver, solve_pre} from '../curve/spline_math_hermite.js';
 
 import {TypedWriter} from '../util/typedwriter.js';
 
@@ -420,31 +420,10 @@ export function do_solve(sflags : int, spline : Spline, steps : int, gk=0.95, re
   var SplineFlags = sflags;
   
   spline.resolve = 1;
-  spline.propagate_update_flags();
-  
-  for (var i=0; i<spline.segments.length; i++) {
-    var seg = spline.segments[i];
-    
-    if ((!(seg.v1.flag & SplineFlags.UPDATE) && !(seg.v2.flag & SplineFlags.UPDATE)))
-      continue;
-    
-    //need to clear seg.ks in this case
-    if ((seg.v1.flag & SplineFlags.BREAK_TANGENTS) || (seg.v2.flag & SplineFlags.BREAK_TANGENTS)) {
-      for (var j=0; j<seg.ks.length; j++) {
-        seg.ks[j] = 0.0000001;
-      }
-    }
-    
-    //check for NaN
-    for (var j=0; j<seg.ks.length; j++) {
-      if (isNaN(seg.ks[j])) {
-        seg.ks[j] = 0.000001;
-      }
-    }
-    
-    seg.evaluate(0.5);
-  }
-  
+
+  solve_pre(spline);
+
+
   var on_finish, on_reject, promise;
   
   if (return_promise) {
@@ -488,9 +467,9 @@ export function do_solve(sflags : int, spline : Spline, steps : int, gk=0.95, re
     solve_endtimes[spline._solve_id] = time_ms();
     solve_starttimes2[spline._solve_id] = start_time;
     
-    //if (Math.random() > 0.95) {
-    console.log((solve_endtimes[spline._solve_id]-start_time).toFixed(2)+"ms");
-    //}
+    if (_DEBUG.solve_times) {
+      console.log((solve_endtimes[spline._solve_id] - start_time).toFixed(2) + "ms");
+    }
     
     for (var i = 0; i < spline.segments.length; i++) {
       var seg = spline.segments[i];
@@ -611,11 +590,14 @@ function write_nacl_solve_new(writer, spline, cons, update_verts, update_segs, g
   for (var s of update_segs) {
     var flag = s.flag;
     
-    if (edge_segs.has(s)) {
+    let count = s.v1.flag & SplineFlags.UPDATE ? 1 : 0;
+    count += s.v2.flag & SplineFlags.UPDATE ? 1 : 0;
+
+    if (count < 2) {
       flag |= FIXED_KS_FLAG;
       //console.log("edge segment!");
     }
-    
+
     writer.int32(s.eid);
     writer.int32(flag);
     
@@ -920,15 +902,7 @@ function _unload(spline, data) {
   
   var totseg = getint();
   getint(); //skip pad int
-  
-  /*
-  for (var s of spline.segments) {
-    for (var i=0; i<s.ks.length; i++) {
-      s.ks[i] = 0;
-    }
-  }
-  //*/
-  
+
   if (DEBUG)
     console.log("totseg:", totseg);
   

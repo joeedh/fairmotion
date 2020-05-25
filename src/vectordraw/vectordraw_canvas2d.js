@@ -15,6 +15,8 @@ import {
 import {OPCODES} from './vectordraw_jobs_base.js';
 import * as vectordraw_jobs from './vectordraw_jobs.js';
 
+let debug = 0;
+
 var canvaspath_draw_mat_tmps = new cachering(function() {
   return new Matrix4();
 }, 16);
@@ -184,7 +186,7 @@ export class Batch {
     this.regen = false;
 
     let canvas = draw.canvas, g = draw.g;
-    console.log("generating batch of size " + this.paths.length);
+    if (debug) ("generating batch of size " + this.paths.length);
 
     let ok = false;
     let min = new Vector2([1e17, 1e17]);
@@ -288,7 +290,7 @@ export class Batch {
     min = new Vector2(min);
     
     vectordraw_jobs.manager.postRenderJob(renderid, commands).then((data) => {
-      console.log("Got render result!");
+      if (debug) ("Got render result!");
       this.gen_req = 0;
 
       //this.__image = undefined;
@@ -609,7 +611,7 @@ export class CanvasPath extends QuadBezPath {
       //console.log("CLIPPING!", path);
       
       if (path.recalc) {
-        console.log("   clipping subgen!");
+        if (debug) console.log("   clipping subgen!");
         path.gen(draw, 1);
       }
       
@@ -757,7 +759,7 @@ export class CanvasPath extends QuadBezPath {
 
 export class Batches extends Array {
   destroy() {
-    console.log("destroy batches");
+    if (debug) console.log("destroy batches");
 
     for (let b of this) {
       b.destroy();
@@ -844,7 +846,7 @@ export class CanvasDraw2D extends VectorDraw {
     let batch;
 
     let blimit = this.paths.length < 15 ? 15 : Math.ceil(this.paths.length / vectordraw_jobs.manager.max_threads);
-    console.log("batch limit", blimit);
+    //console.log("batch limit", blimit);
 
     if (this.batches.length > 0) {
       batch = this.batches[this.batches.length-1];
@@ -890,7 +892,7 @@ export class CanvasDraw2D extends VectorDraw {
     this.g = g;
     
     if (this.dosort) {
-      console.log("SORT");
+      if (debug) console.log("SORT");
 
       this.batches.destroy();
       batch = new Batch();
@@ -932,7 +934,7 @@ export class CanvasDraw2D extends VectorDraw {
     window.batch = batch;
     window.batches = this.batches;
 
-    console.log(batch.paths.length, batch._batch_id);
+    //console.log(batch.paths.length, batch._batch_id);
     
     for (let batch of this.batches) {
       batch.draw(this);

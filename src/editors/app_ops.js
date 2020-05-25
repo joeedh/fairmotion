@@ -5,10 +5,10 @@ import {urlencode, b64decode, b64encode} from '../util/strutils.js';
 import {ToolFlags, UndoFlags} from '../core/toolops_api.js';
 import {StringProperty} from '../core/toolprops.js';
 
-import {export_svg} from '../core/svg_export.js';
+import {export_svg} from '../util/svg_export.js';
 
 import {ToolOp, UndoFlags, ToolFlags} from '../core/toolops_api.js';
-import {get_root_folderid, get_current_dir, path_to_id} from '../core/fileapi.js';
+import {get_root_folderid, get_current_dir, path_to_id} from '../core/fileapi/fileapi.js';
 import * as platform from '../../platforms/platform.js';
 
 export var FileDialogModes = {OPEN: "Open", SAVE: "Save"}
@@ -21,7 +21,7 @@ var fdialog_exclude_chars = new set([
   "^"
 ]);
 
-import {open_file, save_file, save_with_dialog, can_access_path} from '../core/fileapi.js';
+import {open_file, save_file, save_with_dialog, can_access_path} from '../core/fileapi/fileapi.js';
 
 export class FileOpenRecentOp extends ToolOp {
   static tooldef() { return {

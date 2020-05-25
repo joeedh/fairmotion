@@ -10,6 +10,7 @@ let mod;
 
 if (config.ELECTRON_APP_MODE) {
   mod = electron;
+  config.ORIGIN = ".";
 } else if (config.HTML5_APP_MODE) {
   mod = html5;
 } else if (config.PHONE_APP_MODE) {

@@ -2,7 +2,7 @@
 
 #include "src/core/utildefine.js"
 
-import "../core/vectormath.js"
+import "./vectormath.js"
 
 import {STRUCT} from '../core/struct.js';
 

@@ -1459,10 +1459,11 @@ export class Spline extends DataBlock {
       }
       
       var has_tan = v2.segments.length <= 2;
+
       for (var j=0; j<v2.segments.length; j++) {
         var h = v2.segments[j].handle(v2);
         
-        if ((v2.flag & SplineFlags.SELECT) && h.hpair != undefined) {
+        if (h.hpair != undefined) {
           has_tan = true;
         }
       }
@@ -1538,6 +1539,15 @@ export class Spline extends DataBlock {
   }
   
   propagate_update_flags() {
+    for (let seg of this.segments) {
+      if ((seg.v1.flag & SplineFlags.UPDATE) && (seg.v1.flag & SplineFlags.BREAK_TANGENTS)) {
+        seg.v2.flag |= SplineFlags.UPDATE;
+      }
+      if ((seg.v2.flag & SplineFlags.UPDATE) && (seg.v2.flag & SplineFlags.BREAK_TANGENTS)) {
+        seg.v1.flag |= SplineFlags.UPDATE;
+      }
+    }
+
     var verts = this.verts;
     for (var i=0; i<verts.length; i++) {
       var v = verts[i];

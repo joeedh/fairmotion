@@ -5,7 +5,7 @@ import {Editor} from '../editor_base.js';
 import * as ui_widgets from '../../path.ux/scripts/widgets/ui_widgets.js';
 import * as platform from '../../../platforms/platform.js';
 import {Menu} from '../../path.ux/scripts/widgets/ui_menu.js';
-import {startup_file} from '../../core/startup_file.js';
+import {startup_file} from '../../core/startup/startup_file.js';
 
 import * as electron_api from '../../path.ux/scripts/platforms/electron/electron_api.js';
 

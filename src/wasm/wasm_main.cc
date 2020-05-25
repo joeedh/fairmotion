@@ -166,7 +166,7 @@ void handleMessage(int type, char *buf, int len) {
 extern "C" void gotMessage(int type, void *message, int len) {
     char *buf = (char*) message;
 
-    printf("Got message %d %p %d\n", type, message, len);
+    //printf("Got message %d %p %d\n", type, message, len);
     handleMessage(type, buf, len);
 }
 

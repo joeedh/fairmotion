@@ -545,7 +545,7 @@ export class FrameChangeOp extends ToolOp {
 
 import {SimpleCanvasDraw2D} from '../../vectordraw/vectordraw_canvas2d_simple.js';
 import {draw_spline} from '../../curve/spline_draw.js';
-import {save_file} from '../../core/fileapi.js';
+import {save_file} from '../../core/fileapi/fileapi.js';
 import {patch_canvas2d, set_rendermat} from '../../curve/spline_draw.js';
 import {SplineDrawer} from '../../curve/spline_draw_new.js';
 

@@ -128,7 +128,7 @@ var SMALL_VERT_SIZE=1.0;
 
 import {SplineDrawer} from './spline_draw_new.js';
 import {redo_draw_sort} from './spline_draw_sort.js';
-import { Vector2 } from '../core/vectormath.js';
+import { Vector2 } from '../util/vectormath.js';
 
 export * from './spline_draw_sort';
 

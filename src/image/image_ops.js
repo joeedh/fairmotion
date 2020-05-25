@@ -15,7 +15,7 @@ import {redo_draw_sort} from '../curve/spline_draw.js';
 //$XXX import {FileDialog, FileDialogModes, file_dialog, download_file} from 'dialogs';
 
 import * as config from '../config/config.js';
-import * as html5_fileapi from '../core/fileapi.js';
+import * as html5_fileapi from '../core/fileapi/fileapi.js';
 
 export class LoadImageOp extends ToolOp {
   static tooldef() { return {

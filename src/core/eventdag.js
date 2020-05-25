@@ -3,7 +3,7 @@
 //interface
 var _event_dag_idgen = undefined;
 
-import './vectormath.js';
+import '../util/vectormath.js';
 
 /*
 NodeBase is protocol to define node types;  EventDag uses it to internally build

@@ -533,7 +533,9 @@ export function do_solve(sflags, Spline spline, int steps, float gk=0.95, return
         solve_starttimes2[spline._solve_id] = start_time;
         
         //if (Math.random() > 0.95) {
-          console.log((solve_endtimes[spline._solve_id]-start_time).toFixed(2)+"ms");
+        if (_DEBUG.solve_times) {
+          console.log((solve_endtimes[spline._solve_id] - start_time).toFixed(2) + "ms");
+        }
         //}
         
         for (var i = 0; i < spline.segments.length; i++) {

@@ -496,7 +496,7 @@ export class FileOpenOp extends ToolOp {
             
             if (filepath != undefined) {
               g_app_state.session.settings.add_recent_file(filepath);
-              g_app_state.session.settings.server_update(true);
+              g_app_state.session.settings.save();
             }
         }, this, true, "Fairmotion Files", ["fmo"]);
         

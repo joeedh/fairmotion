@@ -537,23 +537,27 @@ t_REGEXPR = gen_re() #r'(((?<!\\)|(?<=\\\\))/)(([^\n\r\*\\/\[]|(((?<!\\)|(?<=\\\
 #t_STRINGLIT = r'".*"'
 strlit_val = StringLit("")
 start_q = 0
+mlchar = '`'
 
 def t_TEMPLATE_STR(t):
-    r'`';
+    r'`([^`]|(\\`))*[^\\]`';
     
-    global strlit_val;
-    t.lexer.push_state("mlstr");
-    strlit_val = StringLit("")
+    t.type = "STRINGLIT"
+    t.value = StringLit(t.value)
+    t.lexer.lineno += t.value.count("\n")
 
+    return t
+   
 t_mlstr_ignore = ''
 
 def t_MLSTRLIT(t):
   r'"""';
   
-  global strlit_val;
+  global strlit_val, mlchar;
   t.lexer.push_state("mlstr");
   strlit_val = StringLit("")
-  
+  mlchar = '"""'
+
 def ml_escape(s):
   i = 0
   lastc = 0

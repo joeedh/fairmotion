@@ -266,7 +266,6 @@ export function build_solver(spline, order, goal_order, gk, do_basic, update_ver
     if (edge_seg) {
       for (var j=0; j<KTOTKS; j++) {
         seg._last_ks[j] = seg.ks[j];
-        seg.ks[j] = 0.0;
       }
       seg.flag |= SplineFlags.TEMP_TAG;
       slv.edge_segs.push(seg);
@@ -750,24 +749,43 @@ function solve_intern(spline, order=ORDER, goal_order=ORDER, steps=65, gk=1.0, d
     console.log("solve time", end_time.toFixed(2), "ms", "steps", totsteps);
 }
 
-export function do_solve(splineflags, spline, steps, gk) {
-  //if (spline === new Context().frameset.pathspline)
-  //  return;
+export function solve_pre(spline) {
   spline.propagate_update_flags();
-  
+  spline.propagate_update_flags();
+
+  for (let seg of spline.segments) {
+    if (!(seg.v1.flag & SplineFlags.UPDATE) || !(seg.v2.flag & SplineFlags.UPDATE))
+      continue;
+
+    for (let i=0; i<seg.ks.length; i++) {
+      seg.ks[i] = 0.0;
+    }
+    
+    seg.evaluate(0.5);
+  }
+
+  /*
+  spline.propagate_update_flags();
+
   for (var i=0; i<spline.segments.length; i++) {
     var seg = spline.segments[i];
-    
+
     if (INCREMENTAL && (!(seg.v1.flag & SplineFlags.UPDATE) || !(seg.v2.flag & SplineFlags.UPDATE)))
       continue;
-    
+
     for (var j=0; j<seg.ks.length; j++) {
       seg.ks[j] = 0.000001; //(j-ORDER/2)*4;
     }
-    
+
     seg.evaluate(0.5, undefined, undefined, undefined, true);
-  }
-  
+  }*/
+}
+
+export function do_solve(splineflags, spline, steps, gk) {
+  solve_pre(spline);
+
+  //if (spline === new Context().frameset.pathspline)
+  //  return;
   spline.resolve = 0;
   //solve_intern(spline, ORDER, undefined, 10, 1, 1);
   solve_intern(spline, ORDER, undefined, 65, 1, 0);
@@ -778,7 +796,7 @@ export function do_solve(splineflags, spline, steps, gk) {
     
     for (var j=0; j<seg.ks.length; j++) {
       if (isNaN(seg.ks[j])) {
-        console.log("NaN 1!");
+        console.log("NaN!");
         seg.ks[j] = 0;
       }
     }

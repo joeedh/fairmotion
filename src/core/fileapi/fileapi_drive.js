@@ -1,4 +1,4 @@
-import * as ajax from 'ajax';
+import * as ajax from 'src/core/ajax.js';
 
 export function get_root_folderid() {
 }

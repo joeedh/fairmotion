@@ -6,12 +6,12 @@ export class Notification {
 
 export class NotificationManager {
   label(label, description) {
-    sendNote(label);
+    sendNote(g_app_state.ctx.screen, label);
   }
 
   progbar(label, progress, description) {
     let f = progress.toFixed(1);
-    sendNote(label + " " + f + "%");
+    sendNote(g_app_state.ctx.screen, label + " " + f + "%");
   }
 
   on_tick() {

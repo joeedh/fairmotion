@@ -294,7 +294,17 @@ export class ToolOpAbstract {
   }
 
   static invoke(ctx, args) {
-    return new this();
+    let ret = new this();
+
+    for (let k in args) {
+      if (k in ret.inputs) {
+        ret.inputs[k].setValue(args[k]);
+      } else {
+        console.warn("Unknown tool argument " + k, ret);
+      }
+    }
+
+    return ret;
   }
 
   static inherit_outputs(cls, newslots) {

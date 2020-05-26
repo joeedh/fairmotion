@@ -729,7 +729,7 @@ export class ChangeFaceZ extends SplineLocalToolOp {
       }
     }
     
-    if (selmode & SplineTypes.SEGMENT) {
+    if (selmode & (SplineTypes.SEGMENT|SplineTypes.VERTEX)) {
       for (var s of spline.segments.selected.editable(ctx)) {
         if (isNaN(s.z)) s.z = 0.0;
         

@@ -1223,7 +1223,7 @@ export class SplineFrameSet extends DataBlock {
     //this.pathspline.resolve = 1;
     this.pathspline.regen_sort();
     
-    var fk = this.cur_frame;
+    var fk = this.cur_frame || 0;
     delete this.cur_frame;
     
     if (fk == undefined) {

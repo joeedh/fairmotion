@@ -722,7 +722,7 @@ export class View2DHandler extends Editor {
     row.prop("view2d.enable_blur", PackFlags.USE_ICONS);
     row.prop("view2d.draw_faces", PackFlags.USE_ICONS);
     row.prop("view2d.extrude_mode", PackFlags.USE_ICONS);
-
+    row.tool("spline.split_pick_edge()", PackFlags.USE_ICONS);
   }
 
   set_zoom(zoom) {
@@ -873,7 +873,7 @@ export class View2DHandler extends Editor {
     return this.drawline_groups[group];
   }
 
-  make_drawline(v1, v2, group="main", color=undefined, width=1) {
+  make_drawline(v1, v2, group="main", color=undefined, width=2) {
     var drawlines = this._get_dl_group(group);
 
     var dl = new drawline(v1, v2, group, color, width);

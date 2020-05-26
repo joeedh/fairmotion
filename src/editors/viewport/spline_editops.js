@@ -962,9 +962,16 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
     let steps = 16;
     let ds = 1.0 / (steps - 1), s = ds;
     let lastco = seg.evaluate(s);
-    
+
+    let view2d = ctx.view2d;
+    let canvas = view2d.get_bg_canvas();
+
     for (let i=1; i<steps; i++, s += ds) {
       let co = seg.evaluate(s);
+
+      view2d.project(co);
+      co[1] = canvas.height - co[1];
+
       this.new_drawline(lastco, co, [1, 0.3, 0.0, 1.0], 2);
       lastco = co;
     }
@@ -982,14 +989,16 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
       
       //console.log("  p", p[1].toFixed(4), p[0]);
       
-      p = p[0];
+      p = new Vector2(p[0]);
+      view2d.project(p);
+
+      let y = canvas.height - p[1];
+      let w = 4;
       
-      let w = 2;
-      
-      this.new_drawline([p[0]-w, p[1]-w], [p[0]-w, p[1]+w]);
-      this.new_drawline([p[0]-w, p[1]+w], [p[0]+w, p[1]+w]);
-      this.new_drawline([p[0]+w, p[1]+w], [p[0]+w, p[1]-w]);
-      this.new_drawline([p[0]+w, p[1]-w], [p[0]-w, p[1]-w]);
+      this.new_drawline([p[0]-w, y-w], [p[0]-w, y+w], "blue");
+      this.new_drawline([p[0]-w, y+w], [p[0]+w, y+w], "blue");
+      this.new_drawline([p[0]+w, y+w], [p[0]+w, y-w], "blue");
+      this.new_drawline([p[0]+w, y-w], [p[0]-w, y-w], "blue");
     }
   }
   

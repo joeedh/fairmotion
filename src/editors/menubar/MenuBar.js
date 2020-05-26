@@ -157,7 +157,7 @@ export class MenuBar extends Editor {
       }
     }
 
-    row.menu("&Edit", this.editMenuDef);
+    row.dynamicMenu("&Edit", this.editMenuDef);
     this.buildEditMenu();
 
     row.menu("&Session", [

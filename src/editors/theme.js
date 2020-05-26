@@ -155,9 +155,9 @@ export const theme = {
   },
 
   listbox:  {
-    DefaultPanelBG: 'rgba(230, 230, 230, 1.0)',
-    ListActive    : 'rgba(200, 205, 215, 1.0)',
-    ListHighlight : 'rgba(155, 220, 255, 0.5)',
+    DefaultPanelBG: 'rgba(81,81,81, 1)',
+    ListActive    : 'rgba(49,39,35, 1)',
+    ListHighlight : 'rgba(55,112,226, 0.3637933139143319)',
     height        : 200,
     width         : 110,
   },

@@ -760,7 +760,7 @@ export function solve_pre(spline) {
     for (let i=0; i<seg.ks.length; i++) {
       seg.ks[i] = 0.0;
     }
-    
+
     seg.evaluate(0.5);
   }
 

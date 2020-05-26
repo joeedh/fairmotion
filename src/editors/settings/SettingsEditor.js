@@ -153,7 +153,7 @@ export class ThemeEditor extends Container {
   }
 
   static define() { return {
-    tagname : "theme-editor-x",
+    tagname : "theme-editor-2-x",
     style   : "theme-editor"
   }}
 }
@@ -183,6 +183,7 @@ export class SettingsEditor extends Editor {
 
     let th = document.createElement("theme-editor-x");
     th.onchange = () => {
+      console.log("settings change");
       g_app_state.settings.save();
     }
 

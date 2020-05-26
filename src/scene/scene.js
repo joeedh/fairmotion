@@ -5,6 +5,7 @@ import {SceneObject, ObjectFlags} from './sceneobject.js';
 import {DataPathNode} from '../core/eventdag.js';
 import {SplineElement} from "../curve/spline_base.js";
 import {ToolModes} from "../editors/viewport/toolmodes/toolmode.js";
+import {SelMask} from "../editors/viewport/selectmode.js";
 
 export class ObjectList extends Array {
   constructor(scene) {
@@ -203,6 +204,8 @@ export class Scene extends DataBlock {
     this.toolmodes.map = {};
     this.toolmode_i = 0;
 
+    this.selectmode = SelMask.VERTEX;
+
     for (let cls of ToolModes) {
       let mode = new cls();
       this.toolmodes.push(mode);
@@ -340,8 +343,24 @@ export class Scene extends DataBlock {
       this.objects[i].data_link(block, getblock, getblock_us);
     }
 
+    this.toolmodes.map = {};
+
     for (let tool of this.toolmodes) {
       tool.dataLink(this, getblock, getblock_us);
+      let def = tool.constructor.toolDefine();
+      this.toolmodes.map[def.name] = tool;
+    }
+
+    for (let cls of ToolModes) {
+      let def = cls.toolDefine();
+
+      if (!(def.name in this.toolmodes)) {
+        let tool = new cls();
+        this.toolmodes.push(tool);
+        this.toolmodes.map[def.name] = tool;
+      }
+
+      //if (!(def.name in this.tool
     }
     //for (let i=0; i<this.framesets.length; i++) {
     //  this.framesets[i] = getblock_us(this.framesets[i]);
@@ -360,9 +379,10 @@ Scene.STRUCT = STRUCT.inherit(Scene, DataBlock) + `
     objects           : array(SceneObject);
     active_object     : int | obj.objects.active !== undefined ? obj.objects.active.id : -1;
     object_idgen      : EIDGen;
-    toolmodes         : array(ToolMode);
+    toolmodes         : array(abstract(ToolMode));
     active_toolmode   : string | this.toolmode !== undefined ? this.toolmode.constructor.toolDefine().name : "";
     edit_all_layers   : int;
+    selectmode        : int;
   }
 `;
 

@@ -7,7 +7,7 @@ export const theme = {
     BasePackFlag            : 0,
     BoxBG                   : 'rgba(100, 100, 100, 1.0)',
     BoxBorder               : 'rgba(155, 155, 155, 1.0)',
-    BoxDepressed            : 'rgba(85, 85, 85, 1.0)',
+    BoxDepressed            : 'rgba(43,32,27, 1)',
     BoxDrawMargin           : 2,
     BoxHighlight            : 'rgba(125, 195, 225, 1.0)',
     BoxMargin               : 4,
@@ -91,6 +91,7 @@ export const theme = {
     numslider_width         : 20,
     oneAxisMargin           : 6,
     oneAxisPadding          : 6,
+    themeVersion            : 0.1,
   },
 
   button:  {
@@ -222,9 +223,9 @@ export const theme = {
     BoxRadius       : 5,
     TitleBackground : 'rgba(99,99,99, 1)',
     TitleBorder     : 'rgba(143,143,143, 1)',
+    'border-style'  : 'solid',
     'padding-bottom': undefined,
     'padding-top'   : undefined,
-    'border-style'  : "solid"
   },
 
   richtext:  {
@@ -270,4 +271,10 @@ export const theme = {
     BoxBG    : 'rgb(245, 245, 245, 1.0)',
     BoxBorder: 'rgb(145, 145, 145, 1.0)',
   },
+
+  treeview:  {
+    itemIndent: 10,
+    rowHeight : 18,
+  },
+
 };

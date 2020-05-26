@@ -249,7 +249,10 @@ def set_parse_globals_error(p):
 
 def set_parse_globals_node(n):
     lexer = glob.g_lexer
-    
+
+    if n is None or isinstance(n, str):
+        return
+
     glob.g_line = n.line
     glob.g_lexpos = n.lexpos
     

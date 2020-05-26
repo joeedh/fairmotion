@@ -1,6 +1,7 @@
 "use strict";
 
 import * as config from '../config/config.js';
+import '../../platforms/platform.js';
 
 export var wasm_binary = undefined;
 

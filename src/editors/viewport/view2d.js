@@ -5,6 +5,8 @@ import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
   charmap, TouchEventManager, EventHandler} from "../events.js";
 import {STRUCT} from '../../core/struct.js';
 import {UIBase} from '../../path.ux/scripts/core/ui_base.js';
+import {createMenu, startMenu} from '../../path.ux/scripts/widgets/ui_menu.js';
+
 import {ImageUser} from '../../core/imageblock.js';
 import {SplineEditor} from './view2d_spline_ops.js';
 import {Container} from '../../path.ux/scripts/core/ui.js';
@@ -153,12 +155,12 @@ export class View2DHandler extends Editor {
     this.drawlines = new GArray();
     this.drawline_groups = {};
 
-    this.editor = new SplineEditor(this);
-    this.editors = new GArray([this.editor]);
+    //this.editor = new SplineEditor(this);
+    //this.editors = new GArray([this.editor]);
 
     //this.eventdiv = document.createElement("div");
 
-    this.regen_keymap();
+    this.doOnce(this.regen_keymap);
   }
 
   get do_blur() {
@@ -167,13 +169,42 @@ export class View2DHandler extends Editor {
   }
 
   regen_keymap() {
-    this.keymap = new KeyMap();
+    if (!this.ctx || !this.ctx.toolmode) {
+      return;
+    }
 
+    this.keymap = new KeyMap();
     this.define_keymap();
 
-    for (let map of this.editor.get_keymaps()) {
+    for (let map of this.ctx.toolmode.getKeyMaps()) {
       this.keymap.concat(map);
     }
+  }
+
+  getKeyMaps() {
+    let ret = super.getKeyMaps() || [];
+    if (this.ctx.toolmode) {
+      ret = ret.concat(this.ctx.toolmode.getKeyMaps());
+    }
+
+    return ret;
+  }
+
+  tools_menu(ctx, mpos) {
+    let tool = ctx.toolmode;
+    if (tool) {
+      tool.tools_menu(ctx, mpos, this);
+    }
+  }
+
+  toolop_menu(ctx, name, ops) {
+    return createMenu(ctx, name, ops);
+  }
+
+  call_menu(menu, view2d, mpos) {
+    let screen = this.ctx.screen;
+
+    startMenu(menu, screen.mpos[0], screen.mpos[1]);
   }
 
   define_keymap() {
@@ -653,6 +684,7 @@ export class View2DHandler extends Editor {
       delay_redraw(50); //stupid hack to deal with async nacl spline solve
     });
 
+
     let tool = tools.tool("view2d.circle_select(mode=select selectmode=selectmode)", PackFlags.LARGE_ICON|PackFlags.USE_ICONS);
     tool.icon = Icons.CIRCLE_SEL_ADD;
     tool.description = "Select control points in a circle";
@@ -690,6 +722,7 @@ export class View2DHandler extends Editor {
     row.prop("view2d.enable_blur", PackFlags.USE_ICONS);
     row.prop("view2d.draw_faces", PackFlags.USE_ICONS);
     row.prop("view2d.extrude_mode", PackFlags.USE_ICONS);
+
   }
 
   set_zoom(zoom) {
@@ -723,6 +756,7 @@ export class View2DHandler extends Editor {
     if (this.pinned_paths != undefined && this.pinned_paths.length == 0)
       this.pinned_paths = undefined;
 
+    /*
     if (this.editor == undefined) {
       console.log("WARNING: corrupted View2DHandler sturct data");
       this.editor = this.editors[0];
@@ -731,6 +765,8 @@ export class View2DHandler extends Editor {
     }
 
     this.editor.view2d = this;
+     */
+
     this._in_from_struct = false;
 
     /*
@@ -747,19 +783,27 @@ export class View2DHandler extends Editor {
   }
 
   get selectmode() {
-    return this._selectmode;
+    return this.ctx && this.ctx.scene ? this.ctx.scene.selectmode : 0;
+    //return this._selectmode;
   }
 
   set selectmode(val) {
-    this._selectmode = val;
+    if (this.ctx && this.ctx.scene) {
+      this.ctx.scene.selectmode = val;
+      window.redraw_viewport();
+    }
 
-    if (!this._in_from_struct)
-      this.set_selectmode(val);
+    //this._selectmode = val;
+
+    //if (!this._in_from_struct)
+    //  this.set_selectmode(val);
   }
 
   set_selectmode(mode : int) {
-    this._selectmode = mode;
-    this.editor.set_selectmode(mode);
+    console.warn("Call to view2d.set_selectmode");
+    this.ctx.scene.selectmode = mode;
+    //this._selectmode = mode;
+    //this.editor.set_selectmode(mode);
     redraw_viewport();
   }
 
@@ -871,6 +915,14 @@ export class View2DHandler extends Editor {
     var drawlines = this._get_dl_group(group);
 
     drawlines.reset();
+  }
+
+  get editor() {
+    return this.ctx.toolmode;
+  }
+
+  set editor(v) {
+    console.warn("Attempt to set view2d.editor");
   }
 
   get_keymaps() {

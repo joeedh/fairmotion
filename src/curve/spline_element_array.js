@@ -613,7 +613,7 @@ export class SelectedEditableAllLayersIter {
       return !e.hidden;
     }
 
-    ret = undefined;
+    var ret = undefined;
     var good = false;
     var c = 0;
     var iter = this.iter;

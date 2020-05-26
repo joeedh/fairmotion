@@ -11,6 +11,7 @@ import {UIBase} from '../../path.ux/scripts/core/ui_base.js';
 import {Editor} from '../../editors/editor_base.js';
 
 import {ToolKeyHandler} from "../../editors/events.js";
+import {HotKey} from '../../path.ux/scripts/util/simple_events.js';
 
 let resolvepath_rets = new cachering(() => {return {
   parent : undefined,
@@ -70,60 +71,48 @@ export class PathUXInterface extends ModelInterface {
 
   _getToolHotkey(screen, toolstring) {
     let ctx = this.ctx;
-    let x = screen.mpos[0], y = screen.mpos[1];
+    let ret;
 
     function processKeymap(keymap) {
       for (let k of keymap) {
         let v = keymap.get(k);
 
-        if (v instanceof ToolKeyHandler && v.tool == toolstring) {
-          //console.log("found tool!", v);
-          return k.toLowerCase();
+        //console.log(k, ":::::::", v, toolstring);
+
+        if (v instanceof ToolKeyHandler && v.tool === toolstring) {
+          console.log("found tool!", v);
+          let ws = k.split("-")
+          let s = "";
+          let i = 0;
+
+          for (let w of ws) {
+            w = w[0].toUpperCase() + w.slice(1, w.length).toLowerCase();
+            if (i > 0) {
+              s += " + ";
+            }
+
+            s += w;
+            i++;
+          }
+
+          return s;
+        } else if (v instanceof HotKey && v.action === toolstring) {
+          return v.buildString();
+        } else if (k instanceof HotKey && k.action === toolstring) {
+          return k.buildString();
         }
       }
     }
 
-    function rec(n) {
-      if (!n || !n.getClientRects)
-        return;
+    for (let sarea of screen.sareas) {
+      for (let keymap of sarea.area.getKeyMaps()) {
+        ret = processKeymap(keymap);
 
-      let rect = n.getClientRects();
-
-      if (rect.length == 0) return;
-
-      rect = rect[0];
-      let ok = (x >= rect.x && y >= rect.y && x <= rect.x + rect.width && y <= rect.y + rect.height);
-
-      //if (!ok) return;
-
-      for (let n2 of n.childNodes) {
-        let ret = rec(n2);
-        if (ret !== undefined)
-          return ret;
-      }
-
-      if (n.shadowRoot) {
-        for (let n2 of n.shadowRoot.childNodes) {
-          let ret = rec(n2);
-          if (ret !== undefined)
-            return ret;
-        }
-      }
-
-      if (n instanceof Editor) {
-        if (n.keymap === undefined) {
-          return;
-        }
-
-        let ret = processKeymap(n.keymap);
-
-        if (ret !== undefined) {
+        if (ret) {
           return ret;
         }
       }
     }
-
-    let ret = rec(screen);
 
     if (ret === undefined && screen.keymap !== undefined) {
       ret = processKeymap(screen.keymap);
@@ -151,6 +140,10 @@ export class PathUXInterface extends ModelInterface {
 
     ret.hotkey = this._getToolHotkey(this.ctx.screen, path);
     return ret;
+  }
+
+  getToolPathHotkey(ctx, path) {
+    return this._getToolHotkey(this.ctx.screen, path);
   }
 
   //TODO: work out and document mass set interface for path.ux
@@ -298,7 +291,7 @@ export class PathUXInterface extends ModelInterface {
     ret.key = rp[0].path;
     ret.subkey = undefined;
 
-    //XXX data_api doesn't support returning parents of owning objects
+    /*XXX data_api doesnt support returning parents of owning objects?*/
     ret.parent = undefined;
 
     ret.obj = undefined;

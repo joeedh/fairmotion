@@ -68,6 +68,9 @@ export class MenuBar extends Editor {
 
     let h = Math.max(this.getDefault("TitleText").size, tilesize) + 5;
 
+    this.editMenuDef = [];
+    this._last_toolmode = undefined;
+
     this.maxSize = [undefined, h];
     this.minSize = [undefined, h];
   }
@@ -98,7 +101,7 @@ export class MenuBar extends Editor {
 
     menudef.reverse();
 
-    row.menu("File", menudef);
+    row.menu("&File", menudef);
 
     this.genSessionMenu(row);
 
@@ -109,6 +112,30 @@ export class MenuBar extends Editor {
     if (window.haveElectron) {
       electron_api.initMenuBar(this);
       this.minSize[1] = this.maxSize[1] = 1;
+    }
+  }
+
+  buildEditMenu() {
+    console.log("rebuilding edit menu");
+
+    this.editMenuDef.length = 0;
+
+    this.editMenuDef.push(["Undo", function () {
+      this.ctx.toolstack.undo();
+    }, "Ctrl + Z", Icons.UNDO]);
+    this.editMenuDef.push(["Redo", function () {
+      this.ctx.toolstack.undo();
+    }, "Ctrl + Shift + Z", Icons.REDO]);
+
+    if (!this.ctx.toolmode) {
+      return;
+    }
+
+    let ret = this.ctx.toolmode.constructor.buildEditMenu();
+    if (!ret) return;
+
+    for (let item of ret) {
+      this.editMenuDef.push(item);
     }
   }
 
@@ -130,7 +157,10 @@ export class MenuBar extends Editor {
       }
     }
 
-    row.menu("Session", [
+    row.menu("&Edit", this.editMenuDef);
+    this.buildEditMenu();
+
+    row.menu("&Session", [
       ["Save Default File", function () {
         platform.app.questionDialog("Erase default startup file?").then((val) => {
           if (val) {
@@ -159,6 +189,20 @@ export class MenuBar extends Editor {
         });
       }]
     ]);
+  }
+
+  update() {
+    super.update();
+
+    if (!this.ctx || !this.ctx.scene) {
+      return;
+    }
+
+    if (this._last_toolmode !== this.ctx.scene.toolmode_i) {
+      this._last_toolmode = this.ctx.scene.toolmode_i;
+
+      this.buildEditMenu();
+    }
   }
 
   makeHeader(container) {

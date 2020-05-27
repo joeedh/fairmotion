@@ -91,9 +91,14 @@ class CanIter {
 var int debug_int_1 = 0;
 
 class cachering extends Array {
-  constructor (Function createcallback, int count=32) {
+  constructor (createcallback : Function, int count=32) {
     super(count);
-    
+
+    if (!createcallback) {
+      console.warn("Cachering called with invalid arguments!");
+      return;
+    }
+
     this._cur = 0;
     this.length = count;
     for (var i=0; i<count; i++) {

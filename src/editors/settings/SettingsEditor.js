@@ -191,6 +191,10 @@ export class SettingsEditor extends Editor {
     row.button("Reload Defaults", () => {
       g_app_state.settings.reloadDefaultTheme();
       g_app_state.settings.save();
+
+      th.remove();
+      th = document.createElement("theme-editor-x");
+      tab.add(th);
     });
 
     tab.add(th);

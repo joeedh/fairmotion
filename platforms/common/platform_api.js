@@ -8,6 +8,9 @@ export class PlatformAPIBase {
   //returns a promise
   saveFile(path_handle, name, databuf, type) {
   }
+  //returns a promise
+  openFile(path_handle) {
+  }
 
   getProcessMemoryPromise() {
 
@@ -16,7 +19,12 @@ export class PlatformAPIBase {
   numberOfCPUs() {
     return 2;
   }
-  
+
+  errorDialog(title, msg) {
+    console.warn(title + ": " + msg);
+    alert(title + ": " + msg);
+  }
+
   //returns a promise
   saveDialog(name, databuf, type) {
   }

@@ -5,9 +5,9 @@ export const theme = {
   base:  {
     AreaHeaderBG            : 'rgba(65, 65, 65, 1.0)',
     BasePackFlag            : 0,
-    BoxBG                   : 'rgba(100, 100, 100, 1.0)',
-    BoxBorder               : 'rgba(155, 155, 155, 1.0)',
-    BoxDepressed            : 'rgba(43,32,27, 1)',
+    BoxBG                   : 'rgba(100,100,100, 0.558404961947737)',
+    BoxBorder               : 'rgba(196,196,196, 1)',
+    BoxDepressed            : 'rgba(43,32,27, 0.7410558240167026)',
     BoxDrawMargin           : 2,
     BoxHighlight            : 'rgba(125, 195, 225, 1.0)',
     BoxMargin               : 4,
@@ -17,7 +17,7 @@ export const theme = {
     DefaultPanelBG          : 'rgba(75, 75, 75, 1.0)',
     DefaultText             : new CSSFont({
       font    : 'sans-serif',
-      weight  : 'bold',
+      weight  : 'normal',
       variant : 'normal',
       style   : 'normal',
       size    : 10,
@@ -46,7 +46,7 @@ export const theme = {
     InnerPanelBG            : 'rgba(85, 85, 85, 1.0)',
     LabelText               : new CSSFont({
       font    : 'sans-serif',
-      weight  : 'bold',
+      weight  : 'normal',
       variant : 'normal',
       style   : 'normal',
       size    : 12,
@@ -69,7 +69,7 @@ export const theme = {
     ScreenBorderWidth       : 2,
     TitleText               : new CSSFont({
       font    : 'sans-serif',
-      weight  : 'bold',
+      weight  : 'normal',
       variant : 'normal',
       style   : 'normal',
       size    : 12,
@@ -95,7 +95,7 @@ export const theme = {
   },
 
   button:  {
-    BoxMargin    : 10,
+    BoxMargin    : 7.491595625232676,
     defaultHeight: 24,
     defaultWidth : 100,
   },
@@ -144,8 +144,8 @@ export const theme = {
 
   dropbox:  {
     BoxHighlight : 'rgba(155, 220, 255, 0.4)',
-    defaultHeight: 24,
-    dropTextBG   : 'rgba(55, 55, 55, 0.7)',
+    defaultHeight: 19.508909279310238,
+    dropTextBG   : 'rgba(38,22,15, 0)',
   },
 
   iconbutton:  {
@@ -163,9 +163,9 @@ export const theme = {
   },
 
   menu:  {
-    MenuBG       : 'rgba(250, 250, 250, 1.0)',
+    MenuBG       : 'rgba(40,40,40, 1)',
     MenuBorder   : '1px solid grey',
-    MenuHighlight: 'rgba(155, 220, 255, 1.0)',
+    MenuHighlight: 'rgba(171,171,171, 0.28922413793103446)',
     MenuSeparator: `
       width : 100%;
       height : 2px;
@@ -174,26 +174,27 @@ export const theme = {
       border : none;
       background-color : grey;
     `,
+    MenuSpacing  : 0,
     MenuText     : new CSSFont({
       font    : 'sans-serif',
       weight  : 'normal',
       variant : 'normal',
       style   : 'normal',
       size    : 12,
-      color   : 'rgba(25, 25, 25, 1.0)'
+      color   : 'rgba(238,238,238, 1)'
     }),
   },
 
   numslider:  {
     DefaultText  : new CSSFont({
       font    : 'sans-serif',
-      weight  : 'bold',
+      weight  : 'normal',
       variant : 'normal',
       style   : 'normal',
       size    : 12,
       color   : 'white'
     }),
-    defaultHeight: 20,
+    defaultHeight: 22.76656831702612,
     defaultWidth : 100,
   },
 
@@ -218,12 +219,12 @@ export const theme = {
 
   panel:  {
     Background      : 'rgba(38,22,15, 0.2642241905475485)',
-    BoxBorder       : 'rgba(93,93,93, 1)',
-    BoxLineWidth    : 1.0344999886868282,
+    BoxBorder       : 'rgba(91,91,91, 1)',
+    BoxLineWidth    : 0.9585563201850567,
     BoxRadius       : 5,
-    TitleBackground : 'rgba(99,99,99, 1)',
-    TitleBorder     : 'rgba(143,143,143, 1)',
-    'border-style'  : 'solid',
+    TitleBackground : 'rgba(126,178,237, 0.309051618904903)',
+    TitleBorder     : 'rgba(136,136,136, 1)',
+    'border-style'  : 'inset',
     'padding-bottom': undefined,
     'padding-top'   : undefined,
   },
@@ -241,12 +242,13 @@ export const theme = {
   },
 
   scrollbars:  {
-    border  : undefined,
-    color   : undefined,
-    color2  : undefined,
-    contrast: undefined,
-    width   : undefined,
+    border  : 'rgba(125,125,125, 1)',
+    color   : 'rgba(56,56,56, 1)',
+    color2  : '#505050',
+    contrast: 'rgba(75,38,38, 1)',
+    width   : 15,
   },
+
 
   tabs:  {
     TabHighlight   : 'rgba(50, 50, 50, 0.2)',

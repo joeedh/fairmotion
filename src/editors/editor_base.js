@@ -124,6 +124,10 @@ export class Editor extends Area {
   init() {
     super.init();
 
+    if (this.helppicker) {
+      this.helppicker.iconsheet = 0;
+    }
+
     this.container = document.createElement("container-x");
     this.container.ctx = this.ctx;
 

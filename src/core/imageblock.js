@@ -53,7 +53,7 @@ export class Image extends DataBlock {
 
   loadSTRUCT(reader) {
     reader(this);
-    super.loadSTRUCT();
+    super.loadSTRUCT(reader);
 
     if (this.data.length === 0) {
       this.data = undefined;

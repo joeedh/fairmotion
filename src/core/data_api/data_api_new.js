@@ -395,7 +395,7 @@ function makeAPI(api) {
       metric : "Metric"
     }).icons({
     }).on("change", function () {
-      g_app_state.session.settings.server_update();
+      //g_app_state.session.settings.server_update();
       g_app_state.screen.do_full_recalc();
     });
     _AppSettings.enum("unit", {

@@ -28,6 +28,8 @@ if (mod.app === undefined) {
   mod.app = new mod.PlatformAPI();
 }
 
+window.error_dialog = mod.app.errorDialog;
+
 //forward exports
 for (let k in mod) {
   _es6_module.add_export(k, mod[k]);

@@ -2,6 +2,8 @@
 
 import '../editors/all.js';
 
+import * as platform from '../../platforms/platform.js';
+
 import * as electron_api from '../path.ux/scripts/platforms/electron/electron_api.js';
 if (window.haveElectron) {
   electron_api.checkInit();
@@ -283,11 +285,12 @@ class UserSession {
     this.tokens = {} : ObjectMap;
     this.username = "user";
     this.password = "";
-    this.is_logged_in = false;
+    this.is_logged_in = true; //false;
     this.loaded_settings = false;
     this.userid = undefined;
     
     this.settings = new AppSettings();
+    this.settings.load();
   }
   
   copy() : UserSession {
@@ -323,65 +326,13 @@ class UserSession {
   }
   
   logout_simple() {
-    this.is_logged_in = false;
-    this.tokens = {};
-    this.loaded_settings = false;
+    //this.is_logged_in = false;
+    //this.tokens = {};
+    //this.loaded_settings = false;
   }
   
   validate_session() {
-    var session = this;
-    
-    if (config.NO_SERVER) {
-        this.is_logged_in = true;
-        
-        if (!session.loaded_settings) {
-            session.settings.download(function() {
-              session.loaded_settings = true;
-              session.store(true);
-            });
-        }
-        return;
-    }
-    
-    function finish2(job, owner) {
-      session.tokens = job.value;
-      session.is_logged_in = true;
-      session.store(false);
-      
-      if (DEBUG.netio)
-        console.log("downloading current user settings. . .");
-        session.settings.download(function() {
-        session.store(true);
-      });
-    }
-    
-    function error2(obj, owner, msg) {
-      session.is_logged_in = false;
-      session.store();
-    }
-    
-    function error(job, owner, msg) {
-      auth_session(session.username, session.password, finish2, error2);
-    }
-    
-    function finish(job, owner) {
-      if (DEBUG.netio)
-        console.log("downloading current user settings. . .");
-      
-      session.userid = job.value.userid;
-      
-      if (!session.loaded_settings) {
-        session.settings.download(function() {
-          session.loaded_settings = true;
-          session.store(true);
-        });
-      }
-      
-      console.log("session valid");
-      return;
-    }
-    
-    call_api(get_user_info, undefined, finish, error);
+    return true;
   }
   
   static fromJSON(obj) {
@@ -394,7 +345,8 @@ class UserSession {
     us.userid = obj.userid;
     
     us.settings = new AppSettings();
-    
+    us.settings.load();
+
     return us;
   }
 }
@@ -491,7 +443,6 @@ export class AppState {
     this.screen = screen;
     this.eventhandler = screen : EventHandler;
 
-    this.settings = new AppSettings();
     this.active_editor = undefined;
     
     this._nonblocks = new set (["SCRN", "TSTK", "THME"]);
@@ -542,6 +493,10 @@ export class AppState {
     }
 
     this.ctx = new FullContext(this);
+  }
+
+  get settings() {
+    return this.session.settings;
   }
 
   set_modalstate(state=0) {
@@ -1124,7 +1079,16 @@ export class AppState {
       console.log("objectification");
     }
   }
-  
+
+  load_path(path_handle) {
+    platform.app.openFile(path_handle).then((buf) => {
+      let dview = new DataView(buf.buffer);
+      this.load_user_file_new(dview, path_handle);
+    }).catch(error) {
+      this.ctx.error(error.toString());
+    }
+  }
+
   load_user_file_new(data : DataView, path : String, uctx : unpack_ctx, use_existing_screen=false) {
     //fixes a bug where some files loaded with squished
     //size.  probably need to track down actual cause, though.
@@ -2035,6 +1999,14 @@ export class BaseContext extends Context {
     super(state);
 
     this.reset(state);
+  }
+
+  error(msg) {
+    g_app_state.notes.label("ERROR: " + msg);
+  }
+
+  report(msg) {
+    g_app_state.notes.label(msg);
   }
 
   reset(state=this.state) {

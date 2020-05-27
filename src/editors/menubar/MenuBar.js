@@ -74,11 +74,45 @@ export class MenuBar extends Editor {
     this.maxSize = [undefined, h];
     this.minSize = [undefined, h];
   }
+
+  buildRecentMenu() {
+    let menu = document.createElement("menu-x");
+    menu.setAttribute("title", "Recent Files");
+
+    let paths = g_app_state.settings.recent_paths;
+
+    for (let p of paths) {
+      let name = p.displayname;
+      let id = p.path;
+      let i = name.length - 1;
+
+      while (i >= 0 && name[i] !== "/" && name[i] !== "\\") {
+        i--;
+      }
+
+      if (i >= 0) {
+        i++;
+      }
+
+      name = name.slice(i, name.length).trim();
+
+      menu.addItem(name, id);
+    }
+
+    menu.onselect = (id) => {
+      console.warn("recent files callback!", id);
+      g_app_state.load_path(id);
+    }
+
+    return menu;
+  }
+
   init() {
     super.init();
 
     let row = this.header;
     let SEP = Menu.SEP;
+
 
     let menudef = [
       "appstate.quit()",
@@ -87,7 +121,7 @@ export class MenuBar extends Editor {
       SEP,
       "appstate.save_as()",
       "appstate.save()",
-      "appstate.open_recent()",
+      this.buildRecentMenu.bind(this),
       "appstate.open()",
       SEP,
       ["New File", function () {
@@ -127,7 +161,7 @@ export class MenuBar extends Editor {
       this.ctx.toolstack.undo();
     }, "Ctrl + Shift + Z", Icons.REDO]);
 
-    if (!this.ctx.toolmode) {
+    if (!this.ctx || !this.ctx.toolmode) {
       return;
     }
 

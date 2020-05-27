@@ -70,6 +70,8 @@ export class AppSettings {
       loadTheme(this.theme);
     }
 
+    this.recent_paths = b.recent_paths;
+
     return this;
   }
 
@@ -86,7 +88,7 @@ export class AppSettings {
   load() {
     return new Promise((accept, reject) => {
       myLocalStorage.getAsync("_fairmotion_settings").then((data) => {
-        console.log("Loading saved settings. . . ");
+        console.warn("%cLoading saved settings. . . ", "color : green;");
 
         data = new DataView(b64decode(data).buffer);
 
@@ -96,22 +98,22 @@ export class AppSettings {
         let version = fdata.version;
 
         var settings = undefined;
-        console.log(blocks);
 
         for (var i=0; i<blocks.length; i++) {
           if (blocks[i].type === "USET") {
             settings = fstruct.read_object(blocks[i].data, AppSettings);
-            console.log("found settings:", settings);
+            console.log("  found settings:", settings);
           }
         }
         
         if (settings == undefined) {
-          console.trace("could not find settings block");
+          console.trace("  could not find settings block");
           reject("could not find settings block, but did get a file");
           return;
         }
 
         this.loadFrom(settings);
+        this.loaded_settings = true;
         accept(this);
       });
     });
@@ -133,7 +135,7 @@ export class AppSettings {
 
   find_recent_path(path) {
     for (var i=0; i<this.recent_paths.length; i++) {
-      if (this.recent_paths[i].path == path) {
+      if (this.recent_paths[i].path === path) {
         return i;
       }
     }
@@ -142,18 +144,21 @@ export class AppSettings {
   }
   
   add_recent_file(path, displayname=path) {
+    let rpath = new RecentPath(path, displayname);
+
     var rp = this.find_recent_path(path);
-    path = new RecentPath(path, displayname);
-    
+
     if (rp >= 0) {
       this.recent_paths.remove(this.recent_paths[path]);
-      this.recent_paths.push(path);
+      this.recent_paths.push(rpath);
     } else if (this.recent_paths.length >= config.MAX_RECENT_FILES) {
       this.recent_paths.shift();
-      this.recent_paths.push(path);
+      this.recent_paths.push(rpath);
     } else {
-      this.recent_paths.push(path);
+      this.recent_paths.push(rpath);
     }
+
+    this.save();
   }
 
   loadSTRUCT(reader) {
@@ -195,7 +200,7 @@ export class OldAppSettings {
   
   find_recent_path(path) {
     for (var i=0; i<this.recent_paths.length; i++) {
-      if (this.recent_paths[i].path == path) {
+      if (this.recent_paths[i].path === path) {
         return i;
       }
     }

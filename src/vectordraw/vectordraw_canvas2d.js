@@ -1,6 +1,7 @@
 "use strict";
 
 import * as config from '../config/config.js';
+import * as util from '../path.ux/scripts/util/util.js';
 
 import {
   MinMax
@@ -46,11 +47,15 @@ let batch_iden = 1;
 export class Batch {
   constructor() {
     this._batch_id = batch_iden++;
-    
+
+    this.generation = 0;
+
     this.paths = [];
     this.path_idmap = {};
     this.regen = 1;
     this.gen_req = 0;
+
+    this._last_pan = new Vector2();
 
     this.viewport = {
       pos : [0, 0],
@@ -65,11 +70,25 @@ export class Batch {
     this.patharea = 0;
   }
 
+  set regen(v) {
+    this._regen = v;
+
+    if (debug && v) {
+      console.warn("Regen called");
+    }
+  }
+
+  get regen() {
+    return this._regen;
+  }
+
   add(p) {
     if (this.has(p)) {
       return;
     }
-    
+
+    this.generation = 0;
+
     let draw = {
       matrix : new Matrix4()
     }
@@ -125,6 +144,9 @@ export class Batch {
 
     this.paths.length = 0;
     this.path_idmap = {};
+
+    this.regen = 1;
+    this.gen_req = 0;
   }
 
   has(p) {
@@ -135,6 +157,8 @@ export class Batch {
   }
 
   checkViewport(draw) {
+    return;
+
     let canvas = draw.canvas;
     //let cv = this._getPaddedViewport(canvas);
     let cv = {
@@ -182,11 +206,12 @@ export class Batch {
       return
     }
 
+
     this.gen_req = 10;
     this.regen = false;
 
     let canvas = draw.canvas, g = draw.g;
-    if (debug) ("generating batch of size " + this.paths.length);
+    if (debug) console.warn("generating batch of size " + this.paths.length);
 
     let ok = false;
     let min = new Vector2([1e17, 1e17]);
@@ -288,10 +313,15 @@ export class Batch {
     commands = new Float64Array(commands);
 
     min = new Vector2(min);
-    
+
+    let last_pan = new Vector2(draw.pan);
+    last_pan[1] = draw.canvas.height - last_pan[1];
+
     vectordraw_jobs.manager.postRenderJob(renderid, commands).then((data) => {
-      if (debug) ("Got render result!");
+      if (debug) console.warn("Got render result!");
       this.gen_req = 0;
+
+      this._last_pan.load(last_pan);
 
       //this.__image = undefined;
       this._image = data;
@@ -308,14 +338,20 @@ export class Batch {
 
     let canvas = draw.canvas, g = draw.g;
     var zoom = draw.matrix.$matrix.m11; //scale should always be uniform, I think
-    let offx = draw.pan[0], offy = draw.pan[1];
+    let offx = 0, offy = 0;
 
     let scale = zoom / this._draw_zoom;
-    
-    //offx *= scale;
-    //offy *= scale;
-    //offx = offy = 0.0;
-    
+
+    let viewport = this.viewport;
+    //let viewport = this.realViewport;
+
+    offx = draw.pan[0] - this._last_pan[0]*scale;
+    offy = (draw.canvas.height - draw.pan[1]) - this._last_pan[1]*scale;
+    offx /= scale;
+    offy /= scale;
+
+    //window.pan = [draw.pan[0], draw.pan[1]]
+
     if (this.regen) {
       this.gen(draw);
     }
@@ -326,7 +362,16 @@ export class Batch {
     
     g.imageSmoothingEnabled = false;
     //console.log(this.aabb[0][0], this.aabb[0][1], offx, offy, this.off, this.commands, draw.matrix);
-    
+
+    if (this.paths.length === 0 && this.generation > 2) {
+      this._image = undefined;
+      return;
+    }
+
+    if (this.generation > 0) {
+      this.generation++;
+    }
+
     //scale = 1.2;
     //XXX bypass patch methods
     if (g._drawImage != undefined) {
@@ -334,9 +379,9 @@ export class Batch {
 
       g._scale(scale, scale);
 
-      g._translate(this._image_off[0], this._image_off[1]);
-      g._translate(offx/scale, offy/scale);
+      g._translate(offx, offy);
 
+      g._translate(this._image_off[0], this._image_off[1]);
       g._drawImage(this._image, 0, 0);
 
       /*
@@ -358,7 +403,7 @@ export class Batch {
       g.scale(scale, scale);
 
       g.translate(this._image_off[0], this._image_off[1]);
-      g.translate(offx/scale, offy/scale);
+      g.translate(offx, offy);
 
       g.drawImage(this._image, 0, 0);
 
@@ -374,6 +419,9 @@ export class Batch {
   }
 }
 
+let canvaspath_temp_vs = util.cachering.fromConstructor(Vector2, 512);
+let canvaspath_temp_mats = util.cachering.fromConstructor(Matrix4, 128);
+
 export class CanvasPath extends QuadBezPath {
   constructor() {
     super();
@@ -388,7 +436,10 @@ export class CanvasPath extends QuadBezPath {
     
     this.lastx = 0;
     this.lasty = 0;
-    
+
+    this._aabb2 = [new Vector2(), new Vector2()];
+    this._size2 = new Vector2();
+
     this.canvas = undefined;
     this.g = undefined;
     
@@ -398,7 +449,7 @@ export class CanvasPath extends QuadBezPath {
   }
   
   update_aabb(draw, fast_mode=false) {
-    var tmp = new Vector2();
+    var tmp = canvaspath_temp_vs.next().zero();
     var mm = this._mm;
     var pad = this.pad = this.blur > 0 ? this.blur + 15 : 0;
     
@@ -414,14 +465,14 @@ export class CanvasPath extends QuadBezPath {
       var cmd = cs[i++];
       var arglen = arglens[cmd];
       
-      if (fast_mode && prev != BEGINPATH) {
+      if (fast_mode && prev !== BEGINPATH) {
         prev = cmd;
         i += arglen;
         continue;
       }
       
       for (var j=0; j<arglen; j += 2) {
-        tmp[0] = cs[i++], tmp[1] = cs[i++];
+        tmp[0] = cs[i++]; tmp[1] = cs[i++];
 
         if (isNaN(tmp.dot(tmp))) {
           console.warn("NaN!");
@@ -513,12 +564,13 @@ export class CanvasPath extends QuadBezPath {
   //renders into another path's canvas
   genInto(draw, path, commands, clip_mode=false) {
     let oldc = this.canvas, oldg = this.g, oldaabb = this.aabb, oldsize = this.size;
-    
-    //this.canvas = path.canvas;
-    //this.g = path.g;
-    
-    this.aabb = [new Vector2(path.aabb[0]), new Vector2(path.aabb[1])];
-    this.size = [path.size[0], path.size[1]];
+
+    this.aabb = this._aabb2;
+    this.aabb[0].load(path.aabb[0]);
+    this.aabb[1].load(path.aabb[1]);
+
+    this.size = this._size2;
+    this.size.load(path.size);
     
     this.gen_commands(draw, commands, undefined, true);
     //this.gen(draw, undefined, clip_mode);
@@ -590,7 +642,7 @@ export class CanvasPath extends QuadBezPath {
       
       w = w2, h = h2;
     }
-    
+
     if (1) {
       var mat = canvaspath_draw_mat_tmps.next();
       mat.load(draw.matrix);
@@ -621,93 +673,7 @@ export class CanvasPath extends QuadBezPath {
     }
     
     this.gen_commands(draw, commands2, _check_tag, clip_mode);
-    commands2 = new Float64Array(commands2);
-    
-    let renderid = clip_mode ? render_idgen++ : this._render_id;
-    
-    let imageoff = [this.aabb[0][0], this.aabb[0][1]];
-    
     this._commands = commands2;
-    commands2.renderid = renderid;
-    
-    if (independent) {
-    //cancel any outstanding jobs
-    vectordraw_jobs.manager.cancelRenderJob(renderid);
-
-    //post job
-    vectordraw_jobs.manager.postRenderJob(renderid, commands2).then((data) => {
-        //console.log("Got render result!", data);
-
-        //this.__image = undefined;
-        this._image = data;
-        this._image_off = imageoff;
-        window.redraw_viewport();
-      });
-    }
-    
-    /*
-    this.g.save();
-    this.g.setTransform(m.m11, m.m12, m.m21, m.m22, m.m41, m.m42);
-    this.g.fillStyle = "rgba("+r+","+g+","+b+","+a+")";
-    
-    if (do_blur) {
-      var doff = 25000;
-      this.g.translate(-doff, -doff);
-      this.g.shadowOffsetX = doff;
-      this.g.shadowOffsetY = doff;
-      this.g.shadowColor = "rgba("+r+","+g+","+b+","+a+")";
-      this.g.shadowBlur = this.blur;
-    }
-    
-    this.g.beginPath();
-    
-    this._image = this.canvas;
-    var cs = this.commands, i = 2;
-    while (i < cs.length) {
-      var cmd = cs[i++];
-      var arglen = arglens[cmd];
-      
-      //console.log(cmd, arglen);
-      
-      var tmp = canvaspath_draw_args_tmps[arglen];
-      
-      for (var j=0; j<arglen; j += 2) {
-        co[0] = cs[i++], co[1] = cs[i++];
-        tmp[j] = co[0], tmp[j+1] = co[1];
-      }
-
-      switch (cmd) {
-        case MOVETO:
-          this.g.moveTo(tmp[0], tmp[1]);
-          break;
-        case LINETO:
-          this.g.lineTo(tmp[0], tmp[1]);
-          break;
-        case BEZIERTO:
-          this.g.quadraticCurveTo(tmp[0], tmp[1], tmp[2], tmp[3]);
-          break;
-        case CUBICTO:
-          this.g.bezierCurveTo(tmp[0], tmp[1], tmp[2], tmp[3], tmp[4], tmp[5]);
-          break;
-        case BEGINPATH:
-          this.g.beginPath();
-          break;
-      }
-    }
-    
-    if (!clip_mode) {
-      this.g.fill();
-    } else {
-      this.g.clip();
-    }
-    if (do_blur) {
-      this.g.translate(doff, doff);
-      this.g.shadowOffsetX = this.g.shadowOffsetY = 0.0;
-      this.g.shadowBlur = 0.0;
-    }
-    this.g.restore();
-
-    //*/
   }
   
   reset(draw) {
@@ -758,14 +724,63 @@ export class CanvasPath extends QuadBezPath {
 }
 
 export class Batches extends Array {
-  destroy() {
-    if (debug) console.log("destroy batches");
+  constructor() {
+    super();
 
-    for (let b of this) {
-      b.destroy();
+    this.cur = 0;
+    this.drawlist = [];
+  }
+
+  getHead() {
+    if (this.drawlist.length > 0) {
+      return this.drawlist[this.drawlist.length-1];
     }
 
-    this.length = 0;
+    return this.requestBatch();
+  }
+
+  requestBatch() {
+    if (this.cur < this.length) {
+      this.drawlist.push(this[this.cur]);
+
+      return this[this.cur++];
+    } else {
+      this.cur++;
+      this.push(new Batch());
+
+      this.drawlist.push(this[this.length-1]);
+      return this[this.length-1];
+    }
+  }
+
+  remove(batch) {
+    let i = this.indexOf(batch);
+
+    this.drawlist.remove(batch);
+
+    if (this.cur > 0 && this.cur < this.length-1) {
+      let j = this.cur-1;
+
+      this[i] = this[j];
+      this.cur--;
+    }
+  }
+
+
+  destroy() {
+    this.drawlist.length = 0;
+    this.cur = 0;
+
+    if (debug) console.log("destroy batches");
+
+    for (let b of list(this)) {
+      if (b.generation > 1) {
+        super.remove(b);
+      }
+
+      b.generation++;
+      b.destroy();
+    }
   }
 }
 
@@ -820,7 +835,7 @@ export class CanvasDraw2D extends VectorDraw {
     
     var ret = this.path_idmap[id];
     
-    if (check_z && ret.z != z) {
+    if (check_z && ret.z !== z) {
       this.dosort = 1;
       ret.z = z;
     }
@@ -848,12 +863,7 @@ export class CanvasDraw2D extends VectorDraw {
     let blimit = this.paths.length < 15 ? 15 : Math.ceil(this.paths.length / vectordraw_jobs.manager.max_threads);
     //console.log("batch limit", blimit);
 
-    if (this.batches.length > 0) {
-      batch = this.batches[this.batches.length-1];
-    } else {
-      batch = new Batch();
-      this.batches.push(batch);
-    }
+    batch = this.batches.getHead();
 
     var canvas = g.canvas;
     var off = canvaspath_draw_vs.next();
@@ -895,9 +905,8 @@ export class CanvasDraw2D extends VectorDraw {
       if (debug) console.log("SORT");
 
       this.batches.destroy();
-      batch = new Batch();
-      this.batches.push(batch);
-      
+      batch = this.batches.requestBatch();
+
       this.dosort = 0;
       this.paths.sort(function(a, b) {
         return a.z - b.z;
@@ -914,10 +923,11 @@ export class CanvasDraw2D extends VectorDraw {
       }
       
       if (!path._batch) {
-        if (batch.patharea > (canvas.width*canvas.height)*0.25) {
-        //if (batch.paths.length > blimit) {
-          batch = new Batch();
-          this.batches.push(batch);
+        let w1 = batch.patharea / (canvas.width*canvas.height);
+        let w2 = this.batches.length > 10 ? 1.0 / (this.batches.length - 9) : 0.0;
+
+        if (batch.paths.length*(1.0 + w1*4.0) > blimit) {
+          batch = this.batches.requestBatch();
         }
 
         batch.add(path);
@@ -925,6 +935,7 @@ export class CanvasDraw2D extends VectorDraw {
 
       if (path.recalc && path._batch) {
         path._batch.regen = 1;
+        path.recalc = 0;
       }
       
       window.path1 = path;
@@ -936,7 +947,7 @@ export class CanvasDraw2D extends VectorDraw {
 
     //console.log(batch.paths.length, batch._batch_id);
     
-    for (let batch of this.batches) {
+    for (let batch of this.batches.drawlist) {
       batch.draw(this);
     }
   }

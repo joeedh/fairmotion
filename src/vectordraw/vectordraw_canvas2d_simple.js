@@ -215,12 +215,17 @@ export class SimpleCanvasPath extends QuadBezPath {
     let cmds = this.commands;
     let i;
 
+    let mat2 = new Matrix4(draw.matrix);
+    mat2.invert();
+
     function loadtemp(off) {
       tmp[0] = cmds[i+2 + off*2];
       tmp[1] = cmds[i+3 + off*2];
       tmp[2] = 0.0;
 
-      //tmp.multVecMatrix(draw.matrix);
+      tmp.multVecMatrix(draw.matrix);
+      //tmp[0] += draw.pan[0];
+      //tmp[1] += draw.pan[1];
 
       if (isNaN(tmp.dot(tmp))) {
         throw new Error("NaN");
@@ -424,6 +429,7 @@ export class SimpleCanvasDraw2D extends VectorDraw {
     //*/
 
     g.save();
+    g.resetTransform();
 
     for (var p of this.paths) {
       p.draw(this);
@@ -431,6 +437,7 @@ export class SimpleCanvasDraw2D extends VectorDraw {
 
     g.restore();
 
+    console.log(this.matrix);
     console.log(this.g);
   }
   

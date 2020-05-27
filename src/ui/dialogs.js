@@ -561,7 +561,7 @@ export class FileSaveAsOp extends ToolOp {
       pd.call(ctx.screen.mpos);
       
       g_app_state.session.settings.add_recent_file(path);
-      g_app_state.session.settings.server_update(true);
+      //g_app_state.session.settings.server_update(true);
       g_app_state.filepath = path;
       
       if (DEBUG.netio)
@@ -805,7 +805,7 @@ export class LoginDialog extends PackedDialog {
   }
 }
 
-export function error_dialog(Context ctx, String msg, Function callback=undefined, Boolean center=false) {
+export function _error_dialog(Context ctx, String msg, Function callback=undefined, Boolean center=false) {
   var pd = new ErrorDialog(msg, callback);
   
   var s = ctx.screen.size;

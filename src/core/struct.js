@@ -15,6 +15,28 @@ export function profile_report() {}
 window.STRUCT_ENDIAN = false;
 nstructjs.binpack.STRUCT_ENDIAN = false;
 
+export class arraybufferCompat extends Array {
+  constructor() {
+    super();
+  }
+
+  loadSTRUCT(reader) {
+    reader(this);
+
+    this.length = 0;
+    let d = this._data;
+
+    for (let i=0; i<d.length; i++) {
+      this.push(d[i]);
+    }
+  }
+}
+
+arraybufferCompat.STRUCT = `arraybuffer {
+  _data : array(byte);
+}`;
+
+nstructjs.register(arraybufferCompat);
 
 nstructjs.setDebugMode(false);
 nstructjs.setWarningMode(1); //turn off "class uses old fromSTRUCT interface" warnings
@@ -110,6 +132,10 @@ nstructjs.STRUCT.prototype.parse_structs = function(buf, defined_classes) {
 
   if (!this.structs.dataref) {
     this.register(__dataref);
+  }
+
+  if (!this.structs.arraybuffer) {
+    this.register(arraybufferCompat);
   }
 
   //*

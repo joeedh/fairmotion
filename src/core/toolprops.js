@@ -3,7 +3,7 @@
 import {STRUCT} from './struct.js';
 import * as nstructjs from "../path.ux/scripts/util/struct.js";
 import {pack_int, pack_float, pack_static_string} from './ajax.js';
-import {setPropTypes, ToolProperty} from '../path.ux/scripts/toolsys/toolprop.js';
+import {setPropTypes, ToolProperty, FlagProperty} from '../path.ux/scripts/toolsys/toolprop.js';
 import * as toolprop from '../path.ux/scripts/toolsys/toolprop.js';
 export {
   StringProperty, StringSetProperty, Vec2Property, Vec3Property, Vec4Property,
@@ -66,6 +66,20 @@ ToolProperty.prototype.get_value = function(d) {
   console.warn("deprectaed ToolProperty.prototype.get_value called!");
   return this.getValue();
 };
+
+ToolProperty.prototype.report = function() {
+  let s = "";
+  for (let a of arguments) {
+    s += a + " ";
+  }
+
+  if (typeof g_app_state === "undefined" || !g_app_state.notes) {
+    console.warn(...arguments);
+    return;
+  }
+
+  g_app_state.notes.label(s);
+}
 
 ToolProperty.prototype._fire = function() {
   if (this.update) {
@@ -132,6 +146,18 @@ ToolProperty.prototype.remove_listener = function(owner, silent_fail=false) {
     }
   }
 };
+
+FlagProperty.prototype.addIcons = function(iconmap) {
+  this.iconmap = {};
+
+  for (let k in iconmap) {
+    this.iconmap[k] = iconmap[k];
+
+    if (k in this.values) {
+      this.iconmap[this.values[k]] = iconmap[k];
+    }
+  }
+}
 
 ToolProperty.prototype.add_icons = function(iconmap) {
   return this.addIcons(iconmap);

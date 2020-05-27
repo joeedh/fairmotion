@@ -211,6 +211,16 @@ window.AnimKeyStruct2 = AnimKeyStruct;
 
 var datablock_structs = {};
 
+var spline_flagprop = new FlagProperty(2, SplineFlags, undefined, "Flags", "Flags");
+spline_flagprop["BREAK_CURVATURES"] = "Less Smooth";
+spline_flagprop.descriptions["BREAK_CURVATURES"] = "Allows curve to more tightly bend at this point";
+spline_flagprop.ui_key_names["BREAK_TANGENTS"] = "Sharp Corner";
+
+spline_flagprop.addIcons({
+  BREAK_TANGENTS : Icons.EXTRUDE_MODE_G0,
+  BREAK_CURVATURES : Icons.EXTRUDE_MODE_G1,
+});
+
 //returns list of paths to concat to DataBlock subclass struct
 function api_define_DataBlock() {
   api_define_animkey();
@@ -457,8 +467,8 @@ function api_define_material() {
 var SplineFaceStruct;
 
 function api_define_spline_face() {
-  var flagprop = new FlagProperty(2, SplineFlags, undefined, "Flags", "Flags");
-  
+  let flagprop = spline_flagprop.copy();
+
   SplineFaceStruct = new DataStruct([
     new DataPath(new IntProperty(0, "eid", "eid", "eid"), "eid", "eid", true),
     new DataPath(api_define_material(), "mat", "mat", true),
@@ -471,19 +481,15 @@ function api_define_spline_face() {
 var SplineVertexStruct;
 
 function api_define_spline_vertex() {
-  var flagprop = new FlagProperty(2, SplineFlags, undefined, "Flags", "Flags");
-  
-  flagprop.ui_key_names["BREAK_CURVATURES"] = "Less Smooth";
-  flagprop.descriptions["BREAK_CURVATURES"] = "Allows curve to more tightly bend at this point";
-  flagprop.ui_key_names["BREAK_TANGENTS"] = "Sharp Corner";
-  
   var coprop = new Vec3Property(undefined, "co", "Co", "Coordinates");
-  
+  let flagprop = spline_flagprop.copy();
+
   flagprop.update = function (owner) {
     this.ctx.spline.regen_sort();
+
     console.log("vertex update", owner);
     
-    if (owner != undefined) {
+    if (owner !== undefined) {
       owner.flag |= SplineFlags.UPDATE;
     }
     this.ctx.spline.propagate_update_flags();
@@ -504,7 +510,7 @@ function api_define_spline_vertex() {
 var SplineSegmentStruct;
 
 function api_define_spline_segment() {
-  var flagprop = new FlagProperty(2, SplineFlags, undefined, "Flags", "Flags");
+  let flagprop = spline_flagprop.copy();
   
   flagprop.update = function (segment) {
     new Context().spline.regen_sort();

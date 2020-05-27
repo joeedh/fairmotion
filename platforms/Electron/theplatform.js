@@ -16,9 +16,38 @@ export class ElectronPlatformAPI {
       })
     });
   }
-  
+
+  errorDialog(title, msg) {
+    alert(title + ": " + msg);
+  }
+
   //returns a promise
   saveFile(path_handle, name, databuf, type) {
+    let fs = require("fs");
+
+    console.warn("TESTME");
+
+    return new Promise((accept, reject) => {
+      fs.writeFile(path_handle, databuf, () => {
+        accept();
+      });
+    });
+  }
+
+  //returns a promise
+  openFile(path_handle) {
+    let fs = require("fs");
+    return new Promise((accept, reject) => {
+      let buf;
+
+      try {
+        buf = fs.readFileSync(path_handle);
+      } catch (error) {
+        return reject(error.toString());
+      }
+
+      accept(buf);
+    });
   }
   
   numberOfCPUs() {

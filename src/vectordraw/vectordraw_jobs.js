@@ -112,7 +112,7 @@ export class Thread {
   onmessage(e) {
     switch (e.data.type) {
       case MS.WORKER_READY:
-        console.log("%c Skia worker ready", "color: blue");
+        console.log("%c Vectordraw worker ready", "color: blue");
         this.ready = true;
         this.manager.has_ready_thread = true;
         break;

@@ -192,7 +192,7 @@ export function draw_spline(spline, redraw_rects, g, editor, matrix, selectmode,
     zoom = 1.0;
   }
   
-  //*
+  /*
     matrix = new Matrix4(matrix);
     let matrix2 = new Matrix4();
 
@@ -230,7 +230,7 @@ export function draw_spline(spline, redraw_rects, g, editor, matrix, selectmode,
   
   g.beginPath();
   if (selectmode & SelMask.HANDLE) {
-    var w = vert_size/g.canvas.dpi_scale*editor.zoom;
+    var w = vert_size*g.canvas.dpi_scale//editor.zoom;
     
     for (var i=0; i<spline.handles.length; i++) {
       var v = spline.handles[i];
@@ -278,7 +278,7 @@ export function draw_spline(spline, redraw_rects, g, editor, matrix, selectmode,
   
   var last_clr = undefined;
   if (selectmode & SelMask.VERTEX) {
-    var w = vert_size//editor.zoom;
+    var w = vert_size*g.canvas.dpi_scale//editor.zoom;
     
     for (var i=0; i<spline.verts.length; i++) {
       var v = spline.verts[i];

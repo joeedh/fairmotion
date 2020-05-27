@@ -381,7 +381,8 @@ export class View2DHandler extends Editor {
     //let off = this._getCanvasOff();
     //_co[0] -= off[0];
     //_co[1] -= off[1];
-    _co.mulScalar(this.dpi_scale);
+
+    //_co.mulScalar(this.dpi_scale);
 
     co[0] = _co[0], co[1] = _co[1];
     return co;
@@ -398,7 +399,7 @@ export class View2DHandler extends Editor {
 
     _co[2] = 0.0;
     _co.multVecMatrix(this.irendermat);
-    _co.mulScalar(1.0 / this.dpi_scale);
+    //_co.mulScalar(1.0 / this.dpi_scale);
     
     co[0] = _co[0], co[1] = _co[1];
     return co;
@@ -548,8 +549,10 @@ export class View2DHandler extends Editor {
     }
 
     let matrix = new Matrix4();
+
     let m2 = new Matrix4();
     m2.scale(dpi_scale, dpi_scale, 1.0);
+
     matrix.multiply(m2);
     matrix.multiply(this.rendermat);
 
@@ -575,6 +578,17 @@ export class View2DHandler extends Editor {
     }
     
     //this.rendermat
+    matrix = new Matrix4(matrix);
+    let matrix2 = new Matrix4();
+
+    matrix2.translate(0.0, g.canvas.height, 0.0);
+
+    let mm = new Matrix4();
+    mm.scale(1.0, -1.0, 1.0);
+    matrix2.multiply(mm);
+
+    matrix.preMultiply(matrix2);
+
     this.ctx.frameset.draw(this.ctx, g, this, matrix, redraw_rects, this.edit_all_layers);
 
     var frameset = this.ctx.frameset;
@@ -715,13 +729,17 @@ export class View2DHandler extends Editor {
     row.prop("view2d.selectmask[HANDLE]", PackFlags.USE_ICONS);
     row.prop("view2d.selectmode", PackFlags.USE_ICONS);
 
+    row.useIcons();
+
     row.prop("view2d.only_render", PackFlags.USE_ICONS);
     row.prop("view2d.draw_small_verts", PackFlags.USE_ICONS);
     row.prop("view2d.draw_normals", PackFlags.USE_ICONS);
     row.prop("view2d.draw_anim_paths", PackFlags.USE_ICONS);
     row.prop("view2d.enable_blur", PackFlags.USE_ICONS);
     row.prop("view2d.draw_faces", PackFlags.USE_ICONS);
-    row.prop("view2d.extrude_mode", PackFlags.USE_ICONS);
+    //row.prop("view2d.extrude_mode", PackFlags.USE_ICONS);
+    row.prop("spline.active_vertex.flag[BREAK_TANGENTS]");
+    row.prop("spline.active_vertex.flag[BREAK_CURVATURES]");
     row.tool("spline.split_pick_edge()", PackFlags.USE_ICONS);
   }
 

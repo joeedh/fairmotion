@@ -105,8 +105,8 @@ export class SplineDrawer {
     var draw_faces = !!(only_render || editor.draw_faces);
     
     var recalc_all = this.recalc_all || this.draw_faces !== draw_faces || this.do_blur !== do_blur;
-    recalc_all = recalc_all || zoom !== this.last_zoom;
-  
+    //recalc_all = recalc_all || zoom !== this.last_zoom;
+
     //console.log("all will redrw?", recalc_all);
     if (recalc_all) {
       //abort all outstanding render threads
@@ -122,7 +122,9 @@ export class SplineDrawer {
     this.last_stroke_eid = undefined;
     this.last_layer_id = undefined;
     this.last_stroke_stringid = undefined;
-    
+
+    let drawMatrix = matrix;
+
     var mat = update_tmps_mats.next();
     mat.load(matrix), matrix = mat;
     
@@ -143,8 +145,8 @@ export class SplineDrawer {
     
     this.recalc_all = false;
     
-    if (m1.m11 != m2.m11 || m1.m22 != m2.m22) {
-      recalc_all = true;
+    if (m1.m11 !== m2.m11 || m1.m22 !== m2.m22) {
+      //recalc_all = true;
     }
     
     if (!recalc_all) {
@@ -165,7 +167,7 @@ export class SplineDrawer {
     this.drawer.pan[1] = m.m42;
     m.m41 = m.m42 = m.m43 = 0;
     
-    this.drawer.set_matrix(matrix);
+    this.drawer.set_matrix(drawMatrix); //matrix);
 
     if (recalc_all) {
       if (DEBUG.trace_recalc_all) {

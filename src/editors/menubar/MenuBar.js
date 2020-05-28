@@ -99,7 +99,7 @@ export class MenuBar extends Editor {
       menu.addItem(name, id);
     }
 
-    menu.onselect = (id) => {
+    menu.onselect = (id : string) => {
       console.warn("recent files callback!", id);
       g_app_state.load_path(id);
     }

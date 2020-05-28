@@ -100,7 +100,7 @@ class PanOp extends ToolOp {
 }
 
 class drawline {
-  constructor(co1, co2, group, color, width) {
+  constructor(co1, co2, group : string, color, width : number) {
     this.v1 = new Vector3(co1);
     this.v2 = new Vector3(co2);
     this.group = group;

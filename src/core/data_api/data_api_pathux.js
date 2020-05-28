@@ -371,10 +371,10 @@ export class PathUXInterface extends ModelInterface {
     return ret;
   }
 
-  setValue(ctx : FullContext, path : string, val) {
+  setValue(ctx : FullContext, path : string, val : number) {
     return this.api.set_prop(ctx, path, val);  }
 
-  getValue(ctx, path : string) {
+  getValue(ctx : FullContext, path : string) {
     return this.api.get_prop(ctx, path);
   }
 }

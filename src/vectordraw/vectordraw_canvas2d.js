@@ -116,7 +116,7 @@ export class Batch {
     this.paths.push(p);
   }
 
-  remove(p) {
+  remove(p : CanvasPath) {
     p._batch = undefined;
 
     if (!this.has(p)) {

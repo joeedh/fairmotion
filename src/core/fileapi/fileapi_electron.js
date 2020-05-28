@@ -13,7 +13,7 @@ export function reset() {
   //do nothing
 }
 
-export function is_dir(path) {
+export function is_dir(path : string) {
   try {
     let st = fs.statSync(path);
     return st.isDirectory();
@@ -23,7 +23,7 @@ export function is_dir(path) {
   }
 }
 
-export function get_base_dir(path) {
+export function get_base_dir(path : string) {
   if (path === undefined)
     return undefined;
   

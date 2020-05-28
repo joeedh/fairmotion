@@ -1329,7 +1329,7 @@ export class AnimPlaybackOp extends ToolOp {
   time : number
   start_time : number
   done : boolean
-  on_solve_node : function;
+  on_solve_node : Function;
 
   constructor() {
     super();

@@ -447,6 +447,15 @@ def load_types(node, typespace, data):
                 if (a["value"] == "number" and b["value"] == "boolean") or (a["value"] == "boolean" and b["value"] == "number"):
                     ts = [a if a["count"] > b["count"] else b]
 
+            """
+            maxt = -1
+            rt = None
+            for t in ts:
+                if t["count"] > maxt:
+                    rt = t
+            return IdentNode(rt["value"])
+            #"""
+            
             if len(ts) == 1:
                 return IdentNode(ts[0]["value"])
 

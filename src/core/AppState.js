@@ -284,6 +284,13 @@ function patchScreen(appstate, fstructs, data) {
 
 //truly ancient class, from AllShape.
 class UserSession {
+tokens : Object
+username : string
+password : string
+is_logged_in : boolean
+loaded_settings : boolean
+settings : AppSettings;
+
   constructor() {
     this.tokens = {} : ObjectMap;
     this.username = "user";

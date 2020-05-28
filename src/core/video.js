@@ -1,4 +1,7 @@
 class FrameIterator {
+  ret : Object
+  i : number;
+
   constructor(vm) {
     this.vm = vm;
     this.ret = {done : true, value : undefined};

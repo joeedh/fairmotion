@@ -7,6 +7,8 @@ var default_job_interval = 1; //at least two miliseconds between runs
 //function JobFinishFunc(Joblet job);
 
 export class ThreadIterator {  
+iter : Object;
+
   constructor(worker) {
     this.queue = [];
     this.worker = worker;

@@ -7,6 +7,8 @@ import {CustomDataLayer, SplineTypes, SplineFlags} from '../curve/spline_base.js
 import {DataPathWrapperNode} from './eventdag.js';
 
 export class TimeDataLayer extends CustomDataLayer {
+  time : number;
+
   constructor() {
     super();
     

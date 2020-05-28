@@ -279,6 +279,8 @@ nstructjs.register(ArrayBufferProperty);
 ToolProperty.register(ArrayBufferProperty);
 
 export class DataRefProperty extends ToolProperty {
+  types : set;
+
   //allowed_types can be either a datablock type,
   //or a set of allowed datablock types.
   constructor(value: DataBlock, allowed_types: set<int>, apiname : string, uiname : string, description, flag) {
@@ -506,6 +508,8 @@ ToolProperty.register(TransformProperty);
 
 import {ToolIter} from './toolprops_iter.js';
 export class type_filter_iter extends ToolIter {
+  ret : Object;
+
   constructor(iter, typefilter, ctx) {
     //super(iter, typefilter);
     super(iter);

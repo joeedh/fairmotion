@@ -45,6 +45,15 @@ let render_idgen = 1;
 let batch_iden = 1;
 
 export class Batch {
+  generation : number
+  path_idmap : Object
+  regen : number
+  gen_req : number
+  _last_pan : Vector2
+  viewport : Object
+  realViewport : Object
+  patharea : number;
+
   constructor() {
     this._batch_id = batch_iden++;
 

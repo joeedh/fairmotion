@@ -13,6 +13,8 @@ export var ImageFlags = {
 };
 
 export class Image extends DataBlock {
+  path : string;
+
   constructor(name="Image") {
     super(DataTypes.IMAGE, name);
     

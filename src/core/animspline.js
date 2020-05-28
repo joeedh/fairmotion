@@ -19,6 +19,9 @@ import {AnimChannel, AnimKey} from './animdata.js';
 import {PropTypes} from './toolprops.js';
 
 export class VertexAnimIter {
+  ret : Object
+  stop : boolean;
+
   constructor(vd) {
     this.ret = {done : false, value : undefined};
     this.stop = false;

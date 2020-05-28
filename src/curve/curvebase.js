@@ -13,6 +13,9 @@ export var CurveInterfaces = {
 
 //four-parameter curves: two points, two tangents, and two (geometric) curvatures
 export class CurveData {
+  flag : number
+  length : number;
+
   constructor(type) {
     this.type = type;
     this.flag = 0;

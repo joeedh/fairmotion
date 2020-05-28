@@ -1,6 +1,10 @@
 "use strict";
 
 class TouchManager {
+  pattern : set
+  idxmap : Object
+  deltas : Object;
+
   constructor(MyMouseEvent event) {
     this.pattern = new set(Object.keys(event.touches));
     this.idxmap = {};

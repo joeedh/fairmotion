@@ -24,6 +24,15 @@ window.MAX_THREADS = MAX_THREADS;
 
 //uses web workers
 export class Thread {
+  dead : boolean
+  ready : boolean
+  lock : number
+  callbacks : Object
+  ownerid_msgid_map : Object
+  msgid_ownerid_map : Object
+  cancelset : Set
+  freezelvl : number;
+
   constructor(worker : Worker, id : number, manager : ThreadManager) {
     this.id = id;
     this.manager = manager;

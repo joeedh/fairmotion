@@ -37,6 +37,15 @@ export function makeElement(type, attrs={}) {
 }
 
 export class StubCanvasPath extends QuadBezPath {
+recalc : number
+lastx : number
+lasty : number
+_last_off : Vector2
+clip_users : set
+path_start_i : number
+first : boolean
+_mm : MinMax;
+
   constructor() {
     super();
     

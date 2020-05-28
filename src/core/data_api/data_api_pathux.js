@@ -61,6 +61,8 @@ export function register_toolops() {
 }
 
 export class PathUXInterface extends ModelInterface {
+  prefix : string;
+
   constructor(api : DataAPI, ctx=undefined) {
     super();
 

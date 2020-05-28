@@ -89,6 +89,9 @@ var _elist_map = {
 };
 
 export class AllPointsIter {
+stage : number
+ret : Object;
+
   constructor(spline) {
     this.spline = spline;
     this.stage = 0;
@@ -121,6 +124,27 @@ export class AllPointsIter {
 import {RecalcFlags} from './spline_types.js';
 
 export class Spline extends DataBlock {
+_vert_add_set : set
+_vert_rem_set : set
+_vert_time_set : set
+actlevel : number
+mres_format : Array
+size : Array<number>
+restrict : number
+q : SplineQuery
+frame : number
+rendermat : Matrix4
+_idgen : SDIDGen
+proportional : boolean
+prop_radius : number
+eidmap : Object
+elist_map : Object
+selectmode : number
+layerset : SplineLayerSet
+selected : ElementArraySet
+draw_verts : boolean
+draw_normals : boolean;
+
   constructor(name=undefined) {
     super(DataTypes.SPLINE, name);
 

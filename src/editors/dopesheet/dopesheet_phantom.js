@@ -19,6 +19,11 @@ export var FilterModes = {
 };
 
 export class phantom {
+  flag : number
+  size : Vector2
+  group : string
+  id : number;
+
   constructor() {
     this.flag = 0;
 

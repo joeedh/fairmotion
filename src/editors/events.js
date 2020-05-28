@@ -27,6 +27,8 @@ export class MyKeyboardEvent {
 window.MyKeyboardEvent = MyKeyboardEvent;
 
 export class MyMouseEvent {
+  touches : Object;
+
   constructor(int x, int y, short button, short type) {
     this.x = x; this.y = y;
     this.button = button;

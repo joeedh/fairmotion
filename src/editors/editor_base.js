@@ -111,6 +111,8 @@ FairmotionScreen.STRUCT = STRUCT.inherit(FairmotionScreen, Screen) + `
 ui_base.UIBase.register(FairmotionScreen);
 
 export class Editor extends Area {
+  canvases : Object;
+
   constructor() {
     super();
 

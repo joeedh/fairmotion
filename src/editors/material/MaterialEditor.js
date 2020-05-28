@@ -22,6 +22,10 @@ function list(iter) {
 }
 
 class LayerPanel extends Container {
+  last_active_id : number
+  do_rebuild : number
+  delayed_recalc : number;
+
   constructor(ctx) {
     super(ctx);
 

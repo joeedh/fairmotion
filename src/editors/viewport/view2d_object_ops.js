@@ -45,6 +45,9 @@ import {get_vtime} from '../../core/animdata.js';
 import {EditorTypes} from './view2d_base.js';
 
 export class SceneObjectEditor extends View2DEditor {
+  mpos : Vector3
+  start_mpos : Vector3;
+
   constructor(view2d : View2DHandler) {
     super("Object", EditorTypes.OBJECT, EditModes.OBJECT, DataTypes.FRAMESET, keymap);
 

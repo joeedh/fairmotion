@@ -1,6 +1,8 @@
 "use strict";
 
 export class TypedCache {
+  freelist : Object;
+
   constructor() {
     this.freelist = {};
   }

@@ -32,6 +32,11 @@ import {ToolModes} from "../selectmode.js";
 window.anim_to_playback = [];
 
 export class SplineToolMode extends ToolMode {
+  mpos : Vector2
+  last_mpos : Vector2
+  start_mpos : Vector2
+  mdown : boolean;
+
   constructor() {
     super();
 

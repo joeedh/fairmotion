@@ -197,6 +197,8 @@ export class FileSaveAsOp extends ToolOp {
 }
 
 export class FileSaveOp extends ToolOp {
+  do_progress : boolean;
+
   constructor(do_progress=true) {
     super();
 

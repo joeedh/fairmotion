@@ -13,6 +13,9 @@ export {EditModes, EditorTypes, SessionFlags} from './view2d_base.js';
 let v3d_idgen = 0;
 
 export class View2DEditor {
+  keymap : KeyMap
+  selectmode : number;
+
   constructor(name : String, editor_type : int, type : int, lib_type : int) {
     this.name = name;
     this._id = v3d_idgen++;

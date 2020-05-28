@@ -19,6 +19,8 @@ var VDAnimFlags = animspline.VDAnimFlags;
 var VertexAnimData = animspline.VertexAnimData;
 
 export class SplineFrame {
+  flag : number;
+
   constructor(time, idgen) {
     this.time = time;
     this.flag = 0;

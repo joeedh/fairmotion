@@ -12,6 +12,10 @@ export var SplineLayerFlags = {
 };
 
 export class SplineLayer extends set {
+  order : number
+  flag : number
+  name : string;
+
   constructor(elements=undefined) {
     super(elements);
     

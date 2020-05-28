@@ -1,6 +1,10 @@
 "use strict";
 
 export class IconManager {
+  size : Vector2
+  cellsize : Vector2
+  ready : boolean;
+
   constructor(WebGLRenderingContext gl, String sheet_path, 
               Array<float> imgsize, Array<float> iconsize) 
   {

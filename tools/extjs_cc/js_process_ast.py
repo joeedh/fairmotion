@@ -2908,7 +2908,7 @@ def infer_class_properties(result, typespace, buf):
             if type(n2[0]) == BinOpNode and n2[0].op != ".": return
 
             prop = n2[0][1].gen_js(0).strip()
-            for m in n2:
+            for m in n:
                 if type(m) == ClassPropNode and m.name == prop:
                     return
 
@@ -2928,7 +2928,7 @@ def infer_class_properties(result, typespace, buf):
             elif type(val) == FunctionNode: #isinstance(val, FunctionNode):
                 ptype = "function"
             elif type(val) == ArrayLitNode:
-                ok = 1
+                ok = len(val[0]) > 0
                 for c in val[0]:
                     if type(c) != NumLitNode:
                         ok = 0

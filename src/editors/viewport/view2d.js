@@ -37,6 +37,9 @@ function delay_redraw(ms : number) {
 }
 
 class PanOp extends ToolOp {
+  is_modal : boolean
+  cameramat : Matrix4;
+
   mpos       : Vector2;
   start_mpos : Vector2;
   first      : boolean;
@@ -107,6 +110,8 @@ class PanOp extends ToolOp {
 }
 
 class drawline {
+  clr : Array<number>;
+
   v1 : Vector3;
   v2 : Vector3;
 
@@ -129,6 +134,17 @@ class drawline {
 }
 
 export class View2DHandler extends Editor {
+  enable_blur : boolean
+  draw_small_verts : boolean
+  _can_select : number
+  _only_render : number
+  _selectmode : number
+  _draw_normals : number
+  irendermat : Matrix4
+  cameramat : Matrix4
+  background_image : ImageUser
+  zoom : number;
+
   static STRUCT     : string;
   rendermat         : Matrix4;
   need_data_link    : boolean;

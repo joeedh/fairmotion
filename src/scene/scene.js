@@ -8,6 +8,9 @@ import {ToolModes} from "../editors/viewport/toolmodes/toolmode.js";
 import {SelMask} from "../editors/viewport/selectmode.js";
 
 export class ObjectList extends Array {
+  idmap : Object
+  namemap : Object;
+
   constructor(scene : Scene) {
     super();
 
@@ -189,6 +192,13 @@ LayerIDSet {
 export class ToolModeSwitchError extends Error {}
 
 export class Scene extends DataBlock {
+  edit_all_layers : boolean
+  objects : ObjectList
+  object_idgen : EIDGen
+  toolmode_i : number
+  active_splinepath : string
+  time : number;
+
   constructor() {
     super(DataTypes.SCENE);
 

@@ -30,6 +30,10 @@ import {TransSplineVert} from "./transform_spline.js";
 
 //let
 export class TransformOp extends ToolOp {
+ types : GArray
+ first_viewport_redraw : boolean
+ modaldata : Object;
+
   constructor(start_mpos : Array<float>, datamode : int) {
     super();
     

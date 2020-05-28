@@ -12,6 +12,18 @@ import {Vec2Property, Vec3Property, IntProperty, StringProperty, TPropFlags} fro
 import {SceneObject, ObjectFlags} from '../../scene/sceneobject.js';
 
 class ViewRotateZoomPanOp extends ToolOp {
+  is_modal : boolean
+  inputs : Object
+  outputs : Object
+  first_call : boolean
+  start_zoom : number
+  mv1 : Vector3
+  mv2 : Vector3
+  mv3 : Vector3
+  mv4 : Vector3
+  mv5 : Vector3
+  mv6 : Vector3;
+
   constructor() {
     super();
 

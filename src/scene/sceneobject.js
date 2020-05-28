@@ -12,6 +12,12 @@ export let ObjectFlags = {
 };
 
 export class SceneObject extends DataBlock {
+  matrix : Matrix4
+  loc : Vector2
+  scale : Vector2
+  rot : number
+  flag : number;
+
   constructor(data : DataBlock) {
     super();
 

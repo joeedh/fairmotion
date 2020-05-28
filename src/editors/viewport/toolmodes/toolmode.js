@@ -10,6 +10,8 @@ export const ToolModes = [];
 ToolModes.map = {};
 
 export class ToolMode extends NodeBase {
+  keymap : KeyMap;
+
   constructor() {
     super();
 

@@ -5,6 +5,8 @@ import {
 } from '../../util/mathlib.js';
 
 export class TransDataItem {
+  w : number;
+
   constructor(data : any, type : TransDataType, start_data : any) {
     this.data = data;
     this.start_data = start_data;

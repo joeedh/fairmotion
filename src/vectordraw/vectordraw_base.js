@@ -50,6 +50,12 @@ f := solve({f1, f2}, {t1, t2});
 
 */
 export class QuadBezPath {
+  off : Vector2
+  blur : number
+  color : Vector4
+  clip_paths : set
+  clip_users : set;
+
   constructor() {
     this.off = new Vector2();
     this.id = -1;

@@ -2371,6 +2371,46 @@ class ObjLitSetGet(Node):
 
     return s
 
+class ClassPropNode(Node):
+    def __init__(self, name, type1=None, value=None):
+        Node.__init__(self)
+
+        if type(type1) == ExprNode:
+            type1 = type1.type
+
+        self.modifiers = set()
+        self.type = IdentNode(type1) if type(type1) == str else type1
+
+        if value:
+            self.add(value)
+        self.name = name
+
+    def get_type_str(self):
+        if self.type is not None:
+            return self.type.get_type_str()
+        else:
+            return "(none)"
+
+    def gen_js(self, tlevel=0):
+        if not glob.g_include_types:
+            return self.s("")
+
+        s = self.s("")
+        for m in self.modifiers:
+            s += self.s(m + " ")
+
+        s += self.s(self.name + " : ")
+        if self.type is not None:
+            if type(self.type) == VarDeclNode:
+                s += self.type.get_type_str()
+            else:
+                s += self.type.gen_js(0)
+            pass
+
+        if len(self) > 0:
+            s += self.s(" = ") + self[0].gen_js(0)
+        return s
+
 class MethodGetter(MethodNode):
   def __init__(self, name, is_static=False):
     MethodNode.__init__(self, name, is_static)

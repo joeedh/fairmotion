@@ -70,7 +70,7 @@ def pop_scope():
     pass
     #traceback.print_stack()
     #sys.stderr.write("Warning: invalid pop_scope() in parse internals\n");
-    
+
 statestack = []
 def push_state():
   global restrict_stacks, prodname_log, scopestack, parsescope
@@ -239,7 +239,7 @@ def set_parse_globals_error(p):
     line = line(0)
 
   if glob.g_production_debug:
-    print("in %s %i" % (get_production()[0], line))
+    sys.stderr.write(termColor("in2 %s %i\n" % (get_production()[0], line), "yellow"))
   #prodname_log.append(get_production()[0])
 
   #"""
@@ -303,8 +303,9 @@ def set_parse_globals(p, extra_str=""):
       if type(line) != int:
         line = line(0)
 
-      print("in %s %s %i" % (get_production()[0], extra_str, line))
-  
+      sstr = "in %s %s %i\n" % (get_production()[0], extra_str, line)
+      sys.stderr.write(termColor(sstr, "yellow"))
+
   if glob.g_log_productions:
     prodname_log.append(get_production()[0])
     if len(prodname_log) > 20:
@@ -834,7 +835,7 @@ def p_var_decl_no_list(p):
 
 def p_typescript_var_decl(p):
   '''typescript_var_decl : ID
-                         | ID COLON var_type
+                         | ID_COLON var_type
   '''
   
   set_parse_globals(p)
@@ -1073,7 +1074,18 @@ def p_var_expand(p):
   '''
   set_parse_globals(p)
   p[0] = p[1]
-  
+
+def p_var_type_simple(p):
+  ''' var_type_simple : id_var_type
+                      | SHORT
+                      | DOUBLE
+                      | CHAR
+                      | BYTE
+                      | INFERRED
+                      | var_type_simple template_ref
+  '''
+  p[0] = p[1]
+
 def p_var_type(p):
   ''' var_type : var_type id_var_type
                | id_var_type
@@ -1447,10 +1459,12 @@ def p_class_element_list(p):
   else:
     p[0] = p[1]
     p[0].append(p[2])
-    
+
 def p_class_element(p):
   '''class_element : method_def
+                   | typescript_class_property
   '''
+#
   set_parse_globals(p)
   
   if len(p) == 2:
@@ -1529,8 +1543,10 @@ def p_star_opt(p):
   else:
     p[0] = None
 
+
 def p_method(p):
-  '''method : star_opt property_id_opt LPAREN funcdeflist RPAREN func_type_opt LBRACKET statementlist_opt RBRACKET'''
+  '''method : star_opt property_id_opt LPAREN funcdeflist RPAREN func_type_opt LBRACKET statementlist_opt RBRACKET
+  '''
   set_parse_globals(p)
   
   p2 = p[:2] + p[2] + p[3:]
@@ -1588,6 +1604,62 @@ def p_method_def(p):
   set_parse_globals(p)
   p[0] = p[1]
 
+def p_method_def_error(p):
+  '''method_def_error : method error
+  '''
+
+  set_parse_globals(p)
+  p[0] = p[1]
+
+#"""
+def p_static(p):
+    '''static : STATIC'''
+    p[0] = p[1]
+
+def p_cls_prefix(p):
+    ''' cls_prefix : STATIC
+                   | ID
+                   | cls_prefix STATIC
+                   | cls_prefix ID
+    '''
+    if len(p) == 2:
+        if p[1] not in ["static", "private", "public"]:
+            raise SyntaxError("expected static, private or public")
+
+        p[0] = [p[1]]
+    elif len(p) == 3:
+        if p[2] not in ["static", "private", "public"]:
+            raise SyntaxError("expected static, private or public")
+
+        p[0] = p[1]
+        p[0].add(p[2])
+
+def p_cls_prefix_opt(p):
+    '''cls_prefix_opt : cls_prefix
+                      |
+    '''
+    if len(p) > 1:
+        p[0] = p[1]
+
+def p_typescript_class_property(p):
+    '''typescript_class_property : CLASS_PROP_PRE cls_prefix_opt ID_COLON COLON var_type SEMI
+                                 | CLASS_PROP_PRE cls_prefix_opt ID_COLON COLON var_type ASSIGN expr_for_arraylit SEMI
+
+    '''
+    set_parse_globals(p)
+
+    if len(p) == 7:
+        p[0] = ClassPropNode(p[3], type1=p[5])
+        if p[2] is not None:
+            p[0].modifiers = p[2]
+    elif len(p) == 9:
+        p[0] = ClassPropNode(p[3], type1=p[5])
+        if p[2] is not None:
+            p[0].modifiers = p[2]
+        p[0].add(p[7])
+
+#"""
+
 #right associativity! that's how you do c-style type
 #declarations and not have var_type eat up all the id tokens!
 def p_var_element(p):
@@ -1599,6 +1671,7 @@ def p_var_element(p):
                 | BYTE %prec VAR_TYPE_PREC
                 | id template_ref %prec VAR_TYPE_PREC
   '''
+  set_parse_globals(p)
   if len(p) == 2:
     p[0] = p[1]
   elif len(p) == 3:
@@ -2017,10 +2090,15 @@ def p_typeof_no_list(p):
 def p_objlit_key(p):
     r'''
       objlit_key : id_str_or_num
+                 | ID_COLON
                  | LSBRACKET expr RSBRACKET
+                 | CLASS_PROP_PRE objlit_key
     '''
+
     if len(p) == 2:
         p[0] = p[1]
+    elif len(p) == 3:
+        p[0] = p[2]
     else:
         p[0] = RuntimeObjectKey(p[2])
         
@@ -2245,24 +2323,34 @@ def p_concise_body(p):
     p[0] = p[2]
 
 
+def p_id_colon2(p):
+  '''id_colon2 : ID_COLON
+               | id
+               | CLASS_PROP_PRE ID_COLON
+  '''
+  if len(p) == 2:
+    p[0] = p[1]
+  else:
+    p[0] = p[2]
+
 def p_typed_argument(p):
   '''
-  typed_argument : id
-                 | id COLON var_type
-                 | id COLON FUNCTION
-                 | id COLON var_type ASSIGN expr_for_arraylit
-                 | id COLON FUNCTION ASSIGN expr_for_arraylit
-                 | id ASSIGN expr_for_arraylit
+  typed_argument : id_colon2
+                 | id_colon2 COLON var_type
+                 | id_colon2 COLON FUNCTION
+                 | id_colon2 COLON var_type ASSIGN expr_for_arraylit
+                 | id_colon2 COLON FUNCTION ASSIGN expr_for_arraylit
+                 | id_colon2 ASSIGN expr_for_arraylit
   '''
   set_parse_globals(p)
 
   if len(p) == 2:
     p[0] = VarDeclNode(name=p[1].val)
   elif len(p) == 4 and p[2] == ":":
-    p[0] = VarDeclNode(ExprNode(), name=p[1].val)
+    p[0] = VarDeclNode(ExprNode(), name=p[1])
     p[0].type = p[3]
   elif len(p) == 4 and p[2] == "=":
-    p[0] = VarDeclNode(p[3], name=p[1].val)
+    p[0] = VarDeclNode(p[3], name=p[1])
   elif len(p) == 6:
     p[0] = VarDeclNode(p[5], name=p[1])
     p[0].type = p[3]
@@ -2347,11 +2435,16 @@ def p_arrow_function(p):
     p[0].add(p[2])
     p[0].add(p[4])
     #pop_restrict(')')
-  
+
+def p_id_colon(p):
+    '''id_colon : ID_COLON'''
+    p[0] = IdentNode(p[1])
+
 def p_expr(p):
     '''expr : NUMBER
             | strlit
             | id
+            | id_colon
             | id template_ref
             | template_ref
             | array_literal
@@ -2465,6 +2558,7 @@ def p_expr_no_list(p):
     '''expr_no_list : NUMBER
             | strlit
             | id
+            | id_colon
             | array_literal
             | exprfunction
             | exprclass
@@ -2736,7 +2830,7 @@ def p_for_decl(p):
   
 def p_loop_label_opt(p):
   '''loop_label_opt : 
-                    | ID COLON
+                    | ID_COLON COLON
   '''
   
   if len(p) == 3:
@@ -3010,7 +3104,7 @@ def p_export_clause(p):
     p[0] = []
   elif len(p) in [4, 5]: 
     p[0] = p[2]
-  
+
 def p_exports_list(p):
   ''' exports_list : export_spec
                    | exports_list COMMA export_spec
@@ -3287,9 +3381,41 @@ def print_err(p, do_exit=True, msg=None):
     sys.exit(-1)
 
 tried_semi = False
-  
+error_rule_stack = 0
+
+def resetErrorRuleStack():
+    global error_rule_stack
+    error_rule_stack = 0
+
+cii = 0
+
 def p_error(p):
   global parser
+  global error_rule_stack
+  global cii
+
+  if error_rule_stack > 0:
+    #parser._parser.errok()
+    return
+    pass
+
+
+  """
+  #print(dir(parser._parser))
+  p2 = parser._parser
+  sys.stderr.write(termColor(p2.symstack, "blue") + "\n")
+
+  lt = LexToken()
+  lt.type = "LPAREN"
+  lt.value = "("
+  lt.lineno = p.lineno
+  lt.lexpos = p.lexpos
+
+  #p2.errok()
+
+  #return
+  #sys.exit()
+  #"""
 
   if p and p.lexer._force_lexpos_line is not None:
     p.lexpos = p.lexer._force_lexpos_line[0]
@@ -3423,7 +3549,7 @@ class Parser:
   def __init__(self, yacc):
     self._parser = yacc
     
-  def parse(self, data, lexer=None):
+  def parse(self, data, lexer=None, debug=None):
     global scopestack, parsescope, restrict_stacks
     
     scopestack = []
@@ -3437,9 +3563,15 @@ class Parser:
     ret = None
     #try:
     if lexer != None:
-      ret = self._parser.parse(data, lexer=lexer, tracking=True)
+      if debug is not None:
+        ret = self._parser.parse(data, lexer=lexer, tracking=True, debug=debug)
+      else:
+        ret = self._parser.parse(data, lexer=lexer, tracking=True)
     else:
-      ret = self._parser.parse(data, tracking=True)
+      if debug is not None:
+        ret = self._parser.parse(data, tracking=True, debug=debug)
+      else:
+        ret = self._parser.parse(data, tracking=True)
     #except:
     #  traceback.print_last()
       #print(sys.exc_info(), dir(sys.exc_info()))
@@ -3447,7 +3579,21 @@ class Parser:
       
     return ret
 
-_parser = yacc.yacc(tabmodule="perfstatic_parsetab")
+def p_error_push(p):
+    '''error_push :
+    '''
+    global error_rule_stack
+    error_rule_stack += 1
+
+def p_error_pop(p):
+    '''error_pop :
+    '''
+
+    global error_rule_stack
+    error_rule_stack -= 1
+
+
+_parser = yacc.yacc(tabmodule="perfstatic_parsetab", debug=True)
 parser = Parser(_parser);
 
 def gen_grammar():
@@ -3492,7 +3638,7 @@ def gen_grammar():
     buf += format(p.__doc__) + "\n\n"
   
   return buf
-  
+
 if __name__ == "__main__":
   #spit out grammar
   print(gen_grammar())

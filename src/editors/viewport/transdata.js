@@ -5,7 +5,7 @@ import {
 } from '../../util/mathlib.js';
 
 export class TransDataItem {
-  constructor(Object data, TransDataType type, Object start_data) {
+  constructor(data : any, type : TransDataType, start_data : any) {
     this.data = data;
     this.start_data = start_data;
     
@@ -18,29 +18,29 @@ export class TransDataItem {
 }
 
 export class TransDataType {
-  static apply(ToolContext ctx, TransData td, TransDataItem item, Matrix4 mat, float w) {
+  static apply(ctx : ToolContext, td : TransData, item : TransDataItem, mat : Matrix4, w : number) {
   }
   
-  static undo_pre(ToolContext ctx, TransData td, ObjLit undo_obj) {
+  static undo_pre(ctx : ToolContext, td : TransData, undo_obj : ObjLit) {
   }
 
   static getDataPath(ctx : ToolContext, td : TransData, ti : TransDataItem) {
 
   }
 
-  static undo(ToolContext ctx, ObjLit undo_obj) {
+  static undo(ctx : ToolContext, undo_obj : ObjLit) {
   }
   
-  static update(ToolContext ctx, TransData td) {
+  static update(ctx : ToolContext, td : TransData) {
   }
   
-  static calc_prop_distances(ToolContext ctx, TransData td, Array<TransDataItem> data) {
+  static calc_prop_distances(ctx : ToolContext, td : TransData, data : Array<TransDataItem>) {
   }
   
-  static gen_data(ToolContext ctx, TransData td, Array<TransDataItem> data) {
+  static gen_data(ctx : ToolContext, td : TransData, data: Array<TransDataItem>) {
   }
 
-  static iter_data(ToolContext ctx, TransData td) {
+  static iter_data(ctx : ToolContext, td : TransData) {
     let data = [];
     this.gen_data(ctx, td, data);
 
@@ -48,16 +48,16 @@ export class TransDataType {
   }
 
   //this one gets a modal context
-  static calc_draw_aabb(Context, TransData td, MinMax minmax) {
+  static calc_draw_aabb(ctx : FullContext, td : TransData, minmax : MinMax) {
   }
   
-  static aabb(ToolContext ctx, TransData td, TransDataItem item, MinMax minmax, selected_only) {
+  static aabb(ctx : ToolContext, td : TransData, item : TransDataItem, minmax : MinMax, selected_only) {
   }
 }
 TransDataType.selectmode = -1;
 
 export class TransData {
-  constructor(ctx, top : TransformOp, datamode : int) {
+  constructor(ctx : FullContext, top : TransformOp, datamode : int) {
     this.ctx = ctx;
     this.top = top;
     this.datamode = datamode;
@@ -107,7 +107,7 @@ export class TransData {
     }
   }
 
-  calc_propweights(radius=this.propradius) {
+  calc_propweights(radius : number = this.propradius) {
     this.propradius = radius;
 
     for (var t of this.types) {

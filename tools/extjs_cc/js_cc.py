@@ -1147,9 +1147,9 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
       print(tok)
       tok = plexer.token()
     plexer.input(data)
-  
+
   glob.g_lexer = plexer
-  result = parser.parse(data, lexer=plexer)
+  result = parser.parse(data, lexer=plexer, debug=glob.g_production_debug)
   
   if result == None:
     if glob.g_error_pre != None:

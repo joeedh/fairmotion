@@ -161,6 +161,8 @@ tokens = (
    "TRIPLEDOT",
    "TEMPLATE_STR",
    "ARROWPARENS",
+   "ID_COLON",
+   "CLASS_PROP_PRE"
 ) + tuple(reserved_lst)
 
 # Regular expression rules for simple tokens
@@ -743,10 +745,80 @@ def t_COMMENT(t):
 
   t.lexer.lineno += t.value.count("\n")
 
+cls_prop_id = r'([a-zA-Z_$]+[a-zA-Z0-9_$0-9]*)'
+cls_prop_type = r'([a-zA-Z_$]+[a-zA-Z0-9_$0-9<>,= \t]*)'
+cls_prop_re = r'(private[ \t]*)?(public[ \t]*)?(static[ \t]*)?' + cls_prop_id + r'[ \t]*:[ \t]*' + cls_prop_type + r'[ \t]*[\n\r;\=]'
+cls_prop_re = re.compile(cls_prop_re)
+
+"""
+tst = "private static bleh : number<array<f>, g> = 1;"
+print(cls_prop_re.match(tst), len(tst))
+sys.exit()
+#"""
+
+def class_property_validate(line, lexpos):
+    i = lexpos-1
+    while i >= 0 and line[i] not in ["\n", "\r"]:
+        if line[i] not in [" ", "\t", "\n", "\r"]:
+            return False
+        i -= 1
+
+    i = lexpos
+    while i < len(line) and line[i] not in ["\n", "\r"]:
+        i += 1
+
+    line = line[lexpos:max(i+1, len(line)-1)]
+
+    m = cls_prop_re.match(line)
+    if m is None:
+        return False
+
+    #print(m)
+    return m.span()[0] == 0
+
+
+last_id = None
+
 @TOKEN(r'[\$a-zA-Z_][\$a-zA-Z_0-9]*')
 def t_ID(t):
-    t.type = reserved.get(t.value,'ID')    # Check for reserved words
-    
+    global last_id
+
+    #p = t.lexer._lexwithprev.peek_i(0)
+
+    #if p is not None and p.type == "COLON":
+    #    t.type = "ID_COLON"
+    #    t.lexer._lexwithprev.next()
+    #else:
+    #    t.type = reserved.get(t.value,'ID')    # Check for reserved words
+
+    ld = t.lexer.lexdata
+    li = t.lexpos + len(t.value)
+
+    while li < len(ld) and ld[li] in [" ", "\n", "\r", "\t"]:
+        li += 1
+
+    if li < len(ld) and ld[li] == ":" and t.value not in reserved:
+        t.type = "ID_COLON"
+    else:
+        t.type = reserved.get(t.value,'ID')    # Check for reserved words
+
+    if class_property_validate(ld, t.lexpos) and last_id != "CLASS_PROP_PRE":
+        t2 = LexToken()
+        t2.type = t.type
+        t2.value = t.value
+        t2.lineno = t.lineno
+        t2.lexer = t.lexer
+        t2.lexpos = t.lexpos
+
+        t.lexer._lexwithprev.push(t2)
+
+        t.type = "CLASS_PROP_PRE"
+        t.value = ""
+        last_id = t.type
+        #sys.exit()
+        return t
+
+    last_id = t.type
     return t
 
 class HexInt(int):
@@ -822,7 +894,8 @@ class LexWithPrev():
     self.comment = None
     self.comment_id = 0
     self.comments = {}
-    
+
+    lexer._lexwithprev = self
     lexer.comment = None
     lexer.comment_id = 0
     lexer.comments = {}

@@ -34,13 +34,17 @@ function delay_redraw(ms : number) {
 }
 
 class PanOp extends ToolOp {
+  mpos       : Vector2;
+  start_mpos : Vector2;
+  first      : boolean;
+
   constructor(start_mpos) {
     super();
 
     this.is_modal = true;
     this.undoflag |= UndoFlags.IGNORE_UNDO;
 
-    if (start_mpos != undefined) {
+    if (start_mpos !== undefined) {
       this.start_mpos = new Vector3(start_mpos);
       this.start_mpos[2] = 0.0;
 
@@ -113,7 +117,7 @@ class drawline {
     }
   }
 
-  set_clr(Array<float> clr) {
+  set_clr(clr : Array<float>) {
     this.clr = clr;
   }
 }

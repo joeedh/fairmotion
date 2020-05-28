@@ -2397,7 +2397,7 @@ class MethodGetter(MethodNode):
 class MethodSetter(MethodNode):
   def __init__(self, name, is_static=False):
     MethodNode.__init__(self, name, is_static)
-    self.keyword = "get"
+    self.keyword = "set"
 
   def _old_gen_js(self, tlevel):
     s = self.s("set " + str(self.name) + "(")

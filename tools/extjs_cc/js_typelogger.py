@@ -209,7 +209,7 @@ loggercode = """
             return typeof obj;
         }
 
-        if (obj.constructor && obj.constructor.name) {
+        if (obj.constructor && obj.constructor !== null && obj.constructor.name) {
             return "" + obj.constructor.name;
         } else {
             return "ObjectLiteral";
@@ -225,10 +225,10 @@ loggercode = """
             return "null";
         }
 
-        if (obj.constructor && obj.constructor !== Object) {
+        if (obj.constructor && obj.constructor !== null && obj.constructor !== Object) {
             return obj.constructor.name;
         } else {
-            return buildDynamicLiteral(funckey, name, obj);
+            return "Object"; // buildDynamicLiteral(funckey, name, obj);
         }
     }
 
@@ -236,7 +236,7 @@ loggercode = """
     g._all_types = {};
 
     g._log_add_type = function(set, typestr, val) {
-        if (typeof val === "object" && val.constructor) {
+        if (typeof val === "object" && val !== null && val.constructor) {
             let ok = 1;
 
             let p = Object.getPrototypeOf(val.constructor);
@@ -312,6 +312,39 @@ def buildkey(node):
         else:
             return str(name)
 
+    def inside_arglist(n):
+        p = n.parent
+        state = 0
+        while p:
+            if isinstance(p, FunctionNode):
+                state = 1
+
+            if p.parent and isinstance(p.parent, FunctionNode) and p == p.parent[0]:
+                return True
+
+            if state == 0 and type(p) == FuncCallNode:
+                return True
+
+            p = p.parent
+
+        return False
+
+    def safeprint(n):
+        if type(n) in [str, int, float]:
+            return str(n)
+        elif type(n) in [IdentNode, StrLitNode, NumLitNode]:
+            return n.gen_js(0).strip()
+        elif type(n) == BinOpNode:
+            return safeprint(n[0]) + n.op + safeprint(n[1])
+        elif type(n) == AssignNode:
+            return safeprint(n[0]) + "." + safeprint(n[1])
+        elif type(n) == FuncCallNode:
+            return safeprint(n[0])
+        elif type(n) == FunctionNode:
+            return safeprint(n.name)
+        else:
+            return ""
+
     p = node
     key = "."
     while p:
@@ -323,11 +356,13 @@ def buildkey(node):
         elif isinstance(p, ClassNode):
             key = getname(p.name) + "." + key
         elif isinstance(p, AssignNode):
-            key = p[0].gen_js(0) + "." + key
+            key = key + "." + safeprint(p[0])
 
         p = p.parent
 
-    key = key.strip()[:-2]
+    key = key.strip()
+    if key.endswith("."):
+        key = key.strip()[:-2]
     key = key.replace("'", "_").replace('"', "_").replace('`', "_").replace("\\", "\\\\")
 
     return key
@@ -350,7 +385,7 @@ def create_type_logger(node, typespace):
         for c in n[0]:
             n2 = js_parse("""
                 _log_types($s1, $s2, $s3, $s4, $s5, $s6, $s7);
-            """, ['"'+n.file+'"', str(n.line), '"'+buildkey(n)+'"', '"'+str(c.val)+'"', str(c.val),
+            """, ['"'+n.file+'"', str(n.line), '`'+buildkey(n)+'`', '`'+str(c.val)+'`', str(c.val),
             n.lexpos, n.lexpos2]);
 
             args.append(n2)
@@ -371,7 +406,7 @@ def create_type_logger(node, typespace):
             val = n[0]
 
         n2 = js_parse("""_log_return($s1, $s2, $s3, $n4, $s5, $s6)""",
-                ['"'+n.file+'"', str(n.line), '"'+buildkey(n)+'"', val, n.lexpos, n.lexpos2],
+                ['"'+n.file+'"', str(n.line), '`'+buildkey(n)+'`', val, n.lexpos, n.lexpos2],
                 start_node=FuncCallNode)
 
         if len(n) == 0:

@@ -1,5 +1,5 @@
-"use strict";
 "not_a_module";
+"use strict";
 "not_covered_prof";
 
 /*

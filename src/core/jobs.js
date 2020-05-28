@@ -118,6 +118,14 @@ export class Joblet {
 }
 
 export class JobManager {
+  jobs : GArray
+  jobmap_owners : hashtable
+  jobmap_types : hashtable
+  queue : GArray
+  idgen : number
+  host_mean : movavg
+  time_perc : number;
+
   constructor() {
     this.jobs = new GArray<Joblet>();
     this.jobmap_owners = new hashtable<Object,Joblet>();

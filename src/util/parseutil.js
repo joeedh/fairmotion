@@ -44,6 +44,14 @@ export class PUTLParseError extends Error {
 //should propegate an error when an error
 //has happened
 export class lexer {
+  tokens : GArray
+  lexpos : number
+  lexdata : string
+  lineno : number
+  tokints : Object
+  states : Object
+  statedata : number;
+
   constructor(tokdef, errfunc) {
     this.tokdef = tokdef;
     this.tokens = new GArray();

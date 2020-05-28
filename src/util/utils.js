@@ -86,6 +86,8 @@ class CanIter {
 var int debug_int_1 = 0;
 
 class cachering extends Array {
+  _cur : number;
+
   constructor (createcallback : Function, int count=32) {
     super(count);
 
@@ -402,6 +404,10 @@ Array.prototype[Symbol.keystr] = function() : String {
 var _set_null = {set_null : true};
 
 class SetIter {
+  i : number
+  done : boolean
+  ret : Object;
+
   constructor(set) {
     this.set = set;
     this.i = 0;
@@ -455,6 +461,10 @@ class SetIter {
 }
 
 class set {
+  items : Object
+  length : number
+  _itercache : cachering;
+
   constructor(Object input) {
     this.items = {};
     this.list = [];
@@ -593,6 +603,9 @@ class set {
 }
 
 class GArrayIter<T> {
+  ret : Object
+  cur : number;
+
   constructor(GArray<T> arr) {
     this.ret = {done : false, value : undefined};
     this.arr = arr;
@@ -629,6 +642,9 @@ class GArrayIter<T> {
 }
 
 class ArrayIter {
+  ret : Object
+  cur : number;
+
   constructor(Array<T> arr) {
     this.ret = {done : false, value : undefined};
     this.arr = arr;
@@ -705,6 +721,10 @@ class HashKeyIter {
 
 
 class hashtable {
+  items : Object
+  keymap : Object
+  length : number;
+
   constructor() {
     this.items = {};
     this.keymap = {};
@@ -1020,6 +1040,8 @@ function time_ms() {
 
 
 class movavg {
+  value : number;
+
   constructor(length) {
     this.len = length;
     this.value = 0;
@@ -1058,6 +1080,8 @@ class movavg {
 }
 
 class Timer {
+  normval : number;
+
   constructor(interval_ms) {
     this.ival = interval_ms;
     this.normval = 0.0; //elapsed time scaled by timer interval
@@ -1105,6 +1129,8 @@ var _sran_tab = [0.42858355099189227,0.5574386030715371,0.9436109711290556,
 0.1025239144443526];
 
 class StupidRandom2 {
+  i : number;
+
   constructor(seed) {
     if (seed == undefined)
       seed = 0;
@@ -1256,6 +1282,8 @@ class EventDispatcher {
 }
 
 class EIDGen {  
+  cur_eid : number;
+
   constructor() {
     this.cur_eid = 1;
   }
@@ -1414,6 +1442,8 @@ function btypeof(obj) {
 const TOTAL_IDMAP_LAYERS = 10
 
 class SDIDLayer {
+  idmap : Object;
+
   constructor(int_id) {
     this.int_id = int_id;
     this.idmap = {};
@@ -1471,6 +1501,9 @@ SDIDLayer.STRUCT = `
 `;
 
 class SDIDLayerListIter {
+  ret : Object
+  i : number;
+
   constructor(list) {
     var keys = Object.keys(list);
     this.arr = [];
@@ -1584,6 +1617,11 @@ SDIDLayerList.STRUCT = `
 
 //subdividing id generator
 class SDIDGen {  
+  cur_id : number
+  idmap_layers : SDIDLayerList
+  usedmap : Object
+  freemap : Object;
+
   constructor() {
     this.cur_id = 1;
     

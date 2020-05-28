@@ -56,6 +56,8 @@ export class UnitAttr {
 }
 
 export class Unit {
+  attrs : UnitAttr;
+
   constructor(Array<String> suffices, float cfactor, 
               int grid_subd_1, int grid_subd_2=grid_subd_1, ObjectMap attrs={}) 
   {

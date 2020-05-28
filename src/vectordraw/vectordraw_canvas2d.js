@@ -432,6 +432,16 @@ let canvaspath_temp_vs = util.cachering.fromConstructor(Vector2, 512);
 let canvaspath_temp_mats = util.cachering.fromConstructor(Matrix4, 128);
 
 export class CanvasPath extends QuadBezPath {
+  dead : boolean
+  recalc : number
+  _image_off : Array<number>
+  lastx : number
+  lasty : number
+  _size2 : Vector2
+  path_start_i : number
+  first : boolean
+  _mm : MinMax;
+
   constructor() {
     super();
     
@@ -733,6 +743,8 @@ export class CanvasPath extends QuadBezPath {
 }
 
 export class Batches extends Array {
+  cur : number;
+
   constructor() {
     super();
 
@@ -794,6 +806,13 @@ export class Batches extends Array {
 }
 
 export class CanvasDraw2D extends VectorDraw {
+  path_idmap : Object
+  dosort : boolean
+  matstack : Array
+  matrix : Matrix4
+  _last_pan : Vector2
+  batches : Batches;
+
   constructor() {
     super();
     

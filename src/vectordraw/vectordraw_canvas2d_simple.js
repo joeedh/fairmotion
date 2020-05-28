@@ -44,6 +44,15 @@ export function makeElement(type, attrs={}) {
 let lasttime = performance.now();
 
 export class SimpleCanvasPath extends QuadBezPath {
+  recalc : number
+  lastx : number
+  lasty : number
+  _last_off : Vector2
+  clip_users : set
+  path_start_i : number
+  first : boolean
+  _mm : MinMax;
+
   constructor() {
     super();
     
@@ -326,6 +335,11 @@ export class SimpleCanvasPath extends QuadBezPath {
 }
 
 export class SimpleCanvasDraw2D extends VectorDraw {
+  path_idmap : Object
+  dosort : boolean
+  matstack : Array
+  matrix : Matrix4;
+
   constructor() {
     super();
     

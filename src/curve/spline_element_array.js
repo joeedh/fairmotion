@@ -105,6 +105,11 @@ SplineLayer {
 `;
 
 export class SplineLayerSet extends Array {
+  namemap : Object
+  idmap : Object
+  idgen : SDIDGen
+  flag : number;
+
   constructor() {
     super();
     
@@ -479,6 +484,9 @@ export class EditableIter {
 }
 
 export class SelectedEditableIter {
+  ret : Object
+  _c : number;
+
   constructor(selset, layerset) {
     this.ret = {done : false, value : undefined};
     this._c = 0;
@@ -567,6 +575,9 @@ export class SelectedEditableIter {
 }
 
 export class SelectedEditableAllLayersIter {
+  ret : Object
+  _c : number;
+
   constructor(selset, layerset) {
     this.ret = {done : false, value : undefined};
     this._c = 0;
@@ -679,6 +690,11 @@ export class ElementArraySet extends set {
 }
 
 export class ElementArray extends GArray {
+  cdata : CustomData
+  local_idmap : Object
+  select_listeners : EventDispatcher
+  selected : ElementArraySet;
+
   constructor(type, idgen, idmap, global_sel, layerset, spline) {
     super();
     

@@ -42,6 +42,12 @@ class CacheStack extends Array {
   3d transformation stacks and the like should
   be handled where they are needed.*/
 export class RasterState {
+  pos : Array<number>
+  iconsheet : IconManager
+  iconsheet16 : IconManager
+  viewport_stack : CacheStack
+  scissor_stack : CacheStack;
+
   constructor(gl, size) {
     this.size = size;
     

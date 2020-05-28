@@ -347,6 +347,10 @@ class ViewRotateOp extends ToolOp {
 }
 
 class ViewPanOp extends ToolOp {
+  is_modal : boolean
+  inputs : Object
+  outputs : Object;
+
   constructor() {
     super("view2d_pan", "Pan");
     
@@ -457,6 +461,9 @@ class ViewPanOp extends ToolOp {
 import {StringProperty} from '../../core/toolprops.js';
 
 export class BasicFileDataOp extends ToolOp {
+  is_modal : boolean
+  saved_context : SavedContext;
+
   constructor(data : String) {
     super();
     

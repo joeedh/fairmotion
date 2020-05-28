@@ -89,6 +89,9 @@ export class VertexAnimIter {
 }
 
 export class SegmentAnimIter {
+  ret : Object
+  stop : boolean;
+
   constructor(vd) {
     this.ret = {done : false, value : undefined};
     this.stop = false;
@@ -147,6 +150,12 @@ export var VDAnimFlags = {
 };
 
 export class VertexAnimData {
+  animflag : number
+  flag : number
+  visible : boolean
+  path_times : Object
+  cur_time : number;
+
   constructor(eid, pathspline) {
     this.eid = eid;
   

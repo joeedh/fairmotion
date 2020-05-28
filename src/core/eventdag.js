@@ -316,6 +316,10 @@ export function finalNodeDefOutputs(cls) {
 
 //private structures
 export class EventNode {
+  flag : number
+  inputs : Object
+  outputs : Object;
+
   constructor() {
     this.flag = 0;
     this.id = -1;

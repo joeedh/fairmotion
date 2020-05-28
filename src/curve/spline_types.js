@@ -39,6 +39,10 @@ import {
 } from './spline_math.js';
 
 export class SplineVertex extends SplineElement {
+  flag : boolean
+  eid : number
+  frames : Object;
+
   constructor(co) {
     super(SplineTypes.VERTEX);
     Vector3.prototype.initVector3.apply(this, arguments);
@@ -250,6 +254,15 @@ export class EffectWrapper extends CurveEffect {
 }
 
 export class SplineSegment extends SplineElement {
+  _evalwrap : EffectWrapper
+  has_multires : boolean
+  mat : Material
+  finalz : number
+  flag : number
+  eid : number
+  ks : Array
+  _last_ks : Array;
+
   constructor(v1 : SplineVertex, v2 : SplineVertex) {
     super(SplineTypes.SEGMENT);
     
@@ -840,6 +853,8 @@ SplineLoop.STRUCT = STRUCT.inherit(SplineLoop, SplineElement) + `
 `;
 
 class SplineLoopPathIter {
+  ret : Object;
+
   constructor(path) {
     this.path = path;
     this.ret = {done : false, value : undefined};
@@ -881,6 +896,8 @@ class SplineLoopPathIter {
 }
 
 export class SplineLoopPath {
+  winding : number;
+
   constructor(l, f) {
     this.l = l;
     this.f = f;
@@ -957,6 +974,10 @@ SplineLoopPath.STRUCT = `
 `;
 
 export class SplineFace extends SplineElement {
+  finalz : number
+  mat : Material
+  paths : GArray;
+
   constructor() {
     super(SplineTypes.FACE);
    
@@ -1030,6 +1051,14 @@ SplineFace.STRUCT = STRUCT.inherit(SplineFace, SplineElement) + `
 `;
 
 export class Material {
+  fillcolor : Array<number>
+  strokecolor : Array<number>
+  linewidth : number
+  flag : number
+  opacity : number
+  fill_over_stroke : boolean
+  blur : number;
+
   constructor() {
     this.fillcolor = [0, 0, 0, 1];
     this.strokecolor = [0, 0, 0, 1];
@@ -1120,6 +1149,8 @@ import {ToolIter, TPropIterable} from '../core/toolprops_iter.js';
 
 //stores elements as eid's, for tool operators
 export class ElementRefIter extends ToolIter {
+  ret : Object;
+
   constructor() {
     super();
     

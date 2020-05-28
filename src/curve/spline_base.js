@@ -119,6 +119,9 @@ CustomDataLayer.STRUCT = `
 `;
 
 export class CustomData {
+  callbacks : Object
+  startmap : Object;
+
   constructor(owner : any, layer_add_callback : function, layer_del_callback : function) {
     this.owner = owner; //owning ElementArray
     
@@ -332,6 +335,10 @@ CustomDataSet.STRUCT = `
 `;
 
 export class SplineElement extends DataPathNode {
+  cdata : CustomDataSet
+  masklayer : number
+  layers : Object;
+
   constructor(type : int) {
     super();
     
@@ -829,6 +836,8 @@ export class CurveEffect {
 }
 
 export class FlipWrapper extends CurveEffect {
+  depth : number;
+
   constructor() {
     super();
     this.eff = undefined;

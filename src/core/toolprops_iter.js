@@ -58,6 +58,8 @@ export class TCanSafeIter {
 window.TCanSafeIter = TCanSafeIter;
 
 export class ToolIter extends TPropIterable {
+  ret : Object;
+
   constructor(Array<Function> itemtypes=[]) {
     super();
      
@@ -108,6 +110,9 @@ ToolIter.STRUCT = `
 `;
 
 class MSelectIter extends ToolIter {
+  meshref : DataRef
+  init : boolean;
+
   constructor(int typemask, Mesh mesh) {
     super();
     
@@ -168,6 +173,8 @@ MSelectIter.STRUCT = STRUCT.inherit(MSelectIter, ToolIter) + `
 `;
 
 class element_iter_convert extends ToolIter {
+  vset : set;
+
   constructor(iter, type) {
     super();
     

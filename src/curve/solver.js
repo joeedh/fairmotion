@@ -144,6 +144,8 @@ export class simple_constraint {
 */
 
 export class solver {
+  threshold : number;
+
   constructor() {
     this.cs = [];
     this.threshold = 0.001;

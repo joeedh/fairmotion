@@ -188,6 +188,11 @@ var pop_transform_rets = new cachering(function() {
 }, 32);
 
 export class VectorDraw {
+  pan : Vector2
+  do_blur : boolean
+  matstack : Array
+  matrix : Matrix4;
+
   constructor() {
     this.pan = new Vector2();
     this.do_blur = true;

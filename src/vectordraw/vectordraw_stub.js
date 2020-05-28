@@ -177,6 +177,11 @@ _mm : MinMax;
 }
 
 export class StubCanvasDraw2D extends VectorDraw {
+  path_idmap : Object
+  dosort : boolean
+  matstack : Array
+  matrix : Matrix4;
+
   constructor() {
     super();
     

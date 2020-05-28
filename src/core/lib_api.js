@@ -61,6 +61,8 @@ export var BlockFlags = {
 };
 
 export class DataRef extends Array {
+  length : number;
+
   constructor(block_or_id, lib=undefined) {
     super(2);
     this.length = 2;
@@ -175,6 +177,10 @@ dataref {
 window.__dataref = DataRefCompat;
 
 export class DataList<T> {
+  list : GArray
+  namemap : Object
+  idmap : Object;
+
   [Symbol.keystr]() : String {
     return this.type;
   }
@@ -214,6 +220,11 @@ export class DataList<T> {
 }
 
 export class DataLib {
+  id : number
+  datalists : hashtable
+  idmap : Object
+  idgen : EIDGen;
+
   constructor() {
     this.id = 0;
     this.datalists = new hashtable();
@@ -401,6 +412,10 @@ export class DataLib {
 }
 
 export class UserRef {
+  user : number
+  rem_func : number
+  srcname : string;
+
   constructor() {
     this.user = 0;
     this.rem_func = 0; //is a function
@@ -410,6 +425,15 @@ export class UserRef {
 
 var _db_hash_id = 1;
 export class DataBlock {
+  addon_data : Object
+  lib_anim_channels : GArray
+  lib_anim_idgen : EIDGen
+  lib_anim_idmap : Object
+  lib_anim_pathmap : Object
+  lib_users : GArray
+  lib_refs : number
+  flag : number;
+
   //type is an integer, name is a string
   constructor(type : number, name : string) {
     this.constructor.datablock_type = type;
@@ -606,6 +630,9 @@ DataBlock.STRUCT = `
 import {ToolIter} from './toolprops_iter.js';
 
 export class DataRefListIter<T> extends ToolIter {
+  i : number
+  init : boolean;
+
   constructor(lst : Array, ctx : Context) {
     super();
 

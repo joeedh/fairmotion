@@ -73,6 +73,10 @@ Image.STRUCT = STRUCT.inherit(Image, DataBlock) + `
 `;
 
 export class ImageUser {
+  off : Vector2
+  scale : Vector2
+  flag : number;
+
   constructor() {
     this.off = new Vector2([0, 0]);
     this.scale = new Vector2([1, 1]);

@@ -31,6 +31,10 @@ class FrameIterator {
 }
 
 export class Video {
+  frames : Object
+  recording : boolean
+  totframe : number;
+
   constructor(url) {
     this.canvas = document.createElement("canvas");
     this.g = this.canvas.getContext("2d");

@@ -77,6 +77,10 @@ import {DataTypes, DataNames} from './lib_api.js';
 //generic animation curve system, used for interpolating non-spatial stuff
 //where tying to the pathspline vertices (as we do with time) is not appropriate
 export class AnimKey extends DataPathWrapperNode {
+  flag : number
+  time : number
+  handles : Array<number>;
+
   constructor() {
     super();
 
@@ -150,6 +154,8 @@ AnimKey.STRUCT = `
 //import {PropTypes} from 'toolprops';
 
 export class AnimChannel {
+    resort : boolean;
+
     constructor(proptype, name, path) {
       this.keys = [];
       this.resort = false;

@@ -59,6 +59,14 @@ export class TransDataType {
 TransDataType.selectmode = -1;
 
 export class TransData {
+  data : GArray
+  undodata : Object
+  center : Vector3
+  start_center : Vector3
+  minmax : MinMax
+  scenter : Vector3
+  start_scenter : Vector3;
+
   constructor(ctx : FullContext, top : TransformOp, datamode : int) {
     this.ctx = ctx;
     this.top = top;

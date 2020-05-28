@@ -209,6 +209,9 @@ export class CurveEdit extends UIBase {
 UIBase.register(CurveEdit);
 
 export class CurveEditor extends Editor {
+  pan : Vector2
+  zoom : Vector2;
+
   constructor() {
     super();
 

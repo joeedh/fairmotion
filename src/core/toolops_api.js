@@ -386,6 +386,12 @@ PropPair.STRUCT = `
 let _toolop_tools = undefined;
 
 export class ToolOp extends ToolOpAbstract {
+  drawlines : GArray
+  is_modal : boolean
+  undoflag : number
+  flag : number
+  modal_running : boolean;
+
   constructor(apiname = "(undefined)",
               uiname="(undefined)",
               description=undefined,
@@ -592,6 +598,10 @@ ToolOp.STRUCT = `
 `;
 
 export class ToolMacro extends ToolOp {
+  cur_modal : number
+  _chained_on_modal_end : boolean
+  tools : GArray;
+
   constructor (name, uiname, tools) {
     super(name, uiname);
     
@@ -846,6 +856,10 @@ import {popModalLight} from "../path.ux/scripts/util/simple_events.js";
 /*note: datapathops can only access data paths
   in ToolContext, u.e. object, scene, and mesh.*/
 class DataPathOp extends ToolOp {
+  is_modal : boolean
+  inputs : Object
+  outputs : Object;
+
   constructor(String path="", use_simple_undo=false) {
     super("DataPathOp", "DataPath", "DataPath Value Set");
     
@@ -938,6 +952,10 @@ mixin(ToolOp, EventHandler);
 /*note: datapathops can only access data paths
   in ToolContext, u.e. object, scene, and mesh.*/
 class MassSetPathOp extends ToolOp {
+  is_modal : boolean
+  inputs : Object
+  outputs : Object;
+
   constructor(String path="", String subpath="", String filterstr="", bool use_simple_undo=false) {
     super("DataPathOp", "DataPath", "DataPath Value Set");
     

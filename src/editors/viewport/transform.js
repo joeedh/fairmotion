@@ -597,6 +597,8 @@ export class ScaleOp extends TransformOp {
 }
 
 export class RotateOp extends TransformOp {
+  angle_sum : number;
+
   constructor(user_start_mpos : Array<float>, datamode : int) {
     super(user_start_mpos, datamode);
     this.angle_sum = 0.0;

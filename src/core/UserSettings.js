@@ -180,6 +180,11 @@ AppSettings {
 
 
 export class OldAppSettings {
+  unit_scheme : string
+  unit : string
+  last_server_update : number
+  update_waiting : boolean;
+
   constructor() {
     this.unit_scheme = "imperial";
     this.unit = "in";
@@ -399,6 +404,9 @@ export class SettUploadManager {
 window._settings_manager = new SettUploadManager();
 
 export class UploadJob {
+  cancel : boolean
+  done : boolean;
+
   constructor(data, AppSettings settings=undefined) {
     this.cancel = false;
     this.data = data;

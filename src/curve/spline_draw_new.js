@@ -74,6 +74,9 @@ var drawparam_cachering = new cachering(function() {
 }, 16);
 
 export class SplineDrawer {
+  used_paths : Object
+  recalc_all : boolean;
+
   constructor(spline, drawer=new Canvas()) {
     this.spline = spline;
     this.used_paths = {};

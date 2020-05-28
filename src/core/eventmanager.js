@@ -77,6 +77,12 @@ export function copyEvent(event) {
 }
 
 export class EventManager {
+  ready : boolean
+  _freeze : number
+  stacks : Object
+  _callbacks : Object
+  modal_stack : Object;
+
   constructor() {
     this.ready = false;
     this.queue = [];

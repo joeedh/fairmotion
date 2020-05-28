@@ -32,6 +32,11 @@ import {charmap} from "../editors/events.js";
 /* 'DataBlock List.                         *
  *  A generic container list for datablocks */
 class DBList extends GArray {
+  idmap : Object
+  selected : GArray
+  length : number
+  selset : set;
+
   constructor(type : number) {
     super();
     

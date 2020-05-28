@@ -17,6 +17,8 @@ import {
 } from './dopesheet_phantom.js';
     
 export class ShiftTimeOp2 extends ToolOp {
+  start_mpos : Vector3;
+
   constructor() {
     super();
     
@@ -216,6 +218,8 @@ export class ShiftTimeOp2 extends ToolOp {
 }
 
 export class ShiftTimeOp3 extends ToolOp {
+  start_mpos : Vector3;
+
   constructor() {
     super();
     
@@ -420,6 +424,8 @@ export class SelectOpBase extends ToolOp {
 }
 
 export class SelectOp extends SelectOpBase {
+  uiname : string;
+
   constructor() {
     super();
     

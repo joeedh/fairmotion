@@ -357,6 +357,12 @@ window.charmap = charmap;
 window.charmap_rev = charmap_rev;
 
 export class HotKey {
+  key : number
+  keyAscii : string
+  ctrl : boolean
+  shift : boolean
+  alt : boolean;
+
   constructor(key, modifiers, uiname, menunum, ignore_charmap_error) { //menunum is optional, defaults to undefined
     if (!charmap.hasOwnProperty(key)) {
       if (ignore_charmap_error != undefined && ignore_charmap_error != true) {
@@ -415,6 +421,8 @@ export class HotKey {
 }
 
 export class KeyMap extends hashtable {
+  op_map : hashtable;
+
   constructor() {
     super();
     
@@ -501,6 +509,22 @@ export class FuncKeyHandler extends KeyHandlerCls {
 
 //helper class for implementing velocity pan
 export class VelocityPan extends EventHandler {
+  start_mpos : Vector2
+  last_mpos : Vector2
+  mpos : Vector2
+  start_time : number
+  coasting : boolean
+  panning : boolean
+  was_touch : boolean
+  enabled : boolean
+  vel : Vector2
+  pan : Vector2
+  damp : number
+  can_coast : boolean
+  start_pan : Vector2
+  first : boolean
+  last_ms : number;
+
   constructor() {
     super();
 

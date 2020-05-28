@@ -1606,6 +1606,8 @@ export class AppState {
 window.AppState = AppState;
 
 class SavedContext {
+  _props : Object;
+
   constructor(ctx) {
     this._props = {};
 
@@ -1732,6 +1734,13 @@ SavedContext {
 window.SavedContext = SavedContext;
 
 class SavedContextOld {
+  _frameset_editmode : string
+  selectmode : number
+  _scene : DataRef
+  _frameset : DataRef
+  time : number
+  _spline_path : string;
+
   constructor(ctx=undefined) {
     if (ctx != undefined) {
       this.time = ctx.scene != undefined ? ctx.scene.time : undefined;
@@ -1929,6 +1938,10 @@ create_prototype(Context);
 */
 
 class ToolStack {
+  undocur : number
+  undostack : GArray
+  do_truncate : boolean;
+
   constructor(appstate : AppState) {
     this.undocur = 0;
     this.undostack = new GArray();

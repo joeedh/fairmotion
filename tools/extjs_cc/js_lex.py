@@ -946,7 +946,7 @@ class LexWithPrev():
   def token(self):
     t = self._token()
 
-    if t is not None:
+    if t is not None and t.lexpos >= 0 and t.lexpos <= len(self.linemap):
         t.lineno = self.lineno = self.linemap[t.lexpos]
 
     return t

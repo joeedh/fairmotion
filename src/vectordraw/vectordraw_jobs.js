@@ -198,6 +198,11 @@ export class Thread {
 }
 
 export class ThreadManager {
+  drawing : boolean
+  thread_idmap : Object
+  _idgen : number
+  _rthread_idgen : number;
+
   constructor() {
     this.threads = [];
     this.drawing = false;

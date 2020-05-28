@@ -132,6 +132,10 @@ export class ThemePair {
 }
 
 export class ColorTheme {
+  colors : hashtable
+  boxcolors : hashtable
+  flat_colors : GArray;
+
   constructor(defobj) {
     this.colors = new hashtable();
     this.boxcolors = new hashtable();

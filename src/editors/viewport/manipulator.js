@@ -66,6 +66,11 @@ export class HandleBase {
 } HandleBase;
 
 export class ManipHandle extends HandleBase {
+  transparent : boolean
+  linewidth : number
+  _min : Vector2
+  _max : Vector2;
+
   constructor(v1 : Vector3, v2 : Vector3, id : Object, shape : int, view2d : View2DHandler, clr : Array<float>) {
     super();
     
@@ -220,6 +225,12 @@ export class ManipHandle extends HandleBase {
 }
 
 export class ManipCircle extends HandleBase {
+  p : Vector2
+  transparent : boolean
+  linewidth : number
+  _min : Vector2
+  _max : Vector2;
+
   constructor(p : Vector2, r : Number, id : Object, view2d : View2DHandler, clr : Array<float>) {
     super();
     
@@ -333,6 +344,11 @@ var _mh_idgen_2 = 1;
 var _mp_first = true;
 
 export class Manipulator {
+  recalc : number
+  handle_size : number
+  co : Vector3
+  hidden : boolean;
+
   constructor(handles : Array<Array<ManipHandle>>) {
     this._hid = _mh_idgen_2++;
     this.handles = handles.slice(0, handles.length); //copy handles

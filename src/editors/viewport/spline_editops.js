@@ -221,6 +221,8 @@ export class SplineLocalToolOp extends ToolOp {
 }//*/
 
 export class KeyEdgesOp extends SplineLocalToolOp {
+  uiname : string;
+
   constructor() {
     super();
     this.uiname = "Key Edges";
@@ -876,6 +878,8 @@ export class SplitEdgeOp extends SplineGlobalToolOp {
 }
 
 export class SplitEdgePickOp extends SplineGlobalToolOp {
+  mpos : Vector2;
+
   constructor() {
     super();
     this.mpos = new Vector2();
@@ -1322,6 +1326,11 @@ DelVertFrame.inputs = {
 */
 
 export class AnimPlaybackOp extends ToolOp {
+  time : number
+  start_time : number
+  done : boolean
+  on_solve_node : function;
+
   constructor() {
     super();
     
@@ -1510,6 +1519,8 @@ import {TimeDataLayer, get_vtime, set_vtime} from '../../core/animdata.js';
 import {ClosestModes} from "../../curve/spline_base.js";
 
 export class ShiftTimeOp extends ToolOp {
+  start_mpos : Vector3;
+
   constructor() {
     super();
     

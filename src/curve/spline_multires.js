@@ -97,6 +97,8 @@ var IHEAD=0, ITAIL=1, IFREEHEAD=2, ITOTPOINT=3, ITOT=4;
 //hrm, apparently doesn't help with chrome performance bug:
 //   "dont_put_props_in_prototype"
 export class BoundPoint {
+    offset : Object;
+
     constructor() {
         this.mr = undefined;
         this.i = undefined;
@@ -264,6 +266,8 @@ var add_point_cache = cachering.fromConstructor(BoundPoint, 12);
 var get_point_cache = cachering.fromConstructor(BoundPoint, 12);
 
 class point_iter {
+    ret : Object;
+
     constructor() {
         this.ret = {done : true, value : undefined};
     }
@@ -870,6 +874,8 @@ empty_iter[Symbol.iterator] = function() {
 };
 
 class GlobalIter {
+  ret : Object;
+
   constructor(spline, level, return_keys=false) {
     this.spline = spline;
     this.level = level;

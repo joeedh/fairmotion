@@ -2839,7 +2839,7 @@ def infer_class_properties(result, typespace, buf):
 
         si = n.lexpos
 
-        print(n.name, buf[n.lexpos:n.lexpos+15].replace("\n", "\\n"))
+        #print(n.name, buf[n.lexpos:n.lexpos+15].replace("\n", "\\n"))
 
         #find bracket
         if not buf[si:].strip().startswith("class"):

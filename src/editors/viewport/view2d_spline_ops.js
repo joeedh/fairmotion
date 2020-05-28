@@ -284,6 +284,9 @@ export class PlayAnimOp extends ToolOp {
 import {EditorTypes} from './view2d_base.js';
 
 export class SplineEditor extends View2DEditor {
+  mpos : Vector3
+  start_mpos : Vector3;
+
   constructor(view2d) {
     var keymap = new KeyMap();
     super("Geometry", EditorTypes.SPLINE, EditModes2.GEOMETRY, DataTypes.FRAMESET, keymap);

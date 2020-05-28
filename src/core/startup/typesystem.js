@@ -451,6 +451,9 @@ function __get_iter(obj) //, file, line, keyword)
 }
 
 class _KeyValIterator {
+  ret : Object
+  i : number;
+
   constructor(obj) {
     this.ret = {done : false, value : [undefined, undefined]};
     this.i = 0;

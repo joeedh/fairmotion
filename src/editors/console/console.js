@@ -58,6 +58,14 @@ const LineFlags = {
 };
 
 export class ConsoleLineEntry {
+    line : boolean
+    loc : boolean
+    bg : boolean
+    fg : boolean
+    closed : boolean
+    parent : number
+    flag : number;
+
     constructor(line, loc="", fg="", bg="") {
         this.line = ""+line;
         this.loc = ""+loc;
@@ -110,6 +118,9 @@ export const HitBoxTypes = {
 };
 
 export class HitBox {
+    pos : Vector2
+    size : Vector2;
+
     constructor(x, y, w, h) {
         this.pos = new Vector2([x, y]);
         this.size = new Vector2([w, h]);
@@ -165,6 +176,14 @@ export class HitBox {
 }
 
 export class ConsoleEditor extends Editor {
+    _animreq : number
+    fontsize : number
+    head : number
+    bufferSize : number
+    scroll : Vector2
+    colors : Object
+    colormap : Object;
+
     constructor() {
         super();
 

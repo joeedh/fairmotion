@@ -58,6 +58,10 @@ var tree_packflag = 0;/*PackFlags.INHERIT_WIDTH|PackFlags.ALIGN_LEFT
 var CHGT = 25;
 
 export class TreeItem extends ColumnFrame {
+  namemap : Object
+  name : string
+  collapsed : boolean;
+
   constructor() {
     super();
 
@@ -182,6 +186,9 @@ export class TreeItem extends ColumnFrame {
 UIBase.register(TreeItem);
 
 export class TreePanel extends ColumnFrame {
+  totpath : number
+  pathmap : Object;
+
   constructor() {
     super();
 
@@ -355,6 +362,13 @@ export class TreePanel extends ColumnFrame {
 UIBase.register(TreePanel);
 
 export class PanOp extends ToolOp {
+  is_modal : boolean
+  start_pan : Vector2
+  first_draw : boolean
+  start_mpos : Vector2
+  first : boolean
+  cameramat : Matrix4;
+
   constructor(start_mpos, dopesheet) {
     super();
     
@@ -418,6 +432,37 @@ export class PanOp extends ToolOp {
 
 
 export class DopeSheetEditor extends Editor {
+  _queue_full_recalc : boolean
+  _queueDagLink : boolean
+  _last_sel_ctx_key : string
+  nodemap : Object
+  _get_key_ret_cache : cachering
+  selected_only : boolean
+  time_zero_x : number
+  pan : Vector2
+  first : boolean
+  groups : Object
+  _recalc_cache : Object
+  vdmap : Object
+  heightmap : Object
+  rowmap : Object
+  totchannel : number
+  old_keyboxes : Object
+  collapsed_cache : Object
+  cameramat : Matrix4
+  rendermat : Matrix4
+  irendermat : Matrix4
+  zoom : number
+  timescale : number
+  vmap : Object
+  last_time : number
+  collapsemap : Object
+  mpos : Vector3
+  mdown : boolean
+  start_mpos : Vector3
+  CWID : number
+  keymap : KeyMap;
+
   constructor(pos, size) {
     super();
 

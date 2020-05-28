@@ -47,6 +47,9 @@ var f32 = new Float32Array(u8.buffer);
 var f64 = new Float64Array(u8.buffer);
 
 export class TypedWriter {
+  i : number
+  buf : Uint8Array;
+
   constructor(maxsize) {
     this.i = 0;
     this.maxsize = maxsize;

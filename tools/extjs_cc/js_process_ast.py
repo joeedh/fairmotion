@@ -2830,7 +2830,7 @@ def infer_class_properties(result, typespace, buf):
             return
 
         indent = n[0].lexpos
-        while indent >= 0 and buf[indent] not in ["\n", "\r"]:
+        while indent < len(buf) and indent >= 0 and buf[indent] not in ["\n", "\r"]:
             indent -= 1
         count = n[0].lexpos - indent
         indent = ""
@@ -2936,9 +2936,14 @@ def infer_class_properties(result, typespace, buf):
 
         traverse(cons, AssignNode, visit2)
         traverse(cons, BinOpNode, visit2)
-        for k in props:
+        for i, k in enumerate(props):
             ptype, loc = props[k]
-            line = indent + k + " : " + ptype + "\n"
+            line = indent + k + " : " + ptype
+
+            if i == len(props)-1:
+                line += ";\n\n" #add semicolon to last prop due to compiler bug
+            else:
+                line += "\n"
 
             inserts.append([loc, line])
 

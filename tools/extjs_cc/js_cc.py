@@ -1175,7 +1175,7 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
   if glob.g_infer_class_properties:
     from js_process_ast import infer_class_properties
     data = infer_class_properties(result, typespace, glob.g_filedata)
-
+    
     if glob.g_outfile == "":
         print(data)
 

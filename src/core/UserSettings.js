@@ -11,7 +11,7 @@ import {theme} from '../editors/theme.js';
 
 let defaultTheme = exportTheme(theme);
 
-export function loadTheme(str) {
+export function loadTheme(str : string) {
   var theme;
   eval(str);
 
@@ -19,7 +19,7 @@ export function loadTheme(str) {
 }
 
 export class RecentPath {
-  constructor(path, displayname) {
+  constructor(path : string, displayname : string) {
     this.path = path;
     this.displayname = displayname;
   }

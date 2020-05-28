@@ -41,7 +41,7 @@ export class SceneObject extends DataBlock {
     return this.matrix;
   }
 
-  data_link(block, getblock, getblock_us) {
+  data_link(block : Scene, getblock : function, getblock_us : function) {
     this.data = getblock_us(this.data);
   }
 

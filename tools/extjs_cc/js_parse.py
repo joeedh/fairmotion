@@ -2249,7 +2249,9 @@ def p_typed_argument(p):
   '''
   typed_argument : id
                  | id COLON var_type
+                 | id COLON FUNCTION
                  | id COLON var_type ASSIGN expr_for_arraylit
+                 | id COLON FUNCTION ASSIGN expr_for_arraylit
                  | id ASSIGN expr_for_arraylit
   '''
   set_parse_globals(p)

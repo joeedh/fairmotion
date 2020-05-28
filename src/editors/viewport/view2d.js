@@ -22,7 +22,7 @@ import './toolmodes/all.js';
 
 let projrets = cachering.fromConstructor(Vector3, 128);
 
-function delay_redraw(ms) {
+function delay_redraw(ms : number) {
   var start_time = time_ms();
   var timer = window.setInterval(function() {
     if (time_ms() - start_time < ms)
@@ -67,11 +67,11 @@ class PanOp extends ToolOp {
     is_modal   : true
   }}
 
-  start_modal(ctx) {
+  start_modal(ctx : LockedContext) {
     this.start_cameramat = new Matrix4(ctx.view2d.cameramat);
   }
 
-  on_mousemove(event) {
+  on_mousemove(event : Object) {
     var mpos = new Vector3([event.x, event.y, 0]);
 
     //console.log("mousemove!");
@@ -94,7 +94,7 @@ class PanOp extends ToolOp {
     window.redraw_viewport();
   }
 
-  on_mouseup(event) {
+  on_mouseup(event : Object) {
     this.end_modal();
   }
 }
@@ -212,7 +212,7 @@ export class View2DHandler extends Editor {
 
     var this2 = this;
     //cycle through select modes
-    k.add(new HotKey("T", [], "Cycle Select Mode"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("T", [], "Cycle Select Mode"), new FuncKeyHandler(function(ctx : FullContext) {
       var s = ctx.view2d.selectmode, s2;
 
       let hf = s & SelMask.HANDLE;
@@ -234,29 +234,29 @@ export class View2DHandler extends Editor {
       ctx.view2d.set_selectmode(s2);
     }));
 
-    k.add(new HotKey("Z", ["CTRL", "SHIFT"], "Redo"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("Z", ["CTRL", "SHIFT"], "Redo"), new FuncKeyHandler(function(ctx : FullContext) {
       console.log("Redo")
       ctx.toolstack.redo();
     }));
-    k.add(new HotKey("Y", ["CTRL"], "Redo"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("Y", ["CTRL"], "Redo"), new FuncKeyHandler(function(ctx : FullContext) {
       console.log("Redo")
       ctx.toolstack.redo();
     }));
-    k.add(new HotKey("Z", ["CTRL"], "Undo"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("Z", ["CTRL"], "Undo"), new FuncKeyHandler(function(ctx : FullContext) {
       console.log("Undo");
       ctx.toolstack.undo();
     }));
 
-    k.add(new HotKey("O", [], "Toggle Proportional Transform"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("O", [], "Toggle Proportional Transform"), new FuncKeyHandler(function(ctx : FullContext) {
       console.log("toggling proportional transform");
       ctx.view2d.session_flag ^= SessionFlags.PROP_TRANSFORM;
     }));
 
-    k.add(new HotKey("K", [], ""), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("K", [], ""), new FuncKeyHandler(function(ctx : FullContext) {
       g_app_state.toolstack.exec_tool(new CurveRootFinderTest());
     }));
 
-    k.add(new HotKey("Right", [], ""), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("Right", [], ""), new FuncKeyHandler(function(ctx : FullContext) {
       console.log("Frame Change!", ctx.scene.time+1);
       ctx.scene.change_time(ctx, ctx.scene.time+1);
 
@@ -264,7 +264,7 @@ export class View2DHandler extends Editor {
       //var tool = new FrameChangeOp(ctx.scene.time+1);
     }));
 
-    k.add(new HotKey("Left", [], ""), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("Left", [], ""), new FuncKeyHandler(function(ctx : FullContext) {
       console.log("Frame Change!", ctx.scene.time-1);
       ctx.scene.change_time(ctx, ctx.scene.time-1);
 
@@ -278,7 +278,7 @@ export class View2DHandler extends Editor {
       test_nested_with();
     }));*/
 
-    k.add(new HotKey("Up", [], "Frame Ahead 10"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("Up", [], "Frame Ahead 10"), new FuncKeyHandler(function(ctx : FullContext) {
       //flip_max++;
 
       window.debug_int_1++;
@@ -289,7 +289,7 @@ export class View2DHandler extends Editor {
       window.redraw_viewport();
       console.log("debug_int_1: ", debug_int_1);
     }));
-    k.add(new HotKey("Down", [], "Frame Back 10"), new FuncKeyHandler(function(ctx) {
+    k.add(new HotKey("Down", [], "Frame Back 10"), new FuncKeyHandler(function(ctx : FullContext) {
       //flip_max--;
       global debug_int_1;
 
@@ -324,7 +324,7 @@ export class View2DHandler extends Editor {
     this.regen_keymap();
   }
 
-  _mouse(e) {
+  _mouse(e : MouseEvent) {
     let e2 = patchMouseEvent(e, this); //this.get_bg_canvas());
     let mpos = this.getLocalMouse(e.x, e.y);
 

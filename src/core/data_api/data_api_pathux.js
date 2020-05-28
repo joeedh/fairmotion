@@ -25,7 +25,7 @@ let resolvepath_rets = new cachering(() => {return {
 }}, 32);
 
 export function register_toolops() {
-  function isTool(t) {
+  function isTool(t : function) {
     if (t.tooldef === undefined)
       return false;
     if (t === ToolOpAbstract || t === ToolOp || t === ToolMacro)
@@ -61,7 +61,7 @@ export function register_toolops() {
 }
 
 export class PathUXInterface extends ModelInterface {
-  constructor(api, ctx=undefined) {
+  constructor(api : DataAPI, ctx=undefined) {
     super();
 
     this.prefix = "";
@@ -69,11 +69,11 @@ export class PathUXInterface extends ModelInterface {
     this.ctx = ctx;
   }
 
-  _getToolHotkey(screen, toolstring) {
+  _getToolHotkey(screen : FairmotionScreen, toolstring : string) {
     let ctx = this.ctx;
     let ret;
 
-    function processKeymap(keymap) {
+    function processKeymap(keymap : KeyMap) {
       for (let k of keymap) {
         let v = keymap.get(k);
 
@@ -121,15 +121,15 @@ export class PathUXInterface extends ModelInterface {
     return ret;
   }
 
-  setContext(ctx) {
+  setContext(ctx : FullContext) {
     this.ctx = ctx;
   }
 
-  getObject(ctx, path) {
+  getObject(ctx, path : string) {
     return this.api.get_object(ctx, path);
   }
 
-  getToolDef(path) {
+  getToolDef(path : string) {
     let ret = this.api.get_opclass(this.ctx, path);
     if (ret === undefined) {
       throw new DataAPIError("bad toolop path", path);
@@ -142,7 +142,7 @@ export class PathUXInterface extends ModelInterface {
     return ret;
   }
 
-  getToolPathHotkey(ctx, path) {
+  getToolPathHotkey(ctx : FullContext, path : string) {
     return this._getToolHotkey(this.ctx.screen, path);
   }
 
@@ -152,7 +152,7 @@ export class PathUXInterface extends ModelInterface {
     return this.api.build_mass_set_paths(ctx, listpath, subpath, value, filterstr);
   }
 
-  massSetProp(ctx, mass_set_path, value) {
+  massSetProp(ctx : FullContext, mass_set_path : string, value : boolean) {
     //let rdef = this.resolvePath(ctx, path);
     let path = mass_set_path;
 
@@ -175,11 +175,11 @@ export class PathUXInterface extends ModelInterface {
     return this.api.on_frame_change(ctx, newtime);
   }
 
-  onFrameChange(ctx, newtime) {
+  onFrameChange(ctx : FullContext, newtime : number) {
     return this.api.on_frame_change(ctx, newtime);
   }
 
-  createTool(ctx, path, inputs={}, constructor_argument=undefined) {
+  createTool(ctx : FullContext, path : string, inputs={}, constructor_argument=undefined) {
     let tool = this.api.get_op(this.ctx, path);
 
     for (let k in inputs) {
@@ -204,17 +204,17 @@ export class PathUXInterface extends ModelInterface {
     return this.api.key_animpath(ctx, owner, path, time);
   }
 
-  getObject(ctx, path) {
+  getObject(ctx, path : string) {
     return this.api.get_object(ctx, path);
   }
 
   //returns tool class, or undefined if one cannot be found for path
-  parseToolPath(path) {
+  parseToolPath(path : string) {
     return this.api.get_opclass(this.ctx, path);
   }
 
-  execTool(ctx, path_or_toolop, inputs={}, constructor_argument=undefined) {
-    return new Promise((accept, reject) => {
+  execTool(ctx : FullContext, path_or_toolop, inputs={}, constructor_argument=undefined) {
+    return new Promise((accept : function, reject : function) => {
       let tool;
 
       if (typeof path_or_toolop == "object") {
@@ -268,7 +268,7 @@ export class PathUXInterface extends ModelInterface {
    *   mass_set : mass setter string, if controller implementation supports it
    * }
    */
-  resolvePath(ctx, path) {
+  resolvePath(ctx : FullContext, path : string) {
     let rp = this.api.resolve_path_intern(ctx, path);
 
     if (rp === undefined || rp[0] === undefined) {
@@ -371,10 +371,10 @@ export class PathUXInterface extends ModelInterface {
     return ret;
   }
 
-  setValue(ctx, path, val) {
+  setValue(ctx : FullContext, path : string, val) {
     return this.api.set_prop(ctx, path, val);  }
 
-  getValue(ctx, path) {
+  getValue(ctx, path : string) {
     return this.api.get_prop(ctx, path);
   }
 }

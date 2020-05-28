@@ -54,7 +54,7 @@ export const PropSubTypes = {
 };
 
 
-ToolProperty.prototype.set_data = function(d) {
+ToolProperty.prototype.set_data = function(d : number) {
   console.warn("deprectaed ToolProperty.prototype.set_data called!");
   return this.setValue(d);
 };
@@ -147,7 +147,7 @@ ToolProperty.prototype.remove_listener = function(owner, silent_fail=false) {
   }
 };
 
-FlagProperty.prototype.addIcons = function(iconmap) {
+FlagProperty.prototype.addIcons = function(iconmap : Object) {
   this.iconmap = {};
 
   for (let k in iconmap) {
@@ -159,7 +159,7 @@ FlagProperty.prototype.addIcons = function(iconmap) {
   }
 }
 
-ToolProperty.prototype.add_icons = function(iconmap) {
+ToolProperty.prototype.add_icons = function(iconmap : Object) {
   return this.addIcons(iconmap);
 };
 
@@ -231,7 +231,7 @@ for (let i=0; i<2; i++) {
       return this._ui_key_names;
     },
 
-    set(val) {
+    set(val : Object) {
       this._ui_key_names = val;
     }
   });
@@ -281,7 +281,7 @@ ToolProperty.register(ArrayBufferProperty);
 export class DataRefProperty extends ToolProperty {
   //allowed_types can be either a datablock type,
   //or a set of allowed datablock types.
-  constructor(value: DataBlock, allowed_types: set<int>, apiname, uiname, description, flag) {
+  constructor(value: DataBlock, allowed_types: set<int>, apiname : string, uiname : string, description, flag) {
     super(PropTypes.DATAREF, apiname, uiname, description, flag);
 
     if (allowed_types == undefined)
@@ -563,7 +563,7 @@ export class type_filter_iter extends ToolIter {
 }
 
 export class CollectionProperty extends ToolProperty {
-  constructor(data, filter_types: Array<Function>, apiname, uiname, description, flag) {
+  constructor(data, filter_types: Array<Function>, apiname : string, uiname : string, description : string, flag : number) {
     super(PropTypes.COLLECTION, apiname, uiname, description, flag);
 
     this.flag |= TPropFlags.COLL_LOOSE_TYPE;

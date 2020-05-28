@@ -82,7 +82,7 @@ export class Batch {
     return this._regen;
   }
 
-  add(p) {
+  add(p : CanvasPath) {
     if (this.has(p)) {
       return;
     }
@@ -149,14 +149,14 @@ export class Batch {
     this.gen_req = 0;
   }
 
-  has(p) {
+  has(p : CanvasPath) {
     if (!p._batch_id)
       return false;
 
     return p._batch_id in this.path_idmap;
   }
 
-  checkViewport(draw) {
+  checkViewport(draw : CanvasDraw2D) {
     return;
 
     let canvas = draw.canvas;

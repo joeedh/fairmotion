@@ -1,6 +1,6 @@
 "use strict";
 
-export function encode_utf8(arr, str) {
+export function encode_utf8(arr : Array, str : string) {
   for (var i=0; i<str.length; i++) {
     var c = str.charCodeAt(i);
     

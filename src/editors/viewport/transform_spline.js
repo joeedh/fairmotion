@@ -77,7 +77,7 @@ export class TransSplineVert extends TransDataType {
     var doneset = new set();
     var undo = [];
 
-    function push_vert(v) {
+    function push_vert(v : SplineVertex) {
       if (doneset.has(v))
         return;
 
@@ -328,7 +328,7 @@ export class TransSplineVert extends TransDataType {
         hset[d.data.eid] = 1;
     }
 
-    function rec_walk(v, depth) {
+    function rec_walk(v : SplineVertex, depth : number) {
       if (depth > 2) return;
       if (v == undefined) return;
       if (v.eid in vset) return;

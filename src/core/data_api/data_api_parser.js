@@ -3,7 +3,7 @@
 import * as PUTL from '../../path.ux/scripts/util/parseutil.js';
 
 export function apiparser() {
-  function tk(name, re, func) {
+  function tk(name : string, re : RegExp, func : function) {
     return new PUTL.tokdef(name, re, func);
   }
   

@@ -21,7 +21,7 @@ window.the_global_dag = undefined;
 export class NodeBase {
   //if output_socket_name is undefined,
   //will update all outputs
-  dag_update(output_socket_name, data) {
+  dag_update(output_socket_name : string, data) {
     var graph = window.the_global_dag;
     var node = graph.get_node(this, false);
 

@@ -6,7 +6,7 @@ import {Vector2} from '../../path.ux/scripts/util/vectormath.js';
 import { DropBox } from '../../path.ux/scripts/pathux.js';
 import {pushModalLight, popModalLight} from '../../path.ux/scripts/util/simple_events.js';
 
-function startPan(edit, x, y) {
+function startPan(edit : CurveEdit, x, y) {
   if (edit._modaldata) {
     popModalLight(edit._modaldata);
     edit._modaldata = undefined;
@@ -23,7 +23,7 @@ function startPan(edit, x, y) {
     on_mousedown(e) {
     },
 
-    on_mousemove(e) {
+    on_mousemove(e : MouseEvent) {
       lastmpos.load(mpos);
 
       mpos[0] = e.x;
@@ -41,7 +41,7 @@ function startPan(edit, x, y) {
       //console.log(dv, edit.pan);
     },
 
-    on_mouseup(e) {
+    on_mouseup(e : MouseEvent) {
       this.stop();
     },
 
@@ -79,14 +79,14 @@ export class CurveEdit extends UIBase {
     this.addEventListener("mouseup", this.on_mouseup.bind(this));
   }
 
-  on_mousedown(e) {
+  on_mousedown(e : MouseEvent) {
     this.mdown = true;
 
     startPan(this);
     console.log("mdown");
   }
 
-  on_mousemove(e) {
+  on_mousemove(e : MouseEvent) {
     console.log("mmove");
   }
 

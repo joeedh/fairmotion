@@ -4,7 +4,7 @@ import {IconManager} from './icon.js';
 import * as config from '../config/config.js';
 
 class CacheStack extends Array {
-  constructor(itemlen) {
+  constructor(itemlen : number) {
     super();
     
     this.dellist = [];

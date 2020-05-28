@@ -72,7 +72,7 @@ export class FairmotionScreen extends Screen {
       return g_app_state.eventhandler.on_keyup(e);
   }
 
-  on_keydown(e) {
+  on_keydown(e : Object) {
     if (g_app_state.eventhandler !== this)
       return g_app_state.eventhandler.on_keydown(e);
 
@@ -117,7 +117,7 @@ export class Editor extends Area {
     this.canvases = {};
   }
 
-  makeHeader(container) {
+  makeHeader(container : Container) {
     return super.makeHeader(container);
   }
 
@@ -140,7 +140,7 @@ export class Editor extends Area {
     this.keymap = new KeyMap();
   }
 
-  getCanvas(id, zindex, patch_canvas2d_matrix=true, dpi_scale=1.0) {
+  getCanvas(id : string, zindex : number, patch_canvas2d_matrix=true, dpi_scale=1.0) {
     let canvas;
     let dpi = ui_base.UIBase.getDPI();
 

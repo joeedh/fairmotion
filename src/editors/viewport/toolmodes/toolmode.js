@@ -38,7 +38,7 @@ export class ToolMode extends NodeBase {
 
   }
 
-  do_select(event, mpos, view2d, do_multiple) {
+  do_select(event : Object, mpos : Vector3, view2d : View2DHandler, do_multiple : number) {
 
   }
 

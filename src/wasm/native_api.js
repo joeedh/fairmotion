@@ -39,7 +39,7 @@ import {
   KTOTKS, INT_STEPS
 } from '../curve/spline_math_hermite.js';
 
-export function onMessage(type, message, ptr) {
+export function onMessage(type : number, message : ArrayBuffer, ptr : number) {
   var iview = new Int32Array(message);
   
   //find callback id

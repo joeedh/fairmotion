@@ -24,7 +24,7 @@ window.MAX_THREADS = MAX_THREADS;
 
 //uses web workers
 export class Thread {
-  constructor(worker, id, manager) {
+  constructor(worker : Worker, id : number, manager : ThreadManager) {
     this.id = id;
     this.manager = manager;
     this.worker = worker;

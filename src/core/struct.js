@@ -43,7 +43,7 @@ nstructjs.setWarningMode(1); //turn off "class uses old fromSTRUCT interface" wa
 
 window.istruct = nstructjs.manager;
 
-function patch_dataref_type(buf) {
+function patch_dataref_type(buf : string) {
   return buf.replace(/dataref\([a-zA-Z0-9_$]+\)/g, "dataref");
 }
 
@@ -95,7 +95,7 @@ let vecpatches = [];
 
 function makeVecPatch(cls, size, name) {
   let dummycls = {
-    fromSTRUCT(reader) {
+    fromSTRUCT(reader : function) {
       let ret = new cls();
       reader(ret);
       return ret;
@@ -125,7 +125,7 @@ makeVecPatch(Vector4, 4, "quat");
 /*backwards compatibility for files saved with older in-house STRUCT implementation*/
 
 let _old = nstructjs.STRUCT.prototype.parse_structs;
-nstructjs.STRUCT.prototype.parse_structs = function(buf, defined_classes) {
+nstructjs.STRUCT.prototype.parse_structs = function(buf : string, defined_classes) {
   buf = patch_dataref_type(buf);
   //console.log(buf);
   let ret = _old.call(this, buf);

@@ -173,7 +173,7 @@ export class MenuBar extends Editor {
     }
   }
 
-  genSessionMenu(row)
+  genSessionMenu(row : RowFrame)
   {
     function callback(entry) {
       console.log(entry);
@@ -239,7 +239,7 @@ export class MenuBar extends Editor {
     }
   }
 
-  makeHeader(container) {
+  makeHeader(container : Container) {
     //this.header = this.container.row();
     super.makeHeader(container, false);
   }

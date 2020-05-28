@@ -8,7 +8,7 @@ import {ToolModes} from "../editors/viewport/toolmodes/toolmode.js";
 import {SelMask} from "../editors/viewport/selectmode.js";
 
 export class ObjectList extends Array {
-  constructor(scene) {
+  constructor(scene : Scene) {
     super();
 
     this.idmap = {};
@@ -30,11 +30,11 @@ export class ObjectList extends Array {
     //return super.indexOf(ob) >= 0;
   }
 
-  push(ob) {
+  push(ob : SceneObject) {
     this.add(ob);
   }
 
-  add(ob) {
+  add(ob : SceneObject) {
     this.idmap[ob.id] = ob;
     this.namemap[ob.name] = ob;
 
@@ -47,7 +47,7 @@ export class ObjectList extends Array {
     super.remove(ob);
   }
 
-  validateName(name) {
+  validateName(name : string) {
     let i = 2;
     let name2 = name;
 

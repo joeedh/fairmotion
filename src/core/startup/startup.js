@@ -50,7 +50,7 @@ window.handleMessage = function handleMessage(message) {
 
 //localstorage variant
 class MyLocalStorage_LS {
-  set(key, val) {
+  set(key : string, val : string) {
     localStorage[key] = val;
   }
   

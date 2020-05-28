@@ -358,7 +358,7 @@ export class MaterialEditor extends Editor {
     this.update();
   }
 
-  fillPanel(tabs) {
+  fillPanel(tabs : TabContainer) {
     var ctx = this.ctx;
 
     let panel = tabs.tab("Fill");
@@ -378,7 +378,7 @@ export class MaterialEditor extends Editor {
     return panel
   }
 
-  strokePanel(tabs) {
+  strokePanel(tabs : TabContainer) {
     let panel = tabs.tab("Stroke");
 
     var ctx = this.ctx;
@@ -408,7 +408,7 @@ export class MaterialEditor extends Editor {
     return panel
   }
 
-  layersPanel(tabs) {
+  layersPanel(tabs : TabContainer) {
     var ctx = this.ctx;
     var panel = tabs.tab("Layers");
 
@@ -416,7 +416,7 @@ export class MaterialEditor extends Editor {
     //return new LayerPanel(new Context());
   }
 
-  vertexPanel(tabs) {
+  vertexPanel(tabs : TabContainer) {
     var ctx = this.ctx;
     var panel = tabs.tab("Control Point");
 

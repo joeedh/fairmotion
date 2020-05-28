@@ -268,7 +268,7 @@ export class SplineToolMode extends ToolMode {
     return this.ctx.spline;
   }
 
-  on_mousedown(event, localX, localY) {
+  on_mousedown(event : Object, localX, localY) {
     var spline = this.ctx.spline;
     var toolmode = this.ctx.view2d.toolmode;
 
@@ -370,7 +370,7 @@ export class SplineToolMode extends ToolMode {
   }
 
   //returns [spline, element, mindis]
-  findnearest(mpos, selectmask, limit, ignore_layers) {
+  findnearest(mpos : Array, selectmask : number, limit : number, ignore_layers) {
     var frameset = this.ctx.frameset;
     var editor = this.ctx.view2d;
 
@@ -432,7 +432,7 @@ export class SplineToolMode extends ToolMode {
     return closest;
   }
 
-  on_mousemove(event) {
+  on_mousemove(event : Object) {
     if (this.ctx == undefined) return;
 
     var toolmode = this.ctx.view2d.toolmode;
@@ -544,7 +544,7 @@ export class SplineToolMode extends ToolMode {
     }
   }
 
-  on_mouseup(event) {
+  on_mouseup(event : Object) {
     var spline = this._get_spline();
     spline.size = [window.innerWidth, window.innerHeight];
 
@@ -599,11 +599,11 @@ export class SplineToolMode extends ToolMode {
   }
 
 
-  dataLink(scene, getblock, getblock_us) {
+  dataLink(scene : Scene, getblock : function, getblock_us : function) {
     this.ctx = g_app_state.ctx;
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader : function) {
     reader(this);
   }
 }

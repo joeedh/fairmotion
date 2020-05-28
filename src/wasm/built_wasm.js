@@ -742,7 +742,7 @@ var ABORT = false;
 var EXITSTATUS = 0;
 
 /** @type {function(*, string=)} */
-function assert(condition, text) {
+function assert(condition, text : string) {
   if (!condition) {
     abort('Assertion failed: ' + text);
   }
@@ -932,7 +932,7 @@ var UTF8Decoder = typeof TextDecoder !== 'undefined' ? new TextDecoder('utf8') :
  * @param {number=} maxBytesToRead
  * @return {string}
  */
-function UTF8ArrayToString(heap, idx, maxBytesToRead) {
+function UTF8ArrayToString(heap : Array, idx : number, maxBytesToRead) {
   var endIdx = idx + maxBytesToRead;
   var endPtr = idx;
   // TextDecoder needs to know the byte length in advance, it doesn't stop on null terminator by itself.
@@ -1005,7 +1005,7 @@ function UTF8ToString(ptr, maxBytesToRead) {
 //                    maxBytesToWrite=0 does not write any bytes to the output, not even the null terminator.
 // Returns the number of bytes written, EXCLUDING the null terminator.
 
-function stringToUTF8Array(str, heap, outIdx, maxBytesToWrite) {
+function stringToUTF8Array(str : string, heap : Int8Array, outIdx : number, maxBytesToWrite : number) {
   if (!(maxBytesToWrite > 0)) // Parameter maxBytesToWrite is not optional. Negative values, 0, null, undefined and false each don't write out any bytes.
     return 0;
 
@@ -1057,7 +1057,7 @@ function stringToUTF8(str, outPtr, maxBytesToWrite) {
 }
 
 // Returns the number of bytes the given Javascript string takes if encoded as a UTF8 byte array, EXCLUDING the null terminator byte.
-function lengthBytesUTF8(str) {
+function lengthBytesUTF8(str : string) {
   var len = 0;
   for (var i = 0; i < str.length; ++i) {
     // Gotcha: charCodeAt returns a 16-bit word that is a UTF-16 encoded code unit, not a Unicode code point of the character! So decode UTF16->UTF32->UTF8.
@@ -1259,7 +1259,7 @@ function allocateUTF8(str) {
 }
 
 // Allocate stack space for a JS string, and write it there.
-function allocateUTF8OnStack(str) {
+function allocateUTF8OnStack(str : string) {
   var size = lengthBytesUTF8(str) + 1;
   var ret = stackAlloc(size);
   stringToUTF8Array(str, HEAP8, ret, size);
@@ -1478,7 +1478,7 @@ function abortFnPtrError(ptr, sig) {
 
 
 
-function callRuntimeCallbacks(callbacks) {
+function callRuntimeCallbacks(callbacks : Array) {
   while(callbacks.length > 0) {
     var callback = callbacks.shift();
     if (typeof callback == 'function') {

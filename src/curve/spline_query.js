@@ -12,7 +12,7 @@ var sqrt = Math.sqrt;
 let findnearest_segment_tmp = new Vector2();
 
 export class SplineQuery {
-  constructor(spline) {
+  constructor(spline : Spline) {
     this.spline = spline;
   }
   

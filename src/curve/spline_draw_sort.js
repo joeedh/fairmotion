@@ -24,7 +24,7 @@ import {
 import {ElementArray, SplineLayerFlags} from './spline_element_array.js';
 
 
-export function calc_string_ids(spline, startid=0) {
+export function calc_string_ids(spline : Spline, startid=0) {
   var string_idgen = startid;
   
   var tmp = new Array();

@@ -89,12 +89,12 @@ export class FileOpenOp extends ToolOp {
     flag : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS
   }}
 
-  exec(ctx) {
+  exec(ctx : LockedContext) {
     console.log("File open");
 
 //    if (config.USE_HTML5_FILEAPI) {
 
-    open_file(function(buf, fname, filepath) {
+    open_file(function(buf : ArrayBuffer, fname : string, filepath : string) {
       console.log("\n\ngot file!", buf, fname, filepath, "\n\n");
 
       g_app_state.load_user_file_new(new DataView(buf), filepath);

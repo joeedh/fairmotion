@@ -7,7 +7,7 @@ var sqrt = Math.sqrt, pow = Math.pow, log = Math.log, abs=Math.abs;
 var SPI2 = Math.sqrt(PI/2);
 
 export class constraint {
-  constructor(typename, k, klst, klen, ceval, params, limit) {
+  constructor(typename : string, k : number, klst : Array, klen : number, ceval : function, params : Array, limit) {
     if (limit == undefined) limit = 0.00001;
 
     this.limit = limit;

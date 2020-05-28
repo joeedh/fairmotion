@@ -55,6 +55,9 @@ window.obj_values_to_array = function obj_values_to_array(obj) {
 }
 
 class AllSplineIter {
+  ret : Object
+  stage : number;
+
   constructor(f, sel_only) {
     this.f = f;
     this.iter = undefined;
@@ -326,6 +329,17 @@ SplineKCache.STRUCT = `
   and the movement of individual points.
 */
 export class SplineFrameSet extends DataBlock {
+  editmode : string
+  kcache : SplineKCache
+  idgen : SDIDGen
+  frames : Object
+  vertex_animdata : Object
+  selectmode : number
+  draw_anim_paths : number
+  time : number
+  spline : Spline
+  switch_on_select : boolean;
+
   constructor() {
     super(DataTypes.FRAMESET)
     
@@ -1297,4 +1311,3 @@ SplineFrameSet.STRUCT = STRUCT.inherit(SplineFrameSet, DataBlock) + `
     templayerid       : int;
 }
 `;
-//XXX kcache            : SplineKCache;

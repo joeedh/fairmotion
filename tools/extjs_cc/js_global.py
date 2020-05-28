@@ -97,6 +97,7 @@ glob_long_word_shorten = {"generators": "gens", "error": "err", "warnings": "war
 
 gcs = glob_cmd_short_override
 
+gcs["g_infer_class_properties"] = "icp"
 gcs["g_apply_types"] = "at"
 gcs["g_type_file"] = "tf"
 gcs["g_register_classes"] = "nrc"
@@ -343,9 +344,11 @@ class Glob(AbstractGlob):
     g_type_file = ""
     g_apply_types = False
     g_include_types = False
+    g_infer_class_properties = False
     g_register_classes = True
     g_include_dirs=None
     g_preprocess_code = True
+    g_transform_class_props = True
     g_combine_ifelse_nodes = False
     g_add_newlines = False
     g_force_global_strict = False

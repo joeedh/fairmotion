@@ -522,17 +522,4 @@ def load_types(node, typespace, data):
 def emit_dynamic_literals(node, typespace, data):
     pass
 
-def apply_inserts(node, typespace, inserts, buf):
-    inserts.sort(key = lambda key : key[0])
-
-    off = 0
-    for it in inserts:
-        i, s = it
-        i += off
-
-        buf = buf[:i] + s + buf[i:]
-        off += len(s)
-        pass
-
-    return buf
-
+from js_process_ast import apply_inserts

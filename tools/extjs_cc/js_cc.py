@@ -1161,7 +1161,8 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
     print_err(glob.g_error_pre)
     
   typespace = JSTypeSpace()
-  
+  glob.g_lexdata = data
+
   if glob.g_raw_code:
     buf = result.gen_js(0);
     if glob.g_outfile == "":
@@ -1170,6 +1171,15 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
     return buf, result
 
   flatten_var_decls_exprlists(result, typespace)
+
+  if glob.g_infer_class_properties:
+    from js_process_ast import infer_class_properties
+    data = infer_class_properties(result, typespace, glob.g_filedata)
+
+    if glob.g_outfile == "":
+        print(data)
+
+    return data, result
 
   if glob.g_type_file != "":
     if not os.path.exists(glob.g_type_file):
@@ -1194,6 +1204,10 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
             print(data)
 
         return data, result
+
+  if glob.g_transform_class_props:
+    from js_process_ast import transform_class_props
+    transform_class_props(result, typespace)
 
   if create_logger:
     import js_typelogger

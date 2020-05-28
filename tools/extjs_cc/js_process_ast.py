@@ -2750,7 +2750,205 @@ def process_arrow_function_this(result, typespace):
     replace_this(node, name)
     
   traverse(result, FunctionNode, visit)
-  
+
+def transform_class_props(node, typespace):
+    if glob.g_include_types:
+        return
+        pass
+
+    def visit(n):
+        cons = None
+        for m in n:
+            if type(m) == MethodNode and m.name == "constructor":
+                cons = m
+
+        if cons is None:
+            cons = MethodNode("constructor")
+            cons.add(ExprListNode())
+            cons.line = n.line
+            cons.file = n.file
+            cons.add(StatementList())
+            cons.lexpos = n.lexpos
+            cons.lexpos2 = n.lexpos2
+
+            n.prepend(cons)
+
+            if n.parents is not None and len(n.parents) > 0:
+                cons[1].add(FuncCallNode("super"))
+
+        have_super = n.parents is not None and len(n.parents) > 0
+
+        if have_super and len(cons) == 1:
+            typespace.error("Missing super for class " + n.name, cons)
+        elif type(cons[1]) != StatementList:
+            if have_super and "super" not in cons[1].gen_js(0):
+                typespace.error("Missing super for class " + n.name, cons)
+
+            sm = cons
+            si = 2 if have_super else 1
+        else:
+            if have_super and (len(cons[1]) == 0 or "super" not in cons[1][0].gen_js(0)):
+                typespace.error("Missing super for class " + n.name, cons)
+
+            sm = cons[1]
+            si = 1 if have_super else 0
+
+        for prop in n:
+            if type(prop) != ClassPropNode: continue
+            if len(prop) == 0 or len(prop[0].gen_js(0).replace(";", "").strip()) == 0:
+                continue;
+
+            if "static" in prop.modifiers:
+                n2 = AssignNode(BinOpNode(n.name, prop.name, "."), prop[0])
+                insert_after(n, n2)
+            else:
+                n2 = AssignNode(BinOpNode("this", prop.name, "."), prop[0])
+                sm.insert(si, n2)
+
+    traverse(node, ClassNode, visit)
+
+def apply_inserts(node, typespace, inserts, buf):
+    inserts.sort(key = lambda key : key[0])
+
+    off = 0
+    for it in inserts:
+        i, s = it
+        i += off
+
+        buf = buf[:i] + s + buf[i:]
+        off += len(s)
+        pass
+
+    return buf
+
+
+def infer_class_properties(result, typespace, buf):
+    inserts = []
+
+    def visit(n):
+        if len(n) == 0:
+            return
+
+        indent = n[0].lexpos
+        while indent >= 0 and buf[indent] not in ["\n", "\r"]:
+            indent -= 1
+        count = n[0].lexpos - indent
+        indent = ""
+        for i in range(count-1):
+            indent += " "
+
+        #find bracket
+        si = n.lexpos
+        if not buf[si:].strip().startswith("class"):
+            #preprocessor has messed up lines
+            return
+
+        while si < len(buf) and buf[si] != "{":
+            si += 1
+        si += 1
+
+        while si < len(buf) and buf[si] not in ["\n", "\r"]:
+            si += 1
+        si += 1
+
+        cons = None
+        for m in n:
+            if type(m) == MethodNode and m.name == "constructor":
+                cons = m
+                break
+        if not cons: return
+
+        props = {}
+
+        def binop_recurse(n2):
+            if type(n2) == NumLitNode:
+                return "number"
+            elif type(n2) == IdentNode and n2.val in ["true", "false"]:
+                return "boolean"
+            elif type(n2) == TrinaryCondNode:
+                a = binop_recurse(n2[1])
+                b = binop_recurse(n2[2])
+
+                if a == b:
+                    return a
+                if a is not None and b is None:
+                    return a
+                if b is not None and a is None:
+                    return b
+                if a == "boolean" and b == "number":
+                    return "number"
+                if a == "number" and b == "boolean":
+                    return "number"
+            elif type(n2) != BinOpNode:
+                return None
+
+            a = binop_recurse(n2[0])
+            b = binop_recurse(n2[1])
+
+            if (a is not None) == (b is not None):
+                if n2.op in ["+", "-", "/", "*", "**", ">>", "<<", "^", "|", "&", "~", \
+                             "%"]:
+                    return "number" if a == "number" or b == "number" else "boolean"
+                elif n2.op in ["<", "==", "===", ">", "&&", "||", ">=", "<="]:
+                    return "boolean"
+
+
+        def visit2(n2):
+            if type(n2) == BinOpNode and n2.op != "=": return
+            if len(n2[0]) == 0 or n2[0][0].gen_js(0).strip() != "this": return
+            if type(n2[0]) not in [BinOpNode, MemberRefNode]: return
+            if type(n2[0]) == BinOpNode and n2[0].op != ".": return
+
+            prop = n2[0][1].gen_js(0).strip()
+            for m in n2:
+                if type(m) == ClassPropNode and m.name == prop:
+                    return
+
+            val = n2[1]
+            ptype = None
+
+            if type(val) == StrLitNode:
+                ptype = "string"
+            elif type(val) == IdentNode and val.val in ["true", "false"]:
+                ptype = "boolean"
+            elif type(val) == NumLitNode:
+                ptype = "number"
+            elif type(val) == ObjLitNode:
+                ptype = "Object"
+            elif type(val) == BinOpNode:
+                ptype = binop_recurse(val)
+            elif type(val) == FunctionNode: #isinstance(val, FunctionNode):
+                ptype = "function"
+            elif type(val) == ArrayLitNode:
+                ok = 1
+                for c in val[0]:
+                    if type(c) != NumLitNode:
+                        ok = 0
+                if ok:
+                    ptype = "Array<number>"
+            elif type(val) == KeywordNew and len(val) > 0 and len(val[0]) > 0:
+                name = val[0][0].gen_js(0).strip()
+                if "." not in name:
+                    ptype = name
+            #print(val)
+            if ptype:
+                props[prop] = [ptype, si]
+
+        traverse(cons, AssignNode, visit2)
+        traverse(cons, BinOpNode, visit2)
+        for k in props:
+            ptype, loc = props[k]
+            line = indent + k + " : " + ptype + "\n"
+
+            inserts.append([loc, line])
+
+        #print(props)
+
+    traverse(result, ClassNode, visit)
+    buf = apply_inserts(result, typespace, inserts, buf)
+
+    return buf
+
 def coverage_profile(result, typespace):
   typeset = set([VarDeclNode, ExportNode, TryNode, CatchNode, 
                  ClassNode, FunctionNode, IfNode, ElseNode,

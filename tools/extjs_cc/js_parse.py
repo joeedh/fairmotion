@@ -78,6 +78,8 @@ def push_state():
   
   if glob.g_production_debug: 
     print("pushing state")
+
+  glob.g_tried_semi = False
   restrict_stacks = {"noline": []}
   prodname_log = []
   scopestack = []
@@ -158,7 +160,7 @@ def handle_semi_error(p):
     return
     
   if glob.g_production_debug:
-    print("in handle_semi_error")
+    sys.stderr.write(termColor("in handle_semi_error", "yellow") + "\n")
     
   tok = p.lexer.peek()
   if len(p.lexer.peeks) > 1:
@@ -183,20 +185,23 @@ def handle_semi_error(p):
     print(list(p))
 
   ret = tok == None or cur == None or prev.lineno < tok.lineno
+
   ret = ret or tok.type == "RBRACKET" or prev.type == "RBRACKET" or prev.type == "RSBRACKET"
   ret = ret or cur.type == "RBRACKET"
-  
+  ret = ret or cur.type == "CLASS_PROP_PRE"
+
+  if glob.g_production_debug:
+    msg = str(ret) + " " + str(prev) + " " + str(cur) + " " + str(tok)
+    msg += "\n" + str(prev.lineno) + " " + str(cur.lineno) + " " + str(tok.lineno)
+    sys.stderr.write(termColor(msg, "blue") + "\n")
+
   p2 = restricted()
   #"""
   if p2 != None and not (prev.type in ["RSBRACKET", "RPAREN"] and restrict_prev() == None):
-    ret = False
-    p = p2
-    #print(prev.type, cur.type, p2, restrict_prev())
-    print("didn't handle semi error")
-    #glob.g_line = p.lineno
-    #XXX glob.g_lexpos = p.lexpos
-    
-    #print_err(p)
+    if cur.type != "CLASS_PROP_PRE":
+        ret = False
+        p = p2
+        print("didn't handle semi error")
   #"""
 
   i = cur.lexer.lexpos
@@ -1359,8 +1364,10 @@ def p_class(p):
    
   tail = p[4]
   heritage = tail[0]
+
   cls = ClassNode(p[2].val, heritage)
-  
+  cls.line = p[2].line
+
   for n in tail[1]:
     cls.add(n)
   
@@ -3477,12 +3484,15 @@ def p_error(p):
   """
   if glob.g_production_debug:
     if p == None:
-      print("in p_error")
+      sys.stderr.write("in p_error\n")
     else:
-      print("in p_error", p.type, p.value)
+      sys.stderr.write("in p_error %s %s\n" % (str(p.type), str(p.value)))
   
   if p == None:
     if not restricted() and glob.g_tried_semi == False:
+      if glob.g_production_debug:
+        sys.stderr.write("Trying SEMI token. . .\n");
+
       t = LexToken()
       t.type = "SEMI"
       t.value = ";"
@@ -3497,7 +3507,10 @@ def p_error(p):
     return
   else:
     glob.g_error_pre = p
-    
+
+    if glob.g_production_debug:
+      sys.stderr.write("Trying SEMI token. . .\n");
+
     if handle_semi_error(p):
       parser._parser.errok()
       #yacc.errok()
@@ -3507,9 +3520,9 @@ def p_error(p):
         linestr, colstr = err_find_line(p.lexer, p.lexpos);
         lineno = p.lineno if type(p.lineno) == int else p.lineno(0)
         
-        sys.stdout.write("handled semicolon error : %d\n" % lineno)
-        sys.stdout.write(linestr+"\n")
-        sys.stdout.write(colstr+"\n")
+        sys.stderr.write("handled semicolon error : %d\n" % lineno)
+        sys.stderr.write(linestr+"\n")
+        sys.stderr.write(colstr+"\n")
       return
     else:      
       glob.g_error = True

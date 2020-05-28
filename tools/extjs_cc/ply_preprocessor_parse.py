@@ -10,6 +10,8 @@
 from __future__ import generators
 import sys
 
+from ply.lex import LexToken
+
 # -----------------------------------------------------------------------------
 # Default preprocessor lexer definitions.   These tokens are enough to get
 # a basic preprocessor working.   Other modules may import these if they want
@@ -618,7 +620,16 @@ class Preprocessor(object):
         unrollstack = []
         
         nvar = nvl = ntype = nmin = nmax = None
-        
+
+        def make_ws(tok):
+            lt = LexToken()
+            lt.type = "CPP_WS"
+            lt.value = "\n"
+            lt.lexer = lexer
+            lt.lineno = tok.lineno
+            lt.lexpos = tok.lexpos
+            return lt
+
         xi = -1
         lines = list(lines)
         while xi < len(lines)-1:
@@ -627,9 +638,9 @@ class Preprocessor(object):
             
             for i,tok in enumerate(x):
                 if tok.type not in self.t_WS: break
+
             if tok.value == '#':
                 # Preprocessor directive
-
                 for tok in x:
                     if tok in self.t_WS and '\n' in tok.value:
                         chunk.append(tok)
@@ -644,6 +655,7 @@ class Preprocessor(object):
                 
                 if name == 'define':
                     if enable:
+
                         for tok in self.expand_macros(chunk):
                             yield tok
                         chunk = []
@@ -803,10 +815,20 @@ class Preprocessor(object):
                     # Unknown preprocessor directive
                     pass
 
+                chunk.append(make_ws(tok))
             else:
                 # Normal text
                 if enable:
                     chunk.extend(x)
+                else:
+                    for tok2 in x:
+                        ci = tok2.value.count("\n")
+
+                        if ci > 0:
+                            ws = make_ws(tok2)
+                            for i in range(ci-1):
+                                ws.value += "\n"
+                            chunk.append(ws)
 
         for tok in self.expand_macros(chunk):
             yield tok
@@ -988,12 +1010,5 @@ if __name__ == '__main__':
 else:
     import ply.lex as lex
     lexer = lex.lex()
-
-
-    
-
-
-
-
 
 

@@ -37,7 +37,7 @@ for f in js_sources.sources:
 
     else:
         buf = buf.replace(b"\r", b"")
-        
+
     file = open(f, "wb")
     file.write(buf)
     file.close()

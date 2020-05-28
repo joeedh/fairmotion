@@ -13,10 +13,12 @@ def preprocess_text_intern(data, filename, working_dir=None):
   s2 = ""
   while True:
     tok = p.token()
+    #print(tok, tok.lineno)
     if not tok: break
-    
+
     if tok.type == "CPP_WS" and "\n" in tok.value:
       s2 += str(tok.lineno)
+
       pass
       
     #print(tok.type)
@@ -25,6 +27,7 @@ def preprocess_text_intern(data, filename, working_dir=None):
       s2 += tok.value
     
   #ensure trailing newline
+
   if not s.endswith("\n"):
     s += "\n"
   
@@ -33,7 +36,8 @@ def preprocess_text_intern(data, filename, working_dir=None):
   
   #smap.invert(s)
   #print(s)
-  
+  #sys.exit()
+
   """
   out = ""
   for i, c in enumerate(s):

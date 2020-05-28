@@ -893,6 +893,7 @@ IDGen {
   _cur : int;
 }
 `;
+
 nstructjs.manager.add_class(IDGen);
 
 
@@ -1331,12 +1332,14 @@ function test() {
   inherit_test(new Bleh());
 
   return;
-}
+};
 
 test();
+
 
 if (typeof getTypeLogData !== "undefined") {
   console.log(JSON.stringify(getTypeLogData(), undefined, 2))
   require('fs').writeFileSync("test.js.types", JSON.stringify(getTypeLogData(), undefined, 2));
-}
+};
+
 saveTypeData();

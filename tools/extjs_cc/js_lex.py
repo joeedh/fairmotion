@@ -532,7 +532,11 @@ else:
 #sys.exit()
 #"""
 
-t_REGEXPR = gen_re() #r'(((?<!\\)|(?<=\\\\))/)(([^\n\r\*\\/\[]|(((?<!\\)|(?<=\\\\))\\)[^\n\r]|((((?<!\\)|(?<=\\\\))\[)([^\n\r\]\\]|(((?<!\\)|(?<=\\\\))\\)[^\n\r])+(((?<!\\)|(?<=\\\\))\])))(([^\n\r\\/\[]|(((?<!\\)|(?<=\\\\))\\)[^\n\r]|((((?<!\\)|(?<=\\\\))\[)([^\n\r\]\\]|(((?<!\\)|(?<=\\\\))\\)[^\n\r])+(((?<!\\)|(?<=\\\\))\]))))*)(((?<!\\)|(?<=\\\\))/)(?!/)[a-zA-Z]*'
+def t_REGEXPR(t):
+    t.lexer.lineno += t.value.count("\n")
+    return t
+
+t_REGEXPR.__doc__ = gen_re()
 
 #t_STRINGLIT = r'".*"'
 strlit_val = StringLit("")
@@ -540,7 +544,7 @@ start_q = 0
 mlchar = '`'
 
 def t_TEMPLATE_STR(t):
-    r'`([^`]|(\\`))*[^\\]`';
+    r'`([^`]|(\\`))*[^\\]`'
     
     t.type = "STRINGLIT"
     t.value = StringLit(t.value)
@@ -624,7 +628,8 @@ def t_mlstr_ALL(t):
   if 1: #t.lexer.lexdata[t.lexpos:t.lexpos+3] != '"""':
     strlit_val = StringLit(strlit_val + t.value)
   
-  t.lexer.lineno += t.value.count('\n')  
+  t.lexer.lineno += t.value.count('\n')
+
   
 def t_STRINGLIT(t):
   r'\"|\''
@@ -660,7 +665,7 @@ def t_instr_ALL(t):
   global strlit_val
   strlit_val = StringLit(strlit_val + t.value)
   
-  t.lexer.lineno += '\n' in t.value
+  t.lexer.lineno += t.value.count('\n')
   
 def t_SLASHR(t):
   r'\r+'
@@ -682,9 +687,12 @@ def t_incomment_CLOSECOM(t):
   global comment_str
   comment_str.val += t.value
   t.lexer.pop_state()
-  
+
+  t.lexer.lineno += t.value.count("\n")
+
   i = t.lexer.lexpos
   ld = t.lexer.lexdata
+
   while i < len(ld):
     if ld[i] not in [" ", "\t", "\n", "\r"]: break
     if ld[i] == "\n":
@@ -699,16 +707,15 @@ def t_incomment_CLOSECOM(t):
   t.lexer.comment_id += 1
 
 def t_incomment_ALL(t):
-  r'[^/\*]+';
-  
-  global comment_str
-  comment_str.val += t.value
-  
+  r'(.|[ \n\r\t])'#(?!\*\/)'
+
   t.lexer.lineno += t.value.count("\n")
+  comment_str.val += t.value
 
 # Error handling rule
 def t_incomment_error(t):
-    #print("Illegal character '%s'" % t.value[0])
+    print("Illegal character '%s'" % t.value[0])
+    #t.lexer.lineno += t.value.count("\n")
     t.lexer.skip(1)
 
 #def t_incomment_newline(t):
@@ -779,7 +786,7 @@ def t_NL(t):
 # Define a rule so we can track line numbers
 def t_newline(t):
     r'\n+'
-    t.lexer.lineno += len(t.value)
+    t.lexer.lineno += t.value.count("\n")
       
 # A string containing ignored characters (spaces and tabs)
 t_ignore  = ' \t'
@@ -848,8 +855,8 @@ class LexWithPrev():
     t._comment = self.lexer.comment
     t._comment_id = self.lexer.comment_id
     
-    p.lineno = self.lexer.lineno;
-    p.lexer = self;
+    p.lineno = self.lexer.lineno
+    p.lexer = self
     
     self.peeks.append([t, self.lexer.lexpos, self.lineno])
     return p
@@ -862,24 +869,11 @@ class LexWithPrev():
     
   def token(self):
     t = self._token()
-    
+
+    if t is not None:
+        t.lineno = self.lineno = self.linemap[t.lexpos]
     return t
-    if self._prev == -1:
-        self._prev = t
-        t = self._token()
-    else:
-        self._prev = self._cur;
-        
-    self._cur = t
-    
-    return self._prev
-    
-    for rule in reserved_collapsed_rules:
-        if t.type == rule[0] and n.type == rule[1]:
-            t.type = "ID"
-    
-    return t
-    
+
   def _token(self):
     self.prev = self.cur;
 
@@ -930,13 +924,23 @@ class LexWithPrev():
     return self.cur
     
   def input(self, data):
+    self.linemap = [0 for i in range(len(data))]
+    linemap = self.linemap
+    line = 0
+
+    for i in range(len(data)):
+        linemap[i] = line
+        if data[i] == "\n":
+            line += 1
+
     self._no_semi_handling = False;
     self._force_lexpos_line = None
     self._laststack = 0
 
     self._prev = -1
     self._cur = None
-    
+
+    self.lexer.lineno = 0
     self.comment_id = 0
     if not in_lthan_test:
       global tgthan_lexposes, gthan_ignores, lthan_ignores

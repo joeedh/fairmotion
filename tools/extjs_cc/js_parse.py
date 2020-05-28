@@ -196,7 +196,31 @@ def handle_semi_error(p):
     #XXX glob.g_lexpos = p.lexpos
     
     #print_err(p)
-    
+
+  """
+  i = cur.lexer.lexpos
+  ld = p.lexer.lexer.lexdata
+  lasttok = ""
+
+  while i < len(ld) and ld[i] != "\n":
+    i += 1
+
+  assign = False
+  while i < len(ld):
+    if ld[i] == "=":
+        assign = True
+
+    if ld[i] != " " and ld[i] != "\t" and ld[i] != "\n" and ld[i] != "\r":
+        if ld[i] == "{" and assign:
+            ret = False
+            break
+        else:
+            assign = ld[i] == "="
+    i += 1
+
+  print(i)
+  #"""
+
   if ret and not glob.g_tried_semi:
     #"""
     t = LexToken()
@@ -204,8 +228,7 @@ def handle_semi_error(p):
     t.value = ";"
     t.lineno = cur.lineno
     t.lexpos = cur.lexpos
-    #"""
-    
+
     p.lexer.push(p.lexer.cur)
     p.lexer.push(t)
     
@@ -233,13 +256,15 @@ def set_parse_globals_error(p):
   if glob.g_production_debug:
     print("in %s" % get_production()[0])
   #prodname_log.append(get_production()[0])
-  
+
+  #"""
   if p.lexer.prev != None:
     glob.g_line = p.lexer.prev.lineno
   elif (p.lexer.cur != None):
     glob.g_line = p.lexer.cur.lineno
   else:
     glob.g_line = p.lineno
+  #"""
 
   if type(glob.g_line) != int:
     glob.g_line = glob.g_line(0)
@@ -294,19 +319,20 @@ def set_parse_globals(p, extra_str=""):
     prodname_log.append(get_production()[0])
     if len(prodname_log) > 20:
       prodname_log = prodname_log[-20:]
-      
+
+  """
   if p.lexer.prev is not None:
     glob.g_line = p.lexer.prev.lineno
   elif p.lexer.cur is not None:
     glob.g_line = p.lexer.cur.lineno
   else:
     glob.g_line = p.lineno
-    
   if type(glob.g_line) != int:
     glob.g_line = glob.g_line(0)
   if type(glob.g_line) != int:
     glob.g_line = glob.g_line(0)
-  
+  """
+
   #l = 0
   #for i in range(len(p)):
   #  l = max(l, p.lexpos(i))
@@ -3330,6 +3356,7 @@ def p_error(p):
       return
     else:      
       glob.g_error = True
+
       print_err(p)
       return
       

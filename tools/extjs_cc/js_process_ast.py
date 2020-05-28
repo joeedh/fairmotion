@@ -2837,11 +2837,18 @@ def infer_class_properties(result, typespace, buf):
         for i in range(count-1):
             indent += " "
 
-        #find bracket
         si = n.lexpos
+
+        #find bracket
         if not buf[si:].strip().startswith("class"):
-            #preprocessor has messed up lines
-            return
+            if buf[si+1:].strip().startswith("class"):
+                while si < len(buf) and buf[si] != "c":
+                    si += 1
+                pass
+            else:
+                #preprocessor has messed up lines
+                return
+        #print(buf[si:si+15])
 
         while si < len(buf) and buf[si] != "{":
             si += 1
@@ -2894,6 +2901,7 @@ def infer_class_properties(result, typespace, buf):
 
 
         def visit2(n2):
+
             if type(n2) == BinOpNode and n2.op != "=": return
             if len(n2[0]) == 0 or n2[0][0].gen_js(0).strip() != "this": return
             if type(n2[0]) not in [BinOpNode, MemberRefNode]: return

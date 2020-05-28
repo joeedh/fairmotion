@@ -27,17 +27,20 @@ for f in js_sources.sources:
     #ret = os.system(command)
     #print(ret, "<---")
 
-    if has_cr:
-        file = open(f, "rb")
-        buf = file.read()
-        file.close()
+    file = open(f, "rb")
+    buf = file.read()
+    file.close()
 
+    if has_cr:
         buf = buf.replace(b"\r", b"")
         buf = buf.replace(b"\n", b"\r\n")
 
-        file = open(f, "wb")
-        file.write(buf)
-        file.close()
+    else:
+        buf = buf.replace(b"\r", b"")
+        
+    file = open(f, "wb")
+    file.write(buf)
+    file.close()
 
     #break
     sys.stdout.flush()

@@ -1189,7 +1189,7 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
 
 
     if glob.g_apply_types:
-        data = js_typelogger.apply_inserts(result, typespace, inserts, data)
+        data = js_typelogger.apply_inserts(result, typespace, inserts, glob.g_filedata)
         if glob.g_outfile == "":
             print(data)
 

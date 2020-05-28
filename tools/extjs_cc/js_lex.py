@@ -925,14 +925,14 @@ class LexWithPrev():
     t.type = p.type
     t.value = p.value
     t.lexpos = p.lexpos
-    t.lineno = self.lexer.lineno
+    t.lineno = p.lineno #self.lexer.lineno
     
     t._comments = self.lexer.comments
     t._comment = self.lexer.comment
     t._comment_id = self.lexer.comment_id
     
-    p.lineno = self.lexer.lineno
-    p.lexer = self
+    #p.lineno = self.lexer.lineno
+    #p.lexer = self
     
     self.peeks.append([t, self.lexer.lexpos, self.lineno])
     return p
@@ -948,6 +948,7 @@ class LexWithPrev():
 
     if t is not None:
         t.lineno = self.lineno = self.linemap[t.lexpos]
+
     return t
 
   def _token(self):
@@ -955,18 +956,13 @@ class LexWithPrev():
 
     if len(self.peeks) > 0:
       self.prev_lexpos = self.lexpos
-      
-      #print(self.peeks)
-      
+
       self.cur, self.lexpos, self.lexer.lineno = self.peeks.pop(0)
-      
-      self.cur.lexpos = self.lexpos
       self.cur.prev_lexpos = self.prev_lexpos
-      
+      self.cur.lexpos = self.lexpos
+
       self.lineno = self.lexer.lineno
-      self.prev_lexpos = self.lexpos;
-      self.lexpos = self.lexer.lexpos
-      
+
       self.comments = self.cur._comments
       self.comment = self.cur._comment
       self.comment_id = self.cur._comment_id
@@ -974,7 +970,11 @@ class LexWithPrev():
       return self.cur
 
     self.cur = self.lexer.token()
-    
+
+    self.lineno = self.lexer.lineno
+    self.prev_lexpos = self.lexpos
+    self.lexpos = self.lexer.lexpos
+
     if self.cur != None:
       self.cur.lexer = self
       self.cur.lineno = self.lexer.lineno
@@ -993,9 +993,9 @@ class LexWithPrev():
       """
       pass
       
-    self.lineno = self.lexer.lineno
-    self.prev_lexpos = self.lexpos;
-    self.lexpos = self.lexer.lexpos
+    #self.lineno = self.lexer.lineno
+    #self.prev_lexpos = self.lexpos;
+    #self.lexpos = self.lexer.lexpos
     
     return self.cur
     

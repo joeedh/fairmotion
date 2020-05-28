@@ -1138,7 +1138,15 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
   glob.g_filedata = data
 
   if glob.g_preprocess_code:
-    data = preprocess_text(data, glob.g_file)
+    have_cpp = False
+
+    for l in glob.g_lines:
+        l = l.strip()
+        if l.startswith("#"):
+            have_cpp = True
+
+    if have_cpp:
+        data = preprocess_text(data, glob.g_file)
     
   if glob.g_print_tokens:
     plexer.input(data)

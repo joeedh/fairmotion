@@ -426,7 +426,7 @@ export class ImportJSONOp extends ToolOp {
   constructor(str) {
     super();
     
-    if (str != undefined) {
+    if (str !== undefined) {
       this.inputs.strdata.setValue(str);
     }
   }

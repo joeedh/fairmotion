@@ -219,6 +219,7 @@ def handle_semi_error(p):
     t.lexpos = p.lexer.lexpos
 
     #"""
+    #p.lexer.cur.lexpos = p.lexer.lexpos
 
     p.lexer.push(p.lexer.cur)
     p.lexer.push(t)

@@ -35,8 +35,7 @@ import {SelMask} from '../editors/viewport/selectmode.js';
 import {ORDER, KSCALE, KANGLE, KSTARTX, KSTARTY, KSTARTZ, KTOTKS, INT_STEPS} from './spline_math.js';
 
 import {
-  eval_curve, spiraltheta, spiralcurvature,
-  spiralcurvature_dv
+  eval_curve, spiraltheta, spiralcurvature, spiralcurvature_dv
 } from './spline_math.js';
 
 export class SplineVertex extends SplineElement {

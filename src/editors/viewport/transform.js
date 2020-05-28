@@ -50,7 +50,7 @@ export class TransformOp extends ToolOp {
     this.modaldata = {};
   }
 
-  static invoke(ctx, args) {
+  static invoke(ctx : FullContext, args : Object) {
     var op = new this();
 
     if ("datamode" in args) {

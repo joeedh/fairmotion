@@ -24,7 +24,7 @@ for f in js_sources.sources:
     print(f)
     #continue
 
-    #ret = os.system(command)
+    ret = os.system(command)
     #print(ret, "<---")
 
     file = open(f, "rb")

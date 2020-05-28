@@ -16,11 +16,15 @@ for f in js_sources.sources:
     count2 = buf.count(b"\r")
     has_cr = count2 >= count1*0.8
 
+    f = os.path.abspath(os.path.normpath(f))
+    f = f.replace("\\", "/")
+
     command = "c:/Python38/python.exe tools/extjs_cc/js_cc.py -gtl -at --type-file electron_build/mytypes.json " + f + " " + f
 
     print(f)
+    continue
 
-    ret = os.system(command)
+    #ret = os.system(command)
     #print(ret, "<---")
 
     file = open(f, "rb")

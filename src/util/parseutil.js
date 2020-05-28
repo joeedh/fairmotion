@@ -405,7 +405,7 @@ function test_parser() {
     tokens.push(tk(rt.toUpperCase()));
   }
 
-  var a = """
+  var a = `
   Loop {
     eid : int;
     flag : int;
@@ -419,7 +419,7 @@ function test_parser() {
     
     loops : array(Loop);
   }
-  """;
+  `;
 
   function errfunc(lexer) {
     return true; //throw error

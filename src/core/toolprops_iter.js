@@ -102,10 +102,10 @@ export class ToolIter extends TPropIterable {
     return obj;
   }
 }
-ToolIter.STRUCT = """
+ToolIter.STRUCT = `
   ToolIter {
   }
-""";
+`;
 
 class MSelectIter extends ToolIter {
   constructor(int typemask, Mesh mesh) {
@@ -161,11 +161,11 @@ class MSelectIter extends ToolIter {
   }
 }
 
-MSelectIter.STRUCT = STRUCT.inherit(MSelectIter, ToolIter) + """
+MSelectIter.STRUCT = STRUCT.inherit(MSelectIter, ToolIter) + `
   meshref  : DataRef;
   mask     : int;
 }
-""";
+`;
 
 class element_iter_convert extends ToolIter {
   constructor(iter, type) {
@@ -262,8 +262,8 @@ class element_iter_convert extends ToolIter {
   }
 }
 
-element_iter_convert.STRUCT = STRUCT.inherit(element_iter_convert, ToolIter) + """
+element_iter_convert.STRUCT = STRUCT.inherit(element_iter_convert, ToolIter) + `
   type  : string | this.type != undefined ? this.type.constructor.name : "";
   _iter : abstract(ToolIter) | obj.iter;
 }
-""";
+`;

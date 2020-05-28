@@ -35,13 +35,13 @@ export class SplineFrame {
     return ret;
   }
 }
-SplineFrame.STRUCT = """
+SplineFrame.STRUCT = `
   SplineFrame {
     time    : float;
     spline  : Spline;
     flag    : int;
   }
-""";
+`;
 
 window.obj_values_to_array = function obj_values_to_array(obj) {
   var ret = [];
@@ -166,12 +166,12 @@ class EidTimePair {
   }
 }
 
-EidTimePair.STRUCT = """
+EidTimePair.STRUCT = `
   EidTimePair {
     eid  : int;
     time : int;
   }
-""";
+`;
 
 function combine_eid_time(eid, time) {
   return new EidTimePair(eid, time);
@@ -306,13 +306,13 @@ export class SplineKCache {
   }
 }
 
-SplineKCache.STRUCT = """
+SplineKCache.STRUCT = `
   SplineKCache {
     cache : array(array(byte))  | obj._as_array();
     times : array(float)        | obj._get_times();
     invalid_eids : iter(EidTimePair);
   }
-""";
+`;
 
 /*
   there are two types of frames: the spline copies

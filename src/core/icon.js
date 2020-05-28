@@ -100,9 +100,9 @@ export class IconManager {
   }
 }
 
-var icon_vshader = """
+var icon_vshader = `
 
-"""
+`
 
-var icon_fshader = """
-"""
+var icon_fshader = `
+`

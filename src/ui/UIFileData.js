@@ -16,11 +16,11 @@ export class UIInt {
     return obj.val;
   }
 }
-UIInt.STRUCT = """
+UIInt.STRUCT = `
   UIInt {
     val : int;
   }
-"""
+`
 
 export class UIFloat {
   constructor(val) {
@@ -34,11 +34,11 @@ export class UIFloat {
     return obj.val;
   }
 }
-UIFloat.STRUCT = """
+UIFloat.STRUCT = `
   UIFloat {
     val : float;
   }
-""";
+`;
 
 //limited to 16 characters
 export class UIString {
@@ -53,11 +53,11 @@ export class UIString {
     return obj.val;
   }
 }
-UIString.STRUCT = """
+UIString.STRUCT = `
   UIString {
     val : string;
   }
-"""
+`
 
 export class UIFloatArray {
   constructor(val) {
@@ -71,11 +71,11 @@ export class UIFloatArray {
     return obj.val;
   }
 }
-UIFloatArray.STRUCT = """
+UIFloatArray.STRUCT = `
   UIFloatArray {
     val : array(float);
   }
-"""
+`
 
 export class UIKeyPair {
   constructor(key, val) {
@@ -122,12 +122,12 @@ export class UIKeyPair {
   }
 }
 
-UIKeyPair.STRUCT = """
+UIKeyPair.STRUCT = `
   UIKeyPair {
     key : string;
     val : abstract(Object) | obj.get_val();
   }
-"""
+`
 
 export class UIStruct {
   constructor(obj) {
@@ -149,11 +149,11 @@ export class UIStruct {
     return ret;
   }
 }
-UIStruct.STRUCT = """
+UIStruct.STRUCT = `
   UIStruct {
     obj : iter(k, UIKeyPair) | new UIKeyPair(k, obj.obj[k]);
   }
-"""
+`
 
 function test_ui_structs() {
   a = new UIStruct({a : 1, b : [1, 2, 3], c : "yay", d : 0.03, e : {a : [1, 2], b : 2}});

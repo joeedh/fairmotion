@@ -1831,7 +1831,7 @@ class SavedContextOld {
   }
 }
 
-SavedContextOld.STRUCT = """
+SavedContextOld.STRUCT = `
   SavedContext {
     _scene               : DataRef | obj._scene == undefined ? new DataRef(-1) : obj._scene;
     _frameset            : DataRef | obj._frameset == undefined ? new DataRef(-1) : obj._frameset;
@@ -1840,7 +1840,7 @@ SavedContextOld.STRUCT = """
     time                 : float;
     edit_all_layers      : int;
   }
-""";
+`;
 
 import {SplineFrameSet} from './frameset.js';
 import {SettingsEditor} from "../editors/settings/SettingsEditor.js";
@@ -2700,10 +2700,10 @@ class ToolStack {
   }
 }
 
-ToolStack.STRUCT = """
+ToolStack.STRUCT = `
   ToolStack {
     undocur   : int;
     undostack : array(abstract(ToolOp)) | obj.undostack.slice(0, obj.undocur);
   }
-"""
+`
 

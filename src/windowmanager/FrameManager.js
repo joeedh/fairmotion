@@ -935,13 +935,13 @@ export class Screen extends UIFrame {
   }
 }
 
-Screen.STRUCT = """
+Screen.STRUCT = `
   Screen { 
     pos   : vec2;
     size  : vec2;
     areas : array(abstract(ScreenArea));
   }
-"""
+`
 
 function load_screen(Screen scr, json_obj)
 {

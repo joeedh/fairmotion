@@ -363,14 +363,14 @@ export class SplineLayerSet extends Array {
     }
   }
 }
-SplineLayerSet.STRUCT = """
+SplineLayerSet.STRUCT = `
   SplineLayerSet {
     idgen  : SDIDGen;
     active : int | obj.active != undefined ? obj.active.id : -1;
     flag   : int;
     _layers : array(SplineLayer) | obj;
   }
-"""
+`
 
 export class IterCache {
   constructor(callback, count=8) {
@@ -1003,11 +1003,11 @@ export class ElementArray extends GArray {
 
 mixin(ElementArray, DataPathNode);
 
-ElementArray.STRUCT = """
+ElementArray.STRUCT = `
   ElementArray {
     arr      : array(abstract(SplineElement)) | obj;
     selected : iter(e, int) | e.eid;
     active   : int | obj.active != undefined ? obj.active.eid : -1;
     cdata    : CustomData;
   }
-"""
+`

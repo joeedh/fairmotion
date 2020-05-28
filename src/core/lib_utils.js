@@ -32,7 +32,7 @@ import {charmap} from "../editors/events.js";
 /* 'DataBlock List.                         *
  *  A generic container list for datablocks */
 class DBList extends GArray {
-  constructor(type) {
+  constructor(type : number) {
     super();
     
     this.type = type;
@@ -108,7 +108,7 @@ class DBList extends GArray {
     this.selected = new GArray();
   }
   
-  set_active(block) {
+  set_active(block : DataBlock) {
     if (block == undefined && this.length > 0) {
       console.trace();
       console.log("Undefined actives are illegal for DBLists, unless the list length is zero.");
@@ -118,7 +118,7 @@ class DBList extends GArray {
     this.active = block;
   }
   
-  select(block, do_select=true) {
+  select(block : DataBlock, do_select=true) {
     if (!(block instanceof DataBlock)) {
       warntrace("WARNING: bad value ", block, " passed to DBList.select()");
       return;
@@ -146,7 +146,7 @@ class DBList extends GArray {
   }
 
   //note that this doesn't set datablock user linkages.
-  data_link(block, getblock, getblock_us) {
+  data_link(block : DataBLock, getblock : function, getblock_us : function) {
     for (var i=0; i<this.length; i++) {
       this[i] = getblock(this[i]);
       this.idmap[this[i].lib_id] = this[i];
@@ -161,7 +161,7 @@ class DBList extends GArray {
     this.active = getblock(this.active);
   }
 
-  push(block) {
+  push(block : DataBlock) {
     if (!(block instanceof DataBlock)) {
       warntrace("WARNING: bad value ", block, " passed to DBList.select()");
       return;
@@ -176,7 +176,7 @@ class DBList extends GArray {
     }
   }
 
-  remove(block) {
+  remove(block : DataBlock) {
     var i = this.indexOf(block);
     
     if (i < 0 || i == undefined) {
@@ -187,7 +187,7 @@ class DBList extends GArray {
     this.pop(i); 
   }
 
-  pop(i) {
+  pop(i : int) {
     if (i < 0 || i >= this.length) {
       warn("WARNING: Invalid argument ", i, " to static pop()");
       print_stack();
@@ -209,19 +209,19 @@ class DBList extends GArray {
     }
   }
 
-  idget(id) {
+  idget(id : int) {
     return this.idmap[id];
   }
 }
 
-DBList.STRUCT = """
+DBList.STRUCT = `
   DBList {
     type : int;
     selected : array(dataref(DataBlock));
     arrdata : array(dataref(DataBlock)) | obj;
     active : dataref(DataBlock);
   }
-""";
+`;
 
 function DataArrayRem(dst, field, obj) {
   var array = dst[field];
@@ -482,8 +482,8 @@ class DataRefList extends GArray {
 
 mixin(DataRefList, TPropIterable);
 
-DataRefList.STRUCT = """
+DataRefList.STRUCT = `
   DataRefList {
     list : array(i, dataref(DataBlock)) | this[i];
   }
-"""
+`;

@@ -198,7 +198,7 @@ export class Spline extends DataBlock {
   //  this._resolve = val;
   //}
 
-  dag_get_datapath() {
+  dag_get_datapath() : string {
     if (this.is_anim_path || (this.verts.cdata.layers.length > 0 && this.verts.cdata.layers[0].name == "TimeDataLayer"))
       return "frameset.pathspline";
     else
@@ -264,11 +264,11 @@ export class Spline extends DataBlock {
     }
   }
 
-  get idgen() {
+  get idgen() : SDIDGen {
     return this._idgen;
   }
 
-  set idgen(idgen) {
+  set idgen(idgen : SDIDGen) {
     this._idgen = idgen;
 
     //this can happen due to fromSTRUCT chaining
@@ -439,7 +439,7 @@ export class Spline extends DataBlock {
     return new AllPointsIter(this);
   }
 
-  make_vertex(co, eid=undefined) {
+  make_vertex(co : Array<float>, eid=undefined) {
     var v = new SplineVertex(co);
 
     v.flag |= SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
@@ -1097,9 +1097,9 @@ export class Spline extends DataBlock {
     }  
   }
   
-  make_segment(v1, v2, eid=undefined, check_existing=true) {
-    if (eid === undefined)
-      eid = this.idgen.gen_id();
+  make_segment(v1 : SplineVertex, v2 : SplineVertex, __eid : number, check_existing=true) {
+    if (__eid === undefined)
+      __eid = this.idgen.gen_id();
     
     if (check_existing) {
       var seg = this.find_segment(v1, v2);
@@ -1128,11 +1128,11 @@ export class Spline extends DataBlock {
     
     seg.flag |= SplineFlags.UPDATE;
     
-    this.segments.push(seg, eid);
+    this.segments.push(seg, __eid);
     return seg;
   }
   
-  _radial_loop_insert(l) {
+  _radial_loop_insert(l : SplineLoop) {
     if (l.s.l === undefined) {
       l.radial_next = l.radial_prev = l;
       l.s.l = l;
@@ -1146,7 +1146,7 @@ export class Spline extends DataBlock {
     l.s.l = l;
   }
   
-  _radial_loop_remove(l) {
+  _radial_loop_remove(l : SplineLoop) {
     l.radial_next.radial_prev = l.radial_prev;
     l.radial_prev.radial_next = l.radial_next;
     
@@ -1234,14 +1234,14 @@ export class Spline extends DataBlock {
     return l;
   }
   
-  kill_loop(l) {
+  kill_loop(l : SplineLoop) {
     delete this.eidmap[l.eid];
   }
   
   _element_kill(e) {
   }
   
-  kill_face(f) {
+  kill_face(f : SplineFace) {
     for (var i=0; i<f.paths.length; i++) {
       var path = f.paths[i];
       
@@ -1255,7 +1255,7 @@ export class Spline extends DataBlock {
     this.faces.remove(f);
   }
   
-  kill_segment(seg, kill_faces=true, soft_error=false) {
+  kill_segment(seg : SplineSegment, kill_faces=true, soft_error=false) {
     var i=0;
     while (kill_faces && seg.l != undefined) {
       this.kill_face(seg.l.f);
@@ -1289,7 +1289,7 @@ export class Spline extends DataBlock {
     window.open(obj_url);
   }
   
-  dissolve_vertex(v) {
+  dissolve_vertex(v : SplineVertex) {
     var ls2 = [];
     
     if (v.segments.length != 2) return;
@@ -1406,7 +1406,7 @@ export class Spline extends DataBlock {
     return key;
   }
 
-  kill_vertex(v) {
+  kill_vertex(v : SplineVertex) {
     this._vert_rem_set.add(v.eid);
 
     this.dag_update("on_vert_add", this._vert_rem_set);
@@ -1606,7 +1606,7 @@ export class Spline extends DataBlock {
   }
   
   //XXX: get rid of steps, gk
-  solve_intern(steps, gk) {
+  solve_intern(steps : number, gk : number) {
     var this2 = this;
 
     var dag_trigger = function() {
@@ -1749,13 +1749,13 @@ export class Spline extends DataBlock {
     }
   }
   
-  solve_p(steps, gk) {
+  solve_p(steps : number, gk : number) {
     console.trace("solve_p: DEPRECATED");
     
     return this.solve(steps, gk);
   }
     
-  trace_face(g, f) {
+  trace_face(g : Canvas2DContext, f : SplineFace) {
     g.beginPath();
     
     static lastco = new Vector3();
@@ -1788,7 +1788,7 @@ export class Spline extends DataBlock {
     g.closePath();
   }
   
-  forEachPoint(cb, thisvar, immuate) {
+  forEachPoint(cb : function, thisvar : any) {
     for (var si=0; si<2; si++) {
       var list = si ? this.handles : this.verts;
       var last_len = list.length;
@@ -1804,7 +1804,7 @@ export class Spline extends DataBlock {
     }
   }
   
-  build_shash() {
+  build_shash() : Object {
     var sh = {};
     var cellsize = 150;
     
@@ -2199,7 +2199,7 @@ export class Spline extends DataBlock {
                  draw_normals, alpha, draw_time_helpers, curtime, ignore_layers);
   }
   
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader : function) {
     reader(this);
     super.loadSTRUCT(reader);
     
@@ -2371,12 +2371,12 @@ export class Spline extends DataBlock {
     return this;
   }
 
-  flagUpdateVertTime(v) {
+  flagUpdateVertTime(v : SplineVertex) {
     this._vert_time_set.add(v.eid);
     this.dag_update("on_vert_time_change", this._vert_time_set);
   }
 
-  dag_exec(ctx, inputs, outputs, graph) {
+  dag_exec(ctx : FullContext, inputs, outputs, graph) {
     outputs.on_vert_add.loadData(this._vert_add_set);
 
     this._vert_add_set = new set();
@@ -2403,7 +2403,7 @@ mixin(Spline, DataPathNode);
 
 //on_solve : 0
 
-Spline.STRUCT = STRUCT.inherit(Spline, DataBlock) + """
+Spline.STRUCT = STRUCT.inherit(Spline, DataBlock) + `
     idgen    : SDIDGen;
     
     selected : iter(e, int) | e.eid;
@@ -2419,4 +2419,4 @@ Spline.STRUCT = STRUCT.inherit(Spline, DataBlock) + """
     
     mres_format : array(string);
 }
-"""
+`

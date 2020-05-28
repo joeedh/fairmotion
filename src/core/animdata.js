@@ -133,7 +133,7 @@ export class AnimKey extends DataPathWrapperNode {
 }
 
 
-AnimKey.STRUCT = """
+AnimKey.STRUCT = `
   AnimKey {
     owner_eid : int;
     id        : int;
@@ -143,7 +143,7 @@ AnimKey.STRUCT = """
     handles   : array(float);
     data      : abstract(ToolProperty);
   }
-""";
+`;
 
 //import {PropTypes} from 'toolprops';
 
@@ -283,11 +283,11 @@ export class AnimChannel {
       return ret;
     }
 }
-AnimChannel.STRUCT = """
+AnimChannel.STRUCT = `
   AnimChannel {
     name     : string;
     keys     : array(AnimKey);
     proptype : int;
     path     : string;
   }
-"""
+`

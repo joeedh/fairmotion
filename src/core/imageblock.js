@@ -63,12 +63,12 @@ export class Image extends DataBlock {
   }
 }
 
-Image.STRUCT = STRUCT.inherit(Image, DataBlock) + """
+Image.STRUCT = STRUCT.inherit(Image, DataBlock) + `
   path  : string;
   width : array(int);
   data  : arraybuffer;
 }
-""";
+`;
 
 export class ImageUser {
   constructor() {
@@ -91,11 +91,11 @@ export class ImageUser {
   }
 }
 
-ImageUser.STRUCT = """
+ImageUser.STRUCT = `
 ImageUser {
   off   : vec2;
   scale : vec2;
   image : dataref(Image);
   flag  : int;
 }
-""";
+`;

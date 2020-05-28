@@ -56,11 +56,11 @@ export class BoxColor4 extends BoxColor {
     return ret;
   }
 }
-BoxColor4.STRUCT = """
+BoxColor4.STRUCT = `
   BoxColor4 {
     colors : array(vec4);
   }
-"""
+`
 
 //box colors are colors applied to boxes, i.e. four colors
 //weighted box color
@@ -279,14 +279,14 @@ export class ColorTheme {
     return c;
   }
 }
-ColorTheme.STRUCT = """
+ColorTheme.STRUCT = `
   ColorTheme {
     colorkeys : array(string) | obj.colors.keys();
     colorvals : array(vec4) | obj.colors.values();
     boxkeys : array(string) | obj.boxcolors.keys();
     boxvals : array(abstract(BoxColor)) | obj.boxcolors.values();
   }
-"""
+`
 
 window.menu_text_size = 14;
 window.default_ui_font_size = 16;
@@ -338,12 +338,12 @@ export class Theme {
     //colors3d = this.view2d.gen_colors();
   }
 }
-Theme.STRUCT = """
+Theme.STRUCT = `
   Theme {
     ui     : ColorTheme;
     view2d : ColorTheme;
   }
-"""
+`
 
 //globals
 global g_theme;

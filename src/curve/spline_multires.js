@@ -482,11 +482,11 @@ export class MultiResGlobal {
     return ret;
   }
 }
-MultiResGlobal.STRUCT = """
+MultiResGlobal.STRUCT = `
   MultiResGlobal {
     active : double | obj.active == undefined ? -1 : obj.active;
   }
-"""
+`
 
 export class MultiResLayer extends CustomDataLayer {
   constructor(size=16) {
@@ -724,7 +724,7 @@ export class MultiResLayer extends CustomDataLayer {
   }
 }
 
-MultiResLayer.STRUCT = STRUCT.inherit(MultiResLayer, CustomDataLayer) + """
+MultiResLayer.STRUCT = STRUCT.inherit(MultiResLayer, CustomDataLayer) + `
     data            : array(double);
     index           : array(double);
     max_layers      : int;
@@ -732,7 +732,7 @@ MultiResLayer.STRUCT = STRUCT.inherit(MultiResLayer, CustomDataLayer) + """
     _freecur        : int;
     _size           : int;
   }
-""";
+`;
 MultiResLayer.layerinfo = {
   type_name : "MultiResLayer",
   has_curve_effect : true,

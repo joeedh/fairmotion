@@ -17,7 +17,7 @@ var acos = Math.acos, asin = Math.asin, cos = Math.cos, sin=Math.sin,
           var _d = Math.min(Math.max(ta.dot(goal), -1.0), 1.0);\
           var ret = acos(_d);
     
-export function solve(spline, order, steps, gk, do_inc, edge_segs) {
+export function solve(spline : Spline, order : int, steps : int, gk : number, do_inc : boolean, edge_segs : set<SplineSegment>) {
   var pairs = [];
   
   var CBREAK = SplineFlags.BREAK_CURVATURES;

@@ -381,10 +381,10 @@ export class OpStackEditor extends Area {
   }
 }
 
-OpStackEditor.STRUCT = STRUCT.inherit(OpStackEditor, Area) + """
+OpStackEditor.STRUCT = STRUCT.inherit(OpStackEditor, Area) + `
     filter_sel : int | obj._filter_sel;
   }
-"""
+`
 
 OpStackEditor.uiname = "Operator Stack";
 OpStackEditor.debug_only = true;

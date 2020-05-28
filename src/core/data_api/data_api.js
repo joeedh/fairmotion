@@ -1254,11 +1254,11 @@ export class DataAPI {
       var func;
       
       if (config.HAVE_EVAL) {
-        var script = """
+        var script = `
           func = function(ctx, scope) {
             return $s
           }
-        """.replace("$s", str);
+        `.replace("$s", str);
         
         eval(script);
       } else {
@@ -1411,10 +1411,10 @@ export class DataAPI {
     
     if (config.HAVE_EVAL) {
       //"(item.fag & 1) && !item.hidden"
-      var filtercode = """
+      var filtercode = `
         function filter($) {\n
-          return """+filterstr+"""\n;
-        }""";
+          return `+filterstr+`\n;
+        }`;
       
       eval(filtercode);
     } else {

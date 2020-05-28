@@ -30,7 +30,7 @@ import {TransSplineVert} from "./transform_spline.js";
 
 //let
 export class TransformOp extends ToolOp {
-  constructor(start_mpos, datamode) {
+  constructor(start_mpos : Array<float>, datamode : int) {
     super();
     
     this.types = new GArray([TransSplineVert]);
@@ -90,7 +90,7 @@ export class TransformOp extends ToolOp {
     }
   }}
 
-  ensure_transdata(ctx) {
+  ensure_transdata(ctx : FullContext) {
     var selmode = this.inputs.datamode.data;
     
     //console.log("SELMODE", selmode);
@@ -107,7 +107,7 @@ export class TransformOp extends ToolOp {
     return this.transdata;
   }
   
-  finish(ctx) {
+  finish(ctx : FullContext) {
     delete this.transdata;
     delete this.modaldata;
     
@@ -123,7 +123,7 @@ export class TransformOp extends ToolOp {
   
   //XXX initializing this.types in ensure_transdata
   //may have broken undo invariance
-  undo_pre(ctx) {
+  undo_pre(ctx : FullContext) {
     var td = this.ensure_transdata(ctx);
     
     var undo = this._undo = {};
@@ -134,7 +134,7 @@ export class TransformOp extends ToolOp {
     }
   }
   
-  undo(ctx, suppress_ctx_update=false) {
+  undo(ctx : FullContext, suppress_ctx_update=false) {
     var undo = this._undo;
     
     for (var i=0; i<this.types.length; i++) {
@@ -160,7 +160,7 @@ export class TransformOp extends ToolOp {
     this.finish(ctx);
   }
   
-  start_modal(ctx) {
+  start_modal(ctx : FullContext) {
     super.start_modal(ctx);
     
     this.first_viewport_redraw = true;
@@ -206,7 +206,7 @@ export class TransformOp extends ToolOp {
     this.draw_helper_lines(md, ctx);
   }
   
-  post_mousemove(event, force_solve=false) {
+  post_mousemove(event : MouseEvent, force_solve=false) {
     //window.redraw_viewport();
     //return;
     var td = this.transdata, view2d = this.modal_ctx.view2d;
@@ -307,7 +307,7 @@ export class TransformOp extends ToolOp {
     }
   }
   
-  on_keydown(event) {
+  on_keydown(event : MouseEvent) {
     console.log(event.keyCode);
     
     var propdelta = 15;
@@ -356,12 +356,12 @@ export class TransformOp extends ToolOp {
     }
   }
   
-  on_mouseup(event) {
+  on_mouseup(event : MouseEvent) {
     console.log("end transform!");
     this.end_modal();
   }
   
-  update(ctx) {
+  update(ctx : FullContext) {
     for (var t of this.transdata.types) {
       t.update(ctx, this.transdata);
     }

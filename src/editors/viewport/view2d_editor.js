@@ -121,7 +121,7 @@ export class View2DEditor {
   }
 }
 
-View2DEditor.STRUCT = """
+View2DEditor.STRUCT = `
   View2DEditor {
   }
-""";
+`;

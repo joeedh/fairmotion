@@ -85,7 +85,7 @@ export class DataRef extends Array {
     }
   }
 
-  static fromBlock(obj) {
+  static fromBlock(obj : DataBlock) {
     let ret = new DataRef();
 
     if (!obj) {
@@ -142,7 +142,7 @@ export class DataRef extends Array {
     return b != undefined && b[0] == this[0];
   }
   
-  static fromSTRUCT(reader) {
+  static fromSTRUCT(reader : function) {
     var ret = new DataRef(0);
     
     reader(ret);
@@ -179,7 +179,7 @@ export class DataList<T> {
     return this.type;
   }
   
-  constructor(int type) {
+  constructor(type : int) {
     this.list = new GArray();
     
     this.namemap = {};
@@ -193,7 +193,7 @@ export class DataList<T> {
     return this.list[Symbol.iterator]();
   }
   
-  remove(block) {
+  remove(block : DataBlock) {
     this.list.remove(block);
     
     if (block.name != undefined && this.namemap[block.name] == block)
@@ -205,7 +205,7 @@ export class DataList<T> {
     block.on_remove();
   }
   
-  get(id) {
+  get(id : int) {
     if (id instanceof DataRef) 
       id = id.id;
     
@@ -244,7 +244,7 @@ export class DataLib {
     }
   }
   
-  get_datalist(int typeid) : DataList {
+  get_datalist(typeid : int) : DataList {
     var dl;
     
     if (!this.datalists.has(typeid)) {
@@ -271,7 +271,7 @@ export class DataLib {
   
   //tries to completely kill a datablock,
   //clearing all references to it
-  kill_datablock(DataBlock block) {
+  kill_datablock(block : DataBlock) {
     block.unlink();
     
     var list = this.datalists.get(block.lib_type);
@@ -280,7 +280,7 @@ export class DataLib {
     block.lib_flag |= BlockFlags.DELETED;
   }
   
-  search(int type, String prefix) : GArray<DataBlock> {
+  search(type : int, prefix : string) : GArray<DataBlock> {
     //this is what red-black trees are for.
     //oh well.
     
@@ -299,7 +299,7 @@ export class DataLib {
 
   //clearly I need to write a simple string
   //processing language with regexpr's
-  gen_name(DataBlock block, String name) {
+  gen_name(block : DataBlock, name : string) {
     if (name == undefined || name.trim() == "") {
       name = DataNames[block.lib_type];
     }
@@ -343,7 +343,7 @@ export class DataLib {
     return name;
   }
 
-  add(DataBlock block, Boolean set_id) {
+  add(block : DataBlock, set_id : Boolean) {
     if (set_id == undefined)
       set_id = true;
     
@@ -374,7 +374,7 @@ export class DataLib {
     block.on_add(this);
   }
 
-  get_active(int data_type) {
+  get_active(data_type : int) {
     if (this.datalists.has(data_type)) {
       var lst = this.datalists.get(data_type);
       
@@ -392,7 +392,7 @@ export class DataLib {
     }
   }
 
-  get(DataRef id) {
+  get(id : DataRef) {
     if (id instanceof DataRef)
       id = id.id;
     
@@ -411,7 +411,7 @@ export class UserRef {
 var _db_hash_id = 1;
 export class DataBlock {
   //type is an integer, name is a string
-  constructor(type, name) {
+  constructor(type : number, name : string) {
     this.constructor.datablock_type = type;
 
     this.addon_data = {};
@@ -469,11 +469,11 @@ export class DataBlock {
   data_link(block, getblock, getblock_us) { 
   }
   
-  [Symbol.keystr]() : String {
+  [Symbol.keystr]() : string {
     return "DB" + this._hash_id;
   }
 
-  lib_adduser(Object user, String name, Function remfunc) {
+  lib_adduser(user : Object, name : string, remfunc : function) {
     //remove_lib should be optional?
     
     var ref = new UserRef()
@@ -486,7 +486,7 @@ export class DataBlock {
     this.lib_refs++;
   }
 
-  lib_remuser(user, refname) {
+  lib_remuser(user : DataBlock, refname : string) {
     var newusers = new GArray();
     
     for (var i=0; i<this.lib_users.length; i++) {
@@ -531,7 +531,7 @@ export class DataBlock {
     }
   }
   
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader : function) {
     reader(this);
 
     var map = {};
@@ -549,7 +549,7 @@ export class DataBlock {
     return this;
   }
 
-  _addon_data_save() {
+  _addon_data_save() : Array<_DictKey> {
     var ret = [];
 
     if (this.addon_data === undefined) {
@@ -565,12 +565,12 @@ export class DataBlock {
 }
 
 export class _DictKey {
-  constructor(key, val) {
+  constructor(key : string, val : any) {
     this.key = key;
     this.val = val;
   }
   
-  static fromSTRUCT(reader) {
+  static fromSTRUCT(reader : function) {
     let ret = new _DictKey();
     reader(ret);
     return ret;

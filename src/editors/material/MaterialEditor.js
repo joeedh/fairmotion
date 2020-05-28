@@ -940,9 +940,9 @@ class MaterialEditor extends Area {
   }
 }
 
-MaterialEditor.STRUCT = STRUCT.inherit(MaterialEditor, Editor) + """
+MaterialEditor.STRUCT = STRUCT.inherit(MaterialEditor, Editor) + `
   }
-"""
+`
 MaterialEditor.uiname = "Properties";
 MaterialEditor.debug_only = false;
 #endif

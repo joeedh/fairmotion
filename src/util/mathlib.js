@@ -283,7 +283,7 @@ export class MinMax {
   }
 }
 
-MinMax.STRUCT = """
+MinMax.STRUCT = `
   MinMax {
     min     : vec3;
     max     : vec3;
@@ -291,7 +291,7 @@ MinMax.STRUCT = """
     _max    : vec3;
     totaxis : int;
   }
-""";
+`;
 
 export function winding(a, b, c) {
     for (var i=0; i<a.length; i++) {

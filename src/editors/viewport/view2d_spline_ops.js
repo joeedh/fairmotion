@@ -916,10 +916,10 @@ export class SplineEditor extends View2DEditor {
   }
 }
 
-SplineEditor.STRUCT = """
+SplineEditor.STRUCT = `
   SplineEditor {
     selectmode : int;
   }
-"""
+`
 
 import {ScreenArea, Area} from '../../path.ux/scripts/screen/ScreenArea.js';

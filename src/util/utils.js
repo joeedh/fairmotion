@@ -1301,10 +1301,10 @@ class EIDGen {
     return idgen;
   }
 }
-EIDGen.STRUCT = """
+EIDGen.STRUCT = `
   EIDGen {
     cur_eid : int;
-  }""";
+  }`;
 
 function copy_into(dst, src) {
   console.log(dst);
@@ -1463,12 +1463,12 @@ class SDIDLayer {
     return ret;
   }
 }
-SDIDLayer.STRUCT = """
+SDIDLayer.STRUCT = `
   SDIDLayer {
     int_id : int;
     idmap  : array(int) | obj._save_idmap();
   }
-""";
+`;
 
 class SDIDLayerListIter {
   constructor(list) {
@@ -1576,11 +1576,11 @@ class SDIDLayerList {
     return ret;
   }
 }
-SDIDLayerList.STRUCT = """
+SDIDLayerList.STRUCT = `
   SDIDLayerList {
     layers : iter(SDIDLayer) | obj;
   }
-"""
+`
 
 //subdividing id generator
 class SDIDGen {  
@@ -1659,12 +1659,12 @@ class SDIDGen {
   }
 }
 
-SDIDGen.STRUCT = """
+SDIDGen.STRUCT = `
 SDIDGen {
   cur_id        : int;
   idmap_layers  : SDIDLayerList;
   usedmap       : iter(int);
   freelist      : array(int);
 }
-""";
+`;
 

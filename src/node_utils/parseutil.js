@@ -421,7 +421,7 @@ function test_parser() {
     
     loops : array(Loop);
   }
-  """;
+  `;
   */
   
   function errfunc(lexer) {

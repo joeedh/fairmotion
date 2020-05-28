@@ -99,10 +99,10 @@ export class empty_class {
     return ret;
   }
 }
-empty_class.STRUCT = """
+empty_class.STRUCT = `
   empty_class {
   }
-"""
+`
 
 CustomDataLayer.layerinfo = {
   type_name : "(bad type name)",
@@ -119,7 +119,7 @@ CustomDataLayer.STRUCT = `
 `;
 
 export class CustomData {
-  constructor(owner, layer_add_callback, layer_del_callback) {
+  constructor(owner : any, layer_add_callback : function, layer_del_callback : function) {
     this.owner = owner; //owning ElementArray
     
     this.callbacks = {
@@ -132,7 +132,7 @@ export class CustomData {
     this.startmap = {};
   }
   
-  load_layout(CustomData src) {
+  load_layout(src : CustomData) {
     for (var i=0; i<src.layers.length; i++) {
       this.layers.push(src.layers[i]);
     }
@@ -185,24 +185,24 @@ export class CustomData {
     return ret;
   }
   
-  get_shared(type : String) {
+  get_shared(type : string) {
     return this.shared_data[this.get_layer_i(type, 0)];
   }
   
-  get_layer_i(type : String, i=0) {
+  get_layer_i(type : string, i=0) {
     if (!(type in this.startmap))
       return -1;
     
     return this.startmap[type]+i;
   }
   
-  get_layer(type : String, i) {
+  get_layer(type : string, i) {
     if (i == undefined) i = 0;
     
     return this.layers[this.startmap[type]+i];
   }
   
-  num_layers(type) {
+  num_layers(type : int) {
     var i = this.get_layer_i(type, 0);
     if (i == undefined || i == -1) return 0;
     
@@ -211,7 +211,7 @@ export class CustomData {
     return i;
   }
   
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader : function) {
     reader(this);
     
     //we saved instances; turn back to class constructors
@@ -241,7 +241,7 @@ export class CustomData {
     }
   }
    
-  afterSTRUCT(element_array, cdata) {
+  afterSTRUCT(element_array : SplineElementArray, cdata) {
     for (var e of element_array) {
       var i = 0;
       
@@ -253,12 +253,12 @@ export class CustomData {
   }
 }
 
-CustomData.STRUCT = """
+CustomData.STRUCT = `
   CustomData {
     layers      : array(e, abstract(CustomDataLayer)) | new e();
     shared_data : array(abstract(Object));
   }
-"""
+`
 
 export class CustomDataSet extends Array {
   constructor() {
@@ -288,10 +288,11 @@ export class CustomDataSet extends Array {
   
   //note that old_segment will not be valid, so you can only 
   //access things like flags.  ditto for new_segments.
-  on_segment_split(old_segment, old_v1, old_v2, new_segments) {
+  on_segment_split(old_segment : SplineSegment, old_v1 : SplineVertex,
+                   old_v2 : SplineVertex, new_segments : SplineSegment) {
   }
 
-  interp(srcs, ws) {
+  interp(srcs : Array<CustomDataSet>, ws : Array<float>) {
     static srcs2 = [];
     while (srcs2.length < srcs.length) {
       srcs2.push(0);
@@ -308,13 +309,13 @@ export class CustomDataSet extends Array {
     }
   }
   
-  copy(src) {
+  copy(src : CustomDataSet) {
     for (var i=0; i<this.length; i++) {
       this[i].copy(src[i]);
     }
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader : function) {
     reader(this);
     
     for (var i=0; i<this.arr.length; i++) {
@@ -331,7 +332,7 @@ CustomDataSet.STRUCT = `
 `;
 
 export class SplineElement extends DataPathNode {
-  constructor(type) {
+  constructor(type : int) {
     super();
     
     this.type = type;
@@ -346,7 +347,7 @@ export class SplineElement extends DataPathNode {
     for (var k in this.layers) {
       return true;
     }
-    
+
     return false;
   }
   
@@ -369,7 +370,7 @@ export class SplineElement extends DataPathNode {
     return "frameset." + name + suffix;
   }
   
-  in_layer(layer) {
+  in_layer(layer) : boolean {
     return layer != undefined && layer.id in this.layers;
   }
   
@@ -377,29 +378,29 @@ export class SplineElement extends DataPathNode {
     console.trace("Implement Me!");
   }
   
-  sethide(state) {
+  sethide(state : boolean) {
     if (state)
       this.flag |= SplineFlags.HIDE;
     else
       this.flag &= ~SplineFlags.HIDE;
   }
   
-  set hidden(state) {
+  set hidden(state : boolean) {
     if (state)
       this.flag |= SplineFlags.HIDE;
     else
       this.flag &= ~SplineFlags.HIDE;
   }
   
-  get hidden() {
+  get hidden() : boolean {
     return !!(this.flag & SplineFlags.HIDE);
   }
 
-  valueOf() {
+  valueOf() : number {
     return this.eid;
   }
 
-  [Symbol.keystr]() {
+  [Symbol.keystr]() : string {
     return ""+this.eid;
   }
   
@@ -409,7 +410,7 @@ export class SplineElement extends DataPathNode {
     }
   }
   
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader : function) {
     reader(this);
   }
 

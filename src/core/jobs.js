@@ -76,9 +76,9 @@ function worker_joblet(url, method, data) {
 }
 
 export class Joblet {
-  constructor(Object owner, Iterator iter, 
-               JobDestroyFunc destroyer, int ival, 
-               JobStartFunc start, JobFinishFunc finish)
+  constructor(owner : Object, iter : Iterator,
+              destroyer : JobDestroyFunc, ival : int,
+              start : JobStartFunc, finish : JobFinishFunc)
   { //if ival is 0 or undefined, it use default_job_interval
     if (ival == 0 || ival == undefined) {
       ival = default_job_interval;
@@ -129,7 +129,7 @@ export class JobManager {
     this.time_perc = 0.3;
   }
 
-  add_job(Joblet job) {
+  add_job(job : Joblet) {
     var owner = job.owner;
     var type = job.type;
     
@@ -148,7 +148,7 @@ export class JobManager {
     this.jobmap_types.get(type).push(job);
   }
 
-  remove_job(Joblet job) {
+  remove_job(job : Joblet) {
     var type = job.type;
     
     if (this.removed) {
@@ -188,7 +188,7 @@ export class JobManager {
     }
   }
 
-  kill_owner_jobs(Object owner) {
+  kill_owner_jobs(owner : Object) {
     if (!this.jobmap_owners.has(owner))
       return;
       
@@ -201,7 +201,7 @@ export class JobManager {
     this.jobmap_owners.remove(owner);
   }
 
-  kill_type_jobs(Object type) {
+  kill_type_jobs(type : Object) {
     type = get_type_name(type);
     
     if (!jobmap_types.has(type))
@@ -223,7 +223,7 @@ export class JobManager {
     this.queue.push(job);
   }
 
-  queue_replace(Joblet job, JobStartFunc start) { //replaces any queued job of the same type
+  queue_replace(job : Joblet, start : JobStartFunc) { //replaces any queued job of the same type
     var type = job.type;
     
     if (start != undefined) {
@@ -293,7 +293,7 @@ export class JobManager {
     this.last_ms = time_ms();
   }
 
-  has_job(Object type) {
+  has_job(type : Object) {
     type = get_type_name(type);
     if (this.jobmap_types.has(type)) {
       return this.jobmap_types.get(type).length > 0;

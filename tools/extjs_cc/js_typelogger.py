@@ -455,7 +455,7 @@ def load_types(node, typespace, data):
                     rt = t
             return IdentNode(rt["value"])
             #"""
-            
+
             if len(ts) == 1:
                 return IdentNode(ts[0]["value"])
 

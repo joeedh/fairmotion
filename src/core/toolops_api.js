@@ -829,12 +829,12 @@ export class ToolMacro extends ToolOp {
   }
 }
 
-ToolMacro.STRUCT = STRUCT.inherit(ToolMacro, ToolOp) + """
+ToolMacro.STRUCT = STRUCT.inherit(ToolMacro, ToolOp) + `
   tools   : array(abstract(ToolOp));
   apiname : string;
   uiname  : string;
 }
-"""
+`
 
 import {
         StringProperty, Vec3Property, Vec4Property, 
@@ -1140,11 +1140,11 @@ window.init_toolop_structs = function() {
     //console.log("-->", cls.name);
 
     if (!Object.hasOwnProperty(cls, "STRUCT")) {
-      cls.STRUCT = cls.name + " {" + """
+      cls.STRUCT = cls.name + " {" + `
         flag    : int;
         inputs  : iter(k, PropPair) | new PropPair(k, obj.inputs[k]);
         outputs : iter(k, PropPair) | new PropPair(k, obj.outputs[k]);
-      """
+      `
       if (is_toolop)
         cls.STRUCT += "    saved_context  : SavedContext | obj.get_saved_context();\n";
       

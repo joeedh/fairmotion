@@ -1163,23 +1163,23 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
   typespace = JSTypeSpace()
   glob.g_lexdata = data
 
-  if glob.g_raw_code:
-    buf = result.gen_js(0);
-    if glob.g_outfile == "":
-      print(syntaxColor(buf))
-      
-    return buf, result
-
-  flatten_var_decls_exprlists(result, typespace)
-
   if glob.g_infer_class_properties:
     from js_process_ast import infer_class_properties
     data = infer_class_properties(result, typespace, glob.g_filedata)
-    
+
     if glob.g_outfile == "":
         print(data)
 
     return data, result
+
+  if glob.g_raw_code:
+    buf = result.gen_js(0);
+    if glob.g_outfile == "":
+      print(syntaxColor(buf))
+
+    return buf, result
+
+  flatten_var_decls_exprlists(result, typespace)
 
   if glob.g_type_file != "":
     if not os.path.exists(glob.g_type_file):
@@ -1205,10 +1205,6 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
 
         return data, result
 
-  if glob.g_transform_class_props:
-    from js_process_ast import transform_class_props
-    transform_class_props(result, typespace)
-
   if create_logger:
     import js_typelogger
     js_typelogger.create_type_logger(result, typespace)
@@ -1217,41 +1213,41 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
   #handle some directives
   for c in result:
     if type(c) != StrLitNode: break
-    
+
     if c.val[1:-1] == "use strict":
       glob.g_force_global_strict = True
     elif c.val[1:-1] == "not_a_module":
       glob.g_es6_modules = False
-      
+
   if glob.g_profile_coverage:
     from js_process_ast import coverage_profile
     coverage_profile(result, typespace)
-    
+
   if glob.g_compile_statics_only:
     process_static_vars(result, typespace)
     return result.gen_js(0), result
-    
+
   if glob.g_enable_let:
     process_let(result, typespace)
     pass
-    
+
   if glob.g_force_global_strict:
     kill_bad_globals(result, typespace)
     pass
-  
+
   #handle .? operator
   transform_exisential_operators(result, typespace)
-  
+
   if glob.g_write_manifest and glob.g_outfile != "":
     buf = gen_manifest_file(result, typespace);
     file = open(glob.g_outfile+".manifest", "w")
     file.write(buf)
     file.close()
-    
+
   if glob.g_es6_modules:
     module_transform(result, typespace)
     pass
-  
+
   #"""
   if glob.g_require_js:
     expand_requirejs_classes(result, typespace)
@@ -1265,46 +1261,46 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
 
   if glob.g_clear_slashr:
     print("\n")
-  
+
   if result != None and len(result) == 0:
     result = None
     return "", None
     #sys.stdout.write("Error: empty compilation\n");
     #raise JSError("Empty compilation");
-  
-  global f_id  
+
+  global f_id
   f_id = [0]
   flatten_statementlists(result, typespace)
-  
+
   has_generators = [False]
   def has_generator(n):
     if not glob.g_expand_generators: return
 
     if type(n) == YieldNode:
       has_generators[0] = True
-    
+
     for c in n:
       has_generator(c)
-  
+
   has_generator(result)
-  
+
   if expand_loops or has_generators[0]:
     expand_of_loops(result, typespace)
-  
+
   #combine_try_nodes may have nested statementlists again, so better reflatten
   flatten_statementlists(result, typespace)
 
   #don't need to do this anymore, yay!
   #process_arrow_function_this(result, typespace)
-  
+
   if expand_generators:
     flatten_statementlists(result, typespace)
     process_generators(result, typespace);
     flatten_statementlists(result, typespace)
-  
+
   if glob.g_add_opt_initializers:
     add_func_opt_code(result, typespace)
-    
+
   debug_forloop_expansion = False
   if debug_forloop_expansion:
     reset = 0
@@ -1312,58 +1308,58 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
       f = open("cur_d.txt", "w")
       f.write("-1")
       f.close()
-      
+
     f = open("cur_d.txt", "r")
     d = int(f.read())
     print("\n\nd: %d\n"%d)
     traverse_i(result, ForInNode, expand_mozilla_forloops, d, use_scope=True)
     f.close()
-    
+
     f = open("cur_d.txt", "w")
     f.write(str(d+1))
     f.close()
-  
+
   if glob.g_combine_ifelse_nodes:
     combine_if_else_nodes(result)
-  
+
   if glob.g_print_nodes:
     print("nodes: ", result)
     pass
-    
+
   if glob.g_replace_instanceof and not glob.g_require_js:
     replace_instanceof(result, typespace)
-  
+
   if glob.g_enable_static_vars:
     process_static_vars(result, typespace)
-    
+
   if glob.g_do_docstrings:
     process_docstrings(result, typespace)
-    
+
   if glob.g_include_comments:
     process_comments(result, typespace)
-  
+
   if glob.g_gen_source_map:
     smap = SourceMap()
     def set_smap(node, smap):
       node.smap = smap
       for n in node:
         set_smap(n, smap)
-    
+
     set_smap(result, smap)
-    
+
     if not glob.g_minify:
       buf = result.gen_js(0)
       map = gen_source_map(data, buf, smap);
     else:
       buf, smap = js_minify(result)
       map = gen_source_map(data, buf, smap)
-    
+
     if glob.g_add_srcmap_ref:
       spath = glob.g_outfile
       if os.path.sep in spath: spath = os.path.split(spath)[1]
-      
+
       buf += "\n//# sourceMappingURL=/content/%s\n"%(spath+".map")
-    
+
     if glob.g_gen_smap_orig:
       f = open(glob.g_outfile + ".origsrc", "w")
       f.write(data)
@@ -1373,7 +1369,7 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
       buf = result.gen_js(0)
     else:
       buf, smap = js_minify(result)
-    
+
   if glob.g_outfile == "":
     sys.stdout.write(syntaxColor(buf) + "\n")
 
@@ -1386,12 +1382,12 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
       {
         this.keys = keys;
         this.cur = 0;
-        
+
         this.next = function() {
           if (this.cur >= this.keys.length) {
             throw StopIteration;
           }
-          
+
           return this.keys[this.cur++];
         }
       }
@@ -1451,29 +1447,29 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
   """)
       file.close()
     pass
-    
+
   return buf, result
-  
+
 def add_newlines(data):
   data2 = ""
-  
+
   tlvl = 0
   for c in data:
     data2 += c
-    
+
     if c == "{": tlvl += 1
     if c == "}": tlvl -= 1
-    
+
     if c == ";":
       data2 += "\n" + tab(tlvl)
-    
+
   return data2
-  
+
 def parse(data, file=None, create_logger=False, expand_loops=True, expand_generators=None):
     if file != None: glob.g_file = file
     if expand_generators is None:
       expand_generators = glob.g_expand_generators
-      
+
     if glob.g_add_newlines:
       data = add_newlines(data)
       #print(data[1017297])
@@ -1484,7 +1480,7 @@ def parse(data, file=None, create_logger=False, expand_loops=True, expand_genera
         except UnicodeEncodeError:
           pass
       return data, StatementList()
-      
+
     try:
       if glob.g_gen_es6:
         return parse_intern_es6(data)
@@ -1494,45 +1490,46 @@ def parse(data, file=None, create_logger=False, expand_loops=True, expand_genera
       if glob.g_print_stack:
         traceback.print_stack()
         traceback.print_exc()
-      
+
       glob.g_error = True
       return "", None
-        
+
 def test_regexpr():
   from js_regexpr_parse import parser as rparser, rlexer
   data = r"/[ \t]+/g+"
   re_part = re.match(r"/.+/[a-zA-Z0-9_$]*", data)
-  
+
   span = re_part.span()
   buf = data[span[0]:span[1]]
   #print(buf)
   buf = rparser.parse(buf, lexer=rlexer)
   #print(buf)
- 
+
 from js_minify import *
- 
+
 def main():
     cparse = argparse.ArgumentParser(add_help=False)
 
     glob.add_args(cparse)
     cparse.add_argument("--help", action="help", help="Print this message")
-      
+
     args = cparse.parse_args()
     glob.parse_args(cparse, args)
-    
+
     glob.g_outfile = args.outfile
-    
+
     #test_regexpr()
     #return 1
-        
+
     glob.g_file = args.infile
-    
+
     if args.infile == None:
         print("js_cc.py: no input files")
         return -1
-    
+
     f = open(args.infile, "r")
     data = f.read()
+    data = data.replace("\r", "")
     f.close()
 
     doloops = not glob.g_emit_code and glob.g_expand_iterators

@@ -25,13 +25,8 @@ import {DataPathNode} from '../core/eventdag.js';
 
 import * as config from '../config/config.js';
 
-const atan2 = Math.atan2;
-
 //math globals
 const FEPS = 1e-18;
-const PI = Math.PI;
-const sin = Math.sin, acos=Math.acos, asin=Math.asin, atan2=Math.atan2, sqrt=Math.sqrt;
-const cos = Math.cos, pow=Math.pow, abs=Math.abs;
 const SPI2 = Math.sqrt(PI/2);
 
 export var _SOLVING = false;

@@ -41,7 +41,8 @@ def syntaxColor(s):
     "yellow" : chr1(base+6),
     "lightred" : chr1(base+7),
     "gray" : chr1(base+7),
-    "white" : chr1(base+8)
+    "white" : chr1(base+8),
+    "lightblue" : chr1(base+9)
   };
   rcolors = {}
 
@@ -69,10 +70,12 @@ def syntaxColor(s):
   _clr = ["blue"]
 
   #[\n\r=\t \(\),\{\}\[\]]
-  keyword = re.compile(r"(?<=\b)(var|let|const|class|constructor|if|else|extends|super|do|while|for|try|catch|finally|of|in|undefined|null|function|=>)(?=\b)")
+  keyword = re.compile(r"(?<=\b)(var|let|export|import|from|of|in|as|const|switch|enum|return|break|continue|case|static|private|public|default|class|constructor|if|else|extends|super|do|while|for|try|catch|finally|of|in|undefined|null|function|=>)(?=\b)")
   string = re.compile(r'(".*")|(\'.*\')|(`.*`)')
   call = re.compile(r'([a-zA-Z0-9_]+)(?=\()')
   args = re.compile(r'(?<=[,\()])[ a-zA-Z0-9_]+(?=[,\)])')
+  thisvar = re.compile(r"(?<=\b)(this)(?=\b)")
+
   def repl(arg):
     start = arg.start()
     end = arg.end()
@@ -86,6 +89,7 @@ def syntaxColor(s):
   _clr[0] = "green"; re.sub(call, repl, s)
   _clr[0] = "blue"; re.sub(keyword, repl, s)
   _clr[0] = "peach"; re.sub(string, repl, s)
+  _clr[0] = "lightblue"; re.sub(thisvar, repl, s)
 
   s2 = ""
   for i in range(len(s)):

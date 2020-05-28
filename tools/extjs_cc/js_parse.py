@@ -430,6 +430,7 @@ def p_statement(p):
   ''' statement : function
                 | class
                 | typed_class
+                | enum
                 | if
                 | else
                 | while
@@ -679,7 +680,7 @@ def p_templatedeflist(p):
   
   if len(p) == 2:
     p[0] = ExprListNode([])
-    if p[1]:
+    if p[1] is not None:
       p[0].add(p[1])
   elif len(p) == 4:
     if type(p[1]) == ExprListNode:
@@ -1357,7 +1358,48 @@ def p_typed_inherit_opt(p):
     p[0] = p[2].val
   else:
     p[0] = None
-    
+
+def p_enum(p):
+    '''enum : ENUM ID LBRACKET enum_body RBRACKET'''
+    p[0] = EnumNode(name=p[2])
+    for c in p[4][:]:
+        p[0].add(c)
+
+
+def p_enum_body(p):
+    '''enum_body : enum_memberlist comma_opt
+                 |
+    '''
+    if len(p) == 1:
+        p[0] = ExprListNode()
+    else:
+        p[0] = p[1]
+
+def p_enum_memberlist(p):
+    '''enum_memberlist : enum_member
+                       | enum_memberlist COMMA enum_member
+    '''
+    if len(p) == 2:
+        p[0] = ExprListNode()
+        if type(p[1]) == IdentNode:
+            p[1] = AssignNode(p[1], NumLitNode(0))
+        p[0].add(p[1])
+    elif len(p) == 4:
+        p[0] = p[1]
+        if type(p[3]) == IdentNode:
+            p[3] = AssignNode(p[3], NumLitNode(len(p[0])))
+        p[0].add(p[3])
+
+def p_enum_member(p):
+    '''enum_member : id_no_enum
+                   | id_no_enum ASSIGN expr_no_list
+    '''
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        p[0] = AssignNode(p[1], p[3])
+
+
 #page 239 of january2014 draft harmony spec (page 257 as chrome sees it)
 def p_class(p):
   '''class : CLASS id template_opt class_tail'''
@@ -1374,7 +1416,8 @@ def p_class(p):
   
   p[0] = cls;
   if p[3] != None:
-    p[0].template = p[3];
+    p[0].template = p[3]
+    p[0].type = p[3]
   
 def p_exprclass(p):
   '''exprclass : CLASS id template_opt class_tail'''
@@ -1504,6 +1547,7 @@ def p_property_id(p):
                   | DO
                   | NUMBER
                   | IF
+                  | ENUM
                   | ELSE
                   | VAR
                   | CONST
@@ -3023,7 +3067,9 @@ def p_export_decl(p):
                  | EXPORT var_decl SEMI
                  | EXPORT function
                  | EXPORT class
+                 | EXPORT enum
                  | EXPORT DEFAULT function
+                 | EXPORT DEFAULT enum
                  | EXPORT DEFAULT class
                  | EXPORT DEFAULT assign
   '''
@@ -3032,7 +3078,7 @@ def p_export_decl(p):
   def get_name(n):
     if isinstance(n, VarDeclNode) or isinstance(n, IdentNode):
       return n.val
-    elif type(n) in [ClassNode, FunctionNode]:
+    elif type(n) in [ClassNode, FunctionNode, EnumNode]:
       return n.name
     elif type(n) == AssignNode:
       return n[0].gen_js(0).strip()
@@ -3213,6 +3259,20 @@ def p_yield(p):
   else:
     p[0] = YieldNode(ExprNode([]))
 
+def p_id_no_enum(p):
+  ''' id_no_enum : ID
+                 | GET
+                 | SET
+                 | STATIC
+                 | CATCH
+                 | GLOBAL
+                 | AWAIT
+                 | FROM
+  '''
+  set_parse_globals(p)
+  p[0] = IdentNode(p[1])
+  #p[0] = p[1]
+
 #wrapper rule to include GET and SET,
 #which are "soft" keywords.
 def p_id(p):
@@ -3224,6 +3284,7 @@ def p_id(p):
          | GLOBAL
          | AWAIT
          | FROM
+         | ENUM
   '''
   set_parse_globals(p)
   p[0] = IdentNode(p[1])

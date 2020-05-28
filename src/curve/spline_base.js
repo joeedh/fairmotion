@@ -11,10 +11,10 @@ import {STRUCT} from '../core/struct.js';
 import '../util/mathlib.js';
 import {DataPathNode} from '../core/eventdag.js';
 
-export var MaterialFlags = {
+export const MaterialFlags = {
   SELECT       : 1,
   MASK_TO_FACE : 2
-}
+};
 
 export var RecalcFlags = {
   DRAWSORT : 1,
@@ -33,15 +33,15 @@ export var SplineFlags = {
   FRAME_DIRTY     : 128,
   PINNED          : 256,
   
-  NO_RENDER       : 512, //used by segments
-  AUTO_PAIRED_HANDLE : 1<<10,
-  UPDATE_AABB     : 1<<11,
-  DRAW_TEMP       : 1<<12,
-  GHOST           : 1<<13,
-  UI_SELECT       : 1<<14,
-  FIXED_KS        : 1<<21, //internal to solver code
-  REDRAW_PRE      : 1<<22,
-  REDRAW          : 1<<23
+  NO_RENDER          : 512, //used by segments
+  AUTO_PAIRED_HANDLE : 1 << 10,
+  UPDATE_AABB     : 1 << 11,
+  DRAW_TEMP       : 1 << 12,
+  GHOST           : 1 << 13,
+  UI_SELECT       : 1 << 14,
+  FIXED_KS        : 1 << 21, //internal to solver code
+  REDRAW_PRE      : 1 << 22,
+  REDRAW          : 1 << 23
 };
 
 export var SplineTypes= {
@@ -263,7 +263,7 @@ CustomData.STRUCT = `
   }
 `
 
-export class CustomDataSet extends Array {
+export class CustomDataSet extends Array<CustomDataLayer> {
   constructor() {
     super();
   }
@@ -337,7 +337,10 @@ CustomDataSet.STRUCT = `
 export class SplineElement extends DataPathNode {
   cdata : CustomDataSet
   masklayer : number
-  layers : Object;
+  layers : Object
+  flag : number
+  eid  : number
+  type : number;
 
   constructor(type : int) {
     super();

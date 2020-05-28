@@ -767,7 +767,41 @@ class TypeRefNode (TypeNode):
       s += "<%s>" % self.template.__setval__()
       
     return s
-    
+
+class EnumNode(Node):
+    def __init__(self, name="anonymous"):
+        Node.__init__(self)
+        self.name = name
+
+    def gen_js(self, tlevel=0):
+        ts = tab(tlevel-1)
+        ts2 = tab(tlevel)
+
+        if glob.g_include_types:
+            s = self.s("enum ")
+            s += self.s(self.name) + "{\n"
+            for i, c in enumerate(self):
+                s += ts2 + c.gen_js(tlevel)
+                if i < len(self)-1:
+                    s += ","
+                s += "\n"
+            s += ts + "}\n\n"
+
+            return s
+        else:
+            s = self.s("const ")
+            s += self.s(self.name) + " = {\n"
+            for i, c in enumerate(self):
+                s += ts2 + c[0].gen_js(tlevel) + " : " + c[1].gen_js(tlevel)
+                if i < len(self)-1:
+                    s += ","
+                s += "\n"
+            s += ts + "};\n\n"
+
+            return s
+
+        return ""
+
 class NullStatement(Node):
   def __init__(self):
     super(NullStatement, self).__init__()
@@ -841,6 +875,7 @@ class TemplateNode(Node):
     n2 = TemplateNode(self[0])
     self.copy_basic(n2)
     self.copy_children(n2)
+
     if self.name_expr != None:
       n2.name_expr = str(self.name_expr) if type(self.name_expr) == str else self.name_expr.copy()
     
@@ -850,14 +885,14 @@ class TemplateNode(Node):
     s = ""
     if self.name_expr != None:
       s += self.name_expr.gen_js(0)
-      
+
     s += "<"
     for i, c in enumerate(self[0]):
       if i > 0: s += ", "
       if hasattr(c, "get_type_str"): #type(c) in [VarDeclNode, TemplateNode]:
         s += c.get_type_str()
       else:
-        s += c.gen_js(0);
+        s += c.gen_js(0)
     s += ">"
     return s
   
@@ -2464,7 +2499,11 @@ class ClassNode(Node):
     t1 = tab(tlevel)
     t2 = tab(tlevel+1)
     
-    s = self.s("class " + self.name + " ")
+    s = self.s("class " + self.name)
+    if glob.g_include_types and self.type is not None and type(self.type) != UnknownTypeNode:
+        s += self.s(self.type.get_type_str())
+    s += self.s(" ")
+
     if self.parents != None and len(self.parents) > 0:
       s += self.s("extends ")
       for i, p in enumerate(self.parents):

@@ -30,7 +30,7 @@ res = [
 'signed', 'variable', 'template', 'byte',
 'global', 'inferred', 'native', 'class', 'extends',
 'static', 'typed', 'finally', 'get', 'set', 'import', 'export', 'from',
-'await'
+'await', "enum"
 ]
 
 special_ids = [

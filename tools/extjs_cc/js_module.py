@@ -146,7 +146,7 @@ def module_transform(node, typespace):
   
   if glob.g_autoglobalize:
     for n in node[:]:
-      if type(n) in [ClassNode, FunctionNode, VarDeclNode]:
+      if type(n) in [ClassNode, FunctionNode, VarDeclNode, EnumNode]:
         if type(n) == VarDeclNode:
           nname = n.val
         else:

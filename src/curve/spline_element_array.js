@@ -425,7 +425,10 @@ export class IterCache {
   }
 }
 
-export class EditableIter {
+export class EditableIter<T> {
+  list : ElementArray<T>;
+  all_layers : number;
+
   constructor(list, layerset, all_layers) {
     this.init(list, layerset, all_layers);
   }
@@ -666,7 +669,7 @@ export class SelectedEditableAllLayersIter {
 }
 
 //note: the global sline.selected list uses this too
-export class ElementArraySet extends set {
+export class ElementArraySet<T> extends set<T> {
   constructor(arg) {
     super(arg);
     
@@ -689,13 +692,16 @@ export class ElementArraySet extends set {
   //SelectedEditableAllLayersIter
 }
 
-export class ElementArray extends GArray {
+export class ElementArray<T> extends Array<T> {
   cdata : CustomData
   local_idmap : Object
   select_listeners : EventDispatcher
-  selected : ElementArraySet;
+  selected : ElementArraySet<T>;
+  spline : Spline;
+  active : T;
+  highlight : T;
 
-  constructor(type, idgen, idmap, global_sel, layerset, spline) {
+  constructor(type : number, idgen, idmap, global_sel, layerset, spline : Spline) {
     super();
     
     this.layerset = layerset;
@@ -731,7 +737,7 @@ export class ElementArray extends GArray {
   }
   //*/
 
-  editable(ctx) {
+  editable(ctx : BaseContext) : EditableIter<T> {
     if (ctx === undefined) {
       throw new Error("Missing ctx argument");
     }
@@ -789,7 +795,7 @@ export class ElementArray extends GArray {
     a simple array, and swapping elements by index
     will become a bit more complicated
   */
-  swap(a, b) {
+  swap(a : T, b : T) {
     if (a == undefined || b == undefined) {
       console.trace("Warning, undefined in ElementArray.swap(): a, b:", a, b);
       return;
@@ -819,7 +825,7 @@ export class ElementArray extends GArray {
     }
   }
   
-  push(e : SplineElement, custom_eid=undefined, add_to_layerset=true) {
+  push(e : T, custom_eid=undefined, add_to_layerset : boolean=true) {
     if (e.cdata === undefined || e.cdata.length !== this.cdata.layers.length) {
       e.cdata = this.cdata.gen_edata();
     }
@@ -846,7 +852,7 @@ export class ElementArray extends GArray {
     }
   }
   
-  remove(e : SplineElement, soft_error=false) {
+  remove(e : T, soft_error=false) {
     var idx = this.indexOf(e);
     
     if (idx < 0) {
@@ -889,8 +895,8 @@ export class ElementArray extends GArray {
     }
   }
   
-  setselect(e : SplineElement, state : Boolean) {
-    if (e.type != this.type) {
+  setselect(e : T, state : boolean) {
+    if (e.type !== this.type) {
       console.trace("Warning: bad element fed to ElementArray! Got ", e.type, " but expected", this.type);
       return;
     }

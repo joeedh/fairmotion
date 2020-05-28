@@ -32,7 +32,8 @@ colormap = {
   "brown"   : 314,
   "lightred": 91,
   "peach"   : 210,
-  "darkblue" : 273
+  "darkblue" : 273,
+  "lightblue" : 268
 }
 
 def termColor(s, c):

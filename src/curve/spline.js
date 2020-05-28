@@ -144,6 +144,10 @@ export class Spline extends DataBlock {
   selected : ElementArraySet
   draw_verts : boolean
   verts : ElementArray<SplineVertex>
+  handles : ElementArray<SplineVertex>
+  segments : ElementArray<SplineSegment>
+  loops : ElementArray<SplineLoop>
+  face : ElementArray<SplineFace>
   draw_normals : boolean;
 
   constructor(name=undefined) {
@@ -224,7 +228,7 @@ export class Spline extends DataBlock {
   //}
 
   dag_get_datapath() : string {
-    if (this.is_anim_path || (this.verts.cdata.layers.length > 0 && this.verts.cdata.layers[0].name == "TimeDataLayer"))
+    if (this.is_anim_path || (this.verts.cdata.layers.length > 0 && this.verts.cdata.layers[0].name === "TimeDataLayer"))
       return "frameset.pathspline";
     else
       return "frameset.drawspline";

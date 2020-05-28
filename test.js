@@ -1,9 +1,14 @@
+export enum bleh {
+  A = 1024,
+  B = 512,
+  C = 8
+}
 switch (bleh) {
   case bleh:
     break;
 }
 
-class Bleh extends Array {
+class Bleh<Tds> extends Array {
   constructor(s : Object<float>, b, s) {
     super()
 

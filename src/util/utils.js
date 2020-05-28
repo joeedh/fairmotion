@@ -460,12 +460,13 @@ class SetIter {
   }
 }
 
-class set {
+class set<T> {
   items : Object
   length : number
   _itercache : cachering;
+  freelist : Array<T>;
 
-  constructor(Object input) {
+  constructor(input : Iterable<T>) {
     this.items = {};
     this.list = [];
     this.freelist = [];
@@ -526,7 +527,7 @@ class set {
     }
   }
   
-  add(item) {
+  add(item : T) {
     var hash = item[Symbol.keystr]();
     if (hash in this.items)
       return;
@@ -544,7 +545,7 @@ class set {
     this.length++;
   }
   
-  remove(item) {
+  remove(item : T) {
     var hash = item[Symbol.keystr]();
     if (!(hash in this.items))
       return;
@@ -559,13 +560,13 @@ class set {
     return item;
   }
   
-  has(item) {
+  has(item : T) {
     var hash = item[Symbol.keystr]();
     
     return hash in this.items;
   }
   
-  union(set2) {
+  union(set2 : set<T>) {
     var ret = new set();
     
     for (var item of this) {
@@ -583,7 +584,7 @@ class set {
     return this._itercache.next().cache_init(this);
   }
 
-  asArray() : Array<Object> {
+  asArray() : Array<T> {
     var arr = new Array(this.length);
     
     for (var item of this) {
@@ -597,7 +598,7 @@ class set {
     return this.asArray();
   }
 
-  toSource() : String {
+  toSource() : string {
     return "new set(" + list(this).toSource() + ")";
   }
 }

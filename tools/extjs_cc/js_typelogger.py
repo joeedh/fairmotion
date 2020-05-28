@@ -441,6 +441,12 @@ def load_types(node, typespace, data):
         if key in types:
             ts = filter(lambda a : a["value"] not in ["undefined", "null"], types[key])
             ts = list(ts)
+
+            if len(ts) == 2:
+                a, b = ts
+                if (a["value"] == "number" and b["value"] == "boolean") or (a["value"] == "boolean" and b["value"] == "number"):
+                    ts = [a if a["count"] > b["count"] else b]
+
             if len(ts) == 1:
                 return IdentNode(ts[0]["value"])
 

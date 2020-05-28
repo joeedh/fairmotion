@@ -41,11 +41,6 @@ function* testr(obj) {
   }
 }
 
-#ifndef EXPORT
-#define EXPORT
-#define EXPORT_FUNC(func)
-#endif
-
 if (Math.sign == undefined) {
   Math.sign = function(f) {
     return 1.0 - (f < 0.0)*2.0;
@@ -269,7 +264,7 @@ class GArray extends Array {
   */
 
   toSource() : String {
-    var s = "new GArray" + this.length + "(["
+    var s = "new GArray" + this.length + "([";
     
     for (var i=0; i<this.length; i++) {
       s += this[i];
@@ -284,6 +279,7 @@ class GArray extends Array {
 
   toString() : String {
     var s = "[GArray: "
+
     for (var i=0; i<this.length; i++) {
       s += this[i];
       if (i != this.length-1)
@@ -299,7 +295,7 @@ class GArray extends Array {
     this.length = 0;
   }
 }
-EXPORT_FUNC(GArray)
+
 
 //turn defined_classes into a GArray, now that we've defined it (garray)
 global defined_classes;
@@ -324,7 +320,7 @@ function obj_value_iter(Object obj) {
     return this;
   }
 }
-EXPORT_FUNC(obj_value_iter)
+
 
 //turns any iterator into an array
 function list<T>(Iterator<T> iter) : GArray<T> {
@@ -340,7 +336,7 @@ function list<T>(Iterator<T> iter) : GArray<T> {
   
   return lst;
 }
-EXPORT_FUNC(list)
+
 
 function time_func(func, steps=10) {
   var times = [];
@@ -371,7 +367,7 @@ function cached_list<T>(Iterator<T> iter) : GArray<T> {
   
   return lst;
 }
-EXPORT_FUNC(list)
+
 
 var Function g_list = list;
 
@@ -706,7 +702,7 @@ class HashKeyIter {
     return reti;
   }
 }
-EXPORT_FUNC(HashKeyIter)
+
 
 class hashtable {
   constructor() {
@@ -944,7 +940,7 @@ function concat_array(a1, a2)
   
   return ret;
 }
-EXPORT_FUNC(concat_array)
+
 
 function get_callstack(err) {
   var callstack = [];
@@ -980,28 +976,6 @@ function get_callstack(err) {
       }
       isCallstackPopulated = true;
     }
-#ifndef SERVER
-    else if (window.opera && e.message) { //Opera
-      var lines = err.message.split('\n');
-      var len=lines.length;
-      for (var i=0; i<len; i++) {
-        if (lines[i].match(/^\s*[A-Za-z0-9\-_\$]+\(/)) {
-          var entry = lines[i];
-          //Append next line also since it has the file info
-          if (lines[i+1]) {
-            entry += ' at ' + lines[i+1];
-            i++;
-          }
-          callstack.push(entry);
-        }
-      }
-      //Remove call to printStackTrace()
-      if (err_was_undefined) {
-        callstack.shift();
-      }
-      isCallstackPopulated = true;
-    }
-#endif
   }
   
   var limit = 24;
@@ -1020,7 +994,7 @@ function get_callstack(err) {
   
   return callstack;
 }
-EXPORT_FUNC(get_callstack)
+
 
 function print_stack(err) {
   try {
@@ -1035,7 +1009,7 @@ function print_stack(err) {
     console.log(cs[i]);
   }
 }
-EXPORT_FUNC(print_stack)
+
 
 function time_ms() {
   if (window.performance)
@@ -1043,7 +1017,7 @@ function time_ms() {
   else
     return new Date().getMilliseconds();
 }
-EXPORT_FUNC(time_ms)
+
 
 class movavg {
   constructor(length) {
@@ -1437,7 +1411,7 @@ function btypeof(obj) {
   }
 }
 
-#define TOTAL_IDMAP_LAYERS 10
+const TOTAL_IDMAP_LAYERS = 10
 
 class SDIDLayer {
   constructor(int_id) {

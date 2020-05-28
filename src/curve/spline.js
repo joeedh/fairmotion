@@ -1,6 +1,14 @@
 "use strict";
 
-var PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,
+
+//note: INT_MAX is ((1<<30)*4-1)
+
+const MMLEN = 8;
+const UARR = Uint16Array
+const UMAX = ((1<<16)-1)
+const UMUL = 2
+
+const PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,
     ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos,
     asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
 
@@ -17,14 +25,14 @@ import {DataPathNode} from '../core/eventdag.js';
 
 import * as config from '../config/config.js';
 
-var atan2 = Math.atan2;
+const atan2 = Math.atan2;
 
 //math globals
-var FEPS = 1e-18;
-var PI = Math.PI;
-var sin = Math.sin, acos=Math.acos, asin=Math.asin, atan2=Math.atan2, sqrt=Math.sqrt;
-var cos = Math.cos, pow=Math.pow, abs=Math.abs;
-var SPI2 = Math.sqrt(PI/2);
+const FEPS = 1e-18;
+const PI = Math.PI;
+const sin = Math.sin, acos=Math.acos, asin=Math.asin, atan2=Math.atan2, sqrt=Math.sqrt;
+const cos = Math.cos, pow=Math.pow, abs=Math.abs;
+const SPI2 = Math.sqrt(PI/2);
 
 export var _SOLVING = false;
 export var INCREMENTAL = 1;
@@ -353,6 +361,7 @@ export class Spline extends DataBlock {
 
       if (s.h1.hpair != undefined)
         s2.h1.hpair = eidmap[s.h1.hpair.eid]
+
       if (s.h2.hpair != undefined)
         s2.h2.hpair = eidmap[s.h2.hpair.eid]
 
@@ -619,13 +628,6 @@ export class Spline extends DataBlock {
     h1.hpair = h2;
     h2.hpair = h1;
   }
-
-//note: INT_MAX is ((1<<30)*4-1)
-
-const MMLEN = 8
-const UARR = Uint16Array
-const UMAX = ((1<<16)-1)
-const UMUL = 2
 
   export_ks() {
     var mmlen = MMLEN;

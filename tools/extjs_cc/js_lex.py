@@ -841,7 +841,10 @@ class LexWithPrev():
     
   def peek(self):
     p = self.lexer.token()
-    
+
+    if p is not None:
+        p.lineno = self.lineno = self.linemap[p.lexpos]
+
     if p is None:
         return None
         

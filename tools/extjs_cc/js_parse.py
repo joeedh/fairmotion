@@ -181,57 +181,43 @@ def handle_semi_error(p):
   
   if p != None and type(p) != LexToken:
     print(list(p))
-  
+
   ret = tok == None or cur == None or prev.lineno < tok.lineno
-  ret = ret or tok.type == "RBRACKET" or prev.type == "RBRACKET" 
+  ret = ret or tok.type == "RBRACKET" or prev.type == "RBRACKET" or prev.type == "RSBRACKET"
   ret = ret or cur.type == "RBRACKET"
   
   p2 = restricted()
+  #"""
   if p2 != None and not (prev.type in ["RSBRACKET", "RPAREN"] and restrict_prev() == None):
     ret = False
     p = p2
-    print(prev.type, cur.type, p2, restrict_prev())
+    #print(prev.type, cur.type, p2, restrict_prev())
     print("didn't handle semi error")
     #glob.g_line = p.lineno
     #XXX glob.g_lexpos = p.lexpos
     
     #print_err(p)
+  #"""
 
-  """
   i = cur.lexer.lexpos
   ld = p.lexer.lexer.lexdata
   lasttok = ""
 
-  while i < len(ld) and ld[i] != "\n":
-    i += 1
-
-  assign = False
-  while i < len(ld):
-    if ld[i] == "=":
-        assign = True
-
-    if ld[i] != " " and ld[i] != "\t" and ld[i] != "\n" and ld[i] != "\r":
-        if ld[i] == "{" and assign:
-            ret = False
-            break
-        else:
-            assign = ld[i] == "="
-    i += 1
-
-  print(i)
-  #"""
+  #print(prev, cur, tok, ret, prev.lineno, cur.lineno, tok.lineno)
 
   if ret and not glob.g_tried_semi:
     #"""
     t = LexToken()
     t.type = "SEMI"
     t.value = ";"
-    t.lineno = cur.lineno
-    t.lexpos = cur.lexpos
+    t.lineno = p.lexer.lineno
+    t.lexpos = p.lexer.lexpos
+
+    #"""
 
     p.lexer.push(p.lexer.cur)
     p.lexer.push(t)
-    
+
     parser._parser.errok()
     glob.g_error = False
     glob.g_tried_semi = True
@@ -239,12 +225,7 @@ def handle_semi_error(p):
     ret = False
     glob.g_error = True
     glob.g_error_pre = p
-    #for l in prodname_log[-5:-1]:
-    #  print(l)
-      
-    #print("a real error occurred 2!?")
-    #print_err(p)
-    
+
   return ret
   
 def set_parse_globals_error(p):
@@ -252,9 +233,13 @@ def set_parse_globals_error(p):
   if cid != glob.g_comment_id:
     glob.g_comment_id = cid
     print(c)
-    
+
+  line = p.lineno if p is not None else -1
+  if type(line) != int:
+    line = line(0)
+
   if glob.g_production_debug:
-    print("in %s" % get_production()[0])
+    print("in %s %i" % (get_production()[0], line))
   #prodname_log.append(get_production()[0])
 
   #"""
@@ -301,6 +286,8 @@ def raiseSyntaxError(node, msg):
 def set_parse_globals(p, extra_str=""):
   global prodname_log
   
+  glob.g_tried_semi = False
+
   lexer = p.lexer
   if type(lexer) == LexWithPrev:
     lexer = lexer.lexer
@@ -311,9 +298,12 @@ def set_parse_globals(p, extra_str=""):
     glob.g_comment = c
     glob.g_comment_line = lexer.comments[lexer.comment_id-1][1]
     
-  glob.g_tried_semi = False
   if glob.g_production_debug:
-    print("in %s %s" % (get_production()[0], extra_str))
+      line = p.lineno if p is not None else -1
+      if type(line) != int:
+        line = line(0)
+
+      print("in %s %s %i" % (get_production()[0], extra_str, line))
   
   if glob.g_log_productions:
     prodname_log.append(get_production()[0])
@@ -395,17 +385,21 @@ def p_statementlist(p):
 def p_push_scope(p):
   ''' push_scope :
   '''
+  set_parse_globals(p)
   push_scope()
   
 def p_pop_scope(p):
   ''' pop_scope :
   '''
+  set_parse_globals(p)
   pop_scope()
 
 def p_opt_colon_type(p):
   ''' opt_colon_type : COLON var_type
                      |
   '''
+  set_parse_globals(p)
+
   if len(p) > 1:
     p[0] = p[2]
   
@@ -413,12 +407,16 @@ def p_assign_statement(p):
   '''assign_statement : assign COLON var_type
                       |
   '''
+  set_parse_globals(p)
+
   if len(p) > 1:
     p[0] = p[1]
     p[0].type = p[3]
     
 def p_bracketed_statementlist(p):
     '''bracketed_statementlist : LBRACKET statementlist RBRACKET'''
+    set_parse_globals(p)
+
     p[0] = p[2]
     
 def p_statement(p):
@@ -459,6 +457,8 @@ def p_import_decl(p):
   '''import_decl : IMPORT import_clause from_clause SEMI
                  | IMPORT module_spec SEMI
   '''
+  set_parse_globals(p)
+
   if len(p) == 5:
     p[0] = p[2]
     if type(p[3]) == StrLitNode:
@@ -477,6 +477,8 @@ def p_import_clause(p):
                    | import_def_bind COMMA named_imports
   '''
   
+  set_parse_globals(p)
+
   if len(p) == 2:
     p[0] = ImportNode()
     
@@ -496,6 +498,8 @@ def p_import_clause(p):
 def p_import_def_bind(p):
   '''import_def_bind : import_bind
   '''
+  set_parse_globals(p)
+
   p[0] = p[1]
   
   if type(p[0]) == str:
@@ -506,6 +510,8 @@ def p_import_def_bind(p):
 def p_name_space_import(p):
   '''name_space_import : TIMES ID import_bind'''
   
+  set_parse_globals(p)
+
   if p[2] != "as":
     raiseSyntaxError(p[3], "Expected 'as'")
     
@@ -516,6 +522,8 @@ def p_named_imports(p):
   ''' named_imports : LBRACKET RBRACKET
                     | LBRACKET import_list RBRACKET
   '''
+  set_parse_globals(p)
+
   if len(p) == 3:
     p[0] = []
   elif len(p) == 4:
@@ -523,12 +531,16 @@ def p_named_imports(p):
     
 def p_from_clause(p):
   ''' from_clause : FROM module_spec'''
+  set_parse_globals(p)
+
   p[0] = p[2]
-  
+
 def p_import_list(p):
   ''' import_list : import_spec
                   | import_list COMMA import_spec
   '''
+  set_parse_globals(p)
+
   if len(p) == 2:
     p[0] = [p[1]]
   else:
@@ -541,7 +553,8 @@ def p_import_spec(p):
       import_spec : import_bind
                   | ID ID import_bind
   '''
-  
+  set_parse_globals(p)
+
   #second id is 'soft' keyword
   if len(p) ==4 and p[2] != "as":
     raiseSyntaxError(p[3], "Expected 'as'")
@@ -562,6 +575,8 @@ def p_module_spec(p):
   ''' module_spec : STRINGLIT
   '''
   
+  set_parse_globals(p)
+
   p[0] = p[1]
   if type(p[0]) != StrLitNode:
     p[0] = StrLitNode(p[1])
@@ -572,7 +587,8 @@ def p_binding_ident(p):
   ''' binding_ident : id
   '''
   p[0] = p[1].val
- 
+  set_parse_globals(p)
+
 
 """
 def p_statement_error(p):
@@ -714,11 +730,15 @@ def p_id_opt(p):
 def p_template_ref(p):
   '''template_ref : lthan_restrict simple_templatedeflist gthan_restrict
   '''
+  set_parse_globals(p)
+
   p[0] = TemplateNode(p[2])
 
 def p_template_ref_validate(p):
   '''template_ref_validate : lthan_restrict simple_templatedeflist gthan_restrict
   '''
+  set_parse_globals(p)
+
   p[0] = TemplateNode(p[3])
   p[0].add(TypeRefNode(p[1]))
   
@@ -728,6 +748,7 @@ def p_template_validate(p):
   '''
   #                     | lthan_restrict TYPEOF ID gthan_restrict
   #'''
+  set_parse_globals(p)
   p[0] = p[1]
   
 def p_lthan_restrict(p):
@@ -1036,11 +1057,13 @@ def p_var_fancy_list(p):
 def p_var_fancy_array(p):
   '''var_fancy_array : LSBRACKET var_fancy_list RSBRACKET'''
   
+  set_parse_globals(p)
   p[0] = p[2]
 
 def p_var_fancy_object(p):
   '''var_fancy_object : LBRACKET var_fancy_list RBRACKET'''
   
+  set_parse_globals(p)
   p[0] = p[2]
   p[0].etype = "object"
 
@@ -1048,6 +1071,7 @@ def p_var_expand(p):
   '''var_expand : var_fancy_array
                 | var_fancy_object
   '''
+  set_parse_globals(p)
   p[0] = p[1]
   
 def p_var_type(p):
@@ -1438,7 +1462,8 @@ def p_prefix_opt(p):
                 | SET
                 |
   '''
-  
+  set_parse_globals(p)
+
   if len(p) == 2:
     p[0] = p[1]
 
@@ -1552,7 +1577,8 @@ def p_getset_id(p):
   '''getset_id : property_id
                | NUMBER
   '''
-  
+  set_parse_globals(p)
+
   p[0] = p[1]
     
 def p_method_def(p):
@@ -1587,6 +1613,7 @@ def p_var_type2(p):
       var_type2 : var_element
              
   '''
+  set_parse_globals(p)
   if len(p) == 2:
     p[0] = p[1]
     if p[0] in ["int", "short", "float", "double", "char", "byte"]:
@@ -1726,6 +1753,7 @@ def p_template_opt(p):
   '''template_opt : template
                   |
   '''
+  set_parse_globals(p)
   if len(p) == 1:
     p[0] = None
   else:
@@ -1735,6 +1763,7 @@ def p_func_type_opt(p):
   ''' func_type_opt : COLON var_type_opt 
                     |
   '''
+  set_parse_globals(p)
   if len(p) > 1:
     p[0] = p[2]
   else:
@@ -2733,6 +2762,7 @@ def p_ctrl_statement(p):
                      | SEMI
   """
   set_parse_globals(p);
+
   if len(p) == 2 and p[1] != "{":
     p[0] = p[1]
   elif len(p) == 4 and p[1] == "{":
@@ -2853,6 +2883,7 @@ def p_if(p):
   '''
 
   set_parse_globals(p)
+
   p[0] = IfNode(p[2])
   p[0].add(p[3])
 
@@ -2877,6 +2908,7 @@ def p_try(p):
 def p_finally(p):
   '''finally : FINALLY  LBRACKET statementlist_opt RBRACKET
   '''
+  set_parse_globals(p)
   p[0] = FinallyNode()
   p[0].add(p[3]);
   
@@ -2891,7 +2923,8 @@ def p_export_decl(p):
                  | EXPORT DEFAULT class
                  | EXPORT DEFAULT assign
   '''
-  
+  set_parse_globals(p)
+
   def get_name(n):
     if isinstance(n, VarDeclNode) or isinstance(n, IdentNode):
       return n.val
@@ -2970,6 +3003,7 @@ def p_export_clause(p):
                    | LBRACKET exports_list RBRACKET
                    | LBRACKET exports_list COMMA RBRACKET
   '''
+  set_parse_globals(p)
   if len(p) == 3:
     p[0] = []
   elif len(p) in [4, 5]: 
@@ -2979,6 +3013,7 @@ def p_exports_list(p):
   ''' exports_list : export_spec
                    | exports_list COMMA export_spec
   '''
+  set_parse_globals(p)
   if len(p) == 2:
     p[0] = [p[1]]
   else:
@@ -2992,6 +3027,7 @@ def p_export_spec(p):
   ''' export_spec : ID
                   | ID ID ID
   '''                  #middle ID is 'as'
+  set_parse_globals(p)
   if len(p) == 4 and p[2] != "as":
     raiseSyntaxError(None, "expected 'as'")
   
@@ -3003,6 +3039,7 @@ def p_export_spec(p):
 def p_catch_tok(p):
     r'''catch_tok : CATCH'''
     
+    set_parse_globals(p)
     if p[1] != "catch":
         raiseSyntaxError(None, "expected 'catch'")
     
@@ -3334,14 +3371,6 @@ def p_error(p):
     glob.g_error_pre = p
     
     if handle_semi_error(p):
-      t = LexToken()
-      t.type = "SEMI"
-      t.value = ";"
-      t.lexpos = p.lexpos
-      t.lineno = p.lineno
-      #glob.g_lexer.push(t)
-      #glob.g_tried_semi = True
-
       parser._parser.errok()
       #yacc.errok()
       

@@ -167,7 +167,8 @@ loggercode = """
             }
         }
 
-        keys.sort()
+        keys.sort();
+
         let hash = funckey + ":" + name
         if (hash in _dynamic_literals) {
             let objlit = _dynamic_literals[hash];

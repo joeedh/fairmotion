@@ -39,46 +39,56 @@ builtin_functions = [
 ]
 
 builtin_code = {
-  "Iterator": """
-  function Iterator<T>() {
-    this.next = function() : T {
-    }
-  }
+  "Iterator":
+  """function Iterator() {}""",
+  #"""
+  #function Iterator<T>() {
+  #  this.next = function() : T {
+  #  }
+  #}
   
-  """,
-  "CanIterate": """
-    function CanIterate<T>() {
-      this.__iterator__ = function() : Iterator<T> {
-      }
+  #""",
+  "CanIterate":
+  """function CanIterate() {}""",
+
+  #"""
+  #  function CanIterate<T>() {
+  #    this.__iterator__ = function() : Iterator<T> {
+  #    }
+  #  }
+  #""",
+  "Array":
+  """
+    function Array() {
     }
   """,
-  "Array": """
-    function Array<T>() {
-      this.length = 0 : int;
-      this.push = function(T item) {
-      }
-    }
-  """,
+  #"""
+  #  function Array<T>() {
+  #    this.length = 0;
+  #    this.push = function(item) {
+  #    }
+  #  }
+  #""",
   "console": """
     function console() {
-      this.log = function(String str) {
+      this.log = function(str : String) {
       }
       
       this.trace = function() {
       }
       
-      this.debug = function(String str) {
+      this.debug = function(str : String) {
       }
     }
   """, "Math": """
     function Math() {
-      this.sqrt = function(float f) : float {
+      this.sqrt = function(f : float) : float {
       }
       
-      this.floor = function(float f) : float {
+      this.floor = function(f : float) : float {
       }
       
-      this.abs = function(float f) : float {
+      this.abs = function(f : float) : float {
       }
       
       this.pi = 3.141592654 : float;
@@ -106,8 +116,8 @@ class JSTypeSpace:
     self.builtin_typenames = builtin_types
     self.func_excludes = set(["inherit", "inherit_multiple", "define_static", "create_prototype", "prior"])
     
-    self.functions["inherit"] = js_parse("function inherit(Object a, Object b) : void { };", start_node=FunctionNode)
-    
+    self.functions["inherit"] = js_parse("function inherit(a : Object, b : Object) : void { };", start_node=FunctionNode)
+    return
     for t in builtin_types:
       n = BuiltinTypeNode(t)
       n.ret = "class"

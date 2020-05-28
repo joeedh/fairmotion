@@ -22,18 +22,19 @@ for f in js_sources.sources:
     command = "c:/Python38/python.exe tools/extjs_cc/js_cc.py -gtl -at --type-file electron_build/mytypes.json " + f + " " + f
 
     print(f)
-    continue
+    #continue
 
     #ret = os.system(command)
     #print(ret, "<---")
 
-    file = open(f, "rb")
-    buf = file.read()
-    file.close()
-
     if has_cr:
+        file = open(f, "rb")
+        buf = file.read()
+        file.close()
+
         buf = buf.replace(b"\r", b"")
         buf = buf.replace(b"\n", b"\r\n")
+
         file = open(f, "wb")
         file.write(buf)
         file.close()

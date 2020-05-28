@@ -806,7 +806,8 @@ def gen_source_map(src, gensrc, map):
     
 def parse_intern_es6(data):
   glob.g_lines = data.split("\n")
-  
+  glob.g_filedata = data
+
   if glob.g_preprocess_code:
     data = preprocess_text(data, glob.g_file)
     
@@ -1134,7 +1135,8 @@ def expand_of_loops(result, typespace):
 f_id = [0]
 def parse_intern(data, create_logger=False, expand_loops=True, expand_generators=True):
   glob.g_lines = data.split("\n")
-  
+  glob.g_filedata = data
+
   if glob.g_preprocess_code:
     data = preprocess_text(data, glob.g_file)
     
@@ -1519,7 +1521,6 @@ def main():
     data = f.read()
     f.close()
 
-    glob.g_filedata = data
     doloops = not glob.g_emit_code and glob.g_expand_iterators
     
     if glob.g_refactor_mode:

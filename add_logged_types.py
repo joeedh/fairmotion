@@ -18,6 +18,11 @@ for f in js_sources.sources:
 
     command = "c:/Python38/python.exe tools/extjs_cc/js_cc.py -gtl -at --type-file electron_build/mytypes.json " + f + " " + f
 
+    print(f)
+
+    ret = os.system(command)
+    #print(ret, "<---")
+
     file = open(f, "rb")
     buf = file.read()
     file.close()
@@ -28,9 +33,6 @@ for f in js_sources.sources:
         file = open(f, "wb")
         file.write(buf)
         file.close()
-
-    #ret = os.system(command)
-    #print(ret, "<---")
 
     #break
     sys.stdout.flush()

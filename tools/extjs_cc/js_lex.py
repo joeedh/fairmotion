@@ -697,7 +697,7 @@ def t_incomment_CLOSECOM(t):
   comment_str.id = t.lexer.comment_id
   t.lexer.comments[t.lexer.comment_id] = [comment_str, comment_startline]
   t.lexer.comment_id += 1
-  
+
 def t_incomment_ALL(t):
   r'[^/\*]+';
   
@@ -733,7 +733,7 @@ def t_COMMENT(t):
   t.lexer.comment.id = t.lexer.comment_id
   t.lexer.comments[t.lexer.comment_id] = [t.lexer.comment, t.lexer.lineno]
   t.lexer.comment_id += 1
-  
+
   t.lexer.lineno += t.value.count("\n")
 
 @TOKEN(r'[\$a-zA-Z_][\$a-zA-Z_0-9]*')

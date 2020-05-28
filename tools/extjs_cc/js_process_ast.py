@@ -738,7 +738,10 @@ def add_class_list(typespace, n):
 def create_class_list(result, typespace):
   #check_constructor_super(result, typespace)
   #check_constructor_return(result, typespace)
-  
+
+  if not glob.g_register_classes:
+    return
+
   global _the_typespace
   _the_typespace = typespace
 

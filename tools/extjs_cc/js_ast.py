@@ -201,7 +201,7 @@ class Node (object):
         n2.template = self.template.copy()
       
   def copy(self):
-    raise RuntimeError("Unimplemented copy function in type %s!"%str(type(self)))
+    raise RuntimeError(str(glob.g_file) + ": Unimplemented copy function in type %s!"%str(type(self)))
   
   def get_color(self):
     return "orange"
@@ -212,7 +212,7 @@ class Node (object):
       n2.add(c.copy())
       
   def gen_js(self, tlevel):
-    raise RuntimeError("Unimplemented gen_js function in type %s!"%str(type(self)))
+    raise RuntimeError(str(glob.g_file) + ": Unimplemented gen_js function in type %s!"%str(type(self)))
   
   def get_line_str(self):
     name = str(type(self)).replace("js_ast.", "").replace("<class", "").replace(">", "").replace(" ", "").replace("'", "")
@@ -391,11 +391,14 @@ class VarDeclNode(IdentNode):
   def get_color(self):
     return "yellow"
 
-  def __init__(self, expr, local=False, name="(unnamed)"):
+  def __init__(self, expr=None, local=False, name="(unnamed)"):
     #self[0] is assignment expression
     #self[1] is type
     #self[2..] are chained var decl child nodes
-    
+
+    if expr is None:
+        expr = ExprNode()
+
     super(VarDeclNode, self).__init__(expr)
 
     if type(name) == IdentNode:
@@ -407,7 +410,7 @@ class VarDeclNode(IdentNode):
     
     if local:
         self.modifiers.add("local")
-    
+
     self.type = None
     self.add(expr)
     
@@ -477,8 +480,11 @@ class VarDeclNode(IdentNode):
     s += str(self.val)
     
     s = self.s(s)
+
+    if glob.g_include_types and self.type != None and type(self.type) != UnknownTypeNode:
+        s += " : " + self.type.get_type_str()
  
-    if len(self.children) > 0 and not (type(self.children[0]) == ExprNode and len(self.children[0].children)==0):
+    if len(self.children) > 0 and len(self.children[0].gen_js(tlevel).strip()) > 0:
       s += self.s("=") + self.children[0].gen_js(tlevel)
     
     if len(self.children) > 2:
@@ -915,7 +921,10 @@ class BinOpNode (Node):
     return str(self.op)
 
 class ExprNode (Node):
-  def __init__(self, exprnodes, add_parens=False):
+  def __init__(self, exprnodes=None, add_parens=False):
+    if exprnodes is None:
+        exprnodes = []
+
     super(ExprNode, self).__init__()
     self.add_parens = add_parens
     
@@ -1059,11 +1068,14 @@ class RJSObjLitNode (ObjLitNode):
     
 #duplicate of ExprNode, but with different type to (hopefully) avoid chain confusion
 class ExprListNode (ExprNode):
-  def __init__(self, exprnodes):
+  def __init__(self, exprnodes=None):
+    if exprnodes is None:
+        exprnodes = []
+
     super(ExprListNode, self).__init__(exprnodes)
     
   def get_type_str(self):
-    return "(none)"
+    return self.gen_js(0)
   
   def get_color(self):
     return "peach"
@@ -1417,7 +1429,8 @@ class FunctionNode (StatementList):
 
     self.name = name
     self.origname = name
-    
+    self.keyword = None
+
     self.is_anonymous = False
     self.is_arrow = False
     self.is_native = False
@@ -1453,8 +1466,8 @@ class FunctionNode (StatementList):
     
   def get_type_str(self):
     s = self.name
-    if self.template != None:
-      s += self.template.get_type_str()
+    if self.type != None:
+      s += self.type.get_type_str()
     return s
     
   def get_args(self):
@@ -1490,8 +1503,11 @@ class FunctionNode (StatementList):
         s += self.s(", ")
       
       s += c.gen_js(tlevel)
-      
-    s += self.s(") => ")
+
+    s += self.s(")")
+    if glob.g_include_types and self.type != None and type(self.type) != UnknownTypeNode:
+        s += " : " + self.type.get_type_str()
+    s += self.s(" => ")
 
     add_block = len(self.children[1:]) < 2
     if len(self.children) > 1:
@@ -1552,16 +1568,25 @@ class FunctionNode (StatementList):
       
     t = tab(tlevel-1)
     t2 = tab(tlevel)
-    
-    s = "function" if self.add_function_keyword else ""
-    
+
+    s = self.s("")
+
+    if self.keyword is not None:
+        s += self.s(self.keyword + " ")
+
+    s += "function" if self.add_function_keyword else ""
+
     if not glob.g_expand_generators and self.is_generator:
       s += "* "
     else:
       s += " "
-      
-    if self.name != "" and self.name != "(anonymous)":
-      s += "%s("%self.name
+
+    name = self.name
+    if isinstance(name, Node):
+        name = name.gen_js(0).strip()
+
+    if name != "" and name != "(anonymous)":
+      s += "%s("%name
     else:
       s += "("
     
@@ -1572,9 +1597,15 @@ class FunctionNode (StatementList):
         s += self.s(", ")
       
       s += c.gen_js(tlevel)
+      #if c.type != None:
+      #  s += " : " + c.type.get_type_str()
       
-    s += self.s(") {\n") 
-    
+    s += self.s(")")
+    if self.type != None and glob.g_include_types and type(self.type) != UnknownTypeNode:
+        s += self.s(" : " + str(self.type.get_type_str()))
+
+    s += self.s(" {\n")
+
     for c in self.children[1:]:
       if type(c) != StatementList:
         cd = self.s(t2) + c.gen_js(tlevel+1)
@@ -1613,8 +1644,8 @@ class FunctionNode (StatementList):
     else:
         s += self.name
     
-    if self.template != None:
-      s += self.template.extra_str()
+    if self.type != None:
+      s += self.type.extra_str()
     return s
   
 class SwitchNode(Node):
@@ -2267,13 +2298,24 @@ class ClassMember (IdentNode):
 class MethodNode(FunctionNode):
   def __init__(self, name, is_static=False):
     FunctionNode.__init__(self, name, glob.g_line)
+
     self.is_static = is_static
     self.is_generator = False
-    
+    self.add_function_keyword = False
+
+    if self.is_static:
+        self.keyword = "static"
+
     #self[0] : params
     #self[1] : statementlist
-    
-  def gen_js(self, tlevel):
+
+  def gen_js(self, tlevel=0):
+    if self.is_static:
+        self.keyword = "static"
+
+    return super(MethodNode, self).gen_js(tlevel)
+
+  def _old_gen_js(self, tlevel):
     s = ""
 
     if self.is_generator:
@@ -2291,8 +2333,12 @@ class MethodNode(FunctionNode):
     for i, c in enumerate(self[0]):
       if i > 0: s += c.s(", ")
       s += c.gen_js(0)
-    s += ") {\n"
-    
+    s += ")"
+
+    if self.type != None and glob.g_include_types and type(self.type) != UnknownTypeNode:
+        s += " : " + str(self.type.get_type_str())
+
+    s += " {\n"
     s += self[1].gen_js(tlevel)
     s += self.s(tab(tlevel-1) + "}")
     
@@ -2333,8 +2379,9 @@ class MethodGetter(MethodNode):
     #from FunctionNode we add an empty param list
     #here.
     self.add(ExprListNode([]))
+    self.keyword = "get"
     
-  def gen_js(self, tlevel):
+  def _old_gen_js(self, tlevel):
     s = self.s("get " + str(self.name) + "(")
     
     for i, c in enumerate(self[0]):
@@ -2350,8 +2397,9 @@ class MethodGetter(MethodNode):
 class MethodSetter(MethodNode):
   def __init__(self, name, is_static=False):
     MethodNode.__init__(self, name, is_static)
-  
-  def gen_js(self, tlevel):
+    self.keyword = "get"
+
+  def _old_gen_js(self, tlevel):
     s = self.s("set " + str(self.name) + "(")
     
     for i, c in enumerate(self[0]):
@@ -2512,9 +2560,36 @@ class ExportNameNode(Node):
     Node.__init__(self)
     
 class ExportFromNode(Node):
-  def __init__(self, modname): #children are ExportIdent's of what to export  
-    Node.__init__(self)
-    self.name = modname
+    def __init__(self, modname): #children are ExportIdent's of what to export
+        Node.__init__(self)
+        self.name = modname
+
+    def gen_js(self, tlevel=0):
+        if glob.g_es6_modules and not glob.g_inside_js_parse:
+            #this can happen if type logger is enabled,
+            #node doesn't really survive
+            #raise RuntimeError("this node shouldn't have survived")
+            pass
+
+        t = tab(tlevel)
+        s = self.s("")
+        s += self.s("export")
+
+        if len(self) == 1 and self[0].gen_js(0).strip() == "*":
+            s += self.s(" * ")
+        else:
+            s += self.s("{")
+
+            for i, c in enumerate(self):
+                if i > 0:
+                    s += self.s(",")
+                s += c.gen_js(0)
+            s += self.s("}")
+
+        s += self.s(" from ")
+        s += self.s(str(self.name))
+
+        return s
 
 class ExportIdent(IdentNode):
   def __init__(self, name, binding=None):

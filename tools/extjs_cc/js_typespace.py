@@ -190,8 +190,15 @@ class JSTypeSpace:
   def error(self, msg, srcnode):
     if glob.g_print_stack:
       pass #traceback.print_stack()
-    
-    sys.stderr.write("\n%s:(%s): error: %s\n"%(srcnode.file, srcnode.line+1, msg))
+
+    lines = glob.g_lexdata.split("\n")
+    s = max(srcnode.line - 15, 0)
+    e = min(srcnode.line + 15, len(lines)-1)
+    ls = ""
+    for i in range(s, e):
+        ls += str(i) + ": " + lines[i] + "\n"
+
+    sys.stderr.write("\n%s\n%s:(%s): error: %s\n"%(ls, srcnode.file, srcnode.line+1, msg))
     if srcnode.line >= 0 and srcnode.line < len(glob.g_lines):
       sys.stderr.write(" " + glob.g_lines[srcnode.line] + "\n")
     

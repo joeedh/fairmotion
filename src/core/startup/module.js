@@ -1,10 +1,28 @@
 "not_a_module";
+"no_type_logging";
 
 //this file is loaded before the type system.
 //as such, cannot use ES6 class syntax
 
-var _defined_modules = {};
-var _curpath_stack = [];
+let handler = {
+  getProperty(target, key, r) {
+    if (key === "count") {
+      throw new Error("what?")
+    }
+    return target[key];
+  },
+
+  setProperty(target, key, val, r) {
+    if (key === "count") {
+      throw new Error("what?")
+    }
+
+    target[key] = val;
+  }
+}
+var _defined_modules = {} //new Proxy({}, handler);
+
+let _curpath_stack = [];
 var allow_cycles = false;
 var _rootpath_src = "";
 
@@ -578,6 +596,12 @@ function load_modules() {
   //link all module.depends
   for (let k in _defined_modules) {
     let mod = _defined_modules[k];
+
+    if (mod === undefined || mod.depends === undefined) {
+      console.warn("Module error", mod);
+      throw new Error("Module Error" + (mod ? mod.name : ""))
+    }
+
     for (var i = 0; i < mod.depends.length; i++) {
       let mod2 = mod.depends[i];
       

@@ -668,13 +668,16 @@ class ArrayIter {
   }
 }
 
-Array.prototype[Symbol.iterator] = function() {
-  if (this.itercache == undefined) {
-    this.itercache = cachering.fromConstructor(ArrayIter, 8);
+if (!window.TYPE_LOGGING_ENABLED) {
+  Array.prototype[Symbol.iterator] = function () {
+    if (this.itercache == undefined) {
+      this.itercache = cachering.fromConstructor(ArrayIter, 8);
+    }
+
+    return this.itercache.next().init(this);
   }
-  
-  return this.itercache.next().init(this);
 }
+
 
 class HashKeyIter {
   constructor(hashtable hash) {

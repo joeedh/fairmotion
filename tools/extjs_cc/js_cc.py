@@ -104,6 +104,21 @@ class NoExtraArg:
   pass
 
 def combine_try_nodes(node):
+  return
+
+  def error(msg, srcnode):
+    if glob.g_print_stack:
+      pass #traceback.print_stack()
+
+    lines = glob.g_lexdata.split("\n")
+    s = max(srcnode.line - 30, 0)
+    e = min(srcnode.line + 3, len(lines)-1)
+    ls = ""
+    for i in range(s, e):
+        ls += str(i+1) + ": " + lines[i] + "\n"
+
+    sys.stderr.write("\n%s\n%s:(%s): error: %s\n"%(ls, srcnode.file, srcnode.line+1, msg))
+    sys.exit(-1)
 
   def visit(n):
     if type(n.parent) == TryNode: return
@@ -131,7 +146,8 @@ def combine_try_nodes(node):
           break;
         elif type(p[i]) != StatementList:
           n = p
-          sys.stderr.write("%s:(%d): error: orphaned catch block\n" % (n.file, n.line))
+
+          error("%s:(%d): error: orphaned catch block 1\n" % (n.file, n.line), n)
           sys.exit(-1)
           
                   
@@ -140,7 +156,7 @@ def combine_try_nodes(node):
     
     if type(p) != TryNode or len(p) >= 2:
       n = p
-      sys.stderr.write("%s:(%d): error: orphaned catch block\n" % (n.file, n.line))
+      error("%s:(%d): error: orphaned catch block 2\n" % (n.file, n.line), n)
       sys.exit(-1)
     
     n.parent.remove(n)
@@ -319,20 +335,68 @@ def js_parse(data, args=None, file="", flatten=True,
   glob.reset()
   glob.g_exit_on_err = exit_on_err
   glob.g_lexer = plexer
+  glob.g_lexdata = data
   glob.g_production_debug = False
   glob.g_file = file
   glob.g_print_stack = print_stack
   glob.g_print_warnings = print_warnings
   glob.g_log_productions = log_productions
   glob.g_validate_mode = validate
-  
+  glob.g_inside_js_parse = True
+
   plexer.lineno = plexer.lexer.lineno = 0
   plexer.input(data)
 
-  ret = parser.parse(data, lexer=plexer)
+  ret = None
+
+  try:
+    ret = parser.parse(data, lexer=plexer)
+  except:
+    pass
+
+  glob.g_inside_js_parse = False
+
   if glob.g_error:
     ret = None
-  
+
+  if ret is None:
+    ls = data.split("\n")
+    s2 = ""
+    for i in range(len(ls)):
+        s2 += str(i+1) + ": " + ls[i] + "\n"
+    print(s2)
+
+    col = glob.g_lexpos
+    i = min(col, len(data)-1)
+    while i >= 0 and i < len(data) and data[i] != "\n":
+        i -= 1
+
+    if i > 0:
+        col -= i
+        pass
+
+    i = max(i, 0)
+    i2 = i+1
+
+    while i2 < len(data) and data[i2] != "\n":
+        i2 += 1
+
+    #line = data.split("\n")[glob.g_line]
+    if data[i] == "\n":
+        line = data[i+1:i2]
+    else:
+        line = data[i:i2]
+
+    while col < len(line) and col >= 0 and line[col] in ["\n", "\r", "\t", " "]:
+        col += 1
+
+    if col > 0 and col < len(line):
+
+        line = line[:col] + termColor(line[col], 41) + line[col+1:]
+
+
+    raise SyntaxError("(js_parse intern):"+str(glob.g_line+1) + ":" + str(col+1) + "\n\t" + line)
+
   if ret:
     flatten_statementlists(ret, None)
 
@@ -1104,7 +1168,36 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
     return buf, result
 
   flatten_var_decls_exprlists(result, typespace)
-  
+
+  if glob.g_type_file != "":
+    if not os.path.exists(glob.g_type_file):
+        sys.stderr.write("File does not exist: %s\n" % glob.g_type_file)
+        sys.exit(-1)
+
+    import json
+    import js_typelogger
+
+    file = open(glob.g_type_file, "r")
+    buf = file.read()
+    file.close()
+
+    data2 = json.loads(buf)
+    inserts = js_typelogger.load_types(result, typespace, data2)
+    js_typelogger.emit_dynamic_literals(result, typespace, data2)
+
+
+    if glob.g_apply_types:
+        data = js_typelogger.apply_inserts(result, typespace, inserts, data)
+        if glob.g_outfile == "":
+            print(data)
+
+        return data, result
+
+  if create_logger:
+    import js_typelogger
+    js_typelogger.create_type_logger(result, typespace)
+
+
   #handle some directives
   for c in result:
     if type(c) != StrLitNode: break
@@ -1184,10 +1277,7 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
   
   #combine_try_nodes may have nested statementlists again, so better reflatten
   flatten_statementlists(result, typespace)
-  
-  if create_logger:
-    traverse(result, FunctionNode, create_type_logger)
-  
+
   #don't need to do this anymore, yay!
   #process_arrow_function_this(result, typespace)
   
@@ -1428,7 +1518,8 @@ def main():
     f = open(args.infile, "r")
     data = f.read()
     f.close()
-    
+
+    glob.g_filedata = data
     doloops = not glob.g_emit_code and glob.g_expand_iterators
     
     if glob.g_refactor_mode:

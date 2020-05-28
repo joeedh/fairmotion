@@ -15,6 +15,17 @@ s += r')?'
 s += r'(?=[,)])'
 id_with_default_re = re.compile(s)
 
+type_re_s = r'[a-zA-Z_$]+[a-zA-Z0-9_$<>]*'
+type_re = re.compile(r'(\s*\:\s*' + type_re_s + r')')
+
+s = r'(' + r'[a-zA-Z$_]+[a-zA-Z_$0-9]*' + r')';
+s += r'(\s*\:\s*' + type_re_s + r')?'
+s += r'(\s*\=.+'
+s += r')?'
+s += r'(?=[,)])'
+
+id_with_default_and_types_re = re.compile(s)
+
 #print(s)
 #print(id_with_default_re.match("a"))
 
@@ -55,11 +66,16 @@ def arrow_validate(lexdata, lexpos, lookahead_limit):
   
   def id_with_default(required=True):
     return reget(id_with_default_re, required)
-    
+
+  def id_with_default_and_types(required=True):
+    return reget(id_with_default_and_types_re, required)
+
   def comma(required=True):
-    
     reget(comma_re, required)
-  
+
+  def typedef(required=True):
+    return reget(type_re, required)
+
   def arrow(required=True):
     return reget(arrow_re, required)
   
@@ -96,10 +112,11 @@ def arrow_validate(lexdata, lexpos, lookahead_limit):
         comma()
       first = 0
       
-      id_with_default()
+      id_with_default_and_types()
       c = peek()
         
     rparen()
+    typedef(False)
     arrow()
   else:
     id()

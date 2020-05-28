@@ -80,19 +80,29 @@ glob_cmd_help_override = {
   "g_warn_for_in" : "warn when for-in loops are used",
   "g_autoglobalize" : "Make module locals (but not exports) global.  Useful during refactoring.",
   "g_expand_classes" : "Fully transpile classes",
+  "g_register_classes" : "Register classes with _ESClass.register",
   "g_expand_generators" : "Transpile generators",
   "g_include_comments" : "Include Comments",
-  "g_raw_code" : "Disable code transformations"
+  "g_raw_code" : "Disable code transformations",
+  "g_include_types" : "Emit type annotations",
+  "g_type_file" : "Type file (json)",
+  "g_apply_types" : "Apply types from types file to original source"
 }
 glob_cmd_short_override = {}
 
 glob_cmd_parse_exclude = set(["infile", "outfile", "nfile"])
 glob_cmd_advanced = set(["g_error", "g_line", "g_file", "g_tried_semi", "g_error_pre", "g_lexpos", "g_clear_slashr", "g_lexer"])
-glob_cmd_exclude = set(["g_error_msg", "g_comment_line", "g_comment", "g_comment_id", "g_lexer", "g_error_pre", "g_outfile", "g_lines", "g_lexdata"])
+glob_cmd_exclude = set(["g_error_msg", "g_inside_js_parse", "g_filedata", "g_comment_line", "g_comment", "g_comment_id", "g_lexer", "g_error_pre", "g_outfile", "g_lines", "g_lexdata"])
 glob_long_word_shorten = {"generators": "gens", "error": "err", "warnings": "warn", "production": "prod"}
 
 gcs = glob_cmd_short_override
+
+gcs["g_apply_types"] = "at"
+gcs["g_type_file"] = "tf"
+gcs["g_register_classes"] = "nrc"
+gcs["g_include_types"] = "et"
 gcs["g_expand_generators"] = "eg"
+gcs["g_gen_log_code"] = "gtl"
 gcs["g_expand_classes"] = "ec"
 gcs["g_destroy_templates"] = "dt"
 gcs["g_log_productions"] = "lp"
@@ -124,7 +134,7 @@ gcs["g_enable_let"] = "lt"
 gcs["g_compile_statics_only"] = "sn"
 gcs["g_profile_coverage"] = "pc"
 gcs["g_include_comments"] = "ic"
-gcs["g_raw_code"] = "raw";
+gcs["g_raw_code"] = "raw"
 
 def argv_to_argline():
   s = ""
@@ -323,12 +333,17 @@ class Glob(AbstractGlob):
     g_validate_mode = False
     g_lex_templates = True
     g_lexdata = None
+    g_filedata = None
     g_raw_code = False
     g_comment_id = -1
     g_comment_line = -1
     g_comment = ""
     g_lines = None
     g_emit_code = False
+    g_type_file = ""
+    g_apply_types = False
+    g_include_types = False
+    g_register_classes = True
     g_include_dirs=None
     g_preprocess_code = True
     g_combine_ifelse_nodes = False
@@ -336,6 +351,7 @@ class Glob(AbstractGlob):
     g_force_global_strict = False
     g_autoglobalize = False
     g_expand_iterators = True
+    g_inside_js_parse = False
     #g_harmony_iterators = True
     g_refactor_mode = False
     g_include_comments = False

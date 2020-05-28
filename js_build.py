@@ -130,6 +130,8 @@ def addslash(path):
   path += sep
   return path
 
+gen_type_logging = getcfg("gen_type_logging", False, "bool")
+
 num_cores = getcfg("num_cores", 15, "int")
 do_minify = getcfg("do_minify", False, "bool")
 do_smaps = getcfg("do_smaps", False, "bool")
@@ -375,6 +377,8 @@ TCC = getcfg("TCC", np("tools/extjs_cc/js_cc.py"), "path")
 print("using python executable \"" + PYBIN.strip() + "\"")
 
 JFLAGS = " -dpr --no-expand-iterators "
+if gen_type_logging:
+    JFLAGS += " -gtl "
 
 #don't transpile classes, they'll still be fed to a global list though
 #JFLAGS += " -nec "

@@ -681,6 +681,7 @@ def p_id_opt(p):
   ''' id_opt : id
              |
   '''
+  set_parse_globals(p)
   if len(p) == 2:
     p[0] = p[1]
   
@@ -1045,6 +1046,8 @@ def p_var_type(p):
     raise RuntimeError("internal parse error")
   elif len(p) == 2:
     p[0] = p[1]
+    if type(p[0]) == str:
+        p[0] = IdentNode(p[0])
   elif len(p) == 3:
     if type(p[2]) == TemplateNode:
       if type(p[1]) not in [IdentNode, VarDeclNode]:
@@ -1516,8 +1519,8 @@ def p_method(p):
   p[0].add(params)  
   p[0].add(statementlist)
   
-  if p2[5] != None:
-    p[0].type = p2[5]
+  if p[6] != None:
+    p[0].type = p[6]
 
 def p_getset_id(p):
   '''getset_id : property_id
@@ -1674,8 +1677,8 @@ def p_funcdeflist(p):
   r'''
     funcdeflist : var_decl_no_list
                 | funcdeflist COMMA var_decl_no_list
-                | typescript_var_decl
-                | funcdeflist COMMA typescript_var_decl
+                | typed_argument
+                | funcdeflist COMMA typed_argument
                 |
   '''
   
@@ -2186,9 +2189,31 @@ def p_concise_body(p):
   else:
     p[0] = p[2]
 
+
+def p_typed_argument(p):
+  '''
+  typed_argument : id
+                 | id COLON var_type
+                 | id COLON var_type ASSIGN expr_for_arraylit
+                 | id ASSIGN expr_for_arraylit
+  '''
+  set_parse_globals(p)
+
+  if len(p) == 2:
+    p[0] = VarDeclNode(name=p[1].val)
+  elif len(p) == 4 and p[2] == ":":
+    p[0] = VarDeclNode(ExprNode(), name=p[1].val)
+    p[0].type = p[3]
+  elif len(p) == 4 and p[2] == "=":
+    p[0] = VarDeclNode(p[3], name=p[1].val)
+  elif len(p) == 6:
+    p[0] = VarDeclNode(p[5], name=p[1])
+    p[0].type = p[3]
+
+
 def p_arrowparamlist_opt(p):
-  '''arrowparamlist_opt : var_decl_no_list
-                        | arrowparamlist_opt COMMA var_decl_no_list
+  '''arrowparamlist_opt : typed_argument
+                        | arrowparamlist_opt COMMA typed_argument
                         |
   '''
 #todo: support rest parameters
@@ -2209,40 +2234,23 @@ def p_arrowparamlist_opt(p):
     p[0].add(p[3])
   else:
     raise RuntimeError("eek!")
-    
-def p_arrow_paramlist(p):
-  '''
-    arrow_paramlist : RPAREN expr LPAREN
-  '''
-  
-  set_parse_globals(p)
-  #there we differentiate between this case
-  #and case three in p_arrow_function by
-  #making this one a formal IdentNode,
-  #so we can test for the other with type(p[1]) == type(str)
-  
-  if len(p) == 2:
-    if type(p[1]) == ExprListNode or (type(p[1]) == ExprNode and len(p[1]) > 1):
-      p[0] = p[1]
-    elif isinstance(p[1], IdentNode) or isinstance(p[1], VarDeclNode):
-      p[0] = p[1]
-    elif type(p[1]) == str:
-      p[0] = IdentNode(p[1])
-    else:
-      raiseSyntaxError(p[1], "bad arrow parameter block")
-
 
 def p_arrow_function(p):
   '''
     arrow_function : ARROW_PRE arrowparamlist_opt RPAREN ARROW concise_body
+                   | ARROW_PRE arrowparamlist_opt RPAREN COLON var_type ARROW concise_body
                    | ID ARROW concise_body
   '''
   
   func = FunctionNode("(anonymous)")
   func.is_anonymous = True
   func.is_arrow = True
-  
-  if len(p) == 4:
+
+  if len(p) == 8:
+    func.add(p[2])
+    func.add(p[7])
+    func.type = p[5]
+  elif len(p) == 4:
     func.add(ExprListNode([p[1]]))
     func.add(p[3])
   else:
@@ -3217,7 +3225,7 @@ tried_semi = False
   
 def p_error(p):
   global parser
-  
+
   if p and p.lexer._force_lexpos_line is not None:
     p.lexpos = p.lexer._force_lexpos_line[0]
     p.lineno = p.lexer._force_lexpos_line[1]
@@ -3263,7 +3271,13 @@ def p_error(p):
         print("--------------", p2.action[p2.state], "\n\n")
         
         return
-  
+
+  if 0: #p:
+    lexpos = p.lexpos if type(p.lexpos) == int else p.lexpos(0)
+    #lexpos = p.lexer.lexpos
+    if lexpos > 0 and lexpos > glob.g_lexpos:
+        glob.g_lexpos = lexpos
+
   """
   print(p.lexer.prev.lineno, p.lineno)
   if p.lexer.prev.lineno < p.lineno or p.type == "RBRACKET":
@@ -3324,7 +3338,7 @@ def p_error(p):
     
   glob.g_error_pre = p
   glob.g_error = True
-  
+
   try:
     line = int(p.lineno)
   except:

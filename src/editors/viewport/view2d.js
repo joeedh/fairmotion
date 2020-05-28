@@ -22,6 +22,9 @@ import './toolmodes/all.js';
 
 let projrets = cachering.fromConstructor(Vector3, 128);
 
+let _v3d_unstatic_temps = cachering.fromConstructor(Vector3, 512);
+let _v2d_unstatic_temps = cachering.fromConstructor(Vector2, 32);
+
 function delay_redraw(ms : number) {
   var start_time = time_ms();
   var timer = window.setInterval(function() {
@@ -104,6 +107,9 @@ class PanOp extends ToolOp {
 }
 
 class drawline {
+  v1 : Vector3;
+  v2 : Vector3;
+
   constructor(co1, co2, group : string, color, width : number) {
     this.v1 = new Vector3(co1);
     this.v2 = new Vector3(co2);
@@ -123,6 +129,20 @@ class drawline {
 }
 
 export class View2DHandler extends Editor {
+  static STRUCT     : string;
+  rendermat         : Matrix4;
+  need_data_link    : boolean;
+  widgets           : ManipulatorManager;
+  dpi_scale         : number;
+  draw_faces        : boolean;
+  background_color  : Vector3;
+  default_stroke    : Vector4;
+  default_fill      : Vector4;
+  default_linewidth : float;
+  drawlines         : GArray<drawline>;
+  drawline_groups   : Object;
+  ctx               : FullContext;
+
   constructor() {
     super();
 
@@ -345,7 +365,7 @@ export class View2DHandler extends Editor {
     this.background_image.data_link(block, getblock, getblock_us);
   }
 
-  set_cameramat(mat=undefined) {
+  set_cameramat(mat : Matrix4=undefined) {
     var cam = this.cameramat, render = this.rendermat, zoom = new Matrix4();
 
     if (mat != undefined)
@@ -364,7 +384,7 @@ export class View2DHandler extends Editor {
   }
 
   _getCanvasOff() : Vector3 {
-    static off = new Vector3();
+    let off = _v3d_unstatic_temps.next().zero();
 
     let r1 = this.get_bg_canvas().getClientRects()[0];
     let r2 = this.getClientRects()[0];
@@ -376,7 +396,7 @@ export class View2DHandler extends Editor {
   }
 
   project(co : Vector3) {
-    static _co = new Vector3();
+    let _co = _v3d_unstatic_temps.next().zero();
 
     _co.load(co);
     _co[2] = 0.0;
@@ -393,7 +413,7 @@ export class View2DHandler extends Editor {
   }
 
   unproject(co : Vector3) {
-    static _co = new Vector3();
+    let _co = _v3d_unstatic_temps.next().zero();
 
     _co.load(co);
 
@@ -901,7 +921,7 @@ export class View2DHandler extends Editor {
     var dl = new drawline(v1, v2, group, color, width);
     drawlines.push(dl);
 
-    static min = [0, 0], max = [0, 0];
+    let min = _v2d_unstatic_temps.next(), max = _v2d_unstatic_temps.next();
 
     var pad = 5;
 
@@ -916,7 +936,7 @@ export class View2DHandler extends Editor {
   }
 
   kill_drawline(dl) {
-    static min = [0, 0], max = [0, 0];
+    let min = _v2d_unstatic_temps.next(), max = _v2d_unstatic_temps.next();
 
     var drawlines = this._get_dl_group(dl.group);
     var pad = 5;

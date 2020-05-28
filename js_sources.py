@@ -75,6 +75,7 @@ sources = [
   "src/core/imageblock.js",
   "src/image/image_ops.js",
   "src/core/UserSettings.js",
+    "src/core/context.js",
 	"src/core/AppState.js",
 	"src/core/units.js",
 	"src/core/data_api/data_api.js",

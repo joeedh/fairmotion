@@ -21,7 +21,7 @@ export class ToolDef {
 //makes e.x/e.y relative to dom,
 //and also flips to origin at bottom left instead of top left
 export function patchMouseEvent(e : MouseEvent, dom : HTMLElement) {
-  dom = dom === undefined ? g_app_state.screen : dom;
+  dom = g_app_state.screen; //dom === undefined ? g_app_state.screen : dom;
 
   let e2 = {
     prototype : e

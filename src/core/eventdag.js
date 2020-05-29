@@ -360,8 +360,8 @@ export class EventNode {
     }
 
     sock.update();
-    this.flag |= DagFlags.UPDATE;
 
+    this.flag |= DagFlags.UPDATE;
     this.graph.on_update(this, field);
   }
   
@@ -1014,16 +1014,12 @@ export class EventDag {
       
       //console.log("Executing DAG node", owner.constructor.name);
       
-      if (owner == undefined) { //destroy!
+      if (owner === undefined) { //destroy!
+        console.warn("Bad owner!");
         n.flag |= DagFlags.DEAD;
-      }
-      
-      //console.log("have dag_exec?", owner.dag_exec != undefined);
-
-      //does object have a dag node callback?
-      if (owner == undefined || owner.dag_exec == undefined)
         continue;
-      
+      }
+
       //pull from inputs
       for (var k in n.inputs) {
         var sock = n.inputs[k];
@@ -1032,7 +1028,7 @@ export class EventDag {
           var e = sock.edges[j], s2 = e.opposite(sock);
           
           var n2 = s2.node, owner2 = n2.get_owner(ctx);
-          if (n2 == undefined) {
+          if (n2 === undefined) {
             //dead
             n2.flag |= DagFlags.DEAD;
             continue;
@@ -1048,8 +1044,10 @@ export class EventDag {
           break;
         }
       }
-            
-      owner.dag_exec(ctx, n.inputs, n.outputs, this);
+
+      if (owner.dag_exec) {
+        owner.dag_exec(ctx, n.inputs, n.outputs, this);
+      }
 
       //flag child nodes that need updating first
       for (var k in n.outputs) {

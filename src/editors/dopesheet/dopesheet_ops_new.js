@@ -1,9 +1,10 @@
 import {ToolOp} from '../../core/toolops_api.js';
 import {AnimKeyFlags, AnimKeyTypes, get_vtime, set_vtime} from "../../core/animdata.js";
-import {ListProperty, EnumProperty, FloatProperty,
+import {ListProperty, EnumProperty, FloatProperty, Vec2Property,
         IntProperty, BoolProperty, IntArrayProperty} from "../../core/toolprops.js";
 import * as util from '../../path.ux/scripts/util/util.js';
 import {SplineFlags} from "../../curve/spline_base.js";
+import {Vector2} from '../../path.ux/scripts/util/vectormath.js';
 
 export class KeyIterItem {
   type : AnimKeyType;
@@ -23,12 +24,24 @@ export class KeyIterItem {
 
   }
 
-  getValue() {
+  setSelect(state) {
+    if (state) {
+      this.setFlag(this.getFlag() | AnimKeyFlags.SELECT);
+    } else {
+      this.setFlag(this.getFlag() & ~AnimKeyFlags.SELECT);
+    }
+  }
 
+  getValue() {
+    throw new Error("implement me");
   }
 
   setValue() {
+    throw new Error("implement me");
+  }
 
+  getId() {
+    throw new Error("implement me");
   }
 }
 
@@ -38,6 +51,10 @@ export class VertKeyIterItem extends KeyIterItem {
     this.v = undefined;
     this.spline = undefined;
     this.type = AnimKeyTypes.SPLINE;
+  }
+
+  getId() {
+    return this.v.eid;
   }
 
   getFlag() {
@@ -108,22 +125,22 @@ export class AnimKeyTool extends ToolOp {
     }
   }}
 
-  * iterKeys(ctx) {
-    if (this.keyList) {
+  * iterKeys(ctx, useKeyList=this.inputs.useKeyList.getValue()) {
+    if (useKeyList) {
       let list = this.inputs.keyList.getValue();
+      let pathspline = ctx.frameset.pathspline;
 
       for (let i=0; i<list.length; i += 2) {
         let type = list[i], id = list[i+1];
         if (type === AnimKeyTypes.SPLINE) {
-          let spline = ctx.frameset.pathspline;
+          let v = pathspline.eidmap[id];
 
-          let v = spline.eidmap[id];
           if (!v) {
-            console.warn("Error iterating spline animation keys; key could not be found", id, ctx.frameset.pathspline);
+            console.warn("Error iterating spline animation keys; key could not be found", id, pathspline);
             continue;
           }
 
-          yield vkey_cache.next().init(spline, v);
+          yield vkey_cache.next().init(pathspline, v);
         } else {
           throw new Error("implement me!");
         }
@@ -166,16 +183,26 @@ export class AnimKeyTool extends ToolOp {
       spline : spline
     };
 
-    for (let key of this.iterKeys(ctx)) {
-      if (key.type === AnimKeyTypes.SPLINE) {
-        spline.push(key.v.eid);
-        spline.push(get_vtime(key.v));
-        spline.push(key.v.flag);
+    let vset = new Set();
 
-        spline.push(key.v[0]);
-        spline.push(key.v[1]);
-      } else {
-        throw new Error("implement me!");
+    for (let i=0; i<2; i++) {
+      for (let key of this.iterKeys(ctx, i)) {
+        if (key.type === AnimKeyTypes.SPLINE) {
+          if (vset.has(key.v.eid)) {
+            continue;
+          }
+
+          vset.add(key.v.eid);
+
+          spline.push(key.v.eid);
+          spline.push(get_vtime(key.v));
+          spline.push(key.v.flag);
+
+          spline.push(key.v[0]);
+          spline.push(key.v[1]);
+        } else {
+          throw new Error("implement me!");
+        }
       }
     }
   }
@@ -206,10 +233,6 @@ export class AnimKeyTool extends ToolOp {
         v.flag |= SplineFlags.UPDATE;
       }
     }
-
-    //pathspline.regen_render();
-    ctx.frameset.spline.updateGen++; //signal dopesheet to draw
-    window.redraw_viewport();
   }
 
   exec(ctx) {
@@ -252,7 +275,6 @@ export class ToggleSelectAll extends AnimKeyTool {
 //        console.log(key);
 
         let flag = key.getFlag();
-        console.log(flag, AnimKeyFlags.SELECT);
         if (flag & AnimKeyFlags.SELECT) {
           mode = SelModes.SUB;
           break;
@@ -263,7 +285,7 @@ export class ToggleSelectAll extends AnimKeyTool {
       //mode = count > 0 ? SelModes.SUB : SelModes.ADD;
     }
 
-    console.log(mode, count);
+    console.log("mode, count", mode, count);
 
     for (let key of this.iterKeys(ctx)) {
       if (mode === SelModes.ADD) {
@@ -275,5 +297,198 @@ export class ToggleSelectAll extends AnimKeyTool {
 
     super.exec(ctx);
   }
+
+  undo(ctx) {
+    super.undo(ctx);
+
+    if (ctx.dopesheet) {
+      ctx.dopesheet.updateKeyPositions();
+    }
+  }
 }
 
+
+export class MoveKeyFramesOp extends AnimKeyTool {
+  constructor() {
+    super();
+
+    this.first = true;
+    this.last_mpos = new Vector2();
+    this.start_mpos = new Vector2();
+    this.sum = 0.0;
+    this.transdata = [];
+  }
+
+  on_mousemove(e) {
+    let ctx = this.modal_ctx;
+
+    if (this.first) {
+      this.last_mpos[0] = e.x;
+      this.last_mpos[1] = e.y;
+
+      this.start_mpos[0] = e.x;
+      this.start_mpos[1] = e.y;
+
+      this.first = false;
+      this.sum = 0.0;
+
+      this.transdata.length = 0;
+
+      for (let key of this.iterKeys(ctx)) {
+        if (!(key.getFlag() & AnimKeyFlags.SELECT)) {
+          continue;
+        }
+
+        this.transdata.push(key.getTime());
+      }
+
+      return;
+    }
+
+
+    let dx = e.x - this.last_mpos[0], dy = e.y - this.last_mpos[1];
+    let dopesheet = ctx.dopesheet;
+
+    dx = e.x - this.start_mpos[0];
+
+    if (dopesheet) {
+      let boxsize = dopesheet.boxSize;
+
+      dx /= dopesheet.zoom*dopesheet.timescale*boxsize*0.05;
+    } else {
+      dx *= 0.1;
+    }
+
+    if (dx === undefined) {
+      throw new Error("eek!");
+    }
+
+    this.inputs.delta.setValue(dx);
+
+    let i = 0;
+    let td = this.transdata;
+
+    for (let key of this.iterKeys(ctx)) {
+      if (!(key.getFlag() & AnimKeyFlags.SELECT)) {
+        continue;
+      }
+
+      key.setTime(td[i]);
+      i++;
+    }
+
+    this.exec(ctx);
+
+    if (dopesheet) {
+      dopesheet.updateKeyPositions();
+    }
+
+    console.log(dx, dy, dopesheet !== undefined);
+
+    this.last_mpos[0] = e.x;
+    this.last_mpos[1] = e.y;
+  }
+
+  exec(ctx, dx_override=undefined) {
+    let dx = this.inputs.delta.getValue();
+
+    if (dx_override) {
+      dx = dx_override;
+    }
+
+    for (let key of this.iterKeys(ctx)) {
+      if (!(key.getFlag() & AnimKeyFlags.SELECT)) {
+        continue;
+      }
+
+      let time = key.getTime();
+      key.setTime(Math.floor(time + dx + 0.5));
+    }
+
+    ctx.frameset.pathspline.flagUpdateVertTime();
+  }
+
+  undo(ctx) {
+    super.undo(ctx);
+
+    if (ctx.dopesheet) {
+      ctx.dopesheet.updateKeyPositions();
+    }
+  }
+
+  on_keydown(e) {
+    if (e.keyCode === 27) {
+      this.end_modal();
+    }
+  }
+
+  on_mousedown(e) {
+    this.end_modal();
+  }
+
+  on_mouseup(e) {
+    this.end_modal();
+  }
+
+  static tooldef() {return {
+    name       : "Move Keyframes",
+    toolpath   : "anim.movekeys",
+    is_modal   : true,
+    inputs     : ToolOp.inherit({
+      delta    : new FloatProperty()
+    })
+  }}
+}
+
+export const SelModes2 = {
+  UNIQUE : 0,
+  ADD    : 1,
+  SUB    : 2
+}
+
+export class SelectKeysOp extends AnimKeyTool {
+  constructor() {
+    super();
+
+    this.inputs.useKeyList.setValue(true);
+  }
+
+  static tooldef() {return {
+    name       : "Select Keyframes",
+    toolpath   : "anim.select",
+    inputs     : ToolOp.inherit({
+      mode : new EnumProperty("UNIQUE", SelModes2)
+    })
+  }}
+
+  exec(ctx) {
+    let mode = this.inputs.mode.getValue();
+
+    console.log("select mode:", mode);
+
+    if (mode === SelModes2.UNIQUE) {
+      for (let key of this.iterKeys(ctx, false)) {
+        key.setSelect(false);
+      }
+    }
+
+    let state = mode === SelModes2.UNIQUE || mode === SelModes2.ADD;
+
+    for (let key of this.iterKeys(ctx)) {
+      key.setSelect(state);
+    }
+
+    ctx.frameset.pathspline.flagUpdateVertTime();
+  }
+
+  undo(ctx) {
+    super.undo(ctx);
+
+    ctx.frameset.pathspline.flagUpdateVertTime();
+
+    if (ctx.dopesheet) {
+      ctx.dopesheet.updateKeyPositions();
+      ctx.dopesheet.redraw();
+    }
+  }
+}

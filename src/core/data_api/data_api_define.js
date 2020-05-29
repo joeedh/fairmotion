@@ -819,7 +819,16 @@ function api_define_scene() {
   var frame = new IntProperty(0, "frame", "Frame", "Frame", TPropFlags.LABEL);
   
   frame.range = [1, 10000];
-  
+  frame.step = 1;
+  frame.expRate = 1.5;
+
+  frame.update = (owner, old) => {
+    let time = owner.time;
+    owner.time = old;
+    owner.change_time(g_app_state.ctx, time);
+    window.redraw_viewport();
+  }
+
   var SceneStruct = new DataStruct(api_define_DataBlock().concat([
     new DataPath(name, "name", "name", true),
     new DataPath(frame, "frame", "time", true),

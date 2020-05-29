@@ -96,7 +96,7 @@ class PanOp extends ToolOp {
     var ctx = this.modal_ctx;
     mpos.sub(this.start_mpos).mulScalar(1.0/ctx.view2d.zoom);
 
-    this.cameramat.load(this.start_cameramat).translate(mpos[0], mpos[1], 0.0);
+    this.cameramat.load(this.start_cameramat).translate(mpos[0], -mpos[1], 0.0);
     ctx.view2d.set_cameramat(this.cameramat);
 
     //console.log("panning");

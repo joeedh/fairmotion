@@ -1689,7 +1689,17 @@ class SDIDGen {
     
     return id;
   }
-  
+
+  _save_usedmap() {
+    let ret = [];
+
+    for (let k in this.usedmap) {
+      ret.push(parseInt(k));
+    }
+
+    return ret;
+  }
+
   free_id(id) {
     if (id == this.cur_id-1) {
       this.cur_id--;
@@ -1710,7 +1720,7 @@ SDIDGen.STRUCT = `
 SDIDGen {
   cur_id        : int;
   idmap_layers  : SDIDLayerList;
-  usedmap       : iter(int);
+  usedmap       : iter(int) | this._save_usedmap();
   freelist      : array(int);
 }
 `;

@@ -303,7 +303,7 @@ export class IntArrayProperty extends ToolProperty {
   setValue(array) {
     let data = this.data;
 
-    super.setData(array);
+    super.setValue(array);
 
     this.data = data;
     this.data.length = 0;

@@ -2409,8 +2409,12 @@ export class Spline extends DataBlock {
     return this;
   }
 
+  //v is optional
   flagUpdateVertTime(v : SplineVertex) {
-    this._vert_time_set.add(v.eid);
+    if (v) {
+      this._vert_time_set.add(v.eid);
+    }
+
     this.dag_update("on_vert_time_change", this._vert_time_set);
   }
 

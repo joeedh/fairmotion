@@ -138,9 +138,38 @@ export const theme = {
   },
 
   dopesheet:  {
-    treeHeight: 600,
-    treeWidth : 100,
+    DefaultText    : new CSSFont({
+      font    : 'sans-serif',
+      weight  : 'normal',
+      variant : 'normal',
+      style   : 'normal',
+      size    : 10,
+      color   : 'rgba(209,209,209, 1)'
+    }),
+    TreeText       : new CSSFont({
+      font    : 'sans-serif',
+      weight  : 'normal',
+      variant : 'normal',
+      style   : 'normal',
+      size    : 12,
+      color   : 'rgba(207,207,207, 1)'
+    }),
+    boxSize        : 14,
+    keyBorder      : 'rgba(255,255,240, 0.4038793037677633)',
+    keyBorderWidth : 1.0403650286511763,
+    keyColor       : 'rgba(82,82,82, 1)',
+    keyHighlight   : 'rgba(195,159,136, 1)',
+    keySelect      : 'rgba(83,109,255, 1)',
+    lineMajor      : 'rgba(255, 255, 255, 0.5)',
+    lineMinor      : 'rgba(50, 50, 50, 1.0)',
+    timeLine       : "rgba(50, 150, 255, 0.75)",
+    lineWidth      : 1,
+    textShadowColor: 'rgba(131,77,56, 1)',
+    textShadowSize : 5.048919110763356,
+    treeHeight     : 600,
+    treeWidth      : 100,
   },
+
 
   dropbox:  {
     BoxHighlight : 'rgba(155, 220, 255, 0.4)',

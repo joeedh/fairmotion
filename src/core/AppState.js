@@ -1370,6 +1370,7 @@ export class AppState {
         var block = blocks[i];
         
         if (block.type == "TSTK") {
+          console.warn("%cFound a tool stack block", "color : blue;", block);
           toolstack = block.data;
         }      
       }

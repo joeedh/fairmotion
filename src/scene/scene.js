@@ -281,6 +281,8 @@ export class Scene extends DataBlock {
   }
 
   change_time(ctx, time, _update_animation=true) {
+    console.log("Time change!", time, this.time);
+
     if (isNaN(this.time)) {
       console.warn("EEK corruption!");
       this.time = ctx.frameset.time;
@@ -309,6 +311,8 @@ export class Scene extends DataBlock {
     //handle datapath keyframes
     ctx.api.onFrameChange(ctx, time);
 
+    this.dag_update("on_time_change", true);
+
     window.redraw_viewport();
   }
   
@@ -320,8 +324,12 @@ export class Scene extends DataBlock {
     return ret;
   }
 
+  dag_exec() {
+
+  }
+
   dag_get_datapath() {
-    return "scenes[" + this.lib_id + "]";
+    return "datalib.scene.items[" + this.lib_id + "]";
   }
 
   loadSTRUCT(reader) {
@@ -382,7 +390,17 @@ export class Scene extends DataBlock {
     //  g_app_state.switch_active_spline(this.active_splinepath);
   }
 
+  static nodedef() {return {
+    name      : "scene",
+    uiname    : "scene",
+    outputs   : {
+      on_active_set  : null,
+      on_time_change : null
+    },
+    inputs    : {
 
+    }
+  }}
 }
 
 Scene.STRUCT = STRUCT.inherit(Scene, DataBlock) + `
@@ -399,7 +417,3 @@ Scene.STRUCT = STRUCT.inherit(Scene, DataBlock) + `
 `;
 
 mixin(Scene, DataPathNode);
-
-define_static(Scene, "dag_outputs", {
-  on_active_set    : undefined
-});

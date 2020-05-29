@@ -1,9 +1,12 @@
+const BOXSCALE = 0.05;
+
 import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
 import {STRUCT} from '../../core/struct.js';
-import {UIBase} from '../../path.ux/scripts/core/ui_base.js';
+import {UIBase, css2color, color2css} from '../../path.ux/scripts/core/ui_base.js';
 import {Editor} from '../editor_base.js';
-import {ToggleSelectAll} from './dopesheet_ops_new.js';
+import {ToggleSelectAll, MoveKeyFramesOp, SelectKeysOp, SelModes2} from './dopesheet_ops_new.js';
 import * as util from '../../path.ux/scripts/util/util.js';
+import {eventWasTouch} from "../../path.ux/scripts/util/simple_events.js";
 
 "use strict";
 
@@ -67,6 +70,8 @@ export class TreeItem extends ColumnFrame {
     this._redraw = this._redraw.bind(this);
 
     let row = this.widget = this.row();
+    row.overrideClass("dopesheet");
+
     this.icon = row.iconbutton(Icons.UI_EXPAND, "", undefined, undefined, PackFlags.SMALL_ICON);
   }
 
@@ -107,7 +112,8 @@ export class TreeItem extends ColumnFrame {
       this.setCSS();
     });
 
-    row.label(this.name);
+    row.overrideClass("dopesheet");
+    row.label(this.name).font = this.getDefault("TreeText");
 
     this.setCSS();
   }//*/
@@ -587,20 +593,19 @@ export class PanOp extends ToolOp {
       this.start_mpos.load(mpos);
 
       return;
-    } else {
-
     }
 
     var ctx = this.modal_ctx;
 
     this.ds.pan[0] = this.start_pan[0] + (mpos[0] - this.start_mpos[0]);
-    this.ds.pan[1] = this.start_pan[1] + -(mpos[1] - this.start_mpos[1]);
+    this.ds.pan[1] = this.start_pan[1] + (mpos[1] - this.start_mpos[1]);
 
     //this.cameramat.load(this.start_cameramat).translate(mpos[0], mpos[1], 0.0);
     //ctx.view2d.set_cameramat(this.cameramat);
 
-    this.ds.updateGrid();
+    this.ds.buildPositions();
     this.ds.redraw();
+    this.ds.update();
   }
 
   on_mouseup(event) {
@@ -608,7 +613,7 @@ export class PanOp extends ToolOp {
   }
 }
 
-let KX=0, KY=1, KW=2, KH=3, KEID=5, KTYPE=6, KFLAG=7, KTIME=9, KEID2=10, KTOT=11;
+const KX=0, KY=1, KW=2, KH=3, KEID=5, KTYPE=6, KFLAG=7, KTIME=9, KEID2=10, KTOT=11;
 
 export class KeyBox {
   constructor() {
@@ -626,10 +631,21 @@ let keybox_temps = util.cachering.fromConstructor(KeyBox, 512);
 let proj_temps = util.cachering.fromConstructor(Vector2, 512);
 
 export class DopeSheetEditor extends Editor {
+  posRegen      : number
+  gridGen       : number
+  activeBoxes   : Array<number>
+  treeData      : Array<number>
+  nodes         : Array<DagNode>;
+  mdown         : boolean;
+
   constructor() {
     super()
 
+    this.draw = this.draw.bind(this);
+
+    this.mdown = false;
     this.gridGen = 0;
+    this.posRegen = 0;
 
     this.nodes = [];
     this.treeData = [];
@@ -642,13 +658,13 @@ export class DopeSheetEditor extends Editor {
 
     this.canvas = this.getCanvas("bg");
     this._animreq = undefined;
-    this.draw = this.draw.bind(this);
     this.pinned_ids = [];
 
     this.keyboxes = [];
     this.keybox_eidmap = {};
 
     this.boxSize = 15;
+    this.start_mpos = new Vector2();
 
     this.on_mousedown = this.on_mousedown.bind(this);
     this.on_mousemove = this.on_mousemove.bind(this);
@@ -687,6 +703,24 @@ export class DopeSheetEditor extends Editor {
 
       window.force_viewport_redraw();
       window.redraw_viewport();
+    }));
+
+    k.add(new HotKey("G", [], "Move Keyframes"), new FuncKeyHandler(function(ctx) {
+      console.log("Dopesheet toggle select all!");
+
+      let tool = new MoveKeyFramesOp();
+      ctx.api.execTool(ctx, tool);
+
+      window.force_viewport_redraw();
+      window.redraw_viewport();
+    }));
+
+    k.add(new HotKey("Z", ["CTRL"], "Undo"), new FuncKeyHandler(function(ctx) {
+      g_app_state.toolstack.undo();
+    }));
+
+    k.add(new HotKey("Z", ["CTRL", "SHIFT"], "Redo"), new FuncKeyHandler(function(ctx) {
+      g_app_state.toolstack.redo();
     }));
   }
 
@@ -773,7 +807,7 @@ export class DopeSheetEditor extends Editor {
 
     let hash = this.calcUpdateHash();
     if (hash !== this._last_hash1) {
-      console.log(hash);
+      console.log("dopesheet hash rebuild update", hash);
       this._last_hash1 = hash;
       this.rebuild();
       this.redraw();
@@ -787,6 +821,43 @@ export class DopeSheetEditor extends Editor {
 
     if (this._queueDagLink) {
       this.linkEventDag();
+    }
+
+    if (this.boxSize !== this.getDefault("boxSize")) {
+      this.boxSize = this.getDefault("boxSize");
+      this.rebuild();
+      return;
+    }
+
+    let panupdate = "" + this.pan[0] + ":" + this.pan[1];
+    panupdate += "" + this.zoom + ":" + this.timescale;
+
+    if (panupdate !== this._last_panupdate_key) {
+      console.log("dopesheet key shape style change detected");
+      this._last_panupdate_key = panupdate;
+
+      this.updateKeyPositions();
+    }
+
+    let stylekey = "" + this.getDefault("lineWidth");
+    stylekey += this.getDefault("lineMajor")
+    stylekey += this.getDefault("lineMinor")
+    stylekey += this.getDefault("keyColor");
+    stylekey += this.getDefault("keySelect");
+    stylekey += this.getDefault("keyHighlight");
+    stylekey += this.getDefault("keyBorder");
+    stylekey += this.getDefault("keyBorderWidth");
+    stylekey += this.getDefault("textShadowColor");
+    stylekey += this.getDefault("textShadowSize");
+    stylekey += this.getDefault("DefaultText").color;
+    stylekey += this.getDefault("DefaultText").size;
+    stylekey += this.getDefault("DefaultText").font;
+
+
+    if (stylekey !== this._last_style_key_1) {
+      console.log("dopesheet style change detected");
+      this._last_style_key_1 = stylekey;
+      this.redraw();
     }
   }
 
@@ -802,6 +873,7 @@ export class DopeSheetEditor extends Editor {
 
   rebuild() {
     this.regen = 1;
+    this.redraw();
   }
 
   get verts() {
@@ -829,9 +901,60 @@ export class DopeSheetEditor extends Editor {
   }
 
   on_mousedown(e) {
-    if (e.button > 0) {
-      this.ctx.toolstack.execTool(this.ctx, new PanOp(this));
+    this.updateHighlight(e);
+
+    if (!e.button) {
+      this.mdown = true;
+      this.start_mpos[0] = e.x;
+      this.start_mpos[1] = e.y;
     }
+
+    if (!e.button && this.activeBoxes.highlight !== undefined) {
+      let ks = this.keyboxes;
+      let ki1 = this.activeBoxes.highlight;
+      let list = [];
+
+      let x1 = ks[ki1+KX], y1 = ks[ki1+KY], t1 = ks[ki1+KTIME];
+      let count=0;
+
+      for (let ki2=0; ki2<ks.length; ki2 += KTOT) {
+        let x2 = ks[ki2+KX], y2 = ks[ki2+KY], t2 = ks[ki2+KTIME];
+        let eid2 = ks[ki2+KEID2];
+
+        if (Math.abs(t2-t1) < 1 && Math.abs(y2-y1) < 1) {
+          list.push(AnimKeyTypes.SPLINE);
+          list.push(eid2);
+
+          let flag = ks[ki2+KFLAG];
+          if (flag & AnimKeyFlags.SELECT) {
+            count++;
+          }
+        }
+      }
+
+      let mode = SelModes2.UNIQUE;
+      if (e.shiftKey) {
+        mode = count > 0 ? SelModes2.SUB : SelModes2.ADD;
+      }
+
+      //clear highlight after click for touch events
+      if (eventWasTouch(e)) {
+        this.activeBoxes.highlight = undefined;
+      }
+
+      let tool = new SelectKeysOp();
+      console.log(tool);
+
+      tool.inputs.mode.setValue(mode);
+      tool.inputs.keyList.setValue(list);
+      this.ctx.toolstack.execTool(this.ctx, tool);
+
+      return;
+    }
+
+    //if (e.button > 0) {
+      this.ctx.toolstack.execTool(this.ctx, new PanOp(this));
+    //}
   }
 
   getLocalMouse(x, y) {
@@ -879,7 +1002,7 @@ export class DopeSheetEditor extends Editor {
     return minret;
   }
 
-  on_mousemove(e) {
+  updateHighlight(e) {
     let mpos = this.getLocalMouse(e.x, e.y);
 
     let ret = this.findnearest(mpos);
@@ -890,8 +1013,27 @@ export class DopeSheetEditor extends Editor {
     }
   }
 
-  on_mouseup(e) {
+  on_mousemove(e) {
+    if (!this.mdown) {
+      this.updateHighlight(e);
+    } else {
+      let mpos = new Vector2([e.x, e.y]);
+      let dist = this.start_mpos.vectorDistance(mpos);
 
+      console.log(dist.toFixed(2));
+
+      if (dist > 10) {
+        this.mdown = false;
+        console.log("Tool exec!");
+
+        let tool = new MoveKeyFramesOp();
+        this.ctx.api.execTool(this.ctx, tool);
+      }
+    }
+  }
+
+  on_mouseup(e) {
+    this.mdown = false;
   }
 
   on_keydown(e) {
@@ -902,6 +1044,12 @@ export class DopeSheetEditor extends Editor {
     if (this.regen === 2) {
       return;
     }
+
+    let timescale = this.timescale;
+    let boxsize = this.boxSize;
+
+    let cellwid = boxsize*this.zoom*this.timescale*BOXSCALE;
+
 
     console.warn("rebuilding dopesheet");
     let canvas = this.canvas;
@@ -963,7 +1111,7 @@ export class DopeSheetEditor extends Editor {
       let keys = this.keyboxes;
 
       let ts = this.getDefault("DefaultText").size*UIBase.getDPI();
-      let lineh = ts*1.5;
+      let lineh = ts*1.5; //Math.max(ts*1.5, this.boxSize);
       let y = lineh*0.5;
 
       for (let k in paths) {
@@ -972,7 +1120,6 @@ export class DopeSheetEditor extends Editor {
         if (!v) {
           console.warn("missing vertex", v.eid);
           this.rebuild();
-          this.redraw();
           return;
         }
 
@@ -1007,14 +1154,14 @@ export class DopeSheetEditor extends Editor {
             keys.push(0.0);
           }
 
-          keys[ki+KTIME] = get_vtime(v);
+          keys[ki+KTIME] = get_vtime(v2);
           keys[ki+KEID] = v.eid;
           keys[ki+KEID2] = v2.eid;
           keys[ki+KFLAG] = v2.flag & SplineFlags.UI_SELECT ? AnimKeyFlags.SELECT : 0;
 
           let time = get_vtime(v2);
 
-          co1[0] = this.timescale * time * boxsize*0.05;
+          co1[0] = this.timescale * time * boxsize*BOXSCALE;
           co1[1] = y;
 
           keys[ki+KX] = co1[0];
@@ -1042,6 +1189,51 @@ export class DopeSheetEditor extends Editor {
     }
 
     window.setTimeout(stage2, 155);
+  }
+
+  buildPositions() {
+    this.posRegen = 0;
+    let ks = this.keyboxes;
+
+    let pathspline = this.ctx.frameset.pathspline;
+    let boxsize = this.boxSize;
+
+    for (let ki=0; ki<ks.length; ki += KTOT) {
+      let type = ks[ki+KTYPE], eid = ks[ki+KEID], eid2=ks[ki+KEID2]
+
+      if (type === AnimKeyTypes.SPLINE) {
+        let v = pathspline.eidmap[eid2];
+
+        if (!v) {
+          console.warn("Missing vertex animkey in dopesheet; rebuilding. . .");
+          this.rebuild();
+          return;
+        }
+
+        let time = get_vtime(v);
+        let x = this.timescale * time * boxsize*BOXSCALE;
+        let flag = 0;
+
+        if (v.flag & SplineFlags.UI_SELECT) {
+          flag |= AnimKeyFlags.SELECT;
+        }
+
+        ks[ki+KW] = boxsize;
+        ks[ki+KH] = boxsize;
+        ks[ki+KX] = x;
+        ks[ki+KFLAG] = flag;
+        ks[ki+KTIME] = get_vtime(v);
+      } else {
+        throw new Error("implement me! '" + type + "'");
+      }
+    }
+
+    this.updateGrid();
+  }
+
+  updateKeyPositions() {
+    this.posRegen = 1;
+    this.redraw();
   }
 
   updateGrid() {
@@ -1118,6 +1310,12 @@ export class DopeSheetEditor extends Editor {
   }
   
   redraw() {
+    if (!this.isConnected && this.nodes.length > 0) {
+      console.warn("Dopesheet editor failed to clean up properly; fixing. . .");
+      this.dag_unlink_all();
+      return;
+    }
+
     if (this._animreq !== undefined) {
       return;
     }
@@ -1127,26 +1325,62 @@ export class DopeSheetEditor extends Editor {
 
   draw() {
     this._animreq = undefined;
+
     if (this.regen) {
       this.build();
+      this.posRegen = 0;
       this.doOnce(this.draw);
       return;
+    } else if (this.posRegen) {
+      this.buildPositions();
     }
 
-    this.canvas = this.getCanvas("bg");
-    let canvas = this.canvas;
+    let boxsize = this.boxSize, timescale = this.timescale;
+    let zoom = this.zoom, pan = this.pan;
+
+    let canvas = this.canvas = this.getCanvas("bg", "-1");
     let g = this.canvas.g;
 
     console.log("dopesheet draw!");
-    //g.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    //g.clearRect(0, 0, canvas.width, canvas.height);
     g.beginPath()
-    g.rect(0, 0, this.canvas.width, this.canvas.height);
+    g.rect(0, 0, canvas.width, canvas.height);
     g.fillStyle = "rgb(55,55,55,1.0)";
     g.fill();
 
+    let bwid = ~~(boxsize*zoom*timescale*BOXSCALE);
+    let time = ~~(-pan[0] / bwid);
+
+    let off = this.pan[0] % bwid;
+    let tot = ~~(canvas.width / bwid) + 1;
+
+    let major = this.getDefault("lineMajor");
+    let minor = this.getDefault("lineMinor");
+    let lw1 = g.lineWidth;
+
+    g.lineWidth = this.getDefault("lineWidth");
+
+    for (let i=0; i<tot; i++) {
+      let x = i*bwid + off;
+
+      let t = ~~(time + i);
+
+      if (t % 8 === 0) {
+        g.strokeStyle = major;
+      } else {
+        g.strokeStyle = minor;
+      }
+
+      g.beginPath();
+      g.moveTo(x, 0);
+      g.lineTo(x, canvas.height);
+      g.stroke();
+    }
+
+    g.lineWidth = lw1;
+
     let ks = this.keyboxes;
     g.beginPath();
-    let zoom = this.zoom, pan = this.pan;
 
     for (let ki=0; ki<ks.length; ki += KTOT) {
       let x = ks[ki], y = ks[ki+KY], w = ks[ki+KW], h = ks[ki+KH];
@@ -1170,20 +1404,23 @@ export class DopeSheetEditor extends Editor {
     let height = canvas.height;
 
     let colors = {
-      0  : "rgba(200, 200, 200, 0.85)",
-      [AnimKeyFlags.SELECT]  : "rgba(150, 185, 255, 0.95)"
-    }
+      0  : this.getDefault("keyColor"),
+      [AnimKeyFlags.SELECT]  : this.getDefault("keySelect")
+    };
+
+    let highColor = this.getDefault("keyHighlight");
+    let border = this.getDefault("keyBorder");
+    g.strokeStyle = border;
+    let lw2 = g.lineWidth;
+    g.lineWidth = this.getDefault("keyBorderWidth");
+
+    border = css2color(border)[3] < 0.01 ? undefined : border;
 
     for (let ki of this.activeBoxes) {
       let x = ks[ki], y = ks[ki+KY], w = ks[ki+KW], h = ks[ki+KH];
 
       x = (x*zoom) + pan[0];
       y = (y*zoom) + pan[1];
-
-      if (ki === highlight) {
-        g.fill();
-        g.beginPath();
-      }
 
       let flag = ks[ki+KFLAG] & AnimKeyFlags.SELECT;
       let color = colors[flag];
@@ -1193,19 +1430,70 @@ export class DopeSheetEditor extends Editor {
       g.rect(x, y, w, h);
       g.fill();
 
+      if (border) {
+        g.stroke();
+      }
+
       if (x < -bs || y < -bs || x >= width+bs || y >= height+bs) {
         continue;
       }
 
       if (ki === highlight) {
-        g.fillStyle = "rgba(255, 200, 155, 0.75)";
-        g.fill();
-        g.fillStyle = "rgba(250, 250, 250, 0.5)";
+        g.fillStyle = highColor;
         g.beginPath();
+        g.rect(x, y, w, h);
+        g.fill();
+
+        if (border) {
+          g.stroke();
+        }
       }
     }
 
+    g.lineWidth = lw2;
+
     //g.fill();
+
+    console.log("D", off, tot, bwid);
+
+    let ts = this.getDefault("DefaultText").size*UIBase.getDPI();
+    g.fillStyle = this.getDefault("DefaultText").color;
+    g.font = this.getDefault("DefaultText").genCSS(ts);
+
+    g.strokeStyle = "rgba(0,0,0, 0.5)";
+
+
+    let lw = g.lineWidth;
+
+    let curtime = this.ctx.scene.time;
+    let tx = curtime*this.zoom*this.timescale*boxsize*BOXSCALE + this.pan[0];
+    if (tx >= 0 && tx <= this.canvas.width) {
+      g.lineWidth = 3;
+      g.strokeStyle = this.getDefault("timeLine");
+      g.moveTo(tx, 0);
+      g.lineTo(tx, this.canvas.height);
+      g.stroke();
+    }
+
+    g.lineWidth = this.getDefault("textShadowSize");
+    g.strokeStyle = this.getDefault("textShadowColor");
+
+    for (let i=0; i<tot; i++) {
+      let x = i*bwid + off;
+      let t = time + i;
+
+      g.shadowBlur = 1.5;
+      g.shadowColor = "black";
+      g.shadowOffsetX=2;
+      g.shadowOffsetY=2;
+
+      g.strokeText(""+t, x, canvas.height-ts*1.15);
+      g.fillText(""+t, x, canvas.height-ts*1.15);
+
+      g.shadowColor = "";
+    }
+
+    g.lineWidth = lw;
   }
 
   static define() { return {
@@ -1240,36 +1528,29 @@ export class DopeSheetEditor extends Editor {
 
     this._queueDagLink = false;
 
-    function on_sel() {
+    let on_sel = () => {
       console.log("------------------on sel!----------------");
-      return this2.on_vert_select.apply(this2, arguments);
+      return this.on_vert_select(...arguments);
     }
 
     let on_vert_change = (ctx, inputs, outputs, graph) => {
       this.rebuild();
-      this.redraw();
     };
 
     let on_vert_time_change = (ctx, inputs, outputs, graph) => {
-      console.log(inputs, inputs ? Object.keys(inputs) : inputs);
+      this.updateKeyPositions();
+    };
 
-      let verts = inputs.verts.data;
-      let spline = ctx.frameset.spline;
-
-      for (let eid of verts) {
-        let v = spline.eidmap[eid];
-
-        if (v === undefined || v.type != SplineTypes.VERTEX) {
-          console.log("error in dopesheet on_vert_time_change node");
-          continue;
-        }
-
-        this._on_sel_1(eid);
-      }
+    let on_time_change = (ctx, inputs, outputs, graph) => {
+      console.log("dopesheet time change callback");
+      this.redraw();
     };
 
     this.nodes.push(on_sel);
     this.nodes.push(on_vert_change);
+    this.nodes.push(on_time_change);
+
+    the_global_dag.link(ctx.scene, ["on_time_change"], on_time_change, ["on_time_change"]);
 
     //on_vert_select
     the_global_dag.link(ctx.frameset.spline.verts, ["on_select_add"], on_sel, ["eid"]);
@@ -1278,7 +1559,7 @@ export class DopeSheetEditor extends Editor {
     //callback for when verts are added and removed
     the_global_dag.link(ctx.frameset.spline, ["on_vert_change"], on_vert_change, ["verts"]);
 
-    the_global_dag.link(ctx.frameset.spline, ["on_vert_time_change"], on_vert_time_change, ["verts"]);
+    the_global_dag.link(ctx.frameset.pathspline, ["on_vert_time_change"], on_vert_time_change, ["verts"]);
   }
 
   on_vert_select() {

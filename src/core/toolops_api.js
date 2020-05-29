@@ -55,7 +55,7 @@ export function patchMouseEvent(e : MouseEvent, dom : HTMLElement) {
   e2.x = ((e.x === undefined ? e.clientX : e.x)-rect.left);
   e2.y = ((e.y === undefined ? e.clientY : e.y)-rect.top);
 
-  e2.y = rect.height - e2.y;
+  //e2.y = rect.height - e2.y;
 
   e2.x *= window.devicePixelRatio;
   e2.y *= window.devicePixelRatio;
@@ -370,12 +370,12 @@ ToolOpAbstract.STRUCT = `
   ToolOpAbstract {
       flag    : int;
       saved_context  : SavedContext | obj.get_saved_context();
-      inputs  : iter(k, PropPair) | new PropPair(k, obj.inputs[k]);
-      outputs : iter(k, PropPair) | new PropPair(k, obj.outputs[k]);
+      inputs  : iterkeys(k, PropPair) | new PropPair(k, obj.inputs[k]);
+      outputs : iterkeys(k, PropPair) | new PropPair(k, obj.outputs[k]);
   }
 `;
 
-class PropPair {
+export class PropPair {
   constructor(key, value) {
     this.key = key;
     this.value = value;
@@ -387,6 +387,8 @@ class PropPair {
     return obj;
   }
 }
+
+window.PropPair = PropPair;
 
 PropPair.STRUCT = `
   PropPair {
@@ -614,8 +616,8 @@ ToolOp.STRUCT = `
   ToolOp {
       flag    : int;
       saved_context  : SavedContext | obj.get_saved_context();
-      inputs  : iter(k, PropPair) | new PropPair(k, obj.inputs[k]);
-      outputs : iter(k, PropPair) | new PropPair(k, obj.outputs[k]);
+      inputs  : iterkeys(k, PropPair) | new PropPair(k, obj.inputs[k]);
+      outputs : iterkeys(k, PropPair) | new PropPair(k, obj.outputs[k]);
   }
 `;
 
@@ -1182,8 +1184,8 @@ window.init_toolop_structs = function() {
     if (!Object.hasOwnProperty(cls, "STRUCT")) {
       cls.STRUCT = cls.name + " {" + `
         flag    : int;
-        inputs  : iter(k, PropPair) | new PropPair(k, obj.inputs[k]);
-        outputs : iter(k, PropPair) | new PropPair(k, obj.outputs[k]);
+        inputs  : iterkeys(k, PropPair) | new PropPair(k, obj.inputs[k]);
+        outputs : iterkeys(k, PropPair) | new PropPair(k, obj.outputs[k]);
       `
       if (is_toolop)
         cls.STRUCT += "    saved_context  : SavedContext | obj.get_saved_context();\n";

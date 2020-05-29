@@ -100,6 +100,12 @@ export class FairmotionScreen extends Screen {
     return ret;
   }
 
+  update() {
+    super.update();
+
+    the_global_dag.exec();
+  }
+
   static define() {return {
     tagname : "fairmotion-screen-x"
   };}

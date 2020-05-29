@@ -36,15 +36,18 @@ export class TransformOp extends ToolOp {
 
   constructor(start_mpos : Array<float>, datamode : int) {
     super();
-    
+
+    this.first = true;
+    //this.first = !start_mpos;
+
     this.types = new GArray([TransSplineVert]);
     this.first_viewport_redraw = true;
     
-    if (start_mpos != undefined && typeof start_mpos != "number" && start_mpos instanceof Array) {
+    if (start_mpos !== undefined && typeof start_mpos != "number" && start_mpos instanceof Array) {
       this.user_start_mpos = start_mpos;
     }
     
-    if (datamode != undefined)
+    if (datamode !== undefined)
       this.inputs.datamode.setValue(datamode);
     
     this.modaldata = {};
@@ -185,28 +188,27 @@ export class TransformOp extends ToolOp {
     var ctx = this.modal_ctx;
     
     var mpos = new Vector3([event.x, event.y, 0]);
+    mpos.load(ctx.view2d.getLocalMouse(event.original.x, event.original.y));
 
     var md = this.modaldata;
-    
-    if (md.start_mpos == undefined && this.user_start_mpos != undefined) {
+
+    if (this.first) {
+      md.start_mpos = new Vector3(mpos);
+      md.mpos = new Vector3(mpos);
+      md.last_mpos = new Vector3(mpos);
+      this.first = false;
+      return;
+    } else if (md.start_mpos === undefined && this.user_start_mpos !== undefined) {
       md.start_mpos = new Vector3(this.user_start_mpos);
       md.start_mpos[2] = 0.0; //ensure non-NaN z
       
       md.last_mpos = new Vector3(md.start_mpos);
       md.mpos = new Vector3(md.start_mpos);
     }
-    
-    if (md.start_mpos == undefined) {
-      md.start_mpos = new Vector3(mpos);
-      md.mpos = new Vector3(mpos);
-      md.last_mpos = new Vector3(mpos);
-    } else {
-      mpos.load(ctx.view2d.getLocalMouse(event.original.x, event.original.y));
 
-      md.last_mpos.load(md.mpos);
-      md.mpos.load(mpos);
-    }
-    
+    md.last_mpos.load(md.mpos);
+    md.mpos.load(mpos);
+
     this.draw_helper_lines(md, ctx);
   }
   
@@ -390,10 +392,16 @@ export class TranslateOp extends TransformOp {
   }}
   
   on_mousemove(event) {
+    let first = this.first;
+
     super.on_mousemove(event);
 
     if (this.modaldata === undefined) {
       console.trace("ERROR: corrupted modal event call in TransformOp");
+      return;
+    }
+
+    if (first) {
       return;
     }
 

@@ -210,12 +210,12 @@ export class DataStructIter {
 export class DataStructArray {
   constructor(array_item_struct_getter, getitempath, getitem, getiter, getkeyiter, getlength) {
     this.getter = array_item_struct_getter;
-    this.getiter = getiter;
-    this.getlength = getlength;
-    this.getkeyiter = getkeyiter;
-    this.getitem = getitem;
     this.getitempath = getitempath;
-    
+    this.getitem = getitem;
+    this.getiter = getiter;
+    this.getkeyiter = getkeyiter;
+    this.getlength = getlength;
+
     this.type = DataPathTypes.STRUCT_ARRAY;
   }
 }
@@ -1067,7 +1067,9 @@ export class DataAPI {
     return undefined;
   }
   
-  resolve_path_intern2(ctx, str) {  
+  resolve_path_intern2(ctx, str) {
+    g_app_state.screen.unlisten();
+
     var parser = this.parser2;
     
     var arr_index = undefined;
@@ -1153,7 +1155,10 @@ export class DataAPI {
         }
       } else if (node.type === "ARRAY") {
         var array = do_eval(node.children[0], scope, pathout, spathout);
-        if (array === undefined) return undefined;
+        if (array === undefined) {
+          console.log(node, "eek!");
+          return undefined;
+        }
 
         scope = Object.assign({}, scope);
 
@@ -1192,7 +1197,7 @@ export class DataAPI {
         } else if (array.type === DataPathTypes.PROP) {
           spathout[0] += ".data.data["+index+"]";
         }
-        
+
         if (!array.use_path) {
           return array;
         } else {
@@ -1203,7 +1208,7 @@ export class DataAPI {
           var path = pathout[0];
           
           path = path.slice(1, path.length);
-          
+
           if (array.type === DataPathTypes.PROP && array.data.type === PropTypes.FLAG) {
             pathout[0] += "&" + index;
           } else if (array.type === DataPathTypes.PROP && array.data.type === PropTypes.ENUM) {
@@ -1213,13 +1218,13 @@ export class DataAPI {
           } else {
             pathout[0] += "["+index+"]";
           }
-          
+
           if (array.type === DataPathTypes.STRUCT_ARRAY) {
             var arr = this2.evaluate(ctx, path, undefined);
             
             var stt = array.data.getter(arr[index]); 
             stt.parent = array;
-            
+
             spathout[0] += ".getter(" + path + "[" + index + "]" + ")";
             return stt;
           } else {

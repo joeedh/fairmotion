@@ -425,7 +425,7 @@ export class KeyMap extends hashtable {
 
   constructor() {
     super();
-    
+
     this.op_map = new hashtable();
   }
 
@@ -474,8 +474,8 @@ export class KeyMap extends hashtable {
     var key = new HotKey(event.keyCode, modlist, 0, 0, true);
 
     if (this.has(key)) {
-      ctx.keymap_mpos[0] = ctx.view2d.mpos[0];
-      ctx.keymap_mpos[1] = ctx.view2d.mpos[1];
+      ctx.keymap_mpos[0] = ctx.screen.mpos[0];
+      ctx.keymap_mpos[1] = ctx.screen.mpos[1];
 
       return this.get(key).handle(ctx);
     }

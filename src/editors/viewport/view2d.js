@@ -499,8 +499,8 @@ export class View2DHandler extends Editor {
     var bgcanvas = this.get_bg_canvas();
     //var eventdiv = this.eventdiv;
 
-    canvas.style["left"] = bgcanvas.style["left"] = /*eventdiv.style["left"] =*/ this.pos[0] + "px";
-    canvas.style["top"] = bgcanvas.style["top"] = /*eventdiv.style["top"] =*/ this.pos[1] + "px";
+    //canvas.style["left"] = bgcanvas.style["left"] = /*eventdiv.style["left"] =*/ this.pos[0] + "px";
+    //canvas.style["top"] = bgcanvas.style["top"] = /*eventdiv.style["top"] =*/ this.pos[1] + "px";
     //eventdiv.style["width"] = ~~this.size[0] + "px";
     //eventdiv.style["height"] = ~~this.size[1] + "px";
 
@@ -824,6 +824,8 @@ export class View2DHandler extends Editor {
 
     this.editor.view2d = this;
      */
+
+    console.warn("VIEWPORT MATRIX THAT WAS LOADED:", this.rendermat.getAsArray(), this.irendermat.getAsArray());
 
     this._in_from_struct = false;
 

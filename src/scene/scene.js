@@ -282,21 +282,21 @@ export class Scene extends DataBlock {
 
   change_time(ctx, time, _update_animation=true) {
     if (isNaN(this.time)) {
-      console.log("EEK corruption!");
+      console.warn("EEK corruption!");
       this.time = ctx.frameset.time;
-      
+
       if (isNaN(this.time))
-        this.time = 0;
-        
+        this.time = 1;
+
       if (isNaN(time))
-        time = 0;
+        time = 1;
     }
-    
-    if (isNaN(time)) return;
-    
-    if (time == this.time)
+
+    if (time === this.time)
       return;
-      
+
+    if (isNaN(time)) return;
+
     if (time < 1) {
        time = 1;
     }
@@ -308,6 +308,8 @@ export class Scene extends DataBlock {
     
     //handle datapath keyframes
     ctx.api.onFrameChange(ctx, time);
+
+    window.redraw_viewport();
   }
   
   copy() : Scene {

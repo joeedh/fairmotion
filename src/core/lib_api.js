@@ -206,7 +206,7 @@ export class DataList<T> {
       delete this.namemap[block.name];
       
     delete this.idmap[block];
-    
+
     block.on_destroy();
     block.on_remove();
   }
@@ -224,6 +224,7 @@ export class DataLib {
   datalists : hashtable
   idmap : Object
   idgen : EIDGen;
+  lib_anim_idgen : EIDGen;
 
   constructor() {
     this.id = 0;
@@ -231,8 +232,33 @@ export class DataLib {
     this.idmap = {};
     this.idgen = new EIDGen();
     this._destroyed = undefined;
+    this.lib_anim_idgen = new EIDGen();
   }
-    
+
+  clear() {
+    this.on_destroy();
+
+    this.datalists = new hashtable();
+    this.idmap = {};
+    this._destroyed = undefined;
+
+    return this;
+  }
+
+  get allBlocks() {
+    let this2 = this;
+
+    return (function*() {
+      for (let k of this2.datalists) {
+        let list = this2.datalists.get(k);
+
+        for (let block of list) {
+          yield block;
+        }
+      }
+    })()
+  }
+
   on_destroy() {
     if (this._destroyed) {
       console.log("warning, datalib.on_destroyed called twice");
@@ -375,13 +401,14 @@ export class DataLib {
     }
     
     var dl = this.datalists.get(block.lib_type);
-    if (dl.active == undefined)
+    if (dl.active === undefined)
       dl.active = block;
       
     dl.list.push(block);
     dl.namemap[block.name] = block;
     dl.idmap[block.lib_id] = block;
-    
+
+    block.lib_anim_idgen = this.lib_anim_idgen;
     block.on_add(this);
   }
 
@@ -390,7 +417,7 @@ export class DataLib {
       var lst = this.datalists.get(data_type);
       
       //we don't allow undefined active blocks
-      if (lst.active == undefined && lst.list.length != 0) {
+      if (lst.active === undefined && lst.list.length !== 0) {
         if (DEBUG.datalib)
           console.log("Initializing active block for " + get_type_names()[data_type]);
         
@@ -410,6 +437,12 @@ export class DataLib {
     return this.idmap[id];
   }
 }
+DataLib.STRUCT = `
+DataLib {
+  lib_anim_idgen : EIDGen;
+  idgen          : EIDGen;
+}
+`
 
 export class UserRef {
   user : number
@@ -441,11 +474,12 @@ export class DataBlock {
     this.addon_data = {};
 
     //name is optional
-    if (name == undefined)
+    if (name === undefined)
       name = "unnnamed";
       
     this.lib_anim_channels = new GArray();
-    this.lib_anim_idgen = new EIDGen();
+    //this.lib_anim_idgen = new EIDGen();
+    this.lib_anim_idgen = undefined; //is set by global DataLib now
     this.lib_anim_idmap = {};
     
     this.lib_anim_pathmap = {};
@@ -465,14 +499,13 @@ export class DataBlock {
     this.flag = 0;
   }
   
-  on_gl_lost(WebGLRenderingContext new_gl) { }
-  on_add(DataLib lib) { }
+  on_add(lib : DataLib) { }
   on_remove() { }
   on_destroy() { }
   
   copy() { }
 
-  set_fake_user(Boolean val) {
+  set_fake_user(val : Boolean) {
     if ((this.flag & BlockFlags.FAKE_USER) && !val) {
       this.flag &= ~BlockFlags.FAKE_USER;
       this.lib_refs -= 1;
@@ -490,7 +523,25 @@ export class DataBlock {
   //
   //getblock_us does add a user reference automatically.
   //see _Lib_GetBlock and _Lib_GetBlock_us in lib_utils.js.
-  data_link(block, getblock, getblock_us) { 
+  data_link(block, getblock, getblock_us) {
+    for (let ch of this.lib_anim_channels) {
+      ch.idgen = this.lib_anim_idgen; //DataLib sets this for DataBlock
+      ch.idmap = this.lib_anim_idmap;
+      ch.owner = this;
+
+      if (ch.id < 0) {
+        console.warn("old file?");
+        ch.id = this.lib_anim_idgen.gen_id();
+      }
+
+      this.lib_anim_idmap[ch.id] = ch;
+
+      for (var j = 0; j < ch.keys.length; j++) {
+        this.lib_anim_idmap[ch.keys[j].id] = ch.keys[j];
+      }
+
+      this.lib_anim_pathmap[ch.path] = ch;
+    }
   }
   
   [Symbol.keystr]() : string {
@@ -541,18 +592,6 @@ export class DataBlock {
   }
 
   afterSTRUCT() {
-    for (var i=0; i<this.lib_anim_channels.length; i++) {
-      var ch = this.lib_anim_channels[i];
-      ch.idgen = this.lib_anim_idgen;
-      ch.idmap = this.lib_anim_idmap;
-      ch.owner = this;
-      
-      for (var j=0; j<ch.keys.length; j++) {
-        this.lib_anim_idmap[ch.keys[j].id] = ch.keys[j];
-      }
-      
-      this.lib_anim_pathmap[ch.path] = ch;
-    }
   }
   
   loadSTRUCT(reader : function) {
@@ -623,7 +662,6 @@ DataBlock.STRUCT = `
     flag              : int;
     
     lib_anim_channels : array(AnimChannel);
-    lib_anim_idgen    : EIDGen;
   }
 `;
 

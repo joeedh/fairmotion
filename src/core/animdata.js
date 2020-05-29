@@ -6,6 +6,34 @@ import {STRUCT} from './struct.js';
 import {CustomDataLayer, SplineTypes, SplineFlags} from '../curve/spline_base.js';
 import {DataPathWrapperNode} from './eventdag.js';
 
+/*id is an integer id,
+* note that it may refer to both an AnimChannel and one
+* of that channel's keys*/
+export function getDataPathKey(ctx : BaseContext, id : number) {
+  let datalib = ctx.datalib;
+
+  for (let block of datalib.allBlocks) {
+    if (id in block.lib_anim_idmap) {
+      return block.lib_anim_idmap[id];
+    }
+  }
+}
+
+export const AnimKeyTypes = {
+  SPLINE   : 0,
+  DATAPATH : 1
+};
+
+export const AnimKeyFlags = {
+  SELECT : 1
+};
+
+export var AnimInterpModes = {
+  STEP    : 1,
+  CATMULL : 2,
+  LINEAR  : 4
+}
+
 export class TimeDataLayer extends CustomDataLayer {
   time : number;
 
@@ -59,16 +87,6 @@ export function set_vtime(spline, v, time) {
 
     spline.flagUpdateVertTime(v);
   }
-}
-
-export var AnimKeyFlags = {
-  SELECT : 1
-}
-
-export var AnimInterpModes = {
-  STEP    : 1,
-  CATMULL : 2,
-  LINEAR  : 4
 }
 
 import {IntProperty, FloatProperty} from './toolprops.js';
@@ -162,7 +180,8 @@ export class AnimChannel {
       this.proptype = proptype;
       this.name = name == undefined ? "unnamed" : name;
       this.path = path;
-      
+      this.id = -1;
+
       this.owner = undefined;
       
       //these two members are references to the owning datablock's 
@@ -297,5 +316,6 @@ AnimChannel.STRUCT = `
     keys     : array(AnimKey);
     proptype : int;
     path     : string;
+    id       : int;
   }
 `

@@ -1,5 +1,7 @@
 "use strict";
 
+//XXX really ancient file, delete
+
 import {IconManager} from './icon.js';
 import * as config from '../config/config.js';
 

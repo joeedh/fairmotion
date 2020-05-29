@@ -234,7 +234,7 @@ export class PathUXInterface extends ModelInterface {
       accept(tool);
 
       //execute
-      g_app_state.toolstack.execTool(tool);
+      g_app_state.toolstack.execTool(ctx, tool);
     });
   }
 

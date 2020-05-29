@@ -24,16 +24,17 @@ export var PropTypes = {
   MATRIX4     : 512,
   QUAT        : 1024,
   PROPLIST    : 4096,
-  STRSET      : 1<<13,
-  CURVE       : 1<<14,
-  STRUCT      : 1<<19, //internal type to data api
-  DATAREF     : 1<<20,
-  DATAREFLIST : 1<<21,
-  TRANSFORM   : 1<<22, //ui-friendly matrix property
-  COLLECTION  : 1<<23,
-  IMAGE       : 1<<24, //this is only a subtype, used with DataRefProperty
-  ARRAYBUFFER : 1<<25,
-  ITER        : 1<<28
+  STRSET      : 1 << 13,
+  CURVE       : 1 << 14,
+  STRUCT      : 1 << 19, //internal type to data api
+  DATAREF     : 1 << 20,
+  DATAREFLIST : 1 << 21,
+  TRANSFORM   : 1 << 22, //ui-friendly matrix property
+  COLLECTION  : 1 << 23,
+  IMAGE       : 1 << 24, //this is only a subtype, used with DataRefProperty
+  ARRAYBUFFER : 1 << 25,
+  ITER        : 1 << 28,
+  INTARRAY    : 1 << 29
 };
 
 setPropTypes(PropTypes);
@@ -277,6 +278,71 @@ ArrayBufferProperty.STRUCT = nstructjs.inherit(ArrayBufferProperty, ToolProperty
 
 nstructjs.register(ArrayBufferProperty);
 ToolProperty.register(ArrayBufferProperty);
+
+export class IntArrayProperty extends ToolProperty {
+  constructor(data, apiname, uiname, description, flag) {
+    super(PropTypes.INTARRAY, undefined, apiname, uiname, description, flag);
+
+    this.data = [];
+
+    if (data) {
+      for (let item of data) {
+        this.data.push(item);
+      }
+    }
+  }
+
+  [Symbol.iterator]() {
+    return this.data[Symbol.iterator]();
+  }
+
+  getValue() {
+    return this.data;
+  }
+
+  setValue(array) {
+    let data = this.data;
+
+    super.setData(array);
+
+    this.data = data;
+    this.data.length = 0;
+
+    for (let item of array) {
+      let old = item;
+
+      item = ~~item;
+      if (isNaN(item)) {
+        console.warn("NaN warning! bad item", old, "!");
+        continue;
+      }
+
+      this.data.push(item);
+    }
+
+    return this;
+  }
+
+  copyTo(b) {
+    super.copyTo(b);
+    b.data = this.data.concat([]);
+  }
+
+  copy() {
+    let ret = new IntArrayProperty();
+    this.copyTo(ret);
+
+    return ret;
+  }
+
+  loadSTRUCT(reader) {
+    reader(this);
+  }
+}
+
+IntArrayProperty.STRUCT = nstructjs.inherit(IntArrayProperty, ToolProperty) + `
+  data : array(int);
+}`;
 
 export class DataRefProperty extends ToolProperty {
   types : set;

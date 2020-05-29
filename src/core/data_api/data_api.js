@@ -971,7 +971,9 @@ export class DataAPI {
       name = name[name.length-1];
       
       var ch = new AnimChannel(prop.type, name, path);
+
       ch.idgen = owner.lib_anim_idgen;
+      ch.id = owner.lib_anim_idgen.next();
       ch.idmap = owner.lib_anim_idmap;
       
       /*stupid, but possibly useful code to extract an owning
@@ -1006,6 +1008,7 @@ export class DataAPI {
       }*/
       
       ch.owner = owner;
+
       owner.lib_anim_pathmap[path] = ch;
       owner.lib_anim_channels.push(ch);
     }
@@ -1017,9 +1020,8 @@ export class DataAPI {
   }
   
   resolve_path_intern(ctx, str) {  
-    if (str == undefined) {
-      str = ctx;
-      ctx = new Context();
+    if (str === undefined) {
+      throw new Error("invalid arguments to resolve_path_intern");
     }
     
     static cache = {};
@@ -1283,7 +1285,7 @@ export class DataAPI {
       
       return func(ctx, scope);
     } catch (error) {
-      if (window.DEBUG != undefined && window.DEBUG.ui_datapaths)
+      if (window.DEBUG !== undefined && window.DEBUG.ui_datapaths)
         print_stack(error);
       
       throw new DataAPIError(error.message);
@@ -1291,14 +1293,13 @@ export class DataAPI {
   }
   
   get_object(ctx, str) {
-    if (str == undefined) {
-      str = ctx;
-      ctx = new Context();
+    if (str === undefined) {
+      throw new Error("context cannot be undefined");
     }
     
     var ret = this.resolve_path_intern(ctx, str);
     
-    if (ret == undefined || ret[0] == undefined || ret[0].type == DataPathTypes.PROP) {
+    if (ret === undefined || ret[0] === undefined || ret[0].type === DataPathTypes.PROP) {
       console.trace("Not a direct object reference", str);
       return undefined;
     } else { //return actual object

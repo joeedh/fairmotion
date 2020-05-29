@@ -45,6 +45,8 @@ import {
 import {ElementArraySet, ElementArray, 
         SplineLayer, SplineLayerSet} from './spline_element_array.js';
 
+let _internal_idgen=0;
+
 var rect_tmp = [
   new Vector2(), new Vector2()
 ];
@@ -92,7 +94,7 @@ export class AllPointsIter {
 stage : number
 ret : Object;
 
-  constructor(spline) {
+  constructor(spline : Spline) {
     this.spline = spline;
     this.stage = 0;
     this.iter = spline.verts[Symbol.iterator]();
@@ -104,7 +106,7 @@ ret : Object;
     return this;
   }
 
-  next() {
+  next() : IteratorResult<SplineVertex> {
     var ret = this.iter.next();
 
     this.ret.done = ret.done;
@@ -138,6 +140,7 @@ export class Spline extends DataBlock {
   proportional : boolean
   prop_radius : number
   eidmap : Object
+  updateGen : number
   elist_map : Object
   selectmode : number
   layerset : SplineLayerSet
@@ -150,8 +153,10 @@ export class Spline extends DataBlock {
   face : ElementArray<SplineFace>
   draw_normals : boolean;
 
-  constructor(name=undefined) {
+  constructor(name : string=undefined) {
     super(DataTypes.SPLINE, name);
+
+    this.updateGen = 0;
 
     //used for eventdag.  stores eids.
     this._vert_add_set = new set();
@@ -173,7 +178,6 @@ export class Spline extends DataBlock {
       this.mres_format[i] = mformat[i];
     }
 
-    static _internal_idgen=0;
     this._internal_id = _internal_idgen++;
 
     this.drawlist = []; //has lines and faces mixed together
@@ -249,16 +253,19 @@ export class Spline extends DataBlock {
   }
 
   regen_sort() {
+    this.updateGen++;
     this.recalc |= RecalcFlags.DRAWSORT;
   }
 
   regen_solve() {
     this.resolve = 1;
+    this.updateGen++;
     this.recalc |= RecalcFlags.SOLVE;
   }
 
   regen_render() {
     this.resolve = 1;
+    this.updateGen++;
     this.recalc |= RecalcFlags.ALL;
   }
 
@@ -344,7 +351,7 @@ export class Spline extends DataBlock {
           ret.layerset.idmap[layeri].add(v2);
         }
 
-        if (si == 1) {
+        if (si === 1) {
           ret.copy_handle_data(v2, v);
         } else {
           ret.copy_vert_data(v2, v);
@@ -366,7 +373,7 @@ export class Spline extends DataBlock {
       ret.segments.push(s2);
       eidmap[s2.eid] = s2;
 
-      if (s == this.segments.active)
+      if (s === this.segments.active)
         ret.segments.active = s;
 
       s2.h1 = eidmap[s.h1.eid];
@@ -383,10 +390,10 @@ export class Spline extends DataBlock {
         s2.ks[j] = s.ks[j];
       }
 
-      if (s.h1.hpair != undefined)
+      if (s.h1.hpair !== undefined)
         s2.h1.hpair = eidmap[s.h1.hpair.eid]
 
-      if (s.h2.hpair != undefined)
+      if (s.h2.hpair !== undefined)
         s2.h2.hpair = eidmap[s.h2.hpair.eid]
 
       ret.copy_segment_data(s2, s);
@@ -428,7 +435,7 @@ export class Spline extends DataBlock {
     return ret;
   }
 
-  copy_element_data(dst, src) {
+  copy_element_data(dst : SplineElement, src : SplineElement) {
     if (dst.flag & SplineFlags.SELECT) {
       this.setselect(dst, false);
     }
@@ -442,33 +449,33 @@ export class Spline extends DataBlock {
     }
   }
 
-  copy_vert_data(dst, src) {
+  copy_vert_data(dst : SplineVertex, src : SplineVertex) {
     this.copy_element_data(dst, src);
   }
 
-  copy_handle_data(dst, src) {
+  copy_handle_data(dst : SplineVertex, src : SplineVertex) {
     this.copy_element_data(dst, src);
   }
 
-  copy_segment_data(dst, src) {
-    this.copy_element_data(dst, src);
-    dst.z = src.z;
-
-    dst.mat.load(src.mat);
-  }
-
-  copy_face_data(dst, src) {
+  copy_segment_data(dst : SplineSegment, src : SplineSegment) {
     this.copy_element_data(dst, src);
     dst.z = src.z;
 
     dst.mat.load(src.mat);
   }
 
-  get points() {
+  copy_face_data(dst : SplineFace, src : SplineFace) {
+    this.copy_element_data(dst, src);
+    dst.z = src.z;
+
+    dst.mat.load(src.mat);
+  }
+
+  get points() : Iterable<SplineVertex> {
     return new AllPointsIter(this);
   }
 
-  make_vertex(co : Array<float>, eid=undefined) {
+  make_vertex(co : Array<float>, eid : number=undefined) : SplineVertex {
     var v = new SplineVertex(co);
 
     v.flag |= SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
@@ -486,19 +493,19 @@ export class Spline extends DataBlock {
     return this.elist_map[type];
   }
 
-  make_handle(co, eid=undefined) {
+  make_handle(co, __eid : number=undefined) : SplineVertex {
     var h = new SplineVertex();
 
     h.flag |= SplineFlags.BREAK_TANGENTS;
     h.flag |= SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
 
     h.type = SplineTypes.HANDLE;
-    this.handles.push(h, eid);
+    this.handles.push(h, __eid);
 
     return h;
   }
 
-  split_edge(seg, s=0.5) {
+  split_edge(seg : SplineSegment, s : number=0.5) : Array<SplineElement> {
     var co = seg.evaluate(s);
 
     static ws = [0.5, 0.5];
@@ -531,7 +538,7 @@ export class Spline extends DataBlock {
     v2<--nv<--v1 : l
     */
 
-    if (seg.l != undefined) {
+    if (seg.l !== undefined) {
       var start = seg.l;
       var l = seg.l;
 
@@ -546,7 +553,7 @@ export class Spline extends DataBlock {
         }
 
         l = l.radial_next;
-      } while (l != seg.l);
+      } while (l !== seg.l);
 
       for (var j=0; j<lst.length; j++) {
         var l = lst[j];
@@ -608,7 +615,7 @@ export class Spline extends DataBlock {
     ret[0] = nseg;
     ret[1] = nv;
 
-    if (hpair != undefined) {
+    if (hpair !== undefined) {
       this.connect_handles(nseg.h2, hpair);
     }
 
@@ -624,7 +631,7 @@ export class Spline extends DataBlock {
     return ret;
   }
 
-  find_segment(v1, v2) {
+  find_segment(v1 : SplineVertex, v2 : SplineVertex) {
     for (var i=0; i<v1.segments.length; i++) {
       if (v1.segments[i].other_vert(v1) === v2) return v1.segments[i];
     }
@@ -637,7 +644,7 @@ export class Spline extends DataBlock {
     h1.hpair = undefined;
   }
 
-  connect_handles(h1, h2) {
+  connect_handles(h1 : SplineVertex, h2 : SplineVertex) {
     var s1 = h1.segments[0], s2 = h2.segments[0];
     if (s1.handle_vertex(h1) != s2.handle_vertex(h2)) {
       console.trace("Invalid call to connect_handles");
@@ -653,7 +660,7 @@ export class Spline extends DataBlock {
     h2.hpair = h1;
   }
 
-  export_ks() {
+  export_ks() : Uint16Array {
     var mmlen = MMLEN;
     var size = 4/UMUL + 8/UMUL + this.segments.length*ORDER;
     
@@ -730,7 +737,7 @@ export class Spline extends DataBlock {
     return ret2; //new Uint8Array(ret2.buffer);
   }
   
-  import_ks(data) {
+  import_ks(data : Uint16Array) {
     data = new UARR(data.buffer);
     /*
     var s = "";
@@ -997,7 +1004,7 @@ export class Spline extends DataBlock {
           }
           
           var l = s.l;
-          if (l == undefined) continue;
+          if (l === undefined) continue;
           var c=0;
           
           do {
@@ -1047,7 +1054,7 @@ export class Spline extends DataBlock {
       }
       
       //select first if necassary
-      if (fact == undefined || !fset.has(fact)) {
+      if (fact === undefined || !fset.has(fact)) {
         for (var f of fset) {
           fact = f;
           break;
@@ -1186,7 +1193,7 @@ export class Spline extends DataBlock {
     }
   }
   
-  make_face(vlists, custom_eid=undefined) {
+  make_face(vlists : Array<Array<SplineVertex>>, custom_eid=undefined) : SplineFace {
     var f = new SplineFace();
     
     if (custom_eid == -1) custom_eid = undefined;
@@ -1254,7 +1261,7 @@ export class Spline extends DataBlock {
     return f;
   }
   
-  make_loop() {
+  make_loop() : SplineLoop {
     var l = new SplineLoop();
     
     l.eid = this.idgen.gen_id();
@@ -1428,7 +1435,7 @@ export class Spline extends DataBlock {
 
   //used by dopesheet editor to detect things like
   //active layer changes
-  buildSelCtxKey() {
+  buildSelCtxKey() : string {
     let key = "";
 
     key += this.layerset.active.id;
@@ -1596,7 +1603,7 @@ export class Spline extends DataBlock {
   
   /*NOTE: we override any pre-existing this._resolve_after callback.
           this is to avoid excessive queueing*/
-  solve(steps, gk, force_queue=false) {
+  solve(steps, gk, force_queue=false) : Promise {
     var this2 = this;
 
     var dag_trigger = function() {
@@ -1784,7 +1791,7 @@ export class Spline extends DataBlock {
     return this.solve(steps, gk);
   }
     
-  trace_face(g : Canvas2DContext, f : SplineFace) {
+  trace_face(g : CanvasRenderingContext2D, f : SplineFace) {
     g.beginPath();
     
     static lastco = new Vector3();
@@ -2003,7 +2010,7 @@ export class Spline extends DataBlock {
     this.resolve = 1;
   }
   
-  toJSON(self) {
+  toJSON(self) : Object {
     var ret = {};
     
     ret.frame = this.frame;
@@ -2047,7 +2054,7 @@ export class Spline extends DataBlock {
     this.init_elists();
   }
   
-  import_json(obj) {
+  import_json(obj : Object) {
     var spline2 = Spline.fromJSON(obj);
     
     var miny = 1e18, maxy = 1e-18;
@@ -2084,7 +2091,7 @@ export class Spline extends DataBlock {
     this.resolve = 1;
   }
   
-  static fromJSON(obj) {
+  static fromJSON(obj : Object) {
     var spline = new Spline();
     
     spline.idgen.cur_id = obj._cur_id;
@@ -2197,8 +2204,10 @@ export class Spline extends DataBlock {
     }
   }
   
-  draw(redraw_rects, g, editor, matrix, selectmode, only_render, draw_normals, alpha,
-       draw_time_helpers, curtime, ignore_layers)
+  draw(redraw_rects : Array<Array<number>>, g : CanvasRenderingContext2D,
+       editor : HTMLCanvas, matrix : Matrix4, selectmode : number,
+       only_render : boolean, draw_normals : boolean, alpha : number,
+       draw_time_helpers : boolean, curtime : number, ignore_layers : boolean)
   {
     this.canvas = g;
     this.selectmode = selectmode;
@@ -2405,7 +2414,7 @@ export class Spline extends DataBlock {
     this.dag_update("on_vert_time_change", this._vert_time_set);
   }
 
-  dag_exec(ctx : FullContext, inputs, outputs, graph) {
+  dag_exec(ctx : FullContext, inputs : Object, outputs : Object, graph) {
     outputs.on_vert_add.loadData(this._vert_add_set);
 
     this._vert_add_set = new set();

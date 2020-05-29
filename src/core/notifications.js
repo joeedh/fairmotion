@@ -5,11 +5,11 @@ export class Notification {
 }
 
 export class NotificationManager {
-  label(label, description) {
+  label(label : string, description : string) {
     sendNote(g_app_state.ctx.screen, label);
   }
 
-  progbar(label, progress, description) {
+  progbar(label : string, progress : number, description : string) {
     let f = progress.toFixed(1);
     sendNote(g_app_state.ctx.screen, label + " " + f + "%");
   }
@@ -40,8 +40,8 @@ var ScreenArea, Area;
 
 var _id_note_gen = 1;
 export class Notification {
-  constructor(String apiname, String uiname, 
-              String description) 
+  constructor(apiname : string, uiname : string,
+              description : string)
   {
     this._id = _id_note_gen++;
     this.name = apiname;
@@ -50,7 +50,7 @@ export class Notification {
     //this.defunct = false; //expected to be a getter
   }
   
-  [Symbol.keystr]() : String {
+  [Symbol.keystr]() : string {
     return ""+this._id;
   }
   

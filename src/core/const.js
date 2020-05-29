@@ -10,7 +10,7 @@ window.fairmotion_file_ext = ".fmo";
 window.fairmotion_settings_filename = ".settings.bin";
 
 //application version
-window.g_app_version = 0.051;
+window.g_app_version = 0.052;
 
 /*all selection bitflags flags must use this value, 
   e.g. SplineFlags.SELECT*/

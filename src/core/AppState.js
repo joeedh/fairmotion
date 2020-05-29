@@ -32,6 +32,8 @@ import {iconmanager, setIconMap, setTheme} from '../path.ux/scripts/core/ui_base
 import {Editor} from '../editors/editor_base.js';
 
 import cconst from '../path.ux/scripts/config/const.js';
+import {termColor} from '../path.ux/scripts/util/util.js';
+
 cconst.loadConstants(config.PathUXConstants);
 
 //set iconsheets, need to find proper place for it other than here in AppState.js
@@ -444,6 +446,9 @@ function output_startup_file() : String {
   return out;
 }
 
+const _nonblocks = Object.freeze(new set (["SCRN", "TSTK", "THME", "DLIB"]));
+const toolop_input_cache = {};
+
 export class AppState {
   constructor(screen : FrameManager) {
     this.AppState_init(screen);
@@ -454,9 +459,7 @@ export class AppState {
     this.eventhandler = screen : EventHandler;
 
     this.active_editor = undefined;
-    
-    this._nonblocks = new set (["SCRN", "TSTK", "THME"]);
-    
+
     this.select_multiple = false; //basically, this is shift key emulation for tablets
     this.select_inverse = false;  //same as select_mutiple
     
@@ -480,7 +483,6 @@ export class AppState {
     this.size = screen !== undefined ? screen.size : [512, 512];
     this.raster = new RasterState(undefined, screen !== undefined ? screen.size : [512, 512]);
     
-    static toolop_input_cache = {};
     this.toolop_input_cache = toolop_input_cache;
     
     if (this.datalib !== undefined) {
@@ -532,7 +534,7 @@ export class AppState {
     //console.trace(val);
     
     var scene = this.datalib.get_active(DataTypes.SCENE);
-    if (scene != undefined)
+    if (scene !== undefined)
       scene.active_splinepath = val;
   }
   
@@ -658,7 +660,7 @@ export class AppState {
     var toolstack = this.toolstack;
     var view2d = this.active_view2d;
     
-    console.log(scenefile);
+    console.trace("Load internal scene file", scenefile);
     
     if (this.datalib !== undefined) {
       this.datalib.on_destroy();
@@ -690,13 +692,8 @@ export class AppState {
     var toolstack = this.toolstack;
     
     console.log(undofile);
-    
-    if (this.datalib != undefined) {
-      this.datalib.on_destroy();
-    }
-    
-    var datalib = new DataLib();
-    this.datalib = datalib;
+
+    this.datalib.clear();
     var filedata = this.load_blocks(undofile);
     
     this.link_blocks(datalib, filedata);
@@ -741,8 +738,11 @@ export class AppState {
   create_user_file_new(args={}) {
     var gen_dataview=true, compress=false;
     var save_screen=true, save_toolstack=false;
-    var save_theme=false;
-    
+    var save_theme=false, save_datalib = true;
+
+    if (args.save_datalib !== undefined)
+      save_datalib = args.save_datalib;
+
     if (args.gen_dataview !== undefined)
       gen_dataview = args.gen_dataview;
       
@@ -795,7 +795,17 @@ export class AppState {
 //#ifdef PACK_PROFILE
     profile_reset();
 //#endif
-    
+
+    //save datalib data, note that data blocks are saved independently
+    if (save_datalib) {
+      let data2 = [];
+
+      istruct.write_object(data2, this.datalib);
+      bheader(data,"DLIB", "STRT")
+      pack_int(data, data2.length);
+      data = data.concat(data2);
+    }
+
     if (save_screen) {
       //write screen block
       var data2 = []
@@ -983,8 +993,6 @@ export class AppState {
     if (version < 0.046) {
       for (var frameset of datalib.framesets) {
         for (var spline of frameset._allsplines) {
-          console.log("========>", spline);
-          
           for (var h of spline.handles) {
             //if (!h.use) continue;
             
@@ -1088,6 +1096,34 @@ export class AppState {
       }
       console.log("objectification");
     }
+
+    if (version < 0.053) {
+      let map = {};
+      let max_id = -1;
+
+      for (let block of this.datalib.allBlocks) {
+        max_id = Math.max(max_id, block.lib_id + 1);
+      }
+
+      this.datalib.idgen.set_cur(max_id);
+      this.datalib.idmap = {};
+
+      for (let list of this.datalib.datalists) {
+        list = this.datalib.datalists.get(list);
+        list.idmap = {};
+
+        for (let block of list) {
+          if (block.lib_id in map) {
+            console.warn("%cConverting old file with overlapping DataBlock IDs", "color : red");
+            block.lib_id = this.datalib.idgen.gen_id();
+          }
+
+          list.idmap[block.lib_id] = block;
+          this.datalib.idmap[block.lib_id] = block;
+          map[block.lib_id] = 1;
+        }
+      }
+    }
   }
 
   load_path(path_handle) {
@@ -1148,8 +1184,8 @@ export class AppState {
     
     var blocks = new GArray();
     var fstructs = new STRUCT();
-    var datalib = new DataLib();
-    
+    var datalib = undefined;
+
     var tmap = get_data_typemap();
     
     window._send_killscreen();
@@ -1159,18 +1195,21 @@ export class AppState {
       var subtype = unpack_static_string(data, uctx, 4);
       var len = unpack_int(data, uctx);
       var bdata;
-      
-      if (subtype == "JSON") {
+
+      if (subtype === "JSON") {
         bdata = unpack_static_string(data, uctx, len);
-      } else if (subtype == "STRT") {
-        if (type == "BLCK") {
+      } else if (subtype === "STRT") {
+        if (type === "BLCK") {
           var dtype = unpack_int(data, uctx);
           bdata = unpack_bytes(data, uctx, len-4);
           bdata = [dtype, bdata];
         } else {
-          bdata = unpack_bytes(data, uctx, len);        
+          bdata = unpack_bytes(data, uctx, len);
+          if (type === "DLIB") {
+            datalib = fstructs.read_object(bdata, DataLib);
+          }
         }
-      } else if (subtype == "SDEF") {
+      } else if (subtype === "SDEF") {
         bdata = unpack_static_string(data, uctx, len).trim();
         fstructs.parse_structs(bdata);
       } else {
@@ -1182,26 +1221,31 @@ export class AppState {
       
       blocks.push({type : type, subtype : subtype, len : len, data : bdata});
     }
+
+    if (datalib === undefined) {
+      console.warn("%c Creating new DataLib; probably an old file...", "color : red;");
+      datalib = new DataLib();
+    }
     
     for (var i=0; i<blocks.length; i++) {
       var b = blocks[i];
       
-      if (b.subtype == "JSON") {
+      if (b.subtype === "JSON") {
         b.data = JSON.parse(b.data);
       } else if (b.subtype == "STRT") { //struct data should only be lib blocks
-        if (b.type == "BLCK") {
+        if (b.type === "BLCK") {
           var lt = tmap[b.data[0]];
           
-          lt = lt != undefined ? lt.name : lt;
+          lt = lt !== undefined ? lt.name : lt;
           
           b.data = fstructs.read_object(b.data[1], tmap[b.data[0]]);
           b.data.lib_refs = 0; //reading code will re-calculate ref count
           
           datalib.add(b.data, false);
         } else {
-          if (b.type == "SCRN") {
+          if (b.type === "SCRN") {
             b.data = this.readScreen(fstructs, b.data);
-          } else if (b.type == "THME") {
+          } else if (b.type === "THME") {
             b.data = fstructs.read_object(b.data, Theme);
           }
         }
@@ -1212,7 +1256,7 @@ export class AppState {
     for (var i=0; i<blocks.length; i++) {
         var block = blocks[i];
         
-        if (block.type == "THME") {
+        if (block.type === "THME") {
           global g_theme;
           
           var old = g_theme;
@@ -1226,7 +1270,7 @@ export class AppState {
     
     //var ascopy = this.copy();
     
-    if (this.datalib != undefined) {
+    if (this.datalib !== undefined) {
       this.datalib.on_destroy();
     }
     
@@ -1250,7 +1294,7 @@ export class AppState {
       for (var i=0; i<blocks.length; i++) {
         var block = blocks[i];
         
-        if (block.subtype == "STRT" && !this2._nonblocks.has(block.type)) {
+        if (block.subtype === "STRT" && !_nonblocks.has(block.type)) {
           block.data.data_link(block.data, getblock, getblock_us);
         }
       }
@@ -1805,11 +1849,11 @@ class SavedContextOld {
   }
   
   get spline() : FrameSet {
-    var ret = g_app_state.api.get_object(this._spline_path);
+    var ret = g_app_state.api.get_object(this, this._spline_path);
     
     if (ret == undefined) {
       warntrace("Warning: bad spline path", this._spline_path);
-      ret = g_app_state.api.get_object("frameset.drawspline");
+      ret = g_app_state.api.get_object(this, "frameset.drawspline");
       
       if (ret == undefined) {
         console.trace("Even Worse: base spline path failed!");
@@ -1955,7 +1999,7 @@ class ToolStack {
   reexec_stack2(validate=false) {
     var stack = this.undostack;
     
-    g_app_state.datalib = new DataLib();
+    g_app_state.datalib.clear();
     
     var mctx = new FullContext().toLocked();
     var first=true;
@@ -2031,7 +2075,7 @@ class ToolStack {
   reexec_stack(validate=false) {
     var stack = this.undostack;
     
-    g_app_state.datalib = new DataLib();
+    g_app_state.datalib.clear();
         
     var mctx = new FullContext();
     var first=true;
@@ -2378,7 +2422,13 @@ class ToolStack {
     this.execTool(macro);
   }
 
-  execTool(tool : ToolOp) {
+  execTool(ctx : FullContext, tool : ToolOp) {
+    if (ctx instanceof ToolOp) {
+      console.warn("Bad arguments to g_app_state.toolstack.execTool()");
+      tool = ctx;
+      ctx = g_app_state.ctx;
+    }
+
     //flush event graph
     the_global_dag.exec(this.ctx);
 

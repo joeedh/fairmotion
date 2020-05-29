@@ -63,12 +63,15 @@ class Mat4Compat extends Matrix4 {
 }
 
 Mat4Compat.STRUCT = `
-mat4 {
+Mat4Compat {
   _matrix : mat4_intern | obj.$matrix;
 }
 `;
 
 export class Mat4Intern {
+  loadSTRUCT(reader) {
+    reader(this);
+  }
 }
 Mat4Intern.STRUCT = `
 mat4_intern {
@@ -104,7 +107,7 @@ function makeVecPatch(cls, size, name) {
   };
 
 
-  let s = name + "{\n";
+  let s = "_"+name + "{\n";
   for (let i=0; i<size; i++) {
     s += `  ${i} : float;\n`
   }
@@ -112,7 +115,7 @@ function makeVecPatch(cls, size, name) {
 
   //console.log(s);
   dummycls.STRUCT = s;
-  dummycls.structName = dummycls.name = name;
+  dummycls._structName = dummycls.name = name;
 
   vecpatches.push(dummycls);
 }
@@ -126,6 +129,8 @@ makeVecPatch(Vector4, 4, "quat");
 
 let _old = nstructjs.STRUCT.prototype.parse_structs;
 nstructjs.STRUCT.prototype.parse_structs = function(buf : string, defined_classes) {
+  window._fstructs = buf;
+
   buf = patch_dataref_type(buf);
   //console.log(buf);
   let ret = _old.call(this, buf);
@@ -140,13 +145,15 @@ nstructjs.STRUCT.prototype.parse_structs = function(buf : string, defined_classe
 
   //*
   if (!this.structs.mat4) {
+    console.warn("PATCHING MATRIX 4");
     this.register(Mat4Intern);
-    this.register(Mat4Compat);
+    this.register(Mat4Compat, "mat4");
   }
 
   for (let v of vecpatches) {
-    if (!this.structs[v.structName]) {
-      this.register(v);
+    if (!this.structs[v._structName]) {
+      v.structName = v._structName;
+      this.register(v, v._structName);
     }
   }
 

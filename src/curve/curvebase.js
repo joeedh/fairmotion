@@ -16,7 +16,7 @@ export class CurveData {
   flag : number
   length : number;
 
-  constructor(type) {
+  constructor(type : int) {
     this.type = type;
     this.flag = 0;
     this.length = 0;

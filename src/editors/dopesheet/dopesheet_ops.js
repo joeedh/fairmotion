@@ -298,7 +298,7 @@ export class ShiftTimeOp3 extends ToolOp {
   undo_pre(ctx) {
     var ud = this._undo = {};
     
-    for (var id of this.inputs.phantom_ids.data) {
+    for (var id of this.inputs.phantom_ids) {
       ud[id] = get_time(ctx, id);
     }
   }
@@ -321,7 +321,7 @@ export class ShiftTimeOp3 extends ToolOp {
     var starts = {};
     var off = this.inputs.factor.data;
     
-    var ids = this.inputs.phantom_ids.data;
+    var ids = this.inputs.phantom_ids;
     for (var id of ids) {
       starts[id] = get_time(ctx, id);
     }
@@ -409,7 +409,7 @@ export class SelectOpBase extends ToolOp {
   undo_pre(ctx) {
     var undo = this._undo = {};
     
-    for (var id of this.inputs.phantom_ids.data) {
+    for (var id of this.inputs.phantom_ids) {
       undo[id] = get_select(ctx, id);
     }
   }
@@ -439,6 +439,7 @@ export class SelectOp extends SelectOpBase {
     is_modal : false,
     inputs : ToolOp.inherit({
       select_ids  : new CollectionProperty([], undefined, "select_ids", "select_ids"),
+      phantom_ids  : new CollectionProperty([], undefined, "phantom_ids", "phantom_ids"),
       state       : new BoolProperty(true, "state"),
       unique      : new BoolProperty(true, "unique")
     }),
@@ -452,12 +453,12 @@ export class SelectOp extends SelectOpBase {
     var state = this.inputs.state.data;
     
     if (this.inputs.unique.data) {
-      for (var id of this.inputs.phantom_ids.data) {
+      for (var id of this.inputs.phantom_ids) {
         set_select(ctx, id, false);
       }
     }
     
-    for (var id of this.inputs.select_ids.data) {
+    for (var id of this.inputs.select_ids) {
       set_select(ctx, id, state);
     }
   }
@@ -486,12 +487,12 @@ export class ColumnSelect extends SelectOpBase {
     var cols = {};
     var state = this.inputs.state.data;
     
-      for (var id of this.inputs.phantom_ids.data) {
+      for (var id of this.inputs.phantom_ids) {
       if (get_select(ctx, id))
         cols[get_time(ctx, id)] = 1;
     }
     
-    for (var id of this.inputs.phantom_ids.data) {
+    for (var id of this.inputs.phantom_ids) {
       if (!(get_time(ctx, id) in cols))
         continue;
       
@@ -525,7 +526,7 @@ export class SelectKeysToSide extends SelectOpBase {
     var state = this.inputs.state.data;
     var mintime = 1e17, maxtime = -1e17;
     
-    for (var id of this.inputs.phantom_ids.data) {
+    for (var id of this.inputs.phantom_ids) {
       if (!get_select(ctx, id))
         continue;
       
@@ -541,7 +542,7 @@ export class SelectKeysToSide extends SelectOpBase {
     
     var side = this.inputs.side.data;
     
-    for (var id of this.inputs.phantom_ids.data) {
+    for (var id of this.inputs.phantom_ids) {
       var time = get_time(ctx, id);
       
       if ((side && time < maxtime) || (!side && time > mintime))
@@ -582,14 +583,14 @@ export class ToggleSelectOp extends SelectOpBase {
     if (mode == "auto") {
       mode = "select";
       
-      for (var id of this.inputs.phantom_ids.data) {
+      for (var id of this.inputs.phantom_ids) {
         if (get_select(ctx, id))
           mode = "deselect";
       }
     }
     
     mode = mode == "select" ? true : false;
-    for (var id of this.inputs.phantom_ids.data) {
+    for (var id of this.inputs.phantom_ids) {
       set_select(ctx, id, mode);
     }
   }
@@ -616,7 +617,7 @@ export class DeleteKeyOp extends ToolOp {
   }}
   
   exec(ctx) {
-    for (var id of this.inputs.phantom_ids.data) {
+    for (var id of this.inputs.phantom_ids) {
       if (get_select(ctx, id)) {
         //console.log("deleting!", id & 65535);
         delete_key(ctx, id);

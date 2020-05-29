@@ -126,20 +126,24 @@ export class Editor extends Area {
   init() {
     super.init();
 
+    if (!this.container) {
+      this.container = document.createElement("container-x");
+      this.container.ctx = this.ctx;
+
+      this.container.style["width"] = "100%";
+      this.shadow.appendChild(this.container);
+
+      this.makeHeader(this.container);
+    }
+
+    this.keymap = new KeyMap();
+
     if (this.helppicker) {
       this.helppicker.iconsheet = 0;
     }
 
-    this.container = document.createElement("container-x");
-    this.container.ctx = this.ctx;
-
-    this.container.style["width"] = "100%";
-    this.shadow.appendChild(this.container);
-
-    this.makeHeader(this.container);
+    this.style["overflow"] = "hidden";
     this.setCSS();
-
-    this.keymap = new KeyMap();
   }
 
   getCanvas(id : string, zindex : number, patch_canvas2d_matrix=true, dpi_scale=1.0) {
@@ -154,10 +158,6 @@ export class Editor extends Area {
       canvas = this.canvases[id] = document.createElement("canvas");
       canvas.g = this.canvases[id].getContext("2d");
 
-      if (patch_canvas2d_matrix) {
-        patch_canvas2d(canvas.g);
-      }
-
       this.shadow.prepend(canvas);
 
       canvas.style["position"] = "absolute";
@@ -165,7 +165,7 @@ export class Editor extends Area {
 
     canvas.dpi_scale = dpi_scale;
 
-    if (canvas.style["z-index"] != zindex) {
+    if (canvas.style["z-index"] !== zindex) {
       canvas.style["z-index"] = zindex;
     }
 
@@ -176,12 +176,17 @@ export class Editor extends Area {
       let sw = this.size[0] + "px";
       let sh = this.size[1] + "px";
 
-      if (canvas.width != w || canvas.style["width"] != sw) {
+      //canvas.style["left"] = this.pos[0] + "px";
+      //canvas.style["top"] = this.pos[1] + "px";
+      canvas.style["left"] =  "0px";
+      canvas.style["top"] = "0px";
+
+      if (canvas.width !== w || canvas.style["width"] !== sw) {
         canvas.width = w;
         canvas.style["width"] = sw;
       }
 
-      if (canvas.height != h || canvas.style["height"] != sh) {
+      if (canvas.height !== h || canvas.style["height"] !== sh) {
         canvas.height = h;
         canvas.style["height"] = sh;
       }

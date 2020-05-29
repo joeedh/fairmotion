@@ -8,7 +8,7 @@ import {Vec3Property, BoolProperty, FloatProperty, IntProperty,
         CollectionProperty, TPropFlags, EnumProperty} from '../../core/toolprops.js';
 
         import {SplineFlags, SplineTypes} from '../../curve/spline_types.js';
-import {ToolOp, ModalStates} from '../../core/toolops_api.js';
+import {ToolOp, ToolDef, ModalStates} from '../../core/toolops_api.js';
 
 import {TransDataItem, TransDataType, TransData} from './transdata.js';
 import {TransDopeSheetType} from '../dopesheet/dopesheet_transdata.js';
@@ -74,7 +74,7 @@ export class TransformOp extends ToolOp {
     return op;
   }
 
-  static tooldef() { return {
+  static tooldef() : ToolDef { return {
     inputs : {
       /* some TransData backends may use this, e.g. to store arrays of
          integer ids for visible path spline vertices in dopesheet editor */
@@ -179,7 +179,7 @@ export class TransformOp extends ToolOp {
     this.modaldata = {};
   }
   
-  on_mousemove(event) {
+  on_mousemove(event : MouseEvent) {
     //ToolOp.prototype.on_mousemove.call(this, event);
     var td = this.ensure_transdata(this.modal_ctx);
     var ctx = this.modal_ctx;

@@ -56,7 +56,7 @@ export class BaseContextOverlay extends ContextOverlay {
   }
 
   get spline() : FrameSet {
-    var ret = this.api.getObject(g_app_state.active_splinepath);
+    var ret = this.api.getObject(this, g_app_state.active_splinepath);
 
     if (ret === undefined) {
       warntrace("Warning: bad spline path", g_app_state.active_splinepath);

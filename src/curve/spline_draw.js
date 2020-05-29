@@ -132,7 +132,7 @@ import { Vector2 } from '../util/vectormath.js';
 
 export * from './spline_draw_sort';
 
-export function draw_curve_normals(spline, g, zoom) {
+export function draw_curve_normals(spline : Spline, g : CanvasRenderingContext2D, zoom : number) {
   for (var seg of spline.segments) {
     if (seg.v1.hidden || seg.v2.hidden) continue;
     //if (seg.hidden) continue;

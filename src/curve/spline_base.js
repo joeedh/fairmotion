@@ -65,7 +65,7 @@ export class CustomDataLayer {
     this.shared = undefined;
   }
   
-  segment_split(old_segment, old_v1, old_v2, new_segments) {
+  segment_split(old_segment : SplineSegment, old_v1 : SplineVertex, old_v2 : SplineVertex, new_segments : Array<SplineSegment>) {
   }
   
   update(owner) {
@@ -80,7 +80,7 @@ export class CustomDataLayer {
   copy(src) {
   }
   
-  static fromSTRUCT(reader) {
+  static fromSTRUCT(reader : function) {
     var obj = new CustomDataLayer();
     
     reader(obj);
@@ -93,7 +93,7 @@ export class CustomDataLayer {
 }
 
 export class empty_class {
-  static fromSTRUCT(reader) {
+  static fromSTRUCT(reader : function) {
     var ret = new empty_class();
     reader(ret);
     return ret;

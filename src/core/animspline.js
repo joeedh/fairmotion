@@ -647,7 +647,7 @@ export class VertexAnimData {
     for (var v of this.verts) {
       var t = get_vtime(v);
       
-      if (t <= lasttime) {
+      if (t < lasttime) {
         console.log("Found timing integrity error for vertex", this.eid, "path vertex:", v.eid);
         //set_vtime(g_app_state.ctx.frameset.pathspline, v, lasttime);
         this.regen_topology();

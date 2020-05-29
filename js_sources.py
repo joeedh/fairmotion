@@ -204,6 +204,7 @@ sources = [
   "src/editors/dopesheet/dopesheet_phantom.js",
   "src/editors/dopesheet/dopesheet_transdata.js",
   "src/editors/dopesheet/dopesheet_ops.js",
+  "src/editors/dopesheet/dopesheet_ops_new.js",
 
   "src/editors/curve/editcurve_ops.js",
   "src/editors/curve/editcurve_util.js",

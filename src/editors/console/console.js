@@ -97,11 +97,11 @@ ConsoleLineEntry {
 nstructjs.register(ConsoleLineEntry);
 
 export class ConsoleCommand {
-    constructor(cmd) {
+    constructor(cmd : string) {
         this.command = cmd;
     }
 
-    loadSTRUCT(reader) {
+    loadSTRUCT(reader : function) {
         reader(this);
     }
 }
@@ -121,7 +121,7 @@ export class HitBox {
     pos : Vector2
     size : Vector2;
 
-    constructor(x, y, w, h) {
+    constructor(x : number, y : number, w : number, h : number) {
         this.pos = new Vector2([x, y]);
         this.size = new Vector2([w, h]);
         this.type = HitBoxTypes.TOGGLE_CHILDREN;
@@ -130,7 +130,7 @@ export class HitBox {
         this.lines = [];
     }
 
-    toggle(e, editor) {
+    toggle(e, editor : ConsoleEditor) {
         _silence();
 
         //console.log(this.lines);
@@ -167,7 +167,7 @@ export class HitBox {
         _unsilence();
     }
 
-    click(e, editor) {
+    click(e : MouseEvent, editor) {
         if (this.type === HitBoxTypes.TOGGLE_CHILDREN) {
             this.toggle(e, editor);
             console.log("click!");
@@ -182,7 +182,9 @@ export class ConsoleEditor extends Editor {
     bufferSize : number
     scroll : Vector2
     colors : Object
-    colormap : Object;
+    colormap : Object
+    lines    : Array<ConsoleLineEntry>;
+    hitboxes : Array<HitBox>;
 
     constructor() {
         super();
@@ -279,7 +281,7 @@ export class ConsoleEditor extends Editor {
         return s.trim();
     }
 
-    formatStackLine(stack, parts=false) {
+    formatStackLine(stack : string, parts : boolean=false) {
         if (stack.search("at") < 0) {
             return "";
         }
@@ -307,7 +309,7 @@ export class ConsoleEditor extends Editor {
         return util.termColor(prefix, this.colors["object"]) + util.termColor(stack, this.colors["source"]);
     }
 
-    push(msg, linefg="", linebg="", childafter=false) {
+    push(msg:string, linefg:string="", linebg:string="", childafter:boolean=false) {
         let stack = "" + new Error().stack;
 
         stack = stack.split("\n")[5].trim();
@@ -323,8 +325,8 @@ export class ConsoleEditor extends Editor {
                 loc = stack;
             }
 
-            l = new ConsoleLineEntry(l, loc, linefg, linebg); 
-            
+            l = new ConsoleLineEntry(l, loc, linefg, linebg);
+
             if (childafter) {
                 l.children = ls.length-i;
             }
@@ -333,7 +335,7 @@ export class ConsoleEditor extends Editor {
         }
     }
 
-    pushLine(line) {
+    pushLine(line : ConsoleLineEntry) {
         if (line === undefined) {
             line = "";
         }
@@ -363,7 +365,7 @@ export class ConsoleEditor extends Editor {
         return this.fontsize*1.3*UIBase.getDPI();
     }
 
-    printStack(start=0, fg="", bg="", closed=true) {
+    printStack(start:number=0, fg:string="", bg:string="", closed:boolean=true) {
         let stack = (""+new Error().stack).split("\n");
         
         let off = -1;
@@ -411,7 +413,7 @@ export class ConsoleEditor extends Editor {
         this.push(msg);
     }
 
-    _mouse(e) {
+    _mouse(e : MouseEvent) {
         let x = e.x, y = e.y;
 
         let rect = this.canvas.getClientRects()[0]
@@ -443,7 +445,7 @@ export class ConsoleEditor extends Editor {
         return e2;
     }
 
-    on_mousedown(e) {
+    on_mousedown(e : MouseEvent) {
         e = this._mouse(e);
 
         let hb = this.updateActive(e.x, e.y);
@@ -457,7 +459,7 @@ export class ConsoleEditor extends Editor {
         _unsilence();
     }
 
-    on_mousemove(e) {
+    on_mousemove(e : MouseEvent) {
         _silence();
         e = this._mouse(e);
 
@@ -465,7 +467,7 @@ export class ConsoleEditor extends Editor {
         _unsilence();
     }
 
-    updateActive(x, y) {
+    updateActive(x : number, y : number) {
 
         let found = 0;
 
@@ -501,7 +503,7 @@ export class ConsoleEditor extends Editor {
         }
     }
 
-    on_mouseup(e) {
+    on_mouseup(e : MouseEvent) {
         e = this._mouse(e);
         _silence();
         console.log(e.x, e.y);
@@ -556,7 +558,7 @@ export class ConsoleEditor extends Editor {
         _unsilence();
     }
 
-    pushHistory(cmd) {
+    pushHistory(cmd : string) {
         let lasti = this.history.cur - 1; //(this.history.cur + this.history.length - 1) % this.history.length;
         let last = this.history.length > 0 && this.history.cur > 0 ? this.history[lasti].command : undefined;
 
@@ -574,7 +576,7 @@ export class ConsoleEditor extends Editor {
         this.history.cur = this.history.length;
     }
 
-    doCommand(cmd) {
+    doCommand(cmd : string) {
         this.scroll[1] = 0.0;
 
         this.pushHistory(cmd);
@@ -590,7 +592,7 @@ export class ConsoleEditor extends Editor {
         console.log(v);
     }
 
-    doTab(cmd="") {
+    doTab(cmd : string="") {
         let i = cmd.length - 1;
         while (i >= 0) {
             if (cmd[i] === "." || cmd[i] === "]" || cmd[i] === ")") { 
@@ -702,7 +704,7 @@ export class ConsoleEditor extends Editor {
         }
     }
 
-    goHistory(di) {
+    goHistory(di : number) {
         if (this.history.length === 0) {
             return;
         }
@@ -727,7 +729,7 @@ export class ConsoleEditor extends Editor {
 
     }
 
-    _on_keydown(e) { 
+    _on_keydown(e : KeyboardEvent) {
         _silence();
         console.log(e.keyCode);
         _unsilence();
@@ -1075,11 +1077,11 @@ export class ConsoleEditor extends Editor {
         style : "console"
     }}
     
-    copy() {
+    copy() : ConsoleEditor {
         return document.createElement("console-editor-x");
     }
 
-    loadSTRUCT(reader) {
+    loadSTRUCT(reader : function) {
         reader(this);
         super.loadSTRUCT(reader);
 

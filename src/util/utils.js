@@ -1451,22 +1451,22 @@ class SDIDLayer {
   }
   
   _save_idmap() {
-    var ret = [];
-    var idmap = this.idmap;
+    let ret = [];
+    let idmap = this.idmap;
     
-    for (var k in idmap) {
+    for (let k in idmap) {
       var lst = idmap[k];
       
       ret.push(k);
-      
-      var len = 0;
-      for (var k in lst) {
+
+      let len = 0;
+      for (let k2 in lst) {
         len++;
       }
       ret.push(lst.length);
-      
-      for (var k in lst) {
-        ret.push(lst[k]);
+
+      for (let k2 in lst) {
+        ret.push(lst[k2]);
       }
     }
     
@@ -1511,7 +1511,7 @@ class SDIDLayerListIter {
     
     for (var i=0; i<keys.length; i++) {
       var k = keys[i];
-      if (k == 'layers') continue;
+      if (k === 'layers') continue;
       
       this.arr.push(k);
     }
@@ -1523,6 +1523,10 @@ class SDIDLayerListIter {
     this.list = list;
     this.ret = {done : false, value : undefined};
     this.i = 0;
+  }
+
+  [Symbol.iterator]() {
+    return this;
   }
   
   next() { 
@@ -1612,7 +1616,7 @@ class SDIDLayerList {
 }
 SDIDLayerList.STRUCT = `
   SDIDLayerList {
-    layers : iter(SDIDLayer) | obj;
+    layers : iter(SDIDLayer) | this;
   }
 `
 
@@ -1646,7 +1650,11 @@ class SDIDGen {
     var g = new SDIDGen();
     
     unpacker(g);
-    
+
+    if (!g.idmap_layers) {
+      g.idmap_layers = new SDIDLayerList();
+    }
+
     for (var i=0; i<g.freelist.length; i++) {
       g.freemap[g.freelist[i]] = i;
     }
@@ -1666,7 +1674,7 @@ class SDIDGen {
     this.cur_eid = Math.max(Math.ceil(cur)+1, this.cur_eid);
   }
   
-  gen_id(int parent=undefined, int layer=0) {
+  gen_id(parent : int=undefined, layer : int=0) {
     var id = this.cur_id++;
     
     /*we "guarantee" proper order of id generation by

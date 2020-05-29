@@ -6,9 +6,21 @@ import {STRUCT} from './struct.js';
 import {EventHandler} from "../editors/events.js";
 import {charmap} from "../editors/events.js";
 
+export class ToolDef {
+  inputs     : Object
+  outputs    : Object
+  flag       : number
+  name       : string
+  uiname     : string
+  icon       : number
+  toolpath   : number
+  is_modal   : boolean
+  undoflag   : number;
+}
+
 //makes e.x/e.y relative to dom,
 //and also flips to origin at bottom left instead of top left
-export function patchMouseEvent(e, dom) {
+export function patchMouseEvent(e : MouseEvent, dom : HTMLElement) {
   dom = dom === undefined ? g_app_state.screen : dom;
 
   let e2 = {
@@ -385,6 +397,8 @@ PropPair.STRUCT = `
 
 let _toolop_tools = undefined;
 
+//import * as toolsys from '../path.ux/scripts/toolsys/simple_toolsys.js';
+
 export class ToolOp extends ToolOpAbstract {
   drawlines : GArray
   is_modal : boolean
@@ -420,7 +434,11 @@ export class ToolOp extends ToolOpAbstract {
     
     this._widget_on_tick = undefined;
   }
-  
+
+  modalEnd() {
+    return this.end_modal(...arguments);
+  }
+
   new_drawline(v1, v2, color, line_width) {
     var dl = this.modal_ctx.view2d.make_drawline(v1, v2, undefined, color, line_width);
     
@@ -428,7 +446,7 @@ export class ToolOp extends ToolOpAbstract {
     
     return dl;
   }
-  
+
   reset_drawlines(ctx=this.modal_ctx) {
     var view2d = ctx.view2d;
     
@@ -482,7 +500,11 @@ export class ToolOp extends ToolOpAbstract {
     ctx.toolstack.toolop_cancel(this);
   }
 
-  start_modal(ctx : Context) {
+  modalStart(ctx : Context) {
+  }
+
+  start_modal() {
+    this.modalStart(ctx);
   }
   
   /*private function*/

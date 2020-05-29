@@ -155,17 +155,17 @@ export class MenuBar extends Editor {
     this.editMenuDef.length = 0;
 
     this.editMenuDef.push(["Undo", function () {
-      this.ctx.toolstack.undo();
+      g_app_state.toolstack.undo();
     }, "Ctrl + Z", Icons.UNDO]);
     this.editMenuDef.push(["Redo", function () {
-      this.ctx.toolstack.undo();
+      g_app_state.toolstack.undo();
     }, "Ctrl + Shift + Z", Icons.REDO]);
 
     if (!this.ctx || !this.ctx.toolmode) {
       return;
     }
 
-    let ret = this.ctx.toolmode.constructor.buildEditMenu();
+    let ret = g_app_state.ctx.toolmode.constructor.buildEditMenu();
     if (!ret) return;
 
     for (let item of ret) {

@@ -6,7 +6,7 @@ export class PlatformAPI extends PlatformAPIBase {
   }
   
   getProcessMemoryPromise() {
-    return new Promise(); //never fulfills
+    return new Promise(() => {}); //never fulfills
   }
 
   saveDialog() {

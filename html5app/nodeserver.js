@@ -21,7 +21,7 @@ let mimemap = {
   ".png" : "image/png",
   ".jpg" : "image/jpg",
   ".tiff" : "image/tiff",
-  ".wasm" : "application/x-octet-stream",
+  ".wasm" : "application/wasm",
   ".svg" : "text/svg",
   ".html" : "text/html",
   ".txt"  : "text/plain"

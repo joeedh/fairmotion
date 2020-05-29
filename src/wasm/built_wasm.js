@@ -1,7 +1,10 @@
 export default Module = {};
-import {wasm_binary} from './load_wasm.js';
+import {wasm_binary, wasmBinaryPath} from './load_wasm.js';
 Module.wasmBinary = wasm_binary;
 Module.INITIAL_MEMORY = 33554432;
+var wasmBinaryFile = wasmBinaryPath;
+console.error(wasmBinaryPath);
+
 /**
  * @license
  * Copyright 2010 The Emscripten Authors
@@ -128,7 +131,7 @@ if (ENVIRONMENT_IS_NODE) {
     module['exports'] = Module;
   }
 
-  process['on']('uncaughtException', function(ex : ReferenceError) {
+  process['on']('uncaughtException', function(ex) {
     // suppress ExitStatus exceptions from showing an error
     if (!(ex instanceof ExitStatus)) {
       throw ex;
@@ -742,7 +745,7 @@ var ABORT = false;
 var EXITSTATUS = 0;
 
 /** @type {function(*, string=)} */
-function assert(condition, text : string) {
+function assert(condition, text) {
   if (!condition) {
     abort('Assertion failed: ' + text);
   }
@@ -932,7 +935,7 @@ var UTF8Decoder = typeof TextDecoder !== 'undefined' ? new TextDecoder('utf8') :
  * @param {number=} maxBytesToRead
  * @return {string}
  */
-function UTF8ArrayToString(heap : Array, idx : number, maxBytesToRead) {
+function UTF8ArrayToString(heap, idx, maxBytesToRead) {
   var endIdx = idx + maxBytesToRead;
   var endPtr = idx;
   // TextDecoder needs to know the byte length in advance, it doesn't stop on null terminator by itself.
@@ -1005,7 +1008,7 @@ function UTF8ToString(ptr, maxBytesToRead) {
 //                    maxBytesToWrite=0 does not write any bytes to the output, not even the null terminator.
 // Returns the number of bytes written, EXCLUDING the null terminator.
 
-function stringToUTF8Array(str : string, heap : Int8Array, outIdx : number, maxBytesToWrite : number) {
+function stringToUTF8Array(str, heap, outIdx, maxBytesToWrite) {
   if (!(maxBytesToWrite > 0)) // Parameter maxBytesToWrite is not optional. Negative values, 0, null, undefined and false each don't write out any bytes.
     return 0;
 
@@ -1057,7 +1060,7 @@ function stringToUTF8(str, outPtr, maxBytesToWrite) {
 }
 
 // Returns the number of bytes the given Javascript string takes if encoded as a UTF8 byte array, EXCLUDING the null terminator byte.
-function lengthBytesUTF8(str : string) {
+function lengthBytesUTF8(str) {
   var len = 0;
   for (var i = 0; i < str.length; ++i) {
     // Gotcha: charCodeAt returns a 16-bit word that is a UTF-16 encoded code unit, not a Unicode code point of the character! So decode UTF16->UTF32->UTF8.
@@ -1259,7 +1262,7 @@ function allocateUTF8(str) {
 }
 
 // Allocate stack space for a JS string, and write it there.
-function allocateUTF8OnStack(str : string) {
+function allocateUTF8OnStack(str) {
   var size = lengthBytesUTF8(str) + 1;
   var ret = stackAlloc(size);
   stringToUTF8Array(str, HEAP8, ret, size);
@@ -1478,7 +1481,7 @@ function abortFnPtrError(ptr, sig) {
 
 
 
-function callRuntimeCallbacks(callbacks : Array) {
+function callRuntimeCallbacks(callbacks) {
   while(callbacks.length > 0) {
     var callback = callbacks.shift();
     if (typeof callback == 'function') {
@@ -1810,7 +1813,7 @@ function isFileURI(filename) {
 
 
 
-var wasmBinaryFile = '_built_wasm.wasm';
+//var wasmBinaryFile = '_built_wasm.wasm';
 if (!isDataURI(wasmBinaryFile)) {
   wasmBinaryFile = locateFile(wasmBinaryFile);
 }

@@ -12,6 +12,9 @@
     <style>
         body {
             overflow : hidden;
+            margin   : 0px;
+            padding  : 0px;
+            outline  : 0px;
         }
 
         #framerate {
@@ -38,26 +41,6 @@
             margin : 0px;
         }
 
-        #canvas2d {
-            background: "rgba(255,255,255,0.0)";
-            position: absolute;
-            left: 0px;
-            right: 0px;
-            z-index: 1;
-            padding : 0px;
-            margin : 0px;
-        }
-
-        #canvas2d_work {
-            background: "rgba(255,255,255,1.0)";
-            position: absolute;
-            left: 0px;
-            right: 0px;
-            z-index: 10;
-            padding : 0px;
-            margin : 0px;
-        }
-
         #fileinput {
             visibility: visible;
             position: absolute;
@@ -70,6 +53,11 @@
 </head>
 
 <body onload="start_app()">
+<img id="iconsheet16" style="display:none" src="fcontent/iconsheet16.png"></img>
+<img id="iconsheet24" style="display:none" src="fcontent/iconsheet24.png"></img>
+<img id="iconsheet32" style="display:none" src="fcontent/iconsheet32.png"></img>
+<img id="iconsheet64" style="display:none" src="fcontent/iconsheet64.png"></img>
+
 <script type="text/javascript">
   window.start_app = function start_app() {
     startup();
@@ -78,11 +66,5 @@
 </script>
 
 <div id="Html5AppMode" style="display: hidden"></div>
-
-<div class="app">
-    <canvas id="canvas2d_work"></canvas>
-    <canvas id="canvas2d"></canvas>
-</div>
 </body>
-
 </html>

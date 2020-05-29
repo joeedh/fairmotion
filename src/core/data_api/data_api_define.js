@@ -984,14 +984,19 @@ function api_define_dopesheet() {
   //this one is a dynamic "smart" property, implemented with get/setters in the DopeSheetEditor class itself
   var pinned = new BoolProperty(false, "pinned", "Pin", "Pin view");
   
-  selected_only.update = function () {
-    if (this.ctx != undefined && this.ctx.dopesheet != undefined)
-      this.ctx.dopesheet.do_full_recalc();
+  selected_only.update = function (owner) {
+    owner.rebuild();
+  }
+
+  let timescale = new FloatProperty(1.0, "timescale", "timescale", "timescale");
+  timescale.update = function(owner) {
+    owner.updateKeyPositions();
   }
   
   DopeSheetStruct = new DataStruct([
     new DataPath(selected_only, "selected_only", "selected_only", true),
-    new DataPath(pinned, "pinned", "pinned", true)
+    new DataPath(pinned, "pinned", "pinned", true),
+    new DataPath(timescale, "timescale", "timescale")
   ]);
   
   return DopeSheetStruct;

@@ -1,4 +1,4 @@
-const BOXSCALE = 0.05;
+const BOXSCALE = 1.0;
 
 import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
 import {STRUCT} from '../../core/struct.js';
@@ -742,6 +742,7 @@ export class DopeSheetEditor extends Editor {
     this.shadow.appendChild(this.channels);
 
     this.header.prop("scene.frame");
+    this.header.prop("dopesheet.timescale");
 
     this._queueDagLink = true;
 
@@ -1478,14 +1479,20 @@ export class DopeSheetEditor extends Editor {
     g.lineWidth = this.getDefault("textShadowSize");
     g.strokeStyle = this.getDefault("textShadowColor");
 
+    let spacing = Math.floor((ts*4) / bwid);
+
     for (let i=0; i<tot; i++) {
       let x = i*bwid + off;
       let t = time + i;
 
-      g.shadowBlur = 1.5;
+      g.shadowBlur = 3.5;
       g.shadowColor = "black";
       g.shadowOffsetX=2;
       g.shadowOffsetY=2;
+
+      if (spacing && (i % spacing) !== 0) {
+        continue;
+      }
 
       g.strokeText(""+t, x, canvas.height-ts*1.15);
       g.fillText(""+t, x, canvas.height-ts*1.15);

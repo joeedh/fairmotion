@@ -825,8 +825,6 @@ export class View2DHandler extends Editor {
     this.editor.view2d = this;
      */
 
-    console.warn("VIEWPORT MATRIX THAT WAS LOADED:", this.rendermat.getAsArray(), this.irendermat.getAsArray());
-
     this._in_from_struct = false;
 
     /*

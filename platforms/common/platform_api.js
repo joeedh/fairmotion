@@ -13,6 +13,7 @@ export class PlatformAPIBase {
   }
 
   getProcessMemoryPromise() {
+    return new Promise(() => {});
 
   }
   

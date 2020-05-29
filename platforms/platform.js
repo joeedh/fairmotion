@@ -18,6 +18,7 @@ if (config.ELECTRON_APP_MODE) {
   }
 } else if (config.HTML5_APP_MODE) {
   mod = html5;
+  config.ORIGIN = document.location.origin;
 } else if (config.PHONE_APP_MODE) {
   mod = phonegay;
 } else if (config.CHROME_APP_MODE) {

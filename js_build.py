@@ -3,6 +3,8 @@
 from scripts import note
 import traceback
 
+from platforms import util as util
+
 THENOTE = "note"
 NOTETITLE = "Build System"
 
@@ -524,7 +526,7 @@ def do_rebuild(abspath, targetpath):
   fname = os.path.split(abspath)[1]
 
   if not os.path.exists(targetpath) and not targetpath.endswith(".svg"):
-    print("Missing: ", targetpath)
+    print(util.termColor("Missing: " + str(targetpath), "yellow"))
     return True
 
   if "[Conflict]" in abspath:
@@ -699,7 +701,7 @@ def build_target(files):
     """
 
     dcmd = os.path.split(f)[1] if ("/" in f or "\\" in f) else f
-    dcmd = ("[%i%%] " % perc) + dcmd.strip()
+    dcmd = (util.termColor("[%i%%] " % perc, "cyan") + dcmd.strip())
     
     #execute build command
 
@@ -805,7 +807,7 @@ def build_target(files):
     print("done.")
 
   if build_cmd != "loop":
-    print("build finished")
+    util.doprint("build finished")
 
   return build_final
 
@@ -1060,7 +1062,7 @@ def build_platforms():
     return 1
     
 def build_chrome_package():
-  print("Building chrome app. . .")
+  util.doprint("Building chrome app. . .")
 
   zf = zipfile.ZipFile("chromeapp.zip", "w")
 
@@ -1099,7 +1101,7 @@ def build_chrome_package():
   print("done")
 
 def build_package():
-  print("Building fairmotion_alpha.zip. . .")
+  util.doprint("Building fairmotion_alpha.zip. . .")
   zf = zipfile.ZipFile("fairmotion_alpha.zip", "w")
 
   def zwrite(path):
@@ -1216,14 +1218,14 @@ def buildall_intern(redo_final=False):
     ok = build_platforms()
     
     if not ok:
-        sys.stderr.write("Build failed\n")
+        sys.stderr.write(util.termColor("Build failed\n", "red"))
         
         note.showNote(THENOTE, NOTETITLE, "Build failed");
         note.sleep(1.0);
         note.hideNote(THENOTE)
         return 0
     else:
-        print("Finished build")
+        util.doprint("Finished build")
         
         note.showNote(THENOTE, NOTETITLE, "Finished Build");
         note.sleep(1.0);

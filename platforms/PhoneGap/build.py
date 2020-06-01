@@ -5,12 +5,13 @@ from ctypes import *
 import imp, runpy
 from math import floor
 import zipfile
+from .. import util
 
 srcpath = "./platforms/PhoneGap/appfiles/Fairmotion"
 pgpath =  "./platforms/PhoneGap/appfiles/Fairmotion"
 
 def build():
-  print("Building phonegap app. . .")
+  util.doprint("Building phonegap app. . .")
 
   basepath = "./dist/PhoneGap"
   os.makedirs(basepath, True)

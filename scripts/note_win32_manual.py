@@ -1,16 +1,77 @@
+import sys
+import traceback
+
+def safeFilter_intern(msg):
+    #get rid of terminal codes
+    s = ""
+    i = 0
+
+    def consume(c, i):
+        if i < len(msg) and msg[i] == c:
+            return i+1
+        return i
+
+    def consume_num(i):
+        i2 = i
+        while 1:
+            i2 = consume("0", i2)
+            i2 = consume("1", i2)
+            i2 = consume("2", i2)
+            i2 = consume("3", i2)
+            i2 = consume("4", i2)
+            i2 = consume("5", i2)
+            i2 = consume("6", i2)
+            i2 = consume("7", i2)
+            i2 = consume("8", i2)
+            i2 = consume("9", i2)
+
+            if i2 == i or i2 >= len(msg):
+                i = i2
+                break
+            i = i2
+
+        return i
+
+    while i < len(msg):
+        c = msg[i]
+
+        if ord(c) == 27:
+            i += 1
+            i = consume("[", i)
+            i = consume_num(i)
+            if i < len(msg) and msg[i] == ";":
+                i = consume_num(i+1)
+                i = consume(";", i)
+                i = consume_num(i)
+
+            i = consume("m", i)
+
+        if i < len(msg):
+            s += msg[i]
+        i += 1
+    return s
+
+def safeFilter(s):
+    try:
+        return safeFilter_intern(s)
+    except:
+        try:
+            traceback.print_exc()
+        except:
+            print("failed to fetch backtrace")
+        sys.exit(-1)
+
 import ctypes
 import ctypes.wintypes
+import traceback
 import sys
 if sys.version[0] != '2':
   import queue #for thread-safe queue
-  import tkinter
 else:
   import Queue as queue
-  import Tkinter as tkinter
-  
+
 import threading
 import time
-from tkinter import *
 
 from win32gui import *
 from win32con import *
@@ -67,6 +128,8 @@ class SimpleNotifier (NoteBase):
         self._pushcmd(UPDATE_TEXT, self.buf[:])
         
     def showNote(self, title, msg):
+        msg = safeFilter(msg)
+        title = safeFilter(title)
         self.title = title
 
         if self.hwnd is None and not self._has_spawned:
@@ -348,6 +411,7 @@ class SimpleNotifier (NoteBase):
         self._threadref = thread
         
     def set_lines(self, txt):
+        txt = safeFilter(txt)
         if not "\r" in txt:
             txt = txt.replace("\n", "\r\n")
          
@@ -370,6 +434,7 @@ class SimpleNotifier (NoteBase):
         pass #using threads now
 
     def appendNote(self, msg):
+        msg = safeFilter(msg)
         self.push_line(msg)
 
     def clearNote(self):
@@ -426,10 +491,11 @@ class SimpleNotifier (NoteBase):
         
         
 if __name__ == "__main__":
-    print("Start");
+    pass
+    #print("Start");
 
-    n = SimpleNotifier(1)
-    print(n.note_id)
+    #n = SimpleNotifier(1)
+    #print(n.note_id)
 
     """
     for si in range(1):

@@ -5,12 +5,13 @@ from ctypes import *
 import imp, runpy
 from math import floor
 import zipfile
+from .. import util
 
 basepath = "./dist/chromeapp"
 srcpath = "./platforms/chromeapp/app"
 
 def build():
-  print("Building chrome app. . .")
+  util.doprint("Building chrome app. . .")
   
 
   zf = zipfile.ZipFile("dist/chromeapp.zip", "w")

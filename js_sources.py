@@ -249,6 +249,6 @@ optional_copy_targets = {
 }
 
 js_targets = {"app.js"        : sources,
-              "chromeapp.js"  : sources + ["chromeapp/start_startup.js"],
+              "chromeapp.js"  : sources + ["platforms/chromeapp/app/start_startup.js"],
              }
 

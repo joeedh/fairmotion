@@ -5,6 +5,7 @@ from ctypes import *
 import imp, runpy
 from math import floor
 import zipfile
+from .. import util
 
 is_win32 = True if "win" in sys.platform.lower() else False
 
@@ -27,7 +28,7 @@ def copy(src, dst):
     #os.system(cmd)
 
 def build():
-  print("Building html5 app. . .")
+  util.doprint("Building html5 app. . .")
 
   basepath = "./dist/html5app"
 

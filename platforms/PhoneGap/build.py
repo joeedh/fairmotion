@@ -6,32 +6,42 @@ import imp, runpy
 from math import floor
 import zipfile
 
-basepath = "./platforms/PhoneGap/appfiles/Fairmotion"
+srcpath = "./platforms/PhoneGap/appfiles/Fairmotion"
+pgpath =  "./platforms/PhoneGap/appfiles/Fairmotion"
 
 def build():
   print("Building phonegap app. . .")
-  
-  zf = zipfile.ZipFile("phonegap_app.zip", "w")
 
-  if not os.path.exists(basepath + "/www/js"):
-    os.makedirs(basepath + "/www/js")
-  if not os.path.exists(basepath + "/www/img"):
-    os.makedirs(basepath + "/www/img")
+  basepath = "./dist/PhoneGap"
+  os.makedirs(basepath, True)
+  os.makedirs(basepath + "/www/js", True)
+  os.makedirs(basepath + "/www/img", True)
 
-  for f in os.listdir(basepath + ""):
-    path = basepath + "/" + f
-	
-    if f == "js" and f != "config.js": continue
-    
-    zf.write(path, f);
-    
-  for f in os.listdir(basepath + "/www/img"):
-    path = basepath + "/www/img/" + f
-    
-    zf.write(path, "www/img/"+f);
-    
-  
-  print("  copying files")
+  zf = zipfile.ZipFile("dist/PhoneGapApp.zip", "w")
+
+  for root, dir, files in os.walk(pgpath):
+    for f in files:
+        p = os.path.normpath(os.path.join(root, f)).replace("\\", "/")
+        bp = os.path.normpath(pgpath)
+        zpath = p[len(bp):]
+
+        #print(zpath)
+
+        zf.write(p, zpath)
+
+        dpath = basepath + zpath
+
+        dir = os.path.split(dpath)[0]
+        os.makedirs(dir, True)
+
+        file = open(p, "rb")
+        buf = file.read()
+        file.close()
+
+        file = open(dpath, "wb")
+        file.write(buf)
+        file.close()
+
   for f in os.listdir("./build"):
     if not f.startswith("app") and f.endswith(".js"):
       continue;

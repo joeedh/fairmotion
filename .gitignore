@@ -18,3 +18,4 @@ platforms/PhoneGap/appfiles/Fairmotion/www/img/*iconsheet*
 platforms/PhoneGap/appfiles/Fairmotion/www/js/*.wasm
 platforms/PhoneGap/appfiles/Fairmotion/www/js/*.html
 src/config/config_local.js
+*.pyc

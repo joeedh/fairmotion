@@ -29,19 +29,21 @@ def copy(src, dst):
 def build():
   print("Building html5 app. . .")
 
-  zf = zipfile.ZipFile("html5app.zip", "w")
+  basepath = "./dist/html5app"
 
-  if not os.path.exists("./html5app/fcontent/"):
-    os.makedirs("./html5app/fcontent/")
+  zf = zipfile.ZipFile("dist/html5app.zip", "w")
 
-  if not os.path.exists("./html5app/icons/"):
-    os.makedirs("./html5app/icons/")
+  if not os.path.exists(basepath + "/fcontent/"):
+    os.makedirs(basepath + "/fcontent/")
 
-  copy("./platforms/html5/main.html", "./html5app/main.html");
-  copy("./src/vectordraw/vectordraw_canvas2d_worker.js", "./html5app/vectordraw_canvas2d_worker.js");
-  copy("./src/vectordraw/vectordraw_skia_worker.js", "./html5app/vectordraw_skia_worker.js");
+  if not os.path.exists(basepath + "/icons/"):
+    os.makedirs(basepath + "/icons/")
 
-  for root, dirs, files in os.walk("./html5app/node_modules"):
+  copy("./platforms/html5/main.html", basepath + "/main.html");
+  copy("./src/vectordraw/vectordraw_canvas2d_worker.js", basepath + "/vectordraw_canvas2d_worker.js");
+  copy("./src/vectordraw/vectordraw_skia_worker.js", basepath + "/vectordraw_skia_worker.js");
+
+  for root, dirs, files in os.walk(basepath + "/node_modules"):
     if is_win32:
         root = root.replace("\\", "/")
     if not root.endswith("/"):
@@ -49,7 +51,7 @@ def build():
 
     for f in files:
         path = root + f
-        path2 = path.replace("./html5app/", "")
+        path2 = path.replace(basepath+"/", "")
         zf.write(path, path2)
 
   print("  copying files")
@@ -58,18 +60,18 @@ def build():
       continue;
 
     path = "build/" + f
-    copy(path, "html5app/fcontent/" + f)
+    copy(path, basepath+"/fcontent/" + f)
 
     zf.write(path, "fcontent/" + f);
 
-  for f in os.listdir("./html5app"):
-    path = "./html5app/" + f
+  for f in os.listdir(basepath):
+    path = basepath + "/" + f
     if f == "fcontent": continue
     
     zf.write(path, f);
     
-  for f in os.listdir("./html5app/icons"):
-    path = "./html5app/icons/" + f
+  for f in os.listdir(basepath+"/icons"):
+    path = basepath+"/icons/" + f
     
     zf.write(path, "icons/"+f);
 

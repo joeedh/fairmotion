@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-import note, traceback
+from scripts import note
+import traceback
 
 THENOTE = "note"
 NOTETITLE = "Build System"
@@ -19,7 +20,22 @@ import imp, runpy
 from math import floor
 import zipfile
 
-from dbcache import CachedDB
+_makedirs = os.makedirs
+
+#I hate bugs in different versions of python
+def makedirs_safe(p, exist_ok=False):
+    if os.path.exists(p) and exist_ok:
+        return
+    _makedirs(p)
+
+os.makedirs = makedirs_safe
+
+os.makedirs("dist/electron", True)
+os.makedirs("dist/html5app", True)
+os.makedirs("dist/chromeapp", True)
+os.makedirs("dist/PhoneGap", True)
+
+from scripts.dbcache import CachedDB
 
 #normpath helper func
 def np(path):
@@ -1048,17 +1064,17 @@ def build_chrome_package():
 
   zf = zipfile.ZipFile("chromeapp.zip", "w")
 
-  if not os.path.exists("./chromeapp/fcontent/"):
-    os.makedirs("./chromeapp/fcontent/")
+  if not os.path.exists("./dist/chromeapp/fcontent/"):
+    os.makedirs("./dist/chromeapp/fcontent/")
 
-  for f in os.listdir("./chromeapp"):
-    path = "./chromeapp/" + f
+  for f in os.listdir("./dist/chromeapp"):
+    path = "./dist/chromeapp/" + f
     if f == "fcontent": continue
 
     zf.write(path, f);
 
-  for f in os.listdir("./chromeapp/icons"):
-    path = "./chromeapp/icons/" + f
+  for f in os.listdir("./dist/chromeapp/icons"):
+    path = "./dist/chromeapp/icons/" + f
 
     zf.write(path, "icons/"+f);
 
@@ -1075,7 +1091,7 @@ def build_chrome_package():
 
     zf.write(path, "fcontent/" + f);
 
-    path = "chromeapp/fcontent/" + f
+    path = "dist/chromeapp/fcontent/" + f
     file = open(path, "wb")
     file.write(buf)
     file.close()

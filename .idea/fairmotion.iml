@@ -5,6 +5,8 @@
       <excludeFolder url="file://$MODULE_DIR$/.tmp" />
       <excludeFolder url="file://$MODULE_DIR$/build" />
       <excludeFolder url="file://$MODULE_DIR$/chromeapp" />
+      <excludeFolder url="file://$MODULE_DIR$/dist/PhoneGap/appfiles/Fairmotion/platforms" />
+      <excludeFolder url="file://$MODULE_DIR$/dist/PhoneGap/platforms" />
       <excludeFolder url="file://$MODULE_DIR$/electron_build" />
       <excludeFolder url="file://$MODULE_DIR$/platforms" />
       <excludeFolder url="file://$MODULE_DIR$/src/path.ux/docs/file/scripts/platforms" />

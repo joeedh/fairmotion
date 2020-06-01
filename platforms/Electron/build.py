@@ -5,10 +5,54 @@ from ctypes import *
 import imp, runpy
 from math import floor
 
+basedir = "./dist/electron"
+
+def copy(a, b):
+    file = open(a, "rb")
+    buf = file.read()
+    file.close()
+
+    file = open(b, "wb")
+    file.write(buf)
+    file.close()
+
+
+run_sh = b"""#!/bin/bash
+cd electron
+./node_modules/.bin/electron .
+"""
+run_batch = """
+cd %~dp0\\electron
+.\\node_modules\\.bin\\electron .
+"""
+
+def configure():
+  print("=== Creating electron skeleton ===")
+  if not os.path.exists(basedir):
+    os.makedirs(basedir)
+
+  if not os.path.exists(basedir + "/fcontent"):
+    os.makedirs(basedir + "/fcontent")
+
+  if not os.path.exists("./dist/run_electron.sh"):
+    f = open("./dist/run_electron.sh", "wb")
+    f.write(run_sh)
+    f.close()
+
+  if not os.path.exists("./dist/run_electron.bat"):
+    f = open("./dist/run_electron.bat", "wb")
+    f.write(bytes(run_batch.replace("\n", "\r\n"), "latin-1"))
+    f.close()
+
+  copy("./platforms/electron/package.json", basedir + "/package.json")
+  path = os.getcwd()
+
+  os.chdir(basedir)
+  os.system("npm install")
+  os.chdir(path)
+
 def build():
   print("Building electron app. . .")
-  
-  basedir = "./electron_build"
   
   if not os.path.exists(basedir):
     os.makedirs(basedir)
@@ -33,19 +77,9 @@ def build():
     file.write(buf)
     file.close()
 
-  def copy(a, b):
-    file = open(a, "rb")
-    buf = file.read()
-    file.close()
-
-    file = open(b, "wb")
-    file.write(buf)
-    file.close()
-
-
-  copy("./src/vectordraw/vectordraw_canvas2d_worker.js", "./electron_build/vectordraw_canvas2d_worker.js");
-  copy("./src/vectordraw/vectordraw_skia_worker.js", "./electron_build/vectordraw_skia_worker.js");
-  copy("./src/path.ux/scripts/platforms/electron/icogen.js", "./electron_build/icogen.js");
+  copy("./src/vectordraw/vectordraw_canvas2d_worker.js", basedir+"/vectordraw_canvas2d_worker.js");
+  copy("./src/vectordraw/vectordraw_skia_worker.js", basedir+"/vectordraw_skia_worker.js");
+  copy("./src/path.ux/scripts/platforms/electron/icogen.js", basedir+"/icogen.js");
 
   #copy("./build/iconsheet.png", "./electron_build/fcontent/iconsheet.png");
   #copy("./build/iconsheet16.png", "./electron_build/fcontent/iconsheet16.png");

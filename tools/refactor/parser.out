@@ -1,0 +1,660 @@
+Created by PLY version 3.11 (http://www.dabeaz.com/ply)
+
+Unused terminals:
+
+    LT
+
+Grammar
+
+Rule 0     S' -> re_lit
+Rule 1     re_lit -> DIVIDE re_body DIVIDE re_flags
+Rule 2     re_body -> re_first_char re_chars
+Rule 3     re_chars -> re_chars re_char
+Rule 4     re_chars -> <empty>
+Rule 5     re_first_char -> re_non_term_restrict1
+Rule 6     re_first_char -> re_backlash_seq
+Rule 7     re_first_char -> re_expr_class
+Rule 8     re_char -> re_non_term_restrict2
+Rule 9     re_char -> re_backlash_seq
+Rule 10    re_char -> re_expr_class
+Rule 11    re_backlash_seq -> BACKSLASH re_non_term
+Rule 12    re_non_term -> UCHAR
+Rule 13    re_non_term -> LSBRACKET
+Rule 14    re_non_term -> RSBRACKET
+Rule 15    re_non_term -> STAR
+Rule 16    re_non_term -> DIVIDE
+Rule 17    re_non_term -> BACKSLASH
+Rule 18    re_non_term -> ID_PART
+Rule 19    re_non_term_restrict1 -> UCHAR
+Rule 20    re_non_term_restrict1 -> RSBRACKET
+Rule 21    re_non_term_restrict1 -> ID_PART
+Rule 22    re_non_term_restrict2 -> UCHAR
+Rule 23    re_non_term_restrict2 -> RSBRACKET
+Rule 24    re_non_term_restrict2 -> STAR
+Rule 25    re_non_term_restrict2 -> ID_PART
+Rule 26    re_non_term_restrict3 -> UCHAR
+Rule 27    re_non_term_restrict3 -> LSBRACKET
+Rule 28    re_non_term_restrict3 -> STAR
+Rule 29    re_non_term_restrict3 -> DIVIDE
+Rule 30    re_non_term_restrict3 -> ID_PART
+Rule 31    re_expr_class -> LSBRACKET re_class_chars RSBRACKET
+Rule 32    re_class_chars -> re_class_chars re_class_char
+Rule 33    re_class_chars -> <empty>
+Rule 34    re_class_char -> re_non_term_restrict3
+Rule 35    re_class_char -> re_backlash_seq
+Rule 36    re_flags -> re_flags ID_PART
+Rule 37    re_flags -> <empty>
+
+Terminals, with rules where they appear
+
+BACKSLASH            : 11 17
+DIVIDE               : 1 1 16 29
+ID_PART              : 18 21 25 30 36
+LSBRACKET            : 13 27 31
+LT                   : 
+RSBRACKET            : 14 20 23 31
+STAR                 : 15 24 28
+UCHAR                : 12 19 22 26
+error                : 
+
+Nonterminals, with rules where they appear
+
+re_backlash_seq      : 6 9 35
+re_body              : 1
+re_char              : 3
+re_chars             : 2 3
+re_class_char        : 32
+re_class_chars       : 31 32
+re_expr_class        : 7 10
+re_first_char        : 2
+re_flags             : 1 36
+re_lit               : 0
+re_non_term          : 11
+re_non_term_restrict1 : 5
+re_non_term_restrict2 : 8
+re_non_term_restrict3 : 34
+
+Parsing method: LALR
+
+state 0
+
+    (0) S' -> . re_lit
+    (1) re_lit -> . DIVIDE re_body DIVIDE re_flags
+
+    DIVIDE          shift and go to state 2
+
+    re_lit                         shift and go to state 1
+
+state 1
+
+    (0) S' -> re_lit .
+
+
+
+state 2
+
+    (1) re_lit -> DIVIDE . re_body DIVIDE re_flags
+    (2) re_body -> . re_first_char re_chars
+    (5) re_first_char -> . re_non_term_restrict1
+    (6) re_first_char -> . re_backlash_seq
+    (7) re_first_char -> . re_expr_class
+    (19) re_non_term_restrict1 -> . UCHAR
+    (20) re_non_term_restrict1 -> . RSBRACKET
+    (21) re_non_term_restrict1 -> . ID_PART
+    (11) re_backlash_seq -> . BACKSLASH re_non_term
+    (31) re_expr_class -> . LSBRACKET re_class_chars RSBRACKET
+
+    UCHAR           shift and go to state 8
+    RSBRACKET       shift and go to state 9
+    ID_PART         shift and go to state 10
+    BACKSLASH       shift and go to state 11
+    LSBRACKET       shift and go to state 12
+
+    re_body                        shift and go to state 3
+    re_first_char                  shift and go to state 4
+    re_non_term_restrict1          shift and go to state 5
+    re_backlash_seq                shift and go to state 6
+    re_expr_class                  shift and go to state 7
+
+state 3
+
+    (1) re_lit -> DIVIDE re_body . DIVIDE re_flags
+
+    DIVIDE          shift and go to state 13
+
+
+state 4
+
+    (2) re_body -> re_first_char . re_chars
+    (3) re_chars -> . re_chars re_char
+    (4) re_chars -> .
+
+    UCHAR           reduce using rule 4 (re_chars -> .)
+    RSBRACKET       reduce using rule 4 (re_chars -> .)
+    STAR            reduce using rule 4 (re_chars -> .)
+    ID_PART         reduce using rule 4 (re_chars -> .)
+    BACKSLASH       reduce using rule 4 (re_chars -> .)
+    LSBRACKET       reduce using rule 4 (re_chars -> .)
+    DIVIDE          reduce using rule 4 (re_chars -> .)
+
+    re_chars                       shift and go to state 14
+
+state 5
+
+    (5) re_first_char -> re_non_term_restrict1 .
+
+    UCHAR           reduce using rule 5 (re_first_char -> re_non_term_restrict1 .)
+    RSBRACKET       reduce using rule 5 (re_first_char -> re_non_term_restrict1 .)
+    STAR            reduce using rule 5 (re_first_char -> re_non_term_restrict1 .)
+    ID_PART         reduce using rule 5 (re_first_char -> re_non_term_restrict1 .)
+    BACKSLASH       reduce using rule 5 (re_first_char -> re_non_term_restrict1 .)
+    LSBRACKET       reduce using rule 5 (re_first_char -> re_non_term_restrict1 .)
+    DIVIDE          reduce using rule 5 (re_first_char -> re_non_term_restrict1 .)
+
+
+state 6
+
+    (6) re_first_char -> re_backlash_seq .
+
+    UCHAR           reduce using rule 6 (re_first_char -> re_backlash_seq .)
+    RSBRACKET       reduce using rule 6 (re_first_char -> re_backlash_seq .)
+    STAR            reduce using rule 6 (re_first_char -> re_backlash_seq .)
+    ID_PART         reduce using rule 6 (re_first_char -> re_backlash_seq .)
+    BACKSLASH       reduce using rule 6 (re_first_char -> re_backlash_seq .)
+    LSBRACKET       reduce using rule 6 (re_first_char -> re_backlash_seq .)
+    DIVIDE          reduce using rule 6 (re_first_char -> re_backlash_seq .)
+
+
+state 7
+
+    (7) re_first_char -> re_expr_class .
+
+    UCHAR           reduce using rule 7 (re_first_char -> re_expr_class .)
+    RSBRACKET       reduce using rule 7 (re_first_char -> re_expr_class .)
+    STAR            reduce using rule 7 (re_first_char -> re_expr_class .)
+    ID_PART         reduce using rule 7 (re_first_char -> re_expr_class .)
+    BACKSLASH       reduce using rule 7 (re_first_char -> re_expr_class .)
+    LSBRACKET       reduce using rule 7 (re_first_char -> re_expr_class .)
+    DIVIDE          reduce using rule 7 (re_first_char -> re_expr_class .)
+
+
+state 8
+
+    (19) re_non_term_restrict1 -> UCHAR .
+
+    UCHAR           reduce using rule 19 (re_non_term_restrict1 -> UCHAR .)
+    RSBRACKET       reduce using rule 19 (re_non_term_restrict1 -> UCHAR .)
+    STAR            reduce using rule 19 (re_non_term_restrict1 -> UCHAR .)
+    ID_PART         reduce using rule 19 (re_non_term_restrict1 -> UCHAR .)
+    BACKSLASH       reduce using rule 19 (re_non_term_restrict1 -> UCHAR .)
+    LSBRACKET       reduce using rule 19 (re_non_term_restrict1 -> UCHAR .)
+    DIVIDE          reduce using rule 19 (re_non_term_restrict1 -> UCHAR .)
+
+
+state 9
+
+    (20) re_non_term_restrict1 -> RSBRACKET .
+
+    UCHAR           reduce using rule 20 (re_non_term_restrict1 -> RSBRACKET .)
+    RSBRACKET       reduce using rule 20 (re_non_term_restrict1 -> RSBRACKET .)
+    STAR            reduce using rule 20 (re_non_term_restrict1 -> RSBRACKET .)
+    ID_PART         reduce using rule 20 (re_non_term_restrict1 -> RSBRACKET .)
+    BACKSLASH       reduce using rule 20 (re_non_term_restrict1 -> RSBRACKET .)
+    LSBRACKET       reduce using rule 20 (re_non_term_restrict1 -> RSBRACKET .)
+    DIVIDE          reduce using rule 20 (re_non_term_restrict1 -> RSBRACKET .)
+
+
+state 10
+
+    (21) re_non_term_restrict1 -> ID_PART .
+
+    UCHAR           reduce using rule 21 (re_non_term_restrict1 -> ID_PART .)
+    RSBRACKET       reduce using rule 21 (re_non_term_restrict1 -> ID_PART .)
+    STAR            reduce using rule 21 (re_non_term_restrict1 -> ID_PART .)
+    ID_PART         reduce using rule 21 (re_non_term_restrict1 -> ID_PART .)
+    BACKSLASH       reduce using rule 21 (re_non_term_restrict1 -> ID_PART .)
+    LSBRACKET       reduce using rule 21 (re_non_term_restrict1 -> ID_PART .)
+    DIVIDE          reduce using rule 21 (re_non_term_restrict1 -> ID_PART .)
+
+
+state 11
+
+    (11) re_backlash_seq -> BACKSLASH . re_non_term
+    (12) re_non_term -> . UCHAR
+    (13) re_non_term -> . LSBRACKET
+    (14) re_non_term -> . RSBRACKET
+    (15) re_non_term -> . STAR
+    (16) re_non_term -> . DIVIDE
+    (17) re_non_term -> . BACKSLASH
+    (18) re_non_term -> . ID_PART
+
+    UCHAR           shift and go to state 17
+    LSBRACKET       shift and go to state 18
+    RSBRACKET       shift and go to state 19
+    STAR            shift and go to state 20
+    DIVIDE          shift and go to state 21
+    BACKSLASH       shift and go to state 15
+    ID_PART         shift and go to state 22
+
+    re_non_term                    shift and go to state 16
+
+state 12
+
+    (31) re_expr_class -> LSBRACKET . re_class_chars RSBRACKET
+    (32) re_class_chars -> . re_class_chars re_class_char
+    (33) re_class_chars -> .
+
+    RSBRACKET       reduce using rule 33 (re_class_chars -> .)
+    UCHAR           reduce using rule 33 (re_class_chars -> .)
+    LSBRACKET       reduce using rule 33 (re_class_chars -> .)
+    STAR            reduce using rule 33 (re_class_chars -> .)
+    DIVIDE          reduce using rule 33 (re_class_chars -> .)
+    ID_PART         reduce using rule 33 (re_class_chars -> .)
+    BACKSLASH       reduce using rule 33 (re_class_chars -> .)
+
+    re_class_chars                 shift and go to state 23
+
+state 13
+
+    (1) re_lit -> DIVIDE re_body DIVIDE . re_flags
+    (36) re_flags -> . re_flags ID_PART
+    (37) re_flags -> .
+
+    ID_PART         reduce using rule 37 (re_flags -> .)
+    $end            reduce using rule 37 (re_flags -> .)
+
+    re_flags                       shift and go to state 24
+
+state 14
+
+    (2) re_body -> re_first_char re_chars .
+    (3) re_chars -> re_chars . re_char
+    (8) re_char -> . re_non_term_restrict2
+    (9) re_char -> . re_backlash_seq
+    (10) re_char -> . re_expr_class
+    (22) re_non_term_restrict2 -> . UCHAR
+    (23) re_non_term_restrict2 -> . RSBRACKET
+    (24) re_non_term_restrict2 -> . STAR
+    (25) re_non_term_restrict2 -> . ID_PART
+    (11) re_backlash_seq -> . BACKSLASH re_non_term
+    (31) re_expr_class -> . LSBRACKET re_class_chars RSBRACKET
+
+    DIVIDE          reduce using rule 2 (re_body -> re_first_char re_chars .)
+    UCHAR           shift and go to state 29
+    RSBRACKET       shift and go to state 30
+    STAR            shift and go to state 31
+    ID_PART         shift and go to state 32
+    BACKSLASH       shift and go to state 11
+    LSBRACKET       shift and go to state 12
+
+    re_char                        shift and go to state 25
+    re_non_term_restrict2          shift and go to state 26
+    re_backlash_seq                shift and go to state 27
+    re_expr_class                  shift and go to state 28
+
+state 15
+
+    (17) re_non_term -> BACKSLASH .
+
+    UCHAR           reduce using rule 17 (re_non_term -> BACKSLASH .)
+    RSBRACKET       reduce using rule 17 (re_non_term -> BACKSLASH .)
+    STAR            reduce using rule 17 (re_non_term -> BACKSLASH .)
+    ID_PART         reduce using rule 17 (re_non_term -> BACKSLASH .)
+    BACKSLASH       reduce using rule 17 (re_non_term -> BACKSLASH .)
+    LSBRACKET       reduce using rule 17 (re_non_term -> BACKSLASH .)
+    DIVIDE          reduce using rule 17 (re_non_term -> BACKSLASH .)
+
+
+state 16
+
+    (11) re_backlash_seq -> BACKSLASH re_non_term .
+
+    UCHAR           reduce using rule 11 (re_backlash_seq -> BACKSLASH re_non_term .)
+    RSBRACKET       reduce using rule 11 (re_backlash_seq -> BACKSLASH re_non_term .)
+    STAR            reduce using rule 11 (re_backlash_seq -> BACKSLASH re_non_term .)
+    ID_PART         reduce using rule 11 (re_backlash_seq -> BACKSLASH re_non_term .)
+    BACKSLASH       reduce using rule 11 (re_backlash_seq -> BACKSLASH re_non_term .)
+    LSBRACKET       reduce using rule 11 (re_backlash_seq -> BACKSLASH re_non_term .)
+    DIVIDE          reduce using rule 11 (re_backlash_seq -> BACKSLASH re_non_term .)
+
+
+state 17
+
+    (12) re_non_term -> UCHAR .
+
+    UCHAR           reduce using rule 12 (re_non_term -> UCHAR .)
+    RSBRACKET       reduce using rule 12 (re_non_term -> UCHAR .)
+    STAR            reduce using rule 12 (re_non_term -> UCHAR .)
+    ID_PART         reduce using rule 12 (re_non_term -> UCHAR .)
+    BACKSLASH       reduce using rule 12 (re_non_term -> UCHAR .)
+    LSBRACKET       reduce using rule 12 (re_non_term -> UCHAR .)
+    DIVIDE          reduce using rule 12 (re_non_term -> UCHAR .)
+
+
+state 18
+
+    (13) re_non_term -> LSBRACKET .
+
+    UCHAR           reduce using rule 13 (re_non_term -> LSBRACKET .)
+    RSBRACKET       reduce using rule 13 (re_non_term -> LSBRACKET .)
+    STAR            reduce using rule 13 (re_non_term -> LSBRACKET .)
+    ID_PART         reduce using rule 13 (re_non_term -> LSBRACKET .)
+    BACKSLASH       reduce using rule 13 (re_non_term -> LSBRACKET .)
+    LSBRACKET       reduce using rule 13 (re_non_term -> LSBRACKET .)
+    DIVIDE          reduce using rule 13 (re_non_term -> LSBRACKET .)
+
+
+state 19
+
+    (14) re_non_term -> RSBRACKET .
+
+    UCHAR           reduce using rule 14 (re_non_term -> RSBRACKET .)
+    RSBRACKET       reduce using rule 14 (re_non_term -> RSBRACKET .)
+    STAR            reduce using rule 14 (re_non_term -> RSBRACKET .)
+    ID_PART         reduce using rule 14 (re_non_term -> RSBRACKET .)
+    BACKSLASH       reduce using rule 14 (re_non_term -> RSBRACKET .)
+    LSBRACKET       reduce using rule 14 (re_non_term -> RSBRACKET .)
+    DIVIDE          reduce using rule 14 (re_non_term -> RSBRACKET .)
+
+
+state 20
+
+    (15) re_non_term -> STAR .
+
+    UCHAR           reduce using rule 15 (re_non_term -> STAR .)
+    RSBRACKET       reduce using rule 15 (re_non_term -> STAR .)
+    STAR            reduce using rule 15 (re_non_term -> STAR .)
+    ID_PART         reduce using rule 15 (re_non_term -> STAR .)
+    BACKSLASH       reduce using rule 15 (re_non_term -> STAR .)
+    LSBRACKET       reduce using rule 15 (re_non_term -> STAR .)
+    DIVIDE          reduce using rule 15 (re_non_term -> STAR .)
+
+
+state 21
+
+    (16) re_non_term -> DIVIDE .
+
+    UCHAR           reduce using rule 16 (re_non_term -> DIVIDE .)
+    RSBRACKET       reduce using rule 16 (re_non_term -> DIVIDE .)
+    STAR            reduce using rule 16 (re_non_term -> DIVIDE .)
+    ID_PART         reduce using rule 16 (re_non_term -> DIVIDE .)
+    BACKSLASH       reduce using rule 16 (re_non_term -> DIVIDE .)
+    LSBRACKET       reduce using rule 16 (re_non_term -> DIVIDE .)
+    DIVIDE          reduce using rule 16 (re_non_term -> DIVIDE .)
+
+
+state 22
+
+    (18) re_non_term -> ID_PART .
+
+    UCHAR           reduce using rule 18 (re_non_term -> ID_PART .)
+    RSBRACKET       reduce using rule 18 (re_non_term -> ID_PART .)
+    STAR            reduce using rule 18 (re_non_term -> ID_PART .)
+    ID_PART         reduce using rule 18 (re_non_term -> ID_PART .)
+    BACKSLASH       reduce using rule 18 (re_non_term -> ID_PART .)
+    LSBRACKET       reduce using rule 18 (re_non_term -> ID_PART .)
+    DIVIDE          reduce using rule 18 (re_non_term -> ID_PART .)
+
+
+state 23
+
+    (31) re_expr_class -> LSBRACKET re_class_chars . RSBRACKET
+    (32) re_class_chars -> re_class_chars . re_class_char
+    (34) re_class_char -> . re_non_term_restrict3
+    (35) re_class_char -> . re_backlash_seq
+    (26) re_non_term_restrict3 -> . UCHAR
+    (27) re_non_term_restrict3 -> . LSBRACKET
+    (28) re_non_term_restrict3 -> . STAR
+    (29) re_non_term_restrict3 -> . DIVIDE
+    (30) re_non_term_restrict3 -> . ID_PART
+    (11) re_backlash_seq -> . BACKSLASH re_non_term
+
+    RSBRACKET       shift and go to state 34
+    UCHAR           shift and go to state 38
+    LSBRACKET       shift and go to state 33
+    STAR            shift and go to state 39
+    DIVIDE          shift and go to state 40
+    ID_PART         shift and go to state 41
+    BACKSLASH       shift and go to state 11
+
+    re_class_char                  shift and go to state 35
+    re_non_term_restrict3          shift and go to state 36
+    re_backlash_seq                shift and go to state 37
+
+state 24
+
+    (1) re_lit -> DIVIDE re_body DIVIDE re_flags .
+    (36) re_flags -> re_flags . ID_PART
+
+    $end            reduce using rule 1 (re_lit -> DIVIDE re_body DIVIDE re_flags .)
+    ID_PART         shift and go to state 42
+
+
+state 25
+
+    (3) re_chars -> re_chars re_char .
+
+    UCHAR           reduce using rule 3 (re_chars -> re_chars re_char .)
+    RSBRACKET       reduce using rule 3 (re_chars -> re_chars re_char .)
+    STAR            reduce using rule 3 (re_chars -> re_chars re_char .)
+    ID_PART         reduce using rule 3 (re_chars -> re_chars re_char .)
+    BACKSLASH       reduce using rule 3 (re_chars -> re_chars re_char .)
+    LSBRACKET       reduce using rule 3 (re_chars -> re_chars re_char .)
+    DIVIDE          reduce using rule 3 (re_chars -> re_chars re_char .)
+
+
+state 26
+
+    (8) re_char -> re_non_term_restrict2 .
+
+    UCHAR           reduce using rule 8 (re_char -> re_non_term_restrict2 .)
+    RSBRACKET       reduce using rule 8 (re_char -> re_non_term_restrict2 .)
+    STAR            reduce using rule 8 (re_char -> re_non_term_restrict2 .)
+    ID_PART         reduce using rule 8 (re_char -> re_non_term_restrict2 .)
+    BACKSLASH       reduce using rule 8 (re_char -> re_non_term_restrict2 .)
+    LSBRACKET       reduce using rule 8 (re_char -> re_non_term_restrict2 .)
+    DIVIDE          reduce using rule 8 (re_char -> re_non_term_restrict2 .)
+
+
+state 27
+
+    (9) re_char -> re_backlash_seq .
+
+    UCHAR           reduce using rule 9 (re_char -> re_backlash_seq .)
+    RSBRACKET       reduce using rule 9 (re_char -> re_backlash_seq .)
+    STAR            reduce using rule 9 (re_char -> re_backlash_seq .)
+    ID_PART         reduce using rule 9 (re_char -> re_backlash_seq .)
+    BACKSLASH       reduce using rule 9 (re_char -> re_backlash_seq .)
+    LSBRACKET       reduce using rule 9 (re_char -> re_backlash_seq .)
+    DIVIDE          reduce using rule 9 (re_char -> re_backlash_seq .)
+
+
+state 28
+
+    (10) re_char -> re_expr_class .
+
+    UCHAR           reduce using rule 10 (re_char -> re_expr_class .)
+    RSBRACKET       reduce using rule 10 (re_char -> re_expr_class .)
+    STAR            reduce using rule 10 (re_char -> re_expr_class .)
+    ID_PART         reduce using rule 10 (re_char -> re_expr_class .)
+    BACKSLASH       reduce using rule 10 (re_char -> re_expr_class .)
+    LSBRACKET       reduce using rule 10 (re_char -> re_expr_class .)
+    DIVIDE          reduce using rule 10 (re_char -> re_expr_class .)
+
+
+state 29
+
+    (22) re_non_term_restrict2 -> UCHAR .
+
+    UCHAR           reduce using rule 22 (re_non_term_restrict2 -> UCHAR .)
+    RSBRACKET       reduce using rule 22 (re_non_term_restrict2 -> UCHAR .)
+    STAR            reduce using rule 22 (re_non_term_restrict2 -> UCHAR .)
+    ID_PART         reduce using rule 22 (re_non_term_restrict2 -> UCHAR .)
+    BACKSLASH       reduce using rule 22 (re_non_term_restrict2 -> UCHAR .)
+    LSBRACKET       reduce using rule 22 (re_non_term_restrict2 -> UCHAR .)
+    DIVIDE          reduce using rule 22 (re_non_term_restrict2 -> UCHAR .)
+
+
+state 30
+
+    (23) re_non_term_restrict2 -> RSBRACKET .
+
+    UCHAR           reduce using rule 23 (re_non_term_restrict2 -> RSBRACKET .)
+    RSBRACKET       reduce using rule 23 (re_non_term_restrict2 -> RSBRACKET .)
+    STAR            reduce using rule 23 (re_non_term_restrict2 -> RSBRACKET .)
+    ID_PART         reduce using rule 23 (re_non_term_restrict2 -> RSBRACKET .)
+    BACKSLASH       reduce using rule 23 (re_non_term_restrict2 -> RSBRACKET .)
+    LSBRACKET       reduce using rule 23 (re_non_term_restrict2 -> RSBRACKET .)
+    DIVIDE          reduce using rule 23 (re_non_term_restrict2 -> RSBRACKET .)
+
+
+state 31
+
+    (24) re_non_term_restrict2 -> STAR .
+
+    UCHAR           reduce using rule 24 (re_non_term_restrict2 -> STAR .)
+    RSBRACKET       reduce using rule 24 (re_non_term_restrict2 -> STAR .)
+    STAR            reduce using rule 24 (re_non_term_restrict2 -> STAR .)
+    ID_PART         reduce using rule 24 (re_non_term_restrict2 -> STAR .)
+    BACKSLASH       reduce using rule 24 (re_non_term_restrict2 -> STAR .)
+    LSBRACKET       reduce using rule 24 (re_non_term_restrict2 -> STAR .)
+    DIVIDE          reduce using rule 24 (re_non_term_restrict2 -> STAR .)
+
+
+state 32
+
+    (25) re_non_term_restrict2 -> ID_PART .
+
+    UCHAR           reduce using rule 25 (re_non_term_restrict2 -> ID_PART .)
+    RSBRACKET       reduce using rule 25 (re_non_term_restrict2 -> ID_PART .)
+    STAR            reduce using rule 25 (re_non_term_restrict2 -> ID_PART .)
+    ID_PART         reduce using rule 25 (re_non_term_restrict2 -> ID_PART .)
+    BACKSLASH       reduce using rule 25 (re_non_term_restrict2 -> ID_PART .)
+    LSBRACKET       reduce using rule 25 (re_non_term_restrict2 -> ID_PART .)
+    DIVIDE          reduce using rule 25 (re_non_term_restrict2 -> ID_PART .)
+
+
+state 33
+
+    (27) re_non_term_restrict3 -> LSBRACKET .
+
+    RSBRACKET       reduce using rule 27 (re_non_term_restrict3 -> LSBRACKET .)
+    UCHAR           reduce using rule 27 (re_non_term_restrict3 -> LSBRACKET .)
+    LSBRACKET       reduce using rule 27 (re_non_term_restrict3 -> LSBRACKET .)
+    STAR            reduce using rule 27 (re_non_term_restrict3 -> LSBRACKET .)
+    DIVIDE          reduce using rule 27 (re_non_term_restrict3 -> LSBRACKET .)
+    ID_PART         reduce using rule 27 (re_non_term_restrict3 -> LSBRACKET .)
+    BACKSLASH       reduce using rule 27 (re_non_term_restrict3 -> LSBRACKET .)
+
+
+state 34
+
+    (31) re_expr_class -> LSBRACKET re_class_chars RSBRACKET .
+
+    UCHAR           reduce using rule 31 (re_expr_class -> LSBRACKET re_class_chars RSBRACKET .)
+    RSBRACKET       reduce using rule 31 (re_expr_class -> LSBRACKET re_class_chars RSBRACKET .)
+    STAR            reduce using rule 31 (re_expr_class -> LSBRACKET re_class_chars RSBRACKET .)
+    ID_PART         reduce using rule 31 (re_expr_class -> LSBRACKET re_class_chars RSBRACKET .)
+    BACKSLASH       reduce using rule 31 (re_expr_class -> LSBRACKET re_class_chars RSBRACKET .)
+    LSBRACKET       reduce using rule 31 (re_expr_class -> LSBRACKET re_class_chars RSBRACKET .)
+    DIVIDE          reduce using rule 31 (re_expr_class -> LSBRACKET re_class_chars RSBRACKET .)
+
+
+state 35
+
+    (32) re_class_chars -> re_class_chars re_class_char .
+
+    RSBRACKET       reduce using rule 32 (re_class_chars -> re_class_chars re_class_char .)
+    UCHAR           reduce using rule 32 (re_class_chars -> re_class_chars re_class_char .)
+    LSBRACKET       reduce using rule 32 (re_class_chars -> re_class_chars re_class_char .)
+    STAR            reduce using rule 32 (re_class_chars -> re_class_chars re_class_char .)
+    DIVIDE          reduce using rule 32 (re_class_chars -> re_class_chars re_class_char .)
+    ID_PART         reduce using rule 32 (re_class_chars -> re_class_chars re_class_char .)
+    BACKSLASH       reduce using rule 32 (re_class_chars -> re_class_chars re_class_char .)
+
+
+state 36
+
+    (34) re_class_char -> re_non_term_restrict3 .
+
+    RSBRACKET       reduce using rule 34 (re_class_char -> re_non_term_restrict3 .)
+    UCHAR           reduce using rule 34 (re_class_char -> re_non_term_restrict3 .)
+    LSBRACKET       reduce using rule 34 (re_class_char -> re_non_term_restrict3 .)
+    STAR            reduce using rule 34 (re_class_char -> re_non_term_restrict3 .)
+    DIVIDE          reduce using rule 34 (re_class_char -> re_non_term_restrict3 .)
+    ID_PART         reduce using rule 34 (re_class_char -> re_non_term_restrict3 .)
+    BACKSLASH       reduce using rule 34 (re_class_char -> re_non_term_restrict3 .)
+
+
+state 37
+
+    (35) re_class_char -> re_backlash_seq .
+
+    RSBRACKET       reduce using rule 35 (re_class_char -> re_backlash_seq .)
+    UCHAR           reduce using rule 35 (re_class_char -> re_backlash_seq .)
+    LSBRACKET       reduce using rule 35 (re_class_char -> re_backlash_seq .)
+    STAR            reduce using rule 35 (re_class_char -> re_backlash_seq .)
+    DIVIDE          reduce using rule 35 (re_class_char -> re_backlash_seq .)
+    ID_PART         reduce using rule 35 (re_class_char -> re_backlash_seq .)
+    BACKSLASH       reduce using rule 35 (re_class_char -> re_backlash_seq .)
+
+
+state 38
+
+    (26) re_non_term_restrict3 -> UCHAR .
+
+    RSBRACKET       reduce using rule 26 (re_non_term_restrict3 -> UCHAR .)
+    UCHAR           reduce using rule 26 (re_non_term_restrict3 -> UCHAR .)
+    LSBRACKET       reduce using rule 26 (re_non_term_restrict3 -> UCHAR .)
+    STAR            reduce using rule 26 (re_non_term_restrict3 -> UCHAR .)
+    DIVIDE          reduce using rule 26 (re_non_term_restrict3 -> UCHAR .)
+    ID_PART         reduce using rule 26 (re_non_term_restrict3 -> UCHAR .)
+    BACKSLASH       reduce using rule 26 (re_non_term_restrict3 -> UCHAR .)
+
+
+state 39
+
+    (28) re_non_term_restrict3 -> STAR .
+
+    RSBRACKET       reduce using rule 28 (re_non_term_restrict3 -> STAR .)
+    UCHAR           reduce using rule 28 (re_non_term_restrict3 -> STAR .)
+    LSBRACKET       reduce using rule 28 (re_non_term_restrict3 -> STAR .)
+    STAR            reduce using rule 28 (re_non_term_restrict3 -> STAR .)
+    DIVIDE          reduce using rule 28 (re_non_term_restrict3 -> STAR .)
+    ID_PART         reduce using rule 28 (re_non_term_restrict3 -> STAR .)
+    BACKSLASH       reduce using rule 28 (re_non_term_restrict3 -> STAR .)
+
+
+state 40
+
+    (29) re_non_term_restrict3 -> DIVIDE .
+
+    RSBRACKET       reduce using rule 29 (re_non_term_restrict3 -> DIVIDE .)
+    UCHAR           reduce using rule 29 (re_non_term_restrict3 -> DIVIDE .)
+    LSBRACKET       reduce using rule 29 (re_non_term_restrict3 -> DIVIDE .)
+    STAR            reduce using rule 29 (re_non_term_restrict3 -> DIVIDE .)
+    DIVIDE          reduce using rule 29 (re_non_term_restrict3 -> DIVIDE .)
+    ID_PART         reduce using rule 29 (re_non_term_restrict3 -> DIVIDE .)
+    BACKSLASH       reduce using rule 29 (re_non_term_restrict3 -> DIVIDE .)
+
+
+state 41
+
+    (30) re_non_term_restrict3 -> ID_PART .
+
+    RSBRACKET       reduce using rule 30 (re_non_term_restrict3 -> ID_PART .)
+    UCHAR           reduce using rule 30 (re_non_term_restrict3 -> ID_PART .)
+    LSBRACKET       reduce using rule 30 (re_non_term_restrict3 -> ID_PART .)
+    STAR            reduce using rule 30 (re_non_term_restrict3 -> ID_PART .)
+    DIVIDE          reduce using rule 30 (re_non_term_restrict3 -> ID_PART .)
+    ID_PART         reduce using rule 30 (re_non_term_restrict3 -> ID_PART .)
+    BACKSLASH       reduce using rule 30 (re_non_term_restrict3 -> ID_PART .)
+
+
+state 42
+
+    (36) re_flags -> re_flags ID_PART .
+
+    ID_PART         reduce using rule 36 (re_flags -> re_flags ID_PART .)
+    $end            reduce using rule 36 (re_flags -> re_flags ID_PART .)
+

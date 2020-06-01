@@ -1,6 +1,7 @@
 .build_d
 build
 build_local.py
+dist
 __pycache__
 platforms/Electron/native/node_modules
 platforms/Electron/native/build

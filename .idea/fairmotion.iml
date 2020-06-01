@@ -10,6 +10,7 @@
       <excludeFolder url="file://$MODULE_DIR$/electron_build" />
       <excludeFolder url="file://$MODULE_DIR$/platforms" />
       <excludeFolder url="file://$MODULE_DIR$/src/path.ux/docs/file/scripts/platforms" />
+      <excludeFolder url="file://$MODULE_DIR$/src/path.ux/scripts/platforms" />
       <excludeFolder url="file://$MODULE_DIR$/temp" />
       <excludeFolder url="file://$MODULE_DIR$/tmp" />
       <excludeFolder url="file://$MODULE_DIR$/tsrc/platforms" />

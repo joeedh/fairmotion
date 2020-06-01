@@ -9,11 +9,21 @@ from .. import util
 
 srcpath = "./platforms/PhoneGap/appfiles/Fairmotion"
 pgpath =  "./platforms/PhoneGap/appfiles/Fairmotion"
+basepath = "./dist/PhoneGap"
+
+def configure():
+  util.doprint("Configuring PhoneGap. . .")
+
+  basepath = "./dist/PhoneGap"
+  os.makedirs(basepath, True)
+  os.makedirs(basepath + "/www/js", True)
+  os.makedirs(basepath + "/www/img", True)
+  os.makedirs(basepath + "/www/js/tinymce", True)
+  util.copy_tinymce(basepath + "/www/js/tinymce")
 
 def build():
   util.doprint("Building phonegap app. . .")
 
-  basepath = "./dist/PhoneGap"
   os.makedirs(basepath, True)
   os.makedirs(basepath + "/www/js", True)
   os.makedirs(basepath + "/www/img", True)

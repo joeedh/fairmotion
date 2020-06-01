@@ -31,6 +31,8 @@ def configure():
   util.doprint("Creating electron skeleton")
   sys.stdout.flush()
 
+  util.copy_tinymce("./dist/electron/fcontent/tinymce")
+
   if not os.path.exists(basedir):
     os.makedirs(basedir)
 

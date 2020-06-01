@@ -9,6 +9,11 @@ from .. import util
 
 is_win32 = True if "win" in sys.platform.lower() else False
 
+basepath = "./dist/html5app"
+
+def configure():
+    util.copy_tinymce(basepath + "/fcontent/tinymce")
+
 def copy(src, dst):
     src = os.path.abspath(os.path.normpath(src))
     dst = os.path.abspath(os.path.normpath(dst))
@@ -29,8 +34,6 @@ def copy(src, dst):
 
 def build():
   util.doprint("Building html5 app. . .")
-
-  basepath = "./dist/html5app"
 
   zf = zipfile.ZipFile("dist/html5app.zip", "w")
 

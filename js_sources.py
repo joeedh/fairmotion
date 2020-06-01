@@ -24,6 +24,8 @@ for path in glob.glob("src/path.ux/scripts/**", recursive=True):
         continue
     if "_old" in os.path.split(path)[1].lower():
         continue
+    if "tinymce" in path: continue
+
     if path.endswith("jobs.js") or path.endswith("isect.js") or "kdtree" in path:
       continue
     pathux.append(path)
@@ -242,6 +244,7 @@ copy_targets = {
    "jasmine-html.js" : "tools/utils/libs/jasmine/lib/jasmine-html.js",
    "jasmine-console.js"      : "tools/utils/libs/jasmine/lib/console.js",
    "jasmine_boot.js"         : "src/unit_tests/jasmine_boot.js",
+   "tinymce.js"              : "src/path.ux/scripts/lib/tinymce/tinymce.js"
 }
 
 optional_copy_targets = {

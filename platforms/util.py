@@ -1,4 +1,35 @@
-import sys
+import sys, os, os.path
+
+def copy_tinymce(dest):
+    path = os.path.normpath(os.path.abspath(os.path.join(os.getcwd(), "src/path.ux/scripts/lib/tinymce")))
+
+    if not dest.endswith("/"):
+        dest += "/"
+
+    for root, dirs, files in os.walk("./src/path.ux/scripts/lib/tinymce"):
+        for f in files:
+            path2 = os.path.normpath(os.path.abspath(os.path.join(root, f)))
+            path3 = path2[len(path):]
+            path3 = path3.replace("\\", "/").strip()
+            while path3.startswith("/"):
+                path3 = path3[1:]
+
+            dest = dest.replace("\\", "/").strip()
+            path3 = dest + path3
+
+            dir = os.path.split(path3)[0]
+            if not os.path.exists(dir):
+                os.makedirs(dir)
+
+            file = open(path2, "rb")
+            buf = file.read()
+            file.close()
+            file = open(path3, "wb")
+            file.write(buf)
+            file.close();
+
+if __name__ == "__main__":
+    copy_tinymce("./dist/electron/fcontent/tinymce")
 
 #fix stupid console on win32
 

@@ -10,6 +10,9 @@ from .. import util
 basepath = "./dist/chromeapp"
 srcpath = "./platforms/chromeapp/app"
 
+def configure():
+    util.copy_tinymce(basepath + "/fcontent/tinymce")
+
 def build():
   util.doprint("Building chrome app. . .")
   

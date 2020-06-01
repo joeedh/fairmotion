@@ -1,6 +1,16 @@
 import os, sys
 import platforms.util as util
 
+_makedirs = os.makedirs
+
+#I hate bugs in different versions of python
+def makedirs_safe(p, exist_ok=False):
+    if os.path.exists(p) and exist_ok:
+        return
+    _makedirs(p)
+
+os.makedirs = makedirs_safe
+
 try:
     import ply
 except:

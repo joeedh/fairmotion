@@ -421,16 +421,21 @@ export class MaterialEditor extends Editor {
   }
 
   vertexPanel(tabs : TabContainer) {
-    var ctx = this.ctx;
-    var panel = tabs.tab("Control Point");
+    let ctx = this.ctx;
+    let tab = tabs.tab("Control Point");
 
-    var set_prefix = "spline.verts{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}";
+    let set_prefix = "spline.verts{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}";
 
+    let panel = tab.panel("Vertex");
     panel.prop("spline.active_vertex.flag[BREAK_TANGENTS]", undefined, set_prefix + ".flag[BREAK_TANGENTS]");
     panel.prop("spline.active_vertex.flag[BREAK_CURVATURES]", undefined, set_prefix + ".flag[BREAK_CURVATURES]");
     panel.prop("spline.active_vertex.flag[USE_HANDLES]", undefined, set_prefix + ".flag[USE_HANDLES]");
     panel.prop("spline.active_vertex.flag[GHOST]", undefined, set_prefix + ".flag[GHOST]");
 
+    panel = tab.panel("Animation Settings")
+
+    set_prefix = "frameset.keypaths{$.animflag & 8}";
+    panel.prop("frameset.active_keypath.animflag[STEP_FUNC]", undefined, set_prefix + ".animflag[STEP_FUNC]");
     return panel;
   }
 

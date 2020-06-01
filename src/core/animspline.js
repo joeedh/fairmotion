@@ -146,7 +146,10 @@ export class SegmentAnimIter {
 }
 
 export var VDAnimFlags = {
-  STEP_FUNC : 2
+  SELECT            : 1,
+  STEP_FUNC         : 2,
+  HIDE              : 4,
+  OWNER_IS_EDITABLE : 8 //owner is selected and visible
 };
 
 export class VertexAnimData {
@@ -170,7 +173,7 @@ export class VertexAnimData {
     this.spline = pathspline;
     
     this.animflag = 0;
-    this.flag = 0; //holds selection and hide flags
+    this.flag = 0; //holds selection and hide flags?
     this.visible = false;
     
     //maps splinevert eid's to the times they occur at?
@@ -373,14 +376,14 @@ export class VertexAnimData {
   
   get start_time() {
     var v = this.startv;
-    if (v == undefined) return 0;
+    if (v === undefined) return 0;
     
     return get_vtime(v);
   }
   
   get end_time() {
     var v = this.endv;
-    if (v == undefined) return 0;
+    if (v === undefined) return 0;
     
     return get_vtime(v);
   }
@@ -448,7 +451,7 @@ export class VertexAnimData {
     var v = this.startv;
     var step_func = this.animflag & VDAnimFlags.STEP_FUNC;
     
-    if (v == undefined)
+    if (v === undefined)
       return vertanimdata_eval_cache.next().zero();
     
     var co = vertanimdata_eval_cache.next();
@@ -459,7 +462,7 @@ export class VertexAnimData {
     
     //console.log("eval 1", v);
     
-    if (v.segments.length == 0) {
+    if (v.segments.length === 0) {
       co.load(v);
       return co;
     }
@@ -492,10 +495,10 @@ export class VertexAnimData {
     
     //console.log("eval 3", get_vtime(v));
     var nextv = v, nextv2 = v;
-    var alen1 = s != undefined ? s.length : 1, alen2 = alen1;
-    var alen0 = lasts != undefined ? lasts.length : alen1, alen3=alen1;
+    var alen1 = s !== undefined ? s.length : 1, alen2 = alen1;
+    var alen0 = lasts !== undefined ? lasts.length : alen1, alen3=alen1;
     
-    if (v.segments.length == 2) {
+    if (v.segments.length === 2) {
       var nexts = v.other_segment(s);
       
       nextv = nexts.other_vert(v);
@@ -504,7 +507,7 @@ export class VertexAnimData {
     }
     
     nextv2 = nextv;
-    if (nextv2.segments.length == 2) {
+    if (nextv2.segments.length === 2) {
       var nexts2 = nextv2.other_segment(nexts);
       nextv2 = nexts2.other_vert(nextv2);
       
@@ -571,7 +574,7 @@ export class VertexAnimData {
     off fort;
     */
     
-    if (lastv == v || get_vtime(lastv) == time) {
+    if (lastv === v || get_vtime(lastv) === time) {
       co.load(v);
     } else {
       var pt2 = get_vtime(lastv2), pt = get_vtime(lastv), vt = get_vtime(v);
@@ -618,7 +621,7 @@ export class VertexAnimData {
       }
       //t = 1.0;
       
-      co.load(s.evaluate(lastv == s.v1 ? t : 1-t));
+      co.load(s.evaluate(lastv === s.v1 ? t : 1-t));
     }
     
     return co;
@@ -627,8 +630,8 @@ export class VertexAnimData {
   get endv() {
     var v = this.startv;
     
-    if (v == undefined) return undefined;
-    if (v.segments.length == 0) return v;
+    if (v === undefined) return undefined;
+    if (v.segments.length === 0) return v;
     
     var s = v.segments[0];
     while (1) {

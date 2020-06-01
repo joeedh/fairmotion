@@ -697,7 +697,8 @@ function api_define_spline() {
     new DataPath(define_element_array(SplineFaceStruct), "faces", "faces", true),
     new DataPath(define_element_array(SplineSegmentStruct), "segments", "segments", true),
     new DataPath(define_element_array(SplineVertexStruct), "verts", "verts", true),
-  
+    new DataPath(define_element_array(SplineVertexStruct), "handles", "handles", true),
+
     new DataPath(define_editable_element_array(SplineFaceStruct), "editable_faces", "faces", true),
     new DataPath(define_editable_element_array(SplineSegmentStruct), "editable_segments", "segments", true),
     new DataPath(define_editable_element_array(SplineVertexStruct), "editable_verts", "verts", true),
@@ -732,14 +733,20 @@ function api_define_frameset() {
         return "[" + key + "]";
       },
       function getitem(key) {
-        return this.vertex_animdata[key];
+        return this[key];
       },
       function getiter() {
-        return this[Symbol.iterator]()
+        let this2 = this;
+
+        return (function*() {
+          for (let k in this2) {
+            yield this2[k];
+          }
+        })();
       },
       
       function getkeyiter() {
-        var keys = Object.keys(this.vertex_animdata);
+        var keys = Object.keys(this);
         var ret = new GArray();
         
         for (var i = 0; i < keys.length; i++) {
@@ -752,7 +759,7 @@ function api_define_frameset() {
       function getlength() {
         let i = 0;
         
-        for (let k in this.vertex_animdata) {
+        for (let k in this) {
           i++;
         }
         

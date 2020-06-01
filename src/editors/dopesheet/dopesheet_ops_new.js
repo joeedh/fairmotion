@@ -354,9 +354,10 @@ export class MoveKeyFramesOp extends AnimKeyTool {
     if (dopesheet) {
       let boxsize = dopesheet.boxSize;
 
-      dx /= dopesheet.zoom*dopesheet.timescale*boxsize*0.05;
+      dx /= dopesheet.zoom*dopesheet.timescale*boxsize;
     } else {
       dx *= 0.1;
+      console.error("MISSING DOPESHEET");
     }
 
     if (dx === undefined) {

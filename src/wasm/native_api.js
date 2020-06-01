@@ -501,26 +501,22 @@ export function do_solve(sflags : int, spline : Spline, steps : int, gk=0.95, re
         }
       }
     }
-    
-    if (!spline.is_anim_path) {
-      for (var i = 0; i < spline.handles.length; i++) {
-        var h = spline.handles[i];
-        h.flag &= ~(SplineFlags.UPDATE | SplineFlags.TEMP_TAG);
-      }
-      
-      for (var i = 0; i < spline.verts.length; i++) {
-        var v = spline.verts[i];
-        v.flag &= ~(SplineFlags.UPDATE | SplineFlags.TEMP_TAG);
-      }
+
+    for (let h of spline.handles) {
+      h.flag &= ~(SplineFlags.UPDATE | SplineFlags.TEMP_TAG);
     }
-    
-    if (spline.on_resolve != undefined) {
+
+    for (let v of spline.verts) {
+      v.flag &= ~(SplineFlags.UPDATE | SplineFlags.TEMP_TAG);
+    }
+
+    if (spline.on_resolve !== undefined) {
       spline.on_resolve();
       spline.on_resolve = undefined;
     }
     
     //do promise's callback, too
-    if (on_finish != undefined) {
+    if (on_finish !== undefined) {
       on_finish();
     }
   }

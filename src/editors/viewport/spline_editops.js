@@ -206,13 +206,21 @@ export class SplineLocalToolOp extends ToolOp {
     var is_anim_path = spline.is_anim_path;
     
     for (var k in spline2) {
+      if (typeof k === "symbol")
+        continue;
+
+      //don't interfere with event dag
+      if (k === "inputs" || k === "outputs" || k.startsWith("dag_")) {
+        continue;
+      }
+
       spline[k] = spline2[k];
     }
     
     var max_cur = spline.idgen.cur_id;
     spline.idgen = idgen;
     
-    if (is_anim_path != undefined)
+    if (is_anim_path !== undefined)
       spline.is_anim_path = is_anim_path;
     
     console.log("Restoring IDGen; max_cur:", max_cur, "current max:", spline.idgen.cur_id);

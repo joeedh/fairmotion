@@ -178,7 +178,7 @@ export class AnimChannel {
       this.keys = [];
       this.resort = false;
       this.proptype = proptype;
-      this.name = name == undefined ? "unnamed" : name;
+      this.name = name === undefined ? "unnamed" : name;
       this.path = path;
       this.id = -1;
 
@@ -191,7 +191,7 @@ export class AnimChannel {
     }
     
     add(key) {
-      if (key.id == -1) {
+      if (key.id === -1) {
         key.id = this.idgen.gen_id();
       }
       
@@ -274,11 +274,11 @@ export class AnimChannel {
         }
       }
       
-      var prev = i == 0 ? this.keys[i] : this.keys[i-1];
-      var key = i == this.keys.length ? this.keys[this.keys.length-1] : this.keys[i];
+      var prev = i === 0 ? this.keys[i] : this.keys[i-1];
+      var key = i === this.keys.length ? this.keys[this.keys.length-1] : this.keys[i];
       
       var t;
-      if (prev.time != key.time) {
+      if (prev.time !== key.time) {
         t = (time - prev.time) / (key.time - prev.time);
       } else {
         t = 1.0;
@@ -288,12 +288,12 @@ export class AnimChannel {
       var a = prev.data.data, b = key.data.data;
       
       var ret;
-      if (key.mode == AnimInterpModes.STEP)
+      if (key.mode === AnimInterpModes.STEP)
         ret = a;
       else
         ret = a + (b - a)*t;
       
-      if (this.proptype == PropTypes.INT)
+      if (this.proptype === PropTypes.INT)
         ret = Math.floor(ret+0.5);
       
       return ret;

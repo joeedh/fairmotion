@@ -383,13 +383,13 @@ export class SplineFrameSet extends DataBlock {
     var vset2 = new set();
     
     for (var v of this.spline.verts) {
-      vset2.add(""+v.eid);
+      vset2.add(v.eid);
     }
     
     for (var k in this.vertex_animdata) {
       var vd = this.vertex_animdata[k];
       
-      if (!vset2.has(""+k)) {
+      if (!vset2.has(k)) {
         delete this.vertex_animdata[k];
         continue;
       }
@@ -500,7 +500,7 @@ export class SplineFrameSet extends DataBlock {
     console.log("set called", vd_eid, state);
     
     var vd = this.vertex_animdata[vd_eid];
-    if (vd == undefined) return;
+    if (vd === undefined) return;
     
     var layer = this.pathspline.layerset.idmap[vd.layerid];
     var drawlayer = this.pathspline.layerset.idmap[this.templayerid];
@@ -613,10 +613,29 @@ export class SplineFrameSet extends DataBlock {
   get _selected_splines() {
     return new AllSplineIter(this, true);
   }
-  
+
+  /*tags which vdatas have owners that are currently
+    selected and editable*/
+  sync_vdata_selstate(ctx) {
+    for (let k in this.vertex_animdata) {
+      let vd = this.vertex_animdata[k];
+      vd.animflag &= ~VDAnimFlags.OWNER_IS_EDITABLE;
+    }
+
+    for (let i=0; i<2; i++) {
+      let list = i ? this.spline.handles : this.spline.verts;
+
+      for (let v of list.selected.editable(ctx)) {
+        let vd = this.vertex_animdata[v.eid];
+        vd.animflag |= VDAnimFlags.OWNER_IS_EDITABLE;
+      }
+    }
+  }
+
   update_visibility() {
     console.log("update_visibility called");
-    
+
+
     if (!this.switch_on_select)
       return;
     
@@ -750,7 +769,7 @@ export class SplineFrameSet extends DataBlock {
     var time = this.time;
     var spline = this.spline;
     
-    if (spline == undefined) return;
+    if (spline === undefined) return;
     
     if (spline.resolve)
       spline.solve();
@@ -898,7 +917,7 @@ export class SplineFrameSet extends DataBlock {
     
     for (var v of this.spline.points) {
       var vd = this.get_vdata(v.eid, false);
-      if (vd == undefined) continue;
+      if (vd === undefined) continue;
       
       if (v.flag & SplineFlags.SELECT)
         vd.flag |= SplineFlags.SELECT;
@@ -911,7 +930,7 @@ export class SplineFrameSet extends DataBlock {
         vd.flag &= ~SplineFlags.HIDE;
     }
     
-    if (f == undefined) {
+    if (f === undefined) {
       f = this.insert_frame(time);
     }
     
@@ -920,7 +939,7 @@ export class SplineFrameSet extends DataBlock {
     if (!window.inFromStruct && _update_animation) { //time != f.time) {
       var set_update = true;
 
-      /* XXX fixme, load cached curve k parameters
+      //* XXX fixme, load cached curve k parameters
       if (time in this.kcache.cache) {
         console.log("found cached k data!");
         
@@ -947,7 +966,7 @@ export class SplineFrameSet extends DataBlock {
         var set_flag = v.eid in this.vertex_animdata;
         
         var vdata = this.get_vdata(v.eid, false);
-        if (vdata == undefined) continue;
+        if (vdata === undefined) continue;
         
         //console.log("yay, vdata", vdata.evaluate(time));
         if (set_flag) {
@@ -1134,7 +1153,7 @@ export class SplineFrameSet extends DataBlock {
     //XXX kcache is being buggy, for now, don't load from disk
     this.kcache = new SplineKCache();
 
-    if (this.kcache == undefined) {
+    if (this.kcache === undefined) {
       this.kcache = new SplineKCache();
     }
     

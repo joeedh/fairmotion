@@ -988,7 +988,7 @@ export class DataAPI {
       
       var ob;
       do {
-        var ob = this.get_object(path2);
+        var ob = this.get_object(ctx, path2);
         if (ob != undefined && ob instanceof DataBlock)
           break;
         
@@ -1433,7 +1433,7 @@ export class DataAPI {
       }
     }
     
-    var list = this.get_object(listpath);
+    var list = this.get_object(ctx, listpath);
     var ret = this.resolve_path_intern(ctx, listpath);
     
     var sta = ret[0].data;
@@ -1470,7 +1470,7 @@ export class DataAPI {
     }
     
     /*
-    var list = this.get_object(listpath);
+    var list = this.get_object(ctx, listpath);
     var ret = this.resolve_path_intern(ctx, listpath);
     
     var sta = ret[0].data;

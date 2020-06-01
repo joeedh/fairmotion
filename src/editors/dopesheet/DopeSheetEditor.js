@@ -1,5 +1,3 @@
-const BOXSCALE = 1.0;
-
 import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
 import {STRUCT} from '../../core/struct.js';
 import {UIBase, css2color, color2css} from '../../path.ux/scripts/core/ui_base.js';
@@ -42,6 +40,7 @@ let treeDebug = 0;
 /******************* main area struct ********************************/
 import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
 import {Container, ColumnFrame, RowFrame} from '../../path.ux/scripts/core/ui.js';
+import {SelectKeysToSide, ShiftTimeOp3} from "./dopesheet_ops.js";
 
 var tree_packflag = 0;/*PackFlags.INHERIT_WIDTH|PackFlags.ALIGN_LEFT
                    |PackFlags.ALIGN_TOP|PackFlags.NO_AUTO_SPACING
@@ -722,6 +721,34 @@ export class DopeSheetEditor extends Editor {
     k.add(new HotKey("Z", ["CTRL", "SHIFT"], "Redo"), new FuncKeyHandler(function(ctx) {
       g_app_state.toolstack.redo();
     }));
+
+    k.add(new HotKey("Up", [], "Frame Ahead 10"), new FuncKeyHandler(function(ctx) {
+      ctx.scene.change_time(ctx, ctx.scene.time+10);
+      window.force_viewport_redraw();
+      window.redraw_viewport();
+    }));
+
+    k.add(new HotKey("Down", [], "Frame Back 10"), new FuncKeyHandler(function(ctx) {
+      ctx.scene.change_time(ctx, ctx.scene.time-10);
+      window.force_viewport_redraw();
+      window.redraw_viewport();
+    }));
+
+    k.add(new HotKey("Right", [], ""), new FuncKeyHandler(function(ctx) {
+      console.log("Frame Change!", ctx.scene.time+1);
+      ctx.scene.change_time(ctx, ctx.scene.time+1);
+
+      window.redraw_viewport();
+      //var tool = new FrameChangeOp(ctx.scene.time+1);
+    }));
+
+    k.add(new HotKey("Left", [], ""), new FuncKeyHandler(function(ctx) {
+      console.log("Frame Change!", ctx.scene.time-1);
+      ctx.scene.change_time(ctx, ctx.scene.time-1);
+
+      window.redraw_viewport();
+      //var tool = new FrameChangeOp(ctx.scene.time-1);
+    }));
   }
 
   get_keymaps() {
@@ -1049,7 +1076,7 @@ export class DopeSheetEditor extends Editor {
     let timescale = this.timescale;
     let boxsize = this.boxSize;
 
-    let cellwid = boxsize*this.zoom*this.timescale*BOXSCALE;
+    let cellwid = boxsize*this.zoom*this.timescale;
 
 
     console.warn("rebuilding dopesheet");
@@ -1162,7 +1189,7 @@ export class DopeSheetEditor extends Editor {
 
           let time = get_vtime(v2);
 
-          co1[0] = this.timescale * time * boxsize*BOXSCALE;
+          co1[0] = this.timescale * time * boxsize;
           co1[1] = y;
 
           keys[ki+KX] = co1[0];
@@ -1212,7 +1239,7 @@ export class DopeSheetEditor extends Editor {
         }
 
         let time = get_vtime(v);
-        let x = this.timescale * time * boxsize*BOXSCALE;
+        let x = this.timescale * time * boxsize;
         let flag = 0;
 
         if (v.flag & SplineFlags.UI_SELECT) {
@@ -1349,7 +1376,7 @@ export class DopeSheetEditor extends Editor {
     g.fillStyle = "rgb(55,55,55,1.0)";
     g.fill();
 
-    let bwid = ~~(boxsize*zoom*timescale*BOXSCALE);
+    let bwid = ~~(boxsize*zoom*timescale);
     let time = ~~(-pan[0] / bwid);
 
     let off = this.pan[0] % bwid;
@@ -1467,7 +1494,7 @@ export class DopeSheetEditor extends Editor {
     let lw = g.lineWidth;
 
     let curtime = this.ctx.scene.time;
-    let tx = curtime*this.zoom*this.timescale*boxsize*BOXSCALE + this.pan[0];
+    let tx = curtime*this.zoom*this.timescale*boxsize + this.pan[0];
     if (tx >= 0 && tx <= this.canvas.width) {
       g.lineWidth = 3;
       g.strokeStyle = this.getDefault("timeLine");

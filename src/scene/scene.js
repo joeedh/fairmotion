@@ -208,6 +208,8 @@ export class Scene extends DataBlock {
     this.objects.active = undefined;
     this.object_idgen = new EIDGen();
 
+    this.dagnodes = [];
+
     //this.layer_idset = new LayerIDSet();
 
     this.toolmodes = [];
@@ -388,6 +390,31 @@ export class Scene extends DataBlock {
 
     //if (this.active_splinepath != undefined)
     //  g_app_state.switch_active_spline(this.active_splinepath);
+  }
+
+  linkDag(ctx) {
+    let on_sel = function(ctx, inputs, outputs, graph) {
+      console.warn("on select called through eventdag!");
+      ctx.frameset.sync_vdata_selstate(ctx);
+    }
+
+    the_global_dag.link(ctx.frameset.spline.verts, ["on_select_add"],
+                        on_sel, ["eid"]);
+    the_global_dag.link(ctx.frameset.spline.verts, ["on_select_sub"],
+      on_sel, ["eid"]);
+    the_global_dag.link(ctx.frameset.spline.handles, ["on_select_add"],
+      on_sel, ["eid"]);
+    the_global_dag.link(ctx.frameset.spline.handles, ["on_select_sub"],
+      on_sel, ["eid"]);
+
+    this.dagnodes.push(on_sel);
+  }
+
+  on_tick(ctx) {
+    if (this.dagnodes.length === 0) {
+      this.linkDag(ctx);
+    }
+
   }
 
   static nodedef() {return {

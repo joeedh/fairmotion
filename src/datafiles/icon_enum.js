@@ -60,5 +60,6 @@ window.Icons = {
   DUPLICATE : 56,
   CONSOLE_EDITOR : 57,
   ZOOM_OUT : 58,
-  ZOOM_IN : 59
+  ZOOM_IN : 59,
+  LARGE_CHECK : 60
 };

@@ -103,6 +103,10 @@ export class FairmotionScreen extends Screen {
   update() {
     super.update();
 
+    if (this.ctx && this.ctx.scene) {
+      this.ctx.scene.on_tick(this.ctx);
+    }
+
     the_global_dag.exec();
   }
 

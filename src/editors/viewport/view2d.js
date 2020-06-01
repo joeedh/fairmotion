@@ -651,7 +651,7 @@ export class View2DHandler extends Editor {
         }
 
         pathspline.layerset.active = pathspline.layerset.idmap[this.ctx.frameset.templayerid];
-        pathspline.draw(redraw_rects, g, this, this.selectmode, this.only_render, this.draw_normals, alpha, true, this.ctx.frameset.time, false);
+        pathspline.draw(redraw_rects, g, this, matrix, this.selectmode, this.only_render, this.draw_normals, alpha, true, this.ctx.frameset.time, false);
       }
     } else {
       if (pathspline.resolve) {

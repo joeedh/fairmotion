@@ -17,6 +17,7 @@ import * as html5_fileapi from './fileapi/fileapi.js';
 import {FullContext, BaseContext, BaseContextOverlay} from "./context.js";
 export {FullContext, BaseContext, BaseContextOverlay} from "./context.js";
 
+import {SplineFrameSet} from "./frameset.js";
 import {ConsoleEditor} from '../editors/console/console.js';
 import {CurveEditor} from '../editors/curve/CurveEditor.js';
 import {OpStackEditor} from '../editors/ops/ops_editor.js';
@@ -1868,7 +1869,7 @@ class SavedContextOld {
     return this._selectmode;
   }
 
-  get frameset() : FrameSet {
+  get frameset() : SplineFrameSet {
     return g_app_state.datalib.get(this._frameset);
   }
   
@@ -2409,7 +2410,7 @@ class ToolStack {
 
   exec_tool(tool : ToolOp) {
     console.warn("exec_tool deprecated in favor of execTool");
-    return this.execTool(tool);
+    return this.execTool(g_app_state.ctx, tool);
   }
 
   execToolRepeat(ctx, cls, args={}) {

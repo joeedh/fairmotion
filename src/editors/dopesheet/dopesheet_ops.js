@@ -265,7 +265,18 @@ export class ShiftTimeOp3 extends ToolOp {
     }
     
     var mpos = new Vector3([event.x, event.y, 0]);
-    var dx = -Math.floor(1.5*(this.start_mpos[0] - mpos[0])/20+0.5);
+    let scale;
+    let ctx = this.modal_ctx;
+
+    if (ctx.dopesheet) {
+      let ds = ctx.dopesheet
+      scale = 1.0 / (ds.timescale*ds.zoom*ds.boxSize);
+    } else {
+      scale = 0.01;
+      console.warn("Warning, no dopesheet");
+    }
+
+    var dx = -Math.floor((this.start_mpos[0] - mpos[0])*scale);
     
     //console.log("time offset", dx);
     

@@ -4,6 +4,7 @@ import subprocess, shlex, signal
 from ctypes import *
 import imp, runpy
 from math import floor
+from .. import util
 
 basedir = "./dist/electron"
 
@@ -27,7 +28,9 @@ cd %~dp0\\electron
 """
 
 def configure():
-  print("=== Creating electron skeleton ===")
+  util.doprint("Creating electron skeleton")
+  sys.stdout.flush()
+
   if not os.path.exists(basedir):
     os.makedirs(basedir)
 
@@ -47,12 +50,17 @@ def configure():
   copy("./platforms/electron/package.json", basedir + "/package.json")
   path = os.getcwd()
 
+  util.doprint("Running npm install for electron skeleton")
+  sys.stdout.flush()
+
   os.chdir(basedir)
   os.system("npm install")
   os.chdir(path)
 
+  print("\n")
+
 def build():
-  print("Building electron app. . .")
+  util.doprint("Building electron app. . .")
   
   if not os.path.exists(basedir):
     os.makedirs(basedir)

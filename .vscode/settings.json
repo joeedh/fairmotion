@@ -1,0 +1,10 @@
+{
+    "files.exclude": {
+        "build": true,
+        "chromeapp": true,
+        "html5app": true,
+    },
+    "workbench.colorCustomizations": {
+    
+    }
+}

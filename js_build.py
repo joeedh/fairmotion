@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 
-import note, traceback
+from scripts import note
+import traceback
+
+from platforms import util as util
 
 THENOTE = "note"
 NOTETITLE = "Build System"
@@ -19,7 +22,22 @@ import imp, runpy
 from math import floor
 import zipfile
 
-from dbcache import CachedDB
+_makedirs = os.makedirs
+
+#I hate bugs in different versions of python
+def makedirs_safe(p, exist_ok=False):
+    if os.path.exists(p) and exist_ok:
+        return
+    _makedirs(p)
+
+os.makedirs = makedirs_safe
+
+os.makedirs("dist/electron", True)
+os.makedirs("dist/html5app", True)
+os.makedirs("dist/chromeapp", True)
+os.makedirs("dist/PhoneGap", True)
+
+from scripts.dbcache import CachedDB
 
 #normpath helper func
 def np(path):
@@ -508,7 +526,7 @@ def do_rebuild(abspath, targetpath):
   fname = os.path.split(abspath)[1]
 
   if not os.path.exists(targetpath) and not targetpath.endswith(".svg"):
-    print("Missing: ", targetpath)
+    print(util.termColor("Missing: " + str(targetpath), "yellow"))
     return True
 
   if "[Conflict]" in abspath:
@@ -683,7 +701,7 @@ def build_target(files):
     """
 
     dcmd = os.path.split(f)[1] if ("/" in f or "\\" in f) else f
-    dcmd = ("[%i%%] " % perc) + dcmd.strip()
+    dcmd = (util.termColor("[%i%%] " % perc, "cyan") + dcmd.strip())
     
     #execute build command
 
@@ -789,7 +807,7 @@ def build_target(files):
     print("done.")
 
   if build_cmd != "loop":
-    print("build finished")
+    util.doprint("build finished")
 
   return build_final
 
@@ -1044,21 +1062,21 @@ def build_platforms():
     return 1
     
 def build_chrome_package():
-  print("Building chrome app. . .")
+  util.doprint("Building chrome app. . .")
 
   zf = zipfile.ZipFile("chromeapp.zip", "w")
 
-  if not os.path.exists("./chromeapp/fcontent/"):
-    os.makedirs("./chromeapp/fcontent/")
+  if not os.path.exists("./dist/chromeapp/fcontent/"):
+    os.makedirs("./dist/chromeapp/fcontent/")
 
-  for f in os.listdir("./chromeapp"):
-    path = "./chromeapp/" + f
+  for f in os.listdir("./dist/chromeapp"):
+    path = "./dist/chromeapp/" + f
     if f == "fcontent": continue
 
     zf.write(path, f);
 
-  for f in os.listdir("./chromeapp/icons"):
-    path = "./chromeapp/icons/" + f
+  for f in os.listdir("./dist/chromeapp/icons"):
+    path = "./dist/chromeapp/icons/" + f
 
     zf.write(path, "icons/"+f);
 
@@ -1075,7 +1093,7 @@ def build_chrome_package():
 
     zf.write(path, "fcontent/" + f);
 
-    path = "chromeapp/fcontent/" + f
+    path = "dist/chromeapp/fcontent/" + f
     file = open(path, "wb")
     file.write(buf)
     file.close()
@@ -1083,7 +1101,7 @@ def build_chrome_package():
   print("done")
 
 def build_package():
-  print("Building fairmotion_alpha.zip. . .")
+  util.doprint("Building fairmotion_alpha.zip. . .")
   zf = zipfile.ZipFile("fairmotion_alpha.zip", "w")
 
   def zwrite(path):
@@ -1200,14 +1218,14 @@ def buildall_intern(redo_final=False):
     ok = build_platforms()
     
     if not ok:
-        sys.stderr.write("Build failed\n")
+        sys.stderr.write(util.termColor("Build failed\n", "red"))
         
         note.showNote(THENOTE, NOTETITLE, "Build failed");
         note.sleep(1.0);
         note.hideNote(THENOTE)
         return 0
     else:
-        print("Finished build")
+        util.doprint("Finished build")
         
         note.showNote(THENOTE, NOTETITLE, "Finished Build");
         note.sleep(1.0);

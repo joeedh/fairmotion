@@ -3177,7 +3177,9 @@ es6_module_define('platform_html5', ["../common/platform_api.js"], function _pla
       alert(msg);
     }
      questionDialog(msg) {
-
+      return new Promise((accept, reject) =>        {
+        accept(confirm(msg));
+      });
     }
   }
   _ESClass.register(PlatformAPI);

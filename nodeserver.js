@@ -1,3 +1,6 @@
+INDEX = "index.html"
+let PORT = 5000;
+
 let list = function(l) {
   let ret = [];
   for (let i of l) {
@@ -13,8 +16,6 @@ let pathm = require('path');
 let os = require('os');
 
 IS_WIN32 = os.platform() === "win32";
-
-let PORT = 5000;
 
 let mimemap = {
   ".js" : "application/javascript",
@@ -87,7 +88,7 @@ let server = new http.Server((req, res) => {
   }
   
   if (path == "/")
-    path = "main.html";
+    path = INDEX;
   
   while (path.startsWith("/") || path.startsWith("\\")) {
     path = path.slice(1, path.length).trim();

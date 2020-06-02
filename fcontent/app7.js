@@ -7395,7 +7395,7 @@ es6_module_define('view2d_object', ["../../core/struct.js", "../../curve/spline_
   WorkSpline = _es6_module.add_export('WorkSpline', WorkSpline);
   
 }, '/dev/fairmotion/src/editors/viewport/view2d_object.js');
-es6_module_define('MaterialEditor', ["../viewport/spline_editops.js", "../../path.ux/scripts/widgets/ui_listbox.js", "../../path.ux/scripts/widgets/ui_table.js", "../../path.ux/scripts/widgets/ui_menu.js", "../../core/struct.js", "../editor_base.js", "../../path.ux/scripts/core/ui.js", "../viewport/spline_layerops.js", "../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/screen/ScreenArea.js"], function _MaterialEditor_module(_es6_module) {
+es6_module_define('MaterialEditor', ["../../path.ux/scripts/core/ui.js", "../../path.ux/scripts/widgets/ui_listbox.js", "../../core/struct.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../path.ux/scripts/core/ui_base.js", "../viewport/spline_layerops.js", "../../path.ux/scripts/widgets/ui_table.js", "../../path.ux/scripts/widgets/ui_menu.js", "../viewport/spline_editops.js", "../editor_base.js"], function _MaterialEditor_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
   var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
   var Container=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui.js', 'Container');
@@ -7537,6 +7537,7 @@ es6_module_define('MaterialEditor', ["../viewport/spline_editops.js", "../../pat
       });
       row.prop('frameset.drawspline.active_layer.flag[HIDE]');
       row.prop('frameset.drawspline.active_layer.flag[CAN_SELECT]');
+      this.flushUpdate();
     }
      _old() {
       return ;

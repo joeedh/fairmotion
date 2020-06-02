@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script src="./config.js" type="application/javascript"></script>
+    <script src="node_modules/canvaskit-wasm/bin/canvaskit.js"></script>
+    <script type="application/javascript">
+    window.ORIGIN = "."
+    </script>
+    <meta charset="utf-8" />
+    <title>Fairmotion</title>
+    <script type="text/javascript" src="./fcontent/app.js"></script>
+    <style>
+        body {
+            overflow : hidden;
+            margin   : 0px;
+            padding  : 0px;
+            outline  : 0px;
+        }
+
+        #framerate {
+            position: absolute;
+            z-index: 3;
+            top: 10px;
+            left: 300px;
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 1em;
+            color: white;
+        }
+        #framerate {
+            position: absolute;
+            z-index: 3;
+            top: 10px;
+            left: 300px;
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 1em;
+            color: white;
+        }
+
+        canvas {
+            padding : 0px;
+            margin : 0px;
+        }
+
+        #fileinput {
+            visibility: visible;
+            position: absolute;
+            left: 700px;
+            right: 400px;
+            z-index: 2;
+        }
+
+    </style>
+</head>
+
+<body onload="start_app()">
+<img id="iconsheet16" style="display:none" src="./fcontent/iconsheet16.png"></img>
+<img id="iconsheet24" style="display:none" src="./fcontent/iconsheet24.png"></img>
+<img id="iconsheet32" style="display:none" src="./fcontent/iconsheet32.png"></img>
+<img id="iconsheet64" style="display:none" src="./fcontent/iconsheet64.png"></img>
+
+<script type="text/javascript">
+  window.start_app = function start_app() {
+    startup();
+  }
+
+</script>
+
+<div id="Html5AppMode" style="display: hidden"></div>
+</body>
+</html>

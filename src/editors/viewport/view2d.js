@@ -766,21 +766,23 @@ export class View2DHandler extends Editor {
     row.noMargins();
     container.noMargins();
 
-    row.prop("view2d.selectmask[HANDLE]", PackFlags.USE_ICONS);
-    row.prop("view2d.selectmode", PackFlags.USE_ICONS);
-
     row.useIcons();
 
-    row.prop("view2d.only_render", PackFlags.USE_ICONS);
-    row.prop("view2d.draw_small_verts", PackFlags.USE_ICONS);
-    row.prop("view2d.draw_normals", PackFlags.USE_ICONS);
-    row.prop("view2d.draw_anim_paths", PackFlags.USE_ICONS);
-    row.prop("view2d.enable_blur", PackFlags.USE_ICONS);
-    row.prop("view2d.draw_faces", PackFlags.USE_ICONS);
-    //row.prop("view2d.extrude_mode", PackFlags.USE_ICONS);
-    row.prop("spline.active_vertex.flag[BREAK_TANGENTS]");
-    row.prop("spline.active_vertex.flag[BREAK_CURVATURES]");
-    row.tool("spline.split_pick_edge()", PackFlags.USE_ICONS);
+    row.prop("view2d.selectmask[HANDLE]");
+    row.prop("view2d.selectmode");
+
+    row.prop("view2d.only_render");
+    row.prop("view2d.draw_small_verts");
+    row.prop("view2d.draw_normals");
+    row.prop("view2d.draw_anim_paths");
+    row.prop("view2d.enable_blur");
+    row.prop("view2d.draw_faces");
+    //row.prop("view2d.extrude_mode");
+
+    let mass_set_path = "spline.selected_verts{1}";
+    row.prop("spline.active_vertex.flag[BREAK_TANGENTS]", undefined, mass_set_path + ".flag[BREAK_TANGENTS]");
+    row.prop("spline.active_vertex.flag[BREAK_CURVATURES]", undefined, mass_set_path + ".flag[BREAK_CURVATURES]");
+    row.tool("spline.split_pick_edge()");
   }
 
   set_zoom(zoom) {

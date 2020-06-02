@@ -638,7 +638,7 @@ function api_define_spline() {
         return this.local_idmap[key];
       },
       function getiter() {
-        return this[Symbol.iterator]()
+        return this.editable(g_app_state.ctx)[Symbol.iterator]()
       },
       function getkeyiter(ctx) {
         var keys = new GArray();
@@ -653,14 +653,49 @@ function api_define_spline() {
       function getlength() {
         let len = 0;
         
-        for (let e of this.editable(ctx)) {
+        for (let e of this.selected.editable(g_app_state.ctx)) {
           len++;
         }
         
         return len;
       });
   }
-  
+
+  function define_selected_element_array(the_struct) {
+    return new DataStructArray(
+      function getstruct(item) {
+        return the_struct;
+      },
+      function itempath(key) {
+        return ".local_idmap[" + key + "]";
+      },
+      function getitem(key) {
+        return this.local_idmap[key];
+      },
+      function getiter() {
+        return this.selected.editable(g_app_state.ctx)[Symbol.iterator]()
+      },
+      function getkeyiter(ctx) {
+        var keys = new GArray();
+
+        for (let e of this.editable(ctx)) {
+          keys.push(e.eid);
+        }
+
+        return keys;
+      },
+
+      function getlength() {
+        let len = 0;
+
+        for (let e of this.selected.editable(g_app_state.ctx)) {
+          len++;
+        }
+
+        return len;
+      });
+  }
+
   function define_element_array(the_struct) {
     return new DataStructArray(
       function getstruct(item) {
@@ -702,6 +737,12 @@ function api_define_spline() {
     new DataPath(define_editable_element_array(SplineFaceStruct), "editable_faces", "faces", true),
     new DataPath(define_editable_element_array(SplineSegmentStruct), "editable_segments", "segments", true),
     new DataPath(define_editable_element_array(SplineVertexStruct), "editable_verts", "verts", true),
+    new DataPath(define_editable_element_array(SplineVertexStruct), "editable_handles", "handles", true),
+
+    new DataPath(define_selected_element_array(SplineFaceStruct), "selected_facese", "faces", true),
+    new DataPath(define_selected_element_array(SplineSegmentStruct), "selected_segments", "segments", true),
+    new DataPath(define_selected_element_array(SplineVertexStruct), "selected_verts", "verts", true),
+    new DataPath(define_selected_element_array(SplineVertexStruct), "selected_handles", "handles", true),
 
     new DataPath(layerset, "layerset", "layerset", true),
     new DataPath(SplineLayerStruct, "active_layer", "layerset.active", true)

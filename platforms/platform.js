@@ -20,8 +20,8 @@ if (config.ELECTRON_APP_MODE) {
   mod = html5;
   let o = document.location.href;
   
-  if (o.endsWith("/main.html")) {
-    o = o.slice(0, o.length - ("/main.html").length);
+  if (o.endsWith("/index.html")) {
+    o = o.slice(0, o.length - ("/index.html").length);
   }
   config.ORIGIN = o;
 } else if (config.PHONE_APP_MODE) {

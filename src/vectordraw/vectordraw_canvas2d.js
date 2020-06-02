@@ -760,7 +760,7 @@ export class CanvasPath extends QuadBezPath {
     //console.log(this.aabb[0][0], this.aabb[0][1], offx, offy, this.off, this.commands, draw.matrix);
     
     //XXX bypass patch methods
-    if (g._drawImage != undefined) {
+    if (g._drawImage !== undefined) {
       g._drawImage(this._image, this._image_off[0]+offx, this._image_off[1]+offy);
 
       g.beginPath();
@@ -1023,6 +1023,7 @@ export class CanvasDraw2D extends VectorDraw {
 
       let blurlimit = 25;
       let needsblur = this.do_blur && (path.blur*zoom >= blurlimit);
+      needsblur = needsblur && path.clip_paths.length === 0;
 
       if (needsblur && path._batch && !path._batch.isBlurBatch) {
         this.regen = 1;

@@ -8,6 +8,7 @@ import {exportTheme, CSSFont} from '../path.ux/scripts/core/ui_theme.js';
 import {setTheme} from '../path.ux/scripts/core/ui_base.js';
 import * as ui_base from '../path.ux/scripts/core/ui_base.js';
 import {theme} from '../editors/theme.js';
+import * as util from '../path.ux/scripts/util/util.js';
 
 let defaultTheme = exportTheme(theme);
 
@@ -149,7 +150,11 @@ export class AppSettings {
     var rp = this.find_recent_path(path);
 
     if (rp >= 0) {
-      this.recent_paths.remove(this.recent_paths[path]);
+      try {
+        this.recent_paths.remove(this.recent_paths[path]);
+      } catch (error) {
+        util.print_stack(error);
+      }
       this.recent_paths.push(rpath);
     } else if (this.recent_paths.length >= config.MAX_RECENT_FILES) {
       this.recent_paths.shift();
@@ -218,7 +223,11 @@ export class OldAppSettings {
     path = new RecentPath(path, displayname);
     
     if (rp >= 0) {
-      this.recent_paths.remove(this.recent_paths[path]);
+      try {
+        this.recent_paths.remove(this.recent_paths[path]);
+      } catch (error) {
+        util.print_stack(error);
+      }
       this.recent_paths.push(path);
     } else if (this.recent_paths.length >= config.MAX_RECENT_FILES) {
       this.recent_paths.shift();

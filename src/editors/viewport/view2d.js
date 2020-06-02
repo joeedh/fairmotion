@@ -152,6 +152,7 @@ export class View2DHandler extends Editor {
   dpi_scale         : number;
   draw_faces        : boolean;
   background_color  : Vector3;
+  half_pix_size     : boolean;
   default_stroke    : Vector4;
   default_fill      : Vector4;
   default_linewidth : float;
@@ -166,6 +167,7 @@ export class View2DHandler extends Editor {
 
     this.enable_blur = true;
     this.draw_small_verts = false;
+    this.half_pix_size = false;
 
     this.toolmode = ToolModes.SELECT;
     this._last_dpi = undefined;
@@ -384,7 +386,7 @@ export class View2DHandler extends Editor {
   set_cameramat(mat : Matrix4=undefined) {
     var cam = this.cameramat, render = this.rendermat, zoom = new Matrix4();
 
-    if (mat != undefined)
+    if (mat !== undefined)
       cam.load(mat);
 
     zoom.translate(this.size[0]/2, this.size[1]/2, 0);
@@ -417,12 +419,7 @@ export class View2DHandler extends Editor {
     _co.load(co);
     _co[2] = 0.0;
     _co.multVecMatrix(this.rendermat);
-
-    //let off = this._getCanvasOff();
-    //_co[0] -= off[0];
-    //_co[1] -= off[1];
-
-    //_co.mulScalar(this.dpi_scale);
+    //_co.mulScalar(1.0/this.dpi_scale);
 
     co[0] = _co[0], co[1] = _co[1];
     return co;
@@ -433,14 +430,10 @@ export class View2DHandler extends Editor {
 
     _co.load(co);
 
-    //let off = this._getCanvasOff();
-    //_co[0] += off[0];
-    //_co[1] += off[1];
-
     _co[2] = 0.0;
     _co.multVecMatrix(this.irendermat);
-    //_co.mulScalar(1.0 / this.dpi_scale);
-    
+    //_co.mulScalar(this.dpi_scale);
+
     co[0] = _co[0], co[1] = _co[1];
     return co;
   }
@@ -449,9 +442,7 @@ export class View2DHandler extends Editor {
     let ret = projrets.next();
 
     let canvas = this.get_bg_canvas();
-
     let rect = canvas.getClientRects()[0];
-
     let dpi = UIBase.getDPI();
 
     if (rect === undefined) {
@@ -782,7 +773,10 @@ export class View2DHandler extends Editor {
     let mass_set_path = "spline.selected_verts{1}";
     row.prop("spline.active_vertex.flag[BREAK_TANGENTS]", undefined, mass_set_path + ".flag[BREAK_TANGENTS]");
     row.prop("spline.active_vertex.flag[BREAK_CURVATURES]", undefined, mass_set_path + ".flag[BREAK_CURVATURES]");
-    row.tool("spline.split_pick_edge()");
+    row.prop("view2d.half_pix_size");
+
+    let strip = row.strip();
+    strip.tool("spline.split_pick_edge()");
   }
 
   set_zoom(zoom) {
@@ -1255,10 +1249,13 @@ export class View2DHandler extends Editor {
   }
   
   update() {
-    let key = "" + this.enable_blur + ":" + this.only_render + ":" + this.draw_faces + ":" + this.edit_all_layers + ":" + this.draw_normals + ":" + this.draw_small_verts;
+    let key = "" + this.half_pix_size + ":" + this.enable_blur + ":" + this.only_render + ":" + this.draw_faces + ":" + this.edit_all_layers + ":" + this.draw_normals + ":" + this.draw_small_verts;
     
     if (key !== this._last_key_1) {
       this._last_key_1 = key;
+
+      this.dpi_scale = this.half_pix_size ? 0.5 : 1.0;
+
       window.redraw_viewport();
     }
 
@@ -1293,6 +1290,7 @@ View2DHandler.STRUCT = STRUCT.inherit(View2DHandler, Area) + `
   _selectmode     : int;
   rendermat       : mat4;
   irendermat      : mat4;
+  half_pix_size   : bool;
   cameramat       : mat4;
   only_render     : int;
   draw_anim_paths : int;

@@ -704,8 +704,6 @@ export function build_solver(spline : Spline, order : int, goal_order : int, gk 
       update_verts.add(v);
   }
 
-  console.warn("uv", update_verts.length);
-
   return slv;
 }
 

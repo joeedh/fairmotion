@@ -408,6 +408,7 @@ export class TranslateOp extends TransformOp {
     var md = this.modaldata;
     var ctx = this.modal_ctx;
     var td = this.transdata;
+    let view2d = ctx.view2d;
 
     var start = mousemove_cachering.next(), off = mousemove_cachering.next();
 
@@ -415,11 +416,13 @@ export class TranslateOp extends TransformOp {
 
     start.load(md.start_mpos);
     off.load(md.mpos);
-    
+
     ctx.view2d.unproject(start);
     ctx.view2d.unproject(off);
     
     off.sub(start);
+
+    off.mulScalar(view2d.dpi_scale);
     this.inputs.translation.setValue(off);
 
     this.exec(ctx);

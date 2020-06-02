@@ -157,7 +157,7 @@ class LayerPanel extends Container {
 
       console.log("oldl", oldl);
 
-      if (oldl.order == lset.length-1) return;
+      if (oldl.order === lset.length-1) return;
       var newl = lset[oldl.order+1];
 
       var tool = new ChangeElementLayerOp(oldl.id, newl.id);

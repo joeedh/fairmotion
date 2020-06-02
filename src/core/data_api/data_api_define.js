@@ -281,8 +281,10 @@ function api_define_imageuser() {
 }
 
 function api_define_view2d() {
+  var half_pix_size = new BoolProperty(0, "half_pix_size", "half_pix_size", "Half Resolution (faster)");
+  half_pix_size.icon = Icons.HALF_PIXEL_SIZE;
+
   var only_render = new BoolProperty(0, "only_render", "Hide Controls", "Hide Controls");
-  
   only_render.api_update = function (ctx, path) {
     window.redraw_viewport();
   }
@@ -398,6 +400,7 @@ function api_define_view2d() {
 
   window.View2DStruct = new DataStruct([
     new DataPath(edit_all_layers, "edit_all_layers", "edit_all_layers", true),
+    new DataPath(half_pix_size, "half_pix_size", "half_pix_size", true),
     new DataPath(background_color, "background_color", "background_color", true),
     new DataPath(default_stroke, "default_stroke", "default_stroke", true),
     new DataPath(default_fill, "default_fill", "default_fill", true),

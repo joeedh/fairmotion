@@ -143,6 +143,8 @@ export class SplineDrawer {
     matrix.preMultiply(mat2);
     
     //check if matrix scale or rotation have changed
+    this.drawer.do_blur = editor.enable_blur;
+
     var m1 = matrix.$matrix, m2 = this.drawer.matrix.$matrix;
     var off = update_tmps_vs.next().zero();
     

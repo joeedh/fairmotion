@@ -27,15 +27,17 @@ function patch_console() {
 
     function patch(key) {
         handlers[key] = function() {
-            if (ignore || !g_screen) {
-                return;
-            }
-            
-            for (let sarea of g_screen.sareas) {
-                if (sarea.area instanceof ConsoleEditor) {
-                    sarea.area[key](...arguments);
+            setTimeout(() => {
+                if (ignore || !g_screen) {
+                    return;
                 }
-            }
+
+                for (let sarea of g_screen.sareas) {
+                    if (sarea.area instanceof ConsoleEditor) {
+                        sarea.area[key](...arguments);
+                    }
+                }
+            }, 0);
         }
 
         methods[key] = console[key].bind(console);
@@ -191,6 +193,8 @@ export class ConsoleEditor extends Editor {
 
         this._animreq = 0;
 
+        this.redraw = this.redraw.bind(this);
+
         this.hitboxes = [];
 
         this.fontsize = 12;
@@ -260,10 +264,10 @@ export class ConsoleEditor extends Editor {
                 let style = next.replace(/\n/g, "").split(";");
 
                 for (let line of style) {
-                    line = line.trim().split(":");
+                    line = (""+line).trim().split(":");
 
-                    if (line.length === 2 && line[0].trim() === "color") {
-                        let color = line[1].trim().toLowerCase();
+                    if (line.length === 2 && (""+line[0]).trim() === "color") {
+                        let color = (""+line[1]).trim().toLowerCase();
 
                         if (color in util.termColorMap) {
                             s2 = termColor(s2, color);
@@ -278,7 +282,7 @@ export class ConsoleEditor extends Editor {
             prev = s2;
         }
 
-        return s.trim();
+        return (""+s).trim();
     }
 
     formatStackLine(stack : string, parts : boolean=false) {
@@ -295,7 +299,7 @@ export class ConsoleEditor extends Editor {
         }
 
         let i2 = stack.search("\\(");
-        let prefix = i2 >= 0 ? stack.slice(0, i2).trim() : "";
+        let prefix = i2 >= 0 ? (""+stack.slice(0, i2)).trim() : "";
         
         if (prefix.length > 0) {
             prefix += ":"
@@ -312,7 +316,7 @@ export class ConsoleEditor extends Editor {
     push(msg:string, linefg:string="", linebg:string="", childafter:boolean=false) {
         let stack = "" + new Error().stack;
 
-        stack = stack.split("\n")[5].trim();
+        stack = (""+stack.split("\n")[5]).trim();
         stack = this.formatStackLine(stack);
 
         let ls = msg.split("\n");
@@ -372,7 +376,7 @@ export class ConsoleEditor extends Editor {
         for (let i=start; i<stack.length; i++) {
             let s = stack[i];
             let l = this.formatStackLine(s, true);
-            l[0] = "  " + l[0].trim();
+            l[0] = "  " + (""+l[0]).trim();
             
             l = new ConsoleLineEntry(l[0], l[1], fg, bg);
             l.closed = closed;
@@ -608,7 +612,7 @@ export class ConsoleEditor extends Editor {
 
         if (i <= 0) {
             prefix = "";
-            suffix = cmd.trim();
+            suffix = (""+cmd).trim();
         } else {
             prefix = cmd.slice(0, i).trim();
             suffix = cmd.slice(i+1, cmd.length).trim();
@@ -1050,7 +1054,7 @@ export class ConsoleEditor extends Editor {
         }
 
         this._animreq = 1;
-        this.doOnce(this.redraw);
+        requestAnimationFrame(this.redraw);
     }
 
     setCSS() {

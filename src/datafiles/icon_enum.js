@@ -61,5 +61,6 @@ window.Icons = {
   CONSOLE_EDITOR : 57,
   ZOOM_OUT : 58,
   ZOOM_IN : 59,
-  LARGE_CHECK : 60
+  LARGE_CHECK : 60,
+  HALF_PIXEL_SIZE : 61
 };

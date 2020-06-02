@@ -47,17 +47,21 @@ let batch_iden = 1;
 export class Batch {
   generation : number
   path_idmap : Object
+  isBlurBatch : boolean
   regen : number
   gen_req : number
   _last_pan : Vector2
   viewport : Object
   realViewport : Object
   patharea : number;
+  dpi_scale : number;
 
   constructor() {
     this._batch_id = batch_iden++;
 
     this.generation = 0;
+    this.isBlurBatch = false;
+    this.dpi_scale = 1.0;
 
     this.paths = [];
     this.path_idmap = {};
@@ -166,24 +170,41 @@ export class Batch {
   }
 
   checkViewport(draw : CanvasDraw2D) {
-    return;
-
     let canvas = draw.canvas;
     //let cv = this._getPaddedViewport(canvas);
+
+    let p = new Vector2(draw.pan);
+
+    p[1] = draw.canvas.height - p[1];
+    p.sub(this._last_pan);
+
     let cv = {
       pos  : new Vector2(),
       size : new Vector2([canvas.width, canvas.height])
     };
-    let pan = draw.pan;
 
-    cv.pos[0] -= draw.pan[0];
-    cv.pos[1] -= draw.pan[1];
+    cv.pos[0] -= p[0];
+    cv.pos[1] -= p[1];
     
     let clip1 = math.aabb_intersect_2d(this.viewport.pos, this.viewport.size, cv.pos, cv.size);
     let clip2 = math.aabb_intersect_2d(this.realViewport.pos, this.realViewport.size, cv.pos, cv.size);
 
+    const debug = 0;
+
+    if (debug) {
+      console.log("\n===\n");
+      console.log("dpan:", p);
+      console.log(cv.pos, cv.size);
+
+      if (clip1) console.log("clip1", clip1.pos, clip1.size);
+      if (clip2) console.log("clip2", clip2.pos, clip2.size);
+    }
+
     if (!clip1 || !clip2) {
-      return clip1 !== clip2;
+      if (debug) {
+        console.log("clip is bad 1:", clip1, clip2, !!clip1 !== !!clip2);
+      }
+      return !!clip1 !== !!clip2;
     }
     
     clip1.pos.floor();
@@ -191,22 +212,23 @@ export class Batch {
     clip2.pos.floor();
     clip2.size.floor();
 
-    //console.log(clip1.pos, clip1.size);
-    //console.log(clip2.pos, clip2.size);
-
     let bad = clip1.pos.vectorDistance(clip2.pos) > 2;
     bad = bad || clip1.size.vectorDistance(clip2.size) > 2;
 
-    //console.log("clip is bad:", bad);
+    if (debug) {
+      console.log("clip is bad 2:", bad);
+    }
 
     return bad;
   }
 
-  _getPaddedViewport(canvas) {
-    let cpad = 512;
+  _getPaddedViewport(canvas, cpad=512) {
+    let dpi_scale = canvas.dpi_scale * this.dpi_scale;
+    cpad /= dpi_scale;
+
     return {
       pos  : new Vector2([-cpad, -cpad]),
-      size : new Vector2([canvas.width+cpad*2, canvas.height+cpad*2])
+      size : new Vector2([canvas.width*canvas.dpi_scale + cpad*2, canvas.height*canvas.dpi_scale + cpad*2])
     }
   }
 
@@ -218,6 +240,13 @@ export class Batch {
 
     this.gen_req = 10;
     this.regen = false;
+
+    if (this.isBlurBatch) {
+      let matrix = new Matrix4(draw.matrix);
+
+      matrix.scale(this.dpi_scale, this.dpi_scale);
+      draw.push_transform(matrix, false);
+    }
 
     let canvas = draw.canvas, g = draw.g;
     if (debug) console.warn("generating batch of size " + this.paths.length);
@@ -263,22 +292,28 @@ export class Batch {
     let min2 = new Vector2(min);
     let size2 = new Vector2(max);
     size2.sub(min2);
-    min2.add(draw.pan);
+    //min2.add(draw.pan);
 
-    let cpad = 256;
+    let cpad = 512;
 
-    let cv = this._getPaddedViewport(canvas);
+    let cv = this._getPaddedViewport(canvas, cpad);
     let box = math.aabb_intersect_2d(min2, size2, cv.pos, cv.size);
+
     min2 = min2.floor();
     size2 = size2.floor();
     //console.log(min2, size2, canvas.width, canvas.height);
     //console.log("ISECT", box);
 
     if (!box) {
+      if (this.isBlurBatch) {
+        draw.pop_transform();
+      }
       return;
     }
 
-    box.pos.sub(draw.pan);
+    //box.pos.sub(draw.pan);
+
+    //console.warn("CV", cv.pos, cv.size, "=>", min2, size2, "=>", box.pos, box.size);
 
     min.load(box.pos);
     max.load(min).add(box.size);
@@ -306,6 +341,10 @@ export class Batch {
       for (let i=0; i<c2.length; i++) {
         commands.push(c2[i]);
       }
+    }
+
+    if (this.isBlurBatch) {
+      draw.pop_transform();
     }
 
     //this._image = undefined;
@@ -341,8 +380,9 @@ export class Batch {
   }
 
   draw(draw) {
-    if (this.checkViewport(draw)) {
+    if (!this.regen && this.checkViewport(draw) && !this.gen_req) {
       this.regen = 1;
+      console.log("bad viewport");
     }
 
     let canvas = draw.canvas, g = draw.g;
@@ -351,7 +391,6 @@ export class Batch {
 
     let scale = zoom / this._draw_zoom;
 
-    let viewport = this.viewport;
     //let viewport = this.realViewport;
 
     offx = draw.pan[0] - this._last_pan[0]*scale;
@@ -369,7 +408,8 @@ export class Batch {
       return;
     }
     
-    g.imageSmoothingEnabled = false;
+    g.imageSmoothingEnabled = !!this.isBlurBatch;
+
     //console.log(this.aabb[0][0], this.aabb[0][1], offx, offy, this.off, this.commands, draw.matrix);
 
     if (this.paths.length === 0 && this.generation > 2) {
@@ -399,6 +439,7 @@ export class Batch {
       g.fillStyle = "rgba(0,255,0,0.4)";
       g.fill();
       //*/
+
       g.restore();
       /*
       if (g._resetTransform)
@@ -761,17 +802,22 @@ export class Batches extends Array {
   }
 
   requestBatch() {
+    let ret;
+
     if (this.cur < this.length) {
       this.drawlist.push(this[this.cur]);
 
-      return this[this.cur++];
+      ret = this[this.cur++];
     } else {
       this.cur++;
       this.push(new Batch());
 
       this.drawlist.push(this[this.length-1]);
-      return this[this.length-1];
+      ret = this[this.length-1];
     }
+
+    ret.isBlurBatch = false;
+    return ret;
   }
 
   remove(batch) {
@@ -884,8 +930,33 @@ export class CanvasDraw2D extends VectorDraw {
       path.destroy(this);
     }
   }
-  
+
+  set regen(v) {
+    this.__regen = v;
+    console.warn("regen");
+  }
+
+  get regen() {
+    return this.__regen;
+  }
+
   draw(g) {
+    if (!!this.do_blur !== this._last_do_blur) {
+      this._last_do_blur = !!this.do_blur;
+      this.regen = 1;
+
+      window.setTimeout(() => {
+        window.redraw_viewport();
+      }, 200);
+    }
+
+    if (this.regen) {
+      this.__regen = 0;
+
+      this.batches.destroy();
+      this.update();
+    }
+
     let batch;
 
     let blimit = this.paths.length < 15 ? 15 : Math.ceil(this.paths.length / vectordraw_jobs.manager.max_threads);
@@ -949,12 +1020,32 @@ export class CanvasDraw2D extends VectorDraw {
 
         continue;
       }
-      
+
+      let blurlimit = 25;
+      let needsblur = this.do_blur && (path.blur*zoom >= blurlimit);
+
+      if (needsblur && path._batch && !path._batch.isBlurBatch) {
+        this.regen = 1;
+      }
+
+      if (!needsblur && path._batch && path._batch.isBlurBatch) {
+        this.regen = 1;
+      }
+
       if (!path._batch) {
         let w1 = batch.patharea / (canvas.width*canvas.height);
         let w2 = this.batches.length > 10 ? 1.0 / (this.batches.length - 9) : 0.0;
 
-        if (batch.paths.length*(1.0 + w1*4.0) > blimit) {
+        if (needsblur) {
+          if (!batch.isBlurBatch) {
+            batch = this.batches.requestBatch();
+            batch.isBlurBatch = true;
+            batch.dpi_scale = path.blur*zoom > 50 ? 0.1 : 0.25;
+          } else {
+            let scale =path.blur*zoom > 50 ? 0.1 : 0.25;
+            batch.dpi_scale = Math.min(batch.dpi_scale, scale);
+          }
+        } else if (batch.isBlurBatch || (batch.paths.length * (1.0 + w1 * 4.0) > blimit)) {
           batch = this.batches.requestBatch();
         }
 

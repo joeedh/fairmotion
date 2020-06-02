@@ -1,4 +1,7 @@
-#Installing and running the alpha package
+# Demo
+[Demo](http://joeedh.github.io/fairmotion/index.html)
+
+# Installing and running the alpha package
 ## Requirements:
   1. Python [www.python.org](www.python.org)
 

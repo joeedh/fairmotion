@@ -182,6 +182,8 @@ class LayerPanel extends Container {
 
     row.prop('frameset.drawspline.active_layer.flag[HIDE]');
     row.prop('frameset.drawspline.active_layer.flag[CAN_SELECT]');
+
+    this.flushUpdate();
   }
 
   _old() {

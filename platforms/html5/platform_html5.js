@@ -24,7 +24,10 @@ export class PlatformAPI extends PlatformAPIBase {
   }
 
   questionDialog(msg) {
+    return new Promise((accept, reject) => {
+      accept(confirm(msg));
 
+    });
   }
 }
 

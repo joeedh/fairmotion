@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os, sys
 import platforms.util as util
 
@@ -10,6 +12,7 @@ def makedirs_safe(p, exist_ok=False):
     _makedirs(p)
 
 os.makedirs = makedirs_safe
+os.makedirs("./dist", True)
 
 try:
     import ply

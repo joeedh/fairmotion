@@ -28,6 +28,8 @@ cd %~dp0\\electron
 """
 
 def configure():
+  os.makedirs("./dist/electron", True);
+
   util.doprint("Creating electron skeleton")
   sys.stdout.flush()
 

@@ -3,8 +3,6 @@ import {wasm_binary, wasmBinaryPath} from './load_wasm.js';
 Module.wasmBinary = wasm_binary;
 Module.INITIAL_MEMORY = 33554432;
 var wasmBinaryFile = wasmBinaryPath;
-console.error(wasmBinaryPath);
-
 /**
  * @license
  * Copyright 2010 The Emscripten Authors

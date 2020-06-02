@@ -13,8 +13,9 @@ basepath = "./dist/PhoneGap"
 
 def configure():
   util.doprint("Configuring PhoneGap. . .")
+  
+  os.makedirs(basepath, True);
 
-  basepath = "./dist/PhoneGap"
   os.makedirs(basepath, True)
   os.makedirs(basepath + "/www/js", True)
   os.makedirs(basepath + "/www/img", True)

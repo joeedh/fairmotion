@@ -11,9 +11,6 @@ is_win32 = True if "win" in sys.platform.lower() else False
 
 basepath = "./dist/html5app"
 
-def configure():
-    util.copy_tinymce(basepath + "/fcontent/tinymce")
-
 def copy(src, dst):
     src = os.path.abspath(os.path.normpath(src))
     dst = os.path.abspath(os.path.normpath(dst))
@@ -32,6 +29,21 @@ def copy(src, dst):
     #print(cmd)
     #os.system(cmd)
 
+def configure():
+  os.makedirs("./dist/html5app", True);
+  
+  util.doprint("Setting up dist/html5app")
+  util.copy_tinymce(basepath + "/fcontent/tinymce")
+  
+  copy("./platforms/html5/nodeserver.js", basepath + "/nodeserver.js")
+  copy("./platforms/html5/package.json", basepath + "/package.json")
+  
+  util.doprint("Executing npm install in dist/html5app...")
+  path = os.getcwd()
+  os.chdir("dist/html5app")
+  os.system("npm install")
+  os.chdir(path)
+  
 def build():
   util.doprint("Building html5 app. . .")
 
@@ -43,6 +55,9 @@ def build():
   if not os.path.exists(basepath + "/icons/"):
     os.makedirs(basepath + "/icons/")
 
+  copy("./platforms/html5/nodeserver.js", basepath + "/nodeserver.js")
+  copy("./platforms/html5/config.js", basepath + "/config.js")
+  copy("./platforms/html5/package.json", basepath + "/package.json")
   copy("./platforms/html5/main.html", basepath + "/main.html");
   copy("./src/vectordraw/vectordraw_canvas2d_worker.js", basepath + "/vectordraw_canvas2d_worker.js");
   copy("./src/vectordraw/vectordraw_skia_worker.js", basepath + "/vectordraw_skia_worker.js");

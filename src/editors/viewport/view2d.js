@@ -1,3 +1,4 @@
+import {FullContext} from "../../core/context.js";
 import {Editor} from '../editor_base.js';
 import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
 import {patchMouseEvent, ToolOp, UndoFlags} from '../../core/toolops_api.js';
@@ -741,6 +742,18 @@ export class View2DHandler extends Editor {
     tools.tool("spline.toggle_select_all()", PackFlags.LARGE_ICON|PackFlags.USE_ICONS);
 
     this.update();
+
+    let tab = tabs.tab("Background");
+    let panel = tab.panel("Image");
+    panel.prop("view2d.draw_bg_image");
+
+    let iuser = document.createElement("image-user-panel-x");
+    iuser.setAttribute("datapath", "view2d.background_image");
+
+    panel.add(iuser);
+
+    panel = tab.panel("Background Color");
+    panel.prop("view2d.background_color");
   }
 
   makeHeader(container) {

@@ -73,7 +73,7 @@ export class LoadImageOp extends ToolOp {
     ctx = new Context();
     
     var name = this.inputs.name.data.trim();
-    name = name == "" ? undefined : name;
+    name = name === "" ? undefined : name;
     
     var image = new Image(name);
     ctx.datalib.add(image);
@@ -84,7 +84,7 @@ export class LoadImageOp extends ToolOp {
     this.outputs.block.setValue(image);
     var outpath = this.inputs.dest_datapath.data.trim();
     
-    if (outpath != "") {
+    if (outpath !== "") {
       ctx.api.setValue(ctx, outpath, image);
     }
   }

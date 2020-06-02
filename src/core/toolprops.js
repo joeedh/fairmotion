@@ -238,6 +238,18 @@ for (let i=0; i<2; i++) {
   });
 }
 
+function isTypedArray(n) {
+  if (!n || typeof n !== "object") {
+    return false;
+  }
+
+  return (n instanceof Int8Array || n instanceof Uint8Array ||
+          n instanceof Uint8ClampedArray || n instanceof Int16Array ||
+          n instanceof Uint16Array || n instanceof Int32Array || n instanceof Uint32Array ||
+          n instanceof Float32Array || n instanceof Float64Array);
+
+}
+
 export class ArrayBufferProperty extends ToolProperty {
   constructor(data, apiname = "", uiname = apiname, description = "", flag = 0) {
     super(PropTypes.ARRAYBUFFER, apiname, uiname, description, flag);
@@ -245,6 +257,23 @@ export class ArrayBufferProperty extends ToolProperty {
     if (data !== undefined) {
       this.setValue(data);
     }
+  }
+
+  setValue(d) {
+    if (d.constructor.name === "ArrayBuffer") {
+      d = new Uint8Array(d, 0, d.byteLength);
+    } else if (isTypedArray(d)) {
+      d = d.buffer;
+      d = new Uint8Array(d, 0, d.byteLength);
+    } else if (Array.isArray(d)) {
+      d = new Uint8Array(d);
+    }
+
+    this.data = d;
+  }
+
+  getValue() {
+    return this.data;
   }
 
   copyTo(dst : ArrayBufferProperty) {
@@ -767,7 +796,7 @@ nstructjs.register(BlankArray);
 window.BlankArray = BlankArray;
 
 
-`
+#if 0
 export class ToolProperty {
   constructor(type, apiname="", uiname=apiname, description="", flag=0) {
     this.type = type;
@@ -1845,4 +1874,3 @@ BlankArray.STRUCT =
 window.BlankArray = BlankArray;
 
 #endif
-`;

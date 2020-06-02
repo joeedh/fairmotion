@@ -52,6 +52,13 @@ export class Image extends DataBlock {
     return this._dom;
   }
 
+  _get_data() {
+    if (this.data) {
+      return this.data;
+    } else {
+      return new Uint8Array([]);
+    }
+  }
 
   loadSTRUCT(reader) {
     reader(this);
@@ -68,7 +75,7 @@ export class Image extends DataBlock {
 Image.STRUCT = STRUCT.inherit(Image, DataBlock) + `
   path  : string;
   width : array(int);
-  data  : arraybuffer;
+  data  : arraybuffer | this._get_data();
 }
 `;
 

@@ -697,7 +697,7 @@ export class AppState {
     this.datalib.clear();
     var filedata = this.load_blocks(undofile);
     
-    this.link_blocks(datalib, filedata);
+    this.link_blocks(this.datalib, filedata);
     
     //this.load_user_file_new(undofile);
 

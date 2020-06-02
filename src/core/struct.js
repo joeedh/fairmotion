@@ -33,7 +33,7 @@ export class arraybufferCompat extends Array {
 }
 
 arraybufferCompat.STRUCT = `arraybuffer {
-  _data : array(byte);
+  _data : array(byte) | this ? this : [];
 }`;
 
 nstructjs.register(arraybufferCompat);

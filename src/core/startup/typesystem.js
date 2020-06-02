@@ -37,7 +37,7 @@ function register_test(obj) {
 }
 
 //a mini module!
-var _ESClass = (function() {
+window._ESClass = (function() {
   function ClassGetter(func) {
     this.func = func;
   }

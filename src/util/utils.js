@@ -433,6 +433,8 @@ class SetIter {
   ["return"]() {
     this.done = true;
     this.ret.done = true;
+    this.ret.value = undefined;
+    return this.ret;
   }
   
   next() {

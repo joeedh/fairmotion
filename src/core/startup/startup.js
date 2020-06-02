@@ -213,7 +213,7 @@ window.startup_intern = function startup() {
 }
 
 function init_event_system() {
-  let eventmanager = es6_get_module_meta(_rootpath_src + "/core/eventmanager.js").exports;
+  let eventmanager = es6_get_module_meta(_rootpath_src + "src/core/eventmanager.js").exports;
   let eman = eventmanager.manager;
   
   window._stime = 10;
@@ -235,7 +235,7 @@ function init_event_system() {
       }
   }, 32);
 
-  var config = _es6_get_module(_rootpath_src + "/config/config.js");
+  var config = _es6_get_module(_rootpath_src + "src/config/config.js");
   
   //start primary on_tick timer
 

@@ -5,7 +5,6 @@ import {DataTypes, DataBlock} from "./lib_api.js";
 import {ConsoleEditor} from '../editors/console/console.js';
 import {CurveEditor} from '../editors/curve/CurveEditor.js';
 import {OpStackEditor} from '../editors/ops/ops_editor.js';
-import {View2DHandler} from '../editors/viewport/view2d.js';
 import {MaterialEditor} from "../editors/material/MaterialEditor.js";
 import {DopeSheetEditor} from "../editors/dopesheet/DopeSheetEditor.js";
 import {SettingsEditor} from '../editors/settings/SettingsEditor.js';
@@ -245,6 +244,12 @@ export class BaseContext extends Context {
 }
 
 export class FullContext extends BaseContext {
+  frameset : SplineFrameSet
+  spline   : Spline
+  view2d   : View2DHandler
+  scene    : Scene
+  api      : DataAPI;
+
   constructor(state=g_app_state) {
     super(state);
 
@@ -258,3 +263,5 @@ export class FullContext extends BaseContext {
 }
 
 window.Context = FullContext; //XXX track down and kill all references to this dirty, dirty global
+
+import {View2DHandler} from '../editors/viewport/view2d.js';

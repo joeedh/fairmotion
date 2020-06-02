@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import os, sys, os.path, subprocess
 
 def getRepoURL():

@@ -136,6 +136,7 @@ sources = [
   "src/scene/scene.js",
   "src/scene/sceneobject.js",
 
+  "src/editors/widgets.js",
   "src/editors/all.js",
   "src/editors/console/console.js",
   "src/editors/theme.js",

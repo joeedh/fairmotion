@@ -33,7 +33,8 @@ var _DataTypeDef = [
   ["SCRIPT", 4],
   ["SPLINE", 6],
   ["FRAMESET", 7],
-  ["ADDON", 8]
+  ["ADDON", 8],
+  ["OBJECT", 9]
 ];
 
 //generate globals DataTypes and LinkOrder
@@ -469,13 +470,17 @@ export class DataBlock {
 
   //type is an integer, name is a string
   constructor(type : number, name : string) {
+    if (type === undefined) {
+      throw new Error("type cannot be undefined");
+    }
+
     this.constructor.datablock_type = type;
 
     this.addon_data = {};
 
     //name is optional
     if (name === undefined)
-      name = "unnnamed";
+      name = "unnamed";
       
     this.lib_anim_channels = new GArray();
     //this.lib_anim_idgen = new EIDGen();

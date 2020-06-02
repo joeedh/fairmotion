@@ -19,7 +19,7 @@ export class SceneObject extends DataBlock {
   flag : number;
 
   constructor(data : DataBlock) {
-    super();
+    super(DataTypes.OBJECT);
 
     this.id = -1;
     this.data = data;

@@ -1865,7 +1865,7 @@ es6_module_define('image_ops', ["../core/struct.js", "../core/toolprops.js", "..
   _es6_module.add_class(LoadImageOp);
   LoadImageOp = _es6_module.add_export('LoadImageOp', LoadImageOp);
 }, '/dev/fairmotion/src/image/image_ops.js');
-es6_module_define('UserSettings', ["../path.ux/scripts/core/ui_theme.js", "../path.ux/scripts/core/ui_base.js", "../editors/theme.js", "../datafiles/theme.js", "./struct.js", "../util/strutils.js", "../config/config.js"], function _UserSettings_module(_es6_module) {
+es6_module_define('UserSettings', ["../path.ux/scripts/core/ui_theme.js", "../path.ux/scripts/core/ui_base.js", "../path.ux/scripts/util/util.js", "./struct.js", "../util/strutils.js", "../editors/theme.js", "../datafiles/theme.js", "../config/config.js"], function _UserSettings_module(_es6_module) {
   var config=es6_import(_es6_module, '../config/config.js');
   var reload_default_theme=es6_import_item(_es6_module, '../datafiles/theme.js', 'reload_default_theme');
   var b64encode=es6_import_item(_es6_module, '../util/strutils.js', 'b64encode');
@@ -1876,6 +1876,7 @@ es6_module_define('UserSettings', ["../path.ux/scripts/core/ui_theme.js", "../pa
   var setTheme=es6_import_item(_es6_module, '../path.ux/scripts/core/ui_base.js', 'setTheme');
   var ui_base=es6_import(_es6_module, '../path.ux/scripts/core/ui_base.js');
   var theme=es6_import_item(_es6_module, '../editors/theme.js', 'theme');
+  var util=es6_import(_es6_module, '../path.ux/scripts/util/util.js');
   let defaultTheme=exportTheme(theme);
   function loadTheme(str) {
     var theme;
@@ -1989,7 +1990,12 @@ es6_module_define('UserSettings', ["../path.ux/scripts/core/ui_theme.js", "../pa
       let rpath=new RecentPath(path, displayname);
       var rp=this.find_recent_path(path);
       if (rp>=0) {
-          this.recent_paths.remove(this.recent_paths[path]);
+          try {
+            this.recent_paths.remove(this.recent_paths[path]);
+          }
+          catch (error) {
+              util.print_stack(error);
+          }
           this.recent_paths.push(rpath);
       }
       else 
@@ -2051,7 +2057,12 @@ AppSettings {
       var rp=this.find_recent_path(path);
       path = new RecentPath(path, displayname);
       if (rp>=0) {
-          this.recent_paths.remove(this.recent_paths[path]);
+          try {
+            this.recent_paths.remove(this.recent_paths[path]);
+          }
+          catch (error) {
+              util.print_stack(error);
+          }
           this.recent_paths.push(path);
       }
       else 

@@ -432,7 +432,7 @@ VectorVertex {
   _es6_module.add_class(VectorDraw);
   VectorDraw = _es6_module.add_export('VectorDraw', VectorDraw);
 }, '/dev/fairmotion/src/vectordraw/vectordraw_base.js');
-es6_module_define('vectordraw_canvas2d', ["../config/config.js", "../path.ux/scripts/util/util.js", "../path.ux/scripts/util/math.js", "./vectordraw_jobs_base.js", "./vectordraw_jobs.js", "../util/mathlib.js", "./vectordraw_base.js"], function _vectordraw_canvas2d_module(_es6_module) {
+es6_module_define('vectordraw_canvas2d', ["./vectordraw_jobs_base.js", "./vectordraw_jobs.js", "../path.ux/scripts/util/util.js", "./vectordraw_base.js", "../path.ux/scripts/util/math.js", "../util/mathlib.js", "../config/config.js"], function _vectordraw_canvas2d_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   var util=es6_import(_es6_module, '../path.ux/scripts/util/util.js');
@@ -951,7 +951,7 @@ es6_module_define('vectordraw_canvas2d', ["../config/config.js", "../path.ux/scr
           return ;
       }
       g.imageSmoothingEnabled = false;
-      if (g._drawImage!=undefined) {
+      if (g._drawImage!==undefined) {
           g._drawImage(this._image, this._image_off[0]+offx, this._image_off[1]+offy);
           g.beginPath();
           g._rect(this._image_off[0]+offx, this._image_off[1]+offy, this._image.width, this._image.height);
@@ -1157,6 +1157,7 @@ es6_module_define('vectordraw_canvas2d', ["../config/config.js", "../path.ux/scr
           }
           let blurlimit=25;
           let needsblur=this.do_blur&&(path.blur*zoom>=blurlimit);
+          needsblur = needsblur&&path.clip_paths.length===0;
           if (needsblur&&path._batch&&!path._batch.isBlurBatch) {
               this.regen = 1;
           }

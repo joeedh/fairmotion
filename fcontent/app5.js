@@ -3913,7 +3913,7 @@ es6_module_define('ui_widgets', ["./ui_textbox.js", "../toolsys/simple_toolsys.j
   let _ex_checkForTextBox=es6_import_item(_es6_module, './ui_textbox.js', 'checkForTextBox');
   _es6_module.add_export('checkForTextBox', _ex_checkForTextBox, true);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_widgets.js');
-es6_module_define('ui_widgets2', ["../util/vectormath.js", "./ui_widgets.js", "./ui_richedit.js", "../core/ui.js", "../core/units.js", "../toolsys/toolprop.js", "../core/ui_base.js", "../util/util.js", "../util/events.js"], function _ui_widgets2_module(_es6_module) {
+es6_module_define('ui_widgets2', ["../core/ui.js", "../util/util.js", "../util/vectormath.js", "../core/ui_base.js", "./ui_richedit.js", "../core/units.js", "../toolsys/toolprop.js", "../util/events.js", "./ui_widgets.js"], function _ui_widgets2_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, './ui_richedit.js');
   var util=es6_import(_es6_module, '../util/util.js');
@@ -3946,6 +3946,7 @@ es6_module_define('ui_widgets2', ["../util/vectormath.js", "./ui_widgets.js", ".
       this.value = new Vector3();
       this.sliders = [];
       this.hasUniformSlider = false;
+      this.packflag|=PackFlags.FORCE_ROLLER_SLIDER|PackFlags.NO_NUMSLIDER_TEXTBOX;
       let makeParam=(key) =>        {
         Object.defineProperty(this, key, {get: function () {
             return this._getNumParam(key);

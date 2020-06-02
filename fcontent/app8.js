@@ -503,7 +503,7 @@ es6_module_define('manipulator', ["../../util/mathlib.js", "../../config/config.
   _es6_module.add_class(ManipulatorManager);
   ManipulatorManager = _es6_module.add_export('ManipulatorManager', ManipulatorManager);
 }, '/dev/fairmotion/src/editors/viewport/manipulator.js');
-es6_module_define('view2d', ["../../path.ux/scripts/core/ui_base.js", "./view2d_spline_ops.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../core/struct.js", "../events.js", "../../path.ux/scripts/widgets/ui_menu.js", "../../path.ux/scripts/core/ui.js", "./manipulator.js", "../../core/imageblock.js", "../../curve/spline_draw.js", "./toolmodes/all.js", "./selectmode.js", "../../core/toolops_api.js", "./view2d_editor.js", "../editor_base.js"], function _view2d_module(_es6_module) {
+es6_module_define('view2d', ["../../core/toolops_api.js", "../../curve/spline_draw.js", "./view2d_spline_ops.js", "./manipulator.js", "./selectmode.js", "./view2d_editor.js", "../../core/struct.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/widgets/ui_menu.js", "../editor_base.js", "../../core/imageblock.js", "./toolmodes/all.js", "../../path.ux/scripts/core/ui.js", "../events.js"], function _view2d_module(_es6_module) {
   var Editor=es6_import_item(_es6_module, '../editor_base.js', 'Editor');
   var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
   var patchMouseEvent=es6_import_item(_es6_module, '../../core/toolops_api.js', 'patchMouseEvent');
@@ -648,11 +648,13 @@ es6_module_define('view2d', ["../../path.ux/scripts/core/ui_base.js", "./view2d_
     
     
     
+    
      constructor() {
       super();
       this.dpi_scale = 1.0;
       this.enable_blur = true;
       this.draw_small_verts = false;
+      this.half_pix_size = false;
       this.toolmode = ToolModes.SELECT;
       this._last_dpi = undefined;
       this.widgets = new ManipulatorManager(this);
@@ -806,7 +808,7 @@ es6_module_define('view2d', ["../../path.ux/scripts/core/ui_base.js", "./view2d_
     }
      set_cameramat(mat=undefined) {
       var cam=this.cameramat, render=this.rendermat, zoom=new Matrix4();
-      if (mat!=undefined)
+      if (mat!==undefined)
         cam.load(mat);
       zoom.translate(this.size[0]/2, this.size[1]/2, 0);
       zoom.scale(this.zoom, this.zoom, this.zoom);
@@ -1045,7 +1047,9 @@ es6_module_define('view2d', ["../../path.ux/scripts/core/ui_base.js", "./view2d_
       let mass_set_path="spline.selected_verts{1}";
       row.prop("spline.active_vertex.flag[BREAK_TANGENTS]", undefined, mass_set_path+".flag[BREAK_TANGENTS]");
       row.prop("spline.active_vertex.flag[BREAK_CURVATURES]", undefined, mass_set_path+".flag[BREAK_CURVATURES]");
-      row.tool("spline.split_pick_edge()");
+      row.prop("view2d.half_pix_size");
+      let strip=row.strip();
+      strip.tool("spline.split_pick_edge()");
     }
      set_zoom(zoom) {
       this.zoom = zoom;
@@ -1325,9 +1329,10 @@ es6_module_define('view2d', ["../../path.ux/scripts/core/ui_base.js", "./view2d_
         this.ctx.scene.edit_all_layers = v;
     }
      update() {
-      let key=""+this.enable_blur+":"+this.only_render+":"+this.draw_faces+":"+this.edit_all_layers+":"+this.draw_normals+":"+this.draw_small_verts;
+      let key=""+this.half_pix_size+":"+this.enable_blur+":"+this.only_render+":"+this.draw_faces+":"+this.edit_all_layers+":"+this.draw_normals+":"+this.draw_small_verts;
       if (key!==this._last_key_1) {
           this._last_key_1 = key;
+          this.dpi_scale = this.half_pix_size ? 0.5 : 1.0;
           window.redraw_viewport();
       }
       this.push_ctx_active();
@@ -1356,6 +1361,7 @@ es6_module_define('view2d', ["../../path.ux/scripts/core/ui_base.js", "./view2d_
   _selectmode     : int;
   rendermat       : mat4;
   irendermat      : mat4;
+  half_pix_size   : bool;
   cameramat       : mat4;
   only_render     : int;
   draw_anim_paths : int;
@@ -4378,7 +4384,7 @@ es6_module_define('SettingsEditor', ["../../path.ux/scripts/core/ui_theme.js", "
   Editor.register(SettingsEditor);
 }, '/dev/fairmotion/src/editors/settings/SettingsEditor.js');
 var ContextStruct;
-es6_module_define('data_api_define', ["../lib_api.js", "../../editors/viewport/view2d.js", "../../curve/spline_element_array.js", "../../editors/viewport/spline_createops.js", "../UserSettings.js", "../../editors/viewport/selectmode.js", "../../editors/ops/ops_editor.js", "../toolprops.js", "../../datafiles/theme.js", "../toolops_api.js", "../animdata.js", "../../curve/spline_base.js", "../imageblock.js", "../units.js", "./data_api.js", "../frameset.js"], function _data_api_define_module(_es6_module) {
+es6_module_define('data_api_define', ["./data_api.js", "../toolops_api.js", "../../editors/viewport/spline_createops.js", "../UserSettings.js", "../frameset.js", "../units.js", "../toolprops.js", "../../editors/viewport/view2d.js", "../../curve/spline_base.js", "../../editors/viewport/selectmode.js", "../animdata.js", "../../curve/spline_element_array.js", "../lib_api.js", "../../datafiles/theme.js", "../../editors/ops/ops_editor.js", "../imageblock.js"], function _data_api_define_module(_es6_module) {
   var DataTypes=es6_import_item(_es6_module, '../lib_api.js', 'DataTypes');
   var EditModes=es6_import_item(_es6_module, '../../editors/viewport/view2d.js', 'EditModes');
   var ImageFlags=es6_import_item(_es6_module, '../imageblock.js', 'ImageFlags');
@@ -4543,6 +4549,8 @@ es6_module_define('data_api_define', ["../lib_api.js", "../../editors/viewport/v
     return ImageUserStruct;
   }
   function api_define_view2d() {
+    var half_pix_size=new BoolProperty(0, "half_pix_size", "half_pix_size", "Half Resolution (faster)");
+    half_pix_size.icon = Icons.HALF_PIXEL_SIZE;
     var only_render=new BoolProperty(0, "only_render", "Hide Controls", "Hide Controls");
     only_render.api_update = function (ctx, path) {
       window.redraw_viewport();
@@ -4622,7 +4630,7 @@ es6_module_define('data_api_define', ["../lib_api.js", "../../editors/viewport/v
     draw_normals.update = edit_all_layers.update = function () {
       redraw_viewport();
     }
-    window.View2DStruct = new DataStruct([new DataPath(edit_all_layers, "edit_all_layers", "edit_all_layers", true), new DataPath(background_color, "background_color", "background_color", true), new DataPath(default_stroke, "default_stroke", "default_stroke", true), new DataPath(default_fill, "default_fill", "default_fill", true), new DataPath(tool_mode, "toolmode", "toolmode", true), new DataPath(draw_small_verts, "draw_small_verts", "draw_small_verts", true), new DataPath(selmask_enum.copy(), "selectmode", "selectmode", true), new DataPath(selmask_mask.copy(), "selectmask", "selectmode", true), new DataPath(only_render, "only_render", "only_render", true), new DataPath(draw_bg_image, "draw_bg_image", "draw_bg_image", true), new DataPath(tweak_mode, "tweak_mode", "tweak_mode", true), new DataPath(enable_blur, "enable_blur", "enable_blur", true), new DataPath(draw_faces, "draw_faces", "draw_faces", true), new DataPath(draw_video, "draw_video", "draw_video", true), new DataPath(draw_normals, "draw_normals", "draw_normals", true), new DataPath(show_animpath_prop, "draw_anim_paths", "draw_anim_paths", true), new DataPath(zoomprop, "zoom", "zoom", true), new DataPath(api_define_material(), "active_material", "active_material", true), new DataPath(linewidth, "default_linewidth", "default_linewidth", true), new DataPath(extrude_mode, "extrude_mode", "extrude_mode", true), new DataPath(new BoolProperty(0, "pin_paths", "Pin Paths", "Remember visible animation paths"), "pin_paths", "pin_paths", true), new DataPath(api_define_imageuser(), "background_image", "background_image", true)]);
+    window.View2DStruct = new DataStruct([new DataPath(edit_all_layers, "edit_all_layers", "edit_all_layers", true), new DataPath(half_pix_size, "half_pix_size", "half_pix_size", true), new DataPath(background_color, "background_color", "background_color", true), new DataPath(default_stroke, "default_stroke", "default_stroke", true), new DataPath(default_fill, "default_fill", "default_fill", true), new DataPath(tool_mode, "toolmode", "toolmode", true), new DataPath(draw_small_verts, "draw_small_verts", "draw_small_verts", true), new DataPath(selmask_enum.copy(), "selectmode", "selectmode", true), new DataPath(selmask_mask.copy(), "selectmask", "selectmode", true), new DataPath(only_render, "only_render", "only_render", true), new DataPath(draw_bg_image, "draw_bg_image", "draw_bg_image", true), new DataPath(tweak_mode, "tweak_mode", "tweak_mode", true), new DataPath(enable_blur, "enable_blur", "enable_blur", true), new DataPath(draw_faces, "draw_faces", "draw_faces", true), new DataPath(draw_video, "draw_video", "draw_video", true), new DataPath(draw_normals, "draw_normals", "draw_normals", true), new DataPath(show_animpath_prop, "draw_anim_paths", "draw_anim_paths", true), new DataPath(zoomprop, "zoom", "zoom", true), new DataPath(api_define_material(), "active_material", "active_material", true), new DataPath(linewidth, "default_linewidth", "default_linewidth", true), new DataPath(extrude_mode, "extrude_mode", "extrude_mode", true), new DataPath(new BoolProperty(0, "pin_paths", "Pin Paths", "Remember visible animation paths"), "pin_paths", "pin_paths", true), new DataPath(api_define_imageuser(), "background_image", "background_image", true)]);
     return View2DStruct;
   }
   var MaterialStruct;

@@ -9674,7 +9674,8 @@ es6_module_define('icon_enum', [], function _icon_enum_module(_es6_module) {
    CONSOLE_EDITOR: 57, 
    ZOOM_OUT: 58, 
    ZOOM_IN: 59, 
-   LARGE_CHECK: 60}
+   LARGE_CHECK: 60, 
+   HALF_PIXEL_SIZE: 61}
 }, '/dev/fairmotion/src/datafiles/icon_enum.js');
 "not_a_module";
 if (Array.prototype.set===undefined) {

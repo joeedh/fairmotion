@@ -432,7 +432,7 @@ VectorVertex {
   _es6_module.add_class(VectorDraw);
   VectorDraw = _es6_module.add_export('VectorDraw', VectorDraw);
 }, '/dev/fairmotion/src/vectordraw/vectordraw_base.js');
-es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "./vectordraw_base.js", "./vectordraw_jobs_base.js", "./vectordraw_jobs.js", "../config/config.js", "../path.ux/scripts/util/util.js", "../util/mathlib.js"], function _vectordraw_canvas2d_module(_es6_module) {
+es6_module_define('vectordraw_canvas2d', ["../config/config.js", "../path.ux/scripts/util/util.js", "../path.ux/scripts/util/math.js", "./vectordraw_jobs_base.js", "./vectordraw_jobs.js", "../util/mathlib.js", "./vectordraw_base.js"], function _vectordraw_canvas2d_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   var util=es6_import(_es6_module, '../path.ux/scripts/util/util.js');
@@ -474,9 +474,13 @@ es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "./
     
     
     
+    
+    
      constructor() {
       this._batch_id = batch_iden++;
       this.generation = 0;
+      this.isBlurBatch = false;
+      this.dpi_scale = 1.0;
       this.paths = [];
       this.path_idmap = {};
       this.regen = 1;
@@ -548,17 +552,31 @@ es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "./
       return p._batch_id in this.path_idmap;
     }
      checkViewport(draw) {
-      return ;
       let canvas=draw.canvas;
+      let p=new Vector2(draw.pan);
+      p[1] = draw.canvas.height-p[1];
+      p.sub(this._last_pan);
       let cv={pos: new Vector2(), 
      size: new Vector2([canvas.width, canvas.height])};
-      let pan=draw.pan;
-      cv.pos[0]-=draw.pan[0];
-      cv.pos[1]-=draw.pan[1];
+      cv.pos[0]-=p[0];
+      cv.pos[1]-=p[1];
       let clip1=math.aabb_intersect_2d(this.viewport.pos, this.viewport.size, cv.pos, cv.size);
       let clip2=math.aabb_intersect_2d(this.realViewport.pos, this.realViewport.size, cv.pos, cv.size);
+      const debug=0;
+      if (debug) {
+          console.log("\n===\n");
+          console.log("dpan:", p);
+          console.log(cv.pos, cv.size);
+          if (clip1)
+            console.log("clip1", clip1.pos, clip1.size);
+          if (clip2)
+            console.log("clip2", clip2.pos, clip2.size);
+      }
       if (!clip1||!clip2) {
-          return clip1!==clip2;
+          if (debug) {
+              console.log("clip is bad 1:", clip1, clip2, !!clip1!==!!clip2);
+          }
+          return !!clip1!==!!clip2;
       }
       clip1.pos.floor();
       clip1.size.floor();
@@ -566,12 +584,16 @@ es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "./
       clip2.size.floor();
       let bad=clip1.pos.vectorDistance(clip2.pos)>2;
       bad = bad||clip1.size.vectorDistance(clip2.size)>2;
+      if (debug) {
+          console.log("clip is bad 2:", bad);
+      }
       return bad;
     }
-     _getPaddedViewport(canvas) {
-      let cpad=512;
+     _getPaddedViewport(canvas, cpad=512) {
+      let dpi_scale=canvas.dpi_scale*this.dpi_scale;
+      cpad/=dpi_scale;
       return {pos: new Vector2([-cpad, -cpad]), 
-     size: new Vector2([canvas.width+cpad*2, canvas.height+cpad*2])}
+     size: new Vector2([canvas.width*canvas.dpi_scale+cpad*2, canvas.height*canvas.dpi_scale+cpad*2])}
     }
      gen(draw) {
       if (this.gen_req-->0) {
@@ -579,6 +601,11 @@ es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "./
       }
       this.gen_req = 10;
       this.regen = false;
+      if (this.isBlurBatch) {
+          let matrix=new Matrix4(draw.matrix);
+          matrix.scale(this.dpi_scale, this.dpi_scale);
+          draw.push_transform(matrix, false);
+      }
       let canvas=draw.canvas, g=draw.g;
       if (debug)
         console.warn("generating batch of size "+this.paths.length);
@@ -612,16 +639,17 @@ es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "./
       let min2=new Vector2(min);
       let size2=new Vector2(max);
       size2.sub(min2);
-      min2.add(draw.pan);
-      let cpad=256;
-      let cv=this._getPaddedViewport(canvas);
+      let cpad=512;
+      let cv=this._getPaddedViewport(canvas, cpad);
       let box=math.aabb_intersect_2d(min2, size2, cv.pos, cv.size);
       min2 = min2.floor();
       size2 = size2.floor();
       if (!box) {
+          if (this.isBlurBatch) {
+              draw.pop_transform();
+          }
           return ;
       }
-      box.pos.sub(draw.pan);
       min.load(box.pos);
       max.load(min).add(box.size);
       this.viewport = {pos: new Vector2(box.pos), 
@@ -637,6 +665,9 @@ es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "./
           for (let i=0; i<c2.length; i++) {
               commands.push(c2[i]);
           }
+      }
+      if (this.isBlurBatch) {
+          draw.pop_transform();
       }
       let renderid=render_idgen++;
       if (commands.length===0) {
@@ -659,14 +690,14 @@ es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "./
       });
     }
      draw(draw) {
-      if (this.checkViewport(draw)) {
+      if (!this.regen&&this.checkViewport(draw)&&!this.gen_req) {
           this.regen = 1;
+          console.log("bad viewport");
       }
       let canvas=draw.canvas, g=draw.g;
       var zoom=draw.matrix.$matrix.m11;
       let offx=0, offy=0;
       let scale=zoom/this._draw_zoom;
-      let viewport=this.viewport;
       offx = draw.pan[0]-this._last_pan[0]*scale;
       offy = (draw.canvas.height-draw.pan[1])-this._last_pan[1]*scale;
       offx/=scale;
@@ -677,7 +708,7 @@ es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "./
       if (this._image===undefined) {
           return ;
       }
-      g.imageSmoothingEnabled = false;
+      g.imageSmoothingEnabled = !!this.isBlurBatch;
       if (this.paths.length===0&&this.generation>2) {
           this._image = undefined;
           return ;
@@ -957,16 +988,19 @@ es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "./
       return this.requestBatch();
     }
      requestBatch() {
+      let ret;
       if (this.cur<this.length) {
           this.drawlist.push(this[this.cur]);
-          return this[this.cur++];
+          ret = this[this.cur++];
       }
       else {
         this.cur++;
         this.push(new Batch());
         this.drawlist.push(this[this.length-1]);
-        return this[this.length-1];
+        ret = this[this.length-1];
       }
+      ret.isBlurBatch = false;
+      return ret;
     }
      remove(batch) {
       let i=this.indexOf(batch);
@@ -1055,7 +1089,26 @@ es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "./
           path.destroy(this);
       }
     }
+    set  regen(v) {
+      this.__regen = v;
+      console.warn("regen");
+    }
+    get  regen() {
+      return this.__regen;
+    }
      draw(g) {
+      if (!!this.do_blur!==this._last_do_blur) {
+          this._last_do_blur = !!this.do_blur;
+          this.regen = 1;
+          window.setTimeout(() =>            {
+            window.redraw_viewport();
+          }, 200);
+      }
+      if (this.regen) {
+          this.__regen = 0;
+          this.batches.destroy();
+          this.update();
+      }
       let batch;
       let blimit=this.paths.length<15 ? 15 : Math.ceil(this.paths.length/vectordraw_jobs.manager.max_threads);
       batch = this.batches.getHead();
@@ -1102,10 +1155,30 @@ es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "./
               }
               continue;
           }
+          let blurlimit=25;
+          let needsblur=this.do_blur&&(path.blur*zoom>=blurlimit);
+          if (needsblur&&path._batch&&!path._batch.isBlurBatch) {
+              this.regen = 1;
+          }
+          if (!needsblur&&path._batch&&path._batch.isBlurBatch) {
+              this.regen = 1;
+          }
           if (!path._batch) {
               let w1=batch.patharea/(canvas.width*canvas.height);
               let w2=this.batches.length>10 ? 1.0/(this.batches.length-9) : 0.0;
-              if (batch.paths.length*(1.0+w1*4.0)>blimit) {
+              if (needsblur) {
+                  if (!batch.isBlurBatch) {
+                      batch = this.batches.requestBatch();
+                      batch.isBlurBatch = true;
+                      batch.dpi_scale = path.blur*zoom>50 ? 0.1 : 0.25;
+                  }
+                  else {
+                    let scale=path.blur*zoom>50 ? 0.1 : 0.25;
+                    batch.dpi_scale = Math.min(batch.dpi_scale, scale);
+                  }
+              }
+              else 
+                if (batch.isBlurBatch||(batch.paths.length*(1.0+w1*4.0)>blimit)) {
                   batch = this.batches.requestBatch();
               }
               batch.add(path);
@@ -2582,7 +2655,7 @@ es6_module_define('vectordraw_jobs_base', [], function _vectordraw_jobs_base_mod
    "source-atop": 1}
   CompositeModes = _es6_module.add_export('CompositeModes', CompositeModes);
 }, '/dev/fairmotion/src/vectordraw/vectordraw_jobs_base.js');
-es6_module_define('vectordraw', ["./vectordraw_base.js", "./vectordraw_canvas2d.js", "./vectordraw_svg.js", "./vectordraw_stub.js", "./vectordraw_canvas2d_simple.js"], function _vectordraw_module(_es6_module) {
+es6_module_define('vectordraw', ["./vectordraw_canvas2d_simple.js", "./vectordraw_stub.js", "./vectordraw_svg.js", "./vectordraw_canvas2d.js", "./vectordraw_base.js"], function _vectordraw_module(_es6_module) {
   "use strict";
   var CanvasDraw2D=es6_import_item(_es6_module, './vectordraw_canvas2d.js', 'CanvasDraw2D');
   var CanvasPath=es6_import_item(_es6_module, './vectordraw_canvas2d.js', 'CanvasPath');
@@ -2602,7 +2675,7 @@ es6_module_define('vectordraw', ["./vectordraw_base.js", "./vectordraw_canvas2d.
 es6_module_define('strokedraw', [], function _strokedraw_module(_es6_module) {
   "use strict";
 }, '/dev/fairmotion/src/vectordraw/strokedraw.js');
-es6_module_define('spline_draw_new', ["../editors/viewport/view2d_editor.js", "./spline_types.js", "../util/mathlib.js", "../vectordraw/vectordraw_jobs.js", "./spline_element_array.js", "../editors/viewport/selectmode.js", "../config/config.js", "./spline_multires.js", "./spline_math.js", "../vectordraw/vectordraw.js", "../core/animdata.js"], function _spline_draw_new_module(_es6_module) {
+es6_module_define('spline_draw_new', ["../vectordraw/vectordraw_jobs.js", "../config/config.js", "../editors/viewport/view2d_editor.js", "../core/animdata.js", "./spline_element_array.js", "../vectordraw/vectordraw.js", "../editors/viewport/selectmode.js", "./spline_multires.js", "./spline_types.js", "./spline_math.js", "../util/mathlib.js"], function _spline_draw_new_module(_es6_module) {
   "use strict";
   var aabb_isect_minmax2d=es6_import_item(_es6_module, '../util/mathlib.js', 'aabb_isect_minmax2d');
   var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
@@ -2713,6 +2786,7 @@ es6_module_define('spline_draw_new', ["../editors/viewport/view2d_editor.js", ".
       mat2.translate(0.0, master_g.height, 0.0);
       mat2.scale(1.0, -1.0, 1.0);
       matrix.preMultiply(mat2);
+      this.drawer.do_blur = editor.enable_blur;
       var m1=matrix.$matrix, m2=this.drawer.matrix.$matrix;
       var off=update_tmps_vs.next().zero();
       this.recalc_all = false;
@@ -6759,7 +6833,7 @@ es6_module_define('all', ["./viewport/view2d.js", "./settings/SettingsEditor.js"
   es6_import(_es6_module, './menubar/MenuBar.js');
   es6_import(_es6_module, './settings/SettingsEditor.js');
 }, '/dev/fairmotion/src/editors/all.js');
-es6_module_define('console', ["../../path.ux/scripts/util/html5_fileapi.js", "../../path.ux/scripts/util/util.js", "../../path.ux/scripts/pathux.js", "../editor_base.js"], function _console_module(_es6_module) {
+es6_module_define('console', ["../../path.ux/scripts/util/html5_fileapi.js", "../editor_base.js", "../../path.ux/scripts/pathux.js", "../../path.ux/scripts/util/util.js"], function _console_module(_es6_module) {
   var Editor=es6_import_item(_es6_module, '../editor_base.js', 'Editor');
   var color2css=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'color2css');
   var css2color=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'css2color');
@@ -6793,14 +6867,16 @@ es6_module_define('console', ["../../path.ux/scripts/util/html5_fileapi.js", "..
     let handlers={}
     function patch(key) {
       handlers[key] = function () {
-        if (ignore||!g_screen) {
-            return ;
-        }
-        for (let sarea of g_screen.sareas) {
-            if (__instance_of(sarea.area, ConsoleEditor)) {
-                sarea.area[key](...arguments);
-            }
-        }
+        setTimeout(() =>          {
+          if (ignore||!g_screen) {
+              return ;
+          }
+          for (let sarea of g_screen.sareas) {
+              if (__instance_of(sarea.area, ConsoleEditor)) {
+                  sarea.area[key](...arguments);
+              }
+          }
+        }, 0);
       }
       methods[key] = console[key].bind(console);
       console[key] = function () {
@@ -6929,6 +7005,7 @@ ConsoleCommand {
      constructor() {
       super();
       this._animreq = 0;
+      this.redraw = this.redraw.bind(this);
       this.hitboxes = [];
       this.fontsize = 12;
       this.lines = [];
@@ -6978,9 +7055,9 @@ ConsoleCommand {
               s2 = s2.slice(2, s2.length);
               let style=next.replace(/\n/g, "").split(";");
               for (let line of style) {
-                  line = line.trim().split(":");
-                  if (line.length===2&&line[0].trim()==="color") {
-                      let color=line[1].trim().toLowerCase();
+                  line = (""+line).trim().split(":");
+                  if (line.length===2&&(""+line[0]).trim()==="color") {
+                      let color=(""+line[1]).trim().toLowerCase();
                       if (color in util.termColorMap) {
                           s2 = termColor(s2, color);
                       }
@@ -6991,7 +7068,7 @@ ConsoleCommand {
           s+=s2+" ";
           prev = s2;
       }
-      return s.trim();
+      return (""+s).trim();
     }
      formatStackLine(stack, parts=false) {
       if (stack.search("at")<0) {
@@ -7004,7 +7081,7 @@ ConsoleCommand {
         i--;
       }
       let i2=stack.search("\\(");
-      let prefix=i2>=0 ? stack.slice(0, i2).trim() : "";
+      let prefix=i2>=0 ? (""+stack.slice(0, i2)).trim() : "";
       if (prefix.length>0) {
           prefix+=":";
       }
@@ -7016,7 +7093,7 @@ ConsoleCommand {
     }
      push(msg, linefg="", linebg="", childafter=false) {
       let stack=""+new Error().stack;
-      stack = stack.split("\n")[5].trim();
+      stack = (""+stack.split("\n")[5]).trim();
       stack = this.formatStackLine(stack);
       let ls=msg.split("\n");
       for (let i=0; i<ls.length; i++) {
@@ -7062,7 +7139,7 @@ ConsoleCommand {
       for (let i=start; i<stack.length; i++) {
           let s=stack[i];
           let l=this.formatStackLine(s, true);
-          l[0] = "  "+l[0].trim();
+          l[0] = "  "+(""+l[0]).trim();
           l = new ConsoleLineEntry(l[0], l[1], fg, bg);
           l.closed = closed;
           l.parent = off--;
@@ -7236,7 +7313,7 @@ ConsoleCommand {
       let join="";
       if (i<=0) {
           prefix = "";
-          suffix = cmd.trim();
+          suffix = (""+cmd).trim();
       }
       else {
         prefix = cmd.slice(0, i).trim();
@@ -7608,7 +7685,7 @@ ConsoleCommand {
           return ;
       }
       this._animreq = 1;
-      this.doOnce(this.redraw);
+      requestAnimationFrame(this.redraw);
     }
      setCSS() {
       this.updateSize();

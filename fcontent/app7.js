@@ -2234,7 +2234,7 @@ es6_module_define('transdata', ["../../util/mathlib.js"], function _transdata_mo
   _es6_module.add_class(TransData);
   TransData = _es6_module.add_export('TransData', TransData);
 }, '/dev/fairmotion/src/editors/viewport/transdata.js');
-es6_module_define('transform', ["../../core/toolprops.js", "./selectmode.js", "../../util/mathlib.js", "../../curve/spline_types.js", "./view2d_base.js", "../../wasm/native_api.js", "./transdata.js", "./transform_spline.js", "../events.js", "../dopesheet/dopesheet_transdata.js", "../../core/toolops_api.js"], function _transform_module(_es6_module) {
+es6_module_define('transform', ["../../curve/spline_types.js", "./transform_spline.js", "../../core/toolops_api.js", "../../util/mathlib.js", "../dopesheet/dopesheet_transdata.js", "../../wasm/native_api.js", "./transdata.js", "../events.js", "../../core/toolprops.js", "./view2d_base.js", "./selectmode.js"], function _transform_module(_es6_module) {
   var MinMax=es6_import_item(_es6_module, '../../util/mathlib.js', 'MinMax');
   var SelMask=es6_import_item(_es6_module, './selectmode.js', 'SelMask');
   var Vec3Property=es6_import_item(_es6_module, '../../core/toolprops.js', 'Vec3Property');
@@ -2550,12 +2550,14 @@ es6_module_define('transform', ["../../core/toolprops.js", "./selectmode.js", ".
       var md=this.modaldata;
       var ctx=this.modal_ctx;
       var td=this.transdata;
+      let view2d=ctx.view2d;
       var start=mousemove_cachering.next(), off=mousemove_cachering.next();
       start.load(md.start_mpos);
       off.load(md.mpos);
       ctx.view2d.unproject(start);
       ctx.view2d.unproject(off);
       off.sub(start);
+      off.mulScalar(view2d.dpi_scale);
       this.inputs.translation.setValue(off);
       this.exec(ctx);
       this.post_mousemove(event);
@@ -7395,7 +7397,7 @@ es6_module_define('view2d_object', ["../../core/struct.js", "../../curve/spline_
   WorkSpline = _es6_module.add_export('WorkSpline', WorkSpline);
   
 }, '/dev/fairmotion/src/editors/viewport/view2d_object.js');
-es6_module_define('MaterialEditor', ["../../path.ux/scripts/core/ui.js", "../../path.ux/scripts/widgets/ui_listbox.js", "../../core/struct.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../path.ux/scripts/core/ui_base.js", "../viewport/spline_layerops.js", "../../path.ux/scripts/widgets/ui_table.js", "../../path.ux/scripts/widgets/ui_menu.js", "../viewport/spline_editops.js", "../editor_base.js"], function _MaterialEditor_module(_es6_module) {
+es6_module_define('MaterialEditor', ["../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/widgets/ui_listbox.js", "../../path.ux/scripts/screen/ScreenArea.js", "../viewport/spline_layerops.js", "../../path.ux/scripts/widgets/ui_menu.js", "../../core/struct.js", "../editor_base.js", "../../path.ux/scripts/widgets/ui_table.js", "../../path.ux/scripts/core/ui.js", "../viewport/spline_editops.js"], function _MaterialEditor_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
   var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
   var Container=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui.js', 'Container');
@@ -7519,7 +7521,7 @@ es6_module_define('MaterialEditor', ["../../path.ux/scripts/core/ui.js", "../../
         var lset=this.ctx.frameset.spline.layerset;
         var oldl=lset.active;
         console.log("oldl", oldl);
-        if (oldl.order==lset.length-1)
+        if (oldl.order===lset.length-1)
           return ;
         var newl=lset[oldl.order+1];
         var tool=new ChangeElementLayerOp(oldl.id, newl.id);

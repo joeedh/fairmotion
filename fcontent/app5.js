@@ -5260,7 +5260,7 @@ es6_module_define('spline_math', ["../config/config.js", "./spline_math_hermite.
   eval_curve = _es6_module.add_export('eval_curve', eval_curve);
   
 }, '/dev/fairmotion/src/curve/spline_math.js');
-es6_module_define('spline_math_hermite', ["../path.ux/scripts/util/vectormath.js", "./spline_base.js", "./solver.js", "../core/toolops_api.js"], function _spline_math_hermite_module(_es6_module) {
+es6_module_define('spline_math_hermite', ["../path.ux/scripts/util/vectormath.js", "./solver.js", "../core/toolops_api.js", "./spline_base.js"], function _spline_math_hermite_module(_es6_module) {
   "use strict";
   var SplineFlags=es6_import_item(_es6_module, './spline_base.js', 'SplineFlags');
   var SplineTypes=es6_import_item(_es6_module, './spline_base.js', 'SplineTypes');
@@ -5722,7 +5722,6 @@ es6_module_define('spline_math_hermite', ["../path.ux/scripts/util/vectormath.js
         if (update_verts)
           update_verts.add(v);
     }
-    console.warn("uv", update_verts.length);
     return slv;
   }
   build_solver = _es6_module.add_export('build_solver', build_solver);
@@ -8520,7 +8519,7 @@ es6_module_define('spline_query', ["./spline_multires.js", "../editors/viewport/
   _es6_module.add_class(SplineQuery);
   SplineQuery = _es6_module.add_export('SplineQuery', SplineQuery);
 }, '/dev/fairmotion/src/curve/spline_query.js');
-es6_module_define('spline_draw', ["./spline_element_array.js", "./spline_draw_new.js", "../util/vectormath.js", "../editors/viewport/view2d_editor.js", "../config/config.js", "../core/animdata.js", "./spline_types.js", "./spline_draw_sort", "../util/mathlib.js", "./spline_draw_sort.js", "../editors/viewport/selectmode.js", "./spline_math.js"], function _spline_draw_module(_es6_module) {
+es6_module_define('spline_draw', ["../util/vectormath.js", "../editors/viewport/view2d_editor.js", "./spline_draw_sort", "./spline_math.js", "../editors/viewport/selectmode.js", "../util/mathlib.js", "./spline_draw_new.js", "./spline_types.js", "../core/animdata.js", "../config/config.js", "./spline_draw_sort.js", "./spline_element_array.js"], function _spline_draw_module(_es6_module) {
   var aabb_isect_minmax2d=es6_import_item(_es6_module, '../util/mathlib.js', 'aabb_isect_minmax2d');
   var ENABLE_MULTIRES=es6_import_item(_es6_module, '../config/config.js', 'ENABLE_MULTIRES');
   var SessionFlags=es6_import_item(_es6_module, '../editors/viewport/view2d_editor.js', 'SessionFlags');
@@ -8661,7 +8660,7 @@ es6_module_define('spline_draw', ["./spline_element_array.js", "./spline_draw_ne
     }
   }
   draw_curve_normals = _es6_module.add_export('draw_curve_normals', draw_curve_normals);
-  var $r_sjQ9_draw_spline=[[0, 0], [0, 0]];
+  var $r_upa9_draw_spline=[[0, 0], [0, 0]];
   function draw_spline(spline, redraw_rects, g, editor, matrix, selectmode, only_render, draw_normals, alpha, draw_time_helpers, curtime, ignore_layers) {
     spline.canvas = g;
     if (spline.drawlist===undefined||(spline.recalc&RecalcFlags.DRAWSORT)) {
@@ -8670,13 +8669,14 @@ es6_module_define('spline_draw', ["./spline_element_array.js", "./spline_draw_ne
     if (spline.drawer===undefined) {
         spline.drawer = new SplineDrawer(spline);
     }
-    spline.drawer.update(spline, spline.drawlist, spline.draw_layerlist, matrix, redraw_rects, only_render, selectmode, g, editor.zoom, editor, ignore_layers);
-    spline.drawer.draw(editor.drawg);
-    var actlayer=spline.layerset.active;
     var zoom=editor.zoom;
+    zoom = matrix.m11;
     if (isNaN(zoom)) {
         zoom = 1.0;
     }
+    spline.drawer.update(spline, spline.drawlist, spline.draw_layerlist, matrix, redraw_rects, only_render, selectmode, g, zoom, editor, ignore_layers);
+    spline.drawer.draw(editor.drawg);
+    var actlayer=spline.layerset.active;
     if (!only_render&&draw_normals)
       draw_curve_normals(spline, g, zoom);
     for (var s of spline.segments) {
@@ -8692,7 +8692,7 @@ es6_module_define('spline_draw', ["./spline_element_array.js", "./spline_draw_ne
     let tmp2=new Vector2();
     g.beginPath();
     if (selectmode&SelMask.HANDLE) {
-        var w=vert_size*g.canvas.dpi_scale;
+        var w=vert_size*g.canvas.dpi_scale/zoom;
         for (var i=0; i<spline.handles.length; i++) {
             var v=spline.handles[i];
             var clr=get_element_color(v, spline.handles);
@@ -8727,7 +8727,7 @@ es6_module_define('spline_draw', ["./spline_element_array.js", "./spline_draw_ne
     }
     var last_clr=undefined;
     if (selectmode&SelMask.VERTEX) {
-        var w=vert_size*g.canvas.dpi_scale;
+        var w=vert_size*g.canvas.dpi_scale/zoom;
         for (var i=0; i<spline.verts.length; i++) {
             var v=spline.verts[i];
             var clr=get_element_color(v, spline.verts);
@@ -8928,17 +8928,17 @@ es6_module_define('spline_draw', ["./spline_element_array.js", "./spline_draw_ne
     g._irender_mat.invert();
   }
   set_rendermat = _es6_module.add_export('set_rendermat', set_rendermat);
-  var $margin_eXdP_redraw_element=new Vector3([15, 15, 15]);
-  var $aabb_re1d_redraw_element=[new Vector3(), new Vector3()];
+  var $margin_D0uT_redraw_element=new Vector3([15, 15, 15]);
+  var $aabb_gPUS_redraw_element=[new Vector3(), new Vector3()];
   function redraw_element(e, view2d) {
     e.flag|=SplineFlags.REDRAW;
-    $margin_eXdP_redraw_element[0] = $margin_eXdP_redraw_element[1] = $margin_eXdP_redraw_element[2] = 15.0;
+    $margin_D0uT_redraw_element[0] = $margin_D0uT_redraw_element[1] = $margin_D0uT_redraw_element[2] = 15.0;
     if (view2d!=undefined)
-      $margin_eXdP_redraw_element.mulScalar(1.0/view2d.zoom);
+      $margin_D0uT_redraw_element.mulScalar(1.0/view2d.zoom);
     var e_aabb=e.aabb;
-    $aabb_re1d_redraw_element[0].load(e_aabb[0]), $aabb_re1d_redraw_element[1].load(e_aabb[1]);
-    $aabb_re1d_redraw_element[0].sub($margin_eXdP_redraw_element), $aabb_re1d_redraw_element[1].add($margin_eXdP_redraw_element);
-    window.redraw_viewport($aabb_re1d_redraw_element[0], $aabb_re1d_redraw_element[1]);
+    $aabb_gPUS_redraw_element[0].load(e_aabb[0]), $aabb_gPUS_redraw_element[1].load(e_aabb[1]);
+    $aabb_gPUS_redraw_element[0].sub($margin_D0uT_redraw_element), $aabb_gPUS_redraw_element[1].add($margin_D0uT_redraw_element);
+    window.redraw_viewport($aabb_gPUS_redraw_element[0], $aabb_gPUS_redraw_element[1]);
   }
   redraw_element = _es6_module.add_export('redraw_element', redraw_element);
 }, '/dev/fairmotion/src/curve/spline_draw.js');

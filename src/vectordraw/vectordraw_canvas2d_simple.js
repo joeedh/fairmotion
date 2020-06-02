@@ -451,8 +451,8 @@ export class SimpleCanvasDraw2D extends VectorDraw {
 
     g.restore();
 
-    console.log(this.matrix);
-    console.log(this.g);
+    //console.log(this.matrix);
+    //console.log(this.g);
   }
   
   //set draw matrix

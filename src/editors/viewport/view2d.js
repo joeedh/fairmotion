@@ -8,6 +8,8 @@ import {STRUCT} from '../../core/struct.js';
 import {UIBase} from '../../path.ux/scripts/core/ui_base.js';
 import {createMenu, startMenu} from '../../path.ux/scripts/widgets/ui_menu.js';
 
+import * as util from "../../path.ux/scripts/util/util.js";
+
 import {ImageUser} from '../../core/imageblock.js';
 import {SplineEditor} from './view2d_spline_ops.js';
 import {Container} from '../../path.ux/scripts/core/ui.js';
@@ -37,78 +39,7 @@ function delay_redraw(ms : number) {
   }, 20);
 }
 
-class PanOp extends ToolOp {
-  is_modal : boolean
-  cameramat : Matrix4;
-
-  mpos       : Vector2;
-  start_mpos : Vector2;
-  first      : boolean;
-
-  constructor(start_mpos) {
-    super();
-
-    this.is_modal = true;
-    this.undoflag |= UndoFlags.IGNORE_UNDO;
-
-    if (start_mpos !== undefined) {
-      this.start_mpos = new Vector3(start_mpos);
-      this.start_mpos[2] = 0.0;
-
-      this.first = false;
-    } else {
-      this.start_mpos = new Vector3();
-
-      this.first = true;
-    }
-
-    this.start_cameramat = undefined;
-    this.cameramat = new Matrix4();
-  }
-
-  static tooldef() { return {
-    uiname     : "Pan",
-    apiname    : "view2d.pan",
-
-    undoflag   : UndoFlags.IGNORE_UNDO,
-
-    inputs     : {},
-    outputs    : {},
-
-    is_modal   : true
-  }}
-
-  start_modal(ctx : LockedContext) {
-    this.start_cameramat = new Matrix4(ctx.view2d.cameramat);
-  }
-
-  on_mousemove(event : Object) {
-    var mpos = new Vector3([event.x, event.y, 0]);
-
-    //console.log("mousemove!");
-
-    if (this.first) {
-      this.first = false;
-      this.start_mpos.load(mpos);
-
-      return;
-    }
-
-    var ctx = this.modal_ctx;
-    mpos.sub(this.start_mpos).mulScalar(1.0/ctx.view2d.zoom);
-
-    this.cameramat.load(this.start_cameramat).translate(mpos[0], -mpos[1], 0.0);
-    ctx.view2d.set_cameramat(this.cameramat);
-
-    //console.log("panning");
-    window.force_viewport_redraw();
-    window.redraw_viewport();
-  }
-
-  on_mouseup(event : Object) {
-    this.end_modal();
-  }
-}
+import {PanOp} from './view2d_ops.js';
 
 class drawline {
   clr : Array<number>;
@@ -137,12 +68,17 @@ class drawline {
 export class View2DHandler extends Editor {
   enable_blur : boolean
   draw_small_verts : boolean
-  _can_select : number
-  _only_render : number
-  _selectmode : number
+  draw_bg_image : boolean
+  _can_select   : number
+  _only_render  : number
+  _selectmode   : number
+  _vel          : Vector2
   _draw_normals : number
-  irendermat : Matrix4
-  cameramat : Matrix4
+  _last_rendermat : Matrix4
+  _last_dv        : number
+  _last_rendermat_time : number
+  irendermat  : Matrix4
+  cameramat   : Matrix4
   background_image : ImageUser
   zoom : number;
 
@@ -165,6 +101,10 @@ export class View2DHandler extends Editor {
     super();
 
     this.dpi_scale = 1.0;
+    this._last_rendermat = new Matrix4();
+    this._last_dv = new Vector2();
+    this._last_rendermat_time = util.time_ms();
+    this._vel = new Vector2();
 
     this.enable_blur = true;
     this.draw_small_verts = false;
@@ -575,6 +515,7 @@ export class View2DHandler extends Editor {
     //g.restore(); return;
 
     if (this.ctx.frameset === undefined) {
+      console.warn("EEK!");
       g.restore();
       bg_g.restore();
       return;
@@ -588,27 +529,6 @@ export class View2DHandler extends Editor {
     matrix.multiply(m2);
     matrix.multiply(this.rendermat);
 
-    set_rendermat(g, matrix);
-    set_rendermat(bg_g, matrix);
-
-    if (this.draw_video && this.video !== undefined) {
-      var frame = Math.floor(this.video_time);
-      var image = this.video.get(frame);
-      if (image != undefined) {
-        //console.log("image", image);
-
-        bg_g.drawImage(image, 0, 0);
-      }
-    }
-
-    //get_dom_image
-    if (this.draw_bg_image && this.background_image.image !== undefined) {
-      var img = this.background_image.image.get_dom_image();
-      var iuser = this.background_image;
-
-      bg_g.drawImage(img, iuser.off[0], iuser.off[1], img.width*iuser.scale[0], img.height*iuser.scale[1]);
-    }
-    
     //this.rendermat
     matrix = new Matrix4(matrix);
     let matrix2 = new Matrix4();
@@ -620,6 +540,35 @@ export class View2DHandler extends Editor {
     matrix2.multiply(mm);
 
     matrix.preMultiply(matrix2);
+
+
+    if (this.draw_video && this.video !== undefined) {
+      var frame = Math.floor(this.video_time);
+      var image = this.video.get(frame);
+      if (image !== undefined) {
+        //console.log("image", image);
+
+        bg_g.drawImage(image, 0, 0);
+      }
+    }
+
+    //get_dom_image
+    if (this.draw_bg_image && this.background_image.image !== undefined) {
+      var img = this.background_image.image.get_dom_image();
+      var iuser = this.background_image;
+
+      let off = new Vector2(iuser.off);
+      let scale = new Vector2(iuser.scale);
+
+      let m = matrix.$matrix;
+
+      off.multVecMatrix(matrix);
+
+      scale[0] *= m.m11;
+      scale[1] *= m.m22;
+
+      g.drawImage(img, off[0], off[1], img.width*scale[0], img.height*scale[1]);
+    }
 
     this.ctx.frameset.draw(this.ctx, g, this, matrix, redraw_rects, this.edit_all_layers);
 
@@ -659,14 +608,14 @@ export class View2DHandler extends Editor {
     var fl = Math.floor;
     for (var k in this.drawline_groups) {
       for (var dl of this.drawline_groups[k]) {
-        var a = dl.clr[3] != undefined ? dl.clr[3] : 1.0;
+        var a = dl.clr[3] !== undefined ? dl.clr[3] : 1.0;
 
         g.strokeStyle = "rgba("+fl(dl.clr[0]*255)+","+fl(dl.clr[1]*255)+","+fl(dl.clr[2]*255)+","+a+")";
         g.lineWidth = dl.width;
 
         g.beginPath()
-        g.moveTo(dl.v1[0], dl.v1[1]);
-        g.lineTo(dl.v2[0], dl.v2[1]);
+        g.moveTo(dl.v1[0], canvas.height - dl.v1[1]);
+        g.lineTo(dl.v2[0], canvas.height - dl.v2[1]);
         g.stroke();
       }
     }
@@ -683,7 +632,10 @@ export class View2DHandler extends Editor {
     console.log("draw widget:", draw_widget);
     //*/
 
-    this.widgets.render(canvas, g);
+    let m = matrix.$matrix;
+    g.setTransform(m.m11, m.m12, m.m21, m.m22, m.m41, m.m42);
+
+    this.widgets.render(canvas, g, matrix);
 
     bg_g.restore();
     g.restore();
@@ -713,7 +665,7 @@ export class View2DHandler extends Editor {
     tabs.style["height"] = "400px";
     tabs.float(1, 3*25*UIBase.getDPI(), 7);
 
-    var tools = tabs.tab("Tools");
+    var tools = tabs.tab("Tools", "Tools");
     //*
     tools.prop("view2d.toolmode",
       PackFlags.USE_ICONS|PackFlags.VERTICAL|PackFlags.LARGE_ICON
@@ -754,6 +706,8 @@ export class View2DHandler extends Editor {
 
     panel = tab.panel("Background Color");
     panel.prop("view2d.background_color");
+
+    tabs.setActive("Tools");
   }
 
   makeHeader(container) {
@@ -812,6 +766,8 @@ export class View2DHandler extends Editor {
     this._in_from_struct = true;
     reader(this);
     super.loadSTRUCT(reader);
+
+    this._last_rendermat.load(this.cameramat);
 
     this._in_from_struct = true;
     this.need_data_link = true;
@@ -1065,42 +1021,31 @@ export class View2DHandler extends Editor {
       return;
     }
 
-    if (event.button == 0) {
-      var selfound = false;
-      var is_middle = event.button == 1 || (event.button == 2 && g_app_state.screen.ctrl);
+    console.log(event.touches);
 
-      var tottouch = g_app_state.screen.tottouch;
+    if (event.button === 0) {
+      this.editor.selectmode = this.selectmode;
+      this.editor.view2d = this;
+
+      if (this.editor.on_mousedown(event)) return;
+
+      var selfound = false;
+      var is_middle = event.button === 1 || (event.button === 2 && g_app_state.screen.ctrl);
+
+      var tottouch = event.touches ? event.touches.length : 0;
 
       if (tottouch >= 2) {
-        console.log("Touch screen rotate/pan/zoom combo");
-        //XXX g_app_state.toolstack.exec_tool(new ViewRotateZoomPanOp());
+        var tool = new PanOp();
+
+        g_app_state.toolstack.exec_tool(tool);
       } else if (is_middle && this.shift) {
         console.log("Panning");
-        //XXX g_app_state.toolstack.exec_tool(new ViewPanOp());
-      } else if (is_middle) { //middle mouse
-        //XXX g_app_state.toolstack.exec_tool(new ViewRotateOp());
-        //need to add mouse keymaps to properly handle this next one
-      } else if (event.button == 0 && event.altKey) {
-        this.on_mousemove(event.original);
-
-        this._mstart = new Vector2(this.mpos);
-        selfound = this.do_alt_select(event, this.mpos, this);
       } else if (event.button == 0) {
-        this.on_mousemove(event.original);
-
         this._mstart = new Vector2(this.mpos);
-        selfound = this.do_select(event, this.mpos, this, this.shift|g_app_state.select_multiple);
-
-        this.editor.selectmode = this.selectmode;
-        this.editor.view2d = this;
-
-        if (!selfound) {
-          if (this.editor.on_mousedown(event)) return;
-        }
       }
     }
 
-    if (event.button == 2 && !g_app_state.screen.shift && !g_app_state.screen.ctrl && !g_app_state.screen.alt) {
+    if (event.button === 2 && !g_app_state.screen.shift && !g_app_state.screen.ctrl && !g_app_state.screen.alt) {
       var tool = new PanOp();
 
       g_app_state.toolstack.exec_tool(tool);
@@ -1124,6 +1069,10 @@ export class View2DHandler extends Editor {
   }
 
   on_mousemove(event) {
+    if (!event.touches) {
+      this.resetVelPan();
+    }
+
     //are we over a ui panel?
     if (this.ctx.screen.pickElement(event.pageX, event.pageY) !== this) {
       return;
@@ -1260,8 +1209,58 @@ export class View2DHandler extends Editor {
     if (this.ctx && this.ctx.scene)
       this.ctx.scene.edit_all_layers = v;
   }
-  
+
+  updateVelPan() {
+    let m1 = this._last_rendermat.$matrix;
+    let m2 = this.cameramat.$matrix;
+
+    let pos1 = new Vector2();
+    let scale1 = 1.0;
+    let pos2 = new Vector2();
+    let scale2 = 1.0;
+
+    pos1[0] = m1.m41;
+    pos1[1] = m1.m42;
+
+    pos2[0] = m2.m41;
+    pos2[1] = m2.m42;
+
+    let dv = new Vector2(pos2).sub(pos1);
+
+
+    let time = util.time_ms - this._last_rendermat_time;
+
+    this._last_rendermat.load(this.cameramat);
+    this._last_rendermat_time = util.time_ms();
+
+    //dv.divScalar(time);
+    let acc = new Vector2(dv).sub(this._last_dv);//.divScalar(time/1000.0);
+
+    //this._vel.addFac(acc, 1.0/this.zoom);
+    this._vel.interp(dv, 0.25);
+    this._vel.mulScalar(0.9);
+
+    this._last_dv.load(dv);
+
+    if (this._vel.dot(this._vel) > 0.01) {
+      if (Math.random() > 0.95) {
+        console.log(this._vel);
+      }
+      this.cameramat.translate(this._vel[0], this._vel[1]);
+      this.set_cameramat(this.cameramat);
+      //this.irendermat.load(this.rendermat).invert();
+      window.redraw_viewport();
+    }
+  }
+
+  resetVelPan() {
+    this._last_rendermat.load(this.cameramat);
+    this._vel.zero();
+  }
+
   update() {
+    this.updateVelPan();
+
     let key = "" + this.half_pix_size + ":" + this.enable_blur + ":" + this.only_render + ":" + this.draw_faces + ":" + this.edit_all_layers + ":" + this.draw_normals + ":" + this.draw_small_verts;
     
     if (key !== this._last_key_1) {

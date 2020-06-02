@@ -1004,6 +1004,17 @@ export class EventDag {
     
     for (var i=0; i<slen; i++) {
       var n = sortlist[i];
+
+      if (!n) {
+        console.warn("dead node in event dag");
+        sortlist[i] = sortlist[sortlist.length-1];
+        sortlist.length--;
+        slen--;
+        i--;
+
+        continue;
+      }
+
       if (!(n.flag & DagFlags.UPDATE))
         continue;
       

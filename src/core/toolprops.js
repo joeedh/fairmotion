@@ -690,7 +690,7 @@ export class CollectionProperty extends ToolProperty {
     ret.types = this.types;
     ret._ctx = this._ctx;
 
-    if (this._data != undefined && this._data.copy != undefined)
+    if (this._data !== undefined && this._data.copy !== undefined)
       ret.setValue(this._data.copy());
 
     return ret;
@@ -703,12 +703,20 @@ export class CollectionProperty extends ToolProperty {
   set ctx(data) {
     this._ctx = data;
 
-    if (this._data != undefined)
+    if (this._data !== undefined)
       this._data.ctx = data;
   }
 
+  getValue() {
+    return this.data;
+  }
+
   set_data(data, owner: Object, changed) {
-    if (data == undefined) {
+    this.setValue(data, owner, changed);
+  }
+
+  setValue(data, owner: Object, changed) {
+    if (data === undefined) {
       this._data = undefined;
       return;
     }

@@ -1953,7 +1953,16 @@ export class Spline extends DataBlock {
     
     this.resolve = 1;
   }
-  
+
+  has_highlight(selmask=255) {
+    for (let list of this.elists) {
+      if ((list.type & selmask) && list.highlight)
+        return true;
+    }
+
+    return false;
+  }
+
   clear_highlight() {
     for (var i=0; i<this.elists.length; i++) {
       this.elists[i].highlight = undefined;

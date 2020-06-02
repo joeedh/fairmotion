@@ -23,48 +23,6 @@ var fdialog_exclude_chars = new set([
 
 import {open_file, save_file, save_with_dialog, can_access_path} from '../core/fileapi/fileapi.js';
 
-export class FileOpenRecentOp extends ToolOp {
-  static tooldef() { return {
-    apiname  : "appstate.open_recent",
-    uiname   : "Open Recent",
-    inputs   : {},
-    outputs  : {},
-    icon     : -1,
-    is_modal : false,
-    undoflag : UndoFlags.IGNORE_UNDO
-  }}
-
-  constructor() {
-    super();
-    this.path = undefined;
-  }
-
-  exec(ctx) {
-    var dialog = new PackedDialog("Open recent...", ctx, g_app_state.screen);
-    var row = dialog.subframe;
-
-    var listbox = new UIListBox();
-    row.add(listbox);
-
-    var paths = g_app_state.session.settings.recent_paths;
-    for (var i=paths.length-1; i>=0; i--) {
-      listbox.add_item(paths[i].displayname, paths[i].path);
-    }
-
-    listbox.go_callback = function(text, id) {
-      console.log("go calllback!", id);
-
-      var loadop = new FileOpenOp()
-      loadop.inputs.path.set_data(id);
-
-      dialog.end();
-      g_app_state.toolstack.exec_tool(loadop);
-    }
-
-    dialog.call(g_app_state.screen.mpos);
-  }
-}
-
 //import {Icons} from 'icon_enum';
 
 export class FileOpenOp extends ToolOp {
@@ -97,12 +55,12 @@ export class FileOpenOp extends ToolOp {
     open_file(function(buf : ArrayBuffer, fname : string, filepath : string) {
       console.log("\n\ngot file!", buf, fname, filepath, "\n\n");
 
-      g_app_state.load_user_file_new(new DataView(buf), filepath);
-
-      if (filepath != undefined) {
+      if (filepath !== undefined) {
         g_app_state.session.settings.add_recent_file(filepath);
         //g_app_state.session.settings.server_update(true);
       }
+
+      g_app_state.load_user_file_new(new DataView(buf), filepath);
     }, this, true, "Fairmotion Files", ["fmo"]);
 
     return;
@@ -111,16 +69,18 @@ export class FileOpenOp extends ToolOp {
 }
 
 export class FileSaveAsOp extends ToolOp {
-  constructor() {
+  do_progress : boolean;
+
+  constructor(do_progress=true) {
     super();
+
+    this.do_progress = true;
   }
 
   static tooldef() { return {
     apiname  : "appstate.save_as",
     uiname   : "Save As",
-    inputs   : {
-      path : new StringProperty("", "path", "File Path", "File Path")
-    },
+    inputs   : {},
     outputs  : {},
     icon     : -1,
     is_modal : false,
@@ -129,72 +89,19 @@ export class FileSaveAsOp extends ToolOp {
   }}
 
   exec(ctx) {
-    console.log("File save");
-
-    //I should really make these file operations modal, since
-    //they create ui elements
-    ctx = new Context();
-    var pd = new ProgressDialog(ctx, "Uploading");
-    var thepath = undefined;
+    console.log("File save As");
 
     var mesh_data = g_app_state.create_user_file_new().buffer;
 
-    if (config.USE_HTML5_FILEAPI) {
-      save_with_dialog(mesh_data, g_app_state.filepath, "Fairmotion Files", ["fmo"], function() {
-        error_dialog(ctx, "Could not write file", undefined, true);
-      }, (path) => {
-        g_app_state.filepath = path;
-        g_app_state.notes.label("File saved");
-      });
-      return;
-    }
-
-    function error(job, owner, msg) {
-      pd.end()
-      error_dialog(ctx, "Network Error", undefined, true);
-    }
-
-    function finish(job, owner) {
-      if (DEBUG.netio)
-        console.log("finished uploading");
-      pd.end()
-
-      G.filepath = thepath;
-    }
-
-    function status(job, owner, status) {
-      pd.value = status.progress;
-      if (DEBUG.netio)
-        console.log("status: ", status.progress, status);
-    }
-
-    function save_callback(dialog, path) {
-      pd.call(ctx.screen.mpos);
-
-      g_app_state.session.settings.add_recent_file(path);
-      g_app_state.session.settings.server_update(true);
+    save_with_dialog(mesh_data, undefined, "Fairmotion Files", ["fmo"], function () {
+      error_dialog(ctx, "Could not write file", undefined, true);
+    }, (path) => {
       g_app_state.filepath = path;
-
-      if (DEBUG.netio)
-        console.log("saving...", path);
-      global fairmotion_file_ext;
-
-      if (!path.endsWith(fairmotion_file_ext)) {
-        path = path + fairmotion_file_ext;
-      }
-
-      thepath = path;
-
-      var token = g_app_state.session.tokens.access;
-      var url = "/api/files/upload/start?accessToken="+token+"&path="+path
-      var url2 = "/api/files/upload?accessToken="+token;
-
-      call_api(upload_file, {data:mesh_data, url:url, chunk_url:url2}, finish, error, status);
-    }
-
-    file_dialog("SAVE", new Context(), save_callback, true);
+      g_app_state.notes.label("File saved");
+    });
   }
 }
+
 
 export class FileSaveOp extends ToolOp {
   do_progress : boolean;

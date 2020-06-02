@@ -1,5 +1,8 @@
 "use strict";
 
+import {UIBase} from "../../../path.ux/scripts/core/ui_base.js";
+
+import {FullContext} from "../../../core/context.js";
 import {ExtrudeVertOp} from '../spline_createops.js';
 import {DeleteVertOp, DeleteSegmentOp} from '../spline_editops.js';
 import {WidgetResizeOp, WidgetRotateOp} from '../transform_ops.js';
@@ -22,6 +25,7 @@ import {DeleteVertOp, DeleteSegmentOp, DeleteFaceOp,
   ChangeFaceZ, SplitEdgeOp, DuplicateOp,
   DisconnectHandlesOp, SplitEdgePickOp} from '../spline_editops.js';
 
+import * as util from "../../../path.ux/scripts/util/util.js";
 
 //import {KeyMap} from "../../../path.ux/scripts/util/simple_events.js";
 import {ToolMode} from "./toolmode.js";
@@ -29,12 +33,15 @@ import {nstructjs} from "../../../path.ux/scripts/pathux.js";
 import {WidgetResizeOp, WidgetRotateOp} from "../transform_ops.js";
 import {ToolModes} from "../selectmode.js";
 
+import {PanOp} from '../view2d_ops.js';
+
 window.anim_to_playback = [];
 
 export class SplineToolMode extends ToolMode {
   mpos : Vector2
   last_mpos : Vector2
   start_mpos : Vector2
+  _cancel_on_touch : boolean
   mdown : boolean;
 
   constructor() {
@@ -171,8 +178,10 @@ export class SplineToolMode extends ToolMode {
     */
 
 
-    k.add(new HotKey("L", [], "Select Linked"), new FuncKeyHandler(function (ctx) {
+    k.add(new HotKey("L", [], "Select Linked"), new FuncKeyHandler(function (ctx : FullContext) {
       var mpos = ctx.keymap_mpos;
+      mpos = ctx.view2d.getLocalMouse(mpos[0], mpos[1]);
+
       var ret = ctx.spline.q.findnearest_vert(ctx.view2d, mpos, 55, undefined, ctx.view2d.edit_all_layers);
 
       console.log("select linked", ret);
@@ -274,18 +283,24 @@ export class SplineToolMode extends ToolMode {
   }
 
   on_mousedown(event : Object, localX, localY) {
+    if (this._do_touch_undo(event)) {
+      return true;
+    }
+
     var spline = this.ctx.spline;
     var toolmode = this.ctx.view2d.toolmode;
 
-    if (this.highlight_spline !== undefined) {
-      //console.log(this.highlight_spline, this.highlight_spline._debug_id, spline._debug_id);
-    }
+    this.start_mpos[0] = event.x;
+    this.start_mpos[1] = event.y;
+
+    this.updateHighlight(event.x, event.y, !!event.touches);
 
     if (this.highlight_spline !== undefined && this.highlight_spline !== spline) {
-      var newpath;
+      this._cancel_on_touch = false;
 
       console.log("spline switch!");
 
+      var newpath;
       if (this.highlight_spline.is_anim_path) {
         newpath = "frameset.pathspline";
       } else {
@@ -299,20 +314,13 @@ export class SplineToolMode extends ToolMode {
       spline = this._get_spline();
 
       redraw_viewport();
+      return true;
     }
 
-    //console.log("spline", spline._debug_id, this.ctx.frameset.spline._debug_id);
+    let ret = false;
 
-    if ("size" in spline && spline[0] != window.innerWidth && spline[1] != window.innerHeight) {
-      spline.size[0] = window.innerWidth
-      spline.size[1] = window.innerHeight;
-      //redraw_viewport();
-    }
-
-    //console.log("DDD", spline.verts.highlight, G.active_splinepath);
-
-    if (event.button == 0) {
-      var can_append = toolmode == ToolModes.APPEND;
+    if (event.button === 0) {
+      var can_append = toolmode === ToolModes.APPEND;
 
       can_append = can_append && (this.selectmode & (SelMask.VERTEX | SelMask.HANDLE));
       can_append = can_append && spline.verts.highlight === undefined && spline.handles.highlight === undefined;
@@ -329,16 +337,21 @@ export class SplineToolMode extends ToolMode {
         op.inputs.linewidth.setValue(this.ctx.view2d.default_linewidth);
         op.inputs.stroke.setValue(this.ctx.view2d.default_stroke);
 
+        this._cancel_on_touch = true;
         g_app_state.toolstack.exec_tool(op);
         redraw_viewport();
+
+        ret = true;
       } else {
+        this._cancel_on_touch = false;
+
         for (var i = 0; i < spline.elists.length; i++) {
           var list = spline.elists[i];
 
           if (!(this.selectmode & list.type))
             continue;
           ;
-          if (list.highlight == undefined)
+          if (list.highlight === undefined)
             continue;
 
           var op = new SelectOneOp(list.highlight, !event.shiftKey,
@@ -347,14 +360,18 @@ export class SplineToolMode extends ToolMode {
           //console.log("exec selectoneop op");
 
           g_app_state.toolstack.exec_tool(op);
+
+          ret = true;
+          break;
         }
       }
 
       this.start_mpos[0] = event.x;
       this.start_mpos[1] = event.y;
-      this.start_mpos[2] = 0.0;
       this.mdown = true;
     }
+
+    return ret;
   }
 
   ensure_paths_off() {
@@ -437,24 +454,102 @@ export class SplineToolMode extends ToolMode {
     return closest;
   }
 
+  updateHighlight(x, y, was_touch) {
+    let toolmode = this.ctx.view2d.toolmode;
+    let limit;
+
+    if (this.ctx.view2d.selectmode & SelMask.SEGMENT) {
+      limit = 55;
+    } else {
+
+      limit = (util.isMobile() || was_touch) ? 55 : 15;
+    }
+
+    limit /= UIBase.getDPI();
+    if (toolmode === ToolModes.SELECT) limit *= 3;
+
+    let ret = this.findnearest([x, y], this.ctx.view2d.selectmode, limit, this.ctx.view2d.edit_all_layers);
+
+    //console.log(ret, this.ctx.view2d.selectmode);
+
+
+    if (ret !== undefined) {
+      //console.log(ret[1].type);
+
+      if (ret[0] !== this.highlight_spline && this.highlight_spline !== undefined) {
+        this.highlight_spline.clear_highlight();
+
+        /*
+        for (var list of this.highlight_spline.elists) {
+          if (list.highlight != undefined) {
+            redraw_element(list.highlight, this.view2d);
+          }
+        }//*/
+      }
+
+      this.highlight_spline = ret[0];
+      this.highlight_spline.clear_highlight();
+      window.redraw_viewport();
+
+      /*
+      for (var list of this.highlight_spline.elists) {
+        if (list.highlight != undefined) {
+          redraw_element(list.highlight, this.view2d);
+        }
+      }//*/
+    } else {
+      if (this.highlight_spline !== undefined) {
+        this.highlight_spline.clear_highlight();
+        window.redraw_viewport();
+      }
+
+      this.highlight_spline = undefined;
+    }
+
+    if (this.highlight_spline && ret && ret[1]) {
+      let list = this.highlight_spline.get_elist(ret[1].type);
+
+      let redraw = list.highlight !== ret[1];
+
+      list.highlight = ret[1];
+
+      if (redraw) {
+        window.redraw_viewport();
+      }
+      //redraw_element(ret[1]);
+    }
+  }
+
+  _do_touch_undo(event) {
+    console.log(event.touches && event.touches.length > 1, this._cancel_on_touch, "<---");
+    if (event.touches && event.touches.length > 1 && this._cancel_on_touch) {
+      console.log("touch undo!");
+
+      this.ctx.toolstack.undo();
+      this._cancel_on_touch = false;
+      this.ctx.toolstack.execTool(this.ctx, new PanOp());
+
+      window.redraw_viewport();
+      return true;
+    }
+  }
+
   on_mousemove(event : Object) {
-    if (this.ctx == undefined) return;
-
-    var toolmode = this.ctx.view2d.toolmode;
-
-    var selectmode = this.selectmode;
-    var limit = selectmode & SelMask.SEGMENT ? 55 : 12;
-
-    if (toolmode == ToolModes.SELECT) limit *= 3;
-
-    var spline = this.ctx.spline;
-    spline.size = [window.innerWidth, window.innerHeight];
-
+    if (this.ctx === undefined) return;
     this.mpos[0] = event.x, this.mpos[1] = event.y, this.mpos[2] = 0.0;
-
     var selectmode = this.selectmode;
 
-    if (this.mdown) { // && this.mpos.vectorDistance(this.start_mpos) > 2) {
+    if (this._do_touch_undo(event)) {
+      return;
+    }
+
+    this.updateHighlight(event.x, event.y, !!event.touches);
+
+    let translate = (this.mdown && this.start_mpos.vectorDistance(this.mpos) > 15/UIBase.getDPI());
+    //translate = translate && !this._cancel_on_touch;
+    //translate = translate && (!this.highlight_spline || !this.highlight_spline.has_highlight());
+
+    if (translate) {
       this.mdown = false;
 
       let mpos = new Vector2();
@@ -475,81 +570,29 @@ export class SplineToolMode extends ToolMode {
         op.inputs.propradius.setValue(ctx.view2d.propradius);
       }
 
+      let _cancel_on_touch = this._cancel_on_touch;
+      this._cancel_on_touch = false;
+
+      op.touchCancelable(() => {
+        console.log("touch-induced cancel!");
+        this.ctx.toolstack.execTool(this.ctx, new PanOp());
+
+        if (_cancel_on_touch) {
+          //undo again
+          this.ctx.toolstack.undo();
+        }
+      });
+
       g_app_state.toolstack.exec_tool(op);
-      return;
-    }
-
-    if (this.mdown)
-      return;
-
-    var ret = this.findnearest([event.x, event.y], this.ctx.view2d.selectmode, limit, this.ctx.view2d.edit_all_layers);
-
-    //console.log(ret, this.ctx.view2d.selectmode);
-
-
-    if (ret != undefined && typeof (ret[1]) != "number" && ret[2] != SelMask.MULTIRES) {
-      //console.log(ret[1].type);
-
-      if (this.highlight_spline != undefined) {
-        for (var list of this.highlight_spline.elists) {
-          if (list.highlight != undefined) {
-            redraw_element(list.highlight, this.view2d);
-          }
-        }
-      }
-
-      if (ret[0] !== this.highlight_spline && this.highlight_spline != undefined) {
-        this.highlight_spline.clear_highlight();
-      }
-
-      this.highlight_spline = ret[0];
-      this.highlight_spline.clear_highlight();
-
-      var list = this.highlight_spline.get_elist(ret[1].type);
-      /*
-      if (!list._has_d) {
-        Object.defineProperty(list, "highlight", {
-          enumerable : true,
-          get : function() {
-            return this._highlight;
-          },
-
-          set : function(val) {
-            if (val == undefined && this._highlight != undefined) {
-              console.log("  off");
-            }
-            if (val != undefined && this._highlight == undefined) {
-              console.log("  on");
-            }
-            this._highlight = val;
-          }
-        });
-        list._has_d = true;
-      }
-       */
-
-      //console.log("SPLINE", ret[0]._debug_id, "PARENTV", ret[0].parent_veid);
-
-      list.highlight = ret[1];
-      redraw_element(list.highlight, this.view2d);
-
-      //redraw_viewport();
-      //console.log(list === ret[0].verts);
-    } else {
-      if (this.highlight_spline !== undefined) {
-        for (var i = 0; i < this.highlight_spline.elists.length; i++) {
-          var list = this.highlight_spline.elists[i];
-          if (list.highlight != undefined) {
-            redraw_element(list.highlight, this.view2d);
-          }
-        }
-
-        this.highlight_spline.clear_highlight();
-      }
     }
   }
 
   on_mouseup(event : Object) {
+    this._cancel_on_touch = false;
+    this.start_mpos[0] = event.x;
+    this.start_mpos[1] = event.y;
+    this.mdown = true;
+
     var spline = this._get_spline();
     spline.size = [window.innerWidth, window.innerHeight];
 

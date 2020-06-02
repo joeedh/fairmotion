@@ -433,13 +433,11 @@ export class Manipulator {
     }
     
     for (var h of this.handles) {
-      //XXX need to refactor how viewport canvas transformations work
-
       var x = this.co[0], y = this.co[1];
       
-      g._render_mat.translate(x, y);
+      g.translate(x, y);
       h.render(canvas, g);
-      g._render_mat.translate(-x, -y);
+      g.translate(-x, -y);
     }
   }
   
@@ -527,6 +525,10 @@ export class Manipulator {
 }
 
 export class ManipulatorManager {
+  view2d : View2DHandler
+  stack  : array<Manipulator>
+  active : Manipulator;
+
   constructor(view2d) {
     this.view2d = view2d;
     this.stack = [];
@@ -534,7 +536,7 @@ export class ManipulatorManager {
   }
   
   render(canvas, g) {
-    if (this.active != undefined) {
+    if (this.active !== undefined) {
       this.active.render(canvas, g);
     }
   }

@@ -265,7 +265,7 @@ export class Scene extends DataBlock {
   setActiveObject(ob) {
     this.objects.active = ob;
 
-    this.dag_update("on_active", true);
+    this.dag_update("on_active_set", true);
   }
 
   //returns sceneobject
@@ -283,7 +283,7 @@ export class Scene extends DataBlock {
   }
 
   change_time(ctx, time, _update_animation=true) {
-    console.log("Time change!", time, this.time);
+    console.warn("Time change!", time, this.time);
 
     if (isNaN(this.time)) {
       console.warn("EEK corruption!");

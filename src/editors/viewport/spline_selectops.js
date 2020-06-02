@@ -503,9 +503,9 @@ export class CircleSelectOp extends SelectOpBase {
     //note that for the inherited mode property,
     //tablets need to ability to only add or subtract, don't switch between doing both with e.g. shift or right mouse
     inputs : ToolOp.inherit({
-      add_elements : new CollectionProperty(new ElementRefSet(SplineTypes.ALL), [               SplineVertex, SplineSegment, SplineFace],
+      add_elements : new CollectionProperty(new ElementRefSet(SplineTypes.ALL), [SplineVertex, SplineSegment, SplineFace],
                      "elements", "Elements", "Elements"),
-      sub_elements : new CollectionProperty(new ElementRefSet(SplineTypes.ALL), [               SplineVertex, SplineSegment, SplineFace],
+      sub_elements : new CollectionProperty(new ElementRefSet(SplineTypes.ALL), [SplineVertex, SplineSegment, SplineFace],
                     "elements", "Elements", "Elements"),
     }),
   
@@ -522,7 +522,17 @@ export class CircleSelectOp extends SelectOpBase {
     if (mpos != undefined)
       this.on_mousemove({x : mpos[0], y : mpos[1]});
   }
-  
+
+  on_mousewheel(e) {
+    let dt = e.deltaY;
+
+    dt *= 0.2;
+
+    console.log("wheel", e, dt);
+    this.radius = Math.max(Math.min(this.radius+dt, 1024), 3.0);
+    this._draw_circle();
+  }
+
   _draw_circle() {
     let ctx = this.modal_ctx;
     let editor = ctx.view2d;
@@ -533,15 +543,15 @@ export class CircleSelectOp extends SelectOpBase {
     let t = -Math.PI, dt = (Math.PI*2.0)/steps;
     let lastco = new Vector3();
     let co = new Vector3();
-    
-    let mpos = this.mpos;
+
+    let mpos = new Vector3(editor.getLocalMouse(this.mpos[0], this.mpos[1]));
+
+    //let mpos = this.mpos;
     let radius = this.radius;
     
-    for (let i=0; i<steps; i++, t += dt) {
+    for (let i=0; i<steps+1; i++, t += dt) {
       co[0] = sin(t)*radius + mpos[0];
       co[1] = cos(t)*radius + mpos[1];
-      
-      editor.unproject(co);
       
       if (i > 0) {
         let dl = this.new_drawline(lastco, co);
@@ -584,33 +594,45 @@ export class CircleSelectOp extends SelectOpBase {
     let editor = ctx.view2d;
     
     let co = new Vector3();
+    let mpos = new Vector3(editor.getLocalMouse(this.mpos[0], this.mpos[1]));
+    let scale = editor.rendermat.$matrix.m11;
+
+    mpos[2] = 0.0;
+    console.warn(scale);
+
     let eset_add = this.inputs.add_elements.data;
     let eset_sub = this.inputs.sub_elements.data;
     let actlayer = spline.layerset.active.id;
 
     if (datamode & SplineTypes.VERTEX) {
-      for (let v of spline.verts) {
-        if (v.hidden) 
-          continue;
-        if (!(actlayer in v.layers))
-          continue;
-        
-        co.load(v);
-        co[2] = 0.0;
-        editor.project(co);
+      for (let i=0; i<2; i++) {
+        if (i && !(datamode & SplineTypes.HANDLE))
+          break;
 
-        if (co.vectorDistance(this.mpos) < this.radius) {
-          if (sel_or_unsel) {
-            eset_sub.remove(v);
-            eset_add.add(v);
-          } else {
-            eset_add.remove(v);
-            eset_sub.add(v);
+        let list = i ? spline.handles : spline.verts;
+
+        for (let v of list.editable(ctx)) {
+          co.load(v);
+          co[2] = 0.0;
+          editor.project(co);
+
+          if (co.vectorDistance(mpos) < this.radius) {
+            if (sel_or_unsel) {
+              eset_sub.remove(v);
+              eset_add.add(v);
+            } else {
+              eset_add.remove(v);
+              eset_sub.add(v);
+            }
           }
         }
       }
-    } else if (datamode & SplineTypes.SEGMENT) {
-    } else if (datamode & SplineTypes.FACE) {
+    }
+
+    if (datamode & SplineTypes.SEGMENT) {
+    }
+
+    if (datamode & SplineTypes.FACE) {
     }
   }
   
@@ -625,8 +647,8 @@ export class CircleSelectOp extends SelectOpBase {
     this._draw_circle();
     //console.log("mousemove!");
 
-    if (this.inputs.mode.get_data() != SelOpModes.AUTO) {
-      this.sel_or_unsel = this.inputs.mode.get_data() == SelOpModes.SELECT;
+    if (this.inputs.mode.getValue() !== SelOpModes.AUTO) {
+      this.sel_or_unsel = this.inputs.mode.getValue() === SelOpModes.SELECT;
     }
 
     if (this.mdown) {

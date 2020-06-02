@@ -725,8 +725,7 @@ export class ChangeFaceZ extends SplineLocalToolOp {
     console.log("change face z! selmode:", selmode, "off", off);
     
     if (selmode & SplineTypes.VERTEX) {
-      //vertex select mode implies we should consider both faces and segments
-      selmode |= SplineTypes.FACE | SplineTypes.SEGMENT;
+      selmode |=  SplineTypes.SEGMENT;
     }
     
     if (selmode & SplineTypes.FACE) {

@@ -11,6 +11,82 @@ import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
 import {Vec2Property, Vec3Property, IntProperty, StringProperty, TPropFlags} from "../../core/toolprops.js";
 import {SceneObject, ObjectFlags} from '../../scene/sceneobject.js';
 
+export class PanOp extends ToolOp {
+  is_modal : boolean
+  cameramat : Matrix4;
+
+  mpos       : Vector2;
+  start_mpos : Vector2;
+  first      : boolean;
+
+  constructor(start_mpos) {
+    super();
+
+    this.is_modal = true;
+    this.undoflag |= UndoFlags.IGNORE_UNDO;
+
+    if (start_mpos !== undefined) {
+      this.start_mpos = new Vector3(start_mpos);
+      this.start_mpos[2] = 0.0;
+
+      this.first = false;
+    } else {
+      this.start_mpos = new Vector3();
+
+      this.first = true;
+    }
+
+    this.start_cameramat = undefined;
+    this.cameramat = new Matrix4();
+  }
+
+  static tooldef() { return {
+    uiname     : "Pan",
+    apiname    : "view2d.pan",
+
+    undoflag   : UndoFlags.IGNORE_UNDO,
+
+    inputs     : {},
+    outputs    : {},
+
+    is_modal   : true
+  }}
+
+  start_modal(ctx : LockedContext) {
+    this.start_cameramat = new Matrix4(ctx.view2d.cameramat);
+  }
+
+  on_mousemove(event : Object) {
+    var mpos = new Vector3([event.x, event.y, 0]);
+
+    //console.log("mousemove!");
+
+    if (this.first) {
+      this.first = false;
+      this.start_mpos.load(mpos);
+
+      return;
+    }
+
+    var ctx = this.modal_ctx;
+    mpos.sub(this.start_mpos).mulScalar(1.0/ctx.view2d.zoom);
+
+    this.cameramat.load(this.start_cameramat).translate(mpos[0], -mpos[1], 0.0);
+    ctx.view2d.set_cameramat(this.cameramat);
+
+    if (!event.touches) {
+      ctx.view2d.resetVelPan();
+    }
+    //console.log("panning");
+    window.force_viewport_redraw();
+    window.redraw_viewport();
+  }
+
+  on_mouseup(event : Object) {
+    this.end_modal();
+  }
+}
+
 class ViewRotateZoomPanOp extends ToolOp {
   is_modal : boolean
   inputs : Object

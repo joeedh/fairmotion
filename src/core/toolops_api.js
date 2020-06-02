@@ -45,21 +45,6 @@ export function patchMouseEvent(e : MouseEvent, dom : HTMLElement) {
     }
   }
 
-  let rect = dom.getClientRects()[0];
-
-  if (rect === undefined) {
-    console.warn("bad rect in toolops_api.patchMouseEvent");
-    return e2;
-  }
-
-  e2.x = ((e.x === undefined ? e.clientX : e.x)-rect.left);
-  e2.y = ((e.y === undefined ? e.clientY : e.y)-rect.top);
-
-  //e2.y = rect.height - e2.y;
-
-  e2.x *= window.devicePixelRatio;
-  e2.y *= window.devicePixelRatio;
-
   e2.original = e;
 
   return e2;
@@ -497,9 +482,20 @@ export class ToolOp extends ToolOpAbstract {
   }
   
   //pops tool from undo history
-  cancel_modal(ctx : Context) {
+  cancel_modal(ctx : Context, execUndo) {
     console.log("cancel");
-    ctx.toolstack.toolop_cancel(this);
+    ctx.toolstack.toolop_cancel(this, execUndo);
+
+    if (this._modal_state) {
+      this._end_modal();
+    }
+
+    window.redraw_viewport();
+  }
+
+  touchCancelable(callback) {
+    this._touch_cancelable = true;
+    this._touch_cancel_callback = callback;
   }
 
   modalStart(ctx : Context) {
@@ -515,24 +511,41 @@ export class ToolOp extends ToolOpAbstract {
 
     let active_area = ctx.active_area;
     let patch = (e) => {
-      let dom = active_area ? active_area : g_app_state.screen;
-      //console.log("dom", dom.tagName);
-      return patchMouseEvent(e, dom);
+      return patchMouseEvent(e);
     };
+
+    let doMouse = (e, key) => {
+      if (this._touch_cancelable && e.touches && e.touches.length > 1) {
+        this.cancel_modal(this.modal_ctx, true);
+
+        if (this._touch_cancel_callback) {
+          this._touch_cancel_callback(e);
+        }
+        return;
+      }
+
+      e = patchMouseEvent(e);
+      return this[key](e);
+    }
 
     //ctx.view2d.push_modal(this);
     //for (let k in )
     let handlers = {
-      on_mousedown : (e) => this.on_mousedown(patch(e)),
-      on_mousemove : (e) => this.on_mousemove(patch(e)),
-      on_mouseup : (e) => this.on_mouseup(patch(e)),
+      on_mousedown : (e) => doMouse(e, "on_mousedown"),
+      on_mousemove : (e) => doMouse(e, "on_mousemove"),
+      on_mouseup : (e) => doMouse(e, "on_mouseup"),
       on_keydown : this.on_keydown.bind(this),
-      on_keyup : this.on_keyup.bind(this)
+      on_keyup : this.on_keyup.bind(this),
+      on_mousewheel : (e) => this.on_mousewheel(patchMouseEvent(e))
     };
 
 
     this._modal_state = pushModalLight(handlers);
     this.modal_ctx = ctx;
+  }
+
+  on_mousewheel(e) {
+
   }
 
   _end_modal() {
@@ -824,6 +837,11 @@ export class ToolMacro extends ToolOp {
   on_mousemove(event) {
     this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
     this.tools[this.cur_modal].on_mousemove(event);
+  }
+
+  on_mousewheel(event) {
+    this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
+    this.tools[this.cur_modal].on_mousewheel(event);
   }
 
   on_mousedown(event) {

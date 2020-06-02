@@ -1,5 +1,7 @@
 "use strict";
 
+/*** THIS FILE IS OUTDATED AND NO LONGER USED, see ./toolmodes/splinetool.js****/
+
 import {ExtrudeVertOp} from './spline_createops.js';
 //$XXX import {toolop_menu} from 'UIMenu';
 import {DeleteVertOp, DeleteSegmentOp} from './spline_editops.js';

@@ -455,7 +455,7 @@ export class AppState {
     this.AppState_init(screen);
   }
 
-  AppState_init(screen : FrameManager) {
+  AppState_init(screen : FrameManager, reset_mode : boolean=false) {
     this.screen = screen;
     this.eventhandler = screen : EventHandler;
 
@@ -493,16 +493,18 @@ export class AppState {
     
     this.modalstate = 0; //see toolops_api.js
     this.jobs = new JobManager();
-    
-    if (myLocalStorage.hasCached("session")) {
-      try {
-        this.session = UserSession.fromJSON(JSON.parse(myLocalStorage.getCached("session")));
-      } catch(error) {
-        print_stack(error);
-        console.log("Error loading json session object:", myLocalStorage.getCached("session"));
+
+    if (!reset_mode) {
+      if (myLocalStorage.hasCached("session")) {
+        try {
+          this.session = UserSession.fromJSON(JSON.parse(myLocalStorage.getCached("session")));
+        } catch (error) {
+          print_stack(error);
+          console.log("Error loading json session object:", myLocalStorage.getCached("session"));
+        }
+      } else {
+        this.session = new UserSession();
       }
-    } else {
-      this.session = new UserSession();
     }
 
     this.ctx = new FullContext(this);
@@ -542,13 +544,6 @@ export class AppState {
   destroy() {
     console.trace("Appstate.destroy called");
     this.destroyScreen();
-  }
-  
-  on_gl_lost(new_gl : WebGLRenderingContext) {
-    this.gl = new_gl;
-    this.raster.on_gl_lost(new_gl);
-    this.datalib.on_gl_lost(new_gl);
-    this.screen.on_gl_lost(new_gl);
   }
   
   update_context() {
@@ -591,12 +586,12 @@ export class AppState {
       console.log("ERROR: failed to fully destroy screen context");
     }
 
-    this.AppState_init(screen, undefined, this.gl);
+    this.AppState_init(screen,true);
   }
 
   //shallow copy
   copy() {
-    var as = new AppState(this.screen, undefined, this.gl);
+    var as = new AppState(this.screen, undefined);
     as.datalib = this.datalib;
     as.session = this.session;
     as.toolstack = this.toolstack;
@@ -1131,9 +1126,9 @@ export class AppState {
     platform.app.openFile(path_handle).then((buf) => {
       let dview = new DataView(buf.buffer);
       this.load_user_file_new(dview, path_handle);
-    }).catch(error) {
+    }).catch((error) => {
       this.ctx.error(error.toString());
-    }
+    });
   }
 
   load_user_file_new(data : DataView, path : String, uctx : unpack_ctx, use_existing_screen=false) {
@@ -1825,7 +1820,11 @@ class SavedContextOld {
 
     //this._object = ctx.scene && ctx.scene.objects.active ? ctx.scene.objects.active.id : -1;
     if (this._object >= 0 && (!scene.objects.active || this._object != scene.objects.active.id)) {
-      scene.setActiveObject(this._object);
+      try {
+        scene.setActiveObject(this._object);
+      } catch (error) {
+        util.print_stack(error);
+      }
     }
 
     this._selectmode = state.selectmode;
@@ -2171,10 +2170,18 @@ class ToolStack {
   //removes undo entry for "canceled" tools, that didn't affect state AT ALL
   //op is the toolop requesting the cancelation, which allows us to validate
   //the call.
-  toolop_cancel(ToolOp op) {
-    if (this.undostack.indexOf(op) >= 0) {
-      this.undostack.remove(op);
-      this.undocur--;
+  toolop_cancel(ToolOp op, executeUndo) {
+    if (executeUndo === undefined) {
+      console.warn("Warning, executeUndo in toolop_cancel() was undefined");
+    }
+
+    if (executeUndo) {
+      this.undo();
+    } else {
+      if (this.undostack.indexOf(op) >= 0) {
+        this.undostack.remove(op);
+        this.undocur--;
+      }
     }
   }
   

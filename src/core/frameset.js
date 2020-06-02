@@ -195,18 +195,54 @@ function split_eid_time(t) {
   return ret;
 }
 
+export class SplineKCacheItem {
+  constructor(data, time, hash) {
+    this.data = data;
+    this.time = time;
+    this.hash = hash;
+  }
+
+  loadSTRUCT(reader) {
+    reader(this);
+  }
+}
+SplineKCacheItem.STRUCT = `
+SplineKCacheItem {
+  data : array(byte);
+  time : float;
+  hash : int;
+}
+`;
+
 export class SplineKCache {
+  cache : Object;
+  invalid_eids : set<int>;
+  hash : int;
+
   constructor() {
     this.cache = {};
     this.invalid_eids = new set();
+    this.hash = 0;
   }
-  
+
+  has(frame, spline) {
+    if (!this.cache[frame]) {
+      return false;
+    }
+
+    let hash = this.calchash(spline);
+    console.log("hash", hash, "should be", this.cache[frame].hash);
+
+    return this.cache[frame].hash === hash;
+  }
+
   set(frame, spline) {
     for (var eid in spline.eidmap) {
       this.revalidate(eid, frame);
     }
-    
-    this.cache[frame] = spline.export_ks();
+
+    let hash = this.calchash(spline);
+    this.cache[frame] = new SplineKCacheItem(spline.export_ks(), frame, hash);
   }
   
   invalidate(eid, time) {
@@ -217,7 +253,20 @@ export class SplineKCache {
     var t = combine_eid_time(time);
     this.invalid_eids.remove(t);
   }
-  
+
+  calchash(spline) {
+    let hash = 0;
+
+    let mul1 = Math.sqrt(3.0), mul2 = Math.sqrt(17.0);
+
+    for (let v of spline.points) {
+      hash = Math.fract(hash*mul1 + v[0]*mul2);
+      hash = Math.fract(hash*mul1 + v[1]*mul2);
+    }
+
+    return ~~(hash*1024*1024);
+  }
+
   load(frame, spline) {
     if (typeof frame == "string") {
       throw new Error("Got bad frame! " + frame);
@@ -228,9 +277,9 @@ export class SplineKCache {
       return;
     }
     
-    var ret = spline.import_ks(this.cache[frame]);
+    var ret = spline.import_ks(this.cache[frame].data);
     
-    if (ret == undefined) { //bad data
+    if (ret === undefined) { //bad data
       delete this.cache[frame];
       
       console.log("bad kcache data for frame", frame);
@@ -267,54 +316,50 @@ export class SplineKCache {
     var ret = [];
     
     for (var k in this.cache) {
-      ret.push(this.cache[k]);
+      ret.push(this.cache[k].data);
     }
     
     return ret;
   }
-  
-  _get_times() {
-    var ret = [];
-    
-    for (var k in this.cache) {
-      ret.push(parseFloat(""+k));
-    }
-    
-    return ret;
-  }
+
   
   static fromSTRUCT(reader) {
     var ret = new SplineKCache();
-    
+
     reader(ret);
     var cache = {};
-    
+
     var inv = new set();
 
-    if (ret.invalid_eids != undefined && 
-       ret.invalid_eids instanceof Array)
-    {
-      for (var i=0; i<ret.invalid_eids.length; i++) {
+    if (ret.invalid_eids != undefined &&
+      ret.invalid_eids instanceof Array) {
+      for (var i = 0; i < ret.invalid_eids.length; i++) {
         inv.add(ret.invalid_eids[i]);
       }
     }
-    
-    ret.invalid_eids = inv;
-    for (var i=0; i<ret.cache.length; i++) {
-      cache[ret.times[i]] = new Uint8Array(ret.cache[i]);
+
+    if (ret.times) { //old structure
+      ret.invalid_eids = inv;
+      for (var i = 0; i < ret.cache.length; i++) {
+        cache[ret.times[i]] = new Uint8Array(ret.cache[i]);
+      }
+
+      delete ret.times;
+      ret.cache = cache;
+    } else {
+      for (let item of ret.cache) {
+        cache[item.time] = item;
+      }
+
+      ret.cache = cache;
     }
-    
-    //delete ret.times;
-    ret.cache = cache;
-    
     return ret;
   }
 }
 
 SplineKCache.STRUCT = `
   SplineKCache {
-    cache : array(array(byte))  | obj._as_array();
-    times : array(float)        | obj._get_times();
+    cache : array(SplineKCacheItem) | obj._as_array();
     invalid_eids : iter(EidTimePair);
   }
 `;
@@ -947,31 +992,6 @@ export class SplineFrameSet extends DataBlock {
     var spline = f.spline; //.copy();
     
     if (!window.inFromStruct && _update_animation) { //time != f.time) {
-      var set_update = true;
-
-      //* XXX fixme, load cached curve k parameters
-      if (time in this.kcache.cache) {
-        console.log("found cached k data!");
-        
-        this.kcache.load(time, spline);
-        set_update = false;
-      }
-      //*/
-      
-      if (!set_update) {
-        for (var seg of spline.segments) {
-          if (seg.hidden) continue;
-          
-          seg.flag |= SplineFlags.REDRAW;
-        }
-        
-        for (var face of spline.faces) {
-          if (face.hidden) continue;
-          
-          face.flag |= SplineFlags.REDRAW;
-        }
-      }
-      
       for (var v of spline.points) {
         var set_flag = v.eid in this.vertex_animdata;
         
@@ -990,7 +1010,7 @@ export class SplineFrameSet extends DataBlock {
         
         v.load(vdata.evaluate(time));
         
-        if (set_update) {
+        if (0 && set_update) {
           v.flag |= SplineFlags.UPDATE;
         } else { //manually flag geometry for drawing
           /*
@@ -1019,7 +1039,36 @@ export class SplineFrameSet extends DataBlock {
         
         //console.log("--", vdata);
       }
-      
+
+      var set_update = true;
+
+      //* XXX fixme, load cached curve k parameters
+      if (this.kcache.has(time, spline)) {
+        console.log("found cached k data!");
+
+        this.kcache.load(time, spline);
+        set_update = false;
+      }
+      //*/
+
+      if (!set_update) {
+        for (var seg of spline.segments) {
+          if (seg.hidden) continue;
+
+          seg.flag |= SplineFlags.REDRAW;
+        }
+
+        for (var face of spline.faces) {
+          if (face.hidden) continue;
+
+          face.flag |= SplineFlags.REDRAW;
+        }
+      } else {
+        for (let v of spline.points) {
+          v.flag |= SplineFlags.UPDATE;
+        }
+      }
+
       spline.resolve = 1;
       if (!window.inFromStruct)
         spline.solve();

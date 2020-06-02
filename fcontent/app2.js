@@ -9942,7 +9942,7 @@ es6_module_define('theme', ["../util/util.js", "./ui_theme.js"], function _theme
     defaultHeight: 24}}
   _es6_module.add_export('DefaultTheme', DefaultTheme);
 }, '/dev/fairmotion/src/path.ux/scripts/core/theme.js');
-es6_module_define('ui', ["../widgets/ui_menu.js", "../util/util.js", "../util/vectormath.js", "../util/html5_fileapi.js", "../util/simple_events.js", "../widgets/ui_widgets.js", "./ui_theme.js", "../config/const.js", "../toolsys/toolprop.js", "./ui_base.js"], function _ui_module(_es6_module) {
+es6_module_define('ui', ["../util/vectormath.js", "../util/simple_events.js", "../widgets/ui_menu.js", "../config/const.js", "./ui_base.js", "../widgets/ui_widgets.js", "../util/util.js", "../toolsys/toolprop.js", "./ui_theme.js", "../util/html5_fileapi.js"], function _ui_module(_es6_module) {
   var _ui=undefined;
   var util=es6_import(_es6_module, '../util/util.js');
   var vectormath=es6_import(_es6_module, '../util/vectormath.js');
@@ -10644,12 +10644,21 @@ es6_module_define('ui', ["../widgets/ui_menu.js", "../util/util.js", "../util/ve
           }
       }
       else 
-        if (prop.type==PropTypes.FLAG) {
+        if (prop.type===PropTypes.FLAG) {
           if (rdef.subkey!==undefined) {
               let tooltip=rdef.prop.descriptions[rdef.subkey];
               let name=rdef.prop.ui_value_names[rdef.subkey];
+              if (typeof rdef.subkey==="number") {
+                  name = rdef.prop.keys[rdef.subkey];
+                  if (name&&name in rdef.prop.ui_value_names) {
+                      name = rdef.prop.ui_value_names[name];
+                  }
+                  else {
+                    name = makeUIName(name ? name : "(error)");
+                  }
+              }
               if (name===undefined) {
-                  name = makeUIName(rdef.subkey);
+                  name = "(error)";
               }
               let ret=this.check(inpath, name, packflag, mass_set_path);
               ret.icon = rdef.prop.iconmap[rdef.subkey];

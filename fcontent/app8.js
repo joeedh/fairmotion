@@ -503,7 +503,7 @@ es6_module_define('manipulator', ["../../util/mathlib.js", "../../config/config.
   _es6_module.add_class(ManipulatorManager);
   ManipulatorManager = _es6_module.add_export('ManipulatorManager', ManipulatorManager);
 }, '/dev/fairmotion/src/editors/viewport/manipulator.js');
-es6_module_define('view2d', ["./selectmode.js", "../../core/toolops_api.js", "../../path.ux/scripts/widgets/ui_menu.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../curve/spline_draw.js", "./manipulator.js", "./toolmodes/all.js", "./view2d_editor.js", "../editor_base.js", "../events.js", "../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/core/ui.js", "../../core/imageblock.js", "../../core/struct.js", "./view2d_spline_ops.js"], function _view2d_module(_es6_module) {
+es6_module_define('view2d', ["../../path.ux/scripts/core/ui_base.js", "./view2d_spline_ops.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../core/struct.js", "../events.js", "../../path.ux/scripts/widgets/ui_menu.js", "../../path.ux/scripts/core/ui.js", "./manipulator.js", "../../core/imageblock.js", "../../curve/spline_draw.js", "./toolmodes/all.js", "./selectmode.js", "../../core/toolops_api.js", "./view2d_editor.js", "../editor_base.js"], function _view2d_module(_es6_module) {
   var Editor=es6_import_item(_es6_module, '../editor_base.js', 'Editor');
   var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
   var patchMouseEvent=es6_import_item(_es6_module, '../../core/toolops_api.js', 'patchMouseEvent');
@@ -1033,18 +1033,19 @@ es6_module_define('view2d', ["./selectmode.js", "../../core/toolops_api.js", "..
       row = container.row();
       row.noMargins();
       container.noMargins();
-      row.prop("view2d.selectmask[HANDLE]", PackFlags.USE_ICONS);
-      row.prop("view2d.selectmode", PackFlags.USE_ICONS);
       row.useIcons();
-      row.prop("view2d.only_render", PackFlags.USE_ICONS);
-      row.prop("view2d.draw_small_verts", PackFlags.USE_ICONS);
-      row.prop("view2d.draw_normals", PackFlags.USE_ICONS);
-      row.prop("view2d.draw_anim_paths", PackFlags.USE_ICONS);
-      row.prop("view2d.enable_blur", PackFlags.USE_ICONS);
-      row.prop("view2d.draw_faces", PackFlags.USE_ICONS);
-      row.prop("spline.active_vertex.flag[BREAK_TANGENTS]");
-      row.prop("spline.active_vertex.flag[BREAK_CURVATURES]");
-      row.tool("spline.split_pick_edge()", PackFlags.USE_ICONS);
+      row.prop("view2d.selectmask[HANDLE]");
+      row.prop("view2d.selectmode");
+      row.prop("view2d.only_render");
+      row.prop("view2d.draw_small_verts");
+      row.prop("view2d.draw_normals");
+      row.prop("view2d.draw_anim_paths");
+      row.prop("view2d.enable_blur");
+      row.prop("view2d.draw_faces");
+      let mass_set_path="spline.selected_verts{1}";
+      row.prop("spline.active_vertex.flag[BREAK_TANGENTS]", undefined, mass_set_path+".flag[BREAK_TANGENTS]");
+      row.prop("spline.active_vertex.flag[BREAK_CURVATURES]", undefined, mass_set_path+".flag[BREAK_CURVATURES]");
+      row.tool("spline.split_pick_edge()");
     }
      set_zoom(zoom) {
       this.zoom = zoom;
@@ -4377,7 +4378,7 @@ es6_module_define('SettingsEditor', ["../../path.ux/scripts/core/ui_theme.js", "
   Editor.register(SettingsEditor);
 }, '/dev/fairmotion/src/editors/settings/SettingsEditor.js');
 var ContextStruct;
-es6_module_define('data_api_define', ["../units.js", "./data_api.js", "../../curve/spline_element_array.js", "../../editors/ops/ops_editor.js", "../imageblock.js", "../animdata.js", "../UserSettings.js", "../lib_api.js", "../../datafiles/theme.js", "../../editors/viewport/view2d.js", "../toolops_api.js", "../../editors/viewport/selectmode.js", "../../curve/spline_base.js", "../toolprops.js", "../../editors/viewport/spline_createops.js", "../frameset.js"], function _data_api_define_module(_es6_module) {
+es6_module_define('data_api_define', ["../lib_api.js", "../../editors/viewport/view2d.js", "../../curve/spline_element_array.js", "../../editors/viewport/spline_createops.js", "../UserSettings.js", "../../editors/viewport/selectmode.js", "../../editors/ops/ops_editor.js", "../toolprops.js", "../../datafiles/theme.js", "../toolops_api.js", "../animdata.js", "../../curve/spline_base.js", "../imageblock.js", "../units.js", "./data_api.js", "../frameset.js"], function _data_api_define_module(_es6_module) {
   var DataTypes=es6_import_item(_es6_module, '../lib_api.js', 'DataTypes');
   var EditModes=es6_import_item(_es6_module, '../../editors/viewport/view2d.js', 'EditModes');
   var ImageFlags=es6_import_item(_es6_module, '../imageblock.js', 'ImageFlags');
@@ -4734,7 +4735,7 @@ es6_module_define('data_api_define', ["../units.js", "./data_api.js", "../../cur
       }, function getitem(key) {
         return this.local_idmap[key];
       }, function getiter() {
-        return this[Symbol.iterator]();
+        return this.editable(g_app_state.ctx)[Symbol.iterator]();
       }, function getkeyiter(ctx) {
         var keys=new GArray();
         for (let e of this.editable(ctx)) {
@@ -4743,7 +4744,30 @@ es6_module_define('data_api_define', ["../units.js", "./data_api.js", "../../cur
         return keys;
       }, function getlength() {
         let len=0;
+        for (let e of this.selected.editable(g_app_state.ctx)) {
+            len++;
+        }
+        return len;
+      });
+    }
+    function define_selected_element_array(the_struct) {
+      return new DataStructArray(function getstruct(item) {
+        return the_struct;
+      }, function itempath(key) {
+        return ".local_idmap["+key+"]";
+      }, function getitem(key) {
+        return this.local_idmap[key];
+      }, function getiter() {
+        return this.selected.editable(g_app_state.ctx)[Symbol.iterator]();
+      }, function getkeyiter(ctx) {
+        var keys=new GArray();
         for (let e of this.editable(ctx)) {
+            keys.push(e.eid);
+        }
+        return keys;
+      }, function getlength() {
+        let len=0;
+        for (let e of this.selected.editable(g_app_state.ctx)) {
             len++;
         }
         return len;
@@ -4769,7 +4793,7 @@ es6_module_define('data_api_define', ["../units.js", "./data_api.js", "../../cur
         return this.length;
       });
     }
-    var SplineStruct=new DataStruct(api_define_DataBlock().concat([new DataPath(api_define_spline_face(), "active_face", "faces.active", true), new DataPath(api_define_spline_segment(), "active_segment", "segments.active", true), new DataPath(api_define_spline_vertex(), "active_vertex", "verts.active", true), new DataPath(define_element_array(SplineFaceStruct), "faces", "faces", true), new DataPath(define_element_array(SplineSegmentStruct), "segments", "segments", true), new DataPath(define_element_array(SplineVertexStruct), "verts", "verts", true), new DataPath(define_element_array(SplineVertexStruct), "handles", "handles", true), new DataPath(define_editable_element_array(SplineFaceStruct), "editable_faces", "faces", true), new DataPath(define_editable_element_array(SplineSegmentStruct), "editable_segments", "segments", true), new DataPath(define_editable_element_array(SplineVertexStruct), "editable_verts", "verts", true), new DataPath(layerset, "layerset", "layerset", true), new DataPath(SplineLayerStruct, "active_layer", "layerset.active", true)]));
+    var SplineStruct=new DataStruct(api_define_DataBlock().concat([new DataPath(api_define_spline_face(), "active_face", "faces.active", true), new DataPath(api_define_spline_segment(), "active_segment", "segments.active", true), new DataPath(api_define_spline_vertex(), "active_vertex", "verts.active", true), new DataPath(define_element_array(SplineFaceStruct), "faces", "faces", true), new DataPath(define_element_array(SplineSegmentStruct), "segments", "segments", true), new DataPath(define_element_array(SplineVertexStruct), "verts", "verts", true), new DataPath(define_element_array(SplineVertexStruct), "handles", "handles", true), new DataPath(define_editable_element_array(SplineFaceStruct), "editable_faces", "faces", true), new DataPath(define_editable_element_array(SplineSegmentStruct), "editable_segments", "segments", true), new DataPath(define_editable_element_array(SplineVertexStruct), "editable_verts", "verts", true), new DataPath(define_editable_element_array(SplineVertexStruct), "editable_handles", "handles", true), new DataPath(define_selected_element_array(SplineFaceStruct), "selected_facese", "faces", true), new DataPath(define_selected_element_array(SplineSegmentStruct), "selected_segments", "segments", true), new DataPath(define_selected_element_array(SplineVertexStruct), "selected_verts", "verts", true), new DataPath(define_selected_element_array(SplineVertexStruct), "selected_handles", "handles", true), new DataPath(layerset, "layerset", "layerset", true), new DataPath(SplineLayerStruct, "active_layer", "layerset.active", true)]));
     datablock_structs[DataTypes.SPLINE] = SplineStruct;
     return SplineStruct;
   }

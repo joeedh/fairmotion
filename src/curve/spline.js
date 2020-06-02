@@ -2211,12 +2211,7 @@ export class Spline extends DataBlock {
   {
     this.canvas = g;
     this.selectmode = selectmode;
-    
-    if (g._is_patched === undefined) {
-      patch_canvas2d(g);
-    }
-    
-    g._is_patched = this;
+
     g.lineWidth = 1;
     
     if (this.resolve) {

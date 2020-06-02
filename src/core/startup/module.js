@@ -24,7 +24,7 @@ let handler = {
 var _defined_modules = {} //new Proxy({}, handler);
 
 let _curpath_stack = [];
-var allow_cycles = false;
+var allow_cycles = true;
 var _rootpath_src = "";
 
 var _is_cyclic = false;

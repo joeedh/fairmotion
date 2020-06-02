@@ -619,6 +619,11 @@ export class SplineFrameSet extends DataBlock {
   sync_vdata_selstate(ctx) {
     for (let k in this.vertex_animdata) {
       let vd = this.vertex_animdata[k];
+      
+      if (!vd) {
+        continue;
+      }
+      
       vd.animflag &= ~VDAnimFlags.OWNER_IS_EDITABLE;
     }
 
@@ -627,6 +632,11 @@ export class SplineFrameSet extends DataBlock {
 
       for (let v of list.selected.editable(ctx)) {
         let vd = this.vertex_animdata[v.eid];
+        
+        if (!vd) {
+          continue;
+        }
+        
         vd.animflag |= VDAnimFlags.OWNER_IS_EDITABLE;
       }
     }

@@ -58,7 +58,7 @@ def build():
   copy("./platforms/html5/nodeserver.js", basepath + "/nodeserver.js")
   copy("./platforms/html5/config.js", basepath + "/config.js")
   copy("./platforms/html5/package.json", basepath + "/package.json")
-  copy("./platforms/html5/main.html", basepath + "/main.html");
+  copy("./platforms/html5/main.html", basepath + "/index.html");
   copy("./src/vectordraw/vectordraw_canvas2d_worker.js", basepath + "/vectordraw_canvas2d_worker.js");
   copy("./src/vectordraw/vectordraw_skia_worker.js", basepath + "/vectordraw_skia_worker.js");
 

@@ -908,7 +908,7 @@ def aggregate_multi(files, outpath=target_path+"app.js", maxsize=350*1024):
   file.write(bootstrap + """
     var totfile=TOTFILE, fname="FNAME";
     for (var i=0; i<totfile; i++) {
-      var path = "/fcontent/"+fname+i+".js";
+      var path = "./fcontent/"+fname+i+".js";
       var node = document.createElement("script")
       node.src = path
       node.async = false

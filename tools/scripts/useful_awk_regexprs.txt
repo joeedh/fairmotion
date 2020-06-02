@@ -1,4 +1,0 @@
-#convert filenames with spaces to unix shell-compatible form, escaped with \
-awk "{gsub(/ /, \"\\\\ \"); print}"
-#convert newline list into space-seperated, quote-escaped single line
-awk "{ORS=\"\"; print \"\\\"\"; print; print\"\\\"\"; print\" \"}"

@@ -1,5 +1,0 @@
-*.pyc
-*.log
-config_local.py
-database.db
-pymysql3_2

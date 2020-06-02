@@ -1,4 +1,4 @@
-es6_module_define('ui_numsliders', ["../core/ui_base.js", "../util/util.js", "../toolsys/toolprop.js", "../util/simple_events.js", "./ui_widgets.js", "../util/vectormath.js", "../core/units.js", "../core/ui.js"], function _ui_numsliders_module(_es6_module) {
+es6_module_define('ui_numsliders', ["../core/ui.js", "../util/vectormath.js", "../util/simple_events.js", "../core/ui_base.js", "../toolsys/toolprop.js", "../core/units.js", "./ui_widgets.js", "../util/util.js"], function _ui_numsliders_module(_es6_module) {
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var drawText=es6_import_item(_es6_module, '../core/ui_base.js', 'drawText');
   var ValueButtonBase=es6_import_item(_es6_module, './ui_widgets.js', 'ValueButtonBase');
@@ -321,9 +321,9 @@ es6_module_define('ui_numsliders', ["../core/ui_base.js", "../util/util.js", "..
       let dd=this.isInt ? 5 : this.decimalPlaces+8;
       let label=this._genLabel();
       let tw=ui_base.measureText(this, label, {size: ts, 
-     font: this.getDefault("DefaultText")}).width;
-      tw = Math.max(tw, this.getDefault("defaultWidth"));
-      tw+=this._getArrowSize()*4+ts;
+     font: this.getDefault("DefaultText")}).width/dpi;
+      tw = Math.max(tw+this._getArrowSize()*0, this.getDefault("defaultWidth"));
+      tw+=ts;
       tw = ~~tw;
       if (this.vertical) {
           this.style["width"] = this.dom.style["width"] = this.getDefault("defaultHeight")+"px";
@@ -3913,7 +3913,7 @@ es6_module_define('ui_widgets', ["./ui_textbox.js", "../toolsys/simple_toolsys.j
   let _ex_checkForTextBox=es6_import_item(_es6_module, './ui_textbox.js', 'checkForTextBox');
   _es6_module.add_export('checkForTextBox', _ex_checkForTextBox, true);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_widgets.js');
-es6_module_define('ui_widgets2', ["../util/util.js", "../util/events.js", "../toolsys/toolprop.js", "../util/vectormath.js", "../core/ui.js", "./ui_richedit.js", "../core/units.js", "./ui_widgets.js", "../core/ui_base.js"], function _ui_widgets2_module(_es6_module) {
+es6_module_define('ui_widgets2', ["../util/vectormath.js", "./ui_widgets.js", "./ui_richedit.js", "../core/ui.js", "../core/units.js", "../toolsys/toolprop.js", "../core/ui_base.js", "../util/util.js", "../util/events.js"], function _ui_widgets2_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, './ui_richedit.js');
   var util=es6_import(_es6_module, '../util/util.js');
@@ -4015,7 +4015,13 @@ es6_module_define('ui_widgets2', ["../util/util.js", "../util/events.js", "../to
       console.warn("rebuilding");
       this.sliders = [];
       for (let i=0; i<this.value.length; i++) {
-          let slider=frame.slider(undefined, this.axes[i], this.value[i], this.range[0], this.range[1], 0.001, this.isInt);
+          let slider=frame.slider(undefined, {name: this.axes[i], 
+       defaultval: this.value[i], 
+       min: this.range[0], 
+       max: this.range[1], 
+       step: this.step||0.001, 
+       is_int: this.isInt, 
+       packflag: this.packflag});
           slider.axis = i;
           let this2=this;
           slider.baseUnit = this.baseUnit;
@@ -4308,8 +4314,10 @@ es6_module_define('ui_widgets2', ["../util/util.js", "../util/events.js", "../to
 es6_module_define('all', ["./splinetool.js"], function _all_module(_es6_module) {
   es6_import(_es6_module, './splinetool.js');
 }, '/dev/fairmotion/src/editors/viewport/toolmodes/all.js');
-es6_module_define('splinetool', ["../../events.js", "../../../curve/spline_draw.js", "../view2d_editor.js", "../selectmode.js", "../../../path.ux/scripts/pathux.js", "../spline_createops.js", "../transform_ops.js", "../../../core/toolops_api.js", "./toolmode.js", "../spline_selectops.js", "../../../curve/spline_types.js", "../transform.js", "../spline_editops.js"], function _splinetool_module(_es6_module) {
+es6_module_define('splinetool', ["../../../core/context.js", "../spline_selectops.js", "../transform.js", "../../events.js", "../spline_createops.js", "./toolmode.js", "../../../path.ux/scripts/pathux.js", "../../../path.ux/scripts/core/ui_base.js", "../../../curve/spline_draw.js", "../../../path.ux/scripts/util/util.js", "../../../curve/spline_types.js", "../view2d_editor.js", "../selectmode.js", "../../../core/toolops_api.js", "../transform_ops.js", "../spline_editops.js", "../view2d_ops.js"], function _splinetool_module(_es6_module) {
   "use strict";
+  var UIBase=es6_import_item(_es6_module, '../../../path.ux/scripts/core/ui_base.js', 'UIBase');
+  var FullContext=es6_import_item(_es6_module, '../../../core/context.js', 'FullContext');
   var ExtrudeVertOp=es6_import_item(_es6_module, '../spline_createops.js', 'ExtrudeVertOp');
   var DeleteVertOp=es6_import_item(_es6_module, '../spline_editops.js', 'DeleteVertOp');
   var DeleteSegmentOp=es6_import_item(_es6_module, '../spline_editops.js', 'DeleteSegmentOp');
@@ -4348,13 +4356,16 @@ es6_module_define('splinetool', ["../../events.js", "../../../curve/spline_draw.
   var DuplicateOp=es6_import_item(_es6_module, '../spline_editops.js', 'DuplicateOp');
   var DisconnectHandlesOp=es6_import_item(_es6_module, '../spline_editops.js', 'DisconnectHandlesOp');
   var SplitEdgePickOp=es6_import_item(_es6_module, '../spline_editops.js', 'SplitEdgePickOp');
+  var util=es6_import(_es6_module, '../../../path.ux/scripts/util/util.js');
   var ToolMode=es6_import_item(_es6_module, './toolmode.js', 'ToolMode');
   var nstructjs=es6_import_item(_es6_module, '../../../path.ux/scripts/pathux.js', 'nstructjs');
   var WidgetResizeOp=es6_import_item(_es6_module, '../transform_ops.js', 'WidgetResizeOp');
   var WidgetRotateOp=es6_import_item(_es6_module, '../transform_ops.js', 'WidgetRotateOp');
   var ToolModes=es6_import_item(_es6_module, '../selectmode.js', 'ToolModes');
+  var PanOp=es6_import_item(_es6_module, '../view2d_ops.js', 'PanOp');
   window.anim_to_playback = [];
   class SplineToolMode extends ToolMode {
+    
     
     
     
@@ -4432,6 +4443,7 @@ es6_module_define('splinetool', ["../../events.js", "../../../curve/spline_draw.
       k.add_tool(new HotKey("G", ["ALT"], "Unghost Selection"), "spline.unhide(selmode=selectmode, ghost=1)");
       k.add(new HotKey("L", [], "Select Linked"), new FuncKeyHandler(function (ctx) {
         var mpos=ctx.keymap_mpos;
+        mpos = ctx.view2d.getLocalMouse(mpos[0], mpos[1]);
         var ret=ctx.spline.q.findnearest_vert(ctx.view2d, mpos, 55, undefined, ctx.view2d.edit_all_layers);
         console.log("select linked", ret);
         if (ret!=undefined) {
@@ -4501,13 +4513,18 @@ es6_module_define('splinetool', ["../../events.js", "../../../curve/spline_draw.
       return this.ctx.spline;
     }
      on_mousedown(event, localX, localY) {
+      if (this._do_touch_undo(event)) {
+          return true;
+      }
       var spline=this.ctx.spline;
       var toolmode=this.ctx.view2d.toolmode;
-      if (this.highlight_spline!==undefined) {
-      }
+      this.start_mpos[0] = event.x;
+      this.start_mpos[1] = event.y;
+      this.updateHighlight(event.x, event.y, !!event.touches);
       if (this.highlight_spline!==undefined&&this.highlight_spline!==spline) {
-          var newpath;
+          this._cancel_on_touch = false;
           console.log("spline switch!");
+          var newpath;
           if (this.highlight_spline.is_anim_path) {
               newpath = "frameset.pathspline";
           }
@@ -4519,13 +4536,11 @@ es6_module_define('splinetool', ["../../events.js", "../../../curve/spline_draw.
           this.ctx.switch_active_spline(newpath);
           spline = this._get_spline();
           redraw_viewport();
+          return true;
       }
-      if ("size" in spline&&spline[0]!=window.innerWidth&&spline[1]!=window.innerHeight) {
-          spline.size[0] = window.innerWidth;
-          spline.size[1] = window.innerHeight;
-      }
-      if (event.button==0) {
-          var can_append=toolmode==ToolModes.APPEND;
+      let ret=false;
+      if (event.button===0) {
+          var can_append=toolmode===ToolModes.APPEND;
           can_append = can_append&&(this.selectmode&(SelMask.VERTEX|SelMask.HANDLE));
           can_append = can_append&&spline.verts.highlight===undefined&&spline.handles.highlight===undefined;
           if (can_append) {
@@ -4536,26 +4551,31 @@ es6_module_define('splinetool', ["../../events.js", "../../../curve/spline_draw.
               op.inputs.location.setValue(co);
               op.inputs.linewidth.setValue(this.ctx.view2d.default_linewidth);
               op.inputs.stroke.setValue(this.ctx.view2d.default_stroke);
+              this._cancel_on_touch = true;
               g_app_state.toolstack.exec_tool(op);
               redraw_viewport();
+              ret = true;
           }
           else {
+            this._cancel_on_touch = false;
             for (var i=0; i<spline.elists.length; i++) {
                 var list=spline.elists[i];
                 if (!(this.selectmode&list.type))
                   continue;
                 
-                if (list.highlight==undefined)
+                if (list.highlight===undefined)
                   continue;
                 var op=new SelectOneOp(list.highlight, !event.shiftKey, !(list.highlight.flag&SplineFlags.SELECT), this.selectmode, true);
                 g_app_state.toolstack.exec_tool(op);
+                ret = true;
+                break;
             }
           }
           this.start_mpos[0] = event.x;
           this.start_mpos[1] = event.y;
-          this.start_mpos[2] = 0.0;
           this.mdown = true;
       }
+      return ret;
     }
      ensure_paths_off() {
       if (g_app_state.active_splinepath!="frameset.drawspline") {
@@ -4612,19 +4632,65 @@ es6_module_define('splinetool', ["../../events.js", "../../../curve/spline_draw.
         return undefined;
       return closest;
     }
-     on_mousemove(event) {
-      if (this.ctx==undefined)
-        return ;
-      var toolmode=this.ctx.view2d.toolmode;
-      var selectmode=this.selectmode;
-      var limit=selectmode&SelMask.SEGMENT ? 55 : 12;
-      if (toolmode==ToolModes.SELECT)
+     updateHighlight(x, y, was_touch) {
+      let toolmode=this.ctx.view2d.toolmode;
+      let limit;
+      if (this.ctx.view2d.selectmode&SelMask.SEGMENT) {
+          limit = 55;
+      }
+      else {
+        limit = (util.isMobile()||was_touch) ? 55 : 15;
+      }
+      limit/=UIBase.getDPI();
+      if (toolmode===ToolModes.SELECT)
         limit*=3;
-      var spline=this.ctx.spline;
-      spline.size = [window.innerWidth, window.innerHeight];
+      let ret=this.findnearest([x, y], this.ctx.view2d.selectmode, limit, this.ctx.view2d.edit_all_layers);
+      if (ret!==undefined) {
+          if (ret[0]!==this.highlight_spline&&this.highlight_spline!==undefined) {
+              this.highlight_spline.clear_highlight();
+          }
+          this.highlight_spline = ret[0];
+          this.highlight_spline.clear_highlight();
+          window.redraw_viewport();
+      }
+      else {
+        if (this.highlight_spline!==undefined) {
+            this.highlight_spline.clear_highlight();
+            window.redraw_viewport();
+        }
+        this.highlight_spline = undefined;
+      }
+      if (this.highlight_spline&&ret&&ret[1]) {
+          let list=this.highlight_spline.get_elist(ret[1].type);
+          let redraw=list.highlight!==ret[1];
+          list.highlight = ret[1];
+          if (redraw) {
+              window.redraw_viewport();
+          }
+      }
+    }
+     _do_touch_undo(event) {
+      console.log(event.touches&&event.touches.length>1, this._cancel_on_touch, "<---");
+      if (event.touches&&event.touches.length>1&&this._cancel_on_touch) {
+          console.log("touch undo!");
+          this.ctx.toolstack.undo();
+          this._cancel_on_touch = false;
+          this.ctx.toolstack.execTool(this.ctx, new PanOp());
+          window.redraw_viewport();
+          return true;
+      }
+    }
+     on_mousemove(event) {
+      if (this.ctx===undefined)
+        return ;
       this.mpos[0] = event.x, this.mpos[1] = event.y, this.mpos[2] = 0.0;
       var selectmode=this.selectmode;
-      if (this.mdown) {
+      if (this._do_touch_undo(event)) {
+          return ;
+      }
+      this.updateHighlight(event.x, event.y, !!event.touches);
+      let translate=(this.mdown&&this.start_mpos.vectorDistance(this.mpos)>15/UIBase.getDPI());
+      if (translate) {
           this.mdown = false;
           let mpos=new Vector2();
           mpos.load(this.start_mpos);
@@ -4637,42 +4703,23 @@ es6_module_define('splinetool', ["../../events.js", "../../../curve/spline_draw.
               op.inputs.proportional.setValue(true);
               op.inputs.propradius.setValue(ctx.view2d.propradius);
           }
-          g_app_state.toolstack.exec_tool(op);
-          return ;
-      }
-      if (this.mdown)
-        return ;
-      var ret=this.findnearest([event.x, event.y], this.ctx.view2d.selectmode, limit, this.ctx.view2d.edit_all_layers);
-      if (ret!=undefined&&typeof (ret[1])!="number"&&ret[2]!=SelMask.MULTIRES) {
-          if (this.highlight_spline!=undefined) {
-              for (var list of this.highlight_spline.elists) {
-                  if (list.highlight!=undefined) {
-                      redraw_element(list.highlight, this.view2d);
-                  }
-              }
-          }
-          if (ret[0]!==this.highlight_spline&&this.highlight_spline!=undefined) {
-              this.highlight_spline.clear_highlight();
-          }
-          this.highlight_spline = ret[0];
-          this.highlight_spline.clear_highlight();
-          var list=this.highlight_spline.get_elist(ret[1].type);
-          list.highlight = ret[1];
-          redraw_element(list.highlight, this.view2d);
-      }
-      else {
-        if (this.highlight_spline!==undefined) {
-            for (var i=0; i<this.highlight_spline.elists.length; i++) {
-                var list=this.highlight_spline.elists[i];
-                if (list.highlight!=undefined) {
-                    redraw_element(list.highlight, this.view2d);
-                }
+          let _cancel_on_touch=this._cancel_on_touch;
+          this._cancel_on_touch = false;
+          op.touchCancelable(() =>            {
+            console.log("touch-induced cancel!");
+            this.ctx.toolstack.execTool(this.ctx, new PanOp());
+            if (_cancel_on_touch) {
+                this.ctx.toolstack.undo();
             }
-            this.highlight_spline.clear_highlight();
-        }
+          });
+          g_app_state.toolstack.exec_tool(op);
       }
     }
      on_mouseup(event) {
+      this._cancel_on_touch = false;
+      this.start_mpos[0] = event.x;
+      this.start_mpos[1] = event.y;
+      this.mdown = true;
       var spline=this._get_spline();
       spline.size = [window.innerWidth, window.innerHeight];
       this.mdown = false;
@@ -4865,7 +4912,7 @@ es6_module_define('struct', ["../path.ux/scripts/pathux.js", "../path.ux/scripts
   _es6_module.add_class(arraybufferCompat);
   arraybufferCompat = _es6_module.add_export('arraybufferCompat', arraybufferCompat);
   arraybufferCompat.STRUCT = `arraybuffer {
-  _data : array(byte);
+  _data : array(byte) | this ? this : [];
 }`;
   nstructjs.register(arraybufferCompat);
   nstructjs.setDebugMode(false);
@@ -8519,7 +8566,7 @@ es6_module_define('spline_query', ["./spline_multires.js", "../editors/viewport/
   _es6_module.add_class(SplineQuery);
   SplineQuery = _es6_module.add_export('SplineQuery', SplineQuery);
 }, '/dev/fairmotion/src/curve/spline_query.js');
-es6_module_define('spline_draw', ["../util/vectormath.js", "../editors/viewport/view2d_editor.js", "./spline_draw_sort", "./spline_math.js", "../editors/viewport/selectmode.js", "../util/mathlib.js", "./spline_draw_new.js", "./spline_types.js", "../core/animdata.js", "../config/config.js", "./spline_draw_sort.js", "./spline_element_array.js"], function _spline_draw_module(_es6_module) {
+es6_module_define('spline_draw', ["./spline_element_array.js", "../util/mathlib.js", "./spline_math.js", "./spline_draw_sort.js", "../config/config.js", "./spline_draw_sort", "../editors/viewport/view2d_editor.js", "./spline_draw_new.js", "../core/animdata.js", "./spline_types.js", "../editors/viewport/selectmode.js", "../util/vectormath.js"], function _spline_draw_module(_es6_module) {
   var aabb_isect_minmax2d=es6_import_item(_es6_module, '../util/mathlib.js', 'aabb_isect_minmax2d');
   var ENABLE_MULTIRES=es6_import_item(_es6_module, '../config/config.js', 'ENABLE_MULTIRES');
   var SessionFlags=es6_import_item(_es6_module, '../editors/viewport/view2d_editor.js', 'SessionFlags');
@@ -8660,7 +8707,7 @@ es6_module_define('spline_draw', ["../util/vectormath.js", "../editors/viewport/
     }
   }
   draw_curve_normals = _es6_module.add_export('draw_curve_normals', draw_curve_normals);
-  var $r_upa9_draw_spline=[[0, 0], [0, 0]];
+  var $r_QwXn_draw_spline=[[0, 0], [0, 0]];
   function draw_spline(spline, redraw_rects, g, editor, matrix, selectmode, only_render, draw_normals, alpha, draw_time_helpers, curtime, ignore_layers) {
     spline.canvas = g;
     if (spline.drawlist===undefined||(spline.recalc&RecalcFlags.DRAWSORT)) {
@@ -8928,17 +8975,17 @@ es6_module_define('spline_draw', ["../util/vectormath.js", "../editors/viewport/
     g._irender_mat.invert();
   }
   set_rendermat = _es6_module.add_export('set_rendermat', set_rendermat);
-  var $margin_D0uT_redraw_element=new Vector3([15, 15, 15]);
-  var $aabb_gPUS_redraw_element=[new Vector3(), new Vector3()];
+  var $margin_9LxD_redraw_element=new Vector3([15, 15, 15]);
+  var $aabb_H9KA_redraw_element=[new Vector3(), new Vector3()];
   function redraw_element(e, view2d) {
     e.flag|=SplineFlags.REDRAW;
-    $margin_D0uT_redraw_element[0] = $margin_D0uT_redraw_element[1] = $margin_D0uT_redraw_element[2] = 15.0;
+    $margin_9LxD_redraw_element[0] = $margin_9LxD_redraw_element[1] = $margin_9LxD_redraw_element[2] = 15.0;
     if (view2d!=undefined)
-      $margin_D0uT_redraw_element.mulScalar(1.0/view2d.zoom);
+      $margin_9LxD_redraw_element.mulScalar(1.0/view2d.zoom);
     var e_aabb=e.aabb;
-    $aabb_gPUS_redraw_element[0].load(e_aabb[0]), $aabb_gPUS_redraw_element[1].load(e_aabb[1]);
-    $aabb_gPUS_redraw_element[0].sub($margin_D0uT_redraw_element), $aabb_gPUS_redraw_element[1].add($margin_D0uT_redraw_element);
-    window.redraw_viewport($aabb_gPUS_redraw_element[0], $aabb_gPUS_redraw_element[1]);
+    $aabb_H9KA_redraw_element[0].load(e_aabb[0]), $aabb_H9KA_redraw_element[1].load(e_aabb[1]);
+    $aabb_H9KA_redraw_element[0].sub($margin_9LxD_redraw_element), $aabb_H9KA_redraw_element[1].add($margin_9LxD_redraw_element);
+    window.redraw_viewport($aabb_H9KA_redraw_element[0], $aabb_H9KA_redraw_element[1]);
   }
   redraw_element = _es6_module.add_export('redraw_element', redraw_element);
 }, '/dev/fairmotion/src/curve/spline_draw.js');
@@ -9234,7 +9281,7 @@ es6_module_define('spline_draw_sort', ["../editors/viewport/selectmode.js", "../
   }
   redo_draw_sort = _es6_module.add_export('redo_draw_sort', redo_draw_sort);
 }, '/dev/fairmotion/src/curve/spline_draw_sort.js');
-es6_module_define('spline', ["../core/eventdag.js", "../core/struct.js", "./solver_new.js", "./spline_query.js", "../config/config.js", "./spline_math.js", "../wasm/native_api.js", "../editors/viewport/selectmode.js", "./spline_types.js", "./spline_draw.js", "../path.ux/scripts/config/const.js", "../editors/viewport/view2d_editor.js", "./spline_multires.js", "../core/lib_api.js", "../core/toolops_api.js", "./solver.js", "./spline_element_array.js"], function _spline_module(_es6_module) {
+es6_module_define('spline', ["../path.ux/scripts/config/const.js", "../core/lib_api.js", "./spline_multires.js", "../config/config.js", "../core/eventdag.js", "../editors/viewport/selectmode.js", "./spline_math.js", "./spline_query.js", "../editors/viewport/view2d_editor.js", "../core/toolops_api.js", "../wasm/native_api.js", "./spline_draw.js", "./solver.js", "./solver_new.js", "../core/struct.js", "./spline_element_array.js", "./spline_types.js"], function _spline_module(_es6_module) {
   "use strict";
   const MMLEN=8;
   const UARR=Uint16Array;
@@ -9343,10 +9390,10 @@ es6_module_define('spline', ["../core/eventdag.js", "../core/struct.js", "./solv
   _es6_module.add_class(AllPointsIter);
   AllPointsIter = _es6_module.add_export('AllPointsIter', AllPointsIter);
   var RecalcFlags=es6_import_item(_es6_module, './spline_types.js', 'RecalcFlags');
-  var $debug_id_gen_KA8u_constructor;
-  var $ws_teYB_split_edge;
-  var $lastco_tpkR_trace_face;
-  var $srcs_PEFg_split_edge;
+  var $debug_id_gen_lpMO_constructor;
+  var $ws_4aC0_split_edge;
+  var $lastco_yEc6_trace_face;
+  var $srcs_BivP_split_edge;
   class Spline extends DataBlock {
     
     
@@ -9380,7 +9427,7 @@ es6_module_define('spline', ["../core/eventdag.js", "../core/struct.js", "./solv
       this._vert_add_set = new set();
       this._vert_rem_set = new set();
       this._vert_time_set = new set();
-      this._debug_id = $debug_id_gen_KA8u_constructor++;
+      this._debug_id = $debug_id_gen_lpMO_constructor++;
       this._pending_solve = undefined;
       this._resolve_after = undefined;
       this.solving = undefined;
@@ -9691,9 +9738,9 @@ es6_module_define('spline', ["../core/eventdag.js", "../core/struct.js", "./solv
           this.connect_handles(nseg.h2, hpair);
       }
       this.copy_segment_data(nseg, seg);
-      $srcs_PEFg_split_edge[0] = v1.cdata, $srcs_PEFg_split_edge[1] = v2.cdata;
+      $srcs_BivP_split_edge[0] = v1.cdata, $srcs_BivP_split_edge[1] = v2.cdata;
       this.copy_vert_data(nv, v1);
-      nv.cdata.interp($srcs_PEFg_split_edge, $ws_teYB_split_edge);
+      nv.cdata.interp($srcs_BivP_split_edge, $ws_4aC0_split_edge);
       this.resolve = 1;
       return ret;
     }
@@ -10574,7 +10621,7 @@ es6_module_define('spline', ["../core/eventdag.js", "../core/struct.js", "./solv
     }
      trace_face(g, f) {
       g.beginPath();
-      $lastco_tpkR_trace_face.zero();
+      $lastco_yEc6_trace_face.zero();
       for (var path of f.paths) {
           var first=true;
           for (var l of path) {
@@ -10696,6 +10743,13 @@ es6_module_define('spline', ["../core/eventdag.js", "../core/struct.js", "./solv
       this.start_mpos[1] = this.mpos[1];
       this.start_transform();
       this.resolve = 1;
+    }
+     has_highlight(selmask=255) {
+      for (let list of this.elists) {
+          if ((list.type&selmask)&&list.highlight)
+            return true;
+      }
+      return false;
     }
      clear_highlight() {
       for (var i=0; i<this.elists.length; i++) {
@@ -10887,10 +10941,6 @@ es6_module_define('spline', ["../core/eventdag.js", "../core/struct.js", "./solv
      draw(redraw_rects, g, editor, matrix, selectmode, only_render, draw_normals, alpha, draw_time_helpers, curtime, ignore_layers) {
       this.canvas = g;
       this.selectmode = selectmode;
-      if (g._is_patched===undefined) {
-          patch_canvas2d(g);
-      }
-      g._is_patched = this;
       g.lineWidth = 1;
       if (this.resolve) {
           this.solve().then(function () {
@@ -11048,10 +11098,10 @@ es6_module_define('spline', ["../core/eventdag.js", "../core/struct.js", "./solv
      inputs: {}}
     }
   }
-  var $debug_id_gen_KA8u_constructor=0;
-  var $ws_teYB_split_edge=[0.5, 0.5];
-  var $lastco_tpkR_trace_face=new Vector3();
-  var $srcs_PEFg_split_edge=[0, 0];
+  var $debug_id_gen_lpMO_constructor=0;
+  var $ws_4aC0_split_edge=[0.5, 0.5];
+  var $lastco_yEc6_trace_face=new Vector3();
+  var $srcs_BivP_split_edge=[0, 0];
   _ESClass.register(Spline);
   _es6_module.add_class(Spline);
   Spline = _es6_module.add_export('Spline', Spline);

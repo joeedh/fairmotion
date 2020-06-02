@@ -1,4 +1,4 @@
-es6_module_define('ui_base', ["./aspect.js", "../util/math.js", "../config/const.js", "../toolsys/toolprop.js", "../util/colorutils.js", "./theme.js", "../util/util.js", "./ui_theme.js", "./anim.js", "./units.js", "../icon_enum.js", "../controller/controller.js", "../controller/simple_controller.js", "../util/vectormath.js", "../util/cssutils.js", "../util/simple_events.js"], function _ui_base_module(_es6_module) {
+es6_module_define('ui_base', ["../util/simple_events.js", "./anim.js", "../controller/simple_controller.js", "../util/colorutils.js", "../icon_enum.js", "./ui_theme.js", "../controller/controller.js", "../config/const.js", "../util/util.js", "./units.js", "../util/math.js", "../toolsys/toolprop.js", "./aspect.js", "../util/vectormath.js", "./theme.js", "../util/cssutils.js"], function _ui_base_module(_es6_module) {
   let _ui_base=undefined;
   if (window.document&&document.body) {
       console.log("ensuring body.style.margin/padding are zero");
@@ -1196,14 +1196,23 @@ ${selector}::-webkit-scrollbar-thumb {
         ctx.toolstack.execTool(this.ctx, toolop);
       }
     }
+     pushReportContext(key) {
+      if (this.ctx.api.pushReportContext) {
+          this.ctx.api.pushReportContext(key);
+      }
+    }
+     popReportContext() {
+      if (this.ctx.api.popReportContext)
+        this.ctx.api.popReportContext();
+    }
      setPathValue(ctx, path, val) {
       if (this.useDataPathUndo) {
-          ctx.api.pushReportContext(this._reportCtxName);
+          this.pushReportContext(this._reportCtxName);
           try {
             this.setPathValueUndo(ctx, path, val);
           }
           catch (error) {
-              ctx.api.popReportContext();
+              this.popReportContext();
               if (!(__instance_of(error, DataPathError))) {
                   throw error;
               }
@@ -1211,10 +1220,10 @@ ${selector}::-webkit-scrollbar-thumb {
                 return ;
               }
           }
-          ctx.api.popReportContext();
+          this.popReportContext();
           return ;
       }
-      ctx.api.pushReportContext(this._reportCtxName);
+      this.pushReportContext(this._reportCtxName);
       try {
         if (this.hasAttribute("mass_set_path")) {
             ctx.api.massSetProp(ctx, this.getAttribute("mass_set_path"), val);
@@ -1225,31 +1234,31 @@ ${selector}::-webkit-scrollbar-thumb {
         }
       }
       catch (error) {
-          ctx.api.popReportContext();
+          this.popReportContext();
           if (!(__instance_of(error, DataPathError))) {
               throw error;
           }
           return ;
       }
-      ctx.api.popReportContext();
+      this.popReportContext();
     }
     get  _reportCtxName() {
       return ""+this._id;
     }
      getPathMeta(ctx, path) {
-      ctx.api.pushReportContext(this._reportCtxName);
+      this.pushReportContext(this._reportCtxName);
       let ret=ctx.api.resolvePath(ctx, path);
-      ctx.api.popReportContext();
+      this.popReportContext();
       return ret!==undefined ? ret.prop : undefined;
     }
      getPathDescription(ctx, path) {
       let ret;
-      ctx.api.pushReportContext(this._reportCtxName);
+      this.pushReportContext(this._reportCtxName);
       try {
         ret = ctx.api.getDescription(ctx, path);
       }
       catch (error) {
-          ctx.api.popReportContext();
+          this.popReportContext();
           if (__instance_of(error, DataPathError)) {
               return undefined;
           }
@@ -1257,7 +1266,7 @@ ${selector}::-webkit-scrollbar-thumb {
             throw error;
           }
       }
-      ctx.api.popReportContext();
+      this.popReportContext();
       return ret;
     }
      getScreen() {

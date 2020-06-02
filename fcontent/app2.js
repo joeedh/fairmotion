@@ -1684,7 +1684,7 @@ es6_module_define('raster', ["./icon.js", "../config/config.js"], function _rast
   _es6_module.add_class(RasterState);
   RasterState = _es6_module.add_export('RasterState', RasterState);
 }, '/dev/fairmotion/src/core/raster.js');
-es6_module_define('imageblock', ["./lib_api.js", "../editors/viewport/selectmode.js", "./struct.js", "./toolops_api.js", "../path.ux/scripts/util/vectormath.js", "../editors/viewport/view2d_editor.js", "../util/strutils.js"], function _imageblock_module(_es6_module) {
+es6_module_define('imageblock', ["../editors/viewport/selectmode.js", "../util/strutils.js", "../path.ux/scripts/util/vectormath.js", "../editors/viewport/view2d_editor.js", "./lib_api.js", "./struct.js", "./toolops_api.js"], function _imageblock_module(_es6_module) {
   var DataBlock=es6_import_item(_es6_module, './lib_api.js', 'DataBlock');
   var DataTypes=es6_import_item(_es6_module, './lib_api.js', 'DataTypes');
   var BlockFlags=es6_import_item(_es6_module, './lib_api.js', 'BlockFlags');
@@ -1731,6 +1731,14 @@ es6_module_define('imageblock', ["./lib_api.js", "../editors/viewport/selectmode
       }
       return this._dom;
     }
+     _get_data() {
+      if (this.data) {
+          return this.data;
+      }
+      else {
+        return new Uint8Array([]);
+      }
+    }
      loadSTRUCT(reader) {
       reader(this);
       super.loadSTRUCT(reader);
@@ -1746,7 +1754,7 @@ es6_module_define('imageblock', ["./lib_api.js", "../editors/viewport/selectmode
   Image.STRUCT = STRUCT.inherit(Image, DataBlock)+`
   path  : string;
   width : array(int);
-  data  : arraybuffer;
+  data  : arraybuffer | this._get_data();
 }
 `;
   class ImageUser  {
@@ -1780,7 +1788,7 @@ ImageUser {
 }
 `;
 }, '/dev/fairmotion/src/core/imageblock.js');
-es6_module_define('image_ops', ["../curve/spline.js", "../curve/spline_draw.js", "../config/config.js", "../core/struct.js", "../core/imageblock.js", "../core/fileapi/fileapi.js", "../path.ux/scripts/util/struct.js", "../core/frameset.js", "../core/lib_api.js", "../core/toolops_api.js", "../core/toolprops.js"], function _image_ops_module(_es6_module) {
+es6_module_define('image_ops', ["../core/struct.js", "../core/toolprops.js", "../core/frameset.js", "../curve/spline.js", "../core/toolops_api.js", "../core/fileapi/fileapi.js", "../curve/spline_draw.js", "../path.ux/scripts/util/struct.js", "../config/config.js", "../core/lib_api.js", "../core/imageblock.js"], function _image_ops_module(_es6_module) {
   var Image=es6_import_item(_es6_module, '../core/imageblock.js', 'Image');
   var DataTypes=es6_import_item(_es6_module, '../core/lib_api.js', 'DataTypes');
   var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
@@ -1841,14 +1849,14 @@ es6_module_define('image_ops', ["../curve/spline.js", "../curve/spline_draw.js",
      exec(ctx) {
       ctx = new Context();
       var name=this.inputs.name.data.trim();
-      name = name=="" ? undefined : name;
+      name = name==="" ? undefined : name;
       var image=new Image(name);
       ctx.datalib.add(image);
       image.path = this.inputs.imagepath.data;
       image.data = this.inputs.imagedata.data;
       this.outputs.block.setValue(image);
       var outpath=this.inputs.dest_datapath.data.trim();
-      if (outpath!="") {
+      if (outpath!=="") {
           ctx.api.setValue(ctx, outpath, image);
       }
     }
@@ -2240,7 +2248,7 @@ AppSettings {
     return ujob;
   }
 }, '/dev/fairmotion/src/core/UserSettings.js');
-es6_module_define('context', ["../editors/settings/SettingsEditor.js", "../editors/curve/CurveEditor.js", "../editors/ops/ops_editor.js", "../path.ux/scripts/controller/context.js", "../path.ux/scripts/screen/FrameManager_ops.js", "./lib_api.js", "../editors/material/MaterialEditor.js", "./frameset.js", "../editors/dopesheet/DopeSheetEditor.js", "../editors/menubar/MenuBar.js", "../editors/editor_base.js", "../editors/viewport/view2d.js", "../editors/console/console.js"], function _context_module(_es6_module) {
+es6_module_define('context', ["../path.ux/scripts/screen/FrameManager_ops.js", "../editors/settings/SettingsEditor.js", "../editors/menubar/MenuBar.js", "../editors/material/MaterialEditor.js", "../editors/ops/ops_editor.js", "./frameset.js", "../editors/dopesheet/DopeSheetEditor.js", "./lib_api.js", "../editors/editor_base.js", "../path.ux/scripts/controller/context.js", "../editors/console/console.js", "../editors/viewport/view2d.js", "../editors/curve/CurveEditor.js"], function _context_module(_es6_module) {
   var SplineFrameSet=es6_import_item(_es6_module, './frameset.js', 'SplineFrameSet');
   var SettingsEditor=es6_import_item(_es6_module, '../editors/settings/SettingsEditor.js', 'SettingsEditor');
   var MenuBar=es6_import_item(_es6_module, '../editors/menubar/MenuBar.js', 'MenuBar');
@@ -2249,7 +2257,6 @@ es6_module_define('context', ["../editors/settings/SettingsEditor.js", "../edito
   var ConsoleEditor=es6_import_item(_es6_module, '../editors/console/console.js', 'ConsoleEditor');
   var CurveEditor=es6_import_item(_es6_module, '../editors/curve/CurveEditor.js', 'CurveEditor');
   var OpStackEditor=es6_import_item(_es6_module, '../editors/ops/ops_editor.js', 'OpStackEditor');
-  var View2DHandler=es6_import_item(_es6_module, '../editors/viewport/view2d.js', 'View2DHandler');
   var MaterialEditor=es6_import_item(_es6_module, '../editors/material/MaterialEditor.js', 'MaterialEditor');
   var DopeSheetEditor=es6_import_item(_es6_module, '../editors/dopesheet/DopeSheetEditor.js', 'DopeSheetEditor');
   var SettingsEditor=es6_import_item(_es6_module, '../editors/settings/SettingsEditor.js', 'SettingsEditor');
@@ -2435,6 +2442,11 @@ es6_module_define('context', ["../editors/settings/SettingsEditor.js", "../edito
   _es6_module.add_class(BaseContext);
   BaseContext = _es6_module.add_export('BaseContext', BaseContext);
   class FullContext extends BaseContext {
+    
+    
+    
+    
+    
      constructor(state=g_app_state) {
       super(state);
       this.reset(state);
@@ -2448,9 +2460,10 @@ es6_module_define('context', ["../editors/settings/SettingsEditor.js", "../edito
   _es6_module.add_class(FullContext);
   FullContext = _es6_module.add_export('FullContext', FullContext);
   window.Context = FullContext;
+  var View2DHandler=es6_import_item(_es6_module, '../editors/viewport/view2d.js', 'View2DHandler');
 }, '/dev/fairmotion/src/core/context.js');
 var g_app_state, g, t;
-es6_module_define('AppState', ["../editors/material/MaterialEditor.js", "../path.ux/scripts/screen/FrameManager.js", "../editors/menubar/MenuBar.js", "./toolprops.js", "./lib_api.js", "../editors/viewport/view2d.js", "../editors/editor_base.js", "../editors/settings/SettingsEditor.js", "../path.ux/scripts/core/ui_base.js", "./toolops_api.js", "./startup/startup_file.js", "./startup/startup_file_example.js", "./raster.js", "./data_api/data_api_pathux.js", "../editors/theme.js", "../path.ux/scripts/platforms/electron/electron_api.js", "./lib_utils.js", "../path.ux/scripts/config/const.js", "../editors/console/console.js", "./ajax.js", "./data_api/data_api.js", "./context.js", "../path.ux/scripts/screen/FrameManager_ops.js", "../editors/curve/CurveEditor.js", "../scene/scene.js", "./lib_api_typedefine.js", "../curve/spline_base.js", "../editors/ops/ops_editor.js", "./frameset.js", "../util/strutils.js", "./jobs.js", "./UserSettings.js", "../editors/viewport/view2d_ops.js", "../../platforms/platform.js", "./fileapi/fileapi.js", "../path.ux/scripts/util/util.js", "./notifications.js", "../config/config.js", "./struct.js", "../path.ux/scripts/screen/ScreenArea.js", "../editors/dopesheet/DopeSheetEditor.js", "../editors/all.js"], function _AppState_module(_es6_module) {
+es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/menubar/MenuBar.js", "./frameset.js", "./UserSettings.js", "../editors/editor_base.js", "./data_api/data_api_pathux.js", "../editors/curve/CurveEditor.js", "./startup/startup_file_example.js", "../path.ux/scripts/screen/ScreenArea.js", "../path.ux/scripts/screen/FrameManager.js", "../path.ux/scripts/config/const.js", "../path.ux/scripts/platforms/electron/electron_api.js", "../editors/theme.js", "./data_api/data_api.js", "./notifications.js", "../editors/all.js", "../editors/viewport/view2d.js", "./ajax.js", "./fileapi/fileapi.js", "./lib_api_typedefine.js", "../editors/console/console.js", "./lib_utils.js", "../editors/viewport/view2d_ops.js", "../editors/dopesheet/DopeSheetEditor.js", "../editors/settings/SettingsEditor.js", "../path.ux/scripts/util/util.js", "../config/config.js", "./startup/startup_file.js", "../curve/spline_base.js", "../path.ux/scripts/core/ui_base.js", "./lib_api.js", "./toolprops.js", "./raster.js", "../scene/scene.js", "./struct.js", "../path.ux/scripts/screen/FrameManager_ops.js", "../../platforms/platform.js", "../editors/ops/ops_editor.js", "./toolops_api.js", "../editors/material/MaterialEditor.js", "./context.js"], function _AppState_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, '../editors/all.js');
   var platform=es6_import(_es6_module, '../../platforms/platform.js');
@@ -2831,7 +2844,7 @@ es6_module_define('AppState', ["../editors/material/MaterialEditor.js", "../path
      constructor(screen) {
       this.AppState_init(screen);
     }
-     AppState_init(screen) {
+     AppState_init(screen, reset_mode=false) {
       this.screen = screen;
       this.eventhandler = screen;
       this.active_editor = undefined;
@@ -2858,17 +2871,19 @@ es6_module_define('AppState', ["../editors/material/MaterialEditor.js", "../path
       this.datalib = new DataLib();
       this.modalstate = 0;
       this.jobs = new JobManager();
-      if (myLocalStorage.hasCached("session")) {
-          try {
-            this.session = UserSession.fromJSON(JSON.parse(myLocalStorage.getCached("session")));
+      if (!reset_mode) {
+          if (myLocalStorage.hasCached("session")) {
+              try {
+                this.session = UserSession.fromJSON(JSON.parse(myLocalStorage.getCached("session")));
+              }
+              catch (error) {
+                  print_stack(error);
+                  console.log("Error loading json session object:", myLocalStorage.getCached("session"));
+              }
           }
-          catch (error) {
-              print_stack(error);
-              console.log("Error loading json session object:", myLocalStorage.getCached("session"));
+          else {
+            this.session = new UserSession();
           }
-      }
-      else {
-        this.session = new UserSession();
       }
       this.ctx = new FullContext(this);
     }
@@ -2893,12 +2908,6 @@ es6_module_define('AppState', ["../editors/material/MaterialEditor.js", "../path
      destroy() {
       console.trace("Appstate.destroy called");
       this.destroyScreen();
-    }
-     on_gl_lost(new_gl) {
-      this.gl = new_gl;
-      this.raster.on_gl_lost(new_gl);
-      this.datalib.on_gl_lost(new_gl);
-      this.screen.on_gl_lost(new_gl);
     }
      update_context() {
       var scene=this.datalib.get_active(DataTypes.SCENE);
@@ -2931,10 +2940,10 @@ es6_module_define('AppState', ["../editors/material/MaterialEditor.js", "../path
           print_stack(error);
           console.log("ERROR: failed to fully destroy screen context");
       }
-      this.AppState_init(screen, undefined, this.gl);
+      this.AppState_init(screen, true);
     }
      copy() {
-      var as=new AppState(this.screen, undefined, this.gl);
+      var as=new AppState(this.screen, undefined);
       as.datalib = this.datalib;
       as.session = this.session;
       as.toolstack = this.toolstack;
@@ -2991,7 +3000,7 @@ es6_module_define('AppState', ["../editors/material/MaterialEditor.js", "../path
       console.log(undofile);
       this.datalib.clear();
       var filedata=this.load_blocks(undofile);
-      this.link_blocks(datalib, filedata);
+      this.link_blocks(this.datalib, filedata);
       this.eventhandler = screen;
       this.toolstack = toolstack;
       this.screen.ctx = new FullContext();
@@ -3291,8 +3300,9 @@ es6_module_define('AppState', ["../editors/material/MaterialEditor.js", "../path
       platform.app.openFile(path_handle).then((buf) =>        {
         let dview=new DataView(buf.buffer);
         this.load_user_file_new(dview, path_handle);
-      }).catch(error);
-      this.ctx.error(error.toString());
+      }).catch((error) =>        {
+        this.ctx.error(error.toString());
+      });
     }
      load_user_file_new(data, path, uctx, use_existing_screen=false) {
       if (this.screen!==undefined)
@@ -3831,7 +3841,12 @@ SavedContext {
       if (scene!=undefined&&scene.time!=this.time)
         scene.change_time(this, this.time, false);
       if (this._object>=0&&(!scene.objects.active||this._object!=scene.objects.active.id)) {
-          scene.setActiveObject(this._object);
+          try {
+            scene.setActiveObject(this._object);
+          }
+          catch (error) {
+              util.print_stack(error);
+          }
       }
       this._selectmode = state.selectmode;
       if (fset!=undefined)
@@ -4047,10 +4062,18 @@ SavedContext {
       tool.stack_index = this.undostack.indexOf(tool);
       this.undocur++;
     }
-     toolop_cancel(op) {
-      if (this.undostack.indexOf(op)>=0) {
-          this.undostack.remove(op);
-          this.undocur--;
+     toolop_cancel(op, executeUndo) {
+      if (executeUndo===undefined) {
+          console.warn("Warning, executeUndo in toolop_cancel() was undefined");
+      }
+      if (executeUndo) {
+          this.undo();
+      }
+      else {
+        if (this.undostack.indexOf(op)>=0) {
+            this.undostack.remove(op);
+            this.undocur--;
+        }
       }
     }
      undo() {
@@ -9942,7 +9965,7 @@ es6_module_define('theme', ["../util/util.js", "./ui_theme.js"], function _theme
     defaultHeight: 24}}
   _es6_module.add_export('DefaultTheme', DefaultTheme);
 }, '/dev/fairmotion/src/path.ux/scripts/core/theme.js');
-es6_module_define('ui', ["../util/vectormath.js", "../util/simple_events.js", "../widgets/ui_menu.js", "../config/const.js", "./ui_base.js", "../widgets/ui_widgets.js", "../util/util.js", "../toolsys/toolprop.js", "./ui_theme.js", "../util/html5_fileapi.js"], function _ui_module(_es6_module) {
+es6_module_define('ui', ["./ui_base.js", "../util/vectormath.js", "../widgets/ui_widgets.js", "../config/const.js", "../util/simple_events.js", "../util/util.js", "../util/html5_fileapi.js", "./ui_theme.js", "../toolsys/toolprop.js", "../widgets/ui_menu.js"], function _ui_module(_es6_module) {
   var _ui=undefined;
   var util=es6_import(_es6_module, '../util/util.js');
   var vectormath=es6_import(_es6_module, '../util/vectormath.js');
@@ -10575,10 +10598,10 @@ es6_module_define('ui', ["../util/vectormath.js", "../util/simple_events.js", ".
         if (prop.type===PropTypes.INT||prop.type===PropTypes.FLOAT) {
           let ret;
           if (packflag&PackFlags.SIMPLE_NUMSLIDERS) {
-              ret = this.simpleslider(inpath);
+              ret = this.simpleslider(inpath, {packflag: packflag});
           }
           else {
-            ret = this.slider(inpath);
+            ret = this.slider(inpath, {packflag: packflag});
           }
           ret.packflag|=packflag;
           if (mass_set_path) {
@@ -10623,7 +10646,11 @@ es6_module_define('ui', ["../util/vectormath.js", "../util/simple_events.js", ".
       else 
         if (prop.type&(PropTypes.VEC2|PropTypes.VEC3|PropTypes.VEC4)) {
           if (rdef.subkey!==undefined) {
-              let ret=(packflag&PackFlags.SIMPLE_NUMSLIDERS) ? this.simpleslider(path) : this.slider(path);
+              let ret;
+              if (packflag&PackFlags.SIMPLE_NUMSLIDERS)
+                ret = this.simpleslider(path, {packflag: packflag});
+              else 
+                this.slider(path, {packflag: packflag});
               ret.packflag|=packflag;
               return ret;
           }
@@ -10633,6 +10660,7 @@ es6_module_define('ui', ["../util/vectormath.js", "../util/simple_events.js", ".
           }
           else {
             let ret=document.createElement("vector-panel-x");
+            ret.packflag|=packflag;
             if (inpath) {
                 ret.setAttribute("datapath", inpath);
             }
@@ -10951,7 +10979,7 @@ es6_module_define('ui', ["../util/vectormath.js", "../util/simple_events.js", ".
           min = args.min;
           max = args.max;
           step = args.step;
-          is_int = args.is_int;
+          is_int = args.is_int||args.isInt;
           do_redraw = args.do_redraw;
           callback = args.callback;
           packflag = args.packflag||0;

@@ -74,7 +74,7 @@ let handler={getProperty: function getProperty(target, key, r) {
   }};
 var _defined_modules={};
 let _curpath_stack=[];
-var allow_cycles=false;
+var allow_cycles=true;
 var _rootpath_src="";
 var _is_cyclic=false;
 var _post_primary_load=false;
@@ -198,13 +198,10 @@ function es6_get_module_meta(path, compatibility_mode) {
 }
 function _es6_get_basepath() {
   if (_curpath_stack.length>0)
-    return _curpath_stack[0];
-  return "";
+    return _curpath_stack[_curpath_stack.length-1];
+  return _rootpath_src;
 }
 function _es6_push_basepath(path) {
-  if (path.search("core")>=0) {
-      _rootpath_src = path.slice(0, path.search(/\/src\/core/))+"/src";
-  }
   _curpath_stack.push(path);
 }
 function _es6_pop_basepath(path) {
@@ -280,6 +277,83 @@ function sort_modules() {
   window.module_order = namelist;
   return sortlist;
 }
+function _load_module_cyclic(mod, visitmap, modstack) {
+  window.es6_import = function es6_import(_es6_module, name) {
+    var mod=_es6_get_module(name);
+    if (mod!==undefined) {
+        mod.links.push(_es6_module);
+    }
+    if (mod!==undefined&&_es6_module.depends.indexOf(mod)<0) {
+        debug("updating dependencies");
+        _es6_module_resort = true;
+        _es6_module.depends.push(mod);
+    }
+    if (mod===undefined) {
+        if (_debug_modules)
+          console.log("cannot import module", name, mod);
+        throw new ModuleLoadError("Cannot import module "+name);
+    }
+    if (!mod.loaded) {
+        _load_module_cyclic(mod, visitmap, modstack);
+    }
+    return mod.default_export!==undefined ? mod.default_export : mod.exports;
+  }
+  window.es6_import_item = function es6_import_item(_es6_module, modname, name) {
+    var mod=_es6_get_module(modname);
+    if (mod!==undefined) {
+        mod.links.push(_es6_module);
+    }
+    if (mod!==undefined&&_es6_module.depends.indexOf(mod)<0) {
+        debug("updating dependencies");
+        _es6_module_resort = true;
+        _es6_module.depends.push(mod);
+    }
+    if (!mod.loaded) {
+        _load_module_cyclic(mod, visitmap, modstack);
+    }
+    if (!(name in mod.exports)) {
+        if (1||_debug_modules)
+          console.log(_es6_module.name+":", "name not in exports (module cycle?)", name, mod);
+        let msg=_es6_module.name+":"+"name not in exports: "+name+" is not in "+mod.path;
+        msg+="\n  wanted by: '"+_es6_module.path+"'";
+        throw new ModuleLoadError(msg);
+    }
+    return mod.exports[name];
+  }
+  if (!visitmap.has(mod)) {
+      visitmap.set(mod, 0);
+  }
+  else 
+    if (visitmap.get(mod)>15) {
+      throw new ModuleLoadError("Failed to resolve module cycle");
+  }
+  visitmap.set(mod, visitmap.get(mod)+1);
+  if (mod.loaded) {
+      return ;
+  }
+  let args=[mod];
+  for (let dep of mod.depends) {
+      args.push(dep.exports);
+  }
+  modstack.push(window.Module);
+  modstack.push(window.exports);
+  window.module = window.Module = mod;
+  window.exports = mod.exports;
+  mod.loaded = true;
+  _es6_push_basepath(mod.path);
+  if (mod.callback===undefined) {
+      throw new Error("Unknown module "+mod.path, mod);
+  }
+  else {
+    mod.callback.apply(this, args);
+  }
+  _es6_pop_basepath(mod.path);
+  if (mod.exports!==window.exports) {
+      mod.exports = window.exports;
+  }
+  window.exports = modstack.pop();
+  window.module = window.Module = modstack.pop();
+}
 function _load_module(mod) {
   var args=[mod];
   var start=time_ms();
@@ -298,7 +372,7 @@ function _load_module(mod) {
           debug("  ", JSON.stringify(dependnames));
       }
   }
-  if (mod.callback==undefined) {
+  if (mod.callback===undefined) {
       console.warn("WARNING: module", mod.name, "does not exist!");
       throw new Error("module \""+mod.path+"\" does not exist");
       return ;
@@ -330,10 +404,10 @@ function _load_module(mod) {
   if (end-start>4) {
   }
 }
-function ModuleLoadError() {
-  Error.apply(this, arguments);
+window._ESClass = {register: () =>    {  }};
+class ModuleLoadError extends Error {
 }
-ModuleLoadError.prototype = Object.create(Error.prototype);
+_ESClass.register(ModuleLoadError);
 function _normpath1(path) {
   path = path.replace(/\\/g, "/").trim();
   while (path.startsWith("/")) {
@@ -380,11 +454,10 @@ function _es6_get_module(name, compatibility_mode) {
   }
   var mod=es6_get_module_meta(name, compatibility_mode);
   if (_post_primary_load) {
-      if (mod.callback!=undefined&&!mod.loaded) {
-          _load_module(mod);
+      if (mod.callback!==undefined&&!mod.loaded) {
       }
       else 
-        if (mod.callback==undefined) {
+        if (mod.callback===undefined) {
           if (_debug_modules)
             console.log("Module Load Error", mod, Object.keys(mod), mod.__proto__);
           throw new ModuleLoadError("Unknown module "+name);
@@ -402,10 +475,10 @@ function es6_import(_es6_module, name) {
       _es6_module_resort = true;
       _es6_module.depends.push(mod);
   }
-  if (mod==undefined||!mod.loaded) {
+  if (mod===undefined||!mod.loaded) {
       if (_debug_modules)
         console.log("cannot import module", name, mod);
-      throw new ModuleLoadError();
+      throw new ModuleLoadError("Cannot import module "+name);
   }
   return mod.default_export!==undefined ? mod.default_export : mod.exports;
 }
@@ -414,7 +487,7 @@ function es6_import_item(_es6_module, modname, name) {
   if (mod!==undefined) {
       mod.links.push(_es6_module);
   }
-  if (mod!=undefined&&_es6_module.depends.indexOf(mod)<0) {
+  if (mod!==undefined&&_es6_module.depends.indexOf(mod)<0) {
       debug("updating dependencies");
       _es6_module_resort = true;
       _es6_module.depends.push(mod);
@@ -422,51 +495,9 @@ function es6_import_item(_es6_module, modname, name) {
   if (!(name in mod.exports)) {
       if (1||_debug_modules)
         console.log(_es6_module.name+":", "name not in exports", name, mod);
-      throw new ModuleLoadError("");
+      throw new ModuleLoadError(_es6_module.name+":"+"name not in exports: "+name+" is not in "+mod.path);
   }
   return mod.exports[name];
-}
-function load_cyclic_modules(sortlist) {
-  var trylimit=35;
-  var last_totfail=undefined;
-  debug("start load", sortlist.length);
-  _es6_module_verbose = false;
-  for (var si=0; si<trylimit; si++) {
-      var totfail=0;
-      if (si>0) {
-          _es6_module_verbose = true;
-          console.log("\n\n\n---------CYCLE STAGE", si+1, "!------------\n");
-          if (!allow_cycles&&si>0) {
-              throw new Error("module cycle!");
-          }
-          if (_es6_module_resort) {
-              sortlist = sort_modules();
-              _es6_module_resort = false;
-          }
-      }
-      for (var i=0; i<sortlist.length; i++) {
-          var mod=sortlist[i];
-          if (mod.loaded)
-            continue;
-          try {
-            _load_module(mod);
-          }
-          catch (err) {
-              if (!(__instance_of(err, ModuleLoadError))) {
-                  print_stack(err);
-                  throw err;
-              }
-              totfail++;
-          }
-          last_totfail = totfail;
-      }
-      if (totfail==0)
-        break;
-  }
-  if (si==trylimit) {
-      throw new Error("Failed to load all modules");
-  }
-  return si;
 }
 function reload_modules() {
   for (var k in _defined_modules) {
@@ -480,6 +511,14 @@ function reload_modules() {
 }
 function load_modules() {
   startup_report("Loading modules. . .");
+  for (let k in _defined_modules) {
+      let mod=_defined_modules[k];
+      let i=mod.path.search(/src\/core/);
+      if (i>=0) {
+          let path=mod.path.slice(0, i);
+          _rootpath_src = path+"src";
+      }
+  }
   var start_time=time_ms();
   for (let k in _defined_modules) {
       let mod=_defined_modules[k];
@@ -500,9 +539,44 @@ function load_modules() {
       }
   }
   var sortlist=sort_modules();
-  var totcycle=load_cyclic_modules(sortlist);
-  _post_primary_load = true;
-  startup_report("...Finished.  "+(time_ms()-start_time).toFixed(1)+"ms", totcycle, "cycle iterations");
+  if (_is_cyclic) {
+      for (let k in _defined_modules) {
+          let mod=_defined_modules[k];
+          mod._exports = mod.exports||{};
+          Object.defineProperty(mod, "exports", {get: function get() {
+              return this._exports;
+            }, 
+       set: function set(v) {
+              Object.assign(this._exports, v);
+            }});
+      }
+      let visitmap=new Map();
+      let modstack=[];
+      console.log("cyclic module load");
+      for (let k in _defined_modules) {
+          let mod=_defined_modules[k];
+          if (!mod.loaded) {
+              _load_module_cyclic(mod, visitmap, modstack);
+          }
+      }
+      _post_primary_load = true;
+      if (_debug_modules) {
+          for (let k of visitmap.keys()) {
+              if (visitmap.get(k)<2)
+                continue;
+              if (!k.name) {
+                  console.log("EEK!", k);
+              }
+              console.log(visitmap.get(k), k.name, k.path);
+          }
+      }
+  }
+  else {
+    for (let mod of sortlist) {
+        _load_module(mod);
+    }
+  }
+  startup_report("...Finished.  "+(time_ms()-start_time).toFixed(1)+"ms");
   for (var k in _defined_modules) {
       let mod=_defined_modules[k];
       window["_"+mod.name] = mod.exports;
@@ -586,7 +660,7 @@ if (Array.prototype.remove===undefined) {
 function register_test(obj) {
   defined_tests.push(obj);
 }
-var _ESClass=(function () {
+window._ESClass = (function () {
   function ClassGetter(func) {
     this.func = func;
   }

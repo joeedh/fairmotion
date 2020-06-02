@@ -1,992 +1,3 @@
-es6_module_define('toolops_api', ["./struct.js", "./toolprops.js", "../path.ux/scripts/util/simple_events.js", "../editors/events.js"], function _toolops_api_module(_es6_module) {
-  "use strict";
-  var PropTypes=es6_import_item(_es6_module, './toolprops.js', 'PropTypes');
-  var TPropFlags=es6_import_item(_es6_module, './toolprops.js', 'TPropFlags');
-  var STRUCT=es6_import_item(_es6_module, './struct.js', 'STRUCT');
-  var EventHandler=es6_import_item(_es6_module, '../editors/events.js', 'EventHandler');
-  var charmap=es6_import_item(_es6_module, '../editors/events.js', 'charmap');
-  class ToolDef  {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-  }
-  _ESClass.register(ToolDef);
-  _es6_module.add_class(ToolDef);
-  ToolDef = _es6_module.add_export('ToolDef', ToolDef);
-  function patchMouseEvent(e, dom) {
-    dom = g_app_state.screen;
-    let e2={prototype: e}
-    let keys=Object.getOwnPropertyNames(e).concat(Object.getOwnPropertySymbols(e));
-    for (let k in e) {
-        keys.push(k);
-    }
-    for (let k of keys) {
-        try {
-          e2[k] = e[k];
-        }
-        catch (error) {
-            console.log("failed to set property", k);
-            continue;
-        }
-        if (typeof e2[k]=="function") {
-            e2[k] = e2[k].bind(e);
-        }
-    }
-    let rect=dom.getClientRects()[0];
-    if (rect===undefined) {
-        console.warn("bad rect in toolops_api.patchMouseEvent");
-        return e2;
-    }
-    e2.x = ((e.x===undefined ? e.clientX : e.x)-rect.left);
-    e2.y = ((e.y===undefined ? e.clientY : e.y)-rect.top);
-    e2.x*=window.devicePixelRatio;
-    e2.y*=window.devicePixelRatio;
-    e2.original = e;
-    return e2;
-  }
-  patchMouseEvent = _es6_module.add_export('patchMouseEvent', patchMouseEvent);
-  var pushModalLight=es6_import_item(_es6_module, '../path.ux/scripts/util/simple_events.js', 'pushModalLight');
-  var popModalLight=es6_import_item(_es6_module, '../path.ux/scripts/util/simple_events.js', 'popModalLight');
-  var UndoFlags={IGNORE_UNDO: 2, 
-   IS_ROOT_OPERATOR: 4, 
-   UNDO_BARRIER: 8, 
-   HAS_UNDO_DATA: 16}
-  UndoFlags = _es6_module.add_export('UndoFlags', UndoFlags);
-  var ToolFlags={HIDE_TITLE_IN_LAST_BUTTONS: 1, 
-   USE_PARTIAL_UNDO: 2, 
-   USE_DEFAULT_INPUT: 4, 
-   USE_REPEAT_FUNCTION: 8, 
-   USE_TOOL_CONTEXT: 16}
-  ToolFlags = _es6_module.add_export('ToolFlags', ToolFlags);
-  var ModalStates={TRANSFORMING: 1, 
-   PLAYING: 2}
-  ModalStates = _es6_module.add_export('ModalStates', ModalStates);
-  var _tool_op_idgen=1;
-  class InheritFlag  {
-     constructor(val) {
-      this.val = val;
-    }
-  }
-  _ESClass.register(InheritFlag);
-  _es6_module.add_class(InheritFlag);
-  
-  class ToolOpAbstract  {
-    static  inherit(inputs_or_outputs) {
-      return new InheritFlag(inputs_or_outputs);
-    }
-    static  invokeMultiple(ctx, args) {
-
-    }
-    static  _get_slots() {
-      var ret=[{}, {}];
-      var parent=this.__parent__;
-      if (this.tooldef!==undefined&&(parent===undefined||this.tooldef!==parent.tooldef)) {
-          var tooldef=this.tooldef();
-          for (var k in tooldef) {
-              if (k!=="inputs"&&k!=="outputs") {
-                  continue;
-              }
-              var v=tooldef[k];
-              if (__instance_of(v, InheritFlag)) {
-                  v = v.val===undefined ? {} : v.val;
-                  var slots=parent._get_slots();
-                  slots = k==="inputs" ? slots[0] : slots[1];
-                  v = this._inherit_slots(slots, v);
-              }
-              ret[k==="inputs" ? 0 : 1] = v;
-          }
-      }
-      else 
-        if (this.inputs!==undefined||this.outputs!==undefined) {
-          console.trace("Deprecation warning: (second) old form\
-                     of toolprop definition detected for", this);
-          if (this.inputs!==undefined) {
-              ret[0] = this.inputs;
-          }
-          if (this.outputs!==undefined) {
-              ret[1] = this.outputs;
-          }
-      }
-      else {
-        console.warn("Deprecation warning: oldest (and evilest) form\
-                     of toolprop detected for", this);
-      }
-      return ret;
-    }
-     constructor(apiname, uiname, description=undefined, icon=-1) {
-      var parent=this.constructor.__parent__;
-      var slots=this.constructor._get_slots();
-      for (var i=0; i<2; i++) {
-          var slots2={};
-          if (i==0)
-            this.inputs = slots2;
-          else 
-            this.outputs = slots2;
-          for (var k in slots[i]) {
-              slots2[k] = slots[i][k].copy();
-              slots2[k].apiname = k;
-          }
-      }
-      if (this.constructor.tooldef!==undefined&&(parent===undefined||this.constructor.tooldef!==parent.tooldef)) {
-          var tooldef=this.constructor.tooldef();
-          for (var k in tooldef) {
-              if (k==="inputs"||k==="outputs")
-                continue;
-              this[k] = tooldef[k];
-          }
-      }
-      else {
-        if (this.name===undefined)
-          this.name = apiname;
-        if (this.uiname===undefined)
-          this.uiname = uiname;
-        if (this.description===undefined)
-          this.description = description===undefined ? "" : description;
-        if (this.icon===undefined)
-          this.icon = icon;
-      }
-      this.apistruct = undefined;
-      this.op_id = _tool_op_idgen++;
-      this.stack_index = -1;
-    }
-    static  _inherit_slots(old, newslots) {
-      if (old===undefined) {
-          console.trace("Warning: old was undefined in _inherit_slots()!");
-          return newslots;
-      }
-      for (var k in old) {
-          if (!(k in newslots))
-            newslots[k] = old[k];
-      }
-      return newslots;
-    }
-    static  inherit_inputs(cls, newslots) {
-      if (cls.inputs===undefined)
-        return newslots;
-      return ToolOpAbstract._inherit_slots(cls.inputs, newslots);
-    }
-    static  invoke(ctx, args) {
-      let ret=new this();
-      for (let k in args) {
-          if (k in ret.inputs) {
-              ret.inputs[k].setValue(args[k]);
-          }
-          else {
-            console.warn("Unknown tool argument "+k, ret);
-          }
-      }
-      return ret;
-    }
-    static  inherit_outputs(cls, newslots) {
-      if (cls.outputs===undefined)
-        return newslots;
-      return ToolOpAbstract._inherit_slots(cls.outputs, newslots);
-    }
-     get_saved_context() {
-      if (this.saved_context===undefined) {
-          console.log("warning : invalid saved_context in "+this.constructor.name+".get_saved_context()");
-          this.saved_context = new SavedContext(new Context());
-      }
-      return this.saved_context;
-    }
-     [Symbol.keystr]() {
-      return "TO"+this.op_id;
-    }
-     exec(tctx) {
-
-    }
-     default_inputs(ctx, get_default) {
-
-    }
-  }
-  _ESClass.register(ToolOpAbstract);
-  _es6_module.add_class(ToolOpAbstract);
-  ToolOpAbstract = _es6_module.add_export('ToolOpAbstract', ToolOpAbstract);
-  ToolOpAbstract.STRUCT = `
-  ToolOpAbstract {
-      flag    : int;
-      saved_context  : SavedContext | obj.get_saved_context();
-      inputs  : iterkeys(k, PropPair) | new PropPair(k, obj.inputs[k]);
-      outputs : iterkeys(k, PropPair) | new PropPair(k, obj.outputs[k]);
-  }
-`;
-  class PropPair  {
-     constructor(key, value) {
-      this.key = key;
-      this.value = value;
-    }
-    static  fromSTRUCT(reader) {
-      var obj={};
-      reader(obj);
-      return obj;
-    }
-  }
-  _ESClass.register(PropPair);
-  _es6_module.add_class(PropPair);
-  PropPair = _es6_module.add_export('PropPair', PropPair);
-  window.PropPair = PropPair;
-  PropPair.STRUCT = `
-  PropPair {
-    key   : string;
-    value : abstract(ToolProperty);
-  }
-`;
-  let _toolop_tools=undefined;
-  class ToolOp extends ToolOpAbstract {
-    
-    
-    
-    
-    
-     constructor(apiname="(undefined)", uiname="(undefined)", description=undefined, icon=-1) {
-      super(apiname, uiname, description, icon);
-      EventHandler.prototype.EventHandler_init.call(this);
-      this.drawlines = new GArray();
-      if (this.is_modal===undefined)
-        this.is_modal = false;
-      this.undoflag = 0;
-      this.on_modal_end = undefined;
-      this.modal_ctx = null;
-      this.flag = 0;
-      this.keyhandler = undefined;
-      this.parent = undefined;
-      this.widgets = [];
-      this.modal_running = false;
-      this._widget_on_tick = undefined;
-    }
-     modalEnd() {
-      return this.end_modal(...arguments);
-    }
-     new_drawline(v1, v2, color, line_width) {
-      var dl=this.modal_ctx.view2d.make_drawline(v1, v2, undefined, color, line_width);
-      this.drawlines.push(dl);
-      return dl;
-    }
-     reset_drawlines(ctx=this.modal_ctx) {
-      var view2d=ctx.view2d;
-      for (var dl of this.drawlines) {
-          view2d.kill_drawline(dl);
-      }
-      this.drawlines.reset();
-    }
-    static  create_widgets(manager, ctx) {
-
-    }
-    static  reset_widgets(op, ctx) {
-
-    }
-     undo_ignore() {
-      this.undoflag|=UndoFlags.IGNORE_UNDO;
-    }
-     on_mousemove() {
-      redraw_viewport();
-    }
-     exec_pre(tctx) {
-      for (var k in this.inputs) {
-          if (this.inputs[k].type===PropTypes.COLLECTION) {
-              this.inputs[k].ctx = tctx;
-          }
-      }
-      for (var k in this.outputs) {
-          if (this.outputs[k].type===PropTypes.COLLECTION) {
-              this.outputs[k].ctx = tctx;
-          }
-      }
-    }
-     cancel_modal(ctx) {
-      console.log("cancel");
-      ctx.toolstack.toolop_cancel(this);
-    }
-     modalStart(ctx) {
-
-    }
-     start_modal() {
-      this.modalStart(ctx);
-    }
-     _start_modal(ctx) {
-      this.modal_running = true;
-      let active_area=ctx.active_area;
-      let patch=(e) =>        {
-        let dom=active_area ? active_area : g_app_state.screen;
-        return patchMouseEvent(e, dom);
-      };
-      let handlers={on_mousedown: (e) =>          {
-          return this.on_mousedown(patch(e));
-        }, 
-     on_mousemove: (e) =>          {
-          return this.on_mousemove(patch(e));
-        }, 
-     on_mouseup: (e) =>          {
-          return this.on_mouseup(patch(e));
-        }, 
-     on_keydown: this.on_keydown.bind(this), 
-     on_keyup: this.on_keyup.bind(this)};
-      this._modal_state = pushModalLight(handlers);
-      this.modal_ctx = ctx;
-    }
-     _end_modal() {
-      var ctx=this.modal_ctx;
-      this.modal_running = false;
-      this.saved_context = new SavedContext(this.modal_ctx);
-      if (this._modal_state!==undefined) {
-          popModalLight(this._modal_state);
-          this._modal_state = undefined;
-      }
-      if (this.on_modal_end!==undefined)
-        this.on_modal_end(this);
-      this.reset_drawlines(ctx);
-    }
-     end_modal() {
-      this._end_modal();
-    }
-     can_call(ctx) {
-      return true;
-    }
-     exec(ctx) {
-
-    }
-     start_modal(ctx) {
-
-    }
-     redo_post(ctx) {
-      window.redraw_viewport();
-    }
-     undo_pre(ctx) {
-      this._undocpy = g_app_state.create_undo_file();
-      window.redraw_viewport();
-    }
-     undo(ctx) {
-      g_app_state.load_undo_file(this._undocpy);
-    }
-    static  fromSTRUCT(reader) {
-      var op=new ToolOp();
-      reader(op);
-      var ins={};
-      for (var i=0; i<op.inputs.length; i++) {
-          ins[op.inputs[i].key] = op.inputs[i].value;
-      }
-      var outs={};
-      for (var i=0; i<op.outputs.length; i++) {
-          outs[op.outputs[i].key] = op.outputs[i].value;
-      }
-      op.inputs = ins;
-      op.outputs = outs;
-      return op;
-    }
-    static  get_constructor(name) {
-      if (_toolop_tools===undefined) {
-          _toolop_tools = {};
-          for (let c of defined_classes) {
-              if (__instance_of(c, ToolOp))
-                _toolop_tools[c.name] = c;
-          }
-      }
-      return _toolop_tools[c];
-    }
-  }
-  _ESClass.register(ToolOp);
-  _es6_module.add_class(ToolOp);
-  ToolOp = _es6_module.add_export('ToolOp', ToolOp);
-  ToolOp.STRUCT = `
-  ToolOp {
-      flag    : int;
-      saved_context  : SavedContext | obj.get_saved_context();
-      inputs  : iterkeys(k, PropPair) | new PropPair(k, obj.inputs[k]);
-      outputs : iterkeys(k, PropPair) | new PropPair(k, obj.outputs[k]);
-  }
-`;
-  class ToolMacro extends ToolOp {
-    
-    
-    
-     constructor(name, uiname, tools) {
-      super(name, uiname);
-      this.cur_modal = 0;
-      this._chained_on_modal_end = false;
-      if (tools===undefined)
-        this.tools = new GArray();
-      else 
-        this.tools = new GArray(tools);
-    }
-     add_tool(tool) {
-      tool.parent = this;
-      this.tools.push(tool);
-      if (tool.is_modal)
-        this.is_modal = true;
-    }
-     connect_tools(output, input) {
-      var old_set=input.userSetData;
-      input.userSetData = function () {
-        this.data = output.data;
-        old_set.call(this, this.data);
-      };
-    }
-     undo_pre(ctx) {
-
-    }
-     undo(ctx) {
-      for (var i=this.tools.length-1; i>=0; i--) {
-          if (this.tools[i].undoflag&UndoFlags.HAS_UNDO_DATA) {
-              this.tools[i].undo(ctx);
-          }
-      }
-    }
-     exec(ctx) {
-      for (var i=0; i<this.tools.length; i++) {
-          if (!(this.tools[i].flag&ToolFlags.USE_TOOL_CONTEXT)) {
-              this.tools[i].saved_context = this.saved_context;
-          }
-      }
-      for (let op of this.tools) {
-          if (op.is_modal)
-            op.is_modal = this.is_modal;
-          let tctx=(op.flag&ToolFlags.USE_TOOL_CONTEXT) ? op.ctx : ctx;
-          for (var k in op.inputs) {
-              var p=op.inputs[k];
-              if (p.userSetData!=undefined)
-                p.userSetData.call(p, p.data);
-          }
-          
-          if (!(op.flag&ToolFlags.USE_TOOL_CONTEXT)) {
-              op.saved_context = this.saved_context;
-          }
-          op.undo_pre(tctx);
-          op.undoflag|=UndoFlags.HAS_UNDO_DATA;
-          op.exec_pre(tctx);
-          op.exec(tctx);
-      }
-    }
-     can_call(ctx) {
-      return this.tools[0].can_call(ctx);
-    }
-     _start_modal(ctx) {
-
-    }
-     start_modal(ctx) {
-      if (!this._chained_on_modal_end) {
-          let last_modal=undefined;
-          for (let op of this.tools) {
-              if (op.is_modal)
-                last_modal = op;
-          }
-          console.log("last_modal", last_modal);
-          if (last_modal!==undefined) {
-              let on_modal_end=last_modal.on_modal_end;
-              let this2=this;
-              last_modal.on_modal_end = function (toolop) {
-                if (on_modal_end!==undefined)
-                  on_modal_end(toolop);
-                if (this2.on_modal_end)
-                  this2.on_modal_end(this2);
-              };
-              this._chained_on_modal_end = true;
-          }
-      }
-      for (let i=0; i<this.tools.length; i++) {
-          this.tools[i].saved_context = this.saved_context;
-      }
-      for (let i=0; i<this.tools.length; i++) {
-          let op=this.tools[i];
-          if (op.is_modal) {
-              this.cur_modal = i;
-              for (let k in op.inputs) {
-                  let p=op.inputs[k];
-                  if (p.userSetData!==undefined)
-                    p.userSetData.call(p, p.data);
-              }
-              op.__end_modal = op._end_modal;
-              op._end_modal = (ctx) =>                {
-                op.__end_modal(ctx);
-                this.next_modal(ctx ? ctx : this.modal_ctx);
-              };
-              op.modal_ctx = this.modal_ctx;
-              op.modal_tctx = this.modal_tctx;
-              op.saved_context = this.saved_context;
-              op.undo_pre(ctx);
-              op.undoflag|=UndoFlags.HAS_UNDO_DATA;
-              op.modal_running = true;
-              op._start_modal(ctx);
-              return op.start_modal(ctx);
-          }
-          else {
-            for (let k in op.inputs) {
-                let p=op.inputs[k];
-                if (p.userSetData!==undefined)
-                  p.userSetData(p, p.data);
-            }
-            op.saved_context = this.saved_context;
-            op.exec_pre(ctx);
-            op.undo_pre(ctx);
-            op.undoflag|=UndoFlags.HAS_UNDO_DATA;
-            op.exec(ctx);
-          }
-      }
-    }
-     _end_modal() {
-      this.next_modal(this.modal_ctx);
-    }
-     next_modal(ctx) {
-      console.log("next_modal called");
-      this.cur_modal++;
-      while (this.cur_modal<this.tools.length&&!this.tools[this.cur_modal].is_modal) {
-        this.cur_modal++;
-      }
-      if (this.cur_modal>=this.tools.length) {
-          super._end_modal();
-      }
-      else {
-        console.log("next_modal op", this.tools[this.cur_modal]);
-        this.tools[this.cur_modal].undo_pre(ctx);
-        this.tools[this.cur_modal].undoflag|=UndoFlags.HAS_UNDO_DATA;
-        this.tools[this.cur_modal]._start_modal(ctx);
-        this.tools[this.cur_modal].start_modal(ctx);
-      }
-    }
-     on_mousemove(event) {
-      this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
-      this.tools[this.cur_modal].on_mousemove(event);
-    }
-     on_mousedown(event) {
-      this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
-      this.tools[this.cur_modal].on_mousedown(event);
-    }
-     on_mouseup(event) {
-      this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
-      this.tools[this.cur_modal].on_mouseup(event);
-    }
-     on_keydown(event) {
-      this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
-      this.tools[this.cur_modal].on_keydown(event);
-    }
-     on_keyup(event) {
-      this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
-      this.tools[this.cur_modal].on_keyup(event);
-    }
-     on_draw(event) {
-      this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
-      this.tools[this.cur_modal].on_draw(event);
-    }
-    static  fromSTRUCT(reader) {
-      var ret=STRUCT.chain_fromSTRUCT(ToolMacro, reader);
-      ret.tools = new GArray(ret.tools);
-      for (var t of ret.tools) {
-          t.parent = this;
-      }
-      return ret;
-    }
-  }
-  _ESClass.register(ToolMacro);
-  _es6_module.add_class(ToolMacro);
-  ToolMacro = _es6_module.add_export('ToolMacro', ToolMacro);
-  ToolMacro.STRUCT = STRUCT.inherit(ToolMacro, ToolOp)+`
-  tools   : array(abstract(ToolOp));
-  apiname : string;
-  uiname  : string;
-}
-`;
-  var StringProperty=es6_import_item(_es6_module, './toolprops.js', 'StringProperty');
-  var Vec3Property=es6_import_item(_es6_module, './toolprops.js', 'Vec3Property');
-  var Vec4Property=es6_import_item(_es6_module, './toolprops.js', 'Vec4Property');
-  var IntProperty=es6_import_item(_es6_module, './toolprops.js', 'IntProperty');
-  var FloatProperty=es6_import_item(_es6_module, './toolprops.js', 'FloatProperty');
-  var BoolProperty=es6_import_item(_es6_module, './toolprops.js', 'BoolProperty');
-  var pushModalLight=es6_import_item(_es6_module, '../path.ux/scripts/util/simple_events.js', 'pushModalLight');
-  var popModalLight=es6_import_item(_es6_module, '../path.ux/scripts/util/simple_events.js', 'popModalLight');
-  class DataPathOp extends ToolOp {
-    
-    
-    
-     constructor(path="", use_simple_undo=false) {
-      super("DataPathOp", "DataPath", "DataPath Value Set");
-      this.use_simple_undo = use_simple_undo;
-      this.is_modal = false;
-      this.path = path;
-      this.inputs = {path: new StringProperty(path, "path", "path", "path"), 
-     vec3: new Vec3Property(undefined, "vec3", "vec3", "vec3"), 
-     vec4: new Vec4Property(undefined, "vec4", "vec4", "vec4"), 
-     pint: new IntProperty(0, "pint", "pint", "pint"), 
-     pfloat: new FloatProperty(0, "pfloat", "pfloat", "pfloat"), 
-     str: new StringProperty("", "str", "str", "str"), 
-     bool: new BoolProperty(false, "bool", "bool", "bool"), 
-     val_input: new StringProperty("", "val_input", "val_input", "val_input")};
-      this.outputs = {};
-      for (var k in this.inputs) {
-          this.inputs[k].flag|=TPropFlags.PRIVATE;
-      }
-    }
-     undo_pre(ctx) {
-      this._undocpy = g_app_state.create_undo_file();
-    }
-     undo(ctx) {
-      g_app_state.load_undo_file(this._undocpy);
-    }
-     get_prop_input(path, prop) {
-      if (prop==undefined) {
-          console.trace("Warning: DataPathOp failed!", path, prop);
-          return ;
-      }
-      var input;
-      if (prop.type==PropTypes.INT) {
-          input = this.inputs.pint;
-      }
-      else 
-        if (prop.type==PropTypes.FLOAT) {
-          input = this.inputs.pfloat;
-      }
-      else 
-        if (prop.type==PropTypes.VEC3) {
-          input = path.endsWith("]") ? this.inputs.pfloat : this.inputs.vec3;
-      }
-      else 
-        if (prop.type==PropTypes.VEC4) {
-          input = path.endsWith("]") ? this.inputs.pfloat : this.inputs.vec4;
-      }
-      else 
-        if (prop.type==PropTypes.BOOL) {
-          input = this.inputs.bool;
-      }
-      else 
-        if (prop.type==PropTypes.STR) {
-          input = this.inputs.str;
-      }
-      else 
-        if (prop.type==PropTypes.FLAG) {
-          input = this.inputs.str;
-      }
-      else 
-        if (prop.type==PropTypes.ENUM) {
-          input = this.inputs.pint;
-      }
-      else {
-        console.trace("ERROR: unimplemented prop type "+prop.type+"in DataPathOp", prop, this);
-        return undefined;
-      }
-      return input;
-    }
-     exec(ctx) {
-      var api=g_app_state.api;
-      var path=this.inputs.path.data.trim();
-      var prop=api.get_prop_meta(ctx, path);
-      if (prop==undefined) {
-          console.trace("Warning: DataPathOp failed!");
-          return ;
-      }
-      var input=this.get_prop_input(path, prop);
-      api.set_prop(ctx, path, input.data);
-    }
-  }
-  _ESClass.register(DataPathOp);
-  _es6_module.add_class(DataPathOp);
-  mixin(ToolOp, EventHandler);
-  class MassSetPathOp extends ToolOp {
-    
-    
-    
-     constructor(path="", subpath="", filterstr="", use_simple_undo=false) {
-      super("DataPathOp", "DataPath", "DataPath Value Set");
-      this.use_simple_undo = use_simple_undo;
-      this.is_modal = false;
-      this.path = path;
-      this.subpath = subpath;
-      this.filterstr = filterstr;
-      this.inputs = {path: new StringProperty(path, "path", "path", "path"), 
-     vec3: new Vec3Property(undefined, "vec3", "vec3", "vec3"), 
-     vec4: new Vec4Property(undefined, "vec4", "vec4", "vec4"), 
-     pint: new IntProperty(0, "pint", "pint", "pint"), 
-     pfloat: new FloatProperty(0, "pfloat", "pfloat", "pfloat"), 
-     str: new StringProperty("", "str", "str", "str"), 
-     bool: new BoolProperty(false, "bool", "bool", "bool"), 
-     val_input: new StringProperty("", "val_input", "val_input", "val_input")};
-      this.outputs = {};
-      for (var k in this.inputs) {
-          this.inputs[k].flag|=TPropFlags.PRIVATE;
-      }
-    }
-     _get_value(ctx) {
-      var path=this.path.trim();
-      var prop=api.get_prop_meta(ctx, path);
-      if (prop==undefined) {
-          console.trace("Warning: DataPathOp failed!");
-          return ;
-      }
-      return this.get_prop_input(path, prop);
-    }
-     undo_pre(ctx) {
-      var value=this._get_value(ctx);
-      var paths=ctx.api.buildMassSetPaths(ctx, this.path, this.subpath, value, this.filterstr);
-      var ud=this._undo = {};
-      for (var i=0; i<paths.length; i++) {
-          var value2=ctx.api.get_prop(paths[i]);
-          ud[paths[i]] = JSON.stringify(value2);
-      }
-    }
-     undo(ctx) {
-      var value=this._get_value(ctx);
-      var paths=ctx.api.buildMassSetPaths(ctx, this.path, this.subpath, value, this.filterstr);
-      var ud=this._undo;
-      for (var k in ud) {
-          var data=JSON.parse(ud[k]);
-          if (data=="undefined")
-            data = undefined;
-          ctx.api.set_prop(ctx, k, data);
-      }
-    }
-     get_prop_input(path, prop) {
-      if (prop==undefined) {
-          console.trace("Warning: DataPathOp failed!", path, prop);
-          return ;
-      }
-      var input;
-      if (prop.type==PropTypes.INT) {
-          input = this.inputs.pint;
-      }
-      else 
-        if (prop.type==PropTypes.FLOAT) {
-          input = this.inputs.pfloat;
-      }
-      else 
-        if (prop.type==PropTypes.VEC3) {
-          input = path.endsWith("]") ? this.inputs.pfloat : this.inputs.vec3;
-      }
-      else 
-        if (prop.type==PropTypes.VEC4) {
-          input = path.endsWith("]") ? this.inputs.pfloat : this.inputs.vec4;
-      }
-      else 
-        if (prop.type==PropTypes.BOOL) {
-          input = this.inputs.bool;
-      }
-      else 
-        if (prop.type==PropTypes.STR) {
-          input = this.inputs.str;
-      }
-      else 
-        if (prop.type==PropTypes.FLAG) {
-          input = this.inputs.str;
-      }
-      else 
-        if (prop.type==PropTypes.ENUM) {
-          input = this.inputs.pint;
-      }
-      else {
-        console.trace("ERROR: unimplemented prop type "+prop.type+"in DataPathOp", prop, this);
-        return undefined;
-      }
-      return input;
-    }
-     exec(ctx) {
-      var api=g_app_state.api;
-      var path=this.inputs.path.data.trim();
-      var prop=api.get_prop_meta(ctx, path);
-      if (prop==undefined) {
-          console.trace("Warning: DataPathOp failed!");
-          return ;
-      }
-      var input=this.get_prop_input(path, prop);
-      api.mass_set_prop(ctx, path, this.subpath, input.data, this.filterstr);
-    }
-  }
-  _ESClass.register(MassSetPathOp);
-  _es6_module.add_class(MassSetPathOp);
-  window.init_toolop_structs = function () {
-    
-    function gen_fromSTRUCT(cls1) {
-      function fromSTRUCT(reader) {
-        var op=new cls1();
-        var inputs=op.inputs, outputs=op.outputs;
-        reader(op);
-        var ins=Object.create(inputs), outs=Object.create(outputs);
-        for (var i=0; i<op.inputs.length; i++) {
-            var k=op.inputs[i].key;
-            ins[k] = op.inputs[i].value;
-            if (k in inputs) {
-                ins[k].load_ui_data(inputs[k]);
-            }
-            else {
-              ins[k].uiname = ins[k].apiname = k;
-            }
-        }
-        for (var i=0; i<op.outputs.length; i++) {
-            var k=op.outputs[i].key;
-            outs[k] = op.outputs[i].value;
-            if (k in outputs) {
-                outs[k].load_ui_data(outputs[k]);
-            }
-            else {
-              outs[k].uiname = outs[k].apiname = k;
-            }
-        }
-        op.inputs = ins;
-        op.outputs = outs;
-        return op;
-      }
-      return fromSTRUCT;
-    }
-    for (var i=0; i<defined_classes.length; i++) {
-        var cls=defined_classes[i];
-        var ok=false;
-        var is_toolop=false;
-        var parent=cls.prototype.__proto__.constructor;
-        while (parent) {
-          if (parent===ToolOpAbstract) {
-              ok = true;
-          }
-          else 
-            if (parent===ToolOp) {
-              ok = true;
-              is_toolop = true;
-              break;
-          }
-          parent = parent.prototype.__proto__;
-          if (!parent)
-            break;
-          parent = parent.constructor;
-          if (!parent||parent===Object)
-            break;
-        }
-        if (!ok)
-          continue;
-        if (!Object.hasOwnProperty(cls, "STRUCT")) {
-            cls.STRUCT = cls.name+" {"+`
-        flag    : int;
-        inputs  : iterkeys(k, PropPair) | new PropPair(k, obj.inputs[k]);
-        outputs : iterkeys(k, PropPair) | new PropPair(k, obj.outputs[k]);
-      `;
-            if (is_toolop)
-              cls.STRUCT+="    saved_context  : SavedContext | obj.get_saved_context();\n";
-            cls.STRUCT+="  }";
-        }
-        if (!cls.fromSTRUCT) {
-            cls.fromSTRUCT = gen_fromSTRUCT(cls);
-        }
-    }
-  }
-  class WidgetToolOp extends ToolOp {
-    static  create_widgets(manager, ctx) {
-      var $zaxis_HbGi;
-      var widget=manager.create();
-      var enabled_axes=this.widget_axes;
-      var do_widget_center=this.widget_center;
-      var gen_toolop=this.gen_toolop;
-      var do_x=enabled_axes[0], do_y=enabled_axes[1], do_z=enabled_axes[2];
-      if (do_x)
-        widget.arrow([1, 0, 0], 0, [1, 0, 0, 1]);
-      if (do_y)
-        widget.arrow([0, 1, 0], 1, [0, 1, 0, 1]);
-      if (do_z)
-        widget.arrow([0, 0, 1], 2, [0, 0, 1, 1]);
-      var this2=this;
-      function widget_on_tick(widget) {
-        var mat=widget.matrix;
-        var mesh=ctx.mesh;
-        var cent=new Vector3();
-        var len=0;
-        var v1=new Vector3();
-        for (var v of mesh.verts.selected) {
-            cent.add(v.co);
-            v1.load(v.edges[0].v1.co).sub(v.edges[0].v2.co);
-            v1.normalize();
-            len++;
-        }
-        if (len>0)
-          cent.mulScalar(1.0/len);
-        mat.makeIdentity();
-        mat.translate(cent[0], cent[1], cent[2]);
-        if (this2.widget_align_normal) {
-            var n=new Vector3();
-            var tan=new Vector3();
-            len = 0;
-            var v1=new Vector3();
-            for (var f of mesh.faces.selected) {
-                var e=f.looplists[0].loop.e;
-                len++;
-                n.add(f.no);
-            }
-            n.mulScalar(1.0/len);
-            n.normalize();
-            if (tan.dot(tan)==0.0) {
-                tan.loadXYZ(0, 0, 1);
-            }
-            else {
-              tan.mulScalar(1.0/len);
-              tan.normalize();
-            }
-            var angle=Math.PI-Math.acos($zaxis_HbGi.dot(n));
-            if (n.dot($zaxis_HbGi)>0.9) {
-            }
-            if (1) {
-                if (Math.abs(angle)<0.001||Math.abs(angle)>Math.PI-0.001) {
-                    n.loadXYZ(1, 0, 0);
-                }
-                else {
-                  n.cross($zaxis_HbGi);
-                  n.normalize();
-                }
-                var q=new Quat();
-                q.axisAngleToQuat(n, angle);
-                var rmat=q.toMatrix();
-                mat.multiply(rmat);
-            }
-        }
-        mat.multiply(ctx.object.matrix);
-      }
-      widget.on_tick = widget_on_tick;
-      widget.on_click = function (widget, id) {
-        console.log("widget click: ", id);
-        ctx.view2d._mstart = null;
-        var toolop=undefined;
-        if (gen_toolop!=undefined) {
-            var toolop=gen_toolop(id, widget, ctx);
-        }
-        else {
-          console.trace("IMPLEMENT ME! missing widget gen_toolop callback!");
-          return ;
-        }
-        if (toolop==undefined) {
-            console.log("Evil! Undefined toolop in WidgetToolOp.create_widgets()!");
-            return ;
-        }
-        widget.user_data = toolop;
-        toolop._widget_on_tick = widget_on_tick;
-        toolop.widgets.push(widget);
-        toolop.on_modal_end = function (toolop) {
-          for (var w of toolop.widgets) {
-              for (var k in toolop.inputs) {
-                  var p=toolop.inputs[k];
-                  p.remove_listener(w, true);
-              }
-              for (var k in toolop.outputs) {
-                  var p=toolop.outputs[k];
-                  p.remove_listener(w, true);
-              }
-          }
-          console.log("widget modal end");
-          toolop.widgets = new GArray();
-          widget.on_tick = widget_on_tick;
-        }
-        if (toolop.widget_on_tick)
-          widget.widget_on_tick = toolop.widget_on_tick;
-        widget.on_tick = function (widget) {
-          toolop.widget_on_tick.call(toolop, widget);
-        }
-        g_app_state.toolstack.exec_tool(toolop);
-      };
-      var $zaxis_HbGi=new Vector3([0, 0, -1]);
-    }
-     widget_on_tick(widget) {
-      if (this._widget_on_tick!=undefined)
-        this._widget_on_tick(widget);
-    }
-  }
-  _ESClass.register(WidgetToolOp);
-  _es6_module.add_class(WidgetToolOp);
-}, '/dev/fairmotion/src/core/toolops_api.js');
 es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_module(_es6_module) {
   "use strict";
   var _event_dag_idgen=undefined;
@@ -1429,8 +440,8 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
       return func.apply(thisvar, arguments);
     }
   }
-  var $sarr_C491_link;
-  var $darr_QVgw_link;
+  var $sarr_QtVx_link;
+  var $darr_WUMt_link;
   class EventDag  {
      constructor(ctx) {
       this.nodes = [];
@@ -1575,12 +586,12 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
       var obja=src, objb=dst;
       var srcnode=this.get_node(src);
       if (!(__instance_of(srcfield, Array))) {
-          $sarr_C491_link[0] = srcfield;
-          srcfield = $sarr_C491_link;
+          $sarr_QtVx_link[0] = srcfield;
+          srcfield = $sarr_QtVx_link;
       }
       if (!(__instance_of(dstfield, Array))) {
-          $darr_QVgw_link[0] = dstfield;
-          dstfield = $darr_QVgw_link;
+          $darr_WUMt_link[0] = dstfield;
+          dstfield = $darr_WUMt_link;
       }
       if ((typeof dst=="function"||__instance_of(dst, Function))&&!dst._dag_callback_init) {
           gen_callback_exec(dst, dstthis);
@@ -1710,6 +721,14 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
       var slen=sortlist.length;
       for (var i=0; i<slen; i++) {
           var n=sortlist[i];
+          if (!n) {
+              console.warn("dead node in event dag");
+              sortlist[i] = sortlist[sortlist.length-1];
+              sortlist.length--;
+              slen--;
+              i--;
+              continue;
+          }
           if (!(n.flag&DagFlags.UPDATE))
             continue;
           n.flag&=~DagFlags.UPDATE;
@@ -1751,8 +770,8 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
       }
     }
   }
-  var $sarr_C491_link=[0];
-  var $darr_QVgw_link=[0];
+  var $sarr_QtVx_link=[0];
+  var $darr_WUMt_link=[0];
   _ESClass.register(EventDag);
   _es6_module.add_class(EventDag);
   EventDag = _es6_module.add_export('EventDag', EventDag);
@@ -3544,7 +2563,7 @@ es6_module_define('transform_spline', ["./selectmode.js", "./transdata.js", "../
   TransSplineVert = _es6_module.add_export('TransSplineVert', TransSplineVert);
   TransSplineVert.selectmode = SelMask.TOPOLOGY;
 }, '/dev/fairmotion/src/editors/viewport/transform_spline.js');
-es6_module_define('spline_selectops', ["../../core/animdata.js", "../../core/toolops_api.js", "../../curve/spline_draw.js", "../../core/toolprops.js", "../../curve/spline_types.js"], function _spline_selectops_module(_es6_module) {
+es6_module_define('spline_selectops', ["../../curve/spline_draw.js", "../../curve/spline_types.js", "../../core/toolops_api.js", "../../core/animdata.js", "../../core/toolprops.js"], function _spline_selectops_module(_es6_module) {
   "use strict";
   var $_mh;
   var $_swapt;
@@ -3948,6 +2967,13 @@ es6_module_define('spline_selectops', ["../../core/animdata.js", "../../core/too
         this.on_mousemove({x: mpos[0], 
      y: mpos[1]});
     }
+     on_mousewheel(e) {
+      let dt=e.deltaY;
+      dt*=0.2;
+      console.log("wheel", e, dt);
+      this.radius = Math.max(Math.min(this.radius+dt, 1024), 3.0);
+      this._draw_circle();
+    }
      _draw_circle() {
       let ctx=this.modal_ctx;
       let editor=ctx.view2d;
@@ -3956,12 +2982,11 @@ es6_module_define('spline_selectops', ["../../core/animdata.js", "../../core/too
       let t=-Math.PI, dt=(Math.PI*2.0)/steps;
       let lastco=new Vector3();
       let co=new Vector3();
-      let mpos=this.mpos;
+      let mpos=new Vector3(editor.getLocalMouse(this.mpos[0], this.mpos[1]));
       let radius=this.radius;
-      for (let i=0; i<steps; i++, t+=dt) {
+      for (let i=0; i<steps+1; i++, t+=dt) {
           co[0] = sin(t)*radius+mpos[0];
           co[1] = cos(t)*radius+mpos[1];
-          editor.unproject(co);
           if (i>0) {
               let dl=this.new_drawline(lastco, co);
           }
@@ -3992,35 +3017,38 @@ es6_module_define('spline_selectops', ["../../core/animdata.js", "../../core/too
       let ctx=this.modal_ctx, spline=ctx.spline;
       let editor=ctx.view2d;
       let co=new Vector3();
+      let mpos=new Vector3(editor.getLocalMouse(this.mpos[0], this.mpos[1]));
+      let scale=editor.rendermat.$matrix.m11;
+      mpos[2] = 0.0;
+      console.warn(scale);
       let eset_add=this.inputs.add_elements.data;
       let eset_sub=this.inputs.sub_elements.data;
       let actlayer=spline.layerset.active.id;
       if (datamode&SplineTypes.VERTEX) {
-          for (let v of spline.verts) {
-              if (v.hidden)
-                continue;
-              if (!(actlayer in v.layers))
-                continue;
-              co.load(v);
-              co[2] = 0.0;
-              editor.project(co);
-              if (co.vectorDistance(this.mpos)<this.radius) {
-                  if (sel_or_unsel) {
-                      eset_sub.remove(v);
-                      eset_add.add(v);
-                  }
-                  else {
-                    eset_add.remove(v);
-                    eset_sub.add(v);
+          for (let i=0; i<2; i++) {
+              if (i&&!(datamode&SplineTypes.HANDLE))
+                break;
+              let list=i ? spline.handles : spline.verts;
+              for (let v of list.editable(ctx)) {
+                  co.load(v);
+                  co[2] = 0.0;
+                  editor.project(co);
+                  if (co.vectorDistance(mpos)<this.radius) {
+                      if (sel_or_unsel) {
+                          eset_sub.remove(v);
+                          eset_add.add(v);
+                      }
+                      else {
+                        eset_add.remove(v);
+                        eset_sub.add(v);
+                      }
                   }
               }
           }
       }
-      else 
-        if (datamode&SplineTypes.SEGMENT) {
+      if (datamode&SplineTypes.SEGMENT) {
       }
-      else 
-        if (datamode&SplineTypes.FACE) {
+      if (datamode&SplineTypes.FACE) {
       }
     }
      on_mousemove(event) {
@@ -4030,8 +3058,8 @@ es6_module_define('spline_selectops', ["../../core/animdata.js", "../../core/too
       this.mpos[0] = event.x;
       this.mpos[1] = event.y;
       this._draw_circle();
-      if (this.inputs.mode.get_data()!=SelOpModes.AUTO) {
-          this.sel_or_unsel = this.inputs.mode.get_data()==SelOpModes.SELECT;
+      if (this.inputs.mode.getValue()!==SelOpModes.AUTO) {
+          this.sel_or_unsel = this.inputs.mode.getValue()===SelOpModes.SELECT;
       }
       if (this.mdown) {
           this.do_sel(this.sel_or_unsel);
@@ -4413,7 +3441,7 @@ es6_module_define('spline_createops', ["../../core/toolops_api.js", "../../curve
   _es6_module.add_class(ImportJSONOp);
   ImportJSONOp = _es6_module.add_export('ImportJSONOp', ImportJSONOp);
 }, '/dev/fairmotion/src/editors/viewport/spline_createops.js');
-es6_module_define('spline_editops', ["../../curve/spline_types.js", "../../core/animdata.js", "../../curve/spline_base.js", "../../curve/spline_draw.js", "../../core/frameset.js", "../../path.ux/scripts/util/struct.js", "../../core/toolprops.js", "../../curve/spline.js", "../../core/toolops_api.js"], function _spline_editops_module(_es6_module) {
+es6_module_define('spline_editops', ["../../core/toolops_api.js", "../../curve/spline_types.js", "../../core/frameset.js", "../../curve/spline.js", "../../core/animdata.js", "../../curve/spline_draw.js", "../../core/toolprops.js", "../../curve/spline_base.js", "../../path.ux/scripts/util/struct.js"], function _spline_editops_module(_es6_module) {
   var IntProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'IntProperty');
   var FloatProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'FloatProperty');
   var CollectionProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'CollectionProperty');
@@ -4910,7 +3938,7 @@ es6_module_define('spline_editops', ["../../curve/spline_types.js", "../../core/
         off = 0.0;
       console.log("change face z! selmode:", selmode, "off", off);
       if (selmode&SplineTypes.VERTEX) {
-          selmode|=SplineTypes.FACE|SplineTypes.SEGMENT;
+          selmode|=SplineTypes.SEGMENT;
       }
       if (selmode&SplineTypes.FACE) {
           for (var f of spline.faces.selected.editable(ctx)) {
@@ -10374,7 +9402,7 @@ es6_module_define('notifications', ["../path.ux/scripts/widgets/ui_noteframe.js"
   _es6_module.add_class(NotificationManager);
   NotificationManager = _es6_module.add_export('NotificationManager', NotificationManager);
 }, '/dev/fairmotion/src/core/notifications.js');
-es6_module_define('app_ops', ["../core/toolops_api.js", "../core/fileapi/fileapi.js", "../util/strutils.js", "../util/svg_export.js", "../config/config.js", "./viewport/spline_createops.js", "../../platforms/platform.js", "../core/toolprops.js"], function _app_ops_module(_es6_module) {
+es6_module_define('app_ops', ["../util/svg_export.js", "../core/toolops_api.js", "../../platforms/platform.js", "../core/toolprops.js", "./viewport/spline_createops.js", "../core/fileapi/fileapi.js", "../util/strutils.js", "../config/config.js"], function _app_ops_module(_es6_module) {
   var config=es6_import(_es6_module, '../config/config.js');
   var urlencode=es6_import_item(_es6_module, '../util/strutils.js', 'urlencode');
   var b64decode=es6_import_item(_es6_module, '../util/strutils.js', 'b64decode');
@@ -10398,42 +9426,6 @@ es6_module_define('app_ops', ["../core/toolops_api.js", "../core/fileapi/fileapi
   var save_file=es6_import_item(_es6_module, '../core/fileapi/fileapi.js', 'save_file');
   var save_with_dialog=es6_import_item(_es6_module, '../core/fileapi/fileapi.js', 'save_with_dialog');
   var can_access_path=es6_import_item(_es6_module, '../core/fileapi/fileapi.js', 'can_access_path');
-  class FileOpenRecentOp extends ToolOp {
-    static  tooldef() {
-      return {apiname: "appstate.open_recent", 
-     uiname: "Open Recent", 
-     inputs: {}, 
-     outputs: {}, 
-     icon: -1, 
-     is_modal: false, 
-     undoflag: UndoFlags.IGNORE_UNDO}
-    }
-     constructor() {
-      super();
-      this.path = undefined;
-    }
-     exec(ctx) {
-      var dialog=new PackedDialog("Open recent...", ctx, g_app_state.screen);
-      var row=dialog.subframe;
-      var listbox=new UIListBox();
-      row.add(listbox);
-      var paths=g_app_state.session.settings.recent_paths;
-      for (var i=paths.length-1; i>=0; i--) {
-          listbox.add_item(paths[i].displayname, paths[i].path);
-      }
-      listbox.go_callback = function (text, id) {
-        console.log("go calllback!", id);
-        var loadop=new FileOpenOp();
-        loadop.inputs.path.set_data(id);
-        dialog.end();
-        g_app_state.toolstack.exec_tool(loadop);
-      };
-      dialog.call(g_app_state.screen.mpos);
-    }
-  }
-  _ESClass.register(FileOpenRecentOp);
-  _es6_module.add_class(FileOpenRecentOp);
-  FileOpenRecentOp = _es6_module.add_export('FileOpenRecentOp', FileOpenRecentOp);
   class FileOpenOp extends ToolOp {
      constructor() {
       super();
@@ -10454,10 +9446,10 @@ es6_module_define('app_ops', ["../core/toolops_api.js", "../core/fileapi/fileapi
       console.log("File open");
       open_file(function (buf, fname, filepath) {
         console.log("\n\ngot file!", buf, fname, filepath, "\n\n");
-        g_app_state.load_user_file_new(new DataView(buf), filepath);
-        if (filepath!=undefined) {
+        if (filepath!==undefined) {
             g_app_state.session.settings.add_recent_file(filepath);
         }
+        g_app_state.load_user_file_new(new DataView(buf), filepath);
       }, this, true, "Fairmotion Files", ["fmo"]);
       return ;
     }
@@ -10466,13 +9458,15 @@ es6_module_define('app_ops', ["../core/toolops_api.js", "../core/fileapi/fileapi
   _es6_module.add_class(FileOpenOp);
   FileOpenOp = _es6_module.add_export('FileOpenOp', FileOpenOp);
   class FileSaveAsOp extends ToolOp {
-     constructor() {
+    
+     constructor(do_progress=true) {
       super();
+      this.do_progress = true;
     }
     static  tooldef() {
       return {apiname: "appstate.save_as", 
      uiname: "Save As", 
-     inputs: {path: new StringProperty("", "path", "File Path", "File Path")}, 
+     inputs: {}, 
      outputs: {}, 
      icon: -1, 
      is_modal: false, 
@@ -10480,55 +9474,14 @@ es6_module_define('app_ops', ["../core/toolops_api.js", "../core/fileapi/fileapi
      flag: ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS}
     }
      exec(ctx) {
-      console.log("File save");
-      ctx = new Context();
-      var pd=new ProgressDialog(ctx, "Uploading");
-      var thepath=undefined;
+      console.log("File save As");
       var mesh_data=g_app_state.create_user_file_new().buffer;
-      if (config.USE_HTML5_FILEAPI) {
-          save_with_dialog(mesh_data, g_app_state.filepath, "Fairmotion Files", ["fmo"], function () {
-            error_dialog(ctx, "Could not write file", undefined, true);
-          }, (path) =>            {
-            g_app_state.filepath = path;
-            g_app_state.notes.label("File saved");
-          });
-          return ;
-      }
-      function error(job, owner, msg) {
-        pd.end();
-        error_dialog(ctx, "Network Error", undefined, true);
-      }
-      function finish(job, owner) {
-        if (DEBUG.netio)
-          console.log("finished uploading");
-        pd.end();
-        G.filepath = thepath;
-      }
-      function status(job, owner, status) {
-        pd.value = status.progress;
-        if (DEBUG.netio)
-          console.log("status: ", status.progress, status);
-      }
-      function save_callback(dialog, path) {
-        pd.call(ctx.screen.mpos);
-        g_app_state.session.settings.add_recent_file(path);
-        g_app_state.session.settings.server_update(true);
+      save_with_dialog(mesh_data, undefined, "Fairmotion Files", ["fmo"], function () {
+        error_dialog(ctx, "Could not write file", undefined, true);
+      }, (path) =>        {
         g_app_state.filepath = path;
-        if (DEBUG.netio)
-          console.log("saving...", path);
-        
-        if (!path.endsWith(fairmotion_file_ext)) {
-            path = path+fairmotion_file_ext;
-        }
-        thepath = path;
-        var token=g_app_state.session.tokens.access;
-        var url="/api/files/upload/start?accessToken="+token+"&path="+path;
-        var url2="/api/files/upload?accessToken="+token;
-        call_api(upload_file, {data: mesh_data, 
-      url: url, 
-      chunk_url: url2}, finish, error, status);
-      }
-      file_dialog("SAVE", new Context(), save_callback, true);
+        g_app_state.notes.label("File saved");
+      });
     }
   }
   _ESClass.register(FileSaveAsOp);
@@ -10959,3 +9912,511 @@ es6_module_define('editor_base', ["../path.ux/scripts/screen/ScreenArea.js", "..
 }
 `;
 }, '/dev/fairmotion/src/editors/editor_base.js');
+es6_module_define('manipulator', ["../../util/mathlib.js", "../../config/config.js"], function _manipulator_module(_es6_module) {
+  "use strict";
+  var dist_to_line_v2=es6_import_item(_es6_module, '../../util/mathlib.js', 'dist_to_line_v2');
+  var config=es6_import(_es6_module, '../../config/config.js');
+  var ManipFlags={}
+  ManipFlags = _es6_module.add_export('ManipFlags', ManipFlags);
+  var HandleShapes={ARROW: 0, 
+   HAMMER: 1, 
+   ROTCIRCLE: 2, 
+   SIMPLE_CIRCLE: 3, 
+   OUTLINE: 4}
+  HandleShapes = _es6_module.add_export('HandleShapes', HandleShapes);
+  var HandleColors={DEFAULT: [0, 0, 0, 1], 
+   HIGHLIGHT: [0.4, 0.4, 0.4, 1], 
+   SELECT: [1.0, 0.7, 0.3, 1]}
+  HandleColors = _es6_module.add_export('HandleColors', HandleColors);
+  var _mh_idgen=1;
+  class HandleBase  {
+     on_click(e, view2d, id) {
+
+    }
+     on_active() {
+      this.color = HandleColors.HIGHLIGHT;
+      this.update();
+    }
+     on_inactive() {
+      this.color = HandleColors.DEFAULT;
+      this.update();
+    }
+     distanceTo(p) {
+      throw new Error("unimplemented distanceTo");
+    }
+     update() {
+      throw new Error("unimplemented update");
+    }
+     [Symbol.keystr]() {
+      throw new Error("unimplemented keystr");
+    }
+     get_render_rects(ctx, canvas, g) {
+      throw new Error("unimplemented get_render_rects");
+    }
+     render(canvas, g) {
+      throw new Error("unimplemented render");
+    }
+  }
+  _ESClass.register(HandleBase);
+  _es6_module.add_class(HandleBase);
+  HandleBase = _es6_module.add_export('HandleBase', HandleBase);
+  HandleBase;
+  var $min_x_4B_update;
+  var $max_3gek_update;
+  class ManipHandle extends HandleBase {
+    
+    
+    
+    
+     constructor(v1, v2, id, shape, view2d, clr) {
+      super();
+      this.id = id;
+      this._hid = _mh_idgen++;
+      this.shape = shape;
+      this.v1 = v1;
+      this.v2 = v2;
+      this.transparent = false;
+      this.color = clr===undefined ? [0, 0, 0, 1] : clr.slice(0, clr.length);
+      this.parent = undefined;
+      this.linewidth = 1.5;
+      if (this.color.length==3)
+        this.color.push(1.0);
+      this._min = new Vector2(v1);
+      this._max = new Vector2(v2);
+      this._redraw_pad = this.linewidth;
+    }
+     on_click(e, view2d, id) {
+
+    }
+     on_active() {
+      this.color = HandleColors.HIGHLIGHT;
+      this.update();
+    }
+     on_inactive() {
+      this.color = HandleColors.DEFAULT;
+      this.update();
+    }
+     distanceTo(p) {
+      return dist_to_line_v2(p, this.v1, this.v2);
+    }
+     update_aabb() {
+      this._min[0] = this.v1[0]+this.parent.co[0];
+      this._min[1] = this.v1[1]+this.parent.co[1];
+      this._max[0] = this.v2[0]+this.parent.co[0];
+      this._max[1] = this.v2[1]+this.parent.co[1];
+      var minx=Math.min(this._min[0], this._max[0]);
+      var miny=Math.min(this._min[1], this._max[1]);
+      var maxx=Math.max(this._min[0], this._max[0]);
+      var maxy=Math.max(this._min[1], this._max[1]);
+      this._min[0] = minx;
+      this._min[1] = miny;
+      this._max[0] = maxx;
+      this._max[1] = maxy;
+    }
+     update() {
+      var p=this._redraw_pad;
+      $min_x_4B_update[0] = this._min[0]-p;
+      $min_x_4B_update[1] = this._min[1]-p;
+      $max_3gek_update[0] = this._max[0]+p;
+      $max_3gek_update[1] = this._max[1]+p;
+      window.redraw_viewport($min_x_4B_update, $max_3gek_update);
+      this.update_aabb();
+      $min_x_4B_update[0] = this._min[0]-p;
+      $min_x_4B_update[1] = this._min[1]-p;
+      $max_3gek_update[0] = this._max[0]+p;
+      $max_3gek_update[1] = this._max[1]+p;
+      window.redraw_viewport($min_x_4B_update, $max_3gek_update);
+    }
+     [Symbol.keystr]() {
+      return "MH"+this._hid.toString;
+    }
+     get_render_rects(ctx, canvas, g) {
+      let p=this._redraw_pad;
+      this.update_aabb();
+      let xmin=this._min[0], ymin=this._min[1], xmax=this._max[0], ymax=this._max[1];
+      return [[xmin-p, ymin-p, xmax-xmin+2*p, ymax-ymin+2*p]];
+    }
+     render(canvas, g) {
+      let c=this.color;
+      let style="rgba("+(~~(c[0]*255))+","+(~~(c[1]*255))+","+(~~(c[2]*255))+","+c[3]+")";
+      g.strokeStyle = g.fillStyle = style;
+      g.lineWidth = this.linewidth;
+      if (this.shape==HandleShapes.ARROW) {
+          g.beginPath();
+          let dx=this.v2[0]-this.v1[0], dy=this.v2[1]-this.v1[1];
+          let dx2=this.v1[1]-this.v2[1], dy2=this.v2[0]-this.v1[0];
+          let l=Math.sqrt(dx2*dx2+dy2*dy2);
+          if (l==0.0) {
+              g.beginPath();
+              g.rect(this.v1[0]-5, this.v1[1]-5, 10, 10);
+              g.fill();
+              return ;
+          }
+          dx2*=1.5/l;
+          dy2*=1.5/l;
+          dx*=0.65;
+          dy*=0.65;
+          let w=3;
+          let v1=this.v1, v2=this.v2;
+          g.moveTo(v1[0]-dx2, v1[1]-dy2);
+          g.lineTo(v1[0]+dx-dx2, v1[1]+dy-dy2);
+          g.lineTo(v1[0]+dx-dx2*w, v1[1]+dy-dy2*w);
+          g.lineTo(v2[0], v2[1]);
+          g.lineTo(v1[0]+dx+dx2*w, v1[1]+dy+dy2*w);
+          g.lineTo(v1[0]+dx+dx2, v1[1]+dy+dy2);
+          g.lineTo(v1[0]+dx2, v1[1]+dy2);
+          g.closePath();
+          g.fill();
+      }
+      else 
+        if (this.shape==HandleShapes.OUTLINE) {
+          g.beginPath();
+          g.moveTo(this.v1[0], this.v1[1]);
+          g.lineTo(this.v1[0], this.v2[1]);
+          g.lineTo(this.v2[0], this.v2[1]);
+          g.lineTo(this.v2[0], this.v1[1]);
+          g.closePath();
+          g.stroke();
+      }
+      else {
+        g.beginPath();
+        g.moveTo(this.v1[0], this.v1[1]);
+        g.lineTo(this.v2[0], this.v2[1]);
+        g.stroke();
+      }
+    }
+  }
+  var $min_x_4B_update=new Vector2();
+  var $max_3gek_update=new Vector2();
+  _ESClass.register(ManipHandle);
+  _es6_module.add_class(ManipHandle);
+  ManipHandle = _es6_module.add_export('ManipHandle', ManipHandle);
+  var $min_zjXQ_update;
+  var $max_Q31N_update;
+  class ManipCircle extends HandleBase {
+    
+    
+    
+    
+    
+     constructor(p, r, id, view2d, clr) {
+      super();
+      this.id = id;
+      this._hid = _mh_idgen++;
+      this.p = new Vector2(p);
+      this.r = r;
+      this.transparent = false;
+      this.color = clr===undefined ? [0, 0, 0, 1] : clr.slice(0, clr.length);
+      this.parent = undefined;
+      this.linewidth = 1.5;
+      if (this.color.length==3)
+        this.color.push(1.0);
+      this._min = new Vector2();
+      this._max = new Vector2();
+      this._redraw_pad = this.linewidth;
+    }
+     on_click(e, view2d, id) {
+
+    }
+     on_active() {
+      this.color = HandleColors.HIGHLIGHT;
+      this.update();
+    }
+     on_inactive() {
+      this.color = HandleColors.DEFAULT;
+      this.update();
+    }
+     distanceTo(p) {
+      let dx=this.p[0]-p[0];
+      let dy=this.p[1]-p[1];
+      let dis=dx*dx+dy*dy;
+      dis = dis!=0.0 ? Math.sqrt(dis) : 0.0;
+      return Math.abs(dis-this.r);
+    }
+     update_aabb() {
+      this._min[0] = this.parent.co[0]+this.p[0]-Math.sqrt(2)*this.r;
+      this._min[1] = this.parent.co[1]+this.p[1]-Math.sqrt(2)*this.r;
+      this._max[0] = this.parent.co[0]+this.p[0]+Math.sqrt(2)*this.r;
+      this._max[1] = this.parent.co[1]+this.p[1]+Math.sqrt(2)*this.r;
+    }
+     update() {
+      var p=this._redraw_pad;
+      $min_zjXQ_update[0] = this._min[0]-p;
+      $min_zjXQ_update[1] = this._min[1]-p;
+      $max_Q31N_update[0] = this._max[0]+p;
+      $max_Q31N_update[1] = this._max[1]+p;
+      window.redraw_viewport($min_zjXQ_update, $max_Q31N_update);
+      this.update_aabb();
+      $min_zjXQ_update[0] = this._min[0]-p;
+      $min_zjXQ_update[1] = this._min[1]-p;
+      $max_Q31N_update[0] = this._max[0]+p;
+      $max_Q31N_update[1] = this._max[1]+p;
+      window.redraw_viewport($min_zjXQ_update, $max_Q31N_update);
+    }
+     [Symbol.keystr]() {
+      return "MC"+this._hid.toString;
+    }
+     get_render_rects(ctx, canvas, g) {
+      let p=this._redraw_pad;
+      this.update_aabb();
+      let xmin=this._min[0], ymin=this._min[1], xmax=this._max[0], ymax=this._max[1];
+      return [[xmin-p, ymin-p, xmax-xmin+2*p, ymax-ymin+2*p]];
+    }
+     render(canvas, g) {
+      let c=this.color;
+      let style="rgba("+(~~(c[0]*255))+","+(~~(c[1]*255))+","+(~~(c[2]*255))+","+c[3]+")";
+      g.strokeStyle = g.fillStyle = style;
+      g.lineWidth = this.linewidth;
+      g.beginPath();
+      g.arc(this.p[0], this.p[1], this.r, -Math.PI, Math.PI);
+      g.closePath();
+      g.stroke();
+    }
+  }
+  var $min_zjXQ_update=new Vector2();
+  var $max_Q31N_update=new Vector2();
+  _ESClass.register(ManipCircle);
+  _es6_module.add_class(ManipCircle);
+  ManipCircle = _es6_module.add_export('ManipCircle', ManipCircle);
+  var _mh_idgen_2=1;
+  var _mp_first=true;
+  class Manipulator  {
+    
+    
+    
+    
+     constructor(handles) {
+      this._hid = _mh_idgen_2++;
+      this.handles = handles.slice(0, handles.length);
+      this.recalc = 1;
+      this.parent = undefined;
+      this.user_data = undefined;
+      for (var h of this.handles) {
+          h.parent = this;
+      }
+      this.handle_size = 65;
+      this.co = new Vector3();
+      this.hidden = false;
+    }
+     hide() {
+      if (!this.hidden) {
+          this.update();
+      }
+      this.hidden = true;
+    }
+     unhide() {
+      if (this.hidden) {
+          this.hidden = false;
+          this.update();
+      }
+      else {
+        this.hidden = false;
+      }
+    }
+     update() {
+      if (this.hidden)
+        return ;
+      for (var h of this.handles) {
+          h.update();
+      }
+    }
+     on_tick(ctx) {
+
+    }
+     [Symbol.keystr]() {
+      return "MP"+this._hid.toString;
+    }
+     end() {
+      this.parent.remove(this);
+    }
+     get_render_rects(ctx, canvas, g) {
+      var rects=[];
+      if (this.hidden) {
+          return rects;
+      }
+      for (var h of this.handles) {
+          var rs=h.get_render_rects(ctx, canvas, g);
+          for (var i=0; i<rs.length; i++) {
+              rs[i] = rs[i].slice(0, rs[i].length);
+              rs[i][0]+=this.co[0];
+              rs[i][1]+=this.co[1];
+          }
+          rects = rects.concat(rs);
+      }
+      return rects;
+    }
+     render(canvas, g) {
+      if (this.hidden) {
+          return ;
+      }
+      for (var h of this.handles) {
+          var x=this.co[0], y=this.co[1];
+          g.translate(x, y);
+          h.render(canvas, g);
+          g.translate(-x, -y);
+      }
+    }
+     outline(min, max, id, clr=[0, 0, 0, 1.0]) {
+      min = new Vector2(min);
+      max = new Vector2(max);
+      var h=new ManipHandle(min, max, id, HandleShapes.OUTLINE, this.view3d, clr);
+      h.transparent = true;
+      h.parent = this;
+      this.handles.push(h);
+      return h;
+    }
+     arrow(v1, v2, id, clr=[0, 0, 0, 1.0]) {
+      v1 = new Vector2(v1);
+      v2 = new Vector2(v2);
+      var h=new ManipHandle(v1, v2, id, HandleShapes.ARROW, this.view3d, clr);
+      h.parent = this;
+      this.handles.push(h);
+      return h;
+    }
+     circle(p, r, id, clr=[0, 0, 0, 1.0]) {
+      let h=new ManipCircle(new Vector2(p), r, id, this.view3d, clr);
+      h.parent = this;
+      this.handles.push(h);
+      return h;
+    }
+     findnearest(e) {
+      let limit=config.MANIPULATOR_MOUSEOVER_LIMIT;
+      let h=this.handles[0];
+      let mpos=[e.x-this.co[0], e.y-this.co[1]];
+      let mindis=undefined, minh=undefined;
+      for (let h of this.handles) {
+          if (h.transparent)
+            continue;
+          let dis=h.distanceTo(mpos);
+          if (dis<limit&&(mindis===undefined||dis<mindis)) {
+              mindis = dis;
+              minh = h;
+          }
+      }
+      return minh;
+    }
+     on_mousemove(e, view2d) {
+      let h=this.findnearest(e);
+      if (h!==this.active) {
+          if (this.active!==undefined) {
+              this.active.on_inactive();
+          }
+          this.active = h;
+          if (h!==undefined) {
+              h.on_active();
+          }
+      }
+      return false;
+    }
+     on_click(event, view2d) {
+      return this.active!=undefined ? this.active.on_click(event, view2d, this.active.id) : undefined;
+    }
+  }
+  _ESClass.register(Manipulator);
+  _es6_module.add_class(Manipulator);
+  Manipulator = _es6_module.add_export('Manipulator', Manipulator);
+  var $nil_GJS__get_render_rects;
+  class ManipulatorManager  {
+    
+    
+    
+     constructor(view2d) {
+      this.view2d = view2d;
+      this.stack = [];
+      this.active = undefined;
+    }
+     render(canvas, g) {
+      if (this.active!==undefined) {
+          this.active.render(canvas, g);
+      }
+    }
+     get_render_rects(ctx, canvas, g) {
+      if (this.active!=undefined) {
+          return this.active.get_render_rects(ctx, canvas, g);
+      }
+      else {
+        return $nil_GJS__get_render_rects;
+      }
+    }
+     remove(mn) {
+      if (mn==this.active) {
+          this.pop();
+      }
+      else {
+        this.stack.remove(mn);
+      }
+    }
+     push(mn) {
+      mn.parent = this;
+      this.stack.push(this.active);
+      this.active = mn;
+    }
+     ensure_not_toolop(ctx, cls) {
+      if (this.active!=undefined&&this.active.toolop_class===cls) {
+          this.remove(this.active);
+      }
+    }
+     ensure_toolop(ctx, cls) {
+      if (this.active!=undefined&&this.active.toolop_class===cls) {
+          return this.active;
+      }
+      if (this.active!=undefined) {
+          this.remove(this.active);
+      }
+      this.active = cls.create_widgets(this, ctx);
+      if (this.active!==undefined) {
+          this.active.toolop_class = cls;
+      }
+    }
+     pop() {
+      var ret=this.active;
+      this.active = this.stack.pop(-1);
+    }
+     on_mousemove(event, view2d) {
+      return this.active!=undefined ? this.active.on_mousemove(event, view2d) : undefined;
+    }
+     on_click(event, view2d) {
+      return this.active!=undefined ? this.active.on_click(event, view2d) : undefined;
+    }
+     active_toolop() {
+      if (this.active==undefined)
+        return undefined;
+      return this.active.toolop_class;
+    }
+     create(cls, do_push=true) {
+      var mn=new Manipulator([]);
+      mn.parent = this;
+      mn.toolop_class = cls;
+      if (do_push)
+        this.push(mn);
+      return mn;
+    }
+     on_tick(ctx) {
+      if (this.active!=undefined&&this.active.on_tick!=undefined)
+        this.active.on_tick(ctx);
+    }
+     circle(p, r, clr, do_push=true) {
+      let h=new ManipCircle(p, r, id, this.view3d, clr);
+      let mn=new Manipulator([h]);
+      mn.parent = this;
+      if (do_push) {
+          this.push(mn);
+      }
+      return mn;
+    }
+     arrow(v1, v2, id, clr, do_push=true) {
+      v1 = new Vector2(v1);
+      v2 = new Vector2(v2);
+      var h=new ManipHandle(v1, v2, id, HandleShapes.ARROW, this.view3d, clr);
+      var mn=new Manipulator([h]);
+      mn.parent = this;
+      if (do_push)
+        this.push(mn);
+      return mn;
+    }
+  }
+  var $nil_GJS__get_render_rects=[];
+  _ESClass.register(ManipulatorManager);
+  _es6_module.add_class(ManipulatorManager);
+  ManipulatorManager = _es6_module.add_export('ManipulatorManager', ManipulatorManager);
+}, '/dev/fairmotion/src/editors/viewport/manipulator.js');

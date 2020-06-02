@@ -11424,7 +11424,7 @@ es6_module_define('ui_menu', ["../util/util.js", "../toolsys/simple_toolsys.js",
   }
   startMenu = _es6_module.add_export('startMenu', startMenu);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_menu.js');
-es6_module_define('ui_noteframe', ["../util/util.js", "../core/ui.js", "../core/ui_base.js"], function _ui_noteframe_module(_es6_module) {
+es6_module_define('ui_noteframe', ["../core/ui.js", "../util/util.js", "../core/ui_base.js"], function _ui_noteframe_module(_es6_module) {
   var util=es6_import(_es6_module, '../util/util.js');
   var ui=es6_import(_es6_module, '../core/ui.js');
   var ui_base=es6_import(_es6_module, '../core/ui_base.js');
@@ -11604,7 +11604,6 @@ es6_module_define('ui_noteframe', ["../util/util.js", "../core/ui.js", "../core/
       note.height = this._h;
       if (timeout!=-1) {
           window.setTimeout(() =>            {
-            console.log("remove!");
             note.remove();
           }, timeout);
       }
@@ -11659,9 +11658,7 @@ es6_module_define('ui_noteframe', ["../util/util.js", "../core/ui.js", "../core/
         timeout = 3000;
     }
     noteframes = getNoteFrames(screen);
-    console.log(noteframes.length);
     for (let frame of noteframes) {
-        console.log(frame);
         try {
           frame.addNote(msg, color, timeout);
         }

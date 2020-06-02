@@ -3908,7 +3908,7 @@ window.startup_intern = function startup() {
   }
 };
 function init_event_system() {
-  let eventmanager=es6_get_module_meta(_rootpath_src+"/core/eventmanager.js").exports;
+  let eventmanager=es6_get_module_meta(_rootpath_src+"src/core/eventmanager.js").exports;
   let eman=eventmanager.manager;
   window._stime = 10;
   window.setInterval(function () {
@@ -3921,7 +3921,7 @@ function init_event_system() {
         }
     }
   }, 32);
-  var config=_es6_get_module(_rootpath_src+"/config/config.js");
+  var config=_es6_get_module(_rootpath_src+"src/config/config.js");
   window.setInterval(function () {
     if (g_app_state!==undefined&&g_app_state.screen!==undefined) {
         g_app_state.screen.update();
@@ -9945,16 +9945,16 @@ function time_func(func, steps) {
   console.log(times);
   return times;
 }
-var $lst_BAnO=new GArray();
+var $lst_zkCq=new GArray();
 function cached_list(iter) {
-  $lst_BAnO.reset();
+  $lst_zkCq.reset();
   var i=0;
   for (var item of iter) {
-      $lst_BAnO.push(item);
+      $lst_zkCq.push(item);
       i++;
   }
-  $lst_BAnO.length = i;
-  return $lst_BAnO;
+  $lst_zkCq.length = i;
+  return $lst_zkCq;
 }
 var g_list=list;
 class eid_list extends GArray {
@@ -10006,6 +10006,8 @@ class SetIter  {
    ["return"]() {
     this.done = true;
     this.ret.done = true;
+    this.ret.value = undefined;
+    return this.ret;
   }
    next() {
     var list=this.list;
@@ -11295,10 +11297,10 @@ es6_module_define('strutils', [], function _strutils_module(_es6_module) {
   }
   encode_dataurl = _es6_module.add_export('encode_dataurl', encode_dataurl);
 }, '/dev/fairmotion/src/util/strutils.js');
-es6_module_define('lib_api', ["./toolprops_iter.js", "./struct.js"], function _lib_api_module(_es6_module) {
+es6_module_define('lib_api', ["./struct.js", "./toolprops_iter.js"], function _lib_api_module(_es6_module) {
   "use strict";
   var STRUCT=es6_import_item(_es6_module, './struct.js', 'STRUCT');
-  var _DataTypeDef=[["IMAGE", 8], ["SCENE", 5], ["SCRIPT", 4], ["SPLINE", 6], ["FRAMESET", 7], ["ADDON", 8]];
+  var _DataTypeDef=[["IMAGE", 8], ["SCENE", 5], ["SCRIPT", 4], ["SPLINE", 6], ["FRAMESET", 7], ["ADDON", 8], ["OBJECT", 9]];
   var DataTypes={}
   DataTypes = _es6_module.add_export('DataTypes', DataTypes);
   var LinkOrder=[];
@@ -11650,10 +11652,13 @@ DataLib {
     
     
      constructor(type, name) {
+      if (type===undefined) {
+          throw new Error("type cannot be undefined");
+      }
       this.constructor.datablock_type = type;
       this.addon_data = {};
       if (name===undefined)
-        name = "unnnamed";
+        name = "unnamed";
       this.lib_anim_channels = new GArray();
       this.lib_anim_idgen = undefined;
       this.lib_anim_idmap = {};

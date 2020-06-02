@@ -9944,16 +9944,16 @@ function time_func(func, steps) {
   console.log(times);
   return times;
 }
-var $lst_57mN=new GArray();
+var $lst_BAnO=new GArray();
 function cached_list(iter) {
-  $lst_57mN.reset();
+  $lst_BAnO.reset();
   var i=0;
   for (var item of iter) {
-      $lst_57mN.push(item);
+      $lst_BAnO.push(item);
       i++;
   }
-  $lst_57mN.length = i;
-  return $lst_57mN;
+  $lst_BAnO.length = i;
+  return $lst_BAnO;
 }
 var g_list=list;
 class eid_list extends GArray {

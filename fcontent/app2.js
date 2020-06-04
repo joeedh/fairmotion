@@ -1,413 +1,3 @@
-es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
-  "use strict";
-  class token  {
-     constructor(type, val, lexpos, lexlen, lineno, lexer, parser) {
-      this.type = type;
-      this.value = val;
-      this.lexpos = lexpos;
-      this.lexlen = lexlen;
-      this.lineno = lineno;
-      this.lexer = lexer;
-      this.parser = parser;
-    }
-     toString() {
-      if (this.value!=undefined)
-        return "token(type="+this.type+", value='"+this.value+"')";
-      else 
-        return "token(type="+this.type+")";
-    }
-  }
-  _ESClass.register(token);
-  _es6_module.add_class(token);
-  token = _es6_module.add_export('token', token);
-  class tokdef  {
-     constructor(name, regexpr, func) {
-      this.name = name;
-      this.re = regexpr;
-      this.func = func;
-    }
-  }
-  _ESClass.register(tokdef);
-  _es6_module.add_class(tokdef);
-  tokdef = _es6_module.add_export('tokdef', tokdef);
-  class PUTLParseError extends Error {
-     constructor(msg) {
-      super();
-    }
-  }
-  _ESClass.register(PUTLParseError);
-  _es6_module.add_class(PUTLParseError);
-  PUTLParseError = _es6_module.add_export('PUTLParseError', PUTLParseError);
-  class lexer  {
-    
-    
-    
-    
-    
-    
-    
-     constructor(tokdef, errfunc) {
-      this.tokdef = tokdef;
-      this.tokens = new GArray();
-      this.lexpos = 0;
-      this.lexdata = "";
-      this.lineno = 0;
-      this.errfunc = errfunc;
-      this.tokints = {};
-      for (var i=0; i<tokdef.length; i++) {
-          this.tokints[tokdef[i].name] = i;
-      }
-      this.statestack = [["__main__", 0]];
-      this.states = {"__main__": [tokdef, errfunc]};
-      this.statedata = 0;
-    }
-     add_state(name, tokdef, errfunc) {
-      if (errfunc==undefined) {
-          errfunc = function (lexer) {
-            return true;
-          };
-      }
-      this.states[name] = [tokdef, errfunc];
-    }
-     tok_int(name) {
-
-    }
-     push_state(state, statedata) {
-      this.statestack.push([state, statedata]);
-      state = this.states[state];
-      this.statedata = statedata;
-      this.tokdef = state[0];
-      this.errfunc = state[1];
-    }
-     pop_state() {
-      var item=this.statestack[this.statestack.length-1];
-      var state=this.states[item[0]];
-      this.tokdef = state[0];
-      this.errfunc = state[1];
-      this.statedata = item[1];
-    }
-     input(str) {
-      while (this.statestack.length>1) {
-        this.pop_state();
-      }
-      this.lexdata = str;
-      this.lexpos = 0;
-      this.lineno = 0;
-      this.tokens = new GArray();
-      this.peeked_tokens = [];
-    }
-     error() {
-      if (this.errfunc!=undefined&&!this.errfunc(this))
-        return ;
-      console.log("Syntax error near line "+this.lineno);
-      var next=Math.min(this.lexpos+8, this.lexdata.length);
-      console.log("  "+this.lexdata.slice(this.lexpos, next));
-      throw new PUTLParseError("Parse error");
-    }
-     peek() {
-      var tok=this.next(true);
-      if (tok==undefined)
-        return undefined;
-      this.peeked_tokens.push(tok);
-      return tok;
-    }
-     peek_i(i) {
-      while (this.peeked_tokens.length<=i) {
-        var t=this.peek();
-        if (t==undefined)
-          return undefined;
-      }
-      return this.peeked_tokens[i];
-    }
-     at_end() {
-      return this.lexpos>=this.lexdata.length&&this.peeked_tokens.length==0;
-    }
-     next(ignore_peek) {
-      if (ignore_peek!=true&&this.peeked_tokens.length>0) {
-          var tok=this.peeked_tokens[0];
-          this.peeked_tokens.shift();
-          return tok;
-      }
-      if (this.lexpos>=this.lexdata.length)
-        return undefined;
-      var ts=this.tokdef;
-      var tlen=ts.length;
-      var lexdata=this.lexdata.slice(this.lexpos, this.lexdata.length);
-      var results=[];
-      for (var i=0; i<tlen; i++) {
-          var t=ts[i];
-          if (t.re==undefined)
-            continue;
-          var res=t.re.exec(lexdata);
-          if (res!=null&&res!=undefined&&res.index==0) {
-              results.push([t, res]);
-          }
-      }
-      var max_res=0;
-      var theres=undefined;
-      for (var i=0; i<results.length; i++) {
-          var res=results[i];
-          if (res[1][0].length>max_res) {
-              theres = res;
-              max_res = res[1][0].length;
-          }
-      }
-      if (theres==undefined) {
-          this.error();
-          return ;
-      }
-      var def=theres[0];
-      var lexlen=max_res;
-      var tok=new token(def.name, theres[1][0], this.lexpos, lexlen, this.lineno, this, undefined);
-      this.lexpos+=max_res;
-      if (def.func) {
-          tok = def.func(tok);
-          if (tok==undefined) {
-              return this.next();
-          }
-      }
-      return tok;
-    }
-  }
-  _ESClass.register(lexer);
-  _es6_module.add_class(lexer);
-  lexer = _es6_module.add_export('lexer', lexer);
-  class parser  {
-     constructor(lexer, errfunc) {
-      this.lexer = lexer;
-      this.errfunc = errfunc;
-      this.start = undefined;
-    }
-     parse(data, err_on_unconsumed) {
-      if (err_on_unconsumed==undefined)
-        err_on_unconsumed = true;
-      if (data!=undefined)
-        this.lexer.input(data);
-      var ret=this.start(this);
-      if (err_on_unconsumed&&!this.lexer.at_end()&&this.lexer.next()!=undefined) {
-          var left=this.lexer.lexdata.slice(this.lexer.lexpos-1, this.lexer.lexdata.length);
-          this.error(undefined, "parser did not consume entire input; left: "+left);
-      }
-      return ret;
-    }
-     input(data) {
-      this.lexer.input(data);
-    }
-     error(tok, msg) {
-      if (msg==undefined)
-        msg = "";
-      if (tok==undefined)
-        var estr="Parse error at end of input: "+msg;
-      else 
-        estr = "Parse error at line "+(tok.lineno+1)+": "+msg;
-      var buf="1| ";
-      var ld=this.lexer.lexdata;
-      var l=1;
-      for (var i=0; i<ld.length; i++) {
-          var c=ld[i];
-          if (c=='\n') {
-              l++;
-              buf+="\n"+l+"| ";
-          }
-          else {
-            buf+=c;
-          }
-      }
-      console.log("------------------");
-      console.log(buf);
-      console.log("==================");
-      console.log(estr);
-      if (this.errfunc&&!this.errfunc(tok)) {
-          return ;
-      }
-      throw new PUTLParseError(estr);
-    }
-     peek() {
-      var tok=this.lexer.peek();
-      if (tok!=undefined)
-        tok.parser = this;
-      return tok;
-    }
-     peek_i(i) {
-      var tok=this.lexer.peek_i(i);
-      if (tok!=undefined)
-        tok.parser = this;
-      return tok;
-    }
-     peeknext() {
-      return this.peek_i(0);
-    }
-     next() {
-      var tok=this.lexer.next();
-      if (tok!=undefined)
-        tok.parser = this;
-      return tok;
-    }
-     optional(type) {
-      var tok=this.peek();
-      if (tok==undefined)
-        return false;
-      if (tok.type==type) {
-          this.next();
-          return true;
-      }
-      return false;
-    }
-     at_end() {
-      return this.lexer.at_end();
-    }
-     expect(type, msg) {
-      var tok=this.next();
-      if (msg==undefined)
-        msg = type;
-      if (tok==undefined||tok.type!=type) {
-          this.error(tok, "Expected "+msg+", not "+tok.type);
-      }
-      return tok.value;
-    }
-  }
-  _ESClass.register(parser);
-  _es6_module.add_class(parser);
-  parser = _es6_module.add_export('parser', parser);
-  function test_parser() {
-    var basic_types=new set(["int", "float", "double", "vec2", "vec3", "vec4", "mat4", "string"]);
-    var reserved_tokens=new set(["int", "float", "double", "vec2", "vec3", "vec4", "mat4", "string", "static_string", "array"]);
-    function tk(name, re, func) {
-      return new tokdef(name, re, func);
-    }
-    var tokens=[tk("ID", /[a-zA-Z]+[a-zA-Z0-9_]*/, function (t) {
-      if (reserved_tokens.has(t.value)) {
-          t.type = t.value.toUpperCase();
-      }
-      return t;
-    }), tk("OPEN", /\{/), tk("CLOSE", /}/), tk("COLON", /:/), tk("JSCRIPT", /\|/, function (t) {
-      var js="";
-      var lexer=t.lexer;
-      while (lexer.lexpos<lexer.lexdata.length) {
-        var c=lexer.lexdata[lexer.lexpos];
-        if (c=="\n")
-          break;
-        js+=c;
-        lexer.lexpos++;
-      }
-      if (js.endsWith(";")) {
-          js = js.slice(0, js.length-1);
-          lexer.lexpos--;
-      }
-      t.value = js;
-      return t;
-    }), tk("LPARAM", /\(/), tk("RPARAM", /\)/), tk("COMMA", /,/), tk("NUM", /[0-9]/), tk("SEMI", /;/), tk("NEWLINE", /\n/, function (t) {
-      t.lexer.lineno+=1;
-    }), tk("SPACE", / |\t/, function (t) {
-    })];
-    for (var rt of reserved_tokens) {
-        tokens.push(tk(rt.toUpperCase()));
-    }
-    var a=`
-  Loop {
-    eid : int;
-    flag : int;
-    index : int;
-    type : int;
-    
-    co : vec3;
-    no : vec3;
-    loop : int | eid(loop);
-    edges : array(e, int) | e.eid;
-    
-    loops : array(Loop);
-  }
-  `;
-    function errfunc(lexer) {
-      return true;
-    }
-    var lex=new lexer(tokens, errfunc);
-    console.log("Testing lexical scanner...");
-    lex.input(a);
-    var tok;
-    while (tok = lex.next()) {
-      console.log(tok.toString());
-    }
-    var parser=new parser(lex);
-    parser.input(a);
-    function p_Array(p) {
-      p.expect("ARRAY");
-      p.expect("LPARAM");
-      var arraytype=p_Type(p);
-      var itername="";
-      if (p.optional("COMMA")) {
-          itername = arraytype;
-          arraytype = p_Type(p);
-      }
-      p.expect("RPARAM");
-      return {type: "array", 
-     data: {type: arraytype, 
-      iname: itername}}
-    }
-    function p_Type(p) {
-      var tok=p.peek();
-      if (tok.type=="ID") {
-          p.next();
-          return {type: "struct", 
-       data: "\""+tok.value+"\""}
-      }
-      else 
-        if (basic_types.has(tok.type.toLowerCase())) {
-          p.next();
-          return {type: tok.type.toLowerCase()}
-      }
-      else 
-        if (tok.type=="ARRAY") {
-          return p_Array(p);
-      }
-      else {
-        p.error(tok, "invalid type "+tok.type);
-      }
-    }
-    function p_Field(p) {
-      var field={}
-      console.log("-----", p.peek().type);
-      field.name = p.expect("ID", "struct field name");
-      p.expect("COLON");
-      field.type = p_Type(p);
-      field.set = undefined;
-      field.get = undefined;
-      var tok=p.peek();
-      if (tok.type=="JSCRIPT") {
-          field.get = tok.value;
-          p.next();
-      }
-      tok = p.peek();
-      if (tok.type=="JSCRIPT") {
-          field.set = tok.value;
-          p.next();
-      }
-      p.expect("SEMI");
-      return field;
-    }
-    function p_Struct(p) {
-      var st={}
-      st.name = p.expect("ID", "struct name");
-      st.fields = [];
-      p.expect("OPEN");
-      while (1) {
-        if (p.at_end()) {
-            p.error(undefined);
-        }
-        else 
-          if (p.optional("CLOSE")) {
-            break;
-        }
-        else {
-          st.fields.push(p_Field(p));
-        }
-      }
-      return st;
-    }
-    var ret=p_Struct(parser);
-    console.log(JSON.stringify(ret));
-  }
-}, '/dev/fairmotion/src/util/parseutil.js');
 es6_module_define('typedwriter', [], function _typedwriter_module(_es6_module) {
   "use strict";
   class TypedCache  {
@@ -1865,7 +1455,7 @@ es6_module_define('image_ops', ["../core/struct.js", "../core/toolprops.js", "..
   _es6_module.add_class(LoadImageOp);
   LoadImageOp = _es6_module.add_export('LoadImageOp', LoadImageOp);
 }, '/dev/fairmotion/src/image/image_ops.js');
-es6_module_define('UserSettings', ["../path.ux/scripts/core/ui_theme.js", "../path.ux/scripts/core/ui_base.js", "../path.ux/scripts/util/util.js", "./struct.js", "../util/strutils.js", "../editors/theme.js", "../datafiles/theme.js", "../config/config.js"], function _UserSettings_module(_es6_module) {
+es6_module_define('UserSettings', ["../util/strutils.js", "../path.ux/scripts/core/ui_theme.js", "./struct.js", "../config/config.js", "../datafiles/theme.js", "../path.ux/scripts/util/util.js", "../path.ux/scripts/core/ui_base.js", "../editors/theme.js"], function _UserSettings_module(_es6_module) {
   var config=es6_import(_es6_module, '../config/config.js');
   var reload_default_theme=es6_import_item(_es6_module, '../datafiles/theme.js', 'reload_default_theme');
   var b64encode=es6_import_item(_es6_module, '../util/strutils.js', 'b64encode');
@@ -2143,7 +1733,6 @@ AppSettings {
           g_app_state.session.settings = settings;
           if (g_app_state.screen!=undefined) {
               redraw_viewport();
-              redraw_ui();
           }
           if (on_finish!=undefined) {
               on_finish(settings);
@@ -2259,23 +1848,7 @@ AppSettings {
     return ujob;
   }
 }, '/dev/fairmotion/src/core/UserSettings.js');
-es6_module_define('context', ["../path.ux/scripts/screen/FrameManager_ops.js", "../editors/settings/SettingsEditor.js", "../editors/menubar/MenuBar.js", "../editors/material/MaterialEditor.js", "../editors/ops/ops_editor.js", "./frameset.js", "../editors/dopesheet/DopeSheetEditor.js", "./lib_api.js", "../editors/editor_base.js", "../path.ux/scripts/controller/context.js", "../editors/console/console.js", "../editors/viewport/view2d.js", "../editors/curve/CurveEditor.js"], function _context_module(_es6_module) {
-  var SplineFrameSet=es6_import_item(_es6_module, './frameset.js', 'SplineFrameSet');
-  var SettingsEditor=es6_import_item(_es6_module, '../editors/settings/SettingsEditor.js', 'SettingsEditor');
-  var MenuBar=es6_import_item(_es6_module, '../editors/menubar/MenuBar.js', 'MenuBar');
-  var DataTypes=es6_import_item(_es6_module, './lib_api.js', 'DataTypes');
-  var DataBlock=es6_import_item(_es6_module, './lib_api.js', 'DataBlock');
-  var ConsoleEditor=es6_import_item(_es6_module, '../editors/console/console.js', 'ConsoleEditor');
-  var CurveEditor=es6_import_item(_es6_module, '../editors/curve/CurveEditor.js', 'CurveEditor');
-  var OpStackEditor=es6_import_item(_es6_module, '../editors/ops/ops_editor.js', 'OpStackEditor');
-  var MaterialEditor=es6_import_item(_es6_module, '../editors/material/MaterialEditor.js', 'MaterialEditor');
-  var DopeSheetEditor=es6_import_item(_es6_module, '../editors/dopesheet/DopeSheetEditor.js', 'DopeSheetEditor');
-  var SettingsEditor=es6_import_item(_es6_module, '../editors/settings/SettingsEditor.js', 'SettingsEditor');
-  var MenuBar=es6_import_item(_es6_module, '../editors/menubar/MenuBar.js', 'MenuBar');
-  var registerToolStackGetter=es6_import_item(_es6_module, '../path.ux/scripts/screen/FrameManager_ops.js', 'registerToolStackGetter');
-  var FairmotionScreen=es6_import_item(_es6_module, '../editors/editor_base.js', 'FairmotionScreen');
-  var resetAreaStacks=es6_import_item(_es6_module, '../editors/editor_base.js', 'resetAreaStacks');
-  var Editor=es6_import_item(_es6_module, '../editors/editor_base.js', 'Editor');
+es6_module_define('context', ["./frameset.js", "../editors/editor_base.js", "../editors/settings/SettingsEditor.js", "../scene/scene.js", "./data_api/data_api.js", "../editors/dopesheet/DopeSheetEditor.js", "../editors/viewport/view2d.js", "../curve/spline.js", "../path.ux/scripts/screen/FrameManager_ops.js", "../editors/ops/ops_editor.js", "../editors/menubar/MenuBar.js", "../editors/curve/CurveEditor.js", "../path.ux/scripts/controller/context.js", "../editors/console/console.js", "./lib_api.js", "../editors/material/MaterialEditor.js"], function _context_module(_es6_module) {
   var ContextOverlay=es6_import_item(_es6_module, '../path.ux/scripts/controller/context.js', 'ContextOverlay');
   var Context=es6_import_item(_es6_module, '../path.ux/scripts/controller/context.js', 'Context');
   class BaseContextOverlay extends ContextOverlay {
@@ -2308,10 +1881,11 @@ es6_module_define('context', ["../path.ux/scripts/screen/FrameManager_ops.js", "
       return scene!==undefined ? scene.edit_all_layers : false;
     }
     get  spline() {
-      var ret=this.api.getObject(this, g_app_state.active_splinepath);
+      var ret=this.api.getValue(this, g_app_state.active_splinepath);
       if (ret===undefined) {
           warntrace("Warning: bad spline path", g_app_state.active_splinepath);
           g_app_state.switch_active_spline("frameset.drawspline");
+          ret = this.api.getValue(this, g_app_state.active_splinepath);
           if (ret===undefined) {
               warntrace("Even Worse: base spline path failed!", g_app_state.active_splinepath);
           }
@@ -2471,10 +2045,28 @@ es6_module_define('context', ["../path.ux/scripts/screen/FrameManager_ops.js", "
   _es6_module.add_class(FullContext);
   FullContext = _es6_module.add_export('FullContext', FullContext);
   window.Context = FullContext;
+  var SplineFrameSet=es6_import_item(_es6_module, './frameset.js', 'SplineFrameSet');
+  var SettingsEditor=es6_import_item(_es6_module, '../editors/settings/SettingsEditor.js', 'SettingsEditor');
+  var MenuBar=es6_import_item(_es6_module, '../editors/menubar/MenuBar.js', 'MenuBar');
+  var DataTypes=es6_import_item(_es6_module, './lib_api.js', 'DataTypes');
+  var DataBlock=es6_import_item(_es6_module, './lib_api.js', 'DataBlock');
+  var ConsoleEditor=es6_import_item(_es6_module, '../editors/console/console.js', 'ConsoleEditor');
+  var CurveEditor=es6_import_item(_es6_module, '../editors/curve/CurveEditor.js', 'CurveEditor');
+  var OpStackEditor=es6_import_item(_es6_module, '../editors/ops/ops_editor.js', 'OpStackEditor');
+  var MaterialEditor=es6_import_item(_es6_module, '../editors/material/MaterialEditor.js', 'MaterialEditor');
+  var DopeSheetEditor=es6_import_item(_es6_module, '../editors/dopesheet/DopeSheetEditor.js', 'DopeSheetEditor');
+  var SettingsEditor=es6_import_item(_es6_module, '../editors/settings/SettingsEditor.js', 'SettingsEditor');
+  var MenuBar=es6_import_item(_es6_module, '../editors/menubar/MenuBar.js', 'MenuBar');
+  var registerToolStackGetter=es6_import_item(_es6_module, '../path.ux/scripts/screen/FrameManager_ops.js', 'registerToolStackGetter');
+  var FairmotionScreen=es6_import_item(_es6_module, '../editors/editor_base.js', 'FairmotionScreen');
+  var resetAreaStacks=es6_import_item(_es6_module, '../editors/editor_base.js', 'resetAreaStacks');
+  var Editor=es6_import_item(_es6_module, '../editors/editor_base.js', 'Editor');
   var View2DHandler=es6_import_item(_es6_module, '../editors/viewport/view2d.js', 'View2DHandler');
+  var Scene=es6_import_item(_es6_module, '../scene/scene.js', 'Scene');
+  var Spline=es6_import_item(_es6_module, '../curve/spline.js', 'Spline');
+  var DataAPI=es6_import_item(_es6_module, './data_api/data_api.js', 'DataAPI');
 }, '/dev/fairmotion/src/core/context.js');
-var g_app_state, g, t;
-es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/menubar/MenuBar.js", "./frameset.js", "./UserSettings.js", "../editors/editor_base.js", "./data_api/data_api_pathux.js", "../editors/curve/CurveEditor.js", "./startup/startup_file_example.js", "../path.ux/scripts/screen/ScreenArea.js", "../path.ux/scripts/screen/FrameManager.js", "../path.ux/scripts/config/const.js", "../path.ux/scripts/platforms/electron/electron_api.js", "../editors/theme.js", "./data_api/data_api.js", "./notifications.js", "../editors/all.js", "../editors/viewport/view2d.js", "./ajax.js", "./fileapi/fileapi.js", "./lib_api_typedefine.js", "../editors/console/console.js", "./lib_utils.js", "../editors/viewport/view2d_ops.js", "../editors/dopesheet/DopeSheetEditor.js", "../editors/settings/SettingsEditor.js", "../path.ux/scripts/util/util.js", "../config/config.js", "./startup/startup_file.js", "../curve/spline_base.js", "../path.ux/scripts/core/ui_base.js", "./lib_api.js", "./toolprops.js", "./raster.js", "../scene/scene.js", "./struct.js", "../path.ux/scripts/screen/FrameManager_ops.js", "../../platforms/platform.js", "../editors/ops/ops_editor.js", "./toolops_api.js", "../editors/material/MaterialEditor.js", "./context.js"], function _AppState_module(_es6_module) {
+es6_module_define('AppState', ["./startup/startup_file.js", "./lib_utils.js", "./jobs.js", "../editors/viewport/view2d_ops.js", "./context.js", "./data_api/data_api_pathux.js", "../path.ux/scripts/core/ui_base.js", "../editors/editor_base.js", "./struct.js", "../path.ux/scripts/platforms/electron/electron_api.js", "./startup/startup_file_example.js", "./ajax.js", "../editors/menubar/MenuBar.js", "./notifications.js", "../path.ux/scripts/screen/ScreenArea.js", "./toolprops.js", "../editors/console/console.js", "./lib_api_typedefine.js", "../editors/viewport/view2d.js", "./frameset.js", "../path.ux/scripts/util/util.js", "./raster.js", "../util/strutils.js", "../editors/all.js", "./UserSettings.js", "../editors/ops/ops_editor.js", "../editors/material/MaterialEditor.js", "../editors/settings/SettingsEditor.js", "./fileapi/fileapi.js", "./toolops_api.js", "../path.ux/scripts/screen/FrameManager_ops.js", "./lib_api.js", "../curve/spline_base.js", "../../platforms/platform.js", "../scene/scene.js", "../editors/curve/CurveEditor.js", "./data_api/data_api.js", "../editors/dopesheet/DopeSheetEditor.js", "../editors/theme.js", "../path.ux/scripts/screen/FrameManager.js", "../path.ux/scripts/config/const.js", "../config/config.js"], function _AppState_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, '../editors/all.js');
   var platform=es6_import(_es6_module, '../../platforms/platform.js');
@@ -2560,8 +2152,6 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
       resetAreaStacks();
       app.appendChild(screen);
     }
-    screen.style["width"] = "100%";
-    screen.style["height"] = "100%";
     screen.style["position"] = "absolute";
     screen.setAttribute("id", "screenmain");
     screen.id = "screenmain";
@@ -2660,10 +2250,8 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
   var profile_report=es6_import_item(_es6_module, './struct.js', 'profile_report');
   var gen_struct_str=es6_import_item(_es6_module, './struct.js', 'gen_struct_str');
   var STRUCT=es6_import_item(_es6_module, './struct.js', 'STRUCT');
-  var FileFlags={COMPRESSED_LZSTRING: 1}
+  let FileFlags={COMPRESSED_LZSTRING: 1}
   FileFlags = _es6_module.add_export('FileFlags', FileFlags);
-  t = 2;
-  g_app_state = undefined;
   class FileData  {
      constructor(blocks, fstructs, version) {
       this.blocks = blocks;
@@ -2722,7 +2310,7 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
             let areaname=editor.constructor.define().areaname;
             sarea2.editors.push(editor);
             sarea2.editormap[areaname] = editor;
-            if (editor.constructor.name==sarea.area) {
+            if (editor.constructor.name===sarea.area) {
                 sarea2.area = editor;
                 sarea2.shadow.appendChild(editor);
             }
@@ -2750,8 +2338,8 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
       this.settings.load();
     }
      copy() {
-      var c=new UserSession();
-      for (var k in this.tokens) {
+      let c=new UserSession();
+      for (let k in this.tokens) {
           c.tokens[k] = this.tokens[k];
       }
       c.username = this.username;
@@ -2763,10 +2351,10 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
       return c;
     }
      store(override_settings=false) {
-      var saveobj=this.copy();
+      let saveobj=this.copy();
       if (!override_settings&&myLocalStorage.hasCached("session")) {
           try {
-            var old=JSON.parse(myLocalStorage.getCached("session"));
+            let old=JSON.parse(myLocalStorage.getCached("session"));
             saveobj.settings = old;
           }
           catch (error) {
@@ -2783,7 +2371,7 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
       return true;
     }
     static  fromJSON(obj) {
-      var us=new UserSession;
+      let us=new UserSession;
       us.tokens = obj.tokens;
       us.username = obj.username;
       us.password = obj.password;
@@ -2797,7 +2385,7 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
   _ESClass.register(UserSession);
   _es6_module.add_class(UserSession);
   window.test_load_file = function () {
-    var buf=startup_file;
+    let buf=startup_file;
     buf = new DataView(b64decode(buf).buffer);
     g_app_state.load_user_file_new(buf, undefined, new unpack_ctx());
   }
@@ -2808,12 +2396,12 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
     if (!myLocalStorage.hasCached("startup_file")) {
         myLocalStorage.startup_file = startup_file;
     }
-    for (var i=0; i<2; i++) {
-        var file=i==0 ? myLocalStorage.getCached("startup_file") : startup_file;
+    for (let i=0; i<2; i++) {
+        let file=i==0 ? myLocalStorage.getCached("startup_file") : startup_file;
         if (file)
           file = file.trim().replace(/[\n\r]/g, "");
         if (file) {
-            var buf=new DataView(b64decode(file).buffer);
+            let buf=new DataView(b64decode(file).buffer);
             g.load_user_file_new(buf, undefined, new unpack_ctx());
             return true;
         }
@@ -2828,22 +2416,22 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
         force_new = false;
     }
     html5_fileapi.reset();
-    var g=g_app_state;
+    let g=g_app_state;
     
     if (!force_new&&load_default_file(g)) {
         return ;
     }
     g.reset_state();
-    var op=new BasicFileOp();
+    let op=new BasicFileOp();
     g.toolstack.exec_tool(op);
     gen_screen(undefined, size[0], size[1]);
   }
   function output_startup_file() {
-    var str=myLocalStorage.getCached("startup_file");
-    var out="";
-    for (var i=0; i<str.length; i++) {
+    let str=myLocalStorage.getCached("startup_file");
+    let out="";
+    for (let i=0; i<str.length; i++) {
         out+=str[i];
-        if (((i+1)%77)==0) {
+        if (((i+1)%77)===0) {
             out+="\n";
         }
     }
@@ -2856,6 +2444,7 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
       this.AppState_init(screen);
     }
      AppState_init(screen, reset_mode=false) {
+      this.modalStateStack = [];
       this.screen = screen;
       this.eventhandler = screen;
       this.active_editor = undefined;
@@ -2901,18 +2490,27 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
     get  settings() {
       return this.session.settings;
     }
-     set_modalstate(state=0) {
+     pushModalState(state) {
+      this.modalStateStack.push(this.modalstate);
       this.modalstate = state;
     }
+     popModalState(state) {
+      if (this.modalstate===state) {
+          this.modalstate = this.modalStateStack.pop();
+      }
+      else {
+        this.modalStateStack.remove(state);
+      }
+    }
     get  active_splinepath() {
-      var scene=this.datalib.get_active(DataTypes.SCENE);
-      if (scene!=undefined)
+      let scene=this.datalib.get_active(DataTypes.SCENE);
+      if (scene!==undefined)
         return scene.active_splinepath;
       return this._active_splinepath;
     }
     set  active_splinepath(val) {
       this._active_splinepath = val;
-      var scene=this.datalib.get_active(DataTypes.SCENE);
+      let scene=this.datalib.get_active(DataTypes.SCENE);
       if (scene!==undefined)
         scene.active_splinepath = val;
     }
@@ -2921,7 +2519,7 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
       this.destroyScreen();
     }
      update_context() {
-      var scene=this.datalib.get_active(DataTypes.SCENE);
+      let scene=this.datalib.get_active(DataTypes.SCENE);
       if (scene===undefined)
         return ;
     }
@@ -2954,7 +2552,7 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
       this.AppState_init(screen, true);
     }
      copy() {
-      var as=new AppState(this.screen, undefined);
+      let as=new AppState(this.screen, undefined);
       as.datalib = this.datalib;
       as.session = this.session;
       as.toolstack = this.toolstack;
@@ -2962,7 +2560,7 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
       return as;
     }
      set_startup_file() {
-      var buf=this.create_user_file_new({gen_dataview: true, 
+      let buf=this.create_user_file_new({gen_dataview: true, 
      compress: true, 
      save_theme: false, 
      save_toolstack: false});
@@ -2972,28 +2570,28 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
       g_app_state.notes.label("New file template saved");
     }
      create_scene_file() {
-      var buf=this.create_user_file_new({save_screen: false, 
+      let buf=this.create_user_file_new({save_screen: false, 
      save_toolstack: false});
       return buf;
     }
      create_undo_file() {
-      var buf=this.create_user_file_new({save_screen: false, 
+      let buf=this.create_user_file_new({save_screen: false, 
      save_toolstack: false});
       return buf;
     }
      load_scene_file(scenefile) {
-      if (the_global_dag!=undefined)
+      if (the_global_dag!==undefined)
         the_global_dag.reset_cache();
-      var screen=this.screen;
-      var toolstack=this.toolstack;
-      var view2d=this.active_view2d;
+      let screen=this.screen;
+      let toolstack=this.toolstack;
+      let view2d=this.active_view2d;
       console.trace("Load internal scene file", scenefile);
       if (this.datalib!==undefined) {
           this.datalib.on_destroy();
       }
-      var datalib=new DataLib();
+      let datalib=new DataLib();
       this.datalib = datalib;
-      var filedata=this.load_blocks(scenefile);
+      let filedata=this.load_blocks(scenefile);
       this.link_blocks(datalib, filedata);
       resetAreaStacks();
       this.screen = screen;
@@ -3006,11 +2604,11 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
       window.redraw_viewport();
     }
      load_undo_file(undofile) {
-      var screen=this.screen;
-      var toolstack=this.toolstack;
+      let screen=this.screen;
+      let toolstack=this.toolstack;
       console.log(undofile);
       this.datalib.clear();
-      var filedata=this.load_blocks(undofile);
+      let filedata=this.load_blocks(undofile);
       this.link_blocks(this.datalib, filedata);
       this.eventhandler = screen;
       this.toolstack = toolstack;
@@ -3023,9 +2621,9 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
       }
     }
      create_user_file_new(args={}) {
-      var gen_dataview=true, compress=false;
-      var save_screen=true, save_toolstack=false;
-      var save_theme=false, save_datalib=true;
+      let gen_dataview=true, compress=false;
+      let save_screen=true, save_toolstack=false;
+      let save_theme=false, save_datalib=true;
       if (args.save_datalib!==undefined)
         save_datalib = args.save_datalib;
       if (args.gen_dataview!==undefined)
@@ -3042,19 +2640,19 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
         pack_static_string(data, type, 4);
         pack_static_string(data, subtype, 4);
       }
-      var data=[];
+      let data=[];
       pack_static_string(data, "FAIR", 4);
-      var flag=compress ? FileFlags.COMPRESSED_LZSTRING : 0;
+      let flag=compress ? FileFlags.COMPRESSED_LZSTRING : 0;
       pack_int(data, flag);
-      var major=Math.floor(g_app_version);
-      var minor=Math.floor((g_app_version-Math.floor(g_app_version))*1000);
+      let major=Math.floor(g_app_version);
+      let minor=Math.floor((g_app_version-Math.floor(g_app_version))*1000);
       pack_int(data, major);
       pack_int(data, minor);
-      var headerdata=data;
+      let headerdata=data;
       if (compress) {
           data = [];
       }
-      var buf=gen_struct_str();
+      let buf=gen_struct_str();
       bheader(data, "SDEF", "SDEF");
       pack_string(data, buf);
       profile_reset();
@@ -3066,17 +2664,17 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
           data = data.concat(data2);
       }
       if (save_screen) {
-          var data2=[];
+          let data2=[];
           istruct.write_object(data2, this.screen);
           bheader(data, "SCRN", "STRT");
           pack_int(data, data2.length);
           data = data.concat(data2);
       }
-      var data2=[];
-      for (var lib of this.datalib.datalists.values()) {
-          for (var block of lib) {
+      let data2=[];
+      for (let lib of this.datalib.datalists.values()) {
+          for (let block of lib) {
               data2 = [];
-              var t1=time_ms();
+              let t1=time_ms();
               istruct.write_object(data2, block);
               t1 = time_ms()-t1;
               if (t1>50) {
@@ -3091,7 +2689,7 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
       profile_report();
       if (save_toolstack) {
           console.log("writing toolstack");
-          var data2=[];
+          let data2=[];
           istruct.write_object(data2, this.toolstack);
           bheader(data, "TSTK", "STRT");
           pack_int(data, data2.length);
@@ -3099,7 +2697,7 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
       }
       if (save_theme) {
           console.log("writing theme");
-          var data2=[];
+          let data2=[];
           istruct.write_object(data2, g_theme);
           bheader(data, "THME", "STRT");
           pack_int(data, data2.length);
@@ -3108,17 +2706,17 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
       if (compress) {
           data = LZString.compress(new Uint8Array(data));
           console.log("using compression");
-          var d=new Uint16Array(data.length);
-          for (var i=0; i<data.length; i++) {
+          let d=new Uint16Array(data.length);
+          for (let i=0; i<data.length; i++) {
               d[i] = data.charCodeAt(i);
           }
           d = new Uint8Array(d.buffer);
           console.log("  file size", d.length);
           data = new Uint8Array(d.length+headerdata.length);
-          for (var i=0; i<headerdata.length; i++) {
+          for (let i=0; i<headerdata.length; i++) {
               data[i] = headerdata[i];
           }
-          for (var i=0; i<d.length; i++) {
+          for (let i=0; i<d.length; i++) {
               data[i+headerdata.length] = d[i];
           }
           if (gen_dataview)
@@ -3135,36 +2733,36 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
       }
     }
      write_blocks(args={}) {
-      var gen_dataview=true, compress=false;
-      var save_screen=args.save_screen!=undefined ? args.save_screen : true;
-      var save_toolstack=args.save_toolstack!=undefined ? args.save_toolstack : false;
-      var save_theme=false;
-      var blocks=args["blocks"];
-      if (args.gen_dataview!=undefined)
+      let gen_dataview=true, compress=false;
+      let save_screen=args.save_screen!==undefined ? args.save_screen : true;
+      let save_toolstack=args.save_toolstack!==undefined ? args.save_toolstack : false;
+      let save_theme=false;
+      let blocks=args["blocks"];
+      if (args.gen_dataview!==undefined)
         gen_dataview = args.gen_dataview;
-      if (args.compress!=undefined)
+      if (args.compress!==undefined)
         compress = args.compress;
       function bheader(data, type, subtype) {
         pack_static_string(data, type, 4);
         pack_static_string(data, subtype, 4);
       }
-      var data=[];
+      let data=[];
       pack_static_string(data, "FAIR", 4);
-      var flag=compress ? FileFlags.COMPRESSED_LZSTRING : 0;
+      let flag=compress ? FileFlags.COMPRESSED_LZSTRING : 0;
       pack_int(data, flag);
-      var major=Math.floor(g_app_version);
-      var minor=Math.floor((g_app_version-Math.floor(g_app_version))*1000);
+      let major=Math.floor(g_app_version);
+      let minor=Math.floor((g_app_version-Math.floor(g_app_version))*1000);
       pack_int(data, major);
       pack_int(data, minor);
-      var headerdata=data;
+      let headerdata=data;
       if (compress) {
           data = [];
       }
-      var buf=gen_struct_str();
+      let buf=gen_struct_str();
       bheader(data, "SDEF", "SDEF");
       pack_string(data, buf);
-      for (var k in blocks) {
-          var data2=[];
+      for (let k in blocks) {
+          let data2=[];
           istruct.write_object(data2, blocks[k]);
           bheader(data, k, "STRT");
           pack_int(data, data2.length);
@@ -3173,17 +2771,17 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
       if (compress) {
           console.log("1 using compression");
           data = LZString.compress(new Uint8Array(data));
-          var d=new Uint16Array(data.length);
-          for (var i=0; i<data.length; i++) {
+          let d=new Uint16Array(data.length);
+          for (let i=0; i<data.length; i++) {
               d[i] = data.charCodeAt(i);
           }
           d = new Uint8Array(d.buffer);
           console.log("  file size:", d.length);
           data = new Uint8Array(d.length+headerdata.length);
-          for (var i=0; i<headerdata.length; i++) {
+          for (let i=0; i<headerdata.length; i++) {
               data[i] = headerdata[i];
           }
-          for (var i=0; i<d.length; i++) {
+          for (let i=0; i<d.length; i++) {
               data[i+headerdata.length] = d[i];
           }
           if (gen_dataview)
@@ -3201,13 +2799,13 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
     }
      do_versions(datalib, blocks, version) {
       if (version<0.046) {
-          for (var frameset of datalib.framesets) {
-              for (var spline of frameset._allsplines) {
-                  for (var h of spline.handles) {
+          for (let frameset of datalib.framesets) {
+              for (let spline of frameset._allsplines) {
+                  for (let h of spline.handles) {
                       console.log("  -", h.segments[0], h.segments);
                       console.log("  -", h.owning_segment);
-                      var s=h.owning_segment;
-                      var v1=s.handle_vertex(h), v2=s.other_vert(v1);
+                      let s=h.owning_segment;
+                      let v1=s.handle_vertex(h), v2=s.other_vert(v1);
                       console.log("patching handle!", h.eid);
                       h.load(v2).sub(v1).mulScalar(1.0/3.0).add(v1);
                   }
@@ -3215,27 +2813,27 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
           }
       }
       if (version<0.047) {
-          var scene=new Scene();
+          let scene=new Scene();
           scene.set_fake_user();
           this.datalib.add(scene);
       }
       if (version<0.048) {
-          for (var frameset of datalib.framesets) {
-              for (var spline of frameset._allsplines) {
-                  for (var eid in spline.eidmap) {
-                      var e=spline.eidmap[eid];
-                      var layer=spline.layerset.active;
+          for (let frameset of datalib.framesets) {
+              for (let spline of frameset._allsplines) {
+                  for (let eid in spline.eidmap) {
+                      let e=spline.eidmap[eid];
+                      let layer=spline.layerset.active;
                       layer.add(e);
                   }
               }
           }
       }
       if (version<0.049) {
-          for (var frameset of datalib.framesets) {
-              if (frameset.kcache!=undefined) {
+          for (let frameset of datalib.framesets) {
+              if (frameset.kcache!==undefined) {
                   frameset.kcache.cache = {};
               }
-              for (var s of frameset.spline.segments) {
+              for (let s of frameset.spline.segments) {
                   s.v1.flag|=SplineFlags.UPDATE;
                   s.v2.flag|=SplineFlags.UPDATE;
                   s.h1.flag|=SplineFlags.UPDATE;
@@ -3246,7 +2844,7 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
           }
       }
       if (version<0.05) {
-          for (var frameset of datalib.framesets) {
+          for (let frameset of datalib.framesets) {
               startup_warning("Spline equation changed; forcing resolve. . .", version);
               frameset.spline.force_full_resolve();
               frameset.pathspline.force_full_resolve();
@@ -3318,54 +2916,54 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
      load_user_file_new(data, path, uctx, use_existing_screen=false) {
       if (this.screen!==undefined)
         this.size = new Vector2(this.screen.size);
-      if (uctx==undefined) {
+      if (uctx===undefined) {
           uctx = new unpack_ctx();
       }
-      var s=unpack_static_string(data, uctx, 4);
-      if (s!="FAIR") {
+      let s=unpack_static_string(data, uctx, 4);
+      if (s!=="FAIR") {
           console.log("header", s, s.length);
           console.log("data", new Uint8Array(data.buffer));
           throw new Error("Could not load file.");
       }
-      var file_flag=unpack_int(data, uctx);
-      var version_major=unpack_int(data, uctx);
-      var version_minor=unpack_int(data, uctx)/1000.0;
-      var version=version_major+version_minor;
+      let file_flag=unpack_int(data, uctx);
+      let version_major=unpack_int(data, uctx);
+      let version_minor=unpack_int(data, uctx)/1000.0;
+      let version=version_major+version_minor;
       if (file_flag&FileFlags.COMPRESSED_LZSTRING) {
           if (DEBUG.compression)
             console.log("decompressing. . .");
           data = new Uint16Array(data.buffer.slice(uctx.i, data.byteLength));
-          var s="";
-          for (var i=0; i<data.length; i++) {
+          let s="";
+          for (let i=0; i<data.length; i++) {
               s+=String.fromCharCode(data[i]);
           }
           data = LZString.decompress(s);
-          var data2=new Uint8Array(data.length);
+          let data2=new Uint8Array(data.length);
           if (DEBUG.compression)
             console.log("uncompressed length: ", data.length);
-          for (var i=0; i<data.length; i++) {
+          for (let i=0; i<data.length; i++) {
               data2[i] = data.charCodeAt(i);
           }
           data = new DataView(data2.buffer);
           uctx.i = 0;
       }
-      var blocks=new GArray();
-      var fstructs=new STRUCT();
-      var datalib=undefined;
-      var tmap=get_data_typemap();
+      let blocks=new Array();
+      let fstructs=new STRUCT();
+      let datalib=undefined;
+      let tmap=get_data_typemap();
       window._send_killscreen();
       while (uctx.i<data.byteLength) {
-        var type=unpack_static_string(data, uctx, 4);
-        var subtype=unpack_static_string(data, uctx, 4);
-        var len=unpack_int(data, uctx);
-        var bdata;
+        let type=unpack_static_string(data, uctx, 4);
+        let subtype=unpack_static_string(data, uctx, 4);
+        let len=unpack_int(data, uctx);
+        let bdata;
         if (subtype==="JSON") {
             bdata = unpack_static_string(data, uctx, len);
         }
         else 
           if (subtype==="STRT") {
             if (type==="BLCK") {
-                var dtype=unpack_int(data, uctx);
+                let dtype=unpack_int(data, uctx);
                 bdata = unpack_bytes(data, uctx, len-4);
                 bdata = [dtype, bdata];
             }
@@ -3395,15 +2993,15 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
           console.warn("%c Creating new DataLib; probably an old file...", "color : red;");
           datalib = new DataLib();
       }
-      for (var i=0; i<blocks.length; i++) {
-          var b=blocks[i];
+      for (let i=0; i<blocks.length; i++) {
+          let b=blocks[i];
           if (b.subtype==="JSON") {
               b.data = JSON.parse(b.data);
           }
           else 
-            if (b.subtype=="STRT") {
+            if (b.subtype==="STRT") {
               if (b.type==="BLCK") {
-                  var lt=tmap[b.data[0]];
+                  let lt=tmap[b.data[0]];
                   lt = lt!==undefined ? lt.name : lt;
                   b.data = fstructs.read_object(b.data[1], tmap[b.data[0]]);
                   b.data.lib_refs = 0;
@@ -3420,14 +3018,13 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
               }
           }
       }
-      for (var i=0; i<blocks.length; i++) {
-          var block=blocks[i];
+      for (let i=0; i<blocks.length; i++) {
+          let block=blocks[i];
           if (block.type==="THME") {
-              
-              var old=g_theme;
-              g_theme = block.data;
-              g_theme.gen_globals();
-              old.patch(g_theme);
+              let old=window.g_theme;
+              window.g_theme = block.data;
+              window.g_theme.gen_globals();
+              old.patch(window.g_theme);
           }
       }
       if (this.datalib!==undefined) {
@@ -3435,30 +3032,30 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
       }
       this.datalib = datalib;
       this.active_view2d = undefined;
-      var getblock=wrap_getblock(datalib);
-      var getblock_us=wrap_getblock_us(datalib);
-      var screen=undefined;
-      var toolstack=undefined;
-      var this2=this;
+      let getblock=wrap_getblock(datalib);
+      let getblock_us=wrap_getblock_us(datalib);
+      let screen=undefined;
+      let toolstack=undefined;
+      let this2=this;
       function load_state() {
         this2.do_versions(datalib, blocks, version);
-        for (var i=0; i<blocks.length; i++) {
-            var block=blocks[i];
+        for (let i=0; i<blocks.length; i++) {
+            let block=blocks[i];
             if (block.subtype==="STRT"&&!_nonblocks.has(block.type)) {
                 block.data.data_link(block.data, getblock, getblock_us);
             }
         }
-        for (var i=0; i<blocks.length; i++) {
-            var block=blocks[i];
-            if (block.type=="SCRN") {
+        for (let i=0; i<blocks.length; i++) {
+            let block=blocks[i];
+            if (block.type==="SCRN") {
                 screen = block.data;
             }
         }
         this2.destroyScreen();
-        var size=new Vector2(this2.size);
+        let size=new Vector2(this2.size);
         if (screen===undefined) {
             gen_default_file(this2.size);
-            if (this2.datalib!=undefined) {
+            if (this2.datalib!==undefined) {
                 this2.datalib.on_destroy();
             }
             this2.datalib = datalib;
@@ -3466,7 +3063,7 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
         }
         else {
           this2.datalib = new DataLib();
-          if (this2.datalib!=undefined) {
+          if (this2.datalib!==undefined) {
               this2.datalib.on_destroy();
           }
           this2.reset_state(screen, undefined);
@@ -3476,26 +3073,25 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
         this2.screen = screen;
         resetAreaStacks();
         this2.size = size;
-        for (var sa of screen.sareas) {
+        for (let sa of screen.sareas) {
             if (__instance_of(sa.area, View2DHandler)) {
                 this2.active_view2d = sa.area;
                 break;
             }
         }
-        var ctx=new FullContext();
+        let ctx=new FullContext();
         if (screen!==undefined) {
             screen.view2d = this2.active_view2d;
             this2.dataLinkScreen(screen, getblock, getblock_us);
         }
-        if (this2.datalib!=undefined) {
+        if (this2.datalib!==undefined) {
             this2.datalib.on_destroy();
         }
         this2.datalib = datalib;
         this2.eventhandler = this2.screen;
-        var ctx=new FullContext();
-        for (var i=0; i<blocks.length; i++) {
-            var block=blocks[i];
-            if (block.type=="TSTK") {
+        for (let i=0; i<blocks.length; i++) {
+            let block=blocks[i];
+            if (block.type==="TSTK") {
                 console.warn("%cFound a tool stack block", "color : blue;", block);
                 toolstack = block.data;
             }
@@ -3504,7 +3100,7 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
       function add_macro(p1, p2, tool) {
         p1.push(tool);
         p2.push(tool.saved_context);
-        for (var t of tool.tools) {
+        for (let t of tool.tools) {
             if (__instance_of(t, ToolMacro))
               add_macro(p1, p2, t);
             t.parent = tool;
@@ -3514,16 +3110,16 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
       }
       load_state();
       this.filepath = path;
-      if (toolstack!=undefined) {
+      if (toolstack!==undefined) {
           this.toolstack = fstructs.read_object(toolstack, ToolStack);
           this.toolstack.undocur = this.toolstack.undostack.length;
-          var patch_tools1=new GArray();
-          var patch_tools2=new GArray();
-          for (var i=0; i<this.toolstack.undostack.length; i++) {
-              var tool=this.toolstack.undostack[i];
-              if (tool.uiname=="(undefined)"||tool.uiname==undefined||tool.uiname=="") {
+          let patch_tools1=new Array();
+          let patch_tools2=new Array();
+          for (let i=0; i<this.toolstack.undostack.length; i++) {
+              let tool=this.toolstack.undostack[i];
+              if (tool.uiname==="(undefined)"||tool.uiname===undefined||tool.uiname==="") {
                   tool.uiname = tool.name;
-                  if (tool.uiname=="(undefined)"||tool.uiname==undefined||tool.uiname=="") {
+                  if (tool.uiname==="(undefined)"||tool.uiname===undefined||tool.uiname==="") {
                       tool.uiname = "Macro";
                   }
               }
@@ -3533,17 +3129,17 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
                   add_macro(patch_tools1, patch_tools2, tool);
               }
           }
-          for (var i=0; i<this.toolstack.undostack.length; i++) {
-              var tool=this.toolstack.undostack[i];
+          for (let i=0; i<this.toolstack.undostack.length; i++) {
+              let tool=this.toolstack.undostack[i];
               tool.stack_index = i;
           }
-          for (var i=0; i<patch_tools1.length; i++) {
-              var tool=patch_tools1[i];
-              var saved_context=patch_tools2[i];
-              for (var k in tool.inputs) {
+          for (let i=0; i<patch_tools1.length; i++) {
+              let tool=patch_tools1[i];
+              let saved_context=patch_tools2[i];
+              for (let k in tool.inputs) {
                   tool.inputs[k].ctx = saved_context;
               }
-              for (var k in tool.outputs) {
+              for (let k in tool.outputs) {
                   tool.outputs[k].ctx = saved_context;
               }
           }
@@ -3559,8 +3155,6 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
       else {
         screen = fstructs.read_object(data, FairmotionScreen);
       }
-      screen.style["width"] = "100%";
-      screen.style["height"] = "100%";
       screen.style["position"] = "absolute";
       screen.setAttribute("id", "screenmain");
       screen.id = "screenmain";
@@ -3570,52 +3164,52 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
       return screen;
     }
      load_blocks(data, uctx) {
-      if (uctx==undefined) {
+      if (uctx===undefined) {
           uctx = new unpack_ctx();
       }
-      var s=unpack_static_string(data, uctx, 4);
-      if (s!="FAIR") {
+      let s=unpack_static_string(data, uctx, 4);
+      if (s!=="FAIR") {
           console.log(s, s.length);
           console.log(data);
           throw new Error("Could not load file.");
       }
-      var file_flag=unpack_int(data, uctx);
-      var version_major=unpack_int(data, uctx);
-      var version_minor=unpack_int(data, uctx)/1000.0;
-      var version=version_major+version_minor;
+      let file_flag=unpack_int(data, uctx);
+      let version_major=unpack_int(data, uctx);
+      let version_minor=unpack_int(data, uctx)/1000.0;
+      let version=version_major+version_minor;
       if (file_flag&FileFlags.COMPRESSED_LZSTRING) {
           if (DEBUG.compression)
             console.log("decompressing. . .");
           data = new Uint16Array(data.buffer.slice(uctx.i, data.byteLength));
-          var s="";
-          for (var i=0; i<data.length; i++) {
+          let s="";
+          for (let i=0; i<data.length; i++) {
               s+=String.fromCharCode(data[i]);
           }
           data = LZString.decompress(s);
-          var data2=new Uint8Array(data.length);
+          let data2=new Uint8Array(data.length);
           if (DEBUG.compression)
             console.log("uncompressed length: ", data.length);
-          for (var i=0; i<data.length; i++) {
+          for (let i=0; i<data.length; i++) {
               data2[i] = data.charCodeAt(i);
           }
           data = new DataView(data2.buffer);
           uctx.i = 0;
       }
-      var blocks=new GArray();
-      var fstructs=new STRUCT();
-      var tmap=get_data_typemap();
+      let blocks=new Array();
+      let fstructs=new STRUCT();
+      let tmap=get_data_typemap();
       while (uctx.i<data.byteLength) {
-        var type=unpack_static_string(data, uctx, 4);
-        var subtype=unpack_static_string(data, uctx, 4);
-        var len=unpack_int(data, uctx);
-        var bdata;
-        if (subtype=="JSON") {
+        let type=unpack_static_string(data, uctx, 4);
+        let subtype=unpack_static_string(data, uctx, 4);
+        let len=unpack_int(data, uctx);
+        let bdata;
+        if (subtype==="JSON") {
             bdata = unpack_static_string(data, uctx, len);
         }
         else 
-          if (subtype=="STRT") {
-            if (type=="BLCK") {
-                var dtype=unpack_int(data, uctx);
+          if (subtype==="STRT") {
+            if (type==="BLCK") {
+                let dtype=unpack_int(data, uctx);
                 bdata = unpack_bytes(data, uctx, len-4);
                 bdata = [dtype, bdata];
             }
@@ -3624,7 +3218,7 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
             }
         }
         else 
-          if (subtype=="SDEF") {
+          if (subtype==="SDEF") {
             bdata = unpack_static_string(data, uctx, len).trim();
             fstructs.parse_structs(bdata);
         }
@@ -3642,64 +3236,64 @@ es6_module_define('AppState', ["../util/strutils.js", "./jobs.js", "../editors/m
       return new FileData(blocks, fstructs, version);
     }
      link_blocks(datalib, filedata) {
-      var blocks=filedata.blocks;
-      var fstructs=filedata.fstructs;
-      var version=filedata.version;
-      var tmap=get_data_typemap();
-      var screen=undefined;
-      for (var i=0; i<blocks.length; i++) {
-          var b=blocks[i];
-          if (b.subtype=="JSON") {
+      let blocks=filedata.blocks;
+      let fstructs=filedata.fstructs;
+      let version=filedata.version;
+      let tmap=get_data_typemap();
+      let screen=undefined;
+      for (let i=0; i<blocks.length; i++) {
+          let b=blocks[i];
+          if (b.subtype==="JSON") {
               b.data = JSON.parse(b.data);
           }
           else 
-            if (b.subtype=="STRT") {
-              if (b.type=="BLCK") {
-                  var lt=tmap[b.data[0]];
-                  lt = lt!=undefined ? lt.name : lt;
+            if (b.subtype==="STRT") {
+              if (b.type==="BLCK") {
+                  let lt=tmap[b.data[0]];
+                  lt = lt!==undefined ? lt.name : lt;
                   b.data = fstructs.read_object(b.data[1], tmap[b.data[0]]);
                   datalib.add(b.data, false);
               }
               else {
-                if (b.type=="SCRN") {
+                if (b.type==="SCRN") {
                     b.data = screen = this.readScreen(fstructs, b.data);
                 }
               }
           }
       }
       this.active_view2d = undefined;
-      var getblock=wrap_getblock(datalib);
-      var getblock_us=wrap_getblock_us(datalib);
+      let getblock=wrap_getblock(datalib);
+      let getblock_us=wrap_getblock_us(datalib);
       this.scene = undefined;
       this.do_versions(datalib, blocks, version);
-      for (var i=0; i<blocks.length; i++) {
-          var block=blocks[i];
-          if (block!=undefined&&(typeof (block.data)=="string"||__instance_of(block.data, String)))
+      for (let i=0; i<blocks.length; i++) {
+          let block=blocks[i];
+          if (block!==undefined&&(typeof (block.data)==="string"||__instance_of(block.data, String)))
             continue;
-          if (block.data!=undefined&&"data_link" in block.data&&block.subtype=="STRT"&&block.type!="SCRN"&&block.type!="THME") {
+          if (block.data!==undefined&&"data_link" in block.data&&block.subtype==="STRT"&&block.type!=="SCRN"&&block.type!=="THME") {
               block.data.data_link(block.data, getblock, getblock_us);
           }
       }
       for (let block of blocks) {
-          if (block.type=="SCRN") {
+          if (block.type==="SCRN") {
               screen = block.data;
           }
       }
-      if (screen!=undefined) {
+      if (screen!==undefined) {
           this.active_view2d = undefined;
-          for (var sa of screen.sareas) {
+          for (let sa of screen.sareas) {
               if (__instance_of(sa.area, View2DHandler)) {
                   this.active_view2d = sa.area;
                   break;
               }
           }
       }
-      var ctx=new FullContext();
-      if (screen!=undefined) {
+      let ctx=new FullContext();
+      if (screen!==undefined) {
           screen.view2d = this.active_view2d;
           this.dataLinkScreen(screen, getblock, getblock_us);
       }
-      if (screen!=undefined) {
+      if (screen!==undefined) {
           screen.on_resize(this.size);
           screen.size = this.size;
       }
@@ -3821,8 +3415,8 @@ SavedContext {
     
     
      constructor(ctx=undefined) {
-      if (ctx!=undefined) {
-          this.time = ctx.scene!=undefined ? ctx.scene.time : undefined;
+      if (ctx!==undefined) {
+          this.time = ctx.scene!==undefined ? ctx.scene.time : undefined;
           this.edit_all_layers = ctx.edit_all_layers;
           this._scene = ctx.scene ? new DataRef(ctx.scene) : new DataRef(-1);
           this._frameset = ctx.frameset ? new DataRef(ctx.frameset) : new DataRef(-1);
@@ -3830,7 +3424,7 @@ SavedContext {
           this._selectmode = ctx.selectmode;
           this._frameset_editmode = "MAIN";
           this._spline_path = ctx.splinepath;
-          if (ctx.spline!=undefined) {
+          if (ctx.spline!==undefined) {
               this._active_spline_layer = ctx.spline.layerset.active.id;
           }
       }
@@ -3847,11 +3441,11 @@ SavedContext {
       return this._spline_path;
     }
      set_context(state) {
-      var scene=state.datalib.get(this._scene);
-      var fset=state.datalib.get(this._frameset);
-      if (scene!=undefined&&scene.time!=this.time)
+      let scene=state.datalib.get(this._scene);
+      let fset=state.datalib.get(this._frameset);
+      if (scene!==undefined&&scene.time!==this.time)
         scene.change_time(this, this.time, false);
-      if (this._object>=0&&(!scene.objects.active||this._object!=scene.objects.active.id)) {
+      if (this._object>=0&&(!scene.objects.active||this._object!==scene.objects.active.id)) {
           try {
             scene.setActiveObject(this._object);
           }
@@ -3860,13 +3454,13 @@ SavedContext {
           }
       }
       this._selectmode = state.selectmode;
-      if (fset!=undefined)
+      if (fset!==undefined)
         fset.editmode = this._frameset_editmode;
       state.switch_active_spline(this._spline_path);
-      var spline=state.api.getObject(state, this._spline_path);
-      if (spline!=undefined) {
-          var layer=spline.layerset.idmap[this._active_spline_layer];
-          if (layer==undefined) {
+      let spline=state.api.getObject(state, this._spline_path);
+      if (spline!==undefined) {
+          let layer=spline.layerset.idmap[this._active_spline_layer];
+          if (layer===undefined) {
               warn("Warning: layer was undefined in SavedContext!");
           }
           else {
@@ -3878,11 +3472,11 @@ SavedContext {
       }
     }
     get  spline() {
-      var ret=g_app_state.api.get_object(this, this._spline_path);
-      if (ret==undefined) {
+      let ret=g_app_state.api.get_object(this, this._spline_path);
+      if (ret===undefined) {
           warntrace("Warning: bad spline path", this._spline_path);
           ret = g_app_state.api.get_object(this, "frameset.drawspline");
-          if (ret==undefined) {
+          if (ret===undefined) {
               console.trace("Even Worse: base spline path failed!");
           }
       }
@@ -3898,15 +3492,15 @@ SavedContext {
       return g_app_state.datalib;
     }
     get  scene() {
-      return this._scene!=undefined ? g_app_state.datalib.get(this._scene) : undefined;
+      return this._scene!==undefined ? g_app_state.datalib.get(this._scene) : undefined;
     }
     get  api() {
       return g_app_state.pathcontroller;
     }
     static  fromSTRUCT(reader) {
-      var sctx=new SavedContext();
+      let sctx=new SavedContext();
       reader(sctx);
-      if (sctx._scene.id==-1)
+      if (sctx._scene.id===-1)
         sctx._scene = undefined;
       return sctx;
     }
@@ -3915,8 +3509,8 @@ SavedContext {
   _es6_module.add_class(SavedContextOld);
   SavedContextOld.STRUCT = `
   SavedContext {
-    _scene               : DataRef | obj._scene == undefined ? new DataRef(-1) : obj._scene;
-    _frameset            : DataRef | obj._frameset == undefined ? new DataRef(-1) : obj._frameset;
+    _scene               : DataRef | obj._scene === undefined ? new DataRef(-1) : obj._scene;
+    _frameset            : DataRef | obj._frameset === undefined ? new DataRef(-1) : obj._frameset;
     _frameset_editmode   : static_string[12];
     _spline_path         : string;
     time                 : float;
@@ -3925,14 +3519,14 @@ SavedContext {
 `;
   class _ToolContext  {
      constructor(frameset, spline, scene, splinepath) {
-      var ctx=new FullContext().toLocked();
-      if (splinepath==undefined)
+      let ctx=new FullContext().toLocked();
+      if (splinepath===undefined)
         splinepath = ctx.splinepath;
-      if (frameset==undefined)
+      if (frameset===undefined)
         frameset = ctx.frameset;
-      if (spline==undefined&&frameset!=undefined)
+      if (spline===undefined&&frameset!==undefined)
         spline = ctx.spline;
-      if (scene==undefined)
+      if (scene===undefined)
         scene = ctx.scene;
       this.datalib = g_app_state.datalib;
       this.splinepath = splinepath;
@@ -3950,23 +3544,25 @@ SavedContext {
     
     
     
+    
+    
      constructor(appstate) {
       this.undocur = 0;
-      this.undostack = new GArray();
+      this.undostack = new Array();
       this.appstate = appstate;
       this.valcache = appstate.toolop_input_cache;
       this.do_truncate = true;
     }
      reexec_stack2(validate=false) {
-      var stack=this.undostack;
+      let stack=this.undostack;
       g_app_state.datalib.clear();
-      var mctx=new FullContext().toLocked();
-      var first=true;
-      var last_time=0;
+      let mctx=new FullContext().toLocked();
+      let first=true;
+      let last_time=0;
       function do_next(i) {
-        var tool=stack[i];
-        var ctx=tool.saved_context;
-        if ((1||ctx.time!=last_time)&&mctx.frameset!=undefined) {
+        let tool=stack[i];
+        let ctx=tool.saved_context;
+        if ((1||ctx.time!==last_time)&&mctx.frameset!==undefined) {
             mctx.frameset.update_frame();
         }
         ctx.set_context(mctx);
@@ -3978,22 +3574,22 @@ SavedContext {
             tool.undoflag|=UndoFlags.HAS_UNDO_DATA;
         }
         tool.exec(ctx);
-        if (mctx.frameset!=undefined)
+        if (mctx.frameset!==undefined)
           mctx.frameset.spline.solve();
-        if (mctx.frameset!=undefined)
+        if (mctx.frameset!==undefined)
           mctx.frameset.pathspline.solve();
-        if ((1||ctx.time!=last_time)&&mctx.frameset!=undefined) {
+        if ((1||ctx.time!==last_time)&&mctx.frameset!==undefined) {
             mctx.frameset.update_frame();
         }
       }
-      var ival;
-      var thei;
-      var this2=this;
+      let ival;
+      let thei;
+      let this2=this;
       function cbfunc() {
         do_next(thei);
         thei+=1;
-        var cctx=new FullContextt().toLocked();
-        if (cctx.frameset!=undefined) {
+        let cctx=new FullContextt().toLocked();
+        if (cctx.frameset!==undefined) {
             cctx.frameset.spline.solve();
             cctx.frameset.pathspline.solve();
         }
@@ -4006,19 +3602,19 @@ SavedContext {
       thei = 1;
       ival = window.setInterval(cbfunc, 500);
       console.log("reexecuting tool stack from scratch. . .");
-      for (var i=0; i<this.undocur; i++) {
+      for (let i=0; i<this.undocur; i++) {
 
       }
     }
      reexec_stack(validate=false) {
-      var stack=this.undostack;
+      let stack=this.undostack;
       g_app_state.datalib.clear();
-      var mctx=new FullContext();
-      var first=true;
+      let mctx=new FullContext();
+      let first=true;
       console.log("reexecuting tool stack from scratch. . .");
-      for (var i=0; i<this.undocur; i++) {
-          var tool=stack[i];
-          var ctx=tool.saved_context;
+      for (let i=0; i<this.undocur; i++) {
+          let tool=stack[i];
+          let ctx=tool.saved_context;
           ctx.set_context(mctx);
           tool.is_modal = false;
           tool.exec_pre(ctx);
@@ -4030,7 +3626,7 @@ SavedContext {
       }
     }
      default_inputs(ctx, tool) {
-      var cache=this.valcache;
+      let cache=this.valcache;
       function get_default(key, defaultval, input_prop) {
         key = tool.constructor.name+":"+key;
         if (key in cache)
@@ -4038,19 +3634,19 @@ SavedContext {
         cache[key] = defaultval;
         return defaultval;
       }
-      var tctx=ctx.toLocked();
-      for (var k in tool.inputs) {
+      let tctx=ctx.toLocked();
+      for (let k in tool.inputs) {
           tool.inputs[k].ctx = tctx;
       }
-      for (var k in tool.outputs) {
+      for (let k in tool.outputs) {
           tool.outputs[k].ctx = tctx;
       }
       tool.default_inputs(ctx, get_default);
     }
      truncate_stack() {
-      if (this.undocur!=this.undostack.length) {
-          if (this.undocur==0) {
-              this.undostack = new GArray();
+      if (this.undocur!==this.undostack.length) {
+          if (this.undocur===0) {
+              this.undostack = new Array();
           }
           else {
             this.undostack = this.undostack.slice(0, this.undocur);
@@ -4064,7 +3660,7 @@ SavedContext {
       }
       else {
         this.undostack.insert(this.undocur, tool);
-        for (var i=this.undocur-1; i<this.undostack.length; i++) {
+        for (let i=this.undocur-1; i<this.undostack.length; i++) {
             if (i<0)
               continue;
             this.undostack[i].stack_index = i;
@@ -4095,14 +3691,14 @@ SavedContext {
         return ;
       if (this.undocur>0) {
           this.undocur--;
-          var tool=this.undostack[this.undocur];
-          var ctx=new FullContext();
-          var tctx=(tool.flag&ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : ctx;
-          if (the_global_dag!=undefined)
+          let tool=this.undostack[this.undocur];
+          let ctx=new FullContext();
+          let tctx=(tool.flag&ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : ctx;
+          if (the_global_dag!==undefined)
             the_global_dag.reset_cache();
           tool.saved_context.set_context(ctx);
           tool.undo(tctx);
-          if (the_global_dag!=undefined)
+          if (the_global_dag!==undefined)
             the_global_dag.reset_cache();
           if (this.undocur>0)
             this.rebuild_last_tool(this.undostack[this.undocur-1]);
@@ -4112,16 +3708,16 @@ SavedContext {
      redo() {
       the_global_dag.exec(this.ctx);
       if (this.undocur<this.undostack.length) {
-          var tool=this.undostack[this.undocur];
-          var ctx=new FullContext();
+          let tool=this.undostack[this.undocur];
+          let ctx=new FullContext();
           tool.saved_context.set_context(ctx);
           tool.is_modal = false;
           if (!(tool.undoflag&UndoFlags.IGNORE_UNDO)) {
               tool.undo_pre((tool.flag&ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : ctx);
               tool.undoflag|=UndoFlags.HAS_UNDO_DATA;
           }
-          var tctx=(tool.flag&ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : tool.ctx.toLocked();
-          if (the_global_dag!=undefined)
+          let tctx=(tool.flag&ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : tool.ctx.toLocked();
+          if (the_global_dag!==undefined)
             the_global_dag.reset_cache();
           tool.exec_pre(tctx);
           tool.exec(tctx);
@@ -4135,8 +3731,8 @@ SavedContext {
       if (!(tool.undoflag&UndoFlags.HAS_UNDO_DATA)) {
           this.reexec_stack();
       }
-      if (tool.stack_index==-1) {
-          for (var i=0; i<this.undostack.length; i++) {
+      if (tool.stack_index===-1) {
+          for (let i=0; i<this.undostack.length; i++) {
               this.undostack[i].stack_index = i;
           }
       }
@@ -4146,8 +3742,8 @@ SavedContext {
       }
       else 
         if (this.undocur>tool.stack_index) {
-          var i=0;
-          while (this.undocur!=tool.stack_index) {
+          let i=0;
+          while (this.undocur!==tool.stack_index) {
             this.undo();
             i++;
           }
@@ -4162,34 +3758,33 @@ SavedContext {
       tool.saved_context = new SavedContext(new FullContext());
     }
      kill_opstack() {
-      this.undostack = new GArray();
+      this.undostack = new Array();
       this.undocur = 0;
     }
      gen_tool_datastruct(tool) {
-      var datastruct=new DataStruct([]);
-      var this2=this;
-      var stacktool=tool;
-      while (stacktool.parent!=undefined) {
+      let datastruct=new DataStruct([]);
+      let this2=this;
+      let stacktool=tool;
+      while (stacktool.parent!==undefined) {
         stacktool = stacktool.parent;
       }
       function update_dataprop(d) {
         this2.reexec_tool(stacktool);
       }
-      var this2=this;
       function gen_subtool_struct(tool) {
-        if (tool.apistruct==undefined)
+        if (tool.apistruct===undefined)
           tool.apistruct = this2.gen_tool_datastruct(tool);
         return tool.apistruct;
       }
-      var prop=new StringProperty(tool.uiname, tool.uiname, tool.uiname, "Tool Name");
-      var dataprop=new DataPath(prop, "tool", "tool_name", true, false);
+      let prop=new StringProperty(tool.uiname, tool.uiname, tool.uiname, "Tool Name");
+      let dataprop=new DataPath(prop, "tool", "tool_name", true, false);
       dataprop.update = function () {
       };
       prop.flag = TPropFlags.LABEL;
       if (!(tool.flag&ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS)) {
           datastruct.add(dataprop);
       }
-      for (var k in tool.inputs) {
+      for (let k in tool.inputs) {
           prop = tool.inputs[k];
           if (prop.flag&TPropFlags.PRIVATE)
             continue;
@@ -4198,15 +3793,15 @@ SavedContext {
           datastruct.add(dataprop);
       }
       if (__instance_of(tool, ToolMacro)) {
-          var tarr=new DataStructArray(gen_subtool_struct);
-          var toolsprop=new DataPath(tarr, "tools", "tools", false);
+          let tarr=new DataStructArray(gen_subtool_struct);
+          let toolsprop=new DataPath(tarr, "tools", "tools", false);
           datastruct.add(toolsprop);
       }
       return datastruct;
     }
      rebuild_last_tool(tool) {
-      var s;
-      if (tool!=undefined)
+      let s;
+      if (tool!==undefined)
         s = this.gen_tool_datastruct(tool);
       else 
         s = new DataStruct([]);
@@ -4217,41 +3812,41 @@ SavedContext {
       ContextStruct.replace(s);
     }
      set_tool_coll_flag(tool) {
-      for (var k in tool.inputs) {
-          var p=tool.inputs[k];
+      for (let k in tool.inputs) {
+          let p=tool.inputs[k];
           if (__instance_of(p, CollectionProperty))
             p.flag&=~TPropFlags.COLL_LOOSE_TYPE;
       }
-      for (var k in tool.outputs) {
-          var p=tool.inputs[k];
+      for (let k in tool.outputs) {
+          let p=tool.inputs[k];
           if (__instance_of(p, CollectionProperty))
             p.flag&=~TPropFlags.COLL_LOOSE_TYPE;
       }
       if (__instance_of(tool, ToolMacro)) {
-          for (var t2 of tool.tools) {
+          for (let t2 of tool.tools) {
               this.set_tool_coll_flag(t2);
           }
       }
     }
      exec_datapath(ctx, path, val, undo_push=true, use_simple_undo=false, cls=DataPathOp) {
-      var api=g_app_state.api;
-      var prop=api.get_prop_meta(ctx, path);
-      if (prop==undefined) {
+      let api=g_app_state.api;
+      let prop=api.get_prop_meta(ctx, path);
+      if (prop===undefined) {
           console.trace("Error in exec_datapath", path);
           return ;
       }
-      var good=this.undostack.length>0&&__instance_of(this.undostack[this.undocur-1], cls);
-      good = good&&this.undostack[this.undocur-1].path==path;
-      var exists=false;
+      let good=this.undostack.length>0&&__instance_of(this.undostack[this.undocur-1], cls);
+      good = good&&this.undostack[this.undocur-1].path===path;
+      let exists=false;
       if (undo_push||!good) {
-          var op=new cls(path, use_simple_undo);
+          let op=new cls(path, use_simple_undo);
       }
       else {
         op = this.undostack[this.undocur-1];
         this.undo();
         exists = true;
       }
-      var input=op.get_prop_input(path, prop);
+      let input=op.get_prop_input(path, prop);
       input.setValue(val);
       if (exists) {
           this.redo();
@@ -4280,9 +3875,9 @@ SavedContext {
       }
       the_global_dag.exec(this.ctx);
       this.set_tool_coll_flag(tool);
-      var ctx=new FullContext();
+      ctx = new FullContext();
       tool.ctx = ctx;
-      if (tool.can_call(ctx)==false) {
+      if (tool.can_call(ctx)===false) {
           if (DEBUG.toolstack) {
               console.trace();
               console.log(tool);
@@ -4292,10 +3887,10 @@ SavedContext {
       }
       if (!(tool.undoflag&UndoFlags.IGNORE_UNDO))
         this.undo_push(tool);
-      for (var k in tool.inputs) {
-          var p=tool.inputs[k];
+      for (let k in tool.inputs) {
+          let p=tool.inputs[k];
           p.ctx = ctx;
-          if (p.userSetData!=undefined)
+          if (p.userSetData!==undefined)
             p.userSetData.call(p, p.data);
       }
       if (tool.is_modal) {
@@ -4316,7 +3911,7 @@ SavedContext {
           tool.start_modal(modal_ctx);
       }
       else {
-        var tctx=(tool.flag&ToolFlags.USE_TOOL_CONTEXT) ? new BaseContext().toLocked() : ctx.toLocked();
+        let tctx=(tool.flag&ToolFlags.USE_TOOL_CONTEXT) ? new BaseContext().toLocked() : ctx.toLocked();
         tool.saved_context = new SavedContext(tctx);
         if (!(tool.undoflag&UndoFlags.IGNORE_UNDO)) {
             tool.undo_pre((tool.flag&ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : ctx);
@@ -4330,10 +3925,10 @@ SavedContext {
       }
     }
     static  fromSTRUCT(reader) {
-      var ts=new ToolStack(g_app_state);
+      let ts=new ToolStack(g_app_state);
       reader(ts);
-      ts.undostack = new GArray(ts.undostack);
-      for (var i=0; i<ts.undostack.length; i++) {
+      ts.undostack = new Array(ts.undostack);
+      for (let i=0; i<ts.undostack.length; i++) {
           ts.undostack[i].stack_index = i;
           ts.set_tool_coll_flag(ts.undostack[i]);
       }
@@ -7997,7 +7592,7 @@ es6_module_define('controller_ops', ["./controller.js", "../toolsys/simple_tools
   DataPathSetOp = _es6_module.add_export('DataPathSetOp', DataPathSetOp);
   ToolOp.register(DataPathSetOp);
 }, '/dev/fairmotion/src/path.ux/scripts/controller/controller_ops.js');
-es6_module_define('simple_controller', ["./controller.js", "../util/parseutil.js", "../toolsys/toolpath.js", "../toolsys/toolprop_abstract.js", "../config/const.js", "./controller_ops.js", "../util/util.js", "../toolsys/simple_toolsys.js", "../toolsys/toolprop.js"], function _simple_controller_module(_es6_module) {
+es6_module_define('simple_controller', ["../toolsys/simple_toolsys.js", "../util/parseutil.js", "../toolsys/toolprop_abstract.js", "../toolsys/toolpath.js", "./controller_ops.js", "../config/const.js", "./controller.js", "../util/util.js", "../toolsys/toolprop.js"], function _simple_controller_module(_es6_module) {
   var toolprop=es6_import(_es6_module, '../toolsys/toolprop.js');
   var parseutil=es6_import(_es6_module, '../util/parseutil.js');
   var print_stack=es6_import_item(_es6_module, '../util/util.js', 'print_stack');
@@ -8121,6 +7716,14 @@ es6_module_define('simple_controller', ["./controller.js", "../util/parseutil.js
         this.data.setValue = set;
       return this;
     }
+     customSet(set) {
+      this.customGetSet(undefined, set);
+      return this;
+    }
+     customGet(get) {
+      this.customGetSet(get, undefined);
+      return this;
+    }
      on(type, cb) {
       if (this.type==DataTypes.PROP) {
           this.data.on(type, cb);
@@ -8194,6 +7797,11 @@ es6_module_define('simple_controller', ["./controller.js", "../util/parseutil.js
     }
      descriptions(description_map) {
       this.data.addDescriptions(description_map);
+      return this;
+    }
+     uiNames(uinames) {
+      this.data.setUINames(uinames);
+      return this;
     }
      description(d) {
       this.data.description = d;

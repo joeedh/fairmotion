@@ -3485,11 +3485,6 @@ window.init_redraw_globals = function init_redraw_globals() {
     }
     return id;
   }
-  window.redraw_rect_combined = [new Vector3(), new Vector3()];
-  window.redraw_rect = [new Vector3(), new Vector3()];
-  window.last_redraw_rect = [new Vector3(), new Vector3()];
-  window.redraw_rect_defined = false;
-  window.redraw_whole_screen = false;
   window._addEventListener = window.addEventListener;
   window._removeEventListener = window.removeEventListener;
   window._killscreen_handlers = [];
@@ -3525,261 +3520,71 @@ window.init_redraw_globals = function init_redraw_globals() {
   var animreq=undefined;
   var animreq_ui=undefined;
   var block_ui_draw=false;
-  window.block_redraw_ui = function () {
-    var oldval=block_ui_draw;
-    block_ui_draw = true;
-    return oldval;
-  }
-  window.unblock_redraw_ui = function () {
-    var oldval=block_ui_draw;
-    block_ui_draw = false;
-    return oldval;
-  }
-  window.redraw_ui = function () {
-    console.warn("deprecated call to window.redraw_ui()");
-  }
-  window.redraw_viewport_p = function (min, max, promise) {
-    promise.then(function () {
-      window.redraw_viewport(min, max);
-    });
-  }
   window.force_viewport_redraw = function () {
-    redraw_whole_screen = true;
-    window.redraw_whole_screen = true;
+    window.redraw_viewport();
   }
   window._solve_idgen = 1;
-  window.redraw_queue = {}
-  window.redraw_smap = {}
-  window.redraw_start_times = {}
-  window.cur_redraw_queue = undefined;
-  window.pending_redraws = 0;
+  let outstanding_solves={}
   window.push_solve = function (spline) {
     var id=_solve_idgen++;
     if (DEBUG.solve_order) {
         console.log("push solve", id);
     }
-    var sid=spline._internal_id;
-    redraw_queue[id] = [];
-    redraw_smap[id] = sid;
-    redraw_start_times[id] = time_ms();
-    cur_redraw_queue = redraw_queue[id];
-    pending_redraws++;
+    outstanding_solves[id] = 1;
     return id;
   }
-  var _popsolve_min=[0, 0];
-  var _popsolve_max=[0, 0];
   window.pop_solve = function (id) {
     if (DEBUG.solve_order) {
         console.log("pop solve", id);
     }
-    if (!(id in this.redraw_queue)) {
+    if (!(id in outstanding_solves)) {
         console.warn("Warning: either pop_solve call was switched, or the system automatically called due to timeout");
         return ;
     }
-    var queue=redraw_queue[id];
-    delete redraw_start_times[id];
-    delete redraw_smap[id];
-    delete redraw_queue[id];
-    pending_redraws--;
-    var min=_popsolve_min, max=_popsolve_max;
-    for (var i=0; i<queue.length; i+=5) {
-        min[0] = queue[i], min[1] = queue[i+1];
-        max[0] = queue[i+2], max[1] = queue[i+3];
-        redraw_viewport(min, max, true, queue[i+4]);
-    }
+    delete outstanding_solves[id];
+    redraw_viewport();
   }
-  window.workcanvas_redraw_rects = [];
-  window.workcanvas_redraw_rects2 = [];
   let redraw_viewport_promise=undefined;
   let animreq2;
   window._all_draw_jobs_done = function () {
     animreq2 = undefined;
   }
-  window.redraw_viewport_test = function () {
-    if (animreq2!==undefined) {
+  window._block_drawing = false;
+  window._wait_for_draw = false;
+  window.redraw_viewport = function () {
+    if (animreq!==undefined) {
         return redraw_viewport_promise;
     }
     redraw_viewport_promise = new Promise((accept, reject) =>      {
-      animreq = myrequestAnimationFrame(function () {
+      animreq = requestAnimationFrame(() =>        {
         animreq = undefined;
-        var rects=workcanvas_redraw_rects;
-        workcanvas_redraw_rects = workcanvas_redraw_rects2;
-        workcanvas_redraw_rects.length = 0;
-        workcanvas_redraw_rects2 = rects;
+        if (!g_app_state||!g_app_state.screen) {
+            return ;
+        }
+        if (window._block_drawing) {
+            return ;
+        }
         let screen=g_app_state.screen;
         for (let sarea of screen.sareas) {
-            if (sarea.area.constructor.name=="View2DHandler") {
-                var old=window.g_app_state.active_view2d;
-                window.g_app_state.active_view2d = sarea.area;
-                sarea.area.push_ctx_active();
-                sarea.area.do_draw_viewport(rects);
-                sarea.area.pop_ctx_active();
-                window.g_app_state.active_view2d = old;
-                accept();
+            if (sarea.area.do_draw_viewport) {
+                sarea.area.do_draw_viewport();
             }
         }
+        if (window._wait_for_draw) {
+            window._wait_for_draw = false;
+        }
+        accept();
       });
     });
-  }
-  window.redraw_viewport = function (min, max, ignore_queuing, combine_mode) {
-    if (ignore_queuing==undefined)
-      ignore_queuing = false;
-    if (ignore_queuing) {
-        console.log("ignore_queuing");
-    }
-    if (!ignore_queuing&&pending_redraws>0) {
-        var q=cur_redraw_queue;
-        if (min!=undefined&&max!=undefined) {
-            q.push(min[0]);
-            q.push(min[1]);
-            q.push(max[0]);
-            q.push(max[1]);
-            q.push(combine_mode);
-        }
-        else {
-          var w=50000;
-          q.length = 0;
-          q.push(-w), q.push(-w), q.push(w), q.push(w);
-        }
-        return ;
-    }
-    var r=workcanvas_redraw_rects;
-    if (min!=undefined&&max!=undefined) {
-        if (combine_mode&&r.length>0) {
-            var i=r.length-4;
-            r[i] = Math.min(r[i], min[0]);
-            r[i+1] = Math.min(r[i+1], min[1]);
-            r[i+2] = Math.max(r[i+2], max[0]);
-            r[i+3] = Math.max(r[i+3], max[1]);
-        }
-        else {
-          r.push(min[0]);
-          r.push(min[1]);
-          r.push(max[0]);
-          r.push(max[1]);
-        }
-    }
-    else {
-      var w=50000;
-      r.length = 0;
-      r.push(-w), r.push(-w), r.push(w), r.push(w);
-    }
-    if (animreq===undefined) {
-        redraw_viewport_promise = new Promise((accept, reject) =>          {
-          animreq = myrequestAnimationFrame(function () {
-            animreq = undefined;
-            var rects=workcanvas_redraw_rects;
-            workcanvas_redraw_rects = workcanvas_redraw_rects2;
-            workcanvas_redraw_rects.length = 0;
-            workcanvas_redraw_rects2 = rects;
-            let screen=g_app_state.screen;
-            for (let sarea of screen.sareas) {
-                if (sarea.area.constructor.name=="View2DHandler") {
-                    var old=window.g_app_state.active_view2d;
-                    window.g_app_state.active_view2d = sarea.area;
-                    sarea.area.push_ctx_active();
-                    sarea.area.do_draw_viewport(rects);
-                    sarea.area.pop_ctx_active();
-                    window.g_app_state.active_view2d = old;
-                    accept();
-                }
-            }
-          });
-        });
-        return redraw_viewport_promise;
-    }
-    else {
-      return redraw_viewport_promise;
-    }
-  }
-  window.rffedraw_viewport = function (min, max, ignore_queuing) {
-    if (ignore_queuing==undefined)
-      ignore_queuing = false;
-    if (!ignore_queuing&&pending_redraws>0) {
-        var q=cur_redraw_queue;
-        q.push(min[0]);
-        q.push(min[1]);
-        q.push(max[0]);
-        q.push(max[1]);
-        return ;
-    }
-    if (DEBUG!=undefined&&DEBUG.viewport_partial_update) {
-        console.trace("\n\n\n==Viewport Redraw==:", redraw_whole_screen, min, max, "||", redraw_rect[0], redraw_rect[1], "\n\n\n");
-    }
-    if (window.redraw_whole_screen)
-      min = max = undefined;
-    if (window._trace) {
-        console.trace();
-    }
-    if (min==undefined) {
-        window.redraw_whole_screen = true;
-        if (!window.redraw_rect_defined) {
-            window.redraw_rect[0].zero();
-            window.redraw_rect[1].zero();
-            window.redraw_rect[0][0] = window.redraw_rect[0][1] = -15000;
-            window.redraw_rect[1][0] = 15000;
-            window.redraw_rect[1][1] = 15000;
-        }
-    }
-    else 
-      if (!window.redraw_whole_screen&&window.redraw_rect_defined) {
-        var h=window.theHeight;
-        window.redraw_rect[0][0] = Math.min(min[0], window.redraw_rect[0][0]);
-        window.redraw_rect[0][1] = Math.min(min[1], window.redraw_rect[0][1]);
-        window.redraw_rect[1][0] = Math.max(max[0], window.redraw_rect[1][0]);
-        window.redraw_rect[1][1] = Math.max(max[1], window.redraw_rect[1][1]);
-    }
-    else 
-      if (!redraw_whole_screen) {
-        window.redraw_rect[0][0] = min[0];
-        window.redraw_rect[0][1] = min[1];
-        window.redraw_rect[1][0] = max[0];
-        window.redraw_rect[1][1] = max[1];
-        window.redraw_rect_defined = true;
-    }
-    if (window.g_app_state==undefined||window.g_app_state.screen==undefined)
-      return ;
-    var g=window.g_app_state;
-    var cs=window.g_app_state.screen.children;
-    for (var i=0; i<cs.length; i++) {
-        var c=cs[i];
-        if (c.constructor.name=="ScreenArea"&&c.area.draw_viewport!=undefined) {
-            c.area.draw_viewport = 1;
-        }
-    }
-    if (animreq==undefined) {
-        animreq = myrequestAnimationFrame(function () {
-          animreq = undefined;
-          for (var i=0; i<window.g_app_state.screen.children.length; i++) {
-              var c=window.g_app_state.screen.children[i];
-              var is_viewport=c.constructor.name=="ScreenArea"&&c.area.constructor.name=="View2DHandler";
-              if (is_viewport) {
-                  var old=window.g_app_state.active_view2d;
-                  window.g_app_state.active_view2d = c.area;
-                  c.area.do_draw_viewport();
-                  window.g_app_state.active_view2d = old;
-              }
-          }
-          for (var i=0; i<2; i++) {
-              for (var j=0; j<3; j++) {
-                  window.last_redraw_rect[i][j] = window.redraw_rect[i][j];
-              }
-          }
-          window.redraw_rect[0].zero();
-          window.redraw_rect[1].zero();
-          window.redraw_whole_screen = false;
-          window.redraw_rect_defined = false;
-        });
-    }
+    return redraw_viewport_promise;
   }
   var requestId;
   window._fps = 1;
   window.reshape = function reshape(gl) {
     var g=window.g_app_state;
-    if (g==undefined)
+    if (g===undefined)
       return ;
     window._ensure_thedimens();
-    let screen=g.screen;
   }
 };
 "not_a_module";
@@ -3856,9 +3661,7 @@ window.startup = function startup() {
       window.myLocalStorage.getAsync("session");
       window.myLocalStorage.getAsync("startup_file");
       window.myLocalStorage.getAsync("_settings");
-      var timer=window.setInterval(function () {
-        window.clearInterval(timer);
-        
+      window.setTimeout(function () {
         startup_intern();
         window.setTimeout(function () {
           window._ensure_thedimens();
@@ -3872,8 +3675,6 @@ window.startup = function startup() {
   }
 };
 window._ensure_thedimens = function () {
-  window.theHeight = document.documentElement.clientHeight-9;
-  window.theWidth = document.documentElement.clientWidth-4;
 };
 window.startup_intern = function startup() {
   load_modules();
@@ -3889,7 +3690,7 @@ window.startup_intern = function startup() {
   document.oncontextmenu = function () {
     return false;
   }
-  if (g_app_state==undefined) {
+  if (window.g_app_state===undefined) {
       startup_report("parsing serialization scripts...");
       init_struct_packer();
       startup_report("initializing data api...");
@@ -13095,3 +12896,413 @@ es6_module_define('colorutils', [], function _colorutils_module(_es6_module) {
   }
   hsva_to_rgba = _es6_module.add_export('hsva_to_rgba', hsva_to_rgba);
 }, '/dev/fairmotion/src/util/colorutils.js');
+es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
+  "use strict";
+  class token  {
+     constructor(type, val, lexpos, lexlen, lineno, lexer, parser) {
+      this.type = type;
+      this.value = val;
+      this.lexpos = lexpos;
+      this.lexlen = lexlen;
+      this.lineno = lineno;
+      this.lexer = lexer;
+      this.parser = parser;
+    }
+     toString() {
+      if (this.value!=undefined)
+        return "token(type="+this.type+", value='"+this.value+"')";
+      else 
+        return "token(type="+this.type+")";
+    }
+  }
+  _ESClass.register(token);
+  _es6_module.add_class(token);
+  token = _es6_module.add_export('token', token);
+  class tokdef  {
+     constructor(name, regexpr, func) {
+      this.name = name;
+      this.re = regexpr;
+      this.func = func;
+    }
+  }
+  _ESClass.register(tokdef);
+  _es6_module.add_class(tokdef);
+  tokdef = _es6_module.add_export('tokdef', tokdef);
+  class PUTLParseError extends Error {
+     constructor(msg) {
+      super();
+    }
+  }
+  _ESClass.register(PUTLParseError);
+  _es6_module.add_class(PUTLParseError);
+  PUTLParseError = _es6_module.add_export('PUTLParseError', PUTLParseError);
+  class lexer  {
+    
+    
+    
+    
+    
+    
+    
+     constructor(tokdef, errfunc) {
+      this.tokdef = tokdef;
+      this.tokens = new GArray();
+      this.lexpos = 0;
+      this.lexdata = "";
+      this.lineno = 0;
+      this.errfunc = errfunc;
+      this.tokints = {};
+      for (var i=0; i<tokdef.length; i++) {
+          this.tokints[tokdef[i].name] = i;
+      }
+      this.statestack = [["__main__", 0]];
+      this.states = {"__main__": [tokdef, errfunc]};
+      this.statedata = 0;
+    }
+     add_state(name, tokdef, errfunc) {
+      if (errfunc==undefined) {
+          errfunc = function (lexer) {
+            return true;
+          };
+      }
+      this.states[name] = [tokdef, errfunc];
+    }
+     tok_int(name) {
+
+    }
+     push_state(state, statedata) {
+      this.statestack.push([state, statedata]);
+      state = this.states[state];
+      this.statedata = statedata;
+      this.tokdef = state[0];
+      this.errfunc = state[1];
+    }
+     pop_state() {
+      var item=this.statestack[this.statestack.length-1];
+      var state=this.states[item[0]];
+      this.tokdef = state[0];
+      this.errfunc = state[1];
+      this.statedata = item[1];
+    }
+     input(str) {
+      while (this.statestack.length>1) {
+        this.pop_state();
+      }
+      this.lexdata = str;
+      this.lexpos = 0;
+      this.lineno = 0;
+      this.tokens = new GArray();
+      this.peeked_tokens = [];
+    }
+     error() {
+      if (this.errfunc!=undefined&&!this.errfunc(this))
+        return ;
+      console.log("Syntax error near line "+this.lineno);
+      var next=Math.min(this.lexpos+8, this.lexdata.length);
+      console.log("  "+this.lexdata.slice(this.lexpos, next));
+      throw new PUTLParseError("Parse error");
+    }
+     peek() {
+      var tok=this.next(true);
+      if (tok==undefined)
+        return undefined;
+      this.peeked_tokens.push(tok);
+      return tok;
+    }
+     peek_i(i) {
+      while (this.peeked_tokens.length<=i) {
+        var t=this.peek();
+        if (t==undefined)
+          return undefined;
+      }
+      return this.peeked_tokens[i];
+    }
+     at_end() {
+      return this.lexpos>=this.lexdata.length&&this.peeked_tokens.length==0;
+    }
+     next(ignore_peek) {
+      if (ignore_peek!=true&&this.peeked_tokens.length>0) {
+          var tok=this.peeked_tokens[0];
+          this.peeked_tokens.shift();
+          return tok;
+      }
+      if (this.lexpos>=this.lexdata.length)
+        return undefined;
+      var ts=this.tokdef;
+      var tlen=ts.length;
+      var lexdata=this.lexdata.slice(this.lexpos, this.lexdata.length);
+      var results=[];
+      for (var i=0; i<tlen; i++) {
+          var t=ts[i];
+          if (t.re==undefined)
+            continue;
+          var res=t.re.exec(lexdata);
+          if (res!=null&&res!=undefined&&res.index==0) {
+              results.push([t, res]);
+          }
+      }
+      var max_res=0;
+      var theres=undefined;
+      for (var i=0; i<results.length; i++) {
+          var res=results[i];
+          if (res[1][0].length>max_res) {
+              theres = res;
+              max_res = res[1][0].length;
+          }
+      }
+      if (theres==undefined) {
+          this.error();
+          return ;
+      }
+      var def=theres[0];
+      var lexlen=max_res;
+      var tok=new token(def.name, theres[1][0], this.lexpos, lexlen, this.lineno, this, undefined);
+      this.lexpos+=max_res;
+      if (def.func) {
+          tok = def.func(tok);
+          if (tok==undefined) {
+              return this.next();
+          }
+      }
+      return tok;
+    }
+  }
+  _ESClass.register(lexer);
+  _es6_module.add_class(lexer);
+  lexer = _es6_module.add_export('lexer', lexer);
+  class parser  {
+     constructor(lexer, errfunc) {
+      this.lexer = lexer;
+      this.errfunc = errfunc;
+      this.start = undefined;
+    }
+     parse(data, err_on_unconsumed) {
+      if (err_on_unconsumed==undefined)
+        err_on_unconsumed = true;
+      if (data!=undefined)
+        this.lexer.input(data);
+      var ret=this.start(this);
+      if (err_on_unconsumed&&!this.lexer.at_end()&&this.lexer.next()!=undefined) {
+          var left=this.lexer.lexdata.slice(this.lexer.lexpos-1, this.lexer.lexdata.length);
+          this.error(undefined, "parser did not consume entire input; left: "+left);
+      }
+      return ret;
+    }
+     input(data) {
+      this.lexer.input(data);
+    }
+     error(tok, msg) {
+      if (msg==undefined)
+        msg = "";
+      if (tok==undefined)
+        var estr="Parse error at end of input: "+msg;
+      else 
+        estr = "Parse error at line "+(tok.lineno+1)+": "+msg;
+      var buf="1| ";
+      var ld=this.lexer.lexdata;
+      var l=1;
+      for (var i=0; i<ld.length; i++) {
+          var c=ld[i];
+          if (c=='\n') {
+              l++;
+              buf+="\n"+l+"| ";
+          }
+          else {
+            buf+=c;
+          }
+      }
+      console.log("------------------");
+      console.log(buf);
+      console.log("==================");
+      console.log(estr);
+      if (this.errfunc&&!this.errfunc(tok)) {
+          return ;
+      }
+      throw new PUTLParseError(estr);
+    }
+     peek() {
+      var tok=this.lexer.peek();
+      if (tok!=undefined)
+        tok.parser = this;
+      return tok;
+    }
+     peek_i(i) {
+      var tok=this.lexer.peek_i(i);
+      if (tok!=undefined)
+        tok.parser = this;
+      return tok;
+    }
+     peeknext() {
+      return this.peek_i(0);
+    }
+     next() {
+      var tok=this.lexer.next();
+      if (tok!=undefined)
+        tok.parser = this;
+      return tok;
+    }
+     optional(type) {
+      var tok=this.peek();
+      if (tok==undefined)
+        return false;
+      if (tok.type==type) {
+          this.next();
+          return true;
+      }
+      return false;
+    }
+     at_end() {
+      return this.lexer.at_end();
+    }
+     expect(type, msg) {
+      var tok=this.next();
+      if (msg==undefined)
+        msg = type;
+      if (tok==undefined||tok.type!=type) {
+          this.error(tok, "Expected "+msg+", not "+tok.type);
+      }
+      return tok.value;
+    }
+  }
+  _ESClass.register(parser);
+  _es6_module.add_class(parser);
+  parser = _es6_module.add_export('parser', parser);
+  function test_parser() {
+    var basic_types=new set(["int", "float", "double", "vec2", "vec3", "vec4", "mat4", "string"]);
+    var reserved_tokens=new set(["int", "float", "double", "vec2", "vec3", "vec4", "mat4", "string", "static_string", "array"]);
+    function tk(name, re, func) {
+      return new tokdef(name, re, func);
+    }
+    var tokens=[tk("ID", /[a-zA-Z]+[a-zA-Z0-9_]*/, function (t) {
+      if (reserved_tokens.has(t.value)) {
+          t.type = t.value.toUpperCase();
+      }
+      return t;
+    }), tk("OPEN", /\{/), tk("CLOSE", /}/), tk("COLON", /:/), tk("JSCRIPT", /\|/, function (t) {
+      var js="";
+      var lexer=t.lexer;
+      while (lexer.lexpos<lexer.lexdata.length) {
+        var c=lexer.lexdata[lexer.lexpos];
+        if (c=="\n")
+          break;
+        js+=c;
+        lexer.lexpos++;
+      }
+      if (js.endsWith(";")) {
+          js = js.slice(0, js.length-1);
+          lexer.lexpos--;
+      }
+      t.value = js;
+      return t;
+    }), tk("LPARAM", /\(/), tk("RPARAM", /\)/), tk("COMMA", /,/), tk("NUM", /[0-9]/), tk("SEMI", /;/), tk("NEWLINE", /\n/, function (t) {
+      t.lexer.lineno+=1;
+    }), tk("SPACE", / |\t/, function (t) {
+    })];
+    for (var rt of reserved_tokens) {
+        tokens.push(tk(rt.toUpperCase()));
+    }
+    var a=`
+  Loop {
+    eid : int;
+    flag : int;
+    index : int;
+    type : int;
+    
+    co : vec3;
+    no : vec3;
+    loop : int | eid(loop);
+    edges : array(e, int) | e.eid;
+    
+    loops : array(Loop);
+  }
+  `;
+    function errfunc(lexer) {
+      return true;
+    }
+    var lex=new lexer(tokens, errfunc);
+    console.log("Testing lexical scanner...");
+    lex.input(a);
+    var tok;
+    while (tok = lex.next()) {
+      console.log(tok.toString());
+    }
+    var parser=new parser(lex);
+    parser.input(a);
+    function p_Array(p) {
+      p.expect("ARRAY");
+      p.expect("LPARAM");
+      var arraytype=p_Type(p);
+      var itername="";
+      if (p.optional("COMMA")) {
+          itername = arraytype;
+          arraytype = p_Type(p);
+      }
+      p.expect("RPARAM");
+      return {type: "array", 
+     data: {type: arraytype, 
+      iname: itername}}
+    }
+    function p_Type(p) {
+      var tok=p.peek();
+      if (tok.type=="ID") {
+          p.next();
+          return {type: "struct", 
+       data: "\""+tok.value+"\""}
+      }
+      else 
+        if (basic_types.has(tok.type.toLowerCase())) {
+          p.next();
+          return {type: tok.type.toLowerCase()}
+      }
+      else 
+        if (tok.type=="ARRAY") {
+          return p_Array(p);
+      }
+      else {
+        p.error(tok, "invalid type "+tok.type);
+      }
+    }
+    function p_Field(p) {
+      var field={}
+      console.log("-----", p.peek().type);
+      field.name = p.expect("ID", "struct field name");
+      p.expect("COLON");
+      field.type = p_Type(p);
+      field.set = undefined;
+      field.get = undefined;
+      var tok=p.peek();
+      if (tok.type=="JSCRIPT") {
+          field.get = tok.value;
+          p.next();
+      }
+      tok = p.peek();
+      if (tok.type=="JSCRIPT") {
+          field.set = tok.value;
+          p.next();
+      }
+      p.expect("SEMI");
+      return field;
+    }
+    function p_Struct(p) {
+      var st={}
+      st.name = p.expect("ID", "struct name");
+      st.fields = [];
+      p.expect("OPEN");
+      while (1) {
+        if (p.at_end()) {
+            p.error(undefined);
+        }
+        else 
+          if (p.optional("CLOSE")) {
+            break;
+        }
+        else {
+          st.fields.push(p_Field(p));
+        }
+      }
+      return st;
+    }
+    var ret=p_Struct(parser);
+    console.log(JSON.stringify(ret));
+  }
+}, '/dev/fairmotion/src/util/parseutil.js');

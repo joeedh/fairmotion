@@ -432,7 +432,7 @@ VectorVertex {
   _es6_module.add_class(VectorDraw);
   VectorDraw = _es6_module.add_export('VectorDraw', VectorDraw);
 }, '/dev/fairmotion/src/vectordraw/vectordraw_base.js');
-es6_module_define('vectordraw_canvas2d', ["./vectordraw_jobs_base.js", "./vectordraw_jobs.js", "../path.ux/scripts/util/util.js", "./vectordraw_base.js", "../path.ux/scripts/util/math.js", "../util/mathlib.js", "../config/config.js"], function _vectordraw_canvas2d_module(_es6_module) {
+es6_module_define('vectordraw_canvas2d', ["../util/mathlib.js", "../path.ux/scripts/util/math.js", "../path.ux/scripts/util/util.js", "./vectordraw_base.js", "../config/config.js", "./vectordraw_jobs.js", "./vectordraw_jobs_base.js"], function _vectordraw_canvas2d_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   var util=es6_import(_es6_module, '../path.ux/scripts/util/util.js');
@@ -678,7 +678,12 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_jobs_base.js", "./vector
       min = new Vector2(min);
       let last_pan=new Vector2(draw.pan);
       last_pan[1] = draw.canvas.height-last_pan[1];
+      this.pending = true;
       vectordraw_jobs.manager.postRenderJob(renderid, commands).then((data) =>        {
+        this.pending = false;
+        if (this.onRenderDone) {
+            this.onRenderDone(this);
+        }
         if (debug)
           console.warn("Got render result!");
         this.gen_req = 0;
@@ -703,6 +708,7 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_jobs_base.js", "./vector
       offx/=scale;
       offy/=scale;
       if (this.regen) {
+          this.pending = true;
           this.gen(draw);
       }
       if (this._image===undefined) {
@@ -716,22 +722,12 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_jobs_base.js", "./vector
       if (this.generation>0) {
           this.generation++;
       }
-      if (g._drawImage!=undefined) {
-          g.save();
-          g._scale(scale, scale);
-          g._translate(offx, offy);
-          g._translate(this._image_off[0], this._image_off[1]);
-          g._drawImage(this._image, 0, 0);
-          g.restore();
-      }
-      else {
-        g.save();
-        g.scale(scale, scale);
-        g.translate(this._image_off[0], this._image_off[1]);
-        g.translate(offx, offy);
-        g.drawImage(this._image, 0, 0);
-        g.restore();
-      }
+      g.save();
+      g.scale(scale, scale);
+      g.translate(offx, offy);
+      g.translate(this._image_off[0], this._image_off[1]);
+      g.drawImage(this._image, 0, 0);
+      g.restore();
     }
   }
   _ESClass.register(Batch);
@@ -951,21 +947,12 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_jobs_base.js", "./vector
           return ;
       }
       g.imageSmoothingEnabled = false;
-      if (g._drawImage!==undefined) {
-          g._drawImage(this._image, this._image_off[0]+offx, this._image_off[1]+offy);
-          g.beginPath();
-          g._rect(this._image_off[0]+offx, this._image_off[1]+offy, this._image.width, this._image.height);
-          g.rect(this._image_off[0]+offx, this._image_off[1]+offy, this._image.width, this._image.height);
-          g.fillStyle = "rgba(0,255,0,0.4)";
-          g.fill();
-      }
-      else {
-        g.drawImage(this._image, this._image_off[0]+offx, this._image_off[1]+offy);
-        g.beginPath();
-        g.rect(this._image_off[0]+offx, this._image_off[1]+offy, this._image.width, this._image.height);
-        g.fillStyle = "rgba(0,255,255,0.4)";
-        g.fill();
-      }
+      g.drawImage(this._image, this._image_off[0]+offx, this._image_off[1]+offy);
+      g.beginPath();
+      g.rect(this._image_off[0]+offx, this._image_off[1]+offy, this._image.width, this._image.height);
+      g.rect(this._image_off[0]+offx, this._image_off[1]+offy, this._image.width, this._image.height);
+      g.fillStyle = "rgba(0,255,0,0.4)";
+      g.fill();
     }
      update() {
       this.recalc = 1;
@@ -981,21 +968,23 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_jobs_base.js", "./vector
       this.cur = 0;
       this.drawlist = [];
     }
-     getHead() {
+     getHead(onBatchDone) {
       if (this.drawlist.length>0) {
           return this.drawlist[this.drawlist.length-1];
       }
-      return this.requestBatch();
+      return this.requestBatch(onBatchDone);
     }
-     requestBatch() {
+     requestBatch(onrenderdone) {
       let ret;
       if (this.cur<this.length) {
           this.drawlist.push(this[this.cur]);
           ret = this[this.cur++];
       }
       else {
+        let b=new Batch();
+        b.onRenderDone = onrenderdone;
         this.cur++;
-        this.push(new Batch());
+        this.push(b);
         this.drawlist.push(this[this.length-1]);
         ret = this[this.length-1];
       }
@@ -1037,6 +1026,8 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_jobs_base.js", "./vector
     
      constructor() {
       super();
+      this.promise = undefined;
+      this.on_batches_finish = undefined;
       this.paths = [];
       this.path_idmap = {};
       this.dosort = true;
@@ -1050,6 +1041,20 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_jobs_base.js", "./vector
       this.canvas = undefined;
       this.g = undefined;
       this.batches = new Batches();
+      this.onBatchDone = this.onBatchDone.bind(this);
+    }
+     onBatchDone(batch) {
+      let ok=true;
+      for (let b of this.batches.drawlist) {
+          if (b.pending) {
+              ok = false;
+          }
+      }
+      if (ok&&this.promise) {
+          this.promise = undefined;
+          console.log("Draw finished!");
+          this.on_batches_finish();
+      }
     }
      has_path(id, z, check_z=true) {
       if (z===undefined) {
@@ -1111,7 +1116,7 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_jobs_base.js", "./vector
       }
       let batch;
       let blimit=this.paths.length<15 ? 15 : Math.ceil(this.paths.length/vectordraw_jobs.manager.max_threads);
-      batch = this.batches.getHead();
+      batch = this.batches.getHead(this.onBatchDone);
       var canvas=g.canvas;
       var off=canvaspath_draw_vs.next();
       let zoom=this.matrix.$matrix.m11;
@@ -1142,7 +1147,7 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_jobs_base.js", "./vector
           if (debug)
             console.log("SORT");
           this.batches.destroy();
-          batch = this.batches.requestBatch();
+          batch = this.batches.requestBatch(this.onBatchDone);
           this.dosort = 0;
           this.paths.sort(function (a, b) {
             return a.z-b.z;
@@ -1169,7 +1174,7 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_jobs_base.js", "./vector
               let w2=this.batches.length>10 ? 1.0/(this.batches.length-9) : 0.0;
               if (needsblur) {
                   if (!batch.isBlurBatch) {
-                      batch = this.batches.requestBatch();
+                      batch = this.batches.requestBatch(this.onBatchDone);
                       batch.isBlurBatch = true;
                       batch.dpi_scale = path.blur*zoom>50 ? 0.1 : 0.25;
                   }
@@ -1180,7 +1185,7 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_jobs_base.js", "./vector
               }
               else 
                 if (batch.isBlurBatch||(batch.paths.length*(1.0+w1*4.0)>blimit)) {
-                  batch = this.batches.requestBatch();
+                  batch = this.batches.requestBatch(this.onBatchDone);
               }
               batch.add(path);
           }
@@ -1195,6 +1200,23 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_jobs_base.js", "./vector
       for (let batch of this.batches.drawlist) {
           batch.draw(this);
       }
+      if (!this.promise) {
+          this.promise = new Promise((accept, reject) =>            {
+            this.on_batches_finish = accept;
+          });
+      }
+      let ok=true;
+      for (let b of this.batches) {
+          if (b.pending) {
+              ok = false;
+          }
+      }
+      if (ok) {
+          window.setTimeout(() =>            {
+            this.onBatchDone();
+          });
+      }
+      return this.promise;
     }
      set_matrix(matrix) {
       super.set_matrix(matrix);
@@ -1431,7 +1453,7 @@ es6_module_define('vectordraw_stub', ["../util/mathlib.js", "../config/config.js
   _es6_module.add_class(StubCanvasDraw2D);
   StubCanvasDraw2D = _es6_module.add_export('StubCanvasDraw2D', StubCanvasDraw2D);
 }, '/dev/fairmotion/src/vectordraw/vectordraw_stub.js');
-es6_module_define('vectordraw_canvas2d_simple', ["../config/config.js", "./vectordraw_base.js", "../util/mathlib.js"], function _vectordraw_canvas2d_simple_module(_es6_module) {
+es6_module_define('vectordraw_canvas2d_simple', ["../util/mathlib.js", "./vectordraw_base.js", "../config/config.js"], function _vectordraw_canvas2d_simple_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
@@ -1770,6 +1792,9 @@ es6_module_define('vectordraw_canvas2d_simple', ["../config/config.js", "./vecto
           p.draw(this);
       }
       g.restore();
+      return new Promise((accept, reject) =>        {
+        accept();
+      });
     }
      set_matrix(matrix) {
       super.set_matrix(matrix);
@@ -2293,7 +2318,7 @@ es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js
 }, '/dev/fairmotion/src/vectordraw/vectordraw_svg.js');
 es6_module_define('vectordraw_canvas2d_jobs', [], function _vectordraw_canvas2d_jobs_module(_es6_module) {
 }, '/dev/fairmotion/src/vectordraw/vectordraw_canvas2d_jobs.js');
-es6_module_define('vectordraw_jobs', ["../path.ux/scripts/util/simple_events.js", "../../platforms/platform.js", "../core/eventmanager.js", "../config/config.js", "./vectordraw_jobs_base.js"], function _vectordraw_jobs_module(_es6_module) {
+es6_module_define('vectordraw_jobs', ["./vectordraw_jobs_base.js", "../../platforms/platform.js", "../path.ux/scripts/util/simple_events.js", "../core/eventmanager.js", "../config/config.js"], function _vectordraw_jobs_module(_es6_module) {
   "use strict";
   var eventmanager=es6_import(_es6_module, '../core/eventmanager.js');
   var MESSAGES=es6_import_item(_es6_module, './vectordraw_jobs_base.js', 'MESSAGES');
@@ -2357,9 +2382,6 @@ es6_module_define('vectordraw_jobs', ["../path.ux/scripts/util/simple_events.js"
       }
     }
      postRenderJob(ownerid, commands, datablocks) {
-      if (!this.manager.drawing&&freeze_while_drawing) {
-          this.manager.startDrawing();
-      }
       let id=this.manager._rthread_idgen++;
       if (Debug)
         console.log("thread", this.manager.threads.indexOf(this), "freezelvl:", this.freezelvl);
@@ -2418,8 +2440,9 @@ es6_module_define('vectordraw_jobs', ["../path.ux/scripts/util/simple_events.js"
           if (Debug)
             console.log(cb, e.data.data[0]);
           cb(e.data.data[0]);
-          if (this.freezelvl==0) {
+          if (this.freezelvl<=0) {
               this.manager.on_thread_done(this);
+              this.freezelvl = 0;
           }
           break;
       }
@@ -2472,12 +2495,12 @@ es6_module_define('vectordraw_jobs', ["../path.ux/scripts/util/simple_events.js"
       this.max_threads = MAX_THREADS;
       this.start_time = undefined;
       window.setInterval(() =>        {
-        if (this.drawing&&time_ms()-this.start_time>250) {
+        if (this.drawing&&time_ms()-this.start_time>750) {
             console.log("Draw timed out; aborting draw freeze");
             this.endDrawing();
         }
         return ;
-      }, 150);
+      }, 750);
     }
      setMaxThreads(n) {
       if (n===undefined||typeof n!="number"||n<0) {
@@ -2501,23 +2524,15 @@ es6_module_define('vectordraw_jobs', ["../path.ux/scripts/util/simple_events.js"
       this.drawing = true;
       this.start_time = time_ms();
       if (freeze_while_drawing) {
-          if (!this._modalstate) {
-              this._modalstate = pushModalLight({on_keydown: (e) =>                  {
-                  if (e.keyCode===keymap["Escape"]) {
-                      popModalLight(this._modalstate);
-                      this._modalstate = undefined;
-                  }
-                }});
-          }
+          console.log("%cFreeze Drawing", "color : orange;");
+          window._block_drawing = true;
       }
     }
      endDrawing() {
       this.drawing = false;
       if (freeze_while_drawing) {
-          if (this._modalstate) {
-              popModalLight(this._modalstate);
-              this._modalstate = undefined;
-          }
+          console.log("%cUnfreeze Drawing", "color : orange;");
+          window._block_drawing = false;
       }
     }
      spawnThread(source) {
@@ -2544,8 +2559,11 @@ es6_module_define('vectordraw_jobs', ["../path.ux/scripts/util/simple_events.js"
       }
     }
      postRenderJob(ownerid, commands, datablocks) {
+      if (!this.drawing&&freeze_while_drawing) {
+          this.startDrawing();
+      }
       let thread;
-      if (this.threads.length==0) {
+      if (this.threads.length===0) {
           thread = this.spawnThread("vectordraw_canvas2d_worker.js");
           thread.ready = true;
           for (let i=0; i<this.max_threads-1; i++) {
@@ -2654,7 +2672,7 @@ es6_module_define('vectordraw_jobs_base', [], function _vectordraw_jobs_base_mod
    "source-atop": 1}
   CompositeModes = _es6_module.add_export('CompositeModes', CompositeModes);
 }, '/dev/fairmotion/src/vectordraw/vectordraw_jobs_base.js');
-es6_module_define('vectordraw', ["./vectordraw_base.js", "./vectordraw_canvas2d_simple.js", "./vectordraw_svg.js", "./vectordraw_stub.js", "./vectordraw_canvas2d.js"], function _vectordraw_module(_es6_module) {
+es6_module_define('vectordraw', ["./vectordraw_svg.js", "./vectordraw_stub.js", "./vectordraw_canvas2d.js", "./vectordraw_canvas2d_simple.js", "./vectordraw_base.js"], function _vectordraw_module(_es6_module) {
   "use strict";
   var CanvasDraw2D=es6_import_item(_es6_module, './vectordraw_canvas2d.js', 'CanvasDraw2D');
   var CanvasPath=es6_import_item(_es6_module, './vectordraw_canvas2d.js', 'CanvasPath');
@@ -2674,7 +2692,7 @@ es6_module_define('vectordraw', ["./vectordraw_base.js", "./vectordraw_canvas2d_
 es6_module_define('strokedraw', [], function _strokedraw_module(_es6_module) {
   "use strict";
 }, '/dev/fairmotion/src/vectordraw/strokedraw.js');
-es6_module_define('spline_draw_new', ["../vectordraw/vectordraw_jobs.js", "../config/config.js", "../editors/viewport/view2d_editor.js", "../core/animdata.js", "./spline_element_array.js", "../vectordraw/vectordraw.js", "../editors/viewport/selectmode.js", "./spline_multires.js", "./spline_types.js", "./spline_math.js", "../util/mathlib.js"], function _spline_draw_new_module(_es6_module) {
+es6_module_define('spline_draw_new', ["./spline_multires.js", "../vectordraw/vectordraw_jobs.js", "../vectordraw/vectordraw.js", "./spline_element_array.js", "./spline_math.js", "../core/animdata.js", "../util/mathlib.js", "../editors/viewport/view2d_editor.js", "../config/config.js", "./spline_types.js", "../editors/viewport/selectmode.js"], function _spline_draw_new_module(_es6_module) {
   "use strict";
   var aabb_isect_minmax2d=es6_import_item(_es6_module, '../util/mathlib.js', 'aabb_isect_minmax2d');
   var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
@@ -3077,8 +3095,7 @@ es6_module_define('spline_draw_new', ["../vectordraw/vectordraw_jobs.js", "../co
       return path;
     }
      draw(g) {
-      this.drawer.draw(g);
-      return ;
+      return this.drawer.draw(g);
     }
   }
   _ESClass.register(SplineDrawer);
@@ -6501,7 +6518,7 @@ es6_module_define('addon_api', [], function _addon_api_module(_es6_module) {
   _es6_module.add_class(AddonManager);
   AddonManager = _es6_module.add_export('AddonManager', AddonManager);
 }, '/dev/fairmotion/src/addon_api/addon_api.js');
-es6_module_define('scene', ["../core/struct.js", "../curve/spline_base.js", "../core/lib_api.js", "../editors/viewport/selectmode.js", "../editors/viewport/toolmodes/toolmode.js", "../core/frameset.js", "./sceneobject.js", "../core/eventdag.js"], function _scene_module(_es6_module) {
+es6_module_define('scene', ["../editors/viewport/toolmodes/toolmode.js", "../editors/viewport/selectmode.js", "../core/frameset.js", "./sceneobject.js", "../core/struct.js", "../core/lib_api.js", "../core/eventdag.js", "../curve/spline_base.js"], function _scene_module(_es6_module) {
   var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
   var DataBlock=es6_import_item(_es6_module, '../core/lib_api.js', 'DataBlock');
   var DataTypes=es6_import_item(_es6_module, '../core/lib_api.js', 'DataTypes');
@@ -6593,8 +6610,10 @@ es6_module_define('scene', ["../core/struct.js", "../curve/spline_base.js", "../
     
     
     
+    
      constructor() {
       super(DataTypes.SCENE);
+      this.fps = 24.0;
       this.edit_all_layers = false;
       this.objects = new ObjectList(this);
       this.objects.active = undefined;
@@ -6653,7 +6672,8 @@ es6_module_define('scene', ["../core/struct.js", "../curve/spline_base.js", "../
       return ob;
     }
      change_time(ctx, time, _update_animation=true) {
-      console.warn("Time change!", time, this.time);
+      if (_DEBUG.timeChange)
+        console.warn("Time change!", time, this.time);
       if (isNaN(this.time)) {
           console.warn("EEK corruption!");
           this.time = ctx.frameset.time;
@@ -6669,11 +6689,12 @@ es6_module_define('scene', ["../core/struct.js", "../curve/spline_base.js", "../
       if (time<1) {
           time = 1;
       }
+      window._wait_for_draw = true;
+      window.redraw_viewport();
       this.time = time;
       ctx.frameset.change_time(time, _update_animation);
       ctx.api.onFrameChange(ctx, time);
       this.dag_update("on_time_change", true);
-      window.redraw_viewport();
     }
      copy() {
       var ret=new Scene();
@@ -6760,6 +6781,7 @@ es6_module_define('scene', ["../core/struct.js", "../curve/spline_base.js", "../
     active_toolmode   : string | this.toolmode !== undefined ? this.toolmode.constructor.toolDefine().name : "";
     edit_all_layers   : int;
     selectmode        : int;
+    fps               : float;
   }
 `;
   mixin(Scene, DataPathNode);
@@ -6822,6 +6844,553 @@ es6_module_define('sceneobject', ["../core/lib_api.js", "../core/struct.js"], fu
 }
 `;
 }, '/dev/fairmotion/src/scene/sceneobject.js');
+es6_module_define('velpan', ["../datafiles/icon_enum.js", "../path.ux/scripts/toolsys/simple_toolsys.js", "../util/vectormath.js", "../path.ux/scripts/toolsys/toolprop.js", "../path.ux/scripts/util/simple_events.js", "../path.ux/scripts/util/util.js"], function _velpan_module(_es6_module) {
+  var Matrix4=es6_import_item(_es6_module, '../util/vectormath.js', 'Matrix4');
+  var Vector2=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector2');
+  var ToolOp=es6_import_item(_es6_module, '../path.ux/scripts/toolsys/simple_toolsys.js', 'ToolOp');
+  var UndoFlags=es6_import_item(_es6_module, '../path.ux/scripts/toolsys/simple_toolsys.js', 'UndoFlags');
+  var keymap=es6_import_item(_es6_module, '../path.ux/scripts/util/simple_events.js', 'keymap');
+  var StringProperty=es6_import_item(_es6_module, '../path.ux/scripts/toolsys/toolprop.js', 'StringProperty');
+  var Vec2Property=es6_import_item(_es6_module, '../path.ux/scripts/toolsys/toolprop.js', 'Vec2Property');
+  es6_import(_es6_module, '../datafiles/icon_enum.js');
+  var util=es6_import(_es6_module, '../path.ux/scripts/util/util.js');
+  let VelPanFlags={UNIFORM_SCALE: 1}
+  VelPanFlags = _es6_module.add_export('VelPanFlags', VelPanFlags);
+  class VelPan  {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+     constructor() {
+      this.bounds = [new Vector2([-2000, -2000]), new Vector2([2000, 2000])];
+      this.decay = 0.995;
+      this.pos = new Vector2();
+      this.scale = new Vector2([1, 1]);
+      this.vel = new Vector2();
+      this.oldpos = new Vector2();
+      this.axes = 3;
+      this.flag = VelPanFlags.UNIFORM_SCALE;
+      this.mat = new Matrix4();
+      this.imat = new Matrix4();
+      this._last_mat = new Matrix4(this.mat);
+      this.onchange = null;
+      this.last_update_time = util.time_ms();
+      this.timer = undefined;
+    }
+     copy() {
+      return new VelPan().load(this);
+    }
+    get  min() {
+      return this.bounds[0];
+    }
+    get  max() {
+      return this.bounds[1];
+    }
+     load(velpan) {
+      this.pos.load(velpan.pos);
+      this.scale.load(velpan.scale);
+      this.axes = velpan.axes;
+      this.bounds[0].load(velpan.bounds[0]);
+      this.bounds[1].load(velpan.bounds[1]);
+      this.update(false);
+      return this;
+    }
+     startVelocity() {
+      if (this.timer===undefined) {
+          this.last_update_time = util.time_ms();
+          this.timer = window.setInterval(this.doVelocity.bind(this), 30);
+      }
+    }
+     doVelocity() {
+      if (this.vel.dot(this.vel)<0.001) {
+          console.log("removing velpan timer");
+          window.clearInterval(this.timer);
+          this.timer = undefined;
+          return ;
+      }
+      let dt=util.time_ms()-this.last_update_time;
+      this.pos.addFac(this.vel, dt);
+      dt = Math.max(dt, 0.001);
+      this.vel.mulScalar(Math.pow(this.decay, dt));
+      this.last_update_time = util.time_ms();
+    }
+     update(fire_events=true, do_velocity=true) {
+      if (do_velocity&&this.vel.dot(this.vel)>0.001) {
+          this.startVelocity();
+      }
+      this.mat.makeIdentity();
+      this.mat.scale(this.scale[0], this.scale[1], 1.0);
+      this.mat.translate(this.pos[0], this.pos[1], 0.0);
+      this.imat.load(this.mat).invert();
+      if (fire_events&&JSON.stringify(this.mat)!=JSON.stringify(this._last_mat)) {
+          this._last_mat.load(this.mat);
+          if (this.onchange)
+            this.onchange(this);
+      }
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+    }
+  }
+  _ESClass.register(VelPan);
+  _es6_module.add_class(VelPan);
+  VelPan = _es6_module.add_export('VelPan', VelPan);
+  VelPan.STRUCT = `
+VelPan {
+  bounds : array(vec2); 
+  pos    : vec2;
+  scale  : vec2;
+  axes   : int;
+  mat    : mat4;
+  imat   : mat4;
+  flag   : int;
+}
+`;
+  nstructjs.manager.add_class(VelPan);
+  class VelPanPanOp extends ToolOp {
+     constructor() {
+      super();
+      this.start_pan = new Vector2();
+      this.first = true;
+      this.last_mpos = new Vector2();
+      this.start_mpos = new Vector2();
+      this.start_time = this.last_time = 0;
+      this._temps = util.cachering.fromConstructor(Vector2, 16);
+    }
+    static  tooldef() {
+      return {uiname: "Pan (2d)", 
+     description: "Pan 2d window", 
+     toolpath: "velpan.pan", 
+     undoflag: UndoFlags.NO_UNDO, 
+     is_modal: true, 
+     icon: -1, 
+     inputs: {velpanPath: new StringProperty(), 
+      pan: new Vec2Property()}}
+    }
+     on_mousemove(e) {
+      let ctx=this.modal_ctx;
+      let path=this.inputs.velpanPath.getValue();
+      let velpan=ctx.api.getValue(ctx, path);
+      if (velpan===undefined) {
+          this.modalEnd();
+          throw new Error("bad velpan path "+path+".");
+      }
+      let mpos=this._temps.next().zero();
+      mpos[0] = e.x;
+      mpos[1] = e.y;
+      if (this.first) {
+          this.start_mpos.load(mpos);
+          this.last_mpos.load(mpos);
+          this.start_pan.load(velpan.pos);
+          this.start_time = util.time_ms();
+          this.last_time = util.time_ms();
+          this.first = false;
+          return ;
+      }
+      let dx=mpos[0]-this.last_mpos[0];
+      let dy=mpos[1]-this.last_mpos[1];
+      dx/=velpan.scale[0];
+      dy/=velpan.scale[1];
+      let pan=this.inputs.pan.getValue();
+      pan[0]+=dx;
+      pan[1]+=dy;
+      velpan.pos.load(this.start_pan);
+      this.exec(this.modal_ctx);
+      this.last_mpos.load(mpos);
+    }
+     exec(ctx) {
+      let path=this.inputs.velpanPath.getValue();
+      let velpan=ctx.api.getValue(ctx, path);
+      if (velpan===undefined) {
+          throw new Error("bad velpan path "+path+".");
+      }
+      velpan.pos.add(this.inputs.pan.getValue());
+      velpan.update(undefined, false);
+      let vel=new Vector2(velpan.pos).sub(velpan.oldpos);
+      vel.mulScalar(1.0/(util.time_ms()-this.last_time));
+      let l=vel.vectorLength();
+      l = Math.min(l, 3.0);
+      vel.normalize().mulScalar(l);
+      velpan.vel.load(vel);
+      velpan.oldpos.load(velpan.pos);
+      this.last_time = util.time_ms();
+      if (velpan.onchange) {
+          velpan.onchange();
+      }
+    }
+     on_mouseup(e) {
+      this.modalEnd();
+    }
+  }
+  _ESClass.register(VelPanPanOp);
+  _es6_module.add_class(VelPanPanOp);
+  VelPanPanOp = _es6_module.add_export('VelPanPanOp', VelPanPanOp);
+  ToolOp.register(VelPanPanOp);
+}, '/dev/fairmotion/src/editors/velpan.js');
+es6_module_define('nodegraph', ["../../core/lib_api.js", "../../path.ux/scripts/pathux.js", "../velpan.js", "../editor_base.js"], function _nodegraph_module(_es6_module) {
+  var Editor=es6_import_item(_es6_module, '../editor_base.js', 'Editor');
+  var nstructjs=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'nstructjs');
+  var util=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'util');
+  var VelPan=es6_import_item(_es6_module, '../velpan.js', 'VelPan');
+  var VelPanPanOp=es6_import_item(_es6_module, '../velpan.js', 'VelPanPanOp');
+  var Vector2=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'Vector2');
+  var UIBase=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'UIBase');
+  var color2css=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'color2css');
+  var css2color=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'css2color');
+  var DataBlock=es6_import_item(_es6_module, '../../core/lib_api.js', 'DataBlock');
+  class NodeViewer extends Editor {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+     constructor() {
+      super();
+      this.graphPath = "";
+      this.graphClass = "";
+      this._last_graph_path = undefined;
+      this.velpan = new VelPan();
+      this.velpan.pos[0] = 0;
+      this.velpan.pos[1] = 0;
+      this.velpan.onchange = this._on_velpan_change.bind(this);
+      this._last_scale = new Vector2();
+      this.canvases = {};
+      this.nodes = {};
+      this.node_idmap = {};
+      this.sockSize = 20;
+      this.extraNodeWidth = 155;
+      this.canvas = document.createElement("canvas");
+      this.g = this.canvas.getContext("2d");
+      this.shadow.appendChild(this.canvas);
+    }
+     init() {
+      super.init();
+      this.velpan.onchange = this._on_velpan_change.bind(this);
+      this.addEventListener("mousedown", (e) =>        {
+        this.push_ctx_active();
+        console.log("node viewer mousedown");
+        let toolop=new VelPanPanOp();
+        toolop.inputs.velpanPath.setValue("nodeViewer.velpan");
+        this.ctx.toolstack.execTool(this.ctx, toolop);
+        this.pop_ctx_active();
+      });
+      this.header.button("Arrange", () =>        {
+        let graph=this.getGraph();
+        console.log("Arranging graph", graph);
+        if (graph) {
+            sortGraphSpatially(graph, {socksize: this.sockSize, 
+        steps: 45, 
+        headerHeight: 75, 
+        extraWidth: this.extraNodeWidth});
+            this.clear();
+            this.rebuild();
+            this.draw();
+        }
+      });
+      this.addEventListener("wheel", (e) =>        {
+        let df=Math.sign(e.deltaY)*0.15;
+        console.log("wheel in node viewer!");
+        this.velpan.scale.mulScalar(1.0-df);
+        this.velpan.update();
+        this.rebuild();
+      });
+    }
+     getGraph() {
+      return this.ctx.api.getValue(this.ctx, this.graphPath);
+    }
+     getCanvas(id) {
+      if (!(id in this.canvases)) {
+          this.canvases[id] = document.createElement("canvas");
+          this.canvases[id].g = this.canvases[id].getContext("2d");
+      }
+      return this.canvases[id];
+    }
+     hashNode(node) {
+      let layout=layoutNode(node, {socksize: this.sockSize});
+      let mask=(1<<19)-1;
+      let mul=(1<<14)-1;
+      let hash=node.graph_id;
+      function dohash(n) {
+        let f=((n+mask)*mul)&mask;
+        hash = hash^f;
+      }
+      let scale=this.velpan.scale;
+      dohash(layout.size[0]*scale[0]);
+      dohash(layout.size[1]*scale[1]);
+      for (let i=0; i<2; i++) {
+          let socks=i ? layout.outputs : layout.inputs;
+          let j=0;
+          for (let k in socks) {
+              let sock=socks[k];
+              dohash(sock[0]*scale[0]);
+              dohash(sock[1]*scale[1]);
+              dohash(j++);
+          }
+      }
+      return hash+":"+node.graph_id;
+    }
+     _on_velpan_change() {
+      if (this._last_scale.vectorDistance(this.velpan.scale)>0.1) {
+          this.rebuild();
+      }
+      else {
+        this.draw();
+      }
+      this._last_scale.load(this.velpan.scale);
+    }
+     clear() {
+      this.canvases = {};
+      this.nodes = {};
+      this.node_idmap = {};
+    }
+     buildNode(node) {
+      let scale=this.velpan.scale;
+      let layout=layoutNode(node, {socksize: this.sockSize, 
+     extraWidth: this.extraNodeWidth});
+      let hash=this.hashNode(node);
+      layout.size = new Vector2(layout.size);
+      layout.size.mulScalar(scale[0]);
+      layout.size.floor();
+      for (let i=0; i<2; i++) {
+          let lsocks=i ? layout.outputs : layout.inputs;
+          let socks=i ? node.outputs : node.inputs;
+          for (let k in lsocks) {
+              let sock=socks[k];
+              let lsock=lsocks[k];
+              lsock = new Vector2(lsock);
+              let color=sock.constructor.nodedef().color;
+              if (color) {
+                  color = color2css(color);
+              }
+              else {
+                color = "orange";
+              }
+              lsock.color = color;
+              lsocks[k] = lsock;
+          }
+      }
+      layout.canvas = this.getCanvas(hash);
+      let canvas=layout.canvas;
+      let g=canvas.g;
+      let ts=this.getDefault("DefaultText").size*1.45;
+      let header=layout.header = ts*this.velpan.scale[0]*1.3*2.5;
+      layout.size[1]+=Math.ceil(header);
+      canvas.width = layout.size[0];
+      canvas.height = layout.size[1];
+      g.font = this.getDefault("DefaultText").genCSS(ts*this.velpan.scale[0]);
+      g.clearRect(0, 0, canvas.width, canvas.height);
+      g.beginPath();
+      g.rect(0, 0, canvas.width, canvas.height);
+      g.lineWidth = 2;
+      g.fillStyle = "grey";
+      g.strokeStyle = "black";
+      g.fill();
+      g.stroke();
+      g.fillStyle = "white";
+      let name=node.graphDisplayName();
+      g.fillText(name, 1, ts*this.velpan.scale[0]*1.3);
+      g.fillText("("+node.constructor.name+")", 45*this.velpan.scale[0], ts*this.velpan.scale[0]*1.3*1.7);
+      layout.graph_id = node.graph_id;
+      this.nodes[hash] = layout;
+      this.node_idmap[node.graph_id] = layout;
+      for (let i=0; i<2; i++) {
+          let y=0.0;
+          let socks=i ? layout.outputs : layout.inputs;
+          for (let k in socks) {
+              let sock=socks[k];
+              sock[1]+=header/this.velpan.scale[0];
+              let w=g.measureText(k).width;
+              let x=i ? layout.size[0]-w : 0;
+              let y=sock[1]*this.velpan.scale[0];
+              g.fillText(k, x, y);
+          }
+      }
+      return layout;
+    }
+     updateCanvaSize() {
+      let canvas=this.canvas;
+      let size=this.size;
+      let dpi=UIBase.getDPI();
+      let w=~~(size[0]*dpi);
+      let h=~~(size[1]*dpi);
+      canvas.width = w;
+      canvas.height = h;
+      canvas.style["width"] = size[0]+"px";
+      canvas.style["height"] = size[1]+"px";
+    }
+     draw() {
+      let canvas=this.canvas;
+      let g=this.g;
+      this.updateCanvaSize();
+      g.clearRect(0, 0, canvas.width, canvas.height);
+      g.font = this.getDefault("DefaultText").genCSS();
+      g.strokeStyle = "black";
+      let transform=(p) =>        {
+        p[0]-=canvas.width*0.5;
+        p[1]-=canvas.height*0.5;
+        p.multVecMatrix(this.velpan.mat);
+        p[0]+=canvas.width*0.5;
+        p[1]+=canvas.height*0.5;
+      };
+      let p=new Vector2(), p2=new Vector2(), p3=new Vector2(), p4=new Vector2();
+      let s=new Vector2();
+      function find_sock_key(node, sock) {
+        for (let k in node.inputs) {
+            if (node.inputs[k]===sock) {
+                return k;
+            }
+        }
+      }
+      g.beginPath();
+      let sz=this.sockSize;
+      let graph=this.getGraph();
+      let rebuild=false;
+      for (let k1 in this.nodes) {
+          let node=this.nodes[k1];
+          p.load(node.pos);
+          let node2=graph.node_idmap[node.graph_id];
+          if (node2===undefined) {
+              rebuild = true;
+              continue;
+          }
+          for (let k in node2.inputs) {
+              let sock=node2.inputs[k];
+              for (let sock2 of sock.edges) {
+                  let node3=this.node_idmap[sock2.node.graph_id];
+                  sock2 = find_sock_key(sock2);
+                  node3 = this.node_idmap[node3.graph_id];
+                  let lsock1=node.inputs[k];
+                  let lsock2=node3.outputs[k];
+                  p2.load(node.pos).add(lsock1);
+                  p3.load(node3.pos).add(lsock2);
+                  transform(p2);
+                  transform(p3);
+                  g.moveTo(p2[0], p2[1]);
+                  g.lineTo(p3[0], p3[1]);
+              }
+          }
+      }
+      if (rebuild) {
+          this.rebuild();
+          this.doOnce(this.draw);
+          return ;
+      }
+      g.strokeStyle = "white";
+      g.stroke();
+      for (let k2 in this.nodes) {
+          let node=this.nodes[k2];
+          p.load(node.pos);
+          for (let i=0; i<2; i++) {
+              let socks=i ? node.outputs : node.inputs;
+              for (let k in socks) {
+                  let sock=socks[k];
+                  p2.load(sock);
+                  p2.add(p);
+                  transform(p2);
+                  g.beginPath();
+                  g.fillStyle = sock.color;
+                  g.moveTo(p2[0], p2[1]);
+                  g.arc(p2[0], p2[1], sz*0.35, -Math.PI, Math.PI);
+                  g.fill();
+              }
+          }
+      }
+      g.fill();
+      g.fillStyle = "grey";
+      g.beginPath();
+      for (let k in this.nodes) {
+          let node=this.nodes[k];
+          p.load(node.pos);
+          s.load(node.size);
+          transform(p);
+          g.drawImage(node.canvas, p[0], p[1]);
+      }
+      g.fill();
+      g.stroke();
+    }
+     rebuild() {
+      if (!this.ctx) {
+          return ;
+      }
+      this._last_graph_path = this.graphPath;
+      console.log("rebuilding node editor");
+      this.updateCanvaSize();
+      let canvas=this.canvas;
+      let g=this.g;
+      let size=this.size;
+      let dpi=UIBase.getDPI();
+      let graph=this.ctx.api.getValue(this.ctx, this.graphPath);
+      if (this.graphPath===""||graph===undefined) {
+          console.warn("Failed to load graph!");
+          this._last_graph_path = undefined;
+          return ;
+      }
+      let visit=new util.set();
+      for (let node of graph.nodes) {
+          let hash=this.hashNode(node);
+          visit.add(hash);
+          if (!(hash in this.nodes)) {
+              this.buildNode(node);
+          }
+      }
+      let del=[];
+      for (let k in this.canvases) {
+          if (!visit.has(k)) {
+              del.push(k);
+          }
+      }
+      for (let k of del) {
+          delete this.canvases[k];
+          delete this.nodes[k];
+      }
+      this.draw();
+    }
+     on_resize() {
+      this.draw();
+    }
+     update() {
+      if (this._last_graph_path!==this.graphPath) {
+          this.clear();
+          this.rebuild();
+      }
+      this.velpan.update();
+    }
+    static  define() {
+      return {tagname: "nodegraph-viewer-x", 
+     areaname: "nodegraph_viewer", 
+     uiname: "Graph Viewer"}
+    }
+  }
+  _ESClass.register(NodeViewer);
+  _es6_module.add_class(NodeViewer);
+  NodeViewer = _es6_module.add_export('NodeViewer', NodeViewer);
+  NodeViewer.STRUCT = nstructjs.inherit(NodeViewer, Editor)+`
+  graphPath  : string;
+  graphClass : string;
+  velpan     : VelPan;
+}`;
+  Editor.register(NodeViewer);
+  nstructjs.register(NodeViewer);
+}, '/dev/fairmotion/src/editors/nodegraph/nodegraph.js');
+es6_module_define('nodegraph_base', [], function _nodegraph_base_module(_es6_module) {
+}, '/dev/fairmotion/src/editors/nodegraph/nodegraph_base.js');
+es6_module_define('nodegraph_ops', [], function _nodegraph_ops_module(_es6_module) {
+}, '/dev/fairmotion/src/editors/nodegraph/nodegraph_ops.js');
 es6_module_define('widgets', ["../path.ux/scripts/util/util.js", "../path.ux/scripts/util/struct.js", "../path.ux/scripts/core/ui.js", "../image/image_ops.js", "../path.ux/scripts/core/ui_base.js"], function _widgets_module(_es6_module) {
   var UIBase=es6_import_item(_es6_module, '../path.ux/scripts/core/ui_base.js', 'UIBase');
   var Icons=es6_import_item(_es6_module, '../path.ux/scripts/core/ui_base.js', 'Icons');
@@ -8080,7 +8649,7 @@ es6_module_define('theme', ["../path.ux/scripts/util/util.js", "../path.ux/scrip
     rowHeight: 18}}
   _es6_module.add_export('theme', theme);
 }, '/dev/fairmotion/src/editors/theme.js');
-es6_module_define('MenuBar', ["../../path.ux/scripts/widgets/ui_widgets.js", "../../core/startup/startup_file.js", "../../path.ux/scripts/core/ui_base.js", "../../../platforms/platform.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../path.ux/scripts/platforms/electron/electron_api.js", "../editor_base.js", "../../core/struct.js", "../../path.ux/scripts/widgets/ui_menu.js"], function _MenuBar_module(_es6_module) {
+es6_module_define('MenuBar', ["../../path.ux/scripts/widgets/ui_widgets.js", "../../core/startup/startup_file.js", "../../core/struct.js", "../../path.ux/scripts/platforms/electron/electron_api.js", "../../path.ux/scripts/screen/ScreenArea.js", "../editor_base.js", "../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/widgets/ui_menu.js", "../../../platforms/platform.js"], function _MenuBar_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
   var AreaFlags=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'AreaFlags');
   var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
@@ -8096,8 +8665,8 @@ es6_module_define('MenuBar', ["../../path.ux/scripts/widgets/ui_widgets.js", "..
      constructor() {
       super();
       let dpi=UIBase.getDPI();
-      let tilesize=iconmanager.getTileSize(1);
-      let h=Math.max(this.getDefault("TitleText").size, tilesize)+5;
+      let tilesize=iconmanager.getTileSize(0)+7;
+      let h=Math.max(this.getDefault("TitleText").size, tilesize);
       this.editMenuDef = [];
       this._last_toolmode = undefined;
       this.maxSize = [undefined, h];
@@ -8220,6 +8789,13 @@ es6_module_define('MenuBar', ["../../path.ux/scripts/widgets/ui_widgets.js", "..
           this.buildEditMenu();
       }
     }
+    static  getHeight() {
+      let ctx=g_app_state.ctx;
+      if (ctx&&ctx.menubar) {
+          return ctx.menubar.minSize[1];
+      }
+      return 28;
+    }
      makeHeader(container) {
       super.makeHeader(container, false);
     }
@@ -8229,9 +8805,6 @@ es6_module_define('MenuBar', ["../../path.ux/scripts/widgets/ui_widgets.js", "..
      uiname: "menu", 
      icon: Icons.MENU_EDITOR, 
      flag: AreaFlags.HIDDEN|AreaFlags.NO_SWITCHER}
-    }
-    static  getHeight() {
-      return ~~(UIBase.getDPI()*19);
     }
      copy() {
       return document.createElement("menubar-editor-x");
@@ -9899,1011 +10472,3 @@ es6_module_define('toolprops_iter', ["./struct.js"], function _toolprops_iter_mo
 }
 `;
 }, '/dev/fairmotion/src/core/toolprops_iter.js');
-es6_module_define('toolops_api', ["./toolprops.js", "../path.ux/scripts/util/simple_events.js", "./struct.js", "../editors/events.js"], function _toolops_api_module(_es6_module) {
-  "use strict";
-  var PropTypes=es6_import_item(_es6_module, './toolprops.js', 'PropTypes');
-  var TPropFlags=es6_import_item(_es6_module, './toolprops.js', 'TPropFlags');
-  var STRUCT=es6_import_item(_es6_module, './struct.js', 'STRUCT');
-  var EventHandler=es6_import_item(_es6_module, '../editors/events.js', 'EventHandler');
-  var charmap=es6_import_item(_es6_module, '../editors/events.js', 'charmap');
-  class ToolDef  {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-  }
-  _ESClass.register(ToolDef);
-  _es6_module.add_class(ToolDef);
-  ToolDef = _es6_module.add_export('ToolDef', ToolDef);
-  function patchMouseEvent(e, dom) {
-    dom = g_app_state.screen;
-    let e2={prototype: e}
-    let keys=Object.getOwnPropertyNames(e).concat(Object.getOwnPropertySymbols(e));
-    for (let k in e) {
-        keys.push(k);
-    }
-    for (let k of keys) {
-        try {
-          e2[k] = e[k];
-        }
-        catch (error) {
-            console.log("failed to set property", k);
-            continue;
-        }
-        if (typeof e2[k]=="function") {
-            e2[k] = e2[k].bind(e);
-        }
-    }
-    e2.original = e;
-    return e2;
-  }
-  patchMouseEvent = _es6_module.add_export('patchMouseEvent', patchMouseEvent);
-  var pushModalLight=es6_import_item(_es6_module, '../path.ux/scripts/util/simple_events.js', 'pushModalLight');
-  var popModalLight=es6_import_item(_es6_module, '../path.ux/scripts/util/simple_events.js', 'popModalLight');
-  var UndoFlags={IGNORE_UNDO: 2, 
-   IS_ROOT_OPERATOR: 4, 
-   UNDO_BARRIER: 8, 
-   HAS_UNDO_DATA: 16}
-  UndoFlags = _es6_module.add_export('UndoFlags', UndoFlags);
-  var ToolFlags={HIDE_TITLE_IN_LAST_BUTTONS: 1, 
-   USE_PARTIAL_UNDO: 2, 
-   USE_DEFAULT_INPUT: 4, 
-   USE_REPEAT_FUNCTION: 8, 
-   USE_TOOL_CONTEXT: 16}
-  ToolFlags = _es6_module.add_export('ToolFlags', ToolFlags);
-  var ModalStates={TRANSFORMING: 1, 
-   PLAYING: 2}
-  ModalStates = _es6_module.add_export('ModalStates', ModalStates);
-  var _tool_op_idgen=1;
-  class InheritFlag  {
-     constructor(val) {
-      this.val = val;
-    }
-  }
-  _ESClass.register(InheritFlag);
-  _es6_module.add_class(InheritFlag);
-  
-  class ToolOpAbstract  {
-    static  inherit(inputs_or_outputs) {
-      return new InheritFlag(inputs_or_outputs);
-    }
-    static  invokeMultiple(ctx, args) {
-
-    }
-    static  _get_slots() {
-      var ret=[{}, {}];
-      var parent=this.__parent__;
-      if (this.tooldef!==undefined&&(parent===undefined||this.tooldef!==parent.tooldef)) {
-          var tooldef=this.tooldef();
-          for (var k in tooldef) {
-              if (k!=="inputs"&&k!=="outputs") {
-                  continue;
-              }
-              var v=tooldef[k];
-              if (__instance_of(v, InheritFlag)) {
-                  v = v.val===undefined ? {} : v.val;
-                  var slots=parent._get_slots();
-                  slots = k==="inputs" ? slots[0] : slots[1];
-                  v = this._inherit_slots(slots, v);
-              }
-              ret[k==="inputs" ? 0 : 1] = v;
-          }
-      }
-      else 
-        if (this.inputs!==undefined||this.outputs!==undefined) {
-          console.trace("Deprecation warning: (second) old form\
-                     of toolprop definition detected for", this);
-          if (this.inputs!==undefined) {
-              ret[0] = this.inputs;
-          }
-          if (this.outputs!==undefined) {
-              ret[1] = this.outputs;
-          }
-      }
-      else {
-        console.warn("Deprecation warning: oldest (and evilest) form\
-                     of toolprop detected for", this);
-      }
-      return ret;
-    }
-     constructor(apiname, uiname, description=undefined, icon=-1) {
-      var parent=this.constructor.__parent__;
-      var slots=this.constructor._get_slots();
-      for (var i=0; i<2; i++) {
-          var slots2={};
-          if (i==0)
-            this.inputs = slots2;
-          else 
-            this.outputs = slots2;
-          for (var k in slots[i]) {
-              slots2[k] = slots[i][k].copy();
-              slots2[k].apiname = k;
-          }
-      }
-      if (this.constructor.tooldef!==undefined&&(parent===undefined||this.constructor.tooldef!==parent.tooldef)) {
-          var tooldef=this.constructor.tooldef();
-          for (var k in tooldef) {
-              if (k==="inputs"||k==="outputs")
-                continue;
-              this[k] = tooldef[k];
-          }
-      }
-      else {
-        if (this.name===undefined)
-          this.name = apiname;
-        if (this.uiname===undefined)
-          this.uiname = uiname;
-        if (this.description===undefined)
-          this.description = description===undefined ? "" : description;
-        if (this.icon===undefined)
-          this.icon = icon;
-      }
-      this.apistruct = undefined;
-      this.op_id = _tool_op_idgen++;
-      this.stack_index = -1;
-    }
-    static  _inherit_slots(old, newslots) {
-      if (old===undefined) {
-          console.trace("Warning: old was undefined in _inherit_slots()!");
-          return newslots;
-      }
-      for (var k in old) {
-          if (!(k in newslots))
-            newslots[k] = old[k];
-      }
-      return newslots;
-    }
-    static  inherit_inputs(cls, newslots) {
-      if (cls.inputs===undefined)
-        return newslots;
-      return ToolOpAbstract._inherit_slots(cls.inputs, newslots);
-    }
-    static  invoke(ctx, args) {
-      let ret=new this();
-      for (let k in args) {
-          if (k in ret.inputs) {
-              ret.inputs[k].setValue(args[k]);
-          }
-          else {
-            console.warn("Unknown tool argument "+k, ret);
-          }
-      }
-      return ret;
-    }
-    static  inherit_outputs(cls, newslots) {
-      if (cls.outputs===undefined)
-        return newslots;
-      return ToolOpAbstract._inherit_slots(cls.outputs, newslots);
-    }
-     get_saved_context() {
-      if (this.saved_context===undefined) {
-          console.log("warning : invalid saved_context in "+this.constructor.name+".get_saved_context()");
-          this.saved_context = new SavedContext(new Context());
-      }
-      return this.saved_context;
-    }
-     [Symbol.keystr]() {
-      return "TO"+this.op_id;
-    }
-     exec(tctx) {
-
-    }
-     default_inputs(ctx, get_default) {
-
-    }
-  }
-  _ESClass.register(ToolOpAbstract);
-  _es6_module.add_class(ToolOpAbstract);
-  ToolOpAbstract = _es6_module.add_export('ToolOpAbstract', ToolOpAbstract);
-  ToolOpAbstract.STRUCT = `
-  ToolOpAbstract {
-      flag    : int;
-      saved_context  : SavedContext | obj.get_saved_context();
-      inputs  : iterkeys(k, PropPair) | new PropPair(k, obj.inputs[k]);
-      outputs : iterkeys(k, PropPair) | new PropPair(k, obj.outputs[k]);
-  }
-`;
-  class PropPair  {
-     constructor(key, value) {
-      this.key = key;
-      this.value = value;
-    }
-    static  fromSTRUCT(reader) {
-      var obj={};
-      reader(obj);
-      return obj;
-    }
-  }
-  _ESClass.register(PropPair);
-  _es6_module.add_class(PropPair);
-  PropPair = _es6_module.add_export('PropPair', PropPair);
-  window.PropPair = PropPair;
-  PropPair.STRUCT = `
-  PropPair {
-    key   : string;
-    value : abstract(ToolProperty);
-  }
-`;
-  let _toolop_tools=undefined;
-  class ToolOp extends ToolOpAbstract {
-    
-    
-    
-    
-    
-     constructor(apiname="(undefined)", uiname="(undefined)", description=undefined, icon=-1) {
-      super(apiname, uiname, description, icon);
-      EventHandler.prototype.EventHandler_init.call(this);
-      this.drawlines = new GArray();
-      if (this.is_modal===undefined)
-        this.is_modal = false;
-      this.undoflag = 0;
-      this.on_modal_end = undefined;
-      this.modal_ctx = null;
-      this.flag = 0;
-      this.keyhandler = undefined;
-      this.parent = undefined;
-      this.widgets = [];
-      this.modal_running = false;
-      this._widget_on_tick = undefined;
-    }
-     modalEnd() {
-      return this.end_modal(...arguments);
-    }
-     new_drawline(v1, v2, color, line_width) {
-      var dl=this.modal_ctx.view2d.make_drawline(v1, v2, undefined, color, line_width);
-      this.drawlines.push(dl);
-      return dl;
-    }
-     reset_drawlines(ctx=this.modal_ctx) {
-      var view2d=ctx.view2d;
-      for (var dl of this.drawlines) {
-          view2d.kill_drawline(dl);
-      }
-      this.drawlines.reset();
-    }
-    static  create_widgets(manager, ctx) {
-
-    }
-    static  reset_widgets(op, ctx) {
-
-    }
-     undo_ignore() {
-      this.undoflag|=UndoFlags.IGNORE_UNDO;
-    }
-     on_mousemove() {
-      redraw_viewport();
-    }
-     exec_pre(tctx) {
-      for (var k in this.inputs) {
-          if (this.inputs[k].type===PropTypes.COLLECTION) {
-              this.inputs[k].ctx = tctx;
-          }
-      }
-      for (var k in this.outputs) {
-          if (this.outputs[k].type===PropTypes.COLLECTION) {
-              this.outputs[k].ctx = tctx;
-          }
-      }
-    }
-     cancel_modal(ctx, execUndo) {
-      console.log("cancel");
-      ctx.toolstack.toolop_cancel(this, execUndo);
-      if (this._modal_state) {
-          this._end_modal();
-      }
-      window.redraw_viewport();
-    }
-     touchCancelable(callback) {
-      this._touch_cancelable = true;
-      this._touch_cancel_callback = callback;
-    }
-     modalStart(ctx) {
-
-    }
-     start_modal() {
-      this.modalStart(ctx);
-    }
-     _start_modal(ctx) {
-      this.modal_running = true;
-      let active_area=ctx.active_area;
-      let patch=(e) =>        {
-        return patchMouseEvent(e);
-      };
-      let doMouse=(e, key) =>        {
-        if (this._touch_cancelable&&e.touches&&e.touches.length>1) {
-            this.cancel_modal(this.modal_ctx, true);
-            if (this._touch_cancel_callback) {
-                this._touch_cancel_callback(e);
-            }
-            return ;
-        }
-        e = patchMouseEvent(e);
-        return this[key](e);
-      };
-      let handlers={on_mousedown: (e) =>          {
-          return doMouse(e, "on_mousedown");
-        }, 
-     on_mousemove: (e) =>          {
-          return doMouse(e, "on_mousemove");
-        }, 
-     on_mouseup: (e) =>          {
-          return doMouse(e, "on_mouseup");
-        }, 
-     on_keydown: this.on_keydown.bind(this), 
-     on_keyup: this.on_keyup.bind(this), 
-     on_mousewheel: (e) =>          {
-          return this.on_mousewheel(patchMouseEvent(e));
-        }};
-      this._modal_state = pushModalLight(handlers);
-      this.modal_ctx = ctx;
-    }
-     on_mousewheel(e) {
-
-    }
-     _end_modal() {
-      var ctx=this.modal_ctx;
-      this.modal_running = false;
-      this.saved_context = new SavedContext(this.modal_ctx);
-      if (this._modal_state!==undefined) {
-          popModalLight(this._modal_state);
-          this._modal_state = undefined;
-      }
-      if (this.on_modal_end!==undefined)
-        this.on_modal_end(this);
-      this.reset_drawlines(ctx);
-    }
-     end_modal() {
-      this._end_modal();
-    }
-     can_call(ctx) {
-      return true;
-    }
-     exec(ctx) {
-
-    }
-     start_modal(ctx) {
-
-    }
-     redo_post(ctx) {
-      window.redraw_viewport();
-    }
-     undo_pre(ctx) {
-      this._undocpy = g_app_state.create_undo_file();
-      window.redraw_viewport();
-    }
-     undo(ctx) {
-      g_app_state.load_undo_file(this._undocpy);
-    }
-    static  fromSTRUCT(reader) {
-      var op=new ToolOp();
-      reader(op);
-      var ins={};
-      for (var i=0; i<op.inputs.length; i++) {
-          ins[op.inputs[i].key] = op.inputs[i].value;
-      }
-      var outs={};
-      for (var i=0; i<op.outputs.length; i++) {
-          outs[op.outputs[i].key] = op.outputs[i].value;
-      }
-      op.inputs = ins;
-      op.outputs = outs;
-      return op;
-    }
-    static  get_constructor(name) {
-      if (_toolop_tools===undefined) {
-          _toolop_tools = {};
-          for (let c of defined_classes) {
-              if (__instance_of(c, ToolOp))
-                _toolop_tools[c.name] = c;
-          }
-      }
-      return _toolop_tools[c];
-    }
-  }
-  _ESClass.register(ToolOp);
-  _es6_module.add_class(ToolOp);
-  ToolOp = _es6_module.add_export('ToolOp', ToolOp);
-  ToolOp.STRUCT = `
-  ToolOp {
-      flag    : int;
-      saved_context  : SavedContext | obj.get_saved_context();
-      inputs  : iterkeys(k, PropPair) | new PropPair(k, obj.inputs[k]);
-      outputs : iterkeys(k, PropPair) | new PropPair(k, obj.outputs[k]);
-  }
-`;
-  class ToolMacro extends ToolOp {
-    
-    
-    
-     constructor(name, uiname, tools) {
-      super(name, uiname);
-      this.cur_modal = 0;
-      this._chained_on_modal_end = false;
-      if (tools===undefined)
-        this.tools = new GArray();
-      else 
-        this.tools = new GArray(tools);
-    }
-     add_tool(tool) {
-      tool.parent = this;
-      this.tools.push(tool);
-      if (tool.is_modal)
-        this.is_modal = true;
-    }
-     connect_tools(output, input) {
-      var old_set=input.userSetData;
-      input.userSetData = function () {
-        this.data = output.data;
-        old_set.call(this, this.data);
-      };
-    }
-     undo_pre(ctx) {
-
-    }
-     undo(ctx) {
-      for (var i=this.tools.length-1; i>=0; i--) {
-          if (this.tools[i].undoflag&UndoFlags.HAS_UNDO_DATA) {
-              this.tools[i].undo(ctx);
-          }
-      }
-    }
-     exec(ctx) {
-      for (var i=0; i<this.tools.length; i++) {
-          if (!(this.tools[i].flag&ToolFlags.USE_TOOL_CONTEXT)) {
-              this.tools[i].saved_context = this.saved_context;
-          }
-      }
-      for (let op of this.tools) {
-          if (op.is_modal)
-            op.is_modal = this.is_modal;
-          let tctx=(op.flag&ToolFlags.USE_TOOL_CONTEXT) ? op.ctx : ctx;
-          for (var k in op.inputs) {
-              var p=op.inputs[k];
-              if (p.userSetData!=undefined)
-                p.userSetData.call(p, p.data);
-          }
-          
-          if (!(op.flag&ToolFlags.USE_TOOL_CONTEXT)) {
-              op.saved_context = this.saved_context;
-          }
-          op.undo_pre(tctx);
-          op.undoflag|=UndoFlags.HAS_UNDO_DATA;
-          op.exec_pre(tctx);
-          op.exec(tctx);
-      }
-    }
-     can_call(ctx) {
-      return this.tools[0].can_call(ctx);
-    }
-     _start_modal(ctx) {
-
-    }
-     start_modal(ctx) {
-      if (!this._chained_on_modal_end) {
-          let last_modal=undefined;
-          for (let op of this.tools) {
-              if (op.is_modal)
-                last_modal = op;
-          }
-          console.log("last_modal", last_modal);
-          if (last_modal!==undefined) {
-              let on_modal_end=last_modal.on_modal_end;
-              let this2=this;
-              last_modal.on_modal_end = function (toolop) {
-                if (on_modal_end!==undefined)
-                  on_modal_end(toolop);
-                if (this2.on_modal_end)
-                  this2.on_modal_end(this2);
-              };
-              this._chained_on_modal_end = true;
-          }
-      }
-      for (let i=0; i<this.tools.length; i++) {
-          this.tools[i].saved_context = this.saved_context;
-      }
-      for (let i=0; i<this.tools.length; i++) {
-          let op=this.tools[i];
-          if (op.is_modal) {
-              this.cur_modal = i;
-              for (let k in op.inputs) {
-                  let p=op.inputs[k];
-                  if (p.userSetData!==undefined)
-                    p.userSetData.call(p, p.data);
-              }
-              op.__end_modal = op._end_modal;
-              op._end_modal = (ctx) =>                {
-                op.__end_modal(ctx);
-                this.next_modal(ctx ? ctx : this.modal_ctx);
-              };
-              op.modal_ctx = this.modal_ctx;
-              op.modal_tctx = this.modal_tctx;
-              op.saved_context = this.saved_context;
-              op.undo_pre(ctx);
-              op.undoflag|=UndoFlags.HAS_UNDO_DATA;
-              op.modal_running = true;
-              op._start_modal(ctx);
-              return op.start_modal(ctx);
-          }
-          else {
-            for (let k in op.inputs) {
-                let p=op.inputs[k];
-                if (p.userSetData!==undefined)
-                  p.userSetData(p, p.data);
-            }
-            op.saved_context = this.saved_context;
-            op.exec_pre(ctx);
-            op.undo_pre(ctx);
-            op.undoflag|=UndoFlags.HAS_UNDO_DATA;
-            op.exec(ctx);
-          }
-      }
-    }
-     _end_modal() {
-      this.next_modal(this.modal_ctx);
-    }
-     next_modal(ctx) {
-      console.log("next_modal called");
-      this.cur_modal++;
-      while (this.cur_modal<this.tools.length&&!this.tools[this.cur_modal].is_modal) {
-        this.cur_modal++;
-      }
-      if (this.cur_modal>=this.tools.length) {
-          super._end_modal();
-      }
-      else {
-        console.log("next_modal op", this.tools[this.cur_modal]);
-        this.tools[this.cur_modal].undo_pre(ctx);
-        this.tools[this.cur_modal].undoflag|=UndoFlags.HAS_UNDO_DATA;
-        this.tools[this.cur_modal]._start_modal(ctx);
-        this.tools[this.cur_modal].start_modal(ctx);
-      }
-    }
-     on_mousemove(event) {
-      this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
-      this.tools[this.cur_modal].on_mousemove(event);
-    }
-     on_mousewheel(event) {
-      this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
-      this.tools[this.cur_modal].on_mousewheel(event);
-    }
-     on_mousedown(event) {
-      this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
-      this.tools[this.cur_modal].on_mousedown(event);
-    }
-     on_mouseup(event) {
-      this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
-      this.tools[this.cur_modal].on_mouseup(event);
-    }
-     on_keydown(event) {
-      this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
-      this.tools[this.cur_modal].on_keydown(event);
-    }
-     on_keyup(event) {
-      this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
-      this.tools[this.cur_modal].on_keyup(event);
-    }
-     on_draw(event) {
-      this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
-      this.tools[this.cur_modal].on_draw(event);
-    }
-    static  fromSTRUCT(reader) {
-      var ret=STRUCT.chain_fromSTRUCT(ToolMacro, reader);
-      ret.tools = new GArray(ret.tools);
-      for (var t of ret.tools) {
-          t.parent = this;
-      }
-      return ret;
-    }
-  }
-  _ESClass.register(ToolMacro);
-  _es6_module.add_class(ToolMacro);
-  ToolMacro = _es6_module.add_export('ToolMacro', ToolMacro);
-  ToolMacro.STRUCT = STRUCT.inherit(ToolMacro, ToolOp)+`
-  tools   : array(abstract(ToolOp));
-  apiname : string;
-  uiname  : string;
-}
-`;
-  var StringProperty=es6_import_item(_es6_module, './toolprops.js', 'StringProperty');
-  var Vec3Property=es6_import_item(_es6_module, './toolprops.js', 'Vec3Property');
-  var Vec4Property=es6_import_item(_es6_module, './toolprops.js', 'Vec4Property');
-  var IntProperty=es6_import_item(_es6_module, './toolprops.js', 'IntProperty');
-  var FloatProperty=es6_import_item(_es6_module, './toolprops.js', 'FloatProperty');
-  var BoolProperty=es6_import_item(_es6_module, './toolprops.js', 'BoolProperty');
-  var pushModalLight=es6_import_item(_es6_module, '../path.ux/scripts/util/simple_events.js', 'pushModalLight');
-  var popModalLight=es6_import_item(_es6_module, '../path.ux/scripts/util/simple_events.js', 'popModalLight');
-  class DataPathOp extends ToolOp {
-    
-    
-    
-     constructor(path="", use_simple_undo=false) {
-      super("DataPathOp", "DataPath", "DataPath Value Set");
-      this.use_simple_undo = use_simple_undo;
-      this.is_modal = false;
-      this.path = path;
-      this.inputs = {path: new StringProperty(path, "path", "path", "path"), 
-     vec3: new Vec3Property(undefined, "vec3", "vec3", "vec3"), 
-     vec4: new Vec4Property(undefined, "vec4", "vec4", "vec4"), 
-     pint: new IntProperty(0, "pint", "pint", "pint"), 
-     pfloat: new FloatProperty(0, "pfloat", "pfloat", "pfloat"), 
-     str: new StringProperty("", "str", "str", "str"), 
-     bool: new BoolProperty(false, "bool", "bool", "bool"), 
-     val_input: new StringProperty("", "val_input", "val_input", "val_input")};
-      this.outputs = {};
-      for (var k in this.inputs) {
-          this.inputs[k].flag|=TPropFlags.PRIVATE;
-      }
-    }
-     undo_pre(ctx) {
-      this._undocpy = g_app_state.create_undo_file();
-    }
-     undo(ctx) {
-      g_app_state.load_undo_file(this._undocpy);
-    }
-     get_prop_input(path, prop) {
-      if (prop==undefined) {
-          console.trace("Warning: DataPathOp failed!", path, prop);
-          return ;
-      }
-      var input;
-      if (prop.type==PropTypes.INT) {
-          input = this.inputs.pint;
-      }
-      else 
-        if (prop.type==PropTypes.FLOAT) {
-          input = this.inputs.pfloat;
-      }
-      else 
-        if (prop.type==PropTypes.VEC3) {
-          input = path.endsWith("]") ? this.inputs.pfloat : this.inputs.vec3;
-      }
-      else 
-        if (prop.type==PropTypes.VEC4) {
-          input = path.endsWith("]") ? this.inputs.pfloat : this.inputs.vec4;
-      }
-      else 
-        if (prop.type==PropTypes.BOOL) {
-          input = this.inputs.bool;
-      }
-      else 
-        if (prop.type==PropTypes.STR) {
-          input = this.inputs.str;
-      }
-      else 
-        if (prop.type==PropTypes.FLAG) {
-          input = this.inputs.str;
-      }
-      else 
-        if (prop.type==PropTypes.ENUM) {
-          input = this.inputs.pint;
-      }
-      else {
-        console.trace("ERROR: unimplemented prop type "+prop.type+"in DataPathOp", prop, this);
-        return undefined;
-      }
-      return input;
-    }
-     exec(ctx) {
-      var api=g_app_state.api;
-      var path=this.inputs.path.data.trim();
-      var prop=api.get_prop_meta(ctx, path);
-      if (prop==undefined) {
-          console.trace("Warning: DataPathOp failed!");
-          return ;
-      }
-      var input=this.get_prop_input(path, prop);
-      api.set_prop(ctx, path, input.data);
-    }
-  }
-  _ESClass.register(DataPathOp);
-  _es6_module.add_class(DataPathOp);
-  mixin(ToolOp, EventHandler);
-  class MassSetPathOp extends ToolOp {
-    
-    
-    
-     constructor(path="", subpath="", filterstr="", use_simple_undo=false) {
-      super("DataPathOp", "DataPath", "DataPath Value Set");
-      this.use_simple_undo = use_simple_undo;
-      this.is_modal = false;
-      this.path = path;
-      this.subpath = subpath;
-      this.filterstr = filterstr;
-      this.inputs = {path: new StringProperty(path, "path", "path", "path"), 
-     vec3: new Vec3Property(undefined, "vec3", "vec3", "vec3"), 
-     vec4: new Vec4Property(undefined, "vec4", "vec4", "vec4"), 
-     pint: new IntProperty(0, "pint", "pint", "pint"), 
-     pfloat: new FloatProperty(0, "pfloat", "pfloat", "pfloat"), 
-     str: new StringProperty("", "str", "str", "str"), 
-     bool: new BoolProperty(false, "bool", "bool", "bool"), 
-     val_input: new StringProperty("", "val_input", "val_input", "val_input")};
-      this.outputs = {};
-      for (var k in this.inputs) {
-          this.inputs[k].flag|=TPropFlags.PRIVATE;
-      }
-    }
-     _get_value(ctx) {
-      var path=this.path.trim();
-      var prop=api.get_prop_meta(ctx, path);
-      if (prop==undefined) {
-          console.trace("Warning: DataPathOp failed!");
-          return ;
-      }
-      return this.get_prop_input(path, prop);
-    }
-     undo_pre(ctx) {
-      var value=this._get_value(ctx);
-      var paths=ctx.api.buildMassSetPaths(ctx, this.path, this.subpath, value, this.filterstr);
-      var ud=this._undo = {};
-      for (var i=0; i<paths.length; i++) {
-          var value2=ctx.api.get_prop(paths[i]);
-          ud[paths[i]] = JSON.stringify(value2);
-      }
-    }
-     undo(ctx) {
-      var value=this._get_value(ctx);
-      var paths=ctx.api.buildMassSetPaths(ctx, this.path, this.subpath, value, this.filterstr);
-      var ud=this._undo;
-      for (var k in ud) {
-          var data=JSON.parse(ud[k]);
-          if (data=="undefined")
-            data = undefined;
-          ctx.api.set_prop(ctx, k, data);
-      }
-    }
-     get_prop_input(path, prop) {
-      if (prop==undefined) {
-          console.trace("Warning: DataPathOp failed!", path, prop);
-          return ;
-      }
-      var input;
-      if (prop.type==PropTypes.INT) {
-          input = this.inputs.pint;
-      }
-      else 
-        if (prop.type==PropTypes.FLOAT) {
-          input = this.inputs.pfloat;
-      }
-      else 
-        if (prop.type==PropTypes.VEC3) {
-          input = path.endsWith("]") ? this.inputs.pfloat : this.inputs.vec3;
-      }
-      else 
-        if (prop.type==PropTypes.VEC4) {
-          input = path.endsWith("]") ? this.inputs.pfloat : this.inputs.vec4;
-      }
-      else 
-        if (prop.type==PropTypes.BOOL) {
-          input = this.inputs.bool;
-      }
-      else 
-        if (prop.type==PropTypes.STR) {
-          input = this.inputs.str;
-      }
-      else 
-        if (prop.type==PropTypes.FLAG) {
-          input = this.inputs.str;
-      }
-      else 
-        if (prop.type==PropTypes.ENUM) {
-          input = this.inputs.pint;
-      }
-      else {
-        console.trace("ERROR: unimplemented prop type "+prop.type+"in DataPathOp", prop, this);
-        return undefined;
-      }
-      return input;
-    }
-     exec(ctx) {
-      var api=g_app_state.api;
-      var path=this.inputs.path.data.trim();
-      var prop=api.get_prop_meta(ctx, path);
-      if (prop==undefined) {
-          console.trace("Warning: DataPathOp failed!");
-          return ;
-      }
-      var input=this.get_prop_input(path, prop);
-      api.mass_set_prop(ctx, path, this.subpath, input.data, this.filterstr);
-    }
-  }
-  _ESClass.register(MassSetPathOp);
-  _es6_module.add_class(MassSetPathOp);
-  window.init_toolop_structs = function () {
-    
-    function gen_fromSTRUCT(cls1) {
-      function fromSTRUCT(reader) {
-        var op=new cls1();
-        var inputs=op.inputs, outputs=op.outputs;
-        reader(op);
-        var ins=Object.create(inputs), outs=Object.create(outputs);
-        for (var i=0; i<op.inputs.length; i++) {
-            var k=op.inputs[i].key;
-            ins[k] = op.inputs[i].value;
-            if (k in inputs) {
-                ins[k].load_ui_data(inputs[k]);
-            }
-            else {
-              ins[k].uiname = ins[k].apiname = k;
-            }
-        }
-        for (var i=0; i<op.outputs.length; i++) {
-            var k=op.outputs[i].key;
-            outs[k] = op.outputs[i].value;
-            if (k in outputs) {
-                outs[k].load_ui_data(outputs[k]);
-            }
-            else {
-              outs[k].uiname = outs[k].apiname = k;
-            }
-        }
-        op.inputs = ins;
-        op.outputs = outs;
-        return op;
-      }
-      return fromSTRUCT;
-    }
-    for (var i=0; i<defined_classes.length; i++) {
-        var cls=defined_classes[i];
-        var ok=false;
-        var is_toolop=false;
-        var parent=cls.prototype.__proto__.constructor;
-        while (parent) {
-          if (parent===ToolOpAbstract) {
-              ok = true;
-          }
-          else 
-            if (parent===ToolOp) {
-              ok = true;
-              is_toolop = true;
-              break;
-          }
-          parent = parent.prototype.__proto__;
-          if (!parent)
-            break;
-          parent = parent.constructor;
-          if (!parent||parent===Object)
-            break;
-        }
-        if (!ok)
-          continue;
-        if (!Object.hasOwnProperty(cls, "STRUCT")) {
-            cls.STRUCT = cls.name+" {"+`
-        flag    : int;
-        inputs  : iterkeys(k, PropPair) | new PropPair(k, obj.inputs[k]);
-        outputs : iterkeys(k, PropPair) | new PropPair(k, obj.outputs[k]);
-      `;
-            if (is_toolop)
-              cls.STRUCT+="    saved_context  : SavedContext | obj.get_saved_context();\n";
-            cls.STRUCT+="  }";
-        }
-        if (!cls.fromSTRUCT) {
-            cls.fromSTRUCT = gen_fromSTRUCT(cls);
-        }
-    }
-  }
-  class WidgetToolOp extends ToolOp {
-    static  create_widgets(manager, ctx) {
-      var $zaxis_2FE6;
-      var widget=manager.create();
-      var enabled_axes=this.widget_axes;
-      var do_widget_center=this.widget_center;
-      var gen_toolop=this.gen_toolop;
-      var do_x=enabled_axes[0], do_y=enabled_axes[1], do_z=enabled_axes[2];
-      if (do_x)
-        widget.arrow([1, 0, 0], 0, [1, 0, 0, 1]);
-      if (do_y)
-        widget.arrow([0, 1, 0], 1, [0, 1, 0, 1]);
-      if (do_z)
-        widget.arrow([0, 0, 1], 2, [0, 0, 1, 1]);
-      var this2=this;
-      function widget_on_tick(widget) {
-        var mat=widget.matrix;
-        var mesh=ctx.mesh;
-        var cent=new Vector3();
-        var len=0;
-        var v1=new Vector3();
-        for (var v of mesh.verts.selected) {
-            cent.add(v.co);
-            v1.load(v.edges[0].v1.co).sub(v.edges[0].v2.co);
-            v1.normalize();
-            len++;
-        }
-        if (len>0)
-          cent.mulScalar(1.0/len);
-        mat.makeIdentity();
-        mat.translate(cent[0], cent[1], cent[2]);
-        if (this2.widget_align_normal) {
-            var n=new Vector3();
-            var tan=new Vector3();
-            len = 0;
-            var v1=new Vector3();
-            for (var f of mesh.faces.selected) {
-                var e=f.looplists[0].loop.e;
-                len++;
-                n.add(f.no);
-            }
-            n.mulScalar(1.0/len);
-            n.normalize();
-            if (tan.dot(tan)==0.0) {
-                tan.loadXYZ(0, 0, 1);
-            }
-            else {
-              tan.mulScalar(1.0/len);
-              tan.normalize();
-            }
-            var angle=Math.PI-Math.acos($zaxis_2FE6.dot(n));
-            if (n.dot($zaxis_2FE6)>0.9) {
-            }
-            if (1) {
-                if (Math.abs(angle)<0.001||Math.abs(angle)>Math.PI-0.001) {
-                    n.loadXYZ(1, 0, 0);
-                }
-                else {
-                  n.cross($zaxis_2FE6);
-                  n.normalize();
-                }
-                var q=new Quat();
-                q.axisAngleToQuat(n, angle);
-                var rmat=q.toMatrix();
-                mat.multiply(rmat);
-            }
-        }
-        mat.multiply(ctx.object.matrix);
-      }
-      widget.on_tick = widget_on_tick;
-      widget.on_click = function (widget, id) {
-        console.log("widget click: ", id);
-        ctx.view2d._mstart = null;
-        var toolop=undefined;
-        if (gen_toolop!=undefined) {
-            var toolop=gen_toolop(id, widget, ctx);
-        }
-        else {
-          console.trace("IMPLEMENT ME! missing widget gen_toolop callback!");
-          return ;
-        }
-        if (toolop==undefined) {
-            console.log("Evil! Undefined toolop in WidgetToolOp.create_widgets()!");
-            return ;
-        }
-        widget.user_data = toolop;
-        toolop._widget_on_tick = widget_on_tick;
-        toolop.widgets.push(widget);
-        toolop.on_modal_end = function (toolop) {
-          for (var w of toolop.widgets) {
-              for (var k in toolop.inputs) {
-                  var p=toolop.inputs[k];
-                  p.remove_listener(w, true);
-              }
-              for (var k in toolop.outputs) {
-                  var p=toolop.outputs[k];
-                  p.remove_listener(w, true);
-              }
-          }
-          console.log("widget modal end");
-          toolop.widgets = new GArray();
-          widget.on_tick = widget_on_tick;
-        }
-        if (toolop.widget_on_tick)
-          widget.widget_on_tick = toolop.widget_on_tick;
-        widget.on_tick = function (widget) {
-          toolop.widget_on_tick.call(toolop, widget);
-        }
-        g_app_state.toolstack.exec_tool(toolop);
-      };
-      var $zaxis_2FE6=new Vector3([0, 0, -1]);
-    }
-     widget_on_tick(widget) {
-      if (this._widget_on_tick!=undefined)
-        this._widget_on_tick(widget);
-    }
-  }
-  _ESClass.register(WidgetToolOp);
-  _es6_module.add_class(WidgetToolOp);
-}, '/dev/fairmotion/src/core/toolops_api.js');

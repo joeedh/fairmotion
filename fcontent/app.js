@@ -92,6 +92,7 @@ function ES6Module(name, path) {
   this.path = path;
   this.links = [];
   this.depends = [];
+  this.imports = {}
   this.flag = 0;
   this.loaded = false;
   this.callback = undefined;
@@ -318,6 +319,8 @@ function _load_module_cyclic(mod, visitmap, modstack) {
         msg+="\n  wanted by: '"+_es6_module.path+"'";
         throw new ModuleLoadError(msg);
     }
+    _es6_module.imports[name] = {module: mod, 
+    value: mod.exports[name]}
     return mod.exports[name];
   }
   if (!visitmap.has(mod)) {
@@ -1020,7 +1023,7 @@ function __bind_super_prop(obj, cls, parent, prop) {
   }
 }
 
-es6_module_define('config', ["./config_local", "./config_local.js"], function _config_module(_es6_module) {
+es6_module_define('config', ["./config_local.js", "./config_local"], function _config_module(_es6_module) {
   "use strict";
   let PathUXConstants={colorSchemeType: "dark", 
    autoSizeUpdate: true, 
@@ -1081,7 +1084,8 @@ es6_module_define('config', ["./config_local", "./config_local.js"], function _c
   for (let k in ___config_local) {
       _es6_module.add_export(k, ___config_local[k], true);
   }
-  window._DEBUG = {dag: false, 
+  window._DEBUG = {timeChange: false, 
+   dag: false, 
    theme: false, 
    no_native: false, 
    solve_order: false, 

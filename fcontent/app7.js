@@ -1,3 +1,1011 @@
+es6_module_define('toolops_api', ["./toolprops.js", "../path.ux/scripts/util/simple_events.js", "./struct.js", "../editors/events.js"], function _toolops_api_module(_es6_module) {
+  "use strict";
+  var PropTypes=es6_import_item(_es6_module, './toolprops.js', 'PropTypes');
+  var TPropFlags=es6_import_item(_es6_module, './toolprops.js', 'TPropFlags');
+  var STRUCT=es6_import_item(_es6_module, './struct.js', 'STRUCT');
+  var EventHandler=es6_import_item(_es6_module, '../editors/events.js', 'EventHandler');
+  var charmap=es6_import_item(_es6_module, '../editors/events.js', 'charmap');
+  class ToolDef  {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+  }
+  _ESClass.register(ToolDef);
+  _es6_module.add_class(ToolDef);
+  ToolDef = _es6_module.add_export('ToolDef', ToolDef);
+  function patchMouseEvent(e, dom) {
+    dom = g_app_state.screen;
+    let e2={prototype: e}
+    let keys=Object.getOwnPropertyNames(e).concat(Object.getOwnPropertySymbols(e));
+    for (let k in e) {
+        keys.push(k);
+    }
+    for (let k of keys) {
+        try {
+          e2[k] = e[k];
+        }
+        catch (error) {
+            console.log("failed to set property", k);
+            continue;
+        }
+        if (typeof e2[k]=="function") {
+            e2[k] = e2[k].bind(e);
+        }
+    }
+    e2.original = e;
+    return e2;
+  }
+  patchMouseEvent = _es6_module.add_export('patchMouseEvent', patchMouseEvent);
+  var pushModalLight=es6_import_item(_es6_module, '../path.ux/scripts/util/simple_events.js', 'pushModalLight');
+  var popModalLight=es6_import_item(_es6_module, '../path.ux/scripts/util/simple_events.js', 'popModalLight');
+  var UndoFlags={IGNORE_UNDO: 2, 
+   IS_ROOT_OPERATOR: 4, 
+   UNDO_BARRIER: 8, 
+   HAS_UNDO_DATA: 16}
+  UndoFlags = _es6_module.add_export('UndoFlags', UndoFlags);
+  var ToolFlags={HIDE_TITLE_IN_LAST_BUTTONS: 1, 
+   USE_PARTIAL_UNDO: 2, 
+   USE_DEFAULT_INPUT: 4, 
+   USE_REPEAT_FUNCTION: 8, 
+   USE_TOOL_CONTEXT: 16}
+  ToolFlags = _es6_module.add_export('ToolFlags', ToolFlags);
+  var ModalStates={TRANSFORMING: 1, 
+   PLAYING: 2}
+  ModalStates = _es6_module.add_export('ModalStates', ModalStates);
+  var _tool_op_idgen=1;
+  class InheritFlag  {
+     constructor(val) {
+      this.val = val;
+    }
+  }
+  _ESClass.register(InheritFlag);
+  _es6_module.add_class(InheritFlag);
+  
+  class ToolOpAbstract  {
+    static  inherit(inputs_or_outputs) {
+      return new InheritFlag(inputs_or_outputs);
+    }
+    static  invokeMultiple(ctx, args) {
+
+    }
+    static  _get_slots() {
+      var ret=[{}, {}];
+      var parent=this.__parent__;
+      if (this.tooldef!==undefined&&(parent===undefined||this.tooldef!==parent.tooldef)) {
+          var tooldef=this.tooldef();
+          for (var k in tooldef) {
+              if (k!=="inputs"&&k!=="outputs") {
+                  continue;
+              }
+              var v=tooldef[k];
+              if (__instance_of(v, InheritFlag)) {
+                  v = v.val===undefined ? {} : v.val;
+                  var slots=parent._get_slots();
+                  slots = k==="inputs" ? slots[0] : slots[1];
+                  v = this._inherit_slots(slots, v);
+              }
+              ret[k==="inputs" ? 0 : 1] = v;
+          }
+      }
+      else 
+        if (this.inputs!==undefined||this.outputs!==undefined) {
+          console.trace("Deprecation warning: (second) old form\
+                     of toolprop definition detected for", this);
+          if (this.inputs!==undefined) {
+              ret[0] = this.inputs;
+          }
+          if (this.outputs!==undefined) {
+              ret[1] = this.outputs;
+          }
+      }
+      else {
+        console.warn("Deprecation warning: oldest (and evilest) form\
+                     of toolprop detected for", this);
+      }
+      return ret;
+    }
+     constructor(apiname, uiname, description=undefined, icon=-1) {
+      var parent=this.constructor.__parent__;
+      var slots=this.constructor._get_slots();
+      for (var i=0; i<2; i++) {
+          var slots2={};
+          if (i==0)
+            this.inputs = slots2;
+          else 
+            this.outputs = slots2;
+          for (var k in slots[i]) {
+              slots2[k] = slots[i][k].copy();
+              slots2[k].apiname = k;
+          }
+      }
+      if (this.constructor.tooldef!==undefined&&(parent===undefined||this.constructor.tooldef!==parent.tooldef)) {
+          var tooldef=this.constructor.tooldef();
+          for (var k in tooldef) {
+              if (k==="inputs"||k==="outputs")
+                continue;
+              this[k] = tooldef[k];
+          }
+      }
+      else {
+        if (this.name===undefined)
+          this.name = apiname;
+        if (this.uiname===undefined)
+          this.uiname = uiname;
+        if (this.description===undefined)
+          this.description = description===undefined ? "" : description;
+        if (this.icon===undefined)
+          this.icon = icon;
+      }
+      this.apistruct = undefined;
+      this.op_id = _tool_op_idgen++;
+      this.stack_index = -1;
+    }
+    static  _inherit_slots(old, newslots) {
+      if (old===undefined) {
+          console.trace("Warning: old was undefined in _inherit_slots()!");
+          return newslots;
+      }
+      for (var k in old) {
+          if (!(k in newslots))
+            newslots[k] = old[k];
+      }
+      return newslots;
+    }
+    static  inherit_inputs(cls, newslots) {
+      if (cls.inputs===undefined)
+        return newslots;
+      return ToolOpAbstract._inherit_slots(cls.inputs, newslots);
+    }
+    static  invoke(ctx, args) {
+      let ret=new this();
+      for (let k in args) {
+          if (k in ret.inputs) {
+              ret.inputs[k].setValue(args[k]);
+          }
+          else {
+            console.warn("Unknown tool argument "+k, ret);
+          }
+      }
+      return ret;
+    }
+    static  inherit_outputs(cls, newslots) {
+      if (cls.outputs===undefined)
+        return newslots;
+      return ToolOpAbstract._inherit_slots(cls.outputs, newslots);
+    }
+     get_saved_context() {
+      if (this.saved_context===undefined) {
+          console.log("warning : invalid saved_context in "+this.constructor.name+".get_saved_context()");
+          this.saved_context = new SavedContext(new Context());
+      }
+      return this.saved_context;
+    }
+     [Symbol.keystr]() {
+      return "TO"+this.op_id;
+    }
+     exec(tctx) {
+
+    }
+     default_inputs(ctx, get_default) {
+
+    }
+  }
+  _ESClass.register(ToolOpAbstract);
+  _es6_module.add_class(ToolOpAbstract);
+  ToolOpAbstract = _es6_module.add_export('ToolOpAbstract', ToolOpAbstract);
+  ToolOpAbstract.STRUCT = `
+  ToolOpAbstract {
+      flag    : int;
+      saved_context  : SavedContext | obj.get_saved_context();
+      inputs  : iterkeys(k, PropPair) | new PropPair(k, obj.inputs[k]);
+      outputs : iterkeys(k, PropPair) | new PropPair(k, obj.outputs[k]);
+  }
+`;
+  class PropPair  {
+     constructor(key, value) {
+      this.key = key;
+      this.value = value;
+    }
+    static  fromSTRUCT(reader) {
+      var obj={};
+      reader(obj);
+      return obj;
+    }
+  }
+  _ESClass.register(PropPair);
+  _es6_module.add_class(PropPair);
+  PropPair = _es6_module.add_export('PropPair', PropPair);
+  window.PropPair = PropPair;
+  PropPair.STRUCT = `
+  PropPair {
+    key   : string;
+    value : abstract(ToolProperty);
+  }
+`;
+  let _toolop_tools=undefined;
+  class ToolOp extends ToolOpAbstract {
+    
+    
+    
+    
+    
+     constructor(apiname="(undefined)", uiname="(undefined)", description=undefined, icon=-1) {
+      super(apiname, uiname, description, icon);
+      EventHandler.prototype.EventHandler_init.call(this);
+      this.drawlines = new GArray();
+      if (this.is_modal===undefined)
+        this.is_modal = false;
+      this.undoflag = 0;
+      this.on_modal_end = undefined;
+      this.modal_ctx = null;
+      this.flag = 0;
+      this.keyhandler = undefined;
+      this.parent = undefined;
+      this.widgets = [];
+      this.modal_running = false;
+      this._widget_on_tick = undefined;
+    }
+     modalEnd() {
+      return this.end_modal(...arguments);
+    }
+     new_drawline(v1, v2, color, line_width) {
+      var dl=this.modal_ctx.view2d.make_drawline(v1, v2, undefined, color, line_width);
+      this.drawlines.push(dl);
+      return dl;
+    }
+     reset_drawlines(ctx=this.modal_ctx) {
+      var view2d=ctx.view2d;
+      for (var dl of this.drawlines) {
+          view2d.kill_drawline(dl);
+      }
+      this.drawlines.reset();
+    }
+    static  create_widgets(manager, ctx) {
+
+    }
+    static  reset_widgets(op, ctx) {
+
+    }
+     undo_ignore() {
+      this.undoflag|=UndoFlags.IGNORE_UNDO;
+    }
+     on_mousemove() {
+      redraw_viewport();
+    }
+     exec_pre(tctx) {
+      for (var k in this.inputs) {
+          if (this.inputs[k].type===PropTypes.COLLECTION) {
+              this.inputs[k].ctx = tctx;
+          }
+      }
+      for (var k in this.outputs) {
+          if (this.outputs[k].type===PropTypes.COLLECTION) {
+              this.outputs[k].ctx = tctx;
+          }
+      }
+    }
+     cancel_modal(ctx, execUndo) {
+      console.log("cancel");
+      ctx.toolstack.toolop_cancel(this, execUndo);
+      if (this._modal_state) {
+          this._end_modal();
+      }
+      window.redraw_viewport();
+    }
+     touchCancelable(callback) {
+      this._touch_cancelable = true;
+      this._touch_cancel_callback = callback;
+    }
+     modalStart(ctx) {
+
+    }
+     start_modal() {
+      this.modalStart(ctx);
+    }
+     _start_modal(ctx) {
+      this.modal_running = true;
+      let active_area=ctx.active_area;
+      let patch=(e) =>        {
+        return patchMouseEvent(e);
+      };
+      let doMouse=(e, key) =>        {
+        if (this._touch_cancelable&&e.touches&&e.touches.length>1) {
+            this.cancel_modal(this.modal_ctx, true);
+            if (this._touch_cancel_callback) {
+                this._touch_cancel_callback(e);
+            }
+            return ;
+        }
+        e = patchMouseEvent(e);
+        return this[key](e);
+      };
+      let handlers={on_mousedown: (e) =>          {
+          return doMouse(e, "on_mousedown");
+        }, 
+     on_mousemove: (e) =>          {
+          return doMouse(e, "on_mousemove");
+        }, 
+     on_mouseup: (e) =>          {
+          return doMouse(e, "on_mouseup");
+        }, 
+     on_keydown: this.on_keydown.bind(this), 
+     on_keyup: this.on_keyup.bind(this), 
+     on_mousewheel: (e) =>          {
+          return this.on_mousewheel(patchMouseEvent(e));
+        }};
+      this._modal_state = pushModalLight(handlers);
+      this.modal_ctx = ctx;
+    }
+     on_mousewheel(e) {
+
+    }
+     _end_modal() {
+      var ctx=this.modal_ctx;
+      this.modal_running = false;
+      this.saved_context = new SavedContext(this.modal_ctx);
+      if (this._modal_state!==undefined) {
+          popModalLight(this._modal_state);
+          this._modal_state = undefined;
+      }
+      if (this.on_modal_end!==undefined)
+        this.on_modal_end(this);
+      this.reset_drawlines(ctx);
+    }
+     end_modal() {
+      this._end_modal();
+    }
+     can_call(ctx) {
+      return true;
+    }
+     exec(ctx) {
+
+    }
+     start_modal(ctx) {
+
+    }
+     redo_post(ctx) {
+      window.redraw_viewport();
+    }
+     undo_pre(ctx) {
+      this._undocpy = g_app_state.create_undo_file();
+      window.redraw_viewport();
+    }
+     undo(ctx) {
+      g_app_state.load_undo_file(this._undocpy);
+    }
+    static  fromSTRUCT(reader) {
+      var op=new ToolOp();
+      reader(op);
+      var ins={};
+      for (var i=0; i<op.inputs.length; i++) {
+          ins[op.inputs[i].key] = op.inputs[i].value;
+      }
+      var outs={};
+      for (var i=0; i<op.outputs.length; i++) {
+          outs[op.outputs[i].key] = op.outputs[i].value;
+      }
+      op.inputs = ins;
+      op.outputs = outs;
+      return op;
+    }
+    static  get_constructor(name) {
+      if (_toolop_tools===undefined) {
+          _toolop_tools = {};
+          for (let c of defined_classes) {
+              if (__instance_of(c, ToolOp))
+                _toolop_tools[c.name] = c;
+          }
+      }
+      return _toolop_tools[c];
+    }
+  }
+  _ESClass.register(ToolOp);
+  _es6_module.add_class(ToolOp);
+  ToolOp = _es6_module.add_export('ToolOp', ToolOp);
+  ToolOp.STRUCT = `
+  ToolOp {
+      flag    : int;
+      saved_context  : SavedContext | obj.get_saved_context();
+      inputs  : iterkeys(k, PropPair) | new PropPair(k, obj.inputs[k]);
+      outputs : iterkeys(k, PropPair) | new PropPair(k, obj.outputs[k]);
+  }
+`;
+  class ToolMacro extends ToolOp {
+    
+    
+    
+     constructor(name, uiname, tools) {
+      super(name, uiname);
+      this.cur_modal = 0;
+      this._chained_on_modal_end = false;
+      if (tools===undefined)
+        this.tools = new GArray();
+      else 
+        this.tools = new GArray(tools);
+    }
+     add_tool(tool) {
+      tool.parent = this;
+      this.tools.push(tool);
+      if (tool.is_modal)
+        this.is_modal = true;
+    }
+     connect_tools(output, input) {
+      var old_set=input.userSetData;
+      input.userSetData = function () {
+        this.data = output.data;
+        old_set.call(this, this.data);
+      };
+    }
+     undo_pre(ctx) {
+
+    }
+     undo(ctx) {
+      for (var i=this.tools.length-1; i>=0; i--) {
+          if (this.tools[i].undoflag&UndoFlags.HAS_UNDO_DATA) {
+              this.tools[i].undo(ctx);
+          }
+      }
+    }
+     exec(ctx) {
+      for (var i=0; i<this.tools.length; i++) {
+          if (!(this.tools[i].flag&ToolFlags.USE_TOOL_CONTEXT)) {
+              this.tools[i].saved_context = this.saved_context;
+          }
+      }
+      for (let op of this.tools) {
+          if (op.is_modal)
+            op.is_modal = this.is_modal;
+          let tctx=(op.flag&ToolFlags.USE_TOOL_CONTEXT) ? op.ctx : ctx;
+          for (var k in op.inputs) {
+              var p=op.inputs[k];
+              if (p.userSetData!=undefined)
+                p.userSetData.call(p, p.data);
+          }
+          
+          if (!(op.flag&ToolFlags.USE_TOOL_CONTEXT)) {
+              op.saved_context = this.saved_context;
+          }
+          op.undo_pre(tctx);
+          op.undoflag|=UndoFlags.HAS_UNDO_DATA;
+          op.exec_pre(tctx);
+          op.exec(tctx);
+      }
+    }
+     can_call(ctx) {
+      return this.tools[0].can_call(ctx);
+    }
+     _start_modal(ctx) {
+
+    }
+     start_modal(ctx) {
+      if (!this._chained_on_modal_end) {
+          let last_modal=undefined;
+          for (let op of this.tools) {
+              if (op.is_modal)
+                last_modal = op;
+          }
+          console.log("last_modal", last_modal);
+          if (last_modal!==undefined) {
+              let on_modal_end=last_modal.on_modal_end;
+              let this2=this;
+              last_modal.on_modal_end = function (toolop) {
+                if (on_modal_end!==undefined)
+                  on_modal_end(toolop);
+                if (this2.on_modal_end)
+                  this2.on_modal_end(this2);
+              };
+              this._chained_on_modal_end = true;
+          }
+      }
+      for (let i=0; i<this.tools.length; i++) {
+          this.tools[i].saved_context = this.saved_context;
+      }
+      for (let i=0; i<this.tools.length; i++) {
+          let op=this.tools[i];
+          if (op.is_modal) {
+              this.cur_modal = i;
+              for (let k in op.inputs) {
+                  let p=op.inputs[k];
+                  if (p.userSetData!==undefined)
+                    p.userSetData.call(p, p.data);
+              }
+              op.__end_modal = op._end_modal;
+              op._end_modal = (ctx) =>                {
+                op.__end_modal(ctx);
+                this.next_modal(ctx ? ctx : this.modal_ctx);
+              };
+              op.modal_ctx = this.modal_ctx;
+              op.modal_tctx = this.modal_tctx;
+              op.saved_context = this.saved_context;
+              op.undo_pre(ctx);
+              op.undoflag|=UndoFlags.HAS_UNDO_DATA;
+              op.modal_running = true;
+              op._start_modal(ctx);
+              return op.start_modal(ctx);
+          }
+          else {
+            for (let k in op.inputs) {
+                let p=op.inputs[k];
+                if (p.userSetData!==undefined)
+                  p.userSetData(p, p.data);
+            }
+            op.saved_context = this.saved_context;
+            op.exec_pre(ctx);
+            op.undo_pre(ctx);
+            op.undoflag|=UndoFlags.HAS_UNDO_DATA;
+            op.exec(ctx);
+          }
+      }
+    }
+     _end_modal() {
+      this.next_modal(this.modal_ctx);
+    }
+     next_modal(ctx) {
+      console.log("next_modal called");
+      this.cur_modal++;
+      while (this.cur_modal<this.tools.length&&!this.tools[this.cur_modal].is_modal) {
+        this.cur_modal++;
+      }
+      if (this.cur_modal>=this.tools.length) {
+          super._end_modal();
+      }
+      else {
+        console.log("next_modal op", this.tools[this.cur_modal]);
+        this.tools[this.cur_modal].undo_pre(ctx);
+        this.tools[this.cur_modal].undoflag|=UndoFlags.HAS_UNDO_DATA;
+        this.tools[this.cur_modal]._start_modal(ctx);
+        this.tools[this.cur_modal].start_modal(ctx);
+      }
+    }
+     on_mousemove(event) {
+      this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
+      this.tools[this.cur_modal].on_mousemove(event);
+    }
+     on_mousewheel(event) {
+      this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
+      this.tools[this.cur_modal].on_mousewheel(event);
+    }
+     on_mousedown(event) {
+      this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
+      this.tools[this.cur_modal].on_mousedown(event);
+    }
+     on_mouseup(event) {
+      this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
+      this.tools[this.cur_modal].on_mouseup(event);
+    }
+     on_keydown(event) {
+      this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
+      this.tools[this.cur_modal].on_keydown(event);
+    }
+     on_keyup(event) {
+      this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
+      this.tools[this.cur_modal].on_keyup(event);
+    }
+     on_draw(event) {
+      this.tools[this.cur_modal].modal_ctx = this.modal_ctx;
+      this.tools[this.cur_modal].on_draw(event);
+    }
+    static  fromSTRUCT(reader) {
+      var ret=STRUCT.chain_fromSTRUCT(ToolMacro, reader);
+      ret.tools = new GArray(ret.tools);
+      for (var t of ret.tools) {
+          t.parent = this;
+      }
+      return ret;
+    }
+  }
+  _ESClass.register(ToolMacro);
+  _es6_module.add_class(ToolMacro);
+  ToolMacro = _es6_module.add_export('ToolMacro', ToolMacro);
+  ToolMacro.STRUCT = STRUCT.inherit(ToolMacro, ToolOp)+`
+  tools   : array(abstract(ToolOp));
+  apiname : string;
+  uiname  : string;
+}
+`;
+  var StringProperty=es6_import_item(_es6_module, './toolprops.js', 'StringProperty');
+  var Vec3Property=es6_import_item(_es6_module, './toolprops.js', 'Vec3Property');
+  var Vec4Property=es6_import_item(_es6_module, './toolprops.js', 'Vec4Property');
+  var IntProperty=es6_import_item(_es6_module, './toolprops.js', 'IntProperty');
+  var FloatProperty=es6_import_item(_es6_module, './toolprops.js', 'FloatProperty');
+  var BoolProperty=es6_import_item(_es6_module, './toolprops.js', 'BoolProperty');
+  var pushModalLight=es6_import_item(_es6_module, '../path.ux/scripts/util/simple_events.js', 'pushModalLight');
+  var popModalLight=es6_import_item(_es6_module, '../path.ux/scripts/util/simple_events.js', 'popModalLight');
+  class DataPathOp extends ToolOp {
+    
+    
+    
+     constructor(path="", use_simple_undo=false) {
+      super("DataPathOp", "DataPath", "DataPath Value Set");
+      this.use_simple_undo = use_simple_undo;
+      this.is_modal = false;
+      this.path = path;
+      this.inputs = {path: new StringProperty(path, "path", "path", "path"), 
+     vec3: new Vec3Property(undefined, "vec3", "vec3", "vec3"), 
+     vec4: new Vec4Property(undefined, "vec4", "vec4", "vec4"), 
+     pint: new IntProperty(0, "pint", "pint", "pint"), 
+     pfloat: new FloatProperty(0, "pfloat", "pfloat", "pfloat"), 
+     str: new StringProperty("", "str", "str", "str"), 
+     bool: new BoolProperty(false, "bool", "bool", "bool"), 
+     val_input: new StringProperty("", "val_input", "val_input", "val_input")};
+      this.outputs = {};
+      for (var k in this.inputs) {
+          this.inputs[k].flag|=TPropFlags.PRIVATE;
+      }
+    }
+     undo_pre(ctx) {
+      this._undocpy = g_app_state.create_undo_file();
+    }
+     undo(ctx) {
+      g_app_state.load_undo_file(this._undocpy);
+    }
+     get_prop_input(path, prop) {
+      if (prop==undefined) {
+          console.trace("Warning: DataPathOp failed!", path, prop);
+          return ;
+      }
+      var input;
+      if (prop.type==PropTypes.INT) {
+          input = this.inputs.pint;
+      }
+      else 
+        if (prop.type==PropTypes.FLOAT) {
+          input = this.inputs.pfloat;
+      }
+      else 
+        if (prop.type==PropTypes.VEC3) {
+          input = path.endsWith("]") ? this.inputs.pfloat : this.inputs.vec3;
+      }
+      else 
+        if (prop.type==PropTypes.VEC4) {
+          input = path.endsWith("]") ? this.inputs.pfloat : this.inputs.vec4;
+      }
+      else 
+        if (prop.type==PropTypes.BOOL) {
+          input = this.inputs.bool;
+      }
+      else 
+        if (prop.type==PropTypes.STR) {
+          input = this.inputs.str;
+      }
+      else 
+        if (prop.type==PropTypes.FLAG) {
+          input = this.inputs.str;
+      }
+      else 
+        if (prop.type==PropTypes.ENUM) {
+          input = this.inputs.pint;
+      }
+      else {
+        console.trace("ERROR: unimplemented prop type "+prop.type+"in DataPathOp", prop, this);
+        return undefined;
+      }
+      return input;
+    }
+     exec(ctx) {
+      var api=g_app_state.api;
+      var path=this.inputs.path.data.trim();
+      var prop=api.get_prop_meta(ctx, path);
+      if (prop==undefined) {
+          console.trace("Warning: DataPathOp failed!");
+          return ;
+      }
+      var input=this.get_prop_input(path, prop);
+      api.set_prop(ctx, path, input.data);
+    }
+  }
+  _ESClass.register(DataPathOp);
+  _es6_module.add_class(DataPathOp);
+  mixin(ToolOp, EventHandler);
+  class MassSetPathOp extends ToolOp {
+    
+    
+    
+     constructor(path="", subpath="", filterstr="", use_simple_undo=false) {
+      super("DataPathOp", "DataPath", "DataPath Value Set");
+      this.use_simple_undo = use_simple_undo;
+      this.is_modal = false;
+      this.path = path;
+      this.subpath = subpath;
+      this.filterstr = filterstr;
+      this.inputs = {path: new StringProperty(path, "path", "path", "path"), 
+     vec3: new Vec3Property(undefined, "vec3", "vec3", "vec3"), 
+     vec4: new Vec4Property(undefined, "vec4", "vec4", "vec4"), 
+     pint: new IntProperty(0, "pint", "pint", "pint"), 
+     pfloat: new FloatProperty(0, "pfloat", "pfloat", "pfloat"), 
+     str: new StringProperty("", "str", "str", "str"), 
+     bool: new BoolProperty(false, "bool", "bool", "bool"), 
+     val_input: new StringProperty("", "val_input", "val_input", "val_input")};
+      this.outputs = {};
+      for (var k in this.inputs) {
+          this.inputs[k].flag|=TPropFlags.PRIVATE;
+      }
+    }
+     _get_value(ctx) {
+      var path=this.path.trim();
+      var prop=api.get_prop_meta(ctx, path);
+      if (prop==undefined) {
+          console.trace("Warning: DataPathOp failed!");
+          return ;
+      }
+      return this.get_prop_input(path, prop);
+    }
+     undo_pre(ctx) {
+      var value=this._get_value(ctx);
+      var paths=ctx.api.buildMassSetPaths(ctx, this.path, this.subpath, value, this.filterstr);
+      var ud=this._undo = {};
+      for (var i=0; i<paths.length; i++) {
+          var value2=ctx.api.get_prop(paths[i]);
+          ud[paths[i]] = JSON.stringify(value2);
+      }
+    }
+     undo(ctx) {
+      var value=this._get_value(ctx);
+      var paths=ctx.api.buildMassSetPaths(ctx, this.path, this.subpath, value, this.filterstr);
+      var ud=this._undo;
+      for (var k in ud) {
+          var data=JSON.parse(ud[k]);
+          if (data=="undefined")
+            data = undefined;
+          ctx.api.set_prop(ctx, k, data);
+      }
+    }
+     get_prop_input(path, prop) {
+      if (prop==undefined) {
+          console.trace("Warning: DataPathOp failed!", path, prop);
+          return ;
+      }
+      var input;
+      if (prop.type==PropTypes.INT) {
+          input = this.inputs.pint;
+      }
+      else 
+        if (prop.type==PropTypes.FLOAT) {
+          input = this.inputs.pfloat;
+      }
+      else 
+        if (prop.type==PropTypes.VEC3) {
+          input = path.endsWith("]") ? this.inputs.pfloat : this.inputs.vec3;
+      }
+      else 
+        if (prop.type==PropTypes.VEC4) {
+          input = path.endsWith("]") ? this.inputs.pfloat : this.inputs.vec4;
+      }
+      else 
+        if (prop.type==PropTypes.BOOL) {
+          input = this.inputs.bool;
+      }
+      else 
+        if (prop.type==PropTypes.STR) {
+          input = this.inputs.str;
+      }
+      else 
+        if (prop.type==PropTypes.FLAG) {
+          input = this.inputs.str;
+      }
+      else 
+        if (prop.type==PropTypes.ENUM) {
+          input = this.inputs.pint;
+      }
+      else {
+        console.trace("ERROR: unimplemented prop type "+prop.type+"in DataPathOp", prop, this);
+        return undefined;
+      }
+      return input;
+    }
+     exec(ctx) {
+      var api=g_app_state.api;
+      var path=this.inputs.path.data.trim();
+      var prop=api.get_prop_meta(ctx, path);
+      if (prop==undefined) {
+          console.trace("Warning: DataPathOp failed!");
+          return ;
+      }
+      var input=this.get_prop_input(path, prop);
+      api.mass_set_prop(ctx, path, this.subpath, input.data, this.filterstr);
+    }
+  }
+  _ESClass.register(MassSetPathOp);
+  _es6_module.add_class(MassSetPathOp);
+  window.init_toolop_structs = function () {
+    
+    function gen_fromSTRUCT(cls1) {
+      function fromSTRUCT(reader) {
+        var op=new cls1();
+        var inputs=op.inputs, outputs=op.outputs;
+        reader(op);
+        var ins=Object.create(inputs), outs=Object.create(outputs);
+        for (var i=0; i<op.inputs.length; i++) {
+            var k=op.inputs[i].key;
+            ins[k] = op.inputs[i].value;
+            if (k in inputs) {
+                ins[k].load_ui_data(inputs[k]);
+            }
+            else {
+              ins[k].uiname = ins[k].apiname = k;
+            }
+        }
+        for (var i=0; i<op.outputs.length; i++) {
+            var k=op.outputs[i].key;
+            outs[k] = op.outputs[i].value;
+            if (k in outputs) {
+                outs[k].load_ui_data(outputs[k]);
+            }
+            else {
+              outs[k].uiname = outs[k].apiname = k;
+            }
+        }
+        op.inputs = ins;
+        op.outputs = outs;
+        return op;
+      }
+      return fromSTRUCT;
+    }
+    for (var i=0; i<defined_classes.length; i++) {
+        var cls=defined_classes[i];
+        var ok=false;
+        var is_toolop=false;
+        var parent=cls.prototype.__proto__.constructor;
+        while (parent) {
+          if (parent===ToolOpAbstract) {
+              ok = true;
+          }
+          else 
+            if (parent===ToolOp) {
+              ok = true;
+              is_toolop = true;
+              break;
+          }
+          parent = parent.prototype.__proto__;
+          if (!parent)
+            break;
+          parent = parent.constructor;
+          if (!parent||parent===Object)
+            break;
+        }
+        if (!ok)
+          continue;
+        if (!Object.hasOwnProperty(cls, "STRUCT")) {
+            cls.STRUCT = cls.name+" {"+`
+        flag    : int;
+        inputs  : iterkeys(k, PropPair) | new PropPair(k, obj.inputs[k]);
+        outputs : iterkeys(k, PropPair) | new PropPair(k, obj.outputs[k]);
+      `;
+            if (is_toolop)
+              cls.STRUCT+="    saved_context  : SavedContext | obj.get_saved_context();\n";
+            cls.STRUCT+="  }";
+        }
+        if (!cls.fromSTRUCT) {
+            cls.fromSTRUCT = gen_fromSTRUCT(cls);
+        }
+    }
+  }
+  class WidgetToolOp extends ToolOp {
+    static  create_widgets(manager, ctx) {
+      var $zaxis_2FE6;
+      var widget=manager.create();
+      var enabled_axes=this.widget_axes;
+      var do_widget_center=this.widget_center;
+      var gen_toolop=this.gen_toolop;
+      var do_x=enabled_axes[0], do_y=enabled_axes[1], do_z=enabled_axes[2];
+      if (do_x)
+        widget.arrow([1, 0, 0], 0, [1, 0, 0, 1]);
+      if (do_y)
+        widget.arrow([0, 1, 0], 1, [0, 1, 0, 1]);
+      if (do_z)
+        widget.arrow([0, 0, 1], 2, [0, 0, 1, 1]);
+      var this2=this;
+      function widget_on_tick(widget) {
+        var mat=widget.matrix;
+        var mesh=ctx.mesh;
+        var cent=new Vector3();
+        var len=0;
+        var v1=new Vector3();
+        for (var v of mesh.verts.selected) {
+            cent.add(v.co);
+            v1.load(v.edges[0].v1.co).sub(v.edges[0].v2.co);
+            v1.normalize();
+            len++;
+        }
+        if (len>0)
+          cent.mulScalar(1.0/len);
+        mat.makeIdentity();
+        mat.translate(cent[0], cent[1], cent[2]);
+        if (this2.widget_align_normal) {
+            var n=new Vector3();
+            var tan=new Vector3();
+            len = 0;
+            var v1=new Vector3();
+            for (var f of mesh.faces.selected) {
+                var e=f.looplists[0].loop.e;
+                len++;
+                n.add(f.no);
+            }
+            n.mulScalar(1.0/len);
+            n.normalize();
+            if (tan.dot(tan)==0.0) {
+                tan.loadXYZ(0, 0, 1);
+            }
+            else {
+              tan.mulScalar(1.0/len);
+              tan.normalize();
+            }
+            var angle=Math.PI-Math.acos($zaxis_2FE6.dot(n));
+            if (n.dot($zaxis_2FE6)>0.9) {
+            }
+            if (1) {
+                if (Math.abs(angle)<0.001||Math.abs(angle)>Math.PI-0.001) {
+                    n.loadXYZ(1, 0, 0);
+                }
+                else {
+                  n.cross($zaxis_2FE6);
+                  n.normalize();
+                }
+                var q=new Quat();
+                q.axisAngleToQuat(n, angle);
+                var rmat=q.toMatrix();
+                mat.multiply(rmat);
+            }
+        }
+        mat.multiply(ctx.object.matrix);
+      }
+      widget.on_tick = widget_on_tick;
+      widget.on_click = function (widget, id) {
+        console.log("widget click: ", id);
+        ctx.view2d._mstart = null;
+        var toolop=undefined;
+        if (gen_toolop!=undefined) {
+            var toolop=gen_toolop(id, widget, ctx);
+        }
+        else {
+          console.trace("IMPLEMENT ME! missing widget gen_toolop callback!");
+          return ;
+        }
+        if (toolop==undefined) {
+            console.log("Evil! Undefined toolop in WidgetToolOp.create_widgets()!");
+            return ;
+        }
+        widget.user_data = toolop;
+        toolop._widget_on_tick = widget_on_tick;
+        toolop.widgets.push(widget);
+        toolop.on_modal_end = function (toolop) {
+          for (var w of toolop.widgets) {
+              for (var k in toolop.inputs) {
+                  var p=toolop.inputs[k];
+                  p.remove_listener(w, true);
+              }
+              for (var k in toolop.outputs) {
+                  var p=toolop.outputs[k];
+                  p.remove_listener(w, true);
+              }
+          }
+          console.log("widget modal end");
+          toolop.widgets = new GArray();
+          widget.on_tick = widget_on_tick;
+        }
+        if (toolop.widget_on_tick)
+          widget.widget_on_tick = toolop.widget_on_tick;
+        widget.on_tick = function (widget) {
+          toolop.widget_on_tick.call(toolop, widget);
+        }
+        g_app_state.toolstack.exec_tool(toolop);
+      };
+      var $zaxis_2FE6=new Vector3([0, 0, -1]);
+    }
+     widget_on_tick(widget) {
+      if (this._widget_on_tick!=undefined)
+        this._widget_on_tick(widget);
+    }
+  }
+  _ESClass.register(WidgetToolOp);
+  _es6_module.add_class(WidgetToolOp);
+}, '/dev/fairmotion/src/core/toolops_api.js');
 es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_module(_es6_module) {
   "use strict";
   var _event_dag_idgen=undefined;
@@ -298,7 +1306,7 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
    ARRAY: 256, 
    SET: 512}
   DataTypes = _es6_module.add_export('DataTypes', DataTypes);
-  var TypeDefaults=t = {}
+  var TypeDefaults={}, t=TypeDefaults;
   t[DataTypes.DEPEND] = null;
   t[DataTypes.NUMBER] = 0;
   t[DataTypes.STRING] = "";
@@ -440,8 +1448,8 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
       return func.apply(thisvar, arguments);
     }
   }
-  var $sarr_QtVx_link;
-  var $darr_WUMt_link;
+  var $sarr_9ujI_link;
+  var $darr_3Fns_link;
   class EventDag  {
      constructor(ctx) {
       this.nodes = [];
@@ -586,12 +1594,12 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
       var obja=src, objb=dst;
       var srcnode=this.get_node(src);
       if (!(__instance_of(srcfield, Array))) {
-          $sarr_QtVx_link[0] = srcfield;
-          srcfield = $sarr_QtVx_link;
+          $sarr_9ujI_link[0] = srcfield;
+          srcfield = $sarr_9ujI_link;
       }
       if (!(__instance_of(dstfield, Array))) {
-          $darr_WUMt_link[0] = dstfield;
-          dstfield = $darr_WUMt_link;
+          $darr_3Fns_link[0] = dstfield;
+          dstfield = $darr_3Fns_link;
       }
       if ((typeof dst=="function"||__instance_of(dst, Function))&&!dst._dag_callback_init) {
           gen_callback_exec(dst, dstthis);
@@ -770,8 +1778,8 @@ es6_module_define('eventdag', ["../util/vectormath.js"], function _eventdag_modu
       }
     }
   }
-  var $sarr_QtVx_link=[0];
-  var $darr_WUMt_link=[0];
+  var $sarr_9ujI_link=[0];
+  var $darr_3Fns_link=[0];
   _ESClass.register(EventDag);
   _es6_module.add_class(EventDag);
   EventDag = _es6_module.add_export('EventDag', EventDag);
@@ -1253,7 +2261,7 @@ es6_module_define('transdata', ["../../util/mathlib.js"], function _transdata_mo
   _es6_module.add_class(TransData);
   TransData = _es6_module.add_export('TransData', TransData);
 }, '/dev/fairmotion/src/editors/viewport/transdata.js');
-es6_module_define('transform', ["../../curve/spline_types.js", "./transform_spline.js", "../../core/toolops_api.js", "../../util/mathlib.js", "../dopesheet/dopesheet_transdata.js", "../../wasm/native_api.js", "./transdata.js", "../events.js", "../../core/toolprops.js", "./view2d_base.js", "./selectmode.js"], function _transform_module(_es6_module) {
+es6_module_define('transform', ["./transform_spline.js", "../../core/toolprops.js", "./selectmode.js", "../events.js", "../../curve/spline_types.js", "./view2d_base.js", "../../wasm/native_api.js", "./transdata.js", "../../util/mathlib.js", "../../core/toolops_api.js", "../dopesheet/dopesheet_transdata.js"], function _transform_module(_es6_module) {
   var MinMax=es6_import_item(_es6_module, '../../util/mathlib.js', 'MinMax');
   var SelMask=es6_import_item(_es6_module, './selectmode.js', 'SelMask');
   var Vec3Property=es6_import_item(_es6_module, '../../core/toolprops.js', 'Vec3Property');
@@ -1372,14 +2380,14 @@ es6_module_define('transform', ["../../curve/spline_types.js", "./transform_spli
      end_modal() {
       var ctx=this.modal_ctx;
       this.post_mousemove(event, true);
-      ctx.appstate.set_modalstate(0);
+      ctx.appstate.popModalState(ModalStates.TRANSFORMING);
       ToolOp.prototype.end_modal.call(this);
       this.finish(ctx);
     }
      start_modal(ctx) {
       super.start_modal(ctx);
       this.first_viewport_redraw = true;
-      ctx.appstate.set_modalstate(ModalStates.TRANSFORMING);
+      ctx.state.pushModalState(ModalStates.TRANSFORMING);
       ctx.spline.solve().then(function () {
         redraw_viewport();
       });
@@ -3441,7 +4449,7 @@ es6_module_define('spline_createops', ["../../core/toolops_api.js", "../../curve
   _es6_module.add_class(ImportJSONOp);
   ImportJSONOp = _es6_module.add_export('ImportJSONOp', ImportJSONOp);
 }, '/dev/fairmotion/src/editors/viewport/spline_createops.js');
-es6_module_define('spline_editops', ["../../core/toolops_api.js", "../../curve/spline_types.js", "../../core/frameset.js", "../../curve/spline.js", "../../core/animdata.js", "../../curve/spline_draw.js", "../../core/toolprops.js", "../../curve/spline_base.js", "../../path.ux/scripts/util/struct.js"], function _spline_editops_module(_es6_module) {
+es6_module_define('spline_editops', ["../../core/animdata.js", "../../core/frameset.js", "../../curve/spline.js", "../../curve/spline_base.js", "../../core/toolprops.js", "../../curve/spline_draw.js", "../../path.ux/scripts/util/struct.js", "../../core/toolops_api.js", "../../curve/spline_types.js"], function _spline_editops_module(_es6_module) {
   var IntProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'IntProperty');
   var FloatProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'FloatProperty');
   var CollectionProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'CollectionProperty');
@@ -4400,103 +5408,6 @@ es6_module_define('spline_editops', ["../../core/toolops_api.js", "../../curve/s
   _ESClass.register(CurveRootFinderTest);
   _es6_module.add_class(CurveRootFinderTest);
   CurveRootFinderTest = _es6_module.add_export('CurveRootFinderTest', CurveRootFinderTest);
-  class AnimPlaybackOp extends ToolOp {
-    
-    
-    
-    
-     constructor() {
-      super();
-      this.undoflag|=UndoFlags.IGNORE_UNDO;
-      this.timer = undefined;
-      this.time = 0;
-      this.start_time = 0;
-      this.done = false;
-      this.on_solve_node = function () {
-        console.log("on_solve callback triggered in AnimPLaybackOp");
-        window.redraw_viewport();
-        this.on_frame(this.modal_ctx);
-      };
-    }
-    static  tooldef() {
-      return {uiname: "Playback", 
-     apiname: "editor.playback", 
-     inputs: {}, 
-     outputs: {}, 
-     undoflag: UndoFlags.IGNORE_UNDO, 
-     icon: -1, 
-     is_modal: true, 
-     description: "Play back animation"}
-    }
-     on_frame(ctx) {
-      let this2=this;
-      window.redraw_viewport().then(() =>        {
-        if (this2.done) {
-            return ;
-        }
-        console.log("frame!");
-        console.log("playback op: change time");
-        console.log("  time:", this2.time, this2);
-        this2.time+=1.0;
-        ctx.scene.change_time(ctx, this2.time);
-      });
-    }
-     end_modal(ctx) {
-      the_global_dag.remove(this.on_solve_node);
-      g_app_state.set_modalstate(0);
-      super.end_modal();
-      if (this.timer!=undefined) {
-          window.clearInterval(this.timer);
-          this.timer = undefined;
-      }
-    }
-     cancel(ctx) {
-
-    }
-     finish(ctx) {
-      if (!this.done) {
-          this.done = true;
-          ctx.scene.change_time(ctx, this.start_time);
-          window.redraw_viewport();
-      }
-    }
-     on_mousemove(event) {
-
-    }
-     on_keydown(event) {
-      switch (event.keyCode) {
-        case charmap["Escape"]:
-        case charmap["Return"]:
-        case charmap["Space"]:
-          this.finish(this.modal_ctx);
-          this.end_modal();
-      }
-    }
-     on_mouseup(event) {
-      this.finish(this.modal_ctx);
-      this.end_modal();
-    }
-     start_modal(ctx) {
-      the_global_dag.link(ctx.frameset.spline, ["on_solve"], this.on_solve_node, "", this);
-      g_app_state.set_modalstate(ModalStates.PLAYING);
-      var this2=this;
-      this.time = this.start_time = ctx.scene.time;
-      this.on_frame(this.modal_ctx);
-      if (0) {
-          var last_time=time_ms();
-          this.timer = window.setInterval(function () {
-            if (time_ms()-last_time<41) {
-                return ;
-            }
-            last_time = time_ms();
-            this2.on_frame(this2.modal_ctx);
-          }, 1);
-      }
-    }
-  }
-  _ESClass.register(AnimPlaybackOp);
-  _es6_module.add_class(AnimPlaybackOp);
-  AnimPlaybackOp = _es6_module.add_export('AnimPlaybackOp', AnimPlaybackOp);
   class ToggleManualHandlesOp extends ToolOp {
      constructor() {
       super();
@@ -6425,7 +7336,7 @@ es6_module_define('view2d_object', ["../../core/struct.js", "../../curve/spline_
   WorkSpline = _es6_module.add_export('WorkSpline', WorkSpline);
   
 }, '/dev/fairmotion/src/editors/viewport/view2d_object.js');
-es6_module_define('MaterialEditor', ["../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/widgets/ui_listbox.js", "../../path.ux/scripts/screen/ScreenArea.js", "../viewport/spline_layerops.js", "../../path.ux/scripts/widgets/ui_menu.js", "../../core/struct.js", "../editor_base.js", "../../path.ux/scripts/widgets/ui_table.js", "../../path.ux/scripts/core/ui.js", "../viewport/spline_editops.js"], function _MaterialEditor_module(_es6_module) {
+es6_module_define('MaterialEditor', ["../../path.ux/scripts/core/ui.js", "../../path.ux/scripts/widgets/ui_table.js", "../../core/struct.js", "../../path.ux/scripts/widgets/ui_listbox.js", "../viewport/spline_layerops.js", "../editor_base.js", "../../path.ux/scripts/widgets/ui_menu.js", "../../path.ux/scripts/core/ui_base.js", "../viewport/spline_editops.js", "../../path.ux/scripts/screen/ScreenArea.js"], function _MaterialEditor_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
   var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
   var Container=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui.js', 'Container');
@@ -6758,7 +7669,7 @@ es6_module_define('MaterialEditor', ["../../path.ux/scripts/core/ui_base.js", ".
 `;
   Editor.register(MaterialEditor);
 }, '/dev/fairmotion/src/editors/material/MaterialEditor.js');
-es6_module_define('DopeSheetEditor', ["../events.js", "../../util/mathlib.js", "../../path.ux/scripts/core/ui.js", "../../curve/spline_types.js", "../../path.ux/scripts/util/simple_events.js", "./dopesheet_ops.js", "../../core/struct.js", "../editor_base.js", "../../curve/spline.js", "../../path.ux/scripts/core/ui_base.js", "./dopesheet_ops_new.js", "../../core/toolops_api.js", "../../path.ux/scripts/util/util.js", "../../core/animdata.js", "../../path.ux/scripts/screen/ScreenArea.js"], function _DopeSheetEditor_module(_es6_module) {
+es6_module_define('DopeSheetEditor', ["./dopesheet_ops_new.js", "../../curve/spline.js", "../../path.ux/scripts/util/simple_events.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../path.ux/scripts/util/util.js", "../../core/struct.js", "../events.js", "../../core/toolops_api.js", "../editor_base.js", "../../path.ux/scripts/core/ui.js", "../../util/mathlib.js", "../../curve/spline_types.js", "./dopesheet_ops.js", "../../core/animdata.js", "../../path.ux/scripts/core/ui_base.js"], function _DopeSheetEditor_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
   var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
   var UIBase=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui_base.js', 'UIBase');
@@ -7451,8 +8362,8 @@ ChannelState {
       p[1] = (p[1]+this.pan[1])*this.zoom;
     }
      unproject(p) {
-      p[0] = p[0]/this.zoom-this.pan[0];
-      p[1] = p[1]/this.zoom-this.pan[1];
+      p[0] = (p[0]/this.zoom)-this.pan[0];
+      p[1] = (p[1]/this.zoom)-this.pan[1];
     }
      rebuild() {
       this.regen = 1;
@@ -7518,7 +8429,17 @@ ChannelState {
           this.ctx.toolstack.execTool(this.ctx, tool);
           return ;
       }
-      this.ctx.toolstack.execTool(this.ctx, new PanOp(this));
+      else 
+        if (e.button===0&&!e.altKey&&!e.shiftKey&&!e.ctrlKey&&!e.commandKey) {
+          let p1=new Vector2(this.getLocalMouse(e.x, e.y));
+          this.unproject(p1);
+          let time1=~~(p1[0]/this.timescale/this.boxSize+0.5);
+          this.ctx.scene.change_time(this.ctx, time1);
+          console.log("time", time1);
+      }
+      if (e.button>0||e.altKey) {
+          this.ctx.toolstack.execTool(this.ctx, new PanOp(this));
+      }
     }
      getLocalMouse(x, y) {
       let r=this.canvas.getClientRects()[0];
@@ -7565,15 +8486,25 @@ ChannelState {
       if (!this.mdown) {
           this.updateHighlight(e);
       }
+      else 
+        if (this.activeBoxes.highlight) {
+          let mpos=new Vector2([e.x, e.y]);
+          let dist=this.start_mpos.vectorDistance(mpos);
+          console.log(dist.toFixed(2));
+          if (dist>10) {
+              this.mdown = false;
+              console.log("Tool exec!");
+              let tool=new MoveKeyFramesOp();
+              this.ctx.api.execTool(this.ctx, tool);
+          }
+      }
       else {
-        let mpos=new Vector2([e.x, e.y]);
-        let dist=this.start_mpos.vectorDistance(mpos);
-        console.log(dist.toFixed(2));
-        if (dist>10) {
-            this.mdown = false;
-            console.log("Tool exec!");
-            let tool=new MoveKeyFramesOp();
-            this.ctx.api.execTool(this.ctx, tool);
+        let p1=new Vector2(this.getLocalMouse(e.x, e.y));
+        this.unproject(p1);
+        let time1=~~(p1[0]/this.timescale/this.boxSize+0.5);
+        if (time1!==this.ctx.scene.time) {
+            this.ctx.scene.change_time(this.ctx, time1);
+            console.log("time", time1);
         }
       }
     }
@@ -7658,8 +8589,8 @@ ChannelState {
             if (!vd) {
                 continue;
             }
-            let timescale=this.timescale;
-            let boxsize=this.boxSize;
+            timescale = this.timescale;
+            boxsize = this.boxSize;
             for (let v2 of vd.verts) {
                 let ki=keys.length;
                 this.keybox_eidmap[v2.eid] = ki;
@@ -7811,7 +8742,8 @@ ChannelState {
       let zoom=this.zoom, pan=this.pan;
       let canvas=this.canvas = this.getCanvas("bg", "-1");
       let g=this.canvas.g;
-      console.log("dopesheet draw!");
+      if (_DEBUG.timeChange)
+        console.log("dopesheet draw!");
       g.beginPath();
       g.rect(0, 0, canvas.width, canvas.height);
       g.fillStyle = "rgb(55,55,55,1.0)";
@@ -7890,7 +8822,8 @@ ChannelState {
           }
       }
       g.lineWidth = lw2;
-      console.log("D", off, tot, bwid);
+      if (_DEBUG.timeChange)
+        console.log("D", off, tot, bwid);
       let ts=this.getDefault("DefaultText").size*UIBase.getDPI();
       g.fillStyle = this.getDefault("DefaultText").color;
       g.font = this.getDefault("DefaultText").genCSS(ts);
@@ -7915,7 +8848,7 @@ ChannelState {
           g.shadowColor = "black";
           g.shadowOffsetX = 2;
           g.shadowOffsetY = 2;
-          if (spacing&&(i%spacing)!==0) {
+          if (spacing&&((~~t)%spacing)!==0) {
               continue;
           }
           g.strokeText(""+t, x, canvas.height-ts*1.15);
@@ -7959,7 +8892,8 @@ ChannelState {
         this.updateKeyPositions();
       };
       let on_time_change=(ctx, inputs, outputs, graph) =>        {
-        console.log("dopesheet time change callback");
+        if (_DEBUG.timeChange)
+          console.log("dopesheet time change callback");
         this.redraw();
       };
       this.nodes.push(on_sel);
@@ -7969,6 +8903,7 @@ ChannelState {
       the_global_dag.link(ctx.frameset.spline.verts, ["on_select_add"], on_sel, ["eid"]);
       the_global_dag.link(ctx.frameset.spline.verts, ["on_select_sub"], on_sel, ["eid"]);
       the_global_dag.link(ctx.frameset.spline, ["on_vert_change"], on_vert_change, ["verts"]);
+      the_global_dag.link(ctx.frameset.spline, ["on_keyframe_insert"], on_vert_change, ["verts"]);
       the_global_dag.link(ctx.frameset.pathspline, ["on_vert_time_change"], on_vert_time_change, ["verts"]);
     }
      on_vert_select() {
@@ -8177,7 +9112,7 @@ es6_module_define('dopesheet_phantom', ["../../core/animdata.js", "../../curve/s
   }
   delete_key = _es6_module.add_export('delete_key', delete_key);
 }, '/dev/fairmotion/src/editors/dopesheet/dopesheet_phantom.js');
-es6_module_define('dopesheet_transdata', ["../viewport/transdata.js", "../../util/mathlib.js", "../../core/animdata.js"], function _dopesheet_transdata_module(_es6_module) {
+es6_module_define('dopesheet_transdata', ["../../util/mathlib.js", "../../core/animdata.js", "../viewport/transdata.js"], function _dopesheet_transdata_module(_es6_module) {
   "use strict";
   var MinMax=es6_import_item(_es6_module, '../../util/mathlib.js', 'MinMax');
   var TransDataItem=es6_import_item(_es6_module, '../viewport/transdata.js', 'TransDataItem');
@@ -8205,7 +9140,6 @@ es6_module_define('dopesheet_transdata', ["../viewport/transdata.js", "../../uti
     static  update(ctx, td) {
       var fs=ctx.frameset;
       fs.check_vdata_integrity();
-      window.redraw_ui();
     }
     static  calc_prop_distances(ctx, td, data) {
 
@@ -8767,7 +9701,7 @@ es6_module_define('dopesheet_ops', ["./dopesheet_phantom.js", "../../core/toolpr
   DeleteKeyOp = _es6_module.add_export('DeleteKeyOp', DeleteKeyOp);
   
 }, '/dev/fairmotion/src/editors/dopesheet/dopesheet_ops.js');
-es6_module_define('dopesheet_ops_new', ["../../path.ux/scripts/util/util.js", "../../core/animdata.js", "../../path.ux/scripts/util/vectormath.js", "../../curve/spline_base.js", "../../core/toolprops.js", "../../core/toolops_api.js"], function _dopesheet_ops_new_module(_es6_module) {
+es6_module_define('dopesheet_ops_new', ["../../path.ux/scripts/util/util.js", "../../core/toolops_api.js", "../../path.ux/scripts/util/vectormath.js", "../../core/animdata.js", "../../core/toolprops.js", "../../curve/spline_base.js"], function _dopesheet_ops_new_module(_es6_module) {
   var ToolOp=es6_import_item(_es6_module, '../../core/toolops_api.js', 'ToolOp');
   var AnimKeyFlags=es6_import_item(_es6_module, '../../core/animdata.js', 'AnimKeyFlags');
   var AnimKeyTypes=es6_import_item(_es6_module, '../../core/animdata.js', 'AnimKeyTypes');
@@ -8905,7 +9839,6 @@ es6_module_define('dopesheet_ops_new', ["../../path.ux/scripts/util/util.js", ".
           }
       }
       else {
-        console.warn("basic iter");
         let frameset=ctx.frameset;
         let spline=frameset.spline;
         let pathspline=frameset.pathspline;
@@ -9677,12 +10610,13 @@ es6_module_define('app_ops', ["../util/svg_export.js", "../core/toolops_api.js",
   }
   import_json = _es6_module.add_export('import_json', import_json);
 }, '/dev/fairmotion/src/editors/app_ops.js');
-es6_module_define('editor_base', ["../path.ux/scripts/screen/ScreenArea.js", "../core/struct.js", "../path.ux/scripts/screen/FrameManager.js", "../curve/spline_draw.js", "./events.js", "../path.ux/scripts/core/ui_base.js"], function _editor_base_module(_es6_module) {
+es6_module_define('editor_base', ["../path.ux/scripts/core/ui_base.js", "../path.ux/scripts/screen/FrameManager.js", "../core/context.js", "../core/struct.js", "./events.js", "../core/toolops_api.js", "../path.ux/scripts/screen/ScreenArea.js", "../path.ux/scripts/util/util.js"], function _editor_base_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../path.ux/scripts/screen/ScreenArea.js', 'Area');
   var ScreenArea=es6_import_item(_es6_module, '../path.ux/scripts/screen/ScreenArea.js', 'ScreenArea');
   var Screen=es6_import_item(_es6_module, '../path.ux/scripts/screen/FrameManager.js', 'Screen');
   var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
   var ui_base=es6_import(_es6_module, '../path.ux/scripts/core/ui_base.js');
+  var util=es6_import(_es6_module, '../path.ux/scripts/util/util.js');
   var KeyMap=es6_import_item(_es6_module, './events.js', 'KeyMap');
   var ToolKeyHandler=es6_import_item(_es6_module, './events.js', 'ToolKeyHandler');
   var FuncKeyHandler=es6_import_item(_es6_module, './events.js', 'FuncKeyHandler');
@@ -9690,8 +10624,7 @@ es6_module_define('editor_base', ["../path.ux/scripts/screen/ScreenArea.js", "..
   var charmap=es6_import_item(_es6_module, './events.js', 'charmap');
   var TouchEventManager=es6_import_item(_es6_module, './events.js', 'TouchEventManager');
   var EventHandler=es6_import_item(_es6_module, './events.js', 'EventHandler');
-  var patch_canvas2d=es6_import_item(_es6_module, '../curve/spline_draw.js', 'patch_canvas2d');
-  var set_rendermat=es6_import_item(_es6_module, '../curve/spline_draw.js', 'set_rendermat');
+  var ModalStates=es6_import_item(_es6_module, '../core/toolops_api.js', 'ModalStates');
   var _area_active_stacks={}
   _area_active_stacks = _es6_module.add_export('_area_active_stacks', _area_active_stacks);
   var _area_active_lasts={}
@@ -9718,8 +10651,11 @@ es6_module_define('editor_base', ["../path.ux/scripts/screen/ScreenArea.js", "..
   }
   resetAreaStacks = _es6_module.add_export('resetAreaStacks', resetAreaStacks);
   class FairmotionScreen extends Screen {
+    
      constructor() {
       super();
+      this.startFrame = 1;
+      this._lastFrameTime = util.time_ms();
       this.define_keymap();
     }
      init() {
@@ -9736,6 +10672,12 @@ es6_module_define('editor_base', ["../path.ux/scripts/screen/ScreenArea.js", "..
         ("saving new startup file.");
         g_app_state.set_startup_file();
       });
+      k.add(new HotKey("Space", [], "Animation Playback"), new FuncKeyHandler(() =>        {
+        this.ctx.screen.togglePlayback();
+      }));
+      k.add(new HotKey("Escape", [], "Animation Playback"), new FuncKeyHandler(() =>        {
+        this.ctx.screen.stopPlayback();
+      }));
     }
      on_keyup(e) {
       if (g_app_state.eventhandler!==this)
@@ -9763,8 +10705,38 @@ es6_module_define('editor_base', ["../path.ux/scripts/screen/ScreenArea.js", "..
       area.pop_ctx_active();
       return ret;
     }
+     stopPlayback() {
+      if (g_app_state.modalstate===ModalStates.PLAYING) {
+          console.log("Playback end");
+          g_app_state.popModalState(ModalStates.PLAYING);
+          this._lastFrameTime = util.time_ms();
+          window.redraw_viewport();
+      }
+    }
+     togglePlayback() {
+      if (g_app_state.modalstate===ModalStates.PLAYING) {
+          console.log("Playback end");
+          g_app_state.popModalState(ModalStates.PLAYING);
+          this._lastFrameTime = util.time_ms();
+          window.redraw_viewport();
+      }
+      else {
+        this.startFrame = this.ctx.scene.time;
+        console.log("Playback start");
+        g_app_state.pushModalState(ModalStates.PLAYING);
+      }
+    }
      update() {
       super.update();
+      if (g_app_state.modalstate===ModalStates.PLAYING) {
+          let scene=this.ctx.scene;
+          let dt=util.time_ms()-this._lastFrameTime;
+          let fps=scene.fps;
+          if (dt>1000.0/fps) {
+              scene.change_time(this.ctx, scene.time+1);
+              this._lastFrameTime = util.time_ms();
+          }
+      }
       if (this.ctx&&this.ctx.scene) {
           this.ctx.scene.on_tick(this.ctx);
       }
@@ -9826,10 +10798,12 @@ es6_module_define('editor_base', ["../path.ux/scripts/screen/ScreenArea.js", "..
       if (this.size!==undefined) {
           let w=~~(this.size[0]*dpi*dpi_scale);
           let h=~~(this.size[1]*dpi*dpi_scale);
-          let sw=this.size[0]+"px";
-          let sh=this.size[1]+"px";
-          canvas.style["left"] = "0px";
-          canvas.style["top"] = "0px";
+          let sw=(w/dpi/dpi_scale)+"px";
+          let sh=(h/dpi/dpi_scale)+"px";
+          if (canvas.style["left"]!=="0px") {
+              canvas.style["left"] = "0px";
+              canvas.style["top"] = "0px";
+          }
           if (canvas.width!==w||canvas.style["width"]!==sw) {
               canvas.width = w;
               canvas.style["width"] = sw;
@@ -9890,7 +10864,7 @@ es6_module_define('editor_base', ["../path.ux/scripts/screen/ScreenArea.js", "..
      pop_ctx_active(ctx) {
       let cls=this.constructor;
       var stack=_get_area_stack(cls);
-      if (stack.length==0||stack[stack.length-1]!==this) {
+      if (stack.length===0||stack[stack.length-1]!==this) {
           console.trace();
           console.log("Warning: invalid Area.pop_active() call");
           return ;
@@ -9911,6 +10885,7 @@ es6_module_define('editor_base', ["../path.ux/scripts/screen/ScreenArea.js", "..
   Editor.STRUCT = STRUCT.inherit(Editor, Area)+`
 }
 `;
+  var FullContext=es6_import_item(_es6_module, '../core/context.js', 'FullContext');
 }, '/dev/fairmotion/src/editors/editor_base.js');
 es6_module_define('manipulator', ["../../util/mathlib.js", "../../config/config.js"], function _manipulator_module(_es6_module) {
   "use strict";

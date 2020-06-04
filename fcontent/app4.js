@@ -10344,7 +10344,7 @@ es6_module_define('ui_listbox', ["../util/util.js", "./ui_table.js", "../toolsys
   _es6_module.add_class(ListBox);
   UIBase.register(ListBox);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_listbox.js');
-es6_module_define('ui_menu', ["../util/util.js", "../toolsys/simple_toolsys.js", "../util/vectormath.js", "../config/const.js", "../util/events.js", "./ui_button.js", "../core/ui_base.js", "../util/simple_events.js", "../toolsys/toolprop.js"], function _ui_menu_module(_es6_module) {
+es6_module_define('ui_menu', ["./ui_button.js", "../util/vectormath.js", "../config/const.js", "../core/ui_base.js", "../util/simple_events.js", "../util/events.js", "../util/util.js", "../toolsys/toolprop.js", "../toolsys/simple_toolsys.js"], function _ui_menu_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../util/util.js');
   var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');

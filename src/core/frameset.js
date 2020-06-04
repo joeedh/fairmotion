@@ -231,7 +231,8 @@ export class SplineKCache {
     }
 
     let hash = this.calchash(spline);
-    console.log("hash", hash, "should be", this.cache[frame].hash);
+    if (_DEBUG.timeChange)
+      console.log("hash", hash, "should be", this.cache[frame].hash);
 
     return this.cache[frame].hash === hash;
   }
@@ -688,7 +689,8 @@ export class SplineFrameSet extends DataBlock {
   }
 
   update_visibility() {
-    console.log("update_visibility called");
+    if (_DEBUG.timeChange)
+      console.log("update_visibility called");
 
 
     if (!this.switch_on_select)
@@ -845,9 +847,13 @@ export class SplineFrameSet extends DataBlock {
         continue;
       
       var vdata = this.get_vdata(v.eid);
-      vdata.update(v, time);
+      let update = vdata.update(v, time);
       
       v.flag &= ~SplineFlags.FRAME_DIRTY;
+
+      if (update) {
+        spline.flagUpdateKeyframes(v);
+      }
     }
     
     if (!found) return;
@@ -1044,7 +1050,8 @@ export class SplineFrameSet extends DataBlock {
 
       //* XXX fixme, load cached curve k parameters
       if (this.kcache.has(time, spline)) {
-        console.log("found cached k data!");
+        if (_DEBUG.timeChange)
+          console.log("found cached k data!");
 
         this.kcache.load(time, spline);
         set_update = false;
@@ -1097,7 +1104,7 @@ export class SplineFrameSet extends DataBlock {
     this.vertex_animdata = {};
   }
   
-  get_vdata(eid, auto_create=true) {
+  get_vdata(eid, auto_create=true) : VertexAnimData {
     if (typeof eid != "number") {
       throw new Error("Expected a number for eid");
     }
@@ -1198,9 +1205,11 @@ export class SplineFrameSet extends DataBlock {
     g.stroke();
     //*/
 
-    this.spline.draw(redraw_rects, g, editor, matrix, editor.selectmode, editor.only_render, editor.draw_normals, this.spline===ctx.spline ? 1.0 : 0.3,
+    let promise = this.spline.draw(redraw_rects, g, editor, matrix, editor.selectmode, editor.only_render, editor.draw_normals, this.spline===ctx.spline ? 1.0 : 0.3,
                      undefined, undefined, ignore_layers);
     g.restore();
+
+    return promise;
   }
   
   loadSTRUCT(reader) {

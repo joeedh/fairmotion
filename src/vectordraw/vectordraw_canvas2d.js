@@ -365,7 +365,15 @@ export class Batch {
     let last_pan = new Vector2(draw.pan);
     last_pan[1] = draw.canvas.height - last_pan[1];
 
+    this.pending = true;
+
     vectordraw_jobs.manager.postRenderJob(renderid, commands).then((data) => {
+      this.pending = false;
+
+      if (this.onRenderDone) {
+        this.onRenderDone(this);
+      }
+
       if (debug) console.warn("Got render result!");
       this.gen_req = 0;
 
@@ -401,6 +409,7 @@ export class Batch {
     //window.pan = [draw.pan[0], draw.pan[1]]
 
     if (this.regen) {
+      this.pending = true;
       this.gen(draw);
     }
 
@@ -423,49 +432,29 @@ export class Batch {
 
     //scale = 1.2;
     //XXX bypass patch methods
-    if (g._drawImage != undefined) {
-      g.save();
+    g.save();
 
-      g._scale(scale, scale);
+    g.scale(scale, scale);
 
-      g._translate(offx, offy);
+    g.translate(offx, offy);
 
-      g._translate(this._image_off[0], this._image_off[1]);
-      g._drawImage(this._image, 0, 0);
+    g.translate(this._image_off[0], this._image_off[1]);
+    g.drawImage(this._image, 0, 0);
 
-      /*
-      g.beginPath();
-      g._rect(0, 0, this._image.width, this._image.height);
-      g.fillStyle = "rgba(0,255,0,0.4)";
-      g.fill();
-      //*/
+    /*
+    g.beginPath();
+    g.rect(0, 0, this._image.width, this._image.height);
+    g.fillStyle = "rgba(0,255,0,0.4)";
+    g.fill();
+    //*/
 
-      g.restore();
-      /*
-      if (g._resetTransform)
-        g._resetTransform();
-      else
-        g.resetTransform();
-      //*/
-    } else {
-      g.save();
-
-      g.scale(scale, scale);
-
-      g.translate(this._image_off[0], this._image_off[1]);
-      g.translate(offx, offy);
-
-      g.drawImage(this._image, 0, 0);
-
-      /*
-      g.beginPath();
-      g.rect(0, 0, this._image.width, this._image.height);
-      g.fillStyle = "rgba(0,255,0,0.4)";
-      g.fill();
-      //*/
-      //g.resetTransform();
-      g.restore();
-    }
+    g.restore();
+    /*
+    if (g.resetTransform)
+      g.resetTransform();
+    else
+      g.resetTransform();
+    //*/
   }
 }
 
@@ -759,23 +748,13 @@ export class CanvasPath extends QuadBezPath {
     g.imageSmoothingEnabled = false;
     //console.log(this.aabb[0][0], this.aabb[0][1], offx, offy, this.off, this.commands, draw.matrix);
     
-    //XXX bypass patch methods
-    if (g._drawImage !== undefined) {
-      g._drawImage(this._image, this._image_off[0]+offx, this._image_off[1]+offy);
+    g.drawImage(this._image, this._image_off[0]+offx, this._image_off[1]+offy);
 
-      g.beginPath();
-      g._rect(this._image_off[0]+offx, this._image_off[1]+offy, this._image.width, this._image.height);
-      g.rect(this._image_off[0]+offx, this._image_off[1]+offy, this._image.width, this._image.height);
-      g.fillStyle = "rgba(0,255,0,0.4)";
-      g.fill();
-    } else {
-      g.drawImage(this._image, this._image_off[0]+offx, this._image_off[1]+offy);
-
-      g.beginPath();
-      g.rect(this._image_off[0]+offx, this._image_off[1]+offy, this._image.width, this._image.height);
-      g.fillStyle = "rgba(0,255,255,0.4)";
-      g.fill();
-    }
+    g.beginPath();
+    g.rect(this._image_off[0]+offx, this._image_off[1]+offy, this._image.width, this._image.height);
+    g.rect(this._image_off[0]+offx, this._image_off[1]+offy, this._image.width, this._image.height);
+    g.fillStyle = "rgba(0,255,0,0.4)";
+    g.fill();
   }
   
   update() {
@@ -793,15 +772,15 @@ export class Batches extends Array {
     this.drawlist = [];
   }
 
-  getHead() {
+  getHead(onBatchDone) {
     if (this.drawlist.length > 0) {
       return this.drawlist[this.drawlist.length-1];
     }
 
-    return this.requestBatch();
+    return this.requestBatch(onBatchDone);
   }
 
-  requestBatch() {
+  requestBatch(onrenderdone) {
     let ret;
 
     if (this.cur < this.length) {
@@ -809,8 +788,11 @@ export class Batches extends Array {
 
       ret = this[this.cur++];
     } else {
+      let b = new Batch();
+      b.onRenderDone = onrenderdone;
+
       this.cur++;
-      this.push(new Batch());
+      this.push(b);
 
       this.drawlist.push(this[this.length-1]);
       ret = this[this.length-1];
@@ -861,7 +843,10 @@ export class CanvasDraw2D extends VectorDraw {
 
   constructor() {
     super();
-    
+
+    this.promise = undefined;
+    this.on_batches_finish = undefined;
+
     this.paths = [];
     this.path_idmap = {};
     this.dosort = true;
@@ -878,8 +863,24 @@ export class CanvasDraw2D extends VectorDraw {
     this.canvas = undefined;
     this.g = undefined;
     this.batches = new Batches();
+    this.onBatchDone = this.onBatchDone.bind(this);
   }
-  
+
+  onBatchDone(batch) {
+    let ok = true;
+    for (let b of this.batches.drawlist) {
+      if (b.pending) {
+        ok = false;
+      }
+    }
+
+    if (ok && this.promise) {
+      this.promise = undefined;
+      console.log("Draw finished!");
+      this.on_batches_finish();
+    }
+  }
+
   has_path(id, z, check_z=true) {
     if (z === undefined) {
       throw new Error("z cannot be undefined");
@@ -962,7 +963,7 @@ export class CanvasDraw2D extends VectorDraw {
     let blimit = this.paths.length < 15 ? 15 : Math.ceil(this.paths.length / vectordraw_jobs.manager.max_threads);
     //console.log("batch limit", blimit);
 
-    batch = this.batches.getHead();
+    batch = this.batches.getHead(this.onBatchDone);
 
     var canvas = g.canvas;
     var off = canvaspath_draw_vs.next();
@@ -1004,7 +1005,7 @@ export class CanvasDraw2D extends VectorDraw {
       if (debug) console.log("SORT");
 
       this.batches.destroy();
-      batch = this.batches.requestBatch();
+      batch = this.batches.requestBatch(this.onBatchDone);
 
       this.dosort = 0;
       this.paths.sort(function(a, b) {
@@ -1039,7 +1040,7 @@ export class CanvasDraw2D extends VectorDraw {
 
         if (needsblur) {
           if (!batch.isBlurBatch) {
-            batch = this.batches.requestBatch();
+            batch = this.batches.requestBatch(this.onBatchDone);
             batch.isBlurBatch = true;
             batch.dpi_scale = path.blur*zoom > 50 ? 0.1 : 0.25;
           } else {
@@ -1047,7 +1048,7 @@ export class CanvasDraw2D extends VectorDraw {
             batch.dpi_scale = Math.min(batch.dpi_scale, scale);
           }
         } else if (batch.isBlurBatch || (batch.paths.length * (1.0 + w1 * 4.0) > blimit)) {
-          batch = this.batches.requestBatch();
+          batch = this.batches.requestBatch(this.onBatchDone);
         }
 
         batch.add(path);
@@ -1070,6 +1071,27 @@ export class CanvasDraw2D extends VectorDraw {
     for (let batch of this.batches.drawlist) {
       batch.draw(this);
     }
+
+    if (!this.promise) {
+      this.promise = new Promise((accept, reject) => {
+        this.on_batches_finish = accept;
+      });
+    }
+
+    let ok = true;
+    for (let b of this.batches) {
+      if (b.pending) {
+        ok = false;
+      }
+    }
+
+    if (ok) {
+      window.setTimeout(() => {
+        this.onBatchDone();
+      });
+    }
+
+    return this.promise;
   }
   
   //set draw matrix

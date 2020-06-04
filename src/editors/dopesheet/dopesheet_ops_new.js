@@ -146,8 +146,6 @@ export class AnimKeyTool extends ToolOp {
         }
       }
     } else {
-      console.warn("basic iter");
-
       let frameset = ctx.frameset;
       let spline = frameset.spline; //not path spline
       let pathspline = frameset.pathspline;

@@ -978,11 +978,18 @@ export class DopeSheetEditor extends Editor {
       this.ctx.toolstack.execTool(this.ctx, tool);
 
       return;
+    } else if (e.button === 0 && !e.altKey && !e.shiftKey && !e.ctrlKey && !e.commandKey) {
+      let p1 = new Vector2(this.getLocalMouse(e.x, e.y));
+      this.unproject(p1);
+      let time1 = ~~(p1[0]/this.boxSize+0.5);
+
+      this.ctx.scene.change_time(this.ctx, time1);
+      console.log("time", time1);
     }
 
-    //if (e.button > 0) {
+    if (e.button > 0 || e.altKey) {
       this.ctx.toolstack.execTool(this.ctx, new PanOp(this));
-    //}
+    }
   }
 
   getLocalMouse(x, y) {
@@ -1044,7 +1051,7 @@ export class DopeSheetEditor extends Editor {
   on_mousemove(e) {
     if (!this.mdown) {
       this.updateHighlight(e);
-    } else {
+    } else if (this.activeBoxes.highlight) {
       let mpos = new Vector2([e.x, e.y]);
       let dist = this.start_mpos.vectorDistance(mpos);
 
@@ -1056,6 +1063,15 @@ export class DopeSheetEditor extends Editor {
 
         let tool = new MoveKeyFramesOp();
         this.ctx.api.execTool(this.ctx, tool);
+      }
+    } else {
+      let p1 = new Vector2(this.getLocalMouse(e.x, e.y));
+      this.unproject(p1);
+      let time1 = ~~(p1[0]/this.boxSize+0.5);
+
+      if (time1 !== this.ctx.scene.time) {
+        this.ctx.scene.change_time(this.ctx, time1);
+        console.log("time", time1);
       }
     }
   }
@@ -1170,8 +1186,8 @@ export class DopeSheetEditor extends Editor {
           continue;
         }
 
-        let timescale = this.timescale;
-        let boxsize = this.boxSize;
+        timescale = this.timescale;
+        boxsize = this.boxSize;
 
         for (let v2 of vd.verts) {
           let ki = keys.length;
@@ -1369,7 +1385,9 @@ export class DopeSheetEditor extends Editor {
     let canvas = this.canvas = this.getCanvas("bg", "-1");
     let g = this.canvas.g;
 
-    console.log("dopesheet draw!");
+    if (_DEBUG.timeChange)
+      console.log("dopesheet draw!");
+
     //g.clearRect(0, 0, canvas.width, canvas.height);
     g.beginPath()
     g.rect(0, 0, canvas.width, canvas.height);
@@ -1482,7 +1500,8 @@ export class DopeSheetEditor extends Editor {
 
     //g.fill();
 
-    console.log("D", off, tot, bwid);
+    if (_DEBUG.timeChange)
+      console.log("D", off, tot, bwid);
 
     let ts = this.getDefault("DefaultText").size*UIBase.getDPI();
     g.fillStyle = this.getDefault("DefaultText").color;
@@ -1576,13 +1595,15 @@ export class DopeSheetEditor extends Editor {
     };
 
     let on_time_change = (ctx, inputs, outputs, graph) => {
-      console.log("dopesheet time change callback");
+      if (_DEBUG.timeChange)
+        console.log("dopesheet time change callback");
       this.redraw();
     };
 
     this.nodes.push(on_sel);
     this.nodes.push(on_vert_change);
     this.nodes.push(on_time_change);
+
 
     the_global_dag.link(ctx.scene, ["on_time_change"], on_time_change, ["on_time_change"]);
 
@@ -1592,6 +1613,7 @@ export class DopeSheetEditor extends Editor {
 
     //callback for when verts are added and removed
     the_global_dag.link(ctx.frameset.spline, ["on_vert_change"], on_vert_change, ["verts"]);
+    the_global_dag.link(ctx.frameset.spline, ["on_keyframe_insert"], on_vert_change, ["verts"]);
 
     the_global_dag.link(ctx.frameset.pathspline, ["on_vert_time_change"], on_vert_time_change, ["verts"]);
   }

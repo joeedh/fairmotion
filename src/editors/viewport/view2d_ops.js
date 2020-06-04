@@ -641,7 +641,6 @@ export class FrameChangeOp extends ToolOp {
 import {SimpleCanvasDraw2D} from '../../vectordraw/vectordraw_canvas2d_simple.js';
 import {draw_spline} from '../../curve/spline_draw.js';
 import {save_file} from '../../core/fileapi/fileapi.js';
-import {patch_canvas2d, set_rendermat} from '../../curve/spline_draw.js';
 import {SplineDrawer} from '../../curve/spline_draw_new.js';
 
 export class ExportCanvasImage extends ToolOp {
@@ -662,9 +661,7 @@ export class ExportCanvasImage extends ToolOp {
     
     //add in custom matrix code
     var g = canvas.getContext("2d");
-    patch_canvas2d(g);
-    set_rendermat(g, view2d.rendermat);
-    
+
     var vecdrawer = new SimpleCanvasDraw2D();
     vecdrawer.canvas = canvas;
     vecdrawer.g = g;
@@ -679,11 +676,11 @@ export class ExportCanvasImage extends ToolOp {
     
     //force full update
     drawer.recalc_all = true;
-    drawer.update(spline, spline.drawlist, spline.draw_layerlist, view2d.rendermat, 
+    drawer.update(spline, spline.drawlist, spline.draw_layerlist, view2d.genMatrix(),
                   [], view2d.only_render, view2d.selectmode, g, view2d.zoom, view2d);
     
     try {
-      draw_spline(spline, [], g, view2d, view2d.selectmode, 
+      draw_spline(spline, [], g, view2d, view2d.genMatrix(), view2d.selectmode,
                   view2d.only_render, view2d.draw_normals, 1.0, 
                   true, ctx.frameset.time);
     } catch (error) {

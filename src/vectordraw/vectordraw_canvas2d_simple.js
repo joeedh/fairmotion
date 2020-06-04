@@ -453,6 +453,9 @@ export class SimpleCanvasDraw2D extends VectorDraw {
 
     //console.log(this.matrix);
     //console.log(this.g);
+    return new Promise((accept, reject) => {
+      accept();
+    });
   }
   
   //set draw matrix

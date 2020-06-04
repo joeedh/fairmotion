@@ -339,6 +339,7 @@ def js_parse(data, args=None, file="", flatten=True,
   glob.reset()
   glob.g_exit_on_err = exit_on_err
   glob.g_lexer = plexer
+  linemap = glob.g_lexer.linemap
   glob.g_lexdata = data
   glob.g_production_debug = False
   glob.g_file = file
@@ -359,6 +360,7 @@ def js_parse(data, args=None, file="", flatten=True,
     pass
 
   glob.g_inside_js_parse = False
+  glob.g_lexer.linemap = linemap
 
   if glob.g_error:
     ret = None
@@ -1191,6 +1193,10 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
 
     return buf, result
 
+  if 1: #glob.g_enable_let:
+    process_let(result, typespace)
+    pass
+
   flatten_var_decls_exprlists(result, typespace)
 
   if glob.g_type_file != "":
@@ -1238,10 +1244,6 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
   if glob.g_compile_statics_only:
     process_static_vars(result, typespace)
     return result.gen_js(0), result
-
-  if glob.g_enable_let:
-    process_let(result, typespace)
-    pass
 
   if glob.g_force_global_strict:
     kill_bad_globals(result, typespace)

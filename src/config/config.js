@@ -58,6 +58,7 @@ export * from './config_local';
 
 //debug flags
 window._DEBUG = {
+  timeChange : false,
   dag : false,
   theme : false,
   no_native : false,

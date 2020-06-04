@@ -82,8 +82,8 @@ class LetVisitor (NodeVisit):
     if type(node.parent) == BinOpNode and node.parent.op == "." and node == node.parent[1]:
       return
       
-    if node.val in scope and scope[node.val].type == "let":
-      node.val = scope[node.val].uuid
+    #if node.val in scope and scope[node.val].type == "let":
+    #  node.val = scope[node.val].uuid
   
   def ForLoopNode(self, node, scope, traverse, tlevel):
     scope = copy_scope(scope)
@@ -93,24 +93,23 @@ class LetVisitor (NodeVisit):
     
   def VarDeclNode(self, node, scope, traverse, tlevel):
     if node.val in scope:
-      if scope[node.val].nest == 0 and "let" in node.modifiers:
-        self.typespace.error(node.val + " is alreaady let-declared", node);
+      if scope[node.val].nest == 0 and ("let" in node.modifiers or "const" in node.modifiers):
+        self.typespace.error(node.val + " is already let-declared", node);
       else:
         del scope[node.val]
     
     if "let" in node.modifiers:
       if hasattr(scope, "func_parent") and node.val in scope.func_parent:
         p = scope.func_parent
-        
         if p[node.val].type == "let" and p[node.val].func_nest == 0:
           self.typespace.error("Tried to let variable that was \n\t\tlet'd in parent function scope", node);
           
-      if node.val in scope and scope[node.val].type == "let":
-        self.typespace.error(node.val + " is alreaady let-declared", node);
+      if node.val in scope and scope[node.val].type in ["let", "const"]:
+        self.typespace.error(node.val + " is already let-declared", node);
       
       rec = ScopeRecord("let", node.val)
       scope[node.val] = rec
-      node.val = rec.uuid
+      #node.val = rec.uuid
       
     for c in node:
       traverse(c, scope, tlevel)

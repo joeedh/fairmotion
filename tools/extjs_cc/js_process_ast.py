@@ -1184,7 +1184,8 @@ class NodeVisit:
         self.traverse(c, scope, tlevel)
     else:
       getattr(self, typestr)(node, scope, self.traverse, tlevel)
- 
+
+
 def tab2(t):
   s = ""
   for i in range(t):

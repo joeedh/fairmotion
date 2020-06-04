@@ -198,6 +198,9 @@ class JSTypeSpace:
     sys.stderr.write("\n%s:(%s): warning: %s"%(srcnode.file, srcnode.line+1, msg))
   
   def error(self, msg, srcnode):
+    if srcnode and srcnode.line <= 1 and srcnode.lexpos < len(glob.g_lexer.linemap):
+        srcnode.line = glob.g_lexer.linemap[srcnode.lexpos]
+
     if glob.g_print_stack:
       pass #traceback.print_stack()
 

@@ -158,9 +158,6 @@ export class SplineToolMode extends ToolMode {
       }
     }));*/
 
-    k.add_tool(new HotKey("A", ["ALT"], "Animation Playback"),
-      "editor.playback()");
-
     k.add_tool(new HotKey("H", [], "Hide Selection"),
       "spline.hide(selmode=selectmode)");
     k.add_tool(new HotKey("H", ["ALT"], "Reveal Selection"),

@@ -29,7 +29,6 @@ export class TransDopeSheetType {
     var fs = ctx.frameset;
 
     fs.check_vdata_integrity();
-    window.redraw_ui();
   }
   
   static calc_prop_distances(ToolContext ctx, TransData td, Array<TransDataItem> data) {

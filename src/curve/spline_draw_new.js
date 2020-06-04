@@ -587,10 +587,7 @@ export class SplineDrawer {
   }
   
   draw(g) {
-    //console.log("DRAWDRAW!", canvas, g, this, Canvas, Canvas.prototype.draw);
-    
-    this.drawer.draw(g);
-    return; //XXX
+    return this.drawer.draw(g);
 /*    
     this.canvas = canvas;
     this.g = g;

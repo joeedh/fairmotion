@@ -188,9 +188,10 @@ export function draw_spline(spline, redraw_rects, g, editor, matrix, selectmode,
     zoom = 1.0;
   }
 
+
   spline.drawer.update(spline, spline.drawlist, spline.draw_layerlist, matrix, 
                        redraw_rects, only_render, selectmode, g, zoom, editor, ignore_layers);
-  spline.drawer.draw(editor.drawg);
+  let promise = spline.drawer.draw(editor.drawg);
   
   var actlayer = spline.layerset.active;
 
@@ -212,7 +213,7 @@ export function draw_spline(spline, redraw_rects, g, editor, matrix, selectmode,
   if (!only_render && draw_normals)
     draw_curve_normals(spline, g, zoom);
   
-  static r = [[0, 0], [0, 0]];
+  let r = [[0, 0], [0, 0]];
   
   for (var s of spline.segments) {
     s.flag &= ~SplineFlags.DRAW_TEMP;
@@ -224,7 +225,7 @@ export function draw_spline(spline, redraw_rects, g, editor, matrix, selectmode,
   var vert_size = editor.draw_small_verts ? SMALL_VERT_SIZE : VERT_SIZE;
   
   if (only_render)
-    return;
+    return promise;
   
   //draw element handles
   
@@ -322,205 +323,8 @@ export function draw_spline(spline, redraw_rects, g, editor, matrix, selectmode,
     g.arc(spline.trans_cent[0], spline.trans_cent[1], spline.prop_radius, -PI, PI);
     g.stroke();
   }
-}
 
-export function patch_canvas2d(g) {
-    var this2 = this;
-    //g._is_patched = this;
-    
-    if (g._lineTo == undefined) {
-      g._lineTo = g.lineTo;
-      g._moveTo = g.moveTo;
-      g._drawImage = g.drawImage;
-      g._putImageData = g.putImageData;
-      g._rect = g.rect;
-      g._bezierCurveTo = g.bezierCurveTo;
-      g._clearRect = g.clearRect;
-      g._translate = g.translate;
-      g._scale = g.scale;
-      g._rotate = g.rotate;
-    }
-    return;
-
-    var a = new Vector3(), b = new Vector3(), c = new Vector3(), d = new Vector3();
-    
-    function transform(g, co) {
-      var rendermat = g._render_mat;
-      
-      if (rendermat != undefined) {
-        co.multVecMatrix(rendermat);
-      }
-
-      let dpiscale = g.canvas.dpi_scale || 1.0;
-      co[1] = g.canvas.height/dpiscale - co[1];
-    }
-    
-    function untransform(g, co) {
-      var rendermat = g._irender_mat;
-      
-      let dpiscale = g.canvas.dpi_scale || 1.0;
-
-      co[1] = g.canvas.height/dpiscale - co[1];
-      
-      if (rendermat != undefined) {
-        co.multVecMatrix(rendermat);
-      }
-    }
-    
-    /*g.translate = function(x, y) {
-      this._render_mat.translate(x, y, 0.0);
-    }
-    
-    g.scale = function(x, y) {
-      this._render_mat.scale(x, y, 1.0);
-    }*/
-    
-    var co = new Vector3(), co2 = new Vector3();
-    
-    g.moveTo = function(x, y) {
-      co.zero(); co[0] = x; co[1] = y;
-      transform(this, co);
-      
-      g._moveTo(co[0], co[1]);
-    }
-    
-    g._arc = g.arc;
-    g.arc = function(x, y, r, th1, th2) {
-      co[0] = x;
-      co[1] = y;
-      
-      co2[0] = x + Math.sin(th1)*r;
-      co2[1] = y + Math.cos(th1)*r;
-  
-      co[2] = co2[2] = 0.0;
-
-      transform(this, co);
-      transform(this, co2);
-      
-      r = co.vectorDistance(co2);
-      
-      co2.sub(co);
-      let th = Math.atan2(co2[1], co2[0]);
-      
-      let dth = th - th1;
-      dth = 0; //XXX
-      
-      g._arc(co[0], co[1], r, th1 + dth, th2 + dth);
-    }
-    
-    g.drawImage = function(image) {
-      if (arguments.length == 3) {
-        var x = arguments[1], y = arguments[2];
-        var w = x+image.width, h = y+image.height;
-        
-        co.zero(); co[0] = x; co[1] = y;
-        transform(this, co);
-        
-        x = co[0], y = co[1];
-        
-        co.zero(); co[0] = w; co[1] = h;
-        transform(this, co);
-        
-        console.log(x, y, "w, h", Math.abs(co[0]-x), Math.abs(co[1]-y), w, h);
-        this._drawImage(image, x, y, Math.abs(co[0]-x), Math.abs(co[1]-y));
-      } else if (arguments.length == 5) {
-        var x = arguments[1], y = arguments[2];
-        var w = x+arguments[3], h = y+arguments[4];
-        
-        co.zero(); co[0] = x; co[1] = y;
-        transform(this, co);
-        
-        x = co[0], y = co[1];
-        
-        co.zero(); co[0] = w; co[1] = h;
-        transform(this, co);
-        
-        console.log(x, y, "w, h", Math.abs(co[0]-x), Math.abs(co[1]-y), w, h);
-        this._drawImage(image, x, y, Math.abs(co[0]-x), Math.abs(co[1]-y));
-      } else {
-        throw new Error("Invalid call to drawImage")
-      }
-    }
-    
-    g.putImageData = function(imagedata) {
-      if (arguments.length == 3) {
-        co.zero(); co[0] = arguments[1]; co[1] = arguments[2];
-        transform(this, co);
-        var x = co[0], y = co[1];
-        
-        //co[0] = arguments[1]+imagedata.width; co[1] = arguments[1]+imagedata.height;
-        //transform(this, co);
-        
-        //var w = co[0]-x, h = co[1]-y;
-        
-        this._putImageData(imagedata, x, y);
-      } else if (arguments.length == 5) {
-        console.trace("Unimplemented!!!!");
-      } else {
-        throw new Error("Invalid number of argumnets to g.putImageData()");
-      }
-    }
-    
-    g.bezierCurveTo = function(x1, y1, x2, y2, x3, y3) {
-      co[0] = x1; co[1] = y1; co[2] = 0.0;
-      transform(this, co);
-      x1 = co[0], y1 = co[1];
-      
-      co[0] = x2; co[1] = y2; co[2] = 0.0;
-      transform(this, co);
-      x2 = co[0], y2 = co[1];
-      
-      co[0] = x3; co[1] = y3; co[2] = 0.0;
-      transform(this, co);
-      x3 = co[0], y3 = co[1];
-
-      this._bezierCurveTo(x1, y1, x2, y2, x3, y3);
-    }
-    
-    g.lineTo = function(x, y) {
-      co.zero(); co[0] = x; co[1] = y;
-      transform(this, co);
-      this._lineTo(co[0], co[1]);
-    }
-    
-    g.rect = function(x, y, wid, hgt) {
-      a.loadXYZ(x, y, 0); 
-      b.loadXYZ(x+wid, y+hgt, 0);
-      
-      transform(this, a); transform(this, b);
-      
-      var xmin = Math.min(a[0], b[0]), xmax = Math.max(a[0], b[0]);
-      var ymin = Math.min(a[1], b[1]), ymax = Math.max(a[1], b[1]);
-      
-      this._rect(xmin, ymin, Math.abs(xmax-xmin), Math.abs(ymax-ymin));
-    }
-    
-    g.clearRect = function(x, y, wid, hgt) {
-      a.loadXYZ(x, y, 0); 
-      b.loadXYZ(x+wid, y+hgt, 0);
-      
-      transform(this, a); transform(this, b);
-      
-      var xmin = Math.min(a[0], b[0]), xmax = Math.max(a[0], b[0]);
-      var ymin = Math.min(a[1], b[1]), ymax = Math.max(a[1], b[1]);
-      
-      this._clearRect(xmin, ymin, Math.abs(xmax-xmin), Math.abs(ymax-ymin));
-    }
-}
-
-export function set_rendermat(g, mat) {
-  if (g._is_patched == undefined) {
-    patch_canvas2d(g);
-  }
-  
-  g._render_mat = mat;
-  
-  if (g._irender_mat === undefined) {
-    g._irender_mat = new Matrix4(mat);
-  }
-  
-  g._irender_mat.load(mat);
-  g._irender_mat.invert();
+  return promise;
 }
 
 export function redraw_element(e, view2d) {

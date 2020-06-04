@@ -197,10 +197,13 @@ export class Scene extends DataBlock {
   object_idgen : EIDGen
   toolmode_i : number
   active_splinepath : string
-  time : number;
+  time : number
+  fps  : number;
 
   constructor() {
     super(DataTypes.SCENE);
+
+    this.fps = 24.0;
 
     this.edit_all_layers = false;
     
@@ -283,7 +286,8 @@ export class Scene extends DataBlock {
   }
 
   change_time(ctx, time, _update_animation=true) {
-    console.warn("Time change!", time, this.time);
+    if (_DEBUG.timeChange)
+      console.warn("Time change!", time, this.time);
 
     if (isNaN(this.time)) {
       console.warn("EEK corruption!");
@@ -304,7 +308,11 @@ export class Scene extends DataBlock {
     if (time < 1) {
        time = 1;
     }
-    
+
+    //draw one double buffered frame
+    window._wait_for_draw = true;
+    window.redraw_viewport();
+
     //console.log("Time change! Old time: ", this.time, ", new time: ", time);
     this.time = time;
     
@@ -314,8 +322,6 @@ export class Scene extends DataBlock {
     ctx.api.onFrameChange(ctx, time);
 
     this.dag_update("on_time_change", true);
-
-    window.redraw_viewport();
   }
   
   copy() : Scene {
@@ -440,6 +446,7 @@ Scene.STRUCT = STRUCT.inherit(Scene, DataBlock) + `
     active_toolmode   : string | this.toolmode !== undefined ? this.toolmode.constructor.toolDefine().name : "";
     edit_all_layers   : int;
     selectmode        : int;
+    fps               : float;
   }
 `;
 

@@ -332,7 +332,6 @@ export class OldAppSettings {
         g_app_state.session.settings = settings;
         if (g_app_state.screen != undefined) {
           redraw_viewport();
-          redraw_ui();
         }
         
         if (on_finish != undefined) {

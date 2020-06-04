@@ -1,10 +1,11 @@
 import {Area, ScreenArea} from '../path.ux/scripts/screen/ScreenArea.js';
 import {Screen} from '../path.ux/scripts/screen/FrameManager.js';
 import {STRUCT} from '../core/struct.js';
-import * as ui_base from "../path.ux/scripts/core/ui_base.js";
+import * as ui_base from '../path.ux/scripts/core/ui_base.js';
+import * as util from '../path.ux/scripts/util/util.js';
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
-  charmap, TouchEventManager, EventHandler} from "./events.js";
-import {patch_canvas2d, set_rendermat} from '../curve/spline_draw.js';
+  charmap, TouchEventManager, EventHandler} from './events.js';
+import {ModalStates} from '../core/toolops_api.js';
 
 export var _area_active_stacks = {}; //last active stacks for each area type
 export var _area_active_lasts = {};
@@ -40,9 +41,14 @@ export function resetAreaStacks() {
 primary app screen subclass
 */
 export class FairmotionScreen extends Screen {
+  ctx : FullContext;
+
   constructor() {
     super();
 
+    //used by playback
+    this.startFrame = 1;
+    this._lastFrameTime = util.time_ms();
     this.define_keymap();
   }
 
@@ -66,6 +72,13 @@ export class FairmotionScreen extends Screen {
        ("saving new startup file.");
       g_app_state.set_startup_file();
     });
+
+    k.add(new HotKey("Space", [], "Animation Playback"), new FuncKeyHandler(() => {
+      this.ctx.screen.togglePlayback();
+    }));
+    k.add(new HotKey("Escape", [], "Animation Playback"), new FuncKeyHandler(() => {
+      this.ctx.screen.stopPlayback();
+    }));
   }
   on_keyup(e) {
     if (g_app_state.eventhandler !== this)
@@ -100,8 +113,50 @@ export class FairmotionScreen extends Screen {
     return ret;
   }
 
+  stopPlayback() {
+    if (g_app_state.modalstate === ModalStates.PLAYING) {
+      console.log("Playback end");
+
+      g_app_state.popModalState(ModalStates.PLAYING);
+      this._lastFrameTime = util.time_ms();
+
+      //this.ctx.scene.change_time(this.ctx, this.startFrame, false);
+      //the_global_dag.exec();
+      window.redraw_viewport();
+    }
+  }
+
+  togglePlayback() {
+    if (g_app_state.modalstate === ModalStates.PLAYING) {
+      console.log("Playback end");
+
+      g_app_state.popModalState(ModalStates.PLAYING);
+      this._lastFrameTime = util.time_ms();
+
+      //this.ctx.scene.change_time(this.ctx, this.startFrame, false);
+      //the_global_dag.exec();
+      window.redraw_viewport();
+    } else {
+      this.startFrame = this.ctx.scene.time;
+      console.log("Playback start");
+      g_app_state.pushModalState(ModalStates.PLAYING);
+    }
+  }
+
   update() {
     super.update();
+
+    if (g_app_state.modalstate === ModalStates.PLAYING) {
+      let scene = this.ctx.scene;
+
+      let dt = util.time_ms() - this._lastFrameTime;
+      let fps = scene.fps;
+
+      if (dt > 1000.0 / fps) {
+        scene.change_time(this.ctx, scene.time+1);
+        this._lastFrameTime = util.time_ms();
+      }
+    }
 
     if (this.ctx && this.ctx.scene) {
       this.ctx.scene.on_tick(this.ctx);
@@ -183,13 +238,13 @@ export class Editor extends Area {
       let w = ~~(this.size[0] * dpi*dpi_scale);
       let h = ~~(this.size[1] * dpi*dpi_scale);
 
-      let sw = this.size[0] + "px";
-      let sh = this.size[1] + "px";
+      let sw = (w/dpi/dpi_scale) + "px";
+      let sh = (h/dpi/dpi_scale) + "px";
 
-      //canvas.style["left"] = this.pos[0] + "px";
-      //canvas.style["top"] = this.pos[1] + "px";
-      canvas.style["left"] =  "0px";
-      canvas.style["top"] = "0px";
+      if (canvas.style["left"] !== "0px") {
+        canvas.style["left"] =  "0px";
+        canvas.style["top"] = "0px";
+      }
 
       if (canvas.width !== w || canvas.style["width"] !== sw) {
         canvas.width = w;
@@ -273,7 +328,7 @@ export class Editor extends Area {
 
     var stack = _get_area_stack(cls);
 
-    if (stack.length == 0 || stack[stack.length - 1] !== this) {
+    if (stack.length === 0 || stack[stack.length - 1] !== this) {
       console.trace();
       console.log("Warning: invalid Area.pop_active() call");
       return;
@@ -295,3 +350,5 @@ export class Editor extends Area {
 Editor.STRUCT = STRUCT.inherit(Editor, Area) + `
 }
 `;
+
+import {FullContext} from "../core/context.js";

@@ -319,18 +319,20 @@ export class VertexAnimData {
   
   update(co, time) {
     this._set_layer();
+    let update = false;
     
     if (time < 0) {
       console.trace("ERROR! negative times not supported!");
       
       this._unset_layer();
-      return;
+      return false;
     }
     
-    if (this.startv == undefined) {
+    if (this.startv === undefined) {
       this.startv = this.spline.make_vertex(co);
       this._get_animdata(this.startv).time = 1;
-      
+
+      update = true;
       this.spline.regen_sort();
       this.spline.resolve = 1;
     }
@@ -338,10 +340,11 @@ export class VertexAnimData {
     var spline = this.spline;
     var seg = this.find_seg(time);
     
-    if (seg == undefined) {
+    if (seg === undefined) {
       var e = this.endv;
       
-      if (this._get_animdata(e).time == time) {
+      if (this._get_animdata(e).time === time) {
+        update = update || e.vectorDistance(co) > 0.01;
         e.load(co);
         e.flag |= SplineFlags.UPDATE;
       } else {
@@ -351,12 +354,15 @@ export class VertexAnimData {
         spline.make_segment(e, nv);
         
         spline.regen_sort();
+        update = true;
       }
     } else {
-      if (get_vtime(seg.v1) == time) {
+      if (get_vtime(seg.v1) === time) {
+        update = update || seg.v1.vectorDistance(co) > 0.01;
         seg.v1.load(co);
         seg.v1.flag |= SplineFlags.UPDATE;
-      } else if (get_vtime(seg.v2) == time) {
+      } else if (get_vtime(seg.v2) === time) {
+        update = update || seg.v2.vectorDistance(co) > 0.01;
         seg.v2.load(co);
         seg.v2.flag |= SplineFlags.UPDATE;
       } else {
@@ -366,12 +372,15 @@ export class VertexAnimData {
         spline.regen_sort();
         
         this._get_animdata(nv).time = time;
+        update = true;
         nv.load(co);
       }
     }
-    
+
     spline.resolve = 1;
     this._unset_layer();
+
+    return update;
   }
   
   get start_time() {

@@ -1,13 +1,8 @@
 import {DataTypes} from '../lib_api.js';
-import {EditModes} from '../../editors/viewport/view2d.js';
-import {ImageFlags, Image} from '../imageblock.js';
+import {EditModes, View2DHandler} from '../../editors/viewport/view2d.js';
+import {ImageFlags, Image, ImageUser} from '../imageblock.js';
 import {AppSettings} from '../UserSettings.js';
-
-import {
-  BoxColor4, BoxWColor, ColorTheme,
-  ThemePair, BoxColor,
-  darken
-} from '../../datafiles/theme.js';
+import {FullContext} from "../context.js";
 
 import {
   EnumProperty, FlagProperty,
@@ -28,8 +23,16 @@ import {ExtrudeModes} from '../../editors/viewport/spline_createops.js';
 import {DataFlags, DataPathTypes} from './data_api.js';
 import {OpStackEditor} from '../../editors/ops/ops_editor.js';
 
-import {AnimKeyFlags, AnimInterpModes} from '../animdata.js';
+import {AnimKeyFlags, AnimInterpModes, AnimKey} from '../animdata.js';
 import {VDAnimFlags} from '../frameset.js';
+
+import {ExtrudeModes} from '../../editors/viewport/spline_createops.js';
+import {SplineLayerFlags} from '../../curve/spline_element_array.js';
+import {Material, SplineFace, SplineSegment, SplineVertex} from "../../curve/spline_types.js";
+import {CurveEditor} from "../../editors/curve/CurveEditor.js";
+import {SceneObject} from "../../scene/sceneobject.js";
+import {DopeSheetEditor} from "../../editors/dopesheet/DopeSheetEditor.js";
+import {SettingsEditor} from "../../editors/settings/SettingsEditor.js";
 
 var SelModes = {
   VERTEX: SelMask.VERTEX,
@@ -127,7 +130,7 @@ function api_define_settings() {
 var SettingsEditorStruct = undefined;
 
 function api_define_seditor() {
-  SettingsEditorStruct = new DataStruct([]);
+  SettingsEditorStruct = new DataStruct([], SettingsEditor);
   
   return SettingsEditorStruct;
 }
@@ -183,14 +186,13 @@ function api_define_opseditor() {
   
   OpsEditorStruct = new DataStruct([
     new DataPath(filter_sel, "filter_sel", "filter_sel", true)
-  ]);
+  ], OpStackEditor);
   
   return OpsEditorStruct;
 }
 
 //*/
 
-import {ExtrudeModes} from '../../editors/viewport/spline_createops.js';
 
 var AnimKeyStruct = undefined;
 
@@ -200,7 +202,7 @@ function api_define_animkey() {
   
   AnimKeyStruct = new DataStruct([
     new DataPath(new IntProperty(-1, "id", "id"), "id", "id", true)
-  ]);
+  ], AnimKey);
   
   return AnimKeyStruct;
 }
@@ -275,7 +277,7 @@ function api_define_imageuser() {
     new DataPath(image, "image", "image", true),
     new DataPath(off, "off", "off", true),
     new DataPath(scale, "scale", "scale", true)
-  ]);
+  ], ImageUser);
   
   return ImageUserStruct;
 }
@@ -422,7 +424,7 @@ function api_define_view2d() {
     new DataPath(extrude_mode, "extrude_mode", "extrude_mode", true),
     new DataPath(new BoolProperty(0, "pin_paths", "Pin Paths", "Remember visible animation paths"), "pin_paths", "pin_paths", true),
     new DataPath(api_define_imageuser(), "background_image", "background_image", true)
-  ])
+  ], View2DHandler)
   
   return View2DStruct;
 }
@@ -459,7 +461,7 @@ function api_define_material() {
     new DataPath(fillclr, "fillcolor", "fillcolor", true),
     new DataPath(linewidth, "linewidth", "linewidth", true),
     new DataPath(flag, "flag", "flag", true)
-  ]);
+  ], Material);
   
   MaterialStruct.Color4("strokecolor", "strokecolor", "Stroke", "Stroke color").OnUpdate(update_base);
   MaterialStruct.Float("blur", "blur", "Blur", "Amount of blur").Range(0, 800).Step(0.5).OnUpdate(update_base);
@@ -476,7 +478,7 @@ function api_define_spline_face() {
     new DataPath(new IntProperty(0, "eid", "eid", "eid"), "eid", "eid", true),
     new DataPath(api_define_material(), "mat", "mat", true),
     new DataPath(flagprop, "flag", "flag", true)
-  ]);
+  ], SplineFace);
   
   return SplineFaceStruct;
 }
@@ -505,7 +507,7 @@ function api_define_spline_vertex() {
     new DataPath(new IntProperty(0, "eid", "eid", "eid"), "eid", "eid", true),
     new DataPath(flagprop, "flag", "flag", true),
     new DataPath(coprop, "co", "", true)
-  ]);
+  ], SplineVertex);
   
   return SplineVertexStruct;
 }
@@ -525,7 +527,7 @@ function api_define_spline_segment() {
   
   var zprop = new FloatProperty(0, "z", "z", "z");
   
-  zpath = new DataPath(zprop, "z", "z", true);
+  let zpath = new DataPath(zprop, "z", "z", true);
   zpath.update = function (segment, old_value, changed) {
     //XXX
     if (segment != undefined && old_value != undefined) {
@@ -568,12 +570,10 @@ function api_define_spline_segment() {
     new DataPath(new BoolProperty(0, "renderable", "renderable"), "renderable", "renderable", true),
     new DataPath(api_define_material(), "mat", "mat", true),
     zpath
-  ]);
+  ], SplineSegment);
   
   return SplineSegmentStruct;
 }
-
-import {SplineLayerFlags} from '../../curve/spline_element_array.js';
 
 var SplineLayerStruct;
 
@@ -629,11 +629,18 @@ function api_define_spline() {
       return this.length;
     });
   
-  function define_editable_element_array(the_struct) {
+  function define_editable_element_array(the_struct, name) {
+    window.getstruct1 = undefined;
+    eval(`
+    window.getstruct1 = function getstruct(item) {
+    
+      return ${name};
+      
+    } 
+    `);
+
     return new DataStructArray(
-      function getstruct(item) {
-        return the_struct;
-      },
+      getstruct1,
       function itempath(key) {
         return ".local_idmap[" + key + "]";
       },
@@ -664,11 +671,18 @@ function api_define_spline() {
       });
   }
 
-  function define_selected_element_array(the_struct) {
+  function define_selected_element_array(the_struct, name) {
+    window.getstruct1 = undefined;
+    eval(`
+    window.getstruct1 = function getstruct(item) {
+    
+      return ${name};
+      
+    } 
+    `);
+
     return new DataStructArray(
-      function getstruct(item) {
-        return the_struct;
-      },
+      getstruct1,
       function itempath(key) {
         return ".local_idmap[" + key + "]";
       },
@@ -699,11 +713,18 @@ function api_define_spline() {
       });
   }
 
-  function define_element_array(the_struct) {
+  function define_element_array(the_struct, name) {
+    window.getstruct1 = undefined;
+    eval(`
+    window.getstruct1 = function getstruct(item) {
+    
+      return ${name};
+      
+    } 
+    `);
+
     return new DataStructArray(
-      function getstruct(item) {
-        return the_struct;
-      },
+      getstruct1,
       function itempath(key) {
         return ".local_idmap[" + key + "]";
       },
@@ -732,20 +753,20 @@ function api_define_spline() {
     new DataPath(api_define_spline_face(), "active_face", "faces.active", true),
     new DataPath(api_define_spline_segment(), "active_segment", "segments.active", true),
     new DataPath(api_define_spline_vertex(), "active_vertex", "verts.active", true),
-    new DataPath(define_element_array(SplineFaceStruct), "faces", "faces", true),
-    new DataPath(define_element_array(SplineSegmentStruct), "segments", "segments", true),
-    new DataPath(define_element_array(SplineVertexStruct), "verts", "verts", true),
-    new DataPath(define_element_array(SplineVertexStruct), "handles", "handles", true),
+    new DataPath(define_element_array(SplineFaceStruct, "SplineFaceStruct"), "faces", "faces", true),
+    new DataPath(define_element_array(SplineSegmentStruct, "SplineSegmentStruct"), "segments", "segments", true),
+    new DataPath(define_element_array(SplineVertexStruct, "SplineVertexStruct"), "verts", "verts", true),
+    new DataPath(define_element_array(SplineVertexStruct, "SplineVertexStruct"), "handles", "handles", true),
 
-    new DataPath(define_editable_element_array(SplineFaceStruct), "editable_faces", "faces", true),
-    new DataPath(define_editable_element_array(SplineSegmentStruct), "editable_segments", "segments", true),
-    new DataPath(define_editable_element_array(SplineVertexStruct), "editable_verts", "verts", true),
-    new DataPath(define_editable_element_array(SplineVertexStruct), "editable_handles", "handles", true),
+    new DataPath(define_editable_element_array(SplineFaceStruct, "SplineFaceStruct"), "editable_faces", "faces", true),
+    new DataPath(define_editable_element_array(SplineSegmentStruct, "SplineSegmentStruct"), "editable_segments", "segments", true),
+    new DataPath(define_editable_element_array(SplineVertexStruct, "SplineVertexStruct"), "editable_verts", "verts", true),
+    new DataPath(define_editable_element_array(SplineVertexStruct, "SplineVertexStruct"), "editable_handles", "handles", true),
 
-    new DataPath(define_selected_element_array(SplineFaceStruct), "selected_facese", "faces", true),
-    new DataPath(define_selected_element_array(SplineSegmentStruct), "selected_segments", "segments", true),
-    new DataPath(define_selected_element_array(SplineVertexStruct), "selected_verts", "verts", true),
-    new DataPath(define_selected_element_array(SplineVertexStruct), "selected_handles", "handles", true),
+    new DataPath(define_selected_element_array(SplineFaceStruct, "SplineFaceStruct"), "selected_facese", "faces", true),
+    new DataPath(define_selected_element_array(SplineSegmentStruct, "SplineSegmentStruct"), "selected_segments", "segments", true),
+    new DataPath(define_selected_element_array(SplineVertexStruct, "SplineVertexStruct"), "selected_verts", "verts", true),
+    new DataPath(define_selected_element_array(SplineVertexStruct, "SplineVertexStruct"), "selected_handles", "handles", true),
 
     new DataPath(layerset, "layerset", "layerset", true),
     new DataPath(SplineLayerStruct, "active_layer", "layerset.active", true)
@@ -892,141 +913,6 @@ function api_define_scene() {
   return SceneStruct;
 }
 
-function get_theme_color(color) {
-  var st;
-  
-  var name = new StringProperty("", "name", "name", "name");
-  name = new DataPath(name, "name", "[0]", true);
-  
-  if (color[1] instanceof BoxColor4) {
-    var type = new StringProperty("Corners", "type", "type");
-    var c1 = new Vec4Property(new Vector4(), "c1", "c1", "Color 1");
-    var c2 = new Vec4Property(new Vector4(), "c2", "c2", "Color 2");
-    var c3 = new Vec4Property(new Vector4(), "c3", "c3", "Color 3");
-    var c4 = new Vec4Property(new Vector4(), "c4", "c4", "Color 4");
-    
-    c1.subtype = c2.subtype = c3.subtype = c4.subtype = PropSubTypes.COLOR;
-    
-    function gen_func(i) {
-      function update() {
-        //color[1].colors[i] = this.data;
-        g_theme.gen_globals();
-        SettingsUpdate();
-      }
-    }
-    
-    c1.update = gen_func(0);
-    c2.update = gen_func(1);
-    c3.update = gen_func(2);
-    c4.update = gen_func(3);
-    
-    st = new DataStruct([
-      new DataPath(type, "type", "type", true, false),
-      name,
-      new DataPath(c1, "c1", "[1].colors[0]", true),
-      new DataPath(c2, "c2", "[1].colors[1]", true),
-      new DataPath(c3, "c3", "[1].colors[2]", true),
-      new DataPath(c4, "c4", "[1].colors[3]", true)
-    ]);
-  } else if (color[1] instanceof BoxWColor) {
-    var type = new StringProperty("Weighted", "type", "type");
-    var clr = new Vec4Property(new Vector4(), "color", "color", "color");
-    var weights = new Vec4Property(new Vector4(), "weight", "weight", "weight");
-    
-    clr.subtype = PropSubTypes.COLOR;
-    clr.update = function () {
-      //color.color = this.data;
-      g_theme.gen_globals();
-      SettingsUpdate();
-    }
-    
-    weights.update = function () {
-      //color.weights = this.data;
-      g_theme.gen_globals();
-      SettingsUpdate();
-    }
-    weights.range = weights.real_range = weights.ui_range = [0, 1];
-    
-    st = new DataStruct([
-      new DataPath(type, "type", "type", true, false),
-      name,
-      new DataPath(clr, "color", "[1].color", true),
-      new DataPath(weights, "weights", "[1].weights", true)
-    ]);
-  } else {
-    var clr = new Vec4Property(new Vector4(), "color", "color", "color");
-    clr.subtype = PropSubTypes.COLOR;
-    clr.update = function (color) {
-      /*for (var i=0; i<4; i++) {
-       color[1][i] = this.data[i];
-       }*/
-      g_theme.gen_globals();
-      SettingsUpdate();
-    }
-    
-    var type = new StringProperty("Simple", "type", "type");
-    st = new DataStruct([
-      new DataPath(type, "type", "type", true, false),
-      name,
-      new DataPath(clr, "color", "[1]", true)
-    ]);
-  }
-  
-  return st;
-}
-
-var ColorThemeStruct = undefined;
-
-function api_define_colortheme() {
-  var colors = new DataStructArray(
-    get_theme_color,
-    
-    function getpath(key) {
-      return "[" + key + "]";
-    },
-    
-    function getitem(key) {
-      return this[key];
-    },
-    
-    function getiter() {
-      return this[Symbol.iterator]();
-    },
-    
-    function getkeyiter() {
-      arr = [];
-      for (var i = 0; i < this.length; i++) {
-        arr.push(i);
-      }
-      
-      return arr[Symbol.iterator]();
-    },
-    
-    function getlength() {
-      return this.length;
-    }
-  );
-  
-  ColorThemeStruct = new DataStruct([
-    new DataPath(colors, "colors", "flat_colors", false)
-  ]);
-  
-  return ColorThemeStruct;
-}
-
-var ThemeStruct = undefined;
-
-function api_define_theme() {
-  api_define_colortheme();
-  
-  ThemeStruct = new DataStruct([
-    new DataPath(ColorThemeStruct, "ui", "ui", false),
-    new DataPath(ColorThemeStruct, "view2d", "view2d", false)
-  ]);
-  
-  return ThemeStruct;
-}
-
 var DopeSheetStruct = undefined;
 
 function api_define_dopesheet() {
@@ -1048,7 +934,7 @@ function api_define_dopesheet() {
     new DataPath(selected_only, "selected_only", "selected_only", true),
     new DataPath(pinned, "pinned", "pinned", true),
     new DataPath(timescale, "timescale", "timescale")
-  ]);
+  ], DopeSheetEditor);
   
   return DopeSheetStruct;
 }
@@ -1069,7 +955,7 @@ function api_define_editcurve() {
   CurveEditStruct = new DataStruct([
     new DataPath(selected_only, "selected_only", "selected_only", true),
     new DataPath(pinned, "pinned", "pinned", true)
-  ]);
+  ], CurveEditor);
   
   return CurveEditStruct;
 }
@@ -1086,9 +972,9 @@ function api_define_object() {
   //contextual, editable bounding box
   //(well, dimensions).
   ctx_bb.update = function () {
-    if (this.ctx.mesh != undefined)
+    if (this.ctx.mesh !== undefined)
       this.ctx.mesh.regen_render();
-    if (this.ctx.view2d != undefined && this.ctx.view2d.selectmode & EditModes.GEOMETRY) {
+    if (this.ctx.view2d !== undefined && this.ctx.view2d.selectmode & EditModes.GEOMETRY) {
       this.ctx.object.dag_update();
     }
   }
@@ -1096,7 +982,7 @@ function api_define_object() {
   ObjectStruct = new DataStruct([
     new DataPath(name, "name", "name", true),
     new DataPath(ctx_bb, "ctx_bb", "ctx_bb", true)
-  ]);
+  ], SceneObject);
   
   return ObjectStruct;
 }
@@ -1114,11 +1000,21 @@ function api_define_image() {
     new DataPath(lib_id, "lib_id", "lib_id", true),
     new DataPath(path, 'path', 'path', true),
     new DataPath(flag, 'flag', 'flag', true)
-  ]);
+  ], Image);
   
   datablock_structs[DataTypes.IMAGE] = ImageStruct;
   
   return ImageStruct;
+}
+
+function toArray(list) {
+  let ret = [];
+
+  for (let item of list) {
+    ret.push(item);
+  }
+
+  return ret;
 }
 
 function api_define_datalist(name, typeid) {
@@ -1133,17 +1029,31 @@ function api_define_datalist(name, typeid) {
       return this[key];
     },
     function getiter() {
-      var ret = [];
+      let ret = [];
+
       for (var k in this) {
         ret.push(this[k]);
       }
       return ret[Symbol.iterator]();
     },
+
     function getkeyiter() {
-      return list(this)[Symbol.iterator]();
+      let ret = [];
+
+      for (var k in this) {
+        ret.push(k);
+      }
+
+      return ret[Symbol.iterator]();
     },
+
     function getlength() {
-      return list(this).length;
+      let count = 0;
+      for (let k in this) {
+        count++;
+      }
+
+      return count;
     }
   );
   
@@ -1253,7 +1163,6 @@ window.api_define_context = function () {
     new DataPath(api_define_appstate(), "appstate", "ctx.appstate", false),
     new DataPath(OpStackArray, "operator_stack",
       "ctx.appstate.toolstack.undostack", false, true, DataFlags.RECALC_CACHE),
-    new DataPath(api_define_theme(), "theme", "g_theme", false),
     new DataPath(api_define_spline(), "spline", "ctx.spline", false),
     new DataPath(api_define_datalib(), "datalib", "ctx.datalib", false),
     new DataPath(api_define_opseditor(), "opseditor", "ctx.opseditor", false)
@@ -1288,6 +1197,51 @@ export function gen_path_maps(strct, obj, path1, path2) {//path is private, opti
     }
   }
 }
+
+let _prefix = `"use strict";
+import {DataTypes} from '../lib_api.js';
+import {EditModes, View2DHandler} from '../../editors/viewport/view2d.js';
+import {ImageFlags, Image, ImageUser} from '../imageblock.js';
+import {AppSettings} from '../UserSettings.js';
+import {FullContext} from "../context.js";
+
+import {VertexAnimData} from "../frameset.js";
+import {SplineLayer} from "../../curve/spline_element_array.js";
+
+import {
+  EnumProperty, FlagProperty,
+  FloatProperty, StringProperty,
+  BoolProperty, Vec2Property,
+  DataRefProperty,
+  Vec3Property, Vec4Property, IntProperty,
+  TPropFlags, PropTypes, PropSubTypes
+} from '../toolprops.js';
+
+import {ModalStates} from '../toolops_api.js';
+
+import {SplineFlags, MaterialFlags, SplineTypes} from '../../curve/spline_base.js';
+import {SelMask, ToolModes} from '../../editors/viewport/selectmode.js';
+import {Unit} from '../units.js';
+
+import {ExtrudeModes} from '../../editors/viewport/spline_createops.js';
+import {DataFlags, DataPathTypes} from './data_api.js';
+import {OpStackEditor} from '../../editors/ops/ops_editor.js';
+
+import {AnimKeyFlags, AnimInterpModes, AnimKey} from '../animdata.js';
+import {VDAnimFlags, SplineFrameSet} from '../frameset.js';
+
+import {ExtrudeModes} from '../../editors/viewport/spline_createops.js';
+import {SplineLayerFlags} from '../../curve/spline_element_array.js';
+import {Material, SplineFace, SplineSegment, SplineVertex} from "../../curve/spline_types.js";
+import {CurveEditor} from "../../editors/curve/CurveEditor.js";
+import {SceneObject} from "../../scene/sceneobject.js";
+import {DopeSheetEditor} from "../../editors/dopesheet/DopeSheetEditor.js";
+import {SettingsEditor} from "../../editors/settings/SettingsEditor.js";
+import {Scene} from "../../scene/scene.js";
+import {Spline} from "../../curve/spline.js";
+import {DataLib, DataBlock, DataList} from "../lib_api.js";
+
+`;
 
 window.genNewDataAPI = () => {
   let out = "";
@@ -1325,10 +1279,11 @@ window.genNewDataAPI = () => {
     }
 
     let name = cls.name;
+
+    out += `var ${name}Struct = api.mapStruct(${cls.name}, true);\n\n`;
     out += "function api_define_" + name + "(api) {\n";
 
-    name = "_" + name;
-    out += `  let ${name} = api.mapStruct(${cls.name}, true);\n`;
+    name = name + "Struct";
 
     for (let dpath of dstruct.paths) {
       let name2 = dpath.name;
@@ -1355,18 +1310,49 @@ window.genNewDataAPI = () => {
       }
 
       let format_obj = (obj) => {
+        for (let k in _es6_module.imports) {
+          let v = _es6_module.imports[k].value;
+          if (typeof v !== "object" || v === null)
+            continue;
+
+          let ok = true;
+
+          for (let k2 in obj) {
+            if (v[k2] === undefined) {
+              ok = false;
+            }
+          }
+
+          if (ok) {
+            return k;
+          }
+        }
+
         let def = "{\n";
         let keys = Object.keys(obj);
+        let maxwid = 0;
+
+        for (let i=0; i<keys.length; i++) {
+          maxwid = Math.max(maxwid, keys[i].length);
+        }
+
         for (let i=0; i<keys.length; i++) {
           let k = ""+keys[i];
           let v = obj[keys[i]];
 
-          if (k.search(" ") >= 0)
+          if (k.search(" ") >= 0 || k === "in" || k === "of" || k === "if")
             k = `"${k}"`;
           if (typeof v !== "number" && !(typeof v === "string" && v.startsWith("Icons.")))
             v = `"${v}"`;
 
-          def += "        " + k + " : " + v;
+          def +=  "      " + k;
+
+          let wid = k.length;
+          for (let j=0; j<maxwid-wid; j++) {
+            def += " ";
+          }
+
+          def += " : " + v;
 
           if (i < keys.length-1) {
             def += ",";
@@ -1395,7 +1381,51 @@ window.genNewDataAPI = () => {
         out += `  ${name}.struct("${path3}", "${dpath.name}", "${dpath.uiname}", ${stt});\n`;
 
       } else if (dpath.type === DataPathTypes.STRUCT_ARRAY) {
-        out += `\n\n  /* WARNING: data struct array detected ${dpath.name}{${path3}} */\n\n`;
+        //out += `\n\n  /* WARNING: data struct array detected ${dpath.name}{${path3}} */\n\n`;
+        /*
+        this.getter = array_item_struct_getter;
+        this.getitempath = getitempath;
+        this.getitem = getitem;
+        this.getiter = getiter;
+        this.getkeyiter = getkeyiter;
+        this.getlength = getlength;
+        */
+
+        function process(func) {
+          let s = ("" + func).trim();
+          s = s.slice(0, s.length-1);
+          s = s.split("\n");
+          s = s.slice(1, s.length);
+          s = s.join("\n").trim();
+          s = s.replace(/this/g, "list");
+
+          return s;
+        }
+
+        let list = dpath.data;
+        out += `  ${name}.list("${path3}", "${dpath.name}", [\n`;
+
+        if (list.getiter) {
+          out += `    function getIter(api, list) {\n      ${process(list.getiter)}\n    },\n`;
+        }
+        if (list.getitem) {
+          out += `    function get(api, list, key) {\n      ${process(list.getitem)}\n    },\n`;
+        }
+        if (list.getter) {
+          out += `    function getStruct(api, list, key) {\n      ${process(list.getter)}\n    },\n`;
+        }
+        if (list.getlength) {
+          out += `    function getLength(api, list) {\n      ${process(list.getlength)}\n    },\n`;
+        }
+
+        if (list.getkeyiter) {
+          out += "/*" + list.getkeyiter + "*/\n";
+        }
+        if (list.getitempath) {
+          out += "/*" + list.getitempath + "*/\n";
+        }
+
+        out += "  ]);\n";
       } else {
         let prop = dpath.data;
 
@@ -1406,7 +1436,7 @@ window.genNewDataAPI = () => {
 
         let uiname = dpath.uiname || prop.uiname || dpath.name;
 
-        let numprop = (prop) => {
+        let numprop = (prop, isint) => {
           s = "";
 
           if (prop.range && prop.range[0] && prop.range[1]) {
@@ -1414,6 +1444,18 @@ window.genNewDataAPI = () => {
           }
           if (prop.ui_range && prop.ui_range[0] && prop.ui_range[1]) {
             s += `.uiRange(${prop.ui_range[0]}, ${prop.ui_range[1]})`;
+          }
+
+          if (prop.step !== undefined) {
+            s += `.step(${prop.step})`;
+          }
+
+          if (prop.expRate !== undefined) {
+            s += `.expRate(${prop.expRate})`;
+          }
+
+          if (!isint && prop.decimalPlaces !== undefined) {
+            s += `.decimalPlaces(${prop.decimalPlaces})`;
           }
 
           return s;
@@ -1430,7 +1472,7 @@ window.genNewDataAPI = () => {
             break;
           case PropTypes.INT:
             out += `${name}.int("${path3}", "${dpath.name}", "${uiname}")`;
-            out += numprop(prop);
+            out += numprop(prop, true);
             break;
           case PropTypes.FLOAT:
             out += `${name}.float("${path3}", "${dpath.name}", "${uiname}")`;
@@ -1440,20 +1482,28 @@ window.genNewDataAPI = () => {
             out += `${name}.vec2("${path3}", "${dpath.name}", "${uiname}")`;
             out += numprop(prop);
             break;
+          case PropTypes.VEC3:
+            out += `${name}.vec3("${path3}", "${dpath.name}", "${uiname}")`;
+            out += numprop(prop);
+            break;
+          case PropTypes.VEC4:
+            out += `${name}.vec2("${path3}", "${dpath.name}", "${uiname}")`;
+            out += numprop(prop);
+            break;
           case PropTypes.ENUM:
           case PropTypes.FLAG:
             let key = prop.type === PropTypes.ENUM ? "enum" : "flags";
 
-            let def = format_obj(prop.type === PropTypes.FLAG ? prop.keys : prop.values);
-            out += `${name}.${key}("${path3}", ${def}, "${dpath.name}", "${uiname}")`;
+            let def = format_obj(prop.type === PropTypes.FLAG ? prop.values : prop.values);
+            out += `${name}.${key}("${path3}", "${dpath.name}", ${def}, "${uiname}")`;
 
             if (prop.type === PropTypes.ENUM) {
               if (checkenum(prop.ui_value_names, prop.values)) {
                 out += `.uiNames(${format_obj(prop.ui_value_names)})`;
               }
             } else {
-              if (checkenum(prop.ui_key_names, prop.keys)) {
-                out += `.uiNames(${format_obj(prop.ui_key_names)})`;
+              if (checkenum(prop.ui_value_names, prop.values)) {
+                out += `.uiNames(${format_obj(prop.ui_value_names)})`;
               }
             }
 
@@ -1482,7 +1532,7 @@ window.genNewDataAPI = () => {
           out += ".customSet(" + prop.userSetData + ")"
         }
         if (prop.update && prop.update !== prop.prototype.update) {
-          out += `.on("change", ${""+prop.update})`
+          out += `.on("change", function(old) {return (${""+prop.update}).call(this.dataref, old)})`
         }
         out += ";\n";
       }
@@ -1525,13 +1575,16 @@ window.genNewDataAPI = () => {
 
   let lines = out.split("\n");
 
-  out = "function makeAPI(api) {\n";
+  out = "export function makeAPI(api) {\n";
 
   for (let l of lines) {
     out += "  " + l + "\n";
   }
+
+  out += "  api.rootContextStruct = api.mapStruct(FullContext, false);\n\n";
+  out += "  return api;\n";
   out += "}\n";
 
-  return out;
+  return _prefix + out;
 };
 

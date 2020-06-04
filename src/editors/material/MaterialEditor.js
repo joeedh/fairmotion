@@ -540,7 +540,6 @@ class LayerPanel extends RowFrame {
       
       this.do_recalc();
       this.do_full_recalc();
-      window.redraw_ui();
     }
   }
   

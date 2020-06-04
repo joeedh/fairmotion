@@ -244,7 +244,8 @@ export class VectorDraw {
     throw new Error("implement me");
   }
   
-  draw() {
+  draw() : Promise {
+    //should return a promise
     throw new Error("implement me");
   }
   

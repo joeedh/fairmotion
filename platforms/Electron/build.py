@@ -19,7 +19,7 @@ def copy(a, b):
 
 
 run_sh = b"""#!/bin/bash
-cd electron
+cd dist/electron
 ./node_modules/.bin/electron .
 """
 run_batch = """

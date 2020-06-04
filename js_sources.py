@@ -136,6 +136,10 @@ sources = [
   "src/scene/scene.js",
   "src/scene/sceneobject.js",
 
+  "src/editors/velpan.js",
+  "src/editors/nodegraph/nodegraph.js",
+  "src/editors/nodegraph/nodegraph_base.js",
+  "src/editors/nodegraph/nodegraph_ops.js",
   "src/editors/widgets.js",
   "src/editors/all.js",
   "src/editors/console/console.js",
@@ -229,6 +233,7 @@ sources = [
   "src/editors/ops/ops_editor.js",
   "src/editors/settings/SettingsEditor.js",
   "src/core/data_api/data_api_define.js",
+  "src/core/data_api/data_api_new.js",
   "src/core/data_api/data_api_base.js",
   "src/core/data_api/data_api_pathux.js",
   "src/core/data_api/data_api_opdefine.js",

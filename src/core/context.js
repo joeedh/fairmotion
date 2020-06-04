@@ -1,18 +1,3 @@
-import {SplineFrameSet} from './frameset.js';
-import {SettingsEditor} from "../editors/settings/SettingsEditor.js";
-import {MenuBar} from "../editors/menubar/MenuBar.js";
-import {DataTypes, DataBlock} from "./lib_api.js";
-import {ConsoleEditor} from '../editors/console/console.js';
-import {CurveEditor} from '../editors/curve/CurveEditor.js';
-import {OpStackEditor} from '../editors/ops/ops_editor.js';
-import {MaterialEditor} from "../editors/material/MaterialEditor.js";
-import {DopeSheetEditor} from "../editors/dopesheet/DopeSheetEditor.js";
-import {SettingsEditor} from '../editors/settings/SettingsEditor.js';
-import {MenuBar} from '../editors/menubar/MenuBar.js';
-import {registerToolStackGetter} from '../path.ux/scripts/screen/FrameManager_ops.js';
-import {FairmotionScreen, resetAreaStacks} from '../editors/editor_base.js';
-
-import {Editor} from "../editors/editor_base.js";
 import {ContextOverlay, Context} from "../path.ux/scripts/controller/context.js";
 
 export class BaseContextOverlay extends ContextOverlay {
@@ -55,12 +40,13 @@ export class BaseContextOverlay extends ContextOverlay {
   }
 
   get spline() : FrameSet {
-    var ret = this.api.getObject(this, g_app_state.active_splinepath);
+    var ret = this.api.getValue(this, g_app_state.active_splinepath);
 
     if (ret === undefined) {
       warntrace("Warning: bad spline path", g_app_state.active_splinepath);
       g_app_state.switch_active_spline("frameset.drawspline");
 
+      ret = this.api.getValue(this, g_app_state.active_splinepath);
       if (ret === undefined) {
         warntrace("Even Worse: base spline path failed!", g_app_state.active_splinepath);
       }
@@ -264,4 +250,23 @@ export class FullContext extends BaseContext {
 
 window.Context = FullContext; //XXX track down and kill all references to this dirty, dirty global
 
+import {SplineFrameSet} from './frameset.js';
+import {SettingsEditor} from "../editors/settings/SettingsEditor.js";
+import {MenuBar} from "../editors/menubar/MenuBar.js";
+import {DataTypes, DataBlock} from "./lib_api.js";
+import {ConsoleEditor} from '../editors/console/console.js';
+import {CurveEditor} from '../editors/curve/CurveEditor.js';
+import {OpStackEditor} from '../editors/ops/ops_editor.js';
+import {MaterialEditor} from "../editors/material/MaterialEditor.js";
+import {DopeSheetEditor} from "../editors/dopesheet/DopeSheetEditor.js";
+import {SettingsEditor} from '../editors/settings/SettingsEditor.js';
+import {MenuBar} from '../editors/menubar/MenuBar.js';
+import {registerToolStackGetter} from '../path.ux/scripts/screen/FrameManager_ops.js';
+import {FairmotionScreen, resetAreaStacks} from '../editors/editor_base.js';
+
+import {Editor} from "../editors/editor_base.js";
+
 import {View2DHandler} from '../editors/viewport/view2d.js';
+import {Scene} from "../scene/scene.js";
+import {Spline} from "../curve/spline.js";
+import {DataAPI} from "./data_api/data_api.js";

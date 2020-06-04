@@ -161,7 +161,7 @@ export class TransformOp extends ToolOp {
     //force spline solve + redraw
     this.post_mousemove(event, true);
     
-    ctx.appstate.set_modalstate(0);
+    ctx.appstate.popModalState(ModalStates.TRANSFORMING);
     ToolOp.prototype.end_modal.call(this);
     
     this.finish(ctx);
@@ -171,7 +171,7 @@ export class TransformOp extends ToolOp {
     super.start_modal(ctx);
     
     this.first_viewport_redraw = true;
-    ctx.appstate.set_modalstate(ModalStates.TRANSFORMING);
+    ctx.state.pushModalState(ModalStates.TRANSFORMING);
 
     //do one solve
     ctx.spline.solve().then(function() {

@@ -47,7 +47,9 @@ function ES6Module(name, path) {
   
   this.links = []; //modules that depend on this module, use only for debugging purposes
   this.depends = []; //modules this module depend on
-  
+
+  this.imports = {};
+
   this.flag = 0;
   this.loaded = false;
   
@@ -371,6 +373,11 @@ function _load_module_cyclic(mod, visitmap, modstack) {
       msg += "\n  wanted by: '" + _es6_module.path + "'";
       throw new ModuleLoadError(msg);
     }
+
+    _es6_module.imports[name] = {
+      module : mod,
+      value  : mod.exports[name]
+    };
 
     return mod.exports[name];
   }

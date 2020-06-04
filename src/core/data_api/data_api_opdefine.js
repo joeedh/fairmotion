@@ -39,7 +39,7 @@ import {TransData} from '../../editors/viewport/transdata.js';
 
 import {SelectOpBase, SelectOneOp, ToggleSelectAllOp, SelectLinkedOp, HideOp, UnhideOp, CircleSelectOp} from '../../editors/viewport/spline_selectops.js';
 import {ExtrudeModes, ExtrudeVertOp, CreateEdgeOp, CreateEdgeFaceOp, ImportJSONOp} from '../../editors/viewport/spline_createops.js';
-import {KeyCurrentFrame, ShiftLayerOrderOp, SplineGlobalToolOp, SplineLocalToolOp, KeyEdgesOp, CopyPoseOp, PastePoseOp, InterpStepModeOp, DeleteVertOp, DeleteSegmentOp, DeleteFaceOp, ChangeFaceZ, DissolveVertOp, SplitEdgeOp, VertPropertyBaseOp, ToggleBreakTanOp, ToggleBreakCurvOp, ConnectHandlesOp, DisconnectHandlesOp, AnimPlaybackOp, ToggleManualHandlesOp, ShiftTimeOp, DuplicateOp, SplineMirrorOp} from '../../editors/viewport/spline_editops.js';
+import {KeyCurrentFrame, ShiftLayerOrderOp, SplineGlobalToolOp, SplineLocalToolOp, KeyEdgesOp, CopyPoseOp, PastePoseOp, InterpStepModeOp, DeleteVertOp, DeleteSegmentOp, DeleteFaceOp, ChangeFaceZ, DissolveVertOp, SplitEdgeOp, VertPropertyBaseOp, ToggleBreakTanOp, ToggleBreakCurvOp, ConnectHandlesOp, DisconnectHandlesOp, ToggleManualHandlesOp, ShiftTimeOp, DuplicateOp, SplineMirrorOp} from '../../editors/viewport/spline_editops.js';
 import {AddLayerOp, ChangeLayerOp, ChangeElementLayerOp} from '../../editors/viewport/spline_layerops.js';
 //import {SplitAreasTool, CollapseAreasTool, HintPickerOpElement, HintPickerOp} from 'FrameManager_ops';
 
@@ -173,10 +173,6 @@ window.api_define_ops = function() {
     
     "editor.paste_pose": function(ctx, args) {
       return new PastePoseOp();
-    },
-    
-    "editor.playback": function(ctx, args) {
-      return new AnimPlaybackOp();
     },
     
     "spline.key_current_frame" : function(ctx, args) {

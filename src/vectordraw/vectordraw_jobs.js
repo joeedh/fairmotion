@@ -80,10 +80,6 @@ export class Thread {
   
   //cancels any previous thread from ownerid
   postRenderJob(ownerid, commands, datablocks) {
-    if (!this.manager.drawing && freeze_while_drawing) {
-      this.manager.startDrawing();
-    }
-    
     let id = this.manager._rthread_idgen++;
     if (Debug) console.log("thread", this.manager.threads.indexOf(this), "freezelvl:", this.freezelvl);
     this.freezelvl++;
@@ -151,9 +147,11 @@ export class Thread {
         if (Debug) console.log(cb, e.data.data[0]);
         cb(e.data.data[0]);
 
-        if (this.freezelvl == 0) {
+        if (this.freezelvl <= 0) {
           this.manager.on_thread_done(this);
+          this.freezelvl = 0;
         }
+
         break;
     }
   
@@ -214,13 +212,13 @@ export class ThreadManager {
     
     //make thread timeout checker
     window.setInterval(() => {
-      if (this.drawing && time_ms() - this.start_time > 250) {
+      if (this.drawing && time_ms() - this.start_time > 750) {
         console.log("Draw timed out; aborting draw freeze");
         this.endDrawing();
       }
       
       return;
-    }, 150)
+    }, 750)
   }
   
   setMaxThreads(n) {
@@ -248,7 +246,12 @@ export class ThreadManager {
     this.start_time = time_ms();
     
     if (freeze_while_drawing) {
+      console.log("%cFreeze Drawing", "color : orange;");
+
+      window._block_drawing = true;
+
       //console.warn("Implement me! freeze_while_drawing");
+      /*
       if (!this._modalstate) {
         this._modalstate = pushModalLight({
           on_keydown: (e) => {
@@ -258,7 +261,7 @@ export class ThreadManager {
             }
           }
         });
-      }
+      }//*/
       //eventmanager.manager.freeze();
     }
   }
@@ -267,12 +270,17 @@ export class ThreadManager {
     this.drawing = false;
 
     if (freeze_while_drawing) {
+      console.log("%cUnfreeze Drawing", "color : orange;");
+      window._block_drawing = false;
+
       //console.warn("Implement me! freeze_while_drawing");
       //eventmanager.manager.unfreeze();
+
+      /*
       if (this._modalstate) {
         popModalLight(this._modalstate);
         this._modalstate = undefined;
-      }
+      }//*/
     }
   }
   
@@ -308,10 +316,14 @@ export class ThreadManager {
   }
   
   postRenderJob(ownerid, commands, datablocks) {
+    if (!this.drawing && freeze_while_drawing) {
+      this.startDrawing();
+    }
+
     let thread;
     
     //we want at last one gpu-capable render thread
-    if (this.threads.length == 0) {
+    if (this.threads.length === 0) {
       thread = this.spawnThread("vectordraw_canvas2d_worker.js");
       //thread = this.spawnThread("vectordraw_skia_worker.js");
       thread.ready = true; //canvas2d worker starts out in ready state

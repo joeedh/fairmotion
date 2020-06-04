@@ -185,7 +185,7 @@ window.startup_intern = function startup() {
   //hrm, should probably remove this if check
   //it was added for allshape, which had to deal
   //with webgl context loss/regain cycles.
-  if (g_app_state == undefined) {
+  if (window.g_app_state === undefined) {
       //initialize struct pack system
       startup_report("parsing serialization scripts...");
       init_struct_packer();

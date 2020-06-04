@@ -372,7 +372,8 @@ def p_statementlist(p):
                     | statementlist statement_nonctrl 
                     | 
   '''
-  set_parse_globals(p);
+  set_parse_globals(p)
+
   if len(p) == 1:
     p[0] = StatementList()
   elif len(p) == 2:

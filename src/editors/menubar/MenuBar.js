@@ -64,9 +64,9 @@ export class MenuBar extends Editor {
 
     let dpi = UIBase.getDPI();
 
-    let tilesize = iconmanager.getTileSize(1);
+    let tilesize = iconmanager.getTileSize(0) + 7;
 
-    let h = Math.max(this.getDefault("TitleText").size, tilesize) + 5;
+    let h = Math.max(this.getDefault("TitleText").size, tilesize);
 
     this.editMenuDef = [];
     this._last_toolmode = undefined;
@@ -239,6 +239,15 @@ export class MenuBar extends Editor {
     }
   }
 
+  static getHeight() {
+    let ctx = g_app_state.ctx;
+    if (ctx && ctx.menubar) {
+      return ctx.menubar.minSize[1];
+    }
+
+    return 28;
+  }
+
   makeHeader(container : Container) {
     //this.header = this.container.row();
     super.makeHeader(container, false);
@@ -251,10 +260,6 @@ export class MenuBar extends Editor {
     icon : Icons.MENU_EDITOR,
     flag : AreaFlags.HIDDEN|AreaFlags.NO_SWITCHER
   }}
-
-  static getHeight() {
-    return ~~(UIBase.getDPI()*19);
-  }
 
   copy() {
     return document.createElement("menubar-editor-x");

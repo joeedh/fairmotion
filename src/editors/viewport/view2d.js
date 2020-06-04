@@ -14,7 +14,6 @@ import {ImageUser} from '../../core/imageblock.js';
 import {SplineEditor} from './view2d_spline_ops.js';
 import {Container} from '../../path.ux/scripts/core/ui.js';
 import {PackFlags} from '../../path.ux/scripts/core/ui_base.js';
-import {patch_canvas2d, set_rendermat} from '../../curve/spline_draw.js';
 import {SelMask, ToolModes} from './selectmode.js';
 import {ManipulatorManager, Manipulator,
   HandleShapes, ManipFlags, ManipHandle} from './manipulator.js';
@@ -105,6 +104,8 @@ export class View2DHandler extends Editor {
     this._last_dv = new Vector2();
     this._last_rendermat_time = util.time_ms();
     this._vel = new Vector2();
+
+    this._flip = 0;
 
     this.enable_blur = true;
     this.draw_small_verts = false;
@@ -424,22 +425,54 @@ export class View2DHandler extends Editor {
     }
   }
 
-  do_draw_viewport(redraw_rects) {
+  genMatrix() {
+    let g = this.drawg;
+    let dpi_scale = this.dpi_scale;
+
+    let matrix = new Matrix4();
+
+    let m2 = new Matrix4();
+    m2.scale(dpi_scale, dpi_scale, 1.0);
+
+    matrix.multiply(m2);
+    matrix.multiply(this.rendermat);
+
+    //this.rendermat
+    matrix = new Matrix4(matrix);
+    let matrix2 = new Matrix4();
+
+    matrix2.translate(0.0, g.canvas.height, 0.0);
+
+    let mm = new Matrix4();
+    mm.scale(1.0, -1.0, 1.0);
+    matrix2.multiply(mm);
+
+    matrix.preMultiply(matrix2);
+
+    return matrix;
+  }
+
+  do_draw_viewport(redraw_rects=[]) {
+    if (this._draw_promise) {
+      return;
+    }
+
     //console.log(this.size);
+    let buffer = window._wait_for_draw;
 
     var canvas = this.get_fg_canvas();
     var bgcanvas = this.get_bg_canvas();
-    //var eventdiv = this.eventdiv;
 
-    //canvas.style["left"] = bgcanvas.style["left"] = /*eventdiv.style["left"] =*/ this.pos[0] + "px";
-    //canvas.style["top"] = bgcanvas.style["top"] = /*eventdiv.style["top"] =*/ this.pos[1] + "px";
-    //eventdiv.style["width"] = ~~this.size[0] + "px";
-    //eventdiv.style["height"] = ~~this.size[1] + "px";
+    if (buffer) {
+      canvas = this.get_fg_canvas(this._flip ^ 1);
+      bgcanvas = this.get_bg_canvas(this._flip ^ 1);
+    }
+
 
     var g = this.drawg = canvas.g;
     var bg_g = bgcanvas.g;
 
-    if (bgcanvas !== undefined && bgcanvas.style !== undefined) {
+    if (bgcanvas !== undefined) {
       bgcanvas.style["backgroundColor"] = this.background_color.toCSS();
     }
 
@@ -454,34 +487,11 @@ export class View2DHandler extends Editor {
     bg_g.height = bgcanvas.height;
     g.height = canvas.height;
 
-    set_rendermat(g, this.rendermat);
-    set_rendermat(bg_g, this.rendermat);
-
     g.save();
     bg_g.save();
 
-    let pan = new Vector3();
-    let dpi_scale = this.dpi_scale;
-    
-    //this.rendermat.makeIdentity();
-    //this.irendermat.load(this.rendermat).invert();
+    let matrix = this.genMatrix();
 
-    let mat = new DOMMatrix();
-    let mat2 = g.getTransform();
-    
-    //let mx = mat2.m41, my = mat2.m42;
-
-    //mat.scale(dpi_scale,dpi_scale);
-    //mat2.multiplySelf(mat);
-    //mat2.m41 = mx;
-    //mat2.m42 = my;
-
-    //g.setTransform(mat2);
-    //g._scale(1/dpi_scale, 1/dpi_scale);
-    //bg_g._scale(1/dpi_scale, 1/dpi_scale);
-    
-    //pan.multVecMatrix(this.rendermat);
-    
     g.dpi_scale = this.dpi_scale;
     
     var p1 = new Vector2([0, 0]); //this.pos[0], this.pos[1]]);
@@ -506,8 +516,8 @@ export class View2DHandler extends Editor {
     g.beginPath();
     bg_g.beginPath();
 
-    g._clearRect(0, 0, g.canvas.width, g.canvas.height);
-    bg_g._clearRect(0, 0, bg_g.canvas.width, bg_g.canvas.height);
+    g.clearRect(0, 0, g.canvas.width, g.canvas.height);
+    bg_g.clearRect(0, 0, bg_g.canvas.width, bg_g.canvas.height);
 
     this.ctx = new Context();
 
@@ -521,25 +531,6 @@ export class View2DHandler extends Editor {
       return;
     }
 
-    let matrix = new Matrix4();
-
-    let m2 = new Matrix4();
-    m2.scale(dpi_scale, dpi_scale, 1.0);
-
-    matrix.multiply(m2);
-    matrix.multiply(this.rendermat);
-
-    //this.rendermat
-    matrix = new Matrix4(matrix);
-    let matrix2 = new Matrix4();
-
-    matrix2.translate(0.0, g.canvas.height, 0.0);
-
-    let mm = new Matrix4();
-    mm.scale(1.0, -1.0, 1.0);
-    matrix2.multiply(mm);
-
-    matrix.preMultiply(matrix2);
 
 
     if (this.draw_video && this.video !== undefined) {
@@ -570,7 +561,16 @@ export class View2DHandler extends Editor {
       g.drawImage(img, off[0], off[1], img.width*scale[0], img.height*scale[1]);
     }
 
-    this.ctx.frameset.draw(this.ctx, g, this, matrix, redraw_rects, this.edit_all_layers);
+    let promise = this.ctx.frameset.draw(this.ctx, g, this, matrix, redraw_rects, this.edit_all_layers);
+
+    if (buffer) {
+      promise.then(() => {
+        this._draw_promise = undefined;
+        this.flip_canvases();
+      });
+
+      this._draw_promise = promise;
+    }
 
     var frameset = this.ctx.frameset;
     var spline = frameset.spline;
@@ -641,13 +641,50 @@ export class View2DHandler extends Editor {
     g.restore();
   }
 
-  get_fg_canvas() { //XXX todo: get rid of this.drawcanvas.
-    this.drawcanvas = this.getCanvas("fg", -2, undefined, this.dpi_scale);
+  flip_canvases() {
+    let fg = this.get_fg_canvas();
+    let bg = this.get_bg_canvas();
+
+    fg.hidden = true;
+    bg.hidden = true;
+
+    this._flip ^= 1;
+
+    fg = this.get_fg_canvas();
+    bg = this.get_bg_canvas();
+
+    fg.hidden = false;
+    bg.hidden = false;
+  }
+
+  get_fg_canvas(flip:number = this._flip) { //XXX todo: get rid of this.drawcanvas.
+    if (flip) {
+      this.drawcanvas = this.getCanvas("fg2", -2, undefined, this.dpi_scale);
+    } else {
+      this.drawcanvas = this.getCanvas("fg", -2, undefined, this.dpi_scale);
+    }
+
+    if (flip !== this._flip) {
+      this.drawcanvas.hidden = true;
+    }
+
     return this.drawcanvas;
   }
 
-  get_bg_canvas() {
-    return this.getCanvas("bg", -3, undefined, this.dpi_scale);
+  get_bg_canvas(flip:number = this._flip) {
+    let ret;
+
+    if (flip) {
+      ret = this.getCanvas("bg2", -3, undefined, this.dpi_scale);
+    } else {
+      ret = this.getCanvas("bg", -3, undefined, this.dpi_scale);
+    }
+
+    if (flip !== this._flip) {
+      ret.hidden = true;
+    }
+
+    return ret;
   }
 
   copy() {
@@ -737,7 +774,7 @@ export class View2DHandler extends Editor {
     row.prop("view2d.draw_faces");
     //row.prop("view2d.extrude_mode");
 
-    let mass_set_path = "spline.selected_verts{1}";
+    let mass_set_path = "spline.selected_verts{$.flag & 1}";
     row.prop("spline.active_vertex.flag[BREAK_TANGENTS]", undefined, mass_set_path + ".flag[BREAK_TANGENTS]");
     row.prop("spline.active_vertex.flag[BREAK_CURVATURES]", undefined, mass_set_path + ".flag[BREAK_CURVATURES]");
     row.prop("view2d.half_pix_size");

@@ -423,7 +423,7 @@ export var DataTypes = {
   SET     : 512
 }
 
-var TypeDefaults = t = {};
+var TypeDefaults = {}, t=TypeDefaults;
 t[DataTypes.DEPEND] = null;
 t[DataTypes.NUMBER] = 0;
 t[DataTypes.STRING] = "";

@@ -18,7 +18,7 @@ import {DataBlock, DataTypes} from '../core/lib_api.js';
 import {SessionFlags} from '../editors/viewport/view2d_editor.js';
 import {SelMask} from '../editors/viewport/selectmode.js';
 import {SplineQuery} from './spline_query.js';
-import {draw_spline, patch_canvas2d, set_rendermat} from './spline_draw.js';
+import {draw_spline} from './spline_draw.js';
 import {solve} from './solver_new.js';
 import {ModalStates} from '../core/toolops_api.js';
 import {DataPathNode} from '../core/eventdag.js';
@@ -2225,19 +2225,11 @@ export class Spline extends DataBlock {
     
     if (this.resolve) {
       this.solve().then(function() {
-        for (var i=0; i<redraw_rects.length; i++) {
-          var rr = redraw_rects[i];
-
-          if (rr) {
-            window.redraw_viewport(rr[0], rr[1]);
-          } else if (redraw_rects.length < 2) {
-            window.redraw_viewport();
-          }
-        }
+        window.redraw_viewport();
       });
     }
     
-     draw_spline(this, redraw_rects, g, editor, matrix, selectmode, only_render, 
+    return draw_spline(this, redraw_rects, g, editor, matrix, selectmode, only_render,
                  draw_normals, alpha, draw_time_helpers, curtime, ignore_layers);
   }
   
@@ -2422,6 +2414,10 @@ export class Spline extends DataBlock {
     this.dag_update("on_vert_time_change", this._vert_time_set);
   }
 
+  flagUpdateKeyframes(v) {
+    this.dag_update("on_keyframe_insert", 1);
+  }
+
   dag_exec(ctx : FullContext, inputs : Object, outputs : Object, graph) {
     outputs.on_vert_add.loadData(this._vert_add_set);
 
@@ -2434,6 +2430,7 @@ export class Spline extends DataBlock {
     name    : "Spline",
     uiName  : "Spline",
     outputs : {
+      on_keyframe_insert : null,
       on_solve : null, //null means depend socket type
       on_vert_time_change : new set(),  //set of eids
       on_vert_add : new set(), //set of eids

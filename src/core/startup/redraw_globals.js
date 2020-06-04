@@ -155,7 +155,7 @@ window.init_redraw_globals = function init_redraw_globals() {
         if (window._wait_for_draw) {
           window._wait_for_draw = false;
         }
-        
+
         accept();
       })
     });

@@ -890,13 +890,19 @@ export class DopeSheetEditor extends Editor {
   }
 
   project(p) {
+    //p[0] = p[0]*this.zoom*this.timescale + this.pan[0];
+    //p[1] = p[1]*this.zoom*this.timescale + this.pan[1];
+
     p[0] = (p[0] + this.pan[0]) * this.zoom;
     p[1] = (p[1] + this.pan[1]) * this.zoom;
   }
 
   unproject(p) {
-    p[0] = p[0]/this.zoom - this.pan[0];
-    p[1] = p[1]/this.zoom - this.pan[1];
+    //p[0] = (p[0]-this.pan[0])/this.zoom/this.timescale;
+    //p[1] = (p[1]-this.pan[1])/this.zoom/this.timescale;
+
+    p[0] = (p[0]/this.zoom) - this.pan[0];
+    p[1] = (p[1]/this.zoom) - this.pan[1];
   }
 
   rebuild() {
@@ -981,7 +987,7 @@ export class DopeSheetEditor extends Editor {
     } else if (e.button === 0 && !e.altKey && !e.shiftKey && !e.ctrlKey && !e.commandKey) {
       let p1 = new Vector2(this.getLocalMouse(e.x, e.y));
       this.unproject(p1);
-      let time1 = ~~(p1[0]/this.boxSize+0.5);
+      let time1 = ~~(p1[0]/this.timescale/this.boxSize+0.5);
 
       this.ctx.scene.change_time(this.ctx, time1);
       console.log("time", time1);
@@ -1067,7 +1073,7 @@ export class DopeSheetEditor extends Editor {
     } else {
       let p1 = new Vector2(this.getLocalMouse(e.x, e.y));
       this.unproject(p1);
-      let time1 = ~~(p1[0]/this.boxSize+0.5);
+      let time1 = ~~(p1[0]/this.timescale/this.boxSize+0.5);
 
       if (time1 !== this.ctx.scene.time) {
         this.ctx.scene.change_time(this.ctx, time1);
@@ -1536,7 +1542,7 @@ export class DopeSheetEditor extends Editor {
       g.shadowOffsetX=2;
       g.shadowOffsetY=2;
 
-      if (spacing && (i % spacing) !== 0) {
+      if (spacing && ((~~t) % spacing) !== 0) {
         continue;
       }
 

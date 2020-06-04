@@ -125,9 +125,7 @@ window.startup = function startup() {
     window.myLocalStorage.getAsync("_settings"); //user settings
     
     //create small delay to make time for chrome.storage.local to load
-    var timer = window.setInterval(function() {
-      window.clearInterval(timer);
-      ;
+    window.setTimeout(function() {
       startup_intern();
       
       //feed an on_resize event
@@ -145,8 +143,8 @@ window.startup = function startup() {
 }
 
 window._ensure_thedimens = function() {
-  window.theHeight = document.documentElement.clientHeight-9;
-  window.theWidth = document.documentElement.clientWidth-4;
+  //window.theHeight = document.documentElement.clientHeight-9;
+  //window.theWidth = document.documentElement.clientWidth-4;
 }
 
 window.startup_intern = function startup() {

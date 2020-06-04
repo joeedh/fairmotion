@@ -106,8 +106,6 @@ export function gen_screen(unused, w, h) {
     app.appendChild(screen);
   }
 
-  screen.style["width"] = "100%";
-  screen.style["height"] = "100%";
   screen.style["position"] = "absolute";
 
   screen.setAttribute("id", "screenmain");
@@ -1481,8 +1479,6 @@ export class AppState {
       screen = fstructs.read_object(data, FairmotionScreen);
     }
 
-    screen.style["width"] = "100%";
-    screen.style["height"] = "100%";
     screen.style["position"] = "absolute";
 
     screen.setAttribute("id", "screenmain");

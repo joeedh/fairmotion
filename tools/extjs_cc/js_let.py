@@ -100,9 +100,10 @@ class LetVisitor (NodeVisit):
     
     if "let" in node.modifiers:
       if hasattr(scope, "func_parent") and node.val in scope.func_parent:
-        p = scope.func_parent
-        if p[node.val].type == "let" and p[node.val].func_nest == 0:
-          self.typespace.error("Tried to let variable that was \n\t\tlet'd in parent function scope", node);
+        pass
+        #p = scope.func_parent
+        #if p[node.val].type == "let" and p[node.val].func_nest == 0:
+        #  self.typespace.error("Tried to let variable that was \n\t\tlet'd in parent function scope", node);
           
       if node.val in scope and scope[node.val].type in ["let", "const"]:
         self.typespace.error(node.val + " is already let-declared", node);

@@ -52,10 +52,14 @@ export function register_toolops() {
 
     if (def.apiname === undefined) {
       //console.warn(cls.name + ": tooldef is missing apiname member (abstract class?)");
-      continue;
+      //continue;
     }
 
-    toolmap[def.apiname] = cls;
+    if (def.apiname)
+      toolmap[def.apiname] = cls;
+    if (def.toolpath)
+      toolmap[def.toolpath] = cls
+
     toollist.push(cls);
   }
 }

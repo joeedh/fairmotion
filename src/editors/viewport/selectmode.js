@@ -12,5 +12,6 @@ export var ToolModes = {
   SELECT : 1,
   APPEND : 2,
   RESIZE : 3,
-  ROTATE : 4
+  ROTATE : 4,
+  PEN    : 5
 };

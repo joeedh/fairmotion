@@ -259,6 +259,8 @@ export class Scene extends DataBlock {
 
       throw new ToolModeSwitchError("error switchign tool mode");
     }
+
+    this.toolmode.ctx = g_app_state.ctx;
   }
 
   get toolmode() {

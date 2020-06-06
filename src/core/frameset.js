@@ -501,12 +501,12 @@ export class SplineFrameSet extends DataBlock {
     var v1 = s.other_vert(v), v2 = v.other_segment(s).other_vert(v);
     var av1 = this.get_vdata(v1.eid, false), av2 = this.get_vdata(v2.eid, false);
     
-    if (av1 == undefined && av2 == undefined) {
+    if (av1 === undefined && av2 === undefined) {
       console.log("no animation data to interpolate");
       return;
-    } else if (av1 == undefined) {
+    } else if (av1 === undefined) {
       av1 = av2;
-    } else if (av2 == undefined) {
+    } else if (av2 === undefined) {
       av2 = av1;
     } 
     
@@ -726,7 +726,12 @@ export class SplineFrameSet extends DataBlock {
       var vd = this.vertex_animdata[k];
       var v = this.spline.eidmap[k];
 
-      if (v === undefined) {
+      if (vd.dead) {
+        delete this.vertex_animdata[k];
+        continue;
+      }
+
+      if (v === undefined) { //don't destroy anim spline immediately
         //console.log("error in update_visibility:", k);
         continue;
       }
@@ -1123,6 +1128,8 @@ export class SplineFrameSet extends DataBlock {
     var found = false;
 
     if (veid === undefined) { //do all
+      this.check_paths();
+
       for (var k in this.vertex_animdata) {
         var vd = this.vertex_animdata[k];
 
@@ -1143,12 +1150,40 @@ export class SplineFrameSet extends DataBlock {
       this.rationalize_vdata_layers();
       this.update_visibility();
       this.pathspline.regen_solve();
+      window.redraw_viewport();
     }
 
     return found;
   }
 
+  check_paths() {
+    let update = false;
+
+    for (var k in this.vertex_animdata) {
+      var vd = this.vertex_animdata[k];
+
+      if (vd.dead || !vd.startv) {
+        delete this.vertex_animdata[k];
+        update = true;
+      }
+    }
+
+    if (update) {
+      console.warn("pathspline update");
+      this.rationalize_vdata_layers();
+      this.update_visibility();
+      this.pathspline.regen_render();
+      this.pathspline.regen_sort();
+      this.pathspline.regen_solve();
+      window.redraw_viewport();
+    }
+
+    return update;
+  }
+
   rationalize_vdata_layers() {
+    this.fix_anim_paths();
+
     var spline = this.pathspline;
     
     spline.layerset = new SplineLayerSet();
@@ -1188,7 +1223,7 @@ export class SplineFrameSet extends DataBlock {
   
   draw(ctx, g, editor, matrix, redraw_rects, ignore_layers) {
     var size = editor.size, pos = editor.pos;
-    
+
     this.draw_anim_paths = editor.draw_anim_paths;
     this.selectmode = editor.selectmode;
 

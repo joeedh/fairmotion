@@ -1326,21 +1326,31 @@ export class Spline extends DataBlock {
   }
   
   dissolve_vertex(v : SplineVertex) {
+    if (!(v.eid in this.eidmap)) {
+      throw new Error("spline.dissolve_vertex called in error");
+    }
+
     var ls2 = [];
     
-    if (v.segments.length != 2) return;
+    if (v.segments.length !== 2) return;
     
     for (var i=0; i<v.segments.length; i++) {
       var s = v.segments[i];
       
-      if (s.l == undefined) continue;
+      if (s.l === undefined) continue;
       
       var lst = [];
       var l = s.l;
+      let _i = 0;
       do {
         lst.push(l);
         l = l.radial_next;
-      } while (l != s.l);
+
+        if (_i++ > 10000) {
+          console.warn("infinite loop detected in dissolve_vertex");
+          break;
+        }
+      } while (l !== s.l);
       
       for (var j=0; j<lst.length; j++) {
         var l = lst[j];
@@ -1348,13 +1358,10 @@ export class Spline extends DataBlock {
         if (l.v !== v && l.next.v !== v)
           continue;
         
-        console.log("vs", v.eid, "|", l.prev.v.eid, l.v.eid, l.next.v.eid);
         if (l.v !== v) {
             l = l.next;
         }
-        
-        console.log("vl", v.eid, l.v.eid);
-        
+
         if (l === l.p.l)
           l.p.l = l.next;
         
@@ -1443,6 +1450,10 @@ export class Spline extends DataBlock {
   }
 
   kill_vertex(v : SplineVertex) {
+    if (!(v.eid in this.eidmap)) {
+      throw new Error("spline.kill_vertex called in error");
+    }
+
     this._vert_rem_set.add(v.eid);
 
     this.dag_update("on_vert_add", this._vert_rem_set);
@@ -1453,21 +1464,21 @@ export class Spline extends DataBlock {
       this.verts.setselect(v, false);
     }
     
-    if (this.hpair != undefined)
+    if (this.hpair !== undefined)
       this.disconnect_handle(this);
 
     while (v.segments.length > 0) {
       var last = v.segments.length;
       this.kill_segment(v.segments[0]);
       
-      if (last == v.segments.length) {
+      if (last === v.segments.length) {
         console.log("EEK!");
         break;
       }
     }
     
-    if (this.verts.active == v) this.verts.active = undefined;
-    if (this.verts.highlight == v) this.verts.highlight = undefined;
+    if (this.verts.active === v) this.verts.active = undefined;
+    if (this.verts.highlight === v) this.verts.highlight = undefined;
     
     delete this.eidmap[v.eid];
     

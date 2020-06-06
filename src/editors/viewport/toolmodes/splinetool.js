@@ -137,7 +137,7 @@ export class SplineToolMode extends ToolMode {
     k.add_tool(new HotKey("R", [], "Rotate"),
       "spline.rotate(datamode=selectmode)");
 
-    k.add_tool(new HotKey("A", [], "Select Linked"), "spline.toggle_select_all()");
+    k.add_tool(new HotKey("A", [], "Select All"), "spline.toggle_select_all()");
     /*
     k.add(new HotKey("A", [], "Toggle Select"), new FuncKeyHandler(function(ctx) {
       var view2d = ctx.view2d;

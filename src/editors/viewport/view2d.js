@@ -10,6 +10,7 @@ import {createMenu, startMenu} from '../../path.ux/scripts/widgets/ui_menu.js';
 
 import * as util from "../../path.ux/scripts/util/util.js";
 
+import {PenToolMode} from './toolmodes/pentool.js';
 import {ImageUser} from '../../core/imageblock.js';
 import {SplineEditor} from './view2d_spline_ops.js';
 import {Container} from '../../path.ux/scripts/core/ui.js';
@@ -81,23 +82,26 @@ export class View2DHandler extends Editor {
   background_image : ImageUser
   zoom : number;
 
-  static STRUCT     : string;
-  rendermat         : Matrix4;
-  need_data_link    : boolean;
-  widgets           : ManipulatorManager;
-  dpi_scale         : number;
-  draw_faces        : boolean;
-  background_color  : Vector3;
-  half_pix_size     : boolean;
-  default_stroke    : Vector4;
-  default_fill      : Vector4;
-  default_linewidth : float;
-  drawlines         : GArray<drawline>;
-  drawline_groups   : Object;
+  static STRUCT     : string
+  rendermat         : Matrix4
+  need_data_link    : boolean
+  widgets           : ManipulatorManager
+  dpi_scale         : number
+  draw_faces        : boolean
+  background_color  : Vector3
+  half_pix_size     : boolean
+  default_stroke    : Vector4
+  default_fill      : Vector4
+  default_linewidth : float
+  drawlines         : GArray<drawline>
+  drawline_groups   : Object
+  _last_mpos        : Vector2
   ctx               : FullContext;
 
   constructor() {
     super();
+
+    this._last_mpos = new Vector2();
 
     this.dpi_scale = 1.0;
     this._last_rendermat = new Matrix4();
@@ -202,11 +206,11 @@ export class View2DHandler extends Editor {
       let hf = s & SelMask.HANDLE;
       s2 &= ~SelMask.HANDLE;
 
-      if (s == SelMask.VERTEX)
+      if (s === SelMask.VERTEX)
         s2 = SelMask.SEGMENT;
-      else if (s == SelMask.SEGMENT)
+      else if (s === SelMask.SEGMENT)
         s2 = SelMask.FACE;
-      else if (s == SelMask.FACE)
+      else if (s === SelMask.FACE)
         s2 = SelMask.OBJECT;
       else
         s2 = SelMask.VERTEX;
@@ -588,7 +592,7 @@ export class View2DHandler extends Editor {
           var vdata = frameset.vertex_animdata[v.eid];
           var alpha = vdata.spline === actspline ? 1.0 : 0.2;
 
-          vdata.draw(g, alpha, this.ctx.frameset.time, redraw_rects);
+          vdata.draw(g, matrix, alpha, this.ctx.frameset.time, redraw_rects);
         }
 
         pathspline.layerset.active = pathspline.layerset.idmap[this.ctx.frameset.templayerid];
@@ -756,6 +760,8 @@ export class View2DHandler extends Editor {
 
     row.prop("view2d.zoom");
     row.prop("view2d.edit_all_layers");
+    row.prop("view2d.default_linewidth");
+    row.prop("view2d.default_stroke");
 
     row = container.row();
     row.noMargins();
@@ -1043,7 +1049,7 @@ export class View2DHandler extends Editor {
     this.editor.view2d = this;
 
     //are we over a ui panel?
-    if (this.ctx.screen.pickElement(event.pageX, event.pageY) !== this) {
+    if (this.ctx.screen.pickElement(event.x, event.y) !== this) {
       return;
     }
 
@@ -1091,10 +1097,16 @@ export class View2DHandler extends Editor {
   }
 
   on_mouseup(event : MouseEvent) {
-    //are we over a ui panel?
-    if (this.ctx.screen.pickElement(event.pageX, event.pageY) !== this) {
-      return;
-    }
+    //if (event.was_touch && event.touches && event.touches.length === 0) {
+      //let x = this._last_mpos[0];
+      //let y = this._last_mpos[0];
+    //}
+    //console.warn("View3d mouseup", event.x, event.y, this.ctx.screen.pickElement(event.x, event.y), event);
+
+    //BAD! -> are we over a ui panel?
+    //if (this.ctx.screen.pickElement(event.x, event.y) !== this) {
+    //  return;
+    //}
 
     event = this._mouse(event);
     //if (this.bad_event(event))
@@ -1102,16 +1114,20 @@ export class View2DHandler extends Editor {
 
     this._mstart = null;
 
-    if (this.editor.on_mouseup(event)) return;
+    if (this.editor.on_mouseup(event))
+      return;
   }
 
   on_mousemove(event) {
+    this._last_mpos[0] = event.x;
+    this._last_mpos[1] = event.y;
+
     if (!event.touches) {
       this.resetVelPan();
     }
 
     //are we over a ui panel?
-    if (this.ctx.screen.pickElement(event.pageX, event.pageY) !== this) {
+    if (this.ctx.screen.pickElement(event.x, event.y) !== this) {
       return;
     }
 
@@ -1295,7 +1311,26 @@ export class View2DHandler extends Editor {
     this._vel.zero();
   }
 
+  updateToolMode() {
+    if (!this.ctx || !this.ctx.scene) {
+      return;
+    }
+    let scene = this.ctx.scene;
+
+    //if (scene.toolmode
+    if (this.toolmode === ToolModes.PEN && !(scene.toolmode instanceof PenToolMode)) {
+      console.log("switching toolmode to pen");
+      scene.switchToolMode("pen");
+      this.regen_keymap();
+    } else if (this.toolmode !== ToolModes.PEN && scene.toolmode instanceof PenToolMode) {
+      console.log("switching toolmode to spline");
+      scene.switchToolMode("spline");
+      this.regen_keymap();
+    }
+  }
+
   update() {
+    this.updateToolMode();
     this.updateVelPan();
 
     let key = "" + this.half_pix_size + ":" + this.enable_blur + ":" + this.only_render + ":" + this.draw_faces + ":" + this.edit_all_layers + ":" + this.draw_normals + ":" + this.draw_small_verts;

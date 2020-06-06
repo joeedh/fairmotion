@@ -2,7 +2,7 @@ import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
 import {STRUCT} from '../../core/struct.js';
 import {UIBase, css2color, color2css} from '../../path.ux/scripts/core/ui_base.js';
 import {Editor} from '../editor_base.js';
-import {ToggleSelectAll, MoveKeyFramesOp, SelectKeysOp, SelModes2} from './dopesheet_ops_new.js';
+import {ToggleSelectAll, MoveKeyFramesOp, SelectKeysOp, SelModes2, DeleteKeysOp} from './dopesheet_ops_new.js';
 import * as util from '../../path.ux/scripts/util/util.js';
 import {eventWasTouch} from "../../path.ux/scripts/util/simple_events.js";
 
@@ -704,6 +704,10 @@ export class DopeSheetEditor extends Editor {
       window.redraw_viewport();
     }));
 
+    //DeleteKeysOp
+    k.add_tool(new HotKey("X", [], "Delete"), "anim.delete_keys()");
+    k.add_tool(new HotKey("Delete", [], "Delete"), "anim.delete_keys()");
+
     k.add(new HotKey("G", [], "Move Keyframes"), new FuncKeyHandler(function(ctx) {
       console.log("Dopesheet toggle select all!");
 
@@ -1168,7 +1172,7 @@ export class DopeSheetEditor extends Editor {
         let v = spline.eidmap[k];
 
         if (!v) {
-          console.warn("missing vertex", v.eid);
+          console.warn("missing vertex", k);
           this.rebuild();
           return;
         }

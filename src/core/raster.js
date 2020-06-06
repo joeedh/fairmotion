@@ -51,6 +51,7 @@ export class RasterState {
   scissor_stack : CacheStack;
 
   constructor(gl, size) {
+    return;
     this.size = size;
     
     this.pos = [0, 0];

@@ -254,13 +254,20 @@ export class EffectWrapper extends CurveEffect {
 }
 
 export class SplineSegment extends SplineElement {
-  _evalwrap : EffectWrapper
+  _evalwrap: EffectWrapper
   has_multires : boolean
-  mat : Material
-  finalz : number
-  flag : number
-  eid : number
-  ks : Array
+  mat      : Material
+  finalz   : number
+  flag     : number
+  eid      : number
+  v1       : SplineVertex;
+  v2       : SplineVertex;
+  h1       : SplineVertex;
+  h2       : SplineVertex;
+  w1       : number;
+  w2       : number;
+
+  ks       : Array
   _last_ks : Array;
 
   constructor(v1 : SplineVertex, v2 : SplineVertex) {
@@ -269,7 +276,10 @@ export class SplineSegment extends SplineElement {
     this._evalwrap = new EffectWrapper(this);
     
     this.l = undefined;
-    
+
+    this.w1 = 1.0;
+    this.w2 = 1.0;
+
     this.v1 = v1;
     this.v2 = v2;
     
@@ -308,6 +318,24 @@ export class SplineSegment extends SplineElement {
       this.ks[i] = 0;
       this._last_ks[i] = 0;
     }
+  }
+
+  width(s) {
+    let wid1 = this.mat.linewidth;
+    let wid2 = this.mat.linewidth;
+
+    if (this.v1.segments.length === 2) {
+      wid1 += (this.v1.other_segment(this).mat.linewidth*0.5+wid1*0.5 - wid1)*(1.0 - s);
+    }
+
+    if (this.v2.segments.length === 2) {
+      wid2 += (this.v2.other_segment(this).mat.linewidth*0.5+wid2*0.5 - wid2)*s;
+    }
+
+    wid1 *= this.w1;
+    wid2 *= this.w2;
+
+    return wid1 + (wid2 - wid1)*s;
   }
 
   _material_update() {
@@ -810,6 +838,9 @@ SplineSegment.STRUCT = STRUCT.inherit(SplineSegment, SplineElement) + `
   
   h1   : int | obj.h1 != undefined ? obj.h1.eid : -1;
   h2   : int | obj.h2 != undefined ? obj.h2.eid : -1;
+  
+  w1   : float;
+  w2   : float;
   
   l    : int | obj.l != undefined  ? obj.l.eid : -1;
   

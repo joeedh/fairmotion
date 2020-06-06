@@ -20,6 +20,7 @@ import {DeleteVertOp, DeleteSegmentOp, DeleteFaceOp,
        ChangeFaceZ, SplitEdgeOp, DuplicateOp,
        DisconnectHandlesOp, SplitEdgePickOp} from '../../editors/viewport/spline_editops.js';
 
+import {DeleteKeysOp} from "../../editors/dopesheet/dopesheet_ops_new.js";
 import {ToolOp, ToolMacro, ToolFlags, UndoFlags} from '../toolops_api.js';
 import {EditModes} from '../../editors/viewport/view2d.js';
 
@@ -300,7 +301,11 @@ window.api_define_ops = function() {
       
       return op;
     },
-    
+
+    "anim.delete_keys" : function(ctx, args) {
+      return new DeleteKeysOp();
+    },
+
     "view2d.circle_select" : function(ctx, args) {
       return new CircleSelectOp(ctx.view2d.selectmode);
     },

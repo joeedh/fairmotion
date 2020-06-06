@@ -336,7 +336,8 @@ function api_define_view2d() {
     SELECT: Icons.CURSOR_ARROW,
     APPEND: Icons.APPEND_VERTEX,
     RESIZE: Icons.RESIZE,
-    ROTATE: Icons.ROTATE
+    ROTATE: Icons.ROTATE,
+    PEN   : Icons.PEN_TOOL
   });
   
   var tweak_mode = new BoolProperty(0, "tweak_mode", "Tweak Mode");

@@ -32,6 +32,9 @@ export class KeyIterItem {
     }
   }
 
+  kill() {
+    throw new Error("implement me");
+  }
   getValue() {
     throw new Error("implement me");
   }
@@ -51,6 +54,8 @@ export class VertKeyIterItem extends KeyIterItem {
     this.v = undefined;
     this.spline = undefined;
     this.type = AnimKeyTypes.SPLINE;
+    this.channel = undefined; //vertex_animdata key
+    this.frameset = undefined;
   }
 
   getId() {
@@ -77,6 +82,10 @@ export class VertKeyIterItem extends KeyIterItem {
     return this;
   }
 
+  kill() {
+    this.frameset.vertex_animdata[this.channel].remove(this.v);
+  }
+
   getTime() {
     return get_vtime(this.v);
   }
@@ -89,9 +98,11 @@ export class VertKeyIterItem extends KeyIterItem {
     set_vtime(this.spline, this.v, time);
   }
 
-  init(spline, v) : this {
+  init(spline, v, vd_eid, frameset) : this {
     this.spline = spline;
     this.v = v;
+    this.channel = vd_eid;
+    this.frameset = frameset;
     return this;
   }
 
@@ -130,6 +141,17 @@ export class AnimKeyTool extends ToolOp {
       let list = this.inputs.keyList.getValue();
       let pathspline = ctx.frameset.pathspline;
 
+      let channelmap = {};
+      let frameset = ctx.frameset;
+
+      for (let k in frameset.vertex_animdata) {
+        let vd = frameset.vertex_animdata[k];
+
+        for (let v of vd.verts) {
+          channelmap[v.eid] = parseInt(k);
+        }
+      }
+
       for (let i=0; i<list.length; i += 2) {
         let type = list[i], id = list[i+1];
         if (type === AnimKeyTypes.SPLINE) {
@@ -140,7 +162,12 @@ export class AnimKeyTool extends ToolOp {
             continue;
           }
 
-          yield vkey_cache.next().init(pathspline, v);
+          if (!(v.eid in channelmap)) {
+            console.error("CORRUPTION ERROR!", v.eid, channelmap);
+            continue;
+          }
+
+          yield vkey_cache.next().init(pathspline, v, channelmap[v.eid], frameset);
         } else {
           throw new Error("implement me!");
         }
@@ -149,6 +176,7 @@ export class AnimKeyTool extends ToolOp {
       let frameset = ctx.frameset;
       let spline = frameset.spline; //not path spline
       let pathspline = frameset.pathspline;
+      let templist = [];
 
       for (var i2=0; i2<2; i2++) {
         let list = i2 ? spline.handles : spline.verts;
@@ -162,8 +190,13 @@ export class AnimKeyTool extends ToolOp {
           //console.log(v, v.eid);
           let vd = frameset.vertex_animdata[v.eid];
 
+          templist.length = 0;
           for (let v2 of vd.verts) {
-            yield vkey_cache.next().init(pathspline, v2);
+            templist.push(v2);
+          }
+
+          for (let v2 of templist) {
+            yield vkey_cache.next().init(pathspline, v2, v.eid, frameset);
           }
         }
       }
@@ -484,6 +517,55 @@ export class SelectKeysOp extends AnimKeyTool {
     super.undo(ctx);
 
     ctx.frameset.pathspline.flagUpdateVertTime();
+
+    if (ctx.dopesheet) {
+      ctx.dopesheet.updateKeyPositions();
+      ctx.dopesheet.redraw();
+    }
+  }
+}
+
+export class DeleteKeysOp extends AnimKeyTool {
+  constructor() {
+    super();
+  }
+
+  static tooldef() {return {
+    name       : "Delete Keyframes",
+    toolpath   : "anim.delete_keys",
+    inputs     : ToolOp.inherit({
+    })
+  }}
+
+  exec(ctx) {
+    console.warn("Deleting keyframes!");
+
+    for (let key of this.iterKeys(ctx)) {
+      if (key.getFlag() & AnimKeyFlags.SELECT) {
+        key.kill();
+      }
+    }
+
+    ctx.frameset.rationalize_vdata_layers();
+
+    ctx.frameset.spline.flagUpdateKeyframes();
+    ctx.frameset.pathspline.flagUpdateVertTime();
+  }
+
+  undo_pre(ctx) {
+    ToolOp.prototype.undo_pre.call(this, ctx);
+  }
+
+  undoPre(ctx) {
+    ToolOp.prototype.undo_pre.call(this, ctx);
+  }
+
+  undo(ctx) {
+    ToolOp.prototype.undo.call(this, ctx);
+    //super.undo(ctx); //use the "save everything" undo implementation
+
+    ctx.frameset.pathspline.flagUpdateVertTime();
+    ctx.frameset.spline.flagUpdateKeyframes();
 
     if (ctx.dopesheet) {
       ctx.dopesheet.updateKeyPositions();

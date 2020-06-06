@@ -1551,179 +1551,37 @@ class SDIDLayerListIter {
   }
 }
 
-class SDIDLayerList {
-  constructor() {
-  }
-  
-  [Symbol.iterator]() {
-    return new SDIDLayerListIter(this);
-  }
-  
-  get_from_layer(layer, parent) {
-    if (!(layer in this)) return undefined;
-    
-    return this[layer].idmap[parent];
-  }
-  
-  
-  copy() {
-    var ret = new SDIDLayerList();
-      
-    for (var k of this) {
-      var layer = this[k];
-      var layer2 = new SDIDLayer(layer.int_id);
-      
-      ret[k] = layer2;
-      
-      for (var k in layer.idmap) {
-        layer2.idmap[k] = {};
-        
-        for (var k2 in layer.idmap[k]) {
-          layer2.idmap[k][k2] = layer.idmap[k][k2];
-        }
-      }
-    }
-    
-    return ret;
-  }
-  
-  add_to_layer(layer, parent, child) {
-    if (layer == undefined) {
-      throw new Error("Layer cannot be undefined", layer, parent);
-    }
-    
-    if (!(layer in this)) {
-        this[layer] = new SDIDLayer(layer);
-    }
-    
-    layer = this[layer];
-    if (!(parent in layer.idmap))
-      layer.idmap[parent] = {};
-    
-    layer.idmap[parent][child] = child;
-  }
-  
-  static fromSTRUCT(reader) {
-    var ret = new SDIDLayerList();
-    reader(ret);
-    
-    for (var i=0; i<ret.layers.length; i++) {
-      ret[ret.layers[i].int_id] = ret.layers[i];
-    }
-    
-    //delete ret.layers;
-    
-    return ret;
-  }
-}
-SDIDLayerList.STRUCT = `
-  SDIDLayerList {
-    layers : iter(SDIDLayer) | this;
-  }
-`
-
-//subdividing id generator
-class SDIDGen {  
-  cur_id : number
-  idmap_layers : SDIDLayerList
-  usedmap : Object
-  freemap : Object;
+class SDIDGen {
+  cur_id : number;
 
   constructor() {
     this.cur_id = 1;
-    
-    this.idmap_layers = new SDIDLayerList();
-    this.usedmap = {};
-    
-    this.freelist = [];
-    this.freemap = {};
   }
-  
+
   copy() {
-    var ret = new SDIDGen();
+    let ret = new SDIDGen();
 
     ret.cur_id = this.cur_id;
-    ret.idmap_layers = this.idmap_layers.copy();
-    
-    return ret;
-  }
-  
-  static fromSTRUCT(unpacker) {
-    var g = new SDIDGen();
-    
-    unpacker(g);
-
-    if (!g.idmap_layers) {
-      g.idmap_layers = new SDIDLayerList();
-    }
-
-    for (var i=0; i<g.freelist.length; i++) {
-      g.freemap[g.freelist[i]] = i;
-    }
-    
-    var usedmap = {};
-    for (var i=0; i<g.usedmap.length; i++) {
-      usedmap[g.usedmap[i]] = 1;
-    }
-    g.usedmap = usedmap;
-    
-    return g;
-  }
-  
-  //if cur is >= to this.cur_eid, 
-  //set this.cur to cur+1
-  max_cur(cur, depth) {
-    this.cur_eid = Math.max(Math.ceil(cur)+1, this.cur_eid);
-  }
-  
-  gen_id(parent : int=undefined, layer : int=0) {
-    var id = this.cur_id++;
-    
-    /*we "guarantee" proper order of id generation by
-      making sure cur_id is always at its smallest
-      possible value.*/
-    if (id in this.freemap) {
-      this.freelist.remove(id);
-      delete this.freemap[id];
-    }
-    
-    this.usedmap[id] = 1;
-    
-    return id;
-  }
-
-  _save_usedmap() {
-    let ret = [];
-
-    for (let k in this.usedmap) {
-      ret.push(parseInt(k));
-    }
 
     return ret;
   }
 
-  free_id(id) {
-    if (id == this.cur_id-1) {
-      this.cur_id--;
-      
-      while (this.cur_id >= 0 && this.cur_id-1 in this.freemap) {
-        this.cur_id--;
-      }
-    }
-    
-    this.freemap[id] = this.freelist.length;
-    this.freelist.push(id);
-    
-    delete this.usedmap[id];
+  loadSTRUCT(reader) {
+    reader(this);
+  }
+
+  max_cur(id) {
+    this.cur_id = Math.max(this.cur_id, Math.ceil(id)+1);
+    return this;
+  }
+
+  gen_id() {
+    return this.cur_id++;
   }
 }
 
 SDIDGen.STRUCT = `
 SDIDGen {
   cur_id        : int;
-  idmap_layers  : SDIDLayerList;
-  usedmap       : iter(int) | this._save_usedmap();
-  freelist      : array(int);
 }
 `;
-

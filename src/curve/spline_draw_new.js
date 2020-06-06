@@ -286,7 +286,7 @@ export class SplineDrawer {
     
     var l = seg.ks[KSCALE] * zoom;
     let add = (Math.sqrt(l) / 5);
-    var steps = 7 + ~~add;
+    var steps = 5 + ~~add;
     
     //console.log("STEPS", "l", l, "add", add, "steps", steps);
     var ds = 1.0 / (steps - 1), s = 0.0;
@@ -340,10 +340,10 @@ export class SplineDrawer {
           break;
         }
         l = l.radial_next;
-      } while (l != seg.l);
+      } while (l !== seg.l);
     }
     
-    if (eid == seg.eid) {
+    if (eid === seg.eid) {
       path.reset();
     }
     
@@ -376,18 +376,75 @@ export class SplineDrawer {
     var lastdv, lastco;
     
     var len = seg.length;
-    
-    let stretch = 1.0//15;
-    
+
+    /*
+    let dv1 = seg.derivative(0.0);
+    let dv2 = seg.derivative(1.0);
+
+    dv1.normalize();
+    dv2.normalize();
+
+    let b1 = seg.v1.flag & SplineFlags.BREAK_TANGENTS;
+    let b2 = seg.v2.flag & SplineFlags.BREAK_TANGENTS;
+    for (let stepi=0; stepi<2; stepi++) {
+      let b = stepi ? b2 : b1;
+      let v = stepi ? seg.v2 : seg.v1;
+      let s1 = stepi ? 1.0 : 0.0;
+      let dvout = stepi ? dv2 : dv1;
+      let dvs = new Vector2(dvout);
+
+      dvout.zero();
+
+      if (v.segments.length > 1) {
+        for (let seg2 of v.segments) {
+          let s2 = seg2.v1 === v ? 0.0 : 1.0;
+
+          let dvb = seg2.derivative(s2);
+
+          if (dvb.dot(dvs) < 0) {
+            dvb.negate();
+          }
+
+          dvb.normalize();
+          dvout.add(dvb);
+        }
+
+        dvout.normalize();
+      }
+    }
+
+    let dret1 = new Vector2();
+    let dret2 = new Vector2();
+
+    function deriv(seg : SplineSegment, s : number) {
+      return seg.derivative(s);
+      let b1 = seg.v1.flag & SplineFlags.BREAK_TANGENTS;
+      let b2 = seg.v2.flag & SplineFlags.BREAK_TANGENTS;
+
+      let t = dret1; dret1 = dret2; dret2 = t;
+
+      let dva = seg.derivative(s);
+      t = 1.0 - Math.abs(s-0.5)*2.0;
+
+      dret1.load(dv1).interp(dv2, s);
+      dret1.interp(dva, t);
+      return dret1;
+    }
+    //*/
+
+    let stretch = 1.0075;
+
     s = 0;
     for (var i=0; i<steps; i++, s += ds) {
-      var dv = seg.derivative(s*stretch).normalize();
+      var dv = seg.derivative(s).normalize();
       var co = seg.evaluate(s*stretch);
       var k = -seg.curvature(s*stretch);
-      
+
+      lw = seg.width(s)*0.5;
+
       co[0] += -dv[1]*lw;
       co[1] += dv[0]*lw;
-      
+
       dv[0] *= (1.0 - lw*k);
       dv[1] *= (1.0 - lw*k);
       dv.mulScalar(len*ds/3.0);
@@ -406,10 +463,10 @@ export class SplineDrawer {
     lw = -lw;
     
     for (var i=0; i<steps; i++, s -= ds) {
-      var dv = seg.derivative(s*stretch).normalize();
+      var dv = seg.derivative(s).normalize();
       var co = seg.evaluate(s*stretch);
       var k = -seg.curvature(s*stretch);
-      
+
       co[0] += -dv[1]*lw;
       co[1] +=  dv[0]*lw;
       
@@ -447,7 +504,7 @@ export class SplineDrawer {
       layer = spline.layerset.get(k);
     }
     
-    if (layer != undefined && (layer.flag & SplineLayerFlags.MASK)) {
+    if (layer !== undefined && (layer.flag & SplineLayerFlags.MASK)) {
       //find previous layer;
       var li = spline.layerset.indexOf(layer);
       if (li <= 0) {
@@ -462,22 +519,22 @@ export class SplineDrawer {
       var i = drawparams.z;
       var layerid = layer.id;
       
-      while (i > 0 && layerid != prev.id) {
+      while (i > 0 && layerid !== prev.id) {
         i--;
         for (var k in drawlist[i].layers) {
           layerid = k;
           
-          if (layerid == prev.id)
+          if (layerid === prev.id)
             break;
         }
       }
       
-      while (i >= 0 && layerid == prev.id) {
+      while (i >= 0 && layerid === prev.id) {
         var item = drawlist[i];
         
         //console.log("TYPE:", item.type, item);
         
-        if (item.type == SplineTypes.FACE) {
+        if (item.type === SplineTypes.FACE) {
           var path2 = this.get_path(item.eid, i);
           path.add_clip_path(path2);
         }
@@ -489,7 +546,7 @@ export class SplineDrawer {
         for (var k in drawlist[i].layers) {
           layerid = k;
           
-          if (layerid == prev.id)
+          if (layerid === prev.id)
             break;
         }
       }

@@ -13,7 +13,7 @@ import '../path.ux/scripts/util/struct.js';
 var restrictflags = RestrictFlags.NO_DELETE | RestrictFlags.NO_EXTRUDE |
   RestrictFlags.NO_CONNECT;
 
-var vertanimdata_eval_cache = cachering.fromConstructor(Vector3, 64);
+var vertanimdata_eval_cache = cachering.fromConstructor(Vector3, 512);
 
 import {AnimChannel, AnimKey} from './animdata.js';
 import {PropTypes} from './toolprops.js';
@@ -152,6 +152,7 @@ export var VDAnimFlags = {
   OWNER_IS_EDITABLE : 8 //owner is selected and visible
 };
 
+let dvcache = cachering.fromConstructor(Vector3, 256);
 export class VertexAnimData {
   animflag : number
   flag : number
@@ -161,7 +162,9 @@ export class VertexAnimData {
 
   constructor(eid, pathspline) {
     this.eid = eid;
-  
+
+    this.dead = false;
+
     //this.timechannel = new AnimChannel(PropTypes.FLOAT, "Time", "");
     
     //basically this is just used to detect if a new vertex needs to be added to the time channel
@@ -181,7 +184,7 @@ export class VertexAnimData {
     this.path_times = {};
     this.startv_eid = -1; //this.spline.make_vertex(new Vector3());
     
-    if (pathspline != undefined) {
+    if (pathspline !== undefined) {
       var layer = pathspline.layerset.new_layer();
       layer.flag |= SplineLayerFlags.HIDE;
       
@@ -228,7 +231,7 @@ export class VertexAnimData {
   //*/
 
   get startv() {
-    if (this.startv_eid == -1) return undefined;
+    if (this.startv_eid === -1) return undefined;
     return this.spline.eidmap[this.startv_eid];
   }
   
@@ -238,7 +241,7 @@ export class VertexAnimData {
       return;
     }
     
-    if (v != undefined) {
+    if (v !== undefined) {
       this.startv_eid = v.eid;
     } else {
       this.startv_eid = -1;
@@ -246,10 +249,10 @@ export class VertexAnimData {
   }
   
   _set_layer() {
-    if (this.spline.layerset.active.id != this.layerid)
+    if (this.spline.layerset.active.id !== this.layerid)
       this._start_layer_id = this.spline.layerset.active.id;
     
-    if (this.layerid == undefined) {
+    if (this.layerid === undefined) {
       console.log("Error in _set_layer in VertexAnimData!!!");
       return;
     }
@@ -262,16 +265,56 @@ export class VertexAnimData {
   }
   
   _unset_layer() {
-    if (this._start_layer_id != undefined) {
+    if (this._start_layer_id !== undefined) {
       var layer = this.spline.layerset.idmap[this._start_layer_id];
       
-      if (layer != undefined)
+      if (layer !== undefined)
         this.spline.layerset.active = layer;
     }
     
     this._start_layer_id = undefined;
   }
-  
+
+  remove(v) {
+    if (v === this.startv) {
+      let startv = undefined;
+
+      for (let v2 of this.verts) {
+        if (v2 !== v) {
+          startv = v2;
+          break;
+        }
+      }
+
+      if (startv) {
+        this.startv_eid = startv.eid;
+        this.spline.remove(v);
+      } else {
+        this.dead = true;
+        this.spline.remove(v);
+      }
+    } else {
+      let ok = false;
+      for (let v2 of this.verts) {
+        if (v === v2) {
+          ok = true;
+          break;
+        }
+      }
+
+      if (!ok) {
+        console.error("Key not in this anim spline", v);
+        return;
+      }
+
+      if (v.segments.length === 2) {
+        this.spline.dissolve_vertex(v);
+      } else {
+        this.spline.kill_vertex(v);
+      }
+    }
+  }
+
   get verts() {
     return this.vitercache.next().init(this);
   }
@@ -284,8 +327,8 @@ export class VertexAnimData {
     var v = this.startv;
     //console.log("find_seg", v, time);
     
-    if (v == undefined) return undefined;
-    if (v.segments.length == 0) return undefined;
+    if (v === undefined) return undefined;
+    if (v.segments.length === 0) return undefined;
     
     var s = v.segments[0];
     var lastv = v;
@@ -397,7 +440,7 @@ export class VertexAnimData {
     return get_vtime(v);
   }
   
-  draw(g, alpha, time) {
+  draw(g, matrix, alpha, time) {
     if (!(this.visible))
       return;
     
@@ -405,22 +448,31 @@ export class VertexAnimData {
     
     var start = this.start_time, end = this.end_time;
     
-    g.lineWidth = 1.0;
+    g.lineWidth = 2.0;
     g.strokeStyle = "rgba(100,100,100,"+alpha+")";
     
     var dt = 1.0;
     var lastco = undefined;
+    let dv = new Vector4();
     
     for (var t = start; t<end; t += dt) {
       var co = this.evaluate(t);
-      var dv = this.derivative(t);
+      dv.load(this.derivative(t));
+
+      co.multVecMatrix(matrix);
+
+      dv[2] = 0.0;
+      dv[3] = 0.0;
+      dv.multVecMatrix(matrix);
+      dv[2] = 0.0;
+      dv[3] = 0.0;
+
+      dv.normalize().mulScalar(5);
+      let tmp = dv[0]; dv[0] = -dv[1]; dv[1] = tmp;
       
-      var tmp = dv[0]; dv[0] = -dv[1]; dv[1] = tmp;
-      
-      dv.normalize().mulScalar(3);
       g.beginPath();
       
-      var green = Math.floor(((t - start)/(end - start))*255) ;
+      let green = Math.floor(((t - start)/(end - start))*255) ;
       g.strokeStyle = "rgba(10, "+green+",10,"+alpha+")";
       
       /*if (t == start+dt)
@@ -432,12 +484,11 @@ export class VertexAnimData {
       */
       
       g.moveTo(co[0]-dv[0], co[1]-dv[1]);
-      g.lineTo(co[0], co[1]);
-      g.lineTo(co[0]-dv[0], co[1]-dv[1]);
+      g.lineTo(co[0]+dv[0], co[1]+dv[1]);
       
       g.stroke();
       
-      if (lastco != undefined) {
+      if (lastco !== undefined) {
         g.moveTo(lastco[0], lastco[1]);
         g.lineTo(co[0], co[1]);
         g.stroke();
@@ -448,15 +499,20 @@ export class VertexAnimData {
   }
   
   derivative(time) {
-    var df = 0.01;
+    var df = 0.001;
     var a = this.evaluate(time);
     var b = this.evaluate(time+df);
     
     b.sub(a).mulScalar(1.0/df);
-    return b;
+    return dvcache.next().load(b);
   }
   
   evaluate(time) {
+    if (this.dead) {
+      console.error("dead vertex anim key");
+      return;
+    }
+
     var v = this.startv;
     var step_func = this.animflag & VDAnimFlags.STEP_FUNC;
     
@@ -786,5 +842,6 @@ VertexAnimData {
   cur_time    : int;
   layerid     : int;
   startv_eid  : int;
+  dead        : bool;
 }
 `;

@@ -398,7 +398,13 @@ let load_default_file = function (g: AppState, size = [512, 512]) {
       //try {
       let buf = new DataView(b64decode(file).buffer);
 
-      g.load_user_file_new(buf, undefined, new unpack_ctx());
+      try {
+        g.load_user_file_new(buf, undefined, new unpack_ctx());
+      } catch (error) {
+        print_stack(error);
+        return false;
+      }
+
       return true;
       //} catch (err) {
       // print_stack(err);
@@ -646,6 +652,7 @@ export class AppState {
     myLocalStorage.set("startup_file", buf);
 
     g_app_state.notes.label("New file template saved");
+    return buf;
   }
 
   //file minus ui data, used by BasicFileDataOp

@@ -1068,8 +1068,6 @@ export class DataAPI {
   }
   
   resolve_path_intern2(ctx, str) {
-    g_app_state.screen.unlisten();
-
     var parser = this.parser2;
     
     var arr_index = undefined;

@@ -76,6 +76,10 @@ export class PathUXInterface extends ModelInterface {
   }
 
   _getToolHotkey(screen : FairmotionScreen, toolstring : string) {
+    if (!screen) {
+      return "";
+    }
+
     let ctx = this.ctx;
     let ret;
 

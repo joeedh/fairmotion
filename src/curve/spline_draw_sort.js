@@ -237,7 +237,7 @@ export function redo_draw_sort(spline) {
       f.z = 0;
     
     max_z = Math.max(max_z, f.z+1);
-    min_z = Math.min(min_z, f.z+1);
+    min_z = Math.min(min_z, f.z);
   }
   
   for (var s of spline.segments) {
@@ -259,7 +259,7 @@ export function redo_draw_sort(spline) {
     
     //XXX make segments always draw above their owning faces
     //giving edges their own order in this case gets too confusing
-    if (check_face && e.type == SplineTypes.SEGMENT && e.l !== undefined) {
+    if (check_face && e.type === SplineTypes.SEGMENT && e.l !== undefined) {
       var l = e.l;
       var _i = 0;
       var f_max_z = calc_z(e, true);
@@ -274,7 +274,7 @@ export function redo_draw_sort(spline) {
         f_max_z = f_max_z === undefined ? fz : Math.max(f_max_z, fz)
         
         l = l.radial_next;
-      } while (l != e.l);
+      } while (l !== e.l);
       
       //console.log("eid:", e.eid, "f_max_z:", f_max_z);
       

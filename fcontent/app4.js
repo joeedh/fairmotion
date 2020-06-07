@@ -10047,7 +10047,7 @@ es6_module_define('ui_dialog', ["../util/simple_events.js", "../screen/ScreenAre
   }
   makePopupArea = _es6_module.add_export('makePopupArea', makePopupArea);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_dialog.js');
-es6_module_define('ui_lasttool', ["../core/ui.js", "../config/const.js", "../toolsys/simple_toolsys.js", "../toolsys/toolprop.js", "../core/ui_base.js", "../controller/simple_controller.js", "../util/util.js"], function _ui_lasttool_module(_es6_module) {
+es6_module_define('ui_lasttool', ["../toolsys/toolprop.js", "../config/const.js", "../core/ui_base.js", "../util/util.js", "../toolsys/simple_toolsys.js", "../core/ui.js", "../controller/simple_controller.js"], function _ui_lasttool_module(_es6_module) {
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var ColumnFrame=es6_import_item(_es6_module, '../core/ui.js', 'ColumnFrame');
   var PropTypes=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'PropTypes');
@@ -10146,7 +10146,7 @@ es6_module_define('ui_lasttool', ["../core/ui.js", "../config/const.js", "../too
           return ;
       }
       let tool=ctx.toolstack[ctx.toolstack.cur];
-      if (!(LastKey in tool)||tool[LastKey]!==this._tool_id) {
+      if (tool&&(!(LastKey in tool)||tool[LastKey]!==this._tool_id)) {
           tool[LastKey] = tool_idgen++;
           this._tool_id = tool[LastKey];
           this.rebuild();
@@ -10344,7 +10344,7 @@ es6_module_define('ui_listbox', ["../util/util.js", "./ui_table.js", "../toolsys
   _es6_module.add_class(ListBox);
   UIBase.register(ListBox);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_listbox.js');
-es6_module_define('ui_menu', ["./ui_button.js", "../util/vectormath.js", "../config/const.js", "../core/ui_base.js", "../util/simple_events.js", "../util/events.js", "../util/util.js", "../toolsys/toolprop.js", "../toolsys/simple_toolsys.js"], function _ui_menu_module(_es6_module) {
+es6_module_define('ui_menu', ["../util/util.js", "./ui_button.js", "../util/events.js", "../util/vectormath.js", "../toolsys/simple_toolsys.js", "../toolsys/toolprop.js", "../util/simple_events.js", "../config/const.js", "../core/ui_base.js"], function _ui_menu_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../util/util.js');
   var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');

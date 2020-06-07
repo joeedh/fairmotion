@@ -3460,7 +3460,7 @@ K+HHLz/AqIDuEApBrMMyTbPDL+pi8QpV7UzpY3q0WbIlMzVAlXFxAefAFeT5KgXtiRgaAGzs1Jagdx5W
 Y5U6IzxhM5a1gyWo1DmWg40YhY4CC3p9qxcXVpERs4gDQ2AAA=`;
 }, '/dev/fairmotion/src/core/startup/startup_file_example.js');
 es6_module_define('startup_file', [], function _startup_file_module(_es6_module) {
-  let startup_file=`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`;
+  let startup_file=`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`;
   startup_file = _es6_module.add_export('startup_file', startup_file);
 }, '/dev/fairmotion/src/core/startup/startup_file.js');
 "not_a_module";
@@ -3551,6 +3551,29 @@ window.init_redraw_globals = function init_redraw_globals() {
   }
   window._block_drawing = false;
   window._wait_for_draw = false;
+  window.complete_viewport_draw = function (tries) {
+    if (tries===undefined) {
+        tries = 100;
+    }
+    if (animreq!==undefined||!window.g_app_state||!g_app_state.ctx) {
+        if (tris<=0) {
+            console.log("Failed to execute complete_viewport_draw()!");
+            return ;
+        }
+        window.setTimeout(() =>          {
+          window.complete_viewport_draw(tris--);
+        }, 1);
+    }
+    let ctx=g_app_state.ctx;
+    if (!ctx.frameset) {
+        return ;
+    }
+    let spline=ctx.frameset.spline;
+    spline.drawer = new _SplineDrawer(spline);
+    spline = ctx.frameset.pathspline;
+    spline.drawer = new _SplineDrawer(spline);
+    window.redraw_viewport();
+  }
   window.redraw_viewport = function () {
     if (animreq!==undefined) {
         return redraw_viewport_promise;
@@ -9476,7 +9499,8 @@ es6_module_define('icon_enum', [], function _icon_enum_module(_es6_module) {
    ZOOM_OUT: 58, 
    ZOOM_IN: 59, 
    LARGE_CHECK: 60, 
-   HALF_PIXEL_SIZE: 61}
+   HALF_PIXEL_SIZE: 61, 
+   PEN_TOOL: 62}
 }, '/dev/fairmotion/src/datafiles/icon_enum.js');
 "not_a_module";
 if (Array.prototype.set===undefined) {
@@ -9746,16 +9770,16 @@ function time_func(func, steps) {
   console.log(times);
   return times;
 }
-var $lst_zkCq=new GArray();
+var $lst_BpEM=new GArray();
 function cached_list(iter) {
-  $lst_zkCq.reset();
+  $lst_BpEM.reset();
   var i=0;
   for (var item of iter) {
-      $lst_zkCq.push(item);
+      $lst_BpEM.push(item);
       i++;
   }
-  $lst_zkCq.length = i;
-  return $lst_zkCq;
+  $lst_BpEM.length = i;
+  return $lst_BpEM;
 }
 var g_list=list;
 class eid_list extends GArray {
@@ -10693,132 +10717,31 @@ class SDIDLayerListIter  {
   }
 }
 _ESClass.register(SDIDLayerListIter);
-class SDIDLayerList  {
-   constructor() {
-
-  }
-   [Symbol.iterator]() {
-    return new SDIDLayerListIter(this);
-  }
-   get_from_layer(layer, parent) {
-    if (!(layer in this))
-      return undefined;
-    return this[layer].idmap[parent];
-  }
-   copy() {
-    var ret=new SDIDLayerList();
-    for (var k of this) {
-        var layer=this[k];
-        var layer2=new SDIDLayer(layer.int_id);
-        ret[k] = layer2;
-        for (var k in layer.idmap) {
-            layer2.idmap[k] = {};
-            for (var k2 in layer.idmap[k]) {
-                layer2.idmap[k][k2] = layer.idmap[k][k2];
-            }
-        }
-    }
-    return ret;
-  }
-   add_to_layer(layer, parent, child) {
-    if (layer==undefined) {
-        throw new Error("Layer cannot be undefined", layer, parent);
-    }
-    if (!(layer in this)) {
-        this[layer] = new SDIDLayer(layer);
-    }
-    layer = this[layer];
-    if (!(parent in layer.idmap))
-      layer.idmap[parent] = {}
-    layer.idmap[parent][child] = child;
-  }
-  static  fromSTRUCT(reader) {
-    var ret=new SDIDLayerList();
-    reader(ret);
-    for (var i=0; i<ret.layers.length; i++) {
-        ret[ret.layers[i].int_id] = ret.layers[i];
-    }
-    return ret;
-  }
-}
-_ESClass.register(SDIDLayerList);
-SDIDLayerList.STRUCT = `
-  SDIDLayerList {
-    layers : iter(SDIDLayer) | this;
-  }
-`;
 class SDIDGen  {
-  
-  
-  
   
    constructor() {
     this.cur_id = 1;
-    this.idmap_layers = new SDIDLayerList();
-    this.usedmap = {};
-    this.freelist = [];
-    this.freemap = {};
   }
    copy() {
-    var ret=new SDIDGen();
+    let ret=new SDIDGen();
     ret.cur_id = this.cur_id;
-    ret.idmap_layers = this.idmap_layers.copy();
     return ret;
   }
-  static  fromSTRUCT(unpacker) {
-    var g=new SDIDGen();
-    unpacker(g);
-    if (!g.idmap_layers) {
-        g.idmap_layers = new SDIDLayerList();
-    }
-    for (var i=0; i<g.freelist.length; i++) {
-        g.freemap[g.freelist[i]] = i;
-    }
-    var usedmap={};
-    for (var i=0; i<g.usedmap.length; i++) {
-        usedmap[g.usedmap[i]] = 1;
-    }
-    g.usedmap = usedmap;
-    return g;
+   loadSTRUCT(reader) {
+    reader(this);
   }
-   max_cur(cur, depth) {
-    this.cur_eid = Math.max(Math.ceil(cur)+1, this.cur_eid);
+   max_cur(id) {
+    this.cur_id = Math.max(this.cur_id, Math.ceil(id)+1);
+    return this;
   }
-   gen_id(parent=undefined, layer=0) {
-    var id=this.cur_id++;
-    if (id in this.freemap) {
-        this.freelist.remove(id);
-        delete this.freemap[id];
-    }
-    this.usedmap[id] = 1;
-    return id;
-  }
-   _save_usedmap() {
-    let ret=[];
-    for (let k in this.usedmap) {
-        ret.push(parseInt(k));
-    }
-    return ret;
-  }
-   free_id(id) {
-    if (id==this.cur_id-1) {
-        this.cur_id--;
-        while (this.cur_id>=0&&this.cur_id-1 in this.freemap) {
-          this.cur_id--;
-        }
-    }
-    this.freemap[id] = this.freelist.length;
-    this.freelist.push(id);
-    delete this.usedmap[id];
+   gen_id() {
+    return this.cur_id++;
   }
 }
 _ESClass.register(SDIDGen);
 SDIDGen.STRUCT = `
 SDIDGen {
   cur_id        : int;
-  idmap_layers  : SDIDLayerList;
-  usedmap       : iter(int) | this._save_usedmap();
-  freelist      : array(int);
 }
 `;
 es6_module_define('binomial_table', [], function _binomial_table_module(_es6_module) {
@@ -11662,7 +11585,7 @@ es6_module_define('lib_api_typedefine', ["./lib_api.js", "../scene/scene.js", ".
   }
   get_data_typemap = _es6_module.add_export('get_data_typemap', get_data_typemap);
 }, '/dev/fairmotion/src/core/lib_api_typedefine.js');
-es6_module_define('mathlib', ["../path.ux/scripts/util/vectormath.js", "../core/struct.js", "./vectormath.js"], function _mathlib_module(_es6_module) {
+es6_module_define('mathlib', ["./vectormath.js", "../path.ux/scripts/util/vectormath.js", "../core/struct.js"], function _mathlib_module(_es6_module) {
   "use strict";
   var $_mh;
   var $_swapt;
@@ -11739,12 +11662,12 @@ es6_module_define('mathlib', ["../path.ux/scripts/util/vectormath.js", "../core/
       FLOAT_MAX = 1000000.0;
       console.log("Floating-point 16-bit system detected!");
   }
-  var $_cs4_OsYy_get_rect_points=new Array(4);
-  var $_cs8_BEhj_get_rect_points=new Array(8);
+  var $_cs4_Ft5K_get_rect_points=new Array(4);
+  var $_cs8_KyZH_get_rect_points=new Array(8);
   function get_rect_points(p, size) {
     var cs;
     if (p.length==2) {
-        cs = $_cs4_OsYy_get_rect_points;
+        cs = $_cs4_Ft5K_get_rect_points;
         cs[0] = p;
         cs[1] = [p[0], p[1]+size[1]];
         cs[2] = [p[0]+size[0], p[1]+size[1]];
@@ -11752,7 +11675,7 @@ es6_module_define('mathlib', ["../path.ux/scripts/util/vectormath.js", "../core/
     }
     else 
       if (p.length==3) {
-        cs = $_cs8_BEhj_get_rect_points;
+        cs = $_cs8_KyZH_get_rect_points;
         cs[0] = p;
         cs[1] = [p[0]+size[0], p[1], p[2]];
         cs[2] = [p[0]+size[0], p[1]+size[1], p[2]];
@@ -11789,15 +11712,15 @@ es6_module_define('mathlib', ["../path.ux/scripts/util/vectormath.js", "../core/
     }
   }
   get_rect_lines = _es6_module.add_export('get_rect_lines', get_rect_lines);
-  var $vs_j8Bh_simple_tri_aabb_isect=[0, 0, 0];
+  var $vs_USrW_simple_tri_aabb_isect=[0, 0, 0];
   function simple_tri_aabb_isect(v1, v2, v3, min, max) {
-    $vs_j8Bh_simple_tri_aabb_isect[0] = v1;
-    $vs_j8Bh_simple_tri_aabb_isect[1] = v2;
-    $vs_j8Bh_simple_tri_aabb_isect[2] = v3;
+    $vs_USrW_simple_tri_aabb_isect[0] = v1;
+    $vs_USrW_simple_tri_aabb_isect[1] = v2;
+    $vs_USrW_simple_tri_aabb_isect[2] = v3;
     for (var i=0; i<3; i++) {
         var isect=true;
         for (var j=0; j<3; j++) {
-            if ($vs_j8Bh_simple_tri_aabb_isect[j][i]<min[i]||$vs_j8Bh_simple_tri_aabb_isect[j][i]>=max[i])
+            if ($vs_USrW_simple_tri_aabb_isect[j][i]<min[i]||$vs_USrW_simple_tri_aabb_isect[j][i]>=max[i])
               isect = false;
         }
         if (isect)
@@ -11809,7 +11732,7 @@ es6_module_define('mathlib', ["../path.ux/scripts/util/vectormath.js", "../core/
   class MinMax  {
      constructor(totaxis=1) {
       this.totaxis = totaxis;
-      if (totaxis!=1) {
+      if (totaxis!==1) {
           this._min = new Array(totaxis);
           this._max = new Array(totaxis);
           this.min = new Array(totaxis);
@@ -11825,7 +11748,7 @@ es6_module_define('mathlib', ["../path.ux/scripts/util/vectormath.js", "../core/
       this._static_mr_cs = new Array(this.totaxis*this.totaxis);
     }
      load(mm) {
-      if (this.totaxis==1) {
+      if (this.totaxis===1) {
           this.min = mm.min;
           this.max = mm.max;
           this._min = mm.min;
@@ -11840,7 +11763,7 @@ es6_module_define('mathlib', ["../path.ux/scripts/util/vectormath.js", "../core/
     }
      reset() {
       var totaxis=this.totaxis;
-      if (totaxis==1) {
+      if (totaxis===1) {
           this.min = this.max = 0;
           this._min = FLOAT_MAX;
           this._max = FLOAT_MIN;
@@ -11857,14 +11780,14 @@ es6_module_define('mathlib', ["../path.ux/scripts/util/vectormath.js", "../core/
      minmax_rect(p, size) {
       var totaxis=this.totaxis;
       var cs=this._static_mr_cs;
-      if (totaxis==2) {
+      if (totaxis===2) {
           cs[0] = p;
           cs[1] = [p[0]+size[0], p[1]];
           cs[2] = [p[0]+size[0], p[1]+size[1]];
           cs[3] = [p[0], p[1]+size[1]];
       }
       else 
-        if (totaxis = 3) {
+        if (totaxis===3) {
           cs[0] = p;
           cs[1] = [p[0]+size[0], p[1], p[2]];
           cs[2] = [p[0]+size[0], p[1]+size[1], p[2]];
@@ -11883,7 +11806,7 @@ es6_module_define('mathlib', ["../path.ux/scripts/util/vectormath.js", "../core/
     }
      minmax(p) {
       var totaxis=this.totaxis;
-      if (totaxis==1) {
+      if (totaxis===1) {
           this._min = this.min = Math.min(this._min, p);
           this._max = this.max = Math.max(this._max, p);
       }
@@ -11913,16 +11836,12 @@ es6_module_define('mathlib', ["../path.ux/scripts/util/vectormath.js", "../core/
   }
 `;
   function winding(a, b, c) {
-    for (var i=0; i<a.length; i++) {
-        _cross_vec1[i] = b[i]-a[i];
-        _cross_vec2[i] = c[i]-a[i];
-    }
-    if (a.length==2) {
-        _cross_vec1[2] = 0.0;
-        _cross_vec2[2] = 0.0;
-    }
-    _cross_vec1.cross(_cross_vec2);
-    return _cross_vec1[2]>0.0;
+    let dx1=a[0]-b[0];
+    let dy1=a[1]-b[1];
+    let dx2=c[0]-b[0];
+    let dy2=c[1]-b[1];
+    let r=dx1*dy2-dy1*dx2;
+    return r>=0.0;
   }
   winding = _es6_module.add_export('winding', winding);
   function inrect_2d(p, pos, size) {
@@ -11935,42 +11854,42 @@ es6_module_define('mathlib', ["../path.ux/scripts/util/vectormath.js", "../core/
     return p[0]>=pos[0]&&p[0]<=pos[0]+size[0]&&p[1]>=pos[1]&&p[1]<=pos[1]+size[1];
   }
   inrect_2d = _es6_module.add_export('inrect_2d', inrect_2d);
-  var $smin_o62f_aabb_isect_line_2d=new Vector2();
-  var $ssize__fer_aabb_isect_line_2d=new Vector2();
-  var $sv1_QJob_aabb_isect_line_2d=new Vector2();
-  var $ps_46Qj_aabb_isect_line_2d=[new Vector2(), new Vector2(), new Vector2()];
-  var $l1_wku6_aabb_isect_line_2d=[0, 0];
-  var $smax_fElI_aabb_isect_line_2d=new Vector2();
-  var $sv2_l6rO_aabb_isect_line_2d=new Vector2();
-  var $l2_7SN9_aabb_isect_line_2d=[0, 0];
+  var $smin_LTM8_aabb_isect_line_2d=new Vector2();
+  var $ssize_4mAG_aabb_isect_line_2d=new Vector2();
+  var $sv1_pCjZ_aabb_isect_line_2d=new Vector2();
+  var $ps_eKtQ_aabb_isect_line_2d=[new Vector2(), new Vector2(), new Vector2()];
+  var $l1_BP8m_aabb_isect_line_2d=[0, 0];
+  var $smax_HCic_aabb_isect_line_2d=new Vector2();
+  var $sv2_nR6N_aabb_isect_line_2d=new Vector2();
+  var $l2_MKKL_aabb_isect_line_2d=[0, 0];
   function aabb_isect_line_2d(v1, v2, min, max) {
     for (var i=0; i<2; i++) {
-        $smin_o62f_aabb_isect_line_2d[i] = Math.min(min[i], v1[i]);
-        $smax_fElI_aabb_isect_line_2d[i] = Math.max(max[i], v2[i]);
+        $smin_LTM8_aabb_isect_line_2d[i] = Math.min(min[i], v1[i]);
+        $smax_HCic_aabb_isect_line_2d[i] = Math.max(max[i], v2[i]);
     }
-    $smax_fElI_aabb_isect_line_2d.sub($smin_o62f_aabb_isect_line_2d);
-    $ssize__fer_aabb_isect_line_2d.load(max).sub(min);
-    if (!aabb_isect_2d($smin_o62f_aabb_isect_line_2d, $smax_fElI_aabb_isect_line_2d, min, $ssize__fer_aabb_isect_line_2d))
+    $smax_HCic_aabb_isect_line_2d.sub($smin_LTM8_aabb_isect_line_2d);
+    $ssize_4mAG_aabb_isect_line_2d.load(max).sub(min);
+    if (!aabb_isect_2d($smin_LTM8_aabb_isect_line_2d, $smax_HCic_aabb_isect_line_2d, min, $ssize_4mAG_aabb_isect_line_2d))
       return false;
     for (var i=0; i<4; i++) {
-        if (inrect_2d(v1, min, $ssize__fer_aabb_isect_line_2d))
+        if (inrect_2d(v1, min, $ssize_4mAG_aabb_isect_line_2d))
           return true;
-        if (inrect_2d(v2, min, $ssize__fer_aabb_isect_line_2d))
+        if (inrect_2d(v2, min, $ssize_4mAG_aabb_isect_line_2d))
           return true;
     }
-    $ps_46Qj_aabb_isect_line_2d[0] = min;
-    $ps_46Qj_aabb_isect_line_2d[1][0] = min[0];
-    $ps_46Qj_aabb_isect_line_2d[1][1] = max[1];
-    $ps_46Qj_aabb_isect_line_2d[2] = max;
-    $ps_46Qj_aabb_isect_line_2d[3][0] = max[0];
-    $ps_46Qj_aabb_isect_line_2d[3][1] = min[1];
-    $l1_wku6_aabb_isect_line_2d[0] = v1;
-    $l1_wku6_aabb_isect_line_2d[1] = v2;
+    $ps_eKtQ_aabb_isect_line_2d[0] = min;
+    $ps_eKtQ_aabb_isect_line_2d[1][0] = min[0];
+    $ps_eKtQ_aabb_isect_line_2d[1][1] = max[1];
+    $ps_eKtQ_aabb_isect_line_2d[2] = max;
+    $ps_eKtQ_aabb_isect_line_2d[3][0] = max[0];
+    $ps_eKtQ_aabb_isect_line_2d[3][1] = min[1];
+    $l1_BP8m_aabb_isect_line_2d[0] = v1;
+    $l1_BP8m_aabb_isect_line_2d[1] = v2;
     for (var i=0; i<4; i++) {
-        var a=$ps_46Qj_aabb_isect_line_2d[i], b=$ps_46Qj_aabb_isect_line_2d[(i+1)%4];
-        $l2_7SN9_aabb_isect_line_2d[0] = a;
-        $l2_7SN9_aabb_isect_line_2d[1] = b;
-        if (line_line_cross($l1_wku6_aabb_isect_line_2d, $l2_7SN9_aabb_isect_line_2d))
+        var a=$ps_eKtQ_aabb_isect_line_2d[i], b=$ps_eKtQ_aabb_isect_line_2d[(i+1)%4];
+        $l2_MKKL_aabb_isect_line_2d[0] = a;
+        $l2_MKKL_aabb_isect_line_2d[1] = b;
+        if (line_line_cross($l1_BP8m_aabb_isect_line_2d, $l2_MKKL_aabb_isect_line_2d))
           return true;
     }
     return false;
@@ -12065,6 +11984,17 @@ es6_module_define('mathlib', ["../path.ux/scripts/util/vectormath.js", "../core/
     var w4=winding(c, b, d);
     return (w1==w2)&&(w3==w4)&&(w1!=w3);
   }
+  line_line_cross = _es6_module.add_export('line_line_cross', line_line_cross);
+  let _llc4_1=[new Vector2(), new Vector2()];
+  let _llc4_2=[new Vector2(), new Vector2()];
+  function line_line_cross4(v1, v2, v3, v4) {
+    _llc4_1[0].load(v1);
+    _llc4_1[1].load(v2);
+    _llc4_2[0].load(v3);
+    _llc4_2[1].load(v4);
+    return line_line_cross(_llc4_1, _llc4_2);
+  }
+  line_line_cross4 = _es6_module.add_export('line_line_cross4', line_line_cross4);
   function point_in_tri(p, v1, v2, v3) {
     var w1=winding(p, v1, v2);
     var w2=winding(p, v2, v3);
@@ -12076,63 +12006,62 @@ es6_module_define('mathlib', ["../path.ux/scripts/util/vectormath.js", "../core/
     return line_line_cross([v1, v3], [v2, v4]);
   }
   convex_quad = _es6_module.add_export('convex_quad', convex_quad);
-  var $e1_ZlS9_normal_tri=new Vector3();
-  var $e3_u55V_normal_tri=new Vector3();
-  var $e2_DV9n_normal_tri=new Vector3();
+  var $e1_2QOD_normal_tri=new Vector3();
+  var $e3__HnQ_normal_tri=new Vector3();
+  var $e2__vJa_normal_tri=new Vector3();
   function normal_tri(v1, v2, v3) {
-    $e1_ZlS9_normal_tri[0] = v2[0]-v1[0];
-    $e1_ZlS9_normal_tri[1] = v2[1]-v1[1];
-    $e1_ZlS9_normal_tri[2] = v2[2]-v1[2];
-    $e2_DV9n_normal_tri[0] = v3[0]-v1[0];
-    $e2_DV9n_normal_tri[1] = v3[1]-v1[1];
-    $e2_DV9n_normal_tri[2] = v3[2]-v1[2];
-    $e3_u55V_normal_tri[0] = $e1_ZlS9_normal_tri[1]*$e2_DV9n_normal_tri[2]-$e1_ZlS9_normal_tri[2]*$e2_DV9n_normal_tri[1];
-    $e3_u55V_normal_tri[1] = $e1_ZlS9_normal_tri[2]*$e2_DV9n_normal_tri[0]-$e1_ZlS9_normal_tri[0]*$e2_DV9n_normal_tri[2];
-    $e3_u55V_normal_tri[2] = $e1_ZlS9_normal_tri[0]*$e2_DV9n_normal_tri[1]-$e1_ZlS9_normal_tri[1]*$e2_DV9n_normal_tri[0];
+    $e1_2QOD_normal_tri[0] = v2[0]-v1[0];
+    $e1_2QOD_normal_tri[1] = v2[1]-v1[1];
+    $e1_2QOD_normal_tri[2] = v2[2]-v1[2];
+    $e2__vJa_normal_tri[0] = v3[0]-v1[0];
+    $e2__vJa_normal_tri[1] = v3[1]-v1[1];
+    $e2__vJa_normal_tri[2] = v3[2]-v1[2];
+    $e3__HnQ_normal_tri[0] = $e1_2QOD_normal_tri[1]*$e2__vJa_normal_tri[2]-$e1_2QOD_normal_tri[2]*$e2__vJa_normal_tri[1];
+    $e3__HnQ_normal_tri[1] = $e1_2QOD_normal_tri[2]*$e2__vJa_normal_tri[0]-$e1_2QOD_normal_tri[0]*$e2__vJa_normal_tri[2];
+    $e3__HnQ_normal_tri[2] = $e1_2QOD_normal_tri[0]*$e2__vJa_normal_tri[1]-$e1_2QOD_normal_tri[1]*$e2__vJa_normal_tri[0];
     
-    var _len=Math.sqrt($e3_u55V_normal_tri[0]*$e3_u55V_normal_tri[0]+$e3_u55V_normal_tri[1]*$e3_u55V_normal_tri[1]+$e3_u55V_normal_tri[2]*$e3_u55V_normal_tri[2]);
+    var _len=Math.sqrt($e3__HnQ_normal_tri[0]*$e3__HnQ_normal_tri[0]+$e3__HnQ_normal_tri[1]*$e3__HnQ_normal_tri[1]+$e3__HnQ_normal_tri[2]*$e3__HnQ_normal_tri[2]);
     if (_len>1e-05)
       _len = 1.0/_len;
-    $e3_u55V_normal_tri[0]*=_len;
-    $e3_u55V_normal_tri[1]*=_len;
-    $e3_u55V_normal_tri[2]*=_len;
-    return $e3_u55V_normal_tri;
+    $e3__HnQ_normal_tri[0]*=_len;
+    $e3__HnQ_normal_tri[1]*=_len;
+    $e3__HnQ_normal_tri[2]*=_len;
+    return $e3__HnQ_normal_tri;
   }
   normal_tri = _es6_module.add_export('normal_tri', normal_tri);
-  var $n2_B8ew_normal_quad=new Vector3();
+  var $n2_Yftj_normal_quad=new Vector3();
   function normal_quad(v1, v2, v3, v4) {
     var n=normal_tri(v1, v2, v3);
-    $n2_B8ew_normal_quad[0] = n[0];
-    $n2_B8ew_normal_quad[1] = n[1];
-    $n2_B8ew_normal_quad[2] = n[2];
+    $n2_Yftj_normal_quad[0] = n[0];
+    $n2_Yftj_normal_quad[1] = n[1];
+    $n2_Yftj_normal_quad[2] = n[2];
     n = normal_tri(v1, v3, v4);
-    $n2_B8ew_normal_quad[0] = $n2_B8ew_normal_quad[0]+n[0];
-    $n2_B8ew_normal_quad[1] = $n2_B8ew_normal_quad[1]+n[1];
-    $n2_B8ew_normal_quad[2] = $n2_B8ew_normal_quad[2]+n[2];
-    var _len=Math.sqrt($n2_B8ew_normal_quad[0]*$n2_B8ew_normal_quad[0]+$n2_B8ew_normal_quad[1]*$n2_B8ew_normal_quad[1]+$n2_B8ew_normal_quad[2]*$n2_B8ew_normal_quad[2]);
+    $n2_Yftj_normal_quad[0] = $n2_Yftj_normal_quad[0]+n[0];
+    $n2_Yftj_normal_quad[1] = $n2_Yftj_normal_quad[1]+n[1];
+    $n2_Yftj_normal_quad[2] = $n2_Yftj_normal_quad[2]+n[2];
+    var _len=Math.sqrt($n2_Yftj_normal_quad[0]*$n2_Yftj_normal_quad[0]+$n2_Yftj_normal_quad[1]*$n2_Yftj_normal_quad[1]+$n2_Yftj_normal_quad[2]*$n2_Yftj_normal_quad[2]);
     if (_len>1e-05)
       _len = 1.0/_len;
-    $n2_B8ew_normal_quad[0]*=_len;
-    $n2_B8ew_normal_quad[1]*=_len;
-    $n2_B8ew_normal_quad[2]*=_len;
-    return $n2_B8ew_normal_quad;
+    $n2_Yftj_normal_quad[0]*=_len;
+    $n2_Yftj_normal_quad[1]*=_len;
+    $n2_Yftj_normal_quad[2]*=_len;
+    return $n2_Yftj_normal_quad;
   }
   normal_quad = _es6_module.add_export('normal_quad', normal_quad);
+  var lis_rets3=cachering.fromConstructor(Vector3, 64);
+  var lis_rets2=cachering.fromConstructor(Vector2, 64);
   var _li_vi=new Vector3();
   function line_isect(v1, v2, v3, v4, calc_t) {
-    if (calc_t==undefined) {
+    if (calc_t===undefined) {
         calc_t = false;
     }
     var div=(v2[0]-v1[0])*(v4[1]-v3[1])-(v2[1]-v1[1])*(v4[0]-v3[0]);
-    if (div==0.0)
+    if (div===0.0)
       return [new Vector3(), COLINEAR, 0.0];
-    var vi=_li_vi;
-    vi[0] = 0;
-    vi[1] = 0;
-    vi[2] = 0;
+    var vi=v1.length===3 ? lis_rets3.next().zero() : lis_rets2.next().zero();
     vi[0] = ((v3[0]-v4[0])*(v1[0]*v2[1]-v1[1]*v2[0])-(v1[0]-v2[0])*(v3[0]*v4[1]-v3[1]*v4[0]))/div;
     vi[1] = ((v3[1]-v4[1])*(v1[0]*v2[1]-v1[1]*v2[0])-(v1[1]-v2[1])*(v3[0]*v4[1]-v3[1]*v4[0]))/div;
-    if (calc_t||v1.length==3) {
+    if (calc_t||v1.length===3) {
         var n1=new Vector2(v2).sub(v1);
         var n2=new Vector2(vi).sub(v1);
         var t=n2.vectorLength()/n1.vectorLength();
@@ -12141,7 +12070,7 @@ es6_module_define('mathlib', ["../path.ux/scripts/util/vectormath.js", "../core/
         if (n1.dot(n2)<0.0) {
             t = -t;
         }
-        if (v1.length==3) {
+        if (v1.length===3) {
             vi[2] = v1[2]+(v2[2]-v1[2])*t;
         }
         return [vi, LINECROSS, t];
@@ -12483,9 +12412,9 @@ es6_module_define('mathlib', ["../path.ux/scripts/util/vectormath.js", "../core/
         }
     }
   }
-  var $_cent_WQxV=new Vector3();
+  var $_cent_0EGN=new Vector3();
   function get_boundary_winding(points) {
-    var cent=$_cent_WQxV.zero();
+    var cent=$_cent_0EGN.zero();
     if (points.length==0)
       return false;
     for (var i=0; i<points.length; i++) {
@@ -12896,413 +12825,3 @@ es6_module_define('colorutils', [], function _colorutils_module(_es6_module) {
   }
   hsva_to_rgba = _es6_module.add_export('hsva_to_rgba', hsva_to_rgba);
 }, '/dev/fairmotion/src/util/colorutils.js');
-es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
-  "use strict";
-  class token  {
-     constructor(type, val, lexpos, lexlen, lineno, lexer, parser) {
-      this.type = type;
-      this.value = val;
-      this.lexpos = lexpos;
-      this.lexlen = lexlen;
-      this.lineno = lineno;
-      this.lexer = lexer;
-      this.parser = parser;
-    }
-     toString() {
-      if (this.value!=undefined)
-        return "token(type="+this.type+", value='"+this.value+"')";
-      else 
-        return "token(type="+this.type+")";
-    }
-  }
-  _ESClass.register(token);
-  _es6_module.add_class(token);
-  token = _es6_module.add_export('token', token);
-  class tokdef  {
-     constructor(name, regexpr, func) {
-      this.name = name;
-      this.re = regexpr;
-      this.func = func;
-    }
-  }
-  _ESClass.register(tokdef);
-  _es6_module.add_class(tokdef);
-  tokdef = _es6_module.add_export('tokdef', tokdef);
-  class PUTLParseError extends Error {
-     constructor(msg) {
-      super();
-    }
-  }
-  _ESClass.register(PUTLParseError);
-  _es6_module.add_class(PUTLParseError);
-  PUTLParseError = _es6_module.add_export('PUTLParseError', PUTLParseError);
-  class lexer  {
-    
-    
-    
-    
-    
-    
-    
-     constructor(tokdef, errfunc) {
-      this.tokdef = tokdef;
-      this.tokens = new GArray();
-      this.lexpos = 0;
-      this.lexdata = "";
-      this.lineno = 0;
-      this.errfunc = errfunc;
-      this.tokints = {};
-      for (var i=0; i<tokdef.length; i++) {
-          this.tokints[tokdef[i].name] = i;
-      }
-      this.statestack = [["__main__", 0]];
-      this.states = {"__main__": [tokdef, errfunc]};
-      this.statedata = 0;
-    }
-     add_state(name, tokdef, errfunc) {
-      if (errfunc==undefined) {
-          errfunc = function (lexer) {
-            return true;
-          };
-      }
-      this.states[name] = [tokdef, errfunc];
-    }
-     tok_int(name) {
-
-    }
-     push_state(state, statedata) {
-      this.statestack.push([state, statedata]);
-      state = this.states[state];
-      this.statedata = statedata;
-      this.tokdef = state[0];
-      this.errfunc = state[1];
-    }
-     pop_state() {
-      var item=this.statestack[this.statestack.length-1];
-      var state=this.states[item[0]];
-      this.tokdef = state[0];
-      this.errfunc = state[1];
-      this.statedata = item[1];
-    }
-     input(str) {
-      while (this.statestack.length>1) {
-        this.pop_state();
-      }
-      this.lexdata = str;
-      this.lexpos = 0;
-      this.lineno = 0;
-      this.tokens = new GArray();
-      this.peeked_tokens = [];
-    }
-     error() {
-      if (this.errfunc!=undefined&&!this.errfunc(this))
-        return ;
-      console.log("Syntax error near line "+this.lineno);
-      var next=Math.min(this.lexpos+8, this.lexdata.length);
-      console.log("  "+this.lexdata.slice(this.lexpos, next));
-      throw new PUTLParseError("Parse error");
-    }
-     peek() {
-      var tok=this.next(true);
-      if (tok==undefined)
-        return undefined;
-      this.peeked_tokens.push(tok);
-      return tok;
-    }
-     peek_i(i) {
-      while (this.peeked_tokens.length<=i) {
-        var t=this.peek();
-        if (t==undefined)
-          return undefined;
-      }
-      return this.peeked_tokens[i];
-    }
-     at_end() {
-      return this.lexpos>=this.lexdata.length&&this.peeked_tokens.length==0;
-    }
-     next(ignore_peek) {
-      if (ignore_peek!=true&&this.peeked_tokens.length>0) {
-          var tok=this.peeked_tokens[0];
-          this.peeked_tokens.shift();
-          return tok;
-      }
-      if (this.lexpos>=this.lexdata.length)
-        return undefined;
-      var ts=this.tokdef;
-      var tlen=ts.length;
-      var lexdata=this.lexdata.slice(this.lexpos, this.lexdata.length);
-      var results=[];
-      for (var i=0; i<tlen; i++) {
-          var t=ts[i];
-          if (t.re==undefined)
-            continue;
-          var res=t.re.exec(lexdata);
-          if (res!=null&&res!=undefined&&res.index==0) {
-              results.push([t, res]);
-          }
-      }
-      var max_res=0;
-      var theres=undefined;
-      for (var i=0; i<results.length; i++) {
-          var res=results[i];
-          if (res[1][0].length>max_res) {
-              theres = res;
-              max_res = res[1][0].length;
-          }
-      }
-      if (theres==undefined) {
-          this.error();
-          return ;
-      }
-      var def=theres[0];
-      var lexlen=max_res;
-      var tok=new token(def.name, theres[1][0], this.lexpos, lexlen, this.lineno, this, undefined);
-      this.lexpos+=max_res;
-      if (def.func) {
-          tok = def.func(tok);
-          if (tok==undefined) {
-              return this.next();
-          }
-      }
-      return tok;
-    }
-  }
-  _ESClass.register(lexer);
-  _es6_module.add_class(lexer);
-  lexer = _es6_module.add_export('lexer', lexer);
-  class parser  {
-     constructor(lexer, errfunc) {
-      this.lexer = lexer;
-      this.errfunc = errfunc;
-      this.start = undefined;
-    }
-     parse(data, err_on_unconsumed) {
-      if (err_on_unconsumed==undefined)
-        err_on_unconsumed = true;
-      if (data!=undefined)
-        this.lexer.input(data);
-      var ret=this.start(this);
-      if (err_on_unconsumed&&!this.lexer.at_end()&&this.lexer.next()!=undefined) {
-          var left=this.lexer.lexdata.slice(this.lexer.lexpos-1, this.lexer.lexdata.length);
-          this.error(undefined, "parser did not consume entire input; left: "+left);
-      }
-      return ret;
-    }
-     input(data) {
-      this.lexer.input(data);
-    }
-     error(tok, msg) {
-      if (msg==undefined)
-        msg = "";
-      if (tok==undefined)
-        var estr="Parse error at end of input: "+msg;
-      else 
-        estr = "Parse error at line "+(tok.lineno+1)+": "+msg;
-      var buf="1| ";
-      var ld=this.lexer.lexdata;
-      var l=1;
-      for (var i=0; i<ld.length; i++) {
-          var c=ld[i];
-          if (c=='\n') {
-              l++;
-              buf+="\n"+l+"| ";
-          }
-          else {
-            buf+=c;
-          }
-      }
-      console.log("------------------");
-      console.log(buf);
-      console.log("==================");
-      console.log(estr);
-      if (this.errfunc&&!this.errfunc(tok)) {
-          return ;
-      }
-      throw new PUTLParseError(estr);
-    }
-     peek() {
-      var tok=this.lexer.peek();
-      if (tok!=undefined)
-        tok.parser = this;
-      return tok;
-    }
-     peek_i(i) {
-      var tok=this.lexer.peek_i(i);
-      if (tok!=undefined)
-        tok.parser = this;
-      return tok;
-    }
-     peeknext() {
-      return this.peek_i(0);
-    }
-     next() {
-      var tok=this.lexer.next();
-      if (tok!=undefined)
-        tok.parser = this;
-      return tok;
-    }
-     optional(type) {
-      var tok=this.peek();
-      if (tok==undefined)
-        return false;
-      if (tok.type==type) {
-          this.next();
-          return true;
-      }
-      return false;
-    }
-     at_end() {
-      return this.lexer.at_end();
-    }
-     expect(type, msg) {
-      var tok=this.next();
-      if (msg==undefined)
-        msg = type;
-      if (tok==undefined||tok.type!=type) {
-          this.error(tok, "Expected "+msg+", not "+tok.type);
-      }
-      return tok.value;
-    }
-  }
-  _ESClass.register(parser);
-  _es6_module.add_class(parser);
-  parser = _es6_module.add_export('parser', parser);
-  function test_parser() {
-    var basic_types=new set(["int", "float", "double", "vec2", "vec3", "vec4", "mat4", "string"]);
-    var reserved_tokens=new set(["int", "float", "double", "vec2", "vec3", "vec4", "mat4", "string", "static_string", "array"]);
-    function tk(name, re, func) {
-      return new tokdef(name, re, func);
-    }
-    var tokens=[tk("ID", /[a-zA-Z]+[a-zA-Z0-9_]*/, function (t) {
-      if (reserved_tokens.has(t.value)) {
-          t.type = t.value.toUpperCase();
-      }
-      return t;
-    }), tk("OPEN", /\{/), tk("CLOSE", /}/), tk("COLON", /:/), tk("JSCRIPT", /\|/, function (t) {
-      var js="";
-      var lexer=t.lexer;
-      while (lexer.lexpos<lexer.lexdata.length) {
-        var c=lexer.lexdata[lexer.lexpos];
-        if (c=="\n")
-          break;
-        js+=c;
-        lexer.lexpos++;
-      }
-      if (js.endsWith(";")) {
-          js = js.slice(0, js.length-1);
-          lexer.lexpos--;
-      }
-      t.value = js;
-      return t;
-    }), tk("LPARAM", /\(/), tk("RPARAM", /\)/), tk("COMMA", /,/), tk("NUM", /[0-9]/), tk("SEMI", /;/), tk("NEWLINE", /\n/, function (t) {
-      t.lexer.lineno+=1;
-    }), tk("SPACE", / |\t/, function (t) {
-    })];
-    for (var rt of reserved_tokens) {
-        tokens.push(tk(rt.toUpperCase()));
-    }
-    var a=`
-  Loop {
-    eid : int;
-    flag : int;
-    index : int;
-    type : int;
-    
-    co : vec3;
-    no : vec3;
-    loop : int | eid(loop);
-    edges : array(e, int) | e.eid;
-    
-    loops : array(Loop);
-  }
-  `;
-    function errfunc(lexer) {
-      return true;
-    }
-    var lex=new lexer(tokens, errfunc);
-    console.log("Testing lexical scanner...");
-    lex.input(a);
-    var tok;
-    while (tok = lex.next()) {
-      console.log(tok.toString());
-    }
-    var parser=new parser(lex);
-    parser.input(a);
-    function p_Array(p) {
-      p.expect("ARRAY");
-      p.expect("LPARAM");
-      var arraytype=p_Type(p);
-      var itername="";
-      if (p.optional("COMMA")) {
-          itername = arraytype;
-          arraytype = p_Type(p);
-      }
-      p.expect("RPARAM");
-      return {type: "array", 
-     data: {type: arraytype, 
-      iname: itername}}
-    }
-    function p_Type(p) {
-      var tok=p.peek();
-      if (tok.type=="ID") {
-          p.next();
-          return {type: "struct", 
-       data: "\""+tok.value+"\""}
-      }
-      else 
-        if (basic_types.has(tok.type.toLowerCase())) {
-          p.next();
-          return {type: tok.type.toLowerCase()}
-      }
-      else 
-        if (tok.type=="ARRAY") {
-          return p_Array(p);
-      }
-      else {
-        p.error(tok, "invalid type "+tok.type);
-      }
-    }
-    function p_Field(p) {
-      var field={}
-      console.log("-----", p.peek().type);
-      field.name = p.expect("ID", "struct field name");
-      p.expect("COLON");
-      field.type = p_Type(p);
-      field.set = undefined;
-      field.get = undefined;
-      var tok=p.peek();
-      if (tok.type=="JSCRIPT") {
-          field.get = tok.value;
-          p.next();
-      }
-      tok = p.peek();
-      if (tok.type=="JSCRIPT") {
-          field.set = tok.value;
-          p.next();
-      }
-      p.expect("SEMI");
-      return field;
-    }
-    function p_Struct(p) {
-      var st={}
-      st.name = p.expect("ID", "struct name");
-      st.fields = [];
-      p.expect("OPEN");
-      while (1) {
-        if (p.at_end()) {
-            p.error(undefined);
-        }
-        else 
-          if (p.optional("CLOSE")) {
-            break;
-        }
-        else {
-          st.fields.push(p_Field(p));
-        }
-      }
-      return st;
-    }
-    var ret=p_Struct(parser);
-    console.log(JSON.stringify(ret));
-  }
-}, '/dev/fairmotion/src/util/parseutil.js');

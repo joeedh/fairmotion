@@ -1,3 +1,413 @@
+es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
+  "use strict";
+  class token  {
+     constructor(type, val, lexpos, lexlen, lineno, lexer, parser) {
+      this.type = type;
+      this.value = val;
+      this.lexpos = lexpos;
+      this.lexlen = lexlen;
+      this.lineno = lineno;
+      this.lexer = lexer;
+      this.parser = parser;
+    }
+     toString() {
+      if (this.value!=undefined)
+        return "token(type="+this.type+", value='"+this.value+"')";
+      else 
+        return "token(type="+this.type+")";
+    }
+  }
+  _ESClass.register(token);
+  _es6_module.add_class(token);
+  token = _es6_module.add_export('token', token);
+  class tokdef  {
+     constructor(name, regexpr, func) {
+      this.name = name;
+      this.re = regexpr;
+      this.func = func;
+    }
+  }
+  _ESClass.register(tokdef);
+  _es6_module.add_class(tokdef);
+  tokdef = _es6_module.add_export('tokdef', tokdef);
+  class PUTLParseError extends Error {
+     constructor(msg) {
+      super();
+    }
+  }
+  _ESClass.register(PUTLParseError);
+  _es6_module.add_class(PUTLParseError);
+  PUTLParseError = _es6_module.add_export('PUTLParseError', PUTLParseError);
+  class lexer  {
+    
+    
+    
+    
+    
+    
+    
+     constructor(tokdef, errfunc) {
+      this.tokdef = tokdef;
+      this.tokens = new GArray();
+      this.lexpos = 0;
+      this.lexdata = "";
+      this.lineno = 0;
+      this.errfunc = errfunc;
+      this.tokints = {};
+      for (var i=0; i<tokdef.length; i++) {
+          this.tokints[tokdef[i].name] = i;
+      }
+      this.statestack = [["__main__", 0]];
+      this.states = {"__main__": [tokdef, errfunc]};
+      this.statedata = 0;
+    }
+     add_state(name, tokdef, errfunc) {
+      if (errfunc==undefined) {
+          errfunc = function (lexer) {
+            return true;
+          };
+      }
+      this.states[name] = [tokdef, errfunc];
+    }
+     tok_int(name) {
+
+    }
+     push_state(state, statedata) {
+      this.statestack.push([state, statedata]);
+      state = this.states[state];
+      this.statedata = statedata;
+      this.tokdef = state[0];
+      this.errfunc = state[1];
+    }
+     pop_state() {
+      var item=this.statestack[this.statestack.length-1];
+      var state=this.states[item[0]];
+      this.tokdef = state[0];
+      this.errfunc = state[1];
+      this.statedata = item[1];
+    }
+     input(str) {
+      while (this.statestack.length>1) {
+        this.pop_state();
+      }
+      this.lexdata = str;
+      this.lexpos = 0;
+      this.lineno = 0;
+      this.tokens = new GArray();
+      this.peeked_tokens = [];
+    }
+     error() {
+      if (this.errfunc!=undefined&&!this.errfunc(this))
+        return ;
+      console.log("Syntax error near line "+this.lineno);
+      var next=Math.min(this.lexpos+8, this.lexdata.length);
+      console.log("  "+this.lexdata.slice(this.lexpos, next));
+      throw new PUTLParseError("Parse error");
+    }
+     peek() {
+      var tok=this.next(true);
+      if (tok==undefined)
+        return undefined;
+      this.peeked_tokens.push(tok);
+      return tok;
+    }
+     peek_i(i) {
+      while (this.peeked_tokens.length<=i) {
+        var t=this.peek();
+        if (t==undefined)
+          return undefined;
+      }
+      return this.peeked_tokens[i];
+    }
+     at_end() {
+      return this.lexpos>=this.lexdata.length&&this.peeked_tokens.length==0;
+    }
+     next(ignore_peek) {
+      if (ignore_peek!=true&&this.peeked_tokens.length>0) {
+          var tok=this.peeked_tokens[0];
+          this.peeked_tokens.shift();
+          return tok;
+      }
+      if (this.lexpos>=this.lexdata.length)
+        return undefined;
+      var ts=this.tokdef;
+      var tlen=ts.length;
+      var lexdata=this.lexdata.slice(this.lexpos, this.lexdata.length);
+      var results=[];
+      for (var i=0; i<tlen; i++) {
+          var t=ts[i];
+          if (t.re==undefined)
+            continue;
+          var res=t.re.exec(lexdata);
+          if (res!=null&&res!=undefined&&res.index==0) {
+              results.push([t, res]);
+          }
+      }
+      var max_res=0;
+      var theres=undefined;
+      for (var i=0; i<results.length; i++) {
+          var res=results[i];
+          if (res[1][0].length>max_res) {
+              theres = res;
+              max_res = res[1][0].length;
+          }
+      }
+      if (theres==undefined) {
+          this.error();
+          return ;
+      }
+      var def=theres[0];
+      var lexlen=max_res;
+      var tok=new token(def.name, theres[1][0], this.lexpos, lexlen, this.lineno, this, undefined);
+      this.lexpos+=max_res;
+      if (def.func) {
+          tok = def.func(tok);
+          if (tok==undefined) {
+              return this.next();
+          }
+      }
+      return tok;
+    }
+  }
+  _ESClass.register(lexer);
+  _es6_module.add_class(lexer);
+  lexer = _es6_module.add_export('lexer', lexer);
+  class parser  {
+     constructor(lexer, errfunc) {
+      this.lexer = lexer;
+      this.errfunc = errfunc;
+      this.start = undefined;
+    }
+     parse(data, err_on_unconsumed) {
+      if (err_on_unconsumed==undefined)
+        err_on_unconsumed = true;
+      if (data!=undefined)
+        this.lexer.input(data);
+      var ret=this.start(this);
+      if (err_on_unconsumed&&!this.lexer.at_end()&&this.lexer.next()!=undefined) {
+          var left=this.lexer.lexdata.slice(this.lexer.lexpos-1, this.lexer.lexdata.length);
+          this.error(undefined, "parser did not consume entire input; left: "+left);
+      }
+      return ret;
+    }
+     input(data) {
+      this.lexer.input(data);
+    }
+     error(tok, msg) {
+      if (msg==undefined)
+        msg = "";
+      if (tok==undefined)
+        var estr="Parse error at end of input: "+msg;
+      else 
+        estr = "Parse error at line "+(tok.lineno+1)+": "+msg;
+      var buf="1| ";
+      var ld=this.lexer.lexdata;
+      var l=1;
+      for (var i=0; i<ld.length; i++) {
+          var c=ld[i];
+          if (c=='\n') {
+              l++;
+              buf+="\n"+l+"| ";
+          }
+          else {
+            buf+=c;
+          }
+      }
+      console.log("------------------");
+      console.log(buf);
+      console.log("==================");
+      console.log(estr);
+      if (this.errfunc&&!this.errfunc(tok)) {
+          return ;
+      }
+      throw new PUTLParseError(estr);
+    }
+     peek() {
+      var tok=this.lexer.peek();
+      if (tok!=undefined)
+        tok.parser = this;
+      return tok;
+    }
+     peek_i(i) {
+      var tok=this.lexer.peek_i(i);
+      if (tok!=undefined)
+        tok.parser = this;
+      return tok;
+    }
+     peeknext() {
+      return this.peek_i(0);
+    }
+     next() {
+      var tok=this.lexer.next();
+      if (tok!=undefined)
+        tok.parser = this;
+      return tok;
+    }
+     optional(type) {
+      var tok=this.peek();
+      if (tok==undefined)
+        return false;
+      if (tok.type==type) {
+          this.next();
+          return true;
+      }
+      return false;
+    }
+     at_end() {
+      return this.lexer.at_end();
+    }
+     expect(type, msg) {
+      var tok=this.next();
+      if (msg==undefined)
+        msg = type;
+      if (tok==undefined||tok.type!=type) {
+          this.error(tok, "Expected "+msg+", not "+tok.type);
+      }
+      return tok.value;
+    }
+  }
+  _ESClass.register(parser);
+  _es6_module.add_class(parser);
+  parser = _es6_module.add_export('parser', parser);
+  function test_parser() {
+    var basic_types=new set(["int", "float", "double", "vec2", "vec3", "vec4", "mat4", "string"]);
+    var reserved_tokens=new set(["int", "float", "double", "vec2", "vec3", "vec4", "mat4", "string", "static_string", "array"]);
+    function tk(name, re, func) {
+      return new tokdef(name, re, func);
+    }
+    var tokens=[tk("ID", /[a-zA-Z]+[a-zA-Z0-9_]*/, function (t) {
+      if (reserved_tokens.has(t.value)) {
+          t.type = t.value.toUpperCase();
+      }
+      return t;
+    }), tk("OPEN", /\{/), tk("CLOSE", /}/), tk("COLON", /:/), tk("JSCRIPT", /\|/, function (t) {
+      var js="";
+      var lexer=t.lexer;
+      while (lexer.lexpos<lexer.lexdata.length) {
+        var c=lexer.lexdata[lexer.lexpos];
+        if (c=="\n")
+          break;
+        js+=c;
+        lexer.lexpos++;
+      }
+      if (js.endsWith(";")) {
+          js = js.slice(0, js.length-1);
+          lexer.lexpos--;
+      }
+      t.value = js;
+      return t;
+    }), tk("LPARAM", /\(/), tk("RPARAM", /\)/), tk("COMMA", /,/), tk("NUM", /[0-9]/), tk("SEMI", /;/), tk("NEWLINE", /\n/, function (t) {
+      t.lexer.lineno+=1;
+    }), tk("SPACE", / |\t/, function (t) {
+    })];
+    for (var rt of reserved_tokens) {
+        tokens.push(tk(rt.toUpperCase()));
+    }
+    var a=`
+  Loop {
+    eid : int;
+    flag : int;
+    index : int;
+    type : int;
+    
+    co : vec3;
+    no : vec3;
+    loop : int | eid(loop);
+    edges : array(e, int) | e.eid;
+    
+    loops : array(Loop);
+  }
+  `;
+    function errfunc(lexer) {
+      return true;
+    }
+    var lex=new lexer(tokens, errfunc);
+    console.log("Testing lexical scanner...");
+    lex.input(a);
+    var tok;
+    while (tok = lex.next()) {
+      console.log(tok.toString());
+    }
+    var parser=new parser(lex);
+    parser.input(a);
+    function p_Array(p) {
+      p.expect("ARRAY");
+      p.expect("LPARAM");
+      var arraytype=p_Type(p);
+      var itername="";
+      if (p.optional("COMMA")) {
+          itername = arraytype;
+          arraytype = p_Type(p);
+      }
+      p.expect("RPARAM");
+      return {type: "array", 
+     data: {type: arraytype, 
+      iname: itername}}
+    }
+    function p_Type(p) {
+      var tok=p.peek();
+      if (tok.type=="ID") {
+          p.next();
+          return {type: "struct", 
+       data: "\""+tok.value+"\""}
+      }
+      else 
+        if (basic_types.has(tok.type.toLowerCase())) {
+          p.next();
+          return {type: tok.type.toLowerCase()}
+      }
+      else 
+        if (tok.type=="ARRAY") {
+          return p_Array(p);
+      }
+      else {
+        p.error(tok, "invalid type "+tok.type);
+      }
+    }
+    function p_Field(p) {
+      var field={}
+      console.log("-----", p.peek().type);
+      field.name = p.expect("ID", "struct field name");
+      p.expect("COLON");
+      field.type = p_Type(p);
+      field.set = undefined;
+      field.get = undefined;
+      var tok=p.peek();
+      if (tok.type=="JSCRIPT") {
+          field.get = tok.value;
+          p.next();
+      }
+      tok = p.peek();
+      if (tok.type=="JSCRIPT") {
+          field.set = tok.value;
+          p.next();
+      }
+      p.expect("SEMI");
+      return field;
+    }
+    function p_Struct(p) {
+      var st={}
+      st.name = p.expect("ID", "struct name");
+      st.fields = [];
+      p.expect("OPEN");
+      while (1) {
+        if (p.at_end()) {
+            p.error(undefined);
+        }
+        else 
+          if (p.optional("CLOSE")) {
+            break;
+        }
+        else {
+          st.fields.push(p_Field(p));
+        }
+      }
+      return st;
+    }
+    var ret=p_Struct(parser);
+    console.log(JSON.stringify(ret));
+  }
+}, '/dev/fairmotion/src/util/parseutil.js');
 es6_module_define('typedwriter', [], function _typedwriter_module(_es6_module) {
   "use strict";
   class TypedCache  {
@@ -1168,7 +1578,7 @@ es6_module_define('raster', ["./icon.js", "../config/config.js"], function _rast
   }
   _ESClass.register(CacheStack);
   _es6_module.add_class(CacheStack);
-  var $ret_bLs9_viewport;
+  var $ret_bFJq_viewport;
   class RasterState  {
     
     
@@ -1176,6 +1586,7 @@ es6_module_define('raster', ["./icon.js", "../config/config.js"], function _rast
     
     
      constructor(gl, size) {
+      return ;
       this.size = size;
       this.pos = [0, 0];
       this.iconsheet = new IconManager(gl, config.ICONPATH+"iconsheet.png", [512, 512], [32, 32]);
@@ -1201,10 +1612,10 @@ es6_module_define('raster', ["./icon.js", "../config/config.js"], function _rast
           return this.viewport_stack[this.viewport_stack.length-1];
       }
       else {
-        $ret_bLs9_viewport[0][0] = $ret_bLs9_viewport[0][1] = 0.0;
-        $ret_bLs9_viewport[1][0] = g_app_state.screen.size[0];
-        $ret_bLs9_viewport[1][1] = g_app_state.screen.size[1];
-        return $ret_bLs9_viewport;
+        $ret_bFJq_viewport[0][0] = $ret_bFJq_viewport[0][1] = 0.0;
+        $ret_bFJq_viewport[1][0] = g_app_state.screen.size[0];
+        $ret_bFJq_viewport[1][1] = g_app_state.screen.size[1];
+        return $ret_bFJq_viewport;
       }
     }
      push_viewport(pos, size) {
@@ -1269,7 +1680,7 @@ es6_module_define('raster', ["./icon.js", "../config/config.js"], function _rast
       this.cur_scissor = undefined;
     }
   }
-  var $ret_bLs9_viewport=[[0, 0], [0, 0]];
+  var $ret_bFJq_viewport=[[0, 0], [0, 0]];
   _ESClass.register(RasterState);
   _es6_module.add_class(RasterState);
   RasterState = _es6_module.add_export('RasterState', RasterState);
@@ -2066,11 +2477,435 @@ es6_module_define('context', ["./frameset.js", "../editors/editor_base.js", "../
   var Spline=es6_import_item(_es6_module, '../curve/spline.js', 'Spline');
   var DataAPI=es6_import_item(_es6_module, './data_api/data_api.js', 'DataAPI');
 }, '/dev/fairmotion/src/core/context.js');
-es6_module_define('AppState', ["./startup/startup_file.js", "./lib_utils.js", "./jobs.js", "../editors/viewport/view2d_ops.js", "./context.js", "./data_api/data_api_pathux.js", "../path.ux/scripts/core/ui_base.js", "../editors/editor_base.js", "./struct.js", "../path.ux/scripts/platforms/electron/electron_api.js", "./startup/startup_file_example.js", "./ajax.js", "../editors/menubar/MenuBar.js", "./notifications.js", "../path.ux/scripts/screen/ScreenArea.js", "./toolprops.js", "../editors/console/console.js", "./lib_api_typedefine.js", "../editors/viewport/view2d.js", "./frameset.js", "../path.ux/scripts/util/util.js", "./raster.js", "../util/strutils.js", "../editors/all.js", "./UserSettings.js", "../editors/ops/ops_editor.js", "../editors/material/MaterialEditor.js", "../editors/settings/SettingsEditor.js", "./fileapi/fileapi.js", "./toolops_api.js", "../path.ux/scripts/screen/FrameManager_ops.js", "./lib_api.js", "../curve/spline_base.js", "../../platforms/platform.js", "../scene/scene.js", "../editors/curve/CurveEditor.js", "./data_api/data_api.js", "../editors/dopesheet/DopeSheetEditor.js", "../editors/theme.js", "../path.ux/scripts/screen/FrameManager.js", "../path.ux/scripts/config/const.js", "../config/config.js"], function _AppState_module(_es6_module) {
+es6_module_define('toolstack', ["./AppState.js", "./context.js", "./data_api/data_api.js", "./toolops_api.js", "./toolprops.js"], function _toolstack_module(_es6_module) {
+  var BaseContext=es6_import_item(_es6_module, './context.js', 'BaseContext');
+  var FullContext=es6_import_item(_es6_module, './context.js', 'FullContext');
+  var ToolFlags=es6_import_item(_es6_module, './toolops_api.js', 'ToolFlags');
+  var ToolMacro=es6_import_item(_es6_module, './toolops_api.js', 'ToolMacro');
+  var ToolOp=es6_import_item(_es6_module, './toolops_api.js', 'ToolOp');
+  var UndoFlags=es6_import_item(_es6_module, './toolops_api.js', 'UndoFlags');
+  var DataFlags=es6_import_item(_es6_module, './data_api/data_api.js', 'DataFlags');
+  var DataPath=es6_import_item(_es6_module, './data_api/data_api.js', 'DataPath');
+  var DataStruct=es6_import_item(_es6_module, './data_api/data_api.js', 'DataStruct');
+  var DataStructArray=es6_import_item(_es6_module, './data_api/data_api.js', 'DataStructArray');
+  var CollectionProperty=es6_import_item(_es6_module, './toolprops.js', 'CollectionProperty');
+  var StringProperty=es6_import_item(_es6_module, './toolprops.js', 'StringProperty');
+  var TPropFlags=es6_import_item(_es6_module, './toolprops.js', 'TPropFlags');
+  class ToolStack  {
+    
+    
+    
+    
+    
+     constructor(appstate) {
+      this.undocur = 0;
+      this.undostack = new Array();
+      this.appstate = appstate;
+      this.valcache = appstate.toolop_input_cache;
+      this.do_truncate = true;
+    }
+     reexec_stack2(validate=false) {
+      let stack=this.undostack;
+      g_app_state.datalib.clear();
+      let mctx=new FullContext().toLocked();
+      let first=true;
+      let last_time=0;
+      function do_next(i) {
+        let tool=stack[i];
+        let ctx=tool.saved_context;
+        if ((1||ctx.time!==last_time)&&mctx.frameset!==undefined) {
+            mctx.frameset.update_frame();
+        }
+        ctx.set_context(mctx);
+        last_time = ctx.time;
+        tool.is_modal = false;
+        tool.exec_pre(ctx);
+        if (!(tool.undoflag&UndoFlags.IGNORE_UNDO)) {
+            tool.undo_pre(ctx);
+            tool.undoflag|=UndoFlags.HAS_UNDO_DATA;
+        }
+        tool.exec(ctx);
+        if (mctx.frameset!==undefined)
+          mctx.frameset.spline.solve();
+        if (mctx.frameset!==undefined)
+          mctx.frameset.pathspline.solve();
+        if ((1||ctx.time!==last_time)&&mctx.frameset!==undefined) {
+            mctx.frameset.update_frame();
+        }
+      }
+      let ival;
+      let thei;
+      let this2=this;
+      function cbfunc() {
+        do_next(thei);
+        thei+=1;
+        let cctx=new FullContextt().toLocked();
+        if (cctx.frameset!==undefined) {
+            cctx.frameset.spline.solve();
+            cctx.frameset.pathspline.solve();
+        }
+        window.redraw_viewport();
+        clearInterval(ival);
+        if (thei<this2.undostack.length)
+          ival = window.setInterval(cbfunc, 500);
+      }
+      do_next(0);
+      thei = 1;
+      ival = window.setInterval(cbfunc, 500);
+      console.log("reexecuting tool stack from scratch. . .");
+      for (let i=0; i<this.undocur; i++) {
+
+      }
+    }
+     reexec_stack(validate=false) {
+      let stack=this.undostack;
+      g_app_state.datalib.clear();
+      let mctx=new FullContext();
+      let first=true;
+      console.log("reexecuting tool stack from scratch. . .");
+      for (let i=0; i<this.undocur; i++) {
+          let tool=stack[i];
+          let ctx=tool.saved_context;
+          ctx.set_context(mctx);
+          tool.is_modal = false;
+          tool.exec_pre(ctx);
+          if (!(tool.undoflag&UndoFlags.IGNORE_UNDO)) {
+              tool.undo_pre(ctx);
+              tool.undoflag|=UndoFlags.HAS_UNDO_DATA;
+          }
+          tool.exec(ctx);
+      }
+    }
+     default_inputs(ctx, tool) {
+      let cache=this.valcache;
+      function get_default(key, defaultval, input_prop) {
+        key = tool.constructor.name+":"+key;
+        if (key in cache)
+          return cache[key];
+        cache[key] = defaultval;
+        return defaultval;
+      }
+      let tctx=ctx.toLocked();
+      for (let k in tool.inputs) {
+          tool.inputs[k].ctx = tctx;
+      }
+      for (let k in tool.outputs) {
+          tool.outputs[k].ctx = tctx;
+      }
+      tool.default_inputs(ctx, get_default);
+    }
+     truncate_stack() {
+      if (this.undocur!==this.undostack.length) {
+          if (this.undocur===0) {
+              this.undostack = new Array();
+          }
+          else {
+            this.undostack = this.undostack.slice(0, this.undocur);
+          }
+      }
+    }
+     undo_push(tool) {
+      if (this.do_truncate) {
+          this.truncate_stack();
+          this.undostack.push(tool);
+      }
+      else {
+        this.undostack.insert(this.undocur, tool);
+        for (let i=this.undocur-1; i<this.undostack.length; i++) {
+            if (i<0)
+              continue;
+            this.undostack[i].stack_index = i;
+        }
+      }
+      tool.stack_index = this.undostack.indexOf(tool);
+      this.undocur++;
+    }
+     toolop_cancel(op, executeUndo) {
+      if (executeUndo===undefined) {
+          console.warn("Warning, executeUndo in toolop_cancel() was undefined");
+      }
+      if (executeUndo) {
+          this.undo();
+      }
+      else {
+        if (this.undostack.indexOf(op)>=0) {
+            this.undostack.remove(op);
+            this.undocur--;
+        }
+      }
+    }
+    get  head() {
+      return this.undostack[this.undocur-1];
+    }
+     undo() {
+      the_global_dag.exec(this.ctx);
+      if (this.undocur>0&&(this.undostack[this.undocur-1].undoflag&UndoFlags.UNDO_BARRIER))
+        return ;
+      if (this.undocur>0&&!(this.undostack[this.undocur-1].undoflag&UndoFlags.HAS_UNDO_DATA))
+        return ;
+      if (this.undocur>0) {
+          this.undocur--;
+          let tool=this.undostack[this.undocur];
+          let ctx=new FullContext();
+          let tctx=(tool.flag&ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : ctx;
+          if (the_global_dag!==undefined)
+            the_global_dag.reset_cache();
+          tool.saved_context.set_context(ctx);
+          tool.undo(tctx);
+          if (the_global_dag!==undefined)
+            the_global_dag.reset_cache();
+          if (this.undocur>0)
+            this.rebuild_last_tool(this.undostack[this.undocur-1]);
+          window.redraw_viewport();
+      }
+    }
+     redo() {
+      the_global_dag.exec(this.ctx);
+      if (this.undocur<this.undostack.length) {
+          let tool=this.undostack[this.undocur];
+          let ctx=new FullContext();
+          tool.saved_context.set_context(ctx);
+          tool.is_modal = false;
+          if (!(tool.undoflag&UndoFlags.IGNORE_UNDO)) {
+              tool.undo_pre((tool.flag&ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : ctx);
+              tool.undoflag|=UndoFlags.HAS_UNDO_DATA;
+          }
+          let tctx=(tool.flag&ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : tool.ctx.toLocked();
+          if (the_global_dag!==undefined)
+            the_global_dag.reset_cache();
+          tool.exec_pre(tctx);
+          tool.exec(tctx);
+          tool.redo_post(ctx);
+          this.undocur++;
+          if (this.undocur>0)
+            this.rebuild_last_tool(this.undostack[this.undocur-1]);
+      }
+    }
+     reexec_tool(tool) {
+      if (!(tool.undoflag&UndoFlags.HAS_UNDO_DATA)) {
+          this.reexec_stack();
+      }
+      if (tool.stack_index===-1) {
+          for (let i=0; i<this.undostack.length; i++) {
+              this.undostack[i].stack_index = i;
+          }
+      }
+      if (tool===this.undostack[this.undocur-1]) {
+          this.undo();
+          this.redo();
+      }
+      else 
+        if (this.undocur>tool.stack_index) {
+          let i=0;
+          while (this.undocur!==tool.stack_index) {
+            this.undo();
+            i++;
+          }
+          while (i>=0) {
+            this.redo();
+            i--;
+          }
+      }
+      else {
+        console.log("reexec_tool: can't reexec tool in inactive portion of stack");
+      }
+      tool.saved_context = new SavedContext(new FullContext());
+    }
+     kill_opstack() {
+      this.undostack = new Array();
+      this.undocur = 0;
+    }
+     gen_tool_datastruct(tool) {
+      let datastruct=new DataStruct([]);
+      let this2=this;
+      let stacktool=tool;
+      while (stacktool.parent!==undefined) {
+        stacktool = stacktool.parent;
+      }
+      function update_dataprop(d) {
+        this2.reexec_tool(stacktool);
+      }
+      function gen_subtool_struct(tool) {
+        if (tool.apistruct===undefined)
+          tool.apistruct = this2.gen_tool_datastruct(tool);
+        return tool.apistruct;
+      }
+      let prop=new StringProperty(tool.uiname, tool.uiname, tool.uiname, "Tool Name");
+      let dataprop=new DataPath(prop, "tool", "tool_name", true, false);
+      dataprop.update = function () {
+      };
+      prop.flag = TPropFlags.LABEL;
+      if (!(tool.flag&ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS)) {
+          datastruct.add(dataprop);
+      }
+      for (let k in tool.inputs) {
+          prop = tool.inputs[k];
+          if (prop.flag&TPropFlags.PRIVATE)
+            continue;
+          dataprop = new DataPath(prop, prop.apiname, "", true, false);
+          dataprop.update = update_dataprop;
+          datastruct.add(dataprop);
+      }
+      if (__instance_of(tool, ToolMacro)) {
+          let tarr=new DataStructArray(gen_subtool_struct);
+          let toolsprop=new DataPath(tarr, "tools", "tools", false);
+          datastruct.add(toolsprop);
+      }
+      return datastruct;
+    }
+     rebuild_last_tool(tool) {
+      let s;
+      if (tool!==undefined)
+        s = this.gen_tool_datastruct(tool);
+      else 
+        s = new DataStruct([]);
+      s.flag|=DataFlags.RECALC_CACHE;
+      s.name = "last_tool";
+      s = new DataPath(s, "last_tool", "", false, false);
+      s.flag|=DataFlags.RECALC_CACHE;
+      ContextStruct.replace(s);
+    }
+     set_tool_coll_flag(tool) {
+      for (let k in tool.inputs) {
+          let p=tool.inputs[k];
+          if (__instance_of(p, CollectionProperty))
+            p.flag&=~TPropFlags.COLL_LOOSE_TYPE;
+      }
+      for (let k in tool.outputs) {
+          let p=tool.inputs[k];
+          if (__instance_of(p, CollectionProperty))
+            p.flag&=~TPropFlags.COLL_LOOSE_TYPE;
+      }
+      if (__instance_of(tool, ToolMacro)) {
+          for (let t2 of tool.tools) {
+              this.set_tool_coll_flag(t2);
+          }
+      }
+    }
+     exec_datapath(ctx, path, val, undo_push=true, use_simple_undo=false, cls=DataPathOp) {
+      let api=g_app_state.api;
+      let prop=api.get_prop_meta(ctx, path);
+      if (prop===undefined) {
+          console.trace("Error in exec_datapath", path);
+          return ;
+      }
+      let good=this.undostack.length>0&&__instance_of(this.undostack[this.undocur-1], cls);
+      good = good&&this.undostack[this.undocur-1].path===path;
+      let exists=false;
+      if (undo_push||!good) {
+          let op=new cls(path, use_simple_undo);
+      }
+      else {
+        op = this.undostack[this.undocur-1];
+        this.undo();
+        exists = true;
+      }
+      let input=op.get_prop_input(path, prop);
+      input.setValue(val);
+      if (exists) {
+          this.redo();
+      }
+      else {
+        this.exec_tool(op);
+      }
+    }
+     exec_tool(tool) {
+      console.warn("exec_tool deprecated in favor of execTool");
+      return this.execTool(g_app_state.ctx, tool);
+    }
+     execToolRepeat(ctx, cls, args={}) {
+      let tools=cls.getRepeat(ctx, args);
+      for (let tool of tools) {
+          tool.flag|=ToolFlags.USE_TOOL_CONTEXT;
+      }
+      let macro=new ToolMacro(cls.tooldef().apiname, cls.tooldef().uiname, tools);
+      this.execTool(macro);
+    }
+     execTool(ctx, tool) {
+      if (__instance_of(ctx, ToolOp)) {
+          console.warn("Bad arguments to g_app_state.toolstack.execTool()");
+          tool = ctx;
+          ctx = g_app_state.ctx;
+      }
+      the_global_dag.exec(this.ctx);
+      this.set_tool_coll_flag(tool);
+      ctx = new FullContext();
+      tool.ctx = ctx;
+      if (tool.can_call(ctx)===false) {
+          if (DEBUG.toolstack) {
+              console.trace();
+              console.log(tool);
+          }
+          console.log("Can not call tool '"+tool.constructor.name+"'");
+          return ;
+      }
+      if (!(tool.undoflag&UndoFlags.IGNORE_UNDO))
+        this.undo_push(tool);
+      for (let k in tool.inputs) {
+          let p=tool.inputs[k];
+          p.ctx = ctx;
+          if (p.userSetData!==undefined)
+            p.userSetData.call(p, p.data);
+      }
+      if (tool.is_modal) {
+          let modal_ctx=ctx.toLocked();
+          tool.modal_ctx = modal_ctx;
+          tool.modal_tctx = new BaseContext().toLocked();
+          tool.saved_context = new SavedContext(tool.modal_tctx);
+          tool.exec_pre(tool.modal_tctx);
+          if (!(tool.undoflag&UndoFlags.IGNORE_UNDO)) {
+              if (tool.is_modal)
+                tool.modal_running = true;
+              tool.undo_pre(modal_ctx);
+              tool.undoflag|=UndoFlags.HAS_UNDO_DATA;
+              if (tool.is_modal)
+                tool.modal_running = false;
+          }
+          tool._start_modal(modal_ctx);
+          tool.start_modal(modal_ctx);
+      }
+      else {
+        let tctx=(tool.flag&ToolFlags.USE_TOOL_CONTEXT) ? new BaseContext().toLocked() : ctx.toLocked();
+        tool.saved_context = new SavedContext(tctx);
+        if (!(tool.undoflag&UndoFlags.IGNORE_UNDO)) {
+            tool.undo_pre((tool.flag&ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : ctx);
+            tool.undoflag|=UndoFlags.HAS_UNDO_DATA;
+        }
+        tool.exec_pre(tctx);
+        tool.exec(tctx);
+      }
+      if (!(tool.undoflag&UndoFlags.IGNORE_UNDO)) {
+          this.rebuild_last_tool(tool);
+      }
+    }
+    static  fromSTRUCT(reader) {
+      let ts=new ToolStack(g_app_state);
+      reader(ts);
+      ts.undostack = new Array(ts.undostack);
+      for (let i=0; i<ts.undostack.length; i++) {
+          ts.undostack[i].stack_index = i;
+          ts.set_tool_coll_flag(ts.undostack[i]);
+      }
+      return ts;
+    }
+  }
+  _ESClass.register(ToolStack);
+  _es6_module.add_class(ToolStack);
+  ToolStack = _es6_module.add_export('ToolStack', ToolStack);
+  ToolStack.STRUCT = `
+  ToolStack {
+    undocur   : int;
+    undostack : array(abstract(ToolOp)) | obj.undostack.slice(0, obj.undocur);
+  }
+`;
+  var AppState=es6_import_item(_es6_module, './AppState.js', 'AppState');
+}, '/dev/fairmotion/src/core/toolstack.js');
+es6_module_define('AppState', ["./struct.js", "../curve/spline_base.js", "./lib_utils.js", "../config/config.js", "../path.ux/scripts/screen/ScreenArea.js", "../path.ux/scripts/platforms/electron/electron_api.js", "./toolops_api.js", "../editors/viewport/view2d.js", "./toolprops.js", "../path.ux/scripts/core/ui_base.js", "../editors/dopesheet/DopeSheetEditor.js", "./raster.js", "./toolstack.js", "./context.js", "../editors/all.js", "../editors/curve/CurveEditor.js", "./data_api/data_api.js", "../editors/theme.js", "./fileapi/fileapi.js", "./ajax.js", "../editors/menubar/MenuBar.js", "../editors/console/console.js", "../editors/editor_base.js", "../editors/material/MaterialEditor.js", "../path.ux/scripts/config/const.js", "../util/strutils.js", "../editors/settings/SettingsEditor.js", "./lib_api.js", "./notifications.js", "../path.ux/scripts/screen/FrameManager.js", "../scene/scene.js", "./frameset.js", "./startup/startup_file_example.js", "../editors/ops/ops_editor.js", "../path.ux/scripts/util/util.js", "../../platforms/platform.js", "./UserSettings.js", "./lib_api_typedefine.js", "../path.ux/scripts/screen/FrameManager_ops.js", "./startup/startup_file.js", "../editors/viewport/view2d_ops.js", "./jobs.js", "./data_api/data_api_pathux.js"], function _AppState_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, '../editors/all.js');
   var platform=es6_import(_es6_module, '../../platforms/platform.js');
   var electron_api=es6_import(_es6_module, '../path.ux/scripts/platforms/electron/electron_api.js');
+  var ToolStack=es6_import_item(_es6_module, './toolstack.js', 'ToolStack');
   if (window.haveElectron) {
       electron_api.checkInit();
   }
@@ -2402,7 +3237,13 @@ es6_module_define('AppState', ["./startup/startup_file.js", "./lib_utils.js", ".
           file = file.trim().replace(/[\n\r]/g, "");
         if (file) {
             let buf=new DataView(b64decode(file).buffer);
-            g.load_user_file_new(buf, undefined, new unpack_ctx());
+            try {
+              g.load_user_file_new(buf, undefined, new unpack_ctx());
+            }
+            catch (error) {
+                print_stack(error);
+                return false;
+            }
             return true;
         }
     }
@@ -2568,6 +3409,7 @@ es6_module_define('AppState', ["./startup/startup_file.js", "./lib_utils.js", ".
       buf = b64encode(buf);
       myLocalStorage.set("startup_file", buf);
       g_app_state.notes.label("New file template saved");
+      return buf;
     }
      create_scene_file() {
       let buf=this.create_user_file_new({save_screen: false, 
@@ -3540,409 +4382,6 @@ SavedContext {
   _ESClass.register(_ToolContext);
   _es6_module.add_class(_ToolContext);
   _ToolContext = _es6_module.add_export('_ToolContext', _ToolContext);
-  class ToolStack  {
-    
-    
-    
-    
-    
-     constructor(appstate) {
-      this.undocur = 0;
-      this.undostack = new Array();
-      this.appstate = appstate;
-      this.valcache = appstate.toolop_input_cache;
-      this.do_truncate = true;
-    }
-     reexec_stack2(validate=false) {
-      let stack=this.undostack;
-      g_app_state.datalib.clear();
-      let mctx=new FullContext().toLocked();
-      let first=true;
-      let last_time=0;
-      function do_next(i) {
-        let tool=stack[i];
-        let ctx=tool.saved_context;
-        if ((1||ctx.time!==last_time)&&mctx.frameset!==undefined) {
-            mctx.frameset.update_frame();
-        }
-        ctx.set_context(mctx);
-        last_time = ctx.time;
-        tool.is_modal = false;
-        tool.exec_pre(ctx);
-        if (!(tool.undoflag&UndoFlags.IGNORE_UNDO)) {
-            tool.undo_pre(ctx);
-            tool.undoflag|=UndoFlags.HAS_UNDO_DATA;
-        }
-        tool.exec(ctx);
-        if (mctx.frameset!==undefined)
-          mctx.frameset.spline.solve();
-        if (mctx.frameset!==undefined)
-          mctx.frameset.pathspline.solve();
-        if ((1||ctx.time!==last_time)&&mctx.frameset!==undefined) {
-            mctx.frameset.update_frame();
-        }
-      }
-      let ival;
-      let thei;
-      let this2=this;
-      function cbfunc() {
-        do_next(thei);
-        thei+=1;
-        let cctx=new FullContextt().toLocked();
-        if (cctx.frameset!==undefined) {
-            cctx.frameset.spline.solve();
-            cctx.frameset.pathspline.solve();
-        }
-        window.redraw_viewport();
-        clearInterval(ival);
-        if (thei<this2.undostack.length)
-          ival = window.setInterval(cbfunc, 500);
-      }
-      do_next(0);
-      thei = 1;
-      ival = window.setInterval(cbfunc, 500);
-      console.log("reexecuting tool stack from scratch. . .");
-      for (let i=0; i<this.undocur; i++) {
-
-      }
-    }
-     reexec_stack(validate=false) {
-      let stack=this.undostack;
-      g_app_state.datalib.clear();
-      let mctx=new FullContext();
-      let first=true;
-      console.log("reexecuting tool stack from scratch. . .");
-      for (let i=0; i<this.undocur; i++) {
-          let tool=stack[i];
-          let ctx=tool.saved_context;
-          ctx.set_context(mctx);
-          tool.is_modal = false;
-          tool.exec_pre(ctx);
-          if (!(tool.undoflag&UndoFlags.IGNORE_UNDO)) {
-              tool.undo_pre(ctx);
-              tool.undoflag|=UndoFlags.HAS_UNDO_DATA;
-          }
-          tool.exec(ctx);
-      }
-    }
-     default_inputs(ctx, tool) {
-      let cache=this.valcache;
-      function get_default(key, defaultval, input_prop) {
-        key = tool.constructor.name+":"+key;
-        if (key in cache)
-          return cache[key];
-        cache[key] = defaultval;
-        return defaultval;
-      }
-      let tctx=ctx.toLocked();
-      for (let k in tool.inputs) {
-          tool.inputs[k].ctx = tctx;
-      }
-      for (let k in tool.outputs) {
-          tool.outputs[k].ctx = tctx;
-      }
-      tool.default_inputs(ctx, get_default);
-    }
-     truncate_stack() {
-      if (this.undocur!==this.undostack.length) {
-          if (this.undocur===0) {
-              this.undostack = new Array();
-          }
-          else {
-            this.undostack = this.undostack.slice(0, this.undocur);
-          }
-      }
-    }
-     undo_push(tool) {
-      if (this.do_truncate) {
-          this.truncate_stack();
-          this.undostack.push(tool);
-      }
-      else {
-        this.undostack.insert(this.undocur, tool);
-        for (let i=this.undocur-1; i<this.undostack.length; i++) {
-            if (i<0)
-              continue;
-            this.undostack[i].stack_index = i;
-        }
-      }
-      tool.stack_index = this.undostack.indexOf(tool);
-      this.undocur++;
-    }
-     toolop_cancel(op, executeUndo) {
-      if (executeUndo===undefined) {
-          console.warn("Warning, executeUndo in toolop_cancel() was undefined");
-      }
-      if (executeUndo) {
-          this.undo();
-      }
-      else {
-        if (this.undostack.indexOf(op)>=0) {
-            this.undostack.remove(op);
-            this.undocur--;
-        }
-      }
-    }
-     undo() {
-      the_global_dag.exec(this.ctx);
-      if (this.undocur>0&&(this.undostack[this.undocur-1].undoflag&UndoFlags.UNDO_BARRIER))
-        return ;
-      if (this.undocur>0&&!(this.undostack[this.undocur-1].undoflag&UndoFlags.HAS_UNDO_DATA))
-        return ;
-      if (this.undocur>0) {
-          this.undocur--;
-          let tool=this.undostack[this.undocur];
-          let ctx=new FullContext();
-          let tctx=(tool.flag&ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : ctx;
-          if (the_global_dag!==undefined)
-            the_global_dag.reset_cache();
-          tool.saved_context.set_context(ctx);
-          tool.undo(tctx);
-          if (the_global_dag!==undefined)
-            the_global_dag.reset_cache();
-          if (this.undocur>0)
-            this.rebuild_last_tool(this.undostack[this.undocur-1]);
-          window.redraw_viewport();
-      }
-    }
-     redo() {
-      the_global_dag.exec(this.ctx);
-      if (this.undocur<this.undostack.length) {
-          let tool=this.undostack[this.undocur];
-          let ctx=new FullContext();
-          tool.saved_context.set_context(ctx);
-          tool.is_modal = false;
-          if (!(tool.undoflag&UndoFlags.IGNORE_UNDO)) {
-              tool.undo_pre((tool.flag&ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : ctx);
-              tool.undoflag|=UndoFlags.HAS_UNDO_DATA;
-          }
-          let tctx=(tool.flag&ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : tool.ctx.toLocked();
-          if (the_global_dag!==undefined)
-            the_global_dag.reset_cache();
-          tool.exec_pre(tctx);
-          tool.exec(tctx);
-          tool.redo_post(ctx);
-          this.undocur++;
-          if (this.undocur>0)
-            this.rebuild_last_tool(this.undostack[this.undocur-1]);
-      }
-    }
-     reexec_tool(tool) {
-      if (!(tool.undoflag&UndoFlags.HAS_UNDO_DATA)) {
-          this.reexec_stack();
-      }
-      if (tool.stack_index===-1) {
-          for (let i=0; i<this.undostack.length; i++) {
-              this.undostack[i].stack_index = i;
-          }
-      }
-      if (tool===this.undostack[this.undocur-1]) {
-          this.undo();
-          this.redo();
-      }
-      else 
-        if (this.undocur>tool.stack_index) {
-          let i=0;
-          while (this.undocur!==tool.stack_index) {
-            this.undo();
-            i++;
-          }
-          while (i>=0) {
-            this.redo();
-            i--;
-          }
-      }
-      else {
-        console.log("reexec_tool: can't reexec tool in inactive portion of stack");
-      }
-      tool.saved_context = new SavedContext(new FullContext());
-    }
-     kill_opstack() {
-      this.undostack = new Array();
-      this.undocur = 0;
-    }
-     gen_tool_datastruct(tool) {
-      let datastruct=new DataStruct([]);
-      let this2=this;
-      let stacktool=tool;
-      while (stacktool.parent!==undefined) {
-        stacktool = stacktool.parent;
-      }
-      function update_dataprop(d) {
-        this2.reexec_tool(stacktool);
-      }
-      function gen_subtool_struct(tool) {
-        if (tool.apistruct===undefined)
-          tool.apistruct = this2.gen_tool_datastruct(tool);
-        return tool.apistruct;
-      }
-      let prop=new StringProperty(tool.uiname, tool.uiname, tool.uiname, "Tool Name");
-      let dataprop=new DataPath(prop, "tool", "tool_name", true, false);
-      dataprop.update = function () {
-      };
-      prop.flag = TPropFlags.LABEL;
-      if (!(tool.flag&ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS)) {
-          datastruct.add(dataprop);
-      }
-      for (let k in tool.inputs) {
-          prop = tool.inputs[k];
-          if (prop.flag&TPropFlags.PRIVATE)
-            continue;
-          dataprop = new DataPath(prop, prop.apiname, "", true, false);
-          dataprop.update = update_dataprop;
-          datastruct.add(dataprop);
-      }
-      if (__instance_of(tool, ToolMacro)) {
-          let tarr=new DataStructArray(gen_subtool_struct);
-          let toolsprop=new DataPath(tarr, "tools", "tools", false);
-          datastruct.add(toolsprop);
-      }
-      return datastruct;
-    }
-     rebuild_last_tool(tool) {
-      let s;
-      if (tool!==undefined)
-        s = this.gen_tool_datastruct(tool);
-      else 
-        s = new DataStruct([]);
-      s.flag|=DataFlags.RECALC_CACHE;
-      s.name = "last_tool";
-      s = new DataPath(s, "last_tool", "", false, false);
-      s.flag|=DataFlags.RECALC_CACHE;
-      ContextStruct.replace(s);
-    }
-     set_tool_coll_flag(tool) {
-      for (let k in tool.inputs) {
-          let p=tool.inputs[k];
-          if (__instance_of(p, CollectionProperty))
-            p.flag&=~TPropFlags.COLL_LOOSE_TYPE;
-      }
-      for (let k in tool.outputs) {
-          let p=tool.inputs[k];
-          if (__instance_of(p, CollectionProperty))
-            p.flag&=~TPropFlags.COLL_LOOSE_TYPE;
-      }
-      if (__instance_of(tool, ToolMacro)) {
-          for (let t2 of tool.tools) {
-              this.set_tool_coll_flag(t2);
-          }
-      }
-    }
-     exec_datapath(ctx, path, val, undo_push=true, use_simple_undo=false, cls=DataPathOp) {
-      let api=g_app_state.api;
-      let prop=api.get_prop_meta(ctx, path);
-      if (prop===undefined) {
-          console.trace("Error in exec_datapath", path);
-          return ;
-      }
-      let good=this.undostack.length>0&&__instance_of(this.undostack[this.undocur-1], cls);
-      good = good&&this.undostack[this.undocur-1].path===path;
-      let exists=false;
-      if (undo_push||!good) {
-          let op=new cls(path, use_simple_undo);
-      }
-      else {
-        op = this.undostack[this.undocur-1];
-        this.undo();
-        exists = true;
-      }
-      let input=op.get_prop_input(path, prop);
-      input.setValue(val);
-      if (exists) {
-          this.redo();
-      }
-      else {
-        this.exec_tool(op);
-      }
-    }
-     exec_tool(tool) {
-      console.warn("exec_tool deprecated in favor of execTool");
-      return this.execTool(g_app_state.ctx, tool);
-    }
-     execToolRepeat(ctx, cls, args={}) {
-      let tools=cls.getRepeat(ctx, args);
-      for (let tool of tools) {
-          tool.flag|=ToolFlags.USE_TOOL_CONTEXT;
-      }
-      let macro=new ToolMacro(cls.tooldef().apiname, cls.tooldef().uiname, tools);
-      this.execTool(macro);
-    }
-     execTool(ctx, tool) {
-      if (__instance_of(ctx, ToolOp)) {
-          console.warn("Bad arguments to g_app_state.toolstack.execTool()");
-          tool = ctx;
-          ctx = g_app_state.ctx;
-      }
-      the_global_dag.exec(this.ctx);
-      this.set_tool_coll_flag(tool);
-      ctx = new FullContext();
-      tool.ctx = ctx;
-      if (tool.can_call(ctx)===false) {
-          if (DEBUG.toolstack) {
-              console.trace();
-              console.log(tool);
-          }
-          console.log("Can not call tool '"+tool.constructor.name+"'");
-          return ;
-      }
-      if (!(tool.undoflag&UndoFlags.IGNORE_UNDO))
-        this.undo_push(tool);
-      for (let k in tool.inputs) {
-          let p=tool.inputs[k];
-          p.ctx = ctx;
-          if (p.userSetData!==undefined)
-            p.userSetData.call(p, p.data);
-      }
-      if (tool.is_modal) {
-          let modal_ctx=ctx.toLocked();
-          tool.modal_ctx = modal_ctx;
-          tool.modal_tctx = new BaseContext().toLocked();
-          tool.saved_context = new SavedContext(tool.modal_tctx);
-          tool.exec_pre(tool.modal_tctx);
-          if (!(tool.undoflag&UndoFlags.IGNORE_UNDO)) {
-              if (tool.is_modal)
-                tool.modal_running = true;
-              tool.undo_pre(modal_ctx);
-              tool.undoflag|=UndoFlags.HAS_UNDO_DATA;
-              if (tool.is_modal)
-                tool.modal_running = false;
-          }
-          tool._start_modal(modal_ctx);
-          tool.start_modal(modal_ctx);
-      }
-      else {
-        let tctx=(tool.flag&ToolFlags.USE_TOOL_CONTEXT) ? new BaseContext().toLocked() : ctx.toLocked();
-        tool.saved_context = new SavedContext(tctx);
-        if (!(tool.undoflag&UndoFlags.IGNORE_UNDO)) {
-            tool.undo_pre((tool.flag&ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : ctx);
-            tool.undoflag|=UndoFlags.HAS_UNDO_DATA;
-        }
-        tool.exec_pre(tctx);
-        tool.exec(tctx);
-      }
-      if (!(tool.undoflag&UndoFlags.IGNORE_UNDO)) {
-          this.rebuild_last_tool(tool);
-      }
-    }
-    static  fromSTRUCT(reader) {
-      let ts=new ToolStack(g_app_state);
-      reader(ts);
-      ts.undostack = new Array(ts.undostack);
-      for (let i=0; i<ts.undostack.length; i++) {
-          ts.undostack[i].stack_index = i;
-          ts.set_tool_coll_flag(ts.undostack[i]);
-      }
-      return ts;
-    }
-  }
-  _ESClass.register(ToolStack);
-  _es6_module.add_class(ToolStack);
-  ToolStack.STRUCT = `
-  ToolStack {
-    undocur   : int;
-    undostack : array(abstract(ToolOp)) | obj.undostack.slice(0, obj.undocur);
-  }
-`;
 }, '/dev/fairmotion/src/core/AppState.js');
 es6_module_define('units', ["./safe_eval.js"], function _units_module(_es6_module) {
   "use strict";
@@ -4088,7 +4527,7 @@ es6_module_define('units', ["./safe_eval.js"], function _units_module(_es6_modul
   Unit.imperial_units = ["in", "ft", "mile"];
   Unit.internal_unit = "cm";
 }, '/dev/fairmotion/src/core/units.js');
-es6_module_define('data_api', ["../toolprops.js", "../animdata.js", "../../curve/spline_multires.js", "../safe_eval.js", "./data_api_pathux.js", "./data_api_parser.js", "../../config/config.js", "../lib_api.js", "./data_api_base.js", "../toolops_api.js"], function _data_api_module(_es6_module) {
+es6_module_define('data_api', ["./data_api_parser.js", "../toolops_api.js", "./data_api_pathux.js", "../toolprops.js", "../../config/config.js", "../safe_eval.js", "./data_api_base.js", "../animdata.js", "../../curve/spline_multires.js", "../lib_api.js"], function _data_api_module(_es6_module) {
   function is_int(s) {
     s = s.trim();
     if (typeof s=="number") {
@@ -4535,9 +4974,9 @@ es6_module_define('data_api', ["../toolprops.js", "../animdata.js", "../../curve
   TinyParser.split_chars = new set([",", "=", "(", ")", ".", "$", "[", "]"]);
   TinyParser.ws = new set([" ", "\n", "\t", "\r"]);
   var toolmap=es6_import_item(_es6_module, './data_api_pathux.js', 'toolmap');
-  var $cache_WBJ3_resolve_path_intern;
-  var $retcpy_JYaD_set_prop;
-  var $scope_f6jH_set_prop;
+  var $cache_JXFT_resolve_path_intern;
+  var $retcpy_bs2o_set_prop;
+  var $scope_gCu7_set_prop;
   class DataAPI  {
      constructor(appstate) {
       this.appstate = appstate;
@@ -4884,18 +5323,18 @@ es6_module_define('data_api', ["../toolprops.js", "../animdata.js", "../../curve
           return undefined;
       }
       try {
-        if (!(str in $cache_WBJ3_resolve_path_intern)) {
+        if (!(str in $cache_JXFT_resolve_path_intern)) {
             var ret=this.resolve_path_intern2(ctx, str);
             var ret2=[];
             for (var i=0; i<ret.length; i++) {
                 ret2.push(ret[i]);
             }
-            $cache_WBJ3_resolve_path_intern[str] = ret2;
+            $cache_JXFT_resolve_path_intern[str] = ret2;
         }
         else {
-          var ret=$cache_WBJ3_resolve_path_intern[str];
+          var ret=$cache_JXFT_resolve_path_intern[str];
           if (ret[0]!=undefined&&!ret[0].cache_good()) {
-              delete $cache_WBJ3_resolve_path_intern[str];
+              delete $cache_JXFT_resolve_path_intern[str];
               return this.resolve_path_intern(ctx, str);
           }
           else {
@@ -4915,7 +5354,6 @@ es6_module_define('data_api', ["../toolprops.js", "../animdata.js", "../../curve
       return undefined;
     }
      resolve_path_intern2(ctx, str) {
-      g_app_state.screen.unlisten();
       var parser=this.parser2;
       var arr_index=undefined;
       var build_path=this._build_path;
@@ -5249,11 +5687,11 @@ es6_module_define('data_api', ["../toolprops.js", "../animdata.js", "../../curve
           }
           return ret;
       }
-      $retcpy_JYaD_set_prop.length = ret.length;
+      $retcpy_bs2o_set_prop.length = ret.length;
       for (var i=0; i<5; i++) {
-          $retcpy_JYaD_set_prop[i] = ret[i];
+          $retcpy_bs2o_set_prop[i] = ret[i];
       }
-      ret = $retcpy_JYaD_set_prop;
+      ret = $retcpy_bs2o_set_prop;
       var owner=this.evaluate(ctx, ret[4]);
       if (ret[0]!==undefined&&ret[0].type==DataPathTypes.PROP) {
           var prop=ret[0].data;
@@ -5319,9 +5757,9 @@ es6_module_define('data_api', ["../toolprops.js", "../animdata.js", "../../curve
                     val&=~mask;
                   prop.dataref = owner;
                   prop.setValue(val, owner, changed);
-                  $scope_f6jH_set_prop[0] = val;
+                  $scope_gCu7_set_prop[0] = val;
                   path2+=" = scope[0];";
-                  this.evaluate(ctx, path2, $scope_f6jH_set_prop);
+                  this.evaluate(ctx, path2, $scope_gCu7_set_prop);
               }
               else {
                 path+=" = "+value;
@@ -5371,9 +5809,9 @@ es6_module_define('data_api', ["../toolprops.js", "../animdata.js", "../../curve
             }
             else {
               if (typeof value=="object") {
-                  $scope_f6jH_set_prop[0] = value;
+                  $scope_gCu7_set_prop[0] = value;
                   path+=" = scope[0]";
-                  this.evaluate(ctx, path, $scope_f6jH_set_prop);
+                  this.evaluate(ctx, path, $scope_gCu7_set_prop);
               }
               else {
                 changed = value==old_value;
@@ -5423,9 +5861,9 @@ es6_module_define('data_api', ["../toolprops.js", "../animdata.js", "../../curve
       return ret[0].data;
     }
   }
-  var $cache_WBJ3_resolve_path_intern={}
-  var $retcpy_JYaD_set_prop=new Array(16);
-  var $scope_f6jH_set_prop=[0, 0];
+  var $cache_JXFT_resolve_path_intern={}
+  var $retcpy_bs2o_set_prop=new Array(16);
+  var $scope_gCu7_set_prop=[0, 0];
   _ESClass.register(DataAPI);
   _es6_module.add_class(DataAPI);
   DataAPI = _es6_module.add_export('DataAPI', DataAPI);
@@ -6206,7 +6644,7 @@ es6_module_define('fileapi_electron', ["../../config/config.js", "./fileapi_html
   }
   save_file_old = _es6_module.add_export('save_file_old', save_file_old);
 }, '/dev/fairmotion/src/core/fileapi/fileapi_electron.js');
-es6_module_define('animdata', ["./struct.js", "./toolprops.js", "./eventdag.js", "./lib_api.js", "../curve/spline_base.js"], function _animdata_module(_es6_module) {
+es6_module_define('animdata', ["./lib_api.js", "./eventdag.js", "../curve/spline_base.js", "./toolprops.js", "./struct.js"], function _animdata_module(_es6_module) {
   "use strict";
   var PropTypes=es6_import_item(_es6_module, './toolprops.js', 'PropTypes');
   var STRUCT=es6_import_item(_es6_module, './struct.js', 'STRUCT');
@@ -6250,6 +6688,10 @@ es6_module_define('animdata', ["./struct.js", "./toolprops.js", "./eventdag.js",
     }
      loadSTRUCT(reader) {
       reader(this);
+      super.loadSTRUCT(reader);
+    }
+    static  define() {
+      return {typeName: "TimeDataLayer"}
     }
   }
   _ESClass.register(TimeDataLayer);
@@ -6260,10 +6702,9 @@ es6_module_define('animdata', ["./struct.js", "./toolprops.js", "./eventdag.js",
     owning_veid  : int;
   }
 `;
-  TimeDataLayer.layerinfo = {type_name: "TimeDataLayer"}
   function get_vtime(v) {
     var ret=v.cdata.get_layer(TimeDataLayer);
-    if (ret!=undefined)
+    if (ret!==undefined)
       return ret.time;
     return -1;
   }
@@ -9584,7 +10025,7 @@ es6_module_define('theme', ["../util/util.js", "./ui_theme.js"], function _theme
     defaultHeight: 24}}
   _es6_module.add_export('DefaultTheme', DefaultTheme);
 }, '/dev/fairmotion/src/path.ux/scripts/core/theme.js');
-es6_module_define('ui', ["./ui_base.js", "../util/vectormath.js", "../widgets/ui_widgets.js", "../config/const.js", "../util/simple_events.js", "../util/util.js", "../util/html5_fileapi.js", "./ui_theme.js", "../toolsys/toolprop.js", "../widgets/ui_menu.js"], function _ui_module(_es6_module) {
+es6_module_define('ui', ["../config/const.js", "./ui_theme.js", "../util/html5_fileapi.js", "../toolsys/toolprop.js", "./ui_base.js", "../util/util.js", "../util/vectormath.js", "../util/simple_events.js", "../widgets/ui_menu.js", "../widgets/ui_widgets.js"], function _ui_module(_es6_module) {
   var _ui=undefined;
   var util=es6_import(_es6_module, '../util/util.js');
   var vectormath=es6_import(_es6_module, '../util/vectormath.js');
@@ -10269,7 +10710,7 @@ es6_module_define('ui', ["./ui_base.js", "../util/vectormath.js", "../widgets/ui
               if (packflag&PackFlags.SIMPLE_NUMSLIDERS)
                 ret = this.simpleslider(path, {packflag: packflag});
               else 
-                this.slider(path, {packflag: packflag});
+                ret = this.slider(path, {packflag: packflag});
               ret.packflag|=packflag;
               return ret;
           }

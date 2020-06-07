@@ -2522,7 +2522,7 @@ es6_module_define('units', ["../util/util.js", "../util/vectormath.js"], functio
         let f=parseFloat(string);
         return f;
     }
-    if (baseUnit) {
+    if (baseUnit&&baseUnit!=="none") {
         base = Unit.getUnit(baseUnit);
         if (base===undefined) {
             console.warn("Unknown unit "+baseUnit);
@@ -6646,7 +6646,7 @@ es6_module_define('area_wrangler', ["../util/simple_events.js", "../widgets/ui_n
   _es6_module.add_class(AreaWrangler);
   AreaWrangler = _es6_module.add_export('AreaWrangler', AreaWrangler);
 }, '/dev/fairmotion/src/path.ux/scripts/screen/area_wrangler.js');
-es6_module_define('FrameManager', ["../util/vectormath.js", "../widgets/ui_noteframe.js", "../widgets/dragbox.js", "../widgets/ui_table.js", "../util/util.js", "../widgets/ui_curvewidget.js", "./ScreenArea.js", "../widgets/ui_widgets.js", "../widgets/ui_widgets2.js", "../widgets/ui_panel.js", "../util/simple_events.js", "../util/struct.js", "../widgets/ui_treeview.js", "../config/const.js", "../core/ui_base.js", "../widgets/ui_tabs.js", "../util/math.js", "../widgets/ui_listbox.js", "./FrameManager_mesh.js", "../util/ScreenOverdraw.js", "./FrameManager_ops.js", "./AreaDocker.js", "../widgets/ui_dialog.js", "../widgets/ui_colorpicker2.js", "../widgets/ui_menu.js"], function _FrameManager_module(_es6_module) {
+es6_module_define('FrameManager', ["../util/ScreenOverdraw.js", "../util/math.js", "../util/util.js", "../widgets/ui_widgets.js", "../widgets/ui_menu.js", "../widgets/ui_widgets2.js", "../widgets/ui_dialog.js", "../widgets/dragbox.js", "./AreaDocker.js", "./FrameManager_ops.js", "../widgets/ui_colorpicker2.js", "./FrameManager_mesh.js", "../util/vectormath.js", "../widgets/ui_curvewidget.js", "../core/ui_base.js", "./ScreenArea.js", "../widgets/ui_noteframe.js", "../widgets/ui_tabs.js", "../widgets/ui_table.js", "../util/struct.js", "../widgets/ui_panel.js", "../widgets/ui_treeview.js", "../config/const.js", "../widgets/ui_listbox.js", "../util/simple_events.js"], function _FrameManager_module(_es6_module) {
   var ToolTipViewer=es6_import_item(_es6_module, './FrameManager_ops.js', 'ToolTipViewer');
   let _FrameManager=undefined;
   es6_import(_es6_module, '../widgets/dragbox.js');
@@ -7210,7 +7210,7 @@ es6_module_define('FrameManager', ["../util/vectormath.js", "../widgets/ui_notef
       }
       let ratio=window.outerHeight/window.innerHeight;
       let scale=visualViewport.scale;
-      let pad=10;
+      let pad=4;
       width = visualViewport.width*scale-pad;
       height = visualViewport.height*scale-pad;
       let ox=visualViewport.offsetLeft;
@@ -11168,7 +11168,7 @@ es6_module_define('toolpath', ["../util/parseutil.js", "../controller/controller
   }
   initToolPaths = _es6_module.add_export('initToolPaths', initToolPaths);
 }, '/dev/fairmotion/src/path.ux/scripts/toolsys/toolpath.js');
-es6_module_define('toolprop', ["./toolprop_abstract.js", "../util/util.js", "../curve/curve1d.js", "../util/struct.js", "../util/vectormath.js"], function _toolprop_module(_es6_module) {
+es6_module_define('toolprop', ["../util/util.js", "./toolprop_abstract.js", "../util/vectormath.js", "../curve/curve1d.js", "../util/struct.js"], function _toolprop_module(_es6_module) {
   var util=es6_import(_es6_module, '../util/util.js');
   var Vector2=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector2');
   var Vector3=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector3');
@@ -11350,11 +11350,17 @@ es6_module_define('toolprop', ["./toolprop_abstract.js", "../util/util.js", "../
       this.range = [min, max];
       return this;
     }
+     noUnits() {
+      this.baseUnit = this.displayUnit = "none";
+      return this;
+    }
      setBaseUnit(unit) {
       this.baseUnit = unit;
+      return this;
     }
      setDisplayUnit(unit) {
       this.displayUnit = unit;
+      return this;
     }
      setUIRange(min, max) {
       if (min===undefined||max===undefined) {
@@ -11502,6 +11508,9 @@ ToolProperty {
       this.uiRange = val;
     }
      copyTo(b) {
+      super.copyTo(b);
+      b.displayUnit = this.displayUnit;
+      b.baseUnit = this.baseUnit;
       b.data = this.data;
       b.expRate = this.expRate;
       b.step = this.step;
@@ -12873,7 +12882,7 @@ es6_module_define('expr', ["./vectormath.js", "./parseutil.js"], function _expr_
     
     return c;
   }
-  let tokens=[tk("ID", /[a-zA-Z$_]+[a-zA-Z0-9$_]*/), tk("NUM", /[0-9]+(\.[0-9]*)?/), tk("LPAREN", /\(/), tk("RPAREN", /\)/), tk("STRLIT", /".*(?<!\\)\"/, (t) =>    {
+  let tokens=[tk("ID", /[a-zA-Z$_]+[a-zA-Z0-9$_]*/), tk("NUM", /[0-9]+(\.[0-9]*)?/), tk("LPAREN", /\(/), tk("RPAREN", /\)/), tk("STRLIT", /"[^"]*"/, (t) =>    {
     let v=t.value;
     t.lexer.lineno+=count(t.value, "\n");
     return t;
@@ -13031,7 +13040,6 @@ es6_module_define('expr', ["./vectormath.js", "./parseutil.js"], function _expr_
       }
       let a=p.peek_i(0);
       let b=p.peek_i(1);
-      console.log(indent(depth)+"bin_next", a.toString(), b?.toString());
       if (b&&b.value===")") {
           b.type = a.type;
           b.value = a.value;

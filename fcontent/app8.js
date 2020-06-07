@@ -1,4 +1,1295 @@
-es6_module_define('view2d', ["../../path.ux/scripts/core/ui_base.js", "./view2d_editor.js", "../../core/toolops_api.js", "./toolmodes/all.js", "../../core/context.js", "../../core/struct.js", "./view2d_spline_ops.js", "./view2d_ops.js", "../../path.ux/scripts/widgets/ui_menu.js", "../../path.ux/scripts/core/ui.js", "./selectmode.js", "../../path.ux/scripts/util/util.js", "../../core/imageblock.js", "../events.js", "./manipulator.js", "../../path.ux/scripts/screen/ScreenArea.js", "../editor_base.js"], function _view2d_module(_es6_module) {
+es6_module_define('CurveEditor', ["../../path.ux/scripts/pathux.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../path.ux/scripts/util/simple_events.js", "../editor_base.js", "../../path.ux/scripts/util/vectormath.js", "../../path.ux/scripts/core/ui_base.js", "../../core/struct.js"], function _CurveEditor_module(_es6_module) {
+  var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
+  var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
+  var UIBase=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui_base.js', 'UIBase');
+  var Editor=es6_import_item(_es6_module, '../editor_base.js', 'Editor');
+  var Vector2=es6_import_item(_es6_module, '../../path.ux/scripts/util/vectormath.js', 'Vector2');
+  var DropBox=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'DropBox');
+  var pushModalLight=es6_import_item(_es6_module, '../../path.ux/scripts/util/simple_events.js', 'pushModalLight');
+  var popModalLight=es6_import_item(_es6_module, '../../path.ux/scripts/util/simple_events.js', 'popModalLight');
+  function startPan(edit, x, y) {
+    if (edit._modaldata) {
+        popModalLight(edit._modaldata);
+        edit._modaldata = undefined;
+        return ;
+    }
+    let startmpos=new Vector2([x, y]);
+    let lastmpos=new Vector2([x, y]);
+    let mpos=new Vector2();
+    let dv=new Vector2();
+    let first=true;
+    edit._modaldata = pushModalLight({on_mousedown: function on_mousedown(e) {
+      }, 
+    on_mousemove: function on_mousemove(e) {
+        lastmpos.load(mpos);
+        mpos[0] = e.x;
+        mpos[1] = e.y;
+        if (first) {
+            first = false;
+            return ;
+        }
+        dv.load(mpos).sub(lastmpos);
+        edit.pan.add(dv);
+        edit.redraw();
+      }, 
+    on_mouseup: function on_mouseup(e) {
+        this.stop();
+      }, 
+    stop: function stop() {
+        if (edit._modaldata) {
+            popModalLight(edit._modaldata);
+            edit._modaldata = undefined;
+        }
+      }, 
+    on_keydown: function on_keydown(e) {
+        if (e.keyCode===27) {
+            this.stop();
+        }
+      }});
+  }
+  class CurveEdit extends UIBase {
+     constructor() {
+      super();
+      this.curvePaths = [];
+      this._drawreq = false;
+      this.size = new Vector2([512, 512]);
+      this.canvas = document.createElement("canvas");
+      this.g = this.canvas.getContext("2d");
+      this.shadow.appendChild(this.canvas);
+      this.pan = new Vector2();
+      this.zoom = new Vector2([1, 1]);
+      this.addEventListener("mousedown", this.on_mousedown.bind(this));
+      this.addEventListener("mousemove", this.on_mousemove.bind(this));
+      this.addEventListener("mouseup", this.on_mouseup.bind(this));
+    }
+     on_mousedown(e) {
+      this.mdown = true;
+      startPan(this);
+      console.log("mdown");
+    }
+     on_mousemove(e) {
+      console.log("mmove");
+    }
+     on_mouseup(e) {
+      console.log("mup");
+      this.mdown = false;
+    }
+     init() {
+      super.init();
+    }
+     redraw() {
+      if (this._drawreq) {
+          return ;
+      }
+      this.doOnce(this.draw);
+    }
+     draw() {
+      this._drawreq = false;
+      let g=this.g;
+      let canvas=this.canvas;
+      g.fillStyle = "rgb(240, 240, 240)";
+      g.rect(0, 0, canvas.width, canvas.height);
+      g.fill();
+      let fsize=10;
+      g.font = ""+fsize+"px sans-serif";
+      let pad=fsize*3.0;
+      let csize=32;
+      let steps=~~(this.size[0]/csize+1.0);
+      g.fillStyle = "grey";
+      g.beginPath();
+      g.rect(0, 0, pad, this.size[1]);
+      g.rect(0, this.size[1]-pad, this.size[0], pad);
+      g.rect(0, 0, this.size[0], pad);
+      g.rect(this.size[0]-pad, 0, pad, this.size[1]);
+      g.fill();
+      g.fillStyle = "orange";
+      for (let step=0; step<2; step++) {
+          let off=this.pan[step]%csize;
+          let x=off-csize;
+          for (let i=0; i<steps; i++) {
+              let val=i-~~(this.pan[step]/csize);
+              val = val.toFixed(1);
+              if (x>=this.size[step]-pad) {
+                  break;
+              }
+              let v1=[0, 0];
+              let v2=[0, 0];
+              v1[step] = v2[step] = x;
+              v1[step^1] = pad;
+              v2[step^1] = this.size[step^1]-pad;
+              if (x>=pad) {
+                  g.beginPath();
+                  g.moveTo(v1[0], v1[1]);
+                  g.lineTo(v2[0], v2[1]);
+                  g.stroke();
+                  v1[step] = v2[step] = x;
+                  v1[step^1] = 0;
+                  v2[step^1] = this.size[step^1];
+                  if (!step) {
+                      v1[1]+=fsize*1.45;
+                  }
+                  g.fillText(""+val, 10+v1[0], v1[1]);
+              }
+              x+=csize;
+          }
+      }
+    }
+     updateSize() {
+      let rect=this.getBoundingClientRect();
+      if (!rect)
+        return ;
+      let dpi=UIBase.getDPI();
+      let w=~~(this.size[0]*dpi);
+      let h=~~((this.size[1]-22.5)*dpi);
+      let c=this.canvas;
+      if (w!==c.width||h!==c.height) {
+          console.log("size update");
+          c.width = w;
+          c.height = h;
+          c.style["width"] = (w/dpi)+"px";
+          c.style["height"] = (h/dpi)+"px";
+          this.redraw();
+      }
+    }
+     update() {
+      super.update();
+      this.updateSize();
+    }
+    static  define() {
+      return {tagname: "curve-edit-x", 
+     style: "curve-edit"}
+    }
+  }
+  _ESClass.register(CurveEdit);
+  _es6_module.add_class(CurveEdit);
+  CurveEdit = _es6_module.add_export('CurveEdit', CurveEdit);
+  UIBase.register(CurveEdit);
+  class CurveEditor extends Editor {
+    
+    
+     constructor() {
+      super();
+      this.pan = new Vector2();
+      this.zoom = new Vector2([1, 1]);
+    }
+     init() {
+      super.init();
+      let edit=this.edit = document.createElement("curve-edit-x");
+      edit.pan.load(this.pan);
+      edit.zoom.load(this.zoom);
+      this.pan = edit.pan;
+      this.zoom = edit.zoom;
+      this.container.add(edit);
+    }
+     update() {
+      this.edit.size[0] = this.size[0];
+      this.edit.size[1] = this.size[1];
+      super.update();
+    }
+    static  define() {
+      return {tagname: "curve-editor-x", 
+     areaname: "curve_editor", 
+     uiname: "Curve Editor", 
+     icon: Icons.CURVE_EDITOR}
+    }
+     copy() {
+      return document.createElement("curve-editor-x");
+    }
+  }
+  _ESClass.register(CurveEditor);
+  _es6_module.add_class(CurveEditor);
+  CurveEditor = _es6_module.add_export('CurveEditor', CurveEditor);
+  CurveEditor.STRUCT = STRUCT.inherit(CurveEditor, Area)+`
+  pan  : vec2;
+  zoom : vec2;
+}
+`;
+  Editor.register(CurveEditor);
+}, '/dev/fairmotion/src/editors/curve/CurveEditor.js');
+es6_module_define('notifications', ["../path.ux/scripts/widgets/ui_noteframe.js"], function _notifications_module(_es6_module) {
+  var sendNote=es6_import_item(_es6_module, '../path.ux/scripts/widgets/ui_noteframe.js', 'sendNote');
+  class Notification  {
+  }
+  _ESClass.register(Notification);
+  _es6_module.add_class(Notification);
+  Notification = _es6_module.add_export('Notification', Notification);
+  class NotificationManager  {
+     label(label, description) {
+      sendNote(g_app_state.ctx.screen, label);
+    }
+     progbar(label, progress, description) {
+      let f=progress.toFixed(1);
+      sendNote(g_app_state.ctx.screen, label+" "+f+"%");
+    }
+     on_tick() {
+
+    }
+  }
+  _ESClass.register(NotificationManager);
+  _es6_module.add_class(NotificationManager);
+  NotificationManager = _es6_module.add_export('NotificationManager', NotificationManager);
+}, '/dev/fairmotion/src/core/notifications.js');
+es6_module_define('app_ops', ["../util/svg_export.js", "../core/toolops_api.js", "../../platforms/platform.js", "../core/toolprops.js", "./viewport/spline_createops.js", "../core/fileapi/fileapi.js", "../util/strutils.js", "../config/config.js"], function _app_ops_module(_es6_module) {
+  var config=es6_import(_es6_module, '../config/config.js');
+  var urlencode=es6_import_item(_es6_module, '../util/strutils.js', 'urlencode');
+  var b64decode=es6_import_item(_es6_module, '../util/strutils.js', 'b64decode');
+  var b64encode=es6_import_item(_es6_module, '../util/strutils.js', 'b64encode');
+  var ToolFlags=es6_import_item(_es6_module, '../core/toolops_api.js', 'ToolFlags');
+  var UndoFlags=es6_import_item(_es6_module, '../core/toolops_api.js', 'UndoFlags');
+  var StringProperty=es6_import_item(_es6_module, '../core/toolprops.js', 'StringProperty');
+  var export_svg=es6_import_item(_es6_module, '../util/svg_export.js', 'export_svg');
+  var ToolOp=es6_import_item(_es6_module, '../core/toolops_api.js', 'ToolOp');
+  var UndoFlags=es6_import_item(_es6_module, '../core/toolops_api.js', 'UndoFlags');
+  var ToolFlags=es6_import_item(_es6_module, '../core/toolops_api.js', 'ToolFlags');
+  var get_root_folderid=es6_import_item(_es6_module, '../core/fileapi/fileapi.js', 'get_root_folderid');
+  var get_current_dir=es6_import_item(_es6_module, '../core/fileapi/fileapi.js', 'get_current_dir');
+  var path_to_id=es6_import_item(_es6_module, '../core/fileapi/fileapi.js', 'path_to_id');
+  var platform=es6_import(_es6_module, '../../platforms/platform.js');
+  var FileDialogModes={OPEN: "Open", 
+   SAVE: "Save"}
+  FileDialogModes = _es6_module.add_export('FileDialogModes', FileDialogModes);
+  var fdialog_exclude_chars=new set(["*", "\\", ";", ":", "&", "^"]);
+  var open_file=es6_import_item(_es6_module, '../core/fileapi/fileapi.js', 'open_file');
+  var save_file=es6_import_item(_es6_module, '../core/fileapi/fileapi.js', 'save_file');
+  var save_with_dialog=es6_import_item(_es6_module, '../core/fileapi/fileapi.js', 'save_with_dialog');
+  var can_access_path=es6_import_item(_es6_module, '../core/fileapi/fileapi.js', 'can_access_path');
+  class FileOpenOp extends ToolOp {
+     constructor() {
+      super();
+      this.undoflag = UndoFlags.IGNORE_UNDO;
+      this.flag = ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS;
+    }
+    static  tooldef() {
+      return {apiname: "appstate.open", 
+     uiname: "Open", 
+     inputs: {path: new StringProperty("", "path", "File Path", "File Path")}, 
+     outputs: {}, 
+     icon: Icons.RESIZE, 
+     is_modal: false, 
+     undoflag: UndoFlags.IGNORE_UNDO, 
+     flag: ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS}
+    }
+     exec(ctx) {
+      console.log("File open");
+      open_file(function (buf, fname, filepath) {
+        console.log("\n\ngot file!", buf, fname, filepath, "\n\n");
+        if (filepath!==undefined) {
+            g_app_state.session.settings.add_recent_file(filepath);
+        }
+        g_app_state.load_user_file_new(new DataView(buf), filepath);
+      }, this, true, "Fairmotion Files", ["fmo"]);
+      return ;
+    }
+  }
+  _ESClass.register(FileOpenOp);
+  _es6_module.add_class(FileOpenOp);
+  FileOpenOp = _es6_module.add_export('FileOpenOp', FileOpenOp);
+  class FileSaveAsOp extends ToolOp {
+    
+     constructor(do_progress=true) {
+      super();
+      this.do_progress = true;
+    }
+    static  tooldef() {
+      return {apiname: "appstate.save_as", 
+     uiname: "Save As", 
+     inputs: {}, 
+     outputs: {}, 
+     icon: -1, 
+     is_modal: false, 
+     undoflag: UndoFlags.IGNORE_UNDO, 
+     flag: ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS}
+    }
+     exec(ctx) {
+      console.log("File save As");
+      var mesh_data=g_app_state.create_user_file_new().buffer;
+      save_with_dialog(mesh_data, undefined, "Fairmotion Files", ["fmo"], function () {
+        error_dialog(ctx, "Could not write file", undefined, true);
+      }, (path) =>        {
+        g_app_state.filepath = path;
+        g_app_state.notes.label("File saved");
+      });
+    }
+  }
+  _ESClass.register(FileSaveAsOp);
+  _es6_module.add_class(FileSaveAsOp);
+  FileSaveAsOp = _es6_module.add_export('FileSaveAsOp', FileSaveAsOp);
+  class FileSaveOp extends ToolOp {
+    
+     constructor(do_progress=true) {
+      super();
+      this.do_progress = true;
+    }
+    static  tooldef() {
+      return {apiname: "appstate.save", 
+     uiname: "Save", 
+     inputs: {}, 
+     outputs: {}, 
+     icon: -1, 
+     is_modal: false, 
+     undoflag: UndoFlags.IGNORE_UNDO, 
+     flag: ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS}
+    }
+     exec(ctx) {
+      console.log("File save");
+      var mesh_data=g_app_state.create_user_file_new().buffer;
+      let path=g_app_state.filepath;
+      let ok=path!=""&&path!==undefined;
+      ok = ok&&can_access_path(path);
+      if (!ok) {
+          save_with_dialog(mesh_data, undefined, "Fairmotion Files", ["fmo"], function () {
+            error_dialog(ctx, "Could not write file", undefined, true);
+          }, (path) =>            {
+            g_app_state.filepath = path;
+            g_app_state.notes.label("File saved");
+          });
+      }
+      else {
+        save_file(mesh_data, path, () =>          {
+          error_dialog(ctx, "Could not write file", undefined, true);
+        }, () =>          {
+          g_app_state.notes.label("File saved");
+        });
+      }
+    }
+  }
+  _ESClass.register(FileSaveOp);
+  _es6_module.add_class(FileSaveOp);
+  FileSaveOp = _es6_module.add_export('FileSaveOp', FileSaveOp);
+  class FileSaveSVGOp extends ToolOp {
+     constructor() {
+      super();
+    }
+    static  tooldef() {
+      return {apiname: "appstate.export_svg", 
+     uiname: "Export SVG", 
+     inputs: {path: new StringProperty("", "path", "File Path", "File Path")}, 
+     outputs: {}, 
+     icon: -1, 
+     is_modal: false, 
+     undoflag: UndoFlags.IGNORE_UNDO, 
+     flag: ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS}
+    }
+     exec(ctx) {
+      console.log("Export SVG");
+      ctx = new Context();
+      var buf=export_svg(ctx.spline);
+      if (g_app_state.filepath!="") {
+          var name=g_app_state.filepath;
+          if (name===undefined||name=="") {
+              name = "untitled";
+          }
+          if (name.endsWith(".fmo"))
+            name = name.slice(0, name.length-4);
+      }
+      else {
+        name = "document";
+      }
+      var blob=new Blob([buf], {type: "text/svg+xml"});
+      if (config.CHROME_APP_MODE) {
+          save_with_dialog(buf, undefined, "SVG", ["svg"], function () {
+            error_dialog(ctx, "Could not write file", undefined, true);
+          });
+      }
+      else {
+        var a=document.createElement("a");
+        a.download = name+".svg";
+        a.href = URL.createObjectURL(blob);
+        a.click();
+      }
+    }
+  }
+  _ESClass.register(FileSaveSVGOp);
+  _es6_module.add_class(FileSaveSVGOp);
+  FileSaveSVGOp = _es6_module.add_export('FileSaveSVGOp', FileSaveSVGOp);
+  class FileSaveB64Op extends ToolOp {
+     constructor() {
+      super();
+    }
+    static  tooldef() {
+      return {apiname: "appstate.export_al3_b64", 
+     uiname: "Export Base64", 
+     description: "Export a base64-encoded .fmo file", 
+     inputs: {path: new StringProperty("", "path", "File Path", "File Path")}, 
+     outputs: {}, 
+     icon: -1, 
+     is_modal: false, 
+     undoflag: UndoFlags.IGNORE_UNDO, 
+     flag: ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS}
+    }
+     exec(ctx) {
+      console.log("Export AL3-B64");
+      var buf=g_app_state.create_user_file_new({compress: true});
+      buf = b64encode(new Uint8Array(buf.buffer));
+      var buf2="";
+      for (var i=0; i<buf.length; i++) {
+          buf2+=buf[i];
+          if (((i+1)%79)==0) {
+              buf2+="\n";
+          }
+      }
+      buf = buf2;
+      var byte_data=[];
+      ajax.pack_static_string(byte_data, buf, buf.length);
+      byte_data = new Uint8Array(byte_data).buffer;
+      ctx = new Context();
+      var pd=new ProgressDialog(ctx, "Uploading");
+      function error(job, owner, msg) {
+        pd.end();
+        error_dialog(ctx, "Network Error", undefined, true);
+      }
+      function status(job, owner, status) {
+        pd.value = status.progress;
+        pd.bar.do_recalc();
+        if (DEBUG.netio)
+          console.log("status: ", status.progress);
+      }
+      var this2=this;
+      function finish(job, owner) {
+        if (DEBUG.netio)
+          console.log("finished uploading");
+        var url="/api/files/get?path=/"+this2._path+"&";
+        url+="accessToken="+g_app_state.session.tokens.access;
+        if (DEBUG.netio)
+          console.log(url);
+        window.open(url);
+        pd.end();
+      }
+      function save_callback(dialog, path) {
+        pd.call(ctx.screen.mpos);
+        if (DEBUG.netio)
+          console.log("saving...", path);
+        if (!path.endsWith(".al3.b64")) {
+            path = path+".al3.b64";
+        }
+        this2._path = path;
+        var token=g_app_state.session.tokens.access;
+        var url="/api/files/upload/start?accessToken="+token+"&path="+path;
+        var url2="/api/files/upload?accessToken="+token;
+        call_api(upload_file, {data: byte_data, 
+      url: url, 
+      chunk_url: url2}, finish, error, status);
+      }
+      file_dialog("SAVE", new Context(), save_callback, true);
+    }
+  }
+  _ESClass.register(FileSaveB64Op);
+  _es6_module.add_class(FileSaveB64Op);
+  FileSaveB64Op = _es6_module.add_export('FileSaveB64Op', FileSaveB64Op);
+  var ImportJSONOp=es6_import_item(_es6_module, './viewport/spline_createops.js', 'ImportJSONOp');
+  var _dom_input_node=undefined;
+  var import_json=window.import_json = function import_json() {
+    
+    console.log("import json!");
+    if (_dom_input_node==undefined) {
+        window._dom_input_node = _dom_input_node = document.getElementById("fileinput");
+    }
+    _dom_input_node.style.visibility = "visible";
+    var node=_dom_input_node;
+    node.value = "";
+    node.onchange = function () {
+      console.log("file select!", node.files);
+      if (node.files.length==0)
+        return ;
+      var f=node.files[0];
+      console.log("file", f);
+      var reader=new FileReader();
+      reader.onload = function (data) {
+        var obj=JSON.parse(reader.result);
+        var tool=new ImportJSONOp(reader.result);
+        g_app_state.toolstack.exec_tool(tool);
+      }
+      reader.readAsText(f);
+    }
+  }
+  import_json = _es6_module.add_export('import_json', import_json);
+}, '/dev/fairmotion/src/editors/app_ops.js');
+es6_module_define('editor_base', ["../path.ux/scripts/core/ui_base.js", "../path.ux/scripts/screen/FrameManager.js", "../core/context.js", "../core/struct.js", "./events.js", "../core/toolops_api.js", "../path.ux/scripts/screen/ScreenArea.js", "../path.ux/scripts/util/util.js"], function _editor_base_module(_es6_module) {
+  var Area=es6_import_item(_es6_module, '../path.ux/scripts/screen/ScreenArea.js', 'Area');
+  var ScreenArea=es6_import_item(_es6_module, '../path.ux/scripts/screen/ScreenArea.js', 'ScreenArea');
+  var Screen=es6_import_item(_es6_module, '../path.ux/scripts/screen/FrameManager.js', 'Screen');
+  var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
+  var ui_base=es6_import(_es6_module, '../path.ux/scripts/core/ui_base.js');
+  var util=es6_import(_es6_module, '../path.ux/scripts/util/util.js');
+  var KeyMap=es6_import_item(_es6_module, './events.js', 'KeyMap');
+  var ToolKeyHandler=es6_import_item(_es6_module, './events.js', 'ToolKeyHandler');
+  var FuncKeyHandler=es6_import_item(_es6_module, './events.js', 'FuncKeyHandler');
+  var HotKey=es6_import_item(_es6_module, './events.js', 'HotKey');
+  var charmap=es6_import_item(_es6_module, './events.js', 'charmap');
+  var TouchEventManager=es6_import_item(_es6_module, './events.js', 'TouchEventManager');
+  var EventHandler=es6_import_item(_es6_module, './events.js', 'EventHandler');
+  var ModalStates=es6_import_item(_es6_module, '../core/toolops_api.js', 'ModalStates');
+  var _area_active_stacks={}
+  _area_active_stacks = _es6_module.add_export('_area_active_stacks', _area_active_stacks);
+  var _area_active_lasts={}
+  _area_active_lasts = _es6_module.add_export('_area_active_lasts', _area_active_lasts);
+  var _area_main_stack=[];
+  _area_main_stack = _es6_module.add_export('_area_main_stack', _area_main_stack);
+  var _last_area=undefined;
+  function _get_area_stack(cls) {
+    var h=cls.name;
+    if (!(h in _area_active_stacks)) {
+        _area_active_stacks[h] = new Array();
+    }
+    return _area_active_stacks[h];
+  }
+  function resetAreaStacks() {
+    _area_main_stack.length = 0;
+    for (let k in _area_active_lasts) {
+        _area_active_lasts[k].length = 0;
+    }
+    for (let k in _area_active_stacks) {
+        _area_active_stacks[k].length = 0;
+    }
+    _last_area = undefined;
+  }
+  resetAreaStacks = _es6_module.add_export('resetAreaStacks', resetAreaStacks);
+  class FairmotionScreen extends Screen {
+    
+     constructor() {
+      super();
+      this.startFrame = 1;
+      this._lastFrameTime = util.time_ms();
+      this.define_keymap();
+    }
+     init() {
+      this.define_keymap();
+    }
+     define_keymap() {
+      this.keymap = new KeyMap();
+      var k=this.keymap;
+      k.add_tool(new HotKey("O", ["CTRL"], "Open File"), "appstate.open()");
+      k.add_tool(new HotKey("O", ["CTRL", "SHIFT"], "Open Recent"), "appstate.open_recent()");
+      k.add_tool(new HotKey("S", ["CTRL", "ALT"], "Save File"), "appstate.save_as()");
+      k.add_tool(new HotKey("S", ["CTRL"], "Save File"), "appstate.save()");
+      k.add_func(new HotKey("U", ["CTRL", "SHIFT"]), function () {
+        ("saving new startup file.");
+        g_app_state.set_startup_file();
+      });
+      k.add(new HotKey("Space", [], "Animation Playback"), new FuncKeyHandler(() =>        {
+        this.ctx.screen.togglePlayback();
+      }));
+      k.add(new HotKey("Escape", [], "Animation Playback"), new FuncKeyHandler(() =>        {
+        this.ctx.screen.stopPlayback();
+      }));
+    }
+     on_keyup(e) {
+      if (g_app_state.eventhandler!==this)
+        return g_app_state.eventhandler.on_keyup(e);
+    }
+     on_keydown(e) {
+      if (g_app_state.eventhandler!==this)
+        return g_app_state.eventhandler.on_keydown(e);
+      if (this.keymap.process_event(this.ctx, e)) {
+          return ;
+      }
+      let area=this.pickElement(this.mpos[0], this.mpos[1], undefined, undefined, Area);
+      if (area===undefined) {
+          return ;
+      }
+      area.push_ctx_active();
+      var ret=false;
+      try {
+        ret = area.keymap.process_event(this.ctx, e);
+      }
+      catch (error) {
+          print_stack(error);
+          console.log("Error executing hotkey");
+      }
+      area.pop_ctx_active();
+      return ret;
+    }
+     stopPlayback() {
+      if (g_app_state.modalstate===ModalStates.PLAYING) {
+          console.log("Playback end");
+          g_app_state.popModalState(ModalStates.PLAYING);
+          this._lastFrameTime = util.time_ms();
+          window.redraw_viewport();
+      }
+    }
+     togglePlayback() {
+      if (g_app_state.modalstate===ModalStates.PLAYING) {
+          console.log("Playback end");
+          g_app_state.popModalState(ModalStates.PLAYING);
+          this._lastFrameTime = util.time_ms();
+          window.redraw_viewport();
+      }
+      else {
+        this.startFrame = this.ctx.scene.time;
+        console.log("Playback start");
+        g_app_state.pushModalState(ModalStates.PLAYING);
+      }
+    }
+     update() {
+      super.update();
+      if (g_app_state.modalstate===ModalStates.PLAYING) {
+          let scene=this.ctx.scene;
+          let dt=util.time_ms()-this._lastFrameTime;
+          let fps=scene.fps;
+          if (dt>1000.0/fps) {
+              scene.change_time(this.ctx, scene.time+1);
+              this._lastFrameTime = util.time_ms();
+          }
+      }
+      if (this.ctx&&this.ctx.scene) {
+          this.ctx.scene.on_tick(this.ctx);
+      }
+      the_global_dag.exec();
+    }
+    static  define() {
+      return {tagname: "fairmotion-screen-x"}
+    }
+  }
+  _ESClass.register(FairmotionScreen);
+  _es6_module.add_class(FairmotionScreen);
+  FairmotionScreen = _es6_module.add_export('FairmotionScreen', FairmotionScreen);
+  FairmotionScreen.STRUCT = STRUCT.inherit(FairmotionScreen, Screen)+`
+}
+`;
+  ui_base.UIBase.register(FairmotionScreen);
+  class Editor extends Area {
+    
+     constructor() {
+      super();
+      this.canvases = {};
+    }
+     makeHeader(container) {
+      return super.makeHeader(container);
+    }
+     init() {
+      super.init();
+      if (!this.container) {
+          this.container = document.createElement("container-x");
+          this.container.ctx = this.ctx;
+          this.container.style["width"] = "100%";
+          this.shadow.appendChild(this.container);
+          this.makeHeader(this.container);
+      }
+      this.keymap = new KeyMap();
+      if (this.helppicker) {
+          this.helppicker.iconsheet = 0;
+      }
+      this.style["overflow"] = "hidden";
+      this.setCSS();
+    }
+     getCanvas(id, zindex, patch_canvas2d_matrix=true, dpi_scale=1.0) {
+      let canvas;
+      let dpi=ui_base.UIBase.getDPI();
+      if (id in this.canvases) {
+          canvas = this.canvases[id];
+      }
+      else {
+        console.log("creating new canvas", id, zindex);
+        canvas = this.canvases[id] = document.createElement("canvas");
+        canvas.g = this.canvases[id].getContext("2d");
+        this.shadow.prepend(canvas);
+        canvas.style["position"] = "absolute";
+      }
+      canvas.dpi_scale = dpi_scale;
+      if (canvas.style["z-index"]!==zindex) {
+          canvas.style["z-index"] = zindex;
+      }
+      if (this.size!==undefined) {
+          let w=~~(this.size[0]*dpi*dpi_scale);
+          let h=~~(this.size[1]*dpi*dpi_scale);
+          let sw=(w/dpi/dpi_scale)+"px";
+          let sh=(h/dpi/dpi_scale)+"px";
+          if (canvas.style["left"]!=="0px") {
+              canvas.style["left"] = "0px";
+              canvas.style["top"] = "0px";
+          }
+          if (canvas.width!==w||canvas.style["width"]!==sw) {
+              canvas.width = w;
+              canvas.style["width"] = sw;
+          }
+          if (canvas.height!==h||canvas.style["height"]!==sh) {
+              canvas.height = h;
+              canvas.style["height"] = sh;
+          }
+      }
+      return canvas;
+    }
+     on_destroy() {
+
+    }
+     on_fileload(ctx) {
+
+    }
+     data_link(block, getblock, getblock_us) {
+
+    }
+    static  register(cls) {
+      return Area.register(cls);
+    }
+    static  active_area() {
+      let ret=_area_main_stack[_area_main_stack.length-1];
+      if (ret===undefined) {
+          ret = _last_area;
+      }
+      return ret;
+    }
+    static  context_area(cls) {
+      var stack=_get_area_stack(cls.name);
+      if (stack.length===0)
+        return _area_active_lasts[cls.name];
+      else 
+        return stack[stack.length-1];
+    }
+    static  wrapContextEvent(f) {
+      return function (e) {
+        this.push_ctx_active();
+        try {
+          f(e);
+        }
+        catch (error) {
+            print_stack(error);
+            console.warn("Error executing area", e.type, "callback");
+        }
+        this.pop_ctx_active();
+      }
+    }
+     push_ctx_active(ctx) {
+      var stack=_get_area_stack(this.constructor);
+      stack.push(this);
+      _area_active_lasts[this.constructor.name] = this;
+      _area_main_stack.push(_last_area);
+      _last_area = this;
+    }
+     pop_ctx_active(ctx) {
+      let cls=this.constructor;
+      var stack=_get_area_stack(cls);
+      if (stack.length===0||stack[stack.length-1]!==this) {
+          console.trace();
+          console.log("Warning: invalid Area.pop_active() call");
+          return ;
+      }
+      stack.pop();
+      if (stack.length>0) {
+          _area_active_lasts[cls.name] = stack[stack.length-1];
+      }
+      let area=_area_main_stack.pop();
+      if (area!==undefined) {
+          _last_area = area;
+      }
+    }
+  }
+  _ESClass.register(Editor);
+  _es6_module.add_class(Editor);
+  Editor = _es6_module.add_export('Editor', Editor);
+  Editor.STRUCT = STRUCT.inherit(Editor, Area)+`
+}
+`;
+  var FullContext=es6_import_item(_es6_module, '../core/context.js', 'FullContext');
+}, '/dev/fairmotion/src/editors/editor_base.js');
+es6_module_define('manipulator', ["../../util/mathlib.js", "../../config/config.js"], function _manipulator_module(_es6_module) {
+  "use strict";
+  var dist_to_line_v2=es6_import_item(_es6_module, '../../util/mathlib.js', 'dist_to_line_v2');
+  var config=es6_import(_es6_module, '../../config/config.js');
+  var ManipFlags={}
+  ManipFlags = _es6_module.add_export('ManipFlags', ManipFlags);
+  var HandleShapes={ARROW: 0, 
+   HAMMER: 1, 
+   ROTCIRCLE: 2, 
+   SIMPLE_CIRCLE: 3, 
+   OUTLINE: 4}
+  HandleShapes = _es6_module.add_export('HandleShapes', HandleShapes);
+  var HandleColors={DEFAULT: [0, 0, 0, 1], 
+   HIGHLIGHT: [0.4, 0.4, 0.4, 1], 
+   SELECT: [1.0, 0.7, 0.3, 1]}
+  HandleColors = _es6_module.add_export('HandleColors', HandleColors);
+  var _mh_idgen=1;
+  class HandleBase  {
+     on_click(e, view2d, id) {
+
+    }
+     on_active() {
+      this.color = HandleColors.HIGHLIGHT;
+      this.update();
+    }
+     on_inactive() {
+      this.color = HandleColors.DEFAULT;
+      this.update();
+    }
+     distanceTo(p) {
+      throw new Error("unimplemented distanceTo");
+    }
+     update() {
+      throw new Error("unimplemented update");
+    }
+     [Symbol.keystr]() {
+      throw new Error("unimplemented keystr");
+    }
+     get_render_rects(ctx, canvas, g) {
+      throw new Error("unimplemented get_render_rects");
+    }
+     render(canvas, g) {
+      throw new Error("unimplemented render");
+    }
+  }
+  _ESClass.register(HandleBase);
+  _es6_module.add_class(HandleBase);
+  HandleBase = _es6_module.add_export('HandleBase', HandleBase);
+  HandleBase;
+  var $min_x_4B_update;
+  var $max_3gek_update;
+  class ManipHandle extends HandleBase {
+    
+    
+    
+    
+     constructor(v1, v2, id, shape, view2d, clr) {
+      super();
+      this.id = id;
+      this._hid = _mh_idgen++;
+      this.shape = shape;
+      this.v1 = v1;
+      this.v2 = v2;
+      this.transparent = false;
+      this.color = clr===undefined ? [0, 0, 0, 1] : clr.slice(0, clr.length);
+      this.parent = undefined;
+      this.linewidth = 1.5;
+      if (this.color.length==3)
+        this.color.push(1.0);
+      this._min = new Vector2(v1);
+      this._max = new Vector2(v2);
+      this._redraw_pad = this.linewidth;
+    }
+     on_click(e, view2d, id) {
+
+    }
+     on_active() {
+      this.color = HandleColors.HIGHLIGHT;
+      this.update();
+    }
+     on_inactive() {
+      this.color = HandleColors.DEFAULT;
+      this.update();
+    }
+     distanceTo(p) {
+      return dist_to_line_v2(p, this.v1, this.v2);
+    }
+     update_aabb() {
+      this._min[0] = this.v1[0]+this.parent.co[0];
+      this._min[1] = this.v1[1]+this.parent.co[1];
+      this._max[0] = this.v2[0]+this.parent.co[0];
+      this._max[1] = this.v2[1]+this.parent.co[1];
+      var minx=Math.min(this._min[0], this._max[0]);
+      var miny=Math.min(this._min[1], this._max[1]);
+      var maxx=Math.max(this._min[0], this._max[0]);
+      var maxy=Math.max(this._min[1], this._max[1]);
+      this._min[0] = minx;
+      this._min[1] = miny;
+      this._max[0] = maxx;
+      this._max[1] = maxy;
+    }
+     update() {
+      var p=this._redraw_pad;
+      $min_x_4B_update[0] = this._min[0]-p;
+      $min_x_4B_update[1] = this._min[1]-p;
+      $max_3gek_update[0] = this._max[0]+p;
+      $max_3gek_update[1] = this._max[1]+p;
+      window.redraw_viewport($min_x_4B_update, $max_3gek_update);
+      this.update_aabb();
+      $min_x_4B_update[0] = this._min[0]-p;
+      $min_x_4B_update[1] = this._min[1]-p;
+      $max_3gek_update[0] = this._max[0]+p;
+      $max_3gek_update[1] = this._max[1]+p;
+      window.redraw_viewport($min_x_4B_update, $max_3gek_update);
+    }
+     [Symbol.keystr]() {
+      return "MH"+this._hid.toString;
+    }
+     get_render_rects(ctx, canvas, g) {
+      let p=this._redraw_pad;
+      this.update_aabb();
+      let xmin=this._min[0], ymin=this._min[1], xmax=this._max[0], ymax=this._max[1];
+      return [[xmin-p, ymin-p, xmax-xmin+2*p, ymax-ymin+2*p]];
+    }
+     render(canvas, g) {
+      let c=this.color;
+      let style="rgba("+(~~(c[0]*255))+","+(~~(c[1]*255))+","+(~~(c[2]*255))+","+c[3]+")";
+      g.strokeStyle = g.fillStyle = style;
+      g.lineWidth = this.linewidth;
+      if (this.shape==HandleShapes.ARROW) {
+          g.beginPath();
+          let dx=this.v2[0]-this.v1[0], dy=this.v2[1]-this.v1[1];
+          let dx2=this.v1[1]-this.v2[1], dy2=this.v2[0]-this.v1[0];
+          let l=Math.sqrt(dx2*dx2+dy2*dy2);
+          if (l==0.0) {
+              g.beginPath();
+              g.rect(this.v1[0]-5, this.v1[1]-5, 10, 10);
+              g.fill();
+              return ;
+          }
+          dx2*=1.5/l;
+          dy2*=1.5/l;
+          dx*=0.65;
+          dy*=0.65;
+          let w=3;
+          let v1=this.v1, v2=this.v2;
+          g.moveTo(v1[0]-dx2, v1[1]-dy2);
+          g.lineTo(v1[0]+dx-dx2, v1[1]+dy-dy2);
+          g.lineTo(v1[0]+dx-dx2*w, v1[1]+dy-dy2*w);
+          g.lineTo(v2[0], v2[1]);
+          g.lineTo(v1[0]+dx+dx2*w, v1[1]+dy+dy2*w);
+          g.lineTo(v1[0]+dx+dx2, v1[1]+dy+dy2);
+          g.lineTo(v1[0]+dx2, v1[1]+dy2);
+          g.closePath();
+          g.fill();
+      }
+      else 
+        if (this.shape==HandleShapes.OUTLINE) {
+          g.beginPath();
+          g.moveTo(this.v1[0], this.v1[1]);
+          g.lineTo(this.v1[0], this.v2[1]);
+          g.lineTo(this.v2[0], this.v2[1]);
+          g.lineTo(this.v2[0], this.v1[1]);
+          g.closePath();
+          g.stroke();
+      }
+      else {
+        g.beginPath();
+        g.moveTo(this.v1[0], this.v1[1]);
+        g.lineTo(this.v2[0], this.v2[1]);
+        g.stroke();
+      }
+    }
+  }
+  var $min_x_4B_update=new Vector2();
+  var $max_3gek_update=new Vector2();
+  _ESClass.register(ManipHandle);
+  _es6_module.add_class(ManipHandle);
+  ManipHandle = _es6_module.add_export('ManipHandle', ManipHandle);
+  var $min_zjXQ_update;
+  var $max_Q31N_update;
+  class ManipCircle extends HandleBase {
+    
+    
+    
+    
+    
+     constructor(p, r, id, view2d, clr) {
+      super();
+      this.id = id;
+      this._hid = _mh_idgen++;
+      this.p = new Vector2(p);
+      this.r = r;
+      this.transparent = false;
+      this.color = clr===undefined ? [0, 0, 0, 1] : clr.slice(0, clr.length);
+      this.parent = undefined;
+      this.linewidth = 1.5;
+      if (this.color.length==3)
+        this.color.push(1.0);
+      this._min = new Vector2();
+      this._max = new Vector2();
+      this._redraw_pad = this.linewidth;
+    }
+     on_click(e, view2d, id) {
+
+    }
+     on_active() {
+      this.color = HandleColors.HIGHLIGHT;
+      this.update();
+    }
+     on_inactive() {
+      this.color = HandleColors.DEFAULT;
+      this.update();
+    }
+     distanceTo(p) {
+      let dx=this.p[0]-p[0];
+      let dy=this.p[1]-p[1];
+      let dis=dx*dx+dy*dy;
+      dis = dis!=0.0 ? Math.sqrt(dis) : 0.0;
+      return Math.abs(dis-this.r);
+    }
+     update_aabb() {
+      this._min[0] = this.parent.co[0]+this.p[0]-Math.sqrt(2)*this.r;
+      this._min[1] = this.parent.co[1]+this.p[1]-Math.sqrt(2)*this.r;
+      this._max[0] = this.parent.co[0]+this.p[0]+Math.sqrt(2)*this.r;
+      this._max[1] = this.parent.co[1]+this.p[1]+Math.sqrt(2)*this.r;
+    }
+     update() {
+      var p=this._redraw_pad;
+      $min_zjXQ_update[0] = this._min[0]-p;
+      $min_zjXQ_update[1] = this._min[1]-p;
+      $max_Q31N_update[0] = this._max[0]+p;
+      $max_Q31N_update[1] = this._max[1]+p;
+      window.redraw_viewport($min_zjXQ_update, $max_Q31N_update);
+      this.update_aabb();
+      $min_zjXQ_update[0] = this._min[0]-p;
+      $min_zjXQ_update[1] = this._min[1]-p;
+      $max_Q31N_update[0] = this._max[0]+p;
+      $max_Q31N_update[1] = this._max[1]+p;
+      window.redraw_viewport($min_zjXQ_update, $max_Q31N_update);
+    }
+     [Symbol.keystr]() {
+      return "MC"+this._hid.toString;
+    }
+     get_render_rects(ctx, canvas, g) {
+      let p=this._redraw_pad;
+      this.update_aabb();
+      let xmin=this._min[0], ymin=this._min[1], xmax=this._max[0], ymax=this._max[1];
+      return [[xmin-p, ymin-p, xmax-xmin+2*p, ymax-ymin+2*p]];
+    }
+     render(canvas, g) {
+      let c=this.color;
+      let style="rgba("+(~~(c[0]*255))+","+(~~(c[1]*255))+","+(~~(c[2]*255))+","+c[3]+")";
+      g.strokeStyle = g.fillStyle = style;
+      g.lineWidth = this.linewidth;
+      g.beginPath();
+      g.arc(this.p[0], this.p[1], this.r, -Math.PI, Math.PI);
+      g.closePath();
+      g.stroke();
+    }
+  }
+  var $min_zjXQ_update=new Vector2();
+  var $max_Q31N_update=new Vector2();
+  _ESClass.register(ManipCircle);
+  _es6_module.add_class(ManipCircle);
+  ManipCircle = _es6_module.add_export('ManipCircle', ManipCircle);
+  var _mh_idgen_2=1;
+  var _mp_first=true;
+  class Manipulator  {
+    
+    
+    
+    
+     constructor(handles) {
+      this._hid = _mh_idgen_2++;
+      this.handles = handles.slice(0, handles.length);
+      this.recalc = 1;
+      this.parent = undefined;
+      this.user_data = undefined;
+      for (var h of this.handles) {
+          h.parent = this;
+      }
+      this.handle_size = 65;
+      this.co = new Vector3();
+      this.hidden = false;
+    }
+     hide() {
+      if (!this.hidden) {
+          this.update();
+      }
+      this.hidden = true;
+    }
+     unhide() {
+      if (this.hidden) {
+          this.hidden = false;
+          this.update();
+      }
+      else {
+        this.hidden = false;
+      }
+    }
+     update() {
+      if (this.hidden)
+        return ;
+      for (var h of this.handles) {
+          h.update();
+      }
+    }
+     on_tick(ctx) {
+
+    }
+     [Symbol.keystr]() {
+      return "MP"+this._hid.toString;
+    }
+     end() {
+      this.parent.remove(this);
+    }
+     get_render_rects(ctx, canvas, g) {
+      var rects=[];
+      if (this.hidden) {
+          return rects;
+      }
+      for (var h of this.handles) {
+          var rs=h.get_render_rects(ctx, canvas, g);
+          for (var i=0; i<rs.length; i++) {
+              rs[i] = rs[i].slice(0, rs[i].length);
+              rs[i][0]+=this.co[0];
+              rs[i][1]+=this.co[1];
+          }
+          rects = rects.concat(rs);
+      }
+      return rects;
+    }
+     render(canvas, g) {
+      if (this.hidden) {
+          return ;
+      }
+      for (var h of this.handles) {
+          var x=this.co[0], y=this.co[1];
+          g.translate(x, y);
+          h.render(canvas, g);
+          g.translate(-x, -y);
+      }
+    }
+     outline(min, max, id, clr=[0, 0, 0, 1.0]) {
+      min = new Vector2(min);
+      max = new Vector2(max);
+      var h=new ManipHandle(min, max, id, HandleShapes.OUTLINE, this.view3d, clr);
+      h.transparent = true;
+      h.parent = this;
+      this.handles.push(h);
+      return h;
+    }
+     arrow(v1, v2, id, clr=[0, 0, 0, 1.0]) {
+      v1 = new Vector2(v1);
+      v2 = new Vector2(v2);
+      var h=new ManipHandle(v1, v2, id, HandleShapes.ARROW, this.view3d, clr);
+      h.parent = this;
+      this.handles.push(h);
+      return h;
+    }
+     circle(p, r, id, clr=[0, 0, 0, 1.0]) {
+      let h=new ManipCircle(new Vector2(p), r, id, this.view3d, clr);
+      h.parent = this;
+      this.handles.push(h);
+      return h;
+    }
+     findnearest(e) {
+      let limit=config.MANIPULATOR_MOUSEOVER_LIMIT;
+      let h=this.handles[0];
+      let mpos=[e.x-this.co[0], e.y-this.co[1]];
+      let mindis=undefined, minh=undefined;
+      for (let h of this.handles) {
+          if (h.transparent)
+            continue;
+          let dis=h.distanceTo(mpos);
+          if (dis<limit&&(mindis===undefined||dis<mindis)) {
+              mindis = dis;
+              minh = h;
+          }
+      }
+      return minh;
+    }
+     on_mousemove(e, view2d) {
+      let h=this.findnearest(e);
+      if (h!==this.active) {
+          if (this.active!==undefined) {
+              this.active.on_inactive();
+          }
+          this.active = h;
+          if (h!==undefined) {
+              h.on_active();
+          }
+      }
+      return false;
+    }
+     on_click(event, view2d) {
+      return this.active!=undefined ? this.active.on_click(event, view2d, this.active.id) : undefined;
+    }
+  }
+  _ESClass.register(Manipulator);
+  _es6_module.add_class(Manipulator);
+  Manipulator = _es6_module.add_export('Manipulator', Manipulator);
+  var $nil_GJS__get_render_rects;
+  class ManipulatorManager  {
+    
+    
+    
+     constructor(view2d) {
+      this.view2d = view2d;
+      this.stack = [];
+      this.active = undefined;
+    }
+     render(canvas, g) {
+      if (this.active!==undefined) {
+          this.active.render(canvas, g);
+      }
+    }
+     get_render_rects(ctx, canvas, g) {
+      if (this.active!=undefined) {
+          return this.active.get_render_rects(ctx, canvas, g);
+      }
+      else {
+        return $nil_GJS__get_render_rects;
+      }
+    }
+     remove(mn) {
+      if (mn==this.active) {
+          this.pop();
+      }
+      else {
+        this.stack.remove(mn);
+      }
+    }
+     push(mn) {
+      mn.parent = this;
+      this.stack.push(this.active);
+      this.active = mn;
+    }
+     ensure_not_toolop(ctx, cls) {
+      if (this.active!=undefined&&this.active.toolop_class===cls) {
+          this.remove(this.active);
+      }
+    }
+     ensure_toolop(ctx, cls) {
+      if (this.active!=undefined&&this.active.toolop_class===cls) {
+          return this.active;
+      }
+      if (this.active!=undefined) {
+          this.remove(this.active);
+      }
+      this.active = cls.create_widgets(this, ctx);
+      if (this.active!==undefined) {
+          this.active.toolop_class = cls;
+      }
+    }
+     pop() {
+      var ret=this.active;
+      this.active = this.stack.pop(-1);
+    }
+     on_mousemove(event, view2d) {
+      return this.active!=undefined ? this.active.on_mousemove(event, view2d) : undefined;
+    }
+     on_click(event, view2d) {
+      return this.active!=undefined ? this.active.on_click(event, view2d) : undefined;
+    }
+     active_toolop() {
+      if (this.active==undefined)
+        return undefined;
+      return this.active.toolop_class;
+    }
+     create(cls, do_push=true) {
+      var mn=new Manipulator([]);
+      mn.parent = this;
+      mn.toolop_class = cls;
+      if (do_push)
+        this.push(mn);
+      return mn;
+    }
+     on_tick(ctx) {
+      if (this.active!=undefined&&this.active.on_tick!=undefined)
+        this.active.on_tick(ctx);
+    }
+     circle(p, r, clr, do_push=true) {
+      let h=new ManipCircle(p, r, id, this.view3d, clr);
+      let mn=new Manipulator([h]);
+      mn.parent = this;
+      if (do_push) {
+          this.push(mn);
+      }
+      return mn;
+    }
+     arrow(v1, v2, id, clr, do_push=true) {
+      v1 = new Vector2(v1);
+      v2 = new Vector2(v2);
+      var h=new ManipHandle(v1, v2, id, HandleShapes.ARROW, this.view3d, clr);
+      var mn=new Manipulator([h]);
+      mn.parent = this;
+      if (do_push)
+        this.push(mn);
+      return mn;
+    }
+  }
+  var $nil_GJS__get_render_rects=[];
+  _ESClass.register(ManipulatorManager);
+  _es6_module.add_class(ManipulatorManager);
+  ManipulatorManager = _es6_module.add_export('ManipulatorManager', ManipulatorManager);
+}, '/dev/fairmotion/src/editors/viewport/manipulator.js');
+es6_module_define('view2d', ["../../core/context.js", "./view2d_editor.js", "./manipulator.js", "./toolmodes/all.js", "../editor_base.js", "../../path.ux/scripts/widgets/ui_menu.js", "./toolmodes/pentool.js", "./view2d_spline_ops.js", "./selectmode.js", "./view2d_ops.js", "../../core/toolops_api.js", "../../path.ux/scripts/screen/ScreenArea.js", "../events.js", "../../path.ux/scripts/util/util.js", "../../path.ux/scripts/core/ui_base.js", "../../core/imageblock.js", "../../core/struct.js", "../../path.ux/scripts/core/ui.js"], function _view2d_module(_es6_module) {
   var FullContext=es6_import_item(_es6_module, '../../core/context.js', 'FullContext');
   var Editor=es6_import_item(_es6_module, '../editor_base.js', 'Editor');
   var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
@@ -17,6 +1308,7 @@ es6_module_define('view2d', ["../../path.ux/scripts/core/ui_base.js", "./view2d_
   var createMenu=es6_import_item(_es6_module, '../../path.ux/scripts/widgets/ui_menu.js', 'createMenu');
   var startMenu=es6_import_item(_es6_module, '../../path.ux/scripts/widgets/ui_menu.js', 'startMenu');
   var util=es6_import(_es6_module, '../../path.ux/scripts/util/util.js');
+  var PenToolMode=es6_import_item(_es6_module, './toolmodes/pentool.js', 'PenToolMode');
   var ImageUser=es6_import_item(_es6_module, '../../core/imageblock.js', 'ImageUser');
   var SplineEditor=es6_import_item(_es6_module, './view2d_spline_ops.js', 'SplineEditor');
   var Container=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui.js', 'Container');
@@ -97,8 +1389,10 @@ es6_module_define('view2d', ["../../path.ux/scripts/core/ui_base.js", "./view2d_
     
     
     
+    
      constructor() {
       super();
+      this._last_mpos = new Vector2();
       this.dpi_scale = 1.0;
       this._last_rendermat = new Matrix4();
       this._last_dv = new Vector2();
@@ -173,13 +1467,13 @@ es6_module_define('view2d', ["../../path.ux/scripts/core/ui_base.js", "./view2d_
         var s=ctx.view2d.selectmode, s2;
         let hf=s&SelMask.HANDLE;
         s2&=~SelMask.HANDLE;
-        if (s==SelMask.VERTEX)
+        if (s===SelMask.VERTEX)
           s2 = SelMask.SEGMENT;
         else 
-          if (s==SelMask.SEGMENT)
+          if (s===SelMask.SEGMENT)
           s2 = SelMask.FACE;
         else 
-          if (s==SelMask.FACE)
+          if (s===SelMask.FACE)
           s2 = SelMask.OBJECT;
         else 
           s2 = SelMask.VERTEX;
@@ -434,7 +1728,7 @@ es6_module_define('view2d', ["../../path.ux/scripts/core/ui_base.js", "./view2d_
                     continue;
                   var vdata=frameset.vertex_animdata[v.eid];
                   var alpha=vdata.spline===actspline ? 1.0 : 0.2;
-                  vdata.draw(g, alpha, this.ctx.frameset.time, redraw_rects);
+                  vdata.draw(g, matrix, alpha, this.ctx.frameset.time, redraw_rects);
               }
               pathspline.layerset.active = pathspline.layerset.idmap[this.ctx.frameset.templayerid];
               pathspline.draw(redraw_rects, g, this, matrix, this.selectmode, this.only_render, this.draw_normals, alpha, true, this.ctx.frameset.time, false);
@@ -545,6 +1839,8 @@ es6_module_define('view2d', ["../../path.ux/scripts/core/ui_base.js", "./view2d_
       console.log("VIEW2D ctx:", this.ctx);
       row.prop("view2d.zoom");
       row.prop("view2d.edit_all_layers");
+      row.prop("view2d.default_linewidth");
+      row.prop("view2d.default_stroke");
       row = container.row();
       row.noMargins();
       container.noMargins();
@@ -729,7 +2025,7 @@ es6_module_define('view2d', ["../../path.ux/scripts/core/ui_base.js", "./view2d_
     }
      on_mousedown(event) {
       this.editor.view2d = this;
-      if (this.ctx.screen.pickElement(event.pageX, event.pageY)!==this) {
+      if (this.ctx.screen.pickElement(event.x, event.y)!==this) {
           return ;
       }
       event = this._mouse(event);
@@ -764,19 +2060,18 @@ es6_module_define('view2d', ["../../path.ux/scripts/core/ui_base.js", "./view2d_
       }
     }
      on_mouseup(event) {
-      if (this.ctx.screen.pickElement(event.pageX, event.pageY)!==this) {
-          return ;
-      }
       event = this._mouse(event);
       this._mstart = null;
       if (this.editor.on_mouseup(event))
         return ;
     }
      on_mousemove(event) {
+      this._last_mpos[0] = event.x;
+      this._last_mpos[1] = event.y;
       if (!event.touches) {
           this.resetVelPan();
       }
-      if (this.ctx.screen.pickElement(event.pageX, event.pageY)!==this) {
+      if (this.ctx.screen.pickElement(event.x, event.y)!==this) {
           return ;
       }
       event = this._mouse(event);
@@ -866,7 +2161,25 @@ es6_module_define('view2d', ["../../path.ux/scripts/core/ui_base.js", "./view2d_
       this._last_rendermat.load(this.cameramat);
       this._vel.zero();
     }
+     updateToolMode() {
+      if (!this.ctx||!this.ctx.scene) {
+          return ;
+      }
+      let scene=this.ctx.scene;
+      if (this.toolmode===ToolModes.PEN&&!(__instance_of(scene.toolmode, PenToolMode))) {
+          console.log("switching toolmode to pen");
+          scene.switchToolMode("pen");
+          this.regen_keymap();
+      }
+      else 
+        if (this.toolmode!==ToolModes.PEN&&__instance_of(scene.toolmode, PenToolMode)) {
+          console.log("switching toolmode to spline");
+          scene.switchToolMode("spline");
+          this.regen_keymap();
+      }
+    }
      update() {
+      this.updateToolMode();
       this.updateVelPan();
       let key=""+this.half_pix_size+":"+this.enable_blur+":"+this.only_render+":"+this.draw_faces+":"+this.edit_all_layers+":"+this.draw_normals+":"+this.draw_small_verts;
       if (key!==this._last_key_1) {
@@ -2306,7 +3619,7 @@ es6_module_define('view2d_base', [], function _view2d_base_module(_es6_module) {
   var SessionFlags={PROP_TRANSFORM: 1}
   SessionFlags = _es6_module.add_export('SessionFlags', SessionFlags);
 }, '/dev/fairmotion/src/editors/viewport/view2d_base.js');
-es6_module_define('animspline', ["../path.ux/scripts/util/struct.js", "./toolprops.js", "./lib_api.js", "./animdata.js", "./struct.js", "../curve/spline_types.js", "../curve/spline.js", "../curve/spline_element_array.js"], function _animspline_module(_es6_module) {
+es6_module_define('animspline', ["../curve/spline_types.js", "./animdata.js", "../path.ux/scripts/util/struct.js", "./struct.js", "../curve/spline.js", "./lib_api.js", "./toolprops.js", "../curve/spline_element_array.js"], function _animspline_module(_es6_module) {
   "use strict";
   var STRUCT=es6_import_item(_es6_module, './struct.js', 'STRUCT');
   var DataBlock=es6_import_item(_es6_module, './lib_api.js', 'DataBlock');
@@ -2328,7 +3641,7 @@ es6_module_define('animspline', ["../path.ux/scripts/util/struct.js", "./toolpro
   var SplineLayerSet=es6_import_item(_es6_module, '../curve/spline_element_array.js', 'SplineLayerSet');
   es6_import(_es6_module, '../path.ux/scripts/util/struct.js');
   var restrictflags=RestrictFlags.NO_DELETE|RestrictFlags.NO_EXTRUDE|RestrictFlags.NO_CONNECT;
-  var vertanimdata_eval_cache=cachering.fromConstructor(Vector3, 64);
+  var vertanimdata_eval_cache=cachering.fromConstructor(Vector3, 512);
   var AnimChannel=es6_import_item(_es6_module, './animdata.js', 'AnimChannel');
   var AnimKey=es6_import_item(_es6_module, './animdata.js', 'AnimKey');
   var PropTypes=es6_import_item(_es6_module, './toolprops.js', 'PropTypes');
@@ -2439,6 +3752,7 @@ es6_module_define('animspline', ["../path.ux/scripts/util/struct.js", "./toolpro
    HIDE: 4, 
    OWNER_IS_EDITABLE: 8}
   VDAnimFlags = _es6_module.add_export('VDAnimFlags', VDAnimFlags);
+  let dvcache=cachering.fromConstructor(Vector3, 256);
   class VertexAnimData  {
     
     
@@ -2447,6 +3761,7 @@ es6_module_define('animspline', ["../path.ux/scripts/util/struct.js", "./toolpro
     
      constructor(eid, pathspline) {
       this.eid = eid;
+      this.dead = false;
       this.vitercache = cachering.fromConstructor(VertexAnimIter, 4);
       this.sitercache = cachering.fromConstructor(SegmentAnimIter, 4);
       this.spline = pathspline;
@@ -2455,7 +3770,7 @@ es6_module_define('animspline', ["../path.ux/scripts/util/struct.js", "./toolpro
       this.visible = false;
       this.path_times = {};
       this.startv_eid = -1;
-      if (pathspline!=undefined) {
+      if (pathspline!==undefined) {
           var layer=pathspline.layerset.new_layer();
           layer.flag|=SplineLayerFlags.HIDE;
           this.layerid = layer.id;
@@ -2464,7 +3779,7 @@ es6_module_define('animspline', ["../path.ux/scripts/util/struct.js", "./toolpro
       this.cur_time = 0;
     }
     get  startv() {
-      if (this.startv_eid==-1)
+      if (this.startv_eid===-1)
         return undefined;
       return this.spline.eidmap[this.startv_eid];
     }
@@ -2473,7 +3788,7 @@ es6_module_define('animspline', ["../path.ux/scripts/util/struct.js", "./toolpro
           this.startv_eid = v;
           return ;
       }
-      if (v!=undefined) {
+      if (v!==undefined) {
           this.startv_eid = v.eid;
       }
       else {
@@ -2481,9 +3796,9 @@ es6_module_define('animspline', ["../path.ux/scripts/util/struct.js", "./toolpro
       }
     }
      _set_layer() {
-      if (this.spline.layerset.active.id!=this.layerid)
+      if (this.spline.layerset.active.id!==this.layerid)
         this._start_layer_id = this.spline.layerset.active.id;
-      if (this.layerid==undefined) {
+      if (this.layerid===undefined) {
           console.log("Error in _set_layer in VertexAnimData!!!");
           return ;
       }
@@ -2493,12 +3808,50 @@ es6_module_define('animspline', ["../path.ux/scripts/util/struct.js", "./toolpro
       return this.eid;
     }
      _unset_layer() {
-      if (this._start_layer_id!=undefined) {
+      if (this._start_layer_id!==undefined) {
           var layer=this.spline.layerset.idmap[this._start_layer_id];
-          if (layer!=undefined)
+          if (layer!==undefined)
             this.spline.layerset.active = layer;
       }
       this._start_layer_id = undefined;
+    }
+     remove(v) {
+      if (v===this.startv) {
+          let startv=undefined;
+          for (let v2 of this.verts) {
+              if (v2!==v) {
+                  startv = v2;
+                  break;
+              }
+          }
+          if (startv) {
+              this.startv_eid = startv.eid;
+              this.spline.remove(v);
+          }
+          else {
+            this.dead = true;
+            this.spline.remove(v);
+          }
+      }
+      else {
+        let ok=false;
+        for (let v2 of this.verts) {
+            if (v===v2) {
+                ok = true;
+                break;
+            }
+        }
+        if (!ok) {
+            console.error("Key not in this anim spline", v);
+            return ;
+        }
+        if (v.segments.length===2) {
+            this.spline.dissolve_vertex(v);
+        }
+        else {
+          this.spline.kill_vertex(v);
+        }
+      }
     }
     get  verts() {
       return this.vitercache.next().init(this);
@@ -2508,9 +3861,9 @@ es6_module_define('animspline', ["../path.ux/scripts/util/struct.js", "./toolpro
     }
      find_seg(time) {
       var v=this.startv;
-      if (v==undefined)
+      if (v===undefined)
         return undefined;
-      if (v.segments.length==0)
+      if (v.segments.length===0)
         return undefined;
       var s=v.segments[0];
       var lastv=v;
@@ -2602,30 +3955,36 @@ es6_module_define('animspline', ["../path.ux/scripts/util/struct.js", "./toolpro
         return 0;
       return get_vtime(v);
     }
-     draw(g, alpha, time) {
+     draw(g, matrix, alpha, time) {
       if (!(this.visible))
         return ;
       var step_func=this.animflag&VDAnimFlags.STEP_FUNC;
       var start=this.start_time, end=this.end_time;
-      g.lineWidth = 1.0;
+      g.lineWidth = 2.0;
       g.strokeStyle = "rgba(100,100,100,"+alpha+")";
       var dt=1.0;
       var lastco=undefined;
+      let dv=new Vector4();
       for (var t=start; t<end; t+=dt) {
           var co=this.evaluate(t);
-          var dv=this.derivative(t);
-          var tmp=dv[0];
+          dv.load(this.derivative(t));
+          co.multVecMatrix(matrix);
+          dv[2] = 0.0;
+          dv[3] = 0.0;
+          dv.multVecMatrix(matrix);
+          dv[2] = 0.0;
+          dv[3] = 0.0;
+          dv.normalize().mulScalar(5);
+          let tmp=dv[0];
           dv[0] = -dv[1];
           dv[1] = tmp;
-          dv.normalize().mulScalar(3);
           g.beginPath();
-          var green=Math.floor(((t-start)/(end-start))*255);
+          let green=Math.floor(((t-start)/(end-start))*255);
           g.strokeStyle = "rgba(10, "+green+",10,"+alpha+")";
           g.moveTo(co[0]-dv[0], co[1]-dv[1]);
-          g.lineTo(co[0], co[1]);
-          g.lineTo(co[0]-dv[0], co[1]-dv[1]);
+          g.lineTo(co[0]+dv[0], co[1]+dv[1]);
           g.stroke();
-          if (lastco!=undefined) {
+          if (lastco!==undefined) {
               g.moveTo(lastco[0], lastco[1]);
               g.lineTo(co[0], co[1]);
               g.stroke();
@@ -2634,13 +3993,17 @@ es6_module_define('animspline', ["../path.ux/scripts/util/struct.js", "./toolpro
       }
     }
      derivative(time) {
-      var df=0.01;
+      var df=0.001;
       var a=this.evaluate(time);
       var b=this.evaluate(time+df);
       b.sub(a).mulScalar(1.0/df);
-      return b;
+      return dvcache.next().load(b);
     }
      evaluate(time) {
+      if (this.dead) {
+          console.error("dead vertex anim key");
+          return ;
+      }
       var v=this.startv;
       var step_func=this.animflag&VDAnimFlags.STEP_FUNC;
       if (v===undefined)
@@ -2830,10 +4193,11 @@ VertexAnimData {
   cur_time    : int;
   layerid     : int;
   startv_eid  : int;
+  dead        : bool;
 }
 `;
 }, '/dev/fairmotion/src/core/animspline.js');
-es6_module_define('frameset', ["./struct.js", "./lib_api.js", "../curve/spline_types.js", "./animspline.js", "../curve/spline_element_array.js", "./animdata.js", "../curve/spline.js", "./animspline"], function _frameset_module(_es6_module) {
+es6_module_define('frameset', ["../curve/spline_element_array.js", "../curve/spline.js", "./animspline.js", "./struct.js", "./animspline", "../curve/spline_types.js", "./lib_api.js", "./animdata.js"], function _frameset_module(_es6_module) {
   "use strict";
   var STRUCT=es6_import_item(_es6_module, './struct.js', 'STRUCT');
   var DataBlock=es6_import_item(_es6_module, './lib_api.js', 'DataBlock');
@@ -3235,16 +4599,16 @@ SplineKCacheItem {
       }
       var v1=s.other_vert(v), v2=v.other_segment(s).other_vert(v);
       var av1=this.get_vdata(v1.eid, false), av2=this.get_vdata(v2.eid, false);
-      if (av1==undefined&&av2==undefined) {
+      if (av1===undefined&&av2===undefined) {
           console.log("no animation data to interpolate");
           return ;
       }
       else 
-        if (av1==undefined) {
+        if (av1===undefined) {
           av1 = av2;
       }
       else 
-        if (av2==undefined) {
+        if (av2===undefined) {
           av2 = av1;
       }
       var av3=this.get_vdata(v.eid, true);
@@ -3402,6 +4766,10 @@ SplineKCacheItem {
       for (var k in this.vertex_animdata) {
           var vd=this.vertex_animdata[k];
           var v=this.spline.eidmap[k];
+          if (vd.dead) {
+              delete this.vertex_animdata[k];
+              continue;
+          }
           if (v===undefined) {
               continue;
           }
@@ -3633,6 +5001,7 @@ SplineKCacheItem {
       var spline=this.pathspline;
       var found=false;
       if (veid===undefined) {
+          this.check_paths();
           for (var k in this.vertex_animdata) {
               var vd=this.vertex_animdata[k];
               found|=vd.check_time_integrity();
@@ -3650,10 +5019,32 @@ SplineKCacheItem {
           this.rationalize_vdata_layers();
           this.update_visibility();
           this.pathspline.regen_solve();
+          window.redraw_viewport();
       }
       return found;
     }
+     check_paths() {
+      let update=false;
+      for (var k in this.vertex_animdata) {
+          var vd=this.vertex_animdata[k];
+          if (vd.dead||!vd.startv) {
+              delete this.vertex_animdata[k];
+              update = true;
+          }
+      }
+      if (update) {
+          console.warn("pathspline update");
+          this.rationalize_vdata_layers();
+          this.update_visibility();
+          this.pathspline.regen_render();
+          this.pathspline.regen_sort();
+          this.pathspline.regen_solve();
+          window.redraw_viewport();
+      }
+      return update;
+    }
      rationalize_vdata_layers() {
+      this.fix_anim_paths();
       var spline=this.pathspline;
       spline.layerset = new SplineLayerSet();
       var templayer=spline.layerset.new_layer();
@@ -4039,7 +5430,7 @@ es6_module_define('SettingsEditor', ["../../path.ux/scripts/core/ui_theme.js", "
   Editor.register(SettingsEditor);
 }, '/dev/fairmotion/src/editors/settings/SettingsEditor.js');
 var ContextStruct;
-es6_module_define('data_api_define', ["../frameset.js", "../context.js", "../../curve/spline_base.js", "../UserSettings.js", "./data_api.js", "../toolops_api.js", "../../editors/viewport/spline_createops.js", "../units.js", "../../editors/settings/SettingsEditor.js", "../../curve/spline_element_array.js", "../../scene/sceneobject.js", "../lib_api.js", "../../editors/ops/ops_editor.js", "../../curve/spline_types.js", "../../editors/curve/CurveEditor.js", "../animdata.js", "../../editors/viewport/view2d.js", "../imageblock.js", "../../editors/viewport/selectmode.js", "../toolprops.js", "../../editors/dopesheet/DopeSheetEditor.js"], function _data_api_define_module(_es6_module) {
+es6_module_define('data_api_define', ["../../editors/settings/SettingsEditor.js", "../../editors/dopesheet/DopeSheetEditor.js", "../UserSettings.js", "../../editors/curve/CurveEditor.js", "../toolops_api.js", "../units.js", "../context.js", "../toolprops.js", "../../curve/spline_types.js", "../../scene/sceneobject.js", "../../editors/viewport/spline_createops.js", "../lib_api.js", "../../editors/viewport/view2d.js", "../../editors/ops/ops_editor.js", "../imageblock.js", "../animdata.js", "../../curve/spline_base.js", "./data_api.js", "../frameset.js", "../../editors/viewport/selectmode.js", "../../curve/spline_element_array.js"], function _data_api_define_module(_es6_module) {
   var DataTypes=es6_import_item(_es6_module, '../lib_api.js', 'DataTypes');
   var EditModes=es6_import_item(_es6_module, '../../editors/viewport/view2d.js', 'EditModes');
   var View2DHandler=es6_import_item(_es6_module, '../../editors/viewport/view2d.js', 'View2DHandler');
@@ -4249,7 +5640,8 @@ es6_module_define('data_api_define', ["../frameset.js", "../context.js", "../../
     tool_mode.add_icons({SELECT: Icons.CURSOR_ARROW, 
     APPEND: Icons.APPEND_VERTEX, 
     RESIZE: Icons.RESIZE, 
-    ROTATE: Icons.ROTATE});
+    ROTATE: Icons.ROTATE, 
+    PEN: Icons.PEN_TOOL});
     var tweak_mode=new BoolProperty(0, "tweak_mode", "Tweak Mode");
     tweak_mode.icon = Icons.CURSOR_ARROW;
     var uinames={}
@@ -4309,6 +5701,8 @@ es6_module_define('data_api_define', ["../frameset.js", "../context.js", "../../
     fillclr.subtype = strokeclr.subtype = PropSubTypes.COLOR;
     var linewidth=new FloatProperty(1, "linewidth", "linewidth", "Line Width");
     linewidth.range = [0.1, 200];
+    linewidth.expRate = 1.75;
+    linewidth.step = 0.25;
     fillclr.update = strokeclr.update = linewidth.update = blur.update = update_base;
     MaterialStruct = new DataStruct([new DataPath(fillclr, "fillcolor", "fillcolor", true), new DataPath(linewidth, "linewidth", "linewidth", true), new DataPath(flag, "flag", "flag", true)], Material);
     MaterialStruct.Color4("strokecolor", "strokecolor", "Stroke", "Stroke color").OnUpdate(update_base);
@@ -4335,7 +5729,21 @@ es6_module_define('data_api_define', ["../frameset.js", "../context.js", "../../
       this.ctx.spline.resolve = 1;
       window.redraw_viewport();
     }
-    SplineVertexStruct = new DataStruct([new DataPath(new IntProperty(0, "eid", "eid", "eid"), "eid", "eid", true), new DataPath(flagprop, "flag", "flag", true), new DataPath(coprop, "co", "", true)], SplineVertex);
+    let width=new FloatProperty(0, "width", "width", "Width");
+    width.baseUnit = width.displayUnit = "none";
+    let shift=new FloatProperty(0, "shift", "shift", "Shift");
+    shift.baseUnit = shift.displayUnit = "none";
+    width.setRange(0.0001, 200.0);
+    width.update = function (vert) {
+      vert.flag|=SplineFlags.REDRAW;
+      window.redraw_viewport();
+    }
+    shift.setRange(-2.0, 2.0);
+    shift.update = function (vert) {
+      vert.flag|=SplineFlags.REDRAW;
+      window.redraw_viewport();
+    }
+    SplineVertexStruct = new DataStruct([new DataPath(new IntProperty(0, "eid", "eid", "eid"), "eid", "eid", true), new DataPath(flagprop, "flag", "flag", true), new DataPath(coprop, "co", "", true), new DataPath(width, "width", "width", true), new DataPath(shift, "shift", "shift", true)], SplineVertex);
     return SplineVertexStruct;
   }
   var SplineSegmentStruct;
@@ -5718,7 +7126,7 @@ es6_module_define('data_api_base', ["../../path.ux/scripts/controller/controller
   DataAPIError = _es6_module.add_export('DataAPIError', DataAPIError);
   window.DataAPIError = DataAPIError;
 }, '/dev/fairmotion/src/core/data_api/data_api_base.js');
-es6_module_define('data_api_pathux', ["../toolprops.js", "../../editors/editor_base.js", "./data_api_base.js", "../../path.ux/scripts/util/simple_events.js", "../../path.ux/scripts/controller/controller.js", "../../editors/events.js", "../toolops_api.js", "../../path.ux/scripts/core/ui_base.js"], function _data_api_pathux_module(_es6_module) {
+es6_module_define('data_api_pathux', ["../toolprops.js", "../toolops_api.js", "../../path.ux/scripts/controller/controller.js", "./data_api_base.js", "../../path.ux/scripts/core/ui_base.js", "../../editors/editor_base.js", "../../path.ux/scripts/util/simple_events.js", "../../editors/events.js"], function _data_api_pathux_module(_es6_module) {
   var ModelInterface=es6_import_item(_es6_module, '../../path.ux/scripts/controller/controller.js', 'ModelInterface');
   var DataPathError=es6_import_item(_es6_module, '../../path.ux/scripts/controller/controller.js', 'DataPathError');
   var ToolOpAbstract=es6_import_item(_es6_module, '../toolops_api.js', 'ToolOpAbstract');
@@ -5766,9 +7174,11 @@ es6_module_define('data_api_pathux', ["../toolprops.js", "../../editors/editor_b
           continue;
         let def=cls.tooldef();
         if (def.apiname===undefined) {
-            continue;
         }
-        toolmap[def.apiname] = cls;
+        if (def.apiname)
+          toolmap[def.apiname] = cls;
+        if (def.toolpath)
+          toolmap[def.toolpath] = cls;
         toollist.push(cls);
     }
   }
@@ -5782,6 +7192,9 @@ es6_module_define('data_api_pathux', ["../toolprops.js", "../../editors/editor_b
       this.ctx = ctx;
     }
      _getToolHotkey(screen, toolstring) {
+      if (!screen) {
+          return "";
+      }
       let ctx=this.ctx;
       let ret;
       function processKeymap(keymap) {
@@ -5897,12 +7310,19 @@ es6_module_define('data_api_pathux', ["../toolprops.js", "../../editors/editor_b
             tool = this.createTool(ctx, path_or_toolop, inputs, constructor_argument);
           }
           catch (error) {
+              print_stack(error);
               reject(error);
               return ;
           }
         }
         accept(tool);
-        g_app_state.toolstack.execTool(ctx, tool);
+        try {
+          g_app_state.toolstack.execTool(ctx, tool);
+        }
+        catch (error) {
+            console.warn("Error executing tool");
+            print_stack(error);
+        }
       });
     }
     static  toolRegistered(cls) {
@@ -6024,7 +7444,7 @@ es6_module_define('data_api_pathux', ["../toolprops.js", "../../editors/editor_b
   PathUXInterface = _es6_module.add_export('PathUXInterface', PathUXInterface);
 }, '/dev/fairmotion/src/core/data_api/data_api_pathux.js');
 var data_ops_list;
-es6_module_define('data_api_opdefine', ["../../editors/viewport/spline_editops.js", "../../editors/viewport/transdata.js", "../../../platforms/Electron/theplatform.js", "../../editors/viewport/spline_selectops.js", "../toolops_api.js", "../../path.ux/scripts/screen/FrameManager.js", "../../editors/viewport/view2d_editor.js", "../../editors/viewport/transform_spline.js", "../../editors/viewport/spline_layerops.js", "../../image/image_ops.js", "../../editors/viewport/spline_createops.js", "../../editors/viewport/spline_animops.js", "../safe_eval.js", "../../editors/viewport/view2d.js", "../../path.ux/scripts/screen/FrameManager_ops.js", "./data_api_pathux.js", "../../editors/viewport/view2d_ops.js", "../../editors/viewport/view2d_spline_ops.js", "../../editors/viewport/transform.js"], function _data_api_opdefine_module(_es6_module) {
+es6_module_define('data_api_opdefine', ["../../editors/viewport/view2d_ops.js", "../../path.ux/scripts/screen/FrameManager_ops.js", "../../editors/viewport/view2d_editor.js", "../../path.ux/scripts/screen/FrameManager.js", "../../editors/viewport/spline_layerops.js", "../../editors/viewport/transdata.js", "../../../platforms/Electron/theplatform.js", "../../editors/viewport/spline_selectops.js", "../../editors/viewport/spline_animops.js", "../../editors/dopesheet/dopesheet_ops_new.js", "./data_api_pathux.js", "../safe_eval.js", "../../editors/viewport/transform_spline.js", "../../editors/viewport/view2d_spline_ops.js", "../../editors/viewport/spline_editops.js", "../../image/image_ops.js", "../toolops_api.js", "../../editors/viewport/spline_createops.js", "../../editors/viewport/view2d.js", "../../editors/viewport/transform.js"], function _data_api_opdefine_module(_es6_module) {
   var LoadImageOp=es6_import_item(_es6_module, '../../image/image_ops.js', 'LoadImageOp');
   var DeleteVertOp=es6_import_item(_es6_module, '../../editors/viewport/spline_editops.js', 'DeleteVertOp');
   var DeleteSegmentOp=es6_import_item(_es6_module, '../../editors/viewport/spline_editops.js', 'DeleteSegmentOp');
@@ -6034,6 +7454,7 @@ es6_module_define('data_api_opdefine', ["../../editors/viewport/spline_editops.j
   var DuplicateOp=es6_import_item(_es6_module, '../../editors/viewport/spline_editops.js', 'DuplicateOp');
   var DisconnectHandlesOp=es6_import_item(_es6_module, '../../editors/viewport/spline_editops.js', 'DisconnectHandlesOp');
   var SplitEdgePickOp=es6_import_item(_es6_module, '../../editors/viewport/spline_editops.js', 'SplitEdgePickOp');
+  var DeleteKeysOp=es6_import_item(_es6_module, '../../editors/dopesheet/dopesheet_ops_new.js', 'DeleteKeysOp');
   var ToolOp=es6_import_item(_es6_module, '../toolops_api.js', 'ToolOp');
   var ToolMacro=es6_import_item(_es6_module, '../toolops_api.js', 'ToolMacro');
   var ToolFlags=es6_import_item(_es6_module, '../toolops_api.js', 'ToolFlags');
@@ -6272,6 +7693,9 @@ es6_module_define('data_api_opdefine', ["../../editors/viewport/spline_editops.j
         var op=new SelectLinkedOp();
         op.inputs.vertex_eid.setValue(args.vertex_eid);
         return op;
+      }, 
+    "anim.delete_keys": function (ctx, args) {
+        return new DeleteKeysOp();
       }, 
     "view2d.circle_select": function (ctx, args) {
         return new CircleSelectOp(ctx.view2d.selectmode);

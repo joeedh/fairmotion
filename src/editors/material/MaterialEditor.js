@@ -434,6 +434,9 @@ export class MaterialEditor extends Editor {
     panel.prop("spline.active_vertex.flag[USE_HANDLES]", undefined, set_prefix + ".flag[USE_HANDLES]");
     panel.prop("spline.active_vertex.flag[GHOST]", undefined, set_prefix + ".flag[GHOST]");
 
+    panel.prop("spline.active_vertex.width", undefined, set_prefix+".width");
+    panel.prop("spline.active_vertex.shift", undefined, set_prefix+".shift");
+
     panel = tab.panel("Animation Settings")
 
     set_prefix = "frameset.keypaths{$.animflag & 8}";

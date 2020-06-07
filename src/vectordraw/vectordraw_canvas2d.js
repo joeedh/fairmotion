@@ -388,6 +388,10 @@ export class Batch {
   }
 
   draw(draw) {
+    if (this.paths.length === 0) {
+      return;
+    }
+
     if (!this.regen && this.checkViewport(draw) && !this.gen_req) {
       this.regen = 1;
       console.log("bad viewport");
@@ -941,6 +945,10 @@ export class CanvasDraw2D extends VectorDraw {
     return this.__regen;
   }
 
+  clear() {
+    this.recalcAll();
+  }
+
   draw(g) {
     if (!!this.do_blur !== this._last_do_blur) {
       this._last_do_blur = !!this.do_blur;
@@ -952,6 +960,7 @@ export class CanvasDraw2D extends VectorDraw {
     }
 
     if (this.regen) {
+      console.log("RECALC ALL");
       this.__regen = 0;
 
       this.batches.destroy();

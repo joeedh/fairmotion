@@ -1,6 +1,6 @@
 "use strict";
 
-import {aabb_isect_minmax2d, MinMax} from '../util/mathlib.js';
+import {aabb_isect_minmax2d, MinMax, line_isect, COLINEAR, LINECROSS} from '../util/mathlib.js';
 import {ENABLE_MULTIRES} from '../config/config.js';
 
 import * as config from '../config/config.js';
@@ -74,8 +74,11 @@ var drawparam_cachering = new cachering(function() {
 }, 16);
 
 export class SplineDrawer {
-  used_paths : Object
-  recalc_all : boolean;
+  used_paths   : Object
+  recalc_all   : boolean;
+  last_totvert : number;
+  last_totseg  : number;
+  last_totface : number;
 
   constructor(spline, drawer=new Canvas()) {
     this.spline = spline;
@@ -84,6 +87,10 @@ export class SplineDrawer {
     //this.path_minmaxes = {};
     
     this.drawer = drawer;
+
+    this.last_totvert = 0;
+    this.last_totseg = 0;
+    this.last_totface = 0;
     
     this.last_zoom = undefined;
     this.last_3_mat = undefined;
@@ -108,13 +115,22 @@ export class SplineDrawer {
     var draw_faces = !!(only_render || editor.draw_faces);
     
     var recalc_all = this.recalc_all || this.draw_faces !== draw_faces || this.do_blur !== do_blur;
+
     //recalc_all = recalc_all || zoom !== this.last_zoom;
+
+    recalc_all = recalc_all || spline.verts.length !== this.last_totvert;
+    recalc_all = recalc_all || spline.segments.length !== this.last_totseg;
+    recalc_all = recalc_all || spline.faces.length !== this.last_totface;
 
     //console.log("all will redrw?", recalc_all);
     if (recalc_all) {
       //abort all outstanding render threads
       //vectordraw_jobs.manager.cancelAllJobs();
     }
+
+    this.last_totvert = spline.verts.length;
+    this.last_totseg = spline.segments.length;
+    this.last_totface = spline.faces.length;
     
     this.last_zoom = zoom;
     this.draw_faces = draw_faces;
@@ -175,6 +191,8 @@ export class SplineDrawer {
     this.drawer.set_matrix(drawMatrix); //matrix);
 
     if (recalc_all) {
+      this.drawer.recalcAll();
+
       if (DEBUG.trace_recalc_all) {
         console.trace("%c RECALC_ALL!  ", "color:orange");
       }
@@ -213,9 +231,9 @@ export class SplineDrawer {
       drawparams.z = i;
       drawparams.combine_paths = true;
       
-      if (e.type == SplineTypes.FACE) {
+      if (e.type === SplineTypes.FACE) {
         this.update_polygon(e, redraw_rects, actlayer, only_render, selectmode, zoom, i, off, spline, ignore_layers);
-      } else if (e.type == SplineTypes.SEGMENT) {
+      } else if (e.type === SplineTypes.SEGMENT) {
         this.update_stroke(e, drawparams);
       }
       
@@ -251,14 +269,49 @@ export class SplineDrawer {
     return this.drawer.has_path(id, z, check_z);
   }
   
-  update_stroke(seg, drawparams) {
+  update_stroke(seg : SplineSegment, drawparams) {
     var redraw_rects = drawparams.redraw_rects, actlayer = drawparams.actlayer;
     var only_render = drawparams.only_render, selectmode = drawparams.selectmode;
     var zoom = drawparams.zoom, z = drawparams.z, off = drawparams.off, spline = drawparams.spline;
     var drawlist = drawparams.drawlist;
-    
-    var eid = seg.eid; 
-    
+
+    var eid = seg.eid;
+
+    let debug = 2;
+    let dpath, dpoint, dline;
+
+    if (debug) {
+      dpath = this.get_path(eid | 8192, z+10000);
+      dpath.color = [1, 0.25, 0.125, 0.5];
+
+      dpath.reset();
+
+      dpoint = (x, y, w=4) => {
+        w *= 0.5;
+
+        dpath.moveTo(x-w, y-w);
+        dpath.lineTo(x-w, y+w);
+        dpath.lineTo(x+w, y+w);
+        dpath.lineTo(x+w, y-w);
+        dpath.lineTo(x-w, y-w);
+      }
+
+      dline = (x1, y1, x2, y2, w= 0.5) => {
+        let dx = y1-y2, dy = x2-x1;
+        let l = Math.sqrt(dx*dx + dy*dy);
+        l = 0.5*w / l;
+
+        dx *= l;
+        dy *= l;
+
+        dpath.moveTo(x1-dx, y1-dy);
+        dpath.lineTo(x2-dx, y2-dy);
+        dpath.lineTo(x2+dx, y2+dy);
+        dpath.lineTo(x1+dx, y1+dy);
+        dpath.lineTo(x1-dx, y1-dy);
+      }
+    }
+
     /*
     if (drawparams.combine_paths && this.last_stroke_mat != undefined) {
       var keep = this.last_stroke_stringid == seg.stringid;
@@ -275,39 +328,22 @@ export class SplineDrawer {
       return;
     }
     
-    if (seg.eid == eid) {
+    if (seg.eid === eid) {
       this.last_stroke_mat = seg.mat;
       this.last_stroke_eid = seg.eid;
       this.last_stroke_stringid = seg.stringid;
     }
-    
-    
+
+
     seg.flag &= ~SplineFlags.REDRAW;
     
     var l = seg.ks[KSCALE] * zoom;
     let add = (Math.sqrt(l) / 5);
-    var steps = 5 + ~~add;
+    var steps = 2 + ~~add;
     
     //console.log("STEPS", "l", l, "add", add, "steps", steps);
     var ds = 1.0 / (steps - 1), s = 0.0;
-    
-    
-    /*
-    on factor;
-    off period;
-    
-    operator x, y, k;
-    
-    forall s let df(x(s), s, 2) = -df(y(s), s)*k(s);
-    forall s let df(y(s), s, 2) = df(x(s), s)*k(s);
-    
-    offx := x(s) - df(y(s), s)*lw;
-    offy := y(s) + df(x(s), s)*lw;
-    
-    df(offx, s);
-    df(offy, s);
-    */
-    
+
     var path = this.get_path(eid, z, eid == seg.eid);
     path.update();
     
@@ -317,7 +353,8 @@ export class SplineDrawer {
       path.reset_clip_paths();
       path.frame_first = false;
     }
-    
+
+
     //path.beginPath();
     
     if (seg.l !== undefined && (seg.mat.flag & MaterialFlags.MASK_TO_FACE)) {
@@ -367,9 +404,9 @@ export class SplineDrawer {
       }
     }
 
-    var lw = seg.mat.linewidth*0.5;
-    
-    
+    let lw = seg.mat.linewidth*0.5;
+
+
     var no = seg.normal(0).normalize().mulScalar(lw);
     var co = seg.evaluate(0).add(no);
     var fx=co[0], fy = co[1];
@@ -432,23 +469,159 @@ export class SplineDrawer {
     }
     //*/
 
+
+    /*
+    on factor;
+    on rounded;
+    off period;
+
+    operator x, y, k, lw;
+
+    forall s let df(x(s), s, 2) = -df(y(s), s)*k(s);
+    forall s let df(y(s), s, 2) = df(x(s), s)*k(s);
+
+    offx := x(s) - df(y(s), s)*lw(s)*0.5/seglen;
+    offy := y(s) + df(x(s), s)*lw(s)*0.5/seglen;
+
+
+    df(offx, s);
+    df(offy, s);
+    */
+
+    let dlw, dx, dy;
+
+    function calc(seg, s, sign=1.0, sign2=1.0) {
+      let dv = seg.derivative(s);
+      let co = seg.evaluate(s);
+      let k = -seglen*seg.curvature(s);
+      let shift = seg.shift(s);
+      let dshift = seg.dshift(s);
+
+      lw = seg.width(s)*sign;
+      dlw = seg.dwidth(s)*sign;
+
+      dlw = dlw*shift + dlw + dshift*lw;
+      lw = lw + lw*shift;
+
+      dx = -dv[1]*lw*0.5/seglen;
+      dy = dv[0]*lw*0.5/seglen;
+
+      dx *= sign2;
+      dy *= sign2;
+    }
+
+    seg.update();
+
     let stretch = 1.0075;
+    let seglen = seg.length;
 
-    s = 0;
-    for (var i=0; i<steps; i++, s += ds) {
-      var dv = seg.derivative(s).normalize();
-      var co = seg.evaluate(s*stretch);
-      var k = -seg.curvature(s*stretch);
+    seg.update();
 
-      lw = seg.width(s)*0.5;
+    let dv1 = new Vector3(seg.derivative(0.0));
+    let dv2 = new Vector3(seg.derivative(1.0));
 
-      co[0] += -dv[1]*lw;
-      co[1] += dv[0]*lw;
+    let dvrets = cachering.fromConstructor(Vector2, 16);
+    dv1[2] = dv2[2]  = 0.0;
 
-      dv[0] *= (1.0 - lw*k);
-      dv[1] *= (1.0 - lw*k);
-      dv.mulScalar(len*ds/3.0);
-      
+    for (let step=0; step<2; step++) {
+      let v = step ? seg.v2 : seg.v1;
+      let dvout = step ? dv2 : dv1;
+
+      if (v.segments.length === 2) {
+        let seg2 = v.other_segment(seg);
+
+        let s1 = v === seg.v1 ? 0.0 : 1.0;
+        let s2 = v === seg2.v1 ? 0.0 : 1.0;
+
+        let dvb = seg2.derivative(s2);
+
+        if (s1 === s2) {
+          dvb.negate();
+        }
+
+        calc(seg, s1);
+        let p1 = new Vector2(v);
+        p1[0] += dx;
+        p1[1] += dy;
+        let p1b = new Vector2(p1).add(dvout);
+
+
+        calc(seg2, s2, 1.0, s1===s2 ? -1.0 : 1.0);
+
+        let p2 = new Vector2(v);
+        p2[0] += dx;
+        p2[1] += dy;
+        let p2b = new Vector2(p2).add(dvb);
+
+        let isect = line_isect(p1, p1b, p2, p2b, false);
+
+        if (debug===2) {
+          //dline(p1[0], p1[1], p1b[0], p1b[1]);
+          dline(p2[0], p2[1], p2b[0], p2b[1]);
+        }
+
+        if (isect[1] === COLINEAR) {
+          //do nothing
+          console.log("colinear!");
+        } else {
+          if (debug === 2) {
+            dpoint(isect[0][0], isect[0][1]);
+          }
+
+          dvout.load(isect[0]).sub(v);
+          dvout.normalize()//.negate();
+          //dvout.mulScalar(-1.0 / lw);
+        }
+      }
+    }
+
+    function derivative(s) {
+      //return seg.derivative(s);
+      let dv = dvrets.next();
+
+      dv.load(dv1).interp(dv2, s).normalize().mulScalar(seglen);
+      return dv;
+    }
+
+
+    s = 0.0;
+    for (let i=0; i<steps; i++, s += ds) {
+      //break;
+      let dv = seg.derivative(s*stretch);
+      let co = seg.evaluate(s*stretch);
+      let k = -seglen*seg.curvature(s*stretch);
+      let shift = seg.shift(s*stretch);
+      let dshift = seg.dshift(s*stretch);
+      let lw = seg.width(s*stretch);
+      let dlw = seg.dwidth(s*stretch);
+
+      dlw = dlw*shift + dlw + dshift*lw;
+      lw = lw + lw*shift;
+
+      co[0] += -dv[1]*lw*0.5/seglen;
+      co[1] += dv[0]*lw*0.5/seglen;
+
+      let dx = (-0.5*(dlw*dv[1] + dv[0]*k*lw - 2*dv[0]*seglen)) / seglen;
+      let dy = ( 0.5*(dlw*dv[0] - dv[1]*k*lw + 2*dv[1]*seglen)) / seglen;
+      dv[0] = dx;
+      dv[1] = dy;
+
+      dv.mulScalar(ds/3.0);
+
+      if (debug===1) {
+        dpoint(co[0], co[1], 9);
+        dpoint(co[0]-dv[0], co[1]-dv[1]);
+        dline(co[0], co[1], co[0]-dv[0], co[1]-dv[1]);
+
+        if (lastco) {
+          dpoint(lastco[0], lastco[1], 9);
+          dpoint(lastco[0]+lastdv[0], lastco[1]+lastdv[1]);
+
+          dline(lastco[0], lastco[1], lastco[0] + lastdv[0], lastco[1] + lastdv[1]);
+          dline(co[0]-dv[0], co[1]-dv[1], lastco[0]+lastdv[0], lastco[1]+lastdv[1]);
+        }
+      }
+
       if (i > 0) {
         path.cubicTo(lastco[0]+lastdv[0], lastco[1]+lastdv[1], co[0]-dv[0], co[1]-dv[1], co[0], co[1], 1);
       } else {
@@ -460,12 +633,60 @@ export class SplineDrawer {
     }
     
     s = 1.0;
-    lw = -lw;
-    
     for (var i=0; i<steps; i++, s -= ds) {
+      let dv = seg.derivative(s*stretch);
+      let co = seg.evaluate(s*stretch);
+      let k = -seglen*seg.curvature(s*stretch);
+      let shift = -seg.shift(s*stretch);
+      let dshift = -seg.dshift(s*stretch);
+      let lw = seg.width(s*stretch);
+      let dlw = seg.dwidth(s*stretch);
+
+      dlw = dlw*shift + dlw + dshift*lw;
+      lw = lw + lw*shift;
+
+      lw = -lw;
+      dlw = -dlw;
+
+      co[0] += -dv[1]*lw*0.5/seglen;
+      co[1] += dv[0]*lw*0.5/seglen;
+
+      let dx = (-0.5*(dlw*dv[1] + dv[0]*k*lw - 2*dv[0]*seglen)) / seglen;
+      let dy = ( 0.5*(dlw*dv[0] - dv[1]*k*lw + 2*dv[1]*seglen)) / seglen;
+      dv[0] = dx;
+      dv[1] = dy;
+
+      dv.mulScalar(ds/3.0);
+
+      if (debug===1) {
+        dpoint(co[0], co[1], 9);
+        dpoint(co[0]+dv[0], co[1]+dv[1]);
+
+        dline(co[0], co[1], co[0]+dv[0], co[1]+dv[1]);
+        if (i > 0) {
+          dpoint(lastco[0], lastco[1], 9);
+          dpoint(lastco[0]-lastdv[0], lastco[1]-lastdv[1]);
+
+          dline(lastco[0], lastco[1], lastco[0] - lastdv[0], lastco[1] - lastdv[1]);
+          dline(co[0] + dv[0], co[1] + dv[1], lastco[0] - lastdv[0], lastco[1] - lastdv[1]);
+        }
+      }
+
+      if (i > 0) {
+        path.cubicTo(lastco[0]-lastdv[0], lastco[1]-lastdv[1], co[0]+dv[0], co[1]+dv[1], co[0], co[1], 1);
+      } else {
+        path.lineTo(co[0], co[1]);
+      }
+
+      lastdv = dv;
+      lastco = co;
+      /*
+      break;
       var dv = seg.derivative(s).normalize();
       var co = seg.evaluate(s*stretch);
       var k = -seg.curvature(s*stretch);
+
+      lw = -seg.width(s)*0.5;
 
       co[0] += -dv[1]*lw;
       co[1] +=  dv[0]*lw;
@@ -482,7 +703,7 @@ export class SplineDrawer {
       }
       
       lastdv = dv;
-      lastco = co;
+      lastco = co;//*/
     }
     
     /*
@@ -568,8 +789,16 @@ export class SplineDrawer {
     
     path.reset();
     path.blur = f.mat.blur * (this.do_blur ? 1 : 0);
-    path.color.load(f.mat.fillcolor);
-    
+    { //XXX fixme, path.color wasn't a vector4 but an array, so .load didn't work
+      let c1 = path.color[0];
+      let c2 = f.mat.fillcolor;
+
+      c1[0] = c2[0];
+      c1[1] = c2[1];
+      c1[2] = c2[2];
+      c1[3] = c2[3];
+    }
+
     //g.lineWidth = 8;//*zoom;
     
     //if (!do_mask) {

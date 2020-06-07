@@ -28,6 +28,7 @@ export let Canvas = StubCanvasDraw2D;
 export let Path = StubCanvasPath;
 //*/
 
+
 //* canvas2d worker
 export let Canvas = CanvasDraw2D;
 export let Path = CanvasPath;

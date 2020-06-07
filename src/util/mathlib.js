@@ -555,7 +555,7 @@ export function normal_quad(v1, v2, v3, v4) {
 }
 
 var _li_vi = new Vector3()
-export function line_isect(v1, v2, v3, v4, calc_t) {  //calc_t is optional, defaults to false
+export function line_isect(v1 : Vector3, v2 : Vector3, v3 : Vector3, v4 : Vector3, calc_t : boolean) {  //calc_t is optional, defaults to false
   if (calc_t == undefined) {
     calc_t = false;
   }
@@ -581,7 +581,7 @@ export function line_isect(v1, v2, v3, v4, calc_t) {  //calc_t is optional, defa
       t = -t;
     }
     
-    if (v1.length == 3) {
+    if (v1.length === 3) {
       vi[2] = v1[2] + (v2[2] - v1[2])*t;
     }
     

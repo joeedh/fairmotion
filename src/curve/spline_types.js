@@ -66,6 +66,153 @@ export class SplineVertex extends SplineElement {
     this.hpair = undefined; //connected handle in shared tangents mode
   }
 
+  get width() {
+    if (!this.segments) return; //happens in mixin code
+
+    let tot = 0.0;
+    let sum = 0.0;
+
+    for (let s of this.segments) {
+      tot++;
+      sum += this === s.v1 ? s.w1 : s.w2;
+    }
+
+    return tot ? sum / tot : 0.0;
+  }
+
+  set width(w) {
+    if (!this.segments) return;
+
+    let old = this.width;
+
+    if (w === 0.0) {
+      console.warn("Cannot set width to zero");
+      return;
+    }
+
+    if (isNaN(old) || old === 0.0) {
+      console.warn("Corrupted width data; fixing...");
+      for (let s of this.segments) {
+        if (isNaN(s.w1) || s.w1 === 0.0)
+          s.w1 = w;
+        if (isNaN(s.w2) || s.w2 === 0.0)
+          s.w2 = w;
+
+        s.mat.update();
+      }
+
+      return;
+    }
+
+    let ratio = w / old;
+    for (let s of this.segments) {
+      if (this === s.v1)
+        s.w1 *= ratio;
+      else if (this === s.v2)
+        s.w2 *= ratio;
+      else
+        throw new Error("spline mesh integrity error");
+
+      s.mat.update();
+    }
+  }
+
+  get shift() {
+    if (!this.segments) return;
+
+    let tot = 0.0;
+    let sum = 0.0;
+
+    if (this.segments.length === 2) {
+      let s1 = this.segments[0];
+      let s2 = this.segments[1];
+
+      let shift1 = this === s1.v1 ? s1.shift1 : s1.shift2;
+      let shift2 = this === s2.v1 ? s2.shift1 : s2.shift2;
+
+      if ((this === s1.v1) === (this === s2.v1)) {
+        sum = shift1 - shift2;
+      } else {
+        sum = shift1 + shift2;
+      }
+
+      tot = 2.0;
+    } else {
+      for (let s of this.segments) {
+        tot++;
+        sum += this === s.v1 ? -s.shift1 : s.shift2;
+      }
+    }
+
+    return tot ? sum / tot : 0.0;
+  }
+
+  set shift(w) {
+    if (!this.segments) return;
+
+    let tot = 0.0;
+    let sum = 0.0;
+
+    let old = this.shift;
+    let df = w - old;
+
+    if (this.segments.length === 2) {
+      let s1 = this.segments[0];
+      let s2 = this.segments[1];
+
+      let shift1 = this === s1.v1 ? s1.shift1 : s1.shift2;
+      let shift2 = this === s2.v1 ? s2.shift1 : s2.shift2;
+
+      if ((this === s1.v1) === (this === s2.v1)) {
+        shift1 += df;
+        shift2 -= df;
+      } else {
+        shift1 += df;
+        shift2 += df;
+      }
+
+      if (this === s1.v1)
+        s1.shift1 = shift1;
+      else
+        s1.shift2 = shift1;
+
+      if (this === s2.v1)
+        s2.shift1 = shift2;
+      else
+        s2.shift2 = shift2;
+
+      s1.mat.update();
+      s2.mat.update();
+    } else {
+      for (let s of this.segments) {
+        if (this === s.v1) {
+          s.shift1 += df;
+        } else {
+          s.shift2 += df;
+        }
+
+        s.mat.update();
+      }
+    }
+  }
+
+  set __shift(w) {
+    if (!this.segments) return;
+
+    let old = this.shift;
+    let df = w - old;
+
+    for (let s of this.segments) {
+      if (this === s.v1) {
+        s.shift1 -= df;
+      } else {
+        s.shift2 += df;
+      }
+
+      s.mat.update();
+    }
+  }
+
   static nodedef() {return {
     name : "SplineVertex",
     uiName : "SplineVertex",
@@ -280,6 +427,10 @@ export class SplineSegment extends SplineElement {
     this.w1 = 1.0;
     this.w2 = 1.0;
 
+    //shift
+    this.shift1 = 0.0;
+    this.shift2 = 0.0;
+
     this.v1 = v1;
     this.v2 = v2;
     
@@ -320,7 +471,31 @@ export class SplineSegment extends SplineElement {
     }
   }
 
+  shift(s) {
+    s = s*s*(3.0 - 2.0*s);
+
+    return this.shift1 + (this.shift2 - this.shift1)*s;
+  }
+
+  dshift(s) {
+    let df = 0.0001;
+    let a = this.shift(s-df);
+    let b = this.shift(s+df);
+
+    return (b - a) / (2.0*df);
+  }
+
+  dwidth(s) { //should be linear
+    let df = 0.0001;
+    let a = this.width(s-df);
+    let b = this.width(s+df);
+
+    return (b - a) / (2.0*df);
+  }
+
   width(s) {
+    s = s*s*(3.0 - 2.0*s);
+
     let wid1 = this.mat.linewidth;
     let wid2 = this.mat.linewidth;
 
@@ -648,8 +823,8 @@ export class SplineSegment extends SplineElement {
     ret.v1 = this.v1.eid;
     ret.v2 = this.v2.eid;
     
-    ret.h1 = this.h1 != undefined ? this.h1.eid : -1;
-    ret.h2 = this.h2 != undefined ? this.h2.eid : -1;
+    ret.h1 = this.h1 !== undefined ? this.h1.eid : -1;
+    ret.h2 = this.h2 !== undefined ? this.h2.eid : -1;
     
     ret.eid = this.eid;
     ret.flag = this.flag;
@@ -658,8 +833,18 @@ export class SplineSegment extends SplineElement {
   }
   
   curvature(s, order, override_scale) {
-    if (order == undefined) order = ORDER;
-    
+    if (order === undefined) order = ORDER;
+
+    /*
+    let df = 0.0001;
+    let dv = this.derivative(s);
+    let dv2 = this.derivative(s+df);
+
+    dv2.sub(dv).mulScalar(1.0 / df);
+
+    return (dv[0]*dv2[1] - dv[1]*dv2[0]) / Math.pow(dv[0]*dv[0] + dv[1]*dv[1], 3.0/2.0);
+    //*/
+
     //update ks[KSCALE], final 1 prevents final evaluation
     //to save performance
     eval_curve(0.5, this.v1, this.v2, this.ks, order, 1);

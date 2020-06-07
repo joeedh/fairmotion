@@ -436,7 +436,7 @@ function api_define_material() {
   var fillclr = new Vec4Property(new Vector4(), "fill", "fill", "Fill Color");
   var strokeclr = new Vec4Property(new Vector4(), "stroke", "stroke", "Stroke Color");
   
-  var update_base = function (material) {
+  var update_base = function (material : Material) {
     //console.warn("material.update called", material);
     material.update();
     window.redraw_viewport();
@@ -503,11 +503,33 @@ function api_define_spline_vertex() {
     
     window.redraw_viewport();
   }
-  
+
+  let width = new FloatProperty(0,"width", "width", "Width");
+  width.baseUnit = width.displayUnit = "none";
+  let shift = new FloatProperty(0,"shift", "shift", "Shift");
+  shift.baseUnit = shift.displayUnit = "none";
+
+  width.setRange(0.0001, 200.0);
+  width.update = function(vert) {
+    vert.flag |= SplineFlags.REDRAW;
+
+    window.redraw_viewport();
+  }
+
+  shift.setRange(-1.0, 1.0);
+  shift.update = function(vert) {
+    vert.flag |= SplineFlags.REDRAW;
+
+    window.redraw_viewport();
+  }
+
+
   SplineVertexStruct = new DataStruct([
     new DataPath(new IntProperty(0, "eid", "eid", "eid"), "eid", "eid", true),
     new DataPath(flagprop, "flag", "flag", true),
-    new DataPath(coprop, "co", "", true)
+    new DataPath(coprop, "co", "", true),
+    new DataPath(width, "width", "width", true),
+    new DataPath(shift, "shift", "shift", true)
   ], SplineVertex);
   
   return SplineVertexStruct;

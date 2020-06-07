@@ -459,7 +459,13 @@ export class Spline extends DataBlock {
 
   copy_segment_data(dst : SplineSegment, src : SplineSegment) {
     this.copy_element_data(dst, src);
+
     dst.z = src.z;
+    dst.w1 = src.w1;
+    dst.w2 = src.w2;
+
+    dst.shift1 = src.shift1;
+    dst.shift2 = src.shift2;
 
     dst.mat.load(src.mat);
   }
@@ -512,7 +518,7 @@ export class Spline extends DataBlock {
     static srcs = [0, 0];
 
     var hpair = seg.h2.hpair;
-    if (hpair != undefined) {
+    if (hpair !== undefined) {
        this.disconnect_handle(seg.h2);
     }
 
@@ -527,6 +533,14 @@ export class Spline extends DataBlock {
 
     var v1 = seg.v1, v2 = seg.v2;
     var nseg = this.make_segment(nv, seg.v2); //XXX, this.idgen.gen_id(seg.eid, 1));
+
+    let w1 = seg.w1 + (seg.w2 - seg.w1)*(s*s*(3.0 - 2.0*s));
+    let w2 = seg.w2;
+    let shift1 = seg.shift1 + (seg.shift2 - seg.shift1)*(s*s*(3.0 - 2.0*s));
+    let shift2 = seg.shift2;
+
+    seg.w2 = w1;
+    seg.shift2 = shift1;
 
     seg.v2.segments.remove(seg);
     nv.segments.push(seg);
@@ -621,6 +635,11 @@ export class Spline extends DataBlock {
 
     //deal with customdata
     this.copy_segment_data(nseg, seg);
+
+    nseg.w1 = w1;
+    nseg.w2 = w2;
+    nseg.shift1 = shift1;
+    nseg.shift2 = shift2;
 
     //interpolate
     srcs[0] = v1.cdata, srcs[1] = v2.cdata;

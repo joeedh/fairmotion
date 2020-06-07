@@ -205,7 +205,15 @@ export class VectorDraw {
     
     this.matrix = new Matrix4();
   }
-  
+
+  recalcAll() {
+    this.regen = true;
+  }
+
+  clear() {
+
+  }
+
   //creates new path if necessary.  z is required
   get_path(id, z, check_z=true) {
     if (z === undefined) {

@@ -137,10 +137,10 @@ export class ExtrudeVertOp extends SplineLocalToolOp {
     
     spline.verts.setselect(v, true);
     
-    if (actvert !== v && actvert != undefined && !actvert.hidden &&
+    if (actvert !== v && actvert !== undefined && !actvert.hidden &&
         !((spline.restrict & RestrictFlags.VALENCE2) && actvert.segments.length >= 2))
     {
-      if (actvert.segments.length == 2) {
+      if (actvert.segments.length === 2) {
         var v2 = actvert;
 
         //auto-pair handles on original line
@@ -152,10 +152,15 @@ export class ExtrudeVertOp extends SplineLocalToolOp {
         h1.flag |= SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
         h2.flag |= SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
       }
-      
+
+      let width = actvert.segments.length > 0 ? actvert.width : 1.0;
+
       var seg = spline.make_segment(actvert, v);
       seg.z = max_z_seg;
-      
+
+      seg.w1 = width;
+      seg.w2 = width;
+
       console.log("creating segment");
       
       if (actvert.segments.length > 1) {

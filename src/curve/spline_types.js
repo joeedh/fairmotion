@@ -950,8 +950,8 @@ export class SplineSegment extends SplineElement {
     let co = evaluateSide_rets.next().load(this.evaluate(s));
 
     let dv = this.derivative(s);
-    let shift = this.shift(s);
-    let dshift = this.dshift(s);
+    let shift = this.shift(s)*side;
+    let dshift = this.dshift(s)*side;
 
     let lw = this.width(s)*side;
     let dlw = this.dwidth(s)*side;

@@ -147,10 +147,10 @@ window.init_redraw_globals = function init_redraw_globals() {
     }
 
     let spline = ctx.frameset.spline;
-    spline.drawer = new SplineDrawer(spline);
+    spline.drawer = new _SplineDrawer(spline);
 
     spline = ctx.frameset.pathspline;
-    spline.drawer = new SplineDrawer(spline);
+    spline.drawer = new _SplineDrawer(spline);
 
     window.redraw_viewport();
   }

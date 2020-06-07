@@ -1414,17 +1414,21 @@ export class Spline extends DataBlock {
       }
     }
     
-    if (v.segments.length == 2) {
+    if (v.segments.length === 2) {
       var s1 = v.segments[0], s2 = v.segments[1];
       
       var v1 = s1.other_vert(v), v2 = s2.other_vert(v);
       var existing = this.find_segment(v1, v2);
-      
-      if (s1.v1 == v) s1.v1 = v2;
+      let w1 = v1 === s1.v1 ? s1.w1 : s1.w2;
+      let w2 = v1 === s2.v1 ? s2.w1 : s2.w2;
+      let shift1 = v1 === s1.v1 ? s1.shift1 : s1.shift2;
+      let shift2 = v1 === s2.v1 ? s2.shift1 : s2.shift2;
+
+      if (s1.v1 === v) s1.v1 = v2;
       else s1.v2 = v2;
       
       var ci=0;
-      while (s2.l != undefined) {
+      while (s2.l !== undefined) {
         this._radial_loop_remove(s2.l);
         
         if (ci++ > 100) {
@@ -1432,7 +1436,7 @@ export class Spline extends DataBlock {
           break;
         }
       }
-      while (s1.l != undefined) {
+      while (s1.l !== undefined) {
         this._radial_loop_remove(s1.l);
         
         if (ci++ > 100) {
@@ -1445,13 +1449,25 @@ export class Spline extends DataBlock {
       
       v2.segments.push(s1);
       v.segments.length = 0;
-      
+
+      if (s1.v1 === v1) {
+        s1.w1 = w1;
+        s1.w2 = w2;
+        s1.shift1 = shift1;
+        s1.shift2 = shift2;
+      } else {
+        s1.w1 = w2;
+        s1.w2 = w1;
+        s1.shift1 = shift2;
+        s1.shift2 = shift1;
+      }
+
       if (existing) {
         this.kill_segment(s1);
         s1 = existing;
       }
       
-      if (s1.l == undefined) {
+      if (s1.l === undefined) {
         for (var i=0; i<ls2.length; i++) {
           var l = ls2[i];
           

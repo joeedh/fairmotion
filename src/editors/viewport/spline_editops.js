@@ -1696,7 +1696,8 @@ export class DuplicateOp extends SplineLocalToolOp {
     }
     
     spline.regen_render();
-    spline.solve();
+    spline.regen_sort();
+    spline.regen_solve();
   }
 }
 

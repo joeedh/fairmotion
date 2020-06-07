@@ -25,7 +25,7 @@ export var OPCODES = {
   CLIP      : 20,
   DRAWIMAGE : 21,
   PUTIMAGE  : 22,
-  SETTRANSFORM : 23,
+  SETTRANSFORM : 23
 };
 
 export var MESSAGES = {

@@ -92,8 +92,8 @@ export class SplineDrawData extends CustomDataLayer {
   }
 
   copy(src) {
-    this.start = src.start;
-    this.end = src.end;
+    //this.start = src.start;
+    //this.end = src.end;
 
     return this;
   }
@@ -191,8 +191,6 @@ export class SplineDrawer {
     
     var recalc_all = this.recalc_all || this.draw_faces !== draw_faces || this.do_blur !== do_blur;
 
-    //recalc_all = recalc_all || zoom !== this.last_zoom;
-
     recalc_all = recalc_all || spline.verts.length !== this.last_totvert;
     recalc_all = recalc_all || spline.segments.length !== this.last_totseg;
     recalc_all = recalc_all || spline.faces.length !== this.last_totface;
@@ -268,8 +266,8 @@ export class SplineDrawer {
     if (recalc_all) {
       this.drawer.recalcAll();
 
-      if (DEBUG.trace_recalc_all) {
-        console.trace("%c RECALC_ALL!  ", "color:orange");
+      if (1||DEBUG.trace_recalc_all) {
+        console.log("%c RECALC_ALL!  ", "color:orange");
       }
     }
     
@@ -836,7 +834,11 @@ export class SplineDrawer {
         }
 
         if (isNaN(sa.dot(sa))) {
-          throw new Error("nan!");
+          if (Math.random() > 0.98) {
+            console.log("NaN!", sa, seg);
+          }
+          continue;
+          //throw new Error("nan!");
         }
 
         let sc = seg.evaluate(s1);

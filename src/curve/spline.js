@@ -461,6 +461,7 @@ export class Spline extends DataBlock {
     this.copy_element_data(dst, src);
 
     dst.z = src.z;
+
     dst.w1 = src.w1;
     dst.w2 = src.w2;
 
@@ -472,8 +473,8 @@ export class Spline extends DataBlock {
 
   copy_face_data(dst : SplineFace, src : SplineFace) {
     this.copy_element_data(dst, src);
-    dst.z = src.z;
 
+    dst.z = src.z;
     dst.mat.load(src.mat);
   }
 

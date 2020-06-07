@@ -713,7 +713,9 @@ export class CanvasPath extends QuadBezPath {
     let commands2 = independent ? [w, h] : [];
     let m = this.matrix.$matrix;
     commands2 = commands2.concat([OPCODES.SETTRANSFORM, m.m11, m.m12, m.m21, m.m22, m.m41, m.m42]);
-  
+
+    commands2.push(OPCODES.SAVE);
+
     for (var path of this.clip_paths) {
       //console.log("CLIPPING!", path);
       
@@ -726,8 +728,10 @@ export class CanvasPath extends QuadBezPath {
       
       path.genInto(draw, this, commands2, true);
     }
-    
+
     this.gen_commands(draw, commands2, _check_tag, clip_mode);
+    commands2.push(OPCODES.RESTORE);
+
     this._commands = commands2;
   }
   
@@ -952,7 +956,7 @@ export class CanvasDraw2D extends VectorDraw {
   }
 
   draw(g) {
-    if (!!this.do_blur !== this._last_do_blur) {
+    if (!!this.do_blur !== !!this._last_do_blur) {
       this._last_do_blur = !!this.do_blur;
       this.regen = 1;
 

@@ -127,6 +127,34 @@ window.init_redraw_globals = function init_redraw_globals() {
   //for one frame
   window._wait_for_draw = false;
 
+  /** primary a debugging function, destroys all caches and draws*/
+  window.complete_viewport_draw = function(tries=100) {
+    if (animreq !== undefined || !window.g_app_state || !g_app_state.ctx) {
+      if (tris <= 0) {
+        console.log("Failed to execute complete_viewport_draw()!");
+        return;
+      }
+
+      window.setTimeout(() => {
+        window.complete_viewport_draw(tris--);
+      }, 1);
+    }
+
+    let ctx = g_app_state.ctx;
+
+    if (!ctx.frameset) {
+      return;
+    }
+
+    let spline = ctx.frameset.spline;
+    spline.drawer = new SplineDrawer(spline);
+
+    spline = ctx.frameset.pathspline;
+    spline.drawer = new SplineDrawer(spline);
+
+    window.redraw_viewport();
+  }
+
   window.redraw_viewport = function() {
     if (animreq !== undefined) {
       return redraw_viewport_promise;

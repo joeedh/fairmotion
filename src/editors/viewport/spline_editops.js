@@ -1700,6 +1700,34 @@ export class DuplicateOp extends SplineLocalToolOp {
   }
 }
 
+export class SplineFlipSegments extends SplineLocalToolOp {
+  static tooldef() {return {
+    uiname       : "Flip Segments",
+    toolpath     : "spline.flip_segments",
+    description  : "Flip vertex order"
+  }}
+
+  exec(ctx : FullContext) {
+    let spline = ctx.spline;
+
+    for (let s of spline.segments) {
+      spline.flip_segment(s);
+    }
+
+    spline.regen_sort();
+    spline.regen_render();
+    spline.regen_solve();
+
+    spline.force_full_resolve();
+
+    //XXX here for debugging, remove
+    //window.complete_viewport_draw();
+
+    //this next line is the correct one
+    window.redraw_viewport();
+  }
+}
+
 export class SplineMirrorOp extends SplineLocalToolOp {
     constructor() {
       super()

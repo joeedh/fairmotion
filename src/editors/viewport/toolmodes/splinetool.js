@@ -260,6 +260,7 @@ export class SplineToolMode extends ToolMode {
 
   tools_menu(ctx, mpos, view2d) {
     let ops = [
+      "spline.flip_segments()",
       "spline.key_edges()",
       "spline.key_current_frame()",
       "spline.connect_handles()",

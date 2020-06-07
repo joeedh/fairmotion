@@ -569,7 +569,9 @@ export class CanvasPath extends QuadBezPath {
       if (isNaN(arguments[i])) {
         console.warn("NaN!");
       }
-      this.commands.push(arguments[i]);
+
+      let arg = arguments[i];
+      this.commands.push(arg);
     }
     
     this.recalc = 1;

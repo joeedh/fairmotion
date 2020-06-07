@@ -58,7 +58,12 @@ export class TimeDataLayer extends CustomDataLayer {
 
   loadSTRUCT(reader) {
     reader(this);
+    super.loadSTRUCT(reader);
   }
+
+  static define() {return {
+    typeName : "TimeDataLayer"
+  }}
 }
 
 TimeDataLayer.STRUCT = STRUCT.inherit(TimeDataLayer, CustomDataLayer) + `
@@ -67,14 +72,11 @@ TimeDataLayer.STRUCT = STRUCT.inherit(TimeDataLayer, CustomDataLayer) + `
   }
 `;
 
-TimeDataLayer.layerinfo = {
-  type_name : "TimeDataLayer"
-};
 
 export function get_vtime(v) {
   var ret = v.cdata.get_layer(TimeDataLayer);
   
-  if (ret != undefined)
+  if (ret !== undefined)
     return ret.time;
   return -1;
 }

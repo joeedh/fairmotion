@@ -177,7 +177,7 @@ export function simple_tri_aabb_isect(v1, v2, v3, min, max) {
 }
 
 export class MinMax {
-  constructor(int totaxis=1) {
+  constructor(totaxis : int = 1) {
     this.totaxis = totaxis;
     
     //we handle the empty set case by separating the 
@@ -185,7 +185,7 @@ export class MinMax {
     //such that the minmax of the empty set will always
     //be [0, 0];
     
-    if (totaxis != 1) {
+    if (totaxis !== 1) {
       this._min = new Array(totaxis);
       this._max = new Array(totaxis);
       this.min = new Array(totaxis);
@@ -202,8 +202,8 @@ export class MinMax {
     this._static_mr_cs = new Array(this.totaxis*this.totaxis);
   }
   
-  load(MinMax mm) {
-    if (this.totaxis == 1) {
+  load(mm : MinMax) {
+    if (this.totaxis === 1) {
       this.min = mm.min; this.max = mm.max;
       this._min = mm.min; this._max = mm.max;
     } else {
@@ -217,7 +217,7 @@ export class MinMax {
   reset() {
     var totaxis = this.totaxis;
     
-    if (totaxis == 1) {
+    if (totaxis === 1) {
       this.min = this.max = 0;
       this._min = FLOAT_MAX;
       this._max = FLOAT_MIN;
@@ -231,17 +231,17 @@ export class MinMax {
     }
   }
   
-  minmax_rect(Array<float> p, Array<float> size) {
+  minmax_rect(p : Array<float>, size : Array<float>) {
     var totaxis = this.totaxis;
     
     var cs = this._static_mr_cs;
     
-    if (totaxis == 2) {
+    if (totaxis === 2) {
       cs[0] = p;
       cs[1] = [p[0]+size[0], p[1]]
       cs[2] = [p[0]+size[0], p[1]+size[1]]
       cs[3] = [p[0], p[1]+size[1]]
-    } else if (totaxis = 3) {
+    } else if (totaxis === 3) {
       cs[0] = p;
       cs[1] = [p[0]+size[0], p[1], p[2] ];
       cs[2] = [p[0]+size[0], p[1]+size[1], p[2] ];
@@ -260,10 +260,10 @@ export class MinMax {
     }
   }
   
-  minmax(Array<float> p) {
+  minmax(p : Array<float>) {
     var totaxis = this.totaxis
     
-    if (totaxis == 1) {
+    if (totaxis === 1) {
       this._min = this.min = Math.min(this._min, p);
       this._max = this.max = Math.max(this._max, p);
     } else {
@@ -274,7 +274,7 @@ export class MinMax {
     }
   }
   
-  static fromSTRUCT(reader) {
+  static fromSTRUCT(reader : function) {
     var ret = new MinMax();
     
     reader(ret);
@@ -294,19 +294,14 @@ MinMax.STRUCT = `
 `;
 
 export function winding(a, b, c) {
-    for (var i=0; i<a.length; i++) {
-      _cross_vec1[i] = b[i] - a[i];
-      _cross_vec2[i] = c[i] - a[i];
-    }
-    
-    if (a.length == 2) {
-      _cross_vec1[2] = 0.0;
-      _cross_vec2[2] = 0.0;
-    }
-    
-    _cross_vec1.cross(_cross_vec2);
-    
-    return _cross_vec1[2] > 0.0;
+  let dx1 = a[0]-b[0];
+  let dy1 = a[1]-b[1];
+
+  let dx2 = c[0]-b[0];
+  let dy2 = c[1]-b[1];
+
+  let r = dx1*dy2 - dy1*dx2;
+  return r >= 0.0;
 }
 
 //this specifically returns true in the case where two rectangles
@@ -453,7 +448,7 @@ function colinear(a, b, c) {
 var _llc_l1 = [new Vector3(), new Vector3()]
 var _llc_l2 = [new Vector3(), new Vector3()]
 
-function line_line_cross(l1, l2) {
+export function line_line_cross(l1, l2) {
     //if (margin == undefined) margin = 0;
     
     /*var l1 = [new Vector3(l1[0]), new Vector3(l1[1])];
@@ -506,6 +501,18 @@ function line_line_cross(l1, l2) {
     return (w1 == w2) && (w3 == w4) && (w1 != w3);
 }
 
+let _llc4_1 = [new Vector2(), new Vector2()];
+let _llc4_2 = [new Vector2(), new Vector2()];
+
+export function line_line_cross4(v1 : Vector2, v2 : Vector2, v3 : Vector2, v4 : Vector2) : boolean {
+  _llc4_1[0].load(v1);
+  _llc4_1[1].load(v2);
+  _llc4_2[0].load(v3);
+  _llc4_2[1].load(v4);
+
+  return line_line_cross(_llc4_1, _llc4_2);
+}
+
 export function point_in_tri(p, v1, v2, v3) {
     var w1 = winding(p, v1, v2);
     var w2 = winding(p, v2, v3);
@@ -554,23 +561,25 @@ export function normal_quad(v1, v2, v3, v4) {
   return n2;
 }
 
+var lis_rets3 = cachering.fromConstructor(Vector3, 64);
+var lis_rets2 = cachering.fromConstructor(Vector2, 64);
+
 var _li_vi = new Vector3()
 export function line_isect(v1 : Vector3, v2 : Vector3, v3 : Vector3, v4 : Vector3, calc_t : boolean) {  //calc_t is optional, defaults to false
-  if (calc_t == undefined) {
+  if (calc_t === undefined) {
     calc_t = false;
   }
   
   //code may be copyright tainted; replace
   var div = (v2[0] - v1[0]) * (v4[1] - v3[1]) - (v2[1] - v1[1]) * (v4[0] - v3[0]);
-  if (div == 0.0) return [new Vector3(), COLINEAR, 0.0];
+  if (div === 0.0) return [new Vector3(), COLINEAR, 0.0];
   
-  var vi = _li_vi;
-  vi[0] = 0; vi[1] = 0; vi[2] = 0;    
+  var vi = v1.length === 3 ? lis_rets3.next().zero() : lis_rets2.next().zero();
   
   vi[0] = ((v3[0] - v4[0]) * (v1[0] * v2[1] - v1[1] * v2[0]) - (v1[0] - v2[0]) * (v3[0] * v4[1] - v3[1] * v4[0])) / div;
   vi[1] = ((v3[1] - v4[1]) * (v1[0] * v2[1] - v1[1] * v2[0]) - (v1[1] - v2[1]) * (v3[0] * v4[1] - v3[1] * v4[0])) / div;
   
-  if (calc_t || v1.length == 3) {
+  if (calc_t || v1.length === 3) {
     var n1 = new Vector2(v2).sub(v1);
     var n2 = new Vector2(vi).sub(v1);
     

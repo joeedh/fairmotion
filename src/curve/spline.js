@@ -1186,7 +1186,18 @@ export class Spline extends DataBlock {
     this.segments.push(seg, __eid);
     return seg;
   }
-  
+
+  flip_segment(seg) {
+    let v = seg.v1;
+    let t = seg.v1; seg.v1 = seg.v2; seg.v2 = t;
+
+    t = seg.h1; seg.h1 = seg.h2; seg.h2 = t;
+    t = seg.w1; seg.w1 = seg.w2; seg.w2 = t;
+    t = seg.shift1; seg.shift1 = seg.shift2; seg.shift2 = t;
+
+    return this;
+  }
+
   _radial_loop_insert(l : SplineLoop) {
     if (l.s.l === undefined) {
       l.radial_next = l.radial_prev = l;

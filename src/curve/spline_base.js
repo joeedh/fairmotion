@@ -60,6 +60,18 @@ export var ClosestModes = {
   ALL     : 3
 };
 
+export class empty_class {
+  static fromSTRUCT(reader : function) {
+    var ret = new empty_class();
+    reader(ret);
+    return ret;
+  }
+}
+empty_class.STRUCT = `
+  empty_class {
+  }
+`
+
 export class CustomDataLayer {
   constructor() {
     this.shared = undefined;
@@ -79,39 +91,39 @@ export class CustomDataLayer {
   
   copy(src) {
   }
-  
-  static fromSTRUCT(reader : function) {
-    var obj = new CustomDataLayer();
-    
-    reader(obj);
-    
-    return obj;
+
+  loadSTRUCT(reader) {
+    reader(this);
   }
-  
+
   curve_effect(owner) {
   }
-}
 
-export class empty_class {
-  static fromSTRUCT(reader : function) {
-    var ret = new empty_class();
-    reader(ret);
-    return ret;
+  static define() {return {
+    typeName         : undefined, //string
+    hasCurveEffect : false,
+    sharedClass     : empty_class
+  }}
+
+  static _getDef() {
+    if (this.__define && this.__define.clsname === this.name) {
+      return this.__define;
+    }
+
+    if (this.define === super.define) {
+      throw new Error("define() for customdatalayer doesn't exist!!!");
+    }
+
+    let def = this.define();
+    def.clsname = this.name;
+
+    if (!def.sharedClass)
+      def.sharedClass = empty_class;
+
+    this.__define = def;
+    return def;
   }
 }
-empty_class.STRUCT = `
-  empty_class {
-  }
-`
-
-CustomDataLayer.layerinfo = {
-  type_name : "(bad type name)",
-  has_curve_effect : false,
-  
-  //global class, one instance is shared by all elements of same geometric 
-  //type using this customdata layer
-  shared_class : empty_class
-};
 
 CustomDataLayer.STRUCT = `
   CustomDataLayer {
@@ -145,23 +157,23 @@ export class CustomData {
     }
   }
   
-  add_layer(cls : LayerTypeClass, name : String) {
+  add_layer(cls : LayerTypeClass, name : string = cls._getDef().typeName) {
     var templ = cls
     
-    var i = this.get_layer(templ.layerinfo.type_name);
-    if (i != undefined) {
-      var n = this.num_layers(templ.layerinfo.type_name);
+    var i = this.get_layer(templ._getDef().typeName);
+    if (i !== undefined) {
+      var n = this.num_layers(templ._getDef().typeName);
       i += n;
       
       this.layers.insert(i, templ);
     } else {
       i = this.layers.length;
       
-      this.startmap[templ.layerinfo.type_name] = i;
+      this.startmap[templ._getDef().typeName] = i;
       this.layers.push(templ);
     }
     
-    var scls = templ.layerinfo.shared_class;
+    var scls = templ._getDef().sharedClass;
     scls = scls == undefined ? empty_class : scls;
     var shared = new scls;
 
@@ -171,7 +183,7 @@ export class CustomData {
       e.cdata.on_add(templ, i, shared);
     }
     
-    if (this.callbacks.on_add != undefined)
+    if (this.callbacks.on_add !== undefined)
       this.callbacks.on_add(templ, i, shared);
   }
   
@@ -198,18 +210,21 @@ export class CustomData {
     
     return this.startmap[type]+i;
   }
+
+  has_layer(type : string) {
+    return type in this.startmap;
+  }
   
-  get_layer(type : string, i) {
-    if (i == undefined) i = 0;
-    
+  get_layer(type : string, i : number =0) {
+
     return this.layers[this.startmap[type]+i];
   }
   
   num_layers(type : int) {
     var i = this.get_layer_i(type, 0);
-    if (i == undefined || i == -1) return 0;
+    if (i === undefined || i === -1) return 0;
     
-    while (i < this.layers.length && this.layers[i++].type == type);
+    while (i < this.layers.length && this.layers[i++].type === type);
     
     return i;
   }
@@ -222,18 +237,18 @@ export class CustomData {
       this.layers[i] = this.layers[i].constructor;
       var l = this.layers[i];
       
-      var typename = l.layerinfo.type_name;
+      var typename = l._getDef().typeName;
       if (!(typename in this.startmap)) {
         this.startmap[typename] = i;
       }
     }
     
-    if (this.shared_data.length != this.layers.length) {
+    if (this.shared_data.length !== this.layers.length) {
       for (var i=0; i<this.layers.length; i++) {
         var layer = this.layers[i];
         
-        var scls = layer.layerinfo.shared_class;
-        scls = scls == undefined ? empty_class : scls;
+        var scls = layer._getDef().sharedClass;
+        scls = scls === undefined ? empty_class : scls;
         var shared = new scls;
         
         if (this.shared_data.length > i)
@@ -277,7 +292,7 @@ export class CustomDataSet extends Array<CustomDataLayer> {
   
   get_layer(cls) {
     for (var i=0; i<this.length; i++) {
-      if (this[i].constructor === cls) //.layerinfo.type_name == type_name)
+      if (this[i].constructor === cls) //._getDef().typeName == type_name)
         return this[i];
     }
   }

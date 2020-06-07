@@ -38,6 +38,9 @@ import {
   eval_curve, spiraltheta, spiralcurvature, spiralcurvature_dv
 } from './spline_math.js';
 
+let eval_ret_vs = cachering.fromConstructor(Vector2, 512);
+let evaluateSide_rets = cachering.fromConstructor(Vector2, 512);
+
 export class SplineVertex extends SplineElement {
   flag : boolean
   eid : number
@@ -120,6 +123,10 @@ export class SplineVertex extends SplineElement {
   get shift() {
     if (!this.segments) return;
 
+    if (this.segments.length > 2) {
+      return 0.0;
+    }
+
     let tot = 0.0;
     let sum = 0.0;
 
@@ -148,7 +155,7 @@ export class SplineVertex extends SplineElement {
   }
 
   set shift(w) {
-    if (!this.segments) return;
+    if (!this.segments || this.segments.length > 2) return;
 
     let tot = 0.0;
     let sum = 0.0;
@@ -568,7 +575,7 @@ export class SplineSegment extends SplineElement {
     min[2] = max[2] = 0.0; //XXX need to get rid of z
   }
   
-  closest_point(p, mode, fast=false) {
+  closest_point(p : Vector2, mode : ClosestModes, fast : boolean=false) {
     var minret = undefined, mindis = 1e18, maxdis=0;
     
     var p2 = closest_point_cache_vs.next().zero();
@@ -577,14 +584,14 @@ export class SplineSegment extends SplineElement {
     }
     p = p2;
     
-    if (mode == undefined) mode = 0;
+    if (mode === undefined) mode = 0;
     var steps=5, s = 0, ds = 1.0/(steps);
     
     var n = closest_point_cache_vs.next();
     var n1 = closest_point_cache_vs.next(), n2 = closest_point_cache_vs.next();
     var n3 = closest_point_cache_vs.next(), n4 = closest_point_cache_vs.next();
     
-    if (mode == ClosestModes.ALL)
+    if (mode === ClosestModes.ALL)
       minret = [];
     
     for (var i=0; i<steps; i++, s += ds) {
@@ -605,14 +612,18 @@ export class SplineSegment extends SplineElement {
         var co = this.evaluate(mid, undefined, undefined, undefined, true);
         var sco = this.evaluate(start, undefined, undefined, undefined, true);
         var eco = this.evaluate(end, undefined, undefined, undefined, true);
-        
+
+        sco[2] = eco[2] = co[2] = 0.0;
+
         var d1 = this.normal(start, true).normalize();
         var d2 = this.normal(end, true).normalize();
         var dm = this.normal(mid, true).normalize();
         
         n1.load(sco).sub(p).normalize();
         n2.load(eco).sub(p).normalize();
-        n.load(co).sub(p).normalize();
+        n.load(co).sub(p);
+        n[2] = 0.0;
+        n.normalize();
 
         if (n1.dot(d1) < 0.0) d1.negate();
         if (n2.dot(d2) < 0.0) d2.negate();
@@ -630,22 +641,32 @@ export class SplineSegment extends SplineElement {
         var wm = n.cross(dm)[2] < 0.0;
         
         if (isNaN(mang)) {
-          console.warn("NaN!", p, co, mid, dm);
+          if (!window.__adssad)
+            window.__adssad = 0;
+
+          if (time_ms() - window.__adssad > 500) {
+            console.warn("NaN!", p, co, mid, dm, n, mang);
+            window.__adssad = time_ms();
+
+            mang = 0.0;
+            n.zero();
+          }
+          //throw new Error("NaN!");
         }
         
-        if (j == 0 && w1 == w2) {
+        if (j === 0 && w1 === w2) {
           bad = true;
           break
-        } else if (w1 == w2) {
+        } else if (w1 === w2) {
           //break;
         }
 
-        if (w1 == w2) {
+        if (w1 === w2) {
           //var dis1 = sco.vectorDistance(p), dis2 = eco.vectorDistance(p), dism = co.vectorDistance(p);
           var dis1, dis2;
           
           dis1 = ang1, dis2 = ang2;
-          //console.log("w1==w2", w1, w2, dis1.toFixed(4), dis2.toFixed(4), dism.toFixed(4));
+          //console.log("w1===w2", w1, w2, dis1.toFixed(4), dis2.toFixed(4), dism.toFixed(4));
           
           if (dis2 < dis1) {
             start = mid;
@@ -654,7 +675,7 @@ export class SplineSegment extends SplineElement {
           } else {
             break;
           }
-        } else if (wm == w1) {
+        } else if (wm === w1) {
           start = mid;
         } else {
           end = mid;
@@ -677,32 +698,32 @@ export class SplineSegment extends SplineElement {
       if (angle > angle_limit)
         continue;
       
-      if (mode != ClosestModes.ALL && minret == undefined) {
-        var minret = closest_point_ret_cache.next();
+      if (mode !== ClosestModes.ALL && minret === undefined) {
+        minret = closest_point_ret_cache.next();
         minret[0] = minret[1] = undefined;
       }
       
       //did we come up empty?
       var dis = co.vectorDistance(p);
-      if (mode == ClosestModes.CLOSEST) {
+      if (mode === ClosestModes.CLOSEST) {
         if (dis < mindis) {
           minret[0] = closest_point_cache_vs.next().load(co);
           minret[1] = mid;
           mindis = dis;
         }
-      } else if (mode == ClosestModes.START) {
+      } else if (mode === ClosestModes.START) {
         if (mid < mindis) {
           minret[0] = closest_point_cache_vs.next().load(co);
           minret[1] = mid;
           mindis = mid;
         }
-      } else if (mode == ClosestModes.END) {
+      } else if (mode === ClosestModes.END) {
         if (mid > maxdis) {
           minret[0] = closest_point_cache_vs.next().load(co);
           minret[1] = mid;
           maxdis = mid;
         }
-      } else if (mode == ClosestModes.ALL) {
+      } else if (mode === ClosestModes.ALL) {
         var ret = closest_point_ret_cache.next();
         ret[0] = closest_point_cache_vs.next().load(co);
         ret[1] = mid;
@@ -711,17 +732,17 @@ export class SplineSegment extends SplineElement {
       }
     }
     
-    if (minret == undefined && mode == ClosestModes.CLOSEST) {
+    if (minret === undefined && mode === ClosestModes.CLOSEST) {
       var dis1 = this.v1.vectorDistance(p), dis2 = this.v2.vectorDistance(p);
       
       minret = closest_point_ret_cache.next();
       minret[0] = closest_point_cache_vs.next().load(dis1 < dis2 ? this.v1 : this.v2);
       minret[1] = dis1 < dis2 ? 0.0 : 1.0;
-    } else if (minret == undefined && mode == ClosestModes.START) {
+    } else if (minret === undefined && mode === ClosestModes.START) {
       minret = closest_point_ret_cache.next();
       minret[0] = closest_point_cache_vs.next().load(this.v1);
       minret[1] = 0.0;
-    } if (minret == undefined && mode == ClosestModes.END) {
+    } if (minret === undefined && mode === ClosestModes.END) {
       minret = closest_point_ret_cache.next();
       minret[0] = closest_point_cache_vs.next().load(this.v2);
       minret[1] = 1.0;
@@ -922,10 +943,54 @@ export class SplineSegment extends SplineElement {
     ret.add(tan);
     return ret;
   }
-  
-  evaluate(s, order, override_scale, no_update, no_effects=!ENABLE_MULTIRES) {
+
+  evaluateSide(s, side=0, dv_out, normal_out, lw_dlw_out) {
+    side = -(side*2.0 - 1.0);
+
+    let co = evaluateSide_rets.next().load(this.evaluate(s));
+
+    let dv = this.derivative(s);
+    let shift = this.shift(s);
+    let dshift = this.dshift(s);
+
+    let lw = this.width(s)*side;
+    let dlw = this.dwidth(s)*side;
+
+    dlw = dlw*shift + dlw + dshift*lw;
+    lw = lw + lw*shift;
+
+    let dx = -dv[1]*lw*0.5/this.length;
+    let dy = dv[0]*lw*0.5/this.length;
+
+    if (normal_out) {
+      normal_out[0] = dx;
+      normal_out[1] = dy;
+    }
+
+    if (lw_dlw_out) {
+      lw_dlw_out[0] = lw;
+      lw_dlw_out[1] = dlw;
+    }
+
+    if (dv_out) {
+      let seglen = this.length;
+
+      let k = -seglen*this.curvature(s);
+      let dx2 = (-0.5*(dlw*dv[1] + dv[0]*k*lw - 2*dv[0]*seglen)) / seglen;
+      let dy2 = ( 0.5*(dlw*dv[0] - dv[1]*k*lw + 2*dv[1]*seglen)) / seglen;
+      dv_out[0] = dx2;
+      dv_out[1] = dy2;
+    }
+
+    co[0] += dx;
+    co[1] += dy;
+
+    return co;
+  }
+
+  evaluate(s : number, order, override_scale, no_update, no_effects=!ENABLE_MULTIRES) : Vector2 {
     if (no_effects) {
-      if (order == undefined) order = ORDER;
+      if (order === undefined) order = ORDER;
       
       //check if scale is invalid
       //if (this.ks[KSCALE] == undefined || this.ks[KSCALE] == 0)
@@ -938,13 +1003,13 @@ export class SplineSegment extends SplineElement {
       var co = eval_curve(s, this.v1, this.v2, this.ks, order, undefined, no_update);
       //var co = new Vector3(this.v2).sub(this.v1).mulScalar(t).add(this.v1);
       
-      return co;
+      return eval_ret_vs.next().load(co);
     } else {
       var wrap = this._evalwrap;
       var last = wrap;
       
       for (var i=0; i<this.cdata.length; i++) {
-        if (this.cdata[i].constructor.layerinfo.has_curve_effect) {
+        if (this.cdata[i].constructor._getDef().hasCurveEffect) {
           var eff = this.cdata[i].curve_effect(this);
           eff.set_parent(last);
           
@@ -952,7 +1017,7 @@ export class SplineSegment extends SplineElement {
         }
       }
       
-      return last.evaluate(s);
+      return eval_ret_vs.next().load(last.evaluate(s));
     }
   }
   

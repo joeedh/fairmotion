@@ -717,15 +717,18 @@ export class MultiResLayer extends CustomDataLayer {
       
     }
   }
-  
-  static fromSTRUCT(reader) {
-    var ret = STRUCT.chain_fromSTRUCT(MultiResLayer, reader);
-    
-    //if (isNaN(ret.max_layers))
-      ret.max_layers = 8;
-    
-    return ret;
+
+  loadSTRUCT(reader) {
+    reader(this);
+    super.loadSTRUCT(this);
+    ret.max_layers = 8;
   }
+
+  static define() {return {
+    typeName : "MultiResLayer",
+    hasCurveEffect : true,
+    sharedClass : MultiResGlobal
+  }}
 }
 
 MultiResLayer.STRUCT = STRUCT.inherit(MultiResLayer, CustomDataLayer) + `
@@ -737,11 +740,11 @@ MultiResLayer.STRUCT = STRUCT.inherit(MultiResLayer, CustomDataLayer) + `
     _size           : int;
   }
 `;
-MultiResLayer.layerinfo = {
+/*MultiResLayer.layerinfo = {
   type_name : "MultiResLayer",
   has_curve_effect : true,
   shared_class  : MultiResGlobal
-};
+};*/
 
 export function test_fix_points() { 
   var spline = new Context().spline;

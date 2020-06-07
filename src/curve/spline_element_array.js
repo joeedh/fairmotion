@@ -658,7 +658,7 @@ export class SelectedEditableAllLayersIter {
       }
     } while (!good);
 
-    if (good == false) {
+    if (good === false) {
       this.ret.done = true;
       this.ret.value = undefined;
       this.iter = undefined;
@@ -696,10 +696,11 @@ export class ElementArray<T> extends Array<T> {
   cdata : CustomData
   local_idmap : Object
   select_listeners : EventDispatcher
-  selected : ElementArraySet<T>;
-  spline : Spline;
-  active : T;
-  highlight : T;
+  selected : ElementArraySet<T>
+  spline : Spline
+  active : T
+  highlight : T
+  layerset : SplineLayerSet;
 
   constructor(type : number, idgen, idmap, global_sel, layerset, spline : Spline) {
     super();
@@ -745,6 +746,34 @@ export class ElementArray<T> extends Array<T> {
     return new EditableIter(this, this.layerset, ctx.edit_all_layers);
   }
 
+  get visible() {
+    let this2 = this;
+
+    return (function*() {
+      let layerset = this2.layerset;
+
+      for (let e of this2) {
+        let bad = e.flag & (SplineFlags.HIDE | SplineFlags.NO_RENDER);
+        let ok = false;
+        let found = false;
+
+        for (let k in e.layers) {
+          found = true;
+
+          let l = layerset.idmap[k];
+          if (!(l.flag & SplineLayerFlags.HIDE)) {
+            ok = true;
+          }
+        }
+
+        if (ok || !found) {
+          yield e;
+        }
+      }
+    })();
+  }
+
+
   dag_get_datapath() {
     var tname;
     switch (this.type) {
@@ -773,7 +802,7 @@ export class ElementArray<T> extends Array<T> {
     var name = "drawspline";
     
     for (var i=0; i<this.cdata.layers.length; i++) {
-      if (this.cdata.layers[i].name == "TimeDataLayer")
+      if (this.cdata.layers[i].name === "TimeDataLayer")
         name = "pathspline";
     }
     
@@ -1009,7 +1038,7 @@ export class ElementArray<T> extends Array<T> {
     for (var e of this) {
       this.local_idmap[e.eid] = e;
       
-      if (e.cdata == undefined) {
+      if (e.cdata === undefined) {
         e.cdata = this.cdata.gen_edata();
       }
     }

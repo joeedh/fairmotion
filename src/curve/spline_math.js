@@ -61,10 +61,10 @@ var eval_curve_vs = cachering.fromConstructor(Vector3, 64);
 //XXX
 //export var eval_curve = math.eval_curve_fast;
 
-var _eval_start = eval_curve_vs.next();
+var eval_ret_vs = cachering.fromConstructor(Vector2, 256);
+
 export function eval_curve(s, v1, v2, ks, order, angle_only, no_update) {
-  var start = _eval_start;
-  if (order == undefined) order = ORDER;
+  if (order === undefined) order = ORDER;
   
   s *= 0.99999999;
   
@@ -104,6 +104,6 @@ export function eval_curve(s, v1, v2, ks, order, angle_only, no_update) {
     var co = approx(s, ks, order);
     co.sub(start).rot2d(-ang).mulScalar(scale).add(v1);
     
-    return co;
+    return eval_ret_vs.next().load(co);
   }
 };

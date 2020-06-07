@@ -233,6 +233,7 @@ export class PathUXInterface extends ModelInterface {
         try {
           tool = this.createTool(ctx, path_or_toolop, inputs, constructor_argument);
         } catch (error) {
+          print_stack(error);
           reject(error);
           return;
         }
@@ -242,7 +243,12 @@ export class PathUXInterface extends ModelInterface {
       accept(tool);
 
       //execute
-      g_app_state.toolstack.execTool(ctx, tool);
+      try {
+        g_app_state.toolstack.execTool(ctx, tool);
+      } catch (error) {
+        console.warn("Error executing tool");
+        print_stack(error);
+      }
     });
   }
 

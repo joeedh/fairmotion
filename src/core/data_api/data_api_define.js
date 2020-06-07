@@ -451,6 +451,8 @@ function api_define_material() {
   
   var linewidth = new FloatProperty(1, "linewidth", "linewidth", "Line Width");
   linewidth.range = [0.1, 200];
+  linewidth.expRate = 1.75;
+  linewidth.step = 0.25;
   
   fillclr.update = strokeclr.update = linewidth.update = blur.update = update_base;
   
@@ -516,7 +518,7 @@ function api_define_spline_vertex() {
     window.redraw_viewport();
   }
 
-  shift.setRange(-1.0, 1.0);
+  shift.setRange(-2.0, 2.0);
   shift.update = function(vert) {
     vert.flag |= SplineFlags.REDRAW;
 

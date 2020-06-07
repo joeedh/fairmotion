@@ -36,6 +36,8 @@ import {
   Canvas, Path, VectorFlags
 } from '../vectordraw/vectordraw.js';
 
+window.FANCY_JOINS = true;
+
 //XXX
 //import * as vectordraw from 'vectordraw';
 //var VectorDraw = vectordraw.Canvas;
@@ -126,6 +128,8 @@ export class SplineDrawData extends CustomDataLayer {
   }}
 }
 SplineDrawData.STRUCT = nstructjs.inherit(SplineDrawData, CustomDataLayer) + `
+  start : float;
+  end   : float;
 }
 `;
 
@@ -333,6 +337,10 @@ export class SplineDrawer {
         this.drawer.remove(path);
       }
     }
+
+    for (let v of vset) {
+      v.flag &= ~SplineFlags.REDRAW;
+    }
   }
   
   get_path(id, z, check_z=true) {
@@ -356,7 +364,7 @@ export class SplineDrawer {
   }
 
   update_vertex_strokes(v : SplineVertex, drawparams) {
-    if (v.segments.length === 0) {
+    if (v.segments.length === 0 || !FANCY_JOINS) {
       return;
     }
 
@@ -581,7 +589,7 @@ export class SplineDrawer {
 
     var eid = seg.eid;
 
-    let debug = 1;
+    let debug = 0;
     let dpath, dpath2, dpath3, dpoint, dline;
 
     if (debug) {
@@ -656,7 +664,7 @@ export class SplineDrawer {
     
     var l = seg.ks[KSCALE] * zoom;
     let add = (Math.sqrt(l) / 5);
-    var steps = 3 + ~~add;
+    var steps = 5 + ~~add;
     
     //console.log("STEPS", "l", l, "add", add, "steps", steps);
     var ds = 1.0 / (steps - 1), s = 0.0;
@@ -738,6 +746,12 @@ export class SplineDrawer {
     let lwout = new Vector2();
 
     for (let vi=0; vi<2; vi++) {
+      let v = vi ? seg.v2 : seg.v1;
+
+      if (!FANCY_JOINS || !((v.flag & SplineFlags.BREAK_TANGENTS) || v.segments.length > 2)) {
+        continue;
+      }
+
       let t0 = new Vector2();
       let t1 = new Vector2();
       let t2 = new Vector2();
@@ -748,13 +762,7 @@ export class SplineDrawer {
       let d1b = new Vector2();
       let d2b = new Vector2();
 
-      let v = vi ? seg.v2 : seg.v1;
-
       let first = true;
-
-      if (!((v.flag & SplineFlags.BREAK_TANGENTS) || v.segments.length > 2)) {
-        continue;
-      }
 
       let fx = 0, fy = 0, lx=0, ly=0;
       lx=0;
@@ -1155,13 +1163,18 @@ export class SplineDrawer {
     path.reset();
     path.blur = f.mat.blur * (this.do_blur ? 1 : 0);
     { //XXX fixme, path.color wasn't a vector4 but an array, so .load didn't work
-      let c1 = path.color[0];
+      let c1 = path.color;
       let c2 = f.mat.fillcolor;
 
-      c1[0] = c2[0];
-      c1[1] = c2[1];
-      c1[2] = c2[2];
-      c1[3] = c2[3];
+      if (c2 === undefined) {
+        f.mat.fillcolor = c2 = new Vector4([0,0,0,1]);
+      }
+      if (c1 && c2) {
+        c1[0] = c2[0];
+        c1[1] = c2[1];
+        c1[2] = c2[2];
+        c1[3] = c2[3];
+      }
     }
 
     //g.lineWidth = 8;//*zoom;

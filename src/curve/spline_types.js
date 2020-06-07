@@ -123,7 +123,7 @@ export class SplineVertex extends SplineElement {
   get shift() {
     if (!this.segments) return;
 
-    if (this.segments.length > 2) {
+    if (this.segments.length !== 2) {
       return 0.0;
     }
 
@@ -155,7 +155,7 @@ export class SplineVertex extends SplineElement {
   }
 
   set shift(w) {
-    if (!this.segments || this.segments.length > 2) return;
+    if (!this.segments || this.segments.length !== 2) return;
 
     let tot = 0.0;
     let sum = 0.0;
@@ -500,8 +500,37 @@ export class SplineSegment extends SplineElement {
     return (b - a) / (2.0*df);
   }
 
+  /*
+  on factor;
+  off period;
+
+  fp := k1 + k2*s + k3*s*s + k4*s*s*s + k5*s**4 + k6*s**5;
+
+  f1 := sub(s=0, fp);
+  f2 := sub(s=1, fp) - 1.0;
+  f3 := sub(s=0, df(fp, s));
+  f4 := sub(s=1, df(fp, s));
+  f5 := sub(s=0, df(fp, s, 2));
+  f6 := sub(s=1, df(fp, s, 2));
+
+  ff := solve({f1, f2, f3, f4, f5, f6}, {k1, k2, k3, k4, k5, k6});
+
+  f := 10*s**3 - 15*s**4 + 6*s**5;
+  **/
+
+  widthFunction(s) {
+    //if (window.dd === 1) {
+    s = (6 * s ** 2 - 15 * s + 10) * s ** 3; //degree 5 smoothstep
+
+    //} else if (window.dd !== 2) {
+    //  s = s*s*(3.0 - 2.0*s); //degree 3 smoothstep
+    //}
+
+    return s;
+  }
+
   width(s) {
-    s = s*s*(3.0 - 2.0*s);
+    s = this.widthFunction(s);
 
     let wid1 = this.mat.linewidth;
     let wid2 = this.mat.linewidth;

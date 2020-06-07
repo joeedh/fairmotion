@@ -440,7 +440,7 @@ export class Spline extends DataBlock {
       this.setselect(dst, false);
     }
 
-    dst.cdata.copy(src);
+    dst.cdata.copy(src.cdata);
     dst.flag = src.flag;
 
     if (dst.flag & SplineFlags.SELECT) {
@@ -534,9 +534,9 @@ export class Spline extends DataBlock {
     var v1 = seg.v1, v2 = seg.v2;
     var nseg = this.make_segment(nv, seg.v2); //XXX, this.idgen.gen_id(seg.eid, 1));
 
-    let w1 = seg.w1 + (seg.w2 - seg.w1)*(s*s*(3.0 - 2.0*s));
+    let w1 = seg.w1 + (seg.w2 - seg.w1)*s//seg.widthFunction(s);
     let w2 = seg.w2;
-    let shift1 = seg.shift1 + (seg.shift2 - seg.shift1)*(s*s*(3.0 - 2.0*s));
+    let shift1 = seg.shift1 + (seg.shift2 - seg.shift1)*s//seg.widthFunction(s);
     let shift2 = seg.shift2;
 
     seg.w2 = w1;

@@ -329,7 +329,7 @@ export class CustomDataSet extends Array<CustomDataLayer> {
   
   copy(src : CustomDataSet) {
     for (var i=0; i<this.length; i++) {
-      this[i].copy(src[i]);
+      this[i].copy(src);
     }
   }
 

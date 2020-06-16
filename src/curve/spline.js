@@ -125,6 +125,11 @@ ret : Object;
 
 import {RecalcFlags} from './spline_types.js';
 
+let debug_id_gen = 0;
+let _se_ws = [0.5, 0.5];
+let _se_srcs = [0, 0];
+let _trace_face_lastco = new Vector3();
+
 export class Spline extends DataBlock {
   _vert_add_set : set
   _vert_rem_set : set
@@ -137,6 +142,7 @@ export class Spline extends DataBlock {
   frame : number
   rendermat : Matrix4
   _idgen : SDIDGen
+  strokeGroupIdgen : SDIDGen
   proportional : boolean
   prop_radius : number
   eidmap : Object
@@ -151,6 +157,10 @@ export class Spline extends DataBlock {
   segments : ElementArray<SplineSegment>
   loops : ElementArray<SplineLoop>
   face : ElementArray<SplineFace>
+  strokeGroups : Array<SplineStrokeGroup>
+  _strokeGroupMap : Map<int, SplineStrokeGroup>
+  drawStrokeGroups : Array<SplineStrokeGroup>
+  _drawStrokeGroupMap : Map<int, SplineStrokeGroup>
   draw_normals : boolean;
 
   constructor(name : string=undefined) {
@@ -158,12 +168,27 @@ export class Spline extends DataBlock {
 
     this.updateGen = 0;
 
+    /**
+    strings of 2-valence strokes.  we deliberately cache
+    instances of SplineStrokeGroups with the same set of SplineSegments,
+    so draw code can attach various bits of draw state.
+    */
+    this.strokeGroups = [];
+    this._strokeGroupMap = new Map();
+
+    //this.strokeGroups broken up according to color/material settings
+    //this is a seperate property because we'll need the originall groups
+    //for topological queries
+    //
+    //also, drawStrokeGroups is not saved in faces, unlike strokeGroups which is
+    this.drawStrokeGroups = [];
+    this._drawStrokeGroupMap = new Map();
+
     //used for eventdag.  stores eids.
     this._vert_add_set = new set();
     this._vert_rem_set = new set();
     this._vert_time_set = new set();
 
-    static debug_id_gen=0;
     this._debug_id = debug_id_gen++;
 
     this._pending_solve = undefined;
@@ -197,6 +222,7 @@ export class Spline extends DataBlock {
     this.handles = [];
 
     this._idgen = new SDIDGen();
+    this.strokeGroupIdgen = new SDIDGen();
 
     this.last_save_time = time_ms();
     this.proportional = false;
@@ -322,6 +348,7 @@ export class Spline extends DataBlock {
 
     ret.idgen = this.idgen.copy();
     ret.layerset = this.layerset.copyStructure();
+    ret.strokeGroupIdgen = this.strokeGroupIdgen.copy();
 
     for (var i=0; i<ret.elists.length; i++) {
       ret.elists[i].idgen = ret.idgen;
@@ -515,8 +542,8 @@ export class Spline extends DataBlock {
   split_edge(seg : SplineSegment, s : number=0.5) : Array<SplineElement> {
     var co = seg.evaluate(s);
 
-    static ws = [0.5, 0.5];
-    static srcs = [0, 0];
+    let ws = _se_ws;
+    let srcs = _se_srcs;
 
     var hpair = seg.h2.hpair;
     if (hpair !== undefined) {
@@ -1852,7 +1879,8 @@ export class Spline extends DataBlock {
   trace_face(g : CanvasRenderingContext2D, f : SplineFace) {
     g.beginPath();
     
-    static lastco = new Vector3();
+    let lastco = _trace_face_lastco;
+
     lastco.zero();
     
     for (var path of f.paths) {
@@ -2117,8 +2145,12 @@ export class Spline extends DataBlock {
   
   reset() {
     this.idgen = new SDIDGen();
-    
+    this.strokeGroupIdgen = new SDIDGen();
+
+    this.strokeGroups = [];
+    this._strokeGroupMap = new Map();
     this.init_elists();
+    this.updateGen++;
   }
   
   import_json(obj : Object) {
@@ -2157,7 +2189,12 @@ export class Spline extends DataBlock {
     
     this.resolve = 1;
   }
-  
+
+  redoSegGroups() {
+    buildSegmentGroups(this);
+    splitSegmentGroups(this);
+  }
+
   static fromJSON(obj : Object) {
     var spline = new Spline();
     
@@ -2435,13 +2472,19 @@ export class Spline extends DataBlock {
     this.faces.afterSTRUCT(SplineTypes.FACE, this.idgen, this.eidmap, this.selected, 
                           this.layerset, this);
     
-    if (this.layerset == undefined) {
+    if (this.layerset === undefined) {
       this.layerset = new SplineLayerSet();
       this.layerset.new_layer();
     } else {
       this.layerset.afterSTRUCT(this);
     }
-    
+
+    this._strokeGroupMap = new Map();
+    for (let group of this.strokeGroups) {
+      this._strokeGroupMap.set(group.hash, group);
+      group.afterSTRUCT(this);
+    }
+
     this.regen_sort();
     
     if (spline_multires.has_multires(this) && this.mres_format != undefined) {
@@ -2506,6 +2549,7 @@ mixin(Spline, DataPathNode);
 
 Spline.STRUCT = STRUCT.inherit(Spline, DataBlock) + `
     idgen    : SDIDGen;
+    strokeGroupIdgen : SDIDGen;
     
     selected : iter(e, int) | e.eid;
     
@@ -2519,5 +2563,7 @@ Spline.STRUCT = STRUCT.inherit(Spline, DataBlock) + `
     actlevel : int;
     
     mres_format : array(string);
+    strokeGroups : array(SplineStrokeGroup);
 }
 `
+import {SplineStrokeGroup, buildSegmentGroups, splitSegmentGroups} from "./spline_strokegroup.js";

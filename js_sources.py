@@ -112,6 +112,7 @@ sources = [
   "src/curve/spline.js",
   "src/curve/solver.js",
   "src/curve/spline_multires.js",
+  "src/curve/spline_strokegroup.js",
   "src/curve/solver_new.js",
   "src/vectordraw/vectordraw_base.js",
   "src/vectordraw/vectordraw_canvas2d.js",

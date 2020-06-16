@@ -299,11 +299,17 @@ export class SplineVertex extends SplineElement {
   }
 
   other_segment(s) {
-    if (s === this.segments[0]) return this.segments[1];
-    else if (s === this.segments[1]) return this.segments[0];
+    if (s === this.segments[0]) s = this.segments[1];
+    else if (s === this.segments[1]) s = this.segments[0];
 
-    throw new Error("bad segment in SplineVertex.prototype.other_segment()");
-    return undefined;
+    if (!s) {
+      throw new Error("bad segment in SplineVertex.prototype.other_segment()");
+    }
+    if (s.v1 !== this && s.v2 !== this) {
+      throw new Error("mesh integrity error");
+    }
+
+    return s;
   }
   
   toJSON() {
@@ -1124,13 +1130,17 @@ export class SplineSegment extends SplineElement {
   }
   
   shared_vert(s) {
-    if (this.v1 === s.v1 || this.v1 == s.v2) return this.v1;
-    if (this.v2 === s.v1 || this.v2 == s.v2) return this.v2;
+    if (this.v1 === s.v1 || this.v1 === s.v2) return this.v1;
+    if (this.v2 === s.v1 || this.v2 === s.v2) return this.v2;
   }
   
   other_vert(v) {
-    if (v == this.v1) return this.v2;
-    if (v == this.v2) return this.v1;
+    if (v === this.v1) return this.v2;
+    if (v === this.v2) return this.v1;
+
+    console.log(this.v1.eid, this.v2.eid, v ? v.eid : v, this.eid, v);
+
+    throw new Error("vertex not in segment: " + (v ? v.eid : v));
   }
 
   loadSTRUCT(reader) {

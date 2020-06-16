@@ -189,13 +189,13 @@ export function sort_layer_segments(layer, spline) {
   } else*/
   if (1) {
     for (var s of layer) {
-      if (s.type != SplineTypes.SEGMENT)
+      if (s.type !== SplineTypes.SEGMENT)
         continue;
       if (!(layerid in s.layers))
         continue;
       
       //start at one-valence verts first
-      if (s.v1.segments.length == 2 && s.v2.segments.length == 2)
+      if (s.v1.segments.length === 2 && s.v2.segments.length === 2)
         continue;
       
       if (!(s.eid in visit)) {
@@ -206,7 +206,7 @@ export function sort_layer_segments(layer, spline) {
     
     //we should be  finished, but just in case. . .
     for (var s of layer) {
-      if (s.type != SplineTypes.SEGMENT)
+      if (s.type !== SplineTypes.SEGMENT)
         continue;
       if (!(layerid in s.layers))
         continue;
@@ -222,6 +222,8 @@ export function sort_layer_segments(layer, spline) {
 }
 
 export function redo_draw_sort(spline) {
+  spline.redoSegGroups();
+
   var min_z = 1e14;
   var max_z = -1e14;
   var layerset = spline.layerset;

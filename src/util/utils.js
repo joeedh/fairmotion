@@ -521,7 +521,7 @@ class set<T> {
   }
   
   forEach(cb, thisvar) {
-    if (thisvar == undefined) 
+    if (thisvar === undefined)
       thisvar = self;
     
     for (var item of this) {
@@ -609,13 +609,13 @@ class GArrayIter<T> {
   ret : Object
   cur : number;
 
-  constructor(GArray<T> arr) {
+  constructor(arr : GArray<T>) {
     this.ret = {done : false, value : undefined};
     this.arr = arr;
     this.cur = 0;
   }
   
-  init(GArray<T> arr) : GArrayIter<T> {
+  init(arr : GArray<T>) : GArrayIter<T> {
     this.ret.done = false; this.ret.value = undefined;
     this.arr = arr;
     this.cur = 0;
@@ -648,13 +648,13 @@ class ArrayIter {
   ret : Object
   cur : number;
 
-  constructor(Array<T> arr) {
+  constructor(arr : Array<T>) {
     this.ret = {done : false, value : undefined};
     this.arr = arr;
     this.cur = 0;
   }
   
-  init(Array<T> arr) {
+  init(arr : Array<T>) {
     this.ret.done = false; this.ret.value = undefined;
     this.arr = arr;
     this.cur = 0;
@@ -683,19 +683,21 @@ class ArrayIter {
   }
 }
 
+//surely browsers have fixes allocation issues with iterators by now. . .
+//*
 if (!window.TYPE_LOGGING_ENABLED) {
   Array.prototype[Symbol.iterator] = function () {
-    if (this.itercache == undefined) {
+    if (this.itercache === undefined) {
       this.itercache = cachering.fromConstructor(ArrayIter, 8);
     }
 
     return this.itercache.next().init(this);
   }
 }
-
+//*/
 
 class HashKeyIter {
-  constructor(hashtable hash) {
+  constructor(hash : hashtable) {
     this.ret = {done : false, value : undefined};
     this.hash = hash;
     this.iter = Iterator(hash.items);
@@ -740,7 +742,7 @@ class hashtable {
     this.length = 0;
   }
   
-  add(Object key, Object item) {
+  add(key : Object, item : Object) {
     if (!this.items.hasOwnProperty(key[Symbol.keystr]())) 
       this.length++;
     
@@ -748,7 +750,7 @@ class hashtable {
     this.keymap[key[Symbol.keystr]()] = key;
   }
 
-  remove(Object key) {
+  remove(key : Object) {
     delete this.items[key[Symbol.keystr]()]
     delete this.keymap[key[Symbol.keystr]()]
     this.length -= 1;
@@ -772,11 +774,11 @@ class hashtable {
     return list(this);
   }
 
-  get(Object key) : Object {
+  get(key : Object) : Object {
     return this.items[key[Symbol.keystr]()];
   }
 
-  set(Object key, Object item) {
+  set(key : Object, item : Object) {
     if (!this.has(key)) {
       this.length++;
     }
@@ -785,7 +787,7 @@ class hashtable {
     this.keymap[key[Symbol.keystr]()] = key;
   }
 
-  union(hashtable b) : hashtable {
+  union(b : hashtable) : hashtable {
     var newhash = new hashtable(this)
     
     for (var item of b) {
@@ -795,7 +797,7 @@ class hashtable {
     return newhash;
   }
 
-  has(Object item) : Boolean {
+  has(item : Object) : boolean {
     if (item == undefined)
       console.trace();
     return this.items.hasOwnProperty(item[Symbol.keystr]())

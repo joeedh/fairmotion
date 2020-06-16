@@ -188,6 +188,7 @@ export function save_with_dialog(data, default_path, extslabel, exts, error_cb, 
   });
 }
 
+
 //XXX refactor me!
 export function save_file_old(data, save_as_mode, set_current_file, extslabel, exts, error_cb) {
   if (config.CHROME_APP_MODE) {

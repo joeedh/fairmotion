@@ -110,7 +110,27 @@ export class QuadBezPath {
     this.lasty = y;
     throw new Error("implement me");
   }
-  
+
+  makeLine(x1, y1, x2, y2, w= 2.0) {
+    let dx = y1-y2, dy = x2-x1;
+    let l = Math.sqrt(dx*dx + dy*dy);
+
+    if (l === 0.0) {
+      return;
+    }
+
+    l = 0.5*w / l;
+
+    dx *= l;
+    dy *= l;
+
+    this.moveTo(x1-dx, y1-dy);
+    this.lineTo(x2-dx, y2-dy);
+    this.lineTo(x2+dx, y2+dy);
+    this.lineTo(x1+dx, y1+dy);
+    this.lineTo(x1-dx, y1-dy);
+  }
+
   bezierTo(x2, y2, x3, y3) {
     this.lastx = x3;
     this.lasty = y3;

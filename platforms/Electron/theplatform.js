@@ -1,5 +1,27 @@
 import {PlatformAPIBase} from '../common/platform_api.js';
 
+let mod = require("electron");
+
+if (!mod.remote) {
+  class MenuItem {
+
+  }
+
+  class Menu {
+
+  }
+
+  console.warn("Stubbing out electron.remote; 10.0.2 bug");
+  mod.remote = {
+    nativeTheme : {
+
+    },
+    MenuItem : MenuItem,
+    Menu : Menu,
+    nativeImage : mod.nativeImage
+  }
+}
+
 export class ElectronPlatformAPI {
   constructor() {
   }

@@ -787,6 +787,7 @@ export class View2DHandler extends Editor {
 
     let strip = row.strip();
     strip.tool("spline.split_pick_edge()");
+    strip.tool("spline.stroke()");
   }
 
   set_zoom(zoom) {

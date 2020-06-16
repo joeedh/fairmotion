@@ -7,6 +7,9 @@ const {app, BrowserWindow} = require('electron')
 const path = require('path')
 const url = require('url')
 
+app.commandLine.appendSwitch("no-sandbox");
+app.commandLine.appendSwitch("enable-unsafe-webgpu");
+
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let win
@@ -20,7 +23,12 @@ function createWindow () {
       nodeIntegration: true,
       preload : "preload.js",
       experimentalFeatures : true,
-      experimentalCanvasFeatures : true
+      experimentalCanvasFeatures : true,
+      enableRemoteModule : true,
+      contextIsolation : false,
+      nodeIntegrationInSubFrames : true,
+      additionalArguments : ["--no-sandbox", "--enable-unsafe-webgpu"],
+      sandbox : false
     },
     darkTheme : true,
     backgroundColor : "#555555",

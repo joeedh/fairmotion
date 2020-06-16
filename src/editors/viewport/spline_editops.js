@@ -1711,7 +1711,7 @@ export class SplineFlipSegments extends SplineLocalToolOp {
   exec(ctx : FullContext) {
     let spline = ctx.spline;
 
-    for (let s of spline.segments) {
+    for (let s of spline.segments.selected.editable(ctx)) {
       spline.flip_segment(s);
     }
 

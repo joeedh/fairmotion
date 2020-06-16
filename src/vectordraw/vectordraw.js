@@ -13,11 +13,20 @@ import {
   SVGDraw2D, SVGPath
 } from './vectordraw_svg.js';
 
+
 export {VectorFlags} from  './vectordraw_base.js';
 
 import {
   SimpleCanvasPath, SimpleCanvasDraw2D
 } from './vectordraw_canvas2d_simple.js';
+
+import {SimpleSkiaDraw2D, SimpleSkiaPath, loadCanvasKit} from "./vectordraw_skia_simple.js";
+
+/*
+export let Canvas = SimpleSkiaDraw2D;
+export let Path = SimpleSkiaPath;
+loadCanvasKit();
+//*/
 
 /*
 export let Canvas = SimpleCanvasDraw2D;

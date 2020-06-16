@@ -63,5 +63,6 @@ window.Icons = {
   ZOOM_IN          : 59,
   LARGE_CHECK      : 60,
   HALF_PIXEL_SIZE  : 61,
-  PEN_TOOL         : 62
+  PEN_TOOL         : 62,
+  STROKE_TOOL      : 63
 };

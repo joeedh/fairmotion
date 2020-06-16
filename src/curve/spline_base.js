@@ -364,7 +364,7 @@ export class SplineElement extends DataPathNode {
     this.cdata = new CustomDataSet();
     
     //eek.  this .masklayer shouldn't be here.
-    this.masklayer = 1; //blender-style bitmask layers
+    this.masklayer = 1; //blender-style bitmask layers <- XXX todo: is this actually used for anything?
     this.layers = {}; //stack layers this element belongs to
   }
   
@@ -377,18 +377,38 @@ export class SplineElement extends DataPathNode {
   }
   
   dag_get_datapath() {
+    let suffix;
+
     //wells, it should end in. . .
-    var suffix = ".verts[" + this.eid + "]";
-    
+    switch (this.type) {
+      case SplineTypes.VERTEX:
+        suffix =".verts";
+        break;
+      case SplineTypes.HANDLE:
+        suffix = ".handles";
+        break;
+      case SplineTypes.SEGMENT:
+        suffix = ".segments";
+        break;
+      case SplineTypes.LOOP:
+        suffix = ".loops";
+        break;
+      case SplineTypes.FACE:
+        suffix = ".faces";
+        break;
+    }
+
+    suffix += "[" + this.eid + "]";
+
     //hrm, prefix should be either spline.ctx.frameset.drawspline, 
     //or spline.ctx.frameset.pathspline
     
     //test for presence of customdata time layer, I guess;
     
-    var name = "drawspline";
+    let name = "drawspline";
     
     for (var i=0; i<this.cdata.length; i++) {
-      if (this.cdata[i].constructor.name == "TimeDataLayer")
+      if (this.cdata[i].constructor.name === "TimeDataLayer")
         name = "pathspline";
     }
     
@@ -396,7 +416,7 @@ export class SplineElement extends DataPathNode {
   }
   
   in_layer(layer) : boolean {
-    return layer != undefined && layer.id in this.layers;
+    return layer !== undefined && layer.id in this.layers;
   }
   
   get aabb() {

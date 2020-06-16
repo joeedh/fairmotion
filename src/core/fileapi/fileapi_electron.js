@@ -175,14 +175,14 @@ export function save_with_dialog(data, default_path, extslabel, exts, error_cb, 
       extensions : exts
     }],
     securityScopedBookmarks : true //apparently needed for macOS
-  }).then((data) => {
-    let canceled = data.canceled;
-    let path = data.filePath;
+  }).then((dialog_data) => {
+    let canceled = dialog_data.canceled;
+    let path = dialog_data.filePath;
 
     if (canceled)
       return;
 
-    console.log("path:", path);
+    console.log("SAVING:", path);
 
     save_file(data, path, error_cb, success_cb);
   });

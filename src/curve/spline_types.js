@@ -42,9 +42,11 @@ let eval_ret_vs = cachering.fromConstructor(Vector2, 512);
 let evaluateSide_rets = cachering.fromConstructor(Vector2, 512);
 
 export class SplineVertex extends SplineElement {
-  flag : boolean
-  eid : number
-  frames : Object;
+  flag     : boolean
+  eid      : number
+  hpair    : SplineVertex
+  frames   : Object
+  segments : Array<SplineSegment>;
 
   constructor(co) {
     super(SplineTypes.VERTEX);
@@ -297,9 +299,10 @@ export class SplineVertex extends SplineElement {
   }
 
   other_segment(s) {
-    if (s == this.segments[0]) return this.segments[1];
-    else if (s == this.segments[1]) return this.segments[0];
-    
+    if (s === this.segments[0]) return this.segments[1];
+    else if (s === this.segments[1]) return this.segments[0];
+
+    throw new Error("bad segment in SplineVertex.prototype.other_segment()");
     return undefined;
   }
   
@@ -361,6 +364,8 @@ var closest_point_ret_cache = new cachering(function() {
 var closest_point_cache_vs = cachering.fromConstructor(Vector3, 64);
 
 export class EffectWrapper extends CurveEffect {
+  seg : SplineSegment;
+
   constructor(owner : SplineSegment) {
     super();
     this.seg = owner;
@@ -368,7 +373,7 @@ export class EffectWrapper extends CurveEffect {
   
   rescale(ceff, width) {
     //find owning segment by ascending to root curve effect
-    while (ceff.prior != undefined) {
+    while (ceff.prior !== undefined) {
       ceff = ceff.prior;
     }
     
@@ -388,12 +393,12 @@ export class EffectWrapper extends CurveEffect {
     var seg1 = this.seg;
     
     var v = donext ? seg1.v2 : seg1.v1;
-    if (v.segments.length != 2)
+    if (v.segments.length !== 2)
       return undefined;
     
     var seg2 = v.other_segment(seg1);
     
-    flip_out[0] = (donext && seg2.v1 == v) || (!donext && seg2.v2 == v);
+    flip_out[0] = (donext && seg2.v1 === v) || (!donext && seg2.v2 === v);
     
     return seg2._evalwrap;
   }
@@ -407,6 +412,8 @@ export class EffectWrapper extends CurveEffect {
   }
 }
 
+let __static_minmax = new MinMax(2);
+
 export class SplineSegment extends SplineElement {
   _evalwrap: EffectWrapper
   has_multires : boolean
@@ -414,13 +421,14 @@ export class SplineSegment extends SplineElement {
   finalz   : number
   flag     : number
   eid      : number
-  v1       : SplineVertex;
-  v2       : SplineVertex;
-  h1       : SplineVertex;
-  h2       : SplineVertex;
-  w1       : number;
-  w2       : number;
-
+  v1       : SplineVertex
+  v2       : SplineVertex
+  h1       : SplineVertex
+  h2       : SplineVertex
+  w1       : number
+  w2       : number
+  shift1   : number
+  shift2   : number
   ks       : Array
   _last_ks : Array;
 
@@ -478,13 +486,13 @@ export class SplineSegment extends SplineElement {
     }
   }
 
-  shift(s) {
+  shift(s : number) : number {
     s = s*s*(3.0 - 2.0*s);
 
     return this.shift1 + (this.shift2 - this.shift1)*s;
   }
 
-  dshift(s) {
+  dshift(s : number) : number {
     let df = 0.0001;
     let a = this.shift(s-df);
     let b = this.shift(s+df);
@@ -492,7 +500,7 @@ export class SplineSegment extends SplineElement {
     return (b - a) / (2.0*df);
   }
 
-  dwidth(s) { //should be linear
+  dwidth(s : number) : number { //should be linear
     let df = 0.0001;
     let a = this.width(s-df);
     let b = this.width(s+df);
@@ -518,7 +526,7 @@ export class SplineSegment extends SplineElement {
   f := 10*s**3 - 15*s**4 + 6*s**5;
   **/
 
-  widthFunction(s) {
+  widthFunction(s : number) : number {
     //if (window.dd === 1) {
     s = (6 * s ** 2 - 15 * s + 10) * s ** 3; //degree 5 smoothstep
 
@@ -529,7 +537,7 @@ export class SplineSegment extends SplineElement {
     return s;
   }
 
-  width(s) {
+  width(s : number) : number {
     s = this.widthFunction(s);
 
     let wid1 = this.mat.linewidth;
@@ -577,14 +585,14 @@ export class SplineSegment extends SplineElement {
     }
   }
   
-  update_aabb(steps=8) {
+  update_aabb(steps : number = 8) {
     this._update_has_multires();
     
     this.flag &= ~SplineFlags.UPDATE_AABB;
     
     var min = this._aabb[0], max = this._aabb[1];
-    static minmax = new MinMax(2);
-    
+    let minmax = __static_minmax;
+
     minmax.reset();
     min.zero(); max.zero();
     
@@ -604,7 +612,7 @@ export class SplineSegment extends SplineElement {
     min[2] = max[2] = 0.0; //XXX need to get rid of z
   }
   
-  closest_point(p : Vector2, mode : ClosestModes, fast : boolean=false) {
+  closest_point(p : Vector2, mode : ClosestModes, fast : boolean=false) : Object {
     var minret = undefined, mindis = 1e18, maxdis=0;
     
     var p2 = closest_point_cache_vs.next().zero();
@@ -780,7 +788,7 @@ export class SplineSegment extends SplineElement {
     return minret;
   }
   
-  normal(s, no_effects=!ENABLE_MULTIRES) {
+  normal(s : number, no_effects : boolean=!ENABLE_MULTIRES) {
     var ret = this.derivative(s, undefined, undefined, no_effects);
     var t = ret[0]; ret[0] = -ret[1]; ret[1] = t;
     
@@ -788,17 +796,17 @@ export class SplineSegment extends SplineElement {
     return ret;
   }
   
-  ends(v) {
+  ends(v : SplineVertex) : number {
     if (v === this.v1) return 0.0;
     if (v === this.v2) return 1.0;
   }
   
-  handle(v) {
+  handle(v : SplineVertex) : SplineVertex {
     if (v === this.v1) return this.h1;
     if (v === this.v2) return this.h2;
   }
   
-  handle_vertex(h) {
+  handle_vertex(h : SplineVertex) : SplineVertex {
     if (h === this.h1) return this.v1;
     if (h === this.h2) return this.v2;
   }
@@ -810,21 +818,21 @@ export class SplineSegment extends SplineElement {
     return r1 && r2;
   }
   
-  get renderable() {
+  get renderable() : boolean {
     return !(this.flag & SplineFlags.NO_RENDER);
   }
   
-  set renderable(val) {
+  set renderable(val : boolean) {
     if (!val)
       this.flag |= SplineFlags.NO_RENDER;
     else
       this.flag &= ~SplineFlags.NO_RENDER;
   }
   
-  update_handle(h) {
+  update_handle(h : SplineVertex) {
     var ov = this.handle_vertex(h);
     
-    if (h.hpair != undefined) {
+    if (h.hpair !== undefined) {
       var seg = h.hpair.owning_segment;
       var v = this.handle_vertex(h);
       
@@ -834,7 +842,7 @@ export class SplineSegment extends SplineElement {
       seg.update();
       
       return h.hpair;
-    } else if (ov.segments.length == 2 && h.use && !(ov.flag & SplineFlags.BREAK_TANGENTS)) {
+    } else if (ov.segments.length === 2 && h.use && !(ov.flag & SplineFlags.BREAK_TANGENTS)) {
       var h2 = h.owning_vertex.other_segment(h.owning_segment).handle(h.owning_vertex);
       var hv = h2.owning_segment.handle_vertex(h2), len = h2.vectorDistance(hv);
       
@@ -846,18 +854,18 @@ export class SplineSegment extends SplineElement {
     }
   }
   
-  other_handle(h_or_v) {
-    if (h_or_v == this.v1)
+  other_handle(h_or_v : SplineVertex) : SplineVertex {
+    if (h_or_v === this.v1)
       return this.h2;
-    if (h_or_v == this.v2)
+    if (h_or_v === this.v2)
       return this.h1;
-    if (h_or_v == this.h1)
+    if (h_or_v === this.h1)
       return this.h2;
-    if (h_or_v == this.h2)
+    if (h_or_v === this.h2)
       return this.h1;
   }
   
-  get length() {
+  get length() : number {
       return this.ks[KSCALE];
   }
 
@@ -882,7 +890,7 @@ export class SplineSegment extends SplineElement {
     return ret;
   }
   
-  curvature(s, order, override_scale) {
+  curvature(s : number, order : int, override_scale : number) {
     if (order === undefined) order = ORDER;
 
     /*
@@ -903,8 +911,8 @@ export class SplineSegment extends SplineElement {
     return k/(0.00001 + this.ks[KSCALE]);
   }
   
-  curvature_dv(s, order, override_scale) {
-    if (order == undefined) order = ORDER;
+  curvature_dv(s : number, order : int, override_scale : number) : number {
+    if (order === undefined) order = ORDER;
     
     //update ks[KSCALE], final 1 prevents final evaluation
     //to save performance
@@ -914,7 +922,7 @@ export class SplineSegment extends SplineElement {
     return k/(0.00001 + this.ks[KSCALE]);
   }
   
-  derivative(s, order, no_update_curve, no_effects) {
+  derivative(s : number, order : int, no_update_curve : boolean, no_effects : boolean) : Vector2 {
     /*
     let df = 0.0001;
     if (s < 1.0 - df) {
@@ -929,7 +937,7 @@ export class SplineSegment extends SplineElement {
       return b.sub(a).mulScalar(1.0 / df);
     }
     //*/
-    if (order == undefined) order = ORDER;
+    if (order === undefined) order = ORDER;
 
     var ret = derivative_cache_vs.next().zero();
 
@@ -952,16 +960,16 @@ export class SplineSegment extends SplineElement {
     return ret;
   }
   
-  theta(s, order, no_effects) {
-    if (order == undefined) order = ORDER;
+  theta(s : number, order : int, no_effects : boolean) {
+    if (order === undefined) order = ORDER;
     return spiraltheta(s, this.ks, order)*this.ks[KSCALE];
   }
   
-  offset_eval(s, offset, order, no_update) {
-    if (order == undefined) order = ORDER;
+  offset_eval(s : number, offset, order : int, no_update : boolean) {
+    if (order === undefined) order = ORDER;
     
     var ret = this.evaluate(s, order, undefined, no_update);
-    if (offset == 0.0) return ret;
+    if (offset === 0.0) return ret;
     
     var tan = this.derivative(s, order, no_update);
     
@@ -971,6 +979,31 @@ export class SplineSegment extends SplineElement {
     
     ret.add(tan);
     return ret;
+  }
+
+  curvatureSide(s : number, side : int, no_out : Vector2) {
+    let df = 0.0001;
+    let dv0 = this.evaluateSide(s, side);
+    let dv1 = this.evaluateSide(s+df, side);
+    let dv2 = this.evaluateSide(s+df*2, side);
+
+    dv2.sub(dv1).mulScalar(1.0 / df);
+    dv1.sub(dv0).mulScalar(1.0 / df);
+    dv2.sub(dv1).mulScalar(1.0 / df);
+
+    let k = (dv1[0]*dv2[1] - dv1[1]*dv2[0]) / Math.pow(dv1.dot(dv1), 3.0/2.0);
+
+    if (no_out) {
+      dv1.normalize();
+      let t = dv1[0];
+      dv1[0] = -dv1[1];
+      dv1[1] = t;
+
+      no_out[0] = dv1[0];
+      no_out[1] = dv1[1];
+    }
+
+    return k;
   }
 
   evaluateSide(s, side=0, dv_out, normal_out, lw_dlw_out) {
@@ -1110,24 +1143,27 @@ export class SplineSegment extends SplineElement {
 }
 
 SplineSegment.STRUCT = STRUCT.inherit(SplineSegment, SplineElement) + `
-  ks   : array(float);
+  ks       : array(float);
   
-  v1   : int | obj.v1.eid;
-  v2   : int | obj.v2.eid;
+  v1       : int | obj.v1.eid;
+  v2       : int | obj.v2.eid;
   
-  h1   : int | obj.h1 != undefined ? obj.h1.eid : -1;
-  h2   : int | obj.h2 != undefined ? obj.h2.eid : -1;
+  h1       : int | obj.h1 != undefined ? obj.h1.eid : -1;
+  h2       : int | obj.h2 != undefined ? obj.h2.eid : -1;
   
-  w1   : float;
-  w2   : float;
+  w1       : float;
+  w2       : float;
   
-  l    : int | obj.l != undefined  ? obj.l.eid : -1;
+  shift1   : float;
+  shift2   : float;
   
-  mat  : Material;
+  l        : int | obj.l != undefined  ? obj.l.eid : -1;
+  
+  mat      : Material;
 
-  aabb   : array(vec3);
-  z      : float;
-  finalz : float;
+  aabb     : array(vec3);
+  z        : float;
+  finalz   : float;
   has_multires : int;
   
   topoid   : int;
@@ -1370,8 +1406,8 @@ export class Material {
   blur : number;
 
   constructor() {
-    this.fillcolor = [0, 0, 0, 1];
-    this.strokecolor = [0, 0, 0, 1];
+    this.fillcolor = new Vector4([0, 0, 0, 1]);
+    this.strokecolor = new Vector4([0, 0, 0, 1]);
     this.linewidth = 2.0;
     
     this.flag = 0;
@@ -1434,6 +1470,19 @@ export class Material {
     return "rgba("+r+","+g+","+b+","+this.fillcolor[3]+")";
   }
 
+  loadSTRUCT(reader) {
+    reader(this);
+
+    this.fillcolor = new Vector4(this.fillcolor);
+    if (isNaN(this.fillcolor[3])) {
+      this.fillcolor[3] = 1.0;
+    }
+
+    this.strokecolor = new Vector4(this.strokecolor);
+    if (isNaN(this.strokecolor[3])) {
+      this.strokecolor[3] = 1.0;
+    }
+  }
   static fromSTRUCT(reader) {
     var ret = new Material();
     
@@ -1445,8 +1494,8 @@ export class Material {
 
 Material.STRUCT = `
   Material {
-    fillcolor        : array(float);
-    strokecolor      : array(float);
+    fillcolor        : vec4;
+    strokecolor      : vec4;
     opacity          : float;
     fill_over_stroke : int;
     linewidth        : float;

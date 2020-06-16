@@ -1,9 +1,11 @@
+import {util} from "../../path.ux/scripts/pathux.js";
 import {ToolOp} from '../../core/toolops_api.js';
 import {SplineFlags} from '../../curve/spline_types.js';
 import {EnumProperty, IntProperty, Vec3Property, 
         Vec4Property, StringProperty, FloatProperty} from '../../core/toolprops.js';
 import {RestrictFlags} from '../../curve/spline.js';
 import {SplineLocalToolOp} from './spline_editops.js';
+import {SplineDrawData} from "../../curve/spline_draw_new.js";
 
 export var ExtrudeModes = {
   SMOOTH      : 0,
@@ -463,5 +465,256 @@ export class ImportJSONOp extends ToolOp {
     
     spline.import_json(obj);
     spline.regen_render();
+  }
+}
+
+export function strokeSegments(spline, segments, width=2.0, color=[0,0,0,1]) {
+  segments = new util.set(segments);
+
+  let verts = new util.set();
+
+  for (let seg of segments) {
+    verts.add(seg.v1);
+    verts.add(seg.v2);
+  }
+
+  let doneset = new util.set();
+
+  function angle(v, seg) {
+    let v2 = seg.other_vert(v);
+    let dx = v2[0] - v[0];
+    let dy = v2[1] - v[1];
+
+    return Math.atan2(dy, dx);
+  }
+
+  for (let v of verts) {
+    v.segments.sort((a, b) => {
+      return angle(v, a) - angle(v, b);
+    });
+  }
+
+  let ekey = function(e, side) {
+    return ""+e.eid+":"+side;
+  }
+
+  let doneset2 = new util.set();
+
+  for (let v of verts) {
+    let side = 0;
+    let startside = side;
+
+    if (doneset.has(ekey(v, side))) {
+      continue;
+    }
+
+    let startv = v;
+    let seg;
+    let found=0;
+    for (seg of v.segments) {
+      let realside = side ^ (seg.v1 === v ? 0 : 1);
+      if (segments.has(seg) && !doneset.has(ekey(seg, realside))) {
+        found = 1;
+        break;
+      }
+    }
+
+    if (!found) {
+      continue;
+    }
+
+    let vcurs = {};
+    let vstarts = {};
+
+    let lastco = undefined;
+    let firstp = undefined;
+    let lastp = undefined;
+    let lastv = v;
+    let lastseg = undefined;
+
+    let widthscale = 1.0;
+
+    let _i = 0;
+    do {
+      let realside = side ^ (seg.v1 === v ? 0 : 1);
+
+      if (doneset.has(ekey(seg, realside))) {
+        break;
+      }
+
+      doneset.add(ekey(seg, realside));
+
+      let data = seg.cdata.get_layer(SplineDrawData);
+      if (!data) {
+        throw new Error("data was not defined");
+      }
+
+      let s = data.gets(seg, v);
+      let p = seg.evaluateSide(s, realside);
+      p = spline.make_vertex(p);
+
+      if ((v.flag & SplineFlags.BREAK_TANGENTS) || v.segments.length !== 2) {
+        p.flag |= SplineFlags.BREAK_TANGENTS;
+
+        if (v.segments.length === 2) {
+          p.load(data.getp(seg, v, side ^ 1));
+          p[2] = 0.0;
+        }
+      }
+
+      if (v.flag & SplineFlags.BREAK_CURVATURES) {
+        p.flag |= SplineFlags.BREAK_CURVATURES;
+      }
+
+
+      if (lastco === undefined) {
+        lastco = new Vector2(p);
+        lastp = p;
+        firstp = p;
+      } else {
+        let seg2 = spline.make_segment(lastp, p);
+
+
+        lastp.width = widthscale;
+        widthscale += 0.025;
+
+        seg2.mat.strokecolor.load(color);
+        seg2.mat.linewidth = width;
+        seg2.mat.update();
+
+        lastco.load(p);
+//*
+        let nev = spline.split_edge(seg2, 0.5);
+        let pn = seg.evaluateSide(0.5, realside);
+        pn[2] = 0.0;
+        nev[1].load(pn);
+
+ //*/
+      }
+
+      lastp = p;
+
+      if (v.segments.length === 2) {
+        seg = v.other_segment(seg);
+        v = seg.other_vert(v);
+
+      } else if (v.segments.length > 2) {
+        if (!vcurs[v.eid]) {
+          vcurs[v.eid] = vstarts[v.eid] = v.segments.indexOf(v.seg);
+        }
+
+        let side2 = seg.v1 === v ? 1 : 0;
+        side2 = side2 ^ side;
+
+        let dir = realside ? -1 : 1;
+
+        vcurs[v.eid] = (vcurs[v.eid] + dir + v.segments.length) % v.segments.length;
+        if (vcurs[v.eid] === vstarts[v.eid]) {
+          break;
+        }
+
+        seg = v.segments[vcurs[v.eid]];
+
+        v = seg.other_vert(v);
+      } else {
+        v = seg.other_vert(v);
+
+        let co = seg.evaluateSide(s, realside^1);
+        let v2 = spline.make_vertex(co);
+
+        let seg2 = spline.make_segment(lastp, v2);
+        seg2.mat.strokecolor.load(color);
+        seg2.mat.linewidth = width;
+        seg2.mat.update();
+
+        v2.flag |= SplineFlags.BREAK_TANGENTS;
+        lastp.flag |= SplineFlags.BREAK_TANGENTS;
+
+        lastp = v2;
+
+
+        //side ^= 1;
+
+        /*
+          if (doneset2.has(ekey(seg, realside))) {
+            doneset.remove(ekey(seg, realside));
+
+            v = seg.other_vert(v);
+            side ^= 1;
+          } else {
+            doneset.remove(ekey(seg, realside));
+            doneset2.add(ekey(seg, realside))
+            doneset2.add(ekey(seg, realside^1));
+            side ^= 1;
+          }*/
+      }
+
+      lastv = v;
+      lastseg = seg;
+
+      if (_i++ > 1000) {
+        console.warn("Infinite loop detected!");
+        break;
+      }
+    } while (ekey(v, side) !== ekey(startv, startside));
+
+    if (v === startv) {
+      let seg2 = spline.make_segment(lastp, firstp);
+      lastp.width = widthscale;
+
+      seg2.mat.strokecolor.load(color);
+      seg2.mat.linewidth = width;
+      seg2.mat.update();
+    }
+  }
+}
+
+export class StrokePathOp extends SplineLocalToolOp {
+  constructor() {
+    super();
+  }
+
+  static invoke(ctx, args) {
+    let tool = new StrokePathOp();
+
+    if ("color" in args) {
+      tool.inputs.color.setValue(args.color);
+    } else if (ctx.view2d) {
+      tool.inputs.color.setValue(ctx.view2d.default_stroke);
+    }
+
+    if ("width" in args) {
+      tool.inputs.width.setValue(args.width);
+    } else if (ctx.view2d) {
+      tool.inputs.width.setValue(ctx.view2d.default_linewidth);
+    }
+
+    return tool;
+  }
+
+  static tooldef() {return {
+    name        : "Stroke Path",
+    description : "Stroke Path",
+    toolpath    : "spline.stroke",
+    inputs      : {
+      color     : new Vec4Property([0,0,0,1]),
+      width     : new FloatProperty(1.0)
+    },
+    outputs     : {},
+    icon        : Icons.STROKE_TOOL
+  }}
+
+  exec(ctx) {
+    let spline = ctx.frameset.spline;
+
+    let width = this.inputs.width.getValue();
+    let color = this.inputs.color.getValue();
+
+    strokeSegments(spline, spline.segments.selected.editable(ctx), width, color);
+
+    spline.regen_render();
+    spline.regen_solve();
+    spline.regen_sort();
+    window.redraw_viewport();
   }
 }

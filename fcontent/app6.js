@@ -6797,7 +6797,7 @@ es6_module_define('vectordraw', ["./vectordraw_base.js", "./vectordraw_skia_simp
 es6_module_define('strokedraw', [], function _strokedraw_module(_es6_module) {
   "use strict";
 }, '/dev/fairmotion/src/vectordraw/strokedraw.js');
-es6_module_define('spline_draw_new', ["../core/animdata.js", "./spline_types.js", "../vectordraw/vectordraw_jobs.js", "../editors/viewport/view2d_editor.js", "../editors/viewport/selectmode.js", "./spline_strokegroup.js", "./spline_base.js", "../vectordraw/vectordraw.js", "./spline_multires.js", "../path.ux/scripts/pathux.js", "../config/config.js", "./spline_element_array.js", "../util/mathlib.js", "./spline_math.js"], function _spline_draw_new_module(_es6_module) {
+es6_module_define('spline_draw_new', ["../vectordraw/vectordraw_jobs.js", "../core/animdata.js", "./spline_math.js", "./spline_element_array.js", "../util/mathlib.js", "../editors/viewport/selectmode.js", "./spline_multires.js", "../vectordraw/vectordraw.js", "./spline_types.js", "./spline_strokegroup.js", "../editors/viewport/view2d_editor.js", "../config/config.js", "../path.ux/scripts/pathux.js", "./spline_base.js"], function _spline_draw_new_module(_es6_module) {
   "use strict";
   var aabb_isect_minmax2d=es6_import_item(_es6_module, '../util/mathlib.js', 'aabb_isect_minmax2d');
   var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
@@ -7440,7 +7440,9 @@ es6_module_define('spline_draw_new', ["../core/animdata.js", "./spline_types.js"
                       dv.mulScalar(1.0/(scale1));
                       dv2.mulScalar(1.0/(scale2));
                       path.lineTo(p[0], p[1]);
-                      dpoint(p2[0], p2[1], 15, dpath3);
+                      if (debug) {
+                          dpoint(p2[0], p2[1], 15, dpath3);
+                      }
                   }
               }
               for (let i=0; i<steps; i++, s+=ds) {

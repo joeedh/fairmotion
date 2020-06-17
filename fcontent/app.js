@@ -1413,25 +1413,6 @@ es6_module_define('polyfill', [], function _polyfill_module(_es6_module) {
     }
     return ret;
   }
-  function ArrayIter(array) {
-    this.array = array;
-    this.i = 0;
-    this.ret = {done: false, 
-    value: undefined}
-  }
-  ArrayIter.prototype[Symbol.iterator] = function () {
-    return this;
-  }
-  ArrayIter.prototype.next = function () {
-    var ret=this.ret;
-    if (this.i>=this.array.length) {
-        ret.done = true;
-        ret.value = undefined;
-        return ret;
-    }
-    ret.value = this.array[this.i++];
-    return ret;
-  }
   if (Math.fract===undefined) {
       Math.fract = function fract(f) {
         return f-Math.floor(f);
@@ -1492,7 +1473,7 @@ es6_module_define('polyfill', [], function _polyfill_module(_es6_module) {
   }
 }, '/dev/fairmotion/src/path.ux/scripts/util/polyfill.js');
 
-es6_module_define('util', ["./struct.js", "./mobile-detect.js", "./polyfill.js"], function _util_module(_es6_module) {
+es6_module_define('util', ["./mobile-detect.js", "./polyfill.js", "./struct.js"], function _util_module(_es6_module) {
   es6_import(_es6_module, './polyfill.js');
   es6_import(_es6_module, './struct.js');
   es6_import(_es6_module, './mobile-detect.js');
@@ -2533,7 +2514,7 @@ IDGen {
 }, '/dev/fairmotion/src/path.ux/scripts/util/util.js');
 
 
-    var totfile=9, fname="app";
+    var totfile=10, fname="app";
     for (var i=0; i<totfile; i++) {
       var path = "./fcontent/"+fname+i+".js";
       var node = document.createElement("script")

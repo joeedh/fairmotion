@@ -2224,7 +2224,7 @@ ${indent}})`;
   exportTheme = _es6_module.add_export('exportTheme', exportTheme);
   window._exportTheme = exportTheme;
 }, '/dev/fairmotion/src/path.ux/scripts/core/ui_theme.js');
-es6_module_define('units', ["../util/util.js", "../util/vectormath.js"], function _units_module(_es6_module) {
+es6_module_define('units', ["../util/vectormath.js", "../util/util.js"], function _units_module(_es6_module) {
   var util=es6_import(_es6_module, '../util/util.js');
   var Vector2=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector2');
   var Vector3=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector3');
@@ -2237,10 +2237,13 @@ es6_module_define('units', ["../util/util.js", "../util/vectormath.js"], functio
   }
   function myToFixed(f, decimals) {
     f = f.toFixed(decimals);
-    while (f.endsWith("0")||f.endsWith(".")) {
+    while (f.endsWith("0")&&f.search(/\./)>=0) {
       f = f.slice(0, f.length-1);
     }
-    if (f.length==0)
+    if (f.endsWith(".")) {
+        f = f.slice(0, f.length-1);
+    }
+    if (f.length===0)
       f = "0";
     return f.trim();
   }

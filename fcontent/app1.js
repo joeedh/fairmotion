@@ -9500,7 +9500,8 @@ es6_module_define('icon_enum', [], function _icon_enum_module(_es6_module) {
    ZOOM_IN: 59, 
    LARGE_CHECK: 60, 
    HALF_PIXEL_SIZE: 61, 
-   PEN_TOOL: 62}
+   PEN_TOOL: 62, 
+   STROKE_TOOL: 63}
 }, '/dev/fairmotion/src/datafiles/icon_enum.js');
 "not_a_module";
 if (Array.prototype.set===undefined) {
@@ -9770,16 +9771,16 @@ function time_func(func, steps) {
   console.log(times);
   return times;
 }
-var $lst_BpEM=new GArray();
+var $lst_KIuQ=new GArray();
 function cached_list(iter) {
-  $lst_BpEM.reset();
+  $lst_KIuQ.reset();
   var i=0;
   for (var item of iter) {
-      $lst_BpEM.push(item);
+      $lst_KIuQ.push(item);
       i++;
   }
-  $lst_BpEM.length = i;
-  return $lst_BpEM;
+  $lst_KIuQ.length = i;
+  return $lst_KIuQ;
 }
 var g_list=list;
 class eid_list extends GArray {
@@ -9891,7 +9892,7 @@ class set  {
     return this;
   }
    forEach(cb, thisvar) {
-    if (thisvar==undefined)
+    if (thisvar===undefined)
       thisvar = self;
     for (var item of this) {
         cb.call(thisvar, item);
@@ -10032,7 +10033,7 @@ class ArrayIter  {
 _ESClass.register(ArrayIter);
 if (!window.TYPE_LOGGING_ENABLED) {
     Array.prototype[Symbol.iterator] = function () {
-      if (this.itercache==undefined) {
+      if (this.itercache===undefined) {
           this.itercache = cachering.fromConstructor(ArrayIter, 8);
       }
       return this.itercache.next().init(this);
@@ -10076,6 +10077,11 @@ class hashtable  {
     this.keymap = {};
     this.length = 0;
   }
+   forEach(cb, thisvar) {
+    for (let k of this) {
+        cb.call(thisvar, k);
+    }
+  }
    add(key, item) {
     if (!this.items.hasOwnProperty(key[Symbol.keystr]()))
       this.length++;
@@ -10118,7 +10124,7 @@ class hashtable  {
     return newhash;
   }
    has(item) {
-    if (item==undefined)
+    if (item===undefined)
       console.trace();
     return this.items.hasOwnProperty(item[Symbol.keystr]());
   }

@@ -6613,12 +6613,12 @@ es6_module_define('fileapi_electron', ["../../config/config.js", "./fileapi_html
     defaultPath: default_path, 
     filters: [{name: extslabel, 
      extensions: exts}], 
-    securityScopedBookmarks: true}).then((data) =>      {
-      let canceled=data.canceled;
-      let path=data.filePath;
+    securityScopedBookmarks: true}).then((dialog_data) =>      {
+      let canceled=dialog_data.canceled;
+      let path=dialog_data.filePath;
       if (canceled)
         return ;
-      console.log("path:", path);
+      console.log("SAVING:", path);
       save_file(data, path, error_cb, success_cb);
     });
   }

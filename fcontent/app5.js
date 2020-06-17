@@ -1,3 +1,1342 @@
+es6_module_define('ui_menu', ["../util/util.js", "./ui_button.js", "../util/events.js", "../util/vectormath.js", "../toolsys/simple_toolsys.js", "../toolsys/toolprop.js", "../util/simple_events.js", "../config/const.js", "../core/ui_base.js"], function _ui_menu_module(_es6_module) {
+  "use strict";
+  var util=es6_import(_es6_module, '../util/util.js');
+  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
+  var vectormath=es6_import(_es6_module, '../util/vectormath.js');
+  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
+  var events=es6_import(_es6_module, '../util/events.js');
+  var simple_toolsys=es6_import(_es6_module, '../toolsys/simple_toolsys.js');
+  var toolprop=es6_import(_es6_module, '../toolsys/toolprop.js');
+  var Button=es6_import_item(_es6_module, './ui_button.js', 'Button');
+  var DomEventTypes=es6_import_item(_es6_module, '../util/events.js', 'DomEventTypes');
+  var HotKey=es6_import_item(_es6_module, '../util/simple_events.js', 'HotKey');
+  var keymap=es6_import_item(_es6_module, '../util/simple_events.js', 'keymap');
+  let EnumProperty=toolprop.EnumProperty, PropTypes=toolprop.PropTypes;
+  let UIBase=ui_base.UIBase, PackFlags=ui_base.PackFlags, IconSheets=ui_base.IconSheets;
+  function getpx(css) {
+    return parseFloat(css.trim().replace("px", ""));
+  }
+  class Menu extends UIBase {
+     constructor() {
+      super();
+      this.items = [];
+      this.autoSearchMode = true;
+      this._ignoreFocusEvents = false;
+      this.closeOnMouseUp = true;
+      this.itemindex = 0;
+      this.closed = false;
+      this.started = false;
+      this.activeItem = undefined;
+      this.overrideDefault("DefaultText", this.getDefault("MenuText"));
+      this.container = document.createElement("span");
+      this.container.style["display"] = "flex";
+      this.container.style["color"] = this.getDefault("MenuText").color;
+      this.container.setAttribute("class", "menucon");
+      this.dom = document.createElement("ul");
+      this.dom.setAttribute("class", "menu");
+      let style=this.menustyle = document.createElement("style");
+      this.buildStyle();
+      this.dom.setAttribute("tabindex", -1);
+      this.container.addEventListener("mouseleave", (e) =>        {
+        console.log("menu out");
+        this.close();
+      }, false);
+      this.shadow.appendChild(style);
+      this.shadow.appendChild(this.container);
+    }
+     float(x, y, zindex=undefined) {
+      console.log("menu test!");
+      let dpi=this.getDPI();
+      let rect=this.dom.getClientRects();
+      let maxx=this.getWinWidth()-10;
+      let maxy=this.getWinHeight()-10;
+      console.log(rect.length>0 ? rect[0] : undefined);
+      if (rect.length>0) {
+          rect = rect[0];
+          console.log(y+rect.height);
+          if (y+rect.height>maxy) {
+              console.log("greater");
+              y = maxy-rect.height-1;
+          }
+          if (x+rect.width>maxx) {
+              console.log("greater");
+              x = maxx-rect.width-1;
+          }
+      }
+      super.float(x, y, 50);
+    }
+     click() {
+      if (this.activeItem==undefined)
+        return ;
+      if (this.activeItem!==undefined&&this.activeItem._isMenu)
+        return ;
+      if (this.onselect) {
+          try {
+            console.log(this.activeItem._id, "-----");
+            this.onselect(this.activeItem._id);
+          }
+          catch (error) {
+              util.print_stack(error);
+              console.log("Error in menu callback");
+          }
+      }
+      console.log("menu select");
+      this.close();
+    }
+     _ondestroy() {
+      if (this.started) {
+          menuWrangler.popMenu(this);
+          if (this.onclose) {
+              this.onclose();
+          }
+      }
+    }
+     init() {
+      super.init();
+      this.setCSS();
+    }
+     close() {
+      if (this.closed) {
+          return ;
+      }
+      this.closed = true;
+      if (this.started) {
+          menuWrangler.popMenu(this);
+      }
+      this.started = false;
+      if (this._popup) {
+          this._popup.end();
+          this._popup = undefined;
+      }
+      this.remove();
+      this.dom.remove();
+      if (this.onclose) {
+          this.onclose(this);
+      }
+    }
+     _select(dir, focus=true) {
+      if (this.activeItem===undefined) {
+          for (let item of this.items) {
+              if (!item.hidden) {
+                  this.setActive(item, focus);
+                  break;
+              }
+          }
+      }
+      else {
+        let i=this.items.indexOf(this.activeItem);
+        let item=this.activeItem;
+        do {
+          i = (i+dir+this.items.length)%this.items.length;
+          item = this.items[i];
+          if (!item.hidden) {
+              break;
+          }
+        } while (item!==this.activeItem);
+        
+        this.setActive(item, focus);
+      }
+      if (this.hasSearchBox) {
+          this.activeItem.scrollIntoView();
+      }
+    }
+     selectPrev(focus=true) {
+      return this._select(-1, focus);
+    }
+     selectNext(focus=true) {
+      return this._select(1, focus);
+    }
+    static  define() {
+      return {tagname: "menu-x", 
+     style: "menu"}
+    }
+     start_fancy(prepend, setActive=true) {
+      return this.startFancy(prepend, setActive);
+    }
+     setActive(item, focus=true) {
+      if (this.activeItem===item) {
+          return ;
+      }
+      if (this.activeItem) {
+          this.activeItem.style["background-color"] = this.getDefault("MenuBG");
+          if (focus) {
+              this.activeItem.blur();
+          }
+      }
+      if (item) {
+          item.style["background-color"] = this.getDefault("MenuHighlight");
+          if (focus) {
+              item.focus();
+          }
+      }
+      this.activeItem = item;
+    }
+     startFancy(prepend, setActive=true) {
+      console.warn("menu searchbox mode start");
+      this.hasSearchBox = true;
+      this.started = true;
+      menuWrangler.pushMenu(this);
+      let dom2=document.createElement("div");
+      this.dom.setAttribute("class", "menu");
+      dom2.setAttribute("class", "menu");
+      let sbox=this.textbox = document.createElement("textbox-x");
+      this.textbox.parentWidget = this;
+      dom2.appendChild(sbox);
+      dom2.appendChild(this.dom);
+      dom2.style["height"] = "300px";
+      this.dom.style["height"] = "300px";
+      this.dom.style["overflow"] = "scroll";
+      if (prepend) {
+          this.container.prepend(dom2);
+      }
+      else {
+        this.container.appendChild(dom2);
+      }
+      dom2.parentWidget = this.container;
+      sbox.focus();
+      sbox.onchange = () =>        {
+        let t=sbox.text.trim().toLowerCase();
+        console.log("applying search", t);
+        for (let item of this.items) {
+            item.hidden = true;
+            item.remove();
+        }
+        for (let item of this.items) {
+            let ok=t=="";
+            ok = ok||item.innerHTML.toLowerCase().search(t)>=0;
+            if (ok) {
+                item.hidden = false;
+                this.dom.appendChild(item);
+            }
+            else 
+              if (item===this.activeItem) {
+                this.selectNext(false);
+            }
+        }
+      };
+      sbox.addEventListener("keydown", (e) =>        {
+        console.log(e.keyCode);
+        switch (e.keyCode) {
+          case 27:
+            this.close();
+            break;
+          case 13:
+            this.click(this.activeItem);
+            this.close();
+            break;
+        }
+      });
+    }
+     start(prepend=false, setActive=true) {
+      this.started = true;
+      this.focus();
+      menuWrangler.pushMenu(this);
+      if (this.items.length>15&&this.autoSearchMode) {
+          return this.start_fancy(prepend, setActive);
+      }
+      if (prepend) {
+          this.container.prepend(this.dom);
+      }
+      else {
+        this.container.appendChild(this.dom);
+      }
+      if (!setActive)
+        return ;
+      console.log(this.container, "container?");
+      this.setCSS();
+      this.flushUpdate();
+      window.setTimeout(() =>        {
+        this.flushUpdate();
+        if (this.activeItem===undefined) {
+            this.activeItem = this.dom.childNodes[0];
+        }
+        if (this.activeItem===undefined) {
+            return ;
+        }
+        this.activeItem.focus();
+      }, 0);
+    }
+     addItemExtra(text, id=undefined, hotkey, icon=-1, add=true, tooltip=undefined) {
+      let dom=document.createElement("span");
+      dom.style["display"] = "inline-flex";
+      dom.hotkey = hotkey;
+      dom.icon = icon;
+      let icon_div;
+      if (1) {
+          icon_div = ui_base.makeIconDiv(icon, IconSheets.SMALL);
+      }
+      else {
+        let tilesize=ui_base.iconmanager.getTileSize(IconSheets.SMALL);
+        icon_div = document.createElement("span");
+        icon_div.style["padding"] = icon_div.style["margin"] = "0px";
+        icon_div.style["width"] = tilesize+"px";
+        icon_div.style["height"] = tilesize+"px";
+      }
+      icon_div.style["display"] = "inline-flex";
+      icon_div.style["margin-right"] = "1px";
+      icon_div.style["align"] = "left";
+      let span=document.createElement("span");
+      span.style["font"] = ui_base.getFont(this, undefined, "MenuText");
+      let dpi=this.getDPI();
+      let tsize=this.getDefault("MenuText").size;
+      let canvas=document.createElement("canvas");
+      let g=canvas.getContext("2d");
+      g.font = span.style["font"];
+      let rect=span.getClientRects();
+      let twid=Math.ceil(g.measureText(text).width);
+      let hwid;
+      if (hotkey) {
+          dom.hotkey = hotkey;
+          g.font = ui_base.getFont(this, undefined, "HotkeyText");
+          hwid = Math.ceil(g.measureText(hotkey).width);
+          twid+=hwid+8;
+      }
+      span.innerText = text;
+      span.style["word-wrap"] = "none";
+      span.style["white-space"] = "pre";
+      span.style["overflow"] = "hidden";
+      span.style["text-overflow"] = "clip";
+      span.style["width"] = ~~(twid)+"px";
+      span.style["padding"] = "0px";
+      span.style["margin"] = "0px";
+      dom.style["width"] = "100%";
+      dom.appendChild(icon_div);
+      dom.appendChild(span);
+      if (hotkey) {
+          let hotkey_span=document.createElement("span");
+          hotkey_span.innerText = hotkey;
+          hotkey_span.style["margin-left"] = "0px";
+          hotkey_span.style["margin-right"] = "0px";
+          hotkey_span.style["margin"] = "0px";
+          hotkey_span.style["padding"] = "0px";
+          let al="right";
+          hotkey_span.style["font"] = ui_base.getFont(this, undefined, "HotkeyText");
+          hotkey_span.style["color"] = this.getDefault("HotkeyTextColor");
+          hotkey_span.style["width"] = "100%";
+          hotkey_span.style["text-align"] = al;
+          hotkey_span.style["flex-align"] = al;
+          hotkey_span.style["float"] = "right";
+          hotkey_span["flex-wrap"] = "nowrap";
+          dom.appendChild(hotkey_span);
+      }
+      let ret=this.addItem(dom, id, add);
+      ret.hotkey = hotkey;
+      ret.icon = icon;
+      ret.label = text ? text : ret.innerText;
+      if (tooltip) {
+          ret.title = tooltip;
+      }
+      return ret;
+    }
+     addItem(item, id, add=true) {
+      id = id===undefined ? item : id;
+      let text=item;
+      if (typeof item==="string"||__instance_of(item, String)) {
+          let dom=document.createElement("dom");
+          dom.textContent = item;
+          item = dom;
+      }
+      else {
+        text = item.textContent;
+      }
+      let li=document.createElement("li");
+      li.setAttribute("tabindex", this.itemindex++);
+      li.setAttribute("class", "menuitem");
+      if (__instance_of(item, Menu)) {
+          console.log("submenu!");
+          let dom=this.addItemExtra(""+item.title, id, "", -1, false);
+          li.style["width"] = "100%";
+          li.appendChild(dom);
+          li._isMenu = true;
+          li._menu = item;
+          item.hidden = false;
+          item.container = this.container;
+      }
+      else {
+        li._isMenu = false;
+        li.appendChild(item);
+      }
+      li._id = id;
+      this.items.push(li);
+      li.label = text ? text : li.innerText.trim();
+      if (add) {
+          li.addEventListener("click", (e) =>            {
+            if (this.activeItem!==undefined&&this.activeItem._isMenu) {
+                return n;
+            }
+            this.click();
+          });
+          li.addEventListener("blur", (e) =>            {
+            if (this._ignoreFocusEvents) {
+                return ;
+            }
+            if (this.activeItem&&!this.activeItem._isMenu) {
+                this.setActive(undefined, false);
+            }
+          });
+          let onfocus=(e) =>            {
+            if (this._ignoreFocusEvents) {
+                return ;
+            }
+            if (this.activeItem!==undefined&&this.activeItem._isMenu) {
+                let active=this.activeItem;
+                window.setTimeout(() =>                  {
+                  if (this.activeItem&&this.activeItem!==active) {
+                      active._menu.close();
+                  }
+                }, 10);
+            }
+            if (li._isMenu) {
+                li._menu.onselect = (item) =>                  {
+                  this.onselect(item);
+                  this.close();
+                };
+                li._menu.start(false, false);
+            }
+            this.setActive(li, false);
+          };
+          li.addEventListener("touchend", (e) =>            {
+            onfocus(e);
+            if (this.activeItem!==undefined&&this.activeItem._isMenu) {
+                console.log("menu ignore");
+                return ;
+            }
+            this.click();
+          });
+          li.addEventListener("focus", (e) =>            {
+            onfocus(e);
+          });
+          li.addEventListener("touchmove", (e) =>            {
+            onfocus(e);
+            li.focus();
+          });
+          li.addEventListener("mouseenter", (e) =>            {
+            li.focus();
+          });
+          this.dom.appendChild(li);
+      }
+      return li;
+    }
+     buildStyle() {
+      let pad1=util.isMobile() ? 2 : 0;
+      pad1+=this.getDefault("MenuSpacing");
+      this.menustyle.textContent = `
+        .menucon {
+          position:absolute;
+          float:left;
+          
+          display: block;
+          -moz-user-focus: normal;
+        }
+        
+        ul.menu {
+          display        : flex;
+          flex-direction : column;
+          flex-wrap      : nowrap;
+          width          : max-content;
+          
+          margin : 0px;
+          padding : 0px;
+          border : ${this.getDefault("MenuBorder")};
+          -moz-user-focus: normal;
+          background-color: ${this.getDefault("MenuBG")};
+          color : ${this.getDefault("MenuText").color};
+        }
+        
+        .menuitem {
+          display : flex;
+          flex-wrap : nowrap;
+          flex-direction : row;          
+          
+          list-style-type:none;
+          -moz-user-focus: normal;
+          
+          margin : 0;
+          padding : 0px;
+          padding-right: 16px;
+          padding-left: 16px;
+          padding-top : ${pad1}px;
+          padding-bottom : ${pad1}px;
+          color : ${this.getDefault("MenuText").color};
+          font : ${this.getDefault("MenuText").genCSS()};
+          background-color: ${this.getDefault("MenuBG")};
+        }
+        
+        .menuseparator {
+          ${this.getDefault("MenuSeparator")}
+        }
+        
+        .menuitem:focus {
+          display : flex;
+          flex-wrap : nowrap;
+          
+          border : none;
+          outline : none;
+          
+          background-color: ${this.getDefault("MenuHighlight")};
+          color : ${this.getDefault("MenuText").color};
+          -moz-user-focus: normal;
+        }
+      `;
+    }
+     setCSS() {
+      super.setCSS();
+      this.buildStyle();
+      this.container.style["color"] = this.getDefault("MenuText").color;
+      this.style["color"] = this.getDefault("MenuText").color;
+    }
+     seperator() {
+      let bar=document.createElement("div");
+      bar.setAttribute("class", "menuseparator");
+      this.dom.appendChild(bar);
+      return this;
+    }
+     menu(title) {
+      let ret=document.createElement("menu-x");
+      ret.setAttribute("title", title);
+      this.addItem(ret);
+      return ret;
+    }
+     calcSize() {
+
+    }
+  }
+  _ESClass.register(Menu);
+  _es6_module.add_class(Menu);
+  Menu = _es6_module.add_export('Menu', Menu);
+  Menu.SEP = Symbol("menu seperator");
+  UIBase.register(Menu);
+  class DropBox extends Button {
+     constructor() {
+      super();
+      this._searchMenuMode = false;
+      this.altKey = undefined;
+      this.r = 5;
+      this._menu = undefined;
+      this._auto_depress = false;
+      this._onpress = this._onpress.bind(this);
+    }
+     init() {
+      super.init();
+      this.updateWidth();
+    }
+    get  searchMenuMode() {
+      return this._searchMenuMode;
+    }
+    set  searchMenuMode(v) {
+      this._searchMenuMode = v;
+      console.warn("searchMenuMode was set", this);
+    }
+     setCSS() {
+      this.style["user-select"] = "none";
+      this.dom.style["user-select"] = "none";
+    }
+     _genLabel() {
+      let s=super._genLabel();
+      let ret="";
+      if (s.length===0) {
+          s = "(error)";
+      }
+      this.altKey = s[0].toUpperCase().charCodeAt(0);
+      for (let i=0; i<s.length; i++) {
+          if (s[i]==="&"&&i<s.length-1&&s[i+1]!=="&") {
+              this.altKey = s[i+1].toUpperCase().charCodeAt(0);
+          }
+          else 
+            if (s[i]==="&"&&i<s.length-1&&s[i+1]==="&") {
+              continue;
+          }
+          else {
+            ret+=s[i];
+          }
+      }
+      return ret;
+    }
+     updateWidth() {
+      let dpi=this.getDPI();
+      let ts=this.getDefault("DefaultText").size;
+      let tw=this.g.measureText(this._genLabel()).width/dpi;
+      tw = ~~tw;
+      tw+=15;
+      if (!this.getAttribute("simple")) {
+          tw+=35;
+      }
+      if (tw!==this._last_w) {
+          this._last_w = tw;
+          this.dom.style["width"] = tw+"px";
+          this.style["width"] = tw+"px";
+          this.width = tw;
+          this.overrideDefault("defaultWidth", tw);
+          this._repos_canvas();
+          this._redraw();
+      }
+      return 0;
+    }
+     updateDataPath() {
+      if (!this.ctx||!this.hasAttribute("datapath")) {
+          return ;
+      }
+      let prop=this.getPathMeta(this.ctx, this.getAttribute("datapath"));
+      let val=this.getPathValue(this.ctx, this.getAttribute("datapath"));
+      if (val===undefined) {
+          this.disabled = true;
+          return ;
+      }
+      else {
+        this.disabled = false;
+      }
+      if (this.prop!==undefined) {
+          prop = this.prop;
+      }
+      let name=this.getAttribute("name");
+      if (prop.type&(PropTypes.ENUM|PropTypes.FLAG)) {
+          name = prop.ui_value_names[prop.keys[val]];
+      }
+      else {
+        name = ""+val;
+      }
+      if (name!=this.getAttribute("name")) {
+          this.setAttribute("name", name);
+          this.updateName();
+      }
+    }
+     update() {
+      super.update();
+      let key=this.getDefault("dropTextBG");
+      if (key!==this._last_dbox_key) {
+          this._last_dbox_key = key;
+          this.setCSS();
+          this._redraw();
+      }
+      if (this.hasAttribute("datapath")) {
+          this.updateDataPath();
+      }
+    }
+     _build_menu() {
+      let prop=this.prop;
+      if (this.prop===undefined) {
+          return ;
+      }
+      if (this._menu!==undefined&&this._menu.parentNode!==undefined) {
+          this._menu.remove();
+      }
+      let menu=this._menu = document.createElement("menu-x");
+      menu.setAttribute("title", name);
+      menu._dropbox = this;
+      let valmap={};
+      let enummap=prop.values;
+      let iconmap=prop.iconmap;
+      let uimap=prop.ui_value_names;
+      for (let k in enummap) {
+          let uk=k;
+          valmap[enummap[k]] = k;
+          if (uimap!==undefined&&k in uimap) {
+              uk = uimap[k];
+          }
+          if (iconmap&&iconmap[k]) {
+              menu.addItemExtra(uk, enummap[k], undefined, iconmap[k]);
+          }
+          else {
+            menu.addItem(uk, enummap[k]);
+          }
+      }
+      menu.onselect = (id) =>        {
+        this._pressed = false;
+        this._pressed = false;
+        this._redraw();
+        this._menu = undefined;
+        this.prop.setValue(id);
+        this.setAttribute("name", this.prop.ui_value_names[valmap[id]]);
+        if (this.onselect) {
+            this.onselect(id);
+        }
+        if (this.hasAttribute("datapath")&&this.ctx) {
+            console.log("setting data api value", id, this.getAttribute("datapath"));
+            this.setPathValue(this.ctx, this.getAttribute("datapath"), id);
+        }
+      };
+    }
+     _onpress(e) {
+      console.warn("menu dropbox click", this._menu, e);
+      if (this._menu!==undefined) {
+          this._pressed = false;
+          this._redraw();
+          let menu=this._menu;
+          this._menu = undefined;
+          menu.close();
+          return ;
+      }
+      this._build_menu();
+      if (this._menu===undefined) {
+          return ;
+      }
+      this._menu.autoSearchMode = false;
+      this._menu._dropbox = this;
+      this.dom._background = this.getDefault("BoxDepressed");
+      this._background = this.getDefault("BoxDepressed");
+      this._redraw();
+      this._pressed = true;
+      this.setCSS();
+      let onclose=this._menu.onclose;
+      this._menu.onclose = () =>        {
+        console.log("menu onclose");
+        this._pressed = false;
+        this._redraw();
+        let menu=this._menu;
+        if (menu) {
+            this._menu = undefined;
+            menu._dropbox = undefined;
+        }
+        if (onclose) {
+            onclose.call(menu);
+        }
+      };
+      let menu=this._menu;
+      let screen=this.getScreen();
+      let dpi=this.getDPI();
+      let x=e.x, y=e.y;
+      let rects=this.dom.getBoundingClientRect();
+      x = rects.x-window.scrollX;
+      y = rects.y+rects.height-window.scrollY;
+      if (!window.haveElectron) {
+      }
+      let con=this._popup = menu._popup = screen.popup(this, x, y, false, 0);
+      con.noMarginsOrPadding();
+      con.add(menu);
+      if (this.searchMenuMode) {
+          menu.startFancy();
+      }
+      else {
+        menu.start();
+      }
+    }
+     _redraw() {
+      if (this.getAttribute("simple")) {
+          let color;
+          if (this._highlight) {
+              ui_base.drawRoundBox2(this, {canvas: this.dom, 
+         g: this.g, 
+         color: this.getDefault("BoxHighlight")});
+          }
+          if (this._focus) {
+              ui_base.drawRoundBox2(this, {canvas: this.dom, 
+         g: this.g, 
+         color: this.getDefault("BoxHighlight"), 
+         op: "stroke", 
+         no_clear: true});
+              ui_base.drawRoundBox(this, this.dom, this.g, undefined, undefined, 2, "stroke");
+          }
+          this._draw_text();
+          return ;
+      }
+      super._redraw(false);
+      let g=this.g;
+      let w=this.dom.width, h=this.dom.height;
+      let dpi=this.getDPI();
+      let p=10*dpi;
+      let p2=4*dpi;
+      let bg=this.getDefault("dropTextBG");
+      if (bg!==undefined) {
+          g.fillStyle = bg;
+          g.beginPath();
+          g.rect(p2, p2, this.dom.width-p2-h, this.dom.height-p2*2);
+          g.fill();
+      }
+      g.fillStyle = "rgba(50, 50, 50, 0.2)";
+      g.strokeStyle = "rgba(50, 50, 50, 0.8)";
+      g.beginPath();
+      let sz=0.3;
+      g.moveTo(w-h*0.5-p, p);
+      g.lineTo(w-p, p);
+      g.moveTo(w-h*0.5-p, p+sz*h/3);
+      g.lineTo(w-p, p+sz*h/3);
+      g.moveTo(w-h*0.5-p, p+sz*h*2/3);
+      g.lineTo(w-p, p+sz*h*2/3);
+      g.lineWidth = 1;
+      g.stroke();
+      this._draw_text();
+    }
+    set  menu(val) {
+      this._menu = val;
+      if (val!==undefined) {
+          this._name = val.title;
+          this.updateName();
+      }
+    }
+     setValue(val) {
+      if (this.prop!==undefined) {
+          this.prop.setValue(val);
+          let val2=val;
+          if (val2 in this.prop.keys)
+            val2 = this.prop.keys[val2];
+          val2 = this.prop.ui_value_names[val2];
+          this.setAttribute("name", ""+val2);
+          this._name = ""+val2;
+      }
+      else {
+        this.setAttribute("name", ""+val);
+        this._name = ""+val;
+      }
+      if (this.onchange) {
+          this.onchange(val);
+      }
+      this.setCSS();
+      this.update();
+      this._redraw();
+    }
+    get  menu() {
+      return this._menu;
+    }
+    static  define() {
+      return {tagname: "dropbox-x", 
+     style: "dropbox"}
+    }
+  }
+  _ESClass.register(DropBox);
+  _es6_module.add_class(DropBox);
+  DropBox = _es6_module.add_export('DropBox', DropBox);
+  UIBase.register(DropBox);
+  class MenuWrangler  {
+     constructor() {
+      this.screen = undefined;
+      this.menustack = [];
+      this.closetimer = 0;
+      this.closeOnMouseUp = undefined;
+    }
+    get  menu() {
+      return this.menustack.length>0 ? this.menustack[this.menustack.length-1] : undefined;
+    }
+     pushMenu(menu) {
+      if (this.menustack.length===0&&menu.closeOnMouseUp) {
+          this.closeOnMouseUp = true;
+      }
+      this.menustack.push(menu);
+    }
+     popMenu(menu) {
+      return this.menustack.pop();
+    }
+     endMenus() {
+      for (let menu of this.menustack) {
+          menu.close();
+      }
+      this.menustack = [];
+    }
+     searchKeyDown(e) {
+      let menu=this.menu;
+      console.log("s", e.keyCode);
+      e.stopPropagation();
+      menu._ignoreFocusEvents = true;
+      menu.textbox.focus();
+      menu._ignoreFocusEvents = false;
+      switch (e.keyCode) {
+        case keymap["Enter"]:
+          menu.click(menu.activeItem);
+          break;
+        case keymap["Escape"]:
+          menu.close();
+          break;
+        case keymap["Up"]:
+          console.log("Up");
+          menu.selectPrev(false);
+          break;
+        case keymap["Down"]:
+          console.log("Down");
+          menu.selectNext(false);
+          break;
+      }
+    }
+     on_keydown(e) {
+      window.menu = this.menu;
+      if (this.menu===undefined) {
+          return ;
+      }
+      if (this.menu.hasSearchBox) {
+          return this.searchKeyDown(e);
+      }
+      console.log("key", e.keyCode);
+      let menu=this.menu;
+      switch (e.keyCode) {
+        case keymap["Left"]:
+        case keymap["Right"]:
+          if (menu._dropbox) {
+              let dropbox=menu._dropbox;
+              if (e.keyCode===keymap["Left"]) {
+                  dropbox = dropbox.previousElementSibling;
+              }
+              else {
+                dropbox = dropbox.nextElementSibling;
+              }
+              if (dropbox!==undefined&&__instance_of(dropbox, DropBox)) {
+                  this.endMenus();
+                  dropbox._onpress(e);
+              }
+          }
+          break;
+        case keymap["Up"]:
+          menu.selectPrev();
+          break;
+        case keymap["Down"]:
+          menu.selectNext();
+          break;
+        case 13:
+        case 32:
+          menu.click(menu.activeItem);
+          break;
+        case 27:
+          menu.close();
+          break;
+      }
+    }
+     on_mousedown(e) {
+      if (this.menu===undefined||this.screen===undefined) {
+          this.closetimer = util.time_ms();
+          return ;
+      }
+      let screen=this.screen;
+      let x=e.pageX, y=e.pageY;
+      let element=screen.pickElement(x, y);
+      console.log("wrangler mousedown", element);
+      if (element!==undefined&&(__instance_of(element, DropBox)||util.isMobile())) {
+          this.endMenus();
+          e.preventDefault();
+          e.stopPropagation();
+      }
+    }
+     on_mouseup(e) {
+      if (this.menu===undefined||this.screen===undefined) {
+          this.closetimer = util.time_ms();
+          return ;
+      }
+      let screen=this.screen;
+      let x=e.pageX, y=e.pageY;
+      let element=screen.pickElement(x, y, undefined, undefined, DropBox);
+      if (element!==undefined) {
+          this.closeOnMouseUp = false;
+      }
+      else {
+        element = screen.pickElement(x, y, undefined, undefined, Menu);
+        if (element&&this.closeOnMouseUp) {
+            element.click();
+        }
+      }
+    }
+     on_mousemove(e) {
+      if (this.menu&&this.menu.hasSearchBox) {
+          this.closetimer = util.time_ms();
+          return ;
+      }
+      if (this.menu===undefined||this.screen===undefined) {
+          this.closetimer = util.time_ms();
+          return ;
+      }
+      let screen=this.screen;
+      let x=e.pageX, y=e.pageY;
+      let element=screen.pickElement(x, y);
+      if (element===undefined) {
+          return ;
+      }
+      if (__instance_of(element, DropBox)&&element.menu!==this.menu&&element.getAttribute("simple")) {
+          this.endMenus();
+          this.closetimer = util.time_ms();
+          element._onpress(e);
+          return ;
+      }
+      let ok=false;
+      let w=element;
+      while (w) {
+        if (w===this.menu) {
+            ok = true;
+            break;
+        }
+        if (__instance_of(w, DropBox)&&w.menu===this.menu) {
+            ok = true;
+            break;
+        }
+        w = w.parentWidget;
+      }
+      if (!ok&&(util.time_ms()-this.closetimer>cconst.menu_close_time)) {
+          this.endMenus();
+      }
+      else 
+        if (ok) {
+          this.closetimer = util.time_ms();
+      }
+    }
+  }
+  _ESClass.register(MenuWrangler);
+  _es6_module.add_class(MenuWrangler);
+  MenuWrangler = _es6_module.add_export('MenuWrangler', MenuWrangler);
+  let menuWrangler=new MenuWrangler();
+  menuWrangler = _es6_module.add_export('menuWrangler', menuWrangler);
+  let wrangerStarted=false;
+  function startMenuEventWrangling(screen) {
+    menuWrangler.screen = screen;
+    if (wrangerStarted) {
+        return ;
+    }
+    wrangerStarted = true;
+    for (let k in DomEventTypes) {
+        if (menuWrangler[k]===undefined) {
+            continue;
+        }
+        let dom=k.search("key")>=0 ? window : document.body;
+        dom = window;
+        dom.addEventListener(DomEventTypes[k], menuWrangler[k].bind(menuWrangler), {passive: false, 
+      capture: true});
+    }
+    menuWrangler.screen = screen;
+  }
+  startMenuEventWrangling = _es6_module.add_export('startMenuEventWrangling', startMenuEventWrangling);
+  function setWranglerScreen(screen) {
+    startMenuEventWrangling(screen);
+  }
+  setWranglerScreen = _es6_module.add_export('setWranglerScreen', setWranglerScreen);
+  function getWranglerScreen() {
+    return menuWrangler.screen;
+  }
+  getWranglerScreen = _es6_module.add_export('getWranglerScreen', getWranglerScreen);
+  function createMenu(ctx, title, templ) {
+    let menu=document.createElement("menu-x");
+    menu.ctx = ctx;
+    menu.setAttribute("name", title);
+    let SEP=menu.constructor.SEP;
+    let id=0;
+    let cbs={}
+    let doItem=(item) =>      {
+      if (item!==undefined&&__instance_of(item, Menu)) {
+          menu.addItem(item);
+      }
+      else 
+        if (typeof item=="string") {
+          let def;
+          try {
+            def = ctx.api.getToolDef(item);
+          }
+          catch (error) {
+              menu.addItem("(tool path error)", id++);
+              return ;
+          }
+          menu.addItemExtra(def.uiname, id, def.hotkey, def.icon);
+          cbs[id] = (function (toolpath) {
+            return function () {
+              ctx.api.execTool(ctx, toolpath);
+            }
+          })(item);
+          id++;
+      }
+      else 
+        if (item===SEP) {
+          menu.seperator();
+      }
+      else 
+        if (typeof item==="function"||__instance_of(item, Function)) {
+          doItem(item());
+      }
+      else 
+        if (__instance_of(item, Array)) {
+          let hotkey=item.length>2 ? item[2] : undefined;
+          let icon=item.length>3 ? item[3] : undefined;
+          let tooltip=item.length>4 ? item[4] : undefined;
+          if (hotkey!==undefined&&__instance_of(hotkey, HotKey)) {
+              hotkey = hotkey.buildString();
+          }
+          menu.addItemExtra(item[0], id, hotkey, icon, undefined, tooltip);
+          cbs[id] = (function (cbfunc, arg) {
+            return function () {
+              cbfunc(arg);
+            }
+          })(item[1], item[2]);
+          id++;
+      }
+    }
+    for (let item of templ) {
+        doItem(item);
+    }
+    menu.onselect = (id) =>      {
+      cbs[id]();
+    }
+    return menu;
+  }
+  createMenu = _es6_module.add_export('createMenu', createMenu);
+  function startMenu(menu, x, y, searchMenuMode, safetyDelay) {
+    if (searchMenuMode===undefined) {
+        searchMenuMode = false;
+    }
+    if (safetyDelay===undefined) {
+        safetyDelay = 55;
+    }
+    let screen=menu.ctx.screen;
+    let con=menu._popup = screen.popup(undefined, x, y, false, safetyDelay);
+    con.noMarginsOrPadding();
+    con.add(menu);
+    if (searchMenuMode) {
+        menu.startFancy();
+    }
+    else {
+      menu.start();
+    }
+  }
+  startMenu = _es6_module.add_export('startMenu', startMenu);
+}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_menu.js');
+es6_module_define('ui_noteframe', ["../core/ui.js", "../util/util.js", "../core/ui_base.js"], function _ui_noteframe_module(_es6_module) {
+  var util=es6_import(_es6_module, '../util/util.js');
+  var ui=es6_import(_es6_module, '../core/ui.js');
+  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
+  var Icons=es6_import_item(_es6_module, '../core/ui_base.js', 'Icons');
+  var css2color=es6_import_item(_es6_module, '../core/ui_base.js', 'css2color');
+  var color2css=es6_import_item(_es6_module, '../core/ui_base.js', 'color2css');
+  let UIBase=ui_base.UIBase;
+  class Note extends ui_base.UIBase {
+     constructor() {
+      super();
+      let style=document.createElement("style");
+      this._noteid = undefined;
+      this.height = 20;
+      style.textContent = `
+    .notex {
+      display : flex;
+      flex-direction : row;
+      flex-wrap : nowrap;
+      height : {this.height}px;
+      padding : 0px;
+      margin : 0px;
+    }
+    `;
+      this.dom = document.createElement("div");
+      this.dom.setAttribute("class", "notex");
+      this.color = "red";
+      this.shadow.appendChild(style);
+      this.shadow.append(this.dom);
+      this.setLabel("");
+    }
+     setLabel(s) {
+      let color=this.color;
+      if (this.mark===undefined) {
+          this.mark = document.createElement("div");
+          this.mark.style["display"] = "flex";
+          this.mark.style["flex-direction"] = "row";
+          this.mark.style["flex-wrap"] = "nowrap";
+          let sheet=0;
+          let size=ui_base.iconmanager.getTileSize(sheet);
+          this.mark.style["width"] = ""+size+"px";
+          this.mark.style["height"] = ""+size+"px";
+          this.dom.appendChild(this.mark);
+          this.ntext = document.createElement("div");
+          this.ntext.style["display"] = "inline-flex";
+          this.ntext.style["flex-wrap"] = "nowrap";
+          this.dom.appendChild(this.ntext);
+          ui_base.iconmanager.setCSS(Icons.NOTE_EXCL, this.mark, sheet);
+      }
+      let mark=this.mark, ntext=this.ntext;
+      ntext.innerText = " "+s;
+    }
+     init() {
+      super.init();
+      this.setAttribute("class", "notex");
+      this.style["display"] = "flex";
+      this.style["flex-wrap"] = "nowrap";
+      this.style["flex-direction"] = "row";
+      this.style["border-radius"] = "7px";
+      this.style["padding"] = "2px";
+      this.style["color"] = this.getDefault("NoteText").color;
+      let clr=css2color(this.color);
+      clr = color2css([clr[0], clr[1], clr[2], 0.25]);
+      this.style["background-color"] = clr;
+      this.setCSS();
+    }
+    static  define() {
+      return {tagname: "note-x"}
+    }
+  }
+  _ESClass.register(Note);
+  _es6_module.add_class(Note);
+  Note = _es6_module.add_export('Note', Note);
+  UIBase.register(Note);
+  class ProgBarNote extends Note {
+     constructor() {
+      super();
+      this._percent = 0.0;
+      this.barWidth = 100;
+      let bar=this.bar = document.createElement("div");
+      bar.style["display"] = "flex";
+      bar.style["flex-direction"] = "row";
+      bar.style["width"] = this.barWidth+"px";
+      bar.style["height"] = this.height+"px";
+      bar.style["background-color"] = this.getDefault("ProgressBarBG");
+      bar.style["border-radius"] = "12px";
+      bar.style["align-items"] = "center";
+      bar.style["padding"] = bar.style["margin"] = "0px";
+      let bar2=this.bar2 = document.createElement("div");
+      let w=50.0;
+      bar2.style["display"] = "flex";
+      bar2.style["flex-direction"] = "row";
+      bar2.style["height"] = this.height+"px";
+      bar2.style["background-color"] = this.getDefault("ProgressBar");
+      bar2.style["border-radius"] = "12px";
+      bar2.style["align-items"] = "center";
+      bar2.style["padding"] = bar2.style["margin"] = "0px";
+      this.bar.appendChild(bar2);
+      this.dom.appendChild(this.bar);
+    }
+     setCSS() {
+      super.setCSS();
+      let w=~~(this.percent*this.barWidth+0.5);
+      this.bar2.style["width"] = w+"px";
+    }
+    set  percent(val) {
+      this._percent = val;
+      this.setCSS();
+    }
+    get  percent() {
+      return this._percent;
+    }
+     init() {
+      super.init();
+    }
+    static  define() {
+      return {tagname: "note-progress-x"}
+    }
+  }
+  _ESClass.register(ProgBarNote);
+  _es6_module.add_class(ProgBarNote);
+  ProgBarNote = _es6_module.add_export('ProgBarNote', ProgBarNote);
+  UIBase.register(ProgBarNote);
+  class NoteFrame extends ui.RowFrame {
+     constructor() {
+      super();
+      this._h = 20;
+    }
+     init() {
+      super.init();
+      this.noMarginsOrPadding();
+      noteframes.push(this);
+      this.background = this.getDefault("NoteBG");
+    }
+     setCSS() {
+      super.setCSS();
+      this.style["width"] = "min-contents";
+      this.style["height"] = this._h+"px";
+    }
+     _ondestroy() {
+      if (noteframes.indexOf(this)>=0) {
+          noteframes.remove(this);
+      }
+      super._ondestroy();
+    }
+     progbarNote(msg, percent, color="rgba(255,0,0,0.2)", timeout=700, id=msg) {
+      let note;
+      for (let child of this.children) {
+          if (child._noteid===id) {
+              note = child;
+              break;
+          }
+      }
+      let f=(100.0*Math.min(percent, 1.0)).toFixed(1);
+      if (note===undefined) {
+          note = this.addNote(msg, color, -1, "note-progress-x");
+          note._noteid = id;
+      }
+      note.percent = percent;
+      if (percent>=1.0) {
+          window.setTimeout(() =>            {
+            note.remove();
+          }, timeout);
+      }
+      return note;
+    }
+     addNote(msg, color="rgba(255,0,0,0.2)", timeout=1200, tagname="note-x") {
+      let note=document.createElement(tagname);
+      note.color = color;
+      note.setLabel(msg);
+      note.style["text-align"] = "center";
+      note.style["font"] = ui_base.getFont(note, "NoteText");
+      note.style["color"] = this.getDefault("NoteText").color;
+      this.add(note);
+      this.noMarginsOrPadding();
+      note.noMarginsOrPadding();
+      note.style["height"] = this._h+"px";
+      note.height = this._h;
+      if (timeout!=-1) {
+          window.setTimeout(() =>            {
+            note.remove();
+          }, timeout);
+      }
+      return note;
+    }
+    static  define() {
+      return {tagname: "noteframe-x"}
+    }
+  }
+  _ESClass.register(NoteFrame);
+  _es6_module.add_class(NoteFrame);
+  NoteFrame = _es6_module.add_export('NoteFrame', NoteFrame);
+  UIBase.register(NoteFrame);
+  function getNoteFrames(screen) {
+    let ret=[];
+    let rec=(n) =>      {
+      if (__instance_of(n, NoteFrame)) {
+          ret.push(n);
+      }
+      if (n.childNodes!==undefined) {
+          for (let node of n.childNodes) {
+              rec(node);
+          }
+      }
+      if (__instance_of(n, ui_base.UIBase)&&n.shadow!==undefined&&n.shadow.childNodes) {
+          for (let node of n.shadow.childNodes) {
+              rec(node);
+          }
+      }
+    }
+    rec(screen);
+    return ret;
+  }
+  getNoteFrames = _es6_module.add_export('getNoteFrames', getNoteFrames);
+  let noteframes=[];
+  noteframes = _es6_module.add_export('noteframes', noteframes);
+  function progbarNote(screen, msg, percent, color, timeout) {
+    noteframes = getNoteFrames(screen);
+    for (let frame of noteframes) {
+        try {
+          frame.progbarNote(msg, percent, color, timeout);
+        }
+        catch (error) {
+            print_stack(error);
+            console.log("bad notification frame");
+        }
+    }
+  }
+  progbarNote = _es6_module.add_export('progbarNote', progbarNote);
+  function sendNote(screen, msg, color, timeout) {
+    if (timeout===undefined) {
+        timeout = 3000;
+    }
+    noteframes = getNoteFrames(screen);
+    for (let frame of noteframes) {
+        try {
+          frame.addNote(msg, color, timeout);
+        }
+        catch (error) {
+            print_stack(error);
+            console.log("bad notification frame");
+        }
+    }
+  }
+  sendNote = _es6_module.add_export('sendNote', sendNote);
+  window._sendNote = sendNote;
+  function error(screen, msg, timeout) {
+    return sendNote(screen, msg, ui_base.color2css([1.0, 0.0, 0.0, 1.0]), timeout);
+  }
+  error = _es6_module.add_export('error', error);
+  function warning(screen, msg, timeout) {
+    return sendNote(screen, msg, ui_base.color2css([0.78, 0.78, 0.2, 1.0]), timeout);
+  }
+  warning = _es6_module.add_export('warning', warning);
+  function message(screen, msg, timeout) {
+    return sendNote(screen, msg, ui_base.color2css([0.4, 1.0, 0.5, 1.0]), timeout);
+  }
+  message = _es6_module.add_export('message', message);
+}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_noteframe.js');
 es6_module_define('ui_numsliders', ["../core/ui.js", "../util/vectormath.js", "../util/simple_events.js", "../core/ui_base.js", "../toolsys/toolprop.js", "../core/units.js", "./ui_widgets.js", "../util/util.js"], function _ui_numsliders_module(_es6_module) {
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var drawText=es6_import_item(_es6_module, '../core/ui_base.js', 'drawText');
@@ -5576,6 +6915,1372 @@ es6_module_define('curvebase', [], function _curvebase_module(_es6_module) {
   _ESClass.register(CurveInterface);
   _es6_module.add_class(CurveInterface);
 }, '/dev/fairmotion/src/curve/curvebase.js');
+es6_module_define('bspline', [], function _bspline_module(_es6_module) {
+  var _bspline=undefined;
+  var _i=0;
+  var IW=_i++;
+  var IDV1=_i++;
+  var IDV2=_i++;
+  var IDV3=_i++;
+  var IDV4=_i++;
+  var ITOT=_i;
+  function Table(size, start, end, ds) {
+    this.start = start;
+    this.end = end;
+    this.ds = ds;
+    this.size = size;
+    this.t = new Float64Array(size*ITOT);
+    this.w = new Array(size);
+    this.dv = new Array(size);
+    this.dv2 = new Array(size);
+    this.dv3 = new Array(size);
+    this.dv4 = new Array(size);
+    this.start = start;
+    this.end = end;
+    this.ds = ds;
+    this.ds2 = ds*ds;
+    this.ds3 = ds*ds*ds;
+    this.ds4 = ds*ds*ds*ds;
+    this.ds5 = ds*ds*ds*ds*ds;
+    this.ds6 = ds*ds*ds*ds*ds*ds;
+    this.ds7 = ds*ds*ds*ds*ds*ds*ds;
+    this.ds8 = ds*ds*ds*ds*ds*ds*ds*ds;
+    this.ds9 = ds*ds*ds*ds*ds*ds*ds*ds*ds;
+  }
+  Table = _es6_module.add_export('Table', Table);
+  var cache={}
+  window.NO_CACHE = false;
+  var uniform_vec=new Array(1024);
+  for (var i=0; i<uniform_vec.length; i++) {
+      uniform_vec[i] = i;
+  }
+  class BasisCache  {
+     constructor(knots) {
+      this.size = undefined;
+      this.recalc = 1;
+      this.tables = [];
+      this.dpad = 1;
+      if (knots!=undefined) {
+          this.gen(knots);
+      }
+    }
+     gen(ks, degree) {
+      if (NO_CACHE) {
+          this.recalc = 1;
+          return ;
+      }
+      this.tables = [];
+      var start_time=time_ms();
+      console.log("start generating tables");
+      var sz=14;
+      if (degree<3)
+        sz = 128;
+      else 
+        if (degree<4)
+        sz = 40;
+      this.size = sz;
+      this.degree = degree;
+      var dpad=this.dpad;
+      for (var i=-degree-dpad; i<ks.length+degree+dpad; i++) {
+          var j1=Math.max(0, i-degree-dpad);
+          var j2=Math.min(ks.length-1, i+degree+dpad);
+          if (i==-degree-dpad)
+            j1 = 0;
+          var tstart=ks[j1];
+          var tend=ks[j2];
+          var ds=(tend-tstart)/(this.size-1.0);
+          var table=new Table(this.size, tstart, tend, ds);
+          this.tables.push(table);
+      }
+      this.recalc = 0;
+      if (ks.length==0)
+        return ;
+      var start=ks[0], end=ks[ks.length-1];
+      var s=start, steps=this.size, ds=(end-start)/(steps-1.0);
+      this.start = start;
+      this.end = end;
+      var df=1e-05;
+      var lastk=ks[ks.length-1];
+      var dpad=this.dpad;
+      for (var j=-degree-dpad; j<ks.length+degree+dpad; j++) {
+          var j1=Math.min(Math.max(j+degree+dpad, 0), this.tables.length-1);
+          var table=this.tables[j1];
+          start = table.start, end = table.end, ds = table.ds;
+          var ac=0.0;
+          for (var i=0, s2=start; i<steps; i++, s2+=ds) {
+              var s=s2;
+              s = min(lastk-1e-08, s);
+              var table=this.tables[j+degree+dpad];
+              var dv, dv2, dv3, dv4;
+              dv = dv2 = dv3 = dv4 = 0.0;
+              var w=table.w[i] = basis(s, j, degree, ks);
+              table.t[ac++] = w;
+              var s2=s;
+              var dv=basis_dv(s2, j, degree, ks, 1);
+              table.t[ac++] = dv;
+              if (this.degree>2) {
+                  dv2 = basis_dv(s, j, degree, ks, 2);
+                  table.t[ac++] = dv2;
+              }
+              else {
+                ac++;
+              }
+              if (this.degree>3) {
+                  dv3 = basis_dv(s, j, degree, ks, 3);
+                  table.t[ac++] = dv3;
+              }
+              else {
+                ac++;
+              }
+              if (this.degree>4) {
+                  dv4 = basis_dv(s, j, degree, ks, 4);
+                  table.t[ac++] = dv4;
+              }
+              else {
+                ac++;
+              }
+              table.dv[i] = dv;
+              table.dv2[i] = dv2;
+              table.dv3[i] = dv3;
+              table.dv4[i] = dv4;
+          }
+      }
+    }
+     update() {
+      this.recalc = 1;
+    }
+     basis(s, j, n, ks, no_cache) {
+      var origs=s;
+      if (NO_CACHE||(no_cache!==undefined&&no_cache)) {
+          return basis(s, j, n, ks, true);
+      }
+      if (this.recalc) {
+          this.gen(ks, n);
+      }
+      j = min(max(j+n+this.dpad, 0), this.tables.length-1);
+      var table=this.tables[j];
+      var start=table.start, end=table.end, ds=table.ds;
+      if (s<start||s>=end)
+        return 0.0;
+      var div=(end-start);
+      var tsize=this.size;
+      s = (s-start)/div;
+      s = min(max(s, 0.0), 1.0)*(tsize-1.0);
+      var t=s;
+      s = floor(s);
+      s = min(max(s, 0.0), tsize-1);
+      t-=s;
+      var s2=min(s+1, tsize);
+      var ac1=s*ITOT;
+      var ac2=s2*ITOT;
+      var tb=table.t;
+      var w1, w2, dv1a, dv2a, dv3a, dv4a, dv1b, dv2b, dv3b, dv4b;
+      var w1=table.w[s], dv1a=table.dv[s], dv2a=table.dv2[s], dv3a=table.dv3[s], dv4a=table.dv4[s];
+      var w2=table.w[s2], dv1b=table.dv[s2], dv2b=table.dv2[s2], dv3b=table.dv3[s2], dv4b=table.dv4[s2];
+      var t2=1.0-t;
+      var t3=t;
+      t*=ds;
+      t2*=-ds;
+      var eps=1e-06;
+      t3 = (t3*(1.0-eps*2.0))+eps;
+      s = t3*ds;
+      var s2=s*s, s3=s*s*s, s4=s2*s2, s5=s4*s, s6=s3*s3, s7=s6*s, s8=s7*s;
+      var ds2=ds*ds, ds3=ds*ds*ds, ds4=ds3*ds, ds5=ds4*ds, ds6=ds5*ds, ds7=ds6*ds, ds8=ds7*ds;
+      var polynomial=((((dv3a*s3+6*w1+3*dv2a*s2+6*dv1a*s)*ds5+3*(2*ds3*dv3a+ds3*dv3b+20*ds2*dv2a-14*ds2*dv2b+90*ds*dv1a+78*ds*dv1b+168*w1-168*w2)*s5)*ds-(4*ds3*dv3a+3*ds3*dv3b+45*ds2*dv2a-39*ds2*dv2b+216*ds*dv1a+204*ds*dv1b+420*w1-420*w2)*s6)*ds+((dv3a+dv3b)*ds3+120*(w1-w2)+12*(dv2a-dv2b)*ds2+60*(dv1a+dv1b)*ds)*s7-((4*dv3a+dv3b)*ds3+210*(w1-w2)+15*(2*dv2a-dv2b)*ds2+30*(4*dv1a+3*dv1b)*ds)*ds3*s4)/(6*ds7);
+      if (isNaN(polynomial)) {
+          return 0;
+      }
+      return polynomial;
+    }
+  }
+  _ESClass.register(BasisCache);
+  _es6_module.add_class(BasisCache);
+  BasisCache = _es6_module.add_export('BasisCache', BasisCache);
+  var basis_dv_cache=new cachering(function () {
+    var ret=new Array(32);
+    for (var i=0; i<ret.length; i++) {
+        ret[i] = 0.0;
+    }
+    ret.j = undefined;
+    ret.n = undefined;
+    ret.init = function (j, n) {
+      this.j = j;
+      this.n = n;
+      for (var i=0; i<this.length; i++) {
+          this[i] = 0;
+      }
+    }
+    return ret;
+  }, 64);
+  function basis_dv(s, j, n, ks, dvn) {
+    if (dvn==undefined)
+      dvn = 1;
+    return compiled_basis_dv(s, j, n, ks, dvn);
+    if (dvn==0) {
+        return basis(s, j, n, ks);
+    }
+    var klen=ks.length;
+    var j1=j, j2=j+1, jn=j+n, jn1=j+n+1;
+    j1 = min(max(j1, 0.0), klen-1);
+    j2 = min(max(j2, 0.0), klen-1);
+    jn = min(max(jn, 0.0), klen-1);
+    jn1 = min(max(jn1, 0.0), klen-1);
+    if (n<1) {
+        return 0;
+    }
+    else 
+      if (0&&n<=1) {
+        var j3=min(max(j+2, 0.0), klen-1);
+        var j4=min(max(j+3, 0.0), klen-1);
+        var ret=0.0;
+        if (s>=ks[j1]&&s<ks[j2])
+          ret = 1.0/(ks[j2]-ks[j1]);
+        else 
+          if (s>=ks[j2]&&s<ks[j3])
+          ret = -1.0/(ks[j3]-ks[j2]);
+        return ret;
+    }
+    else {
+      var kj1=ks[j1];
+      var kj2=ks[j2];
+      var kjn=ks[jn]+1e-10;
+      var kjn1=ks[jn1]+1e-10;
+      var div=((kj1-kjn)*(kj2-kjn1));
+      if (div==0.0) {
+          div = 0.0;
+      }
+      var lastdv=basis_dv(s, j, n-1, ks, dvn-1);
+      var ret=((kj1-s)*basis_dv(s, j, n-1, ks, dvn)-dvn*basis_dv(s, j, n-1, ks, dvn-1))*(kj2-kjn1);
+      ret-=((kjn1-s)*basis_dv(s, j+1, n-1, ks, dvn)-dvn*basis_dv(s, j+1, n-1, ks, dvn-1))*(kj1-kjn);
+      if (div!=0.0)
+        ret/=div;
+      else 
+        ret/=0.0001;
+      return ret;
+    }
+  }
+  basis_dv = _es6_module.add_export('basis_dv', basis_dv);
+  var min=Math.min, max=Math.max;
+  let dtmp=new Array(64);
+  let ktmp=new Array(64);
+  function deBoor(k, x, knots, controls, degree) {
+    let p=degree;
+    let t=knots;
+    let c=controls;
+    let d=dtmp;
+    for (let j=0; j<p+1; j++) {
+        let j2=Math.min(Math.max(j+k-p, 0), knots.length-1);
+        d[j] = c[j2];
+    }
+    for (let r=1; r<p+1; r++) {
+        for (let j=p; j>r-1; j--) {
+            let alpha=(x-t[j+k-p])/(t[j+1+k-r]-t[j+k-p]);
+            d[j] = (1.0-alpha)*d[j-1]+alpha*d[j];
+        }
+    }
+    return d[p];
+  }
+  deBoor = _es6_module.add_export('deBoor', deBoor);
+  function basis(s, j, n, ks, no_cache) {
+    if (no_cache===undefined) {
+        no_cache = false;
+    }
+    return compiled_basis(s, j, n, ks);
+    var klen=ks.length;
+    var j1=j, j2=j+1, jn=j+n, jn1=j+n+1;
+    j1 = min(max(j1, 0.0), klen-1);
+    j2 = min(max(j2, 0.0), klen-1);
+    jn = min(max(jn, 0.0), klen-1);
+    jn1 = min(max(jn1, 0.0), klen-1);
+    if (n===0) {
+        return s>=ks[j1]&&s<ks[j2];
+    }
+    else {
+      var A=s-ks[j1];
+      var div=ks[jn]-ks[j1];
+      div+=1e-05;
+      A = (A/div)*basis(s, j, n-1, ks);
+      var B=ks[jn1]-s;
+      div = ks[jn1]-ks[j2];
+      div+=1e-05;
+      B = (B/div)*basis(s, j+1, n-1, ks);
+      return A+B;
+    }
+  }
+  basis = _es6_module.add_export('basis', basis);
+  function uniform_basis_intern(s, j, n) {
+    var ret=basis(s, j, n, uniform_vec);
+    if (n==0) {
+        return (s>=j&&s<j+1) ? 1.0 : 0.0;
+    }
+    else {
+      var A=(s-j)/n;
+      var B=(n+j+1-s)/n;
+      return uniform_basis(s, j, n-1)*A+uniform_basis(s, j+1, n-1)*B;
+    }
+  }
+  uniform_basis_intern = _es6_module.add_export('uniform_basis_intern', uniform_basis_intern);
+  function get_hash(h) {
+    return cache[h];
+  }
+  function set_hash(h, val) {
+    cache[h] = val;
+  }
+  function uniform_basis(s, j, n, len) {
+    uniform_vec.length = len===undefined ? 1024 : len;
+    return basis(s, j, n, uniform_vec);
+    var hash=s+j*100.0+n*10000.0;
+    var ret=get_hash(hash);
+    if (ret==undefined) {
+        ret = uniform_basis_intern(s, j, n);
+        set_hash(hash, ret);
+    }
+    return ret;
+  }
+  uniform_basis = _es6_module.add_export('uniform_basis', uniform_basis);
+  var toHash2_stack=new Array(4096);
+  var toHash2_stack_2=new Float64Array(4096);
+  var toHash2_stack_3=new Float64Array(4096);
+  var _str_prejit=new Array(4096);
+  var strpre=8;
+  var RNDLEN=1024;
+  var rndtab=new Float64Array(RNDLEN);
+  for (var i=0; i<rndtab.length; i++) {
+      rndtab[i] = Math.random()*0.99999999;
+  }
+  function precheck(key) {
+    var s1="";
+    var seed=key.length%RNDLEN;
+    seed = floor(rndtab[seed]*RNDLEN);
+    var klen=key.length;
+    for (var i=0; i<strpre; i++) {
+        s1+=key[floor(rndtab[seed]*klen)];
+        seed = (seed+1)%RNDLEN;
+    }
+    return s1;
+  }
+  var _vbuf=new Uint8Array(8);
+  var _view=new DataView(_vbuf.buffer);
+  var _fview=new Float32Array(_vbuf.buffer);
+  var _iview=new Int32Array(_vbuf.buffer);
+  var _sview=new Int16Array(_vbuf.buffer);
+  function pack_float(f) {
+    var s="";
+    _fview[0] = f;
+    for (var i=0; i<4; i++) {
+        s+=String.fromCharCode(_vbuf[i]);
+    }
+    return s;
+  }
+  function pack_int(f) {
+    var s="";
+    _iview[0] = f;
+    for (var i=0; i<4; i++) {
+        s+=String.fromCharCode(_vbuf[i]);
+    }
+    return s;
+  }
+  function pack_short(f) {
+    var s="";
+    _sview[0] = f;
+    for (var i=0; i<2; i++) {
+        s+=String.fromCharCode(_vbuf[i]);
+    }
+    return s;
+  }
+  function pack_byte(f) {
+    return String.fromCharCode(f);
+  }
+  var tiny_strpool={}
+  var tiny_strpool_idgen=1;
+  function pack_str(f) {
+    var ret="";
+    if (!(f in tiny_strpool)) {
+        tiny_strpool[f] = tiny_strpool_idgen++;
+    }
+    return pack_short(tiny_strpool[f]);
+  }
+  var tiny_strpool2={}
+  var tiny_strpool_idgen2=1;
+  function pack_op(f) {
+    var ret="";
+    if (!(f in tiny_strpool2)) {
+        tiny_strpool2[f] = tiny_strpool_idgen2++;
+    }
+    return pack_byte(tiny_strpool2[f]);
+  }
+  window.pack_float = pack_float;
+  window.precheck = precheck;
+  var _str_prehash={}
+  var _str_idhash=window._str_idhash = {}
+  var _str_idhash_rev=window._str_idhash_rev = {}
+  var _str_idgen=0;
+  function spool(hash) {
+    if (hash in _str_idhash) {
+        return _str_idhash[hash];
+    }
+    else {
+      var ret=_str_idgen++;
+      _str_idhash[hash] = ret;
+      _str_idhash_rev[ret] = hash;
+      return ret;
+    }
+  }
+  function spool_len(id) {
+    return _str_idhash_rev[id].length;
+  }
+  window.tot_symcls = 0.0;
+  var KILL_ZEROS=true;
+  class symcls  {
+     constructor(name_or_value, op) {
+      this._id = tot_symcls++;
+      this._last_h = undefined;
+      this.value = undefined;
+      this.name = "";
+      this.a = this.b = undefined;
+      this.use_parens = false;
+      this.op = undefined;
+      this.parent = undefined;
+      this._toString = undefined;
+      this.is_func = false;
+      this._hash = this._toString = undefined;
+      this.key = this.tag = undefined;
+      this._done = this._visit = false;
+      this.id = undefined;
+      this.ins = this.ins_ids = undefined;
+      this.is_tag = this.is_root = undefined;
+      if (typeof name_or_value=="number"||typeof name_or_value=="boolean") {
+          this.value = name_or_value;
+      }
+      else 
+        if (typeof name_or_value=="string"||__instance_of(name_or_value, String)) {
+          this.name = name_or_value;
+      }
+    }
+     binop(b, op) {
+      if (typeof b=="string"||typeof b=="number"||typeof b=="boolean") {
+          b = new symcls(b);
+      }
+      var ret=new symcls();
+      var a=this;
+      if (a.value!=undefined&&b.value!=undefined&&a.a==undefined&&b.a==undefined) {
+          ret.value = eval(a.value+" "+op+" "+b.value);
+          return ret;
+      }
+      ret.use_parens = true;
+      ret.op = op;
+      if (KILL_ZEROS&&a.value!=undefined&&a.value==0.0&&(op=="*"||op=="/")) {
+          return sym(0);
+      }
+      else 
+        if (KILL_ZEROS&&b.value!=undefined&&b.value==0.0&&(op=="*")) {
+          return sym(0);
+      }
+      else 
+        if (KILL_ZEROS&&this.a==undefined&&this.value==0.0&&op=="+") {
+          return b.copy();
+      }
+      else 
+        if (KILL_ZEROS&&b.a==undefined&&b.value==0.0&&(op=="+"||op=="-")) {
+          return this.copy();
+      }
+      else 
+        if (this.value==1.0&&op=="*"&&this.a==undefined) {
+          return b.copy();
+      }
+      else 
+        if (b.value==1.0&&(op=="*"||op=="/")&&b.a==undefined) {
+          return this.copy();
+      }
+      if (this.b!=undefined&&this.b.value!=undefined&&b.value!=undefined&&op=="+") {
+          ret = this.copy();
+          ret.b.value = this.b.value+b.value;
+          return ret;
+      }
+      ret.a = a.copy();
+      ret.b = b.copy();
+      ret.a.parent = ret;
+      ret.b.parent = ret;
+      return ret;
+    }
+     hash() {
+      if (this._hash==undefined) {
+          this._hash = spool(this.toHash());
+      }
+      return this._hash;
+    }
+     index(arg1) {
+      if (typeof arg1=="string"||__instance_of(arg1, String)||typeof arg1=="number"||typeof arg1=="boolean") {
+          arg1 = sym(arg1);
+      }
+      else {
+        arg1 = arg1.copy();
+      }
+      var ret=sym();
+      ret.op = "i";
+      ret.a = this.copy();
+      ret.b = arg1;
+      return ret;
+    }
+     func(fname, arg1) {
+      if (typeof fname=="string"||__instance_of(fname, String)) {
+          fname = sym(fname);
+      }
+      var ret=sym();
+      if (arg1==undefined) {
+          ret.a = fname.copy();
+          ret.b = this.copy();
+          ret.op = "c";
+      }
+      else {
+        if (typeof arg1=="string"||__instance_of(arg1, String)||typeof arg1=="number"||typeof arg1=="boolean") {
+            arg1 = sym(arg1);
+        }
+        ret.a = this.copy();
+        ret.b = arg1.copy();
+        ret.op = fname;
+      }
+      ret.is_func = true;
+      return ret;
+    }
+     copy(copy_strcache) {
+      var ret=new symcls();
+      ret.name = this.name;
+      ret.value = this.value;
+      ret.use_parens = this.use_parens;
+      ret.op = this.op;
+      ret.is_func = this.is_func;
+      if (copy_strcache) {
+          ret._toString = this._toString;
+          ret._hash = this._hash;
+      }
+      else {
+        ret._hash = ret._toString = undefined;
+      }
+      if (this.a!=undefined) {
+          ret.a = this.a.copy(copy_strcache);
+          ret.b = this.b.copy(copy_strcache);
+          ret.a.parent = ret;
+          ret.b.parent = ret;
+      }
+      return ret;
+    }
+     negate() {
+      return this.binop(-1.0, "*");
+    }
+     add(b) {
+      return this.binop(b, "+");
+    }
+     sub(b) {
+      return this.binop(b, "-");
+    }
+     mul(b) {
+      return this.binop(b, "*");
+    }
+     div(b) {
+      return this.binop(b, "/");
+    }
+     pow(b) {
+      return this.binop(b, "p");
+    }
+     clear_toString() {
+      this._toString = undefined;
+      this._hash = undefined;
+      this._last_h = undefined;
+      if (this.a!=undefined) {
+      }
+    }
+     toHash2() {
+      var stack=toHash2_stack, stack2=toHash2_stack_2, top=0;
+      var stack3=toHash2_stack_3;
+      stack[top] = this;
+      stack2[top] = 0;
+      stack3[top] = 0;
+      var ret="";
+      var _i=0;
+      while (top>=0) {
+        if (_i>100000) {
+            console.log("infinite loop!");
+            break;
+        }
+        var item=stack[top];
+        var stage=stack2[top];
+        var start=stack3[top];
+        top--;
+        if (stage==0) {
+            ret+=item.name+"|";
+            ret+=(item.value!=undefined ? item.value : "")+"|";
+            ret+=item.is_func+"|";
+        }
+        if (item.a!=undefined&&stage==0) {
+            ret+=item.op+"$";
+            top++;
+            stack[top] = item;
+            stack2[top] = 1;
+            stack3[top] = start;
+            top++;
+            stack[top] = item.a;
+            stack2[top] = 0;
+            stack3[top] = ret.length;
+        }
+        else 
+          if (item.b!=undefined&&stage==1) {
+            ret+="$";
+            top++;
+            stack[top] = item.b;
+            stack2[top] = 0;
+            stack3[top] = ret.length;
+        }
+      }
+      return ret;
+    }
+     toHash3() {
+      var ret="";
+      if (this._last_h!=undefined) {
+          return this._last_h;
+      }
+      ret+=pack_str(this.name);
+      ret+=this.value!=undefined ? pack_short(this.value*15000) : "";
+      ret+=pack_byte(this.is_func);
+      if (this.a!=undefined) {
+          ret+=pack_op(this.op);
+          ret+=this.a.toHash3();
+          ret+=this.b.toHash3();
+      }
+      this._last_h = ret;
+      return ret;
+    }
+     toHash() {
+      return this.toHash3();
+      var ret="";
+      if (this._last_h!=undefined) {
+      }
+      ret+=this.name+"|";
+      ret+=(this.value!=undefined ? this.value : "")+"|";
+      ret+=this.is_func+"|";
+      if (this.a!=undefined) {
+          ret+=this.op+"$";
+          ret+=this.a.toHash()+"$";
+          ret+=this.b.toHash()+"$";
+      }
+      this._last_h = ret;
+      return ret;
+    }
+     toString() {
+      if (this._toString!=undefined) {
+          return this._toString;
+      }
+      var use_parens=this.use_parens;
+      var use_parens=use_parens&&!(this.parent!=undefined&&(this.parent.op=="i"||this.parent.op=="c"||this.parent.op.length>2));
+      use_parens = use_parens&&!(this.value!=undefined&&this.a==undefined);
+      use_parens = use_parens&&!(this.name!=undefined&&this.name!=""&&this.a==undefined);
+      var s=use_parens ? "(" : "";
+      if (this.a!=undefined&&this.op=="i") {
+          return ""+this.a+"["+this.b+"]";
+      }
+      else 
+        if (this.a!=undefined&&this.is_func&&this.op!="c") {
+          s+=""+this.op+"("+this.a+", "+this.b+")";
+      }
+      else 
+        if (this.a!=undefined&&this.is_func&&this.op=="c") {
+          s+=""+this.a+"("+this.b+")";
+      }
+      else 
+        if (this.a!=undefined&&this.op!="p") {
+          s+=""+this.a+" "+this.op+" "+this.b;
+      }
+      else 
+        if (this.a!=undefined&&this.op=="p") {
+          return "pow("+this.a+", "+this.b+")";
+      }
+      else 
+        if (this.value!=undefined&&this.a==undefined) {
+          s+=""+this.value;
+      }
+      else 
+        if (this.name!=undefined&&this.name!="") {
+          s+=this.name;
+      }
+      else {
+        s+="{ERROR!}";
+      }
+      s+=use_parens ? ")" : "";
+      this._toString = s;
+      return s;
+    }
+  }
+  _ESClass.register(symcls);
+  _es6_module.add_class(symcls);
+  symcls = _es6_module.add_export('symcls', symcls);
+  function sym(name_or_value) {
+    return new symcls(name_or_value);
+  }
+  sym = _es6_module.add_export('sym', sym);
+  function recurse2_a(n, root, map, haskeys, map2, subpart_i, symtags) {
+    function recurse2(n, root) {
+      var key=n.hash();
+      if (map.has(key)) {
+          n.tag = symtags.get(map2.get(key));
+          n.tag.key = key;
+          n.tag.is_tag = true;
+          n.key = key;
+          if (root!=undefined&&n!==root) {
+              if (!haskeys.has(root.key)) {
+                  haskeys.set(root.key, new hashtable());
+              }
+              haskeys.get(root.key).set(key, 1);
+          }
+      }
+      if (n.a!=undefined) {
+          recurse2(n.a, root);
+          recurse2(n.b, root);
+      }
+      return n;
+    }
+    return recurse2(n, root);
+  }
+  function optimize(tree) {
+    tot_symcls = 0;
+    var start_tree=tree.copy(true);
+    function output() {
+      console.log.apply(console, arguments);
+    }
+    function optimize_pass(tree, subpart_start_i) {
+      if (subpart_start_i==undefined)
+        subpart_start_i = 0;
+      var subpart_i=subpart_start_i;
+      var totstep=8;
+      var curstage=1;
+      output("begin optimization stage "+(curstage++)+" of "+totstep+". . .");
+      var symtags=new hashtable();
+      var map=new hashtable();
+      var mapcount=new hashtable();
+      function recurse(n, depth) {
+        if (depth==undefined)
+          depth = 0;
+        if (n.a==undefined)
+          return ;
+        var hash;
+        if (n.a!=undefined) {
+            var str=n.toHash();
+            if (str.length<25) {
+                return ;
+            }
+        }
+        if (depth>3) {
+            hash = hash==undefined ? n.hash() : hash;
+            map.set(hash, n.copy());
+            if (!mapcount.has(hash)) {
+                mapcount.set(hash, 0);
+            }
+            mapcount.set(hash, mapcount.get(hash)+1);
+        }
+        if (n.a!=undefined) {
+            recurse(n.a, depth+1);
+        }
+        if (n.b!=undefined) {
+            recurse(n.b, depth+1);
+        }
+      }
+      recurse(tree);
+      var keys=map.keys();
+      keys.sort(function (a, b) {
+        return -spool_len(a)*mapcount.get(a)+spool_len(b)*mapcount.get(b);
+      });
+      var map2=new hashtable();
+      output("begin optimization stage "+(curstage++)+" of "+totstep+". . .");
+      var keys3=[];
+      var i2=0;
+      var max_si=0;
+      function next() {
+        for (var i=0; i<keys.length; i++) {
+            if (mapcount.get(keys[i])<3) {
+                map.remove(keys[i]);
+                continue;
+            }
+            map2.set(keys[i], i2++);
+            max_si = max(map2.get(keys[i]), max_si);
+            symtags.set(i2-1, sym("SUBPART"+((i2-1)+subpart_i)));
+        }
+      }
+      next();
+      output("begin optimization stage "+(curstage++)+" of "+totstep+". . .");
+      keys = undefined;
+      var haskeys=new hashtable();
+      tree = recurse2_a(tree, undefined, map, haskeys, map2, subpart_i, symtags);
+      var keys3=map2.keys();
+      keys3.sort(function (a, b) {
+        return -spool_len(a)*mapcount.get(a)+spool_len(b)*mapcount.get(b);
+      });
+      function recurse3(n, key) {
+        if (n.a!=undefined) {
+            if (n.a.tag!=undefined&&!n.a.is_tag&&n.a.key==key) {
+                n.a.parent = undefined;
+                n.a = n.a.tag;
+                n.clear_toString();
+            }
+            else {
+              recurse3(n.a, key);
+            }
+            if (n.b.tag!=undefined&&!n.b.is_tag&&n.b.key==key) {
+                n.b.parent = undefined;
+                n.b = n.b.tag;
+                n.clear_toString();
+            }
+            else {
+              recurse3(n.b, key);
+            }
+        }
+        return n;
+      }
+      output("begin optimization stage "+(curstage++)+" of "+totstep+". . .");
+      for (var i=0; i<keys3.length; i++) {
+          tree = recurse3(tree, keys3[i]);
+      }
+      var exists=new hashtable();
+      function recurse4(n, key) {
+        if (n.is_tag) {
+            exists.set(n.key, true);
+        }
+        if (n.is_tag&&n.key!=undefined&&n.key==key)
+          return true;
+        if (n.a!=undefined) {
+            if (recurse4(n.a, key))
+              return true;
+            if (recurse4(n.b, key))
+              return true;
+        }
+        return false;
+      }
+      recurse4(tree);
+      output("begin optimization stage "+(curstage++)+" of "+totstep+". . .");
+      keys3.sort(function (a, b) {
+        return -map2.get(a)+map2.get(b);
+      });
+      output("begin optimization stage "+(curstage++)+" of "+totstep+". . .");
+      output(keys3.length);
+      var last_time2=time_ms();
+      var haskeys=new hashtable();
+      window.haskeys = haskeys;
+      for (var i=0; i<keys3.length; i++) {
+          if (time_ms()-last_time2>500) {
+              output("optimizing key", i+1, "of", keys3.length);
+              last_time2 = time_ms();
+          }
+          var n=map.get(keys3[i]);
+          var last_time=time_ms();
+          for (var j=0; j<keys3.length; j++) {
+              if (i==j)
+                continue;
+              if (time_ms()-last_time>500) {
+                  output("  subkey part 1:", j+1, "of", keys3.length+", for", i+1);
+                  last_time = time_ms();
+              }
+              recurse2_a(n, n, map, haskeys, map2, subpart_i, symtags);
+          }
+          for (var j=0; j<keys3.length; j++) {
+              var key=keys3[j];
+              if (i==j)
+                continue;
+              if (time_ms()-last_time>500) {
+                  output("  subkey part 2", j+1, "of", keys3.length+", for", i+1);
+                  last_time = time_ms();
+              }
+              if (haskeys.get(n.key)==undefined||!(haskeys.get(n.key).has(key)))
+                continue;
+              recurse3(n, keys3[j]);
+              recurse4(n, keys3[j]);
+              n.clear_toString();
+          }
+      }
+      output("begin optimization stage "+(curstage++)+" of "+totstep+". . .");
+      function tag(n, root) {
+        if (n!=root&&n.is_tag) {
+            var k=n.key;
+            if (k==root.key) {
+                output("Cycle!", k, root.key);
+                throw RuntimeError("Cycle! "+k+", "+root.key);
+                return ;
+            }
+            root.ins.set(n.key, 1);
+            var id=map2.get(n.key);
+            root.ins_ids.set(id, id);
+        }
+        if (n.a!=undefined) {
+            tag(n.a, root);
+            tag(n.b, root);
+        }
+      }
+      output("begin optimization stage "+(curstage++)+" of "+totstep+". . .");
+      var dag=[];
+      window.dag = dag;
+      function visit_n(k) {
+        var n2=map.get(k);
+        if (!n2._done) {
+            dagsort(n2);
+        }
+      }
+      function dagsort(n) {
+        if (n._done) {
+            return ;
+        }
+        if (n._visit) {
+            throw new Error("CYCLE!", n, n._visit);
+        }
+        if (n.is_root) {
+            n._visit = true;
+            n.ins.forEach(visit_n, this);
+            n._visit = false;
+            dag.push(n);
+            n._done = true;
+        }
+        if (n.a!=undefined) {
+            dagsort(n.a);
+            dagsort(n.b);
+        }
+      }
+      for (var i=0; i<keys3.length; i++) {
+          var n=map.get(keys3[i]);
+          n.is_root = true;
+          n.ins = new hashtable();
+          n.ins_ids = new hashtable();
+          n.id = map2.get(keys3[i]);
+      }
+      for (var i=0; i<keys3.length; i++) {
+          var n=map.get(keys3[i]);
+          n._visit = n._done = false;
+          n.key = keys3[i];
+          tag(n, n);
+      }
+      for (var i=0; i<keys3.length; i++) {
+          var n=map.get(keys3[i]);
+          if (!n._done) {
+              dagsort(n);
+          }
+      }
+      var i1=0;
+      var header="";
+      for (var i=0; i<dag.length; i++) {
+          var n=dag[i];
+          var key=n.key;
+          if (subpart_i>0||i>0)
+            header+=", ";
+          n.clear_toString();
+          header+="\n    ";
+          header+="SUBPART"+map2.get(key)+" = "+""+n;
+      }
+      header+="\n";
+      var finals=header+""+tree;
+      output("finished!");
+      return [tree, finals, header, max_si];
+    }
+    var si=0;
+    var header2="";
+    var r=optimize_pass(tree, si);
+    if (i>0&&header2.trim()!=""&&header2.trim()[header2.length-1]!=",")
+      header2+=", ";
+    header2+=r[2];
+    tree = r[0].copy();
+    si+=r[3]+1;
+    header2 = header2.trim();
+    if (header2.trim()!="")
+      header2 = "var "+header2+";\n";
+    var final2=header2+"\n  return "+tree+";\n";
+    var ret=undefined, func;
+    var code1="ret = function(s, j, n, ks, dvn) {"+final2+"};";
+    code1 = splitline(code1);
+    eval(code1);
+    func = ret;
+    var func2=undefined;
+    var code2="ret = function(s, j, n, ks, dvn) {return "+(""+start_tree)+";};";
+    code2 = splitline(code2);
+    func = ret;
+    eval(code2);
+    return [func, func2, code1, code2, tree];
+  }
+  optimize = _es6_module.add_export('optimize', optimize);
+  function get_cache(k, v) {
+    var ret;
+    try {
+      ret = JSON.parse(myLocalStorage["_store_"+k]);
+    }
+    catch (error) {
+        print_stack(error);
+        return undefined;
+    }
+    if (ret=="undefined") {
+        return undefined;
+    }
+  }
+  get_cache = _es6_module.add_export('get_cache', get_cache);
+  window.get_cache = get_cache;
+  function store_cache(k, v) {
+    myLocalStorage["_store_"+k] = JSON.stringify(v);
+  }
+  store_cache = _es6_module.add_export('store_cache', store_cache);
+  window.store_cache = store_cache;
+  window.test_sym = function test_sym() {
+    var x=sym("x");
+    x = x.binop(2, "*");
+    var degree=2, klen=10, j=2;
+    var dvn=1;
+    KILL_ZEROS = false;
+    var tree=gen_basis_dv_code(j, degree, klen, dvn);
+    var start_tree=tree.copy();
+    KILL_ZEROS = true;
+    tree = gen_basis_dv_code(j, degree, klen, dvn);
+    window.tree_func = optimize(tree);
+    var skey=""+j+"|"+degree+"|"+klen+"|"+dvn;
+    store_cache(skey, tree_func[2]);
+    var tst=new Float32Array(10);
+    for (var i=0; i<tst.length; i++) {
+        tst[i] = i;
+    }
+    var finals=tree_func[2];
+    console.log("ratio: ", finals.replace(" ", "").replace("\n", "").length/(""+start_tree).replace(" ", "").replace("\n", "").length);
+    window.test = function (s, j) {
+      console.log("testing...");
+      if (j==undefined)
+        j = 3.0;
+      var func=window.tree_func[0];
+      var func2=basis_dv;
+      var time1=0;
+      var time2=0;
+      var steps=250, steps2=10;
+      for (var si=0; si<steps2; si++) {
+          var start_time=time_ms();
+          for (var i=0; i<steps; i++) {
+              var r1=func(s+i*0.0001, j, degree, tst);
+          }
+          time1+=(time_ms()-start_time);
+          var start_time=time_ms();
+          for (var i=0; i<steps; i++) {
+              var r2=func2(s+i*0.0001, j, degree, tst, dvn);
+          }
+          time2+=(time_ms()-start_time);
+      }
+      time1 = time1.toFixed(2)+"ms";
+      time2 = time2.toFixed(2)+"ms";
+      console.log(r1, r2, time1, time2);
+      
+    }
+    var dv_test=""+tree;
+    var dv_test2="";
+    var ci=0;
+    var set={"(": 0, 
+    ")": 0, 
+    "+": 0, 
+    "/": 0, 
+    "*": 0}
+    for (var i=0; i<dv_test.length; i++, ci++) {
+        if (ci>79&&(dv_test[i] in set)) {
+            dv_test2+="\n";
+            ci = 0.0;
+        }
+        dv_test2+=dv_test[i];
+    }
+    dv_test = dv_test2;
+  }
+  window.sym = sym;
+  function splitline(dv_test) {
+    var dv_test2="";
+    var ci=0;
+    var set={"(": 0, 
+    ")": 0, 
+    "+": 0, 
+    "/": 0, 
+    "*": 0}
+    for (var i=0; i<dv_test.length; i++, ci++) {
+        if (ci>79&&(dv_test[i] in set)) {
+            dv_test2+="\n";
+            ci = 0.0;
+        }
+        dv_test2+=dv_test[i];
+    }
+    return dv_test2;
+  }
+  window.splitline = splitline;
+  function gen_basis_code(j, n, klen, gen_reduce) {
+    var s=sym("s");
+    j = sym("j");
+    var ks=sym("ks");
+    return basis_sym_general(s, j, n, ks, gen_reduce);
+  }
+  gen_basis_code = _es6_module.add_export('gen_basis_code', gen_basis_code);
+  function make_cache_table(maxknotsize, make_dvs) {
+    var basis_caches1=new Array(12);
+    for (var i=0; i<basis_caches1.length; i++) {
+        var arr=new Array(maxknotsize);
+        basis_caches1[i] = arr;
+        for (var j=1; j<arr.length; j++) {
+            arr[j] = new Array(j);
+            if (make_dvs) {
+                var arr2=arr[j];
+                for (var k=0; k<arr2.length; k++) {
+                    arr2[k] = new Array(5);
+                }
+            }
+        }
+    }
+    return basis_caches1;
+  }
+  const basis_caches=make_cache_table(256, false);
+  _es6_module.add_export('basis_caches', basis_caches);
+  const basis_caches_dv=make_cache_table(256, true);
+  _es6_module.add_export('basis_caches_dv', basis_caches_dv);
+  const DV_JADD=0.0;
+  _es6_module.add_export('DV_JADD', DV_JADD);
+  window.load_seven = function () {
+    for (var k in basis_json) {
+        var k1=k;
+        k = k.split("|");
+        if (k.length<4)
+          continue;
+        console.log(k);
+        if (k[1]==="7") {
+            console.log("found!", k);
+            var hash=""+0+"|"+7+"|"+2+"|"+k[3];
+            myLocalStorage[hash] = basis_json[k1];
+            var ret;
+            console.log(hash, eval(basis_json[k1]));
+        }
+    }
+  }
+  window.save_local_storage = function () {
+    var ret=JSON.stringify(myLocalStorage);
+    var blob=new Blob([ret], {type: "application/binary"});
+    var url=URL.createObjectURL(blob);
+    console.log(url);
+    window.open(url);
+    return url;
+  }
+  function add_to_table_dv(j, n, klen, dvn, table) {
+    var hash=""+0+"|"+n+"|"+2+"|"+dvn;
+    var s=myLocalStorage[hash];
+    if (s==undefined||s=="undefined") {
+        var tree=gen_basis_dv_code(j, n, klen, dvn);
+        s = optimize(tree)[2];
+        console.log("storing basis function. . .");
+        myLocalStorage[hash] = s;
+    }
+    var ret;
+    eval(s);
+    table[n][2][0][dvn] = ret;
+    return ret;
+  }
+  var zero=function (a, b, c, d, e) {
+    return 0.0;
+  }
+  function get_basis_dv_func(j, n, klen, dvn) {
+    if (dvn<=0) {
+        return zero;
+    }
+    var ret=basis_caches_dv[n][2][0][dvn];
+    if (ret==undefined) {
+        ret = add_to_table_dv(0, n, klen, dvn, basis_caches_dv);
+    }
+    return ret;
+  }
+  get_basis_dv_func = _es6_module.add_export('get_basis_dv_func', get_basis_dv_func);
+  window.get_basis_dv_func = get_basis_dv_func;
+  function compiled_basis_dv(s, j, n, ks, dvn) {
+    var func=get_basis_dv_func(j, n, ks.length, dvn);
+    return func(s, j, n, ks, dvn);
+  }
+  compiled_basis_dv = _es6_module.add_export('compiled_basis_dv', compiled_basis_dv);
+  function gen_basis_dv_code(j, degree, klen, dv, gen_reduce) {
+    var s=sym("s");
+    var n=degree;
+    j = sym("j");
+    var ks=new Array(klen);
+    for (var i=0; i<klen; i++) {
+        ks[i] = gen_reduce ? sym("k"+(i+1)) : sym("ks").index(j);
+    }
+    ks = sym("ks");
+    return basis_dv_sym(s, j, degree, ks, dv, gen_reduce);
+  }
+  gen_basis_dv_code = _es6_module.add_export('gen_basis_dv_code', gen_basis_dv_code);
+  function get_basis_func(j, n, klen) {
+    var KLEN=5;
+    var ret=basis_caches[n][KLEN][j];
+    if (ret===undefined) {
+        var hash="bs:"+n;
+        var s=myLocalStorage[hash];
+        if (s===undefined||s==="undefined") {
+            console.log("storing basis function. . .");
+            var tree=gen_basis_code(j, n, klen);
+            s = optimize(tree)[2];
+            myLocalStorage[hash] = s;
+        }
+        eval(s);
+        basis_caches[n][KLEN][j] = ret;
+    }
+    return ret;
+  }
+  get_basis_func = _es6_module.add_export('get_basis_func', get_basis_func);
+  function compiled_basis(s, j, n, ks) {
+    var func=get_basis_func(j, n, ks.length);
+    return func(s, j, n, ks);
+  }
+  compiled_basis = _es6_module.add_export('compiled_basis', compiled_basis);
+  window._sym_eps1 = 1e-09;
+  window._sym_eps2 = 1e-06;
+  window._sym_do_clamping = true;
+  window._sym_more_symbolic = false;
+  function basis_sym(s, j, n, ks, gen_reduce) {
+    var klen=ks.length;
+    var j1=j, j2=j+1, jn=j+n, jn1=j+n+1;
+    j1 = _sym_do_clamping ? min(max(j1, 0.0), klen-1) : j1;
+    j2 = _sym_do_clamping ? min(max(j2, 0.0), klen-1) : j2;
+    jn = _sym_do_clamping ? min(max(jn, 0.0), klen-1) : jn;
+    jn1 = _sym_do_clamping ? min(max(jn1, 0.0), klen-1) : jn1;
+    if (n==0) {
+        return sym("(s >= ks["+j1+"] && s < ks["+j2+"])");
+    }
+    else {
+      var A=s.sub(ks[j1]);
+      var div=ks[jn].sub(ks[j1]);
+      var cancelA=div.binop(0.0, "!=");
+      if (_sym_eps1!=0.0)
+        div = div.add(_sym_eps1);
+      A = A.mul(basis_sym(s, j, n-1, ks, gen_reduce)).div(div).mul(cancelA);
+      var B=ks[jn1].sub(s);
+      div = ks[jn1].sub(ks[j2]);
+      var cancelB=div.binop(0.0, "!=");
+      if (_sym_eps1!=0.0)
+        div = div.add(_sym_eps1);
+      B = B.mul(basis_sym(s, j+1, n-1, ks, gen_reduce)).div(div).mul(cancelB);
+      return A.add(B);
+    }
+  }
+  basis_sym = _es6_module.add_export('basis_sym', basis_sym);
+  function basis_sym_general(s, j, n, ks, gen_reduce) {
+    var j1, j2, jn1, kn2;
+    if (_sym_do_clamping) {
+        var j1=j.add(0).func("max", 0.0).func("min", sym("(ks.length-1)"));
+        var j2=j.add(1).func("max", 0.0).func("min", sym("(ks.length-1)"));
+        var jn=j.add(n).func("max", 0.0).func("min", sym("(ks.length-1)"));
+        var jn1=j.add(n+1).func("max", 0.0).func("min", sym("(ks.length-1)"));
+    }
+    else {
+      j1 = j, j2 = j.add(1), jn = j.add(n), jn1 = j.add(n+1);
+    }
+    if (_sym_more_symbolic&&n==1) {
+        return sym("lin("+j1+","+j2+","+jn1+")");
+    }
+    else 
+      if (_sym_more_symbolic&&n==0) {
+        return j1.func("step", j2);
+    }
+    if (n==0) {
+        var r1=s.binop(ks.index(j1), ">=");
+        var r2=s.binop(ks.index(j2), "<");
+        return r1.binop(r2, "&&");
+        var r1=s.sub(ks.index(j1));
+        var r2=ks.index(j2).sub(s);
+        var r1=s.sub(ks.index(j1));
+        var r2=ks.index(j2).sub(s);
+        var eps1=1e-06;
+        r1 = r1.add(eps1);
+        r2 = r2.add(eps1);
+        r1 = r1.div(r1.func("abs")).mul(0.5).add(0.5-eps1);
+        r2 = r2.div(r2.func("abs")).mul(0.5).add(0.5+eps1);
+    }
+    else {
+      var A=s.sub(ks.index(j1));
+      var div=ks.index(jn).sub(ks.index(j1));
+      var cancelA=div.binop(0.0, "!=");
+      if (_sym_eps1!=undefined)
+        div = div.add(_sym_eps1);
+      A = A.mul(basis_sym_general(s, j, n-1, ks, gen_reduce)).div(div).mul(cancelA);
+      var B=ks.index(jn1).sub(s);
+      div = ks.index(jn1).sub(ks.index(j2));
+      var cancelB=div.binop(0.0, "!=");
+      if (_sym_eps1!=undefined)
+        div = div.add(_sym_eps1);
+      B = B.mul(basis_sym_general(s, j.add(1), n-1, ks, gen_reduce)).div(div).mul(cancelB);
+      return A.add(B);
+    }
+  }
+  basis_sym_general = _es6_module.add_export('basis_sym_general', basis_sym_general);
+  function basis_dv_sym(s, j, n, ks, dvn, gen_reduce) {
+    if (dvn==0) {
+        return basis_sym_general(s, j, n, ks, gen_reduce);
+    }
+    var j1, j2, jn, jn1, j3, j4;
+    if (_sym_do_clamping) {
+        var j1=j.add(0).func("max", 0.0).func("min", sym("(ks.length-1)"));
+        var j2=j.add(1).func("max", 0.0).func("min", sym("(ks.length-1)"));
+        var jn=j.add(n).func("max", 0.0).func("min", sym("(ks.length-1)"));
+        var jn1=j.add(n+1).func("max", 0.0).func("min", sym("(ks.length-1)"));
+        var j3=j.add(2).func("max", 0.0).func("min", sym("(ks.length-1)"));
+        var j4=j.add(3).func("max", 0.0).func("min", sym("(ks.length-1)"));
+    }
+    else {
+      j1 = j, j2 = j.add(1), jn = j.add(n), jn1 = j.add(n+1);
+      j3 = j.add(2), j4 = j.add(3);
+    }
+    if (n<1) {
+        return sym(0);
+    }
+    else 
+      if (n<=1) {
+        var div1="(0.000+(ks["+j3+"])-(ks["+j2+"]))";
+        var div2="(0.000+(ks["+j2+"])-(ks["+j1+"]))";
+        var b="(s >= ks["+j2+"] && s < ks["+j3+"]) ? (-1.0/"+div1+") : 0.0";
+        var s="(s >= ks["+j1+"] && s < ks["+j2+"]) ? (1.0/"+div2+") : ("+b+")";
+        return sym("("+s+")");
+        var r1=s.binop(ks.index(j1), ">=").binop(s.binop(ks.index(j2), "<"), "&&");
+        var r2=s.binop(ks.index(j2), ">=").binop(s.binop(ks.index(j3), "<"), "&&");
+        var ret=r1.sub(r2);
+        var div1=ks.index(j2).sub(ks.index(j1));
+        var div3=div1.add(div1.binop("0.0", "=="));
+        var div2=ks.index(j3).sub(ks.index(j2));
+        var div4=div2.add(div2.binop("0.0", "=="));
+        var cancel=div2.binop("0.0", "==").mul(div1.binop("0.0", "=="));
+        var r1=sym(1.0).div(div3).mul(div1.binop("0.0", "!="));
+        var r2=sym(-1.0).div(div4).mul(div2.binop("0.0", "!="));
+        var a=s.binop(ks.index(j1), ">=").binop(s.binop(ks.index(j2), "<"), "&&");
+        var b=s.binop(ks.index(j2), ">=").binop(s.binop(ks.index(j3), "<"), "&&");
+        return r1.mul(a).add(r2.mul(b));
+        var ret=0.0;
+        if (s>=ks[j1]&&s<ks[j2])
+          ret = 1.0/(ks[j2]-ks[j1]);
+        else 
+          if (s>=ks[j2]&&s<ks[j3])
+          ret = -1.0/(ks[j3]-ks[j2]);
+    }
+    else {
+      var kj1=ks.index(j1);
+      var kj2=ks.index(j2);
+      var kjn=ks.index(jn);
+      var kjn1=ks.index(jn1);
+      kjn.add(_sym_eps2);
+      if (!_sym_more_symbolic) {
+          kj1 = kj1.sub(_sym_eps2);
+          kj2 = kj2.sub(_sym_eps2);
+          kjn = kjn.add(_sym_eps2);
+          kjn1 = kjn1.add(_sym_eps2);
+      }
+      var div=kj1.sub(kjn).mul(kj2.sub(kjn1));
+      var cancel=div.func("abs").binop(0.0001, ">=");
+      if (!_sym_more_symbolic) {
+          div = div.add(0.0);
+      }
+      var ret=(kj1.sub(s).mul(basis_dv_sym(s, j, n-1, ks, dvn, gen_reduce)).sub(basis_dv_sym(s, j, n-1, ks, dvn-1, gen_reduce).mul(dvn)));
+      ret = ret.mul(kj2.sub(kjn1));
+      var ret2=(kjn1.sub(s).mul(basis_dv_sym(s, j.add(1.0), n-1, ks, dvn)).sub(basis_dv_sym(s, j.add(1.0), n-1, ks, dvn-1, gen_reduce).mul(dvn)));
+      ret2 = ret2.mul(kj1.sub(kjn));
+      ret = ret.sub(ret2).div(div);
+      return ret;
+    }
+  }
+  basis_dv_sym = _es6_module.add_export('basis_dv_sym', basis_dv_sym);
+  var _jit=[0.529914898565039, 0.36828512651845813, 0.06964468420483172, 0.7305932911112905, 0.5716458782553673, 0.8704596017487347, 0.4227079786360264, 0.5019868116360158, 0.8813679129816592, 0.1114522460848093, 0.6895110581535846, 0.6958548363763839, 0.3031193600036204, 0.37011902872473, 0.2962806692812592, 0.028554908465594053, 0.823489741422236, 0.46635359339416027, 0.32072878000326455, 0.790815538726747, 0.24832243379205465, 0.4548102973494679, 0.17482145293615758, 0.12876217160373926, 0.47663668682798743, 0.5577574144117534, 0.44505770644173026, 0.4608486376237124, 0.17487138183787465, 0.9557673167437315, 0.48691147728823125, 0.21344363503158092, 0.4561011800542474, 0.5500841496977955, 0.056078286841511726, 0.2025157359894365, 0.3545380241703242, 0.37520054122433066, 0.9240472037345171, 0.5759296049363911, 0.23126523662358522, 0.8160425815731287, 0.2655198322609067, 0.5174507955089211, 0.5305957165546715, 0.7498655256349593, 0.16992988483980298, 0.8977103955112398, 0.6693002553656697, 0.6586289645638317, 0.014608860714361072, 0.46719147730618715, 0.22958142310380936, 0.2482534891460091, 0.9248246876522899, 0.5719250738620758, 0.8759879691060632, 0.014760041143745184, 0.27814899617806077, 0.8179157497361302, 0.8425747095607221, 0.5784667218104005, 0.8781018694862723, 0.25768745923414826, 0.12491370760835707, 0.17019980889745057, 0.6778648062609136, 0.7985234088264406, 0.5552649961318821, 0.4146097879856825, 0.3286898732185364, 0.3871084579732269, 0.5073949920479208, 0.26263241469860077, 0.16050022304989398, 0.7419972626958042, 0.10826557059772313, 0.15192136517725885, 0.08435141341760755, 0.8828735174611211, 0.9579186830669641, 0.4730489938519895, 0.13362190243788064, 0.3206780105829239, 0.5988038030918688, 0.4641053748782724, 0.8168729823082685, 0.18584533245302737, 0.862093557137996, 0.5530180907808244, 0.9900481395889074, 0.5014054768253118, 0.5830419992562383, 0.31904217251576483, 0.285037521738559, 0.25403662770986557, 0.20903456234373152, 0.8835178036242723, 0.8222054259385914, 0.5918245937209576];
+  window._jit = _jit;
+  window._jit_cur = 0;
+}, '/dev/fairmotion/src/curve/bspline.js');
 es6_module_define('spline_math', ["../config/config.js", "../wasm/native_api.js", "./spline_math_hermite.js"], function _spline_math_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
@@ -7046,7 +9751,7 @@ SplineLayer {
   }
 `;
 }, '/dev/fairmotion/src/curve/spline_element_array.js');
-es6_module_define('spline_base', ["../util/mathlib.js", "../core/eventdag.js", "../core/struct.js", "../core/toolprops.js"], function _spline_base_module(_es6_module) {
+es6_module_define('spline_base', ["../core/toolprops.js", "../core/eventdag.js", "../core/struct.js", "../util/mathlib.js"], function _spline_base_module(_es6_module) {
   var TPropFlags=es6_import_item(_es6_module, '../core/toolprops.js', 'TPropFlags');
   var PropTypes=es6_import_item(_es6_module, '../core/toolprops.js', 'PropTypes');
   var acos=Math.acos, asin=Math.asin, abs=Math.abs, log=Math.log, sqrt=Math.sqrt, pow=Math.pow, PI=Math.PI, floor=Math.floor, min=Math.min, max=Math.max, sin=Math.sin, cos=Math.cos, tan=Math.tan, atan=Math.atan, atan2=Math.atan2, exp=Math.exp;
@@ -7056,11 +9761,11 @@ es6_module_define('spline_base', ["../util/mathlib.js", "../core/eventdag.js", "
   const MaterialFlags={SELECT: 1, 
    MASK_TO_FACE: 2}
   _es6_module.add_export('MaterialFlags', MaterialFlags);
-  var RecalcFlags={DRAWSORT: 1, 
+  const RecalcFlags={DRAWSORT: 1, 
    SOLVE: 2, 
    ALL: 1|2}
-  RecalcFlags = _es6_module.add_export('RecalcFlags', RecalcFlags);
-  var SplineFlags={SELECT: 1, 
+  _es6_module.add_export('RecalcFlags', RecalcFlags);
+  const SplineFlags={SELECT: 1, 
    BREAK_TANGENTS: 2, 
    USE_HANDLES: 4, 
    UPDATE: 8, 
@@ -7078,19 +9783,24 @@ es6_module_define('spline_base', ["../util/mathlib.js", "../core/eventdag.js", "
    FIXED_KS: 1<<21, 
    REDRAW_PRE: 1<<22, 
    REDRAW: 1<<23}
-  SplineFlags = _es6_module.add_export('SplineFlags', SplineFlags);
-  var SplineTypes={VERTEX: 1, 
+  _es6_module.add_export('SplineFlags', SplineFlags);
+  const SplineTypes={VERTEX: 1, 
    HANDLE: 2, 
    SEGMENT: 4, 
    LOOP: 8, 
    FACE: 16, 
    ALL: 31}
-  SplineTypes = _es6_module.add_export('SplineTypes', SplineTypes);
-  var ClosestModes={CLOSEST: 0, 
+  _es6_module.add_export('SplineTypes', SplineTypes);
+  const ClosestModes={CLOSEST: 0, 
    START: 1, 
    END: 2, 
    ALL: 3}
-  ClosestModes = _es6_module.add_export('ClosestModes', ClosestModes);
+  _es6_module.add_export('ClosestModes', ClosestModes);
+  const IsectModes={CLOSEST: 0, 
+   START: 1, 
+   END: 2, 
+   ENDSTART: 3}
+  _es6_module.add_export('IsectModes', IsectModes);
   class empty_class  {
     static  fromSTRUCT(reader) {
       var ret=new empty_class();
@@ -7272,7 +9982,7 @@ es6_module_define('spline_base', ["../util/mathlib.js", "../core/eventdag.js", "
     shared_data : array(abstract(Object));
   }
 `;
-  var $srcs2_uJGR_interp;
+  var $srcs2_ydKQ_interp;
   class CustomDataSet extends Array {
      constructor() {
       super();
@@ -7298,15 +10008,15 @@ es6_module_define('spline_base', ["../util/mathlib.js", "../core/eventdag.js", "
 
     }
      interp(srcs, ws) {
-      while ($srcs2_uJGR_interp.length<srcs.length) {
-        $srcs2_uJGR_interp.push(0);
+      while ($srcs2_ydKQ_interp.length<srcs.length) {
+        $srcs2_ydKQ_interp.push(0);
       }
-      $srcs2_uJGR_interp.length = srcs.length;
+      $srcs2_ydKQ_interp.length = srcs.length;
       for (var i=0; i<this.length; i++) {
           for (var j=0; j<srcs.length; j++) {
-              $srcs2_uJGR_interp[j] = srcs[j][i];
+              $srcs2_ydKQ_interp[j] = srcs[j][i];
           }
-          this[i].interp($srcs2_uJGR_interp, ws);
+          this[i].interp($srcs2_ydKQ_interp, ws);
       }
     }
      copy(src) {
@@ -7322,7 +10032,7 @@ es6_module_define('spline_base', ["../util/mathlib.js", "../core/eventdag.js", "
       delete this.arr;
     }
   }
-  var $srcs2_uJGR_interp=[];
+  var $srcs2_ydKQ_interp=[];
   _ESClass.register(CustomDataSet);
   _es6_module.add_class(CustomDataSet);
   CustomDataSet = _es6_module.add_export('CustomDataSet', CustomDataSet);
@@ -7352,16 +10062,34 @@ es6_module_define('spline_base', ["../util/mathlib.js", "../core/eventdag.js", "
       return false;
     }
      dag_get_datapath() {
-      var suffix=".verts["+this.eid+"]";
-      var name="drawspline";
+      let suffix;
+      switch (this.type) {
+        case SplineTypes.VERTEX:
+          suffix = ".verts";
+          break;
+        case SplineTypes.HANDLE:
+          suffix = ".handles";
+          break;
+        case SplineTypes.SEGMENT:
+          suffix = ".segments";
+          break;
+        case SplineTypes.LOOP:
+          suffix = ".loops";
+          break;
+        case SplineTypes.FACE:
+          suffix = ".faces";
+          break;
+      }
+      suffix+="["+this.eid+"]";
+      let name="drawspline";
       for (var i=0; i<this.cdata.length; i++) {
-          if (this.cdata[i].constructor.name=="TimeDataLayer")
+          if (this.cdata[i].constructor.name==="TimeDataLayer")
             name = "pathspline";
       }
       return "frameset."+name+suffix;
     }
      in_layer(layer) {
-      return layer!=undefined&&layer.id in this.layers;
+      return layer!==undefined&&layer.id in this.layers;
     }
     get  aabb() {
       console.trace("Implement Me!");
@@ -7421,11 +10149,11 @@ SplineElement {
   }, 256);
   var closest_point_cache_vs=cachering.fromConstructor(Vector3, 64);
   var flip_wrapper_cache;
-  var $flip_out_H11i__get_nextprev;
-  var $ret_cache_0Z9y_global_to_local;
-  var $_co_W3aB_global_to_local;
-  var $arr_diYh_global_to_local;
-  var $_vec_3Fgp_global_to_local;
+  var $flip_out__z0e__get_nextprev;
+  var $ret_cache_IdwS_global_to_local;
+  var $_co_OCOt_global_to_local;
+  var $arr_uLcv_global_to_local;
+  var $_vec_NIPj_global_to_local;
   class CurveEffect  {
      constructor() {
       this.child = undefined;
@@ -7449,8 +10177,8 @@ SplineElement {
         p = p.prior;
         i++;
       }
-      p = p._get_nextprev(donext, $flip_out_H11i__get_nextprev);
-      var flip=$flip_out_H11i__get_nextprev[0];
+      p = p._get_nextprev(donext, $flip_out__z0e__get_nextprev);
+      var flip=$flip_out__z0e__get_nextprev[0];
       if (p==undefined) {
           return undefined;
       }
@@ -7668,16 +10396,16 @@ SplineElement {
      global_to_local(p, no_effects=false, fixed_s=undefined) {
       var co;
       if (fixed_s!=undefined) {
-          $arr_diYh_global_to_local[0] = this.evaluate(fixed_s);
-          $arr_diYh_global_to_local[1] = fixed_s;
-          co = $arr_diYh_global_to_local;
+          $arr_uLcv_global_to_local[0] = this.evaluate(fixed_s);
+          $arr_uLcv_global_to_local[1] = fixed_s;
+          co = $arr_uLcv_global_to_local;
       }
       else {
         co = this.closest_point(p);
       }
       var s, t, a=0.0;
       if (co==undefined) {
-          co = $_co_W3aB_global_to_local;
+          co = $_co_OCOt_global_to_local;
           if (p.vectorDistance(this.v1)<p.vectorDistance(this.v2)) {
               co.load(this.v1);
               s = 0;
@@ -7695,7 +10423,7 @@ SplineElement {
         t = p.vectorDistance(co)*0.15;
       }
       var n1=this.normal(s).normalize();
-      var n2=$_vec_3Fgp_global_to_local.zero().load(p).sub(co).normalize();
+      var n2=$_vec_NIPj_global_to_local.zero().load(p).sub(co).normalize();
       n1[2] = n2[2] = 0.0;
       a = asin(n1[0]*n2[1]-n1[1]*n2[0]);
       var dot=n1.dot(n2);
@@ -7706,7 +10434,7 @@ SplineElement {
           t = -t;
           a = 2.0*Math.PI-a;
       }
-      var ret=$ret_cache_0Z9y_global_to_local.next();
+      var ret=$ret_cache_IdwS_global_to_local.next();
       ret[0] = s;
       ret[1] = t;
       ret[2] = a;
@@ -7722,11 +10450,11 @@ SplineElement {
       return co;
     }
   }
-  var $flip_out_H11i__get_nextprev=[0];
-  var $ret_cache_0Z9y_global_to_local=cachering.fromConstructor(Vector3, 64);
-  var $_co_W3aB_global_to_local=new Vector3();
-  var $arr_diYh_global_to_local=[0, 0];
-  var $_vec_3Fgp_global_to_local=new Vector3();
+  var $flip_out__z0e__get_nextprev=[0];
+  var $ret_cache_IdwS_global_to_local=cachering.fromConstructor(Vector3, 64);
+  var $_co_OCOt_global_to_local=new Vector3();
+  var $arr_uLcv_global_to_local=[0, 0];
+  var $_vec_NIPj_global_to_local=new Vector3();
   _ESClass.register(CurveEffect);
   _es6_module.add_class(CurveEffect);
   CurveEffect = _es6_module.add_export('CurveEffect', CurveEffect);
@@ -7786,10 +10514,11 @@ SplineElement {
   FlipWrapper = _es6_module.add_export('FlipWrapper', FlipWrapper);
   flip_wrapper_cache = cachering.fromConstructor(FlipWrapper, 32);
 }, '/dev/fairmotion/src/curve/spline_base.js');
-es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", "../config/config.js", "./spline_base.js", "../core/eventdag.js", "../util/mathlib.js", "./spline_math.js", "../editors/viewport/selectmode.js", "../core/toolprops_iter.js", "./spline_base", "../core/toolprops.js"], function _spline_types_module(_es6_module) {
+es6_module_define('spline_types', ["../util/mathlib.js", "../core/toolprops.js", "../core/toolprops_iter.js", "./spline_multires.js", "./spline_math.js", "./spline_base.js", "../core/struct.js", "./bspline.js", "../config/config.js", "../core/eventdag.js", "../editors/viewport/selectmode.js", "./spline_base"], function _spline_types_module(_es6_module) {
   "use strict";
   var ENABLE_MULTIRES=es6_import_item(_es6_module, '../config/config.js', 'ENABLE_MULTIRES');
   var PI=Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor, ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos, asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
+  var bspline=es6_import(_es6_module, './bspline.js');
   var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
   var TPropFlags=es6_import_item(_es6_module, '../core/toolprops.js', 'TPropFlags');
   var PropTypes=es6_import_item(_es6_module, '../core/toolprops.js', 'PropTypes');
@@ -7810,6 +10539,7 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
   var SplineTypes=es6_import_item(_es6_module, './spline_base.js', 'SplineTypes');
   var SplineFlags=es6_import_item(_es6_module, './spline_base.js', 'SplineFlags');
   var ClosestModes=es6_import_item(_es6_module, './spline_base.js', 'ClosestModes');
+  var IsectModes=es6_import_item(_es6_module, './spline_base.js', 'IsectModes');
   var RecalcFlags=es6_import_item(_es6_module, './spline_base.js', 'RecalcFlags');
   var MaterialFlags=es6_import_item(_es6_module, './spline_base.js', 'MaterialFlags');
   var CustomDataLayer=es6_import_item(_es6_module, './spline_base.js', 'CustomDataLayer');
@@ -7832,8 +10562,20 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
   var spiralcurvature_dv=es6_import_item(_es6_module, './spline_math.js', 'spiralcurvature_dv');
   let eval_ret_vs=cachering.fromConstructor(Vector2, 512);
   let evaluateSide_rets=cachering.fromConstructor(Vector2, 512);
-  var $ret_Y0zw_aabb;
+  function bez3(a, b, c, t) {
+    var r1=a+(b-a)*t;
+    var r2=b+(c-b)*t;
+    return r1+(r2-r1)*t;
+  }
+  function bez4(a, b, c, d, t) {
+    var r1=bez3(a, b, c, t);
+    var r2=bez3(b, c, d, t);
+    return r1+(r2-r1)*t;
+  }
+  var $ret_TZGt_aabb;
   class SplineVertex extends SplineElement {
+    
+    
     
     
     
@@ -7894,6 +10636,15 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
           else 
             throw new Error("spline mesh integrity error");
           s.mat.update();
+      }
+      if (this.segments.length===2) {
+          let s1=this.segments[0];
+          let s2=this.segments[1];
+          let w1=this===s1.v1 ? s1.w1 : s1.w2;
+          let w2=this===s2.v1 ? s2.w1 : s2.w2;
+          let w=(w1+w2)*0.5;
+          s1.setVertWidth(this, w);
+          s2.setVertWidth(this, w);
       }
     }
     get  shift() {
@@ -7990,9 +10741,9 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
      outputs: NodeBase.Inherit()}
     }
     get  aabb() {
-      $ret_Y0zw_aabb[0].load(this);
-      $ret_Y0zw_aabb[1].load(this);
-      return $ret_Y0zw_aabb;
+      $ret_TZGt_aabb[0].load(this);
+      $ret_TZGt_aabb[1].load(this);
+      return $ret_TZGt_aabb;
     }
      sethide(state) {
       if (state)
@@ -8036,7 +10787,7 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
           return false;
       }
       var v=s.handle_vertex(this);
-      var ret=v!=undefined&&(v.segments!=undefined&&v.segments.length>2||(v.flag&SplineFlags.USE_HANDLES));
+      var ret=v!==undefined&&(v.segments!==undefined&&v.segments.length>2||(v.flag&SplineFlags.USE_HANDLES));
       return ret;
     }
     set  hidden(val) {
@@ -8046,12 +10797,18 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
         this.flag&=~SplineFlags.HIDE;
     }
      other_segment(s) {
-      if (s==this.segments[0])
-        return this.segments[1];
+      if (s===this.segments[0])
+        s = this.segments[1];
       else 
-        if (s==this.segments[1])
-        return this.segments[0];
-      return undefined;
+        if (s===this.segments[1])
+        s = this.segments[0];
+      if (!s) {
+          throw new Error("bad segment in SplineVertex.prototype.other_segment()");
+      }
+      if (s.v1!==this&&s.v2!==this) {
+          throw new Error("mesh integrity error");
+      }
+      return s;
     }
      toJSON() {
       var ret={};
@@ -8084,7 +10841,7 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
       return this;
     }
   }
-  var $ret_Y0zw_aabb=[new Vector3(), new Vector3()];
+  var $ret_TZGt_aabb=[new Vector3(), new Vector3()];
   _ESClass.register(SplineVertex);
   _es6_module.add_class(SplineVertex);
   SplineVertex = _es6_module.add_export('SplineVertex', SplineVertex);
@@ -8099,16 +10856,17 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
   var derivative_cache_vs=cachering.fromConstructor(Vector3, 64);
   var closest_point_ret_cache_vs=cachering.fromConstructor(Vector3, 256);
   var closest_point_ret_cache=new cachering(function () {
-    return [0, 0];
+    return [0, 0, 0];
   }, 256);
-  var closest_point_cache_vs=cachering.fromConstructor(Vector3, 64);
+  var closest_point_cache_vs=cachering.fromConstructor(Vector3, 512);
   class EffectWrapper extends CurveEffect {
+    
      constructor(owner) {
       super();
       this.seg = owner;
     }
      rescale(ceff, width) {
-      while (ceff.prior!=undefined) {
+      while (ceff.prior!==undefined) {
         ceff = ceff.prior;
       }
       var seg1=this.seg;
@@ -8120,10 +10878,10 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
      _get_nextprev(donext, flip_out) {
       var seg1=this.seg;
       var v=donext ? seg1.v2 : seg1.v1;
-      if (v.segments.length!=2)
+      if (v.segments.length!==2)
         return undefined;
       var seg2=v.other_segment(seg1);
-      flip_out[0] = (donext&&seg2.v1==v)||(!donext&&seg2.v2==v);
+      flip_out[0] = (donext&&seg2.v1===v)||(!donext&&seg2.v2===v);
       return seg2._evalwrap;
     }
      evaluate(s) {
@@ -8136,8 +10894,18 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
   _ESClass.register(EffectWrapper);
   _es6_module.add_class(EffectWrapper);
   EffectWrapper = _es6_module.add_export('EffectWrapper', EffectWrapper);
-  var $minmax_2PQZ_update_aabb;
+  let intersect_rets=new cachering(() =>    {
+    return {co: new Vector2(), 
+    targetS: 0, 
+    sourceS: 0}
+  }, 512);
+  let __static_minmax=new MinMax(2);
+  let __angle_temp=cachering.fromConstructor(Vector2, 64);
+  let bstmp1=new Array(32);
+  let bstmp2=new Array(32);
   class SplineSegment extends SplineElement {
+    
+    
     
     
     
@@ -8180,9 +10948,32 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
           this._last_ks[i] = 0;
       }
     }
+     sinangle(v) {
+      if (v.segments.length===2) {
+          let s1=this;
+          let s2=v.other_segment(s1);
+          let t1=__angle_temp.next();
+          let t2=__angle_temp.next();
+          let v1=s1.other_vert(v);
+          let v2=s2.other_vert(v);
+          t1.load(v1).sub(v);
+          t2.load(v2).sub(v);
+          if (t1.dot(t1)<1e-05||t2.dot(t2)<1e-05) {
+              return 0.0;
+          }
+          t1.normalize();
+          t2.normalize();
+          let th=-(t1[0]*t2[1]-t1[1]*t2[0]);
+          let eps=0.0001;
+          th = th*(1.0-eps*2.0)+eps*Math.sign(th);
+          return th;
+      }
+      return 0.0;
+    }
      shift(s) {
       s = s*s*(3.0-2.0*s);
-      return this.shift1+(this.shift2-this.shift1)*s;
+      let ret=this.shift1+(this.shift2-this.shift1)*s;
+      return ret;
     }
      dshift(s) {
       let df=0.0001;
@@ -8196,11 +10987,110 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
       let b=this.width(s+df);
       return (b-a)/(2.0*df);
     }
+     setVertWidth(v, w) {
+      if (w===undefined||isNaN(w)) {
+          console.warn("Got bad width data", w);
+      }
+      if (v===this.v1) {
+          this.w1 = w;
+      }
+      else 
+        if (v===this.v2) {
+          this.w2 = w;
+      }
+      else {
+        console.log(this, v, "bleh");
+        throw new Error("vertex not in edge "+v);
+      }
+    }
      widthFunction(s) {
-      s = (6*s**2-15*s+10)*s**3;
       return s;
     }
+     width2(s) {
+      let this2=this;
+      let seg=this;
+      let v;
+      let len;
+      function walk() {
+        let lastv=v;
+        if (v.segments.length===2) {
+            seg = v.other_segment(seg);
+            v = seg.other_vert(v);
+        }
+        len = seg.length;
+        len = Math.max(len, 0.0001);
+        return (v===seg.v1 ? seg.w1 : seg.w2)*seg.mat.linewidth;
+      }
+      v = this.v1;
+      seg = this;
+      let l0b, l0, l1, l2, l3, l4, l5, l6, l7, l8;
+      l3 = Math.max(seg.length, 0.0001);
+      l4 = l3;
+      let w3=this.w1*this.mat.linewidth;
+      let w2=walk();
+      l2 = len;
+      let w1=walk();
+      l1 = len;
+      let w0=walk();
+      l0 = len;
+      let w0b=walk();
+      l0b = len;
+      seg = this;
+      v = this.v2;
+      let w4=this.w2*this.mat.linewidth;
+      let w5=walk();
+      l5 = len;
+      let w6=walk();
+      l6 = len;
+      let w7=walk();
+      l7 = len;
+      let w8=walk();
+      l8 = len;
+      seg = this;
+      let ks=bstmp1;
+      let ws=bstmp2;
+      bstmp1.length = 5;
+      bstmp2.length = 5;
+      ks[0] = -l0-l1-l2;
+      ks[1] = -l1-l2;
+      ks[2] = -l2;
+      ks[3] = 0;
+      ks[4] = l4;
+      ks[5] = l4+l5;
+      ks[6] = l4+l5+l6;
+      ks[7] = l4+l5+l6+l7;
+      ws[0] = w2;
+      ws[1] = w3;
+      ws[2] = w4;
+      ws[3] = w5;
+      ws[4] = w6;
+      ws[5] = w7;
+      ws[6] = w8;
+      if (l4===0.0) {
+          return 0.0;
+      }
+      s*=l4;
+      let sum=0.0;
+      sum = bspline.deBoor(3, s, ks, ws, 3);
+      for (let i=0; i<0; i++) {
+          let w=bspline.basis(s, i, 3, ks, true);
+          if (isNaN(w)) {
+              console.warn(ks, ws);
+              throw new Error("NaN");
+          }
+          sum+=w*ws[i];
+      }
+      return sum;
+      return w3+(w4-w3)*s;
+      return (w2*k2+w3*k3+w4*k4+w5*k5)/(k2+k3+k4+k5);
+      let d1=(w4-w2)/l2/(l2+l3)*0.5;
+      let d2=(w5-w3)/l5/(l4+l5)*0.5;
+      d1/=3.0;
+      d2/=3.0;
+      return bez4(w3, w3+d1, w4-d2, w4, s);
+    }
      width(s) {
+      return this.width2(s);
       s = this.widthFunction(s);
       let wid1=this.mat.linewidth;
       let wid2=this.mat.linewidth;
@@ -8240,21 +11130,95 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
       this._update_has_multires();
       this.flag&=~SplineFlags.UPDATE_AABB;
       var min=this._aabb[0], max=this._aabb[1];
-      $minmax_2PQZ_update_aabb.reset();
+      let minmax=__static_minmax;
+      minmax.reset();
       min.zero();
       max.zero();
       var co=this.evaluate(0);
-      $minmax_2PQZ_update_aabb.minmax(co);
+      minmax.minmax(co);
       var ds=1.0/(steps-1);
       for (let i=0, s=0; i<steps; i++, s+=ds) {
           var co=this.evaluate(s*0.999999999);
-          $minmax_2PQZ_update_aabb.minmax(co);
+          minmax.minmax(co);
       }
-      min.load($minmax_2PQZ_update_aabb.min);
-      max.load($minmax_2PQZ_update_aabb.max);
+      min.load(minmax.min);
+      max.load(minmax.max);
       min[2] = max[2] = 0.0;
     }
-     closest_point(p, mode, fast=false) {
+     intersect(seg, side1=0, side2=0, mode=IsectModes.CLOSEST) {
+      let steps=5;
+      let lastco=undefined, lastno;
+      let p1=new Vector2();
+      let p2=new Vector2();
+      let p3=new Vector2();
+      let p4=new Vector2();
+      let mindis=undefined;
+      let minret=new Vector2();
+      let mins, mins2;
+      let s=0, ds=1.0/(steps-1);
+      for (let i=0; i<steps; i++, s+=ds) {
+          let s1=s, s2=s+ds;
+          let co1=this.evaluateSide(s1, side1);
+          let co2=this.evaluateSide(s2, side1);
+          let cl1=seg.closest_point(co1, ClosestModes.CLOSEST, undefined, side2);
+          let cl2=seg.closest_point(co2, ClosestModes.CLOSEST, undefined, side2);
+          let p1=cl1[0];
+          let p2=cl2[0];
+          if (cl1[2]!==cl2[2]) {
+              for (let bi=0; bi<2; bi++) {
+                  let s3=(s1+s)*0.5;
+                  let s4=(s2+s)*0.5;
+                  for (let j=0; j<2; j++) {
+                      let s5=j ? s4 : s3;
+                      let co3=this.evaluateSide(s5, side1);
+                      let cl3=seg.closest_point(co3, ClosestModes.CLOSEST, undefined, side2);
+                      if (cl3[2]!==cl1[2]) {
+                          s2 = s5;
+                          break;
+                      }
+                      else 
+                        if (cl3[2]!==cl2[2]) {
+                          s1 = s5;
+                          break;
+                      }
+                  }
+                  s = (s1+s2)*0.5;
+              }
+              co1 = this.evaluateSide(s1, side1);
+              cl1 = seg.closest_point(co1, ClosestModes.CLOSEST, undefined, side2);
+              let dis1;
+              if (mode===IsectModes.START) {
+                  dis1 = cl1[1];
+              }
+              else 
+                if (mode===IsectModes.END) {
+                  dis1 = 1.0-cl1[1];
+              }
+              else 
+                if (mode===IsectModes.ENDSTART) {
+                  dis1 = 1.0-Math.abs(cl1[1]-0.5)*2.0;
+              }
+              else {
+                dis1 = co1.vectorDistance(cl1[0]);
+              }
+              if (mindis===undefined||dis1<mindis) {
+                  minret.load(co1);
+                  mins = cl1[1];
+                  mins2 = s1;
+                  mindis = dis1;
+              }
+          }
+      }
+      if (mindis!==undefined) {
+          let ret=intersect_rets.next();
+          ret.co.load(minret);
+          ret.targetS = mins;
+          ret.sourceS = mins2;
+          return ret;
+      }
+      return undefined;
+    }
+     closest_point(p, mode, fast=false, widthSide=undefined) {
       var minret=undefined, mindis=1e+18, maxdis=0;
       var p2=closest_point_cache_vs.next().zero();
       for (var i=0; i<p.length; i++) {
@@ -8269,6 +11233,9 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
       var n3=closest_point_cache_vs.next(), n4=closest_point_cache_vs.next();
       if (mode===ClosestModes.ALL)
         minret = [];
+      let d1=closest_point_cache_vs.next();
+      let d2=closest_point_cache_vs.next();
+      let dm=closest_point_cache_vs.next();
       for (var i=0; i<steps; i++, s+=ds) {
           var start=s-1e-05, end=s+ds+1e-05;
           start = Math.min(Math.max(start, 0.0), 1.0);
@@ -8279,13 +11246,24 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
           var steps=fast ? 5 : 20;
           for (var j=0; j<steps; j++) {
               mid = (start+end)*0.5;
-              var co=this.evaluate(mid, undefined, undefined, undefined, true);
-              var sco=this.evaluate(start, undefined, undefined, undefined, true);
-              var eco=this.evaluate(end, undefined, undefined, undefined, true);
+              let co, sco, eco;
+              if (widthSide!==undefined) {
+                  co = this.evaluateSide(start, widthSide, undefined, d1);
+                  sco = this.evaluateSide(mid, widthSide, undefined, dm);
+                  eco = this.evaluateSide(end, widthSide, undefined, d2);
+                  d1.normalize();
+                  d2.normalize();
+                  dm.normalize();
+              }
+              else {
+                co = this.evaluate(mid, undefined, undefined, undefined, true);
+                sco = this.evaluate(start, undefined, undefined, undefined, true);
+                eco = this.evaluate(end, undefined, undefined, undefined, true);
+                d1.load(this.normal(start, true).normalize());
+                dm.load(this.normal(mid, true).normalize());
+                d2.load(this.normal(end, true).normalize());
+              }
               sco[2] = eco[2] = co[2] = 0.0;
-              var d1=this.normal(start, true).normalize();
-              var d2=this.normal(end, true).normalize();
-              var dm=this.normal(mid, true).normalize();
               n1.load(sco).sub(p).normalize();
               n2.load(eco).sub(p).normalize();
               n.load(co).sub(p);
@@ -8346,10 +11324,19 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
           }
           if (bad)
             continue;
-          var co=this.evaluate(mid, undefined, undefined, undefined, true);
-          n1.load(this.normal(mid, true)).normalize();
+          let co;
+          if (widthSide) {
+              co = this.evaluateSide(mid, widthSide, undefined, n1);
+              n1.normalize();
+          }
+          else {
+            co = this.evaluate(mid, undefined, undefined, undefined, true);
+            n1.load(this.normal(mid, true)).normalize();
+          }
           n2.load(co).sub(p).normalize();
+          let sign=1.0;
           if (n2.dot(n1)<0) {
+              sign = -1.0;
               n2.negate();
           }
           var angle=acos(Math.min(Math.max(n1.dot(n2), -1), 1));
@@ -8364,6 +11351,7 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
               if (dis<mindis) {
                   minret[0] = closest_point_cache_vs.next().load(co);
                   minret[1] = mid;
+                  minret[2] = sign;
                   mindis = dis;
               }
           }
@@ -8372,6 +11360,7 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
               if (mid<mindis) {
                   minret[0] = closest_point_cache_vs.next().load(co);
                   minret[1] = mid;
+                  minret[2] = sign;
                   mindis = mid;
               }
           }
@@ -8380,6 +11369,7 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
               if (mid>maxdis) {
                   minret[0] = closest_point_cache_vs.next().load(co);
                   minret[1] = mid;
+                  minret[2] = sign;
                   maxdis = mid;
               }
           }
@@ -8388,6 +11378,7 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
               var ret=closest_point_ret_cache.next();
               ret[0] = closest_point_cache_vs.next().load(co);
               ret[1] = mid;
+              ret[2] = sign;
               minret.push(ret);
           }
       }
@@ -8396,17 +11387,20 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
           minret = closest_point_ret_cache.next();
           minret[0] = closest_point_cache_vs.next().load(dis1<dis2 ? this.v1 : this.v2);
           minret[1] = dis1<dis2 ? 0.0 : 1.0;
+          minret[2] = 1.0;
       }
       else 
         if (minret===undefined&&mode===ClosestModes.START) {
           minret = closest_point_ret_cache.next();
           minret[0] = closest_point_cache_vs.next().load(this.v1);
           minret[1] = 0.0;
+          minret[2] = 1.0;
       }
       if (minret===undefined&&mode===ClosestModes.END) {
           minret = closest_point_ret_cache.next();
           minret[0] = closest_point_cache_vs.next().load(this.v2);
           minret[1] = 1.0;
+          minret[2] = 1.0;
       }
       return minret;
     }
@@ -8452,7 +11446,7 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
     }
      update_handle(h) {
       var ov=this.handle_vertex(h);
-      if (h.hpair!=undefined) {
+      if (h.hpair!==undefined) {
           var seg=h.hpair.owning_segment;
           var v=this.handle_vertex(h);
           var len=h.hpair.vectorDistance(v);
@@ -8461,7 +11455,7 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
           return h.hpair;
       }
       else 
-        if (ov.segments.length==2&&h.use&&!(ov.flag&SplineFlags.BREAK_TANGENTS)) {
+        if (ov.segments.length===2&&h.use&&!(ov.flag&SplineFlags.BREAK_TANGENTS)) {
           var h2=h.owning_vertex.other_segment(h.owning_segment).handle(h.owning_vertex);
           var hv=h2.owning_segment.handle_vertex(h2), len=h2.vectorDistance(hv);
           h2.load(h).sub(hv).negate().normalize().mulScalar(len).add(hv);
@@ -8470,13 +11464,13 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
       }
     }
      other_handle(h_or_v) {
-      if (h_or_v==this.v1)
+      if (h_or_v===this.v1)
         return this.h2;
-      if (h_or_v==this.v2)
+      if (h_or_v===this.v2)
         return this.h1;
-      if (h_or_v==this.h1)
+      if (h_or_v===this.h1)
         return this.h2;
-      if (h_or_v==this.h2)
+      if (h_or_v===this.h2)
         return this.h1;
     }
     get  length() {
@@ -8505,14 +11499,14 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
       return k/(1e-05+this.ks[KSCALE]);
     }
      curvature_dv(s, order, override_scale) {
-      if (order==undefined)
+      if (order===undefined)
         order = ORDER;
       eval_curve(0.5, this.v1, this.v2, this.ks, order, 1);
       var k=spiralcurvature_dv(s, this.ks, order);
       return k/(1e-05+this.ks[KSCALE]);
     }
      derivative(s, order, no_update_curve, no_effects) {
-      if (order==undefined)
+      if (order===undefined)
         order = ORDER;
       var ret=derivative_cache_vs.next().zero();
       var ks=this.ks;
@@ -8527,15 +11521,15 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
       return ret;
     }
      theta(s, order, no_effects) {
-      if (order==undefined)
+      if (order===undefined)
         order = ORDER;
       return spiraltheta(s, this.ks, order)*this.ks[KSCALE];
     }
      offset_eval(s, offset, order, no_update) {
-      if (order==undefined)
+      if (order===undefined)
         order = ORDER;
       var ret=this.evaluate(s, order, undefined, no_update);
-      if (offset==0.0)
+      if (offset===0.0)
         return ret;
       var tan=this.derivative(s, order, no_update);
       var t=tan[0];
@@ -8544,6 +11538,25 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
       tan.normalize().mulScalar(offset);
       ret.add(tan);
       return ret;
+    }
+     curvatureSide(s, side, no_out) {
+      let df=0.0001;
+      let dv0=this.evaluateSide(s, side);
+      let dv1=this.evaluateSide(s+df, side);
+      let dv2=this.evaluateSide(s+df*2, side);
+      dv2.sub(dv1).mulScalar(1.0/df);
+      dv1.sub(dv0).mulScalar(1.0/df);
+      dv2.sub(dv1).mulScalar(1.0/df);
+      let k=(dv1[0]*dv2[1]-dv1[1]*dv2[0])/Math.pow(dv1.dot(dv1), 3.0/2.0);
+      if (no_out) {
+          dv1.normalize();
+          let t=dv1[0];
+          dv1[0] = -dv1[1];
+          dv1[1] = t;
+          no_out[0] = dv1[0];
+          no_out[1] = dv1[1];
+      }
+      return k;
     }
      evaluateSide(s, side=0, dv_out, normal_out, lw_dlw_out) {
       side = -(side*2.0-1.0);
@@ -8631,16 +11644,18 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
       return this._evalwrap.local_to_global(p);
     }
      shared_vert(s) {
-      if (this.v1===s.v1||this.v1==s.v2)
+      if (this.v1===s.v1||this.v1===s.v2)
         return this.v1;
-      if (this.v2===s.v1||this.v2==s.v2)
+      if (this.v2===s.v1||this.v2===s.v2)
         return this.v2;
     }
      other_vert(v) {
-      if (v==this.v1)
+      if (v===this.v1)
         return this.v2;
-      if (v==this.v2)
+      if (v===this.v2)
         return this.v1;
+      console.log(this.v1.eid, this.v2.eid, v ? v.eid : v, this.eid, v);
+      throw new Error("vertex not in segment: "+(v ? v.eid : v));
     }
      loadSTRUCT(reader) {
       reader(this);
@@ -8648,29 +11663,31 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
       this.mat.update = this._material_update.bind(this);
     }
   }
-  var $minmax_2PQZ_update_aabb=new MinMax(2);
   _ESClass.register(SplineSegment);
   _es6_module.add_class(SplineSegment);
   SplineSegment = _es6_module.add_export('SplineSegment', SplineSegment);
   SplineSegment.STRUCT = STRUCT.inherit(SplineSegment, SplineElement)+`
-  ks   : array(float);
+  ks       : array(float);
   
-  v1   : int | obj.v1.eid;
-  v2   : int | obj.v2.eid;
+  v1       : int | obj.v1.eid;
+  v2       : int | obj.v2.eid;
   
-  h1   : int | obj.h1 != undefined ? obj.h1.eid : -1;
-  h2   : int | obj.h2 != undefined ? obj.h2.eid : -1;
+  h1       : int | obj.h1 != undefined ? obj.h1.eid : -1;
+  h2       : int | obj.h2 != undefined ? obj.h2.eid : -1;
   
-  w1   : float;
-  w2   : float;
+  w1       : float;
+  w2       : float;
   
-  l    : int | obj.l != undefined  ? obj.l.eid : -1;
+  shift1   : float;
+  shift2   : float;
   
-  mat  : Material;
+  l        : int | obj.l != undefined  ? obj.l.eid : -1;
+  
+  mat      : Material;
 
-  aabb   : array(vec3);
-  z      : float;
-  finalz : float;
+  aabb     : array(vec3);
+  z        : float;
+  finalz   : float;
   has_multires : int;
   
   topoid   : int;
@@ -8739,7 +11756,7 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
   }
   _ESClass.register(SplineLoopPathIter);
   _es6_module.add_class(SplineLoopPathIter);
-  var $cent_FEMJ_update_winding;
+  var $cent_l3e5_update_winding;
   class SplineLoopPath  {
     
      constructor(l, f) {
@@ -8755,14 +11772,14 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
       return this.itercache.next().init(this);
     }
      update_winding() {
-      $cent_FEMJ_update_winding.zero();
+      $cent_l3e5_update_winding.zero();
       for (var l of this) {
-          $cent_FEMJ_update_winding.add(l.v);
+          $cent_l3e5_update_winding.add(l.v);
       }
-      $cent_FEMJ_update_winding.mulScalar(1.0/this.totvert);
+      $cent_l3e5_update_winding.mulScalar(1.0/this.totvert);
       var wsum=0;
       for (var l of this) {
-          wsum+=math.winding(l.v, l.next.v, $cent_FEMJ_update_winding) ? 1 : -1;
+          wsum+=math.winding(l.v, l.next.v, $cent_l3e5_update_winding) ? 1 : -1;
       }
       this.winding = wsum>=0;
     }
@@ -8793,7 +11810,7 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
       return ret;
     }
   }
-  var $cent_FEMJ_update_winding=new Vector3();
+  var $cent_l3e5_update_winding=new Vector3();
   _ESClass.register(SplineLoopPath);
   _es6_module.add_class(SplineLoopPath);
   SplineLoopPath = _es6_module.add_export('SplineLoopPath', SplineLoopPath);
@@ -8804,7 +11821,7 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
     winding : int;
   }
 `;
-  var $minmax_kvtF_update_aabb;
+  var $minmax_OH_x_update_aabb;
   class SplineFace extends SplineElement {
     
     
@@ -8827,17 +11844,17 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
     }
      update_aabb() {
       this.flag&=~SplineFlags.UPDATE_AABB;
-      $minmax_kvtF_update_aabb.reset();
+      $minmax_OH_x_update_aabb.reset();
       for (var path of this.paths) {
           for (var l of path) {
-              $minmax_kvtF_update_aabb.minmax(l.v.aabb[0]);
-              $minmax_kvtF_update_aabb.minmax(l.v.aabb[1]);
-              $minmax_kvtF_update_aabb.minmax(l.s.aabb[0]);
-              $minmax_kvtF_update_aabb.minmax(l.s.aabb[1]);
+              $minmax_OH_x_update_aabb.minmax(l.v.aabb[0]);
+              $minmax_OH_x_update_aabb.minmax(l.v.aabb[1]);
+              $minmax_OH_x_update_aabb.minmax(l.s.aabb[0]);
+              $minmax_OH_x_update_aabb.minmax(l.s.aabb[1]);
           }
       }
-      this._aabb[0].load($minmax_kvtF_update_aabb.min);
-      this._aabb[1].load($minmax_kvtF_update_aabb.max);
+      this._aabb[0].load($minmax_OH_x_update_aabb.min);
+      this._aabb[1].load($minmax_OH_x_update_aabb.max);
       this._aabb[0][2] = this._aabb[1][2] = 0.0;
     }
     get  aabb() {
@@ -8855,7 +11872,7 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
       this.mat.update = this._mat_update.bind(this);
     }
   }
-  var $minmax_kvtF_update_aabb=new MinMax(3);
+  var $minmax_OH_x_update_aabb=new MinMax(3);
   _ESClass.register(SplineFace);
   _es6_module.add_class(SplineFace);
   SplineFace = _es6_module.add_export('SplineFace', SplineFace);
@@ -8876,8 +11893,8 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
     
     
      constructor() {
-      this.fillcolor = [0, 0, 0, 1];
-      this.strokecolor = [0, 0, 0, 1];
+      this.fillcolor = new Vector4([0, 0, 0, 1]);
+      this.strokecolor = new Vector4([0, 0, 0, 1]);
       this.linewidth = 2.0;
       this.flag = 0;
       this.opacity = 1.0;
@@ -8922,6 +11939,17 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
       var b=Math.floor(this.fillcolor[2]*255);
       return "rgba("+r+","+g+","+b+","+this.fillcolor[3]+")";
     }
+     loadSTRUCT(reader) {
+      reader(this);
+      this.fillcolor = new Vector4(this.fillcolor);
+      if (isNaN(this.fillcolor[3])) {
+          this.fillcolor[3] = 1.0;
+      }
+      this.strokecolor = new Vector4(this.strokecolor);
+      if (isNaN(this.strokecolor[3])) {
+          this.strokecolor[3] = 1.0;
+      }
+    }
     static  fromSTRUCT(reader) {
       var ret=new Material();
       reader(ret);
@@ -8933,8 +11961,8 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
   Material = _es6_module.add_export('Material', Material);
   Material.STRUCT = `
   Material {
-    fillcolor        : array(float);
-    strokecolor      : array(float);
+    fillcolor        : vec4;
+    strokecolor      : vec4;
     opacity          : float;
     fill_over_stroke : int;
     linewidth        : float;
@@ -9057,2719 +12085,3 @@ es6_module_define('spline_types', ["./spline_multires.js", "../core/struct.js", 
   
   mixin(ElementRefSet, TPropIterable);
 }, '/dev/fairmotion/src/curve/spline_types.js');
-es6_module_define('spline_query', ["./spline_multires.js", "../editors/viewport/selectmode.js"], function _spline_query_module(_es6_module) {
-  var SelMask=es6_import_item(_es6_module, '../editors/viewport/selectmode.js', 'SelMask');
-  var has_multires=es6_import_item(_es6_module, './spline_multires.js', 'has_multires');
-  var compose_id=es6_import_item(_es6_module, './spline_multires.js', 'compose_id');
-  var decompose_id=es6_import_item(_es6_module, './spline_multires.js', 'decompose_id');
-  var MResFlags=es6_import_item(_es6_module, './spline_multires.js', 'MResFlags');
-  var MultiResLayer=es6_import_item(_es6_module, './spline_multires.js', 'MultiResLayer');
-  var PI=Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor, ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos, asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
-  var sqrt=Math.sqrt;
-  let findnearest_segment_tmp=new Vector2();
-  var $_mpos_7cJ0_findnearest_vert;
-  var $_v_s2Jz_findnearest_vert;
-  class SplineQuery  {
-     constructor(spline) {
-      this.spline = spline;
-    }
-     findnearest(editor, mpos, selectmask, limit, ignore_layers) {
-      if (limit==undefined)
-        limit = 15;
-      var dis=1e+18;
-      var data=undefined;
-      if (selectmask&SelMask.VERTEX) {
-          var ret=this.findnearest_vert(editor, mpos, limit, undefined, ignore_layers);
-          if (ret!=undefined&&ret[1]<dis) {
-              data = ret;
-              dis = ret[1];
-          }
-      }
-      if (selectmask&SelMask.HANDLE) {
-          var ret=this.findnearest_vert(editor, mpos, limit, true, ignore_layers);
-          if (ret!=undefined&&ret[1]<dis) {
-              data = ret;
-              dis = ret[1];
-          }
-      }
-      if (selectmask&SelMask.SEGMENT) {
-          var ret=this.findnearest_segment(editor, mpos, limit, ignore_layers);
-          if (ret!=undefined&&ret[1]<dis) {
-              data = ret;
-              dis = ret[1];
-          }
-      }
-      if (selectmask&SelMask.FACE) {
-          mpos = [mpos[0], mpos[1]];
-          mpos[0]+=editor.pos[0];
-          mpos[1]+=editor.pos[1];
-          var ret=this.findnearest_face(editor, mpos, limit, ignore_layers);
-          if (ret!=undefined&&ret[1]<dis) {
-              data = ret;
-              dis = ret[1];
-          }
-      }
-      return data;
-    }
-     findnearest_segment(editor, mpos, limit, ignore_layers) {
-      var spline=this.spline;
-      var actlayer=spline.layerset.active;
-      var sret=undefined, mindis=limit;
-      mpos = findnearest_segment_tmp.load(mpos);
-      editor.unproject(mpos);
-      for (var seg of spline.segments) {
-          var ret=seg.closest_point(mpos, undefined, true);
-          if (ret==undefined)
-            continue;
-          ret = ret[0];
-          if (seg.hidden||seg.v1.hidden||seg.v2.hidden)
-            continue;
-          if (!ignore_layers&&!seg.in_layer(actlayer))
-            continue;
-          var dis=sqrt((ret[0]-mpos[0])*(ret[0]-mpos[0])+(ret[1]-mpos[1])*(ret[1]-mpos[1]));
-          if (dis<mindis) {
-              sret = seg;
-              mindis = dis;
-          }
-      }
-      if (sret!=undefined)
-        return [sret, mindis, SelMask.SEGMENT];
-    }
-     findnearest_face(editor, mpos, limit, ignore_layers) {
-      var spline=this.spline;
-      var actlayer=spline.layerset.active;
-      var g=spline.canvas;
-      var dis=0, closest=undefined;
-      if (g==undefined)
-        return ;
-      for (var i=0; i<spline.faces.length; i++) {
-          var f=spline.faces[i];
-          if ((!ignore_layers&&!f.in_layer(actlayer))||f.hidden)
-            continue;
-          spline.trace_face(g, f);
-          if (g.isPointInPath(mpos[0], window.innerHeight-mpos[1])) {
-              closest = f;
-          }
-      }
-      g.beginPath();
-      if (closest!=undefined)
-        return [closest, dis, SelMask.FACE];
-    }
-     findnearest_vert(editor, mpos, limit, do_handles, ignore_layers) {
-      var spline=this.spline;
-      var actlayer=spline.layerset.active;
-      if (limit==undefined)
-        limit = 15;
-      var min=1e+17;
-      var ret=undefined;
-      mpos = $_mpos_7cJ0_findnearest_vert.load(mpos);
-      mpos[2] = 0.0;
-      var list=do_handles ? spline.handles : spline.verts;
-      for (var v of list) {
-          if (v.hidden)
-            continue;
-          if (!ignore_layers&&!v.in_layer(actlayer))
-            continue;
-          var co=v;
-          $_v_s2Jz_findnearest_vert.load(co);
-          $_v_s2Jz_findnearest_vert[2] = 0.0;
-          editor.project($_v_s2Jz_findnearest_vert);
-          var dis=$_v_s2Jz_findnearest_vert.vectorDistance(mpos);
-          if (dis<limit&&dis<min) {
-              min = dis;
-              ret = v;
-          }
-      }
-      if (ret!=undefined) {
-          return [ret, min, do_handles ? SelMask.HANDLE : SelMask.VERTEX];
-      }
-    }
-  }
-  var $_mpos_7cJ0_findnearest_vert=new Vector3();
-  var $_v_s2Jz_findnearest_vert=new Vector3();
-  _ESClass.register(SplineQuery);
-  _es6_module.add_class(SplineQuery);
-  SplineQuery = _es6_module.add_export('SplineQuery', SplineQuery);
-}, '/dev/fairmotion/src/curve/spline_query.js');
-es6_module_define('spline_draw', ["../config/config.js", "./spline_draw_sort", "./spline_types.js", "./spline_draw_new.js", "../core/animdata.js", "./spline_math.js", "../editors/viewport/selectmode.js", "../util/mathlib.js", "../editors/viewport/view2d_editor.js", "./spline_element_array.js", "../util/vectormath.js", "./spline_draw_sort.js"], function _spline_draw_module(_es6_module) {
-  var aabb_isect_minmax2d=es6_import_item(_es6_module, '../util/mathlib.js', 'aabb_isect_minmax2d');
-  var ENABLE_MULTIRES=es6_import_item(_es6_module, '../config/config.js', 'ENABLE_MULTIRES');
-  var SessionFlags=es6_import_item(_es6_module, '../editors/viewport/view2d_editor.js', 'SessionFlags');
-  var SelMask=es6_import_item(_es6_module, '../editors/viewport/selectmode.js', 'SelMask');
-  var ORDER=es6_import_item(_es6_module, './spline_math.js', 'ORDER');
-  var KSCALE=es6_import_item(_es6_module, './spline_math.js', 'KSCALE');
-  var KANGLE=es6_import_item(_es6_module, './spline_math.js', 'KANGLE');
-  var KSTARTX=es6_import_item(_es6_module, './spline_math.js', 'KSTARTX');
-  var KSTARTY=es6_import_item(_es6_module, './spline_math.js', 'KSTARTY');
-  var KSTARTZ=es6_import_item(_es6_module, './spline_math.js', 'KSTARTZ');
-  var KTOTKS=es6_import_item(_es6_module, './spline_math.js', 'KTOTKS');
-  var INT_STEPS=es6_import_item(_es6_module, './spline_math.js', 'INT_STEPS');
-  var get_vtime=es6_import_item(_es6_module, '../core/animdata.js', 'get_vtime');
-  var spline_draw_cache_vs=cachering.fromConstructor(Vector3, 64);
-  var spline_draw_trans_vs=cachering.fromConstructor(Vector3, 32);
-  var PI=Math.PI;
-  var pow=Math.pow, cos=Math.cos, sin=Math.sin, abs=Math.abs, floor=Math.floor, ceil=Math.ceil, sqrt=Math.sqrt, log=Math.log, acos=Math.acos, asin=Math.asin;
-  var DRAW_MAXCURVELEN=10000;
-  DRAW_MAXCURVELEN = _es6_module.add_export('DRAW_MAXCURVELEN', DRAW_MAXCURVELEN);
-  var SplineFlags=es6_import_item(_es6_module, './spline_types.js', 'SplineFlags');
-  var SplineTypes=es6_import_item(_es6_module, './spline_types.js', 'SplineTypes');
-  var SplineElement=es6_import_item(_es6_module, './spline_types.js', 'SplineElement');
-  var SplineVertex=es6_import_item(_es6_module, './spline_types.js', 'SplineVertex');
-  var SplineSegment=es6_import_item(_es6_module, './spline_types.js', 'SplineSegment');
-  var SplineLoop=es6_import_item(_es6_module, './spline_types.js', 'SplineLoop');
-  var SplineLoopPath=es6_import_item(_es6_module, './spline_types.js', 'SplineLoopPath');
-  var SplineFace=es6_import_item(_es6_module, './spline_types.js', 'SplineFace');
-  var RecalcFlags=es6_import_item(_es6_module, './spline_types.js', 'RecalcFlags');
-  var MaterialFlags=es6_import_item(_es6_module, './spline_types.js', 'MaterialFlags');
-  var ElementArray=es6_import_item(_es6_module, './spline_element_array.js', 'ElementArray');
-  var SplineLayerFlags=es6_import_item(_es6_module, './spline_element_array.js', 'SplineLayerFlags');
-  var ColorFlags={SELECT: 1, 
-   ACTIVE: 2, 
-   HIGHLIGHT: 4}
-  ColorFlags = _es6_module.add_export('ColorFlags', ColorFlags);
-  var FlagMap={UNSELECT: 0, 
-   SELECT: ColorFlags.SELECT, 
-   ACTIVE: ColorFlags.ACTIVE, 
-   HIGHLIGHT: ColorFlags.HIGHLIGHT, 
-   SELECT_ACTIVE: ColorFlags.SELECT|ColorFlags.ACTIVE, 
-   SELECT_HIGHLIGHT: ColorFlags.SELECT|ColorFlags.HIGHLIGHT, 
-   HIGHLIGHT_ACTIVE: ColorFlags.HIGHLIGHT|ColorFlags.ACTIVE, 
-   SELECT_HIGHLIGHT_ACTIVE: ColorFlags.SELECT|ColorFlags.ACTIVE|ColorFlags.HIGHLIGHT}
-  FlagMap = _es6_module.add_export('FlagMap', FlagMap);
-  function mix(a, b, t) {
-    var ret=[0, 0, 0];
-    for (var i=0; i<3; i++) {
-        ret[i] = a[i]+(b[i]-a[i])*t;
-    }
-    return ret;
-  }
-  var ElementColor={UNSELECT: [1, 0.133, 0.07], 
-   SELECT: [1, 0.6, 0.26], 
-   HIGHLIGHT: [1, 0.93, 0.4], 
-   ACTIVE: [0.3, 0.4, 1.0], 
-   SELECT_ACTIVE: mix([1, 0.6, 0.26], [0.1, 0.2, 1.0], 0.7), 
-   SELECT_HIGHLIGHT: [1, 1, 0.8], 
-   HIGHLIGHT_ACTIVE: mix([1, 0.93, 0.4], [0.3, 0.4, 1.0], 0.5), 
-   SELECT_HIGHLIGHT_ACTIVE: [0.85, 0.85, 1.0]}
-  ElementColor = _es6_module.add_export('ElementColor', ElementColor);
-  var HandleColor={UNSELECT: [0.2, 0.7, 0.07], 
-   SELECT: [0.1, 1, 0.26], 
-   HIGHLIGHT: [0.2, 0.93, 0.4], 
-   ACTIVE: [0.1, 1, 0.75], 
-   SELECT_ACTIVE: mix([1, 0.6, 0.26], [0.1, 0.2, 1.0], 0.7), 
-   SELECT_HIGHLIGHT: [1, 1, 0.8], 
-   HIGHLIGHT_ACTIVE: mix([1, 0.93, 0.4], [0.3, 0.4, 1.0], 0.5), 
-   SELECT_HIGHLIGHT_ACTIVE: [0.85, 0.85, 1.0]}
-  HandleColor = _es6_module.add_export('HandleColor', HandleColor);
-  HandleColor.SELECT_ACTIVE = mix(HandleColor.SELECT, HandleColor.ACTIVE, 0.5);
-  HandleColor.SELECT_HIGHLIGHT = mix(HandleColor.SELECT, HandleColor.HIGHLIGHT, 0.5);
-  HandleColor.HIGHLIGHT_ACTIVE = mix(HandleColor.HIGHLIGHT, HandleColor.ACTIVE, 0.5);
-  HandleColor.SELECT_HIGHLIGHT_ACTIVE = mix(mix(HandleColor.SELECT, HandleColor.ACTIVE, 0.5), HandleColor.HIGHLIGHT, 0.5);
-  function rgb2css(color) {
-    var r=color[0], g=color[1], b=color[2];
-    return "rgb("+(~~(r*255))+","+(~~(g*255))+","+(~~(b*255))+")";
-  }
-  var element_colormap=new Array(8);
-  element_colormap = _es6_module.add_export('element_colormap', element_colormap);
-  for (var k in ElementColor) {
-      var f=FlagMap[k];
-      element_colormap[f] = rgb2css(ElementColor[k]);
-  }
-  var handle_colormap=new Array(8);
-  handle_colormap = _es6_module.add_export('handle_colormap', handle_colormap);
-  for (var k in HandleColor) {
-      var f=FlagMap[k];
-      handle_colormap[f] = rgb2css(HandleColor[k]);
-  }
-  function get_element_flag(e, list) {
-    var f=0;
-    f|=e.flag&SplineFlags.SELECT ? ColorFlags.SELECT : 0;
-    f|=e===list.highlight ? ColorFlags.HIGHLIGHT : 0;
-    f|=e===list.active ? ColorFlags.ACTIVE : 0;
-    return f;
-  }
-  function get_element_color(e, list) {
-    if (e.type==SplineTypes.HANDLE)
-      return handle_colormap[get_element_flag(e, list)];
-    else 
-      return element_colormap[get_element_flag(e, list)];
-  }
-  get_element_color = _es6_module.add_export('get_element_color', get_element_color);
-  var VERT_SIZE=3.0;
-  var SMALL_VERT_SIZE=1.0;
-  var SplineDrawer=es6_import_item(_es6_module, './spline_draw_new.js', 'SplineDrawer');
-  var redo_draw_sort=es6_import_item(_es6_module, './spline_draw_sort.js', 'redo_draw_sort');
-  var Vector2=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector2');
-  var ___spline_draw_sort=es6_import(_es6_module, './spline_draw_sort');
-  for (let k in ___spline_draw_sort) {
-      _es6_module.add_export(k, ___spline_draw_sort[k], true);
-  }
-  function draw_curve_normals(spline, g, zoom) {
-    for (var seg of spline.segments) {
-        if (seg.v1.hidden||seg.v2.hidden)
-          continue;
-        var length=seg.ks[KSCALE];
-        if (length<=0||isNaN(length))
-          continue;
-        if (length>DRAW_MAXCURVELEN)
-          length = DRAW_MAXCURVELEN;
-        var ls=0.0, dls=5/zoom;
-        for (var ls=0; ls<length; ls+=dls) {
-            var s=ls/length;
-            if (s>1.0)
-              continue;
-            var co=seg.evaluate(s);
-            var n=seg.normal(s).normalize();
-            var k=seg.curvature(s);
-            n.mulScalar(k*(window._d!=undefined ? window._d : 1000)/zoom);
-            g.lineWidth = 1;
-            g.strokeColor = "%2233bb";
-            g.beginPath();
-            g.moveTo(co[0], co[1]);
-            g.lineTo(co[0]+n[0], co[1]+n[1]);
-            g.stroke();
-        }
-    }
-  }
-  draw_curve_normals = _es6_module.add_export('draw_curve_normals', draw_curve_normals);
-  function draw_spline(spline, redraw_rects, g, editor, matrix, selectmode, only_render, draw_normals, alpha, draw_time_helpers, curtime, ignore_layers) {
-    spline.canvas = g;
-    if (spline.drawlist===undefined||(spline.recalc&RecalcFlags.DRAWSORT)) {
-        redo_draw_sort(spline);
-    }
-    if (spline.drawer===undefined) {
-        spline.drawer = new SplineDrawer(spline);
-    }
-    var zoom=editor.zoom;
-    zoom = matrix.m11;
-    if (isNaN(zoom)) {
-        zoom = 1.0;
-    }
-    spline.drawer.update(spline, spline.drawlist, spline.draw_layerlist, matrix, redraw_rects, only_render, selectmode, g, zoom, editor, ignore_layers);
-    let promise=spline.drawer.draw(editor.drawg);
-    var actlayer=spline.layerset.active;
-    if (!only_render&&draw_normals)
-      draw_curve_normals(spline, g, zoom);
-    let r=[[0, 0], [0, 0]];
-    for (var s of spline.segments) {
-        s.flag&=~SplineFlags.DRAW_TEMP;
-    }
-    for (var f of spline.faces) {
-        f.flag&=~SplineFlags.DRAW_TEMP;
-    }
-    var vert_size=editor.draw_small_verts ? SMALL_VERT_SIZE : VERT_SIZE;
-    if (only_render)
-      return promise;
-    let tmp1=new Vector2();
-    let tmp2=new Vector2();
-    g.beginPath();
-    if (selectmode&SelMask.HANDLE) {
-        var w=vert_size*g.canvas.dpi_scale/zoom;
-        for (var i=0; i<spline.handles.length; i++) {
-            var v=spline.handles[i];
-            var clr=get_element_color(v, spline.handles);
-            if (!ignore_layers&&!v.owning_segment.in_layer(actlayer))
-              continue;
-            if (v.owning_segment!=undefined&&v.owning_segment.flag&SplineFlags.HIDE)
-              continue;
-            if (v.owning_vertex!=undefined&&v.owning_vertex.flag&SplineFlags.HIDE)
-              continue;
-            if (!v.use)
-              continue;
-            if ((v.flag&SplineFlags.AUTO_PAIRED_HANDLE)&&v.hpair!==undefined&&(v.segments.length>2)) {
-                continue;
-            }
-            if (v.flag&SplineFlags.HIDE)
-              continue;
-            tmp1.load(v).multVecMatrix(matrix);
-            g.beginPath();
-            if (clr!==last_clr)
-              g.fillStyle = clr;
-            last_clr = clr;
-            g.rect(tmp1[0]-w, tmp1[1]-w, w*2, w*2);
-            g.fill();
-            g.beginPath();
-            g.lineWidth = 1;
-            var ov=v.owning_segment.handle_vertex(v);
-            tmp2.load(ov).multVecMatrix(matrix);
-            g.moveTo(tmp1[0], tmp1[1]);
-            g.lineTo(tmp2[0], tmp2[1]);
-            g.stroke();
-        }
-    }
-    var last_clr=undefined;
-    if (selectmode&SelMask.VERTEX) {
-        var w=vert_size*g.canvas.dpi_scale/zoom;
-        for (var i=0; i<spline.verts.length; i++) {
-            var v=spline.verts[i];
-            var clr=get_element_color(v, spline.verts);
-            if (!ignore_layers&&!v.in_layer(actlayer))
-              continue;
-            if (v.flag&SplineFlags.HIDE)
-              continue;
-            var co=tmp1.load(v);
-            co.multVecMatrix(matrix);
-            if (draw_time_helpers) {
-                var time=get_vtime(v);
-                if (curtime==time) {
-                    g.beginPath();
-                    g.fillStyle = "#33ffaa";
-                    g.rect(co[0]-w*2, co[1]-w*2, w*4, w*4);
-                    g.fill();
-                    g.fillStyle = clr;
-                }
-            }
-            g.beginPath();
-            if (clr!==last_clr)
-              g.fillStyle = clr;
-            last_clr = clr;
-            g.rect(co[0]-w, co[1]-w, w*2, w*2);
-            g.fill();
-        }
-    }
-    if (spline.transforming&&spline.proportional) {
-        g.beginPath();
-        g.arc(spline.trans_cent[0], spline.trans_cent[1], spline.prop_radius, -PI, PI);
-        g.stroke();
-    }
-    return promise;
-  }
-  draw_spline = _es6_module.add_export('draw_spline', draw_spline);
-  var $margin_5Qfv_redraw_element=new Vector3([15, 15, 15]);
-  var $aabb_WdB1_redraw_element=[new Vector3(), new Vector3()];
-  function redraw_element(e, view2d) {
-    e.flag|=SplineFlags.REDRAW;
-    $margin_5Qfv_redraw_element[0] = $margin_5Qfv_redraw_element[1] = $margin_5Qfv_redraw_element[2] = 15.0;
-    if (view2d!=undefined)
-      $margin_5Qfv_redraw_element.mulScalar(1.0/view2d.zoom);
-    var e_aabb=e.aabb;
-    $aabb_WdB1_redraw_element[0].load(e_aabb[0]), $aabb_WdB1_redraw_element[1].load(e_aabb[1]);
-    $aabb_WdB1_redraw_element[0].sub($margin_5Qfv_redraw_element), $aabb_WdB1_redraw_element[1].add($margin_5Qfv_redraw_element);
-    window.redraw_viewport($aabb_WdB1_redraw_element[0], $aabb_WdB1_redraw_element[1]);
-  }
-  redraw_element = _es6_module.add_export('redraw_element', redraw_element);
-}, '/dev/fairmotion/src/curve/spline_draw.js');
-es6_module_define('spline_draw_sort', ["../util/mathlib.js", "../editors/viewport/view2d_editor.js", "../config/config.js", "./spline_multires.js", "./spline_math.js", "./spline_element_array.js", "./spline_types.js", "../editors/viewport/selectmode.js", "../core/animdata.js"], function _spline_draw_sort_module(_es6_module) {
-  var aabb_isect_minmax2d=es6_import_item(_es6_module, '../util/mathlib.js', 'aabb_isect_minmax2d');
-  var ENABLE_MULTIRES=es6_import_item(_es6_module, '../config/config.js', 'ENABLE_MULTIRES');
-  var SessionFlags=es6_import_item(_es6_module, '../editors/viewport/view2d_editor.js', 'SessionFlags');
-  var SelMask=es6_import_item(_es6_module, '../editors/viewport/selectmode.js', 'SelMask');
-  var ORDER=es6_import_item(_es6_module, './spline_math.js', 'ORDER');
-  var KSCALE=es6_import_item(_es6_module, './spline_math.js', 'KSCALE');
-  var KANGLE=es6_import_item(_es6_module, './spline_math.js', 'KANGLE');
-  var KSTARTX=es6_import_item(_es6_module, './spline_math.js', 'KSTARTX');
-  var KSTARTY=es6_import_item(_es6_module, './spline_math.js', 'KSTARTY');
-  var KSTARTZ=es6_import_item(_es6_module, './spline_math.js', 'KSTARTZ');
-  var KTOTKS=es6_import_item(_es6_module, './spline_math.js', 'KTOTKS');
-  var INT_STEPS=es6_import_item(_es6_module, './spline_math.js', 'INT_STEPS');
-  var get_vtime=es6_import_item(_es6_module, '../core/animdata.js', 'get_vtime');
-  var iterpoints=es6_import_item(_es6_module, './spline_multires.js', 'iterpoints');
-  var MultiResLayer=es6_import_item(_es6_module, './spline_multires.js', 'MultiResLayer');
-  var MResFlags=es6_import_item(_es6_module, './spline_multires.js', 'MResFlags');
-  var has_multires=es6_import_item(_es6_module, './spline_multires.js', 'has_multires');
-  var spline_draw_cache_vs=cachering.fromConstructor(Vector3, 64);
-  var spline_draw_trans_vs=cachering.fromConstructor(Vector3, 32);
-  var PI=Math.PI;
-  var pow=Math.pow, cos=Math.cos, sin=Math.sin, abs=Math.abs, floor=Math.floor, ceil=Math.ceil, sqrt=Math.sqrt, log=Math.log, acos=Math.acos, asin=Math.asin;
-  var SplineFlags=es6_import_item(_es6_module, './spline_types.js', 'SplineFlags');
-  var SplineTypes=es6_import_item(_es6_module, './spline_types.js', 'SplineTypes');
-  var SplineElement=es6_import_item(_es6_module, './spline_types.js', 'SplineElement');
-  var SplineVertex=es6_import_item(_es6_module, './spline_types.js', 'SplineVertex');
-  var SplineSegment=es6_import_item(_es6_module, './spline_types.js', 'SplineSegment');
-  var SplineLoop=es6_import_item(_es6_module, './spline_types.js', 'SplineLoop');
-  var SplineLoopPath=es6_import_item(_es6_module, './spline_types.js', 'SplineLoopPath');
-  var SplineFace=es6_import_item(_es6_module, './spline_types.js', 'SplineFace');
-  var RecalcFlags=es6_import_item(_es6_module, './spline_types.js', 'RecalcFlags');
-  var MaterialFlags=es6_import_item(_es6_module, './spline_types.js', 'MaterialFlags');
-  var ElementArray=es6_import_item(_es6_module, './spline_element_array.js', 'ElementArray');
-  var SplineLayerFlags=es6_import_item(_es6_module, './spline_element_array.js', 'SplineLayerFlags');
-  function calc_string_ids(spline, startid) {
-    if (startid===undefined) {
-        startid = 0;
-    }
-    var string_idgen=startid;
-    var tmp=new Array();
-    var visit=new set();
-    for (var seg of spline.segments) {
-        seg.stringid = -1;
-    }
-    for (var v of spline.verts) {
-        if (v.segments.length!=2) {
-            continue;
-        }
-        var v2=v, startv=v2, seg=undefined;
-        var _i=0;
-        for (var j=0; j<v.segments.length; j++) {
-            if (!visit.has(v.segments[j].eid)) {
-                seg = v.segments[j];
-                break;
-            }
-        }
-        if (seg==undefined) {
-            continue;
-        }
-        do {
-          v2 = seg.other_vert(v2);
-          if (v2.segments.length!=2) {
-              break;
-          }
-          seg = v2.other_segment(seg);
-          if (visit.has(seg.eid)) {
-              break;
-          }
-          if (_i++>1000) {
-              console.trace("infinite loop detected!");
-              break;
-          }
-        } while (v2!=startv);
-        
-        var lastseg=undefined;
-        startv = v2;
-        _i = 0;
-        do {
-          if (lastseg!=undefined) {
-              var bad=true;
-              for (var k1 in seg.layers) {
-                  for (var k2 in lastseg.layers) {
-                      if (k1==k2) {
-                          bad = false;
-                          break;
-                      }
-                  }
-                  if (bad) {
-                      break;
-                  }
-              }
-              bad = bad||!seg.mat.equals(true, lastseg.mat);
-              if (bad) {
-                  string_idgen++;
-              }
-          }
-          if (visit.has(seg.eid)) {
-              break;
-          }
-          seg.stringid = string_idgen;
-          visit.add(seg.eid);
-          v2 = seg.other_vert(v2);
-          if (v2.segments.length!=2) {
-              break;
-          }
-          lastseg = seg;
-          seg = v2.other_segment(seg);
-          if (_i++>1000) {
-              console.trace("infinite loop detected!");
-              break;
-          }
-        } while (v2!=startv);
-        
-    }
-    for (var seg of spline.segments) {
-        if (seg.stringid==-1) {
-            seg.stringid = string_idgen++;
-        }
-    }
-    return string_idgen;
-  }
-  calc_string_ids = _es6_module.add_export('calc_string_ids', calc_string_ids);
-  var $lists_1b9d_sort_layer_segments=new cachering(function () {
-    return [];
-  }, 2);
-  function sort_layer_segments(layer, spline) {
-    var list=$lists_1b9d_sort_layer_segments.next();
-    list.length = 0;
-    var visit={}
-    var layerid=layer.id;
-    var topogroup_idgen=0;
-    function recurse(seg) {
-      if (seg.eid in visit) {
-          return ;
-      }
-      visit[seg.eid] = 1;
-      seg.topoid = topogroup_idgen;
-      for (var i=0; i<2; i++) {
-          var v=i ? seg.v2 : seg.v1;
-          if (v.segments.length!=2)
-            continue;
-          for (var j=0; j<v.segments.length; j++) {
-              var s2=v.segments[j];
-              if (!(s2.eid in visit)) {
-                  recurse(s2);
-              }
-          }
-      }
-      if (!s.hidden||(s.flag&SplineFlags.GHOST))
-        list.push(seg);
-    }
-    if (1) {
-        for (var s of layer) {
-            if (s.type!=SplineTypes.SEGMENT)
-              continue;
-            if (!(layerid in s.layers))
-              continue;
-            if (s.v1.segments.length==2&&s.v2.segments.length==2)
-              continue;
-            if (!(s.eid in visit)) {
-                topogroup_idgen++;
-                recurse(s);
-            }
-        }
-        for (var s of layer) {
-            if (s.type!=SplineTypes.SEGMENT)
-              continue;
-            if (!(layerid in s.layers))
-              continue;
-            if (!(s.eid in visit)) {
-                topogroup_idgen++;
-                recurse(s);
-            }
-        }
-    }
-    return list;
-  }
-  sort_layer_segments = _es6_module.add_export('sort_layer_segments', sort_layer_segments);
-  function redo_draw_sort(spline) {
-    var min_z=100000000000000.0;
-    var max_z=-100000000000000.0;
-    var layerset=spline.layerset;
-    console.log("start sort");
-    var time=time_ms();
-    for (var f of spline.faces) {
-        if (f.hidden&&!(f.flag&SplineFlags.GHOST))
-          continue;
-        if (isNaN(f.z))
-          f.z = 0;
-        max_z = Math.max(max_z, f.z+1);
-        min_z = Math.min(min_z, f.z);
-    }
-    for (var s of spline.segments) {
-        if (s.hidden&&!(s.flag&SplineFlags.GHOST))
-          continue;
-        if (isNaN(s.z))
-          s.z = 0;
-        max_z = Math.max(max_z, s.z+2);
-        min_z = Math.min(min_z, s.z);
-    }
-    function calc_z(e, check_face) {
-      if (isNaN(e.z)) {
-          e.z = 0;
-      }
-      if (check_face&&e.type===SplineTypes.SEGMENT&&e.l!==undefined) {
-          var l=e.l;
-          var _i=0;
-          var f_max_z=calc_z(e, true);
-          do {
-            if (_i++>1000) {
-                console.trace("infinite loop!");
-                break;
-            }
-            var fz=calc_z(l.f);
-            f_max_z = f_max_z===undefined ? fz : Math.max(f_max_z, fz);
-            l = l.radial_next;
-          } while (l!==e.l);
-          
-          return f_max_z+1;
-      }
-      var layer=0;
-      for (var k in e.layers) {
-          layer = k;
-          break;
-      }
-      if (!(layer in layerset.idmap)) {
-          console.log("Bad layer!", layer);
-          return -1;
-      }
-      layer = layerset.idmap[layer];
-      return layer.order*(max_z-min_z)+(e.z-min_z);
-    }
-    function get_layer(e) {
-      for (var k in e.layers) {
-          return k;
-      }
-      return undefined;
-    }
-    var dl=spline.drawlist = [];
-    var ll=spline.draw_layerlist = [];
-    spline._layer_maxz = max_z;
-    for (var f of spline.faces) {
-        f.finalz = -1;
-        if (f.hidden&&!(f.flag&SplineFlags.GHOST))
-          continue;
-        dl.push(f);
-    }
-    var visit={}
-    for (var i=0; i<spline.layerset.length; i++) {
-        var layer=spline.layerset[i];
-        var elist=sort_layer_segments(layer, spline);
-        for (var j=0; j<elist.length; j++) {
-            var s=elist[j];
-            if (!(s.eid in visit))
-              dl.push(elist[j]);
-            visit[s.eid] = 1;
-        }
-    }
-    for (var s of spline.segments) {
-        s.finalz = -1;
-        if (s.hidden&&!(s.flag&SplineFlags.GHOST))
-          continue;
-        if (!(s.eid in visit)) {
-            dl.push(s);
-        }
-    }
-    var zs={}
-    for (var e of dl) {
-        zs[e.eid] = calc_z(e);
-    }
-    if (!spline.is_anim_path) {
-        dl.sort(function (a, b) {
-          return zs[a.eid]-zs[b.eid];
-        });
-    }
-    for (var i=0; i<dl.length; i++) {
-        var lk=undefined;
-        for (var k in dl[i].layers) {
-            lk = k;
-            break;
-        }
-        ll.push(lk);
-    }
-    for (var i=0; i<spline.drawlist.length; i++) {
-        spline.drawlist[i].finalz = i;
-    }
-    calc_string_ids(spline, spline.segments.length);
-    spline.recalc&=~RecalcFlags.DRAWSORT;
-    console.log("time taken:"+(time_ms()-time).toFixed(2)+"ms");
-  }
-  redo_draw_sort = _es6_module.add_export('redo_draw_sort', redo_draw_sort);
-}, '/dev/fairmotion/src/curve/spline_draw_sort.js');
-es6_module_define('spline', ["./spline_query.js", "../path.ux/scripts/config/const.js", "./spline_multires.js", "./solver_new.js", "../core/lib_api.js", "./spline_math.js", "../config/config.js", "./spline_types.js", "../core/toolops_api.js", "../wasm/native_api.js", "../editors/viewport/view2d_editor.js", "./solver.js", "../editors/viewport/selectmode.js", "../core/eventdag.js", "./spline_draw.js", "../core/struct.js", "./spline_element_array.js"], function _spline_module(_es6_module) {
-  "use strict";
-  const MMLEN=8;
-  const UARR=Uint16Array;
-  const UMAX=((1<<16)-1);
-  const UMUL=2;
-  const PI=Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor, ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos, asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
-  var spline_multires=es6_import(_es6_module, './spline_multires.js');
-  var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
-  var DataBlock=es6_import_item(_es6_module, '../core/lib_api.js', 'DataBlock');
-  var DataTypes=es6_import_item(_es6_module, '../core/lib_api.js', 'DataTypes');
-  var SessionFlags=es6_import_item(_es6_module, '../editors/viewport/view2d_editor.js', 'SessionFlags');
-  var SelMask=es6_import_item(_es6_module, '../editors/viewport/selectmode.js', 'SelMask');
-  var SplineQuery=es6_import_item(_es6_module, './spline_query.js', 'SplineQuery');
-  var draw_spline=es6_import_item(_es6_module, './spline_draw.js', 'draw_spline');
-  var solve=es6_import_item(_es6_module, './solver_new.js', 'solve');
-  var ModalStates=es6_import_item(_es6_module, '../core/toolops_api.js', 'ModalStates');
-  var DataPathNode=es6_import_item(_es6_module, '../core/eventdag.js', 'DataPathNode');
-  var config=es6_import(_es6_module, '../config/config.js');
-  const FEPS=1e-18;
-  const SPI2=Math.sqrt(PI/2);
-  var _SOLVING=false;
-  _SOLVING = _es6_module.add_export('_SOLVING', _SOLVING);
-  var INCREMENTAL=1;
-  INCREMENTAL = _es6_module.add_export('INCREMENTAL', INCREMENTAL);
-  var ORDER=es6_import_item(_es6_module, './spline_math.js', 'ORDER');
-  var KSCALE=es6_import_item(_es6_module, './spline_math.js', 'KSCALE');
-  var KANGLE=es6_import_item(_es6_module, './spline_math.js', 'KANGLE');
-  var KSTARTX=es6_import_item(_es6_module, './spline_math.js', 'KSTARTX');
-  var KSTARTY=es6_import_item(_es6_module, './spline_math.js', 'KSTARTY');
-  var KSTARTZ=es6_import_item(_es6_module, './spline_math.js', 'KSTARTZ');
-  var KTOTKS=es6_import_item(_es6_module, './spline_math.js', 'KTOTKS');
-  var INT_STEPS=es6_import_item(_es6_module, './spline_math.js', 'INT_STEPS');
-  var solver=es6_import_item(_es6_module, './solver.js', 'solver');
-  var constraint=es6_import_item(_es6_module, './solver.js', 'constraint');
-  es6_import(_es6_module, '../path.ux/scripts/config/const.js');
-  var native_api=es6_import(_es6_module, '../wasm/native_api.js');
-  var SplineFlags=es6_import_item(_es6_module, './spline_types.js', 'SplineFlags');
-  var SplineTypes=es6_import_item(_es6_module, './spline_types.js', 'SplineTypes');
-  var SplineElement=es6_import_item(_es6_module, './spline_types.js', 'SplineElement');
-  var SplineVertex=es6_import_item(_es6_module, './spline_types.js', 'SplineVertex');
-  var SplineSegment=es6_import_item(_es6_module, './spline_types.js', 'SplineSegment');
-  var SplineLoop=es6_import_item(_es6_module, './spline_types.js', 'SplineLoop');
-  var SplineLoopPath=es6_import_item(_es6_module, './spline_types.js', 'SplineLoopPath');
-  var SplineFace=es6_import_item(_es6_module, './spline_types.js', 'SplineFace');
-  var ElementArraySet=es6_import_item(_es6_module, './spline_element_array.js', 'ElementArraySet');
-  var ElementArray=es6_import_item(_es6_module, './spline_element_array.js', 'ElementArray');
-  var SplineLayer=es6_import_item(_es6_module, './spline_element_array.js', 'SplineLayer');
-  var SplineLayerSet=es6_import_item(_es6_module, './spline_element_array.js', 'SplineLayerSet');
-  let _internal_idgen=0;
-  var rect_tmp=[new Vector2(), new Vector2()];
-  var eval_curve=es6_import_item(_es6_module, './spline_math.js', 'eval_curve');
-  var do_solve=es6_import_item(_es6_module, './spline_math.js', 'do_solve');
-  var RestrictFlags={NO_EXTRUDE: 1, 
-   NO_DELETE: 2, 
-   NO_CONNECT: 4, 
-   NO_DISSOLVE: 8, 
-   NO_SPLIT_EDGE: 16, 
-   VALENCE2: 32, 
-   NO_CREATE: 64|1|4|16}
-  RestrictFlags = _es6_module.add_export('RestrictFlags', RestrictFlags);
-  function dom_bind(obj, name, dom_id) {
-    Object.defineProperty(obj, name, {get: function () {
-        var check=document.getElementById(dom_id);
-        return check.checked;
-      }, 
-    set: function (val) {
-        var check=document.getElementById(dom_id);
-        check.checked = !!val;
-      }});
-  }
-  var split_edge_rets=new cachering(function () {
-    return [0, 0, 0];
-  }, 64);
-  var _elist_map={"verts": SplineTypes.VERTEX, 
-   "handles": SplineTypes.HANDLE, 
-   "segments": SplineTypes.SEGMENT, 
-   "faces": SplineTypes.FACE}
-  class AllPointsIter  {
-    
-    
-     constructor(spline) {
-      this.spline = spline;
-      this.stage = 0;
-      this.iter = spline.verts[Symbol.iterator]();
-      this.ret = {done: false, 
-     value: undefined};
-    }
-     [Symbol.iterator]() {
-      return this;
-    }
-     next() {
-      var ret=this.iter.next();
-      this.ret.done = ret.done;
-      this.ret.value = ret.value;
-      if (ret.done&&this.stage==0) {
-          this.stage = 1;
-          this.iter = this.spline.handles[Symbol.iterator]();
-          return this.next();
-      }
-      return this.ret;
-    }
-  }
-  _ESClass.register(AllPointsIter);
-  _es6_module.add_class(AllPointsIter);
-  AllPointsIter = _es6_module.add_export('AllPointsIter', AllPointsIter);
-  var RecalcFlags=es6_import_item(_es6_module, './spline_types.js', 'RecalcFlags');
-  var $debug_id_gen_aeCI_constructor;
-  var $ws_wmkR_split_edge;
-  var $lastco_MO0V_trace_face;
-  var $srcs_Eai8_split_edge;
-  class Spline extends DataBlock {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-     constructor(name=undefined) {
-      super(DataTypes.SPLINE, name);
-      this.updateGen = 0;
-      this._vert_add_set = new set();
-      this._vert_rem_set = new set();
-      this._vert_time_set = new set();
-      this._debug_id = $debug_id_gen_aeCI_constructor++;
-      this._pending_solve = undefined;
-      this._resolve_after = undefined;
-      this.solving = undefined;
-      this.actlevel = 0;
-      var mformat=spline_multires._format;
-      this.mres_format = new Array(mformat.length);
-      for (var i=0; i<mformat.length; i++) {
-          this.mres_format[i] = mformat[i];
-      }
-      this._internal_id = _internal_idgen++;
-      this.drawlist = [];
-      this.recalc = RecalcFlags.DRAWSORT;
-      this.size = [0, 0];
-      this.restrict = 0;
-      this.canvas = undefined;
-      this.query = this.q = new SplineQuery(this);
-      this.frame = 0;
-      this.rendermat = new Matrix4();
-      this.last_sim_ms = time_ms();
-      this.segments = [];
-      this.handles = [];
-      this._idgen = new SDIDGen();
-      this.last_save_time = time_ms();
-      this.proportional = false;
-      this.prop_radius = 100;
-      this.eidmap = {};
-      this.elist_map = {};
-      this.elists = [];
-      this.selectmode = 1;
-      this.layerset = new SplineLayerSet();
-      this.layerset.new_layer();
-      this.selected = new ElementArraySet();
-      this.selected.layerset = this.layerset;
-      this.draw_verts = true;
-      this.draw_normals = true;
-      this.init_elists();
-    }
-     dag_get_datapath() {
-      if (this.is_anim_path||(this.verts.cdata.layers.length>0&&this.verts.cdata.layers[0].name==="TimeDataLayer"))
-        return "frameset.pathspline";
-      else 
-        return "frameset.drawspline";
-    }
-     force_full_resolve() {
-      this.resolve = 1;
-      for (var seg of this.segments) {
-          seg.flag|=SplineFlags.UPDATE;
-      }
-      for (var v of this.verts) {
-          v.flag|=SplineFlags.UPDATE;
-      }
-      for (var h of this.handles) {
-          h.flag|=SplineFlags.UPDATE;
-      }
-    }
-     regen_sort() {
-      this.updateGen++;
-      this.recalc|=RecalcFlags.DRAWSORT;
-    }
-     regen_solve() {
-      this.resolve = 1;
-      this.updateGen++;
-      this.recalc|=RecalcFlags.SOLVE;
-    }
-     regen_render() {
-      this.resolve = 1;
-      this.updateGen++;
-      this.recalc|=RecalcFlags.ALL;
-    }
-     init_elists() {
-      this.elist_map = {};
-      this.elists = [];
-      for (var k in _elist_map) {
-          var type=_elist_map[k];
-          var list=new ElementArray(type, this.idgen, this.eidmap, this.selected, this.layerset, this);
-          this[k] = list;
-          this.elist_map[type] = list;
-          this.elists.push(list);
-      }
-      this.init_sel_handlers();
-    }
-     init_sel_handlers() {
-      var this2=this;
-      this.verts.on_select = function (v, state) {
-        for (var i=0; i<v.segments.length; i++) {
-            var seg=v.segments[i];
-            this2.handles.setselect(seg.handle(v), state);
-        }
-      };
-    }
-    get  idgen() {
-      return this._idgen;
-    }
-    set  idgen(idgen) {
-      this._idgen = idgen;
-      if (this.elists==undefined) {
-          return ;
-      }
-      for (var i=0; i<this.elists.length; i++) {
-          this.elists[i].idgen = idgen;
-      }
-    }
-     copy() {
-      var ret=new Spline();
-      ret.idgen = this.idgen.copy();
-      ret.layerset = this.layerset.copyStructure();
-      for (var i=0; i<ret.elists.length; i++) {
-          ret.elists[i].idgen = ret.idgen;
-          ret.elists[i].cdata.load_layout(this.elists[i].cdata);
-      }
-      var eidmap=ret.eidmap;
-      for (let si=0; si<2; si++) {
-          var list1=si ? this.handles : this.verts;
-          var list2=si ? ret.handles : ret.verts;
-          for (let i=0; i<list1.length; i++) {
-              var v=list1[i];
-              var v2=new SplineVertex(v);
-              if (si===1) {
-                  v2.type = SplineTypes.HANDLE;
-              }
-              v2.load(v);
-              v2.flag = v.flag;
-              v2.eid = v.eid;
-              list2.push(v2, v2.eid, false);
-              for (let layeri in v.layers) {
-                  ret.layerset.idmap[layeri].add(v2);
-              }
-              if (si===1) {
-                  ret.copy_handle_data(v2, v);
-              }
-              else {
-                ret.copy_vert_data(v2, v);
-              }
-              eidmap[v.eid] = v2;
-              if (v===list1.active)
-                list2.active = v2;
-          }
-      }
-      for (let i=0; i<this.segments.length; i++) {
-          var s=this.segments[i];
-          var s2=new SplineSegment();
-          s2.eid = s.eid;
-          s2.flag = s.flag;
-          ret.segments.push(s2);
-          eidmap[s2.eid] = s2;
-          if (s===this.segments.active)
-            ret.segments.active = s;
-          s2.h1 = eidmap[s.h1.eid];
-          s2.h2 = eidmap[s.h2.eid];
-          s2.h1.segments.push(s2);
-          s2.h2.segments.push(s2);
-          s2.v1 = eidmap[s.v1.eid];
-          s2.v2 = eidmap[s.v2.eid];
-          s2.v1.segments.push(s2);
-          s2.v2.segments.push(s2);
-          for (var j=0; j<s.ks.length; j++) {
-              s2.ks[j] = s.ks[j];
-          }
-          if (s.h1.hpair!==undefined)
-            s2.h1.hpair = eidmap[s.h1.hpair.eid];
-          if (s.h2.hpair!==undefined)
-            s2.h2.hpair = eidmap[s.h2.hpair.eid];
-          ret.copy_segment_data(s2, s);
-          for (let layeri in s.layers) {
-              ret.layerset.idmap[layeri].add(s2);
-          }
-      }
-      for (var i=0; i<this.faces.length; i++) {
-          var f=this.faces[i];
-          var vlists=[];
-          for (var list of f.paths) {
-              var verts=[];
-              vlists.push(verts);
-              var l=list.l;
-              do {
-                verts.push(eidmap[l.v.eid]);
-                l = l.next;
-              } while (l!=list.l);
-              
-          }
-          var f2=ret.make_face(vlists, f.eid);
-          ret.copy_face_data(f2, f);
-          eidmap[f2.eid] = f2;
-          if (f==this.faces.active)
-            ret.faces.active = f2;
-          for (let layeri in f.layers) {
-              ret.layerset.idmap[layeri].add(f2);
-          }
-      }
-      return ret;
-    }
-     copy_element_data(dst, src) {
-      if (dst.flag&SplineFlags.SELECT) {
-          this.setselect(dst, false);
-      }
-      dst.cdata.copy(src.cdata);
-      dst.flag = src.flag;
-      if (dst.flag&SplineFlags.SELECT) {
-          dst.flag&=~SplineFlags.SELECT;
-          this.setselect(dst, true);
-      }
-    }
-     copy_vert_data(dst, src) {
-      this.copy_element_data(dst, src);
-    }
-     copy_handle_data(dst, src) {
-      this.copy_element_data(dst, src);
-    }
-     copy_segment_data(dst, src) {
-      this.copy_element_data(dst, src);
-      dst.z = src.z;
-      dst.w1 = src.w1;
-      dst.w2 = src.w2;
-      dst.shift1 = src.shift1;
-      dst.shift2 = src.shift2;
-      dst.mat.load(src.mat);
-    }
-     copy_face_data(dst, src) {
-      this.copy_element_data(dst, src);
-      dst.z = src.z;
-      dst.mat.load(src.mat);
-    }
-    get  points() {
-      return new AllPointsIter(this);
-    }
-     make_vertex(co, eid=undefined) {
-      var v=new SplineVertex(co);
-      v.flag|=SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
-      this.verts.push(v, eid);
-      this._vert_add_set.add(v.eid);
-      this.dag_update("on_vert_add", this._vert_add_set);
-      this.dag_update("on_vert_change");
-      return v;
-    }
-     get_elist(type) {
-      return this.elist_map[type];
-    }
-     make_handle(co, __eid=undefined) {
-      var h=new SplineVertex();
-      h.flag|=SplineFlags.BREAK_TANGENTS;
-      h.flag|=SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
-      h.type = SplineTypes.HANDLE;
-      this.handles.push(h, __eid);
-      return h;
-    }
-     split_edge(seg, s=0.5) {
-      var co=seg.evaluate(s);
-      var hpair=seg.h2.hpair;
-      if (hpair!==undefined) {
-          this.disconnect_handle(seg.h2);
-      }
-      var nv=this.make_vertex(co);
-      nv.flag|=seg.v1.flag&seg.v2.flag;
-      if (nv.flag&SplineFlags.SELECT) {
-          nv.flag&=~SplineFlags.SELECT;
-          this.verts.setselect(nv, true);
-      }
-      var v1=seg.v1, v2=seg.v2;
-      var nseg=this.make_segment(nv, seg.v2);
-      let w1=seg.w1+(seg.w2-seg.w1)*s;
-      let w2=seg.w2;
-      let shift1=seg.shift1+(seg.shift2-seg.shift1)*s;
-      let shift2=seg.shift2;
-      seg.w2 = w1;
-      seg.shift2 = shift1;
-      seg.v2.segments.remove(seg);
-      nv.segments.push(seg);
-      seg.v2 = nv;
-      if (seg.l!==undefined) {
-          var start=seg.l;
-          var l=seg.l;
-          var i=0;
-          var lst=[];
-          do {
-            lst.push(l);
-            if (i++>100) {
-                console.trace("Infinite loop error");
-                break;
-            }
-            l = l.radial_next;
-          } while (l!==seg.l);
-          
-          for (var j=0; j<lst.length; j++) {
-              var l=lst[j];
-              var newl=this.make_loop();
-              newl.f = l.f, newl.p = l.p;
-              if (l.v===v1) {
-                  newl.s = nseg;
-                  newl.v = nv;
-                  l.next.prev = newl;
-                  newl.next = l.next;
-                  l.next = newl;
-                  newl.prev = l;
-              }
-              else 
-                if (1) {
-                  this._radial_loop_remove(l);
-                  newl.s = seg;
-                  newl.v = nv;
-                  l.s = nseg;
-                  l.next.prev = newl;
-                  newl.next = l.next;
-                  l.next = newl;
-                  newl.prev = l;
-                  this._radial_loop_insert(l);
-              }
-              this._radial_loop_insert(newl);
-              l.p.totvert++;
-          }
-      }
-      nv.flag|=SplineFlags.UPDATE;
-      seg.v1.flag|=SplineFlags.UPDATE;
-      nseg.v2.flag|=SplineFlags.UPDATE;
-      var ret=split_edge_rets.next();
-      ret[0] = nseg;
-      ret[1] = nv;
-      if (hpair!==undefined) {
-          this.connect_handles(nseg.h2, hpair);
-      }
-      this.copy_segment_data(nseg, seg);
-      nseg.w1 = w1;
-      nseg.w2 = w2;
-      nseg.shift1 = shift1;
-      nseg.shift2 = shift2;
-      $srcs_Eai8_split_edge[0] = v1.cdata, $srcs_Eai8_split_edge[1] = v2.cdata;
-      this.copy_vert_data(nv, v1);
-      nv.cdata.interp($srcs_Eai8_split_edge, $ws_wmkR_split_edge);
-      this.resolve = 1;
-      return ret;
-    }
-     find_segment(v1, v2) {
-      for (var i=0; i<v1.segments.length; i++) {
-          if (v1.segments[i].other_vert(v1)===v2)
-            return v1.segments[i];
-      }
-      return undefined;
-    }
-     disconnect_handle(h1) {
-      h1.hpair.hpair = undefined;
-      h1.hpair = undefined;
-    }
-     connect_handles(h1, h2) {
-      var s1=h1.segments[0], s2=h2.segments[0];
-      if (s1.handle_vertex(h1)!=s2.handle_vertex(h2)) {
-          console.trace("Invalid call to connect_handles");
-          return ;
-      }
-      if (h1.hpair!=undefined)
-        this.disconnect_handle(h1);
-      if (h2.hpair!=undefined)
-        this.disconnect_handle(h2);
-      h1.hpair = h2;
-      h2.hpair = h1;
-    }
-     export_ks() {
-      var mmlen=MMLEN;
-      var size=4/UMUL+8/UMUL+this.segments.length*ORDER;
-      size+=this.segments.length*(4/UMUL);
-      size+=(8*Math.floor(this.segments.length/mmlen))/UMUL;
-      var ret=new UARR(size);
-      var view=new DataView(ret.buffer);
-      var c=0, d=0;
-      view.setInt32(c*UMUL, UMUL);
-      c+=4/UMUL;
-      var mink, maxk;
-      for (var i=0; i<this.segments.length; i++) {
-          var s=this.segments[i];
-          if (d==0) {
-              mink = 10000, maxk = -10000;
-              for (var si=i; si<i+mmlen+1; si++) {
-                  if (si>=this.segments.length)
-                    break;
-                  var s2=this.segments[si];
-                  for (var j=0; j<ORDER; j++) {
-                      mink = Math.min(mink, s2.ks[j]);
-                      maxk = Math.max(maxk, s2.ks[j]);
-                  }
-              }
-              view.setFloat32(c*UMUL, mink);
-              view.setFloat32(c*UMUL+4, maxk);
-              c+=8/UMUL;
-          }
-          view.setInt32(c*UMUL, s.eid);
-          c+=4/UMUL;
-          for (var j=0; j<ORDER; j++) {
-              var k=s.ks[j];
-              k = (k-mink)/(maxk-mink);
-              if (k<0.0) {
-                  console.log("EVIL!", k, mink, maxk);
-              }
-              k = Math.abs(Math.floor(k*UMAX));
-              ret[c++] = k;
-          }
-          d = (d+1)%mmlen;
-      }
-      var ret2=ret;
-      return ret2;
-    }
-     import_ks(data) {
-      data = new UARR(data.buffer);
-      var view=new DataView(data.buffer);
-      var mmlen=MMLEN;
-      var d=0, i=0;
-      var datasize=view.getInt32(0);
-      if (datasize!=UMUL) {
-          return undefined;
-      }
-      i+=4/UMUL;
-      while (i<data.length) {
-        if (d==0) {
-            var mink=view.getFloat32(i*UMUL);
-            var maxk=view.getFloat32(i*UMUL+4);
-            i+=8/UMUL;
-        }
-        d = (d+1)%mmlen;
-        if (i>=data.length) {
-            console.log("SPLINE CACHE ERROR", i, data.length);
-            break;
-        }
-        var eid=view.getInt32(i*UMUL);
-        i+=4/UMUL;
-        var s=this.eidmap[eid];
-        if (s==undefined||!(__instance_of(s, SplineSegment))) {
-            console.log("Could not find segment", data[i-1]);
-            i+=ORDER;
-            continue;
-        }
-        for (var j=0; j<ORDER; j++) {
-            var k=data[i++]/UMAX;
-            k = k*(maxk-mink)+mink;
-            s.ks[j] = k;
-        }
-      }
-      return data;
-    }
-     fix_spline() {
-      this.verts.remove_undefineds();
-      this.handles.remove_undefineds();
-      this.segments.remove_undefineds();
-      this.faces.remove_undefineds();
-      for (var i=0; i<2; i++) {
-          var list=i ? this.handles : this.verts;
-          for (var v of list) {
-              for (var j=0; j<v.segments.length; j++) {
-                  if (v.segments[j]==undefined) {
-                      console.warn("Corruption detected for element", v.eid);
-                      v.segments.pop_i(j);
-                      j--;
-                  }
-              }
-          }
-      }
-      var hset=new set();
-      for (var s of this.segments) {
-          hset.add(s.h1);
-          hset.add(s.h2);
-          for (let si=0; si<2; si++) {
-              let h=si ? s.h2 : s.h1;
-              if (h.segments.indexOf(s)<0) {
-                  console.warn("fixing segment reference for handle", h.eid);
-                  h.segments.length = 0;
-                  h.segments.push(s);
-              }
-          }
-      }
-      let delset=new set();
-      for (var h of this.handles) {
-          if (!hset.has(h)) {
-              delset.add(h);
-          }
-      }
-      for (let h of delset) {
-          console.log("Removing orphaned handle", h.eid, h);
-          this.handles.remove(h);
-      }
-      var delsegments=new set();
-      for (var v of this.verts) {
-          for (var i=0; i<v.segments.length; i++) {
-              var s=v.segments[i];
-              if (s.v1!==v&&s.v2!==v) {
-                  console.log("Corrupted segment! Deleting!");
-                  v.segments.remove(s, true);
-                  i--;
-                  delsegments.add(s);
-              }
-          }
-      }
-      for (var s of delsegments) {
-          this.kill_segment(s, true, true);
-          continue;
-          this.segments.remove(s, true);
-          delete this.eidmap[s.eid];
-          if (s.v1.indexOf(s)>=0)
-            s.v1.segments.remove(s, true);
-          if (s.v2.indexOf(s)>=0)
-            s.v2.segments.remove(s, true);
-          if (s.h1!==undefined&&s.h1.type===SplineTypes.HANDLE) {
-              this.handles.remove(s.h1, true);
-              delete this.eidmap[s.h1.eid];
-          }
-          if (s.h2!==undefined&&s.h2.type===SplineTypes.HANDLE) {
-              this.handles.remove(s.h2, true);
-              delete this.eidmap[s.h2.eid];
-          }
-          if (s.l!=undefined) {
-              var l=s.l, c;
-              var radial_next=l.radial_next;
-              do {
-                if (c++>100) {
-                    console.log("Infinite loop (in fix_splines)!");
-                    break;
-                }
-                this.kill_face(l.f);
-                l = l.radial_next;
-                if (l==undefined)
-                  break;
-              } while (l!=s.l);
-              
-          }
-      }
-      for (var s of this.segments) {
-          if (s.v1.segments===undefined||s.v2.segments===undefined) {
-              if (__instance_of(s.h1, SplineVertex))
-                this.handles.remove(s.h1);
-              if (__instance_of(s.h2, SplineVertex))
-                this.handles.remove(s.h2);
-              this.segments.remove(s);
-              continue;
-          }
-          if (s.v1.segments.indexOf(s)<0) {
-              s.v1.segments.push(s);
-          }
-          if (s.v2.segments.indexOf(s)<0) {
-              s.v2.segments.push(s);
-          }
-          if (s.h1===undefined||s.h1.type!==SplineTypes.HANDLE) {
-              console.log("Missing handle 1; adding. . .", s.eid, s);
-              s.h1 = this.make_handle();
-              s.h1.load(s.v1).interp(s.v2, 1.0/3.0);
-          }
-          if (s.h2===undefined||s.h2.type!==SplineTypes.HANDLE) {
-              console.log("Missing handle 2; adding. . .", s.eid, s);
-              s.h2 = this.make_handle();
-              s.h2.load(s.v2).interp(s.v2, 2.0/3.0);
-          }
-          if (s.h1.segments[0]!==s)
-            s.h1.segments = [s];
-          if (s.h2.segments[0]!==s)
-            s.h2.segments = [s];
-      }
-      var max_eid=0;
-      for (var i=0; i<this.elists.length; i++) {
-          var elist=this.elists[i];
-          for (var e of elist) {
-              max_eid = Math.max(e.eid, max_eid);
-          }
-      }
-      var curid=!("cur_id" in this.idgen) ? "cur_eid" : "cur_id";
-      if (max_eid>=this.idgen[curid]) {
-          console.trace("IDGEN ERROR! DOOM! DOOM!");
-          this.idgen[curid] = max_eid+1;
-      }
-    }
-     select_none(ctx, datamode) {
-      if (ctx===undefined) {
-          throw new Error("ctx cannot be undefined");
-      }
-      if (datamode===undefined) {
-          throw new Error("datamode cannot be undefined");
-      }
-      for (let elist of this.elists) {
-          if (!(datamode&elist.type)) {
-              continue;
-          }
-          for (let e of elist.selected.editable(ctx)) {
-              this.setselect(e, false);
-          }
-      }
-    }
-     select_flush(datamode) {
-      if (datamode&(SplineTypes.VERTEX|SplineTypes.HANDLE)) {
-          var fset=new set();
-          var sset=new set();
-          var fact=this.faces.active, sact=this.segments.active;
-          for (var v of this.verts.selected) {
-              for (var s of v.segments) {
-                  if (sset.has(s))
-                    continue;
-                  if (s.other_vert(v).flag&SplineFlags.SELECT) {
-                      sset.add(s);
-                  }
-                  var l=s.l;
-                  if (l===undefined)
-                    continue;
-                  var c=0;
-                  do {
-                    if (c++>1000) {
-                        console.warn("Infinite loop detected!");
-                        break;
-                    }
-                    var f=l.f;
-                    if (f.flag&SplineFlags.SELECT) {
-                        l = l.next;
-                        continue;
-                    }
-                    var good=true;
-                    for (var path of f.paths) {
-                        for (var l2 of path) {
-                            if (!(l2.v.flag&SplineFlags.SELECT)) {
-                                good = false;
-                                break;
-                            }
-                        }
-                        if (!good)
-                          break;
-                    }
-                    if (good) {
-                        fset.add(f);
-                    }
-                    l = l.next;
-                  } while (l!=s.l);
-                  
-              }
-          }
-          this.segments.clear_selection();
-          this.faces.clear_selection();
-          if (sact===undefined||!sset.has(sact)) {
-              for (var s of sset) {
-                  sact = s;
-                  break;
-              }
-          }
-          if (fact===undefined||!fset.has(fact)) {
-              for (var f of fset) {
-                  fact = f;
-                  break;
-              }
-          }
-          this.segments.active = sact;
-          this.faces.active = fact;
-          for (var s of sset) {
-              this.segments.setselect(s, true);
-          }
-          for (var f of fset) {
-              this.faces.setselect(f, true);
-          }
-      }
-      else 
-        if (datamode===SplineTypes.SEGMENT) {
-          this.verts.clear_selection();
-          this.faces.clear_selection();
-          for (var s of this.segments.selected) {
-              this.verts.setselect(s.v1, true);
-              this.verts.setselect(s.v2, true);
-              var l=s.l;
-              if (l===undefined)
-                continue;
-              var c=0;
-              do {
-                if (c++>1000) {
-                    console.warn("Infinite loop detected!");
-                    break;
-                }
-                var f=l.f;
-                if (f.flag&SplineFlags.SELECT) {
-                    l = l.next;
-                    continue;
-                }
-                var good=true;
-                for (var path of f.paths) {
-                    for (var l2 of path) {
-                        if (!(l2.s.flag&SplineFlags.SELECT)) {
-                            good = false;
-                            break;
-                        }
-                    }
-                    if (!good)
-                      break;
-                }
-                if (good) {
-                    console.log("selecting face");
-                    this.faces.setselect(f, true);
-                }
-                l = l.next;
-              } while (l!==s.l);
-              
-          }
-      }
-      else 
-        if (datamode===SplineTypes.FACE) {
-          this.verts.clear_selection();
-          this.segments.clear_selection();
-          for (var f of this.faces.selected) {
-              for (var path of f.paths) {
-                  for (var l of path) {
-                      this.verts.setselect(l.v, true);
-                      this.segments.setselect(l.s, true);
-                  }
-              }
-          }
-      }
-    }
-     make_segment(v1, v2, __eid, check_existing=true) {
-      if (__eid===undefined)
-        __eid = this.idgen.gen_id();
-      if (check_existing) {
-          var seg=this.find_segment(v1, v2);
-          if (seg!==undefined)
-            return seg;
-      }
-      var seg=new SplineSegment(v1, v2);
-      seg.h1 = this.make_handle();
-      seg.h2 = this.make_handle();
-      seg.h1.load(v1).interp(v2, 1.0/3.0);
-      seg.h2.load(v1).interp(v2, 2.0/3.0);
-      seg.h1.segments.push(seg);
-      seg.h2.segments.push(seg);
-      seg.v1.segments.push(seg);
-      seg.v2.segments.push(seg);
-      seg.v1.flag|=SplineFlags.UPDATE;
-      seg.v2.flag|=SplineFlags.UPDATE;
-      seg.h1.flag|=SplineFlags.UPDATE;
-      seg.h2.flag|=SplineFlags.UPDATE;
-      seg.flag|=SplineFlags.UPDATE;
-      this.segments.push(seg, __eid);
-      return seg;
-    }
-     flip_segment(seg) {
-      let v=seg.v1;
-      let t=seg.v1;
-      seg.v1 = seg.v2;
-      seg.v2 = t;
-      t = seg.h1;
-      seg.h1 = seg.h2;
-      seg.h2 = t;
-      t = seg.w1;
-      seg.w1 = seg.w2;
-      seg.w2 = t;
-      t = seg.shift1;
-      seg.shift1 = seg.shift2;
-      seg.shift2 = t;
-      return this;
-    }
-     _radial_loop_insert(l) {
-      if (l.s.l===undefined) {
-          l.radial_next = l.radial_prev = l;
-          l.s.l = l;
-          return ;
-      }
-      l.radial_next = l.s.l;
-      l.radial_prev = l.s.l.radial_prev;
-      l.s.l.radial_prev.radial_next = l.s.l.radial_prev = l;
-      l.s.l = l;
-    }
-     _radial_loop_remove(l) {
-      l.radial_next.radial_prev = l.radial_prev;
-      l.radial_prev.radial_next = l.radial_next;
-      if (l===l.radial_next) {
-          l.s.l = undefined;
-      }
-      else 
-        if (l===l.s.l) {
-          l.s.l = l.radial_next;
-      }
-    }
-     make_face(vlists, custom_eid=undefined) {
-      var f=new SplineFace();
-      if (custom_eid==-1)
-        custom_eid = undefined;
-      this.faces.push(f);
-      for (var i=0; i<vlists.length; i++) {
-          var verts=vlists[i];
-          if (verts.length<3) {
-              throw new Error("Must have at least three vertices for face");
-          }
-          var vset={};
-          for (var j=0; j<verts.length; j++) {
-              if (verts[j].eid in vset) {
-                  console.log(vlists);
-                  throw new Error("Duplicate verts in make_face");
-              }
-              vset[verts[j].eid] = 1;
-          }
-      }
-      for (var i=0; i<vlists.length; i++) {
-          var verts=vlists[i];
-          var list=new SplineLoopPath();
-          list.f = f;
-          list.totvert = verts.length;
-          f.paths.push(list);
-          var l=undefined, prevl=undefined;
-          for (var j=0; j<verts.length; j++) {
-              var v1=verts[j], v2=verts[(j+1)%verts.length];
-              var s=this.make_segment(v1, v2, undefined, true);
-              var l=this.make_loop();
-              l.v = v1;
-              l.s = s;
-              l.f = f;
-              l.p = list;
-              if (prevl==undefined) {
-                  list.l = l;
-              }
-              else {
-                l.prev = prevl;
-                prevl.next = l;
-              }
-              prevl = l;
-          }
-          list.l.prev = prevl;
-          prevl.next = list.l;
-          var l=list.l;
-          do {
-            this._radial_loop_insert(l);
-            l = l.next;
-          } while (l!=list.l);
-          
-      }
-      return f;
-    }
-     make_loop() {
-      var l=new SplineLoop();
-      l.eid = this.idgen.gen_id();
-      this.eidmap[l.eid] = l;
-      return l;
-    }
-     kill_loop(l) {
-      delete this.eidmap[l.eid];
-    }
-     _element_kill(e) {
-
-    }
-     kill_face(f) {
-      for (var i=0; i<f.paths.length; i++) {
-          var path=f.paths[i];
-          for (var l of path) {
-              this._radial_loop_remove(l);
-              this.kill_loop(l);
-          }
-      }
-      this._element_kill(f);
-      this.faces.remove(f);
-    }
-     kill_segment(seg, kill_faces=true, soft_error=false) {
-      var i=0;
-      while (kill_faces&&seg.l!=undefined) {
-        this.kill_face(seg.l.f);
-        if (i++>1000) {
-            console.trace("Infinite loop in kill_segment!!", seg);
-            break;
-        }
-      }
-      if (seg.v1.segments!=undefined)
-        seg.v1.segments.remove(seg, soft_error);
-      if (seg.v2.segments!=undefined)
-        seg.v2.segments.remove(seg, soft_error);
-      this.handles.remove(seg.h1, soft_error);
-      this.handles.remove(seg.h2, soft_error);
-      this._element_kill(seg);
-      this.segments.remove(seg, soft_error);
-    }
-     do_save() {
-      var obj=this.toJSON();
-      var buf=JSON.stringify(obj);
-      var blob=new Blob([buf], {type: "application/json"});
-      var obj_url=window.URL.createObjectURL(blob);
-      window.open(obj_url);
-    }
-     dissolve_vertex(v) {
-      if (!(v.eid in this.eidmap)) {
-          throw new Error("spline.dissolve_vertex called in error");
-      }
-      var ls2=[];
-      if (v.segments.length!==2)
-        return ;
-      for (var i=0; i<v.segments.length; i++) {
-          var s=v.segments[i];
-          if (s.l===undefined)
-            continue;
-          var lst=[];
-          var l=s.l;
-          let _i=0;
-          do {
-            lst.push(l);
-            l = l.radial_next;
-            if (_i++>10000) {
-                console.warn("infinite loop detected in dissolve_vertex");
-                break;
-            }
-          } while (l!==s.l);
-          
-          for (var j=0; j<lst.length; j++) {
-              var l=lst[j];
-              if (l.v!==v&&l.next.v!==v)
-                continue;
-              if (l.v!==v) {
-                  l = l.next;
-              }
-              if (l===l.p.l)
-                l.p.l = l.next;
-              if (l.p.totvert<=3||l.p.l===l) {
-                  console.log("DESTROYING FACE!!", l.f.eid);
-                  this.kill_face(l.f);
-                  continue;
-              }
-              this._radial_loop_remove(l);
-              ls2.push(l.prev);
-              l.prev.next = l.next;
-              l.next.prev = l.prev;
-              this.kill_loop(l);
-              l.p.totvert--;
-          }
-      }
-      if (v.segments.length===2) {
-          var s1=v.segments[0], s2=v.segments[1];
-          var v1=s1.other_vert(v), v2=s2.other_vert(v);
-          var existing=this.find_segment(v1, v2);
-          let w1=v1===s1.v1 ? s1.w1 : s1.w2;
-          let w2=v1===s2.v1 ? s2.w1 : s2.w2;
-          let shift1=v1===s1.v1 ? s1.shift1 : s1.shift2;
-          let shift2=v1===s2.v1 ? s2.shift1 : s2.shift2;
-          if (s1.v1===v)
-            s1.v1 = v2;
-          else 
-            s1.v2 = v2;
-          var ci=0;
-          while (s2.l!==undefined) {
-            this._radial_loop_remove(s2.l);
-            if (ci++>100) {
-                console.warn("Infinite loop error!");
-                break;
-            }
-          }
-          while (s1.l!==undefined) {
-            this._radial_loop_remove(s1.l);
-            if (ci++>100) {
-                console.warn("Infinite loop error!");
-                break;
-            }
-          }
-          this.kill_segment(s2);
-          v2.segments.push(s1);
-          v.segments.length = 0;
-          if (s1.v1===v1) {
-              s1.w1 = w1;
-              s1.w2 = w2;
-              s1.shift1 = shift1;
-              s1.shift2 = shift2;
-          }
-          else {
-            s1.w1 = w2;
-            s1.w2 = w1;
-            s1.shift1 = shift2;
-            s1.shift2 = shift1;
-          }
-          if (existing) {
-              this.kill_segment(s1);
-              s1 = existing;
-          }
-          if (s1.l===undefined) {
-              for (var i=0; i<ls2.length; i++) {
-                  var l=ls2[i];
-                  l.s = s1;
-                  this._radial_loop_insert(l);
-                  console.log(s1.v1.eid, s1.v2.eid, "|", l.prev.v.eid, l.v.eid, l.next.v.eid);
-              }
-          }
-          v.flag|=SplineFlags.UPDATE;
-          v2.flag|=SplineFlags.UPDATE;
-      }
-      this.kill_vertex(v);
-      this.resolve = 1;
-    }
-     buildSelCtxKey() {
-      let key="";
-      key+=this.layerset.active.id;
-      return key;
-    }
-     kill_vertex(v) {
-      if (!(v.eid in this.eidmap)) {
-          throw new Error("spline.kill_vertex called in error");
-      }
-      this._vert_rem_set.add(v.eid);
-      this.dag_update("on_vert_add", this._vert_rem_set);
-      this.dag_update("on_vert_change");
-      if (v.flag&SplineFlags.SELECT) {
-          this.verts.setselect(v, false);
-      }
-      if (this.hpair!==undefined)
-        this.disconnect_handle(this);
-      while (v.segments.length>0) {
-        var last=v.segments.length;
-        this.kill_segment(v.segments[0]);
-        if (last===v.segments.length) {
-            console.log("EEK!");
-            break;
-        }
-      }
-      if (this.verts.active===v)
-        this.verts.active = undefined;
-      if (this.verts.highlight===v)
-        this.verts.highlight = undefined;
-      delete this.eidmap[v.eid];
-      this._element_kill(v);
-      this.verts.remove(v);
-    }
-     _vert_flag_update(v, depth, limit) {
-      if (depth>=limit)
-        return ;
-      v.flag|=SplineFlags.TEMP_TAG;
-      for (var i=0; i<v.segments.length; i++) {
-          var s=v.segments[i], v2=s.other_vert(v);
-          if (v2==undefined||v2.segments==undefined) {
-              console.trace("ERROR 1: v, s, v2:", v, s, v2);
-              continue;
-          }
-          var has_tan=v2.segments.length<=2;
-          for (var j=0; j<v2.segments.length; j++) {
-              var h=v2.segments[j].handle(v2);
-              if (h.hpair!=undefined) {
-                  has_tan = true;
-              }
-          }
-          if (!has_tan) {
-          }
-          if (!(v2.flag&SplineFlags.TEMP_TAG)) {
-              this._vert_flag_update(v2, depth+1, limit);
-          }
-      }
-      for (var j=0; j<v.segments.length; j++) {
-          var s=v.segments[j], v2=s.other_vert(v);
-          if (v2.segments.length>2||(v2.flag&SplineFlags.BREAK_TANGENTS))
-            v2.flag|=SplineFlags.TEMP_TAG;
-      }
-    }
-     propagate_draw_flags(repeat=2) {
-      for (var seg of this.segments) {
-          seg.flag&=~SplineFlags.TEMP_TAG;
-      }
-      for (var seg of this.segments) {
-          if (!(seg.flag&SplineFlags.REDRAW_PRE))
-            continue;
-          for (var i=0; i<2; i++) {
-              var v=i ? seg.v2 : seg.v1;
-              for (var j=0; j<v.segments.length; j++) {
-                  var seg2=v.segments[j];
-                  seg2.flag|=SplineFlags.TEMP_TAG;
-                  var l=seg2.l;
-                  if (l==undefined)
-                    continue;
-                  var _i=0;
-                  do {
-                    if (_i++>1000) {
-                        console.warn("infinite loop!");
-                        break;
-                    }
-                    l.f.flag|=SplineFlags.REDRAW_PRE;
-                    l = l.radial_next;
-                  } while (l!=seg2.l);
-                  
-              }
-          }
-      }
-      for (var seg of this.segments) {
-          if (seg.flag&SplineFlags.TEMP_TAG) {
-              seg.flag|=SplineFlags.REDRAW_PRE;
-          }
-      }
-      if (repeat!=undefined&&repeat>0) {
-          this.propagate_draw_flags(repeat-1);
-      }
-    }
-     propagate_update_flags() {
-      for (let seg of this.segments) {
-          if ((seg.v1.flag&SplineFlags.UPDATE)&&(seg.v1.flag&SplineFlags.BREAK_TANGENTS)) {
-              seg.v2.flag|=SplineFlags.UPDATE;
-          }
-          if ((seg.v2.flag&SplineFlags.UPDATE)&&(seg.v2.flag&SplineFlags.BREAK_TANGENTS)) {
-              seg.v1.flag|=SplineFlags.UPDATE;
-          }
-      }
-      var verts=this.verts;
-      for (var i=0; i<verts.length; i++) {
-          var v=verts[i];
-          v.flag&=~SplineFlags.TEMP_TAG;
-      }
-      var limit=5;
-      for (var i=0; i<verts.length; i++) {
-          var v=verts[i];
-          if (v.flag&SplineFlags.UPDATE) {
-              this._vert_flag_update(v, 0, limit);
-          }
-      }
-      for (var i=0; i<verts.length; i++) {
-          var v=verts[i];
-          if (v.flag&SplineFlags.TEMP_TAG) {
-              v.flag|=SplineFlags.UPDATE;
-          }
-      }
-    }
-     solve(steps, gk, force_queue=false) {
-      var this2=this;
-      var dag_trigger=function () {
-        this2.dag_update("on_solve", true);
-      };
-      if (this._pending_solve!==undefined&&force_queue) {
-          var this2=this;
-          this._pending_solve = this._pending_solve.then(function () {
-            this2.solve();
-          });
-          this.solving = true;
-          return this._pending_solve;
-      }
-      else 
-        if (this._pending_solve!==undefined) {
-          var do_accept;
-          var promise=new Promise(function (accept, reject) {
-            do_accept = function () {
-              accept();
-            }
-          });
-          this._resolve_after = function () {
-            do_accept();
-          };
-          return promise;
-      }
-      else {
-        this._pending_solve = this.solve_intern(steps, gk);
-        this.solving = true;
-        return this._pending_solve;
-      }
-    }
-     solve_intern(steps, gk) {
-      var this2=this;
-      var dag_trigger=function () {
-        this2.dag_update("on_solve", true);
-        the_global_dag.exec(g_app_state.screen.ctx);
-      };
-      for (var v of this.verts) {
-          if (v.flag&SplineFlags.UPDATE) {
-              for (var i=0; i<v.segments.length; i++) {
-                  var seg=v.segments[i];
-                  seg.flag|=SplineFlags.REDRAW_PRE;
-                  var l=seg.l;
-                  if (!l)
-                    continue;
-                  var _i=0;
-                  do {
-                    if (_i++>5000) {
-                        console.warn("infinite loop!");
-                        break;
-                    }
-                    l.f.flag|=SplineFlags.REDRAW_PRE;
-                    l = l.radial_next;
-                  } while (l!=seg.l);
-                  
-              }
-          }
-      }
-      this.propagate_draw_flags();
-      var this2=this;
-      if (!DEBUG.no_native&&config.USE_WASM&&native_api.isReady()) {
-          var ret=native_api.do_solve(SplineFlags, this, steps, gk, true);
-          ret.then(function () {
-            this2._pending_solve = undefined;
-            this2.solving = false;
-            this2._do_post_solve();
-            dag_trigger();
-            if (this2._resolve_after) {
-                var cb=this2._resolve_after;
-                this2._resolve_after = undefined;
-                this2._pending_solve = this2.solve_intern().then(function () {
-                  cb.call(this2);
-                });
-                this2.solving = true;
-            }
-          });
-          return ret;
-      }
-      else 
-        if (!DEBUG.no_native&&config.USE_NACL&&window.common!=undefined&&window.common.naclModule!=undefined) {
-          var ret=do_solve(SplineFlags, this, steps, gk, true);
-          ret.then(function () {
-            this2._pending_solve = undefined;
-            this2.solving = false;
-            this2._do_post_solve();
-            dag_trigger();
-            if (this2._resolve_after) {
-                var cb=this2._resolve_after;
-                this2._resolve_after = undefined;
-                this2._pending_solve = this2.solve_intern().then(function () {
-                  cb.call(this2);
-                });
-                this2.solving = true;
-            }
-          });
-          return ret;
-      }
-      else {
-        var do_accept;
-        var promise=new Promise(function (accept, reject) {
-          do_accept = function () {
-            accept();
-          }
-        });
-        var this2=this;
-        var timer=window.setInterval(function () {
-          window.clearInterval(timer);
-          do_solve(SplineFlags, this2, steps, gk);
-          this2._pending_solve = undefined;
-          this2.solving = false;
-          do_accept();
-          this2._do_post_solve();
-          dag_trigger();
-          if (this2._resolve_after) {
-              var cb=this2._resolve_after;
-              this2._resolve_after = undefined;
-              this2._pending_solve = this2.solve_intern().then(function () {
-                cb.call(this2);
-              });
-              this2.solving = true;
-          }
-        }, 10);
-        return promise;
-      }
-    }
-     _do_post_solve() {
-      for (var seg of this.segments) {
-          if (seg.flag&SplineFlags.REDRAW_PRE) {
-              seg.flag&=~SplineFlags.REDRAW_PRE;
-              seg.flag|=SplineFlags.REDRAW;
-          }
-      }
-      for (var f of this.faces) {
-          if (f.flag&SplineFlags.REDRAW_PRE) {
-              f.flag&=~SplineFlags.REDRAW_PRE;
-              f.flag|=SplineFlags.REDRAW;
-          }
-      }
-      for (var seg of this.segments) {
-          seg.post_solve();
-      }
-    }
-     solve_p(steps, gk) {
-      console.trace("solve_p: DEPRECATED");
-      return this.solve(steps, gk);
-    }
-     trace_face(g, f) {
-      g.beginPath();
-      $lastco_MO0V_trace_face.zero();
-      for (var path of f.paths) {
-          var first=true;
-          for (var l of path) {
-              var seg=l.s;
-              var flip=seg.v1!==l.v;
-              var s=flip ? seg.ks[KSCALE] : 0, ds=flip ? -2 : 2;
-              while ((!flip&&s<seg.ks[KSCALE])||(flip&&s>=0)) {
-                var co=seg.evaluate(s/seg.length);
-                if (first) {
-                    first = false;
-                    g.moveTo(co[0], co[1]);
-                }
-                else {
-                  g.lineTo(co[0], co[1]);
-                }
-                s+=ds;
-              }
-          }
-      }
-      g.closePath();
-    }
-     forEachPoint(cb, thisvar) {
-      for (var si=0; si<2; si++) {
-          var list=si ? this.handles : this.verts;
-          var last_len=list.length;
-          for (var i=0; i<list.length; i++) {
-              if (thisvar!=undefined)
-                cb.call(thisvar, list[i]);
-              else 
-                cb(list[i]);
-              last_len = list.length;
-          }
-      }
-    }
-     build_shash() {
-      var sh={};
-      var cellsize=150;
-      sh.cellsize = cellsize;
-      function hash(x, y, cellsize) {
-        return Math.floor(x/cellsize)+","+Math.floor(y/cellsize);
-      }
-      for (var si=0; si<2; si++) {
-          var list=si ? this.handles : this.verts;
-          for (var v of list) {
-              var h=hash(v[0], v[1], cellsize);
-              if (!(h in sh)) {
-                  sh[h] = [];
-              }
-              sh[h].push(v);
-          }
-      }
-      var sqrt2=sqrt(2);
-      sh.forEachPoint = function sh_lookupPoints(co, radius, callback, thisvar) {
-        var cellsize=this.cellsize;
-        var cellradius=Math.ceil(sqrt2*radius/cellsize);
-        var sx=Math.floor(co[0]/cellsize)-cellradius;
-        var sy=Math.floor(co[1]/cellsize)-cellradius;
-        var ex=Math.ceil(co[0]/cellsize)+cellradius;
-        var ey=Math.ceil(co[1]/cellsize)+cellradius;
-        for (var x=sx; x<=ex; x++) {
-            for (var y=sy; y<=ey; y++) {
-                var h=hash(x*cellsize, y*cellsize, cellsize);
-                if (!(h in this))
-                  continue;
-                var list=this[h];
-                for (var i=0; i<list.length; i++) {
-                    var e=list[i];
-                    var dis=e.vectorDistance(co);
-                    if (dis<radius&&co!==e) {
-                        callback.call(thisvar, e, dis);
-                    }
-                }
-            }
-        }
-      };
-      return sh;
-    }
-     unhide_all() {
-      for (var i=0; i<this.verts.length; i++) {
-          var v=this.verts[i];
-          if (v.flag&SplineFlags.HIDE) {
-              v.flag&=~SplineFlags.HIDE;
-              v.flag|=SplineFlags.SELECT;
-          }
-      }
-    }
-     duplicate_verts() {
-      var newvs=[];
-      var idmap={};
-      for (var i=0; i<this.verts.length; i++) {
-          var v=this.verts[i];
-          if (!(v.flag&SplineFlags.SELECT))
-            continue;
-          if (v.hidden)
-            continue;
-          var nv=this.make_vertex(v);
-          idmap[v.eid] = nv;
-          idmap[nv.eid] = v;
-          nv.flag = v.flag&~SplineFlags.SELECT;
-          newvs.push(nv);
-      }
-      for (var i=0; i<this.segments.length; i++) {
-          var seg=this.segments[i];
-          if ((seg.v1.flag&SplineFlags.SELECT)&&(seg.v2.flag&SplineFlags.SELECT)) {
-              var v1=idmap[seg.v1.eid], v2=idmap[seg.v2.eid];
-              if (v1==undefined||v2==undefined||v1==v2)
-                continue;
-              this.make_segment(v1, v2);
-          }
-      }
-      for (var i=0; i<this.verts.length; i++) {
-          var v=this.verts[i];
-          this.verts.setselect(v, false);
-      }
-      for (var i=0; i<newvs.length; i++) {
-          this.verts.setselect(newvs[i], true);
-      }
-      this.start_mpos[0] = this.mpos[0];
-      this.start_mpos[1] = this.mpos[1];
-      this.start_transform();
-      this.resolve = 1;
-    }
-     has_highlight(selmask=255) {
-      for (let list of this.elists) {
-          if ((list.type&selmask)&&list.highlight)
-            return true;
-      }
-      return false;
-    }
-     clear_highlight() {
-      for (var i=0; i<this.elists.length; i++) {
-          this.elists[i].highlight = undefined;
-      }
-    }
-     validate_active() {
-      for (var i=0; i<this.elists.length; i++) {
-          var elist=this.elists[i];
-          if (elist.active!=undefined&&elist.active.hidden)
-            elist.active = undefined;
-      }
-    }
-     clear_active(e) {
-      this.set_active(undefined);
-    }
-     set_active(e) {
-      if (e===undefined) {
-          for (var i=0; i<this.elists.length; i++) {
-              this.elists[i].active = undefined;
-          }
-          return ;
-      }
-      var elist=this.get_elist(e.type);
-      elist.active = e;
-    }
-     setselect(e, state) {
-      var elist=this.get_elist(e.type);
-      elist.setselect(e, state);
-    }
-     clear_selection(e) {
-      for (var i=0; i<this.elists.length; i++) {
-          this.elists[i].clear_selection();
-      }
-    }
-     do_mirror() {
-      this.start_transform('s');
-      for (var i=0; i<this.transdata.length; i++) {
-          var start=this.transdata[i][0], v=this.transdata[i][1];
-          if (v.flag&SplineFlags.HIDE)
-            continue;
-          v.sub(this.trans_cent);
-          v[0] = -v[0];
-          v.add(this.trans_cent);
-      }
-      this.end_transform();
-      this.resolve = 1;
-    }
-     toJSON(self) {
-      var ret={};
-      ret.frame = this.frame;
-      ret.verts = {length: this.verts.length};
-      ret.segments = [];
-      ret.handles = [];
-      ret.draw_verts = this.draw_verts;
-      ret.draw_normals = this.draw_normals;
-      ret._cur_id = this.idgen.cur_id;
-      for (var i=0; i<this.verts.length; i++) {
-          ret.verts[i] = this.verts[i].toJSON();
-      }
-      if (this.verts.active!=undefined)
-        ret.verts.active = this.verts.active.eid;
-      else 
-        ret.verts.active = undefined;
-      if (this.handles.active!=undefined)
-        ret.handles.active = this.handles.active.eid;
-      if (this.segments.active!=undefined)
-        ret.segments.active = this.segments.active.eid;
-      for (var i=0; i<this.segments.length; i++) {
-          ret.segments.push(this.segments[i].toJSON());
-      }
-      for (var i=0; i<this.handles.length; i++) {
-          ret.handles.push(this.handles[i].toJSON());
-      }
-      return ret;
-    }
-     reset() {
-      this.idgen = new SDIDGen();
-      this.init_elists();
-    }
-     import_json(obj) {
-      var spline2=Spline.fromJSON(obj);
-      var miny=1e+18, maxy=1e-18;
-      var newmap={};
-      for (var i=0; i<spline2.verts.length; i++) {
-          var v=spline2.verts[i];
-          var nv=this.make_vertex(v, v.eid);
-          nv.flag = v.flag;
-          nv.flag|=SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
-          miny = Math.min(miny, nv[1]);
-          maxy = Math.max(maxy, nv[1]);
-          newmap[v.eid] = nv;
-      }
-      for (var i=0; i<spline2.verts.length; i++) {
-          var v=spline2.verts[i], nv=newmap[v.eid];
-          nv[1] = ((maxy-miny)-(nv[1]-miny))+miny;
-      }
-      for (var i=0; i<spline2.segments.length; i++) {
-          var seg=spline2.segments[i];
-          var v1=newmap[seg.v1.eid], v2=newmap[seg.v2.eid];
-          var nseg=this.make_segment(v1, v2);
-          nseg.flag = seg.flag|SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
-          newmap[seg.eid] = nseg;
-      }
-      this.resolve = 1;
-    }
-    static  fromJSON(obj) {
-      var spline=new Spline();
-      spline.idgen.cur_id = obj._cur_id;
-      spline.draw_verts = obj.draw_verts;
-      spline.draw_normals = obj.draw_normals;
-      var eidmap={};
-      for (var i=0; i<obj.verts.length; i++) {
-          var cv=obj.verts[i];
-          var v=spline.make_vertex(cv);
-          v.flag|=SplineFlags.FRAME_DIRTY;
-          v.flag = cv.flag;
-          v.eid = cv.eid;
-          v.segments = cv.segments;
-          eidmap[v.eid] = v;
-      }
-      for (var i=0; i<obj.handles.length; i++) {
-          var cv=obj.handles[i];
-          var v=spline.make_handle(cv);
-          v.flag = cv.flag;
-          v.eid = cv.eid;
-          v.segments = cv.segments;
-          eidmap[v.eid] = v;
-      }
-      for (var i=0; i<obj.segments.length; i++) {
-          var s=obj.segments[i];
-          var segments=obj.segments;
-          var v1=eidmap[s.v1], v2=eidmap[s.v2];
-          var h1=eidmap[s.h1], h2=eidmap[s.h2];
-          var seg=new SplineSegment();
-          seg.eid = s.eid;
-          seg.flag = s.flag;
-          if (seg.ks.length===s.ks.length) {
-              seg.ks = s.ks;
-          }
-          else {
-            spline.resolve = true;
-            for (var j=0; j<spline.verts.length; j++) {
-                spline.verts[j].flag|=SplineFlags.UPDATE;
-            }
-          }
-          for (var j=0; j<seg.ks.length; j++) {
-              if (isNaN(seg.ks[j])) {
-                  seg.ks[j] = 0.0;
-              }
-          }
-          seg.v1 = v1, seg.v2 = v2, seg.h1 = h1, seg.h2 = h2;
-          spline.segments.push(seg);
-          eidmap[seg.eid] = seg;
-      }
-      for (var i=0; i<obj.verts.length; i++) {
-          var v=obj.verts[i];
-          for (var j=0; j<v.segments.length; j++) {
-              v.segments[j] = eidmap[v.segments[j]];
-          }
-      }
-      for (var i=0; i<obj.handles.length; i++) {
-          var v=obj.handles[i];
-          for (var j=0; j<v.segments.length; j++) {
-              v.segments[j] = eidmap[v.segments[j]];
-          }
-      }
-      if (obj.verts.active!==undefined)
-        spline.verts.active = eidmap[obj.verts.active];
-      if (obj.handles.active!==undefined)
-        spline.handles.active = eidmap[obj.handles.active];
-      if (obj.segments.active!==undefined)
-        spline.segments.active = eidmap[obj.segments.active];
-      spline.eidmap = eidmap;
-      return spline;
-    }
-     prune_singles() {
-      var del=[];
-      for (var i=0; i<this.verts.length; i++) {
-          var v=this.verts[i];
-          if (v.segments.length==0) {
-              del.push(v);
-          }
-      }
-      for (var i=0; i<del.length; i++) {
-          this.kill_vertex(del[i]);
-      }
-    }
-     draw(redraw_rects, g, editor, matrix, selectmode, only_render, draw_normals, alpha, draw_time_helpers, curtime, ignore_layers) {
-      this.canvas = g;
-      this.selectmode = selectmode;
-      g.lineWidth = 1;
-      if (this.resolve) {
-          this.solve().then(function () {
-            window.redraw_viewport();
-          });
-      }
-      return draw_spline(this, redraw_rects, g, editor, matrix, selectmode, only_render, draw_normals, alpha, draw_time_helpers, curtime, ignore_layers);
-    }
-     loadSTRUCT(reader) {
-      reader(this);
-      super.loadSTRUCT(reader);
-      this.afterSTRUCT();
-      this.query = this.q = new SplineQuery(this);
-      var eidmap={};
-      this.elists = [];
-      this.elist_map = {};
-      for (var k in _elist_map) {
-          var type=_elist_map[k];
-          var v=this[k];
-          if (v==undefined)
-            continue;
-          this.elists.push(v);
-          this.elist_map[type] = v;
-      }
-      this.init_sel_handlers();
-      for (var si=0; si<2; si++) {
-          var list=si ? this.handles : this.verts;
-          for (var i=0; i<list.length; i++) {
-              var v=list[i];
-              eidmap[v.eid] = v;
-              if (v.type==SplineTypes.VERTEX)
-                v.hpair = undefined;
-          }
-      }
-      for (var h of this.handles) {
-          h.hpair = eidmap[h.hpair];
-      }
-      for (var i=0; i<this.segments.length; i++) {
-          var s=this.segments[i];
-          s.v1 = eidmap[s.v1];
-          s.v2 = eidmap[s.v2];
-          s.h1 = eidmap[s.h1];
-          s.h2 = eidmap[s.h2];
-          eidmap[s.eid] = s;
-      }
-      for (var si=0; si<2; si++) {
-          var list=si ? this.handles : this.verts;
-          for (var i=0; i<list.length; i++) {
-              var v=list[i];
-              for (var j=0; j<v.segments.length; j++) {
-                  v.segments[j] = eidmap[v.segments[j]];
-              }
-          }
-      }
-      for (var i=0; i<this.faces.length; i++) {
-          var f=this.faces[i];
-          f.flag|=SplineFlags.UPDATE_AABB;
-          eidmap[f.eid] = f;
-          for (var path of f.paths) {
-              path.f = f;
-              var l=path.l;
-              do {
-                eidmap[l.eid] = l;
-                l.f = f;
-                l.s = eidmap[l.s];
-                l.v = eidmap[l.v];
-                l = l.next;
-              } while (l!=path.l);
-              
-          }
-      }
-      for (var i=0; i<this.faces.length; i++) {
-          var f=this.faces[i];
-          for (var path of f.paths) {
-              var l=path.l;
-              do {
-                l.radial_next = eidmap[l.radial_next];
-                l.radial_prev = eidmap[l.radial_prev];
-                l = l.next;
-              } while (l!=path.l);
-              
-          }
-      }
-      for (var i=0; i<this.segments.length; i++) {
-          var s=this.segments[i];
-          s.l = eidmap[s.l];
-      }
-      this.eidmap = eidmap;
-      var selected=new ElementArraySet();
-      selected.layerset = this.layerset;
-      for (var i=0; i<this.selected.length; i++) {
-          var eid=this.selected[i];
-          if (!(eid in eidmap)) {
-              console.log("WARNING! eid", eid, "not in eidmap!", Object.keys(eidmap));
-              continue;
-          }
-          selected.add(eidmap[this.selected[i]]);
-      }
-      this.selected = selected;
-      this.verts.afterSTRUCT(SplineTypes.VERTEX, this.idgen, this.eidmap, this.selected, this.layerset, this);
-      this.handles.afterSTRUCT(SplineTypes.HANDLE, this.idgen, this.eidmap, this.selected, this.layerset, this);
-      this.segments.afterSTRUCT(SplineTypes.SEGMENT, this.idgen, this.eidmap, this.selected, this.layerset, this);
-      this.faces.afterSTRUCT(SplineTypes.FACE, this.idgen, this.eidmap, this.selected, this.layerset, this);
-      if (this.layerset==undefined) {
-          this.layerset = new SplineLayerSet();
-          this.layerset.new_layer();
-      }
-      else {
-        this.layerset.afterSTRUCT(this);
-      }
-      this.regen_sort();
-      if (spline_multires.has_multires(this)&&this.mres_format!=undefined) {
-          console.log("Converting old multires layout. . .");
-          for (var seg of this.segments) {
-              var mr=seg.cdata.get_layer(spline_multires.MultiResLayer);
-              mr._convert(this.mres_format, spline_multires._format);
-          }
-      }
-      var arr=[];
-      for (var i=0; i<spline_multires._format.length; i++) {
-          arr.push(spline_multires._format[i]);
-      }
-      this.mres_format = arr;
-      return this;
-    }
-     flagUpdateVertTime(v) {
-      if (v) {
-          this._vert_time_set.add(v.eid);
-      }
-      this.dag_update("on_vert_time_change", this._vert_time_set);
-    }
-     flagUpdateKeyframes(v) {
-      this.dag_update("on_keyframe_insert", 1);
-    }
-     dag_exec(ctx, inputs, outputs, graph) {
-      outputs.on_vert_add.loadData(this._vert_add_set);
-      this._vert_add_set = new set();
-      this._vert_rem_set = new set();
-      this._vert_time_set = new set();
-    }
-    static  nodedef() {
-      return {name: "Spline", 
-     uiName: "Spline", 
-     outputs: {on_keyframe_insert: null, 
-      on_solve: null, 
-      on_vert_time_change: new set(), 
-      on_vert_add: new set(), 
-      on_vert_remove: new set(), 
-      on_vert_change: null}, 
-     inputs: {}}
-    }
-  }
-  var $debug_id_gen_aeCI_constructor=0;
-  var $ws_wmkR_split_edge=[0.5, 0.5];
-  var $lastco_MO0V_trace_face=new Vector3();
-  var $srcs_Eai8_split_edge=[0, 0];
-  _ESClass.register(Spline);
-  _es6_module.add_class(Spline);
-  Spline = _es6_module.add_export('Spline', Spline);
-  
-  mixin(Spline, DataPathNode);
-  Spline.STRUCT = STRUCT.inherit(Spline, DataBlock)+`
-    idgen    : SDIDGen;
-    
-    selected : iter(e, int) | e.eid;
-    
-    verts    : ElementArray;
-    handles  : ElementArray;
-    segments : ElementArray;
-    faces    : ElementArray;
-    layerset : SplineLayerSet;
-    
-    restrict : int;
-    actlevel : int;
-    
-    mres_format : array(string);
-}
-`;
-}, '/dev/fairmotion/src/curve/spline.js');
-es6_module_define('solver', [], function _solver_module(_es6_module) {
-  var SQRT2=Math.sqrt(2.0);
-  var FEPS=1e-17;
-  var PI=Math.PI;
-  var sin=Math.sin, cos=Math.cos, atan2=Math.atan2;
-  var sqrt=Math.sqrt, pow=Math.pow, log=Math.log, abs=Math.abs;
-  var SPI2=Math.sqrt(PI/2);
-  class constraint  {
-     constructor(typename, k, klst, klen, ceval, params, limit) {
-      if (limit==undefined)
-        limit = 1e-05;
-      this.limit = limit;
-      this.type = typename;
-      this.klst = klst;
-      this.ceval = ceval;
-      this.params = params;
-      this.klen = [];
-      if (!(__instance_of(klen, Array))) {
-          for (var i=0; i<klst.length; i++) {
-              this.klen.push(klen);
-          }
-      }
-      else {
-        this.klen = klen;
-      }
-      this.glst = [];
-      for (var i=0; i<klst.length; i++) {
-          var gs=[];
-          this.glst.push(gs);
-          for (var j=0; j<klen; j++) {
-              gs.push(0);
-          }
-      }
-      this.k = k;
-    }
-     exec(do_gs) {
-      if (do_gs==undefined)
-        do_gs = true;
-      var r1=this.ceval(this.params);
-      if (abs(r1)<=this.limit)
-        return 0.0;
-      if (!do_gs)
-        return r1;
-      var df=3e-06;
-      for (var ki=0; ki<this.klst.length; ki++) {
-          var ks=this.klst[ki];
-          var gs=this.glst[ki];
-          for (var i=0; i<this.klen[ki]; i++) {
-              var orig=ks[i];
-              ks[i]+=df;
-              var r2=this.ceval(this.params);
-              gs[i] = (r2-r1)/df;
-              ks[i] = orig;
-              if (ks.length>5) {
-              }
-          }
-      }
-      return r1;
-    }
-  }
-  _ESClass.register(constraint);
-  _es6_module.add_class(constraint);
-  constraint = _es6_module.add_export('constraint', constraint);
-  class solver  {
-    
-     constructor() {
-      this.cs = [];
-      this.threshold = 0.001;
-      this.edge_segs = [];
-    }
-     add(c) {
-      this.cs.push(c);
-    }
-     solve(steps, gk, final_solve, edge_segs) {
-      if (gk==undefined)
-        gk = 1.0;
-      var err=0.0;
-      var clen=this.cs.length;
-      for (var i=0; i<steps; i++) {
-          for (var j=0; j<edge_segs.length; j++) {
-              var seg=edge_segs[j];
-              var ks=seg.ks;
-              for (var k=0; k<ks.length; k++) {
-                  ks[k] = seg._last_ks[k];
-              }
-          }
-          err/=this.cs.length;
-          if (i>0&&err<this.threshold)
-            break;
-          if (isNaN(err))
-            break;
-          err = 0.0;
-          var cs=this.cs;
-          var visit={};
-          for (var j=0; j<cs.length; j++) {
-              var j2=i%2 ? clen-j-1 : j;
-              var c=cs[j2];
-              var r=c.exec(true);
-              err+=abs(r);
-              if (r==0.0)
-                continue;
-              var klst=c.klst, glst=c.glst;
-              var totgs=0.0;
-              for (var ki=0; ki<klst.length; ki++) {
-                  var klen=c.klen[ki];
-                  var gs=glst[ki];
-                  totgs = 0.0;
-                  for (var k=0; k<klen; k++) {
-                      totgs+=gs[k]*gs[k];
-                  }
-                  if (totgs==0.0)
-                    continue;
-                  var rmul=r/totgs;
-                  ks = klst[ki];
-                  gs = glst[ki];
-                  var ck=i>8&&c.k2!==undefined ? c.k2 : c.k;
-                  let mul=1.0/Math.pow(1.0+ks[KSCALE], 0.25);
-                  for (var k=0; k<klen; k++) {
-                      ks[k]+=-rmul*gs[k]*ck*gk*mul;
-                  }
-              }
-          }
-      }
-      for (var j=0; j<edge_segs.length; j++) {
-          var seg=edge_segs[j];
-          var ks=seg.ks;
-          for (var k=0; k<ks.length; k++) {
-              seg.ks[k] = seg._last_ks[k];
-          }
-      }
-      if (final_solve||isNaN(err)) {
-          console.log("err", err, "steps", i, "\n");
-      }
-      return i;
-    }
-  }
-  _ESClass.register(solver);
-  _es6_module.add_class(solver);
-  solver = _es6_module.add_export('solver', solver);
-}, '/dev/fairmotion/src/curve/solver.js');

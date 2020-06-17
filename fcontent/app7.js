@@ -1,3 +1,6257 @@
+es6_module_define('built_wasm', ["./load_wasm.js"], function _built_wasm_module(_es6_module) {
+  var Module={}
+  Module = _es6_module.set_default_export('Module', Module);
+  
+  var wasm_binary=es6_import_item(_es6_module, './load_wasm.js', 'wasm_binary');
+  var wasmBinaryPath=es6_import_item(_es6_module, './load_wasm.js', 'wasmBinaryPath');
+  Module.wasmBinary = wasm_binary;
+  Module.INITIAL_MEMORY = 33554432;
+  var wasmBinaryFile=wasmBinaryPath;
+  var Module=typeof Module!=='undefined' ? Module : {}
+  var moduleOverrides={}
+  var key;
+  for (key in Module) {
+      if (Module.hasOwnProperty(key)) {
+          moduleOverrides[key] = Module[key];
+      }
+  }
+  var arguments_=[];
+  var thisProgram='./this.program';
+  var quit_=function (status, toThrow) {
+    throw toThrow;
+  }
+  var ENVIRONMENT_IS_WEB=false;
+  var ENVIRONMENT_IS_WORKER=false;
+  var ENVIRONMENT_IS_NODE=false;
+  var ENVIRONMENT_IS_SHELL=false;
+  ENVIRONMENT_IS_WEB = typeof window==='object';
+  ENVIRONMENT_IS_WORKER = typeof importScripts==='function';
+  ENVIRONMENT_IS_NODE = typeof process==='object'&&typeof process.versions==='object'&&typeof process.versions.node==='string';
+  ENVIRONMENT_IS_SHELL = !ENVIRONMENT_IS_WEB&&!ENVIRONMENT_IS_NODE&&!ENVIRONMENT_IS_WORKER;
+  if (Module['ENVIRONMENT']) {
+      throw new Error('Module.ENVIRONMENT has been deprecated. To force the environment, use the ENVIRONMENT compile-time option (for example, -s ENVIRONMENT=web or -s ENVIRONMENT=node)');
+  }
+  var scriptDirectory='';
+  function locateFile(path) {
+    if (Module['locateFile']) {
+        return Module['locateFile'](path, scriptDirectory);
+    }
+    return scriptDirectory+path;
+  }
+  var read_, readAsync, readBinary, setWindowTitle;
+  var nodeFS;
+  var nodePath;
+  if (ENVIRONMENT_IS_NODE) {
+      if (ENVIRONMENT_IS_WORKER) {
+          scriptDirectory = require('path').dirname(scriptDirectory)+'/';
+      }
+      else {
+        scriptDirectory = __dirname+'/';
+      }
+      read_ = function shell_read(filename, binary) {
+        if (!nodeFS)
+          nodeFS = require('fs');
+        if (!nodePath)
+          nodePath = require('path');
+        filename = nodePath['normalize'](filename);
+        return nodeFS['readFileSync'](filename, binary ? null : 'utf8');
+      };
+      readBinary = function readBinary(filename) {
+        var ret=read_(filename, true);
+        if (!ret.buffer) {
+            ret = new Uint8Array(ret);
+        }
+        assert(ret.buffer);
+        return ret;
+      };
+      if (process['argv'].length>1) {
+          thisProgram = process['argv'][1].replace(/\\/g, '/');
+      }
+      arguments_ = process['argv'].slice(2);
+      if (typeof module!=='undefined') {
+          module['exports'] = Module;
+      }
+      process['on']('uncaughtException', function (ex) {
+        if (!(__instance_of(ex, ExitStatus))) {
+            throw ex;
+        }
+      });
+      process['on']('unhandledRejection', abort);
+      quit_ = function (status) {
+        process['exit'](status);
+      };
+      Module['inspect'] = function () {
+        return '[Emscripten Module object]';
+      };
+  }
+  else 
+    if (ENVIRONMENT_IS_SHELL) {
+      if (typeof read!='undefined') {
+          read_ = function shell_read(f) {
+            return read(f);
+          };
+      }
+      readBinary = function readBinary(f) {
+        var data;
+        if (typeof readbuffer==='function') {
+            return new Uint8Array(readbuffer(f));
+        }
+        data = read(f, 'binary');
+        assert(typeof data==='object');
+        return data;
+      };
+      if (typeof scriptArgs!='undefined') {
+          arguments_ = scriptArgs;
+      }
+      else 
+        if (typeof arguments!='undefined') {
+          arguments_ = arguments;
+      }
+      if (typeof quit==='function') {
+          quit_ = function (status) {
+            quit(status);
+          };
+      }
+      if (typeof print!=='undefined') {
+          if (typeof console==='undefined')
+            console = ({});
+          console.log = (print);
+          console.warn = console.error = (typeof printErr!=='undefined' ? printErr : print);
+      }
+  }
+  else 
+    if (ENVIRONMENT_IS_WEB||ENVIRONMENT_IS_WORKER) {
+      if (ENVIRONMENT_IS_WORKER) {
+          scriptDirectory = self.location.href;
+      }
+      else 
+        if (document.currentScript) {
+          scriptDirectory = document.currentScript.src;
+      }
+      if (scriptDirectory.indexOf('blob:')!==0) {
+          scriptDirectory = scriptDirectory.substr(0, scriptDirectory.lastIndexOf('/')+1);
+      }
+      else {
+        scriptDirectory = '';
+      }
+      read_ = function shell_read(url) {
+        var xhr=new XMLHttpRequest();
+        xhr.open('GET', url, false);
+        xhr.send(null);
+        return xhr.responseText;
+      };
+      if (ENVIRONMENT_IS_WORKER) {
+          readBinary = function readBinary(url) {
+            var xhr=new XMLHttpRequest();
+            xhr.open('GET', url, false);
+            xhr.responseType = 'arraybuffer';
+            xhr.send(null);
+            return new Uint8Array(xhr.response);
+          };
+      }
+      readAsync = function readAsync(url, onload, onerror) {
+        var xhr=new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.responseType = 'arraybuffer';
+        xhr.onload = function xhr_onload() {
+          if (xhr.status==200||(xhr.status==0&&xhr.response)) {
+              onload(xhr.response);
+              return ;
+          }
+          onerror();
+        }
+        xhr.onerror = onerror;
+        xhr.send(null);
+      };
+      setWindowTitle = function (title) {
+        document.title = title;
+      };
+  }
+  else {
+    throw new Error('environment detection error');
+  }
+  var out=Module['print']||console.log.bind(console);
+  var err=Module['printErr']||console.warn.bind(console);
+  for (key in moduleOverrides) {
+      if (moduleOverrides.hasOwnProperty(key)) {
+          Module[key] = moduleOverrides[key];
+      }
+  }
+  moduleOverrides = null;
+  if (Module['arguments'])
+    arguments_ = Module['arguments'];
+  if (!Object.getOwnPropertyDescriptor(Module, 'arguments'))
+    Object.defineProperty(Module, 'arguments', {configurable: true, 
+   get: function () {
+      abort('Module.arguments has been replaced with plain arguments_');
+    }});
+  if (Module['thisProgram'])
+    thisProgram = Module['thisProgram'];
+  if (!Object.getOwnPropertyDescriptor(Module, 'thisProgram'))
+    Object.defineProperty(Module, 'thisProgram', {configurable: true, 
+   get: function () {
+      abort('Module.thisProgram has been replaced with plain thisProgram');
+    }});
+  if (Module['quit'])
+    quit_ = Module['quit'];
+  if (!Object.getOwnPropertyDescriptor(Module, 'quit'))
+    Object.defineProperty(Module, 'quit', {configurable: true, 
+   get: function () {
+      abort('Module.quit has been replaced with plain quit_');
+    }});
+  assert(typeof Module['memoryInitializerPrefixURL']==='undefined', 'Module.memoryInitializerPrefixURL option was removed, use Module.locateFile instead');
+  assert(typeof Module['pthreadMainPrefixURL']==='undefined', 'Module.pthreadMainPrefixURL option was removed, use Module.locateFile instead');
+  assert(typeof Module['cdInitializerPrefixURL']==='undefined', 'Module.cdInitializerPrefixURL option was removed, use Module.locateFile instead');
+  assert(typeof Module['filePackagePrefixURL']==='undefined', 'Module.filePackagePrefixURL option was removed, use Module.locateFile instead');
+  assert(typeof Module['read']==='undefined', 'Module.read option was removed (modify read_ in JS)');
+  assert(typeof Module['readAsync']==='undefined', 'Module.readAsync option was removed (modify readAsync in JS)');
+  assert(typeof Module['readBinary']==='undefined', 'Module.readBinary option was removed (modify readBinary in JS)');
+  assert(typeof Module['setWindowTitle']==='undefined', 'Module.setWindowTitle option was removed (modify setWindowTitle in JS)');
+  assert(typeof Module['TOTAL_MEMORY']==='undefined', 'Module.TOTAL_MEMORY has been renamed Module.INITIAL_MEMORY');
+  if (!Object.getOwnPropertyDescriptor(Module, 'read'))
+    Object.defineProperty(Module, 'read', {configurable: true, 
+   get: function () {
+      abort('Module.read has been replaced with plain read_');
+    }});
+  if (!Object.getOwnPropertyDescriptor(Module, 'readAsync'))
+    Object.defineProperty(Module, 'readAsync', {configurable: true, 
+   get: function () {
+      abort('Module.readAsync has been replaced with plain readAsync');
+    }});
+  if (!Object.getOwnPropertyDescriptor(Module, 'readBinary'))
+    Object.defineProperty(Module, 'readBinary', {configurable: true, 
+   get: function () {
+      abort('Module.readBinary has been replaced with plain readBinary');
+    }});
+  if (!Object.getOwnPropertyDescriptor(Module, 'setWindowTitle'))
+    Object.defineProperty(Module, 'setWindowTitle', {configurable: true, 
+   get: function () {
+      abort('Module.setWindowTitle has been replaced with plain setWindowTitle');
+    }});
+  var IDBFS='IDBFS is no longer included by default; build with -lidbfs.js';
+  var PROXYFS='PROXYFS is no longer included by default; build with -lproxyfs.js';
+  var WORKERFS='WORKERFS is no longer included by default; build with -lworkerfs.js';
+  var NODEFS='NODEFS is no longer included by default; build with -lnodefs.js';
+  var STACK_ALIGN=16;
+  var stackSave;
+  var stackRestore;
+  var stackAlloc;
+  stackSave = stackRestore = stackAlloc = function () {
+    abort('cannot use the stack before compiled code is ready to run, and has provided stack access');
+  }
+  function staticAlloc(size) {
+    abort('staticAlloc is no longer available at runtime; instead, perform static allocations at compile time (using makeStaticAlloc)');
+  }
+  function dynamicAlloc(size) {
+    assert(DYNAMICTOP_PTR);
+    var ret=HEAP32[DYNAMICTOP_PTR>>2];
+    var end=(ret+size+15)&-16;
+    assert(end<=HEAP8.length, 'failure to dynamicAlloc - memory growth etc. is not supported there, call malloc/sbrk directly');
+    HEAP32[DYNAMICTOP_PTR>>2] = end;
+    return ret;
+  }
+  function alignMemory(size, factor) {
+    if (!factor)
+      factor = STACK_ALIGN;
+    return Math.ceil(size/factor)*factor;
+  }
+  function getNativeTypeSize(type) {
+    switch (type) {
+      case 'i1':
+      case 'i8':
+        return 1;
+      case 'i16':
+        return 2;
+      case 'i32':
+        return 4;
+      case 'i64':
+        return 8;
+      case 'float':
+        return 4;
+      case 'double':
+        return 8;
+      default:
+        if (type[type.length-1]==='*') {
+            return 4;
+        }
+        else 
+          if (type[0]==='i') {
+            var bits=Number(type.substr(1));
+            assert(bits%8===0, 'getNativeTypeSize invalid bits '+bits+', type '+type);
+            return bits/8;
+        }
+        else {
+          return 0;
+        }
+    }
+  }
+  function warnOnce(text) {
+    if (!warnOnce.shown)
+      warnOnce.shown = {}
+    if (!warnOnce.shown[text]) {
+        warnOnce.shown[text] = 1;
+        err(text);
+    }
+  }
+  function convertJsFunctionToWasm(func, sig) {
+    if (typeof WebAssembly.Function==="function") {
+        var typeNames={'i': 'i32', 
+      'j': 'i64', 
+      'f': 'f32', 
+      'd': 'f64'};
+        var type={parameters: [], 
+      results: sig[0]=='v' ? [] : [typeNames[sig[0]]]};
+        for (var i=1; i<sig.length; ++i) {
+            type.parameters.push(typeNames[sig[i]]);
+        }
+        return new WebAssembly.Function(type, func);
+    }
+    var typeSection=[0x1, 0x0, 0x1, 0x60];
+    var sigRet=sig.slice(0, 1);
+    var sigParam=sig.slice(1);
+    var typeCodes={'i': 0x7f, 
+    'j': 0x7e, 
+    'f': 0x7d, 
+    'd': 0x7c}
+    typeSection.push(sigParam.length);
+    for (var i=0; i<sigParam.length; ++i) {
+        typeSection.push(typeCodes[sigParam[i]]);
+    }
+    if (sigRet=='v') {
+        typeSection.push(0x0);
+    }
+    else {
+      typeSection = typeSection.concat([0x1, typeCodes[sigRet]]);
+    }
+    typeSection[1] = typeSection.length-2;
+    var bytes=new Uint8Array([0x0, 0x61, 0x73, 0x6d, 0x1, 0x0, 0x0, 0x0].concat(typeSection, [0x2, 0x7, 0x1, 0x1, 0x65, 0x1, 0x66, 0x0, 0x0, 0x7, 0x5, 0x1, 0x1, 0x66, 0x0, 0x0]));
+    var module=new WebAssembly.Module(bytes);
+    var instance=new WebAssembly.Instance(module, {'e': {'f': func}});
+    var wrappedFunc=instance.exports['f'];
+    return wrappedFunc;
+  }
+  var freeTableIndexes=[];
+  var functionsInTableMap;
+  function addFunctionWasm(func, sig) {
+    var table=wasmTable;
+    if (!functionsInTableMap) {
+        functionsInTableMap = new WeakMap();
+        for (var i=0; i<table.length; i++) {
+            var item=table.get(i);
+            if (item) {
+                functionsInTableMap.set(item, i);
+            }
+        }
+    }
+    if (functionsInTableMap.has(func)) {
+        return functionsInTableMap.get(func);
+    }
+    var ret;
+    if (freeTableIndexes.length) {
+        ret = freeTableIndexes.pop();
+    }
+    else {
+      ret = table.length;
+      try {
+        table.grow(1);
+      }
+      catch (err) {
+          if (!(__instance_of(err, RangeError))) {
+              throw err;
+          }
+          throw 'Unable to grow wasm table. Set ALLOW_TABLE_GROWTH.';
+      }
+    }
+    try {
+      table.set(ret, func);
+    }
+    catch (err) {
+        if (!(__instance_of(err, TypeError))) {
+            throw err;
+        }
+        assert(typeof sig!=='undefined', 'Missing signature argument to addFunction');
+        var wrapped=convertJsFunctionToWasm(func, sig);
+        table.set(ret, wrapped);
+    }
+    functionsInTableMap.set(func, ret);
+    return ret;
+  }
+  function removeFunctionWasm(index) {
+    functionsInTableMap.delete(wasmTable.get(index));
+    freeTableIndexes.push(index);
+  }
+  function addFunction(func, sig) {
+    assert(typeof func!=='undefined');
+    return addFunctionWasm(func, sig);
+  }
+  function removeFunction(index) {
+    removeFunctionWasm(index);
+  }
+  var funcWrappers={}
+  function getFuncWrapper(func, sig) {
+    if (!func)
+      return ;
+    assert(sig);
+    if (!funcWrappers[sig]) {
+        funcWrappers[sig] = {};
+    }
+    var sigCache=funcWrappers[sig];
+    if (!sigCache[func]) {
+        if (sig.length===1) {
+            sigCache[func] = function dynCall_wrapper() {
+              return dynCall(sig, func);
+            };
+        }
+        else 
+          if (sig.length===2) {
+            sigCache[func] = function dynCall_wrapper(arg) {
+              return dynCall(sig, func, [arg]);
+            };
+        }
+        else {
+          sigCache[func] = function dynCall_wrapper() {
+            return dynCall(sig, func, Array.prototype.slice.call(arguments));
+          };
+        }
+    }
+    return sigCache[func];
+  }
+  function makeBigInt(low, high, unsigned) {
+    return unsigned ? ((+((low>>>0)))+((+((high>>>0)))*4294967296.0)) : ((+((low>>>0)))+((+((high|0)))*4294967296.0));
+  }
+  function dynCall(sig, ptr, args) {
+    if (args&&args.length) {
+        assert(args.length===sig.substring(1).replace(/j/g, '--').length);
+        assert(('dynCall_'+sig) in Module, 'bad function pointer type - no table for sig \''+sig+'\'');
+        return Module['dynCall_'+sig].apply(null, [ptr].concat(args));
+    }
+    else {
+      assert(sig.length==1);
+      assert(('dynCall_'+sig) in Module, 'bad function pointer type - no table for sig \''+sig+'\'');
+      return Module['dynCall_'+sig].call(null, ptr);
+    }
+  }
+  var tempRet0=0;
+  var setTempRet0=function (value) {
+    tempRet0 = value;
+  }
+  var getTempRet0=function () {
+    return tempRet0;
+  }
+  function getCompilerSetting(name) {
+    throw 'You must build with -s RETAIN_COMPILER_SETTINGS=1 for getCompilerSetting or emscripten_get_compiler_setting to work';
+  }
+  var GLOBAL_BASE=1024;
+  var wasmBinary;
+  if (Module['wasmBinary'])
+    wasmBinary = Module['wasmBinary'];
+  if (!Object.getOwnPropertyDescriptor(Module, 'wasmBinary'))
+    Object.defineProperty(Module, 'wasmBinary', {configurable: true, 
+   get: function () {
+      abort('Module.wasmBinary has been replaced with plain wasmBinary');
+    }});
+  var noExitRuntime;
+  if (Module['noExitRuntime'])
+    noExitRuntime = Module['noExitRuntime'];
+  if (!Object.getOwnPropertyDescriptor(Module, 'noExitRuntime'))
+    Object.defineProperty(Module, 'noExitRuntime', {configurable: true, 
+   get: function () {
+      abort('Module.noExitRuntime has been replaced with plain noExitRuntime');
+    }});
+  if (typeof WebAssembly!=='object') {
+      abort('No WebAssembly support found. Build with -s WASM=0 to target JavaScript instead.');
+  }
+  function setValue(ptr, value, type, noSafe) {
+    type = type||'i8';
+    if (type.charAt(type.length-1)==='*')
+      type = 'i32';
+    switch (type) {
+      case 'i1':
+        HEAP8[((ptr)>>0)] = value;
+        break;
+      case 'i8':
+        HEAP8[((ptr)>>0)] = value;
+        break;
+      case 'i16':
+        HEAP16[((ptr)>>1)] = value;
+        break;
+      case 'i32':
+        HEAP32[((ptr)>>2)] = value;
+        break;
+      case 'i64':
+        (tempI64 = [value>>>0, (tempDouble = value, (+(Math_abs(tempDouble)))>=1.0 ? (tempDouble>0.0 ? ((Math_min((+(Math_floor((tempDouble)/4294967296.0))), 4294967295.0))|0)>>>0 : (~~((+(Math_ceil((tempDouble-+(((~~(tempDouble)))>>>0))/4294967296.0)))))>>>0) : 0)], HEAP32[((ptr)>>2)] = tempI64[0], HEAP32[(((ptr)+(4))>>2)] = tempI64[1]);
+        break;
+      case 'float':
+        HEAPF32[((ptr)>>2)] = value;
+        break;
+      case 'double':
+        HEAPF64[((ptr)>>3)] = value;
+        break;
+      default:
+        abort('invalid type for setValue: '+type);
+    }
+  }
+  function getValue(ptr, type, noSafe) {
+    type = type||'i8';
+    if (type.charAt(type.length-1)==='*')
+      type = 'i32';
+    switch (type) {
+      case 'i1':
+        return HEAP8[((ptr)>>0)];
+      case 'i8':
+        return HEAP8[((ptr)>>0)];
+      case 'i16':
+        return HEAP16[((ptr)>>1)];
+      case 'i32':
+        return HEAP32[((ptr)>>2)];
+      case 'i64':
+        return HEAP32[((ptr)>>2)];
+      case 'float':
+        return HEAPF32[((ptr)>>2)];
+      case 'double':
+        return HEAPF64[((ptr)>>3)];
+      default:
+        abort('invalid type for getValue: '+type);
+    }
+    return null;
+  }
+  var wasmMemory;
+  var wasmTable=new WebAssembly.Table({'initial': 6, 
+   'maximum': 6+0, 
+   'element': 'anyfunc'});
+  var ABORT=false;
+  var EXITSTATUS=0;
+  function assert(condition, text) {
+    if (!condition) {
+        abort('Assertion failed: '+text);
+    }
+  }
+  function getCFunc(ident) {
+    var func=Module['_'+ident];
+    assert(func, 'Cannot call unknown function '+ident+', make sure it is exported');
+    return func;
+  }
+  function ccall(ident, returnType, argTypes, args, opts) {
+    var toC={'string': function (str) {
+        var ret=0;
+        if (str!==null&&str!==undefined&&str!==0) {
+            var len=(str.length<<2)+1;
+            ret = stackAlloc(len);
+            stringToUTF8(str, ret, len);
+        }
+        return ret;
+      }, 
+    'array': function (arr) {
+        var ret=stackAlloc(arr.length);
+        writeArrayToMemory(arr, ret);
+        return ret;
+      }}
+    function convertReturnValue(ret) {
+      if (returnType==='string')
+        return UTF8ToString(ret);
+      if (returnType==='boolean')
+        return Boolean(ret);
+      return ret;
+    }
+    var func=getCFunc(ident);
+    var cArgs=[];
+    var stack=0;
+    assert(returnType!=='array', 'Return type should not be "array".');
+    if (args) {
+        for (var i=0; i<args.length; i++) {
+            var converter=toC[argTypes[i]];
+            if (converter) {
+                if (stack===0)
+                  stack = stackSave();
+                cArgs[i] = converter(args[i]);
+            }
+            else {
+              cArgs[i] = args[i];
+            }
+        }
+    }
+    var ret=func.apply(null, cArgs);
+    ret = convertReturnValue(ret);
+    if (stack!==0)
+      stackRestore(stack);
+    return ret;
+  }
+  function cwrap(ident, returnType, argTypes, opts) {
+    return function () {
+      return ccall(ident, returnType, argTypes, arguments, opts);
+    }
+  }
+  var ALLOC_NORMAL=0;
+  var ALLOC_STACK=1;
+  var ALLOC_DYNAMIC=2;
+  var ALLOC_NONE=3;
+  function allocate(slab, types, allocator, ptr) {
+    var zeroinit, size;
+    if (typeof slab==='number') {
+        zeroinit = true;
+        size = slab;
+    }
+    else {
+      zeroinit = false;
+      size = slab.length;
+    }
+    var singleType=typeof types==='string' ? types : null;
+    var ret;
+    if (allocator==ALLOC_NONE) {
+        ret = ptr;
+    }
+    else {
+      ret = [_malloc, stackAlloc, dynamicAlloc][allocator](Math.max(size, singleType ? 1 : types.length));
+    }
+    if (zeroinit) {
+        var stop;
+        ptr = ret;
+        assert((ret&3)==0);
+        stop = ret+(size&~3);
+        for (; ptr<stop; ptr+=4) {
+            HEAP32[((ptr)>>2)] = 0;
+        }
+        stop = ret+size;
+        while (ptr<stop) {
+          HEAP8[((ptr++)>>0)] = 0;
+        }
+        return ret;
+    }
+    if (singleType==='i8') {
+        if (slab.subarray||slab.slice) {
+            HEAPU8.set((slab), ret);
+        }
+        else {
+          HEAPU8.set(new Uint8Array(slab), ret);
+        }
+        return ret;
+    }
+    var i=0, type, typeSize, previousType;
+    while (i<size) {
+      var curr=slab[i];
+      type = singleType||types[i];
+      if (type===0) {
+          i++;
+          continue;
+      }
+      assert(type, 'Must know what type to store in allocate!');
+      if (type=='i64')
+        type = 'i32';
+      setValue(ret+i, curr, type);
+      if (previousType!==type) {
+          typeSize = getNativeTypeSize(type);
+          previousType = type;
+      }
+      i+=typeSize;
+    }
+    return ret;
+  }
+  function getMemory(size) {
+    if (!runtimeInitialized)
+      return dynamicAlloc(size);
+    return _malloc(size);
+  }
+  var UTF8Decoder=typeof TextDecoder!=='undefined' ? new TextDecoder('utf8') : undefined;
+  function UTF8ArrayToString(heap, idx, maxBytesToRead) {
+    var endIdx=idx+maxBytesToRead;
+    var endPtr=idx;
+    while (heap[endPtr]&&!(endPtr>=endIdx)) {
+      ++endPtr    }
+    if (endPtr-idx>16&&heap.subarray&&UTF8Decoder) {
+        return UTF8Decoder.decode(heap.subarray(idx, endPtr));
+    }
+    else {
+      var str='';
+      while (idx<endPtr) {
+        var u0=heap[idx++];
+        if (!(u0&0x80)) {
+            str+=String.fromCharCode(u0);
+            continue;
+        }
+        var u1=heap[idx++]&63;
+        if ((u0&0xe0)==0xc0) {
+            str+=String.fromCharCode(((u0&31)<<6)|u1);
+            continue;
+        }
+        var u2=heap[idx++]&63;
+        if ((u0&0xf0)==0xe0) {
+            u0 = ((u0&15)<<12)|(u1<<6)|u2;
+        }
+        else {
+          if ((u0&0xf8)!=0xf0)
+            warnOnce('Invalid UTF-8 leading byte 0x'+u0.toString(16)+' encountered when deserializing a UTF-8 string on the asm.js/wasm heap to a JS string!');
+          u0 = ((u0&7)<<18)|(u1<<12)|(u2<<6)|(heap[idx++]&63);
+        }
+        if (u0<0x10000) {
+            str+=String.fromCharCode(u0);
+        }
+        else {
+          var ch=u0-0x10000;
+          str+=String.fromCharCode(0xd800|(ch>>10), 0xdc00|(ch&0x3ff));
+        }
+      }
+    }
+    return str;
+  }
+  function UTF8ToString(ptr, maxBytesToRead) {
+    return ptr ? UTF8ArrayToString(HEAPU8, ptr, maxBytesToRead) : '';
+  }
+  function stringToUTF8Array(str, heap, outIdx, maxBytesToWrite) {
+    if (!(maxBytesToWrite>0))
+      return 0;
+    var startIdx=outIdx;
+    var endIdx=outIdx+maxBytesToWrite-1;
+    for (var i=0; i<str.length; ++i) {
+        var u=str.charCodeAt(i);
+        if (u>=0xd800&&u<=0xdfff) {
+            var u1=str.charCodeAt(++i);
+            u = 0x10000+((u&0x3ff)<<10)|(u1&0x3ff);
+        }
+        if (u<=0x7f) {
+            if (outIdx>=endIdx)
+              break;
+            heap[outIdx++] = u;
+        }
+        else 
+          if (u<=0x7ff) {
+            if (outIdx+1>=endIdx)
+              break;
+            heap[outIdx++] = 0xc0|(u>>6);
+            heap[outIdx++] = 0x80|(u&63);
+        }
+        else 
+          if (u<=0xffff) {
+            if (outIdx+2>=endIdx)
+              break;
+            heap[outIdx++] = 0xe0|(u>>12);
+            heap[outIdx++] = 0x80|((u>>6)&63);
+            heap[outIdx++] = 0x80|(u&63);
+        }
+        else {
+          if (outIdx+3>=endIdx)
+            break;
+          if (u>=0x200000)
+            warnOnce('Invalid Unicode code point 0x'+u.toString(16)+' encountered when serializing a JS string to an UTF-8 string on the asm.js/wasm heap! (Valid unicode code points should be in range 0-0x1FFFFF).');
+          heap[outIdx++] = 0xf0|(u>>18);
+          heap[outIdx++] = 0x80|((u>>12)&63);
+          heap[outIdx++] = 0x80|((u>>6)&63);
+          heap[outIdx++] = 0x80|(u&63);
+        }
+    }
+    heap[outIdx] = 0;
+    return outIdx-startIdx;
+  }
+  function stringToUTF8(str, outPtr, maxBytesToWrite) {
+    assert(typeof maxBytesToWrite=='number', 'stringToUTF8(str, outPtr, maxBytesToWrite) is missing the third parameter that specifies the length of the output buffer!');
+    return stringToUTF8Array(str, HEAPU8, outPtr, maxBytesToWrite);
+  }
+  function lengthBytesUTF8(str) {
+    var len=0;
+    for (var i=0; i<str.length; ++i) {
+        var u=str.charCodeAt(i);
+        if (u>=0xd800&&u<=0xdfff)
+          u = 0x10000+((u&0x3ff)<<10)|(str.charCodeAt(++i)&0x3ff);
+        if (u<=0x7f)
+          ++len;
+        else 
+          if (u<=0x7ff)
+          len+=2;
+        else 
+          if (u<=0xffff)
+          len+=3;
+        else 
+          len+=4;
+    }
+    return len;
+  }
+  function AsciiToString(ptr) {
+    var str='';
+    while (1) {
+      var ch=HEAPU8[((ptr++)>>0)];
+      if (!ch)
+        return str;
+      str+=String.fromCharCode(ch);
+    }
+  }
+  function stringToAscii(str, outPtr) {
+    return writeAsciiToMemory(str, outPtr, false);
+  }
+  var UTF16Decoder=typeof TextDecoder!=='undefined' ? new TextDecoder('utf-16le') : undefined;
+  function UTF16ToString(ptr, maxBytesToRead) {
+    assert(ptr%2==0, 'Pointer passed to UTF16ToString must be aligned to two bytes!');
+    var endPtr=ptr;
+    var idx=endPtr>>1;
+    var maxIdx=idx+maxBytesToRead/2;
+    while (!(idx>=maxIdx)&&HEAPU16[idx]) {
+      ++idx    }
+    endPtr = idx<<1;
+    if (endPtr-ptr>32&&UTF16Decoder) {
+        return UTF16Decoder.decode(HEAPU8.subarray(ptr, endPtr));
+    }
+    else {
+      var i=0;
+      var str='';
+      while (1) {
+        var codeUnit=HEAP16[(((ptr)+(i*2))>>1)];
+        if (codeUnit==0||i==maxBytesToRead/2)
+          return str;
+        ++i;
+        str+=String.fromCharCode(codeUnit);
+      }
+    }
+  }
+  function stringToUTF16(str, outPtr, maxBytesToWrite) {
+    assert(outPtr%2==0, 'Pointer passed to stringToUTF16 must be aligned to two bytes!');
+    assert(typeof maxBytesToWrite=='number', 'stringToUTF16(str, outPtr, maxBytesToWrite) is missing the third parameter that specifies the length of the output buffer!');
+    if (maxBytesToWrite===undefined) {
+        maxBytesToWrite = 0x7fffffff;
+    }
+    if (maxBytesToWrite<2)
+      return 0;
+    maxBytesToWrite-=2;
+    var startPtr=outPtr;
+    var numCharsToWrite=(maxBytesToWrite<str.length*2) ? (maxBytesToWrite/2) : str.length;
+    for (var i=0; i<numCharsToWrite; ++i) {
+        var codeUnit=str.charCodeAt(i);
+        HEAP16[((outPtr)>>1)] = codeUnit;
+        outPtr+=2;
+    }
+    HEAP16[((outPtr)>>1)] = 0;
+    return outPtr-startPtr;
+  }
+  function lengthBytesUTF16(str) {
+    return str.length*2;
+  }
+  function UTF32ToString(ptr, maxBytesToRead) {
+    assert(ptr%4==0, 'Pointer passed to UTF32ToString must be aligned to four bytes!');
+    var i=0;
+    var str='';
+    while (!(i>=maxBytesToRead/4)) {
+      var utf32=HEAP32[(((ptr)+(i*4))>>2)];
+      if (utf32==0)
+        break;
+      ++i;
+      if (utf32>=0x10000) {
+          var ch=utf32-0x10000;
+          str+=String.fromCharCode(0xd800|(ch>>10), 0xdc00|(ch&0x3ff));
+      }
+      else {
+        str+=String.fromCharCode(utf32);
+      }
+    }
+    return str;
+  }
+  function stringToUTF32(str, outPtr, maxBytesToWrite) {
+    assert(outPtr%4==0, 'Pointer passed to stringToUTF32 must be aligned to four bytes!');
+    assert(typeof maxBytesToWrite=='number', 'stringToUTF32(str, outPtr, maxBytesToWrite) is missing the third parameter that specifies the length of the output buffer!');
+    if (maxBytesToWrite===undefined) {
+        maxBytesToWrite = 0x7fffffff;
+    }
+    if (maxBytesToWrite<4)
+      return 0;
+    var startPtr=outPtr;
+    var endPtr=startPtr+maxBytesToWrite-4;
+    for (var i=0; i<str.length; ++i) {
+        var codeUnit=str.charCodeAt(i);
+        if (codeUnit>=0xd800&&codeUnit<=0xdfff) {
+            var trailSurrogate=str.charCodeAt(++i);
+            codeUnit = 0x10000+((codeUnit&0x3ff)<<10)|(trailSurrogate&0x3ff);
+        }
+        HEAP32[((outPtr)>>2)] = codeUnit;
+        outPtr+=4;
+        if (outPtr+4>endPtr)
+          break;
+    }
+    HEAP32[((outPtr)>>2)] = 0;
+    return outPtr-startPtr;
+  }
+  function lengthBytesUTF32(str) {
+    var len=0;
+    for (var i=0; i<str.length; ++i) {
+        var codeUnit=str.charCodeAt(i);
+        if (codeUnit>=0xd800&&codeUnit<=0xdfff)
+          ++i;
+        len+=4;
+    }
+    return len;
+  }
+  function allocateUTF8(str) {
+    var size=lengthBytesUTF8(str)+1;
+    var ret=_malloc(size);
+    if (ret)
+      stringToUTF8Array(str, HEAP8, ret, size);
+    return ret;
+  }
+  function allocateUTF8OnStack(str) {
+    var size=lengthBytesUTF8(str)+1;
+    var ret=stackAlloc(size);
+    stringToUTF8Array(str, HEAP8, ret, size);
+    return ret;
+  }
+  function writeStringToMemory(string, buffer, dontAddNull) {
+    warnOnce('writeStringToMemory is deprecated and should not be called! Use stringToUTF8() instead!');
+    var lastChar, end;
+    if (dontAddNull) {
+        end = buffer+lengthBytesUTF8(string);
+        lastChar = HEAP8[end];
+    }
+    stringToUTF8(string, buffer, Infinity);
+    if (dontAddNull)
+      HEAP8[end] = lastChar;
+  }
+  function writeArrayToMemory(array, buffer) {
+    assert(array.length>=0, 'writeArrayToMemory array must have a length (should be an array or typed array)');
+    HEAP8.set(array, buffer);
+  }
+  function writeAsciiToMemory(str, buffer, dontAddNull) {
+    for (var i=0; i<str.length; ++i) {
+        assert(str.charCodeAt(i)===str.charCodeAt(i)&0xff);
+        HEAP8[((buffer++)>>0)] = str.charCodeAt(i);
+    }
+    if (!dontAddNull)
+      HEAP8[((buffer)>>0)] = 0;
+  }
+  var PAGE_SIZE=16384;
+  var WASM_PAGE_SIZE=65536;
+  var ASMJS_PAGE_SIZE=16777216;
+  function alignUp(x, multiple) {
+    if (x%multiple>0) {
+        x+=multiple-(x%multiple);
+    }
+    return x;
+  }
+  var HEAP, buffer, HEAP8, HEAPU8, HEAP16, HEAPU16, HEAP32, HEAPU32, HEAPF32, HEAPF64;
+  function updateGlobalBufferAndViews(buf) {
+    buffer = buf;
+    Module['HEAP8'] = HEAP8 = new Int8Array(buf);
+    Module['HEAP16'] = HEAP16 = new Int16Array(buf);
+    Module['HEAP32'] = HEAP32 = new Int32Array(buf);
+    Module['HEAPU8'] = HEAPU8 = new Uint8Array(buf);
+    Module['HEAPU16'] = HEAPU16 = new Uint16Array(buf);
+    Module['HEAPU32'] = HEAPU32 = new Uint32Array(buf);
+    Module['HEAPF32'] = HEAPF32 = new Float32Array(buf);
+    Module['HEAPF64'] = HEAPF64 = new Float64Array(buf);
+  }
+  var STATIC_BASE=1024, STACK_BASE=5254224, STACKTOP=STACK_BASE, STACK_MAX=11344, DYNAMIC_BASE=5254224, DYNAMICTOP_PTR=11184;
+  assert(STACK_BASE%16===0, 'stack must start aligned');
+  assert(DYNAMIC_BASE%16===0, 'heap must start aligned');
+  var TOTAL_STACK=5242880;
+  if (Module['TOTAL_STACK'])
+    assert(TOTAL_STACK===Module['TOTAL_STACK'], 'the stack size can no longer be determined at runtime');
+  var INITIAL_INITIAL_MEMORY=Module['INITIAL_MEMORY']||33554432;
+  if (!Object.getOwnPropertyDescriptor(Module, 'INITIAL_MEMORY'))
+    Object.defineProperty(Module, 'INITIAL_MEMORY', {configurable: true, 
+   get: function () {
+      abort('Module.INITIAL_MEMORY has been replaced with plain INITIAL_INITIAL_MEMORY');
+    }});
+  assert(INITIAL_INITIAL_MEMORY>=TOTAL_STACK, 'INITIAL_MEMORY should be larger than TOTAL_STACK, was '+INITIAL_INITIAL_MEMORY+'! (TOTAL_STACK='+TOTAL_STACK+')');
+  assert(typeof Int32Array!=='undefined'&&typeof Float64Array!=='undefined'&&Int32Array.prototype.subarray!==undefined&&Int32Array.prototype.set!==undefined, 'JS engine does not provide full typed array support');
+  if (Module['wasmMemory']) {
+      wasmMemory = Module['wasmMemory'];
+  }
+  else {
+    wasmMemory = new WebAssembly.Memory({'initial': INITIAL_INITIAL_MEMORY/WASM_PAGE_SIZE, 
+    'maximum': 2147483648/WASM_PAGE_SIZE});
+  }
+  if (wasmMemory) {
+      buffer = wasmMemory.buffer;
+  }
+  INITIAL_INITIAL_MEMORY = buffer.byteLength;
+  assert(INITIAL_INITIAL_MEMORY%WASM_PAGE_SIZE===0);
+  assert(65536%WASM_PAGE_SIZE===0);
+  updateGlobalBufferAndViews(buffer);
+  HEAP32[DYNAMICTOP_PTR>>2] = DYNAMIC_BASE;
+  function writeStackCookie() {
+    assert((STACK_MAX&3)==0);
+    HEAPU32[(STACK_MAX>>2)+1] = 0x2135467;
+    HEAPU32[(STACK_MAX>>2)+2] = 0x89bacdfe;
+    HEAP32[0] = 0x63736d65;
+  }
+  function checkStackCookie() {
+    var cookie1=HEAPU32[(STACK_MAX>>2)+1];
+    var cookie2=HEAPU32[(STACK_MAX>>2)+2];
+    if (cookie1!=0x2135467||cookie2!=0x89bacdfe) {
+        abort('Stack overflow! Stack cookie has been overwritten, expected hex dwords 0x89BACDFE and 0x2135467, but received 0x'+cookie2.toString(16)+' '+cookie1.toString(16));
+    }
+    if (HEAP32[0]!==0x63736d65)
+      abort('Runtime error: The application has corrupted its heap memory area (address zero)!');
+  }
+  function abortStackOverflow(allocSize) {
+    abort('Stack overflow! Attempted to allocate '+allocSize+' bytes on the stack, but stack has only '+(STACK_MAX-stackSave()+allocSize)+' bytes available!');
+  }(function () {
+    var h16=new Int16Array(1);
+    var h8=new Int8Array(h16.buffer);
+    h16[0] = 0x6373;
+    if (h8[0]!==0x73||h8[1]!==0x63)
+      throw 'Runtime error: expected the system to be little-endian!';
+  })();
+  function abortFnPtrError(ptr, sig) {
+    abort("Invalid function pointer "+ptr+" called with signature '"+sig+"'. Perhaps this is an invalid value (e.g. caused by calling a virtual method on a NULL pointer)? Or calling a function with an incorrect type, which will fail? (it is worth building your source files with -Werror (warnings are errors), as warnings can indicate undefined behavior which can cause this). Build with ASSERTIONS=2 for more info.");
+  }
+  function callRuntimeCallbacks(callbacks) {
+    while (callbacks.length>0) {
+      var callback=callbacks.shift();
+      if (typeof callback=='function') {
+          callback(Module);
+          continue;
+      }
+      var func=callback.func;
+      if (typeof func==='number') {
+          if (callback.arg===undefined) {
+              Module['dynCall_v'](func);
+          }
+          else {
+            Module['dynCall_vi'](func, callback.arg);
+          }
+      }
+      else {
+        func(callback.arg===undefined ? null : callback.arg);
+      }
+    }
+  }
+  var __ATPRERUN__=[];
+  var __ATINIT__=[];
+  var __ATMAIN__=[];
+  var __ATEXIT__=[];
+  var __ATPOSTRUN__=[];
+  var runtimeInitialized=false;
+  var runtimeExited=false;
+  function preRun() {
+    if (Module['preRun']) {
+        if (typeof Module['preRun']=='function')
+          Module['preRun'] = [Module['preRun']];
+        while (Module['preRun'].length) {
+          addOnPreRun(Module['preRun'].shift());
+        }
+    }
+    callRuntimeCallbacks(__ATPRERUN__);
+  }
+  function initRuntime() {
+    checkStackCookie();
+    assert(!runtimeInitialized);
+    runtimeInitialized = true;
+    callRuntimeCallbacks(__ATINIT__);
+  }
+  function preMain() {
+    checkStackCookie();
+    callRuntimeCallbacks(__ATMAIN__);
+  }
+  function exitRuntime() {
+    checkStackCookie();
+    runtimeExited = true;
+  }
+  function postRun() {
+    checkStackCookie();
+    if (Module['postRun']) {
+        if (typeof Module['postRun']=='function')
+          Module['postRun'] = [Module['postRun']];
+        while (Module['postRun'].length) {
+          addOnPostRun(Module['postRun'].shift());
+        }
+    }
+    callRuntimeCallbacks(__ATPOSTRUN__);
+  }
+  function addOnPreRun(cb) {
+    __ATPRERUN__.unshift(cb);
+  }
+  function addOnInit(cb) {
+    __ATINIT__.unshift(cb);
+  }
+  function addOnPreMain(cb) {
+    __ATMAIN__.unshift(cb);
+  }
+  function addOnExit(cb) {
+  }
+  function addOnPostRun(cb) {
+    __ATPOSTRUN__.unshift(cb);
+  }
+  function unSign(value, bits, ignore) {
+    if (value>=0) {
+        return value;
+    }
+    return bits<=32 ? 2*Math.abs(1<<(bits-1))+value : Math.pow(2, bits)+value;
+  }
+  function reSign(value, bits, ignore) {
+    if (value<=0) {
+        return value;
+    }
+    var half=bits<=32 ? Math.abs(1<<(bits-1)) : Math.pow(2, bits-1);
+    if (value>=half&&(bits<=32||value>half)) {
+        value = -2*half+value;
+    }
+    return value;
+  }
+  assert(Math.imul, 'This browser does not support Math.imul(), build with LEGACY_VM_SUPPORT or POLYFILL_OLD_MATH_FUNCTIONS to add in a polyfill');
+  assert(Math.fround, 'This browser does not support Math.fround(), build with LEGACY_VM_SUPPORT or POLYFILL_OLD_MATH_FUNCTIONS to add in a polyfill');
+  assert(Math.clz32, 'This browser does not support Math.clz32(), build with LEGACY_VM_SUPPORT or POLYFILL_OLD_MATH_FUNCTIONS to add in a polyfill');
+  assert(Math.trunc, 'This browser does not support Math.trunc(), build with LEGACY_VM_SUPPORT or POLYFILL_OLD_MATH_FUNCTIONS to add in a polyfill');
+  var Math_abs=Math.abs;
+  var Math_cos=Math.cos;
+  var Math_sin=Math.sin;
+  var Math_tan=Math.tan;
+  var Math_acos=Math.acos;
+  var Math_asin=Math.asin;
+  var Math_atan=Math.atan;
+  var Math_atan2=Math.atan2;
+  var Math_exp=Math.exp;
+  var Math_log=Math.log;
+  var Math_sqrt=Math.sqrt;
+  var Math_ceil=Math.ceil;
+  var Math_floor=Math.floor;
+  var Math_pow=Math.pow;
+  var Math_imul=Math.imul;
+  var Math_fround=Math.fround;
+  var Math_round=Math.round;
+  var Math_min=Math.min;
+  var Math_max=Math.max;
+  var Math_clz32=Math.clz32;
+  var Math_trunc=Math.trunc;
+  var runDependencies=0;
+  var runDependencyWatcher=null;
+  var dependenciesFulfilled=null;
+  var runDependencyTracking={}
+  function getUniqueRunDependency(id) {
+    var orig=id;
+    while (1) {
+      if (!runDependencyTracking[id])
+        return id;
+      id = orig+Math.random();
+    }
+  }
+  function addRunDependency(id) {
+    runDependencies++;
+    if (Module['monitorRunDependencies']) {
+        Module['monitorRunDependencies'](runDependencies);
+    }
+    if (id) {
+        assert(!runDependencyTracking[id]);
+        runDependencyTracking[id] = 1;
+        if (runDependencyWatcher===null&&typeof setInterval!=='undefined') {
+            runDependencyWatcher = setInterval(function () {
+              if (ABORT) {
+                  clearInterval(runDependencyWatcher);
+                  runDependencyWatcher = null;
+                  return ;
+              }
+              var shown=false;
+              for (var dep in runDependencyTracking) {
+                  if (!shown) {
+                      shown = true;
+                      err('still waiting on run dependencies:');
+                  }
+                  err('dependency: '+dep);
+              }
+              if (shown) {
+                  err('(end of list)');
+              }
+            }, 10000);
+        }
+    }
+    else {
+      err('warning: run dependency added without ID');
+    }
+  }
+  function removeRunDependency(id) {
+    runDependencies--;
+    if (Module['monitorRunDependencies']) {
+        Module['monitorRunDependencies'](runDependencies);
+    }
+    if (id) {
+        assert(runDependencyTracking[id]);
+        delete runDependencyTracking[id];
+    }
+    else {
+      err('warning: run dependency removed without ID');
+    }
+    if (runDependencies==0) {
+        if (runDependencyWatcher!==null) {
+            clearInterval(runDependencyWatcher);
+            runDependencyWatcher = null;
+        }
+        if (dependenciesFulfilled) {
+            var callback=dependenciesFulfilled;
+            dependenciesFulfilled = null;
+            callback();
+        }
+    }
+  }
+  Module["preloadedImages"] = {}
+  Module["preloadedAudios"] = {}
+  function abort(what) {
+    if (Module['onAbort']) {
+        Module['onAbort'](what);
+    }
+    what+='';
+    out(what);
+    err(what);
+    ABORT = true;
+    EXITSTATUS = 1;
+    var output='abort('+what+') at '+stackTrace();
+    what = output;
+    throw new WebAssembly.RuntimeError(what);
+  }
+  var memoryInitializer=null;
+  var FS={error: function () {
+      abort('Filesystem support (FS) was not included. The problem is that you are using files from JS, but files were not used from C/C++, so filesystem support was not auto-included. You can force-include filesystem support with  -s FORCE_FILESYSTEM=1');
+    }, 
+   init: function () {
+      FS.error();
+    }, 
+   createDataFile: function () {
+      FS.error();
+    }, 
+   createPreloadedFile: function () {
+      FS.error();
+    }, 
+   createLazyFile: function () {
+      FS.error();
+    }, 
+   open: function () {
+      FS.error();
+    }, 
+   mkdev: function () {
+      FS.error();
+    }, 
+   registerDevice: function () {
+      FS.error();
+    }, 
+   analyzePath: function () {
+      FS.error();
+    }, 
+   loadFilesFromDB: function () {
+      FS.error();
+    }, 
+   ErrnoError: function ErrnoError() {
+      FS.error();
+    }}
+  Module['FS_createDataFile'] = FS.createDataFile;
+  Module['FS_createPreloadedFile'] = FS.createPreloadedFile;
+  function hasPrefix(str, prefix) {
+    return String.prototype.startsWith ? str.startsWith(prefix) : str.indexOf(prefix)===0;
+  }
+  var dataURIPrefix='data:application/octet-stream;base64,';
+  function isDataURI(filename) {
+    return hasPrefix(filename, dataURIPrefix);
+  }
+  var fileURIPrefix="file://";
+  function isFileURI(filename) {
+    return hasPrefix(filename, fileURIPrefix);
+  }
+  if (!isDataURI(wasmBinaryFile)) {
+      wasmBinaryFile = locateFile(wasmBinaryFile);
+  }
+  function getBinary() {
+    try {
+      if (wasmBinary) {
+          return new Uint8Array(wasmBinary);
+      }
+      if (readBinary) {
+          return readBinary(wasmBinaryFile);
+      }
+      else {
+        throw "both async and sync fetching of the wasm failed";
+      }
+    }
+    catch (err) {
+        abort(err);
+    }
+  }
+  function getBinaryPromise() {
+    if (!wasmBinary&&(ENVIRONMENT_IS_WEB||ENVIRONMENT_IS_WORKER)&&typeof fetch==='function'&&!isFileURI(wasmBinaryFile)) {
+        return fetch(wasmBinaryFile, {credentials: 'same-origin'}).then(function (response) {
+          if (!response['ok']) {
+              throw "failed to load wasm binary file at '"+wasmBinaryFile+"'";
+          }
+          return response['arrayBuffer']();
+        }).catch(function () {
+          return getBinary();
+        });
+    }
+    return new Promise(function (resolve, reject) {
+      resolve(getBinary());
+    });
+  }
+  function createWasm() {
+    var info={'env': asmLibraryArg, 
+    'wasi_snapshot_preview1': asmLibraryArg}
+    function receiveInstance(instance, module) {
+      var exports=instance.exports;
+      Module['asm'] = exports;
+      removeRunDependency('wasm-instantiate');
+    }
+    addRunDependency('wasm-instantiate');
+    var trueModule=Module;
+    function receiveInstantiatedSource(output) {
+      assert(Module===trueModule, 'the Module object should not be replaced during async compilation - perhaps the order of HTML elements is wrong?');
+      trueModule = null;
+      receiveInstance(output['instance']);
+    }
+    function instantiateArrayBuffer(receiver) {
+      return getBinaryPromise().then(function (binary) {
+        return WebAssembly.instantiate(binary, info);
+      }).then(receiver, function (reason) {
+        err('failed to asynchronously prepare wasm: '+reason);
+        abort(reason);
+      });
+    }
+    function instantiateAsync() {
+      if (!wasmBinary&&typeof WebAssembly.instantiateStreaming==='function'&&!isDataURI(wasmBinaryFile)&&!isFileURI(wasmBinaryFile)&&typeof fetch==='function') {
+          fetch(wasmBinaryFile, {credentials: 'same-origin'}).then(function (response) {
+            var result=WebAssembly.instantiateStreaming(response, info);
+            return result.then(receiveInstantiatedSource, function (reason) {
+              err('wasm streaming compile failed: '+reason);
+              err('falling back to ArrayBuffer instantiation');
+              instantiateArrayBuffer(receiveInstantiatedSource);
+            });
+          });
+      }
+      else {
+        return instantiateArrayBuffer(receiveInstantiatedSource);
+      }
+    }
+    if (Module['instantiateWasm']) {
+        try {
+          var exports=Module['instantiateWasm'](info, receiveInstance);
+          return exports;
+        }
+        catch (e) {
+            err('Module.instantiateWasm callback failed with error: '+e);
+            return false;
+        }
+    }
+    instantiateAsync();
+    return {}
+  }
+  var tempDouble;
+  var tempI64;
+  var ASM_CONSTS={}
+  function sendMessage(x, buffer, len) {
+    _wasm_post_message(x, buffer, len);
+  }
+  __ATINIT__.push({func: function () {
+      ___wasm_call_ctors();
+    }});
+  function demangle(func) {
+    warnOnce('warning: build with  -s DEMANGLE_SUPPORT=1  to link in libcxxabi demangling');
+    return func;
+  }
+  function demangleAll(text) {
+    var regex=/\b_Z[\w\d_]+/g;
+    return text.replace(regex, function (x) {
+      var y=demangle(x);
+      return x===y ? x : (y+' ['+x+']');
+    });
+  }
+  function jsStackTrace() {
+    var err=new Error();
+    if (!err.stack) {
+        try {
+          throw new Error();
+        }
+        catch (e) {
+            err = e;
+        }
+        if (!err.stack) {
+            return '(no stack trace available)';
+        }
+    }
+    return err.stack.toString();
+  }
+  function stackTrace() {
+    var js=jsStackTrace();
+    if (Module['extraStackTrace'])
+      js+='\n'+Module['extraStackTrace']();
+    return demangleAll(js);
+  }
+  function ___handle_stack_overflow() {
+    abort('stack overflow');
+  }
+  function _clock() {
+    if (_clock.start===undefined)
+      _clock.start = Date.now();
+    return ((Date.now()-_clock.start)*(1000000/1000))|0;
+  }
+  function _emscripten_get_sbrk_ptr() {
+    return 11184;
+  }
+  function _emscripten_memcpy_big(dest, src, num) {
+    HEAPU8.copyWithin(dest, src, src+num);
+  }
+  function _emscripten_get_heap_size() {
+    return HEAPU8.length;
+  }
+  function emscripten_realloc_buffer(size) {
+    try {
+      wasmMemory.grow((size-buffer.byteLength+65535)>>>16);
+      updateGlobalBufferAndViews(wasmMemory.buffer);
+      return 1;
+    }
+    catch (e) {
+        console.error('emscripten_realloc_buffer: Attempted to grow heap from '+buffer.byteLength+' bytes to '+size+' bytes, but got error: '+e);
+    }
+  }
+  function _emscripten_resize_heap(requestedSize) {
+    requestedSize = requestedSize>>>0;
+    var oldSize=_emscripten_get_heap_size();
+    assert(requestedSize>oldSize);
+    var PAGE_MULTIPLE=65536;
+    var maxHeapSize=2147483648;
+    if (requestedSize>maxHeapSize) {
+        err('Cannot enlarge memory, asked to go up to '+requestedSize+' bytes, but the limit is '+maxHeapSize+' bytes!');
+        return false;
+    }
+    var minHeapSize=16777216;
+    for (var cutDown=1; cutDown<=4; cutDown*=2) {
+        var overGrownHeapSize=oldSize*(1+0.2/cutDown);
+        overGrownHeapSize = Math.min(overGrownHeapSize, requestedSize+100663296);
+        var newSize=Math.min(maxHeapSize, alignUp(Math.max(minHeapSize, requestedSize, overGrownHeapSize), PAGE_MULTIPLE));
+        var replacement=emscripten_realloc_buffer(newSize);
+        if (replacement) {
+            return true;
+        }
+    }
+    err('Failed to grow the heap from '+oldSize+' bytes to '+newSize+' bytes, not enough memory!');
+    return false;
+  }
+  function flush_NO_FILESYSTEM() {
+    if (typeof _fflush!=='undefined')
+      _fflush(0);
+    var buffers=SYSCALLS.buffers;
+    if (buffers[1].length)
+      SYSCALLS.printChar(1, 10);
+    if (buffers[2].length)
+      SYSCALLS.printChar(2, 10);
+  }
+  var PATH={splitPath: function (filename) {
+      var splitPathRe=/^(\/?|)([\s\S]*?)((?:\.{1,2}|[^\/]+?|)(\.[^.\/]*|))(?:[\/]*)$/;
+      return splitPathRe.exec(filename).slice(1);
+    }, 
+   normalizeArray: function (parts, allowAboveRoot) {
+      var up=0;
+      for (var i=parts.length-1; i>=0; i--) {
+          var last=parts[i];
+          if (last==='.') {
+              parts.splice(i, 1);
+          }
+          else 
+            if (last==='..') {
+              parts.splice(i, 1);
+              up++;
+          }
+          else 
+            if (up) {
+              parts.splice(i, 1);
+              up--;
+          }
+      }
+      if (allowAboveRoot) {
+          for (; up; up--) {
+              parts.unshift('..');
+          }
+      }
+      return parts;
+    }, 
+   normalize: function (path) {
+      var isAbsolute=path.charAt(0)==='/', trailingSlash=path.substr(-1)==='/';
+      path = PATH.normalizeArray(path.split('/').filter(function (p) {
+        return !!p;
+      }), !isAbsolute).join('/');
+      if (!path&&!isAbsolute) {
+          path = '.';
+      }
+      if (path&&trailingSlash) {
+          path+='/';
+      }
+      return (isAbsolute ? '/' : '')+path;
+    }, 
+   dirname: function (path) {
+      var result=PATH.splitPath(path), root=result[0], dir=result[1];
+      if (!root&&!dir) {
+          return '.';
+      }
+      if (dir) {
+          dir = dir.substr(0, dir.length-1);
+      }
+      return root+dir;
+    }, 
+   basename: function (path) {
+      if (path==='/')
+        return '/';
+      var lastSlash=path.lastIndexOf('/');
+      if (lastSlash===-1)
+        return path;
+      return path.substr(lastSlash+1);
+    }, 
+   extname: function (path) {
+      return PATH.splitPath(path)[3];
+    }, 
+   join: function () {
+      var paths=Array.prototype.slice.call(arguments, 0);
+      return PATH.normalize(paths.join('/'));
+    }, 
+   join2: function (l, r) {
+      return PATH.normalize(l+'/'+r);
+    }}
+  var SYSCALLS={mappings: {}, 
+   buffers: [null, [], []], 
+   printChar: function (stream, curr) {
+      var buffer=SYSCALLS.buffers[stream];
+      assert(buffer);
+      if (curr===0||curr===10) {
+          (stream===1 ? out : err)(UTF8ArrayToString(buffer, 0));
+          buffer.length = 0;
+      }
+      else {
+        buffer.push(curr);
+      }
+    }, 
+   varargs: undefined, 
+   get: function () {
+      assert(SYSCALLS.varargs!=undefined);
+      SYSCALLS.varargs+=4;
+      var ret=HEAP32[(((SYSCALLS.varargs)-(4))>>2)];
+      return ret;
+    }, 
+   getStr: function (ptr) {
+      var ret=UTF8ToString(ptr);
+      return ret;
+    }, 
+   get64: function (low, high) {
+      if (low>=0)
+        assert(high===0);
+      else 
+        assert(high===-1);
+      return low;
+    }}
+  function _fd_write(fd, iov, iovcnt, pnum) {
+    var num=0;
+    for (var i=0; i<iovcnt; i++) {
+        var ptr=HEAP32[(((iov)+(i*8))>>2)];
+        var len=HEAP32[(((iov)+(i*8+4))>>2)];
+        for (var j=0; j<len; j++) {
+            SYSCALLS.printChar(fd, HEAPU8[ptr+j]);
+        }
+        num+=len;
+    }
+    HEAP32[((pnum)>>2)] = num;
+    return 0;
+  }
+  function _setTempRet0($i) {
+    setTempRet0(($i)|0);
+  }
+  var ASSERTIONS=true;
+  function intArrayFromString(stringy, dontAddNull, length) {
+    var len=length>0 ? length : lengthBytesUTF8(stringy)+1;
+    var u8array=new Array(len);
+    var numBytesWritten=stringToUTF8Array(stringy, u8array, 0, u8array.length);
+    if (dontAddNull)
+      u8array.length = numBytesWritten;
+    return u8array;
+  }
+  function intArrayToString(array) {
+    var ret=[];
+    for (var i=0; i<array.length; i++) {
+        var chr=array[i];
+        if (chr>0xff) {
+            if (ASSERTIONS) {
+                assert(false, 'Character code '+chr+' ('+String.fromCharCode(chr)+')  at offset '+i+' not in 0x00-0xFF.');
+            }
+            chr&=0xff;
+        }
+        ret.push(String.fromCharCode(chr));
+    }
+    return ret.join('');
+  }
+  var asmGlobalArg={}
+  var asmLibraryArg={"__handle_stack_overflow": ___handle_stack_overflow, 
+   "clock": _clock, 
+   "emscripten_get_sbrk_ptr": _emscripten_get_sbrk_ptr, 
+   "emscripten_memcpy_big": _emscripten_memcpy_big, 
+   "emscripten_resize_heap": _emscripten_resize_heap, 
+   "fd_write": _fd_write, 
+   "memory": wasmMemory, 
+   "sendMessage": sendMessage, 
+   "setTempRet0": _setTempRet0, 
+   "table": wasmTable}
+  var asm=createWasm();
+  Module["asm"] = asm;
+  var ___wasm_call_ctors=Module["___wasm_call_ctors"] = function () {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["__wasm_call_ctors"].apply(null, arguments);
+  }
+  var _FM_malloc=Module["_FM_malloc"] = function () {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["FM_malloc"].apply(null, arguments);
+  }
+  var _malloc=Module["_malloc"] = function () {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["malloc"].apply(null, arguments);
+  }
+  var _FM_free=Module["_FM_free"] = function () {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["FM_free"].apply(null, arguments);
+  }
+  var _free=Module["_free"] = function () {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["free"].apply(null, arguments);
+  }
+  var ___em_js__sendMessage=Module["___em_js__sendMessage"] = function () {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["__em_js__sendMessage"].apply(null, arguments);
+  }
+  var _gotMessage=Module["_gotMessage"] = function () {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["gotMessage"].apply(null, arguments);
+  }
+  var _main=Module["_main"] = function () {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["main"].apply(null, arguments);
+  }
+  var ___errno_location=Module["___errno_location"] = function () {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["__errno_location"].apply(null, arguments);
+  }
+  var _fflush=Module["_fflush"] = function () {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["fflush"].apply(null, arguments);
+  }
+  var ___set_stack_limit=Module["___set_stack_limit"] = function () {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["__set_stack_limit"].apply(null, arguments);
+  }
+  var stackSave=Module["stackSave"] = function () {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["stackSave"].apply(null, arguments);
+  }
+  var stackAlloc=Module["stackAlloc"] = function () {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["stackAlloc"].apply(null, arguments);
+  }
+  var stackRestore=Module["stackRestore"] = function () {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["stackRestore"].apply(null, arguments);
+  }
+  var __growWasmMemory=Module["__growWasmMemory"] = function () {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["__growWasmMemory"].apply(null, arguments);
+  }
+  var dynCall_ii=Module["dynCall_ii"] = function () {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["dynCall_ii"].apply(null, arguments);
+  }
+  var dynCall_iiii=Module["dynCall_iiii"] = function () {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["dynCall_iiii"].apply(null, arguments);
+  }
+  var dynCall_jiji=Module["dynCall_jiji"] = function () {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["dynCall_jiji"].apply(null, arguments);
+  }
+  var dynCall_iidiiii=Module["dynCall_iidiiii"] = function () {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["dynCall_iidiiii"].apply(null, arguments);
+  }
+  var dynCall_vii=Module["dynCall_vii"] = function () {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["dynCall_vii"].apply(null, arguments);
+  }
+  Module['asm'] = asm;
+  if (!Object.getOwnPropertyDescriptor(Module, "intArrayFromString"))
+    Module["intArrayFromString"] = function () {
+    abort("'intArrayFromString' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "intArrayToString"))
+    Module["intArrayToString"] = function () {
+    abort("'intArrayToString' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  Module["ccall"] = ccall;
+  if (!Object.getOwnPropertyDescriptor(Module, "cwrap"))
+    Module["cwrap"] = function () {
+    abort("'cwrap' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "setValue"))
+    Module["setValue"] = function () {
+    abort("'setValue' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "getValue"))
+    Module["getValue"] = function () {
+    abort("'getValue' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "allocate"))
+    Module["allocate"] = function () {
+    abort("'allocate' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  Module["getMemory"] = getMemory;
+  if (!Object.getOwnPropertyDescriptor(Module, "UTF8ArrayToString"))
+    Module["UTF8ArrayToString"] = function () {
+    abort("'UTF8ArrayToString' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "UTF8ToString"))
+    Module["UTF8ToString"] = function () {
+    abort("'UTF8ToString' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "stringToUTF8Array"))
+    Module["stringToUTF8Array"] = function () {
+    abort("'stringToUTF8Array' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "stringToUTF8"))
+    Module["stringToUTF8"] = function () {
+    abort("'stringToUTF8' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "lengthBytesUTF8"))
+    Module["lengthBytesUTF8"] = function () {
+    abort("'lengthBytesUTF8' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "stackTrace"))
+    Module["stackTrace"] = function () {
+    abort("'stackTrace' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "addOnPreRun"))
+    Module["addOnPreRun"] = function () {
+    abort("'addOnPreRun' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  Module["addOnInit"] = addOnInit;
+  Module["addOnPreMain"] = addOnPreMain;
+  if (!Object.getOwnPropertyDescriptor(Module, "addOnExit"))
+    Module["addOnExit"] = function () {
+    abort("'addOnExit' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "addOnPostRun"))
+    Module["addOnPostRun"] = function () {
+    abort("'addOnPostRun' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "writeStringToMemory"))
+    Module["writeStringToMemory"] = function () {
+    abort("'writeStringToMemory' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "writeArrayToMemory"))
+    Module["writeArrayToMemory"] = function () {
+    abort("'writeArrayToMemory' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "writeAsciiToMemory"))
+    Module["writeAsciiToMemory"] = function () {
+    abort("'writeAsciiToMemory' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "addRunDependency"))
+    Module["addRunDependency"] = function () {
+    abort("'addRunDependency' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ). Alternatively, forcing filesystem support (-s FORCE_FILESYSTEM=1) can export this for you");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "removeRunDependency"))
+    Module["removeRunDependency"] = function () {
+    abort("'removeRunDependency' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ). Alternatively, forcing filesystem support (-s FORCE_FILESYSTEM=1) can export this for you");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "FS_createFolder"))
+    Module["FS_createFolder"] = function () {
+    abort("'FS_createFolder' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ). Alternatively, forcing filesystem support (-s FORCE_FILESYSTEM=1) can export this for you");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "FS_createPath"))
+    Module["FS_createPath"] = function () {
+    abort("'FS_createPath' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ). Alternatively, forcing filesystem support (-s FORCE_FILESYSTEM=1) can export this for you");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "FS_createDataFile"))
+    Module["FS_createDataFile"] = function () {
+    abort("'FS_createDataFile' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ). Alternatively, forcing filesystem support (-s FORCE_FILESYSTEM=1) can export this for you");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "FS_createPreloadedFile"))
+    Module["FS_createPreloadedFile"] = function () {
+    abort("'FS_createPreloadedFile' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ). Alternatively, forcing filesystem support (-s FORCE_FILESYSTEM=1) can export this for you");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "FS_createLazyFile"))
+    Module["FS_createLazyFile"] = function () {
+    abort("'FS_createLazyFile' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ). Alternatively, forcing filesystem support (-s FORCE_FILESYSTEM=1) can export this for you");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "FS_createLink"))
+    Module["FS_createLink"] = function () {
+    abort("'FS_createLink' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ). Alternatively, forcing filesystem support (-s FORCE_FILESYSTEM=1) can export this for you");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "FS_createDevice"))
+    Module["FS_createDevice"] = function () {
+    abort("'FS_createDevice' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ). Alternatively, forcing filesystem support (-s FORCE_FILESYSTEM=1) can export this for you");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "FS_unlink"))
+    Module["FS_unlink"] = function () {
+    abort("'FS_unlink' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ). Alternatively, forcing filesystem support (-s FORCE_FILESYSTEM=1) can export this for you");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "dynamicAlloc"))
+    Module["dynamicAlloc"] = function () {
+    abort("'dynamicAlloc' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "loadDynamicLibrary"))
+    Module["loadDynamicLibrary"] = function () {
+    abort("'loadDynamicLibrary' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "loadWebAssemblyModule"))
+    Module["loadWebAssemblyModule"] = function () {
+    abort("'loadWebAssemblyModule' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "getLEB"))
+    Module["getLEB"] = function () {
+    abort("'getLEB' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "getFunctionTables"))
+    Module["getFunctionTables"] = function () {
+    abort("'getFunctionTables' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "alignFunctionTables"))
+    Module["alignFunctionTables"] = function () {
+    abort("'alignFunctionTables' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "registerFunctions"))
+    Module["registerFunctions"] = function () {
+    abort("'registerFunctions' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "addFunction"))
+    Module["addFunction"] = function () {
+    abort("'addFunction' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "removeFunction"))
+    Module["removeFunction"] = function () {
+    abort("'removeFunction' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "getFuncWrapper"))
+    Module["getFuncWrapper"] = function () {
+    abort("'getFuncWrapper' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "prettyPrint"))
+    Module["prettyPrint"] = function () {
+    abort("'prettyPrint' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "makeBigInt"))
+    Module["makeBigInt"] = function () {
+    abort("'makeBigInt' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "dynCall"))
+    Module["dynCall"] = function () {
+    abort("'dynCall' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "getCompilerSetting"))
+    Module["getCompilerSetting"] = function () {
+    abort("'getCompilerSetting' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "print"))
+    Module["print"] = function () {
+    abort("'print' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "printErr"))
+    Module["printErr"] = function () {
+    abort("'printErr' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "getTempRet0"))
+    Module["getTempRet0"] = function () {
+    abort("'getTempRet0' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "setTempRet0"))
+    Module["setTempRet0"] = function () {
+    abort("'setTempRet0' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "callMain"))
+    Module["callMain"] = function () {
+    abort("'callMain' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "abort"))
+    Module["abort"] = function () {
+    abort("'abort' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "stringToNewUTF8"))
+    Module["stringToNewUTF8"] = function () {
+    abort("'stringToNewUTF8' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "emscripten_realloc_buffer"))
+    Module["emscripten_realloc_buffer"] = function () {
+    abort("'emscripten_realloc_buffer' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "ENV"))
+    Module["ENV"] = function () {
+    abort("'ENV' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "setjmpId"))
+    Module["setjmpId"] = function () {
+    abort("'setjmpId' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "ERRNO_CODES"))
+    Module["ERRNO_CODES"] = function () {
+    abort("'ERRNO_CODES' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "ERRNO_MESSAGES"))
+    Module["ERRNO_MESSAGES"] = function () {
+    abort("'ERRNO_MESSAGES' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "setErrNo"))
+    Module["setErrNo"] = function () {
+    abort("'setErrNo' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "DNS"))
+    Module["DNS"] = function () {
+    abort("'DNS' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "GAI_ERRNO_MESSAGES"))
+    Module["GAI_ERRNO_MESSAGES"] = function () {
+    abort("'GAI_ERRNO_MESSAGES' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "Protocols"))
+    Module["Protocols"] = function () {
+    abort("'Protocols' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "Sockets"))
+    Module["Sockets"] = function () {
+    abort("'Sockets' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "UNWIND_CACHE"))
+    Module["UNWIND_CACHE"] = function () {
+    abort("'UNWIND_CACHE' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "readAsmConstArgs"))
+    Module["readAsmConstArgs"] = function () {
+    abort("'readAsmConstArgs' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "jstoi_q"))
+    Module["jstoi_q"] = function () {
+    abort("'jstoi_q' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "jstoi_s"))
+    Module["jstoi_s"] = function () {
+    abort("'jstoi_s' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "reallyNegative"))
+    Module["reallyNegative"] = function () {
+    abort("'reallyNegative' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "formatString"))
+    Module["formatString"] = function () {
+    abort("'formatString' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "PATH"))
+    Module["PATH"] = function () {
+    abort("'PATH' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "PATH_FS"))
+    Module["PATH_FS"] = function () {
+    abort("'PATH_FS' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "SYSCALLS"))
+    Module["SYSCALLS"] = function () {
+    abort("'SYSCALLS' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "syscallMmap2"))
+    Module["syscallMmap2"] = function () {
+    abort("'syscallMmap2' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "syscallMunmap"))
+    Module["syscallMunmap"] = function () {
+    abort("'syscallMunmap' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "flush_NO_FILESYSTEM"))
+    Module["flush_NO_FILESYSTEM"] = function () {
+    abort("'flush_NO_FILESYSTEM' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "JSEvents"))
+    Module["JSEvents"] = function () {
+    abort("'JSEvents' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "specialHTMLTargets"))
+    Module["specialHTMLTargets"] = function () {
+    abort("'specialHTMLTargets' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "demangle"))
+    Module["demangle"] = function () {
+    abort("'demangle' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "demangleAll"))
+    Module["demangleAll"] = function () {
+    abort("'demangleAll' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "jsStackTrace"))
+    Module["jsStackTrace"] = function () {
+    abort("'jsStackTrace' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "stackTrace"))
+    Module["stackTrace"] = function () {
+    abort("'stackTrace' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "getEnvStrings"))
+    Module["getEnvStrings"] = function () {
+    abort("'getEnvStrings' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "writeI53ToI64"))
+    Module["writeI53ToI64"] = function () {
+    abort("'writeI53ToI64' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "writeI53ToI64Clamped"))
+    Module["writeI53ToI64Clamped"] = function () {
+    abort("'writeI53ToI64Clamped' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "writeI53ToI64Signaling"))
+    Module["writeI53ToI64Signaling"] = function () {
+    abort("'writeI53ToI64Signaling' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "writeI53ToU64Clamped"))
+    Module["writeI53ToU64Clamped"] = function () {
+    abort("'writeI53ToU64Clamped' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "writeI53ToU64Signaling"))
+    Module["writeI53ToU64Signaling"] = function () {
+    abort("'writeI53ToU64Signaling' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "readI53FromI64"))
+    Module["readI53FromI64"] = function () {
+    abort("'readI53FromI64' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "readI53FromU64"))
+    Module["readI53FromU64"] = function () {
+    abort("'readI53FromU64' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "convertI32PairToI53"))
+    Module["convertI32PairToI53"] = function () {
+    abort("'convertI32PairToI53' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "convertU32PairToI53"))
+    Module["convertU32PairToI53"] = function () {
+    abort("'convertU32PairToI53' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "Browser"))
+    Module["Browser"] = function () {
+    abort("'Browser' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "FS"))
+    Module["FS"] = function () {
+    abort("'FS' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "MEMFS"))
+    Module["MEMFS"] = function () {
+    abort("'MEMFS' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "TTY"))
+    Module["TTY"] = function () {
+    abort("'TTY' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "PIPEFS"))
+    Module["PIPEFS"] = function () {
+    abort("'PIPEFS' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "SOCKFS"))
+    Module["SOCKFS"] = function () {
+    abort("'SOCKFS' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "GL"))
+    Module["GL"] = function () {
+    abort("'GL' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "emscriptenWebGLGet"))
+    Module["emscriptenWebGLGet"] = function () {
+    abort("'emscriptenWebGLGet' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "emscriptenWebGLGetTexPixelData"))
+    Module["emscriptenWebGLGetTexPixelData"] = function () {
+    abort("'emscriptenWebGLGetTexPixelData' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "emscriptenWebGLGetUniform"))
+    Module["emscriptenWebGLGetUniform"] = function () {
+    abort("'emscriptenWebGLGetUniform' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "emscriptenWebGLGetVertexAttrib"))
+    Module["emscriptenWebGLGetVertexAttrib"] = function () {
+    abort("'emscriptenWebGLGetVertexAttrib' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "AL"))
+    Module["AL"] = function () {
+    abort("'AL' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "SDL_unicode"))
+    Module["SDL_unicode"] = function () {
+    abort("'SDL_unicode' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "SDL_ttfContext"))
+    Module["SDL_ttfContext"] = function () {
+    abort("'SDL_ttfContext' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "SDL_audio"))
+    Module["SDL_audio"] = function () {
+    abort("'SDL_audio' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "SDL"))
+    Module["SDL"] = function () {
+    abort("'SDL' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "SDL_gfx"))
+    Module["SDL_gfx"] = function () {
+    abort("'SDL_gfx' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "GLUT"))
+    Module["GLUT"] = function () {
+    abort("'GLUT' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "EGL"))
+    Module["EGL"] = function () {
+    abort("'EGL' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "GLFW_Window"))
+    Module["GLFW_Window"] = function () {
+    abort("'GLFW_Window' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "GLFW"))
+    Module["GLFW"] = function () {
+    abort("'GLFW' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "GLEW"))
+    Module["GLEW"] = function () {
+    abort("'GLEW' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "IDBStore"))
+    Module["IDBStore"] = function () {
+    abort("'IDBStore' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "runAndAbortIfError"))
+    Module["runAndAbortIfError"] = function () {
+    abort("'runAndAbortIfError' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "warnOnce"))
+    Module["warnOnce"] = function () {
+    abort("'warnOnce' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "stackSave"))
+    Module["stackSave"] = function () {
+    abort("'stackSave' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "stackRestore"))
+    Module["stackRestore"] = function () {
+    abort("'stackRestore' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "stackAlloc"))
+    Module["stackAlloc"] = function () {
+    abort("'stackAlloc' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "AsciiToString"))
+    Module["AsciiToString"] = function () {
+    abort("'AsciiToString' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "stringToAscii"))
+    Module["stringToAscii"] = function () {
+    abort("'stringToAscii' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "UTF16ToString"))
+    Module["UTF16ToString"] = function () {
+    abort("'UTF16ToString' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "stringToUTF16"))
+    Module["stringToUTF16"] = function () {
+    abort("'stringToUTF16' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "lengthBytesUTF16"))
+    Module["lengthBytesUTF16"] = function () {
+    abort("'lengthBytesUTF16' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "UTF32ToString"))
+    Module["UTF32ToString"] = function () {
+    abort("'UTF32ToString' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "stringToUTF32"))
+    Module["stringToUTF32"] = function () {
+    abort("'stringToUTF32' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "lengthBytesUTF32"))
+    Module["lengthBytesUTF32"] = function () {
+    abort("'lengthBytesUTF32' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "allocateUTF8"))
+    Module["allocateUTF8"] = function () {
+    abort("'allocateUTF8' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  if (!Object.getOwnPropertyDescriptor(Module, "allocateUTF8OnStack"))
+    Module["allocateUTF8OnStack"] = function () {
+    abort("'allocateUTF8OnStack' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+  }
+  Module["writeStackCookie"] = writeStackCookie;
+  Module["checkStackCookie"] = checkStackCookie;
+  Module["abortStackOverflow"] = abortStackOverflow;
+  if (!Object.getOwnPropertyDescriptor(Module, "ALLOC_NORMAL"))
+    Object.defineProperty(Module, "ALLOC_NORMAL", {configurable: true, 
+   get: function () {
+      abort("'ALLOC_NORMAL' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }});
+  if (!Object.getOwnPropertyDescriptor(Module, "ALLOC_STACK"))
+    Object.defineProperty(Module, "ALLOC_STACK", {configurable: true, 
+   get: function () {
+      abort("'ALLOC_STACK' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }});
+  if (!Object.getOwnPropertyDescriptor(Module, "ALLOC_DYNAMIC"))
+    Object.defineProperty(Module, "ALLOC_DYNAMIC", {configurable: true, 
+   get: function () {
+      abort("'ALLOC_DYNAMIC' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }});
+  if (!Object.getOwnPropertyDescriptor(Module, "ALLOC_NONE"))
+    Object.defineProperty(Module, "ALLOC_NONE", {configurable: true, 
+   get: function () {
+      abort("'ALLOC_NONE' was not exported. add it to EXTRA_EXPORTED_RUNTIME_METHODS (see the FAQ)");
+    }});
+  var calledRun;
+  function ExitStatus(status) {
+    this.name = "ExitStatus";
+    this.message = "Program terminated with exit("+status+")";
+    this.status = status;
+  }
+  var calledMain=false;
+  dependenciesFulfilled = function runCaller() {
+    if (!calledRun)
+      run();
+    if (!calledRun)
+      dependenciesFulfilled = runCaller;
+  }
+  function callMain(args) {
+    assert(runDependencies==0, 'cannot call main when async dependencies remain! (listen on Module["onRuntimeInitialized"])');
+    assert(__ATPRERUN__.length==0, 'cannot call main when preRun functions remain to be called');
+    var entryFunction=Module['_main'];
+    args = args||[];
+    var argc=args.length+1;
+    var argv=stackAlloc((argc+1)*4);
+    HEAP32[argv>>2] = allocateUTF8OnStack(thisProgram);
+    for (var i=1; i<argc; i++) {
+        HEAP32[(argv>>2)+i] = allocateUTF8OnStack(args[i-1]);
+    }
+    HEAP32[(argv>>2)+argc] = 0;
+    try {
+      Module['___set_stack_limit'](STACK_MAX);
+      var ret=entryFunction(argc, argv);
+      exit(ret, true);
+    }
+    catch (e) {
+        if (__instance_of(e, ExitStatus)) {
+            return ;
+        }
+        else 
+          if (e=='unwind') {
+            noExitRuntime = true;
+            return ;
+        }
+        else {
+          var toLog=e;
+          if (e&&typeof e==='object'&&e.stack) {
+              toLog = [e, e.stack];
+          }
+          err('exception thrown: '+toLog);
+          quit_(1, e);
+        }
+    }
+    finally {
+        calledMain = true;
+      }
+  }
+  function run(args) {
+    args = args||arguments_;
+    if (runDependencies>0) {
+        return ;
+    }
+    writeStackCookie();
+    preRun();
+    if (runDependencies>0)
+      return ;
+    function doRun() {
+      if (calledRun)
+        return ;
+      calledRun = true;
+      Module['calledRun'] = true;
+      if (ABORT)
+        return ;
+      initRuntime();
+      preMain();
+      if (Module['onRuntimeInitialized'])
+        Module['onRuntimeInitialized']();
+      if (shouldRunNow)
+        callMain(args);
+      postRun();
+    }
+    if (Module['setStatus']) {
+        Module['setStatus']('Running...');
+        setTimeout(function () {
+          setTimeout(function () {
+            Module['setStatus']('');
+          }, 1);
+          doRun();
+        }, 1);
+    }
+    else {
+      doRun();
+    }
+    checkStackCookie();
+  }
+  Module['run'] = run;
+  function checkUnflushedContent() {
+    var print=out;
+    var printErr=err;
+    var has=false;
+    out = err = function (x) {
+      has = true;
+    }
+    try {
+      var flush=flush_NO_FILESYSTEM;
+      if (flush)
+        flush();
+    }
+    catch (e) {
+    }
+    out = print;
+    err = printErr;
+    if (has) {
+        warnOnce('stdio streams had content in them that was not flushed. you should set EXIT_RUNTIME to 1 (see the FAQ), or make sure to emit a newline when you printf etc.');
+        warnOnce('(this may also be due to not including full filesystem support - try building with -s FORCE_FILESYSTEM=1)');
+    }
+  }
+  function exit(status, implicit) {
+    checkUnflushedContent();
+    if (implicit&&noExitRuntime&&status===0) {
+        return ;
+    }
+    if (noExitRuntime) {
+        if (!implicit) {
+            var msg='program exited (with status: '+status+'), but EXIT_RUNTIME is not set, so halting execution but not exiting the runtime or preventing further async execution (build with EXIT_RUNTIME=1, if you want a true shutdown)';
+            err(msg);
+        }
+    }
+    else {
+      ABORT = true;
+      EXITSTATUS = status;
+      exitRuntime();
+      if (Module['onExit'])
+        Module['onExit'](status);
+    }
+    quit_(status, new ExitStatus(status));
+  }
+  if (Module['preInit']) {
+      if (typeof Module['preInit']=='function')
+        Module['preInit'] = [Module['preInit']];
+      while (Module['preInit'].length>0) {
+        Module['preInit'].pop()();
+      }
+  }
+  var shouldRunNow=true;
+  if (Module['noInitialRun'])
+    shouldRunNow = false;
+  noExitRuntime = true;
+  run();
+}, '/dev/fairmotion/src/wasm/built_wasm.js');
+es6_module_define('native_api', ["../curve/solver.js", "../curve/spline_math_hermite.js", "../core/toolops_api.js", "./built_wasm.js", "../core/ajax.js", "../util/typedwriter.js", "../curve/spline_base.js"], function _native_api_module(_es6_module) {
+  var wasm=es6_import(_es6_module, './built_wasm.js');
+  var active_solves={}
+  active_solves = _es6_module.add_export('active_solves', active_solves);
+  var solve_starttimes={}
+  solve_starttimes = _es6_module.add_export('solve_starttimes', solve_starttimes);
+  var solve_starttimes2={}
+  solve_starttimes2 = _es6_module.add_export('solve_starttimes2', solve_starttimes2);
+  var solve_endtimes={}
+  solve_endtimes = _es6_module.add_export('solve_endtimes', solve_endtimes);
+  var active_jobs={}
+  active_jobs = _es6_module.add_export('active_jobs', active_jobs);
+  var constraint=es6_import_item(_es6_module, '../curve/solver.js', 'constraint');
+  var solver=es6_import_item(_es6_module, '../curve/solver.js', 'solver');
+  var ModalStates=es6_import_item(_es6_module, '../core/toolops_api.js', 'ModalStates');
+  var SplineTypes=es6_import_item(_es6_module, '../curve/spline_base.js', 'SplineTypes');
+  var SplineFlags=es6_import_item(_es6_module, '../curve/spline_base.js', 'SplineFlags');
+  var build_solver=es6_import_item(_es6_module, '../curve/spline_math_hermite.js', 'build_solver');
+  var solve_pre=es6_import_item(_es6_module, '../curve/spline_math_hermite.js', 'solve_pre');
+  var TypedWriter=es6_import_item(_es6_module, '../util/typedwriter.js', 'TypedWriter');
+  var ajax=es6_import(_es6_module, '../core/ajax.js');
+  function isReady() {
+    return wasm.calledRun;
+  }
+  isReady = _es6_module.add_export('isReady', isReady);
+  var mmax=Math.max, mmin=Math.min, mfloor=Math.floor;
+  var abs=Math.abs, sqrt=Math.sqrt, sin=Math.sin, cos=Math.cos, pow=Math.pow, log=Math.log, acos=Math.acos, asin=Math.asin, PI=Math.PI;
+  var last_call=undefined;
+  var DEBUG=false;
+  var FIXED_KS_FLAG=SplineFlags.FIXED_KS;
+  var callbacks={}
+  callbacks = _es6_module.add_export('callbacks', callbacks);
+  var msg_idgen=0;
+  var solve_idgen=0;
+  var ORDER=es6_import_item(_es6_module, '../curve/spline_math_hermite.js', 'ORDER');
+  var KSCALE=es6_import_item(_es6_module, '../curve/spline_math_hermite.js', 'KSCALE');
+  var KANGLE=es6_import_item(_es6_module, '../curve/spline_math_hermite.js', 'KANGLE');
+  var KSTARTX=es6_import_item(_es6_module, '../curve/spline_math_hermite.js', 'KSTARTX');
+  var KSTARTY=es6_import_item(_es6_module, '../curve/spline_math_hermite.js', 'KSTARTY');
+  var KSTARTZ=es6_import_item(_es6_module, '../curve/spline_math_hermite.js', 'KSTARTZ');
+  var KTOTKS=es6_import_item(_es6_module, '../curve/spline_math_hermite.js', 'KTOTKS');
+  var INT_STEPS=es6_import_item(_es6_module, '../curve/spline_math_hermite.js', 'INT_STEPS');
+  function onMessage(type, message, ptr) {
+    var iview=new Int32Array(message);
+    var id=iview[1];
+    if (DEBUG)
+      console.log("got array buffer!", message, "ID", id);
+    if (!(id in callbacks)) {
+        if (DEBUG)
+          console.log("Warning, dead communication callback", id);
+        return ;
+    }
+    var job=callbacks[id], iter=job.job;
+    if (DEBUG)
+      console.log("job:", job);
+    job.status.data = message.slice(8, message.byteLength);
+    if (DEBUG)
+      console.log("iter:", iter, iter.data);
+    var ret=iter.next();
+    if (ret.done) {
+        delete callbacks[id];
+        if (job.callback!=undefined)
+          job.callback.call(job.thisvar, job.status.value);
+    }
+    wasm._free(ptr);
+  }
+  onMessage = _es6_module.add_export('onMessage', onMessage);
+  var messageQueue=[];
+  messageQueue = _es6_module.add_export('messageQueue', messageQueue);
+  var queueMessages=false;
+  function queueUpMessages(state) {
+    queueMessages = state;
+  }
+  queueUpMessages = _es6_module.add_export('queueUpMessages', queueUpMessages);
+  function flushQueue() {
+    let queue=messageQueue.slice(0, messageQueue.length);
+    messageQueue.length = 0;
+    for (let msg of queue) {
+        onMessage(msg.type, msg.msg, msg.ptr);
+    }
+  }
+  flushQueue = _es6_module.add_export('flushQueue', flushQueue);
+  window._wasm_post_message = function (type, ptr, len) {
+    if (DEBUG)
+      console.log("got wasm message", type, ptr, len);
+    let message=wasm.HEAPU8.slice(ptr, ptr+len).buffer;
+    if (DEBUG)
+      console.log(message);
+    if (!queueMessages) {
+        onMessage(type, message, ptr);
+    }
+    else {
+      if (DEBUG)
+        console.log("Queuing a message!", type, message, ptr, "=======");
+      messageQueue.push({type: type, 
+     msg: message, 
+     ptr: ptr});
+    }
+  }
+  function postToWasm(type, msg) {
+    if (!(__instance_of(msg, ArrayBuffer))) {
+        throw new Error("msg must be array buffer");
+    }
+    let bytes=new Uint8Array(msg);
+    let ptr=wasm._malloc(msg.byteLength*2);
+    let mem=wasm.HEAPU8;
+    for (let i=ptr; i<ptr+bytes.length; i++) {
+        mem[i] = bytes[i-ptr];
+    }
+    wasm._gotMessage(type, ptr, msg.byteLength);
+    wasm._free(ptr);
+  }
+  postToWasm = _es6_module.add_export('postToWasm', postToWasm);
+  function test_wasm() {
+    let msg=new Int32Array([0, 1, 2, 3, 2, 1, -1]);
+    console.log(msg);
+    postToWasm(0, msg.buffer);
+  }
+  test_wasm = _es6_module.add_export('test_wasm', test_wasm);
+  var MessageTypes={GEN_DRAW_BEZIERS: 0, 
+   REPLY: 1, 
+   SOLVE: 2}
+  MessageTypes = _es6_module.add_export('MessageTypes', MessageTypes);
+  var ConstraintTypes={TAN_CONSTRAINT: 0, 
+   HARD_TAN_CONSTRAINT: 1, 
+   CURVATURE_CONSTRAINT: 2, 
+   COPY_C_CONSTRAINT: 3}
+  ConstraintTypes = _es6_module.add_export('ConstraintTypes', ConstraintTypes);
+  var JobTypes={DRAWSOLVE: 1, 
+   PATHSOLVE: 2, 
+   SOLVE: 1|2}
+  JobTypes = _es6_module.add_export('JobTypes', JobTypes);
+  function clear_jobs_except_latest(typeid) {
+    var last=undefined;
+    var lastk=undefined;
+    for (var k in callbacks) {
+        var job=callbacks[k];
+        if (job.typeid&typeid) {
+            job._skip = 1;
+            delete callbacks[k];
+            last = job;
+            lastk = k;
+        }
+    }
+    if (last!=undefined) {
+        callbacks[lastk] = last;
+        delete last._skip;
+    }
+  }
+  clear_jobs_except_latest = _es6_module.add_export('clear_jobs_except_latest', clear_jobs_except_latest);
+  function clear_jobs_except_first(typeid) {
+    var last=undefined;
+    var lastk=undefined;
+    for (var k in callbacks) {
+        var job=callbacks[k];
+        if (job.typeid&typeid) {
+            if (last!=undefined) {
+                job._skip = 1;
+                delete callbacks[k];
+            }
+            last = job;
+            lastk = k;
+        }
+    }
+  }
+  clear_jobs_except_first = _es6_module.add_export('clear_jobs_except_first', clear_jobs_except_first);
+  function clear_jobs(typeid) {
+    for (var k in callbacks) {
+        var job=callbacks[k];
+        if (job.typeid&typeid) {
+            job._skip = 1;
+            delete callbacks[k];
+        }
+    }
+  }
+  clear_jobs = _es6_module.add_export('clear_jobs', clear_jobs);
+  function call_api(job, params) {
+    if (params===undefined) {
+        params = undefined;
+    }
+    var callback, error, thisvar, typeid, only_latest=false;
+    if (params!=undefined) {
+        callback = params.callback;
+        thisvar = params.thisvar!=undefined ? params.thisvar : self;
+        error = params.error;
+        only_latest = params.only_latest!=undefined ? params.only_latest : false;
+        typeid = params.typeid;
+    }
+    var postMessage=function (type, msg) {
+      postToWasm(type, msg);
+    }
+    var id=msg_idgen++;
+    var status={msgid: id, 
+    data: undefined}
+    var args=[postMessage, status];
+    for (var i=2; i<arguments.length; i++) {
+        args.push(arguments[i]);
+    }
+    queueUpMessages(true);
+    var iter=job.apply(job, args);
+    var ret=iter.next();
+    if (ret.done) {
+        callback.call(thisvar, iter.value);
+        return ;
+    }
+    if (DEBUG)
+      console.log("  SETTING CALLBACK WITH ID", id);
+    callbacks[id] = {job: iter, 
+    typeid: typeid, 
+    only_latest: only_latest, 
+    callback: callback, 
+    thisvar: thisvar, 
+    error: error, 
+    status: status}
+    queueUpMessages(false);
+    flushQueue();
+  }
+  call_api = _es6_module.add_export('call_api', call_api);
+  function start_message(type, msgid, endian) {
+    var data=[];
+    ajax.pack_int(data, type, endian);
+    ajax.pack_int(data, msgid, endian);
+    return data;
+  }
+  start_message = _es6_module.add_export('start_message', start_message);
+  function start_message_new(writer, type, msgid, endian) {
+    writer.int32(type);
+    writer.int32(msgid);
+  }
+  start_message_new = _es6_module.add_export('start_message_new', start_message_new);
+  function _unpacker(dview) {
+    var b=0;
+    return {getint: function getint() {
+        b+=4;
+        return dview.getInt32(b-4, endian);
+      }, 
+    getfloat: function getfloat() {
+        b+=4;
+        return dview.getFloat32(b-4, endian);
+      }, 
+    getdouble: function getdouble() {
+        b+=8;
+        return dview.getFloat64(b-8, endian);
+      }}
+  }
+  function* gen_draw_cache(postMessage, status, spline) {
+    var data=[];
+    var msgid=status.msgid;
+    var endian=ajax.little_endian;
+    var data=start_message(MessageTypes.GEN_DRAW_BEZIERS, msgid, endian);
+    ajax.pack_int(data, spline.segments.length, endian);
+    ajax.pack_int(data, 0, endian);
+    for (var s of spline.segments) {
+        ajax.pack_int(data, s.eid, endian);
+        ajax.pack_vec3(data, s.v1, endian);
+        ajax.pack_vec3(data, s.v2, endian);
+        ajax.pack_int(data, s.ks.length, endian);
+        var zero_ks=((s.v1.flag&SplineFlags.BREAK_TANGENTS)||(s.v2.flag&SplineFlags.BREAK_TANGENTS));
+        for (var i=0; i<s.ks.length; i++) {
+            if (zero_ks&&i<ORDER)
+              ajax.pack_double(data, 0.0, endian);
+            else 
+              ajax.pack_double(data, s.ks[i], endian);
+        }
+        var rem=16-s.ks.length;
+        for (var i=0; i<rem; i++) {
+            ajax.pack_double(data, 0.0, endian);
+        }
+    }
+    data = new Uint8Array(data).buffer;
+    postMessage(MessageTypes.GEN_DRAW_BEZIERS, data);
+    yield ;
+    var dview=new DataView(status.data);
+    var upack=_unpacker(dview);
+    var getint=upack.getint;
+    var getfloat=upack.getfloat;
+    var getdouble=upack.getdouble;
+    var tot=getint();
+    var ret=[];
+    var eidmap=spline.eidmap;
+    for (var i=0; i<tot; i++) {
+        var eid=getint(), totseg=getint();
+        var segs=[];
+        var seg=eidmap[eid];
+        if (seg==undefined||seg.type!=SplineTypes.SEGMENT) {
+            console.log("WARNING: defunct segment in gen_draw_cache", seg);
+        }
+        ret.push(segs);
+        for (var j=0; j<totseg; j++) {
+            segs[j] = [0, 0, 0, 0];
+        }
+        for (var j=0; j<totseg*4; j++) {
+            var p=new Vector3();
+            p[0] = getdouble();
+            p[1] = getdouble();
+            p[2] = 0.0;
+            segs[Math.floor(j/4)][j%4] = p;
+        }
+        if (seg!=undefined) {
+            seg._draw_bzs = segs;
+        }
+    }
+    status.value = ret;
+  }
+  gen_draw_cache = _es6_module.add_export('gen_draw_cache', gen_draw_cache);
+  function do_solve(sflags, spline, steps, gk, return_promise) {
+    if (gk===undefined) {
+        gk = 0.95;
+    }
+    if (return_promise===undefined) {
+        return_promise = false;
+    }
+    let draw_id=push_solve(spline);
+    spline._solve_id = draw_id;
+    var job_id=solve_idgen++;
+    active_solves[spline._solve_id] = job_id;
+    active_jobs[job_id] = spline._solve_id;
+    solve_starttimes[job_id] = time_ms();
+    var SplineFlags=sflags;
+    spline.resolve = 1;
+    solve_pre(spline);
+    var on_finish, on_reject, promise;
+    if (return_promise) {
+        promise = new Promise(function (resolve, reject) {
+          on_finish = function () {
+            resolve();
+          }
+          on_reject = function () {
+            reject();
+          }
+        });
+    }
+    function finish(unload) {
+      var start_time=solve_starttimes[job_id];
+      window.pop_solve(draw_id);
+      var skip=solve_endtimes[spline._solve_id]>start_time;
+      skip = skip&&solve_starttimes2[spline._solve_id]>start_time;
+      delete active_jobs[job_id];
+      delete active_solves[spline._solve_id];
+      delete solve_starttimes[job_id];
+      if (skip) {
+          if (on_reject!=undefined) {
+              on_reject();
+          }
+          console.log("Dropping dead solve job", job_id);
+          return ;
+      }
+      unload();
+      solve_endtimes[spline._solve_id] = time_ms();
+      solve_starttimes2[spline._solve_id] = start_time;
+      if (_DEBUG.solve_times) {
+          console.log((solve_endtimes[spline._solve_id]-start_time).toFixed(2)+"ms");
+      }
+      for (var i=0; i<spline.segments.length; i++) {
+          var seg=spline.segments[i];
+          seg.evaluate(0.5);
+          for (var j=0; j<seg.ks.length; j++) {
+              if (isNaN(seg.ks[j])) {
+                  console.log("NaN!", seg.ks, seg);
+                  seg.ks[j] = 0;
+              }
+          }
+          if (g_app_state.modalstate!=ModalStates.TRANSFROMING) {
+              if ((seg.v1.flag&SplineFlags.UPDATE)||(seg.v2.flag&SplineFlags.UPDATE))
+                seg.update_aabb();
+          }
+          else {
+            if ((seg.v1.flag&SplineFlags.UPDATE)||(seg.v2.flag&SplineFlags.UPDATE))
+              seg.flag|=SplineFlags.UPDATE_AABB;
+          }
+      }
+      for (var f of spline.faces) {
+          for (var path of f.paths) {
+              for (var l of path) {
+                  if (l.v.flag&SplineFlags.UPDATE)
+                    f.flag|=SplineFlags.UPDATE_AABB;
+              }
+          }
+      }
+      for (let h of spline.handles) {
+          h.flag&=~(SplineFlags.UPDATE|SplineFlags.TEMP_TAG);
+      }
+      for (let v of spline.verts) {
+          v.flag&=~(SplineFlags.UPDATE|SplineFlags.TEMP_TAG);
+      }
+      if (spline.on_resolve!==undefined) {
+          spline.on_resolve();
+          spline.on_resolve = undefined;
+      }
+      if (on_finish!==undefined) {
+          on_finish();
+      }
+    }
+    spline.resolve = 0;
+    var update_verts=new set();
+    var slv=build_solver(spline, ORDER, undefined, 1, undefined, update_verts);
+    var cs=slv.cs, edge_segs=slv.edge_segs;
+    edge_segs = new set(edge_segs);
+    call_api(nacl_solve, {callback: function (value) {
+        finish(value);
+      }, 
+    error: function (error) {
+        console.log("Nacl solve error!");
+        window.pop_solve(draw_id);
+      }, 
+    typeid: spline.is_anim_path ? JobTypes.PATHSOLVE : JobTypes.DRAWSOLVE, 
+    only_latest: true}, spline, cs, update_verts, gk, edge_segs);
+    return promise;
+  }
+  do_solve = _es6_module.add_export('do_solve', do_solve);
+  window.nacl_do_solve = do_solve;
+  function write_nacl_solve_new(writer, spline, cons, update_verts, update_segs, gk, edge_segs) {
+    var idxmap={}
+    var i=0;
+    function add_vert(v) {
+      writer.int32(v.eid);
+      writer.int32(v.flag);
+      writer.vec3(v);
+      writer.int32(0);
+      idxmap[v.eid] = i++;
+    }
+    for (var v of update_verts) {
+        add_vert(v, true);
+    }
+    writer.int32(update_segs.length);
+    writer.int32(0);
+    var i=0;
+    for (var s of update_segs) {
+        var flag=s.flag;
+        let count=s.v1.flag&SplineFlags.UPDATE ? 1 : 0;
+        count+=s.v2.flag&SplineFlags.UPDATE ? 1 : 0;
+        if (count<2) {
+            flag|=FIXED_KS_FLAG;
+        }
+        writer.int32(s.eid);
+        writer.int32(flag);
+        var klen=s.ks.length;
+        var is_eseg=edge_segs.has(s);
+        var zero_ks=((s.v1.flag&SplineFlags.BREAK_TANGENTS)||(s.v2.flag&SplineFlags.BREAK_TANGENTS));
+        for (var ji=0; ji<1; ji++) {
+            for (var j=0; j<klen; j++) {
+                if (zero_ks&&j<ORDER)
+                  writer.float64(0.0);
+                else 
+                  writer.float64(is_eseg ? s.ks[j] : 0.0);
+            }
+            for (var j=0; j<16-klen; j++) {
+                writer.float64(0.0);
+            }
+        }
+        writer.vec3(s.h1);
+        writer.vec3(s.h2);
+        writer.int32(idxmap[s.v1.eid]);
+        writer.int32(idxmap[s.v2.eid]);
+        idxmap[s.eid] = i++;
+    }
+    writer.int32(cons.length);
+    writer.int32(0.0);
+    for (var i=0; i<cons.length; i++) {
+        var c=cons[i];
+        var type=0, seg1=-1, seg2=-1, param1=0, param2=0, fparam1=0, fparam2=0;
+        if (c.type=="tan_c") {
+            type = ConstraintTypes.TAN_CONSTRAINT;
+            seg1 = c.params[0];
+            seg2 = c.params[1];
+            var v=seg1.shared_vert(seg2);
+            param1 = idxmap[seg1.eid];
+            param2 = idxmap[seg2.eid];
+            fparam1 = seg1.v2===v;
+            fparam2 = seg2.v2===v;
+            if (c.klst.length==1) {
+                seg1 = c.klst[0]!==seg1.ks ? param2 : param1;
+                seg2 = -1;
+            }
+            else {
+              seg1 = param1;
+              seg2 = param2;
+            }
+        }
+        else 
+          if (c.type=="hard_tan_c") {
+            type = ConstraintTypes.HARD_TAN_CONSTRAINT;
+            var seg=c.params[0], tan=c.params[1], s=c.params[2];
+            seg1 = idxmap[seg.eid];
+            seg2 = -1;
+            fparam1 = Math.atan2(tan[0], tan[1]);
+            fparam2 = s;
+        }
+        else 
+          if (c.type=="curv_c") {
+            type = ConstraintTypes.CURVATURE_CONSTRAINT;
+            seg1 = c.params[0];
+            seg2 = c.params[1];
+            if (seg1.ks!==c.klst[0]) {
+            }
+            var v=seg1.shared_vert(seg2);
+            fparam1 = seg1.v2===v;
+            fparam2 = seg2.v2===v;
+            param1 = idxmap[seg1.eid];
+            param2 = idxmap[seg2.eid];
+            seg1 = param1;
+            seg2 = -1;
+        }
+        else 
+          if (c.type=="copy_c") {
+            type = ConstraintTypes.COPY_C_CONSTRAINT;
+            seg1 = c.params[0];
+            param1 = seg1.v1.segments.length==1;
+        }
+        else {
+          console.trace(c, seg1, seg2);
+          throw new Error("unknown constraint type "+c.type);
+        }
+        writer.int32(type);
+        writer.float32(c.k);
+        writer.float32(c.k2==undefined ? c.k : c.k2);
+        writer.int32(0);
+        writer.int32(seg1);
+        writer.int32(seg2);
+        writer.int32(param1);
+        writer.int32(param2);
+        writer.float32(fparam1);
+        writer.float32(fparam2);
+        for (var j=0; j<33; j++) {
+            writer.float64(0);
+        }
+    }
+    return idxmap;
+  }
+  function write_nacl_solve(data, spline, cons, update_verts, update_segs, gk, edge_segs) {
+    var endian=ajax.little_endian;
+    var idxmap={}
+    var i=0;
+    function add_vert(v) {
+      ajax.pack_int(data, v.eid, endian);
+      ajax.pack_int(data, v.flag, endian);
+      ajax.pack_vec3(data, v, endian);
+      ajax.pack_int(data, 0, endian);
+      idxmap[v.eid] = i++;
+    }
+    for (var v of update_verts) {
+        add_vert(v, true);
+    }
+    ajax.pack_int(data, update_segs.length, endian);
+    ajax.pack_int(data, 0, endian);
+    var i=0;
+    for (var s of update_segs) {
+        var flag=s.flag;
+        if (edge_segs.has(s)) {
+            flag|=FIXED_KS_FLAG;
+        }
+        ajax.pack_int(data, s.eid, endian);
+        ajax.pack_int(data, flag, endian);
+        var klen=s.ks.length;
+        var is_eseg=edge_segs.has(s);
+        var zero_ks=((s.v1.flag&SplineFlags.BREAK_TANGENTS)||(s.v2.flag&SplineFlags.BREAK_TANGENTS));
+        for (var ji=0; ji<1; ji++) {
+            for (var j=0; j<klen; j++) {
+                if (zero_ks&&j<ORDER)
+                  ajax.pack_double(data, 0.0, endian);
+                else 
+                  ajax.pack_double(data, is_eseg ? s.ks[j] : 0.0, endian);
+            }
+            for (var j=0; j<16-klen; j++) {
+                ajax.pack_double(data, 0.0, endian);
+            }
+        }
+        ajax.pack_vec3(data, s.h1, endian);
+        ajax.pack_vec3(data, s.h2, endian);
+        ajax.pack_int(data, idxmap[s.v1.eid], endian);
+        ajax.pack_int(data, idxmap[s.v2.eid], endian);
+        idxmap[s.eid] = i++;
+    }
+    ajax.pack_int(data, cons.length, endian);
+    ajax.pack_int(data, 0, endian);
+    for (var i=0; i<cons.length; i++) {
+        var c=cons[i];
+        var type=0, seg1=-1, seg2=-1, param1=0, param2=0, fparam1=0, fparam2=0;
+        if (c.type=="tan_c") {
+            type = ConstraintTypes.TAN_CONSTRAINT;
+            seg1 = c.params[0];
+            seg2 = c.params[1];
+            var v=seg1.shared_vert(seg2);
+            param1 = idxmap[seg1.eid];
+            param2 = idxmap[seg2.eid];
+            fparam1 = seg1.v2===v;
+            fparam2 = seg2.v2===v;
+            if (c.klst.length==1) {
+                seg1 = c.klst[0]!==seg1.ks ? param2 : param1;
+                seg2 = -1;
+            }
+            else {
+              seg1 = param1;
+              seg2 = param2;
+            }
+        }
+        else 
+          if (c.type=="hard_tan_c") {
+            type = ConstraintTypes.HARD_TAN_CONSTRAINT;
+            var seg=c.params[0], tan=c.params[1], s=c.params[2];
+            seg1 = idxmap[seg.eid];
+            seg2 = -1;
+            fparam1 = Math.atan2(tan[0], tan[1]);
+            fparam2 = s;
+        }
+        else 
+          if (c.type=="curv_c") {
+            type = ConstraintTypes.CURVATURE_CONSTRAINT;
+            seg1 = c.params[0];
+            seg2 = c.params[1];
+            if (seg1.ks!==c.klst[0]) {
+            }
+            var v=seg1.shared_vert(seg2);
+            fparam1 = seg1.v2===v;
+            fparam2 = seg2.v2===v;
+            param1 = idxmap[seg1.eid];
+            param2 = idxmap[seg2.eid];
+            seg1 = param1;
+            seg2 = -1;
+        }
+        else 
+          if (c.type=="copy_c") {
+            type = ConstraintTypes.COPY_C_CONSTRAINT;
+            seg1 = c.params[0];
+            param1 = seg1.v1.segments.length==1;
+        }
+        ajax.pack_int(data, type, endian);
+        ajax.pack_float(data, c.k*gk, endian);
+        ajax.pack_float(data, c.k2==undefined ? c.k*gk : c.k2*gk, endian);
+        ajax.pack_int(data, 0, endian);
+        ajax.pack_int(data, seg1, endian);
+        ajax.pack_int(data, seg2, endian);
+        ajax.pack_int(data, param1, endian);
+        ajax.pack_int(data, param2, endian);
+        ajax.pack_float(data, fparam1, endian);
+        ajax.pack_float(data, fparam2, endian);
+        for (var j=0; j<33; j++) {
+            ajax.pack_double(data, 0, endian);
+        }
+    }
+    return idxmap;
+  }
+  function _unload(spline, data) {
+    var _i=0;
+    function getint() {
+      _i+=4;
+      return data.getInt32(_i-4, true);
+    }
+    function getfloat() {
+      _i+=4;
+      return data.getFloat32(_i-4, true);
+    }
+    function getdouble() {
+      _i+=8;
+      return data.getFloat64(_i-8, true);
+    }
+    var totvert=getint();
+    getint();
+    _i+=24*totvert;
+    var totseg=getint();
+    getint();
+    if (DEBUG)
+      console.log("totseg:", totseg);
+    for (var i=0; i<totseg; i++) {
+        var eid=getint(), flag=getint();
+        var seg=spline.eidmap[eid];
+        if (seg==undefined||seg.type!=SplineTypes.SEGMENT) {
+            console.log("WARNING: defunct/invalid segment in nacl_solve!", eid);
+            _i+=160;
+            continue;
+        }
+        for (var j=0; j<16; j++) {
+            var d=getdouble();
+            if (j<seg.ks.length) {
+                seg.ks[j] = d;
+            }
+        }
+        _i+=4*6;
+        _i+=4*2;
+    }
+  }
+  function wrap_unload(spline, data) {
+    return function () {
+      _unload(spline, data);
+    }
+  }
+  function nacl_solve(postMessage, status, spline, cons, update_verts, gk, edge_segs) {
+    var ret={}
+    ret.ret = {done: false, 
+    value: undefined}
+    ret.stage = 0;
+    ret[Symbol.iterator] = function () {
+      return this;
+    }
+    ret.next = function () {
+      if (ret.stage==0) {
+          this.stage++;
+          this.stage0();
+          return this.ret;
+      }
+      else 
+        if (ret.stage==1) {
+          this.stage++;
+          this.stage1();
+          this.ret.done = true;
+          return this.ret;
+      }
+      else {
+        this.ret.done = true;
+        this.ret.value = undefined;
+        return this.ret;
+      }
+    }
+    var data;
+    ret.stage0 = function () {
+      var maxsize=(cons.length+1)*650+128;
+      var writer=new TypedWriter(maxsize);
+      var msgid=status.msgid;
+      var endian=ajax.little_endian;
+      var prof=false;
+      start_message_new(writer, MessageTypes.SOLVE, msgid, endian);
+      var timestart=time_ms();
+      var update_segs=new set();
+      for (var v of update_verts) {
+          for (var i=0; i<v.segments.length; i++) {
+              var s=v.segments[i];
+              update_segs.add(s);
+          }
+      }
+      for (var s of update_segs) {
+          update_verts.add(s.v1);
+          update_verts.add(s.v2);
+      }
+      if (prof)
+        console.log("time a:", time_ms()-timestart);
+      writer.int32(update_verts.length);
+      writer.int32(0);
+      if (prof)
+        console.log("time b:", time_ms()-timestart);
+      var idxmap=write_nacl_solve_new(writer, spline, cons, update_verts, update_segs, gk, edge_segs);
+      var data=writer.final();
+      if (prof)
+        console.log("time c:", time_ms()-timestart);
+      if (prof)
+        console.log("time d:", time_ms()-timestart, data.byteLength);
+      postMessage(MessageTypes.SOLVE, data);
+      if (prof)
+        console.log("time e:", time_ms()-timestart, "\n\n\n");
+    }
+    ret.stage1 = function () {
+      let buf1=status.data;
+      data = new DataView(buf1);
+      status.value = wrap_unload(spline, data);
+    }
+    return ret;
+  }
+  nacl_solve = _es6_module.add_export('nacl_solve', nacl_solve);
+}, '/dev/fairmotion/src/wasm/native_api.js');
+es6_module_define('addon_api', [], function _addon_api_module(_es6_module) {
+  "use strict";
+  var modules={}
+  class Addon  {
+    static  define() {
+      return {author: "", 
+     email: "", 
+     version: "", 
+     tooltip: "", 
+     description: "", 
+     struct_classes: []}
+    }
+     constructor(manager) {
+      this.manager = manager;
+    }
+     define_data_api(api) {
+
+    }
+     init_addon() {
+
+    }
+     destroy_addon() {
+
+    }
+     handle_versioning(file, oldversion) {
+
+    }
+  }
+  _ESClass.register(Addon);
+  _es6_module.add_class(Addon);
+  Addon = _es6_module.add_export('Addon', Addon);
+  class AddonManager  {
+     constructor() {
+      this.addons = [];
+      this.datablock_types = [];
+    }
+     register_datablock_type(cls) {
+      this.datablock_types.push(cls);
+    }
+     unregister_datablock_type(cls) {
+      this.datablock_types.remove(cls, false);
+    }
+     getmodule(name) {
+      return modules[name];
+    }
+     getmodules() {
+      return Object.getOwnPropertyNames(modules);
+    }
+  }
+  _ESClass.register(AddonManager);
+  _es6_module.add_class(AddonManager);
+  AddonManager = _es6_module.add_export('AddonManager', AddonManager);
+}, '/dev/fairmotion/src/addon_api/addon_api.js');
+es6_module_define('scene', ["./sceneobject.js", "../core/eventdag.js", "../curve/spline_base.js", "../core/struct.js", "../core/frameset.js", "../editors/viewport/selectmode.js", "../core/lib_api.js", "../editors/viewport/toolmodes/toolmode.js"], function _scene_module(_es6_module) {
+  var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
+  var DataBlock=es6_import_item(_es6_module, '../core/lib_api.js', 'DataBlock');
+  var DataTypes=es6_import_item(_es6_module, '../core/lib_api.js', 'DataTypes');
+  var SplineFrameSet=es6_import_item(_es6_module, '../core/frameset.js', 'SplineFrameSet');
+  var SceneObject=es6_import_item(_es6_module, './sceneobject.js', 'SceneObject');
+  var ObjectFlags=es6_import_item(_es6_module, './sceneobject.js', 'ObjectFlags');
+  var DataPathNode=es6_import_item(_es6_module, '../core/eventdag.js', 'DataPathNode');
+  var SplineElement=es6_import_item(_es6_module, '../curve/spline_base.js', 'SplineElement');
+  var ToolModes=es6_import_item(_es6_module, '../editors/viewport/toolmodes/toolmode.js', 'ToolModes');
+  var SelMask=es6_import_item(_es6_module, '../editors/viewport/selectmode.js', 'SelMask');
+  class ObjectList extends Array {
+    
+    
+     constructor(scene) {
+      super();
+      this.idmap = {};
+      this.namemap = {};
+      this.scene = scene;
+      this.active = undefined;
+    }
+     get(id_or_string) {
+      if (typeof id_or_string=="string") {
+          return this.namemap[id_or_string];
+      }
+      else {
+        return this.idmap[id_or_string];
+      }
+    }
+     has(ob) {
+      return ob.id in this.idmap;
+    }
+     push(ob) {
+      this.add(ob);
+    }
+     add(ob) {
+      this.idmap[ob.id] = ob;
+      this.namemap[ob.name] = ob;
+      super.push(ob);
+    }
+     remove(ob) {
+      delete this.idmap[ob.id];
+      delete this.namemap[ob.name];
+      super.remove(ob);
+    }
+     validateName(name) {
+      let i=2;
+      let name2=name;
+      while (name2 in this.namemap) {
+        name2 = name+i;
+        i++;
+      }
+      return name2;
+    }
+    get  editable() {
+      let this2=this;
+      return (function* () {
+        for (let ob of this.objects) {
+            if (ob.flag&ObjectFlags.HIDE)
+              continue;
+            yield ob;
+        }
+      });
+    }
+    get  visible() {
+      return this.editable;
+    }
+    get  selected_editable() {
+      return (function* () {
+        for (let ob of this.objects) {
+            let bad=(ob.flag&ObjectFlags.HIDE);
+            bad = bad|!(ob.flag&ObjectFlags.SELECT);
+            yield ob;
+        }
+      });
+    }
+  }
+  _ESClass.register(ObjectList);
+  _es6_module.add_class(ObjectList);
+  ObjectList = _es6_module.add_export('ObjectList', ObjectList);
+  class ToolModeSwitchError extends Error {
+  }
+  _ESClass.register(ToolModeSwitchError);
+  _es6_module.add_class(ToolModeSwitchError);
+  ToolModeSwitchError = _es6_module.add_export('ToolModeSwitchError', ToolModeSwitchError);
+  class Scene extends DataBlock {
+    
+    
+    
+    
+    
+    
+    
+     constructor() {
+      super(DataTypes.SCENE);
+      this.fps = 24.0;
+      this.edit_all_layers = false;
+      this.objects = new ObjectList(this);
+      this.objects.active = undefined;
+      this.object_idgen = new EIDGen();
+      this.dagnodes = [];
+      this.toolmodes = [];
+      this.toolmodes.map = {};
+      this.toolmode_i = 0;
+      this.selectmode = SelMask.VERTEX;
+      for (let cls of ToolModes) {
+          let mode=new cls();
+          this.toolmodes.push(mode);
+          this.toolmodes.map[cls.toolDefine().name] = mode;
+      }
+      this.active_splinepath = "frameset.drawspline";
+      this.time = 1;
+    }
+     switchToolMode(tname) {
+      let tool=this.toolmodes.map[tname];
+      if (!tool) {
+          throw new ToolModeSwitchError("unknown tool mode "+tname);
+      }
+      try {
+        if (this.toolmode) {
+            this.toolmode.onInactive();
+        }
+      }
+      catch (error) {
+          print_stack(error);
+          throw new ToolModeSwitchError("error switchign tool mode");
+      }
+      this.toolmode_i = this.toolmodes.indexOf(tool);
+      try {
+        if (this.toolmode) {
+            this.toolmode.onActive();
+        }
+      }
+      catch (error) {
+          print_stack(error);
+          throw new ToolModeSwitchError("error switchign tool mode");
+      }
+      this.toolmode.ctx = g_app_state.ctx;
+    }
+    get  toolmode() {
+      return this.toolmodes[this.toolmode_i];
+    }
+     setActiveObject(ob) {
+      this.objects.active = ob;
+      this.dag_update("on_active_set", true);
+    }
+     addFrameset(fs) {
+      let ob=new SceneObject(fs);
+      ob.name = this.objects.validateName(fs.name);
+      ob.id = this.object_idgen.gen_id();
+      fs.lib_adduser(this, this.name);
+      this.objects.push(ob);
+      return ob;
+    }
+     change_time(ctx, time, _update_animation=true) {
+      if (_DEBUG.timeChange)
+        console.warn("Time change!", time, this.time);
+      if (isNaN(this.time)) {
+          console.warn("EEK corruption!");
+          this.time = ctx.frameset.time;
+          if (isNaN(this.time))
+            this.time = 1;
+          if (isNaN(time))
+            time = 1;
+      }
+      if (time===this.time)
+        return ;
+      if (isNaN(time))
+        return ;
+      if (time<1) {
+          time = 1;
+      }
+      window._wait_for_draw = true;
+      window.redraw_viewport();
+      this.time = time;
+      ctx.frameset.change_time(time, _update_animation);
+      ctx.api.onFrameChange(ctx, time);
+      this.dag_update("on_time_change", true);
+    }
+     copy() {
+      var ret=new Scene();
+      ret.time = this.time;
+      return ret;
+    }
+     dag_exec() {
+
+    }
+     dag_get_datapath() {
+      return "datalib.scene.items["+this.lib_id+"]";
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+      super.loadSTRUCT(reader);
+      let objs=new ObjectList(this);
+      for (let i=0; i<this.objects.length; i++) {
+          objs.add(this.objects[i]);
+      }
+      this.objects = objs;
+      if (this.active_object>=0) {
+          this.objects.active = this.objects.idmap[this.active_object];
+      }
+      delete this.active_object;
+      this.afterSTRUCT();
+      if (this.active_splinepath==="frameset.active_spline")
+        this.active_splinepath = "frameset.drawspline";
+      return this;
+    }
+     data_link(block, getblock, getblock_us) {
+      super.data_link(block, getblock, getblock_us);
+      for (let i=0; i<this.objects.length; i++) {
+          this.objects[i].data_link(block, getblock, getblock_us);
+      }
+      this.toolmodes.map = {};
+      for (let tool of this.toolmodes) {
+          tool.dataLink(this, getblock, getblock_us);
+          let def=tool.constructor.toolDefine();
+          this.toolmodes.map[def.name] = tool;
+      }
+      for (let cls of ToolModes) {
+          let def=cls.toolDefine();
+          if (!(def.name in this.toolmodes)) {
+              let tool=new cls();
+              this.toolmodes.push(tool);
+              this.toolmodes.map[def.name] = tool;
+          }
+      }
+    }
+     linkDag(ctx) {
+      let on_sel=function (ctx, inputs, outputs, graph) {
+        console.warn("on select called through eventdag!");
+        ctx.frameset.sync_vdata_selstate(ctx);
+      };
+      the_global_dag.link(ctx.frameset.spline.verts, ["on_select_add"], on_sel, ["eid"]);
+      the_global_dag.link(ctx.frameset.spline.verts, ["on_select_sub"], on_sel, ["eid"]);
+      the_global_dag.link(ctx.frameset.spline.handles, ["on_select_add"], on_sel, ["eid"]);
+      the_global_dag.link(ctx.frameset.spline.handles, ["on_select_sub"], on_sel, ["eid"]);
+      this.dagnodes.push(on_sel);
+    }
+     on_tick(ctx) {
+      if (this.dagnodes.length===0) {
+          this.linkDag(ctx);
+      }
+    }
+    static  nodedef() {
+      return {name: "scene", 
+     uiname: "scene", 
+     outputs: {on_active_set: null, 
+      on_time_change: null}, 
+     inputs: {}}
+    }
+  }
+  _ESClass.register(Scene);
+  _es6_module.add_class(Scene);
+  Scene = _es6_module.add_export('Scene', Scene);
+  Scene.STRUCT = STRUCT.inherit(Scene, DataBlock)+`
+    time              : float;
+    active_splinepath : string;
+    objects           : array(SceneObject);
+    active_object     : int | obj.objects.active !== undefined ? obj.objects.active.id : -1;
+    object_idgen      : EIDGen;
+    toolmodes         : array(abstract(ToolMode));
+    active_toolmode   : string | this.toolmode !== undefined ? this.toolmode.constructor.toolDefine().name : "";
+    edit_all_layers   : int;
+    selectmode        : int;
+    fps               : float;
+  }
+`;
+  mixin(Scene, DataPathNode);
+}, '/dev/fairmotion/src/scene/scene.js');
+es6_module_define('sceneobject', ["../core/lib_api.js", "../core/struct.js"], function _sceneobject_module(_es6_module) {
+  var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
+  var DataTypes=es6_import_item(_es6_module, '../core/lib_api.js', 'DataTypes');
+  var DataBlock=es6_import_item(_es6_module, '../core/lib_api.js', 'DataBlock');
+  let UpdateFlags={REDRAW: 1, 
+   TRANSFORM: 1}
+  UpdateFlags = _es6_module.add_export('UpdateFlags', UpdateFlags);
+  let ObjectFlags={SELECT: 1, 
+   HIDE: 2}
+  ObjectFlags = _es6_module.add_export('ObjectFlags', ObjectFlags);
+  class SceneObject extends DataBlock {
+    
+    
+    
+    
+    
+     constructor(data) {
+      super(DataTypes.OBJECT);
+      this.id = -1;
+      this.data = data;
+      this.matrix = new Matrix4();
+      this.loc = new Vector2();
+      this.scale = new Vector2();
+      this.rot = 0.0;
+      this.flag = 0;
+      this.aabb = [new Vector2(), new Vector2()];
+    }
+     recalcAABB() {
+      throw new Error("implement me!");
+    }
+     recalcMatrix() {
+      this.matrix.makeIdentity();
+      this.matrix.scale(this.scale[0], this.scale[1], 1.0);
+      this.matrix.translate(this.loc[0], this.loc[1], 1.0);
+      this.matrix.rotate(0.0, 0.0, this.rot);
+      return this.matrix;
+    }
+     data_link(block, getblock, getblock_us) {
+      this.data = getblock_us(this.data);
+    }
+     update(flag=UpdateFlags.REDRAW) {
+
+    }
+  }
+  _ESClass.register(SceneObject);
+  _es6_module.add_class(SceneObject);
+  SceneObject = _es6_module.add_export('SceneObject', SceneObject);
+  SceneObject.STRUCT = STRUCT.inherit(SceneObject, DataBlock)+`
+  data     : dataref(DataBlock);
+  matrix   : mat4;
+  loc      : vec2;
+  scale    : vec2;
+  rot      : float;
+  flag     : int;
+  id       : int;
+}
+`;
+}, '/dev/fairmotion/src/scene/sceneobject.js');
+es6_module_define('velpan', ["../datafiles/icon_enum.js", "../path.ux/scripts/toolsys/simple_toolsys.js", "../util/vectormath.js", "../path.ux/scripts/toolsys/toolprop.js", "../path.ux/scripts/util/simple_events.js", "../path.ux/scripts/util/util.js"], function _velpan_module(_es6_module) {
+  var Matrix4=es6_import_item(_es6_module, '../util/vectormath.js', 'Matrix4');
+  var Vector2=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector2');
+  var ToolOp=es6_import_item(_es6_module, '../path.ux/scripts/toolsys/simple_toolsys.js', 'ToolOp');
+  var UndoFlags=es6_import_item(_es6_module, '../path.ux/scripts/toolsys/simple_toolsys.js', 'UndoFlags');
+  var keymap=es6_import_item(_es6_module, '../path.ux/scripts/util/simple_events.js', 'keymap');
+  var StringProperty=es6_import_item(_es6_module, '../path.ux/scripts/toolsys/toolprop.js', 'StringProperty');
+  var Vec2Property=es6_import_item(_es6_module, '../path.ux/scripts/toolsys/toolprop.js', 'Vec2Property');
+  es6_import(_es6_module, '../datafiles/icon_enum.js');
+  var util=es6_import(_es6_module, '../path.ux/scripts/util/util.js');
+  let VelPanFlags={UNIFORM_SCALE: 1}
+  VelPanFlags = _es6_module.add_export('VelPanFlags', VelPanFlags);
+  class VelPan  {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+     constructor() {
+      this.bounds = [new Vector2([-2000, -2000]), new Vector2([2000, 2000])];
+      this.decay = 0.995;
+      this.pos = new Vector2();
+      this.scale = new Vector2([1, 1]);
+      this.vel = new Vector2();
+      this.oldpos = new Vector2();
+      this.axes = 3;
+      this.flag = VelPanFlags.UNIFORM_SCALE;
+      this.mat = new Matrix4();
+      this.imat = new Matrix4();
+      this._last_mat = new Matrix4(this.mat);
+      this.onchange = null;
+      this.last_update_time = util.time_ms();
+      this.timer = undefined;
+    }
+     copy() {
+      return new VelPan().load(this);
+    }
+    get  min() {
+      return this.bounds[0];
+    }
+    get  max() {
+      return this.bounds[1];
+    }
+     load(velpan) {
+      this.pos.load(velpan.pos);
+      this.scale.load(velpan.scale);
+      this.axes = velpan.axes;
+      this.bounds[0].load(velpan.bounds[0]);
+      this.bounds[1].load(velpan.bounds[1]);
+      this.update(false);
+      return this;
+    }
+     startVelocity() {
+      if (this.timer===undefined) {
+          this.last_update_time = util.time_ms();
+          this.timer = window.setInterval(this.doVelocity.bind(this), 30);
+      }
+    }
+     doVelocity() {
+      if (this.vel.dot(this.vel)<0.001) {
+          console.log("removing velpan timer");
+          window.clearInterval(this.timer);
+          this.timer = undefined;
+          return ;
+      }
+      let dt=util.time_ms()-this.last_update_time;
+      this.pos.addFac(this.vel, dt);
+      dt = Math.max(dt, 0.001);
+      this.vel.mulScalar(Math.pow(this.decay, dt));
+      this.last_update_time = util.time_ms();
+    }
+     update(fire_events=true, do_velocity=true) {
+      if (do_velocity&&this.vel.dot(this.vel)>0.001) {
+          this.startVelocity();
+      }
+      this.mat.makeIdentity();
+      this.mat.scale(this.scale[0], this.scale[1], 1.0);
+      this.mat.translate(this.pos[0], this.pos[1], 0.0);
+      this.imat.load(this.mat).invert();
+      if (fire_events&&JSON.stringify(this.mat)!=JSON.stringify(this._last_mat)) {
+          this._last_mat.load(this.mat);
+          if (this.onchange)
+            this.onchange(this);
+      }
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+    }
+  }
+  _ESClass.register(VelPan);
+  _es6_module.add_class(VelPan);
+  VelPan = _es6_module.add_export('VelPan', VelPan);
+  VelPan.STRUCT = `
+VelPan {
+  bounds : array(vec2); 
+  pos    : vec2;
+  scale  : vec2;
+  axes   : int;
+  mat    : mat4;
+  imat   : mat4;
+  flag   : int;
+}
+`;
+  nstructjs.manager.add_class(VelPan);
+  class VelPanPanOp extends ToolOp {
+     constructor() {
+      super();
+      this.start_pan = new Vector2();
+      this.first = true;
+      this.last_mpos = new Vector2();
+      this.start_mpos = new Vector2();
+      this.start_time = this.last_time = 0;
+      this._temps = util.cachering.fromConstructor(Vector2, 16);
+    }
+    static  tooldef() {
+      return {uiname: "Pan (2d)", 
+     description: "Pan 2d window", 
+     toolpath: "velpan.pan", 
+     undoflag: UndoFlags.NO_UNDO, 
+     is_modal: true, 
+     icon: -1, 
+     inputs: {velpanPath: new StringProperty(), 
+      pan: new Vec2Property()}}
+    }
+     on_mousemove(e) {
+      let ctx=this.modal_ctx;
+      let path=this.inputs.velpanPath.getValue();
+      let velpan=ctx.api.getValue(ctx, path);
+      if (velpan===undefined) {
+          this.modalEnd();
+          throw new Error("bad velpan path "+path+".");
+      }
+      let mpos=this._temps.next().zero();
+      mpos[0] = e.x;
+      mpos[1] = e.y;
+      if (this.first) {
+          this.start_mpos.load(mpos);
+          this.last_mpos.load(mpos);
+          this.start_pan.load(velpan.pos);
+          this.start_time = util.time_ms();
+          this.last_time = util.time_ms();
+          this.first = false;
+          return ;
+      }
+      let dx=mpos[0]-this.last_mpos[0];
+      let dy=mpos[1]-this.last_mpos[1];
+      dx/=velpan.scale[0];
+      dy/=velpan.scale[1];
+      let pan=this.inputs.pan.getValue();
+      pan[0]+=dx;
+      pan[1]+=dy;
+      velpan.pos.load(this.start_pan);
+      this.exec(this.modal_ctx);
+      this.last_mpos.load(mpos);
+    }
+     exec(ctx) {
+      let path=this.inputs.velpanPath.getValue();
+      let velpan=ctx.api.getValue(ctx, path);
+      if (velpan===undefined) {
+          throw new Error("bad velpan path "+path+".");
+      }
+      velpan.pos.add(this.inputs.pan.getValue());
+      velpan.update(undefined, false);
+      let vel=new Vector2(velpan.pos).sub(velpan.oldpos);
+      vel.mulScalar(1.0/(util.time_ms()-this.last_time));
+      let l=vel.vectorLength();
+      l = Math.min(l, 3.0);
+      vel.normalize().mulScalar(l);
+      velpan.vel.load(vel);
+      velpan.oldpos.load(velpan.pos);
+      this.last_time = util.time_ms();
+      if (velpan.onchange) {
+          velpan.onchange();
+      }
+    }
+     on_mouseup(e) {
+      this.modalEnd();
+    }
+  }
+  _ESClass.register(VelPanPanOp);
+  _es6_module.add_class(VelPanPanOp);
+  VelPanPanOp = _es6_module.add_export('VelPanPanOp', VelPanPanOp);
+  ToolOp.register(VelPanPanOp);
+}, '/dev/fairmotion/src/editors/velpan.js');
+es6_module_define('nodegraph', ["../../core/lib_api.js", "../../path.ux/scripts/pathux.js", "../velpan.js", "../editor_base.js"], function _nodegraph_module(_es6_module) {
+  var Editor=es6_import_item(_es6_module, '../editor_base.js', 'Editor');
+  var nstructjs=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'nstructjs');
+  var util=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'util');
+  var VelPan=es6_import_item(_es6_module, '../velpan.js', 'VelPan');
+  var VelPanPanOp=es6_import_item(_es6_module, '../velpan.js', 'VelPanPanOp');
+  var Vector2=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'Vector2');
+  var UIBase=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'UIBase');
+  var color2css=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'color2css');
+  var css2color=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'css2color');
+  var DataBlock=es6_import_item(_es6_module, '../../core/lib_api.js', 'DataBlock');
+  class NodeViewer extends Editor {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+     constructor() {
+      super();
+      this.graphPath = "";
+      this.graphClass = "";
+      this._last_graph_path = undefined;
+      this.velpan = new VelPan();
+      this.velpan.pos[0] = 0;
+      this.velpan.pos[1] = 0;
+      this.velpan.onchange = this._on_velpan_change.bind(this);
+      this._last_scale = new Vector2();
+      this.canvases = {};
+      this.nodes = {};
+      this.node_idmap = {};
+      this.sockSize = 20;
+      this.extraNodeWidth = 155;
+      this.canvas = document.createElement("canvas");
+      this.g = this.canvas.getContext("2d");
+      this.shadow.appendChild(this.canvas);
+    }
+     init() {
+      super.init();
+      this.velpan.onchange = this._on_velpan_change.bind(this);
+      this.addEventListener("mousedown", (e) =>        {
+        this.push_ctx_active();
+        console.log("node viewer mousedown");
+        let toolop=new VelPanPanOp();
+        toolop.inputs.velpanPath.setValue("nodeViewer.velpan");
+        this.ctx.toolstack.execTool(this.ctx, toolop);
+        this.pop_ctx_active();
+      });
+      this.header.button("Arrange", () =>        {
+        let graph=this.getGraph();
+        console.log("Arranging graph", graph);
+        if (graph) {
+            sortGraphSpatially(graph, {socksize: this.sockSize, 
+        steps: 45, 
+        headerHeight: 75, 
+        extraWidth: this.extraNodeWidth});
+            this.clear();
+            this.rebuild();
+            this.draw();
+        }
+      });
+      this.addEventListener("wheel", (e) =>        {
+        let df=Math.sign(e.deltaY)*0.15;
+        console.log("wheel in node viewer!");
+        this.velpan.scale.mulScalar(1.0-df);
+        this.velpan.update();
+        this.rebuild();
+      });
+    }
+     getGraph() {
+      return this.ctx.api.getValue(this.ctx, this.graphPath);
+    }
+     getCanvas(id) {
+      if (!(id in this.canvases)) {
+          this.canvases[id] = document.createElement("canvas");
+          this.canvases[id].g = this.canvases[id].getContext("2d");
+      }
+      return this.canvases[id];
+    }
+     hashNode(node) {
+      let layout=layoutNode(node, {socksize: this.sockSize});
+      let mask=(1<<19)-1;
+      let mul=(1<<14)-1;
+      let hash=node.graph_id;
+      function dohash(n) {
+        let f=((n+mask)*mul)&mask;
+        hash = hash^f;
+      }
+      let scale=this.velpan.scale;
+      dohash(layout.size[0]*scale[0]);
+      dohash(layout.size[1]*scale[1]);
+      for (let i=0; i<2; i++) {
+          let socks=i ? layout.outputs : layout.inputs;
+          let j=0;
+          for (let k in socks) {
+              let sock=socks[k];
+              dohash(sock[0]*scale[0]);
+              dohash(sock[1]*scale[1]);
+              dohash(j++);
+          }
+      }
+      return hash+":"+node.graph_id;
+    }
+     _on_velpan_change() {
+      if (this._last_scale.vectorDistance(this.velpan.scale)>0.1) {
+          this.rebuild();
+      }
+      else {
+        this.draw();
+      }
+      this._last_scale.load(this.velpan.scale);
+    }
+     clear() {
+      this.canvases = {};
+      this.nodes = {};
+      this.node_idmap = {};
+    }
+     buildNode(node) {
+      let scale=this.velpan.scale;
+      let layout=layoutNode(node, {socksize: this.sockSize, 
+     extraWidth: this.extraNodeWidth});
+      let hash=this.hashNode(node);
+      layout.size = new Vector2(layout.size);
+      layout.size.mulScalar(scale[0]);
+      layout.size.floor();
+      for (let i=0; i<2; i++) {
+          let lsocks=i ? layout.outputs : layout.inputs;
+          let socks=i ? node.outputs : node.inputs;
+          for (let k in lsocks) {
+              let sock=socks[k];
+              let lsock=lsocks[k];
+              lsock = new Vector2(lsock);
+              let color=sock.constructor.nodedef().color;
+              if (color) {
+                  color = color2css(color);
+              }
+              else {
+                color = "orange";
+              }
+              lsock.color = color;
+              lsocks[k] = lsock;
+          }
+      }
+      layout.canvas = this.getCanvas(hash);
+      let canvas=layout.canvas;
+      let g=canvas.g;
+      let ts=this.getDefault("DefaultText").size*1.45;
+      let header=layout.header = ts*this.velpan.scale[0]*1.3*2.5;
+      layout.size[1]+=Math.ceil(header);
+      canvas.width = layout.size[0];
+      canvas.height = layout.size[1];
+      g.font = this.getDefault("DefaultText").genCSS(ts*this.velpan.scale[0]);
+      g.clearRect(0, 0, canvas.width, canvas.height);
+      g.beginPath();
+      g.rect(0, 0, canvas.width, canvas.height);
+      g.lineWidth = 2;
+      g.fillStyle = "grey";
+      g.strokeStyle = "black";
+      g.fill();
+      g.stroke();
+      g.fillStyle = "white";
+      let name=node.graphDisplayName();
+      g.fillText(name, 1, ts*this.velpan.scale[0]*1.3);
+      g.fillText("("+node.constructor.name+")", 45*this.velpan.scale[0], ts*this.velpan.scale[0]*1.3*1.7);
+      layout.graph_id = node.graph_id;
+      this.nodes[hash] = layout;
+      this.node_idmap[node.graph_id] = layout;
+      for (let i=0; i<2; i++) {
+          let y=0.0;
+          let socks=i ? layout.outputs : layout.inputs;
+          for (let k in socks) {
+              let sock=socks[k];
+              sock[1]+=header/this.velpan.scale[0];
+              let w=g.measureText(k).width;
+              let x=i ? layout.size[0]-w : 0;
+              let y=sock[1]*this.velpan.scale[0];
+              g.fillText(k, x, y);
+          }
+      }
+      return layout;
+    }
+     updateCanvaSize() {
+      let canvas=this.canvas;
+      let size=this.size;
+      let dpi=UIBase.getDPI();
+      let w=~~(size[0]*dpi);
+      let h=~~(size[1]*dpi);
+      canvas.width = w;
+      canvas.height = h;
+      canvas.style["width"] = size[0]+"px";
+      canvas.style["height"] = size[1]+"px";
+    }
+     draw() {
+      let canvas=this.canvas;
+      let g=this.g;
+      this.updateCanvaSize();
+      g.clearRect(0, 0, canvas.width, canvas.height);
+      g.font = this.getDefault("DefaultText").genCSS();
+      g.strokeStyle = "black";
+      let transform=(p) =>        {
+        p[0]-=canvas.width*0.5;
+        p[1]-=canvas.height*0.5;
+        p.multVecMatrix(this.velpan.mat);
+        p[0]+=canvas.width*0.5;
+        p[1]+=canvas.height*0.5;
+      };
+      let p=new Vector2(), p2=new Vector2(), p3=new Vector2(), p4=new Vector2();
+      let s=new Vector2();
+      function find_sock_key(node, sock) {
+        for (let k in node.inputs) {
+            if (node.inputs[k]===sock) {
+                return k;
+            }
+        }
+      }
+      g.beginPath();
+      let sz=this.sockSize;
+      let graph=this.getGraph();
+      let rebuild=false;
+      for (let k1 in this.nodes) {
+          let node=this.nodes[k1];
+          p.load(node.pos);
+          let node2=graph.node_idmap[node.graph_id];
+          if (node2===undefined) {
+              rebuild = true;
+              continue;
+          }
+          for (let k in node2.inputs) {
+              let sock=node2.inputs[k];
+              for (let sock2 of sock.edges) {
+                  let node3=this.node_idmap[sock2.node.graph_id];
+                  sock2 = find_sock_key(sock2);
+                  node3 = this.node_idmap[node3.graph_id];
+                  let lsock1=node.inputs[k];
+                  let lsock2=node3.outputs[k];
+                  p2.load(node.pos).add(lsock1);
+                  p3.load(node3.pos).add(lsock2);
+                  transform(p2);
+                  transform(p3);
+                  g.moveTo(p2[0], p2[1]);
+                  g.lineTo(p3[0], p3[1]);
+              }
+          }
+      }
+      if (rebuild) {
+          this.rebuild();
+          this.doOnce(this.draw);
+          return ;
+      }
+      g.strokeStyle = "white";
+      g.stroke();
+      for (let k2 in this.nodes) {
+          let node=this.nodes[k2];
+          p.load(node.pos);
+          for (let i=0; i<2; i++) {
+              let socks=i ? node.outputs : node.inputs;
+              for (let k in socks) {
+                  let sock=socks[k];
+                  p2.load(sock);
+                  p2.add(p);
+                  transform(p2);
+                  g.beginPath();
+                  g.fillStyle = sock.color;
+                  g.moveTo(p2[0], p2[1]);
+                  g.arc(p2[0], p2[1], sz*0.35, -Math.PI, Math.PI);
+                  g.fill();
+              }
+          }
+      }
+      g.fill();
+      g.fillStyle = "grey";
+      g.beginPath();
+      for (let k in this.nodes) {
+          let node=this.nodes[k];
+          p.load(node.pos);
+          s.load(node.size);
+          transform(p);
+          g.drawImage(node.canvas, p[0], p[1]);
+      }
+      g.fill();
+      g.stroke();
+    }
+     rebuild() {
+      if (!this.ctx) {
+          return ;
+      }
+      this._last_graph_path = this.graphPath;
+      console.log("rebuilding node editor");
+      this.updateCanvaSize();
+      let canvas=this.canvas;
+      let g=this.g;
+      let size=this.size;
+      let dpi=UIBase.getDPI();
+      let graph=this.ctx.api.getValue(this.ctx, this.graphPath);
+      if (this.graphPath===""||graph===undefined) {
+          console.warn("Failed to load graph!");
+          this._last_graph_path = undefined;
+          return ;
+      }
+      let visit=new util.set();
+      for (let node of graph.nodes) {
+          let hash=this.hashNode(node);
+          visit.add(hash);
+          if (!(hash in this.nodes)) {
+              this.buildNode(node);
+          }
+      }
+      let del=[];
+      for (let k in this.canvases) {
+          if (!visit.has(k)) {
+              del.push(k);
+          }
+      }
+      for (let k of del) {
+          delete this.canvases[k];
+          delete this.nodes[k];
+      }
+      this.draw();
+    }
+     on_resize() {
+      this.draw();
+    }
+     update() {
+      if (this._last_graph_path!==this.graphPath) {
+          this.clear();
+          this.rebuild();
+      }
+      this.velpan.update();
+    }
+    static  define() {
+      return {tagname: "nodegraph-viewer-x", 
+     areaname: "nodegraph_viewer", 
+     uiname: "Graph Viewer"}
+    }
+  }
+  _ESClass.register(NodeViewer);
+  _es6_module.add_class(NodeViewer);
+  NodeViewer = _es6_module.add_export('NodeViewer', NodeViewer);
+  NodeViewer.STRUCT = nstructjs.inherit(NodeViewer, Editor)+`
+  graphPath  : string;
+  graphClass : string;
+  velpan     : VelPan;
+}`;
+  Editor.register(NodeViewer);
+  nstructjs.register(NodeViewer);
+}, '/dev/fairmotion/src/editors/nodegraph/nodegraph.js');
+es6_module_define('nodegraph_base', [], function _nodegraph_base_module(_es6_module) {
+}, '/dev/fairmotion/src/editors/nodegraph/nodegraph_base.js');
+es6_module_define('nodegraph_ops', [], function _nodegraph_ops_module(_es6_module) {
+}, '/dev/fairmotion/src/editors/nodegraph/nodegraph_ops.js');
+es6_module_define('widgets', ["../path.ux/scripts/util/util.js", "../path.ux/scripts/util/struct.js", "../path.ux/scripts/core/ui.js", "../image/image_ops.js", "../path.ux/scripts/core/ui_base.js"], function _widgets_module(_es6_module) {
+  var UIBase=es6_import_item(_es6_module, '../path.ux/scripts/core/ui_base.js', 'UIBase');
+  var Icons=es6_import_item(_es6_module, '../path.ux/scripts/core/ui_base.js', 'Icons');
+  var PackFlags=es6_import_item(_es6_module, '../path.ux/scripts/core/ui_base.js', 'PackFlags');
+  var nstructjs=es6_import(_es6_module, '../path.ux/scripts/util/struct.js');
+  var util=es6_import(_es6_module, '../path.ux/scripts/util/util.js');
+  var Container=es6_import_item(_es6_module, '../path.ux/scripts/core/ui.js', 'Container');
+  var LoadImageOp=es6_import_item(_es6_module, '../image/image_ops.js', 'LoadImageOp');
+  class IDBrowser extends Container {
+     constructor() {
+      super();
+      this.idlist = {};
+    }
+     init() {
+      super.init();
+      let name=undefined;
+      try {
+        let block=this.getPathValue(this.ctx, this.getAttribute("datapath"));
+        if (block) {
+            name = block.name;
+        }
+      }
+      catch (error) {
+          util.print_stack(error);
+      }
+      this.buildEnum();
+      this.listbox = this.listenum(undefined, {enumDef: this.idlist, 
+     callback: this._on_select.bind(this), 
+     defaultval: name});
+    }
+     _on_select(lib_id) {
+      let block=this.ctx.datalib.idmap[lib_id];
+      if (block) {
+          console.log("block:", block);
+          let path=this.getAttribute("datapath");
+          this.setPathValue(this.ctx, path, block);
+      }
+      else {
+        console.warn("unknown block with id '"+lib_id+"'");
+      }
+    }
+     buildEnum() {
+      let path=this.getAttribute("datapath");
+      let rdef=path ? this.ctx.api.resolvePath(this.ctx, path) : undefined;
+      if (!path||!rdef||!rdef.prop) {
+          console.error("Datapath error");
+          return ;
+      }
+      let prop=rdef.prop;
+      let datalib=this.ctx.datalib;
+      let lst=[];
+      for (let block of datalib.allBlocks) {
+          if (prop.types.has(block.lib_type)) {
+              lst.push(block);
+          }
+      }
+      lst.sort((a, b) =>        {
+        return (a.name.toLowerCase()<b.name.toLowerCase())*2-1;
+      });
+      let def={};
+      this.idlist = def;
+      for (let block of lst) {
+          def[block.name] = block.lib_id;
+      }
+      return def;
+    }
+     updateDataPath() {
+      let path=this.getAttribute("datapath");
+      if (!path)
+        return ;
+      let value=this.getPathValue(this.ctx, path);
+      let name="";
+      if (value===undefined) {
+          name = "";
+      }
+      else {
+        name = value.name;
+      }
+      if (name!==this.listbox.value) {
+          this.listbox.setAttribute("name", name);
+      }
+    }
+     update() {
+      super.update();
+      this.updateDataPath();
+    }
+     setCSS() {
+      super.setCSS();
+    }
+    static  define() {
+      return {tagname: "id-browser-x"}
+    }
+  }
+  _ESClass.register(IDBrowser);
+  _es6_module.add_class(IDBrowser);
+  IDBrowser = _es6_module.add_export('IDBrowser', IDBrowser);
+  UIBase.register(IDBrowser);
+  class ImageUserPanel extends Container {
+     constructor() {
+      super();
+    }
+     init() {
+      super.init();
+      let path=this.getAttribute("datapath");
+      let row=this.row();
+      let idbrowser=document.createElement("id-browser-x");
+      idbrowser.setAttribute("datapath", path+".image");
+      row.add(idbrowser);
+      row.button("Open", () =>        {
+        let toolop=new LoadImageOp(this.getAttribute("datapath")+".image");
+        this.ctx.api.execTool(this.ctx, toolop);
+      });
+      this.prop(path+".off", PackFlags.NO_NUMSLIDER_TEXTBOX);
+      this.prop(path+".scale", PackFlags.NO_NUMSLIDER_TEXTBOX);
+      this.setCSS();
+    }
+     update() {
+      super.update();
+    }
+     setCSS() {
+      super.setCSS();
+      let w=150;
+      this.style["width"] = w+"px";
+    }
+    static  define() {
+      return {tagname: "image-user-panel-x"}
+    }
+  }
+  _ESClass.register(ImageUserPanel);
+  _es6_module.add_class(ImageUserPanel);
+  ImageUserPanel = _es6_module.add_export('ImageUserPanel', ImageUserPanel);
+  UIBase.register(ImageUserPanel);
+}, '/dev/fairmotion/src/editors/widgets.js');
+es6_module_define('all', ["./viewport/view2d.js", "./settings/SettingsEditor.js", "./curve/CurveEditor.js", "./ops/ops_editor.js", "./dopesheet/DopeSheetEditor.js", "./material/MaterialEditor.js", "./console/console.js", "./menubar/MenuBar.js"], function _all_module(_es6_module) {
+  es6_import(_es6_module, './viewport/view2d.js');
+  es6_import(_es6_module, './dopesheet/DopeSheetEditor.js');
+  es6_import(_es6_module, './ops/ops_editor.js');
+  es6_import(_es6_module, './console/console.js');
+  es6_import(_es6_module, './material/MaterialEditor.js');
+  es6_import(_es6_module, './curve/CurveEditor.js');
+  es6_import(_es6_module, './menubar/MenuBar.js');
+  es6_import(_es6_module, './settings/SettingsEditor.js');
+}, '/dev/fairmotion/src/editors/all.js');
+es6_module_define('console', ["../../path.ux/scripts/util/html5_fileapi.js", "../editor_base.js", "../../path.ux/scripts/pathux.js", "../../path.ux/scripts/util/util.js"], function _console_module(_es6_module) {
+  var Editor=es6_import_item(_es6_module, '../editor_base.js', 'Editor');
+  var color2css=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'color2css');
+  var css2color=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'css2color');
+  var UIBase=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'UIBase');
+  var keymap=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'keymap');
+  var util=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'util');
+  var cconst=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'cconst');
+  var nstructjs=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'nstructjs');
+  var Vector2=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'Vector2');
+  var Vector3=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'Vector3');
+  var Matrix4=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'Matrix4');
+  var termColorMap=es6_import_item(_es6_module, '../../path.ux/scripts/util/util.js', 'termColorMap');
+  var loadFile=es6_import_item(_es6_module, '../../path.ux/scripts/util/html5_fileapi.js', 'loadFile');
+  let g_screen=undefined;
+  let _silence=() =>    {  }
+  let _unsilence=() =>    {  }
+  let _patched=false;
+  function patch_console() {
+    if (_patched) {
+        return ;
+    }
+    _patched = true;
+    let methods={}
+    let ignore=0;
+    _silence = () =>      {
+      return ignore = 1;
+    }
+    _unsilence = () =>      {
+      return ignore = 0;
+    }
+    let handlers={}
+    function patch(key) {
+      handlers[key] = function () {
+        setTimeout(() =>          {
+          if (ignore||!g_screen) {
+              return ;
+          }
+          for (let sarea of g_screen.sareas) {
+              if (__instance_of(sarea.area, ConsoleEditor)) {
+                  sarea.area[key](...arguments);
+              }
+          }
+        }, 0);
+      }
+      methods[key] = console[key].bind(console);
+      console[key] = function () {
+        methods[key](...arguments);
+        handlers[key](...arguments);
+      }
+    }
+    patch("log");
+    patch("warn");
+    patch("error");
+    patch("trace");
+  }
+  const NO_CHILDREN=0x7ffff;
+  const LineFlags={ACTIVE: 1, 
+   TWO_LINE: 2}
+  class ConsoleLineEntry  {
+    
+    
+    
+    
+    
+    
+    
+     constructor(line, loc="", fg="", bg="") {
+      this.line = ""+line;
+      this.loc = ""+loc;
+      this.bg = ""+bg;
+      this.fg = ""+fg;
+      this.closed = false;
+      this.parent = 0;
+      this.children = NO_CHILDREN;
+      this.flag = 0;
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+    }
+  }
+  _ESClass.register(ConsoleLineEntry);
+  _es6_module.add_class(ConsoleLineEntry);
+  ConsoleLineEntry = _es6_module.add_export('ConsoleLineEntry', ConsoleLineEntry);
+  ConsoleLineEntry.STRUCT = `
+ConsoleLineEntry {
+    line     : string;
+    loc      : string;
+    bg       : string;
+    fg       : string; 
+    closed   : bool;
+    parent   : int;
+    children : int;
+    flag     : int | this.flag & ~1;
+}
+`;
+  nstructjs.register(ConsoleLineEntry);
+  class ConsoleCommand  {
+     constructor(cmd) {
+      this.command = cmd;
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+    }
+  }
+  _ESClass.register(ConsoleCommand);
+  _es6_module.add_class(ConsoleCommand);
+  ConsoleCommand = _es6_module.add_export('ConsoleCommand', ConsoleCommand);
+  ConsoleCommand.STRUCT = `
+ConsoleCommand {
+    command : string;
+}
+`;
+  nstructjs.register(ConsoleCommand);
+  const HitBoxTypes={TOGGLE_CHILDREN: 0, 
+   CUSTOM: 1}
+  _es6_module.add_export('HitBoxTypes', HitBoxTypes);
+  class HitBox  {
+    
+    
+     constructor(x, y, w, h) {
+      this.pos = new Vector2([x, y]);
+      this.size = new Vector2([w, h]);
+      this.type = HitBoxTypes.TOGGLE_CHILDREN;
+      this.onhit = null;
+      this.lines = [];
+    }
+     toggle(e, editor) {
+      _silence();
+      for (let l of this.lines) {
+          let i=editor.lines.indexOf(l);
+          let starti=i;
+          if (l.children===NO_CHILDREN) {
+              continue;
+          }
+          i+=l.children;
+          let j=0;
+          while (j++<editor.lines.length) {
+            let l2=editor.lines[i];
+            if (editor.lines[i+l2.parent]!==l) {
+                break;
+            }
+            l2.closed^=1;
+            i++;
+          }
+      }
+      editor.queueRedraw();
+      _unsilence();
+    }
+     click(e, editor) {
+      if (this.type===HitBoxTypes.TOGGLE_CHILDREN) {
+          this.toggle(e, editor);
+          console.log("click!");
+      }
+    }
+  }
+  _ESClass.register(HitBox);
+  _es6_module.add_class(HitBox);
+  HitBox = _es6_module.add_export('HitBox', HitBox);
+  class ConsoleEditor extends Editor {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+     constructor() {
+      super();
+      this._animreq = 0;
+      this.redraw = this.redraw.bind(this);
+      this.hitboxes = [];
+      this.fontsize = 12;
+      this.lines = [];
+      this.lines.active = undefined;
+      this.history = [];
+      this.history.cur = 0;
+      this.head = 0;
+      this.bufferSize = 512;
+      this.scroll = new Vector2();
+      this.colors = {error: "red", 
+     error_bg: "rgb(55,55,55,1.0)", 
+     warning: "yellow", 
+     object: "blue", 
+     loc: "blue", 
+     source: "white", 
+     warning_bg: "rgb(50, 50, 0)"};
+      this.colormap = {"red": "rgb(255, 100, 100)", 
+     "blue": "rgb(125, 125, 255)"};
+    }
+     on_area_active() {
+      patch_console();
+    }
+     formatMessage() {
+      let s="";
+      let prev="";
+      function safestr(obj) {
+        if (typeof obj==="object"&&Array.isArray(obj)) {
+            let s="[\n";
+            let i=0;
+            for (let item of obj) {
+                if (i>0) {
+                    s+=",\n";
+                }
+                s+="  "+safestr(item);
+                i++;
+            }
+            s+="]\n";
+            return s;
+        }
+        return typeof obj==="symbol" ? obj.toString() : ""+obj;
+      }
+      for (let i=0; i<arguments.length; i++) {
+          let arg=safestr(arguments[i]);
+          let s2=""+arg;
+          let next=i<arguments.length-1 ? (safestr(arguments[i+1])).trim() : "";
+          if (s2.startsWith("%c")) {
+              s2 = s2.slice(2, s2.length);
+              let style=next.replace(/\n/g, "").split(";");
+              for (let line of style) {
+                  line = (""+line).trim().split(":");
+                  if (line.length===2&&(""+line[0]).trim()==="color") {
+                      let color=(""+line[1]).trim().toLowerCase();
+                      if (color in util.termColorMap) {
+                          s2 = termColor(s2, color);
+                      }
+                  }
+              }
+              i++;
+          }
+          s+=s2+" ";
+          prev = s2;
+      }
+      return (""+s).trim();
+    }
+     formatStackLine(stack, parts=false) {
+      if (stack.search("at")<0) {
+          return "";
+      }
+      stack = ""+stack;
+      stack = stack.replace("at ", "").trim();
+      let i=stack.length-1;
+      while (i>0&&stack[i]!=="/"&&stack[i]!=="\\") {
+        i--;
+      }
+      let i2=stack.search("\\(");
+      let prefix=i2>=0 ? (""+stack.slice(0, i2)).trim() : "";
+      if (prefix.length>0) {
+          prefix+=":";
+      }
+      stack = stack.slice(i+1, stack.length-1);
+      if (parts) {
+          return [prefix, stack];
+      }
+      return util.termColor(prefix, this.colors["object"])+util.termColor(stack, this.colors["source"]);
+    }
+     push(msg, linefg="", linebg="", childafter=false) {
+      let stack=""+new Error().stack;
+      stack = (""+stack.split("\n")[5]).trim();
+      stack = this.formatStackLine(stack);
+      let ls=msg.split("\n");
+      for (let i=0; i<ls.length; i++) {
+          let l=ls[i];
+          let loc="";
+          if (i===ls.length-1) {
+              loc = stack;
+          }
+          l = new ConsoleLineEntry(l, loc, linefg, linebg);
+          if (childafter) {
+              l.children = ls.length-i;
+          }
+          this.pushLine(l);
+      }
+    }
+     pushLine(line) {
+      if (line===undefined) {
+          line = "";
+      }
+      if (typeof line==="string") {
+          line = new ConsoleLineEntry(line, "");
+      }
+      if (this.lines.length>=this.bufferSize) {
+          this.lines[this.head] = line;
+          this.head = (this.head+1)%this.lines.length;
+      }
+      else {
+        this.lines.push(line);
+        this.head = this.lines.length;
+      }
+      _silence();
+      this.queueRedraw();
+      _unsilence();
+      if (Math.abs(this.scroll[1])>10) {
+      }
+    }
+    get  lineHeight() {
+      return this.fontsize*1.3*UIBase.getDPI();
+    }
+     printStack(start=0, fg="", bg="", closed=true) {
+      let stack=(""+new Error().stack).split("\n");
+      let off=-1;
+      for (let i=start; i<stack.length; i++) {
+          let s=stack[i];
+          let l=this.formatStackLine(s, true);
+          l[0] = "  "+(""+l[0]).trim();
+          l = new ConsoleLineEntry(l[0], l[1], fg, bg);
+          l.closed = closed;
+          l.parent = off--;
+          this.pushLine(l);
+      }
+    }
+     warn() {
+      let msg=this.formatMessage(...arguments);
+      msg = util.termColor(msg, 1);
+      this.push(msg, this.colors["warning"], this.colors["warning_bg"], true);
+      this.printStack(5, undefined, this.colors["warning_bg"], true);
+    }
+     error() {
+      let msg=this.formatMessage(...arguments);
+      msg = util.termColor(msg, 1);
+      this.push(msg, this.colors["error"], this.colors["error_bg"], true);
+      this.printStack(5, undefined, this.colors["error_bg"], true);
+    }
+     trace() {
+      let msg=this.formatMessage(...arguments);
+      this.push(msg);
+      this.printStack(5, undefined, undefined, false);
+    }
+     log() {
+      let msg=this.formatMessage(...arguments);
+      this.push(msg);
+    }
+     _mouse(e) {
+      let x=e.x, y=e.y;
+      let rect=this.canvas.getClientRects()[0];
+      let dpi=UIBase.getDPI();
+      if (rect) {
+          x-=rect.x;
+          y-=rect.y;
+          x*=dpi;
+          y*=dpi;
+      }
+      let e2={preventDefault: e.preventDefault.bind(e), 
+     stopPropagation: e.stopPropagation.bind(e), 
+     buttons: e.buttons, 
+     button: e.button, 
+     shiftKey: e.shiftKey, 
+     ctrlKey: e.ctrlKey, 
+     altKey: e.altKey, 
+     commandKey: e.commandKey, 
+     x: x, 
+     y: y, 
+     pageX: x, 
+     pageY: y, 
+     touches: e.touches};
+      return e2;
+    }
+     on_mousedown(e) {
+      e = this._mouse(e);
+      let hb=this.updateActive(e.x, e.y);
+      if (hb) {
+          hb.click(e, this);
+      }
+      _silence();
+      console.log(e.x, e.y);
+      _unsilence();
+    }
+     on_mousemove(e) {
+      _silence();
+      e = this._mouse(e);
+      this.updateActive(e.x, e.y);
+      _unsilence();
+    }
+     updateActive(x, y) {
+      let found=0;
+      for (let hb of this.hitboxes) {
+          let ok=1;
+          ok = ok&&(x>hb.pos[0]&&x<=hb.pos[0]+hb.size[0]);
+          ok = ok&&(y>hb.pos[1]&&y<=hb.pos[1]+hb.size[1]);
+          if (ok) {
+              found = 1;
+              if (this.lines.active!==undefined) {
+                  this.lines.active.flag&=~LineFlags.ACTIVE;
+              }
+              if (hb.lines.length>0) {
+                  if (this.lines.active!==hb.lines[0]) {
+                      hb.lines[0].flag|=LineFlags.ACTIVE;
+                      this.lines.active = hb.lines[0];
+                      this.queueRedraw();
+                  }
+                  return hb;
+              }
+          }
+      }
+      if (!found&&this.lines.active) {
+          this.lines.active.flag&=~LineFlags.ACTIVE;
+          this.queueRedraw();
+      }
+    }
+     on_mouseup(e) {
+      e = this._mouse(e);
+      _silence();
+      console.log(e.x, e.y);
+      _unsilence();
+    }
+     init() {
+      super.init();
+      this.addEventListener("mousewheel", (e) =>        {
+        this.scroll[1]+=-e.deltaY;
+        this.queueRedraw();
+      });
+      let header=this.header;
+      let container=this.container;
+      let col=container.col();
+      let canvas=this.canvas = document.createElement("canvas");
+      let g=this.g = canvas.getContext("2d");
+      canvas.addEventListener("mousemove", this.on_mousemove.bind(this));
+      canvas.addEventListener("mousedown", this.on_mousedown.bind(this));
+      canvas.addEventListener("mouseup", this.on_mouseup.bind(this));
+      col.shadow.appendChild(canvas);
+      let textbox=this.textbox = document.createElement("input");
+      textbox.type = "text";
+      col.shadow.appendChild(textbox);
+      textbox.style["width"] = "100%";
+      textbox.style["height"] = "25px";
+      textbox.style["padding-left"] = "5px";
+      textbox.style["padding-top"] = "1px";
+      textbox.style["padding-bottom"] = "1px";
+      textbox.oninput = this._on_change.bind(this);
+      textbox.onkeydown = this._on_keydown.bind(this);
+      this.setCSS();
+      this.update();
+      this.queueRedraw();
+    }
+     _on_change(e) {
+      _silence();
+      console.log("yay", e);
+      _unsilence();
+    }
+     pushHistory(cmd) {
+      let lasti=this.history.cur-1;
+      let last=this.history.length>0&&this.history.cur>0 ? this.history[lasti].command : undefined;
+      if (cmd===last) {
+          return ;
+      }
+      _silence();
+      console.log("history insert");
+      _unsilence();
+      let command=new ConsoleCommand(cmd);
+      this.history.push(command);
+      this.history.cur = this.history.length;
+    }
+     doCommand(cmd) {
+      this.scroll[1] = 0.0;
+      this.pushHistory(cmd);
+      let v=undefined;
+      try {
+        v = eval(cmd);
+      }
+      catch (error) {
+          console.error(error);
+          return ;
+      }
+      console.log(v);
+    }
+     doTab(cmd="") {
+      let i=cmd.length-1;
+      while (i>=0) {
+        if (cmd[i]==="."||cmd[i]==="]"||cmd[i]===")") {
+            break;
+        }
+        i--;
+      }
+      let prefix;
+      let suffix;
+      let join="";
+      if (i<=0) {
+          prefix = "";
+          suffix = (""+cmd).trim();
+      }
+      else {
+        prefix = cmd.slice(0, i).trim();
+        suffix = cmd.slice(i+1, cmd.length).trim();
+        join = cmd[i];
+      }
+      _silence();
+      console.log("p:", prefix);
+      console.log("s:", suffix);
+      _unsilence();
+      let obj;
+      try {
+        obj = prefix==="" ? window : eval(prefix);
+      }
+      catch (error) {
+          obj = undefined;
+      }
+      _silence();
+      console.log(obj);
+      _unsilence();
+      if (typeof obj!=="object"&&typeof obj!=="function") {
+          return ;
+      }
+      let keys=Reflect.ownKeys(obj);
+      keys = keys.concat(Object.keys(Object.getOwnPropertyDescriptors(obj)));
+      keys = keys.concat(Object.keys(Object.getOwnPropertyDescriptors(obj.__proto__)));
+      keys = new Set(keys);
+      let keys2=[];
+      for (let k of keys) {
+          keys2.push(k);
+      }
+      keys = keys2;
+      let list=[];
+      let lsuffix=suffix.toLowerCase();
+      let hit=suffix;
+      let hit2=undefined;
+      keys.sort((a, b) =>        {
+        return a.length-b.length;
+      });
+      for (let k of keys) {
+          if (typeof k!=="string") {
+              continue;
+          }
+          if (suffix.length===0) {
+              list.push(k);
+              continue;
+          }
+          if (k.startsWith(suffix)&&(hit2===undefined||k.length<hit2.length)) {
+              hit = k;
+              hit2 = k;
+          }
+          if (k.toLowerCase().startsWith(lsuffix)) {
+              list.push(k);
+          }
+      }
+      _silence();
+      console.log(hit);
+      console.log(list);
+      _unsilence();
+      let printall=0;
+      if (hit) {
+          let s=(prefix+join+hit).trim();
+          if (s===this.textbox.value) {
+              printall = 1;
+          }
+          this.textbox.value = s;
+          this.textbox.setSelectionRange(s.length, s.length);
+          window.tb = this.textbox;
+      }
+      else {
+        printall = 1;
+      }
+      if (printall) {
+          this.scroll[1] = 0.0;
+          this.pushLine(new ConsoleLineEntry(""));
+          for (let k of list) {
+              let l=new ConsoleLineEntry("  "+k);
+              this.pushLine(l);
+          }
+      }
+    }
+     goHistory(di) {
+      if (this.history.length===0) {
+          return ;
+      }
+      let i=this.history.cur;
+      let push=(this.textbox.value.trim().length>0);
+      if (push) {
+          this.pushHistory(this.textbox.value.trim());
+      }
+      i = Math.min(Math.max(i+di, 0), this.history.length-1);
+      this.history.cur = i;
+      let s=this.history[i].command.trim();
+      this.textbox.value = s;
+      this.textbox.setSelectionRange(s.length, s.length);
+    }
+     popup(x, y) {
+
+    }
+     _on_keydown(e) {
+      _silence();
+      console.log(e.keyCode);
+      _unsilence();
+      e.stopPropagation();
+      switch (e.keyCode) {
+        case keymap["R"]:
+          if ((e.ctrlKey|e.commandKey)&&!e.shiftKey&&!e.altKey) {
+              location.reload();
+          }
+          break;
+        case keymap["Tab"]:
+          this.doTab(this.textbox.value);
+          e.preventDefault();
+          e.stopPropagation();
+          break;
+        case keymap["Enter"]:
+          this.doCommand(this.textbox.value);
+          this.textbox.value = "";
+          break;
+        case keymap["Up"]:
+          this.goHistory(-1);
+          break;
+        case keymap["Down"]:
+          this.goHistory(1);
+          break;
+      }
+    }
+     redraw() {
+      this._animreq = 0;
+      this.hitboxes = [];
+      if (!this.canvas||!this.g) {
+          return ;
+      }
+      let ts=this.fontsize*UIBase.getDPI();
+      let canvas=this.canvas;
+      let g=this.g;
+      let c=this.getDefault("DefaultText").color;
+      let font=this.getDefault("DefaultText");
+      c = css2color(c);
+      for (let i=0; i<3; i++) {
+          let f=1.0-c[i];
+          c[i]+=(f-c[i])*0.75;
+      }
+      let bg=color2css(c);
+      g.resetTransform();
+      g.fillStyle = bg;
+      g.rect(0, 0, canvas.width, canvas.height);
+      g.fill();
+      g.font = font.genCSS(ts);
+      g.fillStyle = font.color;
+      let width=canvas.width, height=canvas.height;
+      let lh=this.lineHeight;
+      let pad1=10*UIBase.getDPI();
+      let scroll=this.scroll;
+      let x=scroll[0];
+      let y=scroll[1]+5+canvas.height-lh;
+      let this2=this;
+      let color=g.font.color;
+      let fontcpy=font.copy();
+      let stateMachine={stack: [], 
+     start: function start(x, y, color) {
+          this.stack.length = 0;
+          this.x = x;
+          this.y = y;
+          this.state = this.base;
+          this.d = 0;
+          this.param1 = 0;
+          this.param2 = 0;
+          this.bgcolor = undefined;
+          this.color = color;
+          this.font = g.font;
+        }, 
+     escape: function escape(c) {
+          let ci=c.charCodeAt(0);
+          if (this.d===0&&c==="[") {
+              this.d++;
+          }
+          else 
+            if (this.d===1&&ci>=48&&ci<=57) {
+              this.param1 = c;
+              this.d++;
+          }
+          else 
+            if (this.d===2&&ci>=48&&ci<=57) {
+              this.param2 = c;
+              this.d++;
+          }
+          else 
+            if (c==="m"&&this.d>=2) {
+              let tcolor=this.param1;
+              if (this.d>2) {
+                  tcolor+=this.param2;
+              }
+              tcolor = parseInt(tcolor);
+              if (tcolor===0) {
+                  font.copyTo(fontcpy);
+                  fontcpy.color = color;
+                  this.bgcolor = undefined;
+                  this.color = fontcpy.color;
+                  this.font = fontcpy.genCSS(ts);
+              }
+              else 
+                if (tcolor===1) {
+                  fontcpy.weight = "bold";
+                  this.font = fontcpy.genCSS(ts);
+              }
+              else 
+                if (tcolor===4) {
+              }
+              else 
+                if (tcolor>=40) {
+                  this.bgcolor = termColorMap[tcolor-10];
+                  if (this.bgcolor&&this.bgcolor in this2.colormap) {
+                      this.bgcolor = this2.colormap[this.bgcolor];
+                  }
+              }
+              else {
+                this.color = termColorMap[tcolor];
+                if (this.color&&this.color in this2.colormap) {
+                    this.color = this2.colormap[this.color];
+                }
+              }
+              this.state = this.base;
+          }
+          else {
+            this.state = this.base;
+            return "?";
+          }
+          return false;
+        }, 
+     base: function base(c) {
+          let ci=c.charCodeAt(0);
+          if (ci===27) {
+              this.state = this.escape;
+              this.d = 0;
+              this.param1 = "";
+              this.param2 = "";
+              return false;
+          }
+          if (c===" ") {
+              this.x+=ts;
+              return false;
+          }
+          else 
+            if (c=="\t") {
+              this.x+=ts*2.0;
+              return false;
+          }
+          if (ci<30) {
+              return "?";
+          }
+          return c;
+        }};
+      let fillText=(s, x, y, bg) =>        {
+        stateMachine.start(x, y, color);
+        for (let i=0; i<s.length; i++) {
+            let c=s[i];
+            c = stateMachine.state(c);
+            if (c===false) {
+                continue;
+            }
+            if (stateMachine.font!==g.font) {
+                g.font = stateMachine.font;
+            }
+            let w=g.measureText(c).width;
+            stateMachine.x+=w;
+            if (stateMachine.bgcolor!==undefined) {
+                g.beginPath();
+                g.rect(stateMachine.x, stateMachine.y+2, w, ts);
+                let old=g.fillStyle;
+                g.fillStyle = stateMachine.bgcolor;
+                g.fill();
+                g.fillStyle = old;
+            }
+            g.fillStyle = stateMachine.color;
+            g.fillText(c, stateMachine.x, stateMachine.y);
+        }
+      };
+      let measureText=(s) =>        {
+        stateMachine.start(0, 0, color);
+        for (let i=0; i<s.length; i++) {
+            let c=s[i];
+            c = stateMachine.state(c);
+            if (c===false) {
+                continue;
+            }
+            if (stateMachine.font!==g.font) {
+                g.font = stateMachine.font;
+            }
+            let w=g.measureText(c).width;
+            stateMachine.x+=w;
+            g.fillStyle = stateMachine.color;
+            g.fillText(c, stateMachine.x, stateMachine.y);
+        }
+        return {width: stateMachine.x}
+      };
+      let lines=this.lines;
+      for (let li2=lines.length-1; li2>=0; li2--) {
+          let li=(li2+this.head)%this.lines.length;
+          let l=lines[li];
+          let s=l.line;
+          if (l.closed||y<-lh*4||y>=canvas.height+lh*3) {
+              if (!l.closed) {
+                  y-=lh;
+                  if (l.flag&LineFlags.TWO_LINE) {
+                      y-=lh;
+                  }
+              }
+              continue;
+          }
+          if (l.bg) {
+              g.beginPath();
+              g.fillStyle = l.bg;
+              g.rect(x, y-ts+2, canvas.width, ts+3);
+              g.fill();
+          }
+          if (l.flag&LineFlags.ACTIVE) {
+              g.beginPath();
+              g.fillStyle = "rgb(255,255,255,0.2)";
+              g.rect(x, y-ts+2, canvas.width, ts+3);
+              g.fill();
+          }
+          color = l.fg ? l.fg : font.color;
+          g.fillStyle = font.color;
+          let w1=measureText(s).width;
+          if (l.loc.length>0) {
+              let w2=measureText(l.loc).width;
+              if (w1+w2+pad1*2<canvas.width) {
+                  l.flag&=~LineFlags.TWO_LINE;
+                  g.fillStyle = this.colors["loc"];
+                  fillText(l.loc, canvas.width-pad1-w2, y);
+              }
+              else {
+                l.flag|=LineFlags.TWO_LINE;
+                g.fillStyle = this.colors["loc"];
+                fillText(l.loc, canvas.width-pad1-w2, y);
+                y-=lh;
+              }
+          }
+          if (l.children!==NO_CHILDREN) {
+              let hb=new HitBox(x, y-ts+2, canvas.width, ts+3);
+              hb.lines.push(l);
+              this.hitboxes.push(hb);
+          }
+          fillText(s, x, y);
+          y-=lh;
+      }
+    }
+     updateSize() {
+      if (!this.canvas)
+        return ;
+      let dpi=UIBase.getDPI();
+      let w1=this.size[0];
+      let h1=this.size[1]-100/dpi;
+      let w2=~~(w1*dpi);
+      let h2=~~(h1*dpi);
+      let canvas=this.canvas;
+      if (w2!==canvas.width||h2!==canvas.height) {
+          console.log("resizing console canvas");
+          this.canvas.style["width"] = (w2/dpi)+"px";
+          this.canvas.style["height"] = (h2/dpi)+"px";
+          this.canvas.width = w2;
+          this.canvas.height = h2;
+          this.queueRedraw();
+      }
+    }
+     queueRedraw() {
+      if (this._animreq) {
+          return ;
+      }
+      this._animreq = 1;
+      requestAnimationFrame(this.redraw);
+    }
+     setCSS() {
+      this.updateSize();
+    }
+     update() {
+      if (!this.ctx) {
+          return ;
+      }
+      g_screen = this.ctx.screen;
+      super.update();
+      this.updateSize();
+    }
+    static  define() {
+      return {tagname: "console-editor-x", 
+     areaname: "console_editor", 
+     uiname: "Console", 
+     icon: Icons.CONSOLE_EDITOR, 
+     flag: 0, 
+     style: "console"}
+    }
+     copy() {
+      return document.createElement("console-editor-x");
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+      super.loadSTRUCT(reader);
+      this.history.cur = this.history.length;
+      for (let i=0; i<this.lines.length; i++) {
+          if (typeof this.lines[i]==="string") {
+              this.lines[i] = new ConsoleLineEntry(this.lines[i], "");
+          }
+      }
+    }
+  }
+  _ESClass.register(ConsoleEditor);
+  _es6_module.add_class(ConsoleEditor);
+  ConsoleEditor = _es6_module.add_export('ConsoleEditor', ConsoleEditor);
+  ConsoleEditor.STRUCT = nstructjs.inherit(ConsoleEditor, Editor)+`
+    fontsize    :  float;
+    bufferSize  :  int;
+    lines       :  array(ConsoleLineEntry);
+    history     :  array(ConsoleCommand);
+    head        :  int;
+    scroll      :  vec2;
+}`;
+  Editor.register(ConsoleEditor);
+}, '/dev/fairmotion/src/editors/console/console.js');
+es6_module_define('theme', ["../path.ux/scripts/util/util.js", "../path.ux/scripts/core/ui_theme.js"], function _theme_module(_es6_module) {
+  var CSSFont=es6_import_item(_es6_module, '../path.ux/scripts/core/ui_theme.js', 'CSSFont');
+  var util=es6_import(_es6_module, '../path.ux/scripts/util/util.js');
+  const theme={base: {AreaHeaderBG: 'rgba(65, 65, 65, 1.0)', 
+    BasePackFlag: 0, 
+    BoxBG: 'rgba(100,100,100, 0.558404961947737)', 
+    BoxBorder: 'rgba(196,196,196, 1)', 
+    BoxDepressed: 'rgba(43,32,27, 0.7410558240167026)', 
+    BoxDrawMargin: 2, 
+    BoxHighlight: 'rgba(125, 195, 225, 1.0)', 
+    BoxMargin: 4, 
+    BoxRadius: 12, 
+    BoxSub2BG: 'rgba(55, 55, 55, 1.0)', 
+    BoxSubBG: 'rgba(75, 75, 75, 1.0)', 
+    DefaultPanelBG: 'rgba(75, 75, 75, 1.0)', 
+    DefaultText: new CSSFont({font: 'sans-serif', 
+     weight: 'normal', 
+     variant: 'normal', 
+     style: 'normal', 
+     size: 10, 
+     color: 'rgba(215, 215, 215, 1.0)'}), 
+    Disabled: {AreaHeaderBG: 'rgb(72, 72, 72)', 
+     BoxBG: 'rgb(50, 50, 50)', 
+     BoxSub2BG: 'rgb(50, 50, 50)', 
+     BoxSubBG: 'rgb(50, 50, 50)', 
+     DefaultPanelBG: 'rgb(72, 72, 72)', 
+     InnerPanelBG: 'rgb(72, 72, 72)', 
+     'background-color': 'rgb(72, 72, 72)', 
+     'background-size': '5px 3px', 
+     'border-radius': '15px'}, 
+    FocusOutline: 'rgba(100, 150, 255, 1.0)', 
+    HotkeyText: new CSSFont({font: 'courier', 
+     weight: 'normal', 
+     variant: 'normal', 
+     style: 'normal', 
+     size: 12, 
+     color: 'rgba(230, 230, 230, 1.0)'}), 
+    InnerPanelBG: 'rgba(85, 85, 85, 1.0)', 
+    LabelText: new CSSFont({font: 'sans-serif', 
+     weight: 'normal', 
+     variant: 'normal', 
+     style: 'normal', 
+     size: 12, 
+     color: 'rgba(215, 215, 215, 1.0)'}), 
+    NoteBG: 'rgba(220, 220, 220, 0.0)', 
+    NoteText: new CSSFont({font: 'sans-serif', 
+     weight: 'bold', 
+     variant: 'normal', 
+     style: 'normal', 
+     size: 12, 
+     color: 'rgba(235, 235, 235, 1.0)'}), 
+    ProgressBar: 'rgba(75, 175, 255, 1.0)', 
+    ProgressBarBG: 'rgba(110, 110, 110, 1.0)', 
+    ScreenBorderInner: 'rgba(120, 120, 120, 1.0)', 
+    ScreenBorderMousePadding: 5, 
+    ScreenBorderOuter: 'rgba(120, 120, 120, 1.0)', 
+    ScreenBorderWidth: 2, 
+    TitleText: new CSSFont({font: 'sans-serif', 
+     weight: 'normal', 
+     variant: 'normal', 
+     style: 'normal', 
+     size: 12, 
+     color: 'rgba(215, 215, 215, 1.0)'}), 
+    ToolTipText: new CSSFont({font: 'sans-serif', 
+     weight: 'bold', 
+     variant: 'normal', 
+     style: 'normal', 
+     size: 12, 
+     color: 'rgba(35, 35, 35, 1.0)'}), 
+    defaultHeight: 24, 
+    defaultWidth: 24, 
+    mobileSizeMultiplier: 2, 
+    mobileTextSizeMultiplier: 1.5, 
+    numslider_height: 20, 
+    numslider_width: 20, 
+    oneAxisMargin: 6, 
+    oneAxisPadding: 6, 
+    themeVersion: 0.1}, 
+   button: {BoxMargin: 7.491595625232676, 
+    defaultHeight: 24, 
+    defaultWidth: 100}, 
+   checkbox: {BoxMargin: 2, 
+    CheckSide: 'left'}, 
+   colorfield: {circleSize: 4, 
+    colorBoxHeight: 24, 
+    defaultHeight: 200, 
+    defaultWidth: 200, 
+    fieldsize: 32, 
+    hueheight: 24}, 
+   colorpickerbutton: {defaultFont: 'LabelText', 
+    defaultHeight: 25, 
+    defaultWidth: 100}, 
+   console: {DefaultText: new CSSFont({font: 'monospace', 
+     weight: 'normal', 
+     variant: 'normal', 
+     style: 'normal', 
+     size: 18, 
+     color: 'rgba(225, 225, 225, 1.0)'})}, 
+   curvewidget: {CanvasBG: 'rgba(50, 50, 50, 0.75)', 
+    CanvasHeight: 256, 
+    CanvasWidth: 256}, 
+   dopesheet: {DefaultText: new CSSFont({font: 'sans-serif', 
+     weight: 'normal', 
+     variant: 'normal', 
+     style: 'normal', 
+     size: 10, 
+     color: 'rgba(209,209,209, 1)'}), 
+    TreeText: new CSSFont({font: 'sans-serif', 
+     weight: 'normal', 
+     variant: 'normal', 
+     style: 'normal', 
+     size: 12, 
+     color: 'rgba(207,207,207, 1)'}), 
+    boxSize: 14, 
+    keyBorder: 'rgba(255,255,240, 0.4038793037677633)', 
+    keyBorderWidth: 1.0403650286511763, 
+    keyColor: 'rgba(82,82,82, 1)', 
+    keyHighlight: 'rgba(195,159,136, 1)', 
+    keySelect: 'rgba(83,109,255, 1)', 
+    lineMajor: 'rgba(255, 255, 255, 0.5)', 
+    lineMinor: 'rgba(50, 50, 50, 1.0)', 
+    timeLine: "rgba(50, 150, 255, 0.75)", 
+    lineWidth: 1, 
+    textShadowColor: 'rgba(131,77,56, 1)', 
+    textShadowSize: 5.048919110763356, 
+    treeHeight: 600, 
+    treeWidth: 100}, 
+   dropbox: {BoxHighlight: 'rgba(155, 220, 255, 0.4)', 
+    defaultHeight: 19.508909279310238, 
+    dropTextBG: 'rgba(38,22,15, 0)'}, 
+   iconbutton: {}, 
+   iconcheck: {}, 
+   listbox: {DefaultPanelBG: 'rgba(81,81,81, 1)', 
+    ListActive: 'rgba(49,39,35, 1)', 
+    ListHighlight: 'rgba(55,112,226, 0.3637933139143319)', 
+    height: 200, 
+    width: 110}, 
+   menu: {MenuBG: 'rgba(40,40,40, 1)', 
+    MenuBorder: '1px solid grey', 
+    MenuHighlight: 'rgba(171,171,171, 0.28922413793103446)', 
+    MenuSeparator: `
+      width : 100%;
+      height : 2px;
+      padding : 0px;
+      margin : 0px;
+      border : none;
+      background-color : grey;
+    `, 
+    MenuSpacing: 0, 
+    MenuText: new CSSFont({font: 'sans-serif', 
+     weight: 'normal', 
+     variant: 'normal', 
+     style: 'normal', 
+     size: 12, 
+     color: 'rgba(238,238,238, 1)'})}, 
+   numslider: {DefaultText: new CSSFont({font: 'sans-serif', 
+     weight: 'normal', 
+     variant: 'normal', 
+     style: 'normal', 
+     size: 12, 
+     color: 'white'}), 
+    defaultHeight: 22.76656831702612, 
+    defaultWidth: 100}, 
+   numslider_simple: {BoxBG: 'rgb(225, 225, 225)', 
+    BoxBorder: 'rgb(75, 75, 75)', 
+    BoxRadius: 5, 
+    DefaultHeight: 18, 
+    DefaultWidth: 135, 
+    SlideHeight: 10, 
+    TextBoxWidth: 45, 
+    TitleText: new CSSFont({font: undefined, 
+     weight: 'normal', 
+     variant: 'normal', 
+     style: 'normal', 
+     size: 14, 
+     color: undefined}), 
+    labelOnTop: false}, 
+   panel: {Background: 'rgba(38,22,15, 0.2642241905475485)', 
+    BoxBorder: 'rgba(91,91,91, 1)', 
+    BoxLineWidth: 0.9585563201850567, 
+    BoxRadius: 5, 
+    TitleBackground: 'rgba(126,178,237, 0.309051618904903)', 
+    TitleBorder: 'rgba(136,136,136, 1)', 
+    'border-style': 'inset', 
+    'padding-bottom': undefined, 
+    'padding-top': undefined}, 
+   richtext: {DefaultText: new CSSFont({font: 'sans-serif', 
+     weight: 'normal', 
+     variant: 'normal', 
+     style: 'normal', 
+     size: 16, 
+     color: 'rgba(35, 35, 35, 1.0)'}), 
+    'background-color': undefined}, 
+   scrollbars: {border: 'rgba(125,125,125, 1)', 
+    color: 'rgba(56,56,56, 1)', 
+    color2: '#505050', 
+    contrast: 'rgba(75,38,38, 1)', 
+    width: 15}, 
+   tabs: {TabHighlight: 'rgba(50, 50, 50, 0.2)', 
+    TabInactive: 'rgba(130, 130, 150, 1.0)', 
+    TabStrokeStyle1: 'rgba(200, 200, 200, 1.0)', 
+    TabStrokeStyle2: 'rgba(255, 255, 255, 1.0)', 
+    TabText: new CSSFont({font: 'sans-serif', 
+     weight: 'normal', 
+     variant: 'normal', 
+     style: 'normal', 
+     size: 18, 
+     color: 'rgba(215, 215, 215, 1.0)'})}, 
+   textbox: {'background-color': undefined}, 
+   tooltip: {BoxBG: 'rgb(245, 245, 245, 1.0)', 
+    BoxBorder: 'rgb(145, 145, 145, 1.0)'}, 
+   treeview: {itemIndent: 10, 
+    rowHeight: 18}}
+  _es6_module.add_export('theme', theme);
+}, '/dev/fairmotion/src/editors/theme.js');
+es6_module_define('MenuBar', ["../../path.ux/scripts/widgets/ui_widgets.js", "../../core/startup/startup_file.js", "../../core/struct.js", "../../path.ux/scripts/platforms/electron/electron_api.js", "../../path.ux/scripts/screen/ScreenArea.js", "../editor_base.js", "../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/widgets/ui_menu.js", "../../../platforms/platform.js"], function _MenuBar_module(_es6_module) {
+  var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
+  var AreaFlags=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'AreaFlags');
+  var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
+  var UIBase=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui_base.js', 'UIBase');
+  var iconmanager=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui_base.js', 'iconmanager');
+  var Editor=es6_import_item(_es6_module, '../editor_base.js', 'Editor');
+  var ui_widgets=es6_import(_es6_module, '../../path.ux/scripts/widgets/ui_widgets.js');
+  var platform=es6_import(_es6_module, '../../../platforms/platform.js');
+  var Menu=es6_import_item(_es6_module, '../../path.ux/scripts/widgets/ui_menu.js', 'Menu');
+  var startup_file=es6_import_item(_es6_module, '../../core/startup/startup_file.js', 'startup_file');
+  var electron_api=es6_import(_es6_module, '../../path.ux/scripts/platforms/electron/electron_api.js');
+  class MenuBar extends Editor {
+     constructor() {
+      super();
+      let dpi=UIBase.getDPI();
+      let tilesize=iconmanager.getTileSize(0)+7;
+      let h=Math.max(this.getDefault("TitleText").size, tilesize);
+      this.editMenuDef = [];
+      this._last_toolmode = undefined;
+      this.maxSize = [undefined, h];
+      this.minSize = [undefined, h];
+    }
+     buildRecentMenu() {
+      let menu=document.createElement("menu-x");
+      menu.setAttribute("title", "Recent Files");
+      let paths=g_app_state.settings.recent_paths;
+      for (let p of paths) {
+          let name=p.displayname;
+          let id=p.path;
+          let i=name.length-1;
+          while (i>=0&&name[i]!=="/"&&name[i]!=="\\") {
+            i--;
+          }
+          if (i>=0) {
+              i++;
+          }
+          name = name.slice(i, name.length).trim();
+          menu.addItem(name, id);
+      }
+      menu.onselect = (id) =>        {
+        console.warn("recent files callback!", id);
+        g_app_state.load_path(id);
+      };
+      return menu;
+    }
+     init() {
+      super.init();
+      let row=this.header;
+      let SEP=Menu.SEP;
+      let menudef=["appstate.quit()", "view2d.export_image()", "appstate.export_svg()", SEP, "appstate.save_as()", "appstate.save()", this.buildRecentMenu.bind(this), "appstate.open()", SEP, ["New File", function () {
+        platform.app.questionDialog("Create blank scene?\nAny unsaved changes\nwill be lost").then((val) =>          {
+          if (val) {
+              gen_default_file(g_app_state.screen.size);
+          }
+        });
+      }]];
+      menudef.reverse();
+      row.menu("&File", menudef);
+      this.genSessionMenu(row);
+      let notef=document.createElement("noteframe-x");
+      notef.ctx = this.ctx;
+      row._add(notef);
+      if (window.haveElectron) {
+          electron_api.initMenuBar(this);
+          this.minSize[1] = this.maxSize[1] = 1;
+      }
+    }
+     buildEditMenu() {
+      console.log("rebuilding edit menu");
+      this.editMenuDef.length = 0;
+      this.editMenuDef.push(["Undo", function () {
+        g_app_state.toolstack.undo();
+      }, "Ctrl + Z", Icons.UNDO]);
+      this.editMenuDef.push(["Redo", function () {
+        g_app_state.toolstack.undo();
+      }, "Ctrl + Shift + Z", Icons.REDO]);
+      if (!this.ctx||!this.ctx.toolmode) {
+          return ;
+      }
+      let ret=g_app_state.ctx.toolmode.constructor.buildEditMenu();
+      if (!ret)
+        return ;
+      for (let item of ret) {
+          this.editMenuDef.push(item);
+      }
+    }
+     genSessionMenu(row) {
+      function callback(entry) {
+        console.log(entry);
+        if (entry.i==0) {
+            if (confirm("Settings will be cleared", "Clear Settings?")) {
+                console.log("clearing settings");
+                ctx.appstate.session.settings.reload_defaults();
+            }
+        }
+        else 
+          if (entry.i==2) {
+            g_app_state.set_startup_file();
+        }
+        else 
+          if (entry.i==1) {
+            myLocalStorage.set("startup_file", startup_file);
+        }
+      }
+      row.dynamicMenu("&Edit", this.editMenuDef);
+      this.buildEditMenu();
+      row.menu("&Session", [["Save Default File", function () {
+        platform.app.questionDialog("Erase default startup file?").then((val) =>          {
+          if (val) {
+              g_app_state.set_startup_file();
+              console.log("save default file", val);
+          }
+        });
+      }], ["Clear Default File", function () {
+        platform.app.questionDialog("Erase default startup file?").then((val) =>          {
+          if (val) {
+              myLocalStorage.set("startup_file", startup_file);
+              console.log("clear default file", val);
+          }
+        });
+      }, "ctrl-alt-u"], ["Reset Settings", function () {
+        platform.app.questionDialog("Settings will be cleared", "Clear Settings?").then((val) =>          {
+          if (val) {
+              console.log("clearing settings");
+              ctx.appstate.session.settings.reload_defaults();
+          }
+        });
+      }]]);
+    }
+     update() {
+      super.update();
+      if (!this.ctx||!this.ctx.scene) {
+          return ;
+      }
+      if (this._last_toolmode!==this.ctx.scene.toolmode_i) {
+          this._last_toolmode = this.ctx.scene.toolmode_i;
+          this.buildEditMenu();
+      }
+    }
+    static  getHeight() {
+      let ctx=g_app_state.ctx;
+      if (ctx&&ctx.menubar) {
+          return ctx.menubar.minSize[1];
+      }
+      return 28;
+    }
+     makeHeader(container) {
+      super.makeHeader(container, false);
+    }
+    static  define() {
+      return {tagname: "menubar-editor-x", 
+     areaname: "menubar_editor", 
+     uiname: "menu", 
+     icon: Icons.MENU_EDITOR, 
+     flag: AreaFlags.HIDDEN|AreaFlags.NO_SWITCHER}
+    }
+     copy() {
+      return document.createElement("menubar-editor-x");
+    }
+  }
+  _ESClass.register(MenuBar);
+  _es6_module.add_class(MenuBar);
+  MenuBar = _es6_module.add_export('MenuBar', MenuBar);
+  MenuBar.STRUCT = STRUCT.inherit(MenuBar, Editor)+`
+}
+`;
+  Editor.register(MenuBar);
+}, '/dev/fairmotion/src/editors/menubar/MenuBar.js');
+es6_module_define('events', ["../path.ux/scripts/util/events.js", "../path.ux/scripts/util/vectormath.js"], function _events_module(_es6_module) {
+  "use strict";
+  var Vector2=es6_import_item(_es6_module, '../path.ux/scripts/util/vectormath.js', 'Vector2');
+  var Vector3=es6_import_item(_es6_module, '../path.ux/scripts/util/vectormath.js', 'Vector3');
+  var Matrix4=es6_import_item(_es6_module, '../path.ux/scripts/util/vectormath.js', 'Matrix4');
+  var keymap=es6_import_item(_es6_module, '../path.ux/scripts/util/events.js', 'keymap');
+  var reverse_keymap=es6_import_item(_es6_module, '../path.ux/scripts/util/events.js', 'reverse_keymap');
+  let charmap=keymap;
+  charmap = _es6_module.add_export('charmap', charmap);
+  let charmap_rev=reverse_keymap;
+  charmap_rev = _es6_module.add_export('charmap_rev', charmap_rev);
+  window.charmap = charmap;
+  window.charmap_rev = charmap_rev;
+  class MyKeyboardEvent  {
+     constructor(code, shift=false, ctrl=false, alt=false) {
+      this.keyCode = code;
+      this.shiftKey = shift;
+      this.ctrlKey = ctrl;
+      this.altKey = alt;
+    }
+  }
+  _ESClass.register(MyKeyboardEvent);
+  _es6_module.add_class(MyKeyboardEvent);
+  MyKeyboardEvent = _es6_module.add_export('MyKeyboardEvent', MyKeyboardEvent);
+  window.MyKeyboardEvent = MyKeyboardEvent;
+  class MyMouseEvent  {
+    
+     constructor(x, y, button, type) {
+      this.x = x;
+      this.y = y;
+      this.button = button;
+      this.type = type;
+      this.touches = {};
+    }
+     copy(sub_offset=undefined) {
+      var ret=new MyMouseEvent(this.x, this.y, this.button, this.type);
+      for (var k in this.touches) {
+          var t=this.touches[k];
+          var x=t[0], y=t[1];
+          if (sub_offset) {
+              x-=sub_offset[0];
+              y-=sub_offset[1];
+          }
+          ret.touches[k] = [x, y];
+      }
+      return ret;
+    }
+  }
+  _ESClass.register(MyMouseEvent);
+  _es6_module.add_class(MyMouseEvent);
+  MyMouseEvent = _es6_module.add_export('MyMouseEvent', MyMouseEvent);
+  window.MyMouseEvent = MyMouseEvent;
+  MyMouseEvent.MOUSEMOVE = 0;
+  MyMouseEvent.MOUSEDOWN = 1;
+  MyMouseEvent.MOUSEUP = 2;
+  MyMouseEvent.LEFT = 0;
+  MyMouseEvent.RIGHT = 1;
+  var _swap_next_mouseup=false;
+  var _swap_next_mouseup_button=2;
+  function swap_next_mouseup_event(button) {
+    _swap_next_mouseup = true;
+    _swap_next_mouseup_button = button;
+  }
+  swap_next_mouseup_event = _es6_module.add_export('swap_next_mouseup_event', swap_next_mouseup_event);
+  var _ignore_next_mouseup=false;
+  var _ignore_next_mouseup_button=2;
+  function ignore_next_mouseup_event(button) {
+    _ignore_next_mouseup = true;
+    _ignore_next_mouseup_button = button;
+  }
+  ignore_next_mouseup_event = _es6_module.add_export('ignore_next_mouseup_event', ignore_next_mouseup_event);
+  class EventHandler  {
+     constructor() {
+      this.EventHandler_init();
+    }
+     EventHandler_init() {
+      this.modalstack = new Array();
+      this.modalhandler = null;
+      this.keymap = null;
+      this.touch_manager = undefined;
+      this.touch_delay_stack = [];
+    }
+     push_touch_delay(delay_ms) {
+      this.touch_delay_stack.push(this.touch_delay);
+      this.touch_delay = delay_ms;
+    }
+     pop_touch_delay() {
+      if (this.touch_delay_stack.length==0) {
+          console.log("Invalid call to EventHandler.pop_touch_delay!");
+          return ;
+      }
+      this.touch_delay = this.touch_delay_stack.pop();
+    }
+    set  touch_delay(delay_ms) {
+      if (delay_ms==0) {
+          this.touch_manager = undefined;
+      }
+      else {
+        if (this.touch_manager==undefined)
+          this.touch_manager = new TouchEventManager(this, delay_ms);
+        else 
+          this.touch_manager.delay = delay_ms;
+      }
+    }
+    get  touch_delay() {
+      if (this.touch_manager==undefined)
+        return 0;
+      return this.touch_manager.delay;
+    }
+     on_tick() {
+      if (this.touch_manager!=undefined)
+        this.touch_manager.process();
+    }
+     bad_event(event) {
+      var tm=this.touch_manager;
+      if (tm==undefined)
+        return false;
+      if (this.touch_manager!=undefined)
+        this.touch_manager.process();
+      if (tm!=undefined&&__instance_of(event, MyMouseEvent)) {
+          var i=0;
+          for (var k in event.touches) {
+              i++;
+          }
+          if (i==0)
+            return false;
+          if ("_good" in event)
+            return false;
+          this.touch_manager.queue_event(event);
+          return true;
+      }
+      return false;
+    }
+     on_textinput(event) {
+
+    }
+     on_keydown(event) {
+
+    }
+     on_charcode(event) {
+
+    }
+     on_keyinput(event) {
+
+    }
+     on_keyup(event) {
+
+    }
+     on_mousemove(event) {
+
+    }
+     on_mousedown(event) {
+
+    }
+     on_doubleclick(event) {
+
+    }
+     on_pan(pan, last_pan) {
+
+    }
+     on_gl_lost(new_gl) {
+
+    }
+     on_mouseup2(event) {
+
+    }
+     on_mouseup3(event) {
+
+    }
+     on_mousedown2(event) {
+
+    }
+     on_mousedown3(event) {
+
+    }
+     on_mousemove2(event) {
+
+    }
+     on_mousemove3(event) {
+
+    }
+     on_mousewheel(event) {
+
+    }
+     on_mouseup(event) {
+
+    }
+     on_resize(newsize) {
+
+    }
+     on_contextchange(event) {
+
+    }
+     on_draw(gl) {
+
+    }
+     has_modal() {
+      return this.modalhandler!=null;
+    }
+     push_modal(handler) {
+      if (this.modalhandler!=null) {
+          this.modalstack.push(this.modalhandler);
+      }
+      this.modalhandler = handler;
+    }
+     pop_modal() {
+      if (this.modalhandler!=null) {
+      }
+      if (this.modalstack.length>0) {
+          this.modalhandler = this.modalstack.pop();
+      }
+      else {
+        this.modalhandler = null;
+      }
+    }
+     _on_resize(newsize) {
+      this.on_resize(event);
+    }
+     _on_pan(pan, last_pan) {
+      if (this.modalhandler!=null&&this.modalhandler!==this)
+        this.modalhandler._on_pan(event);
+      else 
+        this.on_pan(event);
+    }
+     _on_textinput(event) {
+      if (this.modalhandler!=null&&this.modalhandler!==this)
+        this.modalhandler._on_textinput(event);
+      else 
+        this.on_textinput(event);
+    }
+     _on_keydown(event) {
+      if (this.bad_event(event))
+        return ;
+      if (this.modalhandler!=null&&this.modalhandler!==this)
+        this.modalhandler._on_keydown(event);
+      else 
+        this.on_keydown(event);
+    }
+     _on_charcode(event) {
+      if (this.bad_event(event))
+        return ;
+      if (this.modalhandler!=null&&this.modalhandler!==this)
+        this.modalhandler._on_charcode(event);
+      else 
+        this.on_charcode(event);
+    }
+     _on_keyinput(event) {
+      if (this.bad_event(event))
+        return ;
+      if (this.modalhandler!=null&&this.modalhandler!==this)
+        this.modalhandler._on_keyinput(event);
+      else 
+        this.on_keyinput(event);
+    }
+     _on_keyup(event) {
+      if (this.bad_event(event))
+        return ;
+      if (this.modalhandler!=null&&this.modalhandler!==this)
+        this.modalhandler._on_keyup(event);
+      else 
+        this.on_keyup(event);
+    }
+     _on_mousemove(event) {
+      if (this.bad_event(event))
+        return ;
+      if (this.modalhandler!=null&&this.modalhandler!==this)
+        this.modalhandler._on_mousemove(event);
+      else 
+        this.on_mousemove(event);
+    }
+     _on_doubleclick(event) {
+      if (this.bad_event(event))
+        return ;
+      if (this.modalhandler!=null&&this.modalhandler!==this)
+        this.modalhandler._on_doubleclick(event);
+      else 
+        this.on_doubleclick(event);
+    }
+     _on_mousedown(event) {
+      if (this.bad_event(event))
+        return ;
+      if (this.modalhandler!=null&&this.modalhandler!==this)
+        this.modalhandler._on_mousedown(event);
+      else 
+        this.on_mousedown(event);
+    }
+     _on_mouseup(event) {
+      if (this.bad_event(event))
+        return ;
+      if (_swap_next_mouseup&&event.button==_swap_next_mouseup_button) {
+          event.button = _swap_next_mouseup_button==2 ? 0 : 2;
+          _swap_next_mouseup = false;
+      }
+      if (_ignore_next_mouseup&&event.button==_ignore_next_mouseup_button) {
+          _ignore_next_mouseup = false;
+          return ;
+      }
+      if (this.modalhandler!=null&&this.modalhandler!==this)
+        this.modalhandler._on_mouseup(event);
+      else 
+        this.on_mouseup(event);
+    }
+     _on_mousewheel(event, delta) {
+      if (this.bad_event(event))
+        return ;
+      if (this.modalhandler!=null&&this.modalhandler!==this)
+        this.modalhandler._on_mousewheel(event, delta);
+      else 
+        this.on_mousewheel(event, delta);
+    }
+  }
+  _ESClass.register(EventHandler);
+  _es6_module.add_class(EventHandler);
+  EventHandler = _es6_module.add_export('EventHandler', EventHandler);
+  var valid_modifiers={"SHIFT": 1, 
+   "CTRL": 2, 
+   "ALT": 4}
+  window.charmap = charmap;
+  window.charmap_rev = charmap_rev;
+  class HotKey  {
+    
+    
+    
+    
+    
+     constructor(key, modifiers, uiname, menunum, ignore_charmap_error) {
+      if (!charmap.hasOwnProperty(key)) {
+          if (ignore_charmap_error!=undefined&&ignore_charmap_error!=true) {
+              console.trace();
+              console.log("Invalid hotkey "+key+"!");
+          }
+          this.key = 0;
+          this.keyAscii = "[corrupted hotkey]";
+          this.shift = this.alt = this.ctrl = false;
+          return this;
+      }
+      if (typeof (key)=="string") {
+          if (key.length==1)
+            key = key.toUpperCase();
+          this.keyAscii = key;
+          this.key = charmap[key];
+      }
+      else {
+        this.key = key;
+        this.keyAscii = charmap[key];
+      }
+      this.shift = this.alt = this.ctrl = false;
+      this.menunum = menunum;
+      for (var i=0; i<modifiers.length; i++) {
+          if (modifiers[i]=="SHIFT") {
+              this.shift = true;
+          }
+          else 
+            if (modifiers[i]=="ALT") {
+              this.alt = true;
+          }
+          else 
+            if (modifiers[i]=="CTRL") {
+              this.ctrl = true;
+          }
+          else {
+            console.trace();
+            console.log("Warning: invalid modifier "+modifiers[i]+" in KeyHandler");
+          }
+      }
+    }
+     build_str(add_menu_num) {
+      var s="";
+      if (this.ctrl)
+        s+="CTRL-";
+      if (this.alt)
+        s+="ALT-";
+      if (this.shift)
+        s+="SHIFT-";
+      s+=this.keyAscii;
+      return s;
+    }
+     [Symbol.keystr]() {
+      return this.build_str(false);
+    }
+  }
+  _ESClass.register(HotKey);
+  _es6_module.add_class(HotKey);
+  HotKey = _es6_module.add_export('HotKey', HotKey);
+  class KeyMap extends hashtable {
+    
+     constructor() {
+      super();
+      this.op_map = new hashtable();
+    }
+     concat(keymap) {
+      for (let key of keymap) {
+          this.add(key, keymap.get(key));
+      }
+      return this;
+    }
+     get_tool_handler(toolstr) {
+      if (this.op_map.has(toolstr))
+        return this.op_map.get(toolstr);
+    }
+     add_tool(keyhandler, toolstr) {
+      this.add(keyhandler, new ToolKeyHandler(toolstr));
+      this.op_map.add(toolstr, keyhandler);
+    }
+     add_func(keyhandler, func) {
+      this.add(keyhandler, new FuncKeyHandler(func));
+    }
+     add(keyhandler, value) {
+      if (this.has(keyhandler)) {
+          console.trace();
+          console.log("Duplicate hotkey definition!");
+      }
+      if (__instance_of(value, ToolKeyHandler)&&!(typeof value.tool=="string"||__instance_of(value.tool, String))) {
+          value.tool.keyhandler = keyhandler;
+      }
+      super.set(keyhandler, value);
+    }
+     process_event(ctx, event) {
+      var modlist=[];
+      if (event.ctrlKey)
+        modlist.push("CTRL");
+      if (event.shiftKey)
+        modlist.push("SHIFT");
+      if (event.altKey)
+        modlist.push("ALT");
+      var key=new HotKey(event.keyCode, modlist, 0, 0, true);
+      if (this.has(key)) {
+          ctx.keymap_mpos[0] = ctx.screen.mpos[0];
+          ctx.keymap_mpos[1] = ctx.screen.mpos[1];
+          return this.get(key).handle(ctx);
+      }
+      return undefined;
+    }
+  }
+  _ESClass.register(KeyMap);
+  _es6_module.add_class(KeyMap);
+  KeyMap = _es6_module.add_export('KeyMap', KeyMap);
+  class KeyHandlerCls  {
+     handle(ctx) {
+
+    }
+  }
+  _ESClass.register(KeyHandlerCls);
+  _es6_module.add_class(KeyHandlerCls);
+  KeyHandlerCls = _es6_module.add_export('KeyHandlerCls', KeyHandlerCls);
+  class ToolKeyHandler extends KeyHandlerCls {
+     constructor(tool) {
+      super();
+      this.tool = tool;
+    }
+     handle(ctx) {
+      ctx.api.execTool(ctx, this.tool);
+    }
+  }
+  _ESClass.register(ToolKeyHandler);
+  _es6_module.add_class(ToolKeyHandler);
+  ToolKeyHandler = _es6_module.add_export('ToolKeyHandler', ToolKeyHandler);
+  class FuncKeyHandler extends KeyHandlerCls {
+     constructor(func) {
+      super();
+      this.handle = func;
+    }
+  }
+  _ESClass.register(FuncKeyHandler);
+  _es6_module.add_class(FuncKeyHandler);
+  FuncKeyHandler = _es6_module.add_export('FuncKeyHandler', FuncKeyHandler);
+  var $was_clamped_NG1c_clamp_pan;
+  class VelocityPan extends EventHandler {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+     constructor() {
+      super();
+      this.start_mpos = new Vector2();
+      this.last_mpos = new Vector2();
+      this.mpos = new Vector2();
+      this.start_time = 0;
+      this.owner = undefined;
+      this.coasting = false;
+      this.panning = false;
+      this.was_touch = false;
+      this.enabled = true;
+      this.vel = new Vector2();
+      this.pan = new Vector2();
+      this.damp = 0.99;
+      this.can_coast = true;
+      this.start_pan = new Vector2();
+      this.first = false;
+      this.last_ms = 0;
+      this.vel = new Vector2();
+    }
+     on_tick() {
+      if (!this.panning&&this.coasting) {
+          let vel=new Vector2();
+          var damp=0.99;
+          vel.load(this.vel);
+          vel.mulScalar(time_ms()-this.last_ms);
+          this.vel.mulScalar(damp);
+          this.last_ms = time_ms();
+          this.pan.sub(vel);
+          var was_clamped=this.clamp_pan();
+          this.owner.on_pan(this.pan, this.start_pan);
+          var stop=was_clamped!=undefined&&(was_clamped[0]&&was_clamped[1]);
+          stop = stop||this.vel.vectorLength<1;
+          if (stop)
+            this.coasting = false;
+      }
+    }
+     calc_vel() {
+      let vel=new Vector2();
+      if (!this.can_coast) {
+          this.vel.zero();
+          this.coasting = false;
+          this.last_ms = time_ms();
+          return ;
+      }
+      var t=time_ms()-this.start_time;
+      if (t<10) {
+          console.log("small t!!!", t);
+          return ;
+      }
+      vel.load(this.last_mpos).sub(this.mpos).divideScalar(t);
+      this.vel.add(vel);
+      this.coasting = (this.vel.vectorLength()>0.25);
+      this.last_ms = time_ms();
+    }
+     start(start_mpos, last_mpos, owner, push_modal_func, pop_modal_func) {
+      if (this.panning) {
+          console.trace("warning, duplicate call to VelocityPan.start()");
+          return ;
+      }
+      this.vel.zero();
+      this.pop_modal_func = pop_modal_func;
+      this.coasting = false;
+      this.first = false;
+      this.owner = owner;
+      this.panning = true;
+      push_modal_func(this);
+      this.start_pan.load(this.pan);
+      this.last_ms = time_ms();
+      this.start_time = time_ms();
+      this.was_touch = g_app_state.was_touch;
+      this.start_mpos.load(start_mpos);
+      this.last_mpos.load(start_mpos);
+      this.mpos.load(start_mpos);
+      this.do_mousemove(last_mpos);
+    }
+     end() {
+      console.log("in end");
+      if (this.panning) {
+          console.log("  pop modal");
+          this.pop_modal_func();
+      }
+      this.panning = false;
+    }
+     do_mousemove(mpos) {
+      if (DEBUG.touch) {
+          console.log("py", mpos[1]);
+      }
+      this.last_mpos.load(this.mpos);
+      this.mpos.load(mpos);
+      this.pan[0] = this.start_pan[0]+mpos[0]-this.start_mpos[0];
+      this.pan[1] = this.start_pan[1]+mpos[1]-this.start_mpos[1];
+      this.vel.zero();
+      this.calc_vel();
+      this.clamp_pan();
+      this.owner.on_pan(this.pan, this.start_pan);
+    }
+     clamp_pan() {
+      var bs=this.owner.pan_bounds;
+      if (this.owner.state&8192*4)
+        return ;
+      var p=this.pan;
+      $was_clamped_NG1c_clamp_pan[0] = false;
+      $was_clamped_NG1c_clamp_pan[1] = false;
+      for (var i=0; i<2; i++) {
+          var l=p[i];
+          p[i] = Math.min(Math.max(bs[0][i], p[i]), bs[0][i]+bs[1][i]);
+          if (p[i]!=l)
+            $was_clamped_NG1c_clamp_pan[i] = true;
+      }
+      return $was_clamped_NG1c_clamp_pan;
+    }
+     on_mouseup(event) {
+      console.log("pan mouse up!", this.panning, this.owner);
+      if (this.panning) {
+          this.mpos.load([event.y, event.y]);
+          this.calc_vel();
+          this.end();
+      }
+    }
+     on_mousemove(event) {
+      this.do_mousemove([event.x, event.y]);
+    }
+     set_pan(pan) {
+      if (this.panning)
+        this.end();
+      this.pan.load(pan);
+      this.coasting = false;
+      this.vel.zero();
+    }
+  }
+  var $was_clamped_NG1c_clamp_pan=[0, 0];
+  _ESClass.register(VelocityPan);
+  _es6_module.add_class(VelocityPan);
+  VelocityPan = _es6_module.add_export('VelocityPan', VelocityPan);
+  class TouchEventManager  {
+     constructor(owner, delay=100) {
+      this.init(owner, delay);
+    }
+     init(owner, delay=100) {
+      this.queue = new GArray();
+      this.queue_ms = new GArray();
+      this.delay = delay;
+      this.owner = owner;
+    }
+     get_last(type) {
+      var i=this.queue.length;
+      if (i==0)
+        return undefined;
+      i--;
+      var q=this.queue;
+      while (i>=0) {
+        var e=q[i];
+        if (e.type==type||e.type!=MyMouseEvent.MOUSEMOVE)
+          break;
+        i--;
+      }
+      if (i<0)
+        i = 0;
+      return q[i].type==type ? q[i] : undefined;
+    }
+     queue_event(event) {
+      var last=this.get_last(event.type);
+      if (DEBUG.touch&&this==touch_manager)
+        console.log("touch event", event.type);
+      if (last!=undefined&&last.type!=MyMouseEvent.MOUSEMOVE) {
+          var dis, same=true;
+          for (var k in event.touches) {
+              if (!(k in last.touches)) {
+              }
+          }
+          dis = new Vector2([event.x, event.y]).vectorDistance(new Vector2([last.x, last.y]));
+          if (DEBUG.touch&&this==touch_manager)
+            console.log(dis);
+          if (same&&dis<50) {
+              if (DEBUG.touch&&this==touch_manager)
+                console.log("destroying duplicate event", last.type, event.x, event.y, event.touches);
+              for (var k in event.touches) {
+                  last.touches[k] = event.touches[k];
+              }
+              return ;
+          }
+      }
+      this.queue.push(event);
+      this.queue_ms.push(time_ms());
+    }
+     cancel(event) {
+      var ts=event.touches;
+      var dl=new GArray;
+      if (DEBUG.touch&&this==touch_manager)
+        console.log("touch cancel", event);
+      for (var e in this.queue) {
+          for (var k in ts) {
+              if (k in e.touches) {
+                  delete e.touches;
+              }
+          }
+          if (list(e.touches).length==0) {
+              dl.push(e);
+          }
+      }
+      for (var e in dl) {
+          var i=this.queue.indexOf(e);
+          this.queue.remove(e);
+          this.queue_ms.pop_i(i);
+      }
+    }
+     process() {
+      var owner=this.owner;
+      var dl=new GArray();
+      var q=this.queue;
+      var qm=this.queue_ms;
+      var delay=this.delay;
+      for (var i=0; i<q.length; i++) {
+          if (time_ms()-qm[i]>delay) {
+              dl.push(q[i]);
+          }
+      }
+      for (var e of dl) {
+          var i=q.indexOf(e);
+          q.remove(e);
+          qm.pop_i(i);
+      }
+      for (var e of dl) {
+          e._good = true;
+          g_app_state.was_touch = true;
+          try {
+            if (e.type==MyMouseEvent.MOUSEDOWN) {
+                if (DEBUG.touch)
+                  console.log("td1", e.x, e.y);
+                owner._on_mousedown(e);
+                if (DEBUG.touch)
+                  console.log("td2", e.x, e.y);
+            }
+            else 
+              if (e.type==MyMouseEvent.MOUSEMOVE) {
+                owner._on_mousemove(e);
+            }
+            else 
+              if (e.type==MyMouseEvent.MOUSEUP) {
+                owner._on_mouseup(e);
+            }
+          }
+          catch (_err) {
+              print_stack(_err);
+              console.log("Error executing delayed touch event");
+          }
+      }
+    }
+     reset() {
+      this.queue = new GArray();
+      this.queue_ms = new GArray();
+    }
+  }
+  _ESClass.register(TouchEventManager);
+  _es6_module.add_class(TouchEventManager);
+  TouchEventManager = _es6_module.add_export('TouchEventManager', TouchEventManager);
+  window.TouchEventManager = TouchEventManager;
+  var touch_manager=window.touch_manager = new TouchEventManager(undefined, 20);
+}, '/dev/fairmotion/src/editors/events.js');
+es6_module_define('touchevents', [], function _touchevents_module(_es6_module) {
+  "use strict";
+  class TouchManager  {
+    
+    
+    
+     constructor(event) {
+      this.pattern = new set(Object.keys(event.touches));
+      this.idxmap = {};
+      this.tot = event.touches.length;
+      this.event = event;
+      this.deltas = {};
+      var i=0;
+      for (var k in event.touches) {
+          this.idxmap[i++] = k;
+          this.deltas[k] = 0.0;
+      }
+    }
+     update(event) {
+      if (this.valid(event)) {
+          for (var k in event.touches) {
+              var t2=event.touches[k];
+              var t1=this.event.touches[k];
+              var d=[t2[0]-t1[0], t2[1]-t1[1]];
+              this.deltas[k] = d;
+          }
+      }
+      this.event = event;
+    }
+     delta(i) {
+      return this.deltas[this.idxmap[i]];
+    }
+     get(i) {
+      return this.event.touches[this.idxmap[i]];
+    }
+     valid(event=this.event) {
+      var keys=Object.keys(event.touches);
+      if (keys.length!=this.pattern.length)
+        return false;
+      for (var i=0; i<keys.length; i++) {
+          if (!pattern.has(keys[i]))
+            return false;
+      }
+      return true;
+    }
+  }
+  _ESClass.register(TouchManager);
+  _es6_module.add_class(TouchManager);
+}, '/dev/fairmotion/src/util/touchevents.js');
 es6_module_define('toolprops', ["./toolprops_iter.js", "../path.ux/scripts/util/struct.js", "./struct.js", "../path.ux/scripts/toolsys/toolprop.js", "./ajax.js"], function _toolprops_module(_es6_module) {
   "use strict";
   var STRUCT=es6_import_item(_es6_module, './struct.js', 'STRUCT');
@@ -4983,7 +11237,8 @@ es6_module_define('spline_selectops', ["../../curve/spline_draw.js", "../../curv
   _es6_module.add_class(CircleSelectOp);
   CircleSelectOp = _es6_module.add_export('CircleSelectOp', CircleSelectOp);
 }, '/dev/fairmotion/src/editors/viewport/spline_selectops.js');
-es6_module_define('spline_createops', ["../../core/toolprops.js", "../../core/toolops_api.js", "../../curve/spline_types.js", "../../curve/spline.js", "./spline_editops.js"], function _spline_createops_module(_es6_module) {
+es6_module_define('spline_createops', ["../../path.ux/scripts/pathux.js", "../../curve/spline_types.js", "../../core/toolprops.js", "../../core/toolops_api.js", "./spline_editops.js", "../../curve/spline.js", "../../curve/spline_draw_new.js"], function _spline_createops_module(_es6_module) {
+  var util=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'util');
   var ToolOp=es6_import_item(_es6_module, '../../core/toolops_api.js', 'ToolOp');
   var SplineFlags=es6_import_item(_es6_module, '../../curve/spline_types.js', 'SplineFlags');
   var EnumProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'EnumProperty');
@@ -4994,6 +11249,7 @@ es6_module_define('spline_createops', ["../../core/toolprops.js", "../../core/to
   var FloatProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'FloatProperty');
   var RestrictFlags=es6_import_item(_es6_module, '../../curve/spline.js', 'RestrictFlags');
   var SplineLocalToolOp=es6_import_item(_es6_module, './spline_editops.js', 'SplineLocalToolOp');
+  var SplineDrawData=es6_import_item(_es6_module, '../../curve/spline_draw_new.js', 'SplineDrawData');
   var ExtrudeModes={SMOOTH: 0, 
    LESS_SMOOTH: 1, 
    BROKEN: 2}
@@ -5313,8 +11569,201 @@ es6_module_define('spline_createops', ["../../core/toolprops.js", "../../core/to
   _ESClass.register(ImportJSONOp);
   _es6_module.add_class(ImportJSONOp);
   ImportJSONOp = _es6_module.add_export('ImportJSONOp', ImportJSONOp);
+  function strokeSegments(spline, segments, width, color) {
+    if (width===undefined) {
+        width = 2.0;
+    }
+    if (color===undefined) {
+        color = [0, 0, 0, 1];
+    }
+    segments = new util.set(segments);
+    let verts=new util.set();
+    for (let seg of segments) {
+        verts.add(seg.v1);
+        verts.add(seg.v2);
+    }
+    let doneset=new util.set();
+    function angle(v, seg) {
+      let v2=seg.other_vert(v);
+      let dx=v2[0]-v[0];
+      let dy=v2[1]-v[1];
+      return Math.atan2(dy, dx);
+    }
+    for (let v of verts) {
+        v.segments.sort((a, b) =>          {
+          return angle(v, a)-angle(v, b);
+        });
+    }
+    let ekey=function (e, side) {
+      return ""+e.eid+":"+side;
+    }
+    let doneset2=new util.set();
+    for (let v of verts) {
+        let side=0;
+        let startside=side;
+        if (doneset.has(ekey(v, side))) {
+            continue;
+        }
+        let startv=v;
+        let seg;
+        let found=0;
+        for (seg of v.segments) {
+            let realside=side^(seg.v1===v ? 0 : 1);
+            if (segments.has(seg)&&!doneset.has(ekey(seg, realside))) {
+                found = 1;
+                break;
+            }
+        }
+        if (!found) {
+            continue;
+        }
+        let vcurs={};
+        let vstarts={};
+        let lastco=undefined;
+        let firstp=undefined;
+        let lastp=undefined;
+        let lastv=v;
+        let lastseg=undefined;
+        let widthscale=1.0;
+        let _i=0;
+        do {
+          let realside=side^(seg.v1===v ? 0 : 1);
+          if (doneset.has(ekey(seg, realside))) {
+              break;
+          }
+          doneset.add(ekey(seg, realside));
+          let data=seg.cdata.get_layer(SplineDrawData);
+          if (!data) {
+              throw new Error("data was not defined");
+          }
+          let s=data.gets(seg, v);
+          let p=seg.evaluateSide(s, realside);
+          p = spline.make_vertex(p);
+          if ((v.flag&SplineFlags.BREAK_TANGENTS)||v.segments.length!==2) {
+              p.flag|=SplineFlags.BREAK_TANGENTS;
+              if (v.segments.length===2) {
+                  p.load(data.getp(seg, v, side^1));
+                  p[2] = 0.0;
+              }
+          }
+          if (v.flag&SplineFlags.BREAK_CURVATURES) {
+              p.flag|=SplineFlags.BREAK_CURVATURES;
+          }
+          if (lastco===undefined) {
+              lastco = new Vector2(p);
+              lastp = p;
+              firstp = p;
+          }
+          else {
+            let seg2=spline.make_segment(lastp, p);
+            lastp.width = widthscale;
+            widthscale+=0.025;
+            seg2.mat.strokecolor.load(color);
+            seg2.mat.linewidth = width;
+            seg2.mat.update();
+            lastco.load(p);
+            let nev=spline.split_edge(seg2, 0.5);
+            let pn=seg.evaluateSide(0.5, realside);
+            pn[2] = 0.0;
+            nev[1].load(pn);
+          }
+          lastp = p;
+          if (v.segments.length===2) {
+              seg = v.other_segment(seg);
+              v = seg.other_vert(v);
+          }
+          else 
+            if (v.segments.length>2) {
+              if (!vcurs[v.eid]) {
+                  vcurs[v.eid] = vstarts[v.eid] = v.segments.indexOf(v.seg);
+              }
+              let side2=seg.v1===v ? 1 : 0;
+              side2 = side2^side;
+              let dir=realside ? -1 : 1;
+              vcurs[v.eid] = (vcurs[v.eid]+dir+v.segments.length)%v.segments.length;
+              if (vcurs[v.eid]===vstarts[v.eid]) {
+                  break;
+              }
+              seg = v.segments[vcurs[v.eid]];
+              v = seg.other_vert(v);
+          }
+          else {
+            v = seg.other_vert(v);
+            let co=seg.evaluateSide(s, realside^1);
+            let v2=spline.make_vertex(co);
+            let seg2=spline.make_segment(lastp, v2);
+            seg2.mat.strokecolor.load(color);
+            seg2.mat.linewidth = width;
+            seg2.mat.update();
+            v2.flag|=SplineFlags.BREAK_TANGENTS;
+            lastp.flag|=SplineFlags.BREAK_TANGENTS;
+            lastp = v2;
+          }
+          lastv = v;
+          lastseg = seg;
+          if (_i++>1000) {
+              console.warn("Infinite loop detected!");
+              break;
+          }
+        } while (ekey(v, side)!==ekey(startv, startside));
+        
+        if (v===startv) {
+            let seg2=spline.make_segment(lastp, firstp);
+            lastp.width = widthscale;
+            seg2.mat.strokecolor.load(color);
+            seg2.mat.linewidth = width;
+            seg2.mat.update();
+        }
+    }
+  }
+  strokeSegments = _es6_module.add_export('strokeSegments', strokeSegments);
+  class StrokePathOp extends SplineLocalToolOp {
+     constructor() {
+      super();
+    }
+    static  invoke(ctx, args) {
+      let tool=new StrokePathOp();
+      if ("color" in args) {
+          tool.inputs.color.setValue(args.color);
+      }
+      else 
+        if (ctx.view2d) {
+          tool.inputs.color.setValue(ctx.view2d.default_stroke);
+      }
+      if ("width" in args) {
+          tool.inputs.width.setValue(args.width);
+      }
+      else 
+        if (ctx.view2d) {
+          tool.inputs.width.setValue(ctx.view2d.default_linewidth);
+      }
+      return tool;
+    }
+    static  tooldef() {
+      return {name: "Stroke Path", 
+     description: "Stroke Path", 
+     toolpath: "spline.stroke", 
+     inputs: {color: new Vec4Property([0, 0, 0, 1]), 
+      width: new FloatProperty(1.0)}, 
+     outputs: {}, 
+     icon: Icons.STROKE_TOOL}
+    }
+     exec(ctx) {
+      let spline=ctx.frameset.spline;
+      let width=this.inputs.width.getValue();
+      let color=this.inputs.color.getValue();
+      strokeSegments(spline, spline.segments.selected.editable(ctx), width, color);
+      spline.regen_render();
+      spline.regen_solve();
+      spline.regen_sort();
+      window.redraw_viewport();
+    }
+  }
+  _ESClass.register(StrokePathOp);
+  _es6_module.add_class(StrokePathOp);
+  StrokePathOp = _es6_module.add_export('StrokePathOp', StrokePathOp);
 }, '/dev/fairmotion/src/editors/viewport/spline_createops.js');
-es6_module_define('spline_editops', ["../../path.ux/scripts/util/struct.js", "../../curve/spline_draw.js", "../../core/animdata.js", "../../core/toolprops.js", "../../core/frameset.js", "../../curve/spline.js", "../../core/toolops_api.js", "../../curve/spline_base.js", "../../curve/spline_types.js"], function _spline_editops_module(_es6_module) {
+es6_module_define('spline_editops', ["../../core/animdata.js", "../../core/frameset.js", "../../curve/spline_types.js", "../../core/toolops_api.js", "../../core/toolprops.js", "../../curve/spline_draw.js", "../../curve/spline.js", "../../curve/spline_base.js", "../../path.ux/scripts/util/struct.js"], function _spline_editops_module(_es6_module) {
   var IntProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'IntProperty');
   var FloatProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'FloatProperty');
   var CollectionProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'CollectionProperty');
@@ -5988,6 +12437,7 @@ es6_module_define('spline_editops', ["../../path.ux/scripts/util/struct.js", "..
      on_mousemove(e) {
       let ctx=this.modal_ctx;
       let mpos=[e.x, e.y];
+      mpos = ctx.view2d.getLocalMouse(mpos[0], mpos[1]);
       this.mpos.load(mpos);
       let ret=ctx.view2d.editor.findnearest(mpos, SplineTypes.SEGMENT, 105);
       if (ret===undefined) {
@@ -6004,16 +12454,17 @@ es6_module_define('spline_editops', ["../../path.ux/scripts/util/struct.js", "..
         this.inputs.spline_path.setValue("spline");
       }
       this.reset_drawlines(ctx);
-      let steps=16;
-      let ds=1.0/(steps-1), s=ds;
-      let lastco=seg.evaluate(s);
+      let steps=Math.min(Math.max(seg.length/20, 3, 18));
+      let ds=1.0/(steps-1), s=0;
+      let lastco;
       let view2d=ctx.view2d;
       let canvas=view2d.get_bg_canvas();
-      for (let i=1; i<steps; i++, s+=ds) {
+      for (let i=0; i<steps; i++, s+=ds) {
           let co=seg.evaluate(s);
           view2d.project(co);
-          co[1] = canvas.height-co[1];
-          this.new_drawline(lastco, co, [1, 0.3, 0.0, 1.0], 2);
+          if (i>0) {
+              this.new_drawline(lastco, co, [1, 0.3, 0.0, 1.0], 2);
+          }
           lastco = co;
       }
       this.inputs.segment_eid.setValue(seg.eid);
@@ -6024,7 +12475,7 @@ es6_module_define('spline_editops', ["../../path.ux/scripts/util/struct.js", "..
           this.inputs.segment_t.setValue(p[1]);
           p = new Vector2(p[0]);
           view2d.project(p);
-          let y=canvas.height-p[1];
+          let y=p[1];
           let w=4;
           this.new_drawline([p[0]-w, y-w], [p[0]-w, y+w], "blue");
           this.new_drawline([p[0]-w, y+w], [p[0]+w, y+w], "blue");
@@ -6574,7 +13025,7 @@ es6_module_define('spline_editops', ["../../path.ux/scripts/util/struct.js", "..
     }
      exec(ctx) {
       let spline=ctx.spline;
-      for (let s of spline.segments) {
+      for (let s of spline.segments.selected.editable(ctx)) {
           spline.flip_segment(s);
       }
       spline.regen_sort();
@@ -6631,4435 +13082,3 @@ es6_module_define('spline_editops', ["../../path.ux/scripts/util/struct.js", "..
   _es6_module.add_class(SplineMirrorOp);
   SplineMirrorOp = _es6_module.add_export('SplineMirrorOp', SplineMirrorOp);
 }, '/dev/fairmotion/src/editors/viewport/spline_editops.js');
-es6_module_define('spline_layerops', ["./spline_editops.js", "../../core/toolops_api.js", "../../curve/spline.js", "../../core/toolprops.js", "../../curve/spline_types.js"], function _spline_layerops_module(_es6_module) {
-  var ToolOp=es6_import_item(_es6_module, '../../core/toolops_api.js', 'ToolOp');
-  var UndoFlags=es6_import_item(_es6_module, '../../core/toolops_api.js', 'UndoFlags');
-  var ToolFlags=es6_import_item(_es6_module, '../../core/toolops_api.js', 'ToolFlags');
-  var SplineFlags=es6_import_item(_es6_module, '../../curve/spline_types.js', 'SplineFlags');
-  var SplineTypes=es6_import_item(_es6_module, '../../curve/spline_types.js', 'SplineTypes');
-  var RecalcFlags=es6_import_item(_es6_module, '../../curve/spline_types.js', 'RecalcFlags');
-  var RestrictFlags=es6_import_item(_es6_module, '../../curve/spline.js', 'RestrictFlags');
-  var Spline=es6_import_item(_es6_module, '../../curve/spline.js', 'Spline');
-  var SplineLocalToolOp=es6_import_item(_es6_module, './spline_editops.js', 'SplineLocalToolOp');
-  var StringProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'StringProperty');
-  var IntProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'IntProperty');
-  var FloatProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'FloatProperty');
-  var BoolProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'BoolProperty');
-  var CollectionProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'CollectionProperty');
-  class SplineLayerOp extends SplineLocalToolOp {
-    static  tooldef() {
-      return {inputs: ToolOp.inherit({spline_path: new StringProperty("frameset.drawspline")})}
-    }
-     get_spline(ctx) {
-      return ctx.api.getValue(this.inputs.spline_path.data);
-    }
-  }
-  _ESClass.register(SplineLayerOp);
-  _es6_module.add_class(SplineLayerOp);
-  SplineLayerOp = _es6_module.add_export('SplineLayerOp', SplineLayerOp);
-  class AddLayerOp extends SplineLayerOp {
-     constructor(name) {
-      super(undefined, "Add Layer");
-      if (name!=undefined)
-        this.inputs.name.set_data(name);
-    }
-    static  tooldef() {
-      return {uiname: "Add Layer", 
-     apiname: "spline.layers.add", 
-     inputs: ToolOp.inherit({name: new StringProperty("Layer", "name", "Name", "Layer Name"), 
-      make_active: new BoolProperty(true, "Make Active")}), 
-     outputs: ToolOp.inherit({layerid: new IntProperty(0, "layerid", "layerid", "New Layer ID")}), 
-     is_modal: false}
-    }
-     can_call(ctx) {
-      let spline=ctx.api.getValue(ctx, this.inputs.spline_path.data);
-      return spline!==undefined;
-    }
-     exec(ctx) {
-      console.warn(ctx, ctx.api);
-      let spline=ctx.api.getValue(ctx, this.inputs.spline_path.data);
-      var layer=spline.layerset.new_layer(this.inputs.name.data);
-      this.outputs.layerid.set_data(layer.id);
-      if (this.inputs.make_active.data) {
-          spline.layerset.active = layer;
-          for (var list of spline.elists) {
-              list.active = undefined;
-          }
-      }
-      spline.regen_sort();
-    }
-  }
-  _ESClass.register(AddLayerOp);
-  _es6_module.add_class(AddLayerOp);
-  AddLayerOp = _es6_module.add_export('AddLayerOp', AddLayerOp);
-  class ChangeLayerOp extends SplineLayerOp {
-    static  tooldef() {
-      return {uiname: "Change Layer", 
-     apiname: "spline.layers.set", 
-     inputs: ToolOp.inherit({layerid: new IntProperty(0, "layerid", "layerid", "Layer ID")}), 
-     is_modal: false}
-    }
-     constructor(id) {
-      super(undefined);
-      if (id!=undefined)
-        this.inputs.layerid.set_data(id);
-    }
-     undo_pre(ctx) {
-      var spline=this.get_spline(ctx);
-      var actives=[];
-      for (var list of spline.elists) {
-          actives.push(list.active!=undefined ? list.active.eid : -1);
-      }
-      this._undo = {id: this.get_spline(ctx).layerset.active.id, 
-     actives: actives};
-    }
-     undo(ctx) {
-      var spline=this.get_spline(ctx);
-      var layer=spline.layerset.idmap[this._undo.id];
-      var actives=this._undo.actives;
-      for (var i=0; i<actives.length; i++) {
-          spline.elists[i].active = spline.eidmap[actives[i]];
-      }
-      if (layer==undefined) {
-          console.log("ERROR IN CHANGELAYER UNDO!");
-          return ;
-      }
-      spline.layerset.active = layer;
-    }
-     exec(ctx) {
-      var spline=this.get_spline(ctx);
-      var layer=spline.layerset.idmap[this.inputs.layerid.data];
-      if (layer==undefined) {
-          console.log("ERROR IN CHANGELAYER!");
-          return ;
-      }
-      for (var list of spline.elists) {
-          list.active = undefined;
-      }
-      spline.layerset.active = layer;
-      window.redraw_viewport();
-    }
-  }
-  _ESClass.register(ChangeLayerOp);
-  _es6_module.add_class(ChangeLayerOp);
-  ChangeLayerOp = _es6_module.add_export('ChangeLayerOp', ChangeLayerOp);
-  
-  class ChangeElementLayerOp extends SplineLayerOp {
-     constructor(old_layer, new_layer) {
-      super(undefined, "Move to Layer");
-      if (old_layer!=undefined)
-        this.inputs.old_layer.set_data(old_layer);
-      if (new_layer!=undefined)
-        this.inputs.new_layer.set_data(new_layer);
-    }
-    static  tooldef() {
-      return {name: "move_to_layer", 
-     uiname: "Move To Layer", 
-     path: "spline.move_to_layer", 
-     inputs: ToolOp.inherit({old_layer: new IntProperty(0), 
-      new_layer: new IntProperty(0)}), 
-     outputs: {}}
-    }
-     exec(ctx) {
-      var spline=this.get_spline(ctx);
-      var oldl=this.inputs.old_layer.data;
-      var newl=this.inputs.new_layer.data;
-      var eset=new set();
-      for (var e of spline.selected) {
-          if (e.hidden)
-            continue;
-          if (!(oldl in e.layers))
-            continue;
-          eset.add(e);
-      }
-      console.log("ids", oldl, newl);
-      oldl = spline.layerset.idmap[oldl];
-      newl = spline.layerset.idmap[newl];
-      if (newl==undefined||oldl==undefined||oldl==newl) {
-          console.log("Error in ChangeElementLayerOp!", "oldlayer", oldl, "newlayer", newl);
-          return ;
-      }
-      for (var e of eset) {
-          oldl.remove(e);
-          newl.add(e);
-      }
-      window.redraw_viewport();
-      spline.regen_sort();
-    }
-  }
-  _ESClass.register(ChangeElementLayerOp);
-  _es6_module.add_class(ChangeElementLayerOp);
-  ChangeElementLayerOp = _es6_module.add_export('ChangeElementLayerOp', ChangeElementLayerOp);
-  class DeleteLayerOp extends SplineLayerOp {
-     constructor() {
-      super(undefined);
-    }
-    static  tooldef() {
-      return {uiname: "Delete Layer", 
-     apiname: "spline.layers.remove", 
-     inputs: ToolOp.inherit({layer_id: new IntProperty(-1)}), 
-     is_modal: false}
-    }
-     exec(ctx) {
-      var spline=this.get_spline(ctx);
-      var layer=spline.layerset.idmap[this.inputs.layer_id.data];
-      if (layer==undefined) {
-          console.trace("Warning, bad data passed to DeleteLayerOp()");
-          return ;
-      }
-      if (spline.layerset.length<2) {
-          console.trace("DeleteLayerOp(): Must have at least one layer at all times");
-          return ;
-      }
-      var orphaned=new set();
-      for (var k in spline.eidmap) {
-          var e=spline.eidmap[k];
-          if (layer.id in e.layers) {
-              delete e.layers[layer.id];
-          }
-          var exist=false;
-          for (var id in e.layers) {
-              exist = true;
-              break;
-          }
-          if (!exist) {
-              orphaned.add(e);
-          }
-      }
-      spline.layerset.remove(layer);
-      var layer=spline.layerset.active;
-      for (var e of orphaned) {
-          e.layers[layer.id] = 1;
-      }
-    }
-  }
-  _ESClass.register(DeleteLayerOp);
-  _es6_module.add_class(DeleteLayerOp);
-  DeleteLayerOp = _es6_module.add_export('DeleteLayerOp', DeleteLayerOp);
-}, '/dev/fairmotion/src/editors/viewport/spline_layerops.js');
-es6_module_define('spline_animops', [], function _spline_animops_module(_es6_module) {
-}, '/dev/fairmotion/src/editors/viewport/spline_animops.js');
-es6_module_define('multires_ops', ["../../../curve/spline_draw.js", "../spline_editops.js", "../../../curve/spline_types.js", "../../../core/toolops_api.js", "../../../core/toolprops.js", "../../../curve/spline.js", "../../../curve/spline_multires.js", "../../../path.ux/scripts/util/vectormath.js"], function _multires_ops_module(_es6_module) {
-  es6_import(_es6_module, '../../../path.ux/scripts/util/vectormath.js');
-  var IntProperty=es6_import_item(_es6_module, '../../../core/toolprops.js', 'IntProperty');
-  var FloatProperty=es6_import_item(_es6_module, '../../../core/toolprops.js', 'FloatProperty');
-  var CollectionProperty=es6_import_item(_es6_module, '../../../core/toolprops.js', 'CollectionProperty');
-  var BoolProperty=es6_import_item(_es6_module, '../../../core/toolprops.js', 'BoolProperty');
-  var TPropFlags=es6_import_item(_es6_module, '../../../core/toolprops.js', 'TPropFlags');
-  var Vec3Property=es6_import_item(_es6_module, '../../../core/toolprops.js', 'Vec3Property');
-  var ToolOp=es6_import_item(_es6_module, '../../../core/toolops_api.js', 'ToolOp');
-  var UndoFlags=es6_import_item(_es6_module, '../../../core/toolops_api.js', 'UndoFlags');
-  var ToolFlags=es6_import_item(_es6_module, '../../../core/toolops_api.js', 'ToolFlags');
-  var ModalStates=es6_import_item(_es6_module, '../../../core/toolops_api.js', 'ModalStates');
-  var SplineFlags=es6_import_item(_es6_module, '../../../curve/spline_types.js', 'SplineFlags');
-  var SplineTypes=es6_import_item(_es6_module, '../../../curve/spline_types.js', 'SplineTypes');
-  var RecalcFlags=es6_import_item(_es6_module, '../../../curve/spline_types.js', 'RecalcFlags');
-  var RestrictFlags=es6_import_item(_es6_module, '../../../curve/spline.js', 'RestrictFlags');
-  var Spline=es6_import_item(_es6_module, '../../../curve/spline.js', 'Spline');
-  var TPropFlags=es6_import_item(_es6_module, '../../../core/toolprops.js', 'TPropFlags');
-  var redo_draw_sort=es6_import_item(_es6_module, '../../../curve/spline_draw.js', 'redo_draw_sort');
-  var SplineLocalToolOp=es6_import_item(_es6_module, '../spline_editops.js', 'SplineLocalToolOp');
-  var ensure_multires=es6_import_item(_es6_module, '../../../curve/spline_multires.js', 'ensure_multires');
-  var MResFlags=es6_import_item(_es6_module, '../../../curve/spline_multires.js', 'MResFlags');
-  var BoundPoint=es6_import_item(_es6_module, '../../../curve/spline_multires.js', 'BoundPoint');
-  var MultiResLayer=es6_import_item(_es6_module, '../../../curve/spline_multires.js', 'MultiResLayer');
-  var compose_id=es6_import_item(_es6_module, '../../../curve/spline_multires.js', 'compose_id');
-  var decompose_id=es6_import_item(_es6_module, '../../../curve/spline_multires.js', 'decompose_id');
-  var has_multires=es6_import_item(_es6_module, '../../../curve/spline_multires.js', 'has_multires');
-  var iterpoints=es6_import_item(_es6_module, '../../../curve/spline_multires.js', 'iterpoints');
-  var $vec_PdwJ_exec;
-  class CreateMResPoint extends SplineLocalToolOp {
-     constructor(seg, co) {
-      super("create_mres_point", "Add Detail Point", "", -1);
-      if (seg!=undefined) {
-          this.inputs.segment.set_data(typeof seg!="number" ? seg.eid : seg);
-      }
-      if (co!=undefined) {
-          this.inputs.co.set_data(co);
-      }
-    }
-     exec(ctx) {
-      var spline=ctx.spline;
-      var level=this.inputs.level.data;
-      console.log("Add mres point! yay!");
-      ensure_multires(spline);
-      var seg=spline.eidmap[this.inputs.segment.data];
-      var co=this.inputs.co.data;
-      var flag=MResFlags.SELECT;
-      var mr=seg.cdata.get_layer(MultiResLayer);
-      for (var seg2 of spline.segments) {
-          var mr2=seg2.cdata.get_layer(MultiResLayer);
-          for (var p2 of mr2.points(level)) {
-              p2.flag&=~MResFlags.SELECT;
-          }
-      }
-      console.log(p);
-      console.log("S", s);
-      var p=mr.add_point(level, co);
-      var cp=seg.closest_point(co);
-      var t=10.0, s=0.5;
-      if (cp!=undefined) {
-          s = cp[1];
-          t = cp[0].vectorDistance(co);
-          $vec_PdwJ_exec.zero().load(co).sub(cp[0]);
-          var n=seg.normal(s);
-          t*=Math.sign(n.dot($vec_PdwJ_exec));
-          p.offset[0] = $vec_PdwJ_exec[0];
-          p.offset[1] = $vec_PdwJ_exec[1];
-      }
-      else {
-        flag|=MResFlags.UPDATE;
-      }
-      p.flag = flag;
-      p.s = s;
-      p.t = t;
-      p.seg = seg.eid;
-      var id=compose_id(p.seg, p.id);
-      spline.segments.cdata.get_shared('MultiResLayer').active = id;
-    }
-  }
-  var $vec_PdwJ_exec=new Vector3();
-  _ESClass.register(CreateMResPoint);
-  _es6_module.add_class(CreateMResPoint);
-  CreateMResPoint = _es6_module.add_export('CreateMResPoint', CreateMResPoint);
-  CreateMResPoint.inputs = {segment: new IntProperty(0), 
-   co: new Vec3Property(), 
-   level: new IntProperty(0)}
-}, '/dev/fairmotion/src/editors/viewport/multires/multires_ops.js');
-es6_module_define('multires_selectops', ["../../../curve/spline_types.js", "../../../core/toolops_api.js", "../../../core/toolprops.js", "../../../path.ux/scripts/util/vectormath.js", "../../../curve/spline_multires.js", "../../../curve/spline.js", "../spline_editops.js", "../../../curve/spline_draw.js"], function _multires_selectops_module(_es6_module) {
-  "use strict";
-  es6_import(_es6_module, '../../../path.ux/scripts/util/vectormath.js');
-  var IntProperty=es6_import_item(_es6_module, '../../../core/toolprops.js', 'IntProperty');
-  var FloatProperty=es6_import_item(_es6_module, '../../../core/toolprops.js', 'FloatProperty');
-  var CollectionProperty=es6_import_item(_es6_module, '../../../core/toolprops.js', 'CollectionProperty');
-  var BoolProperty=es6_import_item(_es6_module, '../../../core/toolprops.js', 'BoolProperty');
-  var TPropFlags=es6_import_item(_es6_module, '../../../core/toolprops.js', 'TPropFlags');
-  var Vec3Property=es6_import_item(_es6_module, '../../../core/toolprops.js', 'Vec3Property');
-  var ToolOp=es6_import_item(_es6_module, '../../../core/toolops_api.js', 'ToolOp');
-  var UndoFlags=es6_import_item(_es6_module, '../../../core/toolops_api.js', 'UndoFlags');
-  var ToolFlags=es6_import_item(_es6_module, '../../../core/toolops_api.js', 'ToolFlags');
-  var ModalStates=es6_import_item(_es6_module, '../../../core/toolops_api.js', 'ModalStates');
-  var SplineFlags=es6_import_item(_es6_module, '../../../curve/spline_types.js', 'SplineFlags');
-  var SplineTypes=es6_import_item(_es6_module, '../../../curve/spline_types.js', 'SplineTypes');
-  var RecalcFlags=es6_import_item(_es6_module, '../../../curve/spline_types.js', 'RecalcFlags');
-  var RestrictFlags=es6_import_item(_es6_module, '../../../curve/spline.js', 'RestrictFlags');
-  var Spline=es6_import_item(_es6_module, '../../../curve/spline.js', 'Spline');
-  var TPropFlags=es6_import_item(_es6_module, '../../../core/toolprops.js', 'TPropFlags');
-  var redo_draw_sort=es6_import_item(_es6_module, '../../../curve/spline_draw.js', 'redo_draw_sort');
-  var SplineLocalToolOp=es6_import_item(_es6_module, '../spline_editops.js', 'SplineLocalToolOp');
-  var ensure_multires=es6_import_item(_es6_module, '../../../curve/spline_multires.js', 'ensure_multires');
-  var has_multires=es6_import_item(_es6_module, '../../../curve/spline_multires.js', 'has_multires');
-  var MResFlags=es6_import_item(_es6_module, '../../../curve/spline_multires.js', 'MResFlags');
-  var compose_id=es6_import_item(_es6_module, '../../../curve/spline_multires.js', 'compose_id');
-  var decompose_id=es6_import_item(_es6_module, '../../../curve/spline_multires.js', 'decompose_id');
-  var BoundPoint=es6_import_item(_es6_module, '../../../curve/spline_multires.js', 'BoundPoint');
-  var MultiResLayer=es6_import_item(_es6_module, '../../../curve/spline_multires.js', 'MultiResLayer');
-  class SelectOpBase extends ToolOp {
-     constructor(actlevel, uiname, description, icon) {
-      super(undefined, uiname, description, icon);
-      if (actlevel!=undefined)
-        this.inputs.level.set_data(actlevel);
-    }
-     can_call(ctx) {
-      var spline=ctx.spline;
-      return has_multires(spline);
-    }
-     undo_pre(ctx) {
-      var ud=this._undo = [];
-      this._undo_level = this.inputs.level.data;
-      var spline=ctx.spline;
-      var actlayer=spline.layerset.active;
-      var level=this.inputs.level.data;
-      if (!has_multires(spline))
-        return ;
-      for (var seg of spline.segments) {
-          if (seg.hidden)
-            continue;
-          if (!(actlayer.id in seg.layers))
-            continue;
-          var mr=seg.cdata.get_layer(MultiResLayer);
-          for (var p of mr.points(level)) {
-              if (p.flag&MResFlags.SELECT)
-                ud.push(compose_id(seg.eid, p.id));
-          }
-      }
-      window.redraw_viewport();
-    }
-     undo(ctx) {
-      var spline=ctx.spline;
-      var actlayer=spline.layerset.active;
-      var level=this._undo_level;
-      if (!has_multires(spline))
-        return ;
-      for (var seg of spline.segments) {
-          if (seg.hidden)
-            continue;
-          if (!(actlayer.id in seg.layers))
-            continue;
-          var mr=seg.cdata.get_layer(MultiResLayer);
-          for (var p of mr.points(level)) {
-              p.flag&=~MResFlags.SELECT;
-              p.flag&=~MResFlags.HIGHLIGHT;
-          }
-      }
-      for (var i=0; i<this._undo.length; i++) {
-          var id=this._undo[i];
-          var seg=decompose_id(id)[0];
-          var p=decompose_id(id)[1];
-          seg = spline.eidmap[seg];
-          if (seg==undefined) {
-              console.trace("Eek! bad seg eid!", seg, p, id, this, this._undo);
-              continue;
-          }
-          var mr=seg.cdata.get_layer(MultiResLayer);
-          p = mr.get(p);
-          p.flag|=MResFlags.SELECT;
-      }
-      window.redraw_viewport();
-    }
-  }
-  _ESClass.register(SelectOpBase);
-  _es6_module.add_class(SelectOpBase);
-  SelectOpBase.inputs = {level: new IntProperty(0)}
-  class ToggleSelectAll extends SelectOpBase {
-     constructor(actlevel=0) {
-      super(actlevel, "Select All", "Select all/none");
-    }
-     can_call(ctx) {
-      var spline=ctx.spline;
-      return has_multires(spline);
-    }
-     exec(ctx) {
-      var spline=ctx.spline;
-      var actlayer=spline.layerset.active;
-      var level=this.inputs.level.data;
-      if (!has_multires(spline))
-        return ;
-      var totsel=0;
-      for (var seg of spline.segments) {
-          if (seg.hidden)
-            continue;
-          if (!(actlayer.id in seg.layers))
-            continue;
-          var mr=seg.cdata.get_layer(MultiResLayer);
-          for (var p of mr.points(level)) {
-              if (p.flag&MResFlags.HIDE)
-                continue;
-              totsel+=p.flag&MResFlags.SELECT;
-          }
-      }
-      for (var seg of spline.segments) {
-          if (seg.hidden)
-            continue;
-          if (!(actlayer.id in seg.layers))
-            continue;
-          var mr=seg.cdata.get_layer(MultiResLayer);
-          for (var p of mr.points(level)) {
-              if (p.flag&MResFlags.HIDE)
-                continue;
-              if (totsel)
-                p.flag&=~MResFlags.SELECT;
-              else 
-                p.flag|=MResFlags.SELECT;
-          }
-      }
-    }
-  }
-  _ESClass.register(ToggleSelectAll);
-  _es6_module.add_class(ToggleSelectAll);
-  ToggleSelectAll = _es6_module.add_export('ToggleSelectAll', ToggleSelectAll);
-  ToggleSelectAll.inputs = {level: new IntProperty(0)}
-  class SelectOneOp extends SelectOpBase {
-     constructor(pid=undefined, unique=true, mode=true, level=0) {
-      super(level, "Select One", "select one element");
-      this.inputs.unique.set_data(unique);
-      this.inputs.state.set_data(mode);
-      if (pid!=undefined)
-        this.inputs.pid.set_data(pid);
-    }
-     exec(ctx) {
-      var spline=ctx.spline;
-      var actlayer=spline.layerset.active;
-      var id=this.inputs.pid.data;
-      var level=this.inputs.level.data;
-      var seg=decompose_id(id)[0];
-      var p=decompose_id(id)[1];
-      seg = spline.eidmap[seg];
-      var mr=seg.cdata.get_layer(MultiResLayer);
-      p = mr.get(p);
-      if (this.inputs.unique.data) {
-          for (var seg2 of spline.segments) {
-              if (seg2.hidden)
-                continue;
-              if (!(actlayer.id in seg2.layers))
-                continue;
-              var mr2=seg2.cdata.get_layer(MultiResLayer);
-              for (var p2 of mr2.points(level)) {
-                  p2.flag&=~SplineFlags.SELECT;
-              }
-          }
-      }
-      var state=this.inputs.state.data;
-      if (state&&this.inputs.set_active.data) {
-          var shared=spline.segments.cdata.get_shared("MultiResLayer");
-          shared.active = id;
-      }
-      if (state) {
-          p.flag|=SplineFlags.SELECT;
-      }
-      else {
-        p.flag&=~SplineFlags.SELECT;
-      }
-    }
-  }
-  _ESClass.register(SelectOneOp);
-  _es6_module.add_class(SelectOneOp);
-  SelectOneOp = _es6_module.add_export('SelectOneOp', SelectOneOp);
-  SelectOneOp.inputs = ToolOp.inherit_inputs(SelectOpBase, {pid: new IntProperty(-1), 
-   state: new BoolProperty(true), 
-   set_active: new BoolProperty(true), 
-   unique: new BoolProperty(true), 
-   level: new IntProperty(0)});
-}, '/dev/fairmotion/src/editors/viewport/multires/multires_selectops.js');
-es6_module_define('multires_transdata', ["../selectmode.js", "../../../curve/spline_multires.js", "../transdata.js", "../../../util/mathlib.js"], function _multires_transdata_module(_es6_module) {
-  "use strict";
-  var SelMask=es6_import_item(_es6_module, '../selectmode.js', 'SelMask');
-  var compose_id=es6_import_item(_es6_module, '../../../curve/spline_multires.js', 'compose_id');
-  var decompose_id=es6_import_item(_es6_module, '../../../curve/spline_multires.js', 'decompose_id');
-  var has_multires=es6_import_item(_es6_module, '../../../curve/spline_multires.js', 'has_multires');
-  var ensure_multires=es6_import_item(_es6_module, '../../../curve/spline_multires.js', 'ensure_multires');
-  var MultiResLayer=es6_import_item(_es6_module, '../../../curve/spline_multires.js', 'MultiResLayer');
-  var iterpoints=es6_import_item(_es6_module, '../../../curve/spline_multires.js', 'iterpoints');
-  var MResFlags=es6_import_item(_es6_module, '../../../curve/spline_multires.js', 'MResFlags');
-  var MinMax=es6_import_item(_es6_module, '../../../util/mathlib.js', 'MinMax');
-  var TransDataType=es6_import_item(_es6_module, '../transdata.js', 'TransDataType');
-  var TransDataItem=es6_import_item(_es6_module, '../transdata.js', 'TransDataItem');
-  var $co_rzB8_apply;
-  var $co_b8x2_calc_draw_aabb;
-  var $co2_rcAc_calc_draw_aabb;
-  var $co_cZHo_aabb;
-  class MResTransData extends TransDataType {
-    static  gen_data(ctx, td, data) {
-      var doprop=td.doprop;
-      var proprad=td.propradius;
-      var spline=ctx.spline;
-      var actlayer=spline.layerset.active;
-      if (!has_multires(spline))
-        return ;
-      var actlevel=spline.actlevel;
-      for (var seg of spline.segments) {
-          if (!(actlayer.id in seg.layers))
-            continue;
-          if (seg.hidden)
-            continue;
-          var mr=seg.cdata.get_layer(MultiResLayer);
-          for (var p of mr.points(actlevel)) {
-              if (!(p.flag&MResFlags.SELECT))
-                continue;
-              p = mr.get(p.id, true);
-              var co=new Vector3(p);
-              co[2] = 0.0;
-              var td=new TransDataItem(p, MResTransData, co);
-              data.push(td);
-          }
-      }
-    }
-    static  apply(ctx, td, item, mat, w) {
-      var p=item.data;
-      if (w==0.0)
-        return ;
-      $co_rzB8_apply.load(item.start_data);
-      $co_rzB8_apply[2] = 0.0;
-      $co_rzB8_apply.multVecMatrix(mat);
-      $co_rzB8_apply.sub(item.start_data).mulScalar(w).add(item.start_data);
-      p[0] = $co_rzB8_apply[0];
-      p[1] = $co_rzB8_apply[1];
-      p.recalc_offset(ctx.spline);
-      var seg=ctx.spline.eidmap[p.seg];
-      p.mr.recalc_wordscos(seg);
-    }
-    static  undo_pre(ctx, td, undo_obj) {
-      var ud=[];
-      var spline=ctx.spline;
-      var actlayer=spline.layerset.active;
-      var doprop=td.doprop;
-      if (!has_multires(spline))
-        return ;
-      for (var seg of spline.segments) {
-          if (seg.hidden)
-            continue;
-          if (!(actlayer.id in seg.layers))
-            continue;
-          var mr=seg.cdata.get_layer(MultiResLayer);
-          for (var p of mr.points) {
-              if (!doprop&&!(p.flag&MResFlags.SELECT))
-                continue;
-              ud.push(compose_id(seg.eid, p.id));
-              ud.push(p[0]);
-              ud.push(p[1]);
-          }
-      }
-      undo_obj.mr_undo = ud;
-    }
-    static  undo(ctx, undo_obj) {
-      var ud=undo_obj.mr_undo;
-      var spline=ctx.spline;
-      var i=0;
-      while (i<ud.length) {
-        var pid=ud[i++];
-        var x=ud[i++];
-        var y=ud[i++];
-        var seg=decompose_id(pid)[0];
-        var p=decompose_id(pid)[1];
-        seg = spline.eidmap[seg];
-        var mr=seg.cdata.get_layer(MultiResLayer);
-        p = mr.get(p);
-        p[0] = x;
-        p[1] = y;
-      }
-    }
-    static  update(ctx, td) {
-
-    }
-    static  calc_prop_distances(ctx, td, data) {
-
-    }
-    static  calc_draw_aabb(ctx, td, minmax) {
-      $co_b8x2_calc_draw_aabb.zero();
-      var pad=15;
-      function do_minmax(co) {
-        $co2_rcAc_calc_draw_aabb[0] = co[0]-pad;
-        $co2_rcAc_calc_draw_aabb[1] = co[1]-pad;
-        minmax.minmax($co2_rcAc_calc_draw_aabb);
-        $co2_rcAc_calc_draw_aabb[0]+=pad*2.0;
-        $co2_rcAc_calc_draw_aabb[1]+=pad*2.0;
-        minmax.minmax($co2_rcAc_calc_draw_aabb);
-      }
-      var spline=ctx.spline;
-      for (var i=0; i<td.data.length; i++) {
-          var t=td.data[i];
-          if (t.type!==MResTransData)
-            continue;
-          var seg=spline.eidmap[t.data.seg];
-          if (seg!=undefined) {
-              seg.update_aabb();
-              minmax.minmax(seg.aabb[0]);
-              minmax.minmax(seg.aabb[1]);
-          }
-          if (seg.v1.segments.length==2) {
-              var seg2=seg.v1.other_segment(seg);
-              seg2.update_aabb();
-              minmax.minmax(seg2.aabb[0]);
-              minmax.minmax(seg2.aabb[1]);
-          }
-          if (seg.v2.segments.length==2) {
-              var seg2=seg.v2.other_segment(seg);
-              seg2.update_aabb();
-              minmax.minmax(seg2.aabb[0]);
-              minmax.minmax(seg2.aabb[1]);
-          }
-          $co_b8x2_calc_draw_aabb[0] = t.data[0];
-          $co_b8x2_calc_draw_aabb[1] = t.data[1];
-          do_minmax($co_b8x2_calc_draw_aabb);
-          $co_b8x2_calc_draw_aabb[0]-=t.data.offset[0];
-          $co_b8x2_calc_draw_aabb[1]-=t.data.offset[1];
-          do_minmax($co_b8x2_calc_draw_aabb);
-      }
-    }
-    static  aabb(ctx, td, item, minmax, selected_only) {
-      $co_cZHo_aabb.zero();
-      for (var i=0; i<td.data.length; i++) {
-          var t=td.data[i];
-          if (t.type!==MResTransData)
-            continue;
-          $co_cZHo_aabb[0] = t.data[0];
-          $co_cZHo_aabb[1] = t.data[1];
-          minmax.minmax($co_cZHo_aabb);
-      }
-    }
-  }
-  var $co_rzB8_apply=new Vector3();
-  var $co_b8x2_calc_draw_aabb=new Vector3();
-  var $co2_rcAc_calc_draw_aabb=[0, 0, 0];
-  var $co_cZHo_aabb=new Vector3();
-  _ESClass.register(MResTransData);
-  _es6_module.add_class(MResTransData);
-  MResTransData = _es6_module.add_export('MResTransData', MResTransData);
-  MResTransData.selectmode = SelMask.MULTIRES;
-}, '/dev/fairmotion/src/editors/viewport/multires/multires_transdata.js');
-var g_theme;
-es6_module_define('theme', ["../core/struct.js"], function _theme_module(_es6_module) {
-  "use strict";
-  var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
-  function darken(c, m) {
-    for (var i=0; i<3; i++) {
-        c[i]*=m;
-    }
-    return c;
-  }
-  darken = _es6_module.add_export('darken', darken);
-  class BoxColor  {
-     constructor() {
-      this.colors = undefined;
-    }
-     copy() {
-      var ret=new BoxColor();
-      ret.colors = JSON.parse(JSON.stringify(this.colors));
-      return ret;
-    }
-    static  fromSTRUCT(reader) {
-      return {}
-    }
-  }
-  _ESClass.register(BoxColor);
-  _es6_module.add_class(BoxColor);
-  BoxColor = _es6_module.add_export('BoxColor', BoxColor);
-  BoxColor.STRUCT = `
-  BoxColor {
-  }
-`;
-  class BoxColor4 extends BoxColor {
-     constructor(colors) {
-      super();
-      var clrs=this.colors = [[], [], [], []];
-      if (colors==undefined)
-        return this;
-      for (var i=0; i<4; i++) {
-          for (var j=0; j<4; j++) {
-              clrs[i].push(colors[i][j]);
-          }
-      }
-    }
-     copy() {
-      return new BoxColor4(this.colors);
-    }
-    static  fromSTRUCT(reader) {
-      var ret=new BoxColor4();
-      reader(ret);
-      return ret;
-    }
-  }
-  _ESClass.register(BoxColor4);
-  _es6_module.add_class(BoxColor4);
-  BoxColor4 = _es6_module.add_export('BoxColor4', BoxColor4);
-  BoxColor4.STRUCT = `
-  BoxColor4 {
-    colors : array(vec4);
-  }
-`;
-  class BoxWColor extends BoxColor {
-     constructor(color, weights) {
-      super();
-      if (color==undefined||weights==undefined) {
-          return this;
-      }
-      this.color = [color[0], color[1], color[2], color[3]];
-      this.weights = [weights[0], weights[1], weights[2], weights[3]];
-    }
-    set  colors(c) {
-      if (c===undefined) {
-          if (DEBUG.theme)
-            console.warn("undefined was passed to BoxWColor.colors setter");
-          return ;
-      }
-      if (typeof c[0]=="object") {
-          this.color = c[0];
-      }
-      else {
-        this.color = c;
-      }
-    }
-    get  colors() {
-      var ret=[[], [], [], []];
-      var clr=this.color;
-      var w=this.weights;
-      if (clr==undefined)
-        clr = [1, 1, 1, 1];
-      for (var i=0; i<4; i++) {
-          for (var j=0; j<3; j++) {
-              ret[i].push(clr[j]*w[i]);
-          }
-          ret[i].push(clr[3]);
-      }
-      return ret;
-    }
-     copy() {
-      return new BoxWColor(this.color, this.weights);
-    }
-    static  fromSTRUCT(reader) {
-      var ret=new BoxWColor();
-      reader(ret);
-      return ret;
-    }
-  }
-  _ESClass.register(BoxWColor);
-  _es6_module.add_class(BoxWColor);
-  BoxWColor = _es6_module.add_export('BoxWColor', BoxWColor);
-  BoxWColor.STRUCT = `
-  BoxWColor {
-    color   : vec4;
-    weights : vec4;
-  }
-`;
-  class ThemePair  {
-     constructor(key, value) {
-      this.key = key;
-      this.val = value;
-    }
-  }
-  _ESClass.register(ThemePair);
-  _es6_module.add_class(ThemePair);
-  ThemePair = _es6_module.add_export('ThemePair', ThemePair);
-  class ColorTheme  {
-    
-    
-    
-     constructor(defobj) {
-      this.colors = new hashtable();
-      this.boxcolors = new hashtable();
-      if (defobj!==undefined) {
-          for (var k in defobj) {
-              if (this.colors.has(k)||this.boxcolors.has(k))
-                continue;
-              var c=defobj[k];
-              if (__instance_of(c, BoxColor)) {
-                  this.boxcolors.set(k, c);
-              }
-              else {
-                this.colors.set(k, c);
-              }
-          }
-      }
-      this.flat_colors = new GArray();
-    }
-     copy() {
-      var ret=new ColorTheme({});
-      function cpy(c) {
-        if (__instance_of(c, BoxColor)) {
-            return c.copy();
-        }
-        else {
-          return JSON.parse(JSON.stringify(c));
-        }
-      }
-      for (var k of this.boxcolors) {
-          var c=this.boxcolors.get(k);
-          ret.boxcolors.set(k, cpy(c));
-      }
-      for (var k of this.colors) {
-          var c=this.colors.get(k);
-          ret.colors.set(k, cpy(c));
-      }
-      ret.gen_colors();
-      return ret;
-    }
-     patch(newtheme) {
-      if (newtheme==undefined)
-        return ;
-      var ks=new set(newtheme.colors.keys()).union(newtheme.boxcolors.keys());
-      for (var k of this.colors) {
-          if (!ks.has(k)) {
-              newtheme.colors.set(k, this.colors.get(k));
-          }
-      }
-      for (var k of this.boxcolors) {
-          if (!ks.has(k)) {
-              newtheme.boxcolors.set(k, this.boxcolors.get(k));
-          }
-      }
-      newtheme.gen_colors();
-    }
-     gen_code() {
-      var s="new ColorTheme({\n";
-      var arr=this.flat_colors;
-      for (var i=0; i<arr.length; i++) {
-          var item=arr[i];
-          if (i>0)
-            s+=",";
-          s+="\n";
-          if (__instance_of(item[1], BoxWColor)) {
-              s+='  "'+item[0]+'" : ui_weight_clr(';
-              s+=JSON.stringify(item[1].color);
-              s+=",";
-              s+=JSON.stringify(item[1].weights);
-              s+=")";
-          }
-          else 
-            if (__instance_of(item[1], BoxColor4)) {
-              s+='  "'+item[0]+'" : new BoxColor4(';
-              s+=JSON.stringify(item[1].colors);
-              s+=")";
-          }
-          else {
-            s+='  "'+item[0]+'" : '+JSON.stringify(item[1]);
-          }
-      }
-      s+="});";
-      return s;
-    }
-     gen_colors() {
-      var ret={};
-      this.flat_colors = new GArray();
-      for (var k of this.colors) {
-          var c1=this.colors.get(k), c2=[0, 0, 0, 0];
-          for (var i=0; i<4; i++) {
-              c2[i] = c1[i];
-          }
-          ret[k] = c2;
-          this.flat_colors.push([k, c1]);
-      }
-      for (var k of this.boxcolors) {
-          ret[k] = this.boxcolors.get(k).colors;
-          this.flat_colors.push([k, this.boxcolors.get(k)]);
-      }
-      return ret;
-    }
-    static  fromSTRUCT(reader) {
-      var c=new ColorTheme({});
-      reader(c);
-      var ks=c.colorkeys;
-      for (var i=0; i<ks.length; i++) {
-          c.colors.set(ks[i], c.colorvals[i]);
-      }
-      var ks=c.boxkeys;
-      for (var i=0; i<ks.length; i++) {
-          c.boxcolors.set(ks[i], c.boxvals[i]);
-      }
-      delete c.colorkeys;
-      delete c.boxkeys;
-      delete c.colorvals;
-      delete c.boxvals;
-      return c;
-    }
-  }
-  _ESClass.register(ColorTheme);
-  _es6_module.add_class(ColorTheme);
-  ColorTheme = _es6_module.add_export('ColorTheme', ColorTheme);
-  ColorTheme.STRUCT = `
-  ColorTheme {
-    colorkeys : array(string) | obj.colors.keys();
-    colorvals : array(vec4) | obj.colors.values();
-    boxkeys : array(string) | obj.boxcolors.keys();
-    boxvals : array(abstract(BoxColor)) | obj.boxcolors.values();
-  }
-`;
-  window.menu_text_size = 14;
-  window.default_ui_font_size = 16;
-  window.ui_hover_time = 800;
-  function ui_weight_clr(clr, weights) {
-    return new BoxWColor(clr, weights);
-  }
-  ui_weight_clr = _es6_module.add_export('ui_weight_clr', ui_weight_clr);
-  window.uicolors = {}
-  window.colors3d = {}
-  class Theme  {
-     constructor(ui, view2d) {
-      this.ui = ui;
-      this.view2d = view2d;
-    }
-     patch(theme) {
-      this.ui.patch(theme.ui);
-    }
-     gen_code() {
-      var s='"use strict";\n/*auto-generated file*/\nvar UITheme = '+this.ui.gen_code()+"\n";
-      return s;
-    }
-    static  fromSTRUCT(reader) {
-      var ret=new Theme();
-      reader(ret);
-      return ret;
-    }
-     gen_globals() {
-      
-      uicolors = this.ui.gen_colors();
-    }
-  }
-  _ESClass.register(Theme);
-  _es6_module.add_class(Theme);
-  Theme = _es6_module.add_export('Theme', Theme);
-  Theme.STRUCT = `
-  Theme {
-    ui     : ColorTheme;
-    view2d : ColorTheme;
-  }
-`;
-  
-  window.init_theme = function () {
-    window.UITheme.original = window.UITheme.copy();
-    window.View2DTheme.original = window.View2DTheme.copy();
-    window.g_theme = new Theme(window.UITheme, window.View2DTheme);
-    window.g_theme.gen_globals();
-  }
-  function reload_default_theme() {
-    window.g_theme = new Theme(window.UITheme.original.copy(), window.View2DTheme.original.copy());
-    window.g_theme.gen_globals();
-  }
-  reload_default_theme = _es6_module.add_export('reload_default_theme', reload_default_theme);
-}, '/dev/fairmotion/src/datafiles/theme.js');
-es6_module_define('theme_def', ["./theme.js"], function _theme_def_module(_es6_module) {
-  "use strict";
-  var ColorTheme=es6_import_item(_es6_module, './theme.js', 'ColorTheme');
-  var ui_weight_clr=es6_import_item(_es6_module, './theme.js', 'ui_weight_clr');
-  var BoxColor4=es6_import_item(_es6_module, './theme.js', 'BoxColor4');
-  function uniformbox4(clr) {
-    return new BoxColor4([clr, clr, clr, clr]);
-  }
-  window.UITheme = new ColorTheme({"ErrorText": [1, 0.20000000298023224, 0.20000000298023224, 0.8899999856948853], 
-   "ListBoxText": [0.20000000298023224, 0.20000000298023224, 0.20000000298023224, 1], 
-   "MenuHighlight": [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], 
-   "RadialMenu": [1, 0, 0, 1], 
-   "RadialMenuHighlight": [0.7831560373306274, 0.7664570808410645, 0.3468262255191803, 0.7717778086662292], 
-   "DefaultLine": [0.4163331985473633, 0.3746998906135559, 0.3746998906135559, 1], 
-   "SelectLine": [0.699999988079071, 0.699999988079071, 0.699999988079071, 1], 
-   "Check": [0.8999999761581421, 0.699999988079071, 0.4000000059604645, 1], 
-   "Arrow": [0.4000000059604645, 0.4000000059604645, 0.4000000059604645, 1], 
-   "DefaultText": [0.9092121124267578, 0.9092121124267578, 0.9092121124267578, 1], 
-   "BoxText": [0, 0, 0, 1], 
-   "HotkeyText": [0.43986162543296814, 0.43986162543296814, 0.43986162543296814, 1], 
-   "HighlightCursor": [0.8999999761581421, 0.8999999761581421, 0.8999999761581421, 0.875], 
-   "TextSelect": [0.4000000059604645, 0.4000000059604645, 0.4000000059604645, 0.75], 
-   "TextEditCursor": [0.10000000149011612, 0.10000000149011612, 0.10000000149011612, 1], 
-   "TextBoxHighlight": [0.5270000100135803, 0.5270000100135803, 0.5270000100135803, 1], 
-   "MenuSep": [0.6901277303695679, 0.6901277303695679, 0.6901277303695679, 1], 
-   "MenuBorder": [0.6499999761581421, 0.6499999761581421, 0.6499999761581421, 1], 
-   "RadialMenuSep": [0.10000000149011612, 0.20000000298023224, 0.20000000298023224, 1], 
-   "TabPanelOutline": [0.24494896829128265, 0.24494896829128265, 0.24494896829128265, 1], 
-   "TabPanelBG": [0.47600001096725464, 0.47600001096725464, 0.47600001096725464, 1], 
-   "ActiveTab": [0.47600001096725464, 0.47600001096725464, 0.47600001096725464, 1], 
-   "HighlightTab": [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 0.8999999761581421], 
-   "InactiveTab": [0.24494896829128265, 0.24494896829128265, 0.24494896829128265, 1], 
-   "TabText": [0.930949330329895, 0.930949330329895, 0.930949330329895, 1], 
-   "IconBox": [1, 1, 1, 0.17968888580799103], 
-   "HighlightIcon": [0.30000001192092896, 0.8149344325065613, 1, 0.21444444358348846], 
-   "MenuText": [0.10000000149011612, 0.10000000149011612, 0.10000000149011612, 1], 
-   "MenuTextHigh": [0.9330000281333923, 0.9330000281333923, 0.9330000281333923, 1], 
-   "PanelText": [0, 0, 0, 1], 
-   "DialogText": [0.05000003054738045, 0.05000000447034836, 0.05000000447034836, 1], 
-   "DialogBorder": [0.4000000059604645, 0.40000003576278687, 0.4000000059604645, 1], 
-   "DisabledBox": [0.5, 0.5, 0.5, 1], 
-   "IconCheckBG": [0.587992250919342, 0.587992250919342, 0.587992250919342, 1], 
-   "IconCheckSet": [0.6324555320336759, 0.6324555320336759, 0.6324555320336759, 1], 
-   "IconCheckUnset": [0.565685424949238, 0.565685424949238, 0.565685424949238, 1], 
-   "IconEnumBG": [0.587992250919342, 0.587992250919342, 0.587992250919342, 1], 
-   "IconEnumSet": [0.3324555320336759, 0.3324555320336759, 0.3324555320336759, 1], 
-   "IconEnumUnset": [0.565685424949238, 0.565685424949238, 0.565685424949238, 1], 
-   "Highlight": new BoxColor4([[0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1]]), 
-   "NoteBox": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 1], [0.800000011920929, 0.800000011920929, 0.800000011920929, 1]), 
-   "Box": ui_weight_clr([0.9399999976158142, 0.9399999976158142, 0.9399999976158142, 1], [0.800000011920929, 0.800000011920929, 0.800000011920929, 1]), 
-   "HoverHint": ui_weight_clr([1, 0.9769999980926514, 0.8930000066757202, 0.8999999761581421], [0.8999999761581421, 0.8999999761581421, 1, 1]), 
-   "ErrorBox": ui_weight_clr([1, 0.30000001192092896, 0.20000000298023224, 1], [1, 1, 1, 1]), 
-   "ErrorTextBG": ui_weight_clr([1, 1, 1, 1], [0.8999999761581421, 0.8999999761581421, 1, 1]), 
-   "ShadowBox": ui_weight_clr([0, 0, 0, 0.10000000149011612], [1, 1, 1, 1]), 
-   "ProgressBar": ui_weight_clr([0.4000000059604645, 0.7300000190734863, 0.8999999761581421, 0.8999999761581421], [0.75, 0.75, 1, 1]), 
-   "ProgressBarBG": ui_weight_clr([0.699999988079071, 0.699999988079071, 0.699999988079071, 0.699999988079071], [1, 1, 1, 1]), 
-   "WarningBox": ui_weight_clr([1, 0.800000011920929, 0.10000000149011612, 0.8999999761581421], [0.699999988079071, 0.800000011920929, 1.0499999523162842, 1]), 
-   "ListBoxBG": ui_weight_clr([0.9399999976158142, 0.9399999976158142, 0.9399999976158142, 1], [0.9399999976158142, 0.9399999976158142, 0.9399999976158142, 1]), 
-   "InvBox": ui_weight_clr([0.6000000238418579, 0.6000000238418579, 0.6000000238418579, 1], [0.6000000238418579, 0.6000000238418579, 0.6000000238418579, 1]), 
-   "HLightBox": new BoxColor4([[0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1], [0.5686200261116028, 0.7882000207901001, 0.9602000117301941, 1]]), 
-   "ActivePanel": ui_weight_clr([0.800000011920929, 0.4000000059604645, 0.30000001192092896, 0.8999999761581421], [1, 1, 1, 1]), 
-   "CollapsingPanel": ui_weight_clr([0.687468409538269, 0.687468409538269, 0.687468409538269, 1], [1, 1, 1, 1]), 
-   "SimpleBox": ui_weight_clr([0.4760952293872833, 0.4760952293872833, 0.4760952293872833, 1], [0.9399999976158142, 0.9399999976158142, 0.9399999976158142, 1]), 
-   "DialogBox": ui_weight_clr([0.7269999980926514, 0.7269999980926514, 0.7269999980926514, 1], [1, 1, 1, 1]), 
-   "DialogTitle": ui_weight_clr([0.6299999952316284, 0.6299999952316284, 0.6299999952316284, 1], [1, 1, 1, 1]), 
-   "MenuBox": ui_weight_clr([0.9200000166893005, 0.9200000166893005, 0.9200000166893005, 1], [1, 1, 1, 1]), 
-   "TextBox": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 0.8999999761581421], [1, 1, 1, 1]), 
-   "TextBoxInv": ui_weight_clr([0.699999988079071, 0.699999988079071, 0.699999988079071, 1], [0.699999988079071, 0.699999988079071, 0.699999988079071, 1]), 
-   "MenuLabel": ui_weight_clr([0.9044828414916992, 0.8657192587852478, 0.8657192587852478, 0.24075555801391602], [0.6000000238418579, 0.6000000238418579, 0.6000000238418579, 0.8999999761581421]), 
-   "MenuLabelInv": ui_weight_clr([0.75, 0.75, 0.75, 0.47111111879348755], [1, 1, 0.9410666823387146, 1]), 
-   "ScrollBG": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 1], [1, 1, 1, 1]), 
-   "ScrollBar": ui_weight_clr([0.5919697284698486, 0.5919697284698486, 0.5919697284698486, 1], [1, 1, 1, 1]), 
-   "ScrollBarHigh": ui_weight_clr([0.6548083424568176, 0.6548083424568176, 0.6548083424568176, 1], [1, 1, 1, 1]), 
-   "ScrollButton": ui_weight_clr([0.800000011920929, 0.800000011920929, 0.800000011920929, 1], [1, 1, 1, 1]), 
-   "ScrollButtonHigh": ui_weight_clr([0.75, 0.75, 0.75, 1], [1, 1, 1, 1]), 
-   "ScrollInv": ui_weight_clr([0.4000000059604645, 0.4000000059604645, 0.4000000059604645, 1], [1, 1, 1, 1]), 
-   "IconInv": ui_weight_clr([0.48299384117126465, 0.5367956161499023, 0.8049896955490112, 0.4000000059604645], [1, 1, 1, 1])});
-  window.View2DTheme = new ColorTheme({"Background": [1, 1, 1, 1], 
-   "ActiveObject": [0.800000011920929, 0.6000000238418579, 0.30000001192092896, 1], 
-   "Selection": [0.699999988079071, 0.4000000059604645, 0.10000000149011612, 1], 
-   "GridLineBold": [0.38, 0.38, 0.38, 1.0], 
-   "GridLine": [0.5, 0.5, 0.5, 1.0], 
-   "AxisX": [0.9, 0.0, 0.0, 1.0], 
-   "AxisY": [0.0, 0.9, 0.0, 1.0], 
-   "AxisZ": [0.0, 0.0, 0.9, 1.0]});
-}, '/dev/fairmotion/src/datafiles/theme_def.js');
-es6_module_define('icon', [], function _icon_module(_es6_module) {
-  "use strict";
-  var $ret_7LAN_enum_to_xy;
-  class IconManager  {
-    
-    
-    
-     constructor(gl, sheet_path, imgsize, iconsize) {
-      this.path = sheet_path;
-      this.size = new Vector2(imgsize);
-      this.cellsize = new Vector2(iconsize);
-      this.load(gl);
-      this.texture = undefined;
-      this.ready = false;
-    }
-     load(gl) {
-      this.tex = {};
-      this.tex.image = new Image();
-      this.tex.image.src = this.path;
-      this.te = {};
-      var thetex=this.tex;
-      var this2=this;
-      this.tex.image.onload = function () {
-        var tex=thetex;
-        this2.ready = true;
-      };
-    }
-     get_tile(tile) {
-      var ret=[];
-      this.gen_tile(tile, ret);
-      return ret;
-    }
-     enum_to_xy(tile) {
-      var size=this.size;
-      var cellsize=this.cellsize;
-      var fx=Math.floor(size[0]/cellsize[0]);
-      var y=Math.floor(tile/fx);
-      var x=tile%fx;
-      x*=cellsize[0];
-      y*=cellsize[1];
-      $ret_7LAN_enum_to_xy[0] = x;
-      $ret_7LAN_enum_to_xy[1] = y;
-      return $ret_7LAN_enum_to_xy;
-    }
-     gen_tile(tile, texcos) {
-      var size=this.size;
-      var cellsize=this.cellsize;
-      var fx=Math.floor(size[0]/cellsize[0]);
-      var y=Math.floor(tile/fx);
-      var x=tile%fx;
-      x = (x*cellsize[0])/size[0];
-      y = (y*cellsize[1])/size[1];
-      var u=1.0/size[0], v=1.0/size[1];
-      u*=cellsize[0];
-      v*=cellsize[1];
-      y+=v;
-      texcos.push(x);
-      texcos.push(y);
-      texcos.push(x);
-      texcos.push(y-v);
-      texcos.push(x+u);
-      texcos.push(y-v);
-      texcos.push(x);
-      texcos.push(y);
-      texcos.push(x+u);
-      texcos.push(y-v);
-      texcos.push(x+u);
-      texcos.push(y);
-    }
-  }
-  var $ret_7LAN_enum_to_xy=[0, 0];
-  _ESClass.register(IconManager);
-  _es6_module.add_class(IconManager);
-  IconManager = _es6_module.add_export('IconManager', IconManager);
-  var icon_vshader=`
-
-`;
-  var icon_fshader=`
-`;
-}, '/dev/fairmotion/src/core/icon.js');
-es6_module_define('selectmode', [], function _selectmode_module(_es6_module) {
-  var SelMask={VERTEX: 1, 
-   HANDLE: 2, 
-   SEGMENT: 4, 
-   FACE: 16, 
-   TOPOLOGY: 1|2|4|16, 
-   OBJECT: 32}
-  SelMask = _es6_module.add_export('SelMask', SelMask);
-  var ToolModes={SELECT: 1, 
-   APPEND: 2, 
-   RESIZE: 3, 
-   ROTATE: 4, 
-   PEN: 5}
-  ToolModes = _es6_module.add_export('ToolModes', ToolModes);
-}, '/dev/fairmotion/src/editors/viewport/selectmode.js');
-es6_module_define('platform_api', [], function _platform_api_module(_es6_module) {
-  class PlatformAPIBase  {
-     constructor() {
-
-    }
-     init() {
-
-    }
-     saveFile(path_handle, name, databuf, type) {
-
-    }
-     openFile(path_handle) {
-
-    }
-     getProcessMemoryPromise() {
-      return new Promise(() =>        {      });
-    }
-     numberOfCPUs() {
-      return 2;
-    }
-     errorDialog(title, msg) {
-      console.warn(title+": "+msg);
-      alert(title+": "+msg);
-    }
-     saveDialog(name, databuf, type) {
-
-    }
-     openDialog(type) {
-
-    }
-     openLastFile() {
-
-    }
-     exitCatcher(handler) {
-
-    }
-     quitApp() {
-
-    }
-     alertDialog(msg) {
-
-    }
-     questionDialog(msg) {
-
-    }
-  }
-  _ESClass.register(PlatformAPIBase);
-  _es6_module.add_class(PlatformAPIBase);
-  PlatformAPIBase = _es6_module.add_export('PlatformAPIBase', PlatformAPIBase);
-  window.setZoom = function (z) {
-    let webFrame=require('electron').webFrame;
-    webFrame.setZoomFactor(z);
-  }
-  class NativeAPIBase  {
-  }
-  _ESClass.register(NativeAPIBase);
-  _es6_module.add_class(NativeAPIBase);
-  NativeAPIBase = _es6_module.add_export('NativeAPIBase', NativeAPIBase);
-}, '/dev/fairmotion/platforms/common/platform_api.js');
-es6_module_define('platform_capabilies', [], function _platform_capabilies_module(_es6_module) {
-  var PlatCapab={NativeAPI: undefined, 
-   save_file: undefined, 
-   save_dialog: undefined, 
-   open_dialog: undefined, 
-   open_last_file: undefined, 
-   exit_catcher: undefined, 
-   alert_dialog: undefined, 
-   question_dialog: undefined}
-  PlatCapab = _es6_module.add_export('PlatCapab', PlatCapab);
-}, '/dev/fairmotion/platforms/common/platform_capabilies.js');
-es6_module_define('platform_utils', [], function _platform_utils_module(_es6_module) {
-}, '/dev/fairmotion/platforms/common/platform_utils.js');
-es6_module_define('platform', ["../src/config/config.js", "./PhoneGap/platform_phonegap.js", "./chromeapp/platform_chromeapp.js", "./Electron/theplatform.js", "./html5/platform_html5.js"], function _platform_module(_es6_module) {
-  var config=es6_import(_es6_module, '../src/config/config.js');
-  var html5=es6_import(_es6_module, './html5/platform_html5.js');
-  var electron=es6_import(_es6_module, './Electron/theplatform.js');
-  var phonegap=es6_import(_es6_module, './PhoneGap/platform_phonegap.js');
-  var chromeapp=es6_import(_es6_module, './chromeapp/platform_chromeapp.js');
-  let mod;
-  if (config.ELECTRON_APP_MODE) {
-      mod = electron;
-      config.ORIGIN = ".";
-      let fs=require("fs");
-      if (fs.existsSync("./resources/app/fcontent")) {
-          config.ORIGIN = "./resources/app";
-      }
-  }
-  else 
-    if (config.HTML5_APP_MODE) {
-      mod = html5;
-      let o=document.location.href;
-      if (o.endsWith("/index.html")) {
-          o = o.slice(0, o.length-("/index.html").length);
-      }
-      config.ORIGIN = o;
-  }
-  else 
-    if (config.PHONE_APP_MODE) {
-      mod = phonegay;
-  }
-  else 
-    if (config.CHROME_APP_MODE) {
-      mod = chromeapp;
-  }
-  if (mod.app===undefined) {
-      mod.app = new mod.PlatformAPI();
-  }
-  window.error_dialog = mod.app.errorDialog;
-  for (let k in mod) {
-      _es6_module.add_export(k, mod[k]);
-  }
-}, '/dev/fairmotion/platforms/platform.js');
-es6_module_define('utildefine', [], function _utildefine_module(_es6_module) {
-  var $_mh;
-  var $_swapt;
-}, '/dev/fairmotion/src/core/utildefine.js');
-es6_module_define('view2d_editor', ["../../core/struct.js", "./selectmode.js", "../events.js", "./view2d_base.js"], function _view2d_editor_module(_es6_module) {
-  "use strict";
-  var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
-  var KeyMap=es6_import_item(_es6_module, '../events.js', 'KeyMap');
-  var ToolKeyHandler=es6_import_item(_es6_module, '../events.js', 'ToolKeyHandler');
-  var FuncKeyHandler=es6_import_item(_es6_module, '../events.js', 'FuncKeyHandler');
-  var HotKey=es6_import_item(_es6_module, '../events.js', 'HotKey');
-  var charmap=es6_import_item(_es6_module, '../events.js', 'charmap');
-  var TouchEventManager=es6_import_item(_es6_module, '../events.js', 'TouchEventManager');
-  var EventHandler=es6_import_item(_es6_module, '../events.js', 'EventHandler');
-  var ToolModes=es6_import_item(_es6_module, './selectmode.js', 'ToolModes');
-  let _ex_EditModes=es6_import_item(_es6_module, './view2d_base.js', 'EditModes');
-  _es6_module.add_export('EditModes', _ex_EditModes, true);
-  let _ex_EditorTypes=es6_import_item(_es6_module, './view2d_base.js', 'EditorTypes');
-  _es6_module.add_export('EditorTypes', _ex_EditorTypes, true);
-  let _ex_SessionFlags=es6_import_item(_es6_module, './view2d_base.js', 'SessionFlags');
-  _es6_module.add_export('SessionFlags', _ex_SessionFlags, true);
-  let v3d_idgen=0;
-  class View2DEditor  {
-    
-    
-     constructor(name, editor_type, type, lib_type) {
-      this.name = name;
-      this._id = v3d_idgen++;
-      this.type = type;
-      this.editor_type = editor_type;
-      this.lib_type = lib_type;
-      this.keymap = new KeyMap();
-      this.selectmode = 0;
-    }
-    static  fromSTRUCT(reader) {
-      var obj={};
-      reader(obj);
-      return obj;
-    }
-     get_keymaps() {
-      return [this.keymap];
-    }
-     on_area_inactive(view2d) {
-
-    }
-     editor_duplicate(view2d) {
-      throw new Error("implement me!");
-    }
-     data_link(block, getblock, getblock_us) {
-
-    }
-     add_menu(view2d, mpos, add_title=true) {
-
-    }
-     on_tick(ctx) {
-      let widgets=[WidgetResizeOp, WidgetRotateOp];
-      if (ctx.view2d.toolmode==ToolModes.RESIZE) {
-          ctx.view2d.widgets.ensure_toolop(ctx, WidgetResizeOp);
-      }
-      else 
-        if (ctx.view2d.toolmode==ToolModes.ROTATE) {
-          ctx.view2d.widgets.ensure_toolop(ctx, WidgetRotateOp);
-      }
-      else {
-        for (let cls of widgets) {
-            ctx.view2d.widgets.ensure_not_toolop(ctx, cls);
-        }
-      }
-    }
-     define_keymap() {
-      var k=this.keymap;
-    }
-     set_selectmode(mode) {
-      this.selectmode = mode;
-    }
-     do_select(event, mpos, view2d, do_multiple) {
-      return false;
-    }
-     tools_menu(ctx, mpos, view2d) {
-
-    }
-     on_inactive(view2d) {
-
-    }
-     on_active(view2d) {
-
-    }
-     rightclick_menu(event, view2d) {
-
-    }
-     on_mousedown(event) {
-
-    }
-     findnearest(mpos, selectmask, limit, ignore_layers) {
-
-    }
-     on_mousemove(event) {
-      this.mdown = true;
-    }
-     on_mouseup(event) {
-      this.mdown = false;
-    }
-     do_alt_select(event, mpos, view2d) {
-
-    }
-     gen_edit_menu(add_title=false) {
-
-    }
-     delete_menu(event) {
-
-    }
-  }
-  _ESClass.register(View2DEditor);
-  _es6_module.add_class(View2DEditor);
-  View2DEditor = _es6_module.add_export('View2DEditor', View2DEditor);
-  View2DEditor.STRUCT = `
-  View2DEditor {
-  }
-`;
-}, '/dev/fairmotion/src/editors/viewport/view2d_editor.js');
-es6_module_define('view2d_object', ["../../core/struct.js", "../../curve/spline_base.js", "./selectmode.js"], function _view2d_object_module(_es6_module) {
-  "use strict";
-  var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
-  var SelMask=es6_import_item(_es6_module, './selectmode.js', 'SelMask');
-  var SplineTypes=es6_import_item(_es6_module, '../../curve/spline_base.js', 'SplineTypes');
-  class WorkObjectType  {
-     constructor(ctx, selmode) {
-      this.ctx = ctx;
-      this.selmode = selmode;
-    }
-     setSelMode(mode) {
-      this.selmode = mode;
-    }
-     findnearest(ctx, p) {
-      throw new Error("implement findnearest!");
-    }
-     iterKeys() {
-      throw new Error("want element key iter");
-    }
-    get  length() {
-      throw new Error("need length");
-    }
-     setCtx(ctx) {
-      this.ctx = ctx;
-      return this;
-    }
-     getPos(ei) {
-      throw new Error("want a Vector2 for pos");
-    }
-     setPos(ei, pos) {
-      throw new Error("want to set pos");
-    }
-     getBounds(ei) {
-      throw new Error("want [Vector2, Vector2], min/max bounds");
-    }
-     getSelect(ei) {
-      throw new Error("want boolean");
-    }
-     setSelect(ei, state) {
-      throw new Error("want to set selection");
-    }
-     getVisible(ei) {
-      return this.getHide(ei);
-    }
-     getHide(ei) {
-      throw new Error("want to get hide");
-    }
-     setHide(e1, state) {
-      throw new Error("want to set hide");
-    }
-  }
-  _ESClass.register(WorkObjectType);
-  _es6_module.add_class(WorkObjectType);
-  WorkObjectType = _es6_module.add_export('WorkObjectType', WorkObjectType);
-  
-  let pos_tmps=cachering.fromConstructor(Vector3, 64);
-  function concat_iterator(iter1, iter2) {
-    if (iter2===undefined) {
-        return iter1;
-    }
-    else 
-      if (iter1===undefined) {
-        return iter2;
-    }
-    return (function* () {
-      for (let item of iter1) {
-          yield item;
-      }
-      for (let item of iter2) {
-          yield item;
-      }
-    })();
-  }
-  class WorkSpline extends WorkObjectType {
-     constructor(ctx, selmode, edit_all_layers) {
-      super(ctx, selmode);
-      this.edit_all_layers = edit_all_layers;
-    }
-     iterKeys() {
-      let ctx=this.ctx;
-      let selmode=this.selmode;
-      let spline=ctx.spline;
-      let iter=undefined;
-      if (selmode&SelMask.VERTEX) {
-          iter = concat_iterator(iter, spline.verts.editable(ctx));
-      }
-      if (selmode&SelMask.HANDLE) {
-          iter = concat_iterator(iter, spline.handles.editable(ctx));
-      }
-      if (selmode&SelMask.SEGMENT) {
-          iter = concat_iterator(iter, spline.segments.editable(ctx));
-      }
-      if (selmode&SelMask.FACE) {
-          iter = concat_iterator(iter, spline.faces.editable(ctx));
-      }
-      return (function* () {
-        for (let item of iter) {
-            yield item.eid;
-        }
-      })();
-    }
-     iterSelectedKeys() {
-      let ctx=this.ctx;
-      let selmode=this.selmode;
-      let spline=ctx.spline;
-      let iter=undefined;
-      if (selmode&SelMask.VERTEX) {
-          iter = concat_iterator(iter, spline.verts.selected.editable(ctx));
-      }
-      if (selmode&SelMask.HANDLE) {
-          iter = concat_iterator(iter, spline.handles.selected.editable(ctx));
-      }
-      if (selmode&SelMask.SEGMENT) {
-          iter = concat_iterator(iter, spline.segments.selected.editable(ctx));
-      }
-      if (selmode&SelMask.FACE) {
-          iter = concat_iterator(iter, spline.faces.selected.editable(ctx));
-      }
-      return (function* () {
-        for (let item of iter) {
-            yield item.eid;
-        }
-      })();
-    }
-    get  length() {
-      throw new Error("need length");
-    }
-     findnearest(ctx, p) {
-      throw new Error("implement findnearest!");
-    }
-     getPos(ei) {
-      let spline=this.ctx.spline;
-      let e=spline.eidmap[ei];
-      if (e===undefined) {
-          console.warn("Bad element index", ei, "for spline", spline);
-          return undefined;
-      }
-      if (e.type==SplineTypes.VERTEX||e.type==SplineTypes.HANDLE) {
-          return e;
-      }
-      else 
-        if (e.type==SplineTypes.SEGMENT) {
-          let p=pos_tmps.next().zero();
-          p.load(e.evaluate(0.5));
-          return p;
-      }
-      else 
-        if (e.type==SplineTypes.FACE) {
-          let p=pos_tmps.next().zero();
-          return p.load(e.aabb[0]).interp(e.aabb[1], 0.5);
-      }
-      else {
-        console.warn("bad element type for", e, "type at error time was:", e.type);
-        throw new Error("bad element type"+e.type);
-      }
-      throw new Error("want a Vector2 for pos");
-    }
-     setPos(ei, pos) {
-      let spline=this.ctx.spline;
-      let e=spline.eidmap[ei];
-      if (e===undefined) {
-          console.warn("Bad element index", ei, "for spline", spline);
-          return false;
-      }
-      if (e.type==SplineTypes.VERTEX||e.type==SplineTypes.HANDLE) {
-          e.load(pos);
-          return true;
-      }
-      else 
-        if (e.type==SplineTypes.SEGMENT) {
-          let p=this.getPos(ei);
-          p.sub(pos).negate();
-          e.v1.add(p);
-          e.v2.add(p);
-          return true;
-      }
-      else 
-        if (e.type==SplineTypes.FACE) {
-          p = this.getPos(ei);
-          p.sub(pos).negate();
-          for (let v of e.verts) {
-              v.add(p);
-          }
-          return true;
-      }
-      else {
-        console.warn("bad element type for", e, "type at error time was:", e.type);
-        throw new Error("bad element type"+e.type);
-      }
-      return false;
-    }
-     getBounds(ei) {
-      throw new Error("want [Vector2, Vector2], min/max bounds");
-    }
-     getSelect(ei) {
-      throw new Error("want boolean");
-    }
-     setSelect(ei, state) {
-      throw new Error("want to set selection");
-    }
-     getVisible(ei) {
-      throw new Error("implement me");
-    }
-     getHide(ei) {
-      throw new Error("want to hide");
-    }
-     setHide(e1, state) {
-      throw new Error("want to set hide");
-    }
-  }
-  _ESClass.register(WorkSpline);
-  _es6_module.add_class(WorkSpline);
-  WorkSpline = _es6_module.add_export('WorkSpline', WorkSpline);
-  
-}, '/dev/fairmotion/src/editors/viewport/view2d_object.js');
-es6_module_define('MaterialEditor', ["../../path.ux/scripts/core/ui_base.js", "../viewport/spline_editops.js", "../viewport/spline_layerops.js", "../../core/struct.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../path.ux/scripts/widgets/ui_menu.js", "../editor_base.js", "../../path.ux/scripts/widgets/ui_table.js", "../../path.ux/scripts/widgets/ui_listbox.js", "../../path.ux/scripts/core/ui.js"], function _MaterialEditor_module(_es6_module) {
-  var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
-  var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
-  var Container=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui.js', 'Container');
-  var Editor=es6_import_item(_es6_module, '../editor_base.js', 'Editor');
-  var PackFlags=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui_base.js', 'PackFlags');
-  var UIBase=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui_base.js', 'UIBase');
-  var ShiftLayerOrderOp=es6_import_item(_es6_module, '../viewport/spline_editops.js', 'ShiftLayerOrderOp');
-  var AddLayerOp=es6_import_item(_es6_module, '../viewport/spline_layerops.js', 'AddLayerOp');
-  var DeleteLayerOp=es6_import_item(_es6_module, '../viewport/spline_layerops.js', 'DeleteLayerOp');
-  var ChangeLayerOp=es6_import_item(_es6_module, '../viewport/spline_layerops.js', 'ChangeLayerOp');
-  var ChangeElementLayerOp=es6_import_item(_es6_module, '../viewport/spline_layerops.js', 'ChangeElementLayerOp');
-  es6_import(_es6_module, '../../path.ux/scripts/widgets/ui_table.js');
-  es6_import(_es6_module, '../../path.ux/scripts/widgets/ui_menu.js');
-  es6_import(_es6_module, '../../path.ux/scripts/widgets/ui_listbox.js');
-  function list(iter) {
-    let ret=[];
-    for (let item of iter) {
-        ret.push(item);
-    }
-    return ret;
-  }
-  class LayerPanel extends Container {
-    
-    
-    
-     constructor(ctx) {
-      super(ctx);
-      this.last_total_layers = this.last_active_id = 0;
-      this.do_rebuild = 1;
-      this.delayed_recalc = 0;
-    }
-     init() {
-      super.init();
-    }
-     update() {
-      if (this.do_rebuild) {
-          this.rebuild();
-          return ;
-      }
-      super.update();
-      if (this.ctx==undefined)
-        return ;
-      var spline=this.ctx.frameset.spline;
-      var do_rebuild=spline.layerset.length!=this.last_total_layers;
-      do_rebuild = do_rebuild||spline.layerset.active.id!=this.last_active_id;
-      this.do_rebuild|=do_rebuild;
-      if (this.delayed_recalc>0) {
-          this.delayed_recalc--;
-          this.update();
-      }
-    }
-     rebuild() {
-      if (this.ctx==undefined)
-        return ;
-      this.do_rebuild = false;
-      console.log("layers ui rebuild!");
-      var spline=this.ctx.frameset.spline;
-      this.last_total_layers = spline.layerset.length;
-      this.last_active_id = spline.layerset.active.id;
-      for (let child of this.childNodes) {
-          child.remove();
-      }
-      for (let child of this.shadow.childNodes) {
-          child.remove();
-      }
-      for (let child of this.children) {
-          child.remove();
-      }
-      this.label("Layers");
-      let listbox=this.listbox();
-      for (var i=spline.layerset.length-1; i>=0; i--) {
-          var layer=spline.layerset[i];
-          let row=listbox.addItem(layer.name, layer.id);
-          console.log("Adding item", layer.name);
-      }
-      if (spline.layerset.active!==undefined) {
-          listbox.setActive(spline.layerset.active.id);
-      }
-      listbox.onchange = (id, item) =>        {
-        var layer=spline.layerset.idmap[id];
-        if (layer==undefined) {
-            console.log("Error!", arguments);
-            return ;
-        }
-        console.log("Changing layers!", id);
-        ChangeLayerOp;
-        g_app_state.toolstack.exec_tool(new ChangeLayerOp(id));
-      };
-      let row=this.row();
-      row.iconbutton(Icons.SMALL_PLUS, "Add Layer", () =>        {
-        g_app_state.toolstack.exec_tool(new AddLayerOp());
-        this.rebuild();
-      }, undefined);
-      row.iconbutton(Icons.SCROLL_UP, "Move Up", () =>        {
-        console.log("Shift layers up");
-        var ctx=new Context(), spline=ctx.frameset.spline;
-        var layer=spline.layerset.active;
-        var tool=new ShiftLayerOrderOp(layer.id, 1);
-        g_app_state.toolstack.exec_tool(tool);
-        this.rebuild();
-      }, undefined);
-      row.iconbutton(Icons.SCROLL_DOWN, "Move Down", () =>        {
-        console.log("Shift layers down");
-        var ctx=new Context(), spline=ctx.frameset.spline;
-        var layer=spline.layerset.active;
-        var tool=new ShiftLayerOrderOp(layer.id, -1);
-        g_app_state.toolstack.exec_tool(tool);
-        this.rebuild();
-      }, undefined);
-      row.iconbutton(Icons.SMALL_MINUS, "Remove Layer", () =>        {
-        var tool=new DeleteLayerOp();
-        var layer=this.ctx.spline.layerset.active;
-        if (layer==undefined)
-          return ;
-        tool.inputs.layer_id.set_data(layer.id);
-        g_app_state.toolstack.exec_tool(tool);
-        this.rebuild();
-      }, undefined);
-      row = this.row();
-      row.button("Move Up", () =>        {
-        var lset=this.ctx.frameset.spline.layerset;
-        var oldl=lset.active;
-        console.log("oldl", oldl);
-        if (oldl.order===lset.length-1)
-          return ;
-        var newl=lset[oldl.order+1];
-        var tool=new ChangeElementLayerOp(oldl.id, newl.id);
-        this.ctx.toolstack.execTool(tool);
-      });
-      row.button("Move Down", () =>        {
-        var lset=this.ctx.frameset.spline.layerset;
-        var oldl=lset.active;
-        console.log("oldl", oldl);
-        if (oldl.order==0)
-          return ;
-        var newl=lset[oldl.order-1];
-        var tool=new ChangeElementLayerOp(oldl.id, newl.id);
-        this.ctx.toolstack.execTool(tool);
-      });
-      row.prop('frameset.drawspline.active_layer.flag[HIDE]');
-      row.prop('frameset.drawspline.active_layer.flag[CAN_SELECT]');
-      this.flushUpdate();
-    }
-     _old() {
-      return ;
-      var controls=this.col();
-      var add=new UIButtonIcon(this.ctx, "Add");
-      var del=new UIButtonIcon(this.ctx, "Delete");
-      add.icon = Icons.SMALL_PLUS;
-      del.icon = Icons.SMALL_MINUS;
-      var this2=this;
-      add.callback = function () {
-        g_app_state.toolstack.exec_tool(new AddLayerOp());
-      };
-      del.callback = function () {
-        var tool=new DeleteLayerOp();
-        var layer=this.ctx.spline.layerset.active;
-        if (layer==undefined)
-          return ;
-        tool.inputs.layer_id.set_data(layer.id);
-        g_app_state.toolstack.exec_tool(tool);
-      };
-      var up=new UIButtonIcon(this.ctx, "Up", 30);
-      var down=new UIButtonIcon(this.ctx, "Down", 29);
-      up.icon = Icons.SCROLL_UP;
-      down.icon = Icons.SCROLL_DOWN;
-      var this2=this;
-      down.callback = function () {
-        console.log("Shift layers down");
-        var ctx=new Context(), spline=ctx.frameset.spline;
-        var layer=spline.layerset.active;
-        var tool=new ShiftLayerOrderOp(layer.id, -1);
-        g_app_state.toolstack.exec_tool(tool);
-        this2.rebuild();
-      };
-      up.callback = function () {
-        console.log("Shift layers up");
-        var ctx=new Context(), spline=ctx.frameset.spline;
-        var layer=spline.layerset.active;
-        var tool=new ShiftLayerOrderOp(layer.id, 1);
-        g_app_state.toolstack.exec_tool(tool);
-        this2.rebuild();
-      };
-      this.controls = {add: add, 
-     del: del, 
-     up: up, 
-     down: down};
-      for (var k in this.controls) {
-          controls.add(this.controls[k]);
-      }
-      var list=this.list = new UIListBox();
-      list.size = [200, 250];
-      this.add(list);
-      for (var i=spline.layerset.length-1; i>=0; i--) {
-          var layer=spline.layerset[i];
-          list.add_item(layer.name, layer.id);
-      }
-      list.set_active(spline.layerset.active.id);
-      list.callback = function (list, text, id) {
-        var layer=spline.layerset.idmap[id];
-        if (layer==undefined) {
-            console.log("Error!", arguments);
-            return ;
-        }
-        console.log("Changing layers!");
-        g_app_state.toolstack.exec_tool(new ChangeLayerOp(id));
-      };
-      var controls2=this.col();
-      let selup=new UIButton(this.ctx, "Sel Up");
-      let seldown=new UIButton(this.ctx, "Sel Down");
-      controls2.add(selup);
-      controls2.add(seldown);
-      var this2=this;
-      selup.callback = function () {
-        var lset=this2.ctx.frameset.spline.layerset;
-        var oldl=lset.active;
-        console.log("oldl", oldl);
-        if (oldl.order==lset.length-1)
-          return ;
-        var newl=lset[oldl.order+1];
-        var tool=new ChangeElementLayerOp(oldl.id, newl.id);
-        g_app_state.toolstack.exec_tool(tool);
-      };
-      seldown.callback = function () {
-        var lset=this2.ctx.frameset.spline.layerset;
-        var oldl=lset.active;
-        console.log("oldl", oldl);
-        if (oldl.order==0)
-          return ;
-        var newl=lset[oldl.order-1];
-        var tool=new ChangeElementLayerOp(oldl.id, newl.id);
-        g_app_state.toolstack.exec_tool(tool);
-      };
-      var controls3=this.col();
-      controls3.prop('frameset.drawspline.active_layer.flag');
-      this.delayed_recalc = 4;
-    }
-    static  define() {
-      return {tagname: "layerpanel-x"}
-    }
-  }
-  _ESClass.register(LayerPanel);
-  _es6_module.add_class(LayerPanel);
-  
-  UIBase.register(LayerPanel);
-  class MaterialEditor extends Editor {
-     constructor() {
-      super();
-      this.define_keymap();
-    }
-     init() {
-      if (this.ctx===undefined) {
-          this.ctx = new Context();
-      }
-      super.init();
-      this.makeToolbars();
-      this.setCSS();
-    }
-     setCSS() {
-      super.setCSS();
-      this.style["background-color"] = this.getDefault("DefaultPanelBG");
-    }
-     makeToolbars() {
-      let row=this.container;
-      let tabs=row.tabs("right");
-      tabs.float(1, 35*UIBase.getDPI(), 7);
-      this.strokePanel(tabs);
-      this.fillPanel(tabs);
-      this.layersPanel(tabs);
-      this.vertexPanel(tabs);
-      this.update();
-    }
-     fillPanel(tabs) {
-      var ctx=this.ctx;
-      let panel=tabs.tab("Fill");
-      let panel2=panel.panel("Fill Color");
-      panel2.prop("spline.active_face.mat.fillcolor", undefined, "spline.editable_faces{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}.mat.fillcolor");
-      panel.prop("spline.active_face.mat.blur", undefined, "spline.editable_faces{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}.mat.blur");
-      return panel;
-    }
-     strokePanel(tabs) {
-      let panel=tabs.tab("Stroke");
-      var ctx=this.ctx;
-      var set_prefix="spline.segments{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}.mat";
-      let panel2=panel.panel("Stroke Color");
-      panel2.prop("spline.active_segment.mat.strokecolor", undefined, set_prefix+".strokecolor");
-      panel.prop("spline.active_segment.mat.linewidth", undefined, set_prefix+".linewidth");
-      panel.prop("spline.active_segment.mat.blur", undefined, set_prefix+".blur");
-      panel.prop("spline.active_segment.renderable", undefined, "spline.segments{($.flag & 1) && !$.hidden}.renderable");
-      panel.prop("spline.active_segment.mat.flag[MASK_TO_FACE]", undefined, set_prefix+".flag[MASK_TO_FACE]");
-      return panel;
-    }
-     layersPanel(tabs) {
-      var ctx=this.ctx;
-      var panel=tabs.tab("Layers");
-      panel.add(document.createElement("layerpanel-x"));
-    }
-     vertexPanel(tabs) {
-      let ctx=this.ctx;
-      let tab=tabs.tab("Control Point");
-      let set_prefix="spline.verts{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}";
-      let panel=tab.panel("Vertex");
-      panel.prop("spline.active_vertex.flag[BREAK_TANGENTS]", undefined, set_prefix+".flag[BREAK_TANGENTS]");
-      panel.prop("spline.active_vertex.flag[BREAK_CURVATURES]", undefined, set_prefix+".flag[BREAK_CURVATURES]");
-      panel.prop("spline.active_vertex.flag[USE_HANDLES]", undefined, set_prefix+".flag[USE_HANDLES]");
-      panel.prop("spline.active_vertex.flag[GHOST]", undefined, set_prefix+".flag[GHOST]");
-      panel.prop("spline.active_vertex.width", undefined, set_prefix+".width");
-      panel.prop("spline.active_vertex.shift", undefined, set_prefix+".shift");
-      panel = tab.panel("Animation Settings");
-      set_prefix = "frameset.keypaths{$.animflag & 8}";
-      panel.prop("frameset.active_keypath.animflag[STEP_FUNC]", undefined, set_prefix+".animflag[STEP_FUNC]");
-      return panel;
-    }
-     define_keymap() {
-      let k=this.keymap;
-    }
-     copy() {
-      return document.createElement("material-editor-x");
-    }
-    static  define() {
-      return {tagname: "material-editor-x", 
-     areaname: "material_editor", 
-     uiname: "Properties", 
-     icon: Icons.MATERIAL_EDITOR}
-    }
-  }
-  _ESClass.register(MaterialEditor);
-  _es6_module.add_class(MaterialEditor);
-  MaterialEditor = _es6_module.add_export('MaterialEditor', MaterialEditor);
-  MaterialEditor.STRUCT = STRUCT.inherit(MaterialEditor, Area)+`
-}
-`;
-  Editor.register(MaterialEditor);
-}, '/dev/fairmotion/src/editors/material/MaterialEditor.js');
-es6_module_define('DopeSheetEditor', ["../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../core/animdata.js", "../events.js", "../../path.ux/scripts/util/simple_events.js", "../../core/toolops_api.js", "../../path.ux/scripts/core/ui.js", "./dopesheet_ops_new.js", "../../path.ux/scripts/util/util.js", "./dopesheet_ops.js", "../../core/struct.js", "../editor_base.js", "../../util/mathlib.js", "../../curve/spline.js", "../../curve/spline_types.js"], function _DopeSheetEditor_module(_es6_module) {
-  var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
-  var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
-  var UIBase=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui_base.js', 'UIBase');
-  var css2color=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui_base.js', 'css2color');
-  var color2css=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui_base.js', 'color2css');
-  var Editor=es6_import_item(_es6_module, '../editor_base.js', 'Editor');
-  var ToggleSelectAll=es6_import_item(_es6_module, './dopesheet_ops_new.js', 'ToggleSelectAll');
-  var MoveKeyFramesOp=es6_import_item(_es6_module, './dopesheet_ops_new.js', 'MoveKeyFramesOp');
-  var SelectKeysOp=es6_import_item(_es6_module, './dopesheet_ops_new.js', 'SelectKeysOp');
-  var SelModes2=es6_import_item(_es6_module, './dopesheet_ops_new.js', 'SelModes2');
-  var DeleteKeysOp=es6_import_item(_es6_module, './dopesheet_ops_new.js', 'DeleteKeysOp');
-  var util=es6_import(_es6_module, '../../path.ux/scripts/util/util.js');
-  var eventWasTouch=es6_import_item(_es6_module, '../../path.ux/scripts/util/simple_events.js', 'eventWasTouch');
-  "use strict";
-  var aabb_isect_2d=es6_import_item(_es6_module, '../../util/mathlib.js', 'aabb_isect_2d');
-  var KeyMap=es6_import_item(_es6_module, '../events.js', 'KeyMap');
-  var ToolKeyHandler=es6_import_item(_es6_module, '../events.js', 'ToolKeyHandler');
-  var FuncKeyHandler=es6_import_item(_es6_module, '../events.js', 'FuncKeyHandler');
-  var HotKey=es6_import_item(_es6_module, '../events.js', 'HotKey');
-  var charmap=es6_import_item(_es6_module, '../events.js', 'charmap');
-  var TouchEventManager=es6_import_item(_es6_module, '../events.js', 'TouchEventManager');
-  var EventHandler=es6_import_item(_es6_module, '../events.js', 'EventHandler');
-  var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
-  var PackFlags=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui_base.js', 'PackFlags');
-  var UIFlags=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui_base.js', 'UIFlags');
-  var UIBase=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui_base.js', 'UIBase');
-  var color2css=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui_base.js', 'color2css');
-  var _getFont_new=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui_base.js', '_getFont_new');
-  var ToolOp=es6_import_item(_es6_module, '../../core/toolops_api.js', 'ToolOp');
-  var UndoFlags=es6_import_item(_es6_module, '../../core/toolops_api.js', 'UndoFlags');
-  var ToolFlags=es6_import_item(_es6_module, '../../core/toolops_api.js', 'ToolFlags');
-  var Spline=es6_import_item(_es6_module, '../../curve/spline.js', 'Spline');
-  var RestrictFlags=es6_import_item(_es6_module, '../../curve/spline.js', 'RestrictFlags');
-  var CustomDataLayer=es6_import_item(_es6_module, '../../curve/spline_types.js', 'CustomDataLayer');
-  var SplineTypes=es6_import_item(_es6_module, '../../curve/spline_types.js', 'SplineTypes');
-  var SplineFlags=es6_import_item(_es6_module, '../../curve/spline_types.js', 'SplineFlags');
-  var SplineSegment=es6_import_item(_es6_module, '../../curve/spline_types.js', 'SplineSegment');
-  var TimeDataLayer=es6_import_item(_es6_module, '../../core/animdata.js', 'TimeDataLayer');
-  var get_vtime=es6_import_item(_es6_module, '../../core/animdata.js', 'get_vtime');
-  var set_vtime=es6_import_item(_es6_module, '../../core/animdata.js', 'set_vtime');
-  var AnimKey=es6_import_item(_es6_module, '../../core/animdata.js', 'AnimKey');
-  var AnimChannel=es6_import_item(_es6_module, '../../core/animdata.js', 'AnimChannel');
-  var AnimKeyFlags=es6_import_item(_es6_module, '../../core/animdata.js', 'AnimKeyFlags');
-  var AnimInterpModes=es6_import_item(_es6_module, '../../core/animdata.js', 'AnimInterpModes');
-  var AnimKeyTypes=es6_import_item(_es6_module, '../../core/animdata.js', 'AnimKeyTypes');
-  let projrets=cachering.fromConstructor(Vector2, 128);
-  const RecalcFlags={CHANNELS: 1, 
-   REDRAW_KEYS: 2, 
-   ALL: 1|2}
-  let treeDebug=0;
-  var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
-  var Container=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui.js', 'Container');
-  var ColumnFrame=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui.js', 'ColumnFrame');
-  var RowFrame=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui.js', 'RowFrame');
-  var SelectKeysToSide=es6_import_item(_es6_module, './dopesheet_ops.js', 'SelectKeysToSide');
-  var ShiftTimeOp3=es6_import_item(_es6_module, './dopesheet_ops.js', 'ShiftTimeOp3');
-  var tree_packflag=0;
-  var CHGT=25;
-  class TreeItem extends ColumnFrame {
-    
-    
-    
-     constructor() {
-      super();
-      this.namemap = {};
-      this.name = "";
-      this._collapsed = false;
-      this.parent = undefined;
-      this.pathid = -1;
-      this.rebuild_intern = this.rebuild_intern.bind(this);
-      this._redraw = this._redraw.bind(this);
-      let row=this.widget = this.row();
-      row.overrideClass("dopesheet");
-      this.icon = row.iconbutton(Icons.UI_EXPAND, "", undefined, undefined, PackFlags.SMALL_ICON);
-    }
-    get  isVisible() {
-      if (this.collapsed) {
-          return false;
-      }
-      let p=this;
-      while (p) {
-        if (p.collapsed)
-          return false;
-        p = p.parent;
-      }
-      return true;
-    }
-     init() {
-      super.init();
-      let row=this.widget;
-      this.icon.addEventListener("mouseup", (e2) =>        {
-        this.setCollapsed(!this.collapsed);
-        if (treeDebug)
-          console.log("click!");
-        let e=new CustomEvent("change", {target: this});
-        this.dispatchEvent(e);
-        if (this.onchange) {
-        }
-        this.setCSS();
-      });
-      row.overrideClass("dopesheet");
-      row.label(this.name).font = this.getDefault("TreeText");
-      this.setCSS();
-    }
-     setCSS() {
-      super.setCSS();
-      this.style["margin-left"] = "2px";
-      this.style["padding-left"] = "2px";
-      if (this.widget!==undefined) {
-          this.widget.remove();
-          this._prepend(this.widget);
-      }
-      if (this.icon!==undefined) {
-          let i=0;
-          for (let k in this.namemap) {
-              i++;
-          }
-          this.icon.hidden = i==0;
-      }
-    }
-     build_path() {
-      var path=this.path;
-      var p=this;
-      while (p!==undefined&&!(__instance_of(p.parent, TreePanel))) {
-        p = p.parent;
-        path = p.path+"."+path;
-      }
-      return path;
-    }
-    get  collapsed() {
-      if (treeDebug)
-        console.warn("    get collapsed", this._id, this.pathid, this._collapsed);
-      return !!this._collapsed;
-    }
-    set  collapsed(v) {
-      if (treeDebug)
-        console.warn("    set collapsed directly", v);
-      this._collapsed = v;
-    }
-     setCollapsed(state) {
-      if (treeDebug)
-        console.warn("setCollapsed", state, this._id);
-      if (this.icon!==undefined) {
-          this.icon.icon = !state ? Icons.UI_COLLAPSE : Icons.UI_EXPAND;
-      }
-      if (state&&!this._collapsed) {
-          this._collapsed = true;
-          for (let k in this.namemap) {
-              let child=this.namemap[k];
-              if (child.parentNode) {
-                  child.remove();
-              }
-          }
-      }
-      else 
-        if (!state&&this._collapsed) {
-          this._collapsed = false;
-          for (let k in this.namemap) {
-              let child=this.namemap[k];
-              this._add(child);
-          }
-      }
-    }
-     get_filedata() {
-      return {collapsed: this.collapsed}
-    }
-     load_filedata(data) {
-      this.setCollapsed(data.collapsed);
-    }
-     rebuild_intern() {
-
-    }
-     rebuild() {
-      this.doOnce(this.rebuild_intern);
-    }
-     recalc() {
-      this.doOnce(this._redraw);
-    }
-     _redraw() {
-
-    }
-    static  define() {
-      return {tagname: "dopesheet-treeitem-x", 
-     style: "dopesheet"}
-    }
-  }
-  _ESClass.register(TreeItem);
-  _es6_module.add_class(TreeItem);
-  TreeItem = _es6_module.add_export('TreeItem', TreeItem);
-  UIBase.register(TreeItem);
-  class TreePanel extends ColumnFrame {
-    
-    
-     constructor() {
-      super();
-      this.treeData = {};
-      this.tree = document.createElement("dopesheet-treeitem-x");
-      this.tree.path = "root";
-      this.tree.pathid = -1;
-      this.add(this.tree);
-      this.totpath = 0;
-      this.pathmap = {root: this.tree};
-      this.rebuild_intern = this.rebuild_intern.bind(this);
-      this._redraw = this._redraw.bind(this);
-      this._onchange = this._onchange.bind(this);
-      this.tree.addEventListener("change", this._onchange);
-    }
-     init() {
-      super.init();
-      this._queueDagLink = true;
-      this.setCSS();
-      this._redraw();
-    }
-     rebuild_intern() {
-
-    }
-     countPaths(visible_only=false) {
-      let i=0;
-      for (let path in this.pathmap) {
-          if (visible_only&&this.pathmap[path].collapsed) {
-              continue;
-          }
-          i++;
-      }
-      return i;
-    }
-     saveTreeData(existing_merge=[]) {
-      let map={};
-      let version=existing_merge[0];
-      for (let i=1; i<existing_merge.length; i+=2) {
-          let pathid=existing_merge[i];
-          let state=existing_merge[i+1];
-      }
-      for (let k in this.pathmap) {
-          let path=this.pathmap[k];
-          if (treeDebug)
-            console.log("  ", path._id, path._collapsed);
-          map[parseInt(path.pathid)] = path._collapsed;
-      }
-      if (this.tree&&!(this.tree.pathid in map)) {
-          map[parseInt(this.tree.pathid)] = this.tree.collapsed;
-      }
-      let ret=[];
-      ret.push(1);
-      for (let k in map) {
-          ret.push(parseInt(k));
-          ret.push(map[k] ? 1 : 0);
-      }
-      if (treeDebug)
-        console.log("saveTreeData", ret);
-      return ret;
-    }
-     loadTreeData(obj) {
-      let version=obj[0];
-      let map={};
-      for (let k in this.pathmap) {
-          let path=this.pathmap[k];
-          map[path.pathid] = path;
-      }
-      this.treeData = {};
-      if (treeDebug)
-        console.log(map, this.pathmap);
-      for (let i=1; i<obj.length; i+=2) {
-          let pathid=obj[i];
-          let state=obj[i+1];
-          if (treeDebug)
-            console.log("  pathid", pathid, "state", state);
-          if (map[pathid]!==undefined) {
-              map[pathid].setCollapsed(state);
-          }
-          this.treeData[pathid] = state;
-      }
-      if (treeDebug)
-        console.log("loadTreeData", obj);
-      this.setCSS();
-    }
-     is_collapsed(path) {
-      return path in this.pathmap ? this.pathmap[path].collapsed : false;
-    }
-     rebuild() {
-      this.doOnce(this.rebuild_intern());
-    }
-     reset() {
-      if (treeDebug)
-        console.warn("tree reset");
-      this.totpath = 0;
-      for (let k in this.pathmap) {
-          let v=this.pathmap[k];
-          v.remove();
-      }
-      this.pathmap = {};
-      this.tree.remove();
-      this.tree = document.createElement("dopesheet-treeitem-x");
-      this.tree.pathid = -1;
-      this.tree.path = "root";
-      this.pathmap[this.tree.path] = this.tree;
-      this.add(this.tree);
-      this.tree.addEventListener("change", this._onchange);
-    }
-     _onchange(e) {
-      let e2=new CustomEvent("change", e);
-      this.dispatchEvent(e2);
-    }
-     _redraw() {
-      this.setCSS();
-    }
-     _rebuild_redraw_all() {
-      this._redraw(true);
-    }
-     recalc() {
-      this.doOnce(this._rebuild_redraw_all);
-    }
-     get_path(path) {
-      return this.pathmap[path];
-    }
-     has_path(path) {
-      return path in this.pathmap;
-    }
-     add_path(path, id) {
-      path = path.trim();
-      if (id===undefined||typeof id!=="number") {
-          throw new Error("id cannot be undefined or non-number");
-      }
-      var paths=path.split(".");
-      var tree=this.tree;
-      var lasttree=undefined;
-      let idgen=~~(id*32);
-      if (paths[0].trim()==="root")
-        paths = paths.slice(1, paths.length);
-      var path2="";
-      for (var i=0; i<paths.length; i++) {
-          var key=paths[i].trim();
-          if (i===0)
-            path2 = key;
-          else 
-            path2+="."+key;
-          if (!(key in tree.namemap)) {
-              let tree2=document.createElement("dopesheet-treeitem-x");
-              tree2.name = key;
-              tree2.path = key;
-              tree2.parent = tree;
-              tree._prepend(tree2);
-              tree2.addEventListener("change", this._onchange);
-              tree2.pathid = idgen++;
-              if (tree2.ctx) {
-              }
-              if (this.treeData[tree2.pathid]!==undefined) {
-                  tree2.setCollapsed(this.treeData[tree2.pathid]);
-              }
-              this.pathmap[path2] = tree2;
-              tree.namemap[key] = tree2;
-          }
-          lasttree = tree;
-          tree = tree.namemap[key];
-      }
-      if (!(path in this.pathmap))
-        this.totpath++;
-      tree.pathid = id;
-      this.pathmap[path] = tree;
-      this.flushUpdate();
-      return tree;
-    }
-     set_y(path, y) {
-      if (typeof path==="string") {
-          path = this.pathmap[path];
-      }
-      if (path) {
-          path.style["top"] = (y/UIBase.getDPI())+"px";
-      }
-    }
-     get_y(path) {
-      if (typeof path==="string") {
-          if (!(path in this.pathmap)) {
-              return undefined;
-          }
-          path = this.pathmap[path];
-      }
-      let a=this.getClientRects()[0];
-      let b=path.getClientRects()[0];
-      let dpi=UIBase.getDPI();
-      if (a!==undefined&&b!==undefined) {
-          return (b.top-a.top)*dpi;
-      }
-      else {
-        return undefined;
-      }
-    }
-     get_x(path) {
-      return 0;
-    }
-     setCSS() {
-      super.setCSS();
-      this.style["width"] = "55px";
-      this.style["height"] = "500px";
-    }
-    static  define() {
-      return {tagname: "dopesheet-treepanel-x", 
-     style: "dopesheet"}
-    }
-  }
-  _ESClass.register(TreePanel);
-  _es6_module.add_class(TreePanel);
-  TreePanel = _es6_module.add_export('TreePanel', TreePanel);
-  UIBase.register(TreePanel);
-  class ChannelState  {
-     constructor(type, state, eid) {
-      this.type = type;
-      this.state = state;
-      this.eid = eid;
-    }
-  }
-  _ESClass.register(ChannelState);
-  _es6_module.add_class(ChannelState);
-  ChannelState = _es6_module.add_export('ChannelState', ChannelState);
-  ChannelState.STRUCT = `
-ChannelState {
-  type     :  int;
-  state    :  bool;
-  eid      :  int;
-}
-`;
-  nstructjs.register(ChannelState);
-  class PanOp extends ToolOp {
-    
-    
-    
-    
-    
-    
-     can_call(ctx) {
-      return true;
-    }
-    static  can_call(ctx) {
-      return true;
-    }
-     constructor(dopesheet) {
-      super();
-      this.ds = dopesheet;
-      this._last_dpi = undefined;
-      this.is_modal = true;
-      this.undoflag|=UndoFlags.IGNORE_UNDO;
-      this.start_pan = new Vector2(dopesheet.pan);
-      this.first_draw = true;
-      this.start_mpos = new Vector2();
-      this.first = true;
-      this.start_cameramat = undefined;
-      this.cameramat = new Matrix4();
-    }
-    static  tooldef() {
-      return {is_modal: true, 
-     toolpath: "dopesheet.pan", 
-     undoflag: UndoFlags.IGNORE_UNDO, 
-     inputs: {}, 
-     outputs: {}, 
-     icon: -1}
-    }
-     modalStart(ctx) {
-      this.start_cameramat = new Matrix4(ctx.view2d.cameramat);
-    }
-     on_mousemove(event) {
-      var mpos=new Vector3([event.x, event.y, 0]);
-      console.log(event.x, event.y);
-      if (this.first) {
-          this.first = false;
-          this.start_mpos.load(mpos);
-          return ;
-      }
-      var ctx=this.modal_ctx;
-      this.ds.pan[0] = this.start_pan[0]+(mpos[0]-this.start_mpos[0]);
-      this.ds.pan[1] = this.start_pan[1]+(mpos[1]-this.start_mpos[1]);
-      this.ds.buildPositions();
-      this.ds.redraw();
-      this.ds.update();
-    }
-     on_mouseup(event) {
-      this.modalEnd();
-    }
-  }
-  _ESClass.register(PanOp);
-  _es6_module.add_class(PanOp);
-  PanOp = _es6_module.add_export('PanOp', PanOp);
-  const KX=0, KY=1, KW=2, KH=3, KEID=5, KTYPE=6, KFLAG=7, KTIME=9, KEID2=10, KTOT=11;
-  class KeyBox  {
-     constructor() {
-      this.x = 0;
-      this.y = 0;
-      this.w = 0;
-      this.h = 0;
-      this.flag = 0;
-      this.eid = 0;
-      this.ki = -1;
-    }
-  }
-  _ESClass.register(KeyBox);
-  _es6_module.add_class(KeyBox);
-  KeyBox = _es6_module.add_export('KeyBox', KeyBox);
-  let keybox_temps=util.cachering.fromConstructor(KeyBox, 512);
-  let proj_temps=util.cachering.fromConstructor(Vector2, 512);
-  class DopeSheetEditor extends Editor {
-    
-    
-    
-    
-    
-    
-     constructor() {
-      super();
-      this.draw = this.draw.bind(this);
-      this.mdown = false;
-      this.gridGen = 0;
-      this.posRegen = 0;
-      this.nodes = [];
-      this.treeData = [];
-      this.activeChannels = [];
-      this.activeBoxes = [];
-      this.pan = new Vector2();
-      this.zoom = 1.0;
-      this.timescale = 1.0;
-      this.canvas = this.getCanvas("bg");
-      this._animreq = undefined;
-      this.pinned_ids = [];
-      this.keyboxes = [];
-      this.keybox_eidmap = {};
-      this.boxSize = 15;
-      this.start_mpos = new Vector2();
-      this.on_mousedown = this.on_mousedown.bind(this);
-      this.on_mousemove = this.on_mousemove.bind(this);
-      this.on_mouseup = this.on_mouseup.bind(this);
-      this.on_keydown = this.on_keydown.bind(this);
-      this.addEventListener("mousedown", this.on_mousedown);
-      this.addEventListener("mousemove", this.on_mousemove);
-      this.addEventListener("mouseup", this.on_mouseup);
-      this.channels = document.createElement("dopesheet-treepanel-x");
-      this.channels.onchange = (e) =>        {
-        console.warn("channels flagged onchange", this.channels.saveTreeData(), this.channels.saveTreeData());
-        this.rebuild();
-        this.redraw();
-      };
-      this.define_keymap();
-    }
-     define_keymap() {
-      this.keymap = new KeyMap();
-      let k=this.keymap;
-      k.add(new HotKey("A", [], "Toggle Select All"), new FuncKeyHandler(function (ctx) {
-        console.log("Dopesheet toggle select all!");
-        let tool=new ToggleSelectAll();
-        ctx.api.execTool(ctx, tool);
-        window.force_viewport_redraw();
-        window.redraw_viewport();
-      }));
-      k.add_tool(new HotKey("X", [], "Delete"), "anim.delete_keys()");
-      k.add_tool(new HotKey("Delete", [], "Delete"), "anim.delete_keys()");
-      k.add(new HotKey("G", [], "Move Keyframes"), new FuncKeyHandler(function (ctx) {
-        console.log("Dopesheet toggle select all!");
-        let tool=new MoveKeyFramesOp();
-        ctx.api.execTool(ctx, tool);
-        window.force_viewport_redraw();
-        window.redraw_viewport();
-      }));
-      k.add(new HotKey("Z", ["CTRL"], "Undo"), new FuncKeyHandler(function (ctx) {
-        g_app_state.toolstack.undo();
-      }));
-      k.add(new HotKey("Z", ["CTRL", "SHIFT"], "Redo"), new FuncKeyHandler(function (ctx) {
-        g_app_state.toolstack.redo();
-      }));
-      k.add(new HotKey("Up", [], "Frame Ahead 10"), new FuncKeyHandler(function (ctx) {
-        ctx.scene.change_time(ctx, ctx.scene.time+10);
-        window.force_viewport_redraw();
-        window.redraw_viewport();
-      }));
-      k.add(new HotKey("Down", [], "Frame Back 10"), new FuncKeyHandler(function (ctx) {
-        ctx.scene.change_time(ctx, ctx.scene.time-10);
-        window.force_viewport_redraw();
-        window.redraw_viewport();
-      }));
-      k.add(new HotKey("Right", [], ""), new FuncKeyHandler(function (ctx) {
-        console.log("Frame Change!", ctx.scene.time+1);
-        ctx.scene.change_time(ctx, ctx.scene.time+1);
-        window.redraw_viewport();
-      }));
-      k.add(new HotKey("Left", [], ""), new FuncKeyHandler(function (ctx) {
-        console.log("Frame Change!", ctx.scene.time-1);
-        ctx.scene.change_time(ctx, ctx.scene.time-1);
-        window.redraw_viewport();
-      }));
-    }
-     get_keymaps() {
-      return [this.keymap];
-    }
-     init() {
-      super.init();
-      this.channels.float(0, 0);
-      this.channels.style["overflow"] = "hidden";
-      this.style["overflow"] = "hidden";
-      this.shadow.appendChild(this.channels);
-      this.header.prop("scene.frame");
-      this.header.prop("dopesheet.timescale");
-      this._queueDagLink = true;
-      this.rebuild();
-      this.redraw();
-      this.define_keymap();
-    }
-     dag_unlink_all() {
-      for (var node of this.nodes) {
-          node.dag_unlink();
-      }
-      this.nodes = [];
-    }
-     calcUpdateHash() {
-      let hash=0;
-      let add=0;
-      function dohash(h) {
-        h = ((h+add)*((1<<19)-1))&((1<<19)-1);
-        add = (add+(1<<25))&((1<<19)-1);
-        hash = hash^h;
-      }
-      let ctx=this.ctx;
-      if (!ctx) {
-          return 0;
-      }
-      let spline=ctx.frameset ? ctx.frameset.spline : undefined;
-      if (!spline) {
-          return 1;
-      }
-      dohash(spline.verts.selected.length);
-      dohash(spline.handles.selected.length);
-      dohash(spline.updateGen);
-      if (this.canvas) {
-          dohash(this.canvas.width);
-          dohash(this.canvas.height);
-      }
-      return hash;
-    }
-    get  treeData() {
-      if (treeDebug)
-        console.warn("treeData get", this._treeData);
-      return this._treeData;
-    }
-    set  treeData(v) {
-      this._treeData = v;
-      if (treeDebug)
-        console.warn("treeData set", this._treeData, v);
-    }
-     update() {
-      super.update();
-      let hash=this.calcUpdateHash();
-      if (hash!==this._last_hash1) {
-          console.log("dopesheet hash rebuild update", hash);
-          this._last_hash1 = hash;
-          this.rebuild();
-          this.redraw();
-      }
-      if (this.regen) {
-          this.redraw();
-      }
-      this.channels.style["top"] = (this.pan[1]*this.zoom/UIBase.getDPI())+"px";
-      if (this._queueDagLink) {
-          this.linkEventDag();
-      }
-      if (this.boxSize!==this.getDefault("boxSize")) {
-          this.boxSize = this.getDefault("boxSize");
-          this.rebuild();
-          return ;
-      }
-      let panupdate=""+this.pan[0]+":"+this.pan[1];
-      panupdate+=""+this.zoom+":"+this.timescale;
-      if (panupdate!==this._last_panupdate_key) {
-          console.log("dopesheet key shape style change detected");
-          this._last_panupdate_key = panupdate;
-          this.updateKeyPositions();
-      }
-      let stylekey=""+this.getDefault("lineWidth");
-      stylekey+=this.getDefault("lineMajor");
-      stylekey+=this.getDefault("lineMinor");
-      stylekey+=this.getDefault("keyColor");
-      stylekey+=this.getDefault("keySelect");
-      stylekey+=this.getDefault("keyHighlight");
-      stylekey+=this.getDefault("keyBorder");
-      stylekey+=this.getDefault("keyBorderWidth");
-      stylekey+=this.getDefault("textShadowColor");
-      stylekey+=this.getDefault("textShadowSize");
-      stylekey+=this.getDefault("DefaultText").color;
-      stylekey+=this.getDefault("DefaultText").size;
-      stylekey+=this.getDefault("DefaultText").font;
-      if (stylekey!==this._last_style_key_1) {
-          console.log("dopesheet style change detected");
-          this._last_style_key_1 = stylekey;
-          this.redraw();
-      }
-    }
-     project(p) {
-      p[0] = (p[0]+this.pan[0])*this.zoom;
-      p[1] = (p[1]+this.pan[1])*this.zoom;
-    }
-     unproject(p) {
-      p[0] = (p[0]/this.zoom)-this.pan[0];
-      p[1] = (p[1]/this.zoom)-this.pan[1];
-    }
-     rebuild() {
-      this.regen = 1;
-      this.redraw();
-    }
-    get  verts() {
-      let this2=this;
-      if (!this.ctx) {
-          this.rebuild();
-          return [];
-      }
-      return (function* () {
-        let ctx=this2.ctx;
-        if (!ctx)
-          return ;
-        let spline=ctx.frameset ? ctx.frameset.spline : undefined;
-        if (!spline)
-          return ;
-        for (let v of spline.verts.selected.editable(ctx)) {
-            yield v;
-        }
-        for (let h of spline.handles.selected.editable(ctx)) {
-            yield h;
-        }
-      })();
-    }
-     on_mousedown(e) {
-      this.updateHighlight(e);
-      if (!e.button) {
-          this.mdown = true;
-          this.start_mpos[0] = e.x;
-          this.start_mpos[1] = e.y;
-      }
-      if (!e.button&&this.activeBoxes.highlight!==undefined) {
-          let ks=this.keyboxes;
-          let ki1=this.activeBoxes.highlight;
-          let list=[];
-          let x1=ks[ki1+KX], y1=ks[ki1+KY], t1=ks[ki1+KTIME];
-          let count=0;
-          for (let ki2=0; ki2<ks.length; ki2+=KTOT) {
-              let x2=ks[ki2+KX], y2=ks[ki2+KY], t2=ks[ki2+KTIME];
-              let eid2=ks[ki2+KEID2];
-              if (Math.abs(t2-t1)<1&&Math.abs(y2-y1)<1) {
-                  list.push(AnimKeyTypes.SPLINE);
-                  list.push(eid2);
-                  let flag=ks[ki2+KFLAG];
-                  if (flag&AnimKeyFlags.SELECT) {
-                      count++;
-                  }
-              }
-          }
-          let mode=SelModes2.UNIQUE;
-          if (e.shiftKey) {
-              mode = count>0 ? SelModes2.SUB : SelModes2.ADD;
-          }
-          if (eventWasTouch(e)) {
-              this.activeBoxes.highlight = undefined;
-          }
-          let tool=new SelectKeysOp();
-          console.log(tool);
-          tool.inputs.mode.setValue(mode);
-          tool.inputs.keyList.setValue(list);
-          this.ctx.toolstack.execTool(this.ctx, tool);
-          return ;
-      }
-      else 
-        if (e.button===0&&!e.altKey&&!e.shiftKey&&!e.ctrlKey&&!e.commandKey) {
-          let p1=new Vector2(this.getLocalMouse(e.x, e.y));
-          this.unproject(p1);
-          let time1=~~(p1[0]/this.timescale/this.boxSize+0.5);
-          this.ctx.scene.change_time(this.ctx, time1);
-          console.log("time", time1);
-      }
-      if (e.button>0||e.altKey) {
-          this.ctx.toolstack.execTool(this.ctx, new PanOp(this));
-      }
-    }
-     getLocalMouse(x, y) {
-      let r=this.canvas.getClientRects()[0];
-      let dpi=UIBase.getDPI();
-      let ret=new Vector2();
-      if (!r)
-        return ret;
-      x-=r.x;
-      y-=r.y;
-      x*=dpi;
-      y*=dpi;
-      ret[0] = x;
-      ret[1] = y;
-      return ret;
-    }
-     findnearest(mpos, limit=25) {
-      this.getGrid();
-      limit*=UIBase.getDPI();
-      let ks=this.keyboxes;
-      let p=new Vector2();
-      let mindis=1e+17, minret;
-      for (let ki of this.activeBoxes) {
-          let x=ks[ki+KX], y=ks[ki+KY];
-          p[0] = x;
-          p[1] = y;
-          this.project(p);
-          let dist=p.vectorDistance(mpos);
-          if (dist<mindis&&dist<limit) {
-              minret = ki;
-              mindis = dist;
-          }
-      }
-      return minret;
-    }
-     updateHighlight(e) {
-      let mpos=this.getLocalMouse(e.x, e.y);
-      let ret=this.findnearest(mpos);
-      if (ret!==this.activeBoxes.highlight) {
-          this.activeBoxes.highlight = ret;
-          this.redraw();
-      }
-    }
-     on_mousemove(e) {
-      if (!this.mdown) {
-          this.updateHighlight(e);
-      }
-      else 
-        if (this.activeBoxes.highlight) {
-          let mpos=new Vector2([e.x, e.y]);
-          let dist=this.start_mpos.vectorDistance(mpos);
-          console.log(dist.toFixed(2));
-          if (dist>10) {
-              this.mdown = false;
-              console.log("Tool exec!");
-              let tool=new MoveKeyFramesOp();
-              this.ctx.api.execTool(this.ctx, tool);
-          }
-      }
-      else {
-        let p1=new Vector2(this.getLocalMouse(e.x, e.y));
-        this.unproject(p1);
-        let time1=~~(p1[0]/this.timescale/this.boxSize+0.5);
-        if (time1!==this.ctx.scene.time) {
-            this.ctx.scene.change_time(this.ctx, time1);
-            console.log("time", time1);
-        }
-      }
-    }
-     on_mouseup(e) {
-      this.mdown = false;
-    }
-     on_keydown(e) {
-
-    }
-     build() {
-      if (this.regen===2) {
-          return ;
-      }
-      let timescale=this.timescale;
-      let boxsize=this.boxSize;
-      let cellwid=boxsize*this.zoom*this.timescale;
-      console.warn("rebuilding dopesheet");
-      let canvas=this.canvas;
-      function getVPath(eid) {
-        if (typeof eid!=="number") {
-            throw new Error("expected a number for eid "+eid);
-        }
-        return "spline."+eid;
-      }
-      let gw=canvas.width>>2;
-      let gh=canvas.height>>2;
-      let grid=this.grid = new Float64Array(gw*gh);
-      grid.width = gw;
-      grid.height = gh;
-      grid.ratio = 4.0;
-      for (let i=0; i<grid.length; i++) {
-          grid[i] = -1;
-      }
-      this.treeData = this.channels.saveTreeData(this.treeData);
-      this.channels.reset();
-      this.activeChannels = [];
-      this.activeBoxes = [];
-      this.activeBoxes.highlight = undefined;
-      let paths={};
-      for (let v of this.verts) {
-          let path=this.channels.add_path(getVPath(v.eid), v.eid);
-          let key=v.eid;
-          paths[v.eid] = path;
-          this.activeChannels.push(path);
-      }
-      this.channels.loadTreeData(this.treeData);
-      this.regen = 2;
-      this.doOnce(() =>        {
-        this.channels.flushUpdate();
-      });
-      let co1=new Vector2(), co2=new Vector2();
-      let stage2=() =>        {
-        this.channels.loadTreeData(this.treeData);
-        this.regen = 0;
-        this.keybox_eidmap = {}
-        this.keyboxes.length = 0;
-        let frameset=this.ctx.frameset;
-        let spline=frameset.spline;
-        let keys=this.keyboxes;
-        let ts=this.getDefault("DefaultText").size*UIBase.getDPI();
-        let lineh=ts*1.5;
-        let y=lineh*0.5;
-        for (let k in paths) {
-            let v=spline.eidmap[k];
-            if (!v) {
-                console.warn("missing vertex", k);
-                this.rebuild();
-                return ;
-            }
-            let path=paths[v.eid];
-            if (!path)
-              continue;
-            if (path.isVisible) {
-                y = this.channels.get_y(path)/this.zoom;
-                if (y===undefined) {
-                    this.regen = 2;
-                    window.setTimeout(stage2, 155);
-                    return ;
-                }
-            }
-            let vd=frameset.vertex_animdata[v.eid];
-            if (!vd) {
-                continue;
-            }
-            timescale = this.timescale;
-            boxsize = this.boxSize;
-            for (let v2 of vd.verts) {
-                let ki=keys.length;
-                this.keybox_eidmap[v2.eid] = ki;
-                for (let i=0; i<KTOT; i++) {
-                    keys.push(0.0);
-                }
-                keys[ki+KTIME] = get_vtime(v2);
-                keys[ki+KEID] = v.eid;
-                keys[ki+KEID2] = v2.eid;
-                keys[ki+KFLAG] = v2.flag&SplineFlags.UI_SELECT ? AnimKeyFlags.SELECT : 0;
-                let time=get_vtime(v2);
-                co1[0] = this.timescale*time*boxsize;
-                co1[1] = y;
-                keys[ki+KX] = co1[0];
-                keys[ki+KY] = co1[1];
-                keys[ki+KW] = boxsize;
-                keys[ki+KH] = boxsize;
-                this.project(co1);
-                let ix=~~((co1[0]+boxsize*0.5)/grid.ratio);
-                let iy=~~((co1[1]+boxsize*0.5)/grid.ratio);
-                if (ix>=0&&iy>=0&&ix<=grid.width&&iy<=grid.height) {
-                    let gi=iy*grid.width+ix;
-                    if (grid[gi]<0) {
-                        grid[gi] = ki;
-                        this.activeBoxes.push(ki);
-                    }
-                }
-            }
-        }
-        this.redraw();
-      };
-      window.setTimeout(stage2, 155);
-    }
-     buildPositions() {
-      this.posRegen = 0;
-      let ks=this.keyboxes;
-      let pathspline=this.ctx.frameset.pathspline;
-      let boxsize=this.boxSize;
-      for (let ki=0; ki<ks.length; ki+=KTOT) {
-          let type=ks[ki+KTYPE], eid=ks[ki+KEID], eid2=ks[ki+KEID2];
-          if (type===AnimKeyTypes.SPLINE) {
-              let v=pathspline.eidmap[eid2];
-              if (!v) {
-                  console.warn("Missing vertex animkey in dopesheet; rebuilding. . .");
-                  this.rebuild();
-                  return ;
-              }
-              let time=get_vtime(v);
-              let x=this.timescale*time*boxsize;
-              let flag=0;
-              if (v.flag&SplineFlags.UI_SELECT) {
-                  flag|=AnimKeyFlags.SELECT;
-              }
-              ks[ki+KW] = boxsize;
-              ks[ki+KH] = boxsize;
-              ks[ki+KX] = x;
-              ks[ki+KFLAG] = flag;
-              ks[ki+KTIME] = get_vtime(v);
-          }
-          else {
-            throw new Error("implement me! '"+type+"'");
-          }
-      }
-      this.updateGrid();
-    }
-     updateKeyPositions() {
-      this.posRegen = 1;
-      this.redraw();
-    }
-     updateGrid() {
-      this.gridGen++;
-    }
-     getGrid() {
-      if (!this.grid||this.grid.gen!==this.gridGen) {
-          this.recalcGrid();
-      }
-      return this.grid;
-    }
-     recalcGrid() {
-      console.log("rebuilding grid");
-      if (!this.grid) {
-          let ratio=4;
-          let gw=this.canvas.width>>2, gh=this.canvas.height>>2;
-          this.grid = new Float64Array(gw*gh);
-          this.grid.width = gw;
-          this.grid.height = gh;
-          this.grid.ratio = ratio;
-      }
-      let grid=this.grid;
-      grid.gen = this.gridGen;
-      let gw=grid.width, gh=grid.height;
-      for (let i=0; i<grid.length; i++) {
-          grid[i] = -1;
-      }
-      this.activeBoxes = [];
-      let p=new Vector2();
-      let ks=this.keyboxes;
-      for (let ki=0; ki<ks.length; ki+=KTOT) {
-          let x=ks[ki+KX], y=ks[ki+KY], w=ks[ki+KW], h=ks[ki+KH];
-          p[0] = x+w*0.5;
-          p[1] = y+h*0.5;
-          this.project(p);
-          let ix=~~(p[0]/grid.ratio);
-          let iy=~~(p[1]/grid.ratio);
-          if (ix>=0&&iy>=0&&ix<=gw&&iy<=gh) {
-              let gi=iy*gw+ix;
-              if (grid[gi]<0) {
-                  grid[gi] = ki;
-                  this.activeBoxes.push(ki);
-              }
-          }
-      }
-    }
-     getKeyBox(ki) {
-      let kd=this.keyboxes;
-      let ret=keybox_temps.next();
-      ret.x = kd[ki+KX];
-      ret.y = kd[ki+KY];
-      ret.w = kd[ki+KH];
-      ret.h = kd[ki+KW];
-      ret.flag = kd[ki+KFLAG];
-      ret.eid = kd[ki+KEID];
-      return ret;
-    }
-     redraw() {
-      if (!this.isConnected&&this.nodes.length>0) {
-          console.warn("Dopesheet editor failed to clean up properly; fixing. . .");
-          this.dag_unlink_all();
-          return ;
-      }
-      if (this._animreq!==undefined) {
-          return ;
-      }
-      this._animreq = requestAnimationFrame(this.draw);
-    }
-     draw() {
-      this._animreq = undefined;
-      if (this.regen) {
-          this.build();
-          this.posRegen = 0;
-          this.doOnce(this.draw);
-          return ;
-      }
-      else 
-        if (this.posRegen) {
-          this.buildPositions();
-      }
-      let boxsize=this.boxSize, timescale=this.timescale;
-      let zoom=this.zoom, pan=this.pan;
-      let canvas=this.canvas = this.getCanvas("bg", "-1");
-      let g=this.canvas.g;
-      if (_DEBUG.timeChange)
-        console.log("dopesheet draw!");
-      g.beginPath();
-      g.rect(0, 0, canvas.width, canvas.height);
-      g.fillStyle = "rgb(55,55,55,1.0)";
-      g.fill();
-      let bwid=~~(boxsize*zoom*timescale);
-      let time=~~(-pan[0]/bwid);
-      let off=this.pan[0]%bwid;
-      let tot=~~(canvas.width/bwid)+1;
-      let major=this.getDefault("lineMajor");
-      let minor=this.getDefault("lineMinor");
-      let lw1=g.lineWidth;
-      g.lineWidth = this.getDefault("lineWidth");
-      for (let i=0; i<tot; i++) {
-          let x=i*bwid+off;
-          let t=~~(time+i);
-          if (t%8===0) {
-              g.strokeStyle = major;
-          }
-          else {
-            g.strokeStyle = minor;
-          }
-          g.beginPath();
-          g.moveTo(x, 0);
-          g.lineTo(x, canvas.height);
-          g.stroke();
-      }
-      g.lineWidth = lw1;
-      let ks=this.keyboxes;
-      g.beginPath();
-      for (let ki=0; ki<ks.length; ki+=KTOT) {
-          let x=ks[ki], y=ks[ki+KY], w=ks[ki+KW], h=ks[ki+KH];
-          x = (x*zoom)+pan[0];
-          y = (y*zoom)+pan[1];
-          g.rect(x, y, w, h);
-      }
-      g.fillStyle = "rgba(125, 125, 125, 1.0)";
-      g.fill();
-      g.fillStyle = "rgba(250, 250, 250, 0.5)";
-      g.beginPath();
-      let highlight=this.activeBoxes.highlight;
-      let bs=this.boxSize*2;
-      let width=canvas.width;
-      let height=canvas.height;
-      let colors={0: this.getDefault("keyColor"), 
-     [AnimKeyFlags.SELECT]: this.getDefault("keySelect")};
-      let highColor=this.getDefault("keyHighlight");
-      let border=this.getDefault("keyBorder");
-      g.strokeStyle = border;
-      let lw2=g.lineWidth;
-      g.lineWidth = this.getDefault("keyBorderWidth");
-      border = css2color(border)[3]<0.01 ? undefined : border;
-      for (let ki of this.activeBoxes) {
-          let x=ks[ki], y=ks[ki+KY], w=ks[ki+KW], h=ks[ki+KH];
-          x = (x*zoom)+pan[0];
-          y = (y*zoom)+pan[1];
-          let flag=ks[ki+KFLAG]&AnimKeyFlags.SELECT;
-          let color=colors[flag];
-          g.fillStyle = color;
-          g.beginPath();
-          g.rect(x, y, w, h);
-          g.fill();
-          if (border) {
-              g.stroke();
-          }
-          if (x<-bs||y<-bs||x>=width+bs||y>=height+bs) {
-              continue;
-          }
-          if (ki===highlight) {
-              g.fillStyle = highColor;
-              g.beginPath();
-              g.rect(x, y, w, h);
-              g.fill();
-              if (border) {
-                  g.stroke();
-              }
-          }
-      }
-      g.lineWidth = lw2;
-      if (_DEBUG.timeChange)
-        console.log("D", off, tot, bwid);
-      let ts=this.getDefault("DefaultText").size*UIBase.getDPI();
-      g.fillStyle = this.getDefault("DefaultText").color;
-      g.font = this.getDefault("DefaultText").genCSS(ts);
-      g.strokeStyle = "rgba(0,0,0, 0.5)";
-      let lw=g.lineWidth;
-      let curtime=this.ctx.scene.time;
-      let tx=curtime*this.zoom*this.timescale*boxsize+this.pan[0];
-      if (tx>=0&&tx<=this.canvas.width) {
-          g.lineWidth = 3;
-          g.strokeStyle = this.getDefault("timeLine");
-          g.moveTo(tx, 0);
-          g.lineTo(tx, this.canvas.height);
-          g.stroke();
-      }
-      g.lineWidth = this.getDefault("textShadowSize");
-      g.strokeStyle = this.getDefault("textShadowColor");
-      let spacing=Math.floor((ts*4)/bwid);
-      for (let i=0; i<tot; i++) {
-          let x=i*bwid+off;
-          let t=time+i;
-          g.shadowBlur = 3.5;
-          g.shadowColor = "black";
-          g.shadowOffsetX = 2;
-          g.shadowOffsetY = 2;
-          if (spacing&&((~~t)%spacing)!==0) {
-              continue;
-          }
-          g.strokeText(""+t, x, canvas.height-ts*1.15);
-          g.fillText(""+t, x, canvas.height-ts*1.15);
-          g.shadowColor = "";
-      }
-      g.lineWidth = lw;
-    }
-    static  define() {
-      return {tagname: "dopesheet-editor-x", 
-     areaname: "dopesheet_editor", 
-     uiname: "Animation Keys", 
-     icon: Icons.DOPESHEET_EDITOR, 
-     style: "dopesheet"}
-    }
-     on_area_inactive() {
-      this.dag_unlink_all();
-    }
-     on_area_active() {
-      this._queueDagLink = true;
-      this.doOnce(this.linkEventDag);
-    }
-     linkEventDag() {
-      var ctx=this.ctx;
-      if (ctx===undefined) {
-          console.log("No ctx for dopesheet editor linkEventDag");
-          return ;
-      }
-      if (this.nodes.length>0) {
-          this.dag_unlink_all();
-      }
-      this._queueDagLink = false;
-      let on_sel=() =>        {
-        console.log("------------------on sel!----------------");
-        return this.on_vert_select(...arguments);
-      };
-      let on_vert_change=(ctx, inputs, outputs, graph) =>        {
-        this.rebuild();
-      };
-      let on_vert_time_change=(ctx, inputs, outputs, graph) =>        {
-        this.updateKeyPositions();
-      };
-      let on_time_change=(ctx, inputs, outputs, graph) =>        {
-        if (_DEBUG.timeChange)
-          console.log("dopesheet time change callback");
-        this.redraw();
-      };
-      this.nodes.push(on_sel);
-      this.nodes.push(on_vert_change);
-      this.nodes.push(on_time_change);
-      the_global_dag.link(ctx.scene, ["on_time_change"], on_time_change, ["on_time_change"]);
-      the_global_dag.link(ctx.frameset.spline.verts, ["on_select_add"], on_sel, ["eid"]);
-      the_global_dag.link(ctx.frameset.spline.verts, ["on_select_sub"], on_sel, ["eid"]);
-      the_global_dag.link(ctx.frameset.spline, ["on_vert_change"], on_vert_change, ["verts"]);
-      the_global_dag.link(ctx.frameset.spline, ["on_keyframe_insert"], on_vert_change, ["verts"]);
-      the_global_dag.link(ctx.frameset.pathspline, ["on_vert_time_change"], on_vert_time_change, ["verts"]);
-    }
-     on_vert_select() {
-      this.rebuild();
-      console.log("on vert select", arguments);
-    }
-     copy() {
-      let ret=document.createElement("dopesheet-editor-x");
-      ret.pan[0] = this.pan[0];
-      ret.pan[1] = this.pan[1];
-      ret.pinned_ids = this.pinned_ids;
-      ret.selected_only = this.selected_only;
-      ret.time_zero_x = this.time_zero_x;
-      ret.timescale = this.timescale;
-      ret.zoom = this.zoom;
-      return ret;
-    }
-     loadSTRUCT(reader) {
-      reader(this);
-      super.loadSTRUCT(reader);
-      this.channels.loadTreeData(this.treeData);
-    }
-  }
-  _ESClass.register(DopeSheetEditor);
-  _es6_module.add_class(DopeSheetEditor);
-  DopeSheetEditor = _es6_module.add_export('DopeSheetEditor', DopeSheetEditor);
-  DopeSheetEditor.STRUCT = STRUCT.inherit(DopeSheetEditor, Editor)+`
-    pan             : vec2 | this.pan;
-    zoom            : float;
-    timescale       : float;
-    selected_only   : int;
-    pinned_ids      : array(int) | this.pinned_ids != undefined ? this.pinned_ids : [];
-    treeData        : array(int) | this.channels.saveTreeData();
-}
-`;
-  Editor.register(DopeSheetEditor);
-  DopeSheetEditor.debug_only = false;
-}, '/dev/fairmotion/src/editors/dopesheet/DopeSheetEditor.js');
-es6_module_define('dopesheet_phantom', ["../../core/animdata.js", "../../curve/spline_types.js"], function _dopesheet_phantom_module(_es6_module) {
-  "use strict";
-  var SplineTypes=es6_import_item(_es6_module, '../../curve/spline_types.js', 'SplineTypes');
-  var SplineFlags=es6_import_item(_es6_module, '../../curve/spline_types.js', 'SplineFlags');
-  var TimeDataLayer=es6_import_item(_es6_module, '../../core/animdata.js', 'TimeDataLayer');
-  var get_vtime=es6_import_item(_es6_module, '../../core/animdata.js', 'get_vtime');
-  var set_vtime=es6_import_item(_es6_module, '../../core/animdata.js', 'set_vtime');
-  var AnimKey=es6_import_item(_es6_module, '../../core/animdata.js', 'AnimKey');
-  var AnimChannel=es6_import_item(_es6_module, '../../core/animdata.js', 'AnimChannel');
-  var AnimKeyFlags=es6_import_item(_es6_module, '../../core/animdata.js', 'AnimKeyFlags');
-  var AnimInterpModes=es6_import_item(_es6_module, '../../core/animdata.js', 'AnimInterpModes');
-  var KeyTypes={PATHSPLINE: 1<<29, 
-   DATAPATH: 1<<30, 
-   CLEARMASK: ~((1<<29)|(1<<30))}
-  KeyTypes = _es6_module.add_export('KeyTypes', KeyTypes);
-  var FilterModes={VERTICES: 1, 
-   SEGMENTS: 4, 
-   FACES: 16}
-  FilterModes = _es6_module.add_export('FilterModes', FilterModes);
-  class phantom  {
-    
-    
-    
-    
-     constructor() {
-      this.flag = 0;
-      this.ds = undefined;
-      this.pos = new Vector2(), this.size = new Vector2();
-      this.type = KeyTypes.PATHSPLINE;
-      this.group = "root";
-      this.id = 0;
-      this.e = undefined;
-      this.ch = undefined;
-    }
-    get  cached_y() {
-      return this.ds.heightmap[this.id];
-    }
-    get  oldbox() {
-      return this.ds.old_keyboxes[this.id];
-    }
-    get  select() {
-      if (this.type==KeyTypes.PATHSPLINE) {
-          return this.v.flag&SplineFlags.UI_SELECT;
-      }
-      else {
-        return this.key.flag&AnimKeyFlags.SELECT;
-      }
-    }
-    set  select(val) {
-      if (this.type==KeyTypes.PATHSPLINE) {
-          this.v.flag|=SplineFlags.UI_SELECT;
-      }
-      else {
-        if (val) {
-            this.key.flag|=AnimKeyFlags.SELECT;
-        }
-        else {
-          this.key.flag&=~AnimKeyFlags.SELECT;
-        }
-      }
-    }
-     load(b) {
-      for (var j=0; j<2; j++) {
-          this.pos[j] = b.pos[j];
-          this.size[j] = b.size[j];
-      }
-      this.id = b.id;
-      this.type = b.type;
-      this.v = b.v;
-      this.vd = b.vd;
-      this.key = b.key;
-      this.ch = b.ch;
-    }
-  }
-  _ESClass.register(phantom);
-  _es6_module.add_class(phantom);
-  phantom = _es6_module.add_export('phantom', phantom);
-  function get_time(ctx, id) {
-    if (id&KeyTypes.PATHSPLINE) {
-        id = id&KeyTypes.CLEARMASK;
-        var v=ctx.frameset.pathspline.eidmap[id];
-        return get_vtime(v);
-    }
-    else {
-      id = id&KeyTypes.CLEARMASK;
-      var k=ctx.frameset.lib_anim_idmap[id];
-      return k.time;
-    }
-  }
-  get_time = _es6_module.add_export('get_time', get_time);
-  function set_time(ctx, id, time) {
-    if (id&KeyTypes.PATHSPLINE) {
-        id = id&KeyTypes.CLEARMASK;
-        let spline=ctx.frameset.pathspline;
-        var v=spline.eidmap[id];
-        set_vtime(spline, v, time);
-        v.dag_update("depend");
-    }
-    else {
-      id = id&KeyTypes.CLEARMASK;
-      var k=ctx.frameset.lib_anim_idmap[id];
-      k.set_time(time);
-      k.dag_update("depend");
-    }
-  }
-  set_time = _es6_module.add_export('set_time', set_time);
-  function get_select(ctx, id) {
-    if (id&KeyTypes.PATHSPLINE) {
-        id = id&KeyTypes.CLEARMASK;
-        var v=ctx.frameset.pathspline.eidmap[id];
-        return v.flag&SplineFlags.UI_SELECT;
-    }
-    else {
-      id = id&KeyTypes.CLEARMASK;
-      var k=ctx.frameset.lib_anim_idmap[id];
-      return k.flag&AnimKeyFlags.SELECT;
-    }
-  }
-  get_select = _es6_module.add_export('get_select', get_select);
-  function set_select(ctx, id, state) {
-    if (id&KeyTypes.PATHSPLINE) {
-        id = id&KeyTypes.CLEARMASK;
-        var v=ctx.frameset.pathspline.eidmap[id];
-        var changed=!!(v.flag&SplineFlags.UI_SELECT)!=!!state;
-        if (state)
-          v.flag|=SplineFlags.UI_SELECT;
-        else 
-          v.flag&=~SplineFlags.UI_SELECT;
-        if (changed)
-          v.dag_update("depend");
-    }
-    else {
-      id = id&KeyTypes.CLEARMASK;
-      var k=ctx.frameset.lib_anim_idmap[id];
-      var changed=!!(k.flag&AnimKeyFlags.SELECT)!=!!state;
-      if (state)
-        k.flag|=AnimKeyFlags.SELECT;
-      else 
-        k.flag&=~AnimKeyFlags.SELECT;
-      if (changed)
-        k.dag_update("depend");
-    }
-  }
-  set_select = _es6_module.add_export('set_select', set_select);
-  function delete_key(ctx, id) {
-    if (id&KeyTypes.PATHSPLINE) {
-        id = id&KeyTypes.CLEARMASK;
-        var pathspline=ctx.frameset.pathspline;
-        var v=pathspline.eidmap[id];
-        var time=get_vtime(v);
-        var kcache=ctx.frameset.kcache;
-        for (var i=0; i<v.segments.length; i++) {
-            var s=v.segments[i], v2=s.other_vert(v), time2=get_vtime(v2);
-            var ts=Math.min(time, time2), te=Math.max(time, time2);
-            for (var j=ts; j<=te; j++) {
-                kcache.invalidate(v2.eid, j);
-            }
-        }
-        v.dag_update("depend");
-        pathspline.dissolve_vertex(v);
-    }
-    else {
-      id = id&KeyTypes.CLEARMASK;
-      var k=ctx.frameset.lib_anim_idmap[id];
-      k.dag_update("depend");
-      k.channel.remove(k);
-    }
-  }
-  delete_key = _es6_module.add_export('delete_key', delete_key);
-}, '/dev/fairmotion/src/editors/dopesheet/dopesheet_phantom.js');
-es6_module_define('dopesheet_transdata', ["../../util/mathlib.js", "../../core/animdata.js", "../viewport/transdata.js"], function _dopesheet_transdata_module(_es6_module) {
-  "use strict";
-  var MinMax=es6_import_item(_es6_module, '../../util/mathlib.js', 'MinMax');
-  var TransDataItem=es6_import_item(_es6_module, '../viewport/transdata.js', 'TransDataItem');
-  var TransDataType=es6_import_item(_es6_module, '../viewport/transdata.js', 'TransDataType');
-  var get_vtime=es6_import_item(_es6_module, '../../core/animdata.js', 'get_vtime');
-  var set_vtime=es6_import_item(_es6_module, '../../core/animdata.js', 'set_vtime');
-  class TransKey  {
-     constructor(v) {
-      this.v = v;
-      this.start_time = get_vtime(v);
-    }
-  }
-  _ESClass.register(TransKey);
-  _es6_module.add_class(TransKey);
-  class TransDopeSheetType  {
-    static  apply(ctx, td, item, mat, w) {
-
-    }
-    static  undo_pre(ctx, td, undo_obj) {
-
-    }
-    static  undo(ctx, undo_obj) {
-
-    }
-    static  update(ctx, td) {
-      var fs=ctx.frameset;
-      fs.check_vdata_integrity();
-    }
-    static  calc_prop_distances(ctx, td, data) {
-
-    }
-    static  gen_data(ctx, td, data) {
-      var doprop=td.doprop;
-      var proprad=td.propradius;
-      var vs=new set();
-      for (var eid of td.top.inputs.data) {
-          var v=ctx.frameset.pathspline.eidmap[eid];
-          if (v==undefined) {
-              console.log("WARNING: transdata corruption in dopesheet!!");
-              continuel;
-          }
-          vs.add(v);
-      }
-      for (var v of vs) {
-          var titem=new TransDataItem(v, TransDopeSheetType, get_vtime(v));
-          data.push(titem);
-      }
-    }
-    static  find_dopesheet(ctx) {
-      var active=ctx.screen.active;
-      if (__instance_of(active, ScreenArea)&&__instance_of(active.editor, DopeSheetEditor)) {
-          return active;
-      }
-      for (var c of ctx.screen.children) {
-          if (__instance_of(c, ScreenArea)&&__instance_of(c.editor, DopeSheetEditor))
-            return c;
-      }
-    }
-    static  calc_draw_aabb(ctx, td, minmax) {
-
-    }
-    static  aabb(ctx, td, item, minmax, selected_only) {
-
-    }
-  }
-  _ESClass.register(TransDopeSheetType);
-  _es6_module.add_class(TransDopeSheetType);
-  TransDopeSheetType = _es6_module.add_export('TransDopeSheetType', TransDopeSheetType);
-}, '/dev/fairmotion/src/editors/dopesheet/dopesheet_transdata.js');
-es6_module_define('dopesheet_ops', ["./dopesheet_phantom.js", "../../core/toolprops.js", "../../core/animdata.js", "../../core/toolops_api.js"], function _dopesheet_ops_module(_es6_module) {
-  "use strict";
-  var CollectionProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'CollectionProperty');
-  var IntProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'IntProperty');
-  var FloatProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'FloatProperty');
-  var BoolProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'BoolProperty');
-  var EnumProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'EnumProperty');
-  var ToolOp=es6_import_item(_es6_module, '../../core/toolops_api.js', 'ToolOp');
-  var UndoFlags=es6_import_item(_es6_module, '../../core/toolops_api.js', 'UndoFlags');
-  var TimeDataLayer=es6_import_item(_es6_module, '../../core/animdata.js', 'TimeDataLayer');
-  var get_vtime=es6_import_item(_es6_module, '../../core/animdata.js', 'get_vtime');
-  var set_vtime=es6_import_item(_es6_module, '../../core/animdata.js', 'set_vtime');
-  var AnimKey=es6_import_item(_es6_module, '../../core/animdata.js', 'AnimKey');
-  var AnimChannel=es6_import_item(_es6_module, '../../core/animdata.js', 'AnimChannel');
-  var AnimKeyFlags=es6_import_item(_es6_module, '../../core/animdata.js', 'AnimKeyFlags');
-  var AnimInterpModes=es6_import_item(_es6_module, '../../core/animdata.js', 'AnimInterpModes');
-  var get_time=es6_import_item(_es6_module, './dopesheet_phantom.js', 'get_time');
-  var set_time=es6_import_item(_es6_module, './dopesheet_phantom.js', 'set_time');
-  var get_select=es6_import_item(_es6_module, './dopesheet_phantom.js', 'get_select');
-  var set_select=es6_import_item(_es6_module, './dopesheet_phantom.js', 'set_select');
-  var KeyTypes=es6_import_item(_es6_module, './dopesheet_phantom.js', 'KeyTypes');
-  var FilterModes=es6_import_item(_es6_module, './dopesheet_phantom.js', 'FilterModes');
-  var delete_key=es6_import_item(_es6_module, './dopesheet_phantom.js', 'delete_key');
-  class ShiftTimeOp2 extends ToolOp {
-    
-     constructor() {
-      super();
-      var first=true;
-      this.start_mpos = new Vector3();
-    }
-    static  tooldef() {
-      return {apiname: "spline.shift_time2", 
-     uiname: "Shift Time2", 
-     is_modal: true, 
-     inputs: {factor: new FloatProperty(-1, "factor", "factor", "factor"), 
-      vertex_eids: new CollectionProperty([], undefined, "verts", "verts")}, 
-     outputs: {}, 
-     icon: -1, 
-     description: "Move keyframes around"}
-    }
-     get_curframe_animverts(ctx) {
-      var vset=new set();
-      var spline=ctx.frameset.pathspline;
-      for (var eid of this.inputs.vertex_eids) {
-          var v=spline.eidmap[eid];
-          if (v==undefined) {
-              console.warn("ShiftTimeOp2 data corruption! v was undefined!");
-              continue;
-          }
-          vset.add(v);
-      }
-      return vset;
-    }
-     start_modal(ctx) {
-      this.first = true;
-    }
-     end_modal(ctx) {
-      ToolOp.prototype.end_modal.call(this);
-    }
-     cancel(ctx) {
-
-    }
-     finish(ctx) {
-      ctx.scene.change_time(ctx, this.start_time);
-    }
-     on_mousemove(event) {
-      if (this.first) {
-          this.start_mpos.load([event.x, event.y, 0]);
-          this.first = false;
-      }
-      var mpos=new Vector3([event.x, event.y, 0]);
-      var dx=-Math.floor(1.5*(this.start_mpos[0]-mpos[0])/20+0.5);
-      this.undo(this.modal_ctx);
-      this.inputs.factor.set_data(dx);
-      this.exec(this.modal_ctx);
-    }
-     on_keydown(event) {
-      switch (event.keyCode) {
-        case charmap["Escape"]:
-          this.cancel(this.modal_ctx);
-        case charmap["Return"]:
-        case charmap["Space"]:
-          this.finish(this.modal_ctx);
-          this.end_modal();
-      }
-    }
-     on_mouseup(event) {
-      var ctx=this.modal_ctx;
-      this.end_modal();
-      ctx.frameset.download();
-      window.redraw_viewport();
-    }
-     undo_pre(ctx) {
-      var ud=this._undo = {};
-      for (var v of this.get_curframe_animverts(ctx)) {
-          ud[v.eid] = get_vtime(v);
-      }
-    }
-     undo(ctx) {
-      var spline=ctx.frameset.pathspline;
-      for (var k in this._undo) {
-          var v=spline.eidmap[k], time=this._undo[k];
-          set_vtime(spline, v, time);
-          v.dag_update("depend");
-      }
-      ctx.frameset.download();
-    }
-     exec(ctx) {
-      var spline=ctx.frameset.pathspline;
-      var starts={};
-      var off=this.inputs.factor.data;
-      var vset=this.get_curframe_animverts(ctx);
-      for (var v of vset) {
-          starts[v.eid] = get_vtime(v);
-      }
-      var frameset=ctx.frameset;
-      var vdmap={};
-      for (var k in frameset.vertex_animdata) {
-          var vd=frameset.vertex_animdata[k];
-          for (var v of vd.verts) {
-              vdmap[v.eid] = k;
-          }
-      }
-      var kcache=ctx.frameset.kcache;
-      for (var v of vset) {
-          var eid=vdmap[v.eid];
-          var time1=get_vtime(v);
-          for (var i=0; i<v.segments.length; i++) {
-              var s=v.segments[i], v2=s.other_vert(v), time2=get_vtime(v2);
-              var t1=Math.min(time1, time2), t2=Math.max(time1, time2);
-              for (var j=t1; j<=t2; j++) {
-                  kcache.invalidate(eid, j);
-              }
-          }
-          set_vtime(spline, v, starts[v.eid]+off);
-          kcache.invalidate(eid, starts[v.eid]+off);
-          v.dag_update("depend");
-      }
-      for (var v of vset) {
-          var min=undefined, max=undefined;
-          if (v.segments.length==1) {
-              var s=v.segments[0];
-              var v2=s.other_vert(v);
-              var t1=get_vtime(v), t2=get_vtime(v2);
-              if (t1<t2) {
-                  min = 0, max = t2;
-              }
-              else 
-                if (t1==t2) {
-                  min = max = t1;
-              }
-              else {
-                min = t1, max = 100000;
-              }
-          }
-          else 
-            if (v.segments.length==2) {
-              var v1=v.segments[0].other_vert(v);
-              var v2=v.segments[1].other_vert(v);
-              var t1=get_vtime(v1), t2=get_vtime(v2);
-              min = Math.min(t1, t2), max = Math.max(t1, t2);
-          }
-          else {
-            min = 0;
-            max = 100000;
-          }
-          var newtime=get_vtime(v);
-          newtime = Math.min(Math.max(newtime, min), max);
-          set_vtime(spline, v, newtime);
-          v.dag_update("depend");
-      }
-      if (!this.modal_running) {
-          ctx.frameset.download();
-      }
-    }
-  }
-  _ESClass.register(ShiftTimeOp2);
-  _es6_module.add_class(ShiftTimeOp2);
-  ShiftTimeOp2 = _es6_module.add_export('ShiftTimeOp2', ShiftTimeOp2);
-  class ShiftTimeOp3 extends ToolOp {
-    
-     constructor() {
-      super();
-      var first=true;
-      this.start_mpos = new Vector3();
-    }
-    static  tooldef() {
-      return {apiname: "spline.shift_time3", 
-     uiname: "Shift Time", 
-     is_modal: true, 
-     inputs: {factor: new FloatProperty(-1, "factor", "factor", "factor"), 
-      phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom_ids")}, 
-     outputs: {}, 
-     icon: -1, 
-     description: "Move keyframes around"}
-    }
-     start_modal(ctx) {
-      this.first = true;
-    }
-     end_modal(ctx) {
-      ToolOp.prototype.end_modal.call(this);
-    }
-     cancel(ctx) {
-
-    }
-     finish(ctx) {
-      ctx.scene.change_time(ctx, this.start_time);
-    }
-     on_mousemove(event) {
-      if (this.first) {
-          this.start_mpos.load([event.x, event.y, 0]);
-          this.first = false;
-      }
-      var mpos=new Vector3([event.x, event.y, 0]);
-      let scale;
-      let ctx=this.modal_ctx;
-      if (ctx.dopesheet) {
-          let ds=ctx.dopesheet;
-          scale = 1.0/(ds.timescale*ds.zoom*ds.boxSize);
-      }
-      else {
-        scale = 0.01;
-        console.warn("Warning, no dopesheet");
-      }
-      var dx=-Math.floor((this.start_mpos[0]-mpos[0])*scale);
-      this.do_undo(this.modal_ctx, true);
-      this.inputs.factor.set_data(dx);
-      this.exec(this.modal_ctx);
-    }
-     on_keydown(event) {
-      switch (event.keyCode) {
-        case charmap["Escape"]:
-          this.cancel(this.modal_ctx);
-        case charmap["Return"]:
-        case charmap["Space"]:
-          this.finish(this.modal_ctx);
-          this.end_modal();
-      }
-    }
-     on_mouseup(event) {
-      var ctx=this.modal_ctx;
-      this.end_modal();
-      ctx.frameset.download();
-      window.redraw_viewport();
-    }
-     undo_pre(ctx) {
-      var ud=this._undo = {};
-      for (var id of this.inputs.phantom_ids) {
-          ud[id] = get_time(ctx, id);
-      }
-    }
-     do_undo(ctx, no_download=false) {
-      for (var k in this._undo) {
-          set_time(ctx, k, this._undo[k]);
-      }
-      if (!no_download)
-        ctx.frameset.download();
-    }
-     undo(ctx) {
-      this.do_undo(ctx);
-    }
-     exec(ctx) {
-      var spline=ctx.frameset.pathspline;
-      var starts={};
-      var off=this.inputs.factor.data;
-      var ids=this.inputs.phantom_ids;
-      for (var id of ids) {
-          starts[id] = get_time(ctx, id);
-      }
-      var frameset=ctx.frameset;
-      var vdmap={};
-      for (var k in frameset.vertex_animdata) {
-          var vd=frameset.vertex_animdata[k];
-          for (var v of vd.verts) {
-              vdmap[v.eid] = k;
-          }
-      }
-      var kcache=ctx.frameset.kcache;
-      for (var id of ids) {
-          set_time(ctx, id, starts[id]+off);
-      }
-      for (var id of ids) {
-          var min=undefined, max=undefined;
-          if (id&KeyTypes.PATHSPLINE) {
-              var v=ctx.frameset.pathspline.eidmap[id&KeyTypes.CLEARMASK];
-              if (v.segments.length==1) {
-                  var s=v.segments[0];
-                  var v2=s.other_vert(v);
-                  var t1=get_vtime(v), t2=get_vtime(v2);
-                  if (t1<t2) {
-                      min = 0, max = t2;
-                  }
-                  else 
-                    if (t1==t2) {
-                      min = max = t1;
-                  }
-                  else {
-                    min = t1, max = 100000;
-                  }
-              }
-              else 
-                if (v.segments.length==2) {
-                  var v1=v.segments[0].other_vert(v);
-                  var v2=v.segments[1].other_vert(v);
-                  var t1=get_vtime(v1), t2=get_vtime(v2);
-                  min = Math.min(t1, t2), max = Math.max(t1, t2);
-              }
-              else {
-                min = 0;
-                max = 100000;
-              }
-              var eid=vdmap[v.eid];
-              for (var j=min; j<max; j++) {
-
-              }
-              var newtime=get_vtime(v);
-              newtime = Math.min(Math.max(newtime, min), max);
-              set_vtime(spline, v, newtime);
-              v.dag_update("depend");
-          }
-      }
-      if (!this.modal_running) {
-          console.log("download");
-          ctx.frameset.download();
-      }
-    }
-  }
-  _ESClass.register(ShiftTimeOp3);
-  _es6_module.add_class(ShiftTimeOp3);
-  ShiftTimeOp3 = _es6_module.add_export('ShiftTimeOp3', ShiftTimeOp3);
-  class SelectOpBase extends ToolOp {
-     constructor() {
-      super();
-    }
-    static  tooldef() {
-      return {inputs: {phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom_ids")}, 
-     outputs: {}}
-    }
-     undo_pre(ctx) {
-      var undo=this._undo = {};
-      for (var id of this.inputs.phantom_ids) {
-          undo[id] = get_select(ctx, id);
-      }
-    }
-     undo(ctx) {
-      var undo=this._undo;
-      for (var id in undo) {
-          set_select(ctx, id, undo[id]);
-      }
-    }
-  }
-  _ESClass.register(SelectOpBase);
-  _es6_module.add_class(SelectOpBase);
-  SelectOpBase = _es6_module.add_export('SelectOpBase', SelectOpBase);
-  class SelectOp extends SelectOpBase {
-    
-     constructor() {
-      super();
-      this.uiname = "Select";
-    }
-    static  tooldef() {
-      return {apiname: "spline.select_keyframe", 
-     uiname: "Select Keyframe", 
-     is_modal: false, 
-     inputs: ToolOp.inherit({select_ids: new CollectionProperty([], undefined, "select_ids", "select_ids"), 
-      phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom_ids"), 
-      state: new BoolProperty(true, "state"), 
-      unique: new BoolProperty(true, "unique")}), 
-     outputs: {}, 
-     icon: -1, 
-     description: "Select keyframes"}
-    }
-     exec(ctx) {
-      var state=this.inputs.state.data;
-      if (this.inputs.unique.data) {
-          for (var id of this.inputs.phantom_ids) {
-              set_select(ctx, id, false);
-          }
-      }
-      for (var id of this.inputs.select_ids) {
-          set_select(ctx, id, state);
-      }
-    }
-  }
-  _ESClass.register(SelectOp);
-  _es6_module.add_class(SelectOp);
-  SelectOp = _es6_module.add_export('SelectOp', SelectOp);
-  class ColumnSelect extends SelectOpBase {
-     constructor() {
-      super();
-    }
-    static  tooldef() {
-      return {apiname: "spline.select_keyframe_column", 
-     uiname: "Column Select", 
-     is_modal: false, 
-     inputs: ToolOp.inherit({state: new BoolProperty(true, "state"), 
-      phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom_ids")}), 
-     outputs: {}, 
-     icon: -1, 
-     description: "Select keyframes in a single column"}
-    }
-     exec(ctx) {
-      var cols={};
-      var state=this.inputs.state.data;
-      for (var id of this.inputs.phantom_ids) {
-          if (get_select(ctx, id))
-            cols[get_time(ctx, id)] = 1;
-      }
-      for (var id of this.inputs.phantom_ids) {
-          if (!(get_time(ctx, id) in cols))
-            continue;
-          set_select(ctx, id, state);
-      }
-    }
-  }
-  _ESClass.register(ColumnSelect);
-  _es6_module.add_class(ColumnSelect);
-  ColumnSelect = _es6_module.add_export('ColumnSelect', ColumnSelect);
-  class SelectKeysToSide extends SelectOpBase {
-     constructor() {
-      super();
-    }
-    static  tooldef() {
-      return {apiname: "spline.select_keys_to_side", 
-     uiname: "Select Keys To Side", 
-     is_modal: false, 
-     inputs: ToolOp.inherit({state: new BoolProperty(true, "state"), 
-      phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom_ids"), 
-      side: new BoolProperty(true, "side")}), 
-     outputs: {}, 
-     icon: -1, 
-     description: "Select keyframes before or after the cursor"}
-    }
-     exec(ctx) {
-      var state=this.inputs.state.data;
-      var mintime=1e+17, maxtime=-1e+17;
-      for (var id of this.inputs.phantom_ids) {
-          if (!get_select(ctx, id))
-            continue;
-          var time=get_time(ctx, id);
-          mintime = Math.min(mintime, time);
-          maxtime = Math.max(maxtime, time);
-      }
-      if (mintime==1e+17) {
-          mintime = maxtime = ctx.scene.time;
-      }
-      var side=this.inputs.side.data;
-      for (var id of this.inputs.phantom_ids) {
-          var time=get_time(ctx, id);
-          if ((side&&time<maxtime)||(!side&&time>mintime))
-            continue;
-          set_select(ctx, id, state);
-      }
-    }
-  }
-  _ESClass.register(SelectKeysToSide);
-  _es6_module.add_class(SelectKeysToSide);
-  SelectKeysToSide = _es6_module.add_export('SelectKeysToSide', SelectKeysToSide);
-  var mode_vals=["select", "deselect", "auto"];
-  mode_vals = _es6_module.add_export('mode_vals', mode_vals);
-  class ToggleSelectOp extends SelectOpBase {
-     constructor(mode="auto") {
-      super();
-      this.inputs.mode.set_data(mode);
-    }
-    static  tooldef() {
-      return {apiname: "spline.toggle_select_keys", 
-     uiname: "Select Keyframe Selection", 
-     is_modal: false, 
-     inputs: ToolOp.inherit({phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom ids"), 
-      mode: new EnumProperty("auto", mode_vals, "mode", "Mode", "mode")}), 
-     outputs: {}, 
-     icon: -1, 
-     description: "Select all keyframes, or deselect them if already selected"}
-    }
-     exec(ctx) {
-      var mode=this.inputs.mode.data;
-      if (mode=="auto") {
-          mode = "select";
-          for (var id of this.inputs.phantom_ids) {
-              if (get_select(ctx, id))
-                mode = "deselect";
-          }
-      }
-      mode = mode=="select" ? true : false;
-      for (var id of this.inputs.phantom_ids) {
-          set_select(ctx, id, mode);
-      }
-    }
-  }
-  _ESClass.register(ToggleSelectOp);
-  _es6_module.add_class(ToggleSelectOp);
-  ToggleSelectOp = _es6_module.add_export('ToggleSelectOp', ToggleSelectOp);
-  class DeleteKeyOp extends ToolOp {
-     constructor() {
-      super();
-    }
-    static  tooldef() {
-      return {apiname: "spline.delete_key", 
-     uiname: "Delete Keyframe", 
-     is_modal: false, 
-     inputs: {phantom_ids: new CollectionProperty([], undefined, "phantom_ids", "phantom ids")}, 
-     outputs: {}, 
-     icon: -1, 
-     description: "Delete a keyframe"}
-    }
-     exec(ctx) {
-      for (var id of this.inputs.phantom_ids) {
-          if (get_select(ctx, id)) {
-              delete_key(ctx, id);
-          }
-      }
-    }
-  }
-  _ESClass.register(DeleteKeyOp);
-  _es6_module.add_class(DeleteKeyOp);
-  DeleteKeyOp = _es6_module.add_export('DeleteKeyOp', DeleteKeyOp);
-  
-}, '/dev/fairmotion/src/editors/dopesheet/dopesheet_ops.js');
-es6_module_define('dopesheet_ops_new', ["../../curve/spline_base.js", "../../core/toolprops.js", "../../path.ux/scripts/util/vectormath.js", "../../core/toolops_api.js", "../../core/animdata.js", "../../path.ux/scripts/util/util.js"], function _dopesheet_ops_new_module(_es6_module) {
-  var ToolOp=es6_import_item(_es6_module, '../../core/toolops_api.js', 'ToolOp');
-  var AnimKeyFlags=es6_import_item(_es6_module, '../../core/animdata.js', 'AnimKeyFlags');
-  var AnimKeyTypes=es6_import_item(_es6_module, '../../core/animdata.js', 'AnimKeyTypes');
-  var get_vtime=es6_import_item(_es6_module, '../../core/animdata.js', 'get_vtime');
-  var set_vtime=es6_import_item(_es6_module, '../../core/animdata.js', 'set_vtime');
-  var ListProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'ListProperty');
-  var EnumProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'EnumProperty');
-  var FloatProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'FloatProperty');
-  var Vec2Property=es6_import_item(_es6_module, '../../core/toolprops.js', 'Vec2Property');
-  var IntProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'IntProperty');
-  var BoolProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'BoolProperty');
-  var IntArrayProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'IntArrayProperty');
-  var util=es6_import(_es6_module, '../../path.ux/scripts/util/util.js');
-  var SplineFlags=es6_import_item(_es6_module, '../../curve/spline_base.js', 'SplineFlags');
-  var Vector2=es6_import_item(_es6_module, '../../path.ux/scripts/util/vectormath.js', 'Vector2');
-  class KeyIterItem  {
-    
-     getFlag() {
-
-    }
-     setFlag() {
-
-    }
-     getTime() {
-
-    }
-     setTime() {
-
-    }
-     setSelect(state) {
-      if (state) {
-          this.setFlag(this.getFlag()|AnimKeyFlags.SELECT);
-      }
-      else {
-        this.setFlag(this.getFlag()&~AnimKeyFlags.SELECT);
-      }
-    }
-     kill() {
-      throw new Error("implement me");
-    }
-     getValue() {
-      throw new Error("implement me");
-    }
-     setValue() {
-      throw new Error("implement me");
-    }
-     getId() {
-      throw new Error("implement me");
-    }
-  }
-  _ESClass.register(KeyIterItem);
-  _es6_module.add_class(KeyIterItem);
-  KeyIterItem = _es6_module.add_export('KeyIterItem', KeyIterItem);
-  class VertKeyIterItem extends KeyIterItem {
-     constructor() {
-      super();
-      this.v = undefined;
-      this.spline = undefined;
-      this.type = AnimKeyTypes.SPLINE;
-      this.channel = undefined;
-      this.frameset = undefined;
-    }
-     getId() {
-      return this.v.eid;
-    }
-     getFlag() {
-      let flag=0;
-      if (this.v.flag&SplineFlags.UI_SELECT) {
-          flag|=AnimKeyFlags.SELECT;
-      }
-      return flag;
-    }
-     setFlag(flag) {
-      if (flag&AnimKeyFlags.SELECT) {
-          this.v.flag|=SplineFlags.UI_SELECT;
-      }
-      else {
-        this.v.flag&=~SplineFlags.UI_SELECT;
-      }
-      return this;
-    }
-     kill() {
-      this.frameset.vertex_animdata[this.channel].remove(this.v);
-    }
-     getTime() {
-      return get_vtime(this.v);
-    }
-     setTime(time) {
-      if (isNaN(time)) {
-          throw new Error("Time was NaN!");
-      }
-      set_vtime(this.spline, this.v, time);
-    }
-     init(spline, v, vd_eid, frameset) {
-      this.spline = spline;
-      this.v = v;
-      this.channel = vd_eid;
-      this.frameset = frameset;
-      return this;
-    }
-     destroy() {
-      this.spline = undefined;
-      this.v = undefined;
-    }
-  }
-  _ESClass.register(VertKeyIterItem);
-  _es6_module.add_class(VertKeyIterItem);
-  VertKeyIterItem = _es6_module.add_export('VertKeyIterItem', VertKeyIterItem);
-  class DataPathKeyItem extends VertKeyIterItem {
-     constructor(datapath) {
-      this.path = datapath;
-      throw new Error("implement me");
-    }
-  }
-  _ESClass.register(DataPathKeyItem);
-  _es6_module.add_class(DataPathKeyItem);
-  DataPathKeyItem = _es6_module.add_export('DataPathKeyItem', DataPathKeyItem);
-  let vkey_cache=util.cachering.fromConstructor(VertKeyIterItem, 32);
-  let UEID=0, UTIME=1, UFLAG=2, UX=3, UY=4, UTOT=5;
-  class AnimKeyTool extends ToolOp {
-     constructor() {
-      super();
-    }
-    static  tooldef() {
-      return {inputs: {useKeyList: new BoolProperty(), 
-      keyList: new IntArrayProperty()}}
-    }
-    * iterKeys(ctx, useKeyList=this.inputs.useKeyList.getValue()) {
-      if (useKeyList) {
-          let list=this.inputs.keyList.getValue();
-          let pathspline=ctx.frameset.pathspline;
-          let channelmap={};
-          let frameset=ctx.frameset;
-          for (let k in frameset.vertex_animdata) {
-              let vd=frameset.vertex_animdata[k];
-              for (let v of vd.verts) {
-                  channelmap[v.eid] = parseInt(k);
-              }
-          }
-          for (let i=0; i<list.length; i+=2) {
-              let type=list[i], id=list[i+1];
-              if (type===AnimKeyTypes.SPLINE) {
-                  let v=pathspline.eidmap[id];
-                  if (!v) {
-                      console.warn("Error iterating spline animation keys; key could not be found", id, pathspline);
-                      continue;
-                  }
-                  if (!(v.eid in channelmap)) {
-                      console.error("CORRUPTION ERROR!", v.eid, channelmap);
-                      continue;
-                  }
-                  yield vkey_cache.next().init(pathspline, v, channelmap[v.eid], frameset);
-              }
-              else {
-                throw new Error("implement me!");
-              }
-          }
-      }
-      else {
-        let frameset=ctx.frameset;
-        let spline=frameset.spline;
-        let pathspline=frameset.pathspline;
-        let templist=[];
-        for (var i2=0; i2<2; i2++) {
-            let list=i2 ? spline.handles : spline.verts;
-            for (let v of list.selected.editable(ctx)) {
-                if (!(v.eid in frameset.vertex_animdata)) {
-                    continue;
-                }
-                let vd=frameset.vertex_animdata[v.eid];
-                templist.length = 0;
-                for (let v2 of vd.verts) {
-                    templist.push(v2);
-                }
-                for (let v2 of templist) {
-                    yield vkey_cache.next().init(pathspline, v2, v.eid, frameset);
-                }
-            }
-        }
-      }
-    }
-     undoPre(ctx) {
-      this.undo_pre(ctx);
-    }
-     undo_pre(ctx) {
-      let spline=[];
-      let _undo=this._undo = {spline: spline};
-      let vset=new Set();
-      for (let i=0; i<2; i++) {
-          for (let key of this.iterKeys(ctx, i)) {
-              if (key.type===AnimKeyTypes.SPLINE) {
-                  if (vset.has(key.v.eid)) {
-                      continue;
-                  }
-                  vset.add(key.v.eid);
-                  spline.push(key.v.eid);
-                  spline.push(get_vtime(key.v));
-                  spline.push(key.v.flag);
-                  spline.push(key.v[0]);
-                  spline.push(key.v[1]);
-              }
-              else {
-                throw new Error("implement me!");
-              }
-          }
-      }
-    }
-     undo(ctx) {
-      let list=this._undo.spline;
-      let spline=ctx.frameset.pathspline;
-      for (let i=0; i<list.length; i+=UTOT) {
-          let eid=list[i], time=list[i+1], flag=list[i+2];
-          let x=list[i+3], y=list[i+4];
-          let v=spline.eidmap[eid];
-          if (!v) {
-              console.warn("EEK! Misssing vertex/handle in AnimKeyTool.undo!");
-              continue;
-          }
-          let do_update=Math.abs(x-v[0])>0.001||Math.abs(y-v[1])>0.001;
-          v.flag = flag;
-          set_vtime(spline, v, time);
-          v[0] = x;
-          v[1] = y;
-          if (do_update) {
-              v.flag|=SplineFlags.UPDATE;
-          }
-      }
-    }
-     exec(ctx) {
-      ctx.frameset.spline.updateGen++;
-      window.redraw_viewport();
-    }
-  }
-  _ESClass.register(AnimKeyTool);
-  _es6_module.add_class(AnimKeyTool);
-  AnimKeyTool = _es6_module.add_export('AnimKeyTool', AnimKeyTool);
-  const SelModes={AUTO: 0, 
-   ADD: 1, 
-   SUB: 2}
-  _es6_module.add_export('SelModes', SelModes);
-  class ToggleSelectAll extends AnimKeyTool {
-     constructor() {
-      super();
-    }
-    static  tooldef() {
-      return {uiname: "Toggle Select All (Keys)", 
-     toolpath: "animkeys.toggle_select_all()", 
-     inputs: ToolOp.inherit({mode: new EnumProperty("AUTO", SelModes)})}
-    }
-     exec(ctx) {
-      console.log("Anim Key Toggle Select Tool!");
-      let mode=this.inputs.mode.getValue();
-      let count=0;
-      if (mode===SelModes.AUTO) {
-          mode = SelModes.ADD;
-          for (let key of this.iterKeys(ctx)) {
-              let flag=key.getFlag();
-              if (flag&AnimKeyFlags.SELECT) {
-                  mode = SelModes.SUB;
-                  break;
-              }
-          }
-      }
-      console.log("mode, count", mode, count);
-      for (let key of this.iterKeys(ctx)) {
-          if (mode===SelModes.ADD) {
-              key.setFlag(key.getFlag()|AnimKeyFlags.SELECT);
-          }
-          else {
-            key.setFlag(key.getFlag()&~AnimKeyFlags.SELECT);
-          }
-      }
-      super.exec(ctx);
-    }
-     undo(ctx) {
-      super.undo(ctx);
-      if (ctx.dopesheet) {
-          ctx.dopesheet.updateKeyPositions();
-      }
-    }
-  }
-  _ESClass.register(ToggleSelectAll);
-  _es6_module.add_class(ToggleSelectAll);
-  ToggleSelectAll = _es6_module.add_export('ToggleSelectAll', ToggleSelectAll);
-  class MoveKeyFramesOp extends AnimKeyTool {
-     constructor() {
-      super();
-      this.first = true;
-      this.last_mpos = new Vector2();
-      this.start_mpos = new Vector2();
-      this.sum = 0.0;
-      this.transdata = [];
-    }
-     on_mousemove(e) {
-      let ctx=this.modal_ctx;
-      if (this.first) {
-          this.last_mpos[0] = e.x;
-          this.last_mpos[1] = e.y;
-          this.start_mpos[0] = e.x;
-          this.start_mpos[1] = e.y;
-          this.first = false;
-          this.sum = 0.0;
-          this.transdata.length = 0;
-          for (let key of this.iterKeys(ctx)) {
-              if (!(key.getFlag()&AnimKeyFlags.SELECT)) {
-                  continue;
-              }
-              this.transdata.push(key.getTime());
-          }
-          return ;
-      }
-      let dx=e.x-this.last_mpos[0], dy=e.y-this.last_mpos[1];
-      let dopesheet=ctx.dopesheet;
-      dx = e.x-this.start_mpos[0];
-      if (dopesheet) {
-          let boxsize=dopesheet.boxSize;
-          dx/=dopesheet.zoom*dopesheet.timescale*boxsize;
-      }
-      else {
-        dx*=0.1;
-        console.error("MISSING DOPESHEET");
-      }
-      if (dx===undefined) {
-          throw new Error("eek!");
-      }
-      this.inputs.delta.setValue(dx);
-      let i=0;
-      let td=this.transdata;
-      for (let key of this.iterKeys(ctx)) {
-          if (!(key.getFlag()&AnimKeyFlags.SELECT)) {
-              continue;
-          }
-          key.setTime(td[i]);
-          i++;
-      }
-      this.exec(ctx);
-      if (dopesheet) {
-          dopesheet.updateKeyPositions();
-      }
-      console.log(dx, dy, dopesheet!==undefined);
-      this.last_mpos[0] = e.x;
-      this.last_mpos[1] = e.y;
-    }
-     exec(ctx, dx_override=undefined) {
-      let dx=this.inputs.delta.getValue();
-      if (dx_override) {
-          dx = dx_override;
-      }
-      for (let key of this.iterKeys(ctx)) {
-          if (!(key.getFlag()&AnimKeyFlags.SELECT)) {
-              continue;
-          }
-          let time=key.getTime();
-          key.setTime(Math.floor(time+dx+0.5));
-      }
-      ctx.frameset.pathspline.flagUpdateVertTime();
-    }
-     undo(ctx) {
-      super.undo(ctx);
-      if (ctx.dopesheet) {
-          ctx.dopesheet.updateKeyPositions();
-      }
-    }
-     on_keydown(e) {
-      if (e.keyCode===27) {
-          this.end_modal();
-      }
-    }
-     on_mousedown(e) {
-      this.end_modal();
-    }
-     on_mouseup(e) {
-      this.end_modal();
-    }
-    static  tooldef() {
-      return {name: "Move Keyframes", 
-     toolpath: "anim.movekeys", 
-     is_modal: true, 
-     inputs: ToolOp.inherit({delta: new FloatProperty()})}
-    }
-  }
-  _ESClass.register(MoveKeyFramesOp);
-  _es6_module.add_class(MoveKeyFramesOp);
-  MoveKeyFramesOp = _es6_module.add_export('MoveKeyFramesOp', MoveKeyFramesOp);
-  const SelModes2={UNIQUE: 0, 
-   ADD: 1, 
-   SUB: 2}
-  _es6_module.add_export('SelModes2', SelModes2);
-  class SelectKeysOp extends AnimKeyTool {
-     constructor() {
-      super();
-      this.inputs.useKeyList.setValue(true);
-    }
-    static  tooldef() {
-      return {name: "Select Keyframes", 
-     toolpath: "anim.select", 
-     inputs: ToolOp.inherit({mode: new EnumProperty("UNIQUE", SelModes2)})}
-    }
-     exec(ctx) {
-      let mode=this.inputs.mode.getValue();
-      console.log("select mode:", mode);
-      if (mode===SelModes2.UNIQUE) {
-          for (let key of this.iterKeys(ctx, false)) {
-              key.setSelect(false);
-          }
-      }
-      let state=mode===SelModes2.UNIQUE||mode===SelModes2.ADD;
-      for (let key of this.iterKeys(ctx)) {
-          key.setSelect(state);
-      }
-      ctx.frameset.pathspline.flagUpdateVertTime();
-    }
-     undo(ctx) {
-      super.undo(ctx);
-      ctx.frameset.pathspline.flagUpdateVertTime();
-      if (ctx.dopesheet) {
-          ctx.dopesheet.updateKeyPositions();
-          ctx.dopesheet.redraw();
-      }
-    }
-  }
-  _ESClass.register(SelectKeysOp);
-  _es6_module.add_class(SelectKeysOp);
-  SelectKeysOp = _es6_module.add_export('SelectKeysOp', SelectKeysOp);
-  class DeleteKeysOp extends AnimKeyTool {
-     constructor() {
-      super();
-    }
-    static  tooldef() {
-      return {name: "Delete Keyframes", 
-     toolpath: "anim.delete_keys", 
-     inputs: ToolOp.inherit({})}
-    }
-     exec(ctx) {
-      console.warn("Deleting keyframes!");
-      for (let key of this.iterKeys(ctx)) {
-          if (key.getFlag()&AnimKeyFlags.SELECT) {
-              key.kill();
-          }
-      }
-      ctx.frameset.rationalize_vdata_layers();
-      ctx.frameset.spline.flagUpdateKeyframes();
-      ctx.frameset.pathspline.flagUpdateVertTime();
-    }
-     undo_pre(ctx) {
-      ToolOp.prototype.undo_pre.call(this, ctx);
-    }
-     undoPre(ctx) {
-      ToolOp.prototype.undo_pre.call(this, ctx);
-    }
-     undo(ctx) {
-      ToolOp.prototype.undo.call(this, ctx);
-      ctx.frameset.pathspline.flagUpdateVertTime();
-      ctx.frameset.spline.flagUpdateKeyframes();
-      if (ctx.dopesheet) {
-          ctx.dopesheet.updateKeyPositions();
-          ctx.dopesheet.redraw();
-      }
-    }
-  }
-  _ESClass.register(DeleteKeysOp);
-  _es6_module.add_class(DeleteKeysOp);
-  DeleteKeysOp = _es6_module.add_export('DeleteKeysOp', DeleteKeysOp);
-}, '/dev/fairmotion/src/editors/dopesheet/dopesheet_ops_new.js');
-es6_module_define('editcurve_ops', [], function _editcurve_ops_module(_es6_module) {
-}, '/dev/fairmotion/src/editors/curve/editcurve_ops.js');
-es6_module_define('editcurve_util', [], function _editcurve_util_module(_es6_module) {
-}, '/dev/fairmotion/src/editors/curve/editcurve_util.js');

@@ -2039,6 +2039,27 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
     "Number": 0, 
     "Array": 0, 
     "Function": 0}
+    const _export_cachering_=class cachering extends Array {
+       constructor(cb, tot) {
+        super();
+        this.length = tot;
+        this.cur = 0;
+        for (let i=0; i<tot; i++) {
+            this[i] = cb();
+        }
+      }
+       next() {
+        let ret=this[this.cur];
+        this.cur = (this.cur+1)%this.length;
+        return ret;
+      }
+      static  fromConstructor(cls, tot) {
+        return new _export_cachering_(() =>          {
+          return new cls();
+        }, tot);
+      }
+    }
+    _ESClass.register(_export_cachering_);
     function isNodeJS() {
       ret = typeof process!=="undefined";
       ret = ret&&process.release;
@@ -2219,6 +2240,7 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
     })]);
     IDGen.STRUCT = ["struct_util.IDGen {", "  cur_id : int;", "}"].join("\n");
     var struct_util=Object.freeze({__proto__: null, 
+    cachering: _export_cachering_, 
     is_obj_lit: is_obj_lit, 
     get_callstack: _export_get_callstack_, 
     print_stack: _export_print_stack_, 
@@ -2246,6 +2268,18 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       array.push(uint8_view[1]);
       array.push(uint8_view[2]);
       array.push(uint8_view[3]);
+    }
+    var pack_uint=_module_exports_.pack_uint = function (array, val) {
+      temp_dataview.setUint32(0, val, _module_exports_.STRUCT_ENDIAN);
+      array.push(uint8_view[0]);
+      array.push(uint8_view[1]);
+      array.push(uint8_view[2]);
+      array.push(uint8_view[3]);
+    }
+    var pack_ushort=_module_exports_.pack_ushort = function (array, val) {
+      temp_dataview.setUint16(0, val, _module_exports_.STRUCT_ENDIAN);
+      array.push(uint8_view[0]);
+      array.push(uint8_view[1]);
     }
     _module_exports_.pack_float = function (array, val) {
       temp_dataview.setFloat32(0, val, _module_exports_.STRUCT_ENDIAN);
@@ -2373,6 +2407,14 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       uctx.i+=4;
       return dview.getInt32(uctx.i-4, _module_exports_.STRUCT_ENDIAN);
     }
+    var unpack_uint=_module_exports_.unpack_uint = function (dview, uctx) {
+      uctx.i+=4;
+      return dview.getUint32(uctx.i-4, _module_exports_.STRUCT_ENDIAN);
+    }
+    var unpack_ushort=_module_exports_.unpack_ushort = function (dview, uctx) {
+      uctx.i+=2;
+      return dview.getUint16(uctx.i-2, _module_exports_.STRUCT_ENDIAN);
+    }
     _module_exports_.unpack_float = function (dview, uctx) {
       uctx.i+=4;
       return dview.getFloat32(uctx.i-4, _module_exports_.STRUCT_ENDIAN);
@@ -2438,10 +2480,24 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
     }
     _ESClass.register(_export_token_);
     const _export_tokdef_=class tokdef  {
-       constructor(name, regexpr, func) {
+       constructor(name, regexpr, func, example) {
         this.name = name;
         this.re = regexpr;
         this.func = func;
+        this.example = example;
+        if (example===undefined&&regexpr) {
+            let s=""+regexpr;
+            if (s.startsWith("/")&&s.endsWith("/")) {
+                s = s.slice(1, s.length-1);
+            }
+            if (s.startsWith("\\")) {
+                s = s.slice(1, s.length);
+            }
+            s = s.trim();
+            if (s.length===1) {
+                this.example = s;
+            }
+        }
       }
     }
     _ESClass.register(_export_tokdef_);
@@ -2655,8 +2711,14 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       }
        expect(type, msg) {
         var tok=this.next();
-        if (msg==undefined)
-          msg = type;
+        if (msg==undefined) {
+            msg = type;
+            for (let tk of this.lexer.tokdef) {
+                if (tk.name===type&&tk.example) {
+                    msg = tk.example;
+                }
+            }
+        }
         if (tok==undefined||tok.type!=type) {
             this.error(tok, "Expected "+msg);
         }
@@ -2816,8 +2878,13 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
     T_SHORT: 13, 
     T_BYTE: 14, 
     T_BOOL: 15, 
-    T_ITERKEYS: 16}
+    T_ITERKEYS: 16, 
+    T_UINT: 17, 
+    T_USHORT: 18, 
+    T_STATIC_ARRAY: 19}
     var StructTypes={"int": StructEnum.T_INT, 
+    "uint": StructEnum.T_UINT, 
+    "ushort": StructEnum.T_USHORT, 
     "float": StructEnum.T_FLOAT, 
     "double": StructEnum.T_DOUBLE, 
     "string": StructEnum.T_STRING, 
@@ -2842,8 +2909,8 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       return s;
     }
     function StructParser() {
-      var basic_types=new set$2(["int", "float", "double", "string", "short", "byte", "bool"]);
-      var reserved_tokens=new set$2(["int", "float", "double", "string", "static_string", "array", "iter", "abstract", "short", "byte", "bool", "iterkeys"]);
+      var basic_types=new set$2(["int", "float", "double", "string", "short", "byte", "bool", "uint", "ushort"]);
+      var reserved_tokens=new set$2(["int", "float", "double", "string", "static_string", "array", "iter", "abstract", "short", "byte", "bool", "iterkeys", "uint", "ushort", "static_array"]);
       function tk(name, re, func) {
         return new _export_tokdef_(name, re, func);
       }
@@ -2852,7 +2919,7 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
             t.type = t.value.toUpperCase();
         }
         return t;
-      }), tk("OPEN", /\{/), tk("EQUALS", /=/), tk("CLOSE", /}/), tk("COLON", /:/), tk("SOPEN", /\[/), tk("SCLOSE", /\]/), tk("JSCRIPT", /\|/, function (t) {
+      }, "identifier"), tk("OPEN", /\{/), tk("EQUALS", /=/), tk("CLOSE", /}/), tk("COLON", /:/), tk("SOPEN", /\[/), tk("SCLOSE", /\]/), tk("JSCRIPT", /\|/, function (t) {
         var js="";
         var lexer=t.lexer;
         while (lexer.lexpos<lexer.lexdata.length) {
@@ -2868,10 +2935,10 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         }
         t.value = js.trim();
         return t;
-      }), tk("LPARAM", /\(/), tk("RPARAM", /\)/), tk("COMMA", /,/), tk("NUM", /[0-9]+/), tk("SEMI", /;/), tk("NEWLINE", /\n/, function (t) {
+      }), tk("LPARAM", /\(/), tk("RPARAM", /\)/), tk("COMMA", /,/), tk("NUM", /[0-9]+/, undefined, "number"), tk("SEMI", /;/), tk("NEWLINE", /\n/, function (t) {
         t.lexer.lineno+=1;
-      }), tk("SPACE", / |\t/, function (t) {
-      })];
+      }, "newline"), tk("SPACE", / |\t/, function (t) {
+      }, "whitespace")];
       reserved_tokens.forEach(function (rt) {
         tokens.push(tk(rt.toUpperCase()));
       });
@@ -2924,6 +2991,27 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       data: {type: arraytype, 
        iname: itername}}
       }
+      function p_StaticArray(p) {
+        p.expect("STATIC_ARRAY");
+        p.expect("SOPEN");
+        var arraytype=p_Type(p);
+        var itername="";
+        p.expect("COMMA");
+        var size=p.expect("NUM");
+        if (size<0||Math.abs(size-Math.floor(size))>1e-06) {
+            console.log(Math.abs(size-Math.floor(size)));
+            p.error("Expected an integer");
+        }
+        size = Math.floor(size);
+        if (p.optional("COMMA")) {
+            itername = p_Type(p).data;
+        }
+        p.expect("SCLOSE");
+        return {type: StructEnum.T_STATIC_ARRAY, 
+      data: {type: arraytype, 
+       size: size, 
+       iname: itername}}
+      }
       function p_IterKeys(p) {
         p.expect("ITERKEYS");
         p.expect("LPARAM");
@@ -2969,6 +3057,10 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         else 
           if (tok.type=="ITERKEYS") {
             return p_IterKeys(p);
+        }
+        else 
+          if (tok.type==="STATIC_ARRAY") {
+            return p_StaticArray(p);
         }
         else 
           if (tok.type=="STATIC_STRING") {
@@ -3055,16 +3147,29 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
     StructTypes: StructTypes, 
     StructTypeMap: StructTypeMap, 
     struct_parse: _export_struct_parse_});
-    let _export_manager_;
-    "use strict";
-    let warninglvl=2;
-    var StructTypeMap$1=StructTypeMap;
-    var StructTypes$1=StructTypes;
-    var Class$4=Class;
-    var struct_parse=_export_struct_parse_;
-    var StructEnum$1=StructEnum;
+    let _export_StructFieldTypeMap_;
+    let warninglvl=1;
+    let debug=0;
+    let pack_int$1=_module_exports_.pack_int;
+    let pack_uint$1=_module_exports_.pack_uint;
+    let pack_ushort$1=_module_exports_.pack_ushort;
+    let pack_float=_module_exports_.pack_float;
+    let pack_string$1=_module_exports_.pack_string;
+    let pack_byte$1=_module_exports_.pack_byte;
+    let pack_double=_module_exports_.pack_double;
+    let pack_static_string$1=_module_exports_.pack_static_string;
+    let pack_short=_module_exports_.pack_short;
+    let unpack_int$1=_module_exports_.unpack_int;
+    let unpack_float=_module_exports_.unpack_float;
+    let unpack_uint$1=_module_exports_.unpack_uint;
+    let unpack_ushort$1=_module_exports_.unpack_ushort;
+    let unpack_string=_module_exports_.unpack_string;
+    let unpack_byte$1=_module_exports_.unpack_byte;
+    let unpack_double=_module_exports_.unpack_double;
+    let unpack_static_string=_module_exports_.unpack_static_string;
+    let unpack_short=_module_exports_.unpack_short;
     var _static_envcode_null="";
-    var debug_struct=0;
+    let packer_debug, packer_debug_start, packer_debug_end;
     var packdebug_tablevel=0;
     function gen_tabstr$1(tot) {
       var ret="";
@@ -3073,34 +3178,6 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       }
       return ret;
     }
-    let packer_debug, packer_debug_start, packer_debug_end;
-    if (debug_struct) {
-        packer_debug = function (msg) {
-          if (msg!==undefined) {
-              var t=gen_tabstr$1(packdebug_tablevel);
-              console.log(t+msg);
-          }
-          else {
-            console.log("Warning: undefined msg");
-          }
-        };
-        packer_debug_start = function (funcname) {
-          packer_debug("Start "+funcname);
-          packdebug_tablevel++;
-        };
-        packer_debug_end = function (funcname) {
-          packdebug_tablevel--;
-          packer_debug("Leave "+funcname);
-        };
-    }
-    else {
-      packer_debug = function () {
-      };
-      packer_debug_start = function () {
-      };
-      packer_debug_end = function () {
-      };
-    }
     const _export_setWarningMode_=(t) =>      {
       if (typeof t!=="number"||isNaN(t)) {
           throw new Error("Expected a single number (>= 0) argument to setWarningMode");
@@ -3108,8 +3185,8 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       warninglvl = t;
     }
     const _export_setDebugMode_=(t) =>      {
-      debug_struct = t;
-      if (debug_struct) {
+      debug = t;
+      if (debug) {
           packer_debug = function (msg) {
             if (msg!=undefined) {
                 var t=gen_tabstr$1(packdebug_tablevel);
@@ -3137,185 +3214,684 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         };
       }
     }
+    _export_setDebugMode_(debug);
+    const _export_StructFieldTypes_=[];
+    let StructFieldTypeMap=_export_StructFieldTypeMap_ = {}
+    let packNull=function (manager, data, field, type) {
+      StructFieldTypeMap[type.type].packNull(manager, data, field, type);
+    }
+    function unpack_field(manager, data, type, uctx) {
+      let name;
+      if (debug) {
+          name = _export_StructFieldTypeMap_[type.type].define().name;
+          packer_debug_start("R start "+name);
+      }
+      let ret=_export_StructFieldTypeMap_[type.type].unpack(manager, data, type, uctx);
+      if (debug) {
+          packer_debug_end("R end "+name);
+      }
+      return ret;
+    }
+    let fakeFields=new _export_cachering_(() =>      {
+      return {type: undefined, 
+     get: undefined, 
+     set: undefined}
+    }, 256);
+    function fmt_type(type) {
+      return _export_StructFieldTypeMap_[type.type].format(type);
+    }
+    function do_pack(manager, data, val, obj, field, type) {
+      let name;
+      if (debug) {
+          name = _export_StructFieldTypeMap_[type.type].define().name;
+          packer_debug_start("W start "+name);
+      }
+      let typeid=type;
+      if (typeof typeid!=="number") {
+          typeid = typeid.type;
+      }
+      let ret=_export_StructFieldTypeMap_[typeid].pack(manager, data, val, obj, field, type);
+      if (debug) {
+          packer_debug_end("W end "+name);
+      }
+      return ret;
+    }
+    let StructEnum$1=StructEnum;
     var _ws_env=[[undefined, undefined]];
-    var pack_callbacks=[function pack_int(data, val) {
-      packer_debug("int "+val);
-      _module_exports_.pack_int(data, val);
-    }, function pack_float(data, val) {
-      packer_debug("float "+val);
-      _module_exports_.pack_float(data, val);
-    }, function pack_double(data, val) {
-      packer_debug("double "+val);
-      _module_exports_.pack_double(data, val);
-    }, 0, 0, 0, 0, function pack_string(data, val) {
-      if (val==undefined)
-        val = "";
-      packer_debug("string: "+val);
-      packer_debug("int "+val.length);
-      _module_exports_.pack_string(data, val);
-    }, function pack_static_string(data, val, obj, thestruct, field, type) {
-      if (val==undefined)
-        val = "";
-      packer_debug("static_string: '"+val+"' length="+type.data.maxlength);
-      _module_exports_.pack_static_string(data, val, type.data.maxlength);
-    }, function pack_struct(data, val, obj, thestruct, field, type) {
-      packer_debug_start("struct "+type.data);
-      thestruct.write_struct(data, val, thestruct.get_struct(type.data));
-      packer_debug_end("struct");
-    }, function pack_tstruct(data, val, obj, thestruct, field, type) {
-      var cls=thestruct.get_struct_cls(type.data);
-      var stt=thestruct.get_struct(type.data);
-      if (val.constructor.structName!=type.data&&(__instance_of(val, cls))) {
-          stt = thestruct.get_struct(val.constructor.structName);
+    let StructFieldType=class StructFieldType  {
+      static  pack(manager, data, val, obj, field, type) {
+
       }
-      else 
-        if (val.constructor.structName==type.data) {
-          stt = thestruct.get_struct(type.data);
+      static  unpack(manager, data, type, uctx) {
+
       }
-      else {
-        console.trace();
-        throw new Error("Bad struct "+val.constructor.structName+" passed to write_struct");
+      static  packNull(manager, data, field, type) {
+        this.pack(manager, data, 0, 0, field, type);
       }
-      if (stt.id==0) {
+      static  format(type) {
+        return this.define().name;
       }
-      packer_debug_start("tstruct '"+stt.name+"'");
-      packer_debug("int "+stt.id);
-      _module_exports_.pack_int(data, stt.id);
-      thestruct.write_struct(data, val, stt);
-      packer_debug_end("tstruct");
-    }, function pack_array(data, val, obj, thestruct, field, type) {
-      packer_debug_start("array");
-      if (val==undefined) {
-          console.trace();
-          console.log("Undefined array fed to struct struct packer!");
-          console.log("Field: ", field);
-          console.log("Type: ", type);
-          console.log("");
-          packer_debug("int 0");
-          _module_exports_.pack_int(data, 0);
-          return ;
+      static  useHelperJS(field) {
+        return true;
       }
-      packer_debug("int "+val.length);
-      _module_exports_.pack_int(data, val.length);
-      var d=type.data;
-      var itername=d.iname;
-      var type2=d.type;
-      var env=_ws_env;
-      for (var i=0; i<val.length; i++) {
-          var val2=val[i];
-          if (itername!=""&&itername!=undefined&&field.get) {
-              env[0][0] = itername;
-              env[0][1] = val2;
-              val2 = thestruct._env_call(field.get, obj, env);
-          }
-          var f2={type: type2, 
-       get: undefined, 
-       set: undefined};
-          do_pack(data, val2, obj, thestruct, f2, type2);
+      static  define() {
+        return {type: -1, 
+      name: "(error)"}
       }
-      packer_debug_end("array");
-    }, function pack_iter(data, val, obj, thestruct, field, type) {
-      packer_debug_start("iter");
-      function forEach(cb, thisvar) {
-        if (val&&val[Symbol.iterator]) {
-            for (let item of val) {
-                cb.call(thisvar, item);
-            }
+      static  register(cls) {
+        if (_export_StructFieldTypes_.indexOf(cls)>=0) {
+            throw new Error("class already registered");
+        }
+        if (cls.define===StructFieldType.define) {
+            throw new Error("you forgot to make a define() static method");
+        }
+        if (cls.define().type===undefined) {
+            throw new Error("cls.define().type was undefined!");
+        }
+        if (cls.define().type in _export_StructFieldTypeMap_) {
+            throw new Error("type "+cls.define().type+" is used by another StructFieldType subclass");
+        }
+        _export_StructFieldTypes_.push(cls);
+        _export_StructFieldTypeMap_[cls.define().type] = cls;
+      }
+    }
+    _ESClass.register(StructFieldType);
+    class StructIntField extends StructFieldType {
+      static  pack(manager, data, val, obj, field, type) {
+        pack_int$1(data, val);
+      }
+      static  unpack(manager, data, type, uctx) {
+        return unpack_int$1(data, uctx);
+      }
+      static  define() {
+        return {type: StructEnum$1.T_INT, 
+      name: "int"}
+      }
+    }
+    _ESClass.register(StructIntField);
+    _es6_module.add_class(StructIntField);
+    StructFieldType.register(StructIntField);
+    class StructFloatField extends StructFieldType {
+      static  pack(manager, data, val, obj, field, type) {
+        pack_float(data, val);
+      }
+      static  unpack(manager, data, type, uctx) {
+        return unpack_float(data, uctx);
+      }
+      static  define() {
+        return {type: StructEnum$1.T_FLOAT, 
+      name: "float"}
+      }
+    }
+    _ESClass.register(StructFloatField);
+    _es6_module.add_class(StructFloatField);
+    StructFieldType.register(StructFloatField);
+    class StructDoubleField extends StructFieldType {
+      static  pack(manager, data, val, obj, field, type) {
+        pack_double(data, val);
+      }
+      static  unpack(manager, data, type, uctx) {
+        return unpack_double(data, uctx);
+      }
+      static  define() {
+        return {type: StructEnum$1.T_DOUBLE, 
+      name: "double"}
+      }
+    }
+    _ESClass.register(StructDoubleField);
+    _es6_module.add_class(StructDoubleField);
+    StructFieldType.register(StructDoubleField);
+    class StructStringField extends StructFieldType {
+      static  pack(manager, data, val, obj, field, type) {
+        val = !val ? "" : val;
+        pack_string$1(data, val);
+      }
+      static  packNull(manager, data, field, type) {
+        this.pack(manager, data, "", 0, field, type);
+      }
+      static  unpack(manager, data, type, uctx) {
+        return unpack_string(data, uctx);
+      }
+      static  define() {
+        return {type: StructEnum$1.T_STRING, 
+      name: "string"}
+      }
+    }
+    _ESClass.register(StructStringField);
+    _es6_module.add_class(StructStringField);
+    StructFieldType.register(StructStringField);
+    class StructStaticStringField extends StructFieldType {
+      static  pack(manager, data, val, obj, field, type) {
+        val = !val ? "" : val;
+        pack_static_string$1(data, val, type.data.maxlength);
+      }
+      static  format(type) {
+        return `static_string[${type.data.maxlength}]`;
+      }
+      static  packNull(manager, data, field, type) {
+        this.pack(manager, data, "", 0, field, type);
+      }
+      static  unpack(manager, data, type, uctx) {
+        return unpack_static_string(data, uctx, type.data.maxlength);
+      }
+      static  define() {
+        return {type: StructEnum$1.T_STATIC_STRING, 
+      name: "static_string"}
+      }
+    }
+    _ESClass.register(StructStaticStringField);
+    _es6_module.add_class(StructStaticStringField);
+    StructFieldType.register(StructStaticStringField);
+    class StructStructField extends StructFieldType {
+      static  pack(manager, data, val, obj, field, type) {
+        manager.write_struct(data, val, manager.get_struct(type.data));
+      }
+      static  format(type) {
+        return type.data;
+      }
+      static  packNull(manager, data, field, type) {
+        let stt=manager.get_struct(type.data);
+        for (let field2 of stt.fields) {
+            let type2=field2.type;
+            packNull(manager, data, field2, type2);
+        }
+      }
+      static  unpack(manager, data, type, uctx) {
+        var cls2=manager.get_struct_cls(type.data);
+        return manager.read_object(data, cls2, uctx);
+      }
+      static  define() {
+        return {type: StructEnum$1.T_STRUCT, 
+      name: "struct"}
+      }
+    }
+    _ESClass.register(StructStructField);
+    _es6_module.add_class(StructStructField);
+    StructFieldType.register(StructStructField);
+    class StructTStructField extends StructFieldType {
+      static  pack(manager, data, val, obj, field, type) {
+        var cls=manager.get_struct_cls(type.data);
+        var stt=manager.get_struct(type.data);
+        if (val.constructor.structName!=type.data&&(__instance_of(val, cls))) {
+            stt = manager.get_struct(val.constructor.structName);
         }
         else 
-          if (val&&val.forEach) {
-            val.forEach(function (item) {
-              cb.call(thisvar, item);
-            });
+          if (val.constructor.structName==type.data) {
+            stt = manager.get_struct(type.data);
         }
         else {
           console.trace();
-          console.log("Undefined iterable list fed to struct struct packer!", val);
-          console.log("Field: ", field);
-          console.log("Type: ", type);
-          console.log("");
+          throw new Error("Bad struct "+val.constructor.structName+" passed to write_struct");
         }
+        packer_debug("int "+stt.id);
+        pack_int$1(data, stt.id);
+        manager.write_struct(data, val, stt);
       }
-      let len=0.0;
-      forEach(() =>        {
-        len++;
-      });
-      packer_debug("int "+len);
-      _module_exports_.pack_int(data, len);
-      var d=type.data, itername=d.iname, type2=d.type;
-      var env=_ws_env;
-      var i=0;
-      forEach(function (val2) {
-        if (i>=len) {
-            if (warninglvl>0)
-              console.trace("Warning: iterator returned different length of list!", val, i);
+      static  packNull(manager, data, field, type) {
+        let stt=manager.get_struct(type.data);
+        pack_int$1(data, stt.id);
+        packNull(manager, data, field, {type: STructEnum.T_STRUCT, 
+      data: type.data});
+      }
+      static  format(type) {
+        return "abstract("+type.data+")";
+      }
+      static  unpack(manager, data, type, uctx) {
+        var id=_module_exports_.unpack_int(data, uctx);
+        packer_debug("-int "+id);
+        if (!(id in manager.struct_ids)) {
+            packer_debug("struct id: "+id);
+            console.trace();
+            console.log(id);
+            console.log(manager.struct_ids);
+            packer_debug_end("tstruct");
+            throw new Error("Unknown struct type "+id+".");
+        }
+        var cls2=manager.get_struct_id(id);
+        packer_debug("struct name: "+cls2.name);
+        cls2 = manager.struct_cls[cls2.name];
+        let ret=manager.read_object(data, cls2, uctx);
+        return ret;
+      }
+      static  define() {
+        return {type: StructEnum$1.T_TSTRUCT, 
+      name: "tstruct"}
+      }
+    }
+    _ESClass.register(StructTStructField);
+    _es6_module.add_class(StructTStructField);
+    StructFieldType.register(StructTStructField);
+    class StructArrayField extends StructFieldType {
+      static  pack(manager, data, val, obj, field, type) {
+        if (val==undefined) {
+            console.trace();
+            console.log("Undefined array fed to struct struct packer!");
+            console.log("Field: ", field);
+            console.log("Type: ", type);
+            console.log("");
+            packer_debug("int 0");
+            _module_exports_.pack_int(data, 0);
             return ;
         }
-        if (itername!=""&&itername!=undefined&&field.get) {
-            env[0][0] = itername;
-            env[0][1] = val2;
-            val2 = thestruct._env_call(field.get, obj, env);
+        packer_debug("int "+val.length);
+        _module_exports_.pack_int(data, val.length);
+        var d=type.data;
+        var itername=d.iname;
+        var type2=d.type;
+        var env=_ws_env;
+        for (var i=0; i<val.length; i++) {
+            var val2=val[i];
+            if (itername!=""&&itername!=undefined&&field.get) {
+                env[0][0] = itername;
+                env[0][1] = val2;
+                val2 = manager._env_call(field.get, obj, env);
+            }
+            let fakeField=fakeFields.next();
+            fakeField.type = type2;
+            do_pack(manager, data, val2, obj, fakeField, type2);
         }
-        var f2={type: type2, 
-      get: undefined, 
-      set: undefined}
-        do_pack(data, val2, obj, thestruct, f2, type2);
-        i++;
-      }, this);
-      packer_debug_end("iter");
-    }, function pack_short(data, val) {
-      packer_debug("short "+val);
-      _module_exports_.pack_short(data, Math.floor(val));
-    }, function pack_byte(data, val) {
-      packer_debug("byte "+val);
-      _module_exports_.pack_byte(data, Math.floor(val));
-    }, function pack_bool(data, val) {
-      packer_debug("bool "+val);
-      _module_exports_.pack_byte(data, !!val);
-    }, function pack_iterkeys(data, val, obj, thestruct, field, type) {
-      packer_debug_start("iterkeys");
-      if ((typeof val!=="object"&&typeof val!=="function")||val===null) {
-          console.warn("Bad object fed to iterkeys in struct packer!", val);
-          console.log("Field: ", field);
-          console.log("Type: ", type);
-          console.log("");
-          _module_exports_.pack_int(data, 0);
-          packer_debug_end("iterkeys");
-          return ;
       }
-      let len=0.0;
-      for (let k in val) {
-          len++;
+      static  packNull(manager, data, field, type) {
+        pack_int$1(data, 0);
       }
-      packer_debug("int "+len);
-      _module_exports_.pack_int(data, len);
-      var d=type.data, itername=d.iname, type2=d.type;
-      var env=_ws_env;
-      var i=0;
-      for (let val2 in val) {
-          if (i>=len) {
-              if (warninglvl>0)
-                console.warn("Warning: object keys magically replaced on us", val, i);
-              return ;
+      static  format(type) {
+        if (type.data.iname!=""&&type.data.iname!=undefined) {
+            return "array("+type.data.iname+", "+fmt_type(type.data.type)+")";
+        }
+        else {
+          return "array("+fmt_type(type.data.type)+")";
+        }
+      }
+      static  useHelperJS(field) {
+        return !field.type.data.iname;
+      }
+      static  unpack(manager, data, type, uctx) {
+        var len=_module_exports_.unpack_int(data, uctx);
+        packer_debug("-int "+len);
+        var arr=new Array(len);
+        for (var i=0; i<len; i++) {
+            arr[i] = unpack_field(manager, data, type.data.type, uctx);
+        }
+        return arr;
+      }
+      static  define() {
+        return {type: StructEnum$1.T_ARRAY, 
+      name: "array"}
+      }
+    }
+    _ESClass.register(StructArrayField);
+    _es6_module.add_class(StructArrayField);
+    StructFieldType.register(StructArrayField);
+    class StructIterField extends StructFieldType {
+      static  pack(manager, data, val, obj, field, type) {
+        function forEach(cb, thisvar) {
+          if (val&&val[Symbol.iterator]) {
+              for (let item of val) {
+                  cb.call(thisvar, item);
+              }
           }
-          if (itername&&itername.trim().length>0&&field.get) {
-              env[0][0] = itername;
-              env[0][1] = val2;
-              val2 = thestruct._env_call(field.get, obj, env);
+          else 
+            if (val&&val.forEach) {
+              val.forEach(function (item) {
+                cb.call(thisvar, item);
+              });
           }
           else {
-            val2 = val[val2];
+            console.trace();
+            console.log("Undefined iterable list fed to struct struct packer!", val);
+            console.log("Field: ", field);
+            console.log("Type: ", type);
+            console.log("");
           }
-          var f2={type: type2, 
-       get: undefined, 
-       set: undefined};
-          do_pack(data, val2, obj, thestruct, f2, type2);
+        }
+        let len=0.0;
+        forEach(() =>          {
+          len++;
+        });
+        packer_debug("int "+len);
+        _module_exports_.pack_int(data, len);
+        var d=type.data, itername=d.iname, type2=d.type;
+        var env=_ws_env;
+        var i=0;
+        forEach(function (val2) {
+          if (i>=len) {
+              if (warninglvl>0)
+                console.trace("Warning: iterator returned different length of list!", val, i);
+              return ;
+          }
+          if (itername!=""&&itername!=undefined&&field.get) {
+              env[0][0] = itername;
+              env[0][1] = val2;
+              val2 = manager._env_call(field.get, obj, env);
+          }
+          let fakeField=fakeFields.next();
+          fakeField.type = type2;
+          do_pack(manager, data, val2, obj, fakeField, type2);
           i++;
+        }, this);
       }
-      packer_debug_end("iterkeys");
-    }];
-    function do_pack(data, val, obj, thestruct, field, type) {
-      pack_callbacks[field.type.type](data, val, obj, thestruct, field, type);
+      static  packNull(manager, data, field, type) {
+        pack_int$1(data, 0);
+      }
+      static  useHelperJS(field) {
+        return !field.type.data.iname;
+      }
+      static  format(type) {
+        if (type.data.iname!=""&&type.data.iname!=undefined) {
+            return "iter("+type.data.iname+", "+fmt_type(type.data.type)+")";
+        }
+        else {
+          return "iter("+fmt_type(type.data.type)+")";
+        }
+      }
+      static  unpack(manager, data, type, uctx) {
+        var len=_module_exports_.unpack_int(data, uctx);
+        packer_debug("-int "+len);
+        var arr=new Array(len);
+        for (var i=0; i<len; i++) {
+            arr[i] = unpack_field(manager, data, type.data.type, uctx);
+        }
+        return arr;
+      }
+      static  define() {
+        return {type: StructEnum$1.T_ITER, 
+      name: "iter"}
+      }
+    }
+    _ESClass.register(StructIterField);
+    _es6_module.add_class(StructIterField);
+    StructFieldType.register(StructIterField);
+    class StructShortField extends StructFieldType {
+      static  pack(manager, data, val, obj, field, type) {
+        pack_short(data, val);
+      }
+      static  unpack(manager, data, type, uctx) {
+        return unpack_short(data, uctx);
+      }
+      static  define() {
+        return {type: StructEnum$1.T_SHORT, 
+      name: "short"}
+      }
+    }
+    _ESClass.register(StructShortField);
+    _es6_module.add_class(StructShortField);
+    StructFieldType.register(StructShortField);
+    class StructByteField extends StructFieldType {
+      static  pack(manager, data, val, obj, field, type) {
+        pack_byte$1(data, val);
+      }
+      static  unpack(manager, data, type, uctx) {
+        return unpack_byte$1(data, uctx);
+      }
+      static  define() {
+        return {type: StructEnum$1.T_BYTE, 
+      name: "byte"}
+      }
+    }
+    _ESClass.register(StructByteField);
+    _es6_module.add_class(StructByteField);
+    StructFieldType.register(StructByteField);
+    class StructBoolField extends StructFieldType {
+      static  pack(manager, data, val, obj, field, type) {
+        pack_byte$1(data, !!val);
+      }
+      static  unpack(manager, data, type, uctx) {
+        return !!unpack_byte$1(data, uctx);
+      }
+      static  define() {
+        return {type: StructEnum$1.T_BOOL, 
+      name: "bool"}
+      }
+    }
+    _ESClass.register(StructBoolField);
+    _es6_module.add_class(StructBoolField);
+    StructFieldType.register(StructBoolField);
+    class StructIterKeysField extends StructFieldType {
+      static  pack(manager, data, val, obj, field, type) {
+        if ((typeof val!=="object"&&typeof val!=="function")||val===null) {
+            console.warn("Bad object fed to iterkeys in struct packer!", val);
+            console.log("Field: ", field);
+            console.log("Type: ", type);
+            console.log("");
+            _module_exports_.pack_int(data, 0);
+            packer_debug_end("iterkeys");
+            return ;
+        }
+        let len=0.0;
+        for (let k in val) {
+            len++;
+        }
+        packer_debug("int "+len);
+        _module_exports_.pack_int(data, len);
+        var d=type.data, itername=d.iname, type2=d.type;
+        var env=_ws_env;
+        var i=0;
+        for (let val2 in val) {
+            if (i>=len) {
+                if (warninglvl>0)
+                  console.warn("Warning: object keys magically replaced on us", val, i);
+                return ;
+            }
+            if (itername&&itername.trim().length>0&&field.get) {
+                env[0][0] = itername;
+                env[0][1] = val2;
+                val2 = manager._env_call(field.get, obj, env);
+            }
+            else {
+              val2 = val[val2];
+            }
+            var f2={type: type2, 
+        get: undefined, 
+        set: undefined};
+            do_pack(manager, data, val2, obj, f2, type2);
+            i++;
+        }
+      }
+      static  packNull(manager, data, field, type) {
+        pack_int$1(data, 0);
+      }
+      static  useHelperJS(field) {
+        return !field.type.data.iname;
+      }
+      static  format(type) {
+        if (type.data.iname!=""&&type.data.iname!=undefined) {
+            return "iterkeys("+type.data.iname+", "+fmt_type(type.data.type)+")";
+        }
+        else {
+          return "iterkeys("+fmt_type(type.data.type)+")";
+        }
+      }
+      static  unpack(manager, data, type, uctx) {
+        var len=unpack_int$1(data, uctx);
+        packer_debug("-int "+len);
+        var arr=new Array(len);
+        for (var i=0; i<len; i++) {
+            arr[i] = unpack_field(manager, data, type.data.type, uctx);
+        }
+        return arr;
+      }
+      static  define() {
+        return {type: StructEnum$1.T_ITERKEYS, 
+      name: "iterkeys"}
+      }
+    }
+    _ESClass.register(StructIterKeysField);
+    _es6_module.add_class(StructIterKeysField);
+    StructFieldType.register(StructIterKeysField);
+    class StructUintField extends StructFieldType {
+      static  pack(manager, data, val, obj, field, type) {
+        pack_uint$1(data, val);
+      }
+      static  unpack(manager, data, type, uctx) {
+        return unpack_uint$1(data, uctx);
+      }
+      static  define() {
+        return {type: StructEnum$1.T_UINT, 
+      name: "uint"}
+      }
+    }
+    _ESClass.register(StructUintField);
+    _es6_module.add_class(StructUintField);
+    StructFieldType.register(StructUintField);
+    class StructUshortField extends StructFieldType {
+      static  pack(manager, data, val, obj, field, type) {
+        pack_ushort$1(data, val);
+      }
+      static  unpack(manager, data, type, uctx) {
+        return unpack_ushort$1(data, uctx);
+      }
+      static  define() {
+        return {type: StructEnum$1.T_USHORT, 
+      name: "ushort"}
+      }
+    }
+    _ESClass.register(StructUshortField);
+    _es6_module.add_class(StructUshortField);
+    StructFieldType.register(StructUshortField);
+    class StructStaticArrayField extends StructFieldType {
+      static  pack(manager, data, val, obj, field, type) {
+        if (type.data.size===undefined) {
+            throw new Error("type.data.size was undefined");
+        }
+        let itername=type.data.iname;
+        if (val===undefined||!val.length) {
+            this.packNull(manager, data, field, type);
+            return ;
+        }
+        for (let i=0; i<type.data.size; i++) {
+            let i2=Math.min(i, Math.min(val.length-1, type.data.size));
+            let val2=val[i2];
+            if (itername!=""&&itername!=undefined&&field.get) {
+                let env=_ws_env;
+                env[0][0] = itername;
+                env[0][1] = val2;
+                val2 = manager._env_call(field.get, obj, env);
+            }
+            do_pack(manager, data, val2, val, field, type.data.type);
+        }
+      }
+      static  useHelperJS(field) {
+        return !field.type.data.iname;
+      }
+      static  packNull(manager, data, field, type) {
+        let size=type.data.size;
+        for (let i=0; i<size; i++) {
+            packNull(manager, data, field, type.data.type);
+        }
+      }
+      static  format(type) {
+        let type2=_export_StructFieldTypeMap_[type.data.type.type].format(type.data.type);
+        let ret=`static_array[${type2}, ${type.data.size}`;
+        if (type.data.iname) {
+            ret+=`, ${type.data.iname}`;
+        }
+        ret+=`]`;
+        return ret;
+      }
+      static  unpack(manager, data, type, uctx) {
+        packer_debug("-size: "+type.data.size);
+        let ret=[];
+        for (let i=0; i<type.data.size; i++) {
+            ret.push(unpack_field(manager, data, type.data.type, uctx));
+        }
+        return ret;
+      }
+      static  define() {
+        return {type: StructEnum$1.T_STATIC_ARRAY, 
+      name: "static_array"}
+      }
+    }
+    _ESClass.register(StructStaticArrayField);
+    _es6_module.add_class(StructStaticArrayField);
+    StructFieldType.register(StructStaticArrayField);
+    let _export_manager_;
+    "use strict";
+    let StructFieldTypeMap$1=_export_StructFieldTypeMap_;
+    let warninglvl$1=2;
+    var StructTypeMap$1=StructTypeMap;
+    var StructTypes$1=StructTypes;
+    var Class$4=Class;
+    var struct_parse=_export_struct_parse_;
+    var StructEnum$2=StructEnum;
+    var _static_envcode_null$1="";
+    var debug_struct=0;
+    var packdebug_tablevel$1=0;
+    function gen_tabstr$2(tot) {
+      var ret="";
+      for (var i=0; i<tot; i++) {
+          ret+=" ";
+      }
+      return ret;
+    }
+    let packer_debug$1, packer_debug_start$1, packer_debug_end$1;
+    if (debug_struct) {
+        packer_debug$1 = function (msg) {
+          if (msg!==undefined) {
+              var t=gen_tabstr$2(packdebug_tablevel$1);
+              console.log(t+msg);
+          }
+          else {
+            console.log("Warning: undefined msg");
+          }
+        };
+        packer_debug_start$1 = function (funcname) {
+          packer_debug$1("Start "+funcname);
+          packdebug_tablevel$1++;
+        };
+        packer_debug_end$1 = function (funcname) {
+          packdebug_tablevel$1--;
+          packer_debug$1("Leave "+funcname);
+        };
+    }
+    else {
+      packer_debug$1 = function () {
+      };
+      packer_debug_start$1 = function () {
+      };
+      packer_debug_end$1 = function () {
+      };
+    }
+    const _export_setWarningMode_$1=(t) =>      {
+      _export_setWarningMode_(t);
+      if (typeof t!=="number"||isNaN(t)) {
+          throw new Error("Expected a single number (>= 0) argument to setWarningMode");
+      }
+      warninglvl$1 = t;
+    }
+    const _export_setDebugMode_$1=(t) =>      {
+      debug_struct = t;
+      _export_setDebugMode_(t);
+      if (debug_struct) {
+          packer_debug$1 = function (msg) {
+            if (msg!=undefined) {
+                var t=gen_tabstr$2(packdebug_tablevel$1);
+                console.log(t+msg);
+            }
+            else {
+              console.log("Warning: undefined msg");
+            }
+          };
+          packer_debug_start$1 = function (funcname) {
+            packer_debug$1("Start "+funcname);
+            packdebug_tablevel$1++;
+          };
+          packer_debug_end$1 = function (funcname) {
+            packdebug_tablevel$1--;
+            packer_debug$1("Leave "+funcname);
+          };
+      }
+      else {
+        packer_debug$1 = function () {
+        };
+        packer_debug_start$1 = function () {
+        };
+        packer_debug_end$1 = function () {
+        };
+      }
+    }
+    var _ws_env$1=[[undefined, undefined]];
+    function do_pack$1(data, val, obj, thestruct, field, type) {
+      StructFieldTypeMap$1[field.type.type].pack(manager, data, val, obj, field, type);
     }
     function define_empty_class(name) {
       var cls=function () {
@@ -3386,7 +3962,7 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
             }
             else 
               if (cls.structName==undefined&&cls.name!="Object") {
-                if (warninglvl>0)
+                if (warninglvl$1>0)
                   console.log("Warning, bad class in registered class list", cls.name, cls);
                 continue;
             }
@@ -3397,7 +3973,7 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
           var stt=struct_parse.parse(undefined, false);
           if (!(stt.name in clsmap)) {
               if (!(stt.name in this.null_natives))
-                if (warninglvl>0)
+                if (warninglvl$1>0)
                 console.log("WARNING: struct "+stt.name+" is missing from class list.");
               var dummy=define_empty_class(stt.name);
               dummy.STRUCT = STRUCT.fmt_struct(stt);
@@ -3499,7 +4075,7 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         return code;
       }
       static  Super(obj, reader) {
-        if (warninglvl>0)
+        if (warninglvl$1>0)
           console.warn("deprecated");
         reader(obj);
         function reader2(obj) {
@@ -3516,7 +4092,7 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         }
       }
       static  chain_fromSTRUCT(cls, reader) {
-        if (warninglvl>0)
+        if (warninglvl$1>0)
           console.warn("Using deprecated (and evil) chain_fromSTRUCT method, eek!");
         var proto=cls.prototype;
         var parent=cls.prototype.prototype.constructor;
@@ -3529,7 +4105,7 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
               obj2[k] = obj[k];
             }
             catch (error) {
-                if (warninglvl>0)
+                if (warninglvl$1>0)
                   console.warn("  failed to set property", k);
             }
         }
@@ -3552,7 +4128,8 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         }
         var tab="  ";
         function fmt_type(type) {
-          if (type.type==StructEnum$1.T_ARRAY||type.type==StructEnum$1.T_ITER||type.type===StructEnum$1.T_ITERKEYS) {
+          return StructFieldTypeMap$1[type.type].format(type);
+          if (type.type==StructEnum$2.T_ARRAY||type.type==StructEnum$2.T_ITER||type.type===StructEnum$2.T_ITERKEYS) {
               if (type.data.iname!=""&&type.data.iname!=undefined) {
                   return "array("+type.data.iname+", "+fmt_type(type.data.type)+")";
               }
@@ -3561,15 +4138,15 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
               }
           }
           else 
-            if (type.type==StructEnum$1.T_STATIC_STRING) {
+            if (type.type==StructEnum$2.T_STATIC_STRING) {
               return "static_string["+type.data.maxlength+"]";
           }
           else 
-            if (type.type==StructEnum$1.T_STRUCT) {
+            if (type.type==StructEnum$2.T_STRUCT) {
               return type.data;
           }
           else 
-            if (type.type==StructEnum$1.T_TSTRUCT) {
+            if (type.type==StructEnum$2.T_TSTRUCT) {
               return "abstract("+type.data+")";
           }
           else {
@@ -3590,7 +4167,7 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         return s;
       }
        _env_call(code, obj, env) {
-        var envcode=_static_envcode_null;
+        var envcode=_static_envcode_null$1;
         if (env!=undefined) {
             envcode = "";
             for (var i=0; i<env.length; i++) {
@@ -3598,7 +4175,7 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
             }
         }
         var fullcode="";
-        if (envcode!==_static_envcode_null)
+        if (envcode!==_static_envcode_null$1)
           fullcode = envcode+code;
         else 
           fullcode = code;
@@ -3632,10 +4209,9 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       }
        write_struct(data, obj, stt) {
         function use_helper_js(field) {
-          if (field.type.type==StructEnum$1.T_ARRAY||field.type.type==StructEnum$1.T_ITER||field.type.type==StructEnum$1.T_ITERKEYS) {
-              return field.type.data.iname==undefined||field.type.data.iname=="";
-          }
-          return true;
+          let type=field.type.type;
+          let cls=StructFieldTypeMap$1[type];
+          return cls.useHelperJS(field);
         }
         var fields=stt.fields;
         var thestruct=this;
@@ -3652,11 +4228,14 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
                 else {
                   val = obj[f.name];
                 }
-                do_pack(data, val, obj, thestruct, f, t1);
+                if (_nGlobal.DEBUG&&_nGlobal.DEBUG.tinyeval) {
+                    console.log("\n\n\n", f.get, "Helper JS Ret", val, "\n\n\n");
+                }
+                do_pack$1(data, val, obj, thestruct, f, t1);
             }
             else {
               var val=obj[f.name];
-              do_pack(data, val, obj, thestruct, f, t1);
+              do_pack$1(data, val, obj, thestruct, f, t1);
             }
         }
       }
@@ -3668,6 +4247,12 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         }
         this.write_struct(data, obj, stt);
         return data;
+      }
+       readObject(data, cls_or_struct_id, uctx) {
+        return this.read_object(data, cls_or_struct_id, uctx);
+      }
+       writeObject() {
+        return this.write_object(data, obj);
       }
        read_object(data, cls_or_struct_id, uctx) {
         var cls, stt;
@@ -3686,102 +4271,12 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         stt = this.structs[cls.structName];
         if (uctx==undefined) {
             uctx = new _module_exports_.unpack_context();
-            packer_debug("\n\n=Begin reading "+cls.structName+"=");
+            packer_debug$1("\n\n=Begin reading "+cls.structName+"=");
         }
         var thestruct=this;
-        var unpack_funcs=[function t_int(type) {
-          var ret=_module_exports_.unpack_int(data, uctx);
-          packer_debug("-int "+(debug_struct>1 ? ret : ""));
-          return ret;
-        }, function t_float(type) {
-          var ret=_module_exports_.unpack_float(data, uctx);
-          packer_debug("-float "+(debug_struct>1 ? ret : ""));
-          return ret;
-        }, function t_double(type) {
-          var ret=_module_exports_.unpack_double(data, uctx);
-          packer_debug("-double "+(debug_struct>1 ? ret : ""));
-          return ret;
-        }, 0, 0, 0, 0, function t_string(type) {
-          packer_debug_start("string");
-          var s=_module_exports_.unpack_string(data, uctx);
-          packer_debug("data: '"+s+"'");
-          packer_debug_end("string");
-          return s;
-        }, function t_static_string(type) {
-          packer_debug_start("static_string");
-          var s=_module_exports_.unpack_static_string(data, uctx, type.data.maxlength);
-          packer_debug("data: '"+s+"'");
-          packer_debug_end("static_string");
-          return s;
-        }, function t_struct(type) {
-          packer_debug_start("struct "+type.data);
-          var cls2=thestruct.get_struct_cls(type.data);
-          var ret=thestruct.read_object(data, cls2, uctx);
-          packer_debug_end("struct");
-          return ret;
-        }, function t_tstruct(type) {
-          packer_debug_start("tstruct");
-          var id=_module_exports_.unpack_int(data, uctx);
-          packer_debug("-int "+id);
-          if (!(id in thestruct.struct_ids)) {
-              packer_debug("struct id: "+id);
-              console.trace();
-              console.log(id);
-              console.log(thestruct.struct_ids);
-              packer_debug_end("tstruct");
-              throw new Error("Unknown struct type "+id+".");
-          }
-          var cls2=thestruct.get_struct_id(id);
-          packer_debug("struct name: "+cls2.name);
-          cls2 = thestruct.struct_cls[cls2.name];
-          var ret=thestruct.read_object(data, cls2, uctx);
-          packer_debug_end("tstruct");
-          return ret;
-        }, function t_array(type) {
-          packer_debug_start("array");
-          var len=_module_exports_.unpack_int(data, uctx);
-          packer_debug("-int "+len);
-          var arr=new Array(len);
-          for (var i=0; i<len; i++) {
-              arr[i] = unpack_field(type.data.type);
-          }
-          packer_debug_end("array");
-          return arr;
-        }, function t_iter(type) {
-          packer_debug_start("iter");
-          var len=_module_exports_.unpack_int(data, uctx);
-          packer_debug("-int "+len);
-          var arr=new Array(len);
-          for (var i=0; i<len; i++) {
-              arr[i] = unpack_field(type.data.type);
-          }
-          packer_debug_end("iter");
-          return arr;
-        }, function t_short(type) {
-          var ret=_module_exports_.unpack_short(data, uctx);
-          packer_debug("-short "+ret);
-          return ret;
-        }, function t_byte(type) {
-          var ret=_module_exports_.unpack_byte(data, uctx);
-          packer_debug("-byte "+ret);
-          return ret;
-        }, function t_bool(type) {
-          var ret=_module_exports_.unpack_byte(data, uctx);
-          packer_debug("-bool "+ret);
-          return !!ret;
-        }, function t_iterkeys(type) {
-          packer_debug_start("iterkeys");
-          var len=_module_exports_.unpack_int(data, uctx);
-          packer_debug("-int "+len);
-          var arr=new Array(len);
-          for (var i=0; i<len; i++) {
-              arr[i] = unpack_field(type.data.type);
-          }
-          packer_debug_end("iterkeys");
-          return arr;
-        }];
+        let this2=this;
         function unpack_field(type) {
-          return unpack_funcs[type.type](type);
+          return StructFieldTypeMap$1[type.type].unpack(this2, data, type, uctx);
         }
         let was_run=false;
         function load(obj) {
@@ -3810,7 +4305,7 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         }
         else 
           if (cls.fromSTRUCT!==undefined) {
-            if (warninglvl>1)
+            if (warninglvl$1>1)
               console.warn("Warning: class "+cls.name+" is using deprecated fromSTRUCT interface; use newSTRUCT/loadSTRUCT instead");
             return cls.fromSTRUCT(load);
         }
@@ -3862,8 +4357,8 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
     get manager() {
         return _export_manager_;
       }, 
-    setWarningMode: _export_setWarningMode_, 
-    setDebugMode: _export_setDebugMode_, 
+    setWarningMode: _export_setWarningMode_$1, 
+    setDebugMode: _export_setDebugMode_$1, 
     STRUCT: STRUCT, 
     write_scripts: write_scripts});
     "use strict";
@@ -4074,6 +4569,7 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
     }
     _nGlobal._structEval = eval;
     const _module_exports_$1={}
+    _module_exports_$1.unpack_context = _module_exports_.unpack_context;
     Object.defineProperty(_module_exports_$1, "STRUCT_ENDIAN", {get: function () {
         return _module_exports_.STRUCT_ENDIAN;
       }, 
@@ -4098,8 +4594,17 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       }
       return _module_exports_$1.STRUCT.inherit(...arguments);
     }
-    _module_exports_$1.setDebugMode = _export_setDebugMode_;
-    _module_exports_$1.setWarningMode = _export_setWarningMode_;
+    _module_exports_$1.readObject = function (data, cls, __uctx) {
+      if (__uctx===undefined) {
+          __uctx = undefined;
+      }
+      return _module_exports_$1.manager.readObject(data, cls, __uctx);
+    }
+    _module_exports_$1.writeObject = function (data, obj) {
+      return _module_exports_$1.manager.writeObject(data.obj);
+    }
+    _module_exports_$1.setDebugMode = _export_setDebugMode_$1;
+    _module_exports_$1.setWarningMode = _export_setWarningMode_$1;
     _module_exports_$1.useTinyEval = () =>      {    }
     _module_exports_$1.binpack = _module_exports_;
     _module_exports_$1.util = struct_util;
@@ -10344,1342 +10849,3 @@ es6_module_define('ui_listbox', ["../util/util.js", "./ui_table.js", "../toolsys
   _es6_module.add_class(ListBox);
   UIBase.register(ListBox);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_listbox.js');
-es6_module_define('ui_menu', ["../util/util.js", "./ui_button.js", "../util/events.js", "../util/vectormath.js", "../toolsys/simple_toolsys.js", "../toolsys/toolprop.js", "../util/simple_events.js", "../config/const.js", "../core/ui_base.js"], function _ui_menu_module(_es6_module) {
-  "use strict";
-  var util=es6_import(_es6_module, '../util/util.js');
-  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
-  var vectormath=es6_import(_es6_module, '../util/vectormath.js');
-  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
-  var events=es6_import(_es6_module, '../util/events.js');
-  var simple_toolsys=es6_import(_es6_module, '../toolsys/simple_toolsys.js');
-  var toolprop=es6_import(_es6_module, '../toolsys/toolprop.js');
-  var Button=es6_import_item(_es6_module, './ui_button.js', 'Button');
-  var DomEventTypes=es6_import_item(_es6_module, '../util/events.js', 'DomEventTypes');
-  var HotKey=es6_import_item(_es6_module, '../util/simple_events.js', 'HotKey');
-  var keymap=es6_import_item(_es6_module, '../util/simple_events.js', 'keymap');
-  let EnumProperty=toolprop.EnumProperty, PropTypes=toolprop.PropTypes;
-  let UIBase=ui_base.UIBase, PackFlags=ui_base.PackFlags, IconSheets=ui_base.IconSheets;
-  function getpx(css) {
-    return parseFloat(css.trim().replace("px", ""));
-  }
-  class Menu extends UIBase {
-     constructor() {
-      super();
-      this.items = [];
-      this.autoSearchMode = true;
-      this._ignoreFocusEvents = false;
-      this.closeOnMouseUp = true;
-      this.itemindex = 0;
-      this.closed = false;
-      this.started = false;
-      this.activeItem = undefined;
-      this.overrideDefault("DefaultText", this.getDefault("MenuText"));
-      this.container = document.createElement("span");
-      this.container.style["display"] = "flex";
-      this.container.style["color"] = this.getDefault("MenuText").color;
-      this.container.setAttribute("class", "menucon");
-      this.dom = document.createElement("ul");
-      this.dom.setAttribute("class", "menu");
-      let style=this.menustyle = document.createElement("style");
-      this.buildStyle();
-      this.dom.setAttribute("tabindex", -1);
-      this.container.addEventListener("mouseleave", (e) =>        {
-        console.log("menu out");
-        this.close();
-      }, false);
-      this.shadow.appendChild(style);
-      this.shadow.appendChild(this.container);
-    }
-     float(x, y, zindex=undefined) {
-      console.log("menu test!");
-      let dpi=this.getDPI();
-      let rect=this.dom.getClientRects();
-      let maxx=this.getWinWidth()-10;
-      let maxy=this.getWinHeight()-10;
-      console.log(rect.length>0 ? rect[0] : undefined);
-      if (rect.length>0) {
-          rect = rect[0];
-          console.log(y+rect.height);
-          if (y+rect.height>maxy) {
-              console.log("greater");
-              y = maxy-rect.height-1;
-          }
-          if (x+rect.width>maxx) {
-              console.log("greater");
-              x = maxx-rect.width-1;
-          }
-      }
-      super.float(x, y, 50);
-    }
-     click() {
-      if (this.activeItem==undefined)
-        return ;
-      if (this.activeItem!==undefined&&this.activeItem._isMenu)
-        return ;
-      if (this.onselect) {
-          try {
-            console.log(this.activeItem._id, "-----");
-            this.onselect(this.activeItem._id);
-          }
-          catch (error) {
-              util.print_stack(error);
-              console.log("Error in menu callback");
-          }
-      }
-      console.log("menu select");
-      this.close();
-    }
-     _ondestroy() {
-      if (this.started) {
-          menuWrangler.popMenu(this);
-          if (this.onclose) {
-              this.onclose();
-          }
-      }
-    }
-     init() {
-      super.init();
-      this.setCSS();
-    }
-     close() {
-      if (this.closed) {
-          return ;
-      }
-      this.closed = true;
-      if (this.started) {
-          menuWrangler.popMenu(this);
-      }
-      this.started = false;
-      if (this._popup) {
-          this._popup.end();
-          this._popup = undefined;
-      }
-      this.remove();
-      this.dom.remove();
-      if (this.onclose) {
-          this.onclose(this);
-      }
-    }
-     _select(dir, focus=true) {
-      if (this.activeItem===undefined) {
-          for (let item of this.items) {
-              if (!item.hidden) {
-                  this.setActive(item, focus);
-                  break;
-              }
-          }
-      }
-      else {
-        let i=this.items.indexOf(this.activeItem);
-        let item=this.activeItem;
-        do {
-          i = (i+dir+this.items.length)%this.items.length;
-          item = this.items[i];
-          if (!item.hidden) {
-              break;
-          }
-        } while (item!==this.activeItem);
-        
-        this.setActive(item, focus);
-      }
-      if (this.hasSearchBox) {
-          this.activeItem.scrollIntoView();
-      }
-    }
-     selectPrev(focus=true) {
-      return this._select(-1, focus);
-    }
-     selectNext(focus=true) {
-      return this._select(1, focus);
-    }
-    static  define() {
-      return {tagname: "menu-x", 
-     style: "menu"}
-    }
-     start_fancy(prepend, setActive=true) {
-      return this.startFancy(prepend, setActive);
-    }
-     setActive(item, focus=true) {
-      if (this.activeItem===item) {
-          return ;
-      }
-      if (this.activeItem) {
-          this.activeItem.style["background-color"] = this.getDefault("MenuBG");
-          if (focus) {
-              this.activeItem.blur();
-          }
-      }
-      if (item) {
-          item.style["background-color"] = this.getDefault("MenuHighlight");
-          if (focus) {
-              item.focus();
-          }
-      }
-      this.activeItem = item;
-    }
-     startFancy(prepend, setActive=true) {
-      console.warn("menu searchbox mode start");
-      this.hasSearchBox = true;
-      this.started = true;
-      menuWrangler.pushMenu(this);
-      let dom2=document.createElement("div");
-      this.dom.setAttribute("class", "menu");
-      dom2.setAttribute("class", "menu");
-      let sbox=this.textbox = document.createElement("textbox-x");
-      this.textbox.parentWidget = this;
-      dom2.appendChild(sbox);
-      dom2.appendChild(this.dom);
-      dom2.style["height"] = "300px";
-      this.dom.style["height"] = "300px";
-      this.dom.style["overflow"] = "scroll";
-      if (prepend) {
-          this.container.prepend(dom2);
-      }
-      else {
-        this.container.appendChild(dom2);
-      }
-      dom2.parentWidget = this.container;
-      sbox.focus();
-      sbox.onchange = () =>        {
-        let t=sbox.text.trim().toLowerCase();
-        console.log("applying search", t);
-        for (let item of this.items) {
-            item.hidden = true;
-            item.remove();
-        }
-        for (let item of this.items) {
-            let ok=t=="";
-            ok = ok||item.innerHTML.toLowerCase().search(t)>=0;
-            if (ok) {
-                item.hidden = false;
-                this.dom.appendChild(item);
-            }
-            else 
-              if (item===this.activeItem) {
-                this.selectNext(false);
-            }
-        }
-      };
-      sbox.addEventListener("keydown", (e) =>        {
-        console.log(e.keyCode);
-        switch (e.keyCode) {
-          case 27:
-            this.close();
-            break;
-          case 13:
-            this.click(this.activeItem);
-            this.close();
-            break;
-        }
-      });
-    }
-     start(prepend=false, setActive=true) {
-      this.started = true;
-      this.focus();
-      menuWrangler.pushMenu(this);
-      if (this.items.length>15&&this.autoSearchMode) {
-          return this.start_fancy(prepend, setActive);
-      }
-      if (prepend) {
-          this.container.prepend(this.dom);
-      }
-      else {
-        this.container.appendChild(this.dom);
-      }
-      if (!setActive)
-        return ;
-      console.log(this.container, "container?");
-      this.setCSS();
-      this.flushUpdate();
-      window.setTimeout(() =>        {
-        this.flushUpdate();
-        if (this.activeItem===undefined) {
-            this.activeItem = this.dom.childNodes[0];
-        }
-        if (this.activeItem===undefined) {
-            return ;
-        }
-        this.activeItem.focus();
-      }, 0);
-    }
-     addItemExtra(text, id=undefined, hotkey, icon=-1, add=true, tooltip=undefined) {
-      let dom=document.createElement("span");
-      dom.style["display"] = "inline-flex";
-      dom.hotkey = hotkey;
-      dom.icon = icon;
-      let icon_div;
-      if (1) {
-          icon_div = ui_base.makeIconDiv(icon, IconSheets.SMALL);
-      }
-      else {
-        let tilesize=ui_base.iconmanager.getTileSize(IconSheets.SMALL);
-        icon_div = document.createElement("span");
-        icon_div.style["padding"] = icon_div.style["margin"] = "0px";
-        icon_div.style["width"] = tilesize+"px";
-        icon_div.style["height"] = tilesize+"px";
-      }
-      icon_div.style["display"] = "inline-flex";
-      icon_div.style["margin-right"] = "1px";
-      icon_div.style["align"] = "left";
-      let span=document.createElement("span");
-      span.style["font"] = ui_base.getFont(this, undefined, "MenuText");
-      let dpi=this.getDPI();
-      let tsize=this.getDefault("MenuText").size;
-      let canvas=document.createElement("canvas");
-      let g=canvas.getContext("2d");
-      g.font = span.style["font"];
-      let rect=span.getClientRects();
-      let twid=Math.ceil(g.measureText(text).width);
-      let hwid;
-      if (hotkey) {
-          dom.hotkey = hotkey;
-          g.font = ui_base.getFont(this, undefined, "HotkeyText");
-          hwid = Math.ceil(g.measureText(hotkey).width);
-          twid+=hwid+8;
-      }
-      span.innerText = text;
-      span.style["word-wrap"] = "none";
-      span.style["white-space"] = "pre";
-      span.style["overflow"] = "hidden";
-      span.style["text-overflow"] = "clip";
-      span.style["width"] = ~~(twid)+"px";
-      span.style["padding"] = "0px";
-      span.style["margin"] = "0px";
-      dom.style["width"] = "100%";
-      dom.appendChild(icon_div);
-      dom.appendChild(span);
-      if (hotkey) {
-          let hotkey_span=document.createElement("span");
-          hotkey_span.innerText = hotkey;
-          hotkey_span.style["margin-left"] = "0px";
-          hotkey_span.style["margin-right"] = "0px";
-          hotkey_span.style["margin"] = "0px";
-          hotkey_span.style["padding"] = "0px";
-          let al="right";
-          hotkey_span.style["font"] = ui_base.getFont(this, undefined, "HotkeyText");
-          hotkey_span.style["color"] = this.getDefault("HotkeyTextColor");
-          hotkey_span.style["width"] = "100%";
-          hotkey_span.style["text-align"] = al;
-          hotkey_span.style["flex-align"] = al;
-          hotkey_span.style["float"] = "right";
-          hotkey_span["flex-wrap"] = "nowrap";
-          dom.appendChild(hotkey_span);
-      }
-      let ret=this.addItem(dom, id, add);
-      ret.hotkey = hotkey;
-      ret.icon = icon;
-      ret.label = text ? text : ret.innerText;
-      if (tooltip) {
-          ret.title = tooltip;
-      }
-      return ret;
-    }
-     addItem(item, id, add=true) {
-      id = id===undefined ? item : id;
-      let text=item;
-      if (typeof item==="string"||__instance_of(item, String)) {
-          let dom=document.createElement("dom");
-          dom.textContent = item;
-          item = dom;
-      }
-      else {
-        text = item.textContent;
-      }
-      let li=document.createElement("li");
-      li.setAttribute("tabindex", this.itemindex++);
-      li.setAttribute("class", "menuitem");
-      if (__instance_of(item, Menu)) {
-          console.log("submenu!");
-          let dom=this.addItemExtra(""+item.title, id, "", -1, false);
-          li.style["width"] = "100%";
-          li.appendChild(dom);
-          li._isMenu = true;
-          li._menu = item;
-          item.hidden = false;
-          item.container = this.container;
-      }
-      else {
-        li._isMenu = false;
-        li.appendChild(item);
-      }
-      li._id = id;
-      this.items.push(li);
-      li.label = text ? text : li.innerText.trim();
-      if (add) {
-          li.addEventListener("click", (e) =>            {
-            if (this.activeItem!==undefined&&this.activeItem._isMenu) {
-                return n;
-            }
-            this.click();
-          });
-          li.addEventListener("blur", (e) =>            {
-            if (this._ignoreFocusEvents) {
-                return ;
-            }
-            if (this.activeItem&&!this.activeItem._isMenu) {
-                this.setActive(undefined, false);
-            }
-          });
-          let onfocus=(e) =>            {
-            if (this._ignoreFocusEvents) {
-                return ;
-            }
-            if (this.activeItem!==undefined&&this.activeItem._isMenu) {
-                let active=this.activeItem;
-                window.setTimeout(() =>                  {
-                  if (this.activeItem&&this.activeItem!==active) {
-                      active._menu.close();
-                  }
-                }, 10);
-            }
-            if (li._isMenu) {
-                li._menu.onselect = (item) =>                  {
-                  this.onselect(item);
-                  this.close();
-                };
-                li._menu.start(false, false);
-            }
-            this.setActive(li, false);
-          };
-          li.addEventListener("touchend", (e) =>            {
-            onfocus(e);
-            if (this.activeItem!==undefined&&this.activeItem._isMenu) {
-                console.log("menu ignore");
-                return ;
-            }
-            this.click();
-          });
-          li.addEventListener("focus", (e) =>            {
-            onfocus(e);
-          });
-          li.addEventListener("touchmove", (e) =>            {
-            onfocus(e);
-            li.focus();
-          });
-          li.addEventListener("mouseenter", (e) =>            {
-            li.focus();
-          });
-          this.dom.appendChild(li);
-      }
-      return li;
-    }
-     buildStyle() {
-      let pad1=util.isMobile() ? 2 : 0;
-      pad1+=this.getDefault("MenuSpacing");
-      this.menustyle.textContent = `
-        .menucon {
-          position:absolute;
-          float:left;
-          
-          display: block;
-          -moz-user-focus: normal;
-        }
-        
-        ul.menu {
-          display        : flex;
-          flex-direction : column;
-          flex-wrap      : nowrap;
-          width          : max-content;
-          
-          margin : 0px;
-          padding : 0px;
-          border : ${this.getDefault("MenuBorder")};
-          -moz-user-focus: normal;
-          background-color: ${this.getDefault("MenuBG")};
-          color : ${this.getDefault("MenuText").color};
-        }
-        
-        .menuitem {
-          display : flex;
-          flex-wrap : nowrap;
-          flex-direction : row;          
-          
-          list-style-type:none;
-          -moz-user-focus: normal;
-          
-          margin : 0;
-          padding : 0px;
-          padding-right: 16px;
-          padding-left: 16px;
-          padding-top : ${pad1}px;
-          padding-bottom : ${pad1}px;
-          color : ${this.getDefault("MenuText").color};
-          font : ${this.getDefault("MenuText").genCSS()};
-          background-color: ${this.getDefault("MenuBG")};
-        }
-        
-        .menuseparator {
-          ${this.getDefault("MenuSeparator")}
-        }
-        
-        .menuitem:focus {
-          display : flex;
-          flex-wrap : nowrap;
-          
-          border : none;
-          outline : none;
-          
-          background-color: ${this.getDefault("MenuHighlight")};
-          color : ${this.getDefault("MenuText").color};
-          -moz-user-focus: normal;
-        }
-      `;
-    }
-     setCSS() {
-      super.setCSS();
-      this.buildStyle();
-      this.container.style["color"] = this.getDefault("MenuText").color;
-      this.style["color"] = this.getDefault("MenuText").color;
-    }
-     seperator() {
-      let bar=document.createElement("div");
-      bar.setAttribute("class", "menuseparator");
-      this.dom.appendChild(bar);
-      return this;
-    }
-     menu(title) {
-      let ret=document.createElement("menu-x");
-      ret.setAttribute("title", title);
-      this.addItem(ret);
-      return ret;
-    }
-     calcSize() {
-
-    }
-  }
-  _ESClass.register(Menu);
-  _es6_module.add_class(Menu);
-  Menu = _es6_module.add_export('Menu', Menu);
-  Menu.SEP = Symbol("menu seperator");
-  UIBase.register(Menu);
-  class DropBox extends Button {
-     constructor() {
-      super();
-      this._searchMenuMode = false;
-      this.altKey = undefined;
-      this.r = 5;
-      this._menu = undefined;
-      this._auto_depress = false;
-      this._onpress = this._onpress.bind(this);
-    }
-     init() {
-      super.init();
-      this.updateWidth();
-    }
-    get  searchMenuMode() {
-      return this._searchMenuMode;
-    }
-    set  searchMenuMode(v) {
-      this._searchMenuMode = v;
-      console.warn("searchMenuMode was set", this);
-    }
-     setCSS() {
-      this.style["user-select"] = "none";
-      this.dom.style["user-select"] = "none";
-    }
-     _genLabel() {
-      let s=super._genLabel();
-      let ret="";
-      if (s.length===0) {
-          s = "(error)";
-      }
-      this.altKey = s[0].toUpperCase().charCodeAt(0);
-      for (let i=0; i<s.length; i++) {
-          if (s[i]==="&"&&i<s.length-1&&s[i+1]!=="&") {
-              this.altKey = s[i+1].toUpperCase().charCodeAt(0);
-          }
-          else 
-            if (s[i]==="&"&&i<s.length-1&&s[i+1]==="&") {
-              continue;
-          }
-          else {
-            ret+=s[i];
-          }
-      }
-      return ret;
-    }
-     updateWidth() {
-      let dpi=this.getDPI();
-      let ts=this.getDefault("DefaultText").size;
-      let tw=this.g.measureText(this._genLabel()).width/dpi;
-      tw = ~~tw;
-      tw+=15;
-      if (!this.getAttribute("simple")) {
-          tw+=35;
-      }
-      if (tw!==this._last_w) {
-          this._last_w = tw;
-          this.dom.style["width"] = tw+"px";
-          this.style["width"] = tw+"px";
-          this.width = tw;
-          this.overrideDefault("defaultWidth", tw);
-          this._repos_canvas();
-          this._redraw();
-      }
-      return 0;
-    }
-     updateDataPath() {
-      if (!this.ctx||!this.hasAttribute("datapath")) {
-          return ;
-      }
-      let prop=this.getPathMeta(this.ctx, this.getAttribute("datapath"));
-      let val=this.getPathValue(this.ctx, this.getAttribute("datapath"));
-      if (val===undefined) {
-          this.disabled = true;
-          return ;
-      }
-      else {
-        this.disabled = false;
-      }
-      if (this.prop!==undefined) {
-          prop = this.prop;
-      }
-      let name=this.getAttribute("name");
-      if (prop.type&(PropTypes.ENUM|PropTypes.FLAG)) {
-          name = prop.ui_value_names[prop.keys[val]];
-      }
-      else {
-        name = ""+val;
-      }
-      if (name!=this.getAttribute("name")) {
-          this.setAttribute("name", name);
-          this.updateName();
-      }
-    }
-     update() {
-      super.update();
-      let key=this.getDefault("dropTextBG");
-      if (key!==this._last_dbox_key) {
-          this._last_dbox_key = key;
-          this.setCSS();
-          this._redraw();
-      }
-      if (this.hasAttribute("datapath")) {
-          this.updateDataPath();
-      }
-    }
-     _build_menu() {
-      let prop=this.prop;
-      if (this.prop===undefined) {
-          return ;
-      }
-      if (this._menu!==undefined&&this._menu.parentNode!==undefined) {
-          this._menu.remove();
-      }
-      let menu=this._menu = document.createElement("menu-x");
-      menu.setAttribute("title", name);
-      menu._dropbox = this;
-      let valmap={};
-      let enummap=prop.values;
-      let iconmap=prop.iconmap;
-      let uimap=prop.ui_value_names;
-      for (let k in enummap) {
-          let uk=k;
-          valmap[enummap[k]] = k;
-          if (uimap!==undefined&&k in uimap) {
-              uk = uimap[k];
-          }
-          if (iconmap&&iconmap[k]) {
-              menu.addItemExtra(uk, enummap[k], undefined, iconmap[k]);
-          }
-          else {
-            menu.addItem(uk, enummap[k]);
-          }
-      }
-      menu.onselect = (id) =>        {
-        this._pressed = false;
-        this._pressed = false;
-        this._redraw();
-        this._menu = undefined;
-        this.prop.setValue(id);
-        this.setAttribute("name", this.prop.ui_value_names[valmap[id]]);
-        if (this.onselect) {
-            this.onselect(id);
-        }
-        if (this.hasAttribute("datapath")&&this.ctx) {
-            console.log("setting data api value", id, this.getAttribute("datapath"));
-            this.setPathValue(this.ctx, this.getAttribute("datapath"), id);
-        }
-      };
-    }
-     _onpress(e) {
-      console.warn("menu dropbox click", this._menu, e);
-      if (this._menu!==undefined) {
-          this._pressed = false;
-          this._redraw();
-          let menu=this._menu;
-          this._menu = undefined;
-          menu.close();
-          return ;
-      }
-      this._build_menu();
-      if (this._menu===undefined) {
-          return ;
-      }
-      this._menu.autoSearchMode = false;
-      this._menu._dropbox = this;
-      this.dom._background = this.getDefault("BoxDepressed");
-      this._background = this.getDefault("BoxDepressed");
-      this._redraw();
-      this._pressed = true;
-      this.setCSS();
-      let onclose=this._menu.onclose;
-      this._menu.onclose = () =>        {
-        console.log("menu onclose");
-        this._pressed = false;
-        this._redraw();
-        let menu=this._menu;
-        if (menu) {
-            this._menu = undefined;
-            menu._dropbox = undefined;
-        }
-        if (onclose) {
-            onclose.call(menu);
-        }
-      };
-      let menu=this._menu;
-      let screen=this.getScreen();
-      let dpi=this.getDPI();
-      let x=e.x, y=e.y;
-      let rects=this.dom.getBoundingClientRect();
-      x = rects.x-window.scrollX;
-      y = rects.y+rects.height-window.scrollY;
-      if (!window.haveElectron) {
-      }
-      let con=this._popup = menu._popup = screen.popup(this, x, y, false, 0);
-      con.noMarginsOrPadding();
-      con.add(menu);
-      if (this.searchMenuMode) {
-          menu.startFancy();
-      }
-      else {
-        menu.start();
-      }
-    }
-     _redraw() {
-      if (this.getAttribute("simple")) {
-          let color;
-          if (this._highlight) {
-              ui_base.drawRoundBox2(this, {canvas: this.dom, 
-         g: this.g, 
-         color: this.getDefault("BoxHighlight")});
-          }
-          if (this._focus) {
-              ui_base.drawRoundBox2(this, {canvas: this.dom, 
-         g: this.g, 
-         color: this.getDefault("BoxHighlight"), 
-         op: "stroke", 
-         no_clear: true});
-              ui_base.drawRoundBox(this, this.dom, this.g, undefined, undefined, 2, "stroke");
-          }
-          this._draw_text();
-          return ;
-      }
-      super._redraw(false);
-      let g=this.g;
-      let w=this.dom.width, h=this.dom.height;
-      let dpi=this.getDPI();
-      let p=10*dpi;
-      let p2=4*dpi;
-      let bg=this.getDefault("dropTextBG");
-      if (bg!==undefined) {
-          g.fillStyle = bg;
-          g.beginPath();
-          g.rect(p2, p2, this.dom.width-p2-h, this.dom.height-p2*2);
-          g.fill();
-      }
-      g.fillStyle = "rgba(50, 50, 50, 0.2)";
-      g.strokeStyle = "rgba(50, 50, 50, 0.8)";
-      g.beginPath();
-      let sz=0.3;
-      g.moveTo(w-h*0.5-p, p);
-      g.lineTo(w-p, p);
-      g.moveTo(w-h*0.5-p, p+sz*h/3);
-      g.lineTo(w-p, p+sz*h/3);
-      g.moveTo(w-h*0.5-p, p+sz*h*2/3);
-      g.lineTo(w-p, p+sz*h*2/3);
-      g.lineWidth = 1;
-      g.stroke();
-      this._draw_text();
-    }
-    set  menu(val) {
-      this._menu = val;
-      if (val!==undefined) {
-          this._name = val.title;
-          this.updateName();
-      }
-    }
-     setValue(val) {
-      if (this.prop!==undefined) {
-          this.prop.setValue(val);
-          let val2=val;
-          if (val2 in this.prop.keys)
-            val2 = this.prop.keys[val2];
-          val2 = this.prop.ui_value_names[val2];
-          this.setAttribute("name", ""+val2);
-          this._name = ""+val2;
-      }
-      else {
-        this.setAttribute("name", ""+val);
-        this._name = ""+val;
-      }
-      if (this.onchange) {
-          this.onchange(val);
-      }
-      this.setCSS();
-      this.update();
-      this._redraw();
-    }
-    get  menu() {
-      return this._menu;
-    }
-    static  define() {
-      return {tagname: "dropbox-x", 
-     style: "dropbox"}
-    }
-  }
-  _ESClass.register(DropBox);
-  _es6_module.add_class(DropBox);
-  DropBox = _es6_module.add_export('DropBox', DropBox);
-  UIBase.register(DropBox);
-  class MenuWrangler  {
-     constructor() {
-      this.screen = undefined;
-      this.menustack = [];
-      this.closetimer = 0;
-      this.closeOnMouseUp = undefined;
-    }
-    get  menu() {
-      return this.menustack.length>0 ? this.menustack[this.menustack.length-1] : undefined;
-    }
-     pushMenu(menu) {
-      if (this.menustack.length===0&&menu.closeOnMouseUp) {
-          this.closeOnMouseUp = true;
-      }
-      this.menustack.push(menu);
-    }
-     popMenu(menu) {
-      return this.menustack.pop();
-    }
-     endMenus() {
-      for (let menu of this.menustack) {
-          menu.close();
-      }
-      this.menustack = [];
-    }
-     searchKeyDown(e) {
-      let menu=this.menu;
-      console.log("s", e.keyCode);
-      e.stopPropagation();
-      menu._ignoreFocusEvents = true;
-      menu.textbox.focus();
-      menu._ignoreFocusEvents = false;
-      switch (e.keyCode) {
-        case keymap["Enter"]:
-          menu.click(menu.activeItem);
-          break;
-        case keymap["Escape"]:
-          menu.close();
-          break;
-        case keymap["Up"]:
-          console.log("Up");
-          menu.selectPrev(false);
-          break;
-        case keymap["Down"]:
-          console.log("Down");
-          menu.selectNext(false);
-          break;
-      }
-    }
-     on_keydown(e) {
-      window.menu = this.menu;
-      if (this.menu===undefined) {
-          return ;
-      }
-      if (this.menu.hasSearchBox) {
-          return this.searchKeyDown(e);
-      }
-      console.log("key", e.keyCode);
-      let menu=this.menu;
-      switch (e.keyCode) {
-        case keymap["Left"]:
-        case keymap["Right"]:
-          if (menu._dropbox) {
-              let dropbox=menu._dropbox;
-              if (e.keyCode===keymap["Left"]) {
-                  dropbox = dropbox.previousElementSibling;
-              }
-              else {
-                dropbox = dropbox.nextElementSibling;
-              }
-              if (dropbox!==undefined&&__instance_of(dropbox, DropBox)) {
-                  this.endMenus();
-                  dropbox._onpress(e);
-              }
-          }
-          break;
-        case keymap["Up"]:
-          menu.selectPrev();
-          break;
-        case keymap["Down"]:
-          menu.selectNext();
-          break;
-        case 13:
-        case 32:
-          menu.click(menu.activeItem);
-          break;
-        case 27:
-          menu.close();
-          break;
-      }
-    }
-     on_mousedown(e) {
-      if (this.menu===undefined||this.screen===undefined) {
-          this.closetimer = util.time_ms();
-          return ;
-      }
-      let screen=this.screen;
-      let x=e.pageX, y=e.pageY;
-      let element=screen.pickElement(x, y);
-      console.log("wrangler mousedown", element);
-      if (element!==undefined&&(__instance_of(element, DropBox)||util.isMobile())) {
-          this.endMenus();
-          e.preventDefault();
-          e.stopPropagation();
-      }
-    }
-     on_mouseup(e) {
-      if (this.menu===undefined||this.screen===undefined) {
-          this.closetimer = util.time_ms();
-          return ;
-      }
-      let screen=this.screen;
-      let x=e.pageX, y=e.pageY;
-      let element=screen.pickElement(x, y, undefined, undefined, DropBox);
-      if (element!==undefined) {
-          this.closeOnMouseUp = false;
-      }
-      else {
-        element = screen.pickElement(x, y, undefined, undefined, Menu);
-        if (element&&this.closeOnMouseUp) {
-            element.click();
-        }
-      }
-    }
-     on_mousemove(e) {
-      if (this.menu&&this.menu.hasSearchBox) {
-          this.closetimer = util.time_ms();
-          return ;
-      }
-      if (this.menu===undefined||this.screen===undefined) {
-          this.closetimer = util.time_ms();
-          return ;
-      }
-      let screen=this.screen;
-      let x=e.pageX, y=e.pageY;
-      let element=screen.pickElement(x, y);
-      if (element===undefined) {
-          return ;
-      }
-      if (__instance_of(element, DropBox)&&element.menu!==this.menu&&element.getAttribute("simple")) {
-          this.endMenus();
-          this.closetimer = util.time_ms();
-          element._onpress(e);
-          return ;
-      }
-      let ok=false;
-      let w=element;
-      while (w) {
-        if (w===this.menu) {
-            ok = true;
-            break;
-        }
-        if (__instance_of(w, DropBox)&&w.menu===this.menu) {
-            ok = true;
-            break;
-        }
-        w = w.parentWidget;
-      }
-      if (!ok&&(util.time_ms()-this.closetimer>cconst.menu_close_time)) {
-          this.endMenus();
-      }
-      else 
-        if (ok) {
-          this.closetimer = util.time_ms();
-      }
-    }
-  }
-  _ESClass.register(MenuWrangler);
-  _es6_module.add_class(MenuWrangler);
-  MenuWrangler = _es6_module.add_export('MenuWrangler', MenuWrangler);
-  let menuWrangler=new MenuWrangler();
-  menuWrangler = _es6_module.add_export('menuWrangler', menuWrangler);
-  let wrangerStarted=false;
-  function startMenuEventWrangling(screen) {
-    menuWrangler.screen = screen;
-    if (wrangerStarted) {
-        return ;
-    }
-    wrangerStarted = true;
-    for (let k in DomEventTypes) {
-        if (menuWrangler[k]===undefined) {
-            continue;
-        }
-        let dom=k.search("key")>=0 ? window : document.body;
-        dom = window;
-        dom.addEventListener(DomEventTypes[k], menuWrangler[k].bind(menuWrangler), {passive: false, 
-      capture: true});
-    }
-    menuWrangler.screen = screen;
-  }
-  startMenuEventWrangling = _es6_module.add_export('startMenuEventWrangling', startMenuEventWrangling);
-  function setWranglerScreen(screen) {
-    startMenuEventWrangling(screen);
-  }
-  setWranglerScreen = _es6_module.add_export('setWranglerScreen', setWranglerScreen);
-  function getWranglerScreen() {
-    return menuWrangler.screen;
-  }
-  getWranglerScreen = _es6_module.add_export('getWranglerScreen', getWranglerScreen);
-  function createMenu(ctx, title, templ) {
-    let menu=document.createElement("menu-x");
-    menu.ctx = ctx;
-    menu.setAttribute("name", title);
-    let SEP=menu.constructor.SEP;
-    let id=0;
-    let cbs={}
-    let doItem=(item) =>      {
-      if (item!==undefined&&__instance_of(item, Menu)) {
-          menu.addItem(item);
-      }
-      else 
-        if (typeof item=="string") {
-          let def;
-          try {
-            def = ctx.api.getToolDef(item);
-          }
-          catch (error) {
-              menu.addItem("(tool path error)", id++);
-              return ;
-          }
-          menu.addItemExtra(def.uiname, id, def.hotkey, def.icon);
-          cbs[id] = (function (toolpath) {
-            return function () {
-              ctx.api.execTool(ctx, toolpath);
-            }
-          })(item);
-          id++;
-      }
-      else 
-        if (item===SEP) {
-          menu.seperator();
-      }
-      else 
-        if (typeof item==="function"||__instance_of(item, Function)) {
-          doItem(item());
-      }
-      else 
-        if (__instance_of(item, Array)) {
-          let hotkey=item.length>2 ? item[2] : undefined;
-          let icon=item.length>3 ? item[3] : undefined;
-          let tooltip=item.length>4 ? item[4] : undefined;
-          if (hotkey!==undefined&&__instance_of(hotkey, HotKey)) {
-              hotkey = hotkey.buildString();
-          }
-          menu.addItemExtra(item[0], id, hotkey, icon, undefined, tooltip);
-          cbs[id] = (function (cbfunc, arg) {
-            return function () {
-              cbfunc(arg);
-            }
-          })(item[1], item[2]);
-          id++;
-      }
-    }
-    for (let item of templ) {
-        doItem(item);
-    }
-    menu.onselect = (id) =>      {
-      cbs[id]();
-    }
-    return menu;
-  }
-  createMenu = _es6_module.add_export('createMenu', createMenu);
-  function startMenu(menu, x, y, searchMenuMode, safetyDelay) {
-    if (searchMenuMode===undefined) {
-        searchMenuMode = false;
-    }
-    if (safetyDelay===undefined) {
-        safetyDelay = 55;
-    }
-    let screen=menu.ctx.screen;
-    let con=menu._popup = screen.popup(undefined, x, y, false, safetyDelay);
-    con.noMarginsOrPadding();
-    con.add(menu);
-    if (searchMenuMode) {
-        menu.startFancy();
-    }
-    else {
-      menu.start();
-    }
-  }
-  startMenu = _es6_module.add_export('startMenu', startMenu);
-}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_menu.js');
-es6_module_define('ui_noteframe', ["../core/ui.js", "../util/util.js", "../core/ui_base.js"], function _ui_noteframe_module(_es6_module) {
-  var util=es6_import(_es6_module, '../util/util.js');
-  var ui=es6_import(_es6_module, '../core/ui.js');
-  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
-  var Icons=es6_import_item(_es6_module, '../core/ui_base.js', 'Icons');
-  var css2color=es6_import_item(_es6_module, '../core/ui_base.js', 'css2color');
-  var color2css=es6_import_item(_es6_module, '../core/ui_base.js', 'color2css');
-  let UIBase=ui_base.UIBase;
-  class Note extends ui_base.UIBase {
-     constructor() {
-      super();
-      let style=document.createElement("style");
-      this._noteid = undefined;
-      this.height = 20;
-      style.textContent = `
-    .notex {
-      display : flex;
-      flex-direction : row;
-      flex-wrap : nowrap;
-      height : {this.height}px;
-      padding : 0px;
-      margin : 0px;
-    }
-    `;
-      this.dom = document.createElement("div");
-      this.dom.setAttribute("class", "notex");
-      this.color = "red";
-      this.shadow.appendChild(style);
-      this.shadow.append(this.dom);
-      this.setLabel("");
-    }
-     setLabel(s) {
-      let color=this.color;
-      if (this.mark===undefined) {
-          this.mark = document.createElement("div");
-          this.mark.style["display"] = "flex";
-          this.mark.style["flex-direction"] = "row";
-          this.mark.style["flex-wrap"] = "nowrap";
-          let sheet=0;
-          let size=ui_base.iconmanager.getTileSize(sheet);
-          this.mark.style["width"] = ""+size+"px";
-          this.mark.style["height"] = ""+size+"px";
-          this.dom.appendChild(this.mark);
-          this.ntext = document.createElement("div");
-          this.ntext.style["display"] = "inline-flex";
-          this.ntext.style["flex-wrap"] = "nowrap";
-          this.dom.appendChild(this.ntext);
-          ui_base.iconmanager.setCSS(Icons.NOTE_EXCL, this.mark, sheet);
-      }
-      let mark=this.mark, ntext=this.ntext;
-      ntext.innerText = " "+s;
-    }
-     init() {
-      super.init();
-      this.setAttribute("class", "notex");
-      this.style["display"] = "flex";
-      this.style["flex-wrap"] = "nowrap";
-      this.style["flex-direction"] = "row";
-      this.style["border-radius"] = "7px";
-      this.style["padding"] = "2px";
-      this.style["color"] = this.getDefault("NoteText").color;
-      let clr=css2color(this.color);
-      clr = color2css([clr[0], clr[1], clr[2], 0.25]);
-      this.style["background-color"] = clr;
-      this.setCSS();
-    }
-    static  define() {
-      return {tagname: "note-x"}
-    }
-  }
-  _ESClass.register(Note);
-  _es6_module.add_class(Note);
-  Note = _es6_module.add_export('Note', Note);
-  UIBase.register(Note);
-  class ProgBarNote extends Note {
-     constructor() {
-      super();
-      this._percent = 0.0;
-      this.barWidth = 100;
-      let bar=this.bar = document.createElement("div");
-      bar.style["display"] = "flex";
-      bar.style["flex-direction"] = "row";
-      bar.style["width"] = this.barWidth+"px";
-      bar.style["height"] = this.height+"px";
-      bar.style["background-color"] = this.getDefault("ProgressBarBG");
-      bar.style["border-radius"] = "12px";
-      bar.style["align-items"] = "center";
-      bar.style["padding"] = bar.style["margin"] = "0px";
-      let bar2=this.bar2 = document.createElement("div");
-      let w=50.0;
-      bar2.style["display"] = "flex";
-      bar2.style["flex-direction"] = "row";
-      bar2.style["height"] = this.height+"px";
-      bar2.style["background-color"] = this.getDefault("ProgressBar");
-      bar2.style["border-radius"] = "12px";
-      bar2.style["align-items"] = "center";
-      bar2.style["padding"] = bar2.style["margin"] = "0px";
-      this.bar.appendChild(bar2);
-      this.dom.appendChild(this.bar);
-    }
-     setCSS() {
-      super.setCSS();
-      let w=~~(this.percent*this.barWidth+0.5);
-      this.bar2.style["width"] = w+"px";
-    }
-    set  percent(val) {
-      this._percent = val;
-      this.setCSS();
-    }
-    get  percent() {
-      return this._percent;
-    }
-     init() {
-      super.init();
-    }
-    static  define() {
-      return {tagname: "note-progress-x"}
-    }
-  }
-  _ESClass.register(ProgBarNote);
-  _es6_module.add_class(ProgBarNote);
-  ProgBarNote = _es6_module.add_export('ProgBarNote', ProgBarNote);
-  UIBase.register(ProgBarNote);
-  class NoteFrame extends ui.RowFrame {
-     constructor() {
-      super();
-      this._h = 20;
-    }
-     init() {
-      super.init();
-      this.noMarginsOrPadding();
-      noteframes.push(this);
-      this.background = this.getDefault("NoteBG");
-    }
-     setCSS() {
-      super.setCSS();
-      this.style["width"] = "min-contents";
-      this.style["height"] = this._h+"px";
-    }
-     _ondestroy() {
-      if (noteframes.indexOf(this)>=0) {
-          noteframes.remove(this);
-      }
-      super._ondestroy();
-    }
-     progbarNote(msg, percent, color="rgba(255,0,0,0.2)", timeout=700, id=msg) {
-      let note;
-      for (let child of this.children) {
-          if (child._noteid===id) {
-              note = child;
-              break;
-          }
-      }
-      let f=(100.0*Math.min(percent, 1.0)).toFixed(1);
-      if (note===undefined) {
-          note = this.addNote(msg, color, -1, "note-progress-x");
-          note._noteid = id;
-      }
-      note.percent = percent;
-      if (percent>=1.0) {
-          window.setTimeout(() =>            {
-            note.remove();
-          }, timeout);
-      }
-      return note;
-    }
-     addNote(msg, color="rgba(255,0,0,0.2)", timeout=1200, tagname="note-x") {
-      let note=document.createElement(tagname);
-      note.color = color;
-      note.setLabel(msg);
-      note.style["text-align"] = "center";
-      note.style["font"] = ui_base.getFont(note, "NoteText");
-      note.style["color"] = this.getDefault("NoteText").color;
-      this.add(note);
-      this.noMarginsOrPadding();
-      note.noMarginsOrPadding();
-      note.style["height"] = this._h+"px";
-      note.height = this._h;
-      if (timeout!=-1) {
-          window.setTimeout(() =>            {
-            note.remove();
-          }, timeout);
-      }
-      return note;
-    }
-    static  define() {
-      return {tagname: "noteframe-x"}
-    }
-  }
-  _ESClass.register(NoteFrame);
-  _es6_module.add_class(NoteFrame);
-  NoteFrame = _es6_module.add_export('NoteFrame', NoteFrame);
-  UIBase.register(NoteFrame);
-  function getNoteFrames(screen) {
-    let ret=[];
-    let rec=(n) =>      {
-      if (__instance_of(n, NoteFrame)) {
-          ret.push(n);
-      }
-      if (n.childNodes!==undefined) {
-          for (let node of n.childNodes) {
-              rec(node);
-          }
-      }
-      if (__instance_of(n, ui_base.UIBase)&&n.shadow!==undefined&&n.shadow.childNodes) {
-          for (let node of n.shadow.childNodes) {
-              rec(node);
-          }
-      }
-    }
-    rec(screen);
-    return ret;
-  }
-  getNoteFrames = _es6_module.add_export('getNoteFrames', getNoteFrames);
-  let noteframes=[];
-  noteframes = _es6_module.add_export('noteframes', noteframes);
-  function progbarNote(screen, msg, percent, color, timeout) {
-    noteframes = getNoteFrames(screen);
-    for (let frame of noteframes) {
-        try {
-          frame.progbarNote(msg, percent, color, timeout);
-        }
-        catch (error) {
-            print_stack(error);
-            console.log("bad notification frame");
-        }
-    }
-  }
-  progbarNote = _es6_module.add_export('progbarNote', progbarNote);
-  function sendNote(screen, msg, color, timeout) {
-    if (timeout===undefined) {
-        timeout = 3000;
-    }
-    noteframes = getNoteFrames(screen);
-    for (let frame of noteframes) {
-        try {
-          frame.addNote(msg, color, timeout);
-        }
-        catch (error) {
-            print_stack(error);
-            console.log("bad notification frame");
-        }
-    }
-  }
-  sendNote = _es6_module.add_export('sendNote', sendNote);
-  window._sendNote = sendNote;
-  function error(screen, msg, timeout) {
-    return sendNote(screen, msg, ui_base.color2css([1.0, 0.0, 0.0, 1.0]), timeout);
-  }
-  error = _es6_module.add_export('error', error);
-  function warning(screen, msg, timeout) {
-    return sendNote(screen, msg, ui_base.color2css([0.78, 0.78, 0.2, 1.0]), timeout);
-  }
-  warning = _es6_module.add_export('warning', warning);
-  function message(screen, msg, timeout) {
-    return sendNote(screen, msg, ui_base.color2css([0.4, 1.0, 0.5, 1.0]), timeout);
-  }
-  message = _es6_module.add_export('message', message);
-}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_noteframe.js');

@@ -745,7 +745,7 @@ export class SplineDrawer {
           if (debug) {
             dpoint(p[0], p[1], hasp ? 15 : 8);
           }
-          
+
           dobreak = true;
 
           if (first) {
@@ -781,7 +781,10 @@ export class SplineDrawer {
             dv2.mulScalar(1.0/(scale2));
             //path.cubicTo(p[0]+dv[0], p[1]+dv[1], p2[0]-dv2[0], p2[1]-dv2[1], p2[0], p2[1]);
             path.lineTo(p[0], p[1]);
-            dpoint(p2[0], p2[1], 15, dpath3);
+
+            if (debug) {
+              dpoint(p2[0], p2[1], 15, dpath3);
+            }
           }
         }
 

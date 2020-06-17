@@ -142,7 +142,6 @@ export class Spline extends DataBlock {
   frame : number
   rendermat : Matrix4
   _idgen : SDIDGen
-  strokeGroupIdgen : SDIDGen
   proportional : boolean
   prop_radius : number
   eidmap : Object
@@ -222,7 +221,6 @@ export class Spline extends DataBlock {
     this.handles = [];
 
     this._idgen = new SDIDGen();
-    this.strokeGroupIdgen = new SDIDGen();
 
     this.last_save_time = time_ms();
     this.proportional = false;
@@ -348,7 +346,6 @@ export class Spline extends DataBlock {
 
     ret.idgen = this.idgen.copy();
     ret.layerset = this.layerset.copyStructure();
-    ret.strokeGroupIdgen = this.strokeGroupIdgen.copy();
 
     for (var i=0; i<ret.elists.length; i++) {
       ret.elists[i].idgen = ret.idgen;
@@ -1447,10 +1444,10 @@ export class Spline extends DataBlock {
       
       var v1 = s1.other_vert(v), v2 = s2.other_vert(v);
       var existing = this.find_segment(v1, v2);
-      let w1 = v1 === s1.v1 ? s1.w1 : s1.w2;
-      let w2 = v1 === s2.v1 ? s2.w1 : s2.w2;
-      let shift1 = v1 === s1.v1 ? s1.shift1 : s1.shift2;
-      let shift2 = v1 === s2.v1 ? s2.shift1 : s2.shift2;
+      let w1 = v === s1.v1 ? s1.w2 : s1.w1;
+      let w2 = v === s2.v1 ? s2.w2 : s2.w1;
+      let shift1 = v === s1.v1 ? s1.shift2 : s1.shift1;
+      let shift2 = v === s2.v1 ? s2.shift2 : s2.shift1;
 
       if (s1.v1 === v) s1.v1 = v2;
       else s1.v2 = v2;
@@ -1477,8 +1474,15 @@ export class Spline extends DataBlock {
       
       v2.segments.push(s1);
       v.segments.length = 0;
+      let flip = false;
 
-      if (s1.v1 === v1) {
+      if (existing) {
+        flip = existing.v1 !== s1.v1;
+        this.kill_segment(s1);
+        s1 = existing;
+      }
+
+      if (!flip) {
         s1.w1 = w1;
         s1.w2 = w2;
         s1.shift1 = shift1;
@@ -1490,11 +1494,6 @@ export class Spline extends DataBlock {
         s1.shift2 = shift1;
       }
 
-      if (existing) {
-        this.kill_segment(s1);
-        s1 = existing;
-      }
-      
       if (s1.l === undefined) {
         for (var i=0; i<ls2.length; i++) {
           var l = ls2[i];
@@ -2145,7 +2144,6 @@ export class Spline extends DataBlock {
   
   reset() {
     this.idgen = new SDIDGen();
-    this.strokeGroupIdgen = new SDIDGen();
 
     this.strokeGroups = [];
     this._strokeGroupMap = new Map();
@@ -2298,7 +2296,7 @@ export class Spline extends DataBlock {
     for (var i=0; i<this.verts.length; i++) {
       var v = this.verts[i];
       
-      if (v.segments.length == 0) {
+      if (v.segments.length === 0) {
         del.push(v);
       }
     }
@@ -2549,7 +2547,6 @@ mixin(Spline, DataPathNode);
 
 Spline.STRUCT = STRUCT.inherit(Spline, DataBlock) + `
     idgen    : SDIDGen;
-    strokeGroupIdgen : SDIDGen;
     
     selected : iter(e, int) | e.eid;
     

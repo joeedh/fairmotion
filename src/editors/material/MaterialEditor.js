@@ -393,23 +393,29 @@ export class MaterialEditor extends Editor {
     //panel.packflag |= PackFlags.NO_AUTO_SPACING;
     //panel.packflag |= PackFlags.IGNORE_LIMIT;
 
-    var set_prefix = "spline.segments{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}.mat";
+    var set_prefix = "spline.segments{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}";
 
     //panel.label("Stroke Color");
     let panel2 = panel.panel("Stroke Color");
 
     panel2.prop("spline.active_segment.mat.strokecolor", undefined,
-      set_prefix + ".strokecolor");
+      set_prefix + ".mat.strokecolor");
 
     panel.prop("spline.active_segment.mat.linewidth", undefined,
-      set_prefix + ".linewidth");
+      set_prefix + ".mat.linewidth");
     panel.prop("spline.active_segment.mat.blur", undefined,
-      set_prefix + ".blur");
+      set_prefix + ".mat.blur");
     panel.prop("spline.active_segment.renderable", undefined,
-      "spline.segments{($.flag & 1) && !$.hidden}.renderable");
+      set_prefix + ".mat.renderable");
 
     panel.prop("spline.active_segment.mat.flag[MASK_TO_FACE]", undefined,
-      set_prefix + ".flag[MASK_TO_FACE]");
+      set_prefix + ".mat.flag[MASK_TO_FACE]");
+
+
+    panel.prop("spline.active_segment.w1", undefined, set_prefix + ".w1");
+    panel.prop("spline.active_segment.w2", undefined, set_prefix + ".w2");
+    panel.prop("spline.active_segment.shift1", undefined, set_prefix + ".shift1");
+    panel.prop("spline.active_segment.shift2", undefined, set_prefix + ".shift2");
 
     return panel
   }

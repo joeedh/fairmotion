@@ -886,7 +886,7 @@ export class CanvasDraw2D extends VectorDraw {
 
     if (ok && this.promise) {
       this.promise = undefined;
-      console.log("Draw finished!");
+      //console.log("Draw finished!");
       this.on_batches_finish();
     }
   }

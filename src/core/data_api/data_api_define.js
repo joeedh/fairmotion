@@ -452,6 +452,7 @@ function api_define_material() {
   var linewidth = new FloatProperty(1, "linewidth", "linewidth", "Line Width");
   linewidth.range = [0.1, 200];
   linewidth.expRate = 1.75;
+  //linewidth.baseUnit = linewidth.displayUnit = "none";
   linewidth.step = 0.25;
   
   fillclr.update = strokeclr.update = linewidth.update = blur.update = update_base;
@@ -511,7 +512,7 @@ function api_define_spline_vertex() {
   let shift = new FloatProperty(0,"shift", "shift", "Shift");
   shift.baseUnit = shift.displayUnit = "none";
 
-  width.setRange(0.0001, 200.0);
+  width.setRange(-50, 200.0);
   width.update = function(vert) {
     vert.flag |= SplineFlags.REDRAW;
 
@@ -588,8 +589,28 @@ function api_define_spline_segment() {
      spline.regen_sort();
      */
   }
-  
+
+  let w1 = new FloatProperty(0,"w1", "w1", "Width 1");
+  let shift1 = new FloatProperty(0,"w1", "w1", "Width 1");
+  let w2 = new FloatProperty(0,"w2", "w2", "Width 2");
+  let shift2 = new FloatProperty(0,"w2", "w2", "Width 2");
+
+  w1.baseUnit = w2.baseUnit = shift1.baseUnit = shift2.baseUnit = "none";
+  w1.displayUnit = w2.displayUnit = shift1.displayUnit = shift2.displayUnit = "none";
+
+  w1.update = shift1.update = w2.update = shift2.update = function(segment) {
+    g_app_state.ctx.spline.regen_sort();
+    segment.mat.update();
+    segment.flag |= SplineFlags.REDRAW;
+
+    window.redraw_viewport();
+  }
+
   SplineSegmentStruct = new DataStruct([
+    new DataPath(w1, "w1", "w1", true),
+    new DataPath(w2, "w2", "w2", true),
+    new DataPath(shift1, "shift1", "shift1", true),
+    new DataPath(shift2, "shift2", "shift2", true),
     new DataPath(new IntProperty(0, "eid", "eid", "eid"), "eid", "eid", true),
     new DataPath(flagprop, "flag", "flag", true),
     new DataPath(new BoolProperty(0, "renderable", "renderable"), "renderable", "renderable", true),

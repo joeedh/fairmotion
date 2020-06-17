@@ -946,6 +946,8 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
     let ctx = this.modal_ctx;
 
     let mpos = [e.x, e.y];
+    mpos = ctx.view2d.getLocalMouse(mpos[0], mpos[1]);
+
     this.mpos.load(mpos);
     
     let ret = ctx.view2d.editor.findnearest(mpos, SplineTypes.SEGMENT, 105);
@@ -970,20 +972,21 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
     
     this.reset_drawlines(ctx);
     
-    let steps = 16;
-    let ds = 1.0 / (steps - 1), s = ds;
-    let lastco = seg.evaluate(s);
+    let steps = Math.min(Math.max(seg.length / 20, 3, 18));
+    let ds = 1.0 / (steps - 1), s = 0;
+    let lastco;
 
     let view2d = ctx.view2d;
     let canvas = view2d.get_bg_canvas();
 
-    for (let i=1; i<steps; i++, s += ds) {
+    for (let i=0; i<steps; i++, s += ds) {
       let co = seg.evaluate(s);
 
       view2d.project(co);
-      co[1] = canvas.height - co[1];
 
-      this.new_drawline(lastco, co, [1, 0.3, 0.0, 1.0], 2);
+      if (i > 0) {
+        this.new_drawline(lastco, co, [1, 0.3, 0.0, 1.0], 2);
+      }
       lastco = co;
     }
     
@@ -1003,7 +1006,7 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
       p = new Vector2(p[0]);
       view2d.project(p);
 
-      let y = canvas.height - p[1];
+      let y = p[1];
       let w = 4;
       
       this.new_drawline([p[0]-w, y-w], [p[0]-w, y+w], "blue");

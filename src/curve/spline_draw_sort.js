@@ -25,115 +25,11 @@ import {ElementArray, SplineLayerFlags} from './spline_element_array.js';
 
 
 export function calc_string_ids(spline : Spline, startid=0) {
-  var string_idgen = startid;
-  
-  var tmp = new Array();
-  var visit = new set();
-  
-  for (var seg of spline.segments) {
-    seg.stringid = -1;
-  }
-  
-  for (var v of spline.verts) {
-    if (v.segments.length != 2) {
-      continue;
-    }
-    
-    var v2 = v, startv = v2, seg =  undefined;
-    var _i = 0;
-    
-    for (var j=0; j<v.segments.length; j++) {
-      if (!visit.has(v.segments[j].eid)) {
-        seg = v.segments[j];
-        break;
-      }
-    }
-    
-    if (seg == undefined) {
-      continue;
-    }
-    
-    do {
-      v2 = seg.other_vert(v2);
-      if (v2.segments.length != 2) {
-        break;
-      }
-      
-      seg = v2.other_segment(seg);
-      if (visit.has(seg.eid)) {
-        break;
-      }
-      
-      if (_i++ > 1000) {
-        console.trace("infinite loop detected!");
-        break;
-      }
-    } while (v2 != startv);
-    
-    //we've found one end of string, now go through whole string
-    var lastseg = undefined;
-    startv = v2;
-    
-    _i = 0;
-    do {
-      if (lastseg != undefined) {
-        var bad = true;
-        
-        //don't check z, it's implicitly set by owning
-        //faces
-        
-        //are we in the same layer?
-        for (var k1 in seg.layers) {
-          for (var k2 in lastseg.layers) {
-            if (k1 == k2) {
-              bad = false;
-              break;
-            }
-          }
-          
-          if (bad) {
-            break;
-          }
-        }
-        
-        //do we have the same stroke material?
-        bad = bad || !seg.mat.equals(true, lastseg.mat);
-        
-        if (bad) {
-          string_idgen++;
-        }
-      }
-      
-      if (visit.has(seg.eid)) {
-        break;
-      }
-      
-      seg.stringid = string_idgen;
-      visit.add(seg.eid);
-      
-      v2 = seg.other_vert(v2);
-      if (v2.segments.length != 2) {
-        break;
-      }
-      
-      lastseg = seg;
-      seg = v2.other_segment(seg);
-      
-      if (_i++ > 1000) {
-        console.trace("infinite loop detected!");
-        break;
-      }
-    } while (v2 != startv);
-  }
-  
-  //deal with orphaned segments
-  for (var seg of spline.segments) {
-    if (seg.stringid == -1) {
-      seg.stringid = string_idgen++;
+  for (let group of spline.drawStrokeGroups) {
+    for (let seg of group.segments) {
+      seg.stringid = startid + seg.id;
     }
   }
-  
-  return string_idgen;
 }
 
 export function sort_layer_segments(layer, spline) {
@@ -221,7 +117,7 @@ export function sort_layer_segments(layer, spline) {
   return list;
 }
 
-export function redo_draw_sort(spline) {
+export function redo_draw_sort(spline : Spline) {
   spline.redoSegGroups();
 
   var min_z = 1e14;
@@ -230,7 +126,29 @@ export function redo_draw_sort(spline) {
   
   console.log("start sort");
   var time = time_ms();
-  
+
+  let gmap = new Map();
+  let gsmap = new Map();
+  let gi = 0;
+  let gmaxz = new Map();
+
+  for (let g of spline.drawStrokeGroups) {
+    let maxz = -1e17;
+
+    for (let seg of g.segments) {
+      gsmap.set(seg, g);
+      gmap.set(seg, gi);
+      maxz = Math.max(maxz, seg.z);
+    }
+
+    for (let seg of g.segments) {
+      gmaxz.set(seg, maxz);
+    }
+
+    gmap.set(g, gi);
+    gi++;
+  }
+
   for (var f of spline.faces) {
     if (f.hidden && !(f.flag & SplineFlags.GHOST))
       continue;
@@ -262,9 +180,9 @@ export function redo_draw_sort(spline) {
     //XXX make segments always draw above their owning faces
     //giving edges their own order in this case gets too confusing
     if (check_face && e.type === SplineTypes.SEGMENT && e.l !== undefined) {
-      var l = e.l;
-      var _i = 0;
-      var f_max_z = calc_z(e, true);
+      let l = e.l;
+      let _i = 0;
+      let f_max_z = calc_z(e, true);
       
       do {
         if (_i++ > 1000) {
@@ -293,9 +211,11 @@ export function redo_draw_sort(spline) {
       console.log("Bad layer!", layer);
       return -1;
     }
-    
+
+    let z = gmaxz.get(e) || e.z;
+
     layer = layerset.idmap[layer];
-    return layer.order*(max_z-min_z) + (e.z-min_z);
+    return layer.order*(max_z-min_z) + (z-min_z);
   }
   
   function get_layer(e) {
@@ -374,8 +294,52 @@ export function redo_draw_sort(spline) {
     
     ll.push(lk);
   }
-  
+
+
+  let visit2 = new Set();
+  let list2 = [];
+
+  for (let item of spline.drawlist) {
+    if (item.type === SplineTypes.SEGMENT) {
+      let g = gsmap.get(item);
+
+      if (visit2.has(g))
+        continue;
+
+      visit2.add(g);
+      list2.push(g);
+
+      for (let seg of g.segments) {
+        for (let i=0; i<2; i++) {
+          let v = i ? seg.v2 : seg.v1;
+
+          if (v.segments.length > 2 && !visit2.has(v)) {
+            visit2.add(v);
+            list2.push(v);
+          }
+        }
+      }
+    } else {
+      list2.push(item);
+    }
+
+    spline.drawlist = list2;
+  }
+
   for (var i=0; i<spline.drawlist.length; i++) {
+    if (spline.drawlist[i] === undefined) {
+      let j = i;
+      console.warn("corrupted drawlist; fixing...");
+
+      while (j < spline.drawlist.length) {
+        spline.drawlist[j] = spline.drawlist[j+1];
+        j++;
+      }
+
+      spline.drawlist.length--;
+      i--;
+    }
+
     spline.drawlist[i].finalz = i;
   }
   

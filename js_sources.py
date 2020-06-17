@@ -100,7 +100,7 @@ sources = [
 
   "src/curve/curve.js",
   "src/curve/curvebase.js",
-  #"src/curve/bspline.js",
+  "src/curve/bspline.js",
   "src/curve/spline_math.js",
   "src/curve/spline_math_hermite.js",
   "src/curve/spline_element_array.js",

@@ -6,6 +6,8 @@ var PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,
     ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos,
     asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
 
+import * as bspline from './bspline.js';
+
 import {
   MinMax
 } from '../util/mathlib.js';
@@ -27,7 +29,7 @@ export * from './spline_base';
 import {MultiResLayer, has_multires, ensure_multires, decompose_id, compose_id}
         from './spline_multires.js';
         
-import {SplineTypes, SplineFlags, ClosestModes, RecalcFlags,
+import {SplineTypes, SplineFlags, ClosestModes, IsectModes, RecalcFlags,
         MaterialFlags, CustomDataLayer, CustomData, CustomDataSet,
         SplineElement, CurveEffect} from './spline_base.js';
         
@@ -40,6 +42,20 @@ import {
 
 let eval_ret_vs = cachering.fromConstructor(Vector2, 512);
 let evaluateSide_rets = cachering.fromConstructor(Vector2, 512);
+
+function bez3(a, b, c, t) {
+  var r1 = a + (b - a)*t;
+  var r2 = b + (c - b)*t;
+
+  return r1 + (r2 - r1)*t;
+}
+
+function bez4(a, b, c, d, t) {
+  var r1 = bez3(a, b, c, t);
+  var r2 = bez3(b, c, d, t);
+
+  return r1 + (r2 - r1)*t;
+}
 
 export class SplineVertex extends SplineElement {
   flag     : boolean
@@ -119,6 +135,21 @@ export class SplineVertex extends SplineElement {
         throw new Error("spline mesh integrity error");
 
       s.mat.update();
+    }
+
+
+    //don't allow independent sizing for two-valence vertices
+
+    if (this.segments.length === 2) {
+      let s1 = this.segments[0];
+      let s2 = this.segments[1];
+
+      let w1 = this === s1.v1 ? s1.w1 : s1.w2;
+      let w2 = this === s2.v1 ? s2.w1 : s2.w2;
+      let w = (w1 + w2)*0.5;
+
+      s1.setVertWidth(this, w);
+      s2.setVertWidth(this, w);
     }
   }
 
@@ -286,7 +317,7 @@ export class SplineVertex extends SplineElement {
     
     var v = s.handle_vertex(this);
     
-    var ret = v != undefined && (v.segments != undefined && v.segments.length > 2 || (v.flag & SplineFlags.USE_HANDLES));
+    var ret = v !== undefined && (v.segments !== undefined && v.segments.length > 2 || (v.flag & SplineFlags.USE_HANDLES));
     
     return ret;
   }
@@ -364,10 +395,10 @@ mixin(SplineVertex, Vector3);
 var derivative_cache_vs = cachering.fromConstructor(Vector3, 64);
 var closest_point_ret_cache_vs = cachering.fromConstructor(Vector3, 256);
 var closest_point_ret_cache = new cachering(function() {
-  return [0, 0];
+  return [0, 0, 0]; //co, s, sign
 }, 256);
 
-var closest_point_cache_vs = cachering.fromConstructor(Vector3, 64);
+var closest_point_cache_vs = cachering.fromConstructor(Vector3, 512);
 
 export class EffectWrapper extends CurveEffect {
   seg : SplineSegment;
@@ -418,7 +449,17 @@ export class EffectWrapper extends CurveEffect {
   }
 }
 
+let intersect_rets = new cachering(() => {return {
+  co : new Vector2(),
+  targetS  : 0,
+  sourceS  : 0
+}}, 512);
+
 let __static_minmax = new MinMax(2);
+let __angle_temp = cachering.fromConstructor(Vector2, 64);
+
+let bstmp1 = new Array(32);
+let bstmp2 = new Array(32);
 
 export class SplineSegment extends SplineElement {
   _evalwrap: EffectWrapper
@@ -492,10 +533,57 @@ export class SplineSegment extends SplineElement {
     }
   }
 
+  sinangle(v) {
+    if (v.segments.length === 2) {
+      let s1 = this;
+      let s2 = v.other_segment(s1);
+
+      let t1 = __angle_temp.next();
+      let t2 = __angle_temp.next();
+
+      let v1 = s1.other_vert(v);
+      let v2 = s2.other_vert(v);
+
+      t1.load(v1).sub(v);
+      t2.load(v2).sub(v);
+
+      if (t1.dot(t1) < 0.00001 || t2.dot(t2) < 0.00001) {
+        return 0.0;
+      }
+
+      t1.normalize();
+      t2.normalize();
+
+      let th = -(t1[0]*t2[1] - t1[1]*t2[0]);
+      let eps = 0.0001;
+      //th = t1.dot(t2);
+
+      th = th*(1.0 - eps*2.0) + eps*Math.sign(th);
+
+      //th = Math.sin(Math.acos(th));
+      //th = 1.0 - Math.abs(th);
+
+      return th;//Math.asin(th);
+    }
+
+    return 0.0;
+  }
+
   shift(s : number) : number {
     s = s*s*(3.0 - 2.0*s);
 
-    return this.shift1 + (this.shift2 - this.shift1)*s;
+    /*
+    let th1 = this.sinangle(this.v1);
+    let th2 = this.sinangle(this.v2);
+    let th = th1 + (th1 - th2)*s;
+
+    th *= 0.25;
+    //*/
+
+    let ret = this.shift1 + (this.shift2 - this.shift1)*s;
+    //ret += th;
+
+    return ret;
   }
 
   dshift(s : number) : number {
@@ -512,6 +600,21 @@ export class SplineSegment extends SplineElement {
     let b = this.width(s+df);
 
     return (b - a) / (2.0*df);
+  }
+
+  setVertWidth(v, w) {
+    if (w === undefined || isNaN(w)) {
+      console.warn("Got bad width data", w);
+    }
+
+    if (v === this.v1) {
+      this.w1 = w;
+    } else if (v === this.v2) {
+      this.w2 = w;
+    } else {
+      console.log(this, v, "bleh");
+      throw new Error("vertex not in edge " + v)
+    }
   }
 
   /*
@@ -534,7 +637,7 @@ export class SplineSegment extends SplineElement {
 
   widthFunction(s : number) : number {
     //if (window.dd === 1) {
-    s = (6 * s ** 2 - 15 * s + 10) * s ** 3; //degree 5 smoothstep
+    //s = (6 * s ** 2 - 15 * s + 10) * s ** 3; //degree 5 smoothstep
 
     //} else if (window.dd !== 2) {
     //  s = s*s*(3.0 - 2.0*s); //degree 3 smoothstep
@@ -543,7 +646,122 @@ export class SplineSegment extends SplineElement {
     return s;
   }
 
+  width2(s : number) : number {
+    //return this.w1 + (this.w2 - this.w1)*s;
+
+    let this2 = this;
+    let seg = this;
+    let v;
+    let len;
+
+    function walk() {
+      let lastv = v;
+
+      if (v.segments.length === 2) {
+        seg = v.other_segment(seg);
+        v = seg.other_vert(v);
+      }
+
+      //len = lastv.vectorDistance(v);
+      len = seg.length;
+      len = Math.max(len, 0.0001);
+
+      return (v === seg.v1 ? seg.w1 : seg.w2) * seg.mat.linewidth;
+    }
+
+    v = this.v1;
+    seg = this;
+
+    let l0b, l0, l1, l2, l3, l4, l5, l6, l7, l8;
+
+
+    l3 = Math.max(seg.length, 0.0001);
+    l4 = l3;
+
+    let w3 = this.w1*this.mat.linewidth;
+    let w2 = walk(); l2 = len;
+    let w1 = walk(); l1 = len;
+    let w0 = walk(); l0 = len;
+    let w0b = walk(); l0b = len;
+
+    //let w1 = walk();
+
+
+    seg = this;
+    v = this.v2;
+
+    let w4 = this.w2*this.mat.linewidth;
+    let w5 = walk(); l5 = len;
+    let w6 = walk(); l6 = len;
+    let w7 = walk(); l7 = len;
+    let w8 = walk(); l8 = len;
+    seg = this;
+
+    //let w8 = walk();
+
+    let ks = bstmp1;
+    let ws = bstmp2;
+
+    bstmp1.length = 5;
+    bstmp2.length = 5;
+
+    ks[0] = -l0-l1-l2;
+    ks[1] = -l1-l2;
+    ks[2] = -l2;
+    ks[3] = 0;
+    ks[4] = l4;
+    ks[5] = l4+l5;
+    ks[6] = l4+l5+l6
+    ks[7] = l4+l5+l6+l7;
+
+    ws[0] = w2;
+    ws[1] = w3;
+    ws[2] = w4;
+    ws[3] = w5;
+    ws[4] = w6;
+    ws[5] = w7;
+    ws[6] = w8;
+    //ws[7] = w9;
+
+    if (l4 === 0.0) {
+      return 0.0;
+    }
+
+    s *= l4;
+
+    let sum = 0.0;
+
+    sum = bspline.deBoor(3, s, ks, ws, 3);
+
+    for (let i=0; i<0; i++) {
+      let w =  bspline.basis(s, i, 3, ks, true);
+
+      if (isNaN(w)) {
+        console.warn(ks, ws);
+        throw new Error("NaN");
+      }
+      sum += w*ws[i];
+    }
+
+    return sum;
+    return w3 + (w4 - w3)*s;
+
+    //k3=k4 = 0.0;
+    return (w2*k2 + w3*k3 + w4*k4 + w5*k5) / (k2 + k3 + k4 + k5);
+
+
+    let d1 = (w4 - w2) / l2 / (l2+l3) * 0.5;
+    let d2 = (w5 - w3) / l5 / (l4+l5) * 0.5;
+
+    d1 /= 3.0;
+    d2 /= 3.0;
+
+    return bez4(w3, w3+d1, w4-d2, w4, s);
+  }
+
   width(s : number) : number {
+    return this.width2(s);
+
     s = this.widthFunction(s);
 
     let wid1 = this.mat.linewidth;
@@ -617,8 +835,96 @@ export class SplineSegment extends SplineElement {
     
     min[2] = max[2] = 0.0; //XXX need to get rid of z
   }
-  
-  closest_point(p : Vector2, mode : ClosestModes, fast : boolean=false) : Object {
+
+  intersect(seg, side1=0, side2=0, mode=IsectModes.CLOSEST) {
+    let steps = 5;
+    let lastco = undefined, lastno;
+
+    let p1 = new Vector2();
+    let p2 = new Vector2();
+    let p3 = new Vector2();
+    let p4 = new Vector2();
+
+    let mindis = undefined;
+    let minret = new Vector2();
+    let mins, mins2;
+
+    let s = 0, ds = 1.0 / (steps-1);
+
+    for (let i=0; i<steps; i++, s += ds) {
+      let s1 = s, s2 = s + ds;
+
+      let co1 = this.evaluateSide(s1, side1);
+      let co2 = this.evaluateSide(s2, side1);
+
+      let cl1 = seg.closest_point(co1, ClosestModes.CLOSEST, undefined, side2);
+      let cl2 = seg.closest_point(co2, ClosestModes.CLOSEST, undefined, side2);
+
+      let p1 = cl1[0];
+      let p2 = cl2[0];
+      if (cl1[2] !== cl2[2]) {
+        for (let bi=0; bi<2; bi++) {
+          let s3 = (s1 + s) * 0.5;
+          let s4 = (s2 + s) * 0.5;
+
+          for (let j = 0; j < 2; j++) {
+            let s5 = j ? s4 : s3;
+
+            let co3 = this.evaluateSide(s5, side1);
+            let cl3 = seg.closest_point(co3, ClosestModes.CLOSEST, undefined, side2);
+
+            if (cl3[2] !== cl1[2]) {
+              s2 = s5;
+              break;
+            } else if (cl3[2] !== cl2[2]) {
+              s1 = s5;
+              break;
+            }
+          }
+
+          s = (s1 + s2) * 0.5;
+        }
+
+        co1 = this.evaluateSide(s1, side1);
+        cl1 = seg.closest_point(co1, ClosestModes.CLOSEST, undefined, side2);
+        let dis1
+
+        if (mode === IsectModes.START) {
+          dis1 = cl1[1];
+        } else if (mode === IsectModes.END) {
+          dis1 = 1.0 - cl1[1];
+        } else if (mode === IsectModes.ENDSTART) {
+          dis1 = 1.0 - Math.abs(cl1[1] - 0.5)*2.0;
+        } else {
+          dis1 = co1.vectorDistance(cl1[0]);
+        }
+
+        if (mindis === undefined || dis1 < mindis) {
+          minret.load(co1);
+          mins = cl1[1];
+          mins2 = s1;
+          mindis = dis1;
+        }
+      }
+    }
+
+    if (mindis !== undefined) {
+      let ret = intersect_rets.next();
+
+      ret.co.load(minret);
+      ret.targetS = mins;
+      ret.sourceS = mins2;
+
+      return ret;
+    }
+
+    return undefined;
+  }
+
+  /**
+   @widthSide if undefined, stroke boundary with be evaluated; should be 0 or 1 (or undefined)
+   */
+  closest_point(p : Vector2, mode : ClosestModes, fast : boolean=false, widthSide=undefined) : Object {
     var minret = undefined, mindis = 1e18, maxdis=0;
     
     var p2 = closest_point_cache_vs.next().zero();
@@ -636,7 +942,11 @@ export class SplineSegment extends SplineElement {
     
     if (mode === ClosestModes.ALL)
       minret = [];
-    
+
+    let d1 = closest_point_cache_vs.next();
+    let d2 = closest_point_cache_vs.next();
+    let dm = closest_point_cache_vs.next();
+
     for (var i=0; i<steps; i++, s += ds) {
       var start = s-0.00001, end = s+ds+0.00001;
       
@@ -651,17 +961,29 @@ export class SplineSegment extends SplineElement {
       var steps = fast ? 5 : 20;
       for (var j=0; j<steps; j++) {
         mid = (start+end)*0.5;
-        
-        var co = this.evaluate(mid, undefined, undefined, undefined, true);
-        var sco = this.evaluate(start, undefined, undefined, undefined, true);
-        var eco = this.evaluate(end, undefined, undefined, undefined, true);
+
+        let co, sco, eco;
+
+        if (widthSide !== undefined) {
+          co = this.evaluateSide(start, widthSide, undefined, d1);
+          sco = this.evaluateSide(mid, widthSide, undefined, dm);
+          eco = this.evaluateSide(end, widthSide, undefined, d2);
+
+          d1.normalize();
+          d2.normalize();
+          dm.normalize();
+        } else {
+          co = this.evaluate(mid, undefined, undefined, undefined, true);
+          sco = this.evaluate(start, undefined, undefined, undefined, true);
+          eco = this.evaluate(end, undefined, undefined, undefined, true);
+
+          d1.load(this.normal(start, true).normalize());
+          dm.load(this.normal(mid, true).normalize());
+          d2.load(this.normal(end, true).normalize());
+        }
 
         sco[2] = eco[2] = co[2] = 0.0;
 
-        var d1 = this.normal(start, true).normalize();
-        var d2 = this.normal(end, true).normalize();
-        var dm = this.normal(mid, true).normalize();
-        
         n1.load(sco).sub(p).normalize();
         n2.load(eco).sub(p).normalize();
         n.load(co).sub(p);
@@ -729,11 +1051,21 @@ export class SplineSegment extends SplineElement {
         continue;
         
       //make sure angle is close enough to 90 degrees for our purposes. . .
-      var co = this.evaluate(mid, undefined, undefined, undefined, true);
-      n1.load(this.normal(mid, true)).normalize();
+      let co;
+
+      if (widthSide) {
+        co = this.evaluateSide(mid, widthSide, undefined, n1);
+        n1.normalize();
+      } else {
+        co = this.evaluate(mid, undefined, undefined, undefined, true);
+        n1.load(this.normal(mid, true)).normalize();
+      }
+
       n2.load(co).sub(p).normalize();
-      
+      let sign = 1.0;
+
       if (n2.dot(n1) < 0) {
+        sign = -1.0;
         n2.negate();
       }
       
@@ -748,29 +1080,34 @@ export class SplineSegment extends SplineElement {
       
       //did we come up empty?
       var dis = co.vectorDistance(p);
+
       if (mode === ClosestModes.CLOSEST) {
         if (dis < mindis) {
           minret[0] = closest_point_cache_vs.next().load(co);
           minret[1] = mid;
+          minret[2] = sign;
           mindis = dis;
         }
       } else if (mode === ClosestModes.START) {
         if (mid < mindis) {
           minret[0] = closest_point_cache_vs.next().load(co);
           minret[1] = mid;
+          minret[2] = sign;
           mindis = mid;
         }
       } else if (mode === ClosestModes.END) {
         if (mid > maxdis) {
           minret[0] = closest_point_cache_vs.next().load(co);
           minret[1] = mid;
+          minret[2] = sign;
           maxdis = mid;
         }
       } else if (mode === ClosestModes.ALL) {
         var ret = closest_point_ret_cache.next();
         ret[0] = closest_point_cache_vs.next().load(co);
         ret[1] = mid;
-        
+        ret[2] = sign;
+
         minret.push(ret);
       }
     }
@@ -781,16 +1118,20 @@ export class SplineSegment extends SplineElement {
       minret = closest_point_ret_cache.next();
       minret[0] = closest_point_cache_vs.next().load(dis1 < dis2 ? this.v1 : this.v2);
       minret[1] = dis1 < dis2 ? 0.0 : 1.0;
+      minret[2] = 1.0;
     } else if (minret === undefined && mode === ClosestModes.START) {
       minret = closest_point_ret_cache.next();
       minret[0] = closest_point_cache_vs.next().load(this.v1);
       minret[1] = 0.0;
+      minret[2] = 1.0;
     } if (minret === undefined && mode === ClosestModes.END) {
       minret = closest_point_ret_cache.next();
       minret[0] = closest_point_cache_vs.next().load(this.v2);
       minret[1] = 1.0;
+      minret[2] = 1.0;
     }
-    
+
+
     return minret;
   }
   

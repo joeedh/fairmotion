@@ -741,6 +741,12 @@ class hashtable {
     this.keymap = {};
     this.length = 0;
   }
+
+  forEach(cb, thisvar) {
+    for (let k of this) {
+      cb.call(thisvar, k);
+    }
+  }
   
   add(key : Object, item : Object) {
     if (!this.items.hasOwnProperty(key[Symbol.keystr]())) 
@@ -798,7 +804,7 @@ class hashtable {
   }
 
   has(item : Object) : boolean {
-    if (item == undefined)
+    if (item === undefined)
       console.trace();
     return this.items.hasOwnProperty(item[Symbol.keystr]())
   }

@@ -4,6 +4,8 @@ import {util, nstructjs, cconst, Vector3, Vector4, Vector2, Matrix4, Quat} from 
 import {SplineSegment, SplineVertex, SplineTypes, SplineFlags,
         SplineFace, SplineElement} from "./spline_types.js";
 
+import {SplineLayerFlags} from './spline_element_array.js';
+
 let hashcache = util.cachering.fromConstructor(util.HashDigest, 8);
 
 export class SplineStrokeGroup {
@@ -97,10 +99,37 @@ export function splitSegmentGroups(spline : Spline) {
   let c1 = new Vector4();
   let c2 = new Vector4();
 
+  function visible(seg) {
+    let hide = seg.flag & SplineFlags.HIDE;
+    hide = hide || (seg.flag & SplineFlags.NO_RENDER);
+
+    if (hide)
+      return false;
+
+    for (let k in seg.layers) {
+      if (spline.layerset.get(k).flag & SplineLayerFlags.HIDE) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   for (let group of spline.strokeGroups) {
     let seg = group.segments[0];
-    let segs = [];
 
+    let i = 0;
+    while (i < group.segments.length && !visible(group.segments[i])) {
+      i++;
+    }
+
+    if (i === group.segments.length) {
+      continue;
+    }
+
+    seg = group.segments[i];
+
+    let segs = [];
     for (let s of group.segments) {
       let mat1 = seg.mat;
       let mat2 = s.mat;
@@ -110,6 +139,16 @@ export function splitSegmentGroups(spline : Spline) {
 
       let bad = Math.abs(mat1.blur - mat2.blur) > 0.01;
       bad = bad || c1.vectorDistance(c2) > 0.01;
+      bad = bad || !visible(s);
+
+      let layerbad = true;
+      for (let k in s.layers) {
+        if (k in seg.layers) {
+          layerbad = false;
+        }
+      }
+
+      bad = bad || layerbad;
 
       if (bad && segs.length > 0) {
         let hash = SplineStrokeGroup.calcHash(segs);
@@ -124,7 +163,7 @@ export function splitSegmentGroups(spline : Spline) {
           }
         } else {
           group = new SplineStrokeGroup(segs);
-          group.id = spline.strokeGroupIdgen.gen_id();
+          group.id = spline.idgen.gen_id();
         }
 
         spline._drawStrokeGroupMap.set(hash, group);
@@ -149,7 +188,7 @@ export function splitSegmentGroups(spline : Spline) {
         }
       } else {
         group2 = new SplineStrokeGroup(segs);
-        group2.id = spline.strokeGroupIdgen.gen_id();
+        group2.id = spline.idgen.gen_id();
       }
 
       spline._drawStrokeGroupMap.set(hash, group2);
@@ -232,7 +271,7 @@ export function buildSegmentGroups(spline : Spline) {
           group.segments[i] = spline.eidmap[group.eids[i]];
         }
       } else {
-        group.id = spline.strokeGroupIdgen.gen_id();
+        group.id = spline.idgen.gen_id();
       }
 
       if (!spline._strokeGroupMap.has(group.hash)) {
@@ -257,4 +296,4 @@ export function buildSegmentGroups(spline : Spline) {
 }
 
 
-import {Spline} from './spline.js';
+//import {Spline} from './spline.js';

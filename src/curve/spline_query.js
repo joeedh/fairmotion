@@ -24,7 +24,7 @@ export class SplineQuery {
     //[data, distance, type]
     if (selectmask & SelMask.VERTEX) {
       var ret = this.findnearest_vert(editor, mpos, limit, undefined, ignore_layers);
-      if (ret != undefined && ret[1] < dis) {
+      if (ret !== undefined && ret[1] < dis) {
         data = ret;
         dis = ret[1];
       }
@@ -32,7 +32,7 @@ export class SplineQuery {
 
     if (selectmask & SelMask.HANDLE) {
       var ret = this.findnearest_vert(editor, mpos, limit, true, ignore_layers);
-      if (ret != undefined && ret[1] < dis) {
+      if (ret !== undefined && ret[1] < dis) {
         data = ret;
         dis = ret[1];
       }
@@ -41,7 +41,7 @@ export class SplineQuery {
     if (selectmask & SelMask.SEGMENT) {
       var ret = this.findnearest_segment(editor, mpos, limit, ignore_layers);
       
-      if (ret != undefined && ret[1] < dis) {
+      if (ret !== undefined && ret[1] < dis) {
         data = ret;
         dis = ret[1];
       }
@@ -75,20 +75,26 @@ export class SplineQuery {
     
     for (var seg of spline.segments) {
       var ret = seg.closest_point(mpos, undefined, true);
-      if (ret == undefined) continue;
+      if (ret === undefined) continue;
+
+      let s = ret[1];
       ret = ret[0];
 
       if (seg.hidden || seg.v1.hidden || seg.v2.hidden) continue;
       if (!ignore_layers && !seg.in_layer(actlayer)) continue;
       
       var dis = sqrt((ret[0]-mpos[0])*(ret[0]-mpos[0]) + (ret[1]-mpos[1])*(ret[1]-mpos[1]));
+      let width = seg.width(s)*0.5;
+
+      dis = Math.max(dis - width, 0.0);
+
       if (dis < mindis) {
         sret = seg;
         mindis = dis;
       }
     }
     
-    if (sret != undefined)
+    if (sret !== undefined)
       return [sret, mindis, SelMask.SEGMENT];
   }
   

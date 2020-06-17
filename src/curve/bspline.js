@@ -235,11 +235,11 @@ export class BasisCache {
       this.recalc = 1;
   }
     
-basis(s, j, n, ks, no_cache) {
+  basis(s, j, n, ks, no_cache) {
     var origs = s;
     
-    if (NO_CACHE || (no_cache != undefined && no_cache)) {
-        return basis(s, j, n, ks);
+    if (NO_CACHE || (no_cache !== undefined && no_cache)) {
+        return basis(s, j, n, ks, true);
     }
 
     if (this.recalc) {
@@ -527,8 +527,62 @@ export function basis_dv(s, j, n, ks, dvn) {
 }
 
 var min = Math.min, max=Math.max;
-export function basis(s, j, n, ks) {
-    return compiled_basis(s, j, n, ks);
+
+let dtmp = new Array(64);
+let ktmp = new Array(64);
+
+/*
+from: https://en.wikipedia.org/wiki/De_Boor%27s_algorithm
+
+Evaluates S(x).
+
+Arguments
+---------
+  k: Index of knot interval that contains x.
+  x: Position.
+  t: Array of knot positions, needs to be padded as described above.
+  c: Array of control points.
+  p: Degree of B-spline.
+*/
+export function deBoor(k: int, x: number, knots : Array<number>, controls : Array<number>, degree : int) : number {
+  let p = degree;
+
+  //pad knot vector
+  /*
+  for (i=0; i<p; i++) {
+    ktmp[i] = knots[0];
+    ktmp[knots.length+p+i] = knots[knots.length-1];
+  }
+  for (let i=0; i<knots.length; i++) {
+    ktmp[i+p] = knots[i];
+  }
+  knots = ktmp;
+  */
+
+  let t = knots;
+  let c = controls;
+
+  //d = [c[j + k - p] for j in range(0, p+1)]
+  let d = dtmp;
+  for (let j=0; j<p+1; j++) {
+    let j2 = Math.min(Math.max(j+k-p, 0), knots.length-1);
+    d[j] = c[j2];
+  }
+
+  for (let r=1; r<p+1; r++) {
+    for (let j = p; j > r-1; j--) {
+      let alpha = (x - t[j+k-p]) / (t[j+1+k-r] - t[j+k-p])
+      d[j] = (1.0 - alpha) * d[j-1] + alpha * d[j]
+    }
+  }
+
+  return d[p];
+}
+
+export function basis(s, j, n, ks, no_cache=false) {
+    //if (!no_cache) {
+      return compiled_basis(s, j, n, ks);
+    //}
     
     var klen = ks.length;
     var j1 = j, j2 = j+1, jn=j+n, jn1=j+n+1;
@@ -538,7 +592,7 @@ export function basis(s, j, n, ks) {
     jn = min(max(jn, 0.0), klen-1);
     jn1 = min(max(jn1, 0.0), klen-1);
     
-    if (n == 0) {
+    if (n === 0) {
         return s >= ks[j1] && s < ks[j2];
     } else {
         var A = s-ks[j1];
@@ -581,7 +635,7 @@ function set_hash(h, val) {
 }
 
 export function uniform_basis(s, j, n, len) {
-    uniform_vec.length = len == undefined ? 1024 : len;
+    uniform_vec.length = len === undefined ? 1024 : len;
     
     return basis(s, j, n, uniform_vec);
     
@@ -1665,9 +1719,10 @@ function make_cache_table(maxknotsize, make_dvs) {
     return basis_caches1;
 }
 
-var basis_caches = make_cache_table(256, false);
-var basis_caches_dv = make_cache_table(256, true);
-var DV_JADD = 0.0;
+export const basis_caches = make_cache_table(256, false);
+export const basis_caches_dv = make_cache_table(256, true);
+export const DV_JADD = 0.0;
+
 
 window.load_seven = function() {
     for (var k in basis_json) {
@@ -1678,7 +1733,7 @@ window.load_seven = function() {
             continue;
         
         console.log(k);
-        if (k[1] == "7") {
+        if (k[1] === "7") {
             console.log("found!", k);
             var hash = ""+0+"|"+7+"|"+2+"|"+k[3];
             myLocalStorage[hash] = basis_json[k1];
@@ -1769,11 +1824,11 @@ export function get_basis_func(j, n, klen) {
     
     var ret = basis_caches[n][KLEN][j];
 
-    if (ret == undefined) {
+    if (ret === undefined) {
         var hash = "bs:"+n; //+"|"+klen;
         var s = myLocalStorage[hash]; //get_cache(hash);
         
-        if (s == undefined || s == "undefined") {
+        if (s === undefined || s === "undefined") {
             console.log("storing basis function. . .");
             var tree = gen_basis_code(j, n, klen);
             s = optimize(tree)[2];

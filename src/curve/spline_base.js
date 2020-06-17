@@ -16,13 +16,13 @@ export const MaterialFlags = {
   MASK_TO_FACE : 2
 };
 
-export var RecalcFlags = {
+export const RecalcFlags = {
   DRAWSORT : 1,
   SOLVE    : 2,
   ALL      : 1|2
 }
 
-export var SplineFlags = {
+export const SplineFlags = {
   SELECT          : 1,
   BREAK_TANGENTS  : 2,
   USE_HANDLES     : 4,
@@ -44,7 +44,7 @@ export var SplineFlags = {
   REDRAW          : 1 << 23
 };
 
-export var SplineTypes= {
+export const SplineTypes= {
   VERTEX  : 1,
   HANDLE  : 2,
   SEGMENT : 4,
@@ -53,11 +53,18 @@ export var SplineTypes= {
   ALL     : 31
 };
 
-export var ClosestModes = {
+export const ClosestModes = {
   CLOSEST : 0,
   START   : 1,
   END     : 2,
   ALL     : 3
+};
+
+export const IsectModes = {
+  CLOSEST  : 0,
+  START    : 1,
+  END      : 2,
+  ENDSTART : 3
 };
 
 export class empty_class {

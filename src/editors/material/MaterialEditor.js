@@ -412,6 +412,13 @@ export class MaterialEditor extends Editor {
       set_prefix + ".mat.flag[MASK_TO_FACE]");
 
 
+    panel2 = panel2.panel("Double Stroking");
+    panel2.prop("spline.active_segment.mat.strokecolor2", undefined,
+      set_prefix + ".mat.strokecolor2");
+
+    panel2.prop("spline.active_segment.mat.linewidth2", undefined,
+      set_prefix + ".mat.linewidth2");
+
     panel.prop("spline.active_segment.w1", undefined, set_prefix + ".w1");
     panel.prop("spline.active_segment.w2", undefined, set_prefix + ".w2");
     panel.prop("spline.active_segment.shift1", undefined, set_prefix + ".shift1");

@@ -1,5 +1,6 @@
 import {DataTypes} from '../lib_api.js';
-import {EditModes, View2DHandler} from '../../editors/viewport/view2d.js';
+import {View2DHandler} from '../../editors/viewport/view2d.js';
+import {EditModes, SessionFlags} from '../../editors/viewport/view2d_base.js';
 import {ImageFlags, Image, ImageUser} from '../imageblock.js';
 import {AppSettings} from '../UserSettings.js';
 import {FullContext} from "../context.js";
@@ -79,6 +80,7 @@ selmask_enum.userSetData = function(prop, val) {
 };
 
 import * as data_api from './data_api.js';
+import {PropFlags} from "../../path.ux/scripts/pathux.js";
 
 var DataPath = data_api.DataPath;
 var DataStruct = data_api.DataStruct;
@@ -401,7 +403,22 @@ function api_define_view2d() {
     redraw_viewport();
   };
 
+  let sessionflags = new FlagProperty(undefined, SessionFlags, "session_flag", "Session Flags");
+  sessionflags.addIcons({
+    PROP_TRANSFORM : Icons.PROP_TRANSFORM
+  });
+
+  let proprad = new FloatProperty(0, "propradius", "Magnet Radius", "Magnet Radius");
+  proprad.baseUnit = proprad.displayUnit = "none";
+  proprad.range = [0.1, 1024];
+  proprad.expRate = 1.75;
+  proprad.step = 0.5;
+  proprad.decimalPlaces = 2;
+  proprad.flag &= ~PropFlags.SIMPLE_SLIDER;
+  proprad.flag |= PropFlags.FORCE_ROLLER_SLIDER;
+
   window.View2DStruct = new DataStruct([
+    new DataPath(proprad, "propradius", "propradius", true),
     new DataPath(edit_all_layers, "edit_all_layers", "edit_all_layers", true),
     new DataPath(half_pix_size, "half_pix_size", "half_pix_size", true),
     new DataPath(background_color, "background_color", "background_color", true),
@@ -413,6 +430,7 @@ function api_define_view2d() {
     new DataPath(selmask_mask.copy(), "selectmask", "selectmode", true),
     new DataPath(only_render, "only_render", "only_render", true),
     new DataPath(draw_bg_image, "draw_bg_image", "draw_bg_image", true),
+    new DataPath(sessionflags, "session_flag", "session_flag", true),
     new DataPath(tweak_mode, "tweak_mode", "tweak_mode", true),
     new DataPath(enable_blur, "enable_blur", "enable_blur", true),
     new DataPath(draw_faces, "draw_faces", "draw_faces", true),
@@ -454,8 +472,14 @@ function api_define_material() {
   linewidth.expRate = 1.75;
   //linewidth.baseUnit = linewidth.displayUnit = "none";
   linewidth.step = 0.25;
-  
-  fillclr.update = strokeclr.update = linewidth.update = blur.update = update_base;
+
+  var linewidth2 = new FloatProperty(1, "linewidth2", "linewidth2", "Double Stroke Width");
+  linewidth2.range = [0.1, 200];
+  linewidth2.expRate = 1.75;
+  //linewidth2.baseUnit = linewidth2.displayUnit = "none";
+  linewidth2.step = 0.25;
+
+  fillclr.update = strokeclr.update = linewidth.update = linewidth2.update = blur.update = update_base;
   
   //fillclr.flag |= TPropFlags.USE_UNDO;
   //strokeclr.flag |= TPropFlags.USE_UNDO;
@@ -464,12 +488,14 @@ function api_define_material() {
   MaterialStruct = new DataStruct([
     new DataPath(fillclr, "fillcolor", "fillcolor", true),
     new DataPath(linewidth, "linewidth", "linewidth", true),
+    new DataPath(linewidth2, "linewidth2", "linewidth2", true),
     new DataPath(flag, "flag", "flag", true)
   ], Material);
   
   MaterialStruct.Color4("strokecolor", "strokecolor", "Stroke", "Stroke color").OnUpdate(update_base);
   MaterialStruct.Float("blur", "blur", "Blur", "Amount of blur").Range(0, 800).Step(0.5).OnUpdate(update_base);
-  
+  MaterialStruct.Color4("strokecolor2", "strokecolor2", "Double Stroke", "Stroke color").OnUpdate(update_base);
+
   return MaterialStruct;
 }
 

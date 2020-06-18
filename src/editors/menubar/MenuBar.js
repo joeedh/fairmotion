@@ -81,6 +81,9 @@ export class MenuBar extends Editor {
 
     let paths = g_app_state.settings.recent_paths;
 
+    paths = list(paths);
+    paths.reverse();
+    
     for (let p of paths) {
       let name = p.displayname;
       let id = p.path;

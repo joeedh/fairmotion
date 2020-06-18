@@ -1,5 +1,6 @@
 import {FullContext} from "../../core/context.js";
 import {Editor} from '../editor_base.js';
+import {SessionFlags} from "./view2d_editor.js";
 import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
 import {patchMouseEvent, ToolOp, UndoFlags} from '../../core/toolops_api.js';
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
@@ -81,6 +82,7 @@ export class View2DHandler extends Editor {
   cameramat   : Matrix4
   background_image : ImageUser
   zoom : number;
+  propradius        : number;
 
   static STRUCT     : string
   rendermat         : Matrix4
@@ -100,6 +102,8 @@ export class View2DHandler extends Editor {
 
   constructor() {
     super();
+
+    this.propradius = 35;
 
     this._last_mpos = new Vector2();
 
@@ -762,6 +766,7 @@ export class View2DHandler extends Editor {
     row.prop("view2d.edit_all_layers");
     row.prop("view2d.default_linewidth");
     row.prop("view2d.default_stroke");
+    row.prop("view2d.propradius");
 
     row = container.row();
     row.noMargins();
@@ -774,6 +779,7 @@ export class View2DHandler extends Editor {
 
     row.prop("view2d.only_render");
     row.prop("view2d.draw_small_verts");
+    row.prop("view2d.session_flag[PROP_TRANSFORM]");
     row.prop("view2d.draw_normals");
     row.prop("view2d.draw_anim_paths");
     row.prop("view2d.enable_blur");
@@ -1373,6 +1379,8 @@ export class View2DHandler extends Editor {
 View2DHandler.STRUCT = STRUCT.inherit(View2DHandler, Area) + `
   _id             : int;
   _selectmode     : int;
+  propradius      : float;
+  session_flag    : int;
   rendermat       : mat4;
   irendermat      : mat4;
   half_pix_size   : bool;

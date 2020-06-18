@@ -257,7 +257,7 @@ export class TransformOp extends ToolOp {
     
     var found=false;
     for (var i=0; i<this.types; i++) {
-      if (this.types[i] == TransSplineVert) {
+      if (this.types[i] === TransSplineVert) {
         found = true;
         break;
       }
@@ -290,13 +290,15 @@ export class TransformOp extends ToolOp {
     if (this.inputs.proportional.data) {
       var rad = this.inputs.propradius.data;
       
-      var steps = 64, t = -Math.PI; dt = (Math.PI*2.0)/(steps-1);
+      var steps = 64, t = -Math.PI, dt = (Math.PI*2.0)/(steps-1);
       var td = this.transdata;
       
       var v1 = new Vector3(), v2 = new Vector3();
       var r = this.inputs.propradius.data;
-      var cent = td.center;
-      
+      var cent = new Vector2(td.center);
+
+      ctx.view2d.project(cent);
+
       for (var i=0; i<steps-1; i++, t += dt) {
         v1[0] = Math.sin(t)*r + cent[0];
         v1[1] = Math.cos(t)*r + cent[1];
@@ -305,6 +307,7 @@ export class TransformOp extends ToolOp {
         v2[1] = Math.cos(t+dt)*r + cent[1];
         
         var dl = this.new_drawline(v1, v2);
+
         dl.clr[0] = dl.clr[1] = dl.clr[2] = 0.1;
         dl.clr[3] = 0.01;
         

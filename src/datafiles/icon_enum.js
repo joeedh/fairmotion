@@ -64,5 +64,6 @@ window.Icons = {
   LARGE_CHECK      : 60,
   HALF_PIXEL_SIZE  : 61,
   PEN_TOOL         : 62,
-  STROKE_TOOL      : 63
+  STROKE_TOOL      : 63,
+  PROP_TRANSFORM   : 64
 };

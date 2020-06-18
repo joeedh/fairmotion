@@ -31,6 +31,7 @@ var canvaspath_draw_vs = new cachering(function() {
 
 let MOVETO = OPCODES.MOVETO, BEZIERTO=OPCODES.QUADRATIC, LINETO=OPCODES.LINETO, BEGINPATH=OPCODES.BEGINPATH,
     CUBICTO=OPCODES.CUBIC, CLOSEPATH = OPCODES.CLOSEPATH;
+var LINEWIDTH = OPCODES.LINEWIDTH, LINESTYLE = OPCODES.LINESTYLE, STROKE = OPCODES.STROKE;
 
 let arglens = {};
 
@@ -503,7 +504,19 @@ export class CanvasPath extends QuadBezPath {
     this.first = true;
     this._mm = new MinMax(2);
   }
-  
+
+  pushStroke(color, width) {
+    if (color) {
+      let a = color.length > 3 ? color[3] : 1.0;
+      this._pushCmd(LINESTYLE, ~~(color[0]*255), ~~(color[1]*255), ~~(color[2]*255), a);
+    }
+
+    if (width !== undefined) {
+      this._pushCmd(LINEWIDTH, width);
+    }
+    this._pushCmd(STROKE);
+  }
+
   update_aabb(draw, fast_mode=false) {
     var tmp = canvaspath_temp_vs.next().zero();
     var mm = this._mm;

@@ -1510,7 +1510,7 @@ export class SplineSegment extends SplineElement {
     super.loadSTRUCT(reader);
 
     this.flag &= ~(SplineFlags.UPDATE|SplineFlags.REDRAW);
-    
+
     //XXX this is kind of hackish, seting a callback this way
     this.mat.update = this._material_update.bind(this);
   }
@@ -1771,8 +1771,9 @@ SplineFace.STRUCT = STRUCT.inherit(SplineFace, SplineElement) + `
 `;
 
 export class Material {
-  fillcolor : Array<number>
-  strokecolor : Array<number>
+  fillcolor : Vector4
+  strokecolor : Vector4
+  strokecolor2 : Vector4
   linewidth : number
   flag : number
   opacity : number
@@ -1782,7 +1783,9 @@ export class Material {
   constructor() {
     this.fillcolor = new Vector4([0, 0, 0, 1]);
     this.strokecolor = new Vector4([0, 0, 0, 1]);
+    this.strokecolor2 = new Vector4([0, 0, 0, 1]);
     this.linewidth = 2.0;
+    this.linewidth2 = 0.0;
     
     this.flag = 0;
     
@@ -1824,12 +1827,14 @@ export class Material {
     for (var i=0; i<4; i++) {
       this.fillcolor[i] = mat.fillcolor[i];
       this.strokecolor[i] = mat.strokecolor[i];
+      this.strokecolor2[i] = mat.strokecolor2[i];
     }
     
     this.opacity = mat.opacity;
     this.linewidth = mat.linewidth;
     this.fill_over_stroke = mat.fill_over_stroke;
     this.blur = mat.blur;
+    this.linewidth2 = mat.linewidth2;
     
     this.flag = mat.flag;
     
@@ -1870,9 +1875,11 @@ Material.STRUCT = `
   Material {
     fillcolor        : vec4;
     strokecolor      : vec4;
+    strokecolor2     : vec4;
     opacity          : float;
     fill_over_stroke : int;
     linewidth        : float;
+    linewidth2       : float;
     blur             : float;
     flag             : int;
   }

@@ -46,7 +46,7 @@ var canvaspath_draw_vs = new cachering(function() {
 
 var CCMD=0, CARGLEN=1;
 
-var MOVETO = 0, BEZIERTO=1, LINETO=2, BEGINPATH=3, CUBICTO=4;
+var MOVETO = 0, BEZIERTO=1, LINETO=2, BEGINPATH=3, CUBICTO=4, LINEWIDTH=5, LINESTYLE=6, STROKE=7;
 
 var NS = "http://www.w3.org/2000/svg";
 var XLS = "http://www.w3.org/1999/xlink"
@@ -136,6 +136,18 @@ export class SimpleSkiaPath extends QuadBezPath {
   beginPath() {
     this.path_start_i = this.commands.length;
     this._pushCmd(BEGINPATH);
+  }
+
+  pushStroke(color, width) {
+    if (color) {
+      let a = color.length > 3 ? color[3] : 1.0;
+      this._pushCmd(LINESTYLE, ~~(color[0]*255), ~~(color[1]*255), ~~(color[2]*255), a);
+    }
+
+    if (width !== undefined) {
+      this._pushCmd(LINEWIDTH, width);
+    }
+    this._pushCmd(STROKE);
   }
 
   undo() { //remove last added path
@@ -282,6 +294,21 @@ export class SimpleSkiaPath extends QuadBezPath {
         case BEGINPATH:
           debuglog("BEGINPATH");
           g.beginPath();
+          break;
+        case LINEWIDTH:
+          let mat = g.getTransform();
+          g.lineWidth = cmd[i+2]*mat.m11;
+          break;
+        case LINESTYLE:
+          let r = cmd[i+2], g1 = cmd[i+3], b = cmd[i+4], a = cmd[i+5];
+          let style = "rgba("+r+","+g1+","+b+","+a+")";
+
+          if (cmd === LINESTYLE) {
+            g.strokeStyle = style;
+          }
+          break;
+        case STROKE:
+          g.stroke();
           break;
         case LINETO:
           debuglog("LINETO");

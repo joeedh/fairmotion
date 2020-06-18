@@ -849,6 +849,11 @@ export class SplineDrawer {
       }
     }
 
+    let mat = g.segments[0].mat;
+    if (mat.linewidth2 > 0) {
+      path.pushStroke(mat.strokecolor2, mat.linewidth2);
+    }
+
     this.addClipPathsToStrokeGroup(g, drawparams, path);
 
     //path.lineTo(firstp[0], firstp[1]);

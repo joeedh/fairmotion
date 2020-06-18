@@ -8,6 +8,7 @@ export var EditModes = {
   GEOMETRY : 1|2|4|16
 };
 
+//XXX no longer used?
 export var EditorTypes = {
   SPLINE : 1,
   OBJECT : 32

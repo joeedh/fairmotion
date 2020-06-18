@@ -183,7 +183,7 @@ export class QuadBezPath {
     this.lastx = x2;
     this.lasty = y2;
   }
-  
+
   destroy(draw) {
   }
   
@@ -193,7 +193,11 @@ export class QuadBezPath {
   
   draw(draw, offx=0, offy=0) {
   }
-  
+
+  pushStroke() {
+
+  }
+
   update() {
     throw new Error("implement me!");
   }

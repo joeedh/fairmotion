@@ -393,7 +393,7 @@ es6_module_define('spline_draw', ["../config/config.js", "./spline_draw_sort", "
   }
   redraw_element = _es6_module.add_export('redraw_element', redraw_element);
 }, '/dev/fairmotion/src/curve/spline_draw.js');
-es6_module_define('spline_draw_sort', ["../core/animdata.js", "./spline_multires.js", "./spline_types.js", "./spline_math.js", "./spline_element_array.js", "../config/config.js", "../editors/viewport/selectmode.js", "../editors/viewport/view2d_editor.js", "../util/mathlib.js"], function _spline_draw_sort_module(_es6_module) {
+es6_module_define('spline_draw_sort', ["../editors/viewport/selectmode.js", "../core/animdata.js", "./spline_math.js", "./spline_types.js", "./spline_element_array.js", "../config/config.js", "./spline_multires.js", "../editors/viewport/view2d_editor.js", "../util/mathlib.js"], function _spline_draw_sort_module(_es6_module) {
   var aabb_isect_minmax2d=es6_import_item(_es6_module, '../util/mathlib.js', 'aabb_isect_minmax2d');
   var ENABLE_MULTIRES=es6_import_item(_es6_module, '../config/config.js', 'ENABLE_MULTIRES');
   var SessionFlags=es6_import_item(_es6_module, '../editors/viewport/view2d_editor.js', 'SessionFlags');
@@ -438,11 +438,11 @@ es6_module_define('spline_draw_sort', ["../core/animdata.js", "./spline_multires
     }
   }
   calc_string_ids = _es6_module.add_export('calc_string_ids', calc_string_ids);
-  var $lists_uHBD_sort_layer_segments=new cachering(function () {
+  var $lists_EvHw_sort_layer_segments=new cachering(function () {
     return [];
   }, 2);
   function sort_layer_segments(layer, spline) {
-    var list=$lists_uHBD_sort_layer_segments.next();
+    var list=$lists_EvHw_sort_layer_segments.next();
     list.length = 0;
     var visit={}
     var layerid=layer.id;
@@ -623,6 +623,9 @@ es6_module_define('spline_draw_sort', ["../core/animdata.js", "./spline_multires
     for (let item of spline.drawlist) {
         if (item.type===SplineTypes.SEGMENT) {
             let g=gsmap.get(item);
+            if (!g) {
+                continue;
+            }
             if (visit2.has(g))
               continue;
             visit2.add(g);
@@ -4112,7 +4115,7 @@ VectorVertex {
   _es6_module.add_class(VectorDraw);
   VectorDraw = _es6_module.add_export('VectorDraw', VectorDraw);
 }, '/dev/fairmotion/src/vectordraw/vectordraw_base.js');
-es6_module_define('vectordraw_canvas2d', ["./vectordraw_base.js", "../path.ux/scripts/util/math.js", "../config/config.js", "../path.ux/scripts/util/util.js", "./vectordraw_jobs_base.js", "./vectordraw_jobs.js", "../util/mathlib.js"], function _vectordraw_canvas2d_module(_es6_module) {
+es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "../config/config.js", "../util/mathlib.js", "./vectordraw_jobs_base.js", "./vectordraw_jobs.js", "./vectordraw_base.js", "../path.ux/scripts/util/util.js"], function _vectordraw_canvas2d_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   var util=es6_import(_es6_module, '../path.ux/scripts/util/util.js');
@@ -4428,8 +4431,10 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_base.js", "../path.ux/sc
     
     
     
+    
      constructor() {
       super();
+      this.z = 0;
       this.dead = false;
       this.commands = [];
       this.recalc = 1;
@@ -4836,11 +4841,14 @@ es6_module_define('vectordraw_canvas2d', ["./vectordraw_base.js", "../path.ux/sc
           if (debug)
             console.log("SORT");
           this.batches.destroy();
-          batch = this.batches.requestBatch(this.onBatchDone);
           this.dosort = 0;
+          for (let p of this.paths) {
+              p._batch = undefined;
+          }
           this.paths.sort(function (a, b) {
             return a.z-b.z;
           });
+          batch = this.batches.getHead(this.onBatchDone);
       }
       for (var path of this.paths) {
           if (path.hidden) {
@@ -6797,7 +6805,7 @@ es6_module_define('vectordraw', ["./vectordraw_base.js", "./vectordraw_skia_simp
 es6_module_define('strokedraw', [], function _strokedraw_module(_es6_module) {
   "use strict";
 }, '/dev/fairmotion/src/vectordraw/strokedraw.js');
-es6_module_define('spline_draw_new', ["../vectordraw/vectordraw_jobs.js", "../core/animdata.js", "./spline_math.js", "./spline_element_array.js", "../util/mathlib.js", "../editors/viewport/selectmode.js", "./spline_multires.js", "../vectordraw/vectordraw.js", "./spline_types.js", "./spline_strokegroup.js", "../editors/viewport/view2d_editor.js", "../config/config.js", "../path.ux/scripts/pathux.js", "./spline_base.js"], function _spline_draw_new_module(_es6_module) {
+es6_module_define('spline_draw_new', ["../config/config.js", "./spline_base.js", "./spline_math.js", "./spline_multires.js", "./spline_element_array.js", "../vectordraw/vectordraw_jobs.js", "../editors/viewport/view2d_editor.js", "./spline_types.js", "../util/mathlib.js", "./spline_strokegroup.js", "../path.ux/scripts/pathux.js", "../editors/viewport/selectmode.js", "../core/animdata.js", "../vectordraw/vectordraw.js"], function _spline_draw_new_module(_es6_module) {
   "use strict";
   var aabb_isect_minmax2d=es6_import_item(_es6_module, '../util/mathlib.js', 'aabb_isect_minmax2d');
   var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
@@ -7095,6 +7103,9 @@ es6_module_define('spline_draw_new', ["../vectordraw/vectordraw_jobs.js", "../co
      update_vertex_join(seg, v, drawparams) {
       let z=drawparams.z;
       let id=seg.eid|(v===seg.v1 ? (1<<17) : (1<<18));
+      if (this.has_path(id, z)&&!(v.flag&(SplineFlags.REDRAW|SplineFlags.UPDATE))) {
+          return ;
+      }
       let path=this.get_path(id, z);
       path.color.load(seg.mat.strokecolor);
       path.blur = seg.mat.blur;
@@ -7227,8 +7238,8 @@ es6_module_define('spline_draw_new', ["../vectordraw/vectordraw_jobs.js", "../co
                           this.update_normals(seg, drawparams);
                       }
                   }
-                  this.update_stroke_group(e, drawparams);
               }
+              this.update_stroke_group(e, drawparams, redraw);
               continue;
           }
           var layerid=this.drawlist_layerids[i];
@@ -7251,7 +7262,7 @@ es6_module_define('spline_draw_new', ["../vectordraw/vectordraw_jobs.js", "../co
               this.update_polygon(e, redraw_rects, actlayer, only_render, selectmode, zoom, i, off, spline, ignore_layers);
           }
           else 
-            if (e.type===SplineTypes.VERTEX&&(e.flag&(SplineFlags.REDRAW|SplineFlags.UPDATE))) {
+            if (e.type===SplineTypes.VERTEX) {
               if (e.segments.length>2) {
                   for (let seg of e.segments) {
                       this.update_vertex_join(seg, e, drawparams);
@@ -7268,6 +7279,16 @@ es6_module_define('spline_draw_new', ["../vectordraw/vectordraw_jobs.js", "../co
       }
       for (let v of vset) {
           v.flag&=~SplineFlags.REDRAW;
+      }
+      for (let e of drawlist) {
+          if (__instance_of(e, SplineStrokeGroup)) {
+              for (let seg of e.segments) {
+                  seg.flag&=~SplineFlags.REDRAW;
+              }
+          }
+          else {
+            e.flag&=~SplineFlags.REDRAW;
+          }
       }
     }
      get_path(id, z, check_z=true) {
@@ -7286,8 +7307,14 @@ es6_module_define('spline_draw_new', ["../vectordraw/vectordraw_jobs.js", "../co
       this.used_paths[id] = 1;
       return this.drawer.has_path(id, z, check_z);
     }
-     update_stroke_group(g, drawparams) {
+     update_stroke_group(g, drawparams, redraw) {
+      let spline=drawparams.spline;
       let z=drawparams.z;
+      if (this.has_path(g.id, z)&&!redraw) {
+          return ;
+      }
+      let path=this.get_path(g.id, z);
+      path.reset();
       let dpath, dpath2, dpath3, dpoint, dline;
       let debug=0;
       if (debug) {
@@ -7341,9 +7368,6 @@ es6_module_define('spline_draw_new', ["../vectordraw/vectordraw_jobs.js", "../co
           console.warn("g.segments.length was zero!");
           return ;
       }
-      let spline=drawparams.spline;
-      let path=this.get_path(g.id, z);
-      path.reset();
       let startv;
       let seg=g.segments[0];
       let seg2=g.segments[1];
@@ -7474,6 +7498,37 @@ es6_module_define('spline_draw_new', ["../vectordraw/vectordraw_jobs.js", "../co
                   console.log("eek!", i, seg, step);
               }
               v = seg.other_vert(v);
+          }
+      }
+      this.addClipPathsToStrokeGroup(g, drawparams, path);
+    }
+     addClipPathsToStrokeGroup(g, drawparams, path) {
+      let fs=new Set();
+      let z=drawparams.z;
+      for (let seg of g.segments) {
+          if (!(seg.flag&SplineFlags.NO_RENDER)&&(seg.mat.flag&MaterialFlags.MASK_TO_FACE)) {
+              var l=seg.l, _i=0;
+              if (!l) {
+                  continue;
+              }
+              do {
+                fs.add(l.f);
+                if (fz>z) {
+                    l = l.radial_next;
+                    continue;
+                }
+                if (_i++>1000) {
+                    console.trace("Warning: infinite loop!");
+                    break;
+                }
+                l = l.radial_next;
+              } while (l!==seg.l);
+              
+          }
+          for (let f of fs) {
+              var fz=f.finalz;
+              var path2=this.get_path(f.eid, fz);
+              path.add_clip_path(path2);
           }
       }
     }

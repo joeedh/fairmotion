@@ -5968,7 +5968,7 @@ es6_module_define('struct', ["./nstructjs.js"], function _struct_module(_es6_mod
   }
   register = _es6_module.add_export('register', register);
 }, '/dev/fairmotion/src/path.ux/scripts/util/struct.js');
-es6_module_define('vectormath', ["./util.js", "./struct.js"], function _vectormath_module(_es6_module) {
+es6_module_define('vectormath', ["./struct.js", "./util.js"], function _vectormath_module(_es6_module) {
   var util=es6_import(_es6_module, './util.js');
   es6_import(_es6_module, './struct.js');
   window.makeCompiledVectormathCode = function (mode) {
@@ -6303,7 +6303,7 @@ ${doExports("BaseVector")} class BaseVector extends Array {
       var f;
       var vectorDistance="f = function vectorDistance(b) {\n";
       for (var i=0; i<vectorsize; i++) {
-          vectorDistance+="  let d"+i+" = this["+i+"]-b["+i+"];\n\n  ";
+          vectorDistance+=`  let d${i} = this[${i}] - (b[${i}]||0);\n\n  `;
       }
       vectorDistance+="  return Math.sqrt(";
       for (var i=0; i<vectorsize; i++) {

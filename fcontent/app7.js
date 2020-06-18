@@ -2348,7 +2348,7 @@ es6_module_define('built_wasm', ["./load_wasm.js"], function _built_wasm_module(
   noExitRuntime = true;
   run();
 }, '/dev/fairmotion/src/wasm/built_wasm.js');
-es6_module_define('native_api', ["../curve/solver.js", "../curve/spline_math_hermite.js", "../core/toolops_api.js", "./built_wasm.js", "../core/ajax.js", "../util/typedwriter.js", "../curve/spline_base.js"], function _native_api_module(_es6_module) {
+es6_module_define('native_api', ["../core/ajax.js", "./built_wasm.js", "../curve/spline_math_hermite.js", "../curve/solver.js", "../util/typedwriter.js", "../curve/spline_base.js", "../core/toolops_api.js"], function _native_api_module(_es6_module) {
   var wasm=es6_import(_es6_module, './built_wasm.js');
   var active_solves={}
   active_solves = _es6_module.add_export('active_solves', active_solves);
@@ -2701,8 +2701,7 @@ es6_module_define('native_api', ["../curve/solver.js", "../curve/spline_math_her
       if (_DEBUG.solve_times) {
           console.log((solve_endtimes[spline._solve_id]-start_time).toFixed(2)+"ms");
       }
-      for (var i=0; i<spline.segments.length; i++) {
-          var seg=spline.segments[i];
+      for (let seg of spline.segments) {
           seg.evaluate(0.5);
           for (var j=0; j<seg.ks.length; j++) {
               if (isNaN(seg.ks[j])) {
@@ -2710,7 +2709,7 @@ es6_module_define('native_api', ["../curve/solver.js", "../curve/spline_math_her
                   seg.ks[j] = 0;
               }
           }
-          if (g_app_state.modalstate!=ModalStates.TRANSFROMING) {
+          if (g_app_state.modalstate!==ModalStates.TRANSFROMING) {
               if ((seg.v1.flag&SplineFlags.UPDATE)||(seg.v2.flag&SplineFlags.UPDATE))
                 seg.update_aabb();
           }
@@ -2732,6 +2731,9 @@ es6_module_define('native_api', ["../curve/solver.js", "../curve/spline_math_her
       }
       for (let v of spline.verts) {
           v.flag&=~(SplineFlags.UPDATE|SplineFlags.TEMP_TAG);
+      }
+      for (let seg of spline.segments) {
+          seg.flag&=~SplineFlags.UPDATE;
       }
       if (spline.on_resolve!==undefined) {
           spline.on_resolve();

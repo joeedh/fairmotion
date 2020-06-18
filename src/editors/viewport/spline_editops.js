@@ -950,7 +950,7 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
 
     this.mpos.load(mpos);
     
-    let ret = ctx.view2d.editor.findnearest(mpos, SplineTypes.SEGMENT, 105);
+    let ret = ctx.view2d.editor.findnearest(mpos, SplineTypes.SEGMENT, 105, ctx.view2d.edit_all_layers);
     
     if (ret === undefined) {
       this.reset_drawlines();

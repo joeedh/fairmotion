@@ -83,7 +83,7 @@ export class MenuBar extends Editor {
 
     paths = list(paths);
     paths.reverse();
-    
+
     for (let p of paths) {
       let name = p.displayname;
       let id = p.path;

@@ -4015,6 +4015,9 @@ VectorVertex {
      draw(draw, offx=0, offy=0) {
 
     }
+     pushStroke() {
+
+    }
      update() {
       throw new Error("implement me!");
     }
@@ -4115,7 +4118,7 @@ VectorVertex {
   _es6_module.add_class(VectorDraw);
   VectorDraw = _es6_module.add_export('VectorDraw', VectorDraw);
 }, '/dev/fairmotion/src/vectordraw/vectordraw_base.js');
-es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "../config/config.js", "../util/mathlib.js", "./vectordraw_jobs_base.js", "./vectordraw_jobs.js", "./vectordraw_base.js", "../path.ux/scripts/util/util.js"], function _vectordraw_canvas2d_module(_es6_module) {
+es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/util.js", "../util/mathlib.js", "../config/config.js", "./vectordraw_base.js", "../path.ux/scripts/util/math.js", "./vectordraw_jobs_base.js", "./vectordraw_jobs.js"], function _vectordraw_canvas2d_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   var util=es6_import(_es6_module, '../path.ux/scripts/util/util.js');
@@ -4139,6 +4142,7 @@ es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "..
     return new Vector2();
   }, 32);
   let MOVETO=OPCODES.MOVETO, BEZIERTO=OPCODES.QUADRATIC, LINETO=OPCODES.LINETO, BEGINPATH=OPCODES.BEGINPATH, CUBICTO=OPCODES.CUBIC, CLOSEPATH=OPCODES.CLOSEPATH;
+  var LINEWIDTH=OPCODES.LINEWIDTH, LINESTYLE=OPCODES.LINESTYLE, STROKE=OPCODES.STROKE;
   let arglens={}
   arglens[BEGINPATH] = 0;
   arglens[CLOSEPATH] = 0;
@@ -4450,6 +4454,16 @@ es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "..
       this.path_start_i = 2;
       this.first = true;
       this._mm = new MinMax(2);
+    }
+     pushStroke(color, width) {
+      if (color) {
+          let a=color.length>3 ? color[3] : 1.0;
+          this._pushCmd(LINESTYLE, ~~(color[0]*255), ~~(color[1]*255), ~~(color[2]*255), a);
+      }
+      if (width!==undefined) {
+          this._pushCmd(LINEWIDTH, width);
+      }
+      this._pushCmd(STROKE);
     }
      update_aabb(draw, fast_mode=false) {
       var tmp=canvaspath_temp_vs.next().zero();
@@ -5502,7 +5516,7 @@ es6_module_define('vectordraw_canvas2d_simple', ["../util/mathlib.js", "./vector
   _es6_module.add_class(SimpleCanvasDraw2D);
   SimpleCanvasDraw2D = _es6_module.add_export('SimpleCanvasDraw2D', SimpleCanvasDraw2D);
 }, '/dev/fairmotion/src/vectordraw/vectordraw_canvas2d_simple.js');
-es6_module_define('vectordraw_skia_simple', ["./vectordraw_base.js", "../config/config.js", "../util/mathlib.js"], function _vectordraw_skia_simple_module(_es6_module) {
+es6_module_define('vectordraw_skia_simple', ["../util/mathlib.js", "./vectordraw_base.js", "../config/config.js"], function _vectordraw_skia_simple_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
@@ -5542,7 +5556,7 @@ es6_module_define('vectordraw_skia_simple', ["./vectordraw_base.js", "../config/
     return new Vector2();
   }, 32);
   var CCMD=0, CARGLEN=1;
-  var MOVETO=0, BEZIERTO=1, LINETO=2, BEGINPATH=3, CUBICTO=4;
+  var MOVETO=0, BEZIERTO=1, LINETO=2, BEGINPATH=3, CUBICTO=4, LINEWIDTH=5, LINESTYLE=6, STROKE=7;
   var NS="http://www.w3.org/2000/svg";
   var XLS="http://www.w3.org/1999/xlink";
   function makeElement(type, attrs) {
@@ -5613,6 +5627,16 @@ es6_module_define('vectordraw_skia_simple', ["./vectordraw_base.js", "../config/
      beginPath() {
       this.path_start_i = this.commands.length;
       this._pushCmd(BEGINPATH);
+    }
+     pushStroke(color, width) {
+      if (color) {
+          let a=color.length>3 ? color[3] : 1.0;
+          this._pushCmd(LINESTYLE, ~~(color[0]*255), ~~(color[1]*255), ~~(color[2]*255), a);
+      }
+      if (width!==undefined) {
+          this._pushCmd(LINEWIDTH, width);
+      }
+      this._pushCmd(STROKE);
     }
      undo() {
       this.commands.length = this.path_start_i;
@@ -5724,6 +5748,20 @@ es6_module_define('vectordraw_skia_simple', ["./vectordraw_base.js", "../config/
             case BEGINPATH:
               debuglog("BEGINPATH");
               g.beginPath();
+              break;
+            case LINEWIDTH:
+              let mat=g.getTransform();
+              g.lineWidth = cmd[i+2]*mat.m11;
+              break;
+            case LINESTYLE:
+              let r=cmd[i+2], g1=cmd[i+3], b=cmd[i+4], a=cmd[i+5];
+              let style="rgba("+r+","+g1+","+b+","+a+")";
+              if (cmd===LINESTYLE) {
+                  g.strokeStyle = style;
+              }
+              break;
+            case STROKE:
+              g.stroke();
               break;
             case LINETO:
               debuglog("LINETO");
@@ -6805,7 +6843,7 @@ es6_module_define('vectordraw', ["./vectordraw_base.js", "./vectordraw_skia_simp
 es6_module_define('strokedraw', [], function _strokedraw_module(_es6_module) {
   "use strict";
 }, '/dev/fairmotion/src/vectordraw/strokedraw.js');
-es6_module_define('spline_draw_new', ["../config/config.js", "./spline_base.js", "./spline_math.js", "./spline_multires.js", "./spline_element_array.js", "../vectordraw/vectordraw_jobs.js", "../editors/viewport/view2d_editor.js", "./spline_types.js", "../util/mathlib.js", "./spline_strokegroup.js", "../path.ux/scripts/pathux.js", "../editors/viewport/selectmode.js", "../core/animdata.js", "../vectordraw/vectordraw.js"], function _spline_draw_new_module(_es6_module) {
+es6_module_define('spline_draw_new', ["../core/animdata.js", "./spline_base.js", "../editors/viewport/selectmode.js", "../editors/viewport/view2d_editor.js", "./spline_types.js", "../path.ux/scripts/pathux.js", "./spline_strokegroup.js", "../config/config.js", "../util/mathlib.js", "./spline_multires.js", "./spline_element_array.js", "../vectordraw/vectordraw.js", "./spline_math.js", "../vectordraw/vectordraw_jobs.js"], function _spline_draw_new_module(_es6_module) {
   "use strict";
   var aabb_isect_minmax2d=es6_import_item(_es6_module, '../util/mathlib.js', 'aabb_isect_minmax2d');
   var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
@@ -7499,6 +7537,10 @@ es6_module_define('spline_draw_new', ["../config/config.js", "./spline_base.js",
               }
               v = seg.other_vert(v);
           }
+      }
+      let mat=g.segments[0].mat;
+      if (mat.linewidth2>0) {
+          path.pushStroke(mat.strokecolor2, mat.linewidth2);
       }
       this.addClipPathsToStrokeGroup(g, drawparams, path);
     }

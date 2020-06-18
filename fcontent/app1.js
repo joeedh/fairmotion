@@ -9501,7 +9501,8 @@ es6_module_define('icon_enum', [], function _icon_enum_module(_es6_module) {
    LARGE_CHECK: 60, 
    HALF_PIXEL_SIZE: 61, 
    PEN_TOOL: 62, 
-   STROKE_TOOL: 63}
+   STROKE_TOOL: 63, 
+   PROP_TRANSFORM: 64}
 }, '/dev/fairmotion/src/datafiles/icon_enum.js');
 "not_a_module";
 if (Array.prototype.set===undefined) {

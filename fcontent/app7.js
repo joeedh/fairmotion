@@ -5293,7 +5293,7 @@ es6_module_define('theme', ["../path.ux/scripts/util/util.js", "../path.ux/scrip
     rowHeight: 18}}
   _es6_module.add_export('theme', theme);
 }, '/dev/fairmotion/src/editors/theme.js');
-es6_module_define('MenuBar', ["../../path.ux/scripts/widgets/ui_widgets.js", "../../core/startup/startup_file.js", "../../core/struct.js", "../../path.ux/scripts/platforms/electron/electron_api.js", "../../path.ux/scripts/screen/ScreenArea.js", "../editor_base.js", "../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/widgets/ui_menu.js", "../../../platforms/platform.js"], function _MenuBar_module(_es6_module) {
+es6_module_define('MenuBar', ["../../path.ux/scripts/platforms/electron/electron_api.js", "../editor_base.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/widgets/ui_menu.js", "../../../platforms/platform.js", "../../core/startup/startup_file.js", "../../core/struct.js", "../../path.ux/scripts/widgets/ui_widgets.js"], function _MenuBar_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
   var AreaFlags=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'AreaFlags');
   var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
@@ -5320,6 +5320,8 @@ es6_module_define('MenuBar', ["../../path.ux/scripts/widgets/ui_widgets.js", "..
       let menu=document.createElement("menu-x");
       menu.setAttribute("title", "Recent Files");
       let paths=g_app_state.settings.recent_paths;
+      paths = list(paths);
+      paths.reverse();
       for (let p of paths) {
           let name=p.displayname;
           let id=p.path;
@@ -9379,7 +9381,7 @@ es6_module_define('transdata', ["../../util/mathlib.js"], function _transdata_mo
   _es6_module.add_class(TransData);
   TransData = _es6_module.add_export('TransData', TransData);
 }, '/dev/fairmotion/src/editors/viewport/transdata.js');
-es6_module_define('transform', ["./transform_spline.js", "../../core/toolprops.js", "./selectmode.js", "../events.js", "../../curve/spline_types.js", "./view2d_base.js", "../../wasm/native_api.js", "./transdata.js", "../../util/mathlib.js", "../../core/toolops_api.js", "../dopesheet/dopesheet_transdata.js"], function _transform_module(_es6_module) {
+es6_module_define('transform', ["../../core/toolops_api.js", "../events.js", "./transform_spline.js", "./transdata.js", "../dopesheet/dopesheet_transdata.js", "./view2d_base.js", "../../wasm/native_api.js", "../../core/toolprops.js", "../../curve/spline_types.js", "../../util/mathlib.js", "./selectmode.js"], function _transform_module(_es6_module) {
   var MinMax=es6_import_item(_es6_module, '../../util/mathlib.js', 'MinMax');
   var SelMask=es6_import_item(_es6_module, './selectmode.js', 'SelMask');
   var Vec3Property=es6_import_item(_es6_module, '../../core/toolprops.js', 'Vec3Property');
@@ -9568,7 +9570,7 @@ es6_module_define('transform', ["./transform_spline.js", "../../core/toolprops.j
       }
       var found=false;
       for (var i=0; i<this.types; i++) {
-          if (this.types[i]==TransSplineVert) {
+          if (this.types[i]===TransSplineVert) {
               found = true;
               break;
           }
@@ -9597,12 +9599,12 @@ es6_module_define('transform', ["./transform_spline.js", "../../core/toolprops.j
       this.reset_drawlines();
       if (this.inputs.proportional.data) {
           var rad=this.inputs.propradius.data;
-          var steps=64, t=-Math.PI;
-          dt = (Math.PI*2.0)/(steps-1);
+          var steps=64, t=-Math.PI, dt=(Math.PI*2.0)/(steps-1);
           var td=this.transdata;
           var v1=new Vector3(), v2=new Vector3();
           var r=this.inputs.propradius.data;
-          var cent=td.center;
+          var cent=new Vector2(td.center);
+          ctx.view2d.project(cent);
           for (var i=0; i<steps-1; i++, t+=dt) {
               v1[0] = Math.sin(t)*r+cent[0];
               v1[1] = Math.cos(t)*r+cent[1];

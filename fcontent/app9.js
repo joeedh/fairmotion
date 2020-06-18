@@ -1,8 +1,9 @@
 var ContextStruct;
-es6_module_define('data_api_define', ["../toolprops.js", "../../editors/viewport/selectmode.js", "../../curve/spline_types.js", "../../editors/viewport/view2d.js", "../toolops_api.js", "../context.js", "../imageblock.js", "../../editors/settings/SettingsEditor.js", "../../curve/spline_element_array.js", "./data_api.js", "../../editors/curve/CurveEditor.js", "../../editors/ops/ops_editor.js", "../../editors/dopesheet/DopeSheetEditor.js", "../UserSettings.js", "../frameset.js", "../units.js", "../../curve/spline_base.js", "../animdata.js", "../../scene/sceneobject.js", "../../editors/viewport/spline_createops.js", "../lib_api.js"], function _data_api_define_module(_es6_module) {
+es6_module_define('data_api_define', ["../../editors/dopesheet/DopeSheetEditor.js", "../../editors/settings/SettingsEditor.js", "./data_api.js", "../toolprops.js", "../context.js", "../../editors/ops/ops_editor.js", "../../curve/spline_element_array.js", "../../curve/spline_base.js", "../../editors/viewport/view2d.js", "../../path.ux/scripts/pathux.js", "../UserSettings.js", "../lib_api.js", "../../editors/viewport/spline_createops.js", "../animdata.js", "../../scene/sceneobject.js", "../../editors/viewport/view2d_base.js", "../imageblock.js", "../../curve/spline_types.js", "../../editors/viewport/selectmode.js", "../toolops_api.js", "../units.js", "../../editors/curve/CurveEditor.js", "../frameset.js"], function _data_api_define_module(_es6_module) {
   var DataTypes=es6_import_item(_es6_module, '../lib_api.js', 'DataTypes');
-  var EditModes=es6_import_item(_es6_module, '../../editors/viewport/view2d.js', 'EditModes');
   var View2DHandler=es6_import_item(_es6_module, '../../editors/viewport/view2d.js', 'View2DHandler');
+  var EditModes=es6_import_item(_es6_module, '../../editors/viewport/view2d_base.js', 'EditModes');
+  var SessionFlags=es6_import_item(_es6_module, '../../editors/viewport/view2d_base.js', 'SessionFlags');
   var ImageFlags=es6_import_item(_es6_module, '../imageblock.js', 'ImageFlags');
   var Image=es6_import_item(_es6_module, '../imageblock.js', 'Image');
   var ImageUser=es6_import_item(_es6_module, '../imageblock.js', 'ImageUser');
@@ -78,6 +79,7 @@ es6_module_define('data_api_define', ["../toolprops.js", "../../editors/viewport
     return this.selectmode;
   }
   var data_api=es6_import(_es6_module, './data_api.js');
+  var PropFlags=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'PropFlags');
   var DataPath=data_api.DataPath;
   var DataStruct=data_api.DataStruct;
   var DataStructArray=data_api.DataStructArray;
@@ -253,7 +255,17 @@ es6_module_define('data_api_define', ["../toolprops.js", "../../editors/viewport
     draw_normals.update = edit_all_layers.update = function () {
       redraw_viewport();
     }
-    window.View2DStruct = new DataStruct([new DataPath(edit_all_layers, "edit_all_layers", "edit_all_layers", true), new DataPath(half_pix_size, "half_pix_size", "half_pix_size", true), new DataPath(background_color, "background_color", "background_color", true), new DataPath(default_stroke, "default_stroke", "default_stroke", true), new DataPath(default_fill, "default_fill", "default_fill", true), new DataPath(tool_mode, "toolmode", "toolmode", true), new DataPath(draw_small_verts, "draw_small_verts", "draw_small_verts", true), new DataPath(selmask_enum.copy(), "selectmode", "selectmode", true), new DataPath(selmask_mask.copy(), "selectmask", "selectmode", true), new DataPath(only_render, "only_render", "only_render", true), new DataPath(draw_bg_image, "draw_bg_image", "draw_bg_image", true), new DataPath(tweak_mode, "tweak_mode", "tweak_mode", true), new DataPath(enable_blur, "enable_blur", "enable_blur", true), new DataPath(draw_faces, "draw_faces", "draw_faces", true), new DataPath(draw_video, "draw_video", "draw_video", true), new DataPath(draw_normals, "draw_normals", "draw_normals", true), new DataPath(show_animpath_prop, "draw_anim_paths", "draw_anim_paths", true), new DataPath(zoomprop, "zoom", "zoom", true), new DataPath(api_define_material(), "active_material", "active_material", true), new DataPath(linewidth, "default_linewidth", "default_linewidth", true), new DataPath(extrude_mode, "extrude_mode", "extrude_mode", true), new DataPath(new BoolProperty(0, "pin_paths", "Pin Paths", "Remember visible animation paths"), "pin_paths", "pin_paths", true), new DataPath(api_define_imageuser(), "background_image", "background_image", true)], View2DHandler);
+    let sessionflags=new FlagProperty(undefined, SessionFlags, "session_flag", "Session Flags");
+    sessionflags.addIcons({PROP_TRANSFORM: Icons.PROP_TRANSFORM});
+    let proprad=new FloatProperty(0, "propradius", "Magnet Radius", "Magnet Radius");
+    proprad.baseUnit = proprad.displayUnit = "none";
+    proprad.range = [0.1, 1024];
+    proprad.expRate = 1.75;
+    proprad.step = 0.5;
+    proprad.decimalPlaces = 2;
+    proprad.flag&=~PropFlags.SIMPLE_SLIDER;
+    proprad.flag|=PropFlags.FORCE_ROLLER_SLIDER;
+    window.View2DStruct = new DataStruct([new DataPath(proprad, "propradius", "propradius", true), new DataPath(edit_all_layers, "edit_all_layers", "edit_all_layers", true), new DataPath(half_pix_size, "half_pix_size", "half_pix_size", true), new DataPath(background_color, "background_color", "background_color", true), new DataPath(default_stroke, "default_stroke", "default_stroke", true), new DataPath(default_fill, "default_fill", "default_fill", true), new DataPath(tool_mode, "toolmode", "toolmode", true), new DataPath(draw_small_verts, "draw_small_verts", "draw_small_verts", true), new DataPath(selmask_enum.copy(), "selectmode", "selectmode", true), new DataPath(selmask_mask.copy(), "selectmask", "selectmode", true), new DataPath(only_render, "only_render", "only_render", true), new DataPath(draw_bg_image, "draw_bg_image", "draw_bg_image", true), new DataPath(sessionflags, "session_flag", "session_flag", true), new DataPath(tweak_mode, "tweak_mode", "tweak_mode", true), new DataPath(enable_blur, "enable_blur", "enable_blur", true), new DataPath(draw_faces, "draw_faces", "draw_faces", true), new DataPath(draw_video, "draw_video", "draw_video", true), new DataPath(draw_normals, "draw_normals", "draw_normals", true), new DataPath(show_animpath_prop, "draw_anim_paths", "draw_anim_paths", true), new DataPath(zoomprop, "zoom", "zoom", true), new DataPath(api_define_material(), "active_material", "active_material", true), new DataPath(linewidth, "default_linewidth", "default_linewidth", true), new DataPath(extrude_mode, "extrude_mode", "extrude_mode", true), new DataPath(new BoolProperty(0, "pin_paths", "Pin Paths", "Remember visible animation paths"), "pin_paths", "pin_paths", true), new DataPath(api_define_imageuser(), "background_image", "background_image", true)], View2DHandler);
     return View2DStruct;
   }
   var MaterialStruct;
@@ -272,10 +284,15 @@ es6_module_define('data_api_define', ["../toolprops.js", "../../editors/viewport
     linewidth.range = [0.1, 200];
     linewidth.expRate = 1.75;
     linewidth.step = 0.25;
-    fillclr.update = strokeclr.update = linewidth.update = blur.update = update_base;
-    MaterialStruct = new DataStruct([new DataPath(fillclr, "fillcolor", "fillcolor", true), new DataPath(linewidth, "linewidth", "linewidth", true), new DataPath(flag, "flag", "flag", true)], Material);
+    var linewidth2=new FloatProperty(1, "linewidth2", "linewidth2", "Double Stroke Width");
+    linewidth2.range = [0.1, 200];
+    linewidth2.expRate = 1.75;
+    linewidth2.step = 0.25;
+    fillclr.update = strokeclr.update = linewidth.update = linewidth2.update = blur.update = update_base;
+    MaterialStruct = new DataStruct([new DataPath(fillclr, "fillcolor", "fillcolor", true), new DataPath(linewidth, "linewidth", "linewidth", true), new DataPath(linewidth2, "linewidth2", "linewidth2", true), new DataPath(flag, "flag", "flag", true)], Material);
     MaterialStruct.Color4("strokecolor", "strokecolor", "Stroke", "Stroke color").OnUpdate(update_base);
     MaterialStruct.Float("blur", "blur", "Blur", "Amount of blur").Range(0, 800).Step(0.5).OnUpdate(update_base);
+    MaterialStruct.Color4("strokecolor2", "strokecolor2", "Double Stroke", "Stroke color").OnUpdate(update_base);
     return MaterialStruct;
   }
   var SplineFaceStruct;

@@ -1591,7 +1591,7 @@ es6_module_define('view2d_object', ["../../core/struct.js", "../../curve/spline_
   WorkSpline = _es6_module.add_export('WorkSpline', WorkSpline);
   
 }, '/dev/fairmotion/src/editors/viewport/view2d_object.js');
-es6_module_define('MaterialEditor', ["../viewport/spline_editops.js", "../../path.ux/scripts/core/ui_base.js", "../editor_base.js", "../../path.ux/scripts/widgets/ui_listbox.js", "../../core/struct.js", "../../path.ux/scripts/widgets/ui_table.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../path.ux/scripts/core/ui.js", "../viewport/spline_layerops.js", "../../path.ux/scripts/widgets/ui_menu.js"], function _MaterialEditor_module(_es6_module) {
+es6_module_define('MaterialEditor', ["../../core/struct.js", "../viewport/spline_layerops.js", "../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/widgets/ui_table.js", "../../path.ux/scripts/widgets/ui_listbox.js", "../../path.ux/scripts/core/ui.js", "../viewport/spline_editops.js", "../../path.ux/scripts/widgets/ui_menu.js", "../editor_base.js", "../../path.ux/scripts/screen/ScreenArea.js"], function _MaterialEditor_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
   var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
   var Container=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui.js', 'Container');
@@ -1882,6 +1882,9 @@ es6_module_define('MaterialEditor', ["../viewport/spline_editops.js", "../../pat
       panel.prop("spline.active_segment.mat.blur", undefined, set_prefix+".mat.blur");
       panel.prop("spline.active_segment.renderable", undefined, set_prefix+".mat.renderable");
       panel.prop("spline.active_segment.mat.flag[MASK_TO_FACE]", undefined, set_prefix+".mat.flag[MASK_TO_FACE]");
+      panel2 = panel2.panel("Double Stroking");
+      panel2.prop("spline.active_segment.mat.strokecolor2", undefined, set_prefix+".mat.strokecolor2");
+      panel2.prop("spline.active_segment.mat.linewidth2", undefined, set_prefix+".mat.linewidth2");
       panel.prop("spline.active_segment.w1", undefined, set_prefix+".w1");
       panel.prop("spline.active_segment.w2", undefined, set_prefix+".w2");
       panel.prop("spline.active_segment.shift1", undefined, set_prefix+".shift1");
@@ -5725,9 +5728,10 @@ es6_module_define('manipulator', ["../../util/mathlib.js", "../../config/config.
   _es6_module.add_class(ManipulatorManager);
   ManipulatorManager = _es6_module.add_export('ManipulatorManager', ManipulatorManager);
 }, '/dev/fairmotion/src/editors/viewport/manipulator.js');
-es6_module_define('view2d', ["./manipulator.js", "../editor_base.js", "./toolmodes/all.js", "../../path.ux/scripts/widgets/ui_menu.js", "./view2d_ops.js", "../../core/context.js", "../../path.ux/scripts/util/util.js", "../../path.ux/scripts/core/ui.js", "../../core/struct.js", "../events.js", "../../core/toolops_api.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../path.ux/scripts/core/ui_base.js", "./view2d_editor.js", "./toolmodes/pentool.js", "./selectmode.js", "../../core/imageblock.js", "./view2d_spline_ops.js"], function _view2d_module(_es6_module) {
+es6_module_define('view2d', ["./selectmode.js", "./view2d_ops.js", "./view2d_editor.js", "../events.js", "./view2d_spline_ops.js", "../../path.ux/scripts/util/util.js", "../editor_base.js", "../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/widgets/ui_menu.js", "../../core/toolops_api.js", "../../core/struct.js", "./toolmodes/pentool.js", "./toolmodes/all.js", "../../core/imageblock.js", "./manipulator.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../core/context.js", "../../path.ux/scripts/core/ui.js"], function _view2d_module(_es6_module) {
   var FullContext=es6_import_item(_es6_module, '../../core/context.js', 'FullContext');
   var Editor=es6_import_item(_es6_module, '../editor_base.js', 'Editor');
+  var SessionFlags=es6_import_item(_es6_module, './view2d_editor.js', 'SessionFlags');
   var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
   var patchMouseEvent=es6_import_item(_es6_module, '../../core/toolops_api.js', 'patchMouseEvent');
   var ToolOp=es6_import_item(_es6_module, '../../core/toolops_api.js', 'ToolOp');
@@ -5826,8 +5830,10 @@ es6_module_define('view2d', ["./manipulator.js", "../editor_base.js", "./toolmod
     
     
     
+    
      constructor() {
       super();
+      this.propradius = 35;
       this._last_mpos = new Vector2();
       this.dpi_scale = 1.0;
       this._last_rendermat = new Matrix4();
@@ -6277,6 +6283,7 @@ es6_module_define('view2d', ["./manipulator.js", "../editor_base.js", "./toolmod
       row.prop("view2d.edit_all_layers");
       row.prop("view2d.default_linewidth");
       row.prop("view2d.default_stroke");
+      row.prop("view2d.propradius");
       row = container.row();
       row.noMargins();
       container.noMargins();
@@ -6285,6 +6292,7 @@ es6_module_define('view2d', ["./manipulator.js", "../editor_base.js", "./toolmod
       row.prop("view2d.selectmode");
       row.prop("view2d.only_render");
       row.prop("view2d.draw_small_verts");
+      row.prop("view2d.session_flag[PROP_TRANSFORM]");
       row.prop("view2d.draw_normals");
       row.prop("view2d.draw_anim_paths");
       row.prop("view2d.enable_blur");
@@ -6648,6 +6656,8 @@ es6_module_define('view2d', ["./manipulator.js", "../editor_base.js", "./toolmod
   View2DHandler.STRUCT = STRUCT.inherit(View2DHandler, Area)+`
   _id             : int;
   _selectmode     : int;
+  propradius      : float;
+  session_flag    : int;
   rendermat       : mat4;
   irendermat      : mat4;
   half_pix_size   : bool;

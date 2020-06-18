@@ -10514,7 +10514,7 @@ SplineElement {
   FlipWrapper = _es6_module.add_export('FlipWrapper', FlipWrapper);
   flip_wrapper_cache = cachering.fromConstructor(FlipWrapper, 32);
 }, '/dev/fairmotion/src/curve/spline_base.js');
-es6_module_define('spline_types', ["./spline_math.js", "../core/struct.js", "../editors/viewport/selectmode.js", "../config/config.js", "./bspline.js", "../core/toolprops.js", "../core/toolprops_iter.js", "./spline_base.js", "../util/mathlib.js", "./spline_multires.js", "./spline_base", "../core/eventdag.js"], function _spline_types_module(_es6_module) {
+es6_module_define('spline_types', ["../core/struct.js", "../util/mathlib.js", "./spline_multires.js", "../editors/viewport/selectmode.js", "../core/toolprops_iter.js", "../core/eventdag.js", "../core/toolprops.js", "./spline_base", "./bspline.js", "../config/config.js", "./spline_base.js", "./spline_math.js"], function _spline_types_module(_es6_module) {
   "use strict";
   var ENABLE_MULTIRES=es6_import_item(_es6_module, '../config/config.js', 'ENABLE_MULTIRES');
   var PI=Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor, ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos, asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
@@ -10572,7 +10572,7 @@ es6_module_define('spline_types', ["./spline_math.js", "../core/struct.js", "../
     var r2=bez3(b, c, d, t);
     return r1+(r2-r1)*t;
   }
-  var $ret_Y4yl_aabb;
+  var $ret_dAux_aabb;
   class SplineVertex extends SplineElement {
     
     
@@ -10741,9 +10741,9 @@ es6_module_define('spline_types', ["./spline_math.js", "../core/struct.js", "../
      outputs: NodeBase.Inherit()}
     }
     get  aabb() {
-      $ret_Y4yl_aabb[0].load(this);
-      $ret_Y4yl_aabb[1].load(this);
-      return $ret_Y4yl_aabb;
+      $ret_dAux_aabb[0].load(this);
+      $ret_dAux_aabb[1].load(this);
+      return $ret_dAux_aabb;
     }
      sethide(state) {
       if (state)
@@ -10841,7 +10841,7 @@ es6_module_define('spline_types', ["./spline_math.js", "../core/struct.js", "../
       return this;
     }
   }
-  var $ret_Y4yl_aabb=[new Vector3(), new Vector3()];
+  var $ret_dAux_aabb=[new Vector3(), new Vector3()];
   _ESClass.register(SplineVertex);
   _es6_module.add_class(SplineVertex);
   SplineVertex = _es6_module.add_export('SplineVertex', SplineVertex);
@@ -11757,7 +11757,7 @@ es6_module_define('spline_types', ["./spline_math.js", "../core/struct.js", "../
   }
   _ESClass.register(SplineLoopPathIter);
   _es6_module.add_class(SplineLoopPathIter);
-  var $cent_rcgF_update_winding;
+  var $cent_0i2P_update_winding;
   class SplineLoopPath  {
     
      constructor(l, f) {
@@ -11773,14 +11773,14 @@ es6_module_define('spline_types', ["./spline_math.js", "../core/struct.js", "../
       return this.itercache.next().init(this);
     }
      update_winding() {
-      $cent_rcgF_update_winding.zero();
+      $cent_0i2P_update_winding.zero();
       for (var l of this) {
-          $cent_rcgF_update_winding.add(l.v);
+          $cent_0i2P_update_winding.add(l.v);
       }
-      $cent_rcgF_update_winding.mulScalar(1.0/this.totvert);
+      $cent_0i2P_update_winding.mulScalar(1.0/this.totvert);
       var wsum=0;
       for (var l of this) {
-          wsum+=math.winding(l.v, l.next.v, $cent_rcgF_update_winding) ? 1 : -1;
+          wsum+=math.winding(l.v, l.next.v, $cent_0i2P_update_winding) ? 1 : -1;
       }
       this.winding = wsum>=0;
     }
@@ -11811,7 +11811,7 @@ es6_module_define('spline_types', ["./spline_math.js", "../core/struct.js", "../
       return ret;
     }
   }
-  var $cent_rcgF_update_winding=new Vector3();
+  var $cent_0i2P_update_winding=new Vector3();
   _ESClass.register(SplineLoopPath);
   _es6_module.add_class(SplineLoopPath);
   SplineLoopPath = _es6_module.add_export('SplineLoopPath', SplineLoopPath);
@@ -11822,7 +11822,7 @@ es6_module_define('spline_types', ["./spline_math.js", "../core/struct.js", "../
     winding : int;
   }
 `;
-  var $minmax_7C9g_update_aabb;
+  var $minmax_acPZ_update_aabb;
   class SplineFace extends SplineElement {
     
     
@@ -11845,17 +11845,17 @@ es6_module_define('spline_types', ["./spline_math.js", "../core/struct.js", "../
     }
      update_aabb() {
       this.flag&=~SplineFlags.UPDATE_AABB;
-      $minmax_7C9g_update_aabb.reset();
+      $minmax_acPZ_update_aabb.reset();
       for (var path of this.paths) {
           for (var l of path) {
-              $minmax_7C9g_update_aabb.minmax(l.v.aabb[0]);
-              $minmax_7C9g_update_aabb.minmax(l.v.aabb[1]);
-              $minmax_7C9g_update_aabb.minmax(l.s.aabb[0]);
-              $minmax_7C9g_update_aabb.minmax(l.s.aabb[1]);
+              $minmax_acPZ_update_aabb.minmax(l.v.aabb[0]);
+              $minmax_acPZ_update_aabb.minmax(l.v.aabb[1]);
+              $minmax_acPZ_update_aabb.minmax(l.s.aabb[0]);
+              $minmax_acPZ_update_aabb.minmax(l.s.aabb[1]);
           }
       }
-      this._aabb[0].load($minmax_7C9g_update_aabb.min);
-      this._aabb[1].load($minmax_7C9g_update_aabb.max);
+      this._aabb[0].load($minmax_acPZ_update_aabb.min);
+      this._aabb[1].load($minmax_acPZ_update_aabb.max);
       this._aabb[0][2] = this._aabb[1][2] = 0.0;
     }
     get  aabb() {
@@ -11873,7 +11873,7 @@ es6_module_define('spline_types', ["./spline_math.js", "../core/struct.js", "../
       this.mat.update = this._mat_update.bind(this);
     }
   }
-  var $minmax_7C9g_update_aabb=new MinMax(3);
+  var $minmax_acPZ_update_aabb=new MinMax(3);
   _ESClass.register(SplineFace);
   _es6_module.add_class(SplineFace);
   SplineFace = _es6_module.add_export('SplineFace', SplineFace);
@@ -11893,10 +11893,13 @@ es6_module_define('spline_types', ["./spline_math.js", "../core/struct.js", "../
     
     
     
+    
      constructor() {
       this.fillcolor = new Vector4([0, 0, 0, 1]);
       this.strokecolor = new Vector4([0, 0, 0, 1]);
+      this.strokecolor2 = new Vector4([0, 0, 0, 1]);
       this.linewidth = 2.0;
+      this.linewidth2 = 0.0;
       this.flag = 0;
       this.opacity = 1.0;
       this.fill_over_stroke = false;
@@ -11926,11 +11929,13 @@ es6_module_define('spline_types', ["./spline_math.js", "../core/struct.js", "../
       for (var i=0; i<4; i++) {
           this.fillcolor[i] = mat.fillcolor[i];
           this.strokecolor[i] = mat.strokecolor[i];
+          this.strokecolor2[i] = mat.strokecolor2[i];
       }
       this.opacity = mat.opacity;
       this.linewidth = mat.linewidth;
       this.fill_over_stroke = mat.fill_over_stroke;
       this.blur = mat.blur;
+      this.linewidth2 = mat.linewidth2;
       this.flag = mat.flag;
       return this;
     }
@@ -11964,9 +11969,11 @@ es6_module_define('spline_types', ["./spline_math.js", "../core/struct.js", "../
   Material {
     fillcolor        : vec4;
     strokecolor      : vec4;
+    strokecolor2     : vec4;
     opacity          : float;
     fill_over_stroke : int;
     linewidth        : float;
+    linewidth2       : float;
     blur             : float;
     flag             : int;
   }

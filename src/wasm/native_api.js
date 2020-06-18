@@ -470,9 +470,8 @@ export function do_solve(sflags : int, spline : Spline, steps : int, gk=0.95, re
     if (_DEBUG.solve_times) {
       console.log((solve_endtimes[spline._solve_id] - start_time).toFixed(2) + "ms");
     }
-    
-    for (var i = 0; i < spline.segments.length; i++) {
-      var seg = spline.segments[i];
+
+    for (let seg of spline.segments) {
       seg.evaluate(0.5);
       
       for (var j = 0; j < seg.ks.length; j++) {
@@ -484,7 +483,7 @@ export function do_solve(sflags : int, spline : Spline, steps : int, gk=0.95, re
       
       //don't need to do spline sort here
       //want to avoid per-frame updates of spline sort
-      if (g_app_state.modalstate != ModalStates.TRANSFROMING) {
+      if (g_app_state.modalstate !== ModalStates.TRANSFROMING) {
         if ((seg.v1.flag & SplineFlags.UPDATE) || (seg.v2.flag & SplineFlags.UPDATE))
           seg.update_aabb();
       } else {
@@ -502,12 +501,17 @@ export function do_solve(sflags : int, spline : Spline, steps : int, gk=0.95, re
       }
     }
 
+
     for (let h of spline.handles) {
       h.flag &= ~(SplineFlags.UPDATE | SplineFlags.TEMP_TAG);
     }
 
     for (let v of spline.verts) {
       v.flag &= ~(SplineFlags.UPDATE | SplineFlags.TEMP_TAG);
+    }
+
+    for (let seg of spline.segments) {
+      seg.flag &= ~SplineFlags.UPDATE;
     }
 
     if (spline.on_resolve !== undefined) {

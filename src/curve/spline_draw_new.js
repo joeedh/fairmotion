@@ -316,7 +316,12 @@ export class SplineDrawer {
     let z = drawparams.z;
     let id = seg.eid | (v === seg.v1 ? (1<<17)  : (1<<18));
 
+    if (this.has_path(id, z) && !(v.flag & (SplineFlags.REDRAW|SplineFlags.UPDATE))) {
+      return;
+    }
+
     let path = this.get_path(id, z);
+
     path.color.load(seg.mat.strokecolor);
     path.blur = seg.mat.blur;
 
@@ -523,9 +528,10 @@ export class SplineDrawer {
               this.update_normals(seg, drawparams);
             }
           }
-
-          this.update_stroke_group(e, drawparams);
         }
+
+        this.update_stroke_group(e, drawparams, redraw);
+
         continue;
       }
       
@@ -554,7 +560,7 @@ export class SplineDrawer {
 
       if (e.type === SplineTypes.FACE) {
         this.update_polygon(e, redraw_rects, actlayer, only_render, selectmode, zoom, i, off, spline, ignore_layers);
-      } else if (e.type === SplineTypes.VERTEX && (e.flag & (SplineFlags.REDRAW|SplineFlags.UPDATE))) {
+      } else if (e.type === SplineTypes.VERTEX) {
         if (e.segments.length > 2) {
           for (let seg of e.segments) {
             this.update_vertex_join(seg, e, drawparams);
@@ -576,6 +582,20 @@ export class SplineDrawer {
     for (let v of vset) {
       v.flag &= ~SplineFlags.REDRAW;
     }
+
+    for (let e of drawlist) {
+      if (e instanceof SplineStrokeGroup) {
+        for (let seg of e.segments) {
+          seg.flag &= ~SplineFlags.REDRAW;
+        }
+      } else {
+        e.flag &= ~SplineFlags.REDRAW;
+      }
+    }
+
+    //for (let seg of spline.segments.visible) {
+    //  seg.flag &= ~SplineFlags.REDRAW;
+    //}
   }
   
   get_path(id, z, check_z=true) {
@@ -598,8 +618,17 @@ export class SplineDrawer {
     return this.drawer.has_path(id, z, check_z);
   }
 
-  update_stroke_group(g, drawparams) {
+  update_stroke_group(g, drawparams, redraw) {
+    let spline = drawparams.spline;
+
     let z = drawparams.z;
+
+    if (this.has_path(g.id, z) && !redraw) {
+      return;
+    }
+
+    let path = this.get_path(g.id, z);
+    path.reset();
 
     let dpath, dpath2, dpath3, dpoint, dline;
     let debug = 0;
@@ -653,11 +682,6 @@ export class SplineDrawer {
       console.warn("g.segments.length was zero!");
       return;
     }
-
-    let spline = drawparams.spline;
-
-    let path = this.get_path(g.id, z);
-    path.reset();
 
     let startv;
     let seg = g.segments[0];
@@ -825,7 +849,48 @@ export class SplineDrawer {
       }
     }
 
+    this.addClipPathsToStrokeGroup(g, drawparams, path);
+
     //path.lineTo(firstp[0], firstp[1]);
+  }
+
+  addClipPathsToStrokeGroup(g, drawparams, path) {
+    let fs = new Set();
+    let z = drawparams.z;
+
+    for (let seg of g.segments) {
+      if (!(seg.flag & SplineFlags.NO_RENDER) && (seg.mat.flag & MaterialFlags.MASK_TO_FACE)) {
+        var l = seg.l, _i = 0;
+
+        if (!l) {
+          continue;
+        }
+
+        do {
+
+          fs.add(l.f);
+
+          //is face in front of segment, or not in drawlist (hidden)?
+          if (fz > z) {
+            l = l.radial_next;
+            continue;
+          }
+
+          if (_i++ > 1000) {
+            console.trace("Warning: infinite loop!");
+            break;
+          }
+          l = l.radial_next;
+        } while (l !== seg.l);
+      }
+
+      for (let f of fs) {
+        var fz = f.finalz;
+        var path2 = this.get_path(f.eid, fz);
+        path.add_clip_path(path2);
+      }
+    }
+
   }
 
   update_stroke_points(v) {

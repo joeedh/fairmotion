@@ -474,11 +474,14 @@ export class CanvasPath extends QuadBezPath {
   _size2 : Vector2
   path_start_i : number
   first : boolean
+  z   : number
   _mm : MinMax;
 
   constructor() {
     super();
-    
+
+    this.z = 0;
+
     this.dead = false;
     this.commands = [];
     this.recalc = 1;
@@ -1020,12 +1023,17 @@ export class CanvasDraw2D extends VectorDraw {
       if (debug) console.log("SORT");
 
       this.batches.destroy();
-      batch = this.batches.requestBatch(this.onBatchDone);
 
       this.dosort = 0;
+      for (let p of this.paths) {
+        p._batch = undefined;
+      }
+
       this.paths.sort(function(a, b) {
         return a.z - b.z;
       });
+
+      batch = this.batches.getHead(this.onBatchDone);
     }
     
     for (var path of this.paths) {      

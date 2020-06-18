@@ -303,6 +303,11 @@ export function redo_draw_sort(spline : Spline) {
     if (item.type === SplineTypes.SEGMENT) {
       let g = gsmap.get(item);
 
+      if (!g) {
+        //can happen because of hidden layers, etc
+        continue;
+      }
+
       if (visit2.has(g))
         continue;
 

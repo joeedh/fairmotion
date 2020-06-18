@@ -479,6 +479,27 @@ export class SplineSegment extends SplineElement {
   ks       : Array
   _last_ks : Array;
 
+  /*
+  get flag() {
+    return this._flag;
+  }
+
+  set flag(v) {
+    if (v & SplineFlags.UPDATE) {
+      try {
+        throw new Error();
+      } catch (error) {
+        let stack = "" + error.stack;
+        if (stack.search("draw_spline") < 0) {
+          window.d++;
+        }
+      }
+      window.SplineSegment = SplineSegment;
+    }
+    this._flag = v;
+  }
+  //*/
+
   constructor(v1 : SplineVertex, v2 : SplineVertex) {
     super(SplineTypes.SEGMENT);
     
@@ -1488,6 +1509,8 @@ export class SplineSegment extends SplineElement {
     reader(this);
     super.loadSTRUCT(reader);
 
+    this.flag &= ~(SplineFlags.UPDATE|SplineFlags.REDRAW);
+    
     //XXX this is kind of hackish, seting a callback this way
     this.mat.update = this._material_update.bind(this);
   }

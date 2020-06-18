@@ -393,7 +393,8 @@ export class MaterialEditor extends Editor {
     //panel.packflag |= PackFlags.NO_AUTO_SPACING;
     //panel.packflag |= PackFlags.IGNORE_LIMIT;
 
-    var set_prefix = "spline.segments{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}";
+    let ctxcode = "(ctx.edit_all_layers || ctx.spline.layerset.active.id in $.layers)"
+    var set_prefix = `spline.segments{${ctxcode} && ($.flag & 1) && !$.hidden}`;
 
     //panel.label("Stroke Color");
     let panel2 = panel.panel("Stroke Color");

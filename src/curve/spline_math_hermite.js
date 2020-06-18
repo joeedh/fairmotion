@@ -14,7 +14,7 @@ var cos = Math.cos, pow=Math.pow, abs=Math.abs;
 var SPI2 = Math.sqrt(PI/2);
 var INCREMENTAL = true;
 
-export var ORDER = 4;
+export var ORDER = 4; //keep in sync with WASM! wasm/spline.h
 
 export var KSCALE  = ORDER+1;
 export var KANGLE  = ORDER+2;
@@ -265,7 +265,7 @@ export function build_solver(spline : Spline, order : int, goal_order : int, gk 
         seg._last_ks[j] = seg.ks[j];
       }
       seg.flag |= SplineFlags.TEMP_TAG;
-      slv.edge_segs.push(seg);
+      //slv.edge_segs.push(seg);
     } else {
       seg.flag &= ~SplineFlags.TEMP_TAG;
     }
@@ -735,6 +735,8 @@ export function solve_pre(spline) {
   spline.propagate_update_flags();
 
   for (let seg of spline.segments) {
+    seg.updateCoincident();
+
     if (!(seg.v1.flag & SplineFlags.UPDATE) || !(seg.v2.flag & SplineFlags.UPDATE))
       continue;
 

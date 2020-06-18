@@ -149,6 +149,10 @@ export function redo_draw_sort(spline : Spline) {
     gi++;
   }
 
+  for (let seg of spline.segments) {
+    seg.updateCoincident();
+  }
+
   for (var f of spline.faces) {
     if (f.hidden && !(f.flag & SplineFlags.GHOST))
       continue;

@@ -2500,7 +2500,11 @@ export class Spline extends DataBlock {
       arr.push(spline_multires._format[i]);
     }
     this.mres_format = arr;
-    
+
+    for (let seg of this.segments) {
+      seg.updateCoincident();
+    }
+
     return this;
   }
 

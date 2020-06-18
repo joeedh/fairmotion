@@ -23,6 +23,21 @@ extern "C" void FM_free(void *mem) {
     free(mem);
 }
 
+
+extern "C" void evalCurve(double co[3], double s, double ks[16], double v1[2], double v2[2], int no_update) {
+    float fv1[3], fv2[3];
+
+    fv1[0] = v1[0];
+    fv1[1] = v1[1];
+    fv1[2] = 0.0;
+
+    fv2[0] = v2[0];
+    fv2[1] = v2[1];
+    fv2[2] = 0.0;
+
+    eval_curve(co, s, fv1, fv2, ks, ORDER, false, no_update);
+}
+
 int errorf(const char *fmt, ...) {
     int ret;
 
@@ -54,6 +69,8 @@ int logf(const char *fmt, ...) {
 EM_JS(void, sendMessage, (int x, void* buffer, int len), {
     _wasm_post_message(x, buffer, len);
 });
+
+
 
 void handleMessage(int type, char *buf, int len) {
   int msgid = *((int*)(buf+4));

@@ -64,6 +64,10 @@ var eval_curve_vs = cachering.fromConstructor(Vector3, 64);
 var eval_ret_vs = cachering.fromConstructor(Vector2, 256);
 
 export function eval_curve(s, v1, v2, ks, order, angle_only, no_update) {
+  if (native_api.isReady() && !(window.DEBUG.no_native || window.DEBUG.no_nativeEval)) {
+    return native_api.evalCurve(s, v1, v2, ks, no_update);
+  }
+
   if (order === undefined) order = ORDER;
   
   s *= 0.99999999;

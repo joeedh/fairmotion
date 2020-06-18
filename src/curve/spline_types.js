@@ -858,6 +858,11 @@ export class SplineSegment extends SplineElement {
   }
 
   intersect(seg, side1=0, side2=0, mode=IsectModes.CLOSEST) {
+    if (this.flag & SplineFlags.COINCIDENT) {
+      return undefined;
+    }
+
+
     let steps = 5;
     let lastco = undefined, lastno;
 
@@ -946,6 +951,10 @@ export class SplineSegment extends SplineElement {
    @widthSide if undefined, stroke boundary with be evaluated; should be 0 or 1 (or undefined)
    */
   closest_point(p : Vector2, mode : ClosestModes, fast : boolean=false, widthSide=undefined) : Object {
+    if (this.flag & SplineFlags.COINCIDENT) {
+      return undefined;
+    }
+
     var minret = undefined, mindis = 1e18, maxdis=0;
     
     var p2 = closest_point_cache_vs.next().zero();
@@ -1157,6 +1166,10 @@ export class SplineSegment extends SplineElement {
   }
   
   normal(s : number, no_effects : boolean=!ENABLE_MULTIRES) {
+    if (this.flag & SplineFlags.COINCIDENT) {
+      return derivative_cache_vs.next().zero();
+    }
+
     var ret = this.derivative(s, undefined, undefined, no_effects);
     var t = ret[0]; ret[0] = -ret[1]; ret[1] = t;
     
@@ -1261,6 +1274,10 @@ export class SplineSegment extends SplineElement {
   curvature(s : number, order : int, override_scale : number) {
     if (order === undefined) order = ORDER;
 
+    if (this.flag & SplineFlags.COINCIDENT) {
+      return 0.0;
+    }
+
     /*
     let df = 0.0001;
     let dv = this.derivative(s);
@@ -1281,7 +1298,11 @@ export class SplineSegment extends SplineElement {
   
   curvature_dv(s : number, order : int, override_scale : number) : number {
     if (order === undefined) order = ORDER;
-    
+
+    if (this.flag & SplineFlags.COINCIDENT) {
+      return 0.0;
+    }
+
     //update ks[KSCALE], final 1 prevents final evaluation
     //to save performance
     eval_curve(0.5, this.v1, this.v2, this.ks, order, 1);
@@ -1291,6 +1312,10 @@ export class SplineSegment extends SplineElement {
   }
   
   derivative(s : number, order : int, no_update_curve : boolean, no_effects : boolean) : Vector2 {
+    if (this.flag & SplineFlags.COINCIDENT) {
+      return derivative_cache_vs.next().zero();
+    }
+
     /*
     let df = 0.0001;
     if (s < 1.0 - df) {
@@ -1375,6 +1400,22 @@ export class SplineSegment extends SplineElement {
   }
 
   evaluateSide(s, side=0, dv_out, normal_out, lw_dlw_out) {
+    if (this.flag & SplineFlags.COINCIDENT) {
+      if (dv_out) {
+        dv_out[0] = dv_out[1] = 0.0;
+      }
+
+      if (normal_out) {
+        normal_out[0] = normal_out[1] = 0.0;
+      }
+
+      if (lw_dlw_out) {
+        lw_dlw_out[0] = lw_dlw_out[1] = 0.0;
+      }
+
+      return evaluateSide_rets.next().load(this.v1);
+    }
+
     side = -(side*2.0 - 1.0);
 
     let co = evaluateSide_rets.next().load(this.evaluate(s));
@@ -1419,6 +1460,10 @@ export class SplineSegment extends SplineElement {
   }
 
   evaluate(s : number, order, override_scale, no_update, no_effects=!ENABLE_MULTIRES) : Vector2 {
+    if (this.flag & SplineFlags.COINCIDENT) {
+      return eval_ret_vs.next().load(this.v1);
+    }
+
     if (no_effects) {
       if (order === undefined) order = ORDER;
       
@@ -1454,8 +1499,17 @@ export class SplineSegment extends SplineElement {
   post_solve() {
     super.post_solve();
   }
-  
+
+  updateCoincident() {
+    if (this.v1.vectorDistance(this.v2) < 0.001) {
+      this.flag |= SplineFlags.COINCIDENT;
+    } else {
+      this.flag &= ~SplineFlags.COINCIDENT;
+    }
+  }
+
   update() {
+    this.updateCoincident();
     this._update_has_multires();
     
     this.flag |= SplineFlags.UPDATE|SplineFlags.UPDATE_AABB;

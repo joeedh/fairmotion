@@ -2266,6 +2266,13 @@ var _free = Module["_free"] = function() {
 };
 
 /** @type {function(...*):?} */
+var _evalCurve = Module["_evalCurve"] = function() {
+  assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+  assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+  return Module["asm"]["evalCurve"].apply(null, arguments)
+};
+
+/** @type {function(...*):?} */
 var ___em_js__sendMessage = Module["___em_js__sendMessage"] = function() {
   assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
   assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');

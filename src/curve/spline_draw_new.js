@@ -836,6 +836,7 @@ export class SplineDrawer {
             path.cubicTo(lastp[0]+lastdv[0], lastp[1]+lastdv[1], p[0]-dv[0], p[1]-dv[1], p[0], p[1]);
           }
 
+          //isNaN(p.dot(p)) || isNaN(dv.dot(dv)) || isNaN(lastdv.dot(lastdv)) || isNaN(lastp.dot(lastp))
           lastdv.load(dv);
           lastno.load(no);
           lastp.load(p);

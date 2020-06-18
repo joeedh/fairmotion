@@ -1,5 +1,7 @@
 import * as wasm from './built_wasm.js';
 
+export let wasmModule = wasm;
+
 export var active_solves = {};
 export var solve_starttimes = {};
 export var solve_starttimes2 = {};
@@ -12,6 +14,8 @@ import {SplineTypes, SplineFlags} from '../curve/spline_base.js';
 import {build_solver, solve_pre} from '../curve/spline_math_hermite.js';
 
 import {TypedWriter} from '../util/typedwriter.js';
+import * as util from '../path.ux/scripts/util/util.js';
+import {Vector2, Vector3, Vector4, Matrix4, Quat} from '../path.ux/scripts/util/vectormath.js';
 
 //XXX evil super-old module!
 import * as ajax from '../core/ajax.js';
@@ -111,6 +115,49 @@ window._wasm_post_message = function(type, ptr, len) {
       ptr  : ptr
     });
   }
+}
+
+let wv1, wv2, wks, wco;
+let pv1, pv2, pks, pco;
+
+function init_eval_mem() {
+  let ptr = wasm._malloc(8*3 + 8*16 + 8*3*2);
+  let mem = wasm.HEAPU8;
+
+  wv1 = new Float64Array(mem.buffer, ptr, 2); pv1 = ptr; ptr += 8*2;
+  wv2 = new Float64Array(mem.buffer, ptr, 2); pv2 = ptr; ptr += 8*2;
+  wks = new Float64Array(mem.buffer, ptr, 16); pks = ptr; ptr += 16*8;
+  wco = new Float64Array(mem.buffer, ptr, 3); pco = ptr;
+}
+
+let evalrets = util.cachering.fromConstructor(Vector2, 64);
+export function evalCurve(s, v1, v2, ks, no_update=false) {
+  if (!wv1) {
+    init_eval_mem();
+  }
+
+  for (let i=0; i<2; i++) {
+    wv1[i] = v1[i];
+    wv2[i] = v2[i];
+  }
+
+  for (let i=0; i<ks.length; i++) {
+    wks[i] = ks[i];
+  }
+
+  wasm._evalCurve(pco, s, pks, pv1, pv2, no_update ? 1 : 0);
+
+  if (!no_update) {
+    for (let i=0; i<ks.length; i++) {
+      ks[i] = wks[i];
+    }
+  }
+
+  let ret = evalrets.next();
+  ret[0] = wco[0];
+  ret[1] = wco[1];
+
+  return ret;
 }
 
 export function postToWasm(type : int, msg : ArrayBuffer) {

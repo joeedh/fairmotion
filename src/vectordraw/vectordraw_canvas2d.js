@@ -486,7 +486,8 @@ export class CanvasPath extends QuadBezPath {
     this.dead = false;
     this.commands = [];
     this.recalc = 1;
-    
+    this.stroke_extra = 0;
+
     this._render_id = render_idgen++;
     this._image = undefined;
     this._image_off = [0, 0];
@@ -512,8 +513,10 @@ export class CanvasPath extends QuadBezPath {
     }
 
     if (width !== undefined) {
+      this.stroke_extra = Math.max(this.stroke_extra, width);
       this._pushCmd(LINEWIDTH, width);
     }
+
     this._pushCmd(STROKE);
   }
 
@@ -521,6 +524,7 @@ export class CanvasPath extends QuadBezPath {
     var tmp = canvaspath_temp_vs.next().zero();
     var mm = this._mm;
     var pad = this.pad = this.blur > 0 ? this.blur + 15 : 0;
+    pad += this.stroke_extra*3;
     
     mm.reset();
     
@@ -752,6 +756,7 @@ export class CanvasPath extends QuadBezPath {
   }
   
   reset(draw) {
+    this.stroke_extra = 0;
     this.commands.length = 0;
     this.path_start_i = 0;
     this.off.zero();

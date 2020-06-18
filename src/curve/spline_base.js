@@ -41,7 +41,8 @@ export const SplineFlags = {
   UI_SELECT       : 1 << 14,
   FIXED_KS        : 1 << 21, //internal to solver code
   REDRAW_PRE      : 1 << 22,
-  REDRAW          : 1 << 23
+  REDRAW          : 1 << 23,
+  COINCIDENT      : 1 << 24
 };
 
 export const SplineTypes= {

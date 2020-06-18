@@ -5293,7 +5293,7 @@ es6_module_define('theme', ["../path.ux/scripts/util/util.js", "../path.ux/scrip
     rowHeight: 18}}
   _es6_module.add_export('theme', theme);
 }, '/dev/fairmotion/src/editors/theme.js');
-es6_module_define('MenuBar', ["../../path.ux/scripts/platforms/electron/electron_api.js", "../editor_base.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/widgets/ui_menu.js", "../../../platforms/platform.js", "../../core/startup/startup_file.js", "../../core/struct.js", "../../path.ux/scripts/widgets/ui_widgets.js"], function _MenuBar_module(_es6_module) {
+es6_module_define('MenuBar', ["../../core/struct.js", "../../path.ux/scripts/widgets/ui_menu.js", "../../path.ux/scripts/platforms/electron/electron_api.js", "../../path.ux/scripts/widgets/ui_widgets.js", "../../path.ux/scripts/core/ui_base.js", "../../../platforms/platform.js", "../editor_base.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../core/startup/startup_file.js"], function _MenuBar_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
   var AreaFlags=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'AreaFlags');
   var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
@@ -11767,7 +11767,7 @@ es6_module_define('spline_createops', ["../../path.ux/scripts/pathux.js", "../..
   _es6_module.add_class(StrokePathOp);
   StrokePathOp = _es6_module.add_export('StrokePathOp', StrokePathOp);
 }, '/dev/fairmotion/src/editors/viewport/spline_createops.js');
-es6_module_define('spline_editops', ["../../core/animdata.js", "../../core/frameset.js", "../../curve/spline_types.js", "../../core/toolops_api.js", "../../core/toolprops.js", "../../curve/spline_draw.js", "../../curve/spline.js", "../../curve/spline_base.js", "../../path.ux/scripts/util/struct.js"], function _spline_editops_module(_es6_module) {
+es6_module_define('spline_editops', ["../../core/toolprops.js", "../../curve/spline.js", "../../curve/spline_draw.js", "../../curve/spline_base.js", "../../path.ux/scripts/util/struct.js", "../../core/frameset.js", "../../core/toolops_api.js", "../../core/animdata.js", "../../curve/spline_types.js"], function _spline_editops_module(_es6_module) {
   var IntProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'IntProperty');
   var FloatProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'FloatProperty');
   var CollectionProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'CollectionProperty');
@@ -12443,7 +12443,7 @@ es6_module_define('spline_editops', ["../../core/animdata.js", "../../core/frame
       let mpos=[e.x, e.y];
       mpos = ctx.view2d.getLocalMouse(mpos[0], mpos[1]);
       this.mpos.load(mpos);
-      let ret=ctx.view2d.editor.findnearest(mpos, SplineTypes.SEGMENT, 105);
+      let ret=ctx.view2d.editor.findnearest(mpos, SplineTypes.SEGMENT, 105, ctx.view2d.edit_all_layers);
       if (ret===undefined) {
           this.reset_drawlines();
           this.inputs.segment_eid.setValue(-1);

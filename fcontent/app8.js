@@ -1591,7 +1591,7 @@ es6_module_define('view2d_object', ["../../core/struct.js", "../../curve/spline_
   WorkSpline = _es6_module.add_export('WorkSpline', WorkSpline);
   
 }, '/dev/fairmotion/src/editors/viewport/view2d_object.js');
-es6_module_define('MaterialEditor', ["../../core/struct.js", "../viewport/spline_layerops.js", "../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/widgets/ui_table.js", "../../path.ux/scripts/widgets/ui_listbox.js", "../../path.ux/scripts/core/ui.js", "../viewport/spline_editops.js", "../../path.ux/scripts/widgets/ui_menu.js", "../editor_base.js", "../../path.ux/scripts/screen/ScreenArea.js"], function _MaterialEditor_module(_es6_module) {
+es6_module_define('MaterialEditor', ["../viewport/spline_editops.js", "../../core/struct.js", "../editor_base.js", "../../path.ux/scripts/widgets/ui_menu.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/widgets/ui_listbox.js", "../viewport/spline_layerops.js", "../../path.ux/scripts/core/ui.js", "../../path.ux/scripts/widgets/ui_table.js"], function _MaterialEditor_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
   var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
   var Container=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui.js', 'Container');
@@ -1875,7 +1875,8 @@ es6_module_define('MaterialEditor', ["../../core/struct.js", "../viewport/spline
      strokePanel(tabs) {
       let panel=tabs.tab("Stroke");
       var ctx=this.ctx;
-      var set_prefix="spline.segments{(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden}";
+      let ctxcode="(ctx.edit_all_layers || ctx.spline.layerset.active.id in $.layers)";
+      var set_prefix=`spline.segments{${ctxcode} && ($.flag & 1) && !$.hidden}`;
       let panel2=panel.panel("Stroke Color");
       panel2.prop("spline.active_segment.mat.strokecolor", undefined, set_prefix+".mat.strokecolor");
       panel.prop("spline.active_segment.mat.linewidth", undefined, set_prefix+".mat.linewidth");

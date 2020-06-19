@@ -46,7 +46,7 @@ export class SplineLayer extends set {
     super.add(e);
     e.layers[this.id] = 1;
   }
-  
+
   remove(e) {
     super.remove(e);
     delete e.layers[this.id];
@@ -880,8 +880,16 @@ export class ElementArray<T> extends Array<T> {
       e.layers[this.layerset.active.id] = 1;
     }
   }
-  
+
+  onDestroy() {
+    for (let e of this) {
+      e.onDestroy();
+    }
+  }
+
   remove(e : T, soft_error=false) {
+    e.onDestroy();
+    
     var idx = this.indexOf(e);
     
     if (idx < 0) {

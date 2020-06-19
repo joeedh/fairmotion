@@ -8,10 +8,125 @@
 #include "solver.h"
 #include "wasm_api.h"
 
+#define GKS_PER_SEG 16
+
+#include "constraint_dv.h"
+
 int solver_debug = 0;
 
 double time_ms() {
   return ((double)clock() / (double)CLOCKS_PER_SEC)*1000.0;
+}
+
+#define STEPS 64
+#define GK 1.0
+#define DF 0.00003
+
+/*
+on factor;
+
+operator isin, icos, k, th, ks;
+
+fk := (((s-1)*dv1_k1+dv1_k2*s)*(s-1)-(2*s-3)*k2*s)*s+(2*s+1)*(s-1)*(s-1)*k1;
+fk := sub(k1=ks(seg, 0), dv1_k1=ks(seg, 1), dv1_k2 = ks(seg, 2), k2 = ks(seg, 3), fk);
+fth := int(fk, s);
+
+forall seg,n,s let df(ks(seg, n), s) = 0;
+
+procedure k(s1, seg1);
+    sub(s=s1, seg=seg1, fk);
+procedure th(s1, seg1);
+    sub(s=s1, seg=seg1, fth);
+
+forall s,seg let int(k(s, seg), s) = th(s, seg);
+forall s,seg let df(th(s, seg), s) = k(s, seg);
+
+forall s,seg let df(isin(s, seg), s) = sin(th(s, seg));
+forall s,seg let df(icos(s, seg), s) = cos(th(s, seg));
+forall s,seg let int(sin(th(s, seg)), s) = isin(th(s, seg));
+forall s,seg let int(cos(th(s, seg)), s) = icos(th(s, seg));
+*/
+
+double eval_constraint(
+            Constraint *con, SplineSegment *ss,
+            SplineVertex *vs);
+
+//eval_constraint_dv(con, con->seg1, con->seg2, vs, gs);
+
+void eval_constraint_dv(Constraint *con, SplineSegment *sbase, SplineVertex *vs, double *gs, double r1) {
+    if (isnan(r1) || fabs(r1) < 0.0001) {
+        for (int sj=0; sj<2; sj++) {
+            for (int i=0; i<ORDER; i++) {
+                gs[GKS_PER_SEG*sj + i] = 0.0;
+            }
+        }
+
+        return;
+    }
+
+    switch (con->type) {
+    /*
+      case TAN_CONSTRAINT:
+      {
+        double s1 = -0.5 + 1.0*con->param1f;
+        double s2 = -0.5 + 1.0*con->param2f;
+        SplineSegment *seg1 = sbase + con->param1;
+        SplineSegment *seg2 = sbase + con->param2;
+
+        //tangent_dv(double s1, double *ks1, double s2, double *ks2, double *gs, int sj);
+        tangent_dv(s1, seg1->ks, s2, seg2->ks, gs);
+
+        //logf("%.4lf %.4lf\n", s1, s2);
+        //logf("%.4lf %.4lf %.4lf %.4lf\n%.4lf %.4lf %.4lf %.4lf\n", gs[0], gs[1], gs[2], gs[3], gs[4], gs[5], gs[6], gs[7]);
+        break;
+      }//*/
+      default:
+        for (int sj=0; sj<2; sj++) {
+            int segi = sj ? con->seg2 : con->seg1;
+
+            if (segi < 0 || ((sbase+segi)->flag & FIXED_KS)) {
+              for (int j=0; j<GKS_PER_SEG; j++) {
+                gs[GKS_PER_SEG*sj + j] = 0.0;
+              }
+
+              continue;
+            }
+
+            SplineSegment *s = sbase + segi;
+
+            if (s->flag & FIXED_KS) {
+              //logf("fixed ks! %d", s->eid);
+              continue;
+            }
+
+
+            for (int j=0; j<ORDER; j++) {
+              double orig = s->ks[j];
+
+              s->ks[j] += DF;
+              double r2 = eval_constraint(con, sbase, vs);
+
+              s->ks[j] = orig;
+
+              if (isnan(r2)) {
+                gs[GKS_PER_SEG*sj + j] = 0.0;
+                continue;
+              }
+
+              gs[GKS_PER_SEG*sj + j] = (r2-r1)/DF;
+            }
+        }
+        break;
+    }
+
+    /*
+    for (int sj=0; sj<2; sj++) {
+        for (int i=0; i<ORDER; i++) {
+            if (isnan(gs[sj*GKS_PER_SEG + i])) {
+                gs[sj*GKS_PER_SEG + i] = 0.0;
+            }
+        }
+    }//*/
 }
 
 double eval_constraint(
@@ -222,11 +337,6 @@ double eval_constraint(
   return 0.0;
 }
 
-#define STEPS 65
-#define DF 0.00003
-#define GK 1.0
-#define GKS_PER_SEG 16
-
 int solve_intern(
     SplineVertex *vs, int totvert, SplineSegment *ss, 
     int totseg, Constraint *cs, int totcons) 
@@ -237,7 +347,16 @@ int solve_intern(
   double error = 0.0;
 
   double start_time = time_ms();
-  
+
+  SplineSegment *seg = ss;
+  for (int i=0; i<totseg; i++, seg++) {
+    for (int j=0; j<ORDER; j++) {
+        if (seg->ks[j] == 0.0 || seg->ks[j] == -0.0) {
+            seg->ks[j] += 0.00001; //avoid total zero
+        }
+    }
+  }
+
   if (totcons == 0)
     return 0;
   
@@ -268,7 +387,7 @@ int solve_intern(
       
       if (isnan(r) || r < 0.00001)
         continue;
-      
+      /*
       for (int sj=0; sj<2; sj++) {
         int segi = sj ? con->seg2 : con->seg1;
 
@@ -286,13 +405,13 @@ int solve_intern(
           //logf("fixed ks! %d", s->eid);
           continue;
         }
-        
-        //calculate gradients. . .
+
+
         for (int j=0; j<ORDER; j++) {
           double orig = s->ks[j];
           
           s->ks[j] += DF;
-          double r2 = eval_constraint(con, ss, vs);
+          double r2 = eval_constraint(con, ss, vs );
           
           s->ks[j] = orig;
           
@@ -304,7 +423,11 @@ int solve_intern(
           gs[GKS_PER_SEG*sj + j] = (r2-r)/DF;
         }
       }
-      
+      //*/
+
+      //calculate gradients. . .
+      eval_constraint_dv(con, ss, vs, gs, r);
+
       double ck = si > 8 ? (double)con->k2 : (double)con->k;
         
       for (int sj=0; sj<2; sj++) {

@@ -294,6 +294,10 @@ export class Spline extends DataBlock {
   }
 
   init_elists() {
+    for (let list of this.elists) {
+      list.onDestroy();
+    }
+
     this.elist_map = {};
     this.elists = [];
 
@@ -1724,7 +1728,13 @@ export class Spline extends DataBlock {
       return this._pending_solve;
     }
   }
-  
+
+  on_destroy() {
+    for (let elist of this.elists) {
+      elist.onDestroy();
+    }
+  }
+
   //XXX: get rid of steps, gk
   solve_intern(steps : number, gk : number) {
     var this2 = this;

@@ -28,7 +28,7 @@ function do_solve_nacl(sflags, spline, steps, gk, return_promise) {
   if (DISABLE_SOLVE)
     return;
     
-  if (window.common != undefined && window.common.naclModule != undefined) {
+  if (window.common !== undefined && window.common.naclModule !== undefined) {
     var draw_id = window.push_solve(spline);
     return window.nacl_do_solve(sflags, spline, steps, gk, return_promise, draw_id);
   } else {
@@ -63,9 +63,9 @@ var eval_curve_vs = cachering.fromConstructor(Vector3, 64);
 
 var eval_ret_vs = cachering.fromConstructor(Vector2, 256);
 
-export function eval_curve(s, v1, v2, ks, order, angle_only, no_update) {
+export function eval_curve(seg, s, v1, v2, ks, order, angle_only, no_update) {
   if (native_api.isReady() && !(window.DEBUG.no_native || window.DEBUG.no_nativeEval)) {
-    return native_api.evalCurve(s, v1, v2, ks, no_update);
+    return native_api.evalCurve(seg, s, v1, v2, ks, angle_only, no_update);
   }
 
   if (order === undefined) order = ORDER;

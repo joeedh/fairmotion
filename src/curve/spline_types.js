@@ -554,6 +554,10 @@ export class SplineSegment extends SplineElement {
     }
   }
 
+  onDestroy() {
+    native_api.onSegmentDestroy(this);
+  }
+
   sinangle(v) {
     if (v.segments.length === 2) {
       let s1 = this;
@@ -1290,7 +1294,7 @@ export class SplineSegment extends SplineElement {
 
     //update ks[KSCALE], final 1 prevents final evaluation
     //to save performance
-    eval_curve(0.5, this.v1, this.v2, this.ks, order, 1);
+    eval_curve(this,0.5, this.v1, this.v2, this.ks, order, 1);
     
     var k = spiralcurvature(s, this.ks, order);
     return k/(0.00001 + this.ks[KSCALE]);
@@ -1305,7 +1309,7 @@ export class SplineSegment extends SplineElement {
 
     //update ks[KSCALE], final 1 prevents final evaluation
     //to save performance
-    eval_curve(0.5, this.v1, this.v2, this.ks, order, 1);
+    eval_curve(this, 0.5, this.v1, this.v2, this.ks, order, 1);
     
     var k = spiralcurvature_dv(s, this.ks, order);
     return k/(0.00001 + this.ks[KSCALE]);
@@ -1339,7 +1343,7 @@ export class SplineSegment extends SplineElement {
     var ks = this.ks;
     
     if (!no_update_curve)
-      eval_curve(0.5, this.v1, this.v2, ks, order, 1);
+      eval_curve(this, 0.5, this.v1, this.v2, ks, order, 1);
     
     var th = spiraltheta(s, ks, order);
     var k = spiralcurvature(s, ks, order);
@@ -1469,13 +1473,13 @@ export class SplineSegment extends SplineElement {
       
       //check if scale is invalid
       //if (this.ks[KSCALE] == undefined || this.ks[KSCALE] == 0)
-      //  eval_curve(1, this.v1, this.v2, this.ks, order, undefined, no_update);
+      //  eval_curve(this, 1, this.v1, this.v2, this.ks, order, undefined, no_update);
       //s /= this.ks[KSCALE];
       
       s = (s + 0.00000001) * (1.0 - 0.00000002);
       s -= 0.5;
       
-      var co = eval_curve(s, this.v1, this.v2, this.ks, order, undefined, no_update);
+      var co = eval_curve(this, s, this.v1, this.v2, this.ks, order, undefined, no_update);
       //var co = new Vector3(this.v2).sub(this.v1).mulScalar(t).add(this.v1);
       
       return eval_ret_vs.next().load(co);
@@ -2072,3 +2076,5 @@ export class ElementRefSet extends set {
 };
 
 mixin(ElementRefSet, TPropIterable);
+
+import * as native_api from '../wasm/native_api.js';

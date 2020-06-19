@@ -375,7 +375,11 @@ export class SplineElement extends DataPathNode {
     this.masklayer = 1; //blender-style bitmask layers <- XXX todo: is this actually used for anything?
     this.layers = {}; //stack layers this element belongs to
   }
-  
+
+  onDestroy() {
+
+  }
+
   has_layer() {
     for (var k in this.layers) {
       return true;

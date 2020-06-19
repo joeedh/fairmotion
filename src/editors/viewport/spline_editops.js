@@ -204,7 +204,9 @@ export class SplineLocalToolOp extends ToolOp {
     
     var idgen = spline.idgen;
     var is_anim_path = spline.is_anim_path;
-    
+
+    spline.on_destroy();
+
     for (var k in spline2) {
       if (typeof k === "symbol")
         continue;

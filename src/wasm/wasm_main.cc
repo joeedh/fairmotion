@@ -24,7 +24,7 @@ extern "C" void FM_free(void *mem) {
 }
 
 
-extern "C" void evalCurve(double co[3], double s, double ks[16], double v1[2], double v2[2], int no_update) {
+extern "C" void evalCurve(double co[3], double s, double ks[16], double v1[2], double v2[2], int angle_only, int no_update) {
     float fv1[3], fv2[3];
 
     fv1[0] = v1[0];
@@ -35,7 +35,7 @@ extern "C" void evalCurve(double co[3], double s, double ks[16], double v1[2], d
     fv2[1] = v2[1];
     fv2[2] = 0.0;
 
-    eval_curve(co, s, fv1, fv2, ks, ORDER, false, no_update);
+    eval_curve(co, s, fv1, fv2, ks, ORDER, angle_only, no_update);
 }
 
 int errorf(const char *fmt, ...) {

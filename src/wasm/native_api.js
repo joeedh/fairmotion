@@ -71,7 +71,7 @@ export function onMessage(type : number, message : ArrayBuffer, ptr : number) {
   if (ret.done) {
     delete callbacks[id];
     
-    if (job.callback != undefined)
+    if (job.callback !== undefined)
       job.callback.call(job.thisvar, job.status.value);
   }
   
@@ -130,8 +130,15 @@ function init_eval_mem() {
   wco = new Float64Array(mem.buffer, ptr, 3); pco = ptr;
 }
 
+export function onSegmentDestroy(seg) {
+  if (seg.ks._has_wasm) {
+    wasm._free(seg.ks.ptr);
+    seg.ks = new Float64Array(16);
+  }
+}
+
 let evalrets = util.cachering.fromConstructor(Vector2, 64);
-export function evalCurve(s, v1, v2, ks, no_update=false) {
+export function evalCurve(seg, s, v1, v2, ks, no_update=false) {
   if (!wv1) {
     init_eval_mem();
   }
@@ -141,17 +148,33 @@ export function evalCurve(s, v1, v2, ks, no_update=false) {
     wv2[i] = v2[i];
   }
 
-  for (let i=0; i<ks.length; i++) {
-    wks[i] = ks[i];
+  /*for (let i=0; i<ks.length; i++) {
+      wks[i] = ks[i];
+  }//*/
+
+  if (!seg.ks._has_wasm) {
+    let ptr2 = wasm._malloc(8*16);
+    let ks2 = new Float64Array(wasm.HEAPU8.buffer, ptr2, ks.length);
+
+    for (let i=0; i<ks.length; i++) {
+      ks2[i] = ks[i];
+    }
+
+    ks2._has_wasm = true;
+    ks2.ptr = ptr2;
+
+    seg.ks = ks2;
+    ks = ks2;
   }
 
-  wasm._evalCurve(pco, s, pks, pv1, pv2, no_update ? 1 : 0);
+  wasm._evalCurve(pco, s, seg.ks.ptr, pv1, pv2, no_update ? 1 : 0);
 
+  /*
   if (!no_update) {
     for (let i=0; i<ks.length; i++) {
       ks[i] = wks[i];
     }
-  }
+  }//*/
 
   let ret = evalrets.next();
   ret[0] = wco[0];
@@ -173,10 +196,7 @@ export function postToWasm(type : int, msg : ArrayBuffer) {
   for (let i=ptr; i<ptr+bytes.length; i++) {
     mem[i] = bytes[i-ptr];
   }
-  
-  //WHY DOESNT THIS WORK!
-  //mem.set(bytes, ptr);
-  
+
   wasm._gotMessage(type, ptr, msg.byteLength);
   wasm._free(ptr);
 }
@@ -595,7 +615,10 @@ export function do_solve(sflags : int, spline : Spline, steps : int, gk=0.95, re
   
     return;
   //*/
-  
+
+  //on_finish();
+  //return promise;
+
   call_api(nacl_solve, {
     callback : function(value) {
       //console.log("value", value);

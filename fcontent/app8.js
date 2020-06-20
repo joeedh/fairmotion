@@ -4438,7 +4438,7 @@ es6_module_define('editcurve_ops', [], function _editcurve_ops_module(_es6_modul
 }, '/dev/fairmotion/src/editors/curve/editcurve_ops.js');
 es6_module_define('editcurve_util', [], function _editcurve_util_module(_es6_module) {
 }, '/dev/fairmotion/src/editors/curve/editcurve_util.js');
-es6_module_define('CurveEditor', ["../../path.ux/scripts/pathux.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../path.ux/scripts/util/simple_events.js", "../editor_base.js", "../../path.ux/scripts/util/vectormath.js", "../../path.ux/scripts/core/ui_base.js", "../../core/struct.js"], function _CurveEditor_module(_es6_module) {
+es6_module_define('CurveEditor', ["../../path.ux/scripts/core/ui_base.js", "../../core/struct.js", "../editor_base.js", "../../path.ux/scripts/util/simple_events.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../path.ux/scripts/pathux.js", "../../path.ux/scripts/util/vectormath.js"], function _CurveEditor_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
   var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
   var UIBase=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui_base.js', 'UIBase');
@@ -4527,14 +4527,13 @@ es6_module_define('CurveEditor', ["../../path.ux/scripts/pathux.js", "../../path
       this._drawreq = false;
       let g=this.g;
       let canvas=this.canvas;
-      g.fillStyle = "rgb(240, 240, 240)";
+      g.fillStyle = "rgb(75, 75, 75)";
       g.rect(0, 0, canvas.width, canvas.height);
       g.fill();
       let fsize=10;
       g.font = ""+fsize+"px sans-serif";
       let pad=fsize*3.0;
       let csize=32;
-      let steps=~~(this.size[0]/csize+1.0);
       g.fillStyle = "grey";
       g.beginPath();
       g.rect(0, 0, pad, this.size[1]);
@@ -4544,10 +4543,11 @@ es6_module_define('CurveEditor', ["../../path.ux/scripts/pathux.js", "../../path
       g.fill();
       g.fillStyle = "orange";
       for (let step=0; step<2; step++) {
+          let steps=Math.floor(this.size[step]/csize+1.0);
           let off=this.pan[step]%csize;
           let x=off-csize;
           for (let i=0; i<steps; i++) {
-              let val=i-~~(this.pan[step]/csize);
+              let val=i-Math.floor(this.pan[step]/csize);
               val = val.toFixed(1);
               if (x>=this.size[step]-pad) {
                   break;
@@ -4558,6 +4558,20 @@ es6_module_define('CurveEditor', ["../../path.ux/scripts/pathux.js", "../../path
               v1[step^1] = pad;
               v2[step^1] = this.size[step^1]-pad;
               if (x>=pad) {
+                  let a=1.0;
+                  let ix=Math.floor(i-this.pan[step]/csize);
+                  if (ix%4===0) {
+                      a = 0.95;
+                  }
+                  else 
+                    if (ix%2===0) {
+                      a = 0.678;
+                  }
+                  else {
+                    a = 0.42;
+                  }
+                  a = ~~(a*255);
+                  g.strokeStyle = `rgb(${a},${a},${a})`;
                   g.beginPath();
                   g.moveTo(v1[0], v1[1]);
                   g.lineTo(v2[0], v2[1]);
@@ -8645,7 +8659,7 @@ VertexAnimData {
 }
 `;
 }, '/dev/fairmotion/src/core/animspline.js');
-es6_module_define('frameset', ["../curve/spline_element_array.js", "../curve/spline.js", "./animspline.js", "./struct.js", "./animspline", "../curve/spline_types.js", "./lib_api.js", "./animdata.js"], function _frameset_module(_es6_module) {
+es6_module_define('frameset', ["../curve/spline_types.js", "../curve/spline_element_array.js", "./animspline", "./animdata.js", "./struct.js", "./lib_api.js", "./animspline.js", "../curve/spline.js"], function _frameset_module(_es6_module) {
   "use strict";
   var STRUCT=es6_import_item(_es6_module, './struct.js', 'STRUCT');
   var DataBlock=es6_import_item(_es6_module, './lib_api.js', 'DataBlock');
@@ -8677,9 +8691,12 @@ es6_module_define('frameset', ["../curve/spline_element_array.js", "../curve/spl
   var VertexAnimData=animspline.VertexAnimData;
   class SplineFrame  {
     
+    
+    
      constructor(time, idgen) {
       this.time = time;
       this.flag = 0;
+      this.spline = undefined;
     }
     static  fromSTRUCT(reader) {
       var ret=new SplineFrame();
@@ -8707,6 +8724,9 @@ es6_module_define('frameset', ["../curve/spline_element_array.js", "../curve/spl
   class AllSplineIter  {
     
     
+    
+    
+    
      constructor(f, sel_only) {
       this.f = f;
       this.iter = undefined;
@@ -8719,7 +8739,7 @@ es6_module_define('frameset', ["../curve/spline_element_array.js", "../curve/spl
      load_iter() {
       this.iter = undefined;
       var f=this.f;
-      if (this.stage==0) {
+      if (this.stage===0) {
           var arr=new GArray();
           for (var k in f.frames) {
               var fr=f.frames[k];
@@ -8728,13 +8748,13 @@ es6_module_define('frameset', ["../curve/spline_element_array.js", "../curve/spl
           this.iter = arr[Symbol.iterator]();
       }
       else 
-        if (this.stage==1) {
+        if (this.stage===1) {
           var arr=[];
           for (var k in this.f.vertex_animdata) {
               if (this.sel_only) {
                   var vdata=this.f.vertex_animdata[k];
                   var v=this.f.spline.eidmap[k];
-                  if (v==undefined||!(v.flag&SplineFlags.SELECT)||v.hidden) {
+                  if (v===undefined||!(v.flag&SplineFlags.SELECT)||v.hidden) {
                       continue;
                   }
               }
@@ -8753,7 +8773,7 @@ es6_module_define('frameset', ["../curve/spline_element_array.js", "../curve/spl
       return this;
     }
      next() {
-      if (this.iter==undefined) {
+      if (this.iter===undefined) {
           this.ret.done = true;
           this.ret.value = undefined;
           var ret=this.ret;
@@ -8767,7 +8787,7 @@ es6_module_define('frameset', ["../curve/spline_element_array.js", "../curve/spl
       if (next.done) {
           this.stage++;
           this.load_iter();
-          if (this.iter!=undefined) {
+          if (this.iter!==undefined) {
               ret.done = false;
           }
       }
@@ -8879,7 +8899,7 @@ SplineKCacheItem {
       return ~~(hash*1024*1024);
     }
      load(frame, spline) {
-      if (typeof frame=="string") {
+      if (typeof frame==="string") {
           throw new Error("Got bad frame! "+frame);
       }
       if (!(frame in this.cache)) {
@@ -8964,6 +8984,7 @@ SplineKCacheItem {
     
     
     
+    
      constructor() {
       super(DataTypes.FRAMESET);
       this.editmode = "MAIN";
@@ -9026,12 +9047,12 @@ SplineKCacheItem {
           var lasttime=undefined;
           for (var v of vd.verts) {
               var time=get_vtime(v);
-              if (lastv!=undefined&&lastv.vectorDistance(v)<threshold&&Math.abs(time-lasttime)<=time_threshold) {
+              if (lastv!==undefined&&lastv.vectorDistance(v)<threshold&&Math.abs(time-lasttime)<=time_threshold) {
                   console.log("Coincident vert!", k, v.eid, lastv.vectorDistance(v));
-                  if (v.segments.length==2)
+                  if (v.segments.length===2)
                     ret.add(v);
                   else 
-                    if (lastv.segments.length==2)
+                    if (lastv.segments.length===2)
                     ret.add(lastv);
               }
               lastv = v;
@@ -9120,11 +9141,11 @@ SplineKCacheItem {
       if (!this.switch_on_select)
         return ;
       var vd=this.get_vdata(element.eid, false);
-      if (vd==undefined)
+      if (vd===undefined)
         return ;
       var hide=!(this.selectmode&element.type);
       hide = hide||!(element.flag&SplineFlags.SELECT);
-      if (element.type==SplineTypes.HANDLE) {
+      if (element.type===SplineTypes.HANDLE) {
           hide = hide||!element.use;
       }
       var layer=this.pathspline.layerset.idmap[vd.layerid];
@@ -9323,14 +9344,14 @@ SplineKCacheItem {
       if (this.frame!=undefined)
         return this.frame;
       var frame=this.frame = new SplineFrame();
-      var spline=this.spline==undefined ? new Spline() : this.spline.copy();
+      var spline=this.spline===undefined ? new Spline() : this.spline.copy();
       spline.verts.select_listeners.addListener(this.on_spline_select, this);
       spline.handles.select_listeners.addListener(this.on_spline_select, this);
       spline.idgen = this.idgen;
       frame.spline = spline;
       frame.time = time;
       this.frames[time] = frame;
-      if (this.spline==undefined) {
+      if (this.spline===undefined) {
           this.spline = frame.spline;
           this.frame = frame;
       }
@@ -9344,7 +9365,7 @@ SplineKCacheItem {
               break;
           }
       }
-      if (i==flist.length)
+      if (i===flist.length)
         return frames[i-1];
       return frames[i];
     }
@@ -9537,7 +9558,7 @@ SplineKCacheItem {
           this.kcache = new SplineKCache();
       }
       this.afterSTRUCT();
-      if (this.pathspline==undefined) {
+      if (this.pathspline===undefined) {
           this.pathspline = this.make_pathspline();
       }
       for (v of this.pathspline.verts) {
@@ -9548,7 +9569,7 @@ SplineKCacheItem {
       }
       for (var vd of this.vertex_animdata) {
           vd.spline = this.pathspline;
-          if (vd.layerid==undefined) {
+          if (vd.layerid===undefined) {
               var layer=this.pathspline.layerset.new_layer();
               layer.flag|=SplineLayerFlags.HIDE;
               vd.layerid = layer.id;
@@ -9576,14 +9597,14 @@ SplineKCacheItem {
                     s = v.other_segment(s);
                     s.layers = {};
                     s.layers[vd.layerid] = 1;
-                    if (v==vd.startv)
+                    if (v===vd.startv)
                       break;
                   }
               }
           }
       }
       this.pathspline.is_anim_path = true;
-      if (this.templayerid==undefined)
+      if (this.templayerid===undefined)
         this.templayerid = this.pathspline.layerset.new_layer().id;
       var frames={};
       var vert_animdata={};
@@ -9591,7 +9612,7 @@ SplineKCacheItem {
       var firstframe=undefined;
       for (var i=0; i<this.frames.length; i++) {
           max_cur = Math.max(this.frames[i].spline.idgen.cur_id, max_cur);
-          if (i==0)
+          if (i===0)
             firstframe = this.frames[i];
           this.frames[i].spline.idgen = this.idgen;
           frames[this.frames[i].time] = this.frames[i];
@@ -9610,7 +9631,7 @@ SplineKCacheItem {
       this.pathspline.regen_sort();
       var fk=this.cur_frame||0;
       delete this.cur_frame;
-      if (fk==undefined) {
+      if (fk===undefined) {
           this.frame = firstframe;
           this.spline = firstframe.spline;
       }
@@ -9619,7 +9640,7 @@ SplineKCacheItem {
         this.spline = this.frames[fk].spline;
       }
       this.vertex_animdata = vert_animdata;
-      if (this.framelist.length==0) {
+      if (this.framelist.length===0) {
           for (var k in this.frames) {
               this.framelist.push(parseFloat(k));
           }
@@ -9664,12 +9685,61 @@ SplineKCacheItem {
 }
 `;
 }, '/dev/fairmotion/src/core/frameset.js');
-es6_module_define('ops_editor', ["../../core/struct.js", "../../path.ux/scripts/screen/ScreenArea.js", "../editor_base.js", "../../path.ux/scripts/core/ui_base.js"], function _ops_editor_module(_es6_module) {
+es6_module_define('ops_editor', ["../../path.ux/scripts/core/ui_base.js", "../editor_base.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../core/struct.js"], function _ops_editor_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
   var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
   var UIBase=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui_base.js', 'UIBase');
   var Editor=es6_import_item(_es6_module, '../editor_base.js', 'Editor');
   class OpStackEditor extends Editor {
+     constructor() {
+      super();
+      this._last_toolstack_hash = "";
+    }
+     rebuild() {
+      let ctx=this.ctx;
+      this.frame.clear();
+      let stack=ctx.toolstack;
+      let frame=this.frame;
+      for (let i=0; i<stack.undostack.length; i++) {
+          let tool=stack.undostack[i];
+          let cls=tool.constructor;
+          let name;
+          if (cls.tooldef) {
+              name = cls.tooldef().uiname;
+          }
+          if (!name) {
+              name = tool.uiname||tool.name||cls.name||"(error)";
+          }
+          let panel=frame.panel(name);
+          for (let k in tool.inputs) {
+              let path=`operator_stack[${i}].${k}`;
+              try {
+                panel.prop(path);
+              }
+              catch (error) {
+                  print_stack(error);
+                  continue;
+              }
+          }
+          panel.closed = true;
+      }
+    }
+     update() {
+      let ctx=this.ctx;
+      if (!ctx||!ctx.toolstack) {
+          return ;
+      }
+      let stack=ctx.toolstack;
+      let key=""+stack.undostack.length+":"+stack.cur;
+      if (key!==this._last_toolstack_hash) {
+          this._last_toolstack_hash = key;
+          this.rebuild();
+      }
+    }
+     init() {
+      super.init();
+      this.frame = this.container.col();
+    }
     static  define() {
       return {tagname: "opstack-editor-x", 
      areaname: "opstack_editor", 

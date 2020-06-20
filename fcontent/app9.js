@@ -1061,7 +1061,7 @@ import {DataLib, DataBlock, DataList} from "../lib_api.js";
     return _prefix+out;
   }
 }, '/dev/fairmotion/src/core/data_api/data_api_define.js');
-es6_module_define('data_api_new', ["../imageblock.js", "../animdata.js", "../../editors/viewport/spline_createops.js", "../../editors/viewport/selectmode.js", "../context.js", "../../editors/viewport/view2d.js", "../frameset.js", "../../editors/curve/CurveEditor.js", "../toolops_api.js", "../toolprops.js", "../../editors/settings/SettingsEditor.js", "../UserSettings.js", "../../scene/scene.js", "../../curve/spline_base.js", "../../scene/sceneobject.js", "../../curve/spline.js", "../../editors/dopesheet/DopeSheetEditor.js", "../lib_api.js", "../../curve/spline_element_array.js", "../units.js", "../../editors/ops/ops_editor.js", "../../curve/spline_types.js", "./data_api.js"], function _data_api_new_module(_es6_module) {
+es6_module_define('data_api_new', ["../lib_api.js", "../../editors/viewport/spline_createops.js", "../../editors/viewport/view2d.js", "../UserSettings.js", "../frameset.js", "../../curve/spline_base.js", "./data_api.js", "../../scene/scene.js", "../toolprops.js", "../../editors/ops/ops_editor.js", "../animdata.js", "../../editors/settings/SettingsEditor.js", "../../scene/sceneobject.js", "../../editors/viewport/selectmode.js", "../../curve/spline_types.js", "../context.js", "../../curve/spline_element_array.js", "../../curve/spline.js", "../units.js", "../imageblock.js", "../../editors/curve/CurveEditor.js", "../toolops_api.js", "../../editors/dopesheet/DopeSheetEditor.js"], function _data_api_new_module(_es6_module) {
   "use strict";
   var DataTypes=es6_import_item(_es6_module, '../lib_api.js', 'DataTypes');
   var EditModes=es6_import_item(_es6_module, '../../editors/viewport/view2d.js', 'EditModes');
@@ -1724,7 +1724,7 @@ es6_module_define('data_api_base', ["../../path.ux/scripts/controller/controller
   DataAPIError = _es6_module.add_export('DataAPIError', DataAPIError);
   window.DataAPIError = DataAPIError;
 }, '/dev/fairmotion/src/core/data_api/data_api_base.js');
-es6_module_define('data_api_pathux', ["../toolprops.js", "../toolops_api.js", "../../path.ux/scripts/controller/controller.js", "./data_api_base.js", "../../path.ux/scripts/core/ui_base.js", "../../editors/editor_base.js", "../../path.ux/scripts/util/simple_events.js", "../../editors/events.js"], function _data_api_pathux_module(_es6_module) {
+es6_module_define('data_api_pathux', ["../../editors/events.js", "../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/util/simple_events.js", "../toolops_api.js", "../../path.ux/scripts/controller/controller.js", "../../editors/editor_base.js", "./data_api_base.js", "../toolprops.js"], function _data_api_pathux_module(_es6_module) {
   var ModelInterface=es6_import_item(_es6_module, '../../path.ux/scripts/controller/controller.js', 'ModelInterface');
   var DataPathError=es6_import_item(_es6_module, '../../path.ux/scripts/controller/controller.js', 'DataPathError');
   var ToolOpAbstract=es6_import_item(_es6_module, '../toolops_api.js', 'ToolOpAbstract');
@@ -1984,7 +1984,7 @@ es6_module_define('data_api_pathux', ["../toolprops.js", "../toolops_api.js", ".
       if (ret.prop!==undefined&&ret.prop.type&(PropTypes.FLAG|PropTypes.ENUM)) {
           let prop=ret.prop;
           let p=path.trim();
-          if (p.endsWith(/\]/)&&p.search(/\[/)>=0) {
+          if (p.match(/\]$/)&&p.search(/\[/)>=0) {
               let i=p.length-1;
               while (p[i]!=="[") {
                 i--;

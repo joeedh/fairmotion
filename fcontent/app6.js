@@ -393,7 +393,7 @@ es6_module_define('spline_draw', ["../config/config.js", "./spline_draw_sort", "
   }
   redraw_element = _es6_module.add_export('redraw_element', redraw_element);
 }, '/dev/fairmotion/src/curve/spline_draw.js');
-es6_module_define('spline_draw_sort', ["../editors/viewport/selectmode.js", "../core/animdata.js", "./spline_math.js", "./spline_types.js", "./spline_element_array.js", "../config/config.js", "./spline_multires.js", "../editors/viewport/view2d_editor.js", "../util/mathlib.js"], function _spline_draw_sort_module(_es6_module) {
+es6_module_define('spline_draw_sort', ["./spline_math.js", "../core/animdata.js", "./spline_element_array.js", "../editors/viewport/view2d_editor.js", "./spline_types.js", "./spline_multires.js", "../config/config.js", "../editors/viewport/selectmode.js", "../util/mathlib.js"], function _spline_draw_sort_module(_es6_module) {
   var aabb_isect_minmax2d=es6_import_item(_es6_module, '../util/mathlib.js', 'aabb_isect_minmax2d');
   var ENABLE_MULTIRES=es6_import_item(_es6_module, '../config/config.js', 'ENABLE_MULTIRES');
   var SessionFlags=es6_import_item(_es6_module, '../editors/viewport/view2d_editor.js', 'SessionFlags');
@@ -438,11 +438,11 @@ es6_module_define('spline_draw_sort', ["../editors/viewport/selectmode.js", "../
     }
   }
   calc_string_ids = _es6_module.add_export('calc_string_ids', calc_string_ids);
-  var $lists_EvHw_sort_layer_segments=new cachering(function () {
+  var $lists_Gskv_sort_layer_segments=new cachering(function () {
     return [];
   }, 2);
   function sort_layer_segments(layer, spline) {
-    var list=$lists_EvHw_sort_layer_segments.next();
+    var list=$lists_Gskv_sort_layer_segments.next();
     list.length = 0;
     var visit={}
     var layerid=layer.id;
@@ -517,6 +517,9 @@ es6_module_define('spline_draw_sort', ["../editors/viewport/selectmode.js", "../
         }
         gmap.set(g, gi);
         gi++;
+    }
+    for (let seg of spline.segments) {
+        seg.updateCoincident();
     }
     for (var f of spline.faces) {
         if (f.hidden&&!(f.flag&SplineFlags.GHOST))
@@ -664,7 +667,7 @@ es6_module_define('spline_draw_sort', ["../editors/viewport/selectmode.js", "../
   }
   redo_draw_sort = _es6_module.add_export('redo_draw_sort', redo_draw_sort);
 }, '/dev/fairmotion/src/curve/spline_draw_sort.js');
-es6_module_define('spline', ["../editors/viewport/selectmode.js", "./spline_math.js", "../path.ux/scripts/config/const.js", "./solver_new.js", "./spline_query.js", "./spline_draw.js", "../core/struct.js", "./spline_strokegroup.js", "../editors/viewport/view2d_editor.js", "../core/eventdag.js", "../config/config.js", "./solver.js", "./spline_types.js", "../core/toolops_api.js", "./spline_multires.js", "../wasm/native_api.js", "../core/lib_api.js", "./spline_element_array.js"], function _spline_module(_es6_module) {
+es6_module_define('spline', ["./spline_element_array.js", "../editors/viewport/view2d_editor.js", "./solver_new.js", "./spline_types.js", "./spline_draw.js", "../core/toolops_api.js", "./spline_multires.js", "../core/eventdag.js", "../wasm/native_api.js", "../config/config.js", "./spline_query.js", "./solver.js", "../path.ux/scripts/config/const.js", "./spline_math.js", "./spline_strokegroup.js", "../core/lib_api.js", "../editors/viewport/selectmode.js", "../core/struct.js"], function _spline_module(_es6_module) {
   "use strict";
   const MMLEN=8;
   const UARR=Uint16Array;
@@ -887,6 +890,9 @@ es6_module_define('spline', ["../editors/viewport/selectmode.js", "./spline_math
       this.recalc|=RecalcFlags.ALL;
     }
      init_elists() {
+      for (let list of this.elists) {
+          list.onDestroy();
+      }
       this.elist_map = {};
       this.elists = [];
       for (var k in _elist_map) {
@@ -1952,6 +1958,11 @@ es6_module_define('spline', ["../editors/viewport/selectmode.js", "./spline_math
         return this._pending_solve;
       }
     }
+     on_destroy() {
+      for (let elist of this.elists) {
+          elist.onDestroy();
+      }
+    }
      solve_intern(steps, gk) {
       var this2=this;
       var dag_trigger=function () {
@@ -2525,6 +2536,9 @@ es6_module_define('spline', ["../editors/viewport/selectmode.js", "./spline_math
           arr.push(spline_multires._format[i]);
       }
       this.mres_format = arr;
+      for (let seg of this.segments) {
+          seg.updateCoincident();
+      }
       return this;
     }
      flagUpdateVertTime(v) {
@@ -4118,7 +4132,7 @@ VectorVertex {
   _es6_module.add_class(VectorDraw);
   VectorDraw = _es6_module.add_export('VectorDraw', VectorDraw);
 }, '/dev/fairmotion/src/vectordraw/vectordraw_base.js');
-es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/util.js", "../util/mathlib.js", "../config/config.js", "./vectordraw_base.js", "../path.ux/scripts/util/math.js", "./vectordraw_jobs_base.js", "./vectordraw_jobs.js"], function _vectordraw_canvas2d_module(_es6_module) {
+es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "../util/mathlib.js", "./vectordraw_base.js", "../path.ux/scripts/util/util.js", "../config/config.js", "./vectordraw_jobs.js", "./vectordraw_jobs_base.js"], function _vectordraw_canvas2d_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   var util=es6_import(_es6_module, '../path.ux/scripts/util/util.js');
@@ -4442,6 +4456,7 @@ es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/util.js", "..
       this.dead = false;
       this.commands = [];
       this.recalc = 1;
+      this.stroke_extra = 0;
       this._render_id = render_idgen++;
       this._image = undefined;
       this._image_off = [0, 0];
@@ -4461,6 +4476,7 @@ es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/util.js", "..
           this._pushCmd(LINESTYLE, ~~(color[0]*255), ~~(color[1]*255), ~~(color[2]*255), a);
       }
       if (width!==undefined) {
+          this.stroke_extra = Math.max(this.stroke_extra, width);
           this._pushCmd(LINEWIDTH, width);
       }
       this._pushCmd(STROKE);
@@ -4469,6 +4485,7 @@ es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/util.js", "..
       var tmp=canvaspath_temp_vs.next().zero();
       var mm=this._mm;
       var pad=this.pad = this.blur>0 ? this.blur+15 : 0;
+      pad+=this.stroke_extra*3;
       mm.reset();
       if (fast_mode) {
           console.trace("FAST MODE!");
@@ -4637,6 +4654,7 @@ es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/util.js", "..
       this._commands = commands2;
     }
      reset(draw) {
+      this.stroke_extra = 0;
       this.commands.length = 0;
       this.path_start_i = 0;
       this.off.zero();
@@ -6466,7 +6484,7 @@ es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js
 }, '/dev/fairmotion/src/vectordraw/vectordraw_svg.js');
 es6_module_define('vectordraw_canvas2d_jobs', [], function _vectordraw_canvas2d_jobs_module(_es6_module) {
 }, '/dev/fairmotion/src/vectordraw/vectordraw_canvas2d_jobs.js');
-es6_module_define('vectordraw_jobs', ["./vectordraw_jobs_base.js", "../../platforms/platform.js", "../path.ux/scripts/util/simple_events.js", "../core/eventmanager.js", "../config/config.js"], function _vectordraw_jobs_module(_es6_module) {
+es6_module_define('vectordraw_jobs', ["./vectordraw_jobs_base.js", "../path.ux/scripts/util/simple_events.js", "../core/eventmanager.js", "../../platforms/platform.js", "../config/config.js"], function _vectordraw_jobs_module(_es6_module) {
   "use strict";
   var eventmanager=es6_import(_es6_module, '../core/eventmanager.js');
   var MESSAGES=es6_import_item(_es6_module, './vectordraw_jobs_base.js', 'MESSAGES');
@@ -6598,13 +6616,13 @@ es6_module_define('vectordraw_jobs', ["./vectordraw_jobs_base.js", "../../platfo
         console.log("event message in main thread", e);
     }
      tryLock(owner) {
-      if (this.lock==0||this.owner===owner) {
+      if (this.lock===0||this.owner===owner) {
           return true;
       }
       return false;
     }
      tryUnlock(owner) {
-      if (this.lock==0||this.owner!==owner) {
+      if (this.lock===0||this.owner!==owner) {
           return false;
       }
       this.owner = undefined;
@@ -6843,7 +6861,7 @@ es6_module_define('vectordraw', ["./vectordraw_base.js", "./vectordraw_skia_simp
 es6_module_define('strokedraw', [], function _strokedraw_module(_es6_module) {
   "use strict";
 }, '/dev/fairmotion/src/vectordraw/strokedraw.js');
-es6_module_define('spline_draw_new', ["../core/animdata.js", "./spline_base.js", "../editors/viewport/selectmode.js", "../editors/viewport/view2d_editor.js", "./spline_types.js", "../path.ux/scripts/pathux.js", "./spline_strokegroup.js", "../config/config.js", "../util/mathlib.js", "./spline_multires.js", "./spline_element_array.js", "../vectordraw/vectordraw.js", "./spline_math.js", "../vectordraw/vectordraw_jobs.js"], function _spline_draw_new_module(_es6_module) {
+es6_module_define('spline_draw_new', ["../vectordraw/vectordraw_jobs.js", "../util/mathlib.js", "./spline_base.js", "../editors/viewport/view2d_editor.js", "../core/animdata.js", "./spline_types.js", "../path.ux/scripts/pathux.js", "../config/config.js", "./spline_math.js", "../vectordraw/vectordraw.js", "./spline_element_array.js", "./spline_strokegroup.js", "./spline_multires.js", "../editors/viewport/selectmode.js"], function _spline_draw_new_module(_es6_module) {
   "use strict";
   var aabb_isect_minmax2d=es6_import_item(_es6_module, '../util/mathlib.js', 'aabb_isect_minmax2d');
   var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
@@ -7270,14 +7288,12 @@ es6_module_define('spline_draw_new', ["../core/animdata.js", "./spline_base.js",
               for (let seg of e.segments) {
                   redraw = redraw||(seg.flag&(SplineFlags.REDRAW|SplineFlags.UPDATE));
               }
-              if (redraw) {
+              this.update_stroke_group(e, drawparams, redraw);
+              if (draw_normals) {
                   for (let seg of e.segments) {
-                      if (draw_normals) {
-                          this.update_normals(seg, drawparams);
-                      }
+                      this.update_normals(seg, drawparams);
                   }
               }
-              this.update_stroke_group(e, drawparams, redraw);
               continue;
           }
           var layerid=this.drawlist_layerids[i];
@@ -7957,7 +7973,7 @@ es6_module_define('spline_draw_new', ["../core/animdata.js", "./spline_base.js",
           for (let i=0; i<steps; i++, s+=ds) {
               let co=seg.evaluateSide(s, side, dv, no, lwdlw);
               let k=seg.curvatureSide(s, side, no)*(side*2.0-1.0);
-              no.normalize().mulScalar(7000.0*k);
+              no.normalize().mulScalar(17000.0*k);
               if (i>0) {
                   path.makeLine(lastco[0], lastco[1], co[0], co[1], wid+side);
                   path.makeLine(co[0], co[1], co[0]+no[0], co[1]+no[1], wid+side);

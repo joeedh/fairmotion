@@ -1600,6 +1600,11 @@ es6_module_define('built_wasm', ["./load_wasm.js"], function _built_wasm_module(
     assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
     return Module["asm"]["free"].apply(null, arguments);
   }
+  var _evalCurve=Module["_evalCurve"] = function () {
+    assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
+    assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
+    return Module["asm"]["evalCurve"].apply(null, arguments);
+  }
   var ___em_js__sendMessage=Module["___em_js__sendMessage"] = function () {
     assert(runtimeInitialized, 'you need to wait for the runtime to be ready (e.g. wait for main() to be called)');
     assert(!runtimeExited, 'the runtime was exited (use NO_EXIT_RUNTIME to keep it alive after main() exits)');
@@ -2348,8 +2353,10 @@ es6_module_define('built_wasm', ["./load_wasm.js"], function _built_wasm_module(
   noExitRuntime = true;
   run();
 }, '/dev/fairmotion/src/wasm/built_wasm.js');
-es6_module_define('native_api', ["../core/ajax.js", "./built_wasm.js", "../curve/spline_math_hermite.js", "../curve/solver.js", "../util/typedwriter.js", "../curve/spline_base.js", "../core/toolops_api.js"], function _native_api_module(_es6_module) {
+es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", "../util/typedwriter.js", "../curve/spline_base.js", "../curve/solver.js", "../curve/spline_math_hermite.js", "../core/ajax.js", "../path.ux/scripts/util/vectormath.js", "../path.ux/scripts/util/util.js"], function _native_api_module(_es6_module) {
   var wasm=es6_import(_es6_module, './built_wasm.js');
+  let wasmModule=wasm;
+  wasmModule = _es6_module.add_export('wasmModule', wasmModule);
   var active_solves={}
   active_solves = _es6_module.add_export('active_solves', active_solves);
   var solve_starttimes={}
@@ -2368,6 +2375,12 @@ es6_module_define('native_api', ["../core/ajax.js", "./built_wasm.js", "../curve
   var build_solver=es6_import_item(_es6_module, '../curve/spline_math_hermite.js', 'build_solver');
   var solve_pre=es6_import_item(_es6_module, '../curve/spline_math_hermite.js', 'solve_pre');
   var TypedWriter=es6_import_item(_es6_module, '../util/typedwriter.js', 'TypedWriter');
+  var util=es6_import(_es6_module, '../path.ux/scripts/util/util.js');
+  var Vector2=es6_import_item(_es6_module, '../path.ux/scripts/util/vectormath.js', 'Vector2');
+  var Vector3=es6_import_item(_es6_module, '../path.ux/scripts/util/vectormath.js', 'Vector3');
+  var Vector4=es6_import_item(_es6_module, '../path.ux/scripts/util/vectormath.js', 'Vector4');
+  var Matrix4=es6_import_item(_es6_module, '../path.ux/scripts/util/vectormath.js', 'Matrix4');
+  var Quat=es6_import_item(_es6_module, '../path.ux/scripts/util/vectormath.js', 'Quat');
   var ajax=es6_import(_es6_module, '../core/ajax.js');
   function isReady() {
     return wasm.calledRun;
@@ -2409,7 +2422,7 @@ es6_module_define('native_api', ["../core/ajax.js", "./built_wasm.js", "../curve
     var ret=iter.next();
     if (ret.done) {
         delete callbacks[id];
-        if (job.callback!=undefined)
+        if (job.callback!==undefined)
           job.callback.call(job.thisvar, job.status.value);
     }
     wasm._free(ptr);
@@ -2447,6 +2460,60 @@ es6_module_define('native_api', ["../core/ajax.js", "./built_wasm.js", "../curve
      ptr: ptr});
     }
   }
+  let wv1, wv2, wks, wco;
+  let pv1, pv2, pks, pco;
+  function init_eval_mem() {
+    let ptr=wasm._malloc(8*3+8*16+8*3*2);
+    let mem=wasm.HEAPU8;
+    wv1 = new Float64Array(mem.buffer, ptr, 2);
+    pv1 = ptr;
+    ptr+=8*2;
+    wv2 = new Float64Array(mem.buffer, ptr, 2);
+    pv2 = ptr;
+    ptr+=8*2;
+    wks = new Float64Array(mem.buffer, ptr, 16);
+    pks = ptr;
+    ptr+=16*8;
+    wco = new Float64Array(mem.buffer, ptr, 3);
+    pco = ptr;
+  }
+  function onSegmentDestroy(seg) {
+    if (seg.ks._has_wasm) {
+        wasm._free(seg.ks.ptr);
+        seg.ks = new Float64Array(16);
+    }
+  }
+  onSegmentDestroy = _es6_module.add_export('onSegmentDestroy', onSegmentDestroy);
+  let evalrets=util.cachering.fromConstructor(Vector2, 64);
+  function evalCurve(seg, s, v1, v2, ks, no_update) {
+    if (no_update===undefined) {
+        no_update = false;
+    }
+    if (!wv1) {
+        init_eval_mem();
+    }
+    for (let i=0; i<2; i++) {
+        wv1[i] = v1[i];
+        wv2[i] = v2[i];
+    }
+    if (!seg.ks._has_wasm) {
+        let ptr2=wasm._malloc(8*16);
+        let ks2=new Float64Array(wasm.HEAPU8.buffer, ptr2, ks.length);
+        for (let i=0; i<ks.length; i++) {
+            ks2[i] = ks[i];
+        }
+        ks2._has_wasm = true;
+        ks2.ptr = ptr2;
+        seg.ks = ks2;
+        ks = ks2;
+    }
+    wasm._evalCurve(pco, s, seg.ks.ptr, pv1, pv2, no_update ? 1 : 0);
+    let ret=evalrets.next();
+    ret[0] = wco[0];
+    ret[1] = wco[1];
+    return ret;
+  }
+  evalCurve = _es6_module.add_export('evalCurve', evalCurve);
   function postToWasm(type, msg) {
     if (!(__instance_of(msg, ArrayBuffer))) {
         throw new Error("msg must be array buffer");
@@ -2811,7 +2878,7 @@ es6_module_define('native_api', ["../core/ajax.js", "./built_wasm.js", "../curve
     for (var i=0; i<cons.length; i++) {
         var c=cons[i];
         var type=0, seg1=-1, seg2=-1, param1=0, param2=0, fparam1=0, fparam2=0;
-        if (c.type=="tan_c") {
+        if (c.type==="tan_c") {
             type = ConstraintTypes.TAN_CONSTRAINT;
             seg1 = c.params[0];
             seg2 = c.params[1];
@@ -2830,7 +2897,7 @@ es6_module_define('native_api', ["../core/ajax.js", "./built_wasm.js", "../curve
             }
         }
         else 
-          if (c.type=="hard_tan_c") {
+          if (c.type==="hard_tan_c") {
             type = ConstraintTypes.HARD_TAN_CONSTRAINT;
             var seg=c.params[0], tan=c.params[1], s=c.params[2];
             seg1 = idxmap[seg.eid];
@@ -2839,7 +2906,7 @@ es6_module_define('native_api', ["../core/ajax.js", "./built_wasm.js", "../curve
             fparam2 = s;
         }
         else 
-          if (c.type=="curv_c") {
+          if (c.type==="curv_c") {
             type = ConstraintTypes.CURVATURE_CONSTRAINT;
             seg1 = c.params[0];
             seg2 = c.params[1];
@@ -2854,10 +2921,10 @@ es6_module_define('native_api', ["../core/ajax.js", "./built_wasm.js", "../curve
             seg2 = -1;
         }
         else 
-          if (c.type=="copy_c") {
+          if (c.type==="copy_c") {
             type = ConstraintTypes.COPY_C_CONSTRAINT;
             seg1 = c.params[0];
-            param1 = seg1.v1.segments.length==1;
+            param1 = seg1.v1.segments.length===1;
         }
         else {
           console.trace(c, seg1, seg2);
@@ -2865,7 +2932,7 @@ es6_module_define('native_api', ["../core/ajax.js", "./built_wasm.js", "../curve
         }
         writer.int32(type);
         writer.float32(c.k);
-        writer.float32(c.k2==undefined ? c.k : c.k2);
+        writer.float32(c.k2===undefined ? c.k : c.k2);
         writer.int32(0);
         writer.int32(seg1);
         writer.int32(seg2);
@@ -2928,7 +2995,7 @@ es6_module_define('native_api', ["../core/ajax.js", "./built_wasm.js", "../curve
     for (var i=0; i<cons.length; i++) {
         var c=cons[i];
         var type=0, seg1=-1, seg2=-1, param1=0, param2=0, fparam1=0, fparam2=0;
-        if (c.type=="tan_c") {
+        if (c.type==="tan_c") {
             type = ConstraintTypes.TAN_CONSTRAINT;
             seg1 = c.params[0];
             seg2 = c.params[1];
@@ -2937,7 +3004,7 @@ es6_module_define('native_api', ["../core/ajax.js", "./built_wasm.js", "../curve
             param2 = idxmap[seg2.eid];
             fparam1 = seg1.v2===v;
             fparam2 = seg2.v2===v;
-            if (c.klst.length==1) {
+            if (c.klst.length===1) {
                 seg1 = c.klst[0]!==seg1.ks ? param2 : param1;
                 seg2 = -1;
             }
@@ -2947,7 +3014,7 @@ es6_module_define('native_api', ["../core/ajax.js", "./built_wasm.js", "../curve
             }
         }
         else 
-          if (c.type=="hard_tan_c") {
+          if (c.type==="hard_tan_c") {
             type = ConstraintTypes.HARD_TAN_CONSTRAINT;
             var seg=c.params[0], tan=c.params[1], s=c.params[2];
             seg1 = idxmap[seg.eid];
@@ -2956,7 +3023,7 @@ es6_module_define('native_api', ["../core/ajax.js", "./built_wasm.js", "../curve
             fparam2 = s;
         }
         else 
-          if (c.type=="curv_c") {
+          if (c.type==="curv_c") {
             type = ConstraintTypes.CURVATURE_CONSTRAINT;
             seg1 = c.params[0];
             seg2 = c.params[1];
@@ -2971,10 +3038,10 @@ es6_module_define('native_api', ["../core/ajax.js", "./built_wasm.js", "../curve
             seg2 = -1;
         }
         else 
-          if (c.type=="copy_c") {
+          if (c.type==="copy_c") {
             type = ConstraintTypes.COPY_C_CONSTRAINT;
             seg1 = c.params[0];
-            param1 = seg1.v1.segments.length==1;
+            param1 = seg1.v1.segments.length===1;
         }
         ajax.pack_int(data, type, endian);
         ajax.pack_float(data, c.k*gk, endian);
@@ -3045,13 +3112,13 @@ es6_module_define('native_api', ["../core/ajax.js", "./built_wasm.js", "../curve
       return this;
     }
     ret.next = function () {
-      if (ret.stage==0) {
+      if (ret.stage===0) {
           this.stage++;
           this.stage0();
           return this.ret;
       }
       else 
-        if (ret.stage==1) {
+        if (ret.stage===1) {
           this.stage++;
           this.stage1();
           this.ret.done = true;
@@ -3096,6 +3163,8 @@ es6_module_define('native_api', ["../core/ajax.js", "./built_wasm.js", "../curve
       if (prof)
         console.log("time d:", time_ms()-timestart, data.byteLength);
       postMessage(MessageTypes.SOLVE, data);
+      if (prof)
+        console.log("DATA "+(data.byteLength/1024).toFixed(3)+"kb");
       if (prof)
         console.log("time e:", time_ms()-timestart, "\n\n\n");
     }
@@ -3680,7 +3749,7 @@ VelPan {
   VelPanPanOp = _es6_module.add_export('VelPanPanOp', VelPanPanOp);
   ToolOp.register(VelPanPanOp);
 }, '/dev/fairmotion/src/editors/velpan.js');
-es6_module_define('nodegraph', ["../../core/lib_api.js", "../../path.ux/scripts/pathux.js", "../velpan.js", "../editor_base.js"], function _nodegraph_module(_es6_module) {
+es6_module_define('nodegraph', ["../editor_base.js", "../../path.ux/scripts/pathux.js", "../velpan.js", "../../core/lib_api.js"], function _nodegraph_module(_es6_module) {
   var Editor=es6_import_item(_es6_module, '../editor_base.js', 'Editor');
   var nstructjs=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'nstructjs');
   var util=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'util');
@@ -3878,6 +3947,7 @@ es6_module_define('nodegraph', ["../../core/lib_api.js", "../../path.ux/scripts/
       canvas.style["height"] = size[1]+"px";
     }
      draw() {
+      return ;
       let canvas=this.canvas;
       let g=this.g;
       this.updateCanvaSize();
@@ -3968,6 +4038,7 @@ es6_module_define('nodegraph', ["../../core/lib_api.js", "../../path.ux/scripts/
       g.stroke();
     }
      rebuild() {
+      return ;
       if (!this.ctx) {
           return ;
       }
@@ -7118,7 +7189,7 @@ es6_module_define('toolprops_iter', ["./struct.js"], function _toolprops_iter_mo
 }
 `;
 }, '/dev/fairmotion/src/core/toolprops_iter.js');
-es6_module_define('toolops_api', ["./toolprops.js", "../path.ux/scripts/util/simple_events.js", "./struct.js", "../editors/events.js"], function _toolops_api_module(_es6_module) {
+es6_module_define('toolops_api', ["../path.ux/scripts/util/simple_events.js", "./struct.js", "../editors/events.js", "./toolprops.js"], function _toolops_api_module(_es6_module) {
   "use strict";
   var PropTypes=es6_import_item(_es6_module, './toolprops.js', 'PropTypes');
   var TPropFlags=es6_import_item(_es6_module, './toolprops.js', 'TPropFlags');
@@ -7235,7 +7306,7 @@ es6_module_define('toolops_api', ["./toolprops.js", "../path.ux/scripts/util/sim
       var slots=this.constructor._get_slots();
       for (var i=0; i<2; i++) {
           var slots2={};
-          if (i==0)
+          if (i===0)
             this.inputs = slots2;
           else 
             this.outputs = slots2;
@@ -8008,7 +8079,7 @@ es6_module_define('toolops_api', ["./toolprops.js", "../path.ux/scripts/util/sim
   }
   class WidgetToolOp extends ToolOp {
     static  create_widgets(manager, ctx) {
-      var $zaxis_2FE6;
+      var $zaxis_Z9dh;
       var widget=manager.create();
       var enabled_axes=this.widget_axes;
       var do_widget_center=this.widget_center;
@@ -8056,15 +8127,15 @@ es6_module_define('toolops_api', ["./toolprops.js", "../path.ux/scripts/util/sim
               tan.mulScalar(1.0/len);
               tan.normalize();
             }
-            var angle=Math.PI-Math.acos($zaxis_2FE6.dot(n));
-            if (n.dot($zaxis_2FE6)>0.9) {
+            var angle=Math.PI-Math.acos($zaxis_Z9dh.dot(n));
+            if (n.dot($zaxis_Z9dh)>0.9) {
             }
             if (1) {
                 if (Math.abs(angle)<0.001||Math.abs(angle)>Math.PI-0.001) {
                     n.loadXYZ(1, 0, 0);
                 }
                 else {
-                  n.cross($zaxis_2FE6);
+                  n.cross($zaxis_Z9dh);
                   n.normalize();
                 }
                 var q=new Quat();
@@ -8116,7 +8187,7 @@ es6_module_define('toolops_api', ["./toolprops.js", "../path.ux/scripts/util/sim
         }
         g_app_state.toolstack.exec_tool(toolop);
       };
-      var $zaxis_2FE6=new Vector3([0, 0, -1]);
+      var $zaxis_Z9dh=new Vector3([0, 0, -1]);
     }
      widget_on_tick(widget) {
       if (this._widget_on_tick!=undefined)
@@ -11767,7 +11838,7 @@ es6_module_define('spline_createops', ["../../path.ux/scripts/pathux.js", "../..
   _es6_module.add_class(StrokePathOp);
   StrokePathOp = _es6_module.add_export('StrokePathOp', StrokePathOp);
 }, '/dev/fairmotion/src/editors/viewport/spline_createops.js');
-es6_module_define('spline_editops', ["../../core/toolprops.js", "../../curve/spline.js", "../../curve/spline_draw.js", "../../curve/spline_base.js", "../../path.ux/scripts/util/struct.js", "../../core/frameset.js", "../../core/toolops_api.js", "../../core/animdata.js", "../../curve/spline_types.js"], function _spline_editops_module(_es6_module) {
+es6_module_define('spline_editops', ["../../path.ux/scripts/util/struct.js", "../../curve/spline_base.js", "../../core/frameset.js", "../../core/animdata.js", "../../curve/spline_types.js", "../../curve/spline.js", "../../core/context.js", "../../core/toolprops.js", "../../core/toolops_api.js", "../../curve/spline_draw.js"], function _spline_editops_module(_es6_module) {
   var IntProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'IntProperty');
   var FloatProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'FloatProperty');
   var CollectionProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'CollectionProperty');
@@ -11871,6 +11942,7 @@ es6_module_define('spline_editops', ["../../core/toolprops.js", "../../curve/spl
       var spline2=istruct.read_object(this._undo.data, Spline);
       var idgen=spline.idgen;
       var is_anim_path=spline.is_anim_path;
+      spline.on_destroy();
       for (var k in spline2) {
           if (typeof k==="symbol")
             continue;
@@ -13062,15 +13134,15 @@ es6_module_define('spline_editops', ["../../core/toolprops.js", "../../curve/spl
       for (var i=0; i<2; i++) {
           var list=i ? spline.handles : spline.verts;
           for (var v of list.selected.editable(ctx)) {
-              if (i==1&&v.owning_vertex!=undefined&&v.owning_vertex.hidden)
+              if (i===1&&v.owning_vertex!=undefined&&v.owning_vertex.hidden)
                 continue;
-              if (i==0&&v.hidden)
+              if (i===0&&v.hidden)
                 continue;
               points.add(v);
               cent.add(v);
           }
       }
-      if (points.length==0)
+      if (points.length===0)
         return ;
       cent.mulScalar(1.0/points.length);
       for (var v of points) {
@@ -13085,4 +13157,5 @@ es6_module_define('spline_editops', ["../../core/toolprops.js", "../../curve/spl
   _ESClass.register(SplineMirrorOp);
   _es6_module.add_class(SplineMirrorOp);
   SplineMirrorOp = _es6_module.add_export('SplineMirrorOp', SplineMirrorOp);
+  var FullContext=es6_import_item(_es6_module, '../../core/context.js', 'FullContext');
 }, '/dev/fairmotion/src/editors/viewport/spline_editops.js');

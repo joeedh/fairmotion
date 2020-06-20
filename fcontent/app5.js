@@ -8306,7 +8306,7 @@ es6_module_define('spline_math', ["../config/config.js", "../wasm/native_api.js"
   function do_solve_nacl(sflags, spline, steps, gk, return_promise) {
     if (DISABLE_SOLVE)
       return ;
-    if (window.common!=undefined&&window.common.naclModule!=undefined) {
+    if (window.common!==undefined&&window.common.naclModule!==undefined) {
         var draw_id=window.push_solve(spline);
         return window.nacl_do_solve(sflags, spline, steps, gk, return_promise, draw_id);
     }
@@ -8342,7 +8342,10 @@ es6_module_define('spline_math', ["../config/config.js", "../wasm/native_api.js"
   KTOTKS = _es6_module.add_export('KTOTKS', KTOTKS);
   var eval_curve_vs=cachering.fromConstructor(Vector3, 64);
   var eval_ret_vs=cachering.fromConstructor(Vector2, 256);
-  function eval_curve(s, v1, v2, ks, order, angle_only, no_update) {
+  function eval_curve(seg, s, v1, v2, ks, order, angle_only, no_update) {
+    if (native_api.isReady()&&!(window.DEBUG.no_native||window.DEBUG.no_nativeEval)) {
+        return native_api.evalCurve(seg, s, v1, v2, ks, angle_only, no_update);
+    }
     if (order===undefined)
       order = ORDER;
     s*=0.99999999;
@@ -8380,7 +8383,7 @@ es6_module_define('spline_math', ["../config/config.js", "../wasm/native_api.js"
   eval_curve = _es6_module.add_export('eval_curve', eval_curve);
   
 }, '/dev/fairmotion/src/curve/spline_math.js');
-es6_module_define('spline_math_hermite', ["../path.ux/scripts/util/vectormath.js", "./solver.js", "../core/toolops_api.js", "./spline_base.js"], function _spline_math_hermite_module(_es6_module) {
+es6_module_define('spline_math_hermite', ["./solver.js", "../core/toolops_api.js", "./spline_base.js", "../path.ux/scripts/util/vectormath.js"], function _spline_math_hermite_module(_es6_module) {
   "use strict";
   var SplineFlags=es6_import_item(_es6_module, './spline_base.js', 'SplineFlags');
   var SplineTypes=es6_import_item(_es6_module, './spline_base.js', 'SplineTypes');
@@ -8537,7 +8540,6 @@ es6_module_define('spline_math_hermite', ["../path.ux/scripts/util/vectormath.js
                 seg._last_ks[j] = seg.ks[j];
             }
             seg.flag|=SplineFlags.TEMP_TAG;
-            slv.edge_segs.push(seg);
         }
         else {
           seg.flag&=~SplineFlags.TEMP_TAG;
@@ -8881,6 +8883,7 @@ es6_module_define('spline_math_hermite', ["../path.ux/scripts/util/vectormath.js
     spline.propagate_update_flags();
     spline.propagate_update_flags();
     for (let seg of spline.segments) {
+        seg.updateCoincident();
         if (!(seg.v1.flag&SplineFlags.UPDATE)||!(seg.v2.flag&SplineFlags.UPDATE))
           continue;
         for (let i=0; i<seg.ks.length; i++) {
@@ -8933,7 +8936,7 @@ es6_module_define('spline_math_hermite', ["../path.ux/scripts/util/vectormath.js
   }
   do_solve = _es6_module.add_export('do_solve', do_solve);
 }, '/dev/fairmotion/src/curve/spline_math_hermite.js');
-es6_module_define('spline_element_array', ["../core/eventdag.js", "./spline_types.js", "../core/struct.js"], function _spline_element_array_module(_es6_module) {
+es6_module_define('spline_element_array', ["./spline_types.js", "../core/struct.js", "../core/eventdag.js"], function _spline_element_array_module(_es6_module) {
   var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
   var SplineFlags=es6_import_item(_es6_module, './spline_types.js', 'SplineFlags');
   var SplineTypes=es6_import_item(_es6_module, './spline_types.js', 'SplineTypes');
@@ -9616,7 +9619,13 @@ SplineLayer {
           e.layers[this.layerset.active.id] = 1;
       }
     }
+     onDestroy() {
+      for (let e of this) {
+          e.onDestroy();
+      }
+    }
      remove(e, soft_error=false) {
+      e.onDestroy();
       var idx=this.indexOf(e);
       if (idx<0) {
           throw new Error("Element not in list");
@@ -9751,7 +9760,7 @@ SplineLayer {
   }
 `;
 }, '/dev/fairmotion/src/curve/spline_element_array.js');
-es6_module_define('spline_base', ["../core/toolprops.js", "../core/eventdag.js", "../core/struct.js", "../util/mathlib.js"], function _spline_base_module(_es6_module) {
+es6_module_define('spline_base', ["../core/toolprops.js", "../util/mathlib.js", "../core/eventdag.js", "../core/struct.js"], function _spline_base_module(_es6_module) {
   var TPropFlags=es6_import_item(_es6_module, '../core/toolprops.js', 'TPropFlags');
   var PropTypes=es6_import_item(_es6_module, '../core/toolprops.js', 'PropTypes');
   var acos=Math.acos, asin=Math.asin, abs=Math.abs, log=Math.log, sqrt=Math.sqrt, pow=Math.pow, PI=Math.PI, floor=Math.floor, min=Math.min, max=Math.max, sin=Math.sin, cos=Math.cos, tan=Math.tan, atan=Math.atan, atan2=Math.atan2, exp=Math.exp;
@@ -9782,7 +9791,8 @@ es6_module_define('spline_base', ["../core/toolprops.js", "../core/eventdag.js",
    UI_SELECT: 1<<14, 
    FIXED_KS: 1<<21, 
    REDRAW_PRE: 1<<22, 
-   REDRAW: 1<<23}
+   REDRAW: 1<<23, 
+   COINCIDENT: 1<<24}
   _es6_module.add_export('SplineFlags', SplineFlags);
   const SplineTypes={VERTEX: 1, 
    HANDLE: 2, 
@@ -9982,7 +9992,7 @@ es6_module_define('spline_base', ["../core/toolprops.js", "../core/eventdag.js",
     shared_data : array(abstract(Object));
   }
 `;
-  var $srcs2_ydKQ_interp;
+  var $srcs2_NCxj_interp;
   class CustomDataSet extends Array {
      constructor() {
       super();
@@ -10008,15 +10018,15 @@ es6_module_define('spline_base', ["../core/toolprops.js", "../core/eventdag.js",
 
     }
      interp(srcs, ws) {
-      while ($srcs2_ydKQ_interp.length<srcs.length) {
-        $srcs2_ydKQ_interp.push(0);
+      while ($srcs2_NCxj_interp.length<srcs.length) {
+        $srcs2_NCxj_interp.push(0);
       }
-      $srcs2_ydKQ_interp.length = srcs.length;
+      $srcs2_NCxj_interp.length = srcs.length;
       for (var i=0; i<this.length; i++) {
           for (var j=0; j<srcs.length; j++) {
-              $srcs2_ydKQ_interp[j] = srcs[j][i];
+              $srcs2_NCxj_interp[j] = srcs[j][i];
           }
-          this[i].interp($srcs2_ydKQ_interp, ws);
+          this[i].interp($srcs2_NCxj_interp, ws);
       }
     }
      copy(src) {
@@ -10032,7 +10042,7 @@ es6_module_define('spline_base', ["../core/toolprops.js", "../core/eventdag.js",
       delete this.arr;
     }
   }
-  var $srcs2_ydKQ_interp=[];
+  var $srcs2_NCxj_interp=[];
   _ESClass.register(CustomDataSet);
   _es6_module.add_class(CustomDataSet);
   CustomDataSet = _es6_module.add_export('CustomDataSet', CustomDataSet);
@@ -10054,6 +10064,9 @@ es6_module_define('spline_base', ["../core/toolprops.js", "../core/eventdag.js",
       this.cdata = new CustomDataSet();
       this.masklayer = 1;
       this.layers = {};
+    }
+     onDestroy() {
+
     }
      has_layer() {
       for (var k in this.layers) {
@@ -10149,11 +10162,11 @@ SplineElement {
   }, 256);
   var closest_point_cache_vs=cachering.fromConstructor(Vector3, 64);
   var flip_wrapper_cache;
-  var $flip_out__z0e__get_nextprev;
-  var $ret_cache_IdwS_global_to_local;
-  var $_co_OCOt_global_to_local;
-  var $arr_uLcv_global_to_local;
-  var $_vec_NIPj_global_to_local;
+  var $flip_out_bp6n__get_nextprev;
+  var $ret_cache_2BHF_global_to_local;
+  var $_co_v3CC_global_to_local;
+  var $arr_YxBR_global_to_local;
+  var $_vec_NFqA_global_to_local;
   class CurveEffect  {
      constructor() {
       this.child = undefined;
@@ -10177,8 +10190,8 @@ SplineElement {
         p = p.prior;
         i++;
       }
-      p = p._get_nextprev(donext, $flip_out__z0e__get_nextprev);
-      var flip=$flip_out__z0e__get_nextprev[0];
+      p = p._get_nextprev(donext, $flip_out_bp6n__get_nextprev);
+      var flip=$flip_out_bp6n__get_nextprev[0];
       if (p==undefined) {
           return undefined;
       }
@@ -10396,16 +10409,16 @@ SplineElement {
      global_to_local(p, no_effects=false, fixed_s=undefined) {
       var co;
       if (fixed_s!=undefined) {
-          $arr_uLcv_global_to_local[0] = this.evaluate(fixed_s);
-          $arr_uLcv_global_to_local[1] = fixed_s;
-          co = $arr_uLcv_global_to_local;
+          $arr_YxBR_global_to_local[0] = this.evaluate(fixed_s);
+          $arr_YxBR_global_to_local[1] = fixed_s;
+          co = $arr_YxBR_global_to_local;
       }
       else {
         co = this.closest_point(p);
       }
       var s, t, a=0.0;
       if (co==undefined) {
-          co = $_co_OCOt_global_to_local;
+          co = $_co_v3CC_global_to_local;
           if (p.vectorDistance(this.v1)<p.vectorDistance(this.v2)) {
               co.load(this.v1);
               s = 0;
@@ -10423,7 +10436,7 @@ SplineElement {
         t = p.vectorDistance(co)*0.15;
       }
       var n1=this.normal(s).normalize();
-      var n2=$_vec_NIPj_global_to_local.zero().load(p).sub(co).normalize();
+      var n2=$_vec_NFqA_global_to_local.zero().load(p).sub(co).normalize();
       n1[2] = n2[2] = 0.0;
       a = asin(n1[0]*n2[1]-n1[1]*n2[0]);
       var dot=n1.dot(n2);
@@ -10434,7 +10447,7 @@ SplineElement {
           t = -t;
           a = 2.0*Math.PI-a;
       }
-      var ret=$ret_cache_IdwS_global_to_local.next();
+      var ret=$ret_cache_2BHF_global_to_local.next();
       ret[0] = s;
       ret[1] = t;
       ret[2] = a;
@@ -10450,11 +10463,11 @@ SplineElement {
       return co;
     }
   }
-  var $flip_out__z0e__get_nextprev=[0];
-  var $ret_cache_IdwS_global_to_local=cachering.fromConstructor(Vector3, 64);
-  var $_co_OCOt_global_to_local=new Vector3();
-  var $arr_uLcv_global_to_local=[0, 0];
-  var $_vec_NIPj_global_to_local=new Vector3();
+  var $flip_out_bp6n__get_nextprev=[0];
+  var $ret_cache_2BHF_global_to_local=cachering.fromConstructor(Vector3, 64);
+  var $_co_v3CC_global_to_local=new Vector3();
+  var $arr_YxBR_global_to_local=[0, 0];
+  var $_vec_NFqA_global_to_local=new Vector3();
   _ESClass.register(CurveEffect);
   _es6_module.add_class(CurveEffect);
   CurveEffect = _es6_module.add_export('CurveEffect', CurveEffect);
@@ -10514,7 +10527,7 @@ SplineElement {
   FlipWrapper = _es6_module.add_export('FlipWrapper', FlipWrapper);
   flip_wrapper_cache = cachering.fromConstructor(FlipWrapper, 32);
 }, '/dev/fairmotion/src/curve/spline_base.js');
-es6_module_define('spline_types', ["../core/struct.js", "../util/mathlib.js", "./spline_multires.js", "../editors/viewport/selectmode.js", "../core/toolprops_iter.js", "../core/eventdag.js", "../core/toolprops.js", "./spline_base", "./bspline.js", "../config/config.js", "./spline_base.js", "./spline_math.js"], function _spline_types_module(_es6_module) {
+es6_module_define('spline_types', ["./spline_base.js", "../editors/viewport/selectmode.js", "../util/mathlib.js", "../core/toolprops_iter.js", "../core/eventdag.js", "../core/toolprops.js", "./spline_base", "../config/config.js", "../wasm/native_api.js", "./bspline.js", "./spline_multires.js", "../core/struct.js", "./spline_math.js"], function _spline_types_module(_es6_module) {
   "use strict";
   var ENABLE_MULTIRES=es6_import_item(_es6_module, '../config/config.js', 'ENABLE_MULTIRES');
   var PI=Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor, ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos, asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
@@ -10572,7 +10585,7 @@ es6_module_define('spline_types', ["../core/struct.js", "../util/mathlib.js", ".
     var r2=bez3(b, c, d, t);
     return r1+(r2-r1)*t;
   }
-  var $ret_dAux_aabb;
+  var $ret_mDR6_aabb;
   class SplineVertex extends SplineElement {
     
     
@@ -10741,9 +10754,9 @@ es6_module_define('spline_types', ["../core/struct.js", "../util/mathlib.js", ".
      outputs: NodeBase.Inherit()}
     }
     get  aabb() {
-      $ret_dAux_aabb[0].load(this);
-      $ret_dAux_aabb[1].load(this);
-      return $ret_dAux_aabb;
+      $ret_mDR6_aabb[0].load(this);
+      $ret_mDR6_aabb[1].load(this);
+      return $ret_mDR6_aabb;
     }
      sethide(state) {
       if (state)
@@ -10841,7 +10854,7 @@ es6_module_define('spline_types', ["../core/struct.js", "../util/mathlib.js", ".
       return this;
     }
   }
-  var $ret_dAux_aabb=[new Vector3(), new Vector3()];
+  var $ret_mDR6_aabb=[new Vector3(), new Vector3()];
   _ESClass.register(SplineVertex);
   _es6_module.add_class(SplineVertex);
   SplineVertex = _es6_module.add_export('SplineVertex', SplineVertex);
@@ -10947,6 +10960,9 @@ es6_module_define('spline_types', ["../core/struct.js", "../util/mathlib.js", ".
           this.ks[i] = 0;
           this._last_ks[i] = 0;
       }
+    }
+     onDestroy() {
+      native_api.onSegmentDestroy(this);
     }
      sinangle(v) {
       if (v.segments.length===2) {
@@ -11146,6 +11162,9 @@ es6_module_define('spline_types', ["../core/struct.js", "../util/mathlib.js", ".
       min[2] = max[2] = 0.0;
     }
      intersect(seg, side1=0, side2=0, mode=IsectModes.CLOSEST) {
+      if (this.flag&SplineFlags.COINCIDENT) {
+          return undefined;
+      }
       let steps=5;
       let lastco=undefined, lastno;
       let p1=new Vector2();
@@ -11219,6 +11238,9 @@ es6_module_define('spline_types', ["../core/struct.js", "../util/mathlib.js", ".
       return undefined;
     }
      closest_point(p, mode, fast=false, widthSide=undefined) {
+      if (this.flag&SplineFlags.COINCIDENT) {
+          return undefined;
+      }
       var minret=undefined, mindis=1e+18, maxdis=0;
       var p2=closest_point_cache_vs.next().zero();
       for (var i=0; i<p.length; i++) {
@@ -11405,6 +11427,9 @@ es6_module_define('spline_types', ["../core/struct.js", "../util/mathlib.js", ".
       return minret;
     }
      normal(s, no_effects=!ENABLE_MULTIRES) {
+      if (this.flag&SplineFlags.COINCIDENT) {
+          return derivative_cache_vs.next().zero();
+      }
       var ret=this.derivative(s, undefined, undefined, no_effects);
       var t=ret[0];
       ret[0] = -ret[1];
@@ -11494,24 +11519,33 @@ es6_module_define('spline_types', ["../core/struct.js", "../util/mathlib.js", ".
      curvature(s, order, override_scale) {
       if (order===undefined)
         order = ORDER;
-      eval_curve(0.5, this.v1, this.v2, this.ks, order, 1);
+      if (this.flag&SplineFlags.COINCIDENT) {
+          return 0.0;
+      }
+      eval_curve(this, 0.5, this.v1, this.v2, this.ks, order, 1);
       var k=spiralcurvature(s, this.ks, order);
       return k/(1e-05+this.ks[KSCALE]);
     }
      curvature_dv(s, order, override_scale) {
       if (order===undefined)
         order = ORDER;
-      eval_curve(0.5, this.v1, this.v2, this.ks, order, 1);
+      if (this.flag&SplineFlags.COINCIDENT) {
+          return 0.0;
+      }
+      eval_curve(this, 0.5, this.v1, this.v2, this.ks, order, 1);
       var k=spiralcurvature_dv(s, this.ks, order);
       return k/(1e-05+this.ks[KSCALE]);
     }
      derivative(s, order, no_update_curve, no_effects) {
+      if (this.flag&SplineFlags.COINCIDENT) {
+          return derivative_cache_vs.next().zero();
+      }
       if (order===undefined)
         order = ORDER;
       var ret=derivative_cache_vs.next().zero();
       var ks=this.ks;
       if (!no_update_curve)
-        eval_curve(0.5, this.v1, this.v2, ks, order, 1);
+        eval_curve(this, 0.5, this.v1, this.v2, ks, order, 1);
       var th=spiraltheta(s, ks, order);
       var k=spiralcurvature(s, ks, order);
       var ang=ks[KANGLE];
@@ -11559,6 +11593,18 @@ es6_module_define('spline_types', ["../core/struct.js", "../util/mathlib.js", ".
       return k;
     }
      evaluateSide(s, side=0, dv_out, normal_out, lw_dlw_out) {
+      if (this.flag&SplineFlags.COINCIDENT) {
+          if (dv_out) {
+              dv_out[0] = dv_out[1] = 0.0;
+          }
+          if (normal_out) {
+              normal_out[0] = normal_out[1] = 0.0;
+          }
+          if (lw_dlw_out) {
+              lw_dlw_out[0] = lw_dlw_out[1] = 0.0;
+          }
+          return evaluateSide_rets.next().load(this.v1);
+      }
       side = -(side*2.0-1.0);
       let co=evaluateSide_rets.next().load(this.evaluate(s));
       let dv=this.derivative(s);
@@ -11591,12 +11637,15 @@ es6_module_define('spline_types', ["../core/struct.js", "../util/mathlib.js", ".
       return co;
     }
      evaluate(s, order, override_scale, no_update, no_effects=!ENABLE_MULTIRES) {
+      if (this.flag&SplineFlags.COINCIDENT) {
+          return eval_ret_vs.next().load(this.v1);
+      }
       if (no_effects) {
           if (order===undefined)
             order = ORDER;
           s = (s+1e-08)*(1.0-2e-08);
           s-=0.5;
-          var co=eval_curve(s, this.v1, this.v2, this.ks, order, undefined, no_update);
+          var co=eval_curve(this, s, this.v1, this.v2, this.ks, order, undefined, no_update);
           return eval_ret_vs.next().load(co);
       }
       else {
@@ -11615,7 +11664,16 @@ es6_module_define('spline_types', ["../core/struct.js", "../util/mathlib.js", ".
      post_solve() {
       super.post_solve();
     }
+     updateCoincident() {
+      if (this.v1.vectorDistance(this.v2)<0.001) {
+          this.flag|=SplineFlags.COINCIDENT;
+      }
+      else {
+        this.flag&=~SplineFlags.COINCIDENT;
+      }
+    }
      update() {
+      this.updateCoincident();
       this._update_has_multires();
       this.flag|=SplineFlags.UPDATE|SplineFlags.UPDATE_AABB;
       this.h1.flag|=SplineFlags.UPDATE;
@@ -11757,7 +11815,7 @@ es6_module_define('spline_types', ["../core/struct.js", "../util/mathlib.js", ".
   }
   _ESClass.register(SplineLoopPathIter);
   _es6_module.add_class(SplineLoopPathIter);
-  var $cent_0i2P_update_winding;
+  var $cent_sO76_update_winding;
   class SplineLoopPath  {
     
      constructor(l, f) {
@@ -11773,14 +11831,14 @@ es6_module_define('spline_types', ["../core/struct.js", "../util/mathlib.js", ".
       return this.itercache.next().init(this);
     }
      update_winding() {
-      $cent_0i2P_update_winding.zero();
+      $cent_sO76_update_winding.zero();
       for (var l of this) {
-          $cent_0i2P_update_winding.add(l.v);
+          $cent_sO76_update_winding.add(l.v);
       }
-      $cent_0i2P_update_winding.mulScalar(1.0/this.totvert);
+      $cent_sO76_update_winding.mulScalar(1.0/this.totvert);
       var wsum=0;
       for (var l of this) {
-          wsum+=math.winding(l.v, l.next.v, $cent_0i2P_update_winding) ? 1 : -1;
+          wsum+=math.winding(l.v, l.next.v, $cent_sO76_update_winding) ? 1 : -1;
       }
       this.winding = wsum>=0;
     }
@@ -11811,7 +11869,7 @@ es6_module_define('spline_types', ["../core/struct.js", "../util/mathlib.js", ".
       return ret;
     }
   }
-  var $cent_0i2P_update_winding=new Vector3();
+  var $cent_sO76_update_winding=new Vector3();
   _ESClass.register(SplineLoopPath);
   _es6_module.add_class(SplineLoopPath);
   SplineLoopPath = _es6_module.add_export('SplineLoopPath', SplineLoopPath);
@@ -11822,7 +11880,7 @@ es6_module_define('spline_types', ["../core/struct.js", "../util/mathlib.js", ".
     winding : int;
   }
 `;
-  var $minmax_acPZ_update_aabb;
+  var $minmax_0C_q_update_aabb;
   class SplineFace extends SplineElement {
     
     
@@ -11845,17 +11903,17 @@ es6_module_define('spline_types', ["../core/struct.js", "../util/mathlib.js", ".
     }
      update_aabb() {
       this.flag&=~SplineFlags.UPDATE_AABB;
-      $minmax_acPZ_update_aabb.reset();
+      $minmax_0C_q_update_aabb.reset();
       for (var path of this.paths) {
           for (var l of path) {
-              $minmax_acPZ_update_aabb.minmax(l.v.aabb[0]);
-              $minmax_acPZ_update_aabb.minmax(l.v.aabb[1]);
-              $minmax_acPZ_update_aabb.minmax(l.s.aabb[0]);
-              $minmax_acPZ_update_aabb.minmax(l.s.aabb[1]);
+              $minmax_0C_q_update_aabb.minmax(l.v.aabb[0]);
+              $minmax_0C_q_update_aabb.minmax(l.v.aabb[1]);
+              $minmax_0C_q_update_aabb.minmax(l.s.aabb[0]);
+              $minmax_0C_q_update_aabb.minmax(l.s.aabb[1]);
           }
       }
-      this._aabb[0].load($minmax_acPZ_update_aabb.min);
-      this._aabb[1].load($minmax_acPZ_update_aabb.max);
+      this._aabb[0].load($minmax_0C_q_update_aabb.min);
+      this._aabb[1].load($minmax_0C_q_update_aabb.max);
       this._aabb[0][2] = this._aabb[1][2] = 0.0;
     }
     get  aabb() {
@@ -11873,7 +11931,7 @@ es6_module_define('spline_types', ["../core/struct.js", "../util/mathlib.js", ".
       this.mat.update = this._mat_update.bind(this);
     }
   }
-  var $minmax_acPZ_update_aabb=new MinMax(3);
+  var $minmax_0C_q_update_aabb=new MinMax(3);
   _ESClass.register(SplineFace);
   _es6_module.add_class(SplineFace);
   SplineFace = _es6_module.add_export('SplineFace', SplineFace);
@@ -12092,4 +12150,5 @@ es6_module_define('spline_types', ["../core/struct.js", "../util/mathlib.js", ".
   ElementRefSet = _es6_module.add_export('ElementRefSet', ElementRefSet);
   
   mixin(ElementRefSet, TPropIterable);
+  var native_api=es6_import(_es6_module, '../wasm/native_api.js');
 }, '/dev/fairmotion/src/curve/spline_types.js');

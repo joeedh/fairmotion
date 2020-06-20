@@ -2742,6 +2742,8 @@ es6_module_define('toolstack', ["./AppState.js", "./context.js", "./data_api/dat
           prop = tool.inputs[k];
           if (prop.flag&TPropFlags.PRIVATE)
             continue;
+          let name=prop.uiname||prop.apiname||k;
+          prop.uiname = name;
           dataprop = new DataPath(prop, prop.apiname, "", true, false);
           dataprop.update = update_dataprop;
           datastruct.add(dataprop);
@@ -4527,16 +4529,16 @@ es6_module_define('units', ["./safe_eval.js"], function _units_module(_es6_modul
   Unit.imperial_units = ["in", "ft", "mile"];
   Unit.internal_unit = "cm";
 }, '/dev/fairmotion/src/core/units.js');
-es6_module_define('data_api', ["./data_api_parser.js", "../toolops_api.js", "./data_api_pathux.js", "../toolprops.js", "../../config/config.js", "../safe_eval.js", "./data_api_base.js", "../animdata.js", "../../curve/spline_multires.js", "../lib_api.js"], function _data_api_module(_es6_module) {
+es6_module_define('data_api', ["../../config/config.js", "./data_api_base.js", "../animdata.js", "../toolops_api.js", "../toolprops.js", "../lib_api.js", "../../curve/spline_multires.js", "./data_api_parser.js", "../safe_eval.js", "./data_api_pathux.js"], function _data_api_module(_es6_module) {
   function is_int(s) {
     s = s.trim();
     if (typeof s=="number") {
-        return s==~~s;
+        return s===~~s;
     }
     let m=s.match(/(\-)?[0-9]+/);
     if (!m)
       return false;
-    return m[0].length==s.length;
+    return m[0].length===s.length;
   }
   window._is_int = is_int;
   var DataPathTypes={PROP: 0, 
@@ -4974,9 +4976,9 @@ es6_module_define('data_api', ["./data_api_parser.js", "../toolops_api.js", "./d
   TinyParser.split_chars = new set([",", "=", "(", ")", ".", "$", "[", "]"]);
   TinyParser.ws = new set([" ", "\n", "\t", "\r"]);
   var toolmap=es6_import_item(_es6_module, './data_api_pathux.js', 'toolmap');
-  var $cache_JXFT_resolve_path_intern;
-  var $retcpy_bs2o_set_prop;
-  var $scope_gCu7_set_prop;
+  var $cache_wlIe_resolve_path_intern;
+  var $retcpy_mDvk_set_prop;
+  var $scope_394J_set_prop;
   class DataAPI  {
      constructor(appstate) {
       this.appstate = appstate;
@@ -5323,18 +5325,18 @@ es6_module_define('data_api', ["./data_api_parser.js", "../toolops_api.js", "./d
           return undefined;
       }
       try {
-        if (!(str in $cache_JXFT_resolve_path_intern)) {
+        if (!(str in $cache_wlIe_resolve_path_intern)) {
             var ret=this.resolve_path_intern2(ctx, str);
             var ret2=[];
             for (var i=0; i<ret.length; i++) {
                 ret2.push(ret[i]);
             }
-            $cache_JXFT_resolve_path_intern[str] = ret2;
+            $cache_wlIe_resolve_path_intern[str] = ret2;
         }
         else {
-          var ret=$cache_JXFT_resolve_path_intern[str];
+          var ret=$cache_wlIe_resolve_path_intern[str];
           if (ret[0]!=undefined&&!ret[0].cache_good()) {
-              delete $cache_JXFT_resolve_path_intern[str];
+              delete $cache_wlIe_resolve_path_intern[str];
               return this.resolve_path_intern(ctx, str);
           }
           else {
@@ -5687,11 +5689,11 @@ es6_module_define('data_api', ["./data_api_parser.js", "../toolops_api.js", "./d
           }
           return ret;
       }
-      $retcpy_bs2o_set_prop.length = ret.length;
+      $retcpy_mDvk_set_prop.length = ret.length;
       for (var i=0; i<5; i++) {
-          $retcpy_bs2o_set_prop[i] = ret[i];
+          $retcpy_mDvk_set_prop[i] = ret[i];
       }
-      ret = $retcpy_bs2o_set_prop;
+      ret = $retcpy_mDvk_set_prop;
       var owner=this.evaluate(ctx, ret[4]);
       if (ret[0]!==undefined&&ret[0].type==DataPathTypes.PROP) {
           var prop=ret[0].data;
@@ -5757,9 +5759,9 @@ es6_module_define('data_api', ["./data_api_parser.js", "../toolops_api.js", "./d
                     val&=~mask;
                   prop.dataref = owner;
                   prop.setValue(val, owner, changed);
-                  $scope_gCu7_set_prop[0] = val;
+                  $scope_394J_set_prop[0] = val;
                   path2+=" = scope[0];";
-                  this.evaluate(ctx, path2, $scope_gCu7_set_prop);
+                  this.evaluate(ctx, path2, $scope_394J_set_prop);
               }
               else {
                 path+=" = "+value;
@@ -5809,9 +5811,9 @@ es6_module_define('data_api', ["./data_api_parser.js", "../toolops_api.js", "./d
             }
             else {
               if (typeof value=="object") {
-                  $scope_gCu7_set_prop[0] = value;
+                  $scope_394J_set_prop[0] = value;
                   path+=" = scope[0]";
-                  this.evaluate(ctx, path, $scope_gCu7_set_prop);
+                  this.evaluate(ctx, path, $scope_394J_set_prop);
               }
               else {
                 changed = value==old_value;
@@ -5861,9 +5863,9 @@ es6_module_define('data_api', ["./data_api_parser.js", "../toolops_api.js", "./d
       return ret[0].data;
     }
   }
-  var $cache_JXFT_resolve_path_intern={}
-  var $retcpy_bs2o_set_prop=new Array(16);
-  var $scope_gCu7_set_prop=[0, 0];
+  var $cache_wlIe_resolve_path_intern={}
+  var $retcpy_mDvk_set_prop=new Array(16);
+  var $scope_394J_set_prop=[0, 0];
   _ESClass.register(DataAPI);
   _es6_module.add_class(DataAPI);
   DataAPI = _es6_module.add_export('DataAPI', DataAPI);
@@ -6644,7 +6646,7 @@ es6_module_define('fileapi_electron', ["../../config/config.js", "./fileapi_html
   }
   save_file_old = _es6_module.add_export('save_file_old', save_file_old);
 }, '/dev/fairmotion/src/core/fileapi/fileapi_electron.js');
-es6_module_define('animdata', ["./lib_api.js", "./eventdag.js", "../curve/spline_base.js", "./toolprops.js", "./struct.js"], function _animdata_module(_es6_module) {
+es6_module_define('animdata', ["./lib_api.js", "./eventdag.js", "./toolprops.js", "./struct.js", "../curve/spline_base.js"], function _animdata_module(_es6_module) {
   "use strict";
   var PropTypes=es6_import_item(_es6_module, './toolprops.js', 'PropTypes');
   var STRUCT=es6_import_item(_es6_module, './struct.js', 'STRUCT');

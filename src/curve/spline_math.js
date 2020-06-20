@@ -48,20 +48,25 @@ export function do_solve() {
   }
 }
 
-export var KSCALE  = ORDER+1;
-export var KANGLE  = ORDER+2;
-export var KSTARTX = ORDER+3;
-export var KSTARTY = ORDER+4;
-export var KSTARTZ = ORDER+5;
+export const KSCALE  = ORDER+1;
+export const KANGLE  = ORDER+2;
+export const KSTARTX = ORDER+3;
+export const KSTARTY = ORDER+4;
+export const KSTARTZ = ORDER+5;
+//used by wasm solver
+export const KV1X = ORDER+6;
+export const KV1Y = ORDER+7;
+export const KV2X = ORDER+8;
+export const KV2Y = ORDER+9;
 
-export var KTOTKS  = ORDER+6;
+export const KTOTKS  = ORDER+10;
 
-var eval_curve_vs = cachering.fromConstructor(Vector3, 64);
+const eval_curve_vs = cachering.fromConstructor(Vector3, 64);
 
 //XXX
 //export var eval_curve = math.eval_curve_fast;
 
-var eval_ret_vs = cachering.fromConstructor(Vector2, 256);
+const eval_ret_vs = cachering.fromConstructor(Vector2, 256);
 
 export function eval_curve(seg, s, v1, v2, ks, order, angle_only, no_update) {
   if (native_api.isReady() && !(window.DEBUG.no_native || window.DEBUG.no_nativeEval)) {

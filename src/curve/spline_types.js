@@ -1403,6 +1403,23 @@ export class SplineSegment extends SplineElement {
     return k;
   }
 
+  /*
+  on factor;
+  on rounded;
+  off period;
+
+  operator x, y, k, lw;
+
+  forall s let df(x(s), s, 2) = -df(y(s), s)*k(s);
+  forall s let df(y(s), s, 2) = df(x(s), s)*k(s);
+
+  offx := x(s) - df(y(s), s)*lw(s)*0.5/seglen;
+  offy := y(s) + df(x(s), s)*lw(s)*0.5/seglen;
+
+
+  df(offx, s);
+  df(offy, s);
+  */
   evaluateSide(s, side=0, dv_out, normal_out, lw_dlw_out) {
     if (this.flag & SplineFlags.COINCIDENT) {
       if (dv_out) {

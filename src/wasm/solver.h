@@ -33,11 +33,12 @@ enum SplineFlags {
 typedef struct SplineSegment {
   int32_t eid, flag; //8 bytes
 
-  double ks[16]; //lots of space here since it's actual size on the client end can change
-  //double orig_ks[16];
+  double *ks;
+
   float h1[3], h2[3];
 
   int32_t v1, v2;
+  int32_t pad;
 } SplineSegment;
 
 enum {
@@ -55,7 +56,7 @@ typedef struct Constraint {
   int32_t param1, param2;
   float param1f, param2f;
 
-  double ws[16], gs[16];
+  double gs[16];
   double error;
 } Constraint;
 

@@ -1,5 +1,8 @@
 "use strict";
 
+//import pathux because it initializes window.DEBUG, which we also make use of
+import '../path.ux/scripts/config/const.js';
+
 export let PathUXConstants = {
   colorSchemeType : "dark",
   autoSizeUpdate : true,
@@ -97,15 +100,21 @@ window._DEBUG = {
   force_mobile : false,
   tesselator : false,
   use_2d_uicanvas : 1,
-  trace_recalc_all : false
+  trace_recalc_all : false,
+  fastDrawMode : false
 };
 
 //_DEBUG["use_2d_uicanvas"] = !!parseInt(""+myLocalStorage.use_canvas2d);
 
 //make sure debug global is declared;
-if (window.DEBUG == undefined || DEBUG == undefined)
-  var DEBUG = window.DEBUG = config_local.DEBUG != undefined ? config_local.DEBUG : {};
-  
+if (window.DEBUG === undefined) {
+  window.DEBUG = config_local.DEBUG !== undefined ? config_local.DEBUG : {};
+} else {
+  for (let k in config_local.DEBUG) {
+    window.DEBUG[k] = config_local.DEBUG[k];
+  }
+}
+
 //set default debug flags
 for (var k in _DEBUG) {
   if (!(k in DEBUG)) {
@@ -113,7 +122,7 @@ for (var k in _DEBUG) {
   }
 }
 
-if (DEBUG != undefined && DEBUG.force_mobile)
+if (DEBUG && DEBUG.force_mobile)
   window.IsMobile = true;
 
 if (window._platform_config) {

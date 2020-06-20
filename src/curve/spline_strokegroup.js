@@ -116,6 +116,10 @@ export function splitSegmentGroups(spline : Spline) {
   }
 
   for (let group of spline.strokeGroups) {
+    if (group.segments.length === 0) {
+      continue;
+    }
+
     let seg = group.segments[0];
 
     let i = 0;
@@ -292,6 +296,26 @@ export function buildSegmentGroups(spline : Spline) {
     }
   }
 
+
+  //remove empty groups
+  for (let i=0; i<groups.length; i++) {
+    let g = groups[i];
+
+    for (let j=0; j<g.segments.length; j++) {
+      if (g.segments[j] === undefined) {
+        console.warn("Corrupted group!", g);
+
+        g.segments.remove(undefined);
+        j--;
+      }
+    }
+
+    if (g.length === 0) {
+      groups[i] = groups[groups.length-1];
+      groups.length--;
+      i--;
+    }
+  }
   //console.warn("GROUPS", groups);
 }
 

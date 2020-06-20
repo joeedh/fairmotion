@@ -104,8 +104,10 @@ export class TypedWriter {
     if (this.i > this.buf.length) {
       throw new Error("Exceeded maximum size of TypedWriter: " + this.i + " > " + this.buf.length);
     }
-    
-    return this.buf.buffer.slice(0, this.i);
+
+    return this.buf.buffer;
+    //return new Uint8Array(this.buf.buffer, 0, this.i);
+    //return this.buf.buffer.slice(0, this.i);
   }
   
   bytes(f, len=f.length) {
@@ -129,6 +131,19 @@ export class TypedWriter {
     var buf = this.buf, i = this.i;
     i32[0] = f;
     
+    buf[i++] = u8[0];
+    buf[i++] = u8[1];
+    buf[i++] = u8[2];
+    buf[i++] = u8[3];
+
+    this.i = i;
+    return this;
+  }
+
+  uint32(f) {
+    var buf = this.buf, i = this.i;
+    u32[0] = f;
+
     buf[i++] = u8[0];
     buf[i++] = u8[1];
     buf[i++] = u8[2];

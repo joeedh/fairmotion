@@ -2,11 +2,11 @@ import * as wasm from './built_wasm.js';
 
 export let wasmModule = wasm;
 
-export var active_solves = {};
-export var solve_starttimes = {};
-export var solve_starttimes2 = {};
-export var solve_endtimes = {};
-export var active_jobs = {}
+export let active_solves = {};
+export let solve_starttimes = {};
+export let solve_starttimes2 = {};
+export let solve_endtimes = {};
+export let active_jobs = {}
 
 import {constraint, solver} from "../curve/solver.js";
 import {ModalStates} from '../core/toolops_api.js';
@@ -24,18 +24,18 @@ export function isReady() {
   return wasm.calledRun;
 }
 
-var mmax = Math.max, mmin = Math.min, mfloor = Math.floor;
-var abs = Math.abs, sqrt=Math.sqrt, sin=Math.sin, cos=Math.cos,
+const mmax = Math.max, mmin = Math.min, mfloor = Math.floor;
+const abs = Math.abs, sqrt=Math.sqrt, sin=Math.sin, cos=Math.cos,
   pow = Math.pow, log=Math.log, acos=Math.acos, asin=Math.asin,
   PI=Math.PI;
 
-var last_call = undefined;
-var DEBUG = false;
-var FIXED_KS_FLAG = SplineFlags.FIXED_KS;
+let last_call = undefined;
+let DEBUG = false;
+const FIXED_KS_FLAG = SplineFlags.FIXED_KS;
 
-export var callbacks = {};
-var msg_idgen = 0;
-var solve_idgen = 0;
+export const callbacks = {};
+let msg_idgen = 0;
+let solve_idgen = 0;
 
 import {
   ORDER, KSCALE, KANGLE,
@@ -44,10 +44,10 @@ import {
 } from '../curve/spline_math_hermite.js';
 
 export function onMessage(type : number, message : ArrayBuffer, ptr : number) {
-  var iview = new Int32Array(message);
+  let iview = new Int32Array(message);
   
   //find callback id
-  var id = iview[1];
+  let id = iview[1];
   
   if (DEBUG)
     console.log("got array buffer!", message, "ID", id);
@@ -58,7 +58,7 @@ export function onMessage(type : number, message : ArrayBuffer, ptr : number) {
     return;
   }
   
-  var job = callbacks[id], iter=job.job;
+  let job = callbacks[id], iter=job.job;
   if (DEBUG)
     console.log("job:", job);
   
@@ -66,7 +66,7 @@ export function onMessage(type : number, message : ArrayBuffer, ptr : number) {
   if (DEBUG)
     console.log("iter:", iter, iter.data);
   
-  var ret = iter.next();
+  let ret = iter.next();
   
   if (ret.done) {
     delete callbacks[id];
@@ -79,8 +79,8 @@ export function onMessage(type : number, message : ArrayBuffer, ptr : number) {
   wasm._free(ptr);
 }
 
-export var messageQueue = [];
-var queueMessages = false;
+export let messageQueue = [];
+let queueMessages = false;
 
 export function queueUpMessages(state) {
   queueMessages = state;
@@ -137,6 +137,24 @@ export function onSegmentDestroy(seg) {
   }
 }
 
+/** make sure segment has wasm-allocate .ks */
+export function checkSegment(seg) {
+  if (!seg.ks._has_wasm) {
+    let ks = seg.ks;
+    let ptr2 = wasm._malloc(8*16);
+    let ks2 = new Float64Array(wasm.HEAPU8.buffer, ptr2, ks.length);
+
+    for (let i=0; i<ks.length; i++) {
+      ks2[i] = ks[i];
+    }
+
+    ks2._has_wasm = true;
+    ks2.ptr = ptr2;
+
+    seg.ks = ks2;
+  }
+}
+
 let evalrets = util.cachering.fromConstructor(Vector2, 64);
 export function evalCurve(seg, s, v1, v2, ks, no_update=false) {
   if (!wv1) {
@@ -152,20 +170,7 @@ export function evalCurve(seg, s, v1, v2, ks, no_update=false) {
       wks[i] = ks[i];
   }//*/
 
-  if (!seg.ks._has_wasm) {
-    let ptr2 = wasm._malloc(8*16);
-    let ks2 = new Float64Array(wasm.HEAPU8.buffer, ptr2, ks.length);
-
-    for (let i=0; i<ks.length; i++) {
-      ks2[i] = ks[i];
-    }
-
-    ks2._has_wasm = true;
-    ks2.ptr = ptr2;
-
-    seg.ks = ks2;
-    ks = ks2;
-  }
+  checkSegment(seg);
 
   wasm._evalCurve(pco, s, seg.ks.ptr, pv1, pv2, no_update ? 1 : 0);
 
@@ -208,31 +213,31 @@ export function test_wasm() {
   postToWasm(0, msg.buffer);
 }
 
-export var MessageTypes = {
+export const MessageTypes = {
   GEN_DRAW_BEZIERS : 0,
   REPLY            : 1,
   SOLVE            : 2
 }
 
-export var ConstraintTypes = {
+export const ConstraintTypes = {
   TAN_CONSTRAINT       : 0,
   HARD_TAN_CONSTRAINT  : 1,
   CURVATURE_CONSTRAINT : 2,
   COPY_C_CONSTRAINT    : 3
 };
 
-export var JobTypes = {
+export const JobTypes = {
   DRAWSOLVE : 1,
   PATHSOLVE : 2,
   SOLVE     : 1|2
 };
 
 export function clear_jobs_except_latest(typeid) {
-  var last = undefined;
-  var lastk = undefined;
+  let last = undefined;
+  let lastk = undefined;
   
-  for (var k in callbacks) {
-    var job = callbacks[k];
+  for (let k in callbacks) {
+    let job = callbacks[k];
     
     if (job.typeid & typeid) {
       job._skip = 1;
@@ -242,18 +247,18 @@ export function clear_jobs_except_latest(typeid) {
     }
   }
   
-  if (last != undefined) {
+  if (last !== undefined) {
     callbacks[lastk] = last;
     delete last._skip;
   }
 }
 
 export function clear_jobs_except_first(typeid) {
-  var last = undefined;
-  var lastk = undefined;
+  let last = undefined;
+  let lastk = undefined;
   
-  for (var k in callbacks) {
-    var job = callbacks[k];
+  for (let k in callbacks) {
+    let job = callbacks[k];
     
     if (job.typeid & typeid) {
       if (last != undefined) {
@@ -268,9 +273,9 @@ export function clear_jobs_except_first(typeid) {
 }
 
 export function clear_jobs(typeid) {
-  for (var k in callbacks) {
-    
-    var job = callbacks[k];
+  for (let k in callbacks) {
+
+    let job = callbacks[k];
     if (job.typeid & typeid) {
       job._skip = 1;
       delete callbacks[k];
@@ -279,38 +284,38 @@ export function clear_jobs(typeid) {
 }
 
 export function call_api(job, params=undefined) {
-  var callback, error, thisvar, typeid, only_latest=false;
+  let callback, error, thisvar, typeid, only_latest=false;
   
-  if (params != undefined) {
+  if (params !== undefined) {
     callback = params.callback;
-    thisvar = params.thisvar != undefined ? params.thisvar : self;
+    thisvar = params.thisvar !== undefined ? params.thisvar : self;
     error = params.error;
-    only_latest = params.only_latest != undefined ? params.only_latest : false;
+    only_latest = params.only_latest !== undefined ? params.only_latest : false;
     typeid = params.typeid;
   }
-  
-  var postMessage = function(type, msg) {
+
+  let postMessage = function(type, msg) {
     postToWasm(type, msg);
   }
-  
-  var id = msg_idgen++;
-  
-  var status = {
+
+  let id = msg_idgen++;
+
+  let status = {
     msgid : id,
     data  : undefined
   }
-  var args = [postMessage, status];
+  let args = [postMessage, status];
   
-  for (var i=2; i<arguments.length; i++) {
+  for (let i=2; i<arguments.length; i++) {
     args.push(arguments[i]);
   }
   
   //block any messages until after the "callbacks[id] = ..." line below.
   queueUpMessages(true);
-  
-  var iter = job.apply(job, args);
-  
-  var ret = iter.next();
+
+  let iter = job.apply(job, args);
+
+  let ret = iter.next();
   if (ret.done) {
     callback.call(thisvar, iter.value);
     return;
@@ -337,7 +342,7 @@ export function call_api(job, params=undefined) {
 
 
 export function start_message(type, msgid, endian) {
-  var data = [];
+  let data = [];
   
   ajax.pack_int(data, type, endian);
   ajax.pack_int(data, msgid, endian);
@@ -351,7 +356,7 @@ export function start_message_new(writer, type, msgid, endian) {
 }
 
 function _unpacker(dview) {
-  var b = 0;
+  let b = 0;
   
   return {
     getint : function getint() {
@@ -369,102 +374,7 @@ function _unpacker(dview) {
     }
   };
 }
-export function* gen_draw_cache(postMessage, status, spline) {
-  var data = [];
-  var msgid = status.msgid;
-  
-  var endian = ajax.little_endian;
-  var data = start_message(MessageTypes.GEN_DRAW_BEZIERS, msgid, endian);
-  
-  //make sure to follow C struct alignment rules
-  ajax.pack_int(data, spline.segments.length, endian);
-  ajax.pack_int(data, 0, endian); //dummy, to maintain 8-byte alignment
-  /*
-   struct SplineDrawSegment {
-      int32_t eid;
-      float v1[3];
-      float v2[3];
-      int32_t totks;
-      double ks[16];
-   }
-   */
-  for (var s of spline.segments) {
-    ajax.pack_int(data, s.eid, endian); //4   bytes
-    ajax.pack_vec3(data, s.v1, endian); //16  bytes
-    ajax.pack_vec3(data, s.v2, endian); //28 bytes
-    ajax.pack_int(data, s.ks.length, endian); //32 bytes
-    
-    var zero_ks = ((s.v1.flag & SplineFlags.BREAK_TANGENTS) || (s.v2.flag & SplineFlags.BREAK_TANGENTS));
-    
-    for (var i=0; i<s.ks.length; i++) {
-      if (zero_ks && i < ORDER)
-        ajax.pack_double(data, 0.0, endian);
-      else
-        ajax.pack_double(data, s.ks[i], endian);
-    }
-    
-    //nacl expects 16 doubles for ks, pad remaining with zeros. . .
-    var rem = 16 - s.ks.length;
-    
-    for (var i=0; i<rem; i++) {
-      ajax.pack_double(data, 0.0, endian);
-    }
-  }
-  
-  data = new Uint8Array(data).buffer;
-  
-  postMessage(MessageTypes.GEN_DRAW_BEZIERS, data);
-  yield;
-  
-  //console.log("got reply!", status.data);
-  var dview = new DataView(status.data);
-  var upack = _unpacker(dview);
-  
-  var getint = upack.getint;
-  var getfloat = upack.getfloat;
-  var getdouble = upack.getdouble;
-  
-  var tot = getint();
-  
-  var ret = [];
-  var eidmap = spline.eidmap;
-  
-  for (var i=0; i<tot; i++) {
-    var eid = getint(), totseg=getint();
-    var segs = [];
-    
-    var seg = eidmap[eid];
-    
-    if (seg == undefined || seg.type != SplineTypes.SEGMENT) {
-      console.log("WARNING: defunct segment in gen_draw_cache", seg);
-    }
-    
-    ret.push(segs);
-    for (var j=0; j<totseg; j++) {
-      segs[j] = [0, 0, 0, 0];
-    }
-    
-    for (var j=0; j<totseg*4; j++) {
-      var p = new Vector3();
-      
-      p[0] = getdouble();
-      p[1] = getdouble();
-      p[2] = 0.0;
-      
-      segs[Math.floor(j/4)][j % 4] = p;
-    }
-    
-    if (seg != undefined) {
-      seg._draw_bzs = segs;
-    }
-  }
-  
-  //console.log("final result: ", ret);
-  status.value = ret;
-  
-  //data from nacl is in this.data
-  //final value will be in this.value
-}
+
 
 //sflags should be SplineFlags from spline_types.js,
 //passed in here to avoid a cyclic module dependency
@@ -477,21 +387,21 @@ export function do_solve(sflags : int, spline : Spline, steps : int, gk=0.95, re
 
   spline._solve_id = draw_id;
 
-  var job_id = solve_idgen++;
+  let job_id = solve_idgen++;
   active_solves[spline._solve_id] = job_id;
   active_jobs[job_id] = spline._solve_id;
   solve_starttimes[job_id] = time_ms();
   
   //if (spline === new Context().frameset.pathspline)
   //  return;
-  var SplineFlags = sflags;
+  const SplineFlags = sflags;
   
   spline.resolve = 1;
 
   solve_pre(spline);
 
 
-  var on_finish, on_reject, promise;
+  let on_finish, on_reject, promise;
   
   if (return_promise) {
     promise = new Promise(function(resolve, reject) {
@@ -506,11 +416,11 @@ export function do_solve(sflags : int, spline : Spline, steps : int, gk=0.95, re
   }
   
   function finish(unload) {
-    var start_time = solve_starttimes[job_id];
+    let start_time = solve_starttimes[job_id];
     
     window.pop_solve(draw_id);
-    
-    var skip = solve_endtimes[spline._solve_id] > start_time;
+
+    let skip = solve_endtimes[spline._solve_id] > start_time;
     skip = skip && solve_starttimes2[spline._solve_id] > start_time;
     
     //skip = skip || !(job_id in active_jobs);
@@ -520,7 +430,7 @@ export function do_solve(sflags : int, spline : Spline, steps : int, gk=0.95, re
     delete solve_starttimes[job_id];
     
     if (skip) {
-      if (on_reject != undefined) {
+      if (on_reject !== undefined) {
         on_reject();
       }
       
@@ -541,7 +451,7 @@ export function do_solve(sflags : int, spline : Spline, steps : int, gk=0.95, re
     for (let seg of spline.segments) {
       seg.evaluate(0.5);
       
-      for (var j = 0; j < seg.ks.length; j++) {
+      for (let j = 0; j < seg.ks.length; j++) {
         if (isNaN(seg.ks[j])) {
           console.log("NaN!", seg.ks, seg);
           seg.ks[j] = 0;
@@ -559,9 +469,9 @@ export function do_solve(sflags : int, spline : Spline, steps : int, gk=0.95, re
       }
     }
     
-    for (var f of spline.faces) {
-      for (var path of f.paths) {
-        for (var l of path) {
+    for (let f of spline.faces) {
+      for (let path of f.paths) {
+        for (let l of path) {
           if (l.v.flag & SplineFlags.UPDATE)
             f.flag |= SplineFlags.UPDATE_AABB;
         }
@@ -591,40 +501,24 @@ export function do_solve(sflags : int, spline : Spline, steps : int, gk=0.95, re
       on_finish();
     }
   }
-  
-  //console.log("finished nacl solve");
-  
+
   spline.resolve = 0;
   
-  var update_verts = new set();
-  var slv = build_solver(spline, ORDER, undefined, 1, undefined, update_verts);
-  var cs = slv.cs, edge_segs = slv.edge_segs;
+  let update_verts = new set();
+  let slv = build_solver(spline, ORDER, undefined, 1, undefined, update_verts);
+  let cs = slv.cs, edge_segs = slv.edge_segs;
   
   edge_segs = new set(edge_segs);
-  
-  /*
-    edge_segs = [];
-    var slv = new solver()
-    for (var i=0; i<cs.length; i++) {
-      slv.add(cs[i]);
-    }
-  
-    slv.solve(70, 1.0, ORDER, edge_segs);
-    finish();
-    window.redraw_viewport();
-  
-    return;
-  //*/
 
   //on_finish();
   //return promise;
 
-  call_api(nacl_solve, {
+  call_api(wasm_solve, {
     callback : function(value) {
       //console.log("value", value);
       finish(value);
     }, error : function(error) {
-      console.log("Nacl solve error!");
+      console.log("wasm solve error!");
       window.pop_solve(draw_id);
     },
     typeid        : spline.is_anim_path ? JobTypes.PATHSOLVE : JobTypes.DRAWSOLVE,
@@ -634,12 +528,12 @@ export function do_solve(sflags : int, spline : Spline, steps : int, gk=0.95, re
   return promise;
 }
 
-window.nacl_do_solve = do_solve;
+window.wasm_do_solve = do_solve;
 
-function write_nacl_solve_new(writer, spline, cons, update_verts, update_segs, gk, edge_segs) {
-  var idxmap = {}
-  
-  var i = 0;
+function write_wasm_solve_new(writer, spline, cons, update_verts, update_segs, gk, edge_segs) {
+  let idxmap = {}
+
+  let i = 0;
   function add_vert(v) {
     writer.int32(v.eid);
     writer.int32(v.flag);
@@ -649,16 +543,16 @@ function write_nacl_solve_new(writer, spline, cons, update_verts, update_segs, g
     idxmap[v.eid] = i++;
   }
   
-  for (var v of update_verts) {
+  for (let v of update_verts) {
     add_vert(v, true);
   }
   
   writer.int32(update_segs.length);
   writer.int32(0); //pad to 8 byte boundary
-  
-  var i = 0;
-  for (var s of update_segs) {
-    var flag = s.flag;
+
+  i = 0;
+  for (let s of update_segs) {
+    let flag = s.flag;
     
     let count = s.v1.flag & SplineFlags.UPDATE ? 1 : 0;
     count += s.v2.flag & SplineFlags.UPDATE ? 1 : 0;
@@ -671,46 +565,39 @@ function write_nacl_solve_new(writer, spline, cons, update_verts, update_segs, g
     writer.int32(s.eid);
     writer.int32(flag);
     
-    var klen = s.ks.length;
-    var is_eseg = edge_segs.has(s);
+    let klen = s.ks.length;
+    let is_eseg = edge_segs.has(s);
     
-    var zero_ks = ((s.v1.flag & SplineFlags.BREAK_TANGENTS) || (s.v2.flag & SplineFlags.BREAK_TANGENTS));
-    
-    for (var ji=0; ji<1; ji++) {
-      for (var j=0; j<klen; j++) {
-        if (zero_ks && j < ORDER)
-          writer.float64(0.0);
-        else
-          writer.float64(is_eseg ? s.ks[j] : 0.0);
-      }
-      
-      for (var j=0; j<16-klen; j++) {
-        writer.float64(0.0);
-      }
-    }
-    
+    //let zero_ks = ((s.v1.flag & SplineFlags.BREAK_TANGENTS) || (s.v2.flag & SplineFlags.BREAK_TANGENTS));
+    checkSegment(s);
+    writer.uint32(s.ks.ptr);
+
     writer.vec3(s.h1);
     writer.vec3(s.h2);
     writer.int32(idxmap[s.v1.eid]);
     writer.int32(idxmap[s.v2.eid]);
+
+    writer.int32(0); //pad to eight byte boundary
     
     idxmap[s.eid] = i++;
   }
-  
+
+  //console.log("DATA0", writer.i/1024 + "kb");
+
   writer.int32(cons.length);
   writer.int32(0.0); //pad to 8 byte boundary
   
-  for (var i=0; i<cons.length; i++) {
-    var c = cons[i];
-    
-    var type=0, seg1=-1, seg2=-1, param1=0, param2=0, fparam1=0, fparam2=0;
+  for (let i=0; i<cons.length; i++) {
+    let c = cons[i];
+
+    let type=0, seg1=-1, seg2=-1, param1=0, param2=0, fparam1=0, fparam2=0;
     
     if (c.type === "tan_c") {
       type = ConstraintTypes.TAN_CONSTRAINT;
       seg1 = c.params[0];
       seg2 = c.params[1];
-      
-      var v = seg1.shared_vert(seg2);
+
+      let v = seg1.shared_vert(seg2);
       
       param1 = idxmap[seg1.eid];
       param2 = idxmap[seg2.eid];
@@ -718,7 +605,7 @@ function write_nacl_solve_new(writer, spline, cons, update_verts, update_segs, g
       fparam1 = seg1.v2 === v;
       fparam2 = seg2.v2 === v;
       
-      if (c.klst.length == 1) {
+      if (c.klst.length === 1) {
         seg1 = c.klst[0] !== seg1.ks ? param2 : param1;
         seg2 = -1;
       } else {
@@ -727,8 +614,8 @@ function write_nacl_solve_new(writer, spline, cons, update_verts, update_segs, g
       }
     } else if (c.type === "hard_tan_c") {
       type = ConstraintTypes.HARD_TAN_CONSTRAINT;
-      
-      var seg = c.params[0], tan = c.params[1], s = c.params[2];
+
+      let seg = c.params[0], tan = c.params[1], s = c.params[2];
       
       seg1 = idxmap[seg.eid];
       seg2 = -1;
@@ -743,10 +630,10 @@ function write_nacl_solve_new(writer, spline, cons, update_verts, update_segs, g
       
       //console.log("c.klst[0]:", c.klst[0], c.klst[0]===seg1.ks, c.klst[0]===seg2.ks);
       if (seg1.ks !== c.klst[0]) {
-        //var tmp = seg1; seg1 = seg2; seg2 = tmp;
+        //let tmp = seg1; seg1 = seg2; seg2 = tmp;
       }
-      
-      var v = seg1.shared_vert(seg2);
+
+      let v = seg1.shared_vert(seg2);
       
       //is v at seg1/seg2's endpoint or startpoint?
       fparam1 = seg1.v2 === v;
@@ -785,7 +672,7 @@ function write_nacl_solve_new(writer, spline, cons, update_verts, update_segs, g
     writer.float32(fparam1);
     writer.float32(fparam2);
     
-    for (var j=0; j<33; j++) {
+    for (let j=0; j<17; j++) {
       writer.float64(0);
     }
   }
@@ -793,11 +680,11 @@ function write_nacl_solve_new(writer, spline, cons, update_verts, update_segs, g
   return idxmap;
 }
 
-function write_nacl_solve(data, spline, cons, update_verts, update_segs, gk, edge_segs) {
-  var endian = ajax.little_endian;
-  var idxmap = {}
-  
-  var i = 0;
+function write_wasm_solve(data, spline, cons, update_verts, update_segs, gk, edge_segs) {
+  let endian = ajax.little_endian;
+  let idxmap = {}
+
+  let i = 0;
   function add_vert(v) {
     ajax.pack_int(data, v.eid, endian);
     ajax.pack_int(data, v.flag, endian);
@@ -807,16 +694,16 @@ function write_nacl_solve(data, spline, cons, update_verts, update_segs, gk, edg
     idxmap[v.eid] = i++;
   }
   
-  for (var v of update_verts) {
+  for (let v of update_verts) {
     add_vert(v, true);
   }
   
   ajax.pack_int(data, update_segs.length, endian);
   ajax.pack_int(data, 0, endian); //pad to 8 byte boundary
-  
-  var i = 0;
-  for (var s of update_segs) {
-    var flag = s.flag;
+
+  i = 0;
+  for (let s of update_segs) {
+    let flag = s.flag;
     
     if (edge_segs.has(s)) {
       flag |= FIXED_KS_FLAG;
@@ -825,20 +712,20 @@ function write_nacl_solve(data, spline, cons, update_verts, update_segs, gk, edg
     
     ajax.pack_int(data, s.eid, endian);
     ajax.pack_int(data, flag, endian);
+
+    let klen = s.ks.length;
+    let is_eseg = edge_segs.has(s);
+
+    let zero_ks = ((s.v1.flag & SplineFlags.BREAK_TANGENTS) || (s.v2.flag & SplineFlags.BREAK_TANGENTS));
     
-    var klen = s.ks.length;
-    var is_eseg = edge_segs.has(s);
-    
-    var zero_ks = ((s.v1.flag & SplineFlags.BREAK_TANGENTS) || (s.v2.flag & SplineFlags.BREAK_TANGENTS));
-    
-    for (var ji=0; ji<1; ji++) {
-      for (var j=0; j<klen; j++) {
+    for (let ji=0; ji<1; ji++) {
+      for (let j=0; j<klen; j++) {
         if (zero_ks && j < ORDER)
           ajax.pack_double(data, 0.0, endian);
         else
           ajax.pack_double(data, is_eseg ? s.ks[j] : 0.0, endian);
       }
-      for (var j=0; j<16-klen; j++) {
+      for (let j=0; j<16-klen; j++) {
         ajax.pack_double(data, 0.0, endian);
       }
     }
@@ -854,17 +741,17 @@ function write_nacl_solve(data, spline, cons, update_verts, update_segs, gk, edg
   ajax.pack_int(data, cons.length, endian);
   ajax.pack_int(data, 0, endian); //pad to 8 byte boundary
   
-  for (var i=0; i<cons.length; i++) {
-    var c = cons[i];
-    
-    var type=0, seg1=-1, seg2=-1, param1=0, param2=0, fparam1=0, fparam2=0;
+  for (let i=0; i<cons.length; i++) {
+    let c = cons[i];
+
+    let type=0, seg1=-1, seg2=-1, param1=0, param2=0, fparam1=0, fparam2=0;
     
     if (c.type === "tan_c") {
       type = ConstraintTypes.TAN_CONSTRAINT;
       seg1 = c.params[0];
       seg2 = c.params[1];
-      
-      var v = seg1.shared_vert(seg2);
+
+      let v = seg1.shared_vert(seg2);
       
       param1 = idxmap[seg1.eid];
       param2 = idxmap[seg2.eid];
@@ -881,8 +768,8 @@ function write_nacl_solve(data, spline, cons, update_verts, update_segs, gk, edg
       }
     } else if (c.type === "hard_tan_c") {
       type = ConstraintTypes.HARD_TAN_CONSTRAINT;
-      
-      var seg = c.params[0], tan = c.params[1], s = c.params[2];
+
+      let seg = c.params[0], tan = c.params[1], s = c.params[2];
       
       seg1 = idxmap[seg.eid];
       seg2 = -1;
@@ -897,10 +784,10 @@ function write_nacl_solve(data, spline, cons, update_verts, update_segs, gk, edg
       
       //console.log("c.klst[0]:", c.klst[0], c.klst[0]===seg1.ks, c.klst[0]===seg2.ks);
       if (seg1.ks !== c.klst[0]) {
-        //var tmp = seg1; seg1 = seg2; seg2 = tmp;
+        //let tmp = seg1; seg1 = seg2; seg2 = tmp;
       }
-      
-      var v = seg1.shared_vert(seg2);
+
+      let v = seg1.shared_vert(seg2);
       
       //is v at seg1/seg2's endpoint or startpoint?
       fparam1 = seg1.v2 === v;
@@ -937,7 +824,7 @@ function write_nacl_solve(data, spline, cons, update_verts, update_segs, gk, edg
     ajax.pack_float(data, fparam2, endian);
     //write remaining 33 doubles
     
-    for (var j=0; j<33; j++) {
+    for (let j=0; j<33; j++) {
       ajax.pack_double(data, 0, endian);
     }
   }
@@ -949,8 +836,8 @@ function write_nacl_solve(data, spline, cons, update_verts, update_segs, gk, edg
 function _unload(spline, data) {
   //handleMessage will have chopped off
   //the type/msgid header for us
-  
-  var _i = 0;
+
+  let _i = 0;
   function getint() {
     _i += 4;
     return data.getInt32(_i-4, true);
@@ -963,43 +850,18 @@ function _unload(spline, data) {
     _i += 8;
     return data.getFloat64(_i-8, true);
   }
-  
-  var totvert = getint();
+
+  let totvert = getint();
   getint(); //skip pad int
   
   //skip past vertex data, we don't need it
   _i += 24*totvert; //sizeof(SplineVertex), see solver.h
-  
-  var totseg = getint();
+
+  let totseg = getint();
   getint(); //skip pad int
 
   if (DEBUG)
     console.log("totseg:", totseg);
-  
-  for (var i=0; i<totseg; i++) {
-    var eid = getint(), flag = getint();
-    
-    var seg = spline.eidmap[eid];
-    if (seg == undefined || seg.type != SplineTypes.SEGMENT) {
-      console.log("WARNING: defunct/invalid segment in nacl_solve!", eid);
-      _i += 160; //sizeof(SplineSegment) - 2*sizeof(int32_t)
-      continue;
-    }
-    
-    for (var j=0; j<16; j++) {
-      var d = getdouble();
-      
-      if (j < seg.ks.length) {
-        seg.ks[j] = d;
-      }
-    }
-    
-    //skip handle data
-    _i += 4*6;
-    
-    //skip v1/v2 fields
-    _i += 4*2;
-  }
 }
 
 function wrap_unload(spline, data) {
@@ -1010,11 +872,11 @@ function wrap_unload(spline, data) {
 
 //generator is manually unpacked for easier analysis
 //XXX rewrite this
-export function nacl_solve(postMessage : Function, status : Object, spline : Spline,
+export function wasm_solve(postMessage : Function, status : Object, spline : Spline,
                            cons : Array<constraint>, update_verts : set<SplineVertex>,
                            gk : number, edge_segs : set<SplineSegment>)
 {
-  var ret = {};
+  let ret = {};
   
   ret.ret = {done : false, value : undefined};
   ret.stage = 0;
@@ -1041,38 +903,38 @@ export function nacl_solve(postMessage : Function, status : Object, spline : Spl
       return this.ret;
     }
   }
-  
-  var data;
+
+  let data;
   
   ret.stage0 = function() {
     //measured test had average bytes per constraint at 355.
     //but to be safe. . .
-    
-    var maxsize = (cons.length+1)*650 + 128;
-    var writer = new TypedWriter(maxsize);
-    
-    var msgid = status.msgid;
-    var endian = ajax.little_endian;
-    
-    var prof = false;
+
+    let maxsize = (cons.length+1)*650 + 128;
+    let writer = new TypedWriter(maxsize);
+
+    let msgid = status.msgid;
+    let endian = ajax.little_endian;
+
+    let prof = false;
     
     //write vertices and their associated segments first
     start_message_new(writer, MessageTypes.SOLVE, msgid, endian);
     
     //build list of update segments
-    var timestart = time_ms();
-    
-    var update_segs = new set();
-    for (var v of update_verts) {
-      for (var i=0; i<v.segments.length; i++) {
-        var s = v.segments[i];
+    let timestart = time_ms();
+
+    let update_segs = new set();
+    for (let v of update_verts) {
+      for (let i=0; i<v.segments.length; i++) {
+        let s = v.segments[i];
         
         update_segs.add(s);
       }
     }
     
     //add any stray vertices brought in by update segments
-    for (var s of update_segs) {
+    for (let s of update_segs) {
       update_verts.add(s.v1);
       update_verts.add(s.v2);
     }
@@ -1085,10 +947,12 @@ export function nacl_solve(postMessage : Function, status : Object, spline : Spl
     
     if (prof)
       console.log("time b:", time_ms() - timestart);
-    
-    var idxmap = write_nacl_solve_new(writer, spline, cons, update_verts, update_segs, gk, edge_segs);
-    var data = writer.final();
-    
+
+    let idxmap = write_wasm_solve_new(writer, spline, cons, update_verts, update_segs, gk, edge_segs);
+    let data = writer.final();
+
+    //console.log("DATA FINAL", writer.i/1024 + "kb");
+
     /*
     console.log("datalen", data.byteLength, update_verts.length, update_segs.length, edge_segs.length, cons.length);
     console.log((data.byteLength/cons.length).toFixed(3));

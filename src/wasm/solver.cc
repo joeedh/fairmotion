@@ -18,6 +18,7 @@ double time_ms() {
   return ((double)clock() / (double)CLOCKS_PER_SEC)*1000.0;
 }
 
+#define ERROR_LIMIT 0.0027
 #define STEPS 64
 #define GK 1.0
 #define DF 0.00003
@@ -362,7 +363,7 @@ int solve_intern(
   
   int si;
   for (si=0; si<STEPS; si++) {
-    if (si > 0 && error/(double)totcons < 0.0007) 
+    if (si > 0 && error/(double)totcons < ERROR_LIMIT)
       break;
     
     error = 0.0;

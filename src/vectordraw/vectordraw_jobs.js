@@ -24,14 +24,14 @@ window.MAX_THREADS = MAX_THREADS;
 
 //uses web workers
 export class Thread {
-  dead : boolean
-  ready : boolean
-  lock : number
-  callbacks : Object
+  dead              : boolean
+  ready             : boolean
+  lock              : number
+  callbacks         : Object
   ownerid_msgid_map : Object
   msgid_ownerid_map : Object
-  cancelset : Set
-  freezelvl : number;
+  cancelset         : Set
+  freezelvl         : number;
 
   constructor(worker : Worker, id : number, manager : ThreadManager) {
     this.id = id;
@@ -159,7 +159,7 @@ export class Thread {
   }
   
   tryLock(owner) {
-    if (this.lock == 0 || this.owner === owner) {
+    if (this.lock === 0 || this.owner === owner) {
       return true;
     }
     
@@ -167,7 +167,7 @@ export class Thread {
   }
   
   tryUnlock(owner) {
-    if (this.lock == 0 || this.owner !== owner) {
+    if (this.lock === 0 || this.owner !== owner) {
       return false;
     }
     

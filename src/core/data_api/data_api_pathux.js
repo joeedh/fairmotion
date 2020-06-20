@@ -337,7 +337,7 @@ export class PathUXInterface extends ModelInterface {
       let prop = ret.prop;
       let p = path.trim();
 
-      if (p.endsWith(/\]/) && p.search(/\[/) >= 0) {
+      if (p.match(/\]$/) && p.search(/\[/) >= 0) {
         let i = p.length-1;
         while (p[i] !== "[") {
           i--;

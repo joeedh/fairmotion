@@ -229,7 +229,7 @@ export class ToolOpAbstract {
     for (var i=0; i<2; i++) {
       var slots2 = {};
       
-      if (i == 0)
+      if (i === 0)
         this.inputs = slots2;
       else
         this.outputs = slots2;

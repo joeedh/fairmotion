@@ -358,6 +358,9 @@ export class ToolStack {
 
       if (prop.flag & TPropFlags.PRIVATE) continue;
 
+      let name = prop.uiname || prop.apiname || k;
+      prop.uiname = name;
+
       dataprop = new DataPath(prop, prop.apiname, "", true, false);
       dataprop.update = update_dataprop;
 

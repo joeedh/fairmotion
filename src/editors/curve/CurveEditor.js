@@ -112,7 +112,7 @@ export class CurveEdit extends UIBase {
     let g = this.g;
     let canvas = this.canvas;
 
-    g.fillStyle = "rgb(240, 240, 240)";
+    g.fillStyle = "rgb(75, 75, 75)";
     g.rect(0, 0, canvas.width, canvas.height);
     g.fill();
 
@@ -121,8 +121,7 @@ export class CurveEdit extends UIBase {
 
     let pad = fsize*3.0;
     let csize = 32;
-    let steps = ~~(this.size[0]  / csize + 1.0);
-    
+
     g.fillStyle = "grey";
     g.beginPath();
     g.rect(0, 0, pad, this.size[1]);
@@ -135,11 +134,13 @@ export class CurveEdit extends UIBase {
     g.fillStyle = "orange";
 
     for (let step=0; step<2; step++) {
+      let steps = Math.floor(this.size[step]  / csize + 1.0);
+
       let off = this.pan[step] % csize;
       let x = off - csize;
 
       for (let i=0; i<steps; i++) {
-        let val = i- ~~(this.pan[step] / csize);
+        let val = i - Math.floor(this.pan[step] / csize);
         val = val.toFixed(1);
         
         if (x >= this.size[step] - pad) {
@@ -154,6 +155,20 @@ export class CurveEdit extends UIBase {
         v2[step^1] = this.size[step^1]-pad;
 
         if (x >= pad) {
+          let a = 1.0;
+
+          let ix = Math.floor(i - this.pan[step]/csize);
+          if (ix % 4 === 0) {
+            a = 0.95;
+          } else if (ix % 2 === 0) {
+            a = 0.678;
+          } else {
+            a = 0.42;
+          }
+
+          a = ~~(a*255);
+          g.strokeStyle = `rgb(${a},${a},${a})`;
+
           g.beginPath();
           g.moveTo(v1[0], v1[1]);
           g.lineTo(v2[0], v2[1]);

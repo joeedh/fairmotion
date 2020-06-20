@@ -182,7 +182,7 @@ export class SplineLocalToolOp extends ToolOp {
   }}
   */
   
-  undo_pre(ctx) {
+  undo_pre(ctx : FullContext) {
     var spline = ctx.spline;
     
     var data = [];
@@ -198,7 +198,7 @@ export class SplineLocalToolOp extends ToolOp {
     window.redraw_viewport();
   }
   
-  undo(ctx) {
+  undo(ctx : FullContext) {
     var spline = ctx.spline;
     var spline2 = istruct.read_object(this._undo.data, Spline);
     
@@ -1751,7 +1751,7 @@ export class SplineMirrorOp extends SplineLocalToolOp {
       description : "Flip selected points horizontally"
     }}
     
-    exec(ctx) {
+    exec(ctx : FullContext) {
       var spline = ctx.spline;
       
       var points = new set();
@@ -1761,9 +1761,9 @@ export class SplineMirrorOp extends SplineLocalToolOp {
         var list = i ? spline.handles : spline.verts;
         
         for (var v of list.selected.editable(ctx)) {
-          if (i==1 && v.owning_vertex != undefined && v.owning_vertex.hidden)
+          if (i===1 && v.owning_vertex != undefined && v.owning_vertex.hidden)
             continue;
-          if (i == 0 && v.hidden)
+          if (i === 0 && v.hidden)
             continue;
           
           points.add(v);
@@ -1771,7 +1771,7 @@ export class SplineMirrorOp extends SplineLocalToolOp {
         }
       }
       
-      if (points.length == 0) return;
+      if (points.length === 0) return;
       
       cent.mulScalar(1.0 / points.length);
       
@@ -1786,3 +1786,5 @@ export class SplineMirrorOp extends SplineLocalToolOp {
       spline.resolve = 1;
     }
 }
+
+import {FullContext} from "../../core/context.js";

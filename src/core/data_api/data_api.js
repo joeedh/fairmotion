@@ -21,7 +21,7 @@ function is_int(s) {
   s = s.trim();
 
   if (typeof s == "number") {
-    return s == ~~s;
+    return s === ~~s;
   }
 
   let m = s.match(/(\-)?[0-9]+/);
@@ -29,7 +29,7 @@ function is_int(s) {
   if (!m)
     return false;
 
-  return m[0].length == s.length;
+  return m[0].length === s.length;
 }
 window._is_int = is_int;
 

@@ -522,15 +522,13 @@ export class SplineDrawer {
           redraw = redraw || (seg.flag & (SplineFlags.REDRAW|SplineFlags.UPDATE));
         }
 
-        if (redraw) {
+        this.update_stroke_group(e, drawparams, redraw);
+
+        if (draw_normals) {
           for (let seg of e.segments) {
-            if (draw_normals) {
-              this.update_normals(seg, drawparams);
-            }
+            this.update_normals(seg, drawparams);
           }
         }
-
-        this.update_stroke_group(e, drawparams, redraw);
 
         continue;
       }
@@ -1386,7 +1384,7 @@ export class SplineDrawer {
         let co = seg.evaluateSide(s, side, dv, no, lwdlw)
         let k = seg.curvatureSide(s, side, no) * (side*2.0 - 1.0);
 
-        no.normalize().mulScalar(7000.0*k);
+        no.normalize().mulScalar(17000.0*k);
 
         if (i > 0) {
           path.makeLine(lastco[0], lastco[1], co[0], co[1], wid + side);

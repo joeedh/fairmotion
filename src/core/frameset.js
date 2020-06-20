@@ -18,13 +18,20 @@ var SegmentAnimIter = animspline.SegmentAnimIter;
 var VDAnimFlags = animspline.VDAnimFlags;
 var VertexAnimData = animspline.VertexAnimData;
 
+/*
+okay, so originally I was going to multiple sets of spline instances
+**/
+
 export class SplineFrame {
-  flag : number;
+  spline     : Spline
+  time       : number
+  flag       : number;
 
   constructor(time, idgen) {
     this.time = time;
     this.flag = 0;
-    
+    this.spline = undefined;
+
     //this.spline = new Spline();
     //this.spline.idgen = idgen;
   }
@@ -55,8 +62,11 @@ window.obj_values_to_array = function obj_values_to_array(obj) {
 }
 
 class AllSplineIter {
-  ret : Object
-  stage : number;
+  ret      : Object
+  iter     : Iterator
+  f        : SplineFrameSet
+  sel_only : boolean
+  stage    : number;
 
   constructor(f, sel_only) {
     this.f = f;
@@ -72,7 +82,7 @@ class AllSplineIter {
     this.iter = undefined;
     var f = this.f;
     
-    if (this.stage == 0) {
+    if (this.stage === 0) {
       var arr = new GArray();
       
       for (var k in f.frames) {
@@ -81,7 +91,7 @@ class AllSplineIter {
       }
       
       this.iter = arr[Symbol.iterator]();
-    } else if (this.stage == 1) {
+    } else if (this.stage === 1) {
       //handle animation curves
       var arr = [];
       
@@ -93,7 +103,7 @@ class AllSplineIter {
           //if (v != undefined && (v.flag & SplineFlags.SELECT) && v.type != SplineTypes.HANDLE)
           //  console.log("EID", k, "SPLINE", this.f.vertex_animdata[k].spline._debug_id, "HIDDEN", v.hidden, "TYPE", v.type);
           
-          if (v == undefined || !(v.flag & SplineFlags.SELECT) || v.hidden) { // || (v.type != SplineTypes.VERTEX)) {
+          if (v === undefined || !(v.flag & SplineFlags.SELECT) || v.hidden) { // || (v.type != SplineTypes.VERTEX)) {
             continue;
           }
         }
@@ -116,7 +126,7 @@ class AllSplineIter {
   }
   
   next() {
-    if (this.iter == undefined) {
+    if (this.iter === undefined) {
       this.ret.done = true;
       this.ret.value = undefined;
       
@@ -136,7 +146,7 @@ class AllSplineIter {
       this.stage++;
       this.load_iter();
       
-      if (this.iter != undefined) {
+      if (this.iter !== undefined) {
         ret.done = false;
       }
     }
@@ -269,7 +279,7 @@ export class SplineKCache {
   }
 
   load(frame, spline) {
-    if (typeof frame == "string") {
+    if (typeof frame === "string") {
       throw new Error("Got bad frame! " + frame);
     }
     
@@ -375,15 +385,16 @@ SplineKCache.STRUCT = `
   and the movement of individual points.
 */
 export class SplineFrameSet extends DataBlock {
-  editmode : string
-  kcache : SplineKCache
-  idgen : SDIDGen
-  frames : Object
-  vertex_animdata : Object
-  selectmode : number
-  draw_anim_paths : number
-  time : number
-  spline : Spline
+  editmode         : string
+  kcache           : SplineKCache
+  idgen            : SDIDGen
+  frames           : Object
+  vertex_animdata  : Object
+  selectmode       : number
+  draw_anim_paths  : number
+  time             : number
+  pathspline       : Spline
+  spline           : Spline
   switch_on_select : boolean;
 
   constructor() {
@@ -473,15 +484,15 @@ export class SplineFrameSet extends DataBlock {
       for (var v of vd.verts) {
         var time = get_vtime(v);
         
-        if (lastv != undefined && lastv.vectorDistance(v) < threshold && Math.abs(time-lasttime) <= time_threshold) {
+        if (lastv !== undefined && lastv.vectorDistance(v) < threshold && Math.abs(time-lasttime) <= time_threshold) {
           console.log("Coincident vert!", k, v.eid, lastv.vectorDistance(v));
           
-          if (v.segments.length == 2)
+          if (v.segments.length === 2)
             ret.add(v)
-          else if (lastv.segments.length == 2)
+          else if (lastv.segments.length === 2)
             ret.add(lastv);
         }
-        
+
         lastv = v;
         lasttime = time;
       }
@@ -594,12 +605,12 @@ export class SplineFrameSet extends DataBlock {
     //console.trace("frameset on select!", element.eid, state);
     
     var vd = this.get_vdata(element.eid, false);
-    if (vd == undefined) return;
+    if (vd === undefined) return;
     
     var hide = !(this.selectmode & element.type);
     hide = hide || !(element.flag & SplineFlags.SELECT);
     
-    if (element.type == SplineTypes.HANDLE) {
+    if (element.type === SplineTypes.HANDLE) {
       hide = hide || !element.use;
     }
     
@@ -838,7 +849,7 @@ export class SplineFrameSet extends DataBlock {
       
     this.kcache.set(time, spline);
     
-    var is_first = time <= 1; //this.framelist.length == 0 || time == this.framelist[0];
+    var is_first = time <= 1; //this.framelist.length === 0 || time === this.framelist[0];
     var found = false;
     
     for (var v of spline.points) {
@@ -875,7 +886,7 @@ export class SplineFrameSet extends DataBlock {
       return this.frame;
     
     var frame = this.frame = new SplineFrame();
-    var spline = this.spline == undefined ? new Spline() : this.spline.copy();
+    var spline = this.spline === undefined ? new Spline() : this.spline.copy();
     
     spline.verts.select_listeners.addListener(this.on_spline_select, this);
     spline.handles.select_listeners.addListener(this.on_spline_select, this);
@@ -887,7 +898,7 @@ export class SplineFrameSet extends DataBlock {
     
     this.frames[time] = frame;
     
-    if (this.spline == undefined) {
+    if (this.spline === undefined) {
       this.spline = frame.spline;
       this.frame = frame;
     }
@@ -895,7 +906,7 @@ export class SplineFrameSet extends DataBlock {
     return frame;
     /*
     if (time in this.frames) {
-      if (time == this.time) {
+      if (time === this.time) {
         var f = this.frames[time];
         
         f.spline = this.spline.copy();
@@ -910,7 +921,7 @@ export class SplineFrameSet extends DataBlock {
       this.framelist.sort();
     }
     
-    var spline = this.spline == undefined ? new Spline() : this.spline.copy();
+    var spline = this.spline === undefined ? new Spline() : this.spline.copy();
     var frame = new SplineFrame();
     
     spline.idgen = this.idgen;
@@ -919,7 +930,7 @@ export class SplineFrameSet extends DataBlock {
     
     this.frames[time] = frame;
     
-    if (this.spline == undefined) {
+    if (this.spline === undefined) {
       this.spline = frame.spline;
       this.frame = frame;
     }
@@ -938,7 +949,7 @@ export class SplineFrameSet extends DataBlock {
       }
     }
     
-    if (i == flist.length) return frames[i-1]; //return undefined;
+    if (i === flist.length) return frames[i-1]; //return undefined;
     return frames[i];
   }
   
@@ -958,7 +969,7 @@ export class SplineFrameSet extends DataBlock {
     if (flist[i] != time)
       i++;
     
-    if (i == flist.length) {
+    if (i === flist.length) {
       console.log("Outside of frame range; inserting. . .");
       
       this.insert_frame(time);
@@ -1031,7 +1042,7 @@ export class SplineFrameSet extends DataBlock {
             ss.flag |= SplineFlags.REDRAW; //redraw immediately; no need to wait for solve with REDRAW_PRE
             var l = ss.l, _i = 0;
             
-            if (l == undefined)
+            if (l === undefined)
               continue;
             
             do {
@@ -1261,7 +1272,7 @@ export class SplineFrameSet extends DataBlock {
     }
     
     this.afterSTRUCT();
-    if (this.pathspline == undefined) {
+    if (this.pathspline === undefined) {
       this.pathspline = this.make_pathspline();
     }
     
@@ -1275,7 +1286,7 @@ export class SplineFrameSet extends DataBlock {
     for (var vd of this.vertex_animdata) {
       vd.spline = this.pathspline;
       
-      if (vd.layerid == undefined) {
+      if (vd.layerid === undefined) {
         var layer = this.pathspline.layerset.new_layer();
         layer.flag |= SplineLayerFlags.HIDE;
         
@@ -1312,7 +1323,7 @@ export class SplineFrameSet extends DataBlock {
             s.layers = {};
             s.layers[vd.layerid] = 1;
             
-            if (v == vd.startv)
+            if (v === vd.startv)
               break;
           }
         }
@@ -1321,7 +1332,7 @@ export class SplineFrameSet extends DataBlock {
     
     //console.log("PARENTV", this.eid);
     this.pathspline.is_anim_path = true;
-    if (this.templayerid == undefined)
+    if (this.templayerid === undefined)
       this.templayerid = this.pathspline.layerset.new_layer().id;
     //this.pathspline.solve();
     
@@ -1332,12 +1343,12 @@ export class SplineFrameSet extends DataBlock {
     var max_cur = this.idgen.cur_id;
     var firstframe = undefined;
     for (var i=0; i<this.frames.length; i++) {
-      //if (this.frames[i].spline.idgen == undefined)
+      //if (this.frames[i].spline.idgen === undefined)
       //  this.frames[i].spline.idgen = this.idgen;
         
       max_cur = Math.max(this.frames[i].spline.idgen.cur_id, max_cur);
       
-      if (i == 0) firstframe = this.frames[i];
+      if (i === 0) firstframe = this.frames[i];
       
       this.frames[i].spline.idgen = this.idgen;
       frames[this.frames[i].time] = this.frames[i];
@@ -1364,7 +1375,7 @@ export class SplineFrameSet extends DataBlock {
     var fk = this.cur_frame || 0;
     delete this.cur_frame;
     
-    if (fk == undefined) {
+    if (fk === undefined) {
       this.frame = firstframe;
       this.spline = firstframe.spline;
     } else {
@@ -1374,7 +1385,7 @@ export class SplineFrameSet extends DataBlock {
     
     this.vertex_animdata = vert_animdata;
 
-    if (this.framelist.length == 0) {
+    if (this.framelist.length === 0) {
       for (var k in this.frames) {
         this.framelist.push(parseFloat(k));
       }

@@ -705,7 +705,7 @@ function write_nacl_solve_new(writer, spline, cons, update_verts, update_segs, g
     
     var type=0, seg1=-1, seg2=-1, param1=0, param2=0, fparam1=0, fparam2=0;
     
-    if (c.type == "tan_c") {
+    if (c.type === "tan_c") {
       type = ConstraintTypes.TAN_CONSTRAINT;
       seg1 = c.params[0];
       seg2 = c.params[1];
@@ -725,7 +725,7 @@ function write_nacl_solve_new(writer, spline, cons, update_verts, update_segs, g
         seg1 = param1;
         seg2 = param2;
       }
-    } else if (c.type == "hard_tan_c") {
+    } else if (c.type === "hard_tan_c") {
       type = ConstraintTypes.HARD_TAN_CONSTRAINT;
       
       var seg = c.params[0], tan = c.params[1], s = c.params[2];
@@ -735,7 +735,7 @@ function write_nacl_solve_new(writer, spline, cons, update_verts, update_segs, g
       
       fparam1 = Math.atan2(tan[0], tan[1]);
       fparam2 = s;
-    } else if (c.type == "curv_c") {
+    } else if (c.type === "curv_c") {
       type = ConstraintTypes.CURVATURE_CONSTRAINT;
       //console.log("curvature constraint!")
       seg1 = c.params[0];
@@ -757,12 +757,12 @@ function write_nacl_solve_new(writer, spline, cons, update_verts, update_segs, g
       
       seg1 = param1;
       seg2 = -1; //param2
-    } else if (c.type == "copy_c") {
+    } else if (c.type === "copy_c") {
       type = ConstraintTypes.COPY_C_CONSTRAINT;
       //console.log("curvature constraint!")
       
       seg1 = c.params[0];
-      param1 = seg1.v1.segments.length == 1; //c.params[1] === seg1.v1;
+      param1 = seg1.v1.segments.length === 1; //c.params[1] === seg1.v1;
     } else {
       console.trace(c, seg1, seg2);
       throw new Error("unknown constraint type " + c.type);
@@ -772,7 +772,7 @@ function write_nacl_solve_new(writer, spline, cons, update_verts, update_segs, g
     
     writer.int32(type);
     writer.float32(c.k);
-    writer.float32(c.k2 == undefined ? c.k : c.k2);
+    writer.float32(c.k2 === undefined ? c.k : c.k2);
     
     writer.int32(0); //pad int
     
@@ -859,7 +859,7 @@ function write_nacl_solve(data, spline, cons, update_verts, update_segs, gk, edg
     
     var type=0, seg1=-1, seg2=-1, param1=0, param2=0, fparam1=0, fparam2=0;
     
-    if (c.type == "tan_c") {
+    if (c.type === "tan_c") {
       type = ConstraintTypes.TAN_CONSTRAINT;
       seg1 = c.params[0];
       seg2 = c.params[1];
@@ -872,14 +872,14 @@ function write_nacl_solve(data, spline, cons, update_verts, update_segs, gk, edg
       fparam1 = seg1.v2 === v;
       fparam2 = seg2.v2 === v;
       
-      if (c.klst.length == 1) {
+      if (c.klst.length === 1) {
         seg1 = c.klst[0] !== seg1.ks ? param2 : param1;
         seg2 = -1;
       } else {
         seg1 = param1;
         seg2 = param2;
       }
-    } else if (c.type == "hard_tan_c") {
+    } else if (c.type === "hard_tan_c") {
       type = ConstraintTypes.HARD_TAN_CONSTRAINT;
       
       var seg = c.params[0], tan = c.params[1], s = c.params[2];
@@ -889,7 +889,7 @@ function write_nacl_solve(data, spline, cons, update_verts, update_segs, gk, edg
       
       fparam1 = Math.atan2(tan[0], tan[1]);
       fparam2 = s;
-    } else if (c.type == "curv_c") {
+    } else if (c.type === "curv_c") {
       type = ConstraintTypes.CURVATURE_CONSTRAINT;
       //console.log("curvature constraint!")
       seg1 = c.params[0];
@@ -911,12 +911,12 @@ function write_nacl_solve(data, spline, cons, update_verts, update_segs, gk, edg
       
       seg1 = param1;
       seg2 = -1; //param2
-    } else if (c.type == "copy_c") {
+    } else if (c.type === "copy_c") {
       type = ConstraintTypes.COPY_C_CONSTRAINT;
       //console.log("curvature constraint!")
       
       seg1 = c.params[0];
-      param1 = seg1.v1.segments.length == 1; //c.params[1] === seg1.v1;
+      param1 = seg1.v1.segments.length === 1; //c.params[1] === seg1.v1;
     }
     
     //console.log("c.type, c.k, gk:", c.type, c.k, gk);
@@ -1010,9 +1010,9 @@ function wrap_unload(spline, data) {
 
 //generator is manually unpacked for easier analysis
 //XXX rewrite this
-export function nacl_solve(Function postMessage, ObjLit status, Spline spline,
-Array<constraint> cons, set<SplineVertex> update_verts,
-  float gk, set<SplineSegment> edge_segs)
+export function nacl_solve(postMessage : Function, status : Object, spline : Spline,
+                           cons : Array<constraint>, update_verts : set<SplineVertex>,
+                           gk : number, edge_segs : set<SplineSegment>)
 {
   var ret = {};
   
@@ -1023,12 +1023,12 @@ Array<constraint> cons, set<SplineVertex> update_verts,
   }
   
   ret.next = function() {
-    if (ret.stage == 0) {
+    if (ret.stage === 0) {
       this.stage++;
       this.stage0();
       
       return this.ret;
-    } else if (ret.stage == 1) {
+    } else if (ret.stage === 1) {
       this.stage++;
       this.stage1();
       
@@ -1102,7 +1102,10 @@ Array<constraint> cons, set<SplineVertex> update_verts,
       console.log("time d:", time_ms() - timestart, data.byteLength);
     
     postMessage(MessageTypes.SOLVE, data);
-    
+
+    if (prof)
+      console.log("DATA " + (data.byteLength/1024).toFixed(3) + "kb");
+
     if (prof)
       console.log("time e:", time_ms() - timestart, "\n\n\n");
   }

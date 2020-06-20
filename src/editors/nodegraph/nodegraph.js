@@ -254,6 +254,8 @@ export class NodeViewer extends Editor {
   }
 
   draw() {
+    return;
+
     let canvas = this.canvas;
     let g = this.g;
 
@@ -378,6 +380,8 @@ export class NodeViewer extends Editor {
   }
 
   rebuild() {
+    return;
+
     if (!this.ctx) {
       return;
     }

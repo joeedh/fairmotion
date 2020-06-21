@@ -508,6 +508,7 @@ class ModuleLoadError extends Error {
 
 function _normpath1(path) {
   path = path.replace(/\\/g, "/").trim();
+  path = path.replace(/\/\//g, "/").trim();
   
   while (path.startsWith("/")) {
     path = path.slice(1, path.length);
@@ -520,8 +521,39 @@ function _normpath1(path) {
   return path;
 }
 
+function _splitpath(path) {
+  path = _normpath1(path);
+
+  let ret = ["", ""];
+  if (path.startsWith("/")) {
+    ret[0] += "/";
+  }
+
+  path = path.split("/")
+
+  for (let item of path.slice(0, path.length-1)) {
+    ret[0] += item + "/";
+  }
+
+  if (path.length > 1) {
+    ret[0] = ret[0].slice(0, ret[0].length-1);
+  } else if (path.length > 0) {
+    ret[0] = "/";
+  }
+
+  if (path.length > 0) {
+    ret[1] = path[path.length-1];
+  }
+
+  if (ret[0].trim() === ".") {
+    ret[0] = ret[0].trim() + "/"
+  }
+
+  return ret;
+}
+
 function _normpath(path, basepath) {
-  if (basepath.trim().length == 0)
+  if (basepath.trim().length === 0)
     return _normpath1(path);
   
   path = _normpath1(path);

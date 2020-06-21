@@ -73,8 +73,23 @@ def build():
         path2 = path.replace(basepath+"/", "")
         zf.write(path, path2)
 
+  util.deepcopy("addons", basepath+"/addons")
+
+  for root, dirs, files in os.walk(basepath + "/addons"):
+    if is_win32:
+        root = root.replace("\\", "/")
+    if not root.endswith("/"):
+        root += "/"
+
+    for f in files:
+        path = root + f
+        path2 = path.replace(basepath+"/", "")
+        zf.write(path, path2)
+
   print("  copying files")
+
   for f in os.listdir("./build"):
+    if f == "addons": continue
     if not f.startswith("app") and f.endswith(".js"):
       continue;
 

@@ -288,7 +288,20 @@ class Target (list):
 
 srcmod = modimport("js_sources")
 
+watch_targets = []
 copy_targets = []
+
+if hasattr(srcmod, "watch_targets"):
+  for f1 in srcmod.watch_targets:
+    target = Target(np(f1))
+
+    s = Source(np(f1))
+    s.target = np(f1)
+    target.append(s)
+    target.optional = True
+
+    watch_targets.append(target)
+
 if hasattr(srcmod, "copy_targets"):
   for f1 in srcmod.copy_targets:
     tpath = "build"+sep+f1
@@ -992,13 +1005,15 @@ def do_copy_targets():
 
   build_final = False
 
-  try:
-    for f in copy_targets:
+  def doskip(f):
       abspath = np(f.target)
       src = f[0].source
+      skip = False
 
       if f.optional and not os.path.exists(f[0].source):
-        continue
+        skip = True
+        return skip, "", "", src, None
+
 
       fname = f[0].source
       if (os.path.sep in fname):
@@ -1010,8 +1025,23 @@ def do_copy_targets():
       skip = skip and not (build_cmd == "single" and  filter.lower() in abspath.lower())
       skip = skip and not (build_cmd == "single" and  filter.lower() in f[0].source.lower())
 
-      if skip:
-        continue
+      return skip, fname, abspath, src, stat
+
+  try:
+    for f in watch_targets:
+      skip, fname, abspath, src, stat = doskip(f)
+
+      if not skip:
+        print("watch update: ", f[0].source)
+        sys.stdout.flush()
+        build_final = True
+
+        db[abspath] = stat
+
+    for f in copy_targets:
+      skip, fname, abspath, src, stat = doskip(f)
+
+      if skip: continue
 
       build_final = True
 

@@ -58,11 +58,11 @@ export class CreateMResPoint extends SplineLocalToolOp {
 
     var cp = seg.closest_point(co);
     var t=10.0, s=0.5;
-    if (cp != undefined) {
-      s = cp[1];
-      t = cp[0].vectorDistance(co);
+    if (cp !== undefined) {
+      s = cp.s;
+      t = cp.co.vectorDistance(co);
       
-      vec.zero().load(co).sub(cp[0]);
+      vec.zero().load(co).sub(cp.co);
       var n = seg.normal(s);
       
       t *= Math.sign(n.dot(vec));

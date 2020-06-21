@@ -1,5 +1,34 @@
 import sys, os, os.path
 
+def deepcopy(src, dst):
+  base = os.path.abspath(src)
+  #print(base)
+
+  for root, dirs, files in os.walk(src):
+    root = os.path.abspath(root)
+
+    root2 = root[len(base):]
+    if not root2.startswith("/") and not root2.startswith("\\"):
+        root2 = "/" + root2
+
+    root2 = dst + root2
+
+    for f in files:
+        path = os.path.join(root, f)
+
+        newpath = os.path.join(root2, f)
+        os.makedirs(root2, True)
+
+        file = open(path, "rb")
+        buf = file.read()
+        file.close()
+
+        #print(path, os.path.abspath(newpath))
+        #continue
+        file = open(newpath, "wb")
+        file.write(buf)
+        file.close()
+
 def copy_tinymce(dest):
     path = os.path.normpath(os.path.abspath(os.path.join(os.getcwd(), "src/path.ux/scripts/lib/tinymce")))
 

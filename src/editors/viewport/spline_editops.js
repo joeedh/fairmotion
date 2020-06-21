@@ -1001,11 +1001,11 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
     let p = seg.closest_point(mpos, ClosestModes.CLOSEST);
     
     if (p !== undefined) {
-      this.inputs.segment_t.setValue(p[1]);
+      this.inputs.segment_t.setValue(p.s);
       
       //console.log("  p", p[1].toFixed(4), p[0]);
       
-      p = new Vector2(p[0]);
+      p = new Vector2(p.co);
       view2d.project(p);
 
       let y = p[1];
@@ -1274,15 +1274,15 @@ export class CurveRootFinderTest extends ToolOp {
 
     for (var seg of spline.segments) {
       var ret = seg.closest_point(mpos, 0);
-      if (ret == undefined) continue;
+      if (ret === undefined) continue;
       
-      var dl = this.new_drawline(ret[0], mpos);
+      var dl = this.new_drawline(ret.co, mpos);
       dl.clr[3] = 0.1;
       
       continue;
       var ret = seg.closest_point(mpos, 3);
       for (var p of ret) {
-        this.new_drawline(p[0], mpos);
+        this.new_drawline(p.co, mpos);
       }
     }
   }

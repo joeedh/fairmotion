@@ -77,8 +77,8 @@ export class SplineQuery {
       var ret = seg.closest_point(mpos, undefined, true);
       if (ret === undefined) continue;
 
-      let s = ret[1];
-      ret = ret[0];
+      let s = ret.s;
+      ret = ret.co;
 
       if (seg.hidden || seg.v1.hidden || seg.v2.hidden) continue;
       if (!ignore_layers && !seg.in_layer(actlayer)) continue;

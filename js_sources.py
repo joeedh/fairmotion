@@ -247,6 +247,12 @@ sources = [
   "src/datafiles/iconsheet16.png",
 ]
 
+watch_targets = [
+]
+
+for path in glob.glob("addons/*", recursive=True):
+    watch_targets.append(path)
+
 copy_targets = {
    "vectordraw_canvas2d_worker.js" : "src/vectordraw/vectordraw_canvas2d_worker.js",
    "vectordraw_skia_worker.js" : "src/vectordraw/vectordraw_skia_worker.js",

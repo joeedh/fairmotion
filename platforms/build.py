@@ -3,6 +3,7 @@ import platforms.html5.build
 import platforms.PhoneGap.build
 import platforms.Electron.build
 
+import glob, os, os.path, sys
 from . import util
 
 build_platforms = [
@@ -21,7 +22,8 @@ except ImportError:
 
 def build():
   util.doprint("building platform packages. . .")
-  
+
+  util.deepcopy("addons", "build/addons")
+
   for p in build_platforms:
     p.build()
-  

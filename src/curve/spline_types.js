@@ -57,6 +57,9 @@ function bez4(a, b, c, d, t) {
   return r1 + (r2 - r1)*t;
 }
 
+let _seg_aabb_ret = [new Vector3(), new Vector3()];
+
+
 export class SplineVertex extends SplineElement {
   flag     : boolean
   eid      : number
@@ -153,7 +156,7 @@ export class SplineVertex extends SplineElement {
     }
   }
 
-  get shift() {
+  get shift() : number {
     if (!this.segments) return;
 
     if (this.segments.length !== 2) {
@@ -187,7 +190,7 @@ export class SplineVertex extends SplineElement {
     return tot ? sum / tot : 0.0;
   }
 
-  set shift(w) {
+  set shift(w : number) {
     if (!this.segments || this.segments.length !== 2) return;
 
     let tot = 0.0;
@@ -236,7 +239,7 @@ export class SplineVertex extends SplineElement {
     }
   }
 
-  set __shift(w) {
+  set __shift(w : number) {
     if (!this.segments) return;
 
     let old = this.shift;
@@ -260,8 +263,9 @@ export class SplineVertex extends SplineElement {
     outputs : NodeBase.Inherit()
   }}
 
-  get aabb() {
-    static ret = [new Vector3(), new Vector3()];
+  get aabb() : array<Vector3> {
+    let ret = _seg_aabb_ret;
+
     ret[0].load(this); ret[1].load(this);
     return ret;
   }
@@ -272,7 +276,7 @@ export class SplineVertex extends SplineElement {
     else
       this.flag &= ~SplineFlags.HIDE;
     
-    if (this.type == SplineTypes.HANDLE)
+    if (this.type === SplineTypes.HANDLE)
       return;
       
     if (state) {
@@ -287,7 +291,7 @@ export class SplineVertex extends SplineElement {
   }
   
   get hidden() {
-    if (this.type == SplineTypes.VERTEX) {
+    if (this.type === SplineTypes.VERTEX) {
       return !!(this.flag & SplineFlags.HIDE);
     } else {
       var s = this.owning_segment;
@@ -306,7 +310,7 @@ export class SplineVertex extends SplineElement {
   }
   
   get use() {
-    if (this.type != SplineTypes.HANDLE) return true;
+    if (this.type !== SplineTypes.HANDLE) return true;
     
     var s = this.owning_segment;
     
@@ -322,14 +326,14 @@ export class SplineVertex extends SplineElement {
     return ret;
   }
   
-  set hidden(val) {
-    if (val)
+  set hidden(value : boolean) {
+    if (value)
       this.flag |= SplineFlags.HIDE;
     else
       this.flag &= ~SplineFlags.HIDE;
   }
 
-  other_segment(s) {
+  other_segment(s : SplineSegment) : SplineSegment {
     if (s === this.segments[0]) s = this.segments[1];
     else if (s === this.segments[1]) s = this.segments[0];
 
@@ -343,7 +347,7 @@ export class SplineVertex extends SplineElement {
     return s;
   }
   
-  toJSON() {
+  toJSON() : any {
     var ret = {};
     
     ret.frame = this.frame;
@@ -355,7 +359,7 @@ export class SplineVertex extends SplineElement {
     ret.length = 3;
     
     for (var i=0; i<this.segments.length; i++) {
-      if (this.segments[i] != undefined)
+      if (this.segments[i] !== undefined)
         ret.segments.push(this.segments[i].eid);
     }
     
@@ -365,7 +369,7 @@ export class SplineVertex extends SplineElement {
     return ret;
   }
 
-  loadSTRUCT(reader) {
+  loadSTRUCT(reader : Function) {
     reader(this);
     super.loadSTRUCT(reader);
 
@@ -392,11 +396,26 @@ SplineVertex.STRUCT = STRUCT.inherit(SplineVertex, SplineElement) + `
 
 mixin(SplineVertex, Vector3);
 
+export class ClosestPointRecord {
+  s    : number;
+  co   : Vector2;
+  sign : number;
+
+  constructor() {
+    this.s = 0;
+    this.co = new Vector2();
+    this.sign = 1.0;
+  }
+
+  reset() {
+    this.sign = this.s = undefined;
+    return this;
+  }
+}
+
 var derivative_cache_vs = cachering.fromConstructor(Vector3, 64);
 var closest_point_ret_cache_vs = cachering.fromConstructor(Vector3, 256);
-var closest_point_ret_cache = new cachering(function() {
-  return [0, 0, 0]; //co, s, sign
-}, 256);
+var closest_point_ret_cache = cachering.fromConstructor(ClosestPointRecord, 256);
 
 var closest_point_cache_vs = cachering.fromConstructor(Vector3, 512);
 
@@ -408,7 +427,7 @@ export class EffectWrapper extends CurveEffect {
     this.seg = owner;
   }
   
-  rescale(ceff, width) {
+  rescale(ceff, width : number) : number {
     //find owning segment by ascending to root curve effect
     while (ceff.prior !== undefined) {
       ceff = ceff.prior;
@@ -558,7 +577,7 @@ export class SplineSegment extends SplineElement {
     native_api.onSegmentDestroy(this);
   }
 
-  sinangle(v) {
+  sinangle(v : SplineVertex) : number {
     if (v.segments.length === 2) {
       let s1 = this;
       let s2 = v.other_segment(s1);
@@ -627,7 +646,7 @@ export class SplineSegment extends SplineElement {
     return (b - a) / (2.0*df);
   }
 
-  setVertWidth(v, w) {
+  setVertWidth(v : SplineVertex, w : number) {
     if (w === undefined || isNaN(w)) {
       console.warn("Got bad width data", w);
     }
@@ -812,14 +831,14 @@ export class SplineSegment extends SplineElement {
     this.v2.flag |= SplineFlags.UPDATE;
   }
 
-  get aabb() {
+  get aabb() : Array<Vector3> {
     if (this.flag & SplineFlags.UPDATE_AABB)
       this.update_aabb();
       
     return this._aabb;
   }
   
-  set aabb(val) {
+  set aabb(val : Array<Vector3>) {
     this._aabb = val;
   }
   
@@ -861,7 +880,7 @@ export class SplineSegment extends SplineElement {
     min[2] = max[2] = 0.0; //XXX need to get rid of z
   }
 
-  intersect(seg, side1=0, side2=0, mode=IsectModes.CLOSEST) {
+  intersect(seg : SplineSegment, side1 : boolean = false, side2 : boolean = false, mode : number = IsectModes.CLOSEST) {
     if (this.flag & SplineFlags.COINCIDENT) {
       return undefined;
     }
@@ -890,9 +909,9 @@ export class SplineSegment extends SplineElement {
       let cl1 = seg.closest_point(co1, ClosestModes.CLOSEST, undefined, side2);
       let cl2 = seg.closest_point(co2, ClosestModes.CLOSEST, undefined, side2);
 
-      let p1 = cl1[0];
-      let p2 = cl2[0];
-      if (cl1[2] !== cl2[2]) {
+      let p1 = cl1.co;
+      let p2 = cl2.co;
+      if (cl1.sign !== cl2.sign) {
         for (let bi=0; bi<2; bi++) {
           let s3 = (s1 + s) * 0.5;
           let s4 = (s2 + s) * 0.5;
@@ -903,10 +922,10 @@ export class SplineSegment extends SplineElement {
             let co3 = this.evaluateSide(s5, side1);
             let cl3 = seg.closest_point(co3, ClosestModes.CLOSEST, undefined, side2);
 
-            if (cl3[2] !== cl1[2]) {
+            if (cl3.sign !== cl1.sign) {
               s2 = s5;
               break;
-            } else if (cl3[2] !== cl2[2]) {
+            } else if (cl3.sign !== cl2.sign) {
               s1 = s5;
               break;
             }
@@ -920,18 +939,18 @@ export class SplineSegment extends SplineElement {
         let dis1
 
         if (mode === IsectModes.START) {
-          dis1 = cl1[1];
+          dis1 = cl1.s;
         } else if (mode === IsectModes.END) {
-          dis1 = 1.0 - cl1[1];
+          dis1 = 1.0 - cl1.s;
         } else if (mode === IsectModes.ENDSTART) {
-          dis1 = 1.0 - Math.abs(cl1[1] - 0.5)*2.0;
+          dis1 = 1.0 - Math.abs(cl1.s - 0.5)*2.0;
         } else {
-          dis1 = co1.vectorDistance(cl1[0]);
+          dis1 = co1.vectorDistance(cl1.co);
         }
 
         if (mindis === undefined || dis1 < mindis) {
           minret.load(co1);
-          mins = cl1[1];
+          mins = cl1.s;
           mins2 = s1;
           mindis = dis1;
         }
@@ -954,7 +973,9 @@ export class SplineSegment extends SplineElement {
   /**
    @widthSide if undefined, stroke boundary with be evaluated; should be 0 or 1 (or undefined)
    */
-  closest_point(p : Vector2, mode : ClosestModes, fast : boolean=false, widthSide=undefined) : Object {
+  closest_point(p : Vector2, mode : ClosestModes, fast : boolean=false,
+                widthSide=undefined) : ClosestPointRecord
+  {
     if (this.flag & SplineFlags.COINCIDENT) {
       return undefined;
     }
@@ -1108,8 +1129,7 @@ export class SplineSegment extends SplineElement {
         continue;
       
       if (mode !== ClosestModes.ALL && minret === undefined) {
-        minret = closest_point_ret_cache.next();
-        minret[0] = minret[1] = undefined;
+        minret = closest_point_ret_cache.next().reset();
       }
       
       //did we come up empty?
@@ -1117,30 +1137,30 @@ export class SplineSegment extends SplineElement {
 
       if (mode === ClosestModes.CLOSEST) {
         if (dis < mindis) {
-          minret[0] = closest_point_cache_vs.next().load(co);
-          minret[1] = mid;
-          minret[2] = sign;
+          minret.co.load(co);
+          minret.s = mid;
+          minret.sign = sign;
           mindis = dis;
         }
       } else if (mode === ClosestModes.START) {
         if (mid < mindis) {
-          minret[0] = closest_point_cache_vs.next().load(co);
-          minret[1] = mid;
-          minret[2] = sign;
+          minret.co.load(co);
+          minret.s = mid;
+          minret.sign = sign;
           mindis = mid;
         }
       } else if (mode === ClosestModes.END) {
         if (mid > maxdis) {
-          minret[0] = closest_point_cache_vs.next().load(co);
-          minret[1] = mid;
-          minret[2] = sign;
+          minret.co.load(co);
+          minret.s = mid;
+          minret.sign = sign;
           maxdis = mid;
         }
       } else if (mode === ClosestModes.ALL) {
-        var ret = closest_point_ret_cache.next();
-        ret[0] = closest_point_cache_vs.next().load(co);
-        ret[1] = mid;
-        ret[2] = sign;
+        let ret = closest_point_ret_cache.next().reset();
+        ret.co.load(co);
+        ret.s = mid;
+        ret.sign = sign;
 
         minret.push(ret);
       }
@@ -1149,20 +1169,20 @@ export class SplineSegment extends SplineElement {
     if (minret === undefined && mode === ClosestModes.CLOSEST) {
       var dis1 = this.v1.vectorDistance(p), dis2 = this.v2.vectorDistance(p);
       
-      minret = closest_point_ret_cache.next();
-      minret[0] = closest_point_cache_vs.next().load(dis1 < dis2 ? this.v1 : this.v2);
-      minret[1] = dis1 < dis2 ? 0.0 : 1.0;
-      minret[2] = 1.0;
+      minret = closest_point_ret_cache.next().reset();
+      minret.co.load(dis1 < dis2 ? this.v1 : this.v2);
+      minret.s = dis1 < dis2 ? 0.0 : 1.0;
+      minret.sign = 1.0;
     } else if (minret === undefined && mode === ClosestModes.START) {
       minret = closest_point_ret_cache.next();
-      minret[0] = closest_point_cache_vs.next().load(this.v1);
-      minret[1] = 0.0;
-      minret[2] = 1.0;
+      minret.co.load(this.v1);
+      minret.s = 0.0;
+      minret.sign = 1.0;
     } if (minret === undefined && mode === ClosestModes.END) {
       minret = closest_point_ret_cache.next();
-      minret[0] = closest_point_cache_vs.next().load(this.v2);
-      minret[1] = 1.0;
-      minret[2] = 1.0;
+      minret.co.load(this.v2);
+      minret.s = 1.0;
+      minret.sign = 1.0;
     }
 
 

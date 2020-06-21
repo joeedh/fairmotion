@@ -23,6 +23,8 @@ def build():
   os.makedirs(basepath+"/icons", True)
 
   for f in os.listdir(srcpath):
+    if f == "addons": continue
+
     path = srcpath+"/" + f
     if f in ["fcontent", "icons"]: continue
 
@@ -53,6 +55,7 @@ def build():
     if not f.startswith("chrome") and f.endswith(".js"):
       continue
     if f.startswith("_"): continue
+    if f == "addons": continue
 
     path = "build/" + f
     file = open(path, "rb")

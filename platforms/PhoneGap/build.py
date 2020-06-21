@@ -56,8 +56,9 @@ def build():
 
   for f in os.listdir("./build"):
     if not f.startswith("app") and f.endswith(".js"):
-      continue;
-    
+      continue
+    if f == "addons": continue
+
     path = "build/" + f
     file = open(path, "rb")
     buf = file.read()

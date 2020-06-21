@@ -73,7 +73,9 @@ def build():
     os.makedirs(basedir + "/fcontent")
     
   print("  copying files")
-  
+
+  util.deepcopy("addons", basedir+"/addons")
+
   for f in os.listdir("./platforms/Electron"):
     if f == "__pycache__": continue
     if f == "native": continue
@@ -97,6 +99,8 @@ def build():
   #copy("./build/iconsheet16.png", "./electron_build/fcontent/iconsheet16.png");
 
   for f in os.listdir("./build"):
+    if f == "addons": continue
+
     ok = (f.startswith("app") and f.endswith(".js"))
     ok = ok or f.startswith("iconsheet")
     ok = ok or f.endswith(".wasm")
@@ -114,7 +118,7 @@ def build():
     file = open(path, "wb")
     file.write(buf)
     file.close()
-  
+
   file = open(basedir + "/fcontent/app.js", "rb")
   buf = file.read()
   buf = buf.replace(b"\"/fcontent/\"", b"\"./fcontent/\"")

@@ -80,6 +80,9 @@ empty_class.STRUCT = `
   }
 `
 
+let _gtl_co = new Vector2();
+let _gtl_vec = new Vector2();
+
 export class CustomDataLayer {
   constructor() {
     this.shared = undefined;
@@ -498,6 +501,8 @@ var closest_point_ret_cache = new cachering(function() {
 }, 256);
 
 var closest_point_cache_vs = cachering.fromConstructor(Vector3, 64);
+let _gtl_ret_cache = cachering.fromConstructor(Vector3, 64);
+let _gtl_arr = [0, 0];
 
 //forward declaration
 var flip_wrapper_cache;
@@ -807,10 +812,10 @@ export class CurveEffect {
   }
   
   global_to_local(p, no_effects=false, fixed_s=undefined) {
-    static ret_cache = cachering.fromConstructor(Vector3, 64);
+    let ret_cache = _gtl_ret_cache;
     
-    static arr = [0, 0];
-    var co;
+    let arr = _gtl_arr;
+    let co;
     
     if (fixed_s != undefined) {
       arr[0] = this.evaluate(fixed_s);
@@ -820,13 +825,13 @@ export class CurveEffect {
     } else {
       co = this.closest_point(p);
     }
-    
-    static _co = new Vector3();
-    static _vec = new Vector3();
-    
+
+    let _co = _gtl_co;
+    let _vec = _gtl_vec;
+
     var s, t, a=0.0;
     
-    if (co == undefined) {
+    if (co === undefined) {
       co = _co;
       if (p.vectorDistance(this.v1) < p.vectorDistance(this.v2)) {
         co.load(this.v1);
@@ -838,8 +843,8 @@ export class CurveEffect {
         t = p.vectorDistance(this.v2);
       }
     } else {
-      s = co[1];
-      co = co[0];
+      s = co.s;
+      co = co.co;
       
       t = p.vectorDistance(co)*0.15;
     }

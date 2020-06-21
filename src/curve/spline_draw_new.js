@@ -322,8 +322,10 @@ export class SplineDrawer {
 
     let path = this.get_path(id, z);
 
-    path.color.load(seg.mat.strokecolor);
-    path.blur = seg.mat.blur;
+    let mat = seg.mat;
+
+    path.color.load(mat.strokecolor);
+    path.blur = mat.blur;
 
     path.reset();
 
@@ -369,10 +371,11 @@ export class SplineDrawer {
     dv0.mulScalar(-scale1);
     dv1a.mulScalar(scale2);
 
-    path.moveTo(v[0], v[1]);
-    path.lineTo(p0[0], p0[1]);
+    path.moveTo(p0[0], p0[1]);
     path.cubicTo(p0[0]+dv0[0], p0[1]+dv0[1], p1a[0]-dv1a[0], p1a[1]-dv1a[1], p1a[0], p1a[1]);
+    path.pushStroke(mat.strokecolor2, mat.linewidth2);
     path.lineTo(p1b[0], p1b[1]);
+    path.lineTo(v[0], v[1]);
   }
 
   fastDraw(spline, drawlist, drawlist_layerids, matrix, redraw_rects, only_render, selectmode, master_g, zoom, editor, ignore_layers) {
@@ -1340,13 +1343,13 @@ export class SplineDrawer {
               let lw2b = [0, 0];
               let lw2c = [0, 0];
 
-              //let p2b = seg2.evaluateSide(p[1], 0, undefined, n1, lw2b);
-              //let p2c = seg2.evaluateSide(p[1], 1, undefined, n2, lw2c);
+              //let p2b = seg2.evaluateSide(p.s, 0, undefined, n1, lw2b);
+              //let p2c = seg2.evaluateSide(p.s, 1, undefined, n2, lw2c);
 
-              t1.load(p1b).sub(p[0]);
+              t1.load(p1b).sub(p.co);
               let wid;
 
-              //n1 = seg2.derivative(p[1]);
+              //n1 = seg2.derivative(p.s);
               //let t = n1[0]; n1[0] = -n1[1]; n1[1] = t;
               //n1.negate();
 

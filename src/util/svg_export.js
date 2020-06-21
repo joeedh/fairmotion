@@ -89,8 +89,8 @@ export function export_svg(spline, visible_only=false) {
       co1 = transform(co1);
       var err = seg.closest_point(co1);
       
-      if (err != undefined) {
-        err = err[0].vectorDistance(co1);
+      if (err !== undefined) {
+        err = err.co.vectorDistance(co1);
         sum += err;
       }
     }
@@ -102,7 +102,7 @@ export function export_svg(spline, visible_only=false) {
   var circles = [];
   
   function save(seg, s1, s2, depth) {
-    depth = depth == undefined ? 0 : depth;
+    depth = depth === undefined ? 0 : depth;
     
     var s3 = (s1+s2)*0.5;
     

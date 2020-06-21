@@ -7,12 +7,15 @@ import * as vectormath from '../util/vectormath.js';
 import * as math from '../path.ux/scripts/util/math.js';
 import * as util from '../path.ux/scripts/util/util.js';
 import * as parseutil from '../path.ux/scripts/util/parseutil.js';
+import * as pathux from '../path.ux/scripts/pathux.js';
+import {bindAddonAPI} from './addon_api_intern.js';
 
 let builtins = {
   vectormath : vectormath,
   parseutil : parseutil,
   util : util,
-  math : math
+  math : math,
+  pathux : pathux
 };
 
 let tk = (name, re, func) => new tokdef(name, re, func);
@@ -484,7 +487,7 @@ export function parseFile(buf, modname, path, modid) {
   }
 
   buf = `"use strict";
-_addon_define(${modid}, "${path}", [${""+deps}], function($__module, exports) {
+_addon_define(${modid}, "${path}", [${""+deps}], function($__module, exports, _addon_require) {
 ${buf}
 });
   `
@@ -567,7 +570,7 @@ export function loadModule(path, addon) {
     _addon_exportall : window._addon_exportall
   };*/
 
-  if (path in builtins) {
+  if (path in builtins || path === "api") {
     return true;
   }
   path = resolvePath(path);
@@ -599,27 +602,34 @@ export function loadModule(path, addon) {
       ok = ok && loadModule(dep, addon);
     }
 
+    let _addon_require;
+
     function load(mod) {
       pathstack.push(_splitpath(mod.path)[0]);
 
-      window._addon_require = function(__module, mod2) {
-        if (!(mod2 in builtins)) {
-          mod2 = resolvePath(mod2);
-        }
-
-        let mod3 = modules[mod2];
-        if (!mod3.loaded) {
-          load(mod3);
-        }
-
-        return mod3.exports;
-      }
-
       mod.loaded = true;
-      mod.callback(addon, mod.exports);
+      mod.callback(addon, mod.exports, _addon_require);
 
       pathstack.pop();
     }
+
+    let api = bindAddonAPI(addon);
+
+    _addon_require = function(__module, mod2) {
+      if (mod2 === "api") {
+        return api;
+      } else if (!(mod2 in builtins)) {
+        mod2 = resolvePath(mod2);
+      }
+
+      let mod3 = modules[mod2];
+      if (!mod3.loaded) {
+        load(mod3);
+      }
+
+      return mod3.exports;
+    }
+
 
     if (ok) {
       console.log("loading modules for addon. . .");

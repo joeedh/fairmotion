@@ -203,7 +203,7 @@ export class DataList<T> {
   remove(block : DataBlock) {
     this.list.remove(block);
     
-    if (block.name != undefined && this.namemap[block.name] == block)
+    if (block.name !== undefined && this.namemap[block.name] === block)
       delete this.namemap[block.name];
       
     delete this.idmap[block];

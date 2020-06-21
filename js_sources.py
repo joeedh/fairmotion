@@ -136,6 +136,7 @@ sources = [
   "src/wasm/load_wasm.js",
   "src/wasm/built_wasm.js",
   "src/wasm/native_api.js",
+  "src/addon_api/addon_api_intern.js",
   "src/addon_api/addon_api.js",
   "src/scene/scene.js",
   "src/scene/sceneobject.js",

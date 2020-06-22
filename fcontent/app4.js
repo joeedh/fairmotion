@@ -13,8 +13,9 @@ es6_module_define('math', ["./vectormath.js", "./util.js"], function _math_modul
         let a1=pos1[i], a2=pos2[i];
         let b1=pos1[i]+size1[i];
         let b2=pos2[i]+size2[i];
-        if (b1>=a2&&a1<=b2) {
-            let r=a2-b1;
+        if (b1>=a2&&b2>=a1) {
+            let r=Math.abs(a2-b1);
+            r = Math.min(r, Math.abs(a1-b2));
             if (i) {
                 r2 = r;
             }
@@ -5283,7 +5284,7 @@ es6_module_define('ScreenOverdraw', ["../core/ui.js", "./vectormath.js", "./util
   Overdraw = _es6_module.add_export('Overdraw', Overdraw);
   ui_base.UIBase.register(Overdraw);
 }, '/dev/fairmotion/src/path.ux/scripts/util/ScreenOverdraw.js');
-es6_module_define('simple_events', ["./vectormath.js", "../config/const.js", "./util.js"], function _simple_events_module(_es6_module) {
+es6_module_define('simple_events', ["../config/const.js", "./vectormath.js", "./util.js"], function _simple_events_module(_es6_module) {
   var util=es6_import(_es6_module, './util.js');
   var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
   var Vector2=es6_import_item(_es6_module, './vectormath.js', 'Vector2');
@@ -8088,7 +8089,7 @@ es6_module_define('theme_editor', ["../core/ui.js", "../core/ui_theme.js", "../u
   ThemeEditor = _es6_module.add_export('ThemeEditor', ThemeEditor);
   UIBase.register(ThemeEditor);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/theme_editor.js');
-es6_module_define('ui_button', ["../toolsys/simple_toolsys.js", "../util/vectormath.js", "../core/ui_base.js", "../config/const.js", "../controller/simple_controller.js", "../toolsys/toolprop.js", "../util/events.js", "../util/util.js"], function _ui_button_module(_es6_module) {
+es6_module_define('ui_button', ["../core/ui_base.js", "../toolsys/toolprop.js", "../controller/simple_controller.js", "../config/const.js", "../util/events.js", "../util/util.js", "../util/vectormath.js", "../toolsys/simple_toolsys.js"], function _ui_button_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../util/util.js');
   var vectormath=es6_import(_es6_module, '../util/vectormath.js');

@@ -1,4 +1,4 @@
-es6_module_define('ui_base', ["./units.js", "../controller/simple_controller.js", "./aspect.js", "../icon_enum.js", "../util/cssutils.js", "../util/simple_events.js", "./theme.js", "../util/util.js", "../util/vectormath.js", "../controller/controller.js", "../util/math.js", "./anim.js", "./ui_theme.js", "../toolsys/toolprop.js", "../util/colorutils.js", "../config/const.js"], function _ui_base_module(_es6_module) {
+es6_module_define('ui_base', ["./aspect.js", "../controller/controller.js", "../util/math.js", "./anim.js", "../util/colorutils.js", "../controller/simple_controller.js", "../util/cssutils.js", "../util/util.js", "../icon_enum.js", "./units.js", "../util/vectormath.js", "../config/const.js", "../util/simple_events.js", "./ui_theme.js", "../toolsys/toolprop.js", "./theme.js"], function _ui_base_module(_es6_module) {
   let _ui_base=undefined;
   if (window.document&&document.body) {
       console.log("ensuring body.style.margin/padding are zero");
@@ -395,6 +395,7 @@ ${selector}::-webkit-scrollbar-thumb {
       super();
       this.pathUndoGen = 0;
       this._lastPathUndoGen = 0;
+      this._useDataPathUndo = undefined;
       this._active_animations = [];
       this._screenStyleTag = document.createElement("style");
       this._screenStyleUpdateHash = 0;
@@ -416,7 +417,6 @@ ${selector}::-webkit-scrollbar-thumb {
       this.visibleToPick = true;
       this._override_class = undefined;
       this.parentWidget = undefined;
-      this._useDataPathUndo = undefined;
       let tagname=this.constructor.define().tagname;
       this._id = tagname.replace(/\-/g, "_")+(_idgen++);
       this.default_overrides = {};
@@ -501,6 +501,7 @@ ${selector}::-webkit-scrollbar-thumb {
       let p=this;
       while (p) {
         if (p._useDataPathUndo!==undefined) {
+            console.log(p._useDataPathUndo, p.tagName);
             return p._useDataPathUndo;
         }
         p = p.parentWidget;
@@ -10617,7 +10618,7 @@ pathux.ScreenArea {
   ui_base.UIBase.register(ScreenArea);
   ui_base._setAreaClass(Area);
 }, '/dev/fairmotion/src/path.ux/scripts/screen/ScreenArea.js');
-es6_module_define('simple_toolsys', ["./toolprop.js", "../util/simple_events.js", "../util/events.js"], function _simple_toolsys_module(_es6_module) {
+es6_module_define('simple_toolsys', ["../util/simple_events.js", "../util/events.js", "./toolprop.js"], function _simple_toolsys_module(_es6_module) {
   "use strict";
   var events=es6_import(_es6_module, '../util/events.js');
   var keymap=es6_import_item(_es6_module, '../util/simple_events.js', 'keymap');

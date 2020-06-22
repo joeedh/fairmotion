@@ -1,4 +1,4 @@
-es6_module_define('ui_menu', ["../util/util.js", "./ui_button.js", "../util/events.js", "../util/vectormath.js", "../toolsys/simple_toolsys.js", "../toolsys/toolprop.js", "../util/simple_events.js", "../config/const.js", "../core/ui_base.js"], function _ui_menu_module(_es6_module) {
+es6_module_define('ui_menu', ["../util/vectormath.js", "../config/const.js", "./ui_button.js", "../util/events.js", "../core/ui_base.js", "../util/simple_events.js", "../util/util.js", "../toolsys/simple_toolsys.js", "../toolsys/toolprop.js"], function _ui_menu_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../util/util.js');
   var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
@@ -288,7 +288,7 @@ es6_module_define('ui_menu', ["../util/util.js", "./ui_button.js", "../util/even
       if (hotkey) {
           dom.hotkey = hotkey;
           g.font = ui_base.getFont(this, undefined, "HotkeyText");
-          hwid = Math.ceil(g.measureText(hotkey).width);
+          hwid = Math.ceil(g.measureText(hotkey).width/UIBase.getDPI());
           twid+=hwid+8;
       }
       span.innerText = text;
@@ -305,18 +305,18 @@ es6_module_define('ui_menu', ["../util/util.js", "./ui_button.js", "../util/even
       if (hotkey) {
           let hotkey_span=document.createElement("span");
           hotkey_span.innerText = hotkey;
-          hotkey_span.style["margin-left"] = "0px";
-          hotkey_span.style["margin-right"] = "0px";
+          hotkey_span.style["display"] = "inline-flex";
           hotkey_span.style["margin"] = "0px";
+          hotkey_span.style["margin-left"] = "auto";
+          hotkey_span.style["margin-right"] = "0px";
           hotkey_span.style["padding"] = "0px";
-          let al="right";
           hotkey_span.style["font"] = ui_base.getFont(this, undefined, "HotkeyText");
           hotkey_span.style["color"] = this.getDefault("HotkeyTextColor");
-          hotkey_span.style["width"] = "100%";
-          hotkey_span.style["text-align"] = al;
-          hotkey_span.style["flex-align"] = al;
-          hotkey_span.style["float"] = "right";
+          hotkey_span.style["width"] = "max-content";
+          hotkey_span.style["text-align"] = "right";
+          hotkey_span.style["justify-content"] = "right";
           hotkey_span["flex-wrap"] = "nowrap";
+          hotkey_span["text-wrap"] = "nowrap";
           dom.appendChild(hotkey_span);
       }
       let ret=this.addItem(dom, id, add);
@@ -525,7 +525,6 @@ es6_module_define('ui_menu', ["../util/util.js", "./ui_button.js", "../util/even
     }
     set  searchMenuMode(v) {
       this._searchMenuMode = v;
-      console.warn("searchMenuMode was set", this);
     }
      setCSS() {
       this.style["user-select"] = "none";
@@ -1008,7 +1007,7 @@ es6_module_define('ui_menu', ["../util/util.js", "./ui_button.js", "../util/even
       }
       else 
         if (typeof item=="string") {
-          let def;
+          let def, hotkey;
           try {
             def = ctx.api.getToolDef(item);
           }
@@ -1016,7 +1015,21 @@ es6_module_define('ui_menu', ["../util/util.js", "./ui_button.js", "../util/even
               menu.addItem("(tool path error)", id++);
               return ;
           }
-          menu.addItemExtra(def.uiname, id, def.hotkey, def.icon);
+          if (!def.hotkey) {
+              try {
+                hotkey = ctx.api.getToolPathHotkey(ctx, item);
+              }
+              catch (error) {
+                  util.print_stack(error);
+                  console.warn("error getting hotkey for tool "+item);
+                  hotkey = undefined;
+              }
+          }
+          else {
+            hotkey = def.hotkey;
+          }
+          console.warn("HOTKEY", hotkey, def.hotkey);
+          menu.addItemExtra(def.uiname, id, hotkey, def.icon);
           cbs[id] = (function (toolpath) {
             return function () {
               ctx.api.execTool(ctx, toolpath);
@@ -1337,7 +1350,7 @@ es6_module_define('ui_noteframe', ["../core/ui.js", "../util/util.js", "../core/
   }
   message = _es6_module.add_export('message', message);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_noteframe.js');
-es6_module_define('ui_numsliders', ["../core/units.js", "../core/ui.js", "./ui_widgets.js", "../util/util.js", "../util/simple_events.js", "../toolsys/toolprop.js", "../util/vectormath.js", "../core/ui_base.js"], function _ui_numsliders_module(_es6_module) {
+es6_module_define('ui_numsliders', ["../core/units.js", "../util/util.js", "./ui_widgets.js", "../util/simple_events.js", "../core/ui_base.js", "../util/vectormath.js", "../toolsys/toolprop.js", "../core/ui.js"], function _ui_numsliders_module(_es6_module) {
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var drawText=es6_import_item(_es6_module, '../core/ui_base.js', 'drawText');
   var ValueButtonBase=es6_import_item(_es6_module, './ui_widgets.js', 'ValueButtonBase');
@@ -2922,7 +2935,7 @@ es6_module_define('ui_richedit', ["../util/simple_events.js", "./ui_textbox.js",
   RichViewer = _es6_module.add_export('RichViewer', RichViewer);
   UIBase.register(RichViewer);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_richedit.js');
-es6_module_define('ui_table', ["../toolsys/toolprop.js", "./ui_curvewidget.js", "../util/util.js", "../core/ui.js", "../core/ui_base.js", "./ui_widgets.js", "../util/vectormath.js"], function _ui_table_module(_es6_module) {
+es6_module_define('ui_table', ["../core/ui.js", "../core/ui_base.js", "../toolsys/toolprop.js", "./ui_widgets.js", "../util/util.js", "../util/vectormath.js", "./ui_curvewidget.js"], function _ui_table_module(_es6_module) {
   var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
   var _ui=undefined;
   var util=es6_import(_es6_module, '../util/util.js');
@@ -2985,6 +2998,9 @@ es6_module_define('ui_table', ["../toolsys/toolprop.js", "./ui_curvewidget.js", 
       this.dom.appendChild(child);
       child.onadd();
     }
+     add(child) {
+      this._add(child);
+    }
      row() {
       let tr=document.createElement("tr");
       let cls="table-tr";
@@ -2998,6 +3014,7 @@ es6_module_define('ui_table', ["../toolsys/toolprop.js", "./ui_curvewidget.js", 
         td.style["padding"] = tr.style["padding"];
         let container=document.createElement("rowframe-x");
         container.ctx = this2.ctx;
+        container.parentWidget = this2;
         container.setAttribute("class", cls);
         td.setAttribute("class", cls);
         td.appendChild(container);

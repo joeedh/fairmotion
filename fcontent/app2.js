@@ -7601,7 +7601,7 @@ es6_module_define('context', ["../util/util.js", "../widgets/ui_noteframe.js", "
       throw new Error("Context test failed");
   }
 }, '/dev/fairmotion/src/path.ux/scripts/controller/context.js');
-es6_module_define('controller', ["../toolsys/toolprop_abstract.js", "../toolsys/simple_toolsys.js", "../util/vectormath.js", "../util/util.js", "../toolsys/toolprop.js"], function _controller_module(_es6_module) {
+es6_module_define('controller', ["../util/vectormath.js", "../toolsys/toolprop.js", "../toolsys/toolprop_abstract.js", "../util/util.js", "../toolsys/simple_toolsys.js"], function _controller_module(_es6_module) {
   var toolprop=es6_import(_es6_module, '../toolsys/toolprop.js');
   var ToolOp=es6_import_item(_es6_module, '../toolsys/simple_toolsys.js', 'ToolOp');
   var print_stack=es6_import_item(_es6_module, '../util/util.js', 'print_stack');
@@ -7885,7 +7885,7 @@ es6_module_define('controller', ["../toolsys/toolprop_abstract.js", "../toolsys/
   }
   registerTool = _es6_module.add_export('registerTool', registerTool);
 }, '/dev/fairmotion/src/path.ux/scripts/controller/controller.js');
-es6_module_define('controller_ops', ["../toolsys/simple_toolsys.js", "./controller.js", "../toolsys/toolprop.js", "../util/util.js"], function _controller_ops_module(_es6_module) {
+es6_module_define('controller_ops', ["./controller.js", "../toolsys/simple_toolsys.js", "../toolsys/toolprop.js", "../util/util.js"], function _controller_ops_module(_es6_module) {
   var ToolOp=es6_import_item(_es6_module, '../toolsys/simple_toolsys.js', 'ToolOp');
   var ToolFlags=es6_import_item(_es6_module, '../toolsys/simple_toolsys.js', 'ToolFlags');
   var PropTypes=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'PropTypes');
@@ -8053,7 +8053,7 @@ es6_module_define('controller_ops', ["../toolsys/simple_toolsys.js", "./controll
   DataPathSetOp = _es6_module.add_export('DataPathSetOp', DataPathSetOp);
   ToolOp.register(DataPathSetOp);
 }, '/dev/fairmotion/src/path.ux/scripts/controller/controller_ops.js');
-es6_module_define('simple_controller', ["../toolsys/simple_toolsys.js", "../util/parseutil.js", "../toolsys/toolprop_abstract.js", "../toolsys/toolpath.js", "./controller_ops.js", "../config/const.js", "./controller.js", "../util/util.js", "../toolsys/toolprop.js"], function _simple_controller_module(_es6_module) {
+es6_module_define('simple_controller', ["../config/const.js", "../util/parseutil.js", "../util/util.js", "./controller.js", "../toolsys/simple_toolsys.js", "../toolsys/toolpath.js", "./controller_ops.js", "../toolsys/toolprop.js", "../toolsys/toolprop_abstract.js"], function _simple_controller_module(_es6_module) {
   var toolprop=es6_import(_es6_module, '../toolsys/toolprop.js');
   var parseutil=es6_import(_es6_module, '../util/parseutil.js');
   var print_stack=es6_import_item(_es6_module, '../util/util.js', 'print_stack');
@@ -9128,7 +9128,7 @@ es6_module_define('simple_controller', ["../toolsys/simple_toolsys.js", "../util
             }
         }
       }
-      if (screen.sareas.length==0) {
+      if (screen.sareas.length===0) {
           return searchKeymap(screen.keymap);
       }
       let areacls=screen.sareas[0].area.constructor;
@@ -9137,6 +9137,16 @@ es6_module_define('simple_controller', ["../toolsys/simple_toolsys.js", "../util
           let ret=searchKeymap(keymap);
           if (ret!==undefined) {
               return ret;
+          }
+      }
+      for (let sarea of screen.sareas) {
+          if (!sarea.area)
+            continue;
+          for (let keymap of sarea.area.getKeyMaps()) {
+              let ret=searchKeymap(keymap);
+              if (ret) {
+                  return ret;
+              }
           }
       }
       return this.keymap ? searchKeymap(this.keymap) : false;
@@ -10045,7 +10055,7 @@ es6_module_define('theme', ["../util/util.js", "./ui_theme.js"], function _theme
     defaultHeight: 24}}
   _es6_module.add_export('DefaultTheme', DefaultTheme);
 }, '/dev/fairmotion/src/path.ux/scripts/core/theme.js');
-es6_module_define('ui', ["../config/const.js", "./ui_theme.js", "../util/html5_fileapi.js", "../toolsys/toolprop.js", "./ui_base.js", "../util/util.js", "../util/vectormath.js", "../util/simple_events.js", "../widgets/ui_menu.js", "../widgets/ui_widgets.js"], function _ui_module(_es6_module) {
+es6_module_define('ui', ["../util/simple_events.js", "../config/const.js", "../util/util.js", "../toolsys/toolprop.js", "../widgets/ui_menu.js", "../util/html5_fileapi.js", "./ui_base.js", "../util/vectormath.js", "./ui_theme.js", "../widgets/ui_widgets.js"], function _ui_module(_es6_module) {
   var _ui=undefined;
   var util=es6_import(_es6_module, '../util/util.js');
   var vectormath=es6_import(_es6_module, '../util/vectormath.js');
@@ -10434,6 +10444,7 @@ es6_module_define('ui', ["../config/const.js", "./ui_theme.js", "../util/html5_f
       }
       child.ctx = this.ctx;
       child.parentWidget = this;
+      child._useDataPathUndo = this._useDataPathUndo;
       if (prepend) {
           this.shadow.prepend(child);
       }

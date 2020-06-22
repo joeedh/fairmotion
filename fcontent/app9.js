@@ -1,5 +1,5 @@
 var ContextStruct;
-es6_module_define('data_api_define', ["../../editors/dopesheet/DopeSheetEditor.js", "../../editors/settings/SettingsEditor.js", "./data_api.js", "../toolprops.js", "../context.js", "../../editors/ops/ops_editor.js", "../../curve/spline_element_array.js", "../../curve/spline_base.js", "../../editors/viewport/view2d.js", "../../path.ux/scripts/pathux.js", "../UserSettings.js", "../lib_api.js", "../../editors/viewport/spline_createops.js", "../animdata.js", "../../scene/sceneobject.js", "../../editors/viewport/view2d_base.js", "../imageblock.js", "../../curve/spline_types.js", "../../editors/viewport/selectmode.js", "../toolops_api.js", "../units.js", "../../editors/curve/CurveEditor.js", "../frameset.js"], function _data_api_define_module(_es6_module) {
+es6_module_define('data_api_define', ["../imageblock.js", "../../curve/spline_base.js", "../units.js", "../../editors/settings/SettingsEditor.js", "../../editors/viewport/selectmode.js", "./data_api.js", "../../editors/curve/CurveEditor.js", "../../editors/dopesheet/DopeSheetEditor.js", "../../editors/viewport/view2d_base.js", "../../curve/spline_types.js", "../../curve/spline_element_array.js", "../../editors/ops/ops_editor.js", "../frameset.js", "../toolops_api.js", "../UserSettings.js", "../lib_api.js", "../context.js", "../../editors/viewport/spline_createops.js", "../toolprops.js", "../../scene/sceneobject.js", "../../editors/viewport/view2d.js", "../animdata.js", "../../path.ux/scripts/pathux.js"], function _data_api_define_module(_es6_module) {
   var DataTypes=es6_import_item(_es6_module, '../lib_api.js', 'DataTypes');
   var View2DHandler=es6_import_item(_es6_module, '../../editors/viewport/view2d.js', 'View2DHandler');
   var EditModes=es6_import_item(_es6_module, '../../editors/viewport/view2d_base.js', 'EditModes');
@@ -307,7 +307,6 @@ es6_module_define('data_api_define', ["../../editors/dopesheet/DopeSheetEditor.j
     let flagprop=spline_flagprop.copy();
     flagprop.update = function (owner) {
       this.ctx.spline.regen_sort();
-      console.log("vertex update", owner);
       if (owner!==undefined) {
           owner.flag|=SplineFlags.UPDATE;
       }
@@ -1724,7 +1723,7 @@ es6_module_define('data_api_base', ["../../path.ux/scripts/controller/controller
   DataAPIError = _es6_module.add_export('DataAPIError', DataAPIError);
   window.DataAPIError = DataAPIError;
 }, '/dev/fairmotion/src/core/data_api/data_api_base.js');
-es6_module_define('data_api_pathux', ["../../editors/events.js", "../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/util/simple_events.js", "../toolops_api.js", "../../path.ux/scripts/controller/controller.js", "../../editors/editor_base.js", "./data_api_base.js", "../toolprops.js"], function _data_api_pathux_module(_es6_module) {
+es6_module_define('data_api_pathux', ["../../editors/events.js", "../../path.ux/scripts/controller/controller.js", "../toolprops.js", "../../editors/editor_base.js", "../toolops_api.js", "../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/util/simple_events.js", "./data_api_base.js"], function _data_api_pathux_module(_es6_module) {
   var ModelInterface=es6_import_item(_es6_module, '../../path.ux/scripts/controller/controller.js', 'ModelInterface');
   var DataPathError=es6_import_item(_es6_module, '../../path.ux/scripts/controller/controller.js', 'DataPathError');
   var ToolOpAbstract=es6_import_item(_es6_module, '../toolops_api.js', 'ToolOpAbstract');
@@ -1857,6 +1856,25 @@ es6_module_define('data_api_pathux', ["../../editors/events.js", "../../path.ux/
     }
      buildMassSetPaths(ctx, listpath, subpath, value, filterstr) {
       return this.api.build_mass_set_paths(ctx, listpath, subpath, value, filterstr);
+    }
+     resolveMassSetPaths(ctx, mass_set_path) {
+      if (!ctx||!mass_set_path||typeof mass_set_path!=="string") {
+          throw new Error("invalid call to resolveMassSetPaths");
+      }
+      let path=mass_set_path.trim();
+      let filter, listpath, subpath;
+      let start=path.search("{");
+      if (start<0) {
+          throw new Error("invalid mass set path in resolveMassSetPaths "+path);
+      }
+      let end=path.slice(start, path.end).search("}")+start;
+      if (end<0) {
+          throw new Error("invalid mass set path in resolveMassSetPaths "+path);
+      }
+      filter = path.slice(start+1, end).trim();
+      listpath = path.slice(0, start).trim();
+      subpath = path.slice(end+2, path.length).trim();
+      return this.api.build_mass_set_paths(ctx, listpath, subpath, undefined, filter);
     }
      massSetProp(ctx, mass_set_path, value) {
       let path=mass_set_path;

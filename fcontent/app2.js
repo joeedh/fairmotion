@@ -493,7 +493,7 @@ es6_module_define('typedwriter', [], function _typedwriter_module(_es6_module) {
       if (this.i>this.buf.length) {
           throw new Error("Exceeded maximum size of TypedWriter: "+this.i+" > "+this.buf.length);
       }
-      return this.buf.buffer.slice(0, this.i);
+      return this.buf.buffer;
     }
      bytes(f, len=f.length) {
       var buf=this.buf, i=this.i;
@@ -513,6 +513,16 @@ es6_module_define('typedwriter', [], function _typedwriter_module(_es6_module) {
      int32(f) {
       var buf=this.buf, i=this.i;
       i32[0] = f;
+      buf[i++] = u8[0];
+      buf[i++] = u8[1];
+      buf[i++] = u8[2];
+      buf[i++] = u8[3];
+      this.i = i;
+      return this;
+    }
+     uint32(f) {
+      var buf=this.buf, i=this.i;
+      u32[0] = f;
       buf[i++] = u8[0];
       buf[i++] = u8[1];
       buf[i++] = u8[2];
@@ -2477,7 +2487,7 @@ es6_module_define('context', ["./frameset.js", "../editors/editor_base.js", "../
   var Spline=es6_import_item(_es6_module, '../curve/spline.js', 'Spline');
   var DataAPI=es6_import_item(_es6_module, './data_api/data_api.js', 'DataAPI');
 }, '/dev/fairmotion/src/core/context.js');
-es6_module_define('toolstack', ["./AppState.js", "./context.js", "./data_api/data_api.js", "./toolops_api.js", "./toolprops.js"], function _toolstack_module(_es6_module) {
+es6_module_define('toolstack', ["./toolprops.js", "./AppState.js", "./data_api/data_api.js", "./context.js", "./toolops_api.js"], function _toolstack_module(_es6_module) {
   var BaseContext=es6_import_item(_es6_module, './context.js', 'BaseContext');
   var FullContext=es6_import_item(_es6_module, './context.js', 'FullContext');
   var ToolFlags=es6_import_item(_es6_module, './toolops_api.js', 'ToolFlags');
@@ -2744,7 +2754,8 @@ es6_module_define('toolstack', ["./AppState.js", "./context.js", "./data_api/dat
             continue;
           let name=prop.uiname||prop.apiname||k;
           prop.uiname = name;
-          dataprop = new DataPath(prop, prop.apiname, "", true, false);
+          let apiname=prop.apiname||k;
+          dataprop = new DataPath(prop, apiname, "", true, false);
           dataprop.update = update_dataprop;
           datastruct.add(dataprop);
       }
@@ -2823,6 +2834,10 @@ es6_module_define('toolstack', ["./AppState.js", "./context.js", "./data_api/dat
       let macro=new ToolMacro(cls.tooldef().apiname, cls.tooldef().uiname, tools);
       this.execTool(macro);
     }
+     error(msg) {
+      console.error(msg);
+      g_app_state.ctx.error(msg);
+    }
      execTool(ctx, tool) {
       if (__instance_of(ctx, ToolOp)) {
           console.warn("Bad arguments to g_app_state.toolstack.execTool()");
@@ -2833,12 +2848,12 @@ es6_module_define('toolstack', ["./AppState.js", "./context.js", "./data_api/dat
       this.set_tool_coll_flag(tool);
       ctx = new FullContext();
       tool.ctx = ctx;
-      if (tool.can_call(ctx)===false) {
+      if (tool.constructor.canRun(ctx)===false) {
           if (DEBUG.toolstack) {
               console.trace();
               console.log(tool);
           }
-          console.log("Can not call tool '"+tool.constructor.name+"'");
+          this.error("Can not call tool '"+tool.constructor.name+"'");
           return ;
       }
       if (!(tool.undoflag&UndoFlags.IGNORE_UNDO))
@@ -4529,7 +4544,7 @@ es6_module_define('units', ["./safe_eval.js"], function _units_module(_es6_modul
   Unit.imperial_units = ["in", "ft", "mile"];
   Unit.internal_unit = "cm";
 }, '/dev/fairmotion/src/core/units.js');
-es6_module_define('data_api', ["../../config/config.js", "./data_api_base.js", "../animdata.js", "../toolops_api.js", "../toolprops.js", "../lib_api.js", "../../curve/spline_multires.js", "./data_api_parser.js", "../safe_eval.js", "./data_api_pathux.js"], function _data_api_module(_es6_module) {
+es6_module_define('data_api', ["../toolops_api.js", "../animdata.js", "./data_api_parser.js", "../safe_eval.js", "../lib_api.js", "../../config/config.js", "../../curve/spline_multires.js", "./data_api_base.js", "./data_api_pathux.js", "../toolprops.js"], function _data_api_module(_es6_module) {
   function is_int(s) {
     s = s.trim();
     if (typeof s=="number") {
@@ -4976,9 +4991,9 @@ es6_module_define('data_api', ["../../config/config.js", "./data_api_base.js", "
   TinyParser.split_chars = new set([",", "=", "(", ")", ".", "$", "[", "]"]);
   TinyParser.ws = new set([" ", "\n", "\t", "\r"]);
   var toolmap=es6_import_item(_es6_module, './data_api_pathux.js', 'toolmap');
-  var $cache_wlIe_resolve_path_intern;
-  var $retcpy_mDvk_set_prop;
-  var $scope_394J_set_prop;
+  var $cache_30uZ_resolve_path_intern;
+  var $retcpy_sy4r_set_prop;
+  var $scope_YyFY_set_prop;
   class DataAPI  {
      constructor(appstate) {
       this.appstate = appstate;
@@ -5325,18 +5340,18 @@ es6_module_define('data_api', ["../../config/config.js", "./data_api_base.js", "
           return undefined;
       }
       try {
-        if (!(str in $cache_wlIe_resolve_path_intern)) {
+        if (!(str in $cache_30uZ_resolve_path_intern)) {
             var ret=this.resolve_path_intern2(ctx, str);
             var ret2=[];
             for (var i=0; i<ret.length; i++) {
                 ret2.push(ret[i]);
             }
-            $cache_wlIe_resolve_path_intern[str] = ret2;
+            $cache_30uZ_resolve_path_intern[str] = ret2;
         }
         else {
-          var ret=$cache_wlIe_resolve_path_intern[str];
+          var ret=$cache_30uZ_resolve_path_intern[str];
           if (ret[0]!=undefined&&!ret[0].cache_good()) {
-              delete $cache_wlIe_resolve_path_intern[str];
+              delete $cache_30uZ_resolve_path_intern[str];
               return this.resolve_path_intern(ctx, str);
           }
           else {
@@ -5631,7 +5646,7 @@ es6_module_define('data_api', ["../../config/config.js", "./data_api_base.js", "
       return val;
     }
      build_mass_set_paths(ctx, listpath, subpath, value, filterstr) {
-      if (ctx==undefined) {
+      if (ctx===undefined) {
           filterstr = value;
           value = subpath;
           subpath = listpath;
@@ -5641,7 +5656,7 @@ es6_module_define('data_api', ["../../config/config.js", "./data_api_base.js", "
       var filter;
       if (config.HAVE_EVAL) {
           var filtercode=`
-        function filter($) {\n
+        filter = function filter($) {\n
           return `+filterstr+`\n;
         }`;
           eval(filtercode);
@@ -5689,11 +5704,11 @@ es6_module_define('data_api', ["../../config/config.js", "./data_api_base.js", "
           }
           return ret;
       }
-      $retcpy_mDvk_set_prop.length = ret.length;
+      $retcpy_sy4r_set_prop.length = ret.length;
       for (var i=0; i<5; i++) {
-          $retcpy_mDvk_set_prop[i] = ret[i];
+          $retcpy_sy4r_set_prop[i] = ret[i];
       }
-      ret = $retcpy_mDvk_set_prop;
+      ret = $retcpy_sy4r_set_prop;
       var owner=this.evaluate(ctx, ret[4]);
       if (ret[0]!==undefined&&ret[0].type==DataPathTypes.PROP) {
           var prop=ret[0].data;
@@ -5759,9 +5774,9 @@ es6_module_define('data_api', ["../../config/config.js", "./data_api_base.js", "
                     val&=~mask;
                   prop.dataref = owner;
                   prop.setValue(val, owner, changed);
-                  $scope_394J_set_prop[0] = val;
+                  $scope_YyFY_set_prop[0] = val;
                   path2+=" = scope[0];";
-                  this.evaluate(ctx, path2, $scope_394J_set_prop);
+                  this.evaluate(ctx, path2, $scope_YyFY_set_prop);
               }
               else {
                 path+=" = "+value;
@@ -5811,9 +5826,9 @@ es6_module_define('data_api', ["../../config/config.js", "./data_api_base.js", "
             }
             else {
               if (typeof value=="object") {
-                  $scope_394J_set_prop[0] = value;
+                  $scope_YyFY_set_prop[0] = value;
                   path+=" = scope[0]";
-                  this.evaluate(ctx, path, $scope_394J_set_prop);
+                  this.evaluate(ctx, path, $scope_YyFY_set_prop);
               }
               else {
                 changed = value==old_value;
@@ -5863,9 +5878,9 @@ es6_module_define('data_api', ["../../config/config.js", "./data_api_base.js", "
       return ret[0].data;
     }
   }
-  var $cache_wlIe_resolve_path_intern={}
-  var $retcpy_mDvk_set_prop=new Array(16);
-  var $scope_394J_set_prop=[0, 0];
+  var $cache_30uZ_resolve_path_intern={}
+  var $retcpy_sy4r_set_prop=new Array(16);
+  var $scope_YyFY_set_prop=[0, 0];
   _ESClass.register(DataAPI);
   _es6_module.add_class(DataAPI);
   DataAPI = _es6_module.add_export('DataAPI', DataAPI);
@@ -6912,7 +6927,7 @@ es6_module_define('animutil', [], function _animutil_module(_es6_module) {
 }, '/dev/fairmotion/src/core/animutil.js');
 es6_module_define('config_defines', [], function _config_defines_module(_es6_module) {
 }, '/dev/fairmotion/src/config/config_defines.js');
-es6_module_define('svg_export', ["./mathlib.js", "../curve/spline_base.js"], function _svg_export_module(_es6_module) {
+es6_module_define('svg_export', ["../curve/spline_base.js", "./mathlib.js"], function _svg_export_module(_es6_module) {
   "use strict";
   var math=es6_import(_es6_module, './mathlib.js');
   var SplineFlags=es6_import_item(_es6_module, '../curve/spline_base.js', 'SplineFlags');
@@ -6972,8 +6987,8 @@ es6_module_define('svg_export', ["./mathlib.js", "../curve/spline_base.js"], fun
           var segs=s1+(s2-s1)*s;
           co1 = transform(co1);
           var err=seg.closest_point(co1);
-          if (err!=undefined) {
-              err = err[0].vectorDistance(co1);
+          if (err!==undefined) {
+              err = err.co.vectorDistance(co1);
               sum+=err;
           }
       }
@@ -6981,7 +6996,7 @@ es6_module_define('svg_export', ["./mathlib.js", "../curve/spline_base.js"], fun
     }
     var circles=[];
     function save(seg, s1, s2, depth) {
-      depth = depth==undefined ? 0 : depth;
+      depth = depth===undefined ? 0 : depth;
       var s3=(s1+s2)*0.5;
       var k=Math.abs(seg.curvature(s3)*(s2-s1));
       var dk=Math.abs(seg.curvature_dv(s3)*(s2-s1));
@@ -7586,7 +7601,7 @@ es6_module_define('context', ["../util/util.js", "../widgets/ui_noteframe.js", "
       throw new Error("Context test failed");
   }
 }, '/dev/fairmotion/src/path.ux/scripts/controller/context.js');
-es6_module_define('controller', ["../toolsys/toolprop_abstract.js", "../toolsys/toolprop.js", "../util/vectormath.js", "../toolsys/simple_toolsys.js", "../util/util.js"], function _controller_module(_es6_module) {
+es6_module_define('controller', ["../toolsys/toolprop_abstract.js", "../toolsys/simple_toolsys.js", "../util/vectormath.js", "../util/util.js", "../toolsys/toolprop.js"], function _controller_module(_es6_module) {
   var toolprop=es6_import(_es6_module, '../toolsys/toolprop.js');
   var ToolOp=es6_import_item(_es6_module, '../toolsys/simple_toolsys.js', 'ToolOp');
   var print_stack=es6_import_item(_es6_module, '../util/util.js', 'print_stack');
@@ -7870,7 +7885,7 @@ es6_module_define('controller', ["../toolsys/toolprop_abstract.js", "../toolsys/
   }
   registerTool = _es6_module.add_export('registerTool', registerTool);
 }, '/dev/fairmotion/src/path.ux/scripts/controller/controller.js');
-es6_module_define('controller_ops', ["./controller.js", "../toolsys/simple_toolsys.js", "../toolsys/toolprop.js", "../util/util.js"], function _controller_ops_module(_es6_module) {
+es6_module_define('controller_ops', ["../toolsys/simple_toolsys.js", "./controller.js", "../toolsys/toolprop.js", "../util/util.js"], function _controller_ops_module(_es6_module) {
   var ToolOp=es6_import_item(_es6_module, '../toolsys/simple_toolsys.js', 'ToolOp');
   var ToolFlags=es6_import_item(_es6_module, '../toolsys/simple_toolsys.js', 'ToolFlags');
   var PropTypes=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'PropTypes');
@@ -7939,7 +7954,8 @@ es6_module_define('controller_ops', ["./controller.js", "../toolsys/simple_tools
      hash(massSetPath, dataPath, prop, id) {
       massSetPath = massSetPath===undefined ? "" : massSetPath;
       massSetPath = massSetPath===null ? "" : massSetPath;
-      return ""+massSetPath+":"+dataPath+":"+prop+":"+id;
+      let ret=""+massSetPath+":"+dataPath+":"+prop+":"+id;
+      return ret;
     }
      hashThis() {
       return this.hash(this.inputs.massSetPath.getValue(), this.inputs.dataPath.getValue(), this.propType, this.id);
@@ -7994,12 +8010,14 @@ es6_module_define('controller_ops', ["./controller.js", "../toolsys/simple_tools
               rdef.prop.dataref = rdef.obj;
               rdef.prop._fire("change", rdef.obj[rdef.key], old);
           }
-          try {
-            ctx.api.setValue(ctx, path, this._undo[path]);
-          }
-          catch (error) {
-              util.print_stack(error);
-              console.warn("Failed to set property in undo for DataPathSetOp");
+          else {
+            try {
+              ctx.api.setValue(ctx, path, this._undo[path]);
+            }
+            catch (error) {
+                util.print_stack(error);
+                console.warn("Failed to set property in undo for DataPathSetOp");
+            }
           }
       }
     }

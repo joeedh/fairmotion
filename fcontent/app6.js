@@ -8,8 +8,8 @@ es6_module_define('spline_query', ["./spline_multires.js", "../editors/viewport/
   var PI=Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor, ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos, asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
   var sqrt=Math.sqrt;
   let findnearest_segment_tmp=new Vector2();
-  var $_mpos_yK11_findnearest_vert;
-  var $_v_hSr3_findnearest_vert;
+  var $_mpos_5tmX_findnearest_vert;
+  var $_v_X4B1_findnearest_vert;
   class SplineQuery  {
      constructor(spline) {
       this.spline = spline;
@@ -62,8 +62,8 @@ es6_module_define('spline_query', ["./spline_multires.js", "../editors/viewport/
           var ret=seg.closest_point(mpos, undefined, true);
           if (ret===undefined)
             continue;
-          let s=ret[1];
-          ret = ret[0];
+          let s=ret.s;
+          ret = ret.co;
           if (seg.hidden||seg.v1.hidden||seg.v2.hidden)
             continue;
           if (!ignore_layers&&!seg.in_layer(actlayer))
@@ -106,7 +106,7 @@ es6_module_define('spline_query', ["./spline_multires.js", "../editors/viewport/
         limit = 15;
       var min=1e+17;
       var ret=undefined;
-      mpos = $_mpos_yK11_findnearest_vert.load(mpos);
+      mpos = $_mpos_5tmX_findnearest_vert.load(mpos);
       mpos[2] = 0.0;
       var list=do_handles ? spline.handles : spline.verts;
       for (var v of list) {
@@ -115,10 +115,10 @@ es6_module_define('spline_query', ["./spline_multires.js", "../editors/viewport/
           if (!ignore_layers&&!v.in_layer(actlayer))
             continue;
           var co=v;
-          $_v_hSr3_findnearest_vert.load(co);
-          $_v_hSr3_findnearest_vert[2] = 0.0;
-          editor.project($_v_hSr3_findnearest_vert);
-          var dis=$_v_hSr3_findnearest_vert.vectorDistance(mpos);
+          $_v_X4B1_findnearest_vert.load(co);
+          $_v_X4B1_findnearest_vert[2] = 0.0;
+          editor.project($_v_X4B1_findnearest_vert);
+          var dis=$_v_X4B1_findnearest_vert.vectorDistance(mpos);
           if (dis<limit&&dis<min) {
               min = dis;
               ret = v;
@@ -129,8 +129,8 @@ es6_module_define('spline_query', ["./spline_multires.js", "../editors/viewport/
       }
     }
   }
-  var $_mpos_yK11_findnearest_vert=new Vector3();
-  var $_v_hSr3_findnearest_vert=new Vector3();
+  var $_mpos_5tmX_findnearest_vert=new Vector3();
+  var $_v_X4B1_findnearest_vert=new Vector3();
   _ESClass.register(SplineQuery);
   _es6_module.add_class(SplineQuery);
   SplineQuery = _es6_module.add_export('SplineQuery', SplineQuery);
@@ -3536,6 +3536,9 @@ SplineStrokeGroup {
       return true;
     }
     for (let group of spline.strokeGroups) {
+        if (group.segments.length===0) {
+            continue;
+        }
         let seg=group.segments[0];
         let i=0;
         while (i<group.segments.length&&!visible(group.segments[i])) {
@@ -3669,6 +3672,21 @@ SplineStrokeGroup {
     for (let v of spline.verts) {
         if (!(vvisit.has(v))) {
             doseg(v);
+        }
+    }
+    for (let i=0; i<groups.length; i++) {
+        let g=groups[i];
+        for (let j=0; j<g.segments.length; j++) {
+            if (g.segments[j]===undefined) {
+                console.warn("Corrupted group!", g);
+                g.segments.remove(undefined);
+                j--;
+            }
+        }
+        if (g.length===0) {
+            groups[i] = groups[groups.length-1];
+            groups.length--;
+            i--;
         }
     }
   }
@@ -6861,7 +6879,7 @@ es6_module_define('vectordraw', ["./vectordraw_base.js", "./vectordraw_skia_simp
 es6_module_define('strokedraw', [], function _strokedraw_module(_es6_module) {
   "use strict";
 }, '/dev/fairmotion/src/vectordraw/strokedraw.js');
-es6_module_define('spline_draw_new', ["../vectordraw/vectordraw_jobs.js", "../util/mathlib.js", "./spline_base.js", "../editors/viewport/view2d_editor.js", "../core/animdata.js", "./spline_types.js", "../path.ux/scripts/pathux.js", "../config/config.js", "./spline_math.js", "../vectordraw/vectordraw.js", "./spline_element_array.js", "./spline_strokegroup.js", "./spline_multires.js", "../editors/viewport/selectmode.js"], function _spline_draw_new_module(_es6_module) {
+es6_module_define('spline_draw_new', ["./spline_base.js", "./spline_multires.js", "./spline_element_array.js", "../core/animdata.js", "../vectordraw/vectordraw_jobs.js", "../path.ux/scripts/pathux.js", "./spline_types.js", "./spline_strokegroup.js", "../editors/viewport/view2d_editor.js", "../editors/viewport/selectmode.js", "../vectordraw/vectordraw.js", "../config/config.js", "./spline_math.js", "../util/mathlib.js"], function _spline_draw_new_module(_es6_module) {
   "use strict";
   var aabb_isect_minmax2d=es6_import_item(_es6_module, '../util/mathlib.js', 'aabb_isect_minmax2d');
   var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
@@ -7163,8 +7181,9 @@ es6_module_define('spline_draw_new', ["../vectordraw/vectordraw_jobs.js", "../ut
           return ;
       }
       let path=this.get_path(id, z);
-      path.color.load(seg.mat.strokecolor);
-      path.blur = seg.mat.blur;
+      let mat=seg.mat;
+      path.color.load(mat.strokecolor);
+      path.blur = mat.blur;
       path.reset();
       let dv0=new Vector2();
       let dv1a=new Vector2();
@@ -7193,14 +7212,122 @@ es6_module_define('spline_draw_new', ["../vectordraw/vectordraw_jobs.js", "../ut
       scale2/=1.5;
       dv0.mulScalar(-scale1);
       dv1a.mulScalar(scale2);
-      path.moveTo(v[0], v[1]);
-      path.lineTo(p0[0], p0[1]);
+      path.moveTo(p0[0], p0[1]);
       path.cubicTo(p0[0]+dv0[0], p0[1]+dv0[1], p1a[0]-dv1a[0], p1a[1]-dv1a[1], p1a[0], p1a[1]);
+      path.pushStroke(mat.strokecolor2, mat.linewidth2);
       path.lineTo(p1b[0], p1b[1]);
+      path.lineTo(v[0], v[1]);
+    }
+     fastDraw(spline, drawlist, drawlist_layerids, matrix, redraw_rects, only_render, selectmode, master_g, zoom, editor, ignore_layers) {
+      if (!spline.segments.cdata.has_layer("drawdata")) {
+          spline.segments.cdata.add_layer(SplineDrawData);
+      }
+      let draw_normals=editor.draw_normals;
+      zoom = matrix.$matrix.m11;
+      this.used_paths = {};
+      this.drawlist = drawlist;
+      this.drawlist_layerids = drawlist_layerids;
+      var actlayer=spline.layerset.active;
+      var do_blur=!!(only_render||editor.enable_blur);
+      var draw_faces=!!(only_render||editor.draw_faces);
+      var recalc_all=this.recalc_all||this.draw_faces!==draw_faces||this.do_blur!==do_blur;
+      recalc_all = recalc_all||spline.verts.length!==this.last_totvert;
+      recalc_all = recalc_all||spline.segments.length!==this.last_totseg;
+      recalc_all = recalc_all||spline.faces.length!==this.last_totface;
+      if (recalc_all) {
+      }
+      this.last_totvert = spline.verts.length;
+      this.last_totseg = spline.segments.length;
+      this.last_totface = spline.faces.length;
+      this.last_zoom = zoom;
+      this.draw_faces = draw_faces;
+      this.do_blur = do_blur;
+      this.last_stroke_mat = undefined;
+      this.last_stroke_z = undefined;
+      this.last_stroke_eid = undefined;
+      this.last_layer_id = undefined;
+      this.last_stroke_stringid = undefined;
+      let drawMatrix=matrix;
+      var mat=update_tmps_mats.next();
+      mat.load(matrix), matrix = mat;
+      var mat2=update_tmps_mats.next();
+      mat2.makeIdentity();
+      mat2.translate(0.0, -master_g.height, 0.0);
+      mat2.makeIdentity();
+      mat2.translate(0.0, master_g.height, 0.0);
+      mat2.scale(1.0, -1.0, 1.0);
+      matrix.preMultiply(mat2);
+      this.drawer.do_blur = editor.enable_blur;
+      var m1=matrix.$matrix, m2=this.drawer.matrix.$matrix;
+      var off=update_tmps_vs.next().zero();
+      this.recalc_all = false;
+      if (m1.m11!==m2.m11||m1.m22!==m2.m22) {
+      }
+      if (!recalc_all) {
+          var a=update_tmps_vs.next().zero(), b=update_tmps_vs.next().zero();
+          a.multVecMatrix(this.drawer.matrix);
+          b.multVecMatrix(matrix);
+          off.load(b).sub(a);
+      }
+      else {
+        off.zero();
+      }
+      var m=matrix.$matrix;
+      this.drawer.pan[0] = m.m41;
+      this.drawer.pan[1] = m.m42;
+      m.m41 = m.m42 = m.m43 = 0;
+      this.drawer.set_matrix(drawMatrix);
+      if (recalc_all) {
+          this.drawer.recalcAll();
+          if (1||DEBUG.trace_recalc_all) {
+              console.log("%c RECALC_ALL!  ", "color:orange");
+          }
+      }
+      var drawparams=drawparam_cachering.next().init(redraw_rects, actlayer, only_render, selectmode, zoom, undefined, off, spline, drawlist);
+      let updateflags=(SplineFlags.REDRAW|SplineFlags.UPDATE);
+      for (var i=0; i<drawlist.length; i++) {
+          var e=drawlist[i];
+          let z=drawparams.z = i;
+          drawparams.zoom = zoom;
+          drawparams.combine_paths = true;
+          if (__instance_of(e, SplineStrokeGroup)) {
+              let redraw=false;
+              for (let seg of e.segments) {
+                  if ((seg.flag&updateflags)||(seg.v1.flag&updateflags)||(seg.v2.flag&updateflags)) {
+                      redraw = true;
+                      break;
+                  }
+              }
+              if (!redraw&&this.has_path(e.eid, z)) {
+                  continue;
+              }
+              let path=this.get_path(e.id, z);
+              path.reset();
+              for (let seg of e.segments) {
+                  let steps=5, ds=1.0/(steps-1), s=0.0;
+                  for (let j=0; j<steps; j++, s+=ds) {
+                      let co=seg.evaluate(s);
+                      if (j===0) {
+                          path.moveTo(co[0], co[1]);
+                      }
+                      else {
+                        path.lineTo(co[0], co[1]);
+                      }
+                  }
+                  path.pushStroke();
+              }
+          }
+          else 
+            if (e.type===SplineTypes.FACE) {
+          }
+      }
     }
      update(spline, drawlist, drawlist_layerids, matrix, redraw_rects, only_render, selectmode, master_g, zoom, editor, ignore_layers) {
       if (!spline.segments.cdata.has_layer("drawdata")) {
           spline.segments.cdata.add_layer(SplineDrawData);
+      }
+      if (window.DEBUG&&window.DEBUG.fastDrawMode) {
+          return this.fastDraw(...arguments);
       }
       let draw_normals=editor.draw_normals;
       zoom = matrix.$matrix.m11;
@@ -7826,7 +7953,7 @@ es6_module_define('spline_draw_new', ["../vectordraw/vectordraw_jobs.js", "../ut
                     if (p!==undefined) {
                         let lw2b=[0, 0];
                         let lw2c=[0, 0];
-                        t1.load(p1b).sub(p[0]);
+                        t1.load(p1b).sub(p.co);
                         let wid;
                         let dist=t1.vectorLength();
                         t1.normalize();
@@ -7981,424 +8108,6 @@ es6_module_define('spline_draw_new', ["../vectordraw/vectordraw_jobs.js", "../ut
               lastco = co;
           }
       }
-    }
-     update_stroke(seg, drawparams) {
-      return ;
-      var redraw_rects=drawparams.redraw_rects, actlayer=drawparams.actlayer;
-      var only_render=drawparams.only_render, selectmode=drawparams.selectmode;
-      var zoom=drawparams.zoom, z=drawparams.z, off=drawparams.off, spline=drawparams.spline;
-      var drawlist=drawparams.drawlist;
-      var eid=seg.eid;
-      let debug=0;
-      let dpath, dpath2, dpath3, dpoint, dline;
-      if (debug) {
-          dpath = this.get_path(eid|8192, z+10000);
-          dpath2 = this.get_path(eid|16384, z+10001);
-          dpath3 = this.get_path(eid|8192|16384, z+10002);
-          dpath.color = [1, 0.25, 0.125, 0.5];
-          dpath2.color = [0.25, 0.65, 1.0, 0.5];
-          dpath3.color = [0.5, 1.0, 0.5, 0.5];
-          dpath.reset();
-          dpath2.reset();
-          dpath3.reset();
-          dpoint = (x, y, w, dp) =>            {
-            if (w===undefined) {
-                w = 4;
-            }
-            if (dp===undefined) {
-                dp = dpath;
-            }
-            w*=0.5;
-            dp.moveTo(x-w, y-w);
-            dp.lineTo(x-w, y+w);
-            dp.lineTo(x+w, y+w);
-            dp.lineTo(x+w, y-w);
-            dp.lineTo(x-w, y-w);
-          };
-          dline = (x1, y1, x2, y2, w, dp) =>            {
-            if (w===undefined) {
-                w = 0.5;
-            }
-            if (dp===undefined) {
-                dp = dpath;
-            }
-            let dx=y1-y2, dy=x2-x1;
-            let l=Math.sqrt(dx*dx+dy*dy);
-            if (l===0.0) {
-                return ;
-            }
-            l = 0.5*w/l;
-            dx*=l;
-            dy*=l;
-            dp.moveTo(x1-dx, y1-dy);
-            dp.lineTo(x2-dx, y2-dy);
-            dp.lineTo(x2+dx, y2+dy);
-            dp.lineTo(x1+dx, y1+dy);
-            dp.lineTo(x1-dx, y1-dy);
-          };
-      }
-      if (this.has_path(eid, z, eid==seg.eid)&&!(seg.flag&SplineFlags.REDRAW)) {
-          return ;
-      }
-      if (seg.eid===eid) {
-          this.last_stroke_mat = seg.mat;
-          this.last_stroke_eid = seg.eid;
-          this.last_stroke_stringid = seg.stringid;
-      }
-      seg.flag&=~SplineFlags.REDRAW;
-      var l=seg.ks[KSCALE]*zoom;
-      let add=(Math.sqrt(l)/5);
-      var steps=5+~~add;
-      var ds=1.0/(steps-1), s=0.0;
-      var path=this.get_path(eid, z, eid==seg.eid);
-      path.update();
-      path.was_updated = true;
-      if (path.frame_first&&path.clip_paths.length>0) {
-          path.reset_clip_paths();
-          path.frame_first = false;
-      }
-      if (seg.l!==undefined&&(seg.mat.flag&MaterialFlags.MASK_TO_FACE)) {
-          var l=seg.l, _i=0;
-          do {
-            var fz=l.f.finalz;
-            if (fz>z) {
-                l = l.radial_next;
-                continue;
-            }
-            var path2=this.get_path(l.f.eid, fz);
-            path.add_clip_path(path2);
-            if (_i++>1000) {
-                console.trace("Warning: infinite loop!");
-                break;
-            }
-            l = l.radial_next;
-          } while (l!==seg.l);
-          
-      }
-      if (eid===seg.eid) {
-          path.reset();
-      }
-      path.blur = seg.mat.blur*(this.do_blur ? 1 : 0);
-      if (only_render) {
-          path.color.load(seg.mat.strokecolor);
-      }
-      else {
-        if ((selectmode&SelMask.SEGMENT)&&seg===spline.segments.highlight) {
-            path.color[0] = 200/255, path.color[1] = 200/255, path.color[2] = 50/255, path.color[3] = 0.8;
-        }
-        else 
-          if ((selectmode&SelMask.SEGMENT)&&seg===spline.segments.active) {
-            path.color[0] = 200/255, path.color[1] = 80/255, path.color[2] = 50/255, path.color[3] = 0.8;
-        }
-        else 
-          if ((selectmode&SelMask.SEGMENT)&&(seg.flag&SplineFlags.SELECT)) {
-            path.color[0] = 250/255, path.color[1] = 140/255, path.color[2] = 50/255, path.color[3] = 0.8;
-        }
-        else {
-          path.color.load(seg.mat.strokecolor);
-        }
-      }
-      let lw=seg.mat.linewidth*0.5;
-      var no=seg.normal(0).normalize().mulScalar(lw);
-      var co=seg.evaluate(0).add(no);
-      var fx=co[0], fy=co[1];
-      var lastdv, lastco;
-      var len=seg.length;
-      let stretch=1.0075;
-      let seglen=seg.length;
-      let data=seg.cdata.get_layer(SplineDrawData);
-      let starts=data.start(0), ends=data.end(0);
-      let lwout=new Vector2();
-      for (let vi=0; vi<2; vi++) {
-          let v=vi ? seg.v2 : seg.v1;
-          if (!FANCY_JOINS||!((v.flag&SplineFlags.BREAK_TANGENTS)||v.segments.length>2)) {
-              continue;
-          }
-          let t0=new Vector2();
-          let t1=new Vector2();
-          let t2=new Vector2();
-          let d0a=new Vector2();
-          let d1a=new Vector2();
-          let d2a=new Vector2();
-          let d0b=new Vector2();
-          let d1b=new Vector2();
-          let d2b=new Vector2();
-          let first=true;
-          let fx=0, fy=0, lx=0, ly=0;
-          lx = 0;
-          ly = 0;
-          let segments=this._sortSegments(v);
-          if (segments.length>1) {
-              let si=segments.indexOf(seg);
-              let prev=(si+segments.length-1)%segments.length;
-              let next=(si+1)%segments.length;
-              prev = segments[prev];
-              next = segments[next];
-              let pdata=prev.cdata.get_layer(SplineDrawData);
-              let ndata=next.cdata.get_layer(SplineDrawData);
-              let margin=-0.001;
-              let s0=pdata.gets(prev, v, 0, margin);
-              let s1=data.gets(seg, v, 0, margin);
-              let s2=ndata.gets(next, v, 0, margin);
-              let pa=prev.evaluateSide(s0, 1, d0a);
-              let pb=prev.evaluateSide(s0, 0, d0b);
-              let sa=seg.evaluateSide(s1, 0, d1a);
-              let sb=seg.evaluateSide(s1, 1, d1b);
-              let na=next.evaluateSide(s2, 1, d2a);
-              let nb=next.evaluateSide(s2, 0, d2b);
-              t0.load(prev.other_vert(v)).sub(v).normalize();
-              t1.load(seg.other_vert(v)).sub(v).normalize();
-              t2.load(next.other_vert(v)).sub(v).normalize();
-              let th1=Math.abs(Math.acos(t0.dot(t1)));
-              let th2=Math.abs(Math.acos(t1.dot(t2)));
-              let th=th1+th2;
-              sa[2] = sb[2] = pa[2] = pb[2] = na[2] = nb[2] = 0.0;
-              let f0=(prev.v1===v);
-              let f1=(seg.v1===v);
-              let f2=(next.v1===v);
-              if (f0) {
-                  let t=pa;
-                  pa = pb;
-                  pb = t;
-                  t = d0a;
-                  d0a = d0b;
-                  d0b = t;
-                  d0a.negate();
-                  d0b.negate();
-              }
-              if (f1) {
-                  let t=sa;
-                  sa = sb;
-                  sb = t;
-                  t = d1a;
-                  d1a = d1b;
-                  d1b = t;
-                  d1a.negate();
-                  d1b.negate();
-              }
-              if (f2) {
-                  let t=na;
-                  na = nb;
-                  nb = t;
-                  t = d2a;
-                  d2a = d2b;
-                  d2b = t;
-                  d2a.negate();
-                  d2b.negate();
-              }
-              if (isNaN(sa.dot(sa))) {
-                  if (Math.random()>0.98) {
-                      console.log("NaN!", sa, seg);
-                  }
-                  continue;
-              }
-              let sc=seg.evaluate(s1);
-              if (segments.length===2) {
-                  d0a.add(pa);
-                  d0b.add(pb);
-                  d1a.add(sa);
-                  d1b.add(sb);
-                  d2a.add(na);
-                  d2b.add(nb);
-                  let r=line_isect(pb, d0b, sb, d1b);
-                  if (r[1]===COLINEAR) {
-                      r = v;
-                  }
-                  else {
-                    r = new Vector2(r[0]);
-                    r.floor();
-                  }
-                  let r2=line_isect(pa, d0a, sa, d1a);
-                  if (r2[1]===COLINEAR) {
-                      r2 = v;
-                  }
-                  else {
-                    r2 = new Vector2(r2[0]);
-                    r2.floor();
-                  }
-                  data.setp(seg, v, 1, r);
-                  data.setp(seg, v, 0, r2);
-                  path.moveTo(v[0], v[1]);
-                  path.lineTo(r[0], r[1]);
-                  path.lineTo(sb[0], sb[1]);
-                  path.lineTo(sc[0], sc[1]);
-                  path.lineTo(v[0], v[1]);
-                  path.moveTo(v[0], v[1]);
-                  path.lineTo(sc[0], sc[1]);
-                  path.lineTo(sa[0], sa[1]);
-                  path.lineTo(r2[0], r2[1]);
-                  path.lineTo(v[0], v[1]);
-              }
-              else 
-                if (0) {
-                  pa.interp(sa, 0.5);
-                  nb.interp(sb, 0.5);
-                  if (debug) {
-                  }
-                  data.setp(seg, v, 0, sa);
-                  data.setp(seg, v, 1, sb);
-                  path.moveTo(sa[0], sa[1]);
-                  path.lineTo(pa[0], pa[1]);
-                  path.lineTo(v[0], v[1]);
-                  path.lineTo(nb[0], nb[1]);
-                  path.lineTo(sb[0], sb[1]);
-              }
-              else 
-                if (0) {
-                  data.setp(seg, v, 0, sa);
-                  data.setp(seg, v, 1, sb);
-                  if (segments.bad_corner&&debug&&th>Math.PI*0.5) {
-                      dline(v[0], v[1], (sa[0]+sb[0])*0.5, (sa[1]+sb[1])*0.5, 4);
-                  }
-                  if (debug) {
-                      dline(sa[0], sa[1], sb[0], sb[1], 4);
-                      dpoint(sa[0], sa[1], 10, dpath3);
-                      dpoint(sb[0], sb[1], 10, dpath2);
-                  }
-                  if (1||th>Math.PI*0.5) {
-                      pa.interp(sa, 0.5);
-                      nb.interp(sb, 0.5);
-                      path.lineTo(sa[0], sa[1]);
-                      if (th1<Math.PI*0.33333) {
-                          path.lineTo(pa[0], pa[1]);
-                      }
-                      path.lineTo(v[0], v[1]);
-                      if (th2<Math.PI*0.33333) {
-                          path.lineTo(nb[0], nb[1]);
-                      }
-                      path.lineTo(sb[0], sb[1]);
-                  }
-                  else {
-                    path.moveTo(pa[0], pa[1]);
-                    path.lineTo(v[0], v[1]);
-                    path.lineTo(nb[0], nb[1]);
-                    path.lineTo(sb[0], sb[1]);
-                    path.lineTo(sa[0], sa[1]);
-                    path.lineTo(pa[0], pa[1]);
-                  }
-                  if (!first) {
-                  }
-                  else {
-                    first = false;
-                  }
-                  lx = sa[0];
-                  ly = sa[1];
-              }
-          }
-          if (segments.bad_corner) {
-          }
-      }
-      let margin=0.00125;
-      starts-=margin;
-      ends+=margin;
-      s = starts;
-      ds = (ends-starts)/(steps-1);
-      for (let i=0; i<steps; i++, s+=ds) {
-          let dv=seg.derivative(s);
-          let co=seg.evaluateSide(s, 0, dv, undefined, lwout);
-          dv.mulScalar(ds/3.0);
-          if (i>0) {
-              path.cubicTo(lastco[0]+lastdv[0], lastco[1]+lastdv[1], co[0]-dv[0], co[1]-dv[1], co[0], co[1], 1);
-          }
-          else {
-            path.moveTo(co[0], co[1]);
-          }
-          lastdv = dv;
-          lastco = co;
-      }
-      s = ends;
-      for (let i=0; i<steps; i++, s-=ds) {
-          let dv=seg.derivative(s);
-          let co=seg.evaluateSide(s, 1, dv);
-          dv.mulScalar(-ds/3.0);
-          if (i>0) {
-              path.cubicTo(lastco[0]+lastdv[0], lastco[1]+lastdv[1], co[0]-dv[0], co[1]-dv[1], co[0], co[1], 1);
-          }
-          else {
-            path.lineTo(co[0], co[1]);
-          }
-          lastdv = dv;
-          lastco = co;
-      }
-      s = ends;
-      for (var i=0; i<steps; i++, s-=ds) {
-          break;
-          let dv=seg.derivative(s*stretch);
-          let co=seg.evaluate(s*stretch);
-          let k=-seglen*seg.curvature(s*stretch);
-          let shift=-seg.shift(s*stretch);
-          let dshift=-seg.dshift(s*stretch);
-          let lw=seg.width(s*stretch);
-          let dlw=seg.dwidth(s*stretch);
-          dlw = dlw*shift+dlw+dshift*lw;
-          lw = lw+lw*shift;
-          lw = -lw;
-          dlw = -dlw;
-          co[0]+=-dv[1]*lw*0.5/seglen;
-          co[1]+=dv[0]*lw*0.5/seglen;
-          let dx=(-0.5*(dlw*dv[1]+dv[0]*k*lw-2*dv[0]*seglen))/seglen;
-          let dy=(0.5*(dlw*dv[0]-dv[1]*k*lw+2*dv[1]*seglen))/seglen;
-          dv[0] = dx;
-          dv[1] = dy;
-          dv.mulScalar(ds/3.0);
-          if (debug*0) {
-              dpoint(co[0], co[1], 9);
-              dpoint(co[0]+dv[0], co[1]+dv[1]);
-              dline(co[0], co[1], co[0]+dv[0], co[1]+dv[1]);
-              if (i>0) {
-                  dpoint(lastco[0], lastco[1], 9);
-                  dpoint(lastco[0]-lastdv[0], lastco[1]-lastdv[1]);
-                  dline(lastco[0], lastco[1], lastco[0]-lastdv[0], lastco[1]-lastdv[1]);
-                  dline(co[0]+dv[0], co[1]+dv[1], lastco[0]-lastdv[0], lastco[1]-lastdv[1]);
-              }
-          }
-          if (i>0) {
-              path.cubicTo(lastco[0]-lastdv[0], lastco[1]-lastdv[1], co[0]+dv[0], co[1]+dv[1], co[0], co[1], 1);
-          }
-          else {
-            path.lineTo(co[0], co[1]);
-          }
-          lastdv = dv;
-          lastco = co;
-      }
-      var layer=undefined;
-      for (var k in seg.layers) {
-          layer = spline.layerset.get(k);
-      }
-      if (layer!==undefined&&(layer.flag&SplineLayerFlags.MASK)) {
-          var li=spline.layerset.indexOf(layer);
-          if (li<=0) {
-              console.trace("Error in update_seg", layer, spline);
-              return path;
-          }
-          var prev=spline.layerset[li-1];
-          var i=drawparams.z;
-          var layerid=layer.id;
-          while (i>0&&layerid!==prev.id) {
-            i--;
-            for (var k in drawlist[i].layers) {
-                layerid = k;
-                if (layerid===prev.id)
-                  break;
-            }
-          }
-          while (i>=0&&layerid===prev.id) {
-            var item=drawlist[i];
-            if (item.type===SplineTypes.FACE) {
-                var path2=this.get_path(item.eid, i);
-                path.add_clip_path(path2);
-            }
-            i--;
-            if (i<0)
-              break;
-            for (var k in drawlist[i].layers) {
-                layerid = k;
-                if (layerid===prev.id)
-                  break;
-            }
-          }
-      }
-      return path;
     }
      update_polygon(f, redraw_rects, actlayer, only_render, selectmode, zoom, z, off, spline, ignore_layers) {
       if (this.has_path(f.eid, z)&&!(f.flag&SplineFlags.REDRAW)) {

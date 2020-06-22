@@ -2353,19 +2353,19 @@ es6_module_define('built_wasm', ["./load_wasm.js"], function _built_wasm_module(
   noExitRuntime = true;
   run();
 }, '/dev/fairmotion/src/wasm/built_wasm.js');
-es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", "../util/typedwriter.js", "../curve/spline_base.js", "../curve/solver.js", "../curve/spline_math_hermite.js", "../core/ajax.js", "../path.ux/scripts/util/vectormath.js", "../path.ux/scripts/util/util.js"], function _native_api_module(_es6_module) {
+es6_module_define('native_api', ["../core/ajax.js", "../curve/spline_base.js", "../path.ux/scripts/util/vectormath.js", "../util/typedwriter.js", "../curve/spline_math_hermite.js", "../path.ux/scripts/util/util.js", "./built_wasm.js", "../curve/solver.js", "../core/toolops_api.js"], function _native_api_module(_es6_module) {
   var wasm=es6_import(_es6_module, './built_wasm.js');
   let wasmModule=wasm;
   wasmModule = _es6_module.add_export('wasmModule', wasmModule);
-  var active_solves={}
+  let active_solves={}
   active_solves = _es6_module.add_export('active_solves', active_solves);
-  var solve_starttimes={}
+  let solve_starttimes={}
   solve_starttimes = _es6_module.add_export('solve_starttimes', solve_starttimes);
-  var solve_starttimes2={}
+  let solve_starttimes2={}
   solve_starttimes2 = _es6_module.add_export('solve_starttimes2', solve_starttimes2);
-  var solve_endtimes={}
+  let solve_endtimes={}
   solve_endtimes = _es6_module.add_export('solve_endtimes', solve_endtimes);
-  var active_jobs={}
+  let active_jobs={}
   active_jobs = _es6_module.add_export('active_jobs', active_jobs);
   var constraint=es6_import_item(_es6_module, '../curve/solver.js', 'constraint');
   var solver=es6_import_item(_es6_module, '../curve/solver.js', 'solver');
@@ -2386,15 +2386,15 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
     return wasm.calledRun;
   }
   isReady = _es6_module.add_export('isReady', isReady);
-  var mmax=Math.max, mmin=Math.min, mfloor=Math.floor;
-  var abs=Math.abs, sqrt=Math.sqrt, sin=Math.sin, cos=Math.cos, pow=Math.pow, log=Math.log, acos=Math.acos, asin=Math.asin, PI=Math.PI;
-  var last_call=undefined;
-  var DEBUG=false;
-  var FIXED_KS_FLAG=SplineFlags.FIXED_KS;
-  var callbacks={}
-  callbacks = _es6_module.add_export('callbacks', callbacks);
-  var msg_idgen=0;
-  var solve_idgen=0;
+  const mmax=Math.max, mmin=Math.min, mfloor=Math.floor;
+  const abs=Math.abs, sqrt=Math.sqrt, sin=Math.sin, cos=Math.cos, pow=Math.pow, log=Math.log, acos=Math.acos, asin=Math.asin, PI=Math.PI;
+  let last_call=undefined;
+  let DEBUG=false;
+  const FIXED_KS_FLAG=SplineFlags.FIXED_KS;
+  const callbacks={}
+  _es6_module.add_export('callbacks', callbacks);
+  let msg_idgen=0;
+  let solve_idgen=0;
   var ORDER=es6_import_item(_es6_module, '../curve/spline_math_hermite.js', 'ORDER');
   var KSCALE=es6_import_item(_es6_module, '../curve/spline_math_hermite.js', 'KSCALE');
   var KANGLE=es6_import_item(_es6_module, '../curve/spline_math_hermite.js', 'KANGLE');
@@ -2404,8 +2404,8 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
   var KTOTKS=es6_import_item(_es6_module, '../curve/spline_math_hermite.js', 'KTOTKS');
   var INT_STEPS=es6_import_item(_es6_module, '../curve/spline_math_hermite.js', 'INT_STEPS');
   function onMessage(type, message, ptr) {
-    var iview=new Int32Array(message);
-    var id=iview[1];
+    let iview=new Int32Array(message);
+    let id=iview[1];
     if (DEBUG)
       console.log("got array buffer!", message, "ID", id);
     if (!(id in callbacks)) {
@@ -2413,13 +2413,13 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
           console.log("Warning, dead communication callback", id);
         return ;
     }
-    var job=callbacks[id], iter=job.job;
+    let job=callbacks[id], iter=job.job;
     if (DEBUG)
       console.log("job:", job);
     job.status.data = message.slice(8, message.byteLength);
     if (DEBUG)
       console.log("iter:", iter, iter.data);
-    var ret=iter.next();
+    let ret=iter.next();
     if (ret.done) {
         delete callbacks[id];
         if (job.callback!==undefined)
@@ -2428,9 +2428,9 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
     wasm._free(ptr);
   }
   onMessage = _es6_module.add_export('onMessage', onMessage);
-  var messageQueue=[];
+  let messageQueue=[];
   messageQueue = _es6_module.add_export('messageQueue', messageQueue);
-  var queueMessages=false;
+  let queueMessages=false;
   function queueUpMessages(state) {
     queueMessages = state;
   }
@@ -2484,6 +2484,20 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
     }
   }
   onSegmentDestroy = _es6_module.add_export('onSegmentDestroy', onSegmentDestroy);
+  function checkSegment(seg) {
+    if (!seg.ks._has_wasm) {
+        let ks=seg.ks;
+        let ptr2=wasm._malloc(8*16);
+        let ks2=new Float64Array(wasm.HEAPU8.buffer, ptr2, ks.length);
+        for (let i=0; i<ks.length; i++) {
+            ks2[i] = ks[i];
+        }
+        ks2._has_wasm = true;
+        ks2.ptr = ptr2;
+        seg.ks = ks2;
+    }
+  }
+  checkSegment = _es6_module.add_export('checkSegment', checkSegment);
   let evalrets=util.cachering.fromConstructor(Vector2, 64);
   function evalCurve(seg, s, v1, v2, ks, no_update) {
     if (no_update===undefined) {
@@ -2496,17 +2510,7 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
         wv1[i] = v1[i];
         wv2[i] = v2[i];
     }
-    if (!seg.ks._has_wasm) {
-        let ptr2=wasm._malloc(8*16);
-        let ks2=new Float64Array(wasm.HEAPU8.buffer, ptr2, ks.length);
-        for (let i=0; i<ks.length; i++) {
-            ks2[i] = ks[i];
-        }
-        ks2._has_wasm = true;
-        ks2.ptr = ptr2;
-        seg.ks = ks2;
-        ks = ks2;
-    }
+    checkSegment(seg);
     wasm._evalCurve(pco, s, seg.ks.ptr, pv1, pv2, no_update ? 1 : 0);
     let ret=evalrets.next();
     ret[0] = wco[0];
@@ -2534,24 +2538,24 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
     postToWasm(0, msg.buffer);
   }
   test_wasm = _es6_module.add_export('test_wasm', test_wasm);
-  var MessageTypes={GEN_DRAW_BEZIERS: 0, 
+  const MessageTypes={GEN_DRAW_BEZIERS: 0, 
    REPLY: 1, 
    SOLVE: 2}
-  MessageTypes = _es6_module.add_export('MessageTypes', MessageTypes);
-  var ConstraintTypes={TAN_CONSTRAINT: 0, 
+  _es6_module.add_export('MessageTypes', MessageTypes);
+  const ConstraintTypes={TAN_CONSTRAINT: 0, 
    HARD_TAN_CONSTRAINT: 1, 
    CURVATURE_CONSTRAINT: 2, 
    COPY_C_CONSTRAINT: 3}
-  ConstraintTypes = _es6_module.add_export('ConstraintTypes', ConstraintTypes);
-  var JobTypes={DRAWSOLVE: 1, 
+  _es6_module.add_export('ConstraintTypes', ConstraintTypes);
+  const JobTypes={DRAWSOLVE: 1, 
    PATHSOLVE: 2, 
    SOLVE: 1|2}
-  JobTypes = _es6_module.add_export('JobTypes', JobTypes);
+  _es6_module.add_export('JobTypes', JobTypes);
   function clear_jobs_except_latest(typeid) {
-    var last=undefined;
-    var lastk=undefined;
-    for (var k in callbacks) {
-        var job=callbacks[k];
+    let last=undefined;
+    let lastk=undefined;
+    for (let k in callbacks) {
+        let job=callbacks[k];
         if (job.typeid&typeid) {
             job._skip = 1;
             delete callbacks[k];
@@ -2559,17 +2563,17 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
             lastk = k;
         }
     }
-    if (last!=undefined) {
+    if (last!==undefined) {
         callbacks[lastk] = last;
         delete last._skip;
     }
   }
   clear_jobs_except_latest = _es6_module.add_export('clear_jobs_except_latest', clear_jobs_except_latest);
   function clear_jobs_except_first(typeid) {
-    var last=undefined;
-    var lastk=undefined;
-    for (var k in callbacks) {
-        var job=callbacks[k];
+    let last=undefined;
+    let lastk=undefined;
+    for (let k in callbacks) {
+        let job=callbacks[k];
         if (job.typeid&typeid) {
             if (last!=undefined) {
                 job._skip = 1;
@@ -2582,8 +2586,8 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
   }
   clear_jobs_except_first = _es6_module.add_export('clear_jobs_except_first', clear_jobs_except_first);
   function clear_jobs(typeid) {
-    for (var k in callbacks) {
-        var job=callbacks[k];
+    for (let k in callbacks) {
+        let job=callbacks[k];
         if (job.typeid&typeid) {
             job._skip = 1;
             delete callbacks[k];
@@ -2595,27 +2599,27 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
     if (params===undefined) {
         params = undefined;
     }
-    var callback, error, thisvar, typeid, only_latest=false;
-    if (params!=undefined) {
+    let callback, error, thisvar, typeid, only_latest=false;
+    if (params!==undefined) {
         callback = params.callback;
-        thisvar = params.thisvar!=undefined ? params.thisvar : self;
+        thisvar = params.thisvar!==undefined ? params.thisvar : self;
         error = params.error;
-        only_latest = params.only_latest!=undefined ? params.only_latest : false;
+        only_latest = params.only_latest!==undefined ? params.only_latest : false;
         typeid = params.typeid;
     }
-    var postMessage=function (type, msg) {
+    let postMessage=function (type, msg) {
       postToWasm(type, msg);
     }
-    var id=msg_idgen++;
-    var status={msgid: id, 
+    let id=msg_idgen++;
+    let status={msgid: id, 
     data: undefined}
-    var args=[postMessage, status];
-    for (var i=2; i<arguments.length; i++) {
+    let args=[postMessage, status];
+    for (let i=2; i<arguments.length; i++) {
         args.push(arguments[i]);
     }
     queueUpMessages(true);
-    var iter=job.apply(job, args);
-    var ret=iter.next();
+    let iter=job.apply(job, args);
+    let ret=iter.next();
     if (ret.done) {
         callback.call(thisvar, iter.value);
         return ;
@@ -2634,7 +2638,7 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
   }
   call_api = _es6_module.add_export('call_api', call_api);
   function start_message(type, msgid, endian) {
-    var data=[];
+    let data=[];
     ajax.pack_int(data, type, endian);
     ajax.pack_int(data, msgid, endian);
     return data;
@@ -2646,7 +2650,7 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
   }
   start_message_new = _es6_module.add_export('start_message_new', start_message_new);
   function _unpacker(dview) {
-    var b=0;
+    let b=0;
     return {getint: function getint() {
         b+=4;
         return dview.getInt32(b-4, endian);
@@ -2660,66 +2664,6 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
         return dview.getFloat64(b-8, endian);
       }}
   }
-  function* gen_draw_cache(postMessage, status, spline) {
-    var data=[];
-    var msgid=status.msgid;
-    var endian=ajax.little_endian;
-    var data=start_message(MessageTypes.GEN_DRAW_BEZIERS, msgid, endian);
-    ajax.pack_int(data, spline.segments.length, endian);
-    ajax.pack_int(data, 0, endian);
-    for (var s of spline.segments) {
-        ajax.pack_int(data, s.eid, endian);
-        ajax.pack_vec3(data, s.v1, endian);
-        ajax.pack_vec3(data, s.v2, endian);
-        ajax.pack_int(data, s.ks.length, endian);
-        var zero_ks=((s.v1.flag&SplineFlags.BREAK_TANGENTS)||(s.v2.flag&SplineFlags.BREAK_TANGENTS));
-        for (var i=0; i<s.ks.length; i++) {
-            if (zero_ks&&i<ORDER)
-              ajax.pack_double(data, 0.0, endian);
-            else 
-              ajax.pack_double(data, s.ks[i], endian);
-        }
-        var rem=16-s.ks.length;
-        for (var i=0; i<rem; i++) {
-            ajax.pack_double(data, 0.0, endian);
-        }
-    }
-    data = new Uint8Array(data).buffer;
-    postMessage(MessageTypes.GEN_DRAW_BEZIERS, data);
-    yield ;
-    var dview=new DataView(status.data);
-    var upack=_unpacker(dview);
-    var getint=upack.getint;
-    var getfloat=upack.getfloat;
-    var getdouble=upack.getdouble;
-    var tot=getint();
-    var ret=[];
-    var eidmap=spline.eidmap;
-    for (var i=0; i<tot; i++) {
-        var eid=getint(), totseg=getint();
-        var segs=[];
-        var seg=eidmap[eid];
-        if (seg==undefined||seg.type!=SplineTypes.SEGMENT) {
-            console.log("WARNING: defunct segment in gen_draw_cache", seg);
-        }
-        ret.push(segs);
-        for (var j=0; j<totseg; j++) {
-            segs[j] = [0, 0, 0, 0];
-        }
-        for (var j=0; j<totseg*4; j++) {
-            var p=new Vector3();
-            p[0] = getdouble();
-            p[1] = getdouble();
-            p[2] = 0.0;
-            segs[Math.floor(j/4)][j%4] = p;
-        }
-        if (seg!=undefined) {
-            seg._draw_bzs = segs;
-        }
-    }
-    status.value = ret;
-  }
-  gen_draw_cache = _es6_module.add_export('gen_draw_cache', gen_draw_cache);
   function do_solve(sflags, spline, steps, gk, return_promise) {
     if (gk===undefined) {
         gk = 0.95;
@@ -2729,14 +2673,14 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
     }
     let draw_id=push_solve(spline);
     spline._solve_id = draw_id;
-    var job_id=solve_idgen++;
+    let job_id=solve_idgen++;
     active_solves[spline._solve_id] = job_id;
     active_jobs[job_id] = spline._solve_id;
     solve_starttimes[job_id] = time_ms();
-    var SplineFlags=sflags;
+    const SplineFlags=sflags;
     spline.resolve = 1;
     solve_pre(spline);
-    var on_finish, on_reject, promise;
+    let on_finish, on_reject, promise;
     if (return_promise) {
         promise = new Promise(function (resolve, reject) {
           on_finish = function () {
@@ -2748,15 +2692,15 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
         });
     }
     function finish(unload) {
-      var start_time=solve_starttimes[job_id];
+      let start_time=solve_starttimes[job_id];
       window.pop_solve(draw_id);
-      var skip=solve_endtimes[spline._solve_id]>start_time;
+      let skip=solve_endtimes[spline._solve_id]>start_time;
       skip = skip&&solve_starttimes2[spline._solve_id]>start_time;
       delete active_jobs[job_id];
       delete active_solves[spline._solve_id];
       delete solve_starttimes[job_id];
       if (skip) {
-          if (on_reject!=undefined) {
+          if (on_reject!==undefined) {
               on_reject();
           }
           console.log("Dropping dead solve job", job_id);
@@ -2770,7 +2714,7 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
       }
       for (let seg of spline.segments) {
           seg.evaluate(0.5);
-          for (var j=0; j<seg.ks.length; j++) {
+          for (let j=0; j<seg.ks.length; j++) {
               if (isNaN(seg.ks[j])) {
                   console.log("NaN!", seg.ks, seg);
                   seg.ks[j] = 0;
@@ -2785,9 +2729,9 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
               seg.flag|=SplineFlags.UPDATE_AABB;
           }
       }
-      for (var f of spline.faces) {
-          for (var path of f.paths) {
-              for (var l of path) {
+      for (let f of spline.faces) {
+          for (let path of f.paths) {
+              for (let l of path) {
                   if (l.v.flag&SplineFlags.UPDATE)
                     f.flag|=SplineFlags.UPDATE_AABB;
               }
@@ -2811,15 +2755,15 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
       }
     }
     spline.resolve = 0;
-    var update_verts=new set();
-    var slv=build_solver(spline, ORDER, undefined, 1, undefined, update_verts);
-    var cs=slv.cs, edge_segs=slv.edge_segs;
+    let update_verts=new set();
+    let slv=build_solver(spline, ORDER, undefined, 1, undefined, update_verts);
+    let cs=slv.cs, edge_segs=slv.edge_segs;
     edge_segs = new set(edge_segs);
-    call_api(nacl_solve, {callback: function (value) {
+    call_api(wasm_solve, {callback: function (value) {
         finish(value);
       }, 
     error: function (error) {
-        console.log("Nacl solve error!");
+        console.log("wasm solve error!");
         window.pop_solve(draw_id);
       }, 
     typeid: spline.is_anim_path ? JobTypes.PATHSOLVE : JobTypes.DRAWSOLVE, 
@@ -2827,10 +2771,10 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
     return promise;
   }
   do_solve = _es6_module.add_export('do_solve', do_solve);
-  window.nacl_do_solve = do_solve;
-  function write_nacl_solve_new(writer, spline, cons, update_verts, update_segs, gk, edge_segs) {
-    var idxmap={}
-    var i=0;
+  window.wasm_do_solve = do_solve;
+  function write_wasm_solve_new(writer, spline, cons, update_verts, update_segs, gk, edge_segs) {
+    let idxmap={}
+    let i=0;
     function add_vert(v) {
       writer.int32(v.eid);
       writer.int32(v.flag);
@@ -2838,14 +2782,14 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
       writer.int32(0);
       idxmap[v.eid] = i++;
     }
-    for (var v of update_verts) {
+    for (let v of update_verts) {
         add_vert(v, true);
     }
     writer.int32(update_segs.length);
     writer.int32(0);
-    var i=0;
-    for (var s of update_segs) {
-        var flag=s.flag;
+    i = 0;
+    for (let s of update_segs) {
+        let flag=s.flag;
         let count=s.v1.flag&SplineFlags.UPDATE ? 1 : 0;
         count+=s.v2.flag&SplineFlags.UPDATE ? 1 : 0;
         if (count<2) {
@@ -2853,41 +2797,32 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
         }
         writer.int32(s.eid);
         writer.int32(flag);
-        var klen=s.ks.length;
-        var is_eseg=edge_segs.has(s);
-        var zero_ks=((s.v1.flag&SplineFlags.BREAK_TANGENTS)||(s.v2.flag&SplineFlags.BREAK_TANGENTS));
-        for (var ji=0; ji<1; ji++) {
-            for (var j=0; j<klen; j++) {
-                if (zero_ks&&j<ORDER)
-                  writer.float64(0.0);
-                else 
-                  writer.float64(is_eseg ? s.ks[j] : 0.0);
-            }
-            for (var j=0; j<16-klen; j++) {
-                writer.float64(0.0);
-            }
-        }
+        let klen=s.ks.length;
+        let is_eseg=edge_segs.has(s);
+        checkSegment(s);
+        writer.uint32(s.ks.ptr);
         writer.vec3(s.h1);
         writer.vec3(s.h2);
         writer.int32(idxmap[s.v1.eid]);
         writer.int32(idxmap[s.v2.eid]);
+        writer.int32(0);
         idxmap[s.eid] = i++;
     }
     writer.int32(cons.length);
     writer.int32(0.0);
-    for (var i=0; i<cons.length; i++) {
-        var c=cons[i];
-        var type=0, seg1=-1, seg2=-1, param1=0, param2=0, fparam1=0, fparam2=0;
+    for (let i=0; i<cons.length; i++) {
+        let c=cons[i];
+        let type=0, seg1=-1, seg2=-1, param1=0, param2=0, fparam1=0, fparam2=0;
         if (c.type==="tan_c") {
             type = ConstraintTypes.TAN_CONSTRAINT;
             seg1 = c.params[0];
             seg2 = c.params[1];
-            var v=seg1.shared_vert(seg2);
+            let v=seg1.shared_vert(seg2);
             param1 = idxmap[seg1.eid];
             param2 = idxmap[seg2.eid];
             fparam1 = seg1.v2===v;
             fparam2 = seg2.v2===v;
-            if (c.klst.length==1) {
+            if (c.klst.length===1) {
                 seg1 = c.klst[0]!==seg1.ks ? param2 : param1;
                 seg2 = -1;
             }
@@ -2899,7 +2834,7 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
         else 
           if (c.type==="hard_tan_c") {
             type = ConstraintTypes.HARD_TAN_CONSTRAINT;
-            var seg=c.params[0], tan=c.params[1], s=c.params[2];
+            let seg=c.params[0], tan=c.params[1], s=c.params[2];
             seg1 = idxmap[seg.eid];
             seg2 = -1;
             fparam1 = Math.atan2(tan[0], tan[1]);
@@ -2912,7 +2847,7 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
             seg2 = c.params[1];
             if (seg1.ks!==c.klst[0]) {
             }
-            var v=seg1.shared_vert(seg2);
+            let v=seg1.shared_vert(seg2);
             fparam1 = seg1.v2===v;
             fparam2 = seg2.v2===v;
             param1 = idxmap[seg1.eid];
@@ -2940,16 +2875,16 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
         writer.int32(param2);
         writer.float32(fparam1);
         writer.float32(fparam2);
-        for (var j=0; j<33; j++) {
+        for (let j=0; j<17; j++) {
             writer.float64(0);
         }
     }
     return idxmap;
   }
-  function write_nacl_solve(data, spline, cons, update_verts, update_segs, gk, edge_segs) {
-    var endian=ajax.little_endian;
-    var idxmap={}
-    var i=0;
+  function write_wasm_solve(data, spline, cons, update_verts, update_segs, gk, edge_segs) {
+    let endian=ajax.little_endian;
+    let idxmap={}
+    let i=0;
     function add_vert(v) {
       ajax.pack_int(data, v.eid, endian);
       ajax.pack_int(data, v.flag, endian);
@@ -2957,30 +2892,30 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
       ajax.pack_int(data, 0, endian);
       idxmap[v.eid] = i++;
     }
-    for (var v of update_verts) {
+    for (let v of update_verts) {
         add_vert(v, true);
     }
     ajax.pack_int(data, update_segs.length, endian);
     ajax.pack_int(data, 0, endian);
-    var i=0;
-    for (var s of update_segs) {
-        var flag=s.flag;
+    i = 0;
+    for (let s of update_segs) {
+        let flag=s.flag;
         if (edge_segs.has(s)) {
             flag|=FIXED_KS_FLAG;
         }
         ajax.pack_int(data, s.eid, endian);
         ajax.pack_int(data, flag, endian);
-        var klen=s.ks.length;
-        var is_eseg=edge_segs.has(s);
-        var zero_ks=((s.v1.flag&SplineFlags.BREAK_TANGENTS)||(s.v2.flag&SplineFlags.BREAK_TANGENTS));
-        for (var ji=0; ji<1; ji++) {
-            for (var j=0; j<klen; j++) {
+        let klen=s.ks.length;
+        let is_eseg=edge_segs.has(s);
+        let zero_ks=((s.v1.flag&SplineFlags.BREAK_TANGENTS)||(s.v2.flag&SplineFlags.BREAK_TANGENTS));
+        for (let ji=0; ji<1; ji++) {
+            for (let j=0; j<klen; j++) {
                 if (zero_ks&&j<ORDER)
                   ajax.pack_double(data, 0.0, endian);
                 else 
                   ajax.pack_double(data, is_eseg ? s.ks[j] : 0.0, endian);
             }
-            for (var j=0; j<16-klen; j++) {
+            for (let j=0; j<16-klen; j++) {
                 ajax.pack_double(data, 0.0, endian);
             }
         }
@@ -2992,14 +2927,14 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
     }
     ajax.pack_int(data, cons.length, endian);
     ajax.pack_int(data, 0, endian);
-    for (var i=0; i<cons.length; i++) {
-        var c=cons[i];
-        var type=0, seg1=-1, seg2=-1, param1=0, param2=0, fparam1=0, fparam2=0;
+    for (let i=0; i<cons.length; i++) {
+        let c=cons[i];
+        let type=0, seg1=-1, seg2=-1, param1=0, param2=0, fparam1=0, fparam2=0;
         if (c.type==="tan_c") {
             type = ConstraintTypes.TAN_CONSTRAINT;
             seg1 = c.params[0];
             seg2 = c.params[1];
-            var v=seg1.shared_vert(seg2);
+            let v=seg1.shared_vert(seg2);
             param1 = idxmap[seg1.eid];
             param2 = idxmap[seg2.eid];
             fparam1 = seg1.v2===v;
@@ -3016,7 +2951,7 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
         else 
           if (c.type==="hard_tan_c") {
             type = ConstraintTypes.HARD_TAN_CONSTRAINT;
-            var seg=c.params[0], tan=c.params[1], s=c.params[2];
+            let seg=c.params[0], tan=c.params[1], s=c.params[2];
             seg1 = idxmap[seg.eid];
             seg2 = -1;
             fparam1 = Math.atan2(tan[0], tan[1]);
@@ -3029,7 +2964,7 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
             seg2 = c.params[1];
             if (seg1.ks!==c.klst[0]) {
             }
-            var v=seg1.shared_vert(seg2);
+            let v=seg1.shared_vert(seg2);
             fparam1 = seg1.v2===v;
             fparam2 = seg2.v2===v;
             param1 = idxmap[seg1.eid];
@@ -3053,14 +2988,14 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
         ajax.pack_int(data, param2, endian);
         ajax.pack_float(data, fparam1, endian);
         ajax.pack_float(data, fparam2, endian);
-        for (var j=0; j<33; j++) {
+        for (let j=0; j<33; j++) {
             ajax.pack_double(data, 0, endian);
         }
     }
     return idxmap;
   }
   function _unload(spline, data) {
-    var _i=0;
+    let _i=0;
     function getint() {
       _i+=4;
       return data.getInt32(_i-4, true);
@@ -3073,38 +3008,21 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
       _i+=8;
       return data.getFloat64(_i-8, true);
     }
-    var totvert=getint();
+    let totvert=getint();
     getint();
     _i+=24*totvert;
-    var totseg=getint();
+    let totseg=getint();
     getint();
     if (DEBUG)
       console.log("totseg:", totseg);
-    for (var i=0; i<totseg; i++) {
-        var eid=getint(), flag=getint();
-        var seg=spline.eidmap[eid];
-        if (seg==undefined||seg.type!=SplineTypes.SEGMENT) {
-            console.log("WARNING: defunct/invalid segment in nacl_solve!", eid);
-            _i+=160;
-            continue;
-        }
-        for (var j=0; j<16; j++) {
-            var d=getdouble();
-            if (j<seg.ks.length) {
-                seg.ks[j] = d;
-            }
-        }
-        _i+=4*6;
-        _i+=4*2;
-    }
   }
   function wrap_unload(spline, data) {
     return function () {
       _unload(spline, data);
     }
   }
-  function nacl_solve(postMessage, status, spline, cons, update_verts, gk, edge_segs) {
-    var ret={}
+  function wasm_solve(postMessage, status, spline, cons, update_verts, gk, edge_segs) {
+    let ret={}
     ret.ret = {done: false, 
     value: undefined}
     ret.stage = 0;
@@ -3130,23 +3048,23 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
         return this.ret;
       }
     }
-    var data;
+    let data;
     ret.stage0 = function () {
-      var maxsize=(cons.length+1)*650+128;
-      var writer=new TypedWriter(maxsize);
-      var msgid=status.msgid;
-      var endian=ajax.little_endian;
-      var prof=false;
+      let maxsize=(cons.length+1)*650+128;
+      let writer=new TypedWriter(maxsize);
+      let msgid=status.msgid;
+      let endian=ajax.little_endian;
+      let prof=false;
       start_message_new(writer, MessageTypes.SOLVE, msgid, endian);
-      var timestart=time_ms();
-      var update_segs=new set();
-      for (var v of update_verts) {
-          for (var i=0; i<v.segments.length; i++) {
-              var s=v.segments[i];
+      let timestart=time_ms();
+      let update_segs=new set();
+      for (let v of update_verts) {
+          for (let i=0; i<v.segments.length; i++) {
+              let s=v.segments[i];
               update_segs.add(s);
           }
       }
-      for (var s of update_segs) {
+      for (let s of update_segs) {
           update_verts.add(s.v1);
           update_verts.add(s.v2);
       }
@@ -3156,8 +3074,8 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
       writer.int32(0);
       if (prof)
         console.log("time b:", time_ms()-timestart);
-      var idxmap=write_nacl_solve_new(writer, spline, cons, update_verts, update_segs, gk, edge_segs);
-      var data=writer.final();
+      let idxmap=write_wasm_solve_new(writer, spline, cons, update_verts, update_segs, gk, edge_segs);
+      let data=writer.final();
       if (prof)
         console.log("time c:", time_ms()-timestart);
       if (prof)
@@ -3175,11 +3093,576 @@ es6_module_define('native_api', ["./built_wasm.js", "../core/toolops_api.js", ".
     }
     return ret;
   }
-  nacl_solve = _es6_module.add_export('nacl_solve', nacl_solve);
+  wasm_solve = _es6_module.add_export('wasm_solve', wasm_solve);
 }, '/dev/fairmotion/src/wasm/native_api.js');
-es6_module_define('addon_api', [], function _addon_api_module(_es6_module) {
+es6_module_define('addon_api_intern', ["../core/frameset.js", "../curve/spline.js", "../path.ux/scripts/pathux.js"], function _addon_api_intern_module(_es6_module) {
+  var nstructjs=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'nstructjs');
+  var util=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'util');
+  var cconst=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'cconst');
+  var Spline=es6_import_item(_es6_module, '../curve/spline.js', 'Spline');
+  var SplineFrameSet=es6_import_item(_es6_module, '../core/frameset.js', 'SplineFrameSet');
+  function bindAddonAPI(addon) {
+    return {registerCustomBlockData: function registerCustomBlockData(datablock_cls, cls) {
+        throw new Error("implement me!");
+      }, 
+    nstructjs: {register: function register(cls) {
+          let s=new nstructjs.STRUCT();
+          s.add_class(cls);
+          if (cls.structName.search(/\./)<0) {
+              throw new Error("Must add namespace prefix (e.g. addon.SomeClass) to STRUCT scripts in addons");
+          }
+          nstructjs.register(cls);
+        }, 
+     inherit: function inherit(cls, parent, structName) {
+          if (structName===undefined) {
+              throw new Error("structName cannot be undefined, and don't forget to add a module prefix, e.g. addon.SomeClass");
+          }
+          else 
+            if (structName.search(/\./)<0) {
+              throw new Error("You must add a module prefix to addon STRUCT scripts, e.g. addon.SomeClass");
+          }
+          return nstructjs.inherit(cls, parent, structName);
+        }, 
+     STRUCT: nstructjs.STRUCT}, 
+    Spline: Spline, 
+    SplineFrameSet: SplineFrameSet}
+  }
+  bindAddonAPI = _es6_module.add_export('bindAddonAPI', bindAddonAPI);
+}, '/dev/fairmotion/src/addon_api/addon_api_intern.js');
+es6_module_define('addon_api', ["./addon_api_intern.js", "../path.ux/scripts/util/math.js", "../path.ux/scripts/pathux.js", "../path.ux/scripts/util/util.js", "../util/vectormath.js", "../../platforms/platform.js", "../path.ux/scripts/util/parseutil.js"], function _addon_api_module(_es6_module) {
   "use strict";
-  var modules={}
+  var tokdef=es6_import_item(_es6_module, '../path.ux/scripts/util/parseutil.js', 'tokdef');
+  var token=es6_import_item(_es6_module, '../path.ux/scripts/util/parseutil.js', 'token');
+  var lexer=es6_import_item(_es6_module, '../path.ux/scripts/util/parseutil.js', 'lexer');
+  var parser=es6_import_item(_es6_module, '../path.ux/scripts/util/parseutil.js', 'parser');
+  var app=es6_import_item(_es6_module, '../../platforms/platform.js', 'app');
+  var vectormath=es6_import(_es6_module, '../util/vectormath.js');
+  var math=es6_import(_es6_module, '../path.ux/scripts/util/math.js');
+  var util=es6_import(_es6_module, '../path.ux/scripts/util/util.js');
+  var parseutil=es6_import(_es6_module, '../path.ux/scripts/util/parseutil.js');
+  var pathux=es6_import(_es6_module, '../path.ux/scripts/pathux.js');
+  var bindAddonAPI=es6_import_item(_es6_module, './addon_api_intern.js', 'bindAddonAPI');
+  let builtins={vectormath: vectormath, 
+   parseutil: parseutil, 
+   util: util, 
+   math: math, 
+   pathux: pathux}
+  let tk=(name, re, func) =>    {
+    return new tokdef(name, re, func);
+  }
+  let keywords=new Set(["export", "import", "from", "as", "in", "default", "let", "const", "var", "class", "function"]);
+  let tokens=[tk("ID", /[a-zA-Z_$]+[a-zA-Z0-9_$]*/, (t) =>    {
+    if (keywords.has(t.value)) {
+        t.type = t.value.toUpperCase();
+    }
+    return t;
+  }), tk("LBRACE", /\{/), tk("RBRACE", /\}/), tk("COMMA", /\,/), tk("LPAREN", /\(/), tk("RPAREN", /\)/), tk("STRLIT", /["'`]/, (t) =>    {
+    t.type = "STRLIT";
+    let chr=t.value;
+    let start=t.lexer.lexpos-1;
+    let li=t.lexer.lexpos+1;
+    let buf=t.lexer.lexdata;
+    while (li<buf.length&&buf[li]!==chr) {
+      let c=buf[li];
+      if (c==="\\"&&buf[li+1]===chr) {
+          li++;
+      }
+      else 
+        if (c==="\n"&&chr!=="`") {
+          break;
+      }
+      li++;
+    }
+    t.value = buf.slice(start, li+1);
+    t.lexer.lexpos = li+1;
+    return t;
+  }), tk("STAR", /\*/), tk("WS", /[ \t\n\r]/, (t) =>    {
+    t.lexer.lineno+=t.value==="\n" ? 1 : 0;
+  }), tk("SEMI", /;/), tk("BINOP", /[+\-\*\/%$~\.\<\>&%^|]/), tk("BINOP", /(\*\*)|(\<\<)/), tk("BINOP", /\=\=/), tk("UNOP", /[!~]/), tk("COLON", /\:/), tk("ASSIGN", /\=/)];
+  function parseFile(buf, modname, path, modid) {
+    let lex=new lexer(tokens);
+    let p=new parser(lex);
+    let linemap=new Array(buf.length);
+    let li=0;
+    for (let i=0; i<buf.length; i++) {
+        linemap[i] = li;
+        if (buf[i]==="\n") {
+            li++;
+        }
+    }
+    let newbuf=buf;
+    let spans=[];
+    function p_Id() {
+      let t=p.next();
+      if (t.type==="ID"||t.value==="default") {
+          return t.value;
+      }
+      console.log(t);
+      p.error(t, "Expected an identifier");
+    }
+    let deps=[];
+    let name_idgen=1;
+    function p_Import(t) {
+      let start=t.lexpos;
+      let t2=p.next();
+      let repl="";
+      if (t2.type==="LBRACE") {
+          let t3=t2;
+          let members=[];
+          while (!p.at_end()&&t3&&t3.type!=="RBRACE") {
+            members.push(p_Id());
+            p.optional("COMMA");
+            t3 = p.peeknext();
+            if (t3.type==="COMMA") {
+                p.next();
+                t3 = p.peeknext();
+            }
+          }
+          p.expect("RBRACE");
+          p.expect("FROM");
+          console.log(members);
+          let path=p.expect("STRLIT");
+          let modname="__mod_tmp_"+name_idgen;
+          deps.push(path);
+          repl = `var ${modname} = _addon_require(${modid}, ${path});\n`;
+          name_idgen++;
+          let first=true;
+          repl+="var ";
+          for (let m of members) {
+              if (first) {
+                  first = false;
+              }
+              else {
+                repl+=", ";
+              }
+              repl+=`${m} = ${modname}.${m}`;
+          }
+          repl+=";\n";
+      }
+      else 
+        if (t2.type==="ID") {
+          let mod=t2.value;
+          t2 = p.next();
+          if (t2.type==="FROM") {
+              let path=p.expect("STRLIT");
+              repl = `var ${mod} = _addon_require(${modid}, ${path}).default;`;
+              deps.push(path);
+          }
+          else {
+            p.error(t2, "Invalid import statement");
+          }
+      }
+      else 
+        if (t2.type==="STRLIT") {
+          repl = `_addon_require(${t2.value});`;
+          deps.push(t2.value);
+      }
+      else 
+        if (t2.type==="STAR") {
+          p.expect("AS");
+          let mod=p_Id();
+          p.expect("FROM");
+          let path=p.expect("STRLIT");
+          repl = `var ${mod} = _addon_require(${modid}, ${path});`;
+          deps.push(path);
+      }
+      else {
+        p.error(t, "Invalid import statement");
+      }
+      let end=p.lexer.lexpos;
+      console.log(start, end, repl);
+      spans.push([start, end, repl]);
+    }
+    function p_VarExpr() {
+      let li=p.lexer.lexpos, start=li;
+      let bracketmap={"{": "{", 
+     "}": "{", 
+     "[": "[", 
+     "]": "[", 
+     "(": "(", 
+     ")": "("}
+      let bracketsigns={"{": 1, 
+     "}": -1, 
+     "[": 1, 
+     "]": -1, 
+     "(": 1, 
+     ")": -1}
+      let states={base: function base(li) {
+          if (buf[li]==="/"&&buf[li+1]==="*") {
+              this.push("comment");
+              return li+2;
+          }
+          else 
+            if (buf[li]==="`") {
+              this.push("tmpl");
+              return li+2;
+          }
+          else 
+            if (buf[li]==="'"||buf[li]==='"') {
+              let chr=buf[li];
+              li++;
+              while (li<buf.length&&buf[li]!==chr) {
+                if (buf[li]==="\\"&&buf[li+1]===chr) {
+                    li++;
+                }
+                li++;
+              }
+          }
+          else 
+            if (buf[li] in bracketmap) {
+              this.brackets[bracketmap[buf[li]]]+=bracketsigns[buf[li]];
+          }
+          else 
+            if ((buf[li]===","||buf[li]===";")&&this.bracketsZero()) {
+              this.end();
+              return li;
+          }
+          return li+1;
+        }, 
+     tmpl: function tmpl(li) {
+          if (buf[li-1]!=="\\"&&buf[li]==="`") {
+              this.pop();
+          }
+          return li+1;
+        }, 
+     str: function str(li) {
+        }, 
+     comment: function comment(li) {
+          if (buf[li]==="*"&&buf[li+1]==="/") {
+              this.pop();
+              return li+2;
+          }
+          return li+1;
+        }, 
+     push: function push(state, statedata) {
+          if (statedata===undefined) {
+              statedata = undefined;
+          }
+          this.statestack.push([this.statedata, this.state]);
+          this.state = state;
+          this.statedata = statedata;
+        }, 
+     pop: function pop() {
+          [this.statedata, this.state] = this.statestack.pop();
+        }, 
+     bracketsZero: function bracketsZero() {
+          for (let k in this.brackets) {
+              if (this.brackets[k]) {
+                  return false;
+              }
+          }
+          return true;
+        }, 
+     end: function end() {
+          this.done = true;
+        }, 
+     done: false, 
+     brackets: {"{": 0, 
+      "[": 0, 
+      "(": 0}, 
+     statedata: undefined, 
+     state: "base", 
+     statestack: []}
+      while (li<buf.length) {
+        let start=li;
+        li = states[states.state](li);
+        if (states.done) {
+            break;
+        }
+        if (li<=start) {
+            li = start+1;
+        }
+      }
+      p.lexer.lexpos = li;
+      p.lexer.lineno = li<linemap.length ? linemap[li] : p.lexer.lineno;
+      return buf.slice(start, li).trim();
+    }
+    let varkeywords=new Set(["let", "const", "var"]);
+    function p_Export(t) {
+      let start=t.lexpos;
+      let t2=p.next();
+      let repl="";
+      if (t2.type==="LBRACE") {
+          let t3=t2;
+          let members=[];
+          while (!p.at_end()&&t3&&t3.type!=="RBRACE") {
+            members.push(p_Id());
+            p.optional("COMMA");
+            t3 = p.peeknext();
+            if (t3.type==="COMMA") {
+                p.next();
+                t3 = p.peeknext();
+            }
+          }
+          p.expect("RBRACE");
+          p.expect("FROM");
+          console.log(members);
+          let path=p.expect("STRLIT");
+          let modname="__mod_tmp_"+name_idgen;
+          repl = `var ${modname} = _addon_require(${modid}, ${path});\n`;
+          deps.push(path);
+          name_idgen++;
+          let first=true;
+          repl+="";
+          for (let m of members) {
+              if (first) {
+                  first = false;
+              }
+              else {
+                repl+=";\n ";
+              }
+              repl+=`exports.${m} = ${modname}.${m}`;
+          }
+          repl+=";\n";
+      }
+      else 
+        if (t2.type==="ID") {
+          let mod=t2.value;
+          t2 = p.next();
+          if (t2.type==="FROM") {
+              let path=p.expect("STRLIT");
+              repl = `exports.${mod} = _addon_require(${modid}, ${path}).default;\n`;
+              deps.push(path);
+          }
+          else {
+            p.error(t2, "Invalid import statement");
+          }
+      }
+      else 
+        if (t2.type==="STRLIT") {
+          repl = `_addon_require(${t2.value});\n`;
+          deps.push(t2.value);
+      }
+      else 
+        if (t2.type==="STAR") {
+          p.expect("FROM");
+          let path=p.expect("STRLIT");
+          repl = `_exportall(${modid}, exports, _addon_require(${modid}, ${path}));\n`;
+          deps.push(path);
+      }
+      else 
+        if (varkeywords.has(t2.value)) {
+          let vars={};
+          let keyword=t2.value;
+          repl = '';
+          for (let _i=0; _i<500000; _i++) {
+              let lineno=p.lexer.lineno;
+              let id=p.expect("ID");
+              let expr=undefined;
+              console.log("VAR", id);
+              if (p.optional("ASSIGN")) {
+                  expr = p_VarExpr();
+              }
+              if (expr) {
+                  repl+=`${keyword} ${id} = exports.${id} = ${expr};\n`;
+              }
+              else {
+                repl+=`${keyword} ${id} = exports.${id} = undefined;\n`;
+              }
+              vars[id] = expr;
+              console.log(vars);
+              p.optional("COMMA");
+              let t=p.peeknext();
+              if (!t||t.type==="SEMI"||(t.type!=="ID"&&t.lexer.lineno>lineno)) {
+                  break;
+              }
+          }
+      }
+      else 
+        if (t2.value==="function"||t2.value==="class") {
+          let id=p_Id();
+          repl = `var ${id} = exports.${id} = ${t2.value} ${id}`;
+      }
+      else {
+        console.log(t);
+        p.error(t, "Invalid export statement");
+      }
+      let end=p.lexer.lexpos;
+      console.log(start, end, repl);
+      spans.push([start, end, repl]);
+    }
+    p.lexer.input(buf);
+    li = 0;
+    while (li<buf.length) {
+      let startli=li;
+      let buf2=buf.slice(li, buf.length);
+      let i1=buf2.search(/\bexport\b/);
+      let i2=buf2.search(/\bimport\b/);
+      if (i1<0&&i2<0) {
+          break;
+      }
+      i1 = i1<0 ? buf2.length : i1;
+      i2 = i2<0 ? buf2.length : i2;
+      i1+=li;
+      i2+=li;
+      let i=Math.min(i1, i2);
+      if (i1<i2) {
+          p.lexer.peeked_tokens.length = 0;
+          p.lexer.lexpos = i1;
+          p.lexer.lineno = linemap[i1];
+          p_Export(p.next());
+      }
+      else {
+        p.lexer.peeked_tokens.length = 0;
+        p.lexer.lexpos = i2;
+        p.lexer.lineno = linemap[i2];
+        p_Import(p.next());
+      }
+      li = p.lexer.lexpos+1;
+      if (li===i) {
+          break;
+      }
+    }
+    let off=0;
+    for (let span of spans) {
+        let start=span[0], end=span[1], line=span[2];
+        start+=off;
+        end+=off;
+        buf = buf.slice(0, start)+line+buf.slice(end, buf.length);
+        off+=line.length-(end-start);
+    }
+    buf = `"use strict";
+_addon_define(${modid}, "${path}", [${""+deps}], function($__module, exports, _addon_require) {
+${buf}
+});
+  `;
+    console.log("FINAL:", buf);
+    console.log(spans);
+    return buf;
+  }
+  parseFile = _es6_module.add_export('parseFile', parseFile);
+  let test=`
+
+import {a, b, c} from '../d';
+import a from 'b';
+import * as a from 'b';
+import 'bleh';
+
+export * from 'b';
+export {a, d, e, Tst} from 'b.js';
+
+export class b {
+}
+export function c {
+}
+
+export let a = 0, c=2, d=4, e=5, u={a : b, c : d, f : [1, 2, 3]}, c = 3, e="2";
+
+export const d;
+`;
+  window._testParseFile = function () {
+    console.log(parseFile(test));
+  }
+  const modules={}
+  _es6_module.add_export('modules', modules);
+  const pathstack=["."];
+  _es6_module.add_export('pathstack', pathstack);
+  for (let k in builtins) {
+      let mod=new ES6Module(k, k);
+      mod.loaded = true;
+      mod.exports = builtins[k];
+      modules[k] = mod;
+  }
+  function resolvePath(path) {
+    path = path.replace(/\\/g, "/");
+    path = path.replace(/\/\//g, "/");
+    if (path.startsWith("/")) {
+        path = path.slice(1, path.length);
+    }
+    if (path.endsWith("/")) {
+        path = path.slice(0, path.length-1);
+    }
+    let root=pathstack[pathstack.length-1];
+    if (path.startsWith("./")) {
+        path = root+"/"+path.slice(2, path.length);
+    }
+    else {
+      path = _normpath(path, root);
+    }
+    return path.trim();
+  }
+  resolvePath = _es6_module.add_export('resolvePath', resolvePath);
+  let addonmap=new Map();
+  let addon_idgen=0;
+  let file_idgen=0;
+  let filestates={}
+  function loadModule(path, addon) {
+    if (path in builtins||path==="api") {
+        return true;
+    }
+    path = resolvePath(path);
+    if (path in modules) {
+        return true;
+    }
+    window._addon_define = function _addon_define(fileid, path, deps, func) {
+      console.log("ADDON DEFINE CALLED!");
+      let module=new ES6Module(_splitpath(path)[1], path);
+      module.callback = func;
+      let file=filestates[fileid];
+      let addon=file.addon;
+      module.exports = {}
+      module.deps = deps;
+      module.loaded = false;
+      module.addon = addon;
+      modules[path] = module;
+      addon.modules[path] = module;
+      let ok=true;
+      for (let dep of deps) {
+          ok = ok&&loadModule(dep, addon);
+      }
+      let _addon_require;
+      function load(mod) {
+        pathstack.push(_splitpath(mod.path)[0]);
+        mod.loaded = true;
+        mod.callback(addon, mod.exports, _addon_require);
+        pathstack.pop();
+      }
+      let api=bindAddonAPI(addon);
+      _addon_require = function (__module, mod2) {
+        if (mod2==="api") {
+            return api;
+        }
+        else 
+          if (!(mod2 in builtins)) {
+            mod2 = resolvePath(mod2);
+        }
+        let mod3=modules[mod2];
+        if (!mod3.loaded) {
+            load(mod3);
+        }
+        return mod3.exports;
+      }
+      if (ok) {
+          console.log("loading modules for addon. . .");
+          for (let k in addon.modules) {
+              let mod=addon.modules[k];
+              if (!mod.loaded) {
+                  load(mod);
+              }
+          }
+          addon.onLoad();
+      }
+    }
+    let file={id: file_idgen++, 
+    path: path, 
+    addon: addon}
+    filestates[file.id] = file;
+    app.openFile(path).then((data) =>      {
+      let buf=data;
+      if (__instance_of(data, Uint8Array)||Array.isArray(data)) {
+          buf = "";
+          for (let i=0; i<data.length; i++) {
+              buf+=String.fromCharCode(data[i]);
+          }
+      }
+      pathstack.push(_splitpath(path)[0]);
+      buf = parseFile(buf, _splitpath(path)[1], path, file.id);
+      eval(buf);
+      pathstack.pop();
+    });
+    return false;
+  }
+  loadModule = _es6_module.add_export('loadModule', loadModule);
   class Addon  {
     static  define() {
       return {author: "", 
@@ -3187,19 +3670,40 @@ es6_module_define('addon_api', [], function _addon_api_module(_es6_module) {
      version: "", 
      tooltip: "", 
      description: "", 
-     struct_classes: []}
+     apiVersion: 0}
     }
-     constructor(manager) {
+     constructor(manager, mainModulePath) {
       this.manager = manager;
+      this.modules = {};
+      this.id = addon_idgen++;
+      this.mainModule = _normpath1(mainModulePath);
+      addonmap.set(this.id, this);
+      addonmap.set(this, this.id);
     }
      define_data_api(api) {
 
     }
+     onLoad() {
+      let main=this.modules[this.mainModule];
+      if (main&&main.exports.register) {
+          main.exports.register();
+      }
+    }
      init_addon() {
 
     }
-     destroy_addon() {
-
+     destroyAddon() {
+      try {
+        this.modules[this.mainModule].exports.unregister();
+      }
+      catch (error) {
+          util.print_stack(error);
+          console.log("error while unloading addon");
+      }
+      for (let k in this.modules) {
+          delete modules[k];
+      }
+      this.modules = {};
     }
      handle_versioning(file, oldversion) {
 
@@ -3211,24 +3715,47 @@ es6_module_define('addon_api', [], function _addon_api_module(_es6_module) {
   class AddonManager  {
      constructor() {
       this.addons = [];
+      this.addon_pathmap = {};
       this.datablock_types = [];
     }
-     register_datablock_type(cls) {
+     loadAddon(path) {
+      path = _normpath1(path);
+      if (path in this.addon_pathmap) {
+          console.log("reloading module");
+          this.destroyAddon(this.addon_pathmap[path]);
+      }
+      let addon=new Addon(this, path);
+      pathstack.length = 0;
+      pathstack.push(".");
+      this.addon_pathmap[addon.mainModule] = addon;
+      this.addons.push(addon);
+      loadModule(addon.mainModule, addon);
+    }
+     destroyAddon(addon) {
+      addon.destroyAddon();
+      delete this.addon_pathmap[addon.mainModule];
+    }
+     registerDataBlockType(cls) {
       this.datablock_types.push(cls);
     }
-     unregister_datablock_type(cls) {
+     unregisterDataBlockType(cls) {
       this.datablock_types.remove(cls, false);
     }
-     getmodule(name) {
+     getModule(name) {
       return modules[name];
     }
-     getmodules() {
+     getModules() {
       return Object.getOwnPropertyNames(modules);
     }
   }
   _ESClass.register(AddonManager);
   _es6_module.add_class(AddonManager);
   AddonManager = _es6_module.add_export('AddonManager', AddonManager);
+  const manager=new AddonManager();
+  _es6_module.add_export('manager', manager);
+  window._testAddons = function () {
+    manager.loadAddon("./addons/test.js");
+  }
 }, '/dev/fairmotion/src/addon_api/addon_api.js');
 es6_module_define('scene', ["./sceneobject.js", "../core/eventdag.js", "../curve/spline_base.js", "../core/struct.js", "../core/frameset.js", "../editors/viewport/selectmode.js", "../core/lib_api.js", "../editors/viewport/toolmodes/toolmode.js"], function _scene_module(_es6_module) {
   var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
@@ -7189,7 +7716,7 @@ es6_module_define('toolprops_iter', ["./struct.js"], function _toolprops_iter_mo
 }
 `;
 }, '/dev/fairmotion/src/core/toolprops_iter.js');
-es6_module_define('toolops_api', ["../path.ux/scripts/util/simple_events.js", "./struct.js", "../editors/events.js", "./toolprops.js"], function _toolops_api_module(_es6_module) {
+es6_module_define('toolops_api', ["../editors/events.js", "../path.ux/scripts/toolsys/simple_toolsys.js", "../path.ux/scripts/util/simple_events.js", "./toolprops.js", "./struct.js"], function _toolops_api_module(_es6_module) {
   "use strict";
   var PropTypes=es6_import_item(_es6_module, './toolprops.js', 'PropTypes');
   var TPropFlags=es6_import_item(_es6_module, './toolprops.js', 'TPropFlags');
@@ -7420,6 +7947,28 @@ es6_module_define('toolops_api', ["../path.ux/scripts/util/simple_events.js", ".
   }
 `;
   let _toolop_tools=undefined;
+  var toolsys=es6_import(_es6_module, '../path.ux/scripts/toolsys/simple_toolsys.js');
+  toolsys.ToolOp.prototype.undo_pre = function (ctx) {
+    return this.undoPre(ctx);
+  }
+  toolsys.ToolOp.prototype.exec_pre = function (ctx) {
+    return this.execPre(ctx);
+  }
+  toolsys.ToolOp.prototype.exec_post = function (ctx) {
+    return this.execPost(ctx);
+  }
+  toolsys.ToolOp.prototype._start_modal = function (ctx) {
+  }
+  toolsys.ToolOp.prototype.start_modal = function (ctx) {
+    return this.modalStart(ctx);
+  }
+  toolsys.ToolOp.prototype.redo_post = function (ctx) {
+  }
+  toolsys.ToolOp.prototype.undo_post = function (ctx) {
+  }
+  toolsys.ToolOp.prototype.end_modal = function (ctx) {
+    return this.modalEnd(false);
+  }
   class ToolOp extends ToolOpAbstract {
     
     
@@ -7449,6 +7998,9 @@ es6_module_define('toolops_api', ["../path.ux/scripts/util/simple_events.js", ".
       var dl=this.modal_ctx.view2d.make_drawline(v1, v2, undefined, color, line_width);
       this.drawlines.push(dl);
       return dl;
+    }
+    static  canRun(ctx) {
+      return true;
     }
      reset_drawlines(ctx=this.modal_ctx) {
       var view2d=ctx.view2d;
@@ -7550,9 +8102,6 @@ es6_module_define('toolops_api', ["../path.ux/scripts/util/simple_events.js", ".
     }
      end_modal() {
       this._end_modal();
-    }
-     can_call(ctx) {
-      return true;
     }
      exec(ctx) {
 
@@ -7668,8 +8217,9 @@ es6_module_define('toolops_api', ["../path.ux/scripts/util/simple_events.js", ".
           op.exec(tctx);
       }
     }
-     can_call(ctx) {
-      return this.tools[0].can_call(ctx);
+     error(msg) {
+      console.error(msg);
+      g_app_state.ctx.error(msg);
     }
      _start_modal(ctx) {
 
@@ -8079,7 +8629,7 @@ es6_module_define('toolops_api', ["../path.ux/scripts/util/simple_events.js", ".
   }
   class WidgetToolOp extends ToolOp {
     static  create_widgets(manager, ctx) {
-      var $zaxis_Z9dh;
+      var $zaxis_wq__;
       var widget=manager.create();
       var enabled_axes=this.widget_axes;
       var do_widget_center=this.widget_center;
@@ -8127,15 +8677,15 @@ es6_module_define('toolops_api', ["../path.ux/scripts/util/simple_events.js", ".
               tan.mulScalar(1.0/len);
               tan.normalize();
             }
-            var angle=Math.PI-Math.acos($zaxis_Z9dh.dot(n));
-            if (n.dot($zaxis_Z9dh)>0.9) {
+            var angle=Math.PI-Math.acos($zaxis_wq__.dot(n));
+            if (n.dot($zaxis_wq__)>0.9) {
             }
             if (1) {
                 if (Math.abs(angle)<0.001||Math.abs(angle)>Math.PI-0.001) {
                     n.loadXYZ(1, 0, 0);
                 }
                 else {
-                  n.cross($zaxis_Z9dh);
+                  n.cross($zaxis_wq__);
                   n.normalize();
                 }
                 var q=new Quat();
@@ -8187,7 +8737,7 @@ es6_module_define('toolops_api', ["../path.ux/scripts/util/simple_events.js", ".
         }
         g_app_state.toolstack.exec_tool(toolop);
       };
-      var $zaxis_Z9dh=new Vector3([0, 0, -1]);
+      var $zaxis_wq__=new Vector3([0, 0, -1]);
     }
      widget_on_tick(widget) {
       if (this._widget_on_tick!=undefined)
@@ -11312,7 +11862,7 @@ es6_module_define('spline_selectops', ["../../curve/spline_draw.js", "../../curv
   _es6_module.add_class(CircleSelectOp);
   CircleSelectOp = _es6_module.add_export('CircleSelectOp', CircleSelectOp);
 }, '/dev/fairmotion/src/editors/viewport/spline_selectops.js');
-es6_module_define('spline_createops', ["../../path.ux/scripts/pathux.js", "../../curve/spline_types.js", "../../core/toolprops.js", "../../core/toolops_api.js", "./spline_editops.js", "../../curve/spline.js", "../../curve/spline_draw_new.js"], function _spline_createops_module(_es6_module) {
+es6_module_define('spline_createops', ["../../curve/spline_draw_new.js", "../../core/toolops_api.js", "./spline_editops.js", "../../path.ux/scripts/pathux.js", "../../curve/spline.js", "../../core/toolprops.js", "../../curve/spline_types.js"], function _spline_createops_module(_es6_module) {
   var util=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'util');
   var ToolOp=es6_import_item(_es6_module, '../../core/toolops_api.js', 'ToolOp');
   var SplineFlags=es6_import_item(_es6_module, '../../curve/spline_types.js', 'SplineFlags');
@@ -11350,7 +11900,7 @@ es6_module_define('spline_createops', ["../../path.ux/scripts/pathux.js", "../..
      is_modal: false, 
      description: "Add points to path"}
     }
-     can_call(ctx) {
+    static  canRun(ctx) {
       return !(ctx.spline.restrict&RestrictFlags.NO_EXTRUDE);
     }
      exec(ctx) {
@@ -11439,7 +11989,7 @@ es6_module_define('spline_createops', ["../../path.ux/scripts/pathux.js", "../..
      is_modal: false, 
      description: "Create segment between two selected points"}
     }
-     can_call(ctx) {
+    static  canRun(ctx) {
       return !(ctx.spline.restrict&RestrictFlags.NO_CONNECT);
     }
      exec(ctx) {
@@ -11490,7 +12040,7 @@ es6_module_define('spline_createops', ["../../path.ux/scripts/pathux.js", "../..
      is_modal: false, 
      description: "Create polygon from selected points"}
     }
-     can_call(ctx) {
+    static  canRun(ctx) {
       return !(ctx.spline.restrict&RestrictFlags.NO_CONNECT);
     }
      exec(ctx) {
@@ -11630,7 +12180,7 @@ es6_module_define('spline_createops', ["../../path.ux/scripts/pathux.js", "../..
      is_modal: false, 
      description: "Import old json files"}
     }
-     can_call(ctx) {
+    static  canRun(ctx) {
       return !(ctx.spline.restrict&RestrictFlags.NO_CONNECT);
     }
      exec(ctx) {
@@ -11838,1324 +12388,3 @@ es6_module_define('spline_createops', ["../../path.ux/scripts/pathux.js", "../..
   _es6_module.add_class(StrokePathOp);
   StrokePathOp = _es6_module.add_export('StrokePathOp', StrokePathOp);
 }, '/dev/fairmotion/src/editors/viewport/spline_createops.js');
-es6_module_define('spline_editops', ["../../path.ux/scripts/util/struct.js", "../../curve/spline_base.js", "../../core/frameset.js", "../../core/animdata.js", "../../curve/spline_types.js", "../../curve/spline.js", "../../core/context.js", "../../core/toolprops.js", "../../core/toolops_api.js", "../../curve/spline_draw.js"], function _spline_editops_module(_es6_module) {
-  var IntProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'IntProperty');
-  var FloatProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'FloatProperty');
-  var CollectionProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'CollectionProperty');
-  var BoolProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'BoolProperty');
-  var TPropFlags=es6_import_item(_es6_module, '../../core/toolprops.js', 'TPropFlags');
-  var StringProperty=es6_import_item(_es6_module, '../../core/toolprops.js', 'StringProperty');
-  var ToolOp=es6_import_item(_es6_module, '../../core/toolops_api.js', 'ToolOp');
-  var UndoFlags=es6_import_item(_es6_module, '../../core/toolops_api.js', 'UndoFlags');
-  var ToolFlags=es6_import_item(_es6_module, '../../core/toolops_api.js', 'ToolFlags');
-  var ModalStates=es6_import_item(_es6_module, '../../core/toolops_api.js', 'ModalStates');
-  var SplineFlags=es6_import_item(_es6_module, '../../curve/spline_types.js', 'SplineFlags');
-  var SplineTypes=es6_import_item(_es6_module, '../../curve/spline_types.js', 'SplineTypes');
-  var RecalcFlags=es6_import_item(_es6_module, '../../curve/spline_types.js', 'RecalcFlags');
-  var RestrictFlags=es6_import_item(_es6_module, '../../curve/spline.js', 'RestrictFlags');
-  var Spline=es6_import_item(_es6_module, '../../curve/spline.js', 'Spline');
-  var VDAnimFlags=es6_import_item(_es6_module, '../../core/frameset.js', 'VDAnimFlags');
-  var TPropFlags=es6_import_item(_es6_module, '../../core/toolprops.js', 'TPropFlags');
-  es6_import(_es6_module, '../../path.ux/scripts/util/struct.js');
-  var redo_draw_sort=es6_import_item(_es6_module, '../../curve/spline_draw.js', 'redo_draw_sort');
-  class KeyCurrentFrame extends ToolOp {
-     constructor() {
-      super();
-    }
-    static  tooldef() {
-      return {apiname: "spline.key_current_frame", 
-     uiname: "Key Selected", 
-     inputs: {}, 
-     outputs: {}, 
-     icon: -1, 
-     is_modal: false}
-    }
-     exec(ctx) {
-      for (var v of ctx.frameset.spline.verts.selected.editable(ctx)) {
-          v.flag|=SplineFlags.FRAME_DIRTY;
-      }
-      ctx.frameset.update_frame();
-      ctx.frameset.pathspline.resolve = 1;
-      ctx.frameset.pathspline.regen_sort();
-      ctx.frameset.pathspline.solve();
-    }
-  }
-  _ESClass.register(KeyCurrentFrame);
-  _es6_module.add_class(KeyCurrentFrame);
-  KeyCurrentFrame = _es6_module.add_export('KeyCurrentFrame', KeyCurrentFrame);
-  class ShiftLayerOrderOp extends ToolOp {
-     constructor(layer_id, off) {
-      super();
-      if (layer_id!=undefined) {
-          this.inputs.layer_id.setValue(layer_id);
-      }
-      if (off!=undefined) {
-          this.inputs.off.setValue(off);
-      }
-    }
-    static  tooldef() {
-      return {uiname: "Shift Layer Order", 
-     apiname: "spline.shift_layer_order", 
-     inputs: {layer_id: new IntProperty(0), 
-      off: new IntProperty(1), 
-      spline_path: new StringProperty("frameset.drawspline")}, 
-     outputs: {}, 
-     icon: -1, 
-     is_modal: false}
-    }
-     exec(ctx) {
-      var spline=ctx.api.getValue(ctx, this.inputs.spline_path.data);
-      var layer=this.inputs.layer_id.data;
-      layer = spline.layerset.idmap[layer];
-      if (layer==undefined)
-        return ;
-      var off=this.inputs.off.data;
-      spline.layerset.change_layer_order(layer, layer.order+off);
-      spline.regen_sort();
-    }
-  }
-  _ESClass.register(ShiftLayerOrderOp);
-  _es6_module.add_class(ShiftLayerOrderOp);
-  ShiftLayerOrderOp = _es6_module.add_export('ShiftLayerOrderOp', ShiftLayerOrderOp);
-  class SplineGlobalToolOp extends ToolOp {
-     constructor(apiname, uiname, description, icon) {
-      super(apiname, uiname, description, icon);
-    }
-  }
-  _ESClass.register(SplineGlobalToolOp);
-  _es6_module.add_class(SplineGlobalToolOp);
-  SplineGlobalToolOp = _es6_module.add_export('SplineGlobalToolOp', SplineGlobalToolOp);
-  class SplineLocalToolOp extends ToolOp {
-     constructor(apiname, uiname, description, icon) {
-      super(apiname, uiname, description, icon);
-    }
-     undo_pre(ctx) {
-      var spline=ctx.spline;
-      var data=[];
-      istruct.write_object(data, spline);
-      data = new DataView(new Uint8Array(data).buffer);
-      this._undo = {data: data};
-      window.redraw_viewport();
-    }
-     undo(ctx) {
-      var spline=ctx.spline;
-      var spline2=istruct.read_object(this._undo.data, Spline);
-      var idgen=spline.idgen;
-      var is_anim_path=spline.is_anim_path;
-      spline.on_destroy();
-      for (var k in spline2) {
-          if (typeof k==="symbol")
-            continue;
-          if (k==="inputs"||k==="outputs"||k.startsWith("dag_")) {
-              continue;
-          }
-          spline[k] = spline2[k];
-      }
-      var max_cur=spline.idgen.cur_id;
-      spline.idgen = idgen;
-      if (is_anim_path!==undefined)
-        spline.is_anim_path = is_anim_path;
-      console.log("Restoring IDGen; max_cur:", max_cur, "current max:", spline.idgen.cur_id);
-      idgen.max_cur(max_cur-1);
-    }
-  }
-  _ESClass.register(SplineLocalToolOp);
-  _es6_module.add_class(SplineLocalToolOp);
-  SplineLocalToolOp = _es6_module.add_export('SplineLocalToolOp', SplineLocalToolOp);
-  class KeyEdgesOp extends SplineLocalToolOp {
-    
-     constructor() {
-      super();
-      this.uiname = "Key Edges";
-    }
-    static  tooldef() {
-      return {uiname: "Key Edges", 
-     apiname: "spline.key_edges", 
-     inputs: {}, 
-     outputs: {}, 
-     icon: -1, 
-     is_modal: false}
-    }
-     can_call(ctx) {
-      return ctx.spline===ctx.frameset.spline;
-    }
-     exec(ctx) {
-      var prefix="frameset.drawspline.segments[";
-      var frameset=ctx.frameset;
-      var spline=frameset.spline;
-      var edge_path_keys={z: 1};
-      for (var s of spline.segments) {
-          var path=prefix+s.eid+"]";
-          for (var k in edge_path_keys) {
-              path+="."+k;
-          }
-          ctx.api.setAnimPathKey(ctx, frameset, path, ctx.scene.time);
-      }
-    }
-  }
-  _ESClass.register(KeyEdgesOp);
-  _es6_module.add_class(KeyEdgesOp);
-  KeyEdgesOp = _es6_module.add_export('KeyEdgesOp', KeyEdgesOp);
-  var pose_clipboards={}
-  class CopyPoseOp extends SplineLocalToolOp {
-     constructor() {
-      super();
-      this.undoflag|=UndoFlags.IGNORE_UNDO;
-    }
-    static  tooldef() {
-      return {uiname: "Copy Pose", 
-     apiname: "editor.copy_pose", 
-     undoflag: UndoFlags.IGNORE_UNDO, 
-     inputs: {}, 
-     outputs: {}, 
-     icon: -1, 
-     is_modal: false}
-    }
-     exec(ctx) {
-      var lists=[ctx.spline.verts.selected.editable(ctx), ctx.spline.handles.selected.editable(ctx)];
-      var pose_clipboard={};
-      pose_clipboards[ctx.splinepath] = pose_clipboard;
-      for (var i=0; i<2; i++) {
-          for (var v of lists[i]) {
-              pose_clipboard[v.eid] = new Vector3(v);
-          }
-      }
-    }
-  }
-  _ESClass.register(CopyPoseOp);
-  _es6_module.add_class(CopyPoseOp);
-  CopyPoseOp = _es6_module.add_export('CopyPoseOp', CopyPoseOp);
-  class PastePoseOp extends SplineLocalToolOp {
-     constructor() {
-      super();
-    }
-    static  tooldef() {
-      return {uiname: "Paste Pose", 
-     apiname: "editor.paste_pose", 
-     inputs: {pose: new CollectionProperty([], undefined, "pose", "pose", "pose data", TPropFlags.COLL_LOOSE_TYPE)}, 
-     outputs: {}, 
-     icon: -1, 
-     is_modal: true}
-    }
-     start_modal(ctx) {
-      var spline=ctx.spline;
-      var pose_clipboard=pose_clipboards[ctx.splinepath];
-      if (pose_clipboard==undefined) {
-          console.trace("No pose for splinepath", ctx.splinepath);
-          this.end_modal(ctx);
-          return ;
-      }
-      var array=[];
-      for (var k in pose_clipboard) {
-          var v=spline.eidmap[k];
-          if (v==undefined) {
-              console.trace("Bad vertex");
-              continue;
-          }
-          var co=pose_clipboard[k];
-          array.push(v.eid);
-          array.push(co[0]);
-          array.push(co[1]);
-          array.push(co[2]);
-      }
-      this.inputs.pose.flag|=TPropFlags.COLL_LOOSE_TYPE;
-      this.inputs.pose.setValue(array);
-      this.exec(ctx);
-    }
-     exec(ctx) {
-      var spline=ctx.spline;
-      if (this.modal_running) {
-          this.end_modal(this.modal_ctx);
-      }
-      var pose=this.inputs.pose.data;
-      console.log("poselen", pose.length);
-      var actlayer=spline.layerset.active;
-      var i=0;
-      while (i<pose.length) {
-        var eid=pose[i++];
-        var v=spline.eidmap[eid];
-        if (v==undefined||v.type>2) {
-            console.log("bad eid: eid, v:", eid, v);
-            i+=3;
-            continue;
-        }
-        var skip=!(v.flag&SplineFlags.SELECT);
-        skip = skip||(v.flag&SplineFlags.HIDE);
-        skip = skip||!(actlayer.id in v.layers);
-        if (skip) {
-            console.log("skipping vertex", eid);
-            i+=3;
-            continue;
-        }
-        console.log("loading. . .", v, eid, pose[i], pose[i+1], pose[i+2]);
-        v[0] = pose[i++];
-        v[1] = pose[i++];
-        v[2] = pose[i++];
-        v.flag|=SplineFlags.UPDATE;
-        v.flag|=SplineFlags.FRAME_DIRTY;
-      }
-      spline.resolve = 1;
-      spline.regen_sort();
-    }
-  }
-  _ESClass.register(PastePoseOp);
-  _es6_module.add_class(PastePoseOp);
-  PastePoseOp = _es6_module.add_export('PastePoseOp', PastePoseOp);
-  class InterpStepModeOp extends ToolOp {
-     constructor() {
-      super(undefined, "Toggle Step Mode", "Disable/enable smooth interpolation for animation paths");
-    }
-    static  tooldef() {
-      return {uiname: "Toggle Step Mode", 
-     apiname: "spline.toggle_step_mode", 
-     inputs: {}, 
-     outputs: {}, 
-     icon: -1, 
-     is_modal: false, 
-     description: "Disable/enable smooth interpolation for animation paths"}
-    }
-     get_animverts(ctx) {
-      var vds=new set();
-      var spline=ctx.frameset.spline, pathspline=ctx.frameset.pathspline;
-      var frameset=ctx.frameset;
-      for (var v of spline.verts.selected.editable(ctx)) {
-          var vd=frameset.vertex_animdata[v.eid];
-          if (vd==undefined)
-            continue;
-          vds.add(vd);
-      }
-      return vds;
-    }
-     undo_pre(ctx) {
-      var undo={};
-      var pathspline=ctx.frameset.pathspline;
-      for (var vd of this.get_animverts(ctx)) {
-          undo[vd.eid] = vd.animflag;
-      }
-      this._undo = undo;
-    }
-     undo(ctx) {
-      var undo=this._undo;
-      var pathspline=ctx.frameset.pathspline;
-      for (var vd of this.get_animverts(ctx)) {
-          if (!(vd.eid in undo)) {
-              console.log("ERROR in step function tool undo!!");
-              continue;
-          }
-          vd.animflag = undo[vd.eid];
-      }
-    }
-     exec(ctx) {
-      var kcache=ctx.frameset.kcache;
-      for (var vd of this.get_animverts(ctx)) {
-          vd.animflag^=VDAnimFlags.STEP_FUNC;
-          for (var v of vd.verts) {
-              var time=get_vtime(v);
-              kcache.invalidate(v.eid, time);
-          }
-      }
-    }
-  }
-  _ESClass.register(InterpStepModeOp);
-  _es6_module.add_class(InterpStepModeOp);
-  InterpStepModeOp = _es6_module.add_export('InterpStepModeOp', InterpStepModeOp);
-  class DeleteVertOp extends SplineLocalToolOp {
-     constructor() {
-      super();
-    }
-     can_call(ctx) {
-      return !(ctx.spline.restrict&RestrictFlags.NO_DELETE);
-    }
-    static  tooldef() {
-      return {uiname: "Delete Points/Segments", 
-     apiname: "spline.delete_verts", 
-     inputs: {}, 
-     outputs: {}, 
-     icon: -1, 
-     is_modal: false, 
-     description: "Remove points and segments"}
-    }
-     exec(ctx) {
-      console.log("delete op!");
-      var spline=ctx.spline;
-      var dellist=[];
-      for (var v of spline.verts.selected.editable(ctx)) {
-          v.flag|=SplineFlags.UPDATE;
-          dellist.push(v);
-      }
-      spline.propagate_update_flags();
-      for (var i=0; i<dellist.length; i++) {
-          console.log(dellist[i]);
-          spline.kill_vertex(dellist[i]);
-      }
-      spline.regen_render();
-    }
-  }
-  _ESClass.register(DeleteVertOp);
-  _es6_module.add_class(DeleteVertOp);
-  DeleteVertOp = _es6_module.add_export('DeleteVertOp', DeleteVertOp);
-  class DeleteSegmentOp extends ToolOp {
-     constructor() {
-      super(undefined);
-    }
-    static  tooldef() {
-      return {uiname: "Delete Segments", 
-     apiname: "spline.delete_segments", 
-     inputs: {}, 
-     outputs: {}, 
-     icon: -1, 
-     is_modal: false, 
-     description: "Remove segments"}
-    }
-     can_call(ctx) {
-      return !(ctx.spline.restrict&RestrictFlags.NO_DELETE);
-    }
-     exec(ctx) {
-      console.log("delete op!");
-      var spline=ctx.spline;
-      var dellist=[];
-      for (var s of spline.segments.selected.editable(ctx)) {
-          dellist.push(s);
-      }
-      for (var i=0; i<dellist.length; i++) {
-          console.log(dellist[i]);
-          spline.kill_segment(dellist[i]);
-      }
-      if (dellist.length>0) {
-          for (var i=0; i<spline.segments.length; i++) {
-              var s=spline.segments[i];
-              s.flag|=SplineFlags.UPDATE;
-          }
-      }
-      spline.regen_render();
-    }
-  }
-  _ESClass.register(DeleteSegmentOp);
-  _es6_module.add_class(DeleteSegmentOp);
-  DeleteSegmentOp = _es6_module.add_export('DeleteSegmentOp', DeleteSegmentOp);
-  class DeleteFaceOp extends SplineLocalToolOp {
-     constructor() {
-      super(undefined, "Delete Faces");
-    }
-    static  tooldef() {
-      return {uiname: "Delete Faces", 
-     apiname: "spline.delete_faces", 
-     inputs: {}, 
-     outputs: {}, 
-     icon: -1, 
-     is_modal: false, 
-     description: "Remove faces"}
-    }
-     can_call(ctx) {
-      return !(ctx.spline.restrict&RestrictFlags.NO_DELETE);
-    }
-     exec(ctx) {
-      console.log("delete op!");
-      var spline=ctx.spline;
-      var vset=new set(), sset=new set(), fset=new set();
-      var dellist=[];
-      for (var f of spline.faces.selected.editable(ctx)) {
-          fset.add(f);
-      }
-      for (var f of fset) {
-          for (var path of f.paths) {
-              for (var l of path) {
-                  var l2=l.s.l;
-                  var _c=0, del=true;
-                  do {
-                    if (_c++>1000) {
-                        console.log("Infintite loop!");
-                        break;
-                    }
-                    if (!fset.has(l2.f))
-                      del = false;
-                    l2 = l2.radial_next;
-                  } while (l2!=l.s.l);
-                  
-                  if (del)
-                    sset.add(l.s);
-              }
-          }
-      }
-      for (var s of sset) {
-          for (var si=0; si<2; si++) {
-              var del=true;
-              var v=si ? s.v2 : s.v1;
-              for (var i=0; i<v.segments.length; i++) {
-                  if (!(sset.has(v.segments[i]))) {
-                      del = false;
-                      break;
-                  }
-              }
-              if (del)
-                vset.add(v);
-          }
-      }
-      for (var f of fset) {
-          spline.kill_face(f);
-      }
-      for (var s of sset) {
-          spline.kill_segment(s);
-      }
-      for (var v of vset) {
-          spline.kill_vertex(v);
-      }
-      spline.regen_render();
-      window.redraw_viewport();
-    }
-  }
-  _ESClass.register(DeleteFaceOp);
-  _es6_module.add_class(DeleteFaceOp);
-  DeleteFaceOp = _es6_module.add_export('DeleteFaceOp', DeleteFaceOp);
-  class ChangeFaceZ extends SplineLocalToolOp {
-     constructor(offset, selmode) {
-      super(undefined);
-      if (offset!=undefined)
-        this.inputs.offset.setValue(offset);
-      if (selmode!=undefined)
-        this.inputs.selmode.setValue(selmode);
-    }
-    static  tooldef() {
-      return {uiname: "Set Order", 
-     apiname: "spline.change_face_z", 
-     inputs: {offset: new IntProperty(1), 
-      selmode: new IntProperty(SplineTypes.FACE)}, 
-     outputs: {}, 
-     icon: Icons.Z_UP, 
-     is_modal: false, 
-     description: "Change draw order of selected faces"}
-    }
-     can_call(ctx) {
-      return 1;
-    }
-     exec(ctx) {
-      var spline=ctx.spline;
-      var off=this.inputs.offset.data;
-      var selmode=this.inputs.selmode.data;
-      if (isNaN(off))
-        off = 0.0;
-      console.log("change face z! selmode:", selmode, "off", off);
-      if (selmode&SplineTypes.VERTEX) {
-          selmode|=SplineTypes.SEGMENT;
-      }
-      if (selmode&SplineTypes.FACE) {
-          for (var f of spline.faces.selected.editable(ctx)) {
-              if (isNaN(f.z))
-                f.z = 0.0;
-              if (f.hidden)
-                continue;
-              f.z+=off;
-          }
-      }
-      if (selmode&(SplineTypes.SEGMENT|SplineTypes.VERTEX)) {
-          for (var s of spline.segments.selected.editable(ctx)) {
-              if (isNaN(s.z))
-                s.z = 0.0;
-              if (s.hidden)
-                continue;
-              s.z+=off;
-          }
-      }
-      spline.regen_sort();
-      window.redraw_viewport();
-    }
-  }
-  _ESClass.register(ChangeFaceZ);
-  _es6_module.add_class(ChangeFaceZ);
-  ChangeFaceZ = _es6_module.add_export('ChangeFaceZ', ChangeFaceZ);
-  class DissolveVertOp extends SplineLocalToolOp {
-     constructor() {
-      super();
-    }
-    static  tooldef() {
-      return {uiname: "Collapse Points", 
-     apiname: "spline.dissolve_verts", 
-     inputs: {verts: new CollectionProperty([], undefined, "verts", "verts"), 
-      use_verts: new BoolProperty(false, "use_verts")}, 
-     outputs: {}, 
-     icon: -1, 
-     is_modal: false, 
-     description: "Change draw order of selected faces"}
-    }
-     can_call(ctx) {
-      return !(ctx.spline.restrict&RestrictFlags.NO_DISSOLVE);
-    }
-     exec(ctx) {
-      var spline=ctx.spline;
-      var dellist=[];
-      var verts=spline.verts.selected.editable(ctx);
-      if (this.inputs.use_verts.data) {
-          verts = new set();
-          for (var eid of this.inputs.verts.data) {
-              verts.add(spline.eidmap[eid]);
-          }
-      }
-      for (var v of verts) {
-          if (v.segments.length!=2)
-            continue;
-          dellist.push(v);
-      }
-      for (var i=0; i<dellist.length; i++) {
-          spline.dissolve_vertex(dellist[i]);
-      }
-      spline.regen_render();
-    }
-  }
-  _ESClass.register(DissolveVertOp);
-  _es6_module.add_class(DissolveVertOp);
-  DissolveVertOp = _es6_module.add_export('DissolveVertOp', DissolveVertOp);
-  function frameset_split_edge(ctx, spline, s, t) {
-    if (t===undefined) {
-        t = 0.5;
-    }
-    console.log("split edge op!");
-    var interp_animdata=spline===ctx.frameset.spline;
-    var frameset=interp_animdata ? ctx.frameset : undefined;
-    if (interp_animdata) {
-        console.log("interpolating animation data from adjacent vertices!");
-    }
-    var e_v=spline.split_edge(s, t);
-    if (interp_animdata) {
-        frameset.create_path_from_adjacent(e_v[1], e_v[0]);
-    }
-    spline.verts.setselect(e_v[1], true);
-    spline.verts.active = e_v[1];
-    spline.regen_sort();
-    spline.regen_render();
-    return e_v;
-  }
-  class SplitEdgeOp extends SplineGlobalToolOp {
-     constructor() {
-      super();
-    }
-    static  tooldef() {
-      return {uiname: "Split Segments", 
-     apiname: "spline.split_edges", 
-     inputs: {}, 
-     outputs: {}, 
-     icon: -1, 
-     is_modal: false, 
-     description: "Split selected segments"}
-    }
-     can_call(ctx) {
-      return !(ctx.spline.restrict&RestrictFlags.NO_SPLIT_EDGE);
-    }
-     exec(ctx) {
-      console.log("split edge op!");
-      var spline=ctx.spline;
-      var interp_animdata=spline===ctx.frameset.spline;
-      var frameset=interp_animdata ? ctx.frameset : undefined;
-      console.log("interp_animdata: ", interp_animdata);
-      var segs=[];
-      if (interp_animdata) {
-          console.log("interpolating animation data from adjacent vertices!");
-      }
-      for (var s of spline.segments.selected.editable(ctx)) {
-          if (s.v1.hidden||s.v2.hidden)
-            continue;
-          if ((s.v1.flag&SplineFlags.SELECT&&s.v2.flag&SplineFlags.SELECT))
-            segs.push(s);
-      }
-      for (var i=0; i<segs.length; i++) {
-          let e_v=frameset_split_edge(ctx, spline, segs[i]);
-          spline.verts.setselect(e_v[1], true);
-      }
-      spline.regen_render();
-    }
-  }
-  _ESClass.register(SplitEdgeOp);
-  _es6_module.add_class(SplitEdgeOp);
-  SplitEdgeOp = _es6_module.add_export('SplitEdgeOp', SplitEdgeOp);
-  class SplitEdgePickOp extends SplineGlobalToolOp {
-    
-     constructor() {
-      super();
-      this.mpos = new Vector2();
-    }
-    static  tooldef() {
-      return {uiname: "Split Segment", 
-     apiname: "spline.split_pick_edge", 
-     inputs: {segment_eid: new IntProperty(-1, "segment_eid", "segment_eid", "segment_eid"), 
-      segment_t: new FloatProperty(0, "segment_t", "segment_t", "segment_t"), 
-      spline_path: new StringProperty("drawspline", "spline_path", "splien_path", "spline_path"), 
-      deselect: new BoolProperty(true, "deselect", "deselect", "deselect")}, 
-     outputs: {}, 
-     icon: Icons.SPLIT_EDGE, 
-     is_modal: true, 
-     description: "Split picked segment"}
-    }
-     can_call(ctx) {
-      return !(ctx.spline.restrict&RestrictFlags.NO_SPLIT_EDGE);
-    }
-     start_modal(ctx) {
-      super.start_modal(ctx);
-    }
-     on_mousedown(e) {
-      console.log("mdown", e);
-      this.finish(e.button!=0);
-    }
-     on_mouseup(e) {
-      console.log("mup");
-      this.finish(e.button!=0);
-    }
-     end_modal(ctx) {
-      this.reset_drawlines();
-      super.end_modal(ctx);
-    }
-     on_keydown(event) {
-      switch (event.keyCode) {
-        case charmap["Enter"]:
-        case charmap["Escape"]:
-          this.finish(event.keyCode==charmap["Escape"]);
-          break;
-      }
-    }
-     on_mousemove(e) {
-      let ctx=this.modal_ctx;
-      let mpos=[e.x, e.y];
-      mpos = ctx.view2d.getLocalMouse(mpos[0], mpos[1]);
-      this.mpos.load(mpos);
-      let ret=ctx.view2d.editor.findnearest(mpos, SplineTypes.SEGMENT, 105, ctx.view2d.edit_all_layers);
-      if (ret===undefined) {
-          this.reset_drawlines();
-          this.inputs.segment_eid.setValue(-1);
-          return ;
-      }
-      let seg=ret[1];
-      let spline=ret[0];
-      if (spline===ctx.frameset.pathspline) {
-          this.inputs.spline_path.setValue("pathspline");
-      }
-      else {
-        this.inputs.spline_path.setValue("spline");
-      }
-      this.reset_drawlines(ctx);
-      let steps=Math.min(Math.max(seg.length/20, 3, 18));
-      let ds=1.0/(steps-1), s=0;
-      let lastco;
-      let view2d=ctx.view2d;
-      let canvas=view2d.get_bg_canvas();
-      for (let i=0; i<steps; i++, s+=ds) {
-          let co=seg.evaluate(s);
-          view2d.project(co);
-          if (i>0) {
-              this.new_drawline(lastco, co, [1, 0.3, 0.0, 1.0], 2);
-          }
-          lastco = co;
-      }
-      this.inputs.segment_eid.setValue(seg.eid);
-      this.inputs.segment_t.setValue(0.5);
-      ctx.view2d.unproject(mpos);
-      let p=seg.closest_point(mpos, ClosestModes.CLOSEST);
-      if (p!==undefined) {
-          this.inputs.segment_t.setValue(p[1]);
-          p = new Vector2(p[0]);
-          view2d.project(p);
-          let y=p[1];
-          let w=4;
-          this.new_drawline([p[0]-w, y-w], [p[0]-w, y+w], "blue");
-          this.new_drawline([p[0]-w, y+w], [p[0]+w, y+w], "blue");
-          this.new_drawline([p[0]+w, y+w], [p[0]+w, y-w], "blue");
-          this.new_drawline([p[0]+w, y-w], [p[0]-w, y-w], "blue");
-      }
-    }
-     finish(do_cancel) {
-      if (do_cancel||this.inputs.segment_eid.data==-1) {
-          this.end_modal(this.modal_ctx);
-          this.cancel_modal(this.modal_ctx);
-      }
-      else {
-        this.exec(this.modal_ctx);
-        this.end_modal(this.modal_ctx);
-      }
-    }
-     exec(ctx) {
-      var spline=this.inputs.spline_path.data;
-      spline = spline=="pathspline" ? ctx.frameset.pathspline : ctx.frameset.spline;
-      if (this.inputs.deselect.data) {
-          spline.select_none(ctx, SplineTypes.ALL);
-      }
-      var seg=spline.eidmap[this.inputs.segment_eid.data];
-      var t=this.inputs.segment_t.data;
-      if (seg===undefined) {
-          console.warn("Unknown segment", this.inputs.segment_eid.data);
-          return ;
-      }
-      frameset_split_edge(ctx, spline, seg, t);
-    }
-  }
-  _ESClass.register(SplitEdgePickOp);
-  _es6_module.add_class(SplitEdgePickOp);
-  SplitEdgePickOp = _es6_module.add_export('SplitEdgePickOp', SplitEdgePickOp);
-  class VertPropertyBaseOp extends ToolOp {
-     undo_pre(ctx) {
-      var spline=ctx.spline;
-      var vdata={};
-      for (var v of spline.verts.selected.editable(ctx)) {
-          vdata[v.eid] = v.flag;
-      }
-      this._undo = vdata;
-      window.redraw_viewport();
-    }
-     undo(ctx) {
-      var spline=ctx.spline;
-      for (var k in this._undo) {
-          var v=spline.eidmap[k];
-          v.flag = this._undo[k];
-          v.flag|=SplineFlags.UPDATE;
-      }
-      spline.resolve = 1;
-    }
-  }
-  _ESClass.register(VertPropertyBaseOp);
-  _es6_module.add_class(VertPropertyBaseOp);
-  VertPropertyBaseOp = _es6_module.add_export('VertPropertyBaseOp', VertPropertyBaseOp);
-  class ToggleBreakTanOp extends VertPropertyBaseOp {
-     constructor() {
-      super();
-    }
-    static  tooldef() {
-      return {uiname: "Toggle Sharp Corners", 
-     apiname: "spline.toggle_break_tangents", 
-     inputs: {}, 
-     outputs: {}, 
-     icon: -1, 
-     is_modal: false, 
-     description: "Toggle Sharp Corners"}
-    }
-     exec(ctx) {
-      var spline=ctx.spline;
-      var actlayer=spline.layerset.active.id;
-      for (var si=0; si<2; si++) {
-          var list=si ? spline.handles : spline.verts;
-          for (var v of list.selected.editable(ctx)) {
-              if (v.type==SplineTypes.HANDLE&&!v.use)
-                continue;
-              if (v.type==SplineTypes.HANDLE&&(v.owning_vertex!=undefined&&(v.owning_vertex.flag&SplineFlags.SELECT))) {
-                  if (v.owning_vertex.flag&SplineFlags.BREAK_TANGENTS)
-                    v.flag|=SplineFlags.BREAK_TANGENTS;
-                  else 
-                    v.flag&=~SplineFlags.BREAK_TANGENTS;
-              }
-              v.flag^=SplineFlags.BREAK_TANGENTS;
-              v.flag|=SplineFlags.UPDATE;
-          }
-      }
-      spline.resolve = 1;
-    }
-  }
-  _ESClass.register(ToggleBreakTanOp);
-  _es6_module.add_class(ToggleBreakTanOp);
-  ToggleBreakTanOp = _es6_module.add_export('ToggleBreakTanOp', ToggleBreakTanOp);
-  class ToggleBreakCurvOp extends VertPropertyBaseOp {
-     constructor() {
-      super();
-    }
-    static  tooldef() {
-      return {uiname: "Toggle Broken Curvatures", 
-     apiname: "spline.toggle_break_curvature", 
-     inputs: {}, 
-     outputs: {}, 
-     icon: -1, 
-     is_modal: false, 
-     description: "Toggle Break Curvatures, enable 'draw normals'\n in display panel to\n see what this does"}
-    }
-     exec(ctx) {
-      var spline=ctx.spline;
-      for (var v of spline.verts.selected.editable(ctx)) {
-          v.flag^=SplineFlags.BREAK_CURVATURES;
-          v.flag|=SplineFlags.UPDATE;
-      }
-      spline.resolve = 1;
-    }
-  }
-  _ESClass.register(ToggleBreakCurvOp);
-  _es6_module.add_class(ToggleBreakCurvOp);
-  ToggleBreakCurvOp = _es6_module.add_export('ToggleBreakCurvOp', ToggleBreakCurvOp);
-  class ConnectHandlesOp extends ToolOp {
-     constructor() {
-      super();
-    }
-    static  tooldef() {
-      return {uiname: "Connect Handles", 
-     apiname: "spline.connect_handles", 
-     inputs: {}, 
-     outputs: {}, 
-     icon: -1, 
-     is_modal: false, 
-     description: "Pairs adjacent handles together to make a smooth curve"}
-    }
-     exec(ctx) {
-      var spline=ctx.spline;
-      var h1=undefined, h2=undefined;
-      for (var h of spline.handles.selected.editable(ctx)) {
-          if (h1==undefined)
-            h1 = h;
-          else 
-            if (h2==undefined)
-            h2 = h;
-          else 
-            break;
-      }
-      if (h1==undefined||h2==undefined)
-        return ;
-      var s1=h1.segments[0], s2=h2.segments[0];
-      if (s1.handle_vertex(h1)!=s2.handle_vertex(h2))
-        return ;
-      console.log("Connecting handles", h1.eid, h2.eid);
-      h1.flag|=SplineFlags.AUTO_PAIRED_HANDLE;
-      h2.flag|=SplineFlags.AUTO_PAIRED_HANDLE;
-      h1.flag|=SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
-      h2.flag|=SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
-      var v=s1.handle_vertex(h1);
-      v.flag|=SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
-      spline.connect_handles(h1, h2);
-      spline.resolve = 1;
-    }
-  }
-  _ESClass.register(ConnectHandlesOp);
-  _es6_module.add_class(ConnectHandlesOp);
-  ConnectHandlesOp = _es6_module.add_export('ConnectHandlesOp', ConnectHandlesOp);
-  class DisconnectHandlesOp extends ToolOp {
-     constructor() {
-      super();
-    }
-    static  tooldef() {
-      return {uiname: "Disconnect Handles", 
-     apiname: "spline.disconnect_handles", 
-     inputs: {}, 
-     outputs: {}, 
-     icon: -1, 
-     is_modal: false, 
-     description: "Disconnects all handles around a point.\n  Point must have more than two segments"}
-    }
-     exec(ctx) {
-      var spline=ctx.spline;
-      console.log("Disconnect handles");
-      for (var h of spline.handles.selected.editable(ctx)) {
-          var v=h.owning_segment.handle_vertex(h);
-          if (h.hpair==undefined)
-            continue;
-          h.flag&=~SplineFlags.AUTO_PAIRED_HANDLE;
-          h.hpair.flag&=~SplineFlags.AUTO_PAIRED_HANDLE;
-          h.flag|=SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
-          h.hpair.flag|=SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
-          v.flag|=SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
-          spline.disconnect_handle(h);
-          spline.resolve = 1;
-      }
-    }
-  }
-  _ESClass.register(DisconnectHandlesOp);
-  _es6_module.add_class(DisconnectHandlesOp);
-  DisconnectHandlesOp = _es6_module.add_export('DisconnectHandlesOp', DisconnectHandlesOp);
-  class CurveRootFinderTest extends ToolOp {
-     constructor() {
-      super("curverootfinder", "curverootfinder", "curverootfinder");
-    }
-    static  tooldef() {
-      return {uiname: "Test Closest Point Finder", 
-     apiname: "spline._test_closest_points", 
-     inputs: {}, 
-     outputs: {}, 
-     undoflag: UndoFlags.IGNORE_UNDO, 
-     icon: -1, 
-     is_modal: true, 
-     description: "Test closest-point-to-curve functionality"}
-    }
-     on_mousemove(event) {
-      var mpos=[event.x, event.y];
-      var ctx=this.modal_ctx;
-      var spline=ctx.spline;
-      this.reset_drawlines();
-      for (var seg of spline.segments) {
-          var ret=seg.closest_point(mpos, 0);
-          if (ret==undefined)
-            continue;
-          var dl=this.new_drawline(ret[0], mpos);
-          dl.clr[3] = 0.1;
-          continue;
-          var ret=seg.closest_point(mpos, 3);
-          for (var p of ret) {
-              this.new_drawline(p[0], mpos);
-          }
-      }
-    }
-     end_modal() {
-      this.reset_drawlines();
-      this._end_modal();
-    }
-     on_mousedown(event) {
-      this.end_modal();
-    }
-     on_keydown(event) {
-      switch (event.keyCode) {
-        case charmap["Enter"]:
-        case charmap["Escape"]:
-          this.end_modal();
-          break;
-      }
-    }
-  }
-  _ESClass.register(CurveRootFinderTest);
-  _es6_module.add_class(CurveRootFinderTest);
-  CurveRootFinderTest = _es6_module.add_export('CurveRootFinderTest', CurveRootFinderTest);
-  class ToggleManualHandlesOp extends ToolOp {
-     constructor() {
-      super();
-    }
-    static  tooldef() {
-      return {uiname: "Toggle Manual Handles", 
-     apiname: "spline.toggle_manual_handles", 
-     inputs: {}, 
-     outputs: {}, 
-     icon: -1, 
-     is_modal: false, 
-     description: "Toggle Manual Handles"}
-    }
-     undo_pre(ctx) {
-      var spline=ctx.spline;
-      var ud=this._undo = {};
-      for (var v of spline.verts.selected.editable(ctx)) {
-          ud[v.eid] = v.flag&SplineFlags.USE_HANDLES;
-      }
-    }
-     undo(ctx) {
-      var spline=ctx.spline;
-      var ud=this._undo;
-      for (var k in ud) {
-          var v=spline.eidmap[k];
-          if (v==undefined||v.type!=SplineTypes.VERTEX) {
-              console.log("WARNING: bad v in toggle manual handles op's undo handler!", v);
-              continue;
-          }
-          v.flag = (v.flag&~SplineFlags.USE_HANDLES)|ud[k]|SplineFlags.UPDATE;
-      }
-      spline.resolve = 1;
-    }
-     exec(ctx) {
-      var spline=ctx.spline;
-      for (var v of spline.verts.selected.editable(ctx)) {
-          v.flag^=SplineFlags.USE_HANDLES;
-          v.flag|=SplineFlags.UPDATE;
-      }
-      spline.resolve = 1;
-    }
-  }
-  _ESClass.register(ToggleManualHandlesOp);
-  _es6_module.add_class(ToggleManualHandlesOp);
-  ToggleManualHandlesOp = _es6_module.add_export('ToggleManualHandlesOp', ToggleManualHandlesOp);
-  var TimeDataLayer=es6_import_item(_es6_module, '../../core/animdata.js', 'TimeDataLayer');
-  var get_vtime=es6_import_item(_es6_module, '../../core/animdata.js', 'get_vtime');
-  var set_vtime=es6_import_item(_es6_module, '../../core/animdata.js', 'set_vtime');
-  var ClosestModes=es6_import_item(_es6_module, '../../curve/spline_base.js', 'ClosestModes');
-  class ShiftTimeOp extends ToolOp {
-    
-     constructor() {
-      super();
-      this.start_mpos = new Vector3();
-    }
-    static  tooldef() {
-      return {uiname: "Move Keyframes", 
-     apiname: "spline.shift_time", 
-     inputs: {factor: new FloatProperty(-1, "factor", "factor", "factor")}, 
-     outputs: {}, 
-     icon: -1, 
-     is_modal: true, 
-     description: "Move keyframes"}
-    }
-     get_curframe_animverts(ctx) {
-      var vset=new set();
-      var spline=ctx.frameset.spline, pathspline=ctx.frameset.pathspline;
-      var frameset=ctx.frameset;
-      for (var v of pathspline.verts.selected.editable(ctx)) {
-          vset.add(v);
-      }
-      if (vset.length==0) {
-          for (var v of spline.verts.selected.editable(ctx)) {
-              var vd=frameset.vertex_animdata[v.eid];
-              if (vd==undefined)
-                continue;
-              for (var v2 of vd.verts) {
-                  var vtime=get_vtime(v2);
-                  if (vtime==ctx.scene.time) {
-                      vset.add(v2);
-                  }
-              }
-          }
-      }
-      return vset;
-    }
-     start_modal(ctx) {
-      this.first = true;
-    }
-     end_modal(ctx) {
-      super.end_modal(ctx);
-    }
-     cancel(ctx) {
-
-    }
-     finish(ctx) {
-      ctx.scene.change_time(ctx, this.start_time);
-    }
-     on_mousemove(event) {
-      if (this.first) {
-          this.start_mpos.load([event.x, event.y, 0]);
-          this.first = false;
-      }
-      var mpos=new Vector3([event.x, event.y, 0]);
-      var dx=-Math.floor((this.start_mpos[0]-mpos[0])/20+0.5);
-      this.undo(this.modal_ctx);
-      this.inputs.factor.setValue(dx);
-      this.exec(this.modal_ctx);
-      window.redraw_viewport();
-    }
-     on_keydown(event) {
-      switch (event.keyCode) {
-        case charmap["Escape"]:
-          this.cancel(this.modal_ctx);
-        case charmap["Return"]:
-        case charmap["Space"]:
-          this.finish(this.modal_ctx);
-          this.end_modal();
-      }
-    }
-     on_mouseup(event) {
-      this.end_modal();
-    }
-     undo_pre(ctx) {
-      var ud=this._undo = {};
-      for (var v of this.get_curframe_animverts(ctx)) {
-          ud[v.eid] = get_vtime(v);
-      }
-    }
-     undo(ctx) {
-      var spline=ctx.frameset.pathspline;
-      for (var k in this._undo) {
-          var v=spline.eidmap[k], time=this._undo[k];
-          set_vtime(spline, v, time);
-          v.dag_update("depend");
-      }
-      ctx.frameset.download();
-    }
-     exec(ctx) {
-      var spline=ctx.frameset.pathspline;
-      var starts={};
-      var off=this.inputs.factor.data;
-      var vset=this.get_curframe_animverts(ctx);
-      for (var v of vset) {
-          starts[v.eid] = get_vtime(v);
-      }
-      var kcache=ctx.frameset.kcache;
-      for (var v of vset) {
-          kcache.invalidate(v.eid, get_vtime(v));
-          set_vtime(spline, v, starts[v.eid]+off);
-          kcache.invalidate(v.eid, get_vtime(v));
-          v.dag_update("depend");
-      }
-      for (var v of vset) {
-          var min=undefined, max=undefined;
-          if (v.segments.length==1) {
-              var s=v.segments[0];
-              var v2=s.other_vert(v);
-              var t1=get_vtime(v), t2=get_vtime(v2);
-              if (t1<t2) {
-                  min = 0, max = t2;
-              }
-              else 
-                if (t1==t2) {
-                  min = max = t1;
-              }
-              else {
-                min = t1, max = 100000;
-              }
-          }
-          else 
-            if (v.segments.length==2) {
-              var v1=v.segments[0].other_vert(v);
-              var v2=v.segments[1].other_vert(v);
-              var t1=get_vtime(v1), t2=get_vtime(v2);
-              min = Math.min(t1, t2), max = Math.max(t1, t2);
-          }
-          else {
-            min = 0;
-            max = 100000;
-          }
-          var newtime=get_vtime(v);
-          newtime = Math.min(Math.max(newtime, min), max);
-          set_vtime(spline, v, newtime);
-          v.dag_update("depend");
-      }
-      ctx.frameset.download();
-    }
-  }
-  _ESClass.register(ShiftTimeOp);
-  _es6_module.add_class(ShiftTimeOp);
-  ShiftTimeOp = _es6_module.add_export('ShiftTimeOp', ShiftTimeOp);
-  class DuplicateOp extends SplineLocalToolOp {
-     constructor() {
-      super(undefined, "Duplicate");
-    }
-    static  tooldef() {
-      return {uiname: "Duplicate Geometry", 
-     apiname: "spline.duplicate", 
-     inputs: {}, 
-     outputs: {}, 
-     icon: Icons.DUPLICATE, 
-     is_modal: false, 
-     description: "Make a duplicate of selected geometry."}
-    }
-     can_call(ctx) {
-      return !(ctx.spline.restrict&RestrictFlags.NO_CREATE);
-    }
-     exec(ctx) {
-      var vset=new set();
-      var sset=new set();
-      var fset=new set();
-      var hset=new set();
-      var spline=ctx.spline;
-      var eidmap={};
-      for (var v of spline.verts.selected.editable(ctx)) {
-          vset.add(v);
-      }
-      for (var s of spline.segments.selected.editable(ctx)) {
-          sset.add(s);
-          vset.add(s.v1);
-          vset.add(s.v2);
-      }
-      for (var f of spline.faces.selected.editable(ctx)) {
-          fset.add(f);
-          for (var path of f.paths) {
-              for (var l of path) {
-                  sset.add(l.s);
-                  vset.add(l.s.v1);
-                  vset.add(l.s.v2);
-              }
-          }
-      }
-      for (var v of vset) {
-          var nv=spline.make_vertex(v);
-          spline.copy_vert_data(nv, v);
-          eidmap[v.eid] = nv;
-          spline.verts.setselect(v, false);
-          spline.verts.setselect(nv, true);
-      }
-      for (var s of sset) {
-          var v1=eidmap[s.v1.eid], v2=eidmap[s.v2.eid];
-          var ns=spline.make_segment(v1, v2);
-          ns._aabb[0].load(s._aabb[0]);
-          ns._aabb[1].load(s._aabb[1]);
-          spline.copy_segment_data(ns, s);
-          spline.copy_handle_data(ns.h1, s.h1);
-          spline.copy_handle_data(ns.h2, s.h2);
-          eidmap[s.h1.eid] = ns.h1;
-          eidmap[s.h2.eid] = ns.h2;
-          ns.h1.load(s.h1);
-          ns.h2.load(s.h2);
-          hset.add(s.h1);
-          hset.add(s.h2);
-          eidmap[ns.eid] = ns;
-          spline.segments.setselect(s, false);
-          spline.segments.setselect(ns, true);
-          spline.handles.setselect(s.h1, false);
-          spline.handles.setselect(s.h2, false);
-          spline.handles.setselect(ns.h1, true);
-          spline.handles.setselect(ns.h2, true);
-      }
-      for (var h of hset) {
-          var nh=eidmap[h.eid];
-          if (h.pair!=undefined&&h.pair.eid in eidmap) {
-              spline.connect_handles(nh, eidmap[h.pair.eid]);
-          }
-      }
-      for (var f of fset) {
-          var vlists=[];
-          for (var path of f.paths) {
-              var verts=[];
-              vlists.push(verts);
-              for (var l of path) {
-                  verts.push(eidmap[l.v.eid]);
-              }
-          }
-          console.log("duplicate");
-          var nf=spline.make_face(vlists);
-          nf._aabb[0].load(f._aabb[0]);
-          nf._aabb[1].load(f._aabb[1]);
-          spline.copy_face_data(nf, f);
-          spline.faces.setselect(f, false);
-          spline.faces.setselect(nf, true);
-      }
-      spline.regen_render();
-      spline.regen_sort();
-      spline.regen_solve();
-    }
-  }
-  _ESClass.register(DuplicateOp);
-  _es6_module.add_class(DuplicateOp);
-  DuplicateOp = _es6_module.add_export('DuplicateOp', DuplicateOp);
-  class SplineFlipSegments extends SplineLocalToolOp {
-    static  tooldef() {
-      return {uiname: "Flip Segments", 
-     toolpath: "spline.flip_segments", 
-     description: "Flip vertex order"}
-    }
-     exec(ctx) {
-      let spline=ctx.spline;
-      for (let s of spline.segments.selected.editable(ctx)) {
-          spline.flip_segment(s);
-      }
-      spline.regen_sort();
-      spline.regen_render();
-      spline.regen_solve();
-      spline.force_full_resolve();
-      window.redraw_viewport();
-    }
-  }
-  _ESClass.register(SplineFlipSegments);
-  _es6_module.add_class(SplineFlipSegments);
-  SplineFlipSegments = _es6_module.add_export('SplineFlipSegments', SplineFlipSegments);
-  class SplineMirrorOp extends SplineLocalToolOp {
-     constructor() {
-      super();
-    }
-    static  tooldef() {
-      return {uiname: "Flip Horizontally", 
-     apiname: "spline.mirror_verts", 
-     inputs: {}, 
-     outputs: {}, 
-     icon: -1, 
-     is_modal: false, 
-     description: "Flip selected points horizontally"}
-    }
-     exec(ctx) {
-      var spline=ctx.spline;
-      var points=new set();
-      var cent=new Vector3();
-      for (var i=0; i<2; i++) {
-          var list=i ? spline.handles : spline.verts;
-          for (var v of list.selected.editable(ctx)) {
-              if (i===1&&v.owning_vertex!=undefined&&v.owning_vertex.hidden)
-                continue;
-              if (i===0&&v.hidden)
-                continue;
-              points.add(v);
-              cent.add(v);
-          }
-      }
-      if (points.length===0)
-        return ;
-      cent.mulScalar(1.0/points.length);
-      for (var v of points) {
-          v.sub(cent);
-          v[0] = -v[0];
-          v.add(cent);
-          v.flag|=SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
-      }
-      spline.resolve = 1;
-    }
-  }
-  _ESClass.register(SplineMirrorOp);
-  _es6_module.add_class(SplineMirrorOp);
-  SplineMirrorOp = _es6_module.add_export('SplineMirrorOp', SplineMirrorOp);
-  var FullContext=es6_import_item(_es6_module, '../../core/context.js', 'FullContext');
-}, '/dev/fairmotion/src/editors/viewport/spline_editops.js');

@@ -4632,7 +4632,7 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
       this.parser = parser;
     }
      toString() {
-      if (this.value!=undefined)
+      if (this.value!==undefined)
         return "token(type="+this.type+", value='"+this.value+"')";
       else 
         return "token(type="+this.type+")";
@@ -4673,7 +4673,7 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
       this.statedata = 0;
     }
      add_state(name, tokdef, errfunc) {
-      if (errfunc==undefined) {
+      if (errfunc===undefined) {
           errfunc = function (lexer) {
             return true;
           };
@@ -4708,7 +4708,7 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
       this.peeked_tokens = [];
     }
      error() {
-      if (this.errfunc!=undefined&&!this.errfunc(this))
+      if (this.errfunc!==undefined&&!this.errfunc(this))
         return ;
       console.log("Syntax error near line "+this.lineno);
       var next=Math.min(this.lexpos+8, this.lexdata.length);
@@ -4717,7 +4717,7 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
     }
      peek() {
       var tok=this.next(true);
-      if (tok==undefined)
+      if (tok===undefined)
         return undefined;
       this.peeked_tokens.push(tok);
       return tok;
@@ -4725,7 +4725,7 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
      peek_i(i) {
       while (this.peeked_tokens.length<=i) {
         var t=this.peek();
-        if (t==undefined)
+        if (t===undefined)
           return undefined;
       }
       return this.peeked_tokens[i];
@@ -4734,7 +4734,7 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
       return this.lexpos>=this.lexdata.length&&this.peeked_tokens.length==0;
     }
      next(ignore_peek) {
-      if (ignore_peek!=true&&this.peeked_tokens.length>0) {
+      if (ignore_peek!==true&&this.peeked_tokens.length>0) {
           var tok=this.peeked_tokens[0];
           this.peeked_tokens.shift();
           return tok;
@@ -4747,10 +4747,10 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
       var results=[];
       for (var i=0; i<tlen; i++) {
           var t=ts[i];
-          if (t.re==undefined)
+          if (t.re===undefined)
             continue;
           var res=t.re.exec(lexdata);
-          if (res!=null&&res!=undefined&&res.index==0) {
+          if (res!==null&&res!==undefined&&res.index===0) {
               results.push([t, res]);
           }
       }
@@ -4763,7 +4763,7 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
               max_res = res[1][0].length;
           }
       }
-      if (theres==undefined) {
+      if (theres===undefined) {
           this.error();
           return ;
       }
@@ -4773,7 +4773,7 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
       this.lexpos+=max_res;
       if (def.func) {
           tok = def.func(tok);
-          if (tok==undefined) {
+          if (tok===undefined) {
               return this.next();
           }
       }
@@ -4790,12 +4790,12 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
       this.start = undefined;
     }
      parse(data, err_on_unconsumed) {
-      if (err_on_unconsumed==undefined)
+      if (err_on_unconsumed===undefined)
         err_on_unconsumed = true;
-      if (data!=undefined)
+      if (data!==undefined)
         this.lexer.input(data);
       var ret=this.start(this);
-      if (err_on_unconsumed&&!this.lexer.at_end()&&this.lexer.next()!=undefined) {
+      if (err_on_unconsumed&&!this.lexer.at_end()&&this.lexer.next()!==undefined) {
           this.error(undefined, "parser did not consume entire input");
       }
       return ret;
@@ -4840,7 +4840,7 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
     }
      peek_i(i) {
       var tok=this.lexer.peek_i(i);
-      if (tok!=undefined)
+      if (tok!==undefined)
         tok.parser = this;
       return tok;
     }
@@ -4849,15 +4849,15 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
     }
      next() {
       var tok=this.lexer.next();
-      if (tok!=undefined)
+      if (tok!==undefined)
         tok.parser = this;
       return tok;
     }
      optional(type) {
       var tok=this.peek_i(0);
-      if (tok==undefined)
+      if (tok===undefined)
         return false;
-      if (tok.type==type) {
+      if (tok.type===type) {
           this.next();
           return true;
       }
@@ -5283,7 +5283,7 @@ es6_module_define('ScreenOverdraw', ["../core/ui.js", "./vectormath.js", "./util
   Overdraw = _es6_module.add_export('Overdraw', Overdraw);
   ui_base.UIBase.register(Overdraw);
 }, '/dev/fairmotion/src/path.ux/scripts/util/ScreenOverdraw.js');
-es6_module_define('simple_events', ["./util.js", "./vectormath.js", "../config/const.js"], function _simple_events_module(_es6_module) {
+es6_module_define('simple_events', ["./vectormath.js", "../config/const.js", "./util.js"], function _simple_events_module(_es6_module) {
   var util=es6_import(_es6_module, './util.js');
   var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
   var Vector2=es6_import_item(_es6_module, './vectormath.js', 'Vector2');
@@ -5620,7 +5620,6 @@ es6_module_define('simple_events', ["./util.js", "./vectormath.js", "../config/c
             pathDebugEvent(e);
         }
         if (typeof key!=="string") {
-            console.warn("key was undefined", key);
             return ;
         }
         if (key.startsWith("mouse")) {
@@ -8089,7 +8088,7 @@ es6_module_define('theme_editor', ["../core/ui.js", "../core/ui_theme.js", "../u
   ThemeEditor = _es6_module.add_export('ThemeEditor', ThemeEditor);
   UIBase.register(ThemeEditor);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/theme_editor.js');
-es6_module_define('ui_button', ["../controller/simple_controller.js", "../util/util.js", "../util/events.js", "../toolsys/toolprop.js", "../util/vectormath.js", "../core/ui_base.js", "../toolsys/simple_toolsys.js", "../config/const.js"], function _ui_button_module(_es6_module) {
+es6_module_define('ui_button', ["../toolsys/simple_toolsys.js", "../util/vectormath.js", "../core/ui_base.js", "../config/const.js", "../controller/simple_controller.js", "../toolsys/toolprop.js", "../util/events.js", "../util/util.js"], function _ui_button_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../util/util.js');
   var vectormath=es6_import(_es6_module, '../util/vectormath.js');
@@ -8270,6 +8269,7 @@ es6_module_define('ui_button', ["../controller/simple_controller.js", "../util/u
         if (this.onclick&&e.touches!==undefined) {
             this.onclick(this);
         }
+        this.undoBreakPoint();
       };
       this.addEventListener("mousedown", press, {captured: true, 
      passive: false});

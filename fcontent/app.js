@@ -413,6 +413,7 @@ class ModuleLoadError extends Error {
 _ESClass.register(ModuleLoadError);
 function _normpath1(path) {
   path = path.replace(/\\/g, "/").trim();
+  path = path.replace(/\/\//g, "/").trim();
   while (path.startsWith("/")) {
     path = path.slice(1, path.length);
   }
@@ -421,8 +422,33 @@ function _normpath1(path) {
   }
   return path;
 }
+function _splitpath(path) {
+  path = _normpath1(path);
+  let ret=["", ""];
+  if (path.startsWith("/")) {
+      ret[0]+="/";
+  }
+  path = path.split("/");
+  for (let item of path.slice(0, path.length-1)) {
+      ret[0]+=item+"/";
+  }
+  if (path.length>1) {
+      ret[0] = ret[0].slice(0, ret[0].length-1);
+  }
+  else 
+    if (path.length>0) {
+      ret[0] = "/";
+  }
+  if (path.length>0) {
+      ret[1] = path[path.length-1];
+  }
+  if (ret[0].trim()===".") {
+      ret[0] = ret[0].trim()+"/";
+  }
+  return ret;
+}
 function _normpath(path, basepath) {
-  if (basepath.trim().length==0)
+  if (basepath.trim().length===0)
     return _normpath1(path);
   path = _normpath1(path);
   basepath = _normpath1(basepath);
@@ -1023,8 +1049,9 @@ function __bind_super_prop(obj, cls, parent, prop) {
   }
 }
 
-es6_module_define('config', ["./config_local.js", "./config_local"], function _config_module(_es6_module) {
+es6_module_define('config', ["../path.ux/scripts/config/const.js", "./config_local", "./config_local.js"], function _config_module(_es6_module) {
   "use strict";
+  es6_import(_es6_module, '../path.ux/scripts/config/const.js');
   let PathUXConstants={colorSchemeType: "dark", 
    autoSizeUpdate: true, 
    useAreaTabSwitcher: false, 
@@ -1123,15 +1150,22 @@ es6_module_define('config', ["./config_local.js", "./config_local"], function _c
    force_mobile: false, 
    tesselator: false, 
    use_2d_uicanvas: 1, 
-   trace_recalc_all: false}
-  if (window.DEBUG==undefined||DEBUG==undefined)
-    var DEBUG=window.DEBUG = config_local.DEBUG!=undefined ? config_local.DEBUG : {}
+   trace_recalc_all: false, 
+   fastDrawMode: false}
+  if (window.DEBUG===undefined) {
+      window.DEBUG = config_local.DEBUG!==undefined ? config_local.DEBUG : {};
+  }
+  else {
+    for (let k in config_local.DEBUG) {
+        window.DEBUG[k] = config_local.DEBUG[k];
+    }
+  }
   for (var k in _DEBUG) {
       if (!(k in DEBUG)) {
           DEBUG[k] = _DEBUG[k];
       }
   }
-  if (DEBUG!=undefined&&DEBUG.force_mobile)
+  if (DEBUG&&DEBUG.force_mobile)
     window.IsMobile = true;
   if (window._platform_config) {
       for (let k in _platform_config) {
@@ -1142,6 +1176,8 @@ es6_module_define('config', ["./config_local.js", "./config_local"], function _c
 
 es6_module_define('config_local', [], function _config_local_module(_es6_module) {
   'use strict';
+  let DEBUG={fastDrawMode: false}
+  DEBUG = _es6_module.add_export('DEBUG', DEBUG);
 }, '/dev/fairmotion/src/config/config_local.js');
 
 es6_module_define('const', ["../config/config.js"], function _const_module(_es6_module) {

@@ -9772,16 +9772,16 @@ function time_func(func, steps) {
   console.log(times);
   return times;
 }
-var $lst_KIuQ=new GArray();
+var $lst_NSaV=new GArray();
 function cached_list(iter) {
-  $lst_KIuQ.reset();
+  $lst_NSaV.reset();
   var i=0;
   for (var item of iter) {
-      $lst_KIuQ.push(item);
+      $lst_NSaV.push(item);
       i++;
   }
-  $lst_KIuQ.length = i;
-  return $lst_KIuQ;
+  $lst_NSaV.length = i;
+  return $lst_NSaV;
 }
 var g_list=list;
 class eid_list extends GArray {
@@ -11028,7 +11028,7 @@ es6_module_define('strutils', [], function _strutils_module(_es6_module) {
   }
   encode_dataurl = _es6_module.add_export('encode_dataurl', encode_dataurl);
 }, '/dev/fairmotion/src/util/strutils.js');
-es6_module_define('lib_api', ["./struct.js", "./toolprops_iter.js"], function _lib_api_module(_es6_module) {
+es6_module_define('lib_api', ["./toolprops_iter.js", "./struct.js"], function _lib_api_module(_es6_module) {
   "use strict";
   var STRUCT=es6_import_item(_es6_module, './struct.js', 'STRUCT');
   var _DataTypeDef=[["IMAGE", 8], ["SCENE", 5], ["SCRIPT", 4], ["SPLINE", 6], ["FRAMESET", 7], ["ADDON", 8], ["OBJECT", 9]];
@@ -11165,7 +11165,7 @@ dataref {
     }
      remove(block) {
       this.list.remove(block);
-      if (block.name!=undefined&&this.namemap[block.name]==block)
+      if (block.name!==undefined&&this.namemap[block.name]===block)
         delete this.namemap[block.name];
       delete this.idmap[block];
       block.on_destroy();

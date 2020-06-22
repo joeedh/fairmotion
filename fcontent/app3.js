@@ -1,4 +1,4 @@
-es6_module_define('ui_base', ["../util/simple_events.js", "./anim.js", "../controller/simple_controller.js", "../util/colorutils.js", "../icon_enum.js", "./ui_theme.js", "../controller/controller.js", "../config/const.js", "../util/util.js", "./units.js", "../util/math.js", "../toolsys/toolprop.js", "./aspect.js", "../util/vectormath.js", "./theme.js", "../util/cssutils.js"], function _ui_base_module(_es6_module) {
+es6_module_define('ui_base', ["./units.js", "../controller/simple_controller.js", "./aspect.js", "../icon_enum.js", "../util/cssutils.js", "../util/simple_events.js", "./theme.js", "../util/util.js", "../util/vectormath.js", "../controller/controller.js", "../util/math.js", "./anim.js", "./ui_theme.js", "../toolsys/toolprop.js", "../util/colorutils.js", "../config/const.js"], function _ui_base_module(_es6_module) {
   let _ui_base=undefined;
   if (window.document&&document.body) {
       console.log("ensuring body.style.margin/padding are zero");
@@ -393,6 +393,8 @@ ${selector}::-webkit-scrollbar-thumb {
   class UIBase extends HTMLElement {
      constructor() {
       super();
+      this.pathUndoGen = 0;
+      this._lastPathUndoGen = 0;
       this._active_animations = [];
       this._screenStyleTag = document.createElement("style");
       this._screenStyleUpdateHash = 0;
@@ -1175,23 +1177,28 @@ ${selector}::-webkit-scrollbar-thumb {
           return undefined;
       }
     }
+     undoBreakPoint() {
+      this.pathUndoGen++;
+    }
      setPathValueUndo(ctx, path, val) {
       let mass_set_path=this.getAttribute("mass_set_path");
       let rdef=ctx.api.resolvePath(ctx, path);
       let prop=rdef.prop;
-      if (ctx.api.getValue(ctx, path)==val) {
+      if (ctx.api.getValue(ctx, path)===val) {
           return ;
       }
       let toolstack=this.ctx.toolstack;
-      let head=toolstack[toolstack.cur];
+      let head=toolstack.head;
       let bad=head===undefined||!(__instance_of(head, getDataPathToolOp()));
       bad = bad||head.hashThis()!==head.hash(mass_set_path, path, prop.type, this._id);
+      bad = bad||this.pathUndoGen!==this._lastPathUndoGen;
       if (!bad) {
           toolstack.undo();
           head.setValue(ctx, val, rdef.obj);
           toolstack.redo();
       }
       else {
+        this._lastPathUndoGen = this.pathUndoGen;
         let toolop=getDataPathToolOp().create(ctx, path, val, this._id, mass_set_path);
         ctx.toolstack.execTool(this.ctx, toolop);
       }
@@ -10610,7 +10617,7 @@ pathux.ScreenArea {
   ui_base.UIBase.register(ScreenArea);
   ui_base._setAreaClass(Area);
 }, '/dev/fairmotion/src/path.ux/scripts/screen/ScreenArea.js');
-es6_module_define('simple_toolsys', ["../util/simple_events.js", "./toolprop.js", "../util/events.js"], function _simple_toolsys_module(_es6_module) {
+es6_module_define('simple_toolsys', ["./toolprop.js", "../util/simple_events.js", "../util/events.js"], function _simple_toolsys_module(_es6_module) {
   "use strict";
   var events=es6_import(_es6_module, '../util/events.js');
   var keymap=es6_import_item(_es6_module, '../util/simple_events.js', 'keymap');
@@ -10875,7 +10882,7 @@ es6_module_define('simple_toolsys', ["../util/simple_events.js", "./toolprop.js"
       this.modal_ctx = undefined;
       this.modalRunning = false;
       this.is_modal = false;
-      super.popModal(_appstate._modal_dom_root);
+      super.popModal();
       this._promise = undefined;
       this._accept(ctx, false);
       this._accept = this._reject = undefined;
@@ -10988,6 +10995,9 @@ es6_module_define('simple_toolsys', ["../util/simple_events.js", "./toolprop.js"
       this.cur = -1;
       this.ctx = ctx;
       this.modalRunning = 0;
+    }
+    get  head() {
+      return this[this.cur];
     }
      setRestrictedToolContext(ctx) {
       this.toolctx = ctx;
@@ -12716,7 +12726,7 @@ es6_module_define('cssutils', [], function _cssutils_module(_es6_module) {
   }
   matrix2css = _es6_module.add_export('matrix2css', matrix2css);
 }, '/dev/fairmotion/src/path.ux/scripts/util/cssutils.js');
-es6_module_define('events', ["./util.js", "./simple_events.js"], function _events_module(_es6_module) {
+es6_module_define('events', ["./simple_events.js", "./util.js"], function _events_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, './util.js');
   var simple_events=es6_import(_es6_module, './simple_events.js');
@@ -12822,27 +12832,11 @@ es6_module_define('events', ["./util.js", "./simple_events.js"], function _event
       this._modalstate = simple_events.pushModalLight(this);
       return ;
     }
-     popModal(dom) {
+     popModal() {
       if (this._modalstate!==undefined) {
           simple_events.popModalLight(this._modalstate);
           this._modalstate = undefined;
       }
-      return ;
-      console.trace("popModal called");
-      var ok=modalStack[modalStack.length-1]===this;
-      ok = ok&&this.modal_pushed;
-      if (!ok) {
-          console.trace("Error: popModal called but pushModal wasn't", this, dom);
-          return ;
-      }
-      modalStack.pop();
-      for (var k in DomEventTypes) {
-          if (this["__"+k]===undefined)
-            continue;
-          var type=DomEventTypes[k];
-          getDom(dom, type).removeEventListener(type, this["__"+k], true);
-      }
-      this.modal_pushed = false;
     }
   }
   _ESClass.register(EventHandler);

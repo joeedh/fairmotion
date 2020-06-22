@@ -1403,7 +1403,7 @@ export class DataAPI {
   }
   
   build_mass_set_paths(ctx, listpath, subpath, value, filterstr) {
-    if (ctx == undefined) {
+    if (ctx === undefined) {
       filterstr = value;
       value = subpath;
       subpath = listpath;
@@ -1416,7 +1416,7 @@ export class DataAPI {
     if (config.HAVE_EVAL) {
       //"(item.fag & 1) && !item.hidden"
       var filtercode = `
-        function filter($) {\n
+        filter = function filter($) {\n
           return `+filterstr+`\n;
         }`;
       

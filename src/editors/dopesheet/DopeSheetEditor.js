@@ -541,14 +541,6 @@ export class PanOp extends ToolOp {
   first : boolean
   cameramat : Matrix4;
 
-  can_call(ctx) {
-    return true;
-  }
-
-  static can_call(ctx) {
-    return true;
-  }
-
   constructor(dopesheet) {
     super();
 

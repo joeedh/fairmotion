@@ -384,7 +384,31 @@ PropPair.STRUCT = `
 
 let _toolop_tools = undefined;
 
-//import * as toolsys from '../path.ux/scripts/toolsys/simple_toolsys.js';
+import * as toolsys from '../path.ux/scripts/toolsys/simple_toolsys.js';
+toolsys.ToolOp.prototype.undo_pre = function(ctx) {
+  return this.undoPre(ctx);
+}
+toolsys.ToolOp.prototype.exec_pre = function(ctx) {
+  return this.execPre(ctx);
+}
+toolsys.ToolOp.prototype.exec_post = function(ctx) {
+  return this.execPost(ctx);
+}
+toolsys.ToolOp.prototype._start_modal = function(ctx) {
+}
+toolsys.ToolOp.prototype.start_modal = function(ctx) {
+  return this.modalStart(ctx);
+}
+toolsys.ToolOp.prototype.redo_post = function(ctx) {
+
+}
+toolsys.ToolOp.prototype.undo_post = function(ctx) {
+
+}
+
+toolsys.ToolOp.prototype.end_modal = function(ctx) {
+  return this.modalEnd(false);
+}
 
 export class ToolOp extends ToolOpAbstract {
   drawlines : GArray
@@ -432,6 +456,10 @@ export class ToolOp extends ToolOpAbstract {
     this.drawlines.push(dl);
     
     return dl;
+  }
+
+  static canRun(ctx : FullContext) {
+    return true;
   }
 
   reset_drawlines(ctx=this.modal_ctx) {
@@ -570,9 +598,8 @@ export class ToolOp extends ToolOpAbstract {
       this._end_modal();
   }
 
-  can_call(ctx : Context) { return true; }
   exec(ctx : Context) { }
-  start_modal(ctx : Context) { }
+  start_modal(ctx : FullContext) { }
 
   //called after redo execution
   redo_post(ctx : Context) {
@@ -714,9 +741,14 @@ export class ToolMacro extends ToolOp {
     }
   }
 
-  can_call(ctx : Context) {
-    return this.tools[0].can_call(ctx); //only check with first tool
+  error(msg) {
+    console.error(msg);
+    g_app_state.ctx.error(msg);
   }
+
+  //can_call(ctx : Context) {
+  //  return this.tools[0].can_call(ctx); //only check with first tool
+  //}
   
   _start_modal(ctx) {
     //do nothing here

@@ -162,6 +162,34 @@ export class PathUXInterface extends ModelInterface {
     return this.api.build_mass_set_paths(ctx, listpath, subpath, value, filterstr);
   }
 
+  /** takes a mass_set_path and returns an array of individual paths */
+  resolveMassSetPaths(ctx, mass_set_path) {
+    if (!ctx || !mass_set_path || typeof mass_set_path !== "string") {
+      throw new Error("invalid call to resolveMassSetPaths");
+    }
+
+    let path = mass_set_path.trim();
+    let filter, listpath, subpath;
+
+    let start = path.search("{");
+
+    if (start < 0) {
+      throw new Error("invalid mass set path in resolveMassSetPaths " + path);
+    }
+
+    let end = path.slice(start, path.end).search("}") + start;
+
+    if (end < 0) {
+      throw new Error("invalid mass set path in resolveMassSetPaths " + path);
+    }
+
+    filter = path.slice(start + 1, end).trim();
+    listpath = path.slice(0, start).trim();
+    subpath = path.slice(end + 2, path.length).trim();
+
+    return this.api.build_mass_set_paths(ctx, listpath, subpath, undefined, filter);
+  }
+
   massSetProp(ctx : FullContext, mass_set_path : string, value : boolean) {
     //let rdef = this.resolvePath(ctx, path);
     let path = mass_set_path;

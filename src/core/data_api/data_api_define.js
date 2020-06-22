@@ -522,7 +522,7 @@ function api_define_spline_vertex() {
   flagprop.update = function (owner) {
     this.ctx.spline.regen_sort();
 
-    console.log("vertex update", owner);
+    //console.log("vertex update", owner);
     
     if (owner !== undefined) {
       owner.flag |= SplineFlags.UPDATE;

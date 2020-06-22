@@ -43,7 +43,7 @@ export class ExtrudeVertOp extends SplineLocalToolOp {
     description : "Add points to path"
   }}
 
-  can_call(ctx) {
+  static canRun(ctx) {
     return !(ctx.spline.restrict & RestrictFlags.NO_EXTRUDE);
   }
   
@@ -209,7 +209,7 @@ export class CreateEdgeOp extends SplineLocalToolOp {
     description : "Create segment between two selected points"
   }}
   
-  can_call(ctx) {
+  static canRun(ctx) {
     return !(ctx.spline.restrict & RestrictFlags.NO_CONNECT);
   }
   
@@ -274,7 +274,7 @@ export class CreateEdgeFaceOp extends SplineLocalToolOp {
     description : "Create polygon from selected points"
   }}
   
-  can_call(ctx) {
+  static canRun(ctx) {
     return !(ctx.spline.restrict & RestrictFlags.NO_CONNECT);
   }
   
@@ -452,7 +452,7 @@ export class ImportJSONOp extends ToolOp {
     description : "Import old json files"
   }}
   
-  can_call(ctx) {
+  static canRun(ctx) {
     return !(ctx.spline.restrict & RestrictFlags.NO_CONNECT);
   }
 

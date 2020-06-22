@@ -786,12 +786,15 @@ export class View2DHandler extends Editor {
     row.prop("view2d.draw_faces");
     //row.prop("view2d.extrude_mode");
 
-    let mass_set_path = "spline.selected_verts{$.flag & 1}";
-    row.prop("spline.active_vertex.flag[BREAK_TANGENTS]", undefined, mass_set_path + ".flag[BREAK_TANGENTS]");
-    row.prop("spline.active_vertex.flag[BREAK_CURVATURES]", undefined, mass_set_path + ".flag[BREAK_CURVATURES]");
-    row.prop("view2d.half_pix_size");
-
     let strip = row.strip();
+    strip.useDataPathUndo = true;
+
+    let mass_set_path = "spline.selected_verts{$.flag & 1}";
+    strip.prop("spline.active_vertex.flag[BREAK_TANGENTS]", undefined, mass_set_path + ".flag[BREAK_TANGENTS]");
+    strip.prop("spline.active_vertex.flag[BREAK_CURVATURES]", undefined, mass_set_path + ".flag[BREAK_CURVATURES]");
+    strip.prop("view2d.half_pix_size");
+
+    strip = row.strip();
     strip.tool("spline.split_pick_edge()");
     strip.tool("spline.stroke()");
   }

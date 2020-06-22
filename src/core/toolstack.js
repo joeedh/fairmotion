@@ -361,7 +361,9 @@ export class ToolStack {
       let name = prop.uiname || prop.apiname || k;
       prop.uiname = name;
 
-      dataprop = new DataPath(prop, prop.apiname, "", true, false);
+      let apiname = prop.apiname || k;
+
+      dataprop = new DataPath(prop, apiname, "", true, false);
       dataprop.update = update_dataprop;
 
       datastruct.add(dataprop);
@@ -469,6 +471,11 @@ export class ToolStack {
     this.execTool(macro);
   }
 
+  error(msg) {
+    console.error(msg);
+    g_app_state.ctx.error(msg);
+  }
+
   execTool(ctx: FullContext, tool: ToolOp) {
     if (ctx instanceof ToolOp) {
       console.warn("Bad arguments to g_app_state.toolstack.execTool()");
@@ -500,13 +507,13 @@ export class ToolStack {
     ctx = new FullContext();
     tool.ctx = ctx;
 
-    if (tool.can_call(ctx) === false) {
+    if (tool.constructor.canRun(ctx) === false) {
       if (DEBUG.toolstack) {
         console.trace()
         console.log(tool);
       }
 
-      console.log("Can not call tool '" + tool.constructor.name + "'");
+      this.error("Can not call tool '" + tool.constructor.name + "'");
       return;
     }
 

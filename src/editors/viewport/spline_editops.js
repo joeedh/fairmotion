@@ -248,7 +248,7 @@ export class KeyEdgesOp extends SplineLocalToolOp {
     is_modal : false
   }}
   
-  can_call(ctx) {
+  static canRun(ctx) {
     //don't call if drawspline isn't active
     return ctx.spline === ctx.frameset.spline;
   }
@@ -499,7 +499,7 @@ export class DeleteVertOp extends SplineLocalToolOp {
     super();
   }
   
-  can_call(ctx) {
+  static canRun(ctx) {
     return !(ctx.spline.restrict & RestrictFlags.NO_DELETE);
   }
   
@@ -565,7 +565,7 @@ export class DeleteSegmentOp extends ToolOp {
     description : "Remove segments"
   }}
 
-  can_call(ctx) {
+  static canRun(ctx) {
     return !(ctx.spline.restrict & RestrictFlags.NO_DELETE);
   }
   
@@ -613,7 +613,7 @@ export class DeleteFaceOp extends SplineLocalToolOp {
     description : "Remove faces"
   }}
   
-  can_call(ctx) {
+  static canRun(ctx) {
     return !(ctx.spline.restrict & RestrictFlags.NO_DELETE);
   }
   
@@ -712,7 +712,7 @@ export class ChangeFaceZ extends SplineLocalToolOp {
   }}
 
   
-  can_call(ctx) {
+  static canRun(ctx) {
     return 1;// !(ctx.spline.restrict & RestrictFlags.NO_DELETE);
   }
   
@@ -775,7 +775,7 @@ export class DissolveVertOp extends SplineLocalToolOp {
     description : "Change draw order of selected faces"
   }}
   
-  can_call(ctx) {
+  static canRun(ctx) {
     return !(ctx.spline.restrict & RestrictFlags.NO_DISSOLVE);
   }
   
@@ -850,7 +850,7 @@ export class SplitEdgeOp extends SplineGlobalToolOp {
     description : "Split selected segments"
   }}
   
-  can_call(ctx) {
+  static canRun(ctx) {
     return !(ctx.spline.restrict & RestrictFlags.NO_SPLIT_EDGE);
   }
   
@@ -912,7 +912,7 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
     description : "Split picked segment"
   }}
   
-  can_call(ctx) {
+  static canRun(ctx) {
     return !(ctx.spline.restrict & RestrictFlags.NO_SPLIT_EDGE);
   }
   
@@ -1594,7 +1594,7 @@ export class DuplicateOp extends SplineLocalToolOp {
     description : "Make a duplicate of selected geometry."
   }}
   
-  can_call(ctx) {
+  static canRun(ctx) {
     return !(ctx.spline.restrict & RestrictFlags.NO_CREATE);
   }
   

@@ -25,7 +25,7 @@ class SelectOpBase extends ToolOp {
       this.inputs.level.set_data(actlevel);
   }
   
-  can_call(ctx) {
+  static canRun(ctx) {
     var spline = ctx.spline;
     return has_multires(spline);
   }
@@ -102,11 +102,11 @@ SelectOpBase.inputs = {
 }
 
 export class ToggleSelectAll extends SelectOpBase {
-  constructor(int actlevel=0) {
+  constructor(actlevel : int=0) {
     super(actlevel, "Select All", "Select all/none");
   }
   
-  can_call(ctx) {
+  static canRun(ctx) {
     var spline = ctx.spline;
     return has_multires(spline);
   }

@@ -335,6 +335,7 @@ export class MaterialEditor extends Editor {
     }
 
     super.init();
+    this.useDataPathUndo = true;
 
     this.makeToolbars();
 

@@ -40,7 +40,7 @@ export class AddLayerOp extends SplineLayerOp {
     is_modal : false
   };}
 
-  can_call(ctx) {
+  static canRun(ctx) {
     let spline = ctx.api.getValue(ctx, this.inputs.spline_path.data);
     return spline !== undefined;
   }

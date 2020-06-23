@@ -144,7 +144,7 @@ function doDrawList(commands, datablocks, id) {
   
   g.globalCompositeOperation = "source-over";
   g.lineCap = "butt";
-  g.miterLimit = 1.7
+  g.miterLimit = 2.5;
 
   while (_i < commands.length) {
     let cmd = ~~read(); //give hint to compiler that this is an integer

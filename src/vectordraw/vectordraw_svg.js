@@ -13,7 +13,7 @@ import {
 
 var canvaspath_draw_mat_tmps = new cachering(_ => new Matrix4(), 16);
 
-var canvaspath_draw_args_tmps = new Array(8);
+var canvaspath_draw_args_tmps = new Array(32);
 for (var i=1; i<canvaspath_draw_args_tmps.length; i++) {
   canvaspath_draw_args_tmps[i] = new Array(i);
 }
@@ -23,7 +23,9 @@ var canvaspath_draw_vs = new cachering(function() {
 
 var CCMD=0, CARGLEN=1;
 
-var MOVETO = 0, BEZIERTO=1, LINETO=2, BEGINPATH=3;
+var MOVETO = 0, BEZIERTO=1, LINETO=2, BEGINPATH=3, CUBICTO=4, STROKE=5, STROKECOLOR=6,
+    STROKEWIDTH=7, NOAUTOFILL=8, FILL=9;
+
 var NS = "http://www.w3.org/2000/svg";
 var XLS = "http://www.w3.org/1999/xlink"
 
@@ -37,14 +39,14 @@ export function makeElement(type, attrs={}) {
 }
 
 export class SVGPath extends QuadBezPath {
-recalc : number
-lastx : number
-lasty : number
-_last_off : Vector2
-clip_users : set
-path_start_i : number
-first : boolean
-_mm : MinMax;
+  recalc : number
+  lastx : number
+  lasty : number
+  _last_off : Vector2
+  clip_users : set
+  path_start_i : number
+  first : boolean
+  _mm : MinMax;
 
   constructor() {
     super();
@@ -86,12 +88,16 @@ _mm : MinMax;
       var cmd = cs[i++];
       var arglen = cs[i++];
       
-      if (fast_mode && prev != BEGINPATH) {
+      if (fast_mode && prev !== BEGINPATH) {
         prev = cmd;
         i += arglen;
         continue;
       }
-      
+
+      if (cmd !== LINETO && cmd !== CUBICTO && cmd !== BEZIERTO && cmd !== MOVETO) {
+        continue;
+      }
+
       for (var j=0; j<arglen; j += 2) {
         tmp[0] = cs[i++], tmp[1] = cs[i++];
         tmp.multVecMatrix(draw.matrix);
@@ -116,11 +122,33 @@ _mm : MinMax;
     this.commands.length = this.path_start_i;
   }
 
+  pushFill() {
+    this._pushCmd(FILL);
+  }
+
+  pushStroke(color, width) {
+    if (color) {
+      let a = color[3] || 1.0;
+      this._pushCmd(STROKECOLOR, color[0], color[1], color[2], a, 0.5);
+    }
+
+    if (width) {
+      this._pushCmd(STROKEWIDTH, width);
+    }
+
+    this._pushCmd(STROKE);
+  }
+
+  noAutoFill() {
+    this._pushCmd(NOAUTOFILL);
+  }
+
   _pushCmd() {
-    this.commands.push(arguments[0]);
     var arglen = arguments.length - 1;
-    
+
+    this.commands.push(arguments[0]);
     this.commands.push(arglen);
+
     for (var i=0; i<arglen; i++) {
       this.commands.push(arguments[i+1]);
     }
@@ -140,7 +168,13 @@ _mm : MinMax;
     this.lastx = x3;
     this.lasty = y3;
   }
-  
+
+  cubicTo(x2, y2, x3, y3, x4, y4) {
+    this._pushCmd(CUBICTO, x2, y2, x3, y3, x4, y4);
+    this.lastx = x4;
+    this.lasty = y4;
+  }
+
   lineTo(x2, y2) {
     if (this.first) {
       this.moveTo(x2, y2);
@@ -153,24 +187,24 @@ _mm : MinMax;
   }
   
   destroy(draw) {
-    if (this.domnode != undefined) {
+    if (this.domnode) {
       this.domnode.remove();
       this.domnode = undefined;
     }
     
-    if (this.filternode != undefined) {
+    if (this.filternode) {
       this.filternode.remove();
       this.filternode = undefined;
     }
     
-    if (this.usenode != undefined) {
+    if (this.usenode) {
       this.usenode.remove();
       this.usenode = undefined;
     }
   }
   
-  get_dom_id(draw) {
-    return draw.svg.id + "_path_" + this.id;
+  get_dom_id(draw, id2=0) {
+    return draw.svg.id + "_path_" + this.id + "_" + id2;
   }
   
   gen(draw, _check_tag=0) {
@@ -211,10 +245,10 @@ _mm : MinMax;
     var domid = this.get_dom_id(draw);
     var node = this.domnode;
     
-    if (node == undefined) {
+    if (!node) {
       node = this.domnode = document.getElementById(domid);
       
-      if (node == undefined) {
+      if (!node) {
         node = this.domnode = makeElement("path");
         node.id = domid;
         node.setAttributeNS(null, "id", domid);
@@ -226,7 +260,7 @@ _mm : MinMax;
         
         //remove any existing usenodes
         var usenode = document.getElementById(useid);
-        if (usenode != undefined) {
+        if (usenode) {
           usenode.remove();
         }
         
@@ -241,7 +275,7 @@ _mm : MinMax;
       }
     }
     
-    if (this.usenode == undefined) {
+    if (!this.usenode) {
       this.usenode = document.getElementById(domid + "_use");
     }
     
@@ -258,7 +292,7 @@ _mm : MinMax;
     var blur, filter;
     
     if (this.blur*draw.zoom > 1) {
-      if (this.filternode == undefined) {
+      if (!this.filternode) {
         filter = this.filternode = document.getElementById(fid);
       } else {
         filter = this.filternode;
@@ -270,7 +304,7 @@ _mm : MinMax;
       var fx = ""+(-wratio/4)+"%", fy=""+(-hratio/4)+"%",
           fwidth=""+wratio+"%", fheight=""+hratio+"%";
           
-      if (filter == undefined) {
+      if (!filter) {
         //console.log("wratio, hratio:", wratio.toFixed(4), hratio.toFixed(4));
         
         var defs = draw.defs;
@@ -292,24 +326,24 @@ _mm : MinMax;
         
         node.setAttributeNS(null, "filter", "url(#"+fid+")");
       } else {
-        if (filter.getAttributeNS(null, "x") != fx)
+        if (filter.getAttributeNS(null, "x") !== fx)
           filter.setAttributeNS(null, "x", fx);
-        if (filter.getAttributeNS(null, "y") != fy)
+        if (filter.getAttributeNS(null, "y") !== fy)
           filter.setAttributeNS(null, "y", fy);
-        if (filter.getAttributeNS(null, "width") != fwidth)
+        if (filter.getAttributeNS(null, "width") !== fwidth)
           filter.setAttributeNS(null, "width", fwidth);
-        if (filter.getAttributeNS(null, "height") != fheight)
+        if (filter.getAttributeNS(null, "height") !== fheight)
           filter.setAttributeNS(null, "hratio", fheight);
 
         blur = filter.childNodes[0];
         
         if (!blur.hasAttributeNS(null, "stdDeviation") || 
-            parseFloat(blur.getAttributeNS(null, "stdDeviation")) != ~~(this.blur*draw.zoom*0.5))
+            parseFloat(blur.getAttributeNS(null, "stdDeviation")) !== ~~(this.blur*draw.zoom*0.5))
         {
           blur.setAttributeNS(null, "stdDeviation", ~~(this.blur*draw.zoom*0.5));
         }
       }
-    } else if (this.filternode != undefined) {
+    } else if (this.filternode) {
       node.removeAttributeNS(null, "filter");
       
       this.filternode.remove();
@@ -321,11 +355,11 @@ _mm : MinMax;
     if (this.clip_paths.length > 0) {
       var clip = this.clipnode;
       
-      if (clip == undefined) {
+      if (!clip) {
         clip = this.clipnode = document.getElementById(clipid);
       }
       
-      if (clip == undefined) {
+      if (!clip) {
         clip = this.clipnode = makeElement("clipPath", {
           id : clipid
         });
@@ -352,7 +386,7 @@ _mm : MinMax;
       }
       
       node.setAttributeNS(null, "clip-path", "url(#"+clipid+")");
-    } else if (this.clipnode != undefined) {
+    } else if (this.clipnode) {
      node.removeAttributeNS(null, "clip-path");
      this.clipnode.remove();
      this.clipnode = undefined;
@@ -375,7 +409,7 @@ _mm : MinMax;
     
     var co = canvaspath_draw_vs.next().zero();
     
-    if (node == undefined) {
+    if (!node) {
       node = document.getElementById(domid);
       console.log("undefined node!", this.domnode, document.getElementById(domid), domid);
       return;
@@ -409,36 +443,68 @@ _mm : MinMax;
       
       var tmp = canvaspath_draw_args_tmps[arglen];
       var h = parseFloat(draw.svg.getAttributeNS(null, "height"));
-      
-      for (var j=0; j<arglen; j += 2) {
-        co[0] = cs[i++], co[1] = cs[i++];
-        co.multVecMatrix(mat);
-        
-        //nan check
-        if (isNaN(co[0])) {
-          co[0] = 0;
-        }
-        if (isNaN(co[1])) {
-          co[1] = 0;
-        }
-        
-        tmp[j] = co[0], tmp[j+1] = co[1];
-      }
 
+      //*
       switch (cmd) {
+        case STROKE:
+          break;
+        case STROKECOLOR:
+          let r = cs[i++], g2 = cs[i++], b = cs[i++], a = cs[i++];
+          r = ~~(r*255);
+          g2 = ~~(g2*255);
+          b = ~~(b*255);
+          a = a || 1.0;
+
+          node.setAttributeNS(null, "fill", "rgba("+r+","+g2+","+b+","+a+")");
+          break;
+        case STROKEWIDTH:
+          let w = cs[i++];
+          break;
         case MOVETO:
-          d += "M" + tmp[0] + " " + tmp[1];
-          break;
         case LINETO:
-          d += "L" + tmp[0] + " " + tmp[1];
-          break;
+        case CUBICTO:
         case BEZIERTO:
-          d += "Q" + tmp[0] + " " + tmp[1] + " " + tmp[2] + " " + tmp[3];
+        case BEGINPATH: {
+          for (var j = 0; j < arglen; j += 2) {
+            co[0] = cs[i++], co[1] = cs[i++];
+            co.multVecMatrix(mat);
+
+            //nan check
+            if (isNaN(co[0])) {
+              co[0] = 0;
+            }
+            if (isNaN(co[1])) {
+              co[1] = 0;
+            }
+
+            tmp[j] = co[0], tmp[j + 1] = co[1];
+          }
+
+          switch (cmd) {
+            case MOVETO:
+              d += "M" + tmp[0] + " " + tmp[1];
+              break;
+            case LINETO:
+              d += "L" + tmp[0] + " " + tmp[1];
+              break;
+            case BEZIERTO:
+              d += "Q" + tmp[0] + " " + tmp[1] + " " + tmp[2] + " " + tmp[3];
+              break;
+            case CUBICTO:
+              d += "C" + tmp[0] + " " + tmp[1] + " " + tmp[2] + " " + tmp[3] + " " + tmp[4] + " " + tmp[5];
+              break;
+            case BEGINPATH:
+              //XXX does svg have this within path elements?
+              break;
+          }
+
           break;
-        case BEGINPATH:
-          //XXX does svg have this within path elements?
+        }
+
+        default:
+          i += arglen;
           break;
-      }
+      }//*/
     }
     
     node.setAttributeNS(null, "d", d);
@@ -464,7 +530,7 @@ _mm : MinMax;
       this.gen(draw);
     }
     
-    if (this._last_off[0] != offx || this._last_off[1] != offy) {
+    if (this._last_off[0] !== offx || this._last_off[1] !== offy) {
       this._last_off[0] = offx;
       this._last_off[1] = offy;
       
@@ -503,7 +569,7 @@ export class SVGDraw2D extends VectorDraw {
   static get_canvas(id, width, height, zindex) {
     var ret = document.getElementById(id);
     
-    if (ret == undefined) {
+    if (!ret) {
       ret = makeElement("svg", {
         width  : width,
         height : height
@@ -519,10 +585,10 @@ export class SVGDraw2D extends VectorDraw {
       document.body.appendChild(ret);
     }
     
-    if (ret.width != width) {
+    if (ret.width !== width) {
       ret.setAttributeNS(null, "width", width);
     }
-    if (ret.height != height) {
+    if (ret.height !== height) {
       ret.setAttributeNS(null, "height", height);
     }
     
@@ -539,7 +605,7 @@ export class SVGDraw2D extends VectorDraw {
     }
     
     var path = this.path_idmap[id];
-    return check_z ? path.z == z : true;
+    return check_z ? path.z === z : true;
   }
   
   //creates new path if necessary.  z is required
@@ -558,7 +624,7 @@ export class SVGDraw2D extends VectorDraw {
     
     var ret = this.path_idmap[id];
     
-    if (check_z && ret.z != z) {
+    if (check_z && ret.z !== z) {
       this.dosort = 1;
       ret.z = z;
     }
@@ -573,13 +639,12 @@ export class SVGDraw2D extends VectorDraw {
   }
   
   static kill_canvas(svg) {
-    if (svg != undefined) {
+    if (svg) {
       svg.remove();
     }
   }
   
   destroy() {
-    return;
     console.log("DESTROY!");
     
     for (var path of this.paths) {
@@ -589,7 +654,7 @@ export class SVGDraw2D extends VectorDraw {
     this.paths.length = 0;
     this.path_idmap = {};
     
-    if (this.svg != undefined) {
+    if (this.svg) {
       this.svg.remove();
       this.svg = this.defs = undefined;
     }
@@ -597,12 +662,25 @@ export class SVGDraw2D extends VectorDraw {
   
   draw(g) {
     var canvas = g.canvas;
-    
-    if (canvas.style["background"] != "rgba(0,0,0,0)") {
-      canvas.style["background"] = "rgba(0,0,0,0)";
+
+    let updateKey = "" + this.matrix.$matrix.m11.toFixed(4) + ":" + this.matrix.$matrix.m41.toFixed(2) + ":" + this.matrix.$matrix.m42.toFixed(2);
+    let recalc_all = false;
+
+    if (updateKey !== this._last_update_key) {
+      recalc_all = true;
+      this._last_update_key = updateKey;
     }
     
+    if (canvas.style["background"] !== "rgba(0,0,0,0)") {
+      canvas.style["background"] = "rgba(0,0,0,0)";
+    }
+
+    let dpi = devicePixelRatio;
+
     this.svg = SVGDraw2D.get_canvas(canvas.id + "_svg", canvas.width, canvas.height, 1);
+    this.svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    this.svg.setAttribute(`xmlns:xlink`, "http://www.w3.org/1999/xlink");
+    this.svg.style["pointer-events"] = "none";
     
     var this2 = this;
     function onkillscreen() {
@@ -618,7 +696,7 @@ export class SVGDraw2D extends VectorDraw {
     var defsid = this.svg.id + "_defs";
     var defs = document.getElementById(defsid);
     
-    if (defs == undefined) {
+    if (!defs) {
       defs = makeElement("defs", {
         id : defsid
       });
@@ -630,7 +708,7 @@ export class SVGDraw2D extends VectorDraw {
     var groupid = this.svg.id + "_maingroup";
     var group = document.getElementById(groupid);
     
-    if (group == undefined) {
+    if (!group) {
       group = makeElement("g", {
         id : groupid
       });
@@ -638,20 +716,26 @@ export class SVGDraw2D extends VectorDraw {
     }
     this.group = group;
     
-    //update pan
-    var transform = "translate("+this.pan[0] + "," + this.pan[1] + ")";
-    if (!group.hasAttributeNS(null, "transform") || group.getAttributeNS(null, "transform") != transform) {
+    /*
+    var transform = "translate(0, 0)";
+    if (!group.hasAttributeNS(null, "transform") || group.getAttributeNS(null, "transform") !== transform) {
       group.setAttributeNS(null, "transform", transform);
-    }
-    
-    if (this.svg.style["left"] != canvas.style["left"])
+    }//*/
+
+    if (this.svg.style["width"] !== canvas.style["width"])
+      this.svg.style["width"] = canvas.style["width"];
+
+    if (this.svg.style["height"] !== canvas.style["height"])
+      this.svg.style["height"] = canvas.style["height"];
+
+    if (this.svg.style["left"] !== canvas.style["left"])
       this.svg.style["left"] = canvas.style["left"];
     
-    if (this.svg.style["top"] != canvas.style["top"])
+    if (this.svg.style["top"] !== canvas.style["top"])
       this.svg.style["top"] = canvas.style["top"];
     
-    for (var path of this.paths) {
-      if (path.z != path._last_z) {
+    for (let path of this.paths) {
+      if (path.z !== path._last_z) {
         this.dosort = 1;
         
         path.recalc = 1;
@@ -660,8 +744,8 @@ export class SVGDraw2D extends VectorDraw {
     }
     
     //force path recalc here
-    for (var path of this.paths) {
-      if (path.recalc) {
+    for (let path of this.paths) {
+      if (path.recalc || recalc_all) {
         path.gen(this);
       }
     }
@@ -679,7 +763,7 @@ export class SVGDraw2D extends VectorDraw {
       for (var i=0; i<cs.length; i++) {
         var n = cs[i];
         
-        if (n.tagName.toUpperCase() == "USE") {
+        if (n.tagName.toUpperCase() === "USE") {
           n.remove();
           i--;
         }
@@ -701,7 +785,7 @@ export class SVGDraw2D extends VectorDraw {
         //force setting of transform property
         path._last_off[0] = path._last_off[1] = 1e17;
         
-        //if (path.domnode != undefined && path.clipnode != undefined) {
+        //if (path.domnode && path.clipnode) {
         //  usenode.setAttributeNS(null, "clip-path", "url(#"+path.clipnode.id+")");
         //}
         
@@ -709,7 +793,7 @@ export class SVGDraw2D extends VectorDraw {
       }
     }
     
-    for (var path of this.paths) {
+    for (let path of this.paths) {
       if (!path.hidden)
         path.draw(this);
     }

@@ -94,12 +94,17 @@ export class SimpleCanvasPath extends QuadBezPath {
       var cmd = cs[i++];
       var arglen = cs[i++];
       
-      if (fast_mode && prev != BEGINPATH) {
+      if (fast_mode && prev !== BEGINPATH) {
         prev = cmd;
         i += arglen;
         continue;
       }
-      
+
+      if (cmd !== LINETO && cmd !== MOVETO && cmd !== CUBICTO && cmd !== BEZIERTO) {
+        prev = cmd;
+        continue;
+      }
+
       for (var j=0; j<arglen; j += 2) {
         tmp[0] = cs[i++], tmp[1] = cs[i++];
         tmp.multVecMatrix(draw.matrix);
@@ -174,11 +179,10 @@ export class SimpleCanvasPath extends QuadBezPath {
   pushStroke(color, width) {
     if (color) {
       let a = color[3] || 1.0;
-      this._pushCmd(STROKECOLOR, color[0], color[1], color[2], a);
+      this._pushCmd(STROKECOLOR, color[0], color[1], color[2], a, 0.5);
     }
 
     if (width) {
-      let zoom = this.matrix.$matrix.m11;
       this._pushCmd(STROKEWIDTH, width);
     }
 
@@ -245,7 +249,7 @@ export class SimpleCanvasPath extends QuadBezPath {
     
     g.beginPath();
     g.lineCap = "butt";
-    g.miterLimit = 1.7
+    g.miterLimit = 2.5;
 
     let cmds = this.commands;
     let i;

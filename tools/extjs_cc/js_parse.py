@@ -3003,13 +3003,18 @@ def p_case_block(p):
   elif len(p) == 4:
     if p[1] != None:
       p[0] = p[1]
+
       p[0].append(p[2])
+
       if p[3] != None:
-        p[0].append(p[3])
+        for n in p[3]:
+          p[0].append(n)
     else:
       p[0] = [p[2]]
+
       if p[3] != None:
-        p[0].append(p[3])
+        for n in p[3]:
+          p[0].append(n)
       
 def p_switch(p):
   '''switch : SWITCH paren_expr LBRACKET case_block RBRACKET

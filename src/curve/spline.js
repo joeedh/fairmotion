@@ -142,6 +142,7 @@ export class Spline extends DataBlock {
   frame : number
   rendermat : Matrix4
   _idgen : SDIDGen
+  draw_layerlist : Array<number>;
   proportional : boolean
   prop_radius : number
   eidmap : Object
@@ -166,6 +167,7 @@ export class Spline extends DataBlock {
     super(DataTypes.SPLINE, name);
 
     this.updateGen = 0;
+    this.draw_layerlist = [];
 
     /**
     strings of 2-valence strokes.  we deliberately cache

@@ -712,8 +712,9 @@ export class SplineDrawer {
     } else {
       off.zero();
     }
-    
-    
+
+    let updateflags = (SplineFlags.REDRAW|SplineFlags.UPDATE);
+
     //update pan.  clear matrice's translation
     var m = matrix.$matrix;
     this.drawer.pan[0] = m.m41;
@@ -736,7 +737,7 @@ export class SplineDrawer {
     let vset = new set();
 
     for (let seg of spline.segments.visible) {
-      if (seg.flag & (SplineFlags.UPDATE|SplineFlags.REDRAW)) {
+      if (seg.flag & updateflags) {
         vset.add(seg.v1);
         vset.add(seg.v2);
 
@@ -746,7 +747,7 @@ export class SplineDrawer {
     }
 
     for (let v of vset) {
-      if (v.flag & (SplineFlags.UPDATE|SplineFlags.REDRAW)) {
+      if (v.flag & updateflags) {
         this.update_vertex_strokes(v, drawparams);
       }
     }
@@ -763,7 +764,7 @@ export class SplineDrawer {
         let redraw = false;
 
         for (let seg of e.segments) {
-          redraw = redraw || (seg.flag & (SplineFlags.REDRAW|SplineFlags.UPDATE));
+          redraw = redraw || (seg.flag & updateflags);
         }
 
         this.update_stroke_group(e, drawparams, redraw);
@@ -876,8 +877,8 @@ export class SplineDrawer {
 
     //double stroke path
     let path2 = this.get_path(g.id|(1<<19), z+1);
-    path2.noAutoFill();
     path2.reset();
+    path2.noAutoFill();
 
     let dpath, dpath2, dpath3, dpoint, dline;
     let debug = 0;
@@ -1541,10 +1542,31 @@ export class SplineDrawer {
       }
 
       s = (a + b) * 0.5;
-      s *= 1.2;
       s = Math.min(Math.max(s, 0.0), 1.0);
 
       setSegments(s);
+
+      let w = 0.0;
+      let tot = 0.0;
+
+      for (let seg of segments) {
+        let data = seg.cdata.get_layer(SplineDrawData);
+        let s1 = data.gets(seg, v, 0);
+        let w2 = seg.width(s1);
+
+        //w = Math.max(w, w2);
+        w += w2*0.1 + seg.mat.linewidth2*1.0;
+        tot++;
+      }
+
+      if (tot && w && seglen) {
+        w /= tot;
+
+        s += w / seglen;
+        s = Math.min(Math.max(s, 0.0), 0.5);
+
+        setSegments(s);
+      }
     }
 
     this.update_stroke_points(startv);

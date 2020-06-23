@@ -162,7 +162,7 @@ export class QuadBezPath {
     var t = (-(x1-x4)*dy2+(y1-y4)*dx2);
     var midx, midy;
     
-    if (tdiv != 0.0) {
+    if (tdiv !== 0.0) {
       t /= tdiv;
       
       midx = x1 + dx1*t;
@@ -195,6 +195,10 @@ export class QuadBezPath {
   }
 
   pushStroke(color, linewidth) {
+
+  }
+
+  pushFill() {
 
   }
 

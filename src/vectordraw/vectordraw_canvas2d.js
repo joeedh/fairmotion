@@ -917,7 +917,7 @@ export class CanvasDraw2D extends VectorDraw {
     this.onBatchDone = this.onBatchDone.bind(this);
   }
 
-  onBatchDone(batch) {
+  onBatchDone(batch : Batch) {
     let ok = true;
     for (let b of this.batches.drawlist) {
       if (b.pending) {
@@ -932,7 +932,7 @@ export class CanvasDraw2D extends VectorDraw {
     }
   }
 
-  has_path(id, z, check_z=true) {
+  has_path(id : number, z : number, check_z : boolean=true) : boolean {
     if (z === undefined) {
       throw new Error("z cannot be undefined");
     }
@@ -942,11 +942,11 @@ export class CanvasDraw2D extends VectorDraw {
     }
     
     var path = this.path_idmap[id];
-    return check_z ? path.z == z : true;
+    return check_z ? path.z === z : true;
   }
   
   //creates new path if necessary.  z is required
-  get_path(id, z, check_z=true) {
+  get_path(id : number, z : number, check_z : boolean=true) : CanvasPath {
     if (z === undefined) {
       throw new Error("z cannot be undefined");
     }

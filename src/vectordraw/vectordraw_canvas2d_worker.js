@@ -134,7 +134,7 @@ function doDrawList(commands, datablocks, id) {
   let transform = [1, 0, 0,  0, 1, 0];
   
   g.globalCompositeOperation = "source-over";
-  g.miterLimit = 1.7
+  g.miterLimit = 2.5;
   g.lineCap = "butt";
 
   let no_fill = false;

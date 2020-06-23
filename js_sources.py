@@ -45,6 +45,7 @@ sources = [
   "src/config/config_local.js",
   "src/core/const.js",
   "src/util/object_cache.js",
+  "src/util/bezier.js",
   "tools/utils/crypto/sha1.js",
   "tools/utils/libs/lz-string/libs/base64-string-v1.1.0.js",
   "tools/utils/libs/lz-string/libs/lz-string-1.3.3.js",

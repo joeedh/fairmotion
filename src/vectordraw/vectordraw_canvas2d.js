@@ -30,11 +30,15 @@ var canvaspath_draw_vs = new cachering(function() {
 }, 32);
 
 let MOVETO = OPCODES.MOVETO, BEZIERTO=OPCODES.QUADRATIC, LINETO=OPCODES.LINETO, BEGINPATH=OPCODES.BEGINPATH,
-    CUBICTO=OPCODES.CUBIC, CLOSEPATH = OPCODES.CLOSEPATH;
-var LINEWIDTH = OPCODES.LINEWIDTH, LINESTYLE = OPCODES.LINESTYLE, STROKE = OPCODES.STROKE;
+    CUBICTO=OPCODES.CUBIC, CLOSEPATH = OPCODES.CLOSEPATH, LINEWIDTH = OPCODES.LINEWIDTH,
+    LINESTYLE = OPCODES.LINESTYLE, STROKE = OPCODES.STROKE, FILL=OPCODES.FILL;
 
 let arglens = {};
 
+arglens[FILL] = 0;
+arglens[STROKE] = 0;
+arglens[LINEWIDTH] = 1;
+arglens[LINESTYLE] = 4;
 arglens[BEGINPATH] = 0;
 arglens[CLOSEPATH] = 0;
 arglens[MOVETO] = 2;
@@ -476,12 +480,15 @@ export class CanvasPath extends QuadBezPath {
   path_start_i : number
   first : boolean
   z   : number
+  nofill : boolean;
   _mm : MinMax;
 
   constructor() {
     super();
 
     this.z = 0;
+
+    this.nofill = false;
 
     this.dead = false;
     this.commands = [];
@@ -506,6 +513,10 @@ export class CanvasPath extends QuadBezPath {
     this._mm = new MinMax(2);
   }
 
+  pushFill() {
+    this._pushCmd(FILL);
+  }
+
   pushStroke(color, width) {
     if (color) {
       let a = color.length > 3 ? color[3] : 1.0;
@@ -518,6 +529,10 @@ export class CanvasPath extends QuadBezPath {
     }
 
     this._pushCmd(STROKE);
+  }
+
+  noAutoFill() {
+    this.nofill = true;
   }
 
   update_aabb(draw, fast_mode=false) {
@@ -675,8 +690,13 @@ export class CanvasPath extends QuadBezPath {
     commands2.push(OPCODES.BEGINPATH);
   
     commands2 = commands2.concat(this.commands);
-    commands2.push(clip_mode ? OPCODES.CLIP : OPCODES.FILL);
-  
+
+    if (clip_mode) {
+      commands2.push(OPCODES.CLIP);
+    } else if (!this.nofill) {
+      commands2.push(OPCODES.FILL);
+    }
+
     for (let c of commands2) {
       commands.push(c);
     }

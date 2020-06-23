@@ -28,7 +28,7 @@ export let Path = SimpleSkiaPath;
 loadCanvasKit();
 //*/
 
-/*
+//*
 export let Canvas = SimpleCanvasDraw2D;
 export let Path = SimpleCanvasPath;
 //*/
@@ -37,7 +37,7 @@ export let Canvas = StubCanvasDraw2D;
 export let Path = StubCanvasPath;
 //*/
 
-//* canvas2d worker
+/* canvas2d worker
 export let Canvas = CanvasDraw2D;
 export let Path = CanvasPath;
 //*/

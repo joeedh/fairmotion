@@ -26,7 +26,7 @@ var canvaspath_draw_vs = new cachering(function() {
 
 var CCMD=0, CARGLEN=1;
 
-var MOVETO = 0, BEZIERTO=1, LINETO=2, BEGINPATH=3, CUBICTO=4;
+var MOVETO = 0, BEZIERTO=1, LINETO=2, BEGINPATH=3, CUBICTO=4, STROKE=5, STROKECOLOR=6, STROKEWIDTH=7, NOFILL=8, FILL=9;
 
 var NS = "http://www.w3.org/2000/svg";
 var XLS = "http://www.w3.org/1999/xlink"
@@ -53,11 +53,12 @@ export class SimpleCanvasPath extends QuadBezPath {
   first : boolean
   _mm : MinMax;
 
-  constructor() {
+  constructor(matrix) {
     super();
     
     this.commands = [];
     this.recalc = 1;
+    this.matrix = matrix;
     
     this.lastx = 0;
     this.lasty = 0;
@@ -165,7 +166,29 @@ export class SimpleCanvasPath extends QuadBezPath {
     this.lastx = x2;
     this.lasty = y2;
   }
-  
+
+  pushFill() {
+    this._pushCmd(FILL);
+  }
+
+  pushStroke(color, width) {
+    if (color) {
+      let a = color[3] || 1.0;
+      this._pushCmd(STROKECOLOR, color[0], color[1], color[2], a);
+    }
+
+    if (width) {
+      let zoom = this.matrix.$matrix.m11;
+      this._pushCmd(STROKEWIDTH, width);
+    }
+
+    this._pushCmd(STROKE);
+  }
+
+  noAutoFill() {
+    this._pushCmd(NOFILL);
+  }
+
   destroy(draw) {
   }
   
@@ -221,6 +244,9 @@ export class SimpleCanvasPath extends QuadBezPath {
     let matrix = draw.matrix;
     
     g.beginPath();
+    g.lineCap = "butt";
+    g.miterLimit = 1.7
+
     let cmds = this.commands;
     let i;
 
@@ -250,6 +276,17 @@ export class SimpleCanvasPath extends QuadBezPath {
       }
       g.clip();
     }
+
+    var doff = 2500;
+    var do_blur = this.blur > 1 && !clipMode;
+
+    if (do_blur) {
+      g.filter = "blur(" + (this.blur*0.25*zoom) + "px)";
+    } else {
+      g.filter = "none";
+    }
+
+    let no_fill = false;
 
     for (i=0; i<cmds.length; i += cmds[i+1] + 2) {
       var cmd = cmds[i];
@@ -294,13 +331,46 @@ export class SimpleCanvasPath extends QuadBezPath {
 
           g.moveTo(tmp[0], tmp[1]);
           break;
+        case STROKECOLOR:
+          let r = cmds[i+2], g1 = cmds[i+3], b = cmds[i+4], a = cmd[i+5];
+
+          r = ~~(r*255);
+          g1 = ~~(g1*255);
+          b = ~~(b*255);
+
+          //console.log(a);
+
+          a = a || 1.0;
+
+          g.strokeStyle = `rgba(${r},${g1},${b},${a})`;
+          break;
+        case STROKEWIDTH:
+          //let mat = g.getTransform();
+          let zoom = draw.matrix.$matrix.m11;
+
+          g.lineWidth = cmds[i+2]*zoom;
+          break;
+        case STROKE:
+          g.stroke();
+          break;
+        case FILL:
+          g.fill();
+          break;
+        case NOFILL:
+          no_fill = true;
+          break;
       }
     }
-    
+
     if (clipMode) {
       return;
     }
-    
+
+    if (no_fill && this.clip_paths.length > 0) {
+      g.restore();
+      return;
+    }
+
     var r = ~~(this.color[0]*255),
         g1= ~~(this.color[1]*255),
         b = ~~(this.color[2]*255),
@@ -311,15 +381,6 @@ export class SimpleCanvasPath extends QuadBezPath {
     
     debuglog2("g.fillStyle", g.fillStyle);
 
-    var doff = 2500;
-    var do_blur = this.blur > 1 && !clipMode;
-
-    if (do_blur) {
-      g.filter = "blur(" + (this.blur*0.25*zoom) + "px)";
-    } else {
-      g.filter = "none";
-    }
-    
     debuglog2("fill");
     
     g.fill();
@@ -359,7 +420,7 @@ export class SimpleCanvasDraw2D extends VectorDraw {
   static get_canvas(id, width, height, zindex) {
     var ret = document.getElementById(id);
     
-    if (ret == undefined) {
+    if (ret === undefined) {
       ret = document.createElement("canvas");
       ret.id = id;
     }
@@ -367,7 +428,7 @@ export class SimpleCanvasDraw2D extends VectorDraw {
     ret.width = width;
     ret.height = height;
     
-    if (ret.style != undefined) {
+    if (ret.style !== undefined) {
       ret.style["z-index"] = zindex;
     }
     
@@ -384,7 +445,7 @@ export class SimpleCanvasDraw2D extends VectorDraw {
     }
     
     var path = this.path_idmap[id];
-    return check_z ? path.z == z : true;
+    return check_z ? path.z === z : true;
   }
   
   //creates new path if necessary.  z is required
@@ -394,7 +455,7 @@ export class SimpleCanvasDraw2D extends VectorDraw {
     }
     
     if (!(id in this.path_idmap)) {
-      this.path_idmap[id] = new SimpleCanvasPath();
+      this.path_idmap[id] = new SimpleCanvasPath(this.matrix);
       this.path_idmap[id].index = this.paths.length;
       this.path_idmap[id].id = id;
       this.dosort = 1;
@@ -403,8 +464,9 @@ export class SimpleCanvasDraw2D extends VectorDraw {
     }
     
     var ret = this.path_idmap[id];
+    ret.matrix.load(this.matrix);
     
-    if (check_z && ret.z != z) {
+    if (check_z && ret.z !== z) {
       this.dosort = 1;
       ret.z = z;
     }
@@ -431,7 +493,7 @@ export class SimpleCanvasDraw2D extends VectorDraw {
     
     
     //canvas.style["background"] = "rgba(0,0,0,0)";
-    
+
     this.canvas = canvas;
     this.g = g;
 

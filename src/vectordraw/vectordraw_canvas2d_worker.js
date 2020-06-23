@@ -63,7 +63,8 @@ let LINESTYLE = 0,
   CLIP = 20,
   DRAWIMAGE = 21,
   PUTIMAGE = 22,
-  SETTRANSFORM = 23;
+  SETTRANSFORM = 23,
+  NOFILL = 24;
 
 let MSG_NEW_JOB = 0,
   MSG_ADD_DATABLOCK = 1,
@@ -133,11 +134,15 @@ function doDrawList(commands, datablocks, id) {
   let transform = [1, 0, 0,  0, 1, 0];
   
   g.globalCompositeOperation = "source-over";
-  
+  g.miterLimit = 1.7
+  g.lineCap = "butt";
+
+  let no_fill = false;
+
   while (_i < commands.length) {
     let cmd = ~~read(); //give hint to compiler that this is an integer
     if (Debug) console.log("cmd", cmd)
-    
+
     switch (cmd) {
       case LINESTYLE :
       case FILLSTYLE :
@@ -271,9 +276,12 @@ function doDrawList(commands, datablocks, id) {
         //*/
         
         break;
+      case NOFILL:
+        no_fill = true;
+        break;
     }
   }
-  
+
   //reset blur
   if (blur > 0) {
     g.shadowOffsetX = 0.0;

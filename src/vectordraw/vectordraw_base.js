@@ -194,7 +194,11 @@ export class QuadBezPath {
   draw(draw, offx=0, offy=0) {
   }
 
-  pushStroke() {
+  pushStroke(color, linewidth) {
+
+  }
+
+  noAutoFill() {
 
   }
 

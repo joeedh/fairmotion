@@ -331,6 +331,48 @@ es6_module_define('object_cache', [], function _object_cache_module(_es6_module)
     return ret;
   }
 }, '/dev/fairmotion/src/util/object_cache.js');
+es6_module_define('bezier', [], function _bezier_module(_es6_module) {
+  function d2bez3(k1, k2, k3, s) {
+    return 2.0*(k1-k2-(k2-k3));
+  }
+  d2bez3 = _es6_module.add_export('d2bez3', d2bez3);
+  function dbez3(k1, k2, k3, s) {
+    return 2.0*(k1*s-k1-2.0*k2*s+k2+k3*s);
+  }
+  dbez3 = _es6_module.add_export('dbez3', dbez3);
+  function bez3(k1, k2, k3, s) {
+    return ((k1-k2)*s-k1-((k2-k3)*s-k2))*s-((k1-k2)*s-k1);
+  }
+  bez3 = _es6_module.add_export('bez3', bez3);
+  function ibez3(k1, k2, k3, s) {
+    return (-(((2.0*s-3.0)*k2-k3*s)*s-(s**2-3.0*s+3.0)*k1)*s)/3.0;
+  }
+  ibez3 = _es6_module.add_export('ibez3', ibez3);
+  function d2bez4(k1, k2, k3, k4, s) {
+    return -6.0*(k1*s-k1-3.0*k2*s+2.0*k2+3.0*k3*s-k3-k4*s);
+  }
+  d2bez4 = _es6_module.add_export('d2bez4', d2bez4);
+  function dbez4(k1, k2, k3, k4, s) {
+    return -3.0*(k1*s**2-2.0*k1*s+k1-3.0*k2*s**2+4.0*k2*s-k2+3.0*k3*s**2-2.0*k3*s-k4*s**2);
+  }
+  dbez4 = _es6_module.add_export('dbez4', dbez4);
+  function bez4(k1, k2, k3, k4, s) {
+    return -(((3.0*(s-1.0)*k3-k4*s)*s-3.0*(s-1.0)**2*k2)*s+(s-1.0)**3*k1);
+  }
+  bez4 = _es6_module.add_export('bez4', bez4);
+  function ibez4(k1, k2, k3, k4, s) {
+    return (-(((3.0*s-4.0)*k3-k4*s)*s**2+(s**2-2.0*s+2.0)*(s-2.0)*k1-(3.0*s**2-8.0*s+6.0)*k2*s)*s)/4.0;
+  }
+  ibez4 = _es6_module.add_export('ibez4', ibez4);
+  function curv4(x1, y1, x2, y2, x3, y3, x4, y4, s) {
+    let dx1=dbez4(x1, x2, x3, x4, s);
+    let dy1=dbez4(y1, y2, y3, y4, s);
+    let dx2=dbez4(x1, x2, x3, x4, s);
+    let dy2=dbez4(y1, y2, y3, y4, s);
+    return (dx1*dy2-dy1*dx2)/Math.pow(dx1*dx1+dy1*dy1, 3.0/2.0);
+  }
+  curv4 = _es6_module.add_export('curv4', curv4);
+}, '/dev/fairmotion/src/util/bezier.js');
 "not_a_module";
 var CryptoJS=CryptoJS||(function (Math, undefined) {
   var C={}

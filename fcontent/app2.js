@@ -6927,12 +6927,15 @@ es6_module_define('animutil', [], function _animutil_module(_es6_module) {
 }, '/dev/fairmotion/src/core/animutil.js');
 es6_module_define('config_defines', [], function _config_defines_module(_es6_module) {
 }, '/dev/fairmotion/src/config/config_defines.js');
-es6_module_define('svg_export', ["../curve/spline_base.js", "./mathlib.js"], function _svg_export_module(_es6_module) {
+es6_module_define('svg_export', ["../curve/spline_draw.js", "./mathlib.js", "../curve/spline_draw_new.js", "../vectordraw/vectordraw_svg.js", "../curve/spline_base.js"], function _svg_export_module(_es6_module) {
   "use strict";
   var math=es6_import(_es6_module, './mathlib.js');
   var SplineFlags=es6_import_item(_es6_module, '../curve/spline_base.js', 'SplineFlags');
   var MaterialFlags=es6_import_item(_es6_module, '../curve/spline_base.js', 'MaterialFlags');
   var SplineTypes=es6_import_item(_es6_module, '../curve/spline_base.js', 'SplineTypes');
+  var SplineDrawer=es6_import_item(_es6_module, '../curve/spline_draw_new.js', 'SplineDrawer');
+  var draw_spline=es6_import_item(_es6_module, '../curve/spline_draw.js', 'draw_spline');
+  var SVGDraw2D=es6_import_item(_es6_module, '../vectordraw/vectordraw_svg.js', 'SVGDraw2D');
   var cubic_rets=cachering.fromConstructor(Vector3, 64);
   function cubic(a, b, c, d, s) {
     var ret=cubic_rets.next();
@@ -6947,187 +6950,28 @@ es6_module_define('svg_export', ["../curve/spline_base.js", "./mathlib.js"], fun
     if (visible_only===undefined) {
         visible_only = false;
     }
-    if (spline==undefined) {
-        spline = new Context().spline;
+    if (spline===undefined) {
+        spline = g_app_state.ctx.spline;
     }
-    var drawlist=spline.drawlist;
-    var minmax=new math.MinMax(2);
-    for (var v of spline.verts) {
-        minmax.minmax(v);
-    }
-    var min=minmax.min, max=minmax.max;
-    function transform(co) {
-      co[1] = (min[1]+max[1])-co[1];
-      return co;
-    }
-    function curve_dist(seg, p, s, ds) {
-      var s1=s-ds, s2=s+ds;
-      var steps=5;
-      var mindis=1e+17, mins=0.0;
-      for (var i=0; i<steps+1; i++) {
-          var segs=s1+(s2-s1)*(i/steps);
-          var co=transform(seg.evaluate(segs));
-          var dis=co.vectorDistance(p);
-          if (dis<mindis) {
-              mindis = dis;
-              mins = s;
-          }
-      }
-      if (mindis==1e+17) {
-          return NaN;
-      }
-      return mindis;
-    }
-    function bezerror(seg, a, b, c, d, s1, s2) {
-      var steps=5;
-      var s=0, ds=1.0-(steps-1);
-      var sum=0.0;
-      for (var i=0; i<steps; i++, s+=ds) {
-          var co1=cubic(a, b, c, d, s);
-          var segs=s1+(s2-s1)*s;
-          co1 = transform(co1);
-          var err=seg.closest_point(co1);
-          if (err!==undefined) {
-              err = err.co.vectorDistance(co1);
-              sum+=err;
-          }
-      }
-      return sum/steps;
-    }
-    var circles=[];
-    function save(seg, s1, s2, depth) {
-      depth = depth===undefined ? 0 : depth;
-      var s3=(s1+s2)*0.5;
-      var k=Math.abs(seg.curvature(s3)*(s2-s1));
-      var dk=Math.abs(seg.curvature_dv(s3)*(s2-s1));
-      var err=k*seg.length;
-      if (depth<0||(depth<5&&err>1.0)) {
-          save(seg, s1, s3, depth+1);
-          save(seg, s3, s2, depth+1);
-          return ;
-      }
-      var ds=s2-s1;
-      var df1=seg.derivative(s1).mulScalar(ds/3.0);
-      df1[1] = -df1[1];
-      var df2=seg.derivative(s2).mulScalar(-ds/3.0);
-      df2[1] = -df2[1];
-      var co1=transform(seg.evaluate(s1)), co2=transform(seg.evaluate(s2));
-      df1.add(co1), df2.add(co2);
-      buf+=" C"+df1[0]+" "+df1[1]+" "+df2[0]+" "+df2[1]+" "+co2[0]+" "+co2[1];
-      circles.push([co2[0], co2[1]]);
-    }
-    function segstyle(seg) {
-      var r=~~(seg.mat.strokecolor[0]*255);
-      var g=~~(seg.mat.strokecolor[1]*255);
-      var b=~~(seg.mat.strokecolor[2]*255);
-      var a=seg.mat.strokecolor[3]*seg.mat.opacity;
-      var wid=(seg.flag&SplineFlags.NO_RENDER) ? 0 : seg.mat.linewidth;
-      var blur=seg.mat.blur;
-      var ret="stroke=\"rgb("+r+","+g+","+b+")\" stroke-opacity=\""+a+"\"";
-      ret+=" stroke-width=\""+wid+"\"";
-      return ret;
-    }
-    function get_stroke(face) {
-      var styles={}
-      var maxstyle=0, retstyle="";
-      var zi=drawlist.indexOf(face);
-      for (var list of face.paths) {
-          for (var loop of list) {
-              if (drawlist.indexOf(loop.s)<zi) {
-                  continue;
-              }
-              var style=segstyle(loop.s);
-              if (!(style in styles)) {
-                  styles[style] = 1;
-              }
-              else {
-                styles[style]++;
-              }
-              if (styles[style]>maxstyle) {
-                  maxstyle = styles[style];
-                  retstyle = style;
-              }
-          }
-      }
-      return retstyle;
-    }
-    var buf="<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">\n";
-    var face_seg_styles={}
-    function export_face(face) {
-      var r=~~(face.mat.fillcolor[0]*255);
-      var g=~~(face.mat.fillcolor[1]*255);
-      var b=~~(face.mat.fillcolor[2]*255);
-      var a=face.mat.fillcolor[3]*face.mat.opacity;
-      var strokestyle=get_stroke(face);
-      face_seg_styles[face.eid] = strokestyle;
-      var fill="rgb("+r+","+g+","+b+")";
-      buf+="<path "+strokestyle+" fill=\""+fill+"\" fill-opacity=\""+a+"\" d=\"";
-      var i=0;
-      var first=true;
-      for (var list of face.paths) {
-          list.update_winding();
-          var j=0;
-          var lastdf=new Vector3(), lastco=new Vector3();
-          for (var loop of list) {
-              var seg=loop.s, v=loop.v;
-              var dir=seg.v1===v ? 1 : -1;
-              var co=transform(seg.evaluate(dir<0 ? 1 : 0));
-              if (first)
-                buf+=(first ? " M" : " L")+co[0]+" "+co[1];
-              first = false;
-              save(seg, dir<0 ? 1 : 0, dir<0 ? 0 : 1, 0);
-              var co=transform(seg.evaluate(dir<0 ? 0 : 1));
-              continue;
-          }
-          i++;
-      }
-      buf+="\" />\n";
-    }
-    function export_segment(seg) {
-      var style=segstyle(seg);
-      var skip=seg.flag&SplineFlags.NO_RENDER;
-      if (!skip&&seg.l!=undefined) {
-          skip = true;
-          var l=seg.l;
-          var zi=drawlist.indexOf(seg);
-          var _i=0;
-          do {
-            if (_i++>500) {
-                console.trace("infinite loop detected; data corruption?");
-                break;
-            }
-            var f=l.f, style2;
-            if (!(f.eid in face_seg_styles)) {
-                style2 = face_seg_styles[f.eid] = get_stroke(f);
-            }
-            else {
-              style2 = face_seg_styles[f.eid];
-            }
-            skip = skip&&style2==style&&drawlist.indexOf(f)<=zi;
-            l = l.radial_next;
-          } while (l!=seg.l);
-          
-      }
-      if (skip)
-        return ;
-      buf+="<path fill=\"none\" "+style+" d=\"";
-      var co=transform(seg.evaluate(0));
-      buf+="M"+co[0]+" "+co[1];
-      save(seg, 0, 1);
-      buf+="\" />\n";
-    }
-    for (var item of spline.drawlist) {
-        if (item.type==SplineTypes.FACE)
-          export_face(item);
-        else 
-          if (item.type==SplineTypes.SEGMENT)
-          export_segment(item);
-    }
-    buf+="</svg>";
-    let ret=new Uint8Array(buf.length);
-    for (let i=0; i<buf.length; i++) {
-        ret[i] = buf.charCodeAt(i);
-    }
+    let drawer=new SplineDrawer(spline, new SVGDraw2D());
+    spline.regen_render();
+    spline.regen_sort();
+    let view2d=g_app_state.ctx.view2d;
+    let matrix=new Matrix4(view2d.rendermat);
+    let width=1024;
+    let height=768;
+    matrix.scale(1, -1, 1);
+    matrix.translate(0, -height);
+    let canvas=document.createElement("canvas");
+    let g=canvas.getContext("2d");
+    canvas.width = width;
+    canvas.height = height;
+    canvas.style["width"] = canvas.width+"px";
+    canvas.style["height"] = canvas.height+"px";
+    drawer.update(spline, spline.drawlist, spline.draw_layerlist, matrix, [], true, 1, g, 1.0, view2d, true);
+    drawer.draw(g);
+    let ret=drawer.drawer.svg.outerHTML;
+    drawer.drawer.destroy();
     return ret;
   }
   export_svg = _es6_module.add_export('export_svg', export_svg);

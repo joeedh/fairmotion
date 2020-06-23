@@ -10555,7 +10555,7 @@ SplineElement {
   FlipWrapper = _es6_module.add_export('FlipWrapper', FlipWrapper);
   flip_wrapper_cache = cachering.fromConstructor(FlipWrapper, 32);
 }, '/dev/fairmotion/src/curve/spline_base.js');
-es6_module_define('spline_types', ["../wasm/native_api.js", "../editors/viewport/selectmode.js", "./spline_math.js", "../core/eventdag.js", "../config/config.js", "./spline_base.js", "./spline_base", "./bspline.js", "../core/toolprops.js", "../core/toolprops_iter.js", "../util/mathlib.js", "./spline_multires.js", "../core/struct.js"], function _spline_types_module(_es6_module) {
+es6_module_define('spline_types', ["../config/config.js", "../util/mathlib.js", "../core/eventdag.js", "./spline_multires.js", "../editors/viewport/selectmode.js", "./bspline.js", "../core/toolprops_iter.js", "../wasm/native_api.js", "./spline_base", "../util/bezier.js", "./spline_base.js", "./spline_math.js", "../core/toolprops.js", "../core/struct.js"], function _spline_types_module(_es6_module) {
   "use strict";
   var ENABLE_MULTIRES=es6_import_item(_es6_module, '../config/config.js', 'ENABLE_MULTIRES');
   var PI=Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor, ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos, asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
@@ -10603,16 +10603,8 @@ es6_module_define('spline_types', ["../wasm/native_api.js", "../editors/viewport
   var spiralcurvature_dv=es6_import_item(_es6_module, './spline_math.js', 'spiralcurvature_dv');
   let eval_ret_vs=cachering.fromConstructor(Vector2, 512);
   let evaluateSide_rets=cachering.fromConstructor(Vector2, 512);
-  function bez3(a, b, c, t) {
-    var r1=a+(b-a)*t;
-    var r2=b+(c-b)*t;
-    return r1+(r2-r1)*t;
-  }
-  function bez4(a, b, c, d, t) {
-    var r1=bez3(a, b, c, t);
-    var r2=bez3(b, c, d, t);
-    return r1+(r2-r1)*t;
-  }
+  var bez3=es6_import_item(_es6_module, '../util/bezier.js', 'bez3');
+  var bez4=es6_import_item(_es6_module, '../util/bezier.js', 'bez4');
   let _seg_aabb_ret=[new Vector3(), new Vector3()];
   class SplineVertex extends SplineElement {
     
@@ -11857,7 +11849,7 @@ es6_module_define('spline_types', ["../wasm/native_api.js", "../editors/viewport
   }
   _ESClass.register(SplineLoopPathIter);
   _es6_module.add_class(SplineLoopPathIter);
-  var $cent_pU92_update_winding;
+  var $cent_zJnN_update_winding;
   class SplineLoopPath  {
     
      constructor(l, f) {
@@ -11873,14 +11865,14 @@ es6_module_define('spline_types', ["../wasm/native_api.js", "../editors/viewport
       return this.itercache.next().init(this);
     }
      update_winding() {
-      $cent_pU92_update_winding.zero();
+      $cent_zJnN_update_winding.zero();
       for (var l of this) {
-          $cent_pU92_update_winding.add(l.v);
+          $cent_zJnN_update_winding.add(l.v);
       }
-      $cent_pU92_update_winding.mulScalar(1.0/this.totvert);
+      $cent_zJnN_update_winding.mulScalar(1.0/this.totvert);
       var wsum=0;
       for (var l of this) {
-          wsum+=math.winding(l.v, l.next.v, $cent_pU92_update_winding) ? 1 : -1;
+          wsum+=math.winding(l.v, l.next.v, $cent_zJnN_update_winding) ? 1 : -1;
       }
       this.winding = wsum>=0;
     }
@@ -11911,7 +11903,7 @@ es6_module_define('spline_types', ["../wasm/native_api.js", "../editors/viewport
       return ret;
     }
   }
-  var $cent_pU92_update_winding=new Vector3();
+  var $cent_zJnN_update_winding=new Vector3();
   _ESClass.register(SplineLoopPath);
   _es6_module.add_class(SplineLoopPath);
   SplineLoopPath = _es6_module.add_export('SplineLoopPath', SplineLoopPath);
@@ -11922,7 +11914,7 @@ es6_module_define('spline_types', ["../wasm/native_api.js", "../editors/viewport
     winding : int;
   }
 `;
-  var $minmax_uvhi_update_aabb;
+  var $minmax_7Ct8_update_aabb;
   class SplineFace extends SplineElement {
     
     
@@ -11945,17 +11937,17 @@ es6_module_define('spline_types', ["../wasm/native_api.js", "../editors/viewport
     }
      update_aabb() {
       this.flag&=~SplineFlags.UPDATE_AABB;
-      $minmax_uvhi_update_aabb.reset();
+      $minmax_7Ct8_update_aabb.reset();
       for (var path of this.paths) {
           for (var l of path) {
-              $minmax_uvhi_update_aabb.minmax(l.v.aabb[0]);
-              $minmax_uvhi_update_aabb.minmax(l.v.aabb[1]);
-              $minmax_uvhi_update_aabb.minmax(l.s.aabb[0]);
-              $minmax_uvhi_update_aabb.minmax(l.s.aabb[1]);
+              $minmax_7Ct8_update_aabb.minmax(l.v.aabb[0]);
+              $minmax_7Ct8_update_aabb.minmax(l.v.aabb[1]);
+              $minmax_7Ct8_update_aabb.minmax(l.s.aabb[0]);
+              $minmax_7Ct8_update_aabb.minmax(l.s.aabb[1]);
           }
       }
-      this._aabb[0].load($minmax_uvhi_update_aabb.min);
-      this._aabb[1].load($minmax_uvhi_update_aabb.max);
+      this._aabb[0].load($minmax_7Ct8_update_aabb.min);
+      this._aabb[1].load($minmax_7Ct8_update_aabb.max);
       this._aabb[0][2] = this._aabb[1][2] = 0.0;
     }
     get  aabb() {
@@ -11973,7 +11965,7 @@ es6_module_define('spline_types', ["../wasm/native_api.js", "../editors/viewport
       this.mat.update = this._mat_update.bind(this);
     }
   }
-  var $minmax_uvhi_update_aabb=new MinMax(3);
+  var $minmax_7Ct8_update_aabb=new MinMax(3);
   _ESClass.register(SplineFace);
   _es6_module.add_class(SplineFace);
   SplineFace = _es6_module.add_export('SplineFace', SplineFace);

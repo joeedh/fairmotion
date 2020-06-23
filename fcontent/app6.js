@@ -667,7 +667,7 @@ es6_module_define('spline_draw_sort', ["./spline_math.js", "../core/animdata.js"
   }
   redo_draw_sort = _es6_module.add_export('redo_draw_sort', redo_draw_sort);
 }, '/dev/fairmotion/src/curve/spline_draw_sort.js');
-es6_module_define('spline', ["./spline_element_array.js", "../editors/viewport/view2d_editor.js", "./solver_new.js", "./spline_types.js", "./spline_draw.js", "../core/toolops_api.js", "./spline_multires.js", "../core/eventdag.js", "../wasm/native_api.js", "../config/config.js", "./spline_query.js", "./solver.js", "../path.ux/scripts/config/const.js", "./spline_math.js", "./spline_strokegroup.js", "../core/lib_api.js", "../editors/viewport/selectmode.js", "../core/struct.js"], function _spline_module(_es6_module) {
+es6_module_define('spline', ["../core/lib_api.js", "../wasm/native_api.js", "./spline_query.js", "../config/config.js", "../path.ux/scripts/config/const.js", "./spline_math.js", "./solver.js", "./spline_types.js", "./spline_draw.js", "../editors/viewport/selectmode.js", "./spline_strokegroup.js", "./solver_new.js", "./spline_multires.js", "../core/toolops_api.js", "../editors/viewport/view2d_editor.js", "../core/eventdag.js", "../core/struct.js", "./spline_element_array.js"], function _spline_module(_es6_module) {
   "use strict";
   const MMLEN=8;
   const UARR=Uint16Array;
@@ -809,9 +809,11 @@ es6_module_define('spline', ["./spline_element_array.js", "../editors/viewport/v
     
     
     
+    
      constructor(name=undefined) {
       super(DataTypes.SPLINE, name);
       this.updateGen = 0;
+      this.draw_layerlist = [];
       this.strokeGroups = [];
       this._strokeGroupMap = new Map();
       this.drawStrokeGroups = [];
@@ -4020,7 +4022,7 @@ VectorVertex {
       var tdiv=(dx1*dy2-dx2*dy1);
       var t=(-(x1-x4)*dy2+(y1-y4)*dx2);
       var midx, midy;
-      if (tdiv!=0.0) {
+      if (tdiv!==0.0) {
           t/=tdiv;
           midx = x1+dx1*t;
           midy = y1+dy1*t;
@@ -4047,7 +4049,13 @@ VectorVertex {
      draw(draw, offx=0, offy=0) {
 
     }
-     pushStroke() {
+     pushStroke(color, linewidth) {
+
+    }
+     pushFill() {
+
+    }
+     noAutoFill() {
 
     }
      update() {
@@ -4150,7 +4158,7 @@ VectorVertex {
   _es6_module.add_class(VectorDraw);
   VectorDraw = _es6_module.add_export('VectorDraw', VectorDraw);
 }, '/dev/fairmotion/src/vectordraw/vectordraw_base.js');
-es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "../util/mathlib.js", "./vectordraw_base.js", "../path.ux/scripts/util/util.js", "../config/config.js", "./vectordraw_jobs.js", "./vectordraw_jobs_base.js"], function _vectordraw_canvas2d_module(_es6_module) {
+es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "../config/config.js", "../util/mathlib.js", "./vectordraw_jobs.js", "../path.ux/scripts/util/util.js", "./vectordraw_base.js", "./vectordraw_jobs_base.js"], function _vectordraw_canvas2d_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   var util=es6_import(_es6_module, '../path.ux/scripts/util/util.js');
@@ -4173,9 +4181,12 @@ es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "..
   var canvaspath_draw_vs=new cachering(function () {
     return new Vector2();
   }, 32);
-  let MOVETO=OPCODES.MOVETO, BEZIERTO=OPCODES.QUADRATIC, LINETO=OPCODES.LINETO, BEGINPATH=OPCODES.BEGINPATH, CUBICTO=OPCODES.CUBIC, CLOSEPATH=OPCODES.CLOSEPATH;
-  var LINEWIDTH=OPCODES.LINEWIDTH, LINESTYLE=OPCODES.LINESTYLE, STROKE=OPCODES.STROKE;
+  let MOVETO=OPCODES.MOVETO, BEZIERTO=OPCODES.QUADRATIC, LINETO=OPCODES.LINETO, BEGINPATH=OPCODES.BEGINPATH, CUBICTO=OPCODES.CUBIC, CLOSEPATH=OPCODES.CLOSEPATH, LINEWIDTH=OPCODES.LINEWIDTH, LINESTYLE=OPCODES.LINESTYLE, STROKE=OPCODES.STROKE, FILL=OPCODES.FILL;
   let arglens={}
+  arglens[FILL] = 0;
+  arglens[STROKE] = 0;
+  arglens[LINEWIDTH] = 1;
+  arglens[LINESTYLE] = 4;
   arglens[BEGINPATH] = 0;
   arglens[CLOSEPATH] = 0;
   arglens[MOVETO] = 2;
@@ -4468,9 +4479,11 @@ es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "..
     
     
     
+    
      constructor() {
       super();
       this.z = 0;
+      this.nofill = false;
       this.dead = false;
       this.commands = [];
       this.recalc = 1;
@@ -4488,6 +4501,9 @@ es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "..
       this.first = true;
       this._mm = new MinMax(2);
     }
+     pushFill() {
+      this._pushCmd(FILL);
+    }
      pushStroke(color, width) {
       if (color) {
           let a=color.length>3 ? color[3] : 1.0;
@@ -4498,6 +4514,9 @@ es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "..
           this._pushCmd(LINEWIDTH, width);
       }
       this._pushCmd(STROKE);
+    }
+     noAutoFill() {
+      this.nofill = true;
     }
      update_aabb(draw, fast_mode=false) {
       var tmp=canvaspath_temp_vs.next().zero();
@@ -4612,7 +4631,13 @@ es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "..
       }
       commands2.push(OPCODES.BEGINPATH);
       commands2 = commands2.concat(this.commands);
-      commands2.push(clip_mode ? OPCODES.CLIP : OPCODES.FILL);
+      if (clip_mode) {
+          commands2.push(OPCODES.CLIP);
+      }
+      else 
+        if (!this.nofill) {
+          commands2.push(OPCODES.FILL);
+      }
       for (let c of commands2) {
           commands.push(c);
       }
@@ -4804,7 +4829,7 @@ es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "..
           return false;
       }
       var path=this.path_idmap[id];
-      return check_z ? path.z==z : true;
+      return check_z ? path.z===z : true;
     }
      get_path(id, z, check_z=true) {
       if (z===undefined) {
@@ -5200,7 +5225,7 @@ es6_module_define('vectordraw_stub', ["../util/mathlib.js", "../config/config.js
   _es6_module.add_class(StubCanvasDraw2D);
   StubCanvasDraw2D = _es6_module.add_export('StubCanvasDraw2D', StubCanvasDraw2D);
 }, '/dev/fairmotion/src/vectordraw/vectordraw_stub.js');
-es6_module_define('vectordraw_canvas2d_simple', ["../util/mathlib.js", "./vectordraw_base.js", "../config/config.js"], function _vectordraw_canvas2d_simple_module(_es6_module) {
+es6_module_define('vectordraw_canvas2d_simple', ["../util/mathlib.js", "../config/config.js", "./vectordraw_base.js"], function _vectordraw_canvas2d_simple_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
@@ -5223,7 +5248,7 @@ es6_module_define('vectordraw_canvas2d_simple', ["../util/mathlib.js", "./vector
     return new Vector2();
   }, 32);
   var CCMD=0, CARGLEN=1;
-  var MOVETO=0, BEZIERTO=1, LINETO=2, BEGINPATH=3, CUBICTO=4;
+  var MOVETO=0, BEZIERTO=1, LINETO=2, BEGINPATH=3, CUBICTO=4, STROKE=5, STROKECOLOR=6, STROKEWIDTH=7, NOFILL=8, FILL=9;
   var NS="http://www.w3.org/2000/svg";
   var XLS="http://www.w3.org/1999/xlink";
   function makeElement(type, attrs) {
@@ -5247,10 +5272,11 @@ es6_module_define('vectordraw_canvas2d_simple', ["../util/mathlib.js", "./vector
     
     
     
-     constructor() {
+     constructor(matrix) {
       super();
       this.commands = [];
       this.recalc = 1;
+      this.matrix = matrix;
       this.lastx = 0;
       this.lasty = 0;
       this._last_z = undefined;
@@ -5276,9 +5302,13 @@ es6_module_define('vectordraw_canvas2d_simple', ["../util/mathlib.js", "./vector
       while (i<cs.length) {
         var cmd=cs[i++];
         var arglen=cs[i++];
-        if (fast_mode&&prev!=BEGINPATH) {
+        if (fast_mode&&prev!==BEGINPATH) {
             prev = cmd;
             i+=arglen;
+            continue;
+        }
+        if (cmd!==LINETO&&cmd!==MOVETO&&cmd!==CUBICTO&&cmd!==BEZIERTO) {
+            prev = cmd;
             continue;
         }
         for (var j=0; j<arglen; j+=2) {
@@ -5332,6 +5362,22 @@ es6_module_define('vectordraw_canvas2d_simple', ["../util/mathlib.js", "./vector
       this.lastx = x2;
       this.lasty = y2;
     }
+     pushFill() {
+      this._pushCmd(FILL);
+    }
+     pushStroke(color, width) {
+      if (color) {
+          let a=color[3]||1.0;
+          this._pushCmd(STROKECOLOR, color[0], color[1], color[2], a, 0.5);
+      }
+      if (width) {
+          this._pushCmd(STROKEWIDTH, width);
+      }
+      this._pushCmd(STROKE);
+    }
+     noAutoFill() {
+      this._pushCmd(NOFILL);
+    }
      destroy(draw) {
 
     }
@@ -5375,6 +5421,8 @@ es6_module_define('vectordraw_canvas2d_simple', ["../util/mathlib.js", "./vector
       debuglog2("start "+this.id);
       let matrix=draw.matrix;
       g.beginPath();
+      g.lineCap = "butt";
+      g.miterLimit = 2.5;
       let cmds=this.commands;
       let i;
       let mat2=new Matrix4(draw.matrix);
@@ -5396,6 +5444,15 @@ es6_module_define('vectordraw_canvas2d_simple', ["../util/mathlib.js", "./vector
           }
           g.clip();
       }
+      var doff=2500;
+      var do_blur=this.blur>1&&!clipMode;
+      if (do_blur) {
+          g.filter = "blur("+(this.blur*0.25*zoom)+"px)";
+      }
+      else {
+        g.filter = "none";
+      }
+      let no_fill=false;
       for (i = 0; i<cmds.length; i+=cmds[i+1]+2) {
           var cmd=cmds[i];
           switch (cmd) {
@@ -5429,23 +5486,40 @@ es6_module_define('vectordraw_canvas2d_simple', ["../util/mathlib.js", "./vector
               loadtemp(0);
               g.moveTo(tmp[0], tmp[1]);
               break;
+            case STROKECOLOR:
+              let r=cmds[i+2], g1=cmds[i+3], b=cmds[i+4], a=cmd[i+5];
+              r = ~~(r*255);
+              g1 = ~~(g1*255);
+              b = ~~(b*255);
+              a = a||1.0;
+              g.strokeStyle = `rgba(${r},${g1},${b},${a})`;
+              break;
+            case STROKEWIDTH:
+              let zoom=draw.matrix.$matrix.m11;
+              g.lineWidth = cmds[i+2]*zoom;
+              break;
+            case STROKE:
+              g.stroke();
+              break;
+            case FILL:
+              g.fill();
+              break;
+            case NOFILL:
+              no_fill = true;
+              break;
           }
       }
       if (clipMode) {
+          return ;
+      }
+      if (no_fill&&this.clip_paths.length>0) {
+          g.restore();
           return ;
       }
       var r=~~(this.color[0]*255), g1=~~(this.color[1]*255), b=~~(this.color[2]*255), a=this.color[3];
       let fstyle="rgba("+r+","+g1+","+b+","+a+")";
       g.fillStyle = fstyle;
       debuglog2("g.fillStyle", g.fillStyle);
-      var doff=2500;
-      var do_blur=this.blur>1&&!clipMode;
-      if (do_blur) {
-          g.filter = "blur("+(this.blur*0.25*zoom)+"px)";
-      }
-      else {
-        g.filter = "none";
-      }
       debuglog2("fill");
       g.fill();
       if (this.clip_paths.length>0) {
@@ -5478,13 +5552,13 @@ es6_module_define('vectordraw_canvas2d_simple', ["../util/mathlib.js", "./vector
     }
     static  get_canvas(id, width, height, zindex) {
       var ret=document.getElementById(id);
-      if (ret==undefined) {
+      if (ret===undefined) {
           ret = document.createElement("canvas");
           ret.id = id;
       }
       ret.width = width;
       ret.height = height;
-      if (ret.style!=undefined) {
+      if (ret.style!==undefined) {
           ret.style["z-index"] = zindex;
       }
       return ret;
@@ -5497,21 +5571,22 @@ es6_module_define('vectordraw_canvas2d_simple', ["../util/mathlib.js", "./vector
           return false;
       }
       var path=this.path_idmap[id];
-      return check_z ? path.z==z : true;
+      return check_z ? path.z===z : true;
     }
      get_path(id, z, check_z=true) {
       if (z===undefined) {
           throw new Error("z cannot be undefined");
       }
       if (!(id in this.path_idmap)) {
-          this.path_idmap[id] = new SimpleCanvasPath();
+          this.path_idmap[id] = new SimpleCanvasPath(this.matrix);
           this.path_idmap[id].index = this.paths.length;
           this.path_idmap[id].id = id;
           this.dosort = 1;
           this.paths.push(this.path_idmap[id]);
       }
       var ret=this.path_idmap[id];
-      if (check_z&&ret.z!=z) {
+      ret.matrix.load(this.matrix);
+      if (check_z&&ret.z!==z) {
           this.dosort = 1;
           ret.z = z;
       }
@@ -5989,7 +6064,7 @@ es6_module_define('vectordraw_skia_simple', ["../util/mathlib.js", "./vectordraw
   _es6_module.add_class(SimpleSkiaDraw2D);
   SimpleSkiaDraw2D = _es6_module.add_export('SimpleSkiaDraw2D', SimpleSkiaDraw2D);
 }, '/dev/fairmotion/src/vectordraw/vectordraw_skia_simple.js');
-es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js", "../config/config.js"], function _vectordraw_svg_module(_es6_module) {
+es6_module_define('vectordraw_svg', ["../config/config.js", "../util/mathlib.js", "./vectordraw_base.js"], function _vectordraw_svg_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
@@ -6000,7 +6075,7 @@ es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js
   var canvaspath_draw_mat_tmps=new cachering((_) =>    {
     return new Matrix4();
   }, 16);
-  var canvaspath_draw_args_tmps=new Array(8);
+  var canvaspath_draw_args_tmps=new Array(32);
   for (var i=1; i<canvaspath_draw_args_tmps.length; i++) {
       canvaspath_draw_args_tmps[i] = new Array(i);
   }
@@ -6008,7 +6083,7 @@ es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js
     return new Vector2();
   }, 32);
   var CCMD=0, CARGLEN=1;
-  var MOVETO=0, BEZIERTO=1, LINETO=2, BEGINPATH=3;
+  var MOVETO=0, BEZIERTO=1, LINETO=2, BEGINPATH=3, CUBICTO=4, STROKE=5, STROKECOLOR=6, STROKEWIDTH=7, NOAUTOFILL=8, FILL=9;
   var NS="http://www.w3.org/2000/svg";
   var XLS="http://www.w3.org/1999/xlink";
   function makeElement(type, attrs) {
@@ -6060,9 +6135,12 @@ es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js
       while (i<cs.length) {
         var cmd=cs[i++];
         var arglen=cs[i++];
-        if (fast_mode&&prev!=BEGINPATH) {
+        if (fast_mode&&prev!==BEGINPATH) {
             prev = cmd;
             i+=arglen;
+            continue;
+        }
+        if (cmd!==LINETO&&cmd!==CUBICTO&&cmd!==BEZIERTO&&cmd!==MOVETO) {
             continue;
         }
         for (var j=0; j<arglen; j+=2) {
@@ -6082,9 +6160,25 @@ es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js
      undo() {
       this.commands.length = this.path_start_i;
     }
+     pushFill() {
+      this._pushCmd(FILL);
+    }
+     pushStroke(color, width) {
+      if (color) {
+          let a=color[3]||1.0;
+          this._pushCmd(STROKECOLOR, color[0], color[1], color[2], a, 0.5);
+      }
+      if (width) {
+          this._pushCmd(STROKEWIDTH, width);
+      }
+      this._pushCmd(STROKE);
+    }
+     noAutoFill() {
+      this._pushCmd(NOAUTOFILL);
+    }
      _pushCmd() {
-      this.commands.push(arguments[0]);
       var arglen=arguments.length-1;
+      this.commands.push(arguments[0]);
       this.commands.push(arglen);
       for (var i=0; i<arglen; i++) {
           this.commands.push(arguments[i+1]);
@@ -6102,6 +6196,11 @@ es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js
       this.lastx = x3;
       this.lasty = y3;
     }
+     cubicTo(x2, y2, x3, y3, x4, y4) {
+      this._pushCmd(CUBICTO, x2, y2, x3, y3, x4, y4);
+      this.lastx = x4;
+      this.lasty = y4;
+    }
      lineTo(x2, y2) {
       if (this.first) {
           this.moveTo(x2, y2);
@@ -6112,21 +6211,21 @@ es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js
       this.lasty = y2;
     }
      destroy(draw) {
-      if (this.domnode!=undefined) {
+      if (this.domnode) {
           this.domnode.remove();
           this.domnode = undefined;
       }
-      if (this.filternode!=undefined) {
+      if (this.filternode) {
           this.filternode.remove();
           this.filternode = undefined;
       }
-      if (this.usenode!=undefined) {
+      if (this.usenode) {
           this.usenode.remove();
           this.usenode = undefined;
       }
     }
-     get_dom_id(draw) {
-      return draw.svg.id+"_path_"+this.id;
+     get_dom_id(draw, id2=0) {
+      return draw.svg.id+"_path_"+this.id+"_"+id2;
     }
      gen(draw, _check_tag=0) {
       if (_check_tag&&!this.recalc) {
@@ -6153,16 +6252,16 @@ es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js
       }
       var domid=this.get_dom_id(draw);
       var node=this.domnode;
-      if (node==undefined) {
+      if (!node) {
           node = this.domnode = document.getElementById(domid);
-          if (node==undefined) {
+          if (!node) {
               node = this.domnode = makeElement("path");
               node.id = domid;
               node.setAttributeNS(null, "id", domid);
               draw.defs.appendChild(node);
               var useid=domid+"_use";
               var usenode=document.getElementById(useid);
-              if (usenode!=undefined) {
+              if (usenode) {
                   usenode.remove();
               }
               usenode = makeElement("use", {"id": useid});
@@ -6171,7 +6270,7 @@ es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js
               this.usenode = usenode;
           }
       }
-      if (this.usenode==undefined) {
+      if (!this.usenode) {
           this.usenode = document.getElementById(domid+"_use");
       }
       for (var i=0; i<draw.group.childNodes.length; i++) {
@@ -6183,7 +6282,7 @@ es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js
       var fid=draw.svg.id+"_"+this.id+"_blur";
       var blur, filter;
       if (this.blur*draw.zoom>1) {
-          if (this.filternode==undefined) {
+          if (!this.filternode) {
               filter = this.filternode = document.getElementById(fid);
           }
           else {
@@ -6192,7 +6291,7 @@ es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js
           var w2=w-this.pad*2, h2=h-this.pad*2;
           var wratio=2.0*(w/w2)*100.0, hratio=2.0*(h/h2)*100.0;
           var fx=""+(-wratio/4)+"%", fy=""+(-hratio/4)+"%", fwidth=""+wratio+"%", fheight=""+hratio+"%";
-          if (filter==undefined) {
+          if (!filter) {
               var defs=draw.defs;
               var filter=this.filternode = makeElement("filter", {id: fid, 
          x: fx, 
@@ -6206,22 +6305,22 @@ es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js
               node.setAttributeNS(null, "filter", "url(#"+fid+")");
           }
           else {
-            if (filter.getAttributeNS(null, "x")!=fx)
+            if (filter.getAttributeNS(null, "x")!==fx)
               filter.setAttributeNS(null, "x", fx);
-            if (filter.getAttributeNS(null, "y")!=fy)
+            if (filter.getAttributeNS(null, "y")!==fy)
               filter.setAttributeNS(null, "y", fy);
-            if (filter.getAttributeNS(null, "width")!=fwidth)
+            if (filter.getAttributeNS(null, "width")!==fwidth)
               filter.setAttributeNS(null, "width", fwidth);
-            if (filter.getAttributeNS(null, "height")!=fheight)
+            if (filter.getAttributeNS(null, "height")!==fheight)
               filter.setAttributeNS(null, "hratio", fheight);
             blur = filter.childNodes[0];
-            if (!blur.hasAttributeNS(null, "stdDeviation")||parseFloat(blur.getAttributeNS(null, "stdDeviation"))!=~~(this.blur*draw.zoom*0.5)) {
+            if (!blur.hasAttributeNS(null, "stdDeviation")||parseFloat(blur.getAttributeNS(null, "stdDeviation"))!==~~(this.blur*draw.zoom*0.5)) {
                 blur.setAttributeNS(null, "stdDeviation", ~~(this.blur*draw.zoom*0.5));
             }
           }
       }
       else 
-        if (this.filternode!=undefined) {
+        if (this.filternode) {
           node.removeAttributeNS(null, "filter");
           this.filternode.remove();
           this.filternode = undefined;
@@ -6229,10 +6328,10 @@ es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js
       var clipid=draw.svg.id+"_"+this.id+"_clip";
       if (this.clip_paths.length>0) {
           var clip=this.clipnode;
-          if (clip==undefined) {
+          if (!clip) {
               clip = this.clipnode = document.getElementById(clipid);
           }
-          if (clip==undefined) {
+          if (!clip) {
               clip = this.clipnode = makeElement("clipPath", {id: clipid});
               draw.defs.appendChild(clip);
               for (var path of this.clip_paths) {
@@ -6248,7 +6347,7 @@ es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js
           node.setAttributeNS(null, "clip-path", "url(#"+clipid+")");
       }
       else 
-        if (this.clipnode!=undefined) {
+        if (this.clipnode) {
           node.removeAttributeNS(null, "clip-path");
           this.clipnode.remove();
           this.clipnode = undefined;
@@ -6256,7 +6355,7 @@ es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js
       var mat=canvaspath_draw_mat_tmps.next();
       mat.load(draw.matrix);
       var co=canvaspath_draw_vs.next().zero();
-      if (node==undefined) {
+      if (!node) {
           node = document.getElementById(domid);
           console.log("undefined node!", this.domnode, document.getElementById(domid), domid);
           return ;
@@ -6270,28 +6369,55 @@ es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js
         var arglen=cs[i++];
         var tmp=canvaspath_draw_args_tmps[arglen];
         var h=parseFloat(draw.svg.getAttributeNS(null, "height"));
-        for (var j=0; j<arglen; j+=2) {
-            co[0] = cs[i++], co[1] = cs[i++];
-            co.multVecMatrix(mat);
-            if (isNaN(co[0])) {
-                co[0] = 0;
-            }
-            if (isNaN(co[1])) {
-                co[1] = 0;
-            }
-            tmp[j] = co[0], tmp[j+1] = co[1];
-        }
         switch (cmd) {
+          case STROKE:
+            break;
+          case STROKECOLOR:
+            let r=cs[i++], g2=cs[i++], b=cs[i++], a=cs[i++];
+            r = ~~(r*255);
+            g2 = ~~(g2*255);
+            b = ~~(b*255);
+            a = a||1.0;
+            node.setAttributeNS(null, "fill", "rgba("+r+","+g2+","+b+","+a+")");
+            break;
+          case STROKEWIDTH:
+            let w=cs[i++];
+            break;
           case MOVETO:
-            d+="M"+tmp[0]+" "+tmp[1];
-            break;
           case LINETO:
-            d+="L"+tmp[0]+" "+tmp[1];
-            break;
+          case CUBICTO:
           case BEZIERTO:
-            d+="Q"+tmp[0]+" "+tmp[1]+" "+tmp[2]+" "+tmp[3];
-            break;
           case BEGINPATH:
+            for (var j=0; j<arglen; j+=2) {
+                co[0] = cs[i++], co[1] = cs[i++];
+                co.multVecMatrix(mat);
+                if (isNaN(co[0])) {
+                    co[0] = 0;
+                }
+                if (isNaN(co[1])) {
+                    co[1] = 0;
+                }
+                tmp[j] = co[0], tmp[j+1] = co[1];
+            }
+            switch (cmd) {
+              case MOVETO:
+                d+="M"+tmp[0]+" "+tmp[1];
+                break;
+              case LINETO:
+                d+="L"+tmp[0]+" "+tmp[1];
+                break;
+              case BEZIERTO:
+                d+="Q"+tmp[0]+" "+tmp[1]+" "+tmp[2]+" "+tmp[3];
+                break;
+              case CUBICTO:
+                d+="C"+tmp[0]+" "+tmp[1]+" "+tmp[2]+" "+tmp[3]+" "+tmp[4]+" "+tmp[5];
+                break;
+              case BEGINPATH:
+                break;
+            }
+            break;
+          default:
+            i+=arglen;
             break;
         }
       }
@@ -6311,7 +6437,7 @@ es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js
           this.recalc = 0;
           this.gen(draw);
       }
-      if (this._last_off[0]!=offx||this._last_off[1]!=offy) {
+      if (this._last_off[0]!==offx||this._last_off[1]!==offy) {
           this._last_off[0] = offx;
           this._last_off[1] = offy;
           var transform="translate("+offx+","+offy+")";
@@ -6344,7 +6470,7 @@ es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js
     }
     static  get_canvas(id, width, height, zindex) {
       var ret=document.getElementById(id);
-      if (ret==undefined) {
+      if (!ret) {
           ret = makeElement("svg", {width: width, 
        height: height});
           ret.id = id;
@@ -6354,10 +6480,10 @@ es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js
           console.trace("\tZINDEX: ", zindex);
           document.body.appendChild(ret);
       }
-      if (ret.width!=width) {
+      if (ret.width!==width) {
           ret.setAttributeNS(null, "width", width);
       }
-      if (ret.height!=height) {
+      if (ret.height!==height) {
           ret.setAttributeNS(null, "height", height);
       }
       return ret;
@@ -6370,7 +6496,7 @@ es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js
           return false;
       }
       var path=this.path_idmap[id];
-      return check_z ? path.z==z : true;
+      return check_z ? path.z===z : true;
     }
      get_path(id, z, check_z=true) {
       if (z===undefined) {
@@ -6383,7 +6509,7 @@ es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js
           this.paths.push(this.path_idmap[id]);
       }
       var ret=this.path_idmap[id];
-      if (check_z&&ret.z!=z) {
+      if (check_z&&ret.z!==z) {
           this.dosort = 1;
           ret.z = z;
       }
@@ -6395,29 +6521,38 @@ es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js
       }
     }
     static  kill_canvas(svg) {
-      if (svg!=undefined) {
+      if (svg) {
           svg.remove();
       }
     }
      destroy() {
-      return ;
       console.log("DESTROY!");
       for (var path of this.paths) {
           path.destroy(this);
       }
       this.paths.length = 0;
       this.path_idmap = {};
-      if (this.svg!=undefined) {
+      if (this.svg) {
           this.svg.remove();
           this.svg = this.defs = undefined;
       }
     }
      draw(g) {
       var canvas=g.canvas;
-      if (canvas.style["background"]!="rgba(0,0,0,0)") {
+      let updateKey=""+this.matrix.$matrix.m11.toFixed(4)+":"+this.matrix.$matrix.m41.toFixed(2)+":"+this.matrix.$matrix.m42.toFixed(2);
+      let recalc_all=false;
+      if (updateKey!==this._last_update_key) {
+          recalc_all = true;
+          this._last_update_key = updateKey;
+      }
+      if (canvas.style["background"]!=="rgba(0,0,0,0)") {
           canvas.style["background"] = "rgba(0,0,0,0)";
       }
+      let dpi=devicePixelRatio;
       this.svg = SVGDraw2D.get_canvas(canvas.id+"_svg", canvas.width, canvas.height, 1);
+      this.svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      this.svg.setAttribute(`xmlns:xlink`, "http://www.w3.org/1999/xlink");
+      this.svg.style["pointer-events"] = "none";
       var this2=this;
       function onkillscreen() {
         window.removeEventListener(onkillscreen);
@@ -6427,7 +6562,7 @@ es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js
       window.addEventListener("killscreen", onkillscreen);
       var defsid=this.svg.id+"_defs";
       var defs=document.getElementById(defsid);
-      if (defs==undefined) {
+      if (!defs) {
           defs = makeElement("defs", {id: defsid});
           defs.id = defsid;
           this.svg.appendChild(defs);
@@ -6435,28 +6570,28 @@ es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js
       this.defs = defs;
       var groupid=this.svg.id+"_maingroup";
       var group=document.getElementById(groupid);
-      if (group==undefined) {
+      if (!group) {
           group = makeElement("g", {id: groupid});
           this.svg.appendChild(group);
       }
       this.group = group;
-      var transform="translate("+this.pan[0]+","+this.pan[1]+")";
-      if (!group.hasAttributeNS(null, "transform")||group.getAttributeNS(null, "transform")!=transform) {
-          group.setAttributeNS(null, "transform", transform);
-      }
-      if (this.svg.style["left"]!=canvas.style["left"])
+      if (this.svg.style["width"]!==canvas.style["width"])
+        this.svg.style["width"] = canvas.style["width"];
+      if (this.svg.style["height"]!==canvas.style["height"])
+        this.svg.style["height"] = canvas.style["height"];
+      if (this.svg.style["left"]!==canvas.style["left"])
         this.svg.style["left"] = canvas.style["left"];
-      if (this.svg.style["top"]!=canvas.style["top"])
+      if (this.svg.style["top"]!==canvas.style["top"])
         this.svg.style["top"] = canvas.style["top"];
-      for (var path of this.paths) {
-          if (path.z!=path._last_z) {
+      for (let path of this.paths) {
+          if (path.z!==path._last_z) {
               this.dosort = 1;
               path.recalc = 1;
               path._last_z = path.z;
           }
       }
-      for (var path of this.paths) {
-          if (path.recalc) {
+      for (let path of this.paths) {
+          if (path.recalc||recalc_all) {
               path.gen(this);
           }
       }
@@ -6469,7 +6604,7 @@ es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js
           var cs=this.group.childNodes;
           for (var i=0; i<cs.length; i++) {
               var n=cs[i];
-              if (n.tagName.toUpperCase()=="USE") {
+              if (n.tagName.toUpperCase()==="USE") {
                   n.remove();
                   i--;
               }
@@ -6486,7 +6621,7 @@ es6_module_define('vectordraw_svg', ["./vectordraw_base.js", "../util/mathlib.js
               this.group.appendChild(usenode);
           }
       }
-      for (var path of this.paths) {
+      for (let path of this.paths) {
           if (!path.hidden)
             path.draw(this);
       }
@@ -6856,7 +6991,7 @@ es6_module_define('vectordraw_jobs_base', [], function _vectordraw_jobs_base_mod
    "source-atop": 1}
   CompositeModes = _es6_module.add_export('CompositeModes', CompositeModes);
 }, '/dev/fairmotion/src/vectordraw/vectordraw_jobs_base.js');
-es6_module_define('vectordraw', ["./vectordraw_base.js", "./vectordraw_skia_simple.js", "./vectordraw_stub.js", "./vectordraw_svg.js", "./vectordraw_canvas2d_simple.js", "./vectordraw_canvas2d.js"], function _vectordraw_module(_es6_module) {
+es6_module_define('vectordraw', ["./vectordraw_canvas2d.js", "./vectordraw_stub.js", "./vectordraw_skia_simple.js", "./vectordraw_base.js", "./vectordraw_svg.js", "./vectordraw_canvas2d_simple.js"], function _vectordraw_module(_es6_module) {
   "use strict";
   var CanvasDraw2D=es6_import_item(_es6_module, './vectordraw_canvas2d.js', 'CanvasDraw2D');
   var CanvasPath=es6_import_item(_es6_module, './vectordraw_canvas2d.js', 'CanvasPath');
@@ -6879,7 +7014,7 @@ es6_module_define('vectordraw', ["./vectordraw_base.js", "./vectordraw_skia_simp
 es6_module_define('strokedraw', [], function _strokedraw_module(_es6_module) {
   "use strict";
 }, '/dev/fairmotion/src/vectordraw/strokedraw.js');
-es6_module_define('spline_draw_new', ["./spline_base.js", "./spline_multires.js", "./spline_element_array.js", "../core/animdata.js", "../vectordraw/vectordraw_jobs.js", "../path.ux/scripts/pathux.js", "./spline_types.js", "./spline_strokegroup.js", "../editors/viewport/view2d_editor.js", "../editors/viewport/selectmode.js", "../vectordraw/vectordraw.js", "../config/config.js", "./spline_math.js", "../util/mathlib.js"], function _spline_draw_new_module(_es6_module) {
+es6_module_define('spline_draw_new', ["../core/animdata.js", "../path.ux/scripts/pathux.js", "../vectordraw/vectordraw.js", "../config/config.js", "./spline_multires.js", "./spline_element_array.js", "../editors/viewport/selectmode.js", "../util/mathlib.js", "./spline_base.js", "../editors/viewport/view2d_editor.js", "./spline_math.js", "./spline_types.js", "../vectordraw/vectordraw_jobs.js", "../util/bezier.js", "./spline_strokegroup.js"], function _spline_draw_new_module(_es6_module) {
   "use strict";
   var aabb_isect_minmax2d=es6_import_item(_es6_module, '../util/mathlib.js', 'aabb_isect_minmax2d');
   var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
@@ -6921,6 +7056,11 @@ es6_module_define('spline_draw_new', ["./spline_base.js", "./spline_multires.js"
   var SplineFace=es6_import_item(_es6_module, './spline_types.js', 'SplineFace');
   var RecalcFlags=es6_import_item(_es6_module, './spline_types.js', 'RecalcFlags');
   var MaterialFlags=es6_import_item(_es6_module, './spline_types.js', 'MaterialFlags');
+  var bez4=es6_import_item(_es6_module, '../util/bezier.js', 'bez4');
+  var d2bez4=es6_import_item(_es6_module, '../util/bezier.js', 'd2bez4');
+  var dbez4=es6_import_item(_es6_module, '../util/bezier.js', 'dbez4');
+  var ibez4=es6_import_item(_es6_module, '../util/bezier.js', 'ibez4');
+  var curv4=es6_import_item(_es6_module, '../util/bezier.js', 'curv4');
   var ElementArray=es6_import_item(_es6_module, './spline_element_array.js', 'ElementArray');
   var SplineLayerFlags=es6_import_item(_es6_module, './spline_element_array.js', 'SplineLayerFlags');
   var Canvas=es6_import_item(_es6_module, '../vectordraw/vectordraw.js', 'Canvas');
@@ -6933,6 +7073,7 @@ es6_module_define('spline_draw_new', ["./spline_base.js", "./spline_multires.js"
   var update_tmps_mats=new cachering(function () {
     return new Matrix4();
   }, 64);
+  let update_join_vs=cachering.fromConstructor(Vector2, 64);
   var draw_face_vs=new cachering(function () {
     return new Vector3();
   }, 32);
@@ -7177,7 +7318,8 @@ es6_module_define('spline_draw_new', ["./spline_base.js", "./spline_multires.js"
      update_vertex_join(seg, v, drawparams) {
       let z=drawparams.z;
       let id=seg.eid|(v===seg.v1 ? (1<<17) : (1<<18));
-      if (this.has_path(id, z)&&!(v.flag&(SplineFlags.REDRAW|SplineFlags.UPDATE))) {
+      let id2=id|(1<<19);
+      if (this.has_path(id2, z+1)&&this.has_path(id, z)&&!(v.flag&(SplineFlags.REDRAW|SplineFlags.UPDATE))) {
           return ;
       }
       let path=this.get_path(id, z);
@@ -7185,9 +7327,9 @@ es6_module_define('spline_draw_new', ["./spline_base.js", "./spline_multires.js"
       path.color.load(mat.strokecolor);
       path.blur = mat.blur;
       path.reset();
-      let dv0=new Vector2();
-      let dv1a=new Vector2();
-      let dv1b=new Vector2();
+      let dv0=update_join_vs.next().zero();
+      let dv1a=update_join_vs.next().zero();
+      let dv1b=update_join_vs.next().zero();
       let segments=this._sortSegments(v);
       let si=segments.indexOf(seg);
       let prev=segments[(si+segments.length-1)%segments.length];
@@ -7214,9 +7356,56 @@ es6_module_define('spline_draw_new', ["./spline_base.js", "./spline_multires.js"
       dv1a.mulScalar(scale2);
       path.moveTo(p0[0], p0[1]);
       path.cubicTo(p0[0]+dv0[0], p0[1]+dv0[1], p1a[0]-dv1a[0], p1a[1]-dv1a[1], p1a[0], p1a[1]);
-      path.pushStroke(mat.strokecolor2, mat.linewidth2);
       path.lineTo(p1b[0], p1b[1]);
       path.lineTo(v[0], v[1]);
+      path.noAutoFill();
+      path.pushFill();
+      let path2=this.get_path(id|(1<<19), z+1);
+      path2.reset();
+      path2.moveTo(p0[0], p0[1]);
+      let t1=update_join_vs.next();
+      let t2=update_join_vs.next();
+      let t3=update_join_vs.next();
+      let p=update_join_vs.next();
+      p[0] = bez4(p0[0], p0[0]+dv0[0], p1a[0]-dv1a[0], p1a[0], 0.5);
+      p[1] = bez4(p0[1], p0[1]+dv0[1], p1a[1]-dv1a[1], p1a[1], 0.5);
+      t1.load(p0).sub(p).normalize();
+      t2.load(p1a).sub(p).normalize();
+      let th=Math.acos(t1.dot(t2));
+      if (th>Math.PI*0.2) {
+          path2.cubicTo(p0[0]+dv0[0], p0[1]+dv0[1], p1a[0]-dv1a[0], p1a[1]-dv1a[1], p1a[0], p1a[1]);
+          path2.pushStroke(mat.strokecolor2, mat.linewidth2);
+      }
+      else {
+        let x=p[0], y=p[1];
+        let dy1=dbez4(p0[0], p0[0]+dv0[0], p1a[0]-dv1a[0], p1a[0], 0.0);
+        let dx1=-dbez4(p0[1], p0[1]+dv0[1], p1a[1]-dv1a[1], p1a[1], 0.0);
+        let dy2=dbez4(p0[0], p0[0]+dv0[0], p1a[0]-dv1a[0], p1a[0], 1.0);
+        let dx2=-dbez4(p0[1], p0[1]+dv0[1], p1a[1]-dv1a[1], p1a[1], 1.0);
+        let l=Math.sqrt(dx1*dx1+dy1*dy1);
+        if (l>0.0) {
+            dx1/=l;
+            dy1/=l;
+        }
+        l = Math.sqrt(dx2*dx2+dy2*dy2);
+        if (l>0.0) {
+            dx2/=l;
+            dy2/=l;
+        }
+        dx1*=mat.linewidth2*0.5;
+        dy1*=mat.linewidth2*0.5;
+        dx2*=mat.linewidth2*0.5;
+        dy2*=mat.linewidth2*0.5;
+        path2.moveTo(p0[0]+dx1, p0[1]+dy1);
+        path2.lineTo(x, y);
+        path2.lineTo(p1a[0]+dx2, p1a[1]+dy2);
+        path2.moveTo(p0[0]+dx1, p0[1]+dy1);
+        path2.lineTo(p1a[0]+dx2, p1a[1]+dy2);
+        path2.lineTo(p1a[0]-dx2, p1a[1]-dy2);
+        path2.lineTo(p0[0]-dx1, p0[1]-dy1);
+        path2.color.load(mat.strokecolor2);
+        path2.pushFill();
+      }
     }
      fastDraw(spline, drawlist, drawlist_layerids, matrix, redraw_rects, only_render, selectmode, master_g, zoom, editor, ignore_layers) {
       if (!spline.segments.cdata.has_layer("drawdata")) {
@@ -7379,6 +7568,7 @@ es6_module_define('spline_draw_new', ["./spline_base.js", "./spline_multires.js"
       else {
         off.zero();
       }
+      let updateflags=(SplineFlags.REDRAW|SplineFlags.UPDATE);
       var m=matrix.$matrix;
       this.drawer.pan[0] = m.m41;
       this.drawer.pan[1] = m.m42;
@@ -7393,7 +7583,7 @@ es6_module_define('spline_draw_new', ["./spline_base.js", "./spline_multires.js"
       var drawparams=drawparam_cachering.next().init(redraw_rects, actlayer, only_render, selectmode, zoom, undefined, off, spline, drawlist);
       let vset=new set();
       for (let seg of spline.segments.visible) {
-          if (seg.flag&(SplineFlags.UPDATE|SplineFlags.REDRAW)) {
+          if (seg.flag&updateflags) {
               vset.add(seg.v1);
               vset.add(seg.v2);
               seg.v1.flag|=SplineFlags.REDRAW;
@@ -7401,7 +7591,7 @@ es6_module_define('spline_draw_new', ["./spline_base.js", "./spline_multires.js"
           }
       }
       for (let v of vset) {
-          if (v.flag&(SplineFlags.UPDATE|SplineFlags.REDRAW)) {
+          if (v.flag&updateflags) {
               this.update_vertex_strokes(v, drawparams);
           }
       }
@@ -7413,7 +7603,7 @@ es6_module_define('spline_draw_new', ["./spline_base.js", "./spline_multires.js"
           if (__instance_of(e, SplineStrokeGroup)) {
               let redraw=false;
               for (let seg of e.segments) {
-                  redraw = redraw||(seg.flag&(SplineFlags.REDRAW|SplineFlags.UPDATE));
+                  redraw = redraw||(seg.flag&updateflags);
               }
               this.update_stroke_group(e, drawparams, redraw);
               if (draw_normals) {
@@ -7489,13 +7679,17 @@ es6_module_define('spline_draw_new', ["./spline_base.js", "./spline_multires.js"
       return this.drawer.has_path(id, z, check_z);
     }
      update_stroke_group(g, drawparams, redraw) {
+      let id2=g.id|(1<<19);
       let spline=drawparams.spline;
       let z=drawparams.z;
-      if (this.has_path(g.id, z)&&!redraw) {
+      if (this.has_path(id2, z+1)&&this.has_path(g.id, z)&&!redraw) {
           return ;
       }
       let path=this.get_path(g.id, z);
       path.reset();
+      let path2=this.get_path(g.id|(1<<19), z+1);
+      path2.reset();
+      path2.noAutoFill();
       let dpath, dpath2, dpath3, dpoint, dline;
       let debug=0;
       if (debug) {
@@ -7543,8 +7737,8 @@ es6_module_define('spline_draw_new', ["./spline_base.js", "./spline_multires.js"
           };
       }
       if (g.segments.length===0) {
-          if (this.has_path(g.id)) {
-              this.get_path(g.id).reset();
+          if (this.has_path(g.id, z)) {
+              this.get_path(g.id, z).reset();
           }
           console.warn("g.segments.length was zero!");
           return ;
@@ -7624,13 +7818,17 @@ es6_module_define('spline_draw_new', ["./spline_base.js", "./spline_multires.js"
                       if (!step) {
                           firstp.load(p);
                           path.moveTo(p[0], p[1]);
+                          path2.moveTo(p[0], p[1]);
                       }
                       else {
                         path.lineTo(p[0], p[1]);
+                        path2.lineTo(p[0], p[1]);
+                        path2.moveTo(p[0], p[1]);
                       }
                   }
                   else {
                     path.lineTo(p[0], p[1]);
+                    path2.lineTo(p[0], p[1]);
                   }
                   let w1=seg.width(s);
                   if (v.segments.length===2&&!hasp) {
@@ -7645,6 +7843,7 @@ es6_module_define('spline_draw_new', ["./spline_base.js", "./spline_multires.js"
                       dv.mulScalar(1.0/(scale1));
                       dv2.mulScalar(1.0/(scale2));
                       path.lineTo(p[0], p[1]);
+                      path2.lineTo(p[0], p[1]);
                       if (debug) {
                           dpoint(p2[0], p2[1], 15, dpath3);
                       }
@@ -7658,18 +7857,22 @@ es6_module_define('spline_draw_new', ["./spline_base.js", "./spline_multires.js"
                       if (!step) {
                           firstp.load(p);
                           path.moveTo(p[0], p[1]);
+                          path2.moveTo(p[0], p[1]);
                       }
                       else {
                         path.lineTo(p[0], p[1]);
+                        path2.moveTo(p[0], p[1]);
                       }
                   }
                   else 
                     if (dobreak) {
                       dobreak = false;
                       path.lineTo(p[0], p[1]);
+                      path2.lineTo(p[0], p[1]);
                   }
                   else {
                     path.cubicTo(lastp[0]+lastdv[0], lastp[1]+lastdv[1], p[0]-dv[0], p[1]-dv[1], p[0], p[1]);
+                    path2.cubicTo(lastp[0]+lastdv[0], lastp[1]+lastdv[1], p[0]-dv[0], p[1]-dv[1], p[0], p[1]);
                   }
                   lastdv.load(dv);
                   lastno.load(no);
@@ -7683,7 +7886,7 @@ es6_module_define('spline_draw_new', ["./spline_base.js", "./spline_multires.js"
       }
       let mat=g.segments[0].mat;
       if (mat.linewidth2>0) {
-          path.pushStroke(mat.strokecolor2, mat.linewidth2);
+          path2.pushStroke(mat.strokecolor2, mat.linewidth2);
       }
       this.addClipPathsToStrokeGroup(g, drawparams, path);
     }
@@ -8002,18 +8205,21 @@ es6_module_define('spline_draw_new', ["./spline_base.js", "./spline_multires.js"
               data.sets(seg1, v, 1, s);
           }
       }
+      let setSegments=(s) =>        {
+        for (let seg of segments) {
+            let data=seg.cdata.get_layer(SplineDrawData);
+            let s2=s*seglen/seg.length;
+            s2 = Math.min(Math.max(s2, 0.0), 1.0);
+            data.sets(seg, v, 0, v===seg.v1 ? s2 : 1.0-s2);
+            data.sets(seg, v, 1, v===seg.v1 ? s2 : 1.0-s2);
+        }
+      };
       if (1) {
           let a=0.0;
-          let b=0.5;
+          let b=0.65;
           for (let i=0; i<8; i++) {
               let s=(a+b)*0.5;
-              for (let seg of segments) {
-                  let data=seg.cdata.get_layer(SplineDrawData);
-                  let s2=s*seglen/seg.length;
-                  s2 = Math.min(Math.max(s2, 0.0), 1.0);
-                  data.sets(seg, v, 0, v===seg.v1 ? s : 1.0-s);
-                  data.sets(seg, v, 1, v===seg.v1 ? s : 1.0-s);
-              }
+              setSegments(s);
               if (testIsect()) {
                   a = (a+b)*0.5;
               }
@@ -8022,17 +8228,22 @@ es6_module_define('spline_draw_new', ["./spline_base.js", "./spline_multires.js"
               }
           }
           s = (a+b)*0.5;
-          s*=1.2;
           s = Math.min(Math.max(s, 0.0), 1.0);
+          setSegments(s);
+          let w=0.0;
+          let tot=0.0;
           for (let seg of segments) {
-              let seglen2=seg.length;
-              let ratio=seglen2===0.0 ? 1.0 : seglen/seg.length;
               let data=seg.cdata.get_layer(SplineDrawData);
-              let s2=s*ratio;
-              s2 = Math.min(Math.max(s2, 0.0), 1.0);
-              s2 = (v===seg.v1 ? s2 : 1.0-s2);
-              data.sets(seg, v, 0, s2);
-              data.sets(seg, v, 1, s2);
+              let s1=data.gets(seg, v, 0);
+              let w2=seg.width(s1);
+              w+=w2*0.1+seg.mat.linewidth2*1.0;
+              tot++;
+          }
+          if (tot&&w&&seglen) {
+              w/=tot;
+              s+=w/seglen;
+              s = Math.min(Math.max(s, 0.0), 0.5);
+              setSegments(s);
           }
       }
       this.update_stroke_points(startv);

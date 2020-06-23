@@ -143,7 +143,9 @@ function doDrawList(commands, datablocks, id) {
   let transform = [1, 0, 0,  0, 1, 0];
   
   g.globalCompositeOperation = "source-over";
-  
+  g.lineCap = "butt";
+  g.miterLimit = 2.5;
+
   while (_i < commands.length) {
     let cmd = ~~read(); //give hint to compiler that this is an integer
     if (Debug) console.log("cmd", cmd)

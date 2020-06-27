@@ -217,9 +217,11 @@ window.init_struct_packer = function() {
     print_stack(err);
 
     //throw last error
-    if (i == errs.length-1)
+    if (i === errs.length-1)
       throw err;
   }
+
+  nstructjs.validateStructs();
 
   //copy global env (could conceivably become outdated later?)
   window.safe_global = {};

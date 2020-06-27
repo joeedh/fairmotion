@@ -453,7 +453,7 @@ export class HotKey {
 
 HotKey.STRUCT = `
 HotKey {
-  key      : number;
+  key      : int;
   keyAscii : string;
   ctrl     : bool;
   shift    : bool;

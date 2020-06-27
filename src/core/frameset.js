@@ -532,7 +532,7 @@ export class SplineFrameSet extends DataBlock {
       keyframes.add(get_vtime(v));
     }
     
-    var co = new Vector3();
+    var co = new Vector2();
     
     //ensure step func interpolation mode is off for this
     var oflag1 = av1.animflag, oflag2 = av2.animflag;

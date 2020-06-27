@@ -1,6 +1,6 @@
 import {Area} from '../../path.ux/scripts/screen/ScreenArea.js';
 import {STRUCT} from '../../core/struct.js';
-import {UIBase, css2color, color2css} from '../../path.ux/scripts/core/ui_base.js';
+import {UIBase, css2color, color2css, Icons} from '../../path.ux/scripts/core/ui_base.js';
 import {Editor} from '../editor_base.js';
 import {ToggleSelectAll, MoveKeyFramesOp, SelectKeysOp, SelModes2, DeleteKeysOp} from './dopesheet_ops_new.js';
 import * as util from '../../path.ux/scripts/util/util.js';
@@ -18,7 +18,7 @@ import {STRUCT} from '../../core/struct.js';
 
 import {PackFlags, UIFlags, UIBase, color2css, _getFont_new} from '../../path.ux/scripts/core/ui_base.js';
 
-import {ToolOp, UndoFlags, ToolFlags} from '../../core/toolops_api.js';
+import {ToolOp, UndoFlags, ToolFlags, ModalStates} from '../../core/toolops_api.js';
 
 import {Spline, RestrictFlags} from '../../curve/spline.js';
 import {CustomDataLayer, SplineTypes, SplineFlags, SplineSegment} from '../../curve/spline_types.js';
@@ -682,7 +682,7 @@ export class DopeSheetEditor extends Editor {
   }
 
   define_keymap() {
-    this.keymap = new KeyMap();
+    this.keymap = new KeyMap("dopesheet");
 
     let k = this.keymap;
 
@@ -764,6 +764,37 @@ export class DopeSheetEditor extends Editor {
     //row.add(this.channels);
     this.shadow.appendChild(this.channels);
 
+    this.startbutton = this.header.iconbutton(Icons.ANIM_START, "Animation Playback", () => {
+      console.log("playback");
+    });
+    this.startbutton.iconsheet = 0;
+
+    let prev = this.header.tool("anim.nextprev(dir=-1)", PackFlags.USE_ICONS);
+    prev.icon = Icons.ANIM_PREV;
+    prev.iconsheet = 0;
+
+    /*
+    this.prevbutton = this.header.iconbutton(Icons.ANIM_PREV, "Previous Keyframe", () => {
+      console.log("playback");
+    });
+    this.prevbutton.iconsheet = 0;*/
+
+    this.playbutton = this.header.iconbutton(Icons.ANIM_PLAY, "Animation Playback", () => {
+      console.log("playback");
+      this.ctx.screen.togglePlayback();
+    });
+    this.playbutton.iconsheet = 0;
+
+    let next = this.header.tool("anim.nextprev(dir=1)", PackFlags.USE_ICONS);
+    next.icon = Icons.ANIM_NEXT;
+    next.iconsheet = 0;
+
+    this.endbutton = this.header.iconbutton(Icons.ANIM_END, "Animation Playback", () => {
+      console.log("playback");
+    });
+    this.endbutton.iconsheet = 0;
+
+
     this.header.prop("scene.frame");
     this.header.prop("dopesheet.timescale");
 
@@ -827,7 +858,15 @@ export class DopeSheetEditor extends Editor {
   }
 
   update() {
+    if (!window.g_app_state) return;
+
     super.update();
+
+    if (g_app_state.modalstate & ModalStates.PLAYING) {
+      this.playbutton.icon = Icons.ANIM_PAUSE;
+    } else {
+      this.playbutton.icon = Icons.ANIM_PLAY;
+    }
 
     let hash = this.calcUpdateHash();
     if (hash !== this._last_hash1) {

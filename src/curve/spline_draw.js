@@ -6,14 +6,14 @@ import {SelMask} from '../editors/viewport/selectmode.js';
 import {ORDER, KSCALE, KANGLE, KSTARTX, KSTARTY, KSTARTZ, KTOTKS, INT_STEPS} from './spline_math.js';
 import {get_vtime} from '../core/animdata.js';
 
-var spline_draw_cache_vs = cachering.fromConstructor(Vector3, 64);
-var spline_draw_trans_vs = cachering.fromConstructor(Vector3, 32);
+let spline_draw_cache_vs = cachering.fromConstructor(Vector3, 64);
+let spline_draw_trans_vs = cachering.fromConstructor(Vector3, 32);
 
-var PI = Math.PI;
-var pow = Math.pow, cos = Math.cos, sin = Math.sin, abs = Math.abs, floor = Math.floor,
+let PI = Math.PI;
+let pow = Math.pow, cos = Math.cos, sin = Math.sin, abs = Math.abs, floor = Math.floor,
     ceil = Math.ceil, sqrt = Math.sqrt, log = Math.log, acos = Math.acos, asin = Math.asin;
 
-export var DRAW_MAXCURVELEN = 10000;
+export const DRAW_MAXCURVELEN = 10000;
 
 import {
   SplineFlags, SplineTypes, SplineElement, SplineVertex, 
@@ -31,13 +31,13 @@ import {ElementArray, SplineLayerFlags} from './spline_element_array.js';
 /*logical element "states" that
   are or'd together, color is looked up
   in a table*/
-export var ColorFlags = {
+export const ColorFlags = {
   SELECT : 1,
   ACTIVE : 2,
   HIGHLIGHT : 4
 };
 
-export var FlagMap = {
+export const FlagMap = {
   UNSELECT : 0,
   SELECT : ColorFlags.SELECT,
   ACTIVE : ColorFlags.ACTIVE,
@@ -49,9 +49,9 @@ export var FlagMap = {
 };
 
 function mix(a, b, t) {
-  var ret = [0, 0, 0];
+  let ret = [0, 0, 0];
 
-  for (var i=0; i<3; i++) {
+  for (let i=0; i<3; i++) {
     ret[i] = a[i] + (b[i] - a[i])*t;
   }
 
@@ -59,7 +59,7 @@ function mix(a, b, t) {
 }
 
 //unnest table
-export var ElementColor = {
+export const ElementColor = {
   UNSELECT   : [1, 0.133, 0.07],
   SELECT     : [1, 0.6, 0.26],
   HIGHLIGHT  : [1, 0.93, 0.4],
@@ -70,7 +70,7 @@ export var ElementColor = {
   SELECT_HIGHLIGHT_ACTIVE : [0.85, 0.85, 1.0]
 };
 
-export var HandleColor = {
+export const HandleColor = {
   UNSELECT   : [0.2, 0.7, 0.07],
   SELECT     : [0.1, 1, 0.26],
   HIGHLIGHT  : [0.2, 0.93, 0.4],
@@ -86,27 +86,27 @@ HandleColor.HIGHLIGHT_ACTIVE = mix(HandleColor.HIGHLIGHT, HandleColor.ACTIVE, 0.
 HandleColor.SELECT_HIGHLIGHT_ACTIVE = mix(mix(HandleColor.SELECT, HandleColor.ACTIVE, 0.5), HandleColor.HIGHLIGHT, 0.5);
 
 function rgb2css(color) {
-  var r = color[0], g = color[1], b = color[2];
+  let r = color[0], g = color[1], b = color[2];
   return "rgb(" + (~~(r*255)) + "," + (~~(g*255)) + "," + (~~(b*255)) + ")";
 }
 
 //create final lookup table
-export var element_colormap = new Array(8);
+export const element_colormap = new Array(8);
 
-for (var k in ElementColor) {
-  var f = FlagMap[k];
+for (let k in ElementColor) {
+  let f = FlagMap[k];
   element_colormap[f] = rgb2css(ElementColor[k]);
 }
 
 //create final lookup table
-export var handle_colormap = new Array(8);
-for (var k in HandleColor) {
-  var f = FlagMap[k];
+export const handle_colormap = new Array(8);
+for (let k in HandleColor) {
+  let f = FlagMap[k];
   handle_colormap[f] = rgb2css(HandleColor[k]);
 }
 
 function get_element_flag(e, list) {
-  var f = 0;
+  let f = 0;
 
   f |= e.flag & SplineFlags.SELECT ? ColorFlags.SELECT : 0;
   f |= e === list.highlight ? ColorFlags.HIGHLIGHT : 0;
@@ -123,8 +123,8 @@ export function get_element_color(e, list) {
 }
 
 
-var VERT_SIZE=3.0;
-var SMALL_VERT_SIZE=1.0;
+const VERT_SIZE=3.0;
+const SMALL_VERT_SIZE=1.0;
 
 import {SplineDrawer} from './spline_draw_new.js';
 import {redo_draw_sort} from './spline_draw_sort.js';
@@ -133,26 +133,26 @@ import { Vector2 } from '../util/vectormath.js';
 export * from './spline_draw_sort';
 
 export function draw_curve_normals(spline : Spline, g : CanvasRenderingContext2D, zoom : number) {
-  for (var seg of spline.segments) {
+  for (let seg of spline.segments) {
     if (seg.v1.hidden || seg.v2.hidden) continue;
     //if (seg.hidden) continue;
     
-    var length = seg.ks[KSCALE];
+    let length = seg.ks[KSCALE];
     
     if (length <= 0 || isNaN(length)) continue;
     
     //prevent infinite loops caused by degenerate infinite-length curves
     if (length > DRAW_MAXCURVELEN) length = DRAW_MAXCURVELEN;
+
+    let ls = 0.0, dls = 5/zoom;
   
-    var ls = 0.0, dls = 5/zoom;
-  
-    for (var ls=0; ls <length; ls += dls) {
-      var s = ls / length;
+    for (ls=0; ls < length; ls += dls) {
+      let s = ls / length;
       if (s > 1.0) continue;
-      
-      var co = seg.evaluate(s);
-      var n = seg.normal(s).normalize();
-      var k = seg.curvature(s);
+
+      let co = seg.evaluate(s);
+      let n = seg.normal(s).normalize();
+      let k = seg.curvature(s);
       
       n.mulScalar(k*(window._d != undefined ? window._d : 1000)/zoom);
       
@@ -181,7 +181,7 @@ export function draw_spline(spline, redraw_rects, g, editor, matrix, selectmode,
     spline.drawer = new SplineDrawer(spline);
   }
 
-  var zoom = editor.zoom;
+  let zoom = editor.zoom;
   zoom = matrix.m11;
 
   if (isNaN(zoom)) {
@@ -192,8 +192,8 @@ export function draw_spline(spline, redraw_rects, g, editor, matrix, selectmode,
   spline.drawer.update(spline, spline.drawlist, spline.draw_layerlist, matrix, 
                        redraw_rects, only_render, selectmode, g, zoom, editor, ignore_layers);
   let promise = spline.drawer.draw(editor.drawg);
-  
-  var actlayer = spline.layerset.active;
+
+  let actlayer = spline.layerset.active;
 
 
   /*
@@ -215,14 +215,14 @@ export function draw_spline(spline, redraw_rects, g, editor, matrix, selectmode,
   
   let r = [[0, 0], [0, 0]];
   
-  for (var s of spline.segments) {
+  for (let s of spline.segments) {
     s.flag &= ~SplineFlags.DRAW_TEMP;
   }
-  for (var f of spline.faces) {
+  for (let f of spline.faces) {
     f.flag &= ~SplineFlags.DRAW_TEMP;
   }
-  
-  var vert_size = editor.draw_small_verts ? SMALL_VERT_SIZE : VERT_SIZE;
+
+  let vert_size = editor.draw_small_verts ? SMALL_VERT_SIZE : VERT_SIZE;
   
   if (only_render)
     return promise;
@@ -234,11 +234,11 @@ export function draw_spline(spline, redraw_rects, g, editor, matrix, selectmode,
   
   g.beginPath();
   if (selectmode & SelMask.HANDLE) {
-    var w = vert_size*g.canvas.dpi_scale/zoom;
+    let w = vert_size*g.canvas.dpi_scale/zoom;
     
-    for (var i=0; i<spline.handles.length; i++) {
-      var v = spline.handles[i];
-      var clr = get_element_color(v, spline.handles);
+    for (let i=0; i<spline.handles.length; i++) {
+      let v = spline.handles[i];
+      let clr = get_element_color(v, spline.handles);
       
       if (!ignore_layers && !v.owning_segment.in_layer(actlayer))
         continue;
@@ -269,7 +269,7 @@ export function draw_spline(spline, redraw_rects, g, editor, matrix, selectmode,
       g.beginPath();
       g.lineWidth = 1;//*zoom;
 
-      var ov = v.owning_segment.handle_vertex(v);
+      let ov = v.owning_segment.handle_vertex(v);
       
       tmp2.load(ov).multVecMatrix(matrix);
 
@@ -279,27 +279,27 @@ export function draw_spline(spline, redraw_rects, g, editor, matrix, selectmode,
       g.stroke();
     }
   }
-  
-  var last_clr = undefined;
+
+  let last_clr = undefined;
   if (selectmode & SelMask.VERTEX) {
-    var w = vert_size*g.canvas.dpi_scale/zoom;
+    let w = vert_size*g.canvas.dpi_scale/zoom;
     
-    for (var i=0; i<spline.verts.length; i++) {
-      var v = spline.verts[i];
-      var clr = get_element_color(v, spline.verts);
+    for (let i=0; i<spline.verts.length; i++) {
+      let v = spline.verts[i];
+      let clr = get_element_color(v, spline.verts);
       
       if (!ignore_layers && !v.in_layer(actlayer))
         continue;
       if (v.flag & SplineFlags.HIDE) continue;
 
-      
-      var co = tmp1.load(v);
+
+      let co = tmp1.load(v);
       co.multVecMatrix(matrix);
       
       if (draw_time_helpers) {
-        var time = get_vtime(v);
+        let time = get_vtime(v);
         
-        if (curtime == time) {
+        if (curtime === time) {
           g.beginPath(  );
           g.fillStyle = "#33ffaa";
           g.rect(co[0]-w*2, co[1]-w*2, w*4, w*4);
@@ -311,6 +311,7 @@ export function draw_spline(spline, redraw_rects, g, editor, matrix, selectmode,
       g.beginPath();
       if (clr !== last_clr)
         g.fillStyle = clr;
+
       last_clr = clr;
       g.rect(co[0]-w, co[1]-w, w*2, w*2);
       g.fill()
@@ -327,22 +328,24 @@ export function draw_spline(spline, redraw_rects, g, editor, matrix, selectmode,
   return promise;
 }
 
+let __margin = new Vector2([15, 15]);
+let __aabb = [new Vector2(), new Vector2()];
+
 export function redraw_element(e, view2d) {
-  static margin = new Vector3([15, 15, 15]);
+  let margin = __margin;
+  let aabb = __aabb;
 
   e.flag |= SplineFlags.REDRAW;
   
-  margin[0] = margin[1] = margin[2] = 15.0;
+  margin[0] = margin[1] = 15.0;
 
-  if (view2d != undefined)
+  if (view2d !== undefined)
     margin.mulScalar(1.0/view2d.zoom);
   
-  static aabb = [new Vector3(), new Vector3()];
+  let e_aabb = e.aabb;
   
-  var e_aabb = e.aabb;
-  
-  aabb[0].load(e_aabb[0]), aabb[1].load(e_aabb[1]);
-  aabb[0].sub(margin), aabb[1].add(margin);
+  aabb[0].load(e_aabb[0]); aabb[1].load(e_aabb[1]);
+  aabb[0].sub(margin); aabb[1].add(margin);
   
   window.redraw_viewport(aabb[0], aabb[1]);
 }

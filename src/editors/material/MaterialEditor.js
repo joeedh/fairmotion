@@ -801,7 +801,7 @@ class MaterialEditor extends Area {
     super(MaterialEditor.name, MaterialEditor.uiname, new Context(), pos, size);
     
     this.mm = new MinMax(2);
-    this.keymap = new KeyMap();
+    this.keymap = new KeyMap("properties");
     this.define_keymap();
     
     this.drawlines = new GArray<drawlines>();

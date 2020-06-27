@@ -242,7 +242,6 @@ export class Batch {
       return
     }
 
-
     this.gen_req = 10;
     this.regen = false;
 
@@ -280,7 +279,10 @@ export class Batch {
 
 
     for (let p of this.paths) {
-      setMat(p);
+      let mat = setMat(p);
+
+      //p.round(draw.matrix);
+
       p.update_aabb(draw);
       draw.pop_transform();
 
@@ -700,10 +702,52 @@ export class CanvasPath extends QuadBezPath {
     for (let c of commands2) {
       commands.push(c);
     }
-    
+
     return commands;
   }
-  
+
+  round(matrix) {
+    let co = new Vector2();
+    let imat = new Matrix4(matrix);
+    imat.invert();
+
+    //*
+    let cs = this.commands;
+
+    for (let i=0; i<cs.length; i += cs[i+1]) {
+      let cmd = cs[i];
+
+      if (cmd !== LINETO && cmd !== MOVETO && cmd !== CUBICTO && cmd !== BEZIERTO) {
+        continue;
+      }
+
+      let arglen = arglens[cmd];
+
+      for (let j=0; j<arglen; j += 2) {
+        let j2 = i+1+j;
+        let d = 1.0;
+
+        if (j2 >= cs.length-1 || j+1 >= arglen) {
+          break;
+        }
+
+        co[0] = cs[j2];
+        co[1] = cs[j2+1];
+
+        co.multVecMatrix(matrix);
+        co.mulScalar(d);
+        co.addScalar(0.5);
+        co.floor();
+        co.mulScalar(1.0 / d);
+        co.multVecMatrix(imat);
+
+        cs[j2] = co[0];
+        cs[j2+1] = co[1];
+      }
+    }
+    //*/
+  }
+
   gen(draw, _check_tag=0, clip_mode=false, independent=false) {
     if (_check_tag && !this.recalc) {
       console.log("infinite loop in clip stack");
@@ -774,7 +818,7 @@ export class CanvasPath extends QuadBezPath {
 
     this._commands = commands2;
   }
-  
+
   reset(draw) {
     this.stroke_extra = 0;
     this.commands.length = 0;

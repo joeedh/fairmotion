@@ -52,7 +52,7 @@ export const KSCALE  = ORDER+1;
 export const KANGLE  = ORDER+2;
 export const KSTARTX = ORDER+3;
 export const KSTARTY = ORDER+4;
-export const KSTARTZ = ORDER+5;
+export const KSTARTZ = ORDER+5; //unused
 //used by wasm solver
 export const KV1X = ORDER+6;
 export const KV1Y = ORDER+7;
@@ -99,14 +99,12 @@ export function eval_curve(seg, s, v1, v2, ks, order, angle_only, no_update) {
     ks[KANGLE] = ang;
     ks[KSTARTX] = start[0];
     ks[KSTARTY] = start[1];
-    ks[KSTARTZ] = start[2];
   } else {
     ang = ks[KANGLE];
     scale = ks[KSCALE];
     
     start[0] = ks[KSTARTX];
     start[1] = ks[KSTARTY];
-    start[2] = ks[KSTARTZ];
   }
   
   if (!angle_only) {

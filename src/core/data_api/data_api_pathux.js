@@ -87,10 +87,8 @@ export class PathUXInterface extends ModelInterface {
       for (let k of keymap) {
         let v = keymap.get(k);
 
-        //console.log(k, ":::::::", v, toolstring);
-
         if (v instanceof ToolKeyHandler && v.tool === toolstring) {
-          console.log("found tool!", v);
+          //console.log("found tool!", v);
           let ws = k.split("-")
           let s = "";
           let i = 0;

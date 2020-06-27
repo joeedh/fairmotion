@@ -733,14 +733,14 @@ export class DataAPI {
   get_opclass_intern(ctx, str) {
     var ret = this.parse_call_line(ctx, str);
 
-    if (ret == undefined)
+    if (ret === undefined)
       return;
 
     var call = ret[1];
     var path = ret[0];
 
     if (!(path in toolmap)) { //this.ops)) {
-      console.error("Invalid api call " + str + "!");
+      console.error("Invalid api call " + str + "!", call, path);
       return;
     }
 
@@ -887,7 +887,7 @@ export class DataAPI {
   }
 
   get_opclass(ctx, str) {
-    if (str == undefined) {
+    if (str === undefined) {
       str = ctx;
       ctx = new Context();
     }

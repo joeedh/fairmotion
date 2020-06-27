@@ -115,14 +115,14 @@ import {pushModalLight, popModalLight} from '../path.ux/scripts/util/simple_even
      solver.
 */
 
-export var UndoFlags = {
+export const UndoFlags = {
   IGNORE_UNDO      :  2, 
   IS_ROOT_OPERATOR :  4, 
   UNDO_BARRIER     :  8,
   HAS_UNDO_DATA    : 16
 };
 
-export var ToolFlags = {
+export const ToolFlags = {
   HIDE_TITLE_IN_LAST_BUTTONS : 1, 
   USE_PARTIAL_UNDO           : 2,
   USE_DEFAULT_INPUT          : 4,
@@ -131,7 +131,7 @@ export var ToolFlags = {
 };
 
 //this is a bitmask!!
-export var ModalStates = {
+export const ModalStates = {
   TRANSFORMING : 1,
   PLAYING      : 2
 };

@@ -170,9 +170,9 @@ var acache = [new Vector3(), new Vector3(), new Vector3(),
               new Vector3()]
 var acur = 0;
 
-var eval_curve_vs = cachering.fromConstructor(Vector3, 64);
+var eval_curve_vs = cachering.fromConstructor(Vector2, 64);
 
-var _eval_start = new Vector3();
+var _eval_start = new Vector2();
 
 export function approx(s1, ks, order, dis, steps) {
   s1 *= 1.0-0.0000001;
@@ -185,7 +185,7 @@ export function approx(s1, ks, order, dis, steps) {
   var ds2=ds*ds, ds3=ds2*ds, ds4=ds3*ds;
   
   var ret = approx_ret_cache.next();
-  ret[0] = ret[1] = ret[2] = 0.0;
+  ret[0] = ret[1] = 0.0;
   var x = 0, y = 0;
 
   var k1 = ks[0], dv1_k1 = ks[1], dv1_k2 = ks[2], k2 = ks[3];

@@ -16,7 +16,7 @@ this entire module needs to be rewritten.
 
 
 export class MyKeyboardEvent {
-  constructor(code : int, shift=false, ctrl=false, alt=false) {
+  constructor(code : int, shift : boolean = false, ctrl : boolean = false, alt : boolean = false) {
     this.keyCode = code;
     this.shiftKey = shift;
     this.ctrlKey = ctrl;
@@ -29,7 +29,7 @@ window.MyKeyboardEvent = MyKeyboardEvent;
 export class MyMouseEvent {
   touches : Object;
 
-  constructor(int x, int y, short button, short type) {
+  constructor(x : number, y : number, button : int, type : int) {
     this.x = x; this.y = y;
     this.button = button;
     this.type = type;
@@ -37,7 +37,7 @@ export class MyMouseEvent {
     this.touches = {};
   }
   
-  copy(Array<float> sub_offset = undefined) : MyMouseEvent {
+  copy(sub_offset : Array<number> = undefined) : MyMouseEvent {
     var ret = new MyMouseEvent(this.x, this.y, this.button, this.type);
     
     for (var k in this.touches) {
@@ -107,13 +107,13 @@ export class EventHandler {
     this.touch_delay_stack = [];
   }
   
-  push_touch_delay(int delay_ms) {
+  push_touch_delay(delay_ms : number) {
     this.touch_delay_stack.push(this.touch_delay);
     this.touch_delay = delay_ms;
   }
   
   pop_touch_delay() {
-    if (this.touch_delay_stack.length == 0) {
+    if (this.touch_delay_stack.length === 0) {
       console.log("Invalid call to EventHandler.pop_touch_delay!");
       return;
     }
@@ -121,11 +121,11 @@ export class EventHandler {
     this.touch_delay = this.touch_delay_stack.pop();
   }
   
-  set touch_delay(int delay_ms) {
-    if (delay_ms == 0) {
+  set touch_delay(delay_ms : number) {
+    if (delay_ms === 0) {
       this.touch_manager = undefined;
     } else {
-      if (this.touch_manager == undefined)
+      if (this.touch_manager === undefined)
         this.touch_manager = new TouchEventManager(this, delay_ms);
       else
         this.touch_manager.delay = delay_ms;
@@ -144,25 +144,25 @@ export class EventHandler {
       this.touch_manager.process();
   }
   
-  bad_event(Event event) { 
+  bad_event(event : Event) {
     var tm = this.touch_manager;
     
-    if (tm == undefined)
+    if (tm === undefined)
       return false;
     
-    if (this.touch_manager != undefined)
+    if (this.touch_manager !== undefined)
       this.touch_manager.process();
     //if (this instanceof View2DHandler)
     //  console.log(event._good, "in bad_event", this.touch_manager, event);
     
-    if (tm != undefined && event instanceof MyMouseEvent) {
+    if (tm !== undefined && event instanceof MyMouseEvent) {
       //count touch events
       var i=0;
       for (var k in event.touches) {
         i++;
       }
       //only consider touch events
-      if (i==0) return false;
+      if (i===0) return false;
       if ("_good" in event) return false;
       
       //console.log("bad event!");
@@ -174,39 +174,39 @@ export class EventHandler {
     return false;
   }
   
-  on_textinput(Object event) { }
-  on_keydown(KeyboardEvent event) { }
-  on_charcode(KeyboardEvent event) { }
-  on_keyinput(KeyboardEvent event) { }
-  on_keyup(KeyboardEvent event) { }
-  on_mousemove(MouseEvent event) { }
-  on_mousedown(MouseEvent event) { }
-  on_doubleclick(MouseEvent event) { }
-  on_pan(Array<float> pan, Array<float> last_pan) { }
+  on_textinput(event : Object) { }
+  on_keydown(event : KeyboardEvent) { }
+  on_charcode(event : KeyboardEvent) { }
+  on_keyinput(event : KeyboardEvent) { }
+  on_keyup(event : KeyboardEvent) { }
+  on_mousemove(event : MouseEvent) { }
+  on_mousedown(event : MouseEvent) { }
+  on_doubleclick(event : MouseEvent) { }
+  on_pan(pan : Array<number>, last_pan : Array<number>) {}
   
-  on_gl_lost(WebGLRenderingContext new_gl) { }
+  on_gl_lost(new_gl : WebGLRenderingContext) { }
   
   //touch events
-  on_mouseup2(MouseEvent event) { }
-  on_mouseup3(MouseEvent event) { }
+  on_mouseup2(event : MouseEvent) { }
+  on_mouseup3(event : MouseEvent) { }
   
-  on_mousedown2(MouseEvent event) { }
-  on_mousedown3(MouseEvent event) { }
+  on_mousedown2(event : MouseEvent) { }
+  on_mousedown3(event : MouseEvent) { }
   
-  on_mousemove2(MouseEvent event) { }
-  on_mousemove3(MouseEvent event) { }
+  on_mousemove2(event : MouseEvent) { }
+  on_mousemove3(event : MouseEvent) { }
   
-  on_mousewheel(MouseEvent event) { }
-  on_mouseup(MouseEvent event) { }
-  on_resize(Array<int> newsize) { }
-  on_contextchange(Object event) { }
-  on_draw(WebGLRenderingContext gl) { }
+  on_mousewheel(event : MouseEvent) { }
+  on_mouseup(event : MouseEvent) { }
+  on_resize(newsize : Array<number>) { }
+  on_contextchange(event : Object) { }
+  on_draw(gl : WebGLRenderingContext) { }
 
   has_modal() {
       return this.modalhandler != null;
   }
 
-  push_modal(EventHandler handler) 
+  push_modal(handler : EventHandler)
   {
     if (this.modalhandler != null) {
       this.modalstack.push(this.modalhandler);
@@ -228,12 +228,12 @@ export class EventHandler {
   }
 
   //resize events aren't modal
-  _on_resize(Array<int> newsize) 
+  _on_resize(newsize : Array<number>)
   { 
     this.on_resize(event);
   }
   
-  _on_pan(Array<float> pan, Array<float> last_pan)
+  _on_pan(pan : Array<number>, last_pan : Array<number>)
   {
     if (this.modalhandler != null && this.modalhandler !== this)
       this.modalhandler._on_pan(event);
@@ -241,7 +241,7 @@ export class EventHandler {
       this.on_pan(event);
   }
   
-  _on_textinput(ObjectMap event)
+  _on_textinput(event : ObjectMap)
   {
     if (this.modalhandler != null && this.modalhandler !== this)
       this.modalhandler._on_textinput(event);
@@ -249,7 +249,7 @@ export class EventHandler {
       this.on_textinput(event);
   }
   
-  _on_keydown(KeyboardEvent event) 
+  _on_keydown(event : KeyboardEvent)
   { 
     if (this.bad_event(event)) return;
     
@@ -259,7 +259,7 @@ export class EventHandler {
       this.on_keydown(event);
   }
 
-  _on_charcode(KeyboardEvent event) 
+  _on_charcode(event : KeyboardEvent)
   { 
     if (this.bad_event(event)) return;
     
@@ -269,7 +269,7 @@ export class EventHandler {
       this.on_charcode(event);
   }
 
-  _on_keyinput(InputEvent event) 
+  _on_keyinput(event : InputEvent)
   { 
     if (this.bad_event(event)) return;
     
@@ -279,7 +279,7 @@ export class EventHandler {
       this.on_keyinput(event);
   }
 
-  _on_keyup(KeyboardEvent event) 
+  _on_keyup(event : KeyboardEvent)
   { 
     if (this.bad_event(event)) return;
     
@@ -289,7 +289,7 @@ export class EventHandler {
       this.on_keyup(event);
   }
 
-  _on_mousemove(MouseEvent event)
+  _on_mousemove(event : MouseEvent)
   { 
     if (this.bad_event(event)) return;
     
@@ -299,7 +299,7 @@ export class EventHandler {
       this.on_mousemove(event);
   }
 
-  _on_doubleclick(MouseEvent event)
+  _on_doubleclick(event : MouseEvent)
   {
     if (this.bad_event(event)) return;
     
@@ -309,7 +309,7 @@ export class EventHandler {
       this.on_doubleclick(event);
   }
   
-  _on_mousedown(MouseEvent event)
+  _on_mousedown(event : MouseEvent)
   { 
     if (this.bad_event(event)) return;
     
@@ -319,7 +319,7 @@ export class EventHandler {
       this.on_mousedown(event);
   }
     
-  _on_mouseup(MouseEvent event)
+  _on_mouseup(event : MouseEvent)
   { 
     if (this.bad_event(event)) return;
     
@@ -340,7 +340,7 @@ export class EventHandler {
   }
 
   //# $(DomMouseEvent, Number).void
-  _on_mousewheel(MouseEvent event, float delta)
+  _on_mousewheel(event : MouseEvent, delta : number)
   { 
     if (this.bad_event(event)) return;
     
@@ -361,29 +361,33 @@ export class HotKey {
   keyAscii : string
   ctrl : boolean
   shift : boolean
-  alt : boolean;
+  alt : boolean
+  uiName : string;
 
-  constructor(key, modifiers, uiname, menunum, ignore_charmap_error) { //menunum is optional, defaults to undefined
+  constructor(key, modifiers, uiName, menunum, ignore_charmap_error) { //menunum is optional, defaults to undefined
+    this.uiName = uiName;
+
     if (!charmap.hasOwnProperty(key)) {
-      if (ignore_charmap_error != undefined && ignore_charmap_error != true) {
+      if (ignore_charmap_error !== undefined && ignore_charmap_error !== true) {
         console.trace();
         console.log("Invalid hotkey " + key + "!");
       }
-      
-      this.key = 0;
+
+      this._key = 0;
       this.keyAscii = "[corrupted hotkey]"
       this.shift = this.alt = this.ctrl = false;
+
       return this;
     }
     
-    if (typeof(key) == "string") {
-      if (key.length == 1)
+    if (typeof(key) === "string") {
+      if (key.length === 1)
         key = key.toUpperCase()
     
       this.keyAscii = key
-      this.key = charmap[key];
+      this._key = charmap[key];
     } else {
-      this.key = key;
+      this._key = key;
       this.keyAscii = charmap[key]
     }
     
@@ -391,11 +395,11 @@ export class HotKey {
     this.menunum = menunum
     
     for (var i=0; i<modifiers.length; i++) {
-      if (modifiers[i] == "SHIFT") {
+      if (modifiers[i] === "SHIFT") {
         this.shift = true;
-      } else if (modifiers[i] == "ALT") {
+      } else if (modifiers[i] === "ALT") {
         this.alt = true;
-      } else if (modifiers[i] == "CTRL") {
+      } else if (modifiers[i] === "CTRL") {
         this.ctrl = true;
       } else {
         console.trace()
@@ -404,8 +408,31 @@ export class HotKey {
     }
   }
 
+  copy() {
+    let modifiers = [];
+
+    if (this.ctrl)
+      modifiers.push("CTRL")
+    if (this.shift)
+      modifiers.push("SHIFT");
+    if (this.alt)
+      modifiers.push("ALT");
+
+    return new HotKey(this.key, modifiers, this.uiName, this.menunum);
+  }
+
+  set key(v) {
+    this._key = v;
+    this.keyAscii = charmap[v];
+  }
+
+  get key() {
+    return this._key;
+  }
+
   build_str(add_menu_num) : String {
-    var s = ""
+    let s = ""
+
     if (this.ctrl) s += "CTRL-"
     if (this.alt) s += "ALT-"
     if (this.shift) s += "SHIFT-"
@@ -418,14 +445,119 @@ export class HotKey {
   [Symbol.keystr]() : String {
     return this.build_str(false)
   }
+
+  loadSTRUCT(reader) {
+    reader(this);
+  }
 }
+
+HotKey.STRUCT = `
+HotKey {
+  key      : number;
+  keyAscii : string;
+  ctrl     : bool;
+  shift    : bool;
+  alt      : bool;
+  uiName   : string;
+}
+`;
+
+export class HotKeyPatch {
+  constructor(keymapPathId : string, src_hk : HotKey, new_hk : HotKey, toolstr : string = undefined) {
+    this.src = src_hk;
+    this.dst = new_hk;
+    this.pathid = keymapPathId;
+    this.toolstr = toolstr;
+  }
+
+  [Symbol.keystr]() {
+    let ret = this.src[Symbol.keystr]() + ":" + this.pathid;
+
+    if (this.toolstr) {
+      ret += ":" + this.toolstr;
+    }
+
+    return ret;
+  }
+
+  loadSTRUCT(reader : Function) {
+    reader(this);
+
+    if (this.toolstr === "") {
+      this.toolstr = undefined;
+    }
+  }
+}
+
+HotKeyPatch.STRUCT = `
+HotKeyPatch {
+  src      : HotKey;
+  dst      : HotKey;
+  pathid   : string;
+  toolstr  : string | this.toolstr === undefined ? "" : this.toolstr;
+}
+`
+
+export class HotKeyPatchSet extends Array {
+  constructor() {
+    super();
+
+    this.map = new hashtable();
+  }
+
+  add(patch) {
+    this.map.set(patch, patch);
+  }
+
+  has(key) {
+    return this.map.has(key);
+  }
+
+  get(key) {
+    return this.map.get(key);
+  }
+
+  set(patch) {
+    if (this.indexOf(patch) < 0) {
+      this.add(patch);
+    } else {
+      this.map.set(patch, patch);
+    }
+  }
+
+  remove(patch) {
+    if (this.indexOf(patch) < 0) {
+      return;
+    }
+
+    super.remove(patch);
+    this.map.remove(patch);
+  }
+
+  loadSTRUCT(reader) {
+    reader(this);
+
+    for (let p of this.patches) {
+      this.add(p);
+    }
+
+    delete this.patches;
+  }
+}
+
+HotKeyPatchSet.STRUCT = `
+HotKeyPatchSet {
+  patches : array(HotKeyPatch) | this; 
+}
+`;
 
 export class KeyMap extends hashtable {
   op_map : hashtable;
 
-  constructor() {
+  constructor(pathid : string) {
     super();
 
+    this.pathid = "" + pathid;
     this.op_map = new hashtable();
   }
 
@@ -464,7 +596,7 @@ export class KeyMap extends hashtable {
     super.set(keyhandler, value);
   }
 
-  process_event(ctx : Context, event : KeyboardEvent) : Object {
+  process_event(ctx : Context, event : KeyboardEvent, patchset : HotKeyPatchSet) : Object {
     var modlist = []
 
     if (event.ctrlKey) modlist.push("CTRL")
@@ -474,10 +606,22 @@ export class KeyMap extends hashtable {
     var key = new HotKey(event.keyCode, modlist, 0, 0, true);
 
     if (this.has(key)) {
+      //patchset
+      let hk;
+
       ctx.keymap_mpos[0] = ctx.screen.mpos[0];
       ctx.keymap_mpos[1] = ctx.screen.mpos[1];
 
-      return this.get(key).handle(ctx);
+
+      if (patchset && patchset.has(key2)) {
+        let hk1 = this.get(key)
+        let hk2 = patchset.get(key2);
+      } else {
+        hk = this.get(key)
+      }
+
+      hk.handle(ctx);
+      return true;
     }
 
     return undefined;
@@ -485,7 +629,7 @@ export class KeyMap extends hashtable {
 }
 
 export class KeyHandlerCls {
-  handle(Context ctx) {
+  handle(ctx : FullContext) {
   }
 }
 
@@ -495,7 +639,7 @@ export class ToolKeyHandler extends KeyHandlerCls {
     this.tool = tool;
   }
   
-  handle(ctx) {
+  handle(ctx : FullContext) {
     ctx.api.execTool(ctx, this.tool);
   }
 }
@@ -506,6 +650,8 @@ export class FuncKeyHandler extends KeyHandlerCls {
     this.handle = func;
   }
 }
+
+let _was_clamped_cp = [0, 0];
 
 //helper class for implementing velocity pan
 export class VelocityPan extends EventHandler {
@@ -570,7 +716,7 @@ export class VelocityPan extends EventHandler {
       var was_clamped = this.clamp_pan();
       this.owner.on_pan(this.pan, this.start_pan);
       
-      var stop = was_clamped != undefined && (was_clamped[0] && was_clamped[1])
+      var stop = was_clamped !== undefined && (was_clamped[0] && was_clamped[1])
       stop = stop || this.vel.vectorLength < 1;
       
       if (stop)
@@ -610,8 +756,8 @@ export class VelocityPan extends EventHandler {
     this.last_ms = time_ms();
   }
   
-  start(Array<float> start_mpos, Array<float> last_mpos, UIElement owner, 
-        Function push_modal_func, Function pop_modal_func) {
+  start(start_mpos : Array<number>, last_mpos : Array<number>, owner : Object,
+        push_modal_func : Function, pop_modal_func : Function) {
     
     if (this.panning) {
       console.trace("warning, duplicate call to VelocityPan.start()");
@@ -653,7 +799,7 @@ export class VelocityPan extends EventHandler {
     this.panning = false;
   }
   
-  do_mousemove(Array<float> mpos) {
+  do_mousemove(mpos : Array<float>) {
     //console.log("mpos", mpos);
     
     //its hard to get on_mousedown to always
@@ -690,8 +836,8 @@ export class VelocityPan extends EventHandler {
     //console.log("clamping", this.owner);
     
     var p = this.pan;
-    static was_clamped = [0, 0];
-    
+    let was_clamped = _was_clamped_cp;
+
     was_clamped[0] = false;
     was_clamped[1] = false;
     
@@ -699,14 +845,14 @@ export class VelocityPan extends EventHandler {
       var l = p[i];
       p[i] = Math.min(Math.max(bs[0][i], p[i]), bs[0][i]+bs[1][i]);
       
-      if (p[i] != l)
+      if (p[i] !== l)
         was_clamped[i] = true;
     }
     
     return was_clamped;
   }
   
-  on_mouseup(MouseEvent event) {
+  on_mouseup(event : MouseEvent) {
     console.log("pan mouse up!", this.panning, this.owner);
     
     if (this.panning) {
@@ -716,11 +862,11 @@ export class VelocityPan extends EventHandler {
     }
   }
   
-  on_mousemove(MouseEvent event) {
+  on_mousemove(event : MouseEvent) {
     this.do_mousemove([event.x, event.y]);
   }
   
-  set_pan(Array<float> pan) {
+  set_pan(pan : Array<number>) {
     if (this.panning)
       this.end();
       
@@ -731,18 +877,18 @@ export class VelocityPan extends EventHandler {
 }
 
 export class TouchEventManager {
-  constructor(owner : EventHandler, int delay=100) {
+  constructor(owner : EventHandler, delay : number = 100) {
     this.init(owner, delay);
   }
 
-  init(owner : EventHandler, int delay=100) {
+  init(owner : EventHandler, delay : number = 100) {
     this.queue = new GArray();
     this.queue_ms = new GArray();
     this.delay = delay;
     this.owner = owner;
   }
   
-  get_last(int type) {
+  get_last(type : int) {
     var i = this.queue.length;
     if (i == 0) return undefined;
     i--;
@@ -751,25 +897,25 @@ export class TouchEventManager {
     
     while (i >= 0) {
       var e = q[i];
-      if (e.type == type || e.type != MyMouseEvent.MOUSEMOVE)
+      if (e.type === type || e.type !== MyMouseEvent.MOUSEMOVE)
         break;
       i--;
     }
     
     if (i < 0) i = 0;
     
-    return q[i].type == type ? q[i] : undefined;
+    return q[i].type === type ? q[i] : undefined;
   }
   
-  queue_event(MouseEvent event) {
+  queue_event(event : MouseEvent) {
     var last = this.get_last(event.type);
 
-    if (DEBUG.touch && this == touch_manager)
+    if (DEBUG.touch && this === touch_manager)
       console.log("touch event", event.type);
     
     //merge repeated events, which may
     //contain different touch states
-    if (last != undefined && last.type != MyMouseEvent.MOUSEMOVE) {
+    if (last !== undefined && last.type !== MyMouseEvent.MOUSEMOVE) {
       var dis, same=true;
       
       for (var k in event.touches) {
@@ -781,11 +927,11 @@ export class TouchEventManager {
       //only compare same ids
       dis = new Vector2([event.x, event.y]).vectorDistance(new Vector2([last.x, last.y]));
       
-      if (DEBUG.touch && this == touch_manager)
+      if (DEBUG.touch && this === touch_manager)
         console.log(dis);
       
       if (same && dis < 50) {
-        if (DEBUG.touch && this == touch_manager)
+        if (DEBUG.touch && this === touch_manager)
           console.log("destroying duplicate event", last.type, event.x, event.y, event.touches);
         
         for (var k in event.touches) {
@@ -800,11 +946,11 @@ export class TouchEventManager {
     this.queue_ms.push(time_ms());
   }
   
-  cancel(MouseEvent event) {
+  cancel(event : MouseEvent) {
     var ts = event.touches;
     var dl = new GArray;
     
-    if (DEBUG.touch && this == touch_manager)
+    if (DEBUG.touch && this === touch_manager)
       console.log("touch cancel", event);
       
     for (var e in this.queue) {
@@ -814,7 +960,7 @@ export class TouchEventManager {
         }
       }
       
-      if (list(e.touches).length == 0) {
+      if (list(e.touches).length === 0) {
         dl.push(e);
       }
     }
@@ -854,15 +1000,15 @@ export class TouchEventManager {
       g_app_state.was_touch = true;
       
       try {
-        if (e.type == MyMouseEvent.MOUSEDOWN) {
+        if (e.type === MyMouseEvent.MOUSEDOWN) {
           if (DEBUG.touch)
             console.log("td1", e.x, e.y);
           owner._on_mousedown(e);
           if (DEBUG.touch)
             console.log("td2", e.x, e.y);
-        } else if (e.type == MyMouseEvent.MOUSEMOVE) {
+        } else if (e.type === MyMouseEvent.MOUSEMOVE) {
           owner._on_mousemove(e);
-        } else if (e.type == MyMouseEvent.MOUSEUP) {
+        } else if (e.type === MyMouseEvent.MOUSEUP) {
           owner._on_mouseup(e);
         }
       } catch (_err) {

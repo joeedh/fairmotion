@@ -179,10 +179,10 @@ export class FileSaveSVGOp extends ToolOp {
 
     var buf = export_svg(ctx.spline);
 
-    if (g_app_state.filepath != "") {
+    if (g_app_state.filepath !== "") {
       var name = g_app_state.filepath;
 
-      if (name === undefined || name == "") {
+      if (name === undefined || name === "") {
         name = "untitled";
       }
 

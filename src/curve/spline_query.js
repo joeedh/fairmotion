@@ -11,13 +11,16 @@ var PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,
 var sqrt = Math.sqrt;
 let findnearest_segment_tmp = new Vector2();
 
+let _mpos_fn_v = new Vector2();
+let _v_fn_v = new Vector2();
+
 export class SplineQuery {
   constructor(spline : Spline) {
     this.spline = spline;
   }
   
   findnearest(editor, mpos, selectmask, limit, ignore_layers) {
-    if (limit == undefined) limit = 15;
+    if (limit === undefined) limit = 15;
     var dis = 1e18;
     var data = undefined;
     
@@ -119,7 +122,7 @@ export class SplineQuery {
     }
     
     g.beginPath();
-    if (closest != undefined)
+    if (closest !== undefined)
       return [closest, dis, SelMask.FACE];
   }
 
@@ -127,16 +130,15 @@ export class SplineQuery {
     var spline = this.spline;
     var actlayer = spline.layerset.active;
     
-    if (limit == undefined) limit = 15;
+    if (limit === undefined) limit = 15;
     var min = 1e17;
     
     var ret = undefined;
     
-    static _mpos = new Vector3();
-    static _v = new Vector3();
+    let _mpos = _mpos_fn_v;
+    let _v = _v_fn_v;
 
     mpos = _mpos.load(mpos);
-    mpos[2] = 0.0;
 
     var list = do_handles ? spline.handles : spline.verts;
     for (var v of list) {
@@ -145,7 +147,7 @@ export class SplineQuery {
         
         var co = v;
 
-        _v.load(co); _v[2] = 0.0;
+        _v.load(co);
         editor.project(_v);
 
         var dis = _v.vectorDistance(mpos);

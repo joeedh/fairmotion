@@ -474,7 +474,7 @@ function api_define_material() {
   linewidth.step = 0.25;
 
   var linewidth2 = new FloatProperty(1, "linewidth2", "linewidth2", "Double Stroke Width");
-  linewidth2.range = [0.1, 200];
+  linewidth2.range = [0.0, 200];
   linewidth2.expRate = 1.75;
   //linewidth2.baseUnit = linewidth2.displayUnit = "none";
   linewidth2.step = 0.25;

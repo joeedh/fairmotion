@@ -13,7 +13,7 @@ import '../path.ux/scripts/util/struct.js';
 var restrictflags = RestrictFlags.NO_DELETE | RestrictFlags.NO_EXTRUDE |
   RestrictFlags.NO_CONNECT;
 
-var vertanimdata_eval_cache = cachering.fromConstructor(Vector3, 512);
+var vertanimdata_eval_cache = cachering.fromConstructor(Vector2, 512);
 
 import {AnimChannel, AnimKey} from './animdata.js';
 import {PropTypes} from './toolprops.js';
@@ -152,7 +152,7 @@ export var VDAnimFlags = {
   OWNER_IS_EDITABLE : 8 //owner is selected and visible
 };
 
-let dvcache = cachering.fromConstructor(Vector3, 256);
+let dvcache = cachering.fromConstructor(Vector2, 256);
 export class VertexAnimData {
   animflag : number
   flag : number
@@ -182,7 +182,7 @@ export class VertexAnimData {
     //maps splinevert eid's to the times they occur at?
     //hrm. . .
     this.path_times = {};
-    this.startv_eid = -1; //this.spline.make_vertex(new Vector3());
+    this.startv_eid = -1; //this.spline.make_vertex(new Vector2());
     
     if (pathspline !== undefined) {
       var layer = pathspline.layerset.new_layer();
@@ -460,12 +460,7 @@ export class VertexAnimData {
       dv.load(this.derivative(t));
 
       co.multVecMatrix(matrix);
-
-      dv[2] = 0.0;
-      dv[3] = 0.0;
       dv.multVecMatrix(matrix);
-      dv[2] = 0.0;
-      dv[3] = 0.0;
 
       dv.normalize().mulScalar(5);
       let tmp = dv[0]; dv[0] = -dv[1]; dv[1] = tmp;

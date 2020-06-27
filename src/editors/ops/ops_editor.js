@@ -310,7 +310,7 @@ export class OpStackEditor extends Area {
     this.first_build = true;
     this.auto_load_uidata = false;
     
-    this.keymap = new KeyMap();
+    this.keymap = new KeyMap("ops_editor");
     this.define_keymap();
     
     this.drawlines = new GArray<drawlines>();

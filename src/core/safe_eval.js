@@ -57,16 +57,16 @@ var parser = parseutil.parser;
     
     this.type = type;
     this.prec = prec;
-    this.length = b != undefined ? 2 : (a != undefined ? 1 : 0);
+    this.length = b !== undefined ? 2 : (a !== undefined ? 1 : 0);
     
-    if (a != undefined) {
+    if (a !== undefined) {
       this[0] = a;
       
       if (a instanceof Node)
         a.parent = this;
     }
     
-    if (b != undefined) {
+    if (b !== undefined) {
       this[1] = b;
       
       if (b instanceof Node)
@@ -89,7 +89,7 @@ var parser = parseutil.parser;
 }
 
 export function test(path) {
-  if (path == undefined)
+  if (path === undefined)
     //path = "(ctx.spline.layerset.active.id in $.layers) && ($.flag & 1) && !$.hidden";
     path = "ContextStruct.pathmap.theme.pathmap.ui.pathmap.colors.getter(g_theme.ui.flat_colors[0]).pathmap.type";
   
@@ -229,14 +229,14 @@ var bin_ops = new set([
 function get_prec(p) {
   var t = p.peeknext();
   
-  if (t == undefined) 
+  if (t === undefined)
     return 0;
   
   if (t.value in prec_map) {
     return prec_map[t.value];
   }
   
-  if (t.type == "ID" || t.type == "NUMLIT" || t.type == "STRLIT") {
+  if (t.type === "ID" || t.type === "NUMLIT" || t.type === "STRLIT") {
     return 0;
   }
   
@@ -244,18 +244,18 @@ function get_prec(p) {
 }
 
 function p_prefix(p, token) {
-  if (token.type == "ID") {
+  if (token.type === "ID") {
     return token.value;
-  } else if (token.type == "NUMLIT") {
+  } else if (token.type === "NUMLIT") {
     return token.value;
-  } else if (token.type == "STRLIT") {
+  } else if (token.type === "STRLIT") {
     return {type : "STRLIT", value : token.value};
-  } else if (token.type == "LNOT") {
+  } else if (token.type === "LNOT") {
     return new Node("!", prec_map["!"], p_expr(p, prec_map["!"]));
     //return {type : "LNOT", value : token.value};
-  } else if (token.type == "MINUS") {
+  } else if (token.type === "MINUS") {
     return new Node("negate", prec_map["-"], p_expr(p, prec_map["-"]));
-  } else if (token.type == "LPAREN") {
+  } else if (token.type === "LPAREN") {
     var ret = p_expr(p, prec_map[")"]);
     p.expect("RPAREN");
     
@@ -268,7 +268,7 @@ function p_prefix(p, token) {
 function p_expr(p, prec) {
   var t = p.next();
   
-  if (t == undefined) {
+  if (t === undefined) {
     return "ERROR_ERROR_ERROR";
   }
   
@@ -278,7 +278,7 @@ function p_expr(p, prec) {
   var a = p_prefix(p, t);
   
   while(prec < get_prec(p)) {
-    if (debug_parser && p.peeknext() != undefined) {
+    if (debug_parser && p.peeknext() !== undefined) {
       console.log("PREC", prec, get_prec(p), p.peeknext().type);
     }
     
@@ -289,15 +289,15 @@ function p_expr(p, prec) {
     if (bin_ops.has(t.type)) {
       var b = p_expr(p, prec_map[t.value]);
       a = new Node(t.value, prec_map[t.value], a, b);
-    } else if (t.type == "LPAREN") {
+    } else if (t.type === "LPAREN") {
       if (debug_parser)
         console.log("LPAREN infix!", ast, "\n-----\n");
       var list;
       
-      if (p.peeknext().type != "RPAREN") {
+      if (p.peeknext().type !== "RPAREN") {
         list = p_expr(p, prec_map[")"]);
         
-        if (list.type != "list") {
+        if (list.type !== "list") {
           list = new Node("list", prec["("], list);
         }
       } else {
@@ -306,7 +306,7 @@ function p_expr(p, prec) {
       
       a = new Node("call", 500, a, list);
       p.expect("RPAREN");
-    } else if (t.type == "LSBRACKET") {
+    } else if (t.type === "LSBRACKET") {
       var b = p_expr(p, prec_map["]"]);
       p.expect("RSBRACKET");
       
@@ -314,16 +314,16 @@ function p_expr(p, prec) {
         console.log("LSBRACKET");
       
       a = new Node("array", prec_map["["], a, b);
-    } else if (t.type == "COMMA") {
+    } else if (t.type === "COMMA") {
       if (debug_parser)
         console.log("COMMA", a);
       
-      if (a.type == "list") {
+      if (a.type === "list") {
         a.push(p_expr(p, 0));
       } else {
         var b = p_expr(p, 0);
         
-        if (b.type == "list") {
+        if (b.type === "list") {
           b.insert(0, a);
           a = b;
         } else {
@@ -331,7 +331,7 @@ function p_expr(p, prec) {
           a.push(b);
         }
       }
-    } else if (t.type == "COND") { //trinary logic operator
+    } else if (t.type === "COND") { //trinary logic operator
       var b = p_expr(p, 0)
       p.expect("COLON");
       var c = p_expr(p, 0);
@@ -346,8 +346,8 @@ function p_expr(p, prec) {
   //if (prec >= get_prec(p))
   //  p.next();
   
-  if (p.peeknext() != undefined) {
-    if (p.peeknext() != undefined) {
+  if (p.peeknext() !== undefined) {
+    if (p.peeknext() !== undefined) {
       if (debug_parser)
         console.log("PREC", prec, get_prec(p), p.peeknext().type);
     }
@@ -359,7 +359,7 @@ function p_expr(p, prec) {
 function p_root(p) {
   var ret = p_expr(p, 0);
   
-  if (p.peeknext() != undefined && p.peeknext().type == "SEMI") {
+  if (p.peeknext() !== undefined && p.peeknext().type === "SEMI") {
     p.next();
   }
   /*
@@ -387,10 +387,10 @@ export function parentify(node) {
       return;
     }
     
-    if (node._inst_id != undefined && node._inst_id in set)
+    if (node._inst_id !== undefined && node._inst_id in set)
       return;
     
-    if (node._inst_id == undefined) {
+    if (node._inst_id === undefined) {
       node._inst_id = idgen++;
     }
     set[node._inst_id] = 1;
@@ -400,7 +400,7 @@ export function parentify(node) {
       if (typeof v != "object" || v === null)
         continue;
      
-      if (v._inst_id == undefined) {
+      if (v._inst_id === undefined) {
         v._inst_id = idgen++;
       }
       
@@ -427,27 +427,27 @@ export function exec(ast, scope1) {
   scope.parent = undefined;
   
   function visit(node, scope) {
-    if (node == undefined) {
+    if (!node) {
       throw new Error("node was undefined!");
     }
     
-    if (node.type == "Identifier") {
+    if (node.type === "Identifier") {
       return scope.scope[node.name];
-    } else if (node.type == "Literal") {
+    } else if (node.type === "Literal") {
       return node.value;
-    } else if (node.type == "ExpressionStatement") {
+    } else if (node.type === "ExpressionStatement") {
       return visit(node.expression, scope);
-    } else if (node.type == "VariableDeclarator") {
+    } else if (node.type === "VariableDeclarator") {
       var name = node.id.name;
       
-      if (node.init == null) {
+      if (node.init === null) {
         scope.scope[name] = undefined;
       } else {
         scope.scope[name] = visit(node.init, scope);
       }
       
       return scope.scope[name];
-    } else if (node.type == "VariableDeclaration") {
+    } else if (node.type === "VariableDeclaration") {
       var first = visit(node.declarations[0], scope);
       
       for (var i=1; i<node.declarations.length; i++) {
@@ -455,7 +455,7 @@ export function exec(ast, scope1) {
       }
       
       return first;
-    } else if (node.type == "MemberExpression") {
+    } else if (node.type === "MemberExpression") {
       var obj = visit(node.object, scope);
       var prop;
       
@@ -463,9 +463,9 @@ export function exec(ast, scope1) {
       
       if (node.computed) {
         prop = visit(node.property, scope);
-      } else if (node.property.type == "Identifier") {
+      } else if (node.property.type === "Identifier") {
         prop = node.property.name;
-      } else if (node.property.type == "Literal") {
+      } else if (node.property.type === "Literal") {
         prop = node.property.value;
       } else {
         console.trace(node);
@@ -475,7 +475,7 @@ export function exec(ast, scope1) {
       execdebug("  Obj, prop:", obj, prop, "...");
       
       return obj[prop];
-    } else if (node.type == "ConditionalExpression") {
+    } else if (node.type === "ConditionalExpression") {
       var a = visit(node.test, scope);
       
       if (a) {
@@ -483,24 +483,24 @@ export function exec(ast, scope1) {
       } else {
         return visit(node.alternate, scope);
       }
-    } else if (node.type == "UpdateExpression") {
+    } else if (node.type === "UpdateExpression") {
       var obj, prop;
       
-      if (node.argument.type == "MemberExpression") {
+      if (node.argument.type === "MemberExpression") {
         obj = visit(node.argument.object, scope);
         
         if (node.argument.computed) {
           prop = visit(node.argument.property, scope);
-        } else if (node.argument.property.type == "Identifier") {
+        } else if (node.argument.property.type === "Identifier") {
           prop = node.argument.property.name;
-        } else if (node.argument.property.type == "Literal") {
+        } else if (node.argument.property.type === "Literal") {
           prop = node.argument.property.value;
         } else {
           console.trace(node.argument);
           throw new Error("Expected an identifier or literal node");
         }
       } else {
-        if (node.argument.type != "Identifier") {
+        if (node.argument.type !== "Identifier") {
           console.log(node);
           console.trace(node.argument);
           throw new Error("Expeced an identifier node");
@@ -511,30 +511,30 @@ export function exec(ast, scope1) {
       } 
       
       var preval = obj[prop];
-      if (node.operator == "++")
+      if (node.operator === "++")
         obj[prop]++;
       else
         obj[prop]--;
       
       return node.prefix ? obj[prop] : preval;
-    } else if (node.type == "AssignmentExpression") {
+    } else if (node.type === "AssignmentExpression") {
       var obj, prop;
       
-      if (node.left.type == "MemberExpression") {
+      if (node.left.type === "MemberExpression") {
         obj = visit(node.left.object, scope);
         
         if (node.left.computed) {
           prop = visit(node.left.property, scope);
-        } else if (node.left.property.type == "Identifier") {
+        } else if (node.left.property.type === "Identifier") {
           prop = node.left.property.name;
-        } else if (node.left.property.type == "Literal") {
+        } else if (node.left.property.type === "Literal") {
           prop = node.left.property.value;
         } else {
           console.trace(node.left);
           throw new Error("Expected an identifier or literal node");
         }
       } else {
-        if (node.left.type != "Identifier") {
+        if (node.left.type !== "Identifier") {
           console.log(node);
           console.trace(node.left);
           throw new Error("Expeced an identifier node");
@@ -585,7 +585,7 @@ export function exec(ast, scope1) {
       }
       
       return obj[prop];
-    } else if (node.type == "ArrayExpression") {
+    } else if (node.type === "ArrayExpression") {
       var ret = [];
       var items = node.elements;
       
@@ -594,7 +594,7 @@ export function exec(ast, scope1) {
       }
       
       return ret;
-    } else if (node.type == "UnaryExpression") {
+    } else if (node.type === "UnaryExpression") {
       var val = visit(node.argument, scope);
       
       switch (node.operator) {
@@ -615,13 +615,13 @@ export function exec(ast, scope1) {
         default:
           throw new Error("Unknown prefix " + node.prefix);
       }
-    } else if (node.type == "NewExpression") {
+    } else if (node.type === "NewExpression") {
       execdebug("new call!", node, node.callee);
       
       var func = visit(node.callee, scope);
       var thisvar = undefined;
       
-      if (node.callee.type == "MemberExpression") {
+      if (node.callee.type === "MemberExpression") {
         thisvar = visit(node.callee.object, scope);
       }
       
@@ -641,13 +641,13 @@ export function exec(ast, scope1) {
         case 5:
           throw new Error("new calls of more than 4 arguments is not supported");
       }
-    } else if (node.type == "CallExpression") {
+    } else if (node.type === "CallExpression") {
       execdebug("function call!", node, node.callee);
       
       var func = visit(node.callee, scope);
       var thisvar = undefined;
       
-      if (node.callee.type == "MemberExpression") {
+      if (node.callee.type === "MemberExpression") {
         thisvar = visit(node.callee.object, scope);
       }
       
@@ -667,15 +667,15 @@ export function exec(ast, scope1) {
         case 5:
           throw new Error("function calls of more than 4 arguments is not supported");
       }
-    } else if (node.type == "BinaryExpression" || node.type == "LogicalExpression") {
+    } else if (node.type === "BinaryExpression" || node.type === "LogicalExpression") {
       var a = visit(node.left, scope);
       var b = visit(node.right, scope);
       
       switch (node.operator) {
         case "==":
-          return a == b;
+          return a === b;
         case "!=":
-          return a != b;
+          return a !== b;
         case ">":
           return a > b;
         case "<":
@@ -756,32 +756,32 @@ export function exec2(ast, scope1) {
   scope.parent = undefined;
   
   function visit(node, scope, pscope) { //parent scope
-    if (typeof node == "string")
+    if (typeof node === "string")
       return scope.scope[node];
-    if (typeof node == "number")
+    if (typeof node === "number")
       return node;
     
-    if (node.type == "!") {
+    if (node.type === "!") {
       return !visit(node[0], scope);
-    } else if (node.type == "negate") {
+    } else if (node.type === "negate") {
       return -visit(node[0], scope);
-    } else if (node.type == "?") {
-      var a = visit(node[0], scope, pscope);
-      var b = visit(node[1], scope, pscope);
-      var c = visit(node[2], scope, pscope);
+    } else if (node.type === "?") {
+      let a = visit(node[0], scope, pscope);
+      let b = visit(node[1], scope, pscope);
+      let c = visit(node[2], scope, pscope);
       
       return a ? b : c;
-    } else if (node.type == "call") {
-      var func;
+    } else if (node.type === "call") {
+      let func;
       
-      if (typeof node[0] == "string" && node.parent.type == ".") {
+      if (typeof node[0] === "string" && node.parent.type === ".") {
         func = scope.thisvar[node[0]];
       } else {
         func = visit(node[0], scope, pscope);
       }
-      var thisvar;
+      let thisvar;
       
-      if (node.parent.type != ".") {
+      if (node.parent.type !== ".") {
         thisvar = self;
       } else {
         thisvar = scope.thisvar; //visit(node.parent[0], pscope, pscope);
@@ -809,23 +809,23 @@ export function exec2(ast, scope1) {
                            visit(node[1][2], scope, pscope),
                            visit(node[1][3], scope, pscope));
       }
-    } else if (node.type == "ID") {
-      if (node.parent != undefined && node.parent.type == ".") {
+    } else if (node.type === "ID") {
+      if (node.parent !== undefined && node.parent.type === ".") {
         return scope.thisvar[node.value];
       } else {
         return scope.scope[node.value];
       }
-    } else if (node.type == "NUMLIT") {
+    } else if (node.type === "NUMLIT") {
       return node.value;
-    } else if (node.type == "STRLIT") {
+    } else if (node.type === "STRLIT") {
       return node.value;
-    } else if (node.type == ".") {
-      var scope2 = scopes.next();
+    } else if (node.type === ".") {
+      let scope2 = scopes.next();
       
       scope2.parent = scope;
       scope2.scope = scope.scope;
       scope2.thisvar = visit(node[0], scope, pscope);
-      pscope = scope, scope = scope2;
+      pscope = scope; scope = scope2;
       
       if (debug_exec)
         console.log("scope", scope, node[0], scope.scope[node[0]], "...");
@@ -835,119 +835,119 @@ export function exec2(ast, scope1) {
       } else {
         return visit(node[1], scope, pscope);
       }
-    } else if (node.type == "array") {
-      var array = visit(node[0], scope, pscope);
-      var idx = visit(node[1], scope, pscope);
+    } else if (node.type === "array") {
+      let array = visit(node[0], scope, pscope);
+      let idx = visit(node[1], scope, pscope);
       
       return array[idx];
-    } else if (node.type == "==") {
-      var a = visit(node[0], scope, pscope);
-      var b = visit(node[1], scope, pscope);
+    } else if (node.type === "==") {
+      let a = visit(node[0], scope, pscope);
+      let b = visit(node[1], scope, pscope);
       
       return a == b;
-    } else if (node.type == "&&") {
-      var a = visit(node[0], scope, pscope);
-      var b = visit(node[1], scope, pscope);
+    } else if (node.type === "&&") {
+      let a = visit(node[0], scope, pscope);
+      let b = visit(node[1], scope, pscope);
       
       return a && b;
-    } else if (node.type == "||") {
-      var a = visit(node[0], scope, pscope);
-      var b = visit(node[1], scope, pscope);
+    } else if (node.type === "||") {
+      let a = visit(node[0], scope, pscope);
+      let b = visit(node[1], scope, pscope);
       
       return a || b;
-    } else if (node.type == "^") {
-      var a = visit(node[0], scope, pscope);
-      var b = visit(node[1], scope, pscope);
+    } else if (node.type === "^") {
+      let a = visit(node[0], scope, pscope);
+      let b = visit(node[1], scope, pscope);
       
       return a ^ b;
-    } else if (node.type == ">=") {
-      var a = visit(node[0], scope, pscope);
-      var b = visit(node[1], scope, pscope);
+    } else if (node.type === ">=") {
+      let a = visit(node[0], scope, pscope);
+      let b = visit(node[1], scope, pscope);
       
       return a >= b;
-    } else if (node.type == ">") {
-      var a = visit(node[0], scope, pscope);
-      var b = visit(node[1], scope, pscope);
+    } else if (node.type === ">") {
+      let a = visit(node[0], scope, pscope);
+      let b = visit(node[1], scope, pscope);
       
       return a > b;
-    } else if (node.type == "!=") {
-      var a = visit(node[0], scope, pscope);
-      var b = visit(node[1], scope, pscope);
+    } else if (node.type === "!=") {
+      let a = visit(node[0], scope, pscope);
+      let b = visit(node[1], scope, pscope);
       
-      return a != b;
-    } else if (node.type == "in") {
-      var a = visit(node[0], scope, pscope);
-      var b = visit(node[1], scope, pscope);
+      return a !== b;
+    } else if (node.type === "in") {
+      let a = visit(node[0], scope, pscope);
+      let b = visit(node[1], scope, pscope);
       
       if (debug_exec)
         console.log("in keyword", a, b, a in b);
       
       return a in b;
-    } else if (node.type == "<=") {
-      var a = visit(node[0], scope, pscope);
-      var b = visit(node[1], scope, pscope);
+    } else if (node.type === "<=") {
+      let a = visit(node[0], scope, pscope);
+      let b = visit(node[1], scope, pscope);
       
       return a <= b;
-    } else if (node.type == "<") {
-      var a = visit(node[0], scope, pscope);
-      var b = visit(node[1], scope, pscope);
+    } else if (node.type === "<") {
+      let a = visit(node[0], scope, pscope);
+      let b = visit(node[1], scope, pscope);
       
       return a < b;
-    } else if (node.type == "|") {
-      var a = visit(node[0], scope, pscope);
-      var b = visit(node[1], scope, pscope);
+    } else if (node.type === "|") {
+      let a = visit(node[0], scope, pscope);
+      let b = visit(node[1], scope, pscope);
       
       return a | b;
-    } else if (node.type == "+") {
-      var a = visit(node[0], scope, pscope);
-      var b = visit(node[1], scope, pscope);
+    } else if (node.type === "+") {
+      let a = visit(node[0], scope, pscope);
+      let b = visit(node[1], scope, pscope);
       
       return a + b;
-    } else if (node.type == "-") {
-      var a = visit(node[0], scope, pscope);
-      var b = visit(node[1], scope, pscope);
+    } else if (node.type === "-") {
+      let a = visit(node[0], scope, pscope);
+      let b = visit(node[1], scope, pscope);
       
       return a - b;
-    } else if (node.type == "*") {
-      var a = visit(node[0], scope, pscope);
-      var b = visit(node[1], scope, pscope);
+    } else if (node.type === "*") {
+      let a = visit(node[0], scope, pscope);
+      let b = visit(node[1], scope, pscope);
       
       return a * b;
-    } else if (node.type == "/") {
-      var a = visit(node[0], scope, pscope);
-      var b = visit(node[1], scope, pscope);
+    } else if (node.type === "/") {
+      let a = visit(node[0], scope, pscope);
+      let b = visit(node[1], scope, pscope);
       
       return a / b;
-    } else if (node.type == ">>") {
-      var a = visit(node[0], scope, pscope);
-      var b = visit(node[1], scope, pscope);
+    } else if (node.type === ">>") {
+      let a = visit(node[0], scope, pscope);
+      let b = visit(node[1], scope, pscope);
       
       return a >> b;
-    } else if (node.type == "<<") {
-      var a = visit(node[0], scope, pscope);
-      var b = visit(node[1], scope, pscope);
+    } else if (node.type === "<<") {
+      let a = visit(node[0], scope, pscope);
+      let b = visit(node[1], scope, pscope);
       
       return a << b;
-    } else if (node.type == "&") {
-      var a = visit(node[0], scope, pscope);
-      var b = visit(node[1], scope, pscope);
+    } else if (node.type === "&") {
+      let a = visit(node[0], scope, pscope);
+      let b = visit(node[1], scope, pscope);
       
       return a & b;
-    } else if (node.type == "=") {
+    } else if (node.type === "=") {
       //are we not assigning to an object property?
       if (typeof node[0] == "string" || node[0].type == "ID") {
-        var key = typeof node[0] == "string" ? node[0] : node[0].value;
+        let key = typeof node[0] == "string" ? node[0] : node[0].value;
         scope.scope[key] = visit(node[1], scope, pscope);
         
         return scope.scope[key];
       }
       
-      var a = visit(node[0], scope, pscope);
-      var b = visit(node[1], scope, pscope);
-      
-      var container = visit(node[0][0], scope, pscope);
-      
-      var key = node[0][1];
+      let a = visit(node[0], scope, pscope);
+      let b = visit(node[1], scope, pscope);
+
+      let container = visit(node[0][0], scope, pscope);
+
+      let key = node[0][1];
       if (typeof key != "string") {
         throw new Error("safe_eval error with: " + code);
       }
@@ -963,7 +963,7 @@ export function exec2(ast, scope1) {
 }
 
 export function safe_eval(code, scope) {
-  scope = scope == undefined ? {} : scope;
+  scope = scope === undefined ? {} : scope;
   
   var ast = compile(code);
   

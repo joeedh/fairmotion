@@ -22,7 +22,7 @@ export class View2DEditor {
     this.type = type;
     this.editor_type = editor_type;
     this.lib_type = lib_type;
-    this.keymap = new KeyMap();
+    this.keymap = new KeyMap("view2d:" + this.constructor.name);
     this.selectmode = 0;
   }
 

@@ -44,7 +44,7 @@ export class Area extends UIFrame {
   constructor(type : String, uiname : String, ctx : Context, pos : Array<float>, size : Array<float>) {
     super(ctx, undefined, undefined, pos, size);
     
-    this.keymap = new KeyMap();
+    this.keymap = new KeyMap(this.constructor.name);
     
     this.auto_load_uidata = true;
     this.uiname = uiname;

@@ -12,6 +12,8 @@ import {
   MinMax
 } from '../util/mathlib.js';
 
+import {Vector2} from "../path.ux/scripts/pathux.js";
+
 import {
   TPropFlags, PropTypes
 } from '../core/toolprops.js';
@@ -57,15 +59,13 @@ export class SplineVertex extends SplineElement {
 
   constructor(co) {
     super(SplineTypes.VERTEX);
-    Vector3.prototype.initVector3.apply(this, arguments);
+    Vector2.prototype.initVector2.apply(this, arguments);
+
+    this._no_warning = false;
 
     if (co !== undefined) {
       this[0] = co[0];
       this[1] = co[1];
-      
-      if (co.length > 2) {
-        this[2] = co[2];
-      }
     }
 
     this.type = SplineTypes.VERTEX;
@@ -76,6 +76,14 @@ export class SplineVertex extends SplineElement {
     
     //handle variables
     this.hpair = undefined; //connected handle in shared tangents mode
+  }
+
+  get 2() {
+    return 0.0;
+  }
+
+  set 2(val) {
+    console.warn("Attempt to set [2] in SplineVertex!");
   }
 
   get width() {
@@ -342,7 +350,6 @@ export class SplineVertex extends SplineElement {
     ret.segments = [];
     ret[0] = this[0];
     ret[1] = this[1];
-    ret[2] = this[2];
     ret.frames = this.frames;
     ret.length = 3;
     
@@ -358,13 +365,17 @@ export class SplineVertex extends SplineElement {
   }
 
   loadSTRUCT(reader : Function) {
+    this._no_warning = true;
+
     reader(this);
     super.loadSTRUCT(reader);
+
+    this._no_warning = false;
 
     this.load(this.co);
     delete this.co;
     
-    for (let axis=0; axis<3; axis++) {
+    for (let axis=0; axis<2; axis++) {
       if (isNaN(this[axis])) {
         console.warn("NaN vertex", this.eid);
         this[axis] = 0;
@@ -376,13 +387,13 @@ export class SplineVertex extends SplineElement {
 };
 
 SplineVertex.STRUCT = STRUCT.inherit(SplineVertex, SplineElement) + `
-  co       : vec3          | obj;
+  co       : vec2          | this;
   segments : array(e, int) | e.eid;
-  hpair    : int           | obj.hpair != undefined? obj.hpair.eid : -1;
+  hpair    : int           | this.hpair != undefined? this.hpair.eid : -1;
 }
 `;
 
-mixin(SplineVertex, Vector3);
+mixin(SplineVertex, Vector2);
 
 export class ClosestPointRecord {
   s    : number;
@@ -864,8 +875,6 @@ export class SplineSegment extends SplineElement {
     
     min.load(minmax.min);
     max.load(minmax.max);
-    
-    min[2] = max[2] = 0.0; //XXX need to get rid of z
   }
 
   intersect(seg : SplineSegment, side1 : boolean = false, side2 : boolean = false, mode : number = IsectModes.CLOSEST) {
@@ -1360,7 +1369,8 @@ export class SplineSegment extends SplineElement {
     
     ret[0] = sin(th+ang)*ks[KSCALE];
     ret[1] = cos(th+ang)*ks[KSCALE];
-    ret[2] = 0.0;
+    if (ret.length > 2)
+      ret[2] = 0.0;
     
     return ret;
   }
@@ -1709,7 +1719,7 @@ export class SplineLoopPath {
   }
   
   [Symbol.iterator]() {
-    if (this.itercache == undefined) {
+    if (this.itercache === undefined) {
       this.itercache = cachering.fromConstructor(SplineLoopPathIter, 4);
     }
     
@@ -1821,7 +1831,6 @@ export class SplineFace extends SplineElement {
     
     this._aabb[0].load(minmax.min);
     this._aabb[1].load(minmax.max);
-    this._aabb[0][2] = this._aabb[1][2] = 0.0; //XXX need to get rid of z
   }
   
   get aabb() {

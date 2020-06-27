@@ -1,5 +1,5 @@
 import {NodeBase} from "../../../core/eventdag.js";
-import {KeyMap} from "../../../path.ux/scripts/util/simple_events.js";
+import {KeyMap} from "../../events.js";
 import {nstructjs} from "../../../path.ux/scripts/pathux.js";
 
 export const ToolModeFlags = {
@@ -16,9 +16,7 @@ export class ToolMode extends NodeBase {
     super();
 
     this.ctx = undefined;
-    this.keymap = new KeyMap([
-
-    ])
+    this.keymap = new KeyMap("view2d:" + this.constructor.name);
   }
 
   rightClickMenu(e, localX, localY, view2d) {

@@ -5,6 +5,7 @@ import {ListProperty, EnumProperty, FloatProperty, Vec2Property,
 import * as util from '../../path.ux/scripts/util/util.js';
 import {SplineFlags} from "../../curve/spline_base.js";
 import {Vector2} from '../../path.ux/scripts/util/vectormath.js';
+import {Icons} from '../../datafiles/icon_enum.js';
 
 export class KeyIterItem {
   type : AnimKeyType;
@@ -114,6 +115,8 @@ export class VertKeyIterItem extends KeyIterItem {
 
 export class DataPathKeyItem extends VertKeyIterItem {
   constructor(datapath) {
+    super();
+
     this.path = datapath;
     throw new Error("implement me");
   }
@@ -338,6 +341,80 @@ export class ToggleSelectAll extends AnimKeyTool {
   }
 }
 
+export class NextPrevKeyFrameOp extends AnimKeyTool {
+  constructor() {
+    super();
+  }
+
+  static tooldef() {return {
+    uiname   : "Next/Prev Keyframe",
+    toolpath : "anim.nextprev",
+    icon     : Icons.ANIM_NEXT,
+    inputs   : ToolOp.inherit({
+      dir : new IntProperty(1)
+    }),
+    outputs : ToolOp.inherit({
+      frame : new IntProperty(0)
+    })
+  }}
+
+  exec(ctx) {
+    let dir = this.inputs.dir.getValue();
+    let scene = ctx.scene;
+    let time = scene.time;
+
+    let mint, minf;
+
+    console.log("Next Keyframe", time);
+
+    for (let key of this.iterKeys(ctx)) {
+      let t = key.getTime();
+
+      console.log("  ", t);
+
+      if (dir > 0 && t > time && (mint === undefined || t - time < mint)) {
+        mint = t - time;
+        minf = t;
+      } else if (dir < 0 && t < time && (mint === undefined || time - t < mint)) {
+        mint = time - t;
+        minf = t;
+      }
+    }
+
+    console.log(minf, mint, time);
+
+    if (minf !== undefined) {
+      scene.change_time(ctx, minf);
+      window.redraw_viewport();
+    }
+  }
+
+  undoPre(ctx) {
+    this.undo_pre(ctx);
+  }
+
+  static canRun(ctx : FullContext) {
+    return ctx.scene;
+  }
+
+  /*we don't need to use parent classes's undo implementation
+    as we're only changing time*/
+  undo_pre(ctx) {
+    this._undo_time = ctx.scene.time;
+
+    //super.undo_pre(ctx);
+    //this._undo_time = ctx.scene.time;
+  }
+
+  undo(ctx) {
+    if (ctx.scene.time === this._undo_time) {
+      return;
+    }
+
+    ctx.scene.change_time(this._undo_time);
+    window.redraw_viewport();
+  }
+}
 
 export class MoveKeyFramesOp extends AnimKeyTool {
   constructor() {

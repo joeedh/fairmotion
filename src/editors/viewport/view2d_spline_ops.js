@@ -290,7 +290,7 @@ export class SplineEditor extends View2DEditor {
   start_mpos : Vector3;
 
   constructor(view2d) {
-    var keymap = new KeyMap();
+    var keymap = new KeyMap("view2d:splinetool2");
     super("Geometry", EditorTypes.SPLINE, EditModes2.GEOMETRY, DataTypes.FRAMESET, keymap);
     
     this.mpos = new Vector3();

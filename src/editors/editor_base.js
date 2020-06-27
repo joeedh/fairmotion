@@ -57,7 +57,7 @@ export class FairmotionScreen extends Screen {
   }
 
   define_keymap() {
-    this.keymap = new KeyMap();
+    this.keymap = new KeyMap("screen");
     var k = this.keymap;
 
     k.add_tool(new HotKey("O", ["CTRL"], "Open File"),
@@ -73,13 +73,53 @@ export class FairmotionScreen extends Screen {
       g_app_state.set_startup_file();
     });
 
+    k.add_tool(new HotKey("Left", ["CTRL"], "Previous Keyframe"),
+               "anim.nextprev(dir=-1)");
+    k.add_tool(new HotKey("Right", ["CTRL"], "Next Keyframe"),
+      "anim.nextprev(dir=1)");
+
     k.add(new HotKey("Space", [], "Animation Playback"), new FuncKeyHandler(() => {
       this.ctx.screen.togglePlayback();
     }));
     k.add(new HotKey("Escape", [], "Animation Playback"), new FuncKeyHandler(() => {
       this.ctx.screen.stopPlayback();
     }));
+
+    k.add(new HotKey("Z", ["CTRL", "SHIFT"], "Redo"), new FuncKeyHandler(function(ctx : FullContext) {
+      console.log("Redo")
+      ctx.toolstack.redo();
+    }));
+    k.add(new HotKey("Y", ["CTRL"], "Redo"), new FuncKeyHandler(function(ctx : FullContext) {
+      console.log("Redo")
+      ctx.toolstack.redo();
+    }));
+    k.add(new HotKey("Z", ["CTRL"], "Undo"), new FuncKeyHandler(function(ctx : FullContext) {
+      console.log("Undo");
+      ctx.toolstack.undo();
+    }));
   }
+
+  * getKeySets() {
+    let this2 = this;
+
+    yield new KeymapSet("General", "screen", [this2.keymap]);
+
+    for (let sarea of this2.sareas) {
+      if (!sarea.area) continue;
+
+      let area = sarea.area;
+      let uiname = area.constructor.define().uiname || area.constructor.name;
+      let path = area.constructor.name;
+
+      let km = sarea.area.getKeyMaps();
+      if (!(km instanceof KeymapSet)) {
+        km = new KeymapSet(uiname, path, km);
+      }
+
+      yield km;
+    }
+  }
+
   on_keyup(e) {
     if (g_app_state.eventhandler !== this)
       return g_app_state.eventhandler.on_keyup(e);
@@ -175,6 +215,21 @@ FairmotionScreen.STRUCT = STRUCT.inherit(FairmotionScreen, Screen) + `
 `;
 ui_base.UIBase.register(FairmotionScreen);
 
+export class KeymapSet extends Array {
+  constructor(name, path, keymaps) {
+    super();
+
+    this.name = name;
+    this.path = path;
+
+    if (keymaps) {
+      for (let keymap of keymaps) {
+        this.push(keymap);
+      }
+    }
+  }
+}
+
 export class Editor extends Area {
   canvases : Object;
 
@@ -201,7 +256,7 @@ export class Editor extends Area {
       this.makeHeader(this.container);
     }
 
-    this.keymap = new KeyMap();
+    this.keymap = new KeyMap(this.constructor.define().uiname || this.constructor.name);
 
     if (this.helppicker) {
       this.helppicker.iconsheet = 0;

@@ -24,7 +24,7 @@ import {EditModes} from './view2d_editor.js';
 export {EditModes} from './view2d_editor.js';
 import './toolmodes/all.js';
 
-let projrets = cachering.fromConstructor(Vector3, 128);
+let projrets = cachering.fromConstructor(Vector2, 128);
 
 let _v3d_unstatic_temps = cachering.fromConstructor(Vector3, 512);
 let _v2d_unstatic_temps = cachering.fromConstructor(Vector2, 32);
@@ -165,7 +165,7 @@ export class View2DHandler extends Editor {
       return;
     }
 
-    this.keymap = new KeyMap();
+    this.keymap = new KeyMap("view2d");
     this.define_keymap();
 
     for (let map of this.ctx.toolmode.getKeyMaps()) {
@@ -222,21 +222,8 @@ export class View2DHandler extends Editor {
       s2 |= hf;
 
       console.log("toggle select mode", s, s2, SelMask.SEGMENT,  SelMask.FACE);
-      console.log(s == SelMask.VERTEX, s == (SelMask.VERTEX|SelMask.HANDLE), (s == SelMask.SEGMENT));
+      console.log(s === SelMask.VERTEX, s === (SelMask.VERTEX|SelMask.HANDLE), (s === SelMask.SEGMENT));
       ctx.view2d.set_selectmode(s2);
-    }));
-
-    k.add(new HotKey("Z", ["CTRL", "SHIFT"], "Redo"), new FuncKeyHandler(function(ctx : FullContext) {
-      console.log("Redo")
-      ctx.toolstack.redo();
-    }));
-    k.add(new HotKey("Y", ["CTRL"], "Redo"), new FuncKeyHandler(function(ctx : FullContext) {
-      console.log("Redo")
-      ctx.toolstack.redo();
-    }));
-    k.add(new HotKey("Z", ["CTRL"], "Undo"), new FuncKeyHandler(function(ctx : FullContext) {
-      console.log("Undo");
-      ctx.toolstack.undo();
     }));
 
     k.add(new HotKey("O", [], "Toggle Proportional Transform"), new FuncKeyHandler(function(ctx : FullContext) {
@@ -363,7 +350,7 @@ export class View2DHandler extends Editor {
     return off;
   }
 
-  project(co : Vector3) {
+  project(co : Vector2) {
     let _co = _v3d_unstatic_temps.next().zero();
 
     _co.load(co);
@@ -372,6 +359,7 @@ export class View2DHandler extends Editor {
     //_co.mulScalar(1.0/this.dpi_scale);
 
     co[0] = _co[0], co[1] = _co[1];
+
     return co;
   }
 
@@ -406,7 +394,7 @@ export class View2DHandler extends Editor {
 
     ret[0] = (x - rect.left) * dpi;
     ret[1] = (rect.height - (y - rect.top)) * dpi;
-    ret[2] = 0.0;
+    //ret[2] = 0.0;
 
     return ret;
   }

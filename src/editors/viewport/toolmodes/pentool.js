@@ -239,7 +239,7 @@ export class PenToolMode extends ToolMode {
   }
 
   defineKeyMap() {
-    let k = this.keymap = new KeyMap([]);
+    let k = this.keymap = new KeyMap("view2d:pentool");
     return k;
   }
 

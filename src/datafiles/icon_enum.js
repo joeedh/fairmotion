@@ -1,6 +1,6 @@
 "use strict";
 
-window.Icons = {
+export const Icons = {
   HFLIP          : 0,
   TRANSLATE      : 1,
   ROTATE         : 2,
@@ -65,5 +65,13 @@ window.Icons = {
   HALF_PIXEL_SIZE  : 61,
   PEN_TOOL         : 62,
   STROKE_TOOL      : 63,
-  PROP_TRANSFORM   : 64
+  PROP_TRANSFORM   : 64,
+  ANIM_PLAY        : 65,
+  ANIM_PAUSE       : 66,
+  ANIM_START       : 67,
+  ANIM_END         : 68,
+  ANIM_NEXT        : 69,
+  ANIM_PREV        : 70
 };
+
+window.Icons = Icons;

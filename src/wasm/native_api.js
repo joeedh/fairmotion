@@ -537,7 +537,9 @@ function write_wasm_solve_new(writer, spline, cons, update_verts, update_segs, g
   function add_vert(v) {
     writer.int32(v.eid);
     writer.int32(v.flag);
-    writer.vec3(v);
+    writer.float32(v[0]);
+    writer.float32(v[1]);
+    writer.float32(0.0);
     writer.int32(0); //pad int
     
     idxmap[v.eid] = i++;

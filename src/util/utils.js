@@ -757,9 +757,17 @@ class hashtable {
   }
 
   remove(key : Object) {
-    delete this.items[key[Symbol.keystr]()]
-    delete this.keymap[key[Symbol.keystr]()]
+    if (!this.has(key)) {
+      return false;
+    }
+
+    let keystr = key[Symbol.keystr]();
+
+    delete this.items[keystr];
+    delete this.keymap[keystr];
     this.length -= 1;
+
+    return true;
   }
 
   [Symbol.iterator]() : HashKeyIter {
@@ -778,6 +786,10 @@ class hashtable {
 
   keys() : GArray<Object> {
     return list(this);
+  }
+
+  getKey(key : String) : Object {
+    return this.keymap[key];
   }
 
   get(key : Object) : Object {

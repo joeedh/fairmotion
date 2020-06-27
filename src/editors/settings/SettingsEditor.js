@@ -4,6 +4,8 @@ import {UIBase, theme} from '../../path.ux/scripts/core/ui_base.js';
 import {Editor} from '../editor_base.js';
 import {Container} from '../../path.ux/scripts/core/ui.js';
 import {color2css, css2color, CSSFont} from '../../path.ux/scripts/core/ui_theme.js';
+import {ToolKeyHandler, FuncKeyHandler} from '../events.js';
+import {pushModalLight, popModalLight} from '../../path.ux/scripts/pathux.js';
 
 let basic_colors = {
   'white' : [1,1,1],
@@ -200,6 +202,140 @@ export class SettingsEditor extends Editor {
     tab.add(th);
 
     window.th = th;
+
+    tab = this.hotkeyTab = tabs.tab("Hotkeys");
+    this.buildHotKeys(tab);
+  }
+
+  buildHotKeys(tab = this.hotkeyTab) {
+    if (!this.ctx || !this.ctx.screen) {
+      this.doOnce(this.buildHotKeys);
+      return;
+    }
+
+    tab.clear();
+
+    let row = tab.row();
+    row.button("Reload", () => {
+      this.buildHotKeys(tab);
+    });
+
+    let build = (tab, label, keymaps) => {
+      let panel = tab.panel(label);
+
+      function changePre(hk, handler, keymap) {
+        keymap.remove(hk);
+      }
+
+      function changePost(hk, handler, keymap) {
+        keymap.set(hk, handler);
+      }
+
+      function makeKeyPanel(panel2, hk, handler, keymap) {
+        panel2.clear();
+        let row = panel2.row();
+
+        let key = hk[Symbol.keystr]();
+
+        let name = hk.uiName;
+
+        if (!name && handler instanceof ToolKeyHandler) {
+          name = ""+handler.tool;
+        } else if (!name) {
+          name = "(error)";
+        }
+
+        panel2.title = key + " " + name;
+
+        function setPanel2Title() {
+          key = hk[Symbol.keystr]();
+          panel2.title = key + " " + name;
+        }
+
+        function makeModifier(mod) {
+          row.button(mod, () => {
+            changePre(hk, handler, keymap);
+
+            hk[mod] ^= true;
+            console.log(mod, "change", hk, hk[Symbol.keystr]());
+
+            changePost(hk, handler, keymap);
+
+            setPanel2Title();
+
+            console.log("PANEL LABEL:", panel2.label);
+          });
+        }
+
+        makeModifier("ctrl");
+        makeModifier("shift");
+        makeModifier("alt");
+
+        let keyButton = row.button(hk.keyAscii, () => {
+          let modaldata;
+          let start_time;
+
+          let checkEnd = () => {
+            if (!modaldata || time_ms() - start_time < 500) {
+              return;
+            }
+
+            popModalLight(modaldata);
+            modaldata = undefined;
+          }
+
+          start_time = time_ms();
+
+          modaldata = pushModalLight({
+            on_keydown(e) {
+              console.log("Got hotkey!", e.keyCode);
+
+              if (modaldata) {
+                popModalLight(modaldata);
+                modaldata = undefined;
+              }
+
+              changePre(hk, handler, keymap);
+              hk.key = e.keyCode;
+              keyButton.setAttribute("name", hk.keyAscii);
+              changePost(hk, handler, keymap);
+
+              setPanel2Title();
+            },
+
+            on_mousedown(e) {
+              checkEnd();
+            },
+
+            on_mouseup(e) {
+              checkEnd();
+            },
+          });
+        });
+      }
+
+      for (let keymap of keymaps) {
+        //console.log("KEYMAP", keymap);
+        //continue;
+
+        for (let key of keymap) {
+          let panel2 = panel.panel(key);
+          let handler = keymap.get(key);
+          let hk = keymap.getKey(key);
+
+          makeKeyPanel(panel2, hk, handler, keymap);
+          panel2.closed = true;
+        }
+      }
+
+      panel.closed = true;
+    }
+
+
+    for (let kmset of this.ctx.screen.getKeySets()) {
+      build(tab, kmset.name, kmset);
+    }
+    //build(tab, "General", [this.ctx.screen.keymap]);
   }
 
   static define() { return {

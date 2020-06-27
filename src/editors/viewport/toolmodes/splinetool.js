@@ -27,7 +27,6 @@ import {DeleteVertOp, DeleteSegmentOp, DeleteFaceOp,
 
 import * as util from "../../../path.ux/scripts/util/util.js";
 
-//import {KeyMap} from "../../../path.ux/scripts/util/simple_events.js";
 import {ToolMode} from "./toolmode.js";
 import {nstructjs} from "../../../path.ux/scripts/pathux.js";
 import {WidgetResizeOp, WidgetRotateOp} from "../transform_ops.js";
@@ -119,7 +118,7 @@ export class SplineToolMode extends ToolMode {
   }
 
   defineKeyMap() {
-    let k = this.keymap = new KeyMap([]);
+    let k = this.keymap = new KeyMap("view2d:splinetool");
 
 
     k.add_tool(new HotKey("PageUp", [], "Send Face Up"),

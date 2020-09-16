@@ -39,6 +39,10 @@ function do_solve_nacl(sflags, spline, steps, gk, return_promise) {
 import * as native_api from '../wasm/native_api.js';
 
 export function do_solve() {
+  if (DISABLE_SOLVE) {
+    return;
+  }
+
   if (config.USE_NACL) {
     return do_solve_nacl.apply(this, arguments);
   } else if (!DEBUG.no_native && config.USE_WASM && native_api.isReady()) {

@@ -423,6 +423,7 @@ export class Scene extends DataBlock {
       this.linkDag(ctx);
     }
 
+    updateActiveToolApi(ctx);
   }
 
   static nodedef() {return {

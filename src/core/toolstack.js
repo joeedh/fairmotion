@@ -392,7 +392,7 @@ export class ToolStack {
     s = new DataPath(s, "last_tool", "", false, false)
     s.flag |= DataFlags.RECALC_CACHE;
 
-    ContextStruct.replace(s);
+    ContextStruct.addOrReplace(s, s);
   }
 
   set_tool_coll_flag(tool: ToolOp) {

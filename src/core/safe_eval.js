@@ -422,7 +422,7 @@ export function compile(code) {
 }
 
 export function exec(ast, scope1) {
-  var scope = scopes.next();
+  let scope = scopes.next();
   scope.scope = scope1;
   scope.parent = undefined;
   
@@ -438,7 +438,7 @@ export function exec(ast, scope1) {
     } else if (node.type === "ExpressionStatement") {
       return visit(node.expression, scope);
     } else if (node.type === "VariableDeclarator") {
-      var name = node.id.name;
+      let name = node.id.name;
       
       if (node.init === null) {
         scope.scope[name] = undefined;
@@ -448,16 +448,16 @@ export function exec(ast, scope1) {
       
       return scope.scope[name];
     } else if (node.type === "VariableDeclaration") {
-      var first = visit(node.declarations[0], scope);
+      let first = visit(node.declarations[0], scope);
       
-      for (var i=1; i<node.declarations.length; i++) {
+      for (let i=1; i<node.declarations.length; i++) {
         visit(node.declarations[i], scope);
       }
       
       return first;
     } else if (node.type === "MemberExpression") {
-      var obj = visit(node.object, scope);
-      var prop;
+      let obj = visit(node.object, scope);
+      let prop;
       
       execdebug("Member Expression!", node);
       
@@ -476,7 +476,7 @@ export function exec(ast, scope1) {
       
       return obj[prop];
     } else if (node.type === "ConditionalExpression") {
-      var a = visit(node.test, scope);
+      let a = visit(node.test, scope);
       
       if (a) {
         return visit(node.consequent, scope);
@@ -484,7 +484,7 @@ export function exec(ast, scope1) {
         return visit(node.alternate, scope);
       }
     } else if (node.type === "UpdateExpression") {
-      var obj, prop;
+      let obj, prop;
       
       if (node.argument.type === "MemberExpression") {
         obj = visit(node.argument.object, scope);
@@ -510,7 +510,7 @@ export function exec(ast, scope1) {
         prop = node.argument.name;
       } 
       
-      var preval = obj[prop];
+      let preval = obj[prop];
       if (node.operator === "++")
         obj[prop]++;
       else
@@ -518,7 +518,7 @@ export function exec(ast, scope1) {
       
       return node.prefix ? obj[prop] : preval;
     } else if (node.type === "AssignmentExpression") {
-      var obj, prop;
+      let obj, prop;
       
       if (node.left.type === "MemberExpression") {
         obj = visit(node.left.object, scope);
@@ -586,16 +586,16 @@ export function exec(ast, scope1) {
       
       return obj[prop];
     } else if (node.type === "ArrayExpression") {
-      var ret = [];
-      var items = node.elements;
+      let ret = [];
+      let items = node.elements;
       
-      for (var i=0; i<items.length; i++) {
+      for (let i=0; i<items.length; i++) {
         ret.push(visit(items[i], scope));
       }
       
       return ret;
     } else if (node.type === "UnaryExpression") {
-      var val = visit(node.argument, scope);
+      let val = visit(node.argument, scope);
       
       switch (node.operator) {
         case "-":
@@ -618,14 +618,14 @@ export function exec(ast, scope1) {
     } else if (node.type === "NewExpression") {
       execdebug("new call!", node, node.callee);
       
-      var func = visit(node.callee, scope);
-      var thisvar = undefined;
+      let func = visit(node.callee, scope);
+      let thislet = undefined;
       
       if (node.callee.type === "MemberExpression") {
-        thisvar = visit(node.callee.object, scope);
+        thislet = visit(node.callee.object, scope);
       }
       
-      var args = node.arguments;
+      let args = node.arguments;
       
       switch (args.length) {
         case 0:
@@ -644,14 +644,14 @@ export function exec(ast, scope1) {
     } else if (node.type === "CallExpression") {
       execdebug("function call!", node, node.callee);
       
-      var func = visit(node.callee, scope);
-      var thisvar = undefined;
+      let func = visit(node.callee, scope);
+      let thislet = undefined;
       
       if (node.callee.type === "MemberExpression") {
-        thisvar = visit(node.callee.object, scope);
+        thislet = visit(node.callee.object, scope);
       }
       
-      var args = node.arguments;
+      let args = node.arguments;
       
       switch (args.length) {
         case 0:
@@ -668,8 +668,8 @@ export function exec(ast, scope1) {
           throw new Error("function calls of more than 4 arguments is not supported");
       }
     } else if (node.type === "BinaryExpression" || node.type === "LogicalExpression") {
-      var a = visit(node.left, scope);
-      var b = visit(node.right, scope);
+      let a = visit(node.left, scope);
+      let b = visit(node.right, scope);
       
       switch (node.operator) {
         case "==":
@@ -728,9 +728,9 @@ export function exec(ast, scope1) {
   }
   
   if (ast instanceof Array) {
-    var last = undefined;
+    let last = undefined;
     
-    for (var i=0; i<ast.length; i++) {
+    for (let i=0; i<ast.length; i++) {
       last = visit(ast[i], scope);
     }
     

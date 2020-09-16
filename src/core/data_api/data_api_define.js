@@ -4,6 +4,7 @@ import {EditModes, SessionFlags} from '../../editors/viewport/view2d_base.js';
 import {ImageFlags, Image, ImageUser} from '../imageblock.js';
 import {AppSettings} from '../UserSettings.js';
 import {FullContext} from "../context.js";
+import * as toolmode from '../../editors/viewport/toolmodes/toolmode.js';
 
 import {
   EnumProperty, FlagProperty,
@@ -1221,6 +1222,33 @@ window.test_range = function* range(len) {
   }
 }
 
+export function updateActiveToolApi(ctx) {
+  let p = ContextStruct.pathmap.active_tool;
+
+  let update = false;
+  let toolcls = ctx.toolmode.constructor;
+
+  if (!toolcls) {
+    return;
+  }
+
+  if (p && p.data !== toolcls._apiStruct) {
+    update = true;
+    ContextStruct.remove(p);
+  } else if (!p) {
+    update = true;
+  }
+
+  if (update) {
+    console.log("Updating data API for toolmode " + toolcls.name);
+
+    //ContextStruct.add(new DataPath(toolcls._apiStruct, "active_tool", "toolmode", false, true, DataFlags.RECALC_CACHE));
+    ContextStruct.add(new DataPath(toolcls._apiStruct, "active_tool", "ctx.toolmode", true));
+  }
+}
+
+window.updateActiveToolApi = updateActiveToolApi;
+
 window.api_define_context = function () {
   ContextStruct = new DataStruct([
     new DataPath(api_define_view2d(), "view2d", "ctx.view2d", true),
@@ -1237,8 +1265,12 @@ window.api_define_context = function () {
       "ctx.appstate.toolstack.undostack", false, true, DataFlags.RECALC_CACHE),
     new DataPath(api_define_spline(), "spline", "ctx.spline", false),
     new DataPath(api_define_datalib(), "datalib", "ctx.datalib", false),
-    new DataPath(api_define_opseditor(), "opseditor", "ctx.opseditor", false)
+    new DataPath(api_define_opseditor(), "opseditor", "ctx.opseditor", false),
+    new DataPath(new DataStruct([]), "active_tool", "ctx.toolmode", false, false, DataFlags.RECALC_CACHE),
   ], Context);
+
+
+  toolmode.defineAPI();
 }
 
 window.init_data_api = function() {

@@ -123,8 +123,10 @@ export function redo_draw_sort(spline : Spline) {
   var min_z = 1e14;
   var max_z = -1e14;
   var layerset = spline.layerset;
-  
-  console.log("start sort");
+
+  if (_DEBUG.drawsort) {
+    console.log("start sort");
+  }
   var time = time_ms();
 
   let gmap = new Map();
@@ -356,6 +358,8 @@ export function redo_draw_sort(spline : Spline) {
   calc_string_ids(spline, spline.segments.length);
   
   spline.recalc &= ~RecalcFlags.DRAWSORT;
-  
-  console.log("time taken:" + (time_ms()-time).toFixed(2)+"ms");
+
+  if (_DEBUG.drawsort) {
+    console.log("time taken:" + (time_ms() - time).toFixed(2) + "ms");
+  }
 }

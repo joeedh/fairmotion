@@ -82,6 +82,7 @@ sources = [
     "src/core/toolstack.js",
 	"src/core/AppState.js",
 	"src/core/units.js",
+	"src/core/data_api/data_api_types.js",
 	"src/core/data_api/data_api.js",
   "src/core/data_api/data_api_parser.js",
   "src/core/video.js",

@@ -17,6 +17,8 @@ import {TypedWriter} from '../util/typedwriter.js';
 import * as util from '../path.ux/scripts/util/util.js';
 import {Vector2, Vector3, Vector4, Matrix4, Quat} from '../path.ux/scripts/util/vectormath.js';
 
+import * as config from '../config/config.js';
+
 //XXX evil super-old module!
 import * as ajax from '../core/ajax.js';
 
@@ -42,6 +44,7 @@ import {
   KSTARTX, KSTARTY, KSTARTZ,
   KTOTKS, INT_STEPS
 } from '../curve/spline_math_hermite.js';
+import {DISABLE_SOLVE} from "../config/config.js";
 
 export function onMessage(type : number, message : ArrayBuffer, ptr : number) {
   let iview = new Int32Array(message);
@@ -379,6 +382,10 @@ function _unpacker(dview) {
 //sflags should be SplineFlags from spline_types.js,
 //passed in here to avoid a cyclic module dependency
 export function do_solve(sflags : int, spline : Spline, steps : int, gk=0.95, return_promise=false) {
+  if (config.DISABLE_SOLVE) {
+    return new Promise((accept, reject) => {accept()});
+  }
+
   let draw_id = push_solve(spline);
 
   //if (spline._solve_id !== undefined && spline._solve_id in active_solves) {

@@ -154,7 +154,10 @@ export class Batch {
 
   destroy() {
     this.patharea = 0;
-    console.warn("destroying batch", this.length);
+
+    if (window._DEBUG.drawbatches) {
+      console.warn("destroying batch", this.length);
+    }
 
     for (let p of this.paths) {
       p._batch = undefined;
@@ -1029,7 +1032,7 @@ export class CanvasDraw2D extends VectorDraw {
 
   set regen(v) {
     this.__regen = v;
-    console.warn("regen");
+    //console.warn("regen");
   }
 
   get regen() {
@@ -1051,7 +1054,10 @@ export class CanvasDraw2D extends VectorDraw {
     }
 
     if (this.regen) {
-      console.log("RECALC ALL");
+      if (window._DEBUG.trace_recalc_all) {
+        console.log("RECALC ALL");
+      }
+
       this.__regen = 0;
 
       this.batches.destroy();

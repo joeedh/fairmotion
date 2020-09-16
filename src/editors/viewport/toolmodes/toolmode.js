@@ -1,6 +1,7 @@
 import {NodeBase} from "../../../core/eventdag.js";
 import {KeyMap} from "../../events.js";
 import {nstructjs} from "../../../path.ux/scripts/pathux.js";
+import {DataStruct} from "../../../core/data_api/data_api_types.js";
 
 export const ToolModeFlags = {
 
@@ -83,6 +84,15 @@ export class ToolMode extends NodeBase {
 
   }
 
+  static defineAPI() {
+    let st = new DataStruct(undefined, this);
+    //let st = api.Struct(this.name);
+
+    st.String("name", "constructor.name", "Name", "Name");
+
+    return st;
+  }
+
   on_tick() {
     if (!this.ctx) {
       return;
@@ -147,3 +157,9 @@ ToolMode.STRUCT = `
 ToolMode {
   
 }`;
+
+export function defineAPI(api) {
+  for (let tool of ToolModes) {
+    tool._apiStruct = tool.defineAPI(api);
+  }
+}

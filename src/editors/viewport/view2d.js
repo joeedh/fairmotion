@@ -98,12 +98,15 @@ export class View2DHandler extends Editor {
   drawlines         : GArray<drawline>
   drawline_groups   : Object
   _last_mpos        : Vector2
+  _last_toolmode    : any
   ctx               : FullContext;
 
   constructor() {
     super();
 
     this.propradius = 35;
+
+    this._last_toolmode = undefined;
 
     this._last_mpos = new Vector2();
 
@@ -690,9 +693,19 @@ export class View2DHandler extends Editor {
   }
 
   makeToolbars() {
-    let row = this.container//.row();
+    if (this._makingToolBars) {
+      return;
+    }
 
-    let tabs = row.tabs("right");
+    this._makingToolBars = true; //prevent infinite recursion
+
+    let row = this.container;//.row();
+
+    if (this.sidebar) {
+      this.sidebar.remove();
+    }
+
+    let tabs = this.sidebar = row.tabs("right");
 
     //tabs.style["width"] = "300px";
     tabs.style["height"] = "400px";
@@ -726,7 +739,15 @@ export class View2DHandler extends Editor {
 
     tools.tool("spline.toggle_select_all()", PackFlags.LARGE_ICON|PackFlags.USE_ICONS);
 
-    this.update();
+    this.flushUpdate();
+
+    if (this.ctx && this.ctx.toolmode) {
+      let tooltab = tabs.tab("Tool Settings");
+
+      this.doOnce(() => {
+        this.ctx.toolmode.constructor.buildSideBar(tooltab);
+      });
+    }
 
     let tab = tabs.tab("Background");
     let panel = tab.panel("Image");
@@ -741,6 +762,8 @@ export class View2DHandler extends Editor {
     panel.prop("view2d.background_color");
 
     tabs.setActive("Tools");
+
+    this._makingToolBars = false;
   }
 
   makeHeader(container) {
@@ -1315,7 +1338,6 @@ export class View2DHandler extends Editor {
     }
     let scene = this.ctx.scene;
 
-    //if (scene.toolmode
     if (this.toolmode === ToolModes.PEN && !(scene.toolmode instanceof PenToolMode)) {
       console.log("switching toolmode to pen");
       scene.switchToolMode("pen");
@@ -1325,6 +1347,13 @@ export class View2DHandler extends Editor {
       scene.switchToolMode("spline");
       this.regen_keymap();
     }
+
+
+    if (this._last_toolmode !== scene.toolmode) {
+      this.makeToolbars();
+    }
+
+    this._last_toolmode = scene.toolmode;
   }
 
   update() {

@@ -190,6 +190,8 @@ export class PenToolMode extends ToolMode {
     this.start_mpos = new Vector2();
     this.mdown = false;
 
+    this.limit = 10;
+
     this.stroke = [];
     this.smoothness = 1.0;
   }
@@ -212,11 +214,21 @@ export class PenToolMode extends ToolMode {
   }
 
   static buildSideBar(container) {
-
+    container.prop("active_tool.limit");
+    container.label("Yay");
   }
 
   static buildHeader(container) {
 
+  }
+
+  static defineAPI() {
+    let st = super.defineAPI();
+
+    let def = st.Float("limit", "limit", "Limit","Minimum distance between points");
+    def.Range(0, 300);
+
+    return st;
   }
 
   static buildProperties(container) {
@@ -414,7 +426,11 @@ export class PenToolMode extends ToolMode {
     }
 
     let mpos = this.getMouse(event);
-    this.addPoint(mpos);
+
+    if (this.last_mpos.vectorDistance(mpos) > this.limit) {
+      this.last_mpos.load(mpos);
+      this.addPoint(mpos);
+    }
   }
 
   on_mouseup(event : Object) {
@@ -457,6 +473,7 @@ export class PenToolMode extends ToolMode {
 }
 
 PenToolMode.STRUCT = nstructjs.inherit(PenToolMode, ToolMode) + `
+  limit : float;
 }`;
 
 ToolMode.register(PenToolMode);

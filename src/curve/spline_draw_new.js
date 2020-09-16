@@ -577,7 +577,7 @@ export class SplineDrawer {
     if (recalc_all) {
       this.drawer.recalcAll();
 
-      if (1||DEBUG.trace_recalc_all) {
+      if (DEBUG.trace_recalc_all) {
         console.log("%c RECALC_ALL!  ", "color:orange");
       }
     }
@@ -743,7 +743,7 @@ export class SplineDrawer {
     if (recalc_all) {
       this.drawer.recalcAll();
 
-      if (1||DEBUG.trace_recalc_all) {
+      if (DEBUG.trace_recalc_all) {
         console.log("%c RECALC_ALL!  ", "color:orange");
       }
     }

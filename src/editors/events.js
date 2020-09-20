@@ -603,15 +603,16 @@ export class KeyMap extends hashtable {
     if (event.shiftKey) modlist.push("SHIFT")
     if (event.altKey) modlist.push("ALT")
     
-    var key = new HotKey(event.keyCode, modlist, 0, 0, true);
+    let key = new HotKey(event.keyCode, modlist, 0, 0, true);
 
     if (this.has(key)) {
+      if (ctx.keymap_mpos) {
+        ctx.keymap_mpos[0] = ctx.screen.mpos[0];
+        ctx.keymap_mpos[1] = ctx.screen.mpos[1];
+      }
+
       //patchset
       let hk;
-
-      ctx.keymap_mpos[0] = ctx.screen.mpos[0];
-      ctx.keymap_mpos[1] = ctx.screen.mpos[1];
-
 
       if (patchset && patchset.has(key2)) {
         let hk1 = this.get(key)

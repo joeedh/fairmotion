@@ -610,6 +610,10 @@ export class ToolOp extends ToolOpAbstract {
       this._end_modal();
   }
 
+  modalEnd(was_cancelled) {
+    return this.end_modal();
+  }
+
   exec(ctx : Context) { }
   start_modal(ctx : FullContext) { }
 

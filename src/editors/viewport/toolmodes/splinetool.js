@@ -10,7 +10,7 @@ import {WidgetResizeOp, WidgetRotateOp} from '../transform_ops.js';
 import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
   charmap, TouchEventManager, EventHandler} from '../../events.js';
 
-import {SelectLinkedOp, SelectOneOp} from '../spline_selectops.js';
+import {SelectLinkedOp, SelectOneOp, SelOpModes} from '../spline_selectops.js';
 import {TranslateOp} from '../transform.js';
 
 import {SelMask, ToolModes} from '../selectmode.js';
@@ -136,7 +136,8 @@ export class SplineToolMode extends ToolMode {
     k.add_tool(new HotKey("R", [], "Rotate"),
       "spline.rotate(datamode=selectmode)");
 
-    k.add_tool(new HotKey("A", [], "Select All"), "spline.toggle_select_all()");
+    k.add_tool(new HotKey("A", [], "Select All"), "spline.toggle_select_all(mode=SELECT)");
+    k.add_tool(new HotKey("A", ["ALT"], "Deselect All"), "spline.toggle_select_all(mode=DESELECT)");
     /*
     k.add(new HotKey("A", [], "Toggle Select"), new FuncKeyHandler(function(ctx) {
       var view2d = ctx.view2d;
@@ -173,36 +174,44 @@ export class SplineToolMode extends ToolMode {
                "spline.disconnect_handles()");
     */
 
-
+    /*
     k.add(new HotKey("L", [], "Select Linked"), new FuncKeyHandler(function (ctx : FullContext) {
       var mpos = ctx.keymap_mpos;
       mpos = ctx.view2d.getLocalMouse(mpos[0], mpos[1]);
 
       var ret = ctx.spline.q.findnearest_vert(ctx.view2d, mpos, 55, undefined, ctx.view2d.edit_all_layers);
 
-      console.log("select linked", ret);
+      console.log("select linked", mpos, ret);
 
-      if (ret != undefined) {
-        var tool = new SelectLinkedOp(true, ctx.view2d.selectmode);
-        tool.inputs.vertex_eid.setValue(ret[0].eid);
-        tool.inputs.mode.setValue("SELECT");
+      if (ret !== undefined) {
+        var tool = SelectLinkedOp.invoke(ctx, {mode : 'SELECT', vertex_eid : ret[0].eid});
+        //tool.inputs.vertex_eid.setValue(ret[0].eid);
+        //tool.inputs.mode.setValue(SelOpModes.SELECT);
 
         ctx.appstate.toolstack.exec_tool(tool);
       }
     }));
 
-    k.add(new HotKey("L", ["SHIFT"], "Select Linked"), new FuncKeyHandler(function (ctx) {
+    k.add(new HotKey("L", ["SHIFT"], "Deselect Linked"), new FuncKeyHandler(function (ctx) {
       var mpos = ctx.keymap_mpos;
+      mpos = ctx.view2d.getLocalMouse(mpos[0], mpos[1]);
+
       var ret = ctx.spline.q.findnearest_vert(ctx.view2d, mpos, 55, undefined, ctx.view2d.edit_all_layers);
 
-      if (ret != undefined) {
-        var tool = new SelectLinkedOp(true);
-        tool.inputs.vertex_eid.setValue(ret[0].eid);
-        tool.inputs.mode.setValue("deselect");
+      console.log("deselect linked", ret);
+
+      if (ret !== undefined) {
+        var tool = SelectLinkedOp.invoke(ctx, {mode : 'DESELECT', vertex_eid : ret[0].eid});
+        //tool.inputs.vertex_eid.setValue(ret[0].eid);
+        //tool.inputs.mode.setValue(SelOpModes.SELECT);
 
         ctx.appstate.toolstack.exec_tool(tool);
       }
-    }));
+    }));//*/
+    k.add_tool(new HotKey("L", [], "Select Linked"),
+      "spline.select_linked_pick(mode=SELECT)");
+    k.add_tool(new HotKey("L", ["SHIFT"], "Deselect Linked"),
+      "spline.select_linked_pick(mode=DESELECT)");
 
     k.add_tool(new HotKey("B", [], "Toggle Break-Tangents"),
       "spline.toggle_break_tangents()");
@@ -608,25 +617,25 @@ export class SplineToolMode extends ToolMode {
 
   static buildEditMenu() {
     var ops = [
-      "spline.select_linked(vertex_eid=active_vertex())",
-      "view2d.circle_select()",
-      "spline.toggle_select_all()",
-      "spline.hide()",
-      "spline.unhide()",
-      "spline.connect_handles()",
-      "spline.disconnect_handles()",
-      "spline.duplicate_transform()",
-      "spline.mirror_verts()",
+      "spline.toggle_manual_handles()",
       "spline.split_edges()",
-      "spline.make_edge_face()",
-      "spline.dissolve_verts()",
-      "spline.delete_verts()",
-      "spline.delete_segments()",
       "spline.delete_faces()",
+      "spline.delete_segments()",
+      "spline.delete_verts()",
+      "spline.dissolve_verts()",
+      "spline.make_edge_face()",
       "spline.split_edges()",
-      "spline.toggle_manual_handles()"
+      "spline.mirror_verts()",
+      "spline.duplicate_transform()",
+      "spline.disconnect_handles()",
+      "spline.connect_handles()",
+      "spline.unhide()",
+      "spline.hide()",
+      "spline.toggle_select_all()",
+      "view2d.circle_select()",
+      "spline.select_linked(vertex_eid=active_vertex() mode=SELECT)|Select Linked|L",
+      "spline.select_linked(vertex_eid=active_vertex() mode=DESELECT)|Deselect Linked|Shift+L"
     ];
-    ops.reverse();
 
     return ops;
   }

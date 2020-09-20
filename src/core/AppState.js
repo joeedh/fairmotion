@@ -1103,6 +1103,7 @@ export class AppState {
         }
       }
 
+      this.screen.unlisten();
       this.screen.destroy();
       this.screen.remove();
       this.screen = undefined;

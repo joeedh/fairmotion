@@ -44,7 +44,7 @@ export class SelectOpBase extends ToolOp {
   static invoke(ctx, args) {
     let datamode;
 
-    let ret = new this();
+    let ret = super.invoke(ctx, args);
 
     if ("selectmode" in args) {
       datamode = args["selectmode"];
@@ -53,15 +53,6 @@ export class SelectOpBase extends ToolOp {
     }
 
     ret.inputs.datamode.setValue(datamode);
-
-    console.log("args", args);
-
-    if ("mode" in args) {
-      let mode = args["mode"].toUpperCase().trim();
-      ret.inputs.mode.setValue(mode);
-    } else {
-      ret.inputs.mode.setValue("AUTO");
-    }
 
     return ret;
   }
@@ -266,7 +257,7 @@ export class SelectLinkedOp extends SelectOpBase {
   constructor(mode, datamode) {
     super(datamode);
     
-    if (mode != undefined)
+    if (mode !== undefined)
       this.inputs.mode.setValue(mode);
   }
   
@@ -293,8 +284,8 @@ export class SelectLinkedOp extends SelectOpBase {
       console.trace("Error in SelectLinkedOp");
       return;
     }
-    
-    let state = this.inputs.mode.get_data() != SelOpModes.AUTO ? 1 : 0;
+
+    let state = this.inputs.mode.getValue() === SelOpModes.SELECT;
     let visit = new set();
     let verts = spline.verts;
     
@@ -315,6 +306,47 @@ export class SelectLinkedOp extends SelectOpBase {
     spline.select_flush(this.inputs.datamode.data);
   }
 }
+
+export class PickSelectLinkedOp extends SelectLinkedOp {
+  static tooldef() { return {
+    uiname  : "Select Linked",
+    apiname : "spline.select_linked_pick",
+
+    inputs : ToolOp.inherit(),
+    is_modal : true
+  }}
+
+  start_modal(ctx) {
+    return this.modal_start(ctx);
+  }
+
+  modal_start(ctx) {
+    console.log("Select linked pick", ctx);
+    this.modalEnd();
+
+    if (!ctx.view2d || !ctx.spline) {
+      ctx.toolstack.toolop_cancel(this, false);
+      return;
+    }
+
+    let mpos = ctx.screen.mpos;
+    mpos = ctx.view2d.getLocalMouse(mpos[0], mpos[1]);
+
+    console.log("mpos", mpos);
+
+    let ret = ctx.spline.q.findnearest_vert(ctx.view2d, mpos, 55, undefined, ctx.view2d.edit_all_layers);
+
+    console.log("[de]select linked", ret);
+
+    if (ret !== undefined) {
+      this.inputs.vertex_eid.setValue(ret[0].eid);
+      this.exec(ctx);
+    } else {
+      ctx.toolstack.toolop_cancel(this, false);
+    }
+  }
+}
+
 
 //let selmode_enum = selectmode_enum.copy();
 //selmode_enum.flag |= PackFlags.UI_DATAPATH_IGNORE;

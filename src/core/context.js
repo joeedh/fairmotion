@@ -118,6 +118,15 @@ export class ViewContextOverlay extends ContextOverlay {
     return this._keymap_mpos;
   }
 
+  /*make sure we're saved properly for LockedContext's*/
+  keymap_mpos_save() {
+    return [this._keymap_mpos[0], this._keymap_mpos[1]];
+  }
+
+  keymap_mpos_load(ctx, data) {
+    return data;
+  }
+
   get dopesheet() : DopeSheetEditor {
     return Editor.context_area(DopeSheetEditor);
   }

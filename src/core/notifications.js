@@ -6,6 +6,7 @@ export class Notification {
 
 export class NotificationManager {
   label(label : string, description : string) {
+    console.warn(label);
     sendNote(g_app_state.ctx.screen, label);
   }
 

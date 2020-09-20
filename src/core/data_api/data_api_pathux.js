@@ -138,6 +138,21 @@ export class PathUXInterface extends ModelInterface {
   }
 
   getToolDef(path : string) {
+    let uiname = undefined;
+    let hotkey = undefined;
+
+    if (path.search(/\)\|/) > 0) {
+      path = path.split("|");
+
+      uiname = path[1].trim();
+
+      if (path.length > 1) {
+        hotkey = path[2].trim();
+      }
+
+      path = path[0].trim();
+    }
+
     let ret = this.api.get_opclass(this.ctx, path);
     if (ret === undefined) {
       throw new DataAPIError("bad toolop path", path);
@@ -146,12 +161,15 @@ export class PathUXInterface extends ModelInterface {
     ret = ret.tooldef();
     ret = Object.assign({}, ret);
 
-    ret.hotkey = this._getToolHotkey(this.ctx.screen, path);
+    ret.hotkey = hotkey ? hotkey : this._getToolHotkey(this.ctx.screen, path);
+    ret.uiname = uiname ? uiname : ret.uiname;
+
     return ret;
   }
 
   getToolPathHotkey(ctx : FullContext, path : string) {
-    return this._getToolHotkey(this.ctx.screen, path);
+    return this.getToolDef(path).hotkey;
+    //return this._getToolHotkey(this.ctx.screen, path);
   }
 
   //TODO: work out and document mass set interface for path.ux

@@ -1,10 +1,39 @@
+import * as pathux_const from '../../src/path.ux/scripts/config/const.js';
+
+let default_clipfuncs = {
+  setClipboardData : pathux_const.setClipboardData,
+  getClipboardData : pathux_const.getClipboardData
+};
+
 export class PlatformAPIBase {
   constructor() {
   }
   
   init() {
   }
-  
+
+  /**
+   default implementation uses path.ux.
+   */
+  setClipboardData(name, mime, data) {
+    default_clipfuncs.setClipboardData(name, mime, data);
+  }
+
+  /**
+    desiredMimes is either a string, or an array of strings.
+
+    default implementation uses path.ux.
+
+    returns {
+    name : arbitrary name attached to data (optional),
+    mime : mime type of data
+    data : data
+  }
+   */
+  getClipboardData(desiredMimes="text/plain") {
+    return default_clipfuncs.getClipboardData(name, mime, data);
+  }
+
   //returns a promise
   saveFile(path_handle, name, databuf, type) {
   }

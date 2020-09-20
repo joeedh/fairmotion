@@ -38,9 +38,13 @@ RecentPath.STRUCT = `
 
 export class ToolOpSettings {
   constructor(toolcls) {
-    this.name = toolcls.tooldef().apiname || toolcls.tooldef().toolpath;
-
-    this.entries = {};
+    if (toolcls === undefined) { //called from nstructjs
+      this.name = "";
+      this.entries = {};
+    } else {
+      this.name = toolcls.tooldef().apiname || toolcls.tooldef().toolpath;
+      this.entries = {};
+    }
   }
 
   isFor(toolcls) {

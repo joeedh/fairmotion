@@ -1,5 +1,11 @@
 import {PlatformAPIBase} from '../common/platform_api.js';
 
+let clipdata = {
+  name : "nothing",
+  mime : "nothing",
+  data : undefined
+};
+
 export class PlatformAPI extends PlatformAPIBase {
   constructor() {
     super();
@@ -14,7 +20,30 @@ export class PlatformAPI extends PlatformAPIBase {
   
   openDialog() {
   }
-  
+
+  pushClipboardData(name, mime, data) {
+    clipdata = {
+      name : name,
+      mime : mime,
+      data : data
+    };
+  }
+
+  /**
+   return {
+    idname : arbitrary name attached to data (optional),
+    mime : mime type of data
+    data : data
+  }
+   */
+  getClipboardData() {
+    if (clipdata.mime === "nothing") {
+      return undefined;
+    }
+
+    return clipdata;
+  }
+
   numberOfCPUs() {
     return navigator.hardwareConcurrency;
   }

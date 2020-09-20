@@ -4,7 +4,7 @@ import {
 
 import {SelMask} from './selectmode.js';
 
-import {Vec3Property, BoolProperty, FloatProperty, IntProperty,
+import {Vec2Property, BoolProperty, FloatProperty, IntProperty,
         CollectionProperty, TPropFlags, EnumProperty} from '../../core/toolprops.js';
 
         import {SplineFlags, SplineTypes} from '../../curve/spline_types.js';
@@ -20,10 +20,10 @@ import {KeyMap, ToolKeyHandler, FuncKeyHandler, HotKey,
 import {clear_jobs, clear_jobs_except_latest, clear_jobs_except_first, 
         JobTypes} from '../../wasm/native_api.js';
 
-var _tsv_apply_tmp1 = new Vector3();
-var _tsv_apply_tmp2 = new Vector3();
-var post_mousemove_cachering = cachering.fromConstructor(Vector3, 64);
-var mousemove_cachering = cachering.fromConstructor(Vector3, 64);
+var _tsv_apply_tmp1 = new Vector2();
+var _tsv_apply_tmp2 = new Vector2();
+var post_mousemove_cachering = cachering.fromConstructor(Vector2, 64);
+var mousemove_cachering = cachering.fromConstructor(Vector2, 64);
 
 import {TransSplineVert} from "./transform_spline.js";
 
@@ -89,10 +89,10 @@ export class TransformOp extends ToolOp {
       datamode     : new IntProperty(0, "datamode", "datamode"),
       edit_all_layers : new BoolProperty(false, "Edit all layers", "Edit all layers"),
       
-      pivot        : new Vec3Property(undefined, "pivot", "pivot", "pivot"),
+      pivot        : new Vec2Property(undefined, "pivot", "pivot", "pivot"),
       use_pivot    : new BoolProperty(false, "use_pivot", "use pivot", "use pivot"),
       
-      constraint_axis : new Vec3Property(undefined, "constraint_axis", "Constraint Axis", "Axis to constrain"),
+      constraint_axis : new Vec2Property(undefined, "constraint_axis", "Constraint Axis", "Axis to constrain"),
       constrain       : new BoolProperty(false, "constrain", "Enable Constraint", "Enable Constraint Axis")
     }
   }}
@@ -187,23 +187,22 @@ export class TransformOp extends ToolOp {
     var td = this.ensure_transdata(this.modal_ctx);
     var ctx = this.modal_ctx;
     
-    var mpos = new Vector3([event.x, event.y, 0]);
+    var mpos = new Vector2([event.x, event.y, 0]);
     mpos.load(ctx.view2d.getLocalMouse(event.original.x, event.original.y));
 
     var md = this.modaldata;
 
     if (this.first) {
-      md.start_mpos = new Vector3(mpos);
-      md.mpos = new Vector3(mpos);
-      md.last_mpos = new Vector3(mpos);
+      md.start_mpos = new Vector2(mpos);
+      md.mpos = new Vector2(mpos);
+      md.last_mpos = new Vector2(mpos);
       this.first = false;
       return;
     } else if (md.start_mpos === undefined && this.user_start_mpos !== undefined) {
-      md.start_mpos = new Vector3(this.user_start_mpos);
-      md.start_mpos[2] = 0.0; //ensure non-NaN z
-      
-      md.last_mpos = new Vector3(md.start_mpos);
-      md.mpos = new Vector3(md.start_mpos);
+      md.start_mpos = new Vector2(this.user_start_mpos);
+
+      md.last_mpos = new Vector2(md.start_mpos);
+      md.mpos = new Vector2(md.start_mpos);
     }
 
     md.last_mpos.load(md.mpos);
@@ -293,7 +292,7 @@ export class TransformOp extends ToolOp {
       var steps = 64, t = -Math.PI, dt = (Math.PI*2.0)/(steps-1);
       var td = this.transdata;
       
-      var v1 = new Vector3(), v2 = new Vector3();
+      var v1 = new Vector2(), v2 = new Vector2();
       var r = this.inputs.propradius.data;
       var cent = new Vector2(td.center);
 
@@ -390,7 +389,7 @@ export class TranslateOp extends TransformOp {
     is_modal : true,
     
     inputs   : ToolOp.inherit({
-      translation : new Vec3Property(undefined, "translation", "translation", "translation")
+      translation : new Vec2Property(undefined, "translation", "translation", "translation")
     })
   }}
   
@@ -439,7 +438,7 @@ export class TranslateOp extends TransformOp {
     var off = this.inputs.translation.data;
 
     if (this.inputs.constrain.data) {
-      off = new Vector3(off);
+      off = new Vector2(off);
       off.mul(this.inputs.constraint_axis.data);
       //console.log(this.inputs.constraint_axis.data);
     }
@@ -472,7 +471,7 @@ export class NonUniformScaleOp extends TransformOp {
     is_modal : true,
     
     inputs   : ToolOp.inherit({
-      scale : new Vec3Property(undefined, "scale", "scale", "scale")
+      scale : new Vec2Property(undefined, "scale", "scale", "scale")
     })
   }}
   
@@ -492,8 +491,7 @@ export class NonUniformScaleOp extends TransformOp {
     
     scale[0] = off1[0] != off2[0] && off2[0] != 0.0 ? off1[0] / off2[0] : 1.0;
     scale[1] = off1[1] != off2[1] && off2[1] != 0.0 ? off1[1] / off2[1] : 1.0;
-    scale[2] = 1.0;
-    
+
     this.inputs.scale.setValue(scale);
     
     this.exec(ctx);
@@ -510,7 +508,7 @@ export class NonUniformScaleOp extends TransformOp {
     mat.makeIdentity();
     
     if (this.inputs.constrain.data) {
-      scale = new Vector3(scale);
+      scale = new Vector2(scale);
       let caxis = this.inputs.constraint_axis.data;
       
       for (let i=0; i<3; i++) {
@@ -519,7 +517,7 @@ export class NonUniformScaleOp extends TransformOp {
     }
     
     mat.translate(cent[0], cent[1], 0);
-    mat.scale(scale[0], scale[1], scale[2]);
+    mat.scale(scale[0], scale[1], 1.0);
     mat.translate(-cent[0], -cent[1], 0);
     
     for (var d of td.data) {
@@ -539,7 +537,23 @@ export class ScaleOp extends TransformOp {
   constructor(user_start_mpos : Array<float>, datamode : int) {
     super(user_start_mpos, datamode);
   }
-  
+
+  static invoke(ctx : FullContext, args : Object) {
+    let ret = super.invoke(ctx, args);
+
+    if (!("scaleLineWidths" in args)) {
+      ret.inputs.scaleLineWidths.setValue(ctx.settings.getToolOpSetting(this, "scaleLineWidths", ret.inputs.scaleLineWidths.getValue()));
+    }
+
+    return ret;
+  }
+
+  loadDefaults(ctx) {
+    super.loadDefaults(ctx);
+
+    this.inputs.scaleLineWidths.setValue(ctx.settings.getToolOpSetting(this, "scaleLineWidths", this.inputs.scaleLineWidths.getValue()));
+  }
+
   static tooldef() { return {
     uiname   : "Scale",
     apiname  : "spline.scale",
@@ -547,7 +561,8 @@ export class ScaleOp extends TransformOp {
     is_modal : true,
     
     inputs   : ToolOp.inherit({
-      scale : new Vec3Property(undefined, "scale", "scale", "scale")
+      scale : new Vec2Property(undefined, "scale", "scale", "scale"),
+      scaleLineWidths : new BoolProperty(false).setFlag(TPropFlags.SAVE_LAST_VALUE)
     })
   }}
   
@@ -567,8 +582,7 @@ export class ScaleOp extends TransformOp {
     //console.log(event.x, event.y);
     
     scale[0] = scale[1] = l1/l2;
-    scale[2] = 1.0;
-    
+
     this.inputs.scale.setValue(scale);
     
     this.exec(ctx);
@@ -585,7 +599,7 @@ export class ScaleOp extends TransformOp {
     mat.makeIdentity();
     
     if (this.inputs.constrain.data) {
-      scale = new Vector3(scale);
+      scale = new Vector2(scale);
       let caxis = this.inputs.constraint_axis.data;
       
       for (let i=0; i<3; i++) {
@@ -594,11 +608,11 @@ export class ScaleOp extends TransformOp {
     }
     
     mat.translate(cent[0], cent[1], 0);
-    mat.scale(scale[0], scale[1], scale[2]);
+    mat.scale(scale[0], scale[1], 1.0);
     mat.translate(-cent[0], -cent[1], 0);
-    
+
     for (var d of td.data) {
-      d.type.apply(ctx, td, d, mat, d.w);
+      d.type.apply(ctx, td, d, mat, d.w, this.inputs.scaleLineWidths.getValue());
     }
     
     this.update(ctx);
@@ -667,7 +681,7 @@ export class RotateOp extends TransformOp {
     mat.makeIdentity();
     
     mat.translate(cent[0], cent[1], 0);
-    //mat.scale(scale[0], scale[1], scale[2]);
+    //mat.scale(scale[0], scale[1], 1.0);
     mat.rotate(this.inputs.angle.data, 0, 0, 1);
     mat.translate(-cent[0], -cent[1], 0);
     

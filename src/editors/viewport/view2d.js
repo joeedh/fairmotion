@@ -693,6 +693,11 @@ export class View2DHandler extends Editor {
   }
 
   makeToolbars() {
+    if (!this.container) {
+      this.doOnce(this.makeToolbars);
+      return;
+    }
+
     if (this._makingToolBars) {
       return;
     }

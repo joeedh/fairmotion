@@ -41,8 +41,9 @@ export class AddLayerOp extends SplineLayerOp {
   };}
 
   static canRun(ctx) {
-    let spline = ctx.api.getValue(ctx, this.inputs.spline_path.data);
-    return spline !== undefined;
+    return this;
+    //let spline = ctx.api.getValue(ctx, this.inputs.spline_path.data);
+    //return spline !== undefined;
   }
   /*
   undo_pre(ctx) {

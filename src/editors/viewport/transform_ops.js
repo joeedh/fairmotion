@@ -7,7 +7,7 @@ import {TransformOp, ScaleOp, NonUniformScaleOp} from './transform.js';
 import {SelMask} from './selectmode.js';
 import {MResTransData} from './multires/multires_transdata.js';
 
-import {Vec3Property, BoolProperty, FloatProperty, IntProperty,
+import {BoolProperty, FloatProperty, IntProperty,
         CollectionProperty, TPropFlags} from '../../core/toolprops.js';
 
 import {SplineFlags, SplineTypes} from '../../curve/spline_types.js';
@@ -214,8 +214,7 @@ export class WidgetResizeOp extends TransformOp {
   
       let toolop = new ScaleOp(mpos, view2d.selectmode);
       
-      let co = new Vector3(widget.co);
-      co[2] = 1.0;
+      let co = new Vector2(widget.co);
 
       if (!e.shiftKey) {
         co[0] += id === 'l' ? w : -w;
@@ -239,8 +238,7 @@ export class WidgetResizeOp extends TransformOp {
       
       let toolop = new ScaleOp(mpos, view2d.selectmode);
   
-      let co = new Vector3(widget.co);
-      co[2] = 1.0;
+      let co = new Vector2(widget.co);
 
       if (!e.shiftKey) {
         co[1] += id === 'b' ? h : -h;

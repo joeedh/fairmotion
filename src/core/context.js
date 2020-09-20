@@ -13,6 +13,10 @@ export class BaseContextOverlay extends ContextOverlay {
     return this.state.pathcontroller;
   }
 
+  get settings() {
+    return this.appstate.settings;
+  }
+
   get toolmode() {
     return this.scene ? this.scene.toolmode : undefined;
   }

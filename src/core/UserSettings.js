@@ -36,10 +36,105 @@ RecentPath.STRUCT = `
   }
 `;
 
+export class ToolOpSettings {
+  constructor(toolcls) {
+    this.name = toolcls.tooldef().apiname || toolcls.tooldef().toolpath;
+
+    this.entries = {};
+  }
+
+  isFor(toolcls) {
+    return this.name === (toolcls.tooldef().apiname || toolcls.tooldef().toolpath);
+  }
+
+  _save() {
+    let ret = [];
+    for (let k in this.entries) {
+      let v = this.entries[k];
+
+      ret.push([k, JSON.stringify(v)]);
+    }
+
+    return ret;
+  }
+
+  set(k, v) {
+    this.entries[k] = v;
+  }
+
+  has(k) {
+    return k in this.entries;
+  }
+
+  get(k) {
+    return this.entries[k];
+  }
+
+  loadSTRUCT(reader) {
+    reader(this);
+
+    let entries = this.entries;
+    this.entries = {};
+
+    for (let item of entries) {
+      let k = item[0], v = item[1];
+
+      try {
+        v = JSON.parse(v);
+      } catch (error) {
+        util.print_stack(error);
+        console.error("JSON error when loading " + this.name + "." + k + ":", v);
+        continue;
+      }
+
+      this.entries[k] = v;
+    }
+  }
+}
+
+ToolOpSettings.STRUCT = `
+ToolOpSettings {
+  name    : string;
+  entries : array(array(string)) | this._save(); 
+}
+`;
+
 export class AppSettings {
   constructor() {
     this.reload_defaults(false);
     this.recent_paths = [];
+    this.tool_settings = [];
+  }
+
+  _getToolOpS(toolcls) {
+    for (let settings of this.tool_settings) {
+      if (settings.isFor(toolcls)) {
+        return settings;
+      }
+    }
+
+    let ret = new ToolOpSettings(toolcls);
+    this.tool_settings.push(ret);
+
+    return ret;
+  }
+
+  setToolOpSetting(toolcls, k, v) {
+    this._getToolOpS(toolcls).set(k, v);
+
+    this.save();
+  }
+
+  hasToolOpSetting(toolcls, k) {
+    return this._getToolOpS(toolcls).has(k);
+  }
+
+  getToolOpSetting(toolcls, k, defaultval) {
+    if (!this._getToolOpS(toolcls).has(k)) {
+      return defaultval;
+    }
+
+    return this._getToolOpS(toolcls).get(k);
   }
 
   reload_defaults(load_theme=false) {
@@ -176,10 +271,11 @@ export class AppSettings {
 }
 AppSettings.STRUCT = `
 AppSettings {
-  unit_scheme  : string;
-  unit         : string;
-  theme        : string;
-  recent_paths : array(RecentPath);
+  unit_scheme   : string;
+  unit          : string;
+  tool_settings : array(ToolOpSettings);
+  theme         : string;
+  recent_paths  : array(RecentPath);
 }
 `;
 

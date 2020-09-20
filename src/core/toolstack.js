@@ -332,9 +332,16 @@ export class ToolStack {
       stacktool = stacktool.parent;
     }
 
-    function update_dataprop(d) {
-      this2.reexec_tool(stacktool);
+    function makeUpdate(tool, prop, k) {
+      return function update_dataprop(d) {
+        if (prop.flag & TPropFlags.SAVE_LAST_VALUE) {
+          console.log(tool, prop, k, prop.getValue(), "<-----");
+          this.ctx.settings.setToolOpSetting(tool.constructor, k, prop.getValue())
+        }
+        this2.reexec_tool(stacktool);
+      }
     }
+
 
     function gen_subtool_struct(tool) {
       if (tool.apistruct === undefined)
@@ -364,7 +371,7 @@ export class ToolStack {
       let apiname = prop.apiname || k;
 
       dataprop = new DataPath(prop, apiname, "", true, false);
-      dataprop.update = update_dataprop;
+      dataprop.update = makeUpdate(tool, prop, k);
 
       datastruct.add(dataprop);
     }

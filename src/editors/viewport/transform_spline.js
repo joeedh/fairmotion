@@ -4,9 +4,6 @@ import {
 
 import {SelMask} from './selectmode.js';
 
-import {Vec3Property, BoolProperty, FloatProperty, IntProperty,
-  CollectionProperty, TPropFlags, EnumProperty} from '../../core/toolprops.js';
-
 import {SplineFlags, SplineTypes} from '../../curve/spline_types.js';
 import {ToolOp, ModalStates} from '../../core/toolops_api.js';
 
@@ -21,26 +18,34 @@ import {clear_jobs, clear_jobs_except_latest, clear_jobs_except_first,
   JobTypes} from '../../wasm/native_api.js';
 import {TransData, TransDataType} from "./transdata.js";
 
-var _tsv_apply_tmp1 = new Vector3();
-var _tsv_apply_tmp2 = new Vector3();
-var post_mousemove_cachering = cachering.fromConstructor(Vector3, 64);
-var mousemove_cachering = cachering.fromConstructor(Vector3, 64);
+var _tsv_apply_tmp1 = new Vector2();
+var _tsv_apply_tmp2 = new Vector2();
+var post_mousemove_cachering = cachering.fromConstructor(Vector2, 64);
+var mousemove_cachering = cachering.fromConstructor(Vector2, 64);
 
 export class TransSplineVert extends TransDataType {
-  static apply(ctx : ToolContext, td : TransData, item : TransDataItem, mat : Matrix4, w : float) {
+  static apply(ctx : ToolContext, td : TransData, item : TransDataItem, mat : Matrix4, w : float,
+               scaleWidths : boolean = false) {
     var co = _tsv_apply_tmp1;
     var v = item.data;
 
-    if (w == 0.0) return;
+    let lscale = 1.0;
+    if (scaleWidths) {
+      let xscale = Math.sqrt(mat.$matrix.m11*mat.$matrix.m11 + mat.$matrix.m12*mat.$matrix.m12);
+      let yscale = Math.sqrt(mat.$matrix.m21*mat.$matrix.m21 + mat.$matrix.m22*mat.$matrix.m22);
 
-    co.load(item.start_data);
-    co[2] = 0.0;
+      lscale = (xscale + yscale)*0.5;
+    }
+
+    if (w === 0.0) return;
+
+    co.load(item.start_data.co);
     co.multVecMatrix(mat);
 
-    v.load(co).sub(item.start_data).mulScalar(w).add(item.start_data);
+    v.load(co).sub(item.start_data.co).mulScalar(w).add(item.start_data.co);
     v.flag |= SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
 
-    if (v.type == SplineTypes.HANDLE) {
+    if (v.type === SplineTypes.HANDLE) {
       var seg = v.owning_segment;
 
       seg.update();
@@ -50,19 +55,27 @@ export class TransSplineVert extends TransDataType {
 
       var hpair = seg.update_handle(v);
 
-      if (hpair != undefined) {
+      if (hpair !== undefined) {
         hpair.flag |= SplineFlags.FRAME_DIRTY;
       }
     } else {
-      for (var j=0; j<v.segments.length; j++) {
-        v.segments[j].flag |= SplineFlags.FRAME_DIRTY;
-        v.segments[j].h1.flag |= SplineFlags.FRAME_DIRTY;
-        v.segments[j].h2.flag |= SplineFlags.FRAME_DIRTY;
+      //remember that SplineVertex.prototype.width is actually a dynamic property
+      //that reads/modifies the widths in each segment in v.segments
+      if (scaleWidths) {
+        v.width = item.start_data.width;
+        v.width *= lscale;
+        console.log("LSCALE", lscale);
+      }
 
-        v.segments[j].update();
-        var hpair = v.segments[j].update_handle(v.segments[j].handle(v));
+      for (let s of v.segments) {
+        s.flag |= SplineFlags.FRAME_DIRTY;
+        s.h1.flag |= SplineFlags.FRAME_DIRTY;
+        s.h2.flag |= SplineFlags.FRAME_DIRTY;
 
-        if (hpair != undefined) {
+        s.update();
+
+        let hpair = s.update_handle(s.handle(v));
+        if (hpair !== undefined) {
           hpair.flag |= SplineFlags.FRAME_DIRTY;
         }
       }
@@ -76,6 +89,7 @@ export class TransSplineVert extends TransDataType {
   static undo_pre(ctx : ToolContext, td : TransData, undo_obj : ObjLit) {
     var doneset = new set();
     var undo = [];
+    let segundo = [];
 
     function push_vert(v : SplineVertex) {
       if (doneset.has(v))
@@ -86,7 +100,19 @@ export class TransSplineVert extends TransDataType {
       undo.push(v.eid);
       undo.push(v[0]);
       undo.push(v[1]);
-      undo.push(v[2]);
+    }
+
+    //saves segment widths
+    function push_seg(s : SplineSegment) {
+      if (doneset.has(s)) {
+        return;
+      }
+
+      doneset.add(s);
+      segundo.push(s.eid);
+
+      segundo.push(s.w1);
+      segundo.push(s.w2);
     }
 
     for (var i=0; i<td.data.length; i++) {
@@ -97,42 +123,67 @@ export class TransSplineVert extends TransDataType {
       var v = d.data;
 
       //make sure we get all handles that might be affected by this one
-      if (v.type == SplineTypes.HANDLE) {
-        if (v.hpair != undefined) {
+      if (v.type === SplineTypes.HANDLE) {
+        if (v.hpair !== undefined) {
           push_vert(v.hpair);
         }
 
-        if (v.owning_vertex !== undefined && v.owning_vertex.segments.length == 2) {
-          var ov = v.owning_vertex;
-          for (var j=0; j<ov.segments.length; j++) {
-            var s = ov.segments[j];
+        if (v.owning_vertex !== undefined && v.owning_vertex.segments.length === 2) {
+          let ov = v.owning_vertex;
 
+          for (let s of ov.segments) {
             push_vert(s.h1);
             push_vert(s.h2);
+
+            push_seg(s);
           }
         } else if (v.owning_vertex === undefined) {
           console.warn("Orphaned handle!", v.eid, v);
+        }
+      } else {
+        for (let s of v.segments) {
+          push_seg(s);
         }
       }
 
       push_vert(v);
     }
 
+    undo_obj['sseg'] = segundo;
     undo_obj['svert'] = undo;
   }
 
   static undo(ctx : ToolContext, undo_obj : ObjLit) {
     var spline = ctx.spline;
 
-    var i = 0;
-    var undo = undo_obj['svert'];
-    var edit_all_layers = undo.edit_all_layers;
+    let segundo = undo_obj['sseg'];
+    for (let i=0; i < segundo.length; ) {
+      let eid = segundo[i++], w1 = segundo[i++], w2 = segundo[i++];
 
-    while (i < undo.length) {
+      let seg = spline.eidmap[eid];
+      if (!seg) {
+        console.warn("Data corruption in transform undo! Missing segment " + eid);
+        continue;
+      }
+
+      let update = seg.w1 !== w1 || seg.w2 !== w2;
+
+      if (update) {
+        seg.w1 = w1;
+        seg.w2 = w2;
+
+        seg.update();
+      }
+    }
+
+    let undo = undo_obj['svert'];
+    let edit_all_layers = undo.edit_all_layers;
+
+    for (let i=0; i < undo.length; ) {
       var eid = undo[i++];
       var v = spline.eidmap[eid];
 
-      if (v == undefined) {
+      if (v === undefined) {
         console.log("Transform undo error!", eid);
         i += 4;
         continue;
@@ -140,9 +191,8 @@ export class TransSplineVert extends TransDataType {
 
       v[0] = undo[i++];
       v[1] = undo[i++];
-      v[2] = undo[i++];
 
-      if (v.type == SplineTypes.HANDLE && !v.use) {
+      if (v.type === SplineTypes.HANDLE && !v.use) {
         var seg = v.segments[0];
 
         seg.update();
@@ -150,19 +200,20 @@ export class TransSplineVert extends TransDataType {
 
         seg.v1.flag |= SplineFlags.UPDATE;
         seg.v2.flag |= SplineFlags.UPDATE;
-      } else if (v.type == SplineTypes.VERTEX) {
+      } else if (v.type === SplineTypes.VERTEX) {
         v.flag |= SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
 
-        for (var j=0; j<v.segments.length; j++) {
-          v.segments[j].update();
-          v.segments[j].flag |= SplineFlags.FRAME_DIRTY;
-          v.segments[j].h1.flag |= SplineFlags.FRAME_DIRTY;
-          v.segments[j].h2.flag |= SplineFlags.FRAME_DIRTY;
+        for (let s of v.segments) {
+          s.update();
+          s.flag |= SplineFlags.FRAME_DIRTY|SplineFlags.UPDATE;
+          s.h1.flag |= SplineFlags.FRAME_DIRTY|SplineFlags.UPDATE;
+          s.h2.flag |= SplineFlags.FRAME_DIRTY|SplineFlags.UPDATE;
         }
       }
     }
 
     spline.resolve = 1;
+    window.redraw_viewport();
   }
 
   static update(ctx : ToolContext, td : TransData) {
@@ -224,7 +275,7 @@ export class TransSplineVert extends TransDataType {
 
     for (var i=0; i<2; i++) {
       for (var v of i ? spline.handles.selected.editable(ctx) : spline.verts.selected.editable(ctx)) {
-        var co = new Vector3(v);
+        var co = new Vector2(v);
 
         if (i) {
           var ov = v.owning_segment.handle_vertex(v);
@@ -236,7 +287,9 @@ export class TransSplineVert extends TransDataType {
 
         selmap[v.eid] = 1;
 
-        var td = new TransDataItem(v, TransSplineVert, co);
+        let width = i ? 0.0 : v.width;
+
+        var td = new TransDataItem(v, TransSplineVert, {co : co, width : width});
 
         data.push(td);
         tdmap[v.eid] = td;
@@ -266,7 +319,7 @@ export class TransSplineVert extends TransDataType {
 
         if (v.eid in selmap) continue;
 
-        var co = new Vector3(v);
+        var co = new Vector2(v);
         var td = new TransDataItem(v, TransSplineVert, co);
         data.push(td);
 
@@ -406,7 +459,6 @@ export class TransSplineVert extends TransDataType {
     if (item.data.hidden) return;
 
     co.load(item.data);
-    co[2] = 0.0;
 
     minmax.minmax(co);
 

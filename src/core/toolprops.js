@@ -47,7 +47,9 @@ export var TPropFlags = {
   UNDO_SIMPLE         : 32, //use simple undo implementation
   USE_ICONS           : 64,
   USE_CUSTOM_GETSET   : 128,
-  NEEDS_OWNING_OBJECT : 256 //used by user_get_data, property needs 'this'
+  SAVE_LAST_VALUE     : 256,
+
+  NEEDS_OWNING_OBJECT : 1<<13 //used by user_get_data, property needs 'this'
 };
 
 export const PropSubTypes = {

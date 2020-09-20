@@ -87,7 +87,13 @@ export class SplineVertex extends SplineElement {
   }
 
   get width() {
-    if (!this.segments) return; //happens in mixin code
+    if (this.type !== SplineTypes.VERTEX) {
+      //hrm, what to do for handles?
+      console.warn("Dynamic vertex width not supported for handle vertices");
+      return 0.0;
+    }
+
+    if (!this.segments) return 0.0; //happens in mixin code
 
     let tot = 0.0;
     let sum = 0.0;
@@ -101,6 +107,13 @@ export class SplineVertex extends SplineElement {
   }
 
   set width(w) {
+    if (this.type !== SplineTypes.VERTEX) {
+      //hrm, what to do for handles?
+      console.warn("Dynamic vertex width not supported for handle vertices");
+      return;
+    }
+
+
     if (!this.segments) return;
 
     let old = this.width;

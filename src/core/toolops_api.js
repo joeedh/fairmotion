@@ -160,7 +160,7 @@ export class ToolOpAbstract {
     flag     : [see ToolFlags]
   }}
   */
-  
+
   static inherit(inputs_or_outputs) {
     return new InheritFlag(inputs_or_outputs);
   }
@@ -173,6 +173,12 @@ export class ToolOpAbstract {
   * this is used for e.g. running the same tool on multiple editable splines
   * */
   static invokeMultiple(ctx, args) {
+
+  }
+
+  //non-path.ux api extension, tells toolops to load
+  //defaults from ctx.settings
+  loadDefaults(ctx) {
 
   }
 
@@ -388,6 +394,12 @@ import * as toolsys from '../path.ux/scripts/toolsys/simple_toolsys.js';
 toolsys.ToolOp.prototype.undo_pre = function(ctx) {
   return this.undoPre(ctx);
 }
+
+//non-path.ux api extension, tells toolops to load
+//defaults from ctx.settings
+toolsys.ToolOp.prototype.loadDefaults = function(ctx) {
+}
+
 toolsys.ToolOp.prototype.exec_pre = function(ctx) {
   return this.execPre(ctx);
 }

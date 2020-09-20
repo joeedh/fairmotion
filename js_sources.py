@@ -37,6 +37,7 @@ sources = [
   "src/html/main.html",
   "src/html/module_test.html",
   "src/core/startup/coverage.js",
+  "src/core/evillog.js",
   "src/util/polyfill_fairmotion.js",
   "src/core/startup/module.js",
   "src/core/startup/typelogger.js",

@@ -8,6 +8,8 @@ import {get_vtime} from '../core/animdata.js';
 
 import {iterpoints, MultiResLayer, MResFlags, has_multires} from './spline_multires.js';
 
+import {evillog} from "../core/evillog.js";
+
 var spline_draw_cache_vs = cachering.fromConstructor(Vector3, 64);
 var spline_draw_trans_vs = cachering.fromConstructor(Vector3, 32);
 
@@ -136,6 +138,25 @@ export function redo_draw_sort(spline : Spline) {
 
   for (let g of spline.drawStrokeGroups) {
     let maxz = -1e17;
+
+    for (let seg of g.segments) {
+      if (seg === undefined) {
+        evillog("Missing segment in draw stroke group! patching. . .");
+
+        let lst = [];
+        for (let seg2 of g.segments) {
+          if (seg2) {
+            lst.push(seg2);
+          }
+        }
+
+        g.segments.length = 0;
+        for (let seg2 of lst) {
+          g.segments.push(seg2);
+        }
+        break;
+      }
+    }
 
     for (let seg of g.segments) {
       gsmap.set(seg, g);

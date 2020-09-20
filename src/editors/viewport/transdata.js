@@ -20,7 +20,8 @@ export class TransDataItem {
 }
 
 export class TransDataType {
-  static apply(ctx : ToolContext, td : TransData, item : TransDataItem, mat : Matrix4, w : number) {
+  static apply(ctx : ToolContext, td : TransData, item : TransDataItem,
+               mat : Matrix4, w : number, scaleWidths : boolean) {
   }
   
   static undo_pre(ctx : ToolContext, td : TransData, undo_obj : ObjLit) {
@@ -61,11 +62,11 @@ TransDataType.selectmode = -1;
 export class TransData {
   data : GArray
   undodata : Object
-  center : Vector3
-  start_center : Vector3
+  center : Vector2
+  start_center : Vector2
   minmax : MinMax
-  scenter : Vector3
-  start_scenter : Vector3;
+  scenter : Vector2
+  start_scenter : Vector2;
 
   constructor(ctx : FullContext, top : TransformOp, datamode : int) {
     this.ctx = ctx;

@@ -11,6 +11,36 @@ import '../../path.ux/scripts/widgets/ui_table.js';
 import '../../path.ux/scripts/widgets/ui_menu.js';
 import '../../path.ux/scripts/widgets/ui_listbox.js';
 
+import {LastToolPanel} from '../../path.ux/scripts/widgets/ui_lasttool.js';
+import {TPropFlags} from '../../core/toolprops.js';
+
+export class MyLastToolPanel extends LastToolPanel {
+  getToolStackHead(ctx) {
+    return ctx.toolstack.head;
+  }
+
+  buildTool(ctx, tool, container) {
+    for (let k in tool.inputs) {
+      let prop = tool.inputs[k];
+
+      if (prop.flag & TPropFlags.PRIVATE) {
+        continue;
+      }
+
+      let apiname = prop.apiname || k;
+      let path = "last_tool." + apiname;
+
+      container.prop(path);
+    }
+  }
+
+  static define() {return {
+    tagname : 'last-tool-panel-fairmotion-x'
+  }}
+}
+
+UIBase.register(MyLastToolPanel);
+
 function list(iter) {
   let ret = [];
 
@@ -361,8 +391,16 @@ export class MaterialEditor extends Editor {
     this.fillPanel(tabs);
     this.layersPanel(tabs);
     this.vertexPanel(tabs);
+    this.lastToolPanel(tabs);
 
     this.update();
+  }
+
+  lastToolPanel(tabs : TabContainer) {
+    let tab = tabs.tab("Most Recent Command");
+
+    let panel = document.createElement("last-tool-panel-fairmotion-x");
+    tab.add(panel);
   }
 
   fillPanel(tabs : TabContainer) {

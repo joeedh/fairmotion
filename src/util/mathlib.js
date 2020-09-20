@@ -491,14 +491,11 @@ export function line_line_cross(l1, l2) {
     
     var a = l1[0]; var b = l1[1];
     var c = l2[0]; var d = l2[1];
-    
-    var w1 = winding(a, b, c);
-    var w2 = winding(c, a, d);
-    
-    var w3 = winding(a, b, d);
-    var w4 = winding(c, b, d);
-    
-    return (w1 == w2) && (w3 == w4) && (w1 != w3);
+
+    let ok = winding(a, b, c) !== winding(a, b, d);
+    ok = ok && winding(c, d, a) !== winding(c, d, b);
+
+    return ok;
 }
 
 let _llc4_1 = [new Vector2(), new Vector2()];

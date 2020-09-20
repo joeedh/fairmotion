@@ -7,6 +7,8 @@ import {
 var PI = Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor,
     ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos,
     asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
+import {SplineFlags} from "./spline_base.js";
+import * as math from '../path.ux/scripts/util/math.js';
 
 var sqrt = Math.sqrt;
 let findnearest_segment_tmp = new Vector2();
@@ -51,14 +53,9 @@ export class SplineQuery {
     }
     
     if (selectmask & SelMask.FACE) {
-      mpos = [mpos[0], mpos[1]];
-      
-      mpos[0] += editor.pos[0];
-      mpos[1] += editor.pos[1];
-      
       var ret = this.findnearest_face(editor, mpos, limit, ignore_layers);
       
-      if (ret != undefined && ret[1] < dis) {
+      if (ret !== undefined && ret[1] < dis) {
         data = ret;
         dis = ret[1];
       }
@@ -102,12 +99,77 @@ export class SplineQuery {
   }
   
   findnearest_face(editor, mpos, limit, ignore_layers) {
+    let spline = this.spline, actlayer = spline.layerset.active;
+    let mindis=0, closest = undefined;
+
+    let p = new Vector2([5000, 5001]);
+    mpos = new Vector2(mpos);
+
+    editor.unproject(mpos);
+
+    p.add(mpos);
+
+
+    //console.log(mpos, p);
+
+    //do basic polyline winding test
+    for (let f of spline.faces) {
+      if ((!ignore_layers && !f.in_layer(actlayer)) || f.hidden) continue;
+
+      let sum = 0;
+
+      for (let list of f.paths) {
+        for (let l of list) {
+          let v1 = l.v, v2 = l.next.v;
+
+          let steps = 4; //subdivide clothoids 4 times
+          let s = 0.0, ds = 1.0 / (steps-1);
+          let lastco = undefined;
+
+          for (let i=0; i<steps; i++, s += ds) {
+            let co = l.s.evaluate(s);
+
+            if (lastco) {
+              if (math.line_line_cross(lastco, co, mpos, p)) {
+                sum += 1;
+              }
+            }
+            lastco = co;
+          }
+        }
+      }
+
+      //console.log("SUM", sum, f.eid);
+
+      if (sum % 2 !== 1) {
+        continue;
+      }
+
+      let dist = -f.finalz + (f.flag & SplineFlags.SELECT)*1000;
+
+      //console.log("DIST", dist);
+      if (!closest || dist < mindis) {
+        closest = f;
+        mindis = dist;
+      }
+    }
+
+    if (closest !== undefined) {
+      console.log("CLOSEST", closest.eid);
+
+      return [closest, mindis, SelMask.FACE];
+    }
+    /*
     var spline = this.spline;
     var actlayer = spline.layerset.active;
-    
+
+
+    return;
+    console.log("findnearest face!", spline.canvas);
+
     var g = spline.canvas;
     var dis = 0, closest = undefined;
-   
+
     if (g == undefined) return;
     
     for (var i=0; i<spline.faces.length; i++) {
@@ -115,7 +177,9 @@ export class SplineQuery {
       if ((!ignore_layers && !f.in_layer(actlayer)) || f.hidden) continue;
       
       spline.trace_face(g, f);
-      
+
+      console.log("tracing face", f);
+
       if (g.isPointInPath(mpos[0], window.innerHeight-mpos[1])) {
         closest = f;
       }
@@ -124,6 +188,8 @@ export class SplineQuery {
     g.beginPath();
     if (closest !== undefined)
       return [closest, dis, SelMask.FACE];
+
+     */
   }
 
   findnearest_vert(editor, mpos, limit, do_handles, ignore_layers) {

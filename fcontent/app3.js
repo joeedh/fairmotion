@@ -1,1299 +1,3 @@
-es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/const.js", "../util/vectormath.js", "../util/util.js", "../util/simple_events.js", "../widgets/ui_menu.js", "./ui_theme.js", "../util/html5_fileapi.js", "../toolsys/toolprop.js"], function _ui_module(_es6_module) {
-  var _ui=undefined;
-  var util=es6_import(_es6_module, '../util/util.js');
-  var vectormath=es6_import(_es6_module, '../util/vectormath.js');
-  var ui_base=es6_import(_es6_module, './ui_base.js');
-  var ui_widgets=es6_import(_es6_module, '../widgets/ui_widgets.js');
-  var toolprop=es6_import(_es6_module, '../toolsys/toolprop.js');
-  es6_import(_es6_module, '../util/html5_fileapi.js');
-  var HotKey=es6_import_item(_es6_module, '../util/simple_events.js', 'HotKey');
-  var CSSFont=es6_import_item(_es6_module, './ui_theme.js', 'CSSFont');
-  var theme=es6_import_item(_es6_module, './ui_base.js', 'theme');
-  var createMenu=es6_import_item(_es6_module, '../widgets/ui_menu.js', 'createMenu');
-  var startMenu=es6_import_item(_es6_module, '../widgets/ui_menu.js', 'startMenu');
-  let PropFlags=toolprop.PropFlags;
-  let PropSubTypes=toolprop.PropSubTypes;
-  let EnumProperty=toolprop.EnumProperty;
-  let Vector2=vectormath.Vector2, UIBase=ui_base.UIBase, PackFlags=ui_base.PackFlags, PropTypes=toolprop.PropTypes;
-  const DataPathError=ui_base.DataPathError;
-  _es6_module.add_export('DataPathError', DataPathError);
-  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
-  var list=function list(iter) {
-    let ret=[];
-    for (let item of iter) {
-        ret.push(item);
-    }
-    return ret;
-  }
-  class Label extends ui_base.UIBase {
-     constructor() {
-      super();
-      this._label = "";
-      this.dom = document.createElement("div");
-      this.dom.setAttribute("class", "_labelx");
-      let style=document.createElement("style");
-      style.textContent = `
-      div._labelx::selection {
-        color: none;
-        background: none;
-         -webkit-user-select:none;
-         user-select:none;
-      }
-    `;
-      this.shadow.appendChild(style);
-      this.shadow.appendChild(this.dom);
-      this.font = "LabelText";
-    }
-     init() {
-      this.dom.style["width"] = "max-content";
-    }
-    get  font() {
-      return this._font;
-    }
-    set  font(fontDefaultName) {
-      if (typeof fontDefaultName==="string") {
-          this._font = this.getDefault(fontDefaultName);
-          if (!this._font) {
-              console.warn("Invalid font", fontDefaultName);
-          }
-      }
-      else 
-        if (typeof fontDefaultName==="object"&&__instance_of(fontDefaultName, CSSFont)) {
-          this._font = fontDefaultName;
-      }
-      else {
-        console.warn("Invalid font", fontDefaultName);
-      }
-      this._updateFont();
-    }
-     on_disabled() {
-      super.on_disabled();
-      this._enabled_font = this.font;
-      this.font = "DefaultText";
-      this._updateFont();
-    }
-     on_enabled() {
-      super.on_enabled();
-      this.font = this._enabled_font;
-      this._updateFont();
-    }
-     _updateFont() {
-      let font=this._font;
-      if (!font)
-        return ;
-      this.dom.style["font"] = font.genCSS();
-      this.dom.style["color"] = font.color;
-    }
-     updateDataPath() {
-      if (this.ctx===undefined) {
-          return ;
-      }
-      let path=this.getAttribute("datapath");
-      let prop=this.getPathMeta(this.ctx, path);
-      let val=this.getPathValue(this.ctx, path);
-      if (val===undefined) {
-          return ;
-      }
-      if (prop!==undefined&&prop.type==PropTypes.INT) {
-          val = val.toString(prop.radix);
-          if (prop.radix==2) {
-              val = "0b"+val;
-          }
-          else 
-            if (prop.radix==16) {
-              val+="h";
-          }
-      }
-      else 
-        if (prop!==undefined&&prop.type==PropTypes.FLOAT&&val!==Math.floor(val)) {
-          val = val.toFixed(prop.decimalPlaces);
-      }
-      val = ""+val;
-      this.dom.innerText = this._label+val;
-    }
-     update() {
-      if (this.font!==this._last_font) {
-          this._last_font = this.font;
-          this._updateFont();
-      }
-      this.dom.style["pointer-events"] = this.style["pointer-events"];
-      if (this.hasAttribute("datapath")) {
-          this.updateDataPath();
-      }
-    }
-    get  text() {
-      return this._label;
-    }
-    set  text(text) {
-      this._label = text;
-      if (!this.hasAttribute("datapath")) {
-          this.dom.innerText = text;
-      }
-    }
-    static  define() {
-      return {tagname: "label-x"}
-    }
-  }
-  _ESClass.register(Label);
-  _es6_module.add_class(Label);
-  Label = _es6_module.add_export('Label', Label);
-  ui_base.UIBase.register(Label);
-  class Container extends ui_base.UIBase {
-     constructor() {
-      super();
-      this.dataPrefix = '';
-      this.inherit_packflag = 0;
-      let style=this.styletag = document.createElement("style");
-      style.textContent = `
-    `;
-      this.shadow.appendChild(style);
-    }
-     saveData() {
-      return {scrollTop: this.scrollTop, 
-     scrollLeft: this.scrollLeft}
-    }
-     loadData(obj) {
-      if (!obj)
-        return ;
-      let x=obj.scrollLeft||0;
-      let y=obj.scrollTop||0;
-      this.doOnce(() =>        {
-        this.scrollTo(x, y);
-      }, 12);
-    }
-     init() {
-      this.style["display"] = "flex";
-      this.style["flex-direction"] = "column";
-      this.style["flex-wrap"] = "nowrap";
-      this.setCSS();
-      super.init();
-      this.setAttribute("class", "containerx");
-    }
-     useIcons(enabled=true) {
-      if (enabled) {
-          this.packflag|=PackFlags.USE_ICONS;
-          this.inherit_packflag|=PackFlags.USE_ICONS;
-      }
-      else {
-        this.packflag&=~PackFlags.USE_ICONS;
-        this.inherit_packflag&=~PackFlags.USE_ICONS;
-      }
-    }
-     wrap(mode="wrap") {
-      this.style["flex-wrap"] = mode;
-      return this;
-    }
-     noMarginsOrPadding() {
-      super.noMarginsOrPadding();
-      let keys=["margin", "padding", "margin-block-start", "margin-block-end"];
-      keys = keys.concat(["padding-block-start", "padding-block-end"]);
-      for (let k of keys) {
-          this.style[k] = "0px";
-      }
-      return this;
-    }
-     setCSS() {
-      let rest='';
-      let add=(style) =>        {
-        let val=this.getDefault(style);
-        if (val!==undefined) {
-            rest+=`  ${style} = ${val};\n`;
-            this.style[style] = val;
-        }
-      };
-      add("border-radius");
-      add("border");
-      add("border-top");
-      add("border-bottom");
-      add("border-left");
-      add("border-right");
-      this.styletag.textContent = `div.containerx {
-        background-color : ${this.getDefault("DefaultPanelBG")};
-        ${rest}
-      }
-      `;
-    }
-     overrideDefault(key, val) {
-      super.overrideDefault(key, val);
-      this.setCSS();
-      return this;
-    }
-     strip(m=this.getDefault("oneAxisPadding"), m2=1, themeClass="strip") {
-      let horiz=__instance_of(this, RowFrame);
-      horiz = horiz||this.style["flex-direction"]==="row";
-      let flag=horiz ? PackFlags.STRIP_HORIZ : PackFlags.STRIP_VERT;
-      let strip=(horiz ? this.row() : this.col()).oneAxisPadding(m, m2);
-      strip.packflag|=flag;
-      if (themeClass in theme) {
-          strip.overrideClass(themeClass);
-          strip.background = strip.getDefault("DefaultPanelBG");
-          strip.setCSS();
-      }
-      return strip;
-    }
-     oneAxisMargin(m=this.getDefault("oneAxisMargin"), m2=0) {
-      this.style["margin-top"] = this.style["margin-bottom"] = ""+m+"px";
-      this.style["margin-left"] = this.style["margin-right"] = ""+m2+"px";
-      return this;
-    }
-     oneAxisPadding(m=this.getDefault("oneAxisPadding"), m2=0) {
-      this.style["padding-top"] = this.style["padding-bottom"] = ""+m+"px";
-      this.style["padding-left"] = this.style["padding-right"] = ""+m2+"px";
-      return this;
-    }
-     setMargin(m) {
-      this.style["margin"] = m+"px";
-      return this;
-    }
-     setPadding(m) {
-      this.style["padding"] = m+"px";
-      return this;
-    }
-     setSize(width, height) {
-      if (width!==undefined) {
-          if (typeof width=="number")
-            this.style["width"] = this.div.style["width"] = ~~width+"px";
-          else 
-            this.style["width"] = this.div.style["width"] = width;
-      }
-      if (height!==undefined) {
-          if (typeof height=="number")
-            this.style["height"] = this.div.style["height"] = ~~height+"px";
-          else 
-            this.style["height"] = this.div.style["height"] = height;
-      }
-      return this;
-    }
-    set  background(bg) {
-      this.__background = bg;
-      this.styletag.textContent = `div.containerx {
-        background-color : ${bg};
-      }
-    `;
-      this.style["background-color"] = bg;
-    }
-    static  define() {
-      return {tagname: "container-x"}
-    }
-     save() {
-
-    }
-     load() {
-
-    }
-     saveVisibility() {
-      localStorage[this.storagePrefix+"_settings"] = JSON.stringify(this);
-      return this;
-    }
-     loadVisibility() {
-      let key=this.storagePrefix+"_settings";
-      let ok=true;
-      if (key in localStorage) {
-          console.log("loading UI visibility state. . .");
-          try {
-            this.loadJSON(JSON.parse(localStorage[key]));
-          }
-          catch (error) {
-              util.print_stack(error);
-              ok = false;
-          }
-      }
-      return ok;
-    }
-     toJSON() {
-      let ret={opened: !this.closed};
-      return Object.assign(super.toJSON(), ret);
-    }
-     _ondestroy() {
-      this._forEachChildWidget((n) =>        {
-        n._ondestroy();
-      });
-      super._ondestroy();
-    }
-     loadJSON(obj) {
-      return this;
-    }
-     redrawCurves() {
-      throw new Error("Implement me (properly!)");
-      if (this.closed)
-        return ;
-      for (let cw of this.curve_widgets) {
-          cw.draw();
-      }
-    }
-     listen() {
-      window.setInterval(() =>        {
-        this.update();
-      }, 150);
-    }
-    get  children() {
-      let list=[];
-      this._forEachChildWidget((n) =>        {
-        list.push(n);
-      });
-      return list;
-    }
-     update() {
-      super.update();
-    }
-     appendChild(child) {
-      if (__instance_of(child, ui_base.UIBase)) {
-          child.ctx = this.ctx;
-          child.parentWidget = this;
-          this.shadow.appendChild(child);
-          if (child.onadd) {
-              child.onadd();
-          }
-          return ;
-      }
-      return super.appendChild(child);
-    }
-     clear(trigger_on_destroy=true) {
-      for (let child of this.children) {
-          if (__instance_of(child, ui_base.UIBase)) {
-              child.remove(trigger_on_destroy);
-          }
-      }
-    }
-     removeChild(child, trigger_on_destroy=true) {
-      let ret=super.removeChild(child);
-      if (child.on_remove) {
-          child.on_remove();
-      }
-      if (trigger_on_destroy&&child.on_destroy) {
-          child.on_destroy();
-      }
-      child.parentWidget = undefined;
-      return ret;
-    }
-     prepend(child) {
-      if (__instance_of(child, UIBase)) {
-          this._prepend(child);
-      }
-      else {
-        super.prepend(child);
-      }
-    }
-     _prepend(child) {
-      return this._add(child, true);
-    }
-     add(child) {
-      return this._add(child);
-    }
-     insert(i, ch) {
-      ch.parentWidget = this;
-      ch.ctx = this;
-      if (i>=this.shadow.childNodes.length) {
-          this.add(ch);
-      }
-      else {
-        this.shadow.insertBefore(ch, list(this.children)[i]);
-      }
-      if (ch.onadd) {
-          ch.onadd();
-      }
-    }
-     _add(child, prepend=false) {
-      if (__instance_of(child, NodeList)) {
-          throw new Error("eek!");
-      }
-      child.ctx = this.ctx;
-      child.parentWidget = this;
-      child._useDataPathUndo = this._useDataPathUndo;
-      if (prepend) {
-          this.shadow.prepend(child);
-      }
-      else {
-        this.shadow.appendChild(child);
-      }
-      if (child.onadd)
-        child.onadd();
-      return child;
-    }
-     dynamicMenu(title, list, packflag=0) {
-      return this.menu(title, list, packflag);
-    }
-     menu(title, list, packflag=0) {
-      let dbox=document.createElement("dropbox-x");
-      dbox._name = title;
-      dbox.setAttribute("simple", true);
-      dbox.setAttribute("name", title);
-      dbox._build_menu = function () {
-        if (this._menu!==undefined&&this._menu.parentNode!==undefined) {
-            this._menu.remove();
-        }
-        this._menu = createMenu(this.ctx, title, list);
-        return this._menu;
-      };
-      dbox.packflag|=packflag;
-      dbox.inherit_packflag|=packflag;
-      this._add(dbox);
-      return dbox;
-    }
-     tool(path_or_cls, packflag=0, create_cb=undefined) {
-      let cls;
-      if (typeof path_or_cls=="string") {
-          if (this.ctx===undefined) {
-              console.warn("this.ctx was undefined in tool()");
-              return ;
-          }
-          cls = this.ctx.api.parseToolPath(path_or_cls);
-          if (cls===undefined) {
-              console.warn("Unknown tool for toolpath \""+path_or_cls+"\"");
-              return ;
-          }
-      }
-      else {
-        cls = path_or_cls;
-      }
-      packflag|=this.inherit_packflag;
-      let hotkey;
-      if (create_cb===undefined) {
-          create_cb = (cls) =>            {
-            return this.ctx.api.createTool(this.ctx, path_or_cls);
-          };
-      }
-      let cb=() =>        {
-        console.log("tool run");
-        let toolob=create_cb(cls);
-        this.ctx.api.execTool(this.ctx, toolob);
-      };
-      let def=cls.tooldef();
-      let tooltip=def.description===undefined ? def.uiname : def.description;
-      if (def.hotkey!==undefined) {
-          tooltip+="\n\t"+def.hotkey;
-          hotkey = def.hotkey;
-      }
-      else {
-        let path=path_or_cls;
-        if (typeof path!="string") {
-            path = def.toolpath;
-        }
-        let hotkey=this.ctx.api.getToolPathHotkey(this.ctx, path);
-        if (hotkey!==undefined) {
-            tooltip+="\n\tHotkey: "+hotkey;
-        }
-      }
-      let ret;
-      if (def.icon!==undefined&&(packflag&PackFlags.USE_ICONS)) {
-          ret = this.iconbutton(def.icon, tooltip, cb);
-          if (packflag&PackFlags.SMALL_ICON) {
-              ret.iconsheet = ui_base.IconSheets.SMALL;
-          }
-          else {
-            ret.iconsheet = ui_base.IconSheets.LARGE;
-          }
-          ret.packflag|=packflag;
-      }
-      else {
-        ret = this.button(def.uiname, cb);
-        ret.description = tooltip;
-        ret.packflag|=packflag;
-      }
-      return ret;
-    }
-     textbox(inpath, text="", cb=undefined, packflag=0) {
-      let path;
-      if (inpath)
-        path = this._joinPrefix(inpath);
-      packflag|=this.inherit_packflag;
-      let ret=document.createElement("textbox-x");
-      if (path!==undefined) {
-          ret.setAttribute("datapath", path);
-      }
-      ret.ctx = this.ctx;
-      ret.parentWidget = this;
-      ret._init();
-      ret.setCSS();
-      ret.update();
-      ret.packflag|=packflag;
-      ret.onchange = cb;
-      ret.text = text;
-      this._add(ret);
-      return ret;
-    }
-     pathlabel(inpath, label="") {
-      let path;
-      if (inpath)
-        path = this._joinPrefix(inpath);
-      let ret=document.createElement("label-x");
-      ret.text = label;
-      ret.setAttribute("datapath", path);
-      this._add(ret);
-      return ret;
-    }
-     label(text) {
-      let ret=document.createElement("label-x");
-      ret.text = text;
-      this._add(ret);
-      return ret;
-    }
-     helppicker() {
-      let ret=this.iconbutton(ui_base.Icons.HELP, "Help Picker", () =>        {
-        this.getScreen().hintPickerTool();
-      });
-      if (util.isMobile()) {
-          ret.iconsheet = 2;
-      }
-      if (ret.ctx) {
-          ret._init();
-          ret.setCSS();
-      }
-      return ret;
-    }
-     iconbutton(icon, description, cb, thisvar, packflag=0) {
-      packflag|=this.inherit_packflag;
-      let ret=document.createElement("iconbutton-x");
-      ret.packflag|=packflag;
-      ret.setAttribute("icon", icon);
-      ret.description = description;
-      ret.icon = icon;
-      if (packflag&PackFlags.SMALL_ICON) {
-          ret.iconsheet = ui_base.IconSheets.SMALL;
-      }
-      else {
-        ret.iconsheet = ui_base.IconSheets.LARGE;
-      }
-      ret.onclick = cb;
-      this._add(ret);
-      return ret;
-    }
-     button(label, cb, thisvar, id, packflag=0) {
-      packflag|=this.inherit_packflag;
-      let ret=document.createElement("button-x");
-      ret.packflag|=packflag;
-      ret.setAttribute("name", label);
-      ret.setAttribute("buttonid", id);
-      ret.onclick = cb;
-      this._add(ret);
-      return ret;
-    }
-     _joinPrefix(path) {
-      let prefix=this.dataPrefix.trim();
-      return prefix+path;
-    }
-     colorbutton(inpath, packflag, mass_set_path=undefined) {
-      packflag|=this.inherit_packflag;
-      let ret=document.createElement("color-picker-button-x");
-      if (inpath!==undefined) {
-          ret.setAttribute("datapath", inpath);
-      }
-      if (mass_set_path!==undefined) {
-          ret.setAttribute("mass_set_path", mass_set_path);
-      }
-      ret.packflag|=packflag;
-      this._add(ret);
-      return ret;
-    }
-     noteframe(packflag=0) {
-      let ret=document.createElement("noteframe-x");
-      ret.packflag|=this.inherit_packflag|packflag;
-      this._add(ret);
-      return ret;
-    }
-     curve1d(inpath, packflag=0, mass_set_path=undefined) {
-      packflag|=this.inherit_packflag;
-      let ret=document.createElement("curve-widget-x");
-      ret.ctx = this.ctx;
-      ret.packflag|=packflag;
-      if (inpath)
-        ret.setAttribute("datapath", inpath);
-      if (mass_set_path)
-        ret.setAttribute("mass_set_path", mass_set_path);
-      this.add(ret);
-      return ret;
-    }
-     prop(inpath, packflag=0, mass_set_path=undefined) {
-      packflag|=this.inherit_packflag;
-      let path=this._joinPrefix(inpath);
-      let rdef=this.ctx.api.resolvePath(this.ctx, path, true);
-      if (rdef===undefined||rdef.prop===undefined) {
-          console.warn("Unknown property at path", path, this.ctx.api.resolvePath(this.ctx, path, true));
-          return ;
-      }
-      let prop=rdef.prop;
-      function makeUIName(name) {
-        if (typeof name==="number"&&isNaN(name)) {
-            console.warn("Subkey error in data api", inpath);
-            return ""+name;
-        }
-        name = ""+name;
-        name = name[0].toUpperCase()+name.slice(1, name.length).toLowerCase();
-        name = name.replace(/_/g, " ");
-        return name;
-      }
-      if (prop.type===PropTypes.STRING) {
-          let ret;
-          if (prop.multiLine) {
-              ret = this.textarea(inpath, rdef.value, packflag, mass_set_path);
-          }
-          else {
-            ret = this.textbox(inpath);
-            if (mass_set_path) {
-                ret.setAttribute("mass_set_path", mass_set_path);
-            }
-          }
-          ret.packflag|=packflag;
-          return ret;
-      }
-      else 
-        if (prop.type===PropTypes.CURVE) {
-          return this.curve1d(path, packflag, mass_set_path);
-      }
-      else 
-        if (prop.type===PropTypes.INT||prop.type===PropTypes.FLOAT) {
-          let ret;
-          if (packflag&PackFlags.SIMPLE_NUMSLIDERS) {
-              ret = this.simpleslider(inpath, {packflag: packflag});
-          }
-          else {
-            ret = this.slider(inpath, {packflag: packflag});
-          }
-          ret.packflag|=packflag;
-          if (mass_set_path) {
-              ret.setAttribute("mass_set_path", mass_set_path);
-          }
-          return ret;
-      }
-      else 
-        if (prop.type===PropTypes.BOOL) {
-          return this.check(inpath, prop.uiname, packflag, mass_set_path);
-      }
-      else 
-        if (prop.type===PropTypes.ENUM) {
-          if (rdef.subkey!==undefined) {
-              let subkey=rdef.subkey;
-              let name=rdef.prop.ui_value_names[rdef.subkey];
-              if (name===undefined) {
-                  name = makeUIName(rdef.subkey);
-              }
-              let check=this.check(inpath, rdef.prop.ui_value_names[subkey], packflag, mass_set_path);
-              let tooltip=rdef.prop.descriptions[subkey];
-              check.description = tooltip===undefined ? rdef.prop.ui_value_names[subkey] : tooltip;
-              check.icon = rdef.prop.iconmap[rdef.subkey];
-              return check;
-          }
-          if (!(packflag&PackFlags.USE_ICONS)) {
-              let val;
-              try {
-                val = this.ctx.api.getValue(this.ctx, path);
-              }
-              catch (error) {
-                  if (!(__instance_of(error, DataPathError))) {
-                      throw error;
-                  }
-              }
-              this.listenum(inpath, undefined, undefined, undefined, undefined, undefined, packflag);
-          }
-          else {
-            this.checkenum(inpath, undefined, packflag);
-          }
-      }
-      else 
-        if (prop.type&(PropTypes.VEC2|PropTypes.VEC3|PropTypes.VEC4)) {
-          if (rdef.subkey!==undefined) {
-              let ret;
-              if (packflag&PackFlags.SIMPLE_NUMSLIDERS)
-                ret = this.simpleslider(path, {packflag: packflag});
-              else 
-                ret = this.slider(path, {packflag: packflag});
-              ret.packflag|=packflag;
-              return ret;
-          }
-          else 
-            if (prop.subtype===PropSubTypes.COLOR) {
-              return this.colorbutton(inpath, packflag, mass_set_path);
-          }
-          else {
-            let ret=document.createElement("vector-panel-x");
-            ret.packflag|=packflag;
-            if (inpath) {
-                ret.setAttribute("datapath", inpath);
-            }
-            if (mass_set_path) {
-                ret.setAttribute("mass_set_path", mass_set_path);
-            }
-            this.add(ret);
-            return ret;
-          }
-      }
-      else 
-        if (prop.type===PropTypes.FLAG) {
-          if (rdef.subkey!==undefined) {
-              let tooltip=rdef.prop.descriptions[rdef.subkey];
-              let name=rdef.prop.ui_value_names[rdef.subkey];
-              if (typeof rdef.subkey==="number") {
-                  name = rdef.prop.keys[rdef.subkey];
-                  if (name&&name in rdef.prop.ui_value_names) {
-                      name = rdef.prop.ui_value_names[name];
-                  }
-                  else {
-                    name = makeUIName(name ? name : "(error)");
-                  }
-              }
-              if (name===undefined) {
-                  name = "(error)";
-              }
-              let ret=this.check(inpath, name, packflag, mass_set_path);
-              ret.icon = rdef.prop.iconmap[rdef.subkey];
-              if (tooltip) {
-                  ret.description = tooltip;
-              }
-          }
-          else {
-            for (let k in prop.values) {
-                let name=prop.ui_value_names[k];
-                let tooltip=prop.descriptions[k];
-                if (name===undefined) {
-                    name = makeUIName(k);
-                }
-                let ret=this.check(`${inpath}[${k}]`, name, packflag, mass_set_path);
-                if (tooltip) {
-                    ret.description = tooltip;
-                }
-            }
-          }
-      }
-    }
-     iconcheck(inpath, icon, name, mass_set_path) {
-      ret = document.createElement("iconcheck-x");
-      ret.icon = icon;
-      ret.description = name;
-      if (inpath) {
-          ret.setAttribute("datapath", inpath);
-      }
-      if (mass_set_path) {
-          ret.setAttribute("mass_set_path", mass_set_path);
-      }
-      this.add(ret);
-      return ret;
-    }
-     check(inpath, name, packflag=0, mass_set_path=undefined) {
-      packflag|=this.inherit_packflag;
-      let path=this._joinPrefix(inpath);
-      let ret;
-      if (packflag&PackFlags.USE_ICONS) {
-          ret = document.createElement("iconcheck-x");
-          if (packflag&PackFlags.SMALL_ICON) {
-              ret.iconsheet = ui_base.IconSheets.SMALL;
-          }
-      }
-      else {
-        ret = document.createElement("check-x");
-      }
-      ret.packflag|=packflag;
-      ret.label = name;
-      ret.noMarginsOrPadding();
-      if (inpath) {
-          ret.setAttribute("datapath", path);
-      }
-      if (mass_set_path) {
-          ret.setAttribute("mass_set_path", mass_set_path);
-      }
-      this._add(ret);
-      return ret;
-    }
-     checkenum(inpath, name, packflag, enummap, defaultval, callback, iconmap, mass_set_path) {
-      if (typeof name==="object"&&name!==null) {
-          let args=name;
-          name = args.name;
-          packflag = args.packflag;
-          enummap = args.enummap;
-          defaultval = args.defaultval;
-          callback = args.callback;
-          iconmap = args.iconmap;
-          mass_set_path = args.mass_set_path;
-      }
-      packflag = packflag===undefined ? 0 : packflag;
-      packflag|=this.inherit_packflag;
-      let path=this._joinPrefix(inpath);
-      let has_path=path!==undefined;
-      let prop;
-      if (path!==undefined) {
-          prop = this.ctx.api.resolvePath(this.ctx, path, true);
-          if (prop!==undefined)
-            prop = prop.prop;
-      }
-      if (path!==undefined) {
-          if (prop===undefined) {
-              console.warn("Bad path in checkenum", path);
-              return ;
-          }
-          let frame;
-          if (packflag&PackFlags.VERTICAL) {
-              frame = this.col();
-          }
-          else {
-            frame = this.row();
-          }
-          frame.oneAxisPadding();
-          frame.setCSS.after(frame.background = this.getDefault("BoxSub2BG"));
-          if (packflag&PackFlags.USE_ICONS) {
-              for (let key in prop.values) {
-                  let check=frame.check(inpath+"["+key+"]", "", packflag);
-                  check.icon = prop.iconmap[key];
-                  check.drawCheck = false;
-                  check.style["padding"] = "0px";
-                  check.style["margin"] = "0px";
-                  check.dom.style["padding"] = "0px";
-                  check.dom.style["margin"] = "0px";
-                  check.description = prop.descriptions[key];
-              }
-          }
-          else {
-            if (name===undefined) {
-                name = prop.uiname;
-            }
-            frame.label(name).font = "TitleText";
-            let checks={};
-            let ignorecb=false;
-            function makecb(key) {
-              return () =>                {
-                if (ignorecb)
-                  return ;
-                ignorecb = true;
-                for (let k in checks) {
-                    if (k!==key) {
-                        checks[k].checked = false;
-                    }
-                }
-                ignorecb = false;
-                if (callback) {
-                    callback(key);
-                }
-              }
-            }
-            for (let key in prop.values) {
-                let check=frame.check(inpath+" = "+prop.values[key], prop.ui_value_names[key]);
-                checks[key] = check;
-                if (mass_set_path) {
-                    check.setAttribute("mass_set_path", mass_set_path);
-                }
-                check.description = prop.descriptions[prop.keys[key]];
-                if (!check.description) {
-                    check.description = ""+prop.ui_value_names[key];
-                }
-                check.onchange = makecb(key);
-            }
-          }
-      }
-    }
-     checkenum_panel(inpath, name, packflag=0, callback=undefined, mass_set_path=undefined, prop=undefined) {
-      packflag = packflag===undefined ? 0 : packflag;
-      packflag|=this.inherit_packflag;
-      let path=this._joinPrefix(inpath);
-      let has_path=path!==undefined;
-      if (path!==undefined&&prop===undefined) {
-          prop = this.ctx.api.resolvePath(this.ctx, path, true);
-          if (prop!==undefined)
-            prop = prop.prop;
-      }
-      if (!name&&prop) {
-          name = prop.uiname;
-      }
-      if (path!==undefined) {
-          if (prop===undefined) {
-              console.warn("Bad path in checkenum", path);
-              return ;
-          }
-          let frame=this.panel(name, name, packflag);
-          frame.oneAxisPadding();
-          frame.setCSS.after(frame.background = this.getDefault("BoxSub2BG"));
-          if (packflag&PackFlags.USE_ICONS) {
-              for (let key in prop.values) {
-                  let check=frame.check(inpath+" == "+prop.values[key], "", packflag);
-                  check.icon = prop.iconmap[key];
-                  check.drawCheck = false;
-                  check.style["padding"] = "0px";
-                  check.style["margin"] = "0px";
-                  check.dom.style["padding"] = "0px";
-                  check.dom.style["margin"] = "0px";
-                  check.description = prop.descriptions[key];
-              }
-          }
-          else {
-            if (name===undefined) {
-                name = prop.uiname;
-            }
-            frame.label(name).font = "TitleText";
-            let checks={};
-            let ignorecb=false;
-            function makecb(key) {
-              return () =>                {
-                if (ignorecb)
-                  return ;
-                ignorecb = true;
-                for (let k in checks) {
-                    if (k!==key) {
-                        checks[k].checked = false;
-                    }
-                }
-                ignorecb = false;
-                if (callback) {
-                    callback(key);
-                }
-              }
-            }
-            for (let key in prop.values) {
-                let check=frame.check(inpath+" = "+prop.values[key], prop.ui_value_names[key]);
-                checks[key] = check;
-                if (mass_set_path) {
-                    check.setAttribute("mass_set_path", mass_set_path);
-                }
-                check.description = prop.descriptions[prop.keys[key]];
-                if (!check.description) {
-                    check.description = ""+prop.ui_value_names[key];
-                }
-                check.onchange = makecb(key);
-            }
-          }
-      }
-    }
-     listenum(inpath, name, enumDef, defaultval, callback, iconmap, packflag=0) {
-      packflag|=this.inherit_packflag;
-      if (name&&typeof name==="object") {
-          let args=name;
-          name = args.name;
-          enumDef = args.enumDef;
-          defaultval = args.defaultval;
-          callback = args.callback;
-          iconmap = args.iconmap;
-          packflag = args.packflag||0;
-      }
-      let path;
-      if (inpath!==undefined) {
-          path = this._joinPrefix(inpath);
-      }
-      let ret=document.createElement("dropbox-x");
-      if (enumDef!==undefined) {
-          if (__instance_of(enumDef, toolprop.EnumProperty)) {
-              ret.prop = enumDef;
-          }
-          else {
-            ret.prop = new toolprop.EnumProperty(defaultval, enumDef, path, name);
-          }
-          if (iconmap!==undefined) {
-              ret.prop.addIcons(iconmap);
-          }
-      }
-      else {
-        let res=this.ctx.api.resolvePath(this.ctx, path, true);
-        if (res!==undefined) {
-            ret.prop = res.prop;
-            name = name===undefined ? res.prop.uiname : name;
-        }
-      }
-      if (path!==undefined) {
-          ret.setAttribute("datapath", path);
-      }
-      ret.setAttribute("name", name);
-      if (defaultval) {
-          ret.setValue(defaultval);
-      }
-      ret.onchange = callback;
-      ret.onselect = callback;
-      ret.packflag|=packflag;
-      this._add(ret);
-      return ret;
-    }
-     getroot() {
-      let p=this;
-      while (p.parent!==undefined) {
-        p = p.parent;
-      }
-      return p;
-    }
-     curve(id, name, default_preset, packflag=0) {
-      packflag|=this.inherit_packflag;
-      throw new Error("implement me!");
-    }
-     simpleslider(inpath, name, defaultval, min, max, step, is_int, do_redraw, callback, packflag=0) {
-      if (arguments.length===2||typeof name==="object") {
-          let args=Object.assign({}, name);
-          args.packflag = (args.packflag||0)|PackFlags.SIMPLE_NUMSLIDERS;
-          return this.slider(inpath, args);
-      }
-      else {
-        return this.slider(inpath, name, defaultval, min, max, step, is_int, do_redraw, callback, packflag|PackFlags.SIMPLE_NUMSLIDERS);
-      }
-    }
-     slider(inpath, name, defaultval, min, max, step, is_int, do_redraw, callback, packflag=0) {
-      if (arguments.length===2||typeof name==="object") {
-          let args=name;
-          name = args.name;
-          defaultval = args.defaultval;
-          min = args.min;
-          max = args.max;
-          step = args.step;
-          is_int = args.is_int||args.isInt;
-          do_redraw = args.do_redraw;
-          callback = args.callback;
-          packflag = args.packflag||0;
-      }
-      packflag|=this.inherit_packflag;
-      let ret;
-      if (inpath) {
-          let rdef=this.ctx.api.resolvePath(this.ctx, inpath, true);
-          if (rdef&&rdef.prop&&(rdef.prop.flag&PropFlags.SIMPLE_SLIDER)) {
-              packflag|=PackFlags.SIMPLE_NUMSLIDERS;
-          }
-          if (rdef&&rdef.prop&&(rdef.prop.flag&PropFlags.FORCE_ROLLER_SLIDER)) {
-              packflag|=PackFlags.FORCE_ROLLER_SLIDER;
-          }
-      }
-      if (packflag&PackFlags.SIMPLE_NUMSLIDERS&&!(packflag&PackFlags.FORCE_ROLLER_SLIDER)) {
-          ret = document.createElement("numslider-simple-x");
-      }
-      else 
-        if (cconst.useNumSliderTextboxes&&!(packflag&PackFlags.NO_NUMSLIDER_TEXTBOX)) {
-          ret = document.createElement("numslider-textbox-x");
-      }
-      else {
-        ret = document.createElement("numslider-x");
-      }
-      ret.packflag|=packflag;
-      let decimals;
-      if (inpath) {
-          let path=this._joinPrefix(inpath);
-          ret.setAttribute("datapath", path);
-          let rdef;
-          try {
-            rdef = this.ctx.api.resolvePath(this.ctx, path, true);
-          }
-          catch (error) {
-              if (__instance_of(error, DataPathError)) {
-                  util.print_stack(error);
-                  console.warn("Error resolving property", path);
-              }
-              else {
-                throw error;
-              }
-          }
-          if (rdef&&rdef.prop) {
-              let prop=rdef.prop;
-              let range=prop.uiRange!==undefined ? prop.uiRange : prop.range;
-              range = range===undefined ? [-100000, 100000] : range;
-              min = min===undefined ? range[0] : min;
-              max = max===undefined ? range[1] : max;
-              is_int = is_int===undefined ? prop.type===PropTypes.INT : is_int;
-              name = name===undefined ? prop.uiname : name;
-              step = step===undefined ? prop.step : step;
-              step = step===undefined ? (is_int ? 1 : 0.1) : step;
-              decimals = decimals===undefined ? prop.decimalPlaces : decimals;
-          }
-          else {
-            console.warn("warning, failed to lookup property info for path", path);
-          }
-      }
-      if (name) {
-          ret.setAttribute("name", name);
-      }
-      if (min!==undefined) {
-          ret.setAttribute("min", min);
-      }
-      if (max!==undefined) {
-          ret.setAttribute("max", max);
-      }
-      if (defaultval!==undefined) {
-          ret.setValue(defaultval);
-      }
-      if (is_int)
-        ret.setAttribute("integer", is_int);
-      if (decimals!==undefined) {
-          ret.decimalPlaces = decimals;
-      }
-      if (callback) {
-          ret.onchange = callback;
-      }
-      this._add(ret);
-      return ret;
-    }
-     treeview() {
-      let ret=document.createElement("tree-view-x");
-      ret.ctx = this.ctx;
-      this.add(ret);
-      return ret;
-    }
-     panel(name, id, packflag=0) {
-      id = id===undefined ? name : id;
-      packflag|=this.inherit_packflag;
-      let ret=document.createElement("panelframe-x");
-      ret.packflag|=packflag;
-      ret.inherit_packflag|=packflag;
-      ret.setAttribute("title", name);
-      ret.setAttribute("id", id);
-      this._add(ret);
-      ret.ctx = this.ctx;
-      ret.contents.ctx = ret.ctx;
-      return ret.contents;
-    }
-     row(packflag=0) {
-      packflag|=this.inherit_packflag;
-      let ret=document.createElement("rowframe-x");
-      ret.packflag|=packflag;
-      ret.inherit_packflag|=packflag;
-      this._add(ret);
-      ret.ctx = this.ctx;
-      return ret;
-    }
-     listbox(packflag=0) {
-      packflag|=this.inherit_packflag;
-      let ret=document.createElement("listbox-x");
-      ret.packflag|=packflag;
-      ret.inherit_packflag|=packflag;
-      this._add(ret);
-      return ret;
-    }
-     table(packflag=0) {
-      packflag|=this.inherit_packflag;
-      let ret=document.createElement("tableframe-x");
-      ret.packflag|=packflag;
-      ret.inherit_packflag|=packflag;
-      this._add(ret);
-      return ret;
-    }
-     col(packflag=0) {
-      packflag|=this.inherit_packflag;
-      let ret=document.createElement("colframe-x");
-      ret.packflag|=packflag;
-      ret.inherit_packflag|=packflag;
-      this._add(ret);
-      return ret;
-    }
-     colorPicker(inpath, packflag=0, mass_set_path=undefined) {
-      let path;
-      if (inpath)
-        path = this._joinPrefix(inpath);
-      packflag|=this.inherit_packflag;
-      let ret=document.createElement("colorpicker-x");
-      packflag|=PackFlags.SIMPLE_NUMSLIDERS;
-      ret.packflag|=packflag;
-      ret.inherit_packflag|=packflag;
-      ret.ctx = this.ctx;
-      ret.parentWidget = this;
-      ret._init();
-      ret.packflag|=packflag;
-      ret.inherit_packflag|=packflag;
-      ret.constructor.setDefault(ret);
-      if (path!==undefined) {
-          ret.setAttribute("datapath", path);
-      }
-      console.warn("mass_set_path", mass_set_path);
-      if (mass_set_path) {
-          ret.setAttribute("mass_set_path", mass_set_path);
-      }
-      window.colorpicker = ret;
-      this._add(ret);
-      return ret;
-    }
-     textarea(datapath=undefined, value="", packflag=0, mass_set_path=undefined) {
-      packflag|=this.inherit_packflag;
-      let ret=document.createElement("rich-text-editor-x");
-      ret.ctx = this.ctx;
-      ret.packflag|=packflag;
-      if (value!==undefined) {
-          ret.value = value;
-      }
-      if (datapath)
-        ret.setAttribute("datapath", datapath);
-      if (mass_set_path)
-        ret.setAttribute("mass_set_path", mass_set_path);
-      this.add(ret);
-      return ret;
-    }
-     viewer(datapath=undefined, value="", packflag=0, mass_set_path=undefined) {
-      packflag|=this.inherit_packflag;
-      let ret=document.createElement("html-viewer-x");
-      ret.ctx = this.ctx;
-      ret.packflag|=packflag;
-      if (value!==undefined) {
-          ret.value = value;
-      }
-      if (datapath)
-        ret.setAttribute("datapath", datapath);
-      if (mass_set_path)
-        ret.setAttribute("mass_set_path", mass_set_path);
-      this.add(ret);
-      return ret;
-    }
-     tabs(position="top", packflag=0) {
-      packflag|=this.inherit_packflag;
-      let ret=document.createElement("tabcontainer-x");
-      ret.constructor.setDefault(ret);
-      ret.setAttribute("bar_pos", position);
-      ret.packflag|=packflag;
-      ret.inherit_packflag|=packflag;
-      ret.ctx = this.ctx;
-      this._add(ret);
-      return ret;
-    }
-  }
-  _ESClass.register(Container);
-  _es6_module.add_class(Container);
-  Container = _es6_module.add_export('Container', Container);
-  
-  ui_base.UIBase.register(Container, "div");
-  class RowFrame extends Container {
-     constructor() {
-      super();
-      let style=document.createElement("style");
-      this.shadow.appendChild(style);
-    }
-     connectedCallback() {
-      super.connectedCallback();
-      this.style['display'] = 'flex';
-      this.style['flex-direction'] = 'row';
-    }
-     init() {
-      super.init();
-      this.style['display'] = 'flex';
-      this.style['flex-direction'] = 'row';
-      if (!this.style['align-items']||this.style['align-items']=='') {
-          this.style['align-items'] = 'center';
-      }
-    }
-     oneAxisMargin(m=this.getDefault('oneAxisMargin'), m2=0) {
-      this.style['margin-left'] = this.style['margin-right'] = m+'px';
-      this.style['margin-top'] = this.style['margin-bottom'] = ''+m2+'px';
-      return this;
-    }
-     oneAxisPadding(m=this.getDefault('oneAxisPadding'), m2=0) {
-      this.style['padding-left'] = this.style['padding-right'] = ''+m+'px';
-      this.style['padding-top'] = this.style['padding-bottom'] = ''+m2+'px';
-      return this;
-    }
-     update() {
-      super.update();
-    }
-    static  define() {
-      return {tagname: 'rowframe-x'}
-    }
-  }
-  _ESClass.register(RowFrame);
-  _es6_module.add_class(RowFrame);
-  RowFrame = _es6_module.add_export('RowFrame', RowFrame);
-  UIBase.register(RowFrame);
-  class ColumnFrame extends Container {
-     constructor() {
-      super();
-    }
-     init() {
-      super.init();
-      this.style["display"] = "flex";
-      this.style["flex-direction"] = "column";
-    }
-     update() {
-      super.update();
-    }
-    static  define() {
-      return {tagname: "colframe-x"}
-    }
-  }
-  _ESClass.register(ColumnFrame);
-  _es6_module.add_class(ColumnFrame);
-  ColumnFrame = _es6_module.add_export('ColumnFrame', ColumnFrame);
-  UIBase.register(ColumnFrame);
-}, '/dev/fairmotion/src/path.ux/scripts/core/ui.js');
 es6_module_define('ui_base', ["./aspect.js", "../controller/controller.js", "../util/math.js", "./anim.js", "../util/colorutils.js", "../controller/simple_controller.js", "../util/cssutils.js", "../util/util.js", "../icon_enum.js", "./units.js", "../util/vectormath.js", "../config/const.js", "../util/simple_events.js", "./ui_theme.js", "../toolsys/toolprop.js", "./theme.js"], function _ui_base_module(_es6_module) {
   let _ui_base=undefined;
   if (window.document&&document.body) {
@@ -8029,7 +6733,7 @@ es6_module_define('area_wrangler', ["../util/simple_events.js", "../widgets/ui_n
   _es6_module.add_class(AreaWrangler);
   AreaWrangler = _es6_module.add_export('AreaWrangler', AreaWrangler);
 }, '/dev/fairmotion/src/path.ux/scripts/screen/area_wrangler.js');
-es6_module_define('FrameManager', ["../util/ScreenOverdraw.js", "../util/math.js", "../util/util.js", "../widgets/ui_widgets.js", "../widgets/ui_menu.js", "../widgets/ui_widgets2.js", "../widgets/ui_dialog.js", "../widgets/dragbox.js", "./AreaDocker.js", "./FrameManager_ops.js", "../widgets/ui_colorpicker2.js", "./FrameManager_mesh.js", "../util/vectormath.js", "../widgets/ui_curvewidget.js", "../core/ui_base.js", "./ScreenArea.js", "../widgets/ui_noteframe.js", "../widgets/ui_tabs.js", "../widgets/ui_table.js", "../util/struct.js", "../widgets/ui_panel.js", "../widgets/ui_treeview.js", "../config/const.js", "../widgets/ui_listbox.js", "../util/simple_events.js"], function _FrameManager_module(_es6_module) {
+es6_module_define('FrameManager', ["./ScreenArea.js", "../util/vectormath.js", "../widgets/ui_curvewidget.js", "../widgets/dragbox.js", "../widgets/ui_noteframe.js", "../config/const.js", "../widgets/ui_colorpicker2.js", "../widgets/ui_widgets2.js", "../widgets/ui_panel.js", "../util/util.js", "../util/struct.js", "./FrameManager_ops.js", "../widgets/ui_dialog.js", "./FrameManager_mesh.js", "../widgets/ui_menu.js", "../util/simple_events.js", "../widgets/ui_widgets.js", "../core/ui_base.js", "../widgets/ui_tabs.js", "../util/math.js", "../widgets/ui_table.js", "./AreaDocker.js", "../widgets/ui_treeview.js", "../widgets/ui_listbox.js", "../util/ScreenOverdraw.js"], function _FrameManager_module(_es6_module) {
   var ToolTipViewer=es6_import_item(_es6_module, './FrameManager_ops.js', 'ToolTipViewer');
   let _FrameManager=undefined;
   es6_import(_es6_module, '../widgets/dragbox.js');
@@ -8567,6 +7271,9 @@ es6_module_define('FrameManager', ["../util/ScreenOverdraw.js", "../util/math.js
       else {
         HTMLElement.prototype.remove.call(this);
       }
+    }
+    get  listening() {
+      return this.listen_timer!==undefined;
     }
      unlisten() {
       if (this.listen_timer!==undefined) {
@@ -12588,3 +11295,2372 @@ es6_module_define('toolpath', ["../util/parseutil.js", "../controller/controller
   }
   initToolPaths = _es6_module.add_export('initToolPaths', initToolPaths);
 }, '/dev/fairmotion/src/path.ux/scripts/toolsys/toolpath.js');
+es6_module_define('toolprop', ["../util/struct.js", "./toolprop_abstract.js", "../util/util.js", "../curve/curve1d.js", "../util/vectormath.js"], function _toolprop_module(_es6_module) {
+  var util=es6_import(_es6_module, '../util/util.js');
+  var Vector2=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector2');
+  var Vector3=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector3');
+  var Vector4=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector4');
+  var Quat=es6_import_item(_es6_module, '../util/vectormath.js', 'Quat');
+  var Matrix4=es6_import_item(_es6_module, '../util/vectormath.js', 'Matrix4');
+  var ToolPropertyIF=es6_import_item(_es6_module, './toolprop_abstract.js', 'ToolPropertyIF');
+  var PropTypes=es6_import_item(_es6_module, './toolprop_abstract.js', 'PropTypes');
+  var PropFlags=es6_import_item(_es6_module, './toolprop_abstract.js', 'PropFlags');
+  var nstructjs=es6_import(_es6_module, '../util/struct.js');
+  let _ex_PropTypes=es6_import_item(_es6_module, './toolprop_abstract.js', 'PropTypes');
+  _es6_module.add_export('PropTypes', _ex_PropTypes, true);
+  let _ex_PropFlags=es6_import_item(_es6_module, './toolprop_abstract.js', 'PropFlags');
+  _es6_module.add_export('PropFlags', _ex_PropFlags, true);
+  let first=(iter) =>    {
+    if (iter===undefined) {
+        return undefined;
+    }
+    if (!(Symbol.iterator in iter)) {
+        for (let item in iter) {
+            return item;
+        }
+        return undefined;
+    }
+    for (let item of iter) {
+        return item;
+    }
+  }
+  function setPropTypes(types) {
+    for (let k in types) {
+        PropTypes[k] = types[k];
+    }
+  }
+  setPropTypes = _es6_module.add_export('setPropTypes', setPropTypes);
+  const PropSubTypes={COLOR: 1}
+  _es6_module.add_export('PropSubTypes', PropSubTypes);
+  let customPropertyTypes=[];
+  customPropertyTypes = _es6_module.add_export('customPropertyTypes', customPropertyTypes);
+  let PropClasses={}
+  PropClasses = _es6_module.add_export('PropClasses', PropClasses);
+  function _addClass(cls) {
+    PropClasses[new cls().type] = cls;
+  }
+  let customPropTypeBase=17;
+  class ToolProperty extends ToolPropertyIF {
+     constructor(type, subtype, apiname, uiname, description, flag, icon) {
+      super();
+      this.data = undefined;
+      if (type===undefined) {
+          type = this.constructor.PROP_TYPE_ID;
+      }
+      this.type = type;
+      this.subtype = subtype;
+      this.wasSet = false;
+      this.apiname = apiname;
+      this.uiname = uiname!==undefined ? uiname : apiname;
+      this.description = description;
+      this.flag = flag;
+      this.icon = icon;
+      this.decimalPlaces = 4;
+      this.radix = 10;
+      this.step = 0.05;
+      this.callbacks = {};
+    }
+     equals(b) {
+      throw new Error("implement me");
+    }
+    static  register(cls) {
+      cls.PROP_TYPE_ID = (1<<customPropTypeBase);
+      PropTypes[cls.name] = cls.PROP_TYPE_ID;
+      customPropTypeBase++;
+      customPropertyTypes.push(cls);
+      PropClasses[new cls().type] = cls;
+      return cls.PROP_TYPE_ID;
+    }
+     private() {
+      this.flag|=PropFlags.PRIVATE;
+      return this;
+    }
+     report() {
+      console.warn(...arguments);
+    }
+     _fire(type, arg1, arg2) {
+      if (this.callbacks[type]===undefined) {
+          return ;
+      }
+      for (let cb of this.callbacks[type]) {
+          cb.call(this, arg1, arg2);
+      }
+      return this;
+    }
+     on(type, cb) {
+      if (this.callbacks[type]===undefined) {
+          this.callbacks[type] = [];
+      }
+      this.callbacks[type].push(cb);
+      return this;
+    }
+     off(type, cb) {
+      this.callbacks[type].remove(cb);
+      return this;
+    }
+     toJSON() {
+      return {type: this.type, 
+     subtype: this.subtype, 
+     apiname: this.apiname, 
+     uiname: this.uiname, 
+     description: this.description, 
+     flag: this.flag, 
+     icon: this.icon, 
+     data: this.data, 
+     range: this.range, 
+     uiRange: this.uiRange, 
+     step: this.step}
+    }
+     loadJSON(obj) {
+      this.type = obj.type;
+      this.subtype = obj.subtype;
+      this.apiname = obj.apiname;
+      this.uiname = obj.uiname;
+      this.description = obj.description;
+      this.flag = obj.flag;
+      this.icon = obj.icon;
+      this.data = obj.data;
+      return this;
+    }
+     getValue() {
+      return this.data;
+    }
+     setValue(val) {
+      if (this.constructor===ToolProperty) {
+          throw new Error("implement me!");
+      }
+      this.wasSet = true;
+      this._fire("change", val);
+    }
+     copyTo(b) {
+      b.apiname = this.apiname;
+      b.uiname = this.uiname;
+      b.description = this.description;
+      b.flag = this.flag;
+      b.icon = this.icon;
+      b.baseUnit = this.baseUnit;
+      b.subtype = this.subtype;
+      b.displayUnit = this.displayUnit;
+      for (let k in this.callbacks) {
+          b.callbacks[k] = this.callbacks[k];
+      }
+    }
+     copy() {
+      let ret=new this.constructor();
+      this.copyTo(ret);
+      ret.data = this.data;
+      return ret;
+    }
+     setStep(step) {
+      this.step = step;
+      return this;
+    }
+    static  calcRelativeStep(step, value, logBase=1.5) {
+      value = Math.log(Math.abs(value)+1.0)/Math.log(logBase);
+      value = Math.max(value, step);
+      this.report(util.termColor("STEP", "red"), value);
+      return value;
+    }
+     getStep(value=1.0) {
+      if (this.stepIsRelative) {
+          return ToolProperty.calcRelativeStep(this.step, value);
+      }
+      else {
+        return this.step;
+      }
+    }
+     setRelativeStep(step) {
+      this.step = step;
+      this.stepIsRelative = true;
+    }
+     setRange(min, max) {
+      if (min===undefined||max===undefined) {
+          throw new Error("min and/or max cannot be undefined");
+      }
+      this.range = [min, max];
+      return this;
+    }
+     noUnits() {
+      this.baseUnit = this.displayUnit = "none";
+      return this;
+    }
+     setBaseUnit(unit) {
+      this.baseUnit = unit;
+      return this;
+    }
+     setDisplayUnit(unit) {
+      this.displayUnit = unit;
+      return this;
+    }
+     setFlag(f, combine=false) {
+      this.flag = combine ? this.flag|f : f;
+      return this;
+    }
+     setUIRange(min, max) {
+      if (min===undefined||max===undefined) {
+          throw new Error("min and/or max cannot be undefined");
+      }
+      this.uiRange = [min, max];
+      return this;
+    }
+     setIcon(icon) {
+      this.icon = icon;
+      return this;
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+    }
+  }
+  _ESClass.register(ToolProperty);
+  _es6_module.add_class(ToolProperty);
+  ToolProperty = _es6_module.add_export('ToolProperty', ToolProperty);
+  ToolProperty.STRUCT = `
+ToolProperty { 
+  type           : int;
+  flag           : int;
+  subtype        : int;
+  icon           : int;
+  baseUnit       : string | ""+this.baseUnit;
+  displayUnit    : string | ""+this.displayUnit;
+  range          : array(float) | this.range ? this.range : [-1e17, 1e17];
+  uiRange        : array(float) | this.range ? this.range : [-1e17, 1e17];
+  description    : string;
+  stepIsRelative : bool;
+  step           : float;
+  expRate        : float;
+  radix          : float;
+  decimalPlaces  : int;
+}
+`;
+  nstructjs.register(ToolProperty);
+  class StringProperty extends ToolProperty {
+     constructor(value, apiname, uiname, description, flag, icon) {
+      super(PropTypes.STRING, undefined, apiname, uiname, description, flag, icon);
+      this.multiLine = false;
+      if (value)
+        this.setValue(value);
+      this.wasSet = false;
+    }
+     equals(b) {
+      return this.data===b.data;
+    }
+     copyTo(b) {
+      super.copyTo(b);
+      b.data = this.data;
+      b.multiLine = this.multiLine;
+      return this;
+    }
+     copy() {
+      let ret=new StringProperty();
+      this.copyTo(ret);
+      return ret;
+    }
+     setValue(val) {
+      super.setValue(val);
+      this.data = val;
+    }
+  }
+  _ESClass.register(StringProperty);
+  _es6_module.add_class(StringProperty);
+  StringProperty = _es6_module.add_export('StringProperty', StringProperty);
+  StringProperty.STRUCT = nstructjs.inherit(StringProperty, ToolProperty)+`
+  data : string;
+}
+`;
+  nstructjs.register(StringProperty);
+  let num_res=[/([0-9]+)/, /((0x)?[0-9a-fA-F]+(h?))/, /([0-9]+\.[0-9]*)/, /([0-9]*\.[0-9]+)/];
+  function isNumber(f) {
+    if (f=="NaN"||(typeof f=="number"&&isNaN(f))) {
+        return false;
+    }
+    f = (""+f).trim();
+    let ok=false;
+    for (let re of num_res) {
+        let ret=f.match(re);
+        if (!ret) {
+            ok = false;
+            continue;
+        }
+        ok = ret[0].length==f.length;
+        if (ok) {
+            break;
+        }
+    }
+    return ok;
+  }
+  isNumber = _es6_module.add_export('isNumber', isNumber);
+  _addClass(StringProperty);
+  window.isNumber = isNumber;
+  class NumProperty extends ToolProperty {
+     constructor(type, value, apiname, uiname, description, flag, icon) {
+      super(type, undefined, apiname, uiname, description, flag, icon);
+      this.data = 0;
+      this.range = [0, 0];
+    }
+     equals(b) {
+      return this.data==b.data;
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+      super.loadSTRUCT(reader);
+    }
+  }
+  _ESClass.register(NumProperty);
+  _es6_module.add_class(NumProperty);
+  NumProperty = _es6_module.add_export('NumProperty', NumProperty);
+  
+  NumProperty.STRUCT = nstructjs.inherit(NumProperty, ToolProperty)+`
+  range : array(float);
+  data  : float;
+}
+`;
+  class _NumberPropertyBase extends ToolProperty {
+     constructor(type, value, apiname, uiname, description, flag, icon) {
+      super(type, undefined, apiname, uiname, description, flag, icon);
+      this.data = 0.0;
+      this.expRate = 1.33;
+      this.step = 0.1;
+      this.range = [-1e+17, 1e+17];
+      this.uiRange = undefined;
+      if (value!==undefined&&value!==null) {
+          this.setValue(value);
+          this.wasSet = false;
+      }
+    }
+     equals(b) {
+      return this.data==b.data;
+    }
+    get  ui_range() {
+      this.report("NumberProperty.ui_range is deprecated");
+      return this.uiRange;
+    }
+     toJSON() {
+      let json=super.toJSON();
+      json.data = this.data;
+      json.expRate = this.expRate;
+      return json;
+    }
+     loadJSON(obj) {
+      super.loadJSON(obj);
+      this.data = obj.data||this.data;
+      this.expRate = obj.expRate||this.expRate;
+      return this;
+    }
+    set  ui_range(val) {
+      this.report("NumberProperty.ui_range is deprecated");
+      this.uiRange = val;
+    }
+     copyTo(b) {
+      super.copyTo(b);
+      b.displayUnit = this.displayUnit;
+      b.baseUnit = this.baseUnit;
+      b.data = this.data;
+      b.expRate = this.expRate;
+      b.step = this.step;
+      b.range = this.range;
+      b.uiRange = this.uiRange;
+    }
+     setExpRate(exp) {
+      this.expRate = exp;
+    }
+     setValue(val) {
+      if (val===undefined||val===null) {
+          return ;
+      }
+      if (typeof val!=="number") {
+          throw new Error("Invalid number "+val);
+      }
+      this.data = val;
+      super.setValue(val);
+      return this;
+    }
+     loadJSON(obj) {
+      super.loadJSON(obj);
+      let get=(key) =>        {
+        if (key in obj) {
+            this[key] = obj[key];
+        }
+      };
+      get("range");
+      get("step");
+      get("expRate");
+      get("ui_range");
+      return this;
+    }
+  }
+  _ESClass.register(_NumberPropertyBase);
+  _es6_module.add_class(_NumberPropertyBase);
+  _NumberPropertyBase = _es6_module.add_export('_NumberPropertyBase', _NumberPropertyBase);
+  
+  _NumberPropertyBase.STRUCT = nstructjs.inherit(_NumberPropertyBase, ToolProperty)+`
+  range    : array(float);
+  expRate  : float;
+  data     : float;
+  step     : float;
+}
+`;
+  nstructjs.register(_NumberPropertyBase);
+  class IntProperty extends _NumberPropertyBase {
+     constructor(value, apiname, uiname, description, flag, icon) {
+      super(PropTypes.INT, value, apiname, uiname, description, flag, icon);
+      this.radix = 10;
+    }
+     setValue(val) {
+      super.setValue(Math.floor(val));
+      return this;
+    }
+     setRadix(radix) {
+      this.radix = radix;
+    }
+     toJSON() {
+      let json=super.toJSON();
+      json.data = this.data;
+      json.radix = this.radix;
+      return json;
+    }
+     loadJSON(obj) {
+      super.loadJSON(obj);
+      this.data = obj.data||this.data;
+      this.radix = obj.radix||this.radix;
+      return this;
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+      super.loadSTRUCT(reader);
+    }
+  }
+  _ESClass.register(IntProperty);
+  _es6_module.add_class(IntProperty);
+  IntProperty = _es6_module.add_export('IntProperty', IntProperty);
+  IntProperty.STRUCT = nstructjs.inherit(IntProperty, _NumberPropertyBase)+`
+  data : int;
+}`;
+  nstructjs.register(IntProperty);
+  _addClass(IntProperty);
+  class BoolProperty extends ToolProperty {
+     constructor(value, apiname, uiname, description, flag, icon) {
+      super(PropTypes.BOOL, undefined, apiname, uiname, description, flag, icon);
+      this.data = !!value;
+    }
+     equals(b) {
+      return this.data==b.data;
+    }
+     copyTo(b) {
+      super.copyTo(b);
+      b.data = this.data;
+      return this;
+    }
+     copy() {
+      let ret=new BoolProperty();
+      this.copyTo(ret);
+      return ret;
+    }
+     setValue(val) {
+      this.data = !!val;
+      return this;
+    }
+     getValue() {
+      return this.data;
+    }
+     toJSON() {
+      let ret=super.toJSON();
+      return ret;
+    }
+     loadJSON(obj) {
+      super.loadJSON(obj);
+      return this;
+    }
+  }
+  _ESClass.register(BoolProperty);
+  _es6_module.add_class(BoolProperty);
+  BoolProperty = _es6_module.add_export('BoolProperty', BoolProperty);
+  _addClass(BoolProperty);
+  BoolProperty.STRUCT = nstructjs.inherit(BoolProperty, ToolProperty)+`
+  data : bool;
+}
+`;
+  nstructjs.register(BoolProperty);
+  class FloatProperty extends _NumberPropertyBase {
+     constructor(value, apiname, uiname, description, flag, icon) {
+      super(PropTypes.FLOAT, value, apiname, uiname, description, flag, icon);
+      this.decimalPlaces = 4;
+    }
+     setDecimalPlaces(n) {
+      this.decimalPlaces = n;
+      return this;
+    }
+     copyTo(b) {
+      super.copyTo(b);
+      b.data = this.data;
+      return this;
+    }
+     setValue(val) {
+      this.data = val;
+      super.setValue(val);
+      return this;
+    }
+     toJSON() {
+      let json=super.toJSON();
+      json.data = this.data;
+      json.decimalPlaces = this.decimalPlaces;
+      return json;
+    }
+     loadJSON(obj) {
+      super.loadJSON(obj);
+      this.data = obj.data||this.data;
+      this.decimalPlaces = obj.decimalPlaces||this.decimalPlaces;
+      return this;
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+      super.loadSTRUCT(reader);
+    }
+  }
+  _ESClass.register(FloatProperty);
+  _es6_module.add_class(FloatProperty);
+  FloatProperty = _es6_module.add_export('FloatProperty', FloatProperty);
+  _addClass(FloatProperty);
+  FloatProperty.STRUCT = nstructjs.inherit(FloatProperty, _NumberPropertyBase)+`
+  decimalPlaces : int;
+  data          : float;
+}
+`;
+  class EnumKeyPair  {
+     constructor(key, val) {
+      this.key = ""+key;
+      this.val = ""+val;
+      this.key_is_int = typeof key==="number"||typeof key==="boolean";
+      this.val_is_int = typeof val==="number"||typeof val==="boolean";
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+      if (this.val_is_int) {
+          this.val = parseInt(this.val);
+      }
+      if (this.key_is_int) {
+          this.key = parseInt(this.key);
+      }
+    }
+  }
+  _ESClass.register(EnumKeyPair);
+  _es6_module.add_class(EnumKeyPair);
+  EnumKeyPair.STRUCT = `
+EnumKeyPair {
+  key        : string;
+  val        : string;
+  key_is_int : bool;
+  val_is_int : bool; 
+}
+`;
+  nstructjs.register(EnumKeyPair);
+  class EnumProperty extends ToolProperty {
+     constructor(string, valid_values, apiname, uiname, description, flag, icon) {
+      super(PropTypes.ENUM, undefined, apiname, uiname, description, flag, icon);
+      this.values = {};
+      this.keys = {};
+      this.ui_value_names = {};
+      this.descriptions = {};
+      if (valid_values===undefined)
+        return this;
+      if (__instance_of(valid_values, Array)||__instance_of(valid_values, String)) {
+          for (var i=0; i<valid_values.length; i++) {
+              this.values[valid_values[i]] = valid_values[i];
+              this.keys[valid_values[i]] = valid_values[i];
+          }
+      }
+      else {
+        for (var k in valid_values) {
+            this.values[k] = valid_values[k];
+            this.keys[valid_values[k]] = k;
+        }
+      }
+      if (string===undefined) {
+          this.data = first(valid_values);
+      }
+      else {
+        this.setValue(string);
+      }
+      for (var k in this.values) {
+          let uin=k.replace(/[_-]/g, " ").trim();
+          uin = uin.split(" ");
+          let uiname="";
+          for (let word of uin) {
+              uiname+=word[0].toUpperCase()+word.slice(1, word.length).toLowerCase()+" ";
+          }
+          uiname = uiname.trim();
+          this.ui_value_names[k] = uiname;
+          this.descriptions[k] = uiname;
+      }
+      this.iconmap = {};
+      this.wasSet = false;
+    }
+     equals(b) {
+      return this.getValue()===b.getValue();
+    }
+     addUINames(map) {
+      for (let k in map) {
+          this.ui_value_names[k] = map[k];
+      }
+      return this;
+    }
+     addDescriptions(map) {
+      for (let k in map) {
+          this.descriptions[k] = map[k];
+      }
+      return this;
+    }
+     addIcons(iconmap) {
+      if (this.iconmap===undefined) {
+          this.iconmap = {};
+      }
+      for (var k in iconmap) {
+          this.iconmap[k] = iconmap[k];
+      }
+      return this;
+    }
+     copyTo(p) {
+      super.copyTo(p);
+      p.keys = Object.assign({}, this.keys);
+      p.values = Object.assign({}, this.values);
+      p.data = this.data;
+      p.ui_value_names = this.ui_value_names;
+      p.update = this.update;
+      p.api_update = this.api_update;
+      p.iconmap = this.iconmap;
+      p.descriptions = this.descriptions;
+      return p;
+    }
+     copy() {
+      var p=new EnumProperty("dummy", {"dummy": 0}, this.apiname, this.uiname, this.description, this.flag);
+      this.copyTo(p);
+      return p;
+    }
+     getValue() {
+      if (this.data in this.values)
+        return this.values[this.data];
+      else 
+        return this.data;
+    }
+     setValue(val) {
+      if (!(val in this.values)&&(val in this.keys))
+        val = this.keys[val];
+      if (!(val in this.values)) {
+          this.report("Invalid value for enum!", val, this.values);
+          return ;
+      }
+      this.data = val;
+      super.setValue(val);
+      return this;
+    }
+     _loadMap(obj) {
+      if (!obj) {
+          return ;
+      }
+      let ret={};
+      for (let k of obj) {
+          ret[k.key] = k.val;
+      }
+      return ret;
+    }
+     _saveMap(obj) {
+      obj = obj===undefined ? {} : obj;
+      let ret=[];
+      for (let k in obj) {
+          ret.push(new EnumKeyPair(k, obj[k]));
+      }
+      return ret;
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+      super.loadSTRUCT(reader);
+      this.keys = this._loadMap(obj.keys);
+      this.values = this._loadMap(obj.values);
+      this.ui_value_names = this._loadMap(obj.ui_value_names);
+      this.iconmap = this._loadMap(obj.iconmap);
+      this.descriptions = this._loadMap(obj.descriptions);
+      if (this.data_is_int) {
+          this.data = parseInt(this.data);
+      }
+    }
+     _is_data_int() {
+      return typeof (this.data)!=="string";
+    }
+  }
+  _ESClass.register(EnumProperty);
+  _es6_module.add_class(EnumProperty);
+  EnumProperty = _es6_module.add_export('EnumProperty', EnumProperty);
+  _addClass(EnumProperty);
+  EnumProperty.STRUCT = nstructjs.inherit(EnumProperty, ToolProperty)+`
+  data            : string             | ""+this.data;
+  data_is_int     : bool               | this._is_data_int();
+  _keys           : array(EnumKeyPair) | this._saveMap(this.keys) ;
+  _values         : array(EnumKeyPair) | this._saveMap(this.keys) ;
+  _ui_value_names : array(EnumKeyPair) | this._saveMap(this.ui_value_names) ;
+  _iconmap        : array(EnumKeyPair) | this._saveMap(this.iconmap) ;
+  _descriptions   : array(EnumKeyPair) | this._saveMap(this.descriptions) ;  
+}
+`;
+  nstructjs.register(EnumProperty);
+  class FlagProperty extends EnumProperty {
+     constructor(string, valid_values, apiname, uiname, description, flag, icon) {
+      super(string, valid_values, apiname, uiname, description, flag, icon);
+      this.type = PropTypes.FLAG;
+      this.wasSet = false;
+    }
+     setValue(bitmask) {
+      this.data = bitmask;
+      ToolProperty.prototype.setValue.call(this, bitmask);
+      return this;
+    }
+     copy() {
+      let ret=new FlagProperty();
+      this.copyTo(ret);
+      return ret;
+    }
+  }
+  _ESClass.register(FlagProperty);
+  _es6_module.add_class(FlagProperty);
+  FlagProperty = _es6_module.add_export('FlagProperty', FlagProperty);
+  _addClass(FlagProperty);
+  FlagProperty.STRUCT = nstructjs.inherit(FlagProperty, EnumProperty)+`
+}
+`;
+  nstructjs.register(FlagProperty);
+  class VecPropertyBase extends FloatProperty {
+     constructor(data, apiname, uiname, description) {
+      super(undefined, apiname, uiname, description);
+      this.hasUniformSlider = false;
+    }
+     equals(b) {
+      return this.data.vectorDistance(b.data)<1e-05;
+    }
+     uniformSlider(state=true) {
+      this.hasUniformSlider = state;
+      return this;
+    }
+     copyTo(b) {
+      super.copyTo(b);
+      b.hasUniformSlider = this.hasUniformSlider;
+    }
+  }
+  _ESClass.register(VecPropertyBase);
+  _es6_module.add_class(VecPropertyBase);
+  VecPropertyBase = _es6_module.add_export('VecPropertyBase', VecPropertyBase);
+  VecPropertyBase.STRUCT = nstructjs.inherit(VecPropertyBase, FloatProperty)+`
+  hasUniformSlider : bool;
+}
+`;
+  class Vec2Property extends FloatProperty {
+     constructor(data, apiname, uiname, description) {
+      super(undefined, apiname, uiname, description);
+      this.type = PropTypes.VEC2;
+      this.data = new Vector2(data);
+    }
+     setValue(v) {
+      this.data.load(v);
+      ToolProperty.prototype.setValue.call(this, v);
+      return this;
+    }
+     getValue() {
+      return this.data;
+    }
+     copyTo(b) {
+      let data=b.data;
+      super.copyTo(b);
+      b.data = data;
+      b.data.load(this.data);
+    }
+     copy() {
+      let ret=new Vec2Property();
+      this.copyTo(ret);
+      return ret;
+    }
+  }
+  _ESClass.register(Vec2Property);
+  _es6_module.add_class(Vec2Property);
+  Vec2Property = _es6_module.add_export('Vec2Property', Vec2Property);
+  Vec2Property.STRUCT = nstructjs.inherit(Vec2Property, VecPropertyBase)+`
+  data : vec2;
+}
+`;
+  nstructjs.register(Vec2Property);
+  _addClass(Vec2Property);
+  class Vec3Property extends VecPropertyBase {
+     constructor(data, apiname, uiname, description) {
+      super(undefined, apiname, uiname, description);
+      this.type = PropTypes.VEC3;
+      this.data = new Vector3(data);
+    }
+     setValue(v) {
+      this.data.load(v);
+      ToolProperty.prototype.setValue.call(this, v);
+      return this;
+    }
+     getValue() {
+      return this.data;
+    }
+     copyTo(b) {
+      let data=b.data;
+      super.copyTo(b);
+      b.data = data;
+      b.data.load(this.data);
+    }
+     copy() {
+      let ret=new Vec3Property();
+      this.copyTo(ret);
+      return ret;
+    }
+  }
+  _ESClass.register(Vec3Property);
+  _es6_module.add_class(Vec3Property);
+  Vec3Property = _es6_module.add_export('Vec3Property', Vec3Property);
+  Vec3Property.STRUCT = nstructjs.inherit(Vec3Property, VecPropertyBase)+`
+  data : vec3;
+}
+`;
+  nstructjs.register(Vec3Property);
+  _addClass(Vec3Property);
+  class Vec4Property extends FloatProperty {
+     constructor(data, apiname, uiname, description) {
+      super(undefined, apiname, uiname, description);
+      this.type = PropTypes.VEC4;
+      this.data = new Vector4(data);
+    }
+     setValue(v) {
+      this.data.load(v);
+      ToolProperty.prototype.setValue.call(this, v);
+      return this;
+    }
+     getValue() {
+      return this.data;
+    }
+     copyTo(b) {
+      let data=b.data;
+      super.copyTo(b);
+      b.data = data;
+      b.data.load(this.data);
+    }
+     copy() {
+      let ret=new Vec4Property();
+      this.copyTo(ret);
+      return ret;
+    }
+  }
+  _ESClass.register(Vec4Property);
+  _es6_module.add_class(Vec4Property);
+  Vec4Property = _es6_module.add_export('Vec4Property', Vec4Property);
+  Vec4Property.STRUCT = nstructjs.inherit(Vec4Property, VecPropertyBase)+`
+  data : vec4;
+}
+`;
+  nstructjs.register(Vec4Property);
+  _addClass(Vec4Property);
+  class QuatProperty extends ToolProperty {
+     constructor(data, apiname, uiname, description) {
+      super(PropTypes.QUAT, undefined, apiname, uiname, description);
+      this.data = new Quat(data);
+    }
+     equals(b) {
+      return this.data.vectorDistance(b.data)<1e-05;
+    }
+     setValue(v) {
+      this.data.load(v);
+      super.setValue(v);
+      return this;
+    }
+     getValue() {
+      return this.data;
+    }
+     copyTo(b) {
+      super.copyTo(b);
+      b.data.load(this.data);
+    }
+     copy() {
+      let ret=new QuatProperty();
+      this.copyTo(ret);
+      return ret;
+    }
+  }
+  _ESClass.register(QuatProperty);
+  _es6_module.add_class(QuatProperty);
+  QuatProperty = _es6_module.add_export('QuatProperty', QuatProperty);
+  QuatProperty.STRUCT = nstructjs.inherit(QuatProperty, VecPropertyBase)+`
+  data : vec4;
+}
+`;
+  nstructjs.register(QuatProperty);
+  _addClass(QuatProperty);
+  class Mat4Property extends ToolProperty {
+     constructor(data, apiname, uiname, description) {
+      super(PropTypes.MATRIX4, undefined, apiname, uiname, description);
+      this.data = new Matrix4(data);
+    }
+     equals(b) {
+      let m1=this.data.$matrix;
+      let m2=b.data.$matrix;
+      for (let i=1; i<=4; i++) {
+          for (let j=1; j<=4; j++) {
+              let key=`m${i}${j}`;
+              if (Math.abs(m1[key]-m2[key])>1e-05) {
+                  return false;
+              }
+          }
+      }
+      return true;
+    }
+     setValue(v) {
+      this.data.load(v);
+      super.setValue(v);
+      return this;
+    }
+     getValue() {
+      return this.data;
+    }
+     copyTo(b) {
+      super.copyTo(b);
+      b.data.load(this.data);
+    }
+     copy() {
+      let ret=new Mat4Property();
+      this.copyTo(ret);
+      return ret;
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+      super.loadSTRUCT(reader);
+    }
+  }
+  _ESClass.register(Mat4Property);
+  _es6_module.add_class(Mat4Property);
+  Mat4Property = _es6_module.add_export('Mat4Property', Mat4Property);
+  Mat4Property.STRUCT = nstructjs.inherit(Mat4Property, FloatProperty)+`
+  data           : mat4;
+}
+`;
+  nstructjs.register(Mat4Property);
+  _addClass(Mat4Property);
+  class ListProperty extends ToolProperty {
+     constructor(prop, list=[], uiname="") {
+      super(PropTypes.PROPLIST);
+      this.uiname = uiname;
+      if (typeof prop=="number") {
+          prop = PropClasses[prop];
+          if (prop!==undefined) {
+              prop = new prop();
+          }
+      }
+      else 
+        if (prop!==undefined) {
+          if (__instance_of(prop, ToolProperty)) {
+              prop = prop.copy();
+          }
+          else {
+            prop = new prop();
+          }
+      }
+      this.prop = prop;
+      this.value = [];
+      for (let val of list) {
+          this.push(val);
+      }
+      this.wasSet = false;
+    }
+     equals(b) {
+      let l1=this.value ? this.value.length : 0;
+      let l2=b.value ? b.value.length : 0;
+      if (l1!==l2) {
+          return false;
+      }
+      for (let i=0; i<l1; i++) {
+          let prop1=this.value[i];
+          let prop2=b.value[i];
+          let bad=prop1.constructor!==prop2.constructor;
+          bad = bad||!prop1.equals(prop2);
+          if (bad) {
+              return false;
+          }
+      }
+      return true;
+    }
+     copyTo(b) {
+      super.copyTo(b);
+      b.prop = this.prop.copy();
+      for (let prop of this.value) {
+          b.value.push(prop.copy());
+      }
+      return b;
+    }
+     copy() {
+      return this.copyTo(new ListProperty(this.prop.copy()));
+    }
+     push(item=undefined) {
+      if (item===undefined) {
+          item = this.prop.copy();
+      }
+      if (!(__instance_of(item, ToolProperty))) {
+          let prop=this.prop.copy();
+          prop.setValue(item);
+          item = prop;
+      }
+      this.value.push(item);
+      return item;
+    }
+     clear() {
+      this.value.length = 0;
+    }
+     getListItem(i) {
+      return this.value[i].getValue();
+    }
+     setListItem(i, val) {
+      this.value[i].setValue(val);
+    }
+     setValue(value) {
+      this.clear();
+      for (let item of value) {
+          let prop=this.push();
+          if (typeof item!=="object") {
+              prop.setValue(item);
+          }
+          else 
+            if (__instance_of(item, prop.constructor)) {
+              item.copyTo(prop);
+          }
+          else {
+            this.report(item);
+            throw new Error("invalid value "+item);
+          }
+      }
+      super.setValue(value);
+      return this;
+    }
+     getValue() {
+      return this.value;
+    }
+     [Symbol.iterator]() {
+      let list=this.value;
+      return (function* () {
+        for (let item of list) {
+            yield item.getValue();
+        }
+      })();
+    }
+    get  length() {
+      return this.value.length;
+    }
+    set  length(val) {
+      this.value.length = val;
+    }
+  }
+  _ESClass.register(ListProperty);
+  _es6_module.add_class(ListProperty);
+  ListProperty = _es6_module.add_export('ListProperty', ListProperty);
+  _addClass(ListProperty);
+  class StringSetProperty extends ToolProperty {
+     constructor(value=undefined, definition=[]) {
+      super(PropTypes.STRSET);
+      let values=[];
+      this.value = new util.set();
+      let def=definition;
+      if (Array.isArray(def)||__instance_of(def, util.set)||__instance_of(def, Set)) {
+          for (let item of def) {
+              values.push(item);
+          }
+      }
+      else 
+        if (typeof def==="object") {
+          for (let k in def) {
+              values.push(k);
+          }
+      }
+      else 
+        if (typeof def==="string") {
+          values.push(def);
+      }
+      this.values = {};
+      this.ui_value_names = {};
+      this.descriptions = {};
+      this.iconmap = {};
+      for (let v of values) {
+          this.values[v] = v;
+          let uiname=v.replace(/\_/g, " ").trim();
+          uiname = uiname[0].toUpperCase()+uiname.slice(1, uiname.length);
+          this.ui_value_names[v] = uiname;
+      }
+      if (value!==undefined) {
+          this.setValue(value);
+      }
+      this.wasSet = false;
+    }
+     equals(b) {
+      return this.value.equals(b.value);
+    }
+     setValue(values, destructive=true, soft_fail=true) {
+      let bad=typeof values!=="string";
+      bad = bad&&typeof values!=="object";
+      bad = bad&&values!==undefined&&values!==null;
+      if (bad) {
+          if (soft_fail) {
+              this.report("Invalid argument to StringSetProperty.prototype.setValue() "+values);
+              return ;
+          }
+          else {
+            throw new Error("Invalid argument to StringSetProperty.prototype.setValue() "+values);
+          }
+      }
+      if (!values) {
+          this.value.clear();
+      }
+      else 
+        if (typeof values==="string") {
+          if (destructive)
+            this.value.clear();
+          if (!(values in this.values)) {
+              if (soft_fail) {
+                  this.report(`"${values}" is not in this StringSetProperty`);
+                  return ;
+              }
+              else {
+                throw new Error(`"${values}" is not in this StringSetProperty`);
+              }
+          }
+          this.value.add(values);
+      }
+      else {
+        let data=[];
+        if (Array.isArray(values)||__instance_of(values, util.set)||__instance_of(values, Set)) {
+            for (let item of values) {
+                data.push(item);
+            }
+        }
+        else {
+          for (let k in values) {
+              data.push(k);
+          }
+        }
+        for (let item of data) {
+            if (!(item in this.values)) {
+                if (soft_fail) {
+                    this.report(`"${item}" is not in this StringSetProperty`);
+                    continue;
+                }
+                else {
+                  throw new Error(`"${item}" is not in this StringSetProperty`);
+                }
+            }
+            this.value.add(item);
+        }
+      }
+      super.setValue();
+      return this;
+    }
+     getValue() {
+      return this.value;
+    }
+     addIcons(iconmap) {
+      if (iconmap===undefined)
+        return ;
+      for (let k in iconmap) {
+          this.iconmap[k] = iconmap[k];
+      }
+      return this;
+    }
+     addUINames(map) {
+      for (let k in map) {
+          this.ui_value_names[k] = map[k];
+      }
+      return this;
+    }
+     addDescriptions(map) {
+      for (let k in map) {
+          this.descriptions[k] = map[k];
+      }
+      return this;
+    }
+     copyTo(b) {
+      super.copyTo(b);
+      for (let val of this.value) {
+          b.value.add(val);
+      }
+      b.values = {};
+      for (let k in this.values) {
+          b.values[k] = this.values[k];
+      }
+      for (let k in this.ui_value_names) {
+          b.ui_value_names[k] = this.ui_value_names[k];
+      }
+      for (let k in this.iconmap) {
+          b.iconmap[k] = this.iconmap[k];
+      }
+      for (let k in this.descriptions) {
+          b.descriptions[k] = this.descriptions[k];
+      }
+    }
+     copy() {
+      let ret=new StringSetProperty(undefined, {});
+      this.copyTo(ret);
+      return ret;
+    }
+  }
+  _ESClass.register(StringSetProperty);
+  _es6_module.add_class(StringSetProperty);
+  StringSetProperty = _es6_module.add_export('StringSetProperty', StringSetProperty);
+  _addClass(StringSetProperty);
+  var Curve1D=es6_import_item(_es6_module, '../curve/curve1d.js', 'Curve1D');
+  class Curve1DProperty extends ToolPropertyIF {
+     constructor(curve, apiname, uiname, description, flag, icon) {
+      super(PropTypes.CURVE, undefined, apiname, uiname, description, flag, icon);
+      this.data = new Curve1D();
+      if (curve!==undefined) {
+          this.setValue(curve);
+      }
+      this.wasSet = false;
+    }
+     equals(b) {
+
+    }
+     getValue() {
+      return this.data;
+    }
+     evaluate(t) {
+      return this.data.evaluate(t);
+    }
+     setValue(curve) {
+      if (curve===undefined) {
+          return ;
+      }
+      this.data.load(curve);
+    }
+     copyTo(b) {
+      super.copyTo(b);
+      b.setValue(this.data);
+    }
+     copy() {
+      let ret=new Curve1DProperty();
+      this.copyTo(ret);
+      return ret;
+    }
+  }
+  _ESClass.register(Curve1DProperty);
+  _es6_module.add_class(Curve1DProperty);
+  Curve1DProperty = _es6_module.add_export('Curve1DProperty', Curve1DProperty);
+}, '/dev/fairmotion/src/path.ux/scripts/toolsys/toolprop.js');
+es6_module_define('toolprop_abstract', ["../util/util.js"], function _toolprop_abstract_module(_es6_module) {
+  "use strict";
+  var util=es6_import(_es6_module, '../util/util.js');
+  let PropTypes={INT: 1, 
+   STRING: 2, 
+   BOOL: 4, 
+   ENUM: 8, 
+   FLAG: 16, 
+   FLOAT: 32, 
+   VEC2: 64, 
+   VEC3: 128, 
+   VEC4: 256, 
+   MATRIX4: 512, 
+   QUAT: 1024, 
+   PROPLIST: 4096, 
+   STRSET: 8192, 
+   CURVE: 8192<<1}
+  PropTypes = _es6_module.add_export('PropTypes', PropTypes);
+  const PropSubTypes={COLOR: 1}
+  _es6_module.add_export('PropSubTypes', PropSubTypes);
+  const PropFlags={SELECT: 1, 
+   PRIVATE: 2, 
+   LABEL: 4, 
+   USE_ICONS: 64, 
+   USE_CUSTOM_GETSET: 128, 
+   SAVE_LAST_VALUE: 256, 
+   READ_ONLY: 512, 
+   SIMPLE_SLIDER: 1024, 
+   FORCE_ROLLER_SLIDER: 2048, 
+   USE_BASE_UNDO: 1<<12}
+  _es6_module.add_export('PropFlags', PropFlags);
+  class ToolPropertyIF  {
+     constructor(type, subtype, apiname, uiname, description, flag, icon) {
+      this.data = undefined;
+      this.type = type;
+      this.subtype = subtype;
+      this.apiname = apiname;
+      this.uiname = uiname;
+      this.description = description;
+      this.flag = flag;
+      this.icon = icon;
+    }
+     equals(b) {
+      throw new Error("implement me");
+    }
+     copyTo(b) {
+
+    }
+     copy() {
+
+    }
+     _fire(type, arg1, arg2) {
+
+    }
+     on(type, cb) {
+
+    }
+     off(type, cb) {
+
+    }
+     getValue() {
+
+    }
+     setValue(val) {
+
+    }
+     setStep(step) {
+
+    }
+     setRange(min, max) {
+
+    }
+     setUnit(unit) {
+
+    }
+     setUIRange(min, max) {
+
+    }
+     setIcon(icon) {
+
+    }
+  }
+  _ESClass.register(ToolPropertyIF);
+  _es6_module.add_class(ToolPropertyIF);
+  ToolPropertyIF = _es6_module.add_export('ToolPropertyIF', ToolPropertyIF);
+  class StringPropertyIF extends ToolPropertyIF {
+     constructor() {
+      super(PropTypes.STRING);
+    }
+  }
+  _ESClass.register(StringPropertyIF);
+  _es6_module.add_class(StringPropertyIF);
+  StringPropertyIF = _es6_module.add_export('StringPropertyIF', StringPropertyIF);
+  class NumPropertyIF extends ToolPropertyIF {
+  }
+  _ESClass.register(NumPropertyIF);
+  _es6_module.add_class(NumPropertyIF);
+  NumPropertyIF = _es6_module.add_export('NumPropertyIF', NumPropertyIF);
+  
+  class IntPropertyIF extends ToolPropertyIF {
+     constructor() {
+      super(PropTypes.INT);
+    }
+     setRadix(radix) {
+      throw new Error("implement me");
+    }
+  }
+  _ESClass.register(IntPropertyIF);
+  _es6_module.add_class(IntPropertyIF);
+  IntPropertyIF = _es6_module.add_export('IntPropertyIF', IntPropertyIF);
+  class FloatPropertyIF extends ToolPropertyIF {
+     constructor() {
+      super(PropTypes.FLOAT);
+    }
+     setDecimalPlaces(n) {
+
+    }
+  }
+  _ESClass.register(FloatPropertyIF);
+  _es6_module.add_class(FloatPropertyIF);
+  FloatPropertyIF = _es6_module.add_export('FloatPropertyIF', FloatPropertyIF);
+  class EnumPropertyIF extends ToolPropertyIF {
+     constructor(value, valid_values) {
+      super(PropTypes.ENUM);
+      this.values = {};
+      this.keys = {};
+      this.ui_value_names = {};
+      this.iconmap = {};
+      if (valid_values===undefined)
+        return this;
+      if (__instance_of(valid_values, Array)||__instance_of(valid_values, String)) {
+          for (var i=0; i<valid_values.length; i++) {
+              this.values[valid_values[i]] = valid_values[i];
+              this.keys[valid_values[i]] = valid_values[i];
+          }
+      }
+      else {
+        for (var k in valid_values) {
+            this.values[k] = valid_values[k];
+            this.keys[valid_values[k]] = k;
+        }
+      }
+      for (var k in this.values) {
+          var uin=k[0].toUpperCase()+k.slice(1, k.length);
+          uin = uin.replace(/\_/g, " ");
+          this.ui_value_names[k] = uin;
+      }
+    }
+     addIcons(iconmap) {
+      if (this.iconmap===undefined) {
+          this.iconmap = {};
+      }
+      for (var k in iconmap) {
+          this.iconmap[k] = iconmap[k];
+      }
+    }
+  }
+  _ESClass.register(EnumPropertyIF);
+  _es6_module.add_class(EnumPropertyIF);
+  EnumPropertyIF = _es6_module.add_export('EnumPropertyIF', EnumPropertyIF);
+  class FlagPropertyIF extends EnumPropertyIF {
+     constructor(valid_values) {
+      super(PropTypes.FLAG);
+    }
+  }
+  _ESClass.register(FlagPropertyIF);
+  _es6_module.add_class(FlagPropertyIF);
+  FlagPropertyIF = _es6_module.add_export('FlagPropertyIF', FlagPropertyIF);
+  class Vec2PropertyIF extends ToolPropertyIF {
+     constructor(valid_values) {
+      super(PropTypes.VEC2);
+    }
+  }
+  _ESClass.register(Vec2PropertyIF);
+  _es6_module.add_class(Vec2PropertyIF);
+  Vec2PropertyIF = _es6_module.add_export('Vec2PropertyIF', Vec2PropertyIF);
+  class Vec3PropertyIF extends ToolPropertyIF {
+     constructor(valid_values) {
+      super(PropTypes.VEC3);
+    }
+  }
+  _ESClass.register(Vec3PropertyIF);
+  _es6_module.add_class(Vec3PropertyIF);
+  Vec3PropertyIF = _es6_module.add_export('Vec3PropertyIF', Vec3PropertyIF);
+  class Vec4PropertyIF extends ToolPropertyIF {
+     constructor(valid_values) {
+      super(PropTypes.VEC4);
+    }
+  }
+  _ESClass.register(Vec4PropertyIF);
+  _es6_module.add_class(Vec4PropertyIF);
+  Vec4PropertyIF = _es6_module.add_export('Vec4PropertyIF', Vec4PropertyIF);
+  class ListPropertyIF extends ToolPropertyIF {
+     constructor(prop) {
+      super(PropTypes.PROPLIST);
+      this.prop = prop;
+    }
+     copyTo(b) {
+
+    }
+     copy() {
+
+    }
+     clear() {
+
+    }
+     push(item=this.prop.copy()) {
+
+    }
+     [Symbol.iterator]() {
+
+    }
+    get  length() {
+
+    }
+    set  length(val) {
+
+    }
+  }
+  _ESClass.register(ListPropertyIF);
+  _es6_module.add_class(ListPropertyIF);
+  ListPropertyIF = _es6_module.add_export('ListPropertyIF', ListPropertyIF);
+  class StringSetPropertyIF extends ToolPropertyIF {
+     constructor(value=undefined, definition=[]) {
+      super(PropTypes.STRSET);
+    }
+     setValue(values, destructive=true, soft_fail=true) {
+
+    }
+     getValue() {
+
+    }
+     addIcons(iconmap) {
+
+    }
+     addUINames(map) {
+
+    }
+     addDescriptions(map) {
+
+    }
+     copyTo(b) {
+
+    }
+     copy() {
+
+    }
+  }
+  _ESClass.register(StringSetPropertyIF);
+  _es6_module.add_class(StringSetPropertyIF);
+  StringSetPropertyIF = _es6_module.add_export('StringSetPropertyIF', StringSetPropertyIF);
+  class Curve1DPropertyIF extends ToolPropertyIF {
+     constructor(curve, uiname) {
+      super(PropTypes.CURVE);
+      this.data = curve;
+    }
+     getValue() {
+      return this.curve;
+    }
+     setValue(curve) {
+      if (curve===undefined) {
+          return ;
+      }
+      let json=JSON.parse(JSON.stringify(curve));
+      this.data.load(json);
+    }
+     copyTo(b) {
+      b.setValue(this.data);
+    }
+  }
+  _ESClass.register(Curve1DPropertyIF);
+  _es6_module.add_class(Curve1DPropertyIF);
+  Curve1DPropertyIF = _es6_module.add_export('Curve1DPropertyIF', Curve1DPropertyIF);
+}, '/dev/fairmotion/src/path.ux/scripts/toolsys/toolprop_abstract.js');
+es6_module_define('colorutils', ["../util/vectormath.js", "../util/util.js", "../config/const.js"], function _colorutils_module(_es6_module) {
+  var util=es6_import(_es6_module, '../util/util.js');
+  var vectormath=es6_import(_es6_module, '../util/vectormath.js');
+  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
+  let rgb_to_hsv_rets=new util.cachering(() =>    {
+    return [0, 0, 0];
+  }, 64);
+  function rgb_to_hsv(r, g, b) {
+    var computedH=0;
+    var computedS=0;
+    var computedV=0;
+    if (r==null||g==null||b==null||isNaN(r)||isNaN(g)||isNaN(b)) {
+        throw new Error(`Please enter numeric RGB values! r: ${r} g: ${g} b: ${b}`);
+        return ;
+    }
+    var minRGB=Math.min(r, Math.min(g, b));
+    var maxRGB=Math.max(r, Math.max(g, b));
+    if (minRGB==maxRGB) {
+        computedV = minRGB;
+        let ret=rgb_to_hsv_rets.next();
+        ret[0] = 0, ret[1] = 0, ret[2] = computedV;
+        return ret;
+    }
+    var d=(r==minRGB) ? g-b : ((b==minRGB) ? r-g : b-r);
+    var h=(r==minRGB) ? 3 : ((b==minRGB) ? 1 : 5);
+    computedH = (60*(h-d/(maxRGB-minRGB)))/360.0;
+    computedS = (maxRGB-minRGB)/maxRGB;
+    computedV = maxRGB;
+    let ret=rgb_to_hsv_rets.next();
+    ret[0] = computedH, ret[1] = computedS, ret[2] = computedV;
+    return ret;
+  }
+  rgb_to_hsv = _es6_module.add_export('rgb_to_hsv', rgb_to_hsv);
+  let hsv_to_rgb_rets=new util.cachering(() =>    {
+    return [0, 0, 0];
+  }, 64);
+  function hsv_to_rgb(h, s, v) {
+    let c=0, m=0, x=0;
+    let ret=hsv_to_rgb_rets.next();
+    ret[0] = ret[1] = ret[2] = 0.0;
+    h*=360.0;
+    c = v*s;
+    x = c*(1.0-Math.abs(((h/60.0)%2)-1.0));
+    m = v-c;
+    let color;
+    function RgbF_Create(r, g, b) {
+      ret[0] = r;
+      ret[1] = g;
+      ret[2] = b;
+      return ret;
+    }
+    if (h>=0.0&&h<60.0) {
+        color = RgbF_Create(c+m, x+m, m);
+    }
+    else 
+      if (h>=60.0&&h<120.0) {
+        color = RgbF_Create(x+m, c+m, m);
+    }
+    else 
+      if (h>=120.0&&h<180.0) {
+        color = RgbF_Create(m, c+m, x+m);
+    }
+    else 
+      if (h>=180.0&&h<240.0) {
+        color = RgbF_Create(m, x+m, c+m);
+    }
+    else 
+      if (h>=240.0&&h<300.0) {
+        color = RgbF_Create(x+m, m, c+m);
+    }
+    else 
+      if (h>=300.0) {
+        color = RgbF_Create(c+m, m, x+m);
+    }
+    else {
+      color = RgbF_Create(m, m, m);
+    }
+    return color;
+  }
+  hsv_to_rgb = _es6_module.add_export('hsv_to_rgb', hsv_to_rgb);
+}, '/dev/fairmotion/src/path.ux/scripts/util/colorutils.js');
+es6_module_define('cssutils', [], function _cssutils_module(_es6_module) {
+  function css2matrix(s) {
+    return new DOMMatrix(s);
+  }
+  css2matrix = _es6_module.add_export('css2matrix', css2matrix);
+  function matrix2css(m) {
+    if (m.$matrix) {
+        m = m.$matrix;
+    }
+    return `matrix(${m.m11},${m.m12},${m.m21},${m.m22},${m.m41},${m.m42})`;
+  }
+  matrix2css = _es6_module.add_export('matrix2css', matrix2css);
+}, '/dev/fairmotion/src/path.ux/scripts/util/cssutils.js');
+es6_module_define('events', ["./simple_events.js", "./util.js"], function _events_module(_es6_module) {
+  "use strict";
+  var util=es6_import(_es6_module, './util.js');
+  var simple_events=es6_import(_es6_module, './simple_events.js');
+  let _ex_keymap=es6_import_item(_es6_module, './simple_events.js', 'keymap');
+  _es6_module.add_export('keymap', _ex_keymap, true);
+  let _ex_reverse_keymap=es6_import_item(_es6_module, './simple_events.js', 'reverse_keymap');
+  _es6_module.add_export('reverse_keymap', _ex_reverse_keymap, true);
+  let _ex_keymap_latin_1=es6_import_item(_es6_module, './simple_events.js', 'keymap_latin_1');
+  _es6_module.add_export('keymap_latin_1', _ex_keymap_latin_1, true);
+  class EventDispatcher  {
+     constructor() {
+      this._cbs = {};
+    }
+     _fireEvent(type, data) {
+      let stop=false;
+      data = {stopPropagation: function stopPropagation() {
+          stop = true;
+        }, 
+     data: data};
+      if (type in this._cbs) {
+          for (let cb of this._cbs[type]) {
+              cb(data);
+              if (stop) {
+                  break;
+              }
+          }
+      }
+    }
+     on(type, cb) {
+      if (!(type in this._cbs)) {
+          this._cbs[type] = [];
+      }
+      this._cbs[type].push(cb);
+      return this;
+    }
+     off(type, cb) {
+      if (!(type in this._cbs)) {
+          console.warn("event handler not in list", type, cb);
+          return this;
+      }
+      let stack=this._cbs[type];
+      if (stack.indexOf(cb)<0) {
+          console.warn("event handler not in list", type, cb);
+          return this;
+      }
+      stack.remove(cb);
+      return this;
+    }
+  }
+  _ESClass.register(EventDispatcher);
+  _es6_module.add_class(EventDispatcher);
+  EventDispatcher = _es6_module.add_export('EventDispatcher', EventDispatcher);
+  function copyMouseEvent(e) {
+    let ret={}
+    function bind(func, obj) {
+      return function () {
+        return this._orig.apply(func, arguments);
+      }
+    }
+    let exclude=new Set(["__proto__"]);
+    ret._orig = e;
+    for (let k in e) {
+        let v=e[k];
+        if (exclude.has(k)) {
+            continue;
+        }
+        if (typeof v=="function") {
+            v = bind(v);
+        }
+        ret[k] = v;
+    }
+    return ret;
+  }
+  copyMouseEvent = _es6_module.add_export('copyMouseEvent', copyMouseEvent);
+  const DomEventTypes={on_mousemove: 'mousemove', 
+   on_mousedown: 'mousedown', 
+   on_mouseup: 'mouseup', 
+   on_touchstart: 'touchstart', 
+   on_touchcancel: 'touchcanel', 
+   on_touchmove: 'touchmove', 
+   on_touchend: 'touchend', 
+   on_mousewheel: 'mousewheel', 
+   on_keydown: 'keydown', 
+   on_keyup: 'keyup', 
+   on_pointerdown: 'pointerdown', 
+   on_pointermove: 'pointermove', 
+   on_pointercancel: 'pointercancel', 
+   on_pointerup: 'pointerup'}
+  _es6_module.add_export('DomEventTypes', DomEventTypes);
+  function getDom(dom, eventtype) {
+    if (eventtype.startsWith("key"))
+      return window;
+    return dom;
+  }
+  let modalStack=[];
+  modalStack = _es6_module.add_export('modalStack', modalStack);
+  function isModalHead(owner) {
+    return modalStack.length==0||modalStack[modalStack.length-1]===owner;
+  }
+  isModalHead = _es6_module.add_export('isModalHead', isModalHead);
+  class EventHandler  {
+     pushModal(dom, _is_root) {
+      this._modalstate = simple_events.pushModalLight(this);
+      return ;
+    }
+     popModal() {
+      if (this._modalstate!==undefined) {
+          simple_events.popModalLight(this._modalstate);
+          this._modalstate = undefined;
+      }
+    }
+  }
+  _ESClass.register(EventHandler);
+  _es6_module.add_class(EventHandler);
+  EventHandler = _es6_module.add_export('EventHandler', EventHandler);
+  function pushModal(dom, handlers) {
+    console.warn("Deprecated call to pathux.events.pushModal; use api in simple_events.js instead");
+    let h=new EventHandler();
+    for (let k in handlers) {
+        h[k] = handlers[k];
+    }
+    handlers.popModal = () =>      {
+      return h.popModal(dom);
+    }
+    h.pushModal(dom, false);
+    return h;
+  }
+  pushModal = _es6_module.add_export('pushModal', pushModal);
+}, '/dev/fairmotion/src/path.ux/scripts/util/events.js');
+es6_module_define('expr', ["./vectormath.js", "./parseutil.js"], function _expr_module(_es6_module) {
+  var vectormath=es6_import(_es6_module, './vectormath.js');
+  var lexer=es6_import_item(_es6_module, './parseutil.js', 'lexer');
+  var tokdef=es6_import_item(_es6_module, './parseutil.js', 'tokdef');
+  var token=es6_import_item(_es6_module, './parseutil.js', 'token');
+  var parser=es6_import_item(_es6_module, './parseutil.js', 'parser');
+  var PUTLParseError=es6_import_item(_es6_module, './parseutil.js', 'PUTLParseError');
+  let tk=(n, r, f) =>    {
+    return new tokdef(n, r, f);
+  }
+  let count=(str, match) =>    {
+    let c=0;
+    do {
+      let i=str.search(match);
+      if (i<0) {
+          break;
+      }
+      c++;
+      str = str.slice(i+1, str.length);
+    } while (1);
+    
+    return c;
+  }
+  let tokens=[tk("ID", /[a-zA-Z$_]+[a-zA-Z0-9$_]*/), tk("NUM", /[0-9]+(\.[0-9]*)?/), tk("LPAREN", /\(/), tk("RPAREN", /\)/), tk("STRLIT", /"[^"]*"/, (t) =>    {
+    let v=t.value;
+    t.lexer.lineno+=count(t.value, "\n");
+    return t;
+  }), tk("WS", /[ \t\n\r]/, (t) =>    {
+    t.lexer.lineno+=count(t.value, "\n");
+  }), tk("COMMA", /\,/), tk("COLON", /:/), tk("LSBRACKET", /\[/), tk("RSBRACKET", /\]/), tk("LBRACKET", /\{/), tk("RBRACKET", /\}/), tk("DOT", /\./), tk("PLUS", /\+/), tk("MINUS", /\-/), tk("TIMES", /\*/), tk("DIVIDE", /\//), tk("EXP", /\*\*/), tk("LAND", /\&\&/), tk("BAND", /\&/), tk("LOR", /\|\|/), tk("BOR", /\|/), tk("EQUALS", /=/), tk("LEQUALS", /\<\=/), tk("GEQUALS", /\>\=/), tk("LTHAN", /\</), tk("GTHAN", /\>/), tk("MOD", /\%/), tk("XOR", /\^/), tk("BITINV", /\~/)];
+  let lex=new lexer(tokens, (t) =>    {
+    console.log("Token error");
+    return true;
+  });
+  let parse=new parser(lex);
+  let binops=new Set([".", "/", "*", "**", "^", "%", "&", "+", "-", "&&", "||", "&", "|", "<", ">", "==", "=", "<=", ">="]);
+  let precedence;
+  if (1) {
+      let table=[["**"], ["*", "/"], ["+", "-"], ["."], ["="], ["("], [")"]];
+      let pr={};
+      for (let i=0; i<table.length; i++) {
+          for (let c of table[i]) {
+              pr[c] = i;
+          }
+      }
+      precedence = pr;
+  }
+  function indent(n, chr) {
+    if (chr===undefined) {
+        chr = "  ";
+    }
+    let s="";
+    for (let i=0; i<n; i++) {
+        s+=chr;
+    }
+    return s;
+  }
+  class Node extends Array {
+     constructor(type) {
+      super();
+      this.type = type;
+      this.parent = undefined;
+    }
+     push(n) {
+      n.parent = this;
+      return super.push(n);
+    }
+     remove(n) {
+      let i=this.indexOf(n);
+      if (i<0) {
+          console.log(n);
+          throw new Error("item not in array");
+      }
+      while (i<this.length) {
+        this[i] = this[i+1];
+        i++;
+      }
+      n.parent = undefined;
+      this.length--;
+      return this;
+    }
+     insert(starti, n) {
+      let i=this.length-1;
+      this.length++;
+      if (n.parent) {
+          n.parent.remove(n);
+      }
+      while (i>starti) {
+        this[i] = this[i-1];
+        i--;
+      }
+      n.parent = this;
+      this[starti] = n;
+      return this;
+    }
+     replace(n, n2) {
+      if (n2.parent) {
+          n2.parent.remove(n2);
+      }
+      this[this.indexOf(n)] = n2;
+      n.parent = undefined;
+      n2.parent = this;
+      return this;
+    }
+     toString(t=0) {
+      let tab=indent(t, "-");
+      let typestr=this.type;
+      if (this.value!==undefined) {
+          typestr+=" : "+this.value;
+      }
+      else 
+        if (this.op!==undefined) {
+          typestr+=" ("+this.op+")";
+      }
+      let s=tab+typestr+" {\n";
+      for (let c of this) {
+          s+=c.toString(t+1);
+      }
+      s+=tab+"}\n";
+      return s;
+    }
+  }
+  _ESClass.register(Node);
+  _es6_module.add_class(Node);
+  Node = _es6_module.add_export('Node', Node);
+  function parseExpr(s) {
+    let p=parse;
+    function Value() {
+      let t=p.next();
+      if (t&&t.value==="(") {
+          t = p.next();
+      }
+      if (t===undefined) {
+          p.error(undefined, "Expected a value");
+          return ;
+      }
+      let n=new Node();
+      n.value = t.value;
+      if (t.type==="ID") {
+          n.type = "Ident";
+      }
+      else 
+        if (t.type==="NUM") {
+          n.type = "Number";
+      }
+      else 
+        if (t.type==="STRLIT") {
+          n.type = "StrLit";
+      }
+      else 
+        if (t.type==="MINUS") {
+          let t2=p.peek_i(0);
+          if (t2&&t2.type==="NUM") {
+              p.next();
+              n.type = "Number";
+              n.value = -t2.value;
+          }
+          else 
+            if (t2&&t2.type==="ID") {
+              p.next();
+              n.type = "Negate";
+              let n2=new Node();
+              n2.type = "Ident";
+              n2.value = t2.value;
+              n.push(n2);
+          }
+          else {
+            p.error(t, "Expected a value, not '"+t.value+"'");
+          }
+      }
+      else {
+        p.error(t, "Expected a value, not '"+t.value+"'");
+      }
+      return n;
+    }
+    function bin_next(depth) {
+      if (depth===undefined) {
+          depth = 0;
+      }
+      let a=p.peek_i(0);
+      let b=p.peek_i(1);
+      if (b&&b.value===")") {
+          b.type = a.type;
+          b.value = a.value;
+          p.next();
+          let c=p.peek_i(2);
+          if (c&&binops.has(c.value)) {
+              return {value: b, 
+         op: c.value, 
+         prec: -10}
+          }
+      }
+      if (b&&binops.has(b.value)) {
+          return {value: a, 
+       op: b.value, 
+       prec: precedence[b.value]}
+      }
+      else {
+        return Value(a);
+      }
+    }
+    function BinOp(left, depth) {
+      if (depth===undefined) {
+          depth = 0;
+      }
+      console.log(indent(depth)+"BinOp", left.toString());
+      let op=p.next();
+      let right;
+      let n;
+      let prec=precedence[op.value];
+      let r=bin_next(depth+1);
+      if (__instance_of(r, Node)) {
+          right = r;
+      }
+      else {
+        if (r.prec>prec) {
+            if (!n) {
+                n = new Node("BinOp");
+                n.op = op.value;
+                n.push(left);
+            }
+            n.push(Value());
+            return n;
+        }
+        else {
+          right = BinOp(Value(), depth+2);
+        }
+      }
+      n = new Node("BinOp", op);
+      n.op = op.value;
+      n.push(right);
+      n.push(left);
+      console.log("\n\n", n.toString(), "\n\n");
+      left = n;
+      console.log(n.toString());
+      return n;
+    }
+    function Start() {
+      let ret=Value();
+      while (!p.at_end()) {
+        let t=p.peek_i(0);
+        if (t===undefined) {
+            break;
+        }
+        console.log(t.toString());
+        if (binops.has(t.value)) {
+            console.log("binary op!");
+            ret = BinOp(ret);
+        }
+        else 
+          if (t.value===",") {
+            let n=new Node();
+            n.type = "ExprList";
+            p.next();
+            n.push(ret);
+            let n2=Start();
+            if (n2.type==="ExprList") {
+                for (let c of n2) {
+                    n.push(c);
+                }
+            }
+            else {
+              n.push(n2);
+            }
+            return n;
+        }
+        else 
+          if (t.value==="(") {
+            let n=new Node("FuncCall");
+            n.push(ret);
+            n.push(Start());
+            p.expect("RPAREN");
+            return n;
+        }
+        else 
+          if (t.value===")") {
+            return ret;
+        }
+        else {
+          console.log(ret.toString());
+          p.error(t, "Unexpected token "+t.value);
+        }
+      }
+      return ret;
+    }
+    function Run() {
+      let ret=[];
+      while (!p.at_end()) {
+        ret.push(Start());
+      }
+      return ret;
+    }
+    p.start = Run;
+    return p.parse(s);
+  }
+  parseExpr = _es6_module.add_export('parseExpr', parseExpr);
+}, '/dev/fairmotion/src/path.ux/scripts/util/expr.js');
+es6_module_define('graphpack', ["./vectormath.js", "./math.js", "./solver.js", "./util.js"], function _graphpack_module(_es6_module) {
+  "use strict";
+  var Vector2=es6_import_item(_es6_module, './vectormath.js', 'Vector2');
+  var math=es6_import(_es6_module, './math.js');
+  var util=es6_import(_es6_module, './util.js');
+  var Constraint=es6_import_item(_es6_module, './solver.js', 'Constraint');
+  var Solver=es6_import_item(_es6_module, './solver.js', 'Solver');
+  let idgen=0;
+  class PackNodeVertex extends Vector2 {
+     constructor(node, co) {
+      super(co);
+      this.node = node;
+      this._id = idgen++;
+      this.edges = [];
+      this._absPos = new Vector2();
+    }
+    get  absPos() {
+      this._absPos.load(this).add(this.node.pos);
+      return this._absPos;
+    }
+     [Symbol.keystr]() {
+      return this._id;
+    }
+  }
+  _ESClass.register(PackNodeVertex);
+  _es6_module.add_class(PackNodeVertex);
+  PackNodeVertex = _es6_module.add_export('PackNodeVertex', PackNodeVertex);
+  class PackNode  {
+     constructor() {
+      this.pos = new Vector2();
+      this.vel = new Vector2();
+      this.oldpos = new Vector2();
+      this._id = idgen++;
+      this.size = new Vector2();
+      this.verts = [];
+    }
+     [Symbol.keystr]() {
+      return this._id;
+    }
+  }
+  _ESClass.register(PackNode);
+  _es6_module.add_class(PackNode);
+  PackNode = _es6_module.add_export('PackNode', PackNode);
+  function copyGraph(nodes) {
+    let ret=[];
+    let idmap={}
+    for (let n of nodes) {
+        let n2=new PackNode();
+        n2._id = n._id;
+        n2.pos.load(n.pos);
+        n2.vel.load(n.vel);
+        n2.size.load(n.size);
+        n2.verts = [];
+        idmap[n2._id] = n2;
+        for (let v of n.verts) {
+            let v2=new PackNodeVertex(n2, v);
+            v2._id = v._id;
+            idmap[v2._id] = v2;
+            n2.verts.push(v2);
+        }
+        ret.push(n2);
+    }
+    for (let n of nodes) {
+        for (let v of n.verts) {
+            let v2=idmap[v._id];
+            for (let v3 of v.edges) {
+                v2.edges.push(idmap[v3._id]);
+            }
+        }
+    }
+    return ret;
+  }
+  function getCenter(nodes) {
+    let cent=new Vector2();
+    for (let n of nodes) {
+        cent.add(n.pos);
+    }
+    if (nodes.length===0)
+      return cent;
+    cent.mulScalar(1.0/nodes.length);
+    return cent;
+  }
+  function loadGraph(nodes, copy) {
+    let idmap={}
+    for (let i=0; i<nodes.length; i++) {
+        nodes[i].pos.load(copy[i].pos);
+        nodes[i].oldpos.load(copy[i].oldpos);
+        nodes[i].vel.load(copy[i].vel);
+    }
+  }
+  function graphGetIslands(nodes) {
+    let islands=[];
+    let visit1=new util.set();
+    let rec=(n, island) =>      {
+      island.push(n);
+      visit1.add(n);
+      for (let v of n.verts) {
+          for (let e of v.edges) {
+              let n2=e.node;
+              if (n2!==n&&!visit1.has(n2)) {
+                  rec(n2, island);
+              }
+          }
+      }
+    }
+    for (let n of nodes) {
+        if (visit1.has(n)) {
+            continue;
+        }
+        let island=[];
+        islands.push(island);
+        rec(n, island);
+    }
+    return islands;
+  }
+  graphGetIslands = _es6_module.add_export('graphGetIslands', graphGetIslands);
+  function graphPack(nodes, margin, steps, updateCb) {
+    if (margin===undefined) {
+        margin = 15;
+    }
+    if (steps===undefined) {
+        steps = 10;
+    }
+    if (updateCb===undefined) {
+        updateCb = undefined;
+    }
+    let orignodes=nodes;
+    nodes = copyGraph(nodes);
+    for (let n of nodes) {
+        n.pos[0]+=(Math.random()-0.5)*5.0;
+        n.pos[1]+=(Math.random()-0.5)*5.0;
+    }
+    let nodemap={}
+    for (let n of nodes) {
+        n.vel.zero();
+        nodemap[n._id] = n;
+        for (let v of n.verts) {
+            nodemap[v._id] = v;
+        }
+    }
+    let visit=new util.set();
+    let verts=new util.set();
+    let isect=[];
+    let disableEdges=false;
+    function edge_c(params) {
+      let v1=params[0], v2=params[1];
+      if (disableEdges)
+        return 0;
+      return v1.absPos.vectorDistance(v2.absPos);
+    }
+    let p1=new Vector2();
+    let p2=new Vector2();
+    let s1=new Vector2();
+    let s2=new Vector2();
+    function loadBoxes(n1, n2, margin1) {
+      if (margin1===undefined) {
+          margin1 = margin;
+      }
+      p1.load(n1.pos);
+      p2.load(n2.pos);
+      s1.load(n1.size);
+      s2.load(n2.size);
+      p1.subScalar(margin1);
+      p2.subScalar(margin1);
+      s1.addScalar(margin1*2.0);
+      s2.addScalar(margin1*2.0);
+    }
+    let disableArea=false;
+    function area_c(params) {
+      let n1=params[0], n2=params[1];
+      if (disableArea)
+        return 0.0;
+      loadBoxes(n1, n2);
+      let a1=n1.size[0]*n1.size[1];
+      let a2=n2.size[0]*n2.size[1];
+      return math.aabb_overlap_area(p1, s1, p2, s2);
+      return (math.aabb_overlap_area(p1, s1, p2, s2)/(a1+a2));
+    }
+    let lasterr, besterr, best;
+    let err;
+    let islands=graphGetIslands(nodes);
+    let fakeVerts=[];
+    for (let island of islands) {
+        let n=island[0];
+        let fv=new PackNodeVertex(n);
+        fakeVerts.push(fv);
+    }
+    let solveStep1=(gk) =>      {
+      if (gk===undefined) {
+          gk = 1.0;
+      }
+      let solver=new Solver();
+      isect.length = 0;
+      visit = new util.set();
+      if (fakeVerts.length>1) {
+          for (let i=1; i<fakeVerts.length; i++) {
+              let v1=fakeVerts[0];
+              let v2=fakeVerts[i];
+              let con=new Constraint("edge_c", edge_c, [v1.node.pos, v2.node.pos], [v1, v2]);
+              con.k = 0.25;
+              solver.add(con);
+          }
+      }
+      for (let n1 of nodes) {
+          for (let v of n1.verts) {
+              verts.add(v);
+              for (let v2 of v.edges) {
+                  if (v2._id<v._id)
+                    continue;
+                  let con=new Constraint("edge_c", edge_c, [v.node.pos, v2.node.pos], [v, v2]);
+                  con.k = 1.0;
+                  solver.add(con);
+              }
+          }
+          for (let n2 of nodes) {
+              if (n1===n2)
+                continue;
+              let key=Math.min(n1._id, n2._id)+":"+Math.max(n1._id, n2._id);
+              if (visit.has(key))
+                continue;
+              loadBoxes(n1, n2);
+              let area=math.aabb_overlap_area(p1, s1, p2, s2);
+              if (area>0.01) {
+                  isect.push([n1, n2]);
+                  visit.add(key);
+              }
+          }
+          for (let /*unprocessed ExpandNode*/[n1, n2] of isect) {
+              let con=new Constraint("area_c", area_c, [n1.pos, n2.pos], [n1, n2]);
+              solver.add(con);
+              con.k = 1.0;
+          }
+      }
+      return solver;
+    }
+    let i=1;
+    let solveStep=(gk) =>      {
+      if (gk===undefined) {
+          gk = 0.5;
+      }
+      let solver=solveStep1();
+      if (i%40===0.0) {
+          let c1=getCenter(nodes);
+          let rfac=1000.0;
+          if (best)
+            loadGraph(nodes, best);
+          for (let n of nodes) {
+              n.pos[0]+=(Math.random()-0.5)*rfac;
+              n.pos[1]+=(Math.random()-0.5)*rfac;
+              n.vel.zero();
+          }
+          let c2=getCenter(nodes);
+          c1.sub(c2);
+          for (let n of nodes) {
+              n.pos.add(c1);
+          }
+      }
+      let err=1e+17;
+      for (let n of nodes) {
+          n.oldpos.load(n.pos);
+          n.pos.addFac(n.vel, 0.5);
+      }
+      disableEdges = false;
+      disableArea = true;
+      solver.solve(1, gk);
+      disableEdges = true;
+      disableArea = false;
+      for (let j=0; j<10; j++) {
+          solver = solveStep1();
+          err = solver.solve(10, gk);
+      }
+      for (let n of nodes) {
+          n.vel.load(n.pos).sub(n.oldpos);
+      }
+      disableEdges = false;
+      disableArea = true;
+      err = 0.0;
+      for (let con of solver.constraints) {
+          err+=con.evaluate(true);
+      }
+      disableEdges = false;
+      disableArea = false;
+      lasterr = err;
+      let add=Math.random()*besterr*Math.exp(-i*0.1);
+      if (besterr===undefined||err<besterr+add) {
+          best = copyGraph(nodes);
+          besterr = err;
+      }
+      i++;
+      return err;
+    }
+    for (let j=0; j<steps; j++) {
+        solveStep();
+    }
+    loadGraph(orignodes, best ? best : nodes);
+    if (updateCb) {
+        if (nodes._timer!==undefined) {
+            window.clearInterval(nodes._timer);
+        }
+        nodes._timer = window.setInterval(() =>          {
+          let time=util.time_ms();
+          while (util.time_ms()-time<50) {
+            let err=solveStep();
+          }
+          if (cconst.DEBUG.boxPacker) {
+              console.log("err", (besterr/nodes.length).toFixed(2), (lasterr/nodes.length).toFixed(2), "isects", isect.length);
+          }
+          if (best)
+            loadGraph(orignodes, best);
+          if (updateCb()===false) {
+              clearInterval(nodes._timer);
+              return ;
+          }
+        }, 100);
+        let timer=nodes._timer;
+        return {stop: () =>            {
+            if (best)
+              loadGraph(nodes, best);
+            window.clearInterval(timer);
+            nodes._timer = undefined;
+          }}
+    }
+  }
+  graphPack = _es6_module.add_export('graphPack', graphPack);
+}, '/dev/fairmotion/src/path.ux/scripts/util/graphpack.js');

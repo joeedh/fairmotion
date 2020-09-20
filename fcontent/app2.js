@@ -1,413 +1,3 @@
-es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
-  "use strict";
-  class token  {
-     constructor(type, val, lexpos, lexlen, lineno, lexer, parser) {
-      this.type = type;
-      this.value = val;
-      this.lexpos = lexpos;
-      this.lexlen = lexlen;
-      this.lineno = lineno;
-      this.lexer = lexer;
-      this.parser = parser;
-    }
-     toString() {
-      if (this.value!=undefined)
-        return "token(type="+this.type+", value='"+this.value+"')";
-      else 
-        return "token(type="+this.type+")";
-    }
-  }
-  _ESClass.register(token);
-  _es6_module.add_class(token);
-  token = _es6_module.add_export('token', token);
-  class tokdef  {
-     constructor(name, regexpr, func) {
-      this.name = name;
-      this.re = regexpr;
-      this.func = func;
-    }
-  }
-  _ESClass.register(tokdef);
-  _es6_module.add_class(tokdef);
-  tokdef = _es6_module.add_export('tokdef', tokdef);
-  class PUTLParseError extends Error {
-     constructor(msg) {
-      super();
-    }
-  }
-  _ESClass.register(PUTLParseError);
-  _es6_module.add_class(PUTLParseError);
-  PUTLParseError = _es6_module.add_export('PUTLParseError', PUTLParseError);
-  class lexer  {
-    
-    
-    
-    
-    
-    
-    
-     constructor(tokdef, errfunc) {
-      this.tokdef = tokdef;
-      this.tokens = new GArray();
-      this.lexpos = 0;
-      this.lexdata = "";
-      this.lineno = 0;
-      this.errfunc = errfunc;
-      this.tokints = {};
-      for (var i=0; i<tokdef.length; i++) {
-          this.tokints[tokdef[i].name] = i;
-      }
-      this.statestack = [["__main__", 0]];
-      this.states = {"__main__": [tokdef, errfunc]};
-      this.statedata = 0;
-    }
-     add_state(name, tokdef, errfunc) {
-      if (errfunc==undefined) {
-          errfunc = function (lexer) {
-            return true;
-          };
-      }
-      this.states[name] = [tokdef, errfunc];
-    }
-     tok_int(name) {
-
-    }
-     push_state(state, statedata) {
-      this.statestack.push([state, statedata]);
-      state = this.states[state];
-      this.statedata = statedata;
-      this.tokdef = state[0];
-      this.errfunc = state[1];
-    }
-     pop_state() {
-      var item=this.statestack[this.statestack.length-1];
-      var state=this.states[item[0]];
-      this.tokdef = state[0];
-      this.errfunc = state[1];
-      this.statedata = item[1];
-    }
-     input(str) {
-      while (this.statestack.length>1) {
-        this.pop_state();
-      }
-      this.lexdata = str;
-      this.lexpos = 0;
-      this.lineno = 0;
-      this.tokens = new GArray();
-      this.peeked_tokens = [];
-    }
-     error() {
-      if (this.errfunc!=undefined&&!this.errfunc(this))
-        return ;
-      console.log("Syntax error near line "+this.lineno);
-      var next=Math.min(this.lexpos+8, this.lexdata.length);
-      console.log("  "+this.lexdata.slice(this.lexpos, next));
-      throw new PUTLParseError("Parse error");
-    }
-     peek() {
-      var tok=this.next(true);
-      if (tok==undefined)
-        return undefined;
-      this.peeked_tokens.push(tok);
-      return tok;
-    }
-     peek_i(i) {
-      while (this.peeked_tokens.length<=i) {
-        var t=this.peek();
-        if (t==undefined)
-          return undefined;
-      }
-      return this.peeked_tokens[i];
-    }
-     at_end() {
-      return this.lexpos>=this.lexdata.length&&this.peeked_tokens.length==0;
-    }
-     next(ignore_peek) {
-      if (ignore_peek!=true&&this.peeked_tokens.length>0) {
-          var tok=this.peeked_tokens[0];
-          this.peeked_tokens.shift();
-          return tok;
-      }
-      if (this.lexpos>=this.lexdata.length)
-        return undefined;
-      var ts=this.tokdef;
-      var tlen=ts.length;
-      var lexdata=this.lexdata.slice(this.lexpos, this.lexdata.length);
-      var results=[];
-      for (var i=0; i<tlen; i++) {
-          var t=ts[i];
-          if (t.re==undefined)
-            continue;
-          var res=t.re.exec(lexdata);
-          if (res!=null&&res!=undefined&&res.index==0) {
-              results.push([t, res]);
-          }
-      }
-      var max_res=0;
-      var theres=undefined;
-      for (var i=0; i<results.length; i++) {
-          var res=results[i];
-          if (res[1][0].length>max_res) {
-              theres = res;
-              max_res = res[1][0].length;
-          }
-      }
-      if (theres==undefined) {
-          this.error();
-          return ;
-      }
-      var def=theres[0];
-      var lexlen=max_res;
-      var tok=new token(def.name, theres[1][0], this.lexpos, lexlen, this.lineno, this, undefined);
-      this.lexpos+=max_res;
-      if (def.func) {
-          tok = def.func(tok);
-          if (tok==undefined) {
-              return this.next();
-          }
-      }
-      return tok;
-    }
-  }
-  _ESClass.register(lexer);
-  _es6_module.add_class(lexer);
-  lexer = _es6_module.add_export('lexer', lexer);
-  class parser  {
-     constructor(lexer, errfunc) {
-      this.lexer = lexer;
-      this.errfunc = errfunc;
-      this.start = undefined;
-    }
-     parse(data, err_on_unconsumed) {
-      if (err_on_unconsumed==undefined)
-        err_on_unconsumed = true;
-      if (data!=undefined)
-        this.lexer.input(data);
-      var ret=this.start(this);
-      if (err_on_unconsumed&&!this.lexer.at_end()&&this.lexer.next()!=undefined) {
-          var left=this.lexer.lexdata.slice(this.lexer.lexpos-1, this.lexer.lexdata.length);
-          this.error(undefined, "parser did not consume entire input; left: "+left);
-      }
-      return ret;
-    }
-     input(data) {
-      this.lexer.input(data);
-    }
-     error(tok, msg) {
-      if (msg==undefined)
-        msg = "";
-      if (tok==undefined)
-        var estr="Parse error at end of input: "+msg;
-      else 
-        estr = "Parse error at line "+(tok.lineno+1)+": "+msg;
-      var buf="1| ";
-      var ld=this.lexer.lexdata;
-      var l=1;
-      for (var i=0; i<ld.length; i++) {
-          var c=ld[i];
-          if (c=='\n') {
-              l++;
-              buf+="\n"+l+"| ";
-          }
-          else {
-            buf+=c;
-          }
-      }
-      console.log("------------------");
-      console.log(buf);
-      console.log("==================");
-      console.log(estr);
-      if (this.errfunc&&!this.errfunc(tok)) {
-          return ;
-      }
-      throw new PUTLParseError(estr);
-    }
-     peek() {
-      var tok=this.lexer.peek();
-      if (tok!=undefined)
-        tok.parser = this;
-      return tok;
-    }
-     peek_i(i) {
-      var tok=this.lexer.peek_i(i);
-      if (tok!=undefined)
-        tok.parser = this;
-      return tok;
-    }
-     peeknext() {
-      return this.peek_i(0);
-    }
-     next() {
-      var tok=this.lexer.next();
-      if (tok!=undefined)
-        tok.parser = this;
-      return tok;
-    }
-     optional(type) {
-      var tok=this.peek();
-      if (tok==undefined)
-        return false;
-      if (tok.type==type) {
-          this.next();
-          return true;
-      }
-      return false;
-    }
-     at_end() {
-      return this.lexer.at_end();
-    }
-     expect(type, msg) {
-      var tok=this.next();
-      if (msg==undefined)
-        msg = type;
-      if (tok==undefined||tok.type!=type) {
-          this.error(tok, "Expected "+msg+", not "+tok.type);
-      }
-      return tok.value;
-    }
-  }
-  _ESClass.register(parser);
-  _es6_module.add_class(parser);
-  parser = _es6_module.add_export('parser', parser);
-  function test_parser() {
-    var basic_types=new set(["int", "float", "double", "vec2", "vec3", "vec4", "mat4", "string"]);
-    var reserved_tokens=new set(["int", "float", "double", "vec2", "vec3", "vec4", "mat4", "string", "static_string", "array"]);
-    function tk(name, re, func) {
-      return new tokdef(name, re, func);
-    }
-    var tokens=[tk("ID", /[a-zA-Z]+[a-zA-Z0-9_]*/, function (t) {
-      if (reserved_tokens.has(t.value)) {
-          t.type = t.value.toUpperCase();
-      }
-      return t;
-    }), tk("OPEN", /\{/), tk("CLOSE", /}/), tk("COLON", /:/), tk("JSCRIPT", /\|/, function (t) {
-      var js="";
-      var lexer=t.lexer;
-      while (lexer.lexpos<lexer.lexdata.length) {
-        var c=lexer.lexdata[lexer.lexpos];
-        if (c=="\n")
-          break;
-        js+=c;
-        lexer.lexpos++;
-      }
-      if (js.endsWith(";")) {
-          js = js.slice(0, js.length-1);
-          lexer.lexpos--;
-      }
-      t.value = js;
-      return t;
-    }), tk("LPARAM", /\(/), tk("RPARAM", /\)/), tk("COMMA", /,/), tk("NUM", /[0-9]/), tk("SEMI", /;/), tk("NEWLINE", /\n/, function (t) {
-      t.lexer.lineno+=1;
-    }), tk("SPACE", / |\t/, function (t) {
-    })];
-    for (var rt of reserved_tokens) {
-        tokens.push(tk(rt.toUpperCase()));
-    }
-    var a=`
-  Loop {
-    eid : int;
-    flag : int;
-    index : int;
-    type : int;
-    
-    co : vec3;
-    no : vec3;
-    loop : int | eid(loop);
-    edges : array(e, int) | e.eid;
-    
-    loops : array(Loop);
-  }
-  `;
-    function errfunc(lexer) {
-      return true;
-    }
-    var lex=new lexer(tokens, errfunc);
-    console.log("Testing lexical scanner...");
-    lex.input(a);
-    var tok;
-    while (tok = lex.next()) {
-      console.log(tok.toString());
-    }
-    var parser=new parser(lex);
-    parser.input(a);
-    function p_Array(p) {
-      p.expect("ARRAY");
-      p.expect("LPARAM");
-      var arraytype=p_Type(p);
-      var itername="";
-      if (p.optional("COMMA")) {
-          itername = arraytype;
-          arraytype = p_Type(p);
-      }
-      p.expect("RPARAM");
-      return {type: "array", 
-     data: {type: arraytype, 
-      iname: itername}}
-    }
-    function p_Type(p) {
-      var tok=p.peek();
-      if (tok.type=="ID") {
-          p.next();
-          return {type: "struct", 
-       data: "\""+tok.value+"\""}
-      }
-      else 
-        if (basic_types.has(tok.type.toLowerCase())) {
-          p.next();
-          return {type: tok.type.toLowerCase()}
-      }
-      else 
-        if (tok.type=="ARRAY") {
-          return p_Array(p);
-      }
-      else {
-        p.error(tok, "invalid type "+tok.type);
-      }
-    }
-    function p_Field(p) {
-      var field={}
-      console.log("-----", p.peek().type);
-      field.name = p.expect("ID", "struct field name");
-      p.expect("COLON");
-      field.type = p_Type(p);
-      field.set = undefined;
-      field.get = undefined;
-      var tok=p.peek();
-      if (tok.type=="JSCRIPT") {
-          field.get = tok.value;
-          p.next();
-      }
-      tok = p.peek();
-      if (tok.type=="JSCRIPT") {
-          field.set = tok.value;
-          p.next();
-      }
-      p.expect("SEMI");
-      return field;
-    }
-    function p_Struct(p) {
-      var st={}
-      st.name = p.expect("ID", "struct name");
-      st.fields = [];
-      p.expect("OPEN");
-      while (1) {
-        if (p.at_end()) {
-            p.error(undefined);
-        }
-        else 
-          if (p.optional("CLOSE")) {
-            break;
-        }
-        else {
-          st.fields.push(p_Field(p));
-        }
-      }
-      return st;
-    }
-    var ret=p_Struct(parser);
-    console.log(JSON.stringify(ret));
-  }
-}, '/dev/fairmotion/src/util/parseutil.js');
 es6_module_define('typedwriter', [], function _typedwriter_module(_es6_module) {
   "use strict";
   class TypedCache  {
@@ -2352,7 +1942,7 @@ AppSettings {
     return ujob;
   }
 }, '/dev/fairmotion/src/core/UserSettings.js');
-es6_module_define('context', ["../editors/menubar/MenuBar.js", "../path.ux/scripts/controller/context.js", "../editors/console/console.js", "../editors/dopesheet/DopeSheetEditor.js", "../editors/curve/CurveEditor.js", "../editors/material/MaterialEditor.js", "./lib_api.js", "../editors/settings/SettingsEditor.js", "../curve/spline.js", "../path.ux/scripts/screen/FrameManager_ops.js", "../editors/ops/ops_editor.js", "../editors/editor_base.js", "./frameset.js", "./data_api/data_api.js", "../scene/scene.js", "../editors/viewport/view2d.js"], function _context_module(_es6_module) {
+es6_module_define('context', ["../editors/viewport/view2d.js", "./data_api/data_api.js", "../editors/console/console.js", "../editors/ops/ops_editor.js", "../path.ux/scripts/controller/context.js", "./lib_api.js", "../editors/dopesheet/DopeSheetEditor.js", "../editors/settings/SettingsEditor.js", "../editors/curve/CurveEditor.js", "../editors/editor_base.js", "../curve/spline.js", "../scene/scene.js", "../editors/material/MaterialEditor.js", "../editors/menubar/MenuBar.js", "../path.ux/scripts/screen/FrameManager_ops.js", "./frameset.js"], function _context_module(_es6_module) {
   var ContextOverlay=es6_import_item(_es6_module, '../path.ux/scripts/controller/context.js', 'ContextOverlay');
   var Context=es6_import_item(_es6_module, '../path.ux/scripts/controller/context.js', 'Context');
   class BaseContextOverlay extends ContextOverlay {
@@ -2438,6 +2028,12 @@ es6_module_define('context', ["../editors/menubar/MenuBar.js", "../path.ux/scrip
     }
     get  keymap_mpos() {
       return this._keymap_mpos;
+    }
+     keymap_mpos_save() {
+      return [this._keymap_mpos[0], this._keymap_mpos[1]];
+    }
+     keymap_mpos_load(ctx, data) {
+      return data;
     }
     get  dopesheet() {
       return Editor.context_area(DopeSheetEditor);
@@ -3009,7 +2605,7 @@ es6_module_define('toolstack', ["./data_api/data_api.js", "./toolprops.js", "./c
 `;
   var AppState=es6_import_item(_es6_module, './AppState.js', 'AppState');
 }, '/dev/fairmotion/src/core/toolstack.js');
-es6_module_define('AppState', ["./struct.js", "../curve/spline_base.js", "./lib_utils.js", "../config/config.js", "../path.ux/scripts/screen/ScreenArea.js", "../path.ux/scripts/platforms/electron/electron_api.js", "./toolops_api.js", "../editors/viewport/view2d.js", "./toolprops.js", "../path.ux/scripts/core/ui_base.js", "../editors/dopesheet/DopeSheetEditor.js", "./raster.js", "./toolstack.js", "./context.js", "../editors/all.js", "../editors/curve/CurveEditor.js", "./data_api/data_api.js", "../editors/theme.js", "./fileapi/fileapi.js", "./ajax.js", "../editors/menubar/MenuBar.js", "../editors/console/console.js", "../editors/editor_base.js", "../editors/material/MaterialEditor.js", "../path.ux/scripts/config/const.js", "../util/strutils.js", "../editors/settings/SettingsEditor.js", "./lib_api.js", "./notifications.js", "../path.ux/scripts/screen/FrameManager.js", "../scene/scene.js", "./frameset.js", "./startup/startup_file_example.js", "../editors/ops/ops_editor.js", "../path.ux/scripts/util/util.js", "../../platforms/platform.js", "./UserSettings.js", "./lib_api_typedefine.js", "../path.ux/scripts/screen/FrameManager_ops.js", "./startup/startup_file.js", "../editors/viewport/view2d_ops.js", "./jobs.js", "./data_api/data_api_pathux.js"], function _AppState_module(_es6_module) {
+es6_module_define('AppState', ["../editors/viewport/view2d_ops.js", "../../platforms/platform.js", "./notifications.js", "./frameset.js", "./lib_api.js", "./jobs.js", "./lib_api_typedefine.js", "../path.ux/scripts/screen/FrameManager.js", "../editors/dopesheet/DopeSheetEditor.js", "./data_api/data_api_pathux.js", "../curve/spline_base.js", "../editors/menubar/MenuBar.js", "../editors/settings/SettingsEditor.js", "./toolprops.js", "../path.ux/scripts/config/const.js", "../editors/all.js", "./toolstack.js", "../path.ux/scripts/util/util.js", "../editors/viewport/view2d.js", "../path.ux/scripts/core/ui_base.js", "../path.ux/scripts/screen/FrameManager_ops.js", "../editors/ops/ops_editor.js", "../editors/material/MaterialEditor.js", "../config/config.js", "../editors/curve/CurveEditor.js", "./toolops_api.js", "../scene/scene.js", "./context.js", "../editors/editor_base.js", "./startup/startup_file.js", "../editors/console/console.js", "../editors/theme.js", "../path.ux/scripts/screen/ScreenArea.js", "./fileapi/fileapi.js", "../util/strutils.js", "./struct.js", "./data_api/data_api.js", "./ajax.js", "./raster.js", "./startup/startup_file_example.js", "./lib_utils.js", "./UserSettings.js", "../path.ux/scripts/platforms/electron/electron_api.js"], function _AppState_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, '../editors/all.js');
   var platform=es6_import(_es6_module, '../../platforms/platform.js');
@@ -3817,6 +3413,7 @@ es6_module_define('AppState', ["./struct.js", "../curve/spline_base.js", "./lib_
                   area.on_destroy();
               }
           }
+          this.screen.unlisten();
           this.screen.destroy();
           this.screen.remove();
           this.screen = undefined;
@@ -10093,3 +9690,1299 @@ es6_module_define('theme', ["../util/util.js", "./ui_theme.js"], function _theme
     defaultHeight: 24}}
   _es6_module.add_export('DefaultTheme', DefaultTheme);
 }, '/dev/fairmotion/src/path.ux/scripts/core/theme.js');
+es6_module_define('ui', ["./ui_base.js", "../widgets/ui_widgets.js", "../config/const.js", "../util/vectormath.js", "../util/util.js", "../util/simple_events.js", "../widgets/ui_menu.js", "./ui_theme.js", "../util/html5_fileapi.js", "../toolsys/toolprop.js"], function _ui_module(_es6_module) {
+  var _ui=undefined;
+  var util=es6_import(_es6_module, '../util/util.js');
+  var vectormath=es6_import(_es6_module, '../util/vectormath.js');
+  var ui_base=es6_import(_es6_module, './ui_base.js');
+  var ui_widgets=es6_import(_es6_module, '../widgets/ui_widgets.js');
+  var toolprop=es6_import(_es6_module, '../toolsys/toolprop.js');
+  es6_import(_es6_module, '../util/html5_fileapi.js');
+  var HotKey=es6_import_item(_es6_module, '../util/simple_events.js', 'HotKey');
+  var CSSFont=es6_import_item(_es6_module, './ui_theme.js', 'CSSFont');
+  var theme=es6_import_item(_es6_module, './ui_base.js', 'theme');
+  var createMenu=es6_import_item(_es6_module, '../widgets/ui_menu.js', 'createMenu');
+  var startMenu=es6_import_item(_es6_module, '../widgets/ui_menu.js', 'startMenu');
+  let PropFlags=toolprop.PropFlags;
+  let PropSubTypes=toolprop.PropSubTypes;
+  let EnumProperty=toolprop.EnumProperty;
+  let Vector2=vectormath.Vector2, UIBase=ui_base.UIBase, PackFlags=ui_base.PackFlags, PropTypes=toolprop.PropTypes;
+  const DataPathError=ui_base.DataPathError;
+  _es6_module.add_export('DataPathError', DataPathError);
+  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
+  var list=function list(iter) {
+    let ret=[];
+    for (let item of iter) {
+        ret.push(item);
+    }
+    return ret;
+  }
+  class Label extends ui_base.UIBase {
+     constructor() {
+      super();
+      this._label = "";
+      this.dom = document.createElement("div");
+      this.dom.setAttribute("class", "_labelx");
+      let style=document.createElement("style");
+      style.textContent = `
+      div._labelx::selection {
+        color: none;
+        background: none;
+         -webkit-user-select:none;
+         user-select:none;
+      }
+    `;
+      this.shadow.appendChild(style);
+      this.shadow.appendChild(this.dom);
+      this.font = "LabelText";
+    }
+     init() {
+      this.dom.style["width"] = "max-content";
+    }
+    get  font() {
+      return this._font;
+    }
+    set  font(fontDefaultName) {
+      if (typeof fontDefaultName==="string") {
+          this._font = this.getDefault(fontDefaultName);
+          if (!this._font) {
+              console.warn("Invalid font", fontDefaultName);
+          }
+      }
+      else 
+        if (typeof fontDefaultName==="object"&&__instance_of(fontDefaultName, CSSFont)) {
+          this._font = fontDefaultName;
+      }
+      else {
+        console.warn("Invalid font", fontDefaultName);
+      }
+      this._updateFont();
+    }
+     on_disabled() {
+      super.on_disabled();
+      this._enabled_font = this.font;
+      this.font = "DefaultText";
+      this._updateFont();
+    }
+     on_enabled() {
+      super.on_enabled();
+      this.font = this._enabled_font;
+      this._updateFont();
+    }
+     _updateFont() {
+      let font=this._font;
+      if (!font)
+        return ;
+      this.dom.style["font"] = font.genCSS();
+      this.dom.style["color"] = font.color;
+    }
+     updateDataPath() {
+      if (this.ctx===undefined) {
+          return ;
+      }
+      let path=this.getAttribute("datapath");
+      let prop=this.getPathMeta(this.ctx, path);
+      let val=this.getPathValue(this.ctx, path);
+      if (val===undefined) {
+          return ;
+      }
+      if (prop!==undefined&&prop.type==PropTypes.INT) {
+          val = val.toString(prop.radix);
+          if (prop.radix==2) {
+              val = "0b"+val;
+          }
+          else 
+            if (prop.radix==16) {
+              val+="h";
+          }
+      }
+      else 
+        if (prop!==undefined&&prop.type==PropTypes.FLOAT&&val!==Math.floor(val)) {
+          val = val.toFixed(prop.decimalPlaces);
+      }
+      val = ""+val;
+      this.dom.innerText = this._label+val;
+    }
+     update() {
+      if (this.font!==this._last_font) {
+          this._last_font = this.font;
+          this._updateFont();
+      }
+      this.dom.style["pointer-events"] = this.style["pointer-events"];
+      if (this.hasAttribute("datapath")) {
+          this.updateDataPath();
+      }
+    }
+    get  text() {
+      return this._label;
+    }
+    set  text(text) {
+      this._label = text;
+      if (!this.hasAttribute("datapath")) {
+          this.dom.innerText = text;
+      }
+    }
+    static  define() {
+      return {tagname: "label-x"}
+    }
+  }
+  _ESClass.register(Label);
+  _es6_module.add_class(Label);
+  Label = _es6_module.add_export('Label', Label);
+  ui_base.UIBase.register(Label);
+  class Container extends ui_base.UIBase {
+     constructor() {
+      super();
+      this.dataPrefix = '';
+      this.inherit_packflag = 0;
+      let style=this.styletag = document.createElement("style");
+      style.textContent = `
+    `;
+      this.shadow.appendChild(style);
+    }
+     saveData() {
+      return {scrollTop: this.scrollTop, 
+     scrollLeft: this.scrollLeft}
+    }
+     loadData(obj) {
+      if (!obj)
+        return ;
+      let x=obj.scrollLeft||0;
+      let y=obj.scrollTop||0;
+      this.doOnce(() =>        {
+        this.scrollTo(x, y);
+      }, 12);
+    }
+     init() {
+      this.style["display"] = "flex";
+      this.style["flex-direction"] = "column";
+      this.style["flex-wrap"] = "nowrap";
+      this.setCSS();
+      super.init();
+      this.setAttribute("class", "containerx");
+    }
+     useIcons(enabled=true) {
+      if (enabled) {
+          this.packflag|=PackFlags.USE_ICONS;
+          this.inherit_packflag|=PackFlags.USE_ICONS;
+      }
+      else {
+        this.packflag&=~PackFlags.USE_ICONS;
+        this.inherit_packflag&=~PackFlags.USE_ICONS;
+      }
+    }
+     wrap(mode="wrap") {
+      this.style["flex-wrap"] = mode;
+      return this;
+    }
+     noMarginsOrPadding() {
+      super.noMarginsOrPadding();
+      let keys=["margin", "padding", "margin-block-start", "margin-block-end"];
+      keys = keys.concat(["padding-block-start", "padding-block-end"]);
+      for (let k of keys) {
+          this.style[k] = "0px";
+      }
+      return this;
+    }
+     setCSS() {
+      let rest='';
+      let add=(style) =>        {
+        let val=this.getDefault(style);
+        if (val!==undefined) {
+            rest+=`  ${style} = ${val};\n`;
+            this.style[style] = val;
+        }
+      };
+      add("border-radius");
+      add("border");
+      add("border-top");
+      add("border-bottom");
+      add("border-left");
+      add("border-right");
+      this.styletag.textContent = `div.containerx {
+        background-color : ${this.getDefault("DefaultPanelBG")};
+        ${rest}
+      }
+      `;
+    }
+     overrideDefault(key, val) {
+      super.overrideDefault(key, val);
+      this.setCSS();
+      return this;
+    }
+     strip(m=this.getDefault("oneAxisPadding"), m2=1, themeClass="strip") {
+      let horiz=__instance_of(this, RowFrame);
+      horiz = horiz||this.style["flex-direction"]==="row";
+      let flag=horiz ? PackFlags.STRIP_HORIZ : PackFlags.STRIP_VERT;
+      let strip=(horiz ? this.row() : this.col()).oneAxisPadding(m, m2);
+      strip.packflag|=flag;
+      if (themeClass in theme) {
+          strip.overrideClass(themeClass);
+          strip.background = strip.getDefault("DefaultPanelBG");
+          strip.setCSS();
+      }
+      return strip;
+    }
+     oneAxisMargin(m=this.getDefault("oneAxisMargin"), m2=0) {
+      this.style["margin-top"] = this.style["margin-bottom"] = ""+m+"px";
+      this.style["margin-left"] = this.style["margin-right"] = ""+m2+"px";
+      return this;
+    }
+     oneAxisPadding(m=this.getDefault("oneAxisPadding"), m2=0) {
+      this.style["padding-top"] = this.style["padding-bottom"] = ""+m+"px";
+      this.style["padding-left"] = this.style["padding-right"] = ""+m2+"px";
+      return this;
+    }
+     setMargin(m) {
+      this.style["margin"] = m+"px";
+      return this;
+    }
+     setPadding(m) {
+      this.style["padding"] = m+"px";
+      return this;
+    }
+     setSize(width, height) {
+      if (width!==undefined) {
+          if (typeof width=="number")
+            this.style["width"] = this.div.style["width"] = ~~width+"px";
+          else 
+            this.style["width"] = this.div.style["width"] = width;
+      }
+      if (height!==undefined) {
+          if (typeof height=="number")
+            this.style["height"] = this.div.style["height"] = ~~height+"px";
+          else 
+            this.style["height"] = this.div.style["height"] = height;
+      }
+      return this;
+    }
+    set  background(bg) {
+      this.__background = bg;
+      this.styletag.textContent = `div.containerx {
+        background-color : ${bg};
+      }
+    `;
+      this.style["background-color"] = bg;
+    }
+    static  define() {
+      return {tagname: "container-x"}
+    }
+     save() {
+
+    }
+     load() {
+
+    }
+     saveVisibility() {
+      localStorage[this.storagePrefix+"_settings"] = JSON.stringify(this);
+      return this;
+    }
+     loadVisibility() {
+      let key=this.storagePrefix+"_settings";
+      let ok=true;
+      if (key in localStorage) {
+          console.log("loading UI visibility state. . .");
+          try {
+            this.loadJSON(JSON.parse(localStorage[key]));
+          }
+          catch (error) {
+              util.print_stack(error);
+              ok = false;
+          }
+      }
+      return ok;
+    }
+     toJSON() {
+      let ret={opened: !this.closed};
+      return Object.assign(super.toJSON(), ret);
+    }
+     _ondestroy() {
+      this._forEachChildWidget((n) =>        {
+        n._ondestroy();
+      });
+      super._ondestroy();
+    }
+     loadJSON(obj) {
+      return this;
+    }
+     redrawCurves() {
+      throw new Error("Implement me (properly!)");
+      if (this.closed)
+        return ;
+      for (let cw of this.curve_widgets) {
+          cw.draw();
+      }
+    }
+     listen() {
+      window.setInterval(() =>        {
+        this.update();
+      }, 150);
+    }
+    get  children() {
+      let list=[];
+      this._forEachChildWidget((n) =>        {
+        list.push(n);
+      });
+      return list;
+    }
+     update() {
+      super.update();
+    }
+     appendChild(child) {
+      if (__instance_of(child, ui_base.UIBase)) {
+          child.ctx = this.ctx;
+          child.parentWidget = this;
+          this.shadow.appendChild(child);
+          if (child.onadd) {
+              child.onadd();
+          }
+          return ;
+      }
+      return super.appendChild(child);
+    }
+     clear(trigger_on_destroy=true) {
+      for (let child of this.children) {
+          if (__instance_of(child, ui_base.UIBase)) {
+              child.remove(trigger_on_destroy);
+          }
+      }
+    }
+     removeChild(child, trigger_on_destroy=true) {
+      let ret=super.removeChild(child);
+      if (child.on_remove) {
+          child.on_remove();
+      }
+      if (trigger_on_destroy&&child.on_destroy) {
+          child.on_destroy();
+      }
+      child.parentWidget = undefined;
+      return ret;
+    }
+     prepend(child) {
+      if (__instance_of(child, UIBase)) {
+          this._prepend(child);
+      }
+      else {
+        super.prepend(child);
+      }
+    }
+     _prepend(child) {
+      return this._add(child, true);
+    }
+     add(child) {
+      return this._add(child);
+    }
+     insert(i, ch) {
+      ch.parentWidget = this;
+      ch.ctx = this;
+      if (i>=this.shadow.childNodes.length) {
+          this.add(ch);
+      }
+      else {
+        this.shadow.insertBefore(ch, list(this.children)[i]);
+      }
+      if (ch.onadd) {
+          ch.onadd();
+      }
+    }
+     _add(child, prepend=false) {
+      if (__instance_of(child, NodeList)) {
+          throw new Error("eek!");
+      }
+      child.ctx = this.ctx;
+      child.parentWidget = this;
+      child._useDataPathUndo = this._useDataPathUndo;
+      if (prepend) {
+          this.shadow.prepend(child);
+      }
+      else {
+        this.shadow.appendChild(child);
+      }
+      if (child.onadd)
+        child.onadd();
+      return child;
+    }
+     dynamicMenu(title, list, packflag=0) {
+      return this.menu(title, list, packflag);
+    }
+     menu(title, list, packflag=0) {
+      let dbox=document.createElement("dropbox-x");
+      dbox._name = title;
+      dbox.setAttribute("simple", true);
+      dbox.setAttribute("name", title);
+      dbox._build_menu = function () {
+        if (this._menu!==undefined&&this._menu.parentNode!==undefined) {
+            this._menu.remove();
+        }
+        this._menu = createMenu(this.ctx, title, list);
+        return this._menu;
+      };
+      dbox.packflag|=packflag;
+      dbox.inherit_packflag|=packflag;
+      this._add(dbox);
+      return dbox;
+    }
+     tool(path_or_cls, packflag=0, create_cb=undefined) {
+      let cls;
+      if (typeof path_or_cls=="string") {
+          if (this.ctx===undefined) {
+              console.warn("this.ctx was undefined in tool()");
+              return ;
+          }
+          cls = this.ctx.api.parseToolPath(path_or_cls);
+          if (cls===undefined) {
+              console.warn("Unknown tool for toolpath \""+path_or_cls+"\"");
+              return ;
+          }
+      }
+      else {
+        cls = path_or_cls;
+      }
+      packflag|=this.inherit_packflag;
+      let hotkey;
+      if (create_cb===undefined) {
+          create_cb = (cls) =>            {
+            return this.ctx.api.createTool(this.ctx, path_or_cls);
+          };
+      }
+      let cb=() =>        {
+        console.log("tool run");
+        let toolob=create_cb(cls);
+        this.ctx.api.execTool(this.ctx, toolob);
+      };
+      let def=cls.tooldef();
+      let tooltip=def.description===undefined ? def.uiname : def.description;
+      if (def.hotkey!==undefined) {
+          tooltip+="\n\t"+def.hotkey;
+          hotkey = def.hotkey;
+      }
+      else {
+        let path=path_or_cls;
+        if (typeof path!="string") {
+            path = def.toolpath;
+        }
+        let hotkey=this.ctx.api.getToolPathHotkey(this.ctx, path);
+        if (hotkey!==undefined) {
+            tooltip+="\n\tHotkey: "+hotkey;
+        }
+      }
+      let ret;
+      if (def.icon!==undefined&&(packflag&PackFlags.USE_ICONS)) {
+          ret = this.iconbutton(def.icon, tooltip, cb);
+          if (packflag&PackFlags.SMALL_ICON) {
+              ret.iconsheet = ui_base.IconSheets.SMALL;
+          }
+          else {
+            ret.iconsheet = ui_base.IconSheets.LARGE;
+          }
+          ret.packflag|=packflag;
+      }
+      else {
+        ret = this.button(def.uiname, cb);
+        ret.description = tooltip;
+        ret.packflag|=packflag;
+      }
+      return ret;
+    }
+     textbox(inpath, text="", cb=undefined, packflag=0) {
+      let path;
+      if (inpath)
+        path = this._joinPrefix(inpath);
+      packflag|=this.inherit_packflag;
+      let ret=document.createElement("textbox-x");
+      if (path!==undefined) {
+          ret.setAttribute("datapath", path);
+      }
+      ret.ctx = this.ctx;
+      ret.parentWidget = this;
+      ret._init();
+      ret.setCSS();
+      ret.update();
+      ret.packflag|=packflag;
+      ret.onchange = cb;
+      ret.text = text;
+      this._add(ret);
+      return ret;
+    }
+     pathlabel(inpath, label="") {
+      let path;
+      if (inpath)
+        path = this._joinPrefix(inpath);
+      let ret=document.createElement("label-x");
+      ret.text = label;
+      ret.setAttribute("datapath", path);
+      this._add(ret);
+      return ret;
+    }
+     label(text) {
+      let ret=document.createElement("label-x");
+      ret.text = text;
+      this._add(ret);
+      return ret;
+    }
+     helppicker() {
+      let ret=this.iconbutton(ui_base.Icons.HELP, "Help Picker", () =>        {
+        this.getScreen().hintPickerTool();
+      });
+      if (util.isMobile()) {
+          ret.iconsheet = 2;
+      }
+      if (ret.ctx) {
+          ret._init();
+          ret.setCSS();
+      }
+      return ret;
+    }
+     iconbutton(icon, description, cb, thisvar, packflag=0) {
+      packflag|=this.inherit_packflag;
+      let ret=document.createElement("iconbutton-x");
+      ret.packflag|=packflag;
+      ret.setAttribute("icon", icon);
+      ret.description = description;
+      ret.icon = icon;
+      if (packflag&PackFlags.SMALL_ICON) {
+          ret.iconsheet = ui_base.IconSheets.SMALL;
+      }
+      else {
+        ret.iconsheet = ui_base.IconSheets.LARGE;
+      }
+      ret.onclick = cb;
+      this._add(ret);
+      return ret;
+    }
+     button(label, cb, thisvar, id, packflag=0) {
+      packflag|=this.inherit_packflag;
+      let ret=document.createElement("button-x");
+      ret.packflag|=packflag;
+      ret.setAttribute("name", label);
+      ret.setAttribute("buttonid", id);
+      ret.onclick = cb;
+      this._add(ret);
+      return ret;
+    }
+     _joinPrefix(path) {
+      let prefix=this.dataPrefix.trim();
+      return prefix+path;
+    }
+     colorbutton(inpath, packflag, mass_set_path=undefined) {
+      packflag|=this.inherit_packflag;
+      let ret=document.createElement("color-picker-button-x");
+      if (inpath!==undefined) {
+          ret.setAttribute("datapath", inpath);
+      }
+      if (mass_set_path!==undefined) {
+          ret.setAttribute("mass_set_path", mass_set_path);
+      }
+      ret.packflag|=packflag;
+      this._add(ret);
+      return ret;
+    }
+     noteframe(packflag=0) {
+      let ret=document.createElement("noteframe-x");
+      ret.packflag|=this.inherit_packflag|packflag;
+      this._add(ret);
+      return ret;
+    }
+     curve1d(inpath, packflag=0, mass_set_path=undefined) {
+      packflag|=this.inherit_packflag;
+      let ret=document.createElement("curve-widget-x");
+      ret.ctx = this.ctx;
+      ret.packflag|=packflag;
+      if (inpath)
+        ret.setAttribute("datapath", inpath);
+      if (mass_set_path)
+        ret.setAttribute("mass_set_path", mass_set_path);
+      this.add(ret);
+      return ret;
+    }
+     prop(inpath, packflag=0, mass_set_path=undefined) {
+      packflag|=this.inherit_packflag;
+      let path=this._joinPrefix(inpath);
+      let rdef=this.ctx.api.resolvePath(this.ctx, path, true);
+      if (rdef===undefined||rdef.prop===undefined) {
+          console.warn("Unknown property at path", path, this.ctx.api.resolvePath(this.ctx, path, true));
+          return ;
+      }
+      let prop=rdef.prop;
+      function makeUIName(name) {
+        if (typeof name==="number"&&isNaN(name)) {
+            console.warn("Subkey error in data api", inpath);
+            return ""+name;
+        }
+        name = ""+name;
+        name = name[0].toUpperCase()+name.slice(1, name.length).toLowerCase();
+        name = name.replace(/_/g, " ");
+        return name;
+      }
+      if (prop.type===PropTypes.STRING) {
+          let ret;
+          if (prop.multiLine) {
+              ret = this.textarea(inpath, rdef.value, packflag, mass_set_path);
+          }
+          else {
+            ret = this.textbox(inpath);
+            if (mass_set_path) {
+                ret.setAttribute("mass_set_path", mass_set_path);
+            }
+          }
+          ret.packflag|=packflag;
+          return ret;
+      }
+      else 
+        if (prop.type===PropTypes.CURVE) {
+          return this.curve1d(path, packflag, mass_set_path);
+      }
+      else 
+        if (prop.type===PropTypes.INT||prop.type===PropTypes.FLOAT) {
+          let ret;
+          if (packflag&PackFlags.SIMPLE_NUMSLIDERS) {
+              ret = this.simpleslider(inpath, {packflag: packflag});
+          }
+          else {
+            ret = this.slider(inpath, {packflag: packflag});
+          }
+          ret.packflag|=packflag;
+          if (mass_set_path) {
+              ret.setAttribute("mass_set_path", mass_set_path);
+          }
+          return ret;
+      }
+      else 
+        if (prop.type===PropTypes.BOOL) {
+          return this.check(inpath, prop.uiname, packflag, mass_set_path);
+      }
+      else 
+        if (prop.type===PropTypes.ENUM) {
+          if (rdef.subkey!==undefined) {
+              let subkey=rdef.subkey;
+              let name=rdef.prop.ui_value_names[rdef.subkey];
+              if (name===undefined) {
+                  name = makeUIName(rdef.subkey);
+              }
+              let check=this.check(inpath, rdef.prop.ui_value_names[subkey], packflag, mass_set_path);
+              let tooltip=rdef.prop.descriptions[subkey];
+              check.description = tooltip===undefined ? rdef.prop.ui_value_names[subkey] : tooltip;
+              check.icon = rdef.prop.iconmap[rdef.subkey];
+              return check;
+          }
+          if (!(packflag&PackFlags.USE_ICONS)) {
+              let val;
+              try {
+                val = this.ctx.api.getValue(this.ctx, path);
+              }
+              catch (error) {
+                  if (!(__instance_of(error, DataPathError))) {
+                      throw error;
+                  }
+              }
+              this.listenum(inpath, undefined, undefined, undefined, undefined, undefined, packflag);
+          }
+          else {
+            this.checkenum(inpath, undefined, packflag);
+          }
+      }
+      else 
+        if (prop.type&(PropTypes.VEC2|PropTypes.VEC3|PropTypes.VEC4)) {
+          if (rdef.subkey!==undefined) {
+              let ret;
+              if (packflag&PackFlags.SIMPLE_NUMSLIDERS)
+                ret = this.simpleslider(path, {packflag: packflag});
+              else 
+                ret = this.slider(path, {packflag: packflag});
+              ret.packflag|=packflag;
+              return ret;
+          }
+          else 
+            if (prop.subtype===PropSubTypes.COLOR) {
+              return this.colorbutton(inpath, packflag, mass_set_path);
+          }
+          else {
+            let ret=document.createElement("vector-panel-x");
+            ret.packflag|=packflag;
+            if (inpath) {
+                ret.setAttribute("datapath", inpath);
+            }
+            if (mass_set_path) {
+                ret.setAttribute("mass_set_path", mass_set_path);
+            }
+            this.add(ret);
+            return ret;
+          }
+      }
+      else 
+        if (prop.type===PropTypes.FLAG) {
+          if (rdef.subkey!==undefined) {
+              let tooltip=rdef.prop.descriptions[rdef.subkey];
+              let name=rdef.prop.ui_value_names[rdef.subkey];
+              if (typeof rdef.subkey==="number") {
+                  name = rdef.prop.keys[rdef.subkey];
+                  if (name&&name in rdef.prop.ui_value_names) {
+                      name = rdef.prop.ui_value_names[name];
+                  }
+                  else {
+                    name = makeUIName(name ? name : "(error)");
+                  }
+              }
+              if (name===undefined) {
+                  name = "(error)";
+              }
+              let ret=this.check(inpath, name, packflag, mass_set_path);
+              ret.icon = rdef.prop.iconmap[rdef.subkey];
+              if (tooltip) {
+                  ret.description = tooltip;
+              }
+          }
+          else {
+            for (let k in prop.values) {
+                let name=prop.ui_value_names[k];
+                let tooltip=prop.descriptions[k];
+                if (name===undefined) {
+                    name = makeUIName(k);
+                }
+                let ret=this.check(`${inpath}[${k}]`, name, packflag, mass_set_path);
+                if (tooltip) {
+                    ret.description = tooltip;
+                }
+            }
+          }
+      }
+    }
+     iconcheck(inpath, icon, name, mass_set_path) {
+      ret = document.createElement("iconcheck-x");
+      ret.icon = icon;
+      ret.description = name;
+      if (inpath) {
+          ret.setAttribute("datapath", inpath);
+      }
+      if (mass_set_path) {
+          ret.setAttribute("mass_set_path", mass_set_path);
+      }
+      this.add(ret);
+      return ret;
+    }
+     check(inpath, name, packflag=0, mass_set_path=undefined) {
+      packflag|=this.inherit_packflag;
+      let path=this._joinPrefix(inpath);
+      let ret;
+      if (packflag&PackFlags.USE_ICONS) {
+          ret = document.createElement("iconcheck-x");
+          if (packflag&PackFlags.SMALL_ICON) {
+              ret.iconsheet = ui_base.IconSheets.SMALL;
+          }
+      }
+      else {
+        ret = document.createElement("check-x");
+      }
+      ret.packflag|=packflag;
+      ret.label = name;
+      ret.noMarginsOrPadding();
+      if (inpath) {
+          ret.setAttribute("datapath", path);
+      }
+      if (mass_set_path) {
+          ret.setAttribute("mass_set_path", mass_set_path);
+      }
+      this._add(ret);
+      return ret;
+    }
+     checkenum(inpath, name, packflag, enummap, defaultval, callback, iconmap, mass_set_path) {
+      if (typeof name==="object"&&name!==null) {
+          let args=name;
+          name = args.name;
+          packflag = args.packflag;
+          enummap = args.enummap;
+          defaultval = args.defaultval;
+          callback = args.callback;
+          iconmap = args.iconmap;
+          mass_set_path = args.mass_set_path;
+      }
+      packflag = packflag===undefined ? 0 : packflag;
+      packflag|=this.inherit_packflag;
+      let path=this._joinPrefix(inpath);
+      let has_path=path!==undefined;
+      let prop;
+      if (path!==undefined) {
+          prop = this.ctx.api.resolvePath(this.ctx, path, true);
+          if (prop!==undefined)
+            prop = prop.prop;
+      }
+      if (path!==undefined) {
+          if (prop===undefined) {
+              console.warn("Bad path in checkenum", path);
+              return ;
+          }
+          let frame;
+          if (packflag&PackFlags.VERTICAL) {
+              frame = this.col();
+          }
+          else {
+            frame = this.row();
+          }
+          frame.oneAxisPadding();
+          frame.setCSS.after(frame.background = this.getDefault("BoxSub2BG"));
+          if (packflag&PackFlags.USE_ICONS) {
+              for (let key in prop.values) {
+                  let check=frame.check(inpath+"["+key+"]", "", packflag);
+                  check.icon = prop.iconmap[key];
+                  check.drawCheck = false;
+                  check.style["padding"] = "0px";
+                  check.style["margin"] = "0px";
+                  check.dom.style["padding"] = "0px";
+                  check.dom.style["margin"] = "0px";
+                  check.description = prop.descriptions[key];
+              }
+          }
+          else {
+            if (name===undefined) {
+                name = prop.uiname;
+            }
+            frame.label(name).font = "TitleText";
+            let checks={};
+            let ignorecb=false;
+            function makecb(key) {
+              return () =>                {
+                if (ignorecb)
+                  return ;
+                ignorecb = true;
+                for (let k in checks) {
+                    if (k!==key) {
+                        checks[k].checked = false;
+                    }
+                }
+                ignorecb = false;
+                if (callback) {
+                    callback(key);
+                }
+              }
+            }
+            for (let key in prop.values) {
+                let check=frame.check(inpath+" = "+prop.values[key], prop.ui_value_names[key]);
+                checks[key] = check;
+                if (mass_set_path) {
+                    check.setAttribute("mass_set_path", mass_set_path);
+                }
+                check.description = prop.descriptions[prop.keys[key]];
+                if (!check.description) {
+                    check.description = ""+prop.ui_value_names[key];
+                }
+                check.onchange = makecb(key);
+            }
+          }
+      }
+    }
+     checkenum_panel(inpath, name, packflag=0, callback=undefined, mass_set_path=undefined, prop=undefined) {
+      packflag = packflag===undefined ? 0 : packflag;
+      packflag|=this.inherit_packflag;
+      let path=this._joinPrefix(inpath);
+      let has_path=path!==undefined;
+      if (path!==undefined&&prop===undefined) {
+          prop = this.ctx.api.resolvePath(this.ctx, path, true);
+          if (prop!==undefined)
+            prop = prop.prop;
+      }
+      if (!name&&prop) {
+          name = prop.uiname;
+      }
+      if (path!==undefined) {
+          if (prop===undefined) {
+              console.warn("Bad path in checkenum", path);
+              return ;
+          }
+          let frame=this.panel(name, name, packflag);
+          frame.oneAxisPadding();
+          frame.setCSS.after(frame.background = this.getDefault("BoxSub2BG"));
+          if (packflag&PackFlags.USE_ICONS) {
+              for (let key in prop.values) {
+                  let check=frame.check(inpath+" == "+prop.values[key], "", packflag);
+                  check.icon = prop.iconmap[key];
+                  check.drawCheck = false;
+                  check.style["padding"] = "0px";
+                  check.style["margin"] = "0px";
+                  check.dom.style["padding"] = "0px";
+                  check.dom.style["margin"] = "0px";
+                  check.description = prop.descriptions[key];
+              }
+          }
+          else {
+            if (name===undefined) {
+                name = prop.uiname;
+            }
+            frame.label(name).font = "TitleText";
+            let checks={};
+            let ignorecb=false;
+            function makecb(key) {
+              return () =>                {
+                if (ignorecb)
+                  return ;
+                ignorecb = true;
+                for (let k in checks) {
+                    if (k!==key) {
+                        checks[k].checked = false;
+                    }
+                }
+                ignorecb = false;
+                if (callback) {
+                    callback(key);
+                }
+              }
+            }
+            for (let key in prop.values) {
+                let check=frame.check(inpath+" = "+prop.values[key], prop.ui_value_names[key]);
+                checks[key] = check;
+                if (mass_set_path) {
+                    check.setAttribute("mass_set_path", mass_set_path);
+                }
+                check.description = prop.descriptions[prop.keys[key]];
+                if (!check.description) {
+                    check.description = ""+prop.ui_value_names[key];
+                }
+                check.onchange = makecb(key);
+            }
+          }
+      }
+    }
+     listenum(inpath, name, enumDef, defaultval, callback, iconmap, packflag=0) {
+      packflag|=this.inherit_packflag;
+      if (name&&typeof name==="object") {
+          let args=name;
+          name = args.name;
+          enumDef = args.enumDef;
+          defaultval = args.defaultval;
+          callback = args.callback;
+          iconmap = args.iconmap;
+          packflag = args.packflag||0;
+      }
+      let path;
+      if (inpath!==undefined) {
+          path = this._joinPrefix(inpath);
+      }
+      let ret=document.createElement("dropbox-x");
+      if (enumDef!==undefined) {
+          if (__instance_of(enumDef, toolprop.EnumProperty)) {
+              ret.prop = enumDef;
+          }
+          else {
+            ret.prop = new toolprop.EnumProperty(defaultval, enumDef, path, name);
+          }
+          if (iconmap!==undefined) {
+              ret.prop.addIcons(iconmap);
+          }
+      }
+      else {
+        let res=this.ctx.api.resolvePath(this.ctx, path, true);
+        if (res!==undefined) {
+            ret.prop = res.prop;
+            name = name===undefined ? res.prop.uiname : name;
+        }
+      }
+      if (path!==undefined) {
+          ret.setAttribute("datapath", path);
+      }
+      ret.setAttribute("name", name);
+      if (defaultval) {
+          ret.setValue(defaultval);
+      }
+      ret.onchange = callback;
+      ret.onselect = callback;
+      ret.packflag|=packflag;
+      this._add(ret);
+      return ret;
+    }
+     getroot() {
+      let p=this;
+      while (p.parent!==undefined) {
+        p = p.parent;
+      }
+      return p;
+    }
+     curve(id, name, default_preset, packflag=0) {
+      packflag|=this.inherit_packflag;
+      throw new Error("implement me!");
+    }
+     simpleslider(inpath, name, defaultval, min, max, step, is_int, do_redraw, callback, packflag=0) {
+      if (arguments.length===2||typeof name==="object") {
+          let args=Object.assign({}, name);
+          args.packflag = (args.packflag||0)|PackFlags.SIMPLE_NUMSLIDERS;
+          return this.slider(inpath, args);
+      }
+      else {
+        return this.slider(inpath, name, defaultval, min, max, step, is_int, do_redraw, callback, packflag|PackFlags.SIMPLE_NUMSLIDERS);
+      }
+    }
+     slider(inpath, name, defaultval, min, max, step, is_int, do_redraw, callback, packflag=0) {
+      if (arguments.length===2||typeof name==="object") {
+          let args=name;
+          name = args.name;
+          defaultval = args.defaultval;
+          min = args.min;
+          max = args.max;
+          step = args.step;
+          is_int = args.is_int||args.isInt;
+          do_redraw = args.do_redraw;
+          callback = args.callback;
+          packflag = args.packflag||0;
+      }
+      packflag|=this.inherit_packflag;
+      let ret;
+      if (inpath) {
+          let rdef=this.ctx.api.resolvePath(this.ctx, inpath, true);
+          if (rdef&&rdef.prop&&(rdef.prop.flag&PropFlags.SIMPLE_SLIDER)) {
+              packflag|=PackFlags.SIMPLE_NUMSLIDERS;
+          }
+          if (rdef&&rdef.prop&&(rdef.prop.flag&PropFlags.FORCE_ROLLER_SLIDER)) {
+              packflag|=PackFlags.FORCE_ROLLER_SLIDER;
+          }
+      }
+      if (packflag&PackFlags.SIMPLE_NUMSLIDERS&&!(packflag&PackFlags.FORCE_ROLLER_SLIDER)) {
+          ret = document.createElement("numslider-simple-x");
+      }
+      else 
+        if (cconst.useNumSliderTextboxes&&!(packflag&PackFlags.NO_NUMSLIDER_TEXTBOX)) {
+          ret = document.createElement("numslider-textbox-x");
+      }
+      else {
+        ret = document.createElement("numslider-x");
+      }
+      ret.packflag|=packflag;
+      let decimals;
+      if (inpath) {
+          let path=this._joinPrefix(inpath);
+          ret.setAttribute("datapath", path);
+          let rdef;
+          try {
+            rdef = this.ctx.api.resolvePath(this.ctx, path, true);
+          }
+          catch (error) {
+              if (__instance_of(error, DataPathError)) {
+                  util.print_stack(error);
+                  console.warn("Error resolving property", path);
+              }
+              else {
+                throw error;
+              }
+          }
+          if (rdef&&rdef.prop) {
+              let prop=rdef.prop;
+              let range=prop.uiRange!==undefined ? prop.uiRange : prop.range;
+              range = range===undefined ? [-100000, 100000] : range;
+              min = min===undefined ? range[0] : min;
+              max = max===undefined ? range[1] : max;
+              is_int = is_int===undefined ? prop.type===PropTypes.INT : is_int;
+              name = name===undefined ? prop.uiname : name;
+              step = step===undefined ? prop.step : step;
+              step = step===undefined ? (is_int ? 1 : 0.1) : step;
+              decimals = decimals===undefined ? prop.decimalPlaces : decimals;
+          }
+          else {
+            console.warn("warning, failed to lookup property info for path", path);
+          }
+      }
+      if (name) {
+          ret.setAttribute("name", name);
+      }
+      if (min!==undefined) {
+          ret.setAttribute("min", min);
+      }
+      if (max!==undefined) {
+          ret.setAttribute("max", max);
+      }
+      if (defaultval!==undefined) {
+          ret.setValue(defaultval);
+      }
+      if (is_int)
+        ret.setAttribute("integer", is_int);
+      if (decimals!==undefined) {
+          ret.decimalPlaces = decimals;
+      }
+      if (callback) {
+          ret.onchange = callback;
+      }
+      this._add(ret);
+      return ret;
+    }
+     treeview() {
+      let ret=document.createElement("tree-view-x");
+      ret.ctx = this.ctx;
+      this.add(ret);
+      return ret;
+    }
+     panel(name, id, packflag=0) {
+      id = id===undefined ? name : id;
+      packflag|=this.inherit_packflag;
+      let ret=document.createElement("panelframe-x");
+      ret.packflag|=packflag;
+      ret.inherit_packflag|=packflag;
+      ret.setAttribute("title", name);
+      ret.setAttribute("id", id);
+      this._add(ret);
+      ret.ctx = this.ctx;
+      ret.contents.ctx = ret.ctx;
+      return ret.contents;
+    }
+     row(packflag=0) {
+      packflag|=this.inherit_packflag;
+      let ret=document.createElement("rowframe-x");
+      ret.packflag|=packflag;
+      ret.inherit_packflag|=packflag;
+      this._add(ret);
+      ret.ctx = this.ctx;
+      return ret;
+    }
+     listbox(packflag=0) {
+      packflag|=this.inherit_packflag;
+      let ret=document.createElement("listbox-x");
+      ret.packflag|=packflag;
+      ret.inherit_packflag|=packflag;
+      this._add(ret);
+      return ret;
+    }
+     table(packflag=0) {
+      packflag|=this.inherit_packflag;
+      let ret=document.createElement("tableframe-x");
+      ret.packflag|=packflag;
+      ret.inherit_packflag|=packflag;
+      this._add(ret);
+      return ret;
+    }
+     col(packflag=0) {
+      packflag|=this.inherit_packflag;
+      let ret=document.createElement("colframe-x");
+      ret.packflag|=packflag;
+      ret.inherit_packflag|=packflag;
+      this._add(ret);
+      return ret;
+    }
+     colorPicker(inpath, packflag=0, mass_set_path=undefined) {
+      let path;
+      if (inpath)
+        path = this._joinPrefix(inpath);
+      packflag|=this.inherit_packflag;
+      let ret=document.createElement("colorpicker-x");
+      packflag|=PackFlags.SIMPLE_NUMSLIDERS;
+      ret.packflag|=packflag;
+      ret.inherit_packflag|=packflag;
+      ret.ctx = this.ctx;
+      ret.parentWidget = this;
+      ret._init();
+      ret.packflag|=packflag;
+      ret.inherit_packflag|=packflag;
+      ret.constructor.setDefault(ret);
+      if (path!==undefined) {
+          ret.setAttribute("datapath", path);
+      }
+      console.warn("mass_set_path", mass_set_path);
+      if (mass_set_path) {
+          ret.setAttribute("mass_set_path", mass_set_path);
+      }
+      window.colorpicker = ret;
+      this._add(ret);
+      return ret;
+    }
+     textarea(datapath=undefined, value="", packflag=0, mass_set_path=undefined) {
+      packflag|=this.inherit_packflag;
+      let ret=document.createElement("rich-text-editor-x");
+      ret.ctx = this.ctx;
+      ret.packflag|=packflag;
+      if (value!==undefined) {
+          ret.value = value;
+      }
+      if (datapath)
+        ret.setAttribute("datapath", datapath);
+      if (mass_set_path)
+        ret.setAttribute("mass_set_path", mass_set_path);
+      this.add(ret);
+      return ret;
+    }
+     viewer(datapath=undefined, value="", packflag=0, mass_set_path=undefined) {
+      packflag|=this.inherit_packflag;
+      let ret=document.createElement("html-viewer-x");
+      ret.ctx = this.ctx;
+      ret.packflag|=packflag;
+      if (value!==undefined) {
+          ret.value = value;
+      }
+      if (datapath)
+        ret.setAttribute("datapath", datapath);
+      if (mass_set_path)
+        ret.setAttribute("mass_set_path", mass_set_path);
+      this.add(ret);
+      return ret;
+    }
+     tabs(position="top", packflag=0) {
+      packflag|=this.inherit_packflag;
+      let ret=document.createElement("tabcontainer-x");
+      ret.constructor.setDefault(ret);
+      ret.setAttribute("bar_pos", position);
+      ret.packflag|=packflag;
+      ret.inherit_packflag|=packflag;
+      ret.ctx = this.ctx;
+      this._add(ret);
+      return ret;
+    }
+  }
+  _ESClass.register(Container);
+  _es6_module.add_class(Container);
+  Container = _es6_module.add_export('Container', Container);
+  
+  ui_base.UIBase.register(Container, "div");
+  class RowFrame extends Container {
+     constructor() {
+      super();
+      let style=document.createElement("style");
+      this.shadow.appendChild(style);
+    }
+     connectedCallback() {
+      super.connectedCallback();
+      this.style['display'] = 'flex';
+      this.style['flex-direction'] = 'row';
+    }
+     init() {
+      super.init();
+      this.style['display'] = 'flex';
+      this.style['flex-direction'] = 'row';
+      if (!this.style['align-items']||this.style['align-items']=='') {
+          this.style['align-items'] = 'center';
+      }
+    }
+     oneAxisMargin(m=this.getDefault('oneAxisMargin'), m2=0) {
+      this.style['margin-left'] = this.style['margin-right'] = m+'px';
+      this.style['margin-top'] = this.style['margin-bottom'] = ''+m2+'px';
+      return this;
+    }
+     oneAxisPadding(m=this.getDefault('oneAxisPadding'), m2=0) {
+      this.style['padding-left'] = this.style['padding-right'] = ''+m+'px';
+      this.style['padding-top'] = this.style['padding-bottom'] = ''+m2+'px';
+      return this;
+    }
+     update() {
+      super.update();
+    }
+    static  define() {
+      return {tagname: 'rowframe-x'}
+    }
+  }
+  _ESClass.register(RowFrame);
+  _es6_module.add_class(RowFrame);
+  RowFrame = _es6_module.add_export('RowFrame', RowFrame);
+  UIBase.register(RowFrame);
+  class ColumnFrame extends Container {
+     constructor() {
+      super();
+    }
+     init() {
+      super.init();
+      this.style["display"] = "flex";
+      this.style["flex-direction"] = "column";
+    }
+     update() {
+      super.update();
+    }
+    static  define() {
+      return {tagname: "colframe-x"}
+    }
+  }
+  _ESClass.register(ColumnFrame);
+  _es6_module.add_class(ColumnFrame);
+  ColumnFrame = _es6_module.add_export('ColumnFrame', ColumnFrame);
+  UIBase.register(ColumnFrame);
+}, '/dev/fairmotion/src/path.ux/scripts/core/ui.js');

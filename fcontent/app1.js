@@ -3748,7 +3748,9 @@ function init_event_system() {
   var config=_es6_get_module(_rootpath_src+"src/config/config.js");
   window.setInterval(function () {
     if (g_app_state!==undefined&&g_app_state.screen!==undefined) {
-        g_app_state.screen.update();
+        if (!g_app_state.screen.listening) {
+            g_app_state.screen.listen();
+        }
     }
   }, config.ON_TICK_TIMER_MS);
   function gen_keystr(key, keystate) {
@@ -3813,7 +3815,7 @@ function init_event_system() {
   ke[gen_keystr("O", {shift: true, 
    alt: false, 
    ctrl: true})] = 0;
-  function handle_key_exclude(e) {
+  window._handle_key_exclude = function handle_key_exclude(e) {
     var kc=charmap[e.keyCode];
     if (kc==undefined)
       kc = "";
@@ -3825,38 +3827,7 @@ function init_event_system() {
         e.preventDefault();
     }
   }
-  function handleKeyDown(e) {
-    if (document.activeElement!==document.body&&!(__instance_of(document.activeElement, HTMLCanvasElement)))
-      return ;
-    handle_key_exclude(e);
-    if (g_app_state.eventhandler!==undefined&&g_app_state.eventhandler.on_keydown)
-      g_app_state.eventhandler.on_keydown(e);
-  }
-  function handleKeyUp(e) {
-    if (document.activeElement!==document.body&&!(__instance_of(document.activeElement, HTMLCanvasElement)))
-      return ;
-    handle_key_exclude(e);
-    if (g_app_state.eventhandler!==undefined&&g_app_state.eventhandler.on_keyup)
-      g_app_state.eventhandler.on_keyup(e);
-  }
-  function handleKeyPress(e) {
-    if (document.activeElement!==document.body&&!(__instance_of(document.activeElement, HTMLCanvasElement)))
-      return ;
-    handle_key_exclude(e);
-    if (g_app_state.screen!=undefined) {
-        if (e.charCode==0||e.charCode==13||e.charCode==undefined)
-          return ;
-        e["char"] = String.fromCharCode(e.charCode);
-        if (g_app_state.eventhandler!==undefined&&g_app_state.eventhandler.on_charcode) {
-            g_app_state.eventhandler.on_charcode(e);
-        }
-    }
-  }
-  function handleTextInput(e, e2) {
-    console.log("text input event", e, e2);
-  }
   eman.init(window);
-  eman.addEventListener("keydown", handleKeyDown, false);
 }
 es6_module_define('safe_eval', ["../path.ux/scripts/util/parseutil.js"], function _safe_eval_module(_es6_module) {
   "use strict";
@@ -11609,7 +11580,7 @@ es6_module_define('lib_api_typedefine', ["./lib_api.js", "../scene/scene.js", ".
   }
   get_data_typemap = _es6_module.add_export('get_data_typemap', get_data_typemap);
 }, '/dev/fairmotion/src/core/lib_api_typedefine.js');
-es6_module_define('mathlib', ["./vectormath.js", "../path.ux/scripts/util/vectormath.js", "../core/struct.js"], function _mathlib_module(_es6_module) {
+es6_module_define('mathlib', ["../core/struct.js", "./vectormath.js", "../path.ux/scripts/util/vectormath.js"], function _mathlib_module(_es6_module) {
   "use strict";
   var $_mh;
   var $_swapt;
@@ -11686,12 +11657,12 @@ es6_module_define('mathlib', ["./vectormath.js", "../path.ux/scripts/util/vector
       FLOAT_MAX = 1000000.0;
       console.log("Floating-point 16-bit system detected!");
   }
-  var $_cs4_Ft5K_get_rect_points=new Array(4);
-  var $_cs8_KyZH_get_rect_points=new Array(8);
+  var $_cs4_SL0N_get_rect_points=new Array(4);
+  var $_cs8_Pyzx_get_rect_points=new Array(8);
   function get_rect_points(p, size) {
     var cs;
     if (p.length==2) {
-        cs = $_cs4_Ft5K_get_rect_points;
+        cs = $_cs4_SL0N_get_rect_points;
         cs[0] = p;
         cs[1] = [p[0], p[1]+size[1]];
         cs[2] = [p[0]+size[0], p[1]+size[1]];
@@ -11699,7 +11670,7 @@ es6_module_define('mathlib', ["./vectormath.js", "../path.ux/scripts/util/vector
     }
     else 
       if (p.length==3) {
-        cs = $_cs8_KyZH_get_rect_points;
+        cs = $_cs8_Pyzx_get_rect_points;
         cs[0] = p;
         cs[1] = [p[0]+size[0], p[1], p[2]];
         cs[2] = [p[0]+size[0], p[1]+size[1], p[2]];
@@ -11736,15 +11707,15 @@ es6_module_define('mathlib', ["./vectormath.js", "../path.ux/scripts/util/vector
     }
   }
   get_rect_lines = _es6_module.add_export('get_rect_lines', get_rect_lines);
-  var $vs_USrW_simple_tri_aabb_isect=[0, 0, 0];
+  var $vs_mcs3_simple_tri_aabb_isect=[0, 0, 0];
   function simple_tri_aabb_isect(v1, v2, v3, min, max) {
-    $vs_USrW_simple_tri_aabb_isect[0] = v1;
-    $vs_USrW_simple_tri_aabb_isect[1] = v2;
-    $vs_USrW_simple_tri_aabb_isect[2] = v3;
+    $vs_mcs3_simple_tri_aabb_isect[0] = v1;
+    $vs_mcs3_simple_tri_aabb_isect[1] = v2;
+    $vs_mcs3_simple_tri_aabb_isect[2] = v3;
     for (var i=0; i<3; i++) {
         var isect=true;
         for (var j=0; j<3; j++) {
-            if ($vs_USrW_simple_tri_aabb_isect[j][i]<min[i]||$vs_USrW_simple_tri_aabb_isect[j][i]>=max[i])
+            if ($vs_mcs3_simple_tri_aabb_isect[j][i]<min[i]||$vs_mcs3_simple_tri_aabb_isect[j][i]>=max[i])
               isect = false;
         }
         if (isect)
@@ -11878,42 +11849,42 @@ es6_module_define('mathlib', ["./vectormath.js", "../path.ux/scripts/util/vector
     return p[0]>=pos[0]&&p[0]<=pos[0]+size[0]&&p[1]>=pos[1]&&p[1]<=pos[1]+size[1];
   }
   inrect_2d = _es6_module.add_export('inrect_2d', inrect_2d);
-  var $smin_LTM8_aabb_isect_line_2d=new Vector2();
-  var $ssize_4mAG_aabb_isect_line_2d=new Vector2();
-  var $sv1_pCjZ_aabb_isect_line_2d=new Vector2();
-  var $ps_eKtQ_aabb_isect_line_2d=[new Vector2(), new Vector2(), new Vector2()];
-  var $l1_BP8m_aabb_isect_line_2d=[0, 0];
-  var $smax_HCic_aabb_isect_line_2d=new Vector2();
-  var $sv2_nR6N_aabb_isect_line_2d=new Vector2();
-  var $l2_MKKL_aabb_isect_line_2d=[0, 0];
+  var $smin_fjD5_aabb_isect_line_2d=new Vector2();
+  var $ssize_ZH5S_aabb_isect_line_2d=new Vector2();
+  var $sv1_2r07_aabb_isect_line_2d=new Vector2();
+  var $ps_KwY7_aabb_isect_line_2d=[new Vector2(), new Vector2(), new Vector2()];
+  var $l1_Hizk_aabb_isect_line_2d=[0, 0];
+  var $smax_PZPt_aabb_isect_line_2d=new Vector2();
+  var $sv2_Xyl9_aabb_isect_line_2d=new Vector2();
+  var $l2_VtNU_aabb_isect_line_2d=[0, 0];
   function aabb_isect_line_2d(v1, v2, min, max) {
     for (var i=0; i<2; i++) {
-        $smin_LTM8_aabb_isect_line_2d[i] = Math.min(min[i], v1[i]);
-        $smax_HCic_aabb_isect_line_2d[i] = Math.max(max[i], v2[i]);
+        $smin_fjD5_aabb_isect_line_2d[i] = Math.min(min[i], v1[i]);
+        $smax_PZPt_aabb_isect_line_2d[i] = Math.max(max[i], v2[i]);
     }
-    $smax_HCic_aabb_isect_line_2d.sub($smin_LTM8_aabb_isect_line_2d);
-    $ssize_4mAG_aabb_isect_line_2d.load(max).sub(min);
-    if (!aabb_isect_2d($smin_LTM8_aabb_isect_line_2d, $smax_HCic_aabb_isect_line_2d, min, $ssize_4mAG_aabb_isect_line_2d))
+    $smax_PZPt_aabb_isect_line_2d.sub($smin_fjD5_aabb_isect_line_2d);
+    $ssize_ZH5S_aabb_isect_line_2d.load(max).sub(min);
+    if (!aabb_isect_2d($smin_fjD5_aabb_isect_line_2d, $smax_PZPt_aabb_isect_line_2d, min, $ssize_ZH5S_aabb_isect_line_2d))
       return false;
     for (var i=0; i<4; i++) {
-        if (inrect_2d(v1, min, $ssize_4mAG_aabb_isect_line_2d))
+        if (inrect_2d(v1, min, $ssize_ZH5S_aabb_isect_line_2d))
           return true;
-        if (inrect_2d(v2, min, $ssize_4mAG_aabb_isect_line_2d))
+        if (inrect_2d(v2, min, $ssize_ZH5S_aabb_isect_line_2d))
           return true;
     }
-    $ps_eKtQ_aabb_isect_line_2d[0] = min;
-    $ps_eKtQ_aabb_isect_line_2d[1][0] = min[0];
-    $ps_eKtQ_aabb_isect_line_2d[1][1] = max[1];
-    $ps_eKtQ_aabb_isect_line_2d[2] = max;
-    $ps_eKtQ_aabb_isect_line_2d[3][0] = max[0];
-    $ps_eKtQ_aabb_isect_line_2d[3][1] = min[1];
-    $l1_BP8m_aabb_isect_line_2d[0] = v1;
-    $l1_BP8m_aabb_isect_line_2d[1] = v2;
+    $ps_KwY7_aabb_isect_line_2d[0] = min;
+    $ps_KwY7_aabb_isect_line_2d[1][0] = min[0];
+    $ps_KwY7_aabb_isect_line_2d[1][1] = max[1];
+    $ps_KwY7_aabb_isect_line_2d[2] = max;
+    $ps_KwY7_aabb_isect_line_2d[3][0] = max[0];
+    $ps_KwY7_aabb_isect_line_2d[3][1] = min[1];
+    $l1_Hizk_aabb_isect_line_2d[0] = v1;
+    $l1_Hizk_aabb_isect_line_2d[1] = v2;
     for (var i=0; i<4; i++) {
-        var a=$ps_eKtQ_aabb_isect_line_2d[i], b=$ps_eKtQ_aabb_isect_line_2d[(i+1)%4];
-        $l2_MKKL_aabb_isect_line_2d[0] = a;
-        $l2_MKKL_aabb_isect_line_2d[1] = b;
-        if (line_line_cross($l1_BP8m_aabb_isect_line_2d, $l2_MKKL_aabb_isect_line_2d))
+        var a=$ps_KwY7_aabb_isect_line_2d[i], b=$ps_KwY7_aabb_isect_line_2d[(i+1)%4];
+        $l2_VtNU_aabb_isect_line_2d[0] = a;
+        $l2_VtNU_aabb_isect_line_2d[1] = b;
+        if (line_line_cross($l1_Hizk_aabb_isect_line_2d, $l2_VtNU_aabb_isect_line_2d))
           return true;
     }
     return false;
@@ -12002,11 +11973,9 @@ es6_module_define('mathlib', ["./vectormath.js", "../path.ux/scripts/util/vector
     var b=l1[1];
     var c=l2[0];
     var d=l2[1];
-    var w1=winding(a, b, c);
-    var w2=winding(c, a, d);
-    var w3=winding(a, b, d);
-    var w4=winding(c, b, d);
-    return (w1==w2)&&(w3==w4)&&(w1!=w3);
+    let ok=winding(a, b, c)!==winding(a, b, d);
+    ok = ok&&winding(c, d, a)!==winding(c, d, b);
+    return ok;
   }
   line_line_cross = _es6_module.add_export('line_line_cross', line_line_cross);
   let _llc4_1=[new Vector2(), new Vector2()];
@@ -12030,46 +11999,46 @@ es6_module_define('mathlib', ["./vectormath.js", "../path.ux/scripts/util/vector
     return line_line_cross([v1, v3], [v2, v4]);
   }
   convex_quad = _es6_module.add_export('convex_quad', convex_quad);
-  var $e1_2QOD_normal_tri=new Vector3();
-  var $e3__HnQ_normal_tri=new Vector3();
-  var $e2__vJa_normal_tri=new Vector3();
+  var $e1_G4Jq_normal_tri=new Vector3();
+  var $e3_bl6g_normal_tri=new Vector3();
+  var $e2_maMF_normal_tri=new Vector3();
   function normal_tri(v1, v2, v3) {
-    $e1_2QOD_normal_tri[0] = v2[0]-v1[0];
-    $e1_2QOD_normal_tri[1] = v2[1]-v1[1];
-    $e1_2QOD_normal_tri[2] = v2[2]-v1[2];
-    $e2__vJa_normal_tri[0] = v3[0]-v1[0];
-    $e2__vJa_normal_tri[1] = v3[1]-v1[1];
-    $e2__vJa_normal_tri[2] = v3[2]-v1[2];
-    $e3__HnQ_normal_tri[0] = $e1_2QOD_normal_tri[1]*$e2__vJa_normal_tri[2]-$e1_2QOD_normal_tri[2]*$e2__vJa_normal_tri[1];
-    $e3__HnQ_normal_tri[1] = $e1_2QOD_normal_tri[2]*$e2__vJa_normal_tri[0]-$e1_2QOD_normal_tri[0]*$e2__vJa_normal_tri[2];
-    $e3__HnQ_normal_tri[2] = $e1_2QOD_normal_tri[0]*$e2__vJa_normal_tri[1]-$e1_2QOD_normal_tri[1]*$e2__vJa_normal_tri[0];
+    $e1_G4Jq_normal_tri[0] = v2[0]-v1[0];
+    $e1_G4Jq_normal_tri[1] = v2[1]-v1[1];
+    $e1_G4Jq_normal_tri[2] = v2[2]-v1[2];
+    $e2_maMF_normal_tri[0] = v3[0]-v1[0];
+    $e2_maMF_normal_tri[1] = v3[1]-v1[1];
+    $e2_maMF_normal_tri[2] = v3[2]-v1[2];
+    $e3_bl6g_normal_tri[0] = $e1_G4Jq_normal_tri[1]*$e2_maMF_normal_tri[2]-$e1_G4Jq_normal_tri[2]*$e2_maMF_normal_tri[1];
+    $e3_bl6g_normal_tri[1] = $e1_G4Jq_normal_tri[2]*$e2_maMF_normal_tri[0]-$e1_G4Jq_normal_tri[0]*$e2_maMF_normal_tri[2];
+    $e3_bl6g_normal_tri[2] = $e1_G4Jq_normal_tri[0]*$e2_maMF_normal_tri[1]-$e1_G4Jq_normal_tri[1]*$e2_maMF_normal_tri[0];
     
-    var _len=Math.sqrt($e3__HnQ_normal_tri[0]*$e3__HnQ_normal_tri[0]+$e3__HnQ_normal_tri[1]*$e3__HnQ_normal_tri[1]+$e3__HnQ_normal_tri[2]*$e3__HnQ_normal_tri[2]);
+    var _len=Math.sqrt($e3_bl6g_normal_tri[0]*$e3_bl6g_normal_tri[0]+$e3_bl6g_normal_tri[1]*$e3_bl6g_normal_tri[1]+$e3_bl6g_normal_tri[2]*$e3_bl6g_normal_tri[2]);
     if (_len>1e-05)
       _len = 1.0/_len;
-    $e3__HnQ_normal_tri[0]*=_len;
-    $e3__HnQ_normal_tri[1]*=_len;
-    $e3__HnQ_normal_tri[2]*=_len;
-    return $e3__HnQ_normal_tri;
+    $e3_bl6g_normal_tri[0]*=_len;
+    $e3_bl6g_normal_tri[1]*=_len;
+    $e3_bl6g_normal_tri[2]*=_len;
+    return $e3_bl6g_normal_tri;
   }
   normal_tri = _es6_module.add_export('normal_tri', normal_tri);
-  var $n2_Yftj_normal_quad=new Vector3();
+  var $n2_0ioi_normal_quad=new Vector3();
   function normal_quad(v1, v2, v3, v4) {
     var n=normal_tri(v1, v2, v3);
-    $n2_Yftj_normal_quad[0] = n[0];
-    $n2_Yftj_normal_quad[1] = n[1];
-    $n2_Yftj_normal_quad[2] = n[2];
+    $n2_0ioi_normal_quad[0] = n[0];
+    $n2_0ioi_normal_quad[1] = n[1];
+    $n2_0ioi_normal_quad[2] = n[2];
     n = normal_tri(v1, v3, v4);
-    $n2_Yftj_normal_quad[0] = $n2_Yftj_normal_quad[0]+n[0];
-    $n2_Yftj_normal_quad[1] = $n2_Yftj_normal_quad[1]+n[1];
-    $n2_Yftj_normal_quad[2] = $n2_Yftj_normal_quad[2]+n[2];
-    var _len=Math.sqrt($n2_Yftj_normal_quad[0]*$n2_Yftj_normal_quad[0]+$n2_Yftj_normal_quad[1]*$n2_Yftj_normal_quad[1]+$n2_Yftj_normal_quad[2]*$n2_Yftj_normal_quad[2]);
+    $n2_0ioi_normal_quad[0] = $n2_0ioi_normal_quad[0]+n[0];
+    $n2_0ioi_normal_quad[1] = $n2_0ioi_normal_quad[1]+n[1];
+    $n2_0ioi_normal_quad[2] = $n2_0ioi_normal_quad[2]+n[2];
+    var _len=Math.sqrt($n2_0ioi_normal_quad[0]*$n2_0ioi_normal_quad[0]+$n2_0ioi_normal_quad[1]*$n2_0ioi_normal_quad[1]+$n2_0ioi_normal_quad[2]*$n2_0ioi_normal_quad[2]);
     if (_len>1e-05)
       _len = 1.0/_len;
-    $n2_Yftj_normal_quad[0]*=_len;
-    $n2_Yftj_normal_quad[1]*=_len;
-    $n2_Yftj_normal_quad[2]*=_len;
-    return $n2_Yftj_normal_quad;
+    $n2_0ioi_normal_quad[0]*=_len;
+    $n2_0ioi_normal_quad[1]*=_len;
+    $n2_0ioi_normal_quad[2]*=_len;
+    return $n2_0ioi_normal_quad;
   }
   normal_quad = _es6_module.add_export('normal_quad', normal_quad);
   var lis_rets3=cachering.fromConstructor(Vector3, 64);
@@ -12436,9 +12405,9 @@ es6_module_define('mathlib', ["./vectormath.js", "../path.ux/scripts/util/vector
         }
     }
   }
-  var $_cent_0EGN=new Vector3();
+  var $_cent_03eF=new Vector3();
   function get_boundary_winding(points) {
-    var cent=$_cent_0EGN.zero();
+    var cent=$_cent_03eF.zero();
     if (points.length==0)
       return false;
     for (var i=0; i<points.length; i++) {
@@ -12849,3 +12818,413 @@ es6_module_define('colorutils', [], function _colorutils_module(_es6_module) {
   }
   hsva_to_rgba = _es6_module.add_export('hsva_to_rgba', hsva_to_rgba);
 }, '/dev/fairmotion/src/util/colorutils.js');
+es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
+  "use strict";
+  class token  {
+     constructor(type, val, lexpos, lexlen, lineno, lexer, parser) {
+      this.type = type;
+      this.value = val;
+      this.lexpos = lexpos;
+      this.lexlen = lexlen;
+      this.lineno = lineno;
+      this.lexer = lexer;
+      this.parser = parser;
+    }
+     toString() {
+      if (this.value!=undefined)
+        return "token(type="+this.type+", value='"+this.value+"')";
+      else 
+        return "token(type="+this.type+")";
+    }
+  }
+  _ESClass.register(token);
+  _es6_module.add_class(token);
+  token = _es6_module.add_export('token', token);
+  class tokdef  {
+     constructor(name, regexpr, func) {
+      this.name = name;
+      this.re = regexpr;
+      this.func = func;
+    }
+  }
+  _ESClass.register(tokdef);
+  _es6_module.add_class(tokdef);
+  tokdef = _es6_module.add_export('tokdef', tokdef);
+  class PUTLParseError extends Error {
+     constructor(msg) {
+      super();
+    }
+  }
+  _ESClass.register(PUTLParseError);
+  _es6_module.add_class(PUTLParseError);
+  PUTLParseError = _es6_module.add_export('PUTLParseError', PUTLParseError);
+  class lexer  {
+    
+    
+    
+    
+    
+    
+    
+     constructor(tokdef, errfunc) {
+      this.tokdef = tokdef;
+      this.tokens = new GArray();
+      this.lexpos = 0;
+      this.lexdata = "";
+      this.lineno = 0;
+      this.errfunc = errfunc;
+      this.tokints = {};
+      for (var i=0; i<tokdef.length; i++) {
+          this.tokints[tokdef[i].name] = i;
+      }
+      this.statestack = [["__main__", 0]];
+      this.states = {"__main__": [tokdef, errfunc]};
+      this.statedata = 0;
+    }
+     add_state(name, tokdef, errfunc) {
+      if (errfunc==undefined) {
+          errfunc = function (lexer) {
+            return true;
+          };
+      }
+      this.states[name] = [tokdef, errfunc];
+    }
+     tok_int(name) {
+
+    }
+     push_state(state, statedata) {
+      this.statestack.push([state, statedata]);
+      state = this.states[state];
+      this.statedata = statedata;
+      this.tokdef = state[0];
+      this.errfunc = state[1];
+    }
+     pop_state() {
+      var item=this.statestack[this.statestack.length-1];
+      var state=this.states[item[0]];
+      this.tokdef = state[0];
+      this.errfunc = state[1];
+      this.statedata = item[1];
+    }
+     input(str) {
+      while (this.statestack.length>1) {
+        this.pop_state();
+      }
+      this.lexdata = str;
+      this.lexpos = 0;
+      this.lineno = 0;
+      this.tokens = new GArray();
+      this.peeked_tokens = [];
+    }
+     error() {
+      if (this.errfunc!=undefined&&!this.errfunc(this))
+        return ;
+      console.log("Syntax error near line "+this.lineno);
+      var next=Math.min(this.lexpos+8, this.lexdata.length);
+      console.log("  "+this.lexdata.slice(this.lexpos, next));
+      throw new PUTLParseError("Parse error");
+    }
+     peek() {
+      var tok=this.next(true);
+      if (tok==undefined)
+        return undefined;
+      this.peeked_tokens.push(tok);
+      return tok;
+    }
+     peek_i(i) {
+      while (this.peeked_tokens.length<=i) {
+        var t=this.peek();
+        if (t==undefined)
+          return undefined;
+      }
+      return this.peeked_tokens[i];
+    }
+     at_end() {
+      return this.lexpos>=this.lexdata.length&&this.peeked_tokens.length==0;
+    }
+     next(ignore_peek) {
+      if (ignore_peek!=true&&this.peeked_tokens.length>0) {
+          var tok=this.peeked_tokens[0];
+          this.peeked_tokens.shift();
+          return tok;
+      }
+      if (this.lexpos>=this.lexdata.length)
+        return undefined;
+      var ts=this.tokdef;
+      var tlen=ts.length;
+      var lexdata=this.lexdata.slice(this.lexpos, this.lexdata.length);
+      var results=[];
+      for (var i=0; i<tlen; i++) {
+          var t=ts[i];
+          if (t.re==undefined)
+            continue;
+          var res=t.re.exec(lexdata);
+          if (res!=null&&res!=undefined&&res.index==0) {
+              results.push([t, res]);
+          }
+      }
+      var max_res=0;
+      var theres=undefined;
+      for (var i=0; i<results.length; i++) {
+          var res=results[i];
+          if (res[1][0].length>max_res) {
+              theres = res;
+              max_res = res[1][0].length;
+          }
+      }
+      if (theres==undefined) {
+          this.error();
+          return ;
+      }
+      var def=theres[0];
+      var lexlen=max_res;
+      var tok=new token(def.name, theres[1][0], this.lexpos, lexlen, this.lineno, this, undefined);
+      this.lexpos+=max_res;
+      if (def.func) {
+          tok = def.func(tok);
+          if (tok==undefined) {
+              return this.next();
+          }
+      }
+      return tok;
+    }
+  }
+  _ESClass.register(lexer);
+  _es6_module.add_class(lexer);
+  lexer = _es6_module.add_export('lexer', lexer);
+  class parser  {
+     constructor(lexer, errfunc) {
+      this.lexer = lexer;
+      this.errfunc = errfunc;
+      this.start = undefined;
+    }
+     parse(data, err_on_unconsumed) {
+      if (err_on_unconsumed==undefined)
+        err_on_unconsumed = true;
+      if (data!=undefined)
+        this.lexer.input(data);
+      var ret=this.start(this);
+      if (err_on_unconsumed&&!this.lexer.at_end()&&this.lexer.next()!=undefined) {
+          var left=this.lexer.lexdata.slice(this.lexer.lexpos-1, this.lexer.lexdata.length);
+          this.error(undefined, "parser did not consume entire input; left: "+left);
+      }
+      return ret;
+    }
+     input(data) {
+      this.lexer.input(data);
+    }
+     error(tok, msg) {
+      if (msg==undefined)
+        msg = "";
+      if (tok==undefined)
+        var estr="Parse error at end of input: "+msg;
+      else 
+        estr = "Parse error at line "+(tok.lineno+1)+": "+msg;
+      var buf="1| ";
+      var ld=this.lexer.lexdata;
+      var l=1;
+      for (var i=0; i<ld.length; i++) {
+          var c=ld[i];
+          if (c=='\n') {
+              l++;
+              buf+="\n"+l+"| ";
+          }
+          else {
+            buf+=c;
+          }
+      }
+      console.log("------------------");
+      console.log(buf);
+      console.log("==================");
+      console.log(estr);
+      if (this.errfunc&&!this.errfunc(tok)) {
+          return ;
+      }
+      throw new PUTLParseError(estr);
+    }
+     peek() {
+      var tok=this.lexer.peek();
+      if (tok!=undefined)
+        tok.parser = this;
+      return tok;
+    }
+     peek_i(i) {
+      var tok=this.lexer.peek_i(i);
+      if (tok!=undefined)
+        tok.parser = this;
+      return tok;
+    }
+     peeknext() {
+      return this.peek_i(0);
+    }
+     next() {
+      var tok=this.lexer.next();
+      if (tok!=undefined)
+        tok.parser = this;
+      return tok;
+    }
+     optional(type) {
+      var tok=this.peek();
+      if (tok==undefined)
+        return false;
+      if (tok.type==type) {
+          this.next();
+          return true;
+      }
+      return false;
+    }
+     at_end() {
+      return this.lexer.at_end();
+    }
+     expect(type, msg) {
+      var tok=this.next();
+      if (msg==undefined)
+        msg = type;
+      if (tok==undefined||tok.type!=type) {
+          this.error(tok, "Expected "+msg+", not "+tok.type);
+      }
+      return tok.value;
+    }
+  }
+  _ESClass.register(parser);
+  _es6_module.add_class(parser);
+  parser = _es6_module.add_export('parser', parser);
+  function test_parser() {
+    var basic_types=new set(["int", "float", "double", "vec2", "vec3", "vec4", "mat4", "string"]);
+    var reserved_tokens=new set(["int", "float", "double", "vec2", "vec3", "vec4", "mat4", "string", "static_string", "array"]);
+    function tk(name, re, func) {
+      return new tokdef(name, re, func);
+    }
+    var tokens=[tk("ID", /[a-zA-Z]+[a-zA-Z0-9_]*/, function (t) {
+      if (reserved_tokens.has(t.value)) {
+          t.type = t.value.toUpperCase();
+      }
+      return t;
+    }), tk("OPEN", /\{/), tk("CLOSE", /}/), tk("COLON", /:/), tk("JSCRIPT", /\|/, function (t) {
+      var js="";
+      var lexer=t.lexer;
+      while (lexer.lexpos<lexer.lexdata.length) {
+        var c=lexer.lexdata[lexer.lexpos];
+        if (c=="\n")
+          break;
+        js+=c;
+        lexer.lexpos++;
+      }
+      if (js.endsWith(";")) {
+          js = js.slice(0, js.length-1);
+          lexer.lexpos--;
+      }
+      t.value = js;
+      return t;
+    }), tk("LPARAM", /\(/), tk("RPARAM", /\)/), tk("COMMA", /,/), tk("NUM", /[0-9]/), tk("SEMI", /;/), tk("NEWLINE", /\n/, function (t) {
+      t.lexer.lineno+=1;
+    }), tk("SPACE", / |\t/, function (t) {
+    })];
+    for (var rt of reserved_tokens) {
+        tokens.push(tk(rt.toUpperCase()));
+    }
+    var a=`
+  Loop {
+    eid : int;
+    flag : int;
+    index : int;
+    type : int;
+    
+    co : vec3;
+    no : vec3;
+    loop : int | eid(loop);
+    edges : array(e, int) | e.eid;
+    
+    loops : array(Loop);
+  }
+  `;
+    function errfunc(lexer) {
+      return true;
+    }
+    var lex=new lexer(tokens, errfunc);
+    console.log("Testing lexical scanner...");
+    lex.input(a);
+    var tok;
+    while (tok = lex.next()) {
+      console.log(tok.toString());
+    }
+    var parser=new parser(lex);
+    parser.input(a);
+    function p_Array(p) {
+      p.expect("ARRAY");
+      p.expect("LPARAM");
+      var arraytype=p_Type(p);
+      var itername="";
+      if (p.optional("COMMA")) {
+          itername = arraytype;
+          arraytype = p_Type(p);
+      }
+      p.expect("RPARAM");
+      return {type: "array", 
+     data: {type: arraytype, 
+      iname: itername}}
+    }
+    function p_Type(p) {
+      var tok=p.peek();
+      if (tok.type=="ID") {
+          p.next();
+          return {type: "struct", 
+       data: "\""+tok.value+"\""}
+      }
+      else 
+        if (basic_types.has(tok.type.toLowerCase())) {
+          p.next();
+          return {type: tok.type.toLowerCase()}
+      }
+      else 
+        if (tok.type=="ARRAY") {
+          return p_Array(p);
+      }
+      else {
+        p.error(tok, "invalid type "+tok.type);
+      }
+    }
+    function p_Field(p) {
+      var field={}
+      console.log("-----", p.peek().type);
+      field.name = p.expect("ID", "struct field name");
+      p.expect("COLON");
+      field.type = p_Type(p);
+      field.set = undefined;
+      field.get = undefined;
+      var tok=p.peek();
+      if (tok.type=="JSCRIPT") {
+          field.get = tok.value;
+          p.next();
+      }
+      tok = p.peek();
+      if (tok.type=="JSCRIPT") {
+          field.set = tok.value;
+          p.next();
+      }
+      p.expect("SEMI");
+      return field;
+    }
+    function p_Struct(p) {
+      var st={}
+      st.name = p.expect("ID", "struct name");
+      st.fields = [];
+      p.expect("OPEN");
+      while (1) {
+        if (p.at_end()) {
+            p.error(undefined);
+        }
+        else 
+          if (p.optional("CLOSE")) {
+            break;
+        }
+        else {
+          st.fields.push(p_Field(p));
+        }
+      }
+      return st;
+    }
+    var ret=p_Struct(parser);
+    console.log(JSON.stringify(ret));
+  }
+}, '/dev/fairmotion/src/util/parseutil.js');

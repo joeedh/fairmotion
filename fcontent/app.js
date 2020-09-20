@@ -1220,9 +1220,7 @@ es6_module_define('const', [], function _const_module(_es6_module) {
         return ;
     }
     cb.read().then((data) =>      {
-      console.log(data);
       for (let item of data) {
-          console.log("CLIP ITEM", item);
           for (let i=0; i<item.types.length; i++) {
               let type=item.types[i];
               if (!(type in _clipboards)) {
@@ -1240,7 +1238,7 @@ es6_module_define('const', [], function _const_module(_es6_module) {
       }
     }).catch(function () {
     });
-  }, 400);
+  }, 200);
   let exports={getClipboardData: function getClipboardData(desiredMimes) {
       if (desiredMimes===undefined) {
           desiredMimes = "text/plain";

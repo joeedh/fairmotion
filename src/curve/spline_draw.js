@@ -231,20 +231,67 @@ export function draw_spline(spline, redraw_rects, g, editor, matrix, selectmode,
   
   let tmp1 = new Vector2();
   let tmp2 = new Vector2();
-  
+
+  g.beginPath();
+  if (selectmode & SelMask.SEGMENT) {
+    let dv = new Vector2();
+
+    for (let seg of spline.segments) {
+      let skip = (!ignore_layers && !seg.in_layer(actlayer));
+      skip = skip || (seg.flag & SplineFlags.HIDE);
+      skip = skip || (!(seg.flag & SplineFlags.SELECT) && seg !== spline.segments.active && seg !== spline.segments.highlight);
+
+      if (skip) {
+        continue;
+      }
+
+      let steps = seg.length / 64;
+      steps = Math.min(Math.max(steps, 3), 64);
+      steps = isNaN(steps) ? 3 : steps;
+
+      let s = 0, ds = 1.0 / (steps - 1);
+
+      g.beginPath();
+
+      for (let side=0; side<2; side++) {
+        let lastp = undefined;
+
+        for (let i = 0; i < steps; i++, s += ds) {
+          let p = seg.evaluateSide(s, side, dv);
+
+          tmp1.load(p).multVecMatrix(matrix);
+
+          if (side === 0 && i === 0) {
+            g.moveTo(tmp1[0], tmp1[1]);
+          } else {
+            g.lineTo(tmp1[0], tmp1[1]);
+          }
+          lastp = p;
+        }
+
+        s -= ds;
+        ds *= -1;
+      }
+
+      let clr = get_element_color(seg, spline.segments);
+
+      g.fillStyle = clr;
+      g.fill();
+    }
+  }
+
   g.beginPath();
   if (selectmode & SelMask.HANDLE) {
     let w = vert_size*g.canvas.dpi_scale/zoom;
-    
-    for (let i=0; i<spline.handles.length; i++) {
-      let v = spline.handles[i];
+
+    for (let v of spline.handles) {
       let clr = get_element_color(v, spline.handles);
       
       if (!ignore_layers && !v.owning_segment.in_layer(actlayer))
         continue;
-      if (v.owning_segment != undefined && v.owning_segment.flag & SplineFlags.HIDE)
+      if (v.owning_segment !== undefined && (v.owning_segment.flag & SplineFlags.HIDE))
         continue;
-      if (v.owning_vertex != undefined && v.owning_vertex.flag & SplineFlags.HIDE)
+      if (v.owning_vertex !== undefined && (v.owning_vertex.flag & SplineFlags.HIDE))
         continue;
       if (!v.use) 
         continue;
@@ -252,8 +299,8 @@ export function draw_spline(spline, redraw_rects, g, editor, matrix, selectmode,
       if ((v.flag & SplineFlags.AUTO_PAIRED_HANDLE) && v.hpair !== undefined && (v.segments.length > 2)) {
         continue;
       }
-      
-      if (v.flag & SplineFlags.HIDE) 
+
+      if (v.flag & SplineFlags.HIDE)
         continue;
 
 

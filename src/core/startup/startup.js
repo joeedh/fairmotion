@@ -239,7 +239,9 @@ function init_event_system() {
 
   window.setInterval(function () {
     if (g_app_state !== undefined && g_app_state.screen !== undefined) {
-      g_app_state.screen.update();
+      if (!g_app_state.screen.listening) {
+        g_app_state.screen.listen();
+      }
     }
   }, config.ON_TICK_TIMER_MS);
 

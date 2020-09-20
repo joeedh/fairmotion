@@ -813,7 +813,7 @@ es6_module_define('jobs', [], function _jobs_module(_es6_module) {
   _es6_module.add_class(JobManager);
   JobManager = _es6_module.add_export('JobManager', JobManager);
 }, '/dev/fairmotion/src/core/jobs.js');
-es6_module_define('ajax', ["../util/strutils.js", "../config/config.js"], function _ajax_module(_es6_module) {
+es6_module_define('ajax', ["../config/config.js", "../util/strutils.js"], function _ajax_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   var encode_utf8=es6_import_item(_es6_module, '../util/strutils.js', 'encode_utf8');
@@ -1588,7 +1588,7 @@ es6_module_define('raster', ["./icon.js", "../config/config.js"], function _rast
   }
   _ESClass.register(CacheStack);
   _es6_module.add_class(CacheStack);
-  var $ret_bFJq_viewport;
+  var $ret_xvXE_viewport;
   class RasterState  {
     
     
@@ -1622,10 +1622,10 @@ es6_module_define('raster', ["./icon.js", "../config/config.js"], function _rast
           return this.viewport_stack[this.viewport_stack.length-1];
       }
       else {
-        $ret_bFJq_viewport[0][0] = $ret_bFJq_viewport[0][1] = 0.0;
-        $ret_bFJq_viewport[1][0] = g_app_state.screen.size[0];
-        $ret_bFJq_viewport[1][1] = g_app_state.screen.size[1];
-        return $ret_bFJq_viewport;
+        $ret_xvXE_viewport[0][0] = $ret_xvXE_viewport[0][1] = 0.0;
+        $ret_xvXE_viewport[1][0] = g_app_state.screen.size[0];
+        $ret_xvXE_viewport[1][1] = g_app_state.screen.size[1];
+        return $ret_xvXE_viewport;
       }
     }
      push_viewport(pos, size) {
@@ -1690,12 +1690,12 @@ es6_module_define('raster', ["./icon.js", "../config/config.js"], function _rast
       this.cur_scissor = undefined;
     }
   }
-  var $ret_bFJq_viewport=[[0, 0], [0, 0]];
+  var $ret_xvXE_viewport=[[0, 0], [0, 0]];
   _ESClass.register(RasterState);
   _es6_module.add_class(RasterState);
   RasterState = _es6_module.add_export('RasterState', RasterState);
 }, '/dev/fairmotion/src/core/raster.js');
-es6_module_define('imageblock', ["../editors/viewport/selectmode.js", "../util/strutils.js", "../path.ux/scripts/util/vectormath.js", "../editors/viewport/view2d_editor.js", "./lib_api.js", "./struct.js", "./toolops_api.js"], function _imageblock_module(_es6_module) {
+es6_module_define('imageblock', ["../editors/viewport/selectmode.js", "./toolops_api.js", "../editors/viewport/view2d_editor.js", "../util/strutils.js", "./struct.js", "../path.ux/scripts/util/vectormath.js", "./lib_api.js"], function _imageblock_module(_es6_module) {
   var DataBlock=es6_import_item(_es6_module, './lib_api.js', 'DataBlock');
   var DataTypes=es6_import_item(_es6_module, './lib_api.js', 'DataTypes');
   var BlockFlags=es6_import_item(_es6_module, './lib_api.js', 'BlockFlags');
@@ -1799,7 +1799,7 @@ ImageUser {
 }
 `;
 }, '/dev/fairmotion/src/core/imageblock.js');
-es6_module_define('image_ops', ["../core/struct.js", "../core/toolprops.js", "../core/frameset.js", "../curve/spline.js", "../core/toolops_api.js", "../core/fileapi/fileapi.js", "../curve/spline_draw.js", "../path.ux/scripts/util/struct.js", "../config/config.js", "../core/lib_api.js", "../core/imageblock.js"], function _image_ops_module(_es6_module) {
+es6_module_define('image_ops', ["../config/config.js", "../curve/spline.js", "../curve/spline_draw.js", "../path.ux/scripts/util/struct.js", "../core/toolprops.js", "../core/struct.js", "../core/fileapi/fileapi.js", "../core/imageblock.js", "../core/frameset.js", "../core/toolops_api.js", "../core/lib_api.js"], function _image_ops_module(_es6_module) {
   var Image=es6_import_item(_es6_module, '../core/imageblock.js', 'Image');
   var DataTypes=es6_import_item(_es6_module, '../core/lib_api.js', 'DataTypes');
   var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
@@ -1876,7 +1876,7 @@ es6_module_define('image_ops', ["../core/struct.js", "../core/toolprops.js", "..
   _es6_module.add_class(LoadImageOp);
   LoadImageOp = _es6_module.add_export('LoadImageOp', LoadImageOp);
 }, '/dev/fairmotion/src/image/image_ops.js');
-es6_module_define('UserSettings', ["../util/strutils.js", "../path.ux/scripts/core/ui_theme.js", "./struct.js", "../config/config.js", "../datafiles/theme.js", "../path.ux/scripts/util/util.js", "../path.ux/scripts/core/ui_base.js", "../editors/theme.js"], function _UserSettings_module(_es6_module) {
+es6_module_define('UserSettings', ["./struct.js", "../path.ux/scripts/util/util.js", "../editors/theme.js", "../path.ux/scripts/core/ui_theme.js", "../config/config.js", "../datafiles/theme.js", "../util/strutils.js", "../path.ux/scripts/core/ui_base.js"], function _UserSettings_module(_es6_module) {
   var config=es6_import(_es6_module, '../config/config.js');
   var reload_default_theme=es6_import_item(_es6_module, '../datafiles/theme.js', 'reload_default_theme');
   var b64encode=es6_import_item(_es6_module, '../util/strutils.js', 'b64encode');
@@ -2269,7 +2269,7 @@ AppSettings {
     return ujob;
   }
 }, '/dev/fairmotion/src/core/UserSettings.js');
-es6_module_define('context', ["./frameset.js", "../editors/editor_base.js", "../editors/settings/SettingsEditor.js", "../scene/scene.js", "./data_api/data_api.js", "../editors/dopesheet/DopeSheetEditor.js", "../editors/viewport/view2d.js", "../curve/spline.js", "../path.ux/scripts/screen/FrameManager_ops.js", "../editors/ops/ops_editor.js", "../editors/menubar/MenuBar.js", "../editors/curve/CurveEditor.js", "../path.ux/scripts/controller/context.js", "../editors/console/console.js", "./lib_api.js", "../editors/material/MaterialEditor.js"], function _context_module(_es6_module) {
+es6_module_define('context', ["../editors/settings/SettingsEditor.js", "../editors/curve/CurveEditor.js", "./lib_api.js", "../scene/scene.js", "../editors/menubar/MenuBar.js", "../editors/ops/ops_editor.js", "../curve/spline.js", "./data_api/data_api.js", "../path.ux/scripts/controller/context.js", "../editors/dopesheet/DopeSheetEditor.js", "../path.ux/scripts/screen/FrameManager_ops.js", "../editors/material/MaterialEditor.js", "../editors/console/console.js", "../editors/viewport/view2d.js", "../editors/editor_base.js", "./frameset.js"], function _context_module(_es6_module) {
   var ContextOverlay=es6_import_item(_es6_module, '../path.ux/scripts/controller/context.js', 'ContextOverlay');
   var Context=es6_import_item(_es6_module, '../path.ux/scripts/controller/context.js', 'Context');
   class BaseContextOverlay extends ContextOverlay {
@@ -2487,7 +2487,7 @@ es6_module_define('context', ["./frameset.js", "../editors/editor_base.js", "../
   var Spline=es6_import_item(_es6_module, '../curve/spline.js', 'Spline');
   var DataAPI=es6_import_item(_es6_module, './data_api/data_api.js', 'DataAPI');
 }, '/dev/fairmotion/src/core/context.js');
-es6_module_define('toolstack', ["./AppState.js", "./context.js", "./toolprops.js", "./data_api/data_api.js", "./toolops_api.js"], function _toolstack_module(_es6_module) {
+es6_module_define('toolstack', ["./toolprops.js", "./context.js", "./AppState.js", "./data_api/data_api.js", "./toolops_api.js"], function _toolstack_module(_es6_module) {
   var BaseContext=es6_import_item(_es6_module, './context.js', 'BaseContext');
   var FullContext=es6_import_item(_es6_module, './context.js', 'FullContext');
   var ToolFlags=es6_import_item(_es6_module, './toolops_api.js', 'ToolFlags');
@@ -2917,7 +2917,7 @@ es6_module_define('toolstack', ["./AppState.js", "./context.js", "./toolprops.js
 `;
   var AppState=es6_import_item(_es6_module, './AppState.js', 'AppState');
 }, '/dev/fairmotion/src/core/toolstack.js');
-es6_module_define('AppState', ["./struct.js", "../curve/spline_base.js", "./lib_utils.js", "../config/config.js", "../path.ux/scripts/screen/ScreenArea.js", "../path.ux/scripts/platforms/electron/electron_api.js", "./toolops_api.js", "../editors/viewport/view2d.js", "./toolprops.js", "../path.ux/scripts/core/ui_base.js", "../editors/dopesheet/DopeSheetEditor.js", "./raster.js", "./toolstack.js", "./context.js", "../editors/all.js", "../editors/curve/CurveEditor.js", "./data_api/data_api.js", "../editors/theme.js", "./fileapi/fileapi.js", "./ajax.js", "../editors/menubar/MenuBar.js", "../editors/console/console.js", "../editors/editor_base.js", "../editors/material/MaterialEditor.js", "../path.ux/scripts/config/const.js", "../util/strutils.js", "../editors/settings/SettingsEditor.js", "./lib_api.js", "./notifications.js", "../path.ux/scripts/screen/FrameManager.js", "../scene/scene.js", "./frameset.js", "./startup/startup_file_example.js", "../editors/ops/ops_editor.js", "../path.ux/scripts/util/util.js", "../../platforms/platform.js", "./UserSettings.js", "./lib_api_typedefine.js", "../path.ux/scripts/screen/FrameManager_ops.js", "./startup/startup_file.js", "../editors/viewport/view2d_ops.js", "./jobs.js", "./data_api/data_api_pathux.js"], function _AppState_module(_es6_module) {
+es6_module_define('AppState', ["./notifications.js", "../curve/spline_base.js", "./raster.js", "../scene/scene.js", "../editors/editor_base.js", "./startup/startup_file_example.js", "../../platforms/platform.js", "./startup/startup_file.js", "../editors/viewport/view2d_ops.js", "../path.ux/scripts/screen/FrameManager.js", "./ajax.js", "./lib_utils.js", "./fileapi/fileapi.js", "../editors/console/console.js", "../editors/curve/CurveEditor.js", "../editors/ops/ops_editor.js", "../path.ux/scripts/screen/ScreenArea.js", "./toolstack.js", "../editors/all.js", "./toolprops.js", "./data_api/data_api_pathux.js", "../path.ux/scripts/screen/FrameManager_ops.js", "./lib_api_typedefine.js", "../path.ux/scripts/platforms/electron/electron_api.js", "./struct.js", "../path.ux/scripts/config/const.js", "../editors/theme.js", "../util/strutils.js", "../path.ux/scripts/util/util.js", "./frameset.js", "./toolops_api.js", "../editors/viewport/view2d.js", "../config/config.js", "./context.js", "../editors/dopesheet/DopeSheetEditor.js", "../editors/menubar/MenuBar.js", "../path.ux/scripts/core/ui_base.js", "./lib_api.js", "./jobs.js", "../editors/settings/SettingsEditor.js", "./data_api/data_api.js", "./UserSettings.js", "../editors/material/MaterialEditor.js"], function _AppState_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, '../editors/all.js');
   var platform=es6_import(_es6_module, '../../platforms/platform.js');
@@ -4853,7 +4853,7 @@ es6_module_define('data_api_types', ["../toolops_api.js", "../toolprops.js", "./
   _es6_module.add_class(DataStruct);
   DataStruct = _es6_module.add_export('DataStruct', DataStruct);
 }, '/dev/fairmotion/src/core/data_api/data_api_types.js');
-es6_module_define('data_api', ["./data_api_parser.js", "./data_api_base.js", "../toolops_api.js", "../../config/config.js", "../lib_api.js", "../toolprops.js", "../animdata.js", "./data_api_pathux.js", "../../curve/spline_multires.js", "./data_api_types.js", "../safe_eval.js"], function _data_api_module(_es6_module) {
+es6_module_define('data_api', ["../../curve/spline_multires.js", "../toolops_api.js", "./data_api_types.js", "../safe_eval.js", "./data_api_parser.js", "./data_api_base.js", "../toolprops.js", "../animdata.js", "./data_api_pathux.js", "../../config/config.js", "../lib_api.js"], function _data_api_module(_es6_module) {
   function is_int(s) {
     s = s.trim();
     if (typeof s=="number") {
@@ -5045,9 +5045,9 @@ es6_module_define('data_api', ["./data_api_parser.js", "./data_api_base.js", "..
   TinyParser.split_chars = new set([",", "=", "(", ")", ".", "$", "[", "]"]);
   TinyParser.ws = new set([" ", "\n", "\t", "\r"]);
   var toolmap=es6_import_item(_es6_module, './data_api_pathux.js', 'toolmap');
-  var $cache_Vty__resolve_path_intern;
-  var $retcpy_EE94_set_prop;
-  var $scope_tNJe_set_prop;
+  var $cache_hl5j_resolve_path_intern;
+  var $retcpy_gpSB_set_prop;
+  var $scope_wRyx_set_prop;
   class DataAPI  {
      constructor(appstate) {
       this.appstate = appstate;
@@ -5395,18 +5395,18 @@ es6_module_define('data_api', ["./data_api_parser.js", "./data_api_base.js", "..
       }
       let ret;
       try {
-        if (!(str in $cache_Vty__resolve_path_intern)) {
+        if (!(str in $cache_hl5j_resolve_path_intern)) {
             ret = this.resolve_path_intern2(ctx, str);
             let ret2=[];
             for (let i=0; i<ret.length; i++) {
                 ret2.push(ret[i]);
             }
-            $cache_Vty__resolve_path_intern[str] = ret2;
+            $cache_hl5j_resolve_path_intern[str] = ret2;
         }
         else {
-          ret = $cache_Vty__resolve_path_intern[str];
+          ret = $cache_hl5j_resolve_path_intern[str];
           if (ret[0]===undefined||!ret[0].cache_good()) {
-              delete $cache_Vty__resolve_path_intern[str];
+              delete $cache_hl5j_resolve_path_intern[str];
               return this.resolve_path_intern(ctx, str);
           }
           else {
@@ -5759,11 +5759,11 @@ es6_module_define('data_api', ["./data_api_parser.js", "./data_api_base.js", "..
           }
           return ret;
       }
-      $retcpy_EE94_set_prop.length = ret.length;
+      $retcpy_gpSB_set_prop.length = ret.length;
       for (var i=0; i<5; i++) {
-          $retcpy_EE94_set_prop[i] = ret[i];
+          $retcpy_gpSB_set_prop[i] = ret[i];
       }
-      ret = $retcpy_EE94_set_prop;
+      ret = $retcpy_gpSB_set_prop;
       var owner=this.evaluate(ctx, ret[4]);
       if (ret[0]!==undefined&&ret[0].type==DataPathTypes.PROP) {
           var prop=ret[0].data;
@@ -5829,9 +5829,9 @@ es6_module_define('data_api', ["./data_api_parser.js", "./data_api_base.js", "..
                     val&=~mask;
                   prop.dataref = owner;
                   prop.setValue(val, owner, changed);
-                  $scope_tNJe_set_prop[0] = val;
+                  $scope_wRyx_set_prop[0] = val;
                   path2+=" = scope[0];";
-                  this.evaluate(ctx, path2, $scope_tNJe_set_prop);
+                  this.evaluate(ctx, path2, $scope_wRyx_set_prop);
               }
               else {
                 path+=" = "+value;
@@ -5881,9 +5881,9 @@ es6_module_define('data_api', ["./data_api_parser.js", "./data_api_base.js", "..
             }
             else {
               if (typeof value=="object") {
-                  $scope_tNJe_set_prop[0] = value;
+                  $scope_wRyx_set_prop[0] = value;
                   path+=" = scope[0]";
-                  this.evaluate(ctx, path, $scope_tNJe_set_prop);
+                  this.evaluate(ctx, path, $scope_wRyx_set_prop);
               }
               else {
                 changed = value==old_value;
@@ -5933,9 +5933,9 @@ es6_module_define('data_api', ["./data_api_parser.js", "./data_api_base.js", "..
       return ret[0].data;
     }
   }
-  var $cache_Vty__resolve_path_intern={}
-  var $retcpy_EE94_set_prop=new Array(16);
-  var $scope_tNJe_set_prop=[0, 0];
+  var $cache_hl5j_resolve_path_intern={}
+  var $retcpy_gpSB_set_prop=new Array(16);
+  var $scope_wRyx_set_prop=[0, 0];
   _ESClass.register(DataAPI);
   _es6_module.add_class(DataAPI);
   DataAPI = _es6_module.add_export('DataAPI', DataAPI);
@@ -6328,7 +6328,7 @@ es6_module_define('video', [], function _video_module(_es6_module) {
   var manager=new VideoManager();
   manager = _es6_module.add_export('manager', manager);
 }, '/dev/fairmotion/src/core/video.js');
-es6_module_define('fileapi', ["./fileapi_electron", "./fileapi_chrome", "./fileapi_html5", "../../config/config.js"], function _fileapi_module(_es6_module) {
+es6_module_define('fileapi', ["./fileapi_html5", "./fileapi_chrome", "./fileapi_electron", "../../config/config.js"], function _fileapi_module(_es6_module) {
   var config=es6_import(_es6_module, '../../config/config.js');
   function get_root_folderid() {
     return '/';
@@ -6550,7 +6550,7 @@ es6_module_define('fileapi_chrome', [], function _fileapi_chrome_module(_es6_mod
   }
   save_file = _es6_module.add_export('save_file', save_file);
 }, '/dev/fairmotion/src/core/fileapi/fileapi_chrome.js');
-es6_module_define('fileapi_electron', ["../../config/config.js", "./fileapi_html5.js"], function _fileapi_electron_module(_es6_module) {
+es6_module_define('fileapi_electron', ["./fileapi_html5.js", "../../config/config.js"], function _fileapi_electron_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../../config/config.js');
   var fileapi_html5=es6_import(_es6_module, './fileapi_html5.js');
@@ -6716,7 +6716,7 @@ es6_module_define('fileapi_electron', ["../../config/config.js", "./fileapi_html
   }
   save_file_old = _es6_module.add_export('save_file_old', save_file_old);
 }, '/dev/fairmotion/src/core/fileapi/fileapi_electron.js');
-es6_module_define('animdata', ["./lib_api.js", "./eventdag.js", "./toolprops.js", "./struct.js", "../curve/spline_base.js"], function _animdata_module(_es6_module) {
+es6_module_define('animdata', ["./struct.js", "./eventdag.js", "./toolprops.js", "./lib_api.js", "../curve/spline_base.js"], function _animdata_module(_es6_module) {
   "use strict";
   var PropTypes=es6_import_item(_es6_module, './toolprops.js', 'PropTypes');
   var STRUCT=es6_import_item(_es6_module, './struct.js', 'STRUCT');
@@ -6982,7 +6982,7 @@ es6_module_define('animutil', [], function _animutil_module(_es6_module) {
 }, '/dev/fairmotion/src/core/animutil.js');
 es6_module_define('config_defines', [], function _config_defines_module(_es6_module) {
 }, '/dev/fairmotion/src/config/config_defines.js');
-es6_module_define('svg_export', ["../curve/spline_draw.js", "./mathlib.js", "../curve/spline_draw_new.js", "../vectordraw/vectordraw_svg.js", "../curve/spline_base.js"], function _svg_export_module(_es6_module) {
+es6_module_define('svg_export', ["./mathlib.js", "../curve/spline_draw_new.js", "../curve/spline_draw.js", "../vectordraw/vectordraw_svg.js", "../curve/spline_base.js"], function _svg_export_module(_es6_module) {
   "use strict";
   var math=es6_import(_es6_module, './mathlib.js');
   var SplineFlags=es6_import_item(_es6_module, '../curve/spline_base.js', 'SplineFlags');
@@ -7048,7 +7048,7 @@ es6_module_define('vectormath', ["../path.ux/scripts/util/vectormath.js"], funct
   window.Quat = Quat;
   window.Matrix4 = Matrix4;
 }, '/dev/fairmotion/src/util/vectormath.js');
-es6_module_define('context', ["../util/util.js", "../widgets/ui_noteframe.js", "../config/const.js"], function _context_module(_es6_module) {
+es6_module_define('context', ["../util/util.js", "../config/const.js", "../widgets/ui_noteframe.js"], function _context_module(_es6_module) {
   var util=es6_import(_es6_module, '../util/util.js');
   var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
   var ui_noteframe=es6_import(_es6_module, '../widgets/ui_noteframe.js');
@@ -7500,7 +7500,7 @@ es6_module_define('context', ["../util/util.js", "../widgets/ui_noteframe.js", "
       throw new Error("Context test failed");
   }
 }, '/dev/fairmotion/src/path.ux/scripts/controller/context.js');
-es6_module_define('controller', ["../util/util.js", "../util/vectormath.js", "../toolsys/toolprop_abstract.js", "../toolsys/simple_toolsys.js", "../toolsys/toolprop.js"], function _controller_module(_es6_module) {
+es6_module_define('controller', ["../toolsys/simple_toolsys.js", "../util/vectormath.js", "../toolsys/toolprop_abstract.js", "../util/util.js", "../toolsys/toolprop.js"], function _controller_module(_es6_module) {
   var toolprop=es6_import(_es6_module, '../toolsys/toolprop.js');
   var ToolOp=es6_import_item(_es6_module, '../toolsys/simple_toolsys.js', 'ToolOp');
   var print_stack=es6_import_item(_es6_module, '../util/util.js', 'print_stack');
@@ -7797,7 +7797,7 @@ es6_module_define('controller', ["../util/util.js", "../util/vectormath.js", "..
   }
   registerTool = _es6_module.add_export('registerTool', registerTool);
 }, '/dev/fairmotion/src/path.ux/scripts/controller/controller.js');
-es6_module_define('controller_ops', ["./controller.js", "../toolsys/simple_toolsys.js", "../toolsys/toolprop.js", "../util/util.js"], function _controller_ops_module(_es6_module) {
+es6_module_define('controller_ops', ["../util/util.js", "../toolsys/toolprop.js", "./controller.js", "../toolsys/simple_toolsys.js"], function _controller_ops_module(_es6_module) {
   var ToolOp=es6_import_item(_es6_module, '../toolsys/simple_toolsys.js', 'ToolOp');
   var ToolFlags=es6_import_item(_es6_module, '../toolsys/simple_toolsys.js', 'ToolFlags');
   var PropTypes=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'PropTypes');
@@ -7965,7 +7965,7 @@ es6_module_define('controller_ops', ["./controller.js", "../toolsys/simple_tools
   DataPathSetOp = _es6_module.add_export('DataPathSetOp', DataPathSetOp);
   ToolOp.register(DataPathSetOp);
 }, '/dev/fairmotion/src/path.ux/scripts/controller/controller_ops.js');
-es6_module_define('simple_controller', ["../toolsys/toolprop_abstract.js", "../config/const.js", "../util/util.js", "../toolsys/toolpath.js", "./controller_ops.js", "./controller.js", "../toolsys/toolprop.js", "../util/parseutil.js", "../toolsys/simple_toolsys.js"], function _simple_controller_module(_es6_module) {
+es6_module_define('simple_controller', ["../util/parseutil.js", "../toolsys/simple_toolsys.js", "./controller_ops.js", "../toolsys/toolpath.js", "../toolsys/toolprop_abstract.js", "./controller.js", "../toolsys/toolprop.js", "../config/const.js", "../util/util.js"], function _simple_controller_module(_es6_module) {
   var toolprop=es6_import(_es6_module, '../toolsys/toolprop.js');
   var parseutil=es6_import(_es6_module, '../util/parseutil.js');
   var print_stack=es6_import_item(_es6_module, '../util/util.js', 'print_stack');
@@ -9147,7 +9147,7 @@ es6_module_define('simple_controller', ["../toolsys/toolprop_abstract.js", "../c
   setDataPathToolOp = _es6_module.add_export('setDataPathToolOp', setDataPathToolOp);
   setImplementationClass(DataAPI);
 }, '/dev/fairmotion/src/path.ux/scripts/controller/simple_controller.js');
-es6_module_define('anim', ["../util/math.js", "./ui_theme.js", "../util/util.js", "../curve/curve1d.js", "../util/vectormath.js"], function _anim_module(_es6_module) {
+es6_module_define('anim', ["../util/vectormath.js", "../util/math.js", "../util/util.js", "./ui_theme.js", "../curve/curve1d.js"], function _anim_module(_es6_module) {
   var Vector2=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector2');
   var Matrix4=es6_import_item(_es6_module, '../util/vectormath.js', 'Matrix4');
   var Quat=es6_import_item(_es6_module, '../util/vectormath.js', 'Quat');
@@ -9975,7 +9975,7 @@ es6_module_define('theme', ["../util/util.js", "./ui_theme.js"], function _theme
     defaultHeight: 24}}
   _es6_module.add_export('DefaultTheme', DefaultTheme);
 }, '/dev/fairmotion/src/path.ux/scripts/core/theme.js');
-es6_module_define('ui', ["../util/simple_events.js", "../config/const.js", "../util/util.js", "../toolsys/toolprop.js", "../widgets/ui_menu.js", "../util/html5_fileapi.js", "./ui_base.js", "../util/vectormath.js", "./ui_theme.js", "../widgets/ui_widgets.js"], function _ui_module(_es6_module) {
+es6_module_define('ui', ["../util/vectormath.js", "../util/util.js", "../util/html5_fileapi.js", "../toolsys/toolprop.js", "../util/simple_events.js", "../config/const.js", "../widgets/ui_menu.js", "../widgets/ui_widgets.js", "./ui_base.js", "./ui_theme.js"], function _ui_module(_es6_module) {
   var _ui=undefined;
   var util=es6_import(_es6_module, '../util/util.js');
   var vectormath=es6_import(_es6_module, '../util/vectormath.js');

@@ -1,0 +1,37 @@
+{
+  "_from": "canvaskit-wasm",
+  "_id": "canvaskit-wasm@0.16.2",
+  "_inBundle": false,
+  "_integrity": "sha512-0rmzT33Li/WV6Mi5+W374Higfq7ffTtsCZi1WhvfaTyRzgPwaurH6hXy537gv93dgyte7z1f6etDsnsqY0t1Jg==",
+  "_location": "/canvaskit-wasm",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "tag",
+    "registry": true,
+    "raw": "canvaskit-wasm",
+    "name": "canvaskit-wasm",
+    "escapedName": "canvaskit-wasm",
+    "rawSpec": "",
+    "saveSpec": null,
+    "fetchSpec": "latest"
+  },
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_resolved": "https://registry.npmjs.org/canvaskit-wasm/-/canvaskit-wasm-0.16.2.tgz",
+  "_shasum": "defb8f0b1e6bef2fae6aef1b4c90083dbdf9ee7a",
+  "_spec": "canvaskit-wasm",
+  "_where": "C:\\dev\\fairmotion",
+  "bundleDependencies": false,
+  "deprecated": false,
+  "description": "A WASM version of Skia's Canvas API",
+  "homepage": "https://github.com/google/skia/tree/master/modules/canvaskit",
+  "license": "BSD-3-Clause",
+  "main": "bin/canvaskit.js",
+  "name": "canvaskit-wasm",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "version": "0.16.2"
+}

@@ -5436,7 +5436,7 @@ es6_module_define('parseutil', [], function _parseutil_module(_es6_module) {
     console.log(JSON.stringify(ret));
   }
 }, '/dev/fairmotion/src/path.ux/scripts/util/parseutil.js');
-es6_module_define('ScreenOverdraw', ["../core/ui.js", "./vectormath.js", "./util.js", "./math.js", "../core/ui_base.js", "./events.js"], function _ScreenOverdraw_module(_es6_module) {
+es6_module_define('ScreenOverdraw', ["../core/ui_base.js", "./vectormath.js", "./events.js", "./math.js", "./util.js", "../core/ui.js"], function _ScreenOverdraw_module(_es6_module) {
   "use strict";
   let SVG_URL='http://www.w3.org/2000/svg';
   var util=es6_import(_es6_module, './util.js');
@@ -5716,7 +5716,7 @@ es6_module_define('ScreenOverdraw', ["../core/ui.js", "./vectormath.js", "./util
   Overdraw = _es6_module.add_export('Overdraw', Overdraw);
   ui_base.UIBase.register(Overdraw);
 }, '/dev/fairmotion/src/path.ux/scripts/util/ScreenOverdraw.js');
-es6_module_define('simple_events', ["./vectormath.js", "./util.js", "../config/const.js"], function _simple_events_module(_es6_module) {
+es6_module_define('simple_events', ["./util.js", "./vectormath.js", "../config/const.js"], function _simple_events_module(_es6_module) {
   var util=es6_import(_es6_module, './util.js');
   var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
   var Vector2=es6_import_item(_es6_module, './vectormath.js', 'Vector2');
@@ -6290,7 +6290,7 @@ es6_module_define('simple_events', ["./vectormath.js", "./util.js", "../config/c
   _es6_module.add_class(KeyMap);
   KeyMap = _es6_module.add_export('KeyMap', KeyMap);
 }, '/dev/fairmotion/src/path.ux/scripts/util/simple_events.js');
-es6_module_define('solver', ["./math.js", "./util.js", "./vectormath.js"], function _solver_module(_es6_module) {
+es6_module_define('solver', ["./vectormath.js", "./math.js", "./util.js"], function _solver_module(_es6_module) {
   var Vector2=es6_import_item(_es6_module, './vectormath.js', 'Vector2');
   var math=es6_import(_es6_module, './math.js');
   var util=es6_import(_es6_module, './util.js');
@@ -6420,7 +6420,7 @@ es6_module_define('struct', ["./nstructjs.js"], function _struct_module(_es6_mod
   }
   setEndian = _es6_module.add_export('setEndian', setEndian);
 }, '/dev/fairmotion/src/path.ux/scripts/util/struct.js');
-es6_module_define('vectormath', ["./util.js", "./struct.js"], function _vectormath_module(_es6_module) {
+es6_module_define('vectormath', ["./struct.js", "./util.js"], function _vectormath_module(_es6_module) {
   var util=es6_import(_es6_module, './util.js');
   es6_import(_es6_module, './struct.js');
   window.makeCompiledVectormathCode = function (mode) {
@@ -8230,7 +8230,7 @@ mat4 {
     return r;
   }
 }, '/dev/fairmotion/src/path.ux/scripts/util/vectormath.js');
-es6_module_define('dragbox', ["../core/ui_theme.js", "../util/simple_events.js", "../core/ui.js", "../core/ui_base.js"], function _dragbox_module(_es6_module) {
+es6_module_define('dragbox', ["../core/ui.js", "../util/simple_events.js", "../core/ui_base.js", "../core/ui_theme.js"], function _dragbox_module(_es6_module) {
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var Icons=es6_import_item(_es6_module, '../core/ui_base.js', 'Icons');
   var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
@@ -8416,7 +8416,7 @@ es6_module_define('dragbox', ["../core/ui_theme.js", "../util/simple_events.js",
   DragBox = _es6_module.add_export('DragBox', DragBox);
   UIBase.register(DragBox);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/dragbox.js');
-es6_module_define('theme_editor', ["../core/ui.js", "../core/ui_theme.js", "../util/struct.js", "../core/ui_base.js", "../screen/ScreenArea.js"], function _theme_editor_module(_es6_module) {
+es6_module_define('theme_editor', ["../screen/ScreenArea.js", "../core/ui.js", "../util/struct.js", "../core/ui_base.js", "../core/ui_theme.js"], function _theme_editor_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../screen/ScreenArea.js', 'Area');
   var nstructjs=es6_import(_es6_module, '../util/struct.js');
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
@@ -8567,7 +8567,7 @@ es6_module_define('theme_editor', ["../core/ui.js", "../core/ui_theme.js", "../u
   ThemeEditor = _es6_module.add_export('ThemeEditor', ThemeEditor);
   UIBase.register(ThemeEditor);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/theme_editor.js');
-es6_module_define('ui_button', ["../util/events.js", "../util/vectormath.js", "../toolsys/toolprop.js", "../core/ui_base.js", "../controller/simple_controller.js", "../config/const.js", "../util/util.js", "../toolsys/simple_toolsys.js"], function _ui_button_module(_es6_module) {
+es6_module_define('ui_button', ["../controller/simple_controller.js", "../util/events.js", "../toolsys/toolprop.js", "../toolsys/simple_toolsys.js", "../config/const.js", "../util/util.js", "../util/vectormath.js", "../core/ui_base.js"], function _ui_button_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../util/util.js');
   var vectormath=es6_import(_es6_module, '../util/vectormath.js');
@@ -8940,7 +8940,7 @@ es6_module_define('ui_button', ["../util/events.js", "../util/vectormath.js", ".
   Button = _es6_module.add_export('Button', Button);
   UIBase.register(Button);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_button.js');
-es6_module_define('ui_colorpicker', ["../util/events.js", "../toolsys/toolprop.js", "../util/vectormath.js", "../core/ui.js", "../core/ui_base.js", "../util/util.js"], function _ui_colorpicker_module(_es6_module) {
+es6_module_define('ui_colorpicker', ["../core/ui_base.js", "../util/util.js", "../util/vectormath.js", "../toolsys/toolprop.js", "../util/events.js", "../core/ui.js"], function _ui_colorpicker_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../util/util.js');
   var vectormath=es6_import(_es6_module, '../util/vectormath.js');
@@ -9556,7 +9556,7 @@ es6_module_define('ui_colorpicker', ["../util/events.js", "../toolsys/toolprop.j
   ColorPicker = _es6_module.add_export('ColorPicker', ColorPicker);
   UIBase.register(ColorPicker);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_colorpicker.js');
-es6_module_define('ui_colorpicker2', ["../util/colorutils.js", "../toolsys/toolprop.js", "../util/vectormath.js", "../util/events.js", "../util/util.js", "../core/ui_base.js", "../config/const.js", "../util/simple_events.js", "../core/ui.js"], function _ui_colorpicker2_module(_es6_module) {
+es6_module_define('ui_colorpicker2', ["../core/ui_base.js", "../config/const.js", "../core/ui.js", "../util/util.js", "../util/simple_events.js", "../util/events.js", "../toolsys/toolprop.js", "../util/vectormath.js", "../util/colorutils.js"], function _ui_colorpicker2_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../util/util.js');
   var vectormath=es6_import(_es6_module, '../util/vectormath.js');
@@ -10471,7 +10471,7 @@ es6_module_define('ui_colorpicker2', ["../util/colorutils.js", "../toolsys/toolp
   
   UIBase.register(ColorPickerButton);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_colorpicker2.js');
-es6_module_define('ui_container', ["../core/ui.js", "../controller/simple_controller.js", "../core/ui_base.js"], function _ui_container_module(_es6_module) {
+es6_module_define('ui_container', ["../core/ui_base.js", "../controller/simple_controller.js", "../core/ui.js"], function _ui_container_module(_es6_module) {
   var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var DataAPI=es6_import_item(_es6_module, '../controller/simple_controller.js', 'DataAPI');
@@ -10792,7 +10792,7 @@ es6_module_define('ui_container', ["../core/ui.js", "../controller/simple_contro
   BuilderRow = _es6_module.add_export('BuilderRow', BuilderRow);
   UIBase.register(BuilderRow);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_container.js');
-es6_module_define('ui_curvewidget', ["../util/util.js", "../curve/curve1d.js", "../util/vectormath.js", "../toolsys/toolprop.js", "../curve/curve1d_utils.js", "../core/ui_base.js", "../core/ui.js"], function _ui_curvewidget_module(_es6_module) {
+es6_module_define('ui_curvewidget', ["../util/vectormath.js", "../core/ui.js", "../curve/curve1d_utils.js", "../toolsys/toolprop.js", "../curve/curve1d.js", "../core/ui_base.js", "../util/util.js"], function _ui_curvewidget_module(_es6_module) {
   var Curve1DProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'Curve1DProperty');
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var Icons=es6_import_item(_es6_module, '../core/ui_base.js', 'Icons');
@@ -10996,7 +10996,7 @@ es6_module_define('ui_curvewidget', ["../util/util.js", "../curve/curve1d.js", "
   Curve1DWidget = _es6_module.add_export('Curve1DWidget', Curve1DWidget);
   UIBase.register(Curve1DWidget);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_curvewidget.js');
-es6_module_define('ui_dialog', ["../util/simple_events.js", "../screen/ScreenArea.js"], function _ui_dialog_module(_es6_module) {
+es6_module_define('ui_dialog', ["../screen/ScreenArea.js", "../util/simple_events.js"], function _ui_dialog_module(_es6_module) {
   var AreaFlags=es6_import_item(_es6_module, '../screen/ScreenArea.js', 'AreaFlags');
   var keymap=es6_import_item(_es6_module, '../util/simple_events.js', 'keymap');
   function makePopupArea(area_class, screen, args) {
@@ -11031,7 +11031,7 @@ es6_module_define('ui_dialog', ["../util/simple_events.js", "../screen/ScreenAre
   }
   makePopupArea = _es6_module.add_export('makePopupArea', makePopupArea);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_dialog.js');
-es6_module_define('ui_lasttool', ["../toolsys/toolprop.js", "../config/const.js", "../core/ui_base.js", "../util/util.js", "../toolsys/simple_toolsys.js", "../core/ui.js", "../controller/simple_controller.js"], function _ui_lasttool_module(_es6_module) {
+es6_module_define('ui_lasttool', ["../core/ui_base.js", "../toolsys/simple_toolsys.js", "../controller/simple_controller.js", "../config/const.js", "../util/util.js", "../core/ui.js", "../toolsys/toolprop.js"], function _ui_lasttool_module(_es6_module) {
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var ColumnFrame=es6_import_item(_es6_module, '../core/ui.js', 'ColumnFrame');
   var PropTypes=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'PropTypes');
@@ -11145,7 +11145,7 @@ es6_module_define('ui_lasttool', ["../toolsys/toolprop.js", "../config/const.js"
   LastToolPanel = _es6_module.add_export('LastToolPanel', LastToolPanel);
   UIBase.register(LastToolPanel);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_lasttool.js');
-es6_module_define('ui_listbox', ["../util/util.js", "./ui_table.js", "../toolsys/simple_toolsys.js", "../toolsys/toolprop.js", "../core/ui.js", "../util/vectormath.js", "../core/ui_base.js", "../util/events.js"], function _ui_listbox_module(_es6_module) {
+es6_module_define('ui_listbox', ["../toolsys/simple_toolsys.js", "../util/util.js", "../util/vectormath.js", "../util/events.js", "../toolsys/toolprop.js", "./ui_table.js", "../core/ui.js", "../core/ui_base.js"], function _ui_listbox_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../util/util.js');
   var vectormath=es6_import(_es6_module, '../util/vectormath.js');

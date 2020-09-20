@@ -1,4 +1,4 @@
-es6_module_define('ui_menu', ["../util/events.js", "../toolsys/simple_toolsys.js", "../config/const.js", "./ui_button.js", "../util/simple_events.js", "../toolsys/toolprop.js", "../util/util.js", "../util/vectormath.js", "../core/ui_base.js"], function _ui_menu_module(_es6_module) {
+es6_module_define('ui_menu', ["../config/const.js", "../util/util.js", "../util/events.js", "./ui_button.js", "../toolsys/simple_toolsys.js", "../toolsys/toolprop.js", "../util/simple_events.js", "../util/vectormath.js", "../core/ui_base.js"], function _ui_menu_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../util/util.js');
   var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
@@ -1090,7 +1090,7 @@ es6_module_define('ui_menu', ["../util/events.js", "../toolsys/simple_toolsys.js
   }
   startMenu = _es6_module.add_export('startMenu', startMenu);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_menu.js');
-es6_module_define('ui_noteframe', ["../core/ui.js", "../util/util.js", "../core/ui_base.js"], function _ui_noteframe_module(_es6_module) {
+es6_module_define('ui_noteframe', ["../core/ui_base.js", "../util/util.js", "../core/ui.js"], function _ui_noteframe_module(_es6_module) {
   var util=es6_import(_es6_module, '../util/util.js');
   var ui=es6_import(_es6_module, '../core/ui.js');
   var ui_base=es6_import(_es6_module, '../core/ui_base.js');
@@ -1349,7 +1349,7 @@ es6_module_define('ui_noteframe', ["../core/ui.js", "../util/util.js", "../core/
   }
   message = _es6_module.add_export('message', message);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_noteframe.js');
-es6_module_define('ui_numsliders', ["../core/units.js", "../util/util.js", "./ui_widgets.js", "../util/simple_events.js", "../core/ui_base.js", "../util/vectormath.js", "../toolsys/toolprop.js", "../core/ui.js"], function _ui_numsliders_module(_es6_module) {
+es6_module_define('ui_numsliders', ["../toolsys/toolprop.js", "../core/units.js", "./ui_widgets.js", "../core/ui_base.js", "../core/ui.js", "../util/simple_events.js", "../util/vectormath.js", "../util/util.js"], function _ui_numsliders_module(_es6_module) {
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var drawText=es6_import_item(_es6_module, '../core/ui_base.js', 'drawText');
   var ValueButtonBase=es6_import_item(_es6_module, './ui_widgets.js', 'ValueButtonBase');
@@ -2449,7 +2449,7 @@ es6_module_define('ui_numsliders', ["../core/units.js", "../util/util.js", "./ui
   NumSliderWithTextBox = _es6_module.add_export('NumSliderWithTextBox', NumSliderWithTextBox);
   UIBase.register(NumSliderWithTextBox);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_numsliders.js');
-es6_module_define('ui_panel', ["../util/vectormath.js", "../core/ui_base.js", "../core/ui.js", "../toolsys/toolprop.js", "../util/util.js", "./ui_widgets.js", "../util/html5_fileapi.js"], function _ui_panel_module(_es6_module) {
+es6_module_define('ui_panel', ["./ui_widgets.js", "../core/ui_base.js", "../toolsys/toolprop.js", "../util/util.js", "../util/html5_fileapi.js", "../core/ui.js", "../util/vectormath.js"], function _ui_panel_module(_es6_module) {
   var _ui=undefined;
   var util=es6_import(_es6_module, '../util/util.js');
   var vectormath=es6_import(_es6_module, '../util/vectormath.js');
@@ -2666,7 +2666,7 @@ es6_module_define('ui_panel', ["../util/vectormath.js", "../core/ui_base.js", ".
   PanelFrame = _es6_module.add_export('PanelFrame', PanelFrame);
   UIBase.register(PanelFrame);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_panel.js');
-es6_module_define('ui_richedit', ["../util/simple_events.js", "./ui_textbox.js", "../core/ui.js", "../util/util.js", "../core/ui_base.js"], function _ui_richedit_module(_es6_module) {
+es6_module_define('ui_richedit', ["../core/ui.js", "../util/simple_events.js", "../util/util.js", "./ui_textbox.js", "../core/ui_base.js"], function _ui_richedit_module(_es6_module) {
   var ui_base=es6_import(_es6_module, '../core/ui_base.js');
   var util=es6_import(_es6_module, '../util/util.js');
   var ColumnFrame=es6_import_item(_es6_module, '../core/ui.js', 'ColumnFrame');
@@ -2946,7 +2946,7 @@ es6_module_define('ui_richedit', ["../util/simple_events.js", "./ui_textbox.js",
   RichViewer = _es6_module.add_export('RichViewer', RichViewer);
   UIBase.register(RichViewer);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_richedit.js');
-es6_module_define('ui_table', ["../core/ui.js", "../core/ui_base.js", "../toolsys/toolprop.js", "./ui_widgets.js", "../util/util.js", "../util/vectormath.js", "./ui_curvewidget.js"], function _ui_table_module(_es6_module) {
+es6_module_define('ui_table', ["./ui_widgets.js", "./ui_curvewidget.js", "../core/ui_base.js", "../util/util.js", "../util/vectormath.js", "../core/ui.js", "../toolsys/toolprop.js"], function _ui_table_module(_es6_module) {
   var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
   var _ui=undefined;
   var util=es6_import(_es6_module, '../util/util.js');
@@ -3129,7 +3129,7 @@ es6_module_define('ui_table', ["../core/ui.js", "../core/ui_base.js", "../toolsy
   TableFrame = _es6_module.add_export('TableFrame', TableFrame);
   UIBase.register(TableFrame);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_table.js');
-es6_module_define('ui_tabs', ["../core/ui_base.js", "../util/events.js", "../util/vectormath.js", "../core/ui.js", "../util/util.js"], function _ui_tabs_module(_es6_module) {
+es6_module_define('ui_tabs', ["../util/events.js", "../core/ui_base.js", "../core/ui.js", "../util/vectormath.js", "../util/util.js"], function _ui_tabs_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../util/util.js');
   var vectormath=es6_import(_es6_module, '../util/vectormath.js');
@@ -4104,7 +4104,7 @@ es6_module_define('ui_tabs', ["../core/ui_base.js", "../util/events.js", "../uti
   TabContainer = _es6_module.add_export('TabContainer', TabContainer);
   UIBase.register(TabContainer);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_tabs.js');
-es6_module_define('ui_textbox', ["../toolsys/toolprop.js", "../core/ui_base.js", "../toolsys/simple_toolsys.js", "../util/util.js", "../config/const.js", "../controller/simple_controller.js", "../util/vectormath.js", "../util/events.js", "./ui_button.js", "../core/units.js"], function _ui_textbox_module(_es6_module) {
+es6_module_define('ui_textbox', ["../controller/simple_controller.js", "../config/const.js", "../util/vectormath.js", "../toolsys/simple_toolsys.js", "../core/ui_base.js", "../util/util.js", "./ui_button.js", "../toolsys/toolprop.js", "../core/units.js", "../util/events.js"], function _ui_textbox_module(_es6_module) {
   "use strict";
   var units=es6_import(_es6_module, '../core/units.js');
   var util=es6_import(_es6_module, '../util/util.js');
@@ -4390,7 +4390,7 @@ es6_module_define('ui_textbox', ["../toolsys/toolprop.js", "../core/ui_base.js",
   }
   checkForTextBox = _es6_module.add_export('checkForTextBox', checkForTextBox);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_textbox.js');
-es6_module_define('ui_treeview', ["../core/ui.js", "../util/ScreenOverdraw.js", "../core/ui_base.js", "../util/vectormath.js", "../core/ui_theme.js", "../util/math.js", "../util/simple_events.js"], function _ui_treeview_module(_es6_module) {
+es6_module_define('ui_treeview', ["../util/simple_events.js", "../util/vectormath.js", "../core/ui_base.js", "../core/ui_theme.js", "../util/math.js", "../core/ui.js", "../util/ScreenOverdraw.js"], function _ui_treeview_module(_es6_module) {
   es6_import(_es6_module, '../util/ScreenOverdraw.js');
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var Icons=es6_import_item(_es6_module, '../core/ui_base.js', 'Icons');
@@ -4672,7 +4672,7 @@ es6_module_define('ui_treeview', ["../core/ui.js", "../util/ScreenOverdraw.js", 
   TreeView = _es6_module.add_export('TreeView', TreeView);
   UIBase.register(TreeView);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_treeview.js');
-es6_module_define('ui_widgets', ["./ui_textbox.js", "../toolsys/simple_toolsys.js", "../util/events.js", "../config/const.js", "../toolsys/toolprop.js", "./ui_button.js", "../core/ui_base.js", "../util/vectormath.js", "../util/util.js", "../core/units.js", "../controller/simple_controller.js"], function _ui_widgets_module(_es6_module) {
+es6_module_define('ui_widgets', ["../toolsys/simple_toolsys.js", "../util/events.js", "../toolsys/toolprop.js", "../config/const.js", "../core/ui_base.js", "../util/vectormath.js", "./ui_button.js", "../util/util.js", "./ui_textbox.js", "../controller/simple_controller.js", "../core/units.js"], function _ui_widgets_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../util/util.js');
   var vectormath=es6_import(_es6_module, '../util/vectormath.js');
@@ -5283,7 +5283,7 @@ es6_module_define('ui_widgets', ["./ui_textbox.js", "../toolsys/simple_toolsys.j
   let _ex_checkForTextBox=es6_import_item(_es6_module, './ui_textbox.js', 'checkForTextBox');
   _es6_module.add_export('checkForTextBox', _ex_checkForTextBox, true);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_widgets.js');
-es6_module_define('ui_widgets2', ["../core/ui.js", "../util/util.js", "../util/vectormath.js", "../core/ui_base.js", "./ui_richedit.js", "../core/units.js", "../toolsys/toolprop.js", "../util/events.js", "./ui_widgets.js"], function _ui_widgets2_module(_es6_module) {
+es6_module_define('ui_widgets2', ["../util/events.js", "../core/ui.js", "./ui_richedit.js", "../toolsys/toolprop.js", "../core/ui_base.js", "../util/util.js", "./ui_widgets.js", "../core/units.js", "../util/vectormath.js"], function _ui_widgets2_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, './ui_richedit.js');
   var util=es6_import(_es6_module, '../util/util.js');
@@ -5682,11 +5682,11 @@ es6_module_define('ui_widgets2', ["../core/ui.js", "../util/util.js", "../util/v
   
   UIBase.register(ToolTip);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_widgets2.js');
-es6_module_define('all', ["./splinetool.js", "./pentool.js"], function _all_module(_es6_module) {
+es6_module_define('all', ["./pentool.js", "./splinetool.js"], function _all_module(_es6_module) {
   es6_import(_es6_module, './splinetool.js');
   es6_import(_es6_module, './pentool.js');
 }, '/dev/fairmotion/src/editors/viewport/toolmodes/all.js');
-es6_module_define('pentool', ["../spline_selectops.js", "../view2d_editor.js", "../../../core/toolops_api.js", "../../../path.ux/scripts/core/ui_base.js", "../../../path.ux/scripts/util/util.js", "../../../path.ux/scripts/pathux.js", "../view2d_ops.js", "../spline_createops.js", "../transform_ops.js", "../../../core/context.js", "../spline_editops.js", "../transform.js", "../selectmode.js", "../../../curve/spline_types.js", "../../events.js", "../../../curve/spline_draw.js", "./toolmode.js"], function _pentool_module(_es6_module) {
+es6_module_define('pentool', ["./toolmode.js", "../spline_editops.js", "../../events.js", "../view2d_editor.js", "../../../path.ux/scripts/pathux.js", "../transform_ops.js", "../transform.js", "../../../curve/spline_draw.js", "../spline_createops.js", "../../../curve/spline_types.js", "../view2d_ops.js", "../../../core/toolops_api.js", "../../../path.ux/scripts/core/ui_base.js", "../../../path.ux/scripts/util/util.js", "../spline_selectops.js", "../../../core/context.js", "../selectmode.js"], function _pentool_module(_es6_module) {
   "use strict";
   var UIBase=es6_import_item(_es6_module, '../../../path.ux/scripts/core/ui_base.js', 'UIBase');
   var FullContext=es6_import_item(_es6_module, '../../../core/context.js', 'FullContext');
@@ -6066,7 +6066,7 @@ es6_module_define('pentool', ["../spline_selectops.js", "../view2d_editor.js", "
 }`;
   ToolMode.register(PenToolMode);
 }, '/dev/fairmotion/src/editors/viewport/toolmodes/pentool.js');
-es6_module_define('splinetool', ["../../../path.ux/scripts/pathux.js", "../selectmode.js", "../../../curve/spline_types.js", "../../../core/context.js", "../spline_selectops.js", "../../../curve/spline_draw.js", "../../../path.ux/scripts/core/ui_base.js", "./toolmode.js", "../spline_editops.js", "../view2d_ops.js", "../../events.js", "../../../core/toolops_api.js", "../transform.js", "../spline_createops.js", "../transform_ops.js", "../view2d_editor.js", "../../../path.ux/scripts/util/util.js"], function _splinetool_module(_es6_module) {
+es6_module_define('splinetool', ["../../../core/toolops_api.js", "../spline_editops.js", "../../../path.ux/scripts/util/util.js", "../../../curve/spline_draw.js", "../../../curve/spline_types.js", "../view2d_editor.js", "../view2d_ops.js", "../spline_createops.js", "../../../core/context.js", "../../events.js", "../../../path.ux/scripts/pathux.js", "./toolmode.js", "../../../path.ux/scripts/core/ui_base.js", "../spline_selectops.js", "../selectmode.js", "../transform_ops.js", "../transform.js"], function _splinetool_module(_es6_module) {
   "use strict";
   var UIBase=es6_import_item(_es6_module, '../../../path.ux/scripts/core/ui_base.js', 'UIBase');
   var FullContext=es6_import_item(_es6_module, '../../../core/context.js', 'FullContext');
@@ -6511,7 +6511,7 @@ es6_module_define('splinetool', ["../../../path.ux/scripts/pathux.js", "../selec
 }`;
   ToolMode.register(SplineToolMode);
 }, '/dev/fairmotion/src/editors/viewport/toolmodes/splinetool.js');
-es6_module_define('toolmode', ["../../../core/data_api/data_api_types.js", "../../../path.ux/scripts/pathux.js", "../../../core/eventdag.js", "../../events.js"], function _toolmode_module(_es6_module) {
+es6_module_define('toolmode', ["../../../core/data_api/data_api_types.js", "../../../core/eventdag.js", "../../events.js", "../../../path.ux/scripts/pathux.js"], function _toolmode_module(_es6_module) {
   var NodeBase=es6_import_item(_es6_module, '../../../core/eventdag.js', 'NodeBase');
   var KeyMap=es6_import_item(_es6_module, '../../events.js', 'KeyMap');
   var nstructjs=es6_import_item(_es6_module, '../../../path.ux/scripts/pathux.js', 'nstructjs');
@@ -6640,7 +6640,7 @@ ToolMode {
   }
   defineAPI = _es6_module.add_export('defineAPI', defineAPI);
 }, '/dev/fairmotion/src/editors/viewport/toolmodes/toolmode.js');
-es6_module_define('struct', ["../path.ux/scripts/pathux.js", "../path.ux/scripts/util/parseutil.js"], function _struct_module(_es6_module) {
+es6_module_define('struct', ["../path.ux/scripts/util/parseutil.js", "../path.ux/scripts/pathux.js"], function _struct_module(_es6_module) {
   var nstructjs=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'nstructjs');
   var PUTL=es6_import(_es6_module, '../path.ux/scripts/util/parseutil.js');
   var Matrix4=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Matrix4');
@@ -6838,8 +6838,8 @@ mat4_intern {
 }, '/dev/fairmotion/src/core/struct.js');
 es6_module_define('curve', ["./curvebase.js"], function _curve_module(_es6_module) {
   "use strict";
-  var $rets_2n55_derivative;
-  var $rets_wIhz_normal;
+  var $rets_OFfx_derivative;
+  var $rets_lvCT_normal;
   class ClothoidInterface  {
     static  evaluate(p1, p2, t1, t2, k1, k2, s, cdata) {
 
@@ -6849,14 +6849,14 @@ es6_module_define('curve', ["./curvebase.js"], function _curve_module(_es6_modul
       var a=this.evaluate(p1, p2, t1, t2, k1, k2, s, cdata);
       var b=this.evaluate(p1, p2, t1, t2, k1, k2, s+df, cdata);
       b.sub(a).mulScalar(1.0/df);
-      return $rets_2n55_derivative.next().load(b);
+      return $rets_OFfx_derivative.next().load(b);
     }
     static  normal(p1, p2, t1, t2, k1, k2, s, cdata) {
       var df=0.0001;
       var a=this.derivative(p1, p2, t1, t2, k1, k2, s, cdata);
       var b=this.derivative(p1, p2, t1, t2, k1, k2, s+df, cdata);
       b.sub(a).mulScalar(1.0/df);
-      return $rets_wIhz_normal.next().load(b);
+      return $rets_lvCT_normal.next().load(b);
     }
     static  curvature(p1, p2, t1, t2, k1, k2, s, cdata) {
       var dv1=this.derivative(p1, p2, t1, t2, k1, k2, s, cdata);
@@ -6882,8 +6882,8 @@ es6_module_define('curve', ["./curvebase.js"], function _curve_module(_es6_modul
 
     }
   }
-  var $rets_2n55_derivative=cachering.fromConstructor(Vector2, 16);
-  var $rets_wIhz_normal=cachering.fromConstructor(Vector2, 16);
+  var $rets_OFfx_derivative=cachering.fromConstructor(Vector2, 16);
+  var $rets_lvCT_normal=cachering.fromConstructor(Vector2, 16);
   _ESClass.register(ClothoidInterface);
   _es6_module.add_class(ClothoidInterface);
   var CurveInterfaces=es6_import_item(_es6_module, './curvebase.js', 'CurveInterfaces');
@@ -6922,8 +6922,8 @@ es6_module_define('curvebase', [], function _curvebase_module(_es6_module) {
   _ESClass.register(CurveData);
   _es6_module.add_class(CurveData);
   CurveData = _es6_module.add_export('CurveData', CurveData);
-  var $rets_LxMz_derivative;
-  var $rets_dBy__normal;
+  var $rets_cRN__derivative;
+  var $rets_0goh_normal;
   class CurveInterface  {
     static  evaluate(p1, p2, t1, t2, k1, k2, s, cdata) {
 
@@ -6933,14 +6933,14 @@ es6_module_define('curvebase', [], function _curvebase_module(_es6_module) {
       var a=this.evaluate(p1, p2, t1, t2, k1, k2, s, cdata);
       var b=this.evaluate(p1, p2, t1, t2, k1, k2, s+df, cdata);
       b.sub(a).mulScalar(1.0/df);
-      return $rets_LxMz_derivative.next().load(b);
+      return $rets_cRN__derivative.next().load(b);
     }
     static  normal(p1, p2, t1, t2, k1, k2, s, cdata) {
       var df=0.0001;
       var a=this.derivative(p1, p2, t1, t2, k1, k2, s, cdata);
       var b=this.derivative(p1, p2, t1, t2, k1, k2, s+df, cdata);
       b.sub(a).mulScalar(1.0/df);
-      return $rets_dBy__normal.next().load(b);
+      return $rets_0goh_normal.next().load(b);
     }
     static  curvature(p1, p2, t1, t2, k1, k2, s, cdata) {
       var dv1=this.derivative(p1, p2, t1, t2, k1, k2, s, cdata);
@@ -6966,8 +6966,8 @@ es6_module_define('curvebase', [], function _curvebase_module(_es6_module) {
 
     }
   }
-  var $rets_LxMz_derivative=cachering.fromConstructor(Vector2, 16);
-  var $rets_dBy__normal=cachering.fromConstructor(Vector2, 16);
+  var $rets_cRN__derivative=cachering.fromConstructor(Vector2, 16);
+  var $rets_0goh_normal=cachering.fromConstructor(Vector2, 16);
   _ESClass.register(CurveInterface);
   _es6_module.add_class(CurveInterface);
 }, '/dev/fairmotion/src/curve/curvebase.js');
@@ -8337,7 +8337,7 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
   window._jit = _jit;
   window._jit_cur = 0;
 }, '/dev/fairmotion/src/curve/bspline.js');
-es6_module_define('spline_math', ["../config/config.js", "./spline_math_hermite.js", "../wasm/native_api.js"], function _spline_math_module(_es6_module) {
+es6_module_define('spline_math', ["../wasm/native_api.js", "./spline_math_hermite.js", "../config/config.js"], function _spline_math_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   var FEPS=1e-18;
@@ -8448,7 +8448,7 @@ es6_module_define('spline_math', ["../config/config.js", "./spline_math_hermite.
   eval_curve = _es6_module.add_export('eval_curve', eval_curve);
   
 }, '/dev/fairmotion/src/curve/spline_math.js');
-es6_module_define('spline_math_hermite', ["./spline_base.js", "../path.ux/scripts/util/vectormath.js", "../core/toolops_api.js", "./solver.js"], function _spline_math_hermite_module(_es6_module) {
+es6_module_define('spline_math_hermite', ["../core/toolops_api.js", "../path.ux/scripts/util/vectormath.js", "./spline_base.js", "./solver.js"], function _spline_math_hermite_module(_es6_module) {
   "use strict";
   var SplineFlags=es6_import_item(_es6_module, './spline_base.js', 'SplineFlags');
   var SplineTypes=es6_import_item(_es6_module, './spline_base.js', 'SplineTypes');
@@ -9001,7 +9001,7 @@ es6_module_define('spline_math_hermite', ["./spline_base.js", "../path.ux/script
   }
   do_solve = _es6_module.add_export('do_solve', do_solve);
 }, '/dev/fairmotion/src/curve/spline_math_hermite.js');
-es6_module_define('spline_element_array', ["./spline_types.js", "../core/struct.js", "../core/eventdag.js"], function _spline_element_array_module(_es6_module) {
+es6_module_define('spline_element_array', ["../core/struct.js", "../core/eventdag.js", "./spline_types.js"], function _spline_element_array_module(_es6_module) {
   var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
   var SplineFlags=es6_import_item(_es6_module, './spline_types.js', 'SplineFlags');
   var SplineTypes=es6_import_item(_es6_module, './spline_types.js', 'SplineTypes');
@@ -9825,7 +9825,7 @@ SplineLayer {
   }
 `;
 }, '/dev/fairmotion/src/curve/spline_element_array.js');
-es6_module_define('spline_base', ["../util/mathlib.js", "../core/toolprops.js", "../core/struct.js", "../core/eventdag.js"], function _spline_base_module(_es6_module) {
+es6_module_define('spline_base', ["../core/struct.js", "../core/toolprops.js", "../util/mathlib.js", "../core/eventdag.js"], function _spline_base_module(_es6_module) {
   var TPropFlags=es6_import_item(_es6_module, '../core/toolprops.js', 'TPropFlags');
   var PropTypes=es6_import_item(_es6_module, '../core/toolprops.js', 'PropTypes');
   var acos=Math.acos, asin=Math.asin, abs=Math.abs, log=Math.log, sqrt=Math.sqrt, pow=Math.pow, PI=Math.PI, floor=Math.floor, min=Math.min, max=Math.max, sin=Math.sin, cos=Math.cos, tan=Math.tan, atan=Math.atan, atan2=Math.atan2, exp=Math.exp;
@@ -10059,7 +10059,7 @@ es6_module_define('spline_base', ["../util/mathlib.js", "../core/toolprops.js", 
     shared_data : array(abstract(Object));
   }
 `;
-  var $srcs2_rIVG_interp;
+  var $srcs2_OL5r_interp;
   class CustomDataSet extends Array {
      constructor() {
       super();
@@ -10085,15 +10085,15 @@ es6_module_define('spline_base', ["../util/mathlib.js", "../core/toolprops.js", 
 
     }
      interp(srcs, ws) {
-      while ($srcs2_rIVG_interp.length<srcs.length) {
-        $srcs2_rIVG_interp.push(0);
+      while ($srcs2_OL5r_interp.length<srcs.length) {
+        $srcs2_OL5r_interp.push(0);
       }
-      $srcs2_rIVG_interp.length = srcs.length;
+      $srcs2_OL5r_interp.length = srcs.length;
       for (var i=0; i<this.length; i++) {
           for (var j=0; j<srcs.length; j++) {
-              $srcs2_rIVG_interp[j] = srcs[j][i];
+              $srcs2_OL5r_interp[j] = srcs[j][i];
           }
-          this[i].interp($srcs2_rIVG_interp, ws);
+          this[i].interp($srcs2_OL5r_interp, ws);
       }
     }
      copy(src) {
@@ -10109,7 +10109,7 @@ es6_module_define('spline_base', ["../util/mathlib.js", "../core/toolprops.js", 
       delete this.arr;
     }
   }
-  var $srcs2_rIVG_interp=[];
+  var $srcs2_OL5r_interp=[];
   _ESClass.register(CustomDataSet);
   _es6_module.add_class(CustomDataSet);
   CustomDataSet = _es6_module.add_export('CustomDataSet', CustomDataSet);
@@ -10231,7 +10231,7 @@ SplineElement {
   let _gtl_ret_cache=cachering.fromConstructor(Vector3, 64);
   let _gtl_arr=[0, 0];
   var flip_wrapper_cache;
-  var $flip_out_7J8O__get_nextprev;
+  var $flip_out_X7Zh__get_nextprev;
   class CurveEffect  {
      constructor() {
       this.child = undefined;
@@ -10255,8 +10255,8 @@ SplineElement {
         p = p.prior;
         i++;
       }
-      p = p._get_nextprev(donext, $flip_out_7J8O__get_nextprev);
-      var flip=$flip_out_7J8O__get_nextprev[0];
+      p = p._get_nextprev(donext, $flip_out_X7Zh__get_nextprev);
+      var flip=$flip_out_X7Zh__get_nextprev[0];
       if (p==undefined) {
           return undefined;
       }
@@ -10532,7 +10532,7 @@ SplineElement {
       return co;
     }
   }
-  var $flip_out_7J8O__get_nextprev=[0];
+  var $flip_out_X7Zh__get_nextprev=[0];
   _ESClass.register(CurveEffect);
   _es6_module.add_class(CurveEffect);
   CurveEffect = _es6_module.add_export('CurveEffect', CurveEffect);
@@ -10592,7 +10592,7 @@ SplineElement {
   FlipWrapper = _es6_module.add_export('FlipWrapper', FlipWrapper);
   flip_wrapper_cache = cachering.fromConstructor(FlipWrapper, 32);
 }, '/dev/fairmotion/src/curve/spline_base.js');
-es6_module_define('spline_types', ["./spline_base.js", "../core/eventdag.js", "./spline_base", "../editors/viewport/selectmode.js", "./spline_math.js", "../core/struct.js", "../core/toolprops_iter.js", "../core/toolprops.js", "./bspline.js", "./spline_multires.js", "../util/mathlib.js", "../wasm/native_api.js", "../config/config.js", "../util/bezier.js", "../path.ux/scripts/pathux.js"], function _spline_types_module(_es6_module) {
+es6_module_define('spline_types', ["../config/config.js", "./spline_base", "./bspline.js", "../util/mathlib.js", "../core/toolprops_iter.js", "../core/struct.js", "./spline_multires.js", "../util/bezier.js", "../path.ux/scripts/pathux.js", "../core/toolprops.js", "../editors/viewport/selectmode.js", "./spline_base.js", "../wasm/native_api.js", "../core/eventdag.js", "./spline_math.js"], function _spline_types_module(_es6_module) {
   "use strict";
   var ENABLE_MULTIRES=es6_import_item(_es6_module, '../config/config.js', 'ENABLE_MULTIRES');
   var PI=Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor, ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos, asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
@@ -11892,7 +11892,7 @@ es6_module_define('spline_types', ["./spline_base.js", "../core/eventdag.js", ".
   }
   _ESClass.register(SplineLoopPathIter);
   _es6_module.add_class(SplineLoopPathIter);
-  var $cent_IOPV_update_winding;
+  var $cent_4i9s_update_winding;
   class SplineLoopPath  {
     
      constructor(l, f) {
@@ -11908,14 +11908,14 @@ es6_module_define('spline_types', ["./spline_base.js", "../core/eventdag.js", ".
       return this.itercache.next().init(this);
     }
      update_winding() {
-      $cent_IOPV_update_winding.zero();
+      $cent_4i9s_update_winding.zero();
       for (var l of this) {
-          $cent_IOPV_update_winding.add(l.v);
+          $cent_4i9s_update_winding.add(l.v);
       }
-      $cent_IOPV_update_winding.mulScalar(1.0/this.totvert);
+      $cent_4i9s_update_winding.mulScalar(1.0/this.totvert);
       var wsum=0;
       for (var l of this) {
-          wsum+=math.winding(l.v, l.next.v, $cent_IOPV_update_winding) ? 1 : -1;
+          wsum+=math.winding(l.v, l.next.v, $cent_4i9s_update_winding) ? 1 : -1;
       }
       this.winding = wsum>=0;
     }
@@ -11946,7 +11946,7 @@ es6_module_define('spline_types', ["./spline_base.js", "../core/eventdag.js", ".
       return ret;
     }
   }
-  var $cent_IOPV_update_winding=new Vector3();
+  var $cent_4i9s_update_winding=new Vector3();
   _ESClass.register(SplineLoopPath);
   _es6_module.add_class(SplineLoopPath);
   SplineLoopPath = _es6_module.add_export('SplineLoopPath', SplineLoopPath);
@@ -11957,7 +11957,7 @@ es6_module_define('spline_types', ["./spline_base.js", "../core/eventdag.js", ".
     winding : int;
   }
 `;
-  var $minmax_dqyf_update_aabb;
+  var $minmax_1pAI_update_aabb;
   class SplineFace extends SplineElement {
     
     
@@ -11980,17 +11980,17 @@ es6_module_define('spline_types', ["./spline_base.js", "../core/eventdag.js", ".
     }
      update_aabb() {
       this.flag&=~SplineFlags.UPDATE_AABB;
-      $minmax_dqyf_update_aabb.reset();
+      $minmax_1pAI_update_aabb.reset();
       for (var path of this.paths) {
           for (var l of path) {
-              $minmax_dqyf_update_aabb.minmax(l.v.aabb[0]);
-              $minmax_dqyf_update_aabb.minmax(l.v.aabb[1]);
-              $minmax_dqyf_update_aabb.minmax(l.s.aabb[0]);
-              $minmax_dqyf_update_aabb.minmax(l.s.aabb[1]);
+              $minmax_1pAI_update_aabb.minmax(l.v.aabb[0]);
+              $minmax_1pAI_update_aabb.minmax(l.v.aabb[1]);
+              $minmax_1pAI_update_aabb.minmax(l.s.aabb[0]);
+              $minmax_1pAI_update_aabb.minmax(l.s.aabb[1]);
           }
       }
-      this._aabb[0].load($minmax_dqyf_update_aabb.min);
-      this._aabb[1].load($minmax_dqyf_update_aabb.max);
+      this._aabb[0].load($minmax_1pAI_update_aabb.min);
+      this._aabb[1].load($minmax_1pAI_update_aabb.max);
     }
     get  aabb() {
       if (this.flag&SplineFlags.UPDATE_AABB)
@@ -12007,7 +12007,7 @@ es6_module_define('spline_types', ["./spline_base.js", "../core/eventdag.js", ".
       this.mat.update = this._mat_update.bind(this);
     }
   }
-  var $minmax_dqyf_update_aabb=new MinMax(3);
+  var $minmax_1pAI_update_aabb=new MinMax(3);
   _ESClass.register(SplineFace);
   _es6_module.add_class(SplineFace);
   SplineFace = _es6_module.add_export('SplineFace', SplineFace);

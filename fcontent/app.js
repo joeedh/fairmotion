@@ -1049,7 +1049,7 @@ function __bind_super_prop(obj, cls, parent, prop) {
   }
 }
 
-es6_module_define('config', ["./config_local.js", "./config_local", "../path.ux/scripts/config/const.js"], function _config_module(_es6_module) {
+es6_module_define('config', ["../path.ux/scripts/config/const.js", "./config_local", "./config_local.js"], function _config_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, '../path.ux/scripts/config/const.js');
   let PathUXConstants={colorSchemeType: "dark", 
@@ -1512,7 +1512,7 @@ es6_module_define('polyfill', [], function _polyfill_module(_es6_module) {
   }
 }, '/dev/fairmotion/src/path.ux/scripts/util/polyfill.js');
 
-es6_module_define('util', ["./mobile-detect.js", "./polyfill.js", "./struct.js"], function _util_module(_es6_module) {
+es6_module_define('util', ["./polyfill.js", "./mobile-detect.js", "./struct.js"], function _util_module(_es6_module) {
   es6_import(_es6_module, './polyfill.js');
   es6_import(_es6_module, './struct.js');
   es6_import(_es6_module, './mobile-detect.js');

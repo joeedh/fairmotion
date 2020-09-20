@@ -1049,7 +1049,7 @@ function __bind_super_prop(obj, cls, parent, prop) {
   }
 }
 
-es6_module_define('config', ["../path.ux/scripts/config/const.js", "./config_local", "./config_local.js"], function _config_module(_es6_module) {
+es6_module_define('config', ["./config_local.js", "./config_local", "../path.ux/scripts/config/const.js"], function _config_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, '../path.ux/scripts/config/const.js');
   let PathUXConstants={colorSchemeType: "dark", 
@@ -1210,7 +1210,75 @@ es6_module_define('const', ["../config/config.js"], function _const_module(_es6_
 }, '/dev/fairmotion/src/core/const.js');
 
 es6_module_define('const', [], function _const_module(_es6_module) {
-  let exports={colorSchemeType: "light", 
+  let _clipdata={name: "nothing", 
+   mime: "nothing", 
+   data: undefined}
+  let _clipboards={}
+  window.setInterval(() =>    {
+    let cb=navigator.clipboard;
+    if (!cb) {
+        return ;
+    }
+    cb.read().then((data) =>      {
+      console.log(data);
+      for (let item of data) {
+          console.log("CLIP ITEM", item);
+          for (let i=0; i<item.types.length; i++) {
+              let type=item.types[i];
+              if (!(type in _clipboards)) {
+                  _clipboards[type] = {name: type, 
+           mime: type, 
+           data: undefined};
+              }
+              
+              item.getType(type).then((blob) =>                {
+                return new Response(blob).text();
+              }).then((text) =>                {
+                _clipboards[type].data = text;
+              });
+          }
+      }
+    }).catch(function () {
+    });
+  }, 400);
+  let exports={getClipboardData: function getClipboardData(desiredMimes) {
+      if (desiredMimes===undefined) {
+          desiredMimes = "text/plain";
+      }
+      if (typeof desiredMimes==="string") {
+          desiredMimes = [desiredMimes];
+      }
+      for (let m of desiredMimes) {
+          let cb=_clipboards[m];
+          if (cb&&cb.data) {
+              return cb;
+          }
+      }
+    }, 
+   setClipboardData: function setClipboardData(name, mime, data) {
+      _clipboards[mime] = {name: name, 
+     mime: mime, 
+     data: data}
+      let clipboard=navigator.clipboard;
+      if (!clipboard) {
+          return ;
+      }
+      try {
+        clipboard.write([new ClipboardItem({[mime]: new Blob([data], {type: mime})})]).catch((error) =>          {
+          if (mime.startsWith("text")&&mime!=="text/plain") {
+              this.setClipboardData(name, "text/plain", data);
+          }
+          else {
+            console.error(error);
+          }
+        });
+      }
+      catch (error) {
+          console.log(error.stack);
+          console.log("failed to write to system clipboard");
+      }
+    }, 
+   colorSchemeType: "light", 
    docManualPath: "../simple_docsys/doc_build/", 
    useNumSliderTextboxes: true, 
    menu_close_time: 500, 
@@ -1512,7 +1580,7 @@ es6_module_define('polyfill', [], function _polyfill_module(_es6_module) {
   }
 }, '/dev/fairmotion/src/path.ux/scripts/util/polyfill.js');
 
-es6_module_define('util', ["./polyfill.js", "./mobile-detect.js", "./struct.js"], function _util_module(_es6_module) {
+es6_module_define('util', ["./polyfill.js", "./struct.js", "./mobile-detect.js"], function _util_module(_es6_module) {
   es6_import(_es6_module, './polyfill.js');
   es6_import(_es6_module, './struct.js');
   es6_import(_es6_module, './mobile-detect.js');
@@ -1987,6 +2055,19 @@ es6_module_define('util', ["./polyfill.js", "./mobile-detect.js", "./struct.js"]
      [Symbol.iterator]() {
       return new SetIter(this);
     }
+     equals(setb) {
+      for (let item of this) {
+          if (!setb.has(item)) {
+              return false;
+          }
+      }
+      for (let item of setb) {
+          if (!this.has(item)) {
+              return false;
+          }
+      }
+      return true;
+    }
      clear() {
       this.items.length = 0;
       this.keys = {};
@@ -2192,9 +2273,12 @@ es6_module_define('util', ["./polyfill.js", "./mobile-detect.js", "./struct.js"]
   _ESClass.register(hashtable);
   _es6_module.add_class(hashtable);
   hashtable = _es6_module.add_export('hashtable', hashtable);
+  let IDGenInternalIDGen=0;
   class IDGen  {
      constructor() {
       this._cur = 1;
+      this._debug = false;
+      this._internalID = IDGenInternalIDGen++;
     }
      next() {
       return this._cur++;
@@ -2215,6 +2299,9 @@ es6_module_define('util', ["./polyfill.js", "./mobile-detect.js", "./struct.js"]
       ret._cur = obj._cur;
       return ret;
     }
+     loadSTRUCT(reader) {
+      reader(this);
+    }
   }
   _ESClass.register(IDGen);
   _es6_module.add_class(IDGen);
@@ -2224,7 +2311,7 @@ IDGen {
   _cur : int;
 }
 `;
-  nstructjs.manager.add_class(IDGen);
+  nstructjs.register(IDGen);
   function get_callstack(err) {
     var callstack=[];
     var isCallstackPopulated=false;
@@ -2540,18 +2627,10 @@ IDGen {
       return this.hash;
     }
      add(v) {
-      this.i = (this.i*1103515245+12345)&((1<<30)-1);
-      if (v<5.0&&v>-5.0) {
-          v*=1024;
-      }
-      else 
-        if (v<15&&v>=-15) {
-          v*=512;
-      }
-      else 
-        if (v<30&&v>=-30) {
-          v*=256;
-      }
+      this.i = ((this.i+(~~v))*1103515245+12345)&((1<<29)-1);
+      let v2=(v*1024*1024)&((1<<29)-1);
+      v = v|v2;
+      v = ~~v;
       this.hash^=v^this.i;
     }
   }

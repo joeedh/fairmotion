@@ -1,4 +1,2496 @@
-es6_module_define('ui_menu', ["../config/const.js", "../util/util.js", "../util/events.js", "./ui_button.js", "../toolsys/simple_toolsys.js", "../toolsys/toolprop.js", "../util/simple_events.js", "../util/vectormath.js", "../core/ui_base.js"], function _ui_menu_module(_es6_module) {
+es6_module_define('ui_colorpicker', ["../util/events.js", "../toolsys/toolprop.js", "../util/vectormath.js", "../core/ui.js", "../core/ui_base.js", "../util/util.js"], function _ui_colorpicker_module(_es6_module) {
+  "use strict";
+  var util=es6_import(_es6_module, '../util/util.js');
+  var vectormath=es6_import(_es6_module, '../util/vectormath.js');
+  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
+  var events=es6_import(_es6_module, '../util/events.js');
+  var ui=es6_import(_es6_module, '../core/ui.js');
+  var PropTypes=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'PropTypes');
+  let rgb_to_hsv_rets=new util.cachering(() =>    {
+    return [0, 0, 0];
+  }, 64);
+  let Vector2=vectormath.Vector2, Vector3=vectormath.Vector3, Vector4=vectormath.Vector4, Matrix4=vectormath.Matrix4;
+  function rgb_to_hsv(r, g, b) {
+    var computedH=0;
+    var computedS=0;
+    var computedV=0;
+    if (r==null||g==null||b==null||isNaN(r)||isNaN(g)||isNaN(b)) {
+        throw new Error('Please enter numeric RGB values!');
+        return ;
+    }
+    var minRGB=Math.min(r, Math.min(g, b));
+    var maxRGB=Math.max(r, Math.max(g, b));
+    if (minRGB==maxRGB) {
+        computedV = minRGB;
+        let ret=rgb_to_hsv_rets.next();
+        ret[0] = 0, ret[1] = 0, ret[2] = computedV;
+        return ret;
+    }
+    var d=(r==minRGB) ? g-b : ((b==minRGB) ? r-g : b-r);
+    var h=(r==minRGB) ? 3 : ((b==minRGB) ? 1 : 5);
+    computedH = (60*(h-d/(maxRGB-minRGB)))/360.0;
+    computedS = (maxRGB-minRGB)/maxRGB;
+    computedV = maxRGB;
+    let ret=rgb_to_hsv_rets.next();
+    ret[0] = computedH, ret[1] = computedS, ret[2] = computedV;
+    return ret;
+  }
+  rgb_to_hsv = _es6_module.add_export('rgb_to_hsv', rgb_to_hsv);
+  let hsv_to_rgb_rets=new util.cachering(() =>    {
+    return [0, 0, 0];
+  }, 64);
+  function hsv_to_rgb(h, s, v) {
+    let c=0, m=0, x=0;
+    let ret=hsv_to_rgb_rets.next();
+    ret[0] = ret[1] = ret[2] = 0.0;
+    h*=360.0;
+    c = v*s;
+    x = c*(1.0-Math.abs(((h/60.0)%2)-1.0));
+    m = v-c;
+    let color;
+    function RgbF_Create(r, g, b) {
+      ret[0] = r;
+      ret[1] = g;
+      ret[2] = b;
+      return ret;
+    }
+    if (h>=0.0&&h<60.0) {
+        color = RgbF_Create(c+m, x+m, m);
+    }
+    else 
+      if (h>=60.0&&h<120.0) {
+        color = RgbF_Create(x+m, c+m, m);
+    }
+    else 
+      if (h>=120.0&&h<180.0) {
+        color = RgbF_Create(m, c+m, x+m);
+    }
+    else 
+      if (h>=180.0&&h<240.0) {
+        color = RgbF_Create(m, x+m, c+m);
+    }
+    else 
+      if (h>=240.0&&h<300.0) {
+        color = RgbF_Create(x+m, m, c+m);
+    }
+    else 
+      if (h>=300.0&&h<360.0) {
+        color = RgbF_Create(c+m, m, x+m);
+    }
+    else {
+      color = RgbF_Create(m, m, m);
+    }
+    return color;
+  }
+  hsv_to_rgb = _es6_module.add_export('hsv_to_rgb', hsv_to_rgb);
+  let UIBase=ui_base.UIBase, PackFlags=ui_base.PackFlags, IconSheets=ui_base.IconSheets;
+  let UPW=1.25, VPW=0.75;
+  let sample_rets=new util.cachering(() =>    {
+    return [0, 0];
+  }, 64);
+  function inv_sample(u, v) {
+    let ret=sample_rets.next();
+    ret[0] = Math.pow(u, UPW);
+    ret[1] = Math.pow(v, VPW);
+    return ret;
+  }
+  inv_sample = _es6_module.add_export('inv_sample', inv_sample);
+  function sample(u, v) {
+    let ret=sample_rets.next();
+    ret[0] = Math.pow(u, 1.0/UPW);
+    ret[1] = Math.pow(v, 1.0/VPW);
+    return ret;
+  }
+  sample = _es6_module.add_export('sample', sample);
+  let fieldrand=new util.MersenneRandom(0);
+  let fields={}
+  function getFieldImage(size, hsva) {
+    fieldrand.seed(0);
+    let hue=hsva[0];
+    let hue_rgb=hsv_to_rgb(hue, 1.0, 1.0);
+    let key=size+":"+hue.toFixed(4);
+    if (key in fields)
+      return fields[key];
+    let size2=128;
+    let image={width: size, 
+    height: size, 
+    image: new ImageData(size2, size2)}
+    let scale=size2/size;
+    let idata=image.image.data;
+    let dpi=this.getDPI();
+    let band=ui_base.IsMobile() ? 35 : 20;
+    let r2=Math.ceil(size*0.5), r1=r2-band*dpi;
+    let pad=5*dpi;
+    let px1=size*0.5-r1/Math.sqrt(2.0)+pad;
+    let py1=size*0.5-r1/Math.sqrt(2.0)+pad;
+    let pw=r1/Math.sqrt(2)*2-pad*2, ph=pw;
+    image.params = {r1: r1, 
+    r2: r2, 
+    box: {x: px1, 
+     y: py1, 
+     width: pw, 
+     height: ph}}
+    for (let i=0; i<size2*size2; i++) {
+        let x=i%size2, y = ~~(i/size2);
+        let idx=i*4;
+        let alpha=0.0;
+        let r=Math.sqrt((x-size2*0.5)**2+(y-size2*0.5)**2);
+        if (r<r2*scale&&r>r1*scale) {
+            let th=Math.atan2(y-size2*0.5, x-size2*0.5)/(2*Math.PI)+0.5;
+            let eps=0.001;
+            th = th*(1.0-eps*2)+eps;
+            let r=0, g=0, b=0;
+            if (th<1.0/6.0) {
+                r = 1.0;
+                g = th*6.0;
+            }
+            else 
+              if (th<2.0/6.0) {
+                th-=1.0/6.0;
+                r = 1.0-th*6.0;
+                g = 1.0;
+            }
+            else 
+              if (th<3.0/6.0) {
+                th-=2.0/6.0;
+                g = 1.0;
+                b = th*6.0;
+            }
+            else 
+              if (th<4.0/6.0) {
+                th-=3.0/6.0;
+                b = 1.0;
+                g = 1.0-th*6.0;
+            }
+            else 
+              if (th<5.0/6.0) {
+                th-=4.0/6.0;
+                r = th*6.0;
+                b = 1.0;
+            }
+            else 
+              if (th<6.0/6.0) {
+                th-=5.0/6.0;
+                r = 1.0;
+                b = 1.0-th*6.0;
+            }
+            r = r*255+(fieldrand.random()-0.5);
+            g = g*255+(fieldrand.random()-0.5);
+            b = b*255+(fieldrand.random()-0.5);
+            idata[idx] = r;
+            idata[idx+1] = g;
+            idata[idx+2] = b;
+            alpha = 1.0;
+        }
+        let px2=(px1+pw)*scale, py2=(py1+ph)*scale;
+        if (x>px1*scale&&y>py1*scale&&x<px2&&y<py2) {
+            let u=1.0-(x-px1*scale)/(px2-px1*scale);
+            let v=1.0-(y-py1*scale)/(py2-py1*scale);
+            u = Math.pow(u, UPW);
+            v = Math.pow(v, VPW);
+            let r=0, g=0, b=0;
+            r = hue_rgb[0]*(1.0-u)+u;
+            g = hue_rgb[1]*(1.0-u)+u;
+            b = hue_rgb[2]*(1.0-u)+u;
+            let fac=1.0;
+            idata[idx+0] = r*v*255+(fieldrand.random()-0.5)*fac;
+            idata[idx+1] = g*v*255+(fieldrand.random()-0.5)*fac;
+            idata[idx+2] = b*v*255+(fieldrand.random()-0.5)*fac;
+            alpha = 1.0;
+        }
+        idata[idx+3] = alpha*255;
+    }
+    let image2=document.createElement("canvas");
+    image2.width = size2;
+    image2.height = size2;
+    let g=image2.getContext("2d");
+    g.putImageData(image.image, 0, 0);
+    image.canvas = image2;
+    image.scale = size/size2;
+    fields[key] = image;
+    return image;
+  }
+  getFieldImage = _es6_module.add_export('getFieldImage', getFieldImage);
+  let _update_temp=new Vector4();
+  class SimpleBox  {
+     constructor(pos=[0, 0], size=[1, 1]) {
+      this.pos = new Vector2(pos);
+      this.size = new Vector2(size);
+      this.r = 0;
+    }
+  }
+  _ESClass.register(SimpleBox);
+  _es6_module.add_class(SimpleBox);
+  SimpleBox = _es6_module.add_export('SimpleBox', SimpleBox);
+  class ColorField extends UIBase {
+     constructor() {
+      super();
+      this.hsva = [0.05, 0.6, 0.15, 1.0];
+      this.rgba = new Vector4([0, 0, 0, 0]);
+      this._recalcRGBA();
+      this._last_dpi = undefined;
+      let canvas=this.canvas = document.createElement("canvas");
+      let g=this.g = canvas.getContext("2d");
+      this.shadow.appendChild(canvas);
+      let mx, my;
+      let do_mouse=(e) =>        {
+        let r=this.canvas.getClientRects()[0];
+        let dpi=this.getDPI();
+        mx = (e.pageX-r.x)*dpi;
+        my = (e.pageY-r.y)*dpi;
+      };
+      let do_touch=(e) =>        {
+        if (e.touches.length==0) {
+            mx = my = undefined;
+            return ;
+        }
+        let r=this.canvas.getClientRects()[0];
+        let dpi=this.getDPI();
+        let t=e.touches[0];
+        mx = (t.pageX-r.x)*dpi;
+        my = (t.pageY-r.y)*dpi;
+      };
+      this.canvas.addEventListener("mousedown", (e) =>        {
+        do_mouse(e);
+        return this.on_mousedown(e, mx, my, e.button);
+      });
+      this.canvas.addEventListener("mousemove", (e) =>        {
+        do_mouse(e);
+        return this.on_mousemove(e, mx, my, e.button);
+      });
+      this.canvas.addEventListener("mouseup", (e) =>        {
+        do_mouse(e);
+        return this.on_mouseup(e, mx, my, e.button);
+      });
+      this.canvas.addEventListener("touchstart", (e) =>        {
+        do_touch(e);
+        if (mx!==undefined)
+          return this.on_mousedown(e, mx, my, 0);
+      });
+      this.canvas.addEventListener("touchmove", (e) =>        {
+        do_touch(e);
+        if (mx!==undefined)
+          return this.on_mousemove(e, mx, my, 0);
+      });
+      this.canvas.addEventListener("touchend", (e) =>        {
+        do_touch(e);
+        if (mx!==undefined)
+          return this.on_mouseup(e, mx, my, 0);
+      });
+      this.canvas.addEventListener("touchcancel", (e) =>        {
+        do_touch(e);
+        if (mx!==undefined)
+          return this.on_mouseup(e, mx, my, 0);
+      });
+      this.updateCanvas(true);
+    }
+     pick_h(x, y) {
+      let field=this._field;
+      let size=field.width;
+      let dpi=this.getDPI();
+      if (field===undefined) {
+          console.error("no field in colorpicker");
+          return ;
+      }
+      let th=Math.atan2(y-size/2, x-size/2)/(2*Math.PI)+0.5;
+      this.hsva[0] = th;
+      this.update(true);
+      this._recalcRGBA();
+      if (this.onchange) {
+          this.onchange(this.hsva, this.rgba);
+      }
+    }
+     setHSVA(h, s, v, a=1.0, fire_onchange=true) {
+      this.hsva[0] = h;
+      this.hsva[1] = s;
+      this.hsva[2] = v;
+      this.hsva[3] = a;
+      this._recalcRGBA();
+      this.update(true);
+      if (this.onchange&&fire_onchange) {
+          this.onchange(this.hsva, this.rgba);
+      }
+    }
+     setRGBA(r, g, b, a=1.0, fire_onchange=true) {
+      let ret=rgb_to_hsv(r, g, b);
+      this.hsva[0] = ret[0];
+      this.hsva[1] = ret[1];
+      this.hsva[2] = ret[2];
+      this.hsva[3] = a;
+      this._recalcRGBA();
+      this.update(true);
+      if (this.onchange&&fire_onchange) {
+          this.onchange(this.hsva, this.rgba);
+      }
+    }
+     _recalcRGBA() {
+      let ret=hsv_to_rgb(this.hsva[0], this.hsva[1], this.hsva[2]);
+      this.rgba[0] = ret[0];
+      this.rgba[1] = ret[1];
+      this.rgba[2] = ret[2];
+      this.rgba[3] = this.hsva[3];
+      return this;
+    }
+     on_mousedown(e, x, y, button) {
+      if (button!=0)
+        return ;
+      let field=this._field;
+      if (field===undefined)
+        return ;
+      let size=field.width;
+      let dpi=this.getDPI();
+      let r=Math.sqrt((x-size/2)**2+(y-size/2)**2);
+      let pad=5*dpi;
+      let px1=field.params.box.x, py1=field.params.box.y, px2=px1+field.params.box.width, py2=py1+field.params.box.height;
+      px1-=pad*0.5;
+      py1-=pad*0.5;
+      px2+=pad*0.5;
+      py2+=pad*0.5;
+      if (r>field.params.r1-pad&&r<field.params.r2+pad) {
+          this.pick_h(x, y);
+          this._mode = "h";
+      }
+      else 
+        if (x>=px1&&x<=px2&&y>=py1&&y<=py2) {
+          this.pick_sv(x, y);
+          console.log("in box");
+          this._mode = "sv";
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      console.log(x, y);
+    }
+     pick_sv(x, y) {
+      let sv=this._sample_box(x, y);
+      this.hsva[1] = sv[0];
+      this.hsva[2] = sv[1];
+      this._recalcRGBA();
+      this.update(true);
+      if (this.onchange) {
+          this.onchange(this.hsva, this.rgba);
+      }
+    }
+     _sample_box(x, y) {
+      let field=this._field;
+      if (field===undefined) {
+          return [-1, -1];
+      }
+      let px=field.params.box.x, py=field.params.box.y, pw=field.params.box.width, ph=field.params.box.height;
+      let u=(x-px)/pw;
+      let v=1.0-(y-py)/ph;
+      u = Math.min(Math.max(u, 0.0), 1.0);
+      v = Math.min(Math.max(v, 0.0), 1.0);
+      let ret=sample(u, 1.0-v);
+      u = ret[0], v = 1.0-ret[1];
+      return [u, v];
+    }
+     on_mousemove(e, x, y, button) {
+      if (this._mode=="h") {
+          this.pick_h(x, y);
+      }
+      else 
+        if (this._mode=="sv") {
+          this.pick_sv(x, y);
+      }
+      e.preventDefault();
+      e.stopPropagation();
+    }
+     on_mouseup(e, x, y, button) {
+      this._mode = undefined;
+      e.preventDefault();
+      e.stopPropagation();
+      console.log(x, y);
+    }
+     updateCanvas(force_update=false, _in_update=false) {
+      let canvas=this.canvas;
+      let update=force_update;
+      if (update) {
+          let size=this.getDefault("fieldsize");
+          let dpi=this.getDPI();
+          canvas.style["width"] = size+"px";
+          canvas.style["height"] = size+"px";
+          canvas.width = canvas.height = Math.ceil(size*dpi);
+          if (!_in_update)
+            this._redraw();
+          return true;
+      }
+    }
+     _redraw() {
+      let canvas=this.canvas, g=this.g;
+      let dpi=this.getDPI();
+      let size=canvas.width;
+      let field=this._field = getFieldImage(size, this.hsva);
+      let w=size, h=size*field.height/field.width;
+      g.clearRect(0, 0, w, h);
+      g.drawImage(field.canvas, 0, 0, field.width, field.height);
+      g.lineWidth = 2.0;
+      function circle(x, y, r) {
+        g.strokeStyle = "white";
+        g.beginPath();
+        g.arc(x, y, r, -Math.PI, Math.PI);
+        g.stroke();
+        g.strokeStyle = "grey";
+        g.beginPath();
+        g.arc(x, y, r-1, -Math.PI, Math.PI);
+        g.stroke();
+        g.fillStyle = "black";
+        g.beginPath();
+        g.arc(x, y, 2*dpi, -Math.PI, Math.PI);
+        g.fill();
+      }
+      let hsva=this.hsva;
+      let r=(field.params.r2-field.params.r1)*0.7;
+      let bandr=(field.params.r2+field.params.r1)*0.5;
+      let th=Math.fract(1.0-hsva[0]-0.25);
+      let x=Math.sin(th*Math.PI*2)*bandr+size/2;
+      let y=Math.cos(th*Math.PI*2)*bandr+size/2;
+      circle(x, y, r);
+      let u=this.hsva[1], v=1.0-this.hsva[2];
+      let ret=inv_sample(u, v);
+      u = ret[0], v = ret[1];
+      x = field.params.box.x+u*field.params.box.width;
+      y = field.params.box.y+v*field.params.box.height;
+      circle(x, y, r);
+    }
+     updateDPI(force_update=false, _in_update=false) {
+      let dpi=this.getDPI();
+      let update=force_update;
+      update = update||dpi!=this._last_dpi;
+      if (update) {
+          this._last_dpi = dpi;
+          this.updateCanvas(true);
+          if (!_in_update)
+            this._redraw();
+          return true;
+      }
+    }
+     update(force_update=false) {
+      super.update();
+      let redraw=false;
+      redraw = redraw||this.updateCanvas(force_update, true);
+      redraw = redraw||this.updateDPI(force_update, true);
+      if (redraw) {
+          this._redraw();
+      }
+    }
+    static  define() {
+      return {tagname: "colorfield0-x", 
+     style: "colorfield"}
+    }
+  }
+  _ESClass.register(ColorField);
+  _es6_module.add_class(ColorField);
+  ColorField = _es6_module.add_export('ColorField', ColorField);
+  UIBase.register(ColorField);
+  class ColorPicker extends ui.ColumnFrame {
+     constructor() {
+      super();
+      this.field = document.createElement("colorfield-x");
+      this.field.setAttribute("class", "colorpicker");
+      this.field.onchange = (hsva, rgba) =>        {
+        if (this.onchange) {
+            this.onchange(hsva, rgba);
+        }
+        this._setDataPath();
+        this._setSliders();
+      };
+      let style=document.createElement("style");
+      style.textContent = `
+      .colorpicker {
+        background-color : ${ui_base.getDefault("InnerPanelBG")};
+      }
+    `;
+      this._style = style;
+      this.shadow.appendChild(style);
+      this.field.ctx = this.ctx;
+      this.shadow.appendChild(this.field);
+    }
+    static  setDefault(node) {
+      let tabs=node.tabs();
+      let tab=tabs.tab("HSV");
+      node.h = tab.slider(undefined, "Hue", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
+        let hsva=node.hsva;
+        node.setHSVA(e.value, hsva[1], hsva[2], hsva[3]);
+      });
+      node.s = tab.slider(undefined, "Saturation", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
+        let hsva=node.hsva;
+        node.setHSVA(hsva[0], e.value, hsva[2], hsva[3]);
+      });
+      node.v = tab.slider(undefined, "Value", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
+        let hsva=node.hsva;
+        node.setHSVA(hsva[0], hsva[1], e.value, hsva[3]);
+      });
+      node.a = tab.slider(undefined, "Alpha", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
+        let hsva=node.hsva;
+        node.setHSVA(hsva[0], hsva[1], hsva[2], e.value);
+      });
+      tab = tabs.tab("RGB");
+      node.r = tab.slider(undefined, "R", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
+        let rgba=node.rgba;
+        node.setRGBA(e.value, rgba[1], rgba[2], rgba[3]);
+      });
+      node.g = tab.slider(undefined, "G", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
+        let rgba=node.rgba;
+        node.setRGBA(rgba[0], e.value, rgba[2], rgba[3]);
+      });
+      node.b = tab.slider(undefined, "B", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
+        let rgba=node.rgba;
+        node.setRGBA(rgba[0], rgba[1], e.value, rgba[3]);
+      });
+      node.a2 = tab.slider(undefined, "Alpha", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
+        let rgba=node.rgba;
+        node.setRGBA(rgba[0], rgba[1], rgba[2], e.value);
+      });
+      node._setSliders();
+    }
+     _setSliders() {
+      if (this.h===undefined) {
+          console.warn("colorpicker ERROR");
+          return ;
+      }
+      let hsva=this.hsva;
+      this.h.setValue(hsva[0], false);
+      this.s.setValue(hsva[1], false);
+      this.v.setValue(hsva[2], false);
+      this.a.setValue(hsva[3], false);
+      let rgba=this.rgba;
+      this.r.setValue(rgba[0], false);
+      this.g.setValue(rgba[1], false);
+      this.b.setValue(rgba[2], false);
+      this.a2.setValue(rgba[3], false);
+    }
+    get  hsva() {
+      return this.field.hsva;
+    }
+    get  rgba() {
+      return this.field.rgba;
+    }
+     updateDataPath() {
+      if (!this.hasAttribute("datapath")) {
+          return ;
+      }
+      let prop=this.getPathMeta(this.ctx, this.getAttribute("datapath"));
+      let val=this.getPathValue(this.ctx, this.getAttribute("datapath"));
+      if (val===undefined) {
+          this.disabled = true;
+          return ;
+      }
+      this.disabled = false;
+      _update_temp.load(val);
+      if (prop.type==PropTypes.VEC3) {
+          _update_temp[3] = 1.0;
+      }
+      if (_update_temp.vectorDistance(this.field.rgba)>0.01) {
+          console.log("VAL", val);
+          console.log("color changed!");
+          this.setRGBA(_update_temp[0], _update_temp[1], _update_temp[2], _update_temp[3]);
+      }
+    }
+     update() {
+      if (this.hasAttribute("datapath")) {
+          this.updateDataPath();
+      }
+      super.update();
+    }
+     _setDataPath() {
+      if (this.hasAttribute("datapath")) {
+          this.setPathValue(this.ctx, this.getAttribute("datapath"), this.field.rgba);
+      }
+    }
+     setHSVA(h, s, v, a) {
+      this.field.setHSVA(h, s, v, a);
+      this._setDataPath();
+    }
+     setRGBA(r, g, b, a) {
+      this.field.setRGBA(r, g, b, a);
+      this._setDataPath();
+    }
+    static  define() {
+      return {tagname: "colorpicker0-x"}
+    }
+  }
+  _ESClass.register(ColorPicker);
+  _es6_module.add_class(ColorPicker);
+  ColorPicker = _es6_module.add_export('ColorPicker', ColorPicker);
+  UIBase.register(ColorPicker);
+}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_colorpicker.js');
+es6_module_define('ui_colorpicker2', ["../toolsys/toolprop.js", "../util/util.js", "../util/colorutils.js", "../core/ui_base.js", "../util/vectormath.js", "../util/events.js", "../core/ui.js", "../util/simple_events.js", "../config/const.js"], function _ui_colorpicker2_module(_es6_module) {
+  "use strict";
+  var util=es6_import(_es6_module, '../util/util.js');
+  var vectormath=es6_import(_es6_module, '../util/vectormath.js');
+  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
+  var events=es6_import(_es6_module, '../util/events.js');
+  var ui=es6_import(_es6_module, '../core/ui.js');
+  var PropTypes=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'PropTypes');
+  var keymap=es6_import_item(_es6_module, '../util/simple_events.js', 'keymap');
+  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
+  var color2web=es6_import_item(_es6_module, '../core/ui_base.js', 'color2web');
+  var web2color=es6_import_item(_es6_module, '../core/ui_base.js', 'web2color');
+  var validateWebColor=es6_import_item(_es6_module, '../core/ui_base.js', 'validateWebColor');
+  let Vector2=vectormath.Vector2, Vector3=vectormath.Vector3, Vector4=vectormath.Vector4, Matrix4=vectormath.Matrix4;
+  let _ex_rgb_to_hsv=es6_import_item(_es6_module, '../util/colorutils.js', 'rgb_to_hsv');
+  _es6_module.add_export('rgb_to_hsv', _ex_rgb_to_hsv, true);
+  let _ex_hsv_to_rgb=es6_import_item(_es6_module, '../util/colorutils.js', 'hsv_to_rgb');
+  _es6_module.add_export('hsv_to_rgb', _ex_hsv_to_rgb, true);
+  var rgb_to_hsv=es6_import_item(_es6_module, '../util/colorutils.js', 'rgb_to_hsv');
+  var hsv_to_rgb=es6_import_item(_es6_module, '../util/colorutils.js', 'hsv_to_rgb');
+  let UIBase=ui_base.UIBase, PackFlags=ui_base.PackFlags, IconSheets=ui_base.IconSheets;
+  let UPW=1.25, VPW=0.75;
+  let sample_rets=new util.cachering(() =>    {
+    return [0, 0];
+  }, 64);
+  function inv_sample(u, v) {
+    let ret=sample_rets.next();
+    ret[0] = Math.pow(u, UPW);
+    ret[1] = Math.pow(v, VPW);
+    return ret;
+  }
+  inv_sample = _es6_module.add_export('inv_sample', inv_sample);
+  function sample(u, v) {
+    let ret=sample_rets.next();
+    ret[0] = Math.pow(u, 1.0/UPW);
+    ret[1] = Math.pow(v, 1.0/VPW);
+    return ret;
+  }
+  sample = _es6_module.add_export('sample', sample);
+  let fieldrand=new util.MersenneRandom(0);
+  let huefields={}
+  function getHueField(width, height, dpi) {
+    let key=width+":"+height+":"+dpi.toFixed(4);
+    if (key in huefields) {
+        return huefields[key];
+    }
+    let field=new ImageData(width, height);
+    let idata=field.data;
+    for (let i=0; i<width*height; i++) {
+        let ix=i%width, iy = ~~(i/width);
+        let idx=i*4;
+        let rgb=hsv_to_rgb(ix/width, 1, 1);
+        idata[idx] = rgb[0]*255;
+        idata[idx+1] = rgb[1]*255;
+        idata[idx+2] = rgb[2]*255;
+        idata[idx+3] = 255;
+    }
+    let canvas=document.createElement("canvas");
+    canvas.width = field.width;
+    canvas.height = field.height;
+    let g=canvas.getContext("2d");
+    g.putImageData(field, 0, 0);
+    field = canvas;
+    huefields[key] = field;
+    return field;
+  }
+  getHueField = _es6_module.add_export('getHueField', getHueField);
+  let fields={}
+  function getFieldImage(fieldsize, width, height, hsva) {
+    fieldrand.seed(0);
+    let hue=hsva[0];
+    let hue_rgb=hsv_to_rgb(hue, 1.0, 1.0);
+    let key=fieldsize+":"+width+":"+height+":"+hue.toFixed(5);
+    if (key in fields)
+      return fields[key];
+    let size2=fieldsize;
+    let valpow=0.75;
+    let image={width: width, 
+    height: height, 
+    image: new ImageData(fieldsize, fieldsize), 
+    x2sat: (x) =>        {
+        return Math.min(Math.max(x/width, 0), 1);
+      }, 
+    y2val: (y) =>        {
+        y = 1.0-Math.min(Math.max(y/height, 0), 1);
+        return y===0.0 ? 0.0 : y**valpow;
+      }, 
+    sat2x: (s) =>        {
+        return s*width;
+      }, 
+    val2y: (v) =>        {
+        if (v==0)
+          return height;
+        v = v**(1.0/valpow);
+        return (1.0-v)*height;
+      }}
+    image.params = {box: {x: 0, 
+     y: 0, 
+     width: width, 
+     height: height}}
+    let idata=image.image.data;
+    for (let i=0; i<idata.length; i+=4) {
+        let i2=i/4;
+        let x=i2%size2, y = ~~(i2/size2);
+        let v=1.0-(y/size2);
+        let s=(x/size2);
+        let rgb=hsv_to_rgb(hsva[0], s, v**valpow);
+        idata[i] = rgb[0]*255;
+        idata[i+1] = rgb[1]*255;
+        idata[i+2] = rgb[2]*255;
+        idata[i+3] = 255;
+    }
+    let image2=document.createElement("canvas");
+    image2.width = size2;
+    image2.height = size2;
+    let g=image2.getContext("2d");
+    g.putImageData(image.image, 0, 0);
+    image.canvas = image2;
+    image.scale = width/size2;
+    fields[key] = image;
+    return image;
+  }
+  getFieldImage = _es6_module.add_export('getFieldImage', getFieldImage);
+  let _update_temp=new Vector4();
+  class SimpleBox  {
+     constructor(pos=[0, 0], size=[1, 1]) {
+      this.pos = new Vector2(pos);
+      this.size = new Vector2(size);
+      this.r = 0;
+    }
+  }
+  _ESClass.register(SimpleBox);
+  _es6_module.add_class(SimpleBox);
+  SimpleBox = _es6_module.add_export('SimpleBox', SimpleBox);
+  class HueField extends UIBase {
+     constructor() {
+      super();
+      this.canvas = document.createElement("canvas");
+      this.g = this.canvas.getContext("2d");
+      this.shadow.appendChild(this.canvas);
+      let setFromXY=(x, y) =>        {
+        let dpi=this.getDPI();
+        let r=this.getDefault("circleSize");
+        let h=x/((this.canvas.width-r*4)/dpi);
+        h = Math.min(Math.max(h, 0.0), 1.0);
+        this.hsva[0] = h;
+        if (this.onchange!==undefined) {
+            this.onchange(this.hsva);
+        }
+        this._redraw();
+      };
+      this.addEventListener("mousedown", (e) =>        {
+        let rect=this.canvas.getClientRects()[0];
+        let x=e.clientX-rect.x, y=e.clientY-rect.y;
+        setFromXY(x, y);
+        setTimeout(() =>          {
+          this.pushModal({on_mousemove: (e) =>              {
+              let rect=this.canvas.getClientRects()[0];
+              let x=e.clientX-rect.x, y=e.clientY-rect.y;
+              setFromXY(x, y);
+            }, 
+       on_mousedown: (e) =>              {
+              this.popModal();
+            }, 
+       on_mouseup: (e) =>              {
+              this.popModal();
+            }, 
+       on_keydown: (e) =>              {
+              if (e.keyCode==keymap["Enter"]||e.keyCode==keymap["Escape"]||e.keyCode==keymap["Space"]) {
+                  this.popModal();
+              }
+            }});
+        }, 1);
+      });
+    }
+     _redraw() {
+      let g=this.g, canvas=this.canvas;
+      let dpi=this.getDPI();
+      let w=this.getDefault("defaultWidth");
+      let h=this.getDefault("hueheight");
+      canvas.width = ~~(w*dpi);
+      canvas.height = ~~(h*dpi);
+      canvas.style["width"] = w+"px";
+      canvas.style["height"] = h+"px";
+      let rselector=~~(this.getDefault("circleSize")*dpi);
+      let w2=canvas.width-rselector*4, h2=canvas.height;
+      g.drawImage(getHueField(w2, h2, dpi), 0, 0, w2, h2, rselector*2, 0, w2, h2);
+      let x=this.hsva[0]*(canvas.width-rselector*4)+rselector*2;
+      let y=canvas.height*0.5;
+      g.beginPath();
+      g.arc(x, y, rselector, -Math.PI, Math.PI);
+      g.closePath();
+      g.strokeStyle = "white";
+      g.lineWidth = 3*dpi;
+      g.stroke();
+      g.strokeStyle = "grey";
+      g.lineWidth = 1*dpi;
+      g.stroke();
+      if (this.disabled) {
+          g.beginPath();
+          g.fillStyle = "rgba(25,25,25,0.75)";
+          g.rect(0, 0, this.canvas.width, this.canvas.height);
+          g.fill();
+      }
+    }
+     on_disabled() {
+      this._redraw();
+    }
+     on_enabled() {
+      this._redraw();
+    }
+    static  define() {
+      return {tagname: "huefield-x", 
+     style: "colorfield"}
+    }
+  }
+  _ESClass.register(HueField);
+  _es6_module.add_class(HueField);
+  HueField = _es6_module.add_export('HueField', HueField);
+  UIBase.register(HueField);
+  class SatValField extends UIBase {
+     constructor() {
+      super();
+      this.hsva = [0, 0, 0, 1];
+      this.canvas = document.createElement("canvas");
+      this.g = this.canvas.getContext("2d");
+      this.shadow.appendChild(this.canvas);
+      this.onchange = undefined;
+      let setFromXY=(x, y) =>        {
+        let field=this._getField();
+        let r=~~(this.getDefault("circleSize")*this.getDPI());
+        let sat=field.x2sat(x-r);
+        let val=field.y2val(y-r);
+        this.hsva[1] = sat;
+        this.hsva[2] = val;
+        if (this.onchange) {
+            this.onchange(this.hsva);
+        }
+        this._redraw();
+      };
+      this.canvas.addEventListener("mousedown", (e) =>        {
+        let rect=this.canvas.getClientRects()[0];
+        let x=e.clientX-rect.x, y=e.clientY-rect.y;
+        setFromXY(x, y);
+        setTimeout(() =>          {
+          this.pushModal({on_mousemove: (e) =>              {
+              let rect=this.canvas.getClientRects()[0];
+              if (rect===undefined) {
+                  return ;
+              }
+              let x=e.clientX-rect.x, y=e.clientY-rect.y;
+              setFromXY(x, y);
+            }, 
+       on_mousedown: (e) =>              {
+              this.popModal();
+            }, 
+       on_mouseup: (e) =>              {
+              this.popModal();
+            }, 
+       on_keydown: (e) =>              {
+              if (e.keyCode==keymap["Enter"]||e.keyCode==keymap["Escape"]||e.keyCode==keymap["Space"]) {
+                  this.popModal();
+              }
+            }});
+        }, 1);
+      });
+      this.canvas.addEventListener("touchstart", (e) =>        {
+        console.log("touch start");
+        let rect=this.canvas.getClientRects()[0];
+        let x=e.touches[0].clientX-rect.x, y=e.touches[0].clientY-rect.y;
+        setFromXY(x, y);
+        setTimeout(() =>          {
+          this.pushModal({on_mousemove: (e) =>              {
+              let rect=this.canvas.getClientRects()[0];
+              let x, y;
+              if (e.touches&&e.touches.length) {
+                  x = e.touches[0].clientX-rect.x;
+                  y = e.touches[0].clientY-rect.y;
+              }
+              else {
+                x = e.x;
+                y = e.y;
+              }
+              setFromXY(x, y);
+            }, 
+       on_touchmove: (e) =>              {
+              let rect=this.canvas.getClientRects()[0];
+              let x=e.touches[0].clientX-rect.x, y=e.touches[0].clientY-rect.y;
+              setFromXY(x, y);
+            }, 
+       on_mousedown: (e) =>              {
+              this.popModal();
+            }, 
+       on_touchcancel: (e) =>              {
+              this.popModal();
+            }, 
+       on_touchend: (e) =>              {
+              this.popModal();
+            }, 
+       on_mouseup: (e) =>              {
+              this.popModal();
+            }, 
+       on_keydown: (e) =>              {
+              if (e.keyCode==keymap["Enter"]||e.keyCode==keymap["Escape"]||e.keyCode==keymap["Space"]) {
+                  this.popModal();
+              }
+            }});
+        }, 1);
+      });
+    }
+     _getField() {
+      let dpi=this.getDPI();
+      let canvas=this.canvas;
+      let r=this.getDefault("circleSize");
+      let w=this.getDefault("defaultWidth");
+      let h=this.getDefault("defaultHeight");
+      return getFieldImage(this.getDefault("fieldsize"), w-r*2, h-r*2, this.hsva);
+    }
+     update(force_update=false) {
+      super.update();
+      if (force_update) {
+          this._redraw();
+      }
+    }
+     _redraw() {
+      let g=this.g, canvas=this.canvas;
+      let dpi=this.getDPI();
+      let w=this.getDefault("defaultWidth");
+      let h=this.getDefault("defaultHeight");
+      canvas.width = ~~(w*dpi);
+      canvas.height = ~~(h*dpi);
+      canvas.style["width"] = w+"px";
+      canvas.style["height"] = h+"px";
+      let rselector=~~(this.getDefault("circleSize")*dpi);
+      let field=this._getField();
+      let image=field.canvas;
+      g.globalAlpha = 1.0;
+      g.beginPath();
+      g.rect(0, 0, canvas.width, canvas.height);
+      g.fillStyle = "rgb(200, 200, 200)";
+      g.fill();
+      g.beginPath();
+      let steps=17;
+      let dx=canvas.width/steps;
+      let dy=canvas.height/steps;
+      for (let i=0; i<steps*steps; i++) {
+          let x=(i%steps)*dx, y=(~~(i/steps))*dy;
+          if (i%2==0) {
+              continue;
+          }
+          g.rect(x, y, dx, dy);
+      }
+      g.fillStyle = "rgb(110, 110, 110)";
+      g.fill();
+      g.globalAlpha = this.hsva[3];
+      g.drawImage(image, 0, 0, image.width, image.height, rselector, rselector, canvas.width-rselector*2, canvas.height-rselector*2);
+      let hsva=this.hsva;
+      let x=field.sat2x(hsva[1])*dpi+rselector;
+      let y=field.val2y(hsva[2])*dpi+rselector;
+      let r=rselector;
+      g.beginPath();
+      g.arc(x, y, r, -Math.PI, Math.PI);
+      g.closePath();
+      g.strokeStyle = "white";
+      g.lineWidth = 3*dpi;
+      g.stroke();
+      g.strokeStyle = "grey";
+      g.lineWidth = 1*dpi;
+      g.stroke();
+      if (this.disabled) {
+          g.beginPath();
+          g.fillStyle = "rgba(25,25,25,0.75)";
+          g.rect(0, 0, this.canvas.width, this.canvas.height);
+          g.fill();
+      }
+    }
+     on_disabled() {
+      this._redraw();
+    }
+     on_enabled() {
+      this._redraw();
+    }
+    static  define() {
+      return {tagname: "satvalfield-x", 
+     style: "colorfield"}
+    }
+  }
+  _ESClass.register(SatValField);
+  _es6_module.add_class(SatValField);
+  SatValField = _es6_module.add_export('SatValField', SatValField);
+  UIBase.register(SatValField);
+  class ColorField extends ui.ColumnFrame {
+     constructor() {
+      super();
+      this.hsva = new Vector4([0.05, 0.6, 0.15, 1.0]);
+      this.rgba = new Vector4([0, 0, 0, 0]);
+      this._recalcRGBA();
+      this._last_dpi = undefined;
+      let satvalfield=this.satvalfield = document.createElement("satvalfield-x");
+      satvalfield.hsva = this.hsva;
+      let huefield=this.huefield = document.createElement("huefield-x");
+      huefield.hsva = this.hsva;
+      huefield.onchange = (e) =>        {
+        this.satvalfield._redraw();
+        this._recalcRGBA();
+        if (this.onchange) {
+            this.onchange(this.rgba);
+        }
+      };
+      satvalfield.onchange = (e) =>        {
+        this._recalcRGBA();
+        if (this.onchange) {
+            this.onchange(this.rgba);
+        }
+      };
+      this._add(satvalfield);
+      this._add(huefield);
+    }
+     setHSVA(h, s, v, a=1.0, fire_onchange=true) {
+      this.hsva[0] = h;
+      this.hsva[1] = s;
+      this.hsva[2] = v;
+      this.hsva[3] = a;
+      this._recalcRGBA();
+      this.update(true);
+      if (this.onchange&&fire_onchange) {
+          this.onchange(this.hsva, this.rgba);
+      }
+    }
+     setRGBA(r, g, b, a=1.0, fire_onchange=true) {
+      let hsv=rgb_to_hsv(r, g, b);
+      this.hsva[0] = hsv[0];
+      this.hsva[1] = hsv[1];
+      this.hsva[2] = hsv[2];
+      this.hsva[3] = a;
+      this._recalcRGBA();
+      this.update(true);
+      if (this.onchange&&fire_onchange) {
+          this.onchange(this.hsva, this.rgba);
+      }
+    }
+     _recalcRGBA() {
+      let ret=hsv_to_rgb(this.hsva[0], this.hsva[1], this.hsva[2]);
+      this.rgba[0] = ret[0];
+      this.rgba[1] = ret[1];
+      this.rgba[2] = ret[2];
+      this.rgba[3] = this.hsva[3];
+      return this;
+    }
+     updateDPI(force_update=false, _in_update=false) {
+      let dpi=this.getDPI();
+      let update=force_update;
+      update = update||dpi!=this._last_dpi;
+      if (update) {
+          this._last_dpi = dpi;
+          if (!_in_update)
+            this._redraw();
+          return true;
+      }
+    }
+     setRGBA(r, g, b, a=1.0, fire_onchange=true) {
+      if (bad(r)||bad(g)||bad(b)||bad(a)) {
+          console.warn("Invalid value!");
+          return ;
+      }
+      let ret=rgb_to_hsv(r, g, b);
+      function bad(f) {
+        return typeof f!=="number"||isNaN(f);
+      }
+      this.hsva[0] = ret[0];
+      this.hsva[1] = ret[1];
+      this.hsva[2] = ret[2];
+      this.hsva[3] = a;
+      this._recalcRGBA();
+      this.update(true);
+      if (this.onchange&&fire_onchange) {
+          this.onchange(this.hsva, this.rgba);
+      }
+    }
+     update(force_update=false) {
+      super.update();
+      let redraw=false;
+      redraw = redraw||this.updateDPI(force_update, true);
+      if (redraw) {
+          this.satvalfield.update(true);
+          this._redraw();
+      }
+    }
+    static  define() {
+      return {tagname: "colorfield-x", 
+     style: "colorfield"}
+    }
+     _redraw() {
+      this.satvalfield._redraw();
+      this.huefield._redraw();
+    }
+  }
+  _ESClass.register(ColorField);
+  _es6_module.add_class(ColorField);
+  ColorField = _es6_module.add_export('ColorField', ColorField);
+  UIBase.register(ColorField);
+  class ColorPicker extends ui.ColumnFrame {
+     constructor() {
+      super();
+    }
+     init() {
+      super.init();
+      this.field = document.createElement("colorfield-x");
+      this.field.setAttribute("class", "colorpicker");
+      this.field.packflag|=this.inherit_packflag;
+      this.field.packflag|=this.packflag;
+      this.field.onchange = () =>        {
+        this._setDataPath();
+        this._setSliders();
+        if (this.onchange) {
+            this.onchange(this.field.rgba);
+        }
+      };
+      let style=document.createElement("style");
+      style.textContent = `
+      .colorpicker {
+        background-color : ${this.getDefault("BoxBG")};
+      }
+    `;
+      this._style = style;
+      let cb=this.colorbox = document.createElement("div");
+      cb.style["width"] = "100%";
+      cb.style["height"] = this.getDefault("colorBoxHeight")+"px";
+      cb.style["background-color"] = "black";
+      this.shadow.appendChild(style);
+      this.field.ctx = this.ctx;
+      this.add(this.colorbox);
+      this.add(this.field);
+      this.style["width"] = this.getDefault("defaultWidth")+"px";
+    }
+     updateColorBox() {
+      let r=this.field.rgba[0], g=this.field.rgba[1], b=this.field.rgba[2];
+      r = ~~(r*255);
+      g = ~~(g*255);
+      b = ~~(b*255);
+      let css=`rgb(${r},${g},${b})`;
+      this.colorbox.style["background-color"] = css;
+    }
+    static  setDefault(node) {
+      let tabs=node.tabs();
+      node.cssText = node.textbox();
+      node.cssText.onchange = (val) =>        {
+        let ok=validateWebColor(val);
+        if (!ok) {
+            node.cssText.flash("red");
+            return ;
+        }
+        else {
+          node.cssText.flash("green");
+        }
+        val = val.trim();
+        let color=web2color(val);
+        console.log(color);
+        node._no_update_textbox = true;
+        console.log(color);
+        node.field.setRGBA(color[0], color[1], color[2], color[3]);
+        node._setSliders();
+        node._no_update_textbox = false;
+      };
+      let tab=tabs.tab("HSV");
+      node.h = tab.slider(undefined, "Hue", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
+        let hsva=node.hsva;
+        node.setHSVA(e.value, hsva[1], hsva[2], hsva[3]);
+      });
+      node.s = tab.slider(undefined, "Saturation", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
+        let hsva=node.hsva;
+        node.setHSVA(hsva[0], e.value, hsva[2], hsva[3]);
+      });
+      node.v = tab.slider(undefined, "Value", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
+        let hsva=node.hsva;
+        node.setHSVA(hsva[0], hsva[1], e.value, hsva[3]);
+      });
+      node.a = tab.slider(undefined, "Alpha", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
+        let hsva=node.hsva;
+        node.setHSVA(hsva[0], hsva[1], hsva[2], e.value);
+      });
+      tab = tabs.tab("RGB");
+      node.r = tab.slider(undefined, "R", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
+        let rgba=node.rgba;
+        node.setRGBA(e.value, rgba[1], rgba[2], rgba[3]);
+      });
+      node.g = tab.slider(undefined, "G", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
+        let rgba=node.rgba;
+        node.setRGBA(rgba[0], e.value, rgba[2], rgba[3]);
+      });
+      node.b = tab.slider(undefined, "B", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
+        let rgba=node.rgba;
+        node.setRGBA(rgba[0], rgba[1], e.value, rgba[3]);
+      });
+      node.a2 = tab.slider(undefined, "Alpha", 0.0, 0.0, 1.0, 0.001, false, true, (e) =>        {
+        let rgba=node.rgba;
+        node.setRGBA(rgba[0], rgba[1], rgba[2], e.value);
+      });
+      node._setSliders();
+    }
+     _setSliders() {
+      if (this.h===undefined) {
+          console.warn("colorpicker ERROR");
+          return ;
+      }
+      let hsva=this.field.hsva;
+      this.h.setValue(hsva[0], false);
+      this.s.setValue(hsva[1], false);
+      this.v.setValue(hsva[2], false);
+      this.a.setValue(hsva[3], false);
+      let rgba=this.field.rgba;
+      this.r.setValue(rgba[0], false);
+      this.g.setValue(rgba[1], false);
+      this.b.setValue(rgba[2], false);
+      this.a2.setValue(rgba[3], false);
+      this.updateColorBox();
+      if (!this._no_update_textbox) {
+          this.cssText.text = color2web(this.field.rgba);
+      }
+    }
+    get  hsva() {
+      return this.field.hsva;
+    }
+    get  rgba() {
+      return this.field.rgba;
+    }
+     updateDataPath() {
+      if (!this.hasAttribute("datapath")) {
+          return ;
+      }
+      let prop=this.getPathMeta(this.ctx, this.getAttribute("datapath"));
+      let val=this.getPathValue(this.ctx, this.getAttribute("datapath"));
+      if (val===undefined) {
+          this.disabled = true;
+          return ;
+      }
+      this.disabled = false;
+      _update_temp.load(val);
+      if (prop.type==PropTypes.VEC3) {
+          _update_temp[3] = 1.0;
+      }
+      if (_update_temp.vectorDistance(this.field.rgba)>0.01) {
+          this.field.setRGBA(_update_temp[0], _update_temp[1], _update_temp[2], _update_temp[3], false);
+          this._setSliders();
+          this.field.update(true);
+      }
+    }
+     update() {
+      if (this.hasAttribute("datapath")) {
+          this.updateDataPath();
+      }
+      super.update();
+    }
+     _setDataPath() {
+      if (this.hasAttribute("datapath")) {
+          let prop=this.getPathMeta(this.ctx, this.getAttribute("datapath"));
+          if (prop===undefined) {
+              console.warn("Bad data path for color field:", this.getAttribute("datapath"));
+          }
+          let val=this.field.rgba;
+          if (prop!==undefined&&prop.type===PropTypes.VEC3) {
+              val = new Vector3();
+              val.load(this.field.rgba);
+          }
+          this.setPathValue(this.ctx, this.getAttribute("datapath"), val);
+      }
+    }
+     setHSVA(h, s, v, a) {
+      this.field.setHSVA(h, s, v, a);
+      this._setSliders();
+      this._setDataPath();
+    }
+     setRGBA(r, g, b, a) {
+      this.field.setRGBA(r, g, b, a);
+      this._setSliders();
+      this._setDataPath();
+    }
+    static  define() {
+      return {tagname: "colorpicker-x", 
+     style: "colorfield"}
+    }
+  }
+  _ESClass.register(ColorPicker);
+  _es6_module.add_class(ColorPicker);
+  ColorPicker = _es6_module.add_export('ColorPicker', ColorPicker);
+  UIBase.register(ColorPicker);
+  class ColorPickerButton extends UIBase {
+     constructor() {
+      super();
+      this._highlight = false;
+      this._depress = false;
+      this._label = "";
+      this.rgba = new Vector4([1, 1, 1, 1]);
+      this.labelDom = document.createElement("span");
+      this.labelDom.textContent = "error";
+      this.dom = document.createElement("canvas");
+      this.g = this.dom.getContext("2d");
+      this.shadow.appendChild(this.labelDom);
+      this.shadow.appendChild(this.dom);
+    }
+    set  label(val) {
+      this._label = val;
+      this.labelDom.textContent = val;
+    }
+    get  label() {
+      return this._label;
+    }
+     init() {
+      super.init();
+      this._font = "DefaultText";
+      let enter=(e) =>        {
+        console.log(e.type, this._id);
+        this._keyhandler_add();
+        this._highlight = true;
+        this._redraw();
+      };
+      let leave=(e) =>        {
+        console.log(e.type, this._id);
+        this._keyhandler_remove();
+        this._highlight = false;
+        this._redraw();
+      };
+      this.tabIndex = 0;
+      this._has_keyhandler = false;
+      this._keyhandler_timeout = -1;
+      this._last_keyevt = undefined;
+      this._keydown = this._keydown.bind(this);
+      this.addEventListener("keydown", (e) =>        {
+        return this._keydown(e, true);
+      });
+      this.addEventListener("mousedown", (e) =>        {
+        this.click(e);
+      });
+      this.addEventListener("mouseover", enter);
+      this.addEventListener("mouseleave", leave);
+      this.addEventListener("mousein", enter);
+      this.addEventListener("mouseout", leave);
+      this.addEventListener("focus", enter);
+      this.addEventListener("blur", leave);
+      this.setCSS();
+    }
+     _keyhandler_remove() {
+      if (this._has_keyhandler) {
+          window.removeEventListener("keydown", this._keydown, {capture: true, 
+       passive: false});
+          this._has_keyhandler = false;
+      }
+    }
+     _keyhandler_add() {
+      if (!this._has_keyhandler) {
+          window.addEventListener("keydown", this._keydown, {capture: true, 
+       passive: false});
+          this._has_keyhandler = true;
+      }
+      this._keyhandler_timeout = util.time_ms();
+    }
+     _keydown(e, internal_mode=false) {
+      console.log(this._id);
+      if (internal_mode&&!this._highlight) {
+          return ;
+      }
+      console.warn(this._id, "COLOR", e.keyCode);
+      if (e===this._last_keyevt) {
+          return ;
+      }
+      this._last_keyevt = e;
+      if (e.keyCode===67&&(e.ctrlKey||e.commandKey)&&!e.shiftKey&&!e.altKey) {
+          console.log("yay copy");
+          console.log(document.activeElement);
+          this.clipboardCopy();
+          e.preventDefault();
+          e.stopPropagation();
+      }
+      if (e.keyCode===86&&(e.ctrlKey||e.commandKey)&&!e.shiftKey&&!e.altKey) {
+          console.log("yay paste");
+          this.clipboardPaste();
+          e.preventDefault();
+          e.stopPropagation();
+      }
+    }
+     clipboardCopy() {
+      console.log("color copy");
+      if (!cconst.setClipboardData) {
+          console.log("no clipboard api");
+          return ;
+      }
+      let r=this.rgba[0]*255;
+      let g=this.rgba[1]*255;
+      let b=this.rgba[2]*255;
+      let a=this.rgba[3];
+      let data=`rgba(${r.toFixed(4)}, ${g.toFixed(4)}, ${b.toFixed(4)}, ${a.toFixed(4)})`;
+      cconst.setClipboardData("color", "text/plain", data);
+    }
+     clipboardPaste() {
+      if (!cconst.getClipboardData) {
+          return ;
+      }
+      console.log("color paste");
+      let data=cconst.getClipboardData("text/plain");
+      if (!data||!validateCSSColor(""+data.data)) {
+          return ;
+      }
+      let color;
+      try {
+        color = css2color(data.data);
+      }
+      catch (error) {
+          console.log(error.stack);
+          console.log(error.message);
+      }
+      if (color) {
+          if (color.length<4) {
+              color.push(1.0);
+          }
+          this.setRGBA(color);
+      }
+    }
+     click(e) {
+      if (this.onclick) {
+          this.onclick(e);
+      }
+      let colorpicker=this.ctx.screen.popup(this, this);
+      colorpicker.useDataPathUndo = this.useDataPathUndo;
+      let path=this.hasAttribute("datapath") ? this.getAttribute("datapath") : undefined;
+      let widget=colorpicker.colorPicker(path, undefined, this.getAttribute("mass_set_path"));
+      widget._init();
+      widget.setRGBA(this.rgba[0], this.rgba[1], this.rgba[2], this.rgba[3]);
+      widget.style["padding"] = "20px";
+      let onchange=() =>        {
+        this.rgba.load(widget.rgba);
+        this.redraw();
+        if (this.onchange) {
+            this.onchange(this);
+        }
+      };
+      widget.onchange = onchange;
+      colorpicker.style["background-color"] = widget.getDefault("DefaultPanelBG");
+      colorpicker.style["border-radius"] = "25px";
+      colorpicker.style["border"] = widget.getDefault("border");
+    }
+     setRGBA(val) {
+      let a=this.rgba[3];
+      this.rgba.load(val);
+      if (val.length<4) {
+          this.rgba[3] = a;
+      }
+      if (this.hasAttribute("datapath")) {
+          this.setPathValue(this.ctx, this.getAttribute("datapath"), this.rgba);
+      }
+      if (this.onchange) {
+          this.onchange();
+      }
+      this._redraw();
+      return this;
+    }
+    get  font() {
+      return this._font;
+    }
+    set  font(val) {
+      this._font = val;
+      this.setCSS();
+    }
+     on_disabled() {
+      this.setCSS();
+      this._redraw();
+    }
+     _redraw() {
+      let canvas=this.dom, g=this.g;
+      g.clearRect(0, 0, canvas.width, canvas.height);
+      if (this.disabled) {
+          let color="rgb(55, 55, 55)";
+          g.save();
+          ui_base.drawRoundBox(this, canvas, g, canvas.width, canvas.height, undefined, "fill", color);
+          ui_base.drawRoundBox(this, canvas, g, canvas.width, canvas.height, undefined, "clip");
+          let steps=5;
+          let dt=canvas.width/steps, t=0;
+          g.beginPath();
+          g.lineWidth = 2;
+          g.strokeStyle = "black";
+          for (let i=0; i<steps; i++, t+=dt) {
+              g.moveTo(t, 0);
+              g.lineTo(t+dt, canvas.height);
+              g.moveTo(t+dt, 0);
+              g.lineTo(t, canvas.height);
+          }
+          g.stroke();
+          g.restore();
+          return ;
+      }
+      g.save();
+      let grid1="rgb(100, 100, 100)";
+      let grid2="rgb(175, 175, 175)";
+      ui_base.drawRoundBox(this, canvas, g, canvas.width, canvas.height, undefined, "clip");
+      ui_base.drawRoundBox(this, canvas, g, canvas.width, canvas.height, undefined, "fill", grid1);
+      let cellsize=10;
+      let totx=Math.ceil(canvas.width/cellsize), toty=Math.ceil(canvas.height/cellsize);
+      ui_base.drawRoundBox(this, canvas, g, canvas.width, canvas.height, undefined, "clip", undefined, undefined, true);
+      g.clip();
+      g.beginPath();
+      for (let x=0; x<totx; x++) {
+          for (let y=0; y<toty; y++) {
+              if ((x+y)&1) {
+                  continue;
+              }
+              g.rect(x*cellsize, y*cellsize, cellsize, cellsize);
+          }
+      }
+      g.fillStyle = grid2;
+      g.fill();
+      let color=color2css(this.rgba);
+      ui_base.drawRoundBox(this, canvas, g, canvas.width, canvas.height, undefined, "fill", color, undefined, true);
+      if (this._highlight) {
+          let color=this.getDefault("BoxHighlight");
+          ui_base.drawRoundBox(this, canvas, g, canvas.width, canvas.height, undefined, "fill", color);
+      }
+      g.restore();
+    }
+     setCSS() {
+      super.setCSS();
+      let w=this.getDefault("defaultWidth");
+      let h=this.getDefault("defaultHeight");
+      let dpi=this.getDPI();
+      this.style["width"] = "min-contents"+"px";
+      this.style["height"] = h+"px";
+      this.style["flex-direction"] = "row";
+      this.style["display"] = "flex";
+      this.labelDom.style["color"] = this.getDefault(this._font).color;
+      this.labelDom.style["font"] = ui_base.getFont(this, undefined, this._font, false);
+      let canvas=this.dom;
+      canvas.style["width"] = w+"px";
+      canvas.style["height"] = h+"px";
+      canvas.width = ~~(w*dpi);
+      canvas.height = ~~(h*dpi);
+      this.style["background-color"] = "rgba(0,0,0,0)";
+      this._redraw();
+    }
+    static  define() {
+      return {tagname: "color-picker-button-x", 
+     style: "colorpickerbutton"}
+    }
+     updateDataPath() {
+      if (!(this.hasAttribute("datapath"))) {
+          return ;
+      }
+      let path=this.getAttribute("datapath");
+      let prop=this.getPathMeta(this.ctx, path);
+      if ((prop===undefined||prop.data===undefined)&&cconst.DEBUG.verboseDataPath) {
+          console.log("bad path", path);
+          return ;
+      }
+      else 
+        if (prop===undefined) {
+          this.disabled = true;
+          return ;
+      }
+      this.disabled = false;
+      prop = prop;
+      if (prop.uiname!==this._label) {
+          this.label = prop.uiname;
+      }
+      let val=this.getPathValue(this.ctx, path);
+      if (val===undefined) {
+          let redraw=this.disabled!==true;
+          this.disabled = true;
+          if (redraw) {
+              this._redraw();
+          }
+          return ;
+      }
+      else {
+        let redraw=this.disabled;
+        this.disabled = false;
+        if (redraw) {
+            this._redraw();
+        }
+      }
+      if (this.rgba.vectorDistance(val)>0.0001) {
+          if (prop.type===PropTypes.VEC3) {
+              this.rgba.load(val);
+              this.rgba[3] = 1.0;
+          }
+          else {
+            this.rgba.load(val);
+          }
+          this._redraw();
+      }
+    }
+     update() {
+      super.update();
+      if (this._has_keyhandler&&util.time_ms()-this._keyhandler_timeout>3500) {
+          console.log("keyhandler auto remove");
+          this._keyhandler_remove();
+      }
+      let key=""+this.rgba[0].toFixed(4)+" "+this.rgba[1].toFixed(4)+" "+this.rgba[2].toFixed(4)+" "+this.rgba[3].toFixed(4);
+      if (key!==this._last_key) {
+          this._last_key = key;
+          this.redraw();
+      }
+      if (this.hasAttribute("datapath")) {
+          this.updateDataPath();
+      }
+    }
+     redraw() {
+      this._redraw();
+    }
+  }
+  _ESClass.register(ColorPickerButton);
+  _es6_module.add_class(ColorPickerButton);
+  ColorPickerButton = _es6_module.add_export('ColorPickerButton', ColorPickerButton);
+  
+  UIBase.register(ColorPickerButton);
+}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_colorpicker2.js');
+es6_module_define('ui_container', ["../core/ui.js", "../controller/simple_controller.js", "../core/ui_base.js"], function _ui_container_module(_es6_module) {
+  var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
+  var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
+  var DataAPI=es6_import_item(_es6_module, '../controller/simple_controller.js', 'DataAPI');
+  let api=new DataAPI();
+  api = _es6_module.add_export('api', api);
+  function setRootStruct(val) {
+    return api.setRoot(val);
+  }
+  setRootStruct = _es6_module.add_export('setRootStruct', setRootStruct);
+  class ContainerIF  {
+     beginPath(path, cls) {
+
+    }
+     endPath() {
+
+    }
+     prop(path, args) {
+
+    }
+     tool(path, args) {
+
+    }
+     menu(title, definition, args) {
+
+    }
+     slider(path, args) {
+
+    }
+     simpleslider(path, args) {
+
+    }
+     textbox(path, args) {
+
+    }
+     vector(path, args) {
+
+    }
+     colorpicker(path, args) {
+
+    }
+     colorbutton(path, args) {
+
+    }
+     iconenum(path, args) {
+
+    }
+     iconcheck(path, args) {
+
+    }
+     button(name, tooltip, args) {
+
+    }
+     iconbutton(icon, tooltip, args) {
+
+    }
+     listenum(path, args) {
+
+    }
+     table() {
+
+    }
+     row() {
+
+    }
+     col() {
+
+    }
+     strip() {
+
+    }
+     useIcons() {
+
+    }
+     useSimpleSliders() {
+
+    }
+  }
+  _ESClass.register(ContainerIF);
+  _es6_module.add_class(ContainerIF);
+  ContainerIF = _es6_module.add_export('ContainerIF', ContainerIF);
+  class BuilderContainer extends Container {
+     constructor() {
+      super();
+      this.pathPrefix = "";
+      this.pathstack = [];
+      this._class = undefined;
+      this._struct = undefined;
+    }
+     init() {
+      super.init();
+    }
+     _buildPath() {
+      let path="";
+      for (let p of this.pathstack) {
+          if (p[0].trim()==="") {
+              continue;
+          }
+          if (path.length>0)
+            path+=".";
+          path+=p[0];
+      }
+      if (this.pathstack.length>0) {
+          this._class = this.pathstack[this.pathstack.length-1][1];
+          this._struct = this.pathstack[this.pathstack.length-1][2];
+      }
+      else {
+        this._class = undefined;
+        this._struct = undefined;
+      }
+      this.pathPrefix = path;
+      return path;
+    }
+     beginPath(path, cls) {
+      this.pathstack.push([path, cls, api.mapStruct(cls, true)]);
+      this._buildPath();
+    }
+     popPath(path, cls) {
+      this.pathstack.pop();
+      this._buildPath();
+    }
+     joinPath(path) {
+      if (this.pathPrefix.trim().length>0) {
+          return this.pathPrefix+"."+path;
+      }
+      else {
+        return path.trim();
+      }
+    }
+     _makeAPI(path) {
+      if (!path) {
+          return false;
+      }
+      if (!this._struct) {
+          console.warn("No struct");
+          return false;
+      }
+      return !(path in this._struct.pathmap);
+    }
+    static  define() {
+      return {tagname: "container-builder-x"}
+    }
+     _args(args={}) {
+      if (args.packflag===undefined)
+        args.packflag = 0;
+      args.packflag|=this.inherit_packflag;
+      return args;
+    }
+     prop(path, args) {
+      args = this._args(args);
+      return super.prop(path, args.packflag, args.mass_set_path);
+    }
+     tool(path, args) {
+      args = this._args(args);
+      return super.tool(path, args.packflag, args.create_cb);
+    }
+     menu(title, definition, args) {
+      args = this._args(args);
+      return super.menu(title, definition, args.packflag);
+    }
+     _wrapElem(e, dpath) {
+      return {widget: e, 
+     range: (min, max) =>          {
+          return dpath.range(min, max);
+        }, 
+     description: (d) =>          {
+          return dpath.description(d);
+        }, 
+     on: () =>          {
+          return dpath.on(...arguments);
+        }, 
+     off: () =>          {
+          return dpath.off(...arguments);
+        }, 
+     simpleSlider: () =>          {
+          return dpath.simpleSlider();
+        }, 
+     rollerSlider: () =>          {
+          return dpath.rollerSlider();
+        }, 
+     uiRange: (min, max) =>          {
+          return dpath.uiRange();
+        }, 
+     decimalPlaces: (p) =>          {
+          return dpath.decimalPlaces();
+        }, 
+     expRate: (p) =>          {
+          return dpath.expRate(p);
+        }, 
+     radix: (p) =>          {
+          return dpath.radix(p);
+        }, 
+     step: (p) =>          {
+          return dpath.step(p);
+        }, 
+     icon: (icon) =>          {
+          return dpath.icon(icon);
+        }, 
+     icons: (iconmap) =>          {
+          return dpath.icons(iconmap);
+        }, 
+     descriptions: (ds) =>          {
+          return dpath.descriptions(ds);
+        }, 
+     customGetSet: () =>          {
+          return dpath.customGetSet.apply(...arguments);
+        }}
+    }
+     slider(path, args) {
+      args = this._args(args);
+      let dopatch=false, dpath;
+      if (this._makeAPI(path)) {
+          let path2=args.apiname ? args.apiname : path;
+          let uiname=args.uiName ? args.uiName : path2;
+          if (args.is_int||args.isInt) {
+              dpath = this._struct.int(path, path2, uiname, args.description);
+          }
+          else {
+            dpath = this._struct.float(path, path2, uiname, args.description);
+          }
+          if (args.min&&args.max) {
+              dpath.range(args.min, args.max);
+          }
+      }
+      let ret=super.slider(this.joinPath(path), args.name, args.defaultval, args.min, args.max, args.step, args.is_int, args.do_redraw, args.callback, args.packflag);
+      if (dopatch) {
+          this._wrapElem(ret, dpath);
+      }
+      return ret;
+    }
+     simpleslider(path, args) {
+      args = this._args(args);
+      args.packflag|=PackFlags.SIMPLE_NUMSLIDERS;
+      return this.slider(path, args);
+    }
+     textbox(path, args) {
+      args = this._args(args);
+      let dopatch=false, dpath;
+      if (this._makeAPI(path)) {
+          let path2=args.apiname ? args.apiname : path;
+          let uiname=args.uiName ? args.uiName : path2;
+          if (args.type==="int") {
+              dpath = this._struct.int(path, path2, uiname, args.description);
+          }
+          else 
+            if (args.type==="float") {
+              dpath = this._struct.float(path, path2, uiname, args.description);
+          }
+          else {
+            dpath = this._struct.string(path, path2, uiname, args.description);
+          }
+          if ((args.type==="int"||args.type==="float")&&args.min&&args.max) {
+              dpath.range(args.min, args.max);
+          }
+      }
+      let ret=super.textbox(this.joinPath(path), args.text, args.callback, args.packflag);
+      if (dopatch) {
+          this._wrapElem(ret, dpath);
+      }
+      return ret;
+    }
+     vector(path, args) {
+
+    }
+     colorpicker(path, args) {
+
+    }
+     colorbutton(path, args) {
+
+    }
+     iconenum(path, args) {
+
+    }
+     iconcheck(path, args) {
+
+    }
+     button(name, tooltip, args) {
+
+    }
+     iconbutton(icon, tooltip, args) {
+
+    }
+     listenum(path, args) {
+
+    }
+     table() {
+
+    }
+     row() {
+
+    }
+     col() {
+
+    }
+     strip() {
+
+    }
+     useIcons() {
+
+    }
+     useSimpleSliderS() {
+
+    }
+  }
+  _ESClass.register(BuilderContainer);
+  _es6_module.add_class(BuilderContainer);
+  BuilderContainer = _es6_module.add_export('BuilderContainer', BuilderContainer);
+  class BuilderRow extends BuilderContainer {
+     init() {
+      super.init();
+      this.style["flex-direction"] = "row";
+    }
+    static  define() {
+      return {tagname: "row-builder-x"}
+    }
+  }
+  _ESClass.register(BuilderRow);
+  _es6_module.add_class(BuilderRow);
+  BuilderRow = _es6_module.add_export('BuilderRow', BuilderRow);
+  UIBase.register(BuilderRow);
+}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_container.js');
+es6_module_define('ui_curvewidget', ["../util/util.js", "../curve/curve1d.js", "../util/vectormath.js", "../toolsys/toolprop.js", "../curve/curve1d_utils.js", "../core/ui_base.js", "../core/ui.js"], function _ui_curvewidget_module(_es6_module) {
+  var Curve1DProperty=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'Curve1DProperty');
+  var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
+  var Icons=es6_import_item(_es6_module, '../core/ui_base.js', 'Icons');
+  var ColumnFrame=es6_import_item(_es6_module, '../core/ui.js', 'ColumnFrame');
+  var RowFrame=es6_import_item(_es6_module, '../core/ui.js', 'RowFrame');
+  var util=es6_import(_es6_module, '../util/util.js');
+  var Vector2=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector2');
+  var Vector3=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector3');
+  var Curve1D=es6_import_item(_es6_module, '../curve/curve1d.js', 'Curve1D');
+  var mySafeJSONStringify=es6_import_item(_es6_module, '../curve/curve1d.js', 'mySafeJSONStringify');
+  var makeGenEnum=es6_import_item(_es6_module, '../curve/curve1d_utils.js', 'makeGenEnum');
+  class Curve1DWidget extends ColumnFrame {
+     constructor() {
+      super();
+      this.useDataPathUndo = false;
+      this._on_draw = this._on_draw.bind(this);
+      this.drawTransform = [1.0, [0, 0]];
+      this._value = new Curve1D();
+      this._value.on("draw", this._on_draw);
+      this._value._on_change = (msg) =>        {
+        console.warn("value on change");
+        if (this.onchange) {
+            this.onchange(this._value);
+        }
+        if (this.hasAttribute("datapath")) {
+            let path=this.getAttribute("datapath");
+            if (this._value!==undefined) {
+                let val=this.getPathValue(this.ctx, path);
+                if (val) {
+                    val.load(this._value);
+                    this.setPathValue(this.ctx, path, val);
+                }
+                else {
+                  val = this._value.copy();
+                  this.setPathValue(this.ctx, path, val);
+                }
+            }
+        }
+      };
+      this._gen_type = undefined;
+      this._lastGen = undefined;
+      this._last_dpi = undefined;
+      this.canvas = document.createElement("canvas");
+      this.g = this.canvas.getContext("2d");
+      this.canvas.g = this.g;
+      window.cw = this;
+      this.shadow.appendChild(this.canvas);
+    }
+    get  value() {
+      return this._value;
+    }
+     _on_draw(e) {
+      let curve=e.data;
+      this._redraw();
+    }
+    set  value(val) {
+      this._value.load(val);
+      this.update();
+      this._redraw();
+    }
+     _on_change() {
+      if (this.onchange) {
+          this.onchange(this);
+      }
+    }
+     init() {
+      super.init();
+      this.useDataPathUndo = false;
+      let row=this.row();
+      let prop=makeGenEnum();
+      prop.setValue(this.value.generatorType);
+      this.dropbox = row.listenum(undefined, "Type", prop, this.value.generatorType, (id) =>        {
+        console.warn("SELECT", id, prop.keys[id]);
+        this.value.setGenerator(id);
+        this.value._on_change("curve type change");
+      });
+      this.dropbox._init();
+      row.iconbutton(Icons.ZOOM_OUT, "Zoom Out", () =>        {
+        let curve=this._value;
+        if (!curve)
+          return ;
+        curve.uiZoom*=0.9;
+        if (this.getAttribute("datapath")) {
+            this.setPathValue(this.ctx, this.getAttribute("datapath"), curve);
+        }
+        this._redraw();
+      }).iconsheet = 0;
+      row.iconbutton(Icons.ZOOM_IN, "Zoom In", () =>        {
+        let curve=this._value;
+        if (!curve)
+          return ;
+        curve.uiZoom*=1.1;
+        if (this.getAttribute("datapath")) {
+            this.setPathValue(this.ctx, this.getAttribute("datapath"), curve);
+        }
+        this._redraw();
+      }).iconsheet = 0;
+      this.container = this.col();
+    }
+     setCSS() {
+      super.setCSS();
+      this.style["width"] = "min-contents";
+      this.style["heizght"] = "min-contents";
+      this.updateSize();
+    }
+     updateSize() {
+      let dpi=UIBase.getDPI();
+      let w=~~(this.getDefault("CanvasWidth")*dpi);
+      let h=~~(this.getDefault("CanvasHeight")*dpi);
+      let bad=w!==this.canvas.width||h!==this.canvas.height;
+      bad = bad||dpi!==this._last_dpi;
+      if (!bad) {
+          return ;
+      }
+      this._last_dpi = true;
+      this.canvas.width = w;
+      this.canvas.height = h;
+      this.canvas.style["width"] = (w/dpi)+"px";
+      this.canvas.style["height"] = (h/dpi)+"px";
+      this._redraw();
+    }
+     _redraw() {
+      let canvas=this.canvas, g=this.g;
+      g.clearRect(0, 0, canvas.width, canvas.height);
+      g.beginPath();
+      g.rect(0, 0, canvas.width, canvas.height);
+      g.fillStyle = this.getDefault("CanvasBG");
+      g.fill();
+      g.save();
+      let zoom=this._value.uiZoom;
+      let scale=Math.max(canvas.width, canvas.height);
+      g.lineWidth/=scale;
+      this.drawTransform[0] = scale*zoom;
+      this.drawTransform[1][0] = 0.0;
+      this.drawTransform[1][1] = -1.0;
+      this.drawTransform[1][0]-=0.5-0.5/zoom;
+      this.drawTransform[1][1]+=0.5-0.5/zoom;
+      g.scale(this.drawTransform[0], -this.drawTransform[0]);
+      g.translate(this.drawTransform[1][0], this.drawTransform[1][1]);
+      g.lineWidth/=zoom;
+      this._value.draw(this.canvas, this.g, this.drawTransform);
+      g.restore();
+    }
+     rebuild() {
+      let ctx=this.ctx;
+      if (ctx===undefined||this.container===undefined) {
+          return ;
+      }
+      this._gen_type = this.value.generatorType;
+      let col=this.container;
+      if (this._lastGen!==undefined) {
+          this._lastGen.killGUI(col, this.canvas);
+      }
+      let onchange=this.dropbox.onchange;
+      this.dropbox.onchange = undefined;
+      this.dropbox.setValue(this.value.generatorType);
+      this.dropbox.onchange = onchange;
+      console.log("new curve type", this.value.generatorType, this._gen_type);
+      col.clear();
+      let gen=this.value.generators.active;
+      gen.makeGUI(col, this.canvas);
+      this._lastGen = gen;
+      this._redraw();
+    }
+     updateDataPath() {
+      if (!this.hasAttribute("datapath")) {
+          return ;
+      }
+      let path=this.getAttribute("datapath");
+      let val=this.getPathValue(this.ctx, path);
+      if (this._lastu===undefined) {
+          this._lastu = 0;
+      }
+      if (val&&!val.equals(this._value)&&util.time_ms()-this._lastu>200) {
+          this._lastu = util.time_ms();
+          this._value.load(val);
+          this.update();
+          this._redraw();
+      }
+    }
+     updateGenUI() {
+      let bad=this._lastGen!==this.value.generators.active;
+      if (bad) {
+          this.rebuild();
+          this._redraw();
+      }
+    }
+     update() {
+      super.update();
+      this.updateDataPath();
+      this.updateSize();
+      this.updateGenUI();
+    }
+    static  define() {
+      return {tagname: "curve-widget-x", 
+     style: "curvewidget"}
+    }
+  }
+  _ESClass.register(Curve1DWidget);
+  _es6_module.add_class(Curve1DWidget);
+  Curve1DWidget = _es6_module.add_export('Curve1DWidget', Curve1DWidget);
+  UIBase.register(Curve1DWidget);
+}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_curvewidget.js');
+es6_module_define('ui_dialog', ["../util/simple_events.js", "../screen/ScreenArea.js"], function _ui_dialog_module(_es6_module) {
+  var AreaFlags=es6_import_item(_es6_module, '../screen/ScreenArea.js', 'AreaFlags');
+  var keymap=es6_import_item(_es6_module, '../util/simple_events.js', 'keymap');
+  function makePopupArea(area_class, screen, args) {
+    if (args===undefined) {
+        args = {};
+    }
+    let sarea=document.createElement("screenarea-x");
+    let width=args.width||(screen.size[0]*0.7);
+    let height=args.height||(screen.size[1]*0.7);
+    let addEscapeKeyHandler=args.addEscapeKeyHandler!==undefined ? args.addEscapeKeyHandler : true;
+    sarea.ctx = screen.ctx;
+    sarea.size[0] = width;
+    sarea.size[1] = height;
+    sarea.pos[0] = 100;
+    sarea.pos[1] = 100;
+    sarea.pos[0] = Math.min(sarea.pos[0], screen.size[0]-sarea.size[0]-2);
+    sarea.pos[1] = Math.min(sarea.pos[1], screen.size[1]-sarea.size[1]-2);
+    sarea.switch_editor(area_class);
+    sarea.style["background-color"] = sarea.getDefault("DefaultPanelBG");
+    sarea.area.flag|=AreaFlags.FLOATING|AreaFlags.INDEPENDENT;
+    screen.appendChild(sarea);
+    sarea.setCSS();
+    if (addEscapeKeyHandler) {
+        sarea.on_keydown = (e) =>          {
+          if (e.keyCode===keymap.Escape) {
+              screen.removeArea(sarea);
+          }
+        };
+    }
+    sarea.bringToFront();
+    return sarea;
+  }
+  makePopupArea = _es6_module.add_export('makePopupArea', makePopupArea);
+}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_dialog.js');
+es6_module_define('ui_lasttool', ["../toolsys/simple_toolsys.js", "../config/const.js", "../util/util.js", "../core/ui_base.js", "../core/ui.js", "../controller/simple_controller.js", "../toolsys/toolprop.js"], function _ui_lasttool_module(_es6_module) {
+  var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
+  var ColumnFrame=es6_import_item(_es6_module, '../core/ui.js', 'ColumnFrame');
+  var PropTypes=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'PropTypes');
+  var PropFlags=es6_import_item(_es6_module, '../toolsys/toolprop.js', 'PropFlags');
+  var UndoFlags=es6_import_item(_es6_module, '../toolsys/simple_toolsys.js', 'UndoFlags');
+  var DataPath=es6_import_item(_es6_module, '../controller/simple_controller.js', 'DataPath');
+  var DataTypes=es6_import_item(_es6_module, '../controller/simple_controller.js', 'DataTypes');
+  var util=es6_import(_es6_module, '../util/util.js');
+  var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
+  const LastKey=Symbol("LastToolPanelId");
+  let tool_idgen=0;
+  class LastToolPanel extends ColumnFrame {
+     constructor() {
+      super();
+      this._tool_id = undefined;
+      this.useDataPathUndo = false;
+    }
+     init() {
+      super.init();
+      this.useDataPathUndo = false;
+      this.rebuild();
+    }
+     getToolStackHead(ctx) {
+      let bad=ctx.toolstack.length===0||ctx.toolstack.cur>=ctx.toolstack.length;
+      bad = bad||ctx.toolstack[ctx.toolstack.cur].undoflag&UndoFlags.IS_UNDO_ROOT;
+      if (bad) {
+          return undefined;
+      }
+      return ctx.toolstack[ctx.toolstack.cur];
+    }
+     rebuild() {
+      let ctx=this.ctx;
+      if (ctx===undefined) {
+          this._tool_id = -1;
+          return ;
+      }
+      this.clear();
+      this.label("Recent Command Settings");
+      let tool=this.getToolStackHead(ctx);
+      if (!tool) {
+          this.setCSS();
+          return ;
+      }
+      let def=tool.constructor.tooldef();
+      let name=def.uiname!==undefined ? def.uiname : def.name;
+      let panel=this.panel(def.uiname);
+      this.buildTool(ctx, tool, panel);
+    }
+     buildTool(ctx, tool, panel) {
+      let fakecls={};
+      fakecls.constructor = fakecls;
+      this.ctx.state._last_tool = fakecls;
+      let lastkey=tool[LastKey];
+      let getTool=() =>        {
+        let tool=this.ctx.toolstack[this.ctx.toolstack.cur];
+        if (!tool||tool[LastKey]!==lastkey) {
+            return undefined;
+        }
+        return tool;
+      };
+      let st=this.ctx.api.mapStruct(fakecls, true);
+      let paths=[];
+      function defineProp(k, key) {
+        Object.defineProperty(fakecls, key, {get: function () {
+            let tool=getTool();
+            if (tool) {
+                return tool.inputs[k].getValue();
+            }
+          }, 
+      set: function (val) {
+            let tool=getTool();
+            if (tool) {
+                tool.inputs[k].setValue(val);
+                ctx.toolstack.rerun(tool);
+                window.redraw_viewport();
+            }
+          }});
+      }
+      for (let k in tool.inputs) {
+          let prop=tool.inputs[k];
+          if (prop.flag&(PropFlags.PRIVATE|PropFlags.READ_ONLY)) {
+              continue;
+          }
+          let uiname=prop.uiname!==undefined ? prop.uiname : k;
+          prop.uiname = uiname;
+          let apikey=k.replace(/[\t ]/g, "_");
+          let dpath=new DataPath(apikey, apikey, prop, DataTypes.PROP);
+          st.add(dpath);
+          paths.push(dpath);
+          defineProp(k, apikey);
+      }
+      for (let dpath of paths) {
+          let path="last_tool."+dpath.path;
+          panel.label(dpath.data.uiname);
+          panel.prop(path);
+      }
+      this.setCSS();
+    }
+     update() {
+      super.update();
+      let ctx=this.ctx;
+      if (!ctx) {
+          return ;
+      }
+      let tool=this.getToolStackHead(ctx);
+      if (tool&&(!(LastKey in tool)||tool[LastKey]!==this._tool_id)) {
+          tool[LastKey] = tool_idgen++;
+          this._tool_id = tool[LastKey];
+          this.rebuild();
+      }
+    }
+    static  define() {
+      return {tagname: "last-tool-panel-x"}
+    }
+  }
+  _ESClass.register(LastToolPanel);
+  _es6_module.add_class(LastToolPanel);
+  LastToolPanel = _es6_module.add_export('LastToolPanel', LastToolPanel);
+  UIBase.register(LastToolPanel);
+}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_lasttool.js');
+es6_module_define('ui_listbox', ["../util/util.js", "./ui_table.js", "../toolsys/simple_toolsys.js", "../toolsys/toolprop.js", "../core/ui.js", "../util/vectormath.js", "../core/ui_base.js", "../util/events.js"], function _ui_listbox_module(_es6_module) {
+  "use strict";
+  var util=es6_import(_es6_module, '../util/util.js');
+  var vectormath=es6_import(_es6_module, '../util/vectormath.js');
+  var ui_base=es6_import(_es6_module, '../core/ui_base.js');
+  var events=es6_import(_es6_module, '../util/events.js');
+  var simple_toolsys=es6_import(_es6_module, '../toolsys/simple_toolsys.js');
+  var toolprop=es6_import(_es6_module, '../toolsys/toolprop.js');
+  var TableFrame=es6_import_item(_es6_module, './ui_table.js', 'TableFrame');
+  var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
+  var ColumnFrame=es6_import_item(_es6_module, '../core/ui.js', 'ColumnFrame');
+  var RowFrame=es6_import_item(_es6_module, '../core/ui.js', 'RowFrame');
+  var keymap=es6_import_item(_es6_module, '../util/events.js', 'keymap');
+  let EnumProperty=toolprop.EnumProperty, PropTypes=toolprop.PropTypes;
+  let UIBase=ui_base.UIBase, PackFlags=ui_base.PackFlags, IconSheets=ui_base.IconSheets;
+  function getpx(css) {
+    return parseFloat(css.trim().replace("px", ""));
+  }
+  class ListItem extends RowFrame {
+     constructor() {
+      super();
+      let highlight=() =>        {
+        console.log("listitem mouseover");
+        this.highlight = true;
+        this.setBackground();
+      };
+      let unhighlight=() =>        {
+        console.log("listitem mouseleave");
+        this.highlight = false;
+        this.setBackground();
+      };
+      this.addEventListener("mouseover", highlight);
+      this.addEventListener("mousein", highlight);
+      this.addEventListener("mouseleave", unhighlight);
+      this.addEventListener("mouseout", unhighlight);
+      this.addEventListener("blur", unhighlight);
+      this.addEventListener("click", (e) =>        {
+        console.log("click!");
+        if (this.onclick) {
+            this.onclick();
+        }
+      });
+      let style=document.createElement("style");
+      style.textContent = `
+      .listitem {
+        -moz-user-focus: normal;
+        moz-user-focus: normal;
+        user-focus: normal;
+      }
+    `;
+      this.shadowRoot.prepend(style);
+    }
+     init() {
+      super.init();
+      this.setAttribute("class", "listitem");
+      this.style["width"] = "100%";
+      this.setCSS();
+    }
+     setBackground() {
+      if (this.highlight) {
+          this.background = this.getDefault("ListHighlight");
+      }
+      else 
+        if (this.is_active) {
+          this.background = this.getDefault("ListActive");
+      }
+      else {
+        this.background = this.getDefault("DefaultPanelBG");
+      }
+    }
+    static  define() {
+      return {tagname: "listitem-x", 
+     style: "listbox"}
+    }
+  }
+  _ESClass.register(ListItem);
+  _es6_module.add_class(ListItem);
+  UIBase.register(ListItem);
+  class ListBox extends Container {
+     constructor() {
+      super();
+      this.items = [];
+      this.idmap = {};
+      this.items.active = undefined;
+      this.highlight = false;
+      this.is_active = false;
+      let style=document.createElement("style");
+      style.textContent = `
+      .listbox {
+        -moz-user-focus: normal;
+        moz-user-focus: normal;
+        user-focus: normal;
+      }
+    `;
+      this.shadow.prepend(style);
+      this.onkeydown = (e) =>        {
+        console.log("yay", e.keyCode);
+        switch (e.keyCode) {
+          case keymap["Up"]:
+          case keymap["Down"]:
+            if (this.items.length==0)
+              return ;
+            if (this.items.active===undefined) {
+                this.setActive(this.items[0]);
+                return ;
+            }
+            let i=this.items.indexOf(this.items.active);
+            let dir=e.keyCode==keymap["Up"] ? -1 : 1;
+            i = Math.max(Math.min(i+dir, this.items.length-1), 0);
+            this.setActive(this.items[i]);
+            break;
+        }
+      };
+    }
+     setCSS() {
+      super.setCSS();
+    }
+     init() {
+      super.init();
+      this.setCSS();
+      this.style["width"] = this.getDefault("width")+"px";
+      this.style["height"] = this.getDefault("height")+"px";
+      this.style["overflow"] = "scroll";
+    }
+     addItem(name, id) {
+      let item=document.createElement("listitem-x");
+      item._id = id===undefined ? this.items.length : id;
+      this.idmap[item._id] = item;
+      this.tabIndex = 1;
+      this.setAttribute("tabindex", 1);
+      this.add(item);
+      this.items.push(item);
+      item.label(name);
+      let this2=this;
+      item.onclick = function () {
+        this2.setActive(this);
+        this.setBackground();
+      };
+      return item;
+    }
+     removeItem(item) {
+      if (typeof item=="number") {
+          item = this.idmap[item];
+      }
+      item.remove();
+      delete this.idmap[item._id];
+      this.items.remove(item);
+    }
+     setActive(item) {
+      if (typeof item=="number") {
+          item = this.idmap[item];
+      }
+      console.log("set active!");
+      if (item===this.items.active) {
+          return ;
+      }
+      if (this.items.active!==undefined) {
+          this.items.active.highlight = false;
+          this.items.active.is_active = false;
+          this.items.active.setBackground();
+      }
+      item.is_active = true;
+      this.items.active = item;
+      if (item!==undefined) {
+          item.setBackground();
+          item.scrollIntoViewIfNeeded();
+      }
+      if (this.onchange) {
+          this.onchange(item._id, item);
+      }
+    }
+     clear() {
+
+    }
+    static  define() {
+      return {tagname: "listbox-x", 
+     style: "listbox"}
+    }
+  }
+  _ESClass.register(ListBox);
+  _es6_module.add_class(ListBox);
+  UIBase.register(ListBox);
+}, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_listbox.js');
+es6_module_define('ui_menu', ["../util/events.js", "../toolsys/simple_toolsys.js", "../config/const.js", "./ui_button.js", "../util/simple_events.js", "../toolsys/toolprop.js", "../util/util.js", "../util/vectormath.js", "../core/ui_base.js"], function _ui_menu_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../util/util.js');
   var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
@@ -1090,7 +3582,7 @@ es6_module_define('ui_menu', ["../config/const.js", "../util/util.js", "../util/
   }
   startMenu = _es6_module.add_export('startMenu', startMenu);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_menu.js');
-es6_module_define('ui_noteframe', ["../core/ui_base.js", "../util/util.js", "../core/ui.js"], function _ui_noteframe_module(_es6_module) {
+es6_module_define('ui_noteframe', ["../core/ui.js", "../util/util.js", "../core/ui_base.js"], function _ui_noteframe_module(_es6_module) {
   var util=es6_import(_es6_module, '../util/util.js');
   var ui=es6_import(_es6_module, '../core/ui.js');
   var ui_base=es6_import(_es6_module, '../core/ui_base.js');
@@ -1349,7 +3841,7 @@ es6_module_define('ui_noteframe', ["../core/ui_base.js", "../util/util.js", "../
   }
   message = _es6_module.add_export('message', message);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_noteframe.js');
-es6_module_define('ui_numsliders', ["../toolsys/toolprop.js", "../core/units.js", "./ui_widgets.js", "../core/ui_base.js", "../core/ui.js", "../util/simple_events.js", "../util/vectormath.js", "../util/util.js"], function _ui_numsliders_module(_es6_module) {
+es6_module_define('ui_numsliders', ["../core/units.js", "../util/util.js", "./ui_widgets.js", "../util/simple_events.js", "../core/ui_base.js", "../util/vectormath.js", "../toolsys/toolprop.js", "../core/ui.js"], function _ui_numsliders_module(_es6_module) {
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var drawText=es6_import_item(_es6_module, '../core/ui_base.js', 'drawText');
   var ValueButtonBase=es6_import_item(_es6_module, './ui_widgets.js', 'ValueButtonBase');
@@ -2449,7 +4941,7 @@ es6_module_define('ui_numsliders', ["../toolsys/toolprop.js", "../core/units.js"
   NumSliderWithTextBox = _es6_module.add_export('NumSliderWithTextBox', NumSliderWithTextBox);
   UIBase.register(NumSliderWithTextBox);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_numsliders.js');
-es6_module_define('ui_panel', ["./ui_widgets.js", "../core/ui_base.js", "../toolsys/toolprop.js", "../util/util.js", "../util/html5_fileapi.js", "../core/ui.js", "../util/vectormath.js"], function _ui_panel_module(_es6_module) {
+es6_module_define('ui_panel', ["../util/vectormath.js", "../core/ui_base.js", "../core/ui.js", "../toolsys/toolprop.js", "../util/util.js", "./ui_widgets.js", "../util/html5_fileapi.js"], function _ui_panel_module(_es6_module) {
   var _ui=undefined;
   var util=es6_import(_es6_module, '../util/util.js');
   var vectormath=es6_import(_es6_module, '../util/vectormath.js');
@@ -2666,7 +5158,7 @@ es6_module_define('ui_panel', ["./ui_widgets.js", "../core/ui_base.js", "../tool
   PanelFrame = _es6_module.add_export('PanelFrame', PanelFrame);
   UIBase.register(PanelFrame);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_panel.js');
-es6_module_define('ui_richedit', ["../core/ui.js", "../util/simple_events.js", "../util/util.js", "./ui_textbox.js", "../core/ui_base.js"], function _ui_richedit_module(_es6_module) {
+es6_module_define('ui_richedit', ["../util/simple_events.js", "./ui_textbox.js", "../core/ui.js", "../util/util.js", "../core/ui_base.js"], function _ui_richedit_module(_es6_module) {
   var ui_base=es6_import(_es6_module, '../core/ui_base.js');
   var util=es6_import(_es6_module, '../util/util.js');
   var ColumnFrame=es6_import_item(_es6_module, '../core/ui.js', 'ColumnFrame');
@@ -2946,7 +5438,7 @@ es6_module_define('ui_richedit', ["../core/ui.js", "../util/simple_events.js", "
   RichViewer = _es6_module.add_export('RichViewer', RichViewer);
   UIBase.register(RichViewer);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_richedit.js');
-es6_module_define('ui_table', ["./ui_widgets.js", "./ui_curvewidget.js", "../core/ui_base.js", "../util/util.js", "../util/vectormath.js", "../core/ui.js", "../toolsys/toolprop.js"], function _ui_table_module(_es6_module) {
+es6_module_define('ui_table', ["../core/ui.js", "../core/ui_base.js", "../toolsys/toolprop.js", "./ui_widgets.js", "../util/util.js", "../util/vectormath.js", "./ui_curvewidget.js"], function _ui_table_module(_es6_module) {
   var Container=es6_import_item(_es6_module, '../core/ui.js', 'Container');
   var _ui=undefined;
   var util=es6_import(_es6_module, '../util/util.js');
@@ -3129,7 +5621,7 @@ es6_module_define('ui_table', ["./ui_widgets.js", "./ui_curvewidget.js", "../cor
   TableFrame = _es6_module.add_export('TableFrame', TableFrame);
   UIBase.register(TableFrame);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_table.js');
-es6_module_define('ui_tabs', ["../util/events.js", "../core/ui_base.js", "../core/ui.js", "../util/vectormath.js", "../util/util.js"], function _ui_tabs_module(_es6_module) {
+es6_module_define('ui_tabs', ["../core/ui_base.js", "../util/events.js", "../util/vectormath.js", "../core/ui.js", "../util/util.js"], function _ui_tabs_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../util/util.js');
   var vectormath=es6_import(_es6_module, '../util/vectormath.js');
@@ -4104,7 +6596,7 @@ es6_module_define('ui_tabs', ["../util/events.js", "../core/ui_base.js", "../cor
   TabContainer = _es6_module.add_export('TabContainer', TabContainer);
   UIBase.register(TabContainer);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_tabs.js');
-es6_module_define('ui_textbox', ["../controller/simple_controller.js", "../config/const.js", "../util/vectormath.js", "../toolsys/simple_toolsys.js", "../core/ui_base.js", "../util/util.js", "./ui_button.js", "../toolsys/toolprop.js", "../core/units.js", "../util/events.js"], function _ui_textbox_module(_es6_module) {
+es6_module_define('ui_textbox', ["../toolsys/toolprop.js", "../core/ui_base.js", "../toolsys/simple_toolsys.js", "../util/util.js", "../config/const.js", "../controller/simple_controller.js", "../util/vectormath.js", "../util/events.js", "./ui_button.js", "../core/units.js"], function _ui_textbox_module(_es6_module) {
   "use strict";
   var units=es6_import(_es6_module, '../core/units.js');
   var util=es6_import(_es6_module, '../util/util.js');
@@ -4390,7 +6882,7 @@ es6_module_define('ui_textbox', ["../controller/simple_controller.js", "../confi
   }
   checkForTextBox = _es6_module.add_export('checkForTextBox', checkForTextBox);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_textbox.js');
-es6_module_define('ui_treeview', ["../util/simple_events.js", "../util/vectormath.js", "../core/ui_base.js", "../core/ui_theme.js", "../util/math.js", "../core/ui.js", "../util/ScreenOverdraw.js"], function _ui_treeview_module(_es6_module) {
+es6_module_define('ui_treeview', ["../core/ui.js", "../util/ScreenOverdraw.js", "../core/ui_base.js", "../util/vectormath.js", "../core/ui_theme.js", "../util/math.js", "../util/simple_events.js"], function _ui_treeview_module(_es6_module) {
   es6_import(_es6_module, '../util/ScreenOverdraw.js');
   var UIBase=es6_import_item(_es6_module, '../core/ui_base.js', 'UIBase');
   var Icons=es6_import_item(_es6_module, '../core/ui_base.js', 'Icons');
@@ -4672,7 +7164,7 @@ es6_module_define('ui_treeview', ["../util/simple_events.js", "../util/vectormat
   TreeView = _es6_module.add_export('TreeView', TreeView);
   UIBase.register(TreeView);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_treeview.js');
-es6_module_define('ui_widgets', ["../toolsys/simple_toolsys.js", "../util/events.js", "../toolsys/toolprop.js", "../config/const.js", "../core/ui_base.js", "../util/vectormath.js", "./ui_button.js", "../util/util.js", "./ui_textbox.js", "../controller/simple_controller.js", "../core/units.js"], function _ui_widgets_module(_es6_module) {
+es6_module_define('ui_widgets', ["./ui_textbox.js", "../toolsys/simple_toolsys.js", "../util/events.js", "../config/const.js", "../toolsys/toolprop.js", "./ui_button.js", "../core/ui_base.js", "../util/vectormath.js", "../util/util.js", "../core/units.js", "../controller/simple_controller.js"], function _ui_widgets_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../util/util.js');
   var vectormath=es6_import(_es6_module, '../util/vectormath.js');
@@ -5283,7 +7775,7 @@ es6_module_define('ui_widgets', ["../toolsys/simple_toolsys.js", "../util/events
   let _ex_checkForTextBox=es6_import_item(_es6_module, './ui_textbox.js', 'checkForTextBox');
   _es6_module.add_export('checkForTextBox', _ex_checkForTextBox, true);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_widgets.js');
-es6_module_define('ui_widgets2', ["../util/events.js", "../core/ui.js", "./ui_richedit.js", "../toolsys/toolprop.js", "../core/ui_base.js", "../util/util.js", "./ui_widgets.js", "../core/units.js", "../util/vectormath.js"], function _ui_widgets2_module(_es6_module) {
+es6_module_define('ui_widgets2', ["../core/ui.js", "../util/util.js", "../util/vectormath.js", "../core/ui_base.js", "./ui_richedit.js", "../core/units.js", "../toolsys/toolprop.js", "../util/events.js", "./ui_widgets.js"], function _ui_widgets2_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, './ui_richedit.js');
   var util=es6_import(_es6_module, '../util/util.js');
@@ -5682,11 +8174,11 @@ es6_module_define('ui_widgets2', ["../util/events.js", "../core/ui.js", "./ui_ri
   
   UIBase.register(ToolTip);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_widgets2.js');
-es6_module_define('all', ["./pentool.js", "./splinetool.js"], function _all_module(_es6_module) {
+es6_module_define('all', ["./splinetool.js", "./pentool.js"], function _all_module(_es6_module) {
   es6_import(_es6_module, './splinetool.js');
   es6_import(_es6_module, './pentool.js');
 }, '/dev/fairmotion/src/editors/viewport/toolmodes/all.js');
-es6_module_define('pentool', ["./toolmode.js", "../spline_editops.js", "../../events.js", "../view2d_editor.js", "../../../path.ux/scripts/pathux.js", "../transform_ops.js", "../transform.js", "../../../curve/spline_draw.js", "../spline_createops.js", "../../../curve/spline_types.js", "../view2d_ops.js", "../../../core/toolops_api.js", "../../../path.ux/scripts/core/ui_base.js", "../../../path.ux/scripts/util/util.js", "../spline_selectops.js", "../../../core/context.js", "../selectmode.js"], function _pentool_module(_es6_module) {
+es6_module_define('pentool', ["../spline_selectops.js", "../view2d_editor.js", "../../../core/toolops_api.js", "../../../path.ux/scripts/core/ui_base.js", "../../../path.ux/scripts/util/util.js", "../../../path.ux/scripts/pathux.js", "../view2d_ops.js", "../spline_createops.js", "../transform_ops.js", "../../../core/context.js", "../spline_editops.js", "../transform.js", "../selectmode.js", "../../../curve/spline_types.js", "../../events.js", "../../../curve/spline_draw.js", "./toolmode.js"], function _pentool_module(_es6_module) {
   "use strict";
   var UIBase=es6_import_item(_es6_module, '../../../path.ux/scripts/core/ui_base.js', 'UIBase');
   var FullContext=es6_import_item(_es6_module, '../../../core/context.js', 'FullContext');
@@ -6066,7 +8558,7 @@ es6_module_define('pentool', ["./toolmode.js", "../spline_editops.js", "../../ev
 }`;
   ToolMode.register(PenToolMode);
 }, '/dev/fairmotion/src/editors/viewport/toolmodes/pentool.js');
-es6_module_define('splinetool', ["../../../core/toolops_api.js", "../spline_editops.js", "../../../path.ux/scripts/util/util.js", "../../../curve/spline_draw.js", "../../../curve/spline_types.js", "../view2d_editor.js", "../view2d_ops.js", "../spline_createops.js", "../../../core/context.js", "../../events.js", "../../../path.ux/scripts/pathux.js", "./toolmode.js", "../../../path.ux/scripts/core/ui_base.js", "../spline_selectops.js", "../selectmode.js", "../transform_ops.js", "../transform.js"], function _splinetool_module(_es6_module) {
+es6_module_define('splinetool', ["../../../path.ux/scripts/pathux.js", "../selectmode.js", "../../../curve/spline_types.js", "../../../core/context.js", "../spline_selectops.js", "../../../curve/spline_draw.js", "../../../path.ux/scripts/core/ui_base.js", "./toolmode.js", "../spline_editops.js", "../view2d_ops.js", "../../events.js", "../../../core/toolops_api.js", "../transform.js", "../spline_createops.js", "../transform_ops.js", "../view2d_editor.js", "../../../path.ux/scripts/util/util.js"], function _splinetool_module(_es6_module) {
   "use strict";
   var UIBase=es6_import_item(_es6_module, '../../../path.ux/scripts/core/ui_base.js', 'UIBase');
   var FullContext=es6_import_item(_es6_module, '../../../core/context.js', 'FullContext');
@@ -6511,7 +9003,7 @@ es6_module_define('splinetool', ["../../../core/toolops_api.js", "../spline_edit
 }`;
   ToolMode.register(SplineToolMode);
 }, '/dev/fairmotion/src/editors/viewport/toolmodes/splinetool.js');
-es6_module_define('toolmode', ["../../../core/data_api/data_api_types.js", "../../../core/eventdag.js", "../../events.js", "../../../path.ux/scripts/pathux.js"], function _toolmode_module(_es6_module) {
+es6_module_define('toolmode', ["../../../core/data_api/data_api_types.js", "../../../path.ux/scripts/pathux.js", "../../../core/eventdag.js", "../../events.js"], function _toolmode_module(_es6_module) {
   var NodeBase=es6_import_item(_es6_module, '../../../core/eventdag.js', 'NodeBase');
   var KeyMap=es6_import_item(_es6_module, '../../events.js', 'KeyMap');
   var nstructjs=es6_import_item(_es6_module, '../../../path.ux/scripts/pathux.js', 'nstructjs');
@@ -6640,7 +9132,7 @@ ToolMode {
   }
   defineAPI = _es6_module.add_export('defineAPI', defineAPI);
 }, '/dev/fairmotion/src/editors/viewport/toolmodes/toolmode.js');
-es6_module_define('struct', ["../path.ux/scripts/util/parseutil.js", "../path.ux/scripts/pathux.js"], function _struct_module(_es6_module) {
+es6_module_define('struct', ["../path.ux/scripts/pathux.js", "../path.ux/scripts/util/parseutil.js"], function _struct_module(_es6_module) {
   var nstructjs=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'nstructjs');
   var PUTL=es6_import(_es6_module, '../path.ux/scripts/util/parseutil.js');
   var Matrix4=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Matrix4');
@@ -6838,8 +9330,8 @@ mat4_intern {
 }, '/dev/fairmotion/src/core/struct.js');
 es6_module_define('curve', ["./curvebase.js"], function _curve_module(_es6_module) {
   "use strict";
-  var $rets_OFfx_derivative;
-  var $rets_lvCT_normal;
+  var $rets_2n55_derivative;
+  var $rets_wIhz_normal;
   class ClothoidInterface  {
     static  evaluate(p1, p2, t1, t2, k1, k2, s, cdata) {
 
@@ -6849,14 +9341,14 @@ es6_module_define('curve', ["./curvebase.js"], function _curve_module(_es6_modul
       var a=this.evaluate(p1, p2, t1, t2, k1, k2, s, cdata);
       var b=this.evaluate(p1, p2, t1, t2, k1, k2, s+df, cdata);
       b.sub(a).mulScalar(1.0/df);
-      return $rets_OFfx_derivative.next().load(b);
+      return $rets_2n55_derivative.next().load(b);
     }
     static  normal(p1, p2, t1, t2, k1, k2, s, cdata) {
       var df=0.0001;
       var a=this.derivative(p1, p2, t1, t2, k1, k2, s, cdata);
       var b=this.derivative(p1, p2, t1, t2, k1, k2, s+df, cdata);
       b.sub(a).mulScalar(1.0/df);
-      return $rets_lvCT_normal.next().load(b);
+      return $rets_wIhz_normal.next().load(b);
     }
     static  curvature(p1, p2, t1, t2, k1, k2, s, cdata) {
       var dv1=this.derivative(p1, p2, t1, t2, k1, k2, s, cdata);
@@ -6882,8 +9374,8 @@ es6_module_define('curve', ["./curvebase.js"], function _curve_module(_es6_modul
 
     }
   }
-  var $rets_OFfx_derivative=cachering.fromConstructor(Vector2, 16);
-  var $rets_lvCT_normal=cachering.fromConstructor(Vector2, 16);
+  var $rets_2n55_derivative=cachering.fromConstructor(Vector2, 16);
+  var $rets_wIhz_normal=cachering.fromConstructor(Vector2, 16);
   _ESClass.register(ClothoidInterface);
   _es6_module.add_class(ClothoidInterface);
   var CurveInterfaces=es6_import_item(_es6_module, './curvebase.js', 'CurveInterfaces');
@@ -6922,8 +9414,8 @@ es6_module_define('curvebase', [], function _curvebase_module(_es6_module) {
   _ESClass.register(CurveData);
   _es6_module.add_class(CurveData);
   CurveData = _es6_module.add_export('CurveData', CurveData);
-  var $rets_cRN__derivative;
-  var $rets_0goh_normal;
+  var $rets_LxMz_derivative;
+  var $rets_dBy__normal;
   class CurveInterface  {
     static  evaluate(p1, p2, t1, t2, k1, k2, s, cdata) {
 
@@ -6933,14 +9425,14 @@ es6_module_define('curvebase', [], function _curvebase_module(_es6_module) {
       var a=this.evaluate(p1, p2, t1, t2, k1, k2, s, cdata);
       var b=this.evaluate(p1, p2, t1, t2, k1, k2, s+df, cdata);
       b.sub(a).mulScalar(1.0/df);
-      return $rets_cRN__derivative.next().load(b);
+      return $rets_LxMz_derivative.next().load(b);
     }
     static  normal(p1, p2, t1, t2, k1, k2, s, cdata) {
       var df=0.0001;
       var a=this.derivative(p1, p2, t1, t2, k1, k2, s, cdata);
       var b=this.derivative(p1, p2, t1, t2, k1, k2, s+df, cdata);
       b.sub(a).mulScalar(1.0/df);
-      return $rets_0goh_normal.next().load(b);
+      return $rets_dBy__normal.next().load(b);
     }
     static  curvature(p1, p2, t1, t2, k1, k2, s, cdata) {
       var dv1=this.derivative(p1, p2, t1, t2, k1, k2, s, cdata);
@@ -6966,8 +9458,8 @@ es6_module_define('curvebase', [], function _curvebase_module(_es6_module) {
 
     }
   }
-  var $rets_cRN__derivative=cachering.fromConstructor(Vector2, 16);
-  var $rets_0goh_normal=cachering.fromConstructor(Vector2, 16);
+  var $rets_LxMz_derivative=cachering.fromConstructor(Vector2, 16);
+  var $rets_dBy__normal=cachering.fromConstructor(Vector2, 16);
   _ESClass.register(CurveInterface);
   _es6_module.add_class(CurveInterface);
 }, '/dev/fairmotion/src/curve/curvebase.js');
@@ -8337,7 +10829,7 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
   window._jit = _jit;
   window._jit_cur = 0;
 }, '/dev/fairmotion/src/curve/bspline.js');
-es6_module_define('spline_math', ["../wasm/native_api.js", "./spline_math_hermite.js", "../config/config.js"], function _spline_math_module(_es6_module) {
+es6_module_define('spline_math', ["../config/config.js", "./spline_math_hermite.js", "../wasm/native_api.js"], function _spline_math_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   var FEPS=1e-18;
@@ -8448,7 +10940,7 @@ es6_module_define('spline_math', ["../wasm/native_api.js", "./spline_math_hermit
   eval_curve = _es6_module.add_export('eval_curve', eval_curve);
   
 }, '/dev/fairmotion/src/curve/spline_math.js');
-es6_module_define('spline_math_hermite', ["../core/toolops_api.js", "../path.ux/scripts/util/vectormath.js", "./spline_base.js", "./solver.js"], function _spline_math_hermite_module(_es6_module) {
+es6_module_define('spline_math_hermite', ["./spline_base.js", "../path.ux/scripts/util/vectormath.js", "../core/toolops_api.js", "./solver.js"], function _spline_math_hermite_module(_es6_module) {
   "use strict";
   var SplineFlags=es6_import_item(_es6_module, './spline_base.js', 'SplineFlags');
   var SplineTypes=es6_import_item(_es6_module, './spline_base.js', 'SplineTypes');
@@ -9001,3230 +11493,3 @@ es6_module_define('spline_math_hermite', ["../core/toolops_api.js", "../path.ux/
   }
   do_solve = _es6_module.add_export('do_solve', do_solve);
 }, '/dev/fairmotion/src/curve/spline_math_hermite.js');
-es6_module_define('spline_element_array', ["../core/struct.js", "../core/eventdag.js", "./spline_types.js"], function _spline_element_array_module(_es6_module) {
-  var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
-  var SplineFlags=es6_import_item(_es6_module, './spline_types.js', 'SplineFlags');
-  var SplineTypes=es6_import_item(_es6_module, './spline_types.js', 'SplineTypes');
-  var CustomDataLayer=es6_import_item(_es6_module, './spline_types.js', 'CustomDataLayer');
-  var CustomData=es6_import_item(_es6_module, './spline_types.js', 'CustomData');
-  var CustomDataSet=es6_import_item(_es6_module, './spline_types.js', 'CustomDataSet');
-  var DataPathNode=es6_import_item(_es6_module, '../core/eventdag.js', 'DataPathNode');
-  var SplineLayerFlags={HIDE: 2, 
-   CAN_SELECT: 4, 
-   MASK: 8}
-  SplineLayerFlags = _es6_module.add_export('SplineLayerFlags', SplineLayerFlags);
-  class SplineLayer extends set {
-    
-    
-    
-     constructor(elements=undefined) {
-      super(elements);
-      this.id = -1;
-      this.order = 0;
-      this.flag = 0;
-      this.name = "unnamed";
-    }
-     copyStructure() {
-      let ret=new SplineLayer();
-      ret.id = this.id;
-      ret.order = this.order;
-      ret.flag = this.flag;
-      ret.name = ""+this.name;
-      return ret;
-    }
-     add(e) {
-      if (e==undefined) {
-          console.trace("WARNING: e was undefined in SplineLayer.add");
-          return ;
-      }
-      super.add(e);
-      e.layers[this.id] = 1;
-    }
-     remove(e) {
-      super.remove(e);
-      delete e.layers[this.id];
-    }
-     _to_EIDs() {
-      var ret=[];
-      for (var e of this) {
-          ret.push(e.eid);
-      }
-      return ret;
-    }
-    static  fromSTRUCT(reader) {
-      var ret=new SplineLayer();
-      reader(ret);
-      return ret;
-    }
-     afterSTRUCT(spline) {
-      if (this.eids===undefined)
-        return ;
-      var corrupted=false;
-      for (var eid of this.eids) {
-          var e=spline.eidmap[eid];
-          if (e===undefined) {
-              corrupted = true;
-              continue;
-          }
-          this.add(e);
-      }
-      if (corrupted) {
-          console.trace("Warning: corrupted layerset!", this, spline, "<==");
-      }
-      delete this.eids;
-    }
-  }
-  _ESClass.register(SplineLayer);
-  _es6_module.add_class(SplineLayer);
-  SplineLayer = _es6_module.add_export('SplineLayer', SplineLayer);
-  SplineLayer.STRUCT = `
-SplineLayer {
-  id    : int;
-  order : int;
-  flag  : int;
-  eids  : array(int) | obj._to_EIDs();
-  name  : string;
-}
-`;
-  class SplineLayerSet extends Array {
-    
-    
-    
-    
-     constructor() {
-      super();
-      this.active = undefined;
-      this.namemap = {};
-      this.idmap = {};
-      this.idgen = new SDIDGen();
-      this._active = undefined;
-      this.flag = 0;
-    }
-     copyStructure() {
-      let ret=new SplineLayerSet();
-      ret.idgen = this.idgen.copy();
-      ret.flag = this.flag;
-      for (let layer of this) {
-          let layer2=layer.copyStructure();
-          ret.namemap[layer2.name] = layer2;
-          ret.idmap[layer2.id] = layer2;
-          if (layer===this.active) {
-              ret.active = layer2;
-          }
-          super.push.call(ret, layer2);
-      }
-      return ret;
-    }
-     rename(id, oldname, newname, validate=false) {
-      let layer=this.idmap[id];
-      if (layer===undefined) {
-          console.warn("Unknown layer at id", id);
-          return ;
-      }
-      if (layer.name!=old_name) {
-          console.warn("old layer name doesn't match");
-      }
-      if (validate) {
-          newname = this.validate_name(newname);
-      }
-      delete this.namemap[layer.name];
-      layer.name = newname;
-      this.namemap[newname] = layer;
-      return true;
-    }
-     get(id) {
-      if (id==undefined) {
-          throw new Error("id cannot be undefined");
-      }
-      if (!(id in this.idmap)) {
-          console.log("WARNING: layer ", id, "not in spline layerset!", this);
-          return undefined;
-      }
-      return this.idmap[id];
-    }
-    get  active() {
-      if (this._active==undefined) {
-          this._active = this[0];
-      }
-      return this._active;
-    }
-    set  active(val) {
-      this._active = val;
-    }
-     new_layer() {
-      var ret=new SplineLayer();
-      ret.name = this.new_name();
-      ret.id = this.idgen.gen_id();
-      this.push(ret);
-      return ret;
-    }
-     new_name() {
-      var name="Layer", i=1;
-      while ((name+" "+i) in this.namemap) {
-        i++;
-      }
-      return name+" "+i;
-    }
-     validate_name(name) {
-      if (!(name in this.namemap))
-        return name;
-      var i=1;
-      while ((name+" "+i) in this.namemap) {
-        i++;
-      }
-      return name+" "+i;
-    }
-     push(layer) {
-      layer.name = this.validate_name(layer.name);
-      this.namemap[layer.name] = layer;
-      this.idmap[layer.id] = layer;
-      super.push(layer);
-      this.update_orders();
-      if (this.active==undefined)
-        this.active = layer;
-    }
-     insert(i, layer) {
-      layer.name = this.validate_name(layer.name);
-      this.namemap[layer.name] = layer;
-      this.idmap[layer.id] = layer;
-      super.insert(i, layer);
-      this.update_orders();
-    }
-     change_layer_order(layer, new_i) {
-      var start=this.indexOf(layer);
-      if (start==undefined) {
-          console.trace("Evil error in change_layer_order!", layer, new_i);
-          return ;
-      }
-      if (new_i==start)
-        return ;
-      var min=Math.min(new_i, start), max=Math.max(new_i, start);
-      var diff=max-min;
-      let idx=start;
-      if (start>new_i) {
-          for (var i=0; i<diff; i++) {
-              if (idx<1)
-                break;
-              var t=this[idx];
-              this[idx] = this[idx-1];
-              this[idx-1] = t;
-              idx--;
-          }
-      }
-      else {
-        for (var i=0; i<diff; i++) {
-            if (idx>=this.length-1)
-              break;
-            var t=this[idx];
-            this[idx] = this[idx+1];
-            this[idx+1] = t;
-            idx++;
-        }
-      }
-      this.update_orders();
-    }
-     update_orders() {
-      for (var i=0; i<this.length; i++) {
-          this[i].order = i;
-      }
-    }
-     _new_active(i) {
-      if (this.length==0) {
-          console.log("WARNING: no layers left, adding a layer!");
-          this.new_layer();
-          return ;
-      }
-      i = Math.min(Math.max(0, i), this.length-1);
-      this.active = this[i];
-    }
-     remove(layer) {
-      var i=this.indexOf(layer);
-      super.remove(layer);
-      delete this.namemap[layer.name];
-      delete this.idmap[layer.id];
-      if (layer==this.active)
-        this._new_active(i);
-      this.update_orders();
-    }
-     pop_i(i) {
-      var layer=this[i];
-      super.pop_i(i);
-      delete this.namemap[layer.name];
-      delete this.idmap[layer.id];
-      if (layer==this.active)
-        this._new_active(i);
-      this.update_orders();
-    }
-     pop() {
-      var layer=super.pop();
-      delete this.namemap[layer.name];
-      delete this.idmap[layer.id];
-      if (layer==this.active)
-        this._new_active(this.length-1);
-    }
-    static  fromSTRUCT(reader) {
-      var ret=new SplineLayerSet();
-      reader(ret);
-      for (var i=0; i<ret._layers.length; i++) {
-          if (!ret._layers[i].name) {
-              console.log("Layer name corruption detected");
-              ret._layers[i].name = "Layer "+(i+1);
-          }
-          ret._layers[i].order = i;
-          ret.push(ret._layers[i]);
-      }
-      ret.active = ret.idmap[ret.active];
-      delete ret._layers;
-      return ret;
-    }
-     afterSTRUCT(spline) {
-      for (var layer of this) {
-          layer.afterSTRUCT(spline);
-      }
-    }
-  }
-  _ESClass.register(SplineLayerSet);
-  _es6_module.add_class(SplineLayerSet);
-  SplineLayerSet = _es6_module.add_export('SplineLayerSet', SplineLayerSet);
-  SplineLayerSet.STRUCT = `
-  SplineLayerSet {
-    idgen  : SDIDGen;
-    active : int | obj.active != undefined ? obj.active.id : -1;
-    flag   : int;
-    _layers : array(SplineLayer) | obj;
-  }
-`;
-  class IterCache  {
-     constructor(callback, count=8) {
-      this.stack = [];
-      this.free = [];
-      this.cache = [];
-      this.callback = callback;
-      for (var i=0; i<count; i++) {
-          this.cache.push(callback());
-          this.free.push(this.cache[this.cache.length-1]);
-      }
-    }
-     push() {
-      if (this.free.length==0) {
-          console.log("Error in IterCache!");
-          return this.callback();
-      }
-      for (var i=0; i<this.stack.length; i++) {
-          var iter=this.stack[i];
-          if (iter.is_done()) {
-              this.stack.remove(iter);
-              i--;
-              this.free.push(iter);
-          }
-      }
-      var iter=this.free.pop();
-      this.stack.push(iter);
-      return iter;
-    }
-     pop() {
-      this.free.push(this.stack.pop());
-    }
-    static  fromConstructor(cls, count) {
-      return new IterCache(function () {
-        return new cls();
-      }, count);
-    }
-  }
-  _ESClass.register(IterCache);
-  _es6_module.add_class(IterCache);
-  IterCache = _es6_module.add_export('IterCache', IterCache);
-  class EditableIter  {
-    
-    
-     constructor(list, layerset, all_layers) {
-      this.init(list, layerset, all_layers);
-    }
-     init(list, layerset, all_layers) {
-      this.list = list;
-      this.layerset = layerset;
-      this.all_layers = all_layers;
-      this.i = 0;
-      this.ret = {done: false, 
-     value: undefined};
-      return this;
-    }
-     [Symbol.iterator]() {
-      return this;
-    }
-     reset() {
-      this.ret.done = false;
-      this.ret.value = undefined;
-      this.i = 0;
-      return this;
-    }
-     next() {
-      let actlayer=this.layerset.active.id;
-      while (this.i<this.list.length) {
-        let e=this.list[this.i];
-        let ok=!e.hidden;
-        ok = ok&&(this.all_layers||actlayer in e.layers);
-        if (ok)
-          break;
-        this.i++;
-      }
-      if (this.i>=this.list.length) {
-          this.ret.done = true;
-          this.ret.value = undefined;
-          return this.ret;
-      }
-      this.i++;
-      this.ret.done = false;
-      this.ret.value = this.list[this.i-1];
-      return this.ret;
-    }
-  }
-  _ESClass.register(EditableIter);
-  _es6_module.add_class(EditableIter);
-  EditableIter = _es6_module.add_export('EditableIter', EditableIter);
-  class SelectedEditableIter  {
-    
-    
-     constructor(selset, layerset) {
-      this.ret = {done: false, 
-     value: undefined};
-      this._c = 0;
-      if (selset!=undefined) {
-          this.init(selset, layerset);
-      }
-    }
-     [Symbol.iterator]() {
-      return this;
-    }
-     reset() {
-      return this.init(this.set, this.layerset);
-    }
-     init(selset, layerset) {
-      this.set = selset;
-      this.iter = undefined;
-      this.ret.done = false;
-      this.layerset = layerset;
-      this._c = 0;
-      return this;
-    }
-     is_done() {
-      return this.iter==undefined;
-    }
-     next() {
-      if (this.iter==undefined) {
-          this.iter = this.set[Symbol.iterator]();
-          this.ret.done = false;
-      }
-      if (this._c++>100000) {
-          console.log("infinite loop detected 2!");
-          this.ret.done = true;
-          this.ret.value = undefined;
-          return this.ret;
-      }
-      var actlayer=this.layerset.active.id;
-      function visible(e) {
-        return !e.hidden&&actlayer in e.layers;
-      }
-      var ret=undefined;
-      var good=false;
-      var c=0;
-      var iter=this.iter;
-      do {
-        ret = iter.next();
-        if (ret.done)
-          break;
-        var e=ret.value;
-        good = visible(e);
-        if (e.type==SplineTypes.HANDLE) {
-            good = good||visible(e.owning_segment);
-        }
-        if (good) {
-            this.ret.value = e;
-            break;
-        }
-        ret = iter.next();
-        if (c++>100000) {
-            console.log("Infinite loop detected!!", ret, iter);
-            break;
-        }
-      } while (!good);
-      
-      if (good==false) {
-          this.ret.done = true;
-          this.ret.value = undefined;
-          this.iter = undefined;
-      }
-      return this.ret;
-    }
-  }
-  _ESClass.register(SelectedEditableIter);
-  _es6_module.add_class(SelectedEditableIter);
-  SelectedEditableIter = _es6_module.add_export('SelectedEditableIter', SelectedEditableIter);
-  class SelectedEditableAllLayersIter  {
-    
-    
-     constructor(selset, layerset) {
-      this.ret = {done: false, 
-     value: undefined};
-      this._c = 0;
-      if (selset!=undefined) {
-          this.init(selset, layerset);
-      }
-    }
-     [Symbol.iterator]() {
-      return this;
-    }
-     reset() {
-      return this.init(this.set, this.layerset);
-    }
-     init(selset, layerset) {
-      this.set = selset;
-      this.iter = undefined;
-      this.ret.done = false;
-      this.layerset = layerset;
-      this._c = 0;
-      return this;
-    }
-     is_done() {
-      return this.iter==undefined;
-    }
-     next() {
-      if (this.iter==undefined) {
-          this.iter = this.set[Symbol.iterator]();
-          this.ret.done = false;
-      }
-      if (this._c++>100000) {
-          console.log("infinite loop detected 2!");
-          this.ret.done = true;
-          this.ret.value = undefined;
-          return this.ret;
-      }
-      var actlayer=this.layerset.active.id;
-      function visible(e) {
-        return !e.hidden;
-      }
-      var ret=undefined;
-      var good=false;
-      var c=0;
-      var iter=this.iter;
-      do {
-        ret = iter.next();
-        if (ret.done)
-          break;
-        var e=ret.value;
-        good = visible(e);
-        if (e.type==SplineTypes.HANDLE) {
-            good = good||visible(e.owning_segment);
-        }
-        if (good) {
-            this.ret.value = e;
-            break;
-        }
-        ret = iter.next();
-        if (c++>100000) {
-            console.log("Infinite loop detected!!", ret, iter);
-            break;
-        }
-      } while (!good);
-      
-      if (good===false) {
-          this.ret.done = true;
-          this.ret.value = undefined;
-          this.iter = undefined;
-      }
-      return this.ret;
-    }
-  }
-  _ESClass.register(SelectedEditableAllLayersIter);
-  _es6_module.add_class(SelectedEditableAllLayersIter);
-  SelectedEditableAllLayersIter = _es6_module.add_export('SelectedEditableAllLayersIter', SelectedEditableAllLayersIter);
-  class ElementArraySet extends set {
-     constructor(arg) {
-      super(arg);
-      this.layerset = undefined;
-    }
-     editable(ctx) {
-      if (ctx===undefined) {
-          console.warn("Missing ctx in editable() iterator!");
-      }
-      let ignore_layers=ctx!==undefined ? ctx.edit_all_layers : false;
-      return ignore_layers ? new SelectedEditableAllLayersIter(this, this.layerset) : new SelectedEditableIter(this, this.layerset);
-    }
-  }
-  _ESClass.register(ElementArraySet);
-  _es6_module.add_class(ElementArraySet);
-  ElementArraySet = _es6_module.add_export('ElementArraySet', ElementArraySet);
-  class ElementArray extends Array {
-    
-    
-    
-    
-    
-    
-    
-    
-     constructor(type, idgen, idmap, global_sel, layerset, spline) {
-      super();
-      this.layerset = layerset;
-      this.cdata = new CustomData(this);
-      this.type = type;
-      this.spline = spline;
-      this.idgen = idgen;
-      this.idmap = idmap;
-      this.local_idmap = {};
-      this.global_sel = global_sel;
-      this.on_select = undefined;
-      this.select_listeners = new EventDispatcher("select");
-      this.selected = new ElementArraySet();
-      this.selected.layerset = layerset;
-      this.active = undefined;
-      this.highlight = undefined;
-    }
-     editable(ctx) {
-      if (ctx===undefined) {
-          throw new Error("Missing ctx argument");
-      }
-      return new EditableIter(this, this.layerset, ctx.edit_all_layers);
-    }
-    get  visible() {
-      let this2=this;
-      return (function* () {
-        let layerset=this2.layerset;
-        for (let e of this2) {
-            let bad=e.flag&(SplineFlags.HIDE|SplineFlags.NO_RENDER);
-            let ok=false;
-            let found=false;
-            for (let k in e.layers) {
-                found = true;
-                let l=layerset.idmap[k];
-                if (!(l.flag&SplineLayerFlags.HIDE)) {
-                    ok = true;
-                }
-            }
-            if (ok||!found) {
-                yield e;
-            }
-        }
-      })();
-    }
-     dag_get_datapath() {
-      var tname;
-      switch (this.type) {
-        case SplineTypes.VERTEX:
-          tname = "verts";
-          break;
-        case SplineTypes.HANDLE:
-          tname = "handles";
-          break;
-        case SplineTypes.SEGMENT:
-          tname = "segments";
-          break;
-        case SplineTypes.FACE:
-          tname = "faces";
-          break;
-      }
-      var suffix="."+tname;
-      var name="drawspline";
-      for (var i=0; i<this.cdata.layers.length; i++) {
-          if (this.cdata.layers[i].name==="TimeDataLayer")
-            name = "pathspline";
-      }
-      return "frameset."+name+suffix;
-    }
-     remove_undefineds() {
-      for (var i=0; i<this.length; i++) {
-          if (this[i]==undefined) {
-              this.pop_i(this[i]);
-              i--;
-          }
-      }
-    }
-     swap(a, b) {
-      if (a==undefined||b==undefined) {
-          console.trace("Warning, undefined in ElementArray.swap(): a, b:", a, b);
-          return ;
-      }
-      var i1=this.indexOf(a), i2=this.indexOf(b);
-      if (i1<0||i2<0) {
-          console.log(i1, i2, a, b);
-          throw new Error("Elements not in list");
-      }
-      this[i2] = a;
-      this[i1] = b;
-    }
-     on_layer_add(layer, i) {
-      for (var e of this) {
-          e.cdata.on_add(layercls, i);
-      }
-    }
-     on_layer_del(layer, i) {
-      for (var e of this) {
-          e.cdata.on_del(layercls, i);
-      }
-    }
-     push(e, custom_eid=undefined, add_to_layerset=true) {
-      if (e.cdata===undefined||e.cdata.length!==this.cdata.layers.length) {
-          e.cdata = this.cdata.gen_edata();
-      }
-      if (custom_eid===undefined) {
-          e.eid = this.idgen.gen_id();
-      }
-      else {
-        e.eid = custom_eid;
-      }
-      this.idmap[e.eid] = e;
-      this.local_idmap[e.eid] = e;
-      GArray.prototype.push.call(this, e);
-      if (e.flag&SplineFlags.SELECT) {
-          e.flag&=~SplineFlags.SELECT;
-          this.setselect(e, true);
-      }
-      if (add_to_layerset) {
-          this.layerset.active.add(e);
-          e.layers[this.layerset.active.id] = 1;
-      }
-    }
-     onDestroy() {
-      for (let e of this) {
-          e.onDestroy();
-      }
-    }
-     remove(e, soft_error=false) {
-      e.onDestroy();
-      var idx=this.indexOf(e);
-      if (idx<0) {
-          throw new Error("Element not in list");
-      }
-      if (this.active===e) {
-          this.active = undefined;
-      }
-      if (this.selected.has(e))
-        this.setselect(e, false);
-      delete this.idmap[e.eid];
-      delete this.local_idmap[e.eid];
-      this[idx] = this[this.length-1];
-      this.length--;
-      for (var k in e.layers) {
-          var layer=this.layerset.idmap[k];
-          if (layer!=undefined) {
-              layer.remove(e);
-          }
-          else {
-            console.trace("Failed to find layer "+k+"!", e, this, this.layerset);
-          }
-      }
-    }
-     setselect(e, state) {
-      if (e.type!==this.type) {
-          console.trace("Warning: bad element fed to ElementArray! Got ", e.type, " but expected", this.type);
-          return ;
-      }
-      let selchange=0;
-      if (state&&!(e.flag&SplineFlags.SELECT)) {
-          this.dag_update("on_select_add", this.type);
-          selchange = 1;
-      }
-      else 
-        if (!state&&(e.flag&SplineFlags.SELECT)) {
-          this.dag_update("on_select_sub", this.type);
-          selchange = 1;
-      }
-      if (selchange) {
-          this.dag_update("on_select_change", this.type);
-      }
-      var changed=!!(e.flag&SplineFlags.SELECT)!=!!state;
-      if (state) {
-          if (this.active===undefined)
-            this.active = e;
-          this.global_sel.add(e);
-          this.selected.add(e);
-          e.flag|=SplineFlags.SELECT;
-      }
-      else {
-        if (this.active===e) {
-            this.active = undefined;
-        }
-        this.global_sel.remove(e);
-        this.selected.remove(e);
-        e.flag&=~SplineFlags.SELECT;
-      }
-      if (changed&&this.on_select!==undefined) {
-          this.on_select(e, state);
-          this.select_listeners.fire(e, state);
-      }
-    }
-     clear_selection() {
-      for (var i=0; i<this.length; i++) {
-          this.setselect(this[i], false);
-      }
-    }
-     select_all() {
-      for (var i=0; i<this.length; i++) {
-          this.setselect(this[i], true);
-      }
-    }
-    static  fromSTRUCT(reader) {
-      var ret=new ElementArray();
-      reader(ret);
-      ret.cdata.owner = ret;
-      var active=ret.active;
-      ret.active = undefined;
-      for (var i=0; i<ret.arr.length; i++) {
-          GArray.prototype.push.call(ret, ret.arr[i]);
-          if (ret.arr[i].eid==active) {
-              ret.active = ret.arr[i];
-          }
-      }
-      delete ret.arr;
-      return ret;
-    }
-     afterSTRUCT(type, idgen, idmap, global_sel, layerset, spline) {
-      this.type = type;
-      this.idgen = idgen;
-      this.idmap = idmap;
-      this.global_sel = global_sel;
-      this.local_idmap = {};
-      this.layerset = layerset;
-      this.spline = spline;
-      var selected=new ElementArraySet();
-      selected.layerset = layerset;
-      for (var i=0; i<this.selected.length; i++) {
-          var eid=this.selected[i];
-          if (!(eid in idmap)) {
-              console.log("WARNING: afterSTRUCT: eid", eid, "not in eidmap!", Object.keys(idmap));
-              continue;
-          }
-          selected.add(idmap[this.selected[i]]);
-      }
-      this.selected = selected;
-      for (var e of this) {
-          this.local_idmap[e.eid] = e;
-          if (e.cdata===undefined) {
-              e.cdata = this.cdata.gen_edata();
-          }
-      }
-      this.cdata.afterSTRUCT(this, this.cdata);
-    }
-    static  nodedef() {
-      return {inputs: {}, 
-     outputs: {on_select_add: 0, 
-      on_select_sub: 0, 
-      on_select_change: 0}}
-    }
-  }
-  _ESClass.register(ElementArray);
-  _es6_module.add_class(ElementArray);
-  ElementArray = _es6_module.add_export('ElementArray', ElementArray);
-  mixin(ElementArray, DataPathNode);
-  ElementArray.STRUCT = `
-  ElementArray {
-    arr      : array(abstract(SplineElement)) | obj;
-    selected : iter(e, int) | e.eid;
-    active   : int | obj.active != undefined ? obj.active.eid : -1;
-    cdata    : CustomData;
-  }
-`;
-}, '/dev/fairmotion/src/curve/spline_element_array.js');
-es6_module_define('spline_base', ["../core/struct.js", "../core/toolprops.js", "../util/mathlib.js", "../core/eventdag.js"], function _spline_base_module(_es6_module) {
-  var TPropFlags=es6_import_item(_es6_module, '../core/toolprops.js', 'TPropFlags');
-  var PropTypes=es6_import_item(_es6_module, '../core/toolprops.js', 'PropTypes');
-  var acos=Math.acos, asin=Math.asin, abs=Math.abs, log=Math.log, sqrt=Math.sqrt, pow=Math.pow, PI=Math.PI, floor=Math.floor, min=Math.min, max=Math.max, sin=Math.sin, cos=Math.cos, tan=Math.tan, atan=Math.atan, atan2=Math.atan2, exp=Math.exp;
-  var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
-  es6_import(_es6_module, '../util/mathlib.js');
-  var DataPathNode=es6_import_item(_es6_module, '../core/eventdag.js', 'DataPathNode');
-  const MaterialFlags={SELECT: 1, 
-   MASK_TO_FACE: 2}
-  _es6_module.add_export('MaterialFlags', MaterialFlags);
-  const RecalcFlags={DRAWSORT: 1, 
-   SOLVE: 2, 
-   ALL: 1|2}
-  _es6_module.add_export('RecalcFlags', RecalcFlags);
-  const SplineFlags={SELECT: 1, 
-   BREAK_TANGENTS: 2, 
-   USE_HANDLES: 4, 
-   UPDATE: 8, 
-   TEMP_TAG: 16, 
-   BREAK_CURVATURES: 32, 
-   HIDE: 64, 
-   FRAME_DIRTY: 128, 
-   PINNED: 256, 
-   NO_RENDER: 512, 
-   AUTO_PAIRED_HANDLE: 1<<10, 
-   UPDATE_AABB: 1<<11, 
-   DRAW_TEMP: 1<<12, 
-   GHOST: 1<<13, 
-   UI_SELECT: 1<<14, 
-   FIXED_KS: 1<<21, 
-   REDRAW_PRE: 1<<22, 
-   REDRAW: 1<<23, 
-   COINCIDENT: 1<<24}
-  _es6_module.add_export('SplineFlags', SplineFlags);
-  const SplineTypes={VERTEX: 1, 
-   HANDLE: 2, 
-   SEGMENT: 4, 
-   LOOP: 8, 
-   FACE: 16, 
-   ALL: 31}
-  _es6_module.add_export('SplineTypes', SplineTypes);
-  const ClosestModes={CLOSEST: 0, 
-   START: 1, 
-   END: 2, 
-   ALL: 3}
-  _es6_module.add_export('ClosestModes', ClosestModes);
-  const IsectModes={CLOSEST: 0, 
-   START: 1, 
-   END: 2, 
-   ENDSTART: 3}
-  _es6_module.add_export('IsectModes', IsectModes);
-  class empty_class  {
-    static  fromSTRUCT(reader) {
-      var ret=new empty_class();
-      reader(ret);
-      return ret;
-    }
-  }
-  _ESClass.register(empty_class);
-  _es6_module.add_class(empty_class);
-  empty_class = _es6_module.add_export('empty_class', empty_class);
-  empty_class.STRUCT = `
-  empty_class {
-  }
-`;
-  let _gtl_co=new Vector2();
-  let _gtl_vec=new Vector2();
-  class CustomDataLayer  {
-     constructor() {
-      this.shared = undefined;
-    }
-     segment_split(old_segment, old_v1, old_v2, new_segments) {
-
-    }
-     update(owner) {
-
-    }
-     post_solve(owner) {
-
-    }
-     interp(srcs, ws) {
-
-    }
-     copy(src) {
-
-    }
-     loadSTRUCT(reader) {
-      reader(this);
-    }
-     curve_effect(owner) {
-
-    }
-    static  define() {
-      return {typeName: undefined, 
-     hasCurveEffect: false, 
-     sharedClass: empty_class}
-    }
-    static  _getDef() {
-      if (this.__define&&this.__define.clsname===this.name) {
-          return this.__define;
-      }
-      if (this.define===super.define) {
-          throw new Error("define() for customdatalayer doesn't exist!!!");
-      }
-      let def=this.define();
-      def.clsname = this.name;
-      if (!def.sharedClass)
-        def.sharedClass = empty_class;
-      this.__define = def;
-      return def;
-    }
-  }
-  _ESClass.register(CustomDataLayer);
-  _es6_module.add_class(CustomDataLayer);
-  CustomDataLayer = _es6_module.add_export('CustomDataLayer', CustomDataLayer);
-  CustomDataLayer.STRUCT = `
-  CustomDataLayer {
-  }
-`;
-  class CustomData  {
-    
-    
-     constructor(owner, layer_add_callback, layer_del_callback) {
-      this.owner = owner;
-      this.callbacks = {on_add: layer_add_callback, 
-     on_del: layer_del_callback};
-      this.layers = [];
-      this.shared_data = [];
-      this.startmap = {};
-    }
-     load_layout(src) {
-      for (var i=0; i<src.layers.length; i++) {
-          this.layers.push(src.layers[i]);
-      }
-      for (var k in src.startmap) {
-          this.startmap[k] = src.startmap[k];
-      }
-    }
-     add_layer(cls, name=cls._getDef().typeName) {
-      var templ=cls;
-      var i=this.get_layer(templ._getDef().typeName);
-      if (i!==undefined) {
-          var n=this.num_layers(templ._getDef().typeName);
-          i+=n;
-          this.layers.insert(i, templ);
-      }
-      else {
-        i = this.layers.length;
-        this.startmap[templ._getDef().typeName] = i;
-        this.layers.push(templ);
-      }
-      var scls=templ._getDef().sharedClass;
-      scls = scls==undefined ? empty_class : scls;
-      var shared=new scls;
-      this.shared_data.push(shared);
-      for (var e of this.owner) {
-          e.cdata.on_add(templ, i, shared);
-      }
-      if (this.callbacks.on_add!==undefined)
-        this.callbacks.on_add(templ, i, shared);
-    }
-     gen_edata() {
-      var ret=new CustomDataSet();
-      for (var i=0; i<this.layers.length; i++) {
-          var layer=new this.layers[i]();
-          layer.shared = this.shared_data[i];
-          ret.push(layer);
-      }
-      return ret;
-    }
-     get_shared(type) {
-      return this.shared_data[this.get_layer_i(type, 0)];
-    }
-     get_layer_i(type, i=0) {
-      if (!(type in this.startmap))
-        return -1;
-      return this.startmap[type]+i;
-    }
-     has_layer(type) {
-      return type in this.startmap;
-    }
-     get_layer(type, i=0) {
-      return this.layers[this.startmap[type]+i];
-    }
-     num_layers(type) {
-      var i=this.get_layer_i(type, 0);
-      if (i===undefined||i===-1)
-        return 0;
-      while (i<this.layers.length&&this.layers[i++].type===type) {
-        ;      }
-      return i;
-    }
-     loadSTRUCT(reader) {
-      reader(this);
-      for (var i=0; i<this.layers.length; i++) {
-          this.layers[i] = this.layers[i].constructor;
-          var l=this.layers[i];
-          var typename=l._getDef().typeName;
-          if (!(typename in this.startmap)) {
-              this.startmap[typename] = i;
-          }
-      }
-      if (this.shared_data.length!==this.layers.length) {
-          for (var i=0; i<this.layers.length; i++) {
-              var layer=this.layers[i];
-              var scls=layer._getDef().sharedClass;
-              scls = scls===undefined ? empty_class : scls;
-              var shared=new scls;
-              if (this.shared_data.length>i)
-                this.shared_data[i] = shared;
-              else 
-                this.shared_data.push(shared);
-          }
-      }
-    }
-     afterSTRUCT(element_array, cdata) {
-      for (var e of element_array) {
-          var i=0;
-          for (var layer of e.cdata) {
-              layer.shared = cdata.shared_data[i];
-              i++;
-          }
-      }
-    }
-  }
-  _ESClass.register(CustomData);
-  _es6_module.add_class(CustomData);
-  CustomData = _es6_module.add_export('CustomData', CustomData);
-  CustomData.STRUCT = `
-  CustomData {
-    layers      : array(e, abstract(CustomDataLayer)) | new e();
-    shared_data : array(abstract(Object));
-  }
-`;
-  var $srcs2_OL5r_interp;
-  class CustomDataSet extends Array {
-     constructor() {
-      super();
-    }
-     on_add(cls, i, shared) {
-      var layer=new cls();
-      layer.shared = shared;
-      this.insert(i, layer);
-    }
-     get_layer(cls) {
-      for (var i=0; i<this.length; i++) {
-          if (this[i].constructor===cls)
-            return this[i];
-      }
-    }
-     on_del(cls, i) {
-      this.pop_u(i);
-    }
-     get_data(layout, layer_name) {
-
-    }
-     on_segment_split(old_segment, old_v1, old_v2, new_segments) {
-
-    }
-     interp(srcs, ws) {
-      while ($srcs2_OL5r_interp.length<srcs.length) {
-        $srcs2_OL5r_interp.push(0);
-      }
-      $srcs2_OL5r_interp.length = srcs.length;
-      for (var i=0; i<this.length; i++) {
-          for (var j=0; j<srcs.length; j++) {
-              $srcs2_OL5r_interp[j] = srcs[j][i];
-          }
-          this[i].interp($srcs2_OL5r_interp, ws);
-      }
-    }
-     copy(src) {
-      for (var i=0; i<this.length; i++) {
-          this[i].copy(src);
-      }
-    }
-     loadSTRUCT(reader) {
-      reader(this);
-      for (var i=0; i<this.arr.length; i++) {
-          this.push(this.arr[i]);
-      }
-      delete this.arr;
-    }
-  }
-  var $srcs2_OL5r_interp=[];
-  _ESClass.register(CustomDataSet);
-  _es6_module.add_class(CustomDataSet);
-  CustomDataSet = _es6_module.add_export('CustomDataSet', CustomDataSet);
-  CustomDataSet.STRUCT = `
-  CustomDataSet {
-    arr : iter(abstract(CustomDataLayer)) | obj;
-  }
-`;
-  class SplineElement extends DataPathNode {
-    
-    
-    
-    
-    
-    
-     constructor(type) {
-      super();
-      this.type = type;
-      this.cdata = new CustomDataSet();
-      this.masklayer = 1;
-      this.layers = {};
-    }
-     onDestroy() {
-
-    }
-     has_layer() {
-      for (var k in this.layers) {
-          return true;
-      }
-      return false;
-    }
-     dag_get_datapath() {
-      let suffix;
-      switch (this.type) {
-        case SplineTypes.VERTEX:
-          suffix = ".verts";
-          break;
-        case SplineTypes.HANDLE:
-          suffix = ".handles";
-          break;
-        case SplineTypes.SEGMENT:
-          suffix = ".segments";
-          break;
-        case SplineTypes.LOOP:
-          suffix = ".loops";
-          break;
-        case SplineTypes.FACE:
-          suffix = ".faces";
-          break;
-      }
-      suffix+="["+this.eid+"]";
-      let name="drawspline";
-      for (var i=0; i<this.cdata.length; i++) {
-          if (this.cdata[i].constructor.name==="TimeDataLayer")
-            name = "pathspline";
-      }
-      return "frameset."+name+suffix;
-    }
-     in_layer(layer) {
-      return layer!==undefined&&layer.id in this.layers;
-    }
-    get  aabb() {
-      console.trace("Implement Me!");
-    }
-     sethide(state) {
-      if (state)
-        this.flag|=SplineFlags.HIDE;
-      else 
-        this.flag&=~SplineFlags.HIDE;
-    }
-    set  hidden(state) {
-      if (state)
-        this.flag|=SplineFlags.HIDE;
-      else 
-        this.flag&=~SplineFlags.HIDE;
-    }
-    get  hidden() {
-      return !!(this.flag&SplineFlags.HIDE);
-    }
-     valueOf() {
-      return this.eid;
-    }
-     [Symbol.keystr]() {
-      return ""+this.eid;
-    }
-     post_solve() {
-      for (var i=0; i<this.cdata.length; i++) {
-          this.cdata[i].post_solve(this);
-      }
-    }
-     loadSTRUCT(reader) {
-      reader(this);
-    }
-    static  nodedef() {
-      return {name: "SplineElement", 
-     uiName: "SplineElement", 
-     outputs: {depend: undefined, 
-      on_select: 0.0, 
-      eid: 0.0}}
-    }
-  }
-  _ESClass.register(SplineElement);
-  _es6_module.add_class(SplineElement);
-  SplineElement = _es6_module.add_export('SplineElement', SplineElement);
-  SplineElement.STRUCT = `
-SplineElement {
-  eid        : int;
-  flag       : int;
-  type       : int;
-  cdata      : CustomDataSet;
-}
-`;
-  var derivative_cache_vs=cachering.fromConstructor(Vector3, 64);
-  var closest_point_ret_cache_vs=cachering.fromConstructor(Vector3, 256);
-  var closest_point_ret_cache=new cachering(function () {
-    return [0, 0];
-  }, 256);
-  var closest_point_cache_vs=cachering.fromConstructor(Vector3, 64);
-  let _gtl_ret_cache=cachering.fromConstructor(Vector3, 64);
-  let _gtl_arr=[0, 0];
-  var flip_wrapper_cache;
-  var $flip_out_X7Zh__get_nextprev;
-  class CurveEffect  {
-     constructor() {
-      this.child = undefined;
-      this.prior = undefined;
-    }
-     rescale(ceff, width) {
-      if (this.prior!=undefined)
-        return this.prior.rescale(ceff, width);
-      return width;
-    }
-    get  reversed() {
-      return flip_wrapper_cache.next().bind(this);
-    }
-     set_parent(p) {
-      this.prior = p;
-      p.child = this;
-    }
-     _get_nextprev(donext, _flip_out) {
-      var i=0, p=this;
-      while (p.prior!=undefined) {
-        p = p.prior;
-        i++;
-      }
-      p = p._get_nextprev(donext, $flip_out_X7Zh__get_nextprev);
-      var flip=$flip_out_X7Zh__get_nextprev[0];
-      if (p==undefined) {
-          return undefined;
-      }
-      while (i>0) {
-        p = p.child;
-        i--;
-      }
-      if (p==undefined) {
-          console.log("EVIL! no MultiResEffector!", this);
-          return undefined;
-      }
-      if (flip)
-        p = p.reversed;
-      return p;
-    }
-    get  next() {
-      return this._get_nextprev(1);
-    }
-    get  prev() {
-      return this._get_nextprev(0);
-    }
-     evaluate(s) {
-      if (this.prior!=undefined) {
-          return this.prior.evaluate(s);
-      }
-    }
-     derivative(s) {
-      var df=0.001;
-      var a, b;
-      if (s<0.5) {
-          a = this.evaluate(s);
-          b = this.evaluate(s+df);
-      }
-      else {
-        a = this.evaluate(s-df);
-        b = this.evaluate(s);
-      }
-      b.sub(a).mulScalar(1.0/df);
-      return b;
-    }
-     derivative2(s, funcs) {
-      var df=0.001;
-      var a, b;
-      if (s<0.5) {
-          a = this.derivative(s);
-          b = this.derivative(s+df);
-      }
-      else {
-        a = this.derivative(s-df);
-        b = this.derivative(s);
-      }
-      b.sub(a).mulScalar(1.0/df);
-      return b;
-    }
-     curvature(s, prior) {
-      var dv1=this.derivative(s);
-      var dv2=this.derivative(s);
-      return (dv2[0]*dv1[1]-dv2[1]*dv1[0])/Math.pow(dv1[0]*dv1[0]+dv1[1]*dv1[1], 3.0/2.0);
-    }
-     closest_point(p, mode, fast=false) {
-      var minret=undefined, mindis=1e+18, maxdis=0;
-      var p2=closest_point_cache_vs.next().zero();
-      for (var i=0; i<p.length; i++) {
-          p2[i] = p[i];
-      }
-      p = p2;
-      if (mode==undefined)
-        mode = 0;
-      var steps=5, s=0, ds=1.0/(steps);
-      var n=closest_point_cache_vs.next();
-      var n1=closest_point_cache_vs.next(), n2=closest_point_cache_vs.next();
-      var n3=closest_point_cache_vs.next(), n4=closest_point_cache_vs.next();
-      if (mode==ClosestModes.ALL)
-        minret = [];
-      for (var i=0; i<steps; i++, s+=ds) {
-          var start=s-1e-05, end=s+ds+1e-05;
-          start = Math.min(Math.max(start, 0.0), 1.0);
-          end = Math.min(Math.max(end, 0.0), 1.0);
-          var mid=(start+end)*0.5;
-          var bad=false;
-          var angle_limit=fast ? 0.65 : 0.2;
-          var steps=fast ? 5 : 20;
-          for (var j=0; j<steps; j++) {
-              mid = (start+end)*0.5;
-              var co=this.evaluate(mid);
-              var sco=this.evaluate(start);
-              var eco=this.evaluate(end);
-              var d1=this.normal(start).normalize();
-              var d2=this.normal(end).normalize();
-              var dm=this.normal(mid).normalize();
-              n1.load(sco).sub(p).normalize();
-              n2.load(eco).sub(p).normalize();
-              n.load(co).sub(p).normalize();
-              if (n1.dot(d1)<0.0)
-                d1.negate();
-              if (n2.dot(d2)<0.0)
-                d2.negate();
-              if (n.dot(dm)<0)
-                dm.negate();
-              var mang=acos(n.normalizedDot(dm));
-              if (mang<0.001)
-                break;
-              var ang1=acos(n1.normalizedDot(d1));
-              var ang2=acos(n2.normalizedDot(d2));
-              var w1=n1.cross(d1)[2]<0.0;
-              var w2=n2.cross(d2)[2]<0.0;
-              var wm=n.cross(dm)[2]<0.0;
-              if (isNaN(mang)) {
-                  console.log(p, co, mid, dm);
-              }
-              if (j==0&&w1==w2) {
-                  bad = true;
-                  break;
-              }
-              else 
-                if (w1==w2) {
-              }
-              if (w1==w2) {
-                  var dis1, dis2;
-                  dis1 = ang1, dis2 = ang2;
-                  if (dis2<dis1) {
-                      start = mid;
-                  }
-                  else 
-                    if (dis1<dis2) {
-                      end = mid;
-                  }
-                  else {
-                    break;
-                  }
-              }
-              else 
-                if (wm==w1) {
-                  start = mid;
-              }
-              else {
-                end = mid;
-              }
-          }
-          if (bad)
-            continue;
-          var co=this.evaluate(mid);
-          n1.load(this.normal(mid)).normalize();
-          n2.load(co).sub(p).normalize();
-          if (n2.dot(n1)<0) {
-              n2.negate();
-          }
-          var angle=acos(Math.min(Math.max(n1.dot(n2), -1), 1));
-          if (angle>angle_limit)
-            continue;
-          if (mode!=ClosestModes.ALL&&minret==undefined) {
-              var minret=closest_point_ret_cache.next();
-              minret[0] = minret[1] = undefined;
-          }
-          var dis=co.vectorDistance(p);
-          if (mode==ClosestModes.CLOSEST) {
-              if (dis<mindis) {
-                  minret[0] = closest_point_cache_vs.next().load(co);
-                  minret[1] = mid;
-                  mindis = dis;
-              }
-          }
-          else 
-            if (mode==ClosestModes.START) {
-              if (mid<mindis) {
-                  minret[0] = closest_point_cache_vs.next().load(co);
-                  minret[1] = mid;
-                  mindis = mid;
-              }
-          }
-          else 
-            if (mode==ClosestModes.END) {
-              if (mid>maxdis) {
-                  minret[0] = closest_point_cache_vs.next().load(co);
-                  minret[1] = mid;
-                  maxdis = mid;
-              }
-          }
-          else 
-            if (mode==ClosestModes.ALL) {
-              var ret=closest_point_ret_cache.next();
-              ret[0] = closest_point_cache_vs.next().load(co);
-              ret[1] = mid;
-              minret.push(ret);
-          }
-      }
-      if (minret==undefined&&mode==ClosestModes.CLOSEST) {
-          var v1=this.evaluate(0), v2=this.evaluate(1);
-          var dis1=v1.vectorDistance(p), dis2=v2.vectorDistance(p);
-          minret = closest_point_ret_cache.next();
-          minret[0] = closest_point_cache_vs.next().load(dis1<dis2 ? v1 : v2);
-          minret[1] = dis1<dis2 ? 0.0 : 1.0;
-      }
-      else 
-        if (minret==undefined&&mode==ClosestModes.START) {
-          minret = closest_point_ret_cache.next();
-          minret[0] = closest_point_cache_vs.next().load(this.v1);
-          minret[1] = 0.0;
-      }
-      if (minret==undefined&&mode==ClosestModes.END) {
-          minret = closest_point_ret_cache.next();
-          minret[0] = closest_point_cache_vs.next().load(this.v2);
-          minret[1] = 1.0;
-      }
-      return minret;
-    }
-     normal(s) {
-      var ret=this.derivative(s);
-      var t=ret[0];
-      ret[0] = -ret[1];
-      ret[1] = t;
-      ret.normalize();
-      return ret;
-    }
-     global_to_local(p, no_effects=false, fixed_s=undefined) {
-      let ret_cache=_gtl_ret_cache;
-      let arr=_gtl_arr;
-      let co;
-      if (fixed_s!=undefined) {
-          arr[0] = this.evaluate(fixed_s);
-          arr[1] = fixed_s;
-          co = arr;
-      }
-      else {
-        co = this.closest_point(p);
-      }
-      let _co=_gtl_co;
-      let _vec=_gtl_vec;
-      var s, t, a=0.0;
-      if (co===undefined) {
-          co = _co;
-          if (p.vectorDistance(this.v1)<p.vectorDistance(this.v2)) {
-              co.load(this.v1);
-              s = 0;
-              t = p.vectorDistance(this.v1);
-          }
-          else {
-            co.load(this.v2);
-            s = 1.0;
-            t = p.vectorDistance(this.v2);
-          }
-      }
-      else {
-        s = co.s;
-        co = co.co;
-        t = p.vectorDistance(co)*0.15;
-      }
-      var n1=this.normal(s).normalize();
-      var n2=_vec.zero().load(p).sub(co).normalize();
-      n1[2] = n2[2] = 0.0;
-      a = asin(n1[0]*n2[1]-n1[1]*n2[0]);
-      var dot=n1.dot(n2);
-      co.sub(p);
-      co[2] = 0.0;
-      t = co.vectorLength();
-      if (dot<0.0) {
-          t = -t;
-          a = 2.0*Math.PI-a;
-      }
-      var ret=ret_cache.next();
-      ret[0] = s;
-      ret[1] = t;
-      ret[2] = a;
-      return ret;
-    }
-     local_to_global(p) {
-      var s=p[0], t=p[1], a=p[2];
-      var co=this.evaluate(s);
-      var no=this.normal(s).normalize();
-      no.mulScalar(t);
-      no.rot2d(a);
-      co.add(no);
-      return co;
-    }
-  }
-  var $flip_out_X7Zh__get_nextprev=[0];
-  _ESClass.register(CurveEffect);
-  _es6_module.add_class(CurveEffect);
-  CurveEffect = _es6_module.add_export('CurveEffect', CurveEffect);
-  class FlipWrapper extends CurveEffect {
-    
-     constructor() {
-      super();
-      this.eff = undefined;
-      this.depth = 0;
-    }
-     rescale(eff, width) {
-      return this.eff.rescale(eff, width);
-    }
-    get  reversed() {
-      return this.eff;
-    }
-     bind(eff) {
-      this.eff = eff;
-      return this;
-    }
-    get  next() {
-      return this.eff.next;
-    }
-    get  prev() {
-      return this.eff.prev;
-    }
-     push(s) {
-      if (this.depth==0) {
-          s = 1.0-s;
-      }
-      this.depth++;
-      return s;
-    }
-     pop(value) {
-      this.depth--;
-      return value;
-    }
-     evaluate(s) {
-      s = this.push(s);
-      return this.pop(this.eff.evaluate(s));
-    }
-     derivative(s) {
-      s = this.push(s);
-      return this.pop(this.eff.derivative(s));
-    }
-     normal(s) {
-      s = this.push(s);
-      return this.pop(this.eff.normal(s));
-    }
-     curvature(s) {
-      s = this.push(s);
-      return this.pop(this.eff.curvature(s));
-    }
-  }
-  _ESClass.register(FlipWrapper);
-  _es6_module.add_class(FlipWrapper);
-  FlipWrapper = _es6_module.add_export('FlipWrapper', FlipWrapper);
-  flip_wrapper_cache = cachering.fromConstructor(FlipWrapper, 32);
-}, '/dev/fairmotion/src/curve/spline_base.js');
-es6_module_define('spline_types', ["../config/config.js", "./spline_base", "./bspline.js", "../util/mathlib.js", "../core/toolprops_iter.js", "../core/struct.js", "./spline_multires.js", "../util/bezier.js", "../path.ux/scripts/pathux.js", "../core/toolprops.js", "../editors/viewport/selectmode.js", "./spline_base.js", "../wasm/native_api.js", "../core/eventdag.js", "./spline_math.js"], function _spline_types_module(_es6_module) {
-  "use strict";
-  var ENABLE_MULTIRES=es6_import_item(_es6_module, '../config/config.js', 'ENABLE_MULTIRES');
-  var PI=Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor, ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos, asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
-  var bspline=es6_import(_es6_module, './bspline.js');
-  var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
-  var Vector2=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector2');
-  var TPropFlags=es6_import_item(_es6_module, '../core/toolprops.js', 'TPropFlags');
-  var PropTypes=es6_import_item(_es6_module, '../core/toolprops.js', 'PropTypes');
-  var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
-  var math=es6_import(_es6_module, '../util/mathlib.js');
-  var DataPathNode=es6_import_item(_es6_module, '../core/eventdag.js', 'DataPathNode');
-  var NodeBase=es6_import_item(_es6_module, '../core/eventdag.js', 'NodeBase');
-  var abs=Math.abs, acos=Math.acos, asin=Math.asin, atan2=Math.atan2, PI=Math.PI, sqrt=Math.sqrt, pow=Math.pow, log=Math.log;
-  var ___spline_base=es6_import(_es6_module, './spline_base');
-  for (let k in ___spline_base) {
-      _es6_module.add_export(k, ___spline_base[k], true);
-  }
-  var MultiResLayer=es6_import_item(_es6_module, './spline_multires.js', 'MultiResLayer');
-  var has_multires=es6_import_item(_es6_module, './spline_multires.js', 'has_multires');
-  var ensure_multires=es6_import_item(_es6_module, './spline_multires.js', 'ensure_multires');
-  var decompose_id=es6_import_item(_es6_module, './spline_multires.js', 'decompose_id');
-  var compose_id=es6_import_item(_es6_module, './spline_multires.js', 'compose_id');
-  var SplineTypes=es6_import_item(_es6_module, './spline_base.js', 'SplineTypes');
-  var SplineFlags=es6_import_item(_es6_module, './spline_base.js', 'SplineFlags');
-  var ClosestModes=es6_import_item(_es6_module, './spline_base.js', 'ClosestModes');
-  var IsectModes=es6_import_item(_es6_module, './spline_base.js', 'IsectModes');
-  var RecalcFlags=es6_import_item(_es6_module, './spline_base.js', 'RecalcFlags');
-  var MaterialFlags=es6_import_item(_es6_module, './spline_base.js', 'MaterialFlags');
-  var CustomDataLayer=es6_import_item(_es6_module, './spline_base.js', 'CustomDataLayer');
-  var CustomData=es6_import_item(_es6_module, './spline_base.js', 'CustomData');
-  var CustomDataSet=es6_import_item(_es6_module, './spline_base.js', 'CustomDataSet');
-  var SplineElement=es6_import_item(_es6_module, './spline_base.js', 'SplineElement');
-  var CurveEffect=es6_import_item(_es6_module, './spline_base.js', 'CurveEffect');
-  var SelMask=es6_import_item(_es6_module, '../editors/viewport/selectmode.js', 'SelMask');
-  var ORDER=es6_import_item(_es6_module, './spline_math.js', 'ORDER');
-  var KSCALE=es6_import_item(_es6_module, './spline_math.js', 'KSCALE');
-  var KANGLE=es6_import_item(_es6_module, './spline_math.js', 'KANGLE');
-  var KSTARTX=es6_import_item(_es6_module, './spline_math.js', 'KSTARTX');
-  var KSTARTY=es6_import_item(_es6_module, './spline_math.js', 'KSTARTY');
-  var KSTARTZ=es6_import_item(_es6_module, './spline_math.js', 'KSTARTZ');
-  var KTOTKS=es6_import_item(_es6_module, './spline_math.js', 'KTOTKS');
-  var INT_STEPS=es6_import_item(_es6_module, './spline_math.js', 'INT_STEPS');
-  var eval_curve=es6_import_item(_es6_module, './spline_math.js', 'eval_curve');
-  var spiraltheta=es6_import_item(_es6_module, './spline_math.js', 'spiraltheta');
-  var spiralcurvature=es6_import_item(_es6_module, './spline_math.js', 'spiralcurvature');
-  var spiralcurvature_dv=es6_import_item(_es6_module, './spline_math.js', 'spiralcurvature_dv');
-  let eval_ret_vs=cachering.fromConstructor(Vector2, 512);
-  let evaluateSide_rets=cachering.fromConstructor(Vector2, 512);
-  var bez3=es6_import_item(_es6_module, '../util/bezier.js', 'bez3');
-  var bez4=es6_import_item(_es6_module, '../util/bezier.js', 'bez4');
-  let _seg_aabb_ret=[new Vector3(), new Vector3()];
-  class SplineVertex extends SplineElement {
-    
-    
-    
-    
-    
-     constructor(co) {
-      super(SplineTypes.VERTEX);
-      Vector2.prototype.initVector2.apply(this, arguments);
-      this._no_warning = false;
-      if (co!==undefined) {
-          this[0] = co[0];
-          this[1] = co[1];
-      }
-      this.type = SplineTypes.VERTEX;
-      this.flag = SplineFlags.FRAME_DIRTY|SplineFlags.UPDATE;
-      this.segments = [];
-      this.eid = 0;
-      this.frames = {};
-      this.hpair = undefined;
-    }
-    get  2() {
-      return 0.0;
-    }
-    set  2(val) {
-      console.warn("Attempt to set [2] in SplineVertex!");
-    }
-    get  width() {
-      if (!this.segments)
-        return ;
-      let tot=0.0;
-      let sum=0.0;
-      for (let s of this.segments) {
-          tot++;
-          sum+=this===s.v1 ? s.w1 : s.w2;
-      }
-      return tot ? sum/tot : 0.0;
-    }
-    set  width(w) {
-      if (!this.segments)
-        return ;
-      let old=this.width;
-      if (w===0.0) {
-          console.warn("Cannot set width to zero");
-          return ;
-      }
-      if (isNaN(old)||old===0.0) {
-          console.warn("Corrupted width data; fixing...");
-          for (let s of this.segments) {
-              if (isNaN(s.w1)||s.w1===0.0)
-                s.w1 = w;
-              if (isNaN(s.w2)||s.w2===0.0)
-                s.w2 = w;
-              s.mat.update();
-          }
-          return ;
-      }
-      let ratio=w/old;
-      for (let s of this.segments) {
-          if (this===s.v1)
-            s.w1*=ratio;
-          else 
-            if (this===s.v2)
-            s.w2*=ratio;
-          else 
-            throw new Error("spline mesh integrity error");
-          s.mat.update();
-      }
-      if (this.segments.length===2) {
-          let s1=this.segments[0];
-          let s2=this.segments[1];
-          let w1=this===s1.v1 ? s1.w1 : s1.w2;
-          let w2=this===s2.v1 ? s2.w1 : s2.w2;
-          let w=(w1+w2)*0.5;
-          s1.setVertWidth(this, w);
-          s2.setVertWidth(this, w);
-      }
-    }
-    get  shift() {
-      if (!this.segments)
-        return ;
-      if (this.segments.length!==2) {
-          return 0.0;
-      }
-      let tot=0.0;
-      let sum=0.0;
-      if (this.segments.length===2) {
-          let s1=this.segments[0];
-          let s2=this.segments[1];
-          let shift1=this===s1.v1 ? s1.shift1 : s1.shift2;
-          let shift2=this===s2.v1 ? s2.shift1 : s2.shift2;
-          if ((this===s1.v1)===(this===s2.v1)) {
-              sum = shift1-shift2;
-          }
-          else {
-            sum = shift1+shift2;
-          }
-          tot = 2.0;
-      }
-      else {
-        for (let s of this.segments) {
-            tot++;
-            sum+=this===s.v1 ? -s.shift1 : s.shift2;
-        }
-      }
-      return tot ? sum/tot : 0.0;
-    }
-    set  shift(w) {
-      if (!this.segments||this.segments.length!==2)
-        return ;
-      let tot=0.0;
-      let sum=0.0;
-      let old=this.shift;
-      let df=w-old;
-      if (this.segments.length===2) {
-          let s1=this.segments[0];
-          let s2=this.segments[1];
-          let shift1=this===s1.v1 ? s1.shift1 : s1.shift2;
-          let shift2=this===s2.v1 ? s2.shift1 : s2.shift2;
-          if ((this===s1.v1)===(this===s2.v1)) {
-              shift1+=df;
-              shift2-=df;
-          }
-          else {
-            shift1+=df;
-            shift2+=df;
-          }
-          if (this===s1.v1)
-            s1.shift1 = shift1;
-          else 
-            s1.shift2 = shift1;
-          if (this===s2.v1)
-            s2.shift1 = shift2;
-          else 
-            s2.shift2 = shift2;
-          s1.mat.update();
-          s2.mat.update();
-      }
-      else {
-        for (let s of this.segments) {
-            if (this===s.v1) {
-                s.shift1+=df;
-            }
-            else {
-              s.shift2+=df;
-            }
-            s.mat.update();
-        }
-      }
-    }
-    set  __shift(w) {
-      if (!this.segments)
-        return ;
-      let old=this.shift;
-      let df=w-old;
-      for (let s of this.segments) {
-          if (this===s.v1) {
-              s.shift1-=df;
-          }
-          else {
-            s.shift2+=df;
-          }
-          s.mat.update();
-      }
-    }
-    static  nodedef() {
-      return {name: "SplineVertex", 
-     uiName: "SplineVertex", 
-     inputs: {}, 
-     outputs: NodeBase.Inherit()}
-    }
-    get  aabb() {
-      let ret=_seg_aabb_ret;
-      ret[0].load(this);
-      ret[1].load(this);
-      return ret;
-    }
-     sethide(state) {
-      if (state)
-        this.flag|=SplineFlags.HIDE;
-      else 
-        this.flag&=~SplineFlags.HIDE;
-      if (this.type===SplineTypes.HANDLE)
-        return ;
-      if (state) {
-          for (var i=0; i<this.segments.length; i++) {
-              this.segments[i].sethide(true);
-          }
-      }
-      else {
-        for (var i=0; i<this.segments.length; i++) {
-            this.segments[i].sethide(false);
-        }
-      }
-    }
-    get  hidden() {
-      if (this.type===SplineTypes.VERTEX) {
-          return !!(this.flag&SplineFlags.HIDE);
-      }
-      else {
-        var s=this.owning_segment;
-        return (this.flag&SplineFlags.HIDE)||!this.use||s.v1.hidden||s.v2.hidden;
-      }
-    }
-    get  owning_segment() {
-      return this.segments[0];
-    }
-    get  owning_vertex() {
-      return this.owning_segment.handle_vertex(this);
-    }
-    get  use() {
-      if (this.type!==SplineTypes.HANDLE)
-        return true;
-      var s=this.owning_segment;
-      if (s===undefined) {
-          console.warn("Corrupted handle detected", this.eid);
-          return false;
-      }
-      var v=s.handle_vertex(this);
-      var ret=v!==undefined&&(v.segments!==undefined&&v.segments.length>2||(v.flag&SplineFlags.USE_HANDLES));
-      return ret;
-    }
-    set  hidden(value) {
-      if (value)
-        this.flag|=SplineFlags.HIDE;
-      else 
-        this.flag&=~SplineFlags.HIDE;
-    }
-     other_segment(s) {
-      if (s===this.segments[0])
-        s = this.segments[1];
-      else 
-        if (s===this.segments[1])
-        s = this.segments[0];
-      if (!s) {
-          throw new Error("bad segment in SplineVertex.prototype.other_segment()");
-      }
-      if (s.v1!==this&&s.v2!==this) {
-          throw new Error("mesh integrity error");
-      }
-      return s;
-    }
-     toJSON() {
-      var ret={};
-      ret.frame = this.frame;
-      ret.segments = [];
-      ret[0] = this[0];
-      ret[1] = this[1];
-      ret.frames = this.frames;
-      ret.length = 3;
-      for (var i=0; i<this.segments.length; i++) {
-          if (this.segments[i]!==undefined)
-            ret.segments.push(this.segments[i].eid);
-      }
-      ret.flag = this.flag;
-      ret.eid = this.eid;
-      return ret;
-    }
-     loadSTRUCT(reader) {
-      this._no_warning = true;
-      reader(this);
-      super.loadSTRUCT(reader);
-      this._no_warning = false;
-      this.load(this.co);
-      delete this.co;
-      for (let axis=0; axis<2; axis++) {
-          if (isNaN(this[axis])) {
-              console.warn("NaN vertex", this.eid);
-              this[axis] = 0;
-          }
-      }
-      return this;
-    }
-  }
-  _ESClass.register(SplineVertex);
-  _es6_module.add_class(SplineVertex);
-  SplineVertex = _es6_module.add_export('SplineVertex', SplineVertex);
-  
-  SplineVertex.STRUCT = STRUCT.inherit(SplineVertex, SplineElement)+`
-  co       : vec2          | this;
-  segments : array(e, int) | e.eid;
-  hpair    : int           | this.hpair != undefined? this.hpair.eid : -1;
-}
-`;
-  mixin(SplineVertex, Vector2);
-  class ClosestPointRecord  {
-    
-    
-    
-     constructor() {
-      this.s = 0;
-      this.co = new Vector2();
-      this.sign = 1.0;
-    }
-     reset() {
-      this.sign = this.s = undefined;
-      return this;
-    }
-  }
-  _ESClass.register(ClosestPointRecord);
-  _es6_module.add_class(ClosestPointRecord);
-  ClosestPointRecord = _es6_module.add_export('ClosestPointRecord', ClosestPointRecord);
-  var derivative_cache_vs=cachering.fromConstructor(Vector3, 64);
-  var closest_point_ret_cache_vs=cachering.fromConstructor(Vector3, 256);
-  var closest_point_ret_cache=cachering.fromConstructor(ClosestPointRecord, 256);
-  var closest_point_cache_vs=cachering.fromConstructor(Vector3, 512);
-  class EffectWrapper extends CurveEffect {
-    
-     constructor(owner) {
-      super();
-      this.seg = owner;
-    }
-     rescale(ceff, width) {
-      while (ceff.prior!==undefined) {
-        ceff = ceff.prior;
-      }
-      var seg1=this.seg;
-      var seg2=ceff.seg;
-      var l1=seg1.length, l2=seg2.length;
-      width = (width*l2)/l1;
-      return width;
-    }
-     _get_nextprev(donext, flip_out) {
-      var seg1=this.seg;
-      var v=donext ? seg1.v2 : seg1.v1;
-      if (v.segments.length!==2)
-        return undefined;
-      var seg2=v.other_segment(seg1);
-      flip_out[0] = (donext&&seg2.v1===v)||(!donext&&seg2.v2===v);
-      return seg2._evalwrap;
-    }
-     evaluate(s) {
-      return this.seg.evaluate(s, undefined, undefined, undefined, true);
-    }
-     derivative(s) {
-      return this.seg.derivative(s, undefined, undefined, true);
-    }
-  }
-  _ESClass.register(EffectWrapper);
-  _es6_module.add_class(EffectWrapper);
-  EffectWrapper = _es6_module.add_export('EffectWrapper', EffectWrapper);
-  let intersect_rets=new cachering(() =>    {
-    return {co: new Vector2(), 
-    targetS: 0, 
-    sourceS: 0}
-  }, 512);
-  let __static_minmax=new MinMax(2);
-  let __angle_temp=cachering.fromConstructor(Vector2, 64);
-  let bstmp1=new Array(32);
-  let bstmp2=new Array(32);
-  class SplineSegment extends SplineElement {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-     constructor(v1, v2) {
-      super(SplineTypes.SEGMENT);
-      this._evalwrap = new EffectWrapper(this);
-      this.l = undefined;
-      this.w1 = 1.0;
-      this.w2 = 1.0;
-      this.shift1 = 0.0;
-      this.shift2 = 0.0;
-      this.v1 = v1;
-      this.v2 = v2;
-      this.topoid = -1;
-      this.stringid = -1;
-      this.has_multires = false;
-      this.mat = new Material();
-      this.mat.update = this._material_update.bind(this);
-      this.z = this.finalz = 5;
-      this._aabb = [new Vector3(), new Vector3()];
-      this.h1 = this.h2 = undefined;
-      this.type = SplineTypes.SEGMENT;
-      this.flag = 0;
-      this.eid = 0;
-      this.ks = new Array(KTOTKS);
-      this._last_ks = new Array(KTOTKS);
-      for (var i=0; i<this.ks.length; i++) {
-          this.ks[i] = 0;
-          this._last_ks[i] = 0;
-      }
-    }
-     onDestroy() {
-      native_api.onSegmentDestroy(this);
-    }
-     sinangle(v) {
-      if (v.segments.length===2) {
-          let s1=this;
-          let s2=v.other_segment(s1);
-          let t1=__angle_temp.next();
-          let t2=__angle_temp.next();
-          let v1=s1.other_vert(v);
-          let v2=s2.other_vert(v);
-          t1.load(v1).sub(v);
-          t2.load(v2).sub(v);
-          if (t1.dot(t1)<1e-05||t2.dot(t2)<1e-05) {
-              return 0.0;
-          }
-          t1.normalize();
-          t2.normalize();
-          let th=-(t1[0]*t2[1]-t1[1]*t2[0]);
-          let eps=0.0001;
-          th = th*(1.0-eps*2.0)+eps*Math.sign(th);
-          return th;
-      }
-      return 0.0;
-    }
-     shift(s) {
-      s = s*s*(3.0-2.0*s);
-      let ret=this.shift1+(this.shift2-this.shift1)*s;
-      return ret;
-    }
-     dshift(s) {
-      let df=0.0001;
-      let a=this.shift(s-df);
-      let b=this.shift(s+df);
-      return (b-a)/(2.0*df);
-    }
-     dwidth(s) {
-      let df=0.0001;
-      let a=this.width(s-df);
-      let b=this.width(s+df);
-      return (b-a)/(2.0*df);
-    }
-     setVertWidth(v, w) {
-      if (w===undefined||isNaN(w)) {
-          console.warn("Got bad width data", w);
-      }
-      if (v===this.v1) {
-          this.w1 = w;
-      }
-      else 
-        if (v===this.v2) {
-          this.w2 = w;
-      }
-      else {
-        console.log(this, v, "bleh");
-        throw new Error("vertex not in edge "+v);
-      }
-    }
-     widthFunction(s) {
-      return s;
-    }
-     width2(s) {
-      let this2=this;
-      let seg=this;
-      let v;
-      let len;
-      function walk() {
-        let lastv=v;
-        if (v.segments.length===2) {
-            seg = v.other_segment(seg);
-            v = seg.other_vert(v);
-        }
-        len = seg.length;
-        len = Math.max(len, 0.0001);
-        return (v===seg.v1 ? seg.w1 : seg.w2)*seg.mat.linewidth;
-      }
-      v = this.v1;
-      seg = this;
-      let l0b, l0, l1, l2, l3, l4, l5, l6, l7, l8;
-      l3 = Math.max(seg.length, 0.0001);
-      l4 = l3;
-      let w3=this.w1*this.mat.linewidth;
-      let w2=walk();
-      l2 = len;
-      let w1=walk();
-      l1 = len;
-      let w0=walk();
-      l0 = len;
-      let w0b=walk();
-      l0b = len;
-      seg = this;
-      v = this.v2;
-      let w4=this.w2*this.mat.linewidth;
-      let w5=walk();
-      l5 = len;
-      let w6=walk();
-      l6 = len;
-      let w7=walk();
-      l7 = len;
-      let w8=walk();
-      l8 = len;
-      seg = this;
-      let ks=bstmp1;
-      let ws=bstmp2;
-      bstmp1.length = 5;
-      bstmp2.length = 5;
-      ks[0] = -l0-l1-l2;
-      ks[1] = -l1-l2;
-      ks[2] = -l2;
-      ks[3] = 0;
-      ks[4] = l4;
-      ks[5] = l4+l5;
-      ks[6] = l4+l5+l6;
-      ks[7] = l4+l5+l6+l7;
-      ws[0] = w2;
-      ws[1] = w3;
-      ws[2] = w4;
-      ws[3] = w5;
-      ws[4] = w6;
-      ws[5] = w7;
-      ws[6] = w8;
-      if (l4===0.0) {
-          return 0.0;
-      }
-      s*=l4;
-      let sum=0.0;
-      sum = bspline.deBoor(3, s, ks, ws, 3);
-      for (let i=0; i<0; i++) {
-          let w=bspline.basis(s, i, 3, ks, true);
-          if (isNaN(w)) {
-              console.warn(ks, ws);
-              throw new Error("NaN");
-          }
-          sum+=w*ws[i];
-      }
-      return sum;
-      return w3+(w4-w3)*s;
-      return (w2*k2+w3*k3+w4*k4+w5*k5)/(k2+k3+k4+k5);
-      let d1=(w4-w2)/l2/(l2+l3)*0.5;
-      let d2=(w5-w3)/l5/(l4+l5)*0.5;
-      d1/=3.0;
-      d2/=3.0;
-      return bez4(w3, w3+d1, w4-d2, w4, s);
-    }
-     width(s) {
-      return this.width2(s);
-      s = this.widthFunction(s);
-      let wid1=this.mat.linewidth;
-      let wid2=this.mat.linewidth;
-      if (this.v1.segments.length===2) {
-          wid1+=(this.v1.other_segment(this).mat.linewidth*0.5+wid1*0.5-wid1)*(1.0-s);
-      }
-      if (this.v2.segments.length===2) {
-          wid2+=(this.v2.other_segment(this).mat.linewidth*0.5+wid2*0.5-wid2)*s;
-      }
-      wid1*=this.w1;
-      wid2*=this.w2;
-      return wid1+(wid2-wid1)*s;
-    }
-     _material_update() {
-      this.flag|=SplineFlags.REDRAW|SplineFlags.FRAME_DIRTY|SplineFlags.UPDATE;
-      this.v1.flag|=SplineFlags.UPDATE;
-      this.v2.flag|=SplineFlags.UPDATE;
-    }
-    get  aabb() {
-      if (this.flag&SplineFlags.UPDATE_AABB)
-        this.update_aabb();
-      return this._aabb;
-    }
-    set  aabb(val) {
-      this._aabb = val;
-    }
-     _update_has_multires() {
-      this.has_multires = false;
-      for (var i=0; i<this.cdata.length; i++) {
-          if (__instance_of(this.cdata[i], MultiResLayer)) {
-              this.has_multires = true;
-              break;
-          }
-      }
-    }
-     update_aabb(steps=8) {
-      this._update_has_multires();
-      this.flag&=~SplineFlags.UPDATE_AABB;
-      var min=this._aabb[0], max=this._aabb[1];
-      let minmax=__static_minmax;
-      minmax.reset();
-      min.zero();
-      max.zero();
-      var co=this.evaluate(0);
-      minmax.minmax(co);
-      var ds=1.0/(steps-1);
-      for (let i=0, s=0; i<steps; i++, s+=ds) {
-          var co=this.evaluate(s*0.999999999);
-          minmax.minmax(co);
-      }
-      min.load(minmax.min);
-      max.load(minmax.max);
-    }
-     intersect(seg, side1=false, side2=false, mode=IsectModes.CLOSEST) {
-      if (this.flag&SplineFlags.COINCIDENT) {
-          return undefined;
-      }
-      let steps=5;
-      let lastco=undefined, lastno;
-      let p1=new Vector2();
-      let p2=new Vector2();
-      let p3=new Vector2();
-      let p4=new Vector2();
-      let mindis=undefined;
-      let minret=new Vector2();
-      let mins, mins2;
-      let s=0, ds=1.0/(steps-1);
-      for (let i=0; i<steps; i++, s+=ds) {
-          let s1=s, s2=s+ds;
-          let co1=this.evaluateSide(s1, side1);
-          let co2=this.evaluateSide(s2, side1);
-          let cl1=seg.closest_point(co1, ClosestModes.CLOSEST, undefined, side2);
-          let cl2=seg.closest_point(co2, ClosestModes.CLOSEST, undefined, side2);
-          let p1=cl1.co;
-          let p2=cl2.co;
-          if (cl1.sign!==cl2.sign) {
-              for (let bi=0; bi<2; bi++) {
-                  let s3=(s1+s)*0.5;
-                  let s4=(s2+s)*0.5;
-                  for (let j=0; j<2; j++) {
-                      let s5=j ? s4 : s3;
-                      let co3=this.evaluateSide(s5, side1);
-                      let cl3=seg.closest_point(co3, ClosestModes.CLOSEST, undefined, side2);
-                      if (cl3.sign!==cl1.sign) {
-                          s2 = s5;
-                          break;
-                      }
-                      else 
-                        if (cl3.sign!==cl2.sign) {
-                          s1 = s5;
-                          break;
-                      }
-                  }
-                  s = (s1+s2)*0.5;
-              }
-              co1 = this.evaluateSide(s1, side1);
-              cl1 = seg.closest_point(co1, ClosestModes.CLOSEST, undefined, side2);
-              let dis1;
-              if (mode===IsectModes.START) {
-                  dis1 = cl1.s;
-              }
-              else 
-                if (mode===IsectModes.END) {
-                  dis1 = 1.0-cl1.s;
-              }
-              else 
-                if (mode===IsectModes.ENDSTART) {
-                  dis1 = 1.0-Math.abs(cl1.s-0.5)*2.0;
-              }
-              else {
-                dis1 = co1.vectorDistance(cl1.co);
-              }
-              if (mindis===undefined||dis1<mindis) {
-                  minret.load(co1);
-                  mins = cl1.s;
-                  mins2 = s1;
-                  mindis = dis1;
-              }
-          }
-      }
-      if (mindis!==undefined) {
-          let ret=intersect_rets.next();
-          ret.co.load(minret);
-          ret.targetS = mins;
-          ret.sourceS = mins2;
-          return ret;
-      }
-      return undefined;
-    }
-     closest_point(p, mode, fast=false, widthSide=undefined) {
-      if (this.flag&SplineFlags.COINCIDENT) {
-          return undefined;
-      }
-      var minret=undefined, mindis=1e+18, maxdis=0;
-      var p2=closest_point_cache_vs.next().zero();
-      for (var i=0; i<p.length; i++) {
-          p2[i] = p[i];
-      }
-      p = p2;
-      if (mode===undefined)
-        mode = 0;
-      var steps=5, s=0, ds=1.0/(steps);
-      var n=closest_point_cache_vs.next();
-      var n1=closest_point_cache_vs.next(), n2=closest_point_cache_vs.next();
-      var n3=closest_point_cache_vs.next(), n4=closest_point_cache_vs.next();
-      if (mode===ClosestModes.ALL)
-        minret = [];
-      let d1=closest_point_cache_vs.next();
-      let d2=closest_point_cache_vs.next();
-      let dm=closest_point_cache_vs.next();
-      for (var i=0; i<steps; i++, s+=ds) {
-          var start=s-1e-05, end=s+ds+1e-05;
-          start = Math.min(Math.max(start, 0.0), 1.0);
-          end = Math.min(Math.max(end, 0.0), 1.0);
-          var mid=(start+end)*0.5;
-          var bad=false;
-          var angle_limit=fast ? 0.65 : 0.2;
-          var steps=fast ? 5 : 20;
-          for (var j=0; j<steps; j++) {
-              mid = (start+end)*0.5;
-              let co, sco, eco;
-              if (widthSide!==undefined) {
-                  co = this.evaluateSide(start, widthSide, undefined, d1);
-                  sco = this.evaluateSide(mid, widthSide, undefined, dm);
-                  eco = this.evaluateSide(end, widthSide, undefined, d2);
-                  d1.normalize();
-                  d2.normalize();
-                  dm.normalize();
-              }
-              else {
-                co = this.evaluate(mid, undefined, undefined, undefined, true);
-                sco = this.evaluate(start, undefined, undefined, undefined, true);
-                eco = this.evaluate(end, undefined, undefined, undefined, true);
-                d1.load(this.normal(start, true).normalize());
-                dm.load(this.normal(mid, true).normalize());
-                d2.load(this.normal(end, true).normalize());
-              }
-              sco[2] = eco[2] = co[2] = 0.0;
-              n1.load(sco).sub(p).normalize();
-              n2.load(eco).sub(p).normalize();
-              n.load(co).sub(p);
-              n[2] = 0.0;
-              n.normalize();
-              if (n1.dot(d1)<0.0)
-                d1.negate();
-              if (n2.dot(d2)<0.0)
-                d2.negate();
-              if (n.dot(dm)<0)
-                dm.negate();
-              var mang=acos(n.normalizedDot(dm));
-              if (mang<0.001)
-                break;
-              var ang1=acos(n1.normalizedDot(d1));
-              var ang2=acos(n2.normalizedDot(d2));
-              var w1=n1.cross(d1)[2]<0.0;
-              var w2=n2.cross(d2)[2]<0.0;
-              var wm=n.cross(dm)[2]<0.0;
-              if (isNaN(mang)) {
-                  if (!window.__adssad)
-                    window.__adssad = 0;
-                  if (time_ms()-window.__adssad>500) {
-                      console.warn("NaN!", p, co, mid, dm, n, mang);
-                      window.__adssad = time_ms();
-                      mang = 0.0;
-                      n.zero();
-                  }
-              }
-              if (j===0&&w1===w2) {
-                  bad = true;
-                  break;
-              }
-              else 
-                if (w1===w2) {
-              }
-              if (w1===w2) {
-                  var dis1, dis2;
-                  dis1 = ang1, dis2 = ang2;
-                  if (dis2<dis1) {
-                      start = mid;
-                  }
-                  else 
-                    if (dis1<dis2) {
-                      end = mid;
-                  }
-                  else {
-                    break;
-                  }
-              }
-              else 
-                if (wm===w1) {
-                  start = mid;
-              }
-              else {
-                end = mid;
-              }
-          }
-          if (bad)
-            continue;
-          let co;
-          if (widthSide) {
-              co = this.evaluateSide(mid, widthSide, undefined, n1);
-              n1.normalize();
-          }
-          else {
-            co = this.evaluate(mid, undefined, undefined, undefined, true);
-            n1.load(this.normal(mid, true)).normalize();
-          }
-          n2.load(co).sub(p).normalize();
-          let sign=1.0;
-          if (n2.dot(n1)<0) {
-              sign = -1.0;
-              n2.negate();
-          }
-          var angle=acos(Math.min(Math.max(n1.dot(n2), -1), 1));
-          if (angle>angle_limit)
-            continue;
-          if (mode!==ClosestModes.ALL&&minret===undefined) {
-              minret = closest_point_ret_cache.next().reset();
-          }
-          var dis=co.vectorDistance(p);
-          if (mode===ClosestModes.CLOSEST) {
-              if (dis<mindis) {
-                  minret.co.load(co);
-                  minret.s = mid;
-                  minret.sign = sign;
-                  mindis = dis;
-              }
-          }
-          else 
-            if (mode===ClosestModes.START) {
-              if (mid<mindis) {
-                  minret.co.load(co);
-                  minret.s = mid;
-                  minret.sign = sign;
-                  mindis = mid;
-              }
-          }
-          else 
-            if (mode===ClosestModes.END) {
-              if (mid>maxdis) {
-                  minret.co.load(co);
-                  minret.s = mid;
-                  minret.sign = sign;
-                  maxdis = mid;
-              }
-          }
-          else 
-            if (mode===ClosestModes.ALL) {
-              let ret=closest_point_ret_cache.next().reset();
-              ret.co.load(co);
-              ret.s = mid;
-              ret.sign = sign;
-              minret.push(ret);
-          }
-      }
-      if (minret===undefined&&mode===ClosestModes.CLOSEST) {
-          var dis1=this.v1.vectorDistance(p), dis2=this.v2.vectorDistance(p);
-          minret = closest_point_ret_cache.next().reset();
-          minret.co.load(dis1<dis2 ? this.v1 : this.v2);
-          minret.s = dis1<dis2 ? 0.0 : 1.0;
-          minret.sign = 1.0;
-      }
-      else 
-        if (minret===undefined&&mode===ClosestModes.START) {
-          minret = closest_point_ret_cache.next();
-          minret.co.load(this.v1);
-          minret.s = 0.0;
-          minret.sign = 1.0;
-      }
-      if (minret===undefined&&mode===ClosestModes.END) {
-          minret = closest_point_ret_cache.next();
-          minret.co.load(this.v2);
-          minret.s = 1.0;
-          minret.sign = 1.0;
-      }
-      return minret;
-    }
-     normal(s, no_effects=!ENABLE_MULTIRES) {
-      if (this.flag&SplineFlags.COINCIDENT) {
-          return derivative_cache_vs.next().zero();
-      }
-      var ret=this.derivative(s, undefined, undefined, no_effects);
-      var t=ret[0];
-      ret[0] = -ret[1];
-      ret[1] = t;
-      ret.normalize();
-      return ret;
-    }
-     ends(v) {
-      if (v===this.v1)
-        return 0.0;
-      if (v===this.v2)
-        return 1.0;
-    }
-     handle(v) {
-      if (v===this.v1)
-        return this.h1;
-      if (v===this.v2)
-        return this.h2;
-    }
-     handle_vertex(h) {
-      if (h===this.h1)
-        return this.v1;
-      if (h===this.h2)
-        return this.v2;
-    }
-    get  is_line() {
-      var r1=(this.v1.flag&SplineFlags.BREAK_TANGENTS);
-      var r2=(this.v2.flag&SplineFlags.BREAK_TANGENTS);
-      return r1&&r2;
-    }
-    get  renderable() {
-      return !(this.flag&SplineFlags.NO_RENDER);
-    }
-    set  renderable(val) {
-      if (!val)
-        this.flag|=SplineFlags.NO_RENDER;
-      else 
-        this.flag&=~SplineFlags.NO_RENDER;
-    }
-     update_handle(h) {
-      var ov=this.handle_vertex(h);
-      if (h.hpair!==undefined) {
-          var seg=h.hpair.owning_segment;
-          var v=this.handle_vertex(h);
-          var len=h.hpair.vectorDistance(v);
-          h.hpair.load(h).sub(v).negate().normalize().mulScalar(len).add(v);
-          seg.update();
-          return h.hpair;
-      }
-      else 
-        if (ov.segments.length===2&&h.use&&!(ov.flag&SplineFlags.BREAK_TANGENTS)) {
-          var h2=h.owning_vertex.other_segment(h.owning_segment).handle(h.owning_vertex);
-          var hv=h2.owning_segment.handle_vertex(h2), len=h2.vectorDistance(hv);
-          h2.load(h).sub(hv).negate().normalize().mulScalar(len).add(hv);
-          h2.owning_segment.update();
-          return h2;
-      }
-    }
-     other_handle(h_or_v) {
-      if (h_or_v===this.v1)
-        return this.h2;
-      if (h_or_v===this.v2)
-        return this.h1;
-      if (h_or_v===this.h1)
-        return this.h2;
-      if (h_or_v===this.h2)
-        return this.h1;
-    }
-    get  length() {
-      return this.ks[KSCALE];
-    }
-     toJSON() {
-      var ret={};
-      ret.frames = this.frames;
-      ret.ks = [];
-      for (var i=0; i<this.ks.length; i++) {
-          ret.ks.push(this.ks[i]);
-      }
-      ret.v1 = this.v1.eid;
-      ret.v2 = this.v2.eid;
-      ret.h1 = this.h1!==undefined ? this.h1.eid : -1;
-      ret.h2 = this.h2!==undefined ? this.h2.eid : -1;
-      ret.eid = this.eid;
-      ret.flag = this.flag;
-      return ret;
-    }
-     curvature(s, order, override_scale) {
-      if (order===undefined)
-        order = ORDER;
-      if (this.flag&SplineFlags.COINCIDENT) {
-          return 0.0;
-      }
-      eval_curve(this, 0.5, this.v1, this.v2, this.ks, order, 1);
-      var k=spiralcurvature(s, this.ks, order);
-      return k/(1e-05+this.ks[KSCALE]);
-    }
-     curvature_dv(s, order, override_scale) {
-      if (order===undefined)
-        order = ORDER;
-      if (this.flag&SplineFlags.COINCIDENT) {
-          return 0.0;
-      }
-      eval_curve(this, 0.5, this.v1, this.v2, this.ks, order, 1);
-      var k=spiralcurvature_dv(s, this.ks, order);
-      return k/(1e-05+this.ks[KSCALE]);
-    }
-     derivative(s, order, no_update_curve, no_effects) {
-      if (this.flag&SplineFlags.COINCIDENT) {
-          return derivative_cache_vs.next().zero();
-      }
-      if (order===undefined)
-        order = ORDER;
-      var ret=derivative_cache_vs.next().zero();
-      var ks=this.ks;
-      if (!no_update_curve)
-        eval_curve(this, 0.5, this.v1, this.v2, ks, order, 1);
-      var th=spiraltheta(s, ks, order);
-      var k=spiralcurvature(s, ks, order);
-      var ang=ks[KANGLE];
-      ret[0] = sin(th+ang)*ks[KSCALE];
-      ret[1] = cos(th+ang)*ks[KSCALE];
-      if (ret.length>2)
-        ret[2] = 0.0;
-      return ret;
-    }
-     theta(s, order, no_effects) {
-      if (order===undefined)
-        order = ORDER;
-      return spiraltheta(s, this.ks, order)*this.ks[KSCALE];
-    }
-     offset_eval(s, offset, order, no_update) {
-      if (order===undefined)
-        order = ORDER;
-      var ret=this.evaluate(s, order, undefined, no_update);
-      if (offset===0.0)
-        return ret;
-      var tan=this.derivative(s, order, no_update);
-      var t=tan[0];
-      tan[0] = -tan[1];
-      tan[1] = t;
-      tan.normalize().mulScalar(offset);
-      ret.add(tan);
-      return ret;
-    }
-     curvatureSide(s, side, no_out) {
-      let df=0.0001;
-      let dv0=this.evaluateSide(s, side);
-      let dv1=this.evaluateSide(s+df, side);
-      let dv2=this.evaluateSide(s+df*2, side);
-      dv2.sub(dv1).mulScalar(1.0/df);
-      dv1.sub(dv0).mulScalar(1.0/df);
-      dv2.sub(dv1).mulScalar(1.0/df);
-      let k=(dv1[0]*dv2[1]-dv1[1]*dv2[0])/Math.pow(dv1.dot(dv1), 3.0/2.0);
-      if (no_out) {
-          dv1.normalize();
-          let t=dv1[0];
-          dv1[0] = -dv1[1];
-          dv1[1] = t;
-          no_out[0] = dv1[0];
-          no_out[1] = dv1[1];
-      }
-      return k;
-    }
-     evaluateSide(s, side=0, dv_out, normal_out, lw_dlw_out) {
-      if (this.flag&SplineFlags.COINCIDENT) {
-          if (dv_out) {
-              dv_out[0] = dv_out[1] = 0.0;
-          }
-          if (normal_out) {
-              normal_out[0] = normal_out[1] = 0.0;
-          }
-          if (lw_dlw_out) {
-              lw_dlw_out[0] = lw_dlw_out[1] = 0.0;
-          }
-          return evaluateSide_rets.next().load(this.v1);
-      }
-      side = -(side*2.0-1.0);
-      let co=evaluateSide_rets.next().load(this.evaluate(s));
-      let dv=this.derivative(s);
-      let shift=this.shift(s)*side;
-      let dshift=this.dshift(s)*side;
-      let lw=this.width(s)*side;
-      let dlw=this.dwidth(s)*side;
-      dlw = dlw*shift+dlw+dshift*lw;
-      lw = lw+lw*shift;
-      let dx=-dv[1]*lw*0.5/this.length;
-      let dy=dv[0]*lw*0.5/this.length;
-      if (normal_out) {
-          normal_out[0] = dx;
-          normal_out[1] = dy;
-      }
-      if (lw_dlw_out) {
-          lw_dlw_out[0] = lw;
-          lw_dlw_out[1] = dlw;
-      }
-      if (dv_out) {
-          let seglen=this.length;
-          let k=-seglen*this.curvature(s);
-          let dx2=(-0.5*(dlw*dv[1]+dv[0]*k*lw-2*dv[0]*seglen))/seglen;
-          let dy2=(0.5*(dlw*dv[0]-dv[1]*k*lw+2*dv[1]*seglen))/seglen;
-          dv_out[0] = dx2;
-          dv_out[1] = dy2;
-      }
-      co[0]+=dx;
-      co[1]+=dy;
-      return co;
-    }
-     evaluate(s, order, override_scale, no_update, no_effects=!ENABLE_MULTIRES) {
-      if (this.flag&SplineFlags.COINCIDENT) {
-          return eval_ret_vs.next().load(this.v1);
-      }
-      if (no_effects) {
-          if (order===undefined)
-            order = ORDER;
-          s = (s+1e-08)*(1.0-2e-08);
-          s-=0.5;
-          var co=eval_curve(this, s, this.v1, this.v2, this.ks, order, undefined, no_update);
-          return eval_ret_vs.next().load(co);
-      }
-      else {
-        var wrap=this._evalwrap;
-        var last=wrap;
-        for (var i=0; i<this.cdata.length; i++) {
-            if (this.cdata[i].constructor._getDef().hasCurveEffect) {
-                var eff=this.cdata[i].curve_effect(this);
-                eff.set_parent(last);
-                last = eff;
-            }
-        }
-        return eval_ret_vs.next().load(last.evaluate(s));
-      }
-    }
-     post_solve() {
-      super.post_solve();
-    }
-     updateCoincident() {
-      if (this.v1.vectorDistance(this.v2)<0.001) {
-          this.flag|=SplineFlags.COINCIDENT;
-      }
-      else {
-        this.flag&=~SplineFlags.COINCIDENT;
-      }
-    }
-     update() {
-      this.updateCoincident();
-      this._update_has_multires();
-      this.flag|=SplineFlags.UPDATE|SplineFlags.UPDATE_AABB;
-      this.h1.flag|=SplineFlags.UPDATE;
-      this.h2.flag|=SplineFlags.UPDATE;
-      for (var i=0; i<this.cdata.length; i++) {
-          this.cdata[i].update(this);
-      }
-      var l=this.l;
-      if (l==undefined)
-        return ;
-      var c=0;
-      do {
-        if (c++>10000) {
-            console.log("Infinte loop detected!");
-            break;
-        }
-        l.f.update();
-        l = l.radial_next;
-      } while (l!=undefined&&l!=this.l);
-      
-    }
-     global_to_local(s, fixed_s=undefined) {
-      return this._evalwrap.global_to_local(s, fixed_s);
-    }
-     local_to_global(p) {
-      return this._evalwrap.local_to_global(p);
-    }
-     shared_vert(s) {
-      if (this.v1===s.v1||this.v1===s.v2)
-        return this.v1;
-      if (this.v2===s.v1||this.v2===s.v2)
-        return this.v2;
-    }
-     other_vert(v) {
-      if (v===this.v1)
-        return this.v2;
-      if (v===this.v2)
-        return this.v1;
-      console.log(this.v1.eid, this.v2.eid, v ? v.eid : v, this.eid, v);
-      throw new Error("vertex not in segment: "+(v ? v.eid : v));
-    }
-     loadSTRUCT(reader) {
-      reader(this);
-      super.loadSTRUCT(reader);
-      this.flag&=~(SplineFlags.UPDATE|SplineFlags.REDRAW);
-      this.mat.update = this._material_update.bind(this);
-    }
-  }
-  _ESClass.register(SplineSegment);
-  _es6_module.add_class(SplineSegment);
-  SplineSegment = _es6_module.add_export('SplineSegment', SplineSegment);
-  SplineSegment.STRUCT = STRUCT.inherit(SplineSegment, SplineElement)+`
-  ks       : array(float);
-  
-  v1       : int | obj.v1.eid;
-  v2       : int | obj.v2.eid;
-  
-  h1       : int | obj.h1 != undefined ? obj.h1.eid : -1;
-  h2       : int | obj.h2 != undefined ? obj.h2.eid : -1;
-  
-  w1       : float;
-  w2       : float;
-  
-  shift1   : float;
-  shift2   : float;
-  
-  l        : int | obj.l != undefined  ? obj.l.eid : -1;
-  
-  mat      : Material;
-
-  aabb     : array(vec3);
-  z        : float;
-  finalz   : float;
-  has_multires : int;
-  
-  topoid   : int;
-  stringid : int;
-}
-`;
-  class SplineLoop extends SplineElement {
-     constructor(f, s, v) {
-      super(SplineTypes.LOOP);
-      this.f = f, this.s = s, this.v = v;
-      this.next = this.prev = undefined;
-      this.radial_next = this.radial_prev = undefined;
-    }
-    static  fromSTRUCT(reader) {
-      var ret=new SplineLoop();
-      reader(ret);
-      return ret;
-    }
-  }
-  _ESClass.register(SplineLoop);
-  _es6_module.add_class(SplineLoop);
-  SplineLoop = _es6_module.add_export('SplineLoop', SplineLoop);
-  SplineLoop.STRUCT = STRUCT.inherit(SplineLoop, SplineElement)+`
-    f    : int | obj.f.eid;
-    s    : int | obj.s.eid;
-    v    : int | obj.v.eid;
-    next : int | obj.next.eid;
-    prev : int | obj.prev.eid;
-    radial_next : int | obj.radial_next != undefined ? obj.radial_next.eid : -1;
-    radial_prev : int | obj.radial_prev != undefined ? obj.radial_prev.eid : -1;
-  }
-`;
-  class SplineLoopPathIter  {
-    
-     constructor(path) {
-      this.path = path;
-      this.ret = {done: false, 
-     value: undefined};
-      this.l = path!=undefined ? path.l : undefined;
-    }
-     init(path) {
-      this.path = path;
-      this.l = path.l;
-      this.ret.done = false;
-      this.ret.value = undefined;
-      return this;
-    }
-     next() {
-      var ret=this.ret;
-      if (this.l==undefined) {
-          ret.done = true;
-          ret.value = undefined;
-          return ret;
-      }
-      ret.value = this.l;
-      this.l = this.l.next;
-      if (this.l===this.path.l)
-        this.l = undefined;
-      return ret;
-    }
-     reset() {
-      this.l = this.path.l;
-      this.ret.done = false;
-      this.ret.value = undefined;
-    }
-  }
-  _ESClass.register(SplineLoopPathIter);
-  _es6_module.add_class(SplineLoopPathIter);
-  var $cent_4i9s_update_winding;
-  class SplineLoopPath  {
-    
-     constructor(l, f) {
-      this.l = l;
-      this.f = f;
-      this.totvert = undefined;
-      this.winding = 0;
-    }
-     [Symbol.iterator]() {
-      if (this.itercache===undefined) {
-          this.itercache = cachering.fromConstructor(SplineLoopPathIter, 4);
-      }
-      return this.itercache.next().init(this);
-    }
-     update_winding() {
-      $cent_4i9s_update_winding.zero();
-      for (var l of this) {
-          $cent_4i9s_update_winding.add(l.v);
-      }
-      $cent_4i9s_update_winding.mulScalar(1.0/this.totvert);
-      var wsum=0;
-      for (var l of this) {
-          wsum+=math.winding(l.v, l.next.v, $cent_4i9s_update_winding) ? 1 : -1;
-      }
-      this.winding = wsum>=0;
-    }
-     asArray() {
-      var l=this.l;
-      var ret=[];
-      do {
-        ret.push(l);
-        l = l.next;
-      } while (l!==this.l);
-      
-      return ret;
-    }
-    static  fromSTRUCT(reader) {
-      var ret=new SplineLoopPath();
-      reader(ret);
-      var l=ret.l = ret.loops[0];
-      l.p = ret;
-      for (var i=1; i<ret.loops.length; i++) {
-          l.next = ret.loops[i];
-          ret.loops[i].prev = l;
-          ret.loops[i].p = ret;
-          l = ret.loops[i];
-      }
-      ret.loops[0].prev = ret.loops[ret.loops.length-1];
-      ret.loops[ret.loops.length-1].next = ret.loops[0];
-      delete ret.loops;
-      return ret;
-    }
-  }
-  var $cent_4i9s_update_winding=new Vector3();
-  _ESClass.register(SplineLoopPath);
-  _es6_module.add_class(SplineLoopPath);
-  SplineLoopPath = _es6_module.add_export('SplineLoopPath', SplineLoopPath);
-  SplineLoopPath.STRUCT = ` 
-  SplineLoopPath {
-    totvert : int;
-    loops   : array(SplineLoop) | obj.asArray();
-    winding : int;
-  }
-`;
-  var $minmax_1pAI_update_aabb;
-  class SplineFace extends SplineElement {
-    
-    
-    
-     constructor() {
-      super(SplineTypes.FACE);
-      this.z = this.finalz = 0;
-      this.mat = new Material();
-      this.paths = new GArray();
-      this.flag|=SplineFlags.UPDATE_AABB;
-      this._aabb = [new Vector3(), new Vector3()];
-      var this2=this;
-      this.mat.update = this._mat_update.bind(this);
-    }
-     _mat_update() {
-      this.flag|=SplineFlags.REDRAW;
-    }
-     update() {
-      this.flag|=SplineFlags.UPDATE_AABB|SplineFlags.REDRAW;
-    }
-     update_aabb() {
-      this.flag&=~SplineFlags.UPDATE_AABB;
-      $minmax_1pAI_update_aabb.reset();
-      for (var path of this.paths) {
-          for (var l of path) {
-              $minmax_1pAI_update_aabb.minmax(l.v.aabb[0]);
-              $minmax_1pAI_update_aabb.minmax(l.v.aabb[1]);
-              $minmax_1pAI_update_aabb.minmax(l.s.aabb[0]);
-              $minmax_1pAI_update_aabb.minmax(l.s.aabb[1]);
-          }
-      }
-      this._aabb[0].load($minmax_1pAI_update_aabb.min);
-      this._aabb[1].load($minmax_1pAI_update_aabb.max);
-    }
-    get  aabb() {
-      if (this.flag&SplineFlags.UPDATE_AABB)
-        this.update_aabb();
-      return this._aabb;
-    }
-    set  aabb(val) {
-      this._aabb = val;
-    }
-     loadSTRUCT(reader) {
-      reader(this);
-      super.loadSTRUCT(reader);
-      this.flag|=SplineFlags.UPDATE_AABB;
-      this.mat.update = this._mat_update.bind(this);
-    }
-  }
-  var $minmax_1pAI_update_aabb=new MinMax(3);
-  _ESClass.register(SplineFace);
-  _es6_module.add_class(SplineFace);
-  SplineFace = _es6_module.add_export('SplineFace', SplineFace);
-  SplineFace.STRUCT = STRUCT.inherit(SplineFace, SplineElement)+`
-    paths  : array(SplineLoopPath);
-    mat    : Material;
-    aabb   : array(vec3);
-    z      : float;
-    finalz : float;
-  }
-`;
-  class Material  {
-    
-    
-    
-    
-    
-    
-    
-    
-     constructor() {
-      this.fillcolor = new Vector4([0, 0, 0, 1]);
-      this.strokecolor = new Vector4([0, 0, 0, 1]);
-      this.strokecolor2 = new Vector4([0, 0, 0, 1]);
-      this.linewidth = 2.0;
-      this.linewidth2 = 0.0;
-      this.flag = 0;
-      this.opacity = 1.0;
-      this.fill_over_stroke = false;
-      this.blur = 0.0;
-    }
-     update() {
-      throw new Error("override me! should have happened in splinesegment or splineface constructors!");
-    }
-     equals(is_stroke, mat) {
-      var color1=is_stroke ? this.strokecolor : this.fillcolor;
-      var color2=is_stroke ? mat.strokecolor : mat.fillcolor;
-      for (var i=0; i<4; i++) {
-          if (color1[i]!=color2[i])
-            return false;
-      }
-      if (this.flag!=mat.flag)
-        return false;
-      if (this.opacity!=mat.opacity)
-        return false;
-      if (this.blur!=mat.blur)
-        return false;
-      if (is_stroke&&this.linewidth!=mat.linewidth)
-        return false;
-      return true;
-    }
-     load(mat) {
-      for (var i=0; i<4; i++) {
-          this.fillcolor[i] = mat.fillcolor[i];
-          this.strokecolor[i] = mat.strokecolor[i];
-          this.strokecolor2[i] = mat.strokecolor2[i];
-      }
-      this.opacity = mat.opacity;
-      this.linewidth = mat.linewidth;
-      this.fill_over_stroke = mat.fill_over_stroke;
-      this.blur = mat.blur;
-      this.linewidth2 = mat.linewidth2;
-      this.flag = mat.flag;
-      return this;
-    }
-    get  css_fillcolor() {
-      var r=Math.floor(this.fillcolor[0]*255);
-      var g=Math.floor(this.fillcolor[1]*255);
-      var b=Math.floor(this.fillcolor[2]*255);
-      return "rgba("+r+","+g+","+b+","+this.fillcolor[3]+")";
-    }
-     loadSTRUCT(reader) {
-      reader(this);
-      this.fillcolor = new Vector4(this.fillcolor);
-      if (isNaN(this.fillcolor[3])) {
-          this.fillcolor[3] = 1.0;
-      }
-      this.strokecolor = new Vector4(this.strokecolor);
-      if (isNaN(this.strokecolor[3])) {
-          this.strokecolor[3] = 1.0;
-      }
-    }
-    static  fromSTRUCT(reader) {
-      var ret=new Material();
-      reader(ret);
-      return ret;
-    }
-  }
-  _ESClass.register(Material);
-  _es6_module.add_class(Material);
-  Material = _es6_module.add_export('Material', Material);
-  Material.STRUCT = `
-  Material {
-    fillcolor        : vec4;
-    strokecolor      : vec4;
-    strokecolor2     : vec4;
-    opacity          : float;
-    fill_over_stroke : int;
-    linewidth        : float;
-    linewidth2       : float;
-    blur             : float;
-    flag             : int;
-  }
-`;
-  var ToolIter=es6_import_item(_es6_module, '../core/toolprops_iter.js', 'ToolIter');
-  var TPropIterable=es6_import_item(_es6_module, '../core/toolprops_iter.js', 'TPropIterable');
-  class ElementRefIter extends ToolIter {
-    
-     constructor() {
-      super();
-      this.ret = {done: false, 
-     value: undefined};
-      this.spline = this.ctx = this.iter = undefined;
-    }
-     init(eset) {
-      this.ret.done = false;
-      this.nextitem = undefined;
-      this.eset = eset;
-      this.ctx = eset!=undefined ? eset.ctx : undefined;
-      this.spline = this.ctx!=undefined ? this.ctx.spline : undefined;
-      return this;
-    }
-     spawn() {
-      var ret=new ElementRefIter();
-      ret.init(this.eset);
-      return ret;
-    }
-     next() {
-      var ret=this.ret;
-      if (this.spline==undefined)
-        this.spline = this.ctx.spline;
-      if (this.iter==undefined)
-        this.iter = set.prototype[Symbol.iterator].call(this.eset);
-      var spline=this.spline;
-      var next, e=undefined;
-      do {
-        var next=this.iter.next();
-        if (next.done)
-          break;
-        e = spline.eidmap[next.value];
-        if (e==undefined) {
-            console.log("Warning, bad eid", next.value);
-        }
-      } while (next.done!=true&&e==undefined);
-      
-      if (e==undefined||next.done==true) {
-          this.spline = undefined;
-          this.iter = undefined;
-          ret.done = true;
-          ret.value = undefined;
-      }
-      else {
-        ret.value = e;
-      }
-      return ret;
-    }
-     reset() {
-      this.i = 0;
-      this.ret.done = false;
-      this.spline = undefined;
-      this.iter = undefined;
-    }
-     [Symbol.iterator]() {
-      return this;
-    }
-    static  fromSTRUCT(reader) {
-      var ret=new ElementRefIter();
-      reader(ret);
-      for (var i=0; i<ret.saved_items.length; i++) {
-          ret.add(ret.saved_items[i]);
-      }
-      delete ret.saved_items;
-      return ret;
-    }
-  }
-  _ESClass.register(ElementRefIter);
-  _es6_module.add_class(ElementRefIter);
-  ElementRefIter = _es6_module.add_export('ElementRefIter', ElementRefIter);
-  ElementRefIter.STRUCT = `
-  ElementRefIter {
-    mask        : int;
-    saved_items : iter(int) | obj;
-  }
-`;
-  class ElementRefSet extends set {
-     constructor(mask) {
-      super();
-      this.mask = mask==undefined ? SplineTypes.ALL : mask;
-    }
-     add(item) {
-      var start_item=item;
-      if (!(typeof item=="number"||__instance_of(item, Number)))
-        item = item.eid;
-      if (item==undefined) {
-          console.trace("ERROR in ElementRefSet!!", start_item);
-          return ;
-      }
-      set.prototype.add.call(this, item);
-    }
-     copy() {
-      var ret=new ElementRefSet(this.mask);
-      for (var eid of set.prototype[Symbol.iterator].call(this)) {
-          ret.add(eid);
-      }
-      return ret;
-    }
-     [Symbol.iterator]() {
-      if (this.itercaches==undefined) {
-          this.itercaches = cachering.fromConstructor(ElementRefIter, 8);
-      }
-      return this.itercaches.next().init(this);
-    }
-  }
-  _ESClass.register(ElementRefSet);
-  _es6_module.add_class(ElementRefSet);
-  ElementRefSet = _es6_module.add_export('ElementRefSet', ElementRefSet);
-  
-  mixin(ElementRefSet, TPropIterable);
-  var native_api=es6_import(_es6_module, '../wasm/native_api.js');
-}, '/dev/fairmotion/src/curve/spline_types.js');

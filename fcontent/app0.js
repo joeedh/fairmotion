@@ -1,3 +1,14 @@
+es6_module_define('evillog', [], function _evillog_module(_es6_module) {
+  "use strict";
+  function evillog() {
+    let s="";
+    for (let arg of arguments) {
+        s+=""+arg+" ";
+    }
+    console.error("EVIL:", s);
+  }
+  evillog = _es6_module.add_export('evillog', evillog);
+}, '/dev/fairmotion/src/core/evillog.js');
 "not_a_module";
 if (Array.prototype.pop_i===undefined) {
     Array.prototype.pop_i = function pop_i(idx, throw_on_error) {

@@ -231,6 +231,7 @@ export function draw_spline(spline, redraw_rects, g, editor, matrix, selectmode,
   
   let tmp1 = new Vector2();
   let tmp2 = new Vector2();
+  let last_clr = undefined;
 
   g.beginPath();
   if (selectmode & SelMask.SEGMENT) {
@@ -245,7 +246,7 @@ export function draw_spline(spline, redraw_rects, g, editor, matrix, selectmode,
         continue;
       }
 
-      let steps = seg.length / 64;
+      let steps = seg.length / 24;
       steps = Math.min(Math.max(steps, 3), 64);
       steps = isNaN(steps) ? 3 : steps;
 
@@ -327,7 +328,6 @@ export function draw_spline(spline, redraw_rects, g, editor, matrix, selectmode,
     }
   }
 
-  let last_clr = undefined;
   if (selectmode & SelMask.VERTEX) {
     let w = vert_size*g.canvas.dpi_scale/zoom;
     

@@ -668,14 +668,14 @@ export class SplineDrawer {
     var draw_faces = !!(only_render || editor.draw_faces);
     
     var recalc_all = this.recalc_all || this.draw_faces !== draw_faces || this.do_blur !== do_blur;
+    recalc_all = recalc_all || (!!only_render !== !!this.only_render && (selectmode & SplineTypes.FACE));
+    recalc_all = recalc_all || (selectmode !== this.last_selectmode && ((selectmode|this.last_selectmode) & SplineTypes.FACE));
 
     recalc_all = recalc_all || spline.verts.length !== this.last_totvert;
     recalc_all = recalc_all || spline.segments.length !== this.last_totseg;
     recalc_all = recalc_all || spline.faces.length !== this.last_totface;
 
 
-    recalc_all = recalc_all || (only_render !== this.only_render && (selectmode & SplineTypes.FACE));
-    recalc_all = recalc_all || (selectmode !== this.selectmode && ((selectmode|this.selectmode) & SplineTypes.FACE));
 
     //console.log("all will redrw?", recalc_all);
     if (recalc_all) {
@@ -686,8 +686,8 @@ export class SplineDrawer {
     this.last_totvert = spline.verts.length;
     this.last_totseg = spline.segments.length;
     this.last_totface = spline.faces.length;
+    this.last_selectmode = selectmode;
 
-    this.selectmode = selectmode;
     this.only_render = only_render;
     this.last_zoom = zoom;
     this.draw_faces = draw_faces;
@@ -735,6 +735,8 @@ export class SplineDrawer {
       
       off.load(b).sub(a);
     } else {
+      console.log("RECALC_ALL!");
+
       off.zero();
     }
 

@@ -38,6 +38,8 @@ import {
   Canvas, Path, VectorFlags
 } from '../vectordraw/vectordraw.js';
 
+import {evillog} from "../core/evillog.js";
+
 window.FANCY_JOINS = true;
 
 //XXX
@@ -671,6 +673,10 @@ export class SplineDrawer {
     recalc_all = recalc_all || spline.segments.length !== this.last_totseg;
     recalc_all = recalc_all || spline.faces.length !== this.last_totface;
 
+
+    recalc_all = recalc_all || (only_render !== this.only_render && (selectmode & SplineTypes.FACE));
+    recalc_all = recalc_all || (selectmode !== this.selectmode && ((selectmode|this.selectmode) & SplineTypes.FACE));
+
     //console.log("all will redrw?", recalc_all);
     if (recalc_all) {
       //abort all outstanding render threads
@@ -680,7 +686,9 @@ export class SplineDrawer {
     this.last_totvert = spline.verts.length;
     this.last_totseg = spline.segments.length;
     this.last_totface = spline.faces.length;
-    
+
+    this.selectmode = selectmode;
+    this.only_render = only_render;
     this.last_zoom = zoom;
     this.draw_faces = draw_faces;
     this.do_blur = do_blur;
@@ -740,6 +748,8 @@ export class SplineDrawer {
     
     this.drawer.set_matrix(drawMatrix); //matrix);
 
+    let oldcolor = new Vector4();
+
     if (recalc_all) {
       this.drawer.recalcAll();
 
@@ -796,13 +806,23 @@ export class SplineDrawer {
       }
       
       var layerid = this.drawlist_layerids[i];
-      
-      if (e.flag & SplineFlags.HIDE)
+
+      let bad = (e.flag & SplineFlags.HIDE);
+      bad = bad || ((e.flag & SplineFlags.NO_RENDER) && e.type !== SplineTypes.VERTEX && (selectmode !== e.type || only_render));
+
+      if (bad && e.type === SplineTypes.FACE && this.has_path(e.eid, i)) {
+        let path = this.get_path(e.eid, i);
+        oldcolor.load(path.color);
+
+        this.update_polygon_color(e, redraw_rects, actlayer, only_render, selectmode, zoom, i, off, spline, ignore_layers);
+        if (path.color.vectorDistance(oldcolor) > 0.0001) {
+          bad = false;
+        }
+      }
+      if (bad) {
         continue;
-      
-      if ((e.flag & SplineFlags.NO_RENDER) && e.type !== SplineTypes.VERTEX && (selectmode !== e.type || only_render))
-        continue;
-      
+      }
+
       var visible = false;
       
       for (let k in e.layers) {
@@ -1696,26 +1716,44 @@ export class SplineDrawer {
     }
   }
 
-  update_polygon(f, redraw_rects, actlayer, only_render, selectmode, zoom, z, off, spline, ignore_layers) {
-    if (this.has_path(f.eid, z) && !(f.flag & SplineFlags.REDRAW)) {
+  update_polygon_color(f, redraw_rects, actlayer, only_render, selectmode, zoom, z, off, spline, ignore_layers) {
+    if (!this.has_path(f.eid, z)) {
       return;
     }
-    
-    f.flag &= ~SplineFlags.REDRAW;
-    var path = this.get_path(f.eid, z);
-    path.was_updated = true;
-    
-    path.hidden = !this.draw_faces;
-    
-    path.reset();
-    path.blur = f.mat.blur * (this.do_blur ? 1 : 0);
-    { //XXX fixme, path.color wasn't a vector4 but an array, so .load didn't work
+
+    let path = this.get_path(f.eid, z);
+
+    function setElemColor() {
+      /*if ((selectmode & SelMask.FACE) && f === spline.faces.highlight) {
+        path.color[0] = 200/255, path.color[1] = 200/255, path.color[2] = 50/255, path.color[3] = 0.8;
+        //g.strokeStyle = "rgba(200, 200, 50, 0.8)";
+      } else*/ if ((selectmode & SelMask.FACE) && f === spline.faces.active) {
+        path.color[0] = 200/255, path.color[1] = 80/255, path.color[2] = 50/255, path.color[3] = 0.8;
+        //g.strokeStyle = "rgba(200, 80, 50, 0.8)";
+      } else if ((selectmode & SelMask.FACE) && (f.flag & SplineFlags.SELECT)) {
+        path.color[0] = 250/255, path.color[1] = 140/255, path.color[2] = 50/255, path.color[3] = 0.8;
+        //g.strokeStyle = "rgba(250, 140, 50, 0.8)";
+      } else {
+        path.color[0] = f.mat.fillcolor[0];
+        path.color[1] = f.mat.fillcolor[1];
+        path.color[2] = f.mat.fillcolor[2];
+        path.color[3] = f.mat.fillcolor[3];
+      }
+    }
+
+    let inlayer = ignore_layers || f.in_layer(actlayer);
+
+    if (!only_render && (selectmode & SelMask.FACE) && inlayer) {
+      setElemColor();
+    } else {
+      if (f.mat.fillcolor === undefined) {
+        evillog("DATA CORRUPTION! f.mat.fillcolor was undefined!", f.eid);
+        f.mat.fillcolor = c2 = new Vector4([0, 0, 0, 1]);
+      }
+
       let c1 = path.color;
       let c2 = f.mat.fillcolor;
 
-      if (c2 === undefined) {
-        f.mat.fillcolor = c2 = new Vector4([0,0,0,1]);
-      }
       if (c1 && c2) {
         c1[0] = c2[0];
         c1[1] = c2[1];
@@ -1723,6 +1761,28 @@ export class SplineDrawer {
         c1[3] = c2[3];
       }
     }
+  }
+
+  update_polygon(f, redraw_rects, actlayer, only_render, selectmode, zoom, z, off, spline, ignore_layers) {
+    let path;
+
+    if (this.has_path(f.eid, z) && !(f.flag & SplineFlags.REDRAW)) {
+      path = this.get_path(f.eid, z);
+
+      let c2 = f.mat.fillcolor;
+
+      this.update_polygon_color(...arguments);
+      return;
+    }
+    
+    f.flag &= ~SplineFlags.REDRAW;
+    path = this.get_path(f.eid, z);
+    path.was_updated = true;
+    
+    path.hidden = !this.draw_faces;
+    
+    path.reset();
+    path.blur = f.mat.blur * (this.do_blur ? 1 : 0);
 
     //g.lineWidth = 8;//*zoom;
     
@@ -1779,21 +1839,9 @@ export class SplineDrawer {
         }
       }
     }
-    
-    if (/*do_mask ||*/ (!ignore_layers && !f.in_layer(actlayer)) || only_render)
-      return;
-    
-    if ((selectmode & SelMask.FACE) && f === spline.faces.highlight) {
-      path.color[0] = 200/255, path.color[1] = 200/255, path.color[2] = 50/255, path.color[3] = 0.8;
-      //g.strokeStyle = "rgba(200, 200, 50, 0.8)";
-    } else if ((selectmode & SelMask.FACE) && f === spline.faces.active) {
-      path.color[0] = 200/255, path.color[1] = 80/255, path.color[2] = 50/255, path.color[3] = 0.8;
-      //g.strokeStyle = "rgba(200, 80, 50, 0.8)";
-    } else if ((selectmode & SelMask.FACE) && (f.flag & SplineFlags.SELECT)) {
-      path.color[0] = 250/255, path.color[1] = 140/255, path.color[2] = 50/255, path.color[3] = 0.8;
-      //g.strokeStyle = "rgba(250, 140, 50, 0.8)";
-    }
-    
+
+    this.update_polygon_color(...arguments);
+
     return path;
   }
   

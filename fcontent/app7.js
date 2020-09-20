@@ -2353,7 +2353,7 @@ es6_module_define('built_wasm', ["./load_wasm.js"], function _built_wasm_module(
   noExitRuntime = true;
   run();
 }, '/dev/fairmotion/src/wasm/built_wasm.js');
-es6_module_define('native_api', ["../core/ajax.js", "../curve/spline_base.js", "../path.ux/scripts/util/vectormath.js", "../util/typedwriter.js", "../curve/spline_math_hermite.js", "../path.ux/scripts/util/util.js", "./built_wasm.js", "../curve/solver.js", "../core/toolops_api.js"], function _native_api_module(_es6_module) {
+es6_module_define('native_api', ["../curve/spline_math_hermite.js", "../core/toolops_api.js", "../curve/spline_base.js", "../path.ux/scripts/util/util.js", "./built_wasm.js", "../util/typedwriter.js", "../config/config.js", "../path.ux/scripts/util/vectormath.js", "../curve/solver.js", "../core/ajax.js"], function _native_api_module(_es6_module) {
   var wasm=es6_import(_es6_module, './built_wasm.js');
   let wasmModule=wasm;
   wasmModule = _es6_module.add_export('wasmModule', wasmModule);
@@ -2381,6 +2381,7 @@ es6_module_define('native_api', ["../core/ajax.js", "../curve/spline_base.js", "
   var Vector4=es6_import_item(_es6_module, '../path.ux/scripts/util/vectormath.js', 'Vector4');
   var Matrix4=es6_import_item(_es6_module, '../path.ux/scripts/util/vectormath.js', 'Matrix4');
   var Quat=es6_import_item(_es6_module, '../path.ux/scripts/util/vectormath.js', 'Quat');
+  var config=es6_import(_es6_module, '../config/config.js');
   var ajax=es6_import(_es6_module, '../core/ajax.js');
   function isReady() {
     return wasm.calledRun;
@@ -2403,6 +2404,7 @@ es6_module_define('native_api', ["../core/ajax.js", "../curve/spline_base.js", "
   var KSTARTZ=es6_import_item(_es6_module, '../curve/spline_math_hermite.js', 'KSTARTZ');
   var KTOTKS=es6_import_item(_es6_module, '../curve/spline_math_hermite.js', 'KTOTKS');
   var INT_STEPS=es6_import_item(_es6_module, '../curve/spline_math_hermite.js', 'INT_STEPS');
+  var DISABLE_SOLVE=es6_import_item(_es6_module, '../config/config.js', 'DISABLE_SOLVE');
   function onMessage(type, message, ptr) {
     let iview=new Int32Array(message);
     let id=iview[1];
@@ -2671,6 +2673,11 @@ es6_module_define('native_api', ["../core/ajax.js", "../curve/spline_base.js", "
     if (return_promise===undefined) {
         return_promise = false;
     }
+    if (config.DISABLE_SOLVE) {
+        return new Promise((accept, reject) =>          {
+          accept();
+        });
+    }
     let draw_id=push_solve(spline);
     spline._solve_id = draw_id;
     let job_id=solve_idgen++;
@@ -2778,7 +2785,9 @@ es6_module_define('native_api', ["../core/ajax.js", "../curve/spline_base.js", "
     function add_vert(v) {
       writer.int32(v.eid);
       writer.int32(v.flag);
-      writer.vec3(v);
+      writer.float32(v[0]);
+      writer.float32(v[1]);
+      writer.float32(0.0);
       writer.int32(0);
       idxmap[v.eid] = i++;
     }
@@ -3757,7 +3766,7 @@ export const d;
     manager.loadAddon("./addons/test.js");
   }
 }, '/dev/fairmotion/src/addon_api/addon_api.js');
-es6_module_define('scene', ["./sceneobject.js", "../core/eventdag.js", "../curve/spline_base.js", "../core/struct.js", "../core/frameset.js", "../editors/viewport/selectmode.js", "../core/lib_api.js", "../editors/viewport/toolmodes/toolmode.js"], function _scene_module(_es6_module) {
+es6_module_define('scene', ["../editors/viewport/toolmodes/toolmode.js", "../core/struct.js", "../core/lib_api.js", "../curve/spline_base.js", "./sceneobject.js", "../core/eventdag.js", "../core/frameset.js", "../editors/viewport/selectmode.js"], function _scene_module(_es6_module) {
   var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
   var DataBlock=es6_import_item(_es6_module, '../core/lib_api.js', 'DataBlock');
   var DataTypes=es6_import_item(_es6_module, '../core/lib_api.js', 'DataTypes');
@@ -3999,6 +4008,7 @@ es6_module_define('scene', ["./sceneobject.js", "../core/eventdag.js", "../curve
       if (this.dagnodes.length===0) {
           this.linkDag(ctx);
       }
+      updateActiveToolApi(ctx);
     }
     static  nodedef() {
       return {name: "scene", 
@@ -6149,18 +6159,18 @@ es6_module_define('events', ["../path.ux/scripts/util/events.js", "../path.ux/sc
       this.touch_delay = delay_ms;
     }
      pop_touch_delay() {
-      if (this.touch_delay_stack.length==0) {
+      if (this.touch_delay_stack.length===0) {
           console.log("Invalid call to EventHandler.pop_touch_delay!");
           return ;
       }
       this.touch_delay = this.touch_delay_stack.pop();
     }
     set  touch_delay(delay_ms) {
-      if (delay_ms==0) {
+      if (delay_ms===0) {
           this.touch_manager = undefined;
       }
       else {
-        if (this.touch_manager==undefined)
+        if (this.touch_manager===undefined)
           this.touch_manager = new TouchEventManager(this, delay_ms);
         else 
           this.touch_manager.delay = delay_ms;
@@ -6177,16 +6187,16 @@ es6_module_define('events', ["../path.ux/scripts/util/events.js", "../path.ux/sc
     }
      bad_event(event) {
       var tm=this.touch_manager;
-      if (tm==undefined)
+      if (tm===undefined)
         return false;
-      if (this.touch_manager!=undefined)
+      if (this.touch_manager!==undefined)
         this.touch_manager.process();
-      if (tm!=undefined&&__instance_of(event, MyMouseEvent)) {
+      if (tm!==undefined&&__instance_of(event, MyMouseEvent)) {
           var i=0;
           for (var k in event.touches) {
               i++;
           }
-          if (i==0)
+          if (i===0)
             return false;
           if ("_good" in event)
             return false;
@@ -6387,39 +6397,41 @@ es6_module_define('events', ["../path.ux/scripts/util/events.js", "../path.ux/sc
     
     
     
-     constructor(key, modifiers, uiname, menunum, ignore_charmap_error) {
+    
+     constructor(key, modifiers, uiName, menunum, ignore_charmap_error) {
+      this.uiName = uiName;
       if (!charmap.hasOwnProperty(key)) {
-          if (ignore_charmap_error!=undefined&&ignore_charmap_error!=true) {
+          if (ignore_charmap_error!==undefined&&ignore_charmap_error!==true) {
               console.trace();
               console.log("Invalid hotkey "+key+"!");
           }
-          this.key = 0;
+          this._key = 0;
           this.keyAscii = "[corrupted hotkey]";
           this.shift = this.alt = this.ctrl = false;
           return this;
       }
-      if (typeof (key)=="string") {
-          if (key.length==1)
+      if (typeof (key)==="string") {
+          if (key.length===1)
             key = key.toUpperCase();
           this.keyAscii = key;
-          this.key = charmap[key];
+          this._key = charmap[key];
       }
       else {
-        this.key = key;
+        this._key = key;
         this.keyAscii = charmap[key];
       }
       this.shift = this.alt = this.ctrl = false;
       this.menunum = menunum;
       for (var i=0; i<modifiers.length; i++) {
-          if (modifiers[i]=="SHIFT") {
+          if (modifiers[i]==="SHIFT") {
               this.shift = true;
           }
           else 
-            if (modifiers[i]=="ALT") {
+            if (modifiers[i]==="ALT") {
               this.alt = true;
           }
           else 
-            if (modifiers[i]=="CTRL") {
+            if (modifiers[i]==="CTRL") {
               this.ctrl = true;
           }
           else {
@@ -6428,8 +6440,25 @@ es6_module_define('events', ["../path.ux/scripts/util/events.js", "../path.ux/sc
           }
       }
     }
+     copy() {
+      let modifiers=[];
+      if (this.ctrl)
+        modifiers.push("CTRL");
+      if (this.shift)
+        modifiers.push("SHIFT");
+      if (this.alt)
+        modifiers.push("ALT");
+      return new HotKey(this.key, modifiers, this.uiName, this.menunum);
+    }
+    set  key(v) {
+      this._key = v;
+      this.keyAscii = charmap[v];
+    }
+    get  key() {
+      return this._key;
+    }
      build_str(add_menu_num) {
-      var s="";
+      let s="";
       if (this.ctrl)
         s+="CTRL-";
       if (this.alt)
@@ -6442,14 +6471,105 @@ es6_module_define('events', ["../path.ux/scripts/util/events.js", "../path.ux/sc
      [Symbol.keystr]() {
       return this.build_str(false);
     }
+     loadSTRUCT(reader) {
+      reader(this);
+    }
   }
   _ESClass.register(HotKey);
   _es6_module.add_class(HotKey);
   HotKey = _es6_module.add_export('HotKey', HotKey);
-  class KeyMap extends hashtable {
-    
+  HotKey.STRUCT = `
+HotKey {
+  key      : int;
+  keyAscii : string;
+  ctrl     : bool;
+  shift    : bool;
+  alt      : bool;
+  uiName   : string;
+}
+`;
+  class HotKeyPatch  {
+     constructor(keymapPathId, src_hk, new_hk, toolstr=undefined) {
+      this.src = src_hk;
+      this.dst = new_hk;
+      this.pathid = keymapPathId;
+      this.toolstr = toolstr;
+    }
+     [Symbol.keystr]() {
+      let ret=this.src[Symbol.keystr]()+":"+this.pathid;
+      if (this.toolstr) {
+          ret+=":"+this.toolstr;
+      }
+      return ret;
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+      if (this.toolstr==="") {
+          this.toolstr = undefined;
+      }
+    }
+  }
+  _ESClass.register(HotKeyPatch);
+  _es6_module.add_class(HotKeyPatch);
+  HotKeyPatch = _es6_module.add_export('HotKeyPatch', HotKeyPatch);
+  HotKeyPatch.STRUCT = `
+HotKeyPatch {
+  src      : HotKey;
+  dst      : HotKey;
+  pathid   : string;
+  toolstr  : string | this.toolstr === undefined ? "" : this.toolstr;
+}
+`;
+  class HotKeyPatchSet extends Array {
      constructor() {
       super();
+      this.map = new hashtable();
+    }
+     add(patch) {
+      this.map.set(patch, patch);
+    }
+     has(key) {
+      return this.map.has(key);
+    }
+     get(key) {
+      return this.map.get(key);
+    }
+     set(patch) {
+      if (this.indexOf(patch)<0) {
+          this.add(patch);
+      }
+      else {
+        this.map.set(patch, patch);
+      }
+    }
+     remove(patch) {
+      if (this.indexOf(patch)<0) {
+          return ;
+      }
+      super.remove(patch);
+      this.map.remove(patch);
+    }
+     loadSTRUCT(reader) {
+      reader(this);
+      for (let p of this.patches) {
+          this.add(p);
+      }
+      delete this.patches;
+    }
+  }
+  _ESClass.register(HotKeyPatchSet);
+  _es6_module.add_class(HotKeyPatchSet);
+  HotKeyPatchSet = _es6_module.add_export('HotKeyPatchSet', HotKeyPatchSet);
+  HotKeyPatchSet.STRUCT = `
+HotKeyPatchSet {
+  patches : array(HotKeyPatch) | this; 
+}
+`;
+  class KeyMap extends hashtable {
+    
+     constructor(pathid) {
+      super();
+      this.pathid = ""+pathid;
       this.op_map = new hashtable();
     }
      concat(keymap) {
@@ -6479,7 +6599,7 @@ es6_module_define('events', ["../path.ux/scripts/util/events.js", "../path.ux/sc
       }
       super.set(keyhandler, value);
     }
-     process_event(ctx, event) {
+     process_event(ctx, event, patchset) {
       var modlist=[];
       if (event.ctrlKey)
         modlist.push("CTRL");
@@ -6489,9 +6609,18 @@ es6_module_define('events', ["../path.ux/scripts/util/events.js", "../path.ux/sc
         modlist.push("ALT");
       var key=new HotKey(event.keyCode, modlist, 0, 0, true);
       if (this.has(key)) {
+          let hk;
           ctx.keymap_mpos[0] = ctx.screen.mpos[0];
           ctx.keymap_mpos[1] = ctx.screen.mpos[1];
-          return this.get(key).handle(ctx);
+          if (patchset&&patchset.has(key2)) {
+              let hk1=this.get(key);
+              let hk2=patchset.get(key2);
+          }
+          else {
+            hk = this.get(key);
+          }
+          hk.handle(ctx);
+          return true;
       }
       return undefined;
     }
@@ -6528,7 +6657,7 @@ es6_module_define('events', ["../path.ux/scripts/util/events.js", "../path.ux/sc
   _ESClass.register(FuncKeyHandler);
   _es6_module.add_class(FuncKeyHandler);
   FuncKeyHandler = _es6_module.add_export('FuncKeyHandler', FuncKeyHandler);
-  var $was_clamped_NG1c_clamp_pan;
+  let _was_clamped_cp=[0, 0];
   class VelocityPan extends EventHandler {
     
     
@@ -6576,7 +6705,7 @@ es6_module_define('events', ["../path.ux/scripts/util/events.js", "../path.ux/sc
           this.pan.sub(vel);
           var was_clamped=this.clamp_pan();
           this.owner.on_pan(this.pan, this.start_pan);
-          var stop=was_clamped!=undefined&&(was_clamped[0]&&was_clamped[1]);
+          var stop=was_clamped!==undefined&&(was_clamped[0]&&was_clamped[1]);
           stop = stop||this.vel.vectorLength<1;
           if (stop)
             this.coasting = false;
@@ -6647,15 +6776,16 @@ es6_module_define('events', ["../path.ux/scripts/util/events.js", "../path.ux/sc
       if (this.owner.state&8192*4)
         return ;
       var p=this.pan;
-      $was_clamped_NG1c_clamp_pan[0] = false;
-      $was_clamped_NG1c_clamp_pan[1] = false;
+      let was_clamped=_was_clamped_cp;
+      was_clamped[0] = false;
+      was_clamped[1] = false;
       for (var i=0; i<2; i++) {
           var l=p[i];
           p[i] = Math.min(Math.max(bs[0][i], p[i]), bs[0][i]+bs[1][i]);
-          if (p[i]!=l)
-            $was_clamped_NG1c_clamp_pan[i] = true;
+          if (p[i]!==l)
+            was_clamped[i] = true;
       }
-      return $was_clamped_NG1c_clamp_pan;
+      return was_clamped;
     }
      on_mouseup(event) {
       console.log("pan mouse up!", this.panning, this.owner);
@@ -6676,7 +6806,6 @@ es6_module_define('events', ["../path.ux/scripts/util/events.js", "../path.ux/sc
       this.vel.zero();
     }
   }
-  var $was_clamped_NG1c_clamp_pan=[0, 0];
   _ESClass.register(VelocityPan);
   _es6_module.add_class(VelocityPan);
   VelocityPan = _es6_module.add_export('VelocityPan', VelocityPan);
@@ -6698,29 +6827,29 @@ es6_module_define('events', ["../path.ux/scripts/util/events.js", "../path.ux/sc
       var q=this.queue;
       while (i>=0) {
         var e=q[i];
-        if (e.type==type||e.type!=MyMouseEvent.MOUSEMOVE)
+        if (e.type===type||e.type!==MyMouseEvent.MOUSEMOVE)
           break;
         i--;
       }
       if (i<0)
         i = 0;
-      return q[i].type==type ? q[i] : undefined;
+      return q[i].type===type ? q[i] : undefined;
     }
      queue_event(event) {
       var last=this.get_last(event.type);
-      if (DEBUG.touch&&this==touch_manager)
+      if (DEBUG.touch&&this===touch_manager)
         console.log("touch event", event.type);
-      if (last!=undefined&&last.type!=MyMouseEvent.MOUSEMOVE) {
+      if (last!==undefined&&last.type!==MyMouseEvent.MOUSEMOVE) {
           var dis, same=true;
           for (var k in event.touches) {
               if (!(k in last.touches)) {
               }
           }
           dis = new Vector2([event.x, event.y]).vectorDistance(new Vector2([last.x, last.y]));
-          if (DEBUG.touch&&this==touch_manager)
+          if (DEBUG.touch&&this===touch_manager)
             console.log(dis);
           if (same&&dis<50) {
-              if (DEBUG.touch&&this==touch_manager)
+              if (DEBUG.touch&&this===touch_manager)
                 console.log("destroying duplicate event", last.type, event.x, event.y, event.touches);
               for (var k in event.touches) {
                   last.touches[k] = event.touches[k];
@@ -6734,7 +6863,7 @@ es6_module_define('events', ["../path.ux/scripts/util/events.js", "../path.ux/sc
      cancel(event) {
       var ts=event.touches;
       var dl=new GArray;
-      if (DEBUG.touch&&this==touch_manager)
+      if (DEBUG.touch&&this===touch_manager)
         console.log("touch cancel", event);
       for (var e in this.queue) {
           for (var k in ts) {
@@ -6742,7 +6871,7 @@ es6_module_define('events', ["../path.ux/scripts/util/events.js", "../path.ux/sc
                   delete e.touches;
               }
           }
-          if (list(e.touches).length==0) {
+          if (list(e.touches).length===0) {
               dl.push(e);
           }
       }
@@ -6772,7 +6901,7 @@ es6_module_define('events', ["../path.ux/scripts/util/events.js", "../path.ux/sc
           e._good = true;
           g_app_state.was_touch = true;
           try {
-            if (e.type==MyMouseEvent.MOUSEDOWN) {
+            if (e.type===MyMouseEvent.MOUSEDOWN) {
                 if (DEBUG.touch)
                   console.log("td1", e.x, e.y);
                 owner._on_mousedown(e);
@@ -6780,11 +6909,11 @@ es6_module_define('events', ["../path.ux/scripts/util/events.js", "../path.ux/sc
                   console.log("td2", e.x, e.y);
             }
             else 
-              if (e.type==MyMouseEvent.MOUSEMOVE) {
+              if (e.type===MyMouseEvent.MOUSEMOVE) {
                 owner._on_mousemove(e);
             }
             else 
-              if (e.type==MyMouseEvent.MOUSEUP) {
+              if (e.type===MyMouseEvent.MOUSEUP) {
                 owner._on_mouseup(e);
             }
           }
@@ -7716,7 +7845,7 @@ es6_module_define('toolprops_iter', ["./struct.js"], function _toolprops_iter_mo
 }
 `;
 }, '/dev/fairmotion/src/core/toolprops_iter.js');
-es6_module_define('toolops_api', ["../editors/events.js", "../path.ux/scripts/toolsys/simple_toolsys.js", "../path.ux/scripts/util/simple_events.js", "./toolprops.js", "./struct.js"], function _toolops_api_module(_es6_module) {
+es6_module_define('toolops_api', ["../editors/events.js", "./struct.js", "./toolprops.js", "../path.ux/scripts/toolsys/simple_toolsys.js", "../path.ux/scripts/util/simple_events.js"], function _toolops_api_module(_es6_module) {
   "use strict";
   var PropTypes=es6_import_item(_es6_module, './toolprops.js', 'PropTypes');
   var TPropFlags=es6_import_item(_es6_module, './toolprops.js', 'TPropFlags');
@@ -7762,20 +7891,20 @@ es6_module_define('toolops_api', ["../editors/events.js", "../path.ux/scripts/to
   patchMouseEvent = _es6_module.add_export('patchMouseEvent', patchMouseEvent);
   var pushModalLight=es6_import_item(_es6_module, '../path.ux/scripts/util/simple_events.js', 'pushModalLight');
   var popModalLight=es6_import_item(_es6_module, '../path.ux/scripts/util/simple_events.js', 'popModalLight');
-  var UndoFlags={IGNORE_UNDO: 2, 
+  const UndoFlags={IGNORE_UNDO: 2, 
    IS_ROOT_OPERATOR: 4, 
    UNDO_BARRIER: 8, 
    HAS_UNDO_DATA: 16}
-  UndoFlags = _es6_module.add_export('UndoFlags', UndoFlags);
-  var ToolFlags={HIDE_TITLE_IN_LAST_BUTTONS: 1, 
+  _es6_module.add_export('UndoFlags', UndoFlags);
+  const ToolFlags={HIDE_TITLE_IN_LAST_BUTTONS: 1, 
    USE_PARTIAL_UNDO: 2, 
    USE_DEFAULT_INPUT: 4, 
    USE_REPEAT_FUNCTION: 8, 
    USE_TOOL_CONTEXT: 16}
-  ToolFlags = _es6_module.add_export('ToolFlags', ToolFlags);
-  var ModalStates={TRANSFORMING: 1, 
+  _es6_module.add_export('ToolFlags', ToolFlags);
+  const ModalStates={TRANSFORMING: 1, 
    PLAYING: 2}
-  ModalStates = _es6_module.add_export('ModalStates', ModalStates);
+  _es6_module.add_export('ModalStates', ModalStates);
   var _tool_op_idgen=1;
   class InheritFlag  {
      constructor(val) {
@@ -8629,7 +8758,7 @@ es6_module_define('toolops_api', ["../editors/events.js", "../path.ux/scripts/to
   }
   class WidgetToolOp extends ToolOp {
     static  create_widgets(manager, ctx) {
-      var $zaxis_wq__;
+      var $zaxis_LC13;
       var widget=manager.create();
       var enabled_axes=this.widget_axes;
       var do_widget_center=this.widget_center;
@@ -8677,15 +8806,15 @@ es6_module_define('toolops_api', ["../editors/events.js", "../path.ux/scripts/to
               tan.mulScalar(1.0/len);
               tan.normalize();
             }
-            var angle=Math.PI-Math.acos($zaxis_wq__.dot(n));
-            if (n.dot($zaxis_wq__)>0.9) {
+            var angle=Math.PI-Math.acos($zaxis_LC13.dot(n));
+            if (n.dot($zaxis_LC13)>0.9) {
             }
             if (1) {
                 if (Math.abs(angle)<0.001||Math.abs(angle)>Math.PI-0.001) {
                     n.loadXYZ(1, 0, 0);
                 }
                 else {
-                  n.cross($zaxis_wq__);
+                  n.cross($zaxis_LC13);
                   n.normalize();
                 }
                 var q=new Quat();
@@ -8737,7 +8866,7 @@ es6_module_define('toolops_api', ["../editors/events.js", "../path.ux/scripts/to
         }
         g_app_state.toolstack.exec_tool(toolop);
       };
-      var $zaxis_wq__=new Vector3([0, 0, -1]);
+      var $zaxis_LC13=new Vector3([0, 0, -1]);
     }
      widget_on_tick(widget) {
       if (this._widget_on_tick!=undefined)

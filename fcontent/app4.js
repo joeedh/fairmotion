@@ -3233,6 +3233,18 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       }
       return ret;
     }
+    let fromJSON=function fromJSON(manager, data, owner, type) {
+      let name;
+      if (debug) {
+          name = _export_StructFieldTypeMap_[type.type].define().name;
+          packer_debug_start("R start "+name);
+      }
+      let ret=_export_StructFieldTypeMap_[type.type].readJSON(manager, data, owner, type);
+      if (debug) {
+          packer_debug_end("R end "+name);
+      }
+      return ret;
+    }
     let fakeFields=new _export_cachering_(() =>      {
       return {type: undefined, 
      get: undefined, 
@@ -3257,6 +3269,25 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       }
       return ret;
     }
+    let toJSON=function toJSON(manager, val, obj, field, type) {
+      let name;
+      if (debug) {
+          name = _export_StructFieldTypeMap_[type.type].define().name;
+          packer_debug_start("W start "+name);
+      }
+      let typeid=type;
+      if (typeof typeid!=="number") {
+          typeid = typeid.type;
+      }
+      if (typeof typeid!=="number") {
+          typeid = typeid.type;
+      }
+      let ret=_export_StructFieldTypeMap_[typeid].toJSON(manager, val, obj, field, type);
+      if (debug) {
+          packer_debug_end("W end "+name);
+      }
+      return ret;
+    }
     let StructEnum$1=StructEnum;
     var _ws_env=[[undefined, undefined]];
     let StructFieldType=class StructFieldType  {
@@ -3265,6 +3296,12 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       }
       static  unpack(manager, data, type, uctx) {
 
+      }
+      static  toJSON(manager, val, obj, field, type) {
+        return val;
+      }
+      static  readJSON(manager, data, owner, type) {
+        return data;
       }
       static  packNull(manager, data, field, type) {
         this.pack(manager, data, 0, 0, field, type);
@@ -3390,6 +3427,9 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       static  format(type) {
         return type.data;
       }
+      static  toJSON(manager, val, obj, field, type) {
+        return manager.writeJSON(val);
+      }
       static  packNull(manager, data, field, type) {
         let stt=manager.get_struct(type.data);
         for (let field2 of stt.fields) {
@@ -3400,6 +3440,10 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       static  unpack(manager, data, type, uctx) {
         var cls2=manager.get_struct_cls(type.data);
         return manager.read_object(data, cls2, uctx);
+      }
+      static  readJSON(manager, data, owner, type) {
+        var cls2=manager.get_struct_cls(type.data);
+        return manager.readJSON(data, cls2);
       }
       static  define() {
         return {type: StructEnum$1.T_STRUCT, 
@@ -3428,6 +3472,24 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         pack_int$1(data, stt.id);
         manager.write_struct(data, val, stt);
       }
+      static  toJSON(manager, val, obj, field, type) {
+        var cls=manager.get_struct_cls(type.data);
+        var stt=manager.get_struct(type.data);
+        if (val.constructor.structName!==type.data&&(__instance_of(val, cls))) {
+            stt = manager.get_struct(val.constructor.structName);
+        }
+        else 
+          if (val.constructor.structName===type.data) {
+            stt = manager.get_struct(type.data);
+        }
+        else {
+          console.trace();
+          throw new Error("Bad struct "+val.constructor.structName+" passed to write_struct");
+        }
+        packer_debug("int "+stt.id);
+        return {type: stt.name, 
+      data: manager.writeJSON(val, stt)}
+      }
       static  packNull(manager, data, field, type) {
         let stt=manager.get_struct(type.data);
         pack_int$1(data, stt.id);
@@ -3454,6 +3516,23 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         let ret=manager.read_object(data, cls2, uctx);
         return ret;
       }
+      static  readJSON(manager, data, owner, type) {
+        var sttname=data.type;
+        packer_debug("-int "+sttname);
+        if (sttname===undefined||!(sttname in manager.structs)) {
+            packer_debug("struct name: "+sttname);
+            console.trace();
+            console.log(sttname);
+            console.log(manager.struct_ids);
+            packer_debug_end("tstruct");
+            throw new Error("Unknown struct "+sttname+".");
+        }
+        var cls2=manager.structs[sttname];
+        packer_debug("struct class name: "+cls2.name);
+        cls2 = manager.struct_cls[cls2.name];
+        let ret=manager.readJSON(data.data, cls2);
+        return ret;
+      }
       static  define() {
         return {type: StructEnum$1.T_TSTRUCT, 
       name: "tstruct"}
@@ -3464,7 +3543,7 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
     StructFieldType.register(StructTStructField);
     class StructArrayField extends StructFieldType {
       static  pack(manager, data, val, obj, field, type) {
-        if (val==undefined) {
+        if (!val) {
             console.trace();
             console.log("Undefined array fed to struct struct packer!");
             console.log("Field: ", field);
@@ -3482,21 +3561,51 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         var env=_ws_env;
         for (var i=0; i<val.length; i++) {
             var val2=val[i];
-            if (itername!=""&&itername!=undefined&&field.get) {
+            if (itername!==""&&itername!==undefined&&field.get) {
                 env[0][0] = itername;
                 env[0][1] = val2;
                 val2 = manager._env_call(field.get, obj, env);
             }
             let fakeField=fakeFields.next();
             fakeField.type = type2;
-            do_pack(manager, data, val2, obj, fakeField, type2);
+            do_pack(manager, data, val2, val, fakeField, type2);
         }
+      }
+      static  toJSON(manager, val, obj, field, type) {
+        if (!val) {
+            console.trace();
+            console.log("Undefined array fed to struct struct packer!");
+            console.log("Field: ", field);
+            console.log("Type: ", type);
+            console.log("");
+            packer_debug("int 0");
+            _module_exports_.pack_int(data, 0);
+            return ;
+        }
+        packer_debug("int "+val.length);
+        var d=type.data;
+        var itername=d.iname;
+        var type2=d.type;
+        var env=_ws_env;
+        var ret=[];
+        for (var i=0; i<val.length; i++) {
+            var val2=val[i];
+            if (itername!==""&&itername!==undefined&&field.get) {
+                env[0][0] = itername;
+                env[0][1] = val2;
+                val2 = manager._env_call(field.get, obj, env);
+            }
+            let fakeField=fakeFields.next();
+            fakeField.type = type2;
+            ret.push(toJSON(manager, val2, val, fakeField, type2));
+        }
+        return ret;
       }
       static  packNull(manager, data, field, type) {
         pack_int$1(data, 0);
       }
       static  format(type) {
-        if (type.data.iname!=""&&type.data.iname!=undefined) {
+        if (type.data.iname!==""&&type.data.iname!=undefined) {
             return "array("+type.data.iname+", "+fmt_type(type.data.type)+")";
         }
         else {
@@ -3514,6 +3623,18 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
             arr[i] = unpack_field(manager, data, type.data.type, uctx);
         }
         return arr;
+      }
+      static  readJSON(manager, data, owner, type) {
+        let ret=[];
+        let type2=type.data.type;
+        if (!data) {
+            console.warn("Corrupted json data", owner);
+            return [];
+        }
+        for (let item of data) {
+            ret.push(fromJSON(manager, item, data, type2));
+        }
+        return ret;
       }
       static  define() {
         return {type: StructEnum$1.T_ARRAY, 
@@ -3567,9 +3688,57 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
           }
           let fakeField=fakeFields.next();
           fakeField.type = type2;
-          do_pack(manager, data, val2, obj, fakeField, type2);
+          do_pack(manager, data, val2, val, fakeField, type2);
           i++;
         }, this);
+      }
+      static  toJSON(manager, val, obj, field, type) {
+        function forEach(cb, thisvar) {
+          if (val&&val[Symbol.iterator]) {
+              for (let item of val) {
+                  cb.call(thisvar, item);
+              }
+          }
+          else 
+            if (val&&val.forEach) {
+              val.forEach(function (item) {
+                cb.call(thisvar, item);
+              });
+          }
+          else {
+            console.trace();
+            console.log("Undefined iterable list fed to struct struct packer!", val);
+            console.log("Field: ", field);
+            console.log("Type: ", type);
+            console.log("");
+          }
+        }
+        let len=0.0;
+        let ret=[];
+        forEach(() =>          {
+          len++;
+        });
+        packer_debug("int "+len);
+        var d=type.data, itername=d.iname, type2=d.type;
+        var env=_ws_env;
+        var i=0;
+        forEach(function (val2) {
+          if (i>=len) {
+              if (warninglvl>0)
+                console.trace("Warning: iterator returned different length of list!", val, i);
+              return ;
+          }
+          if (itername!==""&&itername!==undefined&&field.get) {
+              env[0][0] = itername;
+              env[0][1] = val2;
+              val2 = manager._env_call(field.get, obj, env);
+          }
+          let fakeField=fakeFields.next();
+          fakeField.type = type2;
+          ret.push(toJSON(manager, val2, val, fakeField, type2));
+          i++;
+        }, this);
+        return ret;
       }
       static  packNull(manager, data, field, type) {
         pack_int$1(data, 0);
@@ -3593,6 +3762,18 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
             arr[i] = unpack_field(manager, data, type.data.type, uctx);
         }
         return arr;
+      }
+      static  readJSON(manager, data, owner, type) {
+        let ret=[];
+        let type2=type.data.type;
+        if (!data) {
+            console.warn("Corrupted json data", owner);
+            return [];
+        }
+        for (let item of data) {
+            ret.push(fromJSON(manager, item, data, type2));
+        }
+        return ret;
       }
       static  define() {
         return {type: StructEnum$1.T_ITER, 
@@ -3684,9 +3865,50 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
             var f2={type: type2, 
         get: undefined, 
         set: undefined};
-            do_pack(manager, data, val2, obj, f2, type2);
+            do_pack(manager, data, val2, val, f2, type2);
             i++;
         }
+      }
+      static  toJSON(manager, val, obj, field, type) {
+        if ((typeof val!=="object"&&typeof val!=="function")||val===null) {
+            console.warn("Bad object fed to iterkeys in struct packer!", val);
+            console.log("Field: ", field);
+            console.log("Type: ", type);
+            console.log("");
+            _module_exports_.pack_int(data, 0);
+            packer_debug_end("iterkeys");
+            return ;
+        }
+        let len=0.0;
+        for (let k in val) {
+            len++;
+        }
+        packer_debug("int "+len);
+        var d=type.data, itername=d.iname, type2=d.type;
+        var env=_ws_env;
+        var ret=[];
+        var i=0;
+        for (let val2 in val) {
+            if (i>=len) {
+                if (warninglvl>0)
+                  console.warn("Warning: object keys magically replaced on us", val, i);
+                return ;
+            }
+            if (itername&&itername.trim().length>0&&field.get) {
+                env[0][0] = itername;
+                env[0][1] = val2;
+                val2 = manager._env_call(field.get, obj, env);
+            }
+            else {
+              val2 = val[val2];
+            }
+            var f2={type: type2, 
+        get: undefined, 
+        set: undefined};
+            ret.push(toJSON(manager, val2, val, f2, type2));
+            i++;
+        }
+        return ret;
       }
       static  packNull(manager, data, field, type) {
         pack_int$1(data, 0);
@@ -3710,6 +3932,18 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
             arr[i] = unpack_field(manager, data, type.data.type, uctx);
         }
         return arr;
+      }
+      static  readJSON(manager, data, owner, type) {
+        let ret=[];
+        let type2=type.data.type;
+        if (!data) {
+            console.warn("Corrupted json data", owner);
+            return [];
+        }
+        for (let item of data) {
+            ret.push(fromJSON(manager, item, data, type2));
+        }
+        return ret;
       }
       static  define() {
         return {type: StructEnum$1.T_ITERKEYS, 
@@ -3771,6 +4005,29 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
             do_pack(manager, data, val2, val, field, type.data.type);
         }
       }
+      static  toJSON(manager, val, obj, field, type) {
+        if (type.data.size===undefined) {
+            throw new Error("type.data.size was undefined");
+        }
+        let itername=type.data.iname;
+        if (val===undefined||!val.length) {
+            this.packNull(manager, data, field, type);
+            return ;
+        }
+        let ret=[];
+        for (let i=0; i<type.data.size; i++) {
+            let i2=Math.min(i, Math.min(val.length-1, type.data.size));
+            let val2=val[i2];
+            if (itername!==""&&itername!==undefined&&field.get) {
+                let env=_ws_env;
+                env[0][0] = itername;
+                env[0][1] = val2;
+                val2 = manager._env_call(field.get, obj, env);
+            }
+            ret.push(toJSON(manager, val2, val, field, type.data.type));
+        }
+        return ret;
+      }
       static  useHelperJS(field) {
         return !field.type.data.iname;
       }
@@ -3794,6 +4051,18 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         let ret=[];
         for (let i=0; i<type.data.size; i++) {
             ret.push(unpack_field(manager, data, type.data.type, uctx));
+        }
+        return ret;
+      }
+      static  readJSON(manager, data, owner, type) {
+        let ret=[];
+        let type2=type.data.type;
+        if (!data) {
+            console.warn("Corrupted json data", owner);
+            return [];
+        }
+        for (let item of data) {
+            ret.push(fromJSON(manager, item, data, type2));
         }
         return ret;
       }
@@ -3928,10 +4197,69 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         }
         define_null_native.call(this, "Object", Object);
       }
+       validateStructs(onerror) {
+        function getType(type) {
+          switch (type.type) {
+            case StructEnum$2.T_ITERKEYS:
+            case StructEnum$2.T_ITER:
+            case StructEnum$2.T_STATIC_ARRAY:
+            case StructEnum$2.T_ARRAY:
+              return getType(type.data.type);
+            case StructEnum$2.T_TSTRUCT:
+              return type;
+            case StructEnum$2.T_STRUCT:
+            default:
+              return type;
+          }
+        }
+        function formatType(type) {
+          let ret={}
+          ret.type = type.type;
+          if (typeof ret.type==="number") {
+              for (let k in StructEnum$2) {
+                  if (StructEnum$2[k]===ret.type) {
+                      ret.type = k;
+                      break;
+                  }
+              }
+          }
+          else 
+            if (typeof ret.type==="object") {
+              ret.type = formatType(ret.type);
+          }
+          if (typeof type.data==="object") {
+              ret.data = formatType(type.data);
+          }
+          else {
+            ret.data = type.data;
+          }
+          return ret;
+        }
+        for (let k in this.structs) {
+            let stt=this.structs[k];
+            for (let field of stt.fields) {
+                let type=getType(field.type);
+                if (type.type!==StructEnum$2.T_STRUCT&&type.type!==StructEnum$2.T_TSTRUCT) {
+                    continue;
+                }
+                if (!(type.data in this.structs)) {
+                    let msg=stt.name+":"+field.name+": Unknown struct "+type.data+".";
+                    let buf=STRUCT.formatStruct(stt);
+                    console.error(buf+"\n\n"+msg);
+                    if (onerror) {
+                        onerror(msg, stt, field);
+                    }
+                    else {
+                      throw new Error(msg);
+                    }
+                }
+            }
+        }
+      }
        forEach(func, thisvar) {
         for (var k in this.structs) {
             var stt=this.structs[k];
-            if (thisvar!=undefined)
+            if (thisvar!==undefined)
               func.call(thisvar, stt);
             else 
               func(stt);
@@ -3948,7 +4276,7 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
                 defined_classes.push(struct2.struct_cls[k]);
             }
         }
-        if (defined_classes==undefined) {
+        if (defined_classes===undefined) {
             defined_classes = [];
             for (var k in _export_manager_.struct_cls) {
                 defined_classes.push(_export_manager_.struct_cls[k]);
@@ -3957,12 +4285,12 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         var clsmap={};
         for (var i=0; i<defined_classes.length; i++) {
             var cls=defined_classes[i];
-            if (cls.structName==undefined&&cls.STRUCT!=undefined) {
+            if (!cls.structName&&cls.STRUCT) {
                 var stt=struct_parse.parse(cls.STRUCT.trim());
                 cls.structName = stt.name;
             }
             else 
-              if (cls.structName==undefined&&cls.name!="Object") {
+              if (!cls.structName&&cls.name!=="Object") {
                 if (warninglvl$1>0)
                   console.log("Warning, bad class in registered class list", cls.name, cls);
                 continue;
@@ -3982,17 +4310,17 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
               dummy.prototype.structName = dummy.name;
               this.struct_cls[dummy.structName] = dummy;
               this.structs[dummy.structName] = stt;
-              if (stt.id!=-1)
+              if (stt.id!==-1)
                 this.struct_ids[stt.id] = stt;
           }
           else {
             this.struct_cls[stt.name] = clsmap[stt.name];
             this.structs[stt.name] = stt;
-            if (stt.id!=-1)
+            if (stt.id!==-1)
               this.struct_ids[stt.id] = stt;
           }
           var tok=struct_parse.peek();
-          while (tok!=undefined&&(tok.value=="\n"||tok.value=="\r"||tok.value=="\t"||tok.value==" ")) {
+          while (tok&&(tok.value==="\n"||tok.value==="\r"||tok.value==="\t"||tok.value===" ")) {
             tok = struct_parse.peek();
           }
         }
@@ -4043,7 +4371,7 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         else {
           throw new Error("Missing structName parameter");
         }
-        if (stt.id==-1)
+        if (stt.id===-1)
           stt.id = this.idgen.gen_id();
         this.structs[cls.structName] = stt;
         this.struct_cls[cls.structName] = cls;
@@ -4130,8 +4458,8 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
         var tab="  ";
         function fmt_type(type) {
           return StructFieldTypeMap$1[type.type].format(type);
-          if (type.type==StructEnum$2.T_ARRAY||type.type==StructEnum$2.T_ITER||type.type===StructEnum$2.T_ITERKEYS) {
-              if (type.data.iname!=""&&type.data.iname!=undefined) {
+          if (type.type===StructEnum$2.T_ARRAY||type.type===StructEnum$2.T_ITER||type.type===StructEnum$2.T_ITERKEYS) {
+              if (type.data.iname!==""&&type.data.iname!==undefined) {
                   return "array("+type.data.iname+", "+fmt_type(type.data.type)+")";
               }
               else {
@@ -4139,15 +4467,15 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
               }
           }
           else 
-            if (type.type==StructEnum$2.T_STATIC_STRING) {
+            if (type.type===StructEnum$2.T_STATIC_STRING) {
               return "static_string["+type.data.maxlength+"]";
           }
           else 
-            if (type.type==StructEnum$2.T_STRUCT) {
+            if (type.type===StructEnum$2.T_STRUCT) {
               return type.data;
           }
           else 
-            if (type.type==StructEnum$2.T_TSTRUCT) {
+            if (type.type===StructEnum$2.T_TSTRUCT) {
               return "abstract("+type.data+")";
           }
           else {
@@ -4169,7 +4497,7 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
       }
        _env_call(code, obj, env) {
         var envcode=_static_envcode_null$1;
-        if (env!=undefined) {
+        if (env!==undefined) {
             envcode = "";
             for (var i=0; i<env.length; i++) {
                 envcode = "var "+env[i][0]+" = env["+i.toString()+"][1];\n"+envcode;
@@ -4252,8 +4580,45 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
        readObject(data, cls_or_struct_id, uctx) {
         return this.read_object(data, cls_or_struct_id, uctx);
       }
-       writeObject() {
+       writeObject(data, obj) {
         return this.write_object(data, obj);
+      }
+       writeJSON(obj, stt=undefined) {
+        var cls=obj.constructor.structName;
+        stt = stt||this.get_struct(cls);
+        function use_helper_js(field) {
+          let type=field.type.type;
+          let cls=StructFieldTypeMap$1[type];
+          return cls.useHelperJS(field);
+        }
+        let toJSON$1=toJSON;
+        var fields=stt.fields;
+        var thestruct=this;
+        let json={};
+        for (var i=0; i<fields.length; i++) {
+            var f=fields[i];
+            var t1=f.type;
+            var t2=t1.type;
+            var val;
+            if (use_helper_js(f)) {
+                var type=t2;
+                if (f.get!==undefined) {
+                    val = thestruct._env_call(f.get, obj);
+                }
+                else {
+                  val = obj[f.name];
+                }
+                if (_nGlobal.DEBUG&&_nGlobal.DEBUG.tinyeval) {
+                    console.log("\n\n\n", f.get, "Helper JS Ret", val, "\n\n\n");
+                }
+                json[f.name] = toJSON$1(this, val, obj, f, t1);
+            }
+            else {
+              val = obj[f.name];
+              json[f.name] = toJSON$1(this, val, obj, f, t1);
+            }
+        }
+        return json;
       }
        read_object(data, cls_or_struct_id, uctx) {
         var cls, stt;
@@ -4319,6 +4684,64 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
             obj = new cls();
           }
           load(obj);
+          return obj;
+        }
+      }
+       readJSON(data, cls_or_struct_id) {
+        var cls, stt;
+        if (typeof cls_or_struct_id==="number") {
+            cls = this.struct_cls[this.struct_ids[cls_or_struct_id].name];
+        }
+        else {
+          cls = cls_or_struct_id;
+        }
+        if (cls===undefined) {
+            throw new Error("bad cls_or_struct_id "+cls_or_struct_id);
+        }
+        stt = this.structs[cls.structName];
+        let fromJSON$1=fromJSON;
+        var thestruct=this;
+        let this2=this;
+        let was_run=false;
+        function reader(obj) {
+          if (was_run) {
+              return ;
+          }
+          was_run = true;
+          var fields=stt.fields;
+          var flen=fields.length;
+          for (var i=0; i<flen; i++) {
+              var f=fields[i];
+              packer_debug$1("Load field "+f.name);
+              obj[f.name] = fromJSON$1(thestruct, data[f.name], data, f.type);
+          }
+        }
+        if (cls.prototype.loadSTRUCT!==undefined) {
+            let obj;
+            if (cls.newSTRUCT!==undefined) {
+                obj = cls.newSTRUCT();
+            }
+            else {
+              obj = new cls();
+            }
+            obj.loadSTRUCT(reader);
+            return obj;
+        }
+        else 
+          if (cls.fromSTRUCT!==undefined) {
+            if (warninglvl$1>1)
+              console.warn("Warning: class "+cls.name+" is using deprecated fromSTRUCT interface; use newSTRUCT/loadSTRUCT instead");
+            return cls.fromSTRUCT(reader);
+        }
+        else {
+          let obj;
+          if (cls.newSTRUCT!==undefined) {
+              obj = cls.newSTRUCT();
+          }
+          else {
+            obj = new cls();
+          }
+          reader(obj);
           return obj;
         }
       }
@@ -4586,6 +5009,9 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
     for (var k$1 in struct_intern) {
         _module_exports_$1[k$1] = struct_intern[k$1];
     }
+    _module_exports_$1.validateStructs = function validateStructs(onerror) {
+      return _module_exports_$1.manager.validateStructs(onerror);
+    }
     _module_exports_$1.register = function register(cls, structName) {
       return _module_exports_$1.manager.register(cls, structName);
     }
@@ -4603,6 +5029,12 @@ es6_module_define('nstructjs', [], function _nstructjs_module(_es6_module) {
     }
     _module_exports_$1.writeObject = function (data, obj) {
       return _module_exports_$1.manager.writeObject(data.obj);
+    }
+    _module_exports_$1.writeJSON = function (obj) {
+      return _module_exports_$1.manager.writeJSON(obj);
+    }
+    _module_exports_$1.readJSON = function (json, class_or_struct_id) {
+      return _module_exports_$1.manager.readJSON(json, class_or_struct_id);
     }
     _module_exports_$1.setDebugMode = _export_setDebugMode_$1;
     _module_exports_$1.setWarningMode = _export_setWarningMode_$1;
@@ -5284,7 +5716,7 @@ es6_module_define('ScreenOverdraw', ["../core/ui.js", "./vectormath.js", "./util
   Overdraw = _es6_module.add_export('Overdraw', Overdraw);
   ui_base.UIBase.register(Overdraw);
 }, '/dev/fairmotion/src/path.ux/scripts/util/ScreenOverdraw.js');
-es6_module_define('simple_events', ["../config/const.js", "./vectormath.js", "./util.js"], function _simple_events_module(_es6_module) {
+es6_module_define('simple_events', ["./vectormath.js", "./util.js", "../config/const.js"], function _simple_events_module(_es6_module) {
   var util=es6_import(_es6_module, './util.js');
   var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
   var Vector2=es6_import_item(_es6_module, './vectormath.js', 'Vector2');
@@ -5800,8 +6232,9 @@ es6_module_define('simple_events', ["../config/const.js", "./vectormath.js", "./
   _es6_module.add_class(HotKey);
   HotKey = _es6_module.add_export('HotKey', HotKey);
   class KeyMap extends Array {
-     constructor(hotkeys=[]) {
+     constructor(hotkeys=[], pathid="undefined") {
       super();
+      this.pathid = pathid;
       for (let hk of hotkeys) {
           this.add(hk);
       }
@@ -5963,12 +6396,31 @@ es6_module_define('struct', ["./nstructjs.js"], function _struct_module(_es6_mod
   _es6_module.add_export('inherit', inherit);
   const setDebugMode=nstructjs.setDebugMode;
   _es6_module.add_export('setDebugMode', setDebugMode);
+  const validateStructs=nstructjs.validateStructs;
+  _es6_module.add_export('validateStructs', validateStructs);
+  const readObject=nstructjs.readObject;
+  _es6_module.add_export('readObject', readObject);
+  const writeObject=nstructjs.writeObject;
+  _es6_module.add_export('writeObject', writeObject);
+  const _nstructjs=nstructjs;
+  _es6_module.add_export('_nstructjs', _nstructjs);
+  const readJSON=nstructjs.readJSON;
+  _es6_module.add_export('readJSON', readJSON);
+  const writeJSON=nstructjs.writeJSON;
+  _es6_module.add_export('writeJSON', writeJSON);
   function register(cls) {
     manager.add_class(cls);
   }
   register = _es6_module.add_export('register', register);
+  function setEndian(little_endian) {
+    if (little_endian===undefined) {
+        little_endian = true;
+    }
+    nstructjs.STRUCT_ENDIAN = little_endian;
+  }
+  setEndian = _es6_module.add_export('setEndian', setEndian);
 }, '/dev/fairmotion/src/path.ux/scripts/util/struct.js');
-es6_module_define('vectormath', ["./struct.js", "./util.js"], function _vectormath_module(_es6_module) {
+es6_module_define('vectormath', ["./util.js", "./struct.js"], function _vectormath_module(_es6_module) {
   var util=es6_import(_es6_module, './util.js');
   es6_import(_es6_module, './struct.js');
   window.makeCompiledVectormathCode = function (mode) {
@@ -6592,9 +7044,20 @@ vec3 {
       }
       this.length = 2;
       this[0] = this[1] = 0.0;
-      if (data!=undefined) {
+      if (data!==undefined) {
           this.load(data);
       }
+    }
+     initVector2(co) {
+      this.length = 2;
+      if (co!==undefined) {
+          this[0] = co[0];
+          this[1] = co[1];
+      }
+      else {
+        this[0] = this[1] = 0.0;
+      }
+      return this;
     }
      loadXY(x, y) {
       this[0] = x;
@@ -6638,7 +7101,7 @@ vec3 {
       this[1] = w*matrix.$matrix.m42+x*matrix.$matrix.m12+y*matrix.$matrix.m22;
       if (matrix.isPersp) {
           let w2=w*matrix.$matrix.m44+x*matrix.$matrix.m14+y*matrix.$matrix.m24;
-          if (w2!=0.0) {
+          if (w2!==0.0) {
               this[0]/=w2;
               this[1]/=w2;
           }
@@ -7387,6 +7850,9 @@ quat {
       return this;
     }
      makeNormalMatrix(normal, up=undefined) {
+      if (normal===undefined) {
+          throw new Error("normal cannot be undefined");
+      }
       let n=makenormalcache.next().load(normal).normalize();
       if (up===undefined) {
           up = makenormalcache.next().zero();
@@ -7396,6 +7862,18 @@ quat {
           else {
             up[2] = 1.0;
           }
+      }
+      up = makenormalcache.next().load(up);
+      up.normalize();
+      if (up.dot(normal)>0.99) {
+          this.makeIdentity();
+          return this;
+      }
+      else 
+        if (up.dot(normal)<-0.99) {
+          this.makeIdentity();
+          this.scale(1.0, 1.0, -1.0);
+          return this;
       }
       let x=makenormalcache.next();
       let y=makenormalcache.next();
@@ -8089,7 +8567,7 @@ es6_module_define('theme_editor', ["../core/ui.js", "../core/ui_theme.js", "../u
   ThemeEditor = _es6_module.add_export('ThemeEditor', ThemeEditor);
   UIBase.register(ThemeEditor);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/theme_editor.js');
-es6_module_define('ui_button', ["../core/ui_base.js", "../toolsys/toolprop.js", "../controller/simple_controller.js", "../config/const.js", "../util/events.js", "../util/util.js", "../util/vectormath.js", "../toolsys/simple_toolsys.js"], function _ui_button_module(_es6_module) {
+es6_module_define('ui_button', ["../util/events.js", "../util/vectormath.js", "../toolsys/toolprop.js", "../core/ui_base.js", "../controller/simple_controller.js", "../config/const.js", "../util/util.js", "../toolsys/simple_toolsys.js"], function _ui_button_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../util/util.js');
   var vectormath=es6_import(_es6_module, '../util/vectormath.js');
@@ -8351,7 +8829,8 @@ es6_module_define('ui_button', ["../core/ui_base.js", "../toolsys/toolprop.js", 
       let dpi=this.getDPI();
       let pad=this.getDefault("BoxMargin");
       let ts=this.getDefault("DefaultText").size;
-      let tw=ui_base.measureText(this, this._genLabel()).width/dpi+8+pad;
+      let tw=ui_base.measureText(this, this._genLabel(), {size: ts, 
+     font: this.getDefault("DefaultText")}).width/dpi+18+pad;
       if (this._namePad!==undefined) {
           tw+=this._namePad;
       }
@@ -8390,7 +8869,7 @@ es6_module_define('ui_button', ["../core/ui_base.js", "../toolsys/toolprop.js", 
     }
      updateDPI() {
       let dpi=this.getDPI();
-      if (this._last_dpi!=dpi) {
+      if (this._last_dpi!==dpi) {
           this._last_dpi = dpi;
           this.g.font = undefined;
           this.setCSS();
@@ -8403,8 +8882,7 @@ es6_module_define('ui_button', ["../core/ui_base.js", "../toolsys/toolprop.js", 
       }
     }
      _genLabel() {
-      let text=""+this._name;
-      return text;
+      return ""+this._name;
     }
      _redraw(draw_text=true) {
       let dpi=this.getDPI();
@@ -8444,7 +8922,7 @@ es6_module_define('ui_button', ["../core/ui_base.js", "../toolsys/toolprop.js", 
       let font=this.getDefault("DefaultText");
       let w=this.dom.width, h=this.dom.height;
       let tw=ui_base.measureText(this, text, undefined, undefined, ts, font).width;
-      let cx=pad*0.5;
+      let cx=pad*0.5+5*dpi;
       let cy=h*0.5+ts*0.5;
       let g=this.g;
       ui_base.drawText(this, ~~cx, ~~cy, text, {canvas: this.dom, 

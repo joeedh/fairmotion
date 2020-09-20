@@ -264,7 +264,7 @@ function doDrawList(commands, datablocks, id) {
         let blur2 = read();
         
         //*
-        if (blur2 == 0 && blur != 0) {
+        if (blur2 === 0 && blur !== 0) {
           blur = 0;
           g.filter = "none";
         } else if (blur2 > 0) {

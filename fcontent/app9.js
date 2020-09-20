@@ -1,5 +1,5 @@
 var ContextStruct;
-es6_module_define('data_api_define', ["../imageblock.js", "../../curve/spline_base.js", "../units.js", "../../editors/settings/SettingsEditor.js", "../../editors/viewport/selectmode.js", "./data_api.js", "../../editors/curve/CurveEditor.js", "../../editors/dopesheet/DopeSheetEditor.js", "../../editors/viewport/view2d_base.js", "../../curve/spline_types.js", "../../curve/spline_element_array.js", "../../editors/ops/ops_editor.js", "../frameset.js", "../toolops_api.js", "../UserSettings.js", "../lib_api.js", "../context.js", "../../editors/viewport/spline_createops.js", "../toolprops.js", "../../scene/sceneobject.js", "../../editors/viewport/view2d.js", "../animdata.js", "../../path.ux/scripts/pathux.js"], function _data_api_define_module(_es6_module) {
+es6_module_define('data_api_define', ["../lib_api.js", "../units.js", "../imageblock.js", "../../curve/spline_element_array.js", "../toolprops.js", "../../curve/spline_base.js", "../../editors/dopesheet/DopeSheetEditor.js", "../UserSettings.js", "../../editors/curve/CurveEditor.js", "../../editors/viewport/toolmodes/toolmode.js", "../../editors/viewport/selectmode.js", "../../scene/sceneobject.js", "./data_api.js", "../../editors/viewport/view2d.js", "../toolops_api.js", "../../editors/ops/ops_editor.js", "../../curve/spline_types.js", "../context.js", "../../editors/viewport/view2d_base.js", "../animdata.js", "../../editors/settings/SettingsEditor.js", "../../editors/viewport/spline_createops.js", "../../path.ux/scripts/pathux.js", "../frameset.js"], function _data_api_define_module(_es6_module) {
   var DataTypes=es6_import_item(_es6_module, '../lib_api.js', 'DataTypes');
   var View2DHandler=es6_import_item(_es6_module, '../../editors/viewport/view2d.js', 'View2DHandler');
   var EditModes=es6_import_item(_es6_module, '../../editors/viewport/view2d_base.js', 'EditModes');
@@ -9,6 +9,7 @@ es6_module_define('data_api_define', ["../imageblock.js", "../../curve/spline_ba
   var ImageUser=es6_import_item(_es6_module, '../imageblock.js', 'ImageUser');
   var AppSettings=es6_import_item(_es6_module, '../UserSettings.js', 'AppSettings');
   var FullContext=es6_import_item(_es6_module, '../context.js', 'FullContext');
+  var toolmode=es6_import(_es6_module, '../../editors/viewport/toolmodes/toolmode.js');
   var EnumProperty=es6_import_item(_es6_module, '../toolprops.js', 'EnumProperty');
   var FlagProperty=es6_import_item(_es6_module, '../toolprops.js', 'FlagProperty');
   var FloatProperty=es6_import_item(_es6_module, '../toolprops.js', 'FloatProperty');
@@ -285,7 +286,7 @@ es6_module_define('data_api_define', ["../imageblock.js", "../../curve/spline_ba
     linewidth.expRate = 1.75;
     linewidth.step = 0.25;
     var linewidth2=new FloatProperty(1, "linewidth2", "linewidth2", "Double Stroke Width");
-    linewidth2.range = [0.1, 200];
+    linewidth2.range = [0.0, 200];
     linewidth2.expRate = 1.75;
     linewidth2.step = 0.25;
     fillclr.update = strokeclr.update = linewidth.update = linewidth2.update = blur.update = update_base;
@@ -714,8 +715,31 @@ es6_module_define('data_api_define', ["../imageblock.js", "../../curve/spline_ba
         yield i;
     }
   }
+  function updateActiveToolApi(ctx) {
+    let p=ContextStruct.pathmap.active_tool;
+    let update=false;
+    let toolcls=ctx.toolmode.constructor;
+    if (!toolcls) {
+        return ;
+    }
+    if (p&&p.data!==toolcls._apiStruct) {
+        update = true;
+        ContextStruct.remove(p);
+    }
+    else 
+      if (!p) {
+        update = true;
+    }
+    if (update) {
+        console.log("Updating data API for toolmode "+toolcls.name);
+        ContextStruct.add(new DataPath(toolcls._apiStruct, "active_tool", "ctx.toolmode", true));
+    }
+  }
+  updateActiveToolApi = _es6_module.add_export('updateActiveToolApi', updateActiveToolApi);
+  window.updateActiveToolApi = updateActiveToolApi;
   window.api_define_context = function () {
-    ContextStruct = new DataStruct([new DataPath(api_define_view2d(), "view2d", "ctx.view2d", true), new DataPath(api_define_dopesheet(), "dopesheet", "ctx.dopesheet", true), new DataPath(api_define_editcurve(), "editcurve", "ctx.editcurve", true), new DataPath(api_define_frameset(), "frameset", "ctx.frameset", true), new DataPath(api_define_seditor(), "settings_editor", "ctx.settings_editor", false), new DataPath(api_define_settings(), "settings", "ctx.appstate.session.settings", false), new DataPath(api_define_object(), "object", "ctx.object", false), new DataPath(api_define_scene(), "scene", "ctx.scene", false), new DataPath(new DataStruct([]), "last_tool", "", false, false, DataFlags.RECALC_CACHE), new DataPath(api_define_appstate(), "appstate", "ctx.appstate", false), new DataPath(OpStackArray, "operator_stack", "ctx.appstate.toolstack.undostack", false, true, DataFlags.RECALC_CACHE), new DataPath(api_define_spline(), "spline", "ctx.spline", false), new DataPath(api_define_datalib(), "datalib", "ctx.datalib", false), new DataPath(api_define_opseditor(), "opseditor", "ctx.opseditor", false)], Context);
+    ContextStruct = new DataStruct([new DataPath(api_define_view2d(), "view2d", "ctx.view2d", true), new DataPath(api_define_dopesheet(), "dopesheet", "ctx.dopesheet", true), new DataPath(api_define_editcurve(), "editcurve", "ctx.editcurve", true), new DataPath(api_define_frameset(), "frameset", "ctx.frameset", true), new DataPath(api_define_seditor(), "settings_editor", "ctx.settings_editor", false), new DataPath(api_define_settings(), "settings", "ctx.appstate.session.settings", false), new DataPath(api_define_object(), "object", "ctx.object", false), new DataPath(api_define_scene(), "scene", "ctx.scene", false), new DataPath(new DataStruct([]), "last_tool", "", false, false, DataFlags.RECALC_CACHE), new DataPath(api_define_appstate(), "appstate", "ctx.appstate", false), new DataPath(OpStackArray, "operator_stack", "ctx.appstate.toolstack.undostack", false, true, DataFlags.RECALC_CACHE), new DataPath(api_define_spline(), "spline", "ctx.spline", false), new DataPath(api_define_datalib(), "datalib", "ctx.datalib", false), new DataPath(api_define_opseditor(), "opseditor", "ctx.opseditor", false), new DataPath(new DataStruct([]), "active_tool", "ctx.toolmode", false, false, DataFlags.RECALC_CACHE)], Context);
+    toolmode.defineAPI();
   }
   window.init_data_api = function () {
     api_define_ops();
@@ -1723,7 +1747,7 @@ es6_module_define('data_api_base', ["../../path.ux/scripts/controller/controller
   DataAPIError = _es6_module.add_export('DataAPIError', DataAPIError);
   window.DataAPIError = DataAPIError;
 }, '/dev/fairmotion/src/core/data_api/data_api_base.js');
-es6_module_define('data_api_pathux', ["../../editors/events.js", "../../path.ux/scripts/controller/controller.js", "../toolprops.js", "../../editors/editor_base.js", "../toolops_api.js", "../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/util/simple_events.js", "./data_api_base.js"], function _data_api_pathux_module(_es6_module) {
+es6_module_define('data_api_pathux', ["../../path.ux/scripts/util/simple_events.js", "./data_api_base.js", "../../path.ux/scripts/core/ui_base.js", "../../editors/editor_base.js", "../../path.ux/scripts/controller/controller.js", "../../editors/events.js", "../toolops_api.js", "../toolprops.js"], function _data_api_pathux_module(_es6_module) {
   var ModelInterface=es6_import_item(_es6_module, '../../path.ux/scripts/controller/controller.js', 'ModelInterface');
   var DataPathError=es6_import_item(_es6_module, '../../path.ux/scripts/controller/controller.js', 'DataPathError');
   var ToolOpAbstract=es6_import_item(_es6_module, '../toolops_api.js', 'ToolOpAbstract');
@@ -1798,7 +1822,6 @@ es6_module_define('data_api_pathux', ["../../editors/events.js", "../../path.ux/
         for (let k of keymap) {
             let v=keymap.get(k);
             if (__instance_of(v, ToolKeyHandler)&&v.tool===toolstring) {
-                console.log("found tool!", v);
                 let ws=k.split("-");
                 let s="";
                 let i=0;

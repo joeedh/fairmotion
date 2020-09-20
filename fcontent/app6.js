@@ -8,14 +8,14 @@ es6_module_define('spline_query', ["./spline_multires.js", "../editors/viewport/
   var PI=Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor, ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos, asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
   var sqrt=Math.sqrt;
   let findnearest_segment_tmp=new Vector2();
-  var $_mpos_5tmX_findnearest_vert;
-  var $_v_X4B1_findnearest_vert;
+  let _mpos_fn_v=new Vector2();
+  let _v_fn_v=new Vector2();
   class SplineQuery  {
      constructor(spline) {
       this.spline = spline;
     }
      findnearest(editor, mpos, selectmask, limit, ignore_layers) {
-      if (limit==undefined)
+      if (limit===undefined)
         limit = 15;
       var dis=1e+18;
       var data=undefined;
@@ -96,18 +96,19 @@ es6_module_define('spline_query', ["./spline_multires.js", "../editors/viewport/
           }
       }
       g.beginPath();
-      if (closest!=undefined)
+      if (closest!==undefined)
         return [closest, dis, SelMask.FACE];
     }
      findnearest_vert(editor, mpos, limit, do_handles, ignore_layers) {
       var spline=this.spline;
       var actlayer=spline.layerset.active;
-      if (limit==undefined)
+      if (limit===undefined)
         limit = 15;
       var min=1e+17;
       var ret=undefined;
-      mpos = $_mpos_5tmX_findnearest_vert.load(mpos);
-      mpos[2] = 0.0;
+      let _mpos=_mpos_fn_v;
+      let _v=_v_fn_v;
+      mpos = _mpos.load(mpos);
       var list=do_handles ? spline.handles : spline.verts;
       for (var v of list) {
           if (v.hidden)
@@ -115,10 +116,9 @@ es6_module_define('spline_query', ["./spline_multires.js", "../editors/viewport/
           if (!ignore_layers&&!v.in_layer(actlayer))
             continue;
           var co=v;
-          $_v_X4B1_findnearest_vert.load(co);
-          $_v_X4B1_findnearest_vert[2] = 0.0;
-          editor.project($_v_X4B1_findnearest_vert);
-          var dis=$_v_X4B1_findnearest_vert.vectorDistance(mpos);
+          _v.load(co);
+          editor.project(_v);
+          var dis=_v.vectorDistance(mpos);
           if (dis<limit&&dis<min) {
               min = dis;
               ret = v;
@@ -129,13 +129,11 @@ es6_module_define('spline_query', ["./spline_multires.js", "../editors/viewport/
       }
     }
   }
-  var $_mpos_5tmX_findnearest_vert=new Vector3();
-  var $_v_X4B1_findnearest_vert=new Vector3();
   _ESClass.register(SplineQuery);
   _es6_module.add_class(SplineQuery);
   SplineQuery = _es6_module.add_export('SplineQuery', SplineQuery);
 }, '/dev/fairmotion/src/curve/spline_query.js');
-es6_module_define('spline_draw', ["../config/config.js", "./spline_draw_sort", "./spline_types.js", "./spline_draw_new.js", "../core/animdata.js", "./spline_math.js", "../editors/viewport/selectmode.js", "../util/mathlib.js", "../editors/viewport/view2d_editor.js", "./spline_element_array.js", "../util/vectormath.js", "./spline_draw_sort.js"], function _spline_draw_module(_es6_module) {
+es6_module_define('spline_draw', ["./spline_draw_sort", "./spline_types.js", "../config/config.js", "./spline_draw_new.js", "../util/vectormath.js", "../core/animdata.js", "../util/mathlib.js", "./spline_element_array.js", "./spline_draw_sort.js", "../editors/viewport/view2d_editor.js", "./spline_math.js", "../editors/viewport/selectmode.js"], function _spline_draw_module(_es6_module) {
   var aabb_isect_minmax2d=es6_import_item(_es6_module, '../util/mathlib.js', 'aabb_isect_minmax2d');
   var ENABLE_MULTIRES=es6_import_item(_es6_module, '../config/config.js', 'ENABLE_MULTIRES');
   var SessionFlags=es6_import_item(_es6_module, '../editors/viewport/view2d_editor.js', 'SessionFlags');
@@ -149,12 +147,12 @@ es6_module_define('spline_draw', ["../config/config.js", "./spline_draw_sort", "
   var KTOTKS=es6_import_item(_es6_module, './spline_math.js', 'KTOTKS');
   var INT_STEPS=es6_import_item(_es6_module, './spline_math.js', 'INT_STEPS');
   var get_vtime=es6_import_item(_es6_module, '../core/animdata.js', 'get_vtime');
-  var spline_draw_cache_vs=cachering.fromConstructor(Vector3, 64);
-  var spline_draw_trans_vs=cachering.fromConstructor(Vector3, 32);
-  var PI=Math.PI;
-  var pow=Math.pow, cos=Math.cos, sin=Math.sin, abs=Math.abs, floor=Math.floor, ceil=Math.ceil, sqrt=Math.sqrt, log=Math.log, acos=Math.acos, asin=Math.asin;
-  var DRAW_MAXCURVELEN=10000;
-  DRAW_MAXCURVELEN = _es6_module.add_export('DRAW_MAXCURVELEN', DRAW_MAXCURVELEN);
+  let spline_draw_cache_vs=cachering.fromConstructor(Vector3, 64);
+  let spline_draw_trans_vs=cachering.fromConstructor(Vector3, 32);
+  let PI=Math.PI;
+  let pow=Math.pow, cos=Math.cos, sin=Math.sin, abs=Math.abs, floor=Math.floor, ceil=Math.ceil, sqrt=Math.sqrt, log=Math.log, acos=Math.acos, asin=Math.asin;
+  const DRAW_MAXCURVELEN=10000;
+  _es6_module.add_export('DRAW_MAXCURVELEN', DRAW_MAXCURVELEN);
   var SplineFlags=es6_import_item(_es6_module, './spline_types.js', 'SplineFlags');
   var SplineTypes=es6_import_item(_es6_module, './spline_types.js', 'SplineTypes');
   var SplineElement=es6_import_item(_es6_module, './spline_types.js', 'SplineElement');
@@ -167,11 +165,11 @@ es6_module_define('spline_draw', ["../config/config.js", "./spline_draw_sort", "
   var MaterialFlags=es6_import_item(_es6_module, './spline_types.js', 'MaterialFlags');
   var ElementArray=es6_import_item(_es6_module, './spline_element_array.js', 'ElementArray');
   var SplineLayerFlags=es6_import_item(_es6_module, './spline_element_array.js', 'SplineLayerFlags');
-  var ColorFlags={SELECT: 1, 
+  const ColorFlags={SELECT: 1, 
    ACTIVE: 2, 
    HIGHLIGHT: 4}
-  ColorFlags = _es6_module.add_export('ColorFlags', ColorFlags);
-  var FlagMap={UNSELECT: 0, 
+  _es6_module.add_export('ColorFlags', ColorFlags);
+  const FlagMap={UNSELECT: 0, 
    SELECT: ColorFlags.SELECT, 
    ACTIVE: ColorFlags.ACTIVE, 
    HIGHLIGHT: ColorFlags.HIGHLIGHT, 
@@ -179,15 +177,15 @@ es6_module_define('spline_draw', ["../config/config.js", "./spline_draw_sort", "
    SELECT_HIGHLIGHT: ColorFlags.SELECT|ColorFlags.HIGHLIGHT, 
    HIGHLIGHT_ACTIVE: ColorFlags.HIGHLIGHT|ColorFlags.ACTIVE, 
    SELECT_HIGHLIGHT_ACTIVE: ColorFlags.SELECT|ColorFlags.ACTIVE|ColorFlags.HIGHLIGHT}
-  FlagMap = _es6_module.add_export('FlagMap', FlagMap);
+  _es6_module.add_export('FlagMap', FlagMap);
   function mix(a, b, t) {
-    var ret=[0, 0, 0];
-    for (var i=0; i<3; i++) {
+    let ret=[0, 0, 0];
+    for (let i=0; i<3; i++) {
         ret[i] = a[i]+(b[i]-a[i])*t;
     }
     return ret;
   }
-  var ElementColor={UNSELECT: [1, 0.133, 0.07], 
+  const ElementColor={UNSELECT: [1, 0.133, 0.07], 
    SELECT: [1, 0.6, 0.26], 
    HIGHLIGHT: [1, 0.93, 0.4], 
    ACTIVE: [0.3, 0.4, 1.0], 
@@ -195,8 +193,8 @@ es6_module_define('spline_draw', ["../config/config.js", "./spline_draw_sort", "
    SELECT_HIGHLIGHT: [1, 1, 0.8], 
    HIGHLIGHT_ACTIVE: mix([1, 0.93, 0.4], [0.3, 0.4, 1.0], 0.5), 
    SELECT_HIGHLIGHT_ACTIVE: [0.85, 0.85, 1.0]}
-  ElementColor = _es6_module.add_export('ElementColor', ElementColor);
-  var HandleColor={UNSELECT: [0.2, 0.7, 0.07], 
+  _es6_module.add_export('ElementColor', ElementColor);
+  const HandleColor={UNSELECT: [0.2, 0.7, 0.07], 
    SELECT: [0.1, 1, 0.26], 
    HIGHLIGHT: [0.2, 0.93, 0.4], 
    ACTIVE: [0.1, 1, 0.75], 
@@ -204,29 +202,29 @@ es6_module_define('spline_draw', ["../config/config.js", "./spline_draw_sort", "
    SELECT_HIGHLIGHT: [1, 1, 0.8], 
    HIGHLIGHT_ACTIVE: mix([1, 0.93, 0.4], [0.3, 0.4, 1.0], 0.5), 
    SELECT_HIGHLIGHT_ACTIVE: [0.85, 0.85, 1.0]}
-  HandleColor = _es6_module.add_export('HandleColor', HandleColor);
+  _es6_module.add_export('HandleColor', HandleColor);
   HandleColor.SELECT_ACTIVE = mix(HandleColor.SELECT, HandleColor.ACTIVE, 0.5);
   HandleColor.SELECT_HIGHLIGHT = mix(HandleColor.SELECT, HandleColor.HIGHLIGHT, 0.5);
   HandleColor.HIGHLIGHT_ACTIVE = mix(HandleColor.HIGHLIGHT, HandleColor.ACTIVE, 0.5);
   HandleColor.SELECT_HIGHLIGHT_ACTIVE = mix(mix(HandleColor.SELECT, HandleColor.ACTIVE, 0.5), HandleColor.HIGHLIGHT, 0.5);
   function rgb2css(color) {
-    var r=color[0], g=color[1], b=color[2];
+    let r=color[0], g=color[1], b=color[2];
     return "rgb("+(~~(r*255))+","+(~~(g*255))+","+(~~(b*255))+")";
   }
-  var element_colormap=new Array(8);
-  element_colormap = _es6_module.add_export('element_colormap', element_colormap);
-  for (var k in ElementColor) {
-      var f=FlagMap[k];
+  const element_colormap=new Array(8);
+  _es6_module.add_export('element_colormap', element_colormap);
+  for (let k in ElementColor) {
+      let f=FlagMap[k];
       element_colormap[f] = rgb2css(ElementColor[k]);
   }
-  var handle_colormap=new Array(8);
-  handle_colormap = _es6_module.add_export('handle_colormap', handle_colormap);
-  for (var k in HandleColor) {
-      var f=FlagMap[k];
+  const handle_colormap=new Array(8);
+  _es6_module.add_export('handle_colormap', handle_colormap);
+  for (let k in HandleColor) {
+      let f=FlagMap[k];
       handle_colormap[f] = rgb2css(HandleColor[k]);
   }
   function get_element_flag(e, list) {
-    var f=0;
+    let f=0;
     f|=e.flag&SplineFlags.SELECT ? ColorFlags.SELECT : 0;
     f|=e===list.highlight ? ColorFlags.HIGHLIGHT : 0;
     f|=e===list.active ? ColorFlags.ACTIVE : 0;
@@ -239,8 +237,8 @@ es6_module_define('spline_draw', ["../config/config.js", "./spline_draw_sort", "
       return element_colormap[get_element_flag(e, list)];
   }
   get_element_color = _es6_module.add_export('get_element_color', get_element_color);
-  var VERT_SIZE=3.0;
-  var SMALL_VERT_SIZE=1.0;
+  const VERT_SIZE=3.0;
+  const SMALL_VERT_SIZE=1.0;
   var SplineDrawer=es6_import_item(_es6_module, './spline_draw_new.js', 'SplineDrawer');
   var redo_draw_sort=es6_import_item(_es6_module, './spline_draw_sort.js', 'redo_draw_sort');
   var Vector2=es6_import_item(_es6_module, '../util/vectormath.js', 'Vector2');
@@ -249,22 +247,22 @@ es6_module_define('spline_draw', ["../config/config.js", "./spline_draw_sort", "
       _es6_module.add_export(k, ___spline_draw_sort[k], true);
   }
   function draw_curve_normals(spline, g, zoom) {
-    for (var seg of spline.segments) {
+    for (let seg of spline.segments) {
         if (seg.v1.hidden||seg.v2.hidden)
           continue;
-        var length=seg.ks[KSCALE];
+        let length=seg.ks[KSCALE];
         if (length<=0||isNaN(length))
           continue;
         if (length>DRAW_MAXCURVELEN)
           length = DRAW_MAXCURVELEN;
-        var ls=0.0, dls=5/zoom;
-        for (var ls=0; ls<length; ls+=dls) {
-            var s=ls/length;
+        let ls=0.0, dls=5/zoom;
+        for (ls = 0; ls<length; ls+=dls) {
+            let s=ls/length;
             if (s>1.0)
               continue;
-            var co=seg.evaluate(s);
-            var n=seg.normal(s).normalize();
-            var k=seg.curvature(s);
+            let co=seg.evaluate(s);
+            let n=seg.normal(s).normalize();
+            let k=seg.curvature(s);
             n.mulScalar(k*(window._d!=undefined ? window._d : 1000)/zoom);
             g.lineWidth = 1;
             g.strokeColor = "%2233bb";
@@ -284,34 +282,34 @@ es6_module_define('spline_draw', ["../config/config.js", "./spline_draw_sort", "
     if (spline.drawer===undefined) {
         spline.drawer = new SplineDrawer(spline);
     }
-    var zoom=editor.zoom;
+    let zoom=editor.zoom;
     zoom = matrix.m11;
     if (isNaN(zoom)) {
         zoom = 1.0;
     }
     spline.drawer.update(spline, spline.drawlist, spline.draw_layerlist, matrix, redraw_rects, only_render, selectmode, g, zoom, editor, ignore_layers);
     let promise=spline.drawer.draw(editor.drawg);
-    var actlayer=spline.layerset.active;
+    let actlayer=spline.layerset.active;
     if (!only_render&&draw_normals)
       draw_curve_normals(spline, g, zoom);
     let r=[[0, 0], [0, 0]];
-    for (var s of spline.segments) {
+    for (let s of spline.segments) {
         s.flag&=~SplineFlags.DRAW_TEMP;
     }
-    for (var f of spline.faces) {
+    for (let f of spline.faces) {
         f.flag&=~SplineFlags.DRAW_TEMP;
     }
-    var vert_size=editor.draw_small_verts ? SMALL_VERT_SIZE : VERT_SIZE;
+    let vert_size=editor.draw_small_verts ? SMALL_VERT_SIZE : VERT_SIZE;
     if (only_render)
       return promise;
     let tmp1=new Vector2();
     let tmp2=new Vector2();
     g.beginPath();
     if (selectmode&SelMask.HANDLE) {
-        var w=vert_size*g.canvas.dpi_scale/zoom;
-        for (var i=0; i<spline.handles.length; i++) {
-            var v=spline.handles[i];
-            var clr=get_element_color(v, spline.handles);
+        let w=vert_size*g.canvas.dpi_scale/zoom;
+        for (let i=0; i<spline.handles.length; i++) {
+            let v=spline.handles[i];
+            let clr=get_element_color(v, spline.handles);
             if (!ignore_layers&&!v.owning_segment.in_layer(actlayer))
               continue;
             if (v.owning_segment!=undefined&&v.owning_segment.flag&SplineFlags.HIDE)
@@ -334,28 +332,28 @@ es6_module_define('spline_draw', ["../config/config.js", "./spline_draw_sort", "
             g.fill();
             g.beginPath();
             g.lineWidth = 1;
-            var ov=v.owning_segment.handle_vertex(v);
+            let ov=v.owning_segment.handle_vertex(v);
             tmp2.load(ov).multVecMatrix(matrix);
             g.moveTo(tmp1[0], tmp1[1]);
             g.lineTo(tmp2[0], tmp2[1]);
             g.stroke();
         }
     }
-    var last_clr=undefined;
+    let last_clr=undefined;
     if (selectmode&SelMask.VERTEX) {
-        var w=vert_size*g.canvas.dpi_scale/zoom;
-        for (var i=0; i<spline.verts.length; i++) {
-            var v=spline.verts[i];
-            var clr=get_element_color(v, spline.verts);
+        let w=vert_size*g.canvas.dpi_scale/zoom;
+        for (let i=0; i<spline.verts.length; i++) {
+            let v=spline.verts[i];
+            let clr=get_element_color(v, spline.verts);
             if (!ignore_layers&&!v.in_layer(actlayer))
               continue;
             if (v.flag&SplineFlags.HIDE)
               continue;
-            var co=tmp1.load(v);
+            let co=tmp1.load(v);
             co.multVecMatrix(matrix);
             if (draw_time_helpers) {
-                var time=get_vtime(v);
-                if (curtime==time) {
+                let time=get_vtime(v);
+                if (curtime===time) {
                     g.beginPath();
                     g.fillStyle = "#33ffaa";
                     g.rect(co[0]-w*2, co[1]-w*2, w*4, w*4);
@@ -379,21 +377,25 @@ es6_module_define('spline_draw', ["../config/config.js", "./spline_draw_sort", "
     return promise;
   }
   draw_spline = _es6_module.add_export('draw_spline', draw_spline);
-  var $margin_5Qfv_redraw_element=new Vector3([15, 15, 15]);
-  var $aabb_WdB1_redraw_element=[new Vector3(), new Vector3()];
+  let __margin=new Vector2([15, 15]);
+  let __aabb=[new Vector2(), new Vector2()];
   function redraw_element(e, view2d) {
+    let margin=__margin;
+    let aabb=__aabb;
     e.flag|=SplineFlags.REDRAW;
-    $margin_5Qfv_redraw_element[0] = $margin_5Qfv_redraw_element[1] = $margin_5Qfv_redraw_element[2] = 15.0;
-    if (view2d!=undefined)
-      $margin_5Qfv_redraw_element.mulScalar(1.0/view2d.zoom);
-    var e_aabb=e.aabb;
-    $aabb_WdB1_redraw_element[0].load(e_aabb[0]), $aabb_WdB1_redraw_element[1].load(e_aabb[1]);
-    $aabb_WdB1_redraw_element[0].sub($margin_5Qfv_redraw_element), $aabb_WdB1_redraw_element[1].add($margin_5Qfv_redraw_element);
-    window.redraw_viewport($aabb_WdB1_redraw_element[0], $aabb_WdB1_redraw_element[1]);
+    margin[0] = margin[1] = 15.0;
+    if (view2d!==undefined)
+      margin.mulScalar(1.0/view2d.zoom);
+    let e_aabb=e.aabb;
+    aabb[0].load(e_aabb[0]);
+    aabb[1].load(e_aabb[1]);
+    aabb[0].sub(margin);
+    aabb[1].add(margin);
+    window.redraw_viewport(aabb[0], aabb[1]);
   }
   redraw_element = _es6_module.add_export('redraw_element', redraw_element);
 }, '/dev/fairmotion/src/curve/spline_draw.js');
-es6_module_define('spline_draw_sort', ["./spline_math.js", "../core/animdata.js", "./spline_element_array.js", "../editors/viewport/view2d_editor.js", "./spline_types.js", "./spline_multires.js", "../config/config.js", "../editors/viewport/selectmode.js", "../util/mathlib.js"], function _spline_draw_sort_module(_es6_module) {
+es6_module_define('spline_draw_sort', ["./spline_multires.js", "../core/animdata.js", "./spline_types.js", "./spline_element_array.js", "../util/mathlib.js", "../editors/viewport/view2d_editor.js", "../config/config.js", "./spline_math.js", "../editors/viewport/selectmode.js"], function _spline_draw_sort_module(_es6_module) {
   var aabb_isect_minmax2d=es6_import_item(_es6_module, '../util/mathlib.js', 'aabb_isect_minmax2d');
   var ENABLE_MULTIRES=es6_import_item(_es6_module, '../config/config.js', 'ENABLE_MULTIRES');
   var SessionFlags=es6_import_item(_es6_module, '../editors/viewport/view2d_editor.js', 'SessionFlags');
@@ -438,11 +440,11 @@ es6_module_define('spline_draw_sort', ["./spline_math.js", "../core/animdata.js"
     }
   }
   calc_string_ids = _es6_module.add_export('calc_string_ids', calc_string_ids);
-  var $lists_Gskv_sort_layer_segments=new cachering(function () {
+  var $lists_W08m_sort_layer_segments=new cachering(function () {
     return [];
   }, 2);
   function sort_layer_segments(layer, spline) {
-    var list=$lists_Gskv_sort_layer_segments.next();
+    var list=$lists_W08m_sort_layer_segments.next();
     list.length = 0;
     var visit={}
     var layerid=layer.id;
@@ -499,7 +501,9 @@ es6_module_define('spline_draw_sort', ["./spline_math.js", "../core/animdata.js"
     var min_z=100000000000000.0;
     var max_z=-100000000000000.0;
     var layerset=spline.layerset;
-    console.log("start sort");
+    if (_DEBUG.drawsort) {
+        console.log("start sort");
+    }
     var time=time_ms();
     let gmap=new Map();
     let gsmap=new Map();
@@ -663,7 +667,9 @@ es6_module_define('spline_draw_sort', ["./spline_math.js", "../core/animdata.js"
     }
     calc_string_ids(spline, spline.segments.length);
     spline.recalc&=~RecalcFlags.DRAWSORT;
-    console.log("time taken:"+(time_ms()-time).toFixed(2)+"ms");
+    if (_DEBUG.drawsort) {
+        console.log("time taken:"+(time_ms()-time).toFixed(2)+"ms");
+    }
   }
   redo_draw_sort = _es6_module.add_export('redo_draw_sort', redo_draw_sort);
 }, '/dev/fairmotion/src/curve/spline_draw_sort.js');
@@ -4158,7 +4164,7 @@ VectorVertex {
   _es6_module.add_class(VectorDraw);
   VectorDraw = _es6_module.add_export('VectorDraw', VectorDraw);
 }, '/dev/fairmotion/src/vectordraw/vectordraw_base.js');
-es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "../config/config.js", "../util/mathlib.js", "./vectordraw_jobs.js", "../path.ux/scripts/util/util.js", "./vectordraw_base.js", "./vectordraw_jobs_base.js"], function _vectordraw_canvas2d_module(_es6_module) {
+es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "../path.ux/scripts/util/util.js", "../util/mathlib.js", "../config/config.js", "./vectordraw_jobs.js", "./vectordraw_base.js", "./vectordraw_jobs_base.js"], function _vectordraw_canvas2d_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   var util=es6_import(_es6_module, '../path.ux/scripts/util/util.js');
@@ -4267,7 +4273,9 @@ es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "..
     }
      destroy() {
       this.patharea = 0;
-      console.warn("destroying batch", this.length);
+      if (window._DEBUG.drawbatches) {
+          console.warn("destroying batch", this.length);
+      }
       for (let p of this.paths) {
           p._batch = undefined;
       }
@@ -4358,7 +4366,7 @@ es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "..
         return mat;
       }
       for (let p of this.paths) {
-          setMat(p);
+          let mat=setMat(p);
           p.update_aabb(draw);
           draw.pop_transform();
           min.min(p.aabb[0]);
@@ -4643,6 +4651,36 @@ es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "..
       }
       return commands;
     }
+     round(matrix) {
+      let co=new Vector2();
+      let imat=new Matrix4(matrix);
+      imat.invert();
+      let cs=this.commands;
+      for (let i=0; i<cs.length; i+=cs[i+1]) {
+          let cmd=cs[i];
+          if (cmd!==LINETO&&cmd!==MOVETO&&cmd!==CUBICTO&&cmd!==BEZIERTO) {
+              continue;
+          }
+          let arglen=arglens[cmd];
+          for (let j=0; j<arglen; j+=2) {
+              let j2=i+1+j;
+              let d=1.0;
+              if (j2>=cs.length-1||j+1>=arglen) {
+                  break;
+              }
+              co[0] = cs[j2];
+              co[1] = cs[j2+1];
+              co.multVecMatrix(matrix);
+              co.mulScalar(d);
+              co.addScalar(0.5);
+              co.floor();
+              co.mulScalar(1.0/d);
+              co.multVecMatrix(imat);
+              cs[j2] = co[0];
+              cs[j2+1] = co[1];
+          }
+      }
+    }
      gen(draw, _check_tag=0, clip_mode=false, independent=false) {
       if (_check_tag&&!this.recalc) {
           console.log("infinite loop in clip stack");
@@ -4861,7 +4899,6 @@ es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "..
     }
     set  regen(v) {
       this.__regen = v;
-      console.warn("regen");
     }
     get  regen() {
       return this.__regen;
@@ -4878,7 +4915,9 @@ es6_module_define('vectordraw_canvas2d', ["../path.ux/scripts/util/math.js", "..
           }, 200);
       }
       if (this.regen) {
-          console.log("RECALC ALL");
+          if (window._DEBUG.trace_recalc_all) {
+              console.log("RECALC ALL");
+          }
           this.__regen = 0;
           this.batches.destroy();
           this.update();
@@ -6991,7 +7030,7 @@ es6_module_define('vectordraw_jobs_base', [], function _vectordraw_jobs_base_mod
    "source-atop": 1}
   CompositeModes = _es6_module.add_export('CompositeModes', CompositeModes);
 }, '/dev/fairmotion/src/vectordraw/vectordraw_jobs_base.js');
-es6_module_define('vectordraw', ["./vectordraw_canvas2d.js", "./vectordraw_stub.js", "./vectordraw_skia_simple.js", "./vectordraw_base.js", "./vectordraw_svg.js", "./vectordraw_canvas2d_simple.js"], function _vectordraw_module(_es6_module) {
+es6_module_define('vectordraw', ["./vectordraw_base.js", "./vectordraw_canvas2d.js", "./vectordraw_svg.js", "./vectordraw_skia_simple.js", "./vectordraw_canvas2d_simple.js", "./vectordraw_stub.js"], function _vectordraw_module(_es6_module) {
   "use strict";
   var CanvasDraw2D=es6_import_item(_es6_module, './vectordraw_canvas2d.js', 'CanvasDraw2D');
   var CanvasPath=es6_import_item(_es6_module, './vectordraw_canvas2d.js', 'CanvasPath');
@@ -7014,7 +7053,7 @@ es6_module_define('vectordraw', ["./vectordraw_canvas2d.js", "./vectordraw_stub.
 es6_module_define('strokedraw', [], function _strokedraw_module(_es6_module) {
   "use strict";
 }, '/dev/fairmotion/src/vectordraw/strokedraw.js');
-es6_module_define('spline_draw_new', ["../core/animdata.js", "../path.ux/scripts/pathux.js", "../vectordraw/vectordraw.js", "../config/config.js", "./spline_multires.js", "./spline_element_array.js", "../editors/viewport/selectmode.js", "../util/mathlib.js", "./spline_base.js", "../editors/viewport/view2d_editor.js", "./spline_math.js", "./spline_types.js", "../vectordraw/vectordraw_jobs.js", "../util/bezier.js", "./spline_strokegroup.js"], function _spline_draw_new_module(_es6_module) {
+es6_module_define('spline_draw_new', ["../path.ux/scripts/pathux.js", "./spline_element_array.js", "../config/config.js", "../core/animdata.js", "./spline_multires.js", "./spline_strokegroup.js", "../editors/viewport/view2d_editor.js", "../vectordraw/vectordraw_jobs.js", "../util/mathlib.js", "./spline_base.js", "./spline_math.js", "../vectordraw/vectordraw.js", "../editors/viewport/selectmode.js", "../util/bezier.js", "./spline_types.js"], function _spline_draw_new_module(_es6_module) {
   "use strict";
   var aabb_isect_minmax2d=es6_import_item(_es6_module, '../util/mathlib.js', 'aabb_isect_minmax2d');
   var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
@@ -7024,6 +7063,7 @@ es6_module_define('spline_draw_new', ["../core/animdata.js", "../path.ux/scripts
   var LINECROSS=es6_import_item(_es6_module, '../util/mathlib.js', 'LINECROSS');
   var ENABLE_MULTIRES=es6_import_item(_es6_module, '../config/config.js', 'ENABLE_MULTIRES');
   var nstructjs=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'nstructjs');
+  var Vector2=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector2');
   var config=es6_import(_es6_module, '../config/config.js');
   var ClosestModes=es6_import_item(_es6_module, './spline_base.js', 'ClosestModes');
   var vectordraw_jobs=es6_import(_es6_module, '../vectordraw/vectordraw_jobs.js');
@@ -7042,8 +7082,8 @@ es6_module_define('spline_draw_new', ["../core/animdata.js", "../path.ux/scripts
   var MultiResLayer=es6_import_item(_es6_module, './spline_multires.js', 'MultiResLayer');
   var MResFlags=es6_import_item(_es6_module, './spline_multires.js', 'MResFlags');
   var has_multires=es6_import_item(_es6_module, './spline_multires.js', 'has_multires');
-  var spline_draw_cache_vs=cachering.fromConstructor(Vector3, 64);
-  var spline_draw_trans_vs=cachering.fromConstructor(Vector3, 32);
+  var spline_draw_cache_vs=cachering.fromConstructor(Vector2, 64);
+  var spline_draw_trans_vs=cachering.fromConstructor(Vector2, 32);
   var PI=Math.PI;
   var pow=Math.pow, cos=Math.cos, sin=Math.sin, abs=Math.abs, floor=Math.floor, ceil=Math.ceil, sqrt=Math.sqrt, log=Math.log, acos=Math.acos, asin=Math.asin;
   var SplineFlags=es6_import_item(_es6_module, './spline_types.js', 'SplineFlags');
@@ -7056,11 +7096,13 @@ es6_module_define('spline_draw_new', ["../core/animdata.js", "../path.ux/scripts
   var SplineFace=es6_import_item(_es6_module, './spline_types.js', 'SplineFace');
   var RecalcFlags=es6_import_item(_es6_module, './spline_types.js', 'RecalcFlags');
   var MaterialFlags=es6_import_item(_es6_module, './spline_types.js', 'MaterialFlags');
+  var bez_self_isect4=es6_import_item(_es6_module, '../util/bezier.js', 'bez_self_isect4');
   var bez4=es6_import_item(_es6_module, '../util/bezier.js', 'bez4');
   var d2bez4=es6_import_item(_es6_module, '../util/bezier.js', 'd2bez4');
   var dbez4=es6_import_item(_es6_module, '../util/bezier.js', 'dbez4');
   var ibez4=es6_import_item(_es6_module, '../util/bezier.js', 'ibez4');
   var curv4=es6_import_item(_es6_module, '../util/bezier.js', 'curv4');
+  var thbez4=es6_import_item(_es6_module, '../util/bezier.js', 'thbez4');
   var ElementArray=es6_import_item(_es6_module, './spline_element_array.js', 'ElementArray');
   var SplineLayerFlags=es6_import_item(_es6_module, './spline_element_array.js', 'SplineLayerFlags');
   var Canvas=es6_import_item(_es6_module, '../vectordraw/vectordraw.js', 'Canvas');
@@ -7075,7 +7117,7 @@ es6_module_define('spline_draw_new', ["../core/animdata.js", "../path.ux/scripts
   }, 64);
   let update_join_vs=cachering.fromConstructor(Vector2, 64);
   var draw_face_vs=new cachering(function () {
-    return new Vector3();
+    return new Vector2();
   }, 32);
   var MAXCURVELEN=10000;
   class DrawParams  {
@@ -7345,9 +7387,10 @@ es6_module_define('spline_draw_new', ["../core/animdata.js", "../path.ux/scripts
       let p0=draw0.getp(prev, v, side0, dv0);
       let p1a=draw1.getp(seg, v, side1, dv1a);
       let p1b=draw1.getp(seg, v, side1^1, dv1b);
-      dv0.mulScalar(v===prev.v1 ? 1 : -1);
-      dv1a.mulScalar(v===seg.v1 ? 1 : -1);
-      dv1b.mulScalar(v===seg.v1 ? 1 : -1);
+      let scl=0.7;
+      dv0.mulScalar(v===prev.v1 ? scl : -scl);
+      dv1a.mulScalar(v===seg.v1 ? scl : -scl);
+      dv1b.mulScalar(v===seg.v1 ? scl : -scl);
       let scale1=v.vectorDistance(p0)/Math.max(prev.length, 1e-05);
       let scale2=v.vectorDistance(p1a)/Math.max(seg.length, 1e-05);
       scale1/=1.5;
@@ -7369,10 +7412,14 @@ es6_module_define('spline_draw_new', ["../core/animdata.js", "../path.ux/scripts
       let p=update_join_vs.next();
       p[0] = bez4(p0[0], p0[0]+dv0[0], p1a[0]-dv1a[0], p1a[0], 0.5);
       p[1] = bez4(p0[1], p0[1]+dv0[1], p1a[1]-dv1a[1], p1a[1], 0.5);
-      t1.load(p0).sub(p).normalize();
-      t2.load(p1a).sub(p).normalize();
+      t1.load(p0).sub(p);
+      t2.load(p1a).sub(p);
+      let len1=t1.vectorLength()+t2.vectorLength();
+      let lw2=seg.mat.linewidth2;
+      t1.normalize();
+      t2.normalize();
       let th=Math.acos(t1.dot(t2));
-      if (th>Math.PI*0.2) {
+      if (len1*0.25>lw2||th>Math.PI*0.2) {
           path2.cubicTo(p0[0]+dv0[0], p0[1]+dv0[1], p1a[0]-dv1a[0], p1a[1]-dv1a[1], p1a[0], p1a[1]);
           path2.pushStroke(mat.strokecolor2, mat.linewidth2);
       }
@@ -7468,7 +7515,7 @@ es6_module_define('spline_draw_new', ["../core/animdata.js", "../path.ux/scripts
       this.drawer.set_matrix(drawMatrix);
       if (recalc_all) {
           this.drawer.recalcAll();
-          if (1||DEBUG.trace_recalc_all) {
+          if (DEBUG.trace_recalc_all) {
               console.log("%c RECALC_ALL!  ", "color:orange");
           }
       }
@@ -7576,7 +7623,7 @@ es6_module_define('spline_draw_new', ["../core/animdata.js", "../path.ux/scripts
       this.drawer.set_matrix(drawMatrix);
       if (recalc_all) {
           this.drawer.recalcAll();
-          if (1||DEBUG.trace_recalc_all) {
+          if (DEBUG.trace_recalc_all) {
               console.log("%c RECALC_ALL!  ", "color:orange");
           }
       }
@@ -7691,7 +7738,7 @@ es6_module_define('spline_draw_new', ["../core/animdata.js", "../path.ux/scripts
       path2.reset();
       path2.noAutoFill();
       let dpath, dpath2, dpath3, dpoint, dline;
-      let debug=0;
+      const debug=0;
       if (debug) {
           let eid=g.id;
           dpath = this.get_path(eid|8192, z+10000);
@@ -7779,7 +7826,6 @@ es6_module_define('spline_draw_new', ["../core/animdata.js", "../path.ux/scripts
               let steps=seglen>0.0 ? ~~(seglen/55+0.5) : 0;
               let ddata=seg.cdata.get_layer(SplineDrawData);
               steps = Math.min(Math.max(steps, 2), 8);
-              steps = Math.max(steps, 12);
               let dsign=v===seg.v1 ? 1.0 : -1.0;
               if (lastsign!==dsign) {
                   lastdv.negate();
@@ -7837,11 +7883,8 @@ es6_module_define('spline_draw_new', ["../core/animdata.js", "../path.ux/scripts
                       let s=ddata2.gets(seg2, v, side);
                       s = Math.min(Math.max(s, 0.0), 1.0);
                       let p2=seg2.evaluateSide(s, 1, dv2);
-                      let scale=3.0;
-                      let scale1=scale;
-                      let scale2=scale;
-                      dv.mulScalar(1.0/(scale1));
-                      dv2.mulScalar(1.0/(scale2));
+                      dv.mulScalar(1.0/3.0);
+                      dv2.mulScalar(1.0/3.0);
                       path.lineTo(p[0], p[1]);
                       path2.lineTo(p[0], p[1]);
                       if (debug) {
@@ -7850,6 +7893,15 @@ es6_module_define('spline_draw_new', ["../core/animdata.js", "../path.ux/scripts
                   }
               }
               for (let i=0; i<steps; i++, s+=ds) {
+                  if (si===segments.length-1) {
+                      if (i===0) {
+                          s = dsign>0.0 ? start : end;
+                      }
+                      else 
+                        if (i===steps-1) {
+                          s = dsign<0.0 ? start : end;
+                      }
+                  }
                   let p=seg.evaluateSide(s, side, dv, no, lw_dlw);
                   dv.mulScalar(ds/3.0);
                   if (first) {
@@ -7947,7 +7999,7 @@ es6_module_define('spline_draw_new', ["../core/animdata.js", "../path.ux/scripts
           next = segments[next];
           let pdata=prev.cdata.get_layer(SplineDrawData);
           let ndata=next.cdata.get_layer(SplineDrawData);
-          let margin=-0.001;
+          let margin=0.0;
           let s0a=pdata.gets(prev, v, 0, margin);
           let s0b=pdata.gets(prev, v, 1, margin);
           let s1a=data.gets(seg, v, 0, margin);
@@ -7966,7 +8018,6 @@ es6_module_define('spline_draw_new', ["../core/animdata.js", "../path.ux/scripts
           let th1=Math.abs(Math.acos(t0.dot(t1)));
           let th2=Math.abs(Math.acos(t1.dot(t2)));
           let th=th1+th2;
-          sa[2] = sb[2] = pa[2] = pb[2] = na[2] = nb[2] = 0.0;
           let f0=(prev.v1===v);
           let f1=(seg.v1===v);
           let f2=(next.v1===v);

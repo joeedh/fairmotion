@@ -2581,7 +2581,7 @@ es6_module_define('utildefine', [], function _utildefine_module(_es6_module) {
   var $_mh;
   var $_swapt;
 }, '/dev/fairmotion/src/core/utildefine.js');
-es6_module_define('view2d_editor', ["../../core/struct.js", "./selectmode.js", "../events.js", "./view2d_base.js"], function _view2d_editor_module(_es6_module) {
+es6_module_define('view2d_editor', ["../events.js", "../../core/struct.js", "./view2d_base.js", "./selectmode.js"], function _view2d_editor_module(_es6_module) {
   "use strict";
   var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
   var KeyMap=es6_import_item(_es6_module, '../events.js', 'KeyMap');
@@ -2608,7 +2608,7 @@ es6_module_define('view2d_editor', ["../../core/struct.js", "./selectmode.js", "
       this.type = type;
       this.editor_type = editor_type;
       this.lib_type = lib_type;
-      this.keymap = new KeyMap();
+      this.keymap = new KeyMap("view2d:"+this.constructor.name);
       this.selectmode = 0;
     }
     static  fromSTRUCT(reader) {
@@ -2912,7 +2912,7 @@ es6_module_define('view2d_object', ["../../core/struct.js", "../../curve/spline_
   WorkSpline = _es6_module.add_export('WorkSpline', WorkSpline);
   
 }, '/dev/fairmotion/src/editors/viewport/view2d_object.js');
-es6_module_define('MaterialEditor', ["../../path.ux/scripts/screen/ScreenArea.js", "../../path.ux/scripts/core/ui.js", "../../path.ux/scripts/widgets/ui_menu.js", "../viewport/spline_layerops.js", "../../path.ux/scripts/widgets/ui_listbox.js", "../editor_base.js", "../viewport/spline_editops.js", "../../path.ux/scripts/core/ui_base.js", "../../core/struct.js", "../../path.ux/scripts/widgets/ui_table.js"], function _MaterialEditor_module(_es6_module) {
+es6_module_define('MaterialEditor', ["../viewport/spline_layerops.js", "../../path.ux/scripts/core/ui.js", "../../path.ux/scripts/widgets/ui_table.js", "../editor_base.js", "../../path.ux/scripts/widgets/ui_menu.js", "../viewport/spline_editops.js", "../../core/struct.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../path.ux/scripts/widgets/ui_listbox.js", "../../path.ux/scripts/core/ui_base.js"], function _MaterialEditor_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
   var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
   var Container=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui.js', 'Container');
@@ -3256,12 +3256,13 @@ es6_module_define('MaterialEditor', ["../../path.ux/scripts/screen/ScreenArea.js
 `;
   Editor.register(MaterialEditor);
 }, '/dev/fairmotion/src/editors/material/MaterialEditor.js');
-es6_module_define('DopeSheetEditor', ["../../core/struct.js", "../../curve/spline_types.js", "../../path.ux/scripts/util/util.js", "../editor_base.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../curve/spline.js", "../../core/toolops_api.js", "./dopesheet_ops.js", "../../path.ux/scripts/core/ui_base.js", "../../core/animdata.js", "../../util/mathlib.js", "../../path.ux/scripts/util/simple_events.js", "../events.js", "../../path.ux/scripts/core/ui.js", "./dopesheet_ops_new.js"], function _DopeSheetEditor_module(_es6_module) {
+es6_module_define('DopeSheetEditor', ["../../core/struct.js", "../../curve/spline.js", "../../path.ux/scripts/core/ui.js", "../../path.ux/scripts/util/util.js", "../events.js", "./dopesheet_ops_new.js", "../../path.ux/scripts/core/ui_base.js", "../../curve/spline_types.js", "./dopesheet_ops.js", "../../util/mathlib.js", "../editor_base.js", "../../core/animdata.js", "../../path.ux/scripts/util/simple_events.js", "../../core/toolops_api.js", "../../path.ux/scripts/screen/ScreenArea.js"], function _DopeSheetEditor_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
   var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
   var UIBase=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui_base.js', 'UIBase');
   var css2color=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui_base.js', 'css2color');
   var color2css=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui_base.js', 'color2css');
+  var Icons=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui_base.js', 'Icons');
   var Editor=es6_import_item(_es6_module, '../editor_base.js', 'Editor');
   var ToggleSelectAll=es6_import_item(_es6_module, './dopesheet_ops_new.js', 'ToggleSelectAll');
   var MoveKeyFramesOp=es6_import_item(_es6_module, './dopesheet_ops_new.js', 'MoveKeyFramesOp');
@@ -3288,6 +3289,7 @@ es6_module_define('DopeSheetEditor', ["../../core/struct.js", "../../curve/splin
   var ToolOp=es6_import_item(_es6_module, '../../core/toolops_api.js', 'ToolOp');
   var UndoFlags=es6_import_item(_es6_module, '../../core/toolops_api.js', 'UndoFlags');
   var ToolFlags=es6_import_item(_es6_module, '../../core/toolops_api.js', 'ToolFlags');
+  var ModalStates=es6_import_item(_es6_module, '../../core/toolops_api.js', 'ModalStates');
   var Spline=es6_import_item(_es6_module, '../../curve/spline.js', 'Spline');
   var RestrictFlags=es6_import_item(_es6_module, '../../curve/spline.js', 'RestrictFlags');
   var CustomDataLayer=es6_import_item(_es6_module, '../../curve/spline_types.js', 'CustomDataLayer');
@@ -3792,7 +3794,7 @@ ChannelState {
       this.define_keymap();
     }
      define_keymap() {
-      this.keymap = new KeyMap();
+      this.keymap = new KeyMap("dopesheet");
       let k=this.keymap;
       k.add(new HotKey("A", [], "Toggle Select All"), new FuncKeyHandler(function (ctx) {
         console.log("Dopesheet toggle select all!");
@@ -3846,6 +3848,25 @@ ChannelState {
       this.channels.style["overflow"] = "hidden";
       this.style["overflow"] = "hidden";
       this.shadow.appendChild(this.channels);
+      this.startbutton = this.header.iconbutton(Icons.ANIM_START, "Animation Playback", () =>        {
+        console.log("playback");
+      });
+      this.startbutton.iconsheet = 0;
+      let prev=this.header.tool("anim.nextprev(dir=-1)", PackFlags.USE_ICONS);
+      prev.icon = Icons.ANIM_PREV;
+      prev.iconsheet = 0;
+      this.playbutton = this.header.iconbutton(Icons.ANIM_PLAY, "Animation Playback", () =>        {
+        console.log("playback");
+        this.ctx.screen.togglePlayback();
+      });
+      this.playbutton.iconsheet = 0;
+      let next=this.header.tool("anim.nextprev(dir=1)", PackFlags.USE_ICONS);
+      next.icon = Icons.ANIM_NEXT;
+      next.iconsheet = 0;
+      this.endbutton = this.header.iconbutton(Icons.ANIM_END, "Animation Playback", () =>        {
+        console.log("playback");
+      });
+      this.endbutton.iconsheet = 0;
       this.header.prop("scene.frame");
       this.header.prop("dopesheet.timescale");
       this._queueDagLink = true;
@@ -3895,7 +3916,15 @@ ChannelState {
         console.warn("treeData set", this._treeData, v);
     }
      update() {
+      if (!window.g_app_state)
+        return ;
       super.update();
+      if (g_app_state.modalstate&ModalStates.PLAYING) {
+          this.playbutton.icon = Icons.ANIM_PAUSE;
+      }
+      else {
+        this.playbutton.icon = Icons.ANIM_PLAY;
+      }
       let hash=this.calcUpdateHash();
       if (hash!==this._last_hash1) {
           console.log("dopesheet hash rebuild update", hash);
@@ -5285,7 +5314,7 @@ es6_module_define('dopesheet_ops', ["./dopesheet_phantom.js", "../../core/toolpr
   DeleteKeyOp = _es6_module.add_export('DeleteKeyOp', DeleteKeyOp);
   
 }, '/dev/fairmotion/src/editors/dopesheet/dopesheet_ops.js');
-es6_module_define('dopesheet_ops_new', ["../../curve/spline_base.js", "../../core/toolprops.js", "../../path.ux/scripts/util/vectormath.js", "../../core/toolops_api.js", "../../core/animdata.js", "../../path.ux/scripts/util/util.js"], function _dopesheet_ops_new_module(_es6_module) {
+es6_module_define('dopesheet_ops_new', ["../../curve/spline_base.js", "../../path.ux/scripts/util/vectormath.js", "../../core/toolops_api.js", "../../core/animdata.js", "../../datafiles/icon_enum.js", "../../core/toolprops.js", "../../path.ux/scripts/util/util.js"], function _dopesheet_ops_new_module(_es6_module) {
   var ToolOp=es6_import_item(_es6_module, '../../core/toolops_api.js', 'ToolOp');
   var AnimKeyFlags=es6_import_item(_es6_module, '../../core/animdata.js', 'AnimKeyFlags');
   var AnimKeyTypes=es6_import_item(_es6_module, '../../core/animdata.js', 'AnimKeyTypes');
@@ -5301,6 +5330,7 @@ es6_module_define('dopesheet_ops_new', ["../../curve/spline_base.js", "../../cor
   var util=es6_import(_es6_module, '../../path.ux/scripts/util/util.js');
   var SplineFlags=es6_import_item(_es6_module, '../../curve/spline_base.js', 'SplineFlags');
   var Vector2=es6_import_item(_es6_module, '../../path.ux/scripts/util/vectormath.js', 'Vector2');
+  var Icons=es6_import_item(_es6_module, '../../datafiles/icon_enum.js', 'Icons');
   class KeyIterItem  {
     
      getFlag() {
@@ -5396,6 +5426,7 @@ es6_module_define('dopesheet_ops_new', ["../../curve/spline_base.js", "../../cor
   VertKeyIterItem = _es6_module.add_export('VertKeyIterItem', VertKeyIterItem);
   class DataPathKeyItem extends VertKeyIterItem {
      constructor(datapath) {
+      super();
       this.path = datapath;
       throw new Error("implement me");
     }
@@ -5570,6 +5601,62 @@ es6_module_define('dopesheet_ops_new', ["../../curve/spline_base.js", "../../cor
   _ESClass.register(ToggleSelectAll);
   _es6_module.add_class(ToggleSelectAll);
   ToggleSelectAll = _es6_module.add_export('ToggleSelectAll', ToggleSelectAll);
+  class NextPrevKeyFrameOp extends AnimKeyTool {
+     constructor() {
+      super();
+    }
+    static  tooldef() {
+      return {uiname: "Next/Prev Keyframe", 
+     toolpath: "anim.nextprev", 
+     icon: Icons.ANIM_NEXT, 
+     inputs: ToolOp.inherit({dir: new IntProperty(1)}), 
+     outputs: ToolOp.inherit({frame: new IntProperty(0)})}
+    }
+     exec(ctx) {
+      let dir=this.inputs.dir.getValue();
+      let scene=ctx.scene;
+      let time=scene.time;
+      let mint, minf;
+      console.log("Next Keyframe", time);
+      for (let key of this.iterKeys(ctx)) {
+          let t=key.getTime();
+          console.log("  ", t);
+          if (dir>0&&t>time&&(mint===undefined||t-time<mint)) {
+              mint = t-time;
+              minf = t;
+          }
+          else 
+            if (dir<0&&t<time&&(mint===undefined||time-t<mint)) {
+              mint = time-t;
+              minf = t;
+          }
+      }
+      console.log(minf, mint, time);
+      if (minf!==undefined) {
+          scene.change_time(ctx, minf);
+          window.redraw_viewport();
+      }
+    }
+     undoPre(ctx) {
+      this.undo_pre(ctx);
+    }
+    static  canRun(ctx) {
+      return ctx.scene;
+    }
+     undo_pre(ctx) {
+      this._undo_time = ctx.scene.time;
+    }
+     undo(ctx) {
+      if (ctx.scene.time===this._undo_time) {
+          return ;
+      }
+      ctx.scene.change_time(this._undo_time);
+      window.redraw_viewport();
+    }
+  }
+  _ESClass.register(NextPrevKeyFrameOp);
+  _es6_module.add_class(NextPrevKeyFrameOp);
+  NextPrevKeyFrameOp = _es6_module.add_export('NextPrevKeyFrameOp', NextPrevKeyFrameOp);
   class MoveKeyFramesOp extends AnimKeyTool {
      constructor() {
       super();
@@ -5999,7 +6086,7 @@ es6_module_define('notifications', ["../path.ux/scripts/widgets/ui_noteframe.js"
   _es6_module.add_class(NotificationManager);
   NotificationManager = _es6_module.add_export('NotificationManager', NotificationManager);
 }, '/dev/fairmotion/src/core/notifications.js');
-es6_module_define('app_ops', ["../util/svg_export.js", "../core/toolops_api.js", "../../platforms/platform.js", "../core/toolprops.js", "./viewport/spline_createops.js", "../core/fileapi/fileapi.js", "../util/strutils.js", "../config/config.js"], function _app_ops_module(_es6_module) {
+es6_module_define('app_ops', ["../config/config.js", "../core/toolops_api.js", "../util/svg_export.js", "../core/fileapi/fileapi.js", "../core/toolprops.js", "../util/strutils.js", "../../platforms/platform.js", "./viewport/spline_createops.js"], function _app_ops_module(_es6_module) {
   var config=es6_import(_es6_module, '../config/config.js');
   var urlencode=es6_import_item(_es6_module, '../util/strutils.js', 'urlencode');
   var b64decode=es6_import_item(_es6_module, '../util/strutils.js', 'b64decode');
@@ -6144,9 +6231,9 @@ es6_module_define('app_ops', ["../util/svg_export.js", "../core/toolops_api.js",
       console.log("Export SVG");
       ctx = new Context();
       var buf=export_svg(ctx.spline);
-      if (g_app_state.filepath!="") {
+      if (g_app_state.filepath!=="") {
           var name=g_app_state.filepath;
-          if (name===undefined||name=="") {
+          if (name===undefined||name==="") {
               name = "untitled";
           }
           if (name.endsWith(".fmo"))
@@ -6274,7 +6361,7 @@ es6_module_define('app_ops', ["../util/svg_export.js", "../core/toolops_api.js",
   }
   import_json = _es6_module.add_export('import_json', import_json);
 }, '/dev/fairmotion/src/editors/app_ops.js');
-es6_module_define('editor_base', ["../path.ux/scripts/core/ui_base.js", "../path.ux/scripts/screen/FrameManager.js", "../core/context.js", "../core/struct.js", "./events.js", "../core/toolops_api.js", "../path.ux/scripts/screen/ScreenArea.js", "../path.ux/scripts/util/util.js"], function _editor_base_module(_es6_module) {
+es6_module_define('editor_base', ["../path.ux/scripts/util/util.js", "../path.ux/scripts/screen/ScreenArea.js", "../core/toolops_api.js", "../core/context.js", "../path.ux/scripts/screen/FrameManager.js", "../path.ux/scripts/core/ui_base.js", "../core/struct.js", "./events.js"], function _editor_base_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../path.ux/scripts/screen/ScreenArea.js', 'Area');
   var ScreenArea=es6_import_item(_es6_module, '../path.ux/scripts/screen/ScreenArea.js', 'ScreenArea');
   var Screen=es6_import_item(_es6_module, '../path.ux/scripts/screen/FrameManager.js', 'Screen');
@@ -6326,7 +6413,7 @@ es6_module_define('editor_base', ["../path.ux/scripts/core/ui_base.js", "../path
       this.define_keymap();
     }
      define_keymap() {
-      this.keymap = new KeyMap();
+      this.keymap = new KeyMap("screen");
       var k=this.keymap;
       k.add_tool(new HotKey("O", ["CTRL"], "Open File"), "appstate.open()");
       k.add_tool(new HotKey("O", ["CTRL", "SHIFT"], "Open Recent"), "appstate.open_recent()");
@@ -6336,12 +6423,42 @@ es6_module_define('editor_base', ["../path.ux/scripts/core/ui_base.js", "../path
         ("saving new startup file.");
         g_app_state.set_startup_file();
       });
+      k.add_tool(new HotKey("Left", ["CTRL"], "Previous Keyframe"), "anim.nextprev(dir=-1)");
+      k.add_tool(new HotKey("Right", ["CTRL"], "Next Keyframe"), "anim.nextprev(dir=1)");
       k.add(new HotKey("Space", [], "Animation Playback"), new FuncKeyHandler(() =>        {
         this.ctx.screen.togglePlayback();
       }));
       k.add(new HotKey("Escape", [], "Animation Playback"), new FuncKeyHandler(() =>        {
         this.ctx.screen.stopPlayback();
       }));
+      k.add(new HotKey("Z", ["CTRL", "SHIFT"], "Redo"), new FuncKeyHandler(function (ctx) {
+        console.log("Redo");
+        ctx.toolstack.redo();
+      }));
+      k.add(new HotKey("Y", ["CTRL"], "Redo"), new FuncKeyHandler(function (ctx) {
+        console.log("Redo");
+        ctx.toolstack.redo();
+      }));
+      k.add(new HotKey("Z", ["CTRL"], "Undo"), new FuncKeyHandler(function (ctx) {
+        console.log("Undo");
+        ctx.toolstack.undo();
+      }));
+    }
+    * getKeySets() {
+      let this2=this;
+      yield new KeymapSet("General", "screen", [this2.keymap]);
+      for (let sarea of this2.sareas) {
+          if (!sarea.area)
+            continue;
+          let area=sarea.area;
+          let uiname=area.constructor.define().uiname||area.constructor.name;
+          let path=area.constructor.name;
+          let km=sarea.area.getKeyMaps();
+          if (!(__instance_of(km, KeymapSet))) {
+              km = new KeymapSet(uiname, path, km);
+          }
+          yield km;
+      }
     }
      on_keyup(e) {
       if (g_app_state.eventhandler!==this)
@@ -6417,6 +6534,21 @@ es6_module_define('editor_base', ["../path.ux/scripts/core/ui_base.js", "../path
 }
 `;
   ui_base.UIBase.register(FairmotionScreen);
+  class KeymapSet extends Array {
+     constructor(name, path, keymaps) {
+      super();
+      this.name = name;
+      this.path = path;
+      if (keymaps) {
+          for (let keymap of keymaps) {
+              this.push(keymap);
+          }
+      }
+    }
+  }
+  _ESClass.register(KeymapSet);
+  _es6_module.add_class(KeymapSet);
+  KeymapSet = _es6_module.add_export('KeymapSet', KeymapSet);
   class Editor extends Area {
     
      constructor() {
@@ -6435,7 +6567,7 @@ es6_module_define('editor_base', ["../path.ux/scripts/core/ui_base.js", "../path
           this.shadow.appendChild(this.container);
           this.makeHeader(this.container);
       }
-      this.keymap = new KeyMap();
+      this.keymap = new KeyMap(this.constructor.define().uiname||this.constructor.name);
       if (this.helppicker) {
           this.helppicker.iconsheet = 0;
       }
@@ -7059,7 +7191,7 @@ es6_module_define('manipulator', ["../../util/mathlib.js", "../../config/config.
   _es6_module.add_class(ManipulatorManager);
   ManipulatorManager = _es6_module.add_export('ManipulatorManager', ManipulatorManager);
 }, '/dev/fairmotion/src/editors/viewport/manipulator.js');
-es6_module_define('view2d', ["../../core/imageblock.js", "../../path.ux/scripts/screen/ScreenArea.js", "../editor_base.js", "../../core/struct.js", "./toolmodes/pentool.js", "../../core/context.js", "../../path.ux/scripts/core/ui.js", "./selectmode.js", "../../path.ux/scripts/util/util.js", "./view2d_ops.js", "./view2d_editor.js", "../events.js", "../../path.ux/scripts/core/ui_base.js", "./view2d_spline_ops.js", "./manipulator.js", "../../path.ux/scripts/widgets/ui_menu.js", "./toolmodes/all.js", "../../core/toolops_api.js"], function _view2d_module(_es6_module) {
+es6_module_define('view2d', ["../../core/struct.js", "./view2d_editor.js", "../../core/toolops_api.js", "../editor_base.js", "../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/widgets/ui_menu.js", "../../path.ux/scripts/util/util.js", "./manipulator.js", "./toolmodes/pentool.js", "../../path.ux/scripts/screen/ScreenArea.js", "./view2d_spline_ops.js", "./view2d_ops.js", "../../path.ux/scripts/core/ui.js", "../events.js", "../../core/context.js", "./selectmode.js", "../../core/imageblock.js", "./toolmodes/all.js"], function _view2d_module(_es6_module) {
   var FullContext=es6_import_item(_es6_module, '../../core/context.js', 'FullContext');
   var Editor=es6_import_item(_es6_module, '../editor_base.js', 'Editor');
   var SessionFlags=es6_import_item(_es6_module, './view2d_editor.js', 'SessionFlags');
@@ -7095,7 +7227,7 @@ es6_module_define('view2d', ["../../core/imageblock.js", "../../path.ux/scripts/
   let _ex_EditModes=es6_import_item(_es6_module, './view2d_editor.js', 'EditModes');
   _es6_module.add_export('EditModes', _ex_EditModes, true);
   es6_import(_es6_module, './toolmodes/all.js');
-  let projrets=cachering.fromConstructor(Vector3, 128);
+  let projrets=cachering.fromConstructor(Vector2, 128);
   let _v3d_unstatic_temps=cachering.fromConstructor(Vector3, 512);
   let _v2d_unstatic_temps=cachering.fromConstructor(Vector2, 32);
   function delay_redraw(ms) {
@@ -7162,9 +7294,11 @@ es6_module_define('view2d', ["../../core/imageblock.js", "../../path.ux/scripts/
     
     
     
+    
      constructor() {
       super();
       this.propradius = 35;
+      this._last_toolmode = undefined;
       this._last_mpos = new Vector2();
       this.dpi_scale = 1.0;
       this._last_rendermat = new Matrix4();
@@ -7207,7 +7341,7 @@ es6_module_define('view2d', ["../../core/imageblock.js", "../../path.ux/scripts/
       if (!this.ctx||!this.ctx.toolmode) {
           return ;
       }
-      this.keymap = new KeyMap();
+      this.keymap = new KeyMap("view2d");
       this.define_keymap();
       for (let map of this.ctx.toolmode.getKeyMaps()) {
           this.keymap.concat(map);
@@ -7252,20 +7386,8 @@ es6_module_define('view2d', ["../../core/imageblock.js", "../../path.ux/scripts/
           s2 = SelMask.VERTEX;
         s2|=hf;
         console.log("toggle select mode", s, s2, SelMask.SEGMENT, SelMask.FACE);
-        console.log(s==SelMask.VERTEX, s==(SelMask.VERTEX|SelMask.HANDLE), (s==SelMask.SEGMENT));
+        console.log(s===SelMask.VERTEX, s===(SelMask.VERTEX|SelMask.HANDLE), (s===SelMask.SEGMENT));
         ctx.view2d.set_selectmode(s2);
-      }));
-      k.add(new HotKey("Z", ["CTRL", "SHIFT"], "Redo"), new FuncKeyHandler(function (ctx) {
-        console.log("Redo");
-        ctx.toolstack.redo();
-      }));
-      k.add(new HotKey("Y", ["CTRL"], "Redo"), new FuncKeyHandler(function (ctx) {
-        console.log("Redo");
-        ctx.toolstack.redo();
-      }));
-      k.add(new HotKey("Z", ["CTRL"], "Undo"), new FuncKeyHandler(function (ctx) {
-        console.log("Undo");
-        ctx.toolstack.undo();
       }));
       k.add(new HotKey("O", [], "Toggle Proportional Transform"), new FuncKeyHandler(function (ctx) {
         console.log("toggling proportional transform");
@@ -7375,7 +7497,6 @@ es6_module_define('view2d', ["../../core/imageblock.js", "../../path.ux/scripts/
       }
       ret[0] = (x-rect.left)*dpi;
       ret[1] = (rect.height-(y-rect.top))*dpi;
-      ret[2] = 0.0;
       return ret;
     }
      on_resize(newsize, oldsize) {
@@ -7574,8 +7695,15 @@ es6_module_define('view2d', ["../../core/imageblock.js", "../../path.ux/scripts/
       return ret;
     }
      makeToolbars() {
+      if (this._makingToolBars) {
+          return ;
+      }
+      this._makingToolBars = true;
       let row=this.container;
-      let tabs=row.tabs("right");
+      if (this.sidebar) {
+          this.sidebar.remove();
+      }
+      let tabs=this.sidebar = row.tabs("right");
       tabs.style["height"] = "400px";
       tabs.float(1, 3*25*UIBase.getDPI(), 7);
       var tools=tabs.tab("Tools", "Tools");
@@ -7595,7 +7723,13 @@ es6_module_define('view2d', ["../../core/imageblock.js", "../../path.ux/scripts/
       tool.icon = Icons.CIRCLE_SEL_SUB;
       tool.description = "Deselect control points in a circle";
       tools.tool("spline.toggle_select_all()", PackFlags.LARGE_ICON|PackFlags.USE_ICONS);
-      this.update();
+      this.flushUpdate();
+      if (this.ctx&&this.ctx.toolmode) {
+          let tooltab=tabs.tab("Tool Settings");
+          this.doOnce(() =>            {
+            this.ctx.toolmode.constructor.buildSideBar(tooltab);
+          });
+      }
       let tab=tabs.tab("Background");
       let panel=tab.panel("Image");
       panel.prop("view2d.draw_bg_image");
@@ -7605,6 +7739,7 @@ es6_module_define('view2d', ["../../core/imageblock.js", "../../path.ux/scripts/
       panel = tab.panel("Background Color");
       panel.prop("view2d.background_color");
       tabs.setActive("Tools");
+      this._makingToolBars = false;
     }
      makeHeader(container) {
       let row=super.makeHeader(container);
@@ -7955,6 +8090,10 @@ es6_module_define('view2d', ["../../core/imageblock.js", "../../path.ux/scripts/
           scene.switchToolMode("spline");
           this.regen_keymap();
       }
+      if (this._last_toolmode!==scene.toolmode) {
+          this.makeToolbars();
+      }
+      this._last_toolmode = scene.toolmode;
     }
      update() {
       this.updateToolMode();
@@ -8569,7 +8708,7 @@ es6_module_define('view2d_ops', ["../../vectordraw/vectordraw_canvas2d_simple.js
   ExportCanvasImage = _es6_module.add_export('ExportCanvasImage', ExportCanvasImage);
   
 }, '/dev/fairmotion/src/editors/viewport/view2d_ops.js');
-es6_module_define('view2d_spline_ops', ["../../core/animdata.js", "../../curve/spline_draw.js", "./transform.js", "../../curve/spline.js", "./view2d_editor.js", "./view2d_base.js", "../../curve/spline_types.js", "../../core/struct.js", "./spline_selectops.js", "./spline_editops.js", "../../path.ux/scripts/screen/ScreenArea.js", "./selectmode.js", "./transform_ops.js", "../events.js", "../../core/lib_api.js", "./spline_createops.js", "../../core/toolops_api.js"], function _view2d_spline_ops_module(_es6_module) {
+es6_module_define('view2d_spline_ops', ["./spline_createops.js", "../../curve/spline_draw.js", "../../curve/spline_types.js", "./view2d_base.js", "../events.js", "./transform.js", "./selectmode.js", "../../core/animdata.js", "./spline_editops.js", "./transform_ops.js", "../../core/struct.js", "../../core/toolops_api.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../core/lib_api.js", "../../curve/spline.js", "./spline_selectops.js", "./view2d_editor.js"], function _view2d_spline_ops_module(_es6_module) {
   "use strict";
   var ExtrudeVertOp=es6_import_item(_es6_module, './spline_createops.js', 'ExtrudeVertOp');
   var DeleteVertOp=es6_import_item(_es6_module, './spline_editops.js', 'DeleteVertOp');
@@ -8804,12 +8943,12 @@ es6_module_define('view2d_spline_ops', ["../../core/animdata.js", "../../curve/s
   _es6_module.add_class(PlayAnimOp);
   PlayAnimOp = _es6_module.add_export('PlayAnimOp', PlayAnimOp);
   var EditorTypes=es6_import_item(_es6_module, './view2d_base.js', 'EditorTypes');
-  var $ops_9LNZ_tools_menu;
+  var $ops_hAXE_tools_menu;
   class SplineEditor extends View2DEditor {
     
     
      constructor(view2d) {
-      var keymap=new KeyMap();
+      var keymap=new KeyMap("view2d:splinetool2");
       super("Geometry", EditorTypes.SPLINE, EditModes2.GEOMETRY, DataTypes.FRAMESET, keymap);
       this.mpos = new Vector3();
       this.start_mpos = new Vector3();
@@ -8976,7 +9115,7 @@ es6_module_define('view2d_spline_ops', ["../../core/animdata.js", "../../curve/s
       return false;
     }
      tools_menu(ctx, mpos, view2d) {
-      var menu=view2d.toolop_menu(ctx, "Tools", $ops_9LNZ_tools_menu);
+      var menu=view2d.toolop_menu(ctx, "Tools", $ops_hAXE_tools_menu);
       view2d.call_menu(menu, view2d, mpos);
     }
      on_inactive(view2d) {
@@ -9188,7 +9327,7 @@ es6_module_define('view2d_spline_ops', ["../../core/animdata.js", "../../curve/s
       view2d.call_menu(menu, view2d, [event.x, event.y]);
     }
   }
-  var $ops_9LNZ_tools_menu=["spline.key_edges()", "spline.key_current_frame()", "spline.connect_handles()", "spline.disconnect_handles()", "spline.toggle_step_mode()", "spline.toggle_manual_handles()", "editor.paste_pose()", "editor.copy_pose()"];
+  var $ops_hAXE_tools_menu=["spline.key_edges()", "spline.key_current_frame()", "spline.connect_handles()", "spline.disconnect_handles()", "spline.toggle_step_mode()", "spline.toggle_manual_handles()", "editor.paste_pose()", "editor.copy_pose()"];
   _ESClass.register(SplineEditor);
   _es6_module.add_class(SplineEditor);
   SplineEditor = _es6_module.add_export('SplineEditor', SplineEditor);
@@ -9399,7 +9538,7 @@ es6_module_define('view2d_base', [], function _view2d_base_module(_es6_module) {
   var SessionFlags={PROP_TRANSFORM: 1}
   SessionFlags = _es6_module.add_export('SessionFlags', SessionFlags);
 }, '/dev/fairmotion/src/editors/viewport/view2d_base.js');
-es6_module_define('animspline', ["../curve/spline_types.js", "./animdata.js", "../path.ux/scripts/util/struct.js", "./struct.js", "../curve/spline.js", "./lib_api.js", "./toolprops.js", "../curve/spline_element_array.js"], function _animspline_module(_es6_module) {
+es6_module_define('animspline', ["../curve/spline.js", "./toolprops.js", "../path.ux/scripts/util/struct.js", "./struct.js", "./lib_api.js", "../curve/spline_element_array.js", "./animdata.js", "../curve/spline_types.js"], function _animspline_module(_es6_module) {
   "use strict";
   var STRUCT=es6_import_item(_es6_module, './struct.js', 'STRUCT');
   var DataBlock=es6_import_item(_es6_module, './lib_api.js', 'DataBlock');
@@ -9421,7 +9560,7 @@ es6_module_define('animspline', ["../curve/spline_types.js", "./animdata.js", ".
   var SplineLayerSet=es6_import_item(_es6_module, '../curve/spline_element_array.js', 'SplineLayerSet');
   es6_import(_es6_module, '../path.ux/scripts/util/struct.js');
   var restrictflags=RestrictFlags.NO_DELETE|RestrictFlags.NO_EXTRUDE|RestrictFlags.NO_CONNECT;
-  var vertanimdata_eval_cache=cachering.fromConstructor(Vector3, 512);
+  var vertanimdata_eval_cache=cachering.fromConstructor(Vector2, 512);
   var AnimChannel=es6_import_item(_es6_module, './animdata.js', 'AnimChannel');
   var AnimKey=es6_import_item(_es6_module, './animdata.js', 'AnimKey');
   var PropTypes=es6_import_item(_es6_module, './toolprops.js', 'PropTypes');
@@ -9532,7 +9671,7 @@ es6_module_define('animspline', ["../curve/spline_types.js", "./animdata.js", ".
    HIDE: 4, 
    OWNER_IS_EDITABLE: 8}
   VDAnimFlags = _es6_module.add_export('VDAnimFlags', VDAnimFlags);
-  let dvcache=cachering.fromConstructor(Vector3, 256);
+  let dvcache=cachering.fromConstructor(Vector2, 256);
   class VertexAnimData  {
     
     
@@ -9749,11 +9888,7 @@ es6_module_define('animspline', ["../curve/spline_types.js", "./animdata.js", ".
           var co=this.evaluate(t);
           dv.load(this.derivative(t));
           co.multVecMatrix(matrix);
-          dv[2] = 0.0;
-          dv[3] = 0.0;
           dv.multVecMatrix(matrix);
-          dv[2] = 0.0;
-          dv[3] = 0.0;
           dv.normalize().mulScalar(5);
           let tmp=dv[0];
           dv[0] = -dv[1];
@@ -9977,7 +10112,7 @@ VertexAnimData {
 }
 `;
 }, '/dev/fairmotion/src/core/animspline.js');
-es6_module_define('frameset', ["../curve/spline_types.js", "../curve/spline_element_array.js", "./animspline", "./animdata.js", "./struct.js", "./lib_api.js", "./animspline.js", "../curve/spline.js"], function _frameset_module(_es6_module) {
+es6_module_define('frameset', ["./animdata.js", "../curve/spline_types.js", "./animspline", "./struct.js", "../curve/spline.js", "./lib_api.js", "../curve/spline_element_array.js", "./animspline.js"], function _frameset_module(_es6_module) {
   "use strict";
   var STRUCT=es6_import_item(_es6_module, './struct.js', 'STRUCT');
   var DataBlock=es6_import_item(_es6_module, './lib_api.js', 'DataBlock');
@@ -10406,7 +10541,7 @@ SplineKCacheItem {
       for (var v of av2.verts) {
           keyframes.add(get_vtime(v));
       }
-      var co=new Vector3();
+      var co=new Vector2();
       var oflag1=av1.animflag, oflag2=av2.animflag;
       av1.animflag&=VDAnimFlags.STEP_FUNC;
       av2.animflag&=VDAnimFlags.STEP_FUNC;
@@ -11003,7 +11138,7 @@ SplineKCacheItem {
 }
 `;
 }, '/dev/fairmotion/src/core/frameset.js');
-es6_module_define('ops_editor', ["../../path.ux/scripts/core/ui_base.js", "../editor_base.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../core/struct.js"], function _ops_editor_module(_es6_module) {
+es6_module_define('ops_editor', ["../../path.ux/scripts/core/ui_base.js", "../../path.ux/scripts/screen/ScreenArea.js", "../editor_base.js", "../../core/struct.js"], function _ops_editor_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
   var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
   var UIBase=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui_base.js', 'UIBase');
@@ -11076,7 +11211,7 @@ es6_module_define('ops_editor', ["../../path.ux/scripts/core/ui_base.js", "../ed
 `;
   Editor.register(OpStackEditor);
 }, '/dev/fairmotion/src/editors/ops/ops_editor.js');
-es6_module_define('SettingsEditor', ["../../path.ux/scripts/core/ui_theme.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../path.ux/scripts/core/ui.js", "../editor_base.js", "../../core/struct.js", "../../path.ux/scripts/core/ui_base.js"], function _SettingsEditor_module(_es6_module) {
+es6_module_define('SettingsEditor', ["../../path.ux/scripts/pathux.js", "../../path.ux/scripts/core/ui.js", "../editor_base.js", "../../path.ux/scripts/screen/ScreenArea.js", "../../path.ux/scripts/core/ui_theme.js", "../../path.ux/scripts/core/ui_base.js", "../../core/struct.js", "../events.js"], function _SettingsEditor_module(_es6_module) {
   var Area=es6_import_item(_es6_module, '../../path.ux/scripts/screen/ScreenArea.js', 'Area');
   var STRUCT=es6_import_item(_es6_module, '../../core/struct.js', 'STRUCT');
   var UIBase=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui_base.js', 'UIBase');
@@ -11086,6 +11221,10 @@ es6_module_define('SettingsEditor', ["../../path.ux/scripts/core/ui_theme.js", "
   var color2css=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui_theme.js', 'color2css');
   var css2color=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui_theme.js', 'css2color');
   var CSSFont=es6_import_item(_es6_module, '../../path.ux/scripts/core/ui_theme.js', 'CSSFont');
+  var ToolKeyHandler=es6_import_item(_es6_module, '../events.js', 'ToolKeyHandler');
+  var FuncKeyHandler=es6_import_item(_es6_module, '../events.js', 'FuncKeyHandler');
+  var pushModalLight=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'pushModalLight');
+  var popModalLight=es6_import_item(_es6_module, '../../path.ux/scripts/pathux.js', 'popModalLight');
   let basic_colors={'white': [1, 1, 1], 
    'grey': [0.5, 0.5, 0.5], 
    'gray': [0.5, 0.5, 0.5], 
@@ -11246,6 +11385,102 @@ es6_module_define('SettingsEditor', ["../../path.ux/scripts/core/ui_theme.js", "
       });
       tab.add(th);
       window.th = th;
+      tab = this.hotkeyTab = tabs.tab("Hotkeys");
+      this.buildHotKeys(tab);
+    }
+     buildHotKeys(tab=this.hotkeyTab) {
+      if (!this.ctx||!this.ctx.screen) {
+          this.doOnce(this.buildHotKeys);
+          return ;
+      }
+      tab.clear();
+      let row=tab.row();
+      row.button("Reload", () =>        {
+        this.buildHotKeys(tab);
+      });
+      let build=(tab, label, keymaps) =>        {
+        let panel=tab.panel(label);
+        function changePre(hk, handler, keymap) {
+          keymap.remove(hk);
+        }
+        function changePost(hk, handler, keymap) {
+          keymap.set(hk, handler);
+        }
+        function makeKeyPanel(panel2, hk, handler, keymap) {
+          panel2.clear();
+          let row=panel2.row();
+          let key=hk[Symbol.keystr]();
+          let name=hk.uiName;
+          if (!name&&__instance_of(handler, ToolKeyHandler)) {
+              name = ""+handler.tool;
+          }
+          else 
+            if (!name) {
+              name = "(error)";
+          }
+          panel2.title = key+" "+name;
+          function setPanel2Title() {
+            key = hk[Symbol.keystr]();
+            panel2.title = key+" "+name;
+          }
+          function makeModifier(mod) {
+            row.button(mod, () =>              {
+              changePre(hk, handler, keymap);
+              hk[mod]^=true;
+              console.log(mod, "change", hk, hk[Symbol.keystr]());
+              changePost(hk, handler, keymap);
+              setPanel2Title();
+              console.log("PANEL LABEL:", panel2.label);
+            });
+          }
+          makeModifier("ctrl");
+          makeModifier("shift");
+          makeModifier("alt");
+          let keyButton=row.button(hk.keyAscii, () =>            {
+            let modaldata;
+            let start_time;
+            let checkEnd=() =>              {
+              if (!modaldata||time_ms()-start_time<500) {
+                  return ;
+              }
+              popModalLight(modaldata);
+              modaldata = undefined;
+            }
+            start_time = time_ms();
+            modaldata = pushModalLight({on_keydown: function on_keydown(e) {
+                console.log("Got hotkey!", e.keyCode);
+                if (modaldata) {
+                    popModalLight(modaldata);
+                    modaldata = undefined;
+                }
+                changePre(hk, handler, keymap);
+                hk.key = e.keyCode;
+                keyButton.setAttribute("name", hk.keyAscii);
+                changePost(hk, handler, keymap);
+                setPanel2Title();
+              }, 
+        on_mousedown: function on_mousedown(e) {
+                checkEnd();
+              }, 
+        on_mouseup: function on_mouseup(e) {
+                checkEnd();
+              }});
+          });
+        }
+        for (let keymap of keymaps) {
+            for (let key of keymap) {
+                let panel2=panel.panel(key);
+                let handler=keymap.get(key);
+                let hk=keymap.getKey(key);
+                makeKeyPanel(panel2, hk, handler, keymap);
+                panel2.closed = true;
+            }
+        }
+        panel.closed = true;
+      };
+      for (let kmset of this.ctx.screen.getKeySets()) {
+          build(tab, kmset.name, kmset);
+      }
     }
     static  define() {
       return {tagname: "settings-editor-x", 

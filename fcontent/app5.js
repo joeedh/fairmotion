@@ -1,4 +1,4 @@
-es6_module_define('ui_menu', ["../util/vectormath.js", "../config/const.js", "./ui_button.js", "../util/events.js", "../core/ui_base.js", "../util/simple_events.js", "../util/util.js", "../toolsys/simple_toolsys.js", "../toolsys/toolprop.js"], function _ui_menu_module(_es6_module) {
+es6_module_define('ui_menu', ["../util/events.js", "../toolsys/simple_toolsys.js", "../config/const.js", "./ui_button.js", "../util/simple_events.js", "../toolsys/toolprop.js", "../util/util.js", "../util/vectormath.js", "../core/ui_base.js"], function _ui_menu_module(_es6_module) {
   "use strict";
   var util=es6_import(_es6_module, '../util/util.js');
   var cconst=es6_import_item(_es6_module, '../config/const.js', 'default');
@@ -1028,7 +1028,6 @@ es6_module_define('ui_menu', ["../util/vectormath.js", "../config/const.js", "./
           else {
             hotkey = def.hotkey;
           }
-          console.warn("HOTKEY", hotkey, def.hotkey);
           menu.addItemExtra(def.uiname, id, hotkey, def.icon);
           cbs[id] = (function (toolpath) {
             return function () {
@@ -2450,7 +2449,7 @@ es6_module_define('ui_numsliders', ["../core/units.js", "../util/util.js", "./ui
   NumSliderWithTextBox = _es6_module.add_export('NumSliderWithTextBox', NumSliderWithTextBox);
   UIBase.register(NumSliderWithTextBox);
 }, '/dev/fairmotion/src/path.ux/scripts/widgets/ui_numsliders.js');
-es6_module_define('ui_panel', ["../core/ui.js", "../util/util.js", "./ui_widgets.js", "../util/vectormath.js", "../toolsys/toolprop.js", "../util/html5_fileapi.js", "../core/ui_base.js"], function _ui_panel_module(_es6_module) {
+es6_module_define('ui_panel', ["../util/vectormath.js", "../core/ui_base.js", "../core/ui.js", "../toolsys/toolprop.js", "../util/util.js", "./ui_widgets.js", "../util/html5_fileapi.js"], function _ui_panel_module(_es6_module) {
   var _ui=undefined;
   var util=es6_import(_es6_module, '../util/util.js');
   var vectormath=es6_import(_es6_module, '../util/vectormath.js');
@@ -2468,6 +2467,7 @@ es6_module_define('ui_panel', ["../core/ui.js", "../util/util.js", "./ui_widgets
   class PanelFrame extends ColumnFrame {
      constructor() {
       super();
+      this.titleframe = this.row();
       this.contents = document.createElement("colframe-x");
       this.iconcheck = document.createElement("iconcheck-x");
       Object.defineProperty(this.contents, "closed", {get: () =>          {
@@ -2476,8 +2476,15 @@ es6_module_define('ui_panel', ["../core/ui.js", "../util/util.js", "./ui_widgets
      set: (v) =>          {
           this.closed = v;
         }});
+      Object.defineProperty(this.contents, "title", {get: () =>          {
+          return this.getAttribute("title");
+        }, 
+     set: (v) =>          {
+          return this.setAttribute("title", v);
+        }});
       this.packflag = this.inherit_packflag = 0;
       this._closed = false;
+      this.makeHeader();
     }
      saveData() {
       let ret={_closed: this._closed};
@@ -2510,13 +2517,9 @@ es6_module_define('ui_panel', ["../core/ui.js", "../util/util.js", "./ui_widgets
         return ;
       this.contents.packflag = val;
     }
-     init() {
-      super.init();
-      let con=this.titleframe = this.row();
-      this.setCSS();
-      let row=con;
+     makeHeader() {
+      let row=this.titleframe;
       let iconcheck=this.iconcheck;
-      this.style["width"] = "100%";
       this.overrideDefault("BoxMargin", 0);
       iconcheck.overrideDefault("BoxMargin", 0);
       iconcheck.noMarginsOrPadding();
@@ -2548,11 +2551,15 @@ es6_module_define('ui_panel', ["../core/ui.js", "../util/util.js", "./ui_widgets
       row.background = this.getDefault("TitleBackground");
       row.style["border-radius"] = this.getDefault("BoxRadius")+"px";
       row.style["border"] = `${this.getDefault("BoxLineWidth")}px ${bs} ${this.getDefault("BoxBorder")}`;
-      this.background = this.getDefault("Background");
       row.style["padding-right"] = "20px";
       row.style["padding-left"] = "5px";
       row.style["padding-top"] = this.getDefault("padding-top")+"px";
       row.style["padding-bottom"] = this.getDefault("padding-bottom")+"px";
+    }
+     init() {
+      super.init();
+      this.background = this.getDefault("Background");
+      this.style["width"] = "100%";
       this.contents.ctx = this.ctx;
       if (!this._closed) {
           this.add(this.contents);
@@ -2606,7 +2613,11 @@ es6_module_define('ui_panel', ["../core/ui.js", "../util/util.js", "./ui_widgets
       key+=this.getDefault("BoxRadius")+this.getDefault("padding-top");
       key+=this.getDefault("padding-bottom")+this.getDefault("TitleBorder");
       key+=this.getDefault("Background")+this.getDefault("border-style");
+      key+=this.getAttribute("title");
       if (key!==this._last_key) {
+          if (this.getAttribute("title")) {
+              this.label = this.getAttribute("title");
+          }
           this._last_key = key;
           this.setCSS();
       }
@@ -5675,7 +5686,7 @@ es6_module_define('all', ["./splinetool.js", "./pentool.js"], function _all_modu
   es6_import(_es6_module, './splinetool.js');
   es6_import(_es6_module, './pentool.js');
 }, '/dev/fairmotion/src/editors/viewport/toolmodes/all.js');
-es6_module_define('pentool', ["../transform.js", "../spline_createops.js", "../../events.js", "../../../curve/spline_types.js", "../../../core/toolops_api.js", "../transform_ops.js", "../view2d_editor.js", "../spline_selectops.js", "../selectmode.js", "../../../path.ux/scripts/util/util.js", "../../../path.ux/scripts/pathux.js", "./toolmode.js", "../view2d_ops.js", "../../../core/context.js", "../spline_editops.js", "../../../curve/spline_draw.js", "../../../path.ux/scripts/core/ui_base.js"], function _pentool_module(_es6_module) {
+es6_module_define('pentool', ["../spline_selectops.js", "../view2d_editor.js", "../../../core/toolops_api.js", "../../../path.ux/scripts/core/ui_base.js", "../../../path.ux/scripts/util/util.js", "../../../path.ux/scripts/pathux.js", "../view2d_ops.js", "../spline_createops.js", "../transform_ops.js", "../../../core/context.js", "../spline_editops.js", "../transform.js", "../selectmode.js", "../../../curve/spline_types.js", "../../events.js", "../../../curve/spline_draw.js", "./toolmode.js"], function _pentool_module(_es6_module) {
   "use strict";
   var UIBase=es6_import_item(_es6_module, '../../../path.ux/scripts/core/ui_base.js', 'UIBase');
   var FullContext=es6_import_item(_es6_module, '../../../core/context.js', 'FullContext');
@@ -5845,6 +5856,7 @@ es6_module_define('pentool', ["../transform.js", "../spline_createops.js", "../.
       this.last_mpos = new Vector2();
       this.start_mpos = new Vector2();
       this.mdown = false;
+      this.limit = 10;
       this.stroke = [];
       this.smoothness = 1.0;
     }
@@ -5861,10 +5873,17 @@ es6_module_define('pentool', ["../transform.js", "../spline_createops.js", "../.
 
     }
     static  buildSideBar(container) {
-
+      container.prop("active_tool.limit");
+      container.label("Yay");
     }
     static  buildHeader(container) {
 
+    }
+    static  defineAPI() {
+      let st=super.defineAPI();
+      let def=st.Float("limit", "limit", "Limit", "Minimum distance between points");
+      def.Range(0, 300);
+      return st;
     }
     static  buildProperties(container) {
 
@@ -5882,7 +5901,7 @@ es6_module_define('pentool', ["../transform.js", "../spline_createops.js", "../.
      nodeFlag: 0}
     }
      defineKeyMap() {
-      let k=this.keymap = new KeyMap([]);
+      let k=this.keymap = new KeyMap("view2d:pentool");
       return k;
     }
      tools_menu(ctx, mpos, view2d) {
@@ -6004,7 +6023,10 @@ es6_module_define('pentool', ["../transform.js", "../spline_createops.js", "../.
           return ;
       }
       let mpos=this.getMouse(event);
-      this.addPoint(mpos);
+      if (this.last_mpos.vectorDistance(mpos)>this.limit) {
+          this.last_mpos.load(mpos);
+          this.addPoint(mpos);
+      }
     }
      on_mouseup(event) {
       this.mdown = false;
@@ -6040,10 +6062,11 @@ es6_module_define('pentool', ["../transform.js", "../spline_createops.js", "../.
   _es6_module.add_class(PenToolMode);
   PenToolMode = _es6_module.add_export('PenToolMode', PenToolMode);
   PenToolMode.STRUCT = nstructjs.inherit(PenToolMode, ToolMode)+`
+  limit : float;
 }`;
   ToolMode.register(PenToolMode);
 }, '/dev/fairmotion/src/editors/viewport/toolmodes/pentool.js');
-es6_module_define('splinetool', ["../transform.js", "../view2d_ops.js", "../../events.js", "../../../path.ux/scripts/core/ui_base.js", "../transform_ops.js", "../spline_selectops.js", "../../../path.ux/scripts/util/util.js", "../spline_editops.js", "../../../path.ux/scripts/pathux.js", "../spline_createops.js", "../../../curve/spline_draw.js", "../../../core/toolops_api.js", "../../../core/context.js", "./toolmode.js", "../view2d_editor.js", "../../../curve/spline_types.js", "../selectmode.js"], function _splinetool_module(_es6_module) {
+es6_module_define('splinetool', ["../../../path.ux/scripts/pathux.js", "../selectmode.js", "../../../curve/spline_types.js", "../../../core/context.js", "../spline_selectops.js", "../../../curve/spline_draw.js", "../../../path.ux/scripts/core/ui_base.js", "./toolmode.js", "../spline_editops.js", "../view2d_ops.js", "../../events.js", "../../../core/toolops_api.js", "../transform.js", "../spline_createops.js", "../transform_ops.js", "../view2d_editor.js", "../../../path.ux/scripts/util/util.js"], function _splinetool_module(_es6_module) {
   "use strict";
   var UIBase=es6_import_item(_es6_module, '../../../path.ux/scripts/core/ui_base.js', 'UIBase');
   var FullContext=es6_import_item(_es6_module, '../../../core/context.js', 'FullContext');
@@ -6157,7 +6180,7 @@ es6_module_define('splinetool', ["../transform.js", "../view2d_ops.js", "../../e
      nodeFlag: 0}
     }
      defineKeyMap() {
-      let k=this.keymap = new KeyMap([]);
+      let k=this.keymap = new KeyMap("view2d:splinetool");
       k.add_tool(new HotKey("PageUp", [], "Send Face Up"), "spline.change_face_z(offset=1, selmode=selectmode)");
       k.add_tool(new HotKey("PageDown", [], "Send Face Down"), "spline.change_face_z(offset=-1, selmode=selectmode)");
       k.add_tool(new HotKey("G", [], "Translate"), "spline.translate(datamode=selectmode)");
@@ -6488,10 +6511,11 @@ es6_module_define('splinetool', ["../transform.js", "../view2d_ops.js", "../../e
 }`;
   ToolMode.register(SplineToolMode);
 }, '/dev/fairmotion/src/editors/viewport/toolmodes/splinetool.js');
-es6_module_define('toolmode', ["../../../path.ux/scripts/util/simple_events.js", "../../../path.ux/scripts/pathux.js", "../../../core/eventdag.js"], function _toolmode_module(_es6_module) {
+es6_module_define('toolmode', ["../../../core/data_api/data_api_types.js", "../../../path.ux/scripts/pathux.js", "../../../core/eventdag.js", "../../events.js"], function _toolmode_module(_es6_module) {
   var NodeBase=es6_import_item(_es6_module, '../../../core/eventdag.js', 'NodeBase');
-  var KeyMap=es6_import_item(_es6_module, '../../../path.ux/scripts/util/simple_events.js', 'KeyMap');
+  var KeyMap=es6_import_item(_es6_module, '../../events.js', 'KeyMap');
   var nstructjs=es6_import_item(_es6_module, '../../../path.ux/scripts/pathux.js', 'nstructjs');
+  var DataStruct=es6_import_item(_es6_module, '../../../core/data_api/data_api_types.js', 'DataStruct');
   const ToolModeFlags={}
   _es6_module.add_export('ToolModeFlags', ToolModeFlags);
   const ToolModes=[];
@@ -6502,7 +6526,7 @@ es6_module_define('toolmode', ["../../../path.ux/scripts/util/simple_events.js",
      constructor() {
       super();
       this.ctx = undefined;
-      this.keymap = new KeyMap([]);
+      this.keymap = new KeyMap("view2d:"+this.constructor.name);
     }
      rightClickMenu(e, localX, localY, view2d) {
 
@@ -6548,6 +6572,11 @@ es6_module_define('toolmode', ["../../../path.ux/scripts/util/simple_events.js",
     }
     static  buildProperties(container) {
 
+    }
+    static  defineAPI() {
+      let st=new DataStruct(undefined, this);
+      st.String("name", "constructor.name", "Name", "Name");
+      return st;
     }
      on_tick() {
       if (!this.ctx) {
@@ -6604,6 +6633,12 @@ es6_module_define('toolmode', ["../../../path.ux/scripts/util/simple_events.js",
 ToolMode {
   
 }`;
+  function defineAPI(api) {
+    for (let tool of ToolModes) {
+        tool._apiStruct = tool.defineAPI(api);
+    }
+  }
+  defineAPI = _es6_module.add_export('defineAPI', defineAPI);
 }, '/dev/fairmotion/src/editors/viewport/toolmodes/toolmode.js');
 es6_module_define('struct', ["../path.ux/scripts/pathux.js", "../path.ux/scripts/util/parseutil.js"], function _struct_module(_es6_module) {
   var nstructjs=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'nstructjs');
@@ -6785,9 +6820,10 @@ mat4_intern {
         let cls=errs[i][1];
         console.log(cls.STRUCT);
         print_stack(err);
-        if (i==errs.length-1)
+        if (i===errs.length-1)
           throw err;
     }
+    nstructjs.validateStructs();
     window.safe_global = {}
     for (var k in window) {
         if (k.search("bar")>=0||k=="localStorage"||(k.startsWith("on")&&k[2]!="l")) {
@@ -8301,7 +8337,7 @@ es6_module_define('bspline', [], function _bspline_module(_es6_module) {
   window._jit = _jit;
   window._jit_cur = 0;
 }, '/dev/fairmotion/src/curve/bspline.js');
-es6_module_define('spline_math', ["./spline_math_hermite.js", "../wasm/native_api.js", "../config/config.js"], function _spline_math_module(_es6_module) {
+es6_module_define('spline_math', ["../config/config.js", "./spline_math_hermite.js", "../wasm/native_api.js"], function _spline_math_module(_es6_module) {
   "use strict";
   var config=es6_import(_es6_module, '../config/config.js');
   var FEPS=1e-18;
@@ -8336,6 +8372,9 @@ es6_module_define('spline_math', ["./spline_math_hermite.js", "../wasm/native_ap
   }
   var native_api=es6_import(_es6_module, '../wasm/native_api.js');
   function do_solve() {
+    if (DISABLE_SOLVE) {
+        return ;
+    }
     if (config.USE_NACL) {
         return do_solve_nacl.apply(this, arguments);
     }
@@ -8393,14 +8432,12 @@ es6_module_define('spline_math', ["./spline_math_hermite.js", "../wasm/native_ap
         ks[KANGLE] = ang;
         ks[KSTARTX] = start[0];
         ks[KSTARTY] = start[1];
-        ks[KSTARTZ] = start[2];
     }
     else {
       ang = ks[KANGLE];
       scale = ks[KSCALE];
       start[0] = ks[KSTARTX];
       start[1] = ks[KSTARTY];
-      start[2] = ks[KSTARTZ];
     }
     if (!angle_only) {
         var co=approx(s, ks, order);
@@ -8411,7 +8448,7 @@ es6_module_define('spline_math', ["./spline_math_hermite.js", "../wasm/native_ap
   eval_curve = _es6_module.add_export('eval_curve', eval_curve);
   
 }, '/dev/fairmotion/src/curve/spline_math.js');
-es6_module_define('spline_math_hermite', ["./solver.js", "../core/toolops_api.js", "./spline_base.js", "../path.ux/scripts/util/vectormath.js"], function _spline_math_hermite_module(_es6_module) {
+es6_module_define('spline_math_hermite', ["./spline_base.js", "../path.ux/scripts/util/vectormath.js", "../core/toolops_api.js", "./solver.js"], function _spline_math_hermite_module(_es6_module) {
   "use strict";
   var SplineFlags=es6_import_item(_es6_module, './spline_base.js', 'SplineFlags');
   var SplineTypes=es6_import_item(_es6_module, './spline_base.js', 'SplineTypes');
@@ -8502,8 +8539,8 @@ es6_module_define('spline_math_hermite', ["./solver.js", "../core/toolops_api.js
   es6_import(_es6_module, '../path.ux/scripts/util/vectormath.js');
   var acache=[new Vector3(), new Vector3(), new Vector3(), new Vector3(), new Vector3(), new Vector3(), new Vector3()];
   var acur=0;
-  var eval_curve_vs=cachering.fromConstructor(Vector3, 64);
-  var _eval_start=new Vector3();
+  var eval_curve_vs=cachering.fromConstructor(Vector2, 64);
+  var _eval_start=new Vector2();
   function approx(s1, ks, order, dis, steps) {
     s1*=1.0-1e-07;
     if (steps==undefined)
@@ -8511,7 +8548,7 @@ es6_module_define('spline_math_hermite', ["./solver.js", "../core/toolops_api.js
     var s=0, ds=s1/steps;
     var ds2=ds*ds, ds3=ds2*ds, ds4=ds3*ds;
     var ret=approx_ret_cache.next();
-    ret[0] = ret[1] = ret[2] = 0.0;
+    ret[0] = ret[1] = 0.0;
     var x=0, y=0;
     var k1=ks[0], dv1_k1=ks[1], dv1_k2=ks[2], k2=ks[3];
     for (var i=0; i<steps; i++) {
@@ -10555,12 +10592,13 @@ SplineElement {
   FlipWrapper = _es6_module.add_export('FlipWrapper', FlipWrapper);
   flip_wrapper_cache = cachering.fromConstructor(FlipWrapper, 32);
 }, '/dev/fairmotion/src/curve/spline_base.js');
-es6_module_define('spline_types', ["../config/config.js", "../util/mathlib.js", "../core/eventdag.js", "./spline_multires.js", "../editors/viewport/selectmode.js", "./bspline.js", "../core/toolprops_iter.js", "../wasm/native_api.js", "./spline_base", "../util/bezier.js", "./spline_base.js", "./spline_math.js", "../core/toolprops.js", "../core/struct.js"], function _spline_types_module(_es6_module) {
+es6_module_define('spline_types', ["./spline_base.js", "../core/eventdag.js", "./spline_base", "../editors/viewport/selectmode.js", "./spline_math.js", "../core/struct.js", "../core/toolprops_iter.js", "../core/toolprops.js", "./bspline.js", "./spline_multires.js", "../util/mathlib.js", "../wasm/native_api.js", "../config/config.js", "../util/bezier.js", "../path.ux/scripts/pathux.js"], function _spline_types_module(_es6_module) {
   "use strict";
   var ENABLE_MULTIRES=es6_import_item(_es6_module, '../config/config.js', 'ENABLE_MULTIRES');
   var PI=Math.PI, abs=Math.abs, sqrt=Math.sqrt, floor=Math.floor, ceil=Math.ceil, sin=Math.sin, cos=Math.cos, acos=Math.acos, asin=Math.asin, tan=Math.tan, atan=Math.atan, atan2=Math.atan2;
   var bspline=es6_import(_es6_module, './bspline.js');
   var MinMax=es6_import_item(_es6_module, '../util/mathlib.js', 'MinMax');
+  var Vector2=es6_import_item(_es6_module, '../path.ux/scripts/pathux.js', 'Vector2');
   var TPropFlags=es6_import_item(_es6_module, '../core/toolprops.js', 'TPropFlags');
   var PropTypes=es6_import_item(_es6_module, '../core/toolprops.js', 'PropTypes');
   var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
@@ -10614,13 +10652,11 @@ es6_module_define('spline_types', ["../config/config.js", "../util/mathlib.js", 
     
      constructor(co) {
       super(SplineTypes.VERTEX);
-      Vector3.prototype.initVector3.apply(this, arguments);
+      Vector2.prototype.initVector2.apply(this, arguments);
+      this._no_warning = false;
       if (co!==undefined) {
           this[0] = co[0];
           this[1] = co[1];
-          if (co.length>2) {
-              this[2] = co[2];
-          }
       }
       this.type = SplineTypes.VERTEX;
       this.flag = SplineFlags.FRAME_DIRTY|SplineFlags.UPDATE;
@@ -10628,6 +10664,12 @@ es6_module_define('spline_types', ["../config/config.js", "../util/mathlib.js", 
       this.eid = 0;
       this.frames = {};
       this.hpair = undefined;
+    }
+    get  2() {
+      return 0.0;
+    }
+    set  2(val) {
+      console.warn("Attempt to set [2] in SplineVertex!");
     }
     get  width() {
       if (!this.segments)
@@ -10850,7 +10892,6 @@ es6_module_define('spline_types', ["../config/config.js", "../util/mathlib.js", 
       ret.segments = [];
       ret[0] = this[0];
       ret[1] = this[1];
-      ret[2] = this[2];
       ret.frames = this.frames;
       ret.length = 3;
       for (var i=0; i<this.segments.length; i++) {
@@ -10862,11 +10903,13 @@ es6_module_define('spline_types', ["../config/config.js", "../util/mathlib.js", 
       return ret;
     }
      loadSTRUCT(reader) {
+      this._no_warning = true;
       reader(this);
       super.loadSTRUCT(reader);
+      this._no_warning = false;
       this.load(this.co);
       delete this.co;
-      for (let axis=0; axis<3; axis++) {
+      for (let axis=0; axis<2; axis++) {
           if (isNaN(this[axis])) {
               console.warn("NaN vertex", this.eid);
               this[axis] = 0;
@@ -10880,12 +10923,12 @@ es6_module_define('spline_types', ["../config/config.js", "../util/mathlib.js", 
   SplineVertex = _es6_module.add_export('SplineVertex', SplineVertex);
   
   SplineVertex.STRUCT = STRUCT.inherit(SplineVertex, SplineElement)+`
-  co       : vec3          | obj;
+  co       : vec2          | this;
   segments : array(e, int) | e.eid;
-  hpair    : int           | obj.hpair != undefined? obj.hpair.eid : -1;
+  hpair    : int           | this.hpair != undefined? this.hpair.eid : -1;
 }
 `;
-  mixin(SplineVertex, Vector3);
+  mixin(SplineVertex, Vector2);
   class ClosestPointRecord  {
     
     
@@ -11194,7 +11237,6 @@ es6_module_define('spline_types', ["../config/config.js", "../util/mathlib.js", 
       }
       min.load(minmax.min);
       max.load(minmax.max);
-      min[2] = max[2] = 0.0;
     }
      intersect(seg, side1=false, side2=false, mode=IsectModes.CLOSEST) {
       if (this.flag&SplineFlags.COINCIDENT) {
@@ -11585,7 +11627,8 @@ es6_module_define('spline_types', ["../config/config.js", "../util/mathlib.js", 
       var ang=ks[KANGLE];
       ret[0] = sin(th+ang)*ks[KSCALE];
       ret[1] = cos(th+ang)*ks[KSCALE];
-      ret[2] = 0.0;
+      if (ret.length>2)
+        ret[2] = 0.0;
       return ret;
     }
      theta(s, order, no_effects) {
@@ -11849,7 +11892,7 @@ es6_module_define('spline_types', ["../config/config.js", "../util/mathlib.js", 
   }
   _ESClass.register(SplineLoopPathIter);
   _es6_module.add_class(SplineLoopPathIter);
-  var $cent_zJnN_update_winding;
+  var $cent_IOPV_update_winding;
   class SplineLoopPath  {
     
      constructor(l, f) {
@@ -11859,20 +11902,20 @@ es6_module_define('spline_types', ["../config/config.js", "../util/mathlib.js", 
       this.winding = 0;
     }
      [Symbol.iterator]() {
-      if (this.itercache==undefined) {
+      if (this.itercache===undefined) {
           this.itercache = cachering.fromConstructor(SplineLoopPathIter, 4);
       }
       return this.itercache.next().init(this);
     }
      update_winding() {
-      $cent_zJnN_update_winding.zero();
+      $cent_IOPV_update_winding.zero();
       for (var l of this) {
-          $cent_zJnN_update_winding.add(l.v);
+          $cent_IOPV_update_winding.add(l.v);
       }
-      $cent_zJnN_update_winding.mulScalar(1.0/this.totvert);
+      $cent_IOPV_update_winding.mulScalar(1.0/this.totvert);
       var wsum=0;
       for (var l of this) {
-          wsum+=math.winding(l.v, l.next.v, $cent_zJnN_update_winding) ? 1 : -1;
+          wsum+=math.winding(l.v, l.next.v, $cent_IOPV_update_winding) ? 1 : -1;
       }
       this.winding = wsum>=0;
     }
@@ -11903,7 +11946,7 @@ es6_module_define('spline_types', ["../config/config.js", "../util/mathlib.js", 
       return ret;
     }
   }
-  var $cent_zJnN_update_winding=new Vector3();
+  var $cent_IOPV_update_winding=new Vector3();
   _ESClass.register(SplineLoopPath);
   _es6_module.add_class(SplineLoopPath);
   SplineLoopPath = _es6_module.add_export('SplineLoopPath', SplineLoopPath);
@@ -11914,7 +11957,7 @@ es6_module_define('spline_types', ["../config/config.js", "../util/mathlib.js", 
     winding : int;
   }
 `;
-  var $minmax_7Ct8_update_aabb;
+  var $minmax_dqyf_update_aabb;
   class SplineFace extends SplineElement {
     
     
@@ -11937,18 +11980,17 @@ es6_module_define('spline_types', ["../config/config.js", "../util/mathlib.js", 
     }
      update_aabb() {
       this.flag&=~SplineFlags.UPDATE_AABB;
-      $minmax_7Ct8_update_aabb.reset();
+      $minmax_dqyf_update_aabb.reset();
       for (var path of this.paths) {
           for (var l of path) {
-              $minmax_7Ct8_update_aabb.minmax(l.v.aabb[0]);
-              $minmax_7Ct8_update_aabb.minmax(l.v.aabb[1]);
-              $minmax_7Ct8_update_aabb.minmax(l.s.aabb[0]);
-              $minmax_7Ct8_update_aabb.minmax(l.s.aabb[1]);
+              $minmax_dqyf_update_aabb.minmax(l.v.aabb[0]);
+              $minmax_dqyf_update_aabb.minmax(l.v.aabb[1]);
+              $minmax_dqyf_update_aabb.minmax(l.s.aabb[0]);
+              $minmax_dqyf_update_aabb.minmax(l.s.aabb[1]);
           }
       }
-      this._aabb[0].load($minmax_7Ct8_update_aabb.min);
-      this._aabb[1].load($minmax_7Ct8_update_aabb.max);
-      this._aabb[0][2] = this._aabb[1][2] = 0.0;
+      this._aabb[0].load($minmax_dqyf_update_aabb.min);
+      this._aabb[1].load($minmax_dqyf_update_aabb.max);
     }
     get  aabb() {
       if (this.flag&SplineFlags.UPDATE_AABB)
@@ -11965,7 +12007,7 @@ es6_module_define('spline_types', ["../config/config.js", "../util/mathlib.js", 
       this.mat.update = this._mat_update.bind(this);
     }
   }
-  var $minmax_7Ct8_update_aabb=new MinMax(3);
+  var $minmax_dqyf_update_aabb=new MinMax(3);
   _ESClass.register(SplineFace);
   _es6_module.add_class(SplineFace);
   SplineFace = _es6_module.add_export('SplineFace', SplineFace);

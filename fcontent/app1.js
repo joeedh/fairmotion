@@ -3881,13 +3881,13 @@ es6_module_define('safe_eval', ["../path.ux/scripts/util/parseutil.js"], functio
       super();
       this.type = type;
       this.prec = prec;
-      this.length = b!=undefined ? 2 : (a!=undefined ? 1 : 0);
-      if (a!=undefined) {
+      this.length = b!==undefined ? 2 : (a!==undefined ? 1 : 0);
+      if (a!==undefined) {
           this[0] = a;
           if (__instance_of(a, Node))
             a.parent = this;
       }
-      if (b!=undefined) {
+      if (b!==undefined) {
           this[1] = b;
           if (__instance_of(b, Node))
             b.parent = this;
@@ -3905,7 +3905,7 @@ es6_module_define('safe_eval', ["../path.ux/scripts/util/parseutil.js"], functio
   _ESClass.register(Node);
   _es6_module.add_class(Node);
   function test(path) {
-    if (path==undefined)
+    if (path===undefined)
       path = "ContextStruct.pathmap.theme.pathmap.ui.pathmap.colors.getter(g_theme.ui.flat_colors[0]).pathmap.type";
     console.log(path);
     var scope={ctx: new Context(), 
@@ -3964,39 +3964,39 @@ es6_module_define('safe_eval', ["../path.ux/scripts/util/parseutil.js"], functio
   var bin_ops=new set(["DOT", "EQUALS", "BITAND", "LAND", "LOR", "BXOR", "LEQUALS", "LNEQUALS", "MOD", "PLUS", "MINUS", "MUL", "DIV", "RSHIFT", "LSHIFT", "IN"]);
   function get_prec(p) {
     var t=p.peeknext();
-    if (t==undefined)
+    if (t===undefined)
       return 0;
     if (t.value in prec_map) {
         return prec_map[t.value];
     }
-    if (t.type=="ID"||t.type=="NUMLIT"||t.type=="STRLIT") {
+    if (t.type==="ID"||t.type==="NUMLIT"||t.type==="STRLIT") {
         return 0;
     }
     return 0;
   }
   function p_prefix(p, token) {
-    if (token.type=="ID") {
+    if (token.type==="ID") {
         return token.value;
     }
     else 
-      if (token.type=="NUMLIT") {
+      if (token.type==="NUMLIT") {
         return token.value;
     }
     else 
-      if (token.type=="STRLIT") {
+      if (token.type==="STRLIT") {
         return {type: "STRLIT", 
       value: token.value}
     }
     else 
-      if (token.type=="LNOT") {
+      if (token.type==="LNOT") {
         return new Node("!", prec_map["!"], p_expr(p, prec_map["!"]));
     }
     else 
-      if (token.type=="MINUS") {
+      if (token.type==="MINUS") {
         return new Node("negate", prec_map["-"], p_expr(p, prec_map["-"]));
     }
     else 
-      if (token.type=="LPAREN") {
+      if (token.type==="LPAREN") {
         var ret=p_expr(p, prec_map[")"]);
         p.expect("RPAREN");
         return ret;
@@ -4007,14 +4007,14 @@ es6_module_define('safe_eval', ["../path.ux/scripts/util/parseutil.js"], functio
   }
   function p_expr(p, prec) {
     var t=p.next();
-    if (t==undefined) {
+    if (t===undefined) {
         return "ERROR_ERROR_ERROR";
     }
     if (debug_parser)
       console.log("T", t.type);
     var a=p_prefix(p, t);
     while (prec<get_prec(p)) {
-      if (debug_parser&&p.peeknext()!=undefined) {
+      if (debug_parser&&p.peeknext()!==undefined) {
           console.log("PREC", prec, get_prec(p), p.peeknext().type);
       }
       t = p.next();
@@ -4025,13 +4025,13 @@ es6_module_define('safe_eval', ["../path.ux/scripts/util/parseutil.js"], functio
           a = new Node(t.value, prec_map[t.value], a, b);
       }
       else 
-        if (t.type=="LPAREN") {
+        if (t.type==="LPAREN") {
           if (debug_parser)
             console.log("LPAREN infix!", ast, "\n-----\n");
           var list;
-          if (p.peeknext().type!="RPAREN") {
+          if (p.peeknext().type!=="RPAREN") {
               list = p_expr(p, prec_map[")"]);
-              if (list.type!="list") {
+              if (list.type!=="list") {
                   list = new Node("list", prec["("], list);
               }
           }
@@ -4042,7 +4042,7 @@ es6_module_define('safe_eval', ["../path.ux/scripts/util/parseutil.js"], functio
           p.expect("RPAREN");
       }
       else 
-        if (t.type=="LSBRACKET") {
+        if (t.type==="LSBRACKET") {
           var b=p_expr(p, prec_map["]"]);
           p.expect("RSBRACKET");
           if (debug_parser)
@@ -4050,15 +4050,15 @@ es6_module_define('safe_eval', ["../path.ux/scripts/util/parseutil.js"], functio
           a = new Node("array", prec_map["["], a, b);
       }
       else 
-        if (t.type=="COMMA") {
+        if (t.type==="COMMA") {
           if (debug_parser)
             console.log("COMMA", a);
-          if (a.type=="list") {
+          if (a.type==="list") {
               a.push(p_expr(p, 0));
           }
           else {
             var b=p_expr(p, 0);
-            if (b.type=="list") {
+            if (b.type==="list") {
                 b.insert(0, a);
                 a = b;
             }
@@ -4069,7 +4069,7 @@ es6_module_define('safe_eval', ["../path.ux/scripts/util/parseutil.js"], functio
           }
       }
       else 
-        if (t.type=="COND") {
+        if (t.type==="COND") {
           var b=p_expr(p, 0);
           p.expect("COLON");
           var c=p_expr(p, 0);
@@ -4080,8 +4080,8 @@ es6_module_define('safe_eval', ["../path.ux/scripts/util/parseutil.js"], functio
         p.error(t, "unexpected "+t.value);
       }
     }
-    if (p.peeknext()!=undefined) {
-        if (p.peeknext()!=undefined) {
+    if (p.peeknext()!==undefined) {
+        if (p.peeknext()!==undefined) {
             if (debug_parser)
               console.log("PREC", prec, get_prec(p), p.peeknext().type);
         }
@@ -4090,7 +4090,7 @@ es6_module_define('safe_eval', ["../path.ux/scripts/util/parseutil.js"], functio
   }
   function p_root(p) {
     var ret=p_expr(p, 0);
-    if (p.peeknext()!=undefined&&p.peeknext().type=="SEMI") {
+    if (p.peeknext()!==undefined&&p.peeknext().type==="SEMI") {
         p.next();
     }
     return ret;
@@ -4109,9 +4109,9 @@ es6_module_define('safe_eval', ["../path.ux/scripts/util/parseutil.js"], functio
       if (node==null) {
           return ;
       }
-      if (node._inst_id!=undefined&&node._inst_id in set)
+      if (node._inst_id!==undefined&&node._inst_id in set)
         return ;
-      if (node._inst_id==undefined) {
+      if (node._inst_id===undefined) {
           node._inst_id = idgen++;
       }
       set[node._inst_id] = 1;
@@ -4119,7 +4119,7 @@ es6_module_define('safe_eval', ["../path.ux/scripts/util/parseutil.js"], functio
           var v=node[k];
           if (typeof v!="object"||v===null)
             continue;
-          if (v._inst_id==undefined) {
+          if (v._inst_id===undefined) {
               v._inst_id = idgen++;
           }
           if (v._inst_id in set) {
@@ -4138,28 +4138,28 @@ es6_module_define('safe_eval', ["../path.ux/scripts/util/parseutil.js"], functio
   }
   compile = _es6_module.add_export('compile', compile);
   function exec(ast, scope1) {
-    var scope=scopes.next();
+    let scope=scopes.next();
     scope.scope = scope1;
     scope.parent = undefined;
     function visit(node, scope) {
-      if (node==undefined) {
+      if (!node) {
           throw new Error("node was undefined!");
       }
-      if (node.type=="Identifier") {
+      if (node.type==="Identifier") {
           return scope.scope[node.name];
       }
       else 
-        if (node.type=="Literal") {
+        if (node.type==="Literal") {
           return node.value;
       }
       else 
-        if (node.type=="ExpressionStatement") {
+        if (node.type==="ExpressionStatement") {
           return visit(node.expression, scope);
       }
       else 
-        if (node.type=="VariableDeclarator") {
-          var name=node.id.name;
-          if (node.init==null) {
+        if (node.type==="VariableDeclarator") {
+          let name=node.id.name;
+          if (node.init===null) {
               scope.scope[name] = undefined;
           }
           else {
@@ -4168,27 +4168,27 @@ es6_module_define('safe_eval', ["../path.ux/scripts/util/parseutil.js"], functio
           return scope.scope[name];
       }
       else 
-        if (node.type=="VariableDeclaration") {
-          var first=visit(node.declarations[0], scope);
-          for (var i=1; i<node.declarations.length; i++) {
+        if (node.type==="VariableDeclaration") {
+          let first=visit(node.declarations[0], scope);
+          for (let i=1; i<node.declarations.length; i++) {
               visit(node.declarations[i], scope);
           }
           return first;
       }
       else 
-        if (node.type=="MemberExpression") {
-          var obj=visit(node.object, scope);
-          var prop;
+        if (node.type==="MemberExpression") {
+          let obj=visit(node.object, scope);
+          let prop;
           execdebug("Member Expression!", node);
           if (node.computed) {
               prop = visit(node.property, scope);
           }
           else 
-            if (node.property.type=="Identifier") {
+            if (node.property.type==="Identifier") {
               prop = node.property.name;
           }
           else 
-            if (node.property.type=="Literal") {
+            if (node.property.type==="Literal") {
               prop = node.property.value;
           }
           else {
@@ -4199,8 +4199,8 @@ es6_module_define('safe_eval', ["../path.ux/scripts/util/parseutil.js"], functio
           return obj[prop];
       }
       else 
-        if (node.type=="ConditionalExpression") {
-          var a=visit(node.test, scope);
+        if (node.type==="ConditionalExpression") {
+          let a=visit(node.test, scope);
           if (a) {
               return visit(node.consequent, scope);
           }
@@ -4209,19 +4209,19 @@ es6_module_define('safe_eval', ["../path.ux/scripts/util/parseutil.js"], functio
           }
       }
       else 
-        if (node.type=="UpdateExpression") {
-          var obj, prop;
-          if (node.argument.type=="MemberExpression") {
+        if (node.type==="UpdateExpression") {
+          let obj, prop;
+          if (node.argument.type==="MemberExpression") {
               obj = visit(node.argument.object, scope);
               if (node.argument.computed) {
                   prop = visit(node.argument.property, scope);
               }
               else 
-                if (node.argument.property.type=="Identifier") {
+                if (node.argument.property.type==="Identifier") {
                   prop = node.argument.property.name;
               }
               else 
-                if (node.argument.property.type=="Literal") {
+                if (node.argument.property.type==="Literal") {
                   prop = node.argument.property.value;
               }
               else {
@@ -4230,7 +4230,7 @@ es6_module_define('safe_eval', ["../path.ux/scripts/util/parseutil.js"], functio
               }
           }
           else {
-            if (node.argument.type!="Identifier") {
+            if (node.argument.type!=="Identifier") {
                 console.log(node);
                 console.trace(node.argument);
                 throw new Error("Expeced an identifier node");
@@ -4238,27 +4238,27 @@ es6_module_define('safe_eval', ["../path.ux/scripts/util/parseutil.js"], functio
             obj = scope.scope;
             prop = node.argument.name;
           }
-          var preval=obj[prop];
-          if (node.operator=="++")
+          let preval=obj[prop];
+          if (node.operator==="++")
             obj[prop]++;
           else 
             obj[prop]--;
           return node.prefix ? obj[prop] : preval;
       }
       else 
-        if (node.type=="AssignmentExpression") {
-          var obj, prop;
-          if (node.left.type=="MemberExpression") {
+        if (node.type==="AssignmentExpression") {
+          let obj, prop;
+          if (node.left.type==="MemberExpression") {
               obj = visit(node.left.object, scope);
               if (node.left.computed) {
                   prop = visit(node.left.property, scope);
               }
               else 
-                if (node.left.property.type=="Identifier") {
+                if (node.left.property.type==="Identifier") {
                   prop = node.left.property.name;
               }
               else 
-                if (node.left.property.type=="Literal") {
+                if (node.left.property.type==="Literal") {
                   prop = node.left.property.value;
               }
               else {
@@ -4267,7 +4267,7 @@ es6_module_define('safe_eval', ["../path.ux/scripts/util/parseutil.js"], functio
               }
           }
           else {
-            if (node.left.type!="Identifier") {
+            if (node.left.type!=="Identifier") {
                 console.log(node);
                 console.trace(node.left);
                 throw new Error("Expeced an identifier node");
@@ -4317,17 +4317,17 @@ es6_module_define('safe_eval', ["../path.ux/scripts/util/parseutil.js"], functio
           return obj[prop];
       }
       else 
-        if (node.type=="ArrayExpression") {
-          var ret=[];
-          var items=node.elements;
-          for (var i=0; i<items.length; i++) {
+        if (node.type==="ArrayExpression") {
+          let ret=[];
+          let items=node.elements;
+          for (let i=0; i<items.length; i++) {
               ret.push(visit(items[i], scope));
           }
           return ret;
       }
       else 
-        if (node.type=="UnaryExpression") {
-          var val=visit(node.argument, scope);
+        if (node.type==="UnaryExpression") {
+          let val=visit(node.argument, scope);
           switch (node.operator) {
             case "-":
               return -val;
@@ -4348,14 +4348,14 @@ es6_module_define('safe_eval', ["../path.ux/scripts/util/parseutil.js"], functio
           }
       }
       else 
-        if (node.type=="NewExpression") {
+        if (node.type==="NewExpression") {
           execdebug("new call!", node, node.callee);
-          var func=visit(node.callee, scope);
-          var thisvar=undefined;
-          if (node.callee.type=="MemberExpression") {
-              thisvar = visit(node.callee.object, scope);
+          let func=visit(node.callee, scope);
+          let thislet=undefined;
+          if (node.callee.type==="MemberExpression") {
+              thislet = visit(node.callee.object, scope);
           }
-          var args=node.arguments;
+          let args=node.arguments;
           switch (args.length) {
             case 0:
               return new func();
@@ -4372,14 +4372,14 @@ es6_module_define('safe_eval', ["../path.ux/scripts/util/parseutil.js"], functio
           }
       }
       else 
-        if (node.type=="CallExpression") {
+        if (node.type==="CallExpression") {
           execdebug("function call!", node, node.callee);
-          var func=visit(node.callee, scope);
-          var thisvar=undefined;
-          if (node.callee.type=="MemberExpression") {
-              thisvar = visit(node.callee.object, scope);
+          let func=visit(node.callee, scope);
+          let thislet=undefined;
+          if (node.callee.type==="MemberExpression") {
+              thislet = visit(node.callee.object, scope);
           }
-          var args=node.arguments;
+          let args=node.arguments;
           switch (args.length) {
             case 0:
               return func.call(thisvar);
@@ -4396,14 +4396,14 @@ es6_module_define('safe_eval', ["../path.ux/scripts/util/parseutil.js"], functio
           }
       }
       else 
-        if (node.type=="BinaryExpression"||node.type=="LogicalExpression") {
-          var a=visit(node.left, scope);
-          var b=visit(node.right, scope);
+        if (node.type==="BinaryExpression"||node.type==="LogicalExpression") {
+          let a=visit(node.left, scope);
+          let b=visit(node.right, scope);
           switch (node.operator) {
             case "==":
-              return a==b;
+              return a===b;
             case "!=":
-              return a!=b;
+              return a!==b;
             case ">":
               return a>b;
             case "<":
@@ -4456,8 +4456,8 @@ es6_module_define('safe_eval', ["../path.ux/scripts/util/parseutil.js"], functio
       }
     }
     if (__instance_of(ast, Array)) {
-        var last=undefined;
-        for (var i=0; i<ast.length; i++) {
+        let last=undefined;
+        for (let i=0; i<ast.length; i++) {
             last = visit(ast[i], scope);
         }
         return last;
@@ -4476,35 +4476,35 @@ es6_module_define('safe_eval', ["../path.ux/scripts/util/parseutil.js"], functio
     scope.scope = scope1;
     scope.parent = undefined;
     function visit(node, scope, pscope) {
-      if (typeof node=="string")
+      if (typeof node==="string")
         return scope.scope[node];
-      if (typeof node=="number")
+      if (typeof node==="number")
         return node;
-      if (node.type=="!") {
+      if (node.type==="!") {
           return !visit(node[0], scope);
       }
       else 
-        if (node.type=="negate") {
+        if (node.type==="negate") {
           return -visit(node[0], scope);
       }
       else 
-        if (node.type=="?") {
-          var a=visit(node[0], scope, pscope);
-          var b=visit(node[1], scope, pscope);
-          var c=visit(node[2], scope, pscope);
+        if (node.type==="?") {
+          let a=visit(node[0], scope, pscope);
+          let b=visit(node[1], scope, pscope);
+          let c=visit(node[2], scope, pscope);
           return a ? b : c;
       }
       else 
-        if (node.type=="call") {
-          var func;
-          if (typeof node[0]=="string"&&node.parent.type==".") {
+        if (node.type==="call") {
+          let func;
+          if (typeof node[0]==="string"&&node.parent.type===".") {
               func = scope.thisvar[node[0]];
           }
           else {
             func = visit(node[0], scope, pscope);
           }
-          var thisvar;
-          if (node.parent.type!=".") {
+          let thisvar;
+          if (node.parent.type!==".") {
               thisvar = self;
           }
           else {
@@ -4525,8 +4525,8 @@ es6_module_define('safe_eval', ["../path.ux/scripts/util/parseutil.js"], functio
           }
       }
       else 
-        if (node.type=="ID") {
-          if (node.parent!=undefined&&node.parent.type==".") {
+        if (node.type==="ID") {
+          if (node.parent!==undefined&&node.parent.type===".") {
               return scope.thisvar[node.value];
           }
           else {
@@ -4534,20 +4534,21 @@ es6_module_define('safe_eval', ["../path.ux/scripts/util/parseutil.js"], functio
           }
       }
       else 
-        if (node.type=="NUMLIT") {
+        if (node.type==="NUMLIT") {
           return node.value;
       }
       else 
-        if (node.type=="STRLIT") {
+        if (node.type==="STRLIT") {
           return node.value;
       }
       else 
-        if (node.type==".") {
-          var scope2=scopes.next();
+        if (node.type===".") {
+          let scope2=scopes.next();
           scope2.parent = scope;
           scope2.scope = scope.scope;
           scope2.thisvar = visit(node[0], scope, pscope);
-          pscope = scope, scope = scope2;
+          pscope = scope;
+          scope = scope2;
           if (debug_exec)
             console.log("scope", scope, node[0], scope.scope[node[0]], "...");
           if (typeof node[1]=="string") {
@@ -4558,132 +4559,132 @@ es6_module_define('safe_eval', ["../path.ux/scripts/util/parseutil.js"], functio
           }
       }
       else 
-        if (node.type=="array") {
-          var array=visit(node[0], scope, pscope);
-          var idx=visit(node[1], scope, pscope);
+        if (node.type==="array") {
+          let array=visit(node[0], scope, pscope);
+          let idx=visit(node[1], scope, pscope);
           return array[idx];
       }
       else 
-        if (node.type=="==") {
-          var a=visit(node[0], scope, pscope);
-          var b=visit(node[1], scope, pscope);
+        if (node.type==="==") {
+          let a=visit(node[0], scope, pscope);
+          let b=visit(node[1], scope, pscope);
           return a==b;
       }
       else 
-        if (node.type=="&&") {
-          var a=visit(node[0], scope, pscope);
-          var b=visit(node[1], scope, pscope);
+        if (node.type==="&&") {
+          let a=visit(node[0], scope, pscope);
+          let b=visit(node[1], scope, pscope);
           return a&&b;
       }
       else 
-        if (node.type=="||") {
-          var a=visit(node[0], scope, pscope);
-          var b=visit(node[1], scope, pscope);
+        if (node.type==="||") {
+          let a=visit(node[0], scope, pscope);
+          let b=visit(node[1], scope, pscope);
           return a||b;
       }
       else 
-        if (node.type=="^") {
-          var a=visit(node[0], scope, pscope);
-          var b=visit(node[1], scope, pscope);
+        if (node.type==="^") {
+          let a=visit(node[0], scope, pscope);
+          let b=visit(node[1], scope, pscope);
           return a^b;
       }
       else 
-        if (node.type==">=") {
-          var a=visit(node[0], scope, pscope);
-          var b=visit(node[1], scope, pscope);
+        if (node.type===">=") {
+          let a=visit(node[0], scope, pscope);
+          let b=visit(node[1], scope, pscope);
           return a>=b;
       }
       else 
-        if (node.type==">") {
-          var a=visit(node[0], scope, pscope);
-          var b=visit(node[1], scope, pscope);
+        if (node.type===">") {
+          let a=visit(node[0], scope, pscope);
+          let b=visit(node[1], scope, pscope);
           return a>b;
       }
       else 
-        if (node.type=="!=") {
-          var a=visit(node[0], scope, pscope);
-          var b=visit(node[1], scope, pscope);
-          return a!=b;
+        if (node.type==="!=") {
+          let a=visit(node[0], scope, pscope);
+          let b=visit(node[1], scope, pscope);
+          return a!==b;
       }
       else 
-        if (node.type=="in") {
-          var a=visit(node[0], scope, pscope);
-          var b=visit(node[1], scope, pscope);
+        if (node.type==="in") {
+          let a=visit(node[0], scope, pscope);
+          let b=visit(node[1], scope, pscope);
           if (debug_exec)
             console.log("in keyword", a, b, a in b);
           return a in b;
       }
       else 
-        if (node.type=="<=") {
-          var a=visit(node[0], scope, pscope);
-          var b=visit(node[1], scope, pscope);
+        if (node.type==="<=") {
+          let a=visit(node[0], scope, pscope);
+          let b=visit(node[1], scope, pscope);
           return a<=b;
       }
       else 
-        if (node.type=="<") {
-          var a=visit(node[0], scope, pscope);
-          var b=visit(node[1], scope, pscope);
+        if (node.type==="<") {
+          let a=visit(node[0], scope, pscope);
+          let b=visit(node[1], scope, pscope);
           return a<b;
       }
       else 
-        if (node.type=="|") {
-          var a=visit(node[0], scope, pscope);
-          var b=visit(node[1], scope, pscope);
+        if (node.type==="|") {
+          let a=visit(node[0], scope, pscope);
+          let b=visit(node[1], scope, pscope);
           return a|b;
       }
       else 
-        if (node.type=="+") {
-          var a=visit(node[0], scope, pscope);
-          var b=visit(node[1], scope, pscope);
+        if (node.type==="+") {
+          let a=visit(node[0], scope, pscope);
+          let b=visit(node[1], scope, pscope);
           return a+b;
       }
       else 
-        if (node.type=="-") {
-          var a=visit(node[0], scope, pscope);
-          var b=visit(node[1], scope, pscope);
+        if (node.type==="-") {
+          let a=visit(node[0], scope, pscope);
+          let b=visit(node[1], scope, pscope);
           return a-b;
       }
       else 
-        if (node.type=="*") {
-          var a=visit(node[0], scope, pscope);
-          var b=visit(node[1], scope, pscope);
+        if (node.type==="*") {
+          let a=visit(node[0], scope, pscope);
+          let b=visit(node[1], scope, pscope);
           return a*b;
       }
       else 
-        if (node.type=="/") {
-          var a=visit(node[0], scope, pscope);
-          var b=visit(node[1], scope, pscope);
+        if (node.type==="/") {
+          let a=visit(node[0], scope, pscope);
+          let b=visit(node[1], scope, pscope);
           return a/b;
       }
       else 
-        if (node.type==">>") {
-          var a=visit(node[0], scope, pscope);
-          var b=visit(node[1], scope, pscope);
+        if (node.type===">>") {
+          let a=visit(node[0], scope, pscope);
+          let b=visit(node[1], scope, pscope);
           return a>>b;
       }
       else 
-        if (node.type=="<<") {
-          var a=visit(node[0], scope, pscope);
-          var b=visit(node[1], scope, pscope);
+        if (node.type==="<<") {
+          let a=visit(node[0], scope, pscope);
+          let b=visit(node[1], scope, pscope);
           return a<<b;
       }
       else 
-        if (node.type=="&") {
-          var a=visit(node[0], scope, pscope);
-          var b=visit(node[1], scope, pscope);
+        if (node.type==="&") {
+          let a=visit(node[0], scope, pscope);
+          let b=visit(node[1], scope, pscope);
           return a&b;
       }
       else 
-        if (node.type=="=") {
+        if (node.type==="=") {
           if (typeof node[0]=="string"||node[0].type=="ID") {
-              var key=typeof node[0]=="string" ? node[0] : node[0].value;
+              let key=typeof node[0]=="string" ? node[0] : node[0].value;
               scope.scope[key] = visit(node[1], scope, pscope);
               return scope.scope[key];
           }
-          var a=visit(node[0], scope, pscope);
-          var b=visit(node[1], scope, pscope);
-          var container=visit(node[0][0], scope, pscope);
-          var key=node[0][1];
+          let a=visit(node[0], scope, pscope);
+          let b=visit(node[1], scope, pscope);
+          let container=visit(node[0][0], scope, pscope);
+          let key=node[0][1];
           if (typeof key!="string") {
               throw new Error("safe_eval error with: "+code);
           }
@@ -4698,7 +4699,7 @@ es6_module_define('safe_eval', ["../path.ux/scripts/util/parseutil.js"], functio
   }
   exec2 = _es6_module.add_export('exec2', exec2);
   function safe_eval(code, scope) {
-    scope = scope==undefined ? {} : scope;
+    scope = scope===undefined ? {} : scope;
     var ast=compile(code);
     parsedebug(ast);
     return exec(ast, scope);
@@ -9438,7 +9439,7 @@ es6_module_define('eventmanager', [], function _eventmanager_module(_es6_module)
 }, '/dev/fairmotion/src/core/eventmanager.js');
 es6_module_define('icon_enum', [], function _icon_enum_module(_es6_module) {
   "use strict";
-  window.Icons = {HFLIP: 0, 
+  const Icons={HFLIP: 0, 
    TRANSLATE: 1, 
    ROTATE: 2, 
    HELP: 3, 
@@ -9502,7 +9503,15 @@ es6_module_define('icon_enum', [], function _icon_enum_module(_es6_module) {
    HALF_PIXEL_SIZE: 61, 
    PEN_TOOL: 62, 
    STROKE_TOOL: 63, 
-   PROP_TRANSFORM: 64}
+   PROP_TRANSFORM: 64, 
+   ANIM_PLAY: 65, 
+   ANIM_PAUSE: 66, 
+   ANIM_START: 67, 
+   ANIM_END: 68, 
+   ANIM_NEXT: 69, 
+   ANIM_PREV: 70}
+  _es6_module.add_export('Icons', Icons);
+  window.Icons = Icons;
 }, '/dev/fairmotion/src/datafiles/icon_enum.js');
 "not_a_module";
 if (Array.prototype.set===undefined) {
@@ -9772,16 +9781,16 @@ function time_func(func, steps) {
   console.log(times);
   return times;
 }
-var $lst_NSaV=new GArray();
+var $lst_SXou=new GArray();
 function cached_list(iter) {
-  $lst_NSaV.reset();
+  $lst_SXou.reset();
   var i=0;
   for (var item of iter) {
-      $lst_NSaV.push(item);
+      $lst_SXou.push(item);
       i++;
   }
-  $lst_NSaV.length = i;
-  return $lst_NSaV;
+  $lst_SXou.length = i;
+  return $lst_SXou;
 }
 var g_list=list;
 class eid_list extends GArray {
@@ -10090,9 +10099,14 @@ class hashtable  {
     this.keymap[key[Symbol.keystr]()] = key;
   }
    remove(key) {
-    delete this.items[key[Symbol.keystr]()];
-    delete this.keymap[key[Symbol.keystr]()];
+    if (!this.has(key)) {
+        return false;
+    }
+    let keystr=key[Symbol.keystr]();
+    delete this.items[keystr];
+    delete this.keymap[keystr];
     this.length-=1;
+    return true;
   }
    [Symbol.iterator]() {
     return Object.keys(this.items)[Symbol.iterator]();
@@ -10106,6 +10120,9 @@ class hashtable  {
   }
    keys() {
     return list(this);
+  }
+   getKey(key) {
+    return this.keymap[key];
   }
    get(key) {
     return this.items[key[Symbol.keystr]()];

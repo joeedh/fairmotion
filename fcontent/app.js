@@ -1049,7 +1049,7 @@ function __bind_super_prop(obj, cls, parent, prop) {
   }
 }
 
-es6_module_define('config', ["../path.ux/scripts/config/const.js", "./config_local", "./config_local.js"], function _config_module(_es6_module) {
+es6_module_define('config', ["./config_local.js", "./config_local", "../path.ux/scripts/config/const.js"], function _config_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, '../path.ux/scripts/config/const.js');
   let PathUXConstants={colorSchemeType: "dark", 
@@ -1176,6 +1176,8 @@ es6_module_define('config', ["../path.ux/scripts/config/const.js", "./config_loc
 
 es6_module_define('config_local', [], function _config_local_module(_es6_module) {
   'use strict';
+  let HAVE_EVAL=true;
+  HAVE_EVAL = _es6_module.add_export('HAVE_EVAL', HAVE_EVAL);
   let DEBUG={fastDrawMode: false}
   DEBUG = _es6_module.add_export('DEBUG', DEBUG);
 }, '/dev/fairmotion/src/config/config_local.js');
@@ -1429,8 +1431,9 @@ es6_module_define('polyfill', [], function _polyfill_module(_es6_module) {
       window.Symbol = {iterator: "$__iterator__$", 
      keystr: "$__keystr__$"};
   }
-  else {
-    Symbol.keystr = Symbol("keystr");
+  else 
+    if (Symbol.keystr===undefined) {
+      Symbol.keystr = Symbol("keystr");
   }
   window.list = function list(iter) {
     var ret=[];
@@ -1990,6 +1993,37 @@ es6_module_define('util', ["./mobile-detect.js", "./polyfill.js", "./struct.js"]
       this.freelist.length = 0;
       this.length = 0;
       return this;
+    }
+     filter(f, thisvar) {
+      let i=0;
+      let ret=new set();
+      for (let item of this) {
+          if (f.call(thisvar, item, i++, this)) {
+              ret.add(item);
+          }
+      }
+      return ret;
+    }
+     map(f, thisvar) {
+      let ret=new set();
+      let i=0;
+      for (let item of this) {
+          ret.add(f.call(thisvar, item, i++, this));
+      }
+      return ret;
+    }
+     reduce(f, initial) {
+      if (initial===undefined) {
+          for (let item of this) {
+              initial = item;
+              break;
+          }
+      }
+      let i=0;
+      for (let item of this) {
+          initial = f(initial, item, i++, this);
+      }
+      return initial;
     }
      copy() {
       let ret=new set();

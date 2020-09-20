@@ -126,6 +126,8 @@ export class FairmotionScreen extends Screen {
   }
 
   on_keydown(e : Object) {
+    window._handle_key_exclude(e);
+    
     if (g_app_state.eventhandler !== this)
       return g_app_state.eventhandler.on_keydown(e);
 

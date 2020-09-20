@@ -279,7 +279,7 @@ function init_event_system() {
   ke[gen_keystr("G", {shift: false, alt: true, ctrl: false})] = 0;
   ke[gen_keystr("O", {shift: true, alt: false, ctrl: true})] = 0;
 
-  function handle_key_exclude(e) {
+  window._handle_key_exclude = function handle_key_exclude(e) {
       var kc = charmap[e.keyCode];
       if (kc == undefined)
           kc = "";
@@ -293,69 +293,6 @@ function init_event_system() {
       if (keystr in key_exclude_list) {
           e.preventDefault();
       }
-  }
-
-  function handleKeyDown(e) {
-      //make sure focus isn't in an embedded html control
-      if (document.activeElement !== document.body && !(document.activeElement instanceof HTMLCanvasElement))
-        return;
-
-      handle_key_exclude(e);
-
-      if (g_app_state.eventhandler !== undefined && g_app_state.eventhandler.on_keydown)
-          g_app_state.eventhandler.on_keydown(e)
-  }
-
-  function handleKeyUp(e) {
-      //make sure focus isn't in an embedded html control
-      if (document.activeElement !== document.body && !(document.activeElement instanceof HTMLCanvasElement))
-        return;
-
-      handle_key_exclude(e);
-
-    if (g_app_state.eventhandler !== undefined && g_app_state.eventhandler.on_keyup)
-          g_app_state.eventhandler.on_keyup(e);
-  }
-
-  function handleKeyPress(e) {
-      //make sure focus isn't in an embedded html control
-      if (document.activeElement !== document.body && !(document.activeElement instanceof HTMLCanvasElement))
-        return;
-      
-      handle_key_exclude(e);
-
-      if (g_app_state.screen != undefined) {
-          if (e.charCode == 0 || e.charCode == 13 || e.charCode == undefined)
-              return;
-
-          e["char"] = String.fromCharCode(e.charCode);
-          if (g_app_state.eventhandler !== undefined && g_app_state.eventhandler.on_charcode) {
-            g_app_state.eventhandler.on_charcode(e);
-          }
-
-      }
-  }
-
-  function handleTextInput(e, e2) {
-      console.log("text input event", e, e2);
-      #if 0
-      uevt = e;
-      if (g_app_state.screen != undefined) {
-          var canvas = document.getElementById("canvas2d_work");
-          var text = "" + canvas.textContent;
-
-          //we have to maintain something in the text buffer at
-          //at times for the mobile keyboard to show up.
-          if (text.length == 0)
-              canvas.textContent = "<TK>";
-
-          text = text.replace(/\<TK\>/g, "");
-
-          //console.log("textinput event");
-        if (g_app_state.eventhandler !== undefined && g_app_state.eventhandler.on_textinput)
-          g_app_state.eventhandler.on_textinput({text: text});
-      }
-      #endif
   }
 
   //var ce = document.getElementById("canvas2d_work");
@@ -374,7 +311,8 @@ function init_event_system() {
   eman.addEventListener("mousewheel", handleMouseWheel, false);
   //*/
 //*
-  eman.addEventListener("keydown", handleKeyDown, false);
+
+  //eman.addEventListener("keydown", handleKeyDown, false);
   //eman.addEventListener("keyup", handleKeyUp, false);
   
   //eman.addEventListener("keypress", handleKeyPress, false);

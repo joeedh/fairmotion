@@ -155,7 +155,7 @@ export class SplineQuery {
     }
 
     if (closest !== undefined) {
-      console.log("CLOSEST", closest.eid);
+      //console.log("CLOSEST", closest.eid);
 
       return [closest, mindis, SelMask.FACE];
     }

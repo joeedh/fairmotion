@@ -255,6 +255,8 @@ export class SplineToolMode extends ToolMode {
     k.add_tool(new HotKey("C", [], "Circle Select"), "view2d.circle_select()");
 
     k.add(new HotKey("Z", [], "Toggle Only Render"), new FuncKeyHandler(function (ctx) {
+      console.warn("ZKEY");
+
       ctx.view2d.only_render ^= 1;
       window.redraw_viewport();
     }));

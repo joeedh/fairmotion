@@ -1,5 +1,27 @@
 import {PlatformAPIBase} from '../common/platform_api.js';
 
+/*detect prescence of node*/
+let haveNode = typeof global !== "undefined" && typeof require !== "undefined";
+let haveElectron = haveNode && require("electron");
+
+if (!haveElectron) {
+  let G;
+  if (typeof global === "undefined") {
+    if (typeof window !== "undefined") {
+      G = window;
+    } else if (typeof self !== "undefined") {
+      G = self;
+    } else {
+      G = globalThis;
+    }
+
+    //make require stub
+    G.require = () => {
+      return {}
+    }
+  }
+}
+
 let mod = require("electron");
 
 if (!mod.remote) {

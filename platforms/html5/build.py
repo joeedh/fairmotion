@@ -62,12 +62,15 @@ def build():
   copy("./src/vectordraw/vectordraw_canvas2d_worker.js", basepath + "/vectordraw_canvas2d_worker.js");
   copy("./src/vectordraw/vectordraw_skia_worker.js", basepath + "/vectordraw_skia_worker.js");
 
-  for root, dirs, files in os.walk(basepath + "/node_modules"):
+  util.deepcopy('node_modules/canvaskit-wasm', basepath + '/canvaskit-wasm')
+
+  for root, dirs, files in os.walk(basepath + "/canvaskit-wasm"):
     if is_win32:
         root = root.replace("\\", "/")
     if not root.endswith("/"):
         root += "/"
 
+    print(files)
     for f in files:
         path = root + f
         path2 = path.replace(basepath+"/", "")

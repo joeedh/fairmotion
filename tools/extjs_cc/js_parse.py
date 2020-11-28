@@ -14,6 +14,23 @@ from ply.lex import LexToken, Lexer
 from js_parser_only_ast import *
 from js_process_ast_parser_only import *
 
+import random
+
+temp_idgen = [0]
+def getTempName():
+    id = temp_idgen[0]
+    temp_idgen[0] += 1
+
+    ret = "$_t%i" % id
+
+    random.seed(id + hash(glob.g_file))
+
+    for i in range(4):
+        c = int(random.random()*23) + ord('a')
+        ret += chr(c)
+
+    return ret
+
 precedence = (
   ("left", "COMMA"),
   ("left", "ASSIGN", "ASSIGNLSHIFT", "ASSIGNRSHIFT", "ASSIGNPLUS",
@@ -901,27 +918,37 @@ def p_var_decl(p):
     if type(p[1]) == ExpandNode:
       if glob.g_destructuring:
         node = None
-        
+        tname = getTempName()
+        temp = IdentNode(tname)
+
+        p[0] = VarDeclNode(ExprNode([]))
+        p[0].val = tname
+        p[0].modifiers = p[1].modifiers
+        p[0].replace(p[0][0], p[3])
+        p[0].add(UnknownTypeNode())
+
+        node = p[0]
+
         for i, n in enumerate(p[1]):
           n2 = VarDeclNode(ExprNode([]), name=n.val)
           n2.add(UnknownTypeNode())
           n2.modifiers = p[1].modifiers
+
           if p[1].etype == "array":
-            n3 = ArrayRefNode(p[3], IdentNode(str(i)))
+            n3 = ArrayRefNode(IdentNode(tname), IdentNode(str(i)))
             n2[0].add(n3)
           else:
-            n3 = BinOpNode(p[3], n.val, ".")
+            n3 = BinOpNode(IdentNode(tname), n.val, ".")
             n2[0].add(n3)
+
           n3.lexpos = n3[0].lexpos
           n3.lexpos2 = n3[0].lexpos2
           
-          if not node:
-            p[0] = n2
-          else:
-            node.add(n2)          
+          node.add(n2)
           node = n2
       else:
-        p[0] = p[1]      
+        p[0] = p[1]
+        p[0].replace(p[0][0], AssignNode(p[0][1], p[3]))
     else:
       p[0] = p[1]
       if len(p[1][0]) == 0 and type(p[1][0]) == ExprNode:
@@ -1542,7 +1569,8 @@ def p_id_right(p):
 def p_property_id(p):
   ''' property_id : ID
                   | GET
-                  | SET 
+                  | SET
+                  | DELETE
                   | FOR
                   | WHILE
                   | DO
@@ -2154,19 +2182,27 @@ def p_objlit_key(p):
         p[0] = p[2]
     else:
         p[0] = RuntimeObjectKey(p[2])
-        
+
 def p_obj_lit_list(p):
   r'''
     obj_lit_list : objlit_key COLON expr
+                 | id
                  | objlit_function
                  | obj_lit_list COMMA objlit_function
                  | obj_lit_list COMMA objlit_key COLON expr
+                 | obj_lit_list COMMA id
                  | obj_lit_list COMMA
   '''
   
   set_parse_globals(p)
-  
-  if len(p) == 2:
+
+  if len(p) == 2 and type(p[1]) == IdentNode:
+    p[0] = ObjLitNode()
+    p[0].add(AssignNode(p[1], p[1].copy()))
+  elif len(p) == 4 and type(p[3]) == IdentNode and p[2] != ":":
+    p[0] = p[1]
+    p[0].add(AssignNode(p[3], p[3].copy()))
+  elif len(p) == 2:
     p[0] = ObjLitNode()
 
     if type(p[1]) == ObjLitSetGet:

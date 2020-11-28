@@ -486,9 +486,14 @@ def build_depend(f):
   if f.endswith(".png"): return
 
   prof_start("build_depend")
-  file = open(f, "r")
+  file = open(f, "br")
+  buf = file.read()
+  file.close()
 
-  for line in file.readlines():
+  buf = str(buf, "latin-1")
+  buf = buf.replace("\r", "")
+
+  for line in buf.split("\n"):
     if not (line.strip().startswith("#") and "include" in line and '"' in line):
       continue
 

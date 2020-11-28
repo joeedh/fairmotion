@@ -1541,8 +1541,10 @@ def main():
         print("js_cc.py: no input files")
         return -1
 
-    f = open(args.infile, "r")
+    f = open(args.infile, "rb")
     data = f.read()
+    data = str(data, "latin-1")
+
     data = data.replace("\r", "")
     f.close()
 

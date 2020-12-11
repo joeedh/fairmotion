@@ -39,8 +39,12 @@ precedence = (
   ("left", "QEST", "COLON"),
   ("left", "ARROW"), #note this is a "fictitious" token
   ("left", "BNEGATE"),
-  ("left", "LAND", "LOR"),
-  ("left", "BAND", "BOR", "BXOR"),
+  ("left", "DOUBLEQ"), #coalesing operator ??
+  ("left", "LOR"),
+  ("left", "LAND"),
+  ("left", "BOR"),
+  ("left", "BXOR"),
+  ("left", "BAND"),
   ('nonassoc', 'LTHAN', 'GTHAN', 'EQUAL', "GTHANEQ",
                "NOTEQUAL_STRICT", "EQUAL_STRICT",
                "LTHANEQ", "NOTEQUAL"),
@@ -2546,6 +2550,7 @@ def p_expr(p):
             | expr RSHIFT expr
             | expr LSHIFT expr
             | expr EXPONENT expr
+            | expr DOUBLEQ expr
             | expr LLSHIFT expr
             | expr RRSHIFT expr
             | expr COND_DOT expr

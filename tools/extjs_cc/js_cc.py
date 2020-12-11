@@ -1250,7 +1250,8 @@ def parse_intern(data, create_logger=False, expand_loops=True, expand_generators
     pass
 
   #handle .? operator
-  transform_exisential_operators(result, typespace)
+  if glob.g_transform_exisential:
+    transform_exisential_operators(result, typespace)
 
   if glob.g_write_manifest and glob.g_outfile != "":
     buf = gen_manifest_file(result, typespace);

@@ -321,6 +321,7 @@ class Glob(AbstractGlob):
     g_lexpos = 0
     g_lexpos2 = 0
     g_destructuring = True
+    g_transform_exisential = False
     g_clear_slashr = False
     g_print_warnings = True
     g_gen_log_code = False

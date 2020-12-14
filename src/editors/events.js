@@ -367,7 +367,7 @@ export class HotKey {
   constructor(key, modifiers, uiName, menunum, ignore_charmap_error) { //menunum is optional, defaults to undefined
     this.uiName = uiName;
 
-    if (!charmap.hasOwnProperty(key)) {
+    if (charmap[key] === undefined) {
       if (ignore_charmap_error !== undefined && ignore_charmap_error !== true) {
         console.trace();
         console.log("Invalid hotkey " + key + "!");
@@ -603,7 +603,7 @@ export class KeyMap extends hashtable {
     if (event.shiftKey) modlist.push("SHIFT")
     if (event.altKey) modlist.push("ALT")
     
-    let key = new HotKey(event.keyCode, modlist, 0, 0, true);
+    let key = new HotKey(charmap_rev[event.keyCode], modlist, 0, 0, true);
 
     if (this.has(key)) {
       if (ctx.keymap_mpos) {

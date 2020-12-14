@@ -210,10 +210,17 @@ window.startup_intern = function startup() {
   }
 }
 
+
 function init_event_system() {
   let eventmanager = es6_get_module_meta(_rootpath_src + "src/core/eventmanager.js").exports;
   let eman = eventmanager.manager;
-  
+
+  let FrameManager = es6_get_module_meta(_rootpath_src + "src/path.ux/scripts/screen/FrameManager.js").exports;
+
+  FrameManager.startEvents(() => {
+    return g_app_state ? g_app_state.screen : undefined;
+  });
+
   window._stime = 10;
 
   window.setInterval(function () {

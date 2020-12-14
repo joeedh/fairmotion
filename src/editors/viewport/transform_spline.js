@@ -279,7 +279,7 @@ export class TransSplineVert extends TransDataType {
 
         if (i) {
           var ov = v.owning_segment.handle_vertex(v);
-          if (ov != undefined && v.hidden && ov.hidden)
+          if (ov !== undefined && v.hidden && ov.hidden)
             continue;
         } else if (v.hidden) {
           continue;
@@ -311,7 +311,7 @@ export class TransSplineVert extends TransDataType {
 
         if (si) {
           var ov = v.owning_segment.handle_vertex(v);
-          if (ov != undefined && v.hidden && ov.hidden)
+          if (ov !== undefined && v.hidden && ov.hidden)
             continue;
         } else if (v.hidden) {
           continue;
@@ -320,15 +320,15 @@ export class TransSplineVert extends TransDataType {
         if (v.eid in selmap) continue;
 
         var co = new Vector2(v);
-        var td = new TransDataItem(v, TransSplineVert, co);
+        let width = si ? 0.0 : v.width;
+
+        var td = new TransDataItem(v, TransSplineVert, {co, width});
         data.push(td);
 
         td.dis = 10000;
         tdmap[v.eid] = td;
       }
     }
-
-    console.log("proprad", proprad);
 
     for (var v of spline.verts.selected.editable(ctx)) {
       shash.forEachPoint(v, proprad, function(v2, dis) {
@@ -337,9 +337,9 @@ export class TransSplineVert extends TransDataType {
         if (!edit_all_layers && !v2.in_layer(layer))
           return;
 
-        if (v2.type == SplineTypes.HANDLE && v2.hidden && (v2.owning_vertex == undefined || v2.owning_vertex.hidden))
+        if (v2.type === SplineTypes.HANDLE && v2.hidden && (v2.owning_vertex === undefined || v2.owning_vertex.hidden))
           return
-        if (v2.type == SplineTypes.VERTEX && v2.hidden)
+        if (v2.type === SplineTypes.VERTEX && v2.hidden)
           return;
 
         //console.log("v2!", v2.eid, dis);

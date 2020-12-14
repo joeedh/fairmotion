@@ -249,6 +249,14 @@ export class Spline extends DataBlock {
     this.init_elists();
   }
 
+  static blockDefine() {return {
+    typeName : "spline",
+    defaultName : "Spline",
+    uiName : "Spline",
+    typeIndex : 6,
+    linkOrder : 3
+  }}
+
   //get resolve() {
   //  return this._resolve;
   //}
@@ -2579,4 +2587,6 @@ Spline.STRUCT = STRUCT.inherit(Spline, DataBlock) + `
     strokeGroups : array(SplineStrokeGroup);
 }
 `
+DataBlock.register(Spline);
+
 import {SplineStrokeGroup, buildSegmentGroups, splitSegmentGroups} from "./spline_strokegroup.js";

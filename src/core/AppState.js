@@ -19,7 +19,7 @@ import * as html5_fileapi from './fileapi/fileapi.js';
 import {FullContext, BaseContext, BaseContextOverlay} from "./context.js";
 
 export {FullContext, BaseContext, BaseContextOverlay} from "./context.js";
-
+import {BlockTypeMap} from './lib_api.js';
 import {SplineFrameSet} from "./frameset.js";
 import {ConsoleEditor} from '../editors/console/console.js';
 import {CurveEditor} from '../editors/curve/CurveEditor.js';
@@ -162,7 +162,6 @@ import {JobManager} from './jobs.js';
 import {RasterState} from './raster.js';
 import {NotificationManager, Notification} from './notifications.js';
 import {STRUCT} from './struct.js';
-import {get_data_typemap} from './lib_api_typedefine.js';
 import {Screen} from '../path.ux/scripts/screen/FrameManager.js';
 import {ScreenArea, Area} from '../path.ux/scripts/screen/ScreenArea.js';
 import {DataLib, DataBlock, DataTypes} from './lib_api.js';
@@ -1208,11 +1207,11 @@ export class AppState {
       uctx.i = 0;
     }
 
-    let blocks = new Array();
+    let blocks = [];
     let fstructs = new STRUCT();
     let datalib = undefined;
 
-    let tmap = get_data_typemap();
+    let tmap = BlockTypeMap;
 
     window._send_killscreen();
 
@@ -1546,7 +1545,7 @@ export class AppState {
     let blocks = new Array();
     let fstructs = new STRUCT();
 
-    let tmap = get_data_typemap();
+    let tmap = BlockTypeMap;
 
     while (uctx.i < data.byteLength) {
       let type = unpack_static_string(data, uctx, 4);
@@ -1584,7 +1583,7 @@ export class AppState {
     let fstructs = filedata.fstructs;
     let version = filedata.version;
 
-    let tmap = get_data_typemap();
+    let tmap = BlockTypeMap;
     let screen = undefined;
 
     for (let i = 0; i < blocks.length; i++) {

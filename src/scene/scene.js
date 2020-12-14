@@ -200,6 +200,14 @@ export class Scene extends DataBlock {
   time : number
   fps  : number;
 
+  static blockDefine() {return {
+    typeName : "scene",
+    defaultName : "Scene",
+    uiName : "Scene",
+    typeIndex : 5,
+    linkOrder : 1
+  }}
+
   constructor() {
     super(DataTypes.SCENE);
 
@@ -454,3 +462,5 @@ Scene.STRUCT = STRUCT.inherit(Scene, DataBlock) + `
 `;
 
 mixin(Scene, DataPathNode);
+
+DataBlock.register(Scene);

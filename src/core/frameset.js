@@ -397,6 +397,14 @@ export class SplineFrameSet extends DataBlock {
   spline           : Spline
   switch_on_select : boolean;
 
+  static blockDefine() {return {
+    typeName : "frameset",
+    defaultName : "Frameset",
+    uiName : "Frameset",
+    typeIndex : 7,
+    linkOrder : 4
+  }}
+
   constructor() {
     super(DataTypes.FRAMESET)
     
@@ -1444,3 +1452,5 @@ SplineFrameSet.STRUCT = STRUCT.inherit(SplineFrameSet, DataBlock) + `
     templayerid       : int;
 }
 `;
+
+DataBlock.register(SplineFrameSet);

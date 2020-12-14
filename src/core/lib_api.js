@@ -16,41 +16,26 @@ import {STRUCT} from './struct.js';
  3. DataNames, that maps datatype integer id's to UI-friendly type names
     (e.g. Object instead of 0 or OBJECT).
  
- _DataTypeRef is what's used to generate all three globals.
- Each of its items is of the form [TYPENAME, id].
+ The blockDefine() static method in each DataBlock child class is used to
+ generate all three globals.
  
- DO NOT EVER EVER CHANGE id;  You can, however,
- change the order of the items to manipulate the 
- order of datablock relinking.
+ DO NOT EVER EVER CHANGE blockDefine().typeIndex;  You can, however,
+ change .linkOrder to manipulate the order of datablock relinking.
  */
- 
-//data types, in post-fileload link order
-//each item is [type, int_id]; DO NOT CHANGE INT_ID
-var _DataTypeDef = [
-//[enum name, type id (integer)]
-  ["IMAGE", 8],
-  ["SCENE", 5],
-  ["SCRIPT", 4],
-  ["SPLINE", 6],
-  ["FRAMESET", 7],
-  ["ADDON", 8],
-  ["OBJECT", 9]
-];
 
-//generate globals DataTypes and LinkOrder
-export var DataTypes = {};
-export var LinkOrder = [];
 
-for (var i=0; i<_DataTypeDef.length; i++) {
-  DataTypes[_DataTypeDef[i][0]] = _DataTypeDef[i][1];
-  LinkOrder.push(_DataTypeDef[i][1]);
-}
+/*
+DataBlock refactor:
+ - Add blockDefine static method
+ - Add register static method
+*/
+
+export const DataTypes = {};
+export const LinkOrder = [];
+
 
 // DataNames maps integer data types to ui-friendly names, e.g. DataNames[0] == "Object"
-export var DataNames = {}
-for (var k in DataTypes) {
-  DataNames[DataTypes[k]] = k.charAt(0) + k.slice(1, k.length).toLowerCase();
-}
+export const DataNames = {}
 
 //other than SELECT, the first two bytes
 //of block.flag are reserved for exclusive
@@ -68,23 +53,23 @@ export class DataRef extends Array {
     super(2);
     this.length = 2;
     
-    if (lib != undefined && lib instanceof DataLib)
+    if (lib !== undefined && lib instanceof DataLib)
       lib = lib.id;
     
     if (block_or_id instanceof DataBlock) {
       var block = block_or_id;
       this[0] = block.lib_id;
       
-      if (lib != undefined)
+      if (lib !== undefined)
         this[1] = lib ? lib.id : -1;
       else
-        this[1] = block.lib_lib != undefined ? block.lib_lib.id : -1;
+        this[1] = block.lib_lib !== undefined ? block.lib_lib.id : -1;
     } else if (block_or_id instanceof Array) {
       this[0] = block_or_id[0];
       this[1] = block_or_id[1];
     } else {
       this[0] = block_or_id;
-      this[1] = lib != undefined ? lib : -1;
+      this[1] = lib !== undefined ? lib : -1;
     }
   }
 
@@ -102,7 +87,7 @@ export class DataRef extends Array {
     }
 
     if (obj instanceof DataRef) {
-      this.copyTo(ret);
+      obj.copyTo(ret);
       return ret;
     }
 
@@ -142,7 +127,7 @@ export class DataRef extends Array {
   equals(b) {
     //XXX we don't compare library id's
     //since lib linking is unimplemented/
-    return b != undefined && b[0] == this[0];
+    return b !== undefined && b[0] === this[0];
   }
   
   static fromSTRUCT(reader : function) {
@@ -382,14 +367,14 @@ export class DataLib {
   }
 
   add(block : DataBlock, set_id : Boolean) {
-    if (set_id == undefined)
+    if (set_id === undefined)
       set_id = true;
     
     //ensure unique name
     var name = this.gen_name(block, block.name);
     block.name = name;
     
-    if (block.lib_id == -1) {
+    if (block.lib_id === -1) {
       block.lib_id = this.idgen.gen_id();
     } else {
       this.idgen.max_cur(block.lib_id);
@@ -457,6 +442,43 @@ export class UserRef {
   }
 }
 
+export const BlockClasses = [];
+export const BlockTypeMap = {}
+
+/*
+ADDON: 8
+FRAMESET: 7
+IMAGE: 8
+OBJECT: 9
+SCENE: 5
+SCRIPT: 4
+SPLINE: 6
+
+[8, 5, 4, 6, 7, 8, 9]
+*/
+
+function regenLinkOrder() {
+  LinkOrder.length = 0;
+
+  for (let i=0; i<BlockClasses.length; i++) {
+    LinkOrder.push(i);
+  }
+
+  LinkOrder.sort((a, b) => {
+    a = BlockClasses[a].blockDefine();
+    b = BlockClasses[b].blockDefine();
+
+    a = a.linkOrder !== undefined ? a.linkOrder : 10000;
+    b = b.linkOrder !== undefined ? b.linkOrder : 10000;
+
+    return a - b;
+  });
+
+  for (let i=0; i<LinkOrder.length; i++) {
+    LinkOrder[i] = BlockClasses[LinkOrder[i]].blockDefine().typeIndex;
+  }
+}
+
 var _db_hash_id = 1;
 export class DataBlock {
   addon_data : Object
@@ -467,6 +489,63 @@ export class DataBlock {
   lib_users : GArray
   lib_refs : number
   flag : number;
+
+  static blockDefine() {
+    return {
+      typeName : "", //entries in DataTypes are upper-case versions of typeName
+      defaultName : "",
+      uiName : "",
+      flag : 0,
+      icon : -1,
+      linkOrder : undefined, //priority in file load linking, defaults to 10000
+      typeIndex : -1, //for compatiblity with old api, must be defined
+    }
+  }
+
+  static register(cls) {
+    if (cls.blockDefine === DataBlock.blockDefine) {
+      throw new Error("Missing blockDefine");
+    }
+
+    let def = cls.blockDefine();
+    if (def.typeIndex === undefined) {
+      throw new Error("typeIndex cannot be undefined in blockDefine");
+    }
+
+    if (typeof def.typeIndex !== "number") {
+      throw new Error("typeIndex must be a number in blockDefine");
+    }
+
+    if (def.typeIndex in BlockTypeMap) {
+      console.warn(BlockTypeMap[def.typeIndex]);
+      throw new Error(""+def.typeIndex + " is already in use");
+    }
+
+    if (!def.typeName) {
+      throw new Error("typeName cannot be undefined in blockDefine");
+    }
+
+    if (!def.uiName) {
+      throw new Error("uiName cannot be undefined in blockDefine");
+    }
+
+    if (!def.defaultName) {
+      throw new Error("defaultName cannot be undefined in blockDefine");
+    }
+
+    //DataTypes2[def.typeName.toUpperCase()] = def.typeIndex;
+    //return;
+
+    let typeid = def.typeName.toUpperCase();
+
+    BlockClasses.push(cls);
+    BlockTypeMap[def.typeIndex] = cls;
+    DataTypes[typeid] = def.typeIndex;
+
+    DataNames[DataTypes[typeid]] = typeid.charAt(0).toUpperCase() + typeid.slice(1, typeid.length).toLowerCase();
+
+    regenLinkOrder();
+  }
 
   //type is an integer, name is a string
   constructor(type : number, name : string) {
@@ -584,14 +663,14 @@ export class DataBlock {
     var users = this.lib_users;
     
     for (var i=0; i<users.length; i++) {
-      if (users[i].rem_func != undefined) {
+      if (users[i].rem_func !== undefined) {
         users[i].rem_func(users[i].user, this);
       }
       
-      this.user_rem(users[i]);
+      this.lib_remuser(users[i]);
     }
     
-    if (this.lib_refs != 0) {
+    if (this.lib_refs !== 0) {
       console.log("Ref count error when deleting a datablock!", this.lib_refs,  this);
     }
   }

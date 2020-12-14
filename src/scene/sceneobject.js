@@ -33,6 +33,14 @@ export class SceneObject extends DataBlock {
     this.aabb = [new Vector2(), new Vector2()];
   }
 
+  static blockDefine() {return {
+    typeName : "object",
+    defaultName : "Object",
+    uiName : "Object",
+    typeIndex : 9,
+    linkOrder : 6
+  }}
+
   recalcAABB() {
     throw new Error("implement me!");
   }
@@ -66,3 +74,5 @@ SceneObject.STRUCT = STRUCT.inherit(SceneObject, DataBlock) + `
   id       : int;
 }
 `;
+
+DataBlock.register(SceneObject);

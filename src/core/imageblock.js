@@ -24,7 +24,15 @@ export class Image extends DataBlock {
     
     this._dom = undefined;
   }
-  
+
+  static blockDefine() {return {
+    typeName : "image",
+    defaultName : "Image",
+    uiName : "Image",
+    typeIndex : 8,
+    linkOrder : 0
+  }}
+
   get_dom_image() {
     if (this._dom == undefined) {
       var img = document.createElement("img");
@@ -78,6 +86,7 @@ Image.STRUCT = STRUCT.inherit(Image, DataBlock) + `
   data  : arraybuffer | this._get_data();
 }
 `;
+DataBlock.register(Image);
 
 export class ImageUser {
   off : Vector2
@@ -91,7 +100,7 @@ export class ImageUser {
     this.flag = 0;
   }
   
-  data_link(DataBlock block, Function getblock, Function getblock_us) {
+  data_link(block : DataBlock, getblock : Function, getblock_us : Function) {
     this.image = getblock(this.image); //XXX should use getblock_us?
   }
   

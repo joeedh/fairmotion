@@ -153,7 +153,7 @@ export class MenuBar extends Editor {
   }
 
   buildEditMenu() {
-    console.log("rebuilding edit menu");
+    console.warn("rebuilding edit menu");
 
     this.editMenuDef.length = 0;
 
@@ -173,6 +173,10 @@ export class MenuBar extends Editor {
 
     for (let item of ret) {
       this.editMenuDef.push(item);
+    }
+
+    if (window.haveElectron) {
+      electron_api.initMenuBar(this, true);
     }
   }
 

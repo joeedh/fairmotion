@@ -472,6 +472,7 @@ def p_statement(p):
                 | import_decl
                 | export_decl
                 | bracketed_statementlist
+                | dynamic_import
   '''
   set_parse_globals(p)
   
@@ -482,6 +483,13 @@ def p_statement(p):
       p[0] = p[1]
   else:
     p[0] = p[1];
+
+def p_dynamic_import(p):
+  '''
+  dynamic_import : IMPORT LPAREN expr RPAREN
+  '''
+  p[0] = FuncCallNode(IdentNode("import"))
+  p[0].add(p[3])
 
 def p_import_decl(p):
   '''import_decl : IMPORT import_clause from_clause SEMI
@@ -2545,6 +2553,7 @@ def p_expr(p):
             | exprfunction
             | exprclass
             | obj_literal
+            | dynamic_import
             | expr cmplx_assign expr
             | expr cmplx_assign expr COLON var_type SEMI
             | expr RSHIFT expr
@@ -2632,7 +2641,7 @@ def p_expr(p):
         p[0] = TypeRefNode(p[1])
         p[0].template = p[2]
     elif len(p) == 2:
-      if type(p[1]) in [RegExprNode, StrLitNode, TypeofNode, 
+      if type(p[1]) in [RegExprNode, FuncCallNode, StrLitNode, TypeofNode,
                         BitInvNode, LogicalNotNode, NegateNode, PositiveNode,
                         ArrayLitNode, ObjLitNode, FunctionNode, 
                         KeywordNew, PreInc, PostInc, PreDec, PostDec,
@@ -2656,6 +2665,7 @@ def p_expr_no_list(p):
             | array_literal
             | exprfunction
             | exprclass
+            | dynamic_import
             | expr_no_list cmplx_assign expr_no_list
             | expr_no_list RSHIFT expr_no_list
             | expr_no_list LSHIFT expr_no_list
@@ -2735,7 +2745,7 @@ def p_expr_no_list(p):
         p[0] = TypeRefNode(p[1])
         p[0].template = p[2]
     elif len(p) == 2:
-      if type(p[1]) in [RegExprNode, StrLitNode, TypeofNode, 
+      if type(p[1]) in [RegExprNode, FuncCallNode, StrLitNode, TypeofNode,
                         BitInvNode, LogicalNotNode, NegateNode, PositiveNode, 
                         ArrayLitNode, ObjLitNode, FunctionNode, 
                         KeywordNew, PreInc, PostInc, PreDec, PostDec,

@@ -64,7 +64,7 @@ def module_transform(node, typespace):
     n.parent.insert(pi, n2)
 
   def get_module_ident(name):
-    return name.replace(".", "_").replace("/", "_").replace(" ", "")
+    return name.replace(".", "_").replace("-", "_").replace("/", "_").replace(" ", "")
 
   def exportfromvisit(n):
     name = get_module_ident(n.name.val)

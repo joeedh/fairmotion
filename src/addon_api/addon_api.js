@@ -1,12 +1,12 @@
 "use strict";
 
-import {tokdef, token, lexer, parser} from '../path.ux/scripts/util/parseutil.js';
+import {tokdef, token, lexer, parser} from '../util/parseutil.js';
 import {app} from '../../platforms/platform.js';
 
 import * as vectormath from '../util/vectormath.js';
 import * as math from '../path.ux/scripts/util/math.js';
 import * as util from '../path.ux/scripts/util/util.js';
-import * as parseutil from '../path.ux/scripts/util/parseutil.js';
+import * as parseutil from '../util/parseutil.js';
 import * as pathux from '../path.ux/scripts/pathux.js';
 import {bindAddonAPI} from './addon_api_intern.js';
 

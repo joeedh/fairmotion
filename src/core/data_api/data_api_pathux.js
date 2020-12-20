@@ -1,4 +1,4 @@
-import {ModelInterface, DataPathError} from '../../path.ux/scripts/controller/controller.js';
+import {ModelInterface, DataPathError} from '../../path.ux/scripts/path-controller/controller.js';
 
 import {ToolOpAbstract, ToolOp, ToolMacro} from '../toolops_api.js';
 import {ToolProperty, PropTypes} from '../toolprops.js';

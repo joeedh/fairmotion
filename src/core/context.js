@@ -1,4 +1,4 @@
-import {ContextOverlay, Context} from "../path.ux/scripts/controller/context.js";
+import {ContextOverlay, Context} from "../path.ux/scripts/path-controller/controller/context.js";
 
 export class BaseContextOverlay extends ContextOverlay {
   constructor(state=g_app_state) {

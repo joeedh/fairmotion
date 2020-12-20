@@ -345,7 +345,7 @@ function _load_module_cyclic(mod, visitmap, modstack) {
       _load_module_cyclic(mod, visitmap, modstack);
     }
 
-    return mod.default_export !== undefined ? mod.default_export : mod.exports;
+    return mod.exports; //mod.default_export !== undefined ? mod.default_export : mod.exports;
   }
 
   window.es6_import_item = function es6_import_item(_es6_module, modname, name) {

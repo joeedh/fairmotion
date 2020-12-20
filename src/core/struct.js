@@ -1,5 +1,5 @@
 import {nstructjs} from "../path.ux/scripts/pathux.js";
-import * as PUTL from "../path.ux/scripts/util/parseutil.js";
+import * as PUTL from "../util/parseutil.js";
 
 import {Matrix4, Vector2, Vector3, Vector4, Quat} from "../path.ux/scripts/pathux.js";
 
@@ -13,7 +13,7 @@ export function profile_report() {}
 *
 * */
 window.STRUCT_ENDIAN = false;
-nstructjs.binpack.STRUCT_ENDIAN = false;
+nstructjs.setEndian(false);
 
 export class arraybufferCompat extends Array {
   constructor() {
@@ -39,7 +39,7 @@ arraybufferCompat.STRUCT = `arraybuffer {
 nstructjs.register(arraybufferCompat);
 
 nstructjs.setDebugMode(false);
-nstructjs.setWarningMode(1); //turn off "class uses old fromSTRUCT interface" warnings
+//nstructjs.setWarningMode(1); //turn off "class uses old fromSTRUCT interface" warnings
 
 window.istruct = nstructjs.manager;
 

@@ -9,7 +9,7 @@ export {
   StringProperty, StringSetProperty, Vec2Property, Vec3Property, Vec4Property,
   Mat4Property, IntProperty, FloatProperty, BoolProperty, FlagProperty, EnumProperty,
   ListProperty, PropClasses, ToolProperty
-} from '../path.ux/scripts/toolsys/toolprop.js';
+} from '../path.ux/scripts/path-controller/toolsys/toolprop.js';
 
 export var PropTypes = {
   INT         : 1,

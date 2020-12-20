@@ -6,3 +6,4 @@ import './material/MaterialEditor.js';
 import './curve/CurveEditor.js';
 import './menubar/MenuBar.js';
 import './settings/SettingsEditor.js';
+import './manual/manual.js';

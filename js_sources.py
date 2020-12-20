@@ -145,6 +145,7 @@ sources = [
   "src/scene/sceneobject.js",
 
   "src/editors/velpan.js",
+  "src/editors/manual/manual.js",
   "src/editors/nodegraph/nodegraph.js",
   "src/editors/nodegraph/nodegraph_base.js",
   "src/editors/nodegraph/nodegraph_ops.js",

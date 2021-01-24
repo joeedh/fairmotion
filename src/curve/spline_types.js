@@ -1958,21 +1958,16 @@ export class Material {
     reader(this);
 
     this.fillcolor = new Vector4(this.fillcolor);
+
     if (isNaN(this.fillcolor[3])) {
       this.fillcolor[3] = 1.0;
     }
 
     this.strokecolor = new Vector4(this.strokecolor);
+
     if (isNaN(this.strokecolor[3])) {
       this.strokecolor[3] = 1.0;
     }
-  }
-  static fromSTRUCT(reader) {
-    var ret = new Material();
-    
-    reader(ret);
-    
-    return ret;
   }
 }
 

@@ -317,7 +317,7 @@ export class SVGPath extends QuadBezPath {
         });
         
         var blur = makeElement("feGaussianBlur", {
-          stdDeviation : ~~(this.blur*draw.zoom*0.5),
+          stdDeviation : ~~(this.blur*draw.zoom*0.25),
           "in" : "SourceGraphic"
         });
         

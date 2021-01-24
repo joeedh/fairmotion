@@ -731,8 +731,9 @@ function solve_intern(spline, order=ORDER, goal_order=ORDER, steps=65, gk=1.0, d
 }
 
 export function solve_pre(spline) {
-  spline.propagate_update_flags();
-  spline.propagate_update_flags();
+  for (let i=0; i<3; i++) {
+    spline.propagate_update_flags();
+  }
 
   for (let seg of spline.segments) {
     seg.updateCoincident();

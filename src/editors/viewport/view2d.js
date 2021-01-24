@@ -300,12 +300,26 @@ export class View2DHandler extends Editor {
     this.addEventListener("mousemove", this.on_mousemove.bind(this));
     this.addEventListener("mouseup", this.on_mouseup.bind(this));
 
+    this.addEventListener("mousewheel", this.on_mousewheel.bind(this));
+
     this._i = 0;
 
     //this.shadow.appendChild();
     this.regen_keymap();
   }
 
+  on_mousewheel(e) {
+    let dt = -e.deltaY;
+
+    let eps = 0.05;
+    dt = Math.min(Math.max(dt*0.05, -eps), eps);
+
+    let scale = 1.0 + dt;
+    this.set_zoom(this.zoom * scale);
+    window.redraw_viewport();
+
+    console.log(scale, this.zoom);
+  }
   _mouse(e : MouseEvent) {
     let e2 = patchMouseEvent(e, this); //this.get_bg_canvas());
     let mpos = this.getLocalMouse(e.x, e.y);
@@ -815,11 +829,6 @@ export class View2DHandler extends Editor {
     strip.tool("spline.stroke()");
   }
 
-  set_zoom(zoom) {
-    this.zoom = zoom;
-    window.redraw_viewport();
-  }
-
   static define() { return {
     tagname : "view2d-editor-x",
     areaname : "view2d_editor",
@@ -1264,10 +1273,6 @@ export class View2DHandler extends Editor {
 
   change_zoom(delta) {
 
-  }
-
-  on_mousewheel(event : MouseEvent, delta : float) {
-    this.change_zoom(delta)
   }
 
   updateDPI() {

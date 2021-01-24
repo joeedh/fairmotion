@@ -63,7 +63,9 @@ export class QuadBezPath {
     this.blur = 0;
     this.size = [-1, -1];
     this.index = -1;
-    
+
+    this.matrix = new Matrix4();
+
     this.color = new Vector4();
     this.aabb = [new Vector2(), new Vector2()];
     

@@ -34,10 +34,12 @@ export function calc_string_ids(spline : Spline, startid=0) {
   }
 }
 
+const _sort_layer_segments_lists = new cachering(function() {
+  return [];
+}, 2);
+
 export function sort_layer_segments(layer, spline) {
-  static lists = new cachering(function() {
-    return [];
-  }, 2);
+  const lists = _sort_layer_segments_lists;
   
   var list = lists.next();
   list.length = 0;
@@ -57,7 +59,7 @@ export function sort_layer_segments(layer, spline) {
     
     for (var i=0; i<2; i++) {
       var v = i ? seg.v2 : seg.v1;
-      if (v.segments.length != 2)
+      if (v.segments.length !== 2)
         continue;
       
       for (var j=0; j<v.segments.length; j++) {
@@ -198,8 +200,8 @@ export function redo_draw_sort(spline : Spline) {
     min_z = Math.min(min_z, s.z);
   }
   
-  //check_face is optional, defaults to false
-  function calc_z(e, check_face) {
+  //check_face is optional, defaults to true
+  function calc_z(e, check_face=true) {
     if (isNaN(e.z)) {
       e.z = 0;
     }
@@ -209,14 +211,14 @@ export function redo_draw_sort(spline : Spline) {
     if (check_face && e.type === SplineTypes.SEGMENT && e.l !== undefined) {
       let l = e.l;
       let _i = 0;
-      let f_max_z = calc_z(e, true);
-      
+      let f_max_z = calc_z(e, false);
+
       do {
         if (_i++ > 1000) {
           console.trace("infinite loop!");
           break;
         }
-        
+
         var fz = calc_z(l.f);
         f_max_z = f_max_z === undefined ? fz : Math.max(f_max_z, fz)
         

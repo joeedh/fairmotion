@@ -469,13 +469,13 @@ function api_define_material() {
   fillclr.subtype = strokeclr.subtype = PropSubTypes.COLOR;
   
   var linewidth = new FloatProperty(1, "linewidth", "linewidth", "Line Width");
-  linewidth.range = [0.1, 200];
+  linewidth.range = [0.1, 2500];
   linewidth.expRate = 1.75;
   //linewidth.baseUnit = linewidth.displayUnit = "none";
   linewidth.step = 0.25;
 
   var linewidth2 = new FloatProperty(1, "linewidth2", "linewidth2", "Double Stroke Width");
-  linewidth2.range = [0.0, 200];
+  linewidth2.range = [0.0, 2500];
   linewidth2.expRate = 1.75;
   //linewidth2.baseUnit = linewidth2.displayUnit = "none";
   linewidth2.step = 0.25;

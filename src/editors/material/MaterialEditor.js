@@ -459,10 +459,15 @@ export class MaterialEditor extends Editor {
     panel2.prop("spline.active_segment.mat.linewidth2", undefined,
       set_prefix + ".mat.linewidth2");
 
-    panel.prop("spline.active_segment.w1", undefined, set_prefix + ".w1");
-    panel.prop("spline.active_segment.w2", undefined, set_prefix + ".w2");
-    panel.prop("spline.active_segment.shift1", undefined, set_prefix + ".shift1");
-    panel.prop("spline.active_segment.shift2", undefined, set_prefix + ".shift2");
+    panel2 = panel.panel("Vertex Width");
+    panel2.prop("spline.active_vertex.width", undefined, set_prefix+".width");
+    panel2.prop("spline.active_vertex.shift", undefined, set_prefix+".shift");
+
+    panel2 = panel.panel("Segment Width");
+    panel2.prop("spline.active_segment.w1", undefined, set_prefix + ".w1");
+    panel2.prop("spline.active_segment.w2", undefined, set_prefix + ".w2");
+    panel2.prop("spline.active_segment.shift1", undefined, set_prefix + ".shift1");
+    panel2.prop("spline.active_segment.shift2", undefined, set_prefix + ".shift2");
 
     return panel
   }

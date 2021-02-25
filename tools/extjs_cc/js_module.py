@@ -248,6 +248,21 @@ def module_transform(node, typespace):
     node.add(g)
     
   node.add(node2)
-  
+
+  def dynvisit(n):
+    if n[0].gen_js(0).strip() == "import":
+        n.replace(n[0], IdentNode("_es_dynamic_import"))
+
+        param = IdentNode("_es6_module")
+        if type(n[1]) != ExprListNode:
+            n2 = ExprListNode([n[1]])
+            n.replace(n[1], n2)
+
+        n[1].insert(0, param)
+        print(str(n))
+
+
+  traverse(node, FuncCallNode, dynvisit)
+
   
   

@@ -33,7 +33,7 @@ def configure():
   util.doprint("Creating electron skeleton")
   sys.stdout.flush()
 
-  util.copy_tinymce("./dist/electron/fcontent/tinymce")
+  util.copy_tinymce("./dist/electron/fcontent")
 
   if not os.path.exists(basedir):
     os.makedirs(basedir)
@@ -74,6 +74,8 @@ def build():
     
   print("  copying files")
 
+  util.copy_tinymce("./dist/electron/fcontent")
+
   util.deepcopy("addons", basedir+"/addons")
 
   for f in os.listdir("./platforms/Electron"):
@@ -94,6 +96,8 @@ def build():
   copy("./src/vectordraw/vectordraw_canvas2d_worker.js", basedir+"/vectordraw_canvas2d_worker.js");
   copy("./src/vectordraw/vectordraw_skia_worker.js", basedir+"/vectordraw_skia_worker.js");
   copy("./src/path.ux/scripts/platforms/electron/icogen.js", basedir+"/icogen.js");
+
+  util.copy_dynamic_modules('./dist/electron/fcontent')
 
   #copy("./build/iconsheet.png", "./electron_build/fcontent/iconsheet.png");
   #copy("./build/iconsheet16.png", "./electron_build/fcontent/iconsheet16.png");

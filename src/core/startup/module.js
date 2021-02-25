@@ -145,7 +145,7 @@ function _es6_get_basename(path) {
   return name;
 }
 
-function es6_get_module_meta(path, compatibility_mode=false) {
+function es6_get_module_meta(path, compatibility_mode=false, autoAdd=true) {
   path = path.replace(/\\/g, "/");
   
   //extjs originally just looked up modules by their
@@ -196,7 +196,7 @@ function es6_get_module_meta(path, compatibility_mode=false) {
   path = _normpath(path, _es6_get_basepath());
   path = _normpath1(path);
   
-  if (!(path in _defined_modules)) {
+  if (autoAdd && !(path in _defined_modules)) {
     let name = _es6_get_basename(path);
     
     let mod = new ES6Module(name, path);
@@ -319,6 +319,35 @@ function sort_modules() {
   //throw new Error();
   
   return sortlist;
+}
+
+function _es_dynamic_import(_es6_module, path) {
+  let mod = es6_get_module_meta(path, undefined, false);
+
+  if (mod) {
+    return new Promise((accept, reject) => {
+      accept(mod.exports);
+    });
+  } else {
+    //_es6_push_basepath(mod.path);
+    console.log("PATH", path, "BASEPATH", _rootpath_src);
+    path = _normpath(path, _es6_get_basepath());
+
+    while (path.length > 0 && path[0] === "/" || path[0] === "\\") {
+      path = path.slice(1, path.length).trim();
+    }
+
+    console.log(path, _rootpath_src);
+    path = path.slice(_rootpath_src.length, path.length);
+    while (path.startsWith("/") || path.startsWith("\\")) {
+      path = path.slice(1, path.length).trim();
+    }
+    path = "./" + path
+    console.log(path);
+
+    //_es6_pop_basepath(mod.path);
+    return import(path);
+  }
 }
 
 function _load_module_cyclic(mod, visitmap, modstack) {

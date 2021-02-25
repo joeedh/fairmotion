@@ -1,5 +1,17 @@
 import sys, os, os.path
 
+def load_js_sources():
+    path = os.path.abspath(".")
+    print(path)
+
+    sys.path.insert(0, path)
+
+    import js_sources
+    return js_sources
+    sys.exit(-1)
+
+js_sources = load_js_sources()
+
 def deepcopy(src, dst):
   base = os.path.abspath(src)
   #print(base)
@@ -29,11 +41,44 @@ def deepcopy(src, dst):
         file.write(buf)
         file.close()
 
+def copy_dynamic_modules(dest):
+    mods = js_sources.dynamic_modules
+
+    for destpath in mods:
+        srcpath = mods[destpath]
+
+        path = os.path.normpath(os.path.abspath(os.path.join(os.getcwd(), srcpath)))
+
+        f = os.path.join(path, destpath)
+        base = os.path.join(dest, os.path.split(destpath)[0])
+
+        if not os.path.exists(base):
+            os.makedirs(base)
+
+        file = open(path, "rb")
+        buf = file.read();
+        file.close();
+
+        f = os.path.split(destpath)[1]
+        f = os.path.join(base, f)
+        f = os.path.normpath(os.path.abspath(f))
+
+        print("PATH", f)
+        print("BASE", base)
+
+        file = open(f, "wb")
+        file.write(buf)
+        file.close()
+
+
+
 def copy_tinymce(dest):
     path = os.path.normpath(os.path.abspath(os.path.join(os.getcwd(), "src/path.ux/scripts/lib/tinymce")))
 
-    if not dest.endswith("/"):
+    if not dest.endswith("/") and not dest.endswith("\\"):
         dest += "/"
+
+    dest += "path.ux/scripts/lib/tinymce/"
 
     for root, dirs, files in os.walk("./src/path.ux/scripts/lib/tinymce"):
         for f in files:

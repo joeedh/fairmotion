@@ -16,6 +16,7 @@
       <excludeFolder url="file://$MODULE_DIR$/temp" />
       <excludeFolder url="file://$MODULE_DIR$/tmp" />
       <excludeFolder url="file://$MODULE_DIR$/tsrc/platforms" />
+      <excludeFolder url="file://$MODULE_DIR$/src/path.ux/docs/class/scripts/platforms" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

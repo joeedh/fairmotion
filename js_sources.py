@@ -32,6 +32,11 @@ for path in glob.glob("src/path.ux/scripts/**", recursive=True):
 
 tools = list(glob.glob("src/editors/viewport/toolmodes/*.js"))
 
+dynamic_modules = {
+  "electron/electron_api.js" : "src/path.ux/scripts/platforms/electron/electron_api.js",
+  "docbrowser/docbrowser.js" : "src/path.ux/scripts/docbrowser/docbrowser.js"
+}
+
 sources = [
   "src/html/unit_test.html",
   "src/html/main.html",
@@ -265,7 +270,7 @@ copy_targets = {
    "jasmine-html.js" : "tools/utils/libs/jasmine/lib/jasmine-html.js",
    "jasmine-console.js"      : "tools/utils/libs/jasmine/lib/console.js",
    "jasmine_boot.js"         : "src/unit_tests/jasmine_boot.js",
-   "tinymce.js"              : "src/path.ux/scripts/lib/tinymce/tinymce.js"
+   "tinymce.js"              : "src/path.ux/scripts/lib/tinymce/tinymce.js",
 }
 
 optional_copy_targets = {

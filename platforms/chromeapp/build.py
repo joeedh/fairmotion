@@ -11,11 +11,12 @@ basepath = "./dist/chromeapp"
 srcpath = "./platforms/chromeapp/app"
 
 def configure():
-    util.copy_tinymce(basepath + "/fcontent/tinymce")
+    util.copy_tinymce(basepath + "/fcontent")
 
 def build():
   util.doprint("Building chrome app. . .")
   
+  util.copy_tinymce(basepath + "/fcontent")
 
   zf = zipfile.ZipFile("dist/chromeapp.zip", "w")
 
@@ -54,6 +55,7 @@ def build():
   for f in os.listdir("./build"):
     if not f.startswith("chrome") and f.endswith(".js"):
       continue
+
     if f.startswith("_"): continue
     if f == "addons": continue
 

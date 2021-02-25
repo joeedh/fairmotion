@@ -31,7 +31,7 @@ def copy(src, dst):
 
 def configure():
   os.makedirs("./dist/html5app", True);
-  
+
   util.doprint("Setting up dist/html5app")
   util.copy_tinymce(basepath + "/fcontent/tinymce")
   
@@ -48,6 +48,9 @@ def build():
   util.doprint("Building html5 app. . .")
 
   zf = zipfile.ZipFile("dist/html5app.zip", "w")
+
+  util.copy_tinymce(basepath + "/fcontent")
+  util.copy_dynamic_modules(basepath + "/fcontent")
 
   if not os.path.exists(basepath + "/fcontent/"):
     os.makedirs(basepath + "/fcontent/")

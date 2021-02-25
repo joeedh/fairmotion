@@ -1,27 +1,26 @@
-import {CSSFont} from "../path.ux/scripts/core/ui_theme.js";
-import * as util from '../path.ux/scripts/util/util.js';
+/*
+ * WARNING: AUTO-GENERATED FILE
+ *
+ * Copy to scripts/editors/theme.js
+ */
+
+import {CSSFont} from '../path.ux/scripts/pathux.js';
+
 
 export const theme = {
   base:  {
     AreaHeaderBG            : 'rgba(65, 65, 65, 1.0)',
     BasePackFlag            : 0,
-    BoxBG                   : 'rgba(100,100,100, 0.558404961947737)',
-    BoxBorder               : 'rgba(196,196,196, 1)',
     BoxDepressed            : 'rgba(43,32,27, 0.7410558240167026)',
     BoxDrawMargin           : 2,
     BoxHighlight            : 'rgba(125, 195, 225, 1.0)',
-    BoxMargin               : 4,
-    BoxRadius               : 12,
-    BoxSub2BG               : 'rgba(55, 55, 55, 1.0)',
-    BoxSubBG                : 'rgba(75, 75, 75, 1.0)',
-    DefaultPanelBG          : 'rgba(75, 75, 75, 1.0)',
     DefaultText             : new CSSFont({
       font    : 'sans-serif',
       weight  : 'normal',
       variant : 'normal',
       style   : 'normal',
       size    : 10,
-      color   : 'rgba(215, 215, 215, 1.0)'
+      color   : 'rgba(235,235,235, 1)'
     }),
     Disabled                : {
       AreaHeaderBG : 'rgb(72, 72, 72)',
@@ -43,7 +42,6 @@ export const theme = {
       size    : 12,
       color   : 'rgba(230, 230, 230, 1.0)'
     }),
-    InnerPanelBG            : 'rgba(85, 85, 85, 1.0)',
     LabelText               : new CSSFont({
       font    : 'sans-serif',
       weight  : 'normal',
@@ -83,41 +81,55 @@ export const theme = {
       size    : 12,
       color   : 'rgba(35, 35, 35, 1.0)'
     }),
-    defaultHeight           : 24,
-    defaultWidth            : 24,
+    background              : 'rgba(111,111,111, 1)',
+    'background-color'      : 'rgba(55, 55, 55, 1.0)',
+    'border-color'          : 'rgba(196,196,196, 1)',
+    'border-radius'         : 12,
+    'focus-border-width'    : 2,
+    height                  : 24,
     mobileSizeMultiplier    : 2,
     mobileTextSizeMultiplier: 1.5,
-    numslider_height        : 20,
-    numslider_width         : 20,
     oneAxisMargin           : 6,
     oneAxisPadding          : 6,
+    padding                 : 4,
     themeVersion            : 0.1,
+    width                   : 24,
   },
 
   button:  {
-    BoxMargin    : 7.491595625232676,
-    defaultHeight: 24,
-    defaultWidth : 100,
+    'background-color': 'rgba(111,111,111, 1)',
+    'border-color'    : 'black',
+    'border-radius'   : 7,
+    'border-style'    : 'solid',
+    'border-width'    : 1,
+    height            : 20,
+    margin            : 1,
+    padding           : 1,
+    width             : 55,
   },
 
   checkbox:  {
-    BoxMargin: 2,
     CheckSide: 'left',
+    height   : 32,
+    padding  : 2,
+    width    : 32,
   },
 
   colorfield:  {
     circleSize    : 4,
     colorBoxHeight: 24,
-    defaultHeight : 200,
-    defaultWidth  : 200,
+    fieldSize     : 400,
     fieldsize     : 32,
+    height        : 200,
+    hueHeight     : 32,
     hueheight     : 24,
+    width         : 200,
   },
 
   colorpickerbutton:  {
-    defaultFont  : 'LabelText',
-    defaultHeight: 25,
-    defaultWidth : 100,
+    defaultFont: 'LabelText',
+    height     : 25,
+    width      : 100,
   },
 
   console:  {
@@ -162,40 +174,63 @@ export const theme = {
     keySelect      : 'rgba(83,109,255, 1)',
     lineMajor      : 'rgba(255, 255, 255, 0.5)',
     lineMinor      : 'rgba(50, 50, 50, 1.0)',
-    timeLine       : "rgba(50, 150, 255, 0.75)",
     lineWidth      : 1,
     textShadowColor: 'rgba(131,77,56, 1)',
     textShadowSize : 5.048919110763356,
+    timeLine       : 'rgba(50, 150, 255, 0.75)',
     treeHeight     : 600,
     treeWidth      : 100,
   },
 
-
   dropbox:  {
-    BoxHighlight : 'rgba(155, 220, 255, 0.4)',
-    defaultHeight: 19.508909279310238,
-    dropTextBG   : 'rgba(38,22,15, 0)',
+    BoxHighlight: 'rgba(155, 220, 255, 0.4)',
+    dropTextBG  : 'rgba(38,22,15, 0)',
+    height      : 19.508909279310238,
+    width       : 32,
   },
 
   iconbutton:  {
+    'background-color': 'rgba(118,118,118, 0.4461)',
+    'border-color'    : 'black',
+    'border-radius'   : 5,
+    'border-width'    : 1,
+    height            : 32,
+    'margin-bottom'   : 2,
+    'margin-left'     : 2,
+    'margin-right'    : 2,
+    'margin-top'      : 1,
+    padding           : 2,
+    width             : 32,
   },
 
   iconcheck:  {
+    'background-color': 'rgba(76,76,76, 0.4461202687230603)',
+    'border-color'    : 'rgba(0,0,0, 1)',
+    'border-radius'   : 5,
+    'border-width'    : 1,
+    drawCheck         : true,
+    height            : 32,
+    'margin-bottom'   : 2,
+    'margin-left'     : 1,
+    'margin-right'    : 2,
+    'margin-top'      : 2,
+    padding           : 2,
+    width             : 32,
   },
 
   listbox:  {
-    DefaultPanelBG: 'rgba(81,81,81, 1)',
-    ListActive    : 'rgba(49,39,35, 1)',
-    ListHighlight : 'rgba(55,112,226, 0.3637933139143319)',
-    height        : 200,
-    width         : 110,
+    ListActive        : 'rgba(49,39,35, 1)',
+    ListHighlight     : 'rgba(55,112,226, 0.3637933139143319)',
+    'background-color': 'rgba(81,81,81, 1)',
+    height            : 200,
+    width             : 110,
   },
 
   menu:  {
-    MenuBG       : 'rgba(40,40,40, 1)',
-    MenuBorder   : '1px solid grey',
-    MenuHighlight: 'rgba(171,171,171, 0.28922413793103446)',
-    MenuSeparator: `
+    MenuBG         : 'rgba(40,40,40, 1)',
+    MenuBorder     : '1px solid grey',
+    MenuHighlight  : 'rgba(171,171,171, 0.28922413793103446)',
+    MenuSeparator  : `
       width : 100%;
       height : 2px;
       padding : 0px;
@@ -203,8 +238,8 @@ export const theme = {
       border : none;
       background-color : grey;
     `,
-    MenuSpacing  : 0,
-    MenuText     : new CSSFont({
+    MenuSpacing    : 0,
+    MenuText       : new CSSFont({
       font    : 'sans-serif',
       weight  : 'normal',
       variant : 'normal',
@@ -212,10 +247,14 @@ export const theme = {
       size    : 12,
       color   : 'rgba(238,238,238, 1)'
     }),
+    'border-color' : 'grey',
+    'border-radius': 0,
+    'border-style' : 'solid',
+    'border-width' : 1,
   },
 
   numslider:  {
-    DefaultText  : new CSSFont({
+    DefaultText       : new CSSFont({
       font    : 'sans-serif',
       weight  : 'normal',
       variant : 'normal',
@@ -223,19 +262,17 @@ export const theme = {
       size    : 12,
       color   : 'white'
     }),
-    defaultHeight: 22.76656831702612,
-    defaultWidth : 100,
+    'background-color': 'rgba(65,65,65, 1)',
+    'border-color'    : 'black',
+    'border-radius'   : 1,
+    height            : 22.76656831702612,
+    width             : 100,
   },
 
   numslider_simple:  {
-    BoxBG        : 'rgb(225, 225, 225)',
-    BoxBorder    : 'rgb(75, 75, 75)',
-    BoxRadius    : 5,
-    DefaultHeight: 18,
-    DefaultWidth : 135,
-    SlideHeight  : 10,
-    TextBoxWidth : 45,
-    TitleText    : new CSSFont({
+    SlideHeight       : 10,
+    TextBoxWidth      : 45,
+    TitleText         : new CSSFont({
       font    : undefined,
       weight  : 'normal',
       variant : 'normal',
@@ -243,19 +280,50 @@ export const theme = {
       size    : 14,
       color   : undefined
     }),
-    labelOnTop   : false,
+    background        : 'rgb(225, 225, 225)',
+    'background-color': 'rgba(102,102,102, 1)',
+    'border-color'    : 'rgb(75, 75, 75)',
+    'border-radius'   : 5,
+    height            : 18,
+    labelOnTop        : false,
+    width             : 135,
+  },
+
+  numslider_textbox:  {
+    TextBoxHeight     : 25,
+    TextBoxWidth      : 100,
+    'background-color': 'rgba(65,65,65, 1)',
+    height            : 25,
+    labelOnTop        : true,
+    width             : 120,
   },
 
   panel:  {
-    Background      : 'rgba(38,22,15, 0.2642241905475485)',
-    BoxBorder       : 'rgba(91,91,91, 1)',
-    BoxLineWidth    : 0.9585563201850567,
-    BoxRadius       : 5,
-    TitleBackground : 'rgba(126,178,237, 0.309051618904903)',
-    TitleBorder     : 'rgba(136,136,136, 1)',
-    'border-style'  : 'inset',
-    'padding-bottom': undefined,
-    'padding-top'   : undefined,
+    HeaderBorderRadius    : 5.829650280441558,
+    HeaderRadius          : 5.829650280441558,
+    TitleBackground       : 'rgba(126,178,237, 0.309051618904903)',
+    TitleBorder           : 'rgba(136,136,136, 1)',
+    TitleText             : new CSSFont({
+      font    : 'sans-serif',
+      weight  : 'normal',
+      variant : 'normal',
+      style   : 'normal',
+      size    : 14,
+      color   : 'rgba(229,229,229, 1)'
+    }),
+    'background-color'    : 'rgba(38,22,15, 0.2642241905475485)',
+    'border-color'        : 'rgba(91,91,91, 1)',
+    'border-radius'       : 5,
+    'border-style'        : 'inset',
+    'border-width'        : 0.9585563201850567,
+    'margin-bottom'       : 15.762442435166511,
+    'margin-bottom-closed': 0,
+    'margin-top'          : 0.2606556353343805,
+    'margin-top-closed'   : 0,
+    'padding-bottom'      : undefined,
+    'padding-left'        : 0,
+    'padding-right'       : 0,
+    'padding-top'         : undefined,
   },
 
   richtext:  {
@@ -270,6 +338,13 @@ export const theme = {
     'background-color': undefined,
   },
 
+  screenborder:  {
+    'border-inner'   : 'grey',
+    'border-outer'   : 'rgba(228,228,228, 1)',
+    'border-width'   : 2,
+    'mouse-threshold': 5,
+  },
+
   scrollbars:  {
     border  : 'rgba(125,125,125, 1)',
     color   : 'rgba(56,56,56, 1)',
@@ -278,34 +353,78 @@ export const theme = {
     width   : 15,
   },
 
+  sidebar:  {
+    'background-color': 'rgba(55, 55, 55, 0.5)',
+  },
+
+  strip:  {
+    'background-color': 'rgba(75,75,75, 0.33213141025641024)',
+    'border-color'    : 'rgba(0,0,0, 0.31325409987877156)',
+    'border-radius'   : 8.76503417507447,
+    'border-style'    : 'solid',
+    'border-width'    : 1,
+    margin            : 2,
+    oneAxisPadding    : 2,
+    padding           : 1,
+  },
 
   tabs:  {
-    TabHighlight   : 'rgba(50, 50, 50, 0.2)',
-    TabInactive    : 'rgba(130, 130, 150, 1.0)',
-    TabStrokeStyle1: 'rgba(200, 200, 200, 1.0)',
-    TabStrokeStyle2: 'rgba(255, 255, 255, 1.0)',
-    TabText        : new CSSFont({
+    TabActive         : 'rgba(86,86,86, 1)',
+    TabBarRadius      : 6,
+    TabHighlight      : 'rgba(50, 50, 50, 0.2)',
+    TabInactive       : 'rgba(28,28,34, 1)',
+    TabStrokeStyle1   : 'rgba(200, 200, 200, 1.0)',
+    TabStrokeStyle2   : 'rgba(255, 255, 255, 1.0)',
+    TabText           : new CSSFont({
       font    : 'sans-serif',
       weight  : 'normal',
       variant : 'normal',
       style   : 'normal',
-      size    : 18,
+      size    : 15,
       color   : 'rgba(215, 215, 215, 1.0)'
     }),
+    'background-color': 'rgba(65,65,65, 1)',
   },
 
   textbox:  {
-    'background-color': undefined,
+    DefaultText       : new CSSFont({
+      font    : 'sans-serif',
+      weight  : 'normal',
+      variant : 'normal',
+      style   : 'normal',
+      size    : 14,
+      color   : 'rgb(229,229,229)'
+    }),
+    'background-color': 'rgb(28,28,28)',
   },
 
   tooltip:  {
-    BoxBG    : 'rgb(245, 245, 245, 1.0)',
-    BoxBorder: 'rgb(145, 145, 145, 1.0)',
+    ToolTipText       : new CSSFont({
+      font    : 'sans-serif',
+      weight  : 'normal',
+      variant : 'normal',
+      style   : 'normal',
+      size    : 12,
+      color   : 'rgba(215,215,215, 1)'
+    }),
+    background        : 'rgb(245, 245, 245, 1.0)',
+    'background-color': 'rgba(52,52,52, 1)',
+    'border-color'    : 'rgb(145, 145, 145, 1.0)',
+    'border-radius'   : 3,
+    'border-style'    : 'solid',
+    'border-width'    : 1,
+    padding           : 5,
   },
 
   treeview:  {
     itemIndent: 10,
     rowHeight : 18,
+  },
+
+  vecPopupButton:  {
+    height : 18,
+    padding: 3,
+    width  : 100,
   },
 
 };

@@ -304,6 +304,13 @@ if hasattr(srcmod, "watch_targets"):
 
 if hasattr(srcmod, "copy_targets"):
   for f1 in srcmod.copy_targets:
+    print(f1)
+    if os.path.sep in f1 or "/" in f1:
+        base = os.path.split(f1)[0]
+        base = "build"+sep+base
+        if not os.path.exists(base):
+            os.makedirs(base)
+
     tpath = "build"+sep+f1
     f2 = srcmod.copy_targets[f1]
     target = Target(tpath)

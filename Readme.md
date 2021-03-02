@@ -7,15 +7,21 @@
 
 #Intro
 
-Fairmotion is an advanced vector graphics/animation editor, written in HTML5 and ES6.
+Fairmotion is an advanced vector graphics/animation editor based on
+polynomial clothoids (similar to Spiros).
+
 
 <div style="float: right">
 <img align="right" src="https://github.com/joeedh/fairmotion/blob/master/examples/example2.png"></img>
 </div>
 
-It is based on the principle of never, ever (ever!) using polynomials for
-visual curves. Instead, it integrates a transendental polynomial
-spiral, kindof like Raph Levien's Spiro curves:
+Instead of hard to use polynomial curves, Fairmotion simulates real-world  
+wooden drafting splines mathematically.  The result is much easier to use.
+
+## Math
+
+For a deep dive into polynomial clothoids and elastica, see Raph Levien's 
+PhD thesis:
 
 http://www.levien.com/phd/phd.html
 
@@ -28,6 +34,14 @@ Bezier curves or B-Splines.
 Fairmotion is very much a work in progress, and should be considered pre-alpha.
 
 ![Another Example](https://github.com/joeedh/fairmotion/blob/master/examples/example1.png)
+
+### Extjs
+
+Fairmotion was originally coded in my own type-annotated language based on ES6,
+and is currently being converted to typescript.  As part of this process I added
+typescript syntax to my existing transpiler.  I'm excepted to finally ditch the 
+pain of maintaining my own ES transpiler and type annotation system.
+This is a work in progress.
 
 ### Build
 To build, open a command prompt where you downloaded fairmotion
@@ -67,3 +81,18 @@ detect changes to it.
 Or for Windows:
 
     .\dist\run_electron.bat
+
+## Refactoring
+
+Fairmotion was forked from an ancient 3D modeler of mine, which I later rewrote from scratch to create [webgl-app-framework](https://www.khronos.org/registry/webgl/specs/latest/1.0/).
+
+I've backported a lot of architectural changes from webgl-app-framework, but more remain.  
+
+Refactor todos (list may not be up to date):
+
+* Finish porting extjs code to typescript.
+* Replace event dag with webgl-app-framework's graph solver.
+* Finish scene graph refactor.
+* Review OffscreenCanvas and ImageBitmap usage in workers and make sure they do
+  what you'd expect (and don't copy excessively between GPU and CPU).
+  

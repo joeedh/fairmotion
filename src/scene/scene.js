@@ -6,6 +6,7 @@ import {DataPathNode} from '../core/eventdag.js';
 import {SplineElement} from "../curve/spline_base.js";
 import {ToolModes} from "../editors/viewport/toolmodes/toolmode.js";
 import {SelMask} from "../editors/viewport/selectmode.js";
+import {Collection} from './collection.js';
 
 export class ObjectList extends Array {
   idmap : Object
@@ -229,6 +230,8 @@ export class Scene extends DataBlock {
 
     this.selectmode = SelMask.VERTEX;
 
+    this.collection = undefined;
+
     for (let cls of ToolModes) {
       let mode = new cls();
       this.toolmodes.push(mode);
@@ -237,6 +240,13 @@ export class Scene extends DataBlock {
 
     this.active_splinepath = "frameset.drawspline";
     this.time = 1;
+  }
+
+  _initCollection(datalib) {
+    this.collection = new Collection();
+    datalib.add(this.collection);
+
+    this.collection.lib_adduser(this);
   }
 
   switchToolMode(tname) {
@@ -282,15 +292,15 @@ export class Scene extends DataBlock {
   }
 
   //returns sceneobject
-  addFrameset(fs : SplineFrameSet) {
+  addFrameset(datalib, fs : SplineFrameSet) {
     let ob = new SceneObject(fs);
+    datalib.add(ob);
 
     ob.name = this.objects.validateName(fs.name);
-
     ob.id = this.object_idgen.gen_id();
 
     fs.lib_adduser(this, this.name);
-    this.objects.push(ob);
+    this.objects.add(ob);
 
     return ob;
   }
@@ -342,6 +352,19 @@ export class Scene extends DataBlock {
     return ret;
   }
 
+  add(ob) {
+    this.objects.add(ob);
+    if (this.collection) {
+      this.collection.add(ob);
+    }
+
+    return this;
+  }
+
+  remove(ob) {
+    return this.objects.remove(ob);
+  }
+
   dag_exec() {
 
   }
@@ -376,6 +399,10 @@ export class Scene extends DataBlock {
   
   data_link(block, getblock, getblock_us) {
     super.data_link(block, getblock, getblock_us);
+
+    if (this.collection !== undefined) {
+      this.collection = getblock_us(this.collection);
+    }
 
     for (let i=0; i<this.objects.length; i++) {
       this.objects[i].data_link(block, getblock, getblock_us);
@@ -450,6 +477,7 @@ export class Scene extends DataBlock {
 Scene.STRUCT = STRUCT.inherit(Scene, DataBlock) + `
     time              : float;
     active_splinepath : string;
+    collection        : DataRef | DataRef.fromBlock(this.collection);
     objects           : array(SceneObject);
     active_object     : int | obj.objects.active !== undefined ? obj.objects.active.id : -1;
     object_idgen      : EIDGen;

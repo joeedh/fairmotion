@@ -257,7 +257,7 @@ function sort_modules() {
     var mod = _defined_modules[k];
     
     if (mod.callback === undefined) {
-      debug('module "' + mod.path + '" does not exist', mod);
+      console.warn('module "' + mod.path + '" does not exist', mod);
       throw new Error('module "' + mod.path + '" does not exist');
     }
     mod.flag = 0;

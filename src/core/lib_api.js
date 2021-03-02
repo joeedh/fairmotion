@@ -33,7 +33,6 @@ DataBlock refactor:
 export const DataTypes = {};
 export const LinkOrder = [];
 
-
 // DataNames maps integer data types to ui-friendly names, e.g. DataNames[0] == "Object"
 export const DataNames = {}
 
@@ -41,25 +40,25 @@ export const DataNames = {}
 //of block.flag are reserved for exclusive
 //use by subclasses.  
 export var BlockFlags = {
-  SELECT : 1,
-  FAKE_USER : (1<<16),
-  DELETED : (1<<17)
+  SELECT   : 1,
+  FAKE_USER: (1<<16),
+  DELETED  : (1<<17)
 };
 
 export class DataRef extends Array {
-  length : number;
+  length: number;
 
-  constructor(block_or_id, lib=undefined) {
+  constructor(block_or_id, lib = undefined) {
     super(2);
     this.length = 2;
-    
+
     if (lib !== undefined && lib instanceof DataLib)
       lib = lib.id;
-    
+
     if (block_or_id instanceof DataBlock) {
       var block = block_or_id;
       this[0] = block.lib_id;
-      
+
       if (lib !== undefined)
         this[1] = lib ? lib.id : -1;
       else
@@ -73,7 +72,7 @@ export class DataRef extends Array {
     }
   }
 
-  static fromBlock(obj : DataBlock) {
+  static fromBlock(obj: DataBlock) {
     let ret = new DataRef();
 
     if (!obj) {
@@ -100,41 +99,43 @@ export class DataRef extends Array {
     return ret;
   }
 
-  copyTo(dst : DataRef) {
+  copyTo(dst: DataRef) {
     dst[0] = this[0];
     dst[1] = this[1];
     return dst;
   }
-  
+
   copy() {
     return this.copyTo(new DataRef());
   }
-  
+
   get id() {
     return this[0];
   }
+
   set id(id) {
     this[0] = id;
   }
-  
+
   get lib() {
     return this[1];
   }
+
   set lib(lib) {
     this[1] = lib;
   }
-  
+
   equals(b) {
     //XXX we don't compare library id's
     //since lib linking is unimplemented/
     return b !== undefined && b[0] === this[0];
   }
-  
-  static fromSTRUCT(reader : function) {
+
+  static fromSTRUCT(reader: function) {
     var ret = new DataRef(0);
-    
+
     reader(ret);
-    
+
     return ret;
   }
 }
@@ -154,6 +155,7 @@ DataRef.STRUCT = `
 
 export class DataRefCompat extends DataRef {
 }
+
 DataRefCompat.STRUCT = `
 dataref {
   0 : int | obj ? obj.lib_id  : -1;
@@ -163,54 +165,54 @@ dataref {
 window.__dataref = DataRefCompat;
 
 export class DataList<T> {
-  list : GArray
-  namemap : Object
-  idmap : Object;
+  list: GArray
+  namemap: Object
+  idmap: Object;
 
-  [Symbol.keystr]() : String {
+  [Symbol.keystr](): String {
     return this.type;
   }
-  
-  constructor(type : int) {
+
+  constructor(type: int) {
     this.list = new GArray();
-    
+
     this.namemap = {};
     this.idmap = {};
-    
+
     this.type = type;
     this.active = undefined;
   }
 
-  [Symbol.iterator]() : GArrayIter {
+  [Symbol.iterator](): GArrayIter {
     return this.list[Symbol.iterator]();
   }
-  
-  remove(block : DataBlock) {
+
+  remove(block: DataBlock) {
     this.list.remove(block);
-    
+
     if (block.name !== undefined && this.namemap[block.name] === block)
       delete this.namemap[block.name];
-      
+
     delete this.idmap[block];
 
     block.on_destroy();
     block.on_remove();
   }
-  
-  get(id : int) {
-    if (id instanceof DataRef) 
+
+  get(id: int) {
+    if (id instanceof DataRef)
       id = id.id;
-    
+
     return this.idmap[id];
   }
 }
 
 export class DataLib {
-  id : number
-  datalists : hashtable
-  idmap : Object
-  idgen : EIDGen;
-  lib_anim_idgen : EIDGen;
+  id: number
+  datalists: hashtable
+  idmap: Object
+  idgen: EIDGen;
+  lib_anim_idgen: EIDGen;
 
   constructor() {
     this.id = 0;
@@ -234,7 +236,7 @@ export class DataLib {
   get allBlocks() {
     let this2 = this;
 
-    return (function*() {
+    return (function* () {
       for (let k of this2.datalists) {
         let list = this2.datalists.get(k);
 
@@ -250,108 +252,108 @@ export class DataLib {
       console.log("warning, datalib.on_destroyed called twice");
       return;
     }
-    
+
     this._destroyed = true;
-    
+
     for (var k of this.datalists) {
       var l = this.datalists.get(k);
-      
+
       for (var block of l) {
         try {
           block.on_destroy();
-        } catch(err) {
+        } catch (err) {
           print_stack(err);
           console.trace("WARNING: failed to execute on_destroy handler for block", block.name, block);
         }
       }
     }
   }
-  
-  get_datalist(typeid : int) : DataList {
+
+  get_datalist(typeid: int): DataList {
     var dl;
-    
+
     if (!this.datalists.has(typeid)) {
       dl = new DataList(typeid);
       this.datalists.add(typeid, dl);
     } else {
       dl = this.datalists.get(typeid);
     }
-    
+
     return dl;
   }
-  
-  get images() : DataList<Scene> {
+
+  get images(): DataList<Scene> {
     return this.get_datalist(DataTypes.IMAGE);
   }
-  
-  get scenes() : DataList<Scene> {
+
+  get scenes(): DataList<Scene> {
     return this.get_datalist(DataTypes.SCENE);
   }
-  
-  get framesets() : DataList<SplineFrameSet> {
+
+  get framesets(): DataList<SplineFrameSet> {
     return this.get_datalist(DataTypes.FRAMESET);
   }
-  
+
   //tries to completely kill a datablock,
   //clearing all references to it
-  kill_datablock(block : DataBlock) {
+  kill_datablock(block: DataBlock) {
     block.unlink();
-    
+
     var list = this.datalists.get(block.lib_type);
     list.remove(block);
-    
+
     block.lib_flag |= BlockFlags.DELETED;
   }
-  
-  search(type : int, prefix : string) : GArray<DataBlock> {
+
+  search(type: int, prefix: string): GArray<DataBlock> {
     //this is what red-black trees are for.
     //oh well.
-    
+
     var list = this.datalists.get(type);
     var ret = new GArray();
-    
+
     prefix = prefix.toLowerCase();
-    for (var i=0; i<list.list.length; i++) {
+    for (var i = 0; i < list.list.length; i++) {
       if (list.list[i].strip().toLowerCase().startsWith(prefix)) {
         ret.push(list.list[i]);
       }
     }
-    
+
     return ret;
   }
 
   //clearly I need to write a simple string
   //processing language with regexpr's
-  gen_name(block : DataBlock, name : string) {
+  gen_name(block: DataBlock, name: string) {
     if (name == undefined || name.trim() == "") {
       name = DataNames[block.lib_type];
     }
-    
+
     if (!this.datalists.has(block.lib_type)) {
       this.datalists.set(block.lib_type, new DataList(block.lib_type));
     }
-    
+
     var list = this.datalists.get(block.lib_type);
     if (!(name in list.namemap)) {
       return name;
     }
-    
+
     var i = 0;
     while (1) {
       i++;
-      
+
       if (name in list.namemap) {
-        var j = name.length-1;
-        for (j; j>=0; j--) {
+        var j = name.length - 1;
+        for (j; j >= 0; j--) {
           if (name[j] == ".")
             break;
         }
-        
+
         if (name == 0) {
           name = name + "." + i.toString();
           continue;
         }
-        
+
         var s = name.slice(j, name.length);
         if (!Number.isNaN(Number.parseInt(s))) {
           name = name.slice(0, j) + "." + i.toString();
@@ -362,34 +364,34 @@ export class DataLib {
         break;
       }
     }
-    
+
     return name;
   }
 
-  add(block : DataBlock, set_id : Boolean) {
+  add(block: DataBlock, set_id: Boolean) {
     if (set_id === undefined)
       set_id = true;
-    
+
     //ensure unique name
     var name = this.gen_name(block, block.name);
     block.name = name;
-    
+
     if (block.lib_id === -1) {
       block.lib_id = this.idgen.gen_id();
     } else {
       this.idgen.max_cur(block.lib_id);
     }
-    
+
     this.idmap[block.lib_id] = block;
-    
+
     if (!this.datalists.has(block.lib_type)) {
       this.datalists.set(block.lib_type, new DataList(block.lib_type));
     }
-    
+
     var dl = this.datalists.get(block.lib_type);
     if (dl.active === undefined)
       dl.active = block;
-      
+
     dl.list.push(block);
     dl.namemap[block.name] = block;
     dl.idmap[block.lib_id] = block;
@@ -398,31 +400,32 @@ export class DataLib {
     block.on_add(this);
   }
 
-  get_active(data_type : int) {
+  get_active(data_type: int) {
     if (this.datalists.has(data_type)) {
       var lst = this.datalists.get(data_type);
-      
+
       //we don't allow undefined active blocks
       if (lst.active === undefined && lst.list.length !== 0) {
         if (DEBUG.datalib)
           console.log("Initializing active block for " + get_type_names()[data_type]);
-        
+
         lst.active = lst.list[0];
       }
-      
+
       return this.datalists.get(data_type).active;
     } else {
       return undefined;
     }
   }
 
-  get(id : DataRef) {
+  get(id: DataRef) {
     if (id instanceof DataRef)
       id = id.id;
-    
+
     return this.idmap[id];
   }
 }
+
 DataLib.STRUCT = `
 DataLib {
   lib_anim_idgen : EIDGen;
@@ -431,9 +434,9 @@ DataLib {
 `
 
 export class UserRef {
-  user : number
-  rem_func : number
-  srcname : string;
+  user: number
+  rem_func: number
+  srcname: string;
 
   constructor() {
     this.user = 0;
@@ -460,7 +463,7 @@ SPLINE: 6
 function regenLinkOrder() {
   LinkOrder.length = 0;
 
-  for (let i=0; i<BlockClasses.length; i++) {
+  for (let i = 0; i < BlockClasses.length; i++) {
     LinkOrder.push(i);
   }
 
@@ -474,31 +477,34 @@ function regenLinkOrder() {
     return a - b;
   });
 
-  for (let i=0; i<LinkOrder.length; i++) {
+  for (let i = 0; i < LinkOrder.length; i++) {
     LinkOrder[i] = BlockClasses[LinkOrder[i]].blockDefine().typeIndex;
   }
 }
 
 var _db_hash_id = 1;
+
+import {GraphNode, mixinGraphNode} from '../graph/graph.js';
+
 export class DataBlock {
-  addon_data : Object
-  lib_anim_channels : GArray
-  lib_anim_idgen : EIDGen
-  lib_anim_idmap : Object
-  lib_anim_pathmap : Object
-  lib_users : GArray
-  lib_refs : number
-  flag : number;
+  addon_data: Object
+  lib_anim_channels: GArray
+  lib_anim_idgen: EIDGen
+  lib_anim_idmap: Object
+  lib_anim_pathmap: Object
+  lib_users: GArray
+  lib_refs: number
+  flag: number;
 
   static blockDefine() {
     return {
-      typeName : "", //entries in DataTypes are upper-case versions of typeName
-      defaultName : "",
-      uiName : "",
-      flag : 0,
-      icon : -1,
-      linkOrder : undefined, //priority in file load linking, defaults to 10000
-      typeIndex : -1, //for compatiblity with old api, must be defined
+      typeName   : "", //entries in DataTypes are upper-case versions of typeName
+      defaultName: "",
+      uiName     : "",
+      flag       : 0,
+      icon       : -1,
+      linkOrder  : undefined, //priority in file load linking, defaults to 10000
+      typeIndex  : -1, //for compatiblity with old api, must be defined
     }
   }
 
@@ -518,7 +524,7 @@ export class DataBlock {
 
     if (def.typeIndex in BlockTypeMap) {
       console.warn(BlockTypeMap[def.typeIndex]);
-      throw new Error(""+def.typeIndex + " is already in use");
+      throw new Error("" + def.typeIndex + " is already in use");
     }
 
     if (!def.typeName) {
@@ -548,9 +554,10 @@ export class DataBlock {
   }
 
   //type is an integer, name is a string
-  constructor(type : number, name : string) {
+  constructor(type: number, name: string) {
     if (type === undefined) {
-      throw new Error("type cannot be undefined");
+      type = this.constructor.blockDefine().typeName.toUpperCase();
+      type = DataTypes[type];
     }
 
     this.constructor.datablock_type = type;
@@ -560,36 +567,45 @@ export class DataBlock {
     //name is optional
     if (name === undefined)
       name = "unnamed";
-      
+
     this.lib_anim_channels = new GArray();
     //this.lib_anim_idgen = new EIDGen();
     this.lib_anim_idgen = undefined; //is set by global DataLib now
     this.lib_anim_idmap = {};
-    
+
     this.lib_anim_pathmap = {};
 
     this.name = name;
     this._hash_id = _db_hash_id++;
     this.lib_id = -1;
     this.lib_lib = undefined; //this will be used for library linking
-    
+
     this.lib_type = type;
     this.lib_users = new GArray();
-    
+
     //regardless of whether we continue using ref counting
     //internally, the users do need to know how many users a given
     //block has.
     this.lib_refs = 0;
     this.flag = 0;
   }
-  
-  on_add(lib : DataLib) { }
-  on_remove() { }
-  on_destroy() { }
-  
-  copy() { }
 
-  set_fake_user(val : Boolean) {
+  on_add(lib: DataLib) {
+  }
+
+  on_remove() {
+  }
+
+  on_destroy() {
+  }
+
+  copy() {
+  }
+
+  copyTo(b) {
+  }
+
+  set_fake_user(val: Boolean) {
     if ((this.flag & BlockFlags.FAKE_USER) && !val) {
       this.flag &= ~BlockFlags.FAKE_USER;
       this.lib_refs -= 1;
@@ -627,33 +643,33 @@ export class DataBlock {
       this.lib_anim_pathmap[ch.path] = ch;
     }
   }
-  
-  [Symbol.keystr]() : string {
+
+  [Symbol.keystr](): string {
     return "DB" + this._hash_id;
   }
 
-  lib_adduser(user : Object, name : string, remfunc : function) {
+  lib_adduser(user: Object, name: string, remfunc: function) {
     //remove_lib should be optional?
-    
+
     var ref = new UserRef()
     ref.user = user;
     ref.name = name;
     if (remfunc)
       ref.rem_func = remfunc;
-    
+
     this.lib_users.push(ref);
     this.lib_refs++;
   }
 
-  lib_remuser(user : DataBlock, refname : string) {
+  lib_remuser(user: DataBlock, refname: string) {
     var newusers = new GArray();
-    
-    for (var i=0; i<this.lib_users.length; i++) {
+
+    for (var i = 0; i < this.lib_users.length; i++) {
       if (this.lib_users[i].user != user && this.lib_users[i].srcname != refname) {
         newusers.push(this.lib_users[i]);
       }
     }
-    
+
     this.lib_users = newusers;
     this.lib_refs--;
   }
@@ -661,42 +677,42 @@ export class DataBlock {
   //removes all references to a datablock from referencing objects
   unlink() {
     var users = this.lib_users;
-    
-    for (var i=0; i<users.length; i++) {
+
+    for (var i = 0; i < users.length; i++) {
       if (users[i].rem_func !== undefined) {
         users[i].rem_func(users[i].user, this);
       }
-      
+
       this.lib_remuser(users[i]);
     }
-    
+
     if (this.lib_refs !== 0) {
-      console.log("Ref count error when deleting a datablock!", this.lib_refs,  this);
+      console.log("Ref count error when deleting a datablock!", this.lib_refs, this);
     }
   }
 
   afterSTRUCT() {
   }
-  
-  loadSTRUCT(reader : function) {
+
+  loadSTRUCT(reader: function) {
     reader(this);
 
     var map = {};
-    
+
     if (this.addon_data === undefined || !(this.addon_data instanceof Array)) {
       this.addon_data = [];
     }
-    
+
     for (var dk of this.addon_data) {
       map[dk.key] = dk.val;
     }
-    
+
     this.addon_data = map;
-    
+
     return this;
   }
 
-  _addon_data_save() : Array<_DictKey> {
+  _addon_data_save(): Array<_DictKey> {
     var ret = [];
 
     if (this.addon_data === undefined) {
@@ -712,12 +728,12 @@ export class DataBlock {
 }
 
 export class _DictKey {
-  constructor(key : string, val : any) {
+  constructor(key: string, val: any) {
     this.key = key;
     this.val = val;
   }
-  
-  static fromSTRUCT(reader : function) {
+
+  static fromSTRUCT(reader: function) {
     let ret = new _DictKey();
     reader(ret);
     return ret;
@@ -751,38 +767,42 @@ DataBlock.STRUCT = `
 
 import {ToolIter} from './toolprops_iter.js';
 
-export class DataRefListIter<T> extends ToolIter {
-  i : number
-  init : boolean;
+export const NodeDataBlock = mixinGraphNode(DataBlock, "NodeDataBlock");
 
-  constructor(lst : Array, ctx : Context) {
+export class DataRefListIter<T> extends ToolIter {
+  i: number
+  init: boolean;
+
+  constructor(lst: Array, ctx: Context) {
     super();
 
     this.lst = lst;
     this.i = 0;
     this.datalib = ctx.datalib;
-    this.ret = undefined : IterRet<T>;
+    this.ret = undefined
+  :
+    IterRet<T>;
     this.init = true;
   }
-  
-  next() : IterRet<T> {
+
+  next(): IterRet<T> {
     if (this.init) {
       this.ret = cached_iret();
       this.init = false;
     }
-    
+
     if (this.i < this.lst.length) {
       this.ret.value = this.datalib.get(this.lst[this.i].id);
     } else {
       this.ret.value = undefined;
       this.ret.done = true;
     }
-    
+
     this.i++;
-    
+
     return this.ret;
   }
-  
+
   reset() {
     this.i = 0;
     this.init = true;

@@ -55,6 +55,12 @@ export class SceneObject extends DataBlock {
     return this.matrix;
   }
 
+  //uniforms are webgl-style uniforms
+  //even if we're not necassarily drawn with webgl
+  draw(scene, drawer, uniforms) {
+
+  }
+
   data_link(block : Scene, getblock : function, getblock_us : function) {
     this.data = getblock_us(this.data);
   }

@@ -1493,9 +1493,26 @@ def p_class_parent_id(p):
     p[0] = p[1];
   else:
     p[0] = BinOpNode(p[1], p[3], ".")
-  
+
+def p_dot_expr(p):
+  '''dot_expr : id
+              | id DOT dot_expr
+  '''
+  if len(p) == 2:
+    p[0] = p[1]
+  else:
+    p[0] = BinOpNode(p[0], p[2], ".")
+
+def p_class_parent_call(p):
+  '''class_parent_call : dot_expr func_call
+  '''
+
+  p[0] = p[2]
+  p[0].insert(0, p[1])
+
 def p_class_list(p):
   '''class_list : class_parent_id
+                | class_parent_call
                 | class_list COMMA class_parent_id
   '''
   set_parse_globals(p)

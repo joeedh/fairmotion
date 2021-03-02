@@ -596,12 +596,13 @@ export class BasicFileOp extends ToolOp {
     datalib.add(splineset);
     
     var scene = new Scene();
+    datalib.add(scene);
+
+    scene._initCollection(datalib);
 
     scene.set_fake_user();
-    let ob = scene.addFrameset(splineset);
+    let ob = scene.addFrameset(datalib, splineset);
     scene.setActiveObject(ob);
-
-    datalib.add(scene);
   }
 }
 

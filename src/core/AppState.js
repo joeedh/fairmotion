@@ -1014,6 +1014,14 @@ export class AppState {
 
   //version patching happens *before* block linking
   do_versions(datalib, blocks, version) {
+    if (version < 0.053) {
+      for (let scene of datalib.scenes) {
+        if (!scene.collection) {
+          scene._initCollection(datalib);
+        }
+      }
+    }
+
     if (version < 0.046) {
       for (let frameset of datalib.framesets) {
         for (let spline of frameset._allsplines) {
@@ -1115,12 +1123,28 @@ export class AppState {
     if (version < 0.052) {
       for (let scene of datalib.scenes) {
         for (let frameset of datalib.framesets) {
-          let ob = scene.addFrameset(frameset);
+          let ob = scene.addFrameset(datalib, frameset);
           scene.setActiveObject(ob);
         }
       }
       console.log("objectification");
+    } else if (version < 0.053) {
+      for (let scene of datalib.scenes) {
+        if (!scene.collection) {
+          scene._initCollection(datalib);
+        }
+
+        for (let ob of scene.objects) {
+          if (ob.lib_id < 0) {
+            console.error("Had to add object to datalib during file conversion", ob);
+            datalib.add(ob);
+          }
+
+          scene.collection.add(ob);
+        }
+      }
     }
+
 
     if (version < 0.053) {
       let map = {};

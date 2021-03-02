@@ -148,6 +148,8 @@ sources = [
   "src/addon_api/addon_api.js",
   "src/scene/scene.js",
   "src/scene/sceneobject.js",
+  "src/scene/sceneobject_data.js",
+  "src/scene/collection.js",
 
   "src/editors/velpan.js",
   "src/editors/manual/manual.js",
@@ -251,7 +253,22 @@ sources = [
   "src/core/data_api/data_api_base.js",
   "src/core/data_api/data_api_pathux.js",
   "src/core/data_api/data_api_opdefine.js",
-  
+
+  "src/graph/graph.js",
+#  "src/graph/graph_class.js",
+#  "src/graph/graph_datapath.js",
+#  "src/graph/graph_spatial.js",
+  "src/graph/graphsockets.js",
+
+  "src/brush/brush_base.js",
+  "src/brush/brush_types.js",
+  "src/brush/brush.js",
+
+  "src/paint/imagecanvas.js",
+  "src/paint/imagecanvas_draw.js",
+  "src/paint/paint_base.js",
+  "src/paint/paint_op_base.js",
+
   "src/datafiles/iconsheet.svg",
   "src/datafiles/iconsheet.png",
   "src/datafiles/iconsheet16.png",

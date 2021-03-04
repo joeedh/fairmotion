@@ -21,6 +21,38 @@ export class ToolOp extends pathux.ToolOp {
     super();
   }
 
+  static invoke(ctx, args) {
+    function geteid(v) {
+      return !v ? -1 : v.eid;
+    }
+
+    for (let k in args) {
+      let v = args[k];
+
+      if (k === 'selectmode') {
+        args[k] = ctx.selectmode;
+      }
+
+      if (v === 'active_vertex' && ctx.spline) {
+        args[k] = geteid(ctx.spline.verts.active);
+      }
+
+      if (v === 'active_handle' && ctx.spline) {
+        args[k] = geteid(ctx.spline.handles.active);
+      }
+
+      if (v === 'active_edge' && ctx.spline) {
+        args[k] = geteid(ctx.spline.edges.active);
+      }
+
+      if (v === 'active_face' && ctx.spline) {
+        args[k] = geteid(ctx.spline.faces.active);
+      }
+    }
+
+    return super.invoke(ctx, args);
+  }
+
   static inherit_inputs(arg) {
     return ToolOp.inherit(arg);
   }

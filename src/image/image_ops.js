@@ -19,7 +19,7 @@ import * as html5_fileapi from '../core/fileapi/fileapi.js';
 
 export class LoadImageOp extends ToolOp {
   static tooldef() { return {
-    apiname  : "image.load_image",
+    toolpath  : "image.load_image",
     uiname   : "Load Image",
     
     inputs   : {

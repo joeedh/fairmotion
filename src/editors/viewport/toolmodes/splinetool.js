@@ -635,11 +635,11 @@ export class SplineToolMode extends ToolMode {
       "spline.connect_handles()",
       "spline.unhide()",
       "spline.hide()",
-      "spline.toggle_select_all(mode=SELECT)|Select All|A",
-      "spline.toggle_select_all(mode=DESELECT)|Deselect All|Alt-A",
+      "spline.toggle_select_all(mode='SELECT')|Select All|A",
+      "spline.toggle_select_all(mode='DESELECT')|Deselect All|Alt-A",
       "view2d.circle_select()",
-      "spline.select_linked(vertex_eid=active_vertex() mode=SELECT)|Select Linked|L",
-      "spline.select_linked(vertex_eid=active_vertex() mode=DESELECT)|Deselect Linked|Shift+L"
+      "spline.select_linked(vertex_eid='active_vertex' mode='SELECT')|Select Linked|L",
+      "spline.select_linked(vertex_eid='active_vertex' mode='DESELECT')|Deselect Linked|Shift+L"
     ];
 
     return ops;

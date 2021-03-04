@@ -1,4 +1,5 @@
 import {ContextOverlay, Context} from "../path.ux/scripts/path-controller/controller/context.js";
+import {SavedToolDefaults} from '../path.ux/scripts/pathux.js';
 
 export class BaseContextOverlay extends ContextOverlay {
   constructor(state=g_app_state) {
@@ -87,6 +88,10 @@ export class BaseContextOverlay extends ContextOverlay {
 
   get toolstack() {
     return g_app_state.toolstack;
+  }
+
+  get toolDefaults() {
+    return SavedToolDefaults;
   }
 
   get view2d() {

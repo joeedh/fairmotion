@@ -197,7 +197,7 @@ export class CreateEdgeOp extends SplineLocalToolOp {
   
   static tooldef() { return {
     uiname   : "Make Segment",
-    apiname  : "spline.make_edge",
+    toolpath : "spline.make_edge",
     
     inputs   : {
       linewidth : new FloatProperty(2.0, "line width", "line width", "line width", [0.01, 500]),
@@ -262,7 +262,7 @@ export class CreateEdgeFaceOp extends SplineLocalToolOp {
   
   static tooldef() { return {
     uiname   : "Make Polygon",
-    apiname  : "spline.make_edge_face",
+    toolpath : "spline.make_edge_face",
     
     inputs   : {
       linewidth : new FloatProperty(2.0, "line width", "line width", "line width", [0.01, 500]),

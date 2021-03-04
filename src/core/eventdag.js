@@ -391,7 +391,7 @@ export class IndirectNode extends EventNode {
     if (this._owner != undefined)
       return this._owner;
 
-    this._owner = ctx.api.getObject(ctx, this.datapath);
+    this._owner = ctx.api.getValue(ctx, this.datapath);
     return this._owner;
   }
 }
@@ -679,7 +679,7 @@ export class EventDag {
       //XXX getObject no longer gracefully handles undefined ctx,
       //make sure it exists
       ctx = ctx === undefined ? this.ctx : ctx;
-      object = ctx.api.getObject(ctx, path);
+      object = ctx.api.getValue(ctx, path);
     }
     
     //console.log(path);

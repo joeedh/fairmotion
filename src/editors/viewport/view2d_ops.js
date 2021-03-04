@@ -42,7 +42,7 @@ export class PanOp extends ToolOp {
 
   static tooldef() { return {
     uiname     : "Pan",
-    apiname    : "view2d.pan",
+    toolpath    : "view2d.pan",
 
     undoflag   : UndoFlags.NO_UNDO,
 
@@ -128,7 +128,7 @@ class ViewRotateZoomPanOp extends ToolOp {
     this.mv6 = new Vector3();
   }
   static tooldef() {return {
-    apiname : "view2d.viewrotatezoom",
+    toolpath : "view2d.viewrotatezoom",
     uiname : "View Rotate Zoom",
     is_modal : true,
     undoflag : UndoFlags.NO_UNDO,
@@ -350,7 +350,7 @@ class ViewRotateOp extends ToolOp {
   }
 
   static tooldef() {return {
-    apiname : "view2d.orbit",
+    toolpath : "view2d.orbit",
     uiname : "Orbit",
     is_modal : true,
     undoflag : UndoFlags.NO_UNDO,
@@ -555,7 +555,7 @@ export class BasicFileDataOp extends ToolOp {
 
   static tooldef() {return {
     uiname : "internal file load op",
-    apiname : "app.basic_file_with_data",
+    toolpath : "app.basic_file_with_data",
     undoflag : UndoFlags.NO_UNDO|UndoFlags.IS_UNDO_ROOT|UndoFlags.UNDO_BARRIER,
 
     inputs : {
@@ -581,7 +581,7 @@ export class BasicFileOp extends ToolOp {
   }
 
   static tooldef() {return {
-    apiname : "app.basic_file",
+    toolpath : "app.basic_file",
     uiname : "Make Basic File (internal)",
     undoflag : UndoFlags.IS_UNDO_ROOT|UndoFlags.UNDO_BARRIER,
     description : "Internal tool op; makes basic file"
@@ -619,7 +619,7 @@ export class FrameChangeOp extends ToolOp {
   }
 
   static tooldef() {return {
-    apiname : "scene.change_frame",
+    toolpath : "scene.change_frame",
     uiname : "Change Frame",
 
     inputs : {
@@ -646,7 +646,7 @@ import {SplineDrawer} from '../../curve/spline_draw_new.js';
 
 export class ExportCanvasImage extends ToolOp {
   static tooldef() {return {
-    apiname     : "view2d.export_image",
+    toolpath     : "view2d.export_image",
     uiname      : "Save Canvas Image",
     description : "Export visible canvas",
     undoflag    : UndoFlags.NO_UNDO

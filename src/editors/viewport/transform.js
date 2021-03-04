@@ -383,7 +383,7 @@ export class TranslateOp extends TransformOp {
   
   static tooldef() { return {
     uiname   : "Translate",
-    apiname  : "spline.translate",
+    toolpath  : "spline.translate",
     description : "Move geometry around",
     is_modal : true,
     
@@ -465,7 +465,7 @@ export class NonUniformScaleOp extends TransformOp {
   
   static tooldef() { return {
     uiname   : "Non-Uniform Scale",
-    apiname  : "spline.nonuniform_scale",
+    toolpath  : "spline.nonuniform_scale",
     description : "Resize geometry",
     is_modal : true,
     
@@ -555,7 +555,7 @@ export class ScaleOp extends TransformOp {
 
   static tooldef() { return {
     uiname   : "Scale",
-    apiname  : "spline.scale",
+    toolpath  : "spline.scale",
     description : "Resize geometry",
     is_modal : true,
     
@@ -633,7 +633,7 @@ export class RotateOp extends TransformOp {
   
   static tooldef() { return {
     uiname   : "Rotate",
-    apiname  : "spline.rotate",
+    toolpath  : "spline.rotate",
     description : "Rotate geometry",
     is_modal : true,
     

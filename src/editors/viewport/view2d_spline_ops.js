@@ -63,9 +63,10 @@ export class DuplicateTransformMacro extends ToolMacro {
 
     return macro;
   }
+
   static tooldef() {return {
     uiname   : "Duplicate",
-    apiname  : "spline.duplicate_transform",
+    toolpath  : "spline.duplicate_transform",
     is_modal : true,
     icon : Icons.DUPLICATE,
     description : "Duplicate geometry"
@@ -79,7 +80,7 @@ export class RenderAnimOp extends ToolOp {
   
   static tooldef() {return {
     uiname   : "Render",
-    apiname  : "view2d.render_anim",
+    toolpath  : "view2d.render_anim",
     is_modal : true,
     inputs   : {},
     outputs  : {},
@@ -188,7 +189,7 @@ export class PlayAnimOp extends ToolOp {
   
   static tooldef() {return {
     uiname   : "Play",
-    apiname  : "view2d.play_anim",
+    toolpath  : "view2d.play_anim",
     is_modal : true,
     inputs   : {},
     outputs  : {},

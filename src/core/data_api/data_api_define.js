@@ -6,6 +6,8 @@ import {AppSettings} from '../UserSettings.js';
 import {FullContext} from "../context.js";
 import * as toolmode from '../../editors/viewport/toolmodes/toolmode.js';
 
+import * as cconst from '../const.js';
+
 import {
   EnumProperty, FlagProperty,
   FloatProperty, StringProperty,
@@ -1223,6 +1225,10 @@ window.test_range = function* range(len) {
 }
 
 export function updateActiveToolApi(ctx) {
+  if (cconst.USE_PATHUX_API) {
+    return;
+  }
+
   let p = ContextStruct.pathmap.active_tool;
 
   let update = false;
@@ -1274,6 +1280,10 @@ window.api_define_context = function () {
 }
 
 window.init_data_api = function() {
+  if (cconst.USE_PATHUX_API) {
+    return;
+  }
+
   api_define_ops();
   api_define_context();
 };
@@ -1303,11 +1313,14 @@ export function gen_path_maps(strct, obj, path1, path2) {//path is private, opti
 }
 
 let _prefix = `"use strict";
+import {DataAPI} from '../../path.ux/scripts/pathux.js';
 import {DataTypes} from '../lib_api.js';
 import {EditModes, View2DHandler} from '../../editors/viewport/view2d.js';
 import {ImageFlags, Image, ImageUser} from '../imageblock.js';
 import {AppSettings} from '../UserSettings.js';
 import {FullContext} from "../context.js";
+import {SplineToolMode} from '../../editors/viewport/toolmodes/splinetool.js';
+import {SessionFlags} from '../../editors/viewport/view2d_base.js';
 
 import {VertexAnimData} from "../frameset.js";
 import {SplineLayer} from "../../curve/spline_element_array.js";
@@ -1480,7 +1493,7 @@ window.genNewDataAPI = () => {
         if (cls2 !== undefined) {
           stt = `api.mapStruct(${cls2.name}, true)`;
         } else {
-          out += "  /*WARNING: failed to resolve a class*/\n";
+          out += `  /*WARNING: failed to resolve a class: ${path2} ${dpath.name} ${dpath.path} */\n`;
         }
         out += `  ${name}.struct("${path3}", "${dpath.name}", "${dpath.uiname}", ${stt});\n`;
 
@@ -1679,7 +1692,7 @@ window.genNewDataAPI = () => {
 
   let lines = out.split("\n");
 
-  out = "export function makeAPI(api) {\n";
+  out = "export function makeAPI(api = new DataAPI()) {\n";
 
   for (let l of lines) {
     out += "  " + l + "\n";

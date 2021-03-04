@@ -432,7 +432,7 @@ import {open_file, save_file, save_with_dialog, can_access_path} from 'fileapi';
 
 export class FileOpenRecentOp extends ToolOp {
   static tooldef() { return {
-    apiname  : "open_recent",
+    toolpath  : "open_recent",
     uiname   : "Open Recent",
     inputs   : {},
     outputs  : {},

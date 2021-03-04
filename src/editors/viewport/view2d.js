@@ -776,11 +776,11 @@ export class View2DHandler extends Editor {
     });
 
 
-    let tool = tools.tool("view2d.circle_select(mode=select selectmode=selectmode)", PackFlags.LARGE_ICON|PackFlags.USE_ICONS);
+    let tool = tools.tool("view2d.circle_select(mode='SELECT' selectmode='selectmode')", PackFlags.LARGE_ICON|PackFlags.USE_ICONS);
     tool.icon = Icons.CIRCLE_SEL_ADD;
     tool.description = "Select control points in a circle";
 
-    tool = tools.tool("view2d.circle_select(mode=deselect selectmode=selectmode)", PackFlags.LARGE_ICON|PackFlags.USE_ICONS);
+    tool = tools.tool("view2d.circle_select(mode='DESELECT' selectmode='selectmode')", PackFlags.LARGE_ICON|PackFlags.USE_ICONS);
     tool.icon = Icons.CIRCLE_SEL_SUB;
     tool.description = "Deselect control points in a circle";
 

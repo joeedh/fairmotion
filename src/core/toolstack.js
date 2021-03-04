@@ -3,6 +3,8 @@ import {ToolFlags, ToolMacro, ToolOp, UndoFlags} from "./toolops_api.js";
 import {DataFlags, DataPath, DataStruct, DataStructArray} from "./data_api/data_api.js";
 import {CollectionProperty, StringProperty, TPropFlags} from "./toolprops.js";
 
+import {USE_PATHUX_API} from './const.js';
+
 export class ToolStack {
   undocur: number
   undostack: Array
@@ -386,6 +388,10 @@ export class ToolStack {
   }
 
   rebuild_last_tool(tool) {
+    if (USE_PATHUX_API) {
+      return;
+    }
+
     let s
 
     if (tool !== undefined)

@@ -54,7 +54,7 @@ import {SplitEdgePickOp} from "../../editors/viewport/spline_editops.js";
 class QuitFileOp extends ToolOp {
   static tooldef() {return {
     uiname   : "Quit",
-    apiname  : "appstate.quit",
+    toolpath  : "appstate.quit",
     is_modal : true,
     inputs   : {},
     outputs  : {},

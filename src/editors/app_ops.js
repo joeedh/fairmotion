@@ -35,7 +35,7 @@ export class FileOpenOp extends ToolOp {
   }
 
   static tooldef() { return {
-    apiname  : "appstate.open",
+    toolpath : "appstate.open",
     uiname   : "Open",
     inputs   : {
       path : new StringProperty("", "path", "File Path", "File Path")
@@ -78,7 +78,7 @@ export class FileSaveAsOp extends ToolOp {
   }
 
   static tooldef() { return {
-    apiname  : "appstate.save_as",
+    toolpath  : "appstate.save_as",
     uiname   : "Save As",
     inputs   : {},
     outputs  : {},
@@ -113,7 +113,7 @@ export class FileSaveOp extends ToolOp {
   }
 
   static tooldef() { return {
-    apiname  : "appstate.save",
+    toolpath  : "appstate.save",
     uiname   : "Save",
     inputs   : {},
     outputs  : {},
@@ -157,7 +157,7 @@ export class FileSaveSVGOp extends ToolOp {
   }
 
   static tooldef() { return {
-    apiname  : "appstate.export_svg",
+    toolpath  : "appstate.export_svg",
     uiname   : "Export SVG",
     inputs   : {
       path : new StringProperty("", "path", "File Path", "File Path")
@@ -214,7 +214,7 @@ export class FileSaveB64Op extends ToolOp {
   }
 
   static tooldef() { return {
-    apiname  : "appstate.export_al3_b64",
+    toolpath  : "appstate.export_al3_b64",
     uiname   : "Export Base64",
     description : "Export a base64-encoded .fmo file",
     inputs   : {

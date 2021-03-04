@@ -115,7 +115,7 @@ export class SelectOneOp extends SelectOpBase {
   }
   
   static tooldef() { return {
-    apiname : "spline.select_one",
+  toolpath : "spline.select_one",
     uiname  : "Select Element",
     inputs  : ToolOp.inherit({
       eid        : new IntProperty(-1),
@@ -174,11 +174,11 @@ export class ToggleSelectAllOp extends SelectOpBase {
   }
   
   static tooldef() { return {
-    uiname  : "Toggle Select All",
-    apiname : "spline.toggle_select_all",
-    icon    : Icons.TOGGLE_SEL_ALL,
+    uiname   : "Toggle Select All",
+    toolpath : "spline.toggle_select_all",
+    icon     : Icons.TOGGLE_SEL_ALL,
     
-    inputs  : ToolOp.inherit({
+    inputs   : ToolOp.inherit({
     })
   }}
   
@@ -261,7 +261,7 @@ export class SelectLinkedOp extends SelectOpBase {
   
   static tooldef() { return {
     uiname  : "Select Linked",
-    apiname : "spline.select_linked",
+    toolpath : "spline.select_linked",
     
     inputs : ToolOp.inherit({
       vertex_eid : new IntProperty(-1),
@@ -308,7 +308,7 @@ export class SelectLinkedOp extends SelectOpBase {
 export class PickSelectLinkedOp extends SelectLinkedOp {
   static tooldef() { return {
     uiname  : "Select Linked",
-    apiname : "spline.select_linked_pick",
+    toolpath : "spline.select_linked_pick",
 
     inputs : ToolOp.inherit(),
     is_modal : true
@@ -360,7 +360,7 @@ export class HideOp extends SelectOpBase {
   }
 
   static tooldef() {return {
-    apiname : "spline.hide",
+    toolpath : "spline.hide",
     uiname : "Hide",
 
     inputs : ToolOp.inherit({
@@ -433,7 +433,7 @@ export class UnhideOp extends ToolOp {
   }
 
   static tooldef() {return {
-    apiname : "spline.unhide",
+    toolpath : "spline.unhide",
     uiname : "Unhide",
 
     inputs : ToolOp.inherit({
@@ -527,7 +527,7 @@ export class CircleSelectOp extends SelectOpBase {
   }
 
   static tooldef() { return {
-    apiname  : "view2d.circle_select",
+    toolpath  : "view2d.circle_select",
     uiname   : "Circle Select",
 
     //note that for the inherited mode property,

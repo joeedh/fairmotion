@@ -27,7 +27,7 @@ export class AddLayerOp extends SplineLayerOp {
 
   static tooldef() {return {
     uiname   : "Add Layer",
-    apiname  : "spline.layers.add",
+    toolpath  : "spline.layers.add",
 
     inputs   : ToolOp.inherit({
       name        : new StringProperty("Layer", "name", "Name", "Layer Name"),
@@ -85,7 +85,7 @@ export class AddLayerOp extends SplineLayerOp {
 export class ChangeLayerOp extends SplineLayerOp {
   static tooldef() {return {
     uiname   : "Change Layer",
-    apiname  : "spline.layers.set",
+    toolpath  : "spline.layers.set",
   
     inputs   : ToolOp.inherit({
       layerid : new IntProperty(0, "layerid", "layerid", "Layer ID")
@@ -215,7 +215,7 @@ export class DeleteLayerOp extends SplineLayerOp {
   
   static tooldef() {return {
     uiname   : "Delete Layer",
-    apiname  : "spline.layers.remove",
+    toolpath  : "spline.layers.remove",
     
     inputs   : ToolOp.inherit({
       layer_id : new IntProperty(-1)

@@ -18,6 +18,8 @@ import * as html5_fileapi from './fileapi/fileapi.js';
 
 import {FullContext, BaseContext, BaseContextOverlay} from "./context.js";
 
+import {makeAPI} from './data_api/data_api_new.js';
+
 export {FullContext, BaseContext, BaseContextOverlay} from "./context.js";
 import {BlockTypeMap} from './lib_api.js';
 import {SplineFrameSet} from "./frameset.js";
@@ -39,6 +41,8 @@ import cconst from '../path.ux/scripts/config/const.js';
 import {termColor} from '../path.ux/scripts/util/util.js';
 
 cconst.loadConstants(config.PathUXConstants);
+
+import {USE_PATHUX_API} from './const.js';
 
 //set iconsheets, need to find proper place for it other than here in AppState.js
 iconmanager.reset(16);
@@ -489,10 +493,16 @@ export class AppState {
     this.was_touch = false;
     this.toolstack = new ToolStack(this);
     this.active_view2d = undefined;
-    this.api = new DataAPI(this);
 
-    this.pathcontroller = new PathUXInterface(this.api);
-    this.pathcontroller.setContext(new FullContext(this));
+    if (USE_PATHUX_API) {
+      this.api = makeAPI();
+      this.pathcontroller = this.api;
+    } else {
+      this.api = new DataAPI(this);
+
+      this.pathcontroller = new PathUXInterface(this.api);
+      this.pathcontroller.setContext(new FullContext(this));
+    }
 
     this.filepath = ""
     this.version = g_app_version;

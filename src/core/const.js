@@ -5,6 +5,8 @@ import '../config/config.js';
 
 /* various constant (except for DEBUG) globals */
 
+export const USE_PATHUX_API = true;
+
 //file extension
 window.fairmotion_file_ext = ".fmo";
 window.fairmotion_settings_filename = ".settings.bin";

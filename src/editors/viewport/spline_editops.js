@@ -1,6 +1,6 @@
 import {IntProperty, FloatProperty, CollectionProperty,
         BoolProperty, TPropFlags, StringProperty} from '../../core/toolprops.js';
-import {ToolOp, UndoFlags, ToolFlags, ModalStates} from '../../core/toolops_api.js';
+import {ToolOp, UndoFlags, ToolFlags, ModalStates, ToolMacro} from '../../core/toolops_api.js';
 import {SplineFlags, SplineTypes, RecalcFlags} from '../../curve/spline_types.js';
 import {RestrictFlags, Spline} from '../../curve/spline.js';
 import {VDAnimFlags} from '../../core/frameset.js';
@@ -8,13 +8,16 @@ import {TPropFlags} from '../../core/toolprops.js';
 import '../../path.ux/scripts/util/struct.js'; //get istruct
 import {redo_draw_sort} from '../../curve/spline_draw.js';
 
+import {FullContext} from "../../core/context.js";
+import {TranslateOp} from './transform.js';
+
 export class KeyCurrentFrame extends ToolOp {
   constructor() {
     super();
   }
   
   static tooldef() { return {
-    apiname  : "spline.key_current_frame",
+    toolpath  : "spline.key_current_frame",
     uiname   : "Key Selected",
     inputs   : {},
     outputs  : {},
@@ -50,7 +53,7 @@ export class ShiftLayerOrderOp extends ToolOp {
   
   static tooldef() { return {
     uiname   : "Shift Layer Order",
-    apiname  : "spline.shift_layer_order",
+    toolpath  : "spline.shift_layer_order",
     
     inputs   : {
       layer_id : new IntProperty(0),
@@ -80,7 +83,7 @@ export class ShiftLayerOrderOp extends ToolOp {
 //for tools that modify both the draw spline and the path spline
 export class SplineGlobalToolOp extends ToolOp {
   constructor(apiname, uiname, description, icon) {
-    super(apiname, uiname, description, icon)
+    super()
   }
   
   //okay, this is silly.  just rely on default undo handlers,
@@ -172,7 +175,7 @@ export class SplineGlobalToolOp extends ToolOp {
 //(drawspline and pathspline) at once
 export class SplineLocalToolOp extends ToolOp {
   constructor(apiname, uiname, description, icon) {
-    super(apiname, uiname, description, icon)
+    super();
   }
   
   /*
@@ -240,7 +243,7 @@ export class KeyEdgesOp extends SplineLocalToolOp {
   
   static tooldef() { return {
     uiname   : "Key Edges",
-    apiname  : "spline.key_edges",
+    toolpath  : "spline.key_edges",
     
     inputs   : {},
     outputs  : {},
@@ -285,7 +288,7 @@ export class CopyPoseOp extends SplineLocalToolOp {
   
   static tooldef() { return {
     uiname   : "Copy Pose",
-    apiname  : "editor.copy_pose",
+    toolpath  : "editor.copy_pose",
     undoflag : UndoFlags.NO_UNDO,
     
     inputs   : {},
@@ -318,7 +321,7 @@ export class PastePoseOp extends SplineLocalToolOp {
   
   static tooldef() { return {
     uiname   : "Paste Pose",
-    apiname  : "editor.paste_pose",
+    toolpath  : "editor.paste_pose",
     
     inputs   : {
       //float array of 'eid; x, y, z; eid; x, y, z....
@@ -427,7 +430,7 @@ export class InterpStepModeOp extends ToolOp {
   
   static tooldef() { return {
     uiname   : "Toggle Step Mode",
-    apiname  : "spline.toggle_step_mode",
+    toolpath : "spline.toggle_step_mode",
     
     inputs   : {},
     
@@ -505,7 +508,7 @@ export class DeleteVertOp extends SplineLocalToolOp {
   
   static tooldef() { return {
     uiname   : "Delete Points/Segments",
-    apiname  : "spline.delete_verts",
+    toolpath  : "spline.delete_verts",
     
     inputs   : {},
     
@@ -555,7 +558,7 @@ export class DeleteSegmentOp extends ToolOp {
   
   static tooldef() { return {
     uiname   : "Delete Segments",
-    apiname  : "spline.delete_segments",
+    toolpath  : "spline.delete_segments",
     
     inputs   : {},
     
@@ -603,7 +606,7 @@ export class DeleteFaceOp extends SplineLocalToolOp {
   
   static tooldef() { return {
     uiname   : "Delete Faces",
-    apiname  : "spline.delete_faces",
+    toolpath  : "spline.delete_faces",
     
     inputs   : {},
     
@@ -698,7 +701,7 @@ export class ChangeFaceZ extends SplineLocalToolOp {
   
   static tooldef() { return {
     uiname   : "Set Order",
-    apiname  : "spline.change_face_z",
+    toolpath  : "spline.change_face_z",
     
     inputs   : {
       offset   : new IntProperty(1),
@@ -762,7 +765,7 @@ export class DissolveVertOp extends SplineLocalToolOp {
   
   static tooldef() { return {
     uiname   : "Collapse Points",
-    apiname  : "spline.dissolve_verts",
+    toolpath  : "spline.dissolve_verts",
     
     inputs   : {
       verts     : new CollectionProperty([], undefined, "verts", "verts"),
@@ -840,8 +843,7 @@ export class SplitEdgeOp extends SplineGlobalToolOp {
   
   static tooldef() { return {
     uiname   : "Split Segments",
-    apiname  : "spline.split_edges",
-    
+    toolpath : "spline.split_edges",
     inputs   : {},
     outputs  : {},
     
@@ -886,6 +888,40 @@ export class SplitEdgeOp extends SplineGlobalToolOp {
   }
 }
 
+export class SplitPickEdgeTransformOp extends ToolMacro {
+  static tooldef() {
+    return {
+      uiname   : "Split Segment",
+      toolpath : "spline.split_pick_edge_transform"
+    }
+  }
+
+  constructor() {
+    super();
+
+    let tool = new SplitEdgePickOp();
+    let tool2 = new TranslateOp(undefined, 1 | 2); //XXX import SplineTypes and use instead of this dumb magic number
+
+    ret.description = tool.description;
+    ret.icon = tool.icon;
+
+    this.add(tool);
+    this.add(tool2);
+
+    //XXX stupidly hackish way of passing last mouse position between tools
+    let modalEnd = tool.modalEnd;
+
+    tool.modalEnd = function () {
+      let ctx = tool.modal_ctx;
+
+      tool2.user_start_mpos = tool.mpos;
+      console.log("                 on_modal_end successfully called", tool2.user_start_mpos);
+
+      modalEnd.apply(tool, arguments);
+    };
+  }
+}
+
 export class SplitEdgePickOp extends SplineGlobalToolOp {
   mpos : Vector2;
 
@@ -895,8 +931,8 @@ export class SplitEdgePickOp extends SplineGlobalToolOp {
   }
   
   static tooldef() { return {
-    uiname   : "Split Segment",
-    apiname  : "spline.split_pick_edge",
+    uiname    : "Split Segment",
+    toolpath  : "spline.split_pick_edge",
     
     inputs   : {
       segment_eid : new IntProperty(-1, "segment_eid", "segment_eid", "segment_eid"),
@@ -1084,7 +1120,7 @@ export class ToggleBreakTanOp extends VertPropertyBaseOp {
   
   static tooldef() { return {
     uiname   : "Toggle Sharp Corners",
-    apiname  : "spline.toggle_break_tangents",
+    toolpath  : "spline.toggle_break_tangents",
     
     inputs   : {},
     outputs  : {},
@@ -1131,7 +1167,7 @@ export class ToggleBreakCurvOp extends VertPropertyBaseOp {
   
   static tooldef() { return {
     uiname   : "Toggle Broken Curvatures",
-    apiname  : "spline.toggle_break_curvature",
+    toolpath  : "spline.toggle_break_curvature",
     
     inputs   : {},
     outputs  : {},
@@ -1160,7 +1196,7 @@ export class ConnectHandlesOp extends ToolOp {
   
   static tooldef() { return {
     uiname   : "Connect Handles",
-    apiname  : "spline.connect_handles",
+    toolpath : "spline.connect_handles",
     
     inputs   : {},
     outputs  : {},
@@ -1213,7 +1249,7 @@ export class DisconnectHandlesOp extends ToolOp {
   
   static tooldef() { return {
     uiname   : "Disconnect Handles",
-    apiname  : "spline.disconnect_handles",
+    toolpath  : "spline.disconnect_handles",
     
     inputs   : {},
     outputs  : {},
@@ -1253,7 +1289,7 @@ export class CurveRootFinderTest extends ToolOp {
   
   static tooldef() { return {
     uiname   : "Test Closest Point Finder",
-    apiname  : "spline._test_closest_points",
+    toolpath  : "spline._test_closest_points",
     
     inputs   : {},
     outputs  : {},
@@ -1314,7 +1350,7 @@ export class DelVertFrame extends ToolOp {
   
   static tooldef() { return {
     uiname   : "Test Closest Point Finder",
-    apiname  : "spline._test_closest_points",
+    toolpath  : "spline._test_closest_points",
     
     inputs   : {},
     outputs  : {},
@@ -1344,7 +1380,7 @@ export class ToggleManualHandlesOp extends ToolOp {
   
   static tooldef() { return {
     uiname   : "Toggle Manual Handles",
-    apiname  : "spline.toggle_manual_handles",
+    toolpath  : "spline.toggle_manual_handles",
     
     inputs   : {},
     outputs  : {},
@@ -1408,7 +1444,7 @@ export class ShiftTimeOp extends ToolOp {
   
   static tooldef() { return {
     uiname   : "Move Keyframes",
-    apiname  : "spline.shift_time",
+    toolpath  : "spline.shift_time",
     
     inputs   : {
       factor : new FloatProperty(-1, "factor", "factor", "factor")
@@ -1577,6 +1613,28 @@ export class ShiftTimeOp extends ToolOp {
   }
 }
 
+/*
+export class DuplicateTransform extends ToolMacro {
+  static tooldef() {
+    return {
+      uiname : "Duplicate",
+      toolpath : "spline.duplicate_transform",
+      description : "Make a duplicate of selected geometry.",
+      icon : Icons.DUPLICATE
+    }
+  }
+
+  constructor() {
+    super();
+
+    let tool = new DuplicateOp();
+    this.add(tool);
+
+    var transop = new TranslateOp(ctx.view2d.mpos, 1|2);
+    this.add(transop);
+  }
+}*/
+
 export class DuplicateOp extends SplineLocalToolOp {
   constructor() {
     super(undefined, "Duplicate");
@@ -1584,7 +1642,7 @@ export class DuplicateOp extends SplineLocalToolOp {
   
   static tooldef() { return {
     uiname   : "Duplicate Geometry",
-    apiname  : "spline.duplicate",
+    toolpath : "spline.duplicate",
     
     inputs   : {},
     outputs  : {},
@@ -1741,7 +1799,7 @@ export class SplineMirrorOp extends SplineLocalToolOp {
     
     static tooldef() { return {
       uiname   : "Flip Horizontally",
-      apiname  : "spline.mirror_verts",
+      toolpath : "spline.mirror_verts",
       
       inputs   : {},
       outputs  : {},
@@ -1787,13 +1845,10 @@ export class SplineMirrorOp extends SplineLocalToolOp {
     }
 }
 
-import {FullContext} from "../../core/context.js";
-
 export class VertexSmoothOp extends SplineLocalToolOp {
   static tooldef() {return {
     uiname : "Smooth Control Points",
     toolpath : "spline.vertex_smooth",
-    apiname : "spline.vertex_smooth",
     inputs : ToolOp.inherit({
       repeat : new IntProperty(1).saveLastValue().setRange(1, 1024).saveLastValue(),
       factor : new FloatProperty(0.5).noUnits().setRange(0.0, 1.0).saveLastValue(),

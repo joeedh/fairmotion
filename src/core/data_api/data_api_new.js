@@ -1,4 +1,6 @@
 "use strict";
+import {DataAPI, buildToolSysAPI} from '../../path.ux/scripts/pathux.js';
+
 import {DataTypes} from '../lib_api.js';
 import {EditModes, View2DHandler} from '../../editors/viewport/view2d.js';
 import {ImageFlags, Image, ImageUser} from '../imageblock.js';
@@ -30,6 +32,8 @@ import {OpStackEditor} from '../../editors/ops/ops_editor.js';
 import {AnimKeyFlags, AnimInterpModes, AnimKey} from '../animdata.js';
 import {VDAnimFlags, SplineFrameSet} from '../frameset.js';
 
+import {SessionFlags} from '../../editors/viewport/view2d_base.js';
+import {SplineToolMode} from '../../editors/viewport/toolmodes/splinetool.js';
 import {ExtrudeModes} from '../../editors/viewport/spline_createops.js';
 import {SplineLayerFlags} from '../../curve/spline_element_array.js';
 import {Material, SplineFace, SplineSegment, SplineVertex} from "../../curve/spline_types.js";
@@ -41,10 +45,12 @@ import {Scene} from "../../scene/scene.js";
 import {Spline} from "../../curve/spline.js";
 import {DataLib, DataBlock, DataList} from "../lib_api.js";
 
-export function makeAPI(api) {
+export function makeAPI(api = new DataAPI()) {
   var FullContextStruct = api.mapStruct(FullContext, true);
 
   function api_define_FullContext(api) {
+    FullContextStruct.struct("last_tool", "last_tool");
+
     FullContextStruct.struct("view2d", "view2d", "undefined", api.mapStruct(View2DHandler, true));
     FullContextStruct.struct("dopesheet", "dopesheet", "undefined", api.mapStruct(DopeSheetEditor, true));
     FullContextStruct.struct("editcurve", "editcurve", "undefined", api.mapStruct(CurveEditor, true));
@@ -53,8 +59,6 @@ export function makeAPI(api) {
     FullContextStruct.struct("appstate.session.settings", "settings", "undefined", api.mapStruct(AppSettings, true));
     FullContextStruct.struct("object", "object", "undefined", api.mapStruct(SceneObject, true));
     FullContextStruct.struct("scene", "scene", "undefined", api.mapStruct(Scene, true));
-
-    /*WARNING: failed to resolve a class*/
     FullContextStruct.struct("", "last_tool", "undefined", undefined);
     FullContextStruct.struct("appstate", "appstate", "undefined", api.mapStruct(AppState, true));
     FullContextStruct.list("appstate.toolstack.undostack", "operator_stack", [
@@ -66,44 +70,48 @@ export function makeAPI(api) {
       },
       function getStruct(api, list, key) {
         OpStackArray.flag|=DataFlags.RECALC_CACHE;
-      if (tool.apistruct!=undefined) {
+        if (tool.apistruct!=undefined) {
           tool.apistruct.flag|=DataFlags.RECALC_CACHE;
           return tool.apistruct;
-      }
-      tool.apistruct = g_app_state.toolstack.gen_tool_datastruct(tool);
-      tool.apistruct.flag|=DataFlags.RECALC_CACHE;
-      return tool.apistruct;
+        }
+        tool.apistruct = g_app_state.toolstack.gen_tool_datastruct(tool);
+        tool.apistruct.flag|=DataFlags.RECALC_CACHE;
+        return tool.apistruct;
       },
       function getLength(api, list) {
         return g_app_state.toolstack.undostack.length;
       },
-  /*function getkeyiter() {
-      function* range(len) {
-        for (var i=0; i<len; i++) {
-            yield i;
-        }
-      }
-      return range(g_app_state.toolstack.undostack.length)[Symbol.iterator]();
-    }*/
-  /*function getitempath(key) {
-      return "["+key+"]";
-    }*/
+      /*function getkeyiter() {
+          function* range(len) {
+            for (var i=0; i<len; i++) {
+                yield i;
+            }
+          }
+          return range(g_app_state.toolstack.undostack.length)[Symbol.iterator]();
+        }*/
+      /*function getitempath(key) {
+          return "["+key+"]";
+        }*/
     ]);
-    FullContextStruct.struct("spline", "spline", "undefined", api.mapStruct(Spline, true));
-    FullContextStruct.struct("datalib", "datalib", "undefined", api.mapStruct(DataLib, true));
-    FullContextStruct.struct("opseditor", "opseditor", "undefined", api.mapStruct(OpStackEditor, true));
+    FullContextStruct.struct("spline", "spline", "Spline", api.mapStruct(Spline, true));
+    FullContextStruct.struct("datalib", "datalib", "datalib", api.mapStruct(DataLib, true));
+    FullContextStruct.struct("opseditor", "opseditor", "Ops Editor", api.mapStruct(OpStackEditor, true));
+    FullContextStruct.dynamicStruct("toolmode", "active_tool", "ToolMode", api.mapStruct(SplineToolMode, true));
+
+    buildToolSysAPI(api, true, FullContextStruct);
   }
 
   var View2DHandlerStruct = api.mapStruct(View2DHandler, true);
 
   function api_define_View2DHandler(api) {
+    View2DHandlerStruct.float("propradius", "propradius", "Magnet Radius").range(0.1, 1024).step(0.5).expRate(1.75).decimalPlaces(2);
     View2DHandlerStruct.bool("edit_all_layers", "edit_all_layers", "Edit All Layers").on("change", function(old) {return (function () {
-        redraw_viewport();
-      }).call(this.dataref, old)});
+      redraw_viewport();
+    }).call(this.dataref, old)});
     View2DHandlerStruct.bool("half_pix_size", "half_pix_size", "half_pix_size");
     View2DHandlerStruct.vec3("background_color", "background_color", "Background").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function(old) {return (function () {
-        window.redraw_viewport();
-      }).call(this.dataref, old)});
+      window.redraw_viewport();
+    }).call(this.dataref, old)});
     View2DHandlerStruct.vec2("default_stroke", "default_stroke", "Stroke").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4);
     View2DHandlerStruct.vec2("default_fill", "default_fill", "Fill").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4);
     View2DHandlerStruct.enum("toolmode", "toolmode", ToolModes, "Active Tool").uiNames(ToolModes).descriptions(ToolModes).icons(ToolModes);
@@ -114,42 +122,46 @@ export function makeAPI(api) {
       return this.selectmode;
     });
     View2DHandlerStruct.flags("selectmode", "selectmask", SelMask, "[object Object]").uiNames(SelMask).descriptions(SelMask).icons({
-        1       : Icons.VERT_MODE,
-        2       : Icons.SHOW_HANDLES,
-        4       : Icons.EDGE_MODE,
-        16      : Icons.FACE_MODE,
-        32      : Icons.OBJECT_MODE,
-        VERTEX  : Icons.VERT_MODE,
-        HANDLE  : Icons.SHOW_HANDLES,
-        SEGMENT : Icons.EDGE_MODE,
-        FACE    : Icons.FACE_MODE,
-        OBJECT  : Icons.OBJECT_MODE
-      }).on("change", function(old) {return (function () {
-        window.redraw_viewport();
-      }).call(this.dataref, old)});
+      1       : Icons.VERT_MODE,
+      2       : Icons.SHOW_HANDLES,
+      4       : Icons.EDGE_MODE,
+      16      : Icons.FACE_MODE,
+      32      : Icons.OBJECT_MODE,
+      VERTEX  : Icons.VERT_MODE,
+      HANDLE  : Icons.SHOW_HANDLES,
+      SEGMENT : Icons.EDGE_MODE,
+      FACE    : Icons.FACE_MODE,
+      OBJECT  : Icons.OBJECT_MODE
+    }).on("change", function(old) {return (function () {
+      window.redraw_viewport();
+    }).call(this.dataref, old)});
     View2DHandlerStruct.bool("only_render", "only_render", "Hide Controls");
     View2DHandlerStruct.bool("draw_bg_image", "draw_bg_image", "Draw Image").on("change", function(old) {return (function () {
-        window.redraw_viewport();
-      }).call(this.dataref, old)});
+      window.redraw_viewport();
+    }).call(this.dataref, old)});
+    View2DHandlerStruct.flags("session_flag", "session_flag", SessionFlags, "Session Flags").uiNames(SessionFlags).descriptions(SessionFlags).icons({
+      1              : Icons.PROP_TRANSFORM,
+      PROP_TRANSFORM : Icons.PROP_TRANSFORM
+    });
     View2DHandlerStruct.bool("tweak_mode", "tweak_mode", "Tweak Mode");
     View2DHandlerStruct.bool("enable_blur", "enable_blur", "Blur").on("change", function(old) {return (function () {
-        this.ctx.spline.regen_sort();
-        redraw_viewport();
-      }).call(this.dataref, old)});
+      this.ctx.spline.regen_sort();
+      redraw_viewport();
+    }).call(this.dataref, old)});
     View2DHandlerStruct.bool("draw_faces", "draw_faces", "Show Faces").on("change", function(old) {return (function () {
-        this.ctx.spline.regen_sort();
-        redraw_viewport();
-      }).call(this.dataref, old)});
+      this.ctx.spline.regen_sort();
+      redraw_viewport();
+    }).call(this.dataref, old)});
     View2DHandlerStruct.bool("draw_video", "draw_video", "Draw Video").on("change", function(old) {return (function () {
-        window.redraw_viewport();
-      }).call(this.dataref, old)});
+      window.redraw_viewport();
+    }).call(this.dataref, old)});
     View2DHandlerStruct.bool("draw_normals", "draw_normals", "Show Normals").on("change", function(old) {return (function () {
-        redraw_viewport();
-      }).call(this.dataref, old)});
+      redraw_viewport();
+    }).call(this.dataref, old)});
     View2DHandlerStruct.bool("draw_anim_paths", "draw_anim_paths", "Show Animation Paths");
     View2DHandlerStruct.float("zoom", "zoom", "Zoom").range(0.1, 100).uiRange(0.1, 100).step(0.1).expRate(1.2).decimalPlaces(3).on("change", function(old) {return (function (ctx, path) {
-        this.ctx.view2d.set_zoom(this.data);
-      }).call(this.dataref, old)});
+      this.ctx.view2d.set_zoom(this.data);
+    }).call(this.dataref, old)});
     View2DHandlerStruct.struct("active_material", "active_material", "undefined", api.mapStruct(Material, true));
     View2DHandlerStruct.float("default_linewidth", "default_linewidth", "Line Wid").range(0.01, 100).step(0.1).expRate(1.33).decimalPlaces(4);
     View2DHandlerStruct.enum("extrude_mode", "extrude_mode", ExtrudeModes, "New Line Mode").uiNames(ExtrudeModes).descriptions(ExtrudeModes).icons(ExtrudeModes);
@@ -161,25 +173,33 @@ export function makeAPI(api) {
 
   function api_define_Material(api) {
     MaterialStruct.vec2("fillcolor", "fillcolor", "fill").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function(old) {return (function (material) {
-        material.update();
-        window.redraw_viewport();
-      }).call(this.dataref, old)});
-    MaterialStruct.float("linewidth", "linewidth", "linewidth").range(0.1, 200).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function(old) {return (function (material) {
-        material.update();
-        window.redraw_viewport();
-      }).call(this.dataref, old)});
+      material.update();
+      window.redraw_viewport();
+    }).call(this.dataref, old)});
+    MaterialStruct.float("linewidth", "linewidth", "linewidth").range(0.1, 2500).step(0.25).expRate(1.75).decimalPlaces(4).on("change", function(old) {return (function (material) {
+      material.update();
+      window.redraw_viewport();
+    }).call(this.dataref, old)});
+    MaterialStruct.float("linewidth2", "linewidth2", "linewidth2").step(0.25).expRate(1.75).decimalPlaces(4).on("change", function(old) {return (function (material) {
+      material.update();
+      window.redraw_viewport();
+    }).call(this.dataref, old)});
     MaterialStruct.flags("flag", "flag", MaterialFlags, "material flags").uiNames(MaterialFlags).descriptions(MaterialFlags).icons(DataTypes).on("change", function(old) {return (function (material) {
-        material.update();
-        window.redraw_viewport();
-      }).call(this.dataref, old)});
+      material.update();
+      window.redraw_viewport();
+    }).call(this.dataref, old)});
     MaterialStruct.vec2("strokecolor", "strokecolor", "Stroke").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function(old) {return (function (material) {
-        material.update();
-        window.redraw_viewport();
-      }).call(this.dataref, old)});
+      material.update();
+      window.redraw_viewport();
+    }).call(this.dataref, old)});
     MaterialStruct.float("blur", "blur", "Blur").step(0.5).expRate(1.33).decimalPlaces(4).on("change", function(old) {return (function (material) {
-        material.update();
-        window.redraw_viewport();
-      }).call(this.dataref, old)});
+      material.update();
+      window.redraw_viewport();
+    }).call(this.dataref, old)});
+    MaterialStruct.vec2("strokecolor2", "strokecolor2", "Double Stroke").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function(old) {return (function (material) {
+      material.update();
+      window.redraw_viewport();
+    }).call(this.dataref, old)});
   }
 
   var ImageUserStruct = api.mapStruct(ImageUser, true);
@@ -194,21 +214,21 @@ export function makeAPI(api) {
 
   function api_define_DopeSheetEditor(api) {
     DopeSheetEditorStruct.bool("selected_only", "selected_only", "Selected Only").on("change", function(old) {return (function (owner) {
-        owner.rebuild();
-      }).call(this.dataref, old)});
+      owner.rebuild();
+    }).call(this.dataref, old)});
     DopeSheetEditorStruct.bool("pinned", "pinned", "Pin");
     DopeSheetEditorStruct.float("timescale", "timescale", "timescale").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function(old) {return (function (owner) {
-        owner.updateKeyPositions();
-      }).call(this.dataref, old)});
+      owner.updateKeyPositions();
+    }).call(this.dataref, old)});
   }
 
   var CurveEditorStruct = api.mapStruct(CurveEditor, true);
 
   function api_define_CurveEditor(api) {
     CurveEditorStruct.bool("selected_only", "selected_only", "Selected Only").on("change", function(old) {return (function () {
-        if (this.ctx!=undefined&&this.ctx.editcurve!=undefined)
-          this.ctx.editcurve.do_full_recalc();
-      }).call(this.dataref, old)});
+      if (this.ctx!=undefined&&this.ctx.editcurve!=undefined)
+        this.ctx.editcurve.do_full_recalc();
+    }).call(this.dataref, old)});
     CurveEditorStruct.bool("pinned", "pinned", "Pin");
   }
 
@@ -229,27 +249,27 @@ export function makeAPI(api) {
       function getLength(api, list) {
         var tot=0.0;
         for (var k in list) {
-            tot++;
+          tot++;
         }
         return tot;
       },
-  /*function getkeyiter() {
-        return new obj_key_iter(this);
-      }*/
-  /*function itempath(key) {
-        return "["+key+"]";
-      }*/
+      /*function getkeyiter() {
+            return new obj_key_iter(this);
+          }*/
+      /*function itempath(key) {
+            return "["+key+"]";
+          }*/
     ]);
     SplineFrameSetStruct.struct("spline", "drawspline", "undefined", api.mapStruct(Spline, true));
     SplineFrameSetStruct.struct("pathspline", "pathspline", "undefined", api.mapStruct(Spline, true));
     SplineFrameSetStruct.list("vertex_animdata", "keypaths", [
       function getIter(api, list) {
         let list2=list;
-          return (function* () {
-            for (let k in list2) {
-                yield list2[k];
-            }
-          })();
+        return (function* () {
+          for (let k in list2) {
+            yield list2[k];
+          }
+        })();
       },
       function get(api, list, key) {
         return list[key];
@@ -259,22 +279,22 @@ export function makeAPI(api) {
       },
       function getLength(api, list) {
         let i=0;
-          for (let k in list) {
-              i++;
-          }
-          return i;
+        for (let k in list) {
+          i++;
+        }
+        return i;
       },
-  /*function getkeyiter() {
-          var keys=Object.keys(this);
-          var ret=new GArray();
-          for (var i=0; i<keys.length; i++) {
-              ret.push(keys[i]);
-          }
-          return ret;
-        }*/
-  /*function itempath(key) {
-          return "["+key+"]";
-        }*/
+      /*function getkeyiter() {
+              var keys=Object.keys(this);
+              var ret=new GArray();
+              for (var i=0; i<keys.length; i++) {
+                  ret.push(keys[i]);
+              }
+              return ret;
+            }*/
+      /*function itempath(key) {
+              return "["+key+"]";
+            }*/
     ]);
     SplineFrameSetStruct.struct("active_animdata", "active_keypath", "undefined", api.mapStruct(VertexAnimData, true));
   }
@@ -296,16 +316,16 @@ export function makeAPI(api) {
       function getLength(api, list) {
         var tot=0.0;
         for (var k in list) {
-            tot++;
+          tot++;
         }
         return tot;
       },
-  /*function getkeyiter() {
-        return new obj_key_iter(this);
-      }*/
-  /*function itempath(key) {
-        return "["+key+"]";
-      }*/
+      /*function getkeyiter() {
+            return new obj_key_iter(this);
+          }*/
+      /*function itempath(key) {
+            return "["+key+"]";
+          }*/
     ]);
     SplineStruct.struct("faces.active", "active_face", "undefined", api.mapStruct(SplineFace, true));
     SplineStruct.struct("segments.active", "active_segment", "undefined", api.mapStruct(SplineSegment, true));
@@ -323,17 +343,17 @@ export function makeAPI(api) {
       function getLength(api, list) {
         return list.length;
       },
-  /*function getkeyiter() {
-          var keys=Object.keys(this.local_idmap);
-          var ret=new GArray();
-          for (var i=0; i<keys.length; i++) {
-              ret.push(keys[i]);
-          }
-          return ret;
-        }*/
-  /*function itempath(key) {
-          return ".local_idmap["+key+"]";
-        }*/
+      /*function getkeyiter() {
+              var keys=Object.keys(this.local_idmap);
+              var ret=new GArray();
+              for (var i=0; i<keys.length; i++) {
+                  ret.push(keys[i]);
+              }
+              return ret;
+            }*/
+      /*function itempath(key) {
+              return ".local_idmap["+key+"]";
+            }*/
     ]);
     SplineStruct.list("segments", "segments", [
       function getIter(api, list) {
@@ -348,17 +368,17 @@ export function makeAPI(api) {
       function getLength(api, list) {
         return list.length;
       },
-  /*function getkeyiter() {
-          var keys=Object.keys(this.local_idmap);
-          var ret=new GArray();
-          for (var i=0; i<keys.length; i++) {
-              ret.push(keys[i]);
-          }
-          return ret;
-        }*/
-  /*function itempath(key) {
-          return ".local_idmap["+key+"]";
-        }*/
+      /*function getkeyiter() {
+              var keys=Object.keys(this.local_idmap);
+              var ret=new GArray();
+              for (var i=0; i<keys.length; i++) {
+                  ret.push(keys[i]);
+              }
+              return ret;
+            }*/
+      /*function itempath(key) {
+              return ".local_idmap["+key+"]";
+            }*/
     ]);
     SplineStruct.list("verts", "verts", [
       function getIter(api, list) {
@@ -373,17 +393,17 @@ export function makeAPI(api) {
       function getLength(api, list) {
         return list.length;
       },
-  /*function getkeyiter() {
-          var keys=Object.keys(this.local_idmap);
-          var ret=new GArray();
-          for (var i=0; i<keys.length; i++) {
-              ret.push(keys[i]);
-          }
-          return ret;
-        }*/
-  /*function itempath(key) {
-          return ".local_idmap["+key+"]";
-        }*/
+      /*function getkeyiter() {
+              var keys=Object.keys(this.local_idmap);
+              var ret=new GArray();
+              for (var i=0; i<keys.length; i++) {
+                  ret.push(keys[i]);
+              }
+              return ret;
+            }*/
+      /*function itempath(key) {
+              return ".local_idmap["+key+"]";
+            }*/
     ]);
     SplineStruct.list("handles", "handles", [
       function getIter(api, list) {
@@ -398,17 +418,17 @@ export function makeAPI(api) {
       function getLength(api, list) {
         return list.length;
       },
-  /*function getkeyiter() {
-          var keys=Object.keys(this.local_idmap);
-          var ret=new GArray();
-          for (var i=0; i<keys.length; i++) {
-              ret.push(keys[i]);
-          }
-          return ret;
-        }*/
-  /*function itempath(key) {
-          return ".local_idmap["+key+"]";
-        }*/
+      /*function getkeyiter() {
+              var keys=Object.keys(this.local_idmap);
+              var ret=new GArray();
+              for (var i=0; i<keys.length; i++) {
+                  ret.push(keys[i]);
+              }
+              return ret;
+            }*/
+      /*function itempath(key) {
+              return ".local_idmap["+key+"]";
+            }*/
     ]);
     SplineStruct.list("faces", "editable_faces", [
       function getIter(api, list) {
@@ -422,21 +442,21 @@ export function makeAPI(api) {
       },
       function getLength(api, list) {
         let len=0;
-          for (let e of list.selected.editable(g_app_state.ctx)) {
-              len++;
-          }
-          return len;
+        for (let e of list.selected.editable(g_app_state.ctx)) {
+          len++;
+        }
+        return len;
       },
-  /*function getkeyiter(ctx) {
-          var keys=new GArray();
-          for (let e of this.editable(ctx)) {
-              keys.push(e.eid);
-          }
-          return keys;
-        }*/
-  /*function itempath(key) {
-          return ".local_idmap["+key+"]";
-        }*/
+      /*function getkeyiter(ctx) {
+              var keys=new GArray();
+              for (let e of this.editable(ctx)) {
+                  keys.push(e.eid);
+              }
+              return keys;
+            }*/
+      /*function itempath(key) {
+              return ".local_idmap["+key+"]";
+            }*/
     ]);
     SplineStruct.list("segments", "editable_segments", [
       function getIter(api, list) {
@@ -450,21 +470,21 @@ export function makeAPI(api) {
       },
       function getLength(api, list) {
         let len=0;
-          for (let e of list.selected.editable(g_app_state.ctx)) {
-              len++;
-          }
-          return len;
+        for (let e of list.selected.editable(g_app_state.ctx)) {
+          len++;
+        }
+        return len;
       },
-  /*function getkeyiter(ctx) {
-          var keys=new GArray();
-          for (let e of this.editable(ctx)) {
-              keys.push(e.eid);
-          }
-          return keys;
-        }*/
-  /*function itempath(key) {
-          return ".local_idmap["+key+"]";
-        }*/
+      /*function getkeyiter(ctx) {
+              var keys=new GArray();
+              for (let e of this.editable(ctx)) {
+                  keys.push(e.eid);
+              }
+              return keys;
+            }*/
+      /*function itempath(key) {
+              return ".local_idmap["+key+"]";
+            }*/
     ]);
     SplineStruct.list("verts", "editable_verts", [
       function getIter(api, list) {
@@ -478,21 +498,21 @@ export function makeAPI(api) {
       },
       function getLength(api, list) {
         let len=0;
-          for (let e of list.selected.editable(g_app_state.ctx)) {
-              len++;
-          }
-          return len;
+        for (let e of list.selected.editable(g_app_state.ctx)) {
+          len++;
+        }
+        return len;
       },
-  /*function getkeyiter(ctx) {
-          var keys=new GArray();
-          for (let e of this.editable(ctx)) {
-              keys.push(e.eid);
-          }
-          return keys;
-        }*/
-  /*function itempath(key) {
-          return ".local_idmap["+key+"]";
-        }*/
+      /*function getkeyiter(ctx) {
+              var keys=new GArray();
+              for (let e of this.editable(ctx)) {
+                  keys.push(e.eid);
+              }
+              return keys;
+            }*/
+      /*function itempath(key) {
+              return ".local_idmap["+key+"]";
+            }*/
     ]);
     SplineStruct.list("handles", "editable_handles", [
       function getIter(api, list) {
@@ -506,21 +526,21 @@ export function makeAPI(api) {
       },
       function getLength(api, list) {
         let len=0;
-          for (let e of list.selected.editable(g_app_state.ctx)) {
-              len++;
-          }
-          return len;
+        for (let e of list.selected.editable(g_app_state.ctx)) {
+          len++;
+        }
+        return len;
       },
-  /*function getkeyiter(ctx) {
-          var keys=new GArray();
-          for (let e of this.editable(ctx)) {
-              keys.push(e.eid);
-          }
-          return keys;
-        }*/
-  /*function itempath(key) {
-          return ".local_idmap["+key+"]";
-        }*/
+      /*function getkeyiter(ctx) {
+              var keys=new GArray();
+              for (let e of this.editable(ctx)) {
+                  keys.push(e.eid);
+              }
+              return keys;
+            }*/
+      /*function itempath(key) {
+              return ".local_idmap["+key+"]";
+            }*/
     ]);
     SplineStruct.list("faces", "selected_facese", [
       function getIter(api, list) {
@@ -534,21 +554,21 @@ export function makeAPI(api) {
       },
       function getLength(api, list) {
         let len=0;
-          for (let e of list.selected.editable(g_app_state.ctx)) {
-              len++;
-          }
-          return len;
+        for (let e of list.selected.editable(g_app_state.ctx)) {
+          len++;
+        }
+        return len;
       },
-  /*function getkeyiter(ctx) {
-          var keys=new GArray();
-          for (let e of this.editable(ctx)) {
-              keys.push(e.eid);
-          }
-          return keys;
-        }*/
-  /*function itempath(key) {
-          return ".local_idmap["+key+"]";
-        }*/
+      /*function getkeyiter(ctx) {
+              var keys=new GArray();
+              for (let e of this.editable(ctx)) {
+                  keys.push(e.eid);
+              }
+              return keys;
+            }*/
+      /*function itempath(key) {
+              return ".local_idmap["+key+"]";
+            }*/
     ]);
     SplineStruct.list("segments", "selected_segments", [
       function getIter(api, list) {
@@ -562,21 +582,21 @@ export function makeAPI(api) {
       },
       function getLength(api, list) {
         let len=0;
-          for (let e of list.selected.editable(g_app_state.ctx)) {
-              len++;
-          }
-          return len;
+        for (let e of list.selected.editable(g_app_state.ctx)) {
+          len++;
+        }
+        return len;
       },
-  /*function getkeyiter(ctx) {
-          var keys=new GArray();
-          for (let e of this.editable(ctx)) {
-              keys.push(e.eid);
-          }
-          return keys;
-        }*/
-  /*function itempath(key) {
-          return ".local_idmap["+key+"]";
-        }*/
+      /*function getkeyiter(ctx) {
+              var keys=new GArray();
+              for (let e of this.editable(ctx)) {
+                  keys.push(e.eid);
+              }
+              return keys;
+            }*/
+      /*function itempath(key) {
+              return ".local_idmap["+key+"]";
+            }*/
     ]);
     SplineStruct.list("verts", "selected_verts", [
       function getIter(api, list) {
@@ -590,21 +610,21 @@ export function makeAPI(api) {
       },
       function getLength(api, list) {
         let len=0;
-          for (let e of list.selected.editable(g_app_state.ctx)) {
-              len++;
-          }
-          return len;
+        for (let e of list.selected.editable(g_app_state.ctx)) {
+          len++;
+        }
+        return len;
       },
-  /*function getkeyiter(ctx) {
-          var keys=new GArray();
-          for (let e of this.editable(ctx)) {
-              keys.push(e.eid);
-          }
-          return keys;
-        }*/
-  /*function itempath(key) {
-          return ".local_idmap["+key+"]";
-        }*/
+      /*function getkeyiter(ctx) {
+              var keys=new GArray();
+              for (let e of this.editable(ctx)) {
+                  keys.push(e.eid);
+              }
+              return keys;
+            }*/
+      /*function itempath(key) {
+              return ".local_idmap["+key+"]";
+            }*/
     ]);
     SplineStruct.list("handles", "selected_handles", [
       function getIter(api, list) {
@@ -618,21 +638,21 @@ export function makeAPI(api) {
       },
       function getLength(api, list) {
         let len=0;
-          for (let e of list.selected.editable(g_app_state.ctx)) {
-              len++;
-          }
-          return len;
+        for (let e of list.selected.editable(g_app_state.ctx)) {
+          len++;
+        }
+        return len;
       },
-  /*function getkeyiter(ctx) {
-          var keys=new GArray();
-          for (let e of this.editable(ctx)) {
-              keys.push(e.eid);
-          }
-          return keys;
-        }*/
-  /*function itempath(key) {
-          return ".local_idmap["+key+"]";
-        }*/
+      /*function getkeyiter(ctx) {
+              var keys=new GArray();
+              for (let e of this.editable(ctx)) {
+                  keys.push(e.eid);
+              }
+              return keys;
+            }*/
+      /*function itempath(key) {
+              return ".local_idmap["+key+"]";
+            }*/
     ]);
     SplineStruct.list("layerset", "layerset", [
       function getIter(api, list) {
@@ -647,17 +667,17 @@ export function makeAPI(api) {
       function getLength(api, list) {
         return list.length;
       },
-  /*function getkeyiter() {
-        var keys=Object.keys(this.idmap);
-        var ret=new GArray();
-        for (var i=0; i<keys.length; i++) {
-            ret.push(keys[i]);
-        }
-        return ret;
-      }*/
-  /*function itempath(key) {
-        return ".idmap["+key+"]";
-      }*/
+      /*function getkeyiter() {
+            var keys=Object.keys(this.idmap);
+            var ret=new GArray();
+            for (var i=0; i<keys.length; i++) {
+                ret.push(keys[i]);
+            }
+            return ret;
+          }*/
+      /*function itempath(key) {
+            return ".idmap["+key+"]";
+          }*/
     ]);
     SplineStruct.struct("layerset.active", "active_layer", "undefined", api.mapStruct(SplineLayer, true));
   }
@@ -668,28 +688,52 @@ export function makeAPI(api) {
     SplineFaceStruct.int("eid", "eid", "eid").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33);
     SplineFaceStruct.struct("mat", "mat", "undefined", api.mapStruct(Material, true));
     SplineFaceStruct.flags("flag", "flag", SplineFlags, "Flags").uiNames(SplineFlags).descriptions(SplineFlags).icons({
-        2                : Icons.EXTRUDE_MODE_G0,
-        32               : Icons.EXTRUDE_MODE_G1,
-        BREAK_TANGENTS   : Icons.EXTRUDE_MODE_G0,
-        BREAK_CURVATURES : Icons.EXTRUDE_MODE_G1
-      });
+      2                : Icons.EXTRUDE_MODE_G0,
+      32               : Icons.EXTRUDE_MODE_G1,
+      BREAK_TANGENTS   : Icons.EXTRUDE_MODE_G0,
+      BREAK_CURVATURES : Icons.EXTRUDE_MODE_G1
+    });
   }
 
   var SplineSegmentStruct = api.mapStruct(SplineSegment, true);
 
   function api_define_SplineSegment(api) {
+    SplineSegmentStruct.float("w1", "w1", "w1").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function(old) {return (function (segment) {
+      g_app_state.ctx.spline.regen_sort();
+      segment.mat.update();
+      segment.flag|=SplineFlags.REDRAW;
+      window.redraw_viewport();
+    }).call(this.dataref, old)});
+    SplineSegmentStruct.float("w2", "w2", "w2").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function(old) {return (function (segment) {
+      g_app_state.ctx.spline.regen_sort();
+      segment.mat.update();
+      segment.flag|=SplineFlags.REDRAW;
+      window.redraw_viewport();
+    }).call(this.dataref, old)});
+    SplineSegmentStruct.float("shift1", "shift1", "w1").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function(old) {return (function (segment) {
+      g_app_state.ctx.spline.regen_sort();
+      segment.mat.update();
+      segment.flag|=SplineFlags.REDRAW;
+      window.redraw_viewport();
+    }).call(this.dataref, old)});
+    SplineSegmentStruct.float("shift2", "shift2", "w2").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function(old) {return (function (segment) {
+      g_app_state.ctx.spline.regen_sort();
+      segment.mat.update();
+      segment.flag|=SplineFlags.REDRAW;
+      window.redraw_viewport();
+    }).call(this.dataref, old)});
     SplineSegmentStruct.int("eid", "eid", "eid").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33);
     SplineSegmentStruct.flags("flag", "flag", SplineFlags, "Flags").uiNames(SplineFlags).descriptions(SplineFlags).icons({
-        2                : Icons.EXTRUDE_MODE_G0,
-        32               : Icons.EXTRUDE_MODE_G1,
-        BREAK_TANGENTS   : Icons.EXTRUDE_MODE_G0,
-        BREAK_CURVATURES : Icons.EXTRUDE_MODE_G1
-      }).on("change", function(old) {return (function (segment) {
-        new Context().spline.regen_sort();
-        segment.flag|=SplineFlags.REDRAW;
-        console.log(segment);
-        window.redraw_viewport();
-      }).call(this.dataref, old)});
+      2                : Icons.EXTRUDE_MODE_G0,
+      32               : Icons.EXTRUDE_MODE_G1,
+      BREAK_TANGENTS   : Icons.EXTRUDE_MODE_G0,
+      BREAK_CURVATURES : Icons.EXTRUDE_MODE_G1
+    }).on("change", function(old) {return (function (segment) {
+      new Context().spline.regen_sort();
+      segment.flag|=SplineFlags.REDRAW;
+      console.log(segment);
+      window.redraw_viewport();
+    }).call(this.dataref, old)});
     SplineSegmentStruct.bool("renderable", "renderable", "renderable");
     SplineSegmentStruct.struct("mat", "mat", "undefined", api.mapStruct(Material, true));
     SplineSegmentStruct.float("z", "z", "z").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4);
@@ -700,21 +744,28 @@ export function makeAPI(api) {
   function api_define_SplineVertex(api) {
     SplineVertexStruct.int("eid", "eid", "eid").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33);
     SplineVertexStruct.flags("flag", "flag", SplineFlags, "Flags").uiNames(SplineFlags).descriptions(SplineFlags).icons({
-        2                : Icons.EXTRUDE_MODE_G0,
-        32               : Icons.EXTRUDE_MODE_G1,
-        BREAK_TANGENTS   : Icons.EXTRUDE_MODE_G0,
-        BREAK_CURVATURES : Icons.EXTRUDE_MODE_G1
-      }).on("change", function(old) {return (function (owner) {
-        this.ctx.spline.regen_sort();
-        console.log("vertex update", owner);
-        if (owner!==undefined) {
-            owner.flag|=SplineFlags.UPDATE;
-        }
-        this.ctx.spline.propagate_update_flags();
-        this.ctx.spline.resolve = 1;
-        window.redraw_viewport();
-      }).call(this.dataref, old)});
+      2                : Icons.EXTRUDE_MODE_G0,
+      32               : Icons.EXTRUDE_MODE_G1,
+      BREAK_TANGENTS   : Icons.EXTRUDE_MODE_G0,
+      BREAK_CURVATURES : Icons.EXTRUDE_MODE_G1
+    }).on("change", function(old) {return (function (owner) {
+      this.ctx.spline.regen_sort();
+      if (owner!==undefined) {
+        owner.flag|=SplineFlags.UPDATE;
+      }
+      this.ctx.spline.propagate_update_flags();
+      this.ctx.spline.resolve = 1;
+      window.redraw_viewport();
+    }).call(this.dataref, old)});
     SplineVertexStruct.vec3("", "co", "Co").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4);
+    SplineVertexStruct.float("width", "width", "width").range(-50, 200).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function(old) {return (function (vert) {
+      vert.flag|=SplineFlags.REDRAW;
+      window.redraw_viewport();
+    }).call(this.dataref, old)});
+    SplineVertexStruct.float("shift", "shift", "shift").range(-2, 2).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function(old) {return (function (vert) {
+      vert.flag|=SplineFlags.REDRAW;
+      window.redraw_viewport();
+    }).call(this.dataref, old)});
   }
 
   var SplineLayerStruct = api.mapStruct(SplineLayer, true);
@@ -723,13 +774,13 @@ export function makeAPI(api) {
     SplineLayerStruct.int("id", "id", "id").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33);
     ;
     SplineLayerStruct.flags("flag", "flag", SplineLayerFlags, "flag").uiNames({
-        8          : "Mask To Prev",
-        HIDE       : "Hide",
-        CAN_SELECT : "Can Select",
-        MASK       : "Mask"
-      }).descriptions(SplineLayerFlags).icons(DataTypes).on("change", function(old) {return (function () {
-        window.redraw_viewport();
-      }).call(this.dataref, old)});
+      8          : "Mask To Prev",
+      HIDE       : "Hide",
+      CAN_SELECT : "Can Select",
+      MASK       : "Mask"
+    }).descriptions(SplineLayerFlags).icons(DataTypes).on("change", function(old) {return (function () {
+      window.redraw_viewport();
+    }).call(this.dataref, old)});
   }
 
   var VertexAnimDataStruct = api.mapStruct(VertexAnimData, true);
@@ -748,34 +799,34 @@ export function makeAPI(api) {
 
   function api_define_AppSettings(api) {
     AppSettingsStruct.enum("unit_scheme", "unit_system", {
-        imperial : "imperial",
-        metric   : "metric"
-      }, "System").uiNames({
-        imperial : "Imperial",
-        metric   : "Metric"
-      }).descriptions({
-        imperial : "Imperial",
-        metric   : "Metric"
-      }).icons(DataTypes).on("change", function(old) {return (function () {
+      imperial : "imperial",
+      metric   : "metric"
+    }, "System").uiNames({
+      imperial : "Imperial",
+      metric   : "Metric"
+    }).descriptions({
+      imperial : "Imperial",
+      metric   : "Metric"
+    }).icons(DataTypes).on("change", function(old) {return (function () {
       g_app_state.session.settings.save();
     }).call(this.dataref, old)});
     AppSettingsStruct.enum("unit", "default_unit", {
-        cm   : "cm",
-        "in" : "in",
-        ft   : "ft",
-        m    : "m",
-        mm   : "mm",
-        km   : "km",
-        mile : "mile"
-      }, "Default Unit").descriptions({
-        cm   : "Cm",
-        "in" : "In",
-        ft   : "Ft",
-        m    : "M",
-        mm   : "Mm",
-        km   : "Km",
-        mile : "Mile"
-      }).icons(DataTypes).on("change", function(old) {return (function () {
+      cm   : "cm",
+      "in" : "in",
+      ft   : "ft",
+      m    : "m",
+      mm   : "mm",
+      km   : "km",
+      mile : "mile"
+    }, "Default Unit").descriptions({
+      cm   : "Cm",
+      "in" : "In",
+      ft   : "Ft",
+      m    : "M",
+      mm   : "Mm",
+      km   : "Km",
+      mile : "Mile"
+    }).icons(DataTypes).on("change", function(old) {return (function () {
       g_app_state.session.settings.save();
     }).call(this.dataref, old)});
   }
@@ -785,12 +836,12 @@ export function makeAPI(api) {
   function api_define_SceneObject(api) {
     ;
     SceneObjectStruct.vec3("ctx_bb", "ctx_bb", "Dimensions").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function(old) {return (function () {
-        if (this.ctx.mesh!==undefined)
-          this.ctx.mesh.regen_render();
-        if (this.ctx.view2d!==undefined&&this.ctx.view2d.selectmode&EditModes.GEOMETRY) {
-            this.ctx.object.dag_update();
-        }
-      }).call(this.dataref, old)});
+      if (this.ctx.mesh!==undefined)
+        this.ctx.mesh.regen_render();
+      if (this.ctx.view2d!==undefined&&this.ctx.view2d.selectmode&EditModes.GEOMETRY) {
+        this.ctx.object.dag_update();
+      }
+    }).call(this.dataref, old)});
   }
 
   var SceneStruct = api.mapStruct(Scene, true);
@@ -810,24 +861,24 @@ export function makeAPI(api) {
       function getLength(api, list) {
         var tot=0.0;
         for (var k in list) {
-            tot++;
+          tot++;
         }
         return tot;
       },
-  /*function getkeyiter() {
-        return new obj_key_iter(this);
-      }*/
-  /*function itempath(key) {
-        return "["+key+"]";
-      }*/
+      /*function getkeyiter() {
+            return new obj_key_iter(this);
+          }*/
+      /*function itempath(key) {
+            return "["+key+"]";
+          }*/
     ]);
     ;
     SceneStruct.int("time", "frame", "Frame").range(1, 10000).step(1).expRate(1.5).on("change", function(old) {return ((owner, old) =>      {
-        let time=owner.time;
-        owner.time = old;
-        owner.change_time(g_app_state.ctx, time);
-        window.redraw_viewport();
-      }).call(this.dataref, old)});
+      let time=owner.time;
+      owner.time = old;
+      owner.change_time(g_app_state.ctx, time);
+      window.redraw_viewport();
+    }).call(this.dataref, old)});
     SceneStruct.list("objects", "objects", [
       function getIter(api, list) {
         return new obj_value_iter(list.object_idmap);
@@ -842,12 +893,12 @@ export function makeAPI(api) {
       function getLength(api, list) {
         return list.objects.length;
       },
-  /*function getkeyiter() {
-        return new obj_key_iter(this.object_idmap);
-      }*/
-  /*function itempath(key) {
-        return ".object_idmap["+key+"]";
-      }*/
+      /*function getkeyiter() {
+            return new obj_key_iter(this.object_idmap);
+          }*/
+      /*function itempath(key) {
+            return ".object_idmap["+key+"]";
+          }*/
     ]);
     SceneStruct.struct("objects.active", "active_object", "undefined", api.mapStruct(SceneObject, true));
   }
@@ -862,18 +913,14 @@ export function makeAPI(api) {
   var DataLibStruct = api.mapStruct(DataLib, true);
 
   function api_define_DataLib(api) {
-    /*WARNING: failed to resolve a class*/
-    DataLibStruct.struct("datalists.items[8]", "image", "undefined", undefined);
-    DataLibStruct.struct("datalists.items[5]", "scene", "undefined", api.mapStruct(DataList, true));
-    /*WARNING: failed to resolve a class*/
-    DataLibStruct.struct("datalists.items[4]", "script", "undefined", undefined);
-    /*WARNING: failed to resolve a class*/
+    /*WARNING: failed to resolve a class: ctx.datalib.datalists.items[6] spline datalists.items[6] */
     DataLibStruct.struct("datalists.items[6]", "spline", "undefined", undefined);
     DataLibStruct.struct("datalists.items[7]", "frameset", "undefined", api.mapStruct(DataList, true));
-    /*WARNING: failed to resolve a class*/
-    DataLibStruct.struct("datalists.items[8]", "addon", "undefined", undefined);
-    /*WARNING: failed to resolve a class*/
-    DataLibStruct.struct("datalists.items[9]", "object", "undefined", undefined);
+    DataLibStruct.struct("datalists.items[9]", "object", "undefined", api.mapStruct(DataList, true));
+    DataLibStruct.struct("datalists.items[13]", "collection", "undefined", api.mapStruct(DataList, true));
+    DataLibStruct.struct("datalists.items[5]", "scene", "undefined", api.mapStruct(DataList, true));
+    /*WARNING: failed to resolve a class: ctx.datalib.datalists.items[8] image datalists.items[8] */
+    DataLibStruct.struct("datalists.items[8]", "image", "undefined", undefined);
   }
 
   var DataListStruct = api.mapStruct(DataList, true);
@@ -885,7 +932,7 @@ export function makeAPI(api) {
       function getIter(api, list) {
         let ret=[];
         for (var k in list) {
-            ret.push(list[k]);
+          ret.push(list[k]);
         }
         return ret[Symbol.iterator]();
       },
@@ -898,20 +945,20 @@ export function makeAPI(api) {
       function getLength(api, list) {
         let count=0;
         for (let k in list) {
-            count++;
+          count++;
         }
         return count;
       },
-  /*function getkeyiter() {
-        let ret=[];
-        for (var k in this) {
-            ret.push(k);
-        }
-        return ret[Symbol.iterator]();
-      }*/
-  /*function itempath(key) {
-        return "["+key+"]";
-      }*/
+      /*function getkeyiter() {
+            let ret=[];
+            for (var k in this) {
+                ret.push(k);
+            }
+            return ret[Symbol.iterator]();
+          }*/
+      /*function itempath(key) {
+            return "["+key+"]";
+          }*/
     ]);
   }
 
@@ -921,27 +968,34 @@ export function makeAPI(api) {
     OpStackEditorStruct.bool("filter_sel", "filter_sel", "Filter Sel");
   }
 
-    api_define_FullContext(api);
-    api_define_View2DHandler(api);
-    api_define_Material(api);
-    api_define_ImageUser(api);
-    api_define_DopeSheetEditor(api);
-    api_define_CurveEditor(api);
-    api_define_SplineFrameSet(api);
-    api_define_Spline(api);
-    api_define_SplineFace(api);
-    api_define_SplineSegment(api);
-    api_define_SplineVertex(api);
-    api_define_SplineLayer(api);
-    api_define_VertexAnimData(api);
-    api_define_SettingsEditor(api);
-    api_define_AppSettings(api);
-    api_define_SceneObject(api);
-    api_define_Scene(api);
-    api_define_AppState(api);
-    api_define_DataLib(api);
-    api_define_DataList(api);
-    api_define_OpStackEditor(api);
+  var SplineToolModeStruct = api.mapStruct(SplineToolMode, true);
+
+  function api_define_SplineToolMode(api) {
+    ;
+  }
+
+  api_define_FullContext(api);
+  api_define_View2DHandler(api);
+  api_define_Material(api);
+  api_define_ImageUser(api);
+  api_define_DopeSheetEditor(api);
+  api_define_CurveEditor(api);
+  api_define_SplineFrameSet(api);
+  api_define_Spline(api);
+  api_define_SplineFace(api);
+  api_define_SplineSegment(api);
+  api_define_SplineVertex(api);
+  api_define_SplineLayer(api);
+  api_define_VertexAnimData(api);
+  api_define_SettingsEditor(api);
+  api_define_AppSettings(api);
+  api_define_SceneObject(api);
+  api_define_Scene(api);
+  api_define_AppState(api);
+  api_define_DataLib(api);
+  api_define_DataList(api);
+  api_define_OpStackEditor(api);
+  api_define_SplineToolMode(api);
 
   api.rootContextStruct = api.mapStruct(FullContext, false);
 

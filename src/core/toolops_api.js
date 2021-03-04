@@ -22,6 +22,8 @@ export class ToolDef {
 export class ToolOp extends pathux.ToolOp {
   constructor() {
     super();
+
+    this.drawlines = [];
   }
 
   undoPre(ctx) {
@@ -51,22 +53,22 @@ export class ToolOp extends pathux.ToolOp {
     //do nothing
   }
 
-  reset_drawlines() {
-    this.resetTempGeom();
+  new_drawline(v1, v2, color, line_width) {
+    var dl = this.modal_ctx.view2d.make_drawline(v1, v2, undefined, color, line_width);
+
+    this.drawlines.push(dl);
+
+    return dl;
   }
 
-  new_drawline(a, b, clr) {
-    if (clr instanceof Array || clr instanceof Float32Array) {
-      clr = color2css(clr);
+  reset_drawlines(ctx=this.modal_ctx) {
+    var view2d = ctx.view2d;
+
+    for (var dl of this.drawlines) {
+      view2d.kill_drawline(dl);
     }
 
-    this.makeTempLine(a, b, clr);
-
-    return {
-      v1  : new Vector2(a),
-      v2  : new Vector2(b),
-      clr : css2color(clr)
-    };
+    this.drawlines.length = 0;
   }
 
   exec_pre(ctx) {

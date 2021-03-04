@@ -1313,7 +1313,7 @@ export function gen_path_maps(strct, obj, path1, path2) {//path is private, opti
 }
 
 let _prefix = `"use strict";
-import {DataAPI} from '../../path.ux/scripts/pathux.js';
+import {DataAPI, buildToolSysAPI} from '../../path.ux/scripts/pathux.js';
 import {DataTypes} from '../lib_api.js';
 import {EditModes, View2DHandler} from '../../editors/viewport/view2d.js';
 import {ImageFlags, Image, ImageUser} from '../imageblock.js';

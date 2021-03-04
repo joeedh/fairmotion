@@ -1,11 +1,12 @@
 "use strict";
-import {DataAPI, buildToolSysAPI} from '../../path.ux/scripts/pathux.js';
-
+import {DataAPI} from '../../path.ux/scripts/pathux.js';
 import {DataTypes} from '../lib_api.js';
 import {EditModes, View2DHandler} from '../../editors/viewport/view2d.js';
 import {ImageFlags, Image, ImageUser} from '../imageblock.js';
 import {AppSettings} from '../UserSettings.js';
 import {FullContext} from "../context.js";
+import {SplineToolMode} from '../../editors/viewport/toolmodes/splinetool.js';
+import {SessionFlags} from '../../editors/viewport/view2d_base.js';
 
 import {VertexAnimData} from "../frameset.js";
 import {SplineLayer} from "../../curve/spline_element_array.js";
@@ -32,8 +33,6 @@ import {OpStackEditor} from '../../editors/ops/ops_editor.js';
 import {AnimKeyFlags, AnimInterpModes, AnimKey} from '../animdata.js';
 import {VDAnimFlags, SplineFrameSet} from '../frameset.js';
 
-import {SessionFlags} from '../../editors/viewport/view2d_base.js';
-import {SplineToolMode} from '../../editors/viewport/toolmodes/splinetool.js';
 import {ExtrudeModes} from '../../editors/viewport/spline_createops.js';
 import {SplineLayerFlags} from '../../curve/spline_element_array.js';
 import {Material, SplineFace, SplineSegment, SplineVertex} from "../../curve/spline_types.js";
@@ -49,8 +48,6 @@ export function makeAPI(api = new DataAPI()) {
   var FullContextStruct = api.mapStruct(FullContext, true);
 
   function api_define_FullContext(api) {
-    FullContextStruct.struct("last_tool", "last_tool");
-
     FullContextStruct.struct("view2d", "view2d", "undefined", api.mapStruct(View2DHandler, true));
     FullContextStruct.struct("dopesheet", "dopesheet", "undefined", api.mapStruct(DopeSheetEditor, true));
     FullContextStruct.struct("editcurve", "editcurve", "undefined", api.mapStruct(CurveEditor, true));
@@ -59,6 +56,7 @@ export function makeAPI(api = new DataAPI()) {
     FullContextStruct.struct("appstate.session.settings", "settings", "undefined", api.mapStruct(AppSettings, true));
     FullContextStruct.struct("object", "object", "undefined", api.mapStruct(SceneObject, true));
     FullContextStruct.struct("scene", "scene", "undefined", api.mapStruct(Scene, true));
+    /*WARNING: failed to resolve a class:  last_tool  */
     FullContextStruct.struct("", "last_tool", "undefined", undefined);
     FullContextStruct.struct("appstate", "appstate", "undefined", api.mapStruct(AppState, true));
     FullContextStruct.list("appstate.toolstack.undostack", "operator_stack", [
@@ -93,12 +91,10 @@ export function makeAPI(api = new DataAPI()) {
           return "["+key+"]";
         }*/
     ]);
-    FullContextStruct.struct("spline", "spline", "Spline", api.mapStruct(Spline, true));
-    FullContextStruct.struct("datalib", "datalib", "datalib", api.mapStruct(DataLib, true));
-    FullContextStruct.struct("opseditor", "opseditor", "Ops Editor", api.mapStruct(OpStackEditor, true));
-    FullContextStruct.dynamicStruct("toolmode", "active_tool", "ToolMode", api.mapStruct(SplineToolMode, true));
-
-    buildToolSysAPI(api, true, FullContextStruct);
+    FullContextStruct.struct("spline", "spline", "undefined", api.mapStruct(Spline, true));
+    FullContextStruct.struct("datalib", "datalib", "undefined", api.mapStruct(DataLib, true));
+    FullContextStruct.struct("opseditor", "opseditor", "undefined", api.mapStruct(OpStackEditor, true));
+    FullContextStruct.struct("toolmode", "active_tool", "undefined", api.mapStruct(SplineToolMode, true));
   }
 
   var View2DHandlerStruct = api.mapStruct(View2DHandler, true);
@@ -114,14 +110,61 @@ export function makeAPI(api = new DataAPI()) {
     }).call(this.dataref, old)});
     View2DHandlerStruct.vec2("default_stroke", "default_stroke", "Stroke").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4);
     View2DHandlerStruct.vec2("default_fill", "default_fill", "Fill").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4);
-    View2DHandlerStruct.enum("toolmode", "toolmode", ToolModes, "Active Tool").uiNames(ToolModes).descriptions(ToolModes).icons(ToolModes);
+    View2DHandlerStruct.enum("toolmode", "toolmode", ToolModes, "Active Tool").uiNames({
+      SELECT : "Select",
+      APPEND : "Append",
+      RESIZE : "Resize",
+      ROTATE : "Rotate",
+      PEN    : "Pen"
+    }).descriptions({
+      SELECT : "Select",
+      APPEND : "Append",
+      RESIZE : "Resize",
+      ROTATE : "Rotate",
+      PEN    : "Pen"
+    }).icons({
+      SELECT : Icons.CURSOR_ARROW,
+      APPEND : Icons.APPEND_VERTEX,
+      RESIZE : Icons.RESIZE,
+      ROTATE : Icons.ROTATE,
+      PEN    : Icons.PEN_TOOL
+    });
     View2DHandlerStruct.bool("draw_small_verts", "draw_small_verts", "Small Points");
-    View2DHandlerStruct.enum("selectmode", "selectmode", SelMask, "Selection Mode").uiNames(SelMask).descriptions(SelMask).icons(SelMask).customSet(function (prop, val) {
+    View2DHandlerStruct.enum("selectmode", "selectmode", SelMask, "Selection Mode").uiNames({
+      VERTEX  : "Vertex",
+      SEGMENT : "Segment",
+      FACE    : "Face",
+      OBJECT  : "Object"
+    }).descriptions({
+      VERTEX  : "Vertex",
+      SEGMENT : "Segment",
+      FACE    : "Face",
+      OBJECT  : "Object"
+    }).icons({
+      VERTEX  : Icons.VERT_MODE,
+      SEGMENT : Icons.EDGE_MODE,
+      FACE    : Icons.FACE_MODE,
+      OBJECT  : Icons.OBJECT_MODE
+    }).customSet(function (prop, val) {
       console.log("selmask_enum.userSetData", this, prop, val);
       this.selectmode = val|(this.selectmode&SelMask.HANDLE);
       return this.selectmode;
     });
-    View2DHandlerStruct.flags("selectmode", "selectmask", SelMask, "[object Object]").uiNames(SelMask).descriptions(SelMask).icons({
+    View2DHandlerStruct.flags("selectmode", "selectmask", SelMask, "[object Object]").uiNames({
+      VERTEX   : "Vertex",
+      HANDLE   : "Handle",
+      SEGMENT  : "Segment",
+      FACE     : "Face",
+      TOPOLOGY : "Topology",
+      OBJECT   : "Object"
+    }).descriptions({
+      VERTEX   : "Vertex",
+      HANDLE   : "Handle",
+      SEGMENT  : "Segment",
+      FACE     : "Face",
+      TOPOLOGY : "Topology",
+      OBJECT   : "Object"
+    }).icons({
       1       : Icons.VERT_MODE,
       2       : Icons.SHOW_HANDLES,
       4       : Icons.EDGE_MODE,
@@ -139,7 +182,11 @@ export function makeAPI(api = new DataAPI()) {
     View2DHandlerStruct.bool("draw_bg_image", "draw_bg_image", "Draw Image").on("change", function(old) {return (function () {
       window.redraw_viewport();
     }).call(this.dataref, old)});
-    View2DHandlerStruct.flags("session_flag", "session_flag", SessionFlags, "Session Flags").uiNames(SessionFlags).descriptions(SessionFlags).icons({
+    View2DHandlerStruct.flags("session_flag", "session_flag", SessionFlags, "Session Flags").uiNames({
+      PROP_TRANSFORM : "Prop Transform"
+    }).descriptions({
+      PROP_TRANSFORM : "Prop Transform"
+    }).icons({
       1              : Icons.PROP_TRANSFORM,
       PROP_TRANSFORM : Icons.PROP_TRANSFORM
     });
@@ -164,7 +211,19 @@ export function makeAPI(api = new DataAPI()) {
     }).call(this.dataref, old)});
     View2DHandlerStruct.struct("active_material", "active_material", "undefined", api.mapStruct(Material, true));
     View2DHandlerStruct.float("default_linewidth", "default_linewidth", "Line Wid").range(0.01, 100).step(0.1).expRate(1.33).decimalPlaces(4);
-    View2DHandlerStruct.enum("extrude_mode", "extrude_mode", ExtrudeModes, "New Line Mode").uiNames(ExtrudeModes).descriptions(ExtrudeModes).icons(ExtrudeModes);
+    View2DHandlerStruct.enum("extrude_mode", "extrude_mode", ExtrudeModes, "New Line Mode").uiNames({
+      SMOOTH      : "Smooth",
+      LESS_SMOOTH : "Less Smooth",
+      BROKEN      : "Broken"
+    }).descriptions({
+      SMOOTH      : "New Line Mode",
+      LESS_SMOOTH : "New Line Mode",
+      BROKEN      : "New Line Mode"
+    }).icons({
+      SMOOTH      : Icons.EXTRUDE_MODE_G2,
+      LESS_SMOOTH : Icons.EXTRUDE_MODE_G1,
+      BROKEN      : Icons.EXTRUDE_MODE_G0
+    });
     View2DHandlerStruct.bool("pin_paths", "pin_paths", "Pin Paths");
     View2DHandlerStruct.struct("background_image", "background_image", "undefined", api.mapStruct(ImageUser, true));
   }
@@ -184,7 +243,13 @@ export function makeAPI(api = new DataAPI()) {
       material.update();
       window.redraw_viewport();
     }).call(this.dataref, old)});
-    MaterialStruct.flags("flag", "flag", MaterialFlags, "material flags").uiNames(MaterialFlags).descriptions(MaterialFlags).icons(DataTypes).on("change", function(old) {return (function (material) {
+    MaterialStruct.flags("flag", "flag", MaterialFlags, "material flags").uiNames({
+      SELECT       : "Select",
+      MASK_TO_FACE : "Mask To Face"
+    }).descriptions({
+      SELECT       : "Select",
+      MASK_TO_FACE : "Mask To Face"
+    }).icons(DataTypes).on("change", function(old) {return (function (material) {
       material.update();
       window.redraw_viewport();
     }).call(this.dataref, old)});
@@ -687,7 +752,47 @@ export function makeAPI(api = new DataAPI()) {
   function api_define_SplineFace(api) {
     SplineFaceStruct.int("eid", "eid", "eid").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33);
     SplineFaceStruct.struct("mat", "mat", "undefined", api.mapStruct(Material, true));
-    SplineFaceStruct.flags("flag", "flag", SplineFlags, "Flags").uiNames(SplineFlags).descriptions(SplineFlags).icons({
+    SplineFaceStruct.flags("flag", "flag", SplineFlags, "Flags").uiNames({
+      SELECT             : "Select",
+      BREAK_TANGENTS     : "Break Tangents",
+      USE_HANDLES        : "Use Handles",
+      UPDATE             : "Update",
+      TEMP_TAG           : "Temp Tag",
+      BREAK_CURVATURES   : "Break Curvatures",
+      HIDE               : "Hide",
+      FRAME_DIRTY        : "Frame Dirty",
+      PINNED             : "Pinned",
+      NO_RENDER          : "No Render",
+      AUTO_PAIRED_HANDLE : "Auto Paired Handle",
+      UPDATE_AABB        : "Update Aabb",
+      DRAW_TEMP          : "Draw Temp",
+      GHOST              : "Ghost",
+      UI_SELECT          : "Ui Select",
+      FIXED_KS           : "Fixed Ks",
+      REDRAW_PRE         : "Redraw Pre",
+      REDRAW             : "Redraw",
+      COINCIDENT         : "Coincident"
+    }).descriptions({
+      SELECT             : "Select",
+      BREAK_TANGENTS     : "Break Tangents",
+      USE_HANDLES        : "Use Handles",
+      UPDATE             : "Update",
+      TEMP_TAG           : "Temp Tag",
+      BREAK_CURVATURES   : "Allows curve to more tightly bend at this point",
+      HIDE               : "Hide",
+      FRAME_DIRTY        : "Frame Dirty",
+      PINNED             : "Pinned",
+      NO_RENDER          : "No Render",
+      AUTO_PAIRED_HANDLE : "Auto Paired Handle",
+      UPDATE_AABB        : "Update Aabb",
+      DRAW_TEMP          : "Draw Temp",
+      GHOST              : "Ghost",
+      UI_SELECT          : "Ui Select",
+      FIXED_KS           : "Fixed Ks",
+      REDRAW_PRE         : "Redraw Pre",
+      REDRAW             : "Redraw",
+      COINCIDENT         : "Coincident"
+    }).icons({
       2                : Icons.EXTRUDE_MODE_G0,
       32               : Icons.EXTRUDE_MODE_G1,
       BREAK_TANGENTS   : Icons.EXTRUDE_MODE_G0,
@@ -723,7 +828,47 @@ export function makeAPI(api = new DataAPI()) {
       window.redraw_viewport();
     }).call(this.dataref, old)});
     SplineSegmentStruct.int("eid", "eid", "eid").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33);
-    SplineSegmentStruct.flags("flag", "flag", SplineFlags, "Flags").uiNames(SplineFlags).descriptions(SplineFlags).icons({
+    SplineSegmentStruct.flags("flag", "flag", SplineFlags, "Flags").uiNames({
+      SELECT             : "Select",
+      BREAK_TANGENTS     : "Break Tangents",
+      USE_HANDLES        : "Use Handles",
+      UPDATE             : "Update",
+      TEMP_TAG           : "Temp Tag",
+      BREAK_CURVATURES   : "Break Curvatures",
+      HIDE               : "Hide",
+      FRAME_DIRTY        : "Frame Dirty",
+      PINNED             : "Pinned",
+      NO_RENDER          : "No Render",
+      AUTO_PAIRED_HANDLE : "Auto Paired Handle",
+      UPDATE_AABB        : "Update Aabb",
+      DRAW_TEMP          : "Draw Temp",
+      GHOST              : "Ghost",
+      UI_SELECT          : "Ui Select",
+      FIXED_KS           : "Fixed Ks",
+      REDRAW_PRE         : "Redraw Pre",
+      REDRAW             : "Redraw",
+      COINCIDENT         : "Coincident"
+    }).descriptions({
+      SELECT             : "Select",
+      BREAK_TANGENTS     : "Break Tangents",
+      USE_HANDLES        : "Use Handles",
+      UPDATE             : "Update",
+      TEMP_TAG           : "Temp Tag",
+      BREAK_CURVATURES   : "Allows curve to more tightly bend at this point",
+      HIDE               : "Hide",
+      FRAME_DIRTY        : "Frame Dirty",
+      PINNED             : "Pinned",
+      NO_RENDER          : "No Render",
+      AUTO_PAIRED_HANDLE : "Auto Paired Handle",
+      UPDATE_AABB        : "Update Aabb",
+      DRAW_TEMP          : "Draw Temp",
+      GHOST              : "Ghost",
+      UI_SELECT          : "Ui Select",
+      FIXED_KS           : "Fixed Ks",
+      REDRAW_PRE         : "Redraw Pre",
+      REDRAW             : "Redraw",
+      COINCIDENT         : "Coincident"
+    }).icons({
       2                : Icons.EXTRUDE_MODE_G0,
       32               : Icons.EXTRUDE_MODE_G1,
       BREAK_TANGENTS   : Icons.EXTRUDE_MODE_G0,
@@ -743,7 +888,47 @@ export function makeAPI(api = new DataAPI()) {
 
   function api_define_SplineVertex(api) {
     SplineVertexStruct.int("eid", "eid", "eid").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33);
-    SplineVertexStruct.flags("flag", "flag", SplineFlags, "Flags").uiNames(SplineFlags).descriptions(SplineFlags).icons({
+    SplineVertexStruct.flags("flag", "flag", SplineFlags, "Flags").uiNames({
+      SELECT             : "Select",
+      BREAK_TANGENTS     : "Break Tangents",
+      USE_HANDLES        : "Use Handles",
+      UPDATE             : "Update",
+      TEMP_TAG           : "Temp Tag",
+      BREAK_CURVATURES   : "Break Curvatures",
+      HIDE               : "Hide",
+      FRAME_DIRTY        : "Frame Dirty",
+      PINNED             : "Pinned",
+      NO_RENDER          : "No Render",
+      AUTO_PAIRED_HANDLE : "Auto Paired Handle",
+      UPDATE_AABB        : "Update Aabb",
+      DRAW_TEMP          : "Draw Temp",
+      GHOST              : "Ghost",
+      UI_SELECT          : "Ui Select",
+      FIXED_KS           : "Fixed Ks",
+      REDRAW_PRE         : "Redraw Pre",
+      REDRAW             : "Redraw",
+      COINCIDENT         : "Coincident"
+    }).descriptions({
+      SELECT             : "Select",
+      BREAK_TANGENTS     : "Break Tangents",
+      USE_HANDLES        : "Use Handles",
+      UPDATE             : "Update",
+      TEMP_TAG           : "Temp Tag",
+      BREAK_CURVATURES   : "Allows curve to more tightly bend at this point",
+      HIDE               : "Hide",
+      FRAME_DIRTY        : "Frame Dirty",
+      PINNED             : "Pinned",
+      NO_RENDER          : "No Render",
+      AUTO_PAIRED_HANDLE : "Auto Paired Handle",
+      UPDATE_AABB        : "Update Aabb",
+      DRAW_TEMP          : "Draw Temp",
+      GHOST              : "Ghost",
+      UI_SELECT          : "Ui Select",
+      FIXED_KS           : "Fixed Ks",
+      REDRAW_PRE         : "Redraw Pre",
+      REDRAW             : "Redraw",
+      COINCIDENT         : "Coincident"
+    }).icons({
       2                : Icons.EXTRUDE_MODE_G0,
       32               : Icons.EXTRUDE_MODE_G1,
       BREAK_TANGENTS   : Icons.EXTRUDE_MODE_G0,
@@ -778,7 +963,9 @@ export function makeAPI(api = new DataAPI()) {
       HIDE       : "Hide",
       CAN_SELECT : "Can Select",
       MASK       : "Mask"
-    }).descriptions(SplineLayerFlags).icons(DataTypes).on("change", function(old) {return (function () {
+    }).descriptions({
+      MASK : "Use previous layer as a mask"
+    }).icons(DataTypes).on("change", function(old) {return (function () {
       window.redraw_viewport();
     }).call(this.dataref, old)});
   }
@@ -786,7 +973,17 @@ export function makeAPI(api = new DataAPI()) {
   var VertexAnimDataStruct = api.mapStruct(VertexAnimData, true);
 
   function api_define_VertexAnimData(api) {
-    VertexAnimDataStruct.flags("animflag", "animflag", VDAnimFlags, "animflag").uiNames(VDAnimFlags).descriptions(VDAnimFlags).icons(DataTypes);
+    VertexAnimDataStruct.flags("animflag", "animflag", VDAnimFlags, "animflag").uiNames({
+      SELECT            : "Select",
+      STEP_FUNC         : "Step Func",
+      HIDE              : "Hide",
+      OWNER_IS_EDITABLE : "Owner Is Editable"
+    }).descriptions({
+      SELECT            : "Select",
+      STEP_FUNC         : "Step Func",
+      HIDE              : "Hide",
+      OWNER_IS_EDITABLE : "Owner Is Editable"
+    }).icons(DataTypes);
     VertexAnimDataStruct.int("eid", "owning_vertex", "Owning Vertex").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33);
   }
 
@@ -997,7 +1194,11 @@ export function makeAPI(api = new DataAPI()) {
   api_define_OpStackEditor(api);
   api_define_SplineToolMode(api);
 
-  api.rootContextStruct = api.mapStruct(FullContext, false);
+
+  api.rootContextStruct = FullContextStruct;
+
+  FullContextStruct.struct("last_tool", "last_tool");
+  buildToolSysAPI(api, true, FullContextStruct);
 
   return api;
 }

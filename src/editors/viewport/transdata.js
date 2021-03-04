@@ -109,7 +109,7 @@ export class TransData {
 
     this.start_center.load(this.center);
 
-    if (top.modal_running) {
+    if (top.modalRunning) {
       this.scenter = new Vector3(this.center);
       this.start_scenter = new Vector3(this.start_center);
 

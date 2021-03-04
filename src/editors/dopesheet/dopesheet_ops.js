@@ -211,7 +211,7 @@ export class ShiftTimeOp2 extends ToolOp {
       v.dag_update("depend");
     }
     
-    if (!this.modal_running) {
+    if (!this.modalRunning) {
       ctx.frameset.download();
     }
   }
@@ -398,7 +398,7 @@ export class ShiftTimeOp3 extends ToolOp {
       }
     }
     
-    if (!this.modal_running) {
+    if (!this.modalRunning) {
       console.log("download");
       ctx.frameset.download();
     }

@@ -128,7 +128,7 @@ export class RenderAnimOp extends ToolOp {
   
   render_frame() {
     var ctx = this.modal_ctx;
-    if (ctx == undefined || !this.modal_running) {
+    if (ctx == undefined || !this.modalRunning) {
       console.log("Timer end")
       window.clearInterval(this.timer);
       this.end();
@@ -219,7 +219,7 @@ export class PlayAnimOp extends ToolOp {
   
   render_frame() {
     var ctx = this.modal_ctx;
-    if (ctx == undefined || !this.modal_running) {
+    if (ctx == undefined || !this.modalRunning) {
       console.log("Timer end")
       window.clearInterval(this.timer);
       this.end();
@@ -384,8 +384,8 @@ export class SplineEditor extends View2DEditor {
     
     col.toolop("spline.split_pick_edge_transform()");
   
-    col.toolop("spline.change_face_z(offset=1, selmode=selectmode)", PackFlags.USE_LARGE_ICON, "Move Up", Icons.Z_UP);
-    col.toolop("spline.change_face_z(offset=-1, selmode=selectmode)", PackFlags.USE_LARGE_ICON, "Move Down", Icons.Z_DOWN);
+    col.toolop("spline.change_face_z(offset=1, selmode='selectmode')", PackFlags.USE_LARGE_ICON, "Move Up", Icons.Z_UP);
+    col.toolop("spline.change_face_z(offset=-1, selmode='selectmode')", PackFlags.USE_LARGE_ICON, "Move Down", Icons.Z_DOWN);
 
     col.prop("view2d.draw_anim_paths");
     
@@ -422,19 +422,19 @@ export class SplineEditor extends View2DEditor {
     var k = this.keymap;
     
     k.add_tool(new HotKey("PageUp", [], "Send Face Up"),
-               "spline.change_face_z(offset=1, selmode=selectmode)");
+               "spline.change_face_z(offset=1, selmode='selectmode')");
     k.add_tool(new HotKey("PageDown", [], "Send Face Down"),
-               "spline.change_face_z(offset=-1, selmode=selectmode)");
+               "spline.change_face_z(offset=-1, selmode='selectmode')");
 
     k.add_tool(new HotKey("G", [], "Translate"),
-               "spline.translate(datamode=selectmode)");
+               "spline.translate(datamode='selectmode')");
     k.add_tool(new HotKey("S", [], "Scale"),
-               "spline.scale(datamode=selectmode)");
+               "spline.scale(datamode='selectmode')");
     k.add_tool(new HotKey("S", ["SHIFT"], "Scale Time"),
                "spline.shift_time()");
                
     k.add_tool(new HotKey("R", [], "Rotate"),
-               "spline.rotate(datamode=selectmode)");
+               "spline.rotate(datamode='selectmode')");
     
     k.add_tool(new HotKey("A", [], "Select Linked"), "spline.toggle_select_all()");
     /*
@@ -461,14 +461,14 @@ export class SplineEditor extends View2DEditor {
                "editor.playback()");
 
     k.add_tool(new HotKey("H", [], "Hide Selection"),
-               "spline.hide(selmode=selectmode)");
+               "spline.hide(selmode='selectmode')");
     k.add_tool(new HotKey("H", ["ALT"], "Reveal Selection"),
-               "spline.unhide(selmode=selectmode)");
+               "spline.unhide(selmode='selectmode')");
 
     k.add_tool(new HotKey("G", ["CTRL"], "Ghost Selection"),
-               "spline.hide(selmode=selectmode, ghost=1)");
+               "spline.hide(selmode='selectmode', ghost=1)");
     k.add_tool(new HotKey("G", ["ALT"], "Unghost Selection"),
-               "spline.unhide(selmode=selectmode, ghost=1)");
+               "spline.unhide(selmode='selectmode', ghost=1)");
     
     /*k.add_tool(new HotKey("C", [], "Connect Handles"),
                "spline.connect_handles()");

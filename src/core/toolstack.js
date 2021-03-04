@@ -50,7 +50,7 @@ export class ToolStack {
 
       if (!(tool.undoflag & UndoFlags.NO_UNDO)) {
         //console.log(" - undo pre");
-        tool.undo_pre(ctx);
+        tool.undoPre(ctx);
         tool.undoflag |= UndoFlags.HAS_UNDO_DATA;
       }
 
@@ -122,7 +122,7 @@ export class ToolStack {
 
       if (!(tool.undoflag & UndoFlags.NO_UNDO)) {
         //console.log(" - undo pre");
-        tool.undo_pre(ctx);
+        tool.undoPre(ctx);
         tool.undoflag |= UndoFlags.HAS_UNDO_DATA;
       }
 
@@ -266,7 +266,7 @@ export class ToolStack {
       tool.is_modal = false;
 
       if (!(tool.undoflag & UndoFlags.NO_UNDO)) {
-        tool.undo_pre((tool.flag & ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : ctx);
+        tool.undoPre((tool.flag & ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : ctx);
         tool.undoflag |= UndoFlags.HAS_UNDO_DATA;
       }
 
@@ -277,7 +277,10 @@ export class ToolStack {
 
       tool.exec_pre(tctx);
       tool.exec(tctx);
-      tool.redo_post(ctx);
+
+      if (tool.redo_post) {
+        tool.redo_post(ctx);
+      }
 
       this.undocur++;
 
@@ -552,28 +555,31 @@ export class ToolStack {
       tool.exec_pre(tool.modal_tctx);
 
       if (!(tool.undoflag & UndoFlags.NO_UNDO)) {
-        //some tools expect modal_running is set even for undo_pre callback
+        //some tools expect modalRunning is set even for undo_pre callback
         //even though it's only valid in that case some of the time
         if (tool.is_modal)
-          tool.modal_running = true;
+          tool.modalRunning = true;
 
-        tool.undo_pre(modal_ctx);
+        tool.undoPre(modal_ctx);
         tool.undoflag |= UndoFlags.HAS_UNDO_DATA;
 
         //will be set again by modal_init, line after next
         if (tool.is_modal)
-          tool.modal_running = false;
+          tool.modalRunning = false;
       }
 
-      tool._start_modal(modal_ctx);
-      tool.start_modal(modal_ctx);
+      if (tool._start_modal) {
+        tool._start_modal(modal_ctx);
+      }
+
+      tool.modalStart(modal_ctx);
     } else {
       let tctx = (tool.flag & ToolFlags.USE_TOOL_CONTEXT) ? new BaseContext().toLocked() : ctx.toLocked();
       tool.saved_context = new SavedContext(tctx);
 
       if (!(tool.undoflag & UndoFlags.NO_UNDO)) {
         //undo callbacks, unlike .exec, get full context structure
-        tool.undo_pre((tool.flag & ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : ctx);
+        tool.undoPre((tool.flag & ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : ctx);
         tool.undoflag |= UndoFlags.HAS_UNDO_DATA;
       }
 

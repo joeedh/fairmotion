@@ -373,7 +373,7 @@ export class PastePoseOp extends SplineLocalToolOp {
   exec(ctx) {
     var spline = ctx.spline;
 
-    if (this.modal_running) {
+    if (this.modalRunning) {
       this.end_modal(this.modal_ctx);
     }
     
@@ -1865,6 +1865,11 @@ export class VertexSmoothOp extends SplineLocalToolOp {
     let co = new Vector2();
     let fac = this.inputs.factor.getValue();
     let proj = this.inputs.projection.getValue();
+    let t = new Vector2();
+
+    console.log("proj", proj);
+
+    proj = 1.0 - proj;
 
     function vsmooth(v) {
       co.zero();
@@ -1874,7 +1879,18 @@ export class VertexSmoothOp extends SplineLocalToolOp {
         let v2 = e.other_vert(v);
         let w = e.length;
 
-        co.addFac(v2, w);
+        let s = v2 === e.v1 ? 0.0 : 1.0;
+        let n = e.normal(s);
+
+        t.load(v2).sub(v);
+        let d = t.dot(n);
+        t.addFac(n, d).add(v);
+
+        //console.log("d", d, n);
+
+        t.interp(v2, proj);
+
+        co.addFac(t, w);
         tot += w;
       }
 

@@ -122,10 +122,13 @@ export class TransformOp extends ToolOp {
   }
   
   cancel() {
-    var ctx = this.modal_ctx;
-    this.end_modal();
-    
-    this.undo(ctx, true);
+    let ctx = this.modal_ctx;
+
+    this.modalEnd(true);
+
+    if (ctx.toolstack.head === this) {
+      this.undo(ctx, true);
+    }
   }
   
   //XXX initializing this.types in ensure_transdata
@@ -155,20 +158,20 @@ export class TransformOp extends ToolOp {
     window.redraw_viewport();
   }
   
-  end_modal() {
+  modalEnd(was_cancelled) {
     var ctx = this.modal_ctx;
     
     //force spline solve + redraw
     this.post_mousemove(event, true);
     
     ctx.appstate.popModalState(ModalStates.TRANSFORMING);
-    ToolOp.prototype.end_modal.call(this);
-    
+    super.modalEnd(was_cancelled);
+
     this.finish(ctx);
   }
   
-  start_modal(ctx : FullContext) {
-    super.start_modal(ctx);
+  modalStart(ctx : FullContext) {
+    super.modalStart(ctx);
     
     this.first_viewport_redraw = true;
     ctx.state.pushModalState(ModalStates.TRANSFORMING);
@@ -187,7 +190,7 @@ export class TransformOp extends ToolOp {
     var ctx = this.modal_ctx;
     
     var mpos = new Vector2([event.x, event.y, 0]);
-    mpos.load(ctx.view2d.getLocalMouse(event.original.x, event.original.y));
+    mpos.load(ctx.view2d.getLocalMouse(event.x, event.y));
 
     var md = this.modaldata;
 
@@ -331,7 +334,7 @@ export class TransformOp extends ToolOp {
         break;
       case 13: //return key
         console.log("end transform!");
-        this.end_modal();
+        this.modalEnd();
         break;
       case 27: //escape
         this.cancel();
@@ -365,7 +368,7 @@ export class TransformOp extends ToolOp {
   
   on_mouseup(event : MouseEvent) {
     console.log("end transform!");
-    this.end_modal();
+    this.modalEnd();
   }
   
   update(ctx : FullContext) {
@@ -431,7 +434,7 @@ export class TranslateOp extends TransformOp {
   }
   
   exec(ctx) {
-    var td = this.modal_running ? this.transdata : this.ensure_transdata(ctx);
+    var td = this.modalRunning ? this.transdata : this.ensure_transdata(ctx);
     
     var mat = new Matrix4();
     var off = this.inputs.translation.data;
@@ -451,7 +454,7 @@ export class TranslateOp extends TransformOp {
     
     this.update(ctx);
     
-    if (!this.modal_running) {
+    if (!this.modalRunning) {
       ctx.frameset.on_ctx_update(ctx);
       delete this.transdata;
     }
@@ -498,7 +501,7 @@ export class NonUniformScaleOp extends TransformOp {
   }
   
   exec(ctx) {
-    var td = this.modal_running ? this.transdata : this.ensure_transdata(ctx);
+    var td = this.modalRunning ? this.transdata : this.ensure_transdata(ctx);
     
     var mat = new Matrix4();
     var scale = this.inputs.scale.data;
@@ -525,7 +528,7 @@ export class NonUniformScaleOp extends TransformOp {
     
     this.update(ctx);
     
-    if (!this.modal_running) {
+    if (!this.modalRunning) {
       ctx.frameset.on_ctx_update(ctx);
       delete this.transdata;
     }
@@ -589,7 +592,7 @@ export class ScaleOp extends TransformOp {
   }
   
   exec(ctx) {
-    var td = this.modal_running ? this.transdata : this.ensure_transdata(ctx);
+    var td = this.modalRunning ? this.transdata : this.ensure_transdata(ctx);
     
     var mat = new Matrix4();
     var scale = this.inputs.scale.data;
@@ -616,7 +619,7 @@ export class ScaleOp extends TransformOp {
     
     this.update(ctx);
     
-    if (!this.modal_running) {
+    if (!this.modalRunning) {
       ctx.frameset.on_ctx_update(ctx);
       delete this.transdata;
     }
@@ -672,7 +675,7 @@ export class RotateOp extends TransformOp {
   }
   
   exec(ctx) {
-    var td = this.modal_running ? this.transdata : this.ensure_transdata(ctx);
+    var td = this.modalRunning ? this.transdata : this.ensure_transdata(ctx);
     
     var mat = new Matrix4();
     
@@ -690,7 +693,7 @@ export class RotateOp extends TransformOp {
     
     this.update(ctx);
     
-    if (!this.modal_running) {
+    if (!this.modalRunning) {
       ctx.frameset.on_ctx_update(ctx);
       delete this.transdata;
     }

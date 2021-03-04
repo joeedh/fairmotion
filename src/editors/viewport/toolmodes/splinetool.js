@@ -124,22 +124,22 @@ export class SplineToolMode extends ToolMode {
 
 
     k.add_tool(new HotKey("PageUp", [], "Send Face Up"),
-      "spline.change_face_z(offset=1, selmode=selectmode)");
+      "spline.change_face_z(offset=1, selmode='selectmode')");
     k.add_tool(new HotKey("PageDown", [], "Send Face Down"),
-      "spline.change_face_z(offset=-1, selmode=selectmode)");
+      "spline.change_face_z(offset=-1, selmode='selectmode')");
 
     k.add_tool(new HotKey("G", [], "Translate"),
-      "spline.translate(datamode=selectmode)");
+      "spline.translate(datamode='selectmode')");
     k.add_tool(new HotKey("S", [], "Scale"),
-      "spline.scale(datamode=selectmode)");
+      "spline.scale(datamode='selectmode')");
     k.add_tool(new HotKey("S", ["SHIFT"], "Scale Time"),
       "spline.shift_time()");
 
     k.add_tool(new HotKey("R", [], "Rotate"),
-      "spline.rotate(datamode=selectmode)");
+      "spline.rotate(datamode='selectmode')");
 
-    k.add_tool(new HotKey("A", [], "Select All"), "spline.toggle_select_all(mode=SELECT)");
-    k.add_tool(new HotKey("A", ["ALT"], "Deselect All"), "spline.toggle_select_all(mode=DESELECT)");
+    k.add_tool(new HotKey("A", [], "Select All"), "spline.toggle_select_all(mode='SELECT')");
+    k.add_tool(new HotKey("A", ["ALT"], "Deselect All"), "spline.toggle_select_all(mode='DESELECT')");
     /*
     k.add(new HotKey("A", [], "Toggle Select"), new FuncKeyHandler(function(ctx) {
       var view2d = ctx.view2d;

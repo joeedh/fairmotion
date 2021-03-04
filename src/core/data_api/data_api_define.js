@@ -1435,7 +1435,7 @@ window.genNewDataAPI = () => {
           let ok = true;
 
           for (let k2 in obj) {
-            if (v[k2] === undefined) {
+            if (v[k2] === undefined || v[k2] !== obj[k2]) {
               ok = false;
             }
           }
@@ -1698,9 +1698,14 @@ window.genNewDataAPI = () => {
     out += "  " + l + "\n";
   }
 
-  out += "  api.rootContextStruct = api.mapStruct(FullContext, false);\n\n";
-  out += "  return api;\n";
-  out += "}\n";
+  out += `
+  api.rootContextStruct = FullContextStruct;
+
+  FullContextStruct.struct("last_tool", "last_tool");
+  buildToolSysAPI(api, true, FullContextStruct);
+  
+  return api;
+}\n`;
 
   return _prefix + out;
 };

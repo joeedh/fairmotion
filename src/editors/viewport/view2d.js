@@ -99,10 +99,15 @@ export class View2DHandler extends Editor {
   drawline_groups   : Object
   _last_mpos        : Vector2
   _last_toolmode    : any
+  glPos             : Vector2
+  glSize            : Vector2
   ctx               : FullContext;
 
   constructor() {
     super();
+
+    this.glPos = new Vector2();
+    this.glSize = new Vector2([512, 512]);
 
     this.propradius = 35;
 
@@ -463,6 +468,29 @@ export class View2DHandler extends Editor {
     matrix.preMultiply(matrix2);
 
     return matrix;
+  }
+
+  drawWebgl(gl, canvas) {
+    let dpi = window.devicePixelRatio;
+
+    this.glPos.load(this.pos).mulScalar(dpi).floor();
+    this.glSize.load(this.size).mulScalar(dpi).floor();
+
+    let y = this.glPos[1];
+    this.glPos[1] = (canvas.height - (y + this.glSize[1]));
+
+    gl.enable(gl.SCISSOR_TEST);
+    gl.disable(gl.DEPTH_TEST);
+    gl.depthMask(false);
+    gl.disable(gl.DITHER);
+    gl.disable(gl.CULL_FACE);
+
+    gl.scissor(this.glPos[0], this.glPos[1], this.glSize[0], this.glSize[1]);
+    gl.viewport(this.glPos[0], this.glPos[1], this.glSize[0], this.glSize[1]);
+
+    gl.clearColor(0.2, 0.5, 1.0, 0.0);
+    gl.clearDepth(1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   }
 
   do_draw_viewport(redraw_rects=[]) {
@@ -833,7 +861,8 @@ export class View2DHandler extends Editor {
     tagname : "view2d-editor-x",
     areaname : "view2d_editor",
     uiname : "Work Canvas",
-    icon : Icons.VIEW2D_EDITOR
+    icon : Icons.VIEW2D_EDITOR,
+    hasWebgl : true
   }}
 
   static newSTRUCT() {

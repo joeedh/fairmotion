@@ -1,4 +1,6 @@
-import * as wasm from './built_wasm.js';
+import * as wasm_mod from './built_wasm.js';
+
+let wasm = wasm_mod.Module;
 
 export let wasmModule = wasm;
 

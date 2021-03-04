@@ -132,6 +132,7 @@ export class StrokeOp extends ToolOp {
     spline.regen_sort();
     spline.regen_render();
     spline.regen_solve();
+    spline.checkSolve();
   }
 
   undoPre(ctx) {

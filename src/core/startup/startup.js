@@ -6,6 +6,8 @@ Object.defineProperty(window, "CTX", {
   }
 });
 
+document.body.style["margin"] = document.body.style["padding"] = "0px";
+
 /*
 if (window.mobilecheck === undefined) {
   window.mobilecheck = function mobilecheck() {
@@ -171,8 +173,15 @@ window.startup_intern = function startup() {
     //set up some chrome app settings
     var config = _es6_get_module("config", true);
     config.exports.HAVE_EVAL = false;
-  } 
-  
+  }
+
+  imagecanvas_webgl = _es6_get_module("imagecanvas_webgl", true);
+  imagecanvas_webgl.exports.initWebGL();
+
+  window.setTimeout(() => {
+    window.redraw_webgl();
+  }, 500);
+
   init_theme();
   init_redraw_globals();
   

@@ -414,7 +414,9 @@ JCC = getcfg("JCC", np("tools/extjs_cc/js_cc.py"), "path")
 TCC = getcfg("TCC", np("tools/extjs_cc/js_cc.py"), "path")
 print("using python executable \"" + PYBIN.strip() + "\"")
 
-JFLAGS = " -dpr --no-expand-iterators "
+#preprocessor is now disabled with -npc
+
+JFLAGS = " -dpr --no-expand-iterators -npc "
 if gen_type_logging:
     JFLAGS += " -gtl "
 

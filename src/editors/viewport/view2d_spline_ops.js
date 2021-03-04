@@ -83,7 +83,7 @@ export class RenderAnimOp extends ToolOp {
     is_modal : true,
     inputs   : {},
     outputs  : {},
-    undoflag : UndoFlags.IGNORE_UNDO
+    undoflag : UndoFlags.NO_UNDO
   }}
   
   start_modal(ctx) {
@@ -192,7 +192,7 @@ export class PlayAnimOp extends ToolOp {
     is_modal : true,
     inputs   : {},
     outputs  : {},
-    undoflag : UndoFlags.IGNORE_UNDO
+    undoflag : UndoFlags.NO_UNDO
   }}
   
   start_modal(ctx) {

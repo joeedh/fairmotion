@@ -438,7 +438,7 @@ export class FileOpenRecentOp extends ToolOp {
     outputs  : {},
     icon     : -1,
     is_modal : false,
-    undoflag : UndoFlags.IGNORE_UNDO
+    undoflag : UndoFlags.NO_UNDO
   }}
   
   constructor() {
@@ -478,7 +478,7 @@ export class FileOpenOp extends ToolOp {
     
     this.is_modal = false;
     
-    this.undoflag = UndoFlags.IGNORE_UNDO;
+    this.undoflag = UndoFlags.NO_UNDO;
     this.flag = ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS;
     
     this.inputs = {path : new StringProperty("", "path", "File Path", "File Path")};
@@ -511,7 +511,7 @@ export class FileSaveAsOp extends ToolOp {
     
     this.is_modal = false;
     
-    this.undoflag = UndoFlags.IGNORE_UNDO;
+    this.undoflag = UndoFlags.NO_UNDO;
     this.flag = ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS;
     
     this.inputs = {path : new StringProperty("", "path", "File Path", "File Path")};
@@ -591,7 +591,7 @@ export class FileNewOp extends ToolOp {
 
     this.is_modal = false;
     
-    this.undoflag = UndoFlags.IGNORE_UNDO;
+    this.undoflag = UndoFlags.NO_UNDO;
     this.flag = ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS;
     
     this.inputs = {};
@@ -618,7 +618,7 @@ export class FileSaveOp extends ToolOp {
     this.do_progress = true;
     this.is_modal = false;
     
-    this.undoflag = UndoFlags.IGNORE_UNDO;
+    this.undoflag = UndoFlags.NO_UNDO;
     this.flag = ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS;
     
     this.inputs = {};
@@ -829,7 +829,7 @@ export class FileSaveSVGOp extends ToolOp {
     
     this.is_modal = false;
     
-    this.undoflag = UndoFlags.IGNORE_UNDO;
+    this.undoflag = UndoFlags.NO_UNDO;
     this.flag = ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS;
     
     this.inputs = {path : new StringProperty("", "path", "File Path", "File Path")};
@@ -880,7 +880,7 @@ export class FileSaveB64Op extends ToolOp {
     
     this.is_modal = false;
     
-    this.undoflag = UndoFlags.IGNORE_UNDO;
+    this.undoflag = UndoFlags.NO_UNDO;
     this.flag = ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS;
     
     this.inputs = {path : new StringProperty("", "path", "File Path", "File Path")};

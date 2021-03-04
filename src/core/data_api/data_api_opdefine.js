@@ -58,7 +58,7 @@ class QuitFileOp extends ToolOp {
     is_modal : true,
     inputs   : {},
     outputs  : {},
-    undoflag : UndoFlags.IGNORE_UNDO
+    undoflag : UndoFlags.NO_UNDO
   }}
   
   

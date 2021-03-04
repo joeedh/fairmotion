@@ -18,7 +18,7 @@ from ply.lex import LexToken
 # -----------------------------------------------------------------------------
 
 tokens = (
-   'CPP_ID','CPP_INTEGER', 'CPP_FLOAT', 'CPP_STRING', 'CPP_CHAR', 'CPP_WS', 'CPP_COMMENT', 'CPP_POUND','CPP_DPOUND'
+   'CPP_ID','JS_TEMPLATE_STRING', 'CPP_INTEGER', 'CPP_FLOAT', 'CPP_STRING', 'CPP_CHAR', 'CPP_WS', 'CPP_COMMENT', 'CPP_POUND','CPP_DPOUND'
 )
 
 literals = "+-*/%|&~^<>=!?()[]{}.,;:\\\'\""
@@ -49,6 +49,11 @@ t_CPP_FLOAT = r'((\d+)(\.\d+)(e(\+|-)?(\d+))? | (\d+)e(\+|-)?(\d+))([lL]|[fF])?'
 def t_CPP_STRING(t):
     r'\"([^\\\n]|(\\(.|\n)))*?\"'
     t.lexer.lineno += t.value.count("\n")
+    return t
+
+def t_JS_TEMPLATE_STRING(t):
+    r'\`(.|[\n\r\t ])*\`'
+    t.type = "CPP_STRING"
     return t
 
 # Character constant 'c' or L'c'

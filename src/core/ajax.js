@@ -1,5 +1,7 @@
 "use strict";
 
+//this file is ancient! destroy! destroy!
+
 //#include "src/config/config_defines.js"
 
 import * as config from '../config/config.js';
@@ -16,9 +18,8 @@ net api refator
      and use returned promises instead.
 */
 
-#define profile_start(name) ;
-
-#define profile_end(name) ;
+let profile_start = name => {};
+let profile_end = name => {};
 
 import {encode_utf8, decode_utf8, truncate_utf8, 
         urlencode, b64decode, b64encode} from '../util/strutils.js';

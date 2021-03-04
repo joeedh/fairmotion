@@ -549,7 +549,7 @@ export class PanOp extends ToolOp {
     this._last_dpi = undefined;
 
     this.is_modal = true;
-    this.undoflag |= UndoFlags.IGNORE_UNDO;
+    this.undoflag |= UndoFlags.NO_UNDO;
     this.start_pan = new Vector2(dopesheet.pan);
     this.first_draw = true;
 
@@ -563,7 +563,7 @@ export class PanOp extends ToolOp {
   static tooldef() {return {
     is_modal : true,
     toolpath : "dopesheet.pan",
-    undoflag : UndoFlags.IGNORE_UNDO,
+    undoflag : UndoFlags.NO_UNDO,
     inputs   : {},
     outputs  : {},
     icon     : -1

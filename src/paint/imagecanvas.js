@@ -12,10 +12,11 @@ TODO:
 
 */
 
-import {nstructjs, Curve1D, util, FloatProperty} from '../path.ux/scripts/pathux.js';
+import {nstructjs, Curve1D, Vector4, util, FloatProperty} from '../path.ux/scripts/pathux.js';
 import {DataBlock} from '../core/lib_api.js';
 import {NodeBase} from '../core/eventdag.js';
 import {Graph, GraphNode, NodeSocketType} from '../graph/graph.js';
+import {TILESIZE} from './imagecanvas_base.js';
 
 export const ImageDataClasses = [];
 
@@ -353,17 +354,43 @@ export const DataTypes = {
 };
 
 export class TiledImage extends ImageDataType {
-  constructor(width, height) {
+  constructor(width, height, tilesize=TILESIZE) {
     super();
 
     this.tiles = [];
+    this.tilesize = tilesize;
+
     this.width = width;
     this.height = height;
+
+    this.bgcolor = new Vector4([1, 1, 1, 0]);
   }
 
   static imageDataDefine() {
     return {
       typeName: "tiled_image"
+    }
+  }
+
+  initTiles() {
+    let tilex = Math.ceil(this.width / this.tilesize);
+    let tiley = Math.ceil(this.height / this.tilesize);
+
+    let size = this.tilesize;
+
+    for (let y=0; y<tiley; y++) {
+      for (let x = 0; x < tilex; x++) {
+        let x2 = x*size;
+        let y2 = y*size;
+
+        let tile = new FillColorImage(size, size);
+
+        tile.color.load(this.bgcolor);
+        tile.x = x2;
+        tile.y = y2;
+
+        this.tiles.push(tile);
+      }
     }
   }
 
@@ -457,8 +484,10 @@ export class TiledImage extends ImageDataType {
   }
 }
 
-ImageDataType.STRUCT = nstructjs.inherit(TiledImage, ImageDataType) + `
-  tiles : abstract(imagecanvas.ImageDataType);
+TiledImage.STRUCT = nstructjs.inherit(TiledImage, ImageDataType) + `
+  tiles    : abstract(imagecanvas.ImageDataType);
+  tilesize : int;
+  bgcolor  : vec4;
 }
 `;
 ImageDataType.register(TiledImage);

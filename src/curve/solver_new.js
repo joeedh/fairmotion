@@ -1,3 +1,5 @@
+"USE_PREPROCESSOR"
+
 import {KSCALE, KANGLE} from './spline_math.js';
 import {SplineTypes, SplineFlags} from './spline_base.js'
 var acos = Math.acos, asin = Math.asin, cos = Math.cos, sin=Math.sin, 

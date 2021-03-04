@@ -1,3 +1,4 @@
+"USE_PREPROCESSOR"
 "use strict";
 
 #include "src/config/config_defines.js"

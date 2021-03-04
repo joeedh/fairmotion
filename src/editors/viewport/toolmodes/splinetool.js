@@ -81,7 +81,9 @@ export class SplineToolMode extends ToolMode {
   }
 
   static buildProperties(container) {
+    let panel = container.panel("Tools");
 
+    panel.toolPanel("spline.vertex_smooth()");
   }
 
   on_tick() {

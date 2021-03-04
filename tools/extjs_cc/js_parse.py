@@ -1501,14 +1501,18 @@ def p_dot_expr(p):
   if len(p) == 2:
     p[0] = p[1]
   else:
-    p[0] = BinOpNode(p[0], p[2], ".")
+    p[0] = BinOpNode(p[1], p[3], ".")
 
 def p_class_parent_call(p):
   '''class_parent_call : dot_expr func_call
+                       | dot_expr
   '''
 
-  p[0] = p[2]
-  p[0].insert(0, p[1])
+  if len(p) == 2:
+    p[0] = p[1]
+  else:
+    p[0] = p[2]
+    p[0].insert(0, p[1])
 
 def p_class_list(p):
   '''class_list : class_parent_id

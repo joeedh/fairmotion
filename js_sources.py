@@ -134,6 +134,11 @@ sources = [
   "src/vectordraw/vectordraw.js",
   "src/vectordraw/strokedraw.js",
 
+  "src/webgl/webgl.js",
+  "src/webgl/fbo.js",
+  "src/webgl/shaders.js",
+  "src/webgl/simplemesh.js",
+  "src/webgl/simplemesh_shapes.js",
   "src/curve/spline_draw_new.js",
   "src/license/license_api.js",
   "src/license/license_electron.js",
@@ -212,7 +217,7 @@ sources = [
   ##"src/ui/UIWidgets_special.js",
   ##"src/ui/UIWidgets_special2.js",
   ##"src/ui/UITabPanel.js",
-  "src/core/utildefine.js",
+  ##"src/core/utildefine.js",
   ##"src/ui/dialog.js",
   ##"src/ui/dialogs.js",
   ##"src/windowmanager/FrameManager.js",
@@ -266,6 +271,8 @@ sources = [
 
   "src/paint/imagecanvas.js",
   "src/paint/imagecanvas_draw.js",
+  "src/paint/imagecanvas_webgl.js",
+  "src/paint/imagecanvas_base.js",
   "src/paint/paint_base.js",
   "src/paint/paint_op_base.js",
 

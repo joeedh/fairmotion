@@ -1,5 +1,6 @@
 "use strict";
 
+import {util} from '../path.ux/scripts/pathux.js';
 
 //note: INT_MAX is ((1<<30)*4-1)
 
@@ -168,6 +169,9 @@ export class Spline extends DataBlock {
 
     this.updateGen = 0;
     this.draw_layerlist = [];
+
+    this.solvePromise = undefined;
+    this.solveTimeout = undefined;
 
     /**
     strings of 2-valence strokes.  we deliberately cache
@@ -2325,7 +2329,22 @@ export class Spline extends DataBlock {
       this.kill_vertex(del[i]);
     }
   }
-  
+
+  checkSolve() {
+    if (this.resolve) {
+      if (this.solvePromise && util.time_ms() - this.solveTimeout < 1000) {
+        return;
+      } else {
+        this.solvePromise = this.solve().then(() => {
+          this.solvePromise = undefined;
+          window.redraw_viewport();
+        });
+
+        this.solveTimeout = util.time_ms();
+      }
+    }
+  }
+
   draw(redraw_rects : Array<Array<number>>, g : CanvasRenderingContext2D,
        editor : HTMLCanvas, matrix : Matrix4, selectmode : number,
        only_render : boolean, draw_normals : boolean, alpha : number,
@@ -2335,13 +2354,9 @@ export class Spline extends DataBlock {
     this.selectmode = selectmode;
 
     g.lineWidth = 1;
-    
-    if (this.resolve) {
-      this.solve().then(function() {
-        window.redraw_viewport();
-      });
-    }
-    
+
+    this.checkSolve();
+
     return draw_spline(this, redraw_rects, g, editor, matrix, selectmode, only_render,
                  draw_normals, alpha, draw_time_helpers, curtime, ignore_layers);
   }

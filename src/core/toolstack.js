@@ -46,7 +46,7 @@ export class ToolStack {
       tool.is_modal = false;
       tool.exec_pre(ctx);
 
-      if (!(tool.undoflag & UndoFlags.IGNORE_UNDO)) {
+      if (!(tool.undoflag & UndoFlags.NO_UNDO)) {
         //console.log(" - undo pre");
         tool.undo_pre(ctx);
         tool.undoflag |= UndoFlags.HAS_UNDO_DATA;
@@ -118,7 +118,7 @@ export class ToolStack {
       tool.is_modal = false;
       tool.exec_pre(ctx);
 
-      if (!(tool.undoflag & UndoFlags.IGNORE_UNDO)) {
+      if (!(tool.undoflag & UndoFlags.NO_UNDO)) {
         //console.log(" - undo pre");
         tool.undo_pre(ctx);
         tool.undoflag |= UndoFlags.HAS_UNDO_DATA;
@@ -263,7 +263,7 @@ export class ToolStack {
       tool.saved_context.set_context(ctx);
       tool.is_modal = false;
 
-      if (!(tool.undoflag & UndoFlags.IGNORE_UNDO)) {
+      if (!(tool.undoflag & UndoFlags.NO_UNDO)) {
         tool.undo_pre((tool.flag & ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : ctx);
         tool.undoflag |= UndoFlags.HAS_UNDO_DATA;
       }
@@ -524,7 +524,7 @@ export class ToolStack {
       return;
     }
 
-    if (!(tool.undoflag & UndoFlags.IGNORE_UNDO))
+    if (!(tool.undoflag & UndoFlags.NO_UNDO))
       this.undo_push(tool);
 
     for (let k in tool.inputs) {
@@ -545,7 +545,7 @@ export class ToolStack {
 
       tool.exec_pre(tool.modal_tctx);
 
-      if (!(tool.undoflag & UndoFlags.IGNORE_UNDO)) {
+      if (!(tool.undoflag & UndoFlags.NO_UNDO)) {
         //some tools expect modal_running is set even for undo_pre callback
         //even though it's only valid in that case some of the time
         if (tool.is_modal)
@@ -565,7 +565,7 @@ export class ToolStack {
       let tctx = (tool.flag & ToolFlags.USE_TOOL_CONTEXT) ? new BaseContext().toLocked() : ctx.toLocked();
       tool.saved_context = new SavedContext(tctx);
 
-      if (!(tool.undoflag & UndoFlags.IGNORE_UNDO)) {
+      if (!(tool.undoflag & UndoFlags.NO_UNDO)) {
         //undo callbacks, unlike .exec, get full context structure
         tool.undo_pre((tool.flag & ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : ctx);
         tool.undoflag |= UndoFlags.HAS_UNDO_DATA;
@@ -575,7 +575,7 @@ export class ToolStack {
       tool.exec(tctx);
     }
 
-    if (!(tool.undoflag & UndoFlags.IGNORE_UNDO)) {
+    if (!(tool.undoflag & UndoFlags.NO_UNDO)) {
       this.rebuild_last_tool(tool);
     }
   }

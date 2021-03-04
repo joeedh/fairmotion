@@ -1,3 +1,5 @@
+import {util} from '../../path.ux/scripts/pathux.js';
+
 /*
 it looks like this implementation doesn't
 pass referred objects to property.update 
@@ -33,9 +35,16 @@ function is_int(s) {
 }
 window._is_int = is_int;
 
+let arraypool = new util.ArrayPool();
+
+let token_cachering;
+let tks_cachering;
+
 export var DataPathTypes = {PROP: 0, STRUCT: 1, STRUCT_ARRAY : 2};
 export var DataFlags = {NO_CACHE : 1, RECALC_CACHE : 2};
 export * from './data_api_types.js';
+
+//objcache.fetch(TinyParser.ctemplates.token);
 
 import {DataStruct, DataStructArray, DataStructIter, DataPath} from "./data_api_types.js";
 
@@ -90,9 +99,9 @@ class TinyParser {
   constructor(data) {
     var tpl = TinyParser.ctemplates;
     
-    this.toks = objcache.fetch(tpl.toks);
+    this.toks = tks_cachering.next();
     this.toks.length = 0;
-    
+
     this.split_chars = TinyParser.split_chars; 
     this.ws = TinyParser.ws; 
     this.data = data
@@ -105,12 +114,12 @@ class TinyParser {
     this.toks.length = 0;
     this.data = data;
     
-    if (data != undefined && data != "")
+    if (data !== undefined && data !== "")
       this.lex();
   }
   
   gen_tok(a, b) {
-    var ret = objcache.fetch(TinyParser.ctemplates.token);
+    var ret = token_cachering.next();
     
     ret[0] = a;
     ret[1] = b;
@@ -122,7 +131,7 @@ class TinyParser {
   lex(data) {
     var gt = this.gen_tok;
     
-    if (data == undefined)
+    if (data === undefined)
       data = this.data;
     
     var toks = this.toks
@@ -206,6 +215,12 @@ TinyParser.ctemplates = {
   toks : {obj : Array(64), init : function(val) { val.length = 0; }},
   token : {obj : ["", ""], cachesize : 512}
 };
+
+token_cachering = new util.cachering(() => {
+  return {obj : ["", ""], cachesize : 512};
+}, 512);
+
+tks_cachering = new util.cachering(() => [], 64);
 
 TinyParser.split_chars = new set([",", "=", "(", ")", ".", "$", "[", "]"]);
 TinyParser.ws = new set([" ", "\n", "\t", "\r"]);
@@ -293,7 +308,7 @@ export class DataAPI {
     
     path = path.trimRight().trimLeft();
     
-    var ret = objcache.array(2);
+    var ret = arraypool.get(2, false);
     ret[0] = path; ret[1] = call;
     
     return ret;
@@ -442,41 +457,42 @@ export class DataAPI {
   get_op_keyhandler(ctx, str) {
     //$XXX
     console.warn("get_op_keyhandler: implement me!");
-#if 0
-    //build hash key from active screen area and str;
-    var hash = str;
-    if (ctx.screen.active.type != undefined)
+
+    if (0) {
+      //build hash key from active screen area and str;
+      var hash = str;
+
+      if (ctx.screen.active.type != undefined)
         hash += ctx.screen.active.type;
-      
-    if (hash in this.op_keyhandler_cache) {
+
+      if (hash in this.op_keyhandler_cache) {
+        return this.op_keyhandler_cache[hash];
+      }
+
+      function find_hotkey_recurse(element) {
+        if (element == undefined)
+          return undefined;
+
+        //console.log("element: ", element, element.active);
+
+        var maps = element.get_keymaps();
+        for (var i = 0; i < maps.length; i++) {
+          var km = maps[i];
+
+          var handler = km.get_tool_handler(str);
+          if (handler != undefined)
+            return handler;
+        }
+
+        if (element instanceof UIFrame && element.active != undefined) {
+          return find_hotkey_recurse(element.active);
+        }
+      }
+
+      //cache final result
+      this.op_keyhandler_cache[hash] = find_hotkey_recurse(ctx.screen);
       return this.op_keyhandler_cache[hash];
     }
-    
-    function find_hotkey_recurse(element) {
-      if (element == undefined)
-        return undefined;
-      
-      //console.log("element: ", element, element.active);
-      
-      var maps = element.get_keymaps();
-      for (var i=0; i<maps.length; i++) {
-        var km = maps[i];
-        
-        var handler = km.get_tool_handler(str);
-        if (handler != undefined)
-          return handler;
-      }
-      
-      if (element instanceof UIFrame && element.active != undefined)
-      {
-        return find_hotkey_recurse(element.active);
-      }
-    }
-    
-    //cache final result
-    this.op_keyhandler_cache[hash] = find_hotkey_recurse(ctx.screen);
-    return this.op_keyhandler_cache[hash] ;
-#endif
   }
   
   call_op(ctx, str) {
@@ -568,8 +584,9 @@ export class DataAPI {
       if ((error instanceof TinyParserError)) {
         throw error;
       } else {
-        console.log("Error calling " + str);
-        console.trace();
+        console.log(error.stack);
+        console.log(error.message);
+        console.warn("Error calling " + str);
       }
     }
   }

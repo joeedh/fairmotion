@@ -17,6 +17,8 @@ export var ORIGIN = location.origin;
 
 export var MANIPULATOR_MOUSEOVER_LIMIT = 25;
 
+export var NO_RENDER_WORKERS = false;
+
 export var ELECTRON_APP_MODE = document.getElementById("ElectronAppMode") !== null;
 export var CHROME_APP_MODE = document.getElementById("GoogleChromeAppMode") !== null;
 export var PHONE_APP_MODE = document.getElementById("PhoneAppMode") !== null;

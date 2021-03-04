@@ -280,13 +280,13 @@ export class CopyPoseOp extends SplineLocalToolOp {
   constructor() {
     super();
     
-    this.undoflag |= UndoFlags.IGNORE_UNDO;
+    this.undoflag |= UndoFlags.NO_UNDO;
   }
   
   static tooldef() { return {
     uiname   : "Copy Pose",
     apiname  : "editor.copy_pose",
-    undoflag : UndoFlags.IGNORE_UNDO,
+    undoflag : UndoFlags.NO_UNDO,
     
     inputs   : {},
     outputs  : {},
@@ -1257,7 +1257,7 @@ export class CurveRootFinderTest extends ToolOp {
     
     inputs   : {},
     outputs  : {},
-    undoflag : UndoFlags.IGNORE_UNDO,
+    undoflag : UndoFlags.NO_UNDO,
     
     icon     : -1,
     is_modal : true,
@@ -1318,7 +1318,7 @@ export class DelVertFrame extends ToolOp {
     
     inputs   : {},
     outputs  : {},
-    undoflag : UndoFlags.IGNORE_UNDO,
+    undoflag : UndoFlags.NO_UNDO,
     
     icon     : -1,
     is_modal : true,
@@ -1788,3 +1788,63 @@ export class SplineMirrorOp extends SplineLocalToolOp {
 }
 
 import {FullContext} from "../../core/context.js";
+
+export class VertexSmoothOp extends SplineLocalToolOp {
+  static tooldef() {return {
+    uiname : "Smooth Control Points",
+    toolpath : "spline.vertex_smooth",
+    apiname : "spline.vertex_smooth",
+    inputs : ToolOp.inherit({
+      repeat : new IntProperty(1).saveLastValue().setRange(1, 1024).saveLastValue(),
+      factor : new FloatProperty(0.5).noUnits().setRange(0.0, 1.0).saveLastValue(),
+      projection : new FloatProperty(0.0).noUnits().setRange(0.0, 1.0).saveLastValue()
+    }),
+    outputs : ToolOp.inherit({})
+  }}
+
+  exec(ctx) {
+    let spline = ctx.spline;
+
+    let vs = new Set(spline.verts.selected.editable(ctx));
+
+    let co = new Vector2();
+    let fac = this.inputs.factor.getValue();
+    let proj = this.inputs.projection.getValue();
+
+    function vsmooth(v) {
+      co.zero();
+      let tot = 0.0;
+
+      for (let e of v.segments) {
+        let v2 = e.other_vert(v);
+        let w = e.length;
+
+        co.addFac(v2, w);
+        tot += w;
+      }
+
+      if (!tot) {
+        return;
+      }
+
+      co.mulScalar(1.0 / tot);
+      v.interp(co, fac);
+
+      v.flag |= SplineFlags.UPDATE;
+    }
+
+    let repeat = this.inputs.repeat.getValue();
+
+    for (let i=0; i<repeat; i++) {
+      for (let v of vs) {
+        vsmooth(v);
+      }
+    }
+
+    spline.regen_render();
+    spline.checkSolve();
+
+    window.redraw_viewport();
+  }
+}
+

@@ -31,7 +31,7 @@ export class SplitAreasTool extends ToolOp {
     this.canvas = screen.canvas;
     
     this.is_modal = true;
-    this.undoflag = UndoFlags.IGNORE_UNDO;
+    this.undoflag = UndoFlags.NO_UNDO;
     
     this.mpos = [0, 0];
     this.split = undefined : Array<Object>;
@@ -356,7 +356,7 @@ export class HintPickerOp extends ToolOp {
   static tooldef() {return {
     uiname   : "Hint Picker",
     apiname  : "screen.hint_picker",
-    undoflag : UndoFlags.IGNORE_UNDO,
+    undoflag : UndoFlags.NO_UNDO,
     is_modal : true,
     inputs   : {},
     outputs  : {},

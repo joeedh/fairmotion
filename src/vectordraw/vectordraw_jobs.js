@@ -16,7 +16,7 @@ let MAX_THREADS = platform.app.numberOfCPUs() + 1;
 MAX_THREADS = Math.max(MAX_THREADS, 2);
 
 //prioritize fast startup in html5 mode, at least for now
-if (config.HTML5_APP_MODE) {
+if (config.HTML5_APP_MODE || config.NO_RENDER_WORKERS) {
   MAX_THREADS = 1;
 }
 

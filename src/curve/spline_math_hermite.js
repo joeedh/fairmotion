@@ -1,3 +1,4 @@
+"USE_PREPROCESSOR"
 "use strict";
 
 //hermite clothoid

@@ -809,10 +809,22 @@ def gen_source_map(src, gensrc, map):
     file.write(js)
     file.close()
   return js
-    
+
+def check_for_preprocess():
+  for i in range(5):
+    if i >= len(glob.g_lines):
+        break
+
+    line = glob.g_lines[i]
+
+    if line.startswith('"USE_PREPROCESSOR"') or line.startswith("'USE_PREPROCESSOR'"):
+        glob.g_preprocess_code = True
+
 def parse_intern_es6(data):
   glob.g_lines = data.split("\n")
   glob.g_filedata = data
+
+  check_for_preprocess()
 
   if glob.g_preprocess_code:
     data = preprocess_text(data, glob.g_file)
@@ -1142,6 +1154,8 @@ f_id = [0]
 def parse_intern(data, create_logger=False, expand_loops=True, expand_generators=True):
   glob.g_lines = data.split("\n")
   glob.g_filedata = data
+
+  check_for_preprocess()
 
   if glob.g_preprocess_code:
     have_cpp = False

@@ -174,9 +174,8 @@ export class TransformOp extends ToolOp {
     ctx.state.pushModalState(ModalStates.TRANSFORMING);
 
     //do one solve
-    ctx.spline.solve().then(function() {
-      redraw_viewport();
-    });
+    ctx.spline.regen_solve();
+    ctx.spline.checkSolve();
 
     this.ensure_transdata(ctx);
     this.modaldata = {};

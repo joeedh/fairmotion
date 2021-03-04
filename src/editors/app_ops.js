@@ -29,7 +29,7 @@ export class FileOpenOp extends ToolOp {
   constructor() {
     super();
 
-    this.undoflag = UndoFlags.IGNORE_UNDO;
+    this.undoflag = UndoFlags.NO_UNDO;
     this.flag = ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS;
 
   }
@@ -43,7 +43,7 @@ export class FileOpenOp extends ToolOp {
     outputs  : {},
     icon     : Icons.RESIZE,
     is_modal : false,
-    undoflag : UndoFlags.IGNORE_UNDO,
+    undoflag : UndoFlags.NO_UNDO,
     flag : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS
   }}
 
@@ -84,7 +84,7 @@ export class FileSaveAsOp extends ToolOp {
     outputs  : {},
     icon     : -1,
     is_modal : false,
-    undoflag : UndoFlags.IGNORE_UNDO,
+    undoflag : UndoFlags.NO_UNDO,
     flag : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS
   }}
 
@@ -119,7 +119,7 @@ export class FileSaveOp extends ToolOp {
     outputs  : {},
     icon     : -1,
     is_modal : false,
-    undoflag : UndoFlags.IGNORE_UNDO,
+    undoflag : UndoFlags.NO_UNDO,
     flag : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS
   }}
 
@@ -165,7 +165,7 @@ export class FileSaveSVGOp extends ToolOp {
     outputs  : {},
     icon     : -1,
     is_modal : false,
-    undoflag : UndoFlags.IGNORE_UNDO,
+    undoflag : UndoFlags.NO_UNDO,
     flag : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS
   }}
 
@@ -224,7 +224,7 @@ export class FileSaveB64Op extends ToolOp {
 
     icon     : -1,
     is_modal : false,
-    undoflag : UndoFlags.IGNORE_UNDO,
+    undoflag : UndoFlags.NO_UNDO,
     flag : ToolFlags.HIDE_TITLE_IN_LAST_BUTTONS
   }}
 

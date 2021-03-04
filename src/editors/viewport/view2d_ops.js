@@ -23,7 +23,7 @@ export class PanOp extends ToolOp {
     super();
 
     this.is_modal = true;
-    this.undoflag |= UndoFlags.IGNORE_UNDO;
+    this.undoflag |= UndoFlags.NO_UNDO;
 
     if (start_mpos !== undefined) {
       this.start_mpos = new Vector3(start_mpos);
@@ -44,7 +44,7 @@ export class PanOp extends ToolOp {
     uiname     : "Pan",
     apiname    : "view2d.pan",
 
-    undoflag   : UndoFlags.IGNORE_UNDO,
+    undoflag   : UndoFlags.NO_UNDO,
 
     inputs     : {},
     outputs    : {},
@@ -103,7 +103,7 @@ class ViewRotateZoomPanOp extends ToolOp {
   constructor() {
     super();
 
-    this.undoflag = UndoFlags.IGNORE_UNDO;
+    this.undoflag = UndoFlags.NO_UNDO;
 
     this.transdata = null;
     this.is_modal = true;
@@ -131,7 +131,7 @@ class ViewRotateZoomPanOp extends ToolOp {
     apiname : "view2d.viewrotatezoom",
     uiname : "View Rotate Zoom",
     is_modal : true,
-    undoflag : UndoFlags.IGNORE_UNDO,
+    undoflag : UndoFlags.NO_UNDO,
     inputs : {},
     outputs : {}
   }}
@@ -353,7 +353,7 @@ class ViewRotateOp extends ToolOp {
     apiname : "view2d.orbit",
     uiname : "Orbit",
     is_modal : true,
-    undoflag : UndoFlags.IGNORE_UNDO,
+    undoflag : UndoFlags.NO_UNDO,
     inputs : {MV1: new Vec3Property(new Vector3(), "mvector1", "mvector1", "mvector1"),
       MV2: new Vec3Property(new Vector3(), "mvector2", "mvector2", "mvector2")},
     outputs : {}
@@ -430,7 +430,7 @@ class ViewPanOp extends ToolOp {
   constructor() {
     super("view2d_pan", "Pan");
     
-    this.undoflag = UndoFlags.IGNORE_UNDO;
+    this.undoflag = UndoFlags.NO_UNDO;
     
     this.transdata = null;
     this.is_modal = true;
@@ -544,7 +544,7 @@ export class BasicFileDataOp extends ToolOp {
     super();
     
     this.is_modal = false;
-    this.undoflag = UndoFlags.IGNORE_UNDO|UndoFlags.IS_ROOT_OPERATOR|UndoFlags.UNDO_BARRIER;
+    this.undoflag = UndoFlags.NO_UNDO|UndoFlags.IS_UNDO_ROOT|UndoFlags.UNDO_BARRIER;
 
     if (data)
       this.inputs.data.setValue(data);
@@ -556,7 +556,7 @@ export class BasicFileDataOp extends ToolOp {
   static tooldef() {return {
     uiname : "internal file load op",
     apiname : "app.basic_file_with_data",
-    undoflag : UndoFlags.IGNORE_UNDO|UndoFlags.IS_ROOT_OPERATOR|UndoFlags.UNDO_BARRIER,
+    undoflag : UndoFlags.NO_UNDO|UndoFlags.IS_UNDO_ROOT|UndoFlags.UNDO_BARRIER,
 
     inputs : {
       data : new StringProperty("", "filedata", "file data in base64", TPropFlags.PRIVATE)
@@ -583,7 +583,7 @@ export class BasicFileOp extends ToolOp {
   static tooldef() {return {
     apiname : "app.basic_file",
     uiname : "Make Basic File (internal)",
-    undoflag : UndoFlags.IS_ROOT_OPERATOR|UndoFlags.UNDO_BARRIER,
+    undoflag : UndoFlags.IS_UNDO_ROOT|UndoFlags.UNDO_BARRIER,
     description : "Internal tool op; makes basic file"
   }}
 
@@ -649,7 +649,7 @@ export class ExportCanvasImage extends ToolOp {
     apiname     : "view2d.export_image",
     uiname      : "Save Canvas Image",
     description : "Export visible canvas",
-    undoflag    : UndoFlags.IGNORE_UNDO
+    undoflag    : UndoFlags.NO_UNDO
   }}
   
   exec(ctx) {

@@ -1,6 +1,6 @@
 "use strict";
 
-#include "src/core/utildefine.js"
+//#include "src/core/utildefine.js"
 
 import "./vectormath.js"
 

@@ -1908,7 +1908,9 @@ export class VertexSmoothOp extends SplineLocalToolOp {
 
     for (let i=0; i<repeat; i++) {
       for (let v of vs) {
-        vsmooth(v);
+        if (v.valence > 1) {
+          vsmooth(v);
+        }
       }
     }
 

@@ -342,6 +342,10 @@ export class SplineVertex extends SplineElement {
       this.flag &= ~SplineFlags.HIDE;
   }
 
+  get valence() {
+    return this.segments.length;
+  }
+
   other_segment(s : SplineSegment) : SplineSegment {
     if (s === this.segments[0]) s = this.segments[1];
     else if (s === this.segments[1]) s = this.segments[0];

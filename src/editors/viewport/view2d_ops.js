@@ -427,17 +427,23 @@ class ViewPanOp extends ToolOp {
   inputs : Object
   outputs : Object;
 
+  static tooldef() { return {
+    toolpath : "view2d.pan",
+    inputs : {
+      MV1: new Vec3Property(new Vector3(), "mvector1", "mvector1", "mvector1"),
+      MV2: new Vec3Property(new Vector3(), "mvector2", "mvector2", "mvector2")
+    },
+    outputs : {
+
+    },
+    is_modal : true,
+    undoflag : UndoFlags.NO_UNDO
+  }}
+
   constructor() {
     super("view2d_pan", "Pan");
     
-    this.undoflag = UndoFlags.NO_UNDO;
-    
     this.transdata = null;
-    this.is_modal = true;
-
-    this.inputs = {MV1: new Vec3Property(new Vector3(), "mvector1", "mvector1", "mvector1"), 
-                   MV2: new Vec3Property(new Vector3(), "mvector2", "mvector2", "mvector2")}
-                   
     this.outputs = {}
   }
 

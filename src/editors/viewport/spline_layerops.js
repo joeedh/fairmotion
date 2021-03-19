@@ -21,7 +21,7 @@ export class AddLayerOp extends SplineLayerOp {
   constructor(name) {
     super(undefined, "Add Layer");
     
-    if (name != undefined)
+    if (name !== undefined)
       this.inputs.name.set_data(name);
   }
 
@@ -162,7 +162,7 @@ export class ChangeElementLayerOp extends SplineLayerOp {
   }
 
   static tooldef() {return {
-    name   : "move_to_layer",
+    toolpath   : "spline.move_to_layer",
     uiname : "Move To Layer",
     path   : "spline.move_to_layer",
     inputs : ToolOp.inherit({

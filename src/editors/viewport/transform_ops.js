@@ -31,7 +31,7 @@ export class WidgetResizeOp extends TransformOp {
   
   static tooldef() { return {
     uiname   : "Resize",
-    apiname  : "spline.widget_resize",
+    toolpath  : "spline.widget_resize",
     description : "Resize geometry",
     is_modal : true,
     
@@ -270,7 +270,7 @@ export class WidgetRotateOp extends TransformOp {
   
   static tooldef() { return {
     uiname   : "Rotate",
-    apiname  : "spline.widget_rotate",
+    toolpath  : "spline.widget_rotate",
     description : "Rotate geometry",
     is_modal : true,
     

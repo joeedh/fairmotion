@@ -203,6 +203,10 @@ window.init_toolop_structs = function () {
       nstructjs.register(cls);
     }
 
+    //if (!cls.tooldef().toolpath) {
+    //  console.error("Missing toolpath", cls);
+    //}
+
     ToolOp.register(cls);
   }
 };

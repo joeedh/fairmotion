@@ -105,11 +105,11 @@ export function makeAPI(api = new DataAPI()) {
       redraw_viewport();
     }).call(this.dataref, old)});
     View2DHandlerStruct.bool("half_pix_size", "half_pix_size", "half_pix_size");
-    View2DHandlerStruct.vec3("background_color", "background_color", "Background").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function(old) {return (function () {
+    View2DHandlerStruct.color4("background_color", "background_color", "Background").on("change", function(old) {return (function () {
       window.redraw_viewport();
     }).call(this.dataref, old)});
-    View2DHandlerStruct.vec2("default_stroke", "default_stroke", "Stroke").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4);
-    View2DHandlerStruct.vec2("default_fill", "default_fill", "Fill").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4);
+    View2DHandlerStruct.color4("default_stroke", "default_stroke", "Stroke");
+    View2DHandlerStruct.color4("default_fill", "default_fill", "Fill");
     View2DHandlerStruct.enum("toolmode", "toolmode", ToolModes, "Active Tool").uiNames({
       SELECT : "Select",
       APPEND : "Append",
@@ -231,7 +231,7 @@ export function makeAPI(api = new DataAPI()) {
   var MaterialStruct = api.mapStruct(Material, true);
 
   function api_define_Material(api) {
-    MaterialStruct.vec2("fillcolor", "fillcolor", "fill").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function(old) {return (function (material) {
+    MaterialStruct.color4("fillcolor", "fillcolor", "fill").on("change", function(old) {return (function (material) {
       material.update();
       window.redraw_viewport();
     }).call(this.dataref, old)});
@@ -253,7 +253,7 @@ export function makeAPI(api = new DataAPI()) {
       material.update();
       window.redraw_viewport();
     }).call(this.dataref, old)});
-    MaterialStruct.vec2("strokecolor", "strokecolor", "Stroke").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function(old) {return (function (material) {
+    MaterialStruct.color4("strokecolor", "strokecolor", "Stroke").on("change", function(old) {return (function (material) {
       material.update();
       window.redraw_viewport();
     }).call(this.dataref, old)});
@@ -261,7 +261,7 @@ export function makeAPI(api = new DataAPI()) {
       material.update();
       window.redraw_viewport();
     }).call(this.dataref, old)});
-    MaterialStruct.vec2("strokecolor2", "strokecolor2", "Double Stroke").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function(old) {return (function (material) {
+    MaterialStruct.color4("strokecolor2", "strokecolor2", "Double Stroke").on("change", function(old) {return (function (material) {
       material.update();
       window.redraw_viewport();
     }).call(this.dataref, old)});
@@ -433,6 +433,9 @@ export function makeAPI(api = new DataAPI()) {
       function getLength(api, list) {
         return list.length;
       },
+      function getKey(api, list, obj) {
+        return obj.eid;
+      },
       /*function getkeyiter() {
               var keys=Object.keys(this.local_idmap);
               var ret=new GArray();
@@ -454,6 +457,9 @@ export function makeAPI(api = new DataAPI()) {
       },
       function getStruct(api, list, key) {
         return SplineVertexStruct;
+      },
+      function getKey(api, list, obj) {
+        return obj.eid;
       },
       function getLength(api, list) {
         return list.length;
@@ -480,6 +486,9 @@ export function makeAPI(api = new DataAPI()) {
       function getStruct(api, list, key) {
         return SplineVertexStruct;
       },
+      function getKey(api, list, obj) {
+        return obj.eid;
+      },
       function getLength(api, list) {
         return list.length;
       },
@@ -504,6 +513,9 @@ export function makeAPI(api = new DataAPI()) {
       },
       function getStruct(api, list, key) {
         return SplineFaceStruct;
+      },
+      function getKey(api, list, obj) {
+        return obj.eid;
       },
       function getLength(api, list) {
         let len=0;
@@ -533,6 +545,9 @@ export function makeAPI(api = new DataAPI()) {
       function getStruct(api, list, key) {
         return SplineSegmentStruct;
       },
+      function getKey(api, list, obj) {
+        return obj.eid;
+      },
       function getLength(api, list) {
         let len=0;
         for (let e of list.selected.editable(g_app_state.ctx)) {
@@ -560,6 +575,9 @@ export function makeAPI(api = new DataAPI()) {
       },
       function getStruct(api, list, key) {
         return SplineVertexStruct;
+      },
+      function getKey(api, list, obj) {
+        return obj.eid;
       },
       function getLength(api, list) {
         let len=0;
@@ -589,6 +607,9 @@ export function makeAPI(api = new DataAPI()) {
       function getStruct(api, list, key) {
         return SplineVertexStruct;
       },
+      function getKey(api, list, obj) {
+        return obj.eid;
+      },
       function getLength(api, list) {
         let len=0;
         for (let e of list.selected.editable(g_app_state.ctx)) {
@@ -616,6 +637,9 @@ export function makeAPI(api = new DataAPI()) {
       },
       function getStruct(api, list, key) {
         return SplineFaceStruct;
+      },
+      function getKey(api, list, obj) {
+        return obj.eid;
       },
       function getLength(api, list) {
         let len=0;
@@ -645,6 +669,9 @@ export function makeAPI(api = new DataAPI()) {
       function getStruct(api, list, key) {
         return SplineSegmentStruct;
       },
+      function getKey(api, list, obj) {
+        return obj.eid;
+      },
       function getLength(api, list) {
         let len=0;
         for (let e of list.selected.editable(g_app_state.ctx)) {
@@ -672,6 +699,9 @@ export function makeAPI(api = new DataAPI()) {
       },
       function getStruct(api, list, key) {
         return SplineVertexStruct;
+      },
+      function getKey(api, list, obj) {
+        return obj.eid;
       },
       function getLength(api, list) {
         let len=0;
@@ -701,6 +731,9 @@ export function makeAPI(api = new DataAPI()) {
       function getStruct(api, list, key) {
         return SplineVertexStruct;
       },
+      function getKey(api, list, obj) {
+        return obj.eid;
+      },
       function getLength(api, list) {
         let len=0;
         for (let e of list.selected.editable(g_app_state.ctx)) {
@@ -728,6 +761,9 @@ export function makeAPI(api = new DataAPI()) {
       },
       function getStruct(api, list, key) {
         return SplineLayerStruct;
+      },
+      function getKey(api, list, obj) {
+        return obj.id;
       },
       function getLength(api, list) {
         return list.length;
@@ -803,6 +839,29 @@ export function makeAPI(api = new DataAPI()) {
   var SplineSegmentStruct = api.mapStruct(SplineSegment, true);
 
   function api_define_SplineSegment(api) {
+    SplineSegmentStruct.bool("editable", "editable", "Element is visible and can be edited").customGet(function() {
+      let seg = this.dataref;
+      //XXX mass set path code will sometimes set
+      //this.ctx to seg.
+
+      //let ctx = this.ctx;
+      let ctx = window.g_app_state.ctx;
+
+      let ok = seg.flag & SplineFlags.SELECT;
+      ok = ok && !(seg.flag & SplineFlags.HIDE);
+
+      if (!ok) {
+        return false;
+      }
+
+      if (!ctx.edit_all_layers) {
+        let spline = ctx.spline;
+        ok = ok && spline.layerset.active.id in seg.layers;
+      }
+
+      return ok;
+    });
+
     SplineSegmentStruct.float("w1", "w1", "w1").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function(old) {return (function (segment) {
       g_app_state.ctx.spline.regen_sort();
       segment.mat.update();

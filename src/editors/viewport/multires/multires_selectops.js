@@ -101,6 +101,7 @@ SelectOpBase.inputs = {
   level : new IntProperty(0)
 }
 
+/*
 export class ToggleSelectAll extends SelectOpBase {
   constructor(actlevel : int=0) {
     super(actlevel, "Select All", "Select all/none");
@@ -155,6 +156,7 @@ export class ToggleSelectAll extends SelectOpBase {
 ToggleSelectAll.inputs = {
   level : new IntProperty(0)
 }
+ */
 
 export class SelectOneOp extends SelectOpBase {
   constructor(int pid=undefined, unique=true, mode=true, int level=0) {

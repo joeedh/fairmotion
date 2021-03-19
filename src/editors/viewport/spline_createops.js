@@ -26,7 +26,7 @@ export class ExtrudeVertOp extends SplineLocalToolOp {
   
   static tooldef() { return {
     uiname   : "Extrude Path",
-    apiname  : "spline.extrude_verts",
+    toolpath  : "spline.extrude_verts",
     
     inputs   : {
       location  : new Vec3Property(undefined, "location", "location"),
@@ -440,7 +440,7 @@ export class ImportJSONOp extends ToolOp {
   
   static tooldef() { return {
     uiname   : "Import Old JSON",
-    apiname  : "editor.import_old_json",
+    toolpath  : "editor.import_old_json",
     
     inputs   : {
       strdata : new StringProperty("", "JSON", "JSON", "JSON string data")

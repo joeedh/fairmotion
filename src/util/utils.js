@@ -653,7 +653,11 @@ class ArrayIter {
     this.arr = arr;
     this.cur = 0;
   }
-  
+
+  [Symbol.iterator]() {
+    return this;
+  }
+
   init(arr : Array<T>) {
     this.ret.done = false; this.ret.value = undefined;
     this.arr = arr;

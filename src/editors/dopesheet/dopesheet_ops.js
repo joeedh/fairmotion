@@ -27,7 +27,7 @@ export class ShiftTimeOp2 extends ToolOp {
   }
   
   static tooldef() {return {
-    apiname : "spline.shift_time2",
+    toolpath : "spline.shift_time2",
     uiname : "Shift Time2",
     
     is_modal : true,
@@ -228,7 +228,7 @@ export class ShiftTimeOp3 extends ToolOp {
   }
   
   static tooldef() {return {
-    apiname : "spline.shift_time3",
+    toolpath : "spline.shift_time3",
     uiname : "Shift Time",
     
     is_modal : true,
@@ -444,7 +444,7 @@ export class SelectOp extends SelectOpBase {
   }
   
   static tooldef() {return {
-    apiname : "spline.select_keyframe",
+    toolpath : "spline.select_keyframe",
     uiname : "Select Keyframe",
     
     is_modal : false,
@@ -480,7 +480,7 @@ export class ColumnSelect extends SelectOpBase {
     super();
   }
   static tooldef() {return {
-    apiname : "spline.select_keyframe_column",
+    toolpath : "spline.select_keyframe_column",
     uiname : "Column Select",
     
     is_modal : false,
@@ -518,7 +518,7 @@ export class SelectKeysToSide extends SelectOpBase {
   }
   
   static tooldef() {return {
-    apiname : "spline.select_keys_to_side",
+    toolpath : "spline.select_keys_to_side",
     uiname : "Select Keys To Side",
     
     is_modal : false,
@@ -574,7 +574,7 @@ export class ToggleSelectOp extends SelectOpBase {
   }
   
   static tooldef() {return {
-    apiname : "spline.toggle_select_keys",
+    toolpath : "spline.toggle_select_keys",
     uiname : "Select Keyframe Selection",
     
     is_modal : false,
@@ -614,7 +614,7 @@ export class DeleteKeyOp extends ToolOp {
   }
   
   static tooldef() {return {
-    apiname : "spline.delete_key",
+    toolpath : "spline.delete_key",
     uiname : "Delete Keyframe",
     
     is_modal : false,

@@ -223,11 +223,11 @@ export class PenToolMode extends ToolMode {
 
   }
 
-  static defineAPI() {
-    let st = super.defineAPI();
+  static defineAPI(api) {
+    let st = super.defineAPI(api);
 
-    let def = st.Float("limit", "limit", "Limit","Minimum distance between points");
-    def.Range(0, 300);
+    let def = st.float("limit", "limit", "Limit","Minimum distance between points");
+    def.range(0, 300).noUnits()
 
     return st;
   }

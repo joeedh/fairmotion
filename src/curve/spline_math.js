@@ -26,7 +26,7 @@ export var ORDER = math.ORDER;
 import {DISABLE_SOLVE} from '../config/config.js';
 
 function do_solve_nacl(sflags, spline, steps, gk, return_promise) {
-  if (DISABLE_SOLVE)
+  if (DISABLE_SOLVE || window.DISABLE_SOLVE)
     return;
     
   if (window.common !== undefined && window.common.naclModule !== undefined) {
@@ -40,9 +40,8 @@ function do_solve_nacl(sflags, spline, steps, gk, return_promise) {
 import * as native_api from '../wasm/native_api.js';
 
 export function do_solve() {
-  if (DISABLE_SOLVE) {
+  if (DISABLE_SOLVE || window.DISABLE_SOLVE)
     return;
-  }
 
   if (config.USE_NACL) {
     return do_solve_nacl.apply(this, arguments);

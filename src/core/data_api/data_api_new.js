@@ -43,6 +43,7 @@ import {SettingsEditor} from "../../editors/settings/SettingsEditor.js";
 import {Scene} from "../../scene/scene.js";
 import {Spline} from "../../curve/spline.js";
 import {DataLib, DataBlock, DataList} from "../lib_api.js";
+import {initToolModeAPI} from '../../editors/viewport/toolmodes/toolmode.js';
 
 export function makeAPI(api = new DataAPI()) {
   var FullContextStruct = api.mapStruct(FullContext, true);
@@ -94,7 +95,7 @@ export function makeAPI(api = new DataAPI()) {
     FullContextStruct.struct("spline", "spline", "undefined", api.mapStruct(Spline, true));
     FullContextStruct.struct("datalib", "datalib", "undefined", api.mapStruct(DataLib, true));
     FullContextStruct.struct("opseditor", "opseditor", "undefined", api.mapStruct(OpStackEditor, true));
-    FullContextStruct.struct("toolmode", "active_tool", "undefined", api.mapStruct(SplineToolMode, true));
+    FullContextStruct.dynamicStruct("toolmode", "active_tool", "undefined", api.mapStruct(SplineToolMode, true));
   }
 
   var View2DHandlerStruct = api.mapStruct(View2DHandler, true);
@@ -1253,6 +1254,8 @@ export function makeAPI(api = new DataAPI()) {
   api_define_OpStackEditor(api);
   api_define_SplineToolMode(api);
 
+
+  initToolModeAPI(api);
 
   api.rootContextStruct = FullContextStruct;
 

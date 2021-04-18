@@ -84,11 +84,10 @@ export class ToolMode extends NodeBase {
 
   }
 
-  static defineAPI() {
-    let st = new DataStruct(undefined, this);
-    //let st = api.Struct(this.name);
+  static defineAPI(api) {
+    let st = api.mapStruct(this, true);
 
-    st.String("name", "constructor.name", "Name", "Name");
+    st.string("name", "constructor.name", "Name", "Name");
 
     return st;
   }
@@ -158,8 +157,8 @@ ToolMode {
   
 }`;
 
-export function defineAPI(api) {
+export function initToolModeAPI(api) {
   for (let tool of ToolModes) {
-    tool._apiStruct = tool.defineAPI(api);
+    tool.defineAPI(api);
   }
 }

@@ -109,7 +109,7 @@ export class ViewContextOverlay extends ContextOverlay {
   _keymap_mpos : Array<number>;
 
   constructor(state = g_app_state) {
-    super();
+    super(state);
 
     this.appstate = state;
     this._keymap_mpos = [0, 0];

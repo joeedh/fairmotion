@@ -54,10 +54,18 @@ class drawline {
     this.group = group;
     this.width = width;
 
+    this.onremove = null;
+
     if (color !== undefined) {
       this.clr = [color[0], color[1], color[2], color[3] !== undefined ? color[3] : 1.0];
     } else {
       this.clr = [0.4, 0.4, 0.4, 1.0];
+    }
+  }
+
+  remove() {
+    if (this.onremove) {
+      this.onremove(this);
     }
   }
 
@@ -1008,6 +1016,8 @@ export class View2DHandler extends Editor {
 
     var dl = new drawline(v1, v2, group, color, width);
     drawlines.push(dl);
+
+    dl.onremove = this.kill_drawline.bind(this);
 
     let min = _v2d_unstatic_temps.next(), max = _v2d_unstatic_temps.next();
 

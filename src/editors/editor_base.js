@@ -245,6 +245,10 @@ export class Editor extends Area {
     return super.makeHeader(container);
   }
 
+  getKeyMaps() {
+    return [];
+  }
+
   init() {
     super.init();
 
@@ -337,10 +341,18 @@ export class Editor extends Area {
     return Area.register(cls);
   }
 
+  static getActiveArea() {
+    return this.active_area();
+  }
+
   static active_area() {
     let ret = _area_main_stack[_area_main_stack.length-1];
     if (ret === undefined) {
       ret = _last_area;
+    }
+
+    if (ret === undefined) {
+      return {getKeyMaps() { return []}};
     }
 
     return ret;

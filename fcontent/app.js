@@ -1080,7 +1080,7 @@ function __bind_super_prop(obj, cls, parent, prop) {
   }
 }
 
-es6_module_define('config', ["./config_local", "../path.ux/scripts/config/const.js", "./config_local.js"], function _config_module(_es6_module) {
+es6_module_define('config', ["./config_local.js", "../path.ux/scripts/config/const.js", "./config_local"], function _config_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, '../path.ux/scripts/config/const.js');
   let PathUXConstants={colorSchemeType: "dark", 

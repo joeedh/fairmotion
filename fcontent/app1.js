@@ -3727,6 +3727,9 @@ window.startup_intern = function startup() {
     return false;
   }
   if (window.g_app_state===undefined) {
+      console.log(_es6_get_module(_rootpath_src+"src/core/data_api/data_api_pathux.js").exports);
+      let $_t0aseu=_es6_get_module(_rootpath_src+"src/core/data_api/data_api_pathux.js").exports, register_toolops=$_t0aseu.register_toolops;
+      register_toolops();
       startup_report("parsing serialization scripts...");
       init_struct_packer();
       startup_report("loading icons and theme...");
@@ -3748,7 +3751,7 @@ window.startup_intern = function startup() {
 };
 function init_pathux() {
   let ui_base=_es6_get_module("ui_base", true).exports;
-  let $_t0icpf=ui_base, iconmanager=$_t0icpf.iconmanager, setTheme=$_t0icpf.setTheme, setIconMap=$_t0icpf.setIconMap;
+  let $_t1oukh=ui_base, iconmanager=$_t1oukh.iconmanager, setTheme=$_t1oukh.setTheme, setIconMap=$_t1oukh.setIconMap;
   let theme=_es6_get_module(_rootpath_src+"src/editors/theme.js").exports.theme;
   let config=_es6_get_module(_rootpath_src+"src/config/config.js").exports;
   let cconst=_es6_get_module(_rootpath_src+"src/path.ux/scripts/config/const.js").default_export;
@@ -9796,16 +9799,16 @@ function time_func(func, steps) {
   console.log(times);
   return times;
 }
-var $lst_NAad=new GArray();
+var $lst_RFun=new GArray();
 function cached_list(iter) {
-  $lst_NAad.reset();
+  $lst_RFun.reset();
   var i=0;
   for (var item of iter) {
-      $lst_NAad.push(item);
+      $lst_RFun.push(item);
       i++;
   }
-  $lst_NAad.length = i;
-  return $lst_NAad;
+  $lst_RFun.length = i;
+  return $lst_RFun;
 }
 var g_list=list;
 class eid_list extends GArray {
@@ -11069,7 +11072,7 @@ es6_module_define('strutils', [], function _strutils_module(_es6_module) {
 }, '/dev/fairmotion/src/util/strutils.js');
 
 
-es6_module_define('lib_api', ["./toolprops_iter.js", "./struct.js", "../graph/graph.js"], function _lib_api_module(_es6_module) {
+es6_module_define('lib_api', ["./struct.js", "./toolprops_iter.js", "../graph/graph.js"], function _lib_api_module(_es6_module) {
   "use strict";
   var STRUCT=es6_import_item(_es6_module, './struct.js', 'STRUCT');
   const DataTypes={}
@@ -11679,7 +11682,7 @@ DataLib {
 }, '/dev/fairmotion/src/core/lib_api.js');
 
 
-es6_module_define('lib_api_typedefine', ["./frameset.js", "../scene/scene.js", "./imageblock.js", "./lib_api.js", "../curve/spline.js"], function _lib_api_typedefine_module(_es6_module) {
+es6_module_define('lib_api_typedefine', ["./imageblock.js", "./frameset.js", "../curve/spline.js", "../scene/scene.js", "./lib_api.js"], function _lib_api_typedefine_module(_es6_module) {
   var SplineFrameSet=es6_import_item(_es6_module, './frameset.js', 'SplineFrameSet');
   var Scene=es6_import_item(_es6_module, '../scene/scene.js', 'Scene');
   var DataTypes=es6_import_item(_es6_module, './lib_api.js', 'DataTypes');
@@ -11688,7 +11691,7 @@ es6_module_define('lib_api_typedefine', ["./frameset.js", "../scene/scene.js", "
 }, '/dev/fairmotion/src/core/lib_api_typedefine.js');
 
 
-es6_module_define('mathlib', ["../core/struct.js", "../path.ux/scripts/util/vectormath.js", "./vectormath.js"], function _mathlib_module(_es6_module) {
+es6_module_define('mathlib', ["../core/struct.js", "./vectormath.js", "../path.ux/scripts/util/vectormath.js"], function _mathlib_module(_es6_module) {
   "use strict";
   es6_import(_es6_module, './vectormath.js');
   var STRUCT=es6_import_item(_es6_module, '../core/struct.js', 'STRUCT');
@@ -11763,12 +11766,12 @@ es6_module_define('mathlib', ["../core/struct.js", "../path.ux/scripts/util/vect
       FLOAT_MAX = 1000000.0;
       console.log("Floating-point 16-bit system detected!");
   }
-  var $_cs4_LJlI_get_rect_points=new Array(4);
-  var $_cs8_lSJy_get_rect_points=new Array(8);
+  var $_cs4_Aj7Y_get_rect_points=new Array(4);
+  var $_cs8_Z6RI_get_rect_points=new Array(8);
   function get_rect_points(p, size) {
     var cs;
     if (p.length==2) {
-        cs = $_cs4_LJlI_get_rect_points;
+        cs = $_cs4_Aj7Y_get_rect_points;
         cs[0] = p;
         cs[1] = [p[0], p[1]+size[1]];
         cs[2] = [p[0]+size[0], p[1]+size[1]];
@@ -11776,7 +11779,7 @@ es6_module_define('mathlib', ["../core/struct.js", "../path.ux/scripts/util/vect
     }
     else 
       if (p.length==3) {
-        cs = $_cs8_lSJy_get_rect_points;
+        cs = $_cs8_Z6RI_get_rect_points;
         cs[0] = p;
         cs[1] = [p[0]+size[0], p[1], p[2]];
         cs[2] = [p[0]+size[0], p[1]+size[1], p[2]];
@@ -11813,15 +11816,15 @@ es6_module_define('mathlib', ["../core/struct.js", "../path.ux/scripts/util/vect
     }
   }
   get_rect_lines = _es6_module.add_export('get_rect_lines', get_rect_lines);
-  var $vs_PEYE_simple_tri_aabb_isect=[0, 0, 0];
+  var $vs_i0Wk_simple_tri_aabb_isect=[0, 0, 0];
   function simple_tri_aabb_isect(v1, v2, v3, min, max) {
-    $vs_PEYE_simple_tri_aabb_isect[0] = v1;
-    $vs_PEYE_simple_tri_aabb_isect[1] = v2;
-    $vs_PEYE_simple_tri_aabb_isect[2] = v3;
+    $vs_i0Wk_simple_tri_aabb_isect[0] = v1;
+    $vs_i0Wk_simple_tri_aabb_isect[1] = v2;
+    $vs_i0Wk_simple_tri_aabb_isect[2] = v3;
     for (var i=0; i<3; i++) {
         var isect=true;
         for (var j=0; j<3; j++) {
-            if ($vs_PEYE_simple_tri_aabb_isect[j][i]<min[i]||$vs_PEYE_simple_tri_aabb_isect[j][i]>=max[i])
+            if ($vs_i0Wk_simple_tri_aabb_isect[j][i]<min[i]||$vs_i0Wk_simple_tri_aabb_isect[j][i]>=max[i])
               isect = false;
         }
         if (isect)
@@ -11955,42 +11958,42 @@ es6_module_define('mathlib', ["../core/struct.js", "../path.ux/scripts/util/vect
     return p[0]>=pos[0]&&p[0]<=pos[0]+size[0]&&p[1]>=pos[1]&&p[1]<=pos[1]+size[1];
   }
   inrect_2d = _es6_module.add_export('inrect_2d', inrect_2d);
-  var $smin_aTEZ_aabb_isect_line_2d=new Vector2();
-  var $ssize_10hR_aabb_isect_line_2d=new Vector2();
-  var $sv1_FOY8_aabb_isect_line_2d=new Vector2();
-  var $ps_hCV1_aabb_isect_line_2d=[new Vector2(), new Vector2(), new Vector2()];
-  var $l1_2mFV_aabb_isect_line_2d=[0, 0];
-  var $smax_xuCQ_aabb_isect_line_2d=new Vector2();
-  var $sv2_jmUZ_aabb_isect_line_2d=new Vector2();
-  var $l2_cqX7_aabb_isect_line_2d=[0, 0];
+  var $smin_OMQv_aabb_isect_line_2d=new Vector2();
+  var $ssize_DRFC_aabb_isect_line_2d=new Vector2();
+  var $sv1_Xkdk_aabb_isect_line_2d=new Vector2();
+  var $ps_qLiU_aabb_isect_line_2d=[new Vector2(), new Vector2(), new Vector2()];
+  var $l1_0D2X_aabb_isect_line_2d=[0, 0];
+  var $smax_3F3e_aabb_isect_line_2d=new Vector2();
+  var $sv2_T1rI_aabb_isect_line_2d=new Vector2();
+  var $l2_s29U_aabb_isect_line_2d=[0, 0];
   function aabb_isect_line_2d(v1, v2, min, max) {
     for (var i=0; i<2; i++) {
-        $smin_aTEZ_aabb_isect_line_2d[i] = Math.min(min[i], v1[i]);
-        $smax_xuCQ_aabb_isect_line_2d[i] = Math.max(max[i], v2[i]);
+        $smin_OMQv_aabb_isect_line_2d[i] = Math.min(min[i], v1[i]);
+        $smax_3F3e_aabb_isect_line_2d[i] = Math.max(max[i], v2[i]);
     }
-    $smax_xuCQ_aabb_isect_line_2d.sub($smin_aTEZ_aabb_isect_line_2d);
-    $ssize_10hR_aabb_isect_line_2d.load(max).sub(min);
-    if (!aabb_isect_2d($smin_aTEZ_aabb_isect_line_2d, $smax_xuCQ_aabb_isect_line_2d, min, $ssize_10hR_aabb_isect_line_2d))
+    $smax_3F3e_aabb_isect_line_2d.sub($smin_OMQv_aabb_isect_line_2d);
+    $ssize_DRFC_aabb_isect_line_2d.load(max).sub(min);
+    if (!aabb_isect_2d($smin_OMQv_aabb_isect_line_2d, $smax_3F3e_aabb_isect_line_2d, min, $ssize_DRFC_aabb_isect_line_2d))
       return false;
     for (var i=0; i<4; i++) {
-        if (inrect_2d(v1, min, $ssize_10hR_aabb_isect_line_2d))
+        if (inrect_2d(v1, min, $ssize_DRFC_aabb_isect_line_2d))
           return true;
-        if (inrect_2d(v2, min, $ssize_10hR_aabb_isect_line_2d))
+        if (inrect_2d(v2, min, $ssize_DRFC_aabb_isect_line_2d))
           return true;
     }
-    $ps_hCV1_aabb_isect_line_2d[0] = min;
-    $ps_hCV1_aabb_isect_line_2d[1][0] = min[0];
-    $ps_hCV1_aabb_isect_line_2d[1][1] = max[1];
-    $ps_hCV1_aabb_isect_line_2d[2] = max;
-    $ps_hCV1_aabb_isect_line_2d[3][0] = max[0];
-    $ps_hCV1_aabb_isect_line_2d[3][1] = min[1];
-    $l1_2mFV_aabb_isect_line_2d[0] = v1;
-    $l1_2mFV_aabb_isect_line_2d[1] = v2;
+    $ps_qLiU_aabb_isect_line_2d[0] = min;
+    $ps_qLiU_aabb_isect_line_2d[1][0] = min[0];
+    $ps_qLiU_aabb_isect_line_2d[1][1] = max[1];
+    $ps_qLiU_aabb_isect_line_2d[2] = max;
+    $ps_qLiU_aabb_isect_line_2d[3][0] = max[0];
+    $ps_qLiU_aabb_isect_line_2d[3][1] = min[1];
+    $l1_0D2X_aabb_isect_line_2d[0] = v1;
+    $l1_0D2X_aabb_isect_line_2d[1] = v2;
     for (var i=0; i<4; i++) {
-        var a=$ps_hCV1_aabb_isect_line_2d[i], b=$ps_hCV1_aabb_isect_line_2d[(i+1)%4];
-        $l2_cqX7_aabb_isect_line_2d[0] = a;
-        $l2_cqX7_aabb_isect_line_2d[1] = b;
-        if (line_line_cross($l1_2mFV_aabb_isect_line_2d, $l2_cqX7_aabb_isect_line_2d))
+        var a=$ps_qLiU_aabb_isect_line_2d[i], b=$ps_qLiU_aabb_isect_line_2d[(i+1)%4];
+        $l2_s29U_aabb_isect_line_2d[0] = a;
+        $l2_s29U_aabb_isect_line_2d[1] = b;
+        if (line_line_cross($l1_0D2X_aabb_isect_line_2d, $l2_s29U_aabb_isect_line_2d))
           return true;
     }
     return false;
@@ -12105,25 +12108,25 @@ es6_module_define('mathlib', ["../core/struct.js", "../path.ux/scripts/util/vect
     return line_line_cross([v1, v3], [v2, v4]);
   }
   convex_quad = _es6_module.add_export('convex_quad', convex_quad);
-  var $e1_sXKE_normal_tri=new Vector3();
-  var $e3_emF8_normal_tri=new Vector3();
-  var $e2_Gn7P_normal_tri=new Vector3();
+  var $e1_y4i2_normal_tri=new Vector3();
+  var $e3_xhps_normal_tri=new Vector3();
+  var $e2_Yehu_normal_tri=new Vector3();
   function normal_tri(v1, v2, v3) {
-    VSUB($e1_sXKE_normal_tri, v2, v1);
-    VSUB($e2_Gn7P_normal_tri, v3, v1);
-    VCROSS($e3_emF8_normal_tri, $e1_sXKE_normal_tri, $e2_Gn7P_normal_tri);
-    VNORMALIZE($e3_emF8_normal_tri);
-    return $e3_emF8_normal_tri;
+    VSUB($e1_y4i2_normal_tri, v2, v1);
+    VSUB($e2_Yehu_normal_tri, v3, v1);
+    VCROSS($e3_xhps_normal_tri, $e1_y4i2_normal_tri, $e2_Yehu_normal_tri);
+    VNORMALIZE($e3_xhps_normal_tri);
+    return $e3_xhps_normal_tri;
   }
   normal_tri = _es6_module.add_export('normal_tri', normal_tri);
-  var $n2_LwgE_normal_quad=new Vector3();
+  var $n2_IPI2_normal_quad=new Vector3();
   function normal_quad(v1, v2, v3, v4) {
     var n=normal_tri(v1, v2, v3);
-    VLOAD($n2_LwgE_normal_quad, n);
+    VLOAD($n2_IPI2_normal_quad, n);
     n = normal_tri(v1, v3, v4);
-    VADD($n2_LwgE_normal_quad, $n2_LwgE_normal_quad, n);
-    VNORMALIZE($n2_LwgE_normal_quad);
-    return $n2_LwgE_normal_quad;
+    VADD($n2_IPI2_normal_quad, $n2_IPI2_normal_quad, n);
+    VNORMALIZE($n2_IPI2_normal_quad);
+    return $n2_IPI2_normal_quad;
   }
   normal_quad = _es6_module.add_export('normal_quad', normal_quad);
   var lis_rets3=cachering.fromConstructor(Vector3, 64);
@@ -12490,9 +12493,9 @@ es6_module_define('mathlib', ["../core/struct.js", "../path.ux/scripts/util/vect
         }
     }
   }
-  var $_cent_XVAu=new Vector3();
+  var $_cent_CDAN=new Vector3();
   function get_boundary_winding(points) {
-    var cent=$_cent_XVAu.zero();
+    var cent=$_cent_CDAN.zero();
     if (points.length==0)
       return false;
     for (var i=0; i<points.length; i++) {

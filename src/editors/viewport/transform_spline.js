@@ -43,7 +43,7 @@ export class TransSplineVert extends TransDataType {
     co.multVecMatrix(mat);
 
     v.load(co).sub(item.start_data.co).mulScalar(w).add(item.start_data.co);
-    v.flag |= SplineFlags.UPDATE|SplineFlags.FRAME_DIRTY;
+    v.flag |= SplineFlags.UPDATE|SplineFlags.REDRAW|SplineFlags.FRAME_DIRTY;
 
     if (v.type === SplineTypes.HANDLE) {
       var seg = v.owning_segment;

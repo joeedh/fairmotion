@@ -855,9 +855,9 @@ export class View2DHandler extends Editor {
     let strip = row.strip();
     strip.useDataPathUndo = true;
 
-    let mass_set_path = "spline.selected_verts{$.flag & 1}";
-    strip.prop("spline.active_vertex.flag[BREAK_TANGENTS]", undefined, mass_set_path + ".flag[BREAK_TANGENTS]");
-    strip.prop("spline.active_vertex.flag[BREAK_CURVATURES]", undefined, mass_set_path + ".flag[BREAK_CURVATURES]");
+    let mass_set_path = "spline.selected_verts[{$.flag & 1}]";
+    strip.prop("spline.verts.active.flag[BREAK_TANGENTS]", undefined, mass_set_path + ".flag[BREAK_TANGENTS]");
+    strip.prop("spline.verts.active.flag[BREAK_CURVATURES]", undefined, mass_set_path + ".flag[BREAK_CURVATURES]");
     strip.prop("view2d.half_pix_size");
 
     strip = row.strip();

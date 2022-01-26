@@ -102,7 +102,7 @@ export class TransformOp extends ToolOp {
     
     //console.log("SELMODE", selmode);
     
-    if (this.transdata == undefined) {
+    if (this.transdata === undefined) {
       this.types = [];
       
       if (selmode & SelMask.TOPOLOGY)
@@ -458,6 +458,8 @@ export class TranslateOp extends TransformOp {
       ctx.frameset.on_ctx_update(ctx);
       delete this.transdata;
     }
+
+    window.redraw_viewport();
   }
 }
 
@@ -532,6 +534,8 @@ export class NonUniformScaleOp extends TransformOp {
       ctx.frameset.on_ctx_update(ctx);
       delete this.transdata;
     }
+
+    window.redraw_viewport();
   }
 }
 
@@ -623,6 +627,8 @@ export class ScaleOp extends TransformOp {
       ctx.frameset.on_ctx_update(ctx);
       delete this.transdata;
     }
+
+    window.redraw_viewport();
   }
 }
 
@@ -697,5 +703,7 @@ export class RotateOp extends TransformOp {
       ctx.frameset.on_ctx_update(ctx);
       delete this.transdata;
     }
+
+    window.redraw_viewport();
   }
 }

@@ -230,6 +230,12 @@ export class SplineLocalToolOp extends ToolOp {
     
     console.log("Restoring IDGen; max_cur:", max_cur, "current max:", spline.idgen.cur_id);
     idgen.max_cur(max_cur-1); //minus 1 is because idgen.max_cur adds one internally
+
+    window.redraw_viewport();
+  }
+
+  execPost(ctx) {
+    window.redraw_viewport();
   }
 }//*/
 

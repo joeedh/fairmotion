@@ -2,10 +2,11 @@ import {BaseContext, FullContext} from "./context.js";
 import {ToolFlags, ToolMacro, ToolOp, UndoFlags} from "./toolops_api.js";
 import {DataFlags, DataPath, DataStruct, DataStructArray} from "./data_api/data_api.js";
 import {CollectionProperty, StringProperty, TPropFlags} from "./toolprops.js";
+import * as pathux from '../path.ux/scripts/pathux.js';
 
 import {USE_PATHUX_API} from './const.js';
 
-export class ToolStack {
+export class ToolStack extends pathux.ToolStack {
   undocur: number
   undostack: Array
   valcache: any
@@ -13,13 +14,24 @@ export class ToolStack {
   do_truncate: boolean;
 
   constructor(appstate: AppState) {
-    this.undocur = 0;
-    this.undostack = new Array();
+    super();
 
     this.appstate = appstate;
     this.valcache = appstate.toolop_input_cache;
 
     this.do_truncate = true;
+  }
+
+  get undostack() {
+    return this;
+  }
+
+  get undocur() {
+    return this.cur;
+  }
+
+  set undocur(v) {
+    this.cur = v;
   }
 
   reexec_stack2(validate = false) {
@@ -137,67 +149,14 @@ export class ToolStack {
     }
   }
 
-  default_inputs(ctx: Context, tool: ToolOp) {
-    let cache = this.valcache;
-
-    //input_prop will be necassary for type checking
-    //in the future
-    function get_default(String
-
-    key, Object
-    defaultval, ToolProperty
-    input_prop
-  )
-    {
-      key = tool.constructor.name + ":" + key;
-
-      if (key in cache)
-        return cache[key];
-
-      cache[key] = defaultval;
-
-      return defaultval;
-    }
-
-    /*set .ctx on tool properties*/
-    let tctx = ctx.toLocked(); //new ToolContext();
-
-    for (let k in tool.inputs) {
-      tool.inputs[k].ctx = tctx;
-    }
-    for (let k in tool.outputs) {
-      tool.outputs[k].ctx = tctx;
-    }
-
-    tool.default_inputs(ctx, get_default);
-  }
-
   truncate_stack() {
-    if (this.undocur !== this.undostack.length) {
-      if (this.undocur === 0) {
-        this.undostack = new Array();
+    if (this.cur !== this.length) {
+      if (this.cur === 0) {
+        this.length = 0;
       } else {
-        this.undostack = this.undostack.slice(0, this.undocur);
+        this.length = this.cur;
       }
     }
-  }
-
-  undo_push(tool: ToolOp) {
-    if (this.do_truncate) {
-      this.truncate_stack();
-      this.undostack.push(tool);
-    } else {
-      this.undostack.insert(this.undocur, tool);
-
-      for (let i = this.undocur - 1; i < this.undostack.length; i++) {
-        if (i < 0) continue;
-
-        this.undostack[i].stack_index = i;
-      }
-    }
-
-    tool.stack_index = this.undostack.indexOf(tool);
-    this.undocur++;
   }
 
   //removes undo entry for "canceled" tools, that didn't affect state AT ALL
@@ -218,78 +177,9 @@ export class ToolStack {
     }
   }
 
-  get head() {
-    return this.undostack[this.undocur-1];
-  }
-
-  undo() {
-    //flush event graph
-    the_global_dag.exec(this.ctx);
-
-    if (this.undocur > 0 && (this.undostack[this.undocur - 1].undoflag & UndoFlags.UNDO_BARRIER))
-      return;
-    if (this.undocur > 0 && !(this.undostack[this.undocur - 1].undoflag & UndoFlags.HAS_UNDO_DATA))
-      return;
-
-    if (this.undocur > 0) {
-      this.undocur--;
-      let tool = this.undostack[this.undocur];
-
-      let ctx = new FullContext();
-      let tctx = (tool.flag & ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : ctx;
-
-      if (the_global_dag !== undefined)
-        the_global_dag.reset_cache();
-
-      tool.saved_context.set_context(ctx);
-      tool.undo(tctx);
-
-      if (the_global_dag !== undefined)
-        the_global_dag.reset_cache();
-
-      if (this.undocur > 0)
-        this.rebuild_last_tool(this.undostack[this.undocur - 1]);
-
-      window.redraw_viewport();
-    }
-  }
-
-  redo() {
-    //flush event graph
-    the_global_dag.exec(this.ctx);
-
-    if (this.undocur < this.undostack.length) {
-      let tool = this.undostack[this.undocur];
-      let ctx = new FullContext();
-
-      tool.saved_context.set_context(ctx);
-      tool.is_modal = false;
-
-      if (!(tool.undoflag & UndoFlags.NO_UNDO)) {
-        tool.undoPre((tool.flag & ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : ctx);
-        tool.undoflag |= UndoFlags.HAS_UNDO_DATA;
-      }
-
-      let tctx = (tool.flag & ToolFlags.USE_TOOL_CONTEXT) ? tool.ctx : tool.ctx.toLocked();
-
-      if (the_global_dag !== undefined)
-        the_global_dag.reset_cache();
-
-      tool.exec_pre(tctx);
-      tool.exec(tctx);
-
-      if (tool.redo_post) {
-        tool.redo_post(ctx);
-      }
-
-      this.undocur++;
-
-      if (this.undocur > 0)
-        this.rebuild_last_tool(this.undostack[this.undocur - 1]);
-    }
-  }
-
   reexec_tool(tool: ToolOp) {
+    console.error("reexec_tool called");
+
     if (!(tool.undoflag & UndoFlags.HAS_UNDO_DATA)) {
       this.reexec_stack();
     }
@@ -322,11 +212,11 @@ export class ToolStack {
   }
 
   kill_opstack() {
-    this.undostack = new Array();
-    this.undocur = 0;
+    this.reset();
   }
 
   gen_tool_datastruct(tool: ToolOp) {
+    return;
     let datastruct = new DataStruct([]);
     let this2 = this;
 
@@ -391,6 +281,7 @@ export class ToolStack {
   }
 
   rebuild_last_tool(tool) {
+    return;
     if (USE_PATHUX_API) {
       return;
     }
@@ -434,57 +325,9 @@ export class ToolStack {
     }
   }
 
-  /*the undo-friendly way to set a datapath*/
-  exec_datapath(ctx: FullContext, path: String, val: any, undo_push: boolean = true,
-                use_simple_undo: boolean = false, cls: function = DataPathOp) {
-
-    let api = g_app_state.api;
-
-    //first, ensure we can access the data path
-    let prop = api.get_prop_meta(ctx, path);
-    if (prop === undefined) {
-      console.trace("Error in exec_datapath", path);
-      return;
-    }
-
-    let good = this.undostack.length > 0 && this.undostack[this.undocur - 1] instanceof cls;
-    good = good && this.undostack[this.undocur - 1].path === path;
-    let exists = false;
-
-    if (undo_push || !good) {
-      let op = new cls(path, use_simple_undo);
-    } else {
-      op = this.undostack[this.undocur - 1];
-      this.undo();
-      exists = true;
-    }
-
-    //console.log("exists", exists, "undo_push", undo_push, "path, prop", path, prop);
-
-    let input = op.get_prop_input(path, prop);
-    input.setValue(val);
-
-    if (exists) {
-      this.redo();
-    } else {
-      this.exec_tool(op);
-    }
-  }
-
   exec_tool(tool: ToolOp) {
     console.warn("exec_tool deprecated in favor of execTool");
     return this.execTool(g_app_state.ctx, tool);
-  }
-
-  execToolRepeat(ctx, cls, args = {}) {
-    let tools = cls.getRepeat(ctx, args);
-
-    for (let tool of tools) {
-      tool.flag |= ToolFlags.USE_TOOL_CONTEXT;
-    }
-
-    let macro = new ToolMacro(cls.tooldef().apiname, cls.tooldef().uiname, tools);
-    this.execTool(macro);
   }
 
   error(msg) {
@@ -492,7 +335,21 @@ export class ToolStack {
     g_app_state.ctx.error(msg);
   }
 
-  execTool(ctx: FullContext, tool: ToolOp) {
+  execTool(ctx, tool) {
+    //flush event graph
+    the_global_dag.exec(this.ctx);
+    this.set_tool_coll_flag(tool);
+
+    let ret = super.execTool(ctx, tool);
+
+    if (typeof tool === "object") {
+      tool.stack_index = this.indexOf(tool);
+    }
+
+    return ret;
+  }
+
+  _execTool(ctx: FullContext, tool: ToolOp) {
     if (ctx instanceof ToolOp) {
       console.warn("Bad arguments to g_app_state.toolstack.execTool()");
       tool = ctx;
@@ -592,17 +449,18 @@ export class ToolStack {
     }
   }
 
-  static fromSTRUCT(reader) {
-    let ts = new ToolStack(g_app_state);
-    reader(ts);
+  loadSTRUCT(reader) {
+    reader(this);
 
-    ts.undostack = new Array(ts.undostack);
-    for (let i = 0; i < ts.undostack.length; i++) {
-      ts.undostack[i].stack_index = i;
-      ts.set_tool_coll_flag(ts.undostack[i]);
+    this.cur = this.undocur;
+    for (let item of this.undostack) {
+      this.push(item);
     }
 
-    return ts;
+    for (let i = 0; i < this.length; i++) {
+      this[i].stack_index = i;
+      this.set_tool_coll_flag(this[i]);
+    }
   }
 }
 

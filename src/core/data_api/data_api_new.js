@@ -1058,28 +1058,24 @@ export function makeAPI(api = new DataAPI()) {
       BREAK_TANGENTS  : Icons.EXTRUDE_MODE_G0,
       BREAK_CURVATURES: Icons.EXTRUDE_MODE_G1
     }).on("change", function (old) {
-      return (function (owner) {
-        this.ctx.spline.regen_sort();
-        if (owner !== undefined) {
-          owner.flag |= SplineFlags.UPDATE;
-        }
-        this.ctx.spline.propagate_update_flags();
-        this.ctx.spline.resolve = 1;
-        window.redraw_viewport();
-      }).call(this.dataref, old)
+      this.ctx.spline.regen_sort();
+
+      if (this.dataref !== undefined) {
+        this.dataref.flag |= SplineFlags.UPDATE;
+      }
+
+      //this.ctx.spline.propagate_update_flags();
+      this.ctx.spline.resolve = 1;
+      window.redraw_viewport();
     });
     SplineVertexStruct.vec3("", "co", "Co").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4);
     SplineVertexStruct.float("width", "width", "width").range(-50, 200).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function (old) {
-      return (function (vert) {
-        vert.flag |= SplineFlags.REDRAW;
-        window.redraw_viewport();
-      }).call(this.dataref, old)
+      this.dataref.flag |= SplineFlags.REDRAW;
+      window.redraw_viewport();
     });
     SplineVertexStruct.float("shift", "shift", "shift").range(-2, 2).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function (old) {
-      return (function (vert) {
-        vert.flag |= SplineFlags.REDRAW;
-        window.redraw_viewport();
-      }).call(this.dataref, old)
+      this.dataref.flag |= SplineFlags.REDRAW;
+      window.redraw_viewport();
     });
   }
 
@@ -1168,15 +1164,14 @@ export function makeAPI(api = new DataAPI()) {
 
   function api_define_SceneObject(api) {
     ;
-    SceneObjectStruct.vec3("ctx_bb", "ctx_bb", "Dimensions").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4).on("change", function (old) {
-      return (function () {
+    SceneObjectStruct.vec3("ctx_bb", "ctx_bb", "Dimensions").range(-100000000000000000, 100000000000000000).step(0.1).expRate(1.33).decimalPlaces(4)
+      .on("change", function (old) {
         if (this.ctx.mesh !== undefined)
           this.ctx.mesh.regen_render();
         if (this.ctx.view2d !== undefined && this.ctx.view2d.selectmode & EditModes.GEOMETRY) {
           this.ctx.object.dag_update();
         }
-      }).call(this.dataref, old)
-    });
+      });
   }
 
   var SceneStruct = api.mapStruct(Scene, true);
@@ -1208,14 +1203,13 @@ export function makeAPI(api = new DataAPI()) {
           }*/
     ]);
     ;
-    SceneStruct.int("time", "frame", "Frame").range(1, 10000).step(1).expRate(1.5).on("change", function (old) {
-      return ((owner, old) => {
-        let time = owner.time;
-        owner.time = old;
-        owner.change_time(g_app_state.ctx, time);
+    SceneStruct.int("time", "frame", "Frame").range(1, 10000).step(1).expRate(1.5)
+      .on("change", function (old) {
+        let time = this.dataref.time;
+        this.dataref.time = old;
+        this.dataref.change_time(g_app_state.ctx, time);
         window.redraw_viewport();
-      }).call(this.dataref, old)
-    });
+      });
     SceneStruct.list("objects", "objects", [
       function getIter(api, list) {
         return new obj_value_iter(list.object_idmap);

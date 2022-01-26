@@ -536,6 +536,16 @@ export class AppState {
     }
   }
 
+  onFrameChange(ctx, time) {
+    for (let id in ctx.datalib.idmap) {
+      let block = ctx.datalib.idmap[id];
+
+      for (let ch of block.lib_anim_channels) {
+        console.warn("anim: setting path", ch.path, ch.evaluate(time));
+        ctx.api.setValue(ctx, ch.path, ch.evaluate(time));
+      }
+    }
+  }
 
   get active_splinepath() {
     let scene = this.datalib.get_active(DataTypes.SCENE);

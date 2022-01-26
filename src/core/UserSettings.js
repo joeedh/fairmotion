@@ -19,6 +19,8 @@ export function loadTheme(str : string) {
   setTheme(theme);
 }
 
+loadTheme(defaultTheme);
+
 export class RecentPath {
   constructor(path : string, displayname : string) {
     this.path = path;
